@@ -177,6 +177,95 @@ def Plot_3D_plt_Tor_DefAxes(dmargin=None, fs=None, wintit='tofu'):
     return ax
 
 
+def Plot_CrystIm(fs=None, dmargin=None, wintit=None):
+    assert fs is None or (type(fs) is str and fs=='a4') or len(fs)==2
+    assert wintit is None or type(wintit) is str, "Arg wintit must be a str !"
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (6, 9)
+    elif type(fs) is str and fs=='a4':
+        fs = (11.69, 8.27)
+
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
+    if wintit is not None:
+        f.canvas.set_window_title(wintit)
+
+    if dmargin is None:
+        dmargin = {
+            'left': 0.06, 'right': 0.95,
+            'bottom': 0.08, 'top': 0.95,
+            'wspace': 0.20, 'hspace': 0.1,
+        }
+    gs = gridspec.GridSpec(1, 1, **dmargin)
+
+    dax = {
+        'im': f.add_subplot(gs[0, 0], frameon=True, facecolor=axCol),
+    }
+    k0 = 'im'
+    dax[k0].set_xlabel(r"$x_i$ (m)")
+    dax[k0].set_ylabel(r"$x_j$ (m)")
+    return dax['im']
+
+
+def Plot_AllCryst(fs=None, dmargin=None, wintit=None):
+    assert fs is None or (type(fs) is str and fs=='a4') or len(fs)==2
+    assert wintit is None or type(wintit) is str, "Arg wintit must be a str !"
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (20, 11)
+    elif type(fs) is str and fs=='a4':
+        fs = (11.69, 8.27)
+
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
+    if wintit is not None:
+        f.canvas.set_window_title(wintit)
+
+    if dmargin is None:
+        dmargin = {
+            'left': 0.06, 'right': 0.90,
+            'bottom': 0.08, 'top': 0.95,
+            'wspace': 0.50, 'hspace': 0.2,
+        }
+    gs = gridspec.GridSpec(3, 3, **dmargin)
+
+    dax = {
+        'cross': f.add_subplot(
+            gs[0, :2], frameon=True, facecolor=axCol,
+            aspect='equal', adjustable='datalim',
+        ),
+        'hor': f.add_subplot(
+            gs[0, 2], frameon=True, facecolor=axCol,
+            aspect='equal', adjustable='datalim',
+        ),
+        '3d': f.add_subplot(
+            gs[1:, :2], facecolor=axCol,
+            projection='3d',
+        ),
+        'im': f.add_subplot(
+            gs[1:, 2], frameon=True, facecolor=axCol,
+            aspect='equal', adjustable='datalim',
+        ),
+    }
+
+    k0 = 'cross'
+    dax[k0].set_xlabel(r"R (m)")
+    dax[k0].set_ylabel(r"Z (m)")
+
+    k0 = 'hor'
+    dax[k0].set_xlabel(r"X (m)")
+    dax[k0].set_ylabel(r"Y (m)")
+
+    k0 = '3d'
+    dax[k0].set_xlabel(r"X (m)")
+    dax[k0].set_ylabel(r"Y (m)")
+    dax[k0].set_zlabel(r"Z (m)")
+
+    k0 = 'im'
+    dax[k0].set_xlabel(r"$x_i$ (m)")
+    dax[k0].set_ylabel(r"$x_j$ (m)")
+    return dax
+
+
 def Plot_Impact_DefAxes(Proj, Ang='theta', AngUnit='rad', fs=None, wintit='tofu', Sketch=True):
     assert fs is None or (type(fs) is str and fs=='a4') or len(fs)==2
     axCol, fdpi = 'w', 80

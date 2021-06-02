@@ -9,7 +9,7 @@ from scipy.interpolate import BSpline
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
-from matplotlib.colors import ListedColormap
+import matplotlib.colors as mplcol
 import matplotlib.gridspec as gridspec
 from matplotlib.axes._axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
@@ -25,12 +25,15 @@ _QUIVERCOLOR = plt.cm.viridis(np.linspace(0, 1, 3))
 _QUIVERCOLOR = np.array([[1., 0., 0., 1.],
                          [0., 1., 0., 1.],
                          [0., 0., 1., 1.]])
-_QUIVERCOLOR = ListedColormap(_QUIVERCOLOR)
+_QUIVERCOLOR = mplcol.ListedColormap(_QUIVERCOLOR)
+_RAYS_NPTS = 10
 
 
 # Generic
-def _check_projdax_mpl(dax=None, proj=None,
-                       dmargin=None, fs=None, wintit=None):
+def _check_projdax_mpl(
+    dax=None, proj=None,
+    dmargin=None, fs=None, wintit=None,
+):
 
     # ----------------------
     # Check inputs
@@ -38,19 +41,17 @@ def _check_projdax_mpl(dax=None, proj=None,
         proj = 'all'
     assert isinstance(proj, str)
     proj = proj.lower()
-    lproj = ['cross', 'hor', '3d']
+    lproj = ['cross', 'hor', '3d', 'im']
     assert proj in lproj + ['all']
-    if proj == 'all':
-        proj = ['cross', 'hor']
-    else:
-        proj = [proj]
 
     # ----------------------
     # Check dax
-    lc = [dax is None,
-          issubclass(dax.__class__, Axes),
-          isinstance(dax, dict),
-          isinstance(dax, list)]
+    lc = [
+        dax is None,
+        issubclass(dax.__class__, Axes),
+        isinstance(dax, dict),
+        isinstance(dax, list),
+    ]
     assert any(lc)
     if lc[0]:
         dax = dict.fromkeys(proj)
@@ -58,43 +59,48 @@ def _check_projdax_mpl(dax=None, proj=None,
         assert len(proj) == 1
         dax = {proj[0]: dax}
     elif lc[2]:
-        lcax = [dax.get(pp) is None or issubclass(dax.get(pp).__class__, Axes)
-                for pp in proj]
+        lcax = [
+            dax.get(pp) is None or issubclass(dax.get(pp).__class__, Axes)
+            for pp in proj
+        ]
         if not all(lcax):
-            msg = "Wrong key or axes in dax:\n"
-            msg += "    - proj = %s"%str(proj)
-            msg += "    - dax = %s"%str(dax)
+            msg = (
+                "Wrong key or axes in dax:\n"
+                + "    - proj = {}".format(proj)
+                + "    - dax = {}".format(dax)
+            )
             raise Exception(msg)
     else:
         assert len(dax) == 2
-        assert all([ax is None or issubclass(ax.__class__, Axes)
-                    for ax in dax])
+        assert all(
+            [ax is None or issubclass(ax.__class__, Axes) for ax in dax]
+        )
         dax = {'cross': dax[0], 'hor': dax[1]}
 
     # Populate with default axes if necessary
-    if 'cross' in proj and 'hor' in proj:
-        if dax['cross'] is None:
-            assert dax['hor'] is None
-            lax = _def.Plot_LOSProj_DefAxes('all', fs=fs,
-                                            dmargin=dmargin,
-                                            wintit=wintit)
-            dax['cross'], dax['hor'] = lax
-    elif 'cross' in proj and dax['cross'] is None:
-        dax['cross'] = _def.Plot_LOSProj_DefAxes('cross', fs=fs,
-                                                 dmargin=dmargin,
-                                                 wintit=wintit)
-    elif 'hor' in proj and dax['hor'] is None:
-        dax['hor'] = _def.Plot_LOSProj_DefAxes('hor', fs=fs,
-                                               dmargin=dmargin,
-                                               wintit=wintit)
-    elif '3d' in proj  and dax['3d'] is None:
-        dax['3d'] = _def.Plot_3D_plt_Tor_DefAxes(fs=fs,
-                                                 dmargin=dmargin,
-                                                 wintit=wintit)
+    if proj == 'cross' and dax['cross'] is None:
+        dax['cross'] = _def.Plot_LOSProj_DefAxes(
+            'cross', fs=fs, dmargin=dmargin, wintit=wintit,
+        )
+    elif proj == 'hor' and dax['hor'] is None:
+        dax['hor'] = _def.Plot_LOSProj_DefAxes(
+            'hor', fs=fs, dmargin=dmargin, wintit=wintit,
+        )
+    elif proj == '3d' and dax['3d'] is None:
+        dax['3d'] = _def.Plot_3D_plt_Tor_DefAxes(
+            fs=fs, dmargin=dmargin, wintit=wintit,
+        )
+    elif proj == 'im' and dax['im'] is None:
+        dax['im'] = _def.Plot_CrystIm(
+            fs=fs, dmargin=dmargin, wintit=wintit,
+        )
+    elif proj == 'all' and any([dax.get(k0) is None for k0 in lproj]):
+        dax = _def.Plot_AllCryst(
+            fs=fs, dmargin=dmargin, wintit=wintit,
+        )
     for kk in lproj:
         dax[kk] = dax.get(kk, None)
     return dax
-
 
 
 # #################################################################
@@ -103,31 +109,64 @@ def _check_projdax_mpl(dax=None, proj=None,
 # #################################################################
 # #################################################################
 
-def CrystalBragg_plot(cryst=None, dcryst=None,
-                      det=None, ddet=None,
-                      dax=None, proj=None, res=None, element=None,
-                      color=None, dP=None,
-                      pts0=None, pts1=None, rays_color=None, rays_npts=None,
-                      dleg=None, draw=True, fs=None, dmargin=None,
-                      use_non_parallelism=None,
-                      wintit=None, tit=None):
 
-    # ---------------------
-    # Check / format inputs
+def _CrystalBragg_plot_check(
+    cryst=None, dcryst=None,
+    det=None, ddet=None,
+    res=None, element=None,
+    color=None,
+    pts_summit=None, pts1=None, pts2=None,
+    xi=None, xj=None,
+    rays_color=None, rays_npts=None,
+    dleg=None, draw=True,
+    use_non_parallelism=None,
+    wintit=None, tit=None,
+):
 
+    # plotting
     assert type(draw) is bool, "Arg draw must be a bool !"
     assert cryst is None or cryst.__class__.__name__ == 'CrystalBragg'
     if wintit is None:
         wintit = _WINTIT
+    if tit is None:
+        tit = False
     if dleg is None:
          dleg = _def.TorLegd
+
+    # rays color
+    if rays_color is None:
+        if pts_summit is None:
+            rays_color = 'k'
+        else:
+            rays_color = 'pts' if pts_summit.shape[2] > 1 else 'lamb'
+
+    if rays_color in ['pts', 'lamb']:
+        pass
+    else:
+        try:
+            rays_color = mplcol.to_rgba(rays_color)
+        except Exception as err:
+            msg = (
+                "Arg rays_color must be either:\n"
+                + "\t- 'pts': color by pts of origin\n"
+                + "\t- 'lamb': color by wavelength\n"
+                + "\t- a matplotlib color (e.g.: 'k', (0.1, 0.2, 0.1), ...)\n"
+            )
+            raise Exception(msg)
+
+    # rays_npts
+    if rays_npts is None:
+        rays_npts = _RAYS_NPTS
+    assert rays_npts >= 2, "Arg rays_npts must be a int >= 2"
 
     # elements
     lelement = ['s', 'c', 'r', 'o', 'v']
     if element is None:
         element = 'oscrv'
-    c0 = (isinstance(element, str)
-          and all([ss in lelement for ss in element.lower()]))
+    c0 = (
+        isinstance(element, str)
+        and all([ss in lelement for ss in element.lower()])
+    )
     if not c0:
         msg = ("Arg element must be str contain some of the following:\n"
                + "\t- 'o': outline\n"
@@ -141,32 +180,33 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
 
     # cryst
     if element != '' and cryst is None:
-        msg = ("cryst cannot be None if element contains any of:\n"
-               + "\t- {}\n".format(lelement)
-               + "You provided: {}".format(element))
+        msg = (
+            "cryst cannot be None if element contains any of:\n"
+            + "\t- {}\n".format(lelement)
+            + "You provided: {}".format(element)
+        )
         raise Exception(msg)
 
-    # vectors
-    nout, e1, e2 = cryst.get_unit_vectors(
-        use_non_parallelism=use_non_parallelism,
-    )
-    nin = -nout
-
-    # outline
-    outline = cryst.sample_outline_plot(
-        res=res,
-        use_non_parallelism=use_non_parallelism,
-    )
+    # vectors and outline
+    if cryst is not None:
+        nout, e1, e2, use_non_parallelism = cryst.get_unit_vectors(
+            use_non_parallelism=use_non_parallelism,
+        )
+        nin = -nout
+        outline = cryst.sample_outline_plot(
+            res=res,
+            use_non_parallelism=use_non_parallelism,
+        )
 
     # det
     if det is None:
         det = False
     if det is not False and any([ss in element for ss in 'ocv']):
-        c0 = (isinstance(det, dict)
-              and 'cent' in det.keys())
+        c0 = isinstance(det, dict) and 'cent' in det.keys()
         if c0 and 'o' in element:
-            c0 = c0 and all([ss in det.keys()
-                             for ss in ['outline', 'ei', 'ej']])
+            c0 = c0 and all(
+                [ss in det.keys() for ss in ['outline', 'ei', 'ej']]
+            )
         if c0 and 'v' in element:
             c0 = c0 and all([ss in det.keys() for ss in ['nout', 'ei', 'ej']])
         if not c0:
@@ -181,23 +221,95 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
             raise Exception(msg)
 
     # pts
-    lc = [pts0 is None, pts1 is None]
-    c0 = (np.sum(lc) == 1
-          or (not any(lc)
-              and (pts0.shape != pts1.shape or pts0.shape[0] != 3)))
-    if c0:
-        msg = ("pts0 and pts1 must be:\n"
-               + "\t- both None\n"
-               + "\t- both np.ndarray of same shape, with shape[0] == 3\n"
-               + "  You provided:\n"
-               + "\t- pts0: {}\n".format(pts0)
-               + "\t- pts1: {}".format(pts1))
+    lc = [pts_summit is not None, pts1 is not None, pts2 is not None]
+    c0 = (
+        (not any(lc))
+        or all(lc)
+    )
+    if not c0:
+        msg = (
+            "pts_summit and pts1 and pts2 must be:\n"
+            + "\t- all None\n"
+            + "\t- all np.ndarray of same shape, with shape[0] == 3\n"
+            + "  You provided:\n"
+            + "\t- pts_summit: {}\n".format(pts_summit)
+            + "\t- pts1: {}".format(pts1)
+            + "\t- pts2: {}".format(pts2)
+        )
         raise Exception(msg)
-    if pts0 is not None:
-        if rays_color is None:
-            rays_color = 'k'
-        if rays_npts is None:
-            rays_npts = 10
+    if pts_summit is not None:
+        if not (pts_summit.shape == pts1.shape == pts2.shape):
+            msg = (
+                "Args pts_summit, pts1 and pts2 must have the same shape!\n"
+                + "  You provided:\n"
+                + "\t- pts_summit.shape: {}\n".format(pts_summit.shape)
+                + "\t- pts1.shape: {}\n".format(pts1.shape)
+                + "\t- pts2.shape: {}\n".format(pts2.shape)
+            )
+            raise Exception(msg)
+
+    if rays_color in ['pts', 'lamb'] and pts_summit is not None:
+        if pts_summit.ndim not in [4, 5]:
+            msg = (
+                "For pts-wise or lambda-wise coloring, "
+                + "input pts_summit must be 4d np.ndarray of shape "
+                + "(3, nlamb, npts, ndtheta)\n"
+                + "  You provided:\n"
+                + "\t- pts_summit.shape = {}".format(pts_summit.shape)
+            )
+            raise Exception(msg)
+
+    # rays
+    rays = None
+    if pts_summit is not None:
+        # pts.shape = (3, nlamb, npts, ndtheta)
+        # rays.shape = (3, nlamb, npts, ndtheta, 2, 2*rays_npts)
+        shape = np.r_[pts1.shape, 1]
+        k = np.linspace(0, 1, rays_npts)
+        rays = np.concatenate((
+            pts1[..., None] + k*(pts_summit-pts1)[..., None],
+            pts_summit[..., None]
+            + k[1:]*(pts2-pts_summit)[..., None],
+            np.full(shape, np.nan),
+        ), axis=-1)
+
+        nlamb, npts, ndtheta, _, nk = rays.shape[1:]
+        if rays_color in ['pts', 'lamb']:
+            if rays_color == 'lamb':
+                rays = rays.reshape(3, nlamb, npts*ndtheta*nk*2).swapaxes(1, 2)
+            elif rays_color == 'pts':
+                rays = rays.swapaxes(1, 2).reshape(
+                    3, npts, nlamb*ndtheta*nk*2,
+                ).swapaxes(1, 2)
+        else:
+            rays = rays.reshape(3, nlamb*npts*ndtheta*nk*2, order='C')
+
+    # xi, xj
+    lc = [xi is not None, xj is not None]
+    c0 = (
+        np.sum(lc) in [0, 2]
+        and (
+            not any(lc)
+            or (lc[0] and xi.shape == xj.shape == pts1.shape[1:])
+        )
+    )
+    if not c0:
+        msg = (
+            "Args xi, xj must be either both None of 2 array of same shape!\n"
+            + "  Provided:\n\t- xi:\n{}\n\t- xj:\n{}".format(xi, xj)
+        )
+        raise Exception(msg)
+    if lc[0]:
+        if rays_color in ['pts', 'lamb']:
+            if rays_color == 'lamb':
+                xi = xi.reshape(nlamb, npts*ndtheta*2).T
+                xj = xj.reshape(nlamb, npts*ndtheta*2).T
+            elif rays_color == 'pts':
+                xi = xi.swapaxes(0, 1).reshape(npts, nlamb*ndtheta*2).T
+                xj = xj.swapaxes(0, 1).reshape(npts, nlamb*ndtheta*2).T
+        else:
+            xi = xi.ravel()
+            xj = xj.ravel()
 
     # dict for plotting
     if color is None:
@@ -230,27 +342,59 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
         if color is not False:
             ddet[k0]['color'] = color
 
+    return (
+        dcryst, det, ddet,
+        nout, nin, e1, e2, xi, xj, outline, element, color,
+        rays, rays_color, rays_npts,
+        dleg, wintit,
+    )
+
+
+def CrystalBragg_plot(
+    cryst=None, dcryst=None,
+    det=None, ddet=None,
+    dax=None, proj=None, res=None, element=None,
+    color=None,
+    pts_summit=None, pts1=None, pts2=None,
+    xi=None, xj=None,
+    rays_color=None, rays_npts=None,
+    dleg=None, draw=True, fs=None, dmargin=None,
+    use_non_parallelism=None,
+    wintit=None, tit=None,
+):
+
+    # ---------------------
+    # Check / format inputs
+
+    (
+        dcryst, det, ddet,
+        nout, nin, e1, e2, xi, xj, outline, element, color,
+        rays, rays_color, rays_npts,
+        dleg, wintit,
+    ) = _CrystalBragg_plot_check(
+        cryst=cryst, dcryst=dcryst,
+        det=det, ddet=ddet,
+        res=res, element=element,
+        color=color,
+        pts_summit=pts_summit, pts1=pts1, pts2=pts2,
+        xi=xi, xj=xj,
+        rays_color=rays_color, rays_npts=rays_npts,
+        dleg=dleg, draw=draw,
+        use_non_parallelism=use_non_parallelism,
+        wintit=wintit, tit=tit,
+    )
+
     # ---------------------
     # call plotting functions
-
-    kwa = dict(fs=fs, wintit=wintit)
-    if proj == '3d':
-        # Temporary matplotlib issue
-        dax = _CrystalBragg_plot_3d(
-            cryst=cryst, dcryst=dcryst,
-            det=det, ddet=ddet,
-            nout=nout, nin=nin, e1=e1, e2=e2, outline=outline,
-            proj=proj, res=res, dax=dax, element=element,
-            pts0=pts0, pts1=pts1, rays_color=rays_color, rays_npts=rays_npts,
-            draw=draw, dmargin=dmargin, fs=fs, wintit=wintit)
-    else:
-        dax = _CrystalBragg_plot_crosshor(
-            cryst=cryst, dcryst=dcryst,
-            det=det, ddet=ddet,
-            nout=nout, nin=nin, e1=e1, e2=e2, outline=outline,
-            proj=proj, res=res, dax=dax, element=element,
-            pts0=pts0, pts1=pts1, rays_color=rays_color, rays_npts=rays_npts,
-            draw=draw, dmargin=dmargin, fs=fs, wintit=wintit)
+    dax = _CrystalBragg_plot(
+        cryst=cryst, dcryst=dcryst,
+        det=det, ddet=ddet,
+        nout=nout, nin=nin, e1=e1, e2=e2, outline=outline,
+        proj=proj, dax=dax, element=element,
+        rays=rays, rays_color=rays_color, rays_npts=rays_npts,
+        xi=xi, xj=xj,
+        draw=draw, dmargin=dmargin, fs=fs, wintit=wintit,
+    )
 
     # recompute the ax.dataLim
     ax0 = None
@@ -271,16 +415,17 @@ def CrystalBragg_plot(cryst=None, dcryst=None,
     return dax
 
 
-def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
-                                det=None, ddet=None,
-                                nout=None, nin=None, e1=None, e2=None,
-                                outline=None,
-                                proj=None, dax=None,
-                                element=None, res=None,
-                                pts0=None, pts1=None,
-                                rays_color=None, rays_npts=None,
-                                quiver_cmap=None, draw=True,
-                                dmargin=None, fs=None, wintit=None):
+def _CrystalBragg_plot(
+    cryst=None, dcryst=None,
+    det=None, ddet=None,
+    nout=None, nin=None, e1=None, e2=None,
+    outline=None,
+    proj=None, dax=None, element=None,
+    rays=None, rays_color=None, rays_npts=None,
+    xi=None, xj=None,
+    quiver_cmap=None, draw=True,
+    dmargin=None, fs=None, wintit=None,
+):
 
     # ---------------------
     # Check / format inputs
@@ -291,8 +436,10 @@ def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
     # ---------------------
     # Prepare axe and data
 
-    dax = _check_projdax_mpl(dax=dax, proj=proj,
-                             dmargin=dmargin, fs=fs, wintit=wintit)
+    dax = _check_projdax_mpl(
+        dax=dax, proj=proj,
+        dmargin=dmargin, fs=fs, wintit=wintit,
+    )
 
     if 's' in element or 'v' in element:
         summ = cryst._dgeom['summit']
@@ -310,6 +457,8 @@ def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
     # plot
     cross = dax.get('cross') is not None
     hor = dax.get('hor') is not None
+    d3 = dax.get('3d') is not None
+    im = dax.get('im') is not None
 
     if 'o' in element:
         if cross:
@@ -320,194 +469,99 @@ def _CrystalBragg_plot_crosshor(cryst=None, dcryst=None,
                 **dcryst['outline'],
             )
         if hor:
-            dax['hor'].plot(outline[0,:], outline[1,:],
-                            label=cryst.Id.NameLTX+' outline',
-                            **dcryst['outline'])
+            dax['hor'].plot(
+                outline[0,:], outline[1,:],
+                label=cryst.Id.NameLTX+' outline',
+                **dcryst['outline'],
+            )
+        if d3:
+            dax['3d'].plot(
+                outline[0, :], outline[1, :], outline[2, :],
+                label=cryst.Id.NameLTX+' outline',
+                **dcryst['outline'],
+            )
+
     if 's' in element:
         if cross:
-            dax['cross'].plot(np.hypot(summ[0], summ[1]), summ[2],
-                              label=cryst.Id.NameLTX+" summit",
-                              **dcryst['summit'])
+            dax['cross'].plot(
+                np.hypot(summ[0], summ[1]), summ[2],
+                label=cryst.Id.NameLTX+" summit",
+                **dcryst['summit'],
+            )
         if hor:
-            dax['hor'].plot(summ[0], summ[1],
-                            label=cryst.Id.NameLTX+" summit",
-                            **dcryst['summit'])
+            dax['hor'].plot(
+                summ[0], summ[1],
+                label=cryst.Id.NameLTX+" summit",
+                **dcryst['summit'],
+            )
+        if d3:
+            dax['3d'].plot(
+                summ[0:1], summ[1:2], summ[2:3],
+                label=cryst.Id.NameLTX+" summit",
+                **dcryst['summit'],
+            )
     if 'c' in element:
         if cross:
-            dax['cross'].plot(np.hypot(cent[0], cent[1]), cent[2],
-                              label=cryst.Id.NameLTX+" center",
-                              **dcryst['cent'])
+            dax['cross'].plot(
+                np.hypot(cent[0], cent[1]), cent[2],
+                label=cryst.Id.NameLTX+" center",
+                **dcryst['cent'],
+            )
         if hor:
-            dax['hor'].plot(cent[0], cent[1],
-                            label=cryst.Id.NameLTX+" center",
-                            **dcryst['cent'])
+            dax['hor'].plot(
+                cent[0], cent[1],
+                label=cryst.Id.NameLTX+" center",
+                **dcryst['cent'],
+            )
+        if d3:
+            dax['3d'].plot(
+                cent[0:1], cent[1:2], cent[2:3],
+                label=cryst.Id.NameLTX+" center",
+                **dcryst['cent'],
+            )
     if 'r' in element:
         if cross:
-            dax['cross'].plot(np.hypot(row[0,:], row[1,:]), row[2,:],
-                              label=cryst.Id.NameLTX+' rowland',
-                              **dcryst['rowland'])
+            dax['cross'].plot(
+                np.hypot(row[0,:], row[1,:]), row[2,:],
+                label=cryst.Id.NameLTX+' rowland',
+                **dcryst['rowland'],
+            )
         if hor:
-            dax['hor'].plot(row[0,:], row[1,:],
-                            label=cryst.Id.NameLTX+' rowland',
-                            **dcryst['rowland'])
+            dax['hor'].plot(
+                row[0,:], row[1,:],
+                label=cryst.Id.NameLTX+' rowland',
+                **dcryst['rowland'],
+            )
+        if d3:
+            dax['3d'].plot(
+                row[0, :], row[1, :], row[2, :],
+                label=cryst.Id.NameLTX+' rowland',
+                **dcryst['rowland'],
+            )
     if 'v' in element:
         p0 = np.repeat(summ[:,None], 3, axis=1)
         v = np.concatenate((nout[:, None], e1[:, None], e2[:, None]), axis=1)
         if cross:
             pr = np.hypot(p0[0, :], p0[1, :])
             vr = np.hypot(p0[0, :]+v[0, :], p0[1, :]+v[1, :]) - pr
-            dax['cross'].quiver(pr, p0[2, :],
-                                vr, v[2, :],
-                                np.r_[0., 0.5, 1.], cmap=quiver_cmap,
-                                angles='xy', scale_units='xy',
-                                label=cryst.Id.NameLTX+" unit vect",
-                                **dcryst['vectors'])
+            dax['cross'].quiver(
+                pr, p0[2, :],
+                vr, v[2, :],
+                np.r_[0., 0.5, 1.], cmap=quiver_cmap,
+                angles='xy', scale_units='xy',
+                label=cryst.Id.NameLTX+" unit vect",
+                **dcryst['vectors'],
+            )
         if hor:
-            dax['hor'].quiver(p0[0, :], p0[1, :],
-                              v[0, :], v[1, :],
-                              np.r_[0., 0.5, 1.], cmap=quiver_cmap,
-                              angles='xy', scale_units='xy',
-                              label=cryst.Id.NameLTX+" unit vect",
-                              **dcryst['vectors'])
-
-    # -------------
-    # Detector
-    if det is not False:
-        if det.get('cent') is not None and 'c' in element:
-            if cross:
-                dax['cross'].plot(np.hypot(det['cent'][0], det['cent'][1]),
-                                  det['cent'][2],
-                                  label="det_cent",
-                                  **ddet['cent'])
-            if hor:
-                dax['hor'].plot(det['cent'][0], det['cent'][1],
-                                label="det_cent",
-                                **ddet['cent'])
-
-        if det.get('nout') is not None and 'v' in element:
-            assert det.get('ei') is not None and det.get('ej') is not None
-            p0 = np.repeat(det['cent'][:, None], 3, axis=1)
-            v = np.concatenate((det['nout'][:, None], det['ei'][:, None],
-                                det['ej'][:, None]), axis=1)
-            if cross:
-                pr = np.hypot(p0[0, :], p0[1, :])
-                vr = np.hypot(p0[0, :]+v[0, :], p0[1, :]+v[1, :]) - pr
-                dax['cross'].quiver(pr, p0[2, :],
-                                    vr, v[2, :],
-                                    np.r_[0., 0.5, 1.], cmap=quiver_cmap,
-                                    angles='xy', scale_units='xy',
-                                    label="det unit vect",
-                                    **ddet['vectors'])
-            if hor:
-                dax['hor'].quiver(p0[0, :], p0[1, :],
-                                  v[0, :], v[1, :],
-                                  np.r_[0., 0.5, 1.], cmap=quiver_cmap,
-                                  angles='xy', scale_units='xy',
-                                  label="det unit vect",
-                                  **ddet['vectors'])
-
-        if det.get('outline') is not None and 'o' in element:
-            det_out = (det['outline'][0:1, :]*det['ei'][:, None]
-                        + det['outline'][1:2, :]*det['ej'][:, None]
-                       + det['cent'][:, None])
-            if cross:
-                dax['cross'].plot(np.hypot(det_out[0, :], det_out[1, :]),
-                                  det_out[2, :],
-                                  label='det outline',
-                                  **ddet['outline'])
-            if hor:
-                dax['hor'].plot(det_out[0, :],
-                                det_out[1, :],
-                                label='det outline',
-                                **ddet['outline'])
-
-    # -------------
-    # pts0 and pts1
-    if pts0 is not None:
-        if pts0.ndim == 3:
-            pts0 = np.reshape(pts0, (3, pts0.shape[1]*pts0.shape[2]))
-            pts1 = np.reshape(pts1, (3, pts1.shape[1]*pts1.shape[2]))
-        if cross:
-            k = np.r_[np.linspace(0, 1, rays_npts), np.nan]
-            pts01 = np.reshape((pts0[:, :, None]
-                                + k[None, None, :]*(pts1-pts0)[:, :, None]),
-                               (3, pts0.shape[1]*(rays_npts+1)))
-            linesr = np.hypot(pts01[0, :], pts01[1, :])
-            dax['cross'].plot(linesr, pts01[2, :],
-                              color=rays_color, lw=1., ls='-')
-        if hor:
-            k = np.r_[0, 1, np.nan]
-            pts01 = np.reshape((pts0[:2, :, None]
-                                + k[None, None, :]*(pts1-pts0)[:2, :, None]),
-                               (2, pts0.shape[1]*3))
-            dax['hor'].plot(pts01[0, :], pts01[1, :],
-                            color=rays_color, lw=1., ls='-')
-    return dax
-
-
-def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
-                          det=None, ddet=None,
-                          nout=None, nin=None, e1=None, e2=None,
-                          outline=None,
-                          proj=None, dax=None,
-                          element=None, res=None,
-                          pts0=None, pts1=None,
-                          rays_color=None, rays_npts=None,
-                          quiver_cmap=None, draw=True,
-                          dmargin=None, fs=None, wintit=None):
-
-    # ---------------------
-    # Check / format inputs
-
-    if 'v' in element and quiver_cmap is None:
-        quiver_cmap = _QUIVERCOLOR
-
-    # ---------------------
-    # Prepare axe and data
-
-    dax = _check_projdax_mpl(dax=dax, proj=proj,
-                             dmargin=dmargin, fs=fs, wintit=wintit)
-
-    if 's' in element or 'v' in element:
-        summ = cryst._dgeom['summit']
-    if 'c' in element:
-        cent = cryst._dgeom['summit'] + cryst._dgeom['rcurve']*nin
-        # cryst._dgeom['center']
-    if 'r' in element:
-        ang = np.linspace(0, 2.*np.pi, 200)
-        rr = 0.5*cryst._dgeom['rcurve']
-        row = cryst._dgeom['summit'] + rr*nin
-        row = (row[:, None]
-               + rr*(np.cos(ang)[None, :]*nin[:, None]
-                     + np.sin(ang)[None, :]*e1[:, None]))
-
-    # ---------------------
-    # plot
-
-    if 'o' in element:
-        if dax['3d'] is not None:
-            dax['3d'].plot(outline[0, :], outline[1, :], outline[2, :],
-                           label=cryst.Id.NameLTX+' outline',
-                           **dcryst['outline'])
-    if 's' in element:
-        if dax['3d'] is not None:
-            dax['3d'].plot(summ[0:1], summ[1:2], summ[2:3],
-                           label=cryst.Id.NameLTX+" summit",
-                           **dcryst['summit'])
-    if 'c' in element:
-        if dax['3d'] is not None:
-            dax['3d'].plot(cent[0:1], cent[1:2], cent[2:3],
-                           label=cryst.Id.NameLTX+" center",
-                           **dcryst['cent'])
-    if 'r' in element:
-        if dax['3d'] is not None:
-            dax['3d'].plot(row[0, :], row[1, :], row[2, :],
-                           label=cryst.Id.NameLTX+' rowland',
-                           **dcryst['rowland'])
-    if 'v' in element:
-        p0 = np.repeat(summ[:, None], 3, axis=1)
-        v = np.concatenate((nout[:, None], e1[:, None], e2[:, None]), axis=1)
-        if dax['3d'] is not None:
+            dax['hor'].quiver(
+                p0[0, :], p0[1, :],
+                v[0, :], v[1, :],
+                np.r_[0., 0.5, 1.], cmap=quiver_cmap,
+                angles='xy', scale_units='xy',
+                label=cryst.Id.NameLTX+" unit vect",
+                **dcryst['vectors'],
+            )
+        if d3:
             dax['3d'].quiver(
                 p0[0, :], p0[1, :], p0[2, :],
                 v[0, :], v[1, :], v[2, :],
@@ -518,25 +572,59 @@ def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
                 label=cryst.Id.NameLTX+" unit vect",
                 **dcryst['vectors'],
             )
-             #, **Vdict)
-            # angles='xy', scale_units='xy',
 
     # -------------
     # Detector
     if det is not False:
         if det.get('cent') is not None and 'c' in element:
-            if dax['3d'] is not None:
-                dax['3d'].plot(det['cent'][0:1],
-                               det['cent'][1:2],
-                               det['cent'][2:3],
-                               label="det_cent",
-                               **ddet['cent'])
+            if cross:
+                dax['cross'].plot(
+                    np.hypot(det['cent'][0], det['cent'][1]),
+                    det['cent'][2],
+                    label="det_cent",
+                    **ddet['cent'],
+                )
+            if hor:
+                dax['hor'].plot(
+                    det['cent'][0], det['cent'][1],
+                    label="det_cent",
+                    **ddet['cent'],
+                )
+            if d3:
+                dax['3d'].plot(
+                    det['cent'][0:1],
+                    det['cent'][1:2],
+                    det['cent'][2:3],
+                    label="det_cent",
+                    **ddet['cent'],
+                )
 
         if det.get('nout') is not None and 'v' in element:
+            assert det.get('ei') is not None and det.get('ej') is not None
             p0 = np.repeat(det['cent'][:, None], 3, axis=1)
             v = np.concatenate((det['nout'][:, None], det['ei'][:, None],
                                 det['ej'][:, None]), axis=1)
-            if dax['3d'] is not None:
+            if cross:
+                pr = np.hypot(p0[0, :], p0[1, :])
+                vr = np.hypot(p0[0, :]+v[0, :], p0[1, :]+v[1, :]) - pr
+                dax['cross'].quiver(
+                    pr, p0[2, :],
+                    vr, v[2, :],
+                    np.r_[0., 0.5, 1.], cmap=quiver_cmap,
+                    angles='xy', scale_units='xy',
+                    label="det unit vect",
+                    **ddet['vectors'],
+                )
+            if hor:
+                dax['hor'].quiver(
+                    p0[0, :], p0[1, :],
+                    v[0, :], v[1, :],
+                    np.r_[0., 0.5, 1.], cmap=quiver_cmap,
+                    angles='xy', scale_units='xy',
+                    label="det unit vect",
+                    **ddet['vectors'],
+                )
+            if d3:
                 dax['3d'].quiver(
                     p0[0, :], p0[1, :], p0[2, :],
                     v[0, :], v[1, :], v[2, :],
@@ -547,32 +635,104 @@ def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
                     label="det unit vect",
                     **ddet['vectors'],
                 )
-                #, **Vdict)
-                # angles='xy', scale_units='xy',
+
         if det.get('outline') is not None and 'o' in element:
             det_out = (det['outline'][0:1, :]*det['ei'][:, None]
-                       + det['outline'][1:2, :]*det['ej'][:, None]
+                        + det['outline'][1:2, :]*det['ej'][:, None]
                        + det['cent'][:, None])
-            if dax['3d'] is not None:
-                dax['3d'].plot(det_out[0, :],
-                               det_out[1, :],
-                               det_out[2, :],
-                               label='det outline',
-                               **ddet['outline'])
+            if cross:
+                dax['cross'].plot(
+                    np.hypot(det_out[0, :], det_out[1, :]),
+                    det_out[2, :],
+                    label='det outline',
+                    **ddet['outline'],
+                )
+            if hor:
+                dax['hor'].plot(
+                    det_out[0, :],
+                    det_out[1, :],
+                    label='det outline',
+                    **ddet['outline'],
+                )
+            if d3:
+                dax['3d'].plot(
+                    det_out[0, :],
+                    det_out[1, :],
+                    det_out[2, :],
+                    label='det outline',
+                    **ddet['outline'],
+                )
+            if im:
+                dax['im'].plot(
+                    det['outline'][0, :],
+                    det['outline'][1, :],
+                    label='det outline',
+                    **ddet['outline'],
+                )
 
     # -------------
-    # pts0 and pts1
-    if pts0 is not None:
-        if pts0.ndim == 3:
-            pts0 = np.reshape(pts0, (3, pts0.shape[1]*pts0.shape[2]))
-            pts1 = np.reshape(pts1, (3, pts1.shape[1]*pts1.shape[2]))
-        if dax['3d'] is not None:
-            k = np.r_[0, 1, np.nan]
-            pts01 = np.reshape((pts0[:, :, None]
-                                + k[None, None, :]*(pts1-pts0)[:, :, None]),
-                               (3, pts0.shape[1]*3))
-            dax['3d'].plot(pts01[0, :], pts01[1, :], pts01[2, :],
-                           color=rays_color, lw=1., ls='-')
+    # rays
+    if rays is not None:
+        if rays_color in ['pts', 'lamb']:
+            if cross:
+                dax['cross'].set_prop_cycle(None)
+                dax['cross'].plot(
+                    np.hypot(rays[0, :, :], rays[1, :, :]),
+                    rays[2, :, :],
+                    lw=1., ls='-',
+                )
+            if hor:
+                dax['hor'].set_prop_cycle(None)
+                dax['hor'].plot(
+                    rays[0, :, :], rays[1, :, :],
+                    lw=1., ls='-',
+                )
+            if d3:
+                dax['3d'].set_prop_cycle(None)
+                for ii in range(rays.shape[2]):
+                    dax['3d'].plot(
+                        rays[0, :, ii],
+                        rays[1, :, ii],
+                        rays[2, :, ii],
+                        lw=1., ls='-',
+                    )
+            if im:
+                dax['3d'].set_prop_cycle(None)
+                dax['im'].plot(
+                    xi, xj,
+                    ls='None',
+                    marker='.',
+                    ms=6,
+                )
+
+        else:
+            if cross:
+                dax['cross'].set_prop_cycle(None)
+                dax['cross'].plot(
+                    np.hypot(rays[0, :], rays[1, :]),
+                    rays[2, :],
+                    color=rays_color, lw=1., ls='-',
+                )
+            if hor:
+                dax['hor'].set_prop_cycle(None)
+                dax['hor'].plot(
+                    rays[0, :], rays[1, :],
+                    color=rays_color, lw=1., ls='-',
+                )
+            if d3:
+                dax['3d'].set_prop_cycle(None)
+                dax['3d'].plot(
+                    rays[0, :], rays[1, :], rays[2, :],
+                    color=rays_color, lw=1., ls='-',
+                )
+            if im:
+                dax['3d'].set_prop_cycle(None)
+                dax['im'].plot(
+                    xi, xj,
+                    ls='None',
+                    marker='.',
+                    ms=6,
+                )
     return dax
 
 
@@ -581,6 +741,7 @@ def _CrystalBragg_plot_3d(cryst=None, dcryst=None,
 #                   Rocking curve plot
 # #################################################################
 # #################################################################
+
 
 def CrystalBragg_plot_rockingcurve(func=None, bragg=None, lamb=None,
                                    sigma=None, npts=None,
@@ -782,6 +943,7 @@ def CrystalBragg_plot_line_tracing_on_det(
 
     if dleg is None:
         dleg = {'loc': 'upper right', 'bbox_to_anchor': (0.93, 0.8)}
+
     if fs is None:
         fs = (6, 8)
     if dmargin is None:
