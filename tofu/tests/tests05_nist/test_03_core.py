@@ -110,5 +110,5 @@ class Test01_openadas(object):
                 create_custom=True,
             )
 
-    def test02_clear_downloads(self):
-        tfn.clear_downloads()
+    def test02_clear_cache(self):
+        tfn.clear_cache()
