@@ -2,6 +2,7 @@
 # Built-in
 import os
 import shutil
+import requests
 import warnings
 
 # Common
@@ -18,11 +19,13 @@ __all__ = [
 # Check whether a local .tofu/ repo exists
 _URL = 'https://physics.nist.gov/PhysRefData/ASD/lines_form.html'
 _URL_SEARCH_PRE = 'https://physics.nist.gov/cgi-bin/ASD/'
+_URL_SOURCE = 'https://physics.nist.gov/cgi-bin/ASBib1/get_ASBib_ref.cgi?'
 _CUSTOM = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 _CUSTOM = os.path.join(_CUSTOM, 'scripts', 'tofucustom.py')
 _CREATE_CUSTOM = True
 _CACHE_FROM = True
 _CACHE_TO = True
+_CACHE_UPDATE = True
 _CACHE_INFO = False
 
 
@@ -32,15 +35,14 @@ _DOP = {
     'lambmax': {'str': 'upp_w=', 'cache': 'C'},
     'wav_observed': {'str': 'show_obs_wl=1', 'def': True, 'cache': 'D'},
     'wav_calculated': {'str': 'show_calc_wl=1', 'def': True, 'cache': 'E'},
-    'wav_calculated': {'str': 'show_calc_wl=1', 'def': True, 'cache': 'F'},
-    'transitions_allowed': {'str': 'allowed_out=1', 'def': True, 'cache': 'G'},
-    'transitions_forbidden': {'str': 'forbid_out=1', 'def': True, 'cache': 'H'},
-    'info_ref': {'str': 'bibrefs=1', 'def': True, 'cache': 'I'},
-    'info_conf': {'str': 'conf_out=on', 'def': True, 'cache': 'J'},
-    'info_term': {'str': 'term_out=on', 'def': True, 'cache': 'K'},
-    'info_energy': {'str': 'enrg_out=on', 'def': True, 'cache': 'L'},
-    'info_J': {'str': 'J_out=on', 'def': True, 'cache': 'M'},
-    'info_g': {'str': 'g_out=on', 'def': True, 'cache': 'N'},
+    'transitions_allowed': {'str': 'allowed_out=1', 'def': True, 'cache': 'F'},
+    'transitions_forbidden': {'str': 'forbid_out=1', 'def': True, 'cache': 'G'},
+    'info_ref': {'str': 'bibrefs=1', 'def': True, 'cache': 'H'},
+    'info_conf': {'str': 'conf_out=on', 'def': True, 'cache': 'H'},
+    'info_term': {'str': 'term_out=on', 'def': True, 'cache': 'J'},
+    'info_energy': {'str': 'enrg_out=on', 'def': True, 'cache': 'K'},
+    'info_J': {'str': 'J_out=on', 'def': True, 'cache': 'L'},
+    'info_g': {'str': 'g_out=on', 'def': True, 'cache': 'M'},
 }
 
 
@@ -242,7 +244,7 @@ def _get_totalurl(
 
     for k0, v0 in dop.items():
         if v0['val'] is False:
-            lsearchurl.remove(k0)
+            lsearchurl.remove(v0['str'])
 
     # total url (online source)
     total_url = '{}{}'.format(_URL_SEARCH_PRE, '&'.join(lsearchurl))
@@ -263,6 +265,7 @@ def _get_totalurl(
 
 def step01_search_online_by_wavelengthA(
     element=None,
+    charge=None,
     ion=None,
     lambmin=None,
     lambmax=None,
@@ -277,11 +280,14 @@ def step01_search_online_by_wavelengthA(
     info_g=None,
     cache_from=None,
     cache_to=None,
+    cache_update=None,
     cache_info=None,
-    returnas=None,
+    return_df=None,
+    return_dsources=None,
+    return_url=None,
     verb=None,
     create_custom=None,
-    path_local=None,
+    format_for_DataCollection=None,
 ):
     """ Perform an online freeform search on https://open.adas.ac.uk
 
@@ -300,23 +306,34 @@ def step01_search_online_by_wavelengthA(
         )
     """
 
+    # ----------
     # Check input
     if cache_from is None:
         cache_from = _CACHE_FROM
     if cache_to is None:
         cache_to = _CACHE_TO
+    if cache_update is None:
+        cache_update = _CACHE_UPDATE
     if cache_info is None:
         cache_info = _CACHE_INFO
-    if returnas is None:
-        returnas = False
+    if return_df is None:
+        return_df = False
+    if return_dsources is None:
+        return_dsources = False
+    if return_url is None:
+        return_url = False
     if verb is None:
         verb = True
     if create_custom is None:
         create_custom = _CREATE_CUSTOM
+    if format_for_DataCollection is None:
+        format_for_DataCollection = False
 
+    # ----------
     # get search url
     cache_url, total_url, path_local = _get_totalurl(
         element=element,
+        charge=charge,
         ion=ion,
         lambmin=lambmin,
         lambmax=lambmax,
@@ -331,6 +348,7 @@ def step01_search_online_by_wavelengthA(
         info_g=info_g,
     )
 
+    # ----------
     # load from cache or online
     c0 = (
         cache_from is True
@@ -339,16 +357,58 @@ def step01_search_online_by_wavelengthA(
     )
     loaded_from_cache = False
     if c0:
-        csv = pd.read_csv(cache_url)
+        df = pd.read_csv(cache_url)
         if cache_info is True:
             msg = "Loaded from cache:\n\t{}".format(cache_url)
             print(msg)
         loaded_from_cache = True
     else:
-        csv = pd.read_csv(total_url)
+        try:
+            df = pd.read_csv(total_url)
+        except Exception as err:
+            msg = (
+                "\n{}\n".format(str(err))
+                + "For some reason (see above), data could not be loaded from:"
+                + "\n\t{}\n".format(_URL)
+                + "\n  => Maybe check your internet connection?"
+            )
+            raise Exception(msg)
 
+    # ----------
+    # Complete source
+    if loaded_from_cache is False:
+        for kk in df.columns:
+            for ii in df.index:
+                if isinstance(df.loc[ii, kk], str):
+                    if '=' in df.loc[ii, kk]:
+                        df.loc[ii, kk] = df.loc[ii, kk].replace('=', '')
+                    if df.loc[ii, kk].count('"') == 2:
+                        df.loc[ii, kk] = df.loc[ii, kk].replace('"', '')
+                    if len(df.loc[ii, kk]) == 0:
+                        df.loc[ii, kk] = '-'
+
+    if 'line_ref' in df.columns:
+        lsources = sorted(set([
+            (
+                df.loc[ii, 'line_ref'],
+                df.loc[ii, 'element'],
+                df.loc[ii, 'sp_num'],
+            )
+            for ii in df.index
+            if df.loc[ii, 'line_ref'] != '-'
+        ]))
+        dsources = _get_dsources(lsources)
+
+    # ----------
     # Save to cache
-    if cache_to is True and loaded_from_cache is False:
+    c0 = (
+        cache_to is True
+        and (
+            loaded_from_cache is False
+            or cache_update is True
+        )
+    )
+    if c0:
         if path_local is None:
             if create_custom is True:
                 os.system('python ' + _CUSTOM)
@@ -367,20 +427,180 @@ def step01_search_online_by_wavelengthA(
                     + "\ttofu custom"
                 )
                 raise Exception(msg)
-        csv.to_csv(cache_url)
+        df.to_csv(cache_url)
         if cache_info is True:
             msg = "Saved to cache:\n\t{}".format(cache_url)
             print(msg)
 
+    # ----------
     # print and return
     if verb is True:
         try:
-            print(csv.to_markdown())
+            print(df.to_markdown())
         except Exception as err:
-            print(csv)
+            print(df)
 
-    if returnas is True:
-        return csv
+    if format_for_DataCollection is True:
+        return _format_for_DataCollection(df=df, dsources=dsources)
+    else:
+        url = cache_url if loaded_from_cache else total_url
+        lv = [(df, return_df), (dsources, return_dsources), (url, return_url)]
+        out = tuple([vv[0] for vv in lv if vv[1] is True])
+        if len(out) == 0:
+            out = None
+        return out
+
+
+# #############################################################################
+# #############################################################################
+#                          sources
+# #############################################################################
+
+
+def _get_dsources(lsources):
+    dsources = {}
+    for ss in lsources:
+        dbid = ss[0].split('c')
+        if len(dbid) > 1:
+            dbid, code = dbid[0][1:], 'c'+dbid[1]
+        else:
+            dbid, code = dbid[0][1:], ''
+        largs = [
+            'db=el',
+            'db_id={}'.format(dbid),
+            'comment_code={}'.format(code),
+            'element={}'.format(ss[1]),
+            'spectr_charge={}'.format(ss[2]),
+            'type=',
+        ]
+        url = _URL_SOURCE + '&'.join(largs)
+
+        try:
+            resp = requests.get(url).text
+
+            # title
+            if resp.count('<title>') == resp.count('</title>') == 1:
+                i0 = resp.index('<title>')+len('<title>')
+                i1 = resp.index('</title>')
+                title = resp[i0:i1]
+            else:
+                msg = "title could not be identified"
+                raise Exception(msg)
+
+            # First author
+            char = (
+                '<a id="aa" title="Click to search for all papers of this'
+                + ' author" target="_blank" href='
+            )
+            if resp.count(char) > 0:
+                i0 = resp.index(char) + len(char)
+                i1 = resp[i0:].index('</a>')
+                author = resp[i0:i0+i1].replace('"', '')
+                author = author.split(';')[-1]
+            else:
+                msg = "author could not be identified"
+                raise Exception(msg)
+
+            # journal
+            char = (
+                '<a id="aj" title="Click to open the journal'
+            )
+            extralen = len('s online archive" href=') + 1
+            if resp.count(char) == 1:
+                i0 = resp.index(char) + len(char) + extralen
+                i1 = resp[i0:].index('</a>')
+                jour = resp[i0:i0+i1].replace('"', '')
+                jour = jour.split('>')[-1]
+                refs = resp[i0+i1+len('</a>'):]
+                refs = refs[:refs.index(')')]
+                irefs, year = refs.split('(')
+                vol = refs[refs.index('<b>')+len('<b>'):refs.index('</b>')]
+            else:
+                msg = "jour, year, vol could not be identified"
+                raise Exception(msg)
+
+            # url
+            char = (
+                '<a id="at" title="Click to open the article in the '
+                + 'journal online archive" target="_blank" href='
+            )
+            if resp.count(char) == 1:
+                i0 = resp.index(char) + len(char)
+                i1 = resp[i0:].index('>')
+                url = resp[i0:i0+i1].replace('"', '')
+            else:
+                msg = "url could not be identified"
+                raise Exception(msg)
+
+            longi = "{} et al., {}, {}, {}, {}".format(
+                author, title, jour, vol, year,
+            )
+            dsources[ss[0]] = {'long': longi, 'url': url}
+        except Exception as err:
+            dsources[ss[0]] = {'long': ss}
+    return dsources
+
+
+# #############################################################################
+# #############################################################################
+#                          format for DataCollection
+# #############################################################################
+
+
+def _extract_one_line(
+    df=None, dsources=None,
+    ii=None, key=None, lamb0=None,
+    dout=None,
+):
+    ion = '{}{}+'.format(df.loc[ii, 'element'], df.loc[ii, 'sp_num'])
+    dout[key] = {
+        'ion': ion,
+        'lambda0': lamb0,
+    }
+    ls = ['conf_i', 'term_i', 'J_i', 'conf_k', 'term_k', 'J_k']
+    if all([ss in df.columns for ss in ls]):
+        dout[key]['transition'] = (
+            '{} {} {}'.format(
+                df.loc[ii, 'conf_i'], df.loc[ii, 'term_i'], df.loc[ii, 'J_i'],
+            ),
+            '{} {} {}'.format(
+                df.loc[ii, 'conf_k'], df.loc[ii, 'term_k'], df.loc[ii, 'J_k'],
+            )
+        )
+    if 'line_ref' in df.columns and df.loc[ii, 'line_ref'] in dsources.keys():
+        dout[key]['source'] = df.loc[ii, 'line_ref']
+    else:
+        dout[key]['source'] = 'unknown'
+    nn, tt = key.split('_')[1:]
+    dout[key]['symbol'] = 'n{}{}'.format(nn, tt[0])
+    return dout
+
+
+def _format_for_DataCollection(df=None, dsources=None):
+    dlines = {}
+    for ii in df.index:
+        kl = 'obs_wl_vac(A)'
+        c0 = kl in df.columns and df.loc[ii, kl] != '-'
+        if c0:
+            key = 'nist_{:03}_obs'.format(ii)
+            lamb0 = float(df.loc[ii, kl])*1e-10
+            dlines = _extract_one_line(
+                df=df, dsources=dsources,
+                ii=ii, key=key, lamb0=lamb0,
+                dout=dlines,
+            )
+        kl = 'ritz_wl_vac(A)'
+        c0 = kl in df.columns and df.loc[ii, kl] != '-'
+        if c0:
+            key = 'nist_{:03}_calc'.format(ii)
+            lamb0 = float(df.loc[ii, kl])*1e-10
+            dlines = _extract_one_line(
+                df=df, dsources=dsources,
+                ii=ii, key=key, lamb0=lamb0,
+                dout=dlines,
+            )
+
+    return dlines, dsources
 
 
 # #############################################################################
