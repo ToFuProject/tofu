@@ -374,6 +374,17 @@ def step01_search_online_by_wavelengthA(
             )
             raise Exception(msg)
 
+    # Trivial case
+    if '<!DOCTYPE html' in df.columns:
+        if format_for_DataCollection is True:
+            return None, None
+        else:
+            lv = [
+                (None, return_df), (None, return_dsources), (None, return_url),
+            ]
+            out = tuple([vv[0] for vv in lv if vv[1] is True])
+            return out
+
     # ----------
     # Complete source
     if loaded_from_cache is False:
@@ -398,6 +409,10 @@ def step01_search_online_by_wavelengthA(
             if df.loc[ii, 'line_ref'] != '-'
         ]))
         dsources = _get_dsources(lsources)
+    else:
+        import pdb; pdb.set_trace()     # DB
+        pass
+
 
     # ----------
     # Save to cache
