@@ -956,8 +956,7 @@ class CrystalBragg(utils.ToFuObject):
              color=None, det=None, ddet=None,
              dleg=None, draw=True, dmargin=None,
              use_non_parallelism=None,
-             fs=None, wintit=None,
-             ):
+             fs=None, wintit=None):
         """ Plot the crystal in desired axes
 
         Parameters
@@ -1026,98 +1025,30 @@ class CrystalBragg(utils.ToFuObject):
 
         return _plot_optics.CrystalBragg_plot(self, **kwdargs)
 
-    def plot_rays_from_summit(
-        self, phi=None, bragg=None, lamb=None,
-        dcryst=None,
-        dax=None, proj=None, element=None,
-        n=None, config=None, det=None,
-        color=None, npts=None, dleg=None,
-        use_non_parallelism=None,
-        fs=None, wintit=None,
-    ):
+    def plot_rays_from_summit(self, phi=None, bragg=None, lamb=None,
+                              n=None, config=None, det=None,
+                              color=None, npts=None, proj=None,
+                              use_non_parallelism=None,
+                              dax=None, fs=None, wintit=None, dleg=None):
         """ plot rays from the crystal summit to the tokamak amd/or to det
 
         phi is understood as the angle towards the tokamak
         phi+np.pi is the angle towards the detector
-
-        Parameters
-        ----------
-        bragg:      None / int
-        lamb:
-            Array of min size 1 of values in 1e-10 [m]
-        config:     None / dict
-            Load the WEST configuration
-        npts:       None / int
-            ?
-        dax:        None / dict
-            dict of axes to be used, with keys:
-                - 'cross': axe where to plot cross-section view
-                - 'hor':   axe where to plot horizontal (from top) view
-                - '3d':    axe where to plot 3d view
-            if None, a new figure and axes are created
-        proj:       None / str
-            key indicating which plot to make:
-                - 'cross':  cross-section projection
-                - 'hor':    horizontal projection
-                - 'all':    cross-section + horizontal view
-                - '3d':     3d view
-        element:    None / str
-            char string where each letter indicates an element to plot
-                - 'o': outline (edges of crystal)
-                - 's': summit (geometrical center of the crystal)
-                - 'c': center (of the sphere of curvature)
-                - 'r': rowland circle (plotted in e1 direction)
-                - 'v': local unit vectors e1, e2, nout
-            If None, default to 'oscvr'
-        dcryst:     None / dict
-            dict of dict for plotting the various elements of the crystal:
-                - 'outline': dict of properties fed to plot()
-                - 'cent': dict of properties fed to plot()
-                - 'summit': dict of properties fed to plot()
-                - 'rowland': dict of properties fed to plot()
-                - 'vectors': dict of properties fed to quiver()
-        ddet:       None / dict
-            dict of dict for plotting the various elements of the det:
-                - 'outline': dict of properties fed to plot()
-                - 'cent': dict of properties fed to plot()
-                - 'vectors': dict of properties fed to quiver()
-        color:      None / str / tuple
-
-        color:      None / str / tuple
-            color to be used for plotting
-            Overwrites all colors in dcryst and ddet
-        det:        None / dict
-            Optionnal associated detector to be plotted, as a dict with keys:
-                - 'cent': 1d array of cartesian coordinates of the center
-                - 'nout': 1d array of cartesian coordinates of unit vector
-                            oriented towards the crystal
-                - 'ei':   1d array of cartesian coordinates of unit vector
-                - 'ej':   1d array of cartesian coordinates of unit vector
-                - 'outline': 2d array of outline coordinates in (ei, ej)
-        use_non_parallelism:    None / str
-            Return the unit vectors (direct orthonormal basis)
-            Depending on:
-                - use_non_parallelism: True  => return the geometrical basis
-                - use_non_parallelism: False  => return the mesh basis
         """
 
         if config is not None:
             cam = self.get_Rays_from_summit(
                 phi=phi, lamb=lamb, bragg=bragg,
                 n=n, use_non_parallelism=use_non_parallelism,
-                config=config, returnas=object,
-                )
+                config=config, returnas=object)
             pts0 = cam.D
             pts1 = cam.D + cam.kOut[None, :] * cam.u
             dax = _plot_optics.CrystalBragg_plot(
-                cryst=self, dcryst=dcryst,
-                det=det, dax=dax, proj=proj, element=element,
-                color=color,
-                pts0=pts0, pts1=pts1, rays_color=color, rays_npts=npts,
-                dleg=dleg, fs=fs,
+                cryst=None, element='', pts0=pts0, pts1=pts1,
+                rays_color=color, rays_npts=npts,
+                proj=proj, dax=dax, fs=fs,
                 use_non_parallelism=use_non_parallelism,
-                wintit=wintit,
-                )
+                wintit=wintit, dleg=dleg)
 
         if det is None:
             det = False
@@ -1125,21 +1056,16 @@ class CrystalBragg(utils.ToFuObject):
             (D, pts_det) = self.get_Rays_from_summit_to_det(
                 phi = phi + np.pi, lamb=lamb, bragg=bragg,
                 n=n, use_non_parallelism=use_non_parallelism,
-                det=det, returnas=tuple,
-                )
+                det=det, returnas=tuple)
             pts0 = np.array([np.full(pts_det.shape[1:], D[0]),
                              np.full(pts_det.shape[1:], D[1]),
                              np.full(pts_det.shape[1:], D[2])])
             pts1 = pts_det
             dax = _plot_optics.CrystalBragg_plot(
-                cryst=self, dcryst=dcryst,
-                det=det, dax=dax, proj=proj, element=element,
-                color=color,
-                pts0=pts0, pts1=pts1, rays_color=color, rays_npts=npts,
-                dleg=dleg, fs=fs,
-                use_non_parallelism=use_non_parallelism,
-                wintit=wintit,
-                )
+                cryst=self, element='', pts0=pts0, pts1=pts1,
+                proj=proj, dax=dax, rays_color=color,
+                fs=fs, use_non_parallelism=use_non_parallelism,
+                wintit=wintit, dleg=dleg)
 
         return dax
 
@@ -1196,15 +1122,13 @@ class CrystalBragg(utils.ToFuObject):
                              )
             self._dmat['alpha'], self._dmat['beta'] = alpha, beta
 
-    def get_detector_approx(
-        self, bragg=None, lamb=None,
-        rcurve=None, n=None,
-        ddist=None, di=None, dj=None,
-        dtheta=None, dpsi=None, tilt=None,
-        lamb0=None, lamb1=None, dist01=None,
-        use_non_parallelism=None,
-        tangent_to_rowland=None, plot=False,
-    ):
+    def get_detector_approx(self, bragg=None, lamb=None,
+                            rcurve=None, n=None,
+                            ddist=None, di=None, dj=None,
+                            dtheta=None, dpsi=None, tilt=None,
+                            lamb0=None, lamb1=None, dist01=None,
+                            use_non_parallelism=None,
+                            tangent_to_rowland=None, plot=False):
         """ Return approximate ideal detector geometry
 
         Assumes infinitesimal and ideal crystal
@@ -1534,13 +1458,11 @@ class CrystalBragg(utils.ToFuObject):
         return dtheta, psi
 
 
-    def calc_braggphi_from_xixj(
-        self, xi, xj, n=None,
-        det=None, use_non_parallelism=None,
-        dtheta=None, psi=None,
-        plot=True, ax=None, leg=None, colorbar=None,
-        fs=None, wintit=None, tit=None, **kwdargs,
-    ):
+    def calc_braggphi_from_xixj(self, xi, xj, n=None,
+                                det=None, use_non_parallelism=None,
+                                dtheta=None, psi=None,
+                                plot=True, ax=None, leg=None, colorbar=None,
+                                fs=None, wintit=None, tit=None, **kwdargs):
 
         # Check / format inputs
         xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
@@ -1686,14 +1608,12 @@ class CrystalBragg(utils.ToFuObject):
             johann=johann, rocking=rocking,
             fs=fs, dmargin=dmargin, wintit=wintit, tit=tit)
 
-    def calc_johannerror(
-        self, xi=None, xj=None, err=None,
-        det=None, n=None,
-        lpsi=None, ldtheta=None,
-        use_non_parallelism=None,
-        plot=True, fs=None, cmap=None,
-        vmin=None, vmax=None, tit=None, wintit=None,
-    ):
+    def calc_johannerror(self, xi=None, xj=None, err=None,
+                         det=None, n=None,
+                         lpsi=None, ldtheta=None,
+                         use_non_parallelism=None,
+                         plot=True, fs=None, cmap=None,
+                         vmin=None, vmax=None, tit=None, wintit=None):
         """ Plot the johann error
 
         The johann error is the error (scattering) induced by defocalization
