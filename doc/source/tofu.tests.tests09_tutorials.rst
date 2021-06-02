@@ -45,3 +45,12 @@ tofu.tests.tests09\_tutorials.tuto\_plot\_custom\_emissivity module
    :undoc-members:
    :show-inheritance:
    :private-members:
+
+tofu.tests.tests09\_tutorials.tuto\_plot\_solid\_angles module
+--------------------------------------------------------------
+
+.. automodule:: tofu.tests.tests09_tutorials.tuto_plot_solid_angles
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:

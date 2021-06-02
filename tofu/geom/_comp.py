@@ -697,7 +697,9 @@ def _Ves_get_sampleV(
                 (pts, dV, ind,
                  reseff[0],
                  reseff[1],
-                 reseff[2]) = _GG._Ves_Vmesh_Tor_SubFromD_cython(
+                 reseff[2],
+                 sz_r, sz_z,
+                 ) = _GG._Ves_Vmesh_Tor_SubFromD_cython(
                     res[0],
                     res[1],
                     res[2],
@@ -706,8 +708,8 @@ def _Ves_get_sampleV(
                     DR=domain[0],
                     DZ=domain[1],
                     DPhi=domain[2],
-                    VPoly=VPoly,
-                    Out=returnas,
+                    limit_vpoly=VPoly,
+                    out_format=returnas,
                     margin=margin,
                     num_threads=num_threads,
                 )
@@ -743,7 +745,7 @@ def _Ves_get_sampleV(
                 DX=domain[0],
                 DY=domain[1],
                 DZ=domain[2],
-                VPoly=VPoly,
+                limit_vpoly=VPoly,
                 margin=margin,
             )
     else:

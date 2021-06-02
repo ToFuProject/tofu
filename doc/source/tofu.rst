@@ -18,8 +18,6 @@ Subpackages
    tofu.dust
    tofu.entrypoints
    tofu.geom
-   tofu.imas2tofu
-   tofu.mag
    tofu.openadas2tofu
    tofu.tests
 

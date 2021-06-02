@@ -9,23 +9,22 @@ import shutil
 import logging
 import platform
 import subprocess
+import numpy as np
 from codecs import open
 # ... setup tools
 from setuptools import setup, find_packages
-from setuptools import Extension
 # ... packages that need to be in pyproject.toml
+from Cython.Distutils import Extension
 from Cython.Distutils import build_ext
-import numpy as np
 # ... local script
 import _updateversion as up
 # ... for `clean` command
 from distutils.command.clean import clean as Clean
-
+# ... openmp utilities
+from tofu_helpers.openmp_helpers import is_openmp_installed
 
 # == Checking platform ========================================================
-is_platform_windows = False
-if platform.system() == "Windows":
-    is_platform_windows = True
+is_platform_windows = platform.system() == "Windows"
 
 
 # === Setting clean command ===================================================
@@ -34,6 +33,7 @@ logger = logging.getLogger("tofu.setup")
 
 
 class CleanCommand(Clean):
+
     description = "Remove build artifacts from the source tree"
 
     def expand(self, path_list):
@@ -96,49 +96,6 @@ class CleanCommand(Clean):
                     logger.info("removing '%s'", path)
                 except OSError:
                     pass
-# =============================================================================
-
-
-# =============================================================================
-# Check if openmp available
-# see http://openmp.org/wp/openmp-compilers/
-omp_test = r"""
-#include <omp.h>
-#include <stdio.h>
-int main() {
-#pragma omp parallel
-printf("Hello from thread %d, nthreads %d\n", omp_get_thread_num(),
-       omp_get_num_threads());
-}
-"""
-
-
-def check_for_openmp(cc_var):
-    import tempfile
-
-    tmpdir = tempfile.mkdtemp()
-    curdir = os.getcwd()
-    os.chdir(tmpdir)
-
-    filename = r"test.c"
-    with open(filename, "w") as file:
-        file.write(omp_test)
-    with open(os.devnull, "w") as fnull:
-        result = subprocess.call(
-            [cc_var, "-fopenmp", filename], stdout=fnull, stderr=fnull
-        )
-
-    os.chdir(curdir)
-    # clean up
-    shutil.rmtree(tmpdir)
-    return result
-
-
-# ....... Using function
-if is_platform_windows:
-    openmp_installed = False
-else:
-    openmp_installed = not check_for_openmp("cc")
 # =============================================================================
 
 
@@ -212,12 +169,10 @@ else:
 
 # =============================================================================
 #  Compiling files
-if openmp_installed:
-    extra_compile_args = ["-O3", "-Wall", "-fopenmp", "-fno-wrapv"]
-    extra_link_args = ["-fopenmp"]
-else:
-    extra_compile_args = ["-O3", "-Wall", "-fno-wrapv"]
-    extra_link_args = []
+openmp_installed, openmp_flag = is_openmp_installed()
+
+extra_compile_args = ["-O3", "-Wall", "-fno-wrapv"] + openmp_flag
+extra_link_args = [] + openmp_flag
 
 extensions = [
     Extension(
@@ -225,6 +180,7 @@ extensions = [
         sources=["tofu/geom/_GG.pyx"],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
+        language_level="3",
     ),
     Extension(
         name="tofu.geom._basic_geom_tools",
@@ -256,6 +212,13 @@ extensions = [
         language="c++",
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
+    ),
+    Extension(
+        name="tofu.geom._openmp_tools",
+        sources=["tofu/geom/_openmp_tools.pyx"],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        cython_compile_time_env=dict(TOFU_OPENMP_ENABLED=openmp_installed),
     ),
 ]
 
@@ -391,7 +354,7 @@ setup(
     # Theye are generally preferable over scripts because they provide
     # cross-platform support and allow pip to create the appropriate form
     # of executable for the target platform.
-   entry_points={
+    entry_points={
         'console_scripts': [
             'tofuplot=tofu.entrypoints.tofuplot:main',
             'tofucalc=tofu.entrypoints.tofucalc:main',

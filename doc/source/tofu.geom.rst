@@ -7,14 +7,6 @@ tofu.geom package
    :show-inheritance:
    :private-members:
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 5
-
-   tofu.geom.inputs
-
 Submodules
 ----------
 
@@ -31,24 +23,6 @@ tofu.geom.\_GG module
 ---------------------
 
 .. automodule:: tofu.geom._GG
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
-
-tofu.geom.\_GG module
----------------------
-
-.. automodule:: tofu.geom._GG
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
-
-tofu.geom.\_basic\_geom\_tools module
--------------------------------------
-
-.. automodule:: tofu.geom._basic_geom_tools
    :members:
    :undoc-members:
    :show-inheritance:
@@ -153,10 +127,19 @@ tofu.geom.\_distance\_tools module
    :show-inheritance:
    :private-members:
 
-tofu.geom.\_distance\_tools module
-----------------------------------
+tofu.geom.\_openmp\_tools module
+--------------------------------
 
-.. automodule:: tofu.geom._distance_tools
+.. automodule:: tofu.geom._openmp_tools
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+tofu.geom.\_openmp\_tools module
+--------------------------------
+
+.. automodule:: tofu.geom._openmp_tools
    :members:
    :undoc-members:
    :show-inheritance:
@@ -198,24 +181,6 @@ tofu.geom.\_raytracing\_tools module
    :show-inheritance:
    :private-members:
 
-tofu.geom.\_raytracing\_tools module
-------------------------------------
-
-.. automodule:: tofu.geom._raytracing_tools
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
-
-tofu.geom.\_sampling\_tools module
-----------------------------------
-
-.. automodule:: tofu.geom._sampling_tools
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
-
 tofu.geom.\_sampling\_tools module
 ----------------------------------
 
@@ -252,10 +217,10 @@ tofu.geom.\_vignetting\_tools module
    :show-inheritance:
    :private-members:
 
-tofu.geom.\_vignetting\_tools module
-------------------------------------
+tofu.geom.openmp\_enabled module
+--------------------------------
 
-.. automodule:: tofu.geom._vignetting_tools
+.. automodule:: tofu.geom.openmp_enabled
    :members:
    :undoc-members:
    :show-inheritance:

@@ -100,8 +100,6 @@ class SpectralLines(DataCollection):
         ]
         raise NotImplementedError
 
-
-
     # -----------------
     # from openadas
     # ------------------
@@ -277,6 +275,143 @@ class SpectralLines(DataCollection):
             dlines0=self._dobj.get('lines'),
         )
         self.update(ddata=ddata, dref=dref, dref_static=dref_static, dobj=dobj)
+
+    # -----------------
+    # from nist
+    # ------------------
+
+    @classmethod
+    def _from_nist(
+        cls,
+        lambmin=None,
+        lambmax=None,
+        element=None,
+        charge=None,
+        ion=None,
+        wav_observed=None,
+        wav_calculated=None,
+        transitions_allowed=None,
+        transitions_forbidden=None,
+        cache_from=None,
+        cache_info=None,
+        verb=None,
+        create_custom=None,
+
+        dsource0=None,
+        dref0=None,
+        ddata0=None,
+        dlines0=None,
+        grouplines=None,
+    ):
+        """
+        Load lines from nist, either:
+            - cache_from = False:  directly from the website
+            - cache_from = True: from pre-downloaded files in ~/.tofu/nist/
+
+        Provide wavelengths in m
+
+        Example:
+        --------
+                >>> import tofu as tf
+                >>> lines_mo = tf.data.SpectralLines.from_nist(
+                    element='Mo',
+                    lambmin=3.94e-10,
+                    lambmax=4e-10,
+                )
+
+        """
+
+        # Preliminary import and checks
+        from ..nist2tofu import _requests
+
+        if grouplines is None:
+            grouplines = cls._grouplines
+        else:
+            cls._grouplines = grouplines
+        if verb is None:
+            verb = False
+        if cache_info is None:
+            cache_info = False
+
+        # Load from online if relevant
+        dlines, dsources = _requests.step01_search_online_by_wavelengthA(
+            element=element,
+            charge=charge,
+            ion=ion,
+            lambmin=lambmin*1e10,
+            lambmax=lambmax*1e10,
+            wav_observed=wav_observed,
+            wav_calculated=wav_calculated,
+            transitions_allowed=transitions_allowed,
+            transitions_forbidden=transitions_forbidden,
+            info_ref=True,
+            info_conf=True,
+            info_term=True,
+            info_J=True,
+            info_g=True,
+            cache_from=cache_from,
+            cache_info=cache_info,
+            return_dout=True,
+            return_dsources=True,
+            verb=verb,
+            create_custom=create_custom,
+            format_for_DataCollection=True,
+        )
+
+        # dref_static
+        lion = sorted(set([dlines[k0]['ion'] for k0 in dlines]))
+
+        dref_static = {
+            'ion': {k0: {} for k0 in lion},
+            'source': dsources,
+        }
+
+        # dobj (lines)
+        dobj = {
+            grouplines: dlines,
+        }
+        return dref_static, dobj
+
+    @classmethod
+    def from_nist(
+        cls,
+        lambmin=None,
+        lambmax=None,
+        element=None,
+        charge=None,
+        ion=None,
+        wav_observed=None,
+        wav_calculated=None,
+        transitions_allowed=None,
+        transitions_forbidden=None,
+        cache_from=None,
+        cache_info=None,
+        verb=None,
+        create_custom=None,
+        grouplines=None,
+    ):
+        """
+        Load lines and pec from openadas, either:
+            - online = True:  directly from the website
+            - online = False: from pre-downloaded files in ~/.tofu/openadas/
+        """
+        dref_static, dobj = cls._from_nist(
+            lambmin=lambmin,
+            lambmax=lambmax,
+            element=element,
+            charge=charge,
+            ion=ion,
+            wav_observed=wav_observed,
+            wav_calculated=wav_calculated,
+            transitions_allowed=transitions_allowed,
+            transitions_forbidden=transitions_forbidden,
+            cache_from=cache_from,
+            cache_info=cache_info,
+            verb=verb,
+            create_custom=create_custom,
+            grouplines=grouplines,
+        )
+        return cls(dref_static=dref_static, dobj=dobj)
 
     # -----------------
     # from file (.py)
