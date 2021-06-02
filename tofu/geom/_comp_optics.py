@@ -569,13 +569,13 @@ def calc_braggphi_from_xixjpts(
         msg = "(summit, nin, e1, e2) must all have the same shape"
         raise Exception(msg)
     ndimsum = summit.ndim
+    ndimpts = pts.ndim
     assert ndimsum in [1, 2, 3, 4, 5], summit.shape
-
     err = False
     c0 = (
         (
             grid is True
-            and pts.ndim in [1, 2]
+            and pts.ndim in [1, 2, 3]
             and summit.ndim in [1, 2, 3, 4]
         )
         or (
@@ -586,8 +586,8 @@ def calc_braggphi_from_xixjpts(
         msg = (
             "Args pts and summit/nin/e1/e2 must be such that:\n"
             + "\t- grid = True:\n"
-            + "\t\tpts.ndim in [1, 2] and pts.shape[0] == 3\n"
-            + "\t\tsummit.ndim in [1, 2, 3]\n"
+            + "\t\tpts.ndim in [1, 2, 3] and pts.shape[0] == 3\n"
+            + "\t\tsummit.ndim in [1, 2, 3, 4]\n"
             + "\t- grid = False:\n"
             + "\t\tpts can be directly broadcasted to summit\n"
             + "  You provided:\n"
