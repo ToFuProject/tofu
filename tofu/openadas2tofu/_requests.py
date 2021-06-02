@@ -47,9 +47,18 @@ def _get_PATH_LOCAL():
 def _getcharray(ar, col=None, sep='  ', line='-', just='l',
                 verb=True, returnas=str):
     """ Format and return char array (for pretty printing) """
+
+    # Trivial case
     c0 = ar is None or len(ar) == 0
     if c0:
-        return ''
+        if returnas is str:
+            return ''
+        elif returnas is np.ndarray:
+            return np.array([])
+        elif returnas is False:
+            return
+
+    # Non-trivial cases
     ar = np.array(ar, dtype='U')
 
     if ar.ndim == 1:
@@ -80,10 +89,13 @@ def _getcharray(ar, col=None, sep='  ', line='-', just='l',
 
     if verb is True:
         print('\n'.join(out))
+
     if returnas is str:
         return '\n'.join(out)
     elif returnas is np.ndarray:
         return ar
+    elif returnas is False:
+        return
 
 
 # #############################################################################
@@ -245,6 +257,10 @@ def step01_search_online_by_wavelengthA(
                 isinstance(element, list)
                 and all([isinstance(ee, str) for ee in element])
             )
+            or (
+                isinstance(element, tuple)
+                and all([isinstance(ee, str) for ee in element])
+            )
         )
         if not c0:
             msg = ("Arg element must be a str (e.g.: element='ar')\n"
@@ -252,7 +268,10 @@ def step01_search_online_by_wavelengthA(
             raise Exception(msg)
         if isinstance(element, str):
             element = [element]
-        element = [ee.lower() for ee in element]
+        if isinstance(element, list):
+            element = [ee.lower() for ee in element]
+        elif isinstance(element, tuple):
+            element = tuple([ee.lower() for ee in element])
 
     # charge
     if charge is not None:
@@ -262,6 +281,10 @@ def step01_search_online_by_wavelengthA(
                 isinstance(charge, list)
                 and all([isinstance(cc, int) for cc in charge])
             )
+            or (
+                isinstance(charge, tuple)
+                and all([isinstance(cc, int) for cc in charge])
+            )
         )
         if not c0:
             msg = ("Arg charge must be a int or list (e.g.: 16 or [0])\n"
@@ -269,7 +292,12 @@ def step01_search_online_by_wavelengthA(
             raise Exception(msg)
         if isinstance(charge, int):
             charge = [charge]
-        charge = ['0' if cc == 0 else '{}+'.format(cc) for cc in charge]
+        if isinstance(charge, list):
+            charge = ['0' if cc == 0 else '{}+'.format(cc) for cc in charge]
+        elif isinstance(charge, tuple):
+            charge = tuple([
+                '0' if cc == 0 else '{}+'.format(cc) for cc in charge
+            ])
 
     # ---------------
     # prepare request
@@ -333,9 +361,17 @@ def step01_search_online_by_wavelengthA(
             )
             if charg == '+':
                 charg = '1+'
-            if element is not None and elm.lower() not in element:
+            c0 = (
+                (isinstance(element, list) and elm.lower() not in element)
+                or (isinstance(element, tuple) and elm.lower() in element)
+            )
+            if c0:
                 continue
-            if charge is not None and charg not in charge:
+            c0 = (
+                (isinstance(charge, list) and charg not in charge)
+                or (isinstance(charge, tuple) and charg in charge)
+            )
+            if c0:
                 continue
             lamb = lstri[dcolex['Wavelength']].replace('&Aring;', '')
             typ = (
@@ -357,9 +393,17 @@ def step01_search_online_by_wavelengthA(
             )
             if charg == '+':
                 charg = '1+'
-            if element is not None and elm.lower() not in element:
+            c0 = (
+                (isinstance(element, list) and elm.lower() not in element)
+                or (isinstance(element, tuple) and elm.lower() in element)
+            )
+            if c0:
                 continue
-            if charge is not None and charg not in charge:
+            c0 = (
+                (isinstance(charge, list) and charg not in charge)
+                or (isinstance(charge, tuple) and charg in charge)
+            )
+            if c0:
                 continue
             typ = (
                 lstri[dcolex['Data Type']].replace('</span>', '')

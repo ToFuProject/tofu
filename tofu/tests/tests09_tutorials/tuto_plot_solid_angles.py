@@ -66,7 +66,7 @@ ax.scatter(pts[0, :], pts[1, :],    # R and Z coordinates
            c=sa_map[:, 0].flatten(),  # pixel color is value of int solid angle
            )
 ax.set_box_aspect(1)
-plt.show(block=True)
+plt.show()
 
 ###############################################################################
 # or the three points in the trajectory
@@ -93,4 +93,4 @@ fig3, list_axes = plt.subplots(ncols=3, sharey=False)
 for (ind, ax) in enumerate(list_axes):
     ax.plot(pts[0, izero], sa_map[izero, ind])
     ax.set_box_aspect(1)
-plt.show(block=True)
+plt.show()

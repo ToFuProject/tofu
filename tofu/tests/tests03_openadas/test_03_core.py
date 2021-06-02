@@ -8,6 +8,7 @@ import warnings
 import shutil
 import subprocess
 from subprocess import PIPE
+import itertools as itt
 
 # Standard
 import numpy as np
@@ -87,27 +88,19 @@ class Test01_openadas(object):
         assert isinstance(out, np.ndarray)
 
         # Search by wavelength
-        out = tfoa.step01_search_online_by_wavelengthA(
-            lambmin=3.94, lambmax=4.,
-            returnas=str, verb=False,
-        )
-        assert isinstance(out, str)
-
-        out = tfoa.step01_search_online_by_wavelengthA(
-            lambmin=3.94, lambmax=4.,
-            element='W',
-            resolveby='file',
-            returnas=np.ndarray,
-            verb=True,
-        )
-        assert isinstance(out, np.ndarray)
-
-        out = tfoa.step01_search_online_by_wavelengthA(
-            lambmin=3.94, lambmax=4.,
-            element='Ar', charge=16,
-            resolveby='transition',
-        )
-        assert out is None
+        lret = [None, str, np.ndarray]
+        lverb = [True, False]
+        lelement = [None, 'ar', ['ar', 'w'], ('w',)]
+        lcharge = [None, 14, [15, 16], (16,)]
+        lres = ['transition', 'file']
+        for comb in itt.product(lret, lverb, lelement, lcharge, lres):
+            out = tfoa.step01_search_online_by_wavelengthA(
+                lambmin=3.94, lambmax=4.,
+                returnas=comb[0], verb=comb[1],
+                element=comb[2], charge=comb[3],
+                resolveby=comb[4],
+            )
+            assert out is comb[0] or isinstance(out, comb[0])
 
     def test02_download(self):
         out = tfoa.step02_download(
