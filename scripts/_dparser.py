@@ -163,8 +163,15 @@ def parser_custom():
     ddef = {
         'target': os.path.join(_USER_HOME, '.tofu'),
         'source': os.path.join(_TOFUPATH, 'tofu'),
-        'files': ['_imas2tofu_def.py', '_entrypoints_def.py'],
-        'directories': ['openadas2tofu'],
+        'files': [
+            '_imas2tofu_def.py',
+            '_entrypoints_def.py',
+        ],
+        'directories': [
+            'openadas2tofu',
+            'nist2tofu',
+            os.path.join('nist2tofu', 'ASD'),
+        ],
     }
 
     # Instanciate parser

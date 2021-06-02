@@ -611,11 +611,16 @@ def clear_downloads():
     path_local = _get_PATH_LOCAL()
     if path_local is None:
         return
-    lf = [ff for ff in os.listdir(path_local)
-          if os.path.isfile(os.path.join(path_local, ff))]
-    ld = [ff for ff in os.listdir(path_local)
-          if os.path.isdir(os.path.join(path_local, ff))]
+    lf = [
+        os.path.join(path_local, ff)
+        for ff in os.listdir(path_local)
+        if os.path.isfile(os.path.join(path_local, ff))
+    ]
+    ld = [
+        os.path.join(path_local, ff) for ff in os.listdir(path_local)
+        if os.path.isdir(os.path.join(path_local, ff))
+    ]
     for ff in lf:
         os.remove(ff)
     for dd in ld:
-        shutil.rmtree(os.path.join(path_local, dd))
+        shutil.rmtree(dd)
