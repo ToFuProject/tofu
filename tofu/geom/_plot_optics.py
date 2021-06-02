@@ -500,6 +500,7 @@ def _CrystalBragg_plot(
                 label=cryst.Id.NameLTX+" summit",
                 **dcryst['summit'],
             )
+
     if 'c' in element:
         if cross:
             dax['cross'].plot(
@@ -519,6 +520,7 @@ def _CrystalBragg_plot(
                 label=cryst.Id.NameLTX+" center",
                 **dcryst['cent'],
             )
+
     if 'r' in element:
         if cross:
             dax['cross'].plot(
@@ -635,7 +637,7 @@ def _CrystalBragg_plot(
                     label="det unit vect",
                     **ddet['vectors'],
                 )
-
+        # TBD
         if det.get('outline') is not None and 'o' in element:
             det_out = (det['outline'][0:1, :]*det['ei'][:, None]
                         + det['outline'][1:2, :]*det['ej'][:, None]
