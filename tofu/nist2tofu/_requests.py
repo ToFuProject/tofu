@@ -180,7 +180,9 @@ def _get_totalurl(
                 + "\t- charge: {}\n".format(type(charge))
             )
             raise Exception(msg)
-        ion = "{}{}+".format(element, charge)
+        ion = element
+        if charge is not None:
+            ion += '{}+'.format(charge)
 
     # ion
     if ion is None:
