@@ -637,11 +637,12 @@ def _CrystalBragg_plot(
                     label="det unit vect",
                     **ddet['vectors'],
                 )
-        # TBD
+
         if det.get('outline') is not None and 'o' in element:
             det_out = (det['outline'][0:1, :]*det['ei'][:, None]
                         + det['outline'][1:2, :]*det['ej'][:, None]
                        + det['cent'][:, None])
+
             if cross:
                 dax['cross'].plot(
                     np.hypot(det_out[0, :], det_out[1, :]),
