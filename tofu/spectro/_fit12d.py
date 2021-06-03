@@ -3785,7 +3785,7 @@ def fit12d_get_data_checkformat(
     if pts_total is not False:
         pts_total = np.array(pts_total)
 
-    return d3, pts_phi, pts_total, pts_detail
+    return dfit, d3, pts_phi, pts_total, pts_detail
 
 
 def fit1d_extract(
@@ -3799,7 +3799,10 @@ def fit1d_extract(
 
     # -------------------
     # Check format input
-    d3, pts_phi, pts_lamb_total, pts_lamb_detail = fit12d_get_data_checkformat(
+    (
+        dfit1d, d3, pts_phi,
+        pts_lamb_total, pts_lamb_detail,
+    ) = fit12d_get_data_checkformat(
         dfit=dfit1d,
         bck=bck,
         amp=amp, coefs=coefs, ratio=ratio,
