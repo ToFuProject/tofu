@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import warnings
 
 
 from ._core_new import DataCollection
@@ -666,7 +667,8 @@ class SpectralLines(DataCollection):
                 + "\t- {}\n\n".format(lc)
                 + "  => pec data should be tabulated vs (ne, Te)"
             )
-            raise Exception(msg)
+            warnings.warn(msg)
+            key = [kk for kk in key if kk not in lc]
 
         # Check ne, Te
         ltype = [int, float, np.int_, np.float_]
@@ -904,6 +906,7 @@ class SpectralLines(DataCollection):
             deg=deg,
             grid=grid,
         )
+        key = list(dpec.keys())
 
         ne = float(ne)
         Te = float(Te)
