@@ -359,7 +359,7 @@ class SpectralLines(DataCollection):
         )
 
         # dref_static
-        lion = sorted(set([dlines[k0]['ion'] for k0 in dlines]))
+        lion = sorted(set([dlines[k0]['ion'] for k0 in dlines.keys()]))
 
         dref_static = {
             'ion': {k0: {} for k0 in lion},
