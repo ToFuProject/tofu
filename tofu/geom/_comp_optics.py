@@ -452,10 +452,11 @@ def calc_xixj_from_braggphi(
     assert (lc[0] and option == 0) or (lc[1] and option == 1)
 
     # Prepare
-    summit, nout, e1, e2 = (
-        summit.ravel(), nout.ravel(),
-        e1.ravel(), e2.ravel(),
-        )
+    if g0[0].shape == (3, 1):
+        summit, nout, e1, e2 = (
+            summit.ravel(), nout.ravel(),
+            e1.ravel(), e2.ravel(),
+            )
 
     if option == 0:
         det_cent = det_cent[:, None]
