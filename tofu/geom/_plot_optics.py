@@ -988,8 +988,8 @@ def CrystalBragg_plot_line_tracing_on_det(
         if plot_err:
             ax.plot(
                 xi_err[l, ...], xj_err[l, ...],
-                ls='None', lw=1., c=l0.get_color(),
-                marker='.', ms=4,
+                ls='None', lw=1., c='g',# c=l0.get_color(),
+                marker='x', ms=1,
             )
 
     if dleg is not False:

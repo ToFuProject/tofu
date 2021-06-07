@@ -442,16 +442,21 @@ def calc_xixj_from_braggphi(
     assert all([gg.shape == (3,) for gg in gdet]), "gdet no broadcast!"
     assert all([gg.shape == g0[0].shape for gg in g0]), "g0 no broadcast!"
     lc = [
-        g0[0].shape == (3,) and g1[0].ndim == 1,
+        g0[0].shape[0] == 3 and g1[0].ndim == 1,
         g0[0].ndim in [4, 5] and g0[0].shape[0] == 3
         and phi.shape == g0[0].shape[1:],
     ]
-    assert np.sum(lc) == 1, "Muliple options!"
+    assert np.sum(lc) == 1, "Multiple options!"
     if option is None:
         option = lc.index(True)
     assert (lc[0] and option == 0) or (lc[1] and option == 1)
 
     # Prepare
+    summit, nout, e1, e2 = (
+        summit.ravel(), nout.ravel(),
+        e1.ravel(), e2.ravel(),
+        )
+
     if option == 0:
         det_cent = det_cent[:, None]
         det_nout = det_nout[:, None]

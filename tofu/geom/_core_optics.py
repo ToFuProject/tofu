@@ -850,6 +850,7 @@ class CrystalBragg(utils.ToFuObject):
         include_summit=None,
         grid=None,
     ):
+
         # Get phi, bragg
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb)
         phi, bragg = self._checkformat_get_Rays_from(phi=phi, bragg=bragg)
@@ -1160,7 +1161,6 @@ class CrystalBragg(utils.ToFuObject):
             )
         else:
             pts_summit, pts1, pts2, xi, xj = None, None, None, None, None
-
         return _plot_optics.CrystalBragg_plot(
             cryst=self, dcryst=dcryst,
             det=det, ddet=ddet,
@@ -1634,7 +1634,7 @@ class CrystalBragg(utils.ToFuObject):
         det=None, johann=None,
         use_non_parallelism=None,
         lpsi=None, ldtheta=None,
-        ax=None, dleg=None,
+        ax=None, dax=None, dleg=None,
         rocking=None, fs=None, dmargin=None,
         wintit=None, tit=None,
     ):
@@ -1651,19 +1651,22 @@ class CrystalBragg(utils.ToFuObject):
             lamb = self._dbragg['lambref']
         lamb = np.atleast_1d(lamb).ravel()
         nlamb = lamb.size
+
         if johann is None:
             johann = lpsi is not None or ldtheta is not None
         if rocking is None:
             rocking = False
 
-        detb = np.array([[xi_bounds[0], xi_bounds[1], xi_bounds[1],
-                          xi_bounds[0], xi_bounds[0]],
-                         [xj_bounds[0], xj_bounds[0], xj_bounds[1],
-                          xj_bounds[1], xj_bounds[0]]])
+        detb = np.array([
+                [xi_bounds[0], xi_bounds[1], xi_bounds[1],
+                xi_bounds[0], xi_bounds[0]],
+                [xj_bounds[0], xj_bounds[0], xj_bounds[1],
+                xj_bounds[1], xj_bounds[0]]
+                ])
 
         nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
             use_non_parallelism=use_non_parallelism,
-        )
+            )
         nin = -nout
 
         # Compute lamb / phi
@@ -1676,22 +1679,25 @@ class CrystalBragg(utils.ToFuObject):
             )
         phimin, phimax = np.nanmin(phi), np.nanmax(phi)
         phimin, phimax = phimin-(phimax-phimin)/10, phimax+(phimax-phimin)/10
-        del phi
 
         # Get reference ray-tracing
         bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
         if nphi is None:
             nphi = 100
         phi = np.linspace(phimin, phimax, nphi)
+        nbragg = bragg.size # shape 1
 
         xi = np.full((nlamb, nphi), np.nan)
         xj = np.full((nlamb, nphi), np.nan)
-        for ll in range(nlamb):
-            xi[ll, :], xj[ll, :] = self.calc_xixj_from_braggphi(
-                bragg=bragg[ll], phi=phi, n=n,
-                det=det, plot=False,
-                use_non_parallelism=use_non_parallelism,
-                )
+        if lamb.all() != None:
+            lamb == 0
+            for ll in range(nbragg):
+                # TBF
+                xi[3*ll, :], xj[3*ll, :] = self.calc_xixj_from_braggphi(
+                    bragg=bragg[ll], phi=phi, n=n,
+                    det=det, plot=False,
+                    use_non_parallelism=use_non_parallelism,
+                    )
 
         # Get johann-error raytracing (multiple positions on crystal)
         xi_er, xj_er = None, None
