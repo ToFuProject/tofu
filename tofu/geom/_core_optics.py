@@ -1634,17 +1634,19 @@ class CrystalBragg(utils.ToFuObject):
         det=None, johann=None,
         use_non_parallelism=None,
         lpsi=None, ldtheta=None,
-        ax=None, dax=None, dleg=None,
+        dax=None, dleg=None,
         rocking=None, fs=None, dmargin=None,
         wintit=None, tit=None,
     ):
         """ Visualize the de-focusing by ray-tracing of chosen lamb
+        Possibility to plot few wavelength' arcs on the same plot.
         Args:
             - lamb: array of min size 1, in 1e-10 [m]
             - det: dict
             - xi_bounds: np.min & np.max of _XI
             - xj_bounds: np.min & np.max of _XJ
             (from "inputs_temp/XICS_allshots_C34.py" l.649)
+            - johann: True or False
         """
         # Check / format inputs
         if lamb is None:
@@ -1653,7 +1655,8 @@ class CrystalBragg(utils.ToFuObject):
         nlamb = lamb.size
 
         if johann is None:
-            johann = lpsi is not None or ldtheta is not None
+            johann = True
+            #johann = lpsi is not None or ldtheta is not None
         if rocking is None:
             rocking = False
 
@@ -1685,19 +1688,16 @@ class CrystalBragg(utils.ToFuObject):
         if nphi is None:
             nphi = 100
         phi = np.linspace(phimin, phimax, nphi)
-        nbragg = bragg.size # shape 1
+        nbragg = bragg.size
 
         xi = np.full((nlamb, nphi), np.nan)
         xj = np.full((nlamb, nphi), np.nan)
-        if lamb.all() != None:
-            lamb == 0
-            for ll in range(nbragg):
-                # TBF
-                xi[3*ll, :], xj[3*ll, :] = self.calc_xixj_from_braggphi(
-                    bragg=bragg[ll], phi=phi, n=n,
-                    det=det, plot=False,
-                    use_non_parallelism=use_non_parallelism,
-                    )
+        for ll in range(nbragg):
+            xi[ll, :], xj[ll, :] = self.calc_xixj_from_braggphi(
+                bragg=bragg[ll], phi=phi, n=n,
+                det=det, plot=False,
+                use_non_parallelism=use_non_parallelism,
+                )
 
         # Get johann-error raytracing (multiple positions on crystal)
         xi_er, xj_er = None, None
@@ -1734,7 +1734,7 @@ class CrystalBragg(utils.ToFuObject):
         # Plot
         return _plot_optics.CrystalBragg_plot_line_tracing_on_det(
             lamb, xi, xj, xi_er, xj_er,
-            det=det, ax=ax, dleg=dleg,
+            det=det, dax=dax, dleg=dleg,
             johann=johann, rocking=rocking,
             fs=fs, dmargin=dmargin, wintit=wintit, tit=tit)
 
