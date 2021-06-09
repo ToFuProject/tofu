@@ -894,9 +894,11 @@ def load_from_imas(shot=None, run=None, user=None, database=None, version=None,
         init_plt = [r_init, phi_init, z_init]
 
         if False:
-            multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
-                                             database=database, version=version,
-                                             ids='wall')
+            multi = imas2tofu.MultiIDSLoader(
+                shot=shot[0], run=run, user=user,
+                database=database, version=version,
+                ids='wall',
+            )
             config = multi.to_Config(plot=False)
         else:
             import tofu.geom as tfg
@@ -1478,10 +1480,12 @@ def calc_from_imas(
                 if kk in imas2tofu.MultiIDSLoader._lidsdiag]
     if input_file is None:
         for ss in shot:
-            multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
-                                             database=database, version=version,
-                                             ids=lids, synthdiag=False,
-                                             get=False)
+            multi = imas2tofu.MultiIDSLoader(
+                shot=ss, run=run, user=user,
+                database=database, version=version,
+                ids=lids, synthdiag=False,
+                get=False,
+            )
 
             lids_synth = multi.get_inputs_for_synthsignal(lidsdiag,
                                                           returnas=list,

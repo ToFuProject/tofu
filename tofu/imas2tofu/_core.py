@@ -238,8 +238,10 @@ class MultiIDSLoader(object):
         import tofu as tf
         user = 'imas_public'
         ids = ['interferometer', 'polarimeter']
-        multi = tf.imas2tofu.MultiIDSLoader(shot=55583, user=user,
-                                            database='west', ids=ids, get=False)
+        multi = tf.imas2tofu.MultiIDSLoader(
+            shot=55583, user=user,
+            database='west', ids=ids, get=False,
+        )
 
         # This will ad an ids from a different idd and automatically load
         # ('get') everything
@@ -257,9 +259,11 @@ class MultiIDSLoader(object):
 
         # Check and format inputs
         if dids is None:
-            self.add_idd(idd=idd,
-                         shot=shot, run=run, refshot=refshot, refrun=refrun,
-                         user=user, database=database, version=version, ref=ref)
+            self.add_idd(
+                idd=idd,
+                shot=shot, run=run, refshot=refshot, refrun=refrun,
+                user=user, database=database, version=version, ref=ref,
+            )
             lidd = list(self._didd.keys())
             assert len(lidd) <= 1
             idd = lidd[0] if len(lidd) > 0 else None
@@ -724,10 +728,14 @@ class MultiIDSLoader(object):
         lidd = self._checkformat_get_idd(idd)
         for k in lidd:
             if self._didd[k]['isopen'] == False:
-                if not all([ss in self._didd[k]['params'].keys()
-                            for ss in ['user','database','version']]):
-                    msg = "idd cannot be opened with user, database, version !\n"
-                    msg += "    - name : %s"%k
+                if not all([
+                    ss in self._didd[k]['params'].keys()
+                    for ss in ['user', 'database', 'version']
+                ]):
+                    msg = (
+                        "idd cannot be opened with user, database, version !\n"
+                        + "    - name : {}".format(k)
+                    )
                     raise Exception(msg)
                 args = (self._didd[k]['params']['user'],
                         self._didd[k]['params']['database'],
@@ -916,11 +924,13 @@ class MultiIDSLoader(object):
                 ref=None, return_name=False):
         assert ref in [None, True]
         # didd
-        didd = self._checkformat_idd(idd=idd,
-                                     shot=shot, run=run,
-                                     refshot=refshot, refrun=refrun,
-                                      user=user, database=database,
-                                      version=version)
+        didd = self._checkformat_idd(
+            idd=idd,
+            shot=shot, run=run,
+            refshot=refshot, refrun=refrun,
+            user=user, database=database,
+            version=version,
+        )
         self._didd.update(didd)
         name = list(didd.keys())[0]
 
@@ -3112,7 +3122,9 @@ def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
             didd[k] = _defimas2tofu._IMAS_DIDD[k]
     didd['shot'] = int(didd['shot'])
     didd['run'] = int(didd['run'])
-    assert all([type(didd[ss]) is str for ss in ['user','database','version']])
+    assert all(
+        [type(didd[ss]) is str for ss in ['user', 'database', 'version']]
+    )
 
     # Check existence of database
     path = os.path.join('~', 'public', 'imasdb', didd['database'], '3', '0')
@@ -3120,7 +3132,7 @@ def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
 
     if not os.path.exists(path):
         msg = "IMAS: The required imas ddatabase does not seem to exist:\n"
-        msg += "         - looking for : %s\n"%path
+        msg += "         - looking for: {}\n".format(path)
         if user == getpass.getuser():
             msg += "       => Maybe run imasdb %s (in shell) ?"%database
         raise Exception(msg)
@@ -3260,10 +3272,12 @@ def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
             raise Exception(msg)
 
     # Call relevant function
-    out = dfunc[cls]( obj, shot=shot, run=run, refshot=refshot,
-                     refrun=refrun, occ=occ, user=user, database=database,
-                     version=version, dryrun=dryrun, tfversion=tfversion,
-                     verb=verb, **kwdargs)
+    out = dfunc[cls](
+        obj, shot=shot, run=run, refshot=refshot,
+        refrun=refrun, occ=occ, user=user, database=database,
+        version=version, dryrun=dryrun, tfversion=tfversion,
+        verb=verb, **kwdargs,
+    )
     return out
 
 
@@ -3292,10 +3306,12 @@ def _save_to_imas_Struct(obj,
 
     # Create or open IDS
     # ------------------
-    idd, shotfile = _open_create_idd(shot=shot, run=run,
-                                     refshot=refshot, refrun=refrun,
-                                     user=user, database=database, version=version,
-                                     verb=verb)
+    idd, shotfile = _open_create_idd(
+        shot=shot, run=run,
+        refshot=refshot, refrun=refrun,
+        user=user, database=database, version=version,
+        verb=verb,
+    )
 
     # Fill in data
     # ------------------
@@ -3362,10 +3378,12 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
     # Create or open IDS
     # ------------------
     if idd is None:
-        idd, shotfile = _open_create_idd(shot=shot, run=run,
-                                         refshot=refshot, refrun=refrun,
-                                         user=user, database=database, version=version,
-                                         verb=verb)
+        idd, shotfile = _open_create_idd(
+            shot=shot, run=run,
+            refshot=refshot, refrun=refrun,
+            user=user, database=database, version=version,
+            verb=verb,
+        )
     assert type(shotfile) is str
 
 
@@ -3484,9 +3502,11 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
 
         # Put IDS
         # ------------------
-        _put_ids(idd, idd.wall, shotfile, occ=occ, err=err0, dryrun=dryrun,
-                 cls_name='%s_%s'%(obj.Id.Cls,obj.Id.Name),
-                 close=close, verb=verb)
+        _put_ids(
+            idd, idd.wall, shotfile, occ=occ, err=err0, dryrun=dryrun,
+            cls_name='{}_{}'.format(obj.Id.Cls, obj.Id.Name),
+            close=close, verb=verb,
+        )
 
 
 def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
@@ -3501,10 +3521,12 @@ def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
     # Create or open IDS
     # ------------------
     if idd is None:
-        idd, shotfile = _open_create_idd(shot=shot, run=run,
-                                         refshot=refshot, refrun=refrun,
-                                         user=user, database=database, version=version,
-                                         verb=verb)
+        idd, shotfile = _open_create_idd(
+            shot=shot, run=run,
+            refshot=refshot, refrun=refrun,
+            user=user, database=database, version=version,
+            verb=verb,
+        )
     assert type(shotfile) is str
 
     # Check choice of ids
@@ -3596,27 +3618,33 @@ def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
     finally:
         # Put IDS
         # ------------------
-        _put_ids(idd, ids, shotfile, occ=occ,
-                 cls_name='%s_%s'%(obj.Id.Cls,obj.Id.Name),
-                 err=err0, dryrun=dryrun, close=close, verb=verb)
+        _put_ids(
+            idd, ids, shotfile, occ=occ,
+            cls_name='{}_{}'.format(obj.Id.Cls, obj.Id.Name),
+            err=err0, dryrun=dryrun, close=close, verb=verb,
+        )
 
 
-def _save_to_imas_DataCam1D( obj,
-                            shot=None, run=None, refshot=None, refrun=None,
-                            occ=None, user=None, database=None, version=None,
-                            dryrun=False, tfversion=None, verb=True,
-                            ids=None, deep=True, restore_size=True, forceupdate=False,
-                            path_data=None, path_X=None,
-                            config_occ=None, config_description_2d=None):
+def _save_to_imas_DataCam1D(
+    obj,
+    shot=None, run=None, refshot=None, refrun=None,
+    occ=None, user=None, database=None, version=None,
+    dryrun=False, tfversion=None, verb=True,
+    ids=None, deep=True, restore_size=True, forceupdate=False,
+    path_data=None, path_X=None,
+    config_occ=None, config_description_2d=None,
+):
 
     if occ is None:
         occ = 0
     # Create or open IDS
     # ------------------
-    idd, shotfile = _open_create_idd(shot=shot, run=run,
-                                     refshot=refshot, refrun=refrun,
-                                     user=user, database=database, version=version,
-                                     verb=verb)
+    idd, shotfile = _open_create_idd(
+        shot=shot, run=run,
+        refshot=refshot, refrun=refrun,
+        user=user, database=database, version=version,
+        verb=verb,
+    )
 
     # Check choice of ids
     c0 = ids in dir(idd)
