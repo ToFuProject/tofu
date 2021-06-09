@@ -122,7 +122,7 @@ class MultiIDSLoader(object):
     """ Class for handling multi-ids possibly from different idd
 
     For each desired ids (e.g.: core_profile, ece, equilibrium...), you can
-    specify a different idd (i.e.: (shot, run, user, tokamak, version))
+    specify a different idd (i.e.: (shot, run, user, database, version))
 
     The instance will remember from which idd each ids comes from.
     It provides a structure to keep track of these dependencies
@@ -141,7 +141,7 @@ class MultiIDSLoader(object):
     _defidd = dict(_defimas2tofu._IMAS_DIDD)
 
     _lidsnames = [k for k in dir(imas) if k[0] != '_']
-    _lidsk = ['tokamak', 'user', 'version',
+    _lidsk = ['database', 'user', 'version',
               'shot', 'run', 'refshot', 'refrun']
 
     # Known short version of signal str
@@ -176,7 +176,7 @@ class MultiIDSLoader(object):
 
     def __init__(self, preset=None, dids=None, ids=None, occ=None, idd=None,
                  shot=None, run=None, refshot=None, refrun=None,
-                 user=None, tokamak=None, version=None,
+                 user=None, database=None, version=None,
                  ids_base=None, synthdiag=None, get=None, ref=True):
         """ A class for handling multiple ids loading from IMAS
 
@@ -194,7 +194,7 @@ class MultiIDSLoader(object):
                             An idd stored locally on the database of user A can
                             be read by other users if they provide the
                             user name 'A'.
-                - tokamak:  the name of the experiment (e.g.: 'ITER')
+                - database:  the name of the experiment (e.g.: 'ITER')
                 - shot:     the shot number
                 - run:      It's the 'version' of the shotfile.
                             Indeed, IMAS allows to store both experimental and
@@ -239,12 +239,12 @@ class MultiIDSLoader(object):
         user = 'imas_public'
         ids = ['interferometer', 'polarimeter']
         multi = tf.imas2tofu.MultiIDSLoader(shot=55583, user=user,
-                                            tokamak='west', ids=ids, get=False)
+                                            database='west', ids=ids, get=False)
 
         # This will ad an ids from a different idd and automatically load
         # ('get') everything
         multi.add_ids('bolometer', shot=55583, user='myusername',
-                      tokamak='west')
+                      database='west')
 
         # To have an overview of what your multi instance contains, type
         multi
@@ -259,7 +259,7 @@ class MultiIDSLoader(object):
         if dids is None:
             self.add_idd(idd=idd,
                          shot=shot, run=run, refshot=refshot, refrun=refrun,
-                         user=user, tokamak=tokamak, version=version, ref=ref)
+                         user=user, database=database, version=version, ref=ref)
             lidd = list(self._didd.keys())
             assert len(lidd) <= 1
             idd = lidd[0] if len(lidd) > 0 else None
@@ -725,12 +725,12 @@ class MultiIDSLoader(object):
         for k in lidd:
             if self._didd[k]['isopen'] == False:
                 if not all([ss in self._didd[k]['params'].keys()
-                            for ss in ['user','tokamak','version']]):
-                    msg = "idd cannot be opened with user, tokamak, version !\n"
+                            for ss in ['user','database','version']]):
+                    msg = "idd cannot be opened with user, database, version !\n"
                     msg += "    - name : %s"%k
                     raise Exception(msg)
                 args = (self._didd[k]['params']['user'],
-                        self._didd[k]['params']['tokamak'],
+                        self._didd[k]['params']['database'],
                         self._didd[k]['params']['version'])
                 self._didd[k]['idd'].open_env( *args )
                 self._didd[k]['isopen'] = True
@@ -850,7 +850,7 @@ class MultiIDSLoader(object):
     @classmethod
     def _checkformat_idd(cls, idd=None,
                          shot=None, run=None, refshot=None, refrun=None,
-                         user=None, tokamak=None, version=None,
+                         user=None, database=None, version=None,
                          isopen=None, ref=None, defidd=None):
         lc = [idd is None, shot is None]
         if not any(lc):
@@ -866,7 +866,7 @@ class MultiIDSLoader(object):
         if lc[0]:
             assert type(shot) in [int,np.int_]
             params = dict(shot=int(shot), run=run, refshot=refshot, refrun=refrun,
-                          user=user, tokamak=tokamak, version=version)
+                          user=user, database=database, version=version)
             for kk,vv in defidd.items():
                 if params[kk] is None:
                     params[kk] = vv
@@ -893,7 +893,7 @@ class MultiIDSLoader(object):
             isopen = expIdx > 0
 
         if 'user' in params.keys():
-            name = [params['user'], params['tokamak'], params['version']]
+            name = [params['user'], params['database'], params['version']]
         else:
             name = [str(id(idd))]
         name += ['{:06.0f}'.format(params['shot']),
@@ -912,14 +912,14 @@ class MultiIDSLoader(object):
 
     def add_idd(self, idd=None,
                 shot=None, run=None, refshot=None, refrun=None,
-                user=None, tokamak=None, version=None,
+                user=None, database=None, version=None,
                 ref=None, return_name=False):
         assert ref in [None, True]
         # didd
         didd = self._checkformat_idd(idd=idd,
                                      shot=shot, run=run,
                                      refshot=refshot, refrun=refrun,
-                                      user=user, tokamak=tokamak,
+                                      user=user, database=database,
                                       version=version)
         self._didd.update(didd)
         name = list(didd.keys())[0]
@@ -1117,7 +1117,7 @@ class MultiIDSLoader(object):
 
     def add_ids(self, ids=None, occ=None, idd=None, preset=None,
                 shot=None, run=None, refshot=None, refrun=None,
-                user=None, tokamak=None, version=None,
+                user=None, database=None, version=None,
                 ref=None, isget=None, get=None):
         """ Add an ids (or a list of ids)
 
@@ -1144,7 +1144,7 @@ class MultiIDSLoader(object):
             name = self.add_idd(idd=idd,
                                 shot=shot, run=run,
                                 refshot=refshot, refrun=refrun,
-                                user=user, tokamak=tokamak,
+                                user=user, database=database,
                                 version=version, ref=ref, return_name=True)
             idd = name
 
@@ -1152,7 +1152,7 @@ class MultiIDSLoader(object):
             if self._refidd is None:
                 msg = "No idd was provided (and ref idd is not clear) !\n"
                 msg += "Please provide an idd either directly or via \n"
-                msg += "args (shot, user, tokamak...)!\n"
+                msg += "args (shot, user, database...)!\n"
                 msg += "    - %s"%str([(k,v.get('ref',None))
                                        for k,v in self._didd.items()])
                 raise Exception(msg)
@@ -1170,7 +1170,7 @@ class MultiIDSLoader(object):
 
     def add_ids_base(self, occ=None, idd=None,
                      shot=None, run=None, refshot=None, refrun=None,
-                     user=None, tokamak=None, version=None,
+                     user=None, database=None, version=None,
                      ref=None, isget=None, get=None):
         """ Add th list of ids stored in self._IDS_BASE
 
@@ -1179,12 +1179,12 @@ class MultiIDSLoader(object):
         """
         self.add_ids(ids=self._IDS_BASE, occ=occ, idd=idd,
                      shot=shot, run=run, refshot=refshot, refrun=refrun,
-                     user=user, tokamak=tokamak, version=version,
+                     user=user, database=database, version=version,
                      ref=ref, isget=isget, get=get)
 
     def add_ids_synthdiag(self, ids=None, occ=None, idd=None,
                           shot=None, run=None, refshot=None, refrun=None,
-                          user=None, tokamak=None, version=None,
+                          user=None, database=None, version=None,
                           ref=None, isget=None, get=None):
         """ Add pre-tabulated input ids necessary for calculating synth. signal
 
@@ -1197,7 +1197,7 @@ class MultiIDSLoader(object):
                                               returnas=list)
         self.add_ids(ids=ids, occ=occ, idd=idd, preset=None,
                      shot=shot, run=run, refshot=refshot, refrun=refrun,
-                     user=user, tokamak=tokamak, version=version,
+                     user=user, database=database, version=version,
                      ref=ref, isget=isget, get=get)
 
     def remove_ids(self, ids=None, occ=None):
@@ -1260,7 +1260,7 @@ class MultiIDSLoader(object):
         # idd
         a0 = []
         if len(self._didd) > 0:
-            c0 = ['idd', 'user', 'tokamak', 'version',
+            c0 = ['idd', 'user', 'database', 'version',
                   'shot', 'run', 'refshot', 'refrun', 'isopen', '']
             for k0,v0 in self._didd.items():
                 lu = ([k0] + [str(v0['params'][k]) for k in c0[1:-2]]
@@ -1753,7 +1753,7 @@ class MultiIDSLoader(object):
         occ:    None / int
             occurence to be used for loading the data
         config: None / Config
-            Configuration (i.e.: tokamak geometry) to be used for the instance
+            Configuration (i.e.: database geometry) to be used for the instance
             If None, created from the wall ids with self.to_Config().
         out:    type
             class with which the output shall be returned
@@ -2247,7 +2247,7 @@ class MultiIDSLoader(object):
             vectors). In case of channels with non-uniform data, will try to
             identify a sub-group of channels with uniform data
         config: None / Config
-            Configuration (i.e.: tokamak geometry) to be used for the instance
+            Configuration (i.e.: database geometry) to be used for the instance
             If None, created from the wall ids with self.to_Config().
         description_2d: None / int
             description_2d index to be used if the Config is to be built from
@@ -2370,7 +2370,7 @@ class MultiIDSLoader(object):
                 warnings.warn(msg)
         if 'pulse_schedule' in self._dids.keys():
             idd = self._dids['pulse_schedule']['idd']
-            Exp = self._didd[idd]['params']['tokamak']
+            Exp = self._didd[idd]['params']['database']
         else:
             Exp = None
         return _comp_toobjects.data_checkformat_tlim(t, tlim=tlim,
@@ -2443,7 +2443,7 @@ class MultiIDSLoader(object):
             Restrict the loaded data to a time interval with tlim
             if None, loads all time steps
         config: None / Config
-            Configuration (i.e.: tokamak geometry) to be used for the instance
+            Configuration (i.e.: database geometry) to be used for the instance
             If None, created from the wall ids with self.to_Config().
         description_2d: None / int
             description_2d index to be used if the Config is to be built from
@@ -2991,12 +2991,12 @@ class MultiIDSLoader(object):
 #############################################################
 
 
-def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
+def load_Config(shot=None, run=None, user=None, database=None, version=None,
                 Name=None, occ=0, description_2d=None, plot=True):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
-                 user=user, tokamak=tokamak, version=version)
+                 user=user, database=database, version=version)
     didd.add_ids('wall', get=True)
 
     return didd.to_Config(Name=Name, occ=occ,
@@ -3004,7 +3004,7 @@ def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
 
 
 # occ ?
-def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
+def load_Plasma2D(shot=None, run=None, user=None, database=None, version=None,
                   tlim=None, occ=None, dsig=None, ids=None,
                   config=None, description_2d=None,
                   Name=None, t0=None, out=object, dextra=None,
@@ -3012,7 +3012,7 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
-                 user=user, tokamak=tokamak, version=version)
+                 user=user, database=database, version=version)
 
     if dsig is dict:
         lids = sorted(dsig.keys())
@@ -3038,13 +3038,13 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
                             bck=bck, dextra=dextra)
 
 
-def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
+def load_Cam(shot=None, run=None, user=None, database=None, version=None,
              ids=None, indch=None, config=None, description_2d=None,
              occ=None, Name=None, plot=True):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
-                 user=user, tokamak=tokamak, version=version)
+                 user=user, database=database, version=version)
 
     if type(ids) is not str:
         msg = "Please provide ids to load Cam !\n"
@@ -3059,7 +3059,7 @@ def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
                        occ=occ, plot=plot)
 
 
-def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
+def load_Data(shot=None, run=None, user=None, database=None, version=None,
               ids=None, datacls=None, geomcls=None, indch_auto=True,
               tlim=None, dsig=None, data=None, X=None, indch=None,
               config=None, description_2d=None,
@@ -3068,7 +3068,7 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
-                 user=user, tokamak=tokamak, version=version)
+                 user=user, database=database, version=version)
 
     if type(ids) is not str:
         msg = "Please provide ids to load Data !\n"
@@ -3102,27 +3102,27 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
 #--------------------------------
 
 def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
-                     user=None, tokamak=None, version=None, verb=True):
+                     user=None, database=None, version=None, verb=True):
 
     # Check idd inputs and get default values
     didd = dict(shot=shot, run=run, refshot=refshot, refrun=refrun,
-                user=user, tokamak=tokamak, version=version)
+                user=user, database=database, version=version)
     for k, v in didd.items():
         if v is None:
             didd[k] = _defimas2tofu._IMAS_DIDD[k]
     didd['shot'] = int(didd['shot'])
     didd['run'] = int(didd['run'])
-    assert all([type(didd[ss]) is str for ss in ['user','tokamak','version']])
+    assert all([type(didd[ss]) is str for ss in ['user','database','version']])
 
     # Check existence of database
-    path = os.path.join('~', 'public', 'imasdb', didd['tokamak'], '3', '0')
+    path = os.path.join('~', 'public', 'imasdb', didd['database'], '3', '0')
     path = os.path.realpath(os.path.expanduser(path))
 
     if not os.path.exists(path):
         msg = "IMAS: The required imas ddatabase does not seem to exist:\n"
         msg += "         - looking for : %s\n"%path
         if user == getpass.getuser():
-            msg += "       => Maybe run imasdb %s (in shell) ?"%tokamak
+            msg += "       => Maybe run imasdb %s (in shell) ?"%database
         raise Exception(msg)
 
     # Check existence of file
@@ -3134,7 +3134,7 @@ def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
         if verb:
             msg = "IMAS: opening shotfile %s"%shot_file
             print(msg)
-        idd.open_env(didd['user'], didd['tokamak'], didd['version'])
+        idd.open_env(didd['user'], didd['database'], didd['version'])
     else:
         if user == _defimas2tofu._IMAS_USER_PUBLIC:
             msg = "IMAS: required shotfile does not exist\n"
@@ -3146,7 +3146,7 @@ def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
             if verb:
                 msg = "IMAS: creating shotfile %s"%shot_file
                 print(msg)
-            idd.create_env(didd['user'], didd['tokamak'], didd['version'])
+            idd.create_env(didd['user'], didd['database'], didd['version'])
 
     return idd, shot_file
 
@@ -3213,7 +3213,7 @@ def _put_ids(idd, ids, shotfile, occ=0, cls_name=None,
 
 
 def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
-                  occ=None, user=None, tokamak=None, version=None,
+                  occ=None, user=None, database=None, version=None,
                   dryrun=False, tfversion=None, verb=True, **kwdargs):
 
     dfunc = {'Struct': _save_to_imas_Struct,
@@ -3244,11 +3244,11 @@ def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
             msg = "Arg shot must be provided !\n"
             msg += "  (could not be retrieved from self.Id.shot)"
             raise Exception(msg)
-    if tokamak is None:
+    if database is None:
         try:
-            tokamak = obj.Id.Exp.lower()
+            database = obj.Id.Exp.lower()
         except Exception:
-            msg = "Arg tokamak must be provided !\n"
+            msg = "Arg database must be provided !\n"
             msg += "  (could not be retrieved from self.Id.Exp.lower())"
             raise Exception(msg)
     if cls in ['CamLOS1D', 'DataCam1D'] and kwdargs.get('ids',None) is None:
@@ -3261,7 +3261,7 @@ def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
 
     # Call relevant function
     out = dfunc[cls]( obj, shot=shot, run=run, refshot=refshot,
-                     refrun=refrun, occ=occ, user=user, tokamak=tokamak,
+                     refrun=refrun, occ=occ, user=user, database=database,
                      version=version, dryrun=dryrun, tfversion=tfversion,
                      verb=verb, **kwdargs)
     return out
@@ -3273,7 +3273,7 @@ def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
 
 def _save_to_imas_Struct(obj,
                          shot=None, run=None, refshot=None, refrun=None,
-                         occ=None, user=None, tokamak=None, version=None,
+                         occ=None, user=None, database=None, version=None,
                          dryrun=False, tfversion=None, verb=True,
                          description_2d=None, description_typeindex=None,
                          unit=None, mobile=None):
@@ -3294,7 +3294,7 @@ def _save_to_imas_Struct(obj,
     # ------------------
     idd, shotfile = _open_create_idd(shot=shot, run=run,
                                      refshot=refshot, refrun=refrun,
-                                     user=user, tokamak=tokamak, version=version,
+                                     user=user, database=database, version=version,
                                      verb=verb)
 
     # Fill in data
@@ -3347,7 +3347,7 @@ def _save_to_imas_Struct(obj,
 
 def _save_to_imas_Config(obj, idd=None, shotfile=None,
                          shot=None, run=None, refshot=None, refrun=None,
-                         occ=None, user=None, tokamak=None, version=None,
+                         occ=None, user=None, database=None, version=None,
                          dryrun=False, tfversion=None, close=True, verb=True,
                          description_2d=None, description_typeindex=None,
                          mobile=None):
@@ -3364,7 +3364,7 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
     if idd is None:
         idd, shotfile = _open_create_idd(shot=shot, run=run,
                                          refshot=refshot, refrun=refrun,
-                                         user=user, tokamak=tokamak, version=version,
+                                         user=user, database=database, version=version,
                                          verb=verb)
     assert type(shotfile) is str
 
@@ -3491,7 +3491,7 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
 
 def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
                            shot=None, run=None, refshot=None, refrun=None,
-                           occ=None, user=None, tokamak=None, version=None,
+                           occ=None, user=None, database=None, version=None,
                            dryrun=False, tfversion=None, close=True, verb=True,
                            ids=None, deep=True, restore_size=False,
                            config_occ=None, config_description_2d=None):
@@ -3503,7 +3503,7 @@ def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
     if idd is None:
         idd, shotfile = _open_create_idd(shot=shot, run=run,
                                          refshot=refshot, refrun=refrun,
-                                         user=user, tokamak=tokamak, version=version,
+                                         user=user, database=database, version=version,
                                          verb=verb)
     assert type(shotfile) is str
 
@@ -3603,7 +3603,7 @@ def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
 
 def _save_to_imas_DataCam1D( obj,
                             shot=None, run=None, refshot=None, refrun=None,
-                            occ=None, user=None, tokamak=None, version=None,
+                            occ=None, user=None, database=None, version=None,
                             dryrun=False, tfversion=None, verb=True,
                             ids=None, deep=True, restore_size=True, forceupdate=False,
                             path_data=None, path_X=None,
@@ -3615,7 +3615,7 @@ def _save_to_imas_DataCam1D( obj,
     # ------------------
     idd, shotfile = _open_create_idd(shot=shot, run=run,
                                      refshot=refshot, refrun=refrun,
-                                     user=user, tokamak=tokamak, version=version,
+                                     user=user, database=database, version=version,
                                      verb=verb)
 
     # Check choice of ids

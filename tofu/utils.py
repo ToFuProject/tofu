@@ -791,7 +791,7 @@ def _get_exception(q, ids, qtype='quantity'):
     raise Exception(msg)
 
 
-def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
+def load_from_imas(shot=None, run=None, user=None, database=None, version=None,
                    ids=None, Name=None, returnas=None, tlim=None,
                    occ=None, indch=None, description_2d=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
@@ -866,7 +866,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
             invertx = True
 
         multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
-                                         tokamak=tokamak, version=version,
+                                         database=database, version=version,
                                          ids='equilibrium')
         equi = multi.to_Plasma2D()
 
@@ -895,7 +895,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
         if False:
             multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
-                                             tokamak=tokamak, version=version,
+                                             database=database, version=version,
                                              ids='wall')
             config = multi.to_Config(plot=False)
         else:
@@ -1014,7 +1014,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
     elif ids == ['events']:
         multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
-                                         tokamak=tokamak, version=version,
+                                         database=database, version=version,
                                          ids='pulse_schedule', ids_base=False)
         multi.get_events(verb=True)
         return
@@ -1162,7 +1162,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     # load
     for ss in shot:
         multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
-                                         tokamak=tokamak, version=version,
+                                         database=database, version=version,
                                          ids=lids)
 
         # export to instances
@@ -1251,9 +1251,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
 
 def calc_from_imas(
-    shot=None, run=None, user=None, tokamak=None, version=None,
-    shot_eq=None, run_eq=None, user_eq=None, tokamak_eq=None,
-    shot_prof=None, run_prof=None, user_prof=None, tokamak_prof=None,
+    shot=None, run=None, user=None, database=None, version=None,
+    shot_eq=None, run_eq=None, user_eq=None, database_eq=None,
+    shot_prof=None, run_prof=None, user_prof=None, database_prof=None,
     ids=None, Name=None, out=None, tlim=None, config=None,
     occ=None, indch=None, description_2d=None, equilibrium=None,
     dsig=None, data=None, X=None, t0=None, dextra=None,
@@ -1264,7 +1264,7 @@ def calc_from_imas(
 ):
     """ Calculate syntehtic signal for a diagnostic
 
-    Read the geometry from an idd (tokamak, user, shot, run)
+    Read the geometry from an idd (database, user, shot, run)
     Read the equilibrium from the same / another idd
     Read the profile from the same / another idd
 
@@ -1299,8 +1299,8 @@ def calc_from_imas(
             extra = True
 
     # Equilibrium idd
-    if tokamak_eq is None:
-        tokamak_eq = tokamak
+    if database_eq is None:
+        database_eq = database
     if user_eq is None:
         user_eq = user
     if shot_eq is None:
@@ -1309,8 +1309,8 @@ def calc_from_imas(
         run_eq = run
 
     # prof idd
-    if tokamak_prof is None:
-        tokamak_prof = tokamak
+    if database_prof is None:
+        database_prof = database
     if user_prof is None:
         user_prof = user
     if shot_prof is None:
@@ -1479,7 +1479,7 @@ def calc_from_imas(
     if input_file is None:
         for ss in shot:
             multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
-                                             tokamak=tokamak, version=version,
+                                             database=database, version=version,
                                              ids=lids, synthdiag=False,
                                              get=False)
 
@@ -1487,13 +1487,13 @@ def calc_from_imas(
                                                           returnas=list,
                                                           verb=False)
             if 'equilibrium' in lids_synth:
-                multi.add_ids('equilibrium', tokamak=tokamak_eq,
+                multi.add_ids('equilibrium', database=database_eq,
                               user=user_eq, shot=shot_eq, run=run_eq,
                               get=False)
                 lids_synth.remove('equilibrium')
 
             if len(lids_synth) > 0:
-                multi.add_ids(lids_synth, tokamak=tokamak_prof,
+                multi.add_ids(lids_synth, database=database_prof,
                               user=user_prof, shot=shot_prof, run=run_prof,
                               get=False)
             multi.open_get_close()
@@ -1514,7 +1514,7 @@ def calc_from_imas(
 
     else:
         multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
-                                         tokamak=tokamak, version=version,
+                                         database=database, version=version,
                                          ids=lids, synthdiag=False, get=False)
         if 'bremsstrahlung_visible' in lids:
             multi.add_ids('equilibrium', get=True)
