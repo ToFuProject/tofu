@@ -3134,7 +3134,7 @@ def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
         msg = "IMAS: The required imas ddatabase does not seem to exist:\n"
         msg += "         - looking for: {}\n".format(path)
         if user == getpass.getuser():
-            msg += "       => Maybe run imasdb %s (in shell) ?"%database
+            msg += "       => Maybe run imasdb {} (in shell)?".format(database)
         raise Exception(msg)
 
     # Check existence of file
@@ -3509,12 +3509,14 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
         )
 
 
-def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
-                           shot=None, run=None, refshot=None, refrun=None,
-                           occ=None, user=None, database=None, version=None,
-                           dryrun=False, tfversion=None, close=True, verb=True,
-                           ids=None, deep=True, restore_size=False,
-                           config_occ=None, config_description_2d=None):
+def _save_to_imas_CamLOS1D(
+    obj, idd=None, shotfile=None,
+    shot=None, run=None, refshot=None, refrun=None,
+    occ=None, user=None, database=None, version=None,
+    dryrun=False, tfversion=None, close=True, verb=True,
+    ids=None, deep=True, restore_size=False,
+    config_occ=None, config_description_2d=None,
+):
 
     if occ is None:
         occ = 0
