@@ -3101,12 +3101,20 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
 #   Generic functions
 #--------------------------------
 
-def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
-                     user=None, tokamak=None, version=None, verb=True):
+def _open_create_idd(
+    shot=None, run=None,
+    refshot=None, refrun=None,
+    user=None, tokamak=None,
+    version=None, verb=True,
+):
 
     # Check idd inputs and get default values
-    didd = dict(shot=shot, run=run, refshot=refshot, refrun=refrun,
-                user=user, tokamak=tokamak, version=version)
+    didd = dict(
+        shot=shot, run=run,
+        refshot=refshot, refrun=refrun,
+        user=user, tokamak=tokamak,
+        version=version,
+    )
     for k, v in didd.items():
         if v is None:
             didd[k] = _defimas2tofu._IMAS_DIDD[k]
@@ -3115,8 +3123,14 @@ def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
     assert all([type(didd[ss]) is str for ss in ['user','tokamak','version']])
 
     # Check existence of database
-    path = os.path.join('~', 'public', 'imasdb', didd['tokamak'], '3', '0')
-    path = os.path.realpath(os.path.expanduser(path))
+    path = os.path.join(
+        os.path.expanduser('~{}'.format(user)),
+        'public',
+        'imasdb',
+        didd['tokamak'],
+        '3',
+        '0',
+    )
 
     if not os.path.exists(path):
         msg = "IMAS: The required imas ddatabase does not seem to exist:\n"
@@ -3613,10 +3627,12 @@ def _save_to_imas_DataCam1D( obj,
         occ = 0
     # Create or open IDS
     # ------------------
-    idd, shotfile = _open_create_idd(shot=shot, run=run,
-                                     refshot=refshot, refrun=refrun,
-                                     user=user, tokamak=tokamak, version=version,
-                                     verb=verb)
+    idd, shotfile = _open_create_idd(
+        shot=shot, run=run,
+        refshot=refshot, refrun=refrun,
+        user=user, tokamak=tokamak, version=version,
+        verb=verb,
+    )
 
     # Check choice of ids
     c0 = ids in dir(idd)
@@ -3632,13 +3648,13 @@ def _save_to_imas_DataCam1D( obj,
         msg = "path_data is not valid !\n"
         msg += "path_data must be a (str) valid path to a field in idd.%s"%ids
         raise Exception(msg)
-    if not ( path_X is None or type(path_X) is str ):
+    if not ( path_X is None or type(path_X) is str):
         msg = "path_X is not valid !\n"
         msg += "path_X must be a (str) valid path to a field in idd.%s"%ids
         raise Exception(msg)
 
     # First save dependencies
-    donersize = False
+    doneresize = False
     if deep:
         if obj.config is not None:
             _save_to_imas_Config(obj.config, idd=idd, shotfile=shotfile,
@@ -3697,7 +3713,7 @@ def _save_to_imas_DataCam1D( obj,
         # data
         # --------
         if not doneresize:
-            ids.channel.resize( nchMax )
+            ids.channel.resize(nchMax)
         data, X = obj.data, obj.X
 
         lpdata = path_data.split('.')
