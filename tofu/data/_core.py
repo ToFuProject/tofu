@@ -1998,7 +1998,7 @@ class DataAbstract(utils.ToFuObject):
 
 
     def save_to_imas(self, ids=None, shot=None, run=None, refshot=None, refrun=None,
-                     user=None, tokamak=None, version=None, occ=None,
+                     user=None, database=None, version=None, occ=None,
                      dryrun=False, deep=True, verb=True,
                      restore_size=True, forceupdate=False,
                      path_data=None, path_X=None,
@@ -2006,7 +2006,7 @@ class DataAbstract(utils.ToFuObject):
        import tofu.imas2tofu as _tfimas
        _tfimas._save_to_imas(self, tfversion=__version__,
                              shot=shot, run=run, refshot=refshot,
-                             refrun=refrun, user=user, tokamak=tokamak,
+                             refrun=refrun, user=user, database=database,
                              version=version, occ=occ, dryrun=dryrun, verb=verb,
                              ids=ids, deep=deep,
                              restore_size=restore_size,

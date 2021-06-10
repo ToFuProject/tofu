@@ -182,7 +182,7 @@ def _get_totalurl(
             raise Exception(msg)
         ion = element
         if charge is not None:
-            ion += '{}+'.format(charge)
+            ion = "{}{}+".format(element, charge)
 
     # ion
     if ion is None:
@@ -314,7 +314,11 @@ def _get_totalurl(
 # #############################################################################
 
 
-def _csv_parser(pfe=None, url=None, path_local=None, create_custom=None):
+def _csv_parser(
+    pfe=None, url=None, path_local=None,
+    create_custom=None,
+    dlines0=None,
+):
 
     # Download url
     if url is not None:
@@ -355,10 +359,36 @@ def _csv_parser(pfe=None, url=None, path_local=None, create_custom=None):
             )
             raise Exception(msg)
 
+    # nb to exclude if dlines0
+    if dlines0 is not None:
+        c0 = (
+            isinstance(dlines0, dict)
+            and all([
+                isinstance(ss, str)
+                and isinstance(vv, dict)
+                and 'lambda0' in vv.keys()
+                for ss, vv in dlines0.items()
+            ])
+        )
+        if not c0:
+            msg = "Arg dlines0 is not a dlines dict!"
+            raise Exception(msg)
+        lnb = [
+            int(kk[len('nist_'):].split('_')[0]) for kk in dlines0.keys()
+            if kk.startswith('nist_')
+        ]
+        if len(lnb) > 0:
+            ii = np.nanmax(lnb) + 1
+        else:
+            ii = 0
+        ltrans = (['conf_i', 'term_i', 'J_i'], ['conf_k', 'term_k', 'J_k'])
+    else:
+        ii = 0
+
     # Read file
     dout = {}
-    ii = 0
     lkout = ['Unnamed: 0', 'Aki(s^-1)', 'Acc', 'Unnamed: 22', '']
+    ok = True
     with open(pfe, mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file, delimiter=',')
         line_count = 0
@@ -366,14 +396,19 @@ def _csv_parser(pfe=None, url=None, path_local=None, create_custom=None):
             if line_count == 0:
                 line_count += 1
             else:
-                key = 'nist_{:03}'.format(ii)
-                dout[key] = {
+                # remove useless char
+                rowi = {
                     k0: v0.replace('=', '').replace('"', '')
                     for k0, v0 in row.items()
                     if k0 not in lkout
                 }
-                line_count += 1
-                ii += 1
+
+
+                if ok is True:
+                    key = 'nist_{:03}'.format(ii)
+                    dout[key] = rowi
+                    line_count += 1
+                    ii += 1
 
     return dout
 
@@ -407,6 +442,8 @@ def step01_search_online_by_wavelengthA(
     verb=None,
     create_custom=None,
     format_for_DataCollection=None,
+    dsource0=None,
+    dlines0=None,
 ):
     """ Perform an online freeform search on https://open.adas.ac.uk
 
@@ -472,7 +509,7 @@ def step01_search_online_by_wavelengthA(
     )
     loaded_from_cache = False
     if c0:
-        dout = _csv_parser(url=None, pfe=cache_url)
+        dout = _csv_parser(url=None, pfe=cache_url, dlines0=dlines0)
         if cache_info is True:
             msg = "Loaded from cache:\n\t{}".format(cache_url)
             print(msg)
@@ -482,6 +519,7 @@ def step01_search_online_by_wavelengthA(
             url=total_url, pfe=cache_url,
             path_local=path_local,
             create_custom=create_custom,
+            dlines0=dlines0,
         )
 
     # Trivial case
@@ -539,7 +577,9 @@ def step01_search_online_by_wavelengthA(
     # ----------
     # return
     if format_for_DataCollection is True:
-        return _format_for_DataCollection(dout=dout, dsources=dsources)
+        return _format_for_DataCollection(
+            dout=dout, dsources=dsources, dlines0=dlines0,
+        )
     else:
         url = cache_url if loaded_from_cache else total_url
         lv = [
@@ -610,7 +650,7 @@ def _get_dsources(lsources):
                 '<a id="aj" title="Click to open the journal'
             )
             extralen = len('s online archive" href=') + 1
-            if resp.count(char) == 1:
+            if resp.count(char) >= 1:
                 i0 = resp.index(char) + len(char) + extralen
                 i1 = resp[i0:].index('</a>')
                 jour = resp[i0:i0+i1].replace('"', '')
@@ -642,6 +682,7 @@ def _get_dsources(lsources):
             dsources[ss[0]] = {'long': longi, 'url': url}
         except Exception as err:
             dsources[ss[0]] = {'long': ss}
+
     return dsources
 
 
@@ -655,34 +696,56 @@ def _extract_one_line(
     dout=None, dsources=None,
     k0=None, key=None, lamb0=None,
     dlines=None, lcol=None,
+    dlines0=None,
 ):
-    ion = '{}{}+'.format(dout[k0]['element'], dout[k0]['sp_num'])
-    dlines[key] = {
-        'ion': ion,
-        'lambda0': lamb0,
-    }
-    ls = ['conf_i', 'term_i', 'J_i', 'conf_k', 'term_k', 'J_k']
-    if all([ss in lcol for ss in ls]):
-        dlines[key]['transition'] = (
-            '{} {} {}'.format(
-                dout[k0]['conf_i'], dout[k0]['term_i'], dout[k0]['J_i'],
-            ),
-            '{} {} {}'.format(
-                dout[k0]['conf_k'], dout[k0]['term_k'], dout[k0]['J_k'],
-            )
+    ion = '{}{}+'.format(dout[k0]['element'].title(), dout[k0]['sp_num'])
+    ls = [('conf_i', 'term_i', 'J_i'), ('conf_k', 'term_k', 'J_k')]
+    if all([ss in lcol for ss in ls[0]]) and all([ss in lcol for ss in ls[1]]):
+        trans = (
+            '{} {} {}'.format(*[dout[k0][kk] for kk in ls[0]]),
+            '{} {} {}'.format(*[dout[k0][kk] for kk in ls[1]]),
         )
     if 'line_ref' in lcol and dout[k0]['line_ref'] in dsources.keys():
-        dlines[key]['source'] = dout[k0]['line_ref']
+        source = dout[k0]['line_ref']
     else:
-        dlines[key]['source'] = 'unknown'
-        if 'unknown' not in dsources.keys():
-            dsources['unknown'] = {'long': 'unknown', 'url': 'None'}
+        source = 'unknown'
     nn, tt = key.split('_')[1:]
-    dlines[key]['symbol'] = 'n{}{}'.format(nn, tt[0])
+    symbol = 'n{}{}'.format(nn, tt[0])
+
+    # check for prexisting line
+    ok = True
+    if dlines0 is not None:
+        lk = [
+            kk for kk, vv in dlines0.items()
+            if kk.startswith('nist_')
+            and kk.endswith(key.split('_')[-1])
+            if vv['transition'] == trans
+            and vv['ion'] == ion
+        ]
+        if len(lk) == 0:
+            ok = True
+        else:
+            ok = False
+
+    if ok is True:
+        dlines[key] = {
+            'ion': ion,
+            'lambda0': lamb0,
+            'source': source,
+            'transition': trans,
+            'symbol': symbol,
+        }
+        if source == 'unknown' and 'unknown' not in dsources.keys():
+            dsources['unknown'] = {'long': 'unknown', 'url': 'None'}
     return dlines, dsources
 
 
-def _format_for_DataCollection(dout=None, dsources=None):
+def _format_for_DataCollection(
+    dout=None,
+    dsources=None,
+    dsource0=None,
+    dlines0=None,
+):
     dlines = {}
     lcol = list(list(dout.values())[0].keys())
     for k0 in dout.keys():
@@ -695,6 +758,7 @@ def _format_for_DataCollection(dout=None, dsources=None):
                 dout=dout, dsources=dsources,
                 k0=k0, key=key, lamb0=lamb0,
                 dlines=dlines, lcol=lcol,
+                dlines0=dlines0,
             )
         kl = 'ritz_wl_vac(A)'
         c0 = kl in lcol and dout[k0][kl] != ''
@@ -705,8 +769,14 @@ def _format_for_DataCollection(dout=None, dsources=None):
                 dout=dout, dsources=dsources,
                 k0=k0, key=key, lamb0=lamb0,
                 dlines=dlines, lcol=lcol,
+                dlines0=dlines0,
             )
 
+    if dsource0 is not None:
+        dsources = {
+            kk: vv for kk, vv in dsources.items()
+            if kk not in dsource0.keys()
+        }
     return dlines, dsources
 
 

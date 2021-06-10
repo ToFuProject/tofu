@@ -468,10 +468,11 @@ def plot_axvline(
                 k0 for k0 in key
                 if din[k0][sortby] == uu and k0 in dsize.keys()
             ]
-            x.append([din[k0][param_x] for k0 in lk])
-            y.append([ly[ii][0]+fraction*dy/2. for k0 in lk])
-            colors.append([dcolor[uu] for ii in range(len(lk))])
-            sizes.append([dsize[k0] for k0 in lk])
+            if len(lk) > 0:
+                x.append([din[k0][param_x] for k0 in lk])
+                y.append([ly[ii][0]+fraction*dy/2. for k0 in lk])
+                colors.append([dcolor[uu] for ii in range(len(lk))])
+                sizes.append([dsize[k0] for k0 in lk])
 
         x = np.concatenate(x).ravel()
         y = np.concatenate(y).ravel()

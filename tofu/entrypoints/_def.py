@@ -8,7 +8,7 @@ _TFPLOT_CONFIG = None
 _TFPLOT_TOSOLEDGE3X = False
 _TFPLOT_RUN = 0
 _TFPLOT_USER = None
-_TFPLOT_TOKAMAK = None
+_TFPLOT_DATABASE = None
 _TFPLOT_VERSION = None
 _TFPLOT_T0 = None
 _TFPLOT_SHAREX = False
@@ -25,7 +25,7 @@ _TFPLOT_MAG_INIT_PTS = None
 # #############################################################################
 _TFCALC_RUN = 0
 _TFCALC_USER = None
-_TFCALC_TOKAMAK = None
+_TFCALC_DATABASE = None
 _TFCALC_VERSION = None
 _TFCALC_T0 = None
 _TFCALC_SHAREX = False

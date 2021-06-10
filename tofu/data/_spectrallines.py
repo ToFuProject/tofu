@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import warnings
 
 
 from ._core_new import DataCollection
@@ -296,10 +297,7 @@ class SpectralLines(DataCollection):
         cache_info=None,
         verb=None,
         create_custom=None,
-
         dsource0=None,
-        dref0=None,
-        ddata0=None,
         dlines0=None,
         grouplines=None,
     ):
@@ -356,6 +354,8 @@ class SpectralLines(DataCollection):
             verb=verb,
             create_custom=create_custom,
             format_for_DataCollection=True,
+            dsource0=dsource0,
+            dlines0=dlines0,
         )
 
         # dref_static
@@ -412,6 +412,48 @@ class SpectralLines(DataCollection):
             grouplines=grouplines,
         )
         return cls(dref_static=dref_static, dobj=dobj)
+
+    def add_from_nist(
+        self,
+        lambmin=None,
+        lambmax=None,
+        element=None,
+        charge=None,
+        ion=None,
+        wav_observed=None,
+        wav_calculated=None,
+        transitions_allowed=None,
+        transitions_forbidden=None,
+        cache_from=None,
+        cache_info=None,
+        verb=None,
+        create_custom=None,
+        grouplines=None,
+    ):
+        """
+        Load and add lines and pec from openadas, either:
+            - online = True:  directly from the website
+            - online = False: from pre-downloaded files in ~/.tofu/openadas/
+        """
+        dref_static, dobj = self._from_nist(
+            lambmin=lambmin,
+            lambmax=lambmax,
+            element=element,
+            charge=charge,
+            ion=ion,
+            wav_observed=wav_observed,
+            wav_calculated=wav_calculated,
+            transitions_allowed=transitions_allowed,
+            transitions_forbidden=transitions_forbidden,
+            cache_from=cache_from,
+            cache_info=cache_info,
+            verb=verb,
+            create_custom=create_custom,
+            dsource0=self._dref_static.get('source'),
+            dlines0=self._dobj.get('lines'),
+            grouplines=grouplines,
+        )
+        self.update(dref_static=dref_static, dobj=dobj)
 
     # -----------------
     # from file (.py)
@@ -625,7 +667,8 @@ class SpectralLines(DataCollection):
                 + "\t- {}\n\n".format(lc)
                 + "  => pec data should be tabulated vs (ne, Te)"
             )
-            raise Exception(msg)
+            warnings.warn(msg)
+            key = [kk for kk in key if kk not in lc]
 
         # Check ne, Te
         ltype = [int, float, np.int_, np.float_]
@@ -863,6 +906,7 @@ class SpectralLines(DataCollection):
             deg=deg,
             grid=grid,
         )
+        key = list(dpec.keys())
 
         ne = float(ne)
         Te = float(Te)
