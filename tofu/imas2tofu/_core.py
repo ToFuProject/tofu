@@ -3124,7 +3124,7 @@ def _open_create_idd(
 
     # Check existence of database
     path = os.path.join(
-        os.path.expanduser('~{}'.format(user)),
+        os.path.expanduser('~{}'.format(didd['user'])),
         'public',
         'imasdb',
         didd['tokamak'],
