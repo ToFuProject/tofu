@@ -1229,6 +1229,77 @@ class CrystalBragg(utils.ToFuObject):
                              )
             self._dmat['alpha'], self._dmat['beta'] = alpha, beta
 
+    def calc_sagit_merid_focus(
+        self, rcurve=None,
+        bragg=None, alpha=None, beta=None,
+        use_non_parallelism=None,
+        ):
+        """ Compute sagittal and meridional focuses distances.
+        Optionnal result according to non-parallelism, using first the
+        update_non_parallelism method.
+        Args:
+            - rcurve: float
+                in dgeom dict., curvature radius of the crystal.
+            - bragg: np.float64
+                in dbragg dict., reference bragg angle of the crystal.
+            - alpha, beta: float
+                in dmat dict., non-parallelism angles defined by user,
+                in radian.
+            - use_non_parallelism: str
+                Need to be True to use new alpha and beta angles if non-null.
+        """
+        if rcurve is None:
+            rcurve = self._dgeom['rcurve']
+        if bragg is None:
+            bragg = self._dbragg['braggref']
+
+        if use_non_parallelism is None:
+            use_non_parallelism = False
+        elif alpha is None and beta is None:
+            alpha == 0
+            beta == 0
+
+        s_merid = rcurve*np.sin(bragg)
+        s_sagit = -s_merid / np.cos(2.*bragg)
+
+        if use_non_parallelism is True:
+            alpha = self._dmat['alpha']
+            beta = self._dmat['beta']
+            if self._dmat['alpha'] == 0:
+                msg = (
+                    "Wanted non parallelism option but\n"
+                    + "both alpha and beta angles are null!\n"
+                    + "Please check update these angles with non-null\n"
+                    + "or make use_non_parallelism option False.\n"
+                )
+                raise exception(msg)
+
+            s_merid_unp = rcurve*(
+                np.sin(bragg) + np.cos(bragg)*np.sin(alpha)
+                )
+            s_sagit_unp = rcurve*np.sin(bragg-alpha)
+
+            delta_merid = abs(s_merid_unp - s_merid)
+            rel_delta_merid = delta_merid / s_merid
+
+            delta_sagit = abs(s_sagit_unp - s_sagit)
+            rel_delta_sagit = delta_sagit / s_sagit
+
+        print("Assuming perfect crystal, the meridonal focus distance is\n"
+            + "equal to ({})m\n".format(s_merid)
+            + "and the sagittal focus is at ({})m.\n".format(s_sagit)
+            )
+
+        if use_non_parallelism is True:
+            print("With the non-parallelism option, the meridonal focus is\n"
+            + "equal to ({})m\n".format(s_merid_unp)
+            + "or a change of ({})m\n".format(delta_merid)
+            + "or ({})%\n".format(rel_delta_merid)
+            + "and the sagital focus is at ({})m.\n".format(s_sagit_unp)
+            + "or a change of ({})m\n".format(delta_sagit)
+            + "or ({})%\n".format(rel_delta_sagit)
+            )
+
     def get_rowland_dist_from_lambbragg(self, bragg=None, lamb=None, n=None):
         """ Return the array of dist from cryst summit to pts on rowland """
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
@@ -1352,6 +1423,7 @@ class CrystalBragg(utils.ToFuObject):
              rcurve, bragg,
              bragg01=bragg01, dist01=dist01,
              tangent_to_rowland=tangent_to_rowland)
+        print('crystal/detector distance:', det_dist)
 
         # Deduce absolute position in (x, y, z)
         det_cent, det_nout, det_ei, det_ej = _comp_optics.get_det_abs_from_rel(
@@ -1756,6 +1828,12 @@ class CrystalBragg(utils.ToFuObject):
                 - lpsi   = [-1, 1, 1, -1]
                 - ldtheta = [-1, -1, 1, 1]
             They must have the same len()
+        First affecting by 'calibration' a precise lambda according to pixel's
+        position.
+        Then, computing error on bragg and phi angles on each pixels and then
+        directly computing a delta_lambda on each (lamberr).
+
+
         """
 
         # Check / format inputs
@@ -1771,7 +1849,6 @@ class CrystalBragg(utils.ToFuObject):
             )
         assert bragg.shape == phi.shape
         lamb = self.get_lamb_from_bragg(bragg, n=n)
-
         if lpsi is None:
             lpsi = np.r_[-1., 0., 1., 1., 1., 0., -1, -1]
         lpsi = self._dgeom['extenthalf'][0]*np.r_[lpsi]
@@ -2013,7 +2090,7 @@ class CrystalBragg(utils.ToFuObject):
             use_non_parallelism=use_non_parallelism,
             grid=False,
         )
-        assert np.allclose(bragg, bragg2, equal_nan=True)
+        assert np.allclose(bragg, bragg2, atol=1e-3, equal_nan=True)
         return dtheta, psi, phi, bragg
 
     def calc_raytracing_from_lambpts(
