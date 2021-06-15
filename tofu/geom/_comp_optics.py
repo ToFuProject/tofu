@@ -247,14 +247,14 @@ def get_vectors_from_angles(alpha, beta, nout, e1, e2):
     """
 
     e1_bis = np.cos(alpha)*(
-                    np.cos(beta)*e1 + np.sin(beta)*e2
-                    ) - np.sin(alpha)*nout
+        np.cos(beta)*e1 + np.sin(beta)*e2
+        ) - np.sin(alpha)*nout
 
     e2_bis = np.cos(beta)*e2-np.sin(beta)*e1
 
     nout_bis = np.cos(alpha)*nout + np.sin(alpha)*(
-             np.cos(beta)*e1+ np.sin(beta)*e2
-             )
+        np.cos(beta)*e1+ np.sin(beta)*e2
+        )
     nin_bis = -nout_bis
 
     return nin_bis, nout_bis, e1_bis, e2_bis
