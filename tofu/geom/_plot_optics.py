@@ -987,9 +987,9 @@ def CrystalBragg_plot_line_tracing_on_det(
         l0, = dax.plot(xi[l, :], xj[l, :], ls='-', lw=1., label=lab)
         if plot_err:
             dax.plot(
-                xi_err[l, ...], xj_err[l, ...],
+                xi_err[l, ...], xj_err[l, ...], 'o-',
                 ls='None', lw=1., c='g',# c=l0.get_color(),
-                marker='x', ms=1,
+                ms=1, #marker='x'
             )
 
     if dleg is not False:
@@ -1032,6 +1032,11 @@ def CrystalBragg_plot_johannerror(
     else:
         err_lamb_units = 'm'
         err_phi_units = angunits
+    if err == 'rel2':
+        err_lamb = 100.*err_lamb / (np.mean(lamb))
+        err_phi = 100.*err_phi / (np.mean(phi))
+        err_lamb_units = '%'
+        err_phi_units = '%'
 
     if wintit is None:
         wintit = _WINTIT
