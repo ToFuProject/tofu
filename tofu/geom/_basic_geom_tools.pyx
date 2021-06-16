@@ -453,22 +453,34 @@ cdef inline void compute_vec_ass_tri(const double pt0, const double pt1,
     vecc = \vec Gc
     """
     cdef int ii
-    for ii in range(0, npts):
+    for ii in range(npts):
+        with gil:
+            print("_______\n ii / npts =", ii, npts)
         normG2[ii] = ((pt0 - ptG[0, ii]) * (pt0 - ptG[0, ii])
                       + (pt1 - ptG[1, ii]) * (pt1 - ptG[1, ii])
                       + (pt2 - ptG[2, ii]) * (pt2 - ptG[2, ii]))
+        with gil:
+            print("right here 1", num==NULL)
         num[ii] = ((pt0 - ptG[0, ii]) *   cross_bc[0, ii]
                    + (pt1 - ptG[1, ii]) * cross_bc[1, ii]
                    + (pt2 - ptG[2, ii]) * cross_bc[2, ii])
+        # with gil:
+        #     print("right here 2")
         dot_Gb[ii] = ((pt0 - ptG[0, ii])   * vecb[0, ii]
                       + (pt1 - ptG[1, ii]) * vecb[1, ii]
                       + (pt2 - ptG[2, ii]) * vecb[2, ii])
+        # with gil:
+        #     print("right here 3")
         dot_Gc[ii] = ((pt0 - ptG[0, ii])   * vecc[0, ii]
                       + (pt1 - ptG[1, ii]) * vecc[1, ii]
                       + (pt2 - ptG[2, ii]) * vecc[2, ii])
-        side_of_poly[ii] = ((pt0 - ptG[0, ii])   * poly_norm[0, ii]
-                            + (pt1 - ptG[1, ii]) * poly_norm[1, ii]
-                            + (pt2 - ptG[2, ii]) * poly_norm[2, ii])
+        # with gil:
+        #     print("right here 4")
+        side_of_poly[ii] = ((pt0 - ptG[0, ii])   * poly_norm[ii, 0]
+                            + (pt1 - ptG[1, ii]) * poly_norm[ii, 1]
+                            + (pt2 - ptG[2, ii]) * poly_norm[ii, 2])
+        # with gil:
+        #     print("right here 5")
     return
 
 
