@@ -2750,7 +2750,6 @@ cdef inline void sa_tri_assemble(
             reso_rdrdz, pts_mv, ind_mv,
             num_threads)
     elif not block and use_approx:
-        print("........ NOT BLOCKING")
         tri_asmbl_unblock_approx(
             poly_coords,
             npoly,
@@ -3010,11 +3009,7 @@ cdef inline void tri_asmbl_unblock_approx(
     numerator = <double*> malloc(num_tot_tri * sizeof(double))
     side_of_poly = <double*> malloc(num_tot_tri * sizeof(double))
 
-    with gil:
-        print("........ hereeee")
     for rr in range(sz_r):
-        with gil:
-            print("rr / sz/r =", rr, sz_r)
         loc_r = disc_r[rr]
         loc_size_phi = sz_phi[rr]
         loc_step_rphi = step_rphi[rr]
@@ -3033,14 +3028,6 @@ cdef inline void tri_asmbl_unblock_approx(
                     loc_x = loc_r * c_cos(loc_phi)
                     loc_y = loc_r * c_sin(loc_phi)
                     # OG norm and other associated values  ....
-                    with gil:
-                        print("before vec ass tri..........", num_tot_tri,
-                              side_of_poly==NULL,
-                              numerator==NULL,
-                              dot_Gb==NULL,
-                              dot_Gc==NULL,
-                              norm_G2==NULL,
-                              )
                     _bgt.compute_vec_ass_tri(loc_x, loc_y, loc_z,
                                              num_tot_tri, centroids,
                                              poly_norm,
@@ -3051,11 +3038,7 @@ cdef inline void tri_asmbl_unblock_approx(
                                              &dot_Gb[0],
                                              &dot_Gc[0],
                                              &norm_G2[0])
-                    # with gil:
-                    #     print("before vec ass tri.......... DONE")
                     for ipoly in range(npoly):
-                        # with gil:
-                        #     print("ipoly / npoly =", ipoly, npoly)
                         if side_of_poly[ipoly] < 0.:
                             continue  # point is not on right side of poly
                         dist_opts = <double*> malloc(lnvert_poly[ipoly]
@@ -3066,8 +3049,6 @@ cdef inline void tri_asmbl_unblock_approx(
                                                  poly_coords[ipoly],
                                                  &dist_opts[0])
                         for itri in range(lnvert_poly[ipoly] - 2):
-                            # with gil:
-                            #     print("before comp_sa_tri_appx.......")
                             iglob = ipoly + itri * npoly
                             sa_map[ind_pol,
                                    ipoly] += comp_sa_tri_appx(
@@ -3080,8 +3061,6 @@ cdef inline void tri_asmbl_unblock_approx(
                                        dot_GBGC[iglob],
                                        dist_opts,
                                    )
-                            # with gil:
-                            #     print("before comp_sa_tri_appx....... DONE")
                         free(dist_opts)
     free(dot_Gb)
     free(dot_Gc)

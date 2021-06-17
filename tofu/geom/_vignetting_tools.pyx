@@ -36,9 +36,6 @@ cdef inline bint is_reflex(const double[3] u,
     cdef double sumc
     cdef double[3] ucrossv
     # ...
-    # with gil:
-    #     for ii in range(3):
-    #         print("- u, v = ", u[ii], v[ii])
     _bgt.compute_cross_prod(u, v, ucrossv)
     sumc = 0.0
     for ii in range(3):
@@ -145,12 +142,8 @@ cdef inline int get_one_ear(double* polygon,
     cdef int wi, wj
     cdef int wip1, wim1
     cdef bint a_pt_in_tri
-    with gil:
-        print("Number of vert : ", nvert)
     for i in range(1, nvert-1):
         wi = working_index[i]
-        with gil:
-            print("> ", i, " working ind =", wi, lref[wi])
         if not lref[wi]:
             # angle is not reflex
             a_pt_in_tri = False
@@ -175,15 +168,11 @@ cdef inline int get_one_ear(double* polygon,
                         a_pt_in_tri = True
                         break
             # Let's check if there was a point in the triangle....
-            # with gil:
-            #     print("was there a point in tri =", a_pt_in_tri, i)
             if not a_pt_in_tri:
                 return i # if not, we found an ear
     # if we havent returned, either, there was an error somerwhere
     with gil:
-        assert False, "Got here but shouldnt have "
-        raise ValueError()
-    return -1
+        raise ValueError("Didn't find a non reflex angle in polygon")
 
 
 cdef inline void earclipping_poly(double* vignett,
@@ -212,69 +201,38 @@ cdef inline void earclipping_poly(double* vignett,
         working_index.push_back(ii)
     # .. Loop ..................................................................
     for itri in range(nvert-3):
-        # with gil:
-        #     print("# itri =", itri, lref[0])
         iear =  get_one_ear(vignett, &diff[0], &lref[0],
                             working_index, loc_nv, nvert)
-        if iear < 0:
-            with gil:
-                print("itri :", itri)
-                raise ValueError()
         wim1 = working_index[iear-1]
-        with gil:
-            print("doing first done", wim1)
         wi   = working_index[iear]
-        with gil:
-            print("doing second done", wi)
         wip1 = working_index[iear+1]
-        with gil:
-            print("doing third done", wip1)
         ltri[itri*3]   = wim1
         ltri[itri*3+1] = wi
         ltri[itri*3+2] = wip1
-        with gil:
-            print("doing ltri getts done")
         # updates on the "information" arrays:
         diff[wim1*3]   = vignett[0*nvert+wip1] - vignett[0*nvert+wim1]
         diff[wim1*3+1] = vignett[1*nvert+wip1] - vignett[1*nvert+wim1]
         diff[wim1*3+2] = vignett[2*nvert+wip1] - vignett[2*nvert+wim1]
-        with gil:
-            print("doing getting diffs done")
         #... theoritically we should get rid of off diff[wip1] as well but
         # we'll just not use it, however we have to update lref
         # if an angle is not reflex, then it will stay so, only chage if reflex
         if lref[wim1]:
-            with gil:
-                print("lref is ref done")
             if iear >= 2:
                 lref[wim1] = is_reflex(&diff[3*wim1],
                                        &diff[3*working_index[iear-2]])
             else:
                 lref[wim1] = is_reflex(&diff[3*wim1],
                                        &diff[3*working_index[loc_nv-1]])
-        with gil:
-            print(" going to check lref +1")
-            print(" lref )", lref[wip1])
         if lref[wip1]:
             lref[wip1] = is_reflex(&diff[wip1*3],
                                    &diff[wim1*3])
         # last but not least update on number of vertices and working indices
         loc_nv = loc_nv - 1
-        with gil:
-            print("erasing")
         working_index.erase(working_index.begin()+iear)
-        with gil:
-            print("erasing done")
     # we only have three points left, so that is the last triangle:
     ltri[(itri+1)*3]   = working_index[0]
-    with gil:
-        print("1")
     ltri[(itri+1)*3+1] = working_index[1]
-    with gil:
-            print("doing 2 done")
     ltri[(itri+1)*3+2] = working_index[2]
-    with gil:
-            print("doing 3 done")
     return
 
 # ==============================================================================
@@ -301,14 +259,6 @@ cdef inline void triangulate_poly(double* vignett_poly,
     lref = <bint*>malloc(nvert*sizeof(bint))
     ltri[0] = <long*>malloc((nvert-2)*3*sizeof(long))
     compute_diff3d(vignett_poly, nvert, &diff[0])
-    for ii in range(nvert):
-        with gil:
-            print("... diff = ",
-                  diff[ii*3 + 0],
-                  diff[ii*3 + 1],
-                  diff[ii*3 + 2]
-                  )
-
     are_points_reflex(nvert, diff, &lref[0])
     earclipping_poly(vignett_poly, &ltri[0][0],
                      &diff[0], &lref[0], nvert)
@@ -331,7 +281,6 @@ cdef inline int triangulate_polys(double** vignett_poly,
     """
     cdef int ivign
     cdef int nvert
-    cdef int ii
     cdef double* diff = NULL
     cdef bint* lref = NULL
     # ...
@@ -347,30 +296,12 @@ cdef inline int triangulate_polys(double** vignett_poly,
                     raise MemoryError()
             try:
                 compute_diff3d(vignett_poly[ivign], nvert, &diff[0])
-                # for ii in range(nvert):
-                #     with gil:
-                #         print("... diff = ",
-                #               diff[ii*3 + 0],
-                #               diff[ii*3 + 1],
-                #               diff[ii*3 + 2]
-                #           )
                 are_points_reflex(nvert, diff, &lref[0])
-                # with gil:
-                #     for ii in range(nvert):
-                #         print("... is ref = ",
-                #               lref[ii]
-                #           )
                 earclipping_poly(vignett_poly[ivign], &ltri[ivign][0],
                                  &diff[0], &lref[0], nvert)
             finally:
-                # with gil:
-                #     print("about to free: ")
                 free(diff)
-                # with gil:
-                #     print("in between")
                 free(lref)
-                # with gil:
-                #     print("done")
 
     return 0
 

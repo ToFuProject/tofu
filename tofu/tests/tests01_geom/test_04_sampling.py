@@ -1,6 +1,7 @@
 """Tests of the functions in `sampling_tools.pxd` or their wrappers found in
 `tofu.geom`.
 """
+import itertools
 import numpy as np
 import tofu as tf
 import tofu.geom._GG as GG
@@ -365,39 +366,47 @@ def test05_sa_integ_map(ves_poly=VPoly, debug=0):
     return
 
 
-def test06_sa_integ_poly_map(ves_poly=VPoly, debug=0):
+def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
     import matplotlib.pyplot as plt
     print()
 
-    lblock = [False, True]
-    lstep_rz = [0.015, 0.02]
+    config = tf.load_config("B1")
+    kwdargs = config.get_kwdargs_LOS_isVis()
+    ves_poly = kwdargs["ves_poly"]
 
-    for (block, step_rz) in zip(lblock, lstep_rz):
+    if debug > 2:
+        config.plot()
+        fig = plt.gcf()
+        fig.savefig("configuration")
 
-        config = tf.load_config("A1")
-        kwdargs = config.get_kwdargs_LOS_isVis()
-        ves_poly = kwdargs["ves_poly"]
+    # coordonnées en x,y,z:
+    poly_coords = np.array([
+        np.array([
+            [2.50, 0, -0.5],
+            [2.50, 0, -0.3],
+            [2.75, 0, -0.3],
+            [2.75, 0, -0.5],
+        ]).T  # first polygon in (R, Z)
+    ])
+    poly_lnorms = np.array([[0, 1., 0]])
+    poly_lnvert = np.array([4 for poly in poly_coords])
+    limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
 
-        # coordonnées en x,y,z:
-        poly_coords = np.array([
-            np.array([
-                [2.50, 0, -0.5],
-                [2.50, 0, -0.3],
-                [2.75, 0, -0.3],
-                [2.75, 0, -0.5],
+    lblock = [False]  #, True]
+    lstep_rz = [
+        0.001,
+        0.02,
+    ]
 
-            ]).T  # first polygon in (R, Z)
-        ])
-        poly_lnorms = np.array([[0, 1., 0]])
-        poly_lnvert = np.array([4 for poly in poly_coords])
-        print(">>>>>>>>>>>>>>>>>>>>>>><", poly_lnvert)
-        print(poly_coords[0].shape)
-        print(poly_coords[0])
+    test_cases = list(itertools.product(lblock, lstep_rz))
+
+    for (block, step_rz) in test_cases:
+
         rstep = zstep = step_rz
+        zstep = step_rz
         phistep = 0.08
-        limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
-        DR = None
-        DZ = None
+        DR = [2., 3.]
+        DZ = [-0.5, 0.5]
         DPhi = [-0.1, 0.1]
 
         # -- Getting cython APPROX computation --------------------------------
@@ -421,7 +430,7 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=0):
         npts_sa, npoly = np.shape(sa_map_cy)
 
         if debug > 2:
-            print(f"sa_map_cy is of size {npts_sa},{sz_p}")
+            print(f"sa_map_cy is of size {npts_sa},{npoly}")
 
         # Checking shapes, sizes, types
         assert dim == 2
@@ -430,104 +439,21 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=0):
         assert npts == npts_sa
         assert isinstance(reso_r_z, float)
 
-        # # -- Getting cython EXACT computation ---------------------------------
-        # kwdargs = config.get_kwdargs_LOS_isVis()
-        # res = GG.compute_solid_angle_map(part, part_rad,
-        #                                  rstep, zstep, phistep,
-        #                                  limits_r, limits_z,
-        #                                  approx=False,
-        #                                  DR=DR, DZ=DZ,
-        #                                  DPhi=DPhi,
-        #                                  block=block,
-        #                                  **kwdargs,
-        #                                  limit_vpoly=ves_poly
-        #                                  )
-        # pts_ex, sa_map_cy_ex, ind_ex, reso_r_z_ex = res
-
-        # if debug > 2:
-        #     print(f"sa_map_cy_ex is of size {npts_sa},{sz_p}")
-
-        # # Checking if pts, indices and resolution same as with approx
-        # assert np.allclose(pts_ex, pts)
-        # assert np.allclose(ind_ex, ind)
-        # assert reso_r_z_ex == reso_r_z
-
-        # # ... Testing with python function ....................................
-        # res = GG._Ves_Vmesh_Tor_SubFromD_cython(rstep, zstep, phistep,
-        #                                         limits_r, limits_z,
-        #                                         limit_vpoly=ves_poly,
-        #                                         DR=DR, DZ=DZ,
-        #                                         DPhi=DPhi,
-        #                                         out_format='(X,Y,Z)',
-        #                                         margin=1.e-9)
-
-        # pts_xyz, dvol, ind_disc, reso_r, reso_z, reso_phi, sz_r, sz_z = res
-
-        # npts_disc = np.shape(pts_xyz)[1]
-
-        # sang = config.calc_solidangle_particle(pts_xyz,
-        #                                        part,
-        #                                        part_rad,
-        #                                        block=block,
-        #                                        approx=True)
-
-        # sang_ex = config.calc_solidangle_particle(pts_xyz,
-        #                                           part,
-        #                                           part_rad,
-        #                                           block=block,
-        #                                           approx=False)
-
-        # pts_disc = GG.coord_shift(pts_xyz, in_format='(X,Y,Z)',
-        #                           out_format='(R,Z)')
-
-        # assert (npts_disc, sz_p) == np.shape(sang)
-        # assert npts_disc >= npts
-        # assert reso_r * reso_z == reso_r_z
-        # if ves_poly is None:
-        #     assert npts_sa == sz_z * sz_r, f"sizes r and z = {sz_r}{sz_z}"
-
-        # sa_map_py = np.zeros((npts_sa, sz_p))
-        # sa_map_py_ex = np.zeros((npts_sa, sz_p))
-
-        # r0 = limits_r[0]
-        # z0 = limits_z[0]
-
-        # lvisited = []
-        # for ii in range(npts_disc):
-        #     i_r = int(np.abs(r0 - pts_disc[0, ii]) // reso_r)
-        #     i_z = int(np.abs(z0 - pts_disc[1, ii]) // reso_z)
-        #     ind_pol = int(i_r * sz_z + i_z)
-        #     if ves_poly is not None:
-        #         wh_eq = np.where(ind == ind_pol)
-        #         ind_pol_u = wh_eq[0][0]
-        #     else:
-        #         ind_pol_u = ind_pol
-        #     if ind_pol_u not in lvisited:
-        #         lvisited.append(ind_pol_u)
-        #     for pp in range(sz_p):
-        #         sa_map_py[ind_pol_u, pp] += sang[ii, pp] * reso_phi[i_r]
-        #         sa_map_py_ex[ind_pol_u, pp] += sang_ex[ii, pp] * reso_phi[i_r]
-
-        # if debug > 0:
-        #     for pp in range(sz_p):
-        #         fig = plt.figure(figsize=(14, 8))
-        #         ax = plt.subplot(121)
-        #         # import pdb; pdb.set_trace()
-        #         ax.scatter(pts[0, :], pts[1, :],
-        #                    marker="s", edgecolors="None",
-        #                    s=10, c=sa_map_cy[:, pp].flatten(),
-        #                    vmin=0, vmax=max(sa_map_cy[:, pp].max(),
-        #                                     sa_map_py[:, pp].max()))
-        #         ax.set_title("cython function")
-        #         ax = plt.subplot(122)
-        #         im = ax.scatter(pts[0, :], pts[1, :],
-        #                         marker="s", edgecolors="None",
-        #                         s=10, c=sa_map_py[:, pp].flatten(),
-        #                         vmin=0, vmax=max(sa_map_cy[:, pp].max(),
-        #                                          sa_map_py[:, pp].max()))
-        #         fig.colorbar(im, ax=ax)
-        #         ax.set_title("python reconstruction")
-        #         plt.savefig("comparaison_part"+str(pp))
+        if debug > 0:
+            for pp in range(npoly):
+                plt.clf()
+                fig = plt.figure()
+                ax = plt.subplot(111)
+                # import pdb; pdb.set_trace()
+                im = ax.scatter(pts[0, :], pts[1, :],
+                                marker="s", edgecolors="None",
+                                s=10, c=sa_map_cy[:, pp].flatten(),
+                                vmin=0, vmax=sa_map_cy[:, pp].max())
+                ax.set_title("cython function")
+                fig.colorbar(im, ax=ax)
+                plt.savefig("sa_map_poly" + str(pp)
+                            + "_block" + str(block)
+                            + "_steprz" + str(step_rz).replace(".", "_"))
 
         # max_py = np.max(sa_map_py)
         # max_cy = np.max(sa_map_cy)

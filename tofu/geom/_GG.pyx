@@ -2751,18 +2751,7 @@ def triangulate_by_earclipping(np.ndarray[double,ndim=2] poly):
     diff = <double*>malloc(3*nvert*sizeof(double))
     lref = <bint*>malloc(nvert*sizeof(bint))
     _vt.compute_diff3d(&poly[0,0], nvert, diff)
-    for ii in range(nvert):
-        print("... diff = ",
-              diff[ii*3 + 0],
-              diff[ii*3 + 1],
-              diff[ii*3 + 2]
-              )
-
     _vt.are_points_reflex(nvert, diff, lref)
-    for ii in range(nvert):
-        print("... lref = ",
-              lref[ii]
-              )
     # Calling core function.....................................................
     _vt.earclipping_poly(&poly[0,0], &ltri[0], diff, lref, nvert)
     free(diff)
@@ -5163,8 +5152,6 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
         ltri,
         num_threads
     )
-    for ii in range(6):
-        print("+ ", ltri[0][ii])
     # cpumputing total number of triangles
     tot_num_tri = np.sum(poly_lnvert) - 2 * npoly
     # .. Getting centroids of triangles .......................................
@@ -5173,7 +5160,6 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
     vec_GC = np.zeros((3, tot_num_tri))
     centroids = np.zeros((3, tot_num_tri))
     cross_GBGC = np.zeros((3, tot_num_tri))
-    print("about to compute centroids")
     _bgt.find_centroids_GB_GC_ltri(
         poly_coords,
         ltri,
@@ -5184,13 +5170,11 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
         vec_GB,
         vec_GC,
     )
-    print("DOOOOOOOOOOOOONE")
 
     poly_lnorms_tot = np.repeat(poly_lnorms,
                                 np.asarray(poly_lnvert) - 2,
                                 axis = 0)
     assert np.shape(poly_lnorms_tot)[0] == tot_num_tri
-    print("dot corss vec...........;;")
     _bgt.compute_dot_cross_vec(vec_GB,
                                vec_GC,
                                cross_GBGC,
@@ -5198,7 +5182,6 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
                                tot_num_tri,
                                num_threads,
                                )
-    print("DOOOOOOOOOOOOOOOE")
     # .. Check if points are visible ...........................................
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
@@ -5223,7 +5206,6 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
                                       margin, &disc_z, reso_z, &lindex_z,
                                       ncells_z)
     # .. Preparing for phi: get the limits if any and make sure to replace them
-    print("DOOOOOOOOONE 1")
     # .. in the proper quadrants ...............................................
     if DPhi is None:
         min_phi = -c_pi
@@ -5332,7 +5314,6 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
     npts_pol = _st.sa_get_index_arrays(ind_rz2pol,
                                      is_in_vignette,
                                      sz_r, sz_z)
-    print("DOOOOOOOOOOONE 2")
     # initializing arrays
     reso_rdrdz = np.empty((npts_pol, ))
     sa_map = np.zeros((npts_pol, npoly))
@@ -5348,10 +5329,7 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
     # initializing utilitary arrays
     num_threads = _ompt.get_effective_num_threads(num_threads)
     lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
-    print("DOOOOOOOOOOONE 3")
     # ..............
-    # TODO: pour checker si triangle est visible par un point ed discretization
-    # checker juste si point voit le barycentre du triangle.
     _st.sa_tri_assemble(
         block,
         approx,
@@ -5398,7 +5376,6 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
         ind_mv,
         num_threads
     )
-    print("done before frees")
     # ... freeing up memory ....................................................
     free(lindex_z)
     free(disc_r)
