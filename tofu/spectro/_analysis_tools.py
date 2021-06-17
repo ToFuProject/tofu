@@ -237,7 +237,7 @@ def get_localextrema_1d(
                 peaks, prop = scpsig.find_peaks(
                     -data[ii, :], height=None, threshold=None,
                     distance=None, prominence=None,
-                    width=width, wlen=None, rel_height=None,
+                    width=width, wlen=None, rel_height=rel_height,
                     plateau_size=None,
                 )
                 mini[ii, peaks] = True
@@ -269,7 +269,7 @@ def get_localextrema_1d(
             prominence = prom
             widths = widt
 
-        if prom_rel is True:
+        if prominence is not None and prom_rel is True:
             prominence = prominence / np.nanmax(data, axis=1)[:, None]
 
     else:
