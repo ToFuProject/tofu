@@ -1965,7 +1965,7 @@ class CrystalBragg(utils.ToFuObject):
         dtheta, psi, indok, grid = _comp_optics.calc_dthetapsiphi_from_lambpts(
             pts,
             bragg,
-            center=self._dgeom['center'], # To be updated (non-paralellism)?
+            summit=self._dgeom['summit'], # To be updated (non-paralellism)?
             rcurve=self._dgeom['rcurve'],
             nout=nout, e1=e1, e2=e2,
             extenthalf=self._dgeom['extenthalf'],

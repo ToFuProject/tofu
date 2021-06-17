@@ -736,7 +736,7 @@ def _calc_spect1d_from_data2d(ldata, lamb, phi,
 def calc_dthetapsiphi_from_lambpts(
     pts,
     bragg,
-    center=None, rcurve=None,
+    summit=None, rcurve=None,
     nout=None, e1=None, e2=None,
     extenthalf=None,
     ndtheta=None,
@@ -790,6 +790,7 @@ def calc_dthetapsiphi_from_lambpts(
 
 
     # Get to scalar product scaPCem
+    center = summit - rcurve*nout
     PC = center[:, None] - pts
     PCnorm2 = np.sum(PC**2, axis=0)
     cos2 = np.cos(bragg)**2
