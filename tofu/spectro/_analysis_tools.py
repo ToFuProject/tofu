@@ -2,9 +2,13 @@
 # Common
 import numpy as np
 import scipy.signal as scpsig
+import scipy.interpolate as scpinterp
 
 
-__all__ = ['get_localextrema_1d']
+__all__ = [
+    'get_localextrema_1d',
+    'analyze_peaks_in_spect1d',
+]
 
 
 _LTYPES = [int, float, np.int_, np.float_]
@@ -41,6 +45,7 @@ def _check_bool(var, vardef=None, varname=None):
 def _get_localextrema_1d_check(
     data=None, lamb=None,
     weights=None, width=None,
+    prom_rel=None, rel_height=None,
     method=None, returnas=None,
     return_minima=None,
     return_prominence=None,
@@ -130,6 +135,15 @@ def _get_localextrema_1d_check(
     if width is not False and method == 'find_peaks':
         width = int(np.ceil(width / np.nanmean(np.diff(lamb))))
 
+    if rel_height is None:
+        rel_height = 0.8
+    if not (type(rel_height) in _LTYPES and 0 <= rel_height <= 1.):
+        msg = (
+            "Arg rel_height must be positive float in [0, 1]!\n"
+            + "Provided: {}".format(rel_height)
+        )
+        raise Exception(msg)
+
     # returnas
     if returnas is None:
         returnas = float
@@ -153,9 +167,12 @@ def _get_localextrema_1d_check(
     return_width = _check_bool(
         return_width, vardef=True, varname='return_width',
     )
+    prom_rel = _check_bool(
+        prom_rel, vardef=True, varname='prom_rel',
+    )
 
     return (
-        data, lamb, weights, width, method,
+        data, lamb, weights, width, prom_rel, rel_height, method,
         returnas, return_minima, return_prominence, return_width,
     )
 
@@ -163,6 +180,7 @@ def _get_localextrema_1d_check(
 def get_localextrema_1d(
     data=None, lamb=None,
     width=None, weights=None,
+    prom_rel=None, rel_height=None,
     method=None, returnas=None,
     return_minima=None,
     return_prominence=None,
@@ -174,12 +192,13 @@ def get_localextrema_1d(
     #   check inputs
     (
         data, lamb, weights,
-        width, method,
+        width, prom_rel, rel_height, method,
         returnas, return_minima,
         return_prominence, return_width
     ) = _get_localextrema_1d_check(
         data=data, lamb=lamb,
         weights=weights, width=width,
+        prom_rel=prom_rel, rel_height=rel_height,
         method=method, returnas=returnas,
         return_minima=return_minima,
         return_prominence=return_prominence,
@@ -188,37 +207,29 @@ def get_localextrema_1d(
 
     # -----------------
     #   fit and extract extrema
+    mini, prom, widt = None, None, None
+    minima, prominence, widths = None, None, None
     if method == 'find_peaks':
 
         # find_peaks
         maxi = np.zeros(data.shape, dtype=bool)
         if return_prominence is True:
-            prom = [None for ii in range(data.shape[0])]
+            prom = np.full(data.shape, np.nan)
         if return_width is True:
-            widt = [None for ii in range(data.shape[0])]
+            widt = np.full(data.shape, np.nan)
 
         for ii in range(data.shape[0]):
             peaks, prop = scpsig.find_peaks(
                 data[ii, :], height=None, threshold=None,
                 distance=None, prominence=0,
-                width=width, wlen=None, rel_height=0.5,
+                width=width, wlen=None, rel_height=rel_height,
                 plateau_size=None,
             )
             maxi[ii, peaks] = True
             if return_prominence is True:
-                prom[ii] = prop['prominences']
+                prom[ii, peaks] = prop['prominences']
             if return_width is True:
-                widt[ii] = prop['widths']
-
-        nmax = np.sum(maxi, axis=1)
-        if return_prominence is True:
-            prominence = np.full((data.shape[0], np.max(nmax)), np.nan)
-            for ii in range(data.shape[0]):
-                prominence[ii, :nmax[ii]] = prom[ii]
-        if return_width is True:
-            widths = np.full((data.shape[0], np.max(nmax)), np.nan)
-            for ii in range(data.shape[0]):
-                widths[ii, :nmax[ii]] = widt[ii]
+                widt[ii, peaks] = prop['widths']
 
         if return_minima is True:
             mini = np.zeros(data.shape, dtype=bool)
@@ -226,7 +237,7 @@ def get_localextrema_1d(
                 peaks, prop = scpsig.find_peaks(
                     -data[ii, :], height=None, threshold=None,
                     distance=None, prominence=None,
-                    width=width, wlen=None, rel_height=0.5,
+                    width=width, wlen=None, rel_height=None,
                     plateau_size=None,
                 )
                 mini[ii, peaks] = True
@@ -234,6 +245,15 @@ def get_localextrema_1d(
         #   reshape
         if returnas is float:
             nmax = np.sum(maxi, axis=1)
+            if return_prominence is True:
+                prominence = np.full((data.shape[0], np.max(nmax)), np.nan)
+                for ii in range(data.shape[0]):
+                    prominence[ii, :nmax[ii]] = prom[ii, maxi[ii, :]]
+            if return_width is True:
+                widths = np.full((data.shape[0], np.max(nmax)), np.nan)
+                for ii in range(data.shape[0]):
+                    widths[ii, :nmax[ii]] = widt[ii, maxi[ii, :]]
+
             maxima = np.full((data.shape[0], np.max(nmax)), np.nan)
             for ii in range(data.shape[0]):
                 maxima[ii, :nmax[ii]] = lamb[maxi[ii, :]]
@@ -243,13 +263,22 @@ def get_localextrema_1d(
                 for ii in range(data.shape[0]):
                     minima[ii, :nmax[ii]] = lamb[mini[ii, :]]
 
+        else:
+            maxima = maxi
+            minima = mini
+            prominence = prom
+            widths = widt
+
+        if prom_rel is True:
+            prominence = prominence / np.nanmax(data, axis=1)[:, None]
+
     else:
 
         # bspline
         prominence, widths = None, None
         bbox = [lamb.min(), lamb.max()]
         mini, maxi = [], []
-        if smooth is False:
+        if width is False:
             for ii in range(data.shape[0]):
                 bs = scpinterp.UnivariateSpline(
                     lamb, data[ii, :], w=weights,
@@ -263,7 +292,7 @@ def get_localextrema_1d(
                 mini.append(extrema[indmin])
                 maxi.append(extrema[indmax])
         else:
-            nint = int(np.ceil((bbox[1]-bbox[0]) / (1.5*smooth)))
+            nint = int(np.ceil((bbox[1]-bbox[0]) / (1.1*width)))
             delta = (bbox[1]-bbox[0]) / nint
             nknots = nint - 1
             knots = np.linspace(bbox[0]+delta, bbox[1]-delta, nknots)
@@ -315,3 +344,71 @@ def get_localextrema_1d(
     if len(out) == 1:
         out = out[0]
     return out
+
+
+def analyze_peaks_in_spect1d(
+    intervals=None,
+    data=None, lamb=None, t=None,
+    prom_threshold=None,
+    width=None, weights=None,
+    prom_rel=None, rel_height=None,
+    method=None, returnas=None,
+    return_minima=None,
+    return_prominence=None,
+    return_width=None,
+):
+
+
+    # ------------------
+    #   check inputs
+    (
+        data, lamb, weights,
+        width, prom_rel, rel_height, method,
+        returnas, return_minima,
+        return_prominence, return_width
+    ) = _get_localextrema_1d_check(
+        data=data, lamb=lamb,
+        weights=weights, width=width,
+        prom_rel=prom_rel, rel_height=rel_height,
+        method=method, returnas=returnas,
+        return_minima=return_minima,
+        return_prominence=return_prominence,
+        return_width=return_width,
+    )
+
+    # time
+    if t is None:
+        t = np.arange(0, data.shape[0])
+
+    # intervals
+    if intervals is None:
+        intervals = [(-np.inf, np.inf)]
+
+    # prom_threshold
+
+    # Get peaks and prominences
+    maxi, prom = get_localextrema_1d(
+        data=data,
+        lamb=lamb,
+        prom_rel=True,
+        returnas=bool,
+        return_minima=False,
+        return_prominence=True,
+        return_width=False,
+    )
+
+    # by-interval
+    prom0 = np.copy(prom)
+    prom0[prom0 < prom_threshold] = np.nan
+    hist = np.zeros((len(intervals), data.shape[1]), dtype=float)
+    for ii, (i0, i1) in enumerate(intervals):
+        ind = (t >= i0) & (t <= i1)
+        hist[ii, :] = np.nansum(prom0[ind, :], axis=0)
+
+    # Return
+    danalysis = {
+        'data': data, 'lamb': lamb, 't': t,
+        'maxi': maxi, 'prom': prom,
+        'intervals': intervals, 'hist': hist,
+    }
+    return danalysis

@@ -24,7 +24,6 @@ from . import _plot
 
 
 __all__ = [
-    'get_localextrema_1d',
     'fit1d_dinput', 'fit2d_dinput',
     'fit12d_dvalid', 'fit12d_dscales',
     'fit1d', 'fit2d',
