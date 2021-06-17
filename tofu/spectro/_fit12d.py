@@ -2442,6 +2442,8 @@ def fit12d_dscales(dscales=None, dinput=None):
         # Normalize to avoid double-amplification when amp*bs
         corr = np.max(dscales['bs'][dinput['valid']['indt'], :], axis=1)
         dscales['bs'][dinput['valid']['indt'], :] /= corr[:, None]
+    else:
+        indok = dinput['dprepare']['indok']
 
     # --------------
     # Default values for filling missing fields
