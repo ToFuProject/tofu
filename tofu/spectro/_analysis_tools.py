@@ -4,14 +4,23 @@ import numpy as np
 import scipy.signal as scpsig
 import scipy.interpolate as scpinterp
 
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+
+from tofu.version import __version__
+
 
 __all__ = [
     'get_localextrema_1d',
-    'analyze_peaks_in_spect1d',
+    'peak_analysis_spect1d',
+    'plot_peak_analysis_spect1d',
 ]
 
 
 _LTYPES = [int, float, np.int_, np.float_]
+
+_GITHUB = 'https://github.com/ToFuProject/tofu/issues'
+_WINTIT = 'tofu-%s        report issues / requests at %s'%(__version__, _GITHUB)
 
 
 ###########################################################
@@ -346,10 +355,12 @@ def get_localextrema_1d(
     return out
 
 
-def analyze_peaks_in_spect1d(
+def peak_analysis_spect1d(
     intervals=None,
     data=None, lamb=None, t=None,
-    prom_threshold=None,
+    thresh_prom=None,
+    thresh_time=None,
+    thresh_time_higher=None,
     width=None, weights=None,
     prom_rel=None, rel_height=None,
     method=None, returnas=None,
@@ -384,7 +395,13 @@ def analyze_peaks_in_spect1d(
     if intervals is None:
         intervals = [(-np.inf, np.inf)]
 
-    # prom_threshold
+    # thresholds
+    if thresh_prom is None:
+        thresh_prom = 0.
+    if thresh_time is None:
+        thresh_time = 0.
+    if thresh_time_higher is None:
+        thresh_time_higher = True
 
     # Get peaks and prominences
     maxi, prom = get_localextrema_1d(
@@ -399,7 +416,25 @@ def analyze_peaks_in_spect1d(
 
     # by-interval
     prom0 = np.copy(prom)
-    prom0[prom0 < prom_threshold] = np.nan
+    dt = np.mean(np.diff(t))
+
+    prom0[prom0< thresh_prom] = np.nan
+    # if thresh_prom is not None:
+        # for ii, (i0, i1) in enumerate(intervals):
+            # ind = (t >= i0) & (t <= i1)
+            # prom0[ind[:, None] & np.all(prom0[ind, :] < thresh_prom, axis=0)] = np.nan
+
+    if thresh_time is not None:
+        fract_time = (~np.isnan(prom0))
+        for ii, (i0, i1) in enumerate(intervals):
+            deltai = (intervals[ii][1]-intervals[ii][0])/dt
+            ind = (t >= i0) & (t <= i1)
+            indi = np.sum(fract_time[ind, :], axis=0) > thresh_time*deltai
+            if thresh_time_higher is False:
+                indi = ~indi
+            fract_time[ind, :] = fract_time[ind, :] & indi[None, :]
+        prom0[~fract_time] = np.nan
+
     hist = np.zeros((len(intervals), data.shape[1]), dtype=float)
     for ii, (i0, i1) in enumerate(intervals):
         ind = (t >= i0) & (t <= i1)
@@ -410,5 +445,83 @@ def analyze_peaks_in_spect1d(
         'data': data, 'lamb': lamb, 't': t,
         'maxi': maxi, 'prom': prom,
         'intervals': intervals, 'hist': hist,
+        'thresh_prom': thresh_prom,
+        'thresh_time': thresh_time,
     }
     return danalysis
+
+
+def plot_peak_analysis_spect1d(
+    danalysis,
+    dax=None,
+    cmap=None, vmin=None, vmax=None,
+    fs=None, dmargin=None,
+    tit=None, wintit=None,
+):
+
+    # Prepare data
+    # ------------
+    nint = len(danalysis['intervals'])
+
+
+
+    # Check plot inputs
+    # ------------------
+
+    if fs is None:
+        fs = (14, 8)
+    if tit is None:
+        tit = False
+    if wintit is None:
+        wintit = _WINTIT
+    if cmap is None:
+        cmap = plt.cm.viridis
+    if dmargin is None:
+        dmargin = {'left':0.05, 'right':0.99,
+                   'bottom':0.07, 'top':0.92,
+                   'wspace':0.2, 'hspace':0.3}
+
+    if dax is None:
+        fig = fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(1, 2, **dmargin)
+        ax0 = fig.add_subplot(gs[0, 0])
+        ax1 = fig.add_subplot(gs[0, 1], sharex=ax0, sharey=ax0)
+
+        ax0.set_xlabel(r'$\lambda$')
+        ax0.set_ylabel(r'$t$')
+        ax1.set_xlabel(r'$\lambda$')
+
+        dax = {
+            'peaks': ax0,
+            'hist': ax1,
+        }
+
+    k0 = 'peaks'
+    if dax.get(k0) is not None:
+        prom0 = np.copy(danalysis['prom'])
+        prom0[np.isnan(prom0)] = 0
+        extent = (
+            danalysis['lamb'].min(), danalysis['lamb'].max(),
+            danalysis['t'].min(), danalysis['t'].max(),
+        )
+        dax[k0].imshow(
+            prom0,
+            vmin=vmin, vmax=vmax,
+            cmap=cmap,
+            extent=extent,
+            interpolation='nearest',
+            origin='lower',
+            aspect='auto',
+        )
+
+    k0 = 'hist'
+    if dax.get(k0) is not None:
+        intmin = np.min(danalysis['intervals'], axis=1)
+        intdelta = np.diff(danalysis['intervals'], axis=1)
+        ymax = np.nanmax(danalysis['hist'], axis=1)
+        y = danalysis['hist'] * (intdelta/ymax[:, None]) + intmin[:, None]
+        dax[k0].plot(danalysis['lamb'], y.T, c='k', ls='-')
+        for vv in intmin:
+            dax[k0].axhline(vv, c='k', ls='--')
+
+    return dax
