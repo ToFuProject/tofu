@@ -482,7 +482,10 @@ def plot_peak_analysis_spect1d(
                    'wspace':0.2, 'hspace':0.3}
 
     if dax is None:
-        fig = fig = plt.figure(figsize=fs)
+        fig = plt.figure(figsize=fs)
+        if tit is not False:
+            fig.suptitle(tit, size=14, fontweight='bold')
+
         gs = gridspec.GridSpec(1, 2, **dmargin)
         ax0 = fig.add_subplot(gs[0, 0])
         ax1 = fig.add_subplot(gs[0, 1], sharex=ax0, sharey=ax0)
@@ -490,6 +493,8 @@ def plot_peak_analysis_spect1d(
         ax0.set_xlabel(r'$\lambda$')
         ax0.set_ylabel(r'$t$')
         ax1.set_xlabel(r'$\lambda$')
+        ax0.set_title('Peaks prominence', size=14, fontweight='bold')
+        ax1.set_title('Peaks per interval', size=14, fontweight='bold')
 
         dax = {
             'peaks': ax0,
@@ -513,6 +518,8 @@ def plot_peak_analysis_spect1d(
             origin='lower',
             aspect='auto',
         )
+        for ii, (i0, i1) in enumerate(danalysis['intervals']):
+            pass
 
     k0 = 'hist'
     if dax.get(k0) is not None:
