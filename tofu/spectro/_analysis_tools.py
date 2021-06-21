@@ -190,6 +190,7 @@ def get_localextrema_1d(
     data=None, lamb=None,
     width=None, weights=None,
     prom_rel=None, rel_height=None,
+    distance=None,
     method=None, returnas=None,
     return_minima=None,
     return_prominence=None,
@@ -230,7 +231,7 @@ def get_localextrema_1d(
         for ii in range(data.shape[0]):
             peaks, prop = scpsig.find_peaks(
                 data[ii, :], height=None, threshold=None,
-                distance=None, prominence=0,
+                distance=distance, prominence=0,
                 width=width, wlen=None, rel_height=rel_height,
                 plateau_size=None,
             )
@@ -245,7 +246,7 @@ def get_localextrema_1d(
             for ii in range(data.shape[0]):
                 peaks, prop = scpsig.find_peaks(
                     -data[ii, :], height=None, threshold=None,
-                    distance=None, prominence=None,
+                    distance=distance, prominence=None,
                     width=width, wlen=None, rel_height=rel_height,
                     plateau_size=None,
                 )
@@ -361,6 +362,9 @@ def peak_analysis_spect1d(
     thresh_prom=None,
     thresh_time=None,
     thresh_time_higher=None,
+    thresh_lines_prom=None,
+    groupby=None,
+    distance=None,
     width=None, weights=None,
     prom_rel=None, rel_height=None,
     method=None, returnas=None,
@@ -402,11 +406,16 @@ def peak_analysis_spect1d(
         thresh_time = 0.
     if thresh_time_higher is None:
         thresh_time_higher = True
+    if thresh_lines_prom is None:
+        thresh_lines_prom = 0.
+    if groupby is None:
+        groupby = False
 
     # Get peaks and prominences
     maxi, prom = get_localextrema_1d(
         data=data,
         lamb=lamb,
+        distance=distance,
         prom_rel=True,
         returnas=bool,
         return_minima=False,
@@ -429,7 +438,7 @@ def peak_analysis_spect1d(
         for ii, (i0, i1) in enumerate(intervals):
             deltai = (intervals[ii][1]-intervals[ii][0])/dt
             ind = (t >= i0) & (t <= i1)
-            indi = np.sum(fract_time[ind, :], axis=0) > thresh_time*deltai
+            indi = np.sum(fract_time[ind, :], axis=0) > thresh_time*ind.sum()
             if thresh_time_higher is False:
                 indi = ~indi
             fract_time[ind, :] = fract_time[ind, :] & indi[None, :]
@@ -440,19 +449,57 @@ def peak_analysis_spect1d(
         ind = (t >= i0) & (t <= i1)
         hist[ii, :] = np.nansum(prom0[ind, :], axis=0)
 
+    if groupby is not False:
+        hist0 = np.copy(hist)
+        for ii in range(hist0.shape[0]):
+            cont = True
+            ic = 0
+            while cont:
+                inds = np.argsort(hist0[ii, :])[::-1]
+                for kk, jj in enumerate(inds):
+                    i0 = np.arange(max(0, jj-groupby), jj)
+                    i1 = np.arange(jj+1, min(jj+groupby+1, hist0.shape[1]))
+                    c0 = (
+                        hist0[ii, jj] > 0.
+                        and (
+                            np.any(hist0[ii, i0] > 0.)
+                            or np.any(hist0[ii, i1] > 0.)
+                        )
+                    )
+                    if c0:
+                        hist0[ii, i0] = 0.
+                        hist0[ii, i1] = 0.
+                        ic += 1
+                        break
+                    else:
+                        pass
+                    if jj == inds[-1]:
+                        cont = False
+        lines = [
+            lamb[hist0[ii, :]>thresh_lines_prom]
+            for ii in range(hist0.shape[0])
+        ]
+    else:
+        lines = [
+            lamb[hist[ii, :]>thresh_lines_prom]
+            for ii in range(hist.shape[0])
+        ]
+
     # Return
     danalysis = {
         'data': data, 'lamb': lamb, 't': t,
         'maxi': maxi, 'prom': prom,
-        'intervals': intervals, 'hist': hist,
+        'intervals': intervals, 'hist': hist, 'lines': lines,
         'thresh_prom': thresh_prom,
         'thresh_time': thresh_time,
+        'thresh_lines_prom': thresh_lines_prom,
     }
     return danalysis
 
 
 def plot_peak_analysis_spect1d(
     danalysis,
+    sharey=None,
     dax=None,
     cmap=None, vmin=None, vmax=None,
     fs=None, dmargin=None,
@@ -480,6 +527,9 @@ def plot_peak_analysis_spect1d(
         dmargin = {'left':0.05, 'right':0.99,
                    'bottom':0.07, 'top':0.92,
                    'wspace':0.2, 'hspace':0.3}
+    if sharey is None:
+        sharey = len(danalysis['lines']) > 1
+
 
     if dax is None:
         fig = plt.figure(figsize=fs)
@@ -488,7 +538,8 @@ def plot_peak_analysis_spect1d(
 
         gs = gridspec.GridSpec(1, 2, **dmargin)
         ax0 = fig.add_subplot(gs[0, 0])
-        ax1 = fig.add_subplot(gs[0, 1], sharex=ax0, sharey=ax0)
+        sharey = ax0 if sharey else None
+        ax1 = fig.add_subplot(gs[0, 1], sharex=ax0, sharey=sharey)
 
         ax0.set_xlabel(r'$\lambda$')
         ax0.set_ylabel(r'$t$')
@@ -518,17 +569,23 @@ def plot_peak_analysis_spect1d(
             origin='lower',
             aspect='auto',
         )
-        for ii, (i0, i1) in enumerate(danalysis['intervals']):
-            pass
 
     k0 = 'hist'
     if dax.get(k0) is not None:
-        intmin = np.min(danalysis['intervals'], axis=1)
-        intdelta = np.diff(danalysis['intervals'], axis=1)
-        ymax = np.nanmax(danalysis['hist'], axis=1)
-        y = danalysis['hist'] * (intdelta/ymax[:, None]) + intmin[:, None]
-        dax[k0].plot(danalysis['lamb'], y.T, c='k', ls='-')
-        for vv in intmin:
-            dax[k0].axhline(vv, c='k', ls='--')
+        for ii, (i0, i1) in enumerate(danalysis['intervals']):
+            indt = (danalysis['t'] >= i0) & (danalysis['t'] <= i1)
+            if sharey is not None:
+                intmin = np.min(danalysis['t'][indt])
+                intdelta = danalysis['t'][indt].max() - danalysis['t'][indt].min()
+                ymax = np.nanmax(danalysis['hist'][ii, :])
+                y = danalysis['hist'][ii, :] * (intdelta/ymax) + intmin
+                ythr = danalysis['thresh_lines_prom'] * (intdelta/ymax) + intmin
+            else:
+                intmin = 0.
+                y = danalysis['hist'][ii, :]
+                ythr = danalysis['thresh_lines_prom']
+            dax[k0].plot(danalysis['lamb'], y, c='k', ls='-')
+            dax[k0].axhline(intmin, c='k', ls='--')
+            dax[k0].axhline(ythr, c='k', ls='--')
 
     return dax
