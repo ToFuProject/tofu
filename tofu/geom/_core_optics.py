@@ -1814,6 +1814,7 @@ class CrystalBragg(utils.ToFuObject):
                          det=None, n=None,
                          lpsi=None, ldtheta=None,
                          use_non_parallelism=None,
+                         xi_plot=None,
                          plot=True, fs=None, cmap=None,
                          vmin=None, vmax=None, tit=None, wintit=None):
         """ Plot the johann error
@@ -1832,8 +1833,8 @@ class CrystalBragg(utils.ToFuObject):
         position.
         Then, computing error on bragg and phi angles on each pixels and then
         directly computing a delta_lambda on each (lamberr).
-
-
+        Possibility to plot focalization error localised on the centered 
+        column of the detector with arg xi_plot=True.
         """
 
         # Check / format inputs
@@ -1866,13 +1867,20 @@ class CrystalBragg(utils.ToFuObject):
             dtheta=ldtheta, psi=lpsi, plot=False,
             )
         lamberr = self.get_lamb_from_bragg(braggerr, n=n)
-        err_lamb = np.nanmax(np.abs(lamb[None, ...] - lamberr), axis=0)
-        err_phi = np.nanmax(np.abs(phi[None, ...] - phierr), axis=0)
+        #since global modifs, shape (8,487,1467) change to (1,8,487,1467)
+        err_lamb = np.nanmax(
+            np.nanmax(np.abs(lamb[None, ...] - lamberr), axis=0),
+            axis=0
+            )
+        err_phi = np.nanmax(
+            np.nanmax(np.abs(phi[None, ...] - phierr), axis=0),
+            axis=0
+            )
 
         if plot is True:
             ax = _plot_optics.CrystalBragg_plot_johannerror(
                 xi, xj, lamb, phi,
-                err_lamb, err_phi, err=err,
+                err_lamb, err_phi, err=err, xi_plot=xi_plot,
                 cmap=cmap, vmin=vmin, vmax=vmax,
                 fs=fs, tit=tit, wintit=wintit,
                 )
