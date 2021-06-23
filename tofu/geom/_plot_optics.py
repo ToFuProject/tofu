@@ -1067,10 +1067,10 @@ def CrystalBragg_plot_johannerror(
         ax0.contour(xi, xj, (lamb[0]).T, 10, cmap=cmap)
         ax0.contour(xi, xj, (phi[0]).T, 10, cmap=cmap, ls='--')
 
-        imlamb = ax1.imshow(err_lamb, extent=extent, aspect='equal',
+        imlamb = ax1.imshow(err_lamb.T, extent=extent, aspect='equal',
                         origin='lower', interpolation='nearest',
                         vmin=vmin, vmax=vmax)
-        imphi = ax2.imshow(err_phi, extent=extent, aspect='equal',
+        imphi = ax2.imshow(err_phi.T, extent=extent, aspect='equal',
                        origin='lower', interpolation='nearest',
                        vmin=vmin, vmax=vmax)
 

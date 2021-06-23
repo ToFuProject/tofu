@@ -1423,7 +1423,7 @@ class CrystalBragg(utils.ToFuObject):
              rcurve, bragg,
              bragg01=bragg01, dist01=dist01,
              tangent_to_rowland=tangent_to_rowland)
-        print('crystal/detector distance:', det_dist)
+        #print('crystal/detector distance:', det_dist)
 
         # Deduce absolute position in (x, y, z)
         det_cent, det_nout, det_ei, det_ej = _comp_optics.get_det_abs_from_rel(
