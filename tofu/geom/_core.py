@@ -1993,7 +1993,7 @@ class Struct(utils.ToFuObject):
             warn = True
 
         # Extract polygon from file and check
-        dpath = _comp.get_path_from_svg(pfe)
+        dpath = _comp.get_paths_from_svg(pfe)
 
         if cls.__name__ not in dpath.keys():
             msg = ("Desired class ({}) not available:\n".format(cls)
@@ -3570,6 +3570,72 @@ class Config(utils.ToFuObject):
             Test=Test,
         )
         return ax
+
+    @classmethod
+    def from_svg(
+        cls,
+        pfe,
+        Exp=None,
+        Name=None,
+        shot=None,
+        Type=None,
+        SavePath=os.path.abspath("./"),
+        verb=None,
+        returnas=None,
+    ):
+        # Check inputs
+        if returnas is None:
+            returnas = object
+        if returnas not in [object, dict]:
+            msg = (
+                "Arg returnas must be either:"
+                + "\t- 'object': return Config instance\n"
+                + "\t- 'dict' : return a dict with polygon, cls, color"
+            )
+            raise Exception(msg)
+
+        # Extract polygon from file and check
+        dpath = _comp.get_paths_from_svg(pfe=pfe, verb=verb)
+
+        if len(dpath) == 0:
+            msg = "No Struct found in {}".format(pfe)
+            raise Exception(msg)
+
+        if returnas is dict:
+            return dpath
+
+        else:
+            derr = {}
+            lstruct = []
+            for k0, v0 in dpath.items():
+                clss = Ves if v0['cls'] == 'Ves' else PFC
+                try:
+                    lstruct.append(
+                        clss(
+                            Name=k0, Poly=v0['poly'],
+                            color=v0['color'], Exp=Exp,
+                        )
+                    )
+                except Exception as err:
+                    derr[k0] = str(err)
+
+            if len(derr) > 0:
+                lerr = ['\n\t- {}: {}'.format(k0, v0) for k0, v0 in derr.items()]
+                msg = (
+                    "\nThe following Struct could not be created:\n"
+                    + '\n'.join(lerr)
+                )
+                warnings.warn(msg)
+
+            SavePath = os.path.abspath(SavePath)
+            return cls(
+                Name=Name,
+                Exp=Exp,
+                shot=shot,
+                Type=Type,
+                lStruct=lstruct,
+                SavePath=SavePath,
+            )
 
     def save_to_imas(
         self,
