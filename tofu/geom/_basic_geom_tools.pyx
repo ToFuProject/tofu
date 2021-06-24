@@ -208,7 +208,7 @@ cdef inline void compute_dot_cross_vec(const double[:, ::1] lvec_a,
             vec2[0] = lvec_b[0, ii]
             vec2[1] = lvec_b[1, ii]
             vec2[2] = lvec_b[2, ii]
-            compute_cross_prod(vec1, vec2, vec3)
+            compute_cross_prod(vec1, vec2, &vec3[0])
             cross_p[0, ii] = vec3[0]
             cross_p[1, ii] = vec3[1]
             cross_p[2, ii] = vec3[2]
@@ -364,7 +364,7 @@ cdef inline void find_centroids_ltri(const double[:, :, ::1] poly_coords,
 
 
 
-cdef inline void find_centroids_GB_GC_ltri(const double[:, :, ::1] poly_coords,
+cdef inline void find_centroids_GB_GC_ltri(const double** poly_coords,
                                            const long** ltri,
                                            const long* lnvert,
                                            const int npoly,
@@ -389,15 +389,15 @@ cdef inline void find_centroids_GB_GC_ltri(const double[:, :, ::1] poly_coords,
                 wim1 = ltri[ipol][itri*3]
                 wi   = ltri[ipol][itri*3+1]
                 wip1 = ltri[ipol][itri*3+2]
-                xtri[0] = poly_coords[ipol, 0, wim1]
-                ytri[0] = poly_coords[ipol, 1, wim1]
-                ztri[0] = poly_coords[ipol, 2, wim1]
-                xtri[1] = poly_coords[ipol, 0, wi]
-                ytri[1] = poly_coords[ipol, 1, wi]
-                ztri[1] = poly_coords[ipol, 2, wi]
-                xtri[2] = poly_coords[ipol, 0, wip1]
-                ytri[2] = poly_coords[ipol, 1, wip1]
-                ztri[2] = poly_coords[ipol, 2, wip1]
+                xtri[0] = poly_coords[ipol][0 * lnvert[ipol] + wim1]
+                ytri[0] = poly_coords[ipol][1 * lnvert[ipol] + wim1]
+                ztri[0] = poly_coords[ipol][2 * lnvert[ipol] + wim1]
+                xtri[1] = poly_coords[ipol][0 * lnvert[ipol] + wi]
+                ytri[1] = poly_coords[ipol][1 * lnvert[ipol] + wi]
+                ztri[1] = poly_coords[ipol][2 * lnvert[ipol] + wi]
+                xtri[2] = poly_coords[ipol][0 * lnvert[ipol] + wip1]
+                ytri[2] = poly_coords[ipol][1 * lnvert[ipol] + wip1]
+                ztri[2] = poly_coords[ipol][2 * lnvert[ipol] + wip1]
                 iglob = ipol + itri * npoly
                 find_centroid_tri(xtri, ytri, ztri,
                                   centroid[:, iglob])
@@ -412,6 +412,23 @@ cdef inline void find_centroids_GB_GC_ltri(const double[:, :, ::1] poly_coords,
 # ==============================================================================
 # =  Distance
 # ==============================================================================
+cdef inline void compute_dist_pt_arr(const double pt0, const double pt1,
+                                     const double pt2, int npts,
+                                     const double* vec,
+                                     double* dist) nogil:
+    """
+    Compute the distance between the point P = [pt0, pt1, pt2] and each point
+    Q_i, where vec = {Q_0, Q_1, ..., Q_npts-1}
+    """
+    cdef int ii
+    for ii in range(0, npts):
+        dist[ii] = c_sqrt(
+              (pt0 - vec[0 * npts +  ii]) * (pt0 - vec[0 * npts + ii])
+            + (pt1 - vec[1 * npts +  ii]) * (pt1 - vec[1 * npts + ii])
+            + (pt2 - vec[2 * npts +  ii]) * (pt2 - vec[2 * npts + ii]))
+    return
+
+
 cdef inline void compute_dist_pt_vec(const double pt0, const double pt1,
                                      const double pt2, int npts,
                                      const double[:, ::1] vec,
@@ -453,22 +470,28 @@ cdef inline void compute_vec_ass_tri(const double pt0, const double pt1,
     vecc = \vec Gc
     """
     cdef int ii
+    cdef double[3] vec_OG
+
     for ii in range(npts):
-        normG2[ii] = ((pt0 - ptG[0, ii]) * (pt0 - ptG[0, ii])
-                      + (pt1 - ptG[1, ii]) * (pt1 - ptG[1, ii])
-                      + (pt2 - ptG[2, ii]) * (pt2 - ptG[2, ii]))
-        num[ii] = ((pt0 - ptG[0, ii]) *   cross_bc[0, ii]
-                   + (pt1 - ptG[1, ii]) * cross_bc[1, ii]
-                   + (pt2 - ptG[2, ii]) * cross_bc[2, ii])
-        dot_Gb[ii] = ((pt0 - ptG[0, ii])   * vecb[0, ii]
-                      + (pt1 - ptG[1, ii]) * vecb[1, ii]
-                      + (pt2 - ptG[2, ii]) * vecb[2, ii])
-        dot_Gc[ii] = ((pt0 - ptG[0, ii])   * vecc[0, ii]
-                      + (pt1 - ptG[1, ii]) * vecc[1, ii]
-                      + (pt2 - ptG[2, ii]) * vecc[2, ii])
-        side_of_poly[ii] = ((pt0 - ptG[0, ii])   * poly_norm[ii, 0]
-                            + (pt1 - ptG[1, ii]) * poly_norm[ii, 1]
-                            + (pt2 - ptG[2, ii]) * poly_norm[ii, 2])
+        vec_OG[0] = ptG[0, ii] - pt0
+        vec_OG[1] = ptG[1, ii] - pt1
+        vec_OG[2] = ptG[2, ii] - pt2
+        normG2[ii] = (vec_OG[0] * vec_OG[0]
+                      + vec_OG[1] * vec_OG[1]
+                      + vec_OG[2] * vec_OG[2])
+        num[ii] = 3.0 * (  vec_OG[0] * cross_bc[0, ii]
+                         + vec_OG[1] * cross_bc[1, ii]
+                         + vec_OG[2] * cross_bc[2, ii])
+        num[ii] = cross_bc[1, ii]
+        dot_Gb[ii] = (vec_OG[0]   * vecb[0, ii]
+                      + vec_OG[1] * vecb[1, ii]
+                      + vec_OG[2] * vecb[2, ii])
+        dot_Gc[ii] = (vec_OG[0]   * vecc[0, ii]
+                      + vec_OG[1] * vecc[1, ii]
+                      + vec_OG[2] * vecc[2, ii])
+        side_of_poly[ii] = (vec_OG[0]   * poly_norm[ii, 0]
+                            + vec_OG[1] * poly_norm[ii, 1]
+                            + vec_OG[2] * poly_norm[ii, 2])
     return
 
 

@@ -81,7 +81,7 @@ cdef void find_centroids_ltri(const double[:, :, ::1] poly_coords,
                               const int num_threads,
                               double[:, ::1] centroid) nogil
 
-cdef void find_centroids_GB_GC_ltri(const double[:, :, ::1] poly_coords,
+cdef void find_centroids_GB_GC_ltri(const double** poly_coords,
                                     const long** ltri,
                                     const long* lnvert,
                                     const int npoly,
@@ -103,6 +103,11 @@ cdef void compute_vec_ass_tri(const double pt0, const double pt1,
                               double* dot_Gb,
                               double* dot_Gc,
                               double* normG2) nogil
+
+cdef void compute_dist_pt_arr(const double pt0, const double pt1,
+                              const double pt2, int npts,
+                              const double* vec,
+                              double* dist) nogil
 
 cdef void compute_dist_pt_vec(const double pt0, const double pt1,
                               const double pt2, const int npts,

@@ -4939,7 +4939,7 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
 #                        subtended by a polygon
 #
 # ==============================================================================
-def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
+def compute_solid_angle_poly_map(list poly_coords,
                                  double[:, ::1] poly_lnorms,
                                  long[::1] poly_lnvert,
                                  double rstep, double zstep, double phistep,
@@ -4974,7 +4974,7 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
         $TOFU_DIR/Notes_Upgrades/SA_tetra/SA_tetra.tex
     Parameters
     ----------
-    poly_coords: double (npoly, 3, npts) array
+    poly_coords: double (npoly, 3, npts) list
         coordinates of the points defining the polygons.
         not necessarily flat.
         poly_coords[np, i] being the i-th coordinate of the np polygon
@@ -5137,7 +5137,7 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
         assert ves_type.lower() in ['tor', 'lin'], msg
     # ...
     # .. Getting size of arrays ................................................
-    npoly = poly_coords.shape[0]
+    npoly = len(poly_coords)
     # .. Dividing polys in triangles ...........................................
     ltri = <long**>malloc(sizeof(long*) * npoly)
     # re writting_polygons coordinates to C type:
@@ -5161,7 +5161,7 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
     centroids = np.zeros((3, tot_num_tri))
     cross_GBGC = np.zeros((3, tot_num_tri))
     _bgt.find_centroids_GB_GC_ltri(
-        poly_coords,
+        data,
         ltri,
         &poly_lnvert[0],
         npoly,
@@ -5174,7 +5174,10 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
     poly_lnorms_tot = np.repeat(poly_lnorms,
                                 np.asarray(poly_lnvert) - 2,
                                 axis = 0)
-    assert np.shape(poly_lnorms_tot)[0] == tot_num_tri
+    assert np.shape(poly_lnorms_tot)[0] == tot_num_tri, (
+        f"Total number of triangles = {tot_num_tri} "
+        + " and was expecting: "
+        + str(np.shape(poly_lnorms_tot)))
     _bgt.compute_dot_cross_vec(vec_GB,
                                vec_GC,
                                cross_GBGC,
@@ -5333,7 +5336,7 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
     _st.sa_tri_assemble(
         block,
         approx,
-        poly_coords,
+        data,
         npoly,
         poly_lnvert,
         ltri, poly_lnorms_tot,
@@ -5384,5 +5387,5 @@ def compute_solid_angle_poly_map(double[:, :, ::1] poly_coords,
     free(sz_phi)
     free(step_rphi)
     free(ncells_rphi)
-
+    free(data)
     return pts, sa_map, ind, reso_r_z

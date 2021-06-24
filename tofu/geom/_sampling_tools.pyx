@@ -239,8 +239,8 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
     #.. Filling arrays..........................................................
     if c_abs(din) < _VSMALL:
         for ii in range(np-1):
-            v0 = ves_poly[0, ii+1]-ves_poly[0, ii]
-            v1 = ves_poly[1, ii+1]-ves_poly[1, ii]
+            v0 = ves_poly[0, ii+1] - ves_poly[0, ii]
+            v1 = ves_poly[1, ii+1] - ves_poly[1, ii]
             lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
             inv_norm = 1. / lminmax[1]
             discretize_line1d_core(lminmax, dstep, dl_array, True,
@@ -2653,7 +2653,7 @@ cdef inline double comp_sa_sphr_ext(double radius,
 cdef inline void sa_tri_assemble(
     int block,
     int use_approx,
-    double[:, :, ::1] poly_coords,
+    double** poly_coords,
     int npoly,
     long[::1] lnvert_poly,
     long** ltri,
@@ -2783,7 +2783,7 @@ cdef inline void sa_tri_assemble(
 
 
 cdef inline void tri_asmbl_block_approx(
-    double[:, :, ::1] poly_coords,
+    double** poly_coords,
     int npoly,
     long[::1] lnvert_poly,
     long** ltri,
@@ -2927,7 +2927,7 @@ cdef inline void tri_asmbl_block_approx(
                         dist_opts = <double*> malloc(lnvert_poly[ipoly]
                                                      * sizeof(double))
                         # computing distances to vertices of poly (OA, OB, OC)
-                        _bgt.compute_dist_pt_vec(loc_x, loc_y, loc_z,
+                        _bgt.compute_dist_pt_arr(loc_x, loc_y, loc_z,
                                                  lnvert_poly[ipoly],
                                                  poly_coords[ipoly],
                                                  &dist_opts[0])
@@ -2953,7 +2953,7 @@ cdef inline void tri_asmbl_block_approx(
     return
 
 cdef inline void tri_asmbl_unblock_approx(
-    double[:, :, ::1] poly_coords,
+    double** poly_coords,
     int npoly,
     long[::1] lnvert_poly,
     long** ltri,
@@ -3044,7 +3044,7 @@ cdef inline void tri_asmbl_unblock_approx(
                         dist_opts = <double*> malloc(lnvert_poly[ipoly]
                                                      * sizeof(double))
                         # computing distances to vertices of poly (OA, OB, OC)
-                        _bgt.compute_dist_pt_vec(loc_x, loc_y, loc_z,
+                        _bgt.compute_dist_pt_arr(loc_x, loc_y, loc_z,
                                                  lnvert_poly[ipoly],
                                                  poly_coords[ipoly],
                                                  &dist_opts[0])
@@ -3105,4 +3105,5 @@ cdef inline double comp_sa_tri_appx(
         + dot_Gb * (normA - normB)
         + dot_Gc * (normA - normC)
     )
-    return numerator/denumerator
+
+    return numerator / denumerator
