@@ -42,6 +42,9 @@ __all__ = ['CrystalBragg']
 _Type = 'Tor'
 _NTHREADS = 16
 
+# rotate / translate instance
+_RETURN_COPY = False
+
 """
 ###############################################################################
 ###############################################################################
@@ -757,7 +760,7 @@ class CrystalBragg(utils.ToFuObject):
                                     return_copy=return_copy,
                                     diag=diag, name=name, shot=shot)
 
-    def translate_3d(selfi, distance=None, direction=None,
+    def translate_3d(self, distance=None, direction=None,
                      return_copy=None,
                      diag=None, name=None, shot=None):
         """ Translate the instance in provided direction """
@@ -901,7 +904,7 @@ class CrystalBragg(utils.ToFuObject):
                           fs=None, ax=None):
         drock = self.rockingcurve
         func = self.get_rockingcurve_func(bragg=bragg, n=n)
-        return _plot.CrystalBragg_plot_rockingcurve(func, fs=fs, ax=ax)
+        return _plot_optics.CrystalBragg_plot_rockingcurve(func, fs=fs, ax=ax)
 
     # -----------------
     # methods for surface and contour sampling

@@ -5,17 +5,19 @@ tofu.tests.tests09\_tutorials package
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 Submodules
 ----------
 
-tofu.tests.tests09\_tutorials.tests01\_runall module
-----------------------------------------------------
+tofu.tests.tests09\_tutorials.test\_01\_runall module
+-----------------------------------------------------
 
-.. automodule:: tofu.tests.tests09_tutorials.tests01_runall
+.. automodule:: tofu.tests.tests09_tutorials.test_01_runall
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.tests.tests09\_tutorials.tuto\_plot\_basic module
 ------------------------------------------------------
@@ -24,6 +26,7 @@ tofu.tests.tests09\_tutorials.tuto\_plot\_basic module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.tests.tests09\_tutorials.tuto\_plot\_create\_geometry module
 -----------------------------------------------------------------
@@ -32,6 +35,7 @@ tofu.tests.tests09\_tutorials.tuto\_plot\_create\_geometry module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.tests.tests09\_tutorials.tuto\_plot\_custom\_emissivity module
 -------------------------------------------------------------------
@@ -40,4 +44,13 @@ tofu.tests.tests09\_tutorials.tuto\_plot\_custom\_emissivity module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
+tofu.tests.tests09\_tutorials.tuto\_plot\_solid\_angles module
+--------------------------------------------------------------
+
+.. automodule:: tofu.tests.tests09_tutorials.tuto_plot_solid_angles
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:

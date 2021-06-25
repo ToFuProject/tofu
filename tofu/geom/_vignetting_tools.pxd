@@ -1,4 +1,5 @@
 # distutils: language=c++
+# cython: language_level=3
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
@@ -44,3 +45,27 @@ cdef void vignetting_core(double[:, ::1] ray_orig,
                           int nlos,
                           bint* goes_through,
                           int num_threads) nogil
+
+cdef int vignetting_vmesh_vpoly(int npts, int sz_r,
+                                bint is_cart,
+                                double[:, ::1] vpoly,
+                                double[:, ::1] pts,
+                                double[::1] vol_resol,
+                                double[::1] r_on_phi,
+                                double* disc_r,
+                                long[::1] lind,
+                                double** res_x,
+                                double** res_y,
+                                double** res_z,
+                                double** res_vres,
+                                double** res_rphi,
+                                long** res_lind,
+                                long* sz_rphi,
+                                int num_threads) nogil
+
+cdef int are_in_vignette(int sz_r, int sz_z,
+                         double[:, ::1] vpoly,
+                         int npts_vpoly,
+                         double* disc_r,
+                         double* disc_z,
+                         long[:, ::1] is_in_vignette) nogil

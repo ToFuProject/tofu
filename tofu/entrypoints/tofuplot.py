@@ -66,10 +66,11 @@ _DCONVERT = {
 
 
 def call_tfloadimas(shot=None, run=None, user=None,
-                    tokamak=None, version=None, extra=None,
+                    database=None, version=None, extra=None,
                     ids=None, quantity=None, X=None, t0=None, tlim=None,
                     sharex=None, indch=None, indch_auto=None,
                     background=None, t=None, ddef=None,
+                    config=None, tosoledge3x=None,
                     mag_init_pts=None, mag_sep_dR=None, mag_sep_nbpts=None):
 
     # --------------
@@ -83,8 +84,6 @@ def call_tfloadimas(shot=None, run=None, user=None,
         del kwd[k0]
     del kwd['ddef']
 
-    if isinstance(kwd['t0'], str) and kwd['t0'].lower() == 'none':
-        kwd['t0'] = None
     if kwd['tlim'] is not None and len(kwd['tlim']) == 1:
         kwd['tlim'] = [kwd['tlim'], None]
     if kwd['tlim'] is not None and len(kwd['tlim']) != 2:

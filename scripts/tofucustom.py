@@ -1,12 +1,18 @@
 #!/usr/bin/env python
 
 # Built-in
+import sys
 import os
 from shutil import copyfile
 
 
+_HERE = os.path.abspath(os.path.dirname(__file__))
+
+
 # import parser dict
+sys.path.insert(1, _HERE)
 from _dparser import _DPARSER
+_ = sys.path.pop(1)
 
 
 ###################################################
@@ -15,8 +21,10 @@ from _dparser import _DPARSER
 ###################################################
 
 
-def custom(target=None, source=None,
-           files=None, directories=None, ddef=None):
+def custom(
+    target=None, source=None,
+    files=None, directories=None, ddef=None,
+):
 
     # --------------
     # Check inputs
@@ -58,18 +66,22 @@ def custom(target=None, source=None,
             copyfile(os.path.join(source, mod, '_'+f0),
                      os.path.join(target, ff))
 
-        msg = ("A local copy of default tofu parameters is now in:\n"
-               + "\t{}/\n".format(target)
-               + "You can edit it to spice up your tofu")
+        msg = (
+            "A local copy of default tofu parameters is now in:\n"
+            + "\t{}/\n".format(target)
+            + "You can edit it to spice up your tofu"
+        )
         print(msg)
 
     except Exception as err:
-        msg = (str(err) + '\n\n'
-               + "A problem occured\n"
-               + "tofu-custom tried to create a local directory .tofu/ in "
-               + "your home {}\n".format(target)
-               + "But it could not, check the error message above to debug\n"
-               + "Most frequent cause is a permission issue")
+        msg = (
+            str(err) + '\n\n'
+            + "A problem occured\n"
+            + "tofu-custom tried to create a local directory .tofu/ in "
+            + "your home {}\n".format(target)
+            + "But it could not, check the error message above to debug\n"
+            + "Most frequent cause is a permission issue"
+        )
         raise Exception(msg)
 
 

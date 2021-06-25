@@ -5,46 +5,69 @@ tofu.tests.tests01\_geom package
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 5
 
-   tofu.tests.tests01_geom.tests03_core_data
+   tofu.tests.tests01_geom.test_03_core_data
 
 Submodules
 ----------
 
-tofu.tests.tests01\_geom.test\_get\_sample module
+tofu.tests.tests01\_geom.sa\_prueba module
+------------------------------------------
+
+.. automodule:: tofu.tests.tests01_geom.sa_prueba
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+tofu.tests.tests01\_geom.test\_01\_GG module
+--------------------------------------------
+
+.. automodule:: tofu.tests.tests01_geom.test_01_GG
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+tofu.tests.tests01\_geom.test\_02\_compute module
 -------------------------------------------------
 
-.. automodule:: tofu.tests.tests01_geom.test_get_sample
+.. automodule:: tofu.tests.tests01_geom.test_02_compute
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
-tofu.tests.tests01\_geom.tests01\_GG module
--------------------------------------------
+tofu.tests.tests01\_geom.test\_03\_core module
+----------------------------------------------
 
-.. automodule:: tofu.tests.tests01_geom.tests01_GG
+.. automodule:: tofu.tests.tests01_geom.test_03_core
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
-tofu.tests.tests01\_geom.tests02\_compute module
-------------------------------------------------
+tofu.tests.tests01\_geom.test\_04\_sampling module
+--------------------------------------------------
 
-.. automodule:: tofu.tests.tests01_geom.tests02_compute
+.. automodule:: tofu.tests.tests01_geom.test_04_sampling
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
-tofu.tests.tests01\_geom.tests03\_core module
----------------------------------------------
+tofu.tests.tests01\_geom.testing\_tools module
+----------------------------------------------
 
-.. automodule:: tofu.tests.tests01_geom.tests03_core
+.. automodule:: tofu.tests.tests01_geom.testing_tools
    :members:
    :undoc-members:
    :show-inheritance:
-
+   :private-members:

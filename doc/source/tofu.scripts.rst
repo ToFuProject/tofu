@@ -32,4 +32,3 @@ tofu.scripts.tofuplot module
    :members:
    :undoc-members:
    :show-inheritance:
-

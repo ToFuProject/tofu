@@ -30,6 +30,24 @@ _RES = 0.1
 
 
 ###############################################################################
+#                            Default parameters
+###############################################################################
+
+
+_SAMPLE_RES = {
+    'edge': 0.02,
+    'cross': 0.1,
+    'surface': 0.1,
+    'volume': 0.1,
+}
+_SAMPLE_RESMODE = {
+    'edge': 'abs',
+    'cross': 'abs',
+    'surface': 'abs',
+    'volume': 'abs',
+}
+
+###############################################################################
 #                            Ves functions
 ###############################################################################
 
@@ -334,44 +352,146 @@ def _Ves_get_InsideConvexPoly(
     return Poly
 
 
-def _Ves_get_sampleEdge(
-    VPoly, dL, DS=None, dLMode="abs", DIn=0.0, VIn=None, margin=1.0e-9
+# ==============================================================================
+# = Ves sampling functions
+# ==============================================================================
+
+
+def _Ves_get_sample_checkinputs(
+    res=None,
+    domain=None,
+    resMode=None,
+    ind=None,
+    which='volume'
 ):
-    types = [int, float, np.int32, np.int64, np.float32, np.float64]
-    assert type(dL) in types and type(DIn) in types
-    assert DS is None or (hasattr(DS, "__iter__") and len(DS) == 2)
-    if DS is None:
-        DS = [None, None]
+    """ Check inputs for all sampling routines """
+
+    # res
+    dres = {'edge': 1, 'cross': 2, 'surface': 2, 'volume': 3}
+    if res is None:
+        res = _SAMPLE_RES[which]
+    ltypes = [int, float, np.int_, np.float_]
+    c0 = (type(res) in ltypes
+          or (hasattr(res, "__iter__")
+              and len(res) == dres[which]
+              and all([type(ds) in ltypes for ds in res])))
+    if not c0:
+        msg = ("Arg res must be either:\n"
+               + "\t- float: unique resolution for all directions\n"
+               + "\t- iterable of {} floats\n".format(dres[which])
+               + "  You provided:\n{}".format(res))
+        raise Exception(msg)
+    if type(res) in ltypes:
+        if which != 'edge':
+            res = [float(res) for ii in range(dres[which])]
     else:
-        assert all(
-            [
-                ds is None
-                or (
-                    hasattr(ds, "__iter__")
-                    and len(ds) == 2
-                    and all([ss is None or type(ss) in types for ss in ds])
-                )
-                for ds in DS
-            ]
-        )
-    assert type(dLMode) is str and dLMode.lower() in [
-        "abs",
-        "rel",
-    ], "Arg dLMode must be in ['abs','rel'] !"
-    # assert ind is None or (type(ind) is np.ndarray and ind.ndim==1
-    # and ind.dtype in ['int32','int64'] and np.all(ind>=0)),
-    #    "Arg ind must be None or 1D np.ndarray of positive int !"
-    Pts, dLr, ind, N, Rref, VPolybis = _GG.discretize_vpoly(
+        if which == 'edge':
+            msg = ("For edge, res cannot be an iterable!\n"
+                   + "\t- res: {}".format(res))
+            raise Exception(msg)
+        res = [float(res[ii]) for ii in range(dres[which])]
+
+    # domain (i.e.: sub-domain to be sampled, defined by its limits)
+    ddomain = {'edge': 2, 'cross': 2, 'surface': 3, 'volume': 3}
+    if domain is None:
+        domain = [None for ii in range(ddomain[which])]
+    c0 = (hasattr(domain, "__iter__")
+          and len(domain) == ddomain[which]
+          and all([dd is None
+                   or (hasattr(dd, "__iter__")
+                       and len(dd) == 2
+                       and all([ss is None
+                                or type(ss) in ltypes
+                                for ss in dd]))
+                   for dd in domain]))
+    if not c0:
+        msg = ("Arg domain must be a len()={} iterable".format(ddomain[which])
+               + " where each element can be:\n"
+               + "\t- an iterable 2 floats: [lower, upper] bounds\n"
+               + "\t- None: no bounds\n"
+               + "  You provided:\n{}".format(domain))
+        raise Exception(msg)
+    for ii in range(len(domain)):
+        if domain[ii] is not None:
+            domain[ii] = [float(domain[ii][0])
+                          if domain[ii][0] is not None else None,
+                          float(domain[ii][1])
+                          if domain[ii][1] is not None else None]
+
+    # resMode
+    if resMode is None:
+        resMode = _SAMPLE_RESMODE[which]
+    c0 = isinstance(resMode, str) and resMode.lower() in ["abs", "rel"]
+    if not c0:
+        msg = ("Arg resMode must be in ['abs','rel']!\n"
+               + "  You provided:\n{}".format(resMode))
+        raise Exception(msg)
+    resMode = resMode.lower()
+
+    # ind (indices of points to be recovered)
+    c0 = (ind is None
+          or (isinstance(ind, np.ndarray)
+              and ind.ndim == 1
+              and ind.dtype == np.int_
+              and np.all(ind >= 0))
+          or (which == 'surface'
+              and isinstance(ind, list)
+              and all([isinstance(indi, np.ndarray)
+                       and indi.ndim == 1
+                       and indi.dtype == np.int_
+                       and np.all(indi >= 0) for indi in ind])))
+    if not c0:
+        msg = ("Arg ind must be either:\n"
+               + "\t- None: domain is used instead\n"
+               + "\t- 1d np.ndarray of positive int: indices\n")
+        if which == 'surface':
+            msg += "\t- list of 1d np.ndarray of positive indices\n"
+        msg += "  You provided:\n{}".format(ind)
+        raise Exception(msg)
+
+    return res, domain, resMode, ind
+
+
+def _Ves_get_sampleEdge(
+    VPoly,
+    res=None,
+    domain=None,
+    resMode=None,
+    offsetIn=0.0,
+    VIn=None,
+    margin=1.0e-9
+):
+
+    # -------------
+    #  Check inputs
+
+    # standard
+    res, domain, resMode, ind = _Ves_get_sample_checkinputs(
+        res=res,
+        domain=domain,
+        resMode=resMode,
+        ind=None,
+        which='edge',
+    )
+
+    # specific
+    ltypes = [int, float, np.int_, np.float_]
+    assert type(offsetIn) in ltypes
+
+    # -------------
+    #  Compute
+
+    Pts, reseff, ind, N, Rref, VPolybis = _GG.discretize_vpoly(
         VPoly,
-        float(dL),
-        mode=dLMode.lower(),
-        D1=DS[0],
-        D2=DS[1],
+        float(res),
+        mode=resMode,
+        D1=domain[0],
+        D2=domain[1],
         margin=margin,
-        DIn=float(DIn),
+        DIn=float(offsetIn),
         VIn=VIn,
     )
-    return Pts, dLr, ind
+    return Pts, reseff, ind
 
 
 def _Ves_get_sampleCross(
@@ -380,53 +500,31 @@ def _Ves_get_sampleCross(
     Max1,
     Min2,
     Max2,
-    dS,
-    DS=None,
-    dSMode="abs",
+    res=None,
+    domain=None,
+    resMode=None,
     ind=None,
     margin=1.0e-9,
     mode="flat",
 ):
+
+    # -------------
+    #  Check inputs
+
+    # standard
+    res, domain, resMode, ind = _Ves_get_sample_checkinputs(
+        res=res,
+        domain=domain,
+        resMode=resMode,
+        ind=ind,
+        which='cross',
+    )
+
+    # specific
     assert mode in ["flat", "imshow"]
-    types = [int, float, np.int32, np.int64, np.float32, np.float64]
-    c0 = (
-        hasattr(dS, "__iter__")
-        and len(dS) == 2
-        and all([type(ds) in types for ds in dS])
-    )
-    assert (
-        c0 or type(dS) in types
-    ), "Arg dS must be a float or a list 2 floats!"
-    dS = (
-        [float(dS), float(dS)]
-        if type(dS) in types
-        else [float(dS[0]), float(dS[1])]
-    )
-    assert DS is None or (hasattr(DS, "__iter__") and len(DS) == 2)
-    if DS is None:
-        DS = [None, None]
-    else:
-        assert all(
-            [
-                ds is None
-                or (
-                    hasattr(ds, "__iter__")
-                    and len(ds) == 2
-                    and all([ss is None or type(ss) in types for ss in ds])
-                )
-                for ds in DS
-            ]
-        )
-    assert type(dSMode) is str and dSMode.lower() in [
-        "abs",
-        "rel",
-    ], "Arg dSMode must be in ['abs','rel'] !"
-    assert ind is None or (
-        type(ind) is np.ndarray
-        and ind.ndim == 1
-        and ind.dtype in ["int32", "int64"]
-        and np.all(ind >= 0)
-    ), "Arg ind must be None or 1D np.ndarray of positive int !"
+
+    # -------------
+    #  Compute
 
     MinMax1 = np.array([Min1, Max1])
     MinMax2 = np.array([Min2, Max2])
@@ -435,21 +533,23 @@ def _Ves_get_sampleCross(
             Pts, dS, ind, d1r, d2r = _GG.discretize_segment2d(
                 MinMax1,
                 MinMax2,
-                dS[0],
-                dS[1],
-                D1=DS[0],
-                D2=DS[1],
-                mode=dSMode,
+                res[0],
+                res[1],
+                D1=domain[0],
+                D2=domain[1],
+                mode=resMode,
                 VPoly=VPoly,
                 margin=margin,
             )
             out = (Pts, dS, ind, (d1r, d2r))
         else:
             x1, d1r, ind1, N1 = _GG._Ves_mesh_dlfromL_cython(
-                MinMax1, dS[0], DS[0], Lim=True, dLMode=dSMode, margin=margin
+                MinMax1, res[0], domain[0], Lim=True,
+                dLMode=resMode, margin=margin
             )
             x2, d2r, ind2, N2 = _GG._Ves_mesh_dlfromL_cython(
-                MinMax2, dS[1], DS[1], Lim=True, dLMode=dSMode, margin=margin
+                MinMax2, res[1], domain[1], Lim=True,
+                dLMode=resMode, margin=margin
             )
             xx1, xx2 = np.meshgrid(x1, x2)
             pts = np.squeeze([xx1, xx2])
@@ -466,175 +566,59 @@ def _Ves_get_sampleCross(
         c0 = c0 and ind.dtype in ["int32", "int64"] and np.all(ind >= 0)
         assert c0, "Arg ind must be a np.ndarray of int !"
         Pts, dS, d1r, d2r = _GG._Ves_meshCross_FromInd(
-            MinMax1, MinMax2, dS[0], dS[1], ind, dSMode=dSMode, margin=margin
+            MinMax1,
+            MinMax2,
+            res[0],
+            res[1],
+            ind,
+            dSMode=resMode,
+            margin=margin,
         )
         out = (Pts, dS, ind, (d1r, d2r))
     return out
 
 
-def _Ves_get_sampleV(
-    VPoly,
-    Min1,
-    Max1,
-    Min2,
-    Max2,
-    dV,
-    DV=None,
-    dVMode="abs",
-    ind=None,
-    VType="Tor",
-    VLim=None,
-    Out="(X,Y,Z)",
-    margin=1.0e-9,
-):
-    types = [int, float, np.int32, np.int64, np.float32, np.float64]
-    assert type(dV) in types or (
-        hasattr(dV, "__iter__")
-        and len(dV) == 3
-        and all([type(ds) in types for ds in dV])
-    ), "Arg dV must be a float or a list 3 floats !"
-    dV = (
-        [float(dV), float(dV), float(dV)]
-        if type(dV) in types
-        else [float(dV[0]), float(dV[1]), float(dV[2])]
-    )
-    assert DV is None or (hasattr(DV, "__iter__") and len(DV) == 3)
-    if DV is None:
-        DV = [None, None, None]
-    else:
-        assert all(
-            [
-                ds is None
-                or (
-                    hasattr(ds, "__iter__")
-                    and len(ds) == 2
-                    and all([ss is None or type(ss) in types for ss in ds])
-                )
-                for ds in DV
-            ]
-        ), "Arg DV must be a list of 3 lists of 2 floats !"
-    assert type(dVMode) is str and dVMode.lower() in [
-        "abs",
-        "rel",
-    ], "Arg dVMode must be in ['abs','rel'] !"
-    assert ind is None or (
-        type(ind) is np.ndarray
-        and ind.ndim == 1
-        and ind.dtype in ["int32", "int64"]
-        and np.all(ind >= 0)
-    ), "Arg ind must be None or 1D np.ndarray of positive int !"
-
-    MinMax1 = np.array([Min1, Max1])
-    MinMax2 = np.array([Min2, Max2])
-    VLim = None if VType.lower() == "tor" else np.array(VLim).ravel()
-    dVr = [None, None, None]
-    if ind is None:
-        if VType.lower() == "tor":
-            Pts, dV, ind, dVr[0], dVr[1], dVr[
-                2
-            ] = _GG._Ves_Vmesh_Tor_SubFromD_cython(
-                dV[0],
-                dV[1],
-                dV[2],
-                MinMax1,
-                MinMax2,
-                DR=DV[0],
-                DZ=DV[1],
-                DPhi=DV[2],
-                VPoly=VPoly,
-                Out=Out,
-                margin=margin,
-            )
-        else:
-            Pts, dV, ind, dVr[0], dVr[1], dVr[
-                2
-            ] = _GG._Ves_Vmesh_Lin_SubFromD_cython(
-                dV[0],
-                dV[1],
-                dV[2],
-                VLim,
-                MinMax1,
-                MinMax2,
-                DX=DV[0],
-                DY=DV[1],
-                DZ=DV[2],
-                VPoly=VPoly,
-                margin=margin,
-            )
-    else:
-        if VType.lower() == "tor":
-            Pts, dV, dVr[0], dVr[1], dVr[
-                2
-            ] = _GG._Ves_Vmesh_Tor_SubFromInd_cython(
-                dV[0],
-                dV[1],
-                dV[2],
-                MinMax1,
-                MinMax2,
-                ind,
-                Out=Out,
-                margin=margin,
-            )
-        else:
-            Pts, dV, dVr[0], dVr[1], dVr[
-                2
-            ] = _GG._Ves_Vmesh_Lin_SubFromInd_cython(
-                dV[0], dV[1], dV[2], VLim, MinMax1, MinMax2, ind, margin=margin
-            )
-    return Pts, dV, ind, dVr
-
-
 def _Ves_get_sampleS(
     VPoly,
-    dS,
-    DS=None,
-    dSMode="abs",
+    res=None,
+    domain=None,
+    resMode="abs",
     ind=None,
-    DIn=0.0,
+    offsetIn=0.0,
     VIn=None,
     VType="Tor",
     VLim=None,
     nVLim=None,
-    Out="(X,Y,Z)",
+    returnas="(X,Y,Z)",
     margin=1.0e-9,
     Multi=False,
     Ind=None,
 ):
-    types = [int, float, np.int32, np.int64, np.float32, np.float64]
-    assert type(dS) in types or (
-        hasattr(dS, "__iter__")
-        and len(dS) == 2
-        and all([type(ds) in types for ds in dS])
-    ), "Arg dS must be a float or a list of 2 floats !"
-    dS = (
-        [float(dS), float(dS), float(dS)]
-        if type(dS) in types
-        else [float(dS[0]), float(dS[1]), float(dS[2])]
-    )
-    assert DS is None or (hasattr(DS, "__iter__") and len(DS) == 3)
-    msg = "type(nVLim)={0} and nVLim={1}".format(str(type(nVLim)), nVLim)
-    assert type(nVLim) is int and nVLim >= 0, msg
-    if DS is None:
-        DS = [None, None, None]
-    else:
-        assert all(
-            [
-                ds is None
-                or (
-                    hasattr(ds, "__iter__")
-                    and len(ds) == 2
-                    and all([ss is None or type(ss) in types for ss in ds])
-                )
-                for ds in DS
-            ]
-        ), "Arg DS must be a list of 3 lists of 2 floats !"
-    assert type(dSMode) is str and dSMode.lower() in [
-        "abs",
-        "rel",
-    ], "Arg dSMode must be in ['abs','rel'] !"
-    assert type(Multi) is bool, "Arg Multi must be a bool !"
+    """ Sample the surface """
 
+    # -------------
+    #  Check inputs
+
+    # standard
+    res, domain, resMode, ind = _Ves_get_sample_checkinputs(
+        res=res,
+        domain=domain,
+        resMode=resMode,
+        ind=ind,
+        which='surface',
+    )
+
+    # nVLim and VLim
+    if not (type(nVLim) in [int, np.int_] and nVLim >= 0):
+        msg = ("Arg nVLim must be a positive int\\n"
+               + "  You provided:\n{} ({})".format(nVLim, type(nVLim)))
+        raise Exception(msg)
     VLim = None if (VLim is None or nVLim == 0) else np.array(VLim)
+
+    if not isinstance(Multi, bool):
+        msg = ("Arg Multi must be a bool!\n"
+               + "  You provided:\n{}".format(Multi))
+        raise Exception(msg)
 
     # Check if Multi
     if nVLim > 1:
@@ -646,95 +630,106 @@ def _Ves_get_sampleS(
             Ind = [Ind] if not hasattr(Ind, "__iter__") else Ind
             Ind = np.asarray(Ind).astype(int)
         if ind is not None:
-            assert hasattr(ind, "__iter__") and len(ind) == len(
-                Ind
-            ), "For multiple Struct, ind must be a list of len() = len(Ind) !"
-            assert all(
-                [
-                    type(ind[ii]) is np.ndarray
-                    and ind[ii].ndim == 1
-                    and ind[ii].dtype in ["int32", "int64"]
-                    and np.all(ind[ii] >= 0)
-                    for ii in range(0, len(ind))
-                ]
-            ), "For multiple Struct, ind must be a list of index arrays !"
+            if isinstance(ind, np.ndarray):
+                ind = [ind for ii in range(len(Ind))]
+            elif not (isinstance(ind, list) and len(ind) == len(Ind)):
+                msg = ("Arg ind must be a list of same len() as Ind!\n"
+                       + "\t- provided: {}".format(ind))
+                raise Exception(msg)
 
     else:
         VLim = [None] if VLim is None else [VLim.ravel()]
-        assert ind is None or (
-            type(ind) is np.ndarray
-            and ind.ndim == 1
-            and ind.dtype in ["int32", "int64"]
-            and np.all(ind >= 0)
-        ), "Arg ind must be None or 1D np.ndarray of positive int !"
+        if ind is not None:
+            if not isinstance(ind, np.ndarray):
+                msg = ("ind must be a np.ndarray if nVLim == 1\n"
+                       + "\t- provided: {}".format(ind))
+                raise Exception(msg)
         Ind = [0]
 
     if ind is None:
-        Pts, dS, ind, dSr = (
+        pts, dS, ind, reseff = (
             [0 for ii in Ind],
-            [dS for ii in Ind],
+            [0 for ii in Ind],
             [0 for ii in Ind],
             [[0, 0] for ii in Ind],
         )
         if VType.lower() == "tor":
             for ii in range(0, len(Ind)):
                 if VLim[Ind[ii]] is None:
-                    Pts[ii], dS[ii], ind[ii], NL, dSr[ii][0], Rref, dSr[ii][
-                        1
-                    ], nRPhi0, VPbis = _GG._Ves_Smesh_Tor_SubFromD_cython(
-                        dS[ii][0],
-                        dS[ii][1],
-                        VPoly,
-                        DR=DS[0],
-                        DZ=DS[1],
-                        DPhi=DS[2],
-                        DIn=DIn,
-                        VIn=VIn,
-                        PhiMinMax=None,
-                        Out=Out,
-                        margin=margin,
-                    )
+                    (pts[ii],
+                     dS[ii],
+                     ind[ii],
+                     NL,
+                     reseff[ii][0],
+                     Rref,
+                     reseff[ii][1],
+                     nRPhi0,
+                     VPbis) = _GG._Ves_Smesh_Tor_SubFromD_cython(
+                         res[0],
+                         res[1],
+                         VPoly,
+                         DR=domain[0],
+                         DZ=domain[1],
+                         DPhi=domain[2],
+                         DIn=offsetIn,
+                         VIn=VIn,
+                         PhiMinMax=None,
+                         Out=returnas,
+                         margin=margin,
+                     )
                 else:
-                    Pts[ii], dS[ii], ind[ii], NL, dSr[ii][
-                        0
-                    ], Rref, dR0r, dZ0r, dSr[ii][
-                        1
-                    ], VPbis = _GG._Ves_Smesh_TorStruct_SubFromD_cython(
-                        VLim[Ind[ii]],
-                        dS[ii][0],
-                        dS[ii][1],
-                        VPoly,
-                        DR=DS[0],
-                        DZ=DS[1],
-                        DPhi=DS[2],
-                        DIn=DIn,
-                        VIn=VIn,
-                        Out=Out,
-                        margin=margin,
-                    )
-                    dSr[ii] += [dR0r, dZ0r]
+                    (pts[ii],
+                     dS[ii],
+                     ind[ii],
+                     NL,
+                     reseff[ii][0],
+                     Rref,
+                     dR0r,
+                     dZ0r,
+                     reseff[ii][1],
+                     VPbis) = _GG._Ves_Smesh_TorStruct_SubFromD_cython(
+                         VLim[Ind[ii]],
+                         res[0],
+                         res[1],
+                         VPoly,
+                         DR=domain[0],
+                         DZ=domain[1],
+                         DPhi=domain[2],
+                         DIn=offsetIn,
+                         VIn=VIn,
+                         Out=returnas,
+                         margin=margin,
+                     )
+                    reseff[ii] += [dR0r, dZ0r]
         else:
             for ii in range(0, len(Ind)):
-                Pts[ii], dS[ii], ind[ii], NL, dSr[ii][0], Rref, dSr[ii][
-                    1
-                ], dY0r, dZ0r, VPbis = _GG._Ves_Smesh_Lin_SubFromD_cython(
-                    VLim[Ind[ii]],
-                    dS[ii][0],
-                    dS[ii][1],
-                    VPoly,
-                    DX=DS[0],
-                    DY=DS[1],
-                    DZ=DS[2],
-                    DIn=DIn,
-                    VIn=VIn,
-                    margin=margin,
-                )
-                dSr[ii] += [dY0r, dZ0r]
+                (pts[ii],
+                 dS[ii],
+                 ind[ii],
+                 NL,
+                 reseff[ii][0],
+                 Rref,
+                 reseff[ii][1],
+                 dY0r,
+                 dZ0r,
+                 VPbis) = _GG._Ves_Smesh_Lin_SubFromD_cython(
+                     VLim[Ind[ii]],
+                     res[0],
+                     res[1],
+                     VPoly,
+                     DX=domain[0],
+                     DY=domain[1],
+                     DZ=domain[2],
+                     DIn=offsetIn,
+                     VIn=VIn,
+                     margin=margin,
+                 )
+                reseff[ii] += [dY0r, dZ0r]
     else:
         ind = ind if Multi else [ind]
-        Pts, dS, dSr = (
+        pts, dS, reseff = (
             [np.ones((3, 0)) for ii in Ind],
-            [dS for ii in Ind],
+            [0 for ii in Ind],
             [[0, 0] for ii in Ind],
         )
         if VType.lower() == "tor":
@@ -742,58 +737,201 @@ def _Ves_get_sampleS(
                 if ind[Ind[ii]].size > 0:
                     if VLim[Ind[ii]] is None:
                         out_loc = _GG._Ves_Smesh_Tor_SubFromInd_cython(
-                            dS[ii][0],
-                            dS[ii][1],
+                            res[0],
+                            res[1],
                             VPoly,
                             ind[Ind[ii]],
-                            DIn=DIn,
+                            DIn=offsetIn,
                             VIn=VIn,
                             PhiMinMax=None,
-                            Out=Out,
+                            Out=returnas,
                             margin=margin,
                         )
-                        Pts[ii], dS[ii], NL, dSr[ii][0], Rref = out_loc[:5]
-                        dSr[ii][1], nRPhi0, VPbis = out_loc[5:]
+                        pts[ii], dS[ii], NL, reseff[ii][0], Rref = out_loc[:5]
+                        reseff[ii][1], nRPhi0, VPbis = out_loc[5:]
                     else:
                         out_loc = _GG._Ves_Smesh_TorStruct_SubFromInd_cython(
                             VLim[Ind[ii]],
-                            dS[ii][0],
-                            dS[ii][1],
+                            res[0],
+                            res[1],
                             VPoly,
                             ind[Ind[ii]],
-                            DIn=DIn,
+                            DIn=offsetIn,
                             VIn=VIn,
-                            Out=Out,
+                            Out=returnas,
                             margin=margin,
                         )
-                        Pts[ii], dS[ii], NL, dSr[ii][0], Rref = out_loc[:5]
-                        dR0r, dZ0r, dSr[ii][1], VPbis = out_loc[5:]
-                        dSr[ii] += [dR0r, dZ0r]
+                        pts[ii], dS[ii], NL, reseff[ii][0], Rref = out_loc[:5]
+                        dR0r, dZ0r, reseff[ii][1], VPbis = out_loc[5:]
+                        reseff[ii] += [dR0r, dZ0r]
         else:
             for ii in range(0, len(Ind)):
                 if ind[Ind[ii]].size > 0:
                     out_loc = _GG._Ves_Smesh_Lin_SubFromInd_cython(
                         VLim[Ind[ii]],
-                        dS[ii][0],
-                        dS[ii][1],
+                        res[0],
+                        res[1],
                         VPoly,
                         ind[Ind[ii]],
-                        DIn=DIn,
+                        DIn=offsetIn,
                         VIn=VIn,
                         margin=margin,
                     )
-                    Pts[ii], dS[ii], NL, dSr[ii][0], Rref = out_loc[:5]
-                    dSr[ii][1], dY0r, dZ0r, VPbis = out_loc[5:]
-                    dSr[ii] += [dY0r, dZ0r]
+                    pts[ii], dS[ii], NL, reseff[ii][0], Rref = out_loc[:5]
+                    reseff[ii][1], dY0r, dZ0r, VPbis = out_loc[5:]
+                    reseff[ii] += [dY0r, dZ0r]
 
     if len(VLim) == 1:
-        Pts, dS, ind, dSr = Pts[0], dS[0], ind[0], dSr[0]
-    return Pts, dS, ind, dSr
+        pts, dS, ind, reseff = pts[0], dS[0], ind[0], reseff[0]
+    return pts, dS, ind, reseff
+
+
+def _Ves_get_sampleV(
+    VPoly,
+    Min1,
+    Max1,
+    Min2,
+    Max2,
+    res=None,
+    domain=None,
+    resMode=None,
+    ind=None,
+    VType="Tor",
+    VLim=None,
+    returnas="(X,Y,Z)",
+    margin=1.0e-9,
+    algo="new",
+    num_threads=48,
+):
+    """ Sample the volume """
+
+    # -------------
+    #  Check inputs
+    res, domain, resMode, ind = _Ves_get_sample_checkinputs(
+        res=res,
+        domain=domain,
+        resMode=resMode,
+        ind=ind,
+        which='volume',
+    )
+
+    # ------------
+    # Computation
+
+    MinMax1 = np.array([Min1, Max1])
+    MinMax2 = np.array([Min2, Max2])
+    VLim = None if VType.lower() == "tor" else np.array(VLim).ravel()
+    reseff = [None, None, None]
+    if ind is None:
+        if VType.lower() == "tor":
+            if algo.lower() == "new":
+                (pts, dV, ind,
+                 reseff[0],
+                 reseff[1],
+                 reseff[2],
+                 sz_r, sz_z,
+                 ) = _GG._Ves_Vmesh_Tor_SubFromD_cython(
+                    res[0],
+                    res[1],
+                    res[2],
+                    MinMax1,
+                    MinMax2,
+                    DR=domain[0],
+                    DZ=domain[1],
+                    DPhi=domain[2],
+                    limit_vpoly=VPoly,
+                    out_format=returnas,
+                    margin=margin,
+                    num_threads=num_threads,
+                )
+            else:
+                (pts, dV, ind,
+                 reseff[0],
+                 reseff[1],
+                 reseff[2]) = _GG._Ves_Vmesh_Tor_SubFromD_cython_old(
+                    res[0],
+                    res[1],
+                    res[2],
+                    MinMax1,
+                    MinMax2,
+                    DR=domain[0],
+                    DZ=domain[1],
+                    DPhi=domain[2],
+                    VPoly=VPoly,
+                    Out=returnas,
+                    margin=margin,
+                )
+
+        else:
+            (pts, dV, ind,
+             reseff[0],
+             reseff[1],
+             reseff[2]) = _GG._Ves_Vmesh_Lin_SubFromD_cython(
+                res[0],
+                res[1],
+                res[2],
+                VLim,
+                MinMax1,
+                MinMax2,
+                DX=domain[0],
+                DY=domain[1],
+                DZ=domain[2],
+                limit_vpoly=VPoly,
+                margin=margin,
+            )
+    else:
+        if VType.lower() == "tor":
+            if algo.lower() == "new":
+                (pts, dV,
+                 reseff[0],
+                 reseff[1],
+                 reseff[2]) = _GG._Ves_Vmesh_Tor_SubFromInd_cython(
+                    res[0],
+                    res[1],
+                    res[2],
+                    MinMax1,
+                    MinMax2,
+                    ind,
+                    Out=returnas,
+                    margin=margin,
+                    num_threads=num_threads,
+                )
+            else:
+                (pts, dV,
+                 reseff[0],
+                 reseff[1],
+                 reseff[2]) = _GG._Ves_Vmesh_Tor_SubFromInd_cython_old(
+                    res[0],
+                    res[1],
+                    res[2],
+                    MinMax1,
+                    MinMax2,
+                    ind,
+                    Out=returnas,
+                    margin=margin,
+                )
+        else:
+            (pts, dV,
+             reseff[0],
+             reseff[1],
+             reseff[2]) = _GG._Ves_Vmesh_Lin_SubFromInd_cython(
+                 res[0],
+                 res[1],
+                 res[2],
+                 VLim,
+                 MinMax1,
+                 MinMax2,
+                 ind,
+                 margin=margin
+             )
+    return pts, dV, ind, reseff
 
 
 # ==============================================================================
 # =  phi / theta projections for magfieldlines
 # ==============================================================================
+
+
 def _Struct_get_phithetaproj(ax=None, poly_closed=None, lim=None, noccur=0):
 
     # phi = toroidal angle
@@ -1188,129 +1326,3 @@ def LOS_calc_signal(
     elif method == "romb":
         Int = scpintg.romb(Vals, dx=dLr, show=False)
     return Int
-
-
-# ==============================================================================
-# =  Solid Angle particle
-# ==============================================================================
-
-
-def calc_solidangle_particle(
-    traj, pts, r=1.0, config=None, approx=True, aniso=False, block=True
-):
-    """ Compute the solid angle subtended by a particle along a trajectory
-
-    The particle has radius r, and trajectory (array of points) traj
-    It is observed from pts (array of points)
-
-    traj and pts are (3,N) and (3,M) arrays of cartesian coordinates
-
-    approx = True => use approximation
-    aniso = True => return also unit vector of emission
-    block = True consider LOS collisions (with Ves, Struct...)
-
-    if block:
-        config = config used for LOS collisions
-
-    Return:
-    -------
-    sang: np.ndarray
-        (N,M) Array of floats, solid angles
-
-    """
-    ################
-    # Prepare inputs
-    traj = np.ascontiguousarray(traj, dtype=float)
-    pts = np.ascontiguousarray(pts, dtype=float)
-    r = np.r_[r].astype(float).ravel()
-
-    # Check booleans
-    assert type(approx) is bool
-    assert type(aniso) is bool
-    assert type(block) is bool
-
-    # Check config
-    assert config is None or config.__class__.__name__ == "Config"
-    assert block == (config is not None)
-
-    # Check pts, traj and r are array of good shape
-    assert traj.ndim in [1, 2]
-    assert pts.ndim in [1, 2]
-    assert 3 in traj.shape and 3 in pts.shape
-    if traj.ndim == 1:
-        traj = traj.reshape((3, 1))
-    if traj.shape[0] != 3:
-        traj = traj.T
-    if pts.ndim == 1:
-        pts = pts.reshape((3, 1))
-    if pts.shape[0] != 3:
-        pts = pts.T
-
-    # get npart
-    ntraj = traj.shape[1]
-    nr = r.size
-
-    npart = max(nr, ntraj)
-    assert nr in [1, npart]
-    assert ntraj in [1, npart]
-    if nr < npart:
-        r = np.full((npart,), r[0])
-    if ntraj < npart:
-        traj = np.repeat(traj, npart, axis=1)
-
-    ################
-    # Main computation
-
-    # traj2pts vector, with length (3d array (3,N,M))
-    vect = pts[:, None, :] - traj[:, :, None]
-    len_v = np.sqrt(np.sum(vect ** 2, axis=0))
-
-    # If aniso or block, normalize
-    if aniso or block:
-        vect = vect / len_v[None, :, :]
-
-    # Solid angle
-    if approx:
-        sang = np.pi * r[None, :] ** 2 / len_v ** 2
-    else:
-        sang = 2.0 * np.pi * (1 - np.sqrt(1.0 - r ** 2[None, :] / len_v ** 2))
-
-    # block
-    if block:
-        kwdargs = config._get_kwdargs_LOS_isVis()
-        # TODO : modify this function along issue #102
-        indnan = _GG.LOS_areVis_PtsFromPts_VesStruct(
-            traj, pts, k=len_v, vis=False, **kwdargs
-        )
-        sang[indnan] = 0.0
-        vect[indnan, :] = np.nan
-
-    ################
-    # Return
-
-    if aniso:
-        return sang, vect
-    else:
-        return sang
-
-
-def calc_solidangle_particle_integ(
-    traj, r=1.0, config=None, approx=True, block=True, res=0.01
-):
-
-    # step0: if block : generate kwdargs from config
-
-    # step 1: sample cross-section
-
-    # step 2: loop on R of  pts of cross-section (parallelize ?)
-    # => fix nb. of phi for the rest of the loop
-
-    # loop of Z
-
-    # step 3: loop phi
-    # Check visibility (if block = True) for each phi (LOS collision)
-    # If visible => compute solid angle
-    # integrate (sum * res) on each phi the solid angle
-
-    # Return sang as (N,nR,nZ) array
-    return
