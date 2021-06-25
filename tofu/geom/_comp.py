@@ -3,13 +3,17 @@ This module is the computational part of the geometrical module of ToFu
 """
 
 # Built-in
+import os
 import warnings
+from xml.dom import minidom
 
 # Common
 import numpy as np
 import scipy.interpolate as scpinterp
 import scipy.integrate as scpintg
 from inspect import signature as insp
+
+
 
 # ToFu-specific
 try:
@@ -18,6 +22,10 @@ try:
 except Exception:
     from . import _def as _def
     from . import _GG as _GG
+
+
+_LTYPES = [int, float, np.int_, np.float_]
+_RES = 0.1
 
 
 ###############################################################################
@@ -41,6 +49,158 @@ _SAMPLE_RESMODE = {
 ###############################################################################
 #                            Ves functions
 ###############################################################################
+
+
+# ==============================================================================
+# Interfacing functions
+# ==============================================================================
+
+
+def _get_pts_from_path_svg(path_str=None, res=None, z0=None):
+
+    if res is None:
+        res = _RES
+    c0 = type(res) in _LTYPES
+    if not c0:
+        msg = (
+            "Arg res must be a float !"
+        )
+        raise Exception(msg)
+
+    # z0
+    if z0 is None:
+        z0 = 0.
+    if not type(z0) in _LTYPES:
+        msg = (
+            "Arg z0 must be a float!\n"
+            + "Provided:\n\t{}".format(z0)
+        )
+        raise Exception(msg)
+
+    # try loading
+    try:
+        from svg.path import parse_path
+    except Exception as err:
+        msg = (
+            str(err)
+            + "\n\nYou do not seem to have svg.path installed\n"
+            + "It is an optional dependency only used for this method\n"
+            + "To use from_svg(), please install svg.path using:\n"
+            + "\tpip install svg.path"
+        )
+        raise Exception(msg)
+
+    lpath = parse_path(path_str)
+
+    lpath._calc_lengths()
+    fract = lpath._fractions
+
+    pos = []
+    for ii, pat in enumerate(lpath):
+        if pat.__class__.__name__ == 'Line':
+            pos.append(np.r_[fract[ii]])
+        elif pat.__class__.__name__ == 'Move':
+            pos.append(np.r_[fract[ii]])
+        elif pat.__class__.__name__ == 'Close':
+            pos.append(np.r_[fract[ii]])
+        else:
+            npts = int(np.ceil(pat.length() / res))
+            pos.append(
+                np.linspace(fract[ii], fract[ii+1], npts, endpoint=False)
+            )
+
+    pos = np.unique(np.concatenate(pos))
+    ind1 = np.abs(pos-1.) < 1e-14
+    if np.sum(ind1) == 1:
+        pos[ind1] = 1.
+    elif np.sum(ind1) > 1:
+        msg = "Several 1!"
+        raise Exception(msg)
+    pts = np.array([lpath.point(po) for po in pos])
+    pts = np.array([pts.real, pts.imag])
+
+    # reverse because inkscape has its origin at top left corner
+    pts[1, :] = -pts[1, :] - z0
+
+    return pts
+
+
+def get_paths_from_svg(pfe=None, res=None, z0=None, verb=None):
+
+    # check input
+    c0 = isinstance(pfe, str) and os.path.isfile(pfe) and pfe.endswith('.svg')
+    if not c0:
+        msg = (
+            "Arg pfe should be a path to a valid .svg file!\n"
+            + "Provided:\n\t{}".format(pfe)
+        )
+        raise Exception(msg)
+    pfe = os.path.abspath(pfe)
+
+    # verb
+    if verb is None:
+        verb = True
+    if not isinstance(verb, bool):
+        msg = (
+            "Arg verb must be a bool!\n"
+            + "Provided:\n\t{}".format(verb)
+        )
+        raise Exception(msg)
+
+    # Predefine useful var
+    doc = minidom.parse(pfe)
+
+    # Try extract raw data
+    try:
+        dpath = {
+            path.getAttribute('id').replace('\n', '').replace('""', ''): {
+                'poly': path.getAttribute('d'),
+                'color': path.getAttribute('style')
+            }
+            for path in doc.getElementsByTagName('path')
+        }
+    except Exception as err:
+        msg = (
+            "Could not extract path coordinates from {}".format(pfe)
+        )
+        raise Exception(msg)
+
+    # Derive usable data
+    kstr = 'fill:'
+    lk = list(dpath.keys())
+    for ii, k0 in enumerate(lk):
+
+        v0 = dpath[k0]
+        dpath[k0]['poly'] = _get_pts_from_path_svg(v0['poly'], res=res, z0=z0)
+
+        # class and color
+        color = v0['color'][v0['color'].index(kstr) + len(kstr):].split(';')[0]
+        if color == 'none':
+            dpath[k0]['cls'] = 'Ves'
+            color = None
+        else:
+            dpath[k0]['cls'] = 'PFC'
+        dpath[k0]['color'] = color
+
+    # verb
+    if verb is True:
+        lVes = sorted([k0 for k0, v0 in dpath.items() if v0['cls'] == 'Ves'])
+        lPFC = sorted([k0 for k0, v0 in dpath.items() if v0['cls'] == 'PFC'])
+        lobj = [
+            '\t- {}: {} ({} pts, {})'.format(
+                dpath[k0]['cls'], k0,
+                dpath[k0]['poly'].shape[1], dpath[k0]['color'],
+            )
+            for k0 in lVes + lPFC
+        ]
+        msg = (
+            "The following structures were loaded:\n".format(pfe)
+            + "\n".join(lobj)
+            + "\nfrom {}".format(pfe)
+        )
+        print(msg)
+
+    return dpath
 
 
 # ==============================================================================
