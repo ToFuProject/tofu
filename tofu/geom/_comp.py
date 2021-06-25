@@ -25,6 +25,10 @@ except Exception:
     from . import _GG as _GG
 
 
+_LTYPES = [int, float, np.int_, np.float_]
+_RES = 0.1
+
+
 ###############################################################################
 #                            Ves functions
 ###############################################################################
@@ -34,7 +38,52 @@ except Exception:
 # Interfacing functions
 # ==============================================================================
 
-def get_paths_from_svg(pfe=None, verb=None):
+
+def _get_pts_from_path_svg(lpath=None, res=None, start=None):
+
+    if res is None:
+        res = _RES
+    c0 = type(res) in _LTYPES
+    if not c0:
+        msg = (
+            "Arg res must be a float !"
+        )
+        raise Exception(msg)
+
+    if start is None:
+        start = [0., 0.]
+
+    lpath._calc_lengths()
+    fract = lpath._fractions
+
+    pos = []
+    for ii, pat in enumerate(lpath):
+        if pat.__class__.__name__ == 'Line':
+            pos.append(np.r_[fract[ii]])
+        elif pat.__class__.__name__ == 'Move':
+            pos.append(np.r_[fract[ii]])
+        elif pat.__class__.__name__ == 'Close':
+            pos.append(np.r_[fract[ii]])
+        else:
+            npts = int(np.ceil(pat.length() / res))
+            pos.append(
+                np.linspace(fract[ii], fract[ii+1], npts, endpoint=False)
+            )
+
+    pos = np.unique(np.concatenate(pos))
+    ind1 = np.abs(pos-1.) < 1e-14
+    if np.sum(ind1) == 1:
+        pos[ind1] = 1.
+    elif np.sum(ind1) > 1:
+        msg = "Several 1!"
+        raise Exception(msg)
+    pts = np.array([lpath.point(po) for po in pos])
+    pts = np.array([pts.real, pts.imag])
+
+    return pts
+
+
+def get_paths_from_svg(pfe=None, res=None, verb=None):
 
     # check input
     c0 = isinstance(pfe, str) and os.path.isfile(pfe) and pfe.endswith('.svg')
@@ -56,7 +105,7 @@ def get_paths_from_svg(pfe=None, verb=None):
         raise Exception(msg)
 
     # Predefine useful var
-    doc = minidom.parse('inputs_temp/Inkscape.svg')
+    doc = minidom.parse(pfe)
 
     # Try extract raw data
     try:
@@ -79,52 +128,7 @@ def get_paths_from_svg(pfe=None, verb=None):
     for ii, k0 in enumerate(lk):
 
         v0 = dpath[k0]
-
-        pap = parse_path(v0['poly'])
-        import pdb; pdb.set_trace()     #DB
-
-        # poly
-        poly = v0['poly'].split(' ')
-        if poly[0] == 'M':
-            rel = False
-        elif poly[0] == 'm':
-            if ii == 0:
-                init = np.r_[0., 0.][:, None]
-            else:
-                init = dpath[lk[ii-1]]['poly'][:, -1:]
-            rel = True
-        else:
-            msg = (
-                "Unknown starting flag:\n"
-                + "\t- id: {}\n".format(k0)
-                + "\t- path: {}".format(v0['poly'])
-            )
-            raise Exception(msg)
-
-        poly = [pp.split(',') for pp in poly[1:] if 'z' not in pp.lower()]
-
-        # Check path conformity
-        lc = [
-            all([
-                ss.replace('.', '', 1).replace('-', '', 1).isdigit()
-                for ss in pp
-            ])
-            for pp in poly
-        ]
-        if not all(lc):
-            msg = (
-                "path coordinates could not be properly interpreted:\n"
-                + "\t- id: {}\n".format(k0)
-                + "\t- path: {}\n".format(v0['poly'])
-                + "\t- poly: {}\n".format(poly)
-                + "\t- lc: {}\n".format(lc)
-            )
-            raise Exception(msg)
-
-        poly = np.array(poly).astype(float).T
-        if rel is True:
-            poly += init
-        dpath[k0]['poly'] = poly
+        dpath[k0]['poly'] = _get_pts_from_path_svg(parse_path(v0['poly']))
 
         # class and color
         color = v0['color'][v0['color'].index(kstr) + len(kstr):].split(';')[0]
