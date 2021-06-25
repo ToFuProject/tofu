@@ -731,7 +731,11 @@ class Test02_Config(object):
             lax = self.dobj[typ].plot_sino()
         plt.close('all')
 
-    def test14_saveload(self, verb=False):
+    def test14_from_svg(self):
+        pfe = os.path.join(_here, 'test_03_core_data', 'Inkscape.svg')
+        conf = tfg.Config.from_svg(pfe, Name='Test', Exp='Test', res=10)
+
+    def test15_saveload(self, verb=False):
         for typ in self.dobj.keys():
             self.dobj[typ].strip(-1)
             pfe = self.dobj[typ].save(verb=verb, return_pfe=True)
