@@ -304,7 +304,6 @@ setup(
         "matplotlib",
         "requests",
         "cython>=0.26",
-        "svg.path",
     ],
     python_requires=">=3.6",
 

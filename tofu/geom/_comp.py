@@ -13,7 +13,6 @@ import scipy.interpolate as scpinterp
 import scipy.integrate as scpintg
 from inspect import signature as insp
 
-from svg.path import parse_path
 
 
 # ToFu-specific
@@ -57,7 +56,7 @@ _SAMPLE_RESMODE = {
 # ==============================================================================
 
 
-def _get_pts_from_path_svg(lpath=None, res=None, start=None):
+def _get_pts_from_path_svg(path_str=None, res=None):
 
     if res is None:
         res = _RES
@@ -68,8 +67,19 @@ def _get_pts_from_path_svg(lpath=None, res=None, start=None):
         )
         raise Exception(msg)
 
-    if start is None:
-        start = [0., 0.]
+    try:
+        from svg.path import parse_path
+    except Exception as err:
+        msg = (
+            str(err)
+            + "\n\nYou do not seem to have svg.path installed\n"
+            + "It is an optional dependency only used for this method\n"
+            + "To use from_svg(), please install svg.path using:\n"
+            + "\tpip install svg.path"
+        )
+        raise Exception(msg)
+
+    lpath = parse_path(path_str)
 
     lpath._calc_lengths()
     fract = lpath._fractions
@@ -146,7 +156,7 @@ def get_paths_from_svg(pfe=None, res=None, verb=None):
     for ii, k0 in enumerate(lk):
 
         v0 = dpath[k0]
-        poly = _get_pts_from_path_svg(parse_path(v0['poly']), res=res)
+        poly = _get_pts_from_path_svg(v0['poly'], res=res)
         # reverse because for some reason the parser inverses y
         dpath[k0]['poly'] = poly
 

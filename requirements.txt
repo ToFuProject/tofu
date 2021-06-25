@@ -3,7 +3,6 @@ numpy
 scipy
 matplotlib
 requests
-svg.path
 
 ######## Requirements with Version Specifier ########
 Cython>=0.26
