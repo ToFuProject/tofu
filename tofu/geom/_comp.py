@@ -56,7 +56,7 @@ _SAMPLE_RESMODE = {
 # ==============================================================================
 
 
-def _get_pts_from_path_svg(path_str=None, res=None):
+def _get_pts_from_path_svg(path_str=None, res=None, z0=None):
 
     if res is None:
         res = _RES
@@ -67,6 +67,17 @@ def _get_pts_from_path_svg(path_str=None, res=None):
         )
         raise Exception(msg)
 
+    # z0
+    if z0 is None:
+        z0 = 0.
+    if not type(z0) in _LTYPES:
+        msg = (
+            "Arg z0 must be a float!\n"
+            + "Provided:\n\t{}".format(z0)
+        )
+        raise Exception(msg)
+
+    # try loading
     try:
         from svg.path import parse_path
     except Exception as err:
@@ -108,10 +119,13 @@ def _get_pts_from_path_svg(path_str=None, res=None):
     pts = np.array([lpath.point(po) for po in pos])
     pts = np.array([pts.real, pts.imag])
 
+    # reverse because inkscape has its origin at top left corner
+    pts[1, :] = -pts[1, :] - z0
+
     return pts
 
 
-def get_paths_from_svg(pfe=None, res=None, verb=None):
+def get_paths_from_svg(pfe=None, res=None, z0=None, verb=None):
 
     # check input
     c0 = isinstance(pfe, str) and os.path.isfile(pfe) and pfe.endswith('.svg')
@@ -123,6 +137,7 @@ def get_paths_from_svg(pfe=None, res=None, verb=None):
         raise Exception(msg)
     pfe = os.path.abspath(pfe)
 
+    # verb
     if verb is None:
         verb = True
     if not isinstance(verb, bool):
@@ -156,9 +171,7 @@ def get_paths_from_svg(pfe=None, res=None, verb=None):
     for ii, k0 in enumerate(lk):
 
         v0 = dpath[k0]
-        poly = _get_pts_from_path_svg(v0['poly'], res=res)
-        # reverse because for some reason the parser inverses y
-        dpath[k0]['poly'] = poly
+        dpath[k0]['poly'] = _get_pts_from_path_svg(v0['poly'], res=res, z0=z0)
 
         # class and color
         color = v0['color'][v0['color'].index(kstr) + len(kstr):].split(';')[0]

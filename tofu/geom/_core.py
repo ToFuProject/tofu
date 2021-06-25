@@ -3855,6 +3855,7 @@ class Config(utils.ToFuObject):
         cls,
         pfe,
         res=None,
+        z0=None,
         Exp=None,
         Name=None,
         shot=None,
@@ -3875,7 +3876,7 @@ class Config(utils.ToFuObject):
             raise Exception(msg)
 
         # Extract polygon from file and check
-        dpath = _comp.get_paths_from_svg(pfe=pfe, res=res, verb=verb)
+        dpath = _comp.get_paths_from_svg(pfe=pfe, res=res, z0=z0, verb=verb)
 
         if len(dpath) == 0:
             msg = "No Struct found in {}".format(pfe)
