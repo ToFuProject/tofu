@@ -12,6 +12,7 @@ Provides classes to model the 3D geometry of:
 from tofu.geom._core import PlasmaDomain, Ves, PFC, CoilPF, CoilCS, Config
 from tofu.geom._core import Rays, CamLOS1D, CamLOS2D
 from tofu.geom._core_optics import *
+import tofu.geom._comp_solidangles
 from . import utils
 
 __all__ = ['_GG', '_comp', '_plot', '_def', 'utils']

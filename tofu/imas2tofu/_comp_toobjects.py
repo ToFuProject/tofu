@@ -77,7 +77,7 @@ def get_lidsidd_shotExp(lidsok,
 
     # Exp (non-identical => error if errExp is True, warning otherwise)
     Exp = _check_shotExp_consistency(didd, lidd,
-                                     tofustr='Exp', imasstr='tokamak',
+                                     tofustr='Exp', imasstr='database',
                                      err=errExp, fallback='Dummy')
     if upper is True:
         Exp = Exp.upper()
@@ -317,6 +317,7 @@ def config_extract_lS(ids, occ, wall, description_2d, mod,
             if name == '':
                 name = 'unit{:02.0f}'.format(ii)
             if '_' in name:
+                name = name.strip('_')
                 ln = name.split('_')
                 if len(ln) == 2:
                     cls, name = ln
@@ -324,6 +325,14 @@ def config_extract_lS(ids, occ, wall, description_2d, mod,
                     cls, name, mobi = ln
                 else:
                     name = name.replace('_', '')
+            if ' ' in name:
+                name = name.strip(' ')
+                ln = name.split(' ')
+                if len(ln) > 1:
+                    for ii, nn in enumerate(ln[1:]):
+                        if nn[0].islower():
+                            ln[ii+1] = nn.capitalize()
+                    name = ''.join(ln)
             if cls is None:
                 if ii == nunits - 1:
                     cls = 'Ves'
@@ -364,14 +373,16 @@ def plasma_checkformat_dsig(dsig=None,
 
     # Convert to dict
     if lc[0]:
-        dsig = {}
-        dsig = {ids: sorted(set(list(dshort[ids].keys())
-                                + list(dcomp[ids].keys())))
-                for ids in lidsok}
+        dsig = dict.fromkeys(lidsok)
     elif lc[1] or lc[2]:
         if lc[1]:
             dsig = [dsig]
-        dsig = {ids: dsig for ids in lidsok}
+        dsig = dict.fromkeys(lidsok.intersection(dsig))
+
+    for ids in dsig.keys():
+        if dsig[ids] is None:
+            dsig[ids] = sorted(set(list(dshort[ids].keys())
+                                   + list(dcomp[ids].keys())))
 
     # Check content
     dout = {}
@@ -407,10 +418,11 @@ def plasma_checkformat_dsig(dsig=None,
             msg = ("dsig[{}] does not have {}\n".format(k0, lc)
                    + "    - dsig[{}] = {}".format(k0, dsig[k0]))
             raise Exception(msg)
+
+        # Check required minimum for 2dmesh, for valid shortcuts
         if any(['2d' in ss for ss in dsig[k0]]):
-            for ss in lsmesh:
-                if ss not in dsig[k0]:
-                    dsig[k0].append(ss)
+            lsmesh0 = set(lsmesh).intersection(dshort[k0].keys())
+            dsig[k0] += list(lsmesh0.difference(dsig[k0]))
         dout[k0] = dsig[k0]
     return dout
 
@@ -635,7 +647,7 @@ def data_checkformat_tlim(t, tlim=None,
         returnas = bool
     if returnas not in [bool, int]:
         msg = ("Arg returnas must be in [bool, int]\n"
-               + "\t- provided: {}".format(retrunas))
+               + "\t- provided: {}".format(returnas))
         raise Exception(msg)
     assert returnas in [bool, int]
     lc = [tlim is None,
@@ -658,7 +670,8 @@ def data_checkformat_tlim(t, tlim=None,
                + "  You provided: {}".format(tlim))
         if any([isinstance(tt, str) for tt in tlim]):
             msg += '\n\nAvailable events:\n' + str(names)
-        raise Exception(msg)
+        warnings.warn(msg)
+        tlim = False
     if tlim is None:
         tlim = False
 

@@ -1,6 +1,3 @@
-
-
-
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,9 +9,9 @@ import matplotlib.pyplot as plt
 def plot(dust, lax=None, Proj='All'):
 
     if dust.Ves is not None:
-        lax = Ves.plot(Lax=lax, Elt='P', Proj=Proj)
+        lax = dust.Ves.plot(Lax=lax, Elt='P', Proj=Proj)
     if dust.LStruct is not None:
-        for ss in LStruct:
+        for ss in dust.LStruct:
             lax = ss.plot(Lax=lax, Elt='P', Proj=Proj)
 
     if dust.traj is not None:

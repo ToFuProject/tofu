@@ -75,7 +75,7 @@ def _str2boolstr(v):
         else:
             return v
     else:
-        raise argparse.ArgumentTypeError('Boolean or str expected!')
+        raise argparse.ArgumentTypeError('Boolean, None or str expected!')
 
 
 def _str2tlim(v):
@@ -163,8 +163,15 @@ def parser_custom():
     ddef = {
         'target': os.path.join(_USER_HOME, '.tofu'),
         'source': os.path.join(_TOFUPATH, 'tofu'),
-        'files': ['_imas2tofu_def.py', '_entrypoints_def.py'],
-        'directories': ['openadas2tofu'],
+        'files': [
+            '_imas2tofu_def.py',
+            '_entrypoints_def.py',
+        ],
+        'directories': [
+            'openadas2tofu',
+            'nist2tofu',
+            os.path.join('nist2tofu', 'ASD'),
+        ],
     }
 
     # Instanciate parser
@@ -201,9 +208,10 @@ def parser_plot():
 
     tf, MultiIDSLoader, _defscripts = get_mods()
 
+    _LIDS_CONFIG = MultiIDSLoader._lidsconfig
     _LIDS_DIAG = MultiIDSLoader._lidsdiag
     _LIDS_PLASMA = tf.imas2tofu.MultiIDSLoader._lidsplasma
-    _LIDS = _LIDS_DIAG + _LIDS_PLASMA + tf.utils._LIDS_CUSTOM
+    _LIDS = _LIDS_CONFIG + _LIDS_DIAG + _LIDS_PLASMA + tf.utils._LIDS_CUSTOM
 
     msg = """Fast interactive visualization tool for diagnostics data in
     imas
@@ -218,7 +226,7 @@ def parser_plot():
         # User-customizable
         'run': _defscripts._TFPLOT_RUN,
         'user': _defscripts._TFPLOT_USER,
-        'tokamak': _defscripts._TFPLOT_TOKAMAK,
+        'database': _defscripts._TFPLOT_DATABASE,
         'version': _defscripts._TFPLOT_VERSION,
         't0': _defscripts._TFPLOT_T0,
         'tlim': None,
@@ -226,6 +234,9 @@ def parser_plot():
         'bck': _defscripts._TFPLOT_BCK,
         'extra': _defscripts._TFPLOT_EXTRA,
         'indch_auto': _defscripts._TFPLOT_INDCH_AUTO,
+
+        'config': _defscripts._TFPLOT_CONFIG,
+        'tosoledge3x': _defscripts._TFPLOT_TOSOLEDGE3X,
 
         'mag_sep_nbpts': _defscripts._TFPLOT_MAG_SEP_NBPTS,
         'mag_sep_dR': _defscripts._TFPLOT_MAG_SEP_DR,
@@ -239,14 +250,22 @@ def parser_plot():
 
     parser = argparse.ArgumentParser(description=msg)
 
+    msg = 'config name to be loaded'
+    parser.add_argument('-c', '--config', help=msg,
+                        required=False, type=str,
+                        default=ddef['config'])
+    msg = 'path in which to save the tofu config in SOLEDGE3X format'
+    parser.add_argument('-tse3x', '--tosoledge3x', help=msg,
+                        required=False, type=str,
+                        default=ddef['tosoledge3x'])
     parser.add_argument('-s', '--shot', type=int,
                         help='shot number', required=False, nargs='+')
     msg = 'username of the DB where the datafile is located'
     parser.add_argument('-u', '--user', help=msg, required=False,
                         default=ddef['user'])
-    msg = 'tokamak name of the DB where the datafile is located'
-    parser.add_argument('-tok', '--tokamak', help=msg, required=False,
-                        default=ddef['tokamak'])
+    msg = 'database name where the datafile is located'
+    parser.add_argument('-db', '--database', help=msg, required=False,
+                        default=ddef['database'])
     parser.add_argument('-r', '--run', help='run number',
                         required=False, type=int,
                         default=ddef['run'])
@@ -264,7 +283,7 @@ def parser_plot():
     parser.add_argument('-X', '--X', type=str, required=False,
                         help='Quantity from the plasma ids for abscissa',
                         nargs='+', default=None)
-    parser.add_argument('-t0', '--t0', type=str, required=False,
+    parser.add_argument('-t0', '--t0', type=_str2boolstr, required=False,
                         help='Reference time event setting t = 0',
                         default=ddef['t0'])
     parser.add_argument('-t', '--t', type=float, required=False,
@@ -336,7 +355,7 @@ def parser_calc():
         # User-customizable
         'run': _defscripts._TFCALC_RUN,
         'user': _defscripts._TFCALC_USER,
-        'tokamak': _defscripts._TFCALC_TOKAMAK,
+        'database': _defscripts._TFCALC_DATABASE,
         'version': _defscripts._TFCALC_VERSION,
         't0': _defscripts._TFCALC_T0,
         'tlim': None,
@@ -360,9 +379,9 @@ def parser_calc():
     msg = 'username of the DB where the datafile is located'
     parser.add_argument('-u', '--user',
                         help=msg, required=False, default=ddef['user'])
-    msg = 'tokamak name of the DB where the datafile is located'
-    parser.add_argument('-tok', '--tokamak', help=msg, required=False,
-                        default=ddef['tokamak'])
+    msg = 'database name where the datafile is located'
+    parser.add_argument('-db', '--database', help=msg, required=False,
+                        default=ddef['database'])
     parser.add_argument('-r', '--run', help='run number',
                         required=False, type=int, default=ddef['run'])
     parser.add_argument('-v', '--version', help='version number',
@@ -375,8 +394,8 @@ def parser_calc():
     msg = 'username for the equilibrium, defaults to -u'
     parser.add_argument('-u_eq', '--user_eq',
                         help=msg, required=False, default=None)
-    msg = 'tokamak for the equilibrium, defaults to -tok'
-    parser.add_argument('-tok_eq', '--tokamak_eq',
+    msg = 'database name for the equilibrium, defaults to -tok'
+    parser.add_argument('-db_eq', '--database_eq',
                         help=msg, required=False, default=None)
     parser.add_argument('-r_eq', '--run_eq',
                         help='run number for the equilibrium, defaults to -r',
@@ -389,8 +408,8 @@ def parser_calc():
     msg = 'username for the profiles, defaults to -u'
     parser.add_argument('-u_prof', '--user_prof',
                         help=msg, required=False, default=None)
-    msg = 'tokamak for the profiles, defaults to -tok'
-    parser.add_argument('-tok_prof', '--tokamak_prof',
+    msg = 'database name for the profiles, defaults to -tok'
+    parser.add_argument('-db_prof', '--database_prof',
                         help=msg, required=False, default=None)
     parser.add_argument('-r_prof', '--run_prof',
                         help='run number for the profiles, defaults to -r',
@@ -406,7 +425,7 @@ def parser_calc():
     parser.add_argument('-res', '--res', type=float, required=False,
                         help='Space resolution for the LOS-discretization',
                         default=None)
-    parser.add_argument('-t0', '--t0', type=str, required=False,
+    parser.add_argument('-t0', '--t0', type=_str2boolstr, required=False,
                         help='Reference time event setting t = 0',
                         default=ddef['t0'])
     parser.add_argument('-tl', '--tlim', type=_str2tlim,

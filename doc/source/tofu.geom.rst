@@ -5,17 +5,10 @@ tofu.geom package
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 Submodules
 ----------
-
-tofu.geom.\_GG.cpython\-36m\-darwin module
-------------------------------------------
-
-.. automodule:: tofu.geom._GG.cpython-36m-darwin
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 tofu.geom.\_GG module
 ---------------------
@@ -24,14 +17,16 @@ tofu.geom.\_GG module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
-tofu.geom.\_basic\_geom\_tools.cpython\-36m\-darwin module
-----------------------------------------------------------
+tofu.geom.\_GG module
+---------------------
 
-.. automodule:: tofu.geom._basic_geom_tools.cpython-36m-darwin
+.. automodule:: tofu.geom._GG
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.geom.\_basic\_geom\_tools module
 -------------------------------------
@@ -40,6 +35,16 @@ tofu.geom.\_basic\_geom\_tools module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
+
+tofu.geom.\_basic\_geom\_tools module
+-------------------------------------
+
+.. automodule:: tofu.geom._basic_geom_tools
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
 
 tofu.geom.\_comp module
 -----------------------
@@ -48,6 +53,7 @@ tofu.geom.\_comp module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.geom.\_comp\_optics module
 -------------------------------
@@ -56,6 +62,16 @@ tofu.geom.\_comp\_optics module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
+
+tofu.geom.\_comp\_solidangles module
+------------------------------------
+
+.. automodule:: tofu.geom._comp_solidangles
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
 
 tofu.geom.\_core module
 -----------------------
@@ -64,6 +80,7 @@ tofu.geom.\_core module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.geom.\_core\_optics module
 -------------------------------
@@ -72,6 +89,7 @@ tofu.geom.\_core\_optics module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.geom.\_def module
 ----------------------
@@ -80,14 +98,16 @@ tofu.geom.\_def module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
-tofu.geom.\_distance\_tools.cpython\-36m\-darwin module
--------------------------------------------------------
+tofu.geom.\_def\_config module
+------------------------------
 
-.. automodule:: tofu.geom._distance_tools.cpython-36m-darwin
+.. automodule:: tofu.geom._def_config
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.geom.\_distance\_tools module
 ----------------------------------
@@ -96,6 +116,34 @@ tofu.geom.\_distance\_tools module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
+
+tofu.geom.\_distance\_tools module
+----------------------------------
+
+.. automodule:: tofu.geom._distance_tools
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+tofu.geom.\_openmp\_tools module
+--------------------------------
+
+.. automodule:: tofu.geom._openmp_tools
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+tofu.geom.\_openmp\_tools module
+--------------------------------
+
+.. automodule:: tofu.geom._openmp_tools
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
 
 tofu.geom.\_plot module
 -----------------------
@@ -104,6 +152,7 @@ tofu.geom.\_plot module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.geom.\_plot\_optics module
 -------------------------------
@@ -112,14 +161,7 @@ tofu.geom.\_plot\_optics module
    :members:
    :undoc-members:
    :show-inheritance:
-
-tofu.geom.\_raytracing\_tools.cpython\-36m\-darwin module
----------------------------------------------------------
-
-.. automodule:: tofu.geom._raytracing_tools.cpython-36m-darwin
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :private-members:
 
 tofu.geom.\_raytracing\_tools module
 ------------------------------------
@@ -128,14 +170,16 @@ tofu.geom.\_raytracing\_tools module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
-tofu.geom.\_sampling\_tools.cpython\-36m\-darwin module
--------------------------------------------------------
+tofu.geom.\_raytracing\_tools module
+------------------------------------
 
-.. automodule:: tofu.geom._sampling_tools.cpython-36m-darwin
+.. automodule:: tofu.geom._raytracing_tools
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.geom.\_sampling\_tools module
 ----------------------------------
@@ -144,14 +188,16 @@ tofu.geom.\_sampling\_tools module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
-tofu.geom.\_vignetting\_tools.cpython\-36m\-darwin module
----------------------------------------------------------
+tofu.geom.\_sampling\_tools module
+----------------------------------
 
-.. automodule:: tofu.geom._vignetting_tools.cpython-36m-darwin
+.. automodule:: tofu.geom._sampling_tools
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.geom.\_vignetting\_tools module
 ------------------------------------
@@ -160,6 +206,25 @@ tofu.geom.\_vignetting\_tools module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
+
+tofu.geom.\_vignetting\_tools module
+------------------------------------
+
+.. automodule:: tofu.geom._vignetting_tools
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+tofu.geom.openmp\_enabled module
+--------------------------------
+
+.. automodule:: tofu.geom.openmp_enabled
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
 
 tofu.geom.utils module
 ----------------------
@@ -168,4 +233,4 @@ tofu.geom.utils module
    :members:
    :undoc-members:
    :show-inheritance:
-
+   :private-members:

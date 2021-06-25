@@ -1,25 +1,32 @@
+# cython: language_level=3
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
+# cython: initializedcheck=False
 #
 ################################################################################
 # Utility functions for sampling and discretizating
 ################################################################################
-from libc.math cimport ceil as Cceil, fabs as Cabs
-from libc.math cimport floor as Cfloor, round as Cround
-from libc.math cimport sqrt as Csqrt
-from libc.math cimport isnan as Cisnan
-from libc.math cimport NAN as Cnan
-from libc.math cimport log2 as Clog2
+from libc.math cimport ceil as c_ceil, fabs as c_abs
+from libc.math cimport floor as c_floor, round as c_round
+from libc.math cimport sqrt as c_sqrt
+from libc.math cimport pi as c_pi, cos as c_cos, sin as c_sin
+from libc.math cimport isnan as c_isnan
+from libc.math cimport NAN as C_NAN
+from libc.math cimport log2 as c_log2
 from libc.stdlib cimport malloc, free, realloc
 from cython.parallel import prange
 from cython.parallel cimport parallel
-from _basic_geom_tools cimport _VSMALL
+from cpython.array cimport array, clone
 # for utility functions:
 import numpy as np
 cimport numpy as cnp
+cimport cython
 # tofu libs
-cimport _basic_geom_tools as _bgt
+from ._basic_geom_tools cimport _VSMALL
+from ._basic_geom_tools cimport _TWOPI
+from . cimport _basic_geom_tools as _bgt
+from . cimport _raytracing_tools as _rt
 
 
 # ==============================================================================
@@ -31,9 +38,15 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
                                         double** ldiscret_arr,
                                         double[1] resolution,
                                         long** lindex_arr, long[1] n) nogil:
+    """Discretizes a 1D line defined over `[liminmax[0], lminmax[1]]` with
+    a discretization step resolution (out value) computed from `dstep` which
+    can be given in absolute or relative mode. It is possible to only get a
+    subdomain `[dl[0], dl[1]]` of the line. `lindex_arr` indicates the indices
+    of points to take into account depending on the subdomain dl. n indicates
+    the number of points on the discretized subdomain."""
     cdef int[1] nL0
     cdef long[1] nind
-
+    # ..
     first_discretize_line1d_core(lminmax, dstep,
                                  resolution, n, nind, nL0,
                                  dl, lim, mode, margin)
@@ -50,6 +63,7 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
                                   nL0[0], resolution[0], nind[0])
     return nind[0]
 
+
 cdef inline void first_discretize_line1d_core(double* lminmax,
                                               double dstep,
                                               double[1] resolution,
@@ -62,29 +76,29 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
                                               double margin) nogil:
     """
     Computes the resolution, the desired limits, and the number of cells when
-    discretising the segmen lminmax with the given parameters. It doesn't do the
-    actual discretization.
+    discretising the segment lminmax with the given parameters. It doesn't do
+    the actual discretization.
     For that part, please refer to: second_discretize_line1d_core
     """
-    cdef int nl1, ii, jj
+    cdef int nl1
     cdef double abs0, abs1
     cdef double inv_resol, new_margin
     cdef double[2] desired_limits
 
     # .. Computing "real" discretization step, depending on `mode`..............
-    if mode == 1: # absolute
-        ncells[0] = <int>Cceil((lminmax[1] - lminmax[0]) / dstep)
+    if mode == 0: # absolute
+        ncells[0] = <int>c_ceil((lminmax[1] - lminmax[0]) / dstep)
     else: # relative
-        ncells[0] = <int>Cceil(1./dstep)
+        ncells[0] = <int>c_ceil(1. / dstep)
     resolution[0] = (lminmax[1] - lminmax[0]) / ncells[0]
     # .. Computing desired limits ..............................................
-    if Cisnan(dl[0]) and Cisnan(dl[1]):
+    if c_isnan(dl[0]) and c_isnan(dl[1]):
         desired_limits[0] = lminmax[0]
         desired_limits[1] = lminmax[1]
     else:
-        if Cisnan(dl[0]):
+        if c_isnan(dl[0]):
             dl[0] = lminmax[0]
-        if Cisnan(dl[1]):
+        if c_isnan(dl[1]):
             dl[1] = lminmax[1]
         if lim and dl[0]<=lminmax[0]:
             dl[0] = lminmax[0]
@@ -96,19 +110,20 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     # created within those limits...............................................
     inv_resol = 1./resolution[0]
     new_margin = margin*resolution[0]
-    abs0 = Cabs(desired_limits[0] - lminmax[0])
-    if abs0 - resolution[0] * Cfloor(abs0 * inv_resol) < new_margin:
-        nl0[0] = int(Cround((desired_limits[0] - lminmax[0]) * inv_resol))
+    abs0 = c_abs(desired_limits[0] - lminmax[0])
+    if abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin:
+        nl0[0] = int(c_round((desired_limits[0] - lminmax[0]) * inv_resol))
     else:
-        nl0[0] = int(Cfloor((desired_limits[0] - lminmax[0]) * inv_resol))
-    abs1 = Cabs(desired_limits[1] - lminmax[0])
-    if abs1 - resolution[0] * Cfloor(abs1 * inv_resol) < new_margin:
-        nl1 = int(Cround((desired_limits[1] - lminmax[0]) * inv_resol) - 1)
+        nl0[0] = int(c_floor((desired_limits[0] - lminmax[0]) * inv_resol))
+    abs1 = c_abs(desired_limits[1] - lminmax[0])
+    if abs1 - resolution[0] * c_floor(abs1 * inv_resol) < new_margin:
+        nl1 = int(c_round((desired_limits[1] - lminmax[0]) * inv_resol) - 1)
     else:
-        nl1 = int(Cfloor((desired_limits[1] - lminmax[0]) * inv_resol))
+        nl1 = int(c_floor((desired_limits[1] - lminmax[0]) * inv_resol))
     # Get the total number of indices
     nind[0] = nl1 + 1 - nl0[0]
     return
+
 
 cdef inline void second_discretize_line1d_core(double* lminmax,
                                                double* ldiscret,
@@ -148,10 +163,10 @@ cdef inline void simple_discretize_line1d(double[2] lminmax, double dstep,
     cdef double resol
     cdef double first = lminmax[0]
 
-    if mode == 1: # absolute
-        ncells = <int>Cceil((lminmax[1] - first) / dstep)
+    if mode == 0: # absolute
+        ncells = <int>c_ceil((lminmax[1] - first) / dstep)
     else: # relative
-        ncells = <int>Cceil(1./dstep)
+        ncells = <int>c_ceil(1. / dstep)
     if ncells < 1 :
         ncells = 1
     resol = (lminmax[1] - first) / ncells
@@ -166,10 +181,32 @@ cdef inline void simple_discretize_line1d(double[2] lminmax, double dstep,
         ldiscret_arr[0][ii] = first + resol * ii
     return
 
+
+# --- Utility function for discretizing line ---
+cdef inline void cythonize_subdomain_dl(dl, double[2] dl_array):
+    # All functions to discretize a line need to get a subdomain of
+    # discretization which can be None for both extremities or only
+    # one or none. However cython doesn't work too well with parameters
+    # that can be an array, a list, none, etc. So this functions will convert
+    # this obscure parameter to something more 'cythonic'
+    if dl is None:
+        dl_array[0] = C_NAN
+        dl_array[1] = C_NAN
+    else:
+        if dl[0] is None:
+            dl_array[0] = C_NAN
+        else:
+            dl_array[0] = dl[0]
+        if dl[1] is None:
+            dl_array[1] = C_NAN
+        else:
+            dl_array[1] = dl[1]
+    return
+
+
 # ==============================================================================
 # =  Vessel's poloidal cut discretization
 # ==============================================================================
-
 cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
                                        int mode, double margin, double din,
                                        double[:, ::1] ves_vin,
@@ -196,15 +233,15 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
 
     #.. initialization..........................................................
     lminmax[0] = 0.
-    dl_array[0] = Cnan
-    dl_array[1] = Cnan
+    dl_array[0] = C_NAN
+    dl_array[1] = C_NAN
     ncells[0] = <long*>malloc((np-1)*sizeof(long))
     #.. Filling arrays..........................................................
-    if Cabs(din) < _VSMALL:
+    if c_abs(din) < _VSMALL:
         for ii in range(np-1):
-            v0 = ves_poly[0,ii+1]-ves_poly[0,ii]
-            v1 = ves_poly[1,ii+1]-ves_poly[1,ii]
-            lminmax[1] = Csqrt(v0 * v0 + v1 * v1)
+            v0 = ves_poly[0, ii+1]-ves_poly[0, ii]
+            v1 = ves_poly[1, ii+1]-ves_poly[1, ii]
+            lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
             inv_norm = 1. / lminmax[1]
             discretize_line1d_core(lminmax, dstep, dl_array, True,
                                    mode, margin, &ldiscret, loc_resolu,
@@ -232,11 +269,11 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             for jj in range(ncells[0][ii]):
                 ind[0][last_sz_othr + jj] = last_sz_othr + jj
                 reso[0][last_sz_othr + jj] = loc_resolu[0]
-                rref[0][last_sz_othr + jj] = ves_poly[0,ii] + ldiscret[jj] * v0
-                xcross[0][last_sz_othr + jj] = ves_poly[0,ii] + ldiscret[jj] * v0
-                ycross[0][last_sz_othr + jj] = ves_poly[1,ii] + ldiscret[jj] * v1
-                xpolybis[0][last_sz_vbis + jj] = ves_poly[0,ii] + jj * rv0
-                ypolybis[0][last_sz_vbis + jj] = ves_poly[1,ii] + jj * rv1
+                rref[0][last_sz_othr + jj] = ves_poly[0, ii] + ldiscret[jj] * v0
+                xcross[0][last_sz_othr + jj] = ves_poly[0, ii] + ldiscret[jj] * v0
+                ycross[0][last_sz_othr + jj] = ves_poly[1, ii] + ldiscret[jj] * v1
+                xpolybis[0][last_sz_vbis + jj] = ves_poly[0, ii] + jj * rv0
+                ypolybis[0][last_sz_vbis + jj] = ves_poly[1, ii] + jj * rv1
         # We close the polygon of VPolybis
         sz_vbis += 1
         xpolybis[0] = <double*>realloc(xpolybis[0], sz_vbis*sizeof(double))
@@ -245,9 +282,9 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
         ypolybis[0][sz_vbis - 1] = ves_poly[1, 0]
     else:
         for ii in range(np-1):
-            v0 = ves_poly[0,ii+1]-ves_poly[0,ii]
-            v1 = ves_poly[1,ii+1]-ves_poly[1,ii]
-            lminmax[1] = Csqrt(v0 * v0 + v1 * v1)
+            v0 = ves_poly[0, ii+1]-ves_poly[0, ii]
+            v1 = ves_poly[1, ii+1]-ves_poly[1, ii]
+            lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
             inv_norm = 1. / lminmax[1]
             discretize_line1d_core(lminmax, dstep, dl_array, True,
                                    mode, margin, &ldiscret, loc_resolu,
@@ -272,16 +309,16 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             v1 = v1 * inv_norm
             rv0 = loc_resolu[0]*v0
             rv1 = loc_resolu[0]*v1
-            shiftx = din*ves_vin[0,ii]
-            shifty = din*ves_vin[1,ii]
+            shiftx = din*ves_vin[0, ii]
+            shifty = din*ves_vin[1, ii]
             for jj in range(ncells[0][ii]):
                 ind[0][last_sz_othr] = last_sz_othr
                 reso[0][last_sz_othr] = loc_resolu[0]
-                rref[0][last_sz_othr]   = ves_poly[0,ii] + ldiscret[jj]*v0
-                xcross[0][last_sz_othr] = ves_poly[0,ii] + ldiscret[jj]*v0 + shiftx
-                ycross[0][last_sz_othr] = ves_poly[1,ii] + ldiscret[jj]*v1 + shifty
-                xpolybis[0][last_sz_vbis + jj] = ves_poly[0,ii] + jj * rv0
-                ypolybis[0][last_sz_vbis + jj] = ves_poly[1,ii] + jj * rv1
+                rref[0][last_sz_othr]   = ves_poly[0, ii] + ldiscret[jj]*v0
+                xcross[0][last_sz_othr] = ves_poly[0, ii] + ldiscret[jj]*v0 + shiftx
+                ycross[0][last_sz_othr] = ves_poly[1, ii] + ldiscret[jj]*v1 + shifty
+                xpolybis[0][last_sz_vbis + jj] = ves_poly[0, ii] + jj * rv0
+                ypolybis[0][last_sz_vbis + jj] = ves_poly[1, ii] + jj * rv1
                 last_sz_othr += 1
         # We close the polygon of VPolybis
         sz_vbis += 1
@@ -318,9 +355,9 @@ cdef inline void simple_discretize_vpoly_core(double[:, ::1] ves_poly,
     lminmax[0] = 0.
     #.. Filling arrays..........................................................
     for ii in range(num_pts-1):
-        v0 = ves_poly[0,ii+1]-ves_poly[0,ii]
-        v1 = ves_poly[1,ii+1]-ves_poly[1,ii]
-        lminmax[1] = Csqrt(v0 * v0 + v1 * v1)
+        v0 = ves_poly[0, ii+1]-ves_poly[0, ii]
+        v1 = ves_poly[1, ii+1]-ves_poly[1, ii]
+        lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
         inv_norm = 1. / lminmax[1]
         simple_discretize_line1d(lminmax, dstep, mode, margin,
                                  &ldiscret, loc_resolu, &ncells[0])
@@ -333,8 +370,8 @@ cdef inline void simple_discretize_vpoly_core(double[:, ::1] ves_poly,
         v0 = v0 * inv_norm
         v1 = v1 * inv_norm
         for jj in range(ncells[0]):
-            xcross[0][last_sz_othr + jj] = ves_poly[0,ii] + ldiscret[jj] * v0
-            ycross[0][last_sz_othr + jj] = ves_poly[1,ii] + ldiscret[jj] * v1
+            xcross[0][last_sz_othr + jj] = ves_poly[0, ii] + ldiscret[jj] * v0
+            ycross[0][last_sz_othr + jj] = ves_poly[1, ii] + ldiscret[jj] * v1
     # We close the polygon of VPolybis
     new_nb_pts[0] = sz_others
     free(ldiscret)
@@ -380,7 +417,7 @@ cdef inline void middle_rule_rel(int nlos, int num_raf,
                        loc_resol, &los_coeffs[first_index])
     # Now for the rest:
     with nogil, parallel(num_threads=num_threads):
-        for ii in prange(1, nlos):
+        for ii in range(1, nlos):
             los_ind[ii] = num_raf + los_ind[ii-1]
             loc_resol = (los_kmax[ii] - los_kmin[ii])*inv_nraf
             eff_resolution[ii] = loc_resol
@@ -404,7 +441,7 @@ cdef inline void middle_rule_abs_s1_single(double inv_resol,
     cdef double loc_resol
     # ...
     seg_length = los_kmax - los_kmin
-    num_raf = <int>(Cceil(seg_length*inv_resol))
+    num_raf = <int>(c_ceil(seg_length * inv_resol))
     loc_resol = seg_length / num_raf
     eff_resolution[0] = loc_resol
     ind_cum[0] = num_raf
@@ -486,7 +523,7 @@ cdef inline void middle_rule_abs_var_s1(int nlos,
     cdef double seg_length
     # Treating first ilos first ......................................
     seg_length = los_kmax[0] - los_kmin[0]
-    num_raf = <int>(Cceil(seg_length/resolutions[0]))
+    num_raf = <int>(c_ceil(seg_length / resolutions[0]))
     loc_resol = seg_length / num_raf
     # keeping values
     los_nraf[0] = num_raf
@@ -496,7 +533,7 @@ cdef inline void middle_rule_abs_var_s1(int nlos,
     # Now the rest ...................................................
     for ii in range(1,nlos):
         seg_length = los_kmax[ii] - los_kmin[ii]
-        num_raf = <int>(Cceil(seg_length/resolutions[ii]))
+        num_raf = <int>(c_ceil(seg_length / resolutions[ii]))
         loc_resol = seg_length / num_raf
         # keeping values
         los_nraf[ii] = num_raf
@@ -520,7 +557,7 @@ cdef inline void middle_rule_abs_var_s2(int nlos,
     cdef int first_index
     cdef double loc_resol
 
-    # Treting ilos= 0 first .......................................
+    # Treating ilos= 0 first .......................................
     first_index = 0
     loc_resol = eff_resolution[0]
     num_raf = los_nraf[0]
@@ -565,7 +602,6 @@ cdef inline void middle_rule_abs_var(int nlos,
     return
 
 
-
 cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
                                         double* los_kmin,
                                         double* los_kmax,
@@ -578,10 +614,9 @@ cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
     cdef Py_ssize_t ii
     cdef int num_raf
     cdef int first_index
-    cdef double seg_length
     cdef double loc_resol
     # ... Treating the first los .....................................
-    num_raf = <int>(Cceil(1./resolutions[0]))
+    num_raf = <int>(c_ceil(1. / resolutions[0]))
     loc_resol = (los_kmax[0] - los_kmin[0])/num_raf
     eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
@@ -589,7 +624,7 @@ cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
     los_ind[0] = num_raf
     # .. Treating the rest of los ....................................
     for ii in range(1,nlos):
-        num_raf = <int>(Cceil(1./resolutions[ii]))
+        num_raf = <int>(c_ceil(1. / resolutions[ii]))
         loc_resol = (los_kmax[ii] - los_kmin[ii])/num_raf
         eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
@@ -627,6 +662,7 @@ cdef inline void middle_rule_rel_var_s2(int nlos, double* resolutions,
                                &los_coeffs[0][first_index])
     return
 
+
 cdef inline void middle_rule_rel_var(int nlos, double* resolutions,
                                      double* los_kmin,
                                      double* los_kmax,
@@ -655,6 +691,7 @@ cdef inline void middle_rule_rel_var(int nlos, double* resolutions,
                            num_threads)
     free(los_nraf)
     return
+
 
 # -- Quadrature Rules : Left Rule ----------------------------------------------
 cdef inline void left_rule_single(int num_raf,
@@ -713,9 +750,9 @@ cdef inline void simps_left_rule_abs_s1(int nlos, double resol,
     cdef double inv_resol = 1./resol
     # ... Treating the first los .......................................
     seg_length = los_kmax[0] - los_kmin[0]
-    num_raf = <int>(Cceil(seg_length*inv_resol))
+    num_raf = <int>(c_ceil(seg_length * inv_resol))
     if num_raf%2==1:
-        num_raf = num_raf + 1
+        num_raf += 1
     loc_resol = seg_length / num_raf
     eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
@@ -724,9 +761,9 @@ cdef inline void simps_left_rule_abs_s1(int nlos, double resol,
     # ... Treating the rest of los .....................................
     for ii in range(1, nlos):
         seg_length = los_kmax[ii] - los_kmin[ii]
-        num_raf = <int>(Cceil(seg_length*inv_resol))
+        num_raf = <int>(c_ceil(seg_length * inv_resol))
         if num_raf%2==1:
-            num_raf = num_raf + 1
+            num_raf += 1
         loc_resol = seg_length / num_raf
         eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
@@ -743,7 +780,7 @@ cdef inline void left_rule_abs_s2(int nlos, double resol,
                                   int num_threads) nogil:
     # Simpson left quadrature rule with absolute resolution step
     # for SEVERAL LOS
-    cdef Py_ssize_t ii, jj
+    cdef Py_ssize_t ii,
     cdef int num_raf
     cdef int first_index
     cdef double loc_resol
@@ -805,7 +842,7 @@ cdef inline void romb_left_rule_abs_s1(int nlos, double resol,
                                     int num_threads) nogil:
     # Romboid left quadrature rule with relative resolution step
     # for SEVERAL LOS
-    cdef Py_ssize_t ii, jj
+    cdef Py_ssize_t ii
     cdef int num_raf
     cdef int first_index
     cdef double seg_length
@@ -813,8 +850,8 @@ cdef inline void romb_left_rule_abs_s1(int nlos, double resol,
     cdef double inv_resol = 1./resol
     # ... Treating the first los ....................................
     seg_length = los_kmax[0] - los_kmin[0]
-    num_raf = <int>(Cceil(seg_length*inv_resol))
-    num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
+    num_raf = <int>(c_ceil(seg_length * inv_resol))
+    num_raf = 2**(<int>(c_ceil(c_log2(num_raf))))
     loc_resol = seg_length / num_raf
     eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
@@ -823,8 +860,8 @@ cdef inline void romb_left_rule_abs_s1(int nlos, double resol,
     # ... Treating the rest of the los ..............................
     for ii in range(1, nlos):
         seg_length = los_kmax[ii] - los_kmin[ii]
-        num_raf = <int>(Cceil(seg_length*inv_resol))
-        num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
+        num_raf = <int>(c_ceil(seg_length * inv_resol))
+        num_raf = 2**(<int>(c_ceil(c_log2(num_raf))))
         loc_resol = seg_length / num_raf
         eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
@@ -874,9 +911,9 @@ cdef inline void simps_left_rule_rel_var_s1(int nlos, double* resolutions,
     cdef int num_raf
     cdef int first_index
     cdef double loc_resol
-    num_raf = <int>(Cceil(1./resolutions[0]))
+    num_raf = <int>(c_ceil(1. / resolutions[0]))
     if num_raf%2==1:
-        num_raf = num_raf+1
+        num_raf += 1
     loc_resol = (los_kmax[0] - los_kmin[0])/num_raf
     eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
@@ -884,9 +921,9 @@ cdef inline void simps_left_rule_rel_var_s1(int nlos, double* resolutions,
     los_ind[0] = num_raf + 1
     # ...
     for ii in range(1, nlos):
-        num_raf = <int>(Cceil(1./resolutions[ii]))
+        num_raf = <int>(c_ceil(1. / resolutions[ii]))
         if num_raf%2==1:
-            num_raf = num_raf+1
+            num_raf += 1
         loc_resol = (los_kmax[ii] - los_kmin[ii]) / num_raf
         eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
@@ -963,15 +1000,15 @@ cdef inline void simps_left_rule_abs_var_s1(int nlos, double* resolutions,
                                          int num_threads) nogil:
     # Simpson left quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
-    cdef Py_ssize_t ii, jj
+    cdef Py_ssize_t ii
     cdef int num_raf
     cdef int first_index
     cdef double seg_length
     cdef double loc_resol
     seg_length = los_kmax[0] - los_kmin[0]
-    num_raf = <int>(Cceil(seg_length/resolutions[0]))
+    num_raf = <int>(c_ceil(seg_length / resolutions[0]))
     if num_raf%2==1:
-        num_raf = num_raf+1
+        num_raf += 1
     loc_resol = seg_length / num_raf
     eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
@@ -980,17 +1017,15 @@ cdef inline void simps_left_rule_abs_var_s1(int nlos, double* resolutions,
     # ...
     for ii in range(1,nlos):
         seg_length = los_kmax[ii] - los_kmin[ii]
-        num_raf = <int>(Cceil(seg_length/resolutions[ii]))
+        num_raf = <int>(c_ceil(seg_length / resolutions[ii]))
         if num_raf%2==1:
-            num_raf = num_raf+1
+            num_raf += 1
         loc_resol = seg_length / num_raf
         eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
         first_index = los_ind[ii-1]
         los_ind[ii] = num_raf +  1 + first_index
     return
-
-
 
 
 cdef inline void simps_left_rule_abs_var(int nlos, double* resolutions,
@@ -1031,12 +1066,12 @@ cdef inline void romb_left_rule_rel_var_s1(int nlos, double* resolutions,
                                         int num_threads) nogil:
     # Romboid left quadrature rule with relative variable resolution step
     # for SEVERAL LOS
-    cdef Py_ssize_t ii, jj
+    cdef Py_ssize_t ii
     cdef int num_raf
     cdef int first_index
     cdef double loc_resol
-    num_raf = <int>(Cceil(1./resolutions[0]))
-    num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
+    num_raf = <int>(c_ceil(1. / resolutions[0]))
+    num_raf = 2**(<int>(c_ceil(c_log2(num_raf))))
     loc_resol = (los_kmax[0] - los_kmin[0])/num_raf
     eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
@@ -1044,8 +1079,8 @@ cdef inline void romb_left_rule_rel_var_s1(int nlos, double* resolutions,
     los_ind[0] = num_raf + 1
     # ...
     for ii in range(1,nlos):
-        num_raf = <int>(Cceil(1./resolutions[ii]))
-        num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
+        num_raf = <int>(c_ceil(1. / resolutions[ii]))
+        num_raf = 2**(<int>(c_ceil(c_log2(num_raf))))
         loc_resol = (los_kmax[ii] - los_kmin[ii]) / num_raf
         eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
@@ -1092,14 +1127,14 @@ cdef inline void romb_left_rule_abs_var_s1(int nlos, double* resolutions,
                                         int num_threads) nogil:
     # Romboid left quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
-    cdef Py_ssize_t ii, jj
+    cdef Py_ssize_t ii
     cdef int num_raf
     cdef int first_index
     cdef double seg_length
     cdef double loc_resol
     seg_length = los_kmax[0] - los_kmin[0]
-    num_raf = <int>(Cceil(seg_length/resolutions[0]))
-    num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
+    num_raf = <int>(c_ceil(seg_length / resolutions[0]))
+    num_raf = 2**(<int>(c_ceil(c_log2(num_raf))))
     loc_resol = seg_length / num_raf
     eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
@@ -1108,8 +1143,8 @@ cdef inline void romb_left_rule_abs_var_s1(int nlos, double* resolutions,
     # ...
     for ii in range(1,nlos):
         seg_length = los_kmax[ii] - los_kmin[ii]
-        num_raf = <int>(Cceil(seg_length/resolutions[ii]))
-        num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
+        num_raf = <int>(c_ceil(seg_length / resolutions[ii]))
+        num_raf = 2**(<int>(c_ceil(c_log2(num_raf))))
         loc_resol = seg_length / num_raf
         eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
@@ -1147,8 +1182,9 @@ cdef inline void romb_left_rule_abs_var(int nlos, double* resolutions,
     free(los_nraf)
     return
 
+
 # -- Get number of integration mode --------------------------------------------
-cdef inline int get_nb_imode(str imode) :
+cpdef inline int get_nb_imode(str imode):
     # gil required...........
     if imode == 'sum':
         return 0
@@ -1158,11 +1194,14 @@ cdef inline int get_nb_imode(str imode) :
         return 2
     return -1
 
-cdef inline int get_nb_dmode(str dmode) :
+
+cpdef inline int get_nb_dmode(str dmode):
     # gil required...........
     if dmode == 'rel':
         return 1
-    return 0 # absolute
+    if dmode == 'abs':
+        return 0
+    return -1
 
 
 # ==============================================================================
@@ -1202,7 +1241,7 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
     # ...
     if n_dmode == 1:
         # discretization step is relative
-        nraf = <int> Cceil(1./resol)
+        nraf = <int> c_ceil(1. / resol)
         if n_imode==0:
             # 'sum' quad
             coeffs[0] = <double*>malloc(nraf*sizeof(double))
@@ -1213,7 +1252,7 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
         elif n_imode==1:
             # 'simps' quad
             if nraf%2==1:
-                nraf = nraf+1
+                nraf += 1
             invnraf = 1./nraf
             coeffs[0] = <double*>malloc((nraf + 1)*sizeof(double))
             eff_res[0] = (los_kmax - los_kmin)*invnraf
@@ -1222,7 +1261,7 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
             return nraf + 1
         elif n_imode==2:
             # 'romb' quad
-            nraf = 2**(<int>(Cceil(Clog2(nraf))))
+            nraf = 2**(<int>(c_ceil(c_log2(nraf))))
             invnraf = 1./nraf
             coeffs[0] = <double*>malloc((nraf + 1)*sizeof(double))
             eff_res[0] = (los_kmax - los_kmin)*invnraf
@@ -1243,9 +1282,9 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
         elif n_imode==1:
             # 'simps' quad
             seg_length = los_kmax - los_kmin
-            nraf = <int>(Cceil(seg_length/resol))
+            nraf = <int>(c_ceil(seg_length / resol))
             if nraf%2==1:
-                nraf = nraf+1
+                nraf += 1
             eff_res[0] = seg_length / nraf
             coeffs[0] = <double*>malloc((nraf+1)*sizeof(double))
             left_rule_single(nraf, los_kmin, eff_res[0],
@@ -1254,8 +1293,8 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
         elif n_imode==2:
             # 'romb' quad
             seg_length = los_kmax - los_kmin
-            nraf = <int>(Cceil(seg_length/resol))
-            nraf = 2**(<int>(Cceil(Clog2(nraf))))
+            nraf = <int>(c_ceil(seg_length / resol))
+            nraf = 2**(<int>(c_ceil(c_log2(nraf))))
             eff_res[0] = seg_length / nraf
             coeffs[0] = <double*>malloc((nraf+1)*sizeof(double))
             left_rule_single(nraf, los_kmin, eff_res[0],
@@ -1267,15 +1306,14 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
 # ==============================================================================
 # == Utility functions for signal computation (LOS_calc_signal)
 # ==============================================================================
-
 # -- anisotropic case ----------------------------------------------------
 cdef inline call_get_sample_single_ani(double los_kmin, double los_kmax,
                                        double resol,
                                        int n_dmode, int n_imode,
                                        double[1] eff_res,
                                        long[1] nb_rows,
-                                       double[:,::1] ray_orig,
-                                       double[:,::1] ray_vdir):
+                                       double[:, ::1] ray_orig,
+                                       double[:, ::1] ray_vdir):
     # This function doesn't compute anything new.
     # It's a utility function for LOS_calc_signal to avoid reptitions
     # It samples a LOS and recreates the points on that LOS
@@ -1307,20 +1345,22 @@ cdef inline call_get_sample_single_ani(double los_kmin, double los_kmax,
         free(los_coeffs)
     return pts, usbis
 
+
 # -- not anisotropic ------------------------------------------------------
-cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double los_kmin, double los_kmax,
-                                   double resol,
-                                   int n_dmode, int n_imode,
-                                   double[1] eff_res,
-                                   long[1] nb_rows,
-                                   double[:,::1] ray_orig,
-                                   double[:,::1] ray_vdir):
+cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(
+    double los_kmin,
+    double los_kmax,
+    double resol,
+    int n_dmode, int n_imode,
+    double[1] eff_res,
+    long[1] nb_rows,
+    double[:, ::1] ray_orig,
+    double[:, ::1] ray_vdir):
     # This function doesn't compute anything new.
     # It's a utility function for LOS_calc_signal to avoid reptitions
     # It samples a LOS and recreates the points on that LOS
     # plus this is for the anisotropic version so it also compute usbis
     cdef int sz_coeff
-    cdef int ii, jj
     cdef double** los_coeffs = NULL
     cdef cnp.ndarray[double,ndim=2,mode='c'] pts
     # Initialization utility array
@@ -1351,66 +1391,62 @@ cdef inline int los_get_sample_core_const_res(int nlos,
                                               int n_dmode, int n_imode,
                                               double val_resol,
                                               double** coeff_ptr,
-                                              double* dLr,
+                                              double* dl_r,
                                               long* los_ind,
                                               int num_threads) nogil:
     # ...
-    cdef int N
+    cdef int num_cells
     cdef int ntmp
     if n_dmode==1: # relative
         #         return coeff_arr, dLr, los_ind[:nlos-1]
-        N = <int> Cceil(1./val_resol)
+        num_cells = <int> c_ceil(1. / val_resol)
         if n_imode==0: # sum
-            #coeff_arr = np.empty((N*nlos,), dtype=float)
-            coeff_ptr[0] = <double*>malloc(sizeof(double)*N*nlos)
-            middle_rule_rel(nlos, N, los_lim_min, los_lim_max,
-                                &dLr[0], coeff_ptr[0], los_ind,
-                                num_threads=num_threads)
-            return N*nlos
+            coeff_ptr[0] = <double*>malloc(sizeof(double)*num_cells*nlos)
+            middle_rule_rel(nlos, num_cells, los_lim_min, los_lim_max,
+                            &dl_r[0], coeff_ptr[0], los_ind,
+                            num_threads=num_threads)
+            return num_cells*nlos
         elif n_imode==1: #simps
-            N = N if N%2==0 else N+1
-            # coeff_arr = np.empty(((N+1)*nlos,), dtype=float)
-            coeff_ptr[0] = <double*>malloc(sizeof(double)*(N+1)*nlos)
-            left_rule_rel(nlos, N,
-                          los_lim_min, los_lim_max, &dLr[0],
+            num_cells = num_cells if num_cells%2==0 else num_cells+1
+            coeff_ptr[0] = <double*>malloc(sizeof(double)*(num_cells+1)*nlos)
+            left_rule_rel(nlos, num_cells,
+                          los_lim_min, los_lim_max, &dl_r[0],
                           coeff_ptr[0], los_ind,
                           num_threads=num_threads)
-            return (N+1)*nlos
+            return (num_cells+1)*nlos
         elif n_imode==2: #romb
-            N = 2**(<int>Cceil(Clog2(N)))
-            # coeff_arr = np.empty(((N+1)*nlos,), dtype=float)
-            coeff_ptr[0] = <double*>malloc(sizeof(double)*(N+1)*nlos)
-            left_rule_rel(nlos, N,
+            num_cells = 2**(<int>c_ceil(c_log2(num_cells)))
+            coeff_ptr[0] = <double*>malloc(sizeof(double)*(num_cells+1)*nlos)
+            left_rule_rel(nlos, num_cells,
                           los_lim_min, los_lim_max,
-                          &dLr[0], coeff_ptr[0], los_ind,
+                          &dl_r[0], coeff_ptr[0], los_ind,
                           num_threads=num_threads)
-            return (N+1)*nlos
+            return (num_cells+1)*nlos
     else: # absolute
         if n_imode==0: #sum
             middle_rule_abs_s1(nlos, val_resol, los_lim_min, los_lim_max,
-                              &dLr[0], los_ind,
-                              num_threads=num_threads)
-            #ntmp = np.sum(los_ind)
-            #coeff_arr = np.empty((ntmp,), dtype=float)
+                               &dl_r[0], los_ind,
+                               num_threads=num_threads)
             ntmp = _bgt.sum_naive_int(los_ind, nlos)
             coeff_ptr[0] = <double*>malloc(sizeof(double)*ntmp)
-            middle_rule_abs_s2(nlos, los_lim_min, &dLr[0],
-                              los_ind, coeff_ptr[0],
-                              num_threads=num_threads)
+            middle_rule_abs_s2(nlos, los_lim_min, &dl_r[0],
+                               los_ind, coeff_ptr[0],
+                               num_threads=num_threads)
             return ntmp
         elif n_imode==1:# simps
             simps_left_rule_abs(nlos, val_resol,
                                 los_lim_min, los_lim_max,
-                                &dLr[0], coeff_ptr, los_ind,
+                                &dl_r[0], coeff_ptr, los_ind,
                                 num_threads=num_threads)
             return los_ind[nlos-1]
         else:# romb
             romb_left_rule_abs(nlos, val_resol,
                                los_lim_min, los_lim_max,
-                               &dLr[0], coeff_ptr, los_ind,
+                               &dl_r[0], coeff_ptr, los_ind,
                                num_threads=num_threads)
             return los_ind[nlos-1]
     return -1
+
 
 cdef inline void los_get_sample_core_var_res(int nlos,
                                             double* los_lim_min,
@@ -1465,8 +1501,8 @@ cdef inline void los_get_sample_pts(int nlos,
                                     double* usx,
                                     double* usy,
                                     double* usz,
-                                    double[:,::1] ray_orig,
-                                    double[:,::1] ray_vdir,
+                                    double[:, ::1] ray_orig,
+                                    double[:, ::1] ray_vdir,
                                     double* coeff_ptr,
                                     long* los_ind,
                                     int num_threads) nogil:
@@ -1503,3 +1539,1105 @@ cdef inline void los_get_sample_pts(int nlos,
             usy[ii] = loc_vy
             usz[ii] = loc_vz
     return
+
+# -- utility for vmesh sub from D ----------------------------------------------
+cdef inline int  vmesh_disc_phi(int sz_r, int sz_z,
+                                long* ncells_rphi,
+                                double phistep,
+                                int ncells_rphi0,
+                                double* disc_r,
+                                double* disc_r0,
+                                double* step_rphi,
+                                double[::1] reso_phi_mv,
+                                long* tot_nc_plane,
+                                int ind_loc_r0,
+                                int ncells_r0,
+                                int ncells_z,
+                                int* max_sz_phi,
+                                double min_phi,
+                                double max_phi,
+                                long* sz_phi,
+                                long[:, ::1] indi_mv,
+                                double margin,
+                                int num_threads) nogil:
+    cdef int ii, jj
+    cdef int npts_disc
+    cdef int loc_nc_rphi
+    cdef double min_phi_pi
+    cdef double max_phi_pi
+    cdef double margin_step
+    cdef double abs0, abs1
+    cdef int nphi0, nphi1
+    # .. Initialization Variables ..............................................
+    npts_disc = 0
+    twopi_over_dphi = _TWOPI / phistep
+    min_phi_pi = min_phi + c_pi
+    max_phi_pi = max_phi + c_pi
+    abs0 = c_abs(min_phi_pi)
+    abs1 = c_abs(max_phi_pi)
+    #
+    # .. Discretizing Phi (with respect to the corresponding radius R) .........
+    if min_phi < max_phi:
+        for ii in range(1, sz_r):
+            # Get the actual RPhi resolution and Phi mesh elements
+            # (depends on R!)
+            ncells_rphi[ii] = <int>c_ceil(twopi_over_dphi * disc_r[ii])
+            loc_nc_rphi = ncells_rphi[ii]
+            step_rphi[ii] = _TWOPI / ncells_rphi[ii]
+            reso_phi_mv[ii] = step_rphi[ii] * disc_r[ii]
+            tot_nc_plane[ii] = 0 # initialization
+            # Get index and cumulated indices from background
+            for jj in range(ind_loc_r0, ncells_r0):
+                if disc_r0[jj]==disc_r[ii]:
+                    ind_loc_r0 = jj
+                    break
+                else:
+                    ncells_rphi0 += <long>c_ceil(twopi_over_dphi * disc_r0[jj])
+                    tot_nc_plane[ii] = ncells_rphi0 * ncells_z
+
+            # Get indices of phi
+            # Get the extreme indices of the mesh elements that really need to
+            # be created within those limits
+            margin_step = margin * step_rphi[ii]
+            if abs0 - step_rphi[ii]*c_floor(abs0 / step_rphi[ii]) < margin_step:
+                nphi0 = int(c_round(min_phi_pi / step_rphi[ii]))
+            else:
+                nphi0 = int(c_floor(min_phi_pi / step_rphi[ii]))
+            if abs1-step_rphi[ii]*c_floor(abs1 / step_rphi[ii]) < margin_step:
+                nphi1 = int(c_round(max_phi_pi / step_rphi[ii]) - 1)
+            else:
+                nphi1 = int(c_floor(max_phi_pi / step_rphi[ii]))
+            sz_phi[ii] = nphi1 + 1 - nphi0
+            if max_sz_phi[0] < sz_phi[ii]:
+                max_sz_phi[0] = sz_phi[ii]
+            with nogil, parallel(num_threads=num_threads):
+                for jj in prange(sz_phi[ii]):
+                    indi_mv[ii,jj] = nphi0 + jj
+            npts_disc += sz_z * sz_phi[ii]
+    else:
+        for ii in range(1, sz_r):
+            # Get the actual RPhi resolution and Phi mesh elements
+            # (depends on R!)
+            ncells_rphi[ii] = <int>c_ceil(twopi_over_dphi * disc_r[ii])
+            loc_nc_rphi = ncells_rphi[ii]
+            step_rphi[ii] = _TWOPI / ncells_rphi[ii]
+            reso_phi_mv[ii] = step_rphi[ii] * disc_r[ii]
+            tot_nc_plane[ii] = 0 # initialization
+            # Get index and cumulated indices from background
+            for jj in range(ind_loc_r0, ncells_r0):
+                if disc_r0[jj]==disc_r[ii]:
+                    ind_loc_r0 = jj
+                    break
+                else:
+                    ncells_rphi0 += <long>c_ceil(twopi_over_dphi * disc_r0[jj])
+                    tot_nc_plane[ii] = ncells_rphi0 * ncells_z
+            # Get indices of phi
+            # Get the extreme indices of the mesh elements that really need to
+            # be created within those limits
+            margin_step = margin*step_rphi[ii]
+            if abs0 - step_rphi[ii]*c_floor(abs0 / step_rphi[ii]) < margin_step:
+                nphi0 = int(c_round(min_phi_pi / step_rphi[ii]))
+            else:
+                nphi0 = int(c_floor(min_phi_pi / step_rphi[ii]))
+            if abs1-step_rphi[ii]*c_floor(abs1 / step_rphi[ii]) < margin_step:
+                nphi1 = int(c_round(max_phi_pi / step_rphi[ii]) - 1)
+            else:
+                nphi1 = int(c_floor(max_phi_pi / step_rphi[ii]))
+            sz_phi[ii] = nphi1+1+loc_nc_rphi-nphi0
+            if max_sz_phi[0] < sz_phi[ii]:
+                max_sz_phi[0] = sz_phi[ii]
+            with nogil, parallel(num_threads=num_threads):
+                for jj in prange(loc_nc_rphi - nphi0):
+                    indi_mv[ii, jj] = nphi0 + jj
+                for jj in prange(loc_nc_rphi - nphi0, sz_phi[ii]):
+                    indi_mv[ii, jj] = jj - (loc_nc_rphi - nphi0)
+            npts_disc += sz_z * sz_phi[ii]
+
+    return npts_disc
+
+
+cdef inline int vmesh_get_index_arrays(long[:, :, ::1] ind_rzphi2dic,
+                                       long[:, ::1] is_in_vignette,
+                                       int sz_r,
+                                       int sz_z,
+                                       long* sz_phi) nogil:
+    cdef int rr, zz, pp
+    cdef int npts_disc = 0
+    cdef int loc_sz_phi
+
+    for rr in range(sz_r):
+        loc_sz_phi = sz_phi[rr]
+        for zz in range(sz_z):
+            if is_in_vignette[rr, zz]:
+                for pp in range(loc_sz_phi):
+                    ind_rzphi2dic[rr, zz, pp] = npts_disc
+                    npts_disc += 1
+    return npts_disc
+
+
+cdef inline void vmesh_assemble_arrays_cart(int rr,
+                                            int sz_z,
+                                            long* lindex_z,
+                                            long[::1] is_in_vignette,
+                                            long* ncells_rphi,
+                                            long* tot_nc_plane,
+                                            double reso_r_z,
+                                            double* step_rphi,
+                                            double* disc_r,
+                                            double* disc_z,
+                                            long[:, :, ::1] ind_rzphi2dic,
+                                            long* sz_phi,
+                                            long[::1] iii,
+                                            double[::1] dv_mv,
+                                            double[::1] reso_phi_mv,
+                                            double[:, ::1] pts_mv,
+                                            long[::1] ind_mv) nogil:
+    cdef int zz
+    cdef int jj
+    cdef long zrphi
+    cdef long indiijj
+    cdef double phi
+    cdef long npts_disc
+    # ..
+    for zz in range(sz_z):
+        zrphi = lindex_z[zz] * ncells_rphi[rr]
+        if is_in_vignette[zz]:
+            for jj in range(sz_phi[rr]):
+                npts_disc = ind_rzphi2dic[rr, zz, jj]
+                indiijj = iii[jj]
+                phi = -c_pi + (0.5 + indiijj) * step_rphi[rr]
+                pts_mv[0, npts_disc] = disc_r[rr] * c_cos(phi)
+                pts_mv[1, npts_disc] = disc_r[rr] * c_sin(phi)
+                pts_mv[2, npts_disc] = disc_z[zz]
+                ind_mv[npts_disc] = tot_nc_plane[rr] + zrphi + indiijj
+                dv_mv[npts_disc] = reso_r_z*reso_phi_mv[rr]
+    return
+
+
+cdef inline void vmesh_assemble_arrays_polr(int rr,
+                                            int sz_z,
+                                            long* lindex_z,
+                                            long[::1] is_in_vignette,
+                                            long* ncells_rphi,
+                                            long* tot_nc_plane,
+                                            double reso_r_z,
+                                            double* step_rphi,
+                                            double* disc_r,
+                                            double* disc_z,
+                                            long[:, :, ::1] ind_rzphi2dic,
+                                            long* sz_phi,
+                                            long[::1] iii,
+                                            double[::1] dv_mv,
+                                            double[::1] reso_phi_mv,
+                                            double[:, ::1] pts_mv,
+                                            long[::1] ind_mv) nogil:
+    cdef int zz
+    cdef int jj
+    cdef long npts_disc
+    cdef long zrphi
+    cdef long indiijj
+    # ..
+    for zz in range(sz_z):
+        zrphi = lindex_z[zz] * ncells_rphi[rr]
+        if is_in_vignette[zz]:
+            for jj in range(sz_phi[rr]):
+                npts_disc = ind_rzphi2dic[rr, zz, jj]
+                indiijj = iii[jj]
+                pts_mv[0, npts_disc] = disc_r[rr]
+                pts_mv[1, npts_disc] = disc_z[zz]
+                pts_mv[2, npts_disc] = -c_pi + (0.5 + indiijj) * step_rphi[rr]
+                ind_mv[npts_disc] = tot_nc_plane[rr] + zrphi + indiijj
+                dv_mv[npts_disc] = reso_r_z * reso_phi_mv[rr]
+    return
+
+
+
+cdef inline void vmesh_assemble_arrays(long[::1] first_ind_mv,
+                                       long[:, ::1] indi_mv,
+                                       long[:, ::1] is_in_vignette,
+                                       bint is_cart,
+                                       int sz_r,
+                                       int sz_z,
+                                       long* lindex_z,
+                                       long* ncells_rphi,
+                                       long* tot_nc_plane,
+                                       double reso_r_z,
+                                       double* step_rphi,
+                                       double* disc_r,
+                                       double* disc_z,
+                                       long[:, :, ::1] ind_rzphi2dic,
+                                       long* sz_phi,
+                                       double[::1] dv_mv,
+                                       double[::1] reso_phi_mv,
+                                       double[:, ::1] pts_mv,
+                                       long[::1] ind_mv,
+                                       int num_threads) nogil:
+    cdef int rr
+    # ...
+    with nogil, parallel(num_threads=num_threads):
+        if is_cart:
+            for rr in prange(sz_r):
+                # To make sure the indices are in increasing order
+                vmesh_assemble_arrays_cart(rr, sz_z, lindex_z,
+                                           is_in_vignette[rr],
+                                           ncells_rphi, tot_nc_plane,
+                                           reso_r_z, step_rphi,
+                                           disc_r, disc_z, ind_rzphi2dic,
+                                           sz_phi,
+                                           indi_mv[rr,first_ind_mv[rr]:],
+                                           dv_mv, reso_phi_mv, pts_mv, ind_mv)
+        else:
+            for rr in prange(sz_r):
+                vmesh_assemble_arrays_polr(rr, sz_z, lindex_z,
+                                           is_in_vignette[rr],
+                                           ncells_rphi, tot_nc_plane,
+                                           reso_r_z, step_rphi,
+                                           disc_r, disc_z, ind_rzphi2dic,
+                                           sz_phi,
+                                           indi_mv[rr,first_ind_mv[rr]:],
+                                           dv_mv, reso_phi_mv, pts_mv, ind_mv)
+    return
+
+
+# -- utility for vmesh from indices --------------------------------------------
+cdef inline void vmesh_ind_init_tabs(int* ncells_rphi,
+                                     double* disc_r,
+                                     int sz_r, int sz_z,
+                                     double twopi_over_dphi,
+                                     double[::1] d_r_phir_ref,
+                                     long* tot_nc_plane,
+                                     double** phi_tab,
+                                     int num_threads) nogil:
+    cdef int rr
+    cdef int jj
+    cdef int radius_ratio
+    cdef int loc_nc_rphi
+    cdef double* step_rphi = NULL
+    # .. Discretizing Phi (with respect to the corresponding radius R) .........
+    step_rphi    = <double*>malloc(sz_r * sizeof(double))
+    radius_ratio = <int>c_ceil(disc_r[sz_r - 1] / disc_r[0])
+    # we do first the step 0 to avoid an if in a for loop:
+    loc_nc_rphi = <int>(c_ceil(disc_r[0] * twopi_over_dphi))
+    ncells_rphi[0] = loc_nc_rphi
+    step_rphi[0] = _TWOPI / loc_nc_rphi
+    d_r_phir_ref[0] = disc_r[0] * step_rphi[0]
+    tot_nc_plane[0] = 0
+    phi_tab[0] = <double*>malloc(sz_r * (loc_nc_rphi * radius_ratio + 1)
+                             * sizeof(double))
+    with nogil, parallel(num_threads=num_threads):
+        for jj in prange(loc_nc_rphi):
+            phi_tab[0][jj * sz_r] = -c_pi + (0.5 + jj) * step_rphi[0]
+    # now we do the rest of the loop
+    for rr in range(1, sz_r):
+        loc_nc_rphi = <int>(c_ceil(disc_r[rr] * twopi_over_dphi))
+        ncells_rphi[rr] = loc_nc_rphi
+        step_rphi[rr] = _TWOPI / loc_nc_rphi
+        d_r_phir_ref[rr] = disc_r[rr] * step_rphi[rr]
+        tot_nc_plane[rr] = tot_nc_plane[rr-1] + ncells_rphi[rr-1] * sz_z
+        with nogil, parallel(num_threads=num_threads):
+            for jj in range(loc_nc_rphi):
+                phi_tab[0][rr + sz_r * jj] = -c_pi + (0.5 + jj) * step_rphi[rr]
+
+    tot_nc_plane[sz_r] = tot_nc_plane[sz_r-1] + ncells_rphi[sz_r-1] * sz_z
+    free(step_rphi)
+    return
+
+
+cdef inline void vmesh_ind_cart_loop(int np,
+                                     int sz_r,
+                                     long[::1] ind,
+                                     long* tot_nc_plane,
+                                     int* ncells_rphi,
+                                     double* phi_tab,
+                                     double* disc_r,
+                                     double* disc_z,
+                                     double[:, ::1] pts,
+                                     double[::1] res3d,
+                                     double reso_r_z,
+                                     double[::1] d_r_phir_ref,
+                                     int[::1] ru,
+                                     double[::1] d_r_phir,
+                                     int num_threads) nogil:
+    cdef int ii
+    cdef int jj
+    cdef int ii_r, ii_z, iiphi
+    cdef double phi
+    # we compute the points coordinates from the indices values
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(np):
+            jj = 0
+            for jj in range(sz_r+1):
+                if ind[ii]-tot_nc_plane[jj]<0:
+                    break
+            ii_r = jj-1
+            ii_z =  (ind[ii] - tot_nc_plane[ii_r]) // ncells_rphi[ii_r]
+            iiphi = ind[ii] - tot_nc_plane[ii_r] - ii_z * ncells_rphi[ii_r]
+            phi = phi_tab[ii_r + sz_r * iiphi]
+            pts[0, ii] = disc_r[ii_r] * c_cos(phi)
+            pts[1, ii] = disc_r[ii_r] * c_sin(phi)
+            pts[2, ii] = disc_z[ii_z]
+            res3d[ii] = reso_r_z * d_r_phir_ref[ii_r]
+            if ru[ii_r]==0:
+                d_r_phir[ii_r] = d_r_phir_ref[ii_r]
+                ru[ii_r] = 1
+    return
+
+
+cdef inline void vmesh_ind_polr_loop(int np,
+                                     int sz_r,
+                                     long[::1] ind,
+                                     long* tot_nc_plane,
+                                     int* ncells_rphi,
+                                     double* phi_tab,
+                                     double* disc_r,
+                                     double* disc_z,
+                                     double[:, ::1] pts,
+                                     double[::1] res3d,
+                                     double reso_r_z,
+                                     double[::1] d_r_phir_ref,
+                                     int[::1] ru,
+                                     double[::1] d_r_phir,
+                                     int num_threads) nogil:
+    cdef int ii
+    cdef int jj
+    cdef int ii_r, ii_z, iiphi
+    # we compute the points coordinates from the indices values
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(np):
+            for jj in range(sz_r+1):
+                if ind[ii]-tot_nc_plane[jj]<0:
+                    break
+            ii_r = jj-1
+            ii_z =  (ind[ii] - tot_nc_plane[ii_r]) // ncells_rphi[ii_r]
+            iiphi = ind[ii] - tot_nc_plane[ii_r] - ii_z * ncells_rphi[ii_r]
+            pts[0, ii] = disc_r[ii_r]
+            pts[1, ii] = disc_z[ii_z]
+            pts[2, ii] = phi_tab[ii_r + sz_r * iiphi]
+            res3d[ii] = reso_r_z * d_r_phir_ref[ii_r]
+            if ru[ii_r]==0:
+                d_r_phir[ii_r] = d_r_phir_ref[ii_r]
+                ru[ii_r] = 1
+    return
+
+
+# ==============================================================================
+# == Solid Angle Computation
+# ==============================================================================
+cdef inline int sa_get_index_arrays(long[:, ::1] ind_rz2pol,
+                                    long[:, ::1] is_in_vignette,
+                                    int sz_r,
+                                    int sz_z) nogil:
+    cdef int rr, zz
+    cdef int npts_pol = 0
+
+    for rr in range(sz_r):
+        for zz in range(sz_z):
+            if is_in_vignette[rr, zz]:
+                ind_rz2pol[rr, zz] = npts_pol
+                npts_pol += 1
+    return npts_pol
+
+
+# -- utility for discretizing phi ----------------------------------------------
+cdef inline int  sa_disc_phi(int sz_r, int sz_z,
+                             long* ncells_rphi,
+                             double phistep,
+                             double* disc_r,
+                             double* disc_r0,
+                             double* step_rphi,
+                             int ind_loc_r0,
+                             int ncells_r0,
+                             int ncells_z,
+                             int* max_sz_phi,
+                             double min_phi,
+                             double max_phi,
+                             long* sz_phi,
+                             long[:, ::1] indi_mv,
+                             double margin,
+                             int num_threads) nogil:
+    cdef int rr, jj
+    cdef int npts_disc = 0
+    cdef int loc_nc_rphi
+    cdef double min_phi_pi
+    cdef double max_phi_pi
+    cdef double margin_step
+    cdef double abs0, abs1
+    cdef int nphi0, nphi1
+    # .. Initialization Variables ..............................................
+    twopi_over_dphi = _TWOPI / phistep
+    min_phi_pi = min_phi + c_pi
+    max_phi_pi = max_phi + c_pi
+    abs0 = c_abs(min_phi_pi)
+    abs1 = c_abs(max_phi_pi)
+    #
+    # .. Discretizing Phi (with respect to the corresponding radius R) .........
+    if min_phi < max_phi:
+        for rr in range(1, sz_r):
+            # Get the actual RPhi resolution and Phi mesh elements
+            # (depends on R!)
+            ncells_rphi[rr] = <int>c_ceil(twopi_over_dphi * disc_r[rr])
+            loc_nc_rphi = ncells_rphi[rr]
+            step_rphi[rr] = _TWOPI / ncells_rphi[rr]
+            # Get index and cumulated indices from background
+            for jj in range(ind_loc_r0, ncells_r0):
+                if disc_r0[jj]==disc_r[rr]:
+                    ind_loc_r0 = jj
+                    break
+
+            # Get indices of phi
+            # Get the extreme indices of the mesh elements that really need to
+            # be created within those limits
+            margin_step = margin * step_rphi[rr]
+            if abs0 - step_rphi[rr]*c_floor(abs0 / step_rphi[rr]) < margin_step:
+                nphi0 = int(c_round(min_phi_pi / step_rphi[rr]))
+            else:
+                nphi0 = int(c_floor(min_phi_pi / step_rphi[rr]))
+            if abs1-step_rphi[rr]*c_floor(abs1 / step_rphi[rr]) < margin_step:
+                nphi1 = int(c_round(max_phi_pi / step_rphi[rr]) - 1)
+            else:
+                nphi1 = int(c_floor(max_phi_pi / step_rphi[rr]))
+            sz_phi[rr] = nphi1 + 1 - nphi0
+            if max_sz_phi[0] < sz_phi[rr]:
+                max_sz_phi[0] = sz_phi[rr]
+            with nogil, parallel(num_threads=num_threads):
+                for jj in prange(sz_phi[rr]):
+                    indi_mv[rr, jj] = nphi0 + jj
+            npts_disc += sz_z * sz_phi[rr]
+    else:
+        for rr in range(1, sz_r):
+            # Get the actual RPhi resolution and Phi mesh elements
+            # (depends on R!)
+            ncells_rphi[rr] = <int>c_ceil(twopi_over_dphi * disc_r[rr])
+            loc_nc_rphi = ncells_rphi[rr]
+            step_rphi[rr] = _TWOPI / ncells_rphi[rr]
+            #reso_phi_mv[rr] = step_rphi[rr] * disc_r[rr]
+            # Get index and cumulated indices from background
+            for jj in range(ind_loc_r0, ncells_r0):
+                if disc_r0[jj]==disc_r[rr]:
+                    ind_loc_r0 = jj
+                    break
+            # Get indices of phi
+            # Get the extreme indices of the mesh elements that really need to
+            # be created within those limits
+            margin_step = margin*step_rphi[rr]
+            if abs0 - step_rphi[rr]*c_floor(abs0 / step_rphi[rr]) < margin_step:
+                nphi0 = int(c_round(min_phi_pi / step_rphi[rr]))
+            else:
+                nphi0 = int(c_floor(min_phi_pi / step_rphi[rr]))
+            if abs1-step_rphi[rr]*c_floor(abs1 / step_rphi[rr]) < margin_step:
+                nphi1 = int(c_round(max_phi_pi / step_rphi[rr]) - 1)
+            else:
+                nphi1 = int(c_floor(max_phi_pi / step_rphi[rr]))
+            sz_phi[rr] = nphi1 + 1 + loc_nc_rphi - nphi0
+            if max_sz_phi[0] < sz_phi[rr]:
+                max_sz_phi[0] = sz_phi[rr]
+            with nogil, parallel(num_threads=num_threads):
+                for jj in prange(loc_nc_rphi - nphi0):
+                    indi_mv[rr, jj] = nphi0 + jj
+                for jj in prange(loc_nc_rphi - nphi0, sz_phi[rr]):
+                    indi_mv[rr, jj] = jj - (loc_nc_rphi - nphi0)
+            npts_disc += sz_z * sz_phi[rr]
+    return npts_disc
+
+
+cdef inline void sa_assemble_arrays(int block,
+                                    int use_approx,
+                                    double[:, ::1] part_coords,
+                                    double[::1] part_rad,
+                                    long[:, ::1] is_in_vignette,
+                                    double[:, ::1] sa_map,
+                                    double[:, ::1] ves_poly,
+                                    double[:, ::1] ves_norm,
+                                    double[::1] ves_lims,
+                                    long[::1] lstruct_nlim,
+                                    double[::1] lstruct_polyx,
+                                    double[::1] lstruct_polyy,
+                                    double[::1] lstruct_lims,
+                                    double[::1] lstruct_normx,
+                                    double[::1] lstruct_normy,
+                                    long[::1] lnvert,
+                                    int nstruct_tot,
+                                    int nstruct_lim,
+                                    double rmin,
+                                    double eps_uz, double eps_a,
+                                    double eps_vz, double eps_b,
+                                    double eps_plane,
+                                    bint forbid,
+                                    long[::1] first_ind,
+                                    long[:, ::1] indi_mv,
+                                    int sz_p,
+                                    int sz_r, int sz_z,
+                                    long* ncells_rphi,
+                                    double reso_r_z,
+                                    double* disc_r,
+                                    double* step_rphi,
+                                    double* disc_z,
+                                    long[:, ::1] ind_rz2pol,
+                                    long* sz_phi,
+                                    double[::1] reso_rdrdz,
+                                    double[:, ::1] pts_mv,
+                                    long[::1] ind_mv,
+                                    int num_threads):
+    if block and use_approx:
+        # .. useless tabs .....................................................
+        # declared here so that cython can run without gil
+        if ves_lims is not None:
+            sz_ves_lims = np.size(ves_lims)
+        else:
+            sz_ves_lims = 0
+        npts_poly = ves_norm.shape[1]
+        ray_orig = np.zeros((3, sz_p))
+        ray_vdir = np.zeros((3, sz_p))
+        vperp_out = clone(array('d'), sz_p * 3, True)
+        coeff_inter_in  = clone(array('d'), sz_p, True)
+        coeff_inter_out = clone(array('d'), sz_p, True)
+        ind_inter_out = clone(array('i'), sz_p * 3, True)
+
+        assemble_block_approx(part_coords, part_rad,
+                              is_in_vignette,
+                              sa_map,
+                              ves_poly, ves_norm,
+                              ves_lims,
+                              lstruct_nlim,
+                              lstruct_polyx,
+                              lstruct_polyy,
+                              lstruct_lims,
+                              lstruct_normx,
+                              lstruct_normy,
+                              lnvert, vperp_out,
+                              coeff_inter_in, coeff_inter_out,
+                              ind_inter_out, sz_ves_lims,
+                              ray_orig, ray_vdir, npts_poly,
+                              nstruct_tot, nstruct_lim,
+                              rmin,
+                              eps_uz, eps_a,
+                              eps_vz, eps_b, eps_plane,
+                              forbid,
+                              first_ind, indi_mv,
+                              sz_p, sz_r, sz_z,
+                              ncells_rphi,
+                              reso_r_z, disc_r, step_rphi,
+                              disc_z, ind_rz2pol, sz_phi,
+                              reso_rdrdz, pts_mv, ind_mv,
+                              num_threads)
+    elif not block and use_approx:
+        assemble_unblock_approx(part_coords, part_rad,
+                                is_in_vignette,
+                                sa_map,
+                                first_ind, indi_mv,
+                                sz_p, sz_r, sz_z,
+                                ncells_rphi,
+                                reso_r_z, disc_r, step_rphi,
+                                disc_z, ind_rz2pol,
+                                sz_phi,
+                                reso_rdrdz, pts_mv, ind_mv,
+                                num_threads)
+    elif block:
+        # .. useless tabs .....................................................
+        # declared here so that cython can run without gil
+        if ves_lims is not None:
+            sz_ves_lims = np.size(ves_lims)
+        else:
+            sz_ves_lims = 0
+        npts_poly = ves_norm.shape[1]
+        ray_orig = np.zeros((3, sz_p))
+        ray_vdir = np.zeros((3, sz_p))
+        vperp_out = clone(array('d'), sz_p * 3, True)
+        coeff_inter_in  = clone(array('d'), sz_p, True)
+        coeff_inter_out = clone(array('d'), sz_p, True)
+        ind_inter_out = clone(array('i'), sz_p * 3, True)
+
+        assemble_block_exact(part_coords, part_rad,
+                             is_in_vignette,
+                             sa_map,
+                             ves_poly, ves_norm,
+                             ves_lims,
+                             lstruct_nlim,
+                             lstruct_polyx,
+                             lstruct_polyy,
+                             lstruct_lims,
+                             lstruct_normx,
+                             lstruct_normy,
+                             lnvert, vperp_out,
+                             coeff_inter_in, coeff_inter_out,
+                             ind_inter_out, sz_ves_lims,
+                             ray_orig, ray_vdir, npts_poly,
+                             nstruct_tot, nstruct_lim,
+                             rmin,
+                             eps_uz, eps_a,
+                             eps_vz, eps_b, eps_plane,
+                             forbid,
+                             first_ind, indi_mv,
+                             sz_p, sz_r, sz_z,
+                             ncells_rphi,
+                             reso_r_z, disc_r, step_rphi,
+                             disc_z, ind_rz2pol, sz_phi,
+                             reso_rdrdz, pts_mv, ind_mv,
+                             num_threads)
+    else:
+        assemble_unblock_exact(part_coords, part_rad,
+                               is_in_vignette,
+                               sa_map,
+                               first_ind, indi_mv,
+                               sz_p, sz_r, sz_z,
+                               ncells_rphi,
+                               reso_r_z, disc_r, step_rphi,
+                               disc_z, ind_rz2pol,
+                               sz_phi,
+                               reso_rdrdz, pts_mv, ind_mv,
+                               num_threads)
+    return
+
+
+cdef inline void assemble_block_approx(double[:, ::1] part_coords,
+                                       double[::1] part_rad,
+                                       long[:, ::1] is_in_vignette,
+                                       double[:, ::1] sa_map,
+                                       double[:, ::1] ves_poly,
+                                       double[:, ::1] ves_norm,
+                                       double[::1] ves_lims,
+                                       long[::1] lstruct_nlim,
+                                       double[::1] lstruct_polyx,
+                                       double[::1] lstruct_polyy,
+                                       double[::1] lstruct_lims,
+                                       double[::1] lstruct_normx,
+                                       double[::1] lstruct_normy,
+                                       long[::1] lnvert,
+                                       double[::1] vperp_out,
+                                       double[::1] coeff_inter_in,
+                                       double[::1] coeff_inter_out,
+                                       int[::1] ind_inter_out,
+                                       int sz_ves_lims,
+                                       double[:, ::1] ray_orig,
+                                       double[:, ::1] ray_vdir,
+                                       int npts_poly,
+                                       int nstruct_tot,
+                                       int nstruct_lim,
+                                       double rmin,
+                                       double eps_uz, double eps_a,
+                                       double eps_vz, double eps_b,
+                                       double eps_plane,
+                                       bint forbid,
+                                       long[::1] first_ind_mv,
+                                       long[:, ::1] indi_mv,
+                                       int sz_p,
+                                       int sz_r, int sz_z,
+                                       long* ncells_rphi,
+                                       double reso_r_z,
+                                       double* disc_r,
+                                       double* step_rphi,
+                                       double* disc_z,
+                                       long[:, ::1] ind_rz2pol,
+                                       long* sz_phi,
+                                       double[::1] reso_rdrdz,
+                                       double[:, ::1] pts_mv,
+                                       long[::1] ind_mv,
+                                       int num_threads) nogil:
+    cdef int rr
+    cdef int zz
+    cdef int jj
+    cdef int pp
+    cdef int ind_pol
+    cdef int loc_first_ind
+    cdef int loc_size_phi
+    cdef long indiijj
+    cdef double vol_pi
+    cdef double loc_x
+    cdef double loc_y
+    cdef double loc_r
+    cdef double loc_z
+    cdef double loc_phi
+    cdef double loc_step_rphi
+    cdef long* is_vis
+    cdef double* dist = NULL
+
+    dist = <double*> malloc(sz_p * sizeof(double))
+    is_vis = <long*> malloc(sz_p * sizeof(long))
+    for rr in range(sz_r):
+        loc_r = disc_r[rr]
+        vol_pi = step_rphi[rr] * loc_r * c_pi
+        loc_size_phi = sz_phi[rr]
+        loc_step_rphi = step_rphi[rr]
+        loc_first_ind = first_ind_mv[rr]
+        for zz in range(sz_z):
+            loc_z = disc_z[zz]
+            if is_in_vignette[rr, zz]:
+                ind_pol = ind_rz2pol[rr, zz]
+                ind_mv[ind_pol] = rr * sz_z + zz
+                reso_rdrdz[ind_pol] = loc_r * reso_r_z
+                pts_mv[0, ind_pol] = loc_r
+                pts_mv[1, ind_pol] = loc_z
+                for jj in range(loc_size_phi):
+                    indiijj = indi_mv[rr, loc_first_ind + jj]
+                    loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
+                    loc_x = loc_r * c_cos(loc_phi)
+                    loc_y = loc_r * c_sin(loc_phi)
+                    # computing distance ....
+                    _bgt.compute_dist_pt_vec(loc_x, loc_y, loc_z,
+                                             sz_p, part_coords,
+                                             &dist[0])
+                    # checking if visible .....
+                    _rt.is_visible_pt_vec_core(loc_x, loc_y, loc_z,
+                                               part_coords,
+                                               sz_p,
+                                               ves_poly, ves_norm,
+                                               &is_vis[0], dist,
+                                               ves_lims,
+                                               lstruct_nlim,
+                                               lstruct_polyx,
+                                               lstruct_polyy,
+                                               lstruct_lims,
+                                               lstruct_normx,
+                                               lstruct_normy,
+                                               lnvert, vperp_out,
+                                               coeff_inter_in,
+                                               coeff_inter_out,
+                                               ind_inter_out, sz_ves_lims,
+                                               ray_orig, ray_vdir,
+                                               npts_poly,
+                                               nstruct_tot, nstruct_lim,
+                                               rmin,
+                                               eps_uz, eps_a,
+                                               eps_vz, eps_b, eps_plane,
+                                               1, # is toroidal
+                                               forbid, 1)
+
+                    for pp in range(sz_p):
+                        if is_vis[pp] and dist[pp] > part_rad[pp]:
+                            sa_map[ind_pol,
+                                   pp] += sa_approx_formula(part_rad[pp],
+                                                            dist[pp],
+                                                            vol_pi)
+    free(dist)
+    free(is_vis)
+    return
+
+
+cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
+                                         double[::1] part_rad,
+                                         long[:, ::1] is_in_vignette,
+                                         double[:, ::1] sa_map,
+                                         long[::1] first_ind_mv,
+                                         long[:, ::1] indi_mv,
+                                         int sz_p,
+                                         int sz_r, int sz_z,
+                                         long* ncells_rphi,
+                                         double reso_r_z,
+                                         double* disc_r,
+                                         double* step_rphi,
+                                         double* disc_z,
+                                         long[:, ::1] ind_rz2pol,
+                                         long* sz_phi,
+                                         double[::1] reso_rdrdz,
+                                         double[:, ::1] pts_mv,
+                                         long[::1] ind_mv,
+                                         int num_threads) nogil:
+    cdef int rr
+    cdef int zz
+    cdef int jj
+    cdef int pp
+    cdef int ind_pol
+    cdef int loc_first_ind
+    cdef int loc_size_phi
+    cdef long indiijj
+    cdef double vol_pi
+    cdef double loc_x
+    cdef double loc_y
+    cdef double loc_r
+    cdef double loc_z
+    cdef double loc_phi
+    cdef double loc_step_rphi
+    cdef double* dist = NULL
+
+    with nogil, parallel(num_threads=num_threads):
+        dist = <double*> malloc(sz_p * sizeof(double))
+        for rr in prange(sz_r):
+            loc_r = disc_r[rr]
+            vol_pi = loc_r * step_rphi[rr] * c_pi
+            loc_size_phi = sz_phi[rr]
+            loc_step_rphi = step_rphi[rr]
+            loc_first_ind = first_ind_mv[rr]
+            for zz in range(sz_z):
+                loc_z = disc_z[zz]
+                if is_in_vignette[rr, zz]:
+                    ind_pol = ind_rz2pol[rr, zz]
+                    ind_mv[ind_pol] = rr * sz_z + zz
+                    reso_rdrdz[ind_pol] = loc_r * reso_r_z
+                    pts_mv[0, ind_pol] = loc_r
+                    pts_mv[1, ind_pol] = loc_z
+                    for jj in range(loc_size_phi):
+                        indiijj = indi_mv[rr, loc_first_ind + jj]
+                        loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
+                        loc_x = loc_r * c_cos(loc_phi)
+                        loc_y = loc_r * c_sin(loc_phi)
+                        # computing distance ....
+                        _bgt.compute_dist_pt_vec(loc_x,
+                                                 loc_y,
+                                                 loc_z,
+                                                 sz_p, part_coords,
+                                                 &dist[0])
+                        for pp in range(sz_p):
+                            if dist[pp]  > part_rad[pp]:
+                                sa_map[ind_pol,
+                                       pp] += sa_approx_formula(part_rad[pp],
+                                                                dist[pp],
+                                                                vol_pi)
+        free(dist)
+    return
+
+
+cdef inline double sa_approx_formula(double radius,
+                                     double distance,
+                                     double volpi,
+                                     int debug=0) nogil:
+    """
+    Eigth degree approximation of solid angle computation subtended by a
+    sphere of radius `radius` at a distance `distance`.
+
+    Parameters
+    ----------
+    radius: double
+        radius of the particle
+    distance: double
+        distance between particle and viewing point
+    volpi: double
+        volume unit (eg: dPhi * R * dR * dZ) times pi
+
+    Returns
+    --------
+        Approximation of solid angle to the 4th order:
+        \Omega * dVol = pi (r/d)^2 + pi/4 (r/d)^4  + pi/8 * (r/d)**6
+                        + pi 5/64 (r/d) ** 8
+    """
+    cdef double r_over_d = radius / distance
+
+    # return r_over_d ** 2 * volpi
+    return (r_over_d ** 2 + r_over_d ** 4 * 0.25 + r_over_d**6 * 0.125
+            + r_over_d ** 8 * 0.078125) * volpi
+
+
+# -----------------------------------------------------------------------------
+#                      Exact formula computation
+# -----------------------------------------------------------------------------
+cdef inline void assemble_block_exact(double[:, ::1] part_coords,
+                                      double[::1] part_rad,
+                                      long[:, ::1] is_in_vignette,
+                                      double[:, ::1] sa_map,
+                                      double[:, ::1] ves_poly,
+                                      double[:, ::1] ves_norm,
+                                      double[::1] ves_lims,
+                                      long[::1] lstruct_nlim,
+                                      double[::1] lstruct_polyx,
+                                      double[::1] lstruct_polyy,
+                                      double[::1] lstruct_lims,
+                                      double[::1] lstruct_normx,
+                                      double[::1] lstruct_normy,
+                                      long[::1] lnvert,
+                                      double[::1] vperp_out,
+                                      double[::1] coeff_inter_in,
+                                      double[::1] coeff_inter_out,
+                                      int[::1] ind_inter_out,
+                                      int sz_ves_lims,
+                                      double[:, ::1] ray_orig,
+                                      double[:, ::1] ray_vdir,
+                                      int npts_poly,
+                                      int nstruct_tot,
+                                      int nstruct_lim,
+                                      double rmin,
+                                      double eps_uz, double eps_a,
+                                      double eps_vz, double eps_b,
+                                      double eps_plane,
+                                      bint forbid,
+                                      long[::1] first_ind_mv,
+                                      long[:, ::1] indi_mv,
+                                      int sz_p,
+                                      int sz_r, int sz_z,
+                                      long* ncells_rphi,
+                                      double reso_r_z,
+                                      double* disc_r,
+                                      double* step_rphi,
+                                      double* disc_z,
+                                      long[:, ::1] ind_rz2pol,
+                                      long* sz_phi,
+                                      double[::1] reso_rdrdz,
+                                      double[:, ::1] pts_mv,
+                                      long[::1] ind_mv,
+                                      int num_threads) nogil:
+    cdef int rr
+    cdef int zz
+    cdef int jj
+    cdef int pp
+    cdef int ind_pol
+    cdef int loc_first_ind
+    cdef int loc_size_phi
+    cdef long indiijj
+    cdef double vol_pi
+    cdef double loc_r
+    cdef double loc_z
+    cdef double loc_x
+    cdef double loc_y
+    cdef double loc_phi
+    cdef double loc_step_rphi
+    cdef long* is_vis
+    cdef double* dist = NULL
+
+    dist = <double*> malloc(sz_p * sizeof(double))
+    is_vis = <long*> malloc(sz_p * sizeof(long))
+    for rr in range(sz_r):
+        loc_r = disc_r[rr]
+        vol_pi = step_rphi[rr] * loc_r * c_pi
+        loc_size_phi = sz_phi[rr]
+        loc_step_rphi = step_rphi[rr]
+        loc_first_ind = first_ind_mv[rr]
+        for zz in range(sz_z):
+            loc_z = disc_z[zz]
+            if is_in_vignette[rr, zz]:
+                ind_pol = ind_rz2pol[rr, zz]
+                ind_mv[ind_pol] = rr * sz_z + zz
+                reso_rdrdz[ind_pol] = loc_r * reso_r_z
+                pts_mv[0, ind_pol] = loc_r
+                pts_mv[1, ind_pol] = loc_z
+                for jj in range(loc_size_phi):
+                    indiijj = indi_mv[rr, loc_first_ind + jj]
+                    loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
+                    loc_x = loc_r * c_cos(loc_phi)
+                    loc_y = loc_r * c_sin(loc_phi)
+                    # computing distance ....
+                    _bgt.compute_dist_pt_vec(loc_x,
+                                             loc_y,
+                                             loc_z,
+                                             sz_p, part_coords,
+                                             &dist[0])
+                    # checking if visible .....
+                    _rt.is_visible_pt_vec_core(loc_x, loc_y, loc_z,
+                                               part_coords,
+                                               sz_p,
+                                               ves_poly, ves_norm,
+                                               &is_vis[0], dist,
+                                               ves_lims,
+                                               lstruct_nlim,
+                                               lstruct_polyx,
+                                               lstruct_polyy,
+                                               lstruct_lims,
+                                               lstruct_normx,
+                                               lstruct_normy,
+                                               lnvert, vperp_out,
+                                               coeff_inter_in,
+                                               coeff_inter_out,
+                                               ind_inter_out, sz_ves_lims,
+                                               ray_orig, ray_vdir,
+                                               npts_poly,
+                                               nstruct_tot, nstruct_lim,
+                                               rmin,
+                                               eps_uz, eps_a,
+                                               eps_vz, eps_b, eps_plane,
+                                               1, # is toroidal
+                                               forbid, 1)
+                    for pp in range(sz_p):
+                        if is_vis[pp] and dist[pp] > part_rad[pp]:
+                            sa_map[ind_pol,
+                                   pp] += sa_exact_formula(part_rad[pp],
+                                                           dist[pp],
+                                                           vol_pi)
+    free(dist)
+    free(is_vis)
+    return
+
+
+cdef inline void assemble_unblock_exact(double[:, ::1] part_coords,
+                                        double[::1] part_rad,
+                                        long[:, ::1] is_in_vignette,
+                                        double[:, ::1] sa_map,
+                                        long[::1] first_ind_mv,
+                                        long[:, ::1] indi_mv,
+                                        int sz_p,
+                                        int sz_r, int sz_z,
+                                        long* ncells_rphi,
+                                        double reso_r_z,
+                                        double* disc_r,
+                                        double* step_rphi,
+                                        double* disc_z,
+                                        long[:, ::1] ind_rz2pol,
+                                        long* sz_phi,
+                                        double[::1] reso_rdrdz,
+                                        double[:, ::1] pts_mv,
+                                        long[::1] ind_mv,
+                                        int num_threads) nogil:
+    cdef int rr
+    cdef int zz
+    cdef int jj
+    cdef int pp
+    cdef int ind_pol
+    cdef int loc_first_ind
+    cdef int loc_size_phi
+    cdef long indiijj
+    cdef double vol_pi
+    cdef double loc_r
+    cdef double loc_x
+    cdef double loc_y
+    cdef double loc_z
+    cdef double loc_phi
+    cdef double loc_step_rphi
+    cdef double* dist = NULL
+
+    with nogil, parallel(num_threads=num_threads):
+        dist = <double*> malloc(sz_p * sizeof(double))
+        for rr in prange(sz_r):
+            loc_r = disc_r[rr]
+            vol_pi = loc_r * step_rphi[rr] * c_pi
+            loc_size_phi = sz_phi[rr]
+            loc_step_rphi = step_rphi[rr]
+            loc_first_ind = first_ind_mv[rr]
+            for zz in range(sz_z):
+                loc_z = disc_z[zz]
+                if is_in_vignette[rr, zz]:
+                    ind_pol = ind_rz2pol[rr, zz]
+                    ind_mv[ind_pol] = rr * sz_z + zz
+                    reso_rdrdz[ind_pol] = loc_r * reso_r_z
+                    pts_mv[0, ind_pol] = loc_r
+                    pts_mv[1, ind_pol] = loc_z
+                    for jj in range(loc_size_phi):
+                        indiijj = indi_mv[rr, loc_first_ind + jj]
+                        loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
+                        loc_x = loc_r * c_cos(loc_phi)
+                        loc_y = loc_r * c_sin(loc_phi)
+                        # computing distance ....
+                        _bgt.compute_dist_pt_vec(loc_x,
+                                                 loc_y,
+                                                 loc_z,
+                                                 sz_p, part_coords,
+                                                 &dist[0])
+                        for pp in range(sz_p):
+                            if dist[pp]  > part_rad[pp]:
+                                sa_map[ind_pol,
+                                       pp] += sa_exact_formula(part_rad[pp],
+                                                               dist[pp],
+                                                               vol_pi)
+        free(dist)
+    return
+
+
+cdef inline double sa_exact_formula(double radius,
+                                    double distance,
+                                    double volpi) nogil:
+    """
+    Solid angle computation subtended by a
+    sphere of radius `radius` at a distance `distance`.
+
+    Parameters
+    ----------
+    radius: double
+        radius of the particle
+    distance: double
+        distance between particle and viewing point
+    volpi: double
+        volume unit (eg: dPhi * R * dR * dZ) times pi
+
+    Returns
+    --------
+        Solid angle times unit volume:
+        \Omega * dVol = pi (r/d)^2 + pi/4 (r/d)^4
+    """
+    cdef double r_over_d = radius / distance
+
+    return 2 * volpi * (1. - c_sqrt(1. - r_over_d**2))

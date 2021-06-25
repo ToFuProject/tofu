@@ -25,11 +25,13 @@ try:
     import tofu.geom._def as _def
     import tofu.geom._GG as _GG
     import tofu.geom._comp as _comp
+    import tofu.geom._comp_solidangles as _comp_solidangles
     import tofu.geom._plot as _plot
 except Exception:
     from . import _def as _def
     from . import _GG as _GG
     from . import _comp as _comp
+    from . import _comp_solidangles
     from . import _plot as _plot
 
 __all__ = [
@@ -211,13 +213,33 @@ class Struct(utils.ToFuObject):
     def _set_color_ddef(cls, color):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
-    def __init__(self, Poly=None, Type=None,
-                 Lim=None, pos=None, extent=None,
-                 Id=None, Name=None, Exp=None, shot=None,
-                 sino_RefPt=None, sino_nP=_def.TorNP,
-                 Clock=False, arrayorder='C', fromdict=None,
-                 sep=None, SavePath=os.path.abspath('./'),
-                 SavePath_Include=tfpf.defInclude, color=None):
+    def __init__(
+        self,
+        Poly=None,
+        Type=None,
+        Lim=None,
+        pos=None,
+        extent=None,
+        Id=None,
+        Name=None,
+        Exp=None,
+        shot=None,
+        sino_RefPt=None,
+        sino_nP=_def.TorNP,
+        Clock=False,
+        arrayorder='C',
+        fromdict=None,
+        sep=None,
+        SavePath=os.path.abspath('./'),
+        SavePath_Include=tfpf.defInclude,
+        color=None,
+        nturns=None,
+        superconducting=None,
+        active=None,
+        temperature_nominal=None,
+        mag_field_max=None,
+        current_lim_max=None,
+    ):
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -1180,31 +1202,41 @@ class Struct(utils.ToFuObject):
             Test=Test,
         )
 
-    def get_sampleEdge(self, res=None, DS=None, resMode="abs", offsetIn=0.0):
+    def get_sampleEdge(
+        self,
+        res=None,
+        domain=None,
+        resMode=None,
+        offsetIn=0.0,
+    ):
         """ Sample the polygon edges, with resolution res
 
         Sample each segment of the 2D polygon
-        Sampling can be limited to a subdomain defined by DS
+        Sampling can be limited to a domain
         """
         if res is None:
             res = _RES
-        pts, dlr, ind = _comp._Ves_get_sampleEdge(
-            self.Poly,
-            res,
-            DS=DS,
-            dLMode=resMode,
-            DIn=offsetIn,
+        return _comp._Ves_get_sampleEdge(
+            self.Poly_closed,
+            res=res,
+            domain=domain,
+            resMode=resMode,
+            offsetIn=offsetIn,
             VIn=self.dgeom["VIn"],
             margin=1.0e-9,
         )
-        return pts, dlr, ind
 
     def get_sampleCross(
-        self, res=None, DS=None, resMode="abs", ind=None, mode="flat"
+        self,
+        res=None,
+        domain=None,
+        resMode=None,
+        ind=None,
+        mode="flat",
     ):
         """ Sample, with resolution res, the 2D cross-section
 
-        The sampling domain can be limited by DS or ind
+        The sampling domain can be limited by domain or ind
 
         Depending on the value of mode, the method returns:
             - 'flat': (tuned for integrals computing)
@@ -1227,25 +1259,24 @@ class Struct(utils.ToFuObject):
             self.dgeom["P1Max"][0],
             self.dgeom["P2Min"][1],
             self.dgeom["P2Max"][1],
-            res,
         ]
         kwdargs = dict(
-            DS=DS, dSMode=resMode, ind=ind, margin=1.0e-9, mode=mode
+            res=res, domain=domain, resMode=resMode, ind=ind,
+            margin=1.0e-9, mode=mode
         )
-        out = _comp._Ves_get_sampleCross(*args, **kwdargs)
-        return out
+        return _comp._Ves_get_sampleCross(*args, **kwdargs)
 
     def get_sampleS(
         self,
         res=None,
-        DS=None,
-        resMode="abs",
+        domain=None,
+        resMode=None,
         ind=None,
         offsetIn=0.0,
-        Out="(X,Y,Z)",
+        returnas="(X,Y,Z)",
         Ind=None,
     ):
-        """ Sample, with resolution res, the surface defined by DS or ind
+        """ Sample, with resolution res, the surface defined by domain or ind
 
         An optionnal offset perpendicular to the surface can be used
         (offsetIn>0 => inwards)
@@ -1258,13 +1289,13 @@ class Struct(utils.ToFuObject):
                 list    : [dl,dXPhi] where:
                     dl      : res. along polygon contours (cross-section)
                     dXPhi   : res. along axis (toroidal/linear direction)
-        DS      :   None / list of 3 lists of 2 floats
+        domain :    None / list of 3 lists of 2 floats
             Limits of the domain in which the sample should be computed
                 None : whole surface of the object
-                list : [D1,D2,D3], where Di is a len()=2 list
+                list : [D1, D2, D3], where Di is a len()=2 list
                        (increasing floats, setting limits along coordinate i)
-                    [DR,DZ,DPhi]: in toroidal geometry (self.Id.Type=='Tor')
-                    [DX,DY,DZ]  : in linear geometry (self.Id.Type=='Lin')
+                    [DR, DZ, DPhi]: in toroidal geometry (self.Id.Type=='Tor')
+                    [DX, DY, DZ]  : in linear geometry (self.Id.Type=='Lin')
         resMode  :   str
             Flag, specifies if res is absolute or relative to element sizes
                 'abs'   :   res is an absolute distance
@@ -1287,7 +1318,7 @@ class Struct(utils.ToFuObject):
             Offset distance from the actual surface of the object
             Inwards if positive
             Useful to avoid numerical errors
-        Out     :   str
+        returnas:   str
             Flag indicating the coordinate system of returned points
             e.g. : '(X,Y,Z)' or '(R,Z,Phi)'
         Ind     :   None / iterable of ints
@@ -1311,27 +1342,98 @@ class Struct(utils.ToFuObject):
         if res is None:
             res = _RES
         kwdargs = dict(
-            DS=DS,
-            dSMode=resMode,
+            res=res,
+            domain=domain,
+            resMode=resMode,
             ind=ind,
-            DIn=offsetIn,
+            offsetIn=offsetIn,
             VIn=self.dgeom["VIn"],
             VType=self.Id.Type,
             VLim=np.ascontiguousarray(self.Lim),
             nVLim=self.noccur,
-            Out=Out,
+            returnas=returnas,
             margin=1.0e-9,
             Multi=self.dgeom["Multi"],
             Ind=Ind,
         )
-        args = [self.Poly, res]
-        pts, dS, ind, reseff = _comp._Ves_get_sampleS(*args, **kwdargs)
-        return pts, dS, ind, reseff
+        return _comp._Ves_get_sampleS(self.Poly, **kwdargs)
 
     def get_sampleV(
-        self, res, DV=None, resMode="abs", ind=None, Out="(X,Y,Z)"
+        self,
+        res=None,
+        domain=None,
+        resMode=None,
+        ind=None,
+        returnas="(X,Y,Z)",
+        algo="new",
+        num_threads=48
     ):
-        """ Sample, with resolution res, the volume defined by DV or ind """
+        """ Sample, with resolution res, the volume defined by domain or ind
+
+        The 3D volume is sampled in:
+            - the whole volume (domain=None and ind=None)
+            - a sub-domain defined by bounds on each coordinates (domain)
+            - a pre-computed subdomain stored in indices (ind)
+
+        The coordinatesd of the center of each volume elements are returned as
+        pts in choosen coordinates (returnas)
+
+        For a torus, the elementary volume is kept constant, meaning that the
+        toroidal angular step is decreased as R increases
+
+        Parameters
+        ----------
+        res     :   float / list of 3 floats
+            Desired resolution of the surfacic sample
+                float   : same resolution for all directions of the sample
+                list    : [dYR, dZ, dXPhi] where:
+                    dYR     : res. along in radial / Y direction
+                    dZ      : res. along Z direction
+                    dXPhi   : res. along axis (toroidal/linear direction)
+        domain :    None / list of 3 lists of 2 floats
+            Limits of the domain in which the sample should be computed
+                None : whole surface of the object
+                list : [D1, D2, D3], where Di is a len()=2 list
+                       (increasing floats, setting limits along coordinate i)
+                    [DR, DZ, DPhi]: in toroidal geometry (self.Id.Type=='Tor')
+                    [DX, DY, DZ]  : in linear geometry (self.Id.Type=='Lin')
+        resMode  :   str
+            Flag, specifies if res is absolute or relative to element sizes
+                'abs'   :   res is an absolute distance
+                'rel'   :   if res=0.1, each polygon segment is divided in 10,
+                            as is the toroidal/linear length
+        ind     :   None / np.ndarray of int
+            If provided, DS is ignored and the sample points corresponding to
+            the provided indices are returned
+            Example (assuming obj is a Ves object)
+                > # We create a 5x5 cm2 sample of the whole surface
+                > pts, dS, ind, reseff = obj.get_sample(0.05)
+                > # Perform operations, save only the points indices
+                > # (save space)
+                > ...
+                > # Retrieve the points from their indices (requires same res)
+                > pts2, dS2, ind2, reseff2 = obj.get_sample(0.05, ind=ind)
+                > np.allclose(pts,pts2)
+                True
+        returnas:   str
+            Flag indicating the coordinate system of returned points
+            e.g. : '(X,Y,Z)' or '(R,Z,Phi)'
+        Ind     :   None / iterable of ints
+            Array of indices of the entities to be considered
+            (only when multiple entities, i.e.: self.nLim>1)
+
+        Returns
+        -------
+        pts     :   np.ndarray / list of np.ndarrays
+            Sample points coordinates, as a (3,N) array.
+            A list is returned if the object has multiple entities
+        dV      :   np.ndarray / list of np.ndarrays
+            The volume (in m^3) associated to each point
+        ind     :   np.ndarray / list of np.ndarrays
+            The index of each point
+        reseff  :   np.ndarray / list of np.ndarrays
+            Effective resolution in both directions after sample computation
+        """
 
         args = [
             self.Poly,
@@ -1339,19 +1441,20 @@ class Struct(utils.ToFuObject):
             self.dgeom["P1Max"][0],
             self.dgeom["P2Min"][1],
             self.dgeom["P2Max"][1],
-            res,
         ]
         kwdargs = dict(
-            DV=DV,
-            dVMode=resMode,
+            res=res,
+            domain=domain,
+            resMode=resMode,
             ind=ind,
             VType=self.Id.Type,
             VLim=self.Lim,
-            Out=Out,
+            returnas=returnas,
             margin=1.0e-9,
+            algo=algo,
+            num_threads=num_threads
         )
-        pts, dV, ind, reseff = _comp._Ves_get_sampleV(*args, **kwdargs)
-        return pts, dV, ind, reseff
+        return _comp._Ves_get_sampleV(*args, **kwdargs)
 
     def _get_phithetaproj(self, refpt=None):
         # Prepare ax
@@ -1906,10 +2009,13 @@ class Struct(utils.ToFuObject):
             pos, extent = None, None
 
         # Try reading Exp and Name if not provided
-        if Exp is None:
-            Exp = cls._from_txtcsv_extract_params(pfe, "Exp")
-        if Name is None:
-            Name = cls._from_txtcsv_extract_params(pfe, "Name")
+        lc = [ss for ss, vv in [('Exp', Exp), ('Name', Name)] if vv is None]
+        if len(lc) > 0:
+            dparam = utils.from_txt_extract_params(pfe, lc)
+            if 'Exp' in lc:
+                Exp = dparam['Exp']
+            if 'Name' in lc:
+                Name = dparam['Name']
 
         # Return
         if returnas in [dict, 'dict']:
@@ -1930,108 +2036,6 @@ class Struct(utils.ToFuObject):
             )
             return obj
 
-    @staticmethod
-    def _from_txtcsv_extract_params(pfe, param):
-        p, name = os.path.split(pfe)
-
-        # Try from file name
-        lk = name.split("_")
-        lind = [param in k for k in lk]
-        if np.sum(lind) > 1:
-            msg = "Several values form %s found in file name:\n"
-            msg += "    file: %s" % pfe
-            raise Exception(msg)
-        if any(lind):
-            paramstr = lk[np.nonzero(lind)[0][0]]
-            paramstr = paramstr.replace(param, "")
-            return paramstr
-
-        # try from file content
-        paramstr = None
-        lout = [param, "#", ":", "=", " ", "\n", "\t"]
-        with open(pfe) as fid:
-            while True:
-                line = fid.readline()
-                if param in line:
-                    for k in lout:
-                        line = line.replace(k, "")
-                    paramstr = line
-                    break
-                elif not line:
-                    break
-        return paramstr
-
-    @classmethod
-    def from_svg(
-        cls,
-        pfe,
-        returnas='object',
-        Exp=None,
-        Name=None,
-        shot=None,
-        Type=None,
-        pos=None,
-        extent=None,
-        color=None,
-        indpath=None,
-        SavePath=os.path.abspath("./"),
-        delimiter=None,
-        comments=None,
-        warn=None,
-    ):
-        # Check inputs
-        if returnas not in [object, 'object', dict, 'dict']:
-            msg = ("Arg returnas must be either:"
-                   + "\t- 'object': return {} instance\n".format(cls.__name__)
-                   + "\t- 'dict' : return a dict with polygon, pos and extent")
-            raise Exception(msg)
-        if pfe[-4:] != '.svg':
-            msg = ("Only accepts .svg files!\n"
-                   + "\t file: {}".format(pfe))
-            raise Exception(msg)
-        if warn is None:
-            warn = True
-
-        # Extract polygon from file and check
-        dpath = _comp.get_path_from_svg(pfe)
-
-        if cls.__name__ not in dpath.keys():
-            msg = ("Desired class ({}) not available:\n".format(cls)
-                   + "\t{}".format(dpath.keys()))
-            raise Exception(msg)
-        if len(dpath[cls.__name__]) == 1:
-            indpath = 0
-        else:
-            if indpath is None:
-                msg = "No or several path identified in {}".format(pfe)
-                raise Exception(msg)
-            else:
-                assert isinstance(indpath, int)
-
-        Name = list(dpath[cls.__name__].keys())[indpath]
-        poly = dpath[cls.__name__][Name]['poly']
-
-        # Return
-        if returnas in [dict, 'dict']:
-            return {'Name': Name, 'Exp': Exp, 'Cls': cls.__name__,
-                    "poly": poly, "pos": pos, "extent": extent}
-        else:
-            SavePath = os.path.abspath(SavePath)
-            obj = cls(
-                Name=Name,
-                Exp=Exp,
-                shot=shot,
-                Type=Type,
-                Poly=poly,
-                pos=pos,
-                extent=extent,
-                SavePath=SavePath,
-                color=color,
-            )
-            return obj
-
-
-
     def save_to_imas(
         self,
         shot=None,
@@ -2040,7 +2044,7 @@ class Struct(utils.ToFuObject):
         refrun=None,
         occ=None,
         user=None,
-        tokamak=None,
+        database=None,
         version=None,
         dryrun=False,
         verb=True,
@@ -2057,7 +2061,7 @@ class Struct(utils.ToFuObject):
             refshot=refshot,
             refrun=refrun,
             user=user,
-            tokamak=tokamak,
+            database=database,
             version=version,
             dryrun=dryrun,
             verb=verb,
@@ -2147,10 +2151,23 @@ class PFC(StructOut):
 class CoilPF(StructOut):
     _color = "r"
 
-    def __init__(self, nturns=None, superconducting=None, active=None,
-                 **kwdargs):
+    def __init__(
+        self,
+        nturns=None,
+        superconducting=None,
+        active=None,
+        temperature_nominal=None,
+        mag_field_max=None,
+        current_lim_max=None,
+        **kwdargs
+    ):
         # super()
-        super(CoilPF, self).__init__(**kwdargs)
+        super(CoilPF, self).__init__(
+            nturns=nturns,
+            superconducting=superconducting,
+            active=active,
+            **kwdargs,
+        )
 
     def _reset(self):
         # super()
@@ -2173,18 +2190,30 @@ class CoilPF(StructOut):
 
     @classmethod
     def _checkformat_inputs_dmag(
-        cls, nturns=None, superconducting=None, active=None
+        cls,
+        nturns=None,
+        superconducting=None,
+        temperature_nominal=None,
+        mag_field_max=None,
+        current_lim_max=None,
+        active=None,
     ):
         dins = {
-            "nturn": {"var": nturns, "NoneOrIntPos": None},
+            "nturns": {"var": nturns, "NoneOrFloatPos": None},
             "superconducting": {"var": superconducting, "NoneOrCls": bool},
             "active": {"var": active, "NoneOrCls": bool},
+            "temperature_nominal": {"var": temperature_nominal,
+                                    "NoneOrFloatPos": None},
+            "mag_field_max": {"var": mag_field_max,
+                              "NoneOrFloatPos": None},
+            "current_lim_max": {"var": current_lim_max,
+                                "NoneOrFloatPos": None},
         }
         dins, err, msg = cls._check_InputsGeneric(dins, tab=0)
         if err:
             raise Exception(msg)
-        nturn = dins["nturn"]["var"]
-        return nturn
+        return [dins[dd]['var']
+                for dd in ['nturns', 'superconducting', 'active']]
 
     ###########
     # Get keys of dictionnaries
@@ -2210,14 +2239,14 @@ class CoilPF(StructOut):
     ###########
 
     def set_dmag(self, superconducting=None, nturns=None, active=None):
-        nturns = self._checkformat_inputs_dmag(
+        out = self._checkformat_inputs_dmag(
             nturns=nturns, active=active, superconducting=superconducting
         )
         self._dmag.update(
             {
-                "superconducting": superconducting,
-                "nturns": nturns,
-                "active": active,
+                "nturns": out[0],
+                "superconducting": out[1],
+                "active": out[2],
             }
         )
 
@@ -2294,6 +2323,60 @@ class CoilPF(StructOut):
     # public methods
     ###########
 
+    def get_summary(
+        self,
+        sep="  ",
+        line="-",
+        just="l",
+        table_sep=None,
+        verb=True,
+        return_=False,
+    ):
+        """ Summary description of the object content """
+
+        # -----------------------
+        # Build detailed view
+        col0 = [
+            "class",
+            "Name",
+            "SaveName",
+            "nP",
+            "noccur",
+            "nturns",
+            "active",
+            "superconducting",
+        ]
+        ar0 = [
+            self._Id.Cls,
+            self._Id.Name,
+            self._Id.SaveName,
+            str(self._dgeom["nP"]),
+            str(self._dgeom["noccur"]),
+            str(self._dmag['nturns']),
+            str(self._dmag['active']),
+            str(self._dmag['superconducting']),
+        ]
+        if self._dgeom["move"] is not None:
+            col0 += ['move', 'param']
+            ar0 += [self._dgeom["move"],
+                    str(round(self._dgeom["move_param"], ndigits=4))]
+        col0.append('color')
+        cstr = ('('
+                + ', '.join(['{:4.2}'.format(cc)
+                             for cc in self._dmisc["color"]])
+                + ')')
+        ar0.append(cstr)
+
+        return self._get_summary(
+            [ar0],
+            [col0],
+            sep=sep,
+            line=line,
+            table_sep=table_sep,
+            verb=verb,
+            return_=return_,
+        )
+
     def set_current(self, current=None):
         """ Set the current circulating on the coil (A) """
         C0 = current is None
@@ -2345,7 +2428,6 @@ class Config(utils.ToFuObject):
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude,
                  fromdict=None, sep=None):
-
         kwdargs = locals()
         del kwdargs["self"]
         super(Config, self).__init__(**kwdargs)
@@ -2425,43 +2507,54 @@ class Config(utils.ToFuObject):
     ###########
 
     def _checkformat_inputs_Struct(self, struct, err=True):
-        assert issubclass(struct.__class__, Struct)
-        C0 = struct.Id.Exp == self.Id.Exp
-        C1 = struct.Id.Type == self.Id.Type
-        C2 = struct.Id.Name.isidentifier()
-        C2 = C2 and '_' not in struct.Id.Name
         msgi = None
-        if not (C0 and C1 and C2):
-            msgi = "\n    - {0} :".format(struct.Id.SaveName)
-            if not C0:
-                msgi += "\n     Exp: {0}".format(struct.Id.Exp)
-            if not C1:
-                msgi += "\n     Type: {0}".format(struct.Id.Type)
-            if not C2:
-                msgi += "\n     Name: {0}".format(struct.Id.Name)
-            if err:
-                msg = "Non-conform struct Id:" + msgi
-                raise Exception(msg)
+        c0 = issubclass(struct.__class__, Struct)
+        if not c0:
+            msgi = "\n\t- Not a struct subclass: {}".format(type(struct))
+        else:
+            c1 = struct.Id.Exp == self.Id.Exp
+            c2 = struct.Id.Type == self.Id.Type
+            c3 = struct.Id.Name.isidentifier()
+            c4 = c3 and '_' not in struct.Id.Name
+            if not (c0 and c1 and c2 and c3):
+                c1 = struct.Id.Exp == self.Id.Exp
+                c2 = struct.Id.Type == self.Id.Type
+                c3 = struct.Id.Name.isidentifier()
+                c4 = c3 and '_' not in struct.Id.Name
+                msgi = "\n\t- {0} :".format(struct.Id.SaveName)
+                if not c1:
+                    msgi += "\n\tExp: {0}".format(struct.Id.Exp)
+                if not c2:
+                    msgi += "\n\tType: {0}".format(struct.Id.Type)
+                if not c3:
+                    msgi += "\n\tName: {0}".format(struct.Id.Name)
+        if msgi is not None and err is True:
+            msg = "Non-conform struct:" + msgi
+            raise Exception(msg)
         return msgi
 
-    def _checkformat_inputs_dStruct(self, lStruct=None, Lim=None):
-        if lStruct is None:
-            msg = "Arg lStruct must be"
-            msg += " a tofu.geom.Struct subclass or a list of such !"
-            msg += "\nValid subclasses include:"
-            lsub = ["PlasmaDomain", "Ves", "PFC", "CoilPF", "CoilCS"]
-            for ss in lsub:
-                msg = "\n    - tf.geom.{0}".format(ss)
-            raise Exception(msg)
+    @staticmethod
+    def _errmsg_dStruct(lStruct):
+        ls = ["tf.geom.{}".format(ss)
+              for ss in ["PlasmaDomain", "Ves", "PFC", "CoilPF", "CoilCS"]]
+        msg = ("Arg lStruct must be "
+               + "a tofu.geom.Struct subclass or list of such!\n"
+               + "Valid subclasses include:\n\t- "
+               + "\n\t- ".join(ls)
+               + "\nYou provided: {}".format(type(lStruct)))
+        return msg
 
-        C0 = isinstance(lStruct, list) or isinstance(lStruct, tuple)
-        C1 = issubclass(lStruct.__class__, Struct)
-        assert C0 or C1, msg
-        if C0:
-            Ci = [issubclass(ss.__class__, Struct) for ss in lStruct]
-            assert all(Ci), msg
+    def _checkformat_inputs_dStruct(self, lStruct=None, Lim=None):
+        c0 = lStruct is not None
+        c1 = ((isinstance(lStruct, list) or isinstance(lStruct, tuple))
+              and all([issubclass(ss.__class__, Struct) for ss in lStruct]))
+        c2 = issubclass(lStruct.__class__, Struct)
+        if not (c0 and (c1 or c2)):
+            raise Exception(self._errmsg_dStruct(lStruct))
+
+        if c1 and isinstance(lStruct, tuple):
             lStruct = list(lStruct)
-        else:
+        elif c2:
             lStruct = [lStruct]
 
         msg = ""
@@ -2503,7 +2596,7 @@ class Config(utils.ToFuObject):
     def _checkformat_inputs_extraval(
         self, extraval, key="", multi=True, size=None
     ):
-        lsimple = [bool, float, int, np.int64, np.float64]
+        lsimple = [bool, float, int, np.int_, np.float_]
         C0 = type(extraval) in lsimple
         C1 = isinstance(extraval, np.ndarray)
         C2 = isinstance(extraval, dict)
@@ -2512,7 +2605,7 @@ class Config(utils.ToFuObject):
         else:
             assert C0, str(type(extraval))
         if multi and C1:
-            size = self._dStruct["nStruct"] if size is None else size
+            size = self._dStruct["nObj"] if size is None else size
             C = extraval.shape == ((self._dStruct["nObj"],))
             if not C:
                 msg = "The value for %s has wrong shape!" % key
@@ -2710,16 +2803,18 @@ class Config(utils.ToFuObject):
         assert not (k0 is None and k1 is not None)
         dp = "d" + pp
         if k0 is None and k1 is None:
-            val = np.zeros((self._dStruct["nObj"],), dtype=bool)
+            k0, k1 = self._dStruct["lorder"][0].split('_')
+            val = np.zeros((self._dStruct["nObj"],),
+                           dtype=type(self._dextraprop[dp][k0][k1]))
             ii = 0
             for k in self._dStruct["lorder"]:
                 k0, k1 = k.split("_")
                 val[ii] = self._dextraprop[dp][k0][k1]
                 ii += 1
         elif k1 is None:
-            val = np.zeros(
-                (len(self._dStruct["dObj"][k0].keys()),), dtype=bool
-            )
+            k1 = list(self._dStruct["dObj"][k0].keys())[0]
+            val = np.zeros((len(self._dStruct["dObj"][k0].keys()),),
+                           dtype=type(self._dextraprop[dp][k0][k1]))
             ii = 0
             for k in self._dStruct["lorder"]:
                 k, k1 = k.split("_")
@@ -2952,6 +3047,190 @@ class Config(utils.ToFuObject):
         self._dextraprop.update(**fd["dextraprop"])
         self._dsino.update(**fd["dsino"])
         self._dynamicattr()
+
+    ###########
+    # SOLEDGE3X
+    ###########
+
+    @staticmethod
+    def _from_SOLEDGE_extract_dict(pfe=None):
+        # Check input
+        c0 = (isinstance(pfe, str)
+              and os.path.isfile(pfe)
+              and pfe[-4:] == '.mat')
+        if not c0:
+            msg = ("Arg pfe must be a valid .mat file!\n"
+                   + "\t- provided: {}".format(pfe))
+            raise Exception(msg)
+        pfe = os.path.abspath(pfe)
+
+        # Open file
+        import scipy.io as scpio
+        dout = scpio.loadmat(pfe)
+
+        # Check conformity of content
+        lk = ['Nwalls', 'coord', 'type']
+        lk0 = [kk for kk, vv in dout.items()
+               if kk == 'walls' and isinstance(vv, np.ndarray)]
+        c0 = (len(lk0) == 1
+              and len(dout['walls']) == 1
+              and sorted(dout['walls'][0].dtype.names) == lk
+              and len(dout['walls'][0][0]) == len(lk))
+        if not c0:
+            msg = ("Non-conform .mat file content from SOLEDGE3X:\n"
+                   + "\t- file: {}\n".format(pfe)
+                   + "\t- Expected:\n"
+                   + "\t\t- a unique matlab structure 'walls' with 3 fields\n"
+                   + "\t\t\t- Nwalls: int\n"
+                   + "\t\t\t- coord: 1xn struct\n"
+                   + "\t\t\t- type: 1xn double\n"
+                   + "Provided:\n"
+                   + "\t- variables: {}\n".format(lk0)
+                   + "\t- 1x{} struct with {} fields".format(
+                       len(dout[lk0[0]]),
+                       len(dout[lk0[0]][0].dtype)))
+            raise Exception(msg)
+        out = dout['walls'][0][0]
+
+        # Get inside fields 'type', 'Nwalls', 'coord'
+        di0 = {kk: dout['walls'][0].dtype.names.index(kk) for kk in lk}
+        dout = {'type': out[di0['type']].ravel(),
+                'Nwalls': out[di0['Nwalls']][0, 0]}
+        out = out[di0['coord']][0]
+        c0 = (sorted(out.dtype.names) == ['Rwall', 'Zwall']
+              and len(out) == dout['type'].size
+              and all([len(oo) == 2 for oo in out]))
+        if not c0:
+            msg = ("Field {} not conform:\n".format('coord')
+                   + "\t- expected: 1x{} struct ".format(dout['type'].size)
+                   + "with fields ('Rwall', 'Zwall')\n"
+                   + "\t- provided: 1x{} struct ".format(len(out))
+                   + "with fields {}".format(out.dtype.names))
+            raise Exception(msg)
+
+        dout['coord'] = [np.array([out[ii][0].ravel(), out[ii][1].ravel()])
+                         for ii in range(dout['type'].size)]
+        return dout
+
+    @classmethod
+    def from_SOLEDGE3X(cls, pfe=None,
+                       Name=None, Exp=None):
+
+        # Check input and extract dict from file
+        dout = cls._from_SOLEDGE_extract_dict(pfe)
+        npoly = len(dout['type'])
+
+        # Prepare lStruct
+        lcls = [Ves if dout['type'][ii] == 1 else PFC for ii in range(npoly)]
+        lnames = ['Soledge3X{:02.0f}'.format(ii) for ii in range(npoly)]
+        lS = [lcls[ii](Poly=dout['coord'][ii],
+                       Type='Tor',
+                       Name=lnames[ii],
+                       pos=None,
+                       Exp=Exp)
+              for ii in range(npoly)]
+        return cls(lStruct=lS, Exp=Exp, Name=Name)
+
+    def _to_SOLEDGE3X_get_data(self,
+                               type_extraprop=None,
+                               matlab_version=None, matlab_platform=None):
+
+        head = None
+        # Check inputs
+        if not (matlab_version is None or isinstance(matlab_version, str)):
+            msg = ("Arg matlab_version must be provided as a str!\n"
+                   + "\t- example: '5.0'\n"
+                   + "\t- provided: {}".format(matlab_version))
+            raise Exception(msg)
+
+        # useful ? to be deprecated ?
+        if matlab_platform is None:
+            out = os.popen('which matlab').read()
+            keypath = os.path.join('bin', 'matlab')
+            if keypath in out:
+                path = os.path.join(out[:out.index(keypath)], 'etc')
+                lf = [ff for ff in os.listdir(path)
+                      if os.path.isdir(os.path.join(path, ff))]
+                if len(lf) == 1:
+                    matlab_platform = lf[0].upper()
+                else:
+                    msg = ("Couldn't get matlab_platform from 'which matlab'\n"
+                           + "  => Please provide the matlab platform\n"
+                           + "     Should be in {}/../etc".format(out))
+                    warnings.warn(msg)
+        if not (matlab_platform is None or isinstance(matlab_platform, str)):
+            msg = ("Arg matlab_platform must be provided as a str!\n"
+                   + "\t- example: 'GLNXA64'\n"
+                   + "\t- provided: {}".format(matlab_platform))
+            raise Exception(msg)
+
+        if matlab_version is not None and matlab_platform is not None:
+            import datetime as dtm
+            now = dtm.datetime.now().strftime('%a %b %d %H:%M:%S %Y')
+            head = ('MATLAB {} MAT-file, '.format(matlab_version)
+                    + 'Platform: {}, '.format(matlab_platform)
+                    + 'Created on: {}'.format(now))
+
+        # Build walls
+        nwall = np.array([[self.nStruct]], dtype=int)
+
+        # typ (from extraprop if any, else from Ves / Struct)
+        if type_extraprop is not None:
+            typ = np.array([self._get_extraprop(type_extraprop)], dtype=int)
+        else:
+            typ = np.array([[1 if ss._InOut == 'in' else -1
+                             for ss in self.lStruct]], dtype=int)
+        # Get coord
+        coord = np.array([np.array([
+            (ss.Poly[0:1, :].T, ss.Poly[1:2, :].T) for ss in self.lStruct],
+            dtype=[('Rwall', 'O'), ('Zwall', 'O')])],
+            dtype=[('Rwall', 'O'), ('Zwall', 'O')])
+
+        # put together
+        dout = {'walls': np.array([[
+            (nwall, coord, typ)]],
+            dtype=[('Nwalls', 'O'), ('coord', 'O'), ('type', 'O')])}
+
+        # Optinally set header and version
+        if head is not None:
+            dout['__header__'] = head.encode()
+        return dout
+
+    def to_SOLEDGE3X(self, name=None, path=None, verb=None,
+                     type_extraprop=None,
+                     matlab_version=None, matlab_platform=None):
+
+        # Check inputs
+        if verb is None:
+            verb = True
+        if name is None:
+            name = self.Id.SaveName
+        if not isinstance(name, str):
+            msg = ("Arg name must be a str!\n"
+                   + "\t- provided: {}".format(name))
+            raise Exception(msg)
+        if name[-4:] != '.mat':
+            name = name + '.mat'
+
+        if path is None:
+            path = os.path.abspath('.')
+        if not os.path.isdir(path):
+            msg = ("Provided path is not a valid dir!\n"
+                   + "\t- path: {}".format(path))
+            raise Exception(msg)
+        path = os.path.abspath(path)
+
+        pfe = os.path.join(path, name)
+
+        # Get data in proper shape
+        dout = self._to_SOLEDGE3X_get_data(type_extraprop=type_extraprop,
+                                           matlab_version=matlab_version,
+                                           matlab_platform=matlab_platform)
+        # save
+        import scipy.io as scpio
+        scpio.savemat(pfe, dout)
+        if verb is True:
+            print("Saved in:\n\t{}".format(pfe))
 
     ###########
     # Properties
@@ -3571,6 +3850,75 @@ class Config(utils.ToFuObject):
         )
         return ax
 
+    @classmethod
+    def from_svg(
+        cls,
+        pfe,
+        res=None,
+        Exp=None,
+        Name=None,
+        shot=None,
+        Type=None,
+        SavePath=os.path.abspath("./"),
+        verb=None,
+        returnas=None,
+    ):
+        # Check inputs
+        if returnas is None:
+            returnas = object
+        if returnas not in [object, dict]:
+            msg = (
+                "Arg returnas must be either:"
+                + "\t- 'object': return Config instance\n"
+                + "\t- 'dict' : return a dict with polygon, cls, color"
+            )
+            raise Exception(msg)
+
+        # Extract polygon from file and check
+        dpath = _comp.get_paths_from_svg(pfe=pfe, res=res, verb=verb)
+
+        if len(dpath) == 0:
+            msg = "No Struct found in {}".format(pfe)
+            raise Exception(msg)
+
+        if returnas is dict:
+            return dpath
+
+        else:
+            derr = {}
+            lstruct = []
+            for k0, v0 in dpath.items():
+                clss = Ves if v0['cls'] == 'Ves' else PFC
+                try:
+                    lstruct.append(
+                        clss(
+                            Name=k0, Poly=v0['poly'],
+                            color=v0['color'], Exp=Exp,
+                        )
+                    )
+                except Exception as err:
+                    derr[k0] = str(err)
+
+            if len(derr) > 0:
+                lerr = [
+                    '\n\t- {}: {}'.format(k0, v0) for k0, v0 in derr.items()
+                ]
+                msg = (
+                    "\nThe following Struct could not be created:\n"
+                    + '\n'.join(lerr)
+                )
+                warnings.warn(msg)
+
+            SavePath = os.path.abspath(SavePath)
+            return cls(
+                Name=Name,
+                Exp=Exp,
+                shot=shot,
+                Type=Type,
+                lStruct=lstruct,
+                SavePath=SavePath,
+            )
+
     def save_to_imas(
         self,
         shot=None,
@@ -3578,7 +3926,7 @@ class Config(utils.ToFuObject):
         refshot=None,
         refrun=None,
         user=None,
-        tokamak=None,
+        database=None,
         version=None,
         occ=None,
         dryrun=False,
@@ -3595,7 +3943,7 @@ class Config(utils.ToFuObject):
             refshot=refshot,
             refrun=refrun,
             user=user,
-            tokamak=tokamak,
+            database=database,
             version=version,
             occ=occ,
             dryrun=dryrun,
@@ -3604,7 +3952,9 @@ class Config(utils.ToFuObject):
         )
 
     def get_kwdargs_LOS_isVis(self):
+
         lS = self.lStruct
+
         # -- Getting "vessels" or IN structures -------------------------------
         lSIn = [ss for ss in lS if ss._InOut == "in"]
         if len(lSIn) == 0:
@@ -3614,6 +3964,7 @@ class Config(utils.ToFuObject):
             S = lSIn[np.argmin([ss.dgeom["Surf"] for ss in lSIn])]
         else:
             S = lSIn[0]
+
         # ... and its poly, limts, type, etc.
         VPoly = S.Poly_closed
         VVIn = S.dgeom["VIn"]
@@ -3622,41 +3973,40 @@ class Config(utils.ToFuObject):
         else:
             Lim = S.Lim
         VType = self.Id.Type
+
         # -- Getting OUT structures -------------------------------------------
         lS = [ss for ss in lS if ss._InOut == "out"]
-        lSPolyx, lSVInx = [], []
-        lSPolyy, lSVIny = [], []
-        lSLim, lSnLim = [], []
-        lsnvert = []
-        num_tot_structs = 0
-        num_lim_structs = 0
-        for ss in lS:
-            lp = ss.Poly_closed[0]
-            [lSPolyx.append(item) for item in lp]
-            lp = ss.Poly_closed[1]
-            [lSPolyy.append(item) for item in lp]
-            lp = ss.dgeom["VIn"][0]
-            [lSVInx.append(item) for item in lp]
-            lp = ss.dgeom["VIn"][1]
-            [lSVIny.append(item) for item in lp]
-            lSLim.append(ss.Lim)
-            lSnLim.append(ss.noccur)
-            if len(lsnvert) == 0:
-                lsnvert.append(len(ss.Poly_closed[0]))
-            else:
-                lsnvert.append(
-                    len(ss.Poly_closed[0]) + lsnvert[num_lim_structs - 1]
-                )
-            num_lim_structs += 1
-            if ss.Lim is None or len(ss.Lim) == 0:
-                num_tot_structs += 1
-            else:
-                num_tot_structs += len(ss.Lim)
-        lsnvert = np.asarray(lsnvert, dtype=np.int64)
-        lSPolyx = np.asarray(lSPolyx)
-        lSPolyy = np.asarray(lSPolyy)
-        lSVInx = np.asarray(lSVInx)
-        lSVIny = np.asarray(lSVIny)
+
+        if len(lS) == 0:
+
+            lSLim, lSnLim = None, None
+            num_lim_structs, num_tot_structs = 0, 0
+            lSPolyx, lSPolyy = None, None
+            lSVInx, lSVIny = None, None
+            lsnvert = None
+
+        else:
+
+            # Lims
+            lSLim = [ss.Lim for ss in lS]
+            lSnLim = np.array([ss.noccur for ss in lS])
+
+            # Nb of structures and of structures inc. Lims (toroidal occurences)
+            num_lim_structs = len(lS)
+            num_tot_structs = int(np.sum([max(1, ss.noccur) for ss in lS]))
+
+            # build concatenated C-contiguous arrays of x and y coordinates
+            lSPolyx = np.concatenate([ss.Poly_closed[0, :] for ss in lS])
+            lSPolyy = np.concatenate([ss.Poly_closed[1, :] for ss in lS])
+            lSVInx = np.concatenate([ss.dgeom['VIn'][0, :] for ss in lS])
+            lSVIny = np.concatenate([ss.dgeom['VIn'][1, :] for ss in lS])
+
+            # lsnvert = cumulated number of points in the polygon of each Struct
+            lsnvert = np.cumsum([
+                ss.Poly_closed[0].size for ss in lS],
+                dtype=int,
+            )
+
         # Now setting keyword arguments:
         dkwd = dict(
             ves_poly=VPoly,
@@ -3667,7 +4017,7 @@ class Config(utils.ToFuObject):
             lstruct_polyx=lSPolyx,
             lstruct_polyy=lSPolyy,
             lstruct_lims=lSLim,
-            lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
+            lstruct_nlim=lSnLim,
             lstruct_normx=lSVInx,
             lstruct_normy=lSVIny,
             lnvert=lsnvert,
@@ -3683,6 +4033,68 @@ class Config(utils.ToFuObject):
         )
         return dkwd
 
+    def calc_solidangle_particle(
+        self,
+        pts=None,
+        traj=None,
+        rad=None,
+        approx=None,
+        aniso=None,
+        block=None,
+    ):
+        """ Compute the solid angle subtended by a particle along a trajectory
+
+        The particle has radius r, and trajectory (array of points) traj
+        It is observed from pts (array of points)
+        Takes into account blocking of the field of view by structural elements
+
+        traj and pts are (3, N) and (3, M) arrays of cartesian coordinates
+
+        approx = True => use approximation
+        aniso = True => return also unit vector of emission
+        block = True consider LOS collisions (with Ves, Struct...)
+
+        if block:
+            config used for LOS collisions
+
+        Parameters
+        ----------
+        traj:       np.ndarray
+            Array of (3, N) pts coordinates (X, Y, Z) representing the particle
+            positions
+        pts:        np.ndarray
+            Array of (3, M) pts coordinates (X, Y, Z) representing points from
+            which the particle is observed
+        rad:        float / np.ndarray
+            Unique of multiple values for the radius of the spherical particle
+                if multiple, rad is a np.ndarray of shape (N,)
+        approx:     None / bool
+            Flag indicating whether to compute the solid angle using a
+            1st-order series development (in which case the solid angle becomes
+            proportional to the radius of the particle, see Notes_Upgrades/)
+        aniso:      None / bool
+            Flag indicating whether to consider anisotropic emissivity,
+            meaning the routine must also compute and return the unit vector
+            directing the flux from each pts to each position on the trajectory
+        block:      None / bool
+            Flag indicating whether to check for vignetting by structural
+            elements provided by config
+
+        Return:
+        -------
+        sang: np.ndarray
+            (N, M) Array of floats, solid angles
+
+        """
+        return _comp_solidangles.calc_solidangle_particle(
+            pts=pts,
+            traj=traj,
+            rad=rad,
+            config=self,
+            approx=approx,
+            aniso=aniso,
+            block=block,
+        )
 
 """
 ###############################################################################
@@ -4538,29 +4950,42 @@ class Rays(utils.ToFuObject):
 
         # Get reference: lS
         if indStruct is None:
-            indStruct = self.indStruct_computeInOut
-        lS = [
-            ss for ii, ss in enumerate(self.config.lStruct) if ii in indStruct
-        ]
+            indIn, indOut = self.get_indStruct_computeInOut(unique_In=True)
+            indStruct = np.r_[indIn, indOut]
+        else:
+            indIn = [
+                ii for ii in indStruct
+                if self.config.lStruct[ii]._InOut == "in"
+            ]
+            if len(indIn) > 1:
+                ind = np.argmin([
+                    self.config.lStruct[ii].dgeom['Surf']
+                    for ii in indIn
+                ])
+                indStruct = [ii for ii in indStruct
+                             if ii not in indIn or ii == ind]
+                indIn = [indIn[ind]]
+            indOut = [
+                ii for ii in indStruct
+                if self.config.lStruct[ii]._InOut == "out"
+            ]
 
-        lSIn = [ss for ss in lS if ss._InOut == "in"]
-        if len(lSIn) == 0:
+        if len(indIn) == 0:
             msg = "self.config must have at least a StructIn subclass !"
-            assert len(lSIn) > 0, msg
-        iref = np.argmin([ss.dgeom["Surf"] for ss in lSIn])
-        S = lSIn[iref]
+            raise Exception(msg)
 
+        S = self.config.lStruct[indIn[0]]
         VPoly = S.Poly_closed
         VVIn = S.dgeom["VIn"]
         largs = [D, u, VPoly, VVIn]
 
+        lS = [self.config.lStruct[ii] for ii in indOut]
         if self._method == "ref":
 
             Lim = S.Lim
             nLim = S.noccur
             VType = self.config.Id.Type
 
-            lS = [ss for ss in lS if ss._InOut == "out"]
             lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
             for ss in lS:
                 lSPoly.append(ss.Poly_closed)
@@ -4594,7 +5019,6 @@ class Rays(utils.ToFuObject):
             nLim = S.noccur
             VType = self.config.Id.Type
 
-            lS = [ss for ss in lS if ss._InOut == "out"]
             lSPolyx, lSVInx = [], []
             lSPolyy, lSVIny = [], []
             lSLim, lSnLim = [], []
@@ -4624,7 +5048,7 @@ class Rays(utils.ToFuObject):
                 else:
                     num_tot_structs += len(ss.Lim)
 
-            lsnvert = np.asarray(lsnvert, dtype=np.long)
+            lsnvert = np.asarray(lsnvert, dtype=int)
             lSPolyx = np.asarray(lSPolyx)
             lSPolyy = np.asarray(lSPolyy)
             lSVInx = np.asarray(lSVInx)
@@ -4636,7 +5060,7 @@ class Rays(utils.ToFuObject):
                         lstruct_polyx=lSPolyx,
                         lstruct_polyy=lSPolyy,
                         lstruct_lims=lSLim,
-                        lstruct_nlim=np.asarray(lSnLim, dtype=np.long),
+                        lstruct_nlim=np.asarray(lSnLim, dtype=int),
                         lstruct_normx=lSVInx,
                         lstruct_normy=lSVIny,
                         lnvert=lsnvert,
@@ -5255,6 +5679,7 @@ class Rays(utils.ToFuObject):
         if self._is2D():
             self._dX12.update(**fd["dX12"])
 
+
     ###########
     # properties
     ###########
@@ -5325,19 +5750,6 @@ class Rays(utils.ToFuObject):
     @property
     def config(self):
         return self._dconfig["Config"]
-
-    @property
-    def indStruct_computeInOut(self):
-        compute = self.config.get_compute()
-        lS = self.config.lStruct
-        iI, iO = [], []
-        for ii in range(0, len(lS)):
-            if compute[ii]:
-                if lS[ii]._InOut == "in":
-                    iI.append(ii)
-                elif lS[ii]._InOut == "out":
-                    iO.append(ii)
-        return np.r_[iI + iO]
 
     @property
     def Etendues(self):
@@ -5484,7 +5896,7 @@ class Rays(utils.ToFuObject):
                                     return_copy=return_copy,
                                     diag=diag, name=name, dchans=dchans)
 
-    def translate_3d(selfi, distance=None, direction=None,
+    def translate_3d(self, distance=None, direction=None,
                      return_copy=None,
                      diag=None, name=None, dchans=None):
         """ Translate the instance in provided direction """
@@ -5592,11 +6004,38 @@ class Rays(utils.ToFuObject):
     # public methods
     ###########
 
+    def get_indStruct_computeInOut(self, unique_In=None):
+        """ The indices of structures with compute = True
+
+        The indidces refer to self.config.lStruct
+            - The first array corresponds to Struct of type In
+            - The second array corresponds to Struct of type Out
+        """
+        if unique_In is None:
+            unique_In = False
+
+        compute = self.config.get_compute()
+        indIn = np.array([
+            ii for ii, ss in enumerate(self.config.lStruct)
+            if compute[ii] and ss._InOut == "in"
+        ], dtype=int)
+        if unique_In is True and indIn.size > 1:
+            iind = np.argmin([
+                self.config.lStruct[ii].dgeom['Surf'] for ii in indIn
+            ])
+            indIn = np.r_[indIn[iind]]
+
+        indOut = np.array([
+            ii for ii, ss in enumerate(self.config.lStruct)
+            if compute[ii] and ss._InOut == "out"
+        ], dtype=int)
+        return indIn, indOut
+
     def _check_indch(self, ind, out=int):
         if ind is not None:
             ind = np.asarray(ind)
             assert ind.ndim == 1
-            assert ind.dtype in [np.int64, np.bool_, np.long]
+            assert ind.dtype in [np.int64, np.bool_, int]
             if ind.dtype == np.bool_:
                 assert ind.size == self.nRays
                 if out is int:
@@ -5795,13 +6234,20 @@ class Rays(utils.ToFuObject):
     def _get_plotL(
         self,
         reflections=True,
-        Lplot="Tot",
-        proj="All",
+        Lplot=None,
+        proj=None,
         ind=None,
         return_pts=False,
         multi=False,
     ):
         """ Get the (R,Z) coordinates of the cross-section projections """
+        # Check inputs
+        if Lplot is None:
+            Lplot = 'tot'
+        if proj is None:
+            proj = 'All'
+
+        # Compute
         ind = self._check_indch(ind)
         if ind.size > 0:
             us = self.u[:, ind]
@@ -7153,8 +7599,8 @@ class Rays(utils.ToFuObject):
         dElt = {}
         lS = self.config.lStruct
         ind = self._check_indch(ind, out=bool)
-        for ii in self.indStruct_computeInOut:
-            kn = "%s_%s" % (lS[ii].__class__.__name__, lS[ii].Id.Name)
+        for ii in np.r_[self.get_indStruct_computeInOut(unique_In=True)]:
+            kn = "{}_{}".format(lS[ii].__class__.__name__, lS[ii].Id.Name)
             indtouch = self.select(touch=kn, out=bool)
             if np.any(indtouch):
                 indok = indtouch & ind
@@ -7171,8 +7617,13 @@ class Rays(utils.ToFuObject):
         return dElt
 
     def get_touch_colors(
-        self, ind=None, dElt=None, cbck=(0.8, 0.8, 0.8), rgba=True
+        self,
+        ind=None,
+        dElt=None,
+        cbck=(0.8, 0.8, 0.8),
+        rgba=True,
     ):
+        """ Get array of colors per LOS (color set by the touched Struct) """
         if dElt is None:
             dElt = self.get_touch_dict(ind=None, out=bool)
         else:
@@ -7199,6 +7650,7 @@ class Rays(utils.ToFuObject):
         self,
         key=None,
         quant="lengths",
+        Lplot=None,
         invert=None,
         ind=None,
         Bck=True,
@@ -7214,7 +7666,15 @@ class Rays(utils.ToFuObject):
         The associated Config is also plotted
         The plot shows which strutural element is touched by each LOS
 
-        In addition, an extra quantity is plotted, depending on quant:
+        In addition, an extra quantity can be mapped to alpha (transparency)
+
+        Parameters
+        ----------
+        key:        None / str
+            Only relevant if self.dchans was defined
+            key is then a key to sekf.dchans
+        quant:      None / str
+            Flag indicating which extra quantity is used to map alpha:
             - 'lengths' (default): the length of each LOS
             - 'angles' : the angle of incidence of each LOS
                          (with respect to the normal of the surface touched,
@@ -7223,6 +7683,26 @@ class Rays(utils.ToFuObject):
                          (useful for checking numbering)
             - 'Etendues': the etendue associated to each LOS (user-provided)
             - 'Surfaces': the surfaces associated to each LOS (user-provided)
+        Lplot:      None / str
+            Flag indicating whether to plot:
+                - 'tot': the full length of the LOS
+                - 'in': only the part that is inside the vessel
+        invert:     None / bool
+            Flag indicating whether to plot 2D camera images inverted (pinhole)
+        ind:        None / np.ndarray
+            Array of bool indices used to select only a subset of the LOS
+        Bck:        None / bool
+            Flag indicating whether to plot the background LOS
+        fs:         None / tuple
+            figure size in inches
+        wintit:     None / str
+            Title for the window
+        tit:        None / str
+            Title for the figure
+        connect:    None / bool
+            Flag indicating to connect interactive actuators
+        draw:       None / bool
+            Flag indicating whether to draw the figure
         """
         out = _plot.Rays_plot_touch(
             self,
@@ -7230,6 +7710,7 @@ class Rays(utils.ToFuObject):
             Bck=Bck,
             quant=quant,
             ind=ind,
+            Lplot=Lplot,
             invert=invert,
             connect=connect,
             fs=fs,
@@ -7347,7 +7828,7 @@ class CamLOS1D(Rays):
         refshot=None,
         refrun=None,
         user=None,
-        tokamak=None,
+        database=None,
         version=None,
         occ=None,
         dryrun=False,
@@ -7367,7 +7848,7 @@ class CamLOS1D(Rays):
             refshot=refshot,
             refrun=refrun,
             user=user,
-            tokamak=tokamak,
+            database=database,
             version=version,
             occ=occ,
             dryrun=dryrun,

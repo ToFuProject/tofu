@@ -40,9 +40,9 @@ _ = sys.path.pop(1)
 
 
 if 'imas2tofu' not in dir(tf):
-    msg = "imas does not seem to be available\n"
-    msg += "  => tf.imas2tofu not available\n"
-    msg += "  => tofuplot not available"
+    msg = ("imas does not seem to be available\n"
+           + "  => tf.imas2tofu not available\n"
+           + "  => tofucalc not available")
     raise Exception(msg)
 
 
@@ -64,10 +64,10 @@ _DCONVERT = {
 
 
 def call_tfcalcimas(shot=None, run=None, user=None,
-                    tokamak=None, version=None,
-                    tokamak_eq=None, user_eq=None,
+                    database=None, version=None,
+                    database_eq=None, user_eq=None,
                     shot_eq=None, run_eq=None,
-                    tokamak_prof=None, user_prof=None,
+                    database_prof=None, user_prof=None,
                     shot_prof=None, run_prof=None,
                     ids=None, t0=None, tlim=None, extra=None,
                     plot_compare=True, Brightness=None,
@@ -87,8 +87,6 @@ def call_tfcalcimas(shot=None, run=None, user=None,
         del kwd[k0]
     del kwd['ddef']
 
-    if isinstance(kwd['t0'], str) and kwd['t0'].lower() == 'none':
-        kwd['t0'] = None
     if kwd['tlim'] is not None and len(kwd['tlim']) == 1:
         kwd['tlim'] = [kwd['tlim'], None]
     if kwd['tlim'] is not None and len(kwd['tlim']) != 2:

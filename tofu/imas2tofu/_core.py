@@ -63,23 +63,6 @@ __all__ = ['check_units_IMASvsDSHORT',
            '_save_to_imas']
 
 
-# public imas user (used for checking if can be saved)
-_IMAS_USER_PUBLIC = 'imas_public'
-
-# Default IMAS parameters (default for loading)
-_IMAS_USER = 'imas_public'
-_IMAS_SHOT = 0
-_IMAS_RUN = 0
-_IMAS_OCC = 0
-_IMAS_TOKAMAK = 'west'
-_IMAS_VERSION = '3'
-_IMAS_SHOTR = -1
-_IMAS_RUNR = -1
-_IMAS_DIDD = {'shot': _IMAS_SHOT, 'run': _IMAS_RUN,
-              'refshot': _IMAS_SHOTR, 'refrun': _IMAS_RUNR,
-              'user': _IMAS_USER, 'tokamak': _IMAS_TOKAMAK,
-              'version': _IMAS_VERSION}
-
 # Root tofu path (for saving repo in IDS)
 _ROOT = os.path.abspath(os.path.dirname(__file__))
 _ROOT = _ROOT[:_ROOT.index('tofu')+len('tofu')]
@@ -139,7 +122,7 @@ class MultiIDSLoader(object):
     """ Class for handling multi-ids possibly from different idd
 
     For each desired ids (e.g.: core_profile, ece, equilibrium...), you can
-    specify a different idd (i.e.: (shot, run, user, tokamak, version))
+    specify a different idd (i.e.: (shot, run, user, database, version))
 
     The instance will remember from which idd each ids comes from.
     It provides a structure to keep track of these dependencies
@@ -155,15 +138,16 @@ class MultiIDSLoader(object):
 
     _def = {'isget':False,
             'ids':None, 'occ':0, 'needidd':True}
-    _defidd = _IMAS_DIDD
+    _defidd = dict(_defimas2tofu._IMAS_DIDD)
 
     _lidsnames = [k for k in dir(imas) if k[0] != '_']
-    _lidsk = ['tokamak', 'user', 'version',
+    _lidsk = ['database', 'user', 'version',
               'shot', 'run', 'refshot', 'refrun']
 
     # Known short version of signal str
     _dshort = _defimas2tofu._dshort
     _didsdiag = _defimas2tofu._didsdiag
+    _lidsconfig = _defimas2tofu._lidsconfig
     _lidsdiag = _defimas2tofu._lidsdiag
     _lidslos = _defimas2tofu._lidslos
     _lidssynth = _defimas2tofu._lidssynth
@@ -192,7 +176,7 @@ class MultiIDSLoader(object):
 
     def __init__(self, preset=None, dids=None, ids=None, occ=None, idd=None,
                  shot=None, run=None, refshot=None, refrun=None,
-                 user=None, tokamak=None, version=None,
+                 user=None, database=None, version=None,
                  ids_base=None, synthdiag=None, get=None, ref=True):
         """ A class for handling multiple ids loading from IMAS
 
@@ -210,7 +194,7 @@ class MultiIDSLoader(object):
                             An idd stored locally on the database of user A can
                             be read by other users if they provide the
                             user name 'A'.
-                - tokamak:  the name of the experiment (e.g.: 'ITER')
+                - database:  the name of the experiment (e.g.: 'ITER')
                 - shot:     the shot number
                 - run:      It's the 'version' of the shotfile.
                             Indeed, IMAS allows to store both experimental and
@@ -254,13 +238,15 @@ class MultiIDSLoader(object):
         import tofu as tf
         user = 'imas_public'
         ids = ['interferometer', 'polarimeter']
-        multi = tf.imas2tofu.MultiIDSLoader(shot=55583, user=user,
-                                            tokamak='west', ids=ids, get=False)
+        multi = tf.imas2tofu.MultiIDSLoader(
+            shot=55583, user=user,
+            database='west', ids=ids, get=False,
+        )
 
         # This will ad an ids from a different idd and automatically load
         # ('get') everything
         multi.add_ids('bolometer', shot=55583, user='myusername',
-                      tokamak='west')
+                      database='west')
 
         # To have an overview of what your multi instance contains, type
         multi
@@ -273,9 +259,11 @@ class MultiIDSLoader(object):
 
         # Check and format inputs
         if dids is None:
-            self.add_idd(idd=idd,
-                         shot=shot, run=run, refshot=refshot, refrun=refrun,
-                         user=user, tokamak=tokamak, version=version, ref=ref)
+            self.add_idd(
+                idd=idd,
+                shot=shot, run=run, refshot=refshot, refrun=refrun,
+                user=user, database=database, version=version, ref=ref,
+            )
             lidd = list(self._didd.keys())
             assert len(lidd) <= 1
             idd = lidd[0] if len(lidd) > 0 else None
@@ -284,6 +272,14 @@ class MultiIDSLoader(object):
                 if not all([iids in self._IDS_BASE
                             for iids in self._dids.keys()]):
                     ids_base = True
+                else:
+                    ids_base = False
+            if not isinstance(ids_base, bool):
+                msg = ("Arg ids_base must be bool:\n"
+                       + "\t- False: adds no ids\n"
+                       + "\t- True: adds ids in self._IDS_BASE\n"
+                       + "  You provided:\n{}".format(ids_base))
+                raise Exception(msg)
             if ids_base is True:
                 self.add_ids_base(get=False)
             if synthdiag is None:
@@ -660,7 +656,7 @@ class MultiIDSLoader(object):
                              for v0 in dpreset.values()])
             c3 = True and c2
             for k0,v0 in dpreset.items():
-                for v1 in v0.values():
+                for k1, v1 in v0.items():
                     if type(v1) is str:
                         dpreset[k0][k1] = [v1]
                     c3 = c3 and all([ss in self._dshort[k1].keys()
@@ -732,13 +728,17 @@ class MultiIDSLoader(object):
         lidd = self._checkformat_get_idd(idd)
         for k in lidd:
             if self._didd[k]['isopen'] == False:
-                if not all([ss in self._didd[k]['params'].keys()
-                            for ss in ['user','tokamak','version']]):
-                    msg = "idd cannot be opened with user, tokamak, version !\n"
-                    msg += "    - name : %s"%k
+                if not all([
+                    ss in self._didd[k]['params'].keys()
+                    for ss in ['user', 'database', 'version']
+                ]):
+                    msg = (
+                        "idd cannot be opened with user, database, version !\n"
+                        + "    - name : {}".format(k)
+                    )
                     raise Exception(msg)
                 args = (self._didd[k]['params']['user'],
-                        self._didd[k]['params']['tokamak'],
+                        self._didd[k]['params']['database'],
                         self._didd[k]['params']['version'])
                 self._didd[k]['idd'].open_env( *args )
                 self._didd[k]['isopen'] = True
@@ -858,7 +858,7 @@ class MultiIDSLoader(object):
     @classmethod
     def _checkformat_idd(cls, idd=None,
                          shot=None, run=None, refshot=None, refrun=None,
-                         user=None, tokamak=None, version=None,
+                         user=None, database=None, version=None,
                          isopen=None, ref=None, defidd=None):
         lc = [idd is None, shot is None]
         if not any(lc):
@@ -874,7 +874,7 @@ class MultiIDSLoader(object):
         if lc[0]:
             assert type(shot) in [int,np.int_]
             params = dict(shot=int(shot), run=run, refshot=refshot, refrun=refrun,
-                          user=user, tokamak=tokamak, version=version)
+                          user=user, database=database, version=version)
             for kk,vv in defidd.items():
                 if params[kk] is None:
                     params[kk] = vv
@@ -901,7 +901,7 @@ class MultiIDSLoader(object):
             isopen = expIdx > 0
 
         if 'user' in params.keys():
-            name = [params['user'], params['tokamak'], params['version']]
+            name = [params['user'], params['database'], params['version']]
         else:
             name = [str(id(idd))]
         name += ['{:06.0f}'.format(params['shot']),
@@ -920,15 +920,17 @@ class MultiIDSLoader(object):
 
     def add_idd(self, idd=None,
                 shot=None, run=None, refshot=None, refrun=None,
-                user=None, tokamak=None, version=None,
+                user=None, database=None, version=None,
                 ref=None, return_name=False):
         assert ref in [None, True]
         # didd
-        didd = self._checkformat_idd(idd=idd,
-                                     shot=shot, run=run,
-                                     refshot=refshot, refrun=refrun,
-                                      user=user, tokamak=tokamak,
-                                      version=version)
+        didd = self._checkformat_idd(
+            idd=idd,
+            shot=shot, run=run,
+            refshot=refshot, refrun=refrun,
+            user=user, database=database,
+            version=version,
+        )
         self._didd.update(didd)
         name = list(didd.keys())[0]
 
@@ -1125,7 +1127,7 @@ class MultiIDSLoader(object):
 
     def add_ids(self, ids=None, occ=None, idd=None, preset=None,
                 shot=None, run=None, refshot=None, refrun=None,
-                user=None, tokamak=None, version=None,
+                user=None, database=None, version=None,
                 ref=None, isget=None, get=None):
         """ Add an ids (or a list of ids)
 
@@ -1152,7 +1154,7 @@ class MultiIDSLoader(object):
             name = self.add_idd(idd=idd,
                                 shot=shot, run=run,
                                 refshot=refshot, refrun=refrun,
-                                user=user, tokamak=tokamak,
+                                user=user, database=database,
                                 version=version, ref=ref, return_name=True)
             idd = name
 
@@ -1160,7 +1162,7 @@ class MultiIDSLoader(object):
             if self._refidd is None:
                 msg = "No idd was provided (and ref idd is not clear) !\n"
                 msg += "Please provide an idd either directly or via \n"
-                msg += "args (shot, user, tokamak...)!\n"
+                msg += "args (shot, user, database...)!\n"
                 msg += "    - %s"%str([(k,v.get('ref',None))
                                        for k,v in self._didd.items()])
                 raise Exception(msg)
@@ -1178,7 +1180,7 @@ class MultiIDSLoader(object):
 
     def add_ids_base(self, occ=None, idd=None,
                      shot=None, run=None, refshot=None, refrun=None,
-                     user=None, tokamak=None, version=None,
+                     user=None, database=None, version=None,
                      ref=None, isget=None, get=None):
         """ Add th list of ids stored in self._IDS_BASE
 
@@ -1187,12 +1189,12 @@ class MultiIDSLoader(object):
         """
         self.add_ids(ids=self._IDS_BASE, occ=occ, idd=idd,
                      shot=shot, run=run, refshot=refshot, refrun=refrun,
-                     user=user, tokamak=tokamak, version=version,
+                     user=user, database=database, version=version,
                      ref=ref, isget=isget, get=get)
 
     def add_ids_synthdiag(self, ids=None, occ=None, idd=None,
                           shot=None, run=None, refshot=None, refrun=None,
-                          user=None, tokamak=None, version=None,
+                          user=None, database=None, version=None,
                           ref=None, isget=None, get=None):
         """ Add pre-tabulated input ids necessary for calculating synth. signal
 
@@ -1205,7 +1207,7 @@ class MultiIDSLoader(object):
                                               returnas=list)
         self.add_ids(ids=ids, occ=occ, idd=idd, preset=None,
                      shot=shot, run=run, refshot=refshot, refrun=refrun,
-                     user=user, tokamak=tokamak, version=version,
+                     user=user, database=database, version=version,
                      ref=ref, isget=isget, get=get)
 
     def remove_ids(self, ids=None, occ=None):
@@ -1268,7 +1270,7 @@ class MultiIDSLoader(object):
         # idd
         a0 = []
         if len(self._didd) > 0:
-            c0 = ['idd', 'user', 'tokamak', 'version',
+            c0 = ['idd', 'user', 'database', 'version',
                   'shot', 'run', 'refshot', 'refrun', 'isopen', '']
             for k0,v0 in self._didd.items():
                 lu = ([k0] + [str(v0['params'][k]) for k in c0[1:-2]]
@@ -1360,11 +1362,12 @@ class MultiIDSLoader(object):
                                dshort=cls._dshort, dcomp=cls._dcomp,
                                force=force)
 
-    def get_data(self, ids=None, sig=None, occ=None,
+    def get_data(self, dsig=None, occ=None,
                  data=None, units=None,
                  indch=None, indt=None, stack=None,
                  isclose=None, flatocc=True,
-                 nan=True, pos=None, empty=None, strict=None, warn=True):
+                 nan=None, pos=None, empty=None, strict=None,
+                 return_all=None, warn=None):
         """ Return a dict of the desired signals extracted from specified ids
 
         For each signal, loads the data and / or units
@@ -1417,6 +1420,8 @@ class MultiIDSLoader(object):
         empty:      None / bool
             Check whether the loaded data array ie empty (or full of nans)
                 If so, a flag isempty is set to True
+        return_all: bool
+            Flag indicating whether to return only dout or also dfail and dsig
         warn:       bool
             Flag indicating whether to print warning messages for data could
             not be retrieved
@@ -1425,81 +1430,32 @@ class MultiIDSLoader(object):
         ------
         dout:   dict
             Dictionnary containing the loaded data
+        dfail:  dict, only returned in return_all = True
+            Dictionnary of failed data loading, with error messages
+        dsig:  dict, only returned in return_all = True
+            Dictionnary of requested signals, occ, indt, indch
 
         """
-        return _comp.get_data_units(ids=ids, sig=sig, occ=occ,
-                                    data=data, units=units,
-                                    indch=indch, indt=indt,
-                                    stack=stack, isclose=isclose,
-                                    flatocc=flatocc, nan=nan, pos=pos,
-                                    empty=empty, strict=strict, warn=warn,
-                                    dids=self._dids, dshort=self._dshort,
-                                    dcomp=self._dcomp,
-                                    dall_except=self._dall_except)[0]
-
-    def get_data_all(self, dsig=None, stack=None,
-                     isclose=None, flatocc=True, nan=True,
-                     pos=None, empty=None, strict=None):
-        """ Get all data available from all desired ids
-
-        Return a dict
-
-        """
-
-        if stack is None:
-            stack = True
-
-        # --------------
-        # Prepare dsig
-        if dsig is None:
-            if self._preset is not None:
-                dsig = self._dpreset[self._preset]
-            else:
-                dsig = dict.fromkeys(self._dids.keys())
-        else:
-            assert type(dsig) is dict
-        dout = dict.fromkeys(set(self._dids.keys()).intersection(dsig.keys()))
-
-        lc = [ss for ss in dsig.keys() if ss not in dout.keys()]
-        if len(lc) != 0:
-            msg = "The following ids are asked but not available:\n"
-            msg += "    - %s"%str(lc)
-            raise Exception(msg)
-        assert all([type(v) in [str,list] or v is None for v in dsig.values()])
-
-        # --------------
-        # Get data
-        dfail = dict.fromkeys(dout.keys())
-        anyerror = False
-        for ids in dout.keys():
-            try:
-                dout[ids], dfail[ids] = _comp.get_data_units(
-                    ids=ids, sig=dsig[ids], occ=None,
-                    data=True, units=True,
-                    indch=None, indt=None,
-                    stack=stack, isclose=isclose,
-                    flatocc=flatocc, nan=nan,
-                    pos=pos, empty=empty, strict=strict, warn=False,
-                    dids=self._dids, dshort=self._dshort,
-                    dcomp=self._dcomp, dall_except=self._dall_except)
-                if len(dfail[ids]) > 0:
-                    anyerror = True
-            except Exception as err:
-                del dout[ids]
-                dfail[ids] = dict.fromkeys(dsig[ids].keys(), 'ids error')
-                anyerror = True
-        if anyerror:
-            msg = "The following data could not be retrieved:"
-            for ids, v0 in dfail.items():
-                if len(v0) == 0:
-                    continue
-                msg += "\n\t- {}:".format(ids)
-                nk1max = np.max([len(k1) for k1 in v0.keys()])
-                for k1, v1 in v0.items():
-                    msg += "\n\t\t{0}:  {1}".format(k1.ljust(nk1max),
-                                                    v1.replace('\n', ' '))
-            warnings.warn(msg)
-        return dout
+        return _comp.get_data_units(
+            dsig=dsig,
+            occ=occ,
+            data=data,
+            units=units,
+            indch=indch,
+            indt=indt,
+            stack=stack,
+            isclose=isclose,
+            flatocc=flatocc,
+            nan=nan,
+            pos=pos,
+            empty=empty,
+            strict=strict,
+            warn=warn,
+            dids=self._dids,
+            dshort=self._dshort,
+            dcomp=self._dcomp,
+            dall_except=self._dall_except,
+            return_all=return_all)
 
     def get_events(self, occ=None, verb=True, returnas=False):
         """ Return chronoligical events stored in pulse_schedule
@@ -1517,23 +1473,34 @@ class MultiIDSLoader(object):
         if returnas is None:
             returnas = False
         assert isinstance(verb, bool)
-        assert returnas in [False, list, tuple]
+        assert returnas in [False, list, tuple, str]
 
         # Get events and sort
-        names = self.get_data('pulse_schedule', sig='events_names',
-                              occ=occ, nan=False, pos=False, stack=True,
-                              empty=True, strict=True)['events_names']['data']
-        times = self.get_data('pulse_schedule',
-                              sig='events_times',
-                              occ=occ, nan=True, pos=False, stack=True,
-                              empty=True, strict=True)['events_times']
+        dout = self.get_data(
+            dsig={'pulse_schedule': ['events_names', 'events_times']},
+            occ=occ, nan=False, pos=False, stack=True,
+            empty=True, strict=True, return_all=False
+        )['pulse_schedule']
+
+        names, times = dout['events_names']['data'], dout['events_times']
         tunits = times['units']
         times = times['data']
+        c0 = len(names) == len(times)
+        if not c0:
+            msg = ("events names and times seem incompatible!\n"
+                   + "\t- len(events_names['data']) = {}\n".format(len(names))
+                   + "\t- len(events_times['data']) = {}".format(len(times)))
+            raise Exception(msg)
+        if np.size(names) == 0:
+            msg = ("ids pulse_schedule has no events!\n"
+                   + "\t- len(events_names['data']) = {}\n".format(len(names))
+                   + "\t- len(events_times['data']) = {}".format(len(times)))
+            raise Exception(msg)
         ind = np.argsort(times)
         names, times = names[ind], times[ind]
 
         # print and / or return as list / tuple
-        if verb:
+        if verb is True or returnas is str:
             msg = np.array([range(times.size), names, times], dtype='U').T
             length = np.nanmax(np.char.str_len(msg))
             msg = np.char.ljust(msg, length)
@@ -1541,11 +1508,14 @@ class MultiIDSLoader(object):
                    + '  time ({})'.format(tunits).ljust(length)
                    + '\n' + ' '.join(['-'*length for ii in [0, 1, 2]]) + '\n'
                    + '\n'.join([' '.join(aa) for aa in msg]))
+        if verb is True:
             print(msg)
         if returnas is list:
             return list(zip(names, times))
         elif returnas is tuple:
             return names, times
+        elif returnas is str:
+            return msg
 
     #---------------------
     # Methods for exporting to tofu objects
@@ -1563,18 +1533,20 @@ class MultiIDSLoader(object):
             ind = False
         assert ind is False or isinstance(ind, int)
         if t0 is None:
-            t0 = False
+            t0 = _defimas2tofu._T0
         elif t0 != False:
-            if type(t0) in [int,float,np.int,np.float]:
+            if type(t0) in [int, float, np.int_, np.float_]:
                 t0 = float(t0)
             elif type(t0) is str:
                 t0 = t0.strip()
                 c0 = (len(t0.split('.')) <= 2
                       and all([ss.isdecimal() for ss in t0.split('.')]))
                 if 'pulse_schedule' in self._dids.keys():
-                    events = self.get_data(ids='pulse_schedule',
-                                           sig=['events_names',
-                                                'events_times'])
+                    events = self.get_data(
+                        dsig={'pulse_schedule': ['events_names',
+                                                 'events_times']},
+                        return_all=False,
+                    )['pulse_schedule']
                     names = np.char.strip(events['events_names']['data'])
                     if t0 in names:
                         indt = np.nonzero(names == t0)[0]
@@ -1585,12 +1557,16 @@ class MultiIDSLoader(object):
                         t0 = float(t0)
                     else:
                         msg = ("Desired event ({}) unavailable!\n".format(t0)
-                               + "    - available events:\n"
-                               + str(events['events_names']))
+                               + "  Please choose from:\n"
+                               + self.get_events(verb=False, returnas=str))
                         raise Exception(msg)
                 elif c0:
                     t0 = float(t0)
                 else:
+                    msg = ("Desired t0 ({}) not loaded".format(t0)
+                           + " because ids 'pulse_schedule' not loaded\n"
+                           + "  => setting t0 = False")
+                    warnings.warn(msg)
                     t0 = False
             else:
                 t0 = False
@@ -1646,6 +1622,14 @@ class MultiIDSLoader(object):
             else:
                 description_2d = 0
 
+        ndescript = len(self._dids[ids]['ids'][indoc].description_2d)
+        if ndescript < description_2d+1:
+            msg = ("Requested description_2d not available!\n"
+                   + "\t- len(wall[].description_2d) = {}\n".format(indoc,
+                                                                    ndescript)
+                   + "\t- required description_2d: {}".format(description_2d))
+            raise Exception(msg)
+
         # ----------------
         # Extract all relevant structures
         import tofu.geom as mod
@@ -1661,6 +1645,22 @@ class MultiIDSLoader(object):
             Name = wall.type.name
             if Name == '':
                 Name = 'imas wall'
+        if '_' in Name:
+            Name = Name.strip('_')
+            ln = Name.split('_')
+            if len(ln) > 1:
+                for ii, nn in enumerate(ln[1:]):
+                    if nn[0].islower():
+                        ln[ii+1] = nn.capitalize()
+                Name = ''.join(ln)
+        if ' ' in Name:
+            Name = Name.strip(' ')
+            ln = Name.split(' ')
+            if len(ln) > 1:
+                for ii, nn in enumerate(ln[1:]):
+                    if nn[0].islower():
+                        ln[ii+1] = nn.capitalize()
+                Name = ''.join(ln)
         config = mod.Config(lStruct=lS, Name=Name, **kwargs)
 
         # Output
@@ -1686,7 +1686,7 @@ class MultiIDSLoader(object):
 
         # -------------
         # Trival case
-        if len(dextra) == 0:
+        if dextra in [None, (None, None)] or len(dextra) == 0:
             if fordata:
                 return None
             else:
@@ -1699,8 +1699,9 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs, nan=nan,
-                                    pos=pos, stack=stack)
+                out = self.get_data(dsig={ids: vs}, nan=nan,
+                                    pos=pos, stack=stack,
+                                    return_all=False)[ids]
                 inds = [ii for ii in range(0, len(vs)) if vs[ii] in out.keys()]
                 _comp_toobjects.extra_get_fordataTrue(
                     inds, vs, vc, out, dout,
@@ -1711,8 +1712,9 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs, nan=nan,
-                                    pos=pos, stack=stack)
+                out = self.get_data(dsig={ids: vs}, nan=nan,
+                                    pos=pos, stack=stack,
+                                    return_all=False)[ids]
                 _comp_toobjects.extra_get_fordataFalse(
                     out, d0d, dt0,
                     ids=ids, dshort=self._dshort, dcomp=self._dcomp)
@@ -1761,7 +1763,7 @@ class MultiIDSLoader(object):
         occ:    None / int
             occurence to be used for loading the data
         config: None / Config
-            Configuration (i.e.: tokamak geometry) to be used for the instance
+            Configuration (i.e.: database geometry) to be used for the instance
             If None, created from the wall ids with self.to_Config().
         out:    type
             class with which the output shall be returned
@@ -1823,17 +1825,27 @@ class MultiIDSLoader(object):
 
         # -------------
         #   get all relevant data
-        out0 = self.get_data_all(dsig=dsig,
-                                 nan=nan, pos=pos,
-                                 empty=empty, isclose=isclose, strict=True)
+        out0 = self.get_data(dsig=dsig,
+                             nan=nan, pos=pos,
+                             empty=empty, isclose=isclose, strict=True,
+                             return_all=False)
 
         # -------------
         #   Input dicts
 
         # config
         if config is None:
-            config = self.to_Config(Name=Name, occ=occ,
-                                    description_2d=description_2d, plot=False)
+            try:
+                config = self.to_Config(
+                    Name=Name,
+                    occ=occ,
+                    description_2d=description_2d,
+                    plot=False)
+            except Exception as err:
+                msg = (str(err)
+                       + "\nCould not load waal from wall ids\n"
+                       + "  => No config provided to Plasma2D instance!")
+                warnings.warn(msg)
 
         # dextra
         d0d, dtime0 = self._get_dextra(dextra)
@@ -1867,10 +1879,11 @@ class MultiIDSLoader(object):
             # -------------
             # d1d and dradius
             lsig = [k for k in out0[ids].keys() if '1d' in k]
-            out_ = self.get_data(ids, lsig, indt=indt,
+            out_ = self.get_data(dsig={ids: lsig}, indt=indt,
                                  nan=nan, pos=pos, stack=stack,
                                  isclose=isclose, empty=empty,
-                                 strict=strict, warn=False)
+                                 strict=strict, return_all=False,
+                                 warn=False)[ids]
             if len(out_) > 0:
                 nref, kref = None, None
                 for ss in out_.keys():
@@ -1945,16 +1958,18 @@ class MultiIDSLoader(object):
             # d2d and dmesh
             lsig = [k for k in out0[ids].keys() if '2d' in k]
             lsigmesh = [k for k in lsig if 'mesh' in k]
-            out_ = self.get_data(ids, sig=lsig, indt=indt,
+            out_ = self.get_data(dsig={ids: lsig}, indt=indt,
                                  nan=nan, pos=pos, stack=stack,
                                  isclose=isclose, empty=empty,
-                                 strict=strict, warn=False)
+                                 strict=strict, return_all=False,
+                                 warn=False)[ids]
 
             cmesh = any([ss in out_.keys() for ss in lsigmesh])
             if len(out_) > 0:
                 npts, datashape = None, None
                 keym = '{}.mesh'.format(ids) if cmesh else None
                 for ss in set(out_.keys()).difference(lsigmesh):
+
                     # Check data shape
                     if out_[ss]['data'].ndim not in [1, 2, 3]:
                         shape = out_[ss]['data'].shape
@@ -2156,9 +2171,9 @@ class MultiIDSLoader(object):
         # STcak has to be False for inspect_channels...
         # if stack is None:
             # stack = self._didsdiag[ids].get('stack', False)
-        out = self.get_data(ids, sig=lsig,
+        out = self.get_data(dsig={ids: lsig},
                             isclose=False, stack=False,
-                            nan=True, pos=False)
+                            nan=True, pos=False, return_all=False)[ids]
 
         # --------------
         # dout, indchout
@@ -2194,9 +2209,10 @@ class MultiIDSLoader(object):
             return lout
 
     def _to_Cam_Du(self, ids, lk, indch):
-        out = self.get_data(ids, sig=list(lk), indch=indch,
+        out = self.get_data(dsig={ids: list(lk)}, indch=indch,
                             nan=True, pos=False, stack=True,
-                            empty=True, strict=True)
+                            empty=True, strict=True,
+                            return_all=False)[ids]
         return _comp_toobjects.cam_to_Cam_Du(out, ids=ids)
 
     def to_Cam(self, ids=None, indch=None, indch_auto=False,
@@ -2241,7 +2257,7 @@ class MultiIDSLoader(object):
             vectors). In case of channels with non-uniform data, will try to
             identify a sub-group of channels with uniform data
         config: None / Config
-            Configuration (i.e.: tokamak geometry) to be used for the instance
+            Configuration (i.e.: database geometry) to be used for the instance
             If None, created from the wall ids with self.to_Config().
         description_2d: None / int
             description_2d index to be used if the Config is to be built from
@@ -2355,11 +2371,16 @@ class MultiIDSLoader(object):
         c0 = (isinstance(tlim, list)
               and all([type(tt) in [float, int, np.float_, np.int_]
                        for tt in tlim]))
-        if not c0:
-            names, times = self.get_events(verb=False, returnas=tuple)
+        if not c0 and 'pulse_schedule' in self._dids.keys():
+            try:
+                names, times = self.get_events(verb=False, returnas=tuple)
+            except Exception as err:
+                msg = (str(err)
+                       + "\nEvents not loaded from ids pulse_schedule!")
+                warnings.warn(msg)
         if 'pulse_schedule' in self._dids.keys():
             idd = self._dids['pulse_schedule']['idd']
-            Exp = self._didd[idd]['params']['tokamak']
+            Exp = self._didd[idd]['params']['database']
         else:
             Exp = None
         return _comp_toobjects.data_checkformat_tlim(t, tlim=tlim,
@@ -2432,7 +2453,7 @@ class MultiIDSLoader(object):
             Restrict the loaded data to a time interval with tlim
             if None, loads all time steps
         config: None / Config
-            Configuration (i.e.: tokamak geometry) to be used for the instance
+            Configuration (i.e.: database geometry) to be used for the instance
             If None, created from the wall ids with self.to_Config().
         description_2d: None / int
             description_2d index to be used if the Config is to be built from
@@ -2551,8 +2572,8 @@ class MultiIDSLoader(object):
         # Get time
         lk = sorted(dsig.keys())
         dins = dict.fromkeys(lk)
-        t = self.get_data(ids, sig=dsig.get('t', 't'),
-                          indch=indch, stack=stack)['t']['data']
+        t = self.get_data(dsig={ids: dsig.get('t', 't')},
+                          indch=indch, stack=stack)[ids]['t']['data']
         if len(t) == 0:
             msg = "The time vector is not available for %s:\n"%ids
             msg += "    - 't' <=> %s.%s\n"%(ids,self._dshort[ids]['t']['str'])
@@ -2561,9 +2582,9 @@ class MultiIDSLoader(object):
 
         # ----------
         # Get data
-        out = self.get_data(ids, sig=dsig['data'],
+        out = self.get_data(dsig={ids: dsig['data']},
                             indch=indch, nan=nan, pos=pos,
-                            empty=empty, strict=strict, stack=stack)
+                            empty=empty, strict=strict, stack=stack)[ids]
         if len(out[dsig['data']]['data']) == 0:
             msgstr = self._dshort[ids]['data']['str']
             msg = ("The data array is not available for {}:\n".format(ids)
@@ -2582,14 +2603,15 @@ class MultiIDSLoader(object):
                 raise Exception(msg)
             t = t[0, :]
         dins['t'] = t
+
         indt = self.get_tlim(t, tlim=tlim,
                              indevent=indevent, returnas=int)['indt']
 
         # -----------
         # Get data
-        out = self.get_data(ids, sig=[dsig[k] for k in lk],
+        out = self.get_data(dsig={ids: [dsig[k] for k in lk]},
                             indt=indt, indch=indch, nan=nan, pos=pos,
-                            stack=stack)
+                            stack=stack)[ids]
         for kk in set(lk).difference('t'):
             # Arrange depending on shape and field
             if type(out[dsig[kk]]['data']) is not np.ndarray:
@@ -2623,7 +2645,7 @@ class MultiIDSLoader(object):
                            + "  => Only data should have dimension 3!")
                     raise Exception(msg)
                 # Temporary fix until clean-uo and upgrading of _set_fsig()
-                if kk == 'data' and int is not None:
+                if kk == 'data' and indt is not None:
                     out[dsig[kk]]['data'] = out[dsig[kk]]['data'][:, :, indt]
                 dins[kk] = np.swapaxes(out[dsig[kk]]['data'].T, 1, 2)
 
@@ -2634,10 +2656,10 @@ class MultiIDSLoader(object):
             dins['data'] = np.fliplr(dins['data'])
 
         if 'validity_timed' in self._dshort[ids].keys():
-            inan = self.get_data(ids, sig='validity_timed',
+            inan = self.get_data(dsig={ids: 'validity_timed'},
                                  indt=indt, indch=indch,
                                  nan=nan, stack=stack,
-                                 pos=pos)['validity_timed']['data'].T < 0.
+                                 pos=pos)[ids]['validity_timed']['data'].T < 0.
             dins['data'][inan] = np.nan
         if 'X' in dins.keys() and np.any(np.isnan(dins['X'])):
             if fallback_X is None:
@@ -2646,14 +2668,16 @@ class MultiIDSLoader(object):
 
         # Apply indt if was not done in get_data
         for kk,vv in dins.items():
-            if (vv.ndim == 2 or kk == 't') and vv.shape[0] > indt.size:
-                dins[kk] = vv[indt,...]
+            c0 = (((vv.ndim == 2 and kk != 'lamb') or kk == 't')
+                  and vv.shape[0] > indt.size)
+            if c0:
+                dins[kk] = vv[indt, ...]
 
         # dlabels
         dins['dlabels'] = dict.fromkeys(lk)
         for kk in lk:
-            dins['dlabels'][kk] = {'name': dsig[kk], 'units':
-                                   out[dsig[kk]]['units']}
+            dins['dlabels'][kk] = {'name': dsig[kk],
+                                   'units': out[dsig[kk]]['units']}
 
         # dextra
         dextra = self._get_dextra(dextra, fordata=True)
@@ -2829,8 +2853,8 @@ class MultiIDSLoader(object):
         ani = False
         if ids == 'bremsstrahlung_visible':
             try:
-                lamb = self.get_data(ids, sig='lamb',
-                                     stack=True)['lamb']['data']
+                lamb = self.get_data(dsig={ids: 'lamb'},
+                                     stack=True)[ids]['lamb']['data']
             except Exception as err:
                 lamb = 5238.e-10
                 msg = "bremsstrahlung_visible.lamb could not be retrived!\n"
@@ -2849,8 +2873,8 @@ class MultiIDSLoader(object):
             dq['quant'] = ['core_profiles.1dbrem']
 
         elif ids == 'polarimeter':
-            lamb = self.get_data(ids, sig='lamb',
-                                 stack=True)['lamb']['data'][0]
+            lamb = self.get_data(dsig={ids: 'lamb'},
+                                 stack=True)[ids]['lamb']['data'][0]
 
             # Get time reference
             doutt, dtut, tref = plasma.get_time_common(lq)
@@ -2977,12 +3001,12 @@ class MultiIDSLoader(object):
 #############################################################
 
 
-def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
+def load_Config(shot=None, run=None, user=None, database=None, version=None,
                 Name=None, occ=0, description_2d=None, plot=True):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
-                 user=user, tokamak=tokamak, version=version)
+                 user=user, database=database, version=version)
     didd.add_ids('wall', get=True)
 
     return didd.to_Config(Name=Name, occ=occ,
@@ -2990,7 +3014,7 @@ def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
 
 
 # occ ?
-def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
+def load_Plasma2D(shot=None, run=None, user=None, database=None, version=None,
                   tlim=None, occ=None, dsig=None, ids=None,
                   config=None, description_2d=None,
                   Name=None, t0=None, out=object, dextra=None,
@@ -2998,7 +3022,7 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
-                 user=user, tokamak=tokamak, version=version)
+                 user=user, database=database, version=version)
 
     if dsig is dict:
         lids = sorted(dsig.keys())
@@ -3021,16 +3045,16 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
                             occ=occ, config=config,
                             description_2d=description_2d, out=out,
                             plot=plot, plot_sig=plot_sig, plot_X=plot_X,
-                            bck=bcki, dextra=dextra)
+                            bck=bck, dextra=dextra)
 
 
-def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
+def load_Cam(shot=None, run=None, user=None, database=None, version=None,
              ids=None, indch=None, config=None, description_2d=None,
              occ=None, Name=None, plot=True):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
-                 user=user, tokamak=tokamak, version=version)
+                 user=user, database=database, version=version)
 
     if type(ids) is not str:
         msg = "Please provide ids to load Cam !\n"
@@ -3045,7 +3069,7 @@ def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
                        occ=occ, plot=plot)
 
 
-def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
+def load_Data(shot=None, run=None, user=None, database=None, version=None,
               ids=None, datacls=None, geomcls=None, indch_auto=True,
               tlim=None, dsig=None, data=None, X=None, indch=None,
               config=None, description_2d=None,
@@ -3054,7 +3078,7 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
-                 user=user, tokamak=tokamak, version=version)
+                 user=user, database=database, version=version)
 
     if type(ids) is not str:
         msg = "Please provide ids to load Data !\n"
@@ -3088,27 +3112,29 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
 #--------------------------------
 
 def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
-                     user=None, tokamak=None, version=None, verb=True):
+                     user=None, database=None, version=None, verb=True):
 
     # Check idd inputs and get default values
     didd = dict(shot=shot, run=run, refshot=refshot, refrun=refrun,
-                user=user, tokamak=tokamak, version=version)
+                user=user, database=database, version=version)
     for k, v in didd.items():
         if v is None:
-            didd[k] = _IMAS_DIDD[k]
+            didd[k] = _defimas2tofu._IMAS_DIDD[k]
     didd['shot'] = int(didd['shot'])
     didd['run'] = int(didd['run'])
-    assert all([type(didd[ss]) is str for ss in ['user','tokamak','version']])
+    assert all(
+        [type(didd[ss]) is str for ss in ['user', 'database', 'version']]
+    )
 
     # Check existence of database
-    path = os.path.join('~', 'public', 'imasdb', didd['tokamak'], '3', '0')
+    path = os.path.join('~', 'public', 'imasdb', didd['database'], '3', '0')
     path = os.path.realpath(os.path.expanduser(path))
 
     if not os.path.exists(path):
         msg = "IMAS: The required imas ddatabase does not seem to exist:\n"
-        msg += "         - looking for : %s\n"%path
+        msg += "         - looking for: {}\n".format(path)
         if user == getpass.getuser():
-            msg += "       => Maybe run imasdb %s (in shell) ?"%tokamak
+            msg += "       => Maybe run imasdb {} (in shell)?".format(database)
         raise Exception(msg)
 
     # Check existence of file
@@ -3120,9 +3146,9 @@ def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
         if verb:
             msg = "IMAS: opening shotfile %s"%shot_file
             print(msg)
-        idd.open_env(didd['user'], didd['tokamak'], didd['version'])
+        idd.open_env(didd['user'], didd['database'], didd['version'])
     else:
-        if user == _IMAS_USER_PUBLIC:
+        if user == _defimas2tofu._IMAS_USER_PUBLIC:
             msg = "IMAS: required shotfile does not exist\n"
             msg += "      Shotfiles with user=%s are public\n"%didd['user']
             msg += "      They have to be created centrally\n"
@@ -3132,7 +3158,7 @@ def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
             if verb:
                 msg = "IMAS: creating shotfile %s"%shot_file
                 print(msg)
-            idd.create_env(didd['user'], didd['tokamak'], didd['version'])
+            idd.create_env(didd['user'], didd['database'], didd['version'])
 
     return idd, shot_file
 
@@ -3199,7 +3225,7 @@ def _put_ids(idd, ids, shotfile, occ=0, cls_name=None,
 
 
 def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
-                  occ=None, user=None, tokamak=None, version=None,
+                  occ=None, user=None, database=None, version=None,
                   dryrun=False, tfversion=None, verb=True, **kwdargs):
 
     dfunc = {'Struct': _save_to_imas_Struct,
@@ -3230,11 +3256,11 @@ def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
             msg = "Arg shot must be provided !\n"
             msg += "  (could not be retrieved from self.Id.shot)"
             raise Exception(msg)
-    if tokamak is None:
+    if database is None:
         try:
-            tokamak = obj.Id.Exp.lower()
+            database = obj.Id.Exp.lower()
         except Exception:
-            msg = "Arg tokamak must be provided !\n"
+            msg = "Arg database must be provided !\n"
             msg += "  (could not be retrieved from self.Id.Exp.lower())"
             raise Exception(msg)
     if cls in ['CamLOS1D', 'DataCam1D'] and kwdargs.get('ids',None) is None:
@@ -3246,10 +3272,12 @@ def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
             raise Exception(msg)
 
     # Call relevant function
-    out = dfunc[cls]( obj, shot=shot, run=run, refshot=refshot,
-                     refrun=refrun, occ=occ, user=user, tokamak=tokamak,
-                     version=version, dryrun=dryrun, tfversion=tfversion,
-                     verb=verb, **kwdargs)
+    out = dfunc[cls](
+        obj, shot=shot, run=run, refshot=refshot,
+        refrun=refrun, occ=occ, user=user, database=database,
+        version=version, dryrun=dryrun, tfversion=tfversion,
+        verb=verb, **kwdargs,
+    )
     return out
 
 
@@ -3259,7 +3287,7 @@ def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
 
 def _save_to_imas_Struct(obj,
                          shot=None, run=None, refshot=None, refrun=None,
-                         occ=None, user=None, tokamak=None, version=None,
+                         occ=None, user=None, database=None, version=None,
                          dryrun=False, tfversion=None, verb=True,
                          description_2d=None, description_typeindex=None,
                          unit=None, mobile=None):
@@ -3278,10 +3306,12 @@ def _save_to_imas_Struct(obj,
 
     # Create or open IDS
     # ------------------
-    idd, shotfile = _open_create_idd(shot=shot, run=run,
-                                     refshot=refshot, refrun=refrun,
-                                     user=user, tokamak=tokamak, version=version,
-                                     verb=verb)
+    idd, shotfile = _open_create_idd(
+        shot=shot, run=run,
+        refshot=refshot, refrun=refrun,
+        user=user, database=database, version=version,
+        verb=verb,
+    )
 
     # Fill in data
     # ------------------
@@ -3333,7 +3363,7 @@ def _save_to_imas_Struct(obj,
 
 def _save_to_imas_Config(obj, idd=None, shotfile=None,
                          shot=None, run=None, refshot=None, refrun=None,
-                         occ=None, user=None, tokamak=None, version=None,
+                         occ=None, user=None, database=None, version=None,
                          dryrun=False, tfversion=None, close=True, verb=True,
                          description_2d=None, description_typeindex=None,
                          mobile=None):
@@ -3348,10 +3378,12 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
     # Create or open IDS
     # ------------------
     if idd is None:
-        idd, shotfile = _open_create_idd(shot=shot, run=run,
-                                         refshot=refshot, refrun=refrun,
-                                         user=user, tokamak=tokamak, version=version,
-                                         verb=verb)
+        idd, shotfile = _open_create_idd(
+            shot=shot, run=run,
+            refshot=refshot, refrun=refrun,
+            user=user, database=database, version=version,
+            verb=verb,
+        )
     assert type(shotfile) is str
 
 
@@ -3427,7 +3459,7 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
 
         # Add Vessel at the end
         ii = nS
-        if ismobile:
+        if mobile:
             units[ii].outline.resize(1)
             units[ii].outline[0].r = ves.Poly[0, :]
             units[ii].outline[0].z = ves.Poly[1, :]
@@ -3470,27 +3502,33 @@ def _save_to_imas_Config(obj, idd=None, shotfile=None,
 
         # Put IDS
         # ------------------
-        _put_ids(idd, idd.wall, shotfile, occ=occ, err=err0, dryrun=dryrun,
-                 cls_name='%s_%s'%(obj.Id.Cls,obj.Id.Name),
-                 close=close, verb=verb)
+        _put_ids(
+            idd, idd.wall, shotfile, occ=occ, err=err0, dryrun=dryrun,
+            cls_name='{}_{}'.format(obj.Id.Cls, obj.Id.Name),
+            close=close, verb=verb,
+        )
 
 
-def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
-                           shot=None, run=None, refshot=None, refrun=None,
-                           occ=None, user=None, tokamak=None, version=None,
-                           dryrun=False, tfversion=None, close=True, verb=True,
-                           ids=None, deep=True, restore_size=False,
-                           config_occ=None, config_description_2d=None):
+def _save_to_imas_CamLOS1D(
+    obj, idd=None, shotfile=None,
+    shot=None, run=None, refshot=None, refrun=None,
+    occ=None, user=None, database=None, version=None,
+    dryrun=False, tfversion=None, close=True, verb=True,
+    ids=None, deep=True, restore_size=False,
+    config_occ=None, config_description_2d=None,
+):
 
     if occ is None:
         occ = 0
     # Create or open IDS
     # ------------------
     if idd is None:
-        idd, shotfile = _open_create_idd(shot=shot, run=run,
-                                         refshot=refshot, refrun=refrun,
-                                         user=user, tokamak=tokamak, version=version,
-                                         verb=verb)
+        idd, shotfile = _open_create_idd(
+            shot=shot, run=run,
+            refshot=refshot, refrun=refrun,
+            user=user, database=database, version=version,
+            verb=verb,
+        )
     assert type(shotfile) is str
 
     # Check choice of ids
@@ -3582,27 +3620,33 @@ def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
     finally:
         # Put IDS
         # ------------------
-        _put_ids(idd, ids, shotfile, occ=occ,
-                 cls_name='%s_%s'%(obj.Id.Cls,obj.Id.Name),
-                 err=err0, dryrun=dryrun, close=close, verb=verb)
+        _put_ids(
+            idd, ids, shotfile, occ=occ,
+            cls_name='{}_{}'.format(obj.Id.Cls, obj.Id.Name),
+            err=err0, dryrun=dryrun, close=close, verb=verb,
+        )
 
 
-def _save_to_imas_DataCam1D( obj,
-                            shot=None, run=None, refshot=None, refrun=None,
-                            occ=None, user=None, tokamak=None, version=None,
-                            dryrun=False, tfversion=None, verb=True,
-                            ids=None, deep=True, restore_size=True, forceupdate=False,
-                            path_data=None, path_X=None,
-                            config_occ=None, config_description_2d=None):
+def _save_to_imas_DataCam1D(
+    obj,
+    shot=None, run=None, refshot=None, refrun=None,
+    occ=None, user=None, database=None, version=None,
+    dryrun=False, tfversion=None, verb=True,
+    ids=None, deep=True, restore_size=True, forceupdate=False,
+    path_data=None, path_X=None,
+    config_occ=None, config_description_2d=None,
+):
 
     if occ is None:
         occ = 0
     # Create or open IDS
     # ------------------
-    idd, shotfile = _open_create_idd(shot=shot, run=run,
-                                     refshot=refshot, refrun=refrun,
-                                     user=user, tokamak=tokamak, version=version,
-                                     verb=verb)
+    idd, shotfile = _open_create_idd(
+        shot=shot, run=run,
+        refshot=refshot, refrun=refrun,
+        user=user, database=database, version=version,
+        verb=verb,
+    )
 
     # Check choice of ids
     c0 = ids in dir(idd)
