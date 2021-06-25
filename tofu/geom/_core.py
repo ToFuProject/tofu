@@ -3900,7 +3900,9 @@ class Config(utils.ToFuObject):
                     derr[k0] = str(err)
 
             if len(derr) > 0:
-                lerr = ['\n\t- {}: {}'.format(k0, v0) for k0, v0 in derr.items()]
+                lerr = [
+                    '\n\t- {}: {}'.format(k0, v0) for k0, v0 in derr.items()
+                ]
                 msg = (
                     "\nThe following Struct could not be created:\n"
                     + '\n'.join(lerr)
