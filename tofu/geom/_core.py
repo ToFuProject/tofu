@@ -2036,75 +2036,6 @@ class Struct(utils.ToFuObject):
             )
             return obj
 
-    @classmethod
-    def from_svg(
-        cls,
-        pfe,
-        returnas='object',
-        Exp=None,
-        Name=None,
-        shot=None,
-        Type=None,
-        pos=None,
-        extent=None,
-        color=None,
-        indpath=None,
-        SavePath=os.path.abspath("./"),
-        delimiter=None,
-        comments=None,
-        warn=None,
-    ):
-        # Check inputs
-        if returnas not in [object, 'object', dict, 'dict']:
-            msg = ("Arg returnas must be either:"
-                   + "\t- 'object': return {} instance\n".format(cls.__name__)
-                   + "\t- 'dict' : return a dict with polygon, pos and extent")
-            raise Exception(msg)
-        if pfe[-4:] != '.svg':
-            msg = ("Only accepts .svg files!\n"
-                   + "\t file: {}".format(pfe))
-            raise Exception(msg)
-        if warn is None:
-            warn = True
-
-        # Extract polygon from file and check
-        dpath = _comp.get_paths_from_svg(pfe)
-
-        if cls.__name__ not in dpath.keys():
-            msg = ("Desired class ({}) not available:\n".format(cls)
-                   + "\t{}".format(dpath.keys()))
-            raise Exception(msg)
-        if len(dpath[cls.__name__]) == 1:
-            indpath = 0
-        else:
-            if indpath is None:
-                msg = "No or several path identified in {}".format(pfe)
-                raise Exception(msg)
-            else:
-                assert isinstance(indpath, int)
-
-        Name = list(dpath[cls.__name__].keys())[indpath]
-        poly = dpath[cls.__name__][Name]['poly']
-
-        # Return
-        if returnas in [dict, 'dict']:
-            return {'Name': Name, 'Exp': Exp, 'Cls': cls.__name__,
-                    "poly": poly, "pos": pos, "extent": extent}
-        else:
-            SavePath = os.path.abspath(SavePath)
-            obj = cls(
-                Name=Name,
-                Exp=Exp,
-                shot=shot,
-                Type=Type,
-                Poly=poly,
-                pos=pos,
-                extent=extent,
-                SavePath=SavePath,
-                color=color,
-            )
-            return obj
-
     def save_to_imas(
         self,
         shot=None,
@@ -3923,6 +3854,7 @@ class Config(utils.ToFuObject):
     def from_svg(
         cls,
         pfe,
+        res=None,
         Exp=None,
         Name=None,
         shot=None,
@@ -3943,7 +3875,7 @@ class Config(utils.ToFuObject):
             raise Exception(msg)
 
         # Extract polygon from file and check
-        dpath = _comp.get_paths_from_svg(pfe=pfe, verb=verb)
+        dpath = _comp.get_paths_from_svg(pfe=pfe, res=res, verb=verb)
 
         if len(dpath) == 0:
             msg = "No Struct found in {}".format(pfe)

@@ -146,12 +146,18 @@ def get_paths_from_svg(pfe=None, res=None, verb=None):
     for ii, k0 in enumerate(lk):
 
         v0 = dpath[k0]
-        dpath[k0]['poly'] = _get_pts_from_path_svg(parse_path(v0['poly']))
+        poly = _get_pts_from_path_svg(parse_path(v0['poly']), res=res)
+        # reverse because for some reason the parser inverses y
+        dpath[k0]['poly'] = poly
 
         # class and color
         color = v0['color'][v0['color'].index(kstr) + len(kstr):].split(';')[0]
+        if color == 'none':
+            dpath[k0]['cls'] = 'Ves'
+            color = None
+        else:
+            dpath[k0]['cls'] = 'PFC'
         dpath[k0]['color'] = color
-        dpath[k0]['cls'] = 'Ves' if color == 'none' else 'PFC'
 
     # verb
     if verb is True:
