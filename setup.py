@@ -344,6 +344,7 @@ setup(
     # $ pip install -e .[dev,test]
     extras_require={
         "dev": [
+            "svg.path",
             "check-manifest",
             "coverage",
             "nose==1.3.4",
