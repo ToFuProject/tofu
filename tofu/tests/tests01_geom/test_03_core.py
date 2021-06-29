@@ -735,10 +735,12 @@ class Test02_Config(object):
         pfe = os.path.join(_here, 'test_03_core_data', 'Inkscape.svg')
         # to be solved when optional dependence svg.path is handled
         # (or integrated)
-        try:
-            conf = tfg.Config.from_svg(pfe, Name='Test', Exp='Test', res=10)
-        except Exception as err:
-            pass
+        conf = tfg.Config.from_svg(pfe, Name='Test', Exp='Test', res=10)
+        conf = tfg.Config.from_svg(pfe, Name='Test', Exp='Test', z0=-150)
+        conf = tfg.Config.from_svg(
+            pfe, Name='Test', Exp='Test',
+            res=10, z0=-150, r0=-100, scale=0.01,
+        )
 
     def test15_saveload(self, verb=False):
         for typ in self.dobj.keys():
