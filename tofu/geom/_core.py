@@ -464,7 +464,14 @@ class Struct(utils.ToFuObject):
         if Poly.shape[0] != 2:
             Poly = Poly.T
 
+        # --------------------------------------
         # Elimininate any double identical point
+
+        # Treat closed polygons seperately (no warning)
+        if np.sum((Poly[:, 0] - Poly[:, -1])**2) < 1.e-12:
+            Poly = Poly[:, :-1]
+
+        # Treat other points
         ind = np.sum(np.diff(np.concatenate((Poly, Poly[:, 0:1]), axis=1),
                              axis=1) ** 2, axis=0) < 1.0e-12
         if np.any(ind):
