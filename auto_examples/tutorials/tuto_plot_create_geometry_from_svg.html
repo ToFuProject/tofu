@@ -129,14 +129,17 @@ to download the full example code</p>
 <span id="sphx-glr-auto-examples-tutorials-tuto-plot-create-geometry-from-svg-py"></span><h1>Creating a geometry with Inkscape<a class="headerlink" href="#creating-a-geometry-with-inkscape" title="Permalink to this headline">¶</a></h1>
 <p>This is a tutorial that shows you how to draw a geometry in Inkscape
 and load it in tofu.</p>
-<p>To see a tutorial on how to draw a vessel’s geometry on Inkscape and save
-it to a <cite>svg</cite> file, you can check the video below. Basically, you just need
-to use straight <em>Bezier curves</em> to draw the closed polygons that will define
-the vessel and optionally the structures. To define a PFC structure, just
-add a fill color.</p>
+<p>To see a tutorial on how to draw a vessel’s geometry on Inkscape
+by tracing an image from a PDF file for example, and save it to a <cite>svg</cite> file,
+to load it and use it in tofu, you can check the video below. Basically, you
+just need to use straight <em>Bezier curves</em> to draw the closed polygons that
+will define the vessel and optionally the structures. To define a PFC
+structure, just add a fill color.
+You can also draw a line to automatically scale the configuration to a
+known measure.</p>
 <div class="text-center">
 <iframe width="560" height="315"
-src="https://www.youtube.com/embed/92JyXj39n8E"
+src="https://www.youtube.com/embed/MFwMZL7JjhI"
 title="YouTube video player"
 frameborder="0" allow="accelerometer; autoplay; clipboard-write;
 encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
@@ -157,15 +160,7 @@ configuration from a <cite>svg</cite> file. Supposing you saved it in a file nam
         - Ves: vessel (9 pts, None)
         - PFC: struct1 (5 pts, #000080)
         - PFC: struct2 (5 pts, #d40000)
-from /home/lasofivec/repositories/forked_tofu/tofu/examples/tutorials/myfirstgeom.svg
-/home/lasofivec/repositories/forked_tofu/tofu/tofu/geom/_core.py:481: UserWarning: Struct instance: double identical points in Poly
-  =&gt; 1 points removed
-  =&gt; Poly goes from 9 to 8 points
-  warnings.warn(msg)
-/home/lasofivec/repositories/forked_tofu/tofu/tofu/geom/_core.py:481: UserWarning: PFC instance: double identical points in Poly
-  =&gt; 1 points removed
-  =&gt; Poly goes from 5 to 4 points
-  warnings.warn(msg)
+from /home/lasofivec/tofu/examples/tutorials/myfirstgeom.svg
 </pre></div>
 </div>
 <p>It already gives you some information on what you loaded, but to see what it
@@ -180,9 +175,9 @@ actually contains:</p>
 
 class  Name     SaveName                                                         nP  noccur  move  color                     visible
 -----  -------  ---------------------------------------------------------------  --  ------  ----  ------------------------  -------
-Ves    vessel   TFG_Ves_ExpTest_vessel_sh00000_Vers1.4.10-alpha9-337-ga589ad1d   7   0       None  ( 0.0,  0.0,  0.0,  1.0)  True
-PFC    struct1  TFG_PFC_ExpTest_struct1_sh00000_Vers1.4.10-alpha9-337-ga589ad1d  4   0       None  ( 0.0,  0.0,  0.5,  1.0)  True
-PFC    struct2  TFG_PFC_ExpTest_struct2_sh00000_Vers1.4.10-alpha9-337-ga589ad1d  4   0       None  (0.83,  0.0,  0.0,  1.0)  True
+Ves    vessel   TFG_Ves_ExpTest_vessel_sh00000_Vers1.4.10-alpha9-349-gd9149398   7   0       None  ( 0.0,  0.0,  0.0,  1.0)  True
+PFC    struct1  TFG_PFC_ExpTest_struct1_sh00000_Vers1.4.10-alpha9-349-gd9149398  4   0       None  ( 0.0,  0.0,  0.5,  1.0)  True
+PFC    struct2  TFG_PFC_ExpTest_struct2_sh00000_Vers1.4.10-alpha9-349-gd9149398  4   0       None  (0.83,  0.0,  0.0,  1.0)  True
 </pre></div>
 </div>
 <p>To plot it, simply do</p>
@@ -191,7 +186,7 @@ PFC    struct2  TFG_PFC_ExpTest_struct2_sh00000_Vers1.4.10-alpha9-337-ga589ad1d 
 </div>
 <img alt="Test" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_001.png" />
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>[&lt;matplotlib.axes._axes.Axes object at 0x7f5aabd71910&gt;, &lt;matplotlib.axes._axes.Axes object at 0x7f5ab8772f40&gt;]
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>[&lt;matplotlib.axes._axes.Axes object at 0x7f309aead9d0&gt;, &lt;matplotlib.axes._axes.Axes object at 0x7f30af64e340&gt;]
 </pre></div>
 </div>
 <p>We can see that the z- and r-axis might not be exactly what we wanted. We
@@ -203,8 +198,6 @@ when loading the configuration.</p>
                                  <span class="n">scale</span><span class="o">=</span><span class="mf">0.5</span>
                                  <span class="p">)</span>
 <span class="n">config</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
 <img alt="Test" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_002.png" />
@@ -213,18 +206,55 @@ when loading the configuration.</p>
         - Ves: vessel (9 pts, None)
         - PFC: struct1 (5 pts, #000080)
         - PFC: struct2 (5 pts, #d40000)
-from /home/lasofivec/repositories/forked_tofu/tofu/examples/tutorials/myfirstgeom.svg
-/home/lasofivec/repositories/forked_tofu/tofu/tofu/geom/_core.py:481: UserWarning: Struct instance: double identical points in Poly
-  =&gt; 1 points removed
-  =&gt; Poly goes from 9 to 8 points
-  warnings.warn(msg)
-/home/lasofivec/repositories/forked_tofu/tofu/tofu/geom/_core.py:481: UserWarning: PFC instance: double identical points in Poly
-  =&gt; 1 points removed
-  =&gt; Poly goes from 5 to 4 points
-  warnings.warn(msg)
+from /home/lasofivec/tofu/examples/tutorials/myfirstgeom.svg
+
+[&lt;matplotlib.axes._axes.Axes object at 0x7f30af5e9dc0&gt;, &lt;matplotlib.axes._axes.Axes object at 0x7f30aef24580&gt;]
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  0.459 seconds)</p>
+<p>Or, even better, if you have a figure where there is known measure you can
+let tofu scale the figure automatically for you</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">from_svg</span><span class="p">(</span>
+    <span class="s2">&quot;from_pdf.svg&quot;</span><span class="p">,</span>
+    <span class="n">Name</span><span class="o">=</span><span class="s2">&quot;Traced from pdf&quot;</span><span class="p">,</span>
+    <span class="n">Exp</span><span class="o">=</span><span class="s2">&quot;Test&quot;</span><span class="p">,</span>
+    <span class="n">res</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">point1</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span>
+    <span class="n">point2</span><span class="o">=</span><span class="p">(</span><span class="mf">2.8</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">config</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<span class="c1"># sphinx_gallery_thumbnail_number = -1</span>
+</pre></div>
+</div>
+<img alt="Traced from pdf" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_003.png" />
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>The following structures were loaded:
+        - Ves: path10373 (23 pts, None)
+        - Ves: vesinner (11 pts, None)
+        - Ves: vesouter (11 pts, None)
+        - PFC: path10375 (5 pts, #00ccff)
+        - PFC: path10410 (5 pts, #00ffcc)
+        - PFC: path10445 (5 pts, #55ff99)
+        - PFC: path10480 (5 pts, #6f916f)
+        - PFC: path10515 (5 pts, #37c871)
+        - PFC: path10550 (5 pts, #ff8080)
+        - PFC: path10651 (5 pts, #ff8080)
+        - PFC: path10686 (5 pts, #ff8080)
+        - PFC: path10721 (5 pts, #ff8080)
+        - PFC: path10756 (5 pts, #ff8080)
+        - PFC: path10791 (5 pts, #ff8080)
+        - PFC: path10826 (5 pts, #ff8080)
+        - PFC: path10861 (5 pts, #ffaaaa)
+        - PFC: path10896 (5 pts, #ffb380)
+        - PFC: path10931 (5 pts, #ff9955)
+        - PFC: path10966 (5 pts, #ff7f2a)
+        - PFC: path11150 (5 pts, #8080ff)
+        - PFC: path11185 (5 pts, #8787de)
+from /home/lasofivec/tofu/examples/tutorials/from_pdf.svg
+
+[&lt;matplotlib.axes._axes.Axes object at 0x7f309ae8b100&gt;, &lt;matplotlib.axes._axes.Axes object at 0x7f30af8ca910&gt;]
+</pre></div>
+</div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  0.912 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-create-geometry-from-svg-py">
 <div class="sphx-glr-download sphx-glr-download-python docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/7c8f7a207fc58893b4716e92b89deba1/tuto_plot_create_geometry_from_svg.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_create_geometry_from_svg.py</span></code></a></p>
@@ -256,7 +286,7 @@ from /home/lasofivec/repositories/forked_tofu/tofu/examples/tutorials/myfirstgeo
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 29, 2021.<br/>
+      Last updated on Jun 30, 2021.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>

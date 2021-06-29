@@ -7,11 +7,14 @@ and load it in tofu.
 """
 
 ###############################################################################
-# To see a tutorial on how to draw a vessel's geometry on Inkscape and save
-# it to a `svg` file, you can check the video below. Basically, you just need
-# to use straight *Bezier curves* to draw the closed polygons that will define
-# the vessel and optionally the structures. To define a PFC structure, just
-# add a fill color.
+# To see a tutorial on how to draw a vessel's geometry on Inkscape
+# by tracing an image from a PDF file for example, and save it to a `svg` file,
+# to load it and use it in tofu, you can check the video below. Basically, you
+# just need to use straight *Bezier curves* to draw the closed polygons that
+# will define the vessel and optionally the structures. To define a PFC
+# structure, just add a fill color.
+# You can also draw a line to automatically scale the configuration to a
+# known measure.
 
 ###############################################################################
 
@@ -20,7 +23,7 @@ and load it in tofu.
 #
 #    <div class="text-center">
 #    <iframe width="560" height="315"
-#    src="https://www.youtube.com/embed/92JyXj39n8E"
+#    src="https://www.youtube.com/embed/MFwMZL7JjhI"
 #    title="YouTube video player"
 #    frameborder="0" allow="accelerometer; autoplay; clipboard-write;
 #    encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
@@ -58,5 +61,17 @@ config = tf.geom.Config.from_svg("myfirstgeom.svg", Name="Test", Exp="Test",
                                  scale=0.5
                                  )
 config.plot()
-import matplotlib.pyplot as plt
-plt.show()
+
+###############################################################################
+# Or, even better, if you have a figure where there is known measure you can
+# let tofu scale the figure automatically for you
+config = tf.geom.Config.from_svg(
+    "from_pdf.svg",
+    Name="Traced from pdf",
+    Exp="Test",
+    res=10,
+    point1=(0.7, -2),
+    point2=(2.8, 2)
+)
+config.plot()
+# sphinx_gallery_thumbnail_number = -1

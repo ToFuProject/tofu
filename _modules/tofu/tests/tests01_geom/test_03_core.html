@@ -854,10 +854,17 @@
         <span class="c1"># to be solved when optional dependence svg.path is handled</span>
         <span class="c1"># (or integrated)</span>
         <span class="n">conf</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">from_svg</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-        <span class="n">conf</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">from_svg</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">z0</span><span class="o">=-</span><span class="mi">150</span><span class="p">)</span>
         <span class="n">conf</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">from_svg</span><span class="p">(</span>
             <span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span>
-            <span class="n">res</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">z0</span><span class="o">=-</span><span class="mi">150</span><span class="p">,</span> <span class="n">r0</span><span class="o">=-</span><span class="mi">100</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+            <span class="n">res</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">r0</span><span class="o">=-</span><span class="mi">100</span><span class="p">,</span> <span class="n">z0</span><span class="o">=-</span><span class="mi">150</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">from_svg</span><span class="p">(</span>
+            <span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span>
+            <span class="n">res</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">point1</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="n">point2</span><span class="o">=</span><span class="p">(</span><span class="mf">2.8</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">from_svg</span><span class="p">(</span>
+            <span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span>
+            <span class="n">res</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">point1</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="n">length</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="Test02_Config.test15_load_config"><a class="viewcode-back" href="../../../../tofu.tests.tests01_geom.html#tofu.tests.tests01_geom.test_03_core.Test02_Config.test15_load_config">[docs]</a>    <span class="k">def</span> <span class="nf">test15_load_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -2632,7 +2639,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 29, 2021.<br/>
+      Last updated on Jun 30, 2021.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>

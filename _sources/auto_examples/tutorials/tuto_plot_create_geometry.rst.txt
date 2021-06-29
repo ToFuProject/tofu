@@ -162,7 +162,7 @@ object, it is advised not to modify it.
 
  .. code-block:: none
 
-    TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.10-alpha9-337-ga589ad1d
+    TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.10-alpha9-349-gd9149398
 
 
 
@@ -221,7 +221,7 @@ it so that it can be used by other ToFu objects when necessary.
  .. code-block:: none
 
     Saved in :
-        /home/lasofivec/repositories/forked_tofu/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.10-alpha9-337-ga589ad1d.npz
+        /home/lasofivec/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.10-alpha9-349-gd9149398.npz
 
 
 
@@ -307,12 +307,8 @@ otherwise the type must be specified.
 
  .. code-block:: none
 
-    /home/lasofivec/repositories/forked_tofu/tofu/tofu/geom/_core.py:481: UserWarning: PFC instance: double identical points in Poly
-      => 1 points removed
-      => Poly goes from 100 to 99 points
-      warnings.warn(msg)
     Saved in :
-        /home/lasofivec/repositories/forked_tofu/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.10-alpha9-337-ga589ad1d.npz
+        /home/lasofivec/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.10-alpha9-349-gd9149398.npz
 
 
 
@@ -320,7 +316,7 @@ otherwise the type must be specified.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.837 seconds)
+   **Total running time of the script:** ( 0 minutes  0.820 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_create_geometry.py:

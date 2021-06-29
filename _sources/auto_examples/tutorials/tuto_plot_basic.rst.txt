@@ -108,7 +108,7 @@ The configuration can easily be visualized using the `.plot()` method:
  .. code-block:: none
 
 
-    [<matplotlib.axes._axes.Axes object at 0x7f5ab87afd30>, <matplotlib.axes._axes.Axes object at 0x7f5ab87879a0>]
+    [<matplotlib.axes._axes.Axes object at 0x7f30af8f3d60>, <matplotlib.axes._axes.Axes object at 0x7f30af8d1a90>]
 
 
 
@@ -153,12 +153,12 @@ output.
 
     /home/lasofivec/miniconda3/envs/tofu3/lib/python3.8/site-packages/numpy/core/_asarray.py:102: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
       return array(a, dtype, copy=False, order=order)
-    /home/lasofivec/repositories/forked_tofu/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
+    /home/lasofivec/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
 
-    <tofu.utils.KeyHandler_mpl object at 0x7f5a87d91e20>
+    <tofu.utils.KeyHandler_mpl object at 0x7f309af06f10>
 
 
 
@@ -200,12 +200,12 @@ The principle is similar for 2D cameras.
 
     /home/lasofivec/miniconda3/envs/tofu3/lib/python3.8/site-packages/numpy/core/_asarray.py:102: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
       return array(a, dtype, copy=False, order=order)
-    /home/lasofivec/repositories/forked_tofu/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
+    /home/lasofivec/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
 
-    <tofu.utils.KeyHandler_mpl object at 0x7f5a87d28be0>
+    <tofu.utils.KeyHandler_mpl object at 0x7f309ae85370>
 
 
 
@@ -220,7 +220,7 @@ configuration.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  5.280 seconds)
+   **Total running time of the script:** ( 0 minutes  4.840 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_basic.py:
