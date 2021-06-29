@@ -743,7 +743,7 @@ class Test02_Config(object):
     def test15_load_config(self):
         lc = sorted(tfg.utils._get_listconfig(returnas=dict).keys())
         for cc in lc:
-            conf = tf.load_config(cc)
+            conf = tf.load_config(cc, strict=True)
 
     def test16_saveload(self, verb=False):
         for typ in self.dobj.keys():
