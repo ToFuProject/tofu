@@ -740,7 +740,12 @@ class Test02_Config(object):
         except Exception as err:
             pass
 
-    def test15_saveload(self, verb=False):
+    def test15_load_config(self):
+        lc = sorted(tfg.utils._get_listconfig(returnas=dict).keys())
+        for cc in lc:
+            conf = tf.load_config(cc)
+
+    def test16_saveload(self, verb=False):
         for typ in self.dobj.keys():
             self.dobj[typ].strip(-1)
             pfe = self.dobj[typ].save(verb=verb, return_pfe=True)
