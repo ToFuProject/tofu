@@ -170,9 +170,9 @@ _DCONFIG = {
         'CoilCS': ['CS3U', 'CS2U', 'CS1U', 'CS1L', 'CS2L', 'CS3L'],
     },
     # 'ITER-SOLEDGE3XV0': {
-        # 'Exp': _ExpITER,
-        # 'Ves': ['SOLEDGE3XV0'],
-        # 'PFC': ['SOLEDGE3XDivDomeV0', 'SOLEDGE3XDivSupportV0']
+    # 'Exp': _ExpITER,
+    # 'Ves': ['SOLEDGE3XV0'],
+    # 'PFC': ['SOLEDGE3XDivDomeV0', 'SOLEDGE3XDivSupportV0']
     # },
 
     # AUG
