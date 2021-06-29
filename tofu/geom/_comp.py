@@ -56,7 +56,13 @@ _SAMPLE_RESMODE = {
 # ==============================================================================
 
 
-def _get_pts_from_path_svg(path_str=None, res=None, z0=None):
+def _get_pts_from_path_svg(
+    path_str=None,
+    res=None,
+    r0=None,
+    z0=None,
+    scale=None,
+):
 
     if res is None:
         res = _RES
@@ -67,6 +73,16 @@ def _get_pts_from_path_svg(path_str=None, res=None, z0=None):
         )
         raise Exception(msg)
 
+    # r0
+    if r0 is None:
+        r0 = 0.
+    if not type(r0) in _LTYPES:
+        msg = (
+            "Arg r0 must be a float!\n"
+            + "Provided:\n\t{}".format(r0)
+        )
+        raise Exception(msg)
+
     # z0
     if z0 is None:
         z0 = 0.
@@ -74,6 +90,16 @@ def _get_pts_from_path_svg(path_str=None, res=None, z0=None):
         msg = (
             "Arg z0 must be a float!\n"
             + "Provided:\n\t{}".format(z0)
+        )
+        raise Exception(msg)
+
+    # scale
+    if scale is None:
+        scale = 1.
+    if not type(scale) in _LTYPES:
+        msg = (
+            "Arg scale must be a float!\n"
+            + "Provided:\n\t{}".format(scale)
         )
         raise Exception(msg)
 
@@ -120,12 +146,23 @@ def _get_pts_from_path_svg(path_str=None, res=None, z0=None):
     pts = np.array([pts.real, pts.imag])
 
     # reverse because inkscape has its origin at top left corner
+    pts[0, :] = pts[0, :] - r0
     pts[1, :] = -pts[1, :] - z0
+
+    # rescaling
+    pts = scale*pts
 
     return pts
 
 
-def get_paths_from_svg(pfe=None, res=None, z0=None, verb=None):
+def get_paths_from_svg(
+    pfe=None,
+    res=None,
+    r0=None,
+    z0=None,
+    scale=None,
+    verb=None,
+):
 
     # check input
     c0 = isinstance(pfe, str) and os.path.isfile(pfe) and pfe.endswith('.svg')
@@ -171,7 +208,13 @@ def get_paths_from_svg(pfe=None, res=None, z0=None, verb=None):
     for ii, k0 in enumerate(lk):
 
         v0 = dpath[k0]
-        dpath[k0]['poly'] = _get_pts_from_path_svg(v0['poly'], res=res, z0=z0)
+        dpath[k0]['poly'] = _get_pts_from_path_svg(
+            v0['poly'],
+            res=res,
+            r0=r0,
+            z0=z0,
+            scale=scale,
+        )
 
         # class and color
         color = v0['color'][v0['color'].index(kstr) + len(kstr):].split(';')[0]
