@@ -20,7 +20,7 @@ and load it in tofu.
 #
 #    <div class="text-center">
 #    <iframe width="560" height="315"
-#    src="https://www.youtube.com/embed/BoZh2U7I8-g"
+#    src="https://www.youtube.com/embed/92JyXj39n8E"
 #    title="YouTube video player"
 #    frameborder="0" allow="accelerometer; autoplay; clipboard-write;
 #    encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
