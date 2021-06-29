@@ -736,10 +736,17 @@ class Test02_Config(object):
         # to be solved when optional dependence svg.path is handled
         # (or integrated)
         conf = tfg.Config.from_svg(pfe, Name='Test', Exp='Test', res=10)
-        conf = tfg.Config.from_svg(pfe, Name='Test', Exp='Test', z0=-150)
         conf = tfg.Config.from_svg(
             pfe, Name='Test', Exp='Test',
-            res=10, z0=-150, r0=-100, scale=0.01,
+            res=10, r0=-100, z0=-150, scale=0.01,
+        )
+        conf = tfg.Config.from_svg(
+            pfe, Name='Test', Exp='Test',
+            res=10, point1=(0.7, -2), point2=(2.8, 2),
+        )
+        conf = tfg.Config.from_svg(
+            pfe, Name='Test', Exp='Test',
+            res=10, point1=(0.7, -2), length=4.5,
         )
 
     def test15_load_config(self):
