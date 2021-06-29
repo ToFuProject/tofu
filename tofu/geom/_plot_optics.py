@@ -17,6 +17,7 @@ from mpl_toolkits.mplot3d import Axes3D
 # tofu
 from tofu.version import __version__
 from . import _def as _def
+from . import _core_optics as _core_optics
 
 _GITHUB = 'https://github.com/ToFuProject/tofu/issues'
 _WINTIT = 'tofu-%s        report issues / requests at %s'%(__version__, _GITHUB)
@@ -743,6 +744,61 @@ def _CrystalBragg_plot(
                 )
     return dax
 
+def CrystalBragg_plot_focal_error_summed(
+    cryst=None, dcryst=None,
+    error_lambda=None,
+    dist=None, di=None, X=None, Y=None,
+    plot_dets=None, nsort=None,
+    tangent_to_rowland=None,
+):
+
+    if plot_dets:
+        fig = plt.figure(figsize=(14, 8))
+        gs = gridspec.GridSpec(1, 1)
+
+        ax0 = fig.add_subplot(gs[0, 0])
+        ax0.set_title('Summed focalization error [m] on full detector')
+
+        ax0.scatter(X, Y, c=error_lambda, cmap='RdYlBu')
+
+        sort = np.sort(np.ravel(error_lambda))
+        sort = sort.tolist()
+        a = np.where(error_lambda <= sort[nsort])
+        A=a[0]; B=a[1]; C=np.dstack((A,B))
+        bardet = dict(np.load(
+            'inputs_temp/det37_CTVD_incC4_New.npz', allow_pickle=True,
+            ))
+        dax = CrystalBragg_plot(
+            cryst=cryst, dcryst=dcryst,
+            det=bardet,
+            )
+        det = {}
+        for i in np.linspace(0, nsort-1, nsort).astype(int).tolist():
+            det[i] = cryst.get_detector_approx(
+                ddist = X[C[0,i][0], C[0,i][1]],
+                di = Y[C[0,i][0], C[0,i][1]],
+                tangent_to_rowland=tangent_to_rowland,
+                )
+            det[i]['outline'] = np.array(
+                [0.04*np.r_[-1,-1,1,1,-1], 0.12*np.r_[-1,1,1,-1,-1]]
+                )
+            print(det[i])
+            dax = CrystalBragg_plot(
+                cryst=cryst, dcryst=dcryst,
+                det=det[i], color='red', dax=dax,
+                )
+    else:
+        plt.title('Summed focalization error on full detector [m]')
+        plt.xlabel('ddist [m]')
+        plt.ylabel('di [m]')
+        plt.scatter(
+            X, Y, c=error_lambda, cmap='RdYlBu',
+            )
+        cbar = plt.colorbar(
+            label="error on lambda [m]", orientation="vertical",
+            boundaries=np.linspace(0.1e-7, 1e-7, 50)
+            )
+        plt.clim(0.1e-7, 1e-7)
 
 # #################################################################
 # #################################################################
@@ -751,11 +807,13 @@ def _CrystalBragg_plot(
 # #################################################################
 
 
-def CrystalBragg_plot_rockingcurve(func=None, bragg=None, lamb=None,
-                                   sigma=None, npts=None,
-                                   ang_units=None, axtit=None,
-                                   color=None,
-                                   legend=None, fs=None, ax=None):
+def CrystalBragg_plot_rockingcurve(
+    func=None, bragg=None, lamb=None,
+    sigma=None, npts=None,
+    ang_units=None, axtit=None,
+    color=None,
+    legend=None, fs=None, ax=None,
+):
 
     # Prepare
     if legend is None:

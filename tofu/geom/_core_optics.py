@@ -1898,6 +1898,7 @@ class CrystalBragg(utils.ToFuObject):
         dist_min=None, dist_max=None,
         di_min=None, di_max=None,
         ndist=None, ndi=None,
+        dcryst=None,
         lamb=None, bragg=None,
         xi=None, xj=None,
         alpha=None, beta=None,
@@ -1985,48 +1986,13 @@ class CrystalBragg(utils.ToFuObject):
         error_lambda = np.asarray(error_lambda)
         error_lambda.shape= X.shape
 
-        if not plot_dets:
-            plt.title('Summed focalization error on full detector [m]')
-            plt.xlabel('ddist [m]')
-            plt.ylabel('di [m]')
-            plt.scatter(
-                X, Y, c=error_lambda, cmap='RdYlBu',
-                )
-            cbar = plt.colorbar(
-                label="error on lambda [m]", orientation="vertical",
-                boundaries=np.linspace(0.1e-7, 1e-7, 50)
-                )
-            plt.clim(0.1e-7, 1e-7)
-
-        else:
-            import matplotlib.gridspec as gridspec
-            fig = plt.figure(figsize=(14, 8))
-            gs = gridspec.GridSpec(1, 1)
-
-            ax0 = fig.add_subplot(gs[0, 0])
-            ax0.set_title('Summed focalization error [m] on full det. for ddist and di offset translations')
-
-            sort = np.sort(np.ravel(error_lambda))
-            sort = sort.tolist()
-            a = np.where(error_lambda <= sort[nsort])
-            A=a[0]; B=a[1]; C=np.dstack((A,B))
-            bardet = dict(np.load(
-                'inputs_temp/det37_CTVD_incC4_New.npz', allow_pickle=True,
-                ))
-
-            ax0.scatter(X, Y, c=error_lambda, cmap='RdYlBu',)
-            dax = self.plot(det=bardet)
-            for i in np.linspace(0, nsort-1, nsort).astype(int).tolist():
-                det[i] = self.get_detector_approx(
-                    ddist = X[C[0,i][0], C[0,i][1]],
-                    di = Y[C[0,i][0], C[0,i][1]],
-                    tangent_to_rowland=tangent_to_rowland,
-                    )
-                print(det[i])
-                det[i]['outline'] = np.array(
-                    [0.04*np.r_[-1,-1,1,1,-1], 0.12*np.r_[-1,1,1,-1,-1]]
-                    )
-                dax = self.plot(det=det[i], color='red', dax=dax)
+        return _plot_optics.CrystalBragg_plot_focal_error_summed(
+            cryst=self, dcryst=dcryst,
+            error_lambda=error_lambda,
+            dist=dist, di=di, X=X, Y=Y,
+            plot_dets=plot_dets, nsort=nsort,
+            tangent_to_rowland=tangent_to_rowland,
+            )
 
     def _calc_braggphi_from_pts(
         self,
