@@ -120,7 +120,7 @@ def _get_pts_from_path_svg(
 
     # Check for reference line
     isref = False
-    if not 'z' in path_str.lower():
+    if 'z' not in path_str.lower():
         isref = True
 
     return pts, isref
