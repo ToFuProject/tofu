@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Computing a camera image with custom emissivity &#8212; Tofu 1.4.9</title>
+    <title>Computing a camera image with custom emissivity &#8212; Tofu 1.4.10</title>
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
@@ -19,7 +19,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Computing the integrated solid angle of a particle" href="tuto_plot_solid_angles.html" />
-    <link rel="prev" title="Creating your first Geometry" href="tuto_plot_create_geometry.html" />
+    <link rel="prev" title="Creating a geometry with Inkscape" href="tuto_plot_create_geometry_from_svg.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
@@ -42,7 +42,7 @@
         </button>
         <a class="navbar-brand" href="../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.9</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -127,8 +127,8 @@ to download the full example code</p>
 </div>
 <div class="sphx-glr-example-title section" id="computing-a-camera-image-with-custom-emissivity">
 <span id="sphx-glr-auto-examples-tutorials-tuto-plot-custom-emissivity-py"></span><h1>Computing a camera image with custom emissivity<a class="headerlink" href="#computing-a-camera-image-with-custom-emissivity" title="Permalink to this headline">¶</a></h1>
-<p>This tutorial defines an emissivity that varies in space and computes the signal
-received by a camera using this emissivity.</p>
+<p>This tutorial defines an emissivity that varies in space and computes the
+signal received by a camera using this emissivity.</p>
 <p>We start by loading a built-in <cite>tofu</cite> configuration and define a 2D camera.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -159,10 +159,10 @@ We can plot its profile in the (0, X, Z) plane.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">emissivity</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Custom emissivity as a function of geometry.</span>
 
-<span class="sd">    :param pts: ndarray of shape (3, n_points) (each column is a xyz coordinate)</span>
+<span class="sd">    :param pts: ndarray of shape (3, npts) (each column is a xyz coordinate)</span>
 <span class="sd">    :param t: optional, time parameter to add a time dependency to the</span>
 <span class="sd">        emissivity function</span>
-<span class="sd">    :param vect: optional, ndarray of shape (3, n_points), if anisotropic</span>
+<span class="sd">    :param vect: optional, ndarray of shape (3, npts), if anisotropic</span>
 <span class="sd">        emissivity, unit direction vectors (X,Y,Z)</span>
 <span class="sd">    :return:</span>
 <span class="sd">        - emissivity -- 2D array holding the emissivity for each point in the</span>
@@ -204,10 +204,10 @@ We can plot its profile in the (0, X, Z) plane.</p>
 </div>
 <img alt="WEST-V3" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_custom_emissivity_001.png" />
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/tofu/examples/tutorials/tuto_plot_custom_emissivity.py:72: MatplotlibDeprecationWarning: shading=&#39;flat&#39; when X and Y have the same dimensions as C is deprecated since 3.3.  Either specify the corners of the quadrilaterals with X and Y, or pass shading=&#39;auto&#39;, &#39;nearest&#39; or &#39;gouraud&#39;, or set rcParams[&#39;pcolor.shading&#39;].  This will become an error two minor releases later.
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/repositories/forked_tofu/tofu/examples/tutorials/tuto_plot_custom_emissivity.py:72: MatplotlibDeprecationWarning: shading=&#39;flat&#39; when X and Y have the same dimensions as C is deprecated since 3.3.  Either specify the corners of the quadrilaterals with X and Y, or pass shading=&#39;auto&#39;, &#39;nearest&#39; or &#39;gouraud&#39;, or set rcParams[&#39;pcolor.shading&#39;].  This will become an error two minor releases later.
   ax.pcolormesh(Y, Z, emissivity_vals)
 
-&lt;matplotlib.legend.Legend object at 0x7f2e2ec0d0d0&gt;
+&lt;matplotlib.legend.Legend object at 0x7f5d49a12d60&gt;
 </pre></div>
 </div>
 <p>Finally, we compute an image using the 2D camera and this emissivity.
@@ -226,19 +226,19 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
                                <span class="n">t</span><span class="o">=</span><span class="n">time_vector</span><span class="p">)</span>
 
 <span class="n">sig</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ntMax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
 <img alt="-" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_custom_emissivity_002.png" />
 <p class="sphx-glr-script-out">Out:</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>No handles with labels found to put in legend.
-/home/lasofivec/tofu/tofu/utils.py:3453: UserWarning: Not interactive backend!:
+/home/lasofivec/repositories/forked_tofu/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
     - backend : agg   (prefer Qt5Agg)
     - canvas  : FigureCanvasAgg
   warnings.warn(msg)
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  2.895 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  3.342 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-custom-emissivity-py">
 <div class="sphx-glr-download sphx-glr-download-python docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/e2798ac0f164c4954f702fbc6d882178/tuto_plot_custom_emissivity.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_custom_emissivity.py</span></code></a></p>
@@ -270,7 +270,7 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on May 12, 2021.<br/>
+      Last updated on Jun 29, 2021.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>

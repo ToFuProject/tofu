@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.geom._comp &#8212; Tofu 1.4.9</title>
+    <title>tofu.geom._comp &#8212; Tofu 1.4.10</title>
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
@@ -40,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.9</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -121,13 +121,17 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="c1"># Built-in</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">xml.dom</span> <span class="kn">import</span> <span class="n">minidom</span>
 
 <span class="c1"># Common</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">scipy.interpolate</span> <span class="k">as</span> <span class="nn">scpinterp</span>
 <span class="kn">import</span> <span class="nn">scipy.integrate</span> <span class="k">as</span> <span class="nn">scpintg</span>
 <span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span> <span class="k">as</span> <span class="n">insp</span>
+
+
 
 <span class="c1"># ToFu-specific</span>
 <span class="k">try</span><span class="p">:</span>
@@ -136,6 +140,10 @@
 <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
     <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_GG</span> <span class="k">as</span> <span class="n">_GG</span>
+
+
+<span class="n">_LTYPES</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">]</span>
+<span class="n">_RES</span> <span class="o">=</span> <span class="mf">0.1</span>
 
 
 <span class="c1">###############################################################################</span>
@@ -159,6 +167,201 @@
 <span class="c1">###############################################################################</span>
 <span class="c1">#                            Ves functions</span>
 <span class="c1">###############################################################################</span>
+
+
+<span class="c1"># ==============================================================================</span>
+<span class="c1"># Interfacing functions</span>
+<span class="c1"># ==============================================================================</span>
+
+
+<div class="viewcode-block" id="_get_pts_from_path_svg"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp._get_pts_from_path_svg">[docs]</a><span class="k">def</span> <span class="nf">_get_pts_from_path_svg</span><span class="p">(</span>
+    <span class="n">path_str</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">r0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">z0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">_RES</span>
+    <span class="n">c0</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_LTYPES</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Arg res must be a float !&quot;</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># r0</span>
+    <span class="k">if</span> <span class="n">r0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">r0</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">r0</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_LTYPES</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Arg r0 must be a float!</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;Provided:</span><span class="se">\n\t</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">r0</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># z0</span>
+    <span class="k">if</span> <span class="n">z0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">z0</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">z0</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_LTYPES</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Arg z0 must be a float!</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;Provided:</span><span class="se">\n\t</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">z0</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># scale</span>
+    <span class="k">if</span> <span class="n">scale</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="mf">1.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_LTYPES</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Arg scale must be a float!</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;Provided:</span><span class="se">\n\t</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># try loading</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">svg.path</span> <span class="kn">import</span> <span class="n">parse_path</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">You do not seem to have svg.path installed</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;It is an optional dependency only used for this method</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;To use from_svg(), please install svg.path using:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">pip install svg.path&quot;</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">lpath</span> <span class="o">=</span> <span class="n">parse_path</span><span class="p">(</span><span class="n">path_str</span><span class="p">)</span>
+
+    <span class="n">lpath</span><span class="o">.</span><span class="n">_calc_lengths</span><span class="p">()</span>
+    <span class="n">fract</span> <span class="o">=</span> <span class="n">lpath</span><span class="o">.</span><span class="n">_fractions</span>
+
+    <span class="n">pos</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="n">pat</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lpath</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">pat</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;Line&#39;</span><span class="p">:</span>
+            <span class="n">pos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">fract</span><span class="p">[</span><span class="n">ii</span><span class="p">]])</span>
+        <span class="k">elif</span> <span class="n">pat</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;Move&#39;</span><span class="p">:</span>
+            <span class="n">pos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">fract</span><span class="p">[</span><span class="n">ii</span><span class="p">]])</span>
+        <span class="k">elif</span> <span class="n">pat</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;Close&#39;</span><span class="p">:</span>
+            <span class="n">pos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">fract</span><span class="p">[</span><span class="n">ii</span><span class="p">]])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">npts</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">length</span><span class="p">()</span> <span class="o">/</span> <span class="n">res</span><span class="p">))</span>
+            <span class="n">pos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">fract</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">fract</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">],</span> <span class="n">npts</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">pos</span><span class="p">))</span>
+    <span class="n">ind1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pos</span><span class="o">-</span><span class="mf">1.</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-14</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ind1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">pos</span><span class="p">[</span><span class="n">ind1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ind1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Several 1!&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">lpath</span><span class="o">.</span><span class="n">point</span><span class="p">(</span><span class="n">po</span><span class="p">)</span> <span class="k">for</span> <span class="n">po</span> <span class="ow">in</span> <span class="n">pos</span><span class="p">])</span>
+    <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pts</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">pts</span><span class="o">.</span><span class="n">imag</span><span class="p">])</span>
+
+    <span class="c1"># reverse because inkscape has its origin at top left corner</span>
+    <span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">r0</span>
+    <span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="o">-</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">z0</span>
+
+    <span class="c1"># rescaling</span>
+    <span class="n">pts</span> <span class="o">=</span> <span class="n">scale</span><span class="o">*</span><span class="n">pts</span>
+
+    <span class="k">return</span> <span class="n">pts</span></div>
+
+
+<div class="viewcode-block" id="get_paths_from_svg"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp.get_paths_from_svg">[docs]</a><span class="k">def</span> <span class="nf">get_paths_from_svg</span><span class="p">(</span>
+    <span class="n">pfe</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">r0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">z0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">verb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="c1"># check input</span>
+    <span class="n">c0</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pfe</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.svg&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Arg pfe should be a path to a valid .svg file!</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;Provided:</span><span class="se">\n\t</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">pfe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+
+    <span class="c1"># verb</span>
+    <span class="k">if</span> <span class="n">verb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">verb</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">verb</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Arg verb must be a bool!</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;Provided:</span><span class="se">\n\t</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">verb</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># Predefine useful var</span>
+    <span class="n">doc</span> <span class="o">=</span> <span class="n">minidom</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+
+    <span class="c1"># Try extract raw data</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">dpath</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">getAttribute</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">):</span> <span class="p">{</span>
+                <span class="s1">&#39;poly&#39;</span><span class="p">:</span> <span class="n">path</span><span class="o">.</span><span class="n">getAttribute</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">),</span>
+                <span class="s1">&#39;color&#39;</span><span class="p">:</span> <span class="n">path</span><span class="o">.</span><span class="n">getAttribute</span><span class="p">(</span><span class="s1">&#39;style&#39;</span><span class="p">)</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">doc</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s1">&#39;path&#39;</span><span class="p">)</span>
+        <span class="p">}</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Could not extract path coordinates from </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># Derive usable data</span>
+    <span class="n">kstr</span> <span class="o">=</span> <span class="s1">&#39;fill:&#39;</span>
+    <span class="n">lk</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dpath</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="n">k0</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lk</span><span class="p">):</span>
+
+        <span class="n">v0</span> <span class="o">=</span> <span class="n">dpath</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span>
+        <span class="n">dpath</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;poly&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_get_pts_from_path_svg</span><span class="p">(</span>
+            <span class="n">v0</span><span class="p">[</span><span class="s1">&#39;poly&#39;</span><span class="p">],</span>
+            <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">,</span>
+            <span class="n">r0</span><span class="o">=</span><span class="n">r0</span><span class="p">,</span>
+            <span class="n">z0</span><span class="o">=</span><span class="n">z0</span><span class="p">,</span>
+            <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># class and color</span>
+        <span class="n">color</span> <span class="o">=</span> <span class="n">v0</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">][</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">kstr</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">kstr</span><span class="p">):]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">color</span> <span class="o">==</span> <span class="s1">&#39;none&#39;</span><span class="p">:</span>
+            <span class="n">dpath</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;cls&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Ves&#39;</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dpath</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;cls&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;PFC&#39;</span>
+        <span class="n">dpath</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span>
+
+    <span class="c1"># verb</span>
+    <span class="k">if</span> <span class="n">verb</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">lVes</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">k0</span> <span class="k">for</span> <span class="n">k0</span><span class="p">,</span> <span class="n">v0</span> <span class="ow">in</span> <span class="n">dpath</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v0</span><span class="p">[</span><span class="s1">&#39;cls&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Ves&#39;</span><span class="p">])</span>
+        <span class="n">lPFC</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">k0</span> <span class="k">for</span> <span class="n">k0</span><span class="p">,</span> <span class="n">v0</span> <span class="ow">in</span> <span class="n">dpath</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v0</span><span class="p">[</span><span class="s1">&#39;cls&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;PFC&#39;</span><span class="p">])</span>
+        <span class="n">lobj</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">- </span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="s1"> (</span><span class="si">{}</span><span class="s1"> pts, </span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">dpath</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;cls&#39;</span><span class="p">],</span> <span class="n">k0</span><span class="p">,</span>
+                <span class="n">dpath</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;poly&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dpath</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">k0</span> <span class="ow">in</span> <span class="n">lVes</span> <span class="o">+</span> <span class="n">lPFC</span>
+        <span class="p">]</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;The following structures were loaded:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lobj</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">from </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pfe</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dpath</span></div>
 
 
 <span class="c1"># ==============================================================================</span>
@@ -1330,7 +1533,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on May 12, 2021.<br/>
+      Last updated on Jun 29, 2021.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>

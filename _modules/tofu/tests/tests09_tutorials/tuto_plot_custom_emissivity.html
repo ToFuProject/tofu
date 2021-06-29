@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.tests.tests09_tutorials.tuto_plot_custom_emissivity &#8212; Tofu 1.4.9</title>
+    <title>tofu.tests.tests09_tutorials.tuto_plot_custom_emissivity &#8212; Tofu 1.4.10</title>
     <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css" />
@@ -40,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.9</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -120,8 +120,8 @@
 <span class="sd">Computing a camera image with custom emissivity</span>
 <span class="sd">^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</span>
 
-<span class="sd">This tutorial defines an emissivity that varies in space and computes the signal</span>
-<span class="sd">received by a camera using this emissivity.</span>
+<span class="sd">This tutorial defines an emissivity that varies in space and computes the</span>
+<span class="sd">signal received by a camera using this emissivity.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="c1">###############################################################################</span>
@@ -153,10 +153,10 @@
 <div class="viewcode-block" id="emissivity"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.tuto_plot_custom_emissivity.emissivity">[docs]</a><span class="k">def</span> <span class="nf">emissivity</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Custom emissivity as a function of geometry.</span>
 
-<span class="sd">    :param pts: ndarray of shape (3, n_points) (each column is a xyz coordinate)</span>
+<span class="sd">    :param pts: ndarray of shape (3, npts) (each column is a xyz coordinate)</span>
 <span class="sd">    :param t: optional, time parameter to add a time dependency to the</span>
 <span class="sd">        emissivity function</span>
-<span class="sd">    :param vect: optional, ndarray of shape (3, n_points), if anisotropic</span>
+<span class="sd">    :param vect: optional, ndarray of shape (3, npts), if anisotropic</span>
 <span class="sd">        emissivity, unit direction vectors (X,Y,Z)</span>
 <span class="sd">    :return:</span>
 <span class="sd">        - emissivity -- 2D array holding the emissivity for each point in the</span>
@@ -213,7 +213,7 @@
                                <span class="n">t</span><span class="o">=</span><span class="n">time_vector</span><span class="p">)</span>
 
 <span class="n">sig</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ntMax</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -231,7 +231,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on May 12, 2021.<br/>
+      Last updated on Jun 29, 2021.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>

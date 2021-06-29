@@ -67,6 +67,27 @@ This directory contains tutorial examples for `tofu`.
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="This is a tutorial that shows you how to draw a geometry in Inkscape and load it in tofu.">
+
+.. only:: html
+
+ .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_create_geometry_from_svg_thumb.png
+     :alt: Creating a geometry with Inkscape
+
+     :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_create_geometry_from_svg.py`
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/tutorials/tuto_plot_create_geometry_from_svg
+
+.. raw:: html
+
     <div class="sphx-glr-thumbcontainer" tooltip="This tutorial defines an emissivity that varies in space and computes the signal received by a ...">
 
 .. only:: html

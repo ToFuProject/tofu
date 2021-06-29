@@ -21,8 +21,8 @@
 Computing a camera image with custom emissivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This tutorial defines an emissivity that varies in space and computes the signal
-received by a camera using this emissivity.
+This tutorial defines an emissivity that varies in space and computes the
+signal received by a camera using this emissivity.
 
 .. GENERATED FROM PYTHON SOURCE LINES 10-11
 
@@ -81,10 +81,10 @@ We can plot its profile in the (0, X, Z) plane.
     def emissivity(pts, t=None, vect=None):
         """Custom emissivity as a function of geometry.
 
-        :param pts: ndarray of shape (3, n_points) (each column is a xyz coordinate)
+        :param pts: ndarray of shape (3, npts) (each column is a xyz coordinate)
         :param t: optional, time parameter to add a time dependency to the
             emissivity function
-        :param vect: optional, ndarray of shape (3, n_points), if anisotropic
+        :param vect: optional, ndarray of shape (3, npts), if anisotropic
             emissivity, unit direction vectors (X,Y,Z)
         :return:
             - emissivity -- 2D array holding the emissivity for each point in the
@@ -137,10 +137,10 @@ We can plot its profile in the (0, X, Z) plane.
 
  .. code-block:: none
 
-    /home/lasofivec/tofu/examples/tutorials/tuto_plot_custom_emissivity.py:72: MatplotlibDeprecationWarning: shading='flat' when X and Y have the same dimensions as C is deprecated since 3.3.  Either specify the corners of the quadrilaterals with X and Y, or pass shading='auto', 'nearest' or 'gouraud', or set rcParams['pcolor.shading'].  This will become an error two minor releases later.
+    /home/lasofivec/repositories/forked_tofu/tofu/examples/tutorials/tuto_plot_custom_emissivity.py:72: MatplotlibDeprecationWarning: shading='flat' when X and Y have the same dimensions as C is deprecated since 3.3.  Either specify the corners of the quadrilaterals with X and Y, or pass shading='auto', 'nearest' or 'gouraud', or set rcParams['pcolor.shading'].  This will become an error two minor releases later.
       ax.pcolormesh(Y, Z, emissivity_vals)
 
-    <matplotlib.legend.Legend object at 0x7f2e2ec0d0d0>
+    <matplotlib.legend.Legend object at 0x7f5d49a12d60>
 
 
 
@@ -168,7 +168,7 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
                                    t=time_vector)
 
     sig.plot(ntMax=1)
-    plt.show()
+    plt.show(block=False)
 
 
 
@@ -184,7 +184,7 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
  .. code-block:: none
 
     No handles with labels found to put in legend.
-    /home/lasofivec/tofu/tofu/utils.py:3453: UserWarning: Not interactive backend!:
+    /home/lasofivec/repositories/forked_tofu/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
@@ -195,7 +195,7 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  2.895 seconds)
+   **Total running time of the script:** ( 0 minutes  3.342 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_custom_emissivity.py:

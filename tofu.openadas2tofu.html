@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.openadas2tofu package &#8212; Tofu 1.4.9</title>
+    <title>tofu.openadas2tofu package &#8212; Tofu 1.4.10</title>
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css" />
@@ -42,7 +42,7 @@
         </button>
         <a class="navbar-brand" href="index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.9</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -135,7 +135,7 @@
 <span id="tofu-openadas2tofu-read-files-module"></span><h2>tofu.openadas2tofu._read_files module<a class="headerlink" href="#module-tofu.openadas2tofu._read_files" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
 <dt id="tofu.openadas2tofu._read_files.step03_read">
-<code class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._read_files.</span></code><code class="sig-name descname"><span class="pre">step03_read</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adas_path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwdargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_read_files.html#step03_read"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._read_files.step03_read" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._read_files.</span></code><code class="sig-name descname"><span class="pre">step03_read</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adas_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pec_as_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwdargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_read_files.html#step03_read"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._read_files.step03_read" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read openadas-formatted files and return a dict with the data</p>
 <p>Povide the full adas file name
 The result is returned as a dict</p>
@@ -151,7 +151,7 @@ The result is returned as a dict</p>
 
 <dl class="py function">
 <dt id="tofu.openadas2tofu._read_files.step03_read_all">
-<code class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._read_files.</span></code><code class="sig-name descname"><span class="pre">step03_read_all</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">element</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typ1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typ2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwdargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_read_files.html#step03_read_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._read_files.step03_read_all" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._read_files.</span></code><code class="sig-name descname"><span class="pre">step03_read_all</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">element</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typ1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typ2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pec_as_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format_for_DataCollection</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dsource0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dref0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ddata0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dlines0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwdargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_read_files.html#step03_read_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._read_files.step03_read_all" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read all relevant openadas files for chosen typ1</p>
 <dl class="simple">
 <dt>Please specify:</dt><dd><ul class="simple">
@@ -316,7 +316,7 @@ All downloaded files are stored in your local tofu directory (~/.tofu/)</p>
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on May 12, 2021.<br/>
+      Last updated on Jun 29, 2021.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>

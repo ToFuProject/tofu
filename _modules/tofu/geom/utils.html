@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.geom.utils &#8212; Tofu 1.4.9</title>
+    <title>tofu.geom.utils &#8212; Tofu 1.4.10</title>
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
@@ -40,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.9</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -836,6 +836,7 @@
     <span class="n">dconfig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">strict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="c1"># config</span>
     <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -877,7 +878,15 @@
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg returnas must be either object or dict!</span><span class="se">\n</span><span class="s2">&quot;</span>
                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">-Provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">returnas</span><span class="p">))</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">config</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">dconfig</span><span class="p">,</span> <span class="n">dconfig_shortcuts</span><span class="p">,</span> <span class="n">returnas</span>
+
+    <span class="c1"># strict</span>
+    <span class="k">if</span> <span class="n">strict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">strict</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">strict</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg strict must be a bool!</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">-Provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">strict</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">config</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">dconfig</span><span class="p">,</span> <span class="n">dconfig_shortcuts</span><span class="p">,</span> <span class="n">returnas</span><span class="p">,</span> <span class="n">strict</span>
 
 
 <span class="k">def</span> <span class="nf">_create_config_testcase</span><span class="p">(</span>
@@ -886,6 +895,7 @@
     <span class="n">dconfig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">strict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Load the desired test case configuration</span>
 
@@ -895,13 +905,17 @@
 
     <span class="c1"># -----------</span>
     <span class="c1"># Check input</span>
-    <span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">dconfig</span><span class="p">,</span>
-     <span class="n">dconfig_shortcuts</span><span class="p">,</span> <span class="n">returnas</span><span class="p">)</span> <span class="o">=</span> <span class="n">_create_config_testcase_check_inputs</span><span class="p">(</span>
+    <span class="p">(</span>
+        <span class="n">config</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">dconfig</span><span class="p">,</span>
+        <span class="n">dconfig_shortcuts</span><span class="p">,</span>
+        <span class="n">returnas</span><span class="p">,</span> <span class="n">strict</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">_create_config_testcase_check_inputs</span><span class="p">(</span>
         <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
         <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
         <span class="n">dconfig</span><span class="o">=</span><span class="n">dconfig</span><span class="p">,</span>
         <span class="n">dconfig_shortcuts</span><span class="o">=</span><span class="n">dconfig_shortcuts</span><span class="p">,</span>
         <span class="n">returnas</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span>
+        <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span>
      <span class="p">)</span>
 
     <span class="c1"># --------------------------</span>
@@ -937,39 +951,68 @@
         <span class="p">])</span>
 
     <span class="n">Exp</span> <span class="o">=</span> <span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="s1">&#39;Exp&#39;</span><span class="p">]</span>
+    <span class="n">dfail</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="n">lcls</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="n">cc</span><span class="p">]:</span>
-            <span class="n">ff</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lf</span>
-                  <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">s</span> <span class="ow">in</span> <span class="n">f</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">cc</span><span class="p">,</span> <span class="n">Exp</span><span class="p">,</span> <span class="n">ss</span><span class="p">]])]</span>
+            <span class="n">k0</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cc</span><span class="p">,</span> <span class="n">ss</span><span class="p">)</span>
+            <span class="n">ff</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lf</span>
+                <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">s</span> <span class="ow">in</span> <span class="n">f</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">cc</span><span class="p">,</span> <span class="n">Exp</span><span class="p">,</span> <span class="n">ss</span><span class="p">]])</span>
+            <span class="p">]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;No matching files</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;  Folder: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="n">path</span>
-                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    Criteria: [</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">cc</span><span class="p">,</span><span class="n">ss</span><span class="p">)</span>
-                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    Matching: &quot;</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">              &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;No matching files in </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="s2">&quot;for [&#39;</span><span class="si">{}</span><span class="s2">&#39;, &#39;</span><span class="si">{}</span><span class="s2">&#39;]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cc</span><span class="p">,</span> <span class="n">ss</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">dfail</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">=</span> <span class="n">msg</span>
+                <span class="k">continue</span>
             <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="c1"># More demanding criterion</span>
                 <span class="n">ssbis</span><span class="p">,</span> <span class="n">Expbis</span> <span class="o">=</span> <span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="n">ss</span><span class="o">+</span><span class="s1">&#39;.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;_Exp&#39;</span><span class="o">+</span><span class="n">Exp</span><span class="o">+</span><span class="s1">&#39;_&#39;</span>
                 <span class="n">ff</span> <span class="o">=</span> <span class="p">[</span><span class="n">fff</span> <span class="k">for</span> <span class="n">fff</span> <span class="ow">in</span> <span class="n">ff</span> <span class="k">if</span> <span class="n">ssbis</span> <span class="ow">in</span> <span class="n">fff</span> <span class="ow">and</span> <span class="n">Expbis</span> <span class="ow">in</span> <span class="n">fff</span><span class="p">]</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;No / several matching files</span><span class="se">\n</span><span class="s2">&quot;</span>
-                           <span class="o">+</span> <span class="s2">&quot;  Folder: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-                           <span class="o">+</span> <span class="s2">&quot;    Criteria: [</span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cc</span><span class="p">,</span> <span class="n">ss</span><span class="p">)</span>
-                           <span class="o">+</span> <span class="s2">&quot;    Matching: &quot;</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">              &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ff</span><span class="p">))</span>
-                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="s2">&quot;No matching files in </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+                        <span class="o">+</span> <span class="s2">&quot;for [&#39;</span><span class="si">{}</span><span class="s2">&#39;, &#39;</span><span class="si">{}</span><span class="s2">&#39;, &#39;</span><span class="si">{}</span><span class="s2">&#39;]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cc</span><span class="p">,</span> <span class="n">ssbis</span><span class="p">,</span> <span class="n">Expbis</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">dfail</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">=</span> <span class="n">msg</span>
+                    <span class="k">continue</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="s2">&quot;Many (</span><span class="si">{}</span><span class="s2">) matching files in </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ff</span><span class="p">),</span> <span class="n">path</span><span class="p">)</span>
+                        <span class="o">+</span> <span class="s2">&quot;for [&#39;</span><span class="si">{}</span><span class="s2">&#39;, &#39;</span><span class="si">{}</span><span class="s2">&#39;, &#39;</span><span class="si">{}</span><span class="s2">&#39;]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cc</span><span class="p">,</span> <span class="n">ssbis</span><span class="p">,</span> <span class="n">Expbis</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">dfail</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">=</span> <span class="n">msg</span>
+                    <span class="k">continue</span>
 
             <span class="n">pfe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">ff</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">obj</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s1">&#39;_core.&#39;</span><span class="o">+</span><span class="n">cc</span><span class="p">)</span><span class="o">.</span><span class="n">from_txt</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="n">ss</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span>
-                                                 <span class="n">Exp</span><span class="o">=</span><span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="s1">&#39;Exp&#39;</span><span class="p">],</span>
-                                                 <span class="n">out</span><span class="o">=</span><span class="n">returnas</span><span class="p">)</span>
+                <span class="n">obj</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s1">&#39;_core.&#39;</span><span class="o">+</span><span class="n">cc</span><span class="p">)</span><span class="o">.</span><span class="n">from_txt</span><span class="p">(</span>
+                    <span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="n">ss</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span>
+                    <span class="n">Exp</span><span class="o">=</span><span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="s1">&#39;Exp&#39;</span><span class="p">],</span>
+                    <span class="n">returnas</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span>
+                <span class="p">)</span>
                 <span class="k">if</span> <span class="n">returnas</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;object&#39;</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
-                    <span class="n">obj</span> <span class="o">=</span> <span class="p">((</span><span class="n">ss</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;Poly&#39;</span><span class="p">:</span> <span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                                 <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="n">obj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;extent&#39;</span><span class="p">:</span> <span class="n">obj</span><span class="p">[</span><span class="mi">2</span><span class="p">]}),)</span>
+                    <span class="n">obj</span> <span class="o">=</span> <span class="p">((</span>
+                        <span class="n">ss</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;Poly&#39;</span><span class="p">:</span> <span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="n">obj</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;extent&#39;</span><span class="p">:</span> <span class="n">obj</span><span class="p">[</span><span class="mi">2</span><span class="p">]}</span>
+                    <span class="p">),)</span>
                 <span class="n">lS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Could not be loaded: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ff</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Error loading: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">))</span>
+                <span class="n">dfail</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">=</span> <span class="n">msg</span>
+                <span class="k">continue</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dfail</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">lstr</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">- </span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k0</span><span class="p">,</span> <span class="n">v0</span><span class="p">)</span> <span class="k">for</span> <span class="n">k0</span><span class="p">,</span> <span class="n">v0</span> <span class="ow">in</span> <span class="n">dfail</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;The following structures could not be loaded:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lstr</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">strict</span> <span class="ow">is</span> <span class="kc">True</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">lS</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">returnas</span> <span class="o">==</span> <span class="s1">&#39;dict&#39;</span><span class="p">:</span>
         <span class="n">conf</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([</span><span class="n">tt</span> <span class="k">for</span> <span class="n">tt</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
@@ -977,11 +1020,14 @@
     <span class="k">return</span> <span class="n">conf</span>
 
 
-<div class="viewcode-block" id="create_config"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.create_config">[docs]</a><span class="k">def</span> <span class="nf">create_config</span><span class="p">(</span><span class="n">case</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;Dummy&#39;</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span>
-                  <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Bump_posextent</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span><span class="p">],</span>
-                  <span class="n">R</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">elong</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Dshape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                  <span class="n">divlow</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">divup</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nP</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                  <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">_path_testcases</span><span class="p">):</span>
+<div class="viewcode-block" id="create_config"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom.utils.create_config">[docs]</a><span class="k">def</span> <span class="nf">create_config</span><span class="p">(</span>
+    <span class="n">case</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;Dummy&#39;</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s1">&#39;Tor&#39;</span><span class="p">,</span>
+    <span class="n">Lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Bump_posextent</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span><span class="p">],</span>
+    <span class="n">R</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">elong</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Dshape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">divlow</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">divup</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nP</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">returnas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">SavePath</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">_path_testcases</span><span class="p">,</span>
+<span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Create easily a tofu.geom.Config object</span>
 
 <span class="sd">    In tofu, a Config (short for geometrical configuration) refers to the 3D</span>
@@ -1050,8 +1096,12 @@
 
     <span class="c1"># Get config, either from known case or geometrical parameterization</span>
     <span class="k">if</span> <span class="n">case</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">conf</span> <span class="o">=</span> <span class="n">_create_config_testcase</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">case</span><span class="p">,</span>
-                                       <span class="n">returnas</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">_create_config_testcase</span><span class="p">(</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">case</span><span class="p">,</span>
+            <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+            <span class="n">returnas</span><span class="o">=</span><span class="n">returnas</span><span class="p">,</span>
+            <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">poly</span><span class="p">,</span> <span class="n">pbump</span><span class="p">,</span> <span class="n">pbaffle</span> <span class="o">=</span> <span class="n">_compute_VesPoly</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="n">R</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
                                                 <span class="n">elong</span><span class="o">=</span><span class="n">elong</span><span class="p">,</span> <span class="n">Dshape</span><span class="o">=</span><span class="n">Dshape</span><span class="p">,</span>
@@ -1446,7 +1496,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on May 12, 2021.<br/>
+      Last updated on Jun 29, 2021.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>

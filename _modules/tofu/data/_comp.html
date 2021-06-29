@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.data._comp &#8212; Tofu 1.4.9</title>
+    <title>tofu.data._comp &#8212; Tofu 1.4.10</title>
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
@@ -40,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.9</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -128,6 +128,10 @@
 <span class="kn">import</span> <span class="nn">scipy.linalg</span> <span class="k">as</span> <span class="nn">scplin</span>
 <span class="kn">import</span> <span class="nn">scipy.stats</span> <span class="k">as</span> <span class="nn">scpstats</span>
 <span class="kn">from</span> <span class="nn">matplotlib.tri</span> <span class="kn">import</span> <span class="n">LinearTriInterpolator</span> <span class="k">as</span> <span class="n">mplTriLinInterp</span>
+
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_comp_new</span>
+
 
 <span class="n">_fmin_coef</span> <span class="o">=</span> <span class="mf">5.</span>
 <span class="n">_ANITYPE</span> <span class="o">=</span> <span class="s1">&#39;sca&#39;</span>
@@ -492,7 +496,6 @@
     <span class="k">return</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span></div>
 
 
-
 <span class="c1">#############################################</span>
 <span class="c1">#############################################</span>
 <span class="c1">#############################################</span>
@@ -501,16 +504,20 @@
 <span class="c1">#############################################</span>
 
 
-<div class="viewcode-block" id="get_finterp_isotropic"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp.get_finterp_isotropic">[docs]</a><span class="k">def</span> <span class="nf">get_finterp_isotropic</span><span class="p">(</span><span class="n">plasma</span><span class="p">,</span> <span class="n">idquant</span><span class="p">,</span> <span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="p">,</span>
-                          <span class="n">interp_t</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                          <span class="n">fill_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                          <span class="n">idmesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mpltri</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vquant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                          <span class="n">tall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                          <span class="n">indtq</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indtr1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                          <span class="n">trifind</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="get_finterp_isotropic"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp.get_finterp_isotropic">[docs]</a><span class="k">def</span> <span class="nf">get_finterp_isotropic</span><span class="p">(</span>
+    <span class="n">idquant</span><span class="p">,</span> <span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="p">,</span>
+    <span class="n">vquant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vr1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vr2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">interp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">idmesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">tall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">indtq</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indtr1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">mpltri</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trifind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
 
     <span class="k">if</span> <span class="n">fill_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">fill_value</span> <span class="o">=</span> <span class="n">_FILLVALUE</span>
+    <span class="k">if</span> <span class="n">interp_t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">interp_t</span> <span class="o">=</span> <span class="s1">&#39;nearest&#39;</span>
 
     <span class="c1"># -----------------------------------</span>
     <span class="c1"># Interpolate directly on 2d quantity</span>
@@ -528,31 +535,28 @@
                      <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
                      <span class="n">idref1d</span><span class="o">=</span><span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="n">idref2d</span><span class="p">):</span>
 
-                <span class="n">r</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]),</span> <span class="n">pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,:]</span>
+                <span class="n">r</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
                 <span class="n">shapeval</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
                 <span class="n">shapeval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntall</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span>
                 <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
 
-                <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">ntall</span><span class="p">):</span>
-                        <span class="n">val</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span><span class="n">mpltri</span><span class="p">,</span>
-                                                      <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">ii</span><span class="p">],:],</span>
-                                                      <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">)(</span><span class="n">r</span><span class="p">,</span><span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">fill_value</span><span class="p">)</span>
-                    <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span> <span class="o">=</span> <span class="n">plasma</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
-                                                           <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
-                                                           <span class="n">idref1d</span><span class="o">=</span><span class="n">idref1d</span><span class="p">,</span>
-                                                           <span class="n">idref2d</span><span class="o">=</span><span class="n">idref2d</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
-                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
-                        <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
-                        <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
-                            <span class="n">mpltri</span><span class="p">,</span>
-                            <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
-                            <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span>
-                        <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">fill_value</span><span class="p">)</span>
+                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_comp_new</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                    <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
+                    <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                    <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                <span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                    <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                    <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
+                        <span class="n">mpltri</span><span class="p">,</span>
+                        <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                        <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                    <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">fill_value</span><span class="p">)</span>
+
                 <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">fill_value</span><span class="p">):</span>
                     <span class="n">val</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fill_value</span>
+                <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tall</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
                 <span class="k">return</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span>
 
         <span class="c1"># --------------------</span>
@@ -570,29 +574,39 @@
                 <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
 
                 <span class="n">indpts</span> <span class="o">=</span> <span class="n">trifind</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">z</span><span class="p">)</span>
-                <span class="n">indok</span> <span class="o">=</span> <span class="n">indpts</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
-                <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
-                        <span class="n">val</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">indpts</span><span class="p">[</span><span class="n">indok</span><span class="p">]]</span>
-                    <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indpts</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                    <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span> <span class="o">=</span> <span class="n">indpts</span>
+                    <span class="n">indok</span> <span class="o">=</span> <span class="p">(</span><span class="n">indr</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">indz</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">indr</span> <span class="o">=</span> <span class="n">indr</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+                    <span class="n">indz</span> <span class="o">=</span> <span class="n">indz</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span> <span class="o">=</span> <span class="n">plasma</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
-                                                           <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
-                                                           <span class="n">idref1d</span><span class="o">=</span><span class="n">idref1d</span><span class="p">,</span>
-                                                           <span class="n">idref2d</span><span class="o">=</span><span class="n">idref2d</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+                    <span class="n">indok</span> <span class="o">=</span> <span class="n">indpts</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
+                    <span class="n">indpts</span> <span class="o">=</span> <span class="n">indpts</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+
+                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_comp_new</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                    <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
+                    <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                    <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                <span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indpts</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
                     <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
                         <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
-                        <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span>
-                                                 <span class="n">indpts</span><span class="p">[</span><span class="n">indok</span><span class="p">]]</span>
+                        <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                        <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                        <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indpts</span><span class="p">]</span>
+
+
                 <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">fill_value</span><span class="p">):</span>
                     <span class="n">val</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fill_value</span>
+                <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tall</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
                 <span class="k">return</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span>
 
 
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">vr2</span> <span class="o">=</span> <span class="n">plasma</span><span class="o">.</span><span class="n">_ddata</span><span class="p">[</span><span class="n">idref2d</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span>
-        <span class="n">vr1</span> <span class="o">=</span> <span class="n">plasma</span><span class="o">.</span><span class="n">_ddata</span><span class="p">[</span><span class="n">idref1d</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span>
-
         <span class="k">if</span> <span class="n">interp_space</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
 
             <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntall</span><span class="o">=</span><span class="n">ntall</span><span class="p">,</span>
@@ -609,45 +623,35 @@
                 <span class="n">shapeval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntall</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span>
                 <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
                 <span class="n">t0tri</span><span class="p">,</span> <span class="n">t0int</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span>
-                <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">ntall</span><span class="p">):</span>
-                        <span class="c1"># get ref values for mapping</span>
-                        <span class="c1"># this is the slowest step (~1.8 s)</span>
-                        <span class="n">vii</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span><span class="n">mpltri</span><span class="p">,</span>
-                                              <span class="n">vr2</span><span class="p">[</span><span class="n">indtr2</span><span class="p">[</span><span class="n">ii</span><span class="p">],:],</span>
-                                              <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">)(</span><span class="n">r</span><span class="p">,</span><span class="n">z</span><span class="p">)</span>
 
-                        <span class="c1"># interpolate 1d</span>
-                        <span class="c1"># This is reasonable (~0.15 s)</span>
-                        <span class="n">val</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">scpinterp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span>
-                            <span class="n">vr1</span><span class="p">[</span><span class="n">indtr1</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="p">:],</span>
-                            <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="p">:],</span>
-                            <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span>
-                            <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                            <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span>
-                        <span class="p">)(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vii</span><span class="p">))</span>
-                    <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">out</span> <span class="o">=</span> <span class="n">plasma</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
-                                            <span class="n">idref1d</span><span class="o">=</span><span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="n">idref2d</span><span class="p">,</span>
-                                            <span class="n">indtr1</span><span class="o">=</span><span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="n">indtr2</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
-                    <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span> <span class="o">=</span> <span class="n">out</span>
-                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
-                        <span class="c1"># get ref values for mapping</span>
-                        <span class="n">vii</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span><span class="n">mpltri</span><span class="p">,</span>
-                                              <span class="n">vr2</span><span class="p">[</span><span class="n">indtr2</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="p">:],</span>
-                                              <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span><span class="p">,</span> <span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span> <span class="o">=</span> \
+                        <span class="n">_comp_new</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                            <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                            <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                            <span class="n">indtr1</span><span class="o">=</span><span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="n">indtr2</span><span class="p">,</span>
+                        <span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
 
-                        <span class="c1"># interpolate 1d</span>
-                        <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
-                        <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">scpinterp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span>
-                            <span class="n">vr1</span><span class="p">[</span><span class="n">indtr1</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="p">:],</span>
-                            <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
-                            <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span>
-                            <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                            <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span>
-                        <span class="p">)(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vii</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                    <span class="c1"># get ref values for mapping</span>
+                    <span class="n">vii</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
+                        <span class="n">mpltri</span><span class="p">,</span>
+                        <span class="n">vr2</span><span class="p">[</span><span class="n">indtr2</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                        <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                    <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+
+                    <span class="c1"># interpolate 1d</span>
+                    <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                    <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">scpinterp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span>
+                        <span class="n">vr1</span><span class="p">[</span><span class="n">indtr1</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                        <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                        <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span>
+                        <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span>
+                    <span class="p">)(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vii</span><span class="p">))</span>
+
                 <span class="n">val</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fill_value</span>
+                <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tall</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
                 <span class="k">return</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span>
 
         <span class="k">else</span><span class="p">:</span>
@@ -663,49 +667,65 @@
                 <span class="n">shapeval</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
                 <span class="n">shapeval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntall</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span>
                 <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
+
                 <span class="n">indpts</span> <span class="o">=</span> <span class="n">trifind</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">z</span><span class="p">)</span>
-                <span class="n">indok</span> <span class="o">=</span> <span class="n">indpts</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
-                <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">ntall</span><span class="p">):</span>
-                        <span class="c1"># interpolate 1d</span>
-                        <span class="n">val</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">scpinterp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span>
-                            <span class="n">vr1</span><span class="p">[</span><span class="n">indtr1</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="p">:],</span>
-                            <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="p">:],</span>
-                            <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span>
-                            <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                            <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span>
-                        <span class="p">)(</span><span class="n">vr2</span><span class="p">[</span><span class="n">indtr2</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">indpts</span><span class="p">[</span><span class="n">indok</span><span class="p">]])</span>
-                    <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indpts</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                    <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span> <span class="o">=</span> <span class="n">indpts</span>
+                    <span class="n">indok</span> <span class="o">=</span> <span class="p">(</span><span class="n">indr</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">indz</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">indr</span> <span class="o">=</span> <span class="n">indr</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+                    <span class="n">indz</span> <span class="o">=</span> <span class="n">indz</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">out</span> <span class="o">=</span> <span class="n">plasma</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
-                                            <span class="n">idref1d</span><span class="o">=</span><span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="n">idref2d</span><span class="p">,</span>
-                                            <span class="n">indtr1</span><span class="o">=</span><span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="n">indtr2</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
-                    <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span> <span class="o">=</span> <span class="n">out</span>
-                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">ntall</span><span class="p">):</span>
+                    <span class="n">indok</span> <span class="o">=</span> <span class="n">indpts</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
+                    <span class="n">indpts</span> <span class="o">=</span> <span class="n">indpts</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+
+                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span><span class="p">,</span> <span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span> <span class="o">=</span> \
+                        <span class="n">_comp_new</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                            <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                            <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                            <span class="n">indtr1</span><span class="o">=</span><span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="n">indtr2</span><span class="p">,</span>
+                        <span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indpts</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
                         <span class="c1"># interpolate 1d</span>
                         <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
                         <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">scpinterp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span>
-                            <span class="n">vr1</span><span class="p">[</span><span class="n">indtr1</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="p">:],</span>
+                            <span class="n">vr1</span><span class="p">[</span><span class="n">indtr1</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
                             <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
                             <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span>
                             <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                            <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span>
-                        <span class="p">)(</span><span class="n">vr2</span><span class="p">[</span><span class="n">indtr2</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">indpts</span><span class="p">[</span><span class="n">indok</span><span class="p">]])</span>
+                            <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span>
+                        <span class="p">)(</span><span class="n">vr2</span><span class="p">[</span><span class="n">indtr2</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                        <span class="c1"># interpolate 1d</span>
+                        <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                        <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">scpinterp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span>
+                            <span class="n">vr1</span><span class="p">[</span><span class="n">indtr1</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                            <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                            <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span>
+                            <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span>
+                        <span class="p">)(</span><span class="n">vr2</span><span class="p">[</span><span class="n">indtr2</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indpts</span><span class="p">])</span>
 
                 <span class="c1"># Double check nan in case vr2 is itself nan on parts of mesh</span>
                 <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">fill_value</span><span class="p">):</span>
                     <span class="n">val</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fill_value</span>
+                <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tall</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
                 <span class="k">return</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span>
     <span class="k">return</span> <span class="n">func</span></div>
 
 
-<div class="viewcode-block" id="get_finterp_ani"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp.get_finterp_ani">[docs]</a><span class="k">def</span> <span class="nf">get_finterp_ani</span><span class="p">(</span><span class="n">plasma</span><span class="p">,</span> <span class="n">idq2dR</span><span class="p">,</span> <span class="n">idq2dPhi</span><span class="p">,</span> <span class="n">idq2dZ</span><span class="p">,</span>
-                    <span class="n">interp_t</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                    <span class="n">fill_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mpltri</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                    <span class="n">idmesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vq2dR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                    <span class="n">vq2dPhi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vq2dZ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                    <span class="n">tall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                    <span class="n">indtq</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trifind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="get_finterp_ani"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp.get_finterp_ani">[docs]</a><span class="k">def</span> <span class="nf">get_finterp_ani</span><span class="p">(</span>
+    <span class="n">idq2dR</span><span class="p">,</span> <span class="n">idq2dPhi</span><span class="p">,</span> <span class="n">idq2dZ</span><span class="p">,</span>
+    <span class="n">interp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">fill_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mpltri</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">idmesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vq2dR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">vq2dPhi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vq2dZ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">tall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">indtq</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trifind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
 
     <span class="c1"># -----------------------------------</span>
     <span class="c1"># Interpolate directly on 2d quantity</span>
@@ -715,6 +735,8 @@
         <span class="n">Type</span> <span class="o">=</span> <span class="n">_ANITYPE</span>
     <span class="k">if</span> <span class="n">fill_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">fill_value</span> <span class="o">=</span> <span class="n">_FILLVALUE</span>
+    <span class="k">if</span> <span class="n">interp_t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">interp_t</span> <span class="o">=</span> <span class="s1">&#39;nearest&#39;</span>
 
     <span class="c1"># --------------------</span>
     <span class="c1"># Linear interpolation</span>
@@ -728,13 +750,13 @@
                  <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">):</span>
 
             <span class="c1"># Get pts in (r,z,phi)</span>
-            <span class="n">r</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]),</span> <span class="n">pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,:]</span>
-            <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:])</span>
+            <span class="n">r</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span>
 
             <span class="c1"># Deduce vect in (r,z,phi)</span>
-            <span class="n">vR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]</span>
-            <span class="n">vPhi</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]</span>
-            <span class="n">vZ</span> <span class="o">=</span> <span class="n">vect</span><span class="p">[</span><span class="mi">2</span><span class="p">,:]</span>
+            <span class="n">vR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">vPhi</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">vZ</span> <span class="o">=</span> <span class="n">vect</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
 
             <span class="c1"># Prepare output</span>
             <span class="n">shapeval</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
@@ -744,39 +766,29 @@
             <span class="n">valZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
 
             <span class="c1"># Interpolate</span>
-            <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">ntall</span><span class="p">):</span>
-                    <span class="n">valR</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>   <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span><span class="n">mpltri</span><span class="p">,</span>
-                                                     <span class="n">vq2dR</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">ii</span><span class="p">],:],</span>
-                                                     <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
-                    <span class="n">valPhi</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span><span class="n">mpltri</span><span class="p">,</span>
-                                                     <span class="n">vq2dPhi</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">ii</span><span class="p">],:],</span>
-                                                     <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
-                    <span class="n">valZ</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>   <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span><span class="n">mpltri</span><span class="p">,</span>
-                                                     <span class="n">vq2dZ</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">ii</span><span class="p">],:],</span>
-                                                     <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
-                <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span> <span class="o">=</span> <span class="n">plasma</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
-                                                       <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
-                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">ntall</span><span class="p">):</span>
-                    <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
-                    <span class="n">valR</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
-                        <span class="n">mpltri</span><span class="p">,</span>
-                        <span class="n">vq2dR</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
-                        <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span>
-                    <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
-                    <span class="n">valPhi</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
-                        <span class="n">mpltri</span><span class="p">,</span>
-                        <span class="n">vq2dPhi</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
-                        <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span>
-                    <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
-                    <span class="n">valZ</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
-                        <span class="n">mpltri</span><span class="p">,</span>
-                        <span class="n">vq2dZ</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
-                        <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span>
-                    <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+            <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_comp_new</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
+                <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+            <span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
 
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="n">valR</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
+                    <span class="n">mpltri</span><span class="p">,</span>
+                    <span class="n">vq2dR</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                    <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+                <span class="n">valPhi</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
+                    <span class="n">mpltri</span><span class="p">,</span>
+                    <span class="n">vq2dPhi</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                    <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+                <span class="n">valZ</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
+                    <span class="n">mpltri</span><span class="p">,</span>
+                    <span class="n">vq2dZ</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                    <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">Type</span> <span class="o">==</span> <span class="s1">&#39;sca&#39;</span><span class="p">:</span>
                 <span class="n">val</span> <span class="o">=</span> <span class="p">(</span><span class="n">valR</span><span class="o">*</span><span class="n">vR</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">valPhi</span><span class="o">*</span><span class="n">vPhi</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
@@ -786,6 +798,8 @@
                              <span class="o">+</span> <span class="n">valZ</span><span class="o">*</span><span class="n">vZ</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span>
 
             <span class="n">val</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fill_value</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tall</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
             <span class="k">return</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span>
 
     <span class="c1"># --------------------</span>
@@ -815,22 +829,33 @@
 
             <span class="c1"># Interpolate</span>
             <span class="n">indpts</span> <span class="o">=</span> <span class="n">trifind</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
-            <span class="n">indok</span> <span class="o">=</span> <span class="n">indpts</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
-            <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">ntall</span><span class="p">):</span>
-                    <span class="n">valR</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dR</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">indpts</span><span class="p">]</span>
-                    <span class="n">valPhi</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dPhi</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">indpts</span><span class="p">]</span>
-                    <span class="n">valZ</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dZ</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">indpts</span><span class="p">]</span>
-                <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indpts</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span> <span class="o">=</span> <span class="n">trifind</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+                <span class="n">indok</span> <span class="o">=</span> <span class="p">(</span><span class="n">indr</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">indz</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">indr</span> <span class="o">=</span> <span class="n">indr</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+                <span class="n">indz</span> <span class="o">=</span> <span class="n">indz</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span> <span class="o">=</span> <span class="n">plasma</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
-                                                       <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">indok</span> <span class="o">=</span> <span class="n">indpts</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">indpts</span> <span class="o">=</span> <span class="n">indpts</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
 
+            <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_comp_new</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
+                <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+            <span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indpts</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
                 <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
                     <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
-                    <span class="n">valR</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dR</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indpts</span><span class="p">]</span>
-                    <span class="n">valPhi</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dPhi</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indpts</span><span class="p">]</span>
-                    <span class="n">valZ</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dZ</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indpts</span><span class="p">]</span>
+                    <span class="n">valR</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dR</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span><span class="p">]</span>
+                    <span class="n">valPhi</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dPhi</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span><span class="p">]</span>
+                    <span class="n">valZ</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dZ</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                    <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                    <span class="n">valR</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dR</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indpts</span><span class="p">]</span>
+                    <span class="n">valPhi</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dPhi</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indpts</span><span class="p">]</span>
+                    <span class="n">valZ</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dZ</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indpts</span><span class="p">]</span>
 
             <span class="k">if</span> <span class="n">Type</span> <span class="o">==</span> <span class="s1">&#39;sca&#39;</span><span class="p">:</span>
                 <span class="n">val</span> <span class="o">=</span> <span class="p">(</span><span class="n">valR</span><span class="o">*</span><span class="n">vR</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">valPhi</span><span class="o">*</span><span class="n">vPhi</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
@@ -838,7 +863,10 @@
             <span class="k">elif</span> <span class="n">Type</span> <span class="o">==</span> <span class="s1">&#39;abs(sca)&#39;</span><span class="p">:</span>
                 <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">valR</span><span class="o">*</span><span class="n">vR</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">valPhi</span><span class="o">*</span><span class="n">vPhi</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
                              <span class="o">+</span> <span class="n">valZ</span><span class="o">*</span><span class="n">vZ</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span>
+
             <span class="n">val</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fill_value</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tall</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
             <span class="k">return</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span>
     <span class="k">return</span> <span class="n">func</span></div>
 </pre></div>
@@ -858,7 +886,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on May 12, 2021.<br/>
+      Last updated on Jun 29, 2021.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>

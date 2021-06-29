@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.tests.tests01_geom.test_03_core &#8212; Tofu 1.4.9</title>
+    <title>tofu.tests.tests01_geom.test_03_core &#8212; Tofu 1.4.10</title>
     <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css" />
@@ -40,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.9</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -849,7 +849,23 @@
             <span class="n">lax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dobj</span><span class="p">[</span><span class="n">typ</span><span class="p">]</span><span class="o">.</span><span class="n">plot_sino</span><span class="p">()</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s1">&#39;all&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Test02_Config.test14_saveload"><a class="viewcode-back" href="../../../../tofu.tests.tests01_geom.html#tofu.tests.tests01_geom.test_03_core.Test02_Config.test14_saveload">[docs]</a>    <span class="k">def</span> <span class="nf">test14_saveload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Test02_Config.test14_from_svg"><a class="viewcode-back" href="../../../../tofu.tests.tests01_geom.html#tofu.tests.tests01_geom.test_03_core.Test02_Config.test14_from_svg">[docs]</a>    <span class="k">def</span> <span class="nf">test14_from_svg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">pfe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_here</span><span class="p">,</span> <span class="s1">&#39;test_03_core_data&#39;</span><span class="p">,</span> <span class="s1">&#39;Inkscape.svg&#39;</span><span class="p">)</span>
+        <span class="c1"># to be solved when optional dependence svg.path is handled</span>
+        <span class="c1"># (or integrated)</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">from_svg</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">from_svg</span><span class="p">(</span><span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">z0</span><span class="o">=-</span><span class="mi">150</span><span class="p">)</span>
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">from_svg</span><span class="p">(</span>
+            <span class="n">pfe</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span>
+            <span class="n">res</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">z0</span><span class="o">=-</span><span class="mi">150</span><span class="p">,</span> <span class="n">r0</span><span class="o">=-</span><span class="mi">100</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test02_Config.test15_load_config"><a class="viewcode-back" href="../../../../tofu.tests.tests01_geom.html#tofu.tests.tests01_geom.test_03_core.Test02_Config.test15_load_config">[docs]</a>    <span class="k">def</span> <span class="nf">test15_load_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">lc</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tfg</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">_get_listconfig</span><span class="p">(</span><span class="n">returnas</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="n">lc</span><span class="p">:</span>
+            <span class="n">conf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">load_config</span><span class="p">(</span><span class="n">cc</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test02_Config.test16_saveload"><a class="viewcode-back" href="../../../../tofu.tests.tests01_geom.html#tofu.tests.tests01_geom.test_03_core.Test02_Config.test16_saveload">[docs]</a>    <span class="k">def</span> <span class="nf">test16_saveload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">typ</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dobj</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dobj</span><span class="p">[</span><span class="n">typ</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">pfe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dobj</span><span class="p">[</span><span class="n">typ</span><span class="p">]</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">,</span> <span class="n">return_pfe</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -2616,7 +2632,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on May 12, 2021.<br/>
+      Last updated on Jun 29, 2021.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>

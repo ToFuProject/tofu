@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>scripts._dparser &#8212; Tofu 1.4.9</title>
+    <title>scripts._dparser &#8212; Tofu 1.4.10</title>
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
@@ -40,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.9</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -281,8 +281,15 @@
     <span class="n">ddef</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;target&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_USER_HOME</span><span class="p">,</span> <span class="s1">&#39;.tofu&#39;</span><span class="p">),</span>
         <span class="s1">&#39;source&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_TOFUPATH</span><span class="p">,</span> <span class="s1">&#39;tofu&#39;</span><span class="p">),</span>
-        <span class="s1">&#39;files&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;_imas2tofu_def.py&#39;</span><span class="p">,</span> <span class="s1">&#39;_entrypoints_def.py&#39;</span><span class="p">],</span>
-        <span class="s1">&#39;directories&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;openadas2tofu&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;files&#39;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s1">&#39;_imas2tofu_def.py&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;_entrypoints_def.py&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="s1">&#39;directories&#39;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s1">&#39;openadas2tofu&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;nist2tofu&#39;</span><span class="p">,</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;nist2tofu&#39;</span><span class="p">,</span> <span class="s1">&#39;ASD&#39;</span><span class="p">),</span>
+        <span class="p">],</span>
     <span class="p">}</span>
 
     <span class="c1"># Instanciate parser</span>
@@ -337,7 +344,7 @@
         <span class="c1"># User-customizable</span>
         <span class="s1">&#39;run&#39;</span><span class="p">:</span> <span class="n">_defscripts</span><span class="o">.</span><span class="n">_TFPLOT_RUN</span><span class="p">,</span>
         <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="n">_defscripts</span><span class="o">.</span><span class="n">_TFPLOT_USER</span><span class="p">,</span>
-        <span class="s1">&#39;tokamak&#39;</span><span class="p">:</span> <span class="n">_defscripts</span><span class="o">.</span><span class="n">_TFPLOT_TOKAMAK</span><span class="p">,</span>
+        <span class="s1">&#39;database&#39;</span><span class="p">:</span> <span class="n">_defscripts</span><span class="o">.</span><span class="n">_TFPLOT_DATABASE</span><span class="p">,</span>
         <span class="s1">&#39;version&#39;</span><span class="p">:</span> <span class="n">_defscripts</span><span class="o">.</span><span class="n">_TFPLOT_VERSION</span><span class="p">,</span>
         <span class="s1">&#39;t0&#39;</span><span class="p">:</span> <span class="n">_defscripts</span><span class="o">.</span><span class="n">_TFPLOT_T0</span><span class="p">,</span>
         <span class="s1">&#39;tlim&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
@@ -374,9 +381,9 @@
     <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;username of the DB where the datafile is located&#39;</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-u&#39;</span><span class="p">,</span> <span class="s1">&#39;--user&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                         <span class="n">default</span><span class="o">=</span><span class="n">ddef</span><span class="p">[</span><span class="s1">&#39;user&#39;</span><span class="p">])</span>
-    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;tokamak name of the DB where the datafile is located&#39;</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-tok&#39;</span><span class="p">,</span> <span class="s1">&#39;--tokamak&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                        <span class="n">default</span><span class="o">=</span><span class="n">ddef</span><span class="p">[</span><span class="s1">&#39;tokamak&#39;</span><span class="p">])</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;database name where the datafile is located&#39;</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-db&#39;</span><span class="p">,</span> <span class="s1">&#39;--database&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">default</span><span class="o">=</span><span class="n">ddef</span><span class="p">[</span><span class="s1">&#39;database&#39;</span><span class="p">])</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-r&#39;</span><span class="p">,</span> <span class="s1">&#39;--run&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;run number&#39;</span><span class="p">,</span>
                         <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
                         <span class="n">default</span><span class="o">=</span><span class="n">ddef</span><span class="p">[</span><span class="s1">&#39;run&#39;</span><span class="p">])</span>
@@ -466,7 +473,7 @@
         <span class="c1"># User-customizable</span>
         <span class="s1">&#39;run&#39;</span><span class="p">:</span> <span class="n">_defscripts</span><span class="o">.</span><span class="n">_TFCALC_RUN</span><span class="p">,</span>
         <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="n">_defscripts</span><span class="o">.</span><span class="n">_TFCALC_USER</span><span class="p">,</span>
-        <span class="s1">&#39;tokamak&#39;</span><span class="p">:</span> <span class="n">_defscripts</span><span class="o">.</span><span class="n">_TFCALC_TOKAMAK</span><span class="p">,</span>
+        <span class="s1">&#39;database&#39;</span><span class="p">:</span> <span class="n">_defscripts</span><span class="o">.</span><span class="n">_TFCALC_DATABASE</span><span class="p">,</span>
         <span class="s1">&#39;version&#39;</span><span class="p">:</span> <span class="n">_defscripts</span><span class="o">.</span><span class="n">_TFCALC_VERSION</span><span class="p">,</span>
         <span class="s1">&#39;t0&#39;</span><span class="p">:</span> <span class="n">_defscripts</span><span class="o">.</span><span class="n">_TFCALC_T0</span><span class="p">,</span>
         <span class="s1">&#39;tlim&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
@@ -490,9 +497,9 @@
     <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;username of the DB where the datafile is located&#39;</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-u&#39;</span><span class="p">,</span> <span class="s1">&#39;--user&#39;</span><span class="p">,</span>
                         <span class="n">help</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">ddef</span><span class="p">[</span><span class="s1">&#39;user&#39;</span><span class="p">])</span>
-    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;tokamak name of the DB where the datafile is located&#39;</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-tok&#39;</span><span class="p">,</span> <span class="s1">&#39;--tokamak&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                        <span class="n">default</span><span class="o">=</span><span class="n">ddef</span><span class="p">[</span><span class="s1">&#39;tokamak&#39;</span><span class="p">])</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;database name where the datafile is located&#39;</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-db&#39;</span><span class="p">,</span> <span class="s1">&#39;--database&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">default</span><span class="o">=</span><span class="n">ddef</span><span class="p">[</span><span class="s1">&#39;database&#39;</span><span class="p">])</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-r&#39;</span><span class="p">,</span> <span class="s1">&#39;--run&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;run number&#39;</span><span class="p">,</span>
                         <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">ddef</span><span class="p">[</span><span class="s1">&#39;run&#39;</span><span class="p">])</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-v&#39;</span><span class="p">,</span> <span class="s1">&#39;--version&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;version number&#39;</span><span class="p">,</span>
@@ -505,8 +512,8 @@
     <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;username for the equilibrium, defaults to -u&#39;</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-u_eq&#39;</span><span class="p">,</span> <span class="s1">&#39;--user_eq&#39;</span><span class="p">,</span>
                         <span class="n">help</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;tokamak for the equilibrium, defaults to -tok&#39;</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-tok_eq&#39;</span><span class="p">,</span> <span class="s1">&#39;--tokamak_eq&#39;</span><span class="p">,</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;database name for the equilibrium, defaults to -tok&#39;</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-db_eq&#39;</span><span class="p">,</span> <span class="s1">&#39;--database_eq&#39;</span><span class="p">,</span>
                         <span class="n">help</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-r_eq&#39;</span><span class="p">,</span> <span class="s1">&#39;--run_eq&#39;</span><span class="p">,</span>
                         <span class="n">help</span><span class="o">=</span><span class="s1">&#39;run number for the equilibrium, defaults to -r&#39;</span><span class="p">,</span>
@@ -519,8 +526,8 @@
     <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;username for the profiles, defaults to -u&#39;</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-u_prof&#39;</span><span class="p">,</span> <span class="s1">&#39;--user_prof&#39;</span><span class="p">,</span>
                         <span class="n">help</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;tokamak for the profiles, defaults to -tok&#39;</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-tok_prof&#39;</span><span class="p">,</span> <span class="s1">&#39;--tokamak_prof&#39;</span><span class="p">,</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;database name for the profiles, defaults to -tok&#39;</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-db_prof&#39;</span><span class="p">,</span> <span class="s1">&#39;--database_prof&#39;</span><span class="p">,</span>
                         <span class="n">help</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-r_prof&#39;</span><span class="p">,</span> <span class="s1">&#39;--run_prof&#39;</span><span class="p">,</span>
                         <span class="n">help</span><span class="o">=</span><span class="s1">&#39;run number for the profiles, defaults to -r&#39;</span><span class="p">,</span>
@@ -599,7 +606,7 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on May 12, 2021.<br/>
+      Last updated on Jun 29, 2021.<br/>
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
     </p>
   </div>

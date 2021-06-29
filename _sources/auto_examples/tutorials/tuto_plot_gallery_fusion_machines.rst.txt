@@ -75,35 +75,35 @@ of sections, color or visibility.
     -----------  ----------  -----------
     27           759         671        
 
-    class  Name      SaveName                                                  nP   noccur  move  color                     visible
-    -----  --------  --------------------------------------------------------  ---  ------  ----  ------------------------  -------
-    Ves    InnerV0   TFG_Ves_ExpITER_InnerV0_sh00000_Vers1.4.9-233-gb0679bc0   135  0       None  ( 0.0,  0.0,  0.0,  1.0)  True   
-    Ves    OuterV0   TFG_Ves_ExpITER_OuterV0_sh00000_Vers1.4.9-233-gb0679bc0   151  0       None  ( 0.0,  0.0,  0.0,  1.0)  True   
-    Ves    Cryostat  TFG_Ves_ExpITER_Cryostat_sh00000_Vers1.4.9-233-gb0679bc0  16   0       None  ( 0.0,  0.0,  0.0,  1.0)  True   
-    PFC    BLK01     TFG_PFC_ExpITER_BLK01_sh00000_Vers1.4.9-233-gb0679bc0     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK02     TFG_PFC_ExpITER_BLK02_sh00000_Vers1.4.9-233-gb0679bc0     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK03     TFG_PFC_ExpITER_BLK03_sh00000_Vers1.4.9-233-gb0679bc0     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK04     TFG_PFC_ExpITER_BLK04_sh00000_Vers1.4.9-233-gb0679bc0     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK05     TFG_PFC_ExpITER_BLK05_sh00000_Vers1.4.9-233-gb0679bc0     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK06     TFG_PFC_ExpITER_BLK06_sh00000_Vers1.4.9-233-gb0679bc0     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK07     TFG_PFC_ExpITER_BLK07_sh00000_Vers1.4.9-233-gb0679bc0     8    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK08     TFG_PFC_ExpITER_BLK08_sh00000_Vers1.4.9-233-gb0679bc0     10   18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK09     TFG_PFC_ExpITER_BLK09_sh00000_Vers1.4.9-233-gb0679bc0     9    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK10     TFG_PFC_ExpITER_BLK10_sh00000_Vers1.4.9-233-gb0679bc0     5    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK11     TFG_PFC_ExpITER_BLK11_sh00000_Vers1.4.9-233-gb0679bc0     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK12     TFG_PFC_ExpITER_BLK12_sh00000_Vers1.4.9-233-gb0679bc0     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK13     TFG_PFC_ExpITER_BLK13_sh00000_Vers1.4.9-233-gb0679bc0     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK14     TFG_PFC_ExpITER_BLK14_sh00000_Vers1.4.9-233-gb0679bc0     4    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK15     TFG_PFC_ExpITER_BLK15_sh00000_Vers1.4.9-233-gb0679bc0     4    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK16     TFG_PFC_ExpITER_BLK16_sh00000_Vers1.4.9-233-gb0679bc0     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK17     TFG_PFC_ExpITER_BLK17_sh00000_Vers1.4.9-233-gb0679bc0     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    BLK18     TFG_PFC_ExpITER_BLK18_sh00000_Vers1.4.9-233-gb0679bc0     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    Div1      TFG_PFC_ExpITER_Div1_sh00000_Vers1.4.9-233-gb0679bc0      76   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    Div2      TFG_PFC_ExpITER_Div2_sh00000_Vers1.4.9-233-gb0679bc0      11   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    Div3      TFG_PFC_ExpITER_Div3_sh00000_Vers1.4.9-233-gb0679bc0      60   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    Div4      TFG_PFC_ExpITER_Div4_sh00000_Vers1.4.9-233-gb0679bc0      10   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    Div5      TFG_PFC_ExpITER_Div5_sh00000_Vers1.4.9-233-gb0679bc0      60   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
-    PFC    Div6      TFG_PFC_ExpITER_Div6_sh00000_Vers1.4.9-233-gb0679bc0      52   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    class  Name      SaveName                                                          nP   noccur  move  color                     visible
+    -----  --------  ----------------------------------------------------------------  ---  ------  ----  ------------------------  -------
+    Ves    InnerV0   TFG_Ves_ExpITER_InnerV0_sh00000_Vers1.4.10-alpha9-335-g1e388929   135  0       None  ( 0.0,  0.0,  0.0,  1.0)  True   
+    Ves    OuterV0   TFG_Ves_ExpITER_OuterV0_sh00000_Vers1.4.10-alpha9-335-g1e388929   151  0       None  ( 0.0,  0.0,  0.0,  1.0)  True   
+    Ves    Cryostat  TFG_Ves_ExpITER_Cryostat_sh00000_Vers1.4.10-alpha9-335-g1e388929  16   0       None  ( 0.0,  0.0,  0.0,  1.0)  True   
+    PFC    BLK01     TFG_PFC_ExpITER_BLK01_sh00000_Vers1.4.10-alpha9-335-g1e388929     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK02     TFG_PFC_ExpITER_BLK02_sh00000_Vers1.4.10-alpha9-335-g1e388929     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK03     TFG_PFC_ExpITER_BLK03_sh00000_Vers1.4.10-alpha9-335-g1e388929     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK04     TFG_PFC_ExpITER_BLK04_sh00000_Vers1.4.10-alpha9-335-g1e388929     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK05     TFG_PFC_ExpITER_BLK05_sh00000_Vers1.4.10-alpha9-335-g1e388929     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK06     TFG_PFC_ExpITER_BLK06_sh00000_Vers1.4.10-alpha9-335-g1e388929     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK07     TFG_PFC_ExpITER_BLK07_sh00000_Vers1.4.10-alpha9-335-g1e388929     8    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK08     TFG_PFC_ExpITER_BLK08_sh00000_Vers1.4.10-alpha9-335-g1e388929     10   18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK09     TFG_PFC_ExpITER_BLK09_sh00000_Vers1.4.10-alpha9-335-g1e388929     9    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK10     TFG_PFC_ExpITER_BLK10_sh00000_Vers1.4.10-alpha9-335-g1e388929     5    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK11     TFG_PFC_ExpITER_BLK11_sh00000_Vers1.4.10-alpha9-335-g1e388929     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK12     TFG_PFC_ExpITER_BLK12_sh00000_Vers1.4.10-alpha9-335-g1e388929     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK13     TFG_PFC_ExpITER_BLK13_sh00000_Vers1.4.10-alpha9-335-g1e388929     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK14     TFG_PFC_ExpITER_BLK14_sh00000_Vers1.4.10-alpha9-335-g1e388929     4    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK15     TFG_PFC_ExpITER_BLK15_sh00000_Vers1.4.10-alpha9-335-g1e388929     4    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK16     TFG_PFC_ExpITER_BLK16_sh00000_Vers1.4.10-alpha9-335-g1e388929     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK17     TFG_PFC_ExpITER_BLK17_sh00000_Vers1.4.10-alpha9-335-g1e388929     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK18     TFG_PFC_ExpITER_BLK18_sh00000_Vers1.4.10-alpha9-335-g1e388929     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    Div1      TFG_PFC_ExpITER_Div1_sh00000_Vers1.4.10-alpha9-335-g1e388929      76   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    Div2      TFG_PFC_ExpITER_Div2_sh00000_Vers1.4.10-alpha9-335-g1e388929      11   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    Div3      TFG_PFC_ExpITER_Div3_sh00000_Vers1.4.10-alpha9-335-g1e388929      60   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    Div4      TFG_PFC_ExpITER_Div4_sh00000_Vers1.4.10-alpha9-335-g1e388929      10   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    Div5      TFG_PFC_ExpITER_Div5_sh00000_Vers1.4.10-alpha9-335-g1e388929      60   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    Div6      TFG_PFC_ExpITER_Div6_sh00000_Vers1.4.10-alpha9-335-g1e388929      52   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
 
 
 
@@ -136,25 +136,24 @@ about `tofu`. Configurations can be accessed by names (ITER, WEST, JET, etc).
     tofu also also provides some pre-defined config ready to load
     They are available via their name or via shortcuts
 
-            unique names            shortcuts
-            ----------------        --------------------------------------
-            - AUG-V1                ['AUG-V1', 'AUG']
-            - COMPASS-V0            ['COMPASS-V0', 'COMPASS']
-            - DEMO-2019             ['DEMO-2019', 'DEMO']
-            - ITER-SOLEDGE3XV0      ['ITER-SOLEDGE3XV0', 'ITER-SOLEDGE3X']
-            - ITER-V0               ['ITER-V0']
-            - ITER-V1               ['ITER-V1', 'A2']
-            - ITER-V2               ['ITER-V2', 'B4', 'ITER']
-            - JET-V0                ['JET-V0', 'JET']
-            - NSTX-V0               ['NSTX-V0', 'NSTX']
-            - TCV-V0                ['TCV-V0', 'TCV']
-            - TOMAS-V0              ['TOMAS-V0', 'TOMAS']
-            - WEST-Sep              ['WEST-Sep', 'A3']
-            - WEST-V0               ['WEST-V0']
-            - WEST-V1               ['WEST-V1', 'A1']
-            - WEST-V2               ['WEST-V2', 'B1']
-            - WEST-V3               ['WEST-V3', 'B2']
-            - WEST-V4               ['WEST-V4', 'B3', 'WEST']
+            unique names    shortcuts
+            ------------    -------------------------
+            - AUG-V1        ['AUG-V1', 'AUG']
+            - COMPASS-V0    ['COMPASS-V0', 'COMPASS']
+            - DEMO-2019     ['DEMO-2019', 'DEMO']
+            - ITER-V0       ['ITER-V0']
+            - ITER-V1       ['ITER-V1', 'A2']
+            - ITER-V2       ['ITER-V2', 'B4', 'ITER']
+            - JET-V0        ['JET-V0', 'JET']
+            - NSTX-V0       ['NSTX-V0', 'NSTX']
+            - TCV-V0        ['TCV-V0', 'TCV']
+            - TOMAS-V0      ['TOMAS-V0', 'TOMAS']
+            - WEST-Sep      ['WEST-Sep', 'A3']
+            - WEST-V0       ['WEST-V0']
+            - WEST-V1       ['WEST-V1', 'A1']
+            - WEST-V2       ['WEST-V2', 'B1']
+            - WEST-V3       ['WEST-V3', 'B2']
+            - WEST-V4       ['WEST-V4', 'B3', 'WEST']
 
       => to get a pre-defined config, call for example:
             config = tf.geom.utils.create_config('ITER')
@@ -247,7 +246,7 @@ provided by `tofu` to accelerate diagnostic development.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  5.366 seconds)
+   **Total running time of the script:** ( 0 minutes  6.319 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_gallery_fusion_machines.py:

@@ -21,9 +21,10 @@
 Getting started: 5 minutes tutorial for `tofu`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is a tutorial that aims to get a new user a little familiar with tofu's structure.
+This is a tutorial that aims to get a new user a little familiar with tofu's
+structure.
 
-.. GENERATED FROM PYTHON SOURCE LINES 7-18
+.. GENERATED FROM PYTHON SOURCE LINES 8-13
 
 .. code-block:: default
 
@@ -31,12 +32,6 @@ This is a tutorial that aims to get a new user a little familiar with tofu's str
     # The following imports matplotlib, preferably using a
     # backend that allows the plots to be interactive (Qt5Agg).
     import numpy as np
-    import matplotlib
-    try:
-        matplotlib.use('Qt5Agg')
-    except ImportError:
-        matplotlib.use(matplotlib.rcParams['backend'])
-    import matplotlib.pyplot
 
 
 
@@ -45,13 +40,13 @@ This is a tutorial that aims to get a new user a little familiar with tofu's str
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 19-22
+.. GENERATED FROM PYTHON SOURCE LINES 14-17
 
 We start by loading `tofu`. You might see some warnings at this stage since
 optional modules for `tofu` could
 be missing on the machine you are working on. This can be ignored safely.
 
-.. GENERATED FROM PYTHON SOURCE LINES 22-26
+.. GENERATED FROM PYTHON SOURCE LINES 17-21
 
 .. code-block:: default
 
@@ -66,14 +61,14 @@ be missing on the machine you are working on. This can be ignored safely.
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 27-31
+.. GENERATED FROM PYTHON SOURCE LINES 22-26
 
 We can now create our first configuration.
 In `tofu` speak, a configuration is the geometry of the device and its
 structures. `tofu` provides pre-defined ones for your to try, so we're going
 to do just that:
 
-.. GENERATED FROM PYTHON SOURCE LINES 31-34
+.. GENERATED FROM PYTHON SOURCE LINES 26-29
 
 .. code-block:: default
 
@@ -87,11 +82,11 @@ to do just that:
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 35-36
+.. GENERATED FROM PYTHON SOURCE LINES 30-31
 
 The configuration can easily be visualized using the `.plot()` method:
 
-.. GENERATED FROM PYTHON SOURCE LINES 36-39
+.. GENERATED FROM PYTHON SOURCE LINES 31-34
 
 .. code-block:: default
 
@@ -113,16 +108,16 @@ The configuration can easily be visualized using the `.plot()` method:
  .. code-block:: none
 
 
-    [<matplotlib.axes._axes.Axes object at 0x7f2e2fb48a60>, <matplotlib.axes._axes.Axes object at 0x7f2e2faafee0>]
+    [<matplotlib.axes._axes.Axes object at 0x7f5d4a40ad30>, <matplotlib.axes._axes.Axes object at 0x7f5d4a3e39a0>]
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 40-42
+.. GENERATED FROM PYTHON SOURCE LINES 35-37
 
 Since `tofu` is all about tomography, let's create a 1D camera and plot its
 output.
 
-.. GENERATED FROM PYTHON SOURCE LINES 42-58
+.. GENERATED FROM PYTHON SOURCE LINES 37-53
 
 .. code-block:: default
 
@@ -158,20 +153,20 @@ output.
 
     /home/lasofivec/miniconda3/envs/tofu3/lib/python3.8/site-packages/numpy/core/_asarray.py:102: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
       return array(a, dtype, copy=False, order=order)
-    /home/lasofivec/tofu/tofu/utils.py:3453: UserWarning: Not interactive backend!:
+    /home/lasofivec/repositories/forked_tofu/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
 
-    <tofu.utils.KeyHandler_mpl object at 0x7f2e2ed00820>
+    <tofu.utils.KeyHandler_mpl object at 0x7f5d35a2b2e0>
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 59-60
+.. GENERATED FROM PYTHON SOURCE LINES 54-55
 
 The principle is similar for 2D cameras.
 
-.. GENERATED FROM PYTHON SOURCE LINES 60-74
+.. GENERATED FROM PYTHON SOURCE LINES 55-69
 
 .. code-block:: default
 
@@ -205,16 +200,16 @@ The principle is similar for 2D cameras.
 
     /home/lasofivec/miniconda3/envs/tofu3/lib/python3.8/site-packages/numpy/core/_asarray.py:102: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
       return array(a, dtype, copy=False, order=order)
-    /home/lasofivec/tofu/tofu/utils.py:3453: UserWarning: Not interactive backend!:
+    /home/lasofivec/repositories/forked_tofu/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
 
-    <tofu.utils.KeyHandler_mpl object at 0x7f2e2f3d1d90>
+    <tofu.utils.KeyHandler_mpl object at 0x7f5d35a1cee0>
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 75-80
+.. GENERATED FROM PYTHON SOURCE LINES 70-75
 
 What comes next is up to you!
 You could now play with the function parameters (change the cameras
@@ -225,7 +220,7 @@ configuration.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  4.814 seconds)
+   **Total running time of the script:** ( 0 minutes  5.021 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_basic.py:
