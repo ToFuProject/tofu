@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.1 (ce6663b3b7, 2021-05-25)"
+   sodipodi:docname="myfristgeom.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="0.75187991"
+     inkscape:cx="396.33989"
+     inkscape:cy="507.39486"
+     inkscape:window-width="1848"
+     inkscape:window-height="1016"
+     inkscape:window-x="72"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2">
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect623"
+       is_visible="true"
+       lpeversion="1" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect586"
+       is_visible="true"
+       lpeversion="1" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect582"
+       is_visible="true"
+       lpeversion="1" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect323"
+       is_visible="true"
+       lpeversion="1" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect286"
+       is_visible="true"
+       lpeversion="1" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect282"
+       is_visible="true"
+       lpeversion="1" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect85"
+       is_visible="true"
+       lpeversion="1" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect48"
+       is_visible="true"
+       lpeversion="1" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect44"
+       is_visible="true"
+       lpeversion="1" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 21.643778,87.457763 0.03146,97.194837 35.186911,33.51599 71.895871,4.37301 42.30185,-40.97058 L 159.72387,43.683986 86.216254,53.81072 21.643773,87.457763 Z"
+       id="vessel"
+       inkscape:path-effect="#path-effect582"
+       inkscape:original-d="m 21.643778,87.457763 c 0,0 0.03146,97.194837 0.03146,97.194837 0,0 35.186911,33.51599 35.186911,33.51599 0,0 71.895871,4.37301 71.895871,4.37301 0,0 42.30185,-40.97058 42.30185,-40.97058 0,0 -11.336,-137.887034 -11.336,-137.887034 0,0 -73.507616,10.126734 -73.507616,10.126734 0,0 -64.572481,33.647043 -64.572481,33.647043 z" />
+    <path
+       style="fill:#000080;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 33.341389,174.55751 30.187066,26.74491 13.85465,-0.69211 -5.303372,-12.15176 z"
+       id="struct1"
+       inkscape:path-effect="#path-effect586"
+       inkscape:original-d="m 33.341389,174.55751 c 0,0 30.187066,26.74491 30.187066,26.74491 0,0 13.85465,-0.69211 13.85465,-0.69211 0,0 -5.303372,-12.15176 -5.303372,-12.15176 0,0 -38.738344,-13.90104 -38.738344,-13.90104 z" />
+    <path
+       style="fill:#d40000;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 103.7886,73.318647 144.55517,58.0553 151.69206,101.31356 135.83424,72.659779 Z"
+       id="struct2"
+       inkscape:path-effect="#path-effect623"
+       inkscape:original-d="m 103.7886,73.318647 c 0,0 40.76657,-15.263347 40.76657,-15.263347 0,0 7.13689,43.25826 7.13689,43.25826 0,0 -15.85782,-28.653781 -15.85782,-28.653781 0,0 -32.04564,0.658868 -32.04564,0.658868 z" />
+  </g>
+</svg>
