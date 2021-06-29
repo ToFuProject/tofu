@@ -1009,7 +1009,7 @@ class CrystalBragg(utils.ToFuObject):
         dtheta=None, psi=None,
         ntheta=None, npsi=None,
         include_summit=None,
-        dax=None, proj=None, res=None, element=None,
+        dax=None, ax=None, proj=None, res=None, element=None,
         color=None, ddet=None,
         dleg=None, draw=True, dmargin=None,
         use_non_parallelism=None, grid=None,
@@ -1298,6 +1298,11 @@ class CrystalBragg(utils.ToFuObject):
             + "and the sagital focus is at ({})m.\n".format(s_sagit_unp)
             + "or a change of ({})m\n".format(delta_sagit)
             + "or ({})%\n".format(rel_delta_sagit)
+            )
+
+        return (
+            s_merid, s_merid_unp, delta_merid, rel_delta_merid,
+            s_sagit, s_sagit_unp, delta_sagit, rel_delta_sagit,
             )
 
     def get_rowland_dist_from_lambbragg(self, bragg=None, lamb=None, n=None):
@@ -1810,13 +1815,15 @@ class CrystalBragg(utils.ToFuObject):
             johann=johann, rocking=rocking,
             fs=fs, dmargin=dmargin, wintit=wintit, tit=tit)
 
-    def calc_johannerror(self, xi=None, xj=None, err=None,
-                         det=None, n=None,
-                         lpsi=None, ldtheta=None,
-                         use_non_parallelism=None,
-                         xi_plot=None,
-                         plot=True, fs=None, cmap=None,
-                         vmin=None, vmax=None, tit=None, wintit=None):
+    def calc_johannerror(
+        self, xi=None, xj=None, err=None,
+        det=None, n=None,
+        lpsi=None, ldtheta=None,
+        use_non_parallelism=None,
+        xi_plot=None,
+        plot=True, fs=None, cmap=None,
+        vmin=None, vmax=None, tit=None, wintit=None,
+    ):
         """ Plot the johann error
 
         The johann error is the error (scattering) induced by defocalization
@@ -1885,6 +1892,141 @@ class CrystalBragg(utils.ToFuObject):
                 fs=fs, tit=tit, wintit=wintit,
                 )
         return err_lamb, err_phi
+
+    def plot_focal_error_summed(
+        self,
+        dist_min=None, dist_max=None,
+        di_min=None, di_max=None,
+        ndist=None, ndi=None,
+        lamb=None, bragg=None,
+        xi=None, xj=None,
+        alpha=None, beta=None,
+        use_non_parallelism=None,
+        tangent_to_rowland=None,
+        plot_dets=None, nsort=None,
+        ax=None, dax=None,
+    ):
+        """
+        Using the calc_johannerror method, computing the sum of the
+        focalization error over the whole detector for different positions
+        characterized by the translations ddist and di in the equatorial plane
+        (dist_min, dist_max, ndist) (di_min, di_max, ndi).
+
+        Args:
+            - lamb/bragg :  float
+                Automatically set to crystal's references
+            - xi, xj :  np.array
+                pixelization of the detector
+                (from "inputs_temp/XICS_allshots_C34.py" l.649)
+            - alpha, beta : float
+                Values of Non Parallelism references angles
+            - use_non_parallelism : str
+            - tangent_to_rowland :  str
+            - plot_dets : str
+                Possibility to plot the nsort- detectors with the lowest
+                summed focalization error, next to the Best Approximate Real
+                detector
+                dict(np.load('inputs_temp/det37_CTVD_incC4_New.npz', allow_pickle=True))
+            - nsort : float
+        """
+
+        # Check / format inputs
+        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+
+        if lamb is None:
+            lamb = self._dbragg['lambref']
+        if bragg is None:
+            bragg = self._dbragg['braggref']
+        if plot_dets is None:
+            plot_dets = False
+        a0 = [alpha, beta]
+        if all([a00 is None for a00 in a0]):
+            alpha, beta = 0., 0.
+            use_non_parallelism = False
+        if tangent_to_rowland is None:
+            tangent_to_rowland = True
+
+        l0 = [dist_min, dist_max, ndist, di_min, di_max, ndi]
+        c0 = (all([l00 is not None for l00 in l0]))
+        if not c0:
+            msg = (
+                "Please give the ranges of ddist and di translations\n"
+                + "\t to compute the different detector's position.\n"
+                + "\t Provided :\n"
+                + "\t\t - dist_min, dist_max, ndist: ({},{},{})\n".format(
+                    dist_min, dist_max, ndist)
+                + "\t\t - di_min, di_max, ndi: ({},{},{})\n".format(
+                    di_min, di_max, ndi)
+                )
+            raise Exception(msg)
+
+        dist = np.linspace(dist_min, dist_max, ndist)
+        di = np.linspace(di_min, di_max, ndi)
+        X,Y = np.meshgrid(dist,di)
+        error_lambda = []
+        liste = np.linspace(0, (dist.size)-1, dist.size).astype(int).tolist()
+        for i in liste:
+            j=i+1; k=i
+            for a in liste:
+                b=a+1; c=a
+                if any([a00 is not None for a00 in a0]):
+                    self.update_non_parallelism(alpha=alpha, beta=beta)
+                    use_non_parallelism = True
+                det = self.get_detector_approx(
+                    ddist=X[i:j,k], di=Y[a:b,c],
+                    lamb=lamb,
+                    use_non_parallelism=use_non_parallelism,
+                    tangent_to_rowland=tangent_to_rowland,
+                    )
+                err_lamb, err_phi = self.calc_johannerror(
+                    xi=xi, xj=xj, det=det, plot=False,
+                    )
+                error_lambda.append(np.sum(np.sum(err_lamb, axis=0), axis=0))
+        error_lambda = np.asarray(error_lambda)
+        error_lambda.shape= X.shape
+
+        if not plot_dets:
+            plt.title('Summed focalization error on full detector [m]')
+            plt.xlabel('ddist [m]')
+            plt.ylabel('di [m]')
+            plt.scatter(
+                X, Y, c=error_lambda, cmap='RdYlBu',
+                )
+            cbar = plt.colorbar(
+                label="error on lambda [m]", orientation="vertical",
+                boundaries=np.linspace(0.1e-7, 1e-7, 50)
+                )
+            plt.clim(0.1e-7, 1e-7)
+
+        else:
+            import matplotlib.gridspec as gridspec
+            fig = plt.figure(figsize=(14, 8))
+            gs = gridspec.GridSpec(1, 1)
+
+            ax0 = fig.add_subplot(gs[0, 0])
+            ax0.set_title('Summed focalization error [m] on full det. for ddist and di offset translations')
+
+            sort = np.sort(np.ravel(error_lambda))
+            sort = sort.tolist()
+            a = np.where(error_lambda <= sort[nsort])
+            A=a[0]; B=a[1]; C=np.dstack((A,B))
+            bardet = dict(np.load(
+                'inputs_temp/det37_CTVD_incC4_New.npz', allow_pickle=True,
+                ))
+
+            ax0.scatter(X, Y, c=error_lambda, cmap='RdYlBu',)
+            dax = self.plot(det=bardet)
+            for i in np.linspace(0, nsort-1, nsort).astype(int).tolist():
+                det[i] = self.get_detector_approx(
+                    ddist = X[C[0,i][0], C[0,i][1]],
+                    di = Y[C[0,i][0], C[0,i][1]],
+                    tangent_to_rowland=tangent_to_rowland,
+                    )
+                print(det[i])
+                det[i]['outline'] = np.array(
+                    [0.04*np.r_[-1,-1,1,1,-1], 0.12*np.r_[-1,1,1,-1,-1]]
+                    )
+                dax = self.plot(det=det[i], color='red', dax=dax)
 
     def _calc_braggphi_from_pts(
         self,

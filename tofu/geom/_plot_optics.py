@@ -78,6 +78,10 @@ def _check_projdax_mpl(
         dax = {'cross': dax[0], 'hor': dax[1]}
 
     # Populate with default axes if necessary
+    if proj == 'hor':
+        dax['hor'] = _def.Plot_LOSProj_DefAxes(
+            'hor', fs=fs, dmargin=dmargin, wintit=wintit,
+        )
     if proj == 'cross' and dax['cross'] is None:
         dax['cross'] = _def.Plot_LOSProj_DefAxes(
             'cross', fs=fs, dmargin=dmargin, wintit=wintit,
@@ -100,6 +104,7 @@ def _check_projdax_mpl(
         )
     for kk in lproj:
         dax[kk] = dax.get(kk, None)
+
     return dax
 
 
