@@ -38,7 +38,7 @@ add a fill color.
 
    <div class="text-center">
    <iframe width="560" height="315"
-   src="https://www.youtube.com/embed/BoZh2U7I8-g"
+   src="https://www.youtube.com/embed/92JyXj39n8E"
    title="YouTube video player"
    frameborder="0" allow="accelerometer; autoplay; clipboard-write;
    encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
@@ -162,7 +162,7 @@ To plot it, simply do
  .. code-block:: none
 
 
-    [<matplotlib.axes._axes.Axes object at 0x7f2df2fa35b0>, <matplotlib.axes._axes.Axes object at 0x7f2df2fb15b0>]
+    [<matplotlib.axes._axes.Axes object at 0x7f5aabd71910>, <matplotlib.axes._axes.Axes object at 0x7f5ab8772f40>]
 
 
 
@@ -218,7 +218,7 @@ when loading the configuration.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.483 seconds)
+   **Total running time of the script:** ( 0 minutes  0.459 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_create_geometry_from_svg.py:
