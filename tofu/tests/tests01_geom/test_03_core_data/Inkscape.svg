@@ -2852,19 +2852,19 @@ YII=
        inkscape:connector-curvature="0"
        inkscape:label="#path834" />
     <path
-       style="fill:none;stroke:#000000;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       style="fill:#0048ff;stroke:#000000;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;fill-opacity:1"
        d="m 143.25646,79.442603 2.13816,7.750818 10.69078,1.069078 -3.74177,-9.354434 z"
        id="coil1"
        inkscape:connector-curvature="0"
        inkscape:label="#path836" />
     <path
-       style="fill:none;stroke:#000000;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       style="fill:#ff00ff;stroke:#000000;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 156.61994,114.72218 0.53454,9.6217 h 9.08716 V 113.6531 h -9.88897 z"
        id="coil2"
        inkscape:connector-curvature="0"
        inkscape:label="#path838" />
     <path
-       style="fill:none;stroke:#000000;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       style="fill:#ff2a2a;stroke:#000000;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 157.68902,159.08892 v 9.6217 l 8.55262,0.26728 0.53454,-9.62171 z"
        id="coil3"
        inkscape:connector-curvature="0"
