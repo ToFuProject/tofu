@@ -74,4 +74,4 @@ config = tf.geom.Config.from_svg(
     point2=(2.8, 2)
 )
 config.plot()
-# sphinx_gallery_thumbnail_number = -1
+# sphinx_gallery_thumbnail_number = 3

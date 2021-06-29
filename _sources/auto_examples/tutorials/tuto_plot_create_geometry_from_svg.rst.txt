@@ -157,7 +157,7 @@ To plot it, simply do
  .. code-block:: none
 
 
-    [<matplotlib.axes._axes.Axes object at 0x7f309aead9d0>, <matplotlib.axes._axes.Axes object at 0x7f30af64e340>]
+    [<matplotlib.axes._axes.Axes object at 0x7fc4261289d0>, <matplotlib.axes._axes.Axes object at 0x7fc425eaf340>]
 
 
 
@@ -198,7 +198,7 @@ when loading the configuration.
             - PFC: struct2 (5 pts, #d40000)
     from /home/lasofivec/tofu/examples/tutorials/myfirstgeom.svg
 
-    [<matplotlib.axes._axes.Axes object at 0x7f30af5e9dc0>, <matplotlib.axes._axes.Axes object at 0x7f30aef24580>]
+    [<matplotlib.axes._axes.Axes object at 0x7fc425e4a280>, <matplotlib.axes._axes.Axes object at 0x7fc425785d00>]
 
 
 
@@ -220,7 +220,7 @@ let tofu scale the figure automatically for you
         point2=(2.8, 2)
     )
     config.plot()
-    # sphinx_gallery_thumbnail_number = -1
+    # sphinx_gallery_thumbnail_number = 3
 
 
 
@@ -259,14 +259,14 @@ let tofu scale the figure automatically for you
             - PFC: path11185 (5 pts, #8787de)
     from /home/lasofivec/tofu/examples/tutorials/from_pdf.svg
 
-    [<matplotlib.axes._axes.Axes object at 0x7f309ae8b100>, <matplotlib.axes._axes.Axes object at 0x7f30af8ca910>]
+    [<matplotlib.axes._axes.Axes object at 0x7fc4116ca100>, <matplotlib.axes._axes.Axes object at 0x7fc4116d5910>]
 
 
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  0.912 seconds)
+   **Total running time of the script:** ( 0 minutes  1.042 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_create_geometry_from_svg.py:
