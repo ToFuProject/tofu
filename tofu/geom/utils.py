@@ -895,7 +895,7 @@ def _create_config_testcase(
         else:
             warnings.warn(msg)
 
-    if returnas == 'dict':
+    if returnas is dict:
         conf = dict([tt for tt in lS])
     else:
         conf = _core.Config(Name=config, Exp=dconfig[config]['Exp'], lStruct=lS)
@@ -954,6 +954,18 @@ def create_config(
         FLag indicating whether to return:
             - 'dict'  : the polygons as a dictionary of np.ndarrays
             - 'object': the configuration as a tofu.geom.Config instance
+    returnas:   object / dict
+        Flag indicating whether to return the config as:
+            - object: a Config instance
+            - dict: a dict of Struct instances
+    strict:     bool
+        Flag indicating whether to raise an error if a Struct cannot be loaded
+            Otherwise only raises a warning
+    path:       str
+        Absolute path where to find the test case data
+    SavePath:   str
+        The default path used for saving Struct and Config objects returned by
+        the routine.
 
     Return
     ------
