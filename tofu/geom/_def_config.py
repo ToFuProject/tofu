@@ -169,11 +169,11 @@ _DCONFIG = {
         'CoilPF': ['PF1', 'PF2', 'PF3', 'PF4', 'PF5', 'PF6'],
         'CoilCS': ['CS3U', 'CS2U', 'CS1U', 'CS1L', 'CS2L', 'CS3L'],
     },
-    'ITER-SOLEDGE3XV0': {
-        'Exp': _ExpITER,
-        'Ves': ['SOLEDGE3XV0'],
-        'PFC': ['SOLEDGE3XDivDomeV0', 'SOLEDGE3XDivSupportV0']
-    },
+    # 'ITER-SOLEDGE3XV0': {
+    # 'Exp': _ExpITER,
+    # 'Ves': ['SOLEDGE3XV0'],
+    # 'PFC': ['SOLEDGE3XDivDomeV0', 'SOLEDGE3XDivSupportV0']
+    # },
 
     # AUG
     'AUG-V1': {
@@ -240,7 +240,7 @@ _DCONFIG = {
 # the associated unique name it refers to
 _DCONFIG_SHORTCUTS = {
     'ITER': 'ITER-V2',
-    'ITER-SOLEDGE3X': 'ITER-SOLEDGE3XV0',
+    # 'ITER-SOLEDGE3X': 'ITER-SOLEDGE3XV0',
     'JET': 'JET-V0',
     'WEST': 'WEST-V4',
     'A1': 'WEST-V1',

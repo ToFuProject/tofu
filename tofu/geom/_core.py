@@ -1966,10 +1966,10 @@ class Struct(utils.ToFuObject):
             warn = True
 
         if delimiter is None:
-            if pfe[-4:] == '.csv':
+            if pfe.endswith('.csv'):
                 delimiter = ', '
             else:
-                delimiter = ' '
+                delimiter = None
         if comments is None:
             comments = _COMMENT
 

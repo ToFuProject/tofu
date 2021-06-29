@@ -742,7 +742,12 @@ class Test02_Config(object):
             res=10, z0=-150, r0=-100, scale=0.01,
         )
 
-    def test15_saveload(self, verb=False):
+    def test15_load_config(self):
+        lc = sorted(tfg.utils._get_listconfig(returnas=dict).keys())
+        for cc in lc:
+            conf = tf.load_config(cc, strict=True)
+
+    def test16_saveload(self, verb=False):
         for typ in self.dobj.keys():
             self.dobj[typ].strip(-1)
             pfe = self.dobj[typ].save(verb=verb, return_pfe=True)
