@@ -204,6 +204,22 @@ def get_paths_from_svg(
             dpath[k0]['cls'] = 'PFC'
         dpath[k0]['color'] = color
 
+    # Check for negative r
+    lkneg = [k0 for k0, v0 in dpath.items() if np.any(v0['poly'][0, :] <= 0.)]
+    if len(lkneg) > 0.:
+        lstr = ['\t- {}'.format(k0) for k0 in lkneg]
+        msg = (
+            "With the chosen r0 ({}) some structure have negative r values\n"
+            + "This is impossible in a toroidal coordinate system\n"
+            + "  => the following structures are removed:\n"
+            + "\n".join(lstr)
+        )
+        if len(lkneg) == len(dpath):
+            raise Exception(msg)
+        else:
+            warnings.warn(msg)
+        dpath = {k0: dpath[k0] for k0 in dpath.keys() if k0 not in lkneg}
+
     # Set origin and rescale
     if ref is not None:
         lc = [
