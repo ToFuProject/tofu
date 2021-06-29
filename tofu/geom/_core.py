@@ -1868,7 +1868,7 @@ class Struct(utils.ToFuObject):
         pfe = os.path.join(path, '{}.{}'.format(name, fmt))
         if delimiter is None:
             if fmt == 'txt':
-                delimiter = None
+                delimiter = ' '
             else:
                 delimiter = ', '
 
