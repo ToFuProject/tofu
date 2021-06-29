@@ -1969,7 +1969,7 @@ class Struct(utils.ToFuObject):
             if pfe[-4:] == '.csv':
                 delimiter = ', '
             else:
-                delimiter = ' '
+                delimiter = None
         if comments is None:
             comments = _COMMENT
 
