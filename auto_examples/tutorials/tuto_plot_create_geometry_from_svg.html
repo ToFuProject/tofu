@@ -180,9 +180,9 @@ actually contains:</p>
 
 class  Name     SaveName                                                         nP  noccur  move  color                     visible
 -----  -------  ---------------------------------------------------------------  --  ------  ----  ------------------------  -------
-Ves    vessel   TFG_Ves_ExpTest_vessel_sh00000_Vers1.4.10-alpha9-335-g1e388929   7   0       None  ( 0.0,  0.0,  0.0,  1.0)  True
-PFC    struct1  TFG_PFC_ExpTest_struct1_sh00000_Vers1.4.10-alpha9-335-g1e388929  4   0       None  ( 0.0,  0.0,  0.5,  1.0)  True
-PFC    struct2  TFG_PFC_ExpTest_struct2_sh00000_Vers1.4.10-alpha9-335-g1e388929  4   0       None  (0.83,  0.0,  0.0,  1.0)  True
+Ves    vessel   TFG_Ves_ExpTest_vessel_sh00000_Vers1.4.10-alpha9-337-ga589ad1d   7   0       None  ( 0.0,  0.0,  0.0,  1.0)  True
+PFC    struct1  TFG_PFC_ExpTest_struct1_sh00000_Vers1.4.10-alpha9-337-ga589ad1d  4   0       None  ( 0.0,  0.0,  0.5,  1.0)  True
+PFC    struct2  TFG_PFC_ExpTest_struct2_sh00000_Vers1.4.10-alpha9-337-ga589ad1d  4   0       None  (0.83,  0.0,  0.0,  1.0)  True
 </pre></div>
 </div>
 <p>To plot it, simply do</p>
@@ -191,15 +191,20 @@ PFC    struct2  TFG_PFC_ExpTest_struct2_sh00000_Vers1.4.10-alpha9-335-g1e388929 
 </div>
 <img alt="Test" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_001.png" />
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>[&lt;matplotlib.axes._axes.Axes object at 0x7f5d4b082ca0&gt;, &lt;matplotlib.axes._axes.Axes object at 0x7f5d4a1a5280&gt;]
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>[&lt;matplotlib.axes._axes.Axes object at 0x7f2df2fa35b0&gt;, &lt;matplotlib.axes._axes.Axes object at 0x7f2df2fb15b0&gt;]
 </pre></div>
 </div>
 <p>We can see that the z- and r-axis might not be exactly what we wanted. We
 might also want to adjust the scale. Tofu let’s fix those parameters
 when loading the configuration.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">from_svg</span><span class="p">(</span><span class="s2">&quot;myfirstgeom.svg&quot;</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s2">&quot;Test&quot;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s2">&quot;Test&quot;</span><span class="p">,</span>
-                                 <span class="n">z0</span><span class="o">=-</span><span class="mi">140</span><span class="p">,</span> <span class="n">r0</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+                                 <span class="n">z0</span><span class="o">=-</span><span class="mi">140</span><span class="p">,</span>
+                                 <span class="n">r0</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                                 <span class="n">scale</span><span class="o">=</span><span class="mf">0.5</span>
+                                 <span class="p">)</span>
 <span class="n">config</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
 <img alt="Test" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_002.png" />
@@ -217,32 +222,9 @@ from /home/lasofivec/repositories/forked_tofu/tofu/examples/tutorials/myfirstgeo
   =&gt; 1 points removed
   =&gt; Poly goes from 5 to 4 points
   warnings.warn(msg)
-/home/lasofivec/repositories/forked_tofu/tofu/tofu/geom/_core.py:3914: UserWarning:
-The following Struct could not be created:
-
-        - vessel: Pb. with volume computation for Struct of type &#39;Tor&#39; !
-        - Vol = -7465.119154362532
-        - Poly = [[-39.178111  -39.162381  -21.5689255  14.37901    35.529935   29.861935
-   -6.891873  -39.1781135]
- [ 26.2711185 -22.3263    -39.084295  -41.2708    -20.78551    48.158007
-   43.09464    26.2711185]]
-
-  =&gt; Probably corrupted polygon
-  =&gt; Please check polygon is not self-intersecting
-
-        - struct1: Pb. with volume computation for Struct of type &#39;Tor&#39; !
-        - Vol = -1994.799256701673
-        - Poly = [[-33.3293055 -18.2357725 -11.3084475 -13.9601335 -33.3293055]
- [-17.278755  -30.65121   -30.305155  -24.229275  -17.278755 ]]
-
-  =&gt; Probably corrupted polygon
-  =&gt; Please check polygon is not self-intersecting
-  warnings.warn(msg)
-
-[&lt;matplotlib.axes._axes.Axes object at 0x7f5d49541700&gt;, &lt;matplotlib.axes._axes.Axes object at 0x7f5d495f0610&gt;]
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  0.390 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  0.483 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-create-geometry-from-svg-py">
 <div class="sphx-glr-download sphx-glr-download-python docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/7c8f7a207fc58893b4716e92b89deba1/tuto_plot_create_geometry_from_svg.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_create_geometry_from_svg.py</span></code></a></p>

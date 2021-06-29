@@ -1013,7 +1013,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">returnas</span> <span class="o">==</span> <span class="s1">&#39;dict&#39;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">returnas</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">conf</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([</span><span class="n">tt</span> <span class="k">for</span> <span class="n">tt</span> <span class="ow">in</span> <span class="n">lS</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">conf</span> <span class="o">=</span> <span class="n">_core</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">dconfig</span><span class="p">[</span><span class="n">config</span><span class="p">][</span><span class="s1">&#39;Exp&#39;</span><span class="p">],</span> <span class="n">lStruct</span><span class="o">=</span><span class="n">lS</span><span class="p">)</span>
@@ -1072,6 +1072,18 @@
 <span class="sd">        FLag indicating whether to return:</span>
 <span class="sd">            - &#39;dict&#39;  : the polygons as a dictionary of np.ndarrays</span>
 <span class="sd">            - &#39;object&#39;: the configuration as a tofu.geom.Config instance</span>
+<span class="sd">    returnas:   object / dict</span>
+<span class="sd">        Flag indicating whether to return the config as:</span>
+<span class="sd">            - object: a Config instance</span>
+<span class="sd">            - dict: a dict of Struct instances</span>
+<span class="sd">    strict:     bool</span>
+<span class="sd">        Flag indicating whether to raise an error if a Struct cannot be loaded</span>
+<span class="sd">            Otherwise only raises a warning</span>
+<span class="sd">    path:       str</span>
+<span class="sd">        Absolute path where to find the test case data</span>
+<span class="sd">    SavePath:   str</span>
+<span class="sd">        The default path used for saving Struct and Config objects returned by</span>
+<span class="sd">        the routine.</span>
 
 <span class="sd">    Return</span>
 <span class="sd">    ------</span>

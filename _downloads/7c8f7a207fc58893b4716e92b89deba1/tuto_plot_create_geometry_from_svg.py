@@ -53,5 +53,10 @@ config.plot()
 # might also want to adjust the scale. Tofu let's fix those parameters
 # when loading the configuration.
 config = tf.geom.Config.from_svg("myfirstgeom.svg", Name="Test", Exp="Test",
-                                 z0=-140, r0=100, scale=0.5)
+                                 z0=-140,
+                                 r0=10,
+                                 scale=0.5
+                                 )
 config.plot()
+import matplotlib.pyplot as plt
+plt.show()
