@@ -126,7 +126,7 @@ def _get_pts_from_path_svg(
         else:
             msg = (
                 "Non-conform path ({}) identified!\n"
-                + "All path must be either:\n"\
+                + "All path must be either:\n"
                 + "\t- closed\n"
                 + "\t- or a unique straight line with 2 points\n"
             )
@@ -251,12 +251,16 @@ def get_paths_from_svg(
                 point_ref2 = np.array(point_ref1)[:, None] + length_ref*unit
 
             # if horizontal (resp. vertical line) => coef = inf
-            # => assume equal scale for r and z instead to avoid inf 
+            # => assume equal scale for r and z instead to avoid inf
             eps = 1.e-8
             if np.abs(unit[0, 0]) > eps:
-                r_coef = (point_ref2[0]-point_ref1[0]) / (ref[0, 1] - ref[0, 0])
+                r_coef = (
+                    (point_ref2[0]-point_ref1[0]) / (ref[0, 1] - ref[0, 0])
+                )
             if np.abs(unit[1, 0]) > eps:
-                z_coef = (point_ref2[1]-point_ref1[1]) / (ref[1, 1] - ref[1, 0])
+                z_coef = (
+                    (point_ref2[1]-point_ref1[1]) / (ref[1, 1] - ref[1, 0])
+                )
             if np.abs(unit[0, 0]) < eps:
                 # vertical line => assume rscale  = zscale
                 r_coef = -z_coef
