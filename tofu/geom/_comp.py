@@ -52,7 +52,7 @@ def _check_float(var=None, varname=None, vardef=None):
         var = vardef
     if not type(var) in _LTYPES:
         msg = (
-            "Arg {} must be a float!\n"
+            "Arg {} must be a float!\n".format(varname)
             + "Provided: {}".format(type(var))
         )
         raise Exception(msg)
@@ -121,7 +121,16 @@ def _get_pts_from_path_svg(
     # Check for reference line
     isref = False
     if 'z' not in path_str.lower():
-        isref = True
+        if pts.shape[1] == 2:
+            isref = True
+        else:
+            msg = (
+                "Non-conform path ({}) identified!\n"
+                + "All path must be either:\n"\
+                + "\t- closed\n"
+                + "\t- or a unique straight line with 2 points\n"
+            )
+            raise Exception(msg)
 
     return pts, isref
 
@@ -131,9 +140,9 @@ def get_paths_from_svg(
     res=None,
     r0=None,
     z0=None,
-    point1=None,
-    point2=None,
-    length=None,
+    point_ref1=None,
+    point_ref2=None,
+    length_ref=None,
     scale=None,
     verb=None,
 ):
@@ -223,27 +232,40 @@ def get_paths_from_svg(
     # Set origin and rescale
     if ref is not None:
         lc = [
-            point1 is not None and point2 is not None,
-            point1 is not None and length is not None,
+            point_ref1 is not None and point_ref2 is not None,
+            point_ref1 is not None and length_ref is not None,
         ]
         if not any(lc):
             msg = (
                 "Arg reference line for scaling has been detected!\n"
                 + "But it cannot be used without providing:\n"
-                + "\t- point1 and point2: iterables of len() = 2\n"
-                + "\t- point1 and length: iterable of len() = 2 + scalar\n"
+                + "\t- point_ref1 + point_ref2: iterables of len() = 2\n"
+                + "\t- point_Ref1 + length_ref: iterable len() = 2 + scalar\n"
             )
             warnings.warn(msg)
         else:
+            unit = np.diff(ref, axis=1)
+            unit = unit / np.linalg.norm(unit)
+            unit = np.array([[unit[0, 0]], [-unit[1, 0]]])
             if not lc[0]:
-                unit = np.diff(ref, axis=1)
-                unit = unit / np.linalg.norm(unit)
-                unit = np.array([[unit[0, 0]], [-unit[1, 0]]])
-                point2 = np.array(point1)[:, None] + length*unit
-            r_coef = (point2[0]-point1[0]) / (ref[0, 1] - ref[0, 0])
-            r_offset = point1[0] - r_coef*ref[0, 0]
-            z_coef = (point2[1]-point1[1]) / (ref[1, 1] - ref[1, 0])
-            z_offset = point1[1] - z_coef*ref[1, 0]
+                point_ref2 = np.array(point_ref1)[:, None] + length_ref*unit
+
+            # if horizontal (resp. vertical line) => coef = inf
+            # => assume equal scale for r and z instead to avoid inf 
+            eps = 1.e-8
+            if np.abs(unit[0, 0]) > eps:
+                r_coef = (point_ref2[0]-point_ref1[0]) / (ref[0, 1] - ref[0, 0])
+            if np.abs(unit[1, 0]) > eps:
+                z_coef = (point_ref2[1]-point_ref1[1]) / (ref[1, 1] - ref[1, 0])
+            if np.abs(unit[0, 0]) < eps:
+                # vertical line => assume rscale  = zscale
+                r_coef = -z_coef
+            if np.abs(unit[1, 0]) < eps:
+                # horizontal line => assume rscale  = zscale
+                z_coef = -r_coef
+            r_offset = point_ref1[0] - r_coef*ref[0, 0]
+            z_offset = point_ref1[1] - z_coef*ref[1, 0]
+
             for k0 in dpath.keys():
                 dpath[k0]['poly'] = np.array([
                     r_coef*dpath[k0]['poly'][0, :] + r_offset,

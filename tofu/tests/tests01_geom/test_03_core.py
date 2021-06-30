@@ -742,11 +742,11 @@ class Test02_Config(object):
         )
         conf = tfg.Config.from_svg(
             pfe, Name='Test', Exp='Test',
-            res=10, point1=(0.7, -2), point2=(2.8, 2),
+            res=10, point_ref1=(0.7, -2), point_ref2=(2.8, 2),
         )
         conf = tfg.Config.from_svg(
             pfe, Name='Test', Exp='Test',
-            res=10, point1=(0.7, -2), length=4.5,
+            res=10, point_ref1=(0.7, -2), length_ref=4.5,
         )
 
     def test15_load_config(self):
