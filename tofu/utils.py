@@ -21,8 +21,8 @@ import matplotlib.pyplot as plt
 
 # tofu-specific
 from tofu import __version__
-import tofu.pathfile as tfpf
 
+_SAVEPATH = os.getcwd()
 _SEP = '.'
 _dict_lexcept_key = []
 
@@ -536,10 +536,10 @@ def load(name, path=None, strip=None, verb=True, allow_pickle=None):
         Flag indocating whether to print a summary of the loaded file
     """
 
-    lmodes = ['.npz','.mat','.txt']
+    lmodes = ['.npz', '.mat', '.txt', '.csv']
     name, mode, pfe = _filefind(name=name, path=path, lmodes=lmodes)
 
-    if mode == 'txt':
+    if mode in ['txt', 'csv']:
         obj = _load_from_txt(name, pfe)
     else:
         if mode == 'npz':
@@ -791,7 +791,7 @@ def _get_exception(q, ids, qtype='quantity'):
     raise Exception(msg)
 
 
-def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
+def load_from_imas(shot=None, run=None, user=None, database=None, version=None,
                    ids=None, Name=None, returnas=None, tlim=None,
                    occ=None, indch=None, description_2d=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
@@ -866,7 +866,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
             invertx = True
 
         multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
-                                         tokamak=tokamak, version=version,
+                                         database=database, version=version,
                                          ids='equilibrium')
         equi = multi.to_Plasma2D()
 
@@ -894,9 +894,11 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         init_plt = [r_init, phi_init, z_init]
 
         if False:
-            multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
-                                             tokamak=tokamak, version=version,
-                                             ids='wall')
+            multi = imas2tofu.MultiIDSLoader(
+                shot=shot[0], run=run, user=user,
+                database=database, version=version,
+                ids='wall',
+            )
             config = multi.to_Config(plot=False)
         else:
             import tofu.geom as tfg
@@ -1014,7 +1016,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
     elif ids == ['events']:
         multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
-                                         tokamak=tokamak, version=version,
+                                         database=database, version=version,
                                          ids='pulse_schedule', ids_base=False)
         multi.get_events(verb=True)
         return
@@ -1162,7 +1164,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     # load
     for ss in shot:
         multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
-                                         tokamak=tokamak, version=version,
+                                         database=database, version=version,
                                          ids=lids)
 
         # export to instances
@@ -1251,9 +1253,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
 
 def calc_from_imas(
-    shot=None, run=None, user=None, tokamak=None, version=None,
-    shot_eq=None, run_eq=None, user_eq=None, tokamak_eq=None,
-    shot_prof=None, run_prof=None, user_prof=None, tokamak_prof=None,
+    shot=None, run=None, user=None, database=None, version=None,
+    shot_eq=None, run_eq=None, user_eq=None, database_eq=None,
+    shot_prof=None, run_prof=None, user_prof=None, database_prof=None,
     ids=None, Name=None, out=None, tlim=None, config=None,
     occ=None, indch=None, description_2d=None, equilibrium=None,
     dsig=None, data=None, X=None, t0=None, dextra=None,
@@ -1264,7 +1266,7 @@ def calc_from_imas(
 ):
     """ Calculate syntehtic signal for a diagnostic
 
-    Read the geometry from an idd (tokamak, user, shot, run)
+    Read the geometry from an idd (database, user, shot, run)
     Read the equilibrium from the same / another idd
     Read the profile from the same / another idd
 
@@ -1299,8 +1301,8 @@ def calc_from_imas(
             extra = True
 
     # Equilibrium idd
-    if tokamak_eq is None:
-        tokamak_eq = tokamak
+    if database_eq is None:
+        database_eq = database
     if user_eq is None:
         user_eq = user
     if shot_eq is None:
@@ -1309,8 +1311,8 @@ def calc_from_imas(
         run_eq = run
 
     # prof idd
-    if tokamak_prof is None:
-        tokamak_prof = tokamak
+    if database_prof is None:
+        database_prof = database
     if user_prof is None:
         user_prof = user
     if shot_prof is None:
@@ -1478,22 +1480,24 @@ def calc_from_imas(
                 if kk in imas2tofu.MultiIDSLoader._lidsdiag]
     if input_file is None:
         for ss in shot:
-            multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
-                                             tokamak=tokamak, version=version,
-                                             ids=lids, synthdiag=False,
-                                             get=False)
+            multi = imas2tofu.MultiIDSLoader(
+                shot=ss, run=run, user=user,
+                database=database, version=version,
+                ids=lids, synthdiag=False,
+                get=False,
+            )
 
             lids_synth = multi.get_inputs_for_synthsignal(lidsdiag,
                                                           returnas=list,
                                                           verb=False)
             if 'equilibrium' in lids_synth:
-                multi.add_ids('equilibrium', tokamak=tokamak_eq,
+                multi.add_ids('equilibrium', database=database_eq,
                               user=user_eq, shot=shot_eq, run=run_eq,
                               get=False)
                 lids_synth.remove('equilibrium')
 
             if len(lids_synth) > 0:
-                multi.add_ids(lids_synth, tokamak=tokamak_prof,
+                multi.add_ids(lids_synth, database=database_prof,
                               user=user_prof, shot=shot_prof, run=run_prof,
                               get=False)
             multi.open_get_close()
@@ -1514,7 +1518,7 @@ def calc_from_imas(
 
     else:
         multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
-                                         tokamak=tokamak, version=version,
+                                         database=database, version=version,
                                          ids=lids, synthdiag=False, get=False)
         if 'bremsstrahlung_visible' in lids:
             multi.add_ids('equilibrium', get=True)
@@ -2180,6 +2184,13 @@ class ToFuObjectBase(object):
                                 if not eqk:
                                     m0 = 'tri ' + str(d0[k].triangles)
                                     m1 = 'tri ' + str(d1[k].triangles)
+                    elif 'trifind' in k:
+                        lpar0 = inspect.signature(d0[k]).parameters
+                        lpar1 = inspect.signature(d1[k]).parameters
+                        eqk = lpar0.keys() == lpar1.keys()
+                        if not eqk:
+                            m0 = 'tri ' + lpar0.keys()
+                            m1 = 'tri ' + lpar1.keys()
                     else:
                         msg = "How to handle :\n"
                         msg += "    {0} is a {1}".format(k,str(type(d0[k])))
@@ -2553,6 +2564,16 @@ class ToFuObject(ToFuObjectBase):
     def save(self, path=None, name=None,
              strip=None, sep=None, deep=True, mode='npz',
              compressed=False, verb=True, return_pfe=False):
+
+        if name is None and self.Id.Name is None:
+            msg = "Please set a unique instance name before saving using:\n"
+            msg += "    self.Id.set_Name( name )\n\n"
+            msg += "  => (to avoid saving of different instances with no name)"
+            raise Exception(msg)
+        if path is None and self.Id.SavePath is None:
+            msg = "Please specify a saving path (path=...)"
+            raise Exception(msg)
+
         return save(self, path=path, name=name,
                     sep=sep, deep=deep, mode=mode,
                     strip=strip, compressed=compressed,
@@ -2649,6 +2670,8 @@ class ID(ToFuObjectBase):
                                  SaveName=None, include=None,
                                  lObj=None, dUSR=None):
         # Str args
+        if SavePath is None:
+            SavePath = _SAVEPATH
         ls = [usr, Type, SavePath, Exp, Diag, SaveName]
         assert all(ss is None or type(ss) is str for ss in ls)
         if usr is None:
@@ -3268,7 +3291,7 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
                     def func(val, ind0=None, ref=ref):
                         return np.nanargmin(np.abs(ref-val[0]))
                 else:
-                    def func(val, ind0=None, refb=ref2):
+                    def func(val, ind0=None, ref=ref):
                         return np.nanargmin(np.abs(ref-val[1]))
 
             else:
@@ -3278,7 +3301,7 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
                 else:
                     refb = 0.5*(ref[1:]+ref[:-1])
                     if Type == 'x':
-                        def func(val, ind0=None, refb=ref2):
+                        def func(val, ind0=None, refb=refb):
                             return np.digitize([val[0]], refb)[0]
                     else:
                         def func(val, ind0=None, refb=refb):

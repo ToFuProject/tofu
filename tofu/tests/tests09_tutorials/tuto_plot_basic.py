@@ -3,29 +3,28 @@ Getting started: 5 minutes tutorial for `tofu`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This is a tutorial that aims to get a new user a little familiar with tofu's
- structure.
+structure.
 """
 
 # The following imports matplotlib, preferably using a
 # backend that allows the plots to be interactive (Qt5Agg).
-import matplotlib
+import numpy as np
 
 ###############################################################################
 # We start by loading `tofu`. You might see some warnings at this stage since
 # optional modules for `tofu` could
 # be missing on the machine you are working on. This can be ignored safely.
 
-import numpy as np
 import tofu as tf
+
 
 ###############################################################################
 # We can now create our first configuration.
-# In `tofu` speak, a configuration is the geometry
-# of the device and its structures.
-# `tofu` provides pre-defined ones for your to try,
-# so we're going to do just that:
+# In `tofu` speak, a configuration is the geometry of the device and its
+# structures. `tofu` provides pre-defined ones for your to try, so we're going
+# to do just that:
 
-configB2 = tf.geom.utils.create_config("B2")
+configB2 = tf.load_config("B2")
 
 ###############################################################################
 # The configuration can easily be visualized using the `.plot()` method:
@@ -33,20 +32,21 @@ configB2 = tf.geom.utils.create_config("B2")
 configB2.plot()
 
 ###############################################################################
-# Since `tofu` is all about tomography,
-# let's create a 1D camera and plot its output.
+# Since `tofu` is all about tomography, let's create a 1D camera and plot its
+# output.
 
 cam1d = tf.geom.utils.create_CamLOS1D(
     config=configB2,
-    P=[3.4, 0, 0],
-    N12=100,
-    F=0.1,
-    D12=0.1,
-    angs=[np.pi, 0, 0],
+    pinhole=[3.4, 0, 0],
+    sensor_nb=100,
+    focal=0.1,
+    sensor_size=0.1,
+    orientation=[np.pi, 0, 0],
     Name="",
     Exp="",
     Diag="",
 )
+
 # interactive plot
 cam1d.plot_touch()
 
@@ -55,11 +55,11 @@ cam1d.plot_touch()
 
 cam2d = tf.geom.utils.create_CamLOS2D(
     config=configB2,
-    P=[3.4, 0, 0],
-    N12=100,
-    F=0.1,
-    D12=0.1,
-    angs=[np.pi, 0, 0],
+    pinhole=[3.4, 0, 0],
+    sensor_nb=100,
+    focal=0.1,
+    sensor_size=0.1,
+    orientation=[np.pi, 0, 0],
     Name="",
     Exp="",
     Diag="",

@@ -77,7 +77,7 @@ def get_lidsidd_shotExp(lidsok,
 
     # Exp (non-identical => error if errExp is True, warning otherwise)
     Exp = _check_shotExp_consistency(didd, lidd,
-                                     tofustr='Exp', imasstr='tokamak',
+                                     tofustr='Exp', imasstr='database',
                                      err=errExp, fallback='Dummy')
     if upper is True:
         Exp = Exp.upper()
@@ -317,6 +317,7 @@ def config_extract_lS(ids, occ, wall, description_2d, mod,
             if name == '':
                 name = 'unit{:02.0f}'.format(ii)
             if '_' in name:
+                name = name.strip('_')
                 ln = name.split('_')
                 if len(ln) == 2:
                     cls, name = ln
@@ -324,6 +325,14 @@ def config_extract_lS(ids, occ, wall, description_2d, mod,
                     cls, name, mobi = ln
                 else:
                     name = name.replace('_', '')
+            if ' ' in name:
+                name = name.strip(' ')
+                ln = name.split(' ')
+                if len(ln) > 1:
+                    for ii, nn in enumerate(ln[1:]):
+                        if nn[0].islower():
+                            ln[ii+1] = nn.capitalize()
+                    name = ''.join(ln)
             if cls is None:
                 if ii == nunits - 1:
                     cls = 'Ves'

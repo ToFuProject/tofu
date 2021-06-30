@@ -36,18 +36,28 @@ interactive plots.
     <div class="container-fluid hidden-xs hidden-sm">
       <div class="row">
         <a href="auto_examples/tutorials/tuto_plot_basic.html">
-          <div class="col-md-3 thumbnail">
+          <div class="col-md-4 thumbnail">
             <img src="_images/sphx_glr_tuto_plot_basic_thumb.png">
           </div>
         </a>
 	<a href="auto_examples/tutorials/tuto_plot_create_geometry.html">
-          <div class="col-md-3 thumbnail">
+          <div class="col-md-4 thumbnail">
             <img src="_images/sphx_glr_tuto_plot_create_geometry_thumb.png">
           </div>
         </a>
 	<a href="auto_examples/tutorials/tuto_plot_custom_emissivity.html">
-          <div class="col-md-3 thumbnail">
+          <div class="col-md-4 thumbnail">
             <img src="_images/sphx_glr_tuto_plot_custom_emissivity_thumb.png">
+          </div>
+        </a>
+	<a href="auto_examples/tutorials/tuto_plot_solid_angles.html">
+          <div class="col-md-4 thumbnail">
+            <img src="_images/sphx_glr_tuto_plot_solid_angles_thumb.png">
+          </div>
+        </a>
+	<a href="auto_examples/tutorials/tuto_plot_create_geometry_from_svg.html">
+          <div class="col-md-4 thumbnail">
+            <img src="_images/sphx_glr_tuto_plot_create_geometry_from_svg_thumb.png">
           </div>
         </a>
       </div>
@@ -81,11 +91,14 @@ Contents
    - Use existing diagnostic geometry and signals to solve the inverse problem
      and compute tomographic inversions using a choice of discretization basis
      functions and regularisation functionals.
+* How to compute a integrated solid angle map in a poloidal cross section,
+  for a set of spherical particles (see the `solid angle`_ tutorial).
 * Advanced tutorials for developpers: :ref:`devtutos`
 
 .. _basic: auto_examples/tutorials/tuto_plot_create_geometry.html
 .. _cameras: auto_examples/tutorials/tuto_plot_basic.html
 .. _tutorial: auto_examples/tutorials/tuto_plot_custom_emissivity.html
+.. _solid angle: auto_examples/tutorials/tuto_plot_solid_angles.html
 
 
 **Code documentation:**

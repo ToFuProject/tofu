@@ -46,7 +46,7 @@ _IMAS_DIDD = {
     'refshot': -1,
     'refrun': -1,
     'user': _IMAS_USER_PUBLIC,
-    'tokamak': 'west',
+    'database': 'west',
     'version': '3',
 }
 
@@ -509,7 +509,7 @@ _didsdiag = {
 #
 # ############################################################################
 
-
+_lidsconfig = ['wall']
 _lidsdiag = sorted([kk for kk, vv in _didsdiag.items() if 'sig' in vv.keys()])
 _lidslos = list(_lidsdiag)
 for ids_ in _lidsdiag:

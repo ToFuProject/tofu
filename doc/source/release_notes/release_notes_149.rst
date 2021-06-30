@@ -17,24 +17,24 @@ Detailed changes:
 
 Community:
 ~~~~~~~~~~
-- 
+-
 
 scripts:
 ~~~~~~~~
-- 
+-
 
 Geometry:
 ~~~~~~~~~
-- 
+-
 
 IMAS interfacing:
 ~~~~~~~~~~~~~~~~~
-- 
+-
 
 
 Geometry:
 ~~~~~~~~~
-- 
+-
 
 
 Documentation:
@@ -43,7 +43,7 @@ Documentation:
 
 Miscellaneous:
 ~~~~~~~~~~~~~~
-- 
+-
 
 
 Contributors:

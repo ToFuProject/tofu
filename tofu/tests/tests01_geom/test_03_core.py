@@ -384,10 +384,9 @@ class Test01_Struct(object):
                     continue
                 for n in self.dobj[typ][c].keys():
                     obj = self.dobj[typ][c][n]
-                    P1Mm = (obj.dgeom['P1Min'][0], obj.dgeom['P1Max'][0])
-                    P2Mm = (obj.dgeom['P2Min'][1], obj.dgeom['P2Max'][1])
                     for ii in range(len(ldomain)):
                         try:
+                            print("Computing pts 0", ldomain[ii])
                             out = obj.get_sampleV(0.1, resMode='abs',
                                                   domain=ldomain[ii],
                                                   returnas='(X,Y,Z)',
@@ -404,6 +403,7 @@ class Test01_Struct(object):
                                    )
                             raise Exception(msg)
                         try:
+                            print("Computing pts 1")
                             out = obj.get_sampleV(0.1, resMode='abs',
                                                   ind=ind0,
                                                   returnas='(X,Y,Z)',
@@ -420,6 +420,8 @@ class Test01_Struct(object):
                                    )
                             raise Exception(msg)
                         try:
+                            print("ii, Computing pts 2")
+                            print(ldomain[ii])
                             out = obj.get_sampleV(0.1, resMode='abs',
                                                   domain=ldomain[ii],
                                                   returnas='(X,Y,Z)',
@@ -435,6 +437,7 @@ class Test01_Struct(object):
                                    )
                             raise Exception(msg)
                         try:
+                            print("Computing pts 3")
                             out = obj.get_sampleV(0.1, resMode='abs',
                                                   ind=ind0,
                                                   returnas='(X,Y,Z)',
@@ -475,10 +478,32 @@ class Test01_Struct(object):
 
                             c0 = pts0.shape == pts2.shape
                             c1 = c0 and np.allclose(pts0, pts2)
+
                             if not c0:
+                                lax = obj.plot()
+                                lax[1].plot(pts0[0, :],
+                                            pts0[1, :], '.b')  # x, y
+                                lax[0].plot(np.sqrt(pts0[0, :]**2
+                                                    + pts0[1, :]**2),
+                                            pts0[2, :], '.r')  # r, z
+                                plt.title("pts0 : OLD")
+                                plt.show(block=True)
+                                lax = obj.plot()
+                                lax[1].plot(pts2[0, :],
+                                            pts2[1, :], '.b')  # x, y
+                                lax[0].plot(np.sqrt(pts2[0, :]**2
+                                                    + pts2[1, :]**2),
+                                            pts2[2, :], '.r')  # r, z
+                                plt.title("pts2 : NEW")
+                                plt.show(block=True)
+
+                                n1 = pts0.shape
+                                n2 = pts2.shape
                                 msg = ("Volume sampling:\n"
                                        + "\t- no match old vs new algo\n"
-                                       + "\t- same shape: {}\n".format(c0)
+                                       + "\t- same shape: {} ".format(c0)
+                                       + "(old : {}, new: {})\n".format(n1,
+                                                                        n2)
                                        + "\t- np.allclose() {}\n".format(c1)
                                        + "\t- domain = {}".format(ldomain[ii]))
                                 raise Exception(msg)
@@ -706,7 +731,30 @@ class Test02_Config(object):
             lax = self.dobj[typ].plot_sino()
         plt.close('all')
 
-    def test14_saveload(self, verb=False):
+    def test14_from_svg(self):
+        pfe = os.path.join(_here, 'test_03_core_data', 'Inkscape.svg')
+        # to be solved when optional dependence svg.path is handled
+        # (or integrated)
+        conf = tfg.Config.from_svg(pfe, Name='Test', Exp='Test', res=10)
+        conf = tfg.Config.from_svg(
+            pfe, Name='Test', Exp='Test',
+            res=10, r0=-100, z0=-150, scale=0.01,
+        )
+        conf = tfg.Config.from_svg(
+            pfe, Name='Test', Exp='Test',
+            res=10, point_ref1=(0.7, -2), point_ref2=(2.8, 2),
+        )
+        conf = tfg.Config.from_svg(
+            pfe, Name='Test', Exp='Test',
+            res=10, point_ref1=(0.7, -2), length_ref=4.5,
+        )
+
+    def test15_load_config(self):
+        lc = sorted(tfg.utils._get_listconfig(returnas=dict).keys())
+        for cc in lc:
+            conf = tf.load_config(cc, strict=True)
+
+    def test16_saveload(self, verb=False):
         for typ in self.dobj.keys():
             self.dobj[typ].strip(-1)
             pfe = self.dobj[typ].save(verb=verb, return_pfe=True)

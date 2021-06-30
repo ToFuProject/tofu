@@ -2,8 +2,8 @@
 Computing a camera image with custom emissivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This tutorial defines an emissivity that varies in space and computes the signal
-received by a camera using this emissivity.
+This tutorial defines an emissivity that varies in space and computes the
+signal received by a camera using this emissivity.
 """
 
 ###############################################################################
@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tofu as tf
 
-configB2 = tf.geom.utils.create_config("B2")
+configB2 = tf.load_config("B2")
 
 cam2d = tf.geom.utils.create_CamLOS2D(
     config=configB2,
@@ -35,10 +35,10 @@ cam2d = tf.geom.utils.create_CamLOS2D(
 def emissivity(pts, t=None, vect=None):
     """Custom emissivity as a function of geometry.
 
-    :param pts: ndarray of shape (3, n_points) (each column is a xyz coordinate)
+    :param pts: ndarray of shape (3, npts) (each column is a xyz coordinate)
     :param t: optional, time parameter to add a time dependency to the
         emissivity function
-    :param vect: optional, ndarray of shape (3, n_points), if anisotropic
+    :param vect: optional, ndarray of shape (3, npts), if anisotropic
         emissivity, unit direction vectors (X,Y,Z)
     :return:
         - emissivity -- 2D array holding the emissivity for each point in the
@@ -95,4 +95,4 @@ sig, units = cam2d.calc_signal(emissivity,
                                t=time_vector)
 
 sig.plot(ntMax=1)
-plt.show(block=True)
+plt.show(block=False)

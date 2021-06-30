@@ -1,48 +1,48 @@
 language: python
 jobs:
   include:
-  - name: Bionic python 3.7
+  - name: "Bionic python 3.7"
     os: linux
     dist: bionic
     python: 3.7
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - OS=linux-64
-  - name: trusty python 3.6
+  - name: "trusty python 3.6"
     os: linux
     dist: trusty
     python: 3.6
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - OS=linux-64
-  - name: xenial python 3.7
+  - name: "xenial python 3.7"
     os: linux
     dist: xenial
     python: 3.7
-    if: branch = master OR branch = devel
+    if: branch = master OR branch = devel OR branch = deploy-test OR tag is present
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - OS=linux-64
-  - name: xenial python 3.6
+  - name: "xenial python 3.6"
     os: linux
     dist: xenial
     python: 3.6
-    if: branch = master OR branch = devel
+    if: branch = master OR branch = devel OR branch = deploy-test OR tag is present
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - OS=linux-64
-  - name: osx python 3.7
+  - name: "osx python 3.7"
     os: osx
     language: generic
-    if: branch = master OR branch = devel
+    if: branch = master OR branch = devel OR branch = deploy-test OR tag is present
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.7
     - OS=osx-64
-  - name: osx python 3.6
+  - name: "osx python 3.6"
     os: osx
     language: generic
-    if: branch = master OR branch = devel
+    if: branch = master OR branch = devel OR branch = deploy-test OR tag is present
     env:
     - REPO=https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - TRAVIS_PYTHON_VERSION=3.6
@@ -99,12 +99,13 @@ before_deploy:
       ls $START
       cd $START
       echo "BEFORE DEPLOY END.........."
-    fi
+    fi # to be run only once then
 deploy:
   - provider: pypi
     distributions: sdist
     username: __token__
     skip_existing: true
+    skip_cleanup: true
     on:
       tags: true
       condition: $IS_DEPLOY = "deploy-test"
@@ -115,6 +116,7 @@ deploy:
     distributions: bdist_wheel
     username: __token__
     skip_existing: true
+    skip_cleanup: true
     on:
       tags: true
       condition: $IS_DEPLOY = "deploy-test" && $OS = osx-64
@@ -125,6 +127,7 @@ deploy:
     distributions: sdist
     username: "Didou09"
     skip_existing: true
+    skip_cleanup: true
     on:
       tags: true
       condition: $IS_MASTER = "master"
@@ -134,6 +137,7 @@ deploy:
     distributions: bdist_wheel
     username: "Didou09"
     skip_existing: true
+    skip_cleanup: true
     on:
       condition: $IS_MASTER = "master" && $OS = osx-64
       tags: true

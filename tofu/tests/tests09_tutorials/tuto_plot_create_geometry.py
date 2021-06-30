@@ -9,12 +9,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tofu.geom as tfg
 
-import os
-import tofu as tf
-print(os.getcwd())
-print(tf.__version__)
-print(tf.__path__)
-
 
 ###############################################################################
 # Creating an empty Vessel

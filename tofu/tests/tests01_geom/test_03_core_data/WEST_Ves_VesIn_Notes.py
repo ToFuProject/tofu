@@ -51,5 +51,3 @@ if __name__=='__main__':
 
     # Call wrapper function
     make_Poly(save=args.save, path=args.path)
-
-

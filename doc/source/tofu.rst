@@ -5,17 +5,20 @@ tofu package
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 5
 
    tofu.data
    tofu.dumpro
    tofu.dust
+   tofu.entrypoints
    tofu.geom
-   tofu.scripts
+   tofu.openadas2tofu
    tofu.tests
 
 Submodules
@@ -28,6 +31,7 @@ tofu.\_physics module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.\_plot module
 ------------------
@@ -36,6 +40,7 @@ tofu.\_plot module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.defaults module
 --------------------
@@ -44,6 +49,7 @@ tofu.defaults module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.pathfile module
 --------------------
@@ -52,6 +58,7 @@ tofu.pathfile module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.utils module
 -----------------
@@ -60,6 +67,7 @@ tofu.utils module
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 tofu.version module
 -------------------
@@ -68,4 +76,4 @@ tofu.version module
    :members:
    :undoc-members:
    :show-inheritance:
-
+   :private-members:

@@ -60,8 +60,7 @@ In all cases, what tofuplot does is simply:
 - read the diagnostic geometry from the provided ids
 - compute the Lines of Sight (LOS)
 - read the diagnostic experimental data from the provided ids
-- display the data (time traces per LOS) and the geometry (tokamak + LOS) in
-an interactive figure
+- display the data (time traces per LOS) and the geometry (tokamak + LOS) in an interactive figure
 
 There are many other parameters that can be specified, like in particular:
 
