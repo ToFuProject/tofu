@@ -3862,6 +3862,9 @@ class Config(utils.ToFuObject):
         cls,
         pfe,
         res=None,
+        point_ref1=None,
+        point_ref2=None,
+        length_ref=None,
         r0=None,
         z0=None,
         scale=None,
@@ -3873,6 +3876,39 @@ class Config(utils.ToFuObject):
         verb=None,
         returnas=None,
     ):
+        """ Build a config from a svg file (Inkscape)
+
+        The svg shall have only:
+            - closed polygons (possibly inc. Bezier curves)
+            - an optional unique 2-points straight line (non-closed)
+              used for auto-scaling
+
+        If Beziers curves are included, they will be discretized according to
+        resolution parameter res (absolute maximum tolerated distance between
+        points)
+
+        All closed polygons will be interpreted as:
+            - a Ves instance if it has no fill color
+            - a PFC instance if it has a fill color
+        The names are derived from Inkscape objects id
+
+        The coordinates are extracted from the svg
+        They can be rescaled either:
+            - automatically:
+                scaling computed from the unique straight line
+                and from the corresponding 2 points real-life coordinates
+                provided by the user as 2 iterables (list, arrays or tuples)
+                of len() = 2 (point_ref1 and point_ref2)
+                Alternatively a single point (point_ref1) and the length_ref
+                of the line can be provided
+            - forcefully:
+                the origin (r0, z0) and a common scaling factor (scale) are
+                provided by the user
+
+        The result Config instance must have a Name and be associated to an
+        experiment (Exp).
+
+        """
         # Check inputs
         if returnas is None:
             returnas = object
@@ -3886,7 +3922,12 @@ class Config(utils.ToFuObject):
 
         # Extract polygon from file and check
         dpath = _comp.get_paths_from_svg(
-            pfe=pfe, res=res, r0=r0, z0=z0, scale=scale, verb=verb)
+            pfe=pfe, res=res,
+            point_ref1=point_ref1, point_ref2=point_ref2,
+            length_ref=length_ref,
+            r0=r0, z0=z0, scale=scale,
+            verb=verb,
+        )
 
         if len(dpath) == 0:
             msg = "No Struct found in {}".format(pfe)

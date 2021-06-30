@@ -46,6 +46,18 @@ _SAMPLE_RESMODE = {
     'volume': 'abs',
 }
 
+
+def _check_float(var=None, varname=None, vardef=None):
+    if var is None:
+        var = vardef
+    if not type(var) in _LTYPES:
+        msg = (
+            "Arg {} must be a float!\n".format(varname)
+            + "Provided: {}".format(type(var))
+        )
+        raise Exception(msg)
+    return var
+
 ###############################################################################
 #                            Ves functions
 ###############################################################################
@@ -59,49 +71,10 @@ _SAMPLE_RESMODE = {
 def _get_pts_from_path_svg(
     path_str=None,
     res=None,
-    r0=None,
-    z0=None,
-    scale=None,
 ):
 
-    if res is None:
-        res = _RES
-    c0 = type(res) in _LTYPES
-    if not c0:
-        msg = (
-            "Arg res must be a float !"
-        )
-        raise Exception(msg)
-
-    # r0
-    if r0 is None:
-        r0 = 0.
-    if not type(r0) in _LTYPES:
-        msg = (
-            "Arg r0 must be a float!\n"
-            + "Provided:\n\t{}".format(r0)
-        )
-        raise Exception(msg)
-
-    # z0
-    if z0 is None:
-        z0 = 0.
-    if not type(z0) in _LTYPES:
-        msg = (
-            "Arg z0 must be a float!\n"
-            + "Provided:\n\t{}".format(z0)
-        )
-        raise Exception(msg)
-
-    # scale
-    if scale is None:
-        scale = 1.
-    if not type(scale) in _LTYPES:
-        msg = (
-            "Arg scale must be a float!\n"
-            + "Provided:\n\t{}".format(scale)
-        )
-        raise Exception(msg)
+    # Check inputs
+    res = _check_float(var=res, varname='res', vardef=_RES)
 
     # try loading
     try:
@@ -145,14 +118,21 @@ def _get_pts_from_path_svg(
     pts = np.array([lpath.point(po) for po in pos])
     pts = np.array([pts.real, pts.imag])
 
-    # reverse because inkscape has its origin at top left corner
-    pts[0, :] = pts[0, :] - r0
-    pts[1, :] = -pts[1, :] - z0
+    # Check for reference line
+    isref = False
+    if 'z' not in path_str.lower():
+        if pts.shape[1] == 2:
+            isref = True
+        else:
+            msg = (
+                "Non-conform path ({}) identified!\n"
+                + "All path must be either:\n"
+                + "\t- closed\n"
+                + "\t- or a unique straight line with 2 points\n"
+            )
+            raise Exception(msg)
 
-    # rescaling
-    pts = scale*pts
-
-    return pts
+    return pts, isref
 
 
 def get_paths_from_svg(
@@ -160,6 +140,9 @@ def get_paths_from_svg(
     res=None,
     r0=None,
     z0=None,
+    point_ref1=None,
+    point_ref2=None,
+    length_ref=None,
     scale=None,
     verb=None,
 ):
@@ -173,6 +156,11 @@ def get_paths_from_svg(
         )
         raise Exception(msg)
     pfe = os.path.abspath(pfe)
+
+    # r0, z0, scale
+    z0 = _check_float(var=z0, varname='z0', vardef=0.)
+    r0 = _check_float(var=r0, varname='r0', vardef=0.)
+    scale = _check_float(var=scale, varname='scale', vardef=1.)
 
     # verb
     if verb is None:
@@ -205,16 +193,16 @@ def get_paths_from_svg(
     # Derive usable data
     kstr = 'fill:'
     lk = list(dpath.keys())
+    ref = None
     for ii, k0 in enumerate(lk):
 
         v0 = dpath[k0]
-        dpath[k0]['poly'] = _get_pts_from_path_svg(
-            v0['poly'],
-            res=res,
-            r0=r0,
-            z0=z0,
-            scale=scale,
-        )
+        poly, isref = _get_pts_from_path_svg(v0['poly'], res=res)
+        if isref is True:
+            ref = poly
+            del dpath[k0]
+            continue
+        dpath[k0]['poly'] = poly
 
         # class and color
         color = v0['color'][v0['color'].index(kstr) + len(kstr):].split(';')[0]
@@ -240,6 +228,59 @@ def get_paths_from_svg(
         else:
             warnings.warn(msg)
         dpath = {k0: dpath[k0] for k0 in dpath.keys() if k0 not in lkneg}
+
+    # Set origin and rescale
+    if ref is not None:
+        lc = [
+            point_ref1 is not None and point_ref2 is not None,
+            point_ref1 is not None and length_ref is not None,
+        ]
+        if not any(lc):
+            msg = (
+                "Arg reference line for scaling has been detected!\n"
+                + "But it cannot be used without providing:\n"
+                + "\t- point_ref1 + point_ref2: iterables of len() = 2\n"
+                + "\t- point_Ref1 + length_ref: iterable len() = 2 + scalar\n"
+            )
+            warnings.warn(msg)
+        else:
+            unit = np.diff(ref, axis=1)
+            unit = unit / np.linalg.norm(unit)
+            unit = np.array([[unit[0, 0]], [-unit[1, 0]]])
+            if not lc[0]:
+                point_ref2 = np.array(point_ref1)[:, None] + length_ref*unit
+
+            # if horizontal (resp. vertical line) => coef = inf
+            # => assume equal scale for r and z instead to avoid inf
+            eps = 1.e-8
+            if np.abs(unit[0, 0]) > eps:
+                r_coef = (
+                    (point_ref2[0]-point_ref1[0]) / (ref[0, 1] - ref[0, 0])
+                )
+            if np.abs(unit[1, 0]) > eps:
+                z_coef = (
+                    (point_ref2[1]-point_ref1[1]) / (ref[1, 1] - ref[1, 0])
+                )
+            if np.abs(unit[0, 0]) < eps:
+                # vertical line => assume rscale  = zscale
+                r_coef = -z_coef
+            if np.abs(unit[1, 0]) < eps:
+                # horizontal line => assume rscale  = zscale
+                z_coef = -r_coef
+            r_offset = point_ref1[0] - r_coef*ref[0, 0]
+            z_offset = point_ref1[1] - z_coef*ref[1, 0]
+
+            for k0 in dpath.keys():
+                dpath[k0]['poly'] = np.array([
+                    r_coef*dpath[k0]['poly'][0, :] + r_offset,
+                    z_coef*dpath[k0]['poly'][1, :] + z_offset,
+                ])
+    else:
+        for k0 in dpath.keys():
+            dpath[k0]['poly'] = np.array([
+                scale*(dpath[k0]['poly'][0, :] - r0),
+                scale*(-dpath[k0]['poly'][1, :] - z0),
+            ])
 
     # verb
     if verb is True:
