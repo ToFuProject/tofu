@@ -158,7 +158,7 @@ def test04_Ves_isInside(VPoly=VPoly):
 
     # Lin Ves
     Pts = np.array([[-10., -10., 5., 5., 5., 5., 5., 30., 30., 30.],
-                    [0., 2., 0., 2.,4., 2., 2., 2., 0., 0.],
+                    [0., 2., 0., 2., 4., 2., 2., 2., 0., 0.],
                     [0., 0., 0., 0., 0., 2., -2., 0., 0., 2.]])
     ind = GG._Ves_isInside(Pts, VPoly, ves_lims=np.array([[0., 10.]]), nlim=1,
                            ves_type='Lin', in_format='(X,Y,Z)', test=True)
@@ -262,7 +262,7 @@ def test09_Ves_Smesh_Tor(VPoly=VPoly):
             ind.dtype == int,
             np.unique(ind).size == ind.size,
             np.all(ind == np.unique(ind)),
-            np.all(ind>=0),
+            np.all(ind >= 0),
         ])
         assert (
             ind.shape == (Pts.shape[1],) and ind.dtype == int
@@ -505,7 +505,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
     VIn = compute_ves_norm(VPoly)
     DIn = -0.001
     DY, DZ = [0., 2.], [0., 1.]
-    LDX = [None, [-1., 2.], [2.,5.], [8., 11.]]
+    LDX = [None, [-1., 2.], [2., 5.], [8., 11.]]
 
     for ii in range(0,len(LDX)):
         Pts, dS, ind,\
@@ -748,14 +748,22 @@ def test13_LOS_PInOut():
     ez = np.array([[0.], [0.], [1.]])
     Ds, us = [], []
     Sols_In, Sols_Out = [], []
-    rsol_In = [[6.,6.,6.5,7.5,8.,8.,7.5,6.5], [6.,6.,6.5,7.5,8.,8.,7.5,6.5],
-               [6.,6.,6.5,7.5,8.,8.,7.5,6.5], [6.,6.,6.5,7.5,8.,8.,7.5,6.5]]
-    zsol_In = [[7.5,6.5,6.,6.,6.5,7.5,8.,8.], [7.5,6.5,6.,6.,6.5,7.5,8.,8.],
-               [7.5,6.5,6.,6.,6.5,7.5,8.,8.], [7.5,6.5,6.,6.,6.5,7.5,8.,8.]]
-    rsol_Out = [[8.,8.,6.5,7.5,6.,6.,7.5,6.5], [8.,8.,6.5,7.5,6.,6.,7.5,6.5],
-                [8.,8.,6.5,7.5,6.,6.,7.5,6.5], [8.,8.,6.5,7.5,6.,6.,7.5,6.5]]
-    zsol_Out = [[7.5,6.5,8.,8.,6.5,7.5,6.,6.], [7.5,6.5,8.,8.,6.5,7.5,6.,6.],
-                [7.5,6.5,8.,8.,6.5,7.5,6.,6.], [7.5,6.5,8.,8.,6.5,7.5,6.,6.]]
+    rsol_In = [[6., 6., 6.5, 7.5, 8., 8., 7.5, 6.5],
+               [6., 6., 6.5, 7.5, 8., 8., 7.5, 6.5],
+               [6., 6., 6.5, 7.5, 8., 8., 7.5, 6.5],
+               [6., 6., 6.5, 7.5, 8., 8., 7.5, 6.5]]
+    zsol_In = [[7.5, 6.5, 6., 6., 6.5, 7.5, 8., 8.],
+               [7.5, 6.5, 6., 6., 6.5, 7.5, 8., 8.],
+               [7.5, 6.5, 6., 6., 6.5, 7.5, 8., 8.],
+               [7.5, 6.5, 6., 6., 6.5, 7.5, 8., 8.]]
+    rsol_Out = [[8., 8., 6.5, 7.5, 6., 6., 7.5, 6.5],
+                [8., 8., 6.5, 7.5, 6., 6., 7.5, 6.5],
+                [8., 8., 6.5, 7.5, 6., 6., 7.5, 6.5],
+                [8., 8., 6.5, 7.5, 6., 6., 7.5, 6.5]]
+    zsol_Out = [[7.5, 6.5, 8., 8., 6.5, 7.5, 6., 6.],
+                [7.5, 6.5, 8., 8., 6.5, 7.5, 6., 6.],
+                [7.5, 6.5, 8., 8., 6.5, 7.5, 6., 6.],
+                [7.5, 6.5, 8., 8., 6.5, 7.5, 6., 6.]]
     for ii in range(0,len(Theta)):
         er = np.array([[np.cos(Theta[ii])], [np.sin(Theta[ii])], [0.]])
         Ds.append(er*r[np.newaxis, :] + ez*z[np.newaxis, :])
@@ -802,19 +810,19 @@ def test13_LOS_PInOut():
     ErOut = np.array([np.cos(ThetaOut), np.sin(ThetaOut), np.zeros((8,))])
     assert (
         np.allclose(kPIn[:32], np.ones((4*N,)), equal_nan=True)
-        and np.all((kPIn[32:]>0.) & (kPIn[32:]<6.5))
+        and np.all((kPIn[32:] > 0.) & (kPIn[32:] < 6.5))
     )
     assert (
         np.allclose(kPOut[:32], 3.*np.ones((4*N,)), equal_nan=True)
-        and np.all((kPOut[32:]>6.5) & (kPOut[32:]<16.))
+        and np.all((kPOut[32:] > 6.5) & (kPOut[32:] < 16.))
     )
     assert (
         np.allclose(PIn[:, :32], Sols_In[:, :32], equal_nan=True)
-        and np.all((ThetaIn>-np.pi/2.) & (ThetaIn<0.))
+        and np.all((ThetaIn > -np.pi/2.) & (ThetaIn < 0.))
     )
     assert (
         np.allclose(POut[:, :32], Sols_Out[:, :32], equal_nan=True)
-        and np.all((ThetaOut>0.) | (ThetaOut<-np.pi/2.))
+        and np.all((ThetaOut > 0.) | (ThetaOut < -np.pi/2.))
     )
     assert (
         np.allclose(np.hypot(PIn[0, 32:], PIn[1, 32:]), 8.*np.ones((8,)))
