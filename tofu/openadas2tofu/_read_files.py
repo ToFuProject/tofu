@@ -106,7 +106,6 @@ def _get_available_elements_from_path(path=None, typ1=None):
     return element
 
 
-
 def _format_for_DataCollection_adf15(
     dout,
     dsource0=None,
@@ -931,7 +930,9 @@ def _read_adf15(
                             np.log(te),
                             np.log(pec),
                             kx=deg,
-                            ky=deg)
+                            ky=deg,
+                        )
+
                         def pec(Te=None, ne=None, pec_rec=pec_rec):
                             return np.exp(pec_rec(np.log(ne), np.log(Te)))
 

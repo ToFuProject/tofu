@@ -475,7 +475,6 @@ def _csv_parser(
                     if k0 not in lkout
                 }
 
-
                 if ok is True:
                     key = 'nist_{:03}'.format(ii)
                     dout[key] = rowi

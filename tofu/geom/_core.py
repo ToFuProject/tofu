@@ -4043,7 +4043,7 @@ class Config(utils.ToFuObject):
             lSLim = [ss.Lim for ss in lS]
             lSnLim = np.array([ss.noccur for ss in lS])
 
-            # Nb of structures and of structures inc. Lims (toroidal occurences)
+            # Nb of structures and of structures inc. Lims (toroidal occurence)
             num_lim_structs = len(lS)
             num_tot_structs = int(np.sum([max(1, ss.noccur) for ss in lS]))
 
@@ -4053,7 +4053,7 @@ class Config(utils.ToFuObject):
             lSVInx = np.concatenate([ss.dgeom['VIn'][0, :] for ss in lS])
             lSVIny = np.concatenate([ss.dgeom['VIn'][1, :] for ss in lS])
 
-            # lsnvert = cumulated number of points in the polygon of each Struct
+            # lsnvert = cumulated number of points in the poly of each Struct
             lsnvert = np.cumsum([
                 ss.Poly_closed[0].size for ss in lS],
                 dtype=int,
