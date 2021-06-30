@@ -999,7 +999,7 @@ def CrystalBragg_plot_line_tracing_on_det(
     lamb, xi, xj, xi_err, xj_err,
     det=None,
     johann=None, rocking=None,
-    dax=None, dleg=None,
+    ax=None, dleg=None,
     fs=None, dmargin=None,
     wintit=None, tit=None,
 ):
@@ -1031,34 +1031,34 @@ def CrystalBragg_plot_line_tracing_on_det(
     # Plot
     # ------------
 
-    if dax is None:
+    if ax is None:
         fig = plt.figure(figsize=fs)
         gs = gridspec.GridSpec(1, 1, **dmargin)
-        dax = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
+        ax = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
         if wintit is not False:
             fig.canvas.set_window_title(wintit)
         if tit is not False:
             fig.suptitle(tit, size=14, weight='bold')
 
     if det.get('outline') is not None:
-        dax.plot(
+        ax.plot(
             det['outline'][0, :], det['outline'][1, :],
             ls='-', lw=1., c='k',
         )
     for l in range(lamb.size):
         lab = r'$\lambda$'+' = {:6.3f} A'.format(lamb[l]*1.e10)
-        l0, = dax.plot(xi[l, :], xj[l, :], ls='-', lw=1., label=lab)
+        l0, = ax.plot(xi[l, :], xj[l, :], ls='-', lw=1., label=lab)
         if plot_err:
-            dax.plot(
-                xi_err[l, ...], xj_err[l, ...], 'o-',
-                ls='None', lw=1., c='g',# c=l0.get_color(),
-                ms=1, #marker='x'
+            ax.plot(
+                xi_err[l, ...], xj_err[l, ...],
+                ls='None', lw=1., c=l0.get_color(),
+                ms=4, marker='.',
             )
 
     if dleg is not False:
-        dax.legend(**dleg)
+        ax.legend(**dleg)
 
-    return dax
+    return ax
 
 
 def CrystalBragg_plot_johannerror(

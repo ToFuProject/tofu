@@ -1369,9 +1369,9 @@ class CrystalBragg(utils.ToFuObject):
                     (3,) array of (x, y, z) coordinates of unit vector
                     defining second coordinate in detector's plane
                 'outline':   np.darray
-                    (2, 5) array to build detector's contour
-                    from point 1 to point 5 = point 1
-                    (need to be added manually with this convention
+                    (2, N) array to build detector's contour
+                    where the last point is identical to the first.
+                    (for example for WEST X2D spectrometer:
                     x*np.r_[-1,-1,1,1,-1], y*np.r_[-1,1,1,-1,-1])
         """
 
@@ -1711,7 +1711,7 @@ class CrystalBragg(utils.ToFuObject):
         det=None, johann=None,
         use_non_parallelism=None,
         lpsi=None, ldtheta=None,
-        dax=None, dleg=None,
+        ax=None, dleg=None,
         rocking=None, fs=None, dmargin=None,
         wintit=None, tit=None,
     ):
@@ -1746,7 +1746,7 @@ class CrystalBragg(utils.ToFuObject):
 
         nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
             use_non_parallelism=use_non_parallelism,
-            )
+        )
         nin = -nout
 
         # Compute lamb / phi
@@ -1811,7 +1811,7 @@ class CrystalBragg(utils.ToFuObject):
         # Plot
         return _plot_optics.CrystalBragg_plot_line_tracing_on_det(
             lamb, xi, xj, xi_er, xj_er,
-            det=det, dax=dax, dleg=dleg,
+            det=det, ax=ax, dleg=dleg,
             johann=johann, rocking=rocking,
             fs=fs, dmargin=dmargin, wintit=wintit, tit=tit)
 
