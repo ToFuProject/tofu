@@ -18,6 +18,7 @@ _LTYPES = [int, float, np.int_, np.float_]
 
 def _are_broadcastable(**kwdargs):
 
+    # Check if broadcastable
     lv = list(kwdargs.values())
     c0 = (
         all([isinstance(vv, np.ndarray) for vv in lv])
@@ -29,6 +30,8 @@ def _are_broadcastable(**kwdargs):
             for vv in lv
         ])
     )
+
+    # raise Exception if strict
     if not c0:
         msg = (
             "All args must be broadcastable with each other!\n"
@@ -504,13 +507,17 @@ def calc_xixj_from_braggphi(
     return xi, xj, strict
 
 
-def calc_braggphi_from_pts_summits(
+def _calc_braggphi_from_pts_summits(
     pts=None,
     summits=None,
     vin=None, ve1=None, ve2=None,
 ):
     # check inputs
     _are_broadcastable(pts=pts, summits=summits, vin=vin, ve1=ve1, ve2=ve2)
+
+    if pts.ndim != summits.ndim:
+        msg = "Differents dimensions!"
+        raise Exception(msg)
 
     # compute
     vect = pts - summits
@@ -527,9 +534,9 @@ def calc_braggphi_from_pts_summits(
 
 
 def calc_braggphi_from_xixjpts(
-    det_cent, det_ei, det_ej,
-    summit, nin, e1, e2,
-    xi=None, xj=None, pts=None,
+    pts=None,
+    xi=None, xj=None, det=None,
+    summit=None, nin=None, e1=None, e2=None,
     grid=None,
 ):
     """ Return bragg phi for pts or (xj, xi) seen from (summit, nin, e1, e2)
@@ -556,22 +563,41 @@ def calc_braggphi_from_xixjpts(
     if grid is None:
         grid = True
 
+    # Either pts or (xi, xj)
     lc = [pts is not None, all([xx is not None for xx in [xi, xj]])]
     if np.sum(lc) != 1:
         msg = "Provide either pts xor (xi, xj)!"
         raise Exception(msg)
 
     if lc[0]:
+        # pts
         assert pts.shape[0] == 3
         if pts.ndim == 1:
             pts = pts.reshape((3, 1))
+
     elif lc[1]:
+        # xi, xj => compute pts using det
+        c0 = (
+            isinstance(det, dict)
+            and all([
+                ss in det.keys() and len(det[ss]) == 3
+                for ss in ['cent', 'ei', 'ej']
+            ])
+        )
+        if not c0:
+            msg = (
+                "Arg det must be provided as a dict if xi, xj are provided!\n"
+                + "Provided: {}".format(det)
+            )
+            raise Exception(msg)
+
         xi = np.atleast_1d(xi)
         xj = np.atleast_1d(xj)
         if xi.shape != xj.shape:
             msg = "xi and xj must have the same shape!"
             raise Exception(msg)
         assert xi.ndim in [1, 2]
+
         if xi.ndim == 1:
             pts = (det_cent[:, None]
                    + xi[None, :]*det_ei[:, None]
@@ -585,29 +611,28 @@ def calc_braggphi_from_xixjpts(
     if not c0:
         msg = "(summit, nin, e1, e2) must all have the same shape"
         raise Exception(msg)
-    ndimsum = summit.ndim
-    assert ndimsum in [1, 2, 3, 4, 5], summit.shape
 
-    err = False
     c0 = (
         (
             grid is True
-            and pts.ndim in [1, 2]
-            and summit.ndim in [1, 2, 3, 4]
+            and pts.ndim in [1, 2, 3]
+            and summit.ndim in [1, 2, 3, 4, 5]
         )
         or (
             grid is False
+            and pts.ndim == summit.ndim
         )
     )
     if not c0:
         msg = (
             "Args pts and summit/nin/e1/e2 must be such that:\n"
             + "\t- grid = True:\n"
-            + "\t\tpts.ndim in [1, 2] and pts.shape[0] == 3\n"
-            + "\t\tsummit.ndim in [1, 2, 3]\n"
+            + "\t\tpts.ndim in [1, 2, 3] and pts.shape[0] == 3\n"
+            + "\t\tsummit.ndim in [1, 2, 3, 4, 5]\n"
             + "\t- grid = False:\n"
-            + "\t\tpts can be directly broadcasted to summit\n"
+            + "\t\tpts can be directly broadcasted to summit (and same dim)\n"
             + "  You provided:\n"
+            + "\t- grid: {}\n".format(grid)
             + "\t- pts.shape = {}\n".format(pts.shape)
             + "\t- summit.shape = {}".format(summit.shape)
         )
@@ -616,35 +641,54 @@ def calc_braggphi_from_xixjpts(
 
     # --------------
     # Prepare
-    # This part should be re-checked for all combinations !
-    if grid is True:
-        if ndimpts == 2:
-            summit = summit[..., None]
-            nin, e1, e2 = nin[..., None], e1[..., None], e2[..., None]
-        else:
-            summit = summit[..., None, None]
-            nin = nin[..., None, None]
-            e1, e2 = e1[..., None, None], e2[..., None, None]
-        if ndimsum == 1:
-            pass
-        elif ndimsum == 2:
-            pts = pts[:, None, ...]
-        elif ndimsum == 3:
-            pts = pts[:, None, ...]
-        elif ndimsum == 4:
-            pts = pts[:, None, :, None]
-    else:
-        pass
+    # This part should be re-checked for all combinations!
+    if grid is False:
+        return _calc_braggphi_from_pts_summits(
+            pts=pts,
+            summits=summit,
+            vin=nin, ve1=e1, ve2=e2,
+        )
 
-    # --------------
-    # Compute
-    # Everything has shape (3, nxi0, nxi1, npts0, npts1) => sum on axis=0
-    # or is broadcastable
-    return calc_braggphi_from_pts_summits(
-        pts=pts,
-        summits=summit,
-        vin=nin, ve1=e1, ve2=e2,
-    )
+    else:
+        # Typical dim
+        # (3, npts, nlamb, ndtheta, 2)
+        # (3, nxi, nxj, nlamb, ndtheta, 2)
+        ptsdim = pts.ndim
+        sumdim = summit.ndim
+        if ptsdim == 2:
+            if sumdim == 1:
+                summit = summit[:, None]
+                nin = nin[:, None]
+                e1, e2 = e1[:, None], e2[:, None]
+            else:
+                summit = summit[:, None, ...]
+                nin = nin[:, None, ...]
+                e1, e2 = e1[:, None, ...], e2[:, None, ...]
+        else:
+            if sumdim == 1:
+                summit = summit[:, None, None]
+                nin = nin[:, None, None]
+                e1, e2 = e1[:, None, None], e2[:, None, None]
+            else:
+                summit = summit[:, None, None, ...]
+                nin = nin[:, None, None, ...]
+                e1, e2 = e1[:, None, None, ...], e2[:, None, None, ...]
+        if sumdim in [1, 2]:
+            pts = pts[..., None]
+        elif sumdim == 3:
+            pts = pts[..., None, None]
+        elif sumdim == 4:
+            pts = pts[..., None, None, None]
+
+        # --------------
+        # Compute
+        # Everything has shape (3, nxi0, nxi1, npts0, npts1) => sum on axis=0
+        # or is broadcastable
+        return _calc_braggphi_from_pts_summits(
+            pts=pts,
+            summits=summit,
+            vin=nin, ve1=e1, ve2=e2,
+        )
 
 
 # ###############################################
@@ -767,6 +811,8 @@ def calc_dthetapsiphi_from_lambpts(
     Only returns valid solution (inside extenthalf), with nan elsewhere
 
     psi and dtheta returned as (nlamb, npts, 2, ndtheta) arrays
+
+    Here nout, e1, e2 are at the unique crystal summit!
 
     """
 

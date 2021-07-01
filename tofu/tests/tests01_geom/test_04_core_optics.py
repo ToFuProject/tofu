@@ -298,10 +298,14 @@ class Test01_Crystal(object):
         for k0, obj in self.dobj.items():
             det = obj.get_detector_approx()
             pts, vect = obj.get_rays_from_cryst(
-                phi=np.pi, returnas='(pts, vect)',
+                phi=-9*np.pi/10., returnas='(pts, vect)',
             )
             dist = obj.get_rowland_dist_from_lambbragg()
-            pts = pts + dist*np.r_[0.5, 1., 2][None, :]*vect[:, 0:1, 0]
+            pts = pts + dist*np.r_[0.5, 1., 2][None, :]*vect[:, :, 0]
+            lamb, phi, dtheta, psi, xi, xj = obj.get_lamb_avail_from_pts(
+                pts=pts, det=det,
+            )
+            pts = pts + np.r_[7.5][None, :]*vect[:, :, 0]
             lamb, phi, dtheta, psi, xi, xj = obj.get_lamb_avail_from_pts(
                 pts=pts, det=det,
             )
