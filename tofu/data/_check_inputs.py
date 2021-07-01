@@ -1396,12 +1396,12 @@ def _check_ddata(
                             'data' in v0.keys()
                             and (
                                 (
-                                'ref' in v0.keys()
-                                 and (
-                                    isinstance(v0.get('ref'), str)
-                                    or isinstance(v0.get('ref'), tuple)
-                                    or v0.get('ref') is True
-                                 )
+                                    'ref' in v0.keys()
+                                    and (
+                                        isinstance(v0.get('ref'), str)
+                                        or isinstance(v0.get('ref'), tuple)
+                                        or v0.get('ref') is True
+                                    )
                                 )
                                 or (
                                     isinstance(v0['data'], dict)
@@ -2460,7 +2460,8 @@ def _ind_tofrom_key(
             and (
                 (ind.dtype == np.bool and ind.size == len(dd))
                 or (ind.dtype == np.int and ind.size <= len(dd))
-        ))
+            )
+        )
         if not c0:
             msg = "Arg ind must be an iterable of bool or int indices!"
             raise Exception(msg)

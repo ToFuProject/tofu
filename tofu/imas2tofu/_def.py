@@ -46,7 +46,7 @@ _IMAS_DIDD = {
     'refshot': -1,
     'refrun': -1,
     'user': _IMAS_USER_PUBLIC,
-    'tokamak': 'west',
+    'database': 'west',
     'version': '3',
 }
 

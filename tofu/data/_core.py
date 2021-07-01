@@ -2000,7 +2000,7 @@ class DataAbstract(utils.ToFuObject):
 
 
     def save_to_imas(self, ids=None, shot=None, run=None, refshot=None, refrun=None,
-                     user=None, tokamak=None, version=None, occ=None,
+                     user=None, database=None, version=None, occ=None,
                      dryrun=False, deep=True, verb=True,
                      restore_size=True, forceupdate=False,
                      path_data=None, path_X=None,
@@ -2008,7 +2008,7 @@ class DataAbstract(utils.ToFuObject):
        import tofu.imas2tofu as _tfimas
        _tfimas._save_to_imas(self, tfversion=__version__,
                              shot=shot, run=run, refshot=refshot,
-                             refrun=refrun, user=user, tokamak=tokamak,
+                             refrun=refrun, user=user, database=database,
                              version=version, occ=occ, dryrun=dryrun, verb=verb,
                              ids=ids, deep=deep,
                              restore_size=restore_size,
@@ -3944,12 +3944,13 @@ class Plasma2D(utils.ToFuObject):
             out = self._get_indtmult(idquant=idq2dR)
         return out
 
-
-    def _get_finterp(self,
-                     idquant=None, idref1d=None, idref2d=None,
-                     idq2dR=None, idq2dPhi=None, idq2dZ=None,
-                     interp_t=None, interp_space=None,
-                     fill_value=None, ani=False, Type=None):
+    def _get_finterp(
+        self,
+        idquant=None, idref1d=None, idref2d=None,
+        idq2dR=None, idq2dPhi=None, idq2dZ=None,
+        interp_t=None, interp_space=None,
+        fill_value=None, ani=False, Type=None,
+    ):
 
         if interp_t is None:
             interp_t = 'nearest'
@@ -4004,26 +4005,31 @@ class Plasma2D(utils.ToFuObject):
         # get interpolation function
         if ani:
             # Assuming same mesh and time vector for all 3 components
-            func = _comp.get_finterp_ani(self, idq2dR, idq2dPhi, idq2dZ,
-                                         interp_t=interp_t,
-                                         interp_space=interp_space,
-                                         fill_value=fill_value,
-                                         idmesh=idmesh, vq2dR=vq2dR,
-                                         vq2dZ=vq2dZ, vq2dPhi=vq2dPhi,
-                                         tall=tall, tbinall=tbinall,
-                                         ntall=ntall,
-                                         indtq=indtq, trifind=trifind,
-                                         Type=Type, mpltri=mpltri)
+            func = _comp.get_finterp_ani(
+                idq2dR, idq2dPhi, idq2dZ,
+                idmesh=idmesh, vq2dR=vq2dR,
+                vq2dZ=vq2dZ, vq2dPhi=vq2dPhi,
+                tall=tall, tbinall=tbinall,
+                ntall=ntall,
+                interp_t=interp_t,
+                interp_space=interp_space,
+                fill_value=fill_value,
+                indtq=indtq, trifind=trifind,
+                Type=Type, mpltri=mpltri,
+            )
         else:
-            func = _comp.get_finterp_isotropic(self, idquant, idref1d, idref2d,
-                                               interp_t=interp_t,
-                                               interp_space=interp_space,
-                                               fill_value=fill_value,
-                                               idmesh=idmesh, vquant=vquant,
-                                               tall=tall, tbinall=tbinall,
-                                               ntall=ntall, mpltri=mpltri,
-                                               indtq=indtq, indtr1=indtr1,
-                                               indtr2=indtr2, trifind=trifind)
+            func = _comp.get_finterp_isotropic(
+                idquant, idref1d, idref2d,
+                vquant=vquant,
+                interp_t=interp_t,
+                interp_space=interp_space,
+                fill_value=fill_value,
+                idmesh=idmesh,
+                tall=tall, tbinall=tbinall,
+                ntall=ntall, mpltri=mpltri,
+                indtq=indtq, indtr1=indtr1,
+                indtr2=indtr2, trifind=trifind,
+            )
 
         return func
 
@@ -4160,10 +4166,12 @@ class Plasma2D(utils.ToFuObject):
 
         # Interpolation (including time broadcasting)
         # this is the second slowest step (~0.08 s)
-        func = self._get_finterp(idquant=idquant, idref1d=idref1d, idref2d=idref2d,
-                                 idq2dR=idq2dR, idq2dPhi=idq2dPhi, idq2dZ=idq2dZ,
-                                 interp_t=interp_t, interp_space=interp_space,
-                                 fill_value=fill_value, ani=ani, Type=Type)
+        func = self._get_finterp(
+            idquant=idquant, idref1d=idref1d, idref2d=idref2d,
+            idq2dR=idq2dR, idq2dPhi=idq2dPhi, idq2dZ=idq2dZ,
+            interp_t=interp_t, interp_space=interp_space,
+            fill_value=fill_value, ani=ani, Type=Type,
+        )
 
         # This is the slowest step (~1.8 s)
         val, t = func(pts, vect=vect, t=t)

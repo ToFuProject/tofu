@@ -47,19 +47,37 @@ def test01_CoordShift():
 
     # Tests 1D input
     Pts = np.array([1., 1., 1.])
-    pts = GG.coord_shift(Pts, in_format='(X,Y,Z)', out_format='(R,Z)', cross_format=0.)
-    assert pts.shape == (2,) and np.allclose(pts,[np.sqrt(2), 1.])
-    pts = GG.coord_shift(Pts, in_format='(R,Z,Phi)', out_format='(X,Y,Z)', cross_format=0.)
-    assert pts.shape == (3,) and np.allclose(pts,[np.cos(1.), np.sin(1.), 1.])
+    pts = GG.coord_shift(
+        Pts, in_format='(X,Y,Z)', out_format='(R,Z)', cross_format=0.,
+    )
+    assert pts.shape == (2,) and np.allclose(pts, [np.sqrt(2), 1.])
+    pts = GG.coord_shift(
+        Pts, in_format='(R,Z,Phi)', out_format='(X,Y,Z)', cross_format=0.,
+    )
+    assert pts.shape == (3,) and np.allclose(pts, [np.cos(1.), np.sin(1.), 1.])
 
     # Test 2D input
-    Pts = np.array([[1., 1.],[1., 1.],[1., 1.]])
-    pts = GG.coord_shift(Pts, in_format='(X,Y,Z)', out_format='(R,Phi,Z)', cross_format=0.)
-    assert pts.shape == (3, 2) and np.allclose(pts,[[np.sqrt(2.), np.sqrt(2.)],
-                                                 [np.pi/4., np.pi/4.],[1., 1.]])
-    pts = GG.coord_shift(Pts, in_format='(Phi,Z,R)', out_format='(X,Y)', cross_format=0.)
-    assert pts.shape == (2, 2) and np.allclose(pts,[[np.cos(1.), np.cos(1.)],
-                                                 [np.sin(1.), np.sin(1.)]])
+    Pts = np.array([[1., 1.], [1., 1.], [1., 1.]])
+    pts = GG.coord_shift(
+        Pts, in_format='(X,Y,Z)', out_format='(R,Phi,Z)', cross_format=0.,
+    )
+    assert (
+        pts.shape == (3, 2)
+        and np.allclose(
+            pts,
+            [[np.sqrt(2.), np.sqrt(2.)], [np.pi/4., np.pi/4.], [1., 1.]]
+        )
+    )
+    pts = GG.coord_shift(
+        Pts, in_format='(Phi,Z,R)', out_format='(X,Y)', cross_format=0.,
+    )
+    assert (
+        pts.shape == (2, 2)
+        and np.allclose(
+            pts,
+            [[np.cos(1.), np.cos(1.)], [np.sin(1.), np.sin(1.)]]
+        )
+    )
 
 
 
@@ -74,7 +92,7 @@ def test01_CoordShift():
 def test02_Poly_CLockOrder():
 
     # Test arbitrary 2D polygon
-    Poly = np.array([[0., 1., 1., 0.],[0., 0., 1., 1.]])
+    Poly = np.array([[0., 1., 1., 0.], [0., 0., 1., 1.]])
 
     P = GG.format_poly(Poly, order='C', Clock=False, close=True,
                        Test=True)
@@ -108,12 +126,15 @@ def test02_Poly_CLockOrder():
 
 
 def test03_Poly_VolAngTor():
-    Poly = np.array([[1., 1.5, 2., 2., 2., 1.5, 1.],[0., 0., 0., 0.5, 1., 1., 1.]])
+    Poly = np.array([
+        [1., 1.5, 2., 2., 2., 1.5, 1.],
+        [0., 0., 0., 0.5, 1., 1., 1.],
+    ])
     Poly = GG.format_poly(Poly, order='C', Clock=False, close=True,
                           Test=True)
     V, B = GG.Poly_VolAngTor(Poly)
     assert V==1.5
-    assert np.allclose(B,[7./(3.*1.5), 0.5])
+    assert np.allclose(B, [7./(3.*1.5), 0.5])
 
 
 
@@ -136,24 +157,31 @@ VPoly = np.array([2. + 1. * np.cos(thet), 0. + 1. * np.sin(thet)])
 def test04_Ves_isInside(VPoly=VPoly):
 
     # Lin Ves
-    Pts = np.array([[-10., -10.,5.,5.,5.,5., 5., 30., 30., 30.],
-                    [  0.,  2., 0., 2.,4., 2., 2., 2., 0., 0.],
-                    [  0.,  0., 0., 0., 0., 2., -2., 0., 0., 2.]])
+    Pts = np.array([[-10., -10., 5., 5., 5., 5., 5., 30., 30., 30.],
+                    [0., 2., 0., 2., 4., 2., 2., 2., 0., 0.],
+                    [0., 0., 0., 0., 0., 2., -2., 0., 0., 2.]])
     ind = GG._Ves_isInside(Pts, VPoly, ves_lims=np.array([[0., 10.]]), nlim=1,
                            ves_type='Lin', in_format='(X,Y,Z)', test=True)
-    assert ind.shape == (Pts.shape[1],) and np.all(ind == [False,False,False,True,
-                                                       False,False,False,False,
-                                                       False,False])
+    assert (
+        ind.shape == (Pts.shape[1],)
+        and np.all(ind == [
+            False, False, False, True, False,
+            False, False, False, False, False,
+        ])
+    )
 
     # Tor Ves
-    Pts = np.array([[  0., -10.,5.,5.,5.,5., 5., 30., 30., 30.],
-                    [  0.,  2., 0., 2.,4., 2., 2., 2., 0., 0.],
-                    [  0.,  0., 0., 0., 0., 2., -2., 0., 0., 2.]])
+    Pts = np.array([[0., -10., 5., 5., 5., 5., 5., 30., 30., 30.],
+                    [0., 2., 0., 2., 4., 2., 2., 2., 0., 0.],
+                    [0., 0., 0., 0., 0., 2., -2., 0., 0., 2.]])
     ind = GG._Ves_isInside(Pts, VPoly, ves_lims=None, nlim=0, ves_type='Tor',
                            in_format='(Phi,R,Z)', test=True)
-    assert ind.shape == (Pts.shape[1],) and np.all(ind == [False,True,False,True,
-                                                       False,False,False,True,
-                                                       False,False])
+    assert (
+        ind.shape == (Pts.shape[1],)
+        and np.all(ind == [
+            False, True, False, True, False, False, False, True, False, False,
+        ])
+    )
 
     # Tor Struct
     pi2 = 2.*np.pi
@@ -164,9 +192,13 @@ def test04_Ves_isInside(VPoly=VPoly):
                            ves_lims=np.array([[np.pi/2., 3.*np.pi/2.]]),
                            nlim=1, ves_type='Tor', in_format='(Phi,R,Z)',
                            test=True)
-    assert ind.shape == (Pts.shape[1],) and np.all(ind == [False,False,False,True,
-                                                       False,False,False,False,
-                                                       False,False])
+    assert (
+        ind.shape == (Pts.shape[1],)
+        and np.all(ind == [
+            False, False, False, True, False,
+            False, False, False, False, False,
+        ])
+    )
 
 
 #####################################################
@@ -177,7 +209,7 @@ def test09_Ves_Smesh_Tor(VPoly=VPoly):
     dL, dRPhi = 0.02, 0.05
     VIn = compute_ves_norm(VPoly)
     DIn = 0.001
-    LDPhi = [None, [3.*np.pi/4.,5.*np.pi/4.], [-np.pi/4., np.pi/4.]]
+    LDPhi = [None, [3.*np.pi/4., 5.*np.pi/4.], [-np.pi/4., np.pi/4.]]
 
     for ii in range(0,len(LDPhi)):
         # With Ves
@@ -193,29 +225,49 @@ def test09_Ves_Smesh_Tor(VPoly=VPoly):
                                                               margin=1.e-9)
 
         assert Pts.ndim == 2 and Pts.shape[0] == 3
-        assert np.all(Pts[0, :]>=1.-np.abs(DIn)) and \
-            np.all(Pts[0, :]<=2.+np.abs(DIn)) and \
-            np.all(Pts[1, :]>=0.-np.abs(DIn)) and \
-            np.all(Pts[1, :]<=1.+np.abs(DIn))
-        marg = np.abs(np.arctan(np.mean(dRPhir+np.abs(DIn))/np.min(VPoly[1, :])))
+        assert (
+            np.all(Pts[0, :] >= 1.-np.abs(DIn))
+            and np.all(Pts[0, :] <= 2.+np.abs(DIn))
+            and np.all(Pts[1, :] >= 0.-np.abs(DIn))
+            and np.all(Pts[1, :] <= 1.+np.abs(DIn))
+        )
+        marg = np.abs(np.arctan(
+            np.mean(dRPhir+np.abs(DIn))/np.min(VPoly[1, :])
+        ))
         if not LDPhi[ii] is None:
-            LDPhi[ii][0] = np.arctan2(np.sin(LDPhi[ii][0]), np.cos(LDPhi[ii][0]))
-            LDPhi[ii][1] = np.arctan2(np.sin(LDPhi[ii][1]), np.cos(LDPhi[ii][1]))
+            LDPhi[ii][0] = np.arctan2(
+                np.sin(LDPhi[ii][0]),
+                np.cos(LDPhi[ii][0]),
+            )
+            LDPhi[ii][1] = np.arctan2(
+                np.sin(LDPhi[ii][1]),
+                np.cos(LDPhi[ii][1]),
+            )
             if LDPhi[ii][0]<=LDPhi[ii][1]:
-                assert np.all((Pts[2, :]>=LDPhi[ii][0]-marg) &
-                              (Pts[2, :]<=LDPhi[ii][1]+marg))
+                assert np.all(
+                    (Pts[2, :] >= LDPhi[ii][0]-marg)
+                    & (Pts[2, :] <= LDPhi[ii][1]+marg)
+                )
             else:
-                assert np.all( (Pts[2, :]>=LDPhi[ii][0]-marg) |
-                               (Pts[2, :]<=LDPhi[ii][1]+marg))
+                assert np.all(
+                    (Pts[2, :] >= LDPhi[ii][0]-marg)
+                    | (Pts[2, :] <= LDPhi[ii][1]+marg)
+                )
         assert np.all(GG._Ves_isInside(Pts, VPoly, ves_type='Tor',
                                        in_format='(R,Z,Phi)',
                                        ves_lims=None, nlim=0, test=True))
         assert dS.shape == (Pts.shape[1],)
-        assert all([ind.shape == (Pts.shape[1],), ind.dtype == int,
-                    np.unique(ind).size == ind.size, np.all(ind == np.unique(ind)),
-                    np.all(ind>=0)])
-        assert ind.shape == (Pts.shape[1],) and ind.dtype == int and \
-            np.all(ind == np.unique(ind)) and np.all(ind>=0)
+        assert all([
+            ind.shape == (Pts.shape[1],),
+            ind.dtype == int,
+            np.unique(ind).size == ind.size,
+            np.all(ind == np.unique(ind)),
+            np.all(ind >= 0),
+        ])
+        assert (
+            ind.shape == (Pts.shape[1],) and ind.dtype == int
+            and np.all(ind == np.unique(ind)) and np.all(ind >= 0)
+        )
         assert NL.ndim == 1 and NL.size == VPoly.shape[1]-1
         assert dLr.ndim == 1 and dLr.size == NL.size
         assert Rref.ndim == 1
@@ -249,24 +301,25 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
     LPhi = [[[-np.pi/4., np.pi/4.], [3.*np.pi/2., np.pi/2.]],
             [[-np.pi/4., np.pi/4.], [0., np.pi/2.]],
             [[-np.pi/4., np.pi/4.], [np.pi/6., -np.pi/6.]],
-            [[-np.pi/4., np.pi/4.], [0.,5.*np.pi/4.]],
-            [[3.*np.pi/4.,5.*np.pi/4.], [np.pi/2., -np.pi/2.]],
-            [[3.*np.pi/4.,5.*np.pi/4.], [7.*np.pi/6., -np.pi/2.]],
-            [[3.*np.pi/4.,5.*np.pi/4.], [np.pi/2., np.pi]],
-            [[3.*np.pi/4.,5.*np.pi/4.], [7.*np.pi/6.,5.*np.pi/6.]]]
+            [[-np.pi/4., np.pi/4.], [0., 5.*np.pi/4.]],
+            [[3.*np.pi/4., 5.*np.pi/4.], [np.pi/2., -np.pi/2.]],
+            [[3.*np.pi/4., 5.*np.pi/4.], [7.*np.pi/6., -np.pi/2.]],
+            [[3.*np.pi/4., 5.*np.pi/4.], [np.pi/2., np.pi]],
+            [[3.*np.pi/4., 5.*np.pi/4.], [7.*np.pi/6., 5.*np.pi/6.]]]
 
     for ii in range(0,len(LPhi)):
         Pts, dS, ind,\
             NL, dLr, Rref,\
             dRPhir, nRPhi0,\
-            VPbis = GG._Ves_Smesh_Tor_SubFromD_cython(dL, dRPhi, VPoly,
-                                                      DR=[0.5, 2.], DZ=[0., 1.2],
-                                                      DPhi=LPhi[ii][1],
-                                                      DIn=DIn, VIn=VIn,
-                                                      PhiMinMax=np.array(
-                                                          LPhi[ii][0]),
-                                                      Out='(R,Z,Phi)',
-                                                      margin=1.e-9)
+            VPbis = GG._Ves_Smesh_Tor_SubFromD_cython(
+                dL, dRPhi, VPoly,
+                DR=[0.5, 2.], DZ=[0., 1.2],
+                DPhi=LPhi[ii][1],
+                DIn=DIn, VIn=VIn,
+                PhiMinMax=np.array(LPhi[ii][0]),
+                Out='(R,Z,Phi)',
+                margin=1.e-9,
+            )
 
         #try:
         assert Pts.ndim == 2 and Pts.shape[0] == 3
@@ -274,13 +327,19 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
                                     np.cos(LPhi[ii][0][0]))
         LPhi[ii][0][1] = np.arctan2(np.sin(LPhi[ii][0][1]),
                                     np.cos(LPhi[ii][0][1]))
-        marg = np.abs(np.arctan(np.mean(dRPhir+np.abs(DIn))/np.min(VPoly[1, :])))
-        if LPhi[ii][0][0]<=LPhi[ii][0][1]:
-            assert np.all((Pts[2, :]>=LPhi[ii][0][0]-marg) &
-                          (Pts[2, :]<=LPhi[ii][0][1]+marg))
+        marg = np.abs(np.arctan(
+            np.mean(dRPhir+np.abs(DIn))/np.min(VPoly[1, :])
+        ))
+        if LPhi[ii][0][0] <= LPhi[ii][0][1]:
+            assert np.all(
+                (Pts[2, :] >= LPhi[ii][0][0]-marg)
+                & (Pts[2, :] <= LPhi[ii][0][1]+marg)
+            )
         else:
-            assert np.all( (Pts[2, :]>=LPhi[ii][0][0]-marg) |
-                          (Pts[2, :]<=LPhi[ii][0][1]+marg))
+            assert np.all(
+                (Pts[2, :] >= LPhi[ii][0][0]-marg)
+                | (Pts[2, :] <= LPhi[ii][0][1]+marg)
+            )
         assert np.all(GG._Ves_isInside(Pts, VPoly, ves_type='Tor',
                                        ves_lims=None,
                                        nlim=0, in_format='(R,Z,Phi)',
@@ -288,7 +347,7 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
         assert dS.shape == (Pts.shape[1],)
         assert np.all([ind.shape == (Pts.shape[1],), ind.dtype == int,
                        ind.size == np.unique(ind).size,
-                       np.all(ind == np.unique(ind)), np.all(ind>=0)])
+                       np.all(ind == np.unique(ind)), np.all(ind >= 0)])
         assert NL.ndim == 1 and NL.size == VPoly.shape[1]-1
         assert dLr.ndim == 1 and dLr.size == NL.size
         assert Rref.ndim == 1
@@ -312,18 +371,24 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
         assert np.allclose(dRPhiri, dRPhir)
         assert nRPhi0i == nRPhi0
 
-        #except:
-        #    print([ind.shape == (Pts.shape[1],), ind.dtype == int,
-        #ind.size == np.unique(ind).size, np.all(ind == np.unique(ind)),
-        #np.all(ind>=0)])
-        #    print(np.unique(ind).size, ind.size)
-        #    lii = [ind[ii] for ii in range(0,len(ind)) if np.sum(ind == ind[ii])>1]
-        #    liib = [ii for ii in range(0,len(ind)) if np.sum(ind == ind[ii])>1]
-        #    print(len(lii),len(liib))
-        #    print(lii)
-        #    print(liib)
-        #    for ii in range(0,len(liib)):
-        #        print([Pts[:,liib[ii]] == Pts[:,hh] for hh in [jj for jj in
+        # except:
+        # print([ind.shape == (Pts.shape[1],), ind.dtype == int,
+        # ind.size == np.unique(ind).size, np.all(ind == np.unique(ind)),
+        # np.all(ind>=0)])
+        # print(np.unique(ind).size, ind.size)
+        # lii = [
+        # ind[ii] for ii in range(0,len(ind))
+        # if np.sum(ind == ind[ii])>1
+        # ]
+        # liib = [
+        # ii for ii in range(0,len(ind))
+        # if np.sum(ind == ind[ii])>1
+        # ]
+        # print(len(lii),len(liib))
+        # print(lii)
+        # print(liib)
+        # for ii in range(0,len(liib)):
+        # print([Pts[:,liib[ii]] == Pts[:,hh] for hh in [jj for jj in
         # range(0,len(ind)) if ind[jj] == lii[ii]]])
 
 
@@ -337,11 +402,11 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
     LPhi = [[[-np.pi/4., np.pi/4.], [3.*np.pi/2., np.pi/2.]],
             [[-np.pi/4., np.pi/4.], [0., np.pi/2.]],
             [[-np.pi/4., np.pi/4.], [np.pi/6., -np.pi/6.]],
-            [[-np.pi/4., np.pi/4.], [0.,5.*np.pi/4.]],
-            [[3.*np.pi/4.,5.*np.pi/4.], [np.pi/2., -np.pi/2.]],
-            [[3.*np.pi/4.,5.*np.pi/4.], [7.*np.pi/6., -np.pi/2.]],
-            [[3.*np.pi/4.,5.*np.pi/4.], [np.pi/2., np.pi]],
-            [[3.*np.pi/4.,5.*np.pi/4.], [7.*np.pi/6.,5.*np.pi/6.]]]
+            [[-np.pi/4., np.pi/4.], [0., 5.*np.pi/4.]],
+            [[3.*np.pi/4., 5.*np.pi/4.], [np.pi/2., -np.pi/2.]],
+            [[3.*np.pi/4., 5.*np.pi/4.], [7.*np.pi/6., -np.pi/2.]],
+            [[3.*np.pi/4., 5.*np.pi/4.], [np.pi/2., np.pi]],
+            [[3.*np.pi/4., 5.*np.pi/4.], [7.*np.pi/6., 5.*np.pi/6.]]]
 
     for ii in range(0,len(LPhi)):
         Pts, dS, ind, NL, \
@@ -363,13 +428,19 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
                                     np.cos(LPhi[ii][0][0]))
         LPhi[ii][0][1] = np.arctan2(np.sin(LPhi[ii][0][1]),
                                     np.cos(LPhi[ii][0][1]))
-        marg = np.abs(np.arctan(np.mean(dRPhir+np.abs(DIn))/np.min(VPoly[1, :])))
-        if LPhi[ii][0][0]<=LPhi[ii][0][1]:
-            assert np.all((Pts[2, :]>=LPhi[ii][0][0]-marg) &
-                          (Pts[2, :]<=LPhi[ii][0][1]+marg))
+        marg = np.abs(np.arctan(
+            np.mean(dRPhir+np.abs(DIn))/np.min(VPoly[1, :])
+        ))
+        if LPhi[ii][0][0] <= LPhi[ii][0][1]:
+            assert np.all(
+                (Pts[2, :] >= LPhi[ii][0][0]-marg)
+                & (Pts[2, :] <= LPhi[ii][0][1]+marg)
+            )
         else:
-            assert np.all( (Pts[2, :]>=LPhi[ii][0][0]-marg) |
-                           (Pts[2, :]<=LPhi[ii][0][1]+marg))
+            assert np.all(
+                (Pts[2, :] >= LPhi[ii][0][0]-marg)
+                | (Pts[2, :] <= LPhi[ii][0][1]+marg)
+            )
         if DIn>=0:
             assert np.all(GG._Ves_isInside(Pts, VPoly, ves_type='Tor',
                                            ves_lims=None,
@@ -406,9 +477,9 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
         assert np.allclose(dSi, dS)
         assert np.allclose(NLi, NL)
         # We know it does not match here (too complicated, not necessary)
-        #assert np.allclose(dLri, dLr)
-        #assert np.allclose(Rrefi,Rref)
-        #assert np.allclose(dRPhiri, dRPhir)
+        # assert np.allclose(dLri, dLr)
+        # assert np.allclose(Rrefi,Rref)
+        # assert np.allclose(dRPhiri, dRPhir)
         assert all([dR0r == dR0ri, dZ0r == dZ0ri])
         """
         except:
@@ -434,7 +505,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
     VIn = compute_ves_norm(VPoly)
     DIn = -0.001
     DY, DZ = [0., 2.], [0., 1.]
-    LDX = [None,[-1., 2.],[2.,5.],[8., 11.]]
+    LDX = [None, [-1., 2.], [2., 5.], [8., 11.]]
 
     for ii in range(0,len(LDX)):
         Pts, dS, ind,\
@@ -446,30 +517,40 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
                                                       margin=1.e-9)
 
         assert Pts.ndim == 2 and Pts.shape[0] == 3
-        assert np.all(Pts[0, :]>=XMinMax[0]-np.abs(DIn)) and \
-            np.all(Pts[0, :]<=XMinMax[1]+np.abs(DIn))
-        assert np.all(Pts[1, :]>=1.-np.abs(DIn)) and \
-            np.all(Pts[1, :]<=3.+np.abs(DIn))
-        assert np.all(Pts[2, :]>=-np.abs(DIn)) and \
-            np.all(Pts[2, :]<=1.+np.abs(DIn))
+        assert (
+            np.all(Pts[0, :] >= XMinMax[0]-np.abs(DIn))
+            and np.all(Pts[0, :] <= XMinMax[1]+np.abs(DIn))
+        )
+        assert (
+            np.all(Pts[1, :] >= 1.-np.abs(DIn))
+            and np.all(Pts[1, :] <= 3.+np.abs(DIn))
+        )
+        assert (
+            np.all(Pts[2, :] >= -np.abs(DIn))
+            and np.all(Pts[2, :] <= 1.+np.abs(DIn))
+        )
         if DIn>=0:
             assert np.all(GG._Ves_isInside(Pts, VPoly,
                                            vs_lims=XMinMax.reshape((1, 2)),
                                            nlim=1, ves_type='Lin',
                                            in_format='(X,Y,Z)', test=True))
         else:
-            assert not np.all(GG._Ves_isInside(Pts, VPoly,
-                                               ves_lims=XMinMax.reshape((1, 2)),
-                                               nlim=1, ves_type='Lin',
-                                               in_format='(X,Y,Z)', test=True))
+            assert not np.all(GG._Ves_isInside(
+                Pts, VPoly,
+                ves_lims=XMinMax.reshape((1, 2)),
+                nlim=1, ves_type='Lin',
+                in_format='(X,Y,Z)', test=True,
+            ))
         assert dS.shape == (Pts.shape[1],)
         assert all([ind.shape == (Pts.shape[1],),
                     ind.dtype == int,
                     np.unique(ind).size == ind.size,
                     np.all(ind == np.unique(ind)),
                     np.all(ind>=0)])
-        assert ind.shape == (Pts.shape[1],) and ind.dtype == int and \
-            np.all(ind == np.unique(ind)) and np.all(ind>=0)
+        assert (
+            ind.shape == (Pts.shape[1],) and ind.dtype == int
+            and np.all(ind == np.unique(ind)) and np.all(ind >= 0)
+        )
         assert NL.ndim == 1 and NL.size == VPoly.shape[1]-1
         assert dLr.ndim == 1 and dLr.size == NL.size
         assert Rref.ndim == 1
@@ -487,8 +568,8 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
         assert np.allclose(NL, NLi)
         # We know the following are not identical (size), but too complicated
         # for little gain
-        #assert np.allclose(dLr, dLri)
-        #assert np.allclose(Rref,Rrefi)
+        # assert np.allclose(dLr, dLri)
+        # assert np.allclose(Rref,Rrefi)
         assert all([dXr == dXri, dY0r == dY0ri, dZ0r == dZ0ri])
 
 
@@ -503,7 +584,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
 def test13_LOS_PInOut():
 
     VP = np.array([[6.,8.,8.,6.,6.],[6.,6.,8.,8.,6.]])
-    VIn = np.array([[0., -1., 0., 1.],[1., 0., -1., 0.]])
+    VIn = np.array([[0., -1., 0., 1.], [1., 0., -1., 0.]])
     VL = np.array([0., 1.])*2.*np.pi
     SP0 = np.array([[6.,7.,7.,6.,6.],[6.,6.,7.,7.,6.]])
     SP1 = np.array([[7.,8.,8.,7.,7.],[7.,7.,8.,8.,7.]])
@@ -516,9 +597,12 @@ def test13_LOS_PInOut():
     SP2y = [7.,7.,8.,8.,7.]
     nstruct_lim = 3
     nstruct_tot =1+2+1
-    lstruct_nlim=np.asarray([1, 2, 1])
+    lstruct_nlim = np.asarray([1, 2, 1])
     SL0 = np.asarray([np.array([0., 1.])*2.*np.pi])
-    SL1 = np.asarray([np.array(ss)*2.*np.pi for ss in [[0., 1./3.],[2./3., 1.]]])
+    SL1 = np.asarray([
+        np.array(ss)*2.*np.pi
+        for ss in [[0., 1./3.], [2./3., 1.]]
+    ])
     SL2 = np.asarray([np.array([2./3., 1.])*2.*np.pi])
     lspolyx = np.asarray(SP0x + SP1x + SP2x)
     lspolyy = np.asarray(SP0y + SP1y + SP2y)
@@ -540,10 +624,15 @@ def test13_LOS_PInOut():
     ex = np.array([[1.],[0.],[0.]])
     ey = np.array([[0.],[1.],[0.]])
     ez = np.array([[0.],[0.],[1.]])
-    us = np.concatenate((ey,ey,ez,ez, -ey, -ey, -ez, -ez,
-                         ey,ey,ez,ez, -ey, -ey, -ez, -ez,
-                         ey,ey,ez,ez, -ey, -ey, -ez, -ez,
-                         ex,ex,ex,ex, -ex, -ex, -ex, -ex), axis=1)
+    us = np.concatenate(
+        (
+            ey, ey, ez, ez, -ey, -ey, -ez, -ez,
+            ey, ey, ez, ez, -ey, -ey, -ez, -ez,
+            ey, ey, ez, ez, -ey, -ey, -ez, -ez,
+            ex, ex, ex, ex, -ex, -ex, -ex, -ex,
+        ),
+        axis=1,
+    )
     y = [6.,6.,6.5,7.5,8.,8.,7.5,6.5]
     z = [7.5,6.5,6.,6.,6.5,7.5,8.,8.]
     Sols_In = np.array([2.*np.pi*np.concatenate((np.ones((N,))/6.,
@@ -636,36 +725,49 @@ def test13_LOS_PInOut():
     assert np.allclose(kPIn, np.concatenate((np.ones((3*N,)),
                                             2.*np.pi*np.ones((8,)))),
                        equal_nan=True)
-    assert np.allclose(kPOut, np.concatenate(([2, 1, 1, 2, 2, 1, 1, 2,
-                                               3, 1, 1, 3, 2, 3, 3, 2,
-                                               1, 1, 1, 2, 2, 1, 1, 1],
-                                              2.*np.pi*np.array([1, 2, 1, 1+2./3,
-                                                                 1, 2, 1, 1]))))
+    assert np.allclose(
+        kPOut,
+        np.concatenate((
+            [
+                2, 1, 1, 2, 2, 1, 1, 2, 3, 1, 1, 3, 2,
+                3, 3, 2, 1, 1, 1, 2, 2, 1, 1, 1,
+            ],
+            2.*np.pi*np.array([1, 2, 1, 1+2./3, 1, 2, 1, 1])
+        ))
+    )
     assert np.allclose(VperpOut, -us)
     assert np.allclose(IOut[2, :], Iout)
     assert np.allclose(IOut[:2, :], indS)
 
     # Toroidal, without Struct
-    Theta = np.pi*np.array([1./4., 3./4.,5./4.,7./4.])
-    r = np.array([5.,5.,6.5,7.5,9.,9.,7.5,6.5])
-    z = np.array([7.5,6.5,5.,5.,6.5,7.5,9.,9.])
+    Theta = np.pi*np.array([1./4., 3./4., 5./4., 7./4.])
+    r = np.array([5., 5., 6.5, 7.5, 9., 9., 7.5, 6.5])
+    z = np.array([7.5, 6.5, 5., 5., 6.5, 7.5, 9., 9.])
     N = len(r)
-    ex, ey = np.array([[1.],[0.],[0.]]), np.array([[0.],[1.],[0.]])
-    ez = np.array([[0.],[0.],[1.]])
+    ex, ey = np.array([[1.], [0.], [0.]]), np.array([[0.], [1.], [0.]])
+    ez = np.array([[0.], [0.], [1.]])
     Ds, us = [], []
     Sols_In, Sols_Out = [], []
-    rsol_In = [[6.,6.,6.5,7.5,8.,8.,7.5,6.5],[6.,6.,6.5,7.5,8.,8.,7.5,6.5],
-               [6.,6.,6.5,7.5,8.,8.,7.5,6.5],[6.,6.,6.5,7.5,8.,8.,7.5,6.5]]
-    zsol_In = [[7.5,6.5,6.,6.,6.5,7.5,8.,8.],[7.5,6.5,6.,6.,6.5,7.5,8.,8.],
-               [7.5,6.5,6.,6.,6.5,7.5,8.,8.],[7.5,6.5,6.,6.,6.5,7.5,8.,8.]]
-    rsol_Out = [[8.,8.,6.5,7.5,6.,6.,7.5,6.5],[8.,8.,6.5,7.5,6.,6.,7.5,6.5],
-                [8.,8.,6.5,7.5,6.,6.,7.5,6.5],[8.,8.,6.5,7.5,6.,6.,7.5,6.5]]
-    zsol_Out = [[7.5,6.5,8.,8.,6.5,7.5,6.,6.],[7.5,6.5,8.,8.,6.5,7.5,6.,6.],
-                [7.5,6.5,8.,8.,6.5,7.5,6.,6.],[7.5,6.5,8.,8.,6.5,7.5,6.,6.]]
+    rsol_In = [[6., 6., 6.5, 7.5, 8., 8., 7.5, 6.5],
+               [6., 6., 6.5, 7.5, 8., 8., 7.5, 6.5],
+               [6., 6., 6.5, 7.5, 8., 8., 7.5, 6.5],
+               [6., 6., 6.5, 7.5, 8., 8., 7.5, 6.5]]
+    zsol_In = [[7.5, 6.5, 6., 6., 6.5, 7.5, 8., 8.],
+               [7.5, 6.5, 6., 6., 6.5, 7.5, 8., 8.],
+               [7.5, 6.5, 6., 6., 6.5, 7.5, 8., 8.],
+               [7.5, 6.5, 6., 6., 6.5, 7.5, 8., 8.]]
+    rsol_Out = [[8., 8., 6.5, 7.5, 6., 6., 7.5, 6.5],
+                [8., 8., 6.5, 7.5, 6., 6., 7.5, 6.5],
+                [8., 8., 6.5, 7.5, 6., 6., 7.5, 6.5],
+                [8., 8., 6.5, 7.5, 6., 6., 7.5, 6.5]]
+    zsol_Out = [[7.5, 6.5, 8., 8., 6.5, 7.5, 6., 6.],
+                [7.5, 6.5, 8., 8., 6.5, 7.5, 6., 6.],
+                [7.5, 6.5, 8., 8., 6.5, 7.5, 6., 6.],
+                [7.5, 6.5, 8., 8., 6.5, 7.5, 6., 6.]]
     for ii in range(0,len(Theta)):
         er = np.array([[np.cos(Theta[ii])], [np.sin(Theta[ii])], [0.]])
         Ds.append(er*r[np.newaxis, :] + ez*z[np.newaxis, :])
-        us.append(np.concatenate((er,er,ez,ez, -er, -er, -ez, -ez), axis=1))
+        us.append(np.concatenate((er, er, ez, ez, -er, -er, -ez, -ez), axis=1))
         Sols_In.append(np.array(rsol_In[ii])[np.newaxis, :]*er +
                        np.array(zsol_In[ii])[np.newaxis, :]*ez)
         Sols_Out.append(np.array(rsol_Out[ii])[np.newaxis, :]*er +
@@ -673,7 +775,7 @@ def test13_LOS_PInOut():
     Ds.append(np.array([[6.5,7.5,7.5,6.5, 6.5,6.5,6.5,6.5],
                         [-6.5, -6.5, -6.5, -6.5, -7.5, -6.5, -6.5, -7.5],
                         [6.5,6.5,7.5,7.5, 6.5,6.5,7.5,7.5]]))
-    us.append(np.concatenate((ey,ey,ey,ey, -ex, -ex, -ex, -ex),axis=1))
+    us.append(np.concatenate((ey, ey, ey, ey, -ex, -ex, -ex, -ex), axis=1))
     Ds = np.concatenate(tuple(Ds),axis=1)
     us = np.concatenate(tuple(us),axis=1)
     Sols_In = np.concatenate(tuple(Sols_In),axis=1)
@@ -702,28 +804,34 @@ def test13_LOS_PInOut():
             PIn[j, i]  = Ds[j, i] + kPIn[i]  * us[j, i]
             POut[j, i] = Ds[j, i] + kPOut[i] * us[j, i]
     # ...
-    ThetaIn  = np.arctan2(PIn[1, 32:],  PIn[0, 32:])
+    ThetaIn = np.arctan2(PIn[1, 32:],  PIn[0, 32:])
     ThetaOut = np.arctan2(POut[1, 32:], POut[0, 32:])
     ErIn = np.array([np.cos(ThetaIn), np.sin(ThetaIn), np.zeros((8,))])
     ErOut = np.array([np.cos(ThetaOut), np.sin(ThetaOut), np.zeros((8,))])
-    assert np.allclose(kPIn[:32], np.ones((4*N,)),
-                       equal_nan=True) and np.all((kPIn[32:]>0.) &
-                                                  (kPIn[32:]<6.5))
-    assert np.allclose(kPOut[:32], 3.*np.ones((4*N,)),
-                       equal_nan=True) and np.all((kPOut[32:]>6.5) &
-                                                  (kPOut[32:]<16.))
-    assert np.allclose(PIn[:, :32], Sols_In[:, :32],
-                       equal_nan=True) and np.all((ThetaIn>-np.pi/2.) &
-                                                  (ThetaIn<0.))
-    assert np.allclose(POut[:, :32],Sols_Out[:, :32],
-                       equal_nan=True) and np.all((ThetaOut>0.) |
-                                                  (ThetaOut<-np.pi/2.))
-    assert np.allclose(np.hypot(PIn[0, 32:], PIn[1, 32:]),
-                       8.*np.ones((8,))) and np.allclose(np.hypot(POut[0, 32:],
-                                                                  POut[1, 32:]),
-                                                         8.*np.ones((8,)))
-    assert np.allclose(VperpOut[:, :32], -us[:, :32]) and \
-        np.allclose(VperpOut[:, 32:], -ErOut)
+    assert (
+        np.allclose(kPIn[:32], np.ones((4*N,)), equal_nan=True)
+        and np.all((kPIn[32:] > 0.) & (kPIn[32:] < 6.5))
+    )
+    assert (
+        np.allclose(kPOut[:32], 3.*np.ones((4*N,)), equal_nan=True)
+        and np.all((kPOut[32:] > 6.5) & (kPOut[32:] < 16.))
+    )
+    assert (
+        np.allclose(PIn[:, :32], Sols_In[:, :32], equal_nan=True)
+        and np.all((ThetaIn > -np.pi/2.) & (ThetaIn < 0.))
+    )
+    assert (
+        np.allclose(POut[:, :32], Sols_Out[:, :32], equal_nan=True)
+        and np.all((ThetaOut > 0.) | (ThetaOut < -np.pi/2.))
+    )
+    assert (
+        np.allclose(np.hypot(PIn[0, 32:], PIn[1, 32:]), 8.*np.ones((8,)))
+        and np.allclose(np.hypot(POut[0, 32:], POut[1, 32:]), 8.*np.ones((8,)))
+    )
+    assert (
+        np.allclose(VperpOut[:, :32], -us[:, :32])
+        and np.allclose(VperpOut[:, 32:], -ErOut)
+    )
     assert np.allclose(IOut[2, :], Iout)
     npts_vp = VP.shape[1]
     out = GG.LOS_Calc_kMinkMax_VesStruct(Ds, us,
@@ -739,11 +847,11 @@ def test13_LOS_PInOut():
     assert np.allclose(kmax_res[2*nlos:],  kPOut)
     # Toroidal, with Struct
     SL0_or =None
-    SL1_or =[np.array(ss)*np.pi for ss in [[0., 0.5],[1., 3./2.]]]
-    SL2_or =[np.array([0.5, 3./2.])*np.pi]
+    SL1_or = [np.array(ss)*np.pi for ss in [[0., 0.5], [1., 3./2.]]]
+    SL2_or = [np.array([0.5, 3./2.])*np.pi]
 
     SL0 = np.asarray([None])
-    SL1 = np.asarray([np.array(ss)*np.pi for ss in [[0., 0.5],[1., 3./2.]]])
+    SL1 = np.asarray([np.array(ss)*np.pi for ss in [[0., 0.5], [1., 3./2.]]])
     SL2 = np.asarray([np.array([0.5, 3./2.])*np.pi])
     lstruct_nlim = np.array([0, 2, 1])
     nstruct_lim = 3
@@ -777,15 +885,28 @@ def test13_LOS_PInOut():
     Sols_Out = np.concatenate(tuple(Sols_Out),axis=1)
     kpout = np.array([2, 1, 1, 2, 2, 1, 1, 2, 1, 1, 1, 3, 2, 2, 3, 1,
                       1, 1, 1, 2, 2, 1, 1, 1, 3, 1, 1, 3, 2, 3, 3, 2])
-    Iin = np.array([3, 3, 0, 0, 1, 1, 2, 2, 3, 3, 0, 0, 1, 1, 2, 2,
-                    3, 3, 0, 0, 1, 1, 2, 2, 3, 3, 0, 0, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1])
-    Iout = np.array([3, 3, 0, 0, 1, 1, 2, 2, 3, 3, 0, 2, 1, 1, 0, 2,
-                     3, 3, 0, 0, 1, 1, 2, 2, 1, 3, 0, 2, 1, 3, 0, 2, 1, 1, -1, 3, 1, 1, -2, -2])
-    indS = np.array([[2, 1, 1, 2, 1, 2, 2, 1, 3, 1, 1, 0, 1, 3, 0, 3,
-                      3, 1, 1, 2, 1, 2, 2, 3, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 2, 2, 0, 1, 3, 2],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]],
-                    dtype=int)
+    Iin = np.array([
+        3, 3, 0, 0, 1, 1, 2, 2, 3, 3, 0, 0, 1, 1, 2, 2,
+        3, 3, 0, 0, 1, 1, 2, 2, 3, 3, 0, 0, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1,
+    ])
+    Iout = np.array([
+        3, 3, 0, 0, 1, 1, 2, 2, 3, 3, 0, 2, 1, 1, 0, 2,
+        3, 3, 0, 0, 1, 1, 2, 2, 1, 3, 0, 2, 1, 3, 0, 2,
+        1, 1, -1, 3, 1, 1, -2, -2,
+    ])
+    indS = np.array([
+        [
+            2, 1, 1, 2, 1, 2, 2, 1, 3, 1, 1, 0, 1, 3, 0, 3,
+            3, 1, 1, 2, 1, 2, 2, 3, 0, 1, 1, 0, 1, 0, 0, 1,
+            1, 0, 2, 2, 0, 1, 3, 2,
+        ],
+        [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 1,
+        ]],
+        dtype=int,
+    )
 
     kPIn, kPOut,\
         VperpOut, \
@@ -812,28 +933,32 @@ def test13_LOS_PInOut():
             PIn[j, i]  = Ds[j, i] + kPIn[i]  * us[j, i]
             POut[j, i] = Ds[j, i] + kPOut[i] * us[j, i]
     # ...
-    RIn, ROut = np.hypot(PIn[0, 32:], PIn[1, 32:]), np.hypot(POut[0, 32:],
-                                                          POut[1, 32:])
-    ThetaIn  = np.arctan2(PIn[1, 32:],  PIn[0, 32:])
+    RIn = np.hypot(PIn[0, 32:], PIn[1, 32:])
+    ROut = np.hypot(POut[0, 32:], POut[1, 32:])
+    ThetaIn = np.arctan2(PIn[1, 32:],  PIn[0, 32:])
     ThetaOut = np.arctan2(POut[1, 32:], POut[0, 32:])
     ErIn = np.array([np.cos(ThetaIn), np.sin(ThetaIn), np.zeros((8,))])
     ErOut = np.array([np.cos(ThetaOut), np.sin(ThetaOut), np.zeros((8,))])
-    vperpout = np.concatenate((ErOut[:, 0:1], -ErOut[:, 1:2], -ey,
-                               -ErOut[:, 3:4], -ErOut[:,4:5],ErOut[:,5:6],ex,ex),
-                              axis=1)
+    vperpout = np.concatenate(
+        (
+            ErOut[:, 0:1], -ErOut[:, 1:2], -ey, -ErOut[:, 3:4],
+            -ErOut[:, 4:5], ErOut[:, 5:6], ex, ex,
+        ),
+        axis=1,
+    )
     assert np.allclose(kPIn[:32], np.ones((4*N,)),
                        equal_nan=True) and np.all((kPIn[32:]>0.) &
                                                   (kPIn[32:]<6.5))
-    assert np.allclose(PIn[:, :32],Sols_In[:, :32],
+    assert np.allclose(PIn[:, :32], Sols_In[:, :32],
                        equal_nan=True) and np.all((ThetaIn>-np.pi/2.) &
                                                   (ThetaIn<0.))
-    assert np.allclose(POut[:, :32],Sols_Out[:, :32],
+    assert np.allclose(POut[:, :32], Sols_Out[:, :32],
                        equal_nan=True) and np.all((ThetaOut>-np.pi) &
                                                   (ThetaOut<np.pi/2.))
     assert np.all((RIn>=6.) & (RIn<=8.)) and np.all((ROut>=6.) & (ROut<=8.))
     assert np.allclose(VperpOut[:, :32], -us[:, :32]) and \
-        np.allclose(VperpOut[:, 32:],vperpout)
-    assert np.allclose(IOut[:2, :],indS)
+        np.allclose(VperpOut[:, 32:], vperpout)
+    assert np.allclose(IOut[:2, :], indS)
 
 
 def test14_LOS_sino():
@@ -842,7 +967,7 @@ def test14_LOS_sino():
     r = np.array([0.1, 0.2, 0.1])
     theta = np.array([5*np.pi/6, 0, np.pi/2])
     phi = np.array([0., 0., np.pi/10.])
-    k = np.array([1, 10,5])
+    k = np.array([1, 10, 5])
     N = len(r)
     us = np.ascontiguousarray([np.sin(phi),
                                -np.sin(theta) * np.cos(phi),
@@ -853,7 +978,7 @@ def test14_LOS_sino():
     Ds = np.ascontiguousarray(Ms - k[np.newaxis, :] * us)
     PMin0 = np.nan * np.ones((3, N))
     kPMin0 = np.nan * np.ones((N,))
-    RMin0  = np.nan * np.ones((N,))
+    RMin0 = np.nan * np.ones((N,))
     Theta0 = np.nan * np.ones((N,))
     p0 = np.nan * np.ones((N,))
     ImpTheta0 = np.nan * np.ones((N,))
@@ -1462,8 +1587,8 @@ def test22_earclipping():
     ves_poly1[1] = y1
     # ...computing
     out = GG.triangulate_by_earclipping(ves_poly1)
-    #out = out.reshape((7, 3))
-    #print(out)
+    # out = out.reshape((7, 3))
+    # print(out)
     assert np.allclose(out, [1, 2, 3, 1, 3, 4, 1, 4, 5,
                              0, 1, 5, 0, 5, 6, 0, 6, 7,
                              0, 7, 8])
@@ -1564,7 +1689,7 @@ def test24_is_visible(debug=0):
     # ...
     # Structures limits
     SL0 = np.asarray([None])
-    SL1 = np.asarray([np.array(ss)*np.pi for ss in [[0., 0.5],[1., 3./2.]]])
+    SL1 = np.asarray([np.array(ss)*np.pi for ss in [[0., 0.5], [1., 3./2.]]])
     SL2 = np.asarray([np.array([0.5, 3./2.])*np.pi])
     lstruct_nlim = np.array([0, 2, 1])
     # -- Points ---------------------------------------------------------------

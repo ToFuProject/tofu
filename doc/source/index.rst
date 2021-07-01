@@ -55,6 +55,11 @@ interactive plots.
             <img src="_images/sphx_glr_tuto_plot_solid_angles_thumb.png">
           </div>
         </a>
+	<a href="auto_examples/tutorials/tuto_plot_create_geometry_from_svg.html">
+          <div class="col-md-4 thumbnail">
+            <img src="_images/sphx_glr_tuto_plot_create_geometry_from_svg_thumb.png">
+          </div>
+        </a>
       </div>
     </div>
 

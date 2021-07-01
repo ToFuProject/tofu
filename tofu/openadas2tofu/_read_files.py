@@ -33,21 +33,77 @@ def _get_PATH_LOCAL():
         return None
 
 
-def _get_subdir_from_pattern(path, pattern):
-    ld = [dd for dd in os.listdir(path)
-          if (os.path.isdir(os.path.join(path, dd))
-              and pattern in dd)]
+def _get_subdir_from_pattern(path, pattern, mult=None):
+    """ Get list of files matching patterns in path
+
+    If no match => Exception
+    If multiple matches
+        => mult = True: pass
+        => mult = 'warn': warning
+        => mult = 'err': Exception
+    """
+    # Check inputs
+    if mult is None:
+        mult = 'err'
+    if mult not in [True, 'warn', 'err']:
+        msg = (
+            "Arg mult must be in [True, 'warn', 'err']!\n"
+            + "\t- provided: {}".format(mult)
+        )
+        raise Exception(msg)
+
+    if isinstance(pattern, str):
+        pattern = [pattern]
+
+    # Get matches
+    ld = [
+        dd for dd in os.listdir(path)
+        if os.path.isdir(os.path.join(path, dd))
+        and all([pp in dd for pp in pattern])
+    ]
     if len(ld) != 1:
-        av = [dd for dd in os.listdir(path)
-              if os.path.isdir(os.path.join(path, dd))]
         msg = ("You have no / many directories in your local "
                + "~/.tofu/openadas2tofu/ matching the desired file type:\n"
-               + "\t- provided : {}\n".format(pattern)
-               + "\t- available: {}\n".format(av)
+               + "\t- path: {}\n".format(path)
+               + "\t- provided (all): {}\n".format(pattern)
+               + "\t- available: {}\n".format(ld)
                + "  => download the data with "
                + "tf.openadas2tofu.step02_download()")
+        if len(ld) == 0:
+            raise Exception(msg)
+        else:
+            if mult == 'err':
+                raise Exception(msg)
+            elif mult == 'warn':
+                warnings.warn(msg)
+    return [os.path.join(path, dd) for dd in ld]
+
+
+def _get_available_elements_from_path(path=None, typ1=None):
+    # Check inputs
+    if not os.path.isdir(path):
+        msg = (
+            "Provided path is not an existing directory!\n"
+            + "\t- provided: {}".format(path)
+        )
         raise Exception(msg)
-    return os.path.join(path, ld[0])
+
+    ltyp = ['adf15']
+    if typ1 not in ltyp:
+        msg = (
+            "Only the following types of files are handled up to now:\n"
+            + "\t- handled: {}\n".format(ltyp)
+            + "\t- provided: {}".format(typ1)
+        )
+        raise Exception(msg)
+
+    if typ1 == 'adf15':
+        lf = [
+            ff for ff in os.listdir(path)
+            if all([ss in ff for ss in ['pec', '][']])
+        ]
+        element = [ff[ff.index('][')+2:] for ff in lf]
+    return element
 
 
 def _format_for_DataCollection_adf15(
@@ -453,27 +509,51 @@ def step03_read_all(
                + "\t- available for {}: {}".format(typ1, _DTYPES[typ1]))
         raise Exception(msg)
 
+    # --------------------
+    # Get elevant directory
+    # Level 1: Type
+    path = _get_subdir_from_pattern(path_local, typ1, mult='err')[0]
+
+    # --------------------
     # element
     c0 = (
-        isinstance(element, str)
+        element is None
+        or isinstance(element, str)
         or (
             isinstance(element, list)
+            and all([isinstance(ee, str) for ee in element])
+        )
+        or (
+            isinstance(element, tuple)
             and all([isinstance(ee, str) for ee in element])
         )
     )
     if not c0:
         msg = "Please choose an element!"
         raise Exception(msg)
+
+    if element is None or isinstance(element, tuple):
+        el = _get_available_elements_from_path(path=path, typ1=typ1)
+        if element is None:
+            element = el
+        else:
+            element = tuple([ee.lower() for ee in element])
+            element = [ee for ee in el if ee not in element]
     if isinstance(element, str):
         element = [element]
     element = [ee.lower() for ee in element]
 
+    # --------------------
     # charge
     if charge is not None:
         c0 = (
             isinstance(charge, int)
             or (
                 isinstance(charge, list)
+                and all([isinstance(cc, int) for cc in charge])
+            )
+            or (
+                isinstance(charge, tuple)
                 and all([isinstance(cc, int) for cc in charge])
             )
         )
@@ -483,7 +563,10 @@ def step03_read_all(
             raise Exception(msg)
         if isinstance(charge, int):
             charge = [charge]
-        charge = ['{}.dat'.format(cc) for cc in charge]
+        if isinstance(charge, list):
+            charge = ['{}.dat'.format(cc) for cc in charge]
+        elif isinstance(charge, tuple):
+            charge = tuple(['{}.dat'.format(cc) for cc in charge])
 
     if format_for_DataCollection is None:
         format_for_DataCollection = False
@@ -492,17 +575,21 @@ def step03_read_all(
         verb = True
 
     # --------------------
-    # Get list of relevant directories
+    # Get list of relevant directories per element
 
-    # Level 1: Type
-    path = _get_subdir_from_pattern(path_local, typ1)
     # Level 2: element or typ2
     if typ1 == 'adf11':
-        lpath = [_get_subdir_from_pattern(path, tt) for tt in typ2]
-    elif typ1 == 'adf15':
         lpath = [
-            _get_subdir_from_pattern(path, ee) for ee in element
+            _get_subdir_from_pattern(path, tt, mult='err')[0]
+            for tt in typ2
         ]
+    elif typ1 == 'adf15':
+        lpath = np.concatenate([
+            _get_subdir_from_pattern(
+                path, ['pec', '][{}'.format(ee)], mult=True,
+            )
+            for ee in element
+        ]).tolist()
 
     # --------------------
     # Get list of relevant files pfe
@@ -518,8 +605,26 @@ def step03_read_all(
 
     if typ1 == 'adf15':
         kwdargs['pec_as_func'] = pec_as_func
-        if charge is not None:
-            lpfe = [ff for ff in lpfe if any([cc in ff for cc in charge])]
+        if isinstance(charge, list):
+            lpfe = [
+                ff for ff in lpfe
+                if any([
+                    ''.join([ss for ss in ff.split('][')[-1] if ss.isdigit()])
+                    + '.dat'
+                    == cc
+                    for cc in charge
+                ])
+            ]
+        elif isinstance(charge, tuple):
+            lpfe = [
+                ff for ff in lpfe
+                if not any([
+                    ''.join([ss for ss in ff.split('][')[-1] if ss.isdigit()])
+                    + '.dat'
+                    == cc
+                    for cc in charge
+                ])
+            ]
 
     # --------------------
     # Extract data from each file
@@ -825,7 +930,9 @@ def _read_adf15(
                             np.log(te),
                             np.log(pec),
                             kx=deg,
-                            ky=deg)
+                            ky=deg,
+                        )
+
                         def pec(Te=None, ne=None, pec_rec=pec_rec):
                             return np.exp(pec_rec(np.log(ne), np.log(Te)))
 

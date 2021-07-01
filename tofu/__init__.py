@@ -69,7 +69,7 @@ import tofu.data as data
 # -------------------------------------
 
 msg = None
-dsub = dict.fromkeys(['imas2tofu', 'openadas2tofu', 'mag'])
+dsub = dict.fromkeys(['imas2tofu', 'openadas2tofu', 'nist2tofu', 'mag'])
 for sub in dsub.keys():
     try:
         exec('import tofu.{0} as {0}'.format(sub))
@@ -84,9 +84,11 @@ for sub in dsub.keys():
 lsubout = [sub for sub in dsub.keys() if dsub[sub] is not True]
 if len(lsubout) > 0:
     lsubout = ['tofu.{0}'.format(ss) for ss in lsubout]
-    msg = "\nThe following subpackages are not available:"
-    msg += "\n    - " + "\n    - ".join(lsubout)
-    msg += "\n  => see print(tofu.dsub[<subpackage>]) for details."
+    msg = (
+        "\nThe following subpackages are not available:\n"
+        + "\n".join(["\t- {}".format(sub) for sub in lsubout])
+        + "\n  => see print(tofu.dsub[<subpackage>]) for details."
+    )
     warnings.warn(msg)
 
 # -------------------------------------

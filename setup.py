@@ -313,6 +313,7 @@ setup(
     # $ pip install -e .[dev,test]
     extras_require={
         "dev": [
+            "svg.path",
             "check-manifest",
             "coverage",
             "pytest",
