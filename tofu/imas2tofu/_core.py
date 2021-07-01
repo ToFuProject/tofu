@@ -3507,11 +3507,14 @@ def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
                            shot=None, run=None, refshot=None, refrun=None,
                            occ=None, user=None, tokamak=None, version=None,
                            dryrun=False, tfversion=None, close=True, verb=True,
-                           ids=None, deep=True, restore_size=False,
+                           ids=None, deep=None, restore_size=False,
                            config_occ=None, config_description_2d=None):
 
     if occ is None:
         occ = 0
+    if deep is None:
+        deep = False
+
     # Create or open IDS
     # ------------------
     if idd is None:
@@ -3619,12 +3622,15 @@ def _save_to_imas_DataCam1D( obj,
                             shot=None, run=None, refshot=None, refrun=None,
                             occ=None, user=None, tokamak=None, version=None,
                             dryrun=False, tfversion=None, verb=True,
-                            ids=None, deep=True, restore_size=True, forceupdate=False,
+                            ids=None, deep=None, restore_size=True, forceupdate=False,
                             path_data=None, path_X=None,
                             config_occ=None, config_description_2d=None):
 
     if occ is None:
         occ = 0
+    if deep is None:
+        deep = False
+
     # Create or open IDS
     # ------------------
     idd, shotfile = _open_create_idd(
