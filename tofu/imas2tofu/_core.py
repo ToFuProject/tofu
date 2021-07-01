@@ -3682,7 +3682,7 @@ def _save_to_imas_DataCam1D(
         msg = "path_data is not valid !\n"
         msg += "path_data must be a (str) valid path to a field in idd.%s"%ids
         raise Exception(msg)
-    if not ( path_X is None or type(path_X) is str):
+    if not (path_X is None or type(path_X) is str):
         msg = "path_X is not valid !\n"
         msg += "path_X must be a (str) valid path to a field in idd.%s"%ids
         raise Exception(msg)

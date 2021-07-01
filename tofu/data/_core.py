@@ -3944,7 +3944,6 @@ class Plasma2D(utils.ToFuObject):
             out = self._get_indtmult(idquant=idq2dR)
         return out
 
-
     def _get_finterp(
         self,
         idquant=None, idref1d=None, idref2d=None,
