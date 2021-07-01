@@ -853,6 +853,7 @@ def calc_dthetapsiphi_from_lambpts(
 
 
     # Get to scalar product scaPCem
+    # Already ok for non-parallelism (via nout)
     center = summit - rcurve*nout
     PC = center[:, None] - pts
     PCnorm2 = np.sum(PC**2, axis=0)
@@ -919,7 +920,7 @@ def calc_dthetapsiphi_from_lambpts(
         Z = np.repeat(
             np.repeat(
                 np.repeat(Z[None, :], nlamb, axis=0)[..., None],
-                ndtheta, 
+                ndtheta,
                 axis=-1,
             )[..., None],
             2,
