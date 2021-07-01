@@ -1478,6 +1478,8 @@ class CrystalBragg(utils.ToFuObject):
         psi=None,
         det=None,
         use_non_parallelism=None,
+        strict=None,
+        return_strict=None,
         data=None,
         plot=True,
         dax=None,
@@ -1501,6 +1503,9 @@ class CrystalBragg(utils.ToFuObject):
             (3,) array containing local (x,y,z) coordinates of the plane's
             normal vector
         """
+        if return_strict is None:
+            return_strict = False
+
         # Check / format inputs
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
         phi = np.atleast_1d(phi)
@@ -1523,18 +1528,22 @@ class CrystalBragg(utils.ToFuObject):
         )
 
         # Compute
-        xi, xj = _comp_optics.calc_xixj_from_braggphi(
+        xi, xj, strict = _comp_optics.calc_xixj_from_braggphi(
             det_cent=det['cent'],
             det_nout=det['nout'], det_ei=det['ei'], det_ej=det['ej'],
+            det_outline=det.get('outline'),
             summit=summit, nout=nout, e1=e1, e2=e2,
-            bragg=bragg, phi=phi,
+            bragg=bragg, phi=phi, strict=strict,
         )
 
         if plot:
             dax = _plot_optics.CrystalBragg_plot_approx_detector_params(
                 bragg, xi, xj, data, dax,
             )
-        return xi, xj
+        if return_strict is True:
+            return xi, xj, strict
+        else:
+            return xi, xj
 
     @staticmethod
     def _checkformat_pts(pts=None):
@@ -1628,6 +1637,7 @@ class CrystalBragg(utils.ToFuObject):
         det=None, johann=None,
         use_non_parallelism=None,
         lpsi=None, ldtheta=None,
+        strict=None,
         ax=None, dleg=None,
         rocking=None, fs=None, dmargin=None,
         wintit=None, tit=None,
@@ -1685,6 +1695,7 @@ class CrystalBragg(utils.ToFuObject):
                 bragg=bragg[ll], phi=phi, n=n,
                 det=det, plot=False,
                 use_non_parallelism=use_non_parallelism,
+                strict=strict,
                 )
 
         # Get johann-error raytracing (multiple positions on crystal)
@@ -1713,7 +1724,8 @@ class CrystalBragg(utils.ToFuObject):
                         dtheta=ldtheta[ii], psi=lpsi[ii],
                         det=det, plot=False,
                         use_non_parallelism=use_non_parallelism,
-                        )
+                        strict=strict,
+                    )
 
         # Get rocking curve error
         if rocking:
@@ -1879,17 +1891,49 @@ class CrystalBragg(utils.ToFuObject):
 
     def get_lamb_avail_from_pts(
         self,
-        pts=None, bragg=None, lamb=None,
+        pts=None,
         n=None, ndtheta=None, npsi=None,
         det=None, nlamb=None,
         use_non_parallelism=None,
+        strict=None,
         return_xixj=None,
     ):
+        """ Return the wavelength accessible from plasma points on the crystal
+
+        For a given plasma point, only a certain lambda interval can be
+        bragg-diffracted on the crystal (due to bragg's law and the crystal's
+        dimensions)
+
+        Beware, for a given pts and lamb, there can be up to 2 sets of
+        solutions
+        All non-valid solutions are set to nans, such that most of the time
+        there is only one
+
+        For a set of given:
+            - pts (3, npts) array, (x, y, z) coordinates
+        Using:
+            - nlamb: sampling of the lamb interval (default: 100)
+            - ndtheta: sampling of the lamb interval (default: 20)
+            - npsi: sampling of the lamb interval (default: 'envelop')
+            - det: (optional) a detector dict, for xi and xj
+        Returns:
+            - lamb: (npts, nlamb) array of sampled valid wavelength interval
+            - phi:  (npts, nlamb, ndtheta, npsi, 2) array of phi
+            - dtheta:  (npts, nlamb, ndtheta, npsi, 2) array of dtheta
+            - psi:  (npts, nlamb, ndtheta, npsi, 2) array of psi
+        And optionally (return_xixj=True and det provided as dict):
+            - xi:  (npts, nlamb, ndtheta, npsi, 2) array of xi
+            - xj:  (npts, nlamb, ndtheta, npsi, 2) array of xj
+
+        The result is computed with or w/o taking into account non-parallelism
+
+        """
         # Check / format
         if ndtheta is None:
             ndtheta = 20
         if nlamb is None:
             nlamb = 100
+        assert nlamb >= 2, "nlamb must be >= 2"
         if return_xixj is None:
             return_xixj = det is not None
 
@@ -1924,8 +1968,8 @@ class CrystalBragg(utils.ToFuObject):
             )[:3]
 
         if return_xixj is True and det is not None:
-            xi, xj = self.calc_xixj_from_braggphi(
-                phi=phi,
+            xi, xj, strict = self.calc_xixj_from_braggphi(
+                phi=phi+np.pi,
                 bragg=bragg[..., None, None],
                 n=n,
                 dtheta=dtheta,
@@ -1933,9 +1977,17 @@ class CrystalBragg(utils.ToFuObject):
                 det=det,
                 data=None,
                 use_non_parallelism=use_non_parallelism,
+                strict=strict,
+                return_strict=True,
                 plot=False,
                 dax=None,
             )
+            if strict is True and np.any(np.isnan(xi)):
+                indnan = np.isnan(xi)
+                phi[indnan] = np.nan
+                dtheta[indnan] = np.nan
+                psi[indnan] = np.nan
+                lamb[np.all(np.all(indnan, axis=-1), axis=-1)] = np.nan
             return lamb, phi, dtheta, psi, xi, xj
         else:
             return lamb, phi, dtheta, psi
@@ -2010,7 +2062,7 @@ class CrystalBragg(utils.ToFuObject):
         xi_bounds=None, xj_bounds=None, nphi=None,
         det=None, n=None, ndtheta=None,
         johann=False, lpsi=None, ldtheta=None,
-        rocking=False, plot=None, fs=None,
+        rocking=False, strict=None, plot=None, fs=None,
         dmargin=None, wintit=None,
         tit=None, proj=None,
         legend=None, draw=None, returnas=None,
@@ -2051,7 +2103,8 @@ class CrystalBragg(utils.ToFuObject):
         xi, xj = self.calc_xixj_from_braggphi(
             bragg=bragg, phi=phi+np.pi, n=n,
             dtheta=dtheta, psi=psi,
-            det=det, plot=False)
+            det=det, strict=strict, plot=False,
+        )
 
         # Plot
         if plot is not False:

@@ -413,10 +413,12 @@ def get_e1e2_detectorplane(nn, nIn):
 
 
 def calc_xixj_from_braggphi(
-    det_cent=None, det_nout=None, det_ei=None, det_ej=None,
+    det_cent=None,
+    det_nout=None, det_ei=None, det_ej=None,
+    det_outline=None,
     summit=None, nout=None, e1=None, e2=None,
     bragg=None, phi=None,
-    option=None,
+    option=None, strict=None,
 ):
     """ Several options for shapes
 
@@ -432,6 +434,10 @@ def calc_xixj_from_braggphi(
             (bragg, phi).shape = (nlamb, npts, nbragg)
             => (xi, xj).shape = (nlamb, npts, nbragg)
     """
+    # check inputs
+    if strict is None:
+        strict = True
+
     # Check option
     gdet = [det_cent, det_nout, det_ei, det_ej]
     g0 = [summit, nout, e1, e2]
@@ -484,7 +490,18 @@ def calc_xixj_from_braggphi(
     pts = summit + k[None, ...]*vect
     xi = np.sum((pts - det_cent)*det_ei, axis=0)
     xj = np.sum((pts - det_cent)*det_ej, axis=0)
-    return xi, xj
+
+    # Optional: eliminate points outside the det outline
+    if det_outline is not None and strict is True:
+        ind = (
+            (xi < np.min(det_outline[0, :]))
+            | (xi > np.max(det_outline[0, :]))
+            | (xj < np.min(det_outline[1, :]))
+            | (xj > np.max(det_outline[1, :]))
+        )
+        xi[ind] = np.nan
+        xj[ind] = np.nan
+    return xi, xj, strict
 
 
 def calc_braggphi_from_pts_summits(
