@@ -377,7 +377,6 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
         except:
             pass
 
-
     kwdargs = config.get_kwdargs_LOS_isVis()
     ves_poly = kwdargs["ves_poly"]
 
@@ -417,7 +416,7 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
 
     lblock = [False]  #, True]
     lstep_rz = [
-        # 0.01,
+        #  0.01,
         0.01,
     ]
 
