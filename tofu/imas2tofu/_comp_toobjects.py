@@ -77,7 +77,7 @@ def get_lidsidd_shotExp(lidsok,
 
     # Exp (non-identical => error if errExp is True, warning otherwise)
     Exp = _check_shotExp_consistency(didd, lidd,
-                                     tofustr='Exp', imasstr='tokamak',
+                                     tofustr='Exp', imasstr='database',
                                      err=errExp, fallback='Dummy')
     if upper is True:
         Exp = Exp.upper()

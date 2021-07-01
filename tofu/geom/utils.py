@@ -718,6 +718,7 @@ def _create_config_testcase_check_inputs(
     dconfig=None,
     dconfig_shortcuts=None,
     returnas=None,
+    strict=None,
 ):
     # config
     if config is None:
@@ -759,7 +760,15 @@ def _create_config_testcase_check_inputs(
         msg = ("Arg returnas must be either object or dict!\n"
                + "\t-Provided: {}".format(returnas))
         raise Exception(msg)
-    return config, path, dconfig, dconfig_shortcuts, returnas
+
+    # strict
+    if strict is None:
+        strict = False
+    if not isinstance(strict, bool):
+        msg = ("Arg strict must be a bool!\n"
+               + "\t-Provided: {}".format(strict))
+        raise Exception(msg)
+    return config, path, dconfig, dconfig_shortcuts, returnas, strict
 
 
 def _create_config_testcase(
@@ -768,6 +777,7 @@ def _create_config_testcase(
     dconfig=None,
     dconfig_shortcuts=None,
     returnas=None,
+    strict=None,
 ):
     """ Load the desired test case configuration
 
@@ -777,13 +787,17 @@ def _create_config_testcase(
 
     # -----------
     # Check input
-    (config, path, dconfig,
-     dconfig_shortcuts, returnas) = _create_config_testcase_check_inputs(
+    (
+        config, path, dconfig,
+        dconfig_shortcuts,
+        returnas, strict,
+    ) = _create_config_testcase_check_inputs(
         config=config,
         path=path,
         dconfig=dconfig,
         dconfig_shortcuts=dconfig_shortcuts,
         returnas=returnas,
+        strict=strict,
      )
 
     # --------------------------
@@ -819,51 +833,83 @@ def _create_config_testcase(
         ])
 
     Exp = dconfig[config]['Exp']
+    dfail = {}
     for cc in lcls:
         for ss in dconfig[config][cc]:
-            ff = [f for f in lf
-                  if all([s in f for s in [cc, Exp, ss]])]
+            k0 = '{}_{}'.format(cc, ss)
+            ff = [
+                f for f in lf
+                if all([s in f for s in [cc, Exp, ss]])
+            ]
             if len(ff) == 0:
-                msg = "No matching files\n"
-                msg += "  Folder: %s\n"%path
-                msg += "    Criteria: [%s, %s]\n"%(cc,ss)
-                msg += "    Matching: "+"\n              ".join(ff)
-                raise Exception(msg)
+                msg = (
+                    "No matching files in {} ".format(path)
+                    + "for ['{}', '{}']".format(cc, ss)
+                )
+                dfail[k0] = msg
+                continue
             elif len(ff) > 1:
                 # More demanding criterion
                 ssbis, Expbis = '_'+ss+'.txt', '_Exp'+Exp+'_'
                 ff = [fff for fff in ff if ssbis in fff and Expbis in fff]
-                if len(ff) != 1:
-                    msg = ("No / several matching files\n"
-                           + "  Folder: {}\n".format(path)
-                           + "    Criteria: [{}, {}]\n".format(cc, ss)
-                           + "    Matching: "+"\n              ".join(ff))
-                    raise Exception(msg)
+                if len(ff) == 0:
+                    msg = (
+                        "No matching files in {} ".format(path)
+                        + "for ['{}', '{}', '{}']".format(cc, ssbis, Expbis)
+                    )
+                    dfail[k0] = msg
+                    continue
+                elif len(ff) > 1:
+                    msg = (
+                        "Many ({}) matching files in {} ".format(len(ff), path)
+                        + "for ['{}', '{}', '{}']".format(cc, ssbis, Expbis)
+                    )
+                    dfail[k0] = msg
+                    continue
 
             pfe = os.path.join(path, ff[0])
             try:
-                obj = eval('_core.'+cc).from_txt(pfe, Name=ss, Type='Tor',
-                                                 Exp=dconfig[config]['Exp'],
-                                                 out=returnas)
+                obj = eval('_core.'+cc).from_txt(
+                    pfe, Name=ss, Type='Tor',
+                    Exp=dconfig[config]['Exp'],
+                    returnas=returnas,
+                )
                 if returnas not in ['object', object]:
-                    obj = ((ss, {'Poly': obj[0],
-                                 'pos': obj[1], 'extent': obj[2]}),)
+                    obj = ((
+                        ss, {'Poly': obj[0], 'pos': obj[1], 'extent': obj[2]}
+                    ),)
                 lS.append(obj)
             except Exception as err:
-                msg = "Could not be loaded: {}".format(ff[0])
-                warnings.warn(msg)
-    if returnas == 'dict':
+                msg = "Error loading: {}".format(str(err))
+                dfail[k0] = msg
+                continue
+
+    if len(dfail) > 0:
+        lstr = ['\t- {}: {}'.format(k0, v0) for k0, v0 in dfail.items()]
+        msg = (
+            "The following structures could not be loaded:\n"
+            + "\n".join(lstr)
+        )
+        if strict is True or len(lS) == 0:
+            raise Exception(msg)
+        else:
+            warnings.warn(msg)
+
+    if returnas is dict:
         conf = dict([tt for tt in lS])
     else:
         conf = _core.Config(Name=config, Exp=dconfig[config]['Exp'], lStruct=lS)
     return conf
 
 
-def create_config(case=None, Exp='Dummy', Type='Tor',
-                  Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
-                  R=None, r=None, elong=None, Dshape=None,
-                  divlow=None, divup=None, nP=None,
-                  returnas=None, SavePath='./', path=_path_testcases):
+def create_config(
+    case=None, Exp='Dummy', Type='Tor',
+    Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
+    R=None, r=None, elong=None, Dshape=None,
+    divlow=None, divup=None, nP=None,
+    returnas=None, strict=None,
+    SavePath='./', path=_path_testcases,
+):
     """ Create easily a tofu.geom.Config object
 
     In tofu, a Config (short for geometrical configuration) refers to the 3D
@@ -908,6 +954,18 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
         FLag indicating whether to return:
             - 'dict'  : the polygons as a dictionary of np.ndarrays
             - 'object': the configuration as a tofu.geom.Config instance
+    returnas:   object / dict
+        Flag indicating whether to return the config as:
+            - object: a Config instance
+            - dict: a dict of Struct instances
+    strict:     bool
+        Flag indicating whether to raise an error if a Struct cannot be loaded
+            Otherwise only raises a warning
+    path:       str
+        Absolute path where to find the test case data
+    SavePath:   str
+        The default path used for saving Struct and Config objects returned by
+        the routine.
 
     Return
     ------
@@ -932,8 +990,12 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
 
     # Get config, either from known case or geometrical parameterization
     if case is not None:
-        conf = _create_config_testcase(config=case,
-                                       returnas=returnas, path=path)
+        conf = _create_config_testcase(
+            config=case,
+            path=path,
+            returnas=returnas,
+            strict=strict,
+        )
     else:
         poly, pbump, pbaffle = _compute_VesPoly(R=R, r=r,
                                                 elong=elong, Dshape=Dshape,

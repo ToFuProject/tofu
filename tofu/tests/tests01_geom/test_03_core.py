@@ -731,7 +731,30 @@ class Test02_Config(object):
             lax = self.dobj[typ].plot_sino()
         plt.close('all')
 
-    def test14_saveload(self, verb=False):
+    def test14_from_svg(self):
+        pfe = os.path.join(_here, 'test_03_core_data', 'Inkscape.svg')
+        # to be solved when optional dependence svg.path is handled
+        # (or integrated)
+        conf = tfg.Config.from_svg(pfe, Name='Test', Exp='Test', res=10)
+        conf = tfg.Config.from_svg(
+            pfe, Name='Test', Exp='Test',
+            res=10, r0=-100, z0=-150, scale=0.01,
+        )
+        conf = tfg.Config.from_svg(
+            pfe, Name='Test', Exp='Test',
+            res=10, point_ref1=(0.7, -2), point_ref2=(2.8, 2),
+        )
+        conf = tfg.Config.from_svg(
+            pfe, Name='Test', Exp='Test',
+            res=10, point_ref1=(0.7, -2), length_ref=4.5,
+        )
+
+    def test15_load_config(self):
+        lc = sorted(tfg.utils._get_listconfig(returnas=dict).keys())
+        for cc in lc:
+            conf = tf.load_config(cc, strict=True)
+
+    def test16_saveload(self, verb=False):
         for typ in self.dobj.keys():
             self.dobj[typ].strip(-1)
             pfe = self.dobj[typ].save(verb=verb, return_pfe=True)

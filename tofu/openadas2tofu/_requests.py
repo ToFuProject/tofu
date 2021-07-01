@@ -31,6 +31,14 @@ _CREATE_CUSTOM = True
 _INCLUDE_PARTIAL = True
 
 
+_DCERTIFICATES_BUNDLE = {
+    'ITER': {
+        'host': 'iter.org',
+        'bund': '/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt',
+    },
+}
+
+
 # #############################################################################
 #                           Utility functions
 # #############################################################################
@@ -99,12 +107,43 @@ def _getcharray(ar, col=None, sep='  ', line='-', just='l',
 
 
 # #############################################################################
-#                          online search
+#                          online search - utilities
 # #############################################################################
 
 
 class FileAlreayExistsException(Exception):
     pass
+
+
+def _try_request_handle_ITER_SSL_step01(url=None):
+    try:
+        resp = requests.get(url)
+    except requests.exceptions.SSLError as err:
+        if 'certificate' in str(err):
+            lbund = [
+                vv['bund'] for kk, vv in _DCERTIFICATES_BUNDLE.items()
+                if os.uname()[1].endswith(vv['host'])
+            ]
+            if len(lbund) == 1:
+                resp = requests.get(url, verify=lbund[0])
+            else:
+                msg = (
+                    str(err)
+                    + "\n\nLooks like a certificate error occured!\n"
+                    + "=> try changing the certificate bundle of requests\n"
+                    + "=> ask your admin which certificate bundle to use!"
+                )
+                raise Exception(msg)
+        else:
+            raise err
+    except Exception as err:
+        raise err
+    return resp
+
+
+# #############################################################################
+#                          online search
+# #############################################################################
 
 
 def step01_search_online(
@@ -139,7 +178,7 @@ def step01_search_online(
                           for kk in searchstr.split(' ')])
 
     total_url = '{}{}&{}'.format(_URL_SEARCH, searchurl, 'searching=1')
-    resp = requests.get(total_url)
+    resp = _try_request_handle_ITER_SSL_step01(url=total_url)
 
     # Extract response from html
     out = resp.text.split('\n')
@@ -307,7 +346,7 @@ def step01_search_online_by_wavelengthA(
                           'resolveby={}'.format(resolveby)])
 
     total_url = '{}{}&{}'.format(_URL_SEARCH_WAVL, searchurl, 'searching=1')
-    resp = requests.get(total_url)
+    resp = _try_request_handle_ITER_SSL_step01(url=total_url)
 
     # Extract response from html
     out = resp.text.split('\n')
@@ -434,8 +473,47 @@ def step01_search_online_by_wavelengthA(
 
 
 # #############################################################################
-#                          Download
+#                          Download - utilities
 # #############################################################################
+
+
+def _try_request_handle_ITER_SSL_step02(url=None, pfe=None):
+    try:
+        with requests.get(url, stream=True) as rr:
+            rr.raise_for_status()
+            with open(pfe, 'wb') as ff:
+                for chunk in rr.iter_content(chunk_size=8192):
+                    # filter-out keep-alive new chunks
+                    if chunk:
+                        ff.write(chunk)
+                        # ff.flush()
+    except requests.exceptions.SSLError as err:
+        if 'certificate' in str(err):
+            lbund = [
+                vv['bund'] for kk, vv in _DCERTIFICATES_BUNDLE.items()
+                if os.uname()[1].endswith(vv['host'])
+            ]
+            if len(lbund) == 1:
+                with requests.get(url, stream=True, verify=lbund[0]) as rr:
+                    rr.raise_for_status()
+                    with open(pfe, 'wb') as ff:
+                        for chunk in rr.iter_content(chunk_size=8192):
+                            # filter-out keep-alive new chunks
+                            if chunk:
+                                ff.write(chunk)
+                                # ff.flush()
+            else:
+                msg = (
+                    str(err)
+                    + "\n\nLooks like a certificate error occured!\n"
+                    + "=> try changing the certificate bundle of requests\n"
+                    + "=> ask your admin which certificate bundle to use!"
+                )
+                raise Exception(msg)
+        else:
+            raise err
+    except Exception as err:
+        raise err
 
 
 def _check_exists(filename, update=None, create_custom=None):
@@ -483,6 +561,11 @@ def _check_exists(filename, update=None, create_custom=None):
             return True, pfe
     else:
         return False, pfe
+
+
+# #############################################################################
+#                          Download
+# #############################################################################
 
 
 def step02_download(
@@ -535,14 +618,7 @@ def step02_download(
     # ---------------------------
     # Download
     # Note the stream=True parameter below
-    with requests.get(url, stream=True) as rr:
-        rr.raise_for_status()
-        with open(pfe, 'wb') as ff:
-            for chunk in rr.iter_content(chunk_size=8192):
-                # filter-out keep-alive new chunks
-                if chunk:
-                    ff.write(chunk)
-                    # ff.flush()
+    _try_request_handle_ITER_SSL_step02(url=url, pfe=pfe)
 
     if verb is True:
         msg = ("file {} was copied to:\n".format(filename)
