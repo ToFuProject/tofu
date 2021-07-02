@@ -1083,6 +1083,8 @@ def CrystalBragg_plot_johannerror(
 # #################################################################
 # #################################################################
 
+
+# To be clarified
 def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
                                               xi_bounds=None, xj_bounds=None,
                                               pts=None, ptscryst=None,
