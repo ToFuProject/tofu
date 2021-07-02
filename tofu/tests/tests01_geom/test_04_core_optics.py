@@ -309,6 +309,14 @@ class Test01_Crystal(object):
             lamb, phi, dtheta, psi, xi, xj = obj.get_lamb_avail_from_pts(
                 pts=pts, det=det,
             )
+            conf = tf.load_config('WEST-V0')
+            pts, dv, ind, res_eff = conf.Ves.V1.get_sampleV(
+                res=0.3,
+                domain=[None, None, [-np.pi, -np.pi/2.]],
+            )
+            lamb, phi, dtheta, psi, xi, xj = obj.get_lamb_avail_from_pts(
+                pts=pts, det=det, strict=True,
+            )
 
     def test15_saveload(self, verb=False):
         for k0, obj in self.dobj.items():
