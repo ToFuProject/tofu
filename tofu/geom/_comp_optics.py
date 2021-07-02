@@ -442,6 +442,7 @@ def get_e1e2_detectorplane(nn, nIn):
     return e1, e2
 
 
+# To be made cleaner vs option 0/ 1 => grid = True, False
 def calc_xixj_from_braggphi(
     det_cent=None,
     det_nout=None, det_ei=None, det_ej=None,
@@ -478,17 +479,42 @@ def calc_xixj_from_braggphi(
     assert all([gg.shape == (3,) for gg in gdet]), "gdet no broadcast!"
     assert all([gg.shape == g0[0].shape for gg in g0]), "g0 no broadcast!"
     lc = [
-        g0[0].shape == (3,) and g1[0].ndim == 1,
+        g0[0].size == 3 and g1[0].ndim == 1,
         g0[0].ndim in [4, 5] and g0[0].shape[0] == 3
         and phi.shape == g0[0].shape[1:],
     ]
-    assert np.sum(lc) == 1, "Muliple options!"
+    if np.sum(lc) == 0:
+        lstr = [
+            '\t- {}: {}'.format(kk, vv.shape)
+            for kk, vv in [
+                ('summit', summit), ('nout', nout), ('e1', e1), ('e2', e2),
+                ('bragg', bragg), ('phi', phi),
+            ]
+        ]
+        msg = (
+            "Please provide either:\n"
+            + "\t- option 0:\n"
+            + "\t\t- (summit, nout, e1, e2).shape[0] = 3\n"
+            + "\t\t- (bragg, phi).ndim = 1\n"
+            + "\t- option 1:\n"
+            + "\t\t- (summit, nout, e1, e2).ndim in [4, 5]\n"
+            + "\t\t- (bragg, phi).shape[0] = 3\n\n"
+            + "You provided:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+    elif all(lc):
+        msg = ("Multiple options!")
+        raise Exception(msg)
+
     if option is None:
         option = lc.index(True)
     assert (lc[0] and option == 0) or (lc[1] and option == 1)
 
     # Prepare
     if option == 0:
+        summit = summit.ravel()
+        nout, e1, e2 = nout.ravel(), e1.ravel(), e2.ravel()
         det_cent = det_cent[:, None]
         det_nout = det_nout[:, None]
         det_ei, det_ej = det_ei[:, None], det_ej[:, None]
