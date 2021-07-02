@@ -164,12 +164,15 @@ def CrystBragg_get_noute1e2_from_psitheta(
             e2 = e2[:, None, None, None, None]
 
     # Not necessary for broadcasting (last dims first)
-    theta = np.pi/2.  + dtheta# [None, ...]
+    theta = dtheta#  + np.pi/2.
     #psi = psi[None, ...]
 
     # Compute
+    # vout = (
+         # (np.cos(psi)*nout + np.sin(psi)*e1)*np.sin(theta) + np.cos(theta)*e2
+         # )
     vout = (
-         (np.cos(psi)*nout + np.sin(psi)*e1)*np.sin(theta) + np.cos(theta)*e2
+         (np.cos(psi)*nout + np.sin(psi)*e1)*np.cos(theta) + np.sin(theta)*e2
          )
     if e1e2:
         ve1 = -np.sin(psi)*nout + np.cos(psi)*e1
@@ -851,13 +854,17 @@ def calc_dthetapsiphi_from_lambpts(
         sol1 = np.full((npts,), np.nan)
         sol2 = np.full((npts,), np.nan)
 
-
     # Get to scalar product scaPCem
     # Already ok for non-parallelism (via nout)
     center = summit - rcurve*nout
     PC = center[:, None] - pts
     PCnorm2 = np.sum(PC**2, axis=0)
     cos2 = np.cos(bragg)**2
+    # PM.CM = Rsca + R**2  (ok)
+    # PMCM = PMnR*sin       (ok)
+    # PMn2 = PCn2*sin2 + 2Rsin2*sca + R2sin2
+    #
+    # sca**2 + 2Rcos2*sca + R2cos2 - PCnsin2 = 0
     if grid is True:
         deltaon4 = np.sin(bragg)[:, None]**2*(
             PCnorm2[None, :] - rcurve**2*cos2[:, None]
@@ -896,7 +903,10 @@ def calc_dthetapsiphi_from_lambpts(
     ind = ~np.isnan(scaPCem)
 
     # Get equation on PCem
+    # CM = rcurve * (sin(dtheta)e2 + cos(dtheta)(cos(psi)nout + sin(psi)e1))
+    # PC.eM = scaPCem, thus introducing Z = PC.e2, Y = PC.e1, X = PC.nout
     # Xcos(dtheta)cos(psi) + Ycos(dtheta)sin(psi) + Zsin(dtheta) = scaPCem
+    # dtheta is specified, psi is deduced
     X = np.sum(PC*nout[:, None], axis=0)
     Y = np.sum(PC*e1[:, None], axis=0)
     Z = np.sum(PC*e2[:, None], axis=0)
@@ -906,11 +916,14 @@ def calc_dthetapsiphi_from_lambpts(
     else:
         scaPCem = np.repeat(scaPCem[:, None, :], ndtheta, axis=1)
 
+    # broadcast and specify dtheta
     ind = ~np.isnan(scaPCem)
     if grid is True:
         XYnorm = np.repeat(
             np.repeat(
-                np.repeat(np.sqrt(X**2 + Y**2)[None, :], nlamb, axis=0)[..., None],
+                np.repeat(
+                    np.sqrt(X**2 + Y**2)[None, :], nlamb, axis=0,
+                )[..., None],
                 ndtheta,
                 axis=-1,
             )[..., None],
@@ -982,4 +995,5 @@ def calc_dthetapsiphi_from_lambpts(
             )
         )
         warnings.warn(msg)
+
     return dtheta, psi, ind, grid

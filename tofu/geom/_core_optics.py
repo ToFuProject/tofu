@@ -1885,7 +1885,7 @@ class CrystalBragg(utils.ToFuObject):
         self,
         pts=None,
         n=None, ndtheta=None, npsi=None,
-        det=None, nlamb=None,
+        det=None, nlamb=None, klamb=None,
         use_non_parallelism=None,
         strict=None,
         return_xixj=None,
@@ -1940,7 +1940,12 @@ class CrystalBragg(utils.ToFuObject):
         )
         lambmin = np.nanmin(lamb, axis=1)
         lambmax = np.nanmax(lamb, axis=1)
-        klamb = np.linspace(0, 1, nlamb)
+        if klamb is None:
+            klamb = np.linspace(0, 1, nlamb)
+        elif not (isinstance(klamb, np.ndarray) and klamb.ndim == 1):
+            msg = "Please provide klamb as a 1d vector!"
+            raise Exception(msg)
+        nlamb = klamb.size
         lamb = lambmin[:, None] + (lambmax-lambmin)[:, None]*klamb
         bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
 
