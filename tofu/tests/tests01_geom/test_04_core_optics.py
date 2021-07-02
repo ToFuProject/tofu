@@ -178,6 +178,9 @@ class Test01_Crystal(object):
             'cryst4': cryst4,
         }
 
+        cls.xi = 0.05*np.linspace(-1, 1, 100)
+        cls.xj = 0.10*np.linspace(-1, 1, 200)
+
 
     @classmethod
     def teardown_class(cls):
@@ -316,6 +319,15 @@ class Test01_Crystal(object):
             )
             lamb, phi, dtheta, psi, xi, xj = obj.get_lamb_avail_from_pts(
                 pts=pts, det=det, strict=True,
+            )
+
+    def test11_calc_johann_error(self):
+        for k0, obj in self.dobj.items():
+            det = obj.get_detector_approx()
+            err_lamb, err_phi = obj.calc_johannerror(
+                xi=self.xi,
+                xj=self.xj,
+                det=det,
             )
 
     def test15_saveload(self, verb=False):
