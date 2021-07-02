@@ -602,13 +602,13 @@ def calc_braggphi_from_xixjpts(
         assert xi.ndim in [1, 2]
 
         if xi.ndim == 1:
-            pts = (det_cent[:, None]
-                   + xi[None, :]*det_ei[:, None]
-                   + xj[None, :]*det_ej[:, None])
+            pts = (det['cent'][:, None]
+                   + xi[None, :]*det['ei'][:, None]
+                   + xj[None, :]*det['ej'][:, None])
         else:
-            pts = (det_cent[:, None, None]
-                   + xi[None, ...]*det_ei[:, None, None]
-                   + xj[None, ...]*det_ej[:, None, None])
+            pts = (det['cent'][:, None, None]
+                   + xi[None, ...]*det['ei'][:, None, None]
+                   + xj[None, ...]*det['ej'][:, None, None])
 
     c0 = summit.shape == nin.shape == e1.shape == e2.shape
     if not c0:
