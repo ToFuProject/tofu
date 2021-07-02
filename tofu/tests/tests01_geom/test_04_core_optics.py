@@ -330,6 +330,15 @@ class Test01_Crystal(object):
                 det=det,
             )
 
+    def test12_plot_line_on_det_tracing(self):
+        for k0, obj in self.dobj.items():
+            det = obj.get_detector_approx()
+            det['outline'] = np.array([
+                0.1*np.r_[-1, 1, 1, -1, -1],
+                0.1*np.r_[-1, -1, 1, 1, -1],
+            ])
+            dax = obj.plot_line_on_det_tracing(det=det)
+
     def test15_saveload(self, verb=False):
         for k0, obj in self.dobj.items():
             obj.strip(-1)
