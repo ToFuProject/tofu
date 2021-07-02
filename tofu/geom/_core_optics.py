@@ -1532,6 +1532,8 @@ class CrystalBragg(utils.ToFuObject):
         summit, nout, e1, e2 = self.get_local_noute1e2(
             dtheta=dtheta, psi=psi,
             use_non_parallelism=use_non_parallelism,
+            ntheta=None, npsi=None,
+            include_summit=False,
         )
 
         # Compute
@@ -1554,7 +1556,7 @@ class CrystalBragg(utils.ToFuObject):
 
     def plot_line_on_det_tracing(
         self, lamb=None, n=None,
-        xi_bounds=None, xj_bounds=None, nphi=None,
+        nphi=None,
         det=None, johann=None,
         use_non_parallelism=None,
         lpsi=None, ldtheta=None,
@@ -1581,11 +1583,11 @@ class CrystalBragg(utils.ToFuObject):
         if rocking is None:
             rocking = False
 
-        detb = np.array([[xi_bounds[0], xi_bounds[1], xi_bounds[1],
-                          xi_bounds[0], xi_bounds[0]],
-                         [xj_bounds[0], xj_bounds[0], xj_bounds[1],
-                          xj_bounds[1], xj_bounds[0]]])
+        if det is None or det.get('outline') is None:
+            msg = ("Please provide det as a dict with 'outline'!")
+            raise Exception(msg)
 
+        # Get local basis
         nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
             use_non_parallelism=use_non_parallelism,
         )
@@ -1593,7 +1595,7 @@ class CrystalBragg(utils.ToFuObject):
 
         # Compute lamb / phi
         _, phi = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
-            xi=detb[0, :], xj=detb[1, :], det=det,
+            xi=det['outline'][0, :], xj=det['outline'][1, :], det=det,
             dtheta=0, psi=0,
             use_non_parallelism=use_non_parallelism,
             n=n,
@@ -1614,11 +1616,16 @@ class CrystalBragg(utils.ToFuObject):
         xj = np.full((nlamb, nphi), np.nan)
         for ll in range(nlamb):
             xi[ll, :], xj[ll, :] = self.calc_xixj_from_braggphi(
-                bragg=bragg[ll], phi=phi, n=n,
-                det=det, plot=False,
+                bragg=np.full(phi.shape, bragg[ll]),
+                phi=phi,
+                dtheta=0.,
+                psi=0.,
+                n=n,
+                det=det,
                 use_non_parallelism=use_non_parallelism,
                 strict=strict,
-                )
+                plot=False,
+            )
 
         # Get johann-error raytracing (multiple positions on crystal)
         xi_er, xj_er = None, None
@@ -1996,7 +2003,6 @@ class CrystalBragg(utils.ToFuObject):
         # Check / format inputs
         if returnas is None:
             returnas = 'data'
-        plot = False
         if plot is None or plot is True:
             plot = ['det', '3d']
         if isinstance(plot, str):
@@ -2024,7 +2030,8 @@ class CrystalBragg(utils.ToFuObject):
             det=det, strict=strict, plot=False,
         )
 
-        # Plot
+        # Plot to be checked
+        plot = False
         if plot is not False:
             ptscryst, ptsdet = None, None
             if '2d' in plot or '3d' in plot:
