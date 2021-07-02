@@ -1023,6 +1023,8 @@ class CrystalBragg(utils.ToFuObject):
         and either:
             - psi, dtheta : desired pts on the crystal surface
             - pts: emitted from desired pts (e.g.: in the plasma)
+                   (need to be refresh with get_rays_from_cryst method
+                    if new pts are wanted)
 
         Parameters
         ----------
@@ -1223,7 +1225,7 @@ class CrystalBragg(utils.ToFuObject):
              self._dmat['e2']) = _comp_optics.get_vectors_from_angles(
                              alpha, beta,
                              self._dgeom['nout'], self._dgeom['e1'],
-                             self._dgeom['e2']
+                             self._dgeom['e2'],
                              )
             self._dmat['alpha'], self._dmat['beta'] = alpha, beta
 
@@ -1290,6 +1292,11 @@ class CrystalBragg(utils.ToFuObject):
                 'ej':   np.ndarray
                     (3,) array of (x, y, z) coordinates of unit vector
                     defining second coordinate in detector's plane
+                'outline':   np.darray
+                    (2, 5) array to build detector's contour
+                    from point 1 to point 5 = point 1
+                    (need to be added manually with this convention
+                    x*np.r_[-1,-1,1,1,-1], y*np.r_[-1,1,1,-1,-1])
         """
 
         # ---------------------
