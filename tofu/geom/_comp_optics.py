@@ -50,6 +50,20 @@ def _are_broadcastable(**kwdargs):
 # ###############################################
 # ###############################################
 
+
+def _checkformat_xixj(xi, xj):
+    xi = np.atleast_1d(xi)
+    xj = np.atleast_1d(xj)
+
+    if xi.shape == xj.shape:
+        return xi, xj, (xi, xj)
+    else:
+        return xi, xj, np.meshgrid(
+            xi, xj,
+            copy=True, sparse=False, indexing='ij',
+        )
+
+
 # ###############################################
 #           sampling
 # ###############################################
@@ -392,6 +406,16 @@ def get_det_abs_from_rel(det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
 # ###############################################
 
 
+def _checkformat_pts(pts=None):
+    pts = np.atleast_1d(pts)
+    if pts.ndim == 1:
+        pts = pts.reshape((3, 1))
+    if pts.shape[0] != 3 or pts.ndim < 2:
+        msg = "pts must be a (3, ...) array of (X, Y, Z) coordinates!"
+        raise Exception(msg)
+    return pts
+
+
 def checkformat_vectang(Z, nn, frame_cent, frame_ang):
     # Check / format inputs
     nn = np.atleast_1d(nn).ravel()
@@ -574,11 +598,10 @@ def calc_braggphi_from_xixjpts(
 
     if lc[0]:
         # pts
-        assert pts.shape[0] == 3
-        if pts.ndim == 1:
-            pts = pts.reshape((3, 1))
+        pts = _checkformat_pts(pts)
 
     elif lc[1]:
+
         # xi, xj => compute pts using det
         c0 = (
             isinstance(det, dict)
@@ -594,21 +617,21 @@ def calc_braggphi_from_xixjpts(
             )
             raise Exception(msg)
 
-        xi = np.atleast_1d(xi)
-        xj = np.atleast_1d(xj)
-        if xi.shape != xj.shape:
+        # pts from xi, xj
+        xi, xj, (xii, xjj) = _checkformat_xixj(xi, xj)
+        if xii.shape != xjj.shape:
             msg = "xi and xj must have the same shape!"
             raise Exception(msg)
-        assert xi.ndim in [1, 2]
+        assert xii.ndim in [1, 2]
 
-        if xi.ndim == 1:
+        if xii.ndim == 1:
             pts = (det['cent'][:, None]
-                   + xi[None, :]*det['ei'][:, None]
-                   + xj[None, :]*det['ej'][:, None])
+                   + xii[None, :]*det['ei'][:, None]
+                   + xjj[None, :]*det['ej'][:, None])
         else:
             pts = (det['cent'][:, None, None]
-                   + xi[None, ...]*det['ei'][:, None, None]
-                   + xj[None, ...]*det['ej'][:, None, None])
+                   + xii[None, ...]*det['ei'][:, None, None]
+                   + xjj[None, ...]*det['ej'][:, None, None])
 
     c0 = summit.shape == nin.shape == e1.shape == e2.shape
     if not c0:
@@ -640,7 +663,6 @@ def calc_braggphi_from_xixjpts(
             + "\t- summit.shape = {}".format(summit.shape)
         )
         raise Exception(msg)
-
 
     # --------------
     # Prepare

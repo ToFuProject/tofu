@@ -1073,7 +1073,6 @@ def CrystalBragg_plot_johannerror(xi, xj, lamb, phi, err_lamb, err_phi,
     return [ax0, ax1, ax2]
 
 
-
 # #################################################################
 # #################################################################
 #                   Ray tracing plot
