@@ -1811,9 +1811,16 @@ class CrystalBragg(utils.ToFuObject):
         xi=None, xj=None,
         use_non_parallelism=None,
         tangent_to_rowland=None, n=None,
-        plot_dets=None, nsort=None,
-        drcyst=None,
-        ax=None, dax=None,
+        plot=None,
+        det_ref=None, plot_dets=None, nsort=None,
+        dcryst=None,
+        contour=None,
+        fs=None,
+        ax=None,
+        cmap=None,
+        vmin=None,
+        vmax=None,
+        return_ax=None,
     ):
         """
         Using the calc_johannerror method, computing the sum of the
@@ -1842,10 +1849,24 @@ class CrystalBragg(utils.ToFuObject):
         """
 
         # Check / format inputs
+        if dist_min is None:
+            dist_min = -0.08
+        if dist_max is None:
+            dist_max = 0.01
+        if di_min is None:
+            di_min = -0.41
+        if di_max is None:
+            di_max = -0.05
+        if ndist is None:
+            ndist = 21
+        if ndi is None:
+            ndi = 21
+        if plot is None:
+            plot = True
         if plot_dets is None:
-            plot_dets = False
-        if use_non_parallelism is None:
-            use_non_parallelism = _USE_NON_PARALLELISM
+            plot_dets = det_ref is not None
+        if return_ax is None:
+            return_ax = True
 
         l0 = [dist_min, dist_max, ndist, di_min, di_max, ndi]
         c0 = any([l00 is not None for l00 in l0])
@@ -1864,12 +1885,14 @@ class CrystalBragg(utils.ToFuObject):
             raise Exception(msg)
 
         # Compute
-        ddist = np.linspace(dist_min, dist_max, ndist)
-        di = np.linspace(di_min, di_max, ndi)
-        error_lambda = np.full((ddist.size, di.size), np.nan)
+        ddist = np.linspace(dist_min, dist_max, int(ndist))
+        di = np.linspace(di_min, di_max, int(ndi))
+        error_lambda = np.full((di.size, ddist.size), np.nan)
         end = '\r'
         for ii in range(ddist.size):
             for jj in range(di.size):
+
+                # print progression
                 if ii == ndist-1 and jj == ndi-1:
                     end = '\n'
                 msg = (
@@ -1877,6 +1900,8 @@ class CrystalBragg(utils.ToFuObject):
                     f"({ii+1}, {jj+1})/({ndist}, {ndi})"
                 ).ljust(60)
                 print(msg, end=end, flush=True)
+
+                # Get det
                 det = self.get_detector_approx(
                     ddist=ddist[ii],
                     di=di[jj],
@@ -1885,22 +1910,33 @@ class CrystalBragg(utils.ToFuObject):
                     use_non_parallelism=use_non_parallelism,
                     tangent_to_rowland=tangent_to_rowland,
                 )
-                error_lambda[jj, ii] = np.sum(
-                    np.sum(
-                        self.calc_johannerror(
-                            xi=xi, xj=xj, det=det, plot=False,
-                        )[0],
-                        axis=0,
-                    ),
-                    axis=0,
+
+                # Integrate error
+                error_lambda[jj, ii] = np.nanmean(
+                    self.calc_johannerror(
+                        xi=xi, xj=xj, det=det, plot=False,
+                    )[0],
                 )
-        return _plot_optics.CrystalBragg_plot_focal_error_summed(
-            cryst=self, dcryst=dcryst,
-            error_lambda=error_lambda,
-            ddist=ddist, di=di, X=X, Y=Y,
-            plot_dets=plot_dets, nsort=nsort,
-            tangent_to_rowland=tangent_to_rowland,
-        )
+
+        if plot:
+            ax = _plot_optics.CrystalBragg_plot_focal_error_summed(
+                cryst=self, dcryst=dcryst,
+                error_lambda=error_lambda,
+                ddist=ddist, di=di,
+                det_ref=det_ref,
+                plot_dets=plot_dets, nsort=nsort,
+                tangent_to_rowland=tangent_to_rowland,
+                contour=contour,
+                fs=fs,
+                ax=ax,
+                cmap=cmap,
+                vmin=vmin,
+                vmax=vmax,
+            )
+        if return_ax:
+            return error_lambda, ddist, di, ax
+        else:
+            return error_lambda, ddist, di
 
     def get_lambbraggphi_from_ptsxixj_dthetapsi(
         self,
