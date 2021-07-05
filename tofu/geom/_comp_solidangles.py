@@ -1,7 +1,5 @@
-
-
 # Built-in
-import warnings
+# import warnings
 
 # Common
 import numpy as np
@@ -88,7 +86,7 @@ def _check_calc_solidangle_particle(
             pts = pts.reshape((3, 1))
         if pts.shape[0] != 3:
             pts = pts.T
-    except Exception as err:
+    except Exception:
         msg = (
             "Args traj and pts must be convertible to np.ndarrays of shape"
             + "\n\t- traj: (N,), (3, N) or (N, 3)"
@@ -196,7 +194,7 @@ def calc_solidangle_particle(
     # Main computation
 
     # traj2pts vector, with length (3d array (3, N, M))
-    vect = traj[:, :, None] - pts[:, None, :]
+    vect = - pts[:, :, None] + traj[:, None, :]
     len_v = np.ascontiguousarray(np.sqrt(np.sum(vect**2, axis=0)))
 
     # If aniso or block, normalize
@@ -204,19 +202,23 @@ def calc_solidangle_particle(
         vect = vect / len_v[None, :, :]
 
     # Solid angle
+    r_d = rad[None, :] / len_v
+    where_zero = len_v <= rad[None, :]
+    r_d[where_zero] = 0.  # temporary value
     if approx:
-        sang = np.pi * rad[:, None]**2 / len_v**2
+        sang = np.pi * (r_d**2 + r_d**4 / 4. + r_d**6 / 8. + r_d**8 * 5 / 64)
     else:
-        sang = 2.*np.pi * (1 - np.sqrt(1. - rad[:, None]**2 / len_v**2))
+        sang = 2.*np.pi * (1 - np.sqrt(1. - r_d ** 2))
+
+    # when particle in mesh point, distance len_v = 0 thus sang neglected
+    sang[where_zero] = 0.
 
     # block
     if block:
         kwdargs = config.get_kwdargs_LOS_isVis()
-        # Issue 471: k=len_v is a 2d array, _GG only takes 1d array...
         indvis = _GG.LOS_areVis_PtsFromPts_VesStruct(
-            traj, pts, dist=len_v, **kwdargs
+            pts, traj, dist=len_v, **kwdargs
         )
-        # Because indvis is an array of int (cf. issue 471)
         iout = indvis == 0
         sang[iout] = 0.
         vect[:, iout] = np.nan
@@ -225,8 +227,8 @@ def calc_solidangle_particle(
     # Return
     if aniso:
         return sang, vect
-    else:
-        return sang
+
+    return sang
 
 
 def calc_solidangle_particle_integ(

@@ -19,6 +19,9 @@ from mpl_toolkits.mplot3d import Axes3D
 # tofu
 from tofu.version import __version__
 
+__all__ = ['plot_fit1d']
+
+
 _GITHUB = 'https://github.com/ToFuProject/tofu/issues'
 _WINTIT = 'tofu-%s        report issues / requests at %s'%(__version__, _GITHUB)
 
@@ -36,18 +39,20 @@ _QUIVERCOLOR = ListedColormap(_QUIVERCOLOR)
 # #################################################################
 
 
-def CrystalBragg_plot_data_vs_lambphi(xi, xj, bragg, lamb, phi, data,
-                                      lambfit=None, phifit=None,
-                                      spect1d=None, vertsum1d=None,
-                                      lambax=None, phiax=None,
-                                      phiminmax=None, dlines=None,
-                                      lambmin=None, lambmax=None,
-                                      xjcut=None, lambcut=None,
-                                      phicut=None, spectcut=None,
-                                      cmap=None, vmin=None, vmax=None,
-                                      fs=None, dmargin=None,
-                                      tit=None, wintit=None,
-                                      angunits='deg'):
+def CrystalBragg_plot_data_vs_lambphi(
+    xi, xj, bragg, lamb, phi, data,
+    lambfit=None, phifit=None,
+    spect1d=None, vertsum1d=None,
+    lambax=None, phiax=None,
+    phiminmax=None, dlines=None,
+    lambmin=None, lambmax=None,
+    xjcut=None, lambcut=None,
+    phicut=None, spectcut=None,
+    cmap=None, vmin=None, vmax=None,
+    fs=None, dmargin=None,
+    tit=None, wintit=None,
+    angunits='deg',
+):
 
     # Check inputs
     # ------------

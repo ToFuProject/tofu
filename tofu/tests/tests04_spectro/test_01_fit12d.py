@@ -92,7 +92,8 @@ class Test01_DataCollection(object):
     @classmethod
     def setup_class(cls):
 
-        lamb = np.linspace(3.94, 4, 100)*1e-10
+        nlamb = 100
+        lamb = np.linspace(3.94, 4, nlamb)*1e-10
         var = np.linspace(-25, 25, 51)
 
         def bck(lamb=None, offset=None, slope=None):
@@ -142,40 +143,49 @@ class Test01_DataCollection(object):
         }
 
         spect2d = bck(
-            lamb=lamb[:, None],
-            offset=0.1*np.exp(-(var[None, :]-25)**2/10**2),
+            lamb=lamb[None, :],
+            offset=0.1*np.exp(-(var[:, None]-25)**2/10**2),
             slope=0.001,
         )
-        spect2d += noise(lamb=lamb[:, None], amp=0.01, freq=10, phase=0.)
+        spect2d += noise(lamb=lamb[None, :], amp=0.01, freq=10, phase=0.)
 
         for ii, k0 in enumerate(dlines.keys()):
             spect2d += gauss(
-                lamb=lamb[:, None],
-                amp=dlines[k0]['amp'] * np.exp(-var[None, :]**2/20**2),
+                lamb=lamb[None, :],
+                amp=dlines[k0]['amp'] * np.exp(-var[:, None]**2/20**2),
                 lamb0=dlines[k0]['lambda0'],
                 sigma=dlines[k0]['sigma']*(
-                    1 + 2*(ii/len(dlines))*np.cos(var[None, :]*2*np.pi/50)
+                    1 + 2*(ii/len(dlines))*np.cos(var[:, None]*2*np.pi/50)
                 ),
                 delta=dlines[k0]['delta']*(
                     1 + 2*(ii/len(dlines))*np.sin(
-                        var[None, :]*2*np.pi*(len(dlines)-ii)/50
+                        var[:, None]*2*np.pi*(len(dlines)-ii)/50
                     )
                 ),
             )
             spect2d += noise(
-                lamb=lamb[:, None],
-                    amp=dlines[k0]['noise'] * np.exp(-var[None, :]**2/10**2),
+                lamb=lamb[None, :],
+                amp=dlines[k0]['noise'] * np.exp(-var[:, None]**2/10**2),
                     freq=10*(len(dlines)-ii),
                     phase=ii,
                 )
 
+        mask = np.repeat((np.abs(var-15) < 3)[:, None], nlamb, axis=1)
+
         # Plot spect 2d
-        # fig = plt.figure(figsize=(6, 10));
-        # ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-        # ax.set_xlabel(r'$\lambda$ (m)')
-        # ax.set_ylabel(r'$y$ (m)')
+        # fig = plt.figure(figsize=(12, 10));
+        # ax0 = fig.add_axes([0.05, 0.1, 0.4, 0.8])
+        # ax0.set_xlabel(r'$\lambda$ (m)')
+        # ax0.set_ylabel(r'$y$ (m)')
         # extent = (lamb.min(), lamb.max(), var.min(), var.max())
-        # ax.imshow(spect2d.T, extent=extent, aspect='auto');
+        # ax0.imshow(spect2d, extent=extent, aspect='auto', origin='lower');
+        # sp2bis = np.copy(spect2d)
+        # sp2bis[mask] = np.nan
+        # ax1 = fig.add_axes([0.55, 0.1, 0.4, 0.8])
+        # ax1.set_xlabel(r'$\lambda$ (m)')
+        # ax1.set_ylabel(r'$y$ (m)')
+        # ax1.imshow(sp2bis, extent=extent, aspect='auto', origin='lower');
+        # plt.ion()
         # plt.show();
         # import pdb; pdb.set_trace()     # DB
 
@@ -183,9 +193,13 @@ class Test01_DataCollection(object):
         cls.var = var
         cls.dlines = dlines
         cls.spect2d = spect2d
+        cls.mask = mask
         cls.ldinput1d = []
         cls.ldfit1d = []
         cls.ldex1d = []
+        cls.ldinput2d = []
+        cls.ldfit2d = []
+        cls.ldex2d = []
 
     @classmethod
     def setup(self):
@@ -271,8 +285,8 @@ class Test01_DataCollection(object):
         ]
 
         ldata = [
-            self.spect2d[:, 5],
-            self.spect2d[:, :5].T,
+            self.spect2d[5, :],
+            self.spect2d[:5, :],
         ]
         lpos = [False, True]
 
@@ -308,7 +322,7 @@ class Test01_DataCollection(object):
             )
             self.ldinput1d.append(dinput)
 
-    def test02_funccostjac(self):
+    def test02_funccostjac_1d(self):
         func = tfs._fit12d_funccostjac.multigausfit1d_from_dlines_funccostjac
         for ii, dd in enumerate(self.ldinput1d):
             func_detail, func_cost, func_jac = func(
@@ -383,3 +397,110 @@ class Test01_DataCollection(object):
             )
             warnings.warn(msg)
         plt.close('all')
+
+    def test06_fit2d_dinput(self):
+        defconst={
+            'amp': False,
+            'width': False,
+            'shift': False,
+            'double': False,
+            'symmetry': False,
+        }
+
+        # Define constraint dict 
+        ldconst = [
+            {
+                'amp': {'a1': ['a', 'd']},
+                'width': 'group',
+                'shift': {
+                    'a': {'key': 's1', 'coef': 1., 'offset': 0.},
+                    'b': {'key': 's1', 'coef': 1., 'offset': 0.},
+                    'c': {'key': 's2', 'coef': 2., 'offset': 0.},
+                    'd': {'key': 's3', 'coef': 1., 'offset': 0.001e-10},
+                },
+                'double': True,
+                'symmetry': True,
+            },
+            {
+                'amp': False,
+                'width': 'group',
+                'shift': {
+                    'a': {'key': 's1', 'coef': 1., 'offset': 0.},
+                    'c': {'key': 's2', 'coef': 2., 'offset': 0.},
+                    'd': {'key': 's2', 'coef': 1., 'offset': 0.001e-10},
+                },
+                'double': False,
+                'symmetry': False,
+            },
+            {
+                'amp': False,
+                'width': 'group',
+                'shift': {
+                    'a': {'key': 's1', 'coef': 1., 'offset': 0.},
+                    'c': {'key': 's2', 'coef': 2., 'offset': 0.},
+                    'd': {'key': 's2', 'coef': 1., 'offset': 0.001e-10},
+                },
+                'double': False,
+                'symmetry': False,
+            },
+        ]
+
+        ldx0 = [
+            None,
+            {
+                # 'amp': {''},
+                'width': 1.,
+                'shift': {
+                    's1': 0.,
+                    's2': 1.,
+                },
+                'dratio': 0,
+                'dshift': 0,
+            }
+        ]
+
+        ldomain = [
+            None,
+            {
+                'lamb': [
+                    [3.94e-10, 3.952e-10],
+                    (3.95e-10, 3.956e-10),
+                    [3.96e-10, 4e-10],
+                ],
+            },
+        ]
+
+        lpos = [False, True]
+        lmask = [None, self.mask]
+
+        lfocus = [None, 'a', [3.94e-10, 3.96e-10]]
+
+        ldconstants = [None, {'shift': {'s1': 0}}]
+
+        combin = [ldconst, ldx0, ldomain, lmask, lpos, lfocus, ldconstants]
+        for comb in itt.product(*combin):
+            dinput = tfs.fit2d_dinput(
+                dlines=self.dlines,
+                dconstraints=comb[0],
+                dconstants=comb[6],
+                dprepare=None,
+                data=np.copy(self.spect2d),
+                lamb=self.lamb,
+                phi=self.var,
+                mask=comb[3],
+                nbsplines=5,
+                domain=comb[2],
+                pos=comb[4],
+                subset=None,
+                focus=comb[5],
+                valid_fraction=0.28,     # fraction of pixels ok per time step
+                valid_nsigma=0,         # S/N ratio for each pixel
+                focus_half_width=None,
+                valid_return_fract=None,
+                dscales=None,
+                dx0=comb[1],
+                dbounds=None,
+                defconst=defconst,
+            )
+            self.ldinput2d.append(dinput)
+

@@ -31,6 +31,14 @@ _CREATE_CUSTOM = True
 _INCLUDE_PARTIAL = True
 
 
+_DCERTIFICATES_BUNDLE = {
+    'ITER': {
+        'host': 'iter.org',
+        'bund': '/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt',
+    },
+}
+
+
 # #############################################################################
 #                           Utility functions
 # #############################################################################
@@ -47,9 +55,18 @@ def _get_PATH_LOCAL():
 def _getcharray(ar, col=None, sep='  ', line='-', just='l',
                 verb=True, returnas=str):
     """ Format and return char array (for pretty printing) """
+
+    # Trivial case
     c0 = ar is None or len(ar) == 0
     if c0:
-        return ''
+        if returnas is str:
+            return ''
+        elif returnas is np.ndarray:
+            return np.array([])
+        elif returnas is False:
+            return
+
+    # Non-trivial cases
     ar = np.array(ar, dtype='U')
 
     if ar.ndim == 1:
@@ -80,19 +97,53 @@ def _getcharray(ar, col=None, sep='  ', line='-', just='l',
 
     if verb is True:
         print('\n'.join(out))
+
     if returnas is str:
         return '\n'.join(out)
     elif returnas is np.ndarray:
         return ar
+    elif returnas is False:
+        return
 
 
 # #############################################################################
-#                          online search
+#                          online search - utilities
 # #############################################################################
 
 
 class FileAlreayExistsException(Exception):
     pass
+
+
+def _try_request_handle_ITER_SSL_step01(url=None):
+    try:
+        resp = requests.get(url)
+    except requests.exceptions.SSLError as err:
+        if 'certificate' in str(err):
+            lbund = [
+                vv['bund'] for kk, vv in _DCERTIFICATES_BUNDLE.items()
+                if os.uname()[1].endswith(vv['host'])
+            ]
+            if len(lbund) == 1:
+                resp = requests.get(url, verify=lbund[0])
+            else:
+                msg = (
+                    str(err)
+                    + "\n\nLooks like a certificate error occured!\n"
+                    + "=> try changing the certificate bundle of requests\n"
+                    + "=> ask your admin which certificate bundle to use!"
+                )
+                raise Exception(msg)
+        else:
+            raise err
+    except Exception as err:
+        raise err
+    return resp
+
+
+# #############################################################################
+#                          online search
+# #############################################################################
 
 
 def step01_search_online(
@@ -127,7 +178,7 @@ def step01_search_online(
                           for kk in searchstr.split(' ')])
 
     total_url = '{}{}&{}'.format(_URL_SEARCH, searchurl, 'searching=1')
-    resp = requests.get(total_url)
+    resp = _try_request_handle_ITER_SSL_step01(url=total_url)
 
     # Extract response from html
     out = resp.text.split('\n')
@@ -245,6 +296,10 @@ def step01_search_online_by_wavelengthA(
                 isinstance(element, list)
                 and all([isinstance(ee, str) for ee in element])
             )
+            or (
+                isinstance(element, tuple)
+                and all([isinstance(ee, str) for ee in element])
+            )
         )
         if not c0:
             msg = ("Arg element must be a str (e.g.: element='ar')\n"
@@ -252,7 +307,10 @@ def step01_search_online_by_wavelengthA(
             raise Exception(msg)
         if isinstance(element, str):
             element = [element]
-        element = [ee.lower() for ee in element]
+        if isinstance(element, list):
+            element = [ee.lower() for ee in element]
+        elif isinstance(element, tuple):
+            element = tuple([ee.lower() for ee in element])
 
     # charge
     if charge is not None:
@@ -262,6 +320,10 @@ def step01_search_online_by_wavelengthA(
                 isinstance(charge, list)
                 and all([isinstance(cc, int) for cc in charge])
             )
+            or (
+                isinstance(charge, tuple)
+                and all([isinstance(cc, int) for cc in charge])
+            )
         )
         if not c0:
             msg = ("Arg charge must be a int or list (e.g.: 16 or [0])\n"
@@ -269,7 +331,12 @@ def step01_search_online_by_wavelengthA(
             raise Exception(msg)
         if isinstance(charge, int):
             charge = [charge]
-        charge = ['0' if cc == 0 else '{}+'.format(cc) for cc in charge]
+        if isinstance(charge, list):
+            charge = ['0' if cc == 0 else '{}+'.format(cc) for cc in charge]
+        elif isinstance(charge, tuple):
+            charge = tuple([
+                '0' if cc == 0 else '{}+'.format(cc) for cc in charge
+            ])
 
     # ---------------
     # prepare request
@@ -279,7 +346,7 @@ def step01_search_online_by_wavelengthA(
                           'resolveby={}'.format(resolveby)])
 
     total_url = '{}{}&{}'.format(_URL_SEARCH_WAVL, searchurl, 'searching=1')
-    resp = requests.get(total_url)
+    resp = _try_request_handle_ITER_SSL_step01(url=total_url)
 
     # Extract response from html
     out = resp.text.split('\n')
@@ -333,9 +400,17 @@ def step01_search_online_by_wavelengthA(
             )
             if charg == '+':
                 charg = '1+'
-            if element is not None and elm.lower() not in element:
+            c0 = (
+                (isinstance(element, list) and elm.lower() not in element)
+                or (isinstance(element, tuple) and elm.lower() in element)
+            )
+            if c0:
                 continue
-            if charge is not None and charg not in charge:
+            c0 = (
+                (isinstance(charge, list) and charg not in charge)
+                or (isinstance(charge, tuple) and charg in charge)
+            )
+            if c0:
                 continue
             lamb = lstri[dcolex['Wavelength']].replace('&Aring;', '')
             typ = (
@@ -357,9 +432,17 @@ def step01_search_online_by_wavelengthA(
             )
             if charg == '+':
                 charg = '1+'
-            if element is not None and elm.lower() not in element:
+            c0 = (
+                (isinstance(element, list) and elm.lower() not in element)
+                or (isinstance(element, tuple) and elm.lower() in element)
+            )
+            if c0:
                 continue
-            if charge is not None and charg not in charge:
+            c0 = (
+                (isinstance(charge, list) and charg not in charge)
+                or (isinstance(charge, tuple) and charg in charge)
+            )
+            if c0:
                 continue
             typ = (
                 lstri[dcolex['Data Type']].replace('</span>', '')
@@ -390,8 +473,48 @@ def step01_search_online_by_wavelengthA(
 
 
 # #############################################################################
-#                          Download
+#                          Download - utilities
 # #############################################################################
+
+
+def _try_request_handle_ITER_SSL_step02(url=None, pfe=None):
+    try:
+        with requests.get(url, stream=True) as rr:
+            rr.raise_for_status()
+            with open(pfe, 'wb') as ff:
+                for chunk in rr.iter_content(chunk_size=8192):
+                    # filter-out keep-alive new chunks
+                    if chunk:
+                        ff.write(chunk)
+                        # ff.flush()
+    except requests.exceptions.SSLError as err:
+        if 'certificate' in str(err):
+            lbund = [
+                vv['bund'] for kk, vv in _DCERTIFICATES_BUNDLE.items()
+                if os.uname()[1].endswith(vv['host'])
+            ]
+            if len(lbund) == 1:
+                with requests.get(url, stream=True, verify=lbund[0]) as rr:
+                    rr.raise_for_status()
+                    with open(pfe, 'wb') as ff:
+                        for chunk in rr.iter_content(chunk_size=8192):
+                            # filter-out keep-alive new chunks
+                            if chunk:
+                                ff.write(chunk)
+                                # ff.flush()
+            else:
+                msg = (
+                    str(err)
+                    + "\n\nLooks like a certificate error occured!\n"
+                    + "=> try changing the certificate bundle of requests\n"
+                    + "=> ask your admin which certificate bundle to use!"
+                )
+                raise Exception(msg)
+        else:
+            raise err
+    except Exception as err:
+        raise err
+
 
 
 def _check_exists(filename, update=None, create_custom=None):
@@ -439,6 +562,11 @@ def _check_exists(filename, update=None, create_custom=None):
             return True, pfe
     else:
         return False, pfe
+
+
+# #############################################################################
+#                          Download
+# #############################################################################
 
 
 def step02_download(
@@ -491,14 +619,7 @@ def step02_download(
     # ---------------------------
     # Download
     # Note the stream=True parameter below
-    with requests.get(url, stream=True) as rr:
-        rr.raise_for_status()
-        with open(pfe, 'wb') as ff:
-            for chunk in rr.iter_content(chunk_size=8192):
-                # filter-out keep-alive new chunks
-                if chunk:
-                    ff.write(chunk)
-                    # ff.flush()
+    _try_request_handle_ITER_SSL_step02(url=url, pfe=pfe)
 
     if verb is True:
         msg = ("file {} was copied to:\n".format(filename)
@@ -611,11 +732,16 @@ def clear_downloads():
     path_local = _get_PATH_LOCAL()
     if path_local is None:
         return
-    lf = [ff for ff in os.listdir(path_local)
-          if os.path.isfile(os.path.join(path_local, ff))]
-    ld = [ff for ff in os.listdir(path_local)
-          if os.path.isdir(os.path.join(path_local, ff))]
+    lf = [
+        os.path.join(path_local, ff)
+        for ff in os.listdir(path_local)
+        if os.path.isfile(os.path.join(path_local, ff))
+    ]
+    ld = [
+        os.path.join(path_local, ff) for ff in os.listdir(path_local)
+        if os.path.isdir(os.path.join(path_local, ff))
+    ]
     for ff in lf:
         os.remove(ff)
     for dd in ld:
-        shutil.rmtree(os.path.join(path_local, dd))
+        shutil.rmtree(dd)

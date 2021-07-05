@@ -19,7 +19,8 @@ _ExpTCV = 'TCV'
 # Default config
 _DEFCONFIG = _ExpITER
 # coils taken from:
-# ids=['wall', 'pf_active'],shot=1180, run=17, tokamak='ITER_MD', user='public'
+# ids=['wall', 'pf_active'],
+# shot=1180, run=17, database='ITER_MD', user='public'
 
 
 ###########################################################

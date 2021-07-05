@@ -83,3 +83,6 @@ pip-wheel-metadata/
 # no temporary data files
 inputs_temp/*.txt
 #inputs_temp/*.npz
+
+# Notebooks checkpoints
+**/.ipynb_checkpoints

@@ -64,10 +64,10 @@ _DCONVERT = {
 
 
 def call_tfcalcimas(shot=None, run=None, user=None,
-                    tokamak=None, version=None,
-                    tokamak_eq=None, user_eq=None,
+                    database=None, version=None,
+                    database_eq=None, user_eq=None,
                     shot_eq=None, run_eq=None,
-                    tokamak_prof=None, user_prof=None,
+                    database_prof=None, user_prof=None,
                     shot_prof=None, run_prof=None,
                     ids=None, t0=None, tlim=None, extra=None,
                     plot_compare=True, Brightness=None,

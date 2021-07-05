@@ -2,4 +2,6 @@
 """
 Provide spectrum fitting functions (storing, processing, plotting...)
 """
-from tofu.spectro._fit12d import *
+from ._fit12d import *
+from ._analysis_tools import *
+from ._plot import *

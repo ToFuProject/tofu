@@ -24,7 +24,6 @@ from . import _plot
 
 
 __all__ = [
-    'get_localextrema_1d',
     'fit1d_dinput', 'fit2d_dinput',
     'fit12d_dvalid', 'fit12d_dscales',
     'fit1d', 'fit2d',
@@ -80,6 +79,7 @@ _DBOUNDS = {
     'shift': (-2, 2),
     'dratio': (0., 2.),
     'dshift': (-10., 10.),
+    'bs': (-10., 10.),
 }
 _DX0 = {
     'bck_amp': 1.,
@@ -89,6 +89,7 @@ _DX0 = {
     'shift': 0.,
     'dratio': 0.5,
     'dshift': 0.,
+    'bs': 1.,
 }
 
 
@@ -100,168 +101,6 @@ _DX0 = {
 #
 ###########################################################
 ###########################################################
-
-
-def _get_localextrema_1d_check(
-    data=None, lamb=None,
-    weights=None, smooth=None,
-    returnas=None,
-):
-    # data
-    c0 = (
-        isinstance(data, np.ndarray)
-        and data.ndim in [1, 2]
-        and data.size > 0
-        and np.all(np.isfinite(data))
-    )
-    if not c0:
-        msg = (
-            "Arg data must be a (nlamb,) or (nt, nlamb) finite np.array!\n"
-            + "\t- provided: {}\n".format(data)
-        )
-        raise Exception(msg)
-    if data.ndim == 1:
-        data = data[None, :]
-
-    # lamb
-    if lamb is None:
-        lamb = np.arange(data.shape[1])
-    c0 = (
-        isinstance(lamb, np.ndarray)
-        and lamb.shape == (data.shape[1],)
-        and np.all(np.isfinite(lamb))
-        and np.all(np.diff(lamb) > 0)
-    )
-    if not c0:
-        msg = (
-            "Arg lamb must be a finite increasing (data.shape[0],) np.array!\n"
-            + "\t- provided: {}".format(lamb)
-        )
-        raise Exception(msg)
-
-    # weights (for fitting, optional)
-    c0 = (
-        weights is None
-        or (
-            isinstance(weights, np.ndarray)
-            and weights.shape == (data.shape[1],)
-        )
-    )
-    if not c0:
-        msg = (
-            "Arg weights must be either None or a (nlamb,) np.array!\n"
-            + "Fed to scipy.interpolate.UnivariateSpline(w=weights)\n"
-            + "\t- provided: {}".format(weights)
-        )
-        raise Exception(msg)
-
-    # smooth
-    if smooth is None:
-        smooth = False
-    c0 = smooth is False or (isinstance(smooth, float) and smooth > 0)
-    if not c0:
-        msg = (
-            "Arg smooth must be a bool\n"
-            + "Used to smooth the bsplines fitting\n"
-            + "\t- False: spline fits all points\n"
-            + "\t- float > 0: spline is smoothed\n"
-            + "\t    => smooth = estimate of the minimum line width "
-            + "at half_maximum\n"
-        )
-        raise Exception(msg)
-
-    # returnas
-    if returnas is None:
-        returnas = float
-    c0 = returnas in [bool, float]
-    if not c0:
-        msg = (
-            "Arg returnas must be:\n"
-            + "\t- bool: return 2 (nt, nlamb) bool arrays, True at extrema\n"
-            + "\t- float: return 2 (nt, nn) float arrays, of extrema values\n"
-            + "  You provided:\n{}".format(returnas)
-        )
-        raise Exception(msg)
-
-    return data, lamb, weights, smooth, returnas
-
-
-def get_localextrema_1d(
-    data=None, lamb=None,
-    smooth=None, weights=None,
-    returnas=None,
-):
-    """ Automatically find peaks in spectrum """
-
-    # ------------------
-    #   check inputs
-    data, lamb, weights, smooth, returnas = _get_localextrema_1d_check(
-        data=data, lamb=lamb,
-        weights=weights, smooth=smooth,
-        returnas=returnas,
-    )
-
-    # -----------------
-    #   fit and extract extrema
-    bbox = [lamb.min(), lamb.max()]
-    mini, maxi = [], []
-    if smooth is False:
-        for ii in range(data.shape[0]):
-            bs = scpinterp.UnivariateSpline(
-                lamb, data[ii, :], w=weights,
-                bbox=bbox, k=4,
-                s=0, ext=2,
-                check_finite=False,
-            )
-            extrema = bs.derivative(1).roots()
-            indmin = bs.derivative(2)(extrema) > 0.
-            indmax = bs.derivative(2)(extrema) < 0.
-            mini.append(extrema[indmin])
-            maxi.append(extrema[indmax])
-    else:
-        nint = int(np.ceil((bbox[1]-bbox[0]) / (1.5*smooth)))
-        delta = (bbox[1]-bbox[0]) / nint
-        nknots = nint - 1
-        knots = np.linspace(bbox[0]+delta, bbox[1]-delta, nknots)
-        for ii in range(data.shape[0]):
-            bs = scpinterp.LSQUnivariateSpline(
-                lamb, data[ii, :], t=knots,
-                w=weights,
-                bbox=bbox, k=4, ext=2,
-                check_finite=False,
-            )
-            extrema = bs.derivative(1).roots()
-            indmin = bs.derivative(2)(extrema) > 0.
-            indmax = bs.derivative(2)(extrema) < 0.
-            mini.append(extrema[indmin])
-            maxi.append(extrema[indmax])
-
-    # -----------------
-    #   reshape
-    if returnas is bool:
-        bins = 0.5*(lamb[1:] + lamb[:-1])
-        bins = np.r_[
-            bins[0]-(lamb[1]-lamb[0]),
-            bins,
-            bins[-1]+(lamb[-1]-lamb[-2]),
-        ]
-        minima = np.zeros(data.shape, dtype=bool)
-        maxima = np.zeros(data.shape, dtype=bool)
-        for ii in range(data.shape[0]):
-            if len(mini[ii]) > 0:
-                minima[ii, np.digitize(mini[ii], bins, right=False)-1] = True
-            if len(maxi[ii]) > 0:
-                maxima[ii, np.digitize(maxi[ii], bins, right=False)-1] = True
-    else:
-        nmin = np.max([len(mm) for mm in mini])
-        nmax = np.max([len(mm) for mm in maxi])
-        minima = np.full((data.shape[0], nmin), np.nan)
-        maxima = np.full((data.shape[0], nmax), np.nan)
-        for ii in range(data.shape[0]):
-            minima[ii, :len(mini[ii])] = mini[ii]
-            maxima[ii, :len(maxi[ii])] = maxi[ii]
-
-    return minima, maxima
 
 
 def get_symmetry_axis_1dprofile(phi, data, cent_fraction=None):
@@ -409,15 +248,17 @@ def _dconstraints_double(dinput, dconstraints, defconst=_DCONSTRAINTS):
         )
     )
     if c0 is False:
-        msg = ("dconstraints['double'] must be either:\n"
-               + "\t- False: no line doubling\n"
-               + "\t- True:  line doubling with unknown ratio and shift\n"
-               + "\t- {'dratio': float}: line doubling with:\n"
-               + "\t  \t explicit ratio, unknown shift\n"
-               + "\t- {'dshift': float}: line doubling with:\n"
-               + "\t  \t unknown ratio, explicit shift\n"
-               + "\t- {'dratio': float, 'dshift': float}: line doubling with:\n"
-               + "\t  \t explicit ratio, explicit shift")
+        msg = (
+            "dconstraints['double'] must be either:\n"
+            + "\t- False: no line doubling\n"
+            + "\t- True:  line doubling with unknown ratio and shift\n"
+            + "\t- {'dratio': float}: line doubling with:\n"
+            + "\t  \t explicit ratio, unknown shift\n"
+            + "\t- {'dshift': float}: line doubling with:\n"
+            + "\t  \t unknown ratio, explicit shift\n"
+            + "\t- {'dratio': float, 'dshift': float}: line doubling with:\n"
+            + "\t  \t explicit ratio, explicit shift"
+        )
         raise Exception(msg)
 
 
@@ -597,8 +438,13 @@ def _width_shift_amp(
 ###########################################################
 
 
-def _dconstraints_symmetry(dinput, symmetry=None, dataphi1d=None, phi1d=None,
-                           cent_fraction=None, defconst=_DCONSTRAINTS):
+def _dconstraints_symmetry(
+    dinput,
+    dprepare=None,
+    symmetry=None,
+    cent_fraction=None,
+    defconst=_DCONSTRAINTS,
+):
     if symmetry is None:
         symmetry = defconst['symmetry']
     dinput['symmetry'] = symmetry
@@ -608,7 +454,10 @@ def _dconstraints_symmetry(dinput, symmetry=None, dataphi1d=None, phi1d=None,
 
     if dinput['symmetry'] is True:
         dinput['symmetry_axis'] = get_symmetry_axis_1dprofile(
-            phi1d, dataphi1d, cent_fraction=cent_fraction)
+            dprepare['phi1d'],
+            dprepare['dataphi1d'],
+            cent_fraction=cent_fraction,
+        )
 
 
 ###########################################################
@@ -643,11 +492,12 @@ def _checkformat_data_fit12d_dlines_msg(data, lamb, phi=None, mask=None):
 def _checkformat_data_fit12d_dlines(
     data, lamb, phi=None,
     nxi=None, nxj=None, mask=None,
+    is2d=False,
 ):
 
     # Check types
     c0 = isinstance(data, np.ndarray) and isinstance(lamb, np.ndarray)
-    if phi is not None:
+    if is2d:
         c0 &= isinstance(phi, np.ndarray)
 
     if not c0:
@@ -658,16 +508,36 @@ def _checkformat_data_fit12d_dlines(
 
     # Check shapes 1
     mindim = 1 if phi is None else 2
-    c0 = (
-        data.ndim in mindim + np.r_[0, 1]
-        and lamb.ndim == mindim
-        and lamb.shape == data.shape[-mindim:]
-    )
-    if phi is not None:
-        c0 &= (
-            lamb.ndim == phi.ndim
-            and lamb.shape == phi.shape
-            and lamb.shape in [(nxi, nxj), (nxj, nxi)]
+    phi1d, lamb1d, dataphi1d, datalamb1d = None, None, None, None
+    if is2d:
+
+        # special case
+        c1 = lamb.ndim == phi.ndim == 1
+        if c1:
+            if nxi is None:
+                nxi = lamb.size
+            if nxj is None:
+                nxj = phi.size
+            lamb1d = np.copy(lamb)
+            phi1d = np.copy(phi)
+            lamb = np.repeat(lamb[None, :], nxj, axis=0)
+            phi = np.repeat(phi[:, None], nxi, axis=1)
+
+        c0 = (
+            data.ndim in mindim + np.r_[0, 1]
+            and (
+                lamb.ndim == mindim
+                and lamb.shape == data.shape[-mindim:]
+                and lamb.shape == phi.shape
+                and lamb.shape in [(nxi, nxj), (nxj, nxi)]
+            )
+        )
+
+    else:
+        c0 = (
+            data.ndim in mindim + np.r_[0, 1]
+            and lamb.ndim == mindim
+            and lamb.shape == data.shape[-mindim:]
         )
 
     if not c0:
@@ -679,7 +549,10 @@ def _checkformat_data_fit12d_dlines(
     # Check shapes 2
     if data.ndim == mindim:
         data = data[None, ...]
-    if phi is not None and lamb.shape == (nxj, nxi):
+    if is2d and c1:
+        dataphi1d = np.nanmean(data, axis=2)
+        datalamb1d = np.nanmean(data, axis=1)
+    if is2d and lamb.shape == (nxi, nxj):
         lamb = lamb.T
         phi = phi.T
         data = np.swapaxes(data, 1, 2)
@@ -694,7 +567,11 @@ def _checkformat_data_fit12d_dlines(
                     data, lamb, phi=phi, mask=mask,
                 )
                 raise Exception(msg)
-    return lamb, phi, data, mask
+
+    if is2d:
+        return lamb, phi, data, mask, phi1d, lamb1d, dataphi1d, datalamb1d
+    else:
+        return lamb, data, mask
 
 
 ###########################################################
@@ -816,18 +693,22 @@ def apply_domain(lamb=None, phi=None, domain=None):
 ###########################################################
 
 
-def _binning_check(binning, nlamb=None, nphi=None,
-                   domain=None, nbsplines=None, deg=None):
+def _binning_check(
+    binning,
+    domain=None, nbsplines=None,
+):
     lk = ['phi', 'lamb']
     lkall = lk + ['nperbin']
-    msg = ("binning must be dict of the form:\n"
-           + "\t- provide number of bins:\n"
-           + "\t  \t{'phi':  int,\n"
-           + "\t  \t 'lamb': int}\n"
-           + "\t- provide bin edges vectors:\n"
-           + "\t  \t{'phi':  1d np.ndarray (increasing),\n"
-           + "\t  \t 'lamb': 1d np.ndarray (increasing)}\n"
-           + "  provided:\n{}".format(binning))
+    msg = (
+        "binning must be dict of the form:\n"
+       + "\t- provide number of bins:\n"
+       + "\t  \t{'phi':  int,\n"
+       + "\t  \t 'lamb': int}\n"
+       + "\t- provide bin edges vectors:\n"
+       + "\t  \t{'phi':  1d np.ndarray (increasing),\n"
+       + "\t  \t 'lamb': 1d np.ndarray (increasing)}\n"
+       + "  provided:\n{}".format(binning)
+    )
 
     # Check input
     if binning is None:
@@ -837,43 +718,65 @@ def _binning_check(binning, nlamb=None, nphi=None,
     if nbsplines is not False:
         c0 = isinstance(nbsplines, int) and nbsplines > 0
         if not c0:
-            msg2 = ("Both nbsplines and deg must be positive int!\n"
-                    + "\t- nbsplines: {}\n".format(nbsplines))
+            msg2 = (
+                "Both nbsplines and deg must be positive int!\n"
+                + "\t- nbsplines: {}\n".format(nbsplines)
+            )
             raise Exception(msg2)
 
     # Check which format was passed and return None or dict
     ltypes0 = _LTYPES
     ltypes1 = [tuple, list, np.ndarray]
-    lc = [binning is False,
-          (isinstance(binning, dict)
-           and all([kk in lkall for kk in binning.keys()])),
-          type(binning) in ltypes0,
-          type(binning) in ltypes1]
+    lc = [
+        binning is False,
+        (
+            isinstance(binning, dict)
+            and all([kk in lkall for kk in binning.keys()])
+        ),
+        type(binning) in ltypes0,
+        type(binning) in ltypes1,
+    ]
     if not any(lc):
         raise Exception(msg)
     if binning is False:
         return binning
     elif type(binning) in ltypes0:
-        binning = {'phi': {'nbins': int(binning)},
-                   'lamb': {'nbins': int(binning)}}
+        binning = {
+            'phi': {'nbins': int(binning)},
+            'lamb': {'nbins': int(binning)},
+        }
     elif type(binning) in ltypes1:
         binning = np.atleast_1d(binning).ravel()
-        binning = {'phi': {'edges': binning},
-                   'lamb': {'edges': binning}}
+        binning = {
+            'phi': {'edges': binning},
+            'lamb': {'edges': binning},
+        }
     for kk in lk:
         if type(binning[kk]) in ltypes0:
             binning[kk] = {'nbins': int(binning[kk])}
         elif type(binning[kk]) in ltypes1:
             binning[kk] = {'edges': np.atleast_1d(binning[kk]).ravel()}
 
-    c0 = all([all([k1 in ['edges', 'nbins'] for k1 in binning[k0].keys()])
-              for k0 in lk])
-    c0 = (c0 and
-          all([((binning[k0].get('nbins') is None
-                 or type(binning[k0].get('nbins')) in ltypes0)
-                and (binning[k0].get('edges') is None
-                 or type(binning[k0].get('edges')) in ltypes1))
-              for k0 in lk]))
+    c0 = all([
+        all([k1 in ['edges', 'nbins'] for k1 in binning[k0].keys()])
+        for k0 in lk
+    ])
+    c0 = (
+        c0
+        and all([
+            (
+                (
+                    binning[k0].get('nbins') is None
+                    or type(binning[k0].get('nbins')) in ltypes0
+                )
+                and (
+                    binning[k0].get('edges') is None
+                    or type(binning[k0].get('edges')) in ltypes1
+                )
+            )
+            for k0 in lk
+        ])
+    )
     if not c0:
         raise Exception(msg)
 
@@ -887,7 +790,9 @@ def _binning_check(binning, nlamb=None, nphi=None,
             if binning[k0].get('edges') is None:
                 binning[k0]['edges'] = np.linspace(
                     domain[k0]['minmax'][0], domain[k0]['minmax'][1],
-                    binning[k0]['nbins'] + 1, endpoint=True)
+                    binning[k0]['nbins'] + 1,
+                    endpoint=True,
+                )
             else:
                 binning[k0]['edges'] = np.atleast_1d(
                     binning[k0]['edges']).ravel()
@@ -906,50 +811,101 @@ def _binning_check(binning, nlamb=None, nphi=None,
     # Optional check vs nbsplines and deg
     if nbsplines is not False:
         if binning['phi']['nbins'] <= nbsplines:
-            msg = ("The number of bins is too high:\n"
-                   + "\t- nbins =     {}\n".format(binning['phi']['nbins'])
-                   + "\t- nbsplines = {}".format(nbsplines))
+            msg = (
+                "The number of bins is too high:\n"
+                + "\t- nbins =     {}\n".format(binning['phi']['nbins'])
+                + "\t- nbsplines = {}".format(nbsplines)
+            )
             raise Exception(msg)
     return binning
 
 
-def binning_2d_data(lamb, phi, data, indok=None,
-                    domain=None, binning=None, nbsplines=None):
+def binning_2d_data(
+    lamb, phi, data, indok=None,
+    domain=None, binning=None,
+    nbsplines=None,
+    phi1d=None, lamb1d=None,
+    dataphi1d=None, datalamb1d=None,
+):
 
     # ------------------
     # Checkformat input
-    binning = _binning_check(binning, domain=domain, nbsplines=nbsplines)
-    if binning is False:
-        return lamb, phi, data, indok, binning
+    binning = _binning_check(
+        binning,
+        domain=domain, nbsplines=nbsplines,
+    )
 
-    nphi = binning['phi']['nbins']
-    nlamb = binning['lamb']['nbins']
-    bins = (binning['lamb']['edges'], binning['phi']['edges'])
     nspect = data.shape[0]
-    npts = nlamb*nphi
+    if binning is False:
+        if phi1d is None:
+            phi1d_bins = np.linspace(domain['phi'][0], domain['phi'][1], 100)
+            lamb1d_bins = np.linspace(domain['lamb'][0], domain['lamb'][1], 100)
+            dataf = data.reshape((nspect, data.shape[1]*data.shape[2]))
+            dataphi1d = scpstats.binned_statistics(
+                phi.ravel(),
+                dataf,
+                statistic='sum',
+            )
+            datalamb1d = scpstats.binned_statistics(
+                lamb.ravel(),
+                dataf,
+                statistic='sum',
+            )
+            phi1d = 0.5*(phi1d_bins[1:] + phi1d_bins[:-1])
+            lamb1d = 0.5*(lamb1d_bins[1:] + lamb1d_bins[:-1])
+            import pdb; pdb.set_trace()     # DB
 
-    # ------------------
-    # Compute
+        return (
+            lamb, phi, data, indok, binning,
+            phi1d, lamb1d, dataphi1d, datalamb1d,
+        )
 
-    databin = scpstats.binned_statistic_2d(
-        lamb[indok], phi[indok], data[:, indok],
-        statistic='sum', bins=bins,
-        range=None, expand_binnumbers=True)[0]
-    nperbin = scpstats.binned_statistic_2d(
-        lamb[indok], phi[indok], np.ones((indok.sum(),), dtype=int),
-        statistic='sum', bins=bins,
-        range=None, expand_binnumbers=True)[0]
-    binning['nperbin'] = nperbin
+    else:
+        nphi = binning['phi']['nbins']
+        nlamb = binning['lamb']['nbins']
+        bins = (binning['lamb']['edges'], binning['phi']['edges'])
 
-    lambbin = 0.5*(binning['lamb']['edges'][1:]
-                   + binning['lamb']['edges'][:-1])
-    phibin = 0.5*(binning['phi']['edges'][1:]
-                  + binning['phi']['edges'][:-1])
-    lambbin = np.repeat(lambbin[:, None], nphi, axis=1)
-    phibin = np.repeat(phibin[None, :], nlamb, axis=0)
-    indok = np.any(~np.isnan(databin), axis=0)
+        # ------------------
+        # Compute
+        databin = np.full((nspect, nphi, nlamb), np.nan)
+        nperbin = np.full((nspect, nphi, nlamb), np.nan)
+        for ii in range(nspect):
+            databin[ii, ...] = scpstats.binned_statistic_2d(
+                phi[indok[ii, ...]],
+                lamb[indok[ii, ...]],
+                data[indok[ii, ...]],
+                statistic='sum', bins=bins,
+                range=None, expand_binnumbers=True,
+            )[0]
+            nperbin[ii, ...] = scpstats.binned_statistic_2d(
+                phi[indok[ii, ...]],
+                lamb[indok[ii, ...]],
+                np.ones((indok[ii, ...].sum(),), dtype=int),
+                statistic='sum', bins=bins,
+                range=None, expand_binnumbers=True,
+            )[0]
+        binning['nperbin'] = nperbin
 
-    return lambbin, phibin, databin, indok, binning
+        lambbin = 0.5*(
+            binning['lamb']['edges'][1:] + binning['lamb']['edges'][:-1]
+        )
+        phibin = 0.5*(
+            binning['phi']['edges'][1:] + binning['phi']['edges'][:-1]
+        )
+        lambbin = np.repeat(lambbin[None, :], nphi, axis=0)
+        phibin = np.repeat(phibin[:, None], nlamb, axis=1)
+        indok = ~np.isnan(databin)
+
+        # dataphi1d 
+        phi1d = phibin
+        lamb1d = lambbin
+        dataphi1d = np.nanmean(databin, axis=2)
+        datalamb1d = np.nanmean(databin, axis=1)
+
+        return (
+            lambbin, phibin, databin, indok, binning,
+            phi1d, lamb1d, dataphi1d, datalamb1d,
+        )
 
 
 ###########################################################
@@ -991,9 +947,11 @@ def _get_subset_indices(subset, indlogical):
     return indlogical
 
 
-def _extract_lphi_spectra(data, phi, lamb,
-                          lphi=None, lphi_tol=None,
-                          databin=None, binning=None, nlamb=None):
+def _extract_lphi_spectra(
+    data, phi, lamb,
+    lphi=None, lphi_tol=None,
+    databin=None, binning=None, nlamb=None,
+):
     """ Extra several 1d spectra from 2d image at lphi """
 
     # --------------
@@ -1015,29 +973,34 @@ def _extract_lphi_spectra(data, phi, lamb,
 
     if binning is False:
         if nlamb is None:
-            nlamb = lamb.shape[0]
+            nlamb = lamb.shape[1]
         lphi_lamb = np.linspace(lamb.min(), lamb.max(), nlamb+1)
         lphi_spectra = np.full((data.shape[0], lphi_lamb.size-1, nphi), np.nan)
         for ii in range(nphi):
             indphi = np.abs(phi - lphi[ii]) < lphi_tol
-            lphi_spectra[:, :, ii] = scpstats.binned_statistic(
+            lphi_spectra[:, ii, :] = scpstats.binned_statistic(
                 lamb[indphi], data[:, indphi], bins=lphi_lamb,
-                statistic='mean', range=None)[0]
+                statistic='mean', range=None,
+            )[0]
 
     else:
-        lphi_lamb = 0.5*(binning['lamb']['edges'][1:]
-                         + binning['lamb']['edges'][:-1])
-        lphi_phi = 0.5*(binning['phi']['edges'][1:]
-                        + binning['phi']['edges'][:-1])
-        lphi_spectra = np.full((data.shape[0], lphi_lamb.size, nphi), np.nan)
-        lphi_spectra1 = np.full((data.shape[0], lphi_lamb.size, nphi), np.nan)
+        lphi_lamb = 0.5*(
+            binning['lamb']['edges'][1:] + binning['lamb']['edges'][:-1]
+        )
+        lphi_phi = 0.5*(
+            binning['phi']['edges'][1:] + binning['phi']['edges'][:-1]
+        )
+        lphi_spectra = np.full((data.shape[0], nphi, lphi_lamb.size), np.nan)
+        lphi_spectra1 = np.full((data.shape[0], nphi, lphi_lamb.size), np.nan)
         for ii in range(nphi):
-            datai = databin[:, :, np.abs(lphi_phi - lphi[ii]) < lphi_tol]
-            iok = np.any(~np.isnan(datai), axis=2)
+            datai = databin[:, np.abs(lphi_phi - lphi[ii]) < lphi_tol, :]
+            iok = np.any(~np.isnan(datai), axis=1)
             for jj in range(datai.shape[0]):
                 if np.any(iok[jj, :]):
-                    lphi_spectra[jj, iok[jj, :], ii] = np.nanmean(
-                        datai[jj, iok[jj, :], :], axis=1)
+                    lphi_spectra[jj, ii, iok[jj, :]] = np.nanmean(
+                        datai[jj, :, iok[jj, :]],
+                        axis=1,
+                    )
 
     return lphi_spectra, lphi_lamb
 
@@ -1057,16 +1020,18 @@ def _checkformat_possubset(pos=None, subset=None):
     return pos, subset
 
 
-def multigausfit1d_from_dlines_prepare(data=None, lamb=None,
-                                       mask=None, domain=None,
-                                       pos=None, subset=None):
+def multigausfit1d_from_dlines_prepare(
+    data=None, lamb=None,
+    mask=None, domain=None,
+    pos=None, subset=None,
+):
 
     # --------------
     # Check input
     pos, subset = _checkformat_possubset(pos=pos, subset=subset)
 
     # Check shape of data (multiple time slices possible)
-    lamb, _, data, mask = _checkformat_data_fit12d_dlines(
+    lamb, data, mask = _checkformat_data_fit12d_dlines(
         data, lamb, mask=mask,
     )
 
@@ -1116,21 +1081,27 @@ def multigausfit1d_from_dlines_prepare(data=None, lamb=None,
     return dprepare
 
 
-def multigausfit2d_from_dlines_prepare(data=None, lamb=None, phi=None,
-                                       mask=None, domain=None,
-                                       pos=None, binning=None,
-                                       nbsplines=None, subset=None,
-                                       nxi=None, nxj=None,
-                                       lphi=None, lphi_tol=None):
+def multigausfit2d_from_dlines_prepare(
+    data=None, lamb=None, phi=None,
+    mask=None, domain=None,
+    pos=None, binning=None,
+    nbsplines=None, deg=None, subset=None,
+    nxi=None, nxj=None,
+    lphi=None, lphi_tol=None,
+):
 
     # --------------
     # Check input
     pos, subset = _checkformat_possubset(pos=pos, subset=subset)
 
     # Check shape of data (multiple time slices possible)
-    lamb, phi, data, mask = _checkformat_data_fit12d_dlines(
+    (
+        lamb, phi, data, mask,
+        phi1d, lamb1d, dataphi1d, datalamb1d,
+    ) = _checkformat_data_fit12d_dlines(
         data, lamb, phi,
-        nxi=nxi, nxj=nxj, mask=mask)
+        nxi=nxi, nxj=nxj, mask=mask, is2d=True,
+    )
 
     # --------------
     # Use valid data only and optionally restrict lamb / phi
@@ -1146,17 +1117,30 @@ def multigausfit2d_from_dlines_prepare(data=None, lamb=None, phi=None,
             data[data < 0.] = pos
 
     # Introduce time-dependence (useful for valid)
-    indok &= np.any(~np.isnan(data), axis=0)
+    indok = indok[None, ...] & (~np.isnan(data))
 
     # Recompute domain
-    domain['lamb']['minmax'] = [np.nanmin(lamb[indok]), np.nanmax(lamb[indok])]
-    domain['phi']['minmax'] = [np.nanmin(phi[indok]), np.nanmax(phi[indok])]
+    domain['lamb']['minmax'] = [
+        np.nanmin(lamb[np.any(indok, axis=0)]),
+        np.nanmax(lamb[np.any(indok, axis=0)])
+    ]
+    domain['phi']['minmax'] = [
+        np.nanmin(phi[np.any(indok, axis=0)]),
+        np.nanmax(phi[np.any(indok, axis=0)])
+    ]
 
     # --------------
     # Optionnal 2d binning
-    lambbin, phibin, databin, indok, binning = binning_2d_data(
+    (
+        lambbin, phibin, databin, indok, binning,
+        phi1d, lamb1d, dataphi1d, datalamb1d,
+    ) = binning_2d_data(
         lamb, phi, data, indok=indok,
-        binning=binning, domain=domain, nbsplines=nbsplines)
+        binning=binning, domain=domain,
+        nbsplines=nbsplines,
+        phi1d=phi1d, lamb1d=lamb1d,
+        dataphi1d=dataphi1d, datalamb1d=datalamb1d,
+    )
 
     # --------------
     # Optionally fit only on subset
@@ -1165,24 +1149,32 @@ def multigausfit2d_from_dlines_prepare(data=None, lamb=None, phi=None,
 
     # --------------
     # Optionally extract 1d spectra at lphi
-    lphi_spectra, lphi_lamb = _extract_lphi_spectra(data, phi, lamb,
-                                                    lphi, lphi_tol,
-                                                    databin=databin,
-                                                    binning=binning)
+    lphi_spectra, lphi_lamb = _extract_lphi_spectra(
+        data, phi, lamb,
+        lphi, lphi_tol,
+        databin=databin,
+        binning=binning,
+    )
 
     # --------------
     # Return
-    dprepare = {'data': databin, 'lamb': lambbin, 'phi': phibin,
-                'domain': domain, 'binning': binning, 'indok': indok,
-                'pos': pos, 'subset': subset, 'nxi': nxi, 'nxj': nxj,
-                'lphi': lphi, 'lphi_tol': lphi_tol,
-                'lphi_spectra': lphi_spectra, 'lphi_lamb': lphi_lamb}
+    dprepare = {
+        'data': databin, 'lamb': lambbin, 'phi': phibin,
+        'domain': domain, 'binning': binning, 'indok': indok,
+        'pos': pos, 'subset': subset, 'nxi': nxi, 'nxj': nxj,
+        'lphi': lphi, 'lphi_tol': lphi_tol,
+        'lphi_spectra': lphi_spectra, 'lphi_lamb': lphi_lamb,
+        'phi1d': phi1d, 'dataphi1d': dataphi1d,
+        'lamb1d': lamb1d, 'datalamb1d': datalamb1d,
+    }
     return dprepare
 
 
-def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
-                                         phimin=None, phimax=None,
-                                         symmetryaxis=None):
+def multigausfit2d_from_dlines_dbsplines(
+    knots=None, deg=None, nbsplines=None,
+    phimin=None, phimax=None,
+    symmetryaxis=None,
+):
     # Check / format input
     if nbsplines is None:
         nbsplines = _NBSPLINES
@@ -1210,8 +1202,9 @@ def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
         if symmetryaxis is False:
             knots = np.linspace(phimin, phimax, nbsplines + 1 - deg)
         else:
-            symax = np.nanmean(symmetryaxis)
-            phi2max = np.max(np.abs(np.r_[phimin, phimax] - symax))
+            phi2max = np.max(
+                np.abs(np.r_[phimin, phimax][None, :] - symmetryaxis[:, None])
+            )
             knots = np.linspace(0, phi2max, nbsplines + 1 - deg)
 
     if not np.allclose(knots, np.unique(knots)):
@@ -1239,18 +1232,22 @@ def multigausfit2d_from_dlines_dbsplines(knots=None, deg=None, nbsplines=None,
         ptsx0 = num / denom
     else:
         # To be derived analytically for more accuracy
-        ptsx0 = np.r_[knots[0],
-                      np.mean(knots[:2]),
-                      knots[1:-1],
-                      np.mean(knots[-2:]),
-                      knots[-1]]
+        ptsx0 = np.r_[
+            knots[0],
+            np.mean(knots[:2]),
+            knots[1:-1],
+            np.mean(knots[-2:]),
+            knots[-1],
+        ]
         msg = ("degree 3 not fully implemented yet!"
                + "Approximate values for maxima positions")
         warnings.warn(msg)
     assert ptsx0.size == nbs
-    dbsplines = {'knots': knots, 'knots_mult': knots_mult,
-                 'nknotsperbs': nknotsperbs, 'ptsx0': ptsx0,
-                 'nbs': nbs, 'deg': deg}
+    dbsplines = {
+        'knots': knots, 'knots_mult': knots_mult,
+        'nknotsperbs': nknotsperbs, 'ptsx0': ptsx0,
+        'nbs': nbs, 'deg': deg,
+    }
     return dbsplines
 
 
@@ -1307,8 +1304,10 @@ def _dvalid_checkfocus(
         return False
 
     # Check focus and transform to array of floats
-    lc0 = [type(focus) in [str] + _LTYPES,
-           type(focus) in [list, tuple, np.ndarray]]
+    lc0 = [
+        type(focus) in [str] + _LTYPES,
+        type(focus) in [list, tuple, np.ndarray]
+    ]
     if not any(lc0):
         msg = _dvalid_checkfocus_errmsg(
             focus, focus_half_width, lines_keys,
@@ -1331,7 +1330,7 @@ def _dvalid_checkfocus(
 
     # Check focus_half_width and transform to array of floats
     if focus_half_width is None:
-        focus_half_width = (np.max(lamb) - np.min(lamb))/10
+        focus_half_width = (np.nanmax(lamb) - np.nanmin(lamb))/10.
     lc0 = [
         type(focus_half_width) in _LTYPES,
         (
@@ -1404,6 +1403,7 @@ def fit12d_dvalid(
     # Derive indt and optionally dphi and indknots
     indbs, dphi = False, False
     if focus is not False:
+        # TBC
         lambok = np.rollaxis(
             np.array([np.abs(lamb - ff[0]) < ff[1] for ff in focus]),
             0,
@@ -1724,7 +1724,8 @@ def fit1d_dinput(
         valid_fraction=valid_fraction,
         focus=focus, focus_half_width=focus_half_width,
         lines_keys=lines_keys, lines_lamb=lines_lamb,
-        return_fract=valid_return_fract)
+        return_fract=valid_return_fract,
+    )
 
     # Update with dprepare
     dinput['dprepare'] = dict(dprepare)
@@ -1733,17 +1734,18 @@ def fit1d_dinput(
     dinput['dind'] = multigausfit1d_from_dlines_ind(dinput)
 
     # Add dscales, dx0 and dbounds
-    # TBD (bck => exp)
     dinput['dscales'] = fit12d_dscales(dscales=dscales, dinput=dinput)
     dinput['dbounds'] = fit12d_dbounds(dbounds=dbounds, dinput=dinput)
     dinput['dx0'] = fit12d_dx0(dx0=dx0, dinput=dinput)
-    dinput['dconstants'] = fit12d_dconstants(dconstants=dconstants, dinput=dinput)
+    dinput['dconstants'] = fit12d_dconstants(
+        dconstants=dconstants, dinput=dinput,
+    )
 
     return dinput
 
 
 def fit2d_dinput(
-    dlines=None, dconstraints=None, dprepare=None,
+    dlines=None, dconstraints=None, dconstants=None, dprepare=None,
     deg=None, nbsplines=None, knots=None,
     data=None, lamb=None, phi=None, mask=None,
     domain=None, pos=None, subset=None, binning=None, cent_fraction=None,
@@ -1752,7 +1754,23 @@ def fit2d_dinput(
     dscales=None, dx0=None, dbounds=None,
     nxi=None, nxj=None,
     lphi=None, lphi_tol=None,
-    defconst=_DCONSTRAINTS):
+    defconst=_DCONSTRAINTS,
+):
+    """ Check and format a dict of inputs to be fed to fit2d()
+
+    This dict will contain all information relevant for solving the fit:
+        - dlines: dict of lines (with 'lambda0': wavelength at rest)
+        - lamb: vector of wavelength of the experimental spectrum
+        - data: experimental spectrum, possibly 2d (time-varying)
+        - dconstraints: dict of constraints on lines (amp, width, shift)
+        - pos: bool, consider only positive data (False => replace <0 with nan)
+        - domain:
+        - mask:
+        - subset:
+        - same_spectrum:
+        - focus:
+
+    """
 
     # ------------------------
     # Check / format dprepare
@@ -1762,8 +1780,10 @@ def fit2d_dinput(
             data=data, lamb=lamb, phi=phi,
             mask=mask, domain=domain,
             pos=pos, subset=subset, binning=binning,
-            nbsplines=nbsplines, nxi=nxi, nxj=nxj,
-            lphi=None, lphi_tol=None)
+            nbsplines=nbsplines, deg=deg,
+            nxi=nxi, nxj=nxj,
+            lphi=None, lphi_tol=None,
+        )
 
     # ------------------------
     # Check / format dlines
@@ -1786,10 +1806,10 @@ def fit2d_dinput(
     # ------------------------
     # Check / format symmetry
     # ------------------------
-    _dconstraints_symmetry(dinput, symmetry=dconstraints.get('symmetry'),
-                           dataphi1d=dprepare.get('dataphi1d'),
-                           phi1d=dprepare.get('phi1d'),
-                           cent_fraction=cent_fraction, defconst=defconst)
+    _dconstraints_symmetry(
+        dinput, dprepare=dprepare, symmetry=dconstraints.get('symmetry'),
+        cent_fraction=cent_fraction, defconst=defconst,
+    )
 
     # ------------------------
     # Check / format double (spectral line doubling)
@@ -1800,9 +1820,12 @@ def fit2d_dinput(
     # Check / format width, shift, amp (groups with posssible ratio)
     # ------------------------
     for k0 in ['amp', 'width', 'shift']:
-        dinput[k0] = _width_shift_amp(dconstraints.get(k0, defconst[k0]),
-                                      keys=lines_keys, nlines=nlines,
-                                      dlines=dlines, k0=k0)
+        dinput[k0] = _width_shift_amp(
+            dconstraints.get(k0, defconst[k0]),
+            dconstants=dconstants,
+            keys=lines_keys, nlines=nlines,
+            dlines=dlines, k0=k0,
+        )
 
     # ------------------------
     # add mz, symb, ION, keys, lamb
@@ -1826,7 +1849,8 @@ def fit2d_dinput(
         knots=knots, deg=deg, nbsplines=nbsplines,
         phimin=dprepare['domain']['phi']['minmax'][0],
         phimax=dprepare['domain']['phi']['minmax'][1],
-        symmetryaxis=dinput.get('symmetry_axis')))
+        symmetryaxis=dinput.get('symmetry_axis')
+    ))
 
     # ------------------------
     # S/N threshold indices
@@ -1845,7 +1869,8 @@ def fit2d_dinput(
         deg=dinput['deg'],
         knots_mult=dinput['knots_mult'],
         nknotsperbs=dinput['nknotsperbs'],
-        return_fract=valid_return_fract)
+        return_fract=valid_return_fract,
+    )
 
     # Update with dprepare
     dinput['dprepare'] = dict(dprepare)
@@ -1854,10 +1879,12 @@ def fit2d_dinput(
     dinput['dind'] = multigausfit2d_from_dlines_ind(dinput)
 
     # Add dscales, dx0 and dbounds
-    dinput['dscales'] = fit12d_dscales(dscales=dscales,
-                                       dinput=dinput)
-    # dinput['dx0'] = fit12d_dx0(dinput=dinput)
-    # dinput['dbounds'] = fit12d_dbounds()
+    dinput['dscales'] = fit12d_dscales(dscales=dscales, dinput=dinput)
+    dinput['dbounds'] = fit12d_dbounds(dbounds=dbounds, dinput=dinput)
+    dinput['dx0'] = fit12d_dx0(dx0=dx0, dinput=dinput)
+    dinput['dconstants'] = fit12d_dconstants(
+        dconstants=dconstants, dinput=dinput,
+    )
     return dinput
 
 
@@ -1892,8 +1919,7 @@ def multigausfit1d_from_dlines_ind(dinput=None):
             'x': nn + np.arange(0, ind.shape[0]),
             'lines': nn + np.argmax(ind, axis=0),
             'jac': [
-                tuple(ind[ii, :].nonzero()[0])
-                for ii in range(dinput[k0]['ind'].shape[0])
+                tuple(ind[ii, :].nonzero()[0]) for ii in range(ind.shape[0])
             ]
         }
         nn += dind[k0]['x'].size
@@ -1942,29 +1968,42 @@ def multigausfit2d_from_dlines_ind(dinput=None):
     # If double [..., double_shift, double_ratio]
     # Except for bck, all indices should render nlines (2*nlines if double)
     nbs = dinput['nbs']
-    dind = {'bck': {'x': np.arange(0, nbs)},
-            'dshift': None,
-            'dratio': None}
-    nn = dind['bck']['x'].size
+    dind = {
+        'bck_amp': {'x': np.r_[0]},
+        'bck_rate': {'x': np.r_[1]},
+        'dshift': None,
+        'dratio': None,
+    }
+    nn = dind['bck_amp']['x'].size + dind['bck_rate']['x'].size
     inddratio, inddshift = None, None
     for k0 in _DORDER:
         # l0bs0, l0bs1, ..., l0bsN, l1bs0, ...., lnbsN
         ind = dinput[k0]['ind']
         lnl = np.sum(ind, axis=1).astype(int)
-        dind[k0] = {'x': (nn
-                          + nbs*np.arange(0, ind.shape[0])[None, :]
-                          + np.arange(0, nbs)[:, None]),
-                    'lines': (nn
-                              + nbs*np.argmax(ind, axis=0)[None, :]
-                              + np.arange(0, nbs)[:, None]),
-                    # TBF
-                    'jac': [ind[ii, :].nonzero()[0]
-                            for ii in range(ind.shape[0])]}
+        dind[k0] = {
+            'x': (
+                nn
+                + nbs*np.arange(0, ind.shape[0])[None, :]
+                + np.arange(0, nbs)[:, None]
+            ),
+            'lines': (
+                nn
+                + nbs*np.argmax(ind, axis=0)[None, :]
+                + np.arange(0, nbs)[:, None]
+            ),
+            # TBF / TBC !!!
+            'jac': [ind[ii, :].nonzero()[0] for ii in range(ind.shape[0])],
+        }
         nn += dind[k0]['x'].size
 
     sizex = dind['shift']['x'][-1, -1] + 1
-    indx = np.r_[dind['bck']['x'], dind['amp']['x'].T.ravel(),
-                 dind['width']['x'].T.ravel(), dind['shift']['x'].T.ravel()]
+    indx = np.r_[
+        dind['bck_amp']['x'],
+        dind['bck_rate']['x'],
+        dind['amp']['x'].T.ravel(),
+        dind['width']['x'].T.ravel(),
+        dind['shift']['x'].T.ravel(),
+    ]
     assert np.allclose(np.arange(0, sizex), indx)
 
     # check if double
@@ -1981,7 +2020,7 @@ def multigausfit2d_from_dlines_ind(dinput=None):
             sizex += 1
 
     dind['sizex'] = sizex
-    dind['nbck'] = 1
+    dind['nbck'] = 2
 
     # Ref line for amp (for x0)
     # TBC !!!
@@ -2009,7 +2048,10 @@ def multigausfit2d_from_dlines_ind(dinput=None):
 ###########################################################
 
 
-def _fit12d_checkformat_dscalesx0(din=None, dinput=None, name=None):
+def _fit12d_checkformat_dscalesx0(
+    din=None, dinput=None,
+    name=None, is2d=False,
+):
     lkconst = ['dratio', 'dshift']
     lk = ['bck_amp', 'bck_rate']
     lkdict = _DORDER
@@ -2037,6 +2079,7 @@ def _fit12d_checkformat_dscalesx0(din=None, dinput=None, name=None):
             )
         )
     ]
+
     if len(lkfalse) > 0:
         msg = (
             "Arg {} must be a dict of the form:\n".format(name)
@@ -2058,7 +2101,9 @@ def _fit12d_checkformat_dscalesx0(din=None, dinput=None, name=None):
 
 
 def _fit12d_filldef_dscalesx0_dict(
-    din=None, din_name=None, key=None, vref=None, nspect=None, dinput=None,
+    din=None, din_name=None,
+    key=None, vref=None,
+    nspect=None, dinput=None,
 ):
 
     # Check vref
@@ -2118,7 +2163,9 @@ def _fit12d_filldef_dscalesx0_dict(
 
 
 def _fit12d_filldef_dscalesx0_float(
-    din=None, din_name=None, key=None, vref=None, nspect=None,
+    din=None, din_name=None,
+    key=None, vref=None,
+    nspect=None,
 ):
     if din.get(key) is None:
         if type(vref) in _LTYPES:
@@ -2172,56 +2219,68 @@ def fit12d_dscales(dscales=None, dinput=None):
 
     # --------------
     # 2d spectrum = 1d spectrum + vert. profile
-    data2d = data.ndim == 3
-    if data2d is True:
-        phi = dinput['dprepare']['phi']
-        if dinput['dprepare']['binning'] is False:
-            lambbins = np.linspace(
-                dinput['dprepare']['domain']['lamb']['minmax'][0],
-                dinput['dprepare']['domain']['lamb']['minmax'][1],
-                dinput['dprepare']['nxi']-1,
-            )
-            phibins = np.linspace(
-                dinput['dprepare']['domain']['phi']['minmax'][0],
-                dinput['dprepare']['domain']['phi']['minmax'][1],
-                dinput['dprepare']['nxj']-1,
-            )
-            datavert = scpstats.binned_statistic(
-                np.tile(phi, (nspect, 1))[dinput['dprepare']['indok']],
-                data[dinput['dprepare']['indok']],
-                statistic='mean', bins=phibins, range=None,
-            )[0]
-            data = scpstats.binned_statistic(
-                np.tile(lamb, (nspect, 1))[dinput['dprepare']['indok']],
-                data[dinput['dprepare']['indok']],
-                statistic='mean', bins=lambbins, range=None,
-            )[0]
-            lamb = 0.5*(lambbins[1:] + lambbins[:-1])
-            phi = 0.5*(phibins[1:] + phibins[:-1])
-        else:
-            datavert = np.nanmean(data, axis=1)
-            data = np.nanmean(data, axis=2)
-            lamb = lamb[:, 0]
-            phi = phi[0, :]
+    is2d = data.ndim == 3
+    if is2d is True:
+        data = dinput['dprepare']['datalamb1d']
+        datavert = dinput['dprepare']['dataphi1d']
+        lamb = dinput['dprepare']['lamb1d']
+        phi = dinput['dprepare']['phi1d']
+        indok = np.any(dinput['dprepare']['indok'], axis=1)
 
         # bsplines modulation of bck and amp, if relevant
         # fit bsplines on datavert (vertical profile)
         # to modulate scales (bck and amp)
 
         dscales['bs'] = np.full((nspect, dinput['nbs']), np.nan)
-        for ii in dinput['valid']['indt'].nonzero()[0]:
-            indnonan = ~np.isnan(datavert[ii, :])
-            bs = scpinterp.LSQUnivariateSpline(
-                phi[indnonan], datavert[ii, indnonan],
-                dinput['knots'][1:-1],
-                k=dinput['deg'],
-                bbox=dinput['knots'][np.r_[0, -1]],
-                ext=0,
-            )
-            dscales['bs'][ii, :] = bs.get_coeffs()
+        if dinput['symmetry'] is True:
+            for ii in dinput['valid']['indt'].nonzero()[0]:
+                indnonan = (
+                    (~np.isnan(datavert[ii, :]))
+                    & (
+                        np.abs(phi-dinput['symmetry_axis'][ii])
+                        < dinput['knots'][-1]
+                    )
+                ).nonzero()[0]
+                indnonan = indnonan[
+                    np.unique(
+                        np.abs(phi[indnonan]-dinput['symmetry_axis'][ii]),
+                        return_index=True,
+                    )[1]
+                ]
+                bs = scpinterp.LSQUnivariateSpline(
+                    np.abs(phi[indnonan]-dinput['symmetry_axis'][ii]),
+                    datavert[ii, indnonan],
+                    dinput['knots'][1:-1],
+                    k=dinput['deg'],
+                    bbox=dinput['knots'][np.r_[0, -1]],
+                    ext=0,
+                )
+                dscales['bs'][ii, :] = bs.get_coeffs()
+        else:
+            for ii in dinput['valid']['indt'].nonzero()[0]:
+                indnonan = (
+                    (~np.isnan(datavert[ii, :]))
+                    & (dinput['knots'][0] <= phi)
+                    & (phi <= dinput['knots'][-1])
+                )
+                try:
+                    bs = scpinterp.LSQUnivariateSpline(
+                        phi[indnonan],
+                        datavert[ii, indnonan],
+                        dinput['knots'][1:-1],
+                        k=dinput['deg'],
+                        bbox=dinput['knots'][np.r_[0, -1]],
+                        ext=0,
+                    )
+                except Exception as err:
+                    import pdb; pdb.set_trace()     # DB
+                    pass
+                dscales['bs'][ii, :] = bs.get_coeffs()
         # Normalize to avoid double-amplification when amp*bs
         corr = np.max(dscales['bs'][dinput['valid']['indt'], :], axis=1)
         dscales['bs'][dinput['valid']['indt'], :] /= corr[:, None]
+    else:
+        indok = dinput['dprepare']['indok']
 
     # --------------
     # Default values for filling missing fields
@@ -2242,10 +2301,7 @@ def fit12d_dscales(dscales=None, dinput=None):
     bck_amp = dscales.get('bck_amp')
     bck_rate = dscales.get('bck_rate')
     if bck_amp is None or bck_rate is None:
-        indbck = (
-            (data > np.nanmean(data, axis=1)[:, None])
-            | (~dinput['dprepare']['indok'])
-        )
+        indbck = (data > np.nanmean(data, axis=1)[:, None]) | (~indok)
         bcky = np.array(np.ma.masked_where(indbck, data).mean(axis=1))
         bckstd = np.array(np.ma.masked_where(indbck, data).std(axis=1))
 
@@ -2274,7 +2330,7 @@ def fit12d_dscales(dscales=None, dinput=None):
         if dscales['amp'].get(key) is None:
             conv = np.exp(-(lamb-dinput['lines'][ij])**2/(2*(Dlamb/20.)**2))
             # indi = (
-                # dinput['dprepare']['indok']
+                # indok
                 # & (np.abs(lamb-dinput['lines'][ij]) < Dlamb/20.)[None, :]
             # )
             # dscales['amp'][key] = np.array(np.ma.masked_where(
@@ -2348,6 +2404,7 @@ def fit12d_dx0(dx0=None, dinput=None):
     # Input checks
     dx0 = _fit12d_checkformat_dscalesx0(
         din=dx0, dinput=dinput, name='dx0',
+        is2d=dinput['dprepare']['data'].ndim==3,
     )
 
     nspect = dinput['dprepare']['data'].shape[0]
@@ -2356,7 +2413,10 @@ def fit12d_dx0(dx0=None, dinput=None):
     # 2d spectrum = 1d spectrum + vert. profile
     data2d = dinput['dprepare']['data'].ndim == 3
     if data2d is True:
-        dx0['bs'][dinput['valid']['indt'], :] = 1
+        dx0 = _fit12d_filldef_dscalesx0_float(
+            din=dx0, din_name='dx0', key='bs',
+            vref=_DX0['bs'], nspect=nspect,
+        )
 
     # --------------
     # Default values for filling missing fields
@@ -2479,10 +2539,14 @@ def fit12d_dbounds(dbounds=None, dinput=None):
     # 2d spectrum = 1d spectrum + vert. profile
     data2d = dinput['dprepare']['data'].ndim == 3
     if data2d is True:
-        if dbounds['min'].get('bs') is None:
-            dbounds['min']['bs'] = np.full((nspect,), -10.)
-        if dbounds['max'].get('bs') is None:
-            dbounds['max']['bs'] = np.full((nspect,), 10.)
+        dbounds['min'] = _fit12d_filldef_dscalesx0_float(
+            din=dbounds['min'], din_name="dbounds['min']",
+            key='bs', vref=_DBOUNDS['bs'][0], nspect=nspect,
+        )
+        dbounds['max'] = _fit12d_filldef_dscalesx0_float(
+            din=dbounds['max'], din_name="dbounds['max']",
+            key='bs', vref=_DBOUNDS['bs'][1], nspect=nspect,
+        )
 
     # --------------
     # Default values for filling missing fields
@@ -2552,12 +2616,7 @@ def fit12d_dconstants(dconstants=None, dinput=None):
 
     # --------------
     # 2d spectrum = 1d spectrum + vert. profile
-    # data2d = dinput['dprepare']['data'].ndim == 3
-    # if data2d is True:
-        # if dbounds['min'].get('bs') is None:
-            # dbounds['min']['bs'] = np.full((nspect,), -10.)
-        # if dbounds['max'].get('bs') is None:
-            # dbounds['max']['bs'] = np.full((nspect,), 10.)
+    data2d = dinput['dprepare']['data'].ndim == 3
 
     # --------------
     # Default values for filling missing fields
@@ -3785,7 +3844,7 @@ def fit12d_get_data_checkformat(
     if pts_total is not False:
         pts_total = np.array(pts_total)
 
-    return d3, pts_phi, pts_total, pts_detail
+    return dfit, d3, pts_phi, pts_total, pts_detail
 
 
 def fit1d_extract(
@@ -3799,7 +3858,10 @@ def fit1d_extract(
 
     # -------------------
     # Check format input
-    d3, pts_phi, pts_lamb_total, pts_lamb_detail = fit12d_get_data_checkformat(
+    (
+        dfit1d, d3, pts_phi,
+        pts_lamb_total, pts_lamb_detail,
+    ) = fit12d_get_data_checkformat(
         dfit=dfit1d,
         bck=bck,
         amp=amp, coefs=coefs, ratio=ratio,
@@ -4586,7 +4648,8 @@ def noise_analysis_2d_scannbs(
             knots=None, deg=deg, nbsplines=nbs,
             phimin=domain['phi']['minmax'][0],
             phimax=domain['phi']['minmax'][1],
-            symmetryaxis=False)
+            symmetryaxis=False,
+        )
 
         # -------------
         # Perform fits

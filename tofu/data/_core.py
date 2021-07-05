@@ -1936,7 +1936,7 @@ class DataAbstract(utils.ToFuObject):
             raise Exception(msg)
 
         chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
-        data = np.matmult(chronos[:,modes], (s[modes,None] * topos[modes,:]))
+        data = np.matmul(chronos[:,modes], (s[modes,None] * topos[modes,:]))
         if out is object:
             data = self.__class__(data=data, t=self.t, X=self.X,
                                   lCam=self.lCam, config=self.config,
@@ -1998,7 +1998,7 @@ class DataAbstract(utils.ToFuObject):
 
 
     def save_to_imas(self, ids=None, shot=None, run=None, refshot=None, refrun=None,
-                     user=None, tokamak=None, version=None, occ=None,
+                     user=None, database=None, version=None, occ=None,
                      dryrun=False, deep=True, verb=True,
                      restore_size=True, forceupdate=False,
                      path_data=None, path_X=None,
@@ -2006,7 +2006,7 @@ class DataAbstract(utils.ToFuObject):
        import tofu.imas2tofu as _tfimas
        _tfimas._save_to_imas(self, tfversion=__version__,
                              shot=shot, run=run, refshot=refshot,
-                             refrun=refrun, user=user, tokamak=tokamak,
+                             refrun=refrun, user=user, database=database,
                              version=version, occ=occ, dryrun=dryrun, verb=verb,
                              ids=ids, deep=deep,
                              restore_size=restore_size,

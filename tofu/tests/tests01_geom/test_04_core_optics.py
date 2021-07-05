@@ -178,6 +178,9 @@ class Test01_Crystal(object):
             'cryst4': cryst4,
         }
 
+        cls.xi = 0.05*np.linspace(-1, 1, 100)
+        cls.xj = 0.10*np.linspace(-1, 1, 200)
+
 
     @classmethod
     def teardown_class(cls):
@@ -298,13 +301,43 @@ class Test01_Crystal(object):
         for k0, obj in self.dobj.items():
             det = obj.get_detector_approx()
             pts, vect = obj.get_rays_from_cryst(
-                phi=np.pi, returnas='(pts, vect)',
+                phi=-9*np.pi/10., returnas='(pts, vect)',
             )
             dist = obj.get_rowland_dist_from_lambbragg()
-            pts = pts + dist*np.r_[0.5, 1., 2][None, :]*vect[:, 0:1, 0]
+            pts = pts + dist*np.r_[0.5, 1., 2][None, :]*vect[:, :, 0]
             lamb, phi, dtheta, psi, xi, xj = obj.get_lamb_avail_from_pts(
                 pts=pts, det=det,
             )
+            pts = pts + np.r_[7.5][None, :]*vect[:, :, 0]
+            lamb, phi, dtheta, psi, xi, xj = obj.get_lamb_avail_from_pts(
+                pts=pts, det=det,
+            )
+            conf = tf.load_config('WEST-V0')
+            pts, dv, ind, res_eff = conf.Ves.V1.get_sampleV(
+                res=0.3,
+                domain=[None, None, [-np.pi, -np.pi/2.]],
+            )
+            lamb, phi, dtheta, psi, xi, xj = obj.get_lamb_avail_from_pts(
+                pts=pts, det=det, strict=True,
+            )
+
+    def test11_calc_johann_error(self):
+        for k0, obj in self.dobj.items():
+            det = obj.get_detector_approx()
+            err_lamb, err_phi = obj.calc_johannerror(
+                xi=self.xi,
+                xj=self.xj,
+                det=det,
+            )
+
+    def test12_plot_line_on_det_tracing(self):
+        for k0, obj in self.dobj.items():
+            det = obj.get_detector_approx()
+            det['outline'] = np.array([
+                0.1*np.r_[-1, 1, 1, -1, -1],
+                0.1*np.r_[-1, -1, 1, 1, -1],
+            ])
+            dax = obj.plot_line_on_det_tracing(det=det)
 
     def test15_saveload(self, verb=False):
         for k0, obj in self.dobj.items():
