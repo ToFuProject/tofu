@@ -999,11 +999,11 @@ def CrystalBragg_plot_line_tracing_on_det(
 
 
 def CrystalBragg_plot_johannerror(
-                xi, xj, lamb, phi, err_lamb, err_phi,
-                cmap=None, vmin=None, vmax=None,
-                fs=None, dmargin=None, wintit=None, tit=None,
-                angunits='deg', err=None,
-                ):
+    xi, xj, lamb, phi, err_lamb, err_phi,
+    cmap=None, vmin=None, vmax=None,
+    fs=None, dmargin=None, wintit=None, tit=None,
+    angunits='deg', err=None,
+):
 
     # Check inputs
     # ------------
@@ -1054,22 +1054,30 @@ def CrystalBragg_plot_johannerror(
     fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(1, 3, **dmargin)
     ax0 = fig.add_subplot(gs[0, 0], aspect='equal') # adjustable='datalim')
-    ax1 = fig.add_subplot(gs[0, 1], aspect='equal', # adjustable='datalim',
-                          sharex=ax0, sharey=ax0)
-    ax2 = fig.add_subplot(gs[0, 2], aspect='equal', # adjustable='datalim',
-                          sharex=ax0, sharey=ax0)
+    ax1 = fig.add_subplot(
+        gs[0, 1], aspect='equal', sharex=ax0, sharey=ax0,
+    )
+    ax2 = fig.add_subplot(
+        gs[0, 2], aspect='equal', sharex=ax0, sharey=ax0,
+    )
 
     ax0.set_title('Iso-lamb and iso-phi at crystal summit')
-    ax1.set_title('Focalization error on lamb ({})'.format(err_lamb_units))
-    ax2.set_title('Focalization error on phi ({})'.format(err_phi_units))
+    ax1.set_title(f'Focalization error on lamb ({err_lamb_units})')
+    ax2.set_title(f'Focalization error on phi ({err_phi_units})')
     ax0.contour(xi, xj, lamb.T, 10, cmap=cmap)
     ax0.contour(xi, xj, phi.T, 10, cmap=cmap, ls='--')
-    imlamb = ax1.imshow(err_lamb, extent=extent, aspect='equal',
-                        origin='lower', interpolation='nearest',
-                        vmin=vmin, vmax=vmax)
-    imphi = ax2.imshow(err_phi, extent=extent, aspect='equal',
-                       origin='lower', interpolation='nearest',
-                       vmin=vmin, vmax=vmax)
+    imlamb = ax1.imshow(
+        err_lamb.T,
+        extent=extent, aspect='equal',
+        origin='lower', interpolation='nearest',
+        vmin=vmin, vmax=vmax,
+    )
+    imphi = ax2.imshow(
+        err_phi.T,
+        extent=extent, aspect='equal',
+        origin='lower', interpolation='nearest',
+        vmin=vmin, vmax=vmax,
+    )
 
     plt.colorbar(imlamb, ax=ax1)
     plt.colorbar(imphi, ax=ax2)

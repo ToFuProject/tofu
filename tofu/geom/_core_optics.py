@@ -1752,6 +1752,8 @@ class CrystalBragg(utils.ToFuObject):
         Then, computing error on bragg and phi angles on each pixels by
         computing lambda and phi from the crystal's outline
 
+        Possibility to plot focalization error localised on the centered
+        column of the detector with arg xi_plot=True.
         """
 
         # Check xi, xj once before to avoid doing it twice
