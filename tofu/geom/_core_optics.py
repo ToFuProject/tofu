@@ -1009,7 +1009,7 @@ class CrystalBragg(utils.ToFuObject):
         dtheta=None, psi=None,
         ntheta=None, npsi=None,
         include_summit=None,
-        dax=None, ax=None, proj=None, res=None, element=None,
+        dax=None, proj=None, res=None, element=None,
         color=None, ddet=None,
         dleg=None, draw=True, dmargin=None,
         use_non_parallelism=None, grid=None,
@@ -1755,7 +1755,6 @@ class CrystalBragg(utils.ToFuObject):
         lpsi=None, ldtheta=None,
         use_non_parallelism=None,
         plot=True, fs=None, cmap=None,
-        xi_plot=None,
         vmin=None, vmax=None, tit=None, wintit=None,
     ):
         """ Plot the johann error
@@ -1774,8 +1773,6 @@ class CrystalBragg(utils.ToFuObject):
         position.
         Then, computing error on bragg and phi angles on each pixels and then
         directly computing a delta_lambda on each (lamberr).
-        Possibility to plot focalization error localised on the centered 
-        column of the detector with arg xi_plot=True.
         """
 
         # Check xi, xj once before to avoid doing it twice
@@ -1818,7 +1815,7 @@ class CrystalBragg(utils.ToFuObject):
         if plot is True:
             ax = _plot_optics.CrystalBragg_plot_johannerror(
                 xi, xj, lamb, phi,
-                err_lamb, err_phi, err=err, xi_plot=xi_plot,
+                err_lamb, err_phi, err=err,
                 cmap=cmap, vmin=vmin, vmax=vmax,
                 fs=fs, tit=tit, wintit=wintit,
                 )
@@ -1863,7 +1860,7 @@ class CrystalBragg(utils.ToFuObject):
         """
 
         # Check / format inputs
-        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+        xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
 
         if lamb is None:
             lamb = self._dbragg['lambref']
@@ -1915,7 +1912,16 @@ class CrystalBragg(utils.ToFuObject):
                     )
                 error_lambda.append(np.sum(np.sum(err_lamb, axis=0), axis=0))
         error_lambda = np.asarray(error_lambda)
-        error_lambda.shape= X.shape
+
+        if error_lambda.shape =! X.shape:
+            msg = (
+                "The shape of error_lambda array does not match with\n"
+                + "\t which of the ddist/di translations grid.\n"
+                + "\t Provided :\n"
+                + "\t error_lambda.shape: {}\n".format(error_lambda.shape)
+                + "\t X/Y.shape : {}\n".format(X.shape)
+                )
+            raise Exception(msg)
 
         return _plot_optics.CrystalBragg_plot_focal_error_summed(
             cryst=self, dcryst=dcryst,
@@ -2311,7 +2317,7 @@ class CrystalBragg(utils.ToFuObject):
                    + "\t- 'ax'   : return a list of axes instances")
             raise Exception(msg)
 
-        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+        xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
         nxi = xi.size if xi is not None else np.unique(xii).size
         nxj = xj.size if xj is not None else np.unique(xjj).size
 
@@ -2571,7 +2577,7 @@ class CrystalBragg(utils.ToFuObject):
         if dprepare is None:
             # ----------------------
             # Geometrical transform
-            xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+            xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
             nxi = xi.size if xi is not None else np.unique(xii).size
             nxj = xj.size if xj is not None else np.unique(xjj).size
 
