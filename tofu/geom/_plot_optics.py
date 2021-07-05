@@ -1024,9 +1024,13 @@ def CrystalBragg_plot_johannerror(
 
     if err is None:
         err = 'abs'
-    if err == 'rel':
-        err_lamb = 100.*err_lamb / (np.nanmax(lamb) - np.nanmin(lamb))
-        err_phi = 100.*err_phi / (np.nanmax(phi) - np.nanmin(phi))
+    if 'rel' in err:
+        if err == 'rel':
+            err_lamb = 100.*err_lamb / (np.nanmax(lamb) - np.nanmin(lamb))
+            err_phi = 100.*err_phi / (np.nanmax(phi) - np.nanmin(phi))
+        elif err == 'rel2':
+            err_lamb = 100.*err_lamb / np.mean(lamb)
+            err_phi = 100.*err_phi / np.mean(phi)
         err_lamb_units = '%'
         err_phi_units = '%'
     else:
