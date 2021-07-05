@@ -38,6 +38,8 @@ _NTHREADS = 16
 
 # rotate / translate instance
 _RETURN_COPY = False
+_USE_NON_PARALLELISM = True
+
 
 """
 ###############################################################################
@@ -470,7 +472,7 @@ class CrystalBragg(utils.ToFuObject):
 
         """
         if use_non_parallelism is None:
-            use_non_parallelism = True
+            use_non_parallelism = _USE_NON_PARALLELISM
 
         if use_non_parallelism is True:
             nout = self._dmat['nout']
@@ -1229,6 +1231,61 @@ class CrystalBragg(utils.ToFuObject):
                              )
             self._dmat['alpha'], self._dmat['beta'] = alpha, beta
 
+    def calc_meridional_sagital_focus(
+        self,
+        rcurve=None,
+        bragg=None,
+        alpha=None,
+        use_non_parallelism=None,
+        verb=None,
+    ):
+        """ Compute sagittal and meridional focuses distances.
+        Optionnal result according to non-parallelism, using first the
+        update_non_parallelism method.
+
+        parameters
+        ----------
+        rcurve:     float
+            in dgeom dict., curvature radius of the crystal.
+        bragg:      float
+            in dbragg dict., reference bragg angle of the crystal.
+        alpha:      float
+            in dmat dict., amplitude of the non-parallelism
+            as an a angle defined by user, in radian.
+        use_non_parallelism:    str
+            Need to be True to use new alpha angle
+
+        Return
+        ------
+        merid_ref:  float
+            Distance crystal-meridional focus (m), for a perfect crystal
+        sagit_ref:  float
+            Distance crystal-sagital focus (m), for a perfect crystal
+        merid_unp:  float
+            Distance crystal-meridional focus (m), using non_parallelism
+        sagit_unp:  float
+            Distance crystal-sagital focus (m), using non_parallelism
+
+        """
+        # Check inputs
+        if rcurve is None:
+            rcurve = self._dgeom['rcurve']
+        if bragg is None:
+            bragg = self._dbragg['braggref']
+        if alpha is None:
+            alpha = self._dmat['alpha']
+        if use_non_parallelism is None:
+            use_non_parallelism = _USE_NON_PARALLELISM
+
+        # Compute
+        return _comp_optics.calc_meridional_sagital_focus(
+            rcurve=rcurve,
+            bragg=bragg,
+            alpha=alpha,
+            verb=verb,
+        )
+
+
     def get_rowland_dist_from_lambbragg(self, bragg=None, lamb=None, n=None):
         """ Return the array of dist from cryst summit to pts on rowland """
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
@@ -1688,6 +1745,13 @@ class CrystalBragg(utils.ToFuObject):
                 - lpsi   = [-1, 1, 1, -1]
                 - ldtheta = [-1, -1, 1, 1]
             They must have the same len()
+
+        First affecting a reference lambda according to:
+            - pixel's position
+            - crystal's summit
+        Then, computing error on bragg and phi angles on each pixels by
+        computing lambda and phi from the crystal's outline
+
         """
 
         # Check xi, xj once before to avoid doing it twice
