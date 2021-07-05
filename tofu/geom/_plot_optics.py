@@ -1063,11 +1063,11 @@ def CrystalBragg_plot_line_tracing_on_det(
 
 
 def CrystalBragg_plot_johannerror(
-                xi, xj, lamb, phi, err_lamb, err_phi,
-                cmap=None, vmin=None, vmax=None,
-                fs=None, dmargin=None, wintit=None, tit=None,
-                angunits='deg', err=None,
-                ):
+    xi, xj, lamb, phi, err_lamb, err_phi,
+    cmap=None, vmin=None, vmax=None,
+    fs=None, dmargin=None, wintit=None, tit=None,
+    angunits='deg', err=None,
+):
 
     # Check inputs
     # ------------
@@ -1088,9 +1088,13 @@ def CrystalBragg_plot_johannerror(
 
     if err is None:
         err = 'abs'
-    if err == 'rel':
-        err_lamb = 100.*err_lamb / (np.nanmax(lamb) - np.nanmin(lamb))
-        err_phi = 100.*err_phi / (np.nanmax(phi) - np.nanmin(phi))
+    if 'rel' in err:
+        if err == 'rel':
+            err_lamb = 100.*err_lamb / (np.nanmax(lamb) - np.nanmin(lamb))
+            err_phi = 100.*err_phi / (np.nanmax(phi) - np.nanmin(phi))
+        elif err == 'rel2':
+            err_lamb = 100.*err_lamb / np.mean(lamb)
+            err_phi = 100.*err_phi / np.mean(phi)
         err_lamb_units = '%'
         err_phi_units = '%'
     else:
@@ -1118,24 +1122,30 @@ def CrystalBragg_plot_johannerror(
     fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(1, 3, **dmargin)
     ax0 = fig.add_subplot(gs[0, 0], aspect='equal') # adjustable='datalim')
-    ax1 = fig.add_subplot(gs[0, 1], aspect='equal', # adjustable='datalim',
-                    sharex=ax0, sharey=ax0)
-    ax2 = fig.add_subplot(gs[0, 2], aspect='equal', # adjustable='datalim',
-                          sharex=ax0, sharey=ax0)
+    ax1 = fig.add_subplot(
+        gs[0, 1], aspect='equal', sharex=ax0, sharey=ax0,
+    )
+    ax2 = fig.add_subplot(
+        gs[0, 2], aspect='equal', sharex=ax0, sharey=ax0,
+    )
 
     ax0.set_title('Iso-lamb and iso-phi at crystal summit')
-    ax1.set_title('Focalization error on lamb ({})'.format(err_lamb_units))
-    ax2.set_title('Focalization error on phi ({})'.format(err_phi_units))
-
-    ax0.contour(xi, xj, (lamb).T, 10, cmap=cmap)
-    ax0.contour(xi, xj, (phi).T, 10, cmap=cmap, ls='--')
-
-    imlamb = ax1.imshow(err_lamb.T, extent=extent, aspect='equal',
-                    origin='lower', interpolation='nearest',
-                    vmin=vmin, vmax=vmax)
-    imphi = ax2.imshow(err_phi.T, extent=extent, aspect='equal',
-                    origin='lower', interpolation='nearest',
-                    vmin=vmin, vmax=vmax)
+    ax1.set_title(f'Focalization error on lamb ({err_lamb_units})')
+    ax2.set_title(f'Focalization error on phi ({err_phi_units})')
+    ax0.contour(xi, xj, lamb.T, 10, cmap=cmap)
+    ax0.contour(xi, xj, phi.T, 10, cmap=cmap, ls='--')
+    imlamb = ax1.imshow(
+        err_lamb.T,
+        extent=extent, aspect='equal',
+        origin='lower', interpolation='nearest',
+        vmin=vmin, vmax=vmax,
+    )
+    imphi = ax2.imshow(
+        err_phi.T,
+        extent=extent, aspect='equal',
+        origin='lower', interpolation='nearest',
+        vmin=vmin, vmax=vmax,
+    )
 
     plt.colorbar(imlamb, ax=ax1)
     plt.colorbar(imphi, ax=ax2)
@@ -1146,6 +1156,77 @@ def CrystalBragg_plot_johannerror(
         fig.suptitle(tit, size=14, weight='bold')
 
     return [ax0, ax1, ax2]
+
+
+def CrystalBragg_plot_focal_error_summed(
+    cryst=None, dcryst=None,
+    error_lambda=None,
+    ddist=None, di=None, X=None, Y=None,
+    plot_dets=None, nsort=None,
+    tangent_to_rowland=None,
+):
+
+    extent = (ddist.min(), ddist.max(), di.min(), di.max())
+    if plot_dets:
+        fig = plt.figure(figsize=(14, 8))
+        gs = gridspec.GridSpec(1, 1)
+
+        ax0 = fig.add_subplot(gs[0, 0])
+        ax0.set_title('Summed focalization error [m] on full detector')
+
+        ax0.imshow(
+            error_lambda,
+            origin ='lower',
+            cmap='RdYlBu',
+            extent=extent,
+            interpolation='nearest',
+        )
+
+        sort = np.sort(np.ravel(error_lambda))
+        sort = sort.tolist()
+        a = np.where(error_lambda <= sort[nsort])
+        A = a[0]
+        B = a[1]
+        C = np.dstack((A,B))
+        bardet = dict(np.load(
+            'inputs_temp/det37_CTVD_incC4_New.npz', allow_pickle=True,
+            ))
+        dax = CrystalBragg_plot(
+            cryst=cryst, dcryst=dcryst,
+            det=bardet,
+            )
+        det = {}
+        for ii in range(nsort):
+            det[ii] = cryst.get_detector_approx(
+                ddist = X[C[0, ii][0], C[0, ii][1]],
+                di = Y[C[0, ii][0], C[0, ii][1]],
+                tangent_to_rowland=tangent_to_rowland,
+            )
+            det[ii]['outline'] = np.array(
+                [0.04*np.r_[-1,-1,1,1,-1], 0.12*np.r_[-1,1,1,-1,-1]]
+            )
+            print(det[ii])
+            dax = CrystalBragg_plot(
+                cryst=cryst, dcryst=dcryst,
+                det=det[ii], color='red', dax=dax,
+            )
+    else:
+        plt.title('Mean focalization error on full detector [m]')
+        plt.xlabel('ddist [m]')
+        plt.ylabel('di [m]')
+        plt.imshow(
+            error_lambda,
+            cmap='RdYlBu',
+            origin='lower',
+            extent=extent,
+            interpolation='nearest',
+        )
+        cbar = plt.colorbar(
+            label="error on lambda [m]",
+            orientation="vertical",
+            boundaries=np.linspace(0.1e-7, 1e-7, 50)
+        )
+        plt.clim(0.1e-7, 1e-7)
 
 
 # #################################################################

@@ -38,6 +38,8 @@ _NTHREADS = 16
 
 # rotate / translate instance
 _RETURN_COPY = False
+_USE_NON_PARALLELISM = True
+
 
 """
 ###############################################################################
@@ -470,7 +472,7 @@ class CrystalBragg(utils.ToFuObject):
 
         """
         if use_non_parallelism is None:
-            use_non_parallelism = True
+            use_non_parallelism = _USE_NON_PARALLELISM
 
         if use_non_parallelism is True:
             nout = self._dmat['nout']
@@ -1229,81 +1231,59 @@ class CrystalBragg(utils.ToFuObject):
                              )
             self._dmat['alpha'], self._dmat['beta'] = alpha, beta
 
-    def calc_sagit_merid_focus(
-        self, rcurve=None,
-        bragg=None, alpha=None, beta=None,
+    def calc_meridional_sagital_focus(
+        self,
+        rcurve=None,
+        bragg=None,
+        alpha=None,
         use_non_parallelism=None,
-        ):
+        verb=None,
+    ):
         """ Compute sagittal and meridional focuses distances.
         Optionnal result according to non-parallelism, using first the
         update_non_parallelism method.
-        Args:
-            - rcurve: float
-                in dgeom dict., curvature radius of the crystal.
-            - bragg: np.float64
-                in dbragg dict., reference bragg angle of the crystal.
-            - alpha, beta: float
-                in dmat dict., non-parallelism angles defined by user,
-                in radian.
-            - use_non_parallelism: str
-                Need to be True to use new alpha and beta angles if non-null.
+
+        parameters
+        ----------
+        rcurve:     float
+            in dgeom dict., curvature radius of the crystal.
+        bragg:      float
+            in dbragg dict., reference bragg angle of the crystal.
+        alpha:      float
+            in dmat dict., amplitude of the non-parallelism
+            as an a angle defined by user, in radian.
+        use_non_parallelism:    str
+            Need to be True to use new alpha angle
+
+        Return
+        ------
+        merid_ref:  float
+            Distance crystal-meridional focus (m), for a perfect crystal
+        sagit_ref:  float
+            Distance crystal-sagital focus (m), for a perfect crystal
+        merid_unp:  float
+            Distance crystal-meridional focus (m), using non_parallelism
+        sagit_unp:  float
+            Distance crystal-sagital focus (m), using non_parallelism
+
         """
+        # Check inputs
         if rcurve is None:
             rcurve = self._dgeom['rcurve']
         if bragg is None:
             bragg = self._dbragg['braggref']
-
-        if use_non_parallelism is None:
-            use_non_parallelism = False
-        elif alpha is None and beta is None:
-            alpha == 0
-            beta == 0
-
-        s_merid = rcurve*np.sin(bragg)
-        s_sagit = -s_merid / np.cos(2.*bragg)
-
-        if use_non_parallelism is True:
+        if alpha is None:
             alpha = self._dmat['alpha']
-            beta = self._dmat['beta']
-            if self._dmat['alpha'] == 0:
-                msg = (
-                    "Wanted non parallelism option but\n"
-                    + "both alpha and beta angles are null!\n"
-                    + "Please check update these angles with non-null\n"
-                    + "or make use_non_parallelism option False.\n"
-                )
-                raise exception(msg)
+        if use_non_parallelism is None:
+            use_non_parallelism = _USE_NON_PARALLELISM
 
-            s_merid_unp = rcurve*(
-                np.sin(bragg) + np.cos(bragg)*np.sin(alpha)
-                )
-            s_sagit_unp = rcurve*np.sin(bragg-alpha)
-
-            delta_merid = abs(s_merid_unp - s_merid)
-            rel_delta_merid = delta_merid / s_merid
-
-            delta_sagit = abs(s_sagit_unp - s_sagit)
-            rel_delta_sagit = delta_sagit / s_sagit
-
-        print("Assuming perfect crystal, the meridonal focus distance is\n"
-            + "equal to ({})m\n".format(s_merid)
-            + "and the sagittal focus is at ({})m.\n".format(s_sagit)
-            )
-
-        if use_non_parallelism is True:
-            print("With the non-parallelism option, the meridonal focus is\n"
-            + "equal to ({})m\n".format(s_merid_unp)
-            + "or a change of ({})m\n".format(delta_merid)
-            + "or ({})%\n".format(rel_delta_merid)
-            + "and the sagital focus is at ({})m.\n".format(s_sagit_unp)
-            + "or a change of ({})m\n".format(delta_sagit)
-            + "or ({})%\n".format(rel_delta_sagit)
-            )
-
-        return (
-            s_merid, s_merid_unp, delta_merid, rel_delta_merid,
-            s_sagit, s_sagit_unp, delta_sagit, rel_delta_sagit,
-            )
+        # Compute
+        return _comp_optics.calc_meridional_sagital_focus(
+            rcurve=rcurve,
+            bragg=bragg,
+            alpha=alpha,
+            verb=verb,
+        )
 
     def get_rowland_dist_from_lambbragg(self, bragg=None, lamb=None, n=None):
         """ Return the array of dist from cryst summit to pts on rowland """
@@ -1769,10 +1749,12 @@ class CrystalBragg(utils.ToFuObject):
                 - lpsi   = [-1, 1, 1, -1]
                 - ldtheta = [-1, -1, 1, 1]
             They must have the same len()
-        First affecting by 'calibration' a precise lambda according to pixel's
-        position.
-        Then, computing error on bragg and phi angles on each pixels and then
-        directly computing a delta_lambda on each (lamberr).
+
+        First affecting a reference lambda according to:
+            - pixel's position
+            - crystal's summit
+        Then, computing error on bragg and phi angles on each pixels by
+        computing lambda and phi from the crystal's outline
         """
 
         # Check xi, xj once before to avoid doing it twice
@@ -1826,13 +1808,12 @@ class CrystalBragg(utils.ToFuObject):
         dist_min=None, dist_max=None,
         di_min=None, di_max=None,
         ndist=None, ndi=None,
-        dcryst=None,
         lamb=None, bragg=None,
         xi=None, xj=None,
-        alpha=None, beta=None,
         use_non_parallelism=None,
-        tangent_to_rowland=None,
+        tangent_to_rowland=None, n=None,
         plot_dets=None, nsort=None,
+        dcryst=None,
         ax=None, dax=None,
     ):
         """
@@ -1841,124 +1822,87 @@ class CrystalBragg(utils.ToFuObject):
         characterized by the translations ddist and di in the equatorial plane
         (dist_min, dist_max, ndist) (di_min, di_max, ndi).
 
-        Args:
-            - lamb/bragg :  float
-                Automatically set to crystal's references
-            - xi, xj :  np.array
-                pixelization of the detector
-                (from "inputs_temp/XICS_allshots_C34.py" l.649)
-            - alpha, beta : float
-                Values of Non Parallelism references angles
-            - use_non_parallelism : str
-            - tangent_to_rowland :  str
-            - plot_dets : str
-                Possibility to plot the nsort- detectors with the lowest
-                summed focalization error, next to the Best Approximate Real
-                detector
-                dict(np.load('inputs_temp/det37_CTVD_incC4_New.npz', allow_pickle=True))
-            - nsort : float
+        Parameters:
+        -----------
+        - lamb/bragg :  float
+            Automatically set to crystal's references
+        - xi, xj :  np.ndarray
+            pixelization of the detector
+            (from "inputs_temp/XICS_allshots_C34.py" l.649)
+        - alpha, beta : float
+            Values of Non Parallelism references angles
+        - use_non_parallelism : str
+        - tangent_to_rowland :  str
+        - plot_dets : str
+            Possibility to plot the nsort- detectors with the lowest
+            summed focalization error, next to the Best Approximate Real
+            detector
+            dict(np.load('inputs_temp/det37_CTVD_incC4_New.npz', allow_pickle=True))
+        - nsort : float
+
         """
 
         # Check / format inputs
-        xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
-
-        if lamb is None:
-            lamb = self._dbragg['lambref']
-        if bragg is None:
-            bragg = self._dbragg['braggref']
         if plot_dets is None:
             plot_dets = False
-        a0 = [alpha, beta]
-        if all([a00 is None for a00 in a0]):
-            alpha, beta = 0., 0.
-            use_non_parallelism = False
-        if tangent_to_rowland is None:
-            tangent_to_rowland = True
+        if use_non_parallelism is None:
+            use_non_parallelism = _USE_NON_PARALLELISM
 
         l0 = [dist_min, dist_max, ndist, di_min, di_max, ndi]
-        c0 = (all([l00 is not None for l00 in l0]))
+        c0 = any([l00 is not None for l00 in l0])
         if not c0:
             msg = (
                 "Please give the ranges of ddist and di translations\n"
-                + "\t to compute the different detector's position.\n"
-                + "\t Provided :\n"
-                + "\t\t - dist_min, dist_max, ndist: ({},{},{})\n".format(
-                    dist_min, dist_max, ndist)
-                + "\t\t - di_min, di_max, ndi: ({},{},{})\n".format(
-                    di_min, di_max, ndi)
+                "\t to compute the different detector's position\n"
+                "\t Provided:\n"
+                "\t\t- dist_min, dist_max, ndist: ({}, {}, {})\n".format(
+                    dist_min, dist_max, ndist,
                 )
+                + "\t\t- di_min, di_max, ndi: ({}, {}, {})\n".format(
+                    di_min, di_max, ndi,
+                )
+            )
             raise Exception(msg)
 
-        dist = np.linspace(dist_min, dist_max, ndist)
+        # Compute
+        ddist = np.linspace(dist_min, dist_max, ndist)
         di = np.linspace(di_min, di_max, ndi)
-        X,Y = np.meshgrid(dist,di)
-        error_lambda = []
-        liste = np.linspace(0, (dist.size)-1, dist.size).astype(int).tolist()
-        for i in liste:
-            j=i+1; k=i
-            for a in liste:
-                b=a+1; c=a
-                if any([a00 is not None for a00 in a0]):
-                    self.update_non_parallelism(alpha=alpha, beta=beta)
-                    use_non_parallelism = True
+        error_lambda = np.full((ddist.size, di.size), np.nan)
+        end = '\r'
+        for ii in range(ddist.size):
+            for jj in range(di.size):
+                if ii == ndist-1 and jj == ndi-1:
+                    end = '\n'
+                msg = (
+                    "Computing mean focal error for det "
+                    f"({ii+1}, {jj+1})/({ndist}, {ndi})"
+                ).ljust(60)
+                print(msg, end=end, flush=True)
                 det = self.get_detector_approx(
-                    ddist=X[i:j,k], di=Y[a:b,c],
+                    ddist=ddist[ii],
+                    di=di[jj],
                     lamb=lamb,
+                    bragg=bragg,
                     use_non_parallelism=use_non_parallelism,
                     tangent_to_rowland=tangent_to_rowland,
-                    )
-                err_lamb, err_phi = self.calc_johannerror(
-                    xi=xi, xj=xj, det=det, plot=False,
-                    )
-                error_lambda.append(np.sum(np.sum(err_lamb, axis=0), axis=0))
-        error_lambda = np.asarray(error_lambda)
-
-        if error_lambda.shape =! X.shape:
-            msg = (
-                "The shape of error_lambda array does not match with\n"
-                + "\t which of the ddist/di translations grid.\n"
-                + "\t Provided :\n"
-                + "\t error_lambda.shape: {}\n".format(error_lambda.shape)
-                + "\t X/Y.shape : {}\n".format(X.shape)
                 )
-            raise Exception(msg)
-
+                error_lambda[jj, ii] = np.sum(
+                    np.sum(
+                        self.calc_johannerror(
+                            xi=xi, xj=xj, det=det, plot=False,
+                        )[0],
+                        axis=0,
+                    ),
+                    axis=0,
+                )
         return _plot_optics.CrystalBragg_plot_focal_error_summed(
             cryst=self, dcryst=dcryst,
             error_lambda=error_lambda,
-            dist=dist, di=di, X=X, Y=Y,
+            ddist=ddist, di=di, X=X, Y=Y,
             plot_dets=plot_dets, nsort=nsort,
             tangent_to_rowland=tangent_to_rowland,
-            )
-
-    def _calc_braggphi_from_pts(
-        self,
-        pts,
-        det=None,
-        dtheta=None,
-        psi=None,
-        use_non_parallelism=None,
-        grid=None,
-    ):
-
-        # Check / format pts
-        pts = self._checkformat_pts(pts)
-        det = self._checkformat_det(det)
-
-        # Get local summit nout, e1, e2 if non-centered
-        dtheta, psi = self._checkformat_dthetapsi(psi=psi, dtheta=dtheta)
-        summit, nout, e1, e2 = self.get_local_noute1e2(
-            dtheta=dtheta, psi=psi,
-            use_non_parallelism=use_non_parallelism,
         )
-
-        # Compute
-        bragg, phi = _comp_optics.calc_braggphi_from_xixjpts(
-            det['cent'], det['ei'], det['ej'],
-            summit, -nout, e1, e2, pts=pts,
-            grid=grid,
-        )
-        return bragg, phi
+>>>>>>> Issue202_SpectroX2DCrystal
 
     def get_lambbraggphi_from_ptsxixj_dthetapsi(
         self,

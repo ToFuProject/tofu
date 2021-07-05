@@ -16,6 +16,19 @@ _LTYPES = [int, float, np.int_, np.float_]
 #           utility
 # ###############################################
 
+
+def _check_bool(var, vardef=None, varname=None):
+    if var is None:
+        var = vardef
+    if not isinstance(var, bool):
+        msg = (
+            "Arg {} must be a bool\n".format(varname)
+            + "  You provided: {}".format(type(var))
+        )
+        raise Exception(msg)
+    return var
+
+
 def _are_broadcastable(**kwdargs):
 
     # Check if broadcastable
@@ -52,6 +65,16 @@ def _are_broadcastable(**kwdargs):
 
 
 def _checkformat_xixj(xi, xj):
+
+    if xi is None or xj is None:
+        msg = (
+            "Arg xi and xj must be provided!\n"
+            "Provided:\n"
+            f"\t- xi: {xi}\n"
+            f"\t- xj: {xj}\n"
+        )
+        raise Exception(msg)
+
     xi = np.atleast_1d(xi)
     xj = np.atleast_1d(xj)
 
@@ -246,6 +269,7 @@ def get_bragg_from_lamb(lamb, d, n=None):
     bragg[indok] = np.arcsin(sin[indok])
     return bragg
 
+
 def get_lamb_from_bragg(bragg, d, n=None):
     """ n*lamb = 2d*sin(bragg)
     The angle bragg is defined as the angle of incidence of the emissed photon
@@ -257,24 +281,27 @@ def get_lamb_from_bragg(bragg, d, n=None):
         n = 1
     return 2*d*np.sin(bragg) / n
 
+
 # ###############################################
 #           vectors <=> angles
 # ###############################################
+
 
 def get_vectors_from_angles(alpha, beta, nout, e1, e2):
     """Return new unit vectors according to alpha and beta entries from user
     caused by the non parallelism assumed on the crystal.
     """
 
-    e1_bis = np.cos(alpha)*(
-        np.cos(beta)*e1 + np.sin(beta)*e2
-        ) - np.sin(alpha)*nout
+    e1_bis = (
+        np.cos(alpha)*(np.cos(beta)*e1 + np.sin(beta)*e2) - np.sin(alpha)*nout
+    )
 
     e2_bis = np.cos(beta)*e2-np.sin(beta)*e1
 
-    nout_bis = np.cos(alpha)*nout + np.sin(alpha)*(
-        np.cos(beta)*e1+ np.sin(beta)*e2
-        )
+    nout_bis = (
+        np.cos(alpha)*nout + np.sin(alpha)*(np.cos(beta)*e1+ np.sin(beta)*e2)
+    )
+
     nin_bis = -nout_bis
 
     return nin_bis, nout_bis, e1_bis, e2_bis
@@ -399,6 +426,70 @@ def get_det_abs_from_rel(det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
     det_ej3 = np.cross(det_nout2, det_ei3)
 
     return det_cent, det_nout2, det_ei3, det_ej3
+
+
+# ###############################################
+#           Sagital / meridional focus
+# ###############################################
+
+
+def calc_meridional_sagital_focus(
+    rcurve=None,
+    bragg=None,
+    alpha=None,
+    use_non_parallelism=None,
+    verb=None,
+):
+
+    # Check input
+    if rcurve is None or bragg is None:
+        msg = (
+            "Args rcurve and bragg must be provided!"
+        )
+        raise Exception(msg)
+
+    if alpha is None:
+        alpha = 0.
+
+    verb = _check_bool(verb, vardef=True, varname='verb')
+    use_non_parallelism = _check_bool(
+        use_non_parallelism, vardef=True, varname='use_non_parallelism',
+    )
+
+    # Compute
+    s_merid_ref = rcurve*np.sin(bragg)
+    s_sagit_ref = -s_merid_ref / np.cos(2.*bragg)
+
+    s_merid_unp = rcurve * (np.sin(bragg) + np.cos(bragg)*np.sin(alpha))
+    s_sagit_unp = rcurve*np.sin(bragg-alpha)
+
+    # verb
+    if verb is True:
+        mr = round(s_merid_ref, ndigits=3)
+        sr = round(s_sagit_ref, ndigits=3)
+        msg = (
+            "Assuming a perfect crystal:\n"
+            f"\t- meridonal focus at {mr} m\n"
+            f"\t- sagittal focus at {sr} m\n"
+        )
+
+        if use_non_parallelism is True:
+            delta_merid = abs(s_merid_unp - s_merid_ref)
+            delta_sagit = abs(s_sagit_unp - s_sagit_ref)
+            mnp = round(s_merid_unp, ndigits=3)
+            snp = round(s_sagit_unp, ndigits=3)
+            mca = round(delta_merid, ndigits=3)
+            sca = round(delta_sagit, ndigits=3)
+            mcr = round(100. * delta_merid / s_merid_ref, ndigits=3)
+            scr = round(100. * delta_sagit / s_sagit_ref, ndigits=3)
+            msg += (
+                f"\nTaking into account non-parallelism (alpha = {alpha}):\n"
+                f"\t- meridonal focus at {mnp} m (delta = {mca} m / {mcr} %)\n"
+                f"\t- sagital focus at {snp} m (delta = {sca} m / {scr} %)"
+            )
+        print(msg)
+
+    return s_merid_ref, s_sagit_ref, s_merid_unp, s_sagit_unp
 
 
 # ###############################################

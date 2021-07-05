@@ -339,6 +339,20 @@ class Test01_Crystal(object):
             ])
             dax = obj.plot_line_on_det_tracing(det=det)
 
+    def test13_calc_meridional_sagital_focus(self):
+        for k0, obj in self.dobj.items():
+            out = obj.calc_meridional_sagital_focus(
+                use_non_parallelism=False,
+                verb=False,
+            )
+            assert out[0] == out[2]
+            assert out[1] == out[3]
+            out = obj.calc_meridional_sagital_focus(
+                use_non_parallelism=True,
+                verb=True,
+            )
+
+
     def test15_saveload(self, verb=False):
         for k0, obj in self.dobj.items():
             obj.strip(-1)
