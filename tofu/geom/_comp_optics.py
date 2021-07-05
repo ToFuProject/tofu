@@ -259,6 +259,7 @@ def get_bragg_from_lamb(lamb, d, n=None):
     bragg[indok] = np.arcsin(sin[indok])
     return bragg
 
+
 def get_lamb_from_bragg(bragg, d, n=None):
     """ n*lamb = 2d*sin(bragg)
     The angle bragg is defined as the angle of incidence of the emissed photon
@@ -270,24 +271,26 @@ def get_lamb_from_bragg(bragg, d, n=None):
         n = 1
     return 2*d*np.sin(bragg) / n
 
+
 # ###############################################
 #           vectors <=> angles
 # ###############################################
+
 
 def get_vectors_from_angles(alpha, beta, nout, e1, e2):
     """Return new unit vectors according to alpha and beta entries from user
     caused by the non parallelism assumed on the crystal.
     """
 
-    e1_bis = np.cos(alpha)*(
-                    np.cos(beta)*e1 + np.sin(beta)*e2
-                    ) - np.sin(alpha)*nout
+    e1_bis = (
+        np.cos(alpha)*(np.cos(beta)*e1 + np.sin(beta)*e2) - np.sin(alpha)*nout
+    )
 
     e2_bis = np.cos(beta)*e2-np.sin(beta)*e1
 
-    nout_bis = np.cos(alpha)*nout + np.sin(alpha)*(
-             np.cos(beta)*e1+ np.sin(beta)*e2
-             )
+    nout_bis = (
+        np.cos(alpha)*nout + np.sin(alpha)*(np.cos(beta)*e1+ np.sin(beta)*e2)
+    )
     nin_bis = -nout_bis
 
     return nin_bis, nout_bis, e1_bis, e2_bis
