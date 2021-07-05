@@ -1089,6 +1089,77 @@ def CrystalBragg_plot_johannerror(
     return [ax0, ax1, ax2]
 
 
+def CrystalBragg_plot_focal_error_summed(
+    cryst=None, dcryst=None,
+    error_lambda=None,
+    ddist=None, di=None, X=None, Y=None,
+    plot_dets=None, nsort=None,
+    tangent_to_rowland=None,
+):
+
+    extent = (ddist.min(), ddist.max(), di.min(), di.max())
+    if plot_dets:
+        fig = plt.figure(figsize=(14, 8))
+        gs = gridspec.GridSpec(1, 1)
+
+        ax0 = fig.add_subplot(gs[0, 0])
+        ax0.set_title('Summed focalization error [m] on full detector')
+
+        ax0.imshow(
+            error_lambda,
+            origin ='lower',
+            cmap='RdYlBu',
+            extent=extent,
+            interpolation='nearest',
+        )
+
+        sort = np.sort(np.ravel(error_lambda))
+        sort = sort.tolist()
+        a = np.where(error_lambda <= sort[nsort])
+        A = a[0]
+        B = a[1]
+        C = np.dstack((A,B))
+        bardet = dict(np.load(
+            'inputs_temp/det37_CTVD_incC4_New.npz', allow_pickle=True,
+            ))
+        dax = CrystalBragg_plot(
+            cryst=cryst, dcryst=dcryst,
+            det=bardet,
+            )
+        det = {}
+        for ii in range(nsort):
+            det[ii] = cryst.get_detector_approx(
+                ddist = X[C[0, ii][0], C[0, ii][1]],
+                di = Y[C[0, ii][0], C[0, ii][1]],
+                tangent_to_rowland=tangent_to_rowland,
+            )
+            det[ii]['outline'] = np.array(
+                [0.04*np.r_[-1,-1,1,1,-1], 0.12*np.r_[-1,1,1,-1,-1]]
+            )
+            print(det[ii])
+            dax = CrystalBragg_plot(
+                cryst=cryst, dcryst=dcryst,
+                det=det[ii], color='red', dax=dax,
+            )
+    else:
+        plt.title('Mean focalization error on full detector [m]')
+        plt.xlabel('ddist [m]')
+        plt.ylabel('di [m]')
+        plt.imshow(
+            error_lambda,
+            cmap='RdYlBu',
+            origin='lower',
+            extent=extent,
+            interpolation='nearest',
+        )
+        cbar = plt.colorbar(
+            label="error on lambda [m]",
+            orientation="vertical",
+            boundaries=np.linspace(0.1e-7, 1e-7, 50)
+        )
+        plt.clim(0.1e-7, 1e-7)
+
+
 # #################################################################
 # #################################################################
 #                   Ray tracing plot

@@ -65,6 +65,16 @@ def _are_broadcastable(**kwdargs):
 
 
 def _checkformat_xixj(xi, xj):
+
+    if xi is None or xj is None:
+        msg = (
+            "Arg xi and xj must be provided!\n"
+            "Provided:\n"
+            f"\t- xi: {xi}\n"
+            f"\t- xj: {xj}\n"
+        )
+        raise Exception(msg)
+
     xi = np.atleast_1d(xi)
     xj = np.atleast_1d(xj)
 

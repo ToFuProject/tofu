@@ -1802,6 +1802,106 @@ class CrystalBragg(utils.ToFuObject):
                 )
         return err_lamb, err_phi
 
+    def plot_focal_error_summed(
+        self,
+        dist_min=None, dist_max=None,
+        di_min=None, di_max=None,
+        ndist=None, ndi=None,
+        lamb=None, bragg=None,
+        xi=None, xj=None,
+        use_non_parallelism=None,
+        tangent_to_rowland=None, n=None,
+        plot_dets=None, nsort=None,
+        drcyst=None,
+        ax=None, dax=None,
+    ):
+        """
+        Using the calc_johannerror method, computing the sum of the
+        focalization error over the whole detector for different positions
+        characterized by the translations ddist and di in the equatorial plane
+        (dist_min, dist_max, ndist) (di_min, di_max, ndi).
+
+        Parameters:
+        -----------
+        - lamb/bragg :  float
+            Automatically set to crystal's references
+        - xi, xj :  np.ndarray
+            pixelization of the detector
+            (from "inputs_temp/XICS_allshots_C34.py" l.649)
+        - alpha, beta : float
+            Values of Non Parallelism references angles
+        - use_non_parallelism : str
+        - tangent_to_rowland :  str
+        - plot_dets : str
+            Possibility to plot the nsort- detectors with the lowest
+            summed focalization error, next to the Best Approximate Real
+            detector
+            dict(np.load('inputs_temp/det37_CTVD_incC4_New.npz', allow_pickle=True))
+        - nsort : float
+
+        """
+
+        # Check / format inputs
+        if plot_dets is None:
+            plot_dets = False
+        if use_non_parallelism is None:
+            use_non_parallelism = _USE_NON_PARALLELISM
+
+        l0 = [dist_min, dist_max, ndist, di_min, di_max, ndi]
+        c0 = any([l00 is not None for l00 in l0])
+        if not c0:
+            msg = (
+                "Please give the ranges of ddist and di translations\n"
+                "\t to compute the different detector's position\n"
+                "\t Provided:\n"
+                "\t\t- dist_min, dist_max, ndist: ({}, {}, {})\n".format(
+                    dist_min, dist_max, ndist,
+                )
+                + "\t\t- di_min, di_max, ndi: ({}, {}, {})\n".format(
+                    di_min, di_max, ndi,
+                )
+            )
+            raise Exception(msg)
+
+        # Compute
+        ddist = np.linspace(dist_min, dist_max, ndist)
+        di = np.linspace(di_min, di_max, ndi)
+        error_lambda = np.full((ddist.size, di.size), np.nan)
+        end = '\r'
+        for ii in range(ddist.size):
+            for jj in range(di.size):
+                if ii == ndist-1 and jj == ndi-1:
+                    end = '\n'
+                msg = (
+                    "Computing mean focal error for det "
+                    f"({ii+1}, {jj+1})/({ndist}, {ndi})"
+                ).ljust(60)
+                print(msg, end=end, flush=True)
+                det = self.get_detector_approx(
+                    ddist=ddist[ii],
+                    di=di[jj],
+                    lamb=lamb,
+                    bragg=bragg,
+                    use_non_parallelism=use_non_parallelism,
+                    tangent_to_rowland=tangent_to_rowland,
+                )
+                error_lambda[jj, ii] = np.sum(
+                    np.sum(
+                        self.calc_johannerror(
+                            xi=xi, xj=xj, det=det, plot=False,
+                        )[0],
+                        axis=0,
+                    ),
+                    axis=0,
+                )
+        return _plot_optics.CrystalBragg_plot_focal_error_summed(
+            cryst=self, dcryst=dcryst,
+            error_lambda=error_lambda,
+            ddist=ddist, di=di, X=X, Y=Y,
+            plot_dets=plot_dets, nsort=nsort,
+            tangent_to_rowland=tangent_to_rowland,
+        )
+
     def get_lambbraggphi_from_ptsxixj_dthetapsi(
         self,
         pts=None,
