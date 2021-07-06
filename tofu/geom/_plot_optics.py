@@ -998,9 +998,11 @@ def CrystalBragg_plot_line_tracing_on_det(
 
 def CrystalBragg_plot_johannerror(
     xi, xj, lamb, phi, err_lamb, err_phi,
+    err_lamb_units=None,
+    err_phi_units=None,
     cmap=None, vmin=None, vmax=None,
     fs=None, dmargin=None, wintit=None, tit=None,
-    angunits=None, err=None,
+    angunits=None,
 ):
 
     # Check inputs
@@ -1014,11 +1016,15 @@ def CrystalBragg_plot_johannerror(
         dmargin = {'left': 0.05, 'right': 0.99,
                    'bottom': 0.06, 'top': 0.92,
                    'wspace': None, 'hspace': 0.4}
+
+    if angunits is None:
+        angunits = 'rad'
     assert angunits in ['deg', 'rad']
     if angunits == 'deg':
         # bragg = bragg*180./np.pi
         phi = phi*180./np.pi
         err_phi = err_phi*180./np.pi
+        err_phi_units = angunits
 
     if wintit is None:
         wintit = _WINTIT

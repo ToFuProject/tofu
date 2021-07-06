@@ -1813,7 +1813,7 @@ class CrystalBragg(utils.ToFuObject):
         if plot is True:
             ax = _plot_optics.CrystalBragg_plot_johannerror(
                 xi, xj, lamb, phi,
-                err_lamb, err_phi, err=err,
+                err_lamb, err_phi,
                 err_lamb_units=err_lamb_units,
                 err_phi_units=err_phi_units,
                 cmap=cmap, vmin=vmin, vmax=vmax,
