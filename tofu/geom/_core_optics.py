@@ -1898,11 +1898,10 @@ class CrystalBragg(utils.ToFuObject):
         return _plot_optics.CrystalBragg_plot_focal_error_summed(
             cryst=self, dcryst=dcryst,
             error_lambda=error_lambda,
-            ddist=ddist, di=di, X=X, Y=Y,
+            ddist=ddist, di=di,
             plot_dets=plot_dets, nsort=nsort,
             tangent_to_rowland=tangent_to_rowland,
         )
->>>>>>> Issue202_SpectroX2DCrystal
 
     def get_lambbraggphi_from_ptsxixj_dthetapsi(
         self,

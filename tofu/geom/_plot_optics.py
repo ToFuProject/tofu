@@ -1161,7 +1161,7 @@ def CrystalBragg_plot_johannerror(
 def CrystalBragg_plot_focal_error_summed(
     cryst=None, dcryst=None,
     error_lambda=None,
-    ddist=None, di=None, X=None, Y=None,
+    ddist=None, di=None,
     plot_dets=None, nsort=None,
     tangent_to_rowland=None,
 ):
