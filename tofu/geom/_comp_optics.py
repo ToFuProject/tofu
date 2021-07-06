@@ -458,10 +458,10 @@ def calc_meridional_sagital_focus(
 
     # Compute
     s_merid_ref = rcurve*np.sin(bragg)
-    s_sagit_ref = -s_merid_ref / np.cos(2.*bragg)
+    s_sagit_ref = -s_merid_ref/np.cos(2.*bragg)
 
-    s_merid_unp = rcurve * (np.sin(bragg) + np.cos(bragg)*np.sin(alpha))
-    s_sagit_unp = rcurve*np.sin(bragg-alpha)
+    s_merid_unp = rcurve*(np.sin(bragg) + np.cos(bragg)*np.sin(alpha))
+    s_sagit_unp = -s_merid_unp/(1-2.*np.sin(bragg+alpha)**2.) 
 
     # verb
     if verb is True:
@@ -483,7 +483,7 @@ def calc_meridional_sagital_focus(
             mcr = round(100. * delta_merid / s_merid_ref, ndigits=3)
             scr = round(100. * delta_sagit / s_sagit_ref, ndigits=3)
             msg += (
-                f"\nTaking into account non-parallelism (alpha = {alpha}):\n"
+                f"\nTaking into account non-parallelism (alpha = {alpha} rad):\n"
                 f"\t- meridonal focus at {mnp} m (delta = {mca} m / {mcr} %)\n"
                 f"\t- sagital focus at {snp} m (delta = {sca} m / {scr} %)"
             )

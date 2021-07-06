@@ -1282,6 +1282,7 @@ class CrystalBragg(utils.ToFuObject):
             rcurve=rcurve,
             bragg=bragg,
             alpha=alpha,
+            use_non_parallelism=use_non_parallelism,
             verb=verb,
         )
 
