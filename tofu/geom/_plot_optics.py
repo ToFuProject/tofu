@@ -838,8 +838,6 @@ def CrystalBragg_plot_xixj_from_braggangle(bragg=None, xi=None, xj=None,
     return ax
 
 
-
-
 def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
                                            bragg=None, angle=None,
                                            ax=None, plot=None,
@@ -1002,7 +1000,7 @@ def CrystalBragg_plot_johannerror(
     xi, xj, lamb, phi, err_lamb, err_phi,
     cmap=None, vmin=None, vmax=None,
     fs=None, dmargin=None, wintit=None, tit=None,
-    angunits='deg', err=None,
+    angunits=None, err=None,
 ):
 
     # Check inputs
@@ -1021,21 +1019,6 @@ def CrystalBragg_plot_johannerror(
         # bragg = bragg*180./np.pi
         phi = phi*180./np.pi
         err_phi = err_phi*180./np.pi
-
-    if err is None:
-        err = 'abs'
-    if 'rel' in err:
-        if err == 'rel':
-            err_lamb = 100.*err_lamb / (np.nanmax(lamb) - np.nanmin(lamb))
-            err_phi = 100.*err_phi / (np.nanmax(phi) - np.nanmin(phi))
-        elif err == 'rel2':
-            err_lamb = 100.*err_lamb / np.mean(lamb)
-            err_phi = 100.*err_phi / np.mean(phi)
-        err_lamb_units = '%'
-        err_phi_units = '%'
-    else:
-        err_lamb_units = 'm'
-        err_phi_units = angunits
 
     if wintit is None:
         wintit = _WINTIT
@@ -1092,8 +1075,9 @@ def CrystalBragg_plot_johannerror(
 def CrystalBragg_plot_focal_error_summed(
     cryst=None, dcryst=None,
     error_lambda=None,
-    ddist=None, di=None, X=None, Y=None,
+    ddist=None, di=None,
     det_ref=None,
+    units=None,
     plot_dets=None, nsort=None,
     tangent_to_rowland=None,
     contour=None,
@@ -1120,7 +1104,7 @@ def CrystalBragg_plot_focal_error_summed(
         fig = plt.figure(figsize=fs)
         gs = gridspec.GridSpec(1, 1)
         ax = fig.add_subplot(gs[0, 0])
-        ax.set_title('Mean focalization error on full detector [m]')
+        ax.set_title('Mean focalization error\non detector')
         ax.set_xlabel('ddist (m)')
         ax.set_ylabel('di (m)')
 
@@ -1137,7 +1121,7 @@ def CrystalBragg_plot_focal_error_summed(
     )
     cbar = plt.colorbar(
         errmap,
-        label="error on lambda [m]",
+        label=f"error on lambda ({units})",
         orientation="vertical",
     )
     ax.contour(
