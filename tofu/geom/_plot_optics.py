@@ -1162,71 +1162,98 @@ def CrystalBragg_plot_focal_error_summed(
     cryst=None, dcryst=None,
     error_lambda=None,
     ddist=None, di=None,
+    det_ref=None,
     plot_dets=None, nsort=None,
     tangent_to_rowland=None,
+    contour=None,
+    fs=None,
+    cmap=None,
+    vmin=None,
+    vmax=None,
+    ax=None,
 ):
 
-    extent = (ddist.min(), ddist.max(), di.min(), di.max())
-    if plot_dets:
-        fig = plt.figure(figsize=(14, 8))
+    if cmap is None:
+        # cmap = 'RdYlBu'
+        cmap = plt.cm.viridis
+    if nsort is None:
+        nsort = 5
+    if contour is None:
+        errmin = np.nanmin(error_lambda)
+        contour = [errmin + (np.nanmax(error_lambda) - errmin)/50.]
+    if fs is None:
+        fs = (6, 8)
+
+
+    if ax is None:
+        fig = plt.figure(figsize=fs)
         gs = gridspec.GridSpec(1, 1)
+        ax = fig.add_subplot(gs[0, 0])
+        ax.set_title('Mean focalization error on full detector [m]')
+        ax.set_xlabel('ddist (m)')
+        ax.set_ylabel('di (m)')
 
-        ax0 = fig.add_subplot(gs[0, 0])
-        ax0.set_title('Summed focalization error [m] on full detector')
+    # plot error map
+    extent = (ddist.min(), ddist.max(), di.min(), di.max())
+    errmap = ax.imshow(
+        error_lambda,
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
+        origin='lower',
+        extent=extent,
+        interpolation='nearest',
+    )
+    cbar = plt.colorbar(
+        errmap,
+        label="error on lambda [m]",
+        orientation="vertical",
+    )
+    ax.contour(
+        ddist,
+        di,
+        error_lambda,
+        contour,
+        colors='w',
+        linewstyles='-',
+        linewidths=1.,
+    )
 
-        ax0.imshow(
-            error_lambda,
-            origin ='lower',
-            cmap='RdYlBu',
-            extent=extent,
-            interpolation='nearest',
+    if plot_dets:
+        indsort = np.argsort(np.ravel(error_lambda))
+        inddist = indsort % ddist.size
+        inddi = indsort // ddist.size
+
+        # plot det on map
+        ax.plot(
+            ddist[inddist[:nsort]],
+            di[inddi[:nsort]],
+            marker='x',
+            ls='None',
+            color='r',
         )
 
-        sort = np.sort(np.ravel(error_lambda))
-        sort = sort.tolist()
-        a = np.where(error_lambda <= sort[nsort])
-        A = a[0]
-        B = a[1]
-        C = np.dstack((A,B))
-        bardet = dict(np.load(
-            'inputs_temp/det37_CTVD_incC4_New.npz', allow_pickle=True,
-            ))
-        dax = CrystalBragg_plot(
-            cryst=cryst, dcryst=dcryst,
-            det=bardet,
-            )
-        det = {}
-        for ii in range(nsort):
-            det[ii] = cryst.get_detector_approx(
-                ddist = X[C[0, ii][0], C[0, ii][1]],
-                di = Y[C[0, ii][0], C[0, ii][1]],
-                tangent_to_rowland=tangent_to_rowland,
-            )
-            det[ii]['outline'] = np.array(
-                [0.04*np.r_[-1,-1,1,1,-1], 0.12*np.r_[-1,1,1,-1,-1]]
-            )
-            print(det[ii])
+        # plot det geometry
+        if det_ref is not None:
             dax = CrystalBragg_plot(
                 cryst=cryst, dcryst=dcryst,
-                det=det[ii], color='red', dax=dax,
-            )
-    else:
-        plt.title('Mean focalization error on full detector [m]')
-        plt.xlabel('ddist [m]')
-        plt.ylabel('di [m]')
-        plt.imshow(
-            error_lambda,
-            cmap='RdYlBu',
-            origin='lower',
-            extent=extent,
-            interpolation='nearest',
-        )
-        cbar = plt.colorbar(
-            label="error on lambda [m]",
-            orientation="vertical",
-            boundaries=np.linspace(0.1e-7, 1e-7, 50)
-        )
-        plt.clim(0.1e-7, 1e-7)
+                det=det_ref,
+                )
+            det = {}
+            for ii in range(nsort):
+                det[ii] = cryst.get_detector_approx(
+                    ddist=ddist[inddist[ii]],
+                    di=di[inddi[ii]],
+                    tangent_to_rowland=tangent_to_rowland,
+                )
+                det[ii]['outline'] = det_ref['outline']
+                dax = CrystalBragg_plot(
+                    cryst=cryst, dcryst=dcryst,
+                    det=det[ii], color='red',
+                    dax=dax,
+                    element='o',
+                )
+    return ax
 
 
 # #################################################################
