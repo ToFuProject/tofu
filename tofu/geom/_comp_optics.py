@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 
 _LTYPES = [int, float, np.int_, np.float_]
+_USE_NON_PARALLELISM = True
 
 
 
@@ -449,9 +450,11 @@ def calc_meridional_sagital_focus(
         raise Exception(msg)
 
     verb = _check_bool(verb, vardef=True, varname='verb')
-    """use_non_parallelism = _check_bool(
-        use_non_parallelism, vardef=True, varname='use_non_parallelism',
-    )"""
+    use_non_parallelism = _check_bool(
+        use_non_parallelism,
+        vardef=_USE_NON_PARALLELISM,
+        varname='use_non_parallelism',
+    )
 
     # Compute
     s_merid_ref = rcurve*np.sin(bragg)

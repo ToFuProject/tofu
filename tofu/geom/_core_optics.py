@@ -1272,10 +1272,10 @@ class CrystalBragg(utils.ToFuObject):
             rcurve = self._dgeom['rcurve']
         if bragg is None:
             bragg = self._dbragg['braggref']
-        if alpha is None:
+        if use_non_parallelism is True:
             alpha = self._dmat['alpha']
-        if use_non_parallelism is None:
-            use_non_parallelism = False #_USE_NON_PARALLELISM
+        if use_non_parallelism is False:
+            alpha = 0.0
 
         # Compute
         return _comp_optics.calc_meridional_sagital_focus(
