@@ -2326,7 +2326,7 @@ class CrystalBragg(utils.ToFuObject):
                    + "\t- 'ax'   : return a list of axes instances")
             raise Exception(msg)
 
-        xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+        xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
         nxi = xi.size if xi is not None else np.unique(xii).size
         nxj = xj.size if xj is not None else np.unique(xjj).size
 
@@ -2586,7 +2586,7 @@ class CrystalBragg(utils.ToFuObject):
         if dprepare is None:
             # ----------------------
             # Geometrical transform
-            xi, xj, (xii, xjj) = self._checkformat_xixj(xi, xj)
+            xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
             nxi = xi.size if xi is not None else np.unique(xii).size
             nxj = xj.size if xj is not None else np.unique(xjj).size
 
