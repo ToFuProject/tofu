@@ -746,11 +746,13 @@ def _CrystalBragg_plot(
 # #################################################################
 
 
-def CrystalBragg_plot_rockingcurve(func=None, bragg=None, lamb=None,
-                                   sigma=None, npts=None,
-                                   ang_units=None, axtit=None,
-                                   color=None,
-                                   legend=None, fs=None, ax=None):
+def CrystalBragg_plot_rockingcurve(
+    func=None, bragg=None, lamb=None,
+    sigma=None, npts=None,
+    ang_units=None, axtit=None,
+    color=None,
+    legend=None, fs=None, ax=None,
+):
 
     # Prepare
     if legend is None:
