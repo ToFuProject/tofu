@@ -1350,9 +1350,9 @@ class CrystalBragg(utils.ToFuObject):
                     (3,) array of (x, y, z) coordinates of unit vector
                     defining second coordinate in detector's plane
                 'outline':   np.darray
-                    (2, 5) array to build detector's contour
-                    from point 1 to point 5 = point 1
-                    (need to be added manually with this convention
+                    (2, N) array to build detector's contour
+                    where the last point is identical to the first
+                    (for example for WEST 2D spectrometer:
                     x*np.r_[-1,-1,1,1,-1], y*np.r_[-1,1,1,-1,-1])
         """
 
