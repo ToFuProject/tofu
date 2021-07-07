@@ -1759,6 +1759,9 @@ class CrystalBragg(utils.ToFuObject):
         """
 
         # Check xi, xj once before to avoid doing it twice
+        if err is None:
+            err = 'abs'
+
         xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
 
         # Check / format inputs
@@ -1795,14 +1798,30 @@ class CrystalBragg(utils.ToFuObject):
         err_lamb = np.nanmax(np.abs(lamb[..., None] - lamberr), axis=-1)
         err_phi = np.nanmax(np.abs(phi[..., None] - phierr), axis=-1)
 
+        # absolute vs relative error
+        if 'rel' in err:
+            if err == 'rel':
+                err_lamb = 100.*err_lamb / (np.nanmax(lamb) - np.nanmin(lamb))
+                err_phi = 100.*err_phi / (np.nanmax(phi) - np.nanmin(phi))
+            elif err == 'rel2':
+                err_lamb = 100.*err_lamb / np.mean(lamb)
+                err_phi = 100.*err_phi / np.mean(phi)
+            err_lamb_units = '%'
+            err_phi_units = '%'
+        else:
+            err_lamb_units = 'm'
+            err_phi_units = 'rad'
+
         if plot is True:
             ax = _plot_optics.CrystalBragg_plot_johannerror(
                 xi, xj, lamb, phi,
-                err_lamb, err_phi, err=err,
+                err_lamb, err_phi,
+                err_lamb_units=err_lamb_units,
+                err_phi_units=err_phi_units,
                 cmap=cmap, vmin=vmin, vmax=vmax,
                 fs=fs, tit=tit, wintit=wintit,
                 )
-        return err_lamb, err_phi
+        return err_lamb, err_phi, err_lamb_units, err_phi_units
 
     def plot_focal_error_summed(
         self,
@@ -1811,6 +1830,7 @@ class CrystalBragg(utils.ToFuObject):
         ndist=None, ndi=None,
         lamb=None, bragg=None,
         xi=None, xj=None,
+        err=None,
         use_non_parallelism=None,
         tangent_to_rowland=None, n=None,
         plot=None,
@@ -1863,6 +1883,8 @@ class CrystalBragg(utils.ToFuObject):
             ndist = 21
         if ndi is None:
             ndi = 21
+        if err is None:
+            err = 'rel'
         if plot is None:
             plot = True
         if plot_dets is None:
@@ -1916,9 +1938,17 @@ class CrystalBragg(utils.ToFuObject):
                 # Integrate error
                 error_lambda[jj, ii] = np.nanmean(
                     self.calc_johannerror(
-                        xi=xi, xj=xj, det=det, plot=False,
+                        xi=xi, xj=xj,
+                        det=det,
+                        err=err,
+                        plot=False,
                     )[0],
                 )
+
+        if 'rel' in err:
+            units = '%'
+        else:
+            units = 'm'
 
         if plot:
             ax = _plot_optics.CrystalBragg_plot_focal_error_summed(
@@ -1926,6 +1956,7 @@ class CrystalBragg(utils.ToFuObject):
                 error_lambda=error_lambda,
                 ddist=ddist, di=di,
                 det_ref=det_ref,
+                units=units,
                 plot_dets=plot_dets, nsort=nsort,
                 tangent_to_rowland=tangent_to_rowland,
                 contour=contour,

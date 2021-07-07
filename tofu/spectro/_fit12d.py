@@ -1834,6 +1834,9 @@ def fit2d_dinput(
     symb = np.array([dlines[k0].get('symbol', k0) for k0 in lines_keys])
     ion = np.array([dlines[k0].get('ION', '?') for k0 in lines_keys])
 
+    # ------------------------
+    # add lines and properties
+    # ------------------------
     dinput['keys'] = lines_keys
     dinput['lines'] = lines_lamb
     dinput['nlines'] = nlines
@@ -3000,11 +3003,11 @@ def multigausfit1d_from_dlines(
 
     # ---------------------------
     # Get function, cost function and jacobian
-    func_detail, func_cost, func_jac = \
-            _funccostjac.multigausfit1d_from_dlines_funccostjac(
-                lamb, dinput=dinput, dind=dind, jac=jac,
-                indx=indx,
-            )
+    (
+        func_detail, func_cost, func_jac,
+    ) = _funccostjac.multigausfit1d_from_dlines_funccostjac(
+        lamb, dinput=dinput, dind=dind, jac=jac, indx=indx,
+    )
 
     # ---------------------------
     # Prepare output
@@ -3203,13 +3206,13 @@ def multigausfit1d_from_dlines(
     return dfit
 
 
-def multigausfit2d_from_dlines(dinput=None, dx0=None,
-                               scales=None, dscales=None,
-                               x0_scale=None, bounds_scale=None,
-                               method=None, tr_solver=None, tr_options=None,
-                               xtol=None, ftol=None, gtol=None,
-                               max_nfev=None, chain=None, verbose=None,
-                               loss=None, jac=None):
+def multigausfit2d_from_dlines(
+    dinput=None,
+    method=None, tr_solver=None, tr_options=None,
+    xtol=None, ftol=None, gtol=None,
+    max_nfev=None, chain=None, verbose=None,
+    loss=None, jac=None,
+):
     """ Solve multi_gaussian fit in 1d from dlines
 
     If double is True, all lines are double with common shift and ratio
@@ -3233,11 +3236,14 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
 
     # ---------------------------
     # Check format options
-    (chain, method, tr_solver, tr_options,
-     xtol, ftol, gtol, loss, max_nfev,
-     verbose, verbscp) = _checkformat_options(
+    (
+        chain, method, tr_solver, tr_options,
+        xtol, ftol, gtol, loss, max_nfev,
+        verbose, verbscp,
+    ) = _checkformat_options(
          chain, method, tr_solver, tr_options,
-         xtol, ftol, gtol, loss, max_nfev, verbose)
+         xtol, ftol, gtol, loss, max_nfev, verbose,
+    )
 
     # ---------------------------
     # Load dinput if necessary
@@ -3246,36 +3252,49 @@ def multigausfit2d_from_dlines(dinput=None, dx0=None,
     nspect = dprepare['data'].shape[0]
 
     # ---------------------------
-    # Get scaling
-    phi2 = dprepare['phi']
+    # DEPRECATED?
+    lamb = dprepare['lamb']
     if dinput['symmetry'] is True:
-        phi2 = np.abs(phi2 - np.nanmean(dinput['symmetry_axis']))
-
-    scales = multigausfit12d_from_dlines_scale(
-        dprepare['data'], dprepare['lamb'], phi2,
-        domain=dprepare['domain'], dinput=dinput,
-        dind=dind, scales=scales, dscales=dscales, nspect=nspect)
+        phi = np.abs(phi - np.nanmean(dinput['symmetry_axis']))
+    else:
+        phi = dprepare['phi']
 
     # ---------------------------
-    # Get initial guess
-    x0_scale = multigausfit2d_from_dlines_x0(
-        dind=dind, double=dinput['double'],
-        dx0=dx0, keys=dinput['keys'],
-        nspect=nspect, nbs=dinput['nbs'])
+    # Get scaling, x0, bounds from dict
+    scales = _dict2vector_dscalesx0bounds(
+        dd=dinput['dscales'], dd_name='dscales', dinput=dinput,
+    )
+    x0 = _dict2vector_dscalesx0bounds(
+        dd=dinput['dx0'], dd_name='dx0', dinput=dinput,
+    )
+    boundmin = _dict2vector_dscalesx0bounds(
+        dd=dinput['dbounds']['min'], dd_name="dbounds['min']", dinput=dinput,
+    )
+    boundmax = _dict2vector_dscalesx0bounds(
+        dd=dinput['dbounds']['max'], dd_name="dbounds['max']", dinput=dinput,
+    )
+    bounds = np.array([boundmin[0, :], boundmax[0, :]])
+
 
     # ---------------------------
-    # get bounds
-    bounds_scale = multigausfit2d_from_dlines_bounds(dind['sizex'],
-                                                     dind,
-                                                     dinput['double'])
+    # Separate free from constant parameters
+    const = _dict2vector_dscalesx0bounds(
+        dd=dinput['dconstants'], dd_name='dconstants', dinput=dinput,
+    )
+    indx = np.any(np.isnan(const), axis=0)
+    const = const[:, ~indx]
+    x0[:, ~indx] = const / scales[:, ~indx]
 
     # ---------------------------
     # Get function, cost function and jacobian
-    (func_detail, func_cost,
-     func_jac) = _funccostjac.multigausfit2d_from_dlines_funccostjac(
-         dprepare['lamb'], phi2, indok=dprepare['indok'],
-         binning=dprepare['binning'], dinput=dinput,
-         dind=dind, jac=jac)
+    (
+        func_detail, func_cost, func_jac,
+    ) = _funccostjac.multigausfit2d_from_dlines_funccostjac(
+         lamb, phi2,
+         dinput=dinput, dind=dind, jac=jac, indx=indx,
+    )
+
+    # TBF after multigausfit2d_from_dlines_funccostjac() is checked
 
     # ---------------------------
     # Prepare output
