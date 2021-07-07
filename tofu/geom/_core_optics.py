@@ -1409,7 +1409,6 @@ class CrystalBragg(utils.ToFuObject):
              rcurve, bragg,
              bragg01=bragg01, dist01=dist01,
              tangent_to_rowland=tangent_to_rowland)
-        #print('crystal/detector distance:', det_dist)
 
         # Deduce absolute position in (x, y, z)
         det_cent, det_nout, det_ei, det_ej = _comp_optics.get_det_abs_from_rel(
@@ -1640,8 +1639,7 @@ class CrystalBragg(utils.ToFuObject):
         nlamb = lamb.size
 
         if johann is None:
-            johann = True
-            #johann = lpsi is not None or ldtheta is not None
+            johann = lpsi is not None or ldtheta is not None
         if rocking is None:
             rocking = False
 
@@ -1672,11 +1670,10 @@ class CrystalBragg(utils.ToFuObject):
         if nphi is None:
             nphi = 100
         phi = np.linspace(phimin, phimax, nphi)
-        nbragg = bragg.size
 
         xi = np.full((nlamb, nphi), np.nan)
         xj = np.full((nlamb, nphi), np.nan)
-        for ll in range(nbragg):
+        for ll in range(nlamb):
             xi[ll, :], xj[ll, :] = self.calc_xixj_from_braggphi(
                 bragg=np.full(phi.shape, bragg[ll]),
                 phi=phi,

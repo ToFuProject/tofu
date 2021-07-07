@@ -602,13 +602,6 @@ def calc_xixj_from_braggphi(
         option = lc.index(True)
     assert (lc[0] and option == 0) or (lc[1] and option == 1)
 
-    # Prepare
-    if g0[0].shape == (3, 1):
-        summit, nout, e1, e2 = (
-            summit.ravel(), nout.ravel(),
-            e1.ravel(), e2.ravel(),
-            )
-
     if option == 0:
         summit = summit.ravel()
         nout, e1, e2 = nout.ravel(), e1.ravel(), e2.ravel()
