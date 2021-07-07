@@ -342,25 +342,42 @@ class Test01_Crystal(object):
     def test13_calc_meridional_sagital_focus(self):
         derr = {}
         for k0, obj in self.dobj.items():
-            out = obj.calc_meridional_sagital_focus(
-                use_non_parallelism=False,
-                verb=False,
-            )
-            c0 = out[0] == out[2]
-            c1 = out[1] == out[3]
-            # c0 = round(out[0], ndigits=12) == round(out[2], ndigits=12)
-            # c1 = round(out[1], ndigits=12) == round(out[3], ndigits=12)
-            if not c0:
-                derr[k0] = f'Meridional ({out[0]} vs {out[2]})'
-                if not c1:
-                    derr[k0] += f' + Sagital ({out[1]} vs {out[3]})'
-                derr[k0] += ' focus wrong'
-            elif not c1:
-                derr[k0] = f'Sagital ({out[1]} vs {out[3]}) focus wrong'
-            out = obj.calc_meridional_sagital_focus(
-                use_non_parallelism=True,
-                verb=True,
-            )
+            if obj.dmat['alpha'] == 0.0:
+                out = obj.calc_meridional_sagital_focus(
+                    use_non_parallelism=False,
+                    verb=False,
+                )
+                c0 = round(out[0], ndigits=12) == round(out[2], ndigits=12)
+                c1 = round(out[1], ndigits=12) == round(out[3], ndigits=12)
+                if not c0:
+                    derr[k0] = f'Meridional ({out[0]} vs {out[2]})'
+                    if not c1:
+                        derr[k0] += f' + Sagital ({out[1]} vs {out[3]})'
+                    derr[k0] += ' focus wrong'
+                elif not c1:
+                    derr[k0] = f'Sagital ({out[1]} vs {out[3]}) focus wrong'
+                """out = obj.calc_meridional_sagital_focus(
+                    use_non_parallelism=True,
+                    verb=True,
+                )"""
+            else:
+                out = obj.calc_meridional_sagital_focus(
+                    use_non_parallelism=True,
+                    verb=False,
+                )
+                c0 = round(out[0], ndigits=12) != round(out[2], ndigits=12)
+                c1 = round(out[1], ndigits=12) != round(out[3], ndigits=12)
+                if not c0:
+                    derr[k0] = f'Meridional ({out[0]} vs {out[2]})'
+                    if not c1:
+                        derr[k0] += f' + Sagital ({out[1]} vs {out[3]})'
+                    derr[k0] += ' focus wrong'
+                elif not c1:
+                    derr[k0] = f'Sagital ({out[1]} vs {out[3]}) focus wrong'
+                """out = obj.calc_meridional_sagital_focus(
+                    use_non_parallelism=True,
+                    verb=True,
+                )"""
         if len(derr) > 0:
             lstr = [f'\t- {k0}: {v0}' for k0, v0 in derr.items()]
             msg = (

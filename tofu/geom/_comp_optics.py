@@ -448,13 +448,10 @@ def calc_meridional_sagital_focus(
         )
         raise Exception(msg)
 
-    if alpha is None:
-        alpha = 0.
-
     verb = _check_bool(verb, vardef=True, varname='verb')
-    use_non_parallelism = _check_bool(
+    """use_non_parallelism = _check_bool(
         use_non_parallelism, vardef=True, varname='use_non_parallelism',
-    )
+    )"""
 
     # Compute
     s_merid_ref = rcurve*np.sin(bragg)
