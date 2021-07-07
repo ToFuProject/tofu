@@ -1881,6 +1881,8 @@ class CrystalBragg(utils.ToFuObject):
             ndist = 21
         if ndi is None:
             ndi = 21
+        if err is None:
+            err = 'rel'
         if plot is None:
             plot = True
         if plot_dets is None:
