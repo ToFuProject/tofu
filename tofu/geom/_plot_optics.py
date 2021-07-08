@@ -989,7 +989,7 @@ def CrystalBragg_plot_line_tracing_on_det(
             ax.plot(
                 xi_err[l, ...], xj_err[l, ...],
                 ls='None', lw=1., c=l0.get_color(),
-                marker='.', ms=4,
+                ms=4, marker='.',
             )
 
     if dleg is not False:
@@ -1041,7 +1041,6 @@ def CrystalBragg_plot_johannerror(
 
     # Plot
     # ------------
-
     fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(1, 3, **dmargin)
     ax0 = fig.add_subplot(gs[0, 0], aspect='equal') # adjustable='datalim')
@@ -1072,6 +1071,7 @@ def CrystalBragg_plot_johannerror(
 
     plt.colorbar(imlamb, ax=ax1)
     plt.colorbar(imphi, ax=ax2)
+
     if wintit is not False:
         fig.canvas.set_window_title(wintit)
     if tit is not False:

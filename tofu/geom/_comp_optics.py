@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 
 _LTYPES = [int, float, np.int_, np.float_]
+_USE_NON_PARALLELISM = True
 
 
 
@@ -301,6 +302,7 @@ def get_vectors_from_angles(alpha, beta, nout, e1, e2):
     nout_bis = (
         np.cos(alpha)*nout + np.sin(alpha)*(np.cos(beta)*e1+ np.sin(beta)*e2)
     )
+
     nin_bis = -nout_bis
 
     return nin_bis, nout_bis, e1_bis, e2_bis
@@ -447,20 +449,19 @@ def calc_meridional_sagital_focus(
         )
         raise Exception(msg)
 
-    if alpha is None:
-        alpha = 0.
-
     verb = _check_bool(verb, vardef=True, varname='verb')
     use_non_parallelism = _check_bool(
-        use_non_parallelism, vardef=True, varname='use_non_parallelism',
+        use_non_parallelism,
+        vardef=_USE_NON_PARALLELISM,
+        varname='use_non_parallelism',
     )
 
     # Compute
     s_merid_ref = rcurve*np.sin(bragg)
-    s_sagit_ref = -s_merid_ref / np.cos(2.*bragg)
+    s_sagit_ref = -s_merid_ref/np.cos(2.*bragg)
 
-    s_merid_unp = rcurve * (np.sin(bragg) + np.cos(bragg)*np.sin(alpha))
-    s_sagit_unp = rcurve*np.sin(bragg-alpha)
+    s_merid_unp = rcurve*(np.sin(bragg) + np.cos(bragg)*np.sin(alpha))
+    s_sagit_unp = -s_merid_unp/(1-2.*np.sin(bragg+alpha)**2.) 
 
     # verb
     if verb is True:
@@ -482,7 +483,7 @@ def calc_meridional_sagital_focus(
             mcr = round(100. * delta_merid / s_merid_ref, ndigits=3)
             scr = round(100. * delta_sagit / s_sagit_ref, ndigits=3)
             msg += (
-                f"\nTaking into account non-parallelism (alpha = {alpha}):\n"
+                f"\nTaking into account non-parallelism (alpha = {alpha} rad):\n"
                 f"\t- meridonal focus at {mnp} m (delta = {mca} m / {mcr} %)\n"
                 f"\t- sagital focus at {snp} m (delta = {sca} m / {scr} %)"
             )
@@ -601,7 +602,6 @@ def calc_xixj_from_braggphi(
         option = lc.index(True)
     assert (lc[0] and option == 0) or (lc[1] and option == 1)
 
-    # Prepare
     if option == 0:
         summit = summit.ravel()
         nout, e1, e2 = nout.ravel(), e1.ravel(), e2.ravel()

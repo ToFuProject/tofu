@@ -852,6 +852,7 @@ class CrystalBragg(utils.ToFuObject):
         include_summit=None,
         grid=None,
     ):
+
         # Get phi, bragg
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb)
         phi, bragg = self._checkformat_get_Rays_from(phi=phi, bragg=bragg)
@@ -1162,7 +1163,6 @@ class CrystalBragg(utils.ToFuObject):
             )
         else:
             pts_summit, pts1, pts2, xi, xj = None, None, None, None, None
-
         return _plot_optics.CrystalBragg_plot(
             cryst=self, dcryst=dcryst,
             det=det, ddet=ddet,
@@ -1272,19 +1272,19 @@ class CrystalBragg(utils.ToFuObject):
             rcurve = self._dgeom['rcurve']
         if bragg is None:
             bragg = self._dbragg['braggref']
-        if alpha is None:
+        if use_non_parallelism is True:
             alpha = self._dmat['alpha']
-        if use_non_parallelism is None:
-            use_non_parallelism = _USE_NON_PARALLELISM
+        if use_non_parallelism is False:
+            alpha = 0.0
 
         # Compute
         return _comp_optics.calc_meridional_sagital_focus(
             rcurve=rcurve,
             bragg=bragg,
             alpha=alpha,
+            use_non_parallelism=use_non_parallelism,
             verb=verb,
         )
-
 
     def get_rowland_dist_from_lambbragg(self, bragg=None, lamb=None, n=None):
         """ Return the array of dist from cryst summit to pts on rowland """
@@ -1351,8 +1351,8 @@ class CrystalBragg(utils.ToFuObject):
                     defining second coordinate in detector's plane
                 'outline':   np.darray
                     (2, N) array to build detector's contour
-                    where the last point is identical to the first
-                    (for example for WEST 2D spectrometer:
+                    where the last point is identical to the first.
+                    (for example for WEST X2D spectrometer:
                     x*np.r_[-1,-1,1,1,-1], y*np.r_[-1,1,1,-1,-1])
         """
 
@@ -1623,18 +1623,21 @@ class CrystalBragg(utils.ToFuObject):
         wintit=None, tit=None,
     ):
         """ Visualize the de-focusing by ray-tracing of chosen lamb
+        Possibility to plot few wavelength' arcs on the same plot.
         Args:
             - lamb: array of min size 1, in 1e-10 [m]
             - det: dict
             - xi_bounds: np.min & np.max of _XI
             - xj_bounds: np.min & np.max of _XJ
             (from "inputs_temp/XICS_allshots_C34.py" l.649)
+            - johann: True or False
         """
         # Check / format inputs
         if lamb is None:
             lamb = self._dbragg['lambref']
         lamb = np.atleast_1d(lamb).ravel()
         nlamb = lamb.size
+
         if johann is None:
             johann = lpsi is not None or ldtheta is not None
         if rocking is None:
@@ -1661,7 +1664,6 @@ class CrystalBragg(utils.ToFuObject):
         )
         phimin, phimax = np.nanmin(phi), np.nanmax(phi)
         phimin, phimax = phimin-(phimax-phimin)/10, phimax+(phimax-phimin)/10
-        del phi
 
         # Get reference ray-tracing
         bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
@@ -1751,9 +1753,6 @@ class CrystalBragg(utils.ToFuObject):
             - crystal's summit
         Then, computing error on bragg and phi angles on each pixels by
         computing lambda and phi from the crystal's outline
-
-        Possibility to plot focalization error localised on the centered
-        column of the detector with arg xi_plot=True.
         """
 
         # Check xi, xj once before to avoid doing it twice
