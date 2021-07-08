@@ -1216,8 +1216,7 @@ def plot_noise_analysis_scannbs(
         dax['conv'].legend(loc='best')
 
     # Particular cases
-    l0 = (dax.get('case_fit') is not None, dnoise.get('nbsplines') is not None)
-    if l0:
+    if dax.get('case_fit') is not None and dnoise.get('nbsplines') is not None:
         inbs = [np.nonzero(dnoise['lnbsplines'] == nbs)[0][0]
                 for nbs in dnoise['nbsplines']]
         for ii in range(dnoise['nbsplines'].size):

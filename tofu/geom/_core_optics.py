@@ -1226,18 +1226,19 @@ class CrystalBragg(utils.ToFuObject):
 
         Update new values into dmat dict
         """
-            if alpha is None:
-                alpha = 0
-            if beta is None:
-                beta = 0
 
-            (self._dmat['nin'], self._dmat['nout'], self._dmat['e1'],
-             self._dmat['e2']) = _comp_optics.get_vectors_from_angles(
-                             alpha, beta,
-                             self._dgeom['nout'], self._dgeom['e1'],
-                             self._dgeom['e2'],
-                             )
-            self._dmat['alpha'], self._dmat['beta'] = alpha, beta
+        if alpha is None:
+            alpha = 0
+        if beta is None:
+            beta = 0
+
+        (self._dmat['nin'], self._dmat['nout'], self._dmat['e1'],
+         self._dmat['e2']) = _comp_optics.get_vectors_from_angles(
+                         alpha, beta,
+                         self._dgeom['nout'], self._dgeom['e1'],
+                         self._dgeom['e2'],
+                         )
+        self._dmat['alpha'], self._dmat['beta'] = alpha, beta
 
     def calc_meridional_sagital_focus(
         self,
