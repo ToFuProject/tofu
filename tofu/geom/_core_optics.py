@@ -78,13 +78,16 @@ class CrystalBragg(utils.ToFuObject):
     """
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'shot': 0, 'Exp': 'dummy', 'Diag': 'dummy',
-                   'include':['Mod', 'Cls', 'Exp', 'Diag',
-                              'Name', 'shot', 'version']},
-             'dgeom':{'Type': 'sph', 'Typeoutline': 'rect'},
-             'dmat':{},
-             'dbragg':{'braggref': np.pi/4.},
-             'dmisc':{'color':'k'}}
+    _ddef = {
+        'Id': {
+            'shot': 0, 'Exp': 'dummy', 'Diag': 'dummy',
+            'include':['Mod', 'Cls', 'Exp', 'Diag', 'Name', 'shot', 'version'],
+        },
+        'dgeom':{'Type': 'sph', 'Typeoutline': 'rect'},
+        'dmat':{},
+        'dbragg':{'braggref': np.pi/4.},
+        'dmisc':{'color':'k'},
+    }
     _dplot = {'cross':{'Elt':'P',
                        'dP':{'color':'k','lw':2},
                        'dI':{'color':'k','ls':'--','marker':'x','ms':8,'mew':2},
@@ -504,11 +507,12 @@ class CrystalBragg(utils.ToFuObject):
 
         # -----------------------
         # Build material
-        col0 = ['formula', 'symmetry', 'cut', 'density',
-                'd (A)',
-                'bragg({:9.6} A) (deg)'.format(self._dbragg['lambref']*1e10),
-                'Type', 'outline', 'surface (cm²)','rcurve', 'rocking curve',
-               ]
+        col0 = [
+            'formula', 'symmetry', 'cut', 'density',
+            'd (A)',
+            'bragg({:9.6} A) (deg)'.format(self._dbragg['lambref']*1e10),
+            'Type', 'outline', 'surface (cm²)', 'rcurve', 'rocking curve',
+        ]
         ar0 = [self._dmat['formula'], self._dmat['symmetry'],
                str(self._dmat['cut']), str(self._dmat['density']),
                '{0:5.3f}'.format(self._dmat['d']*1.e10),
@@ -526,14 +530,15 @@ class CrystalBragg(utils.ToFuObject):
         # Build geometry
         col1 = ['half-extent', 'summit', 'center', 'nout', 'e1',
                 'alpha', 'beta']
-        ar1 = [str(np.round(self._dgeom['extenthalf'], decimals=3)),
-               str(np.round(self._dgeom['summit'], decimals=2)),
-               str(np.round(self._dgeom['center'], decimals=2)),
-               str(np.round(self._dmat['nout'], decimals=3)),
-               str(np.round(self._dmat['e1'], decimals=3)),
-               str(np.round(self._dmat['alpha'], decimals=6)),
-               str(np.round(self._dmat['beta'], decimals=6))
-              ]
+        ar1 = [
+            str(np.round(self._dgeom['extenthalf'], decimals=3)),
+            str(np.round(self._dgeom['summit'], decimals=2)),
+            str(np.round(self._dgeom['center'], decimals=2)),
+            str(np.round(self._dmat['nout'], decimals=3)),
+            str(np.round(self._dmat['e1'], decimals=3)),
+            str(np.round(self._dmat['alpha'], decimals=6)),
+            str(np.round(self._dmat['beta'], decimals=6)),
+        ]
         if self._dgeom.get('move') not in [None, False]:
             col1 += ['move', 'param']
             ar1 += [self._dgeom['move'],
@@ -902,11 +907,12 @@ class CrystalBragg(utils.ToFuObject):
         if return_xixj is None:
             return_xixj = False
 
-        lret = ['(pts, vect, length)', '(pts, vect)', 'pts'] #, object]
+        lret = ['(pts, vect, length)', '(pts, vect)', 'pts']    # , object]
         if returnas not in lret:
             msg = (
                 "Arg returnas must be in:\n"
-                + "\t- '(pts, vect, length)': starting points, unit vector, length\n"
+                + "\t- '(pts, vect, length)': starting points, unit vector,"
+                + " length\n"
                 + "\t- 'pts': starting and ending points\n"
                 # + "\t- object: CamLOS1D instance\n"
             )
@@ -964,7 +970,7 @@ class CrystalBragg(utils.ToFuObject):
                     np.sum((cent-pts_start)*nout, axis=0)
                     / np.sum(vect*nout, axis=0)
                 )
-            dk['det'][k>=0.] = k[k>=0.]
+            dk['det'][k >= 0.] = k[k >= 0.]
             if return_xixj is True:
                 if grid:
                     pts_end = pts_start[..., None] + dk['det'][None, ...]*vect
@@ -1215,9 +1221,11 @@ class CrystalBragg(utils.ToFuObject):
                                                 self._dmat['d'], n=n)
 
     def update_non_parallelism(self, alpha=None, beta=None):
-            """Compute new values of unit vectors nout, e1 and e2 into
-            dmat basis, due to non parallelism.
-            Update new values into dmat dict."""
+        """ Compute new values of unit vectors nout, e1 and e2 into
+        dmat basis, due to non parallelism
+
+        Update new values into dmat dict
+        """
             if alpha is None:
                 alpha = 0
             if beta is None:
@@ -1370,12 +1378,13 @@ class CrystalBragg(utils.ToFuObject):
 
         lc = [lamb0 is not None, lamb1 is not None, dist01 is not None]
         if any(lc) and not all(lc):
-            msg = ("Arg lamb0, lamb1 and dist01 must be provided together:\n"
-                   + "\t- lamb0: line0 wavelength ({})\n".format(lamb0)
-                   + "\t- lamb1: line1 wavelength ({})\n".format(lamb1)
-                   + "\t- dist01: distance (m) on detector between lines "
-                   + "({})".format(dist01)
-                  )
+            msg = (
+                "Arg lamb0, lamb1 and dist01 must be provided together:\n"
+                + "\t- lamb0: line0 wavelength ({})\n".format(lamb0)
+                + "\t- lamb1: line1 wavelength ({})\n".format(lamb1)
+                + "\t- dist01: distance (m) on detector between lines "
+                + "({})".format(dist01)
+            )
             raise Exception(msg)
         bragg01 = None
         if all(lc):
@@ -1386,8 +1395,10 @@ class CrystalBragg(utils.ToFuObject):
         # split into 2 different condition because of dmat
         lc = [rcurve is None, self._dgeom['summit'] is None]
         if any(lc):
-            msg = ("Some missing fields in dgeom for computation:"
-                   + "\n\t-" + "\n\t-".join(['rcurve'] +'summit'))
+            msg = (
+                "Some missing fields in dgeom for computation:"
+                + "\n\t-" + "\n\t-".join(['rcurve'] + 'summit')
+            )
             raise Exception(msg)
 
         nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
@@ -1476,7 +1487,7 @@ class CrystalBragg(utils.ToFuObject):
 
         All points on the spherical crystal's surface are identified
             by (dtheta, psi) coordinates, where:
-                - theta  = np.pi/2 + dtheta (dtheta=0 by default) for the center
+                - theta  = np.pi/2 + dtheta (dtheta=0 default) for the center
                 (for the diffracted beam), from frame's basis vector ez
                 - psi = 0 for the center, positive in direction of e1
             They are the spherical coordinates from a sphere centered on the
@@ -1784,7 +1795,9 @@ class CrystalBragg(utils.ToFuObject):
         npsi = lpsi.size
         assert npsi == ldtheta.size
 
-        braggerr, phierr, lamberr = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
+        (
+            braggerr, phierr, lamberr,
+        ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
             xi=xii, xj=xjj, det=det,
             dtheta=ldtheta, psi=lpsi,
             use_non_parallelism=use_non_parallelism,
@@ -1862,7 +1875,7 @@ class CrystalBragg(utils.ToFuObject):
             Possibility to plot the nsort- detectors with the lowest
             summed focalization error, next to the Best Approximate Real
             detector
-            dict(np.load('inputs_temp/det37_CTVD_incC4_New.npz', allow_pickle=True))
+            dict(np.load('det37_CTVD_incC4_New.npz', allow_pickle=True))
         - nsort : float
 
         """
@@ -2152,7 +2165,7 @@ class CrystalBragg(utils.ToFuObject):
         dtheta, psi, indok, grid = _comp_optics.calc_dthetapsiphi_from_lambpts(
             pts,
             bragg,
-            summit=self._dgeom['summit'], # To be updated (non-paralellism)?
+            summit=self._dgeom['summit'],   # To be updated (non-paralellism)?
             rcurve=self._dgeom['rcurve'],
             nout=nout, e1=e1, e2=e2,
             extenthalf=self._dgeom['extenthalf'],
@@ -2319,7 +2332,7 @@ class CrystalBragg(utils.ToFuObject):
         if returnas is None:
             returnas = 'spect'
         lreturn = ['ax', 'spect']
-        if not returnas in lreturn:
+        if returnas not in lreturn:
             msg = ("Arg returnas must be in {}\n:".format(lreturn)
                    + "\t- 'spect': return a 1d vertically averaged spectrum\n"
                    + "\t- 'ax'   : return a list of axes instances")
@@ -2412,7 +2425,8 @@ class CrystalBragg(utils.ToFuObject):
         mask=None, domain=None, pos=None, subset=None,
         same_spectrum=None, same_spectrum_dlamb=None,
         focus=None, valid_fraction=None, valid_nsigma=None,
-        focus_half_width=None, valid_return_fract=None):
+        focus_half_width=None, valid_return_fract=None,
+    ):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _fit12d.multigausfit1d_from_dlines()
@@ -2451,7 +2465,8 @@ class CrystalBragg(utils.ToFuObject):
         # Saving and plotting kwdargs
         save=None, name=None, path=None,
         plot=None, fs=None, dmargin=None,
-        tit=None, wintit=None, returnas=None):
+        tit=None, wintit=None, returnas=None,
+    ):
 
         # ----------------------
         # Get dinput for 1d fitting from dlines, dconstraints, dprepare...
@@ -2493,7 +2508,8 @@ class CrystalBragg(utils.ToFuObject):
         amp=None, coefs=None, ratio=None,
         Ti=None, width=None,
         vi=None, shift=None,
-        pts_lamb_total=None, pts_lamb_detail=None):
+        pts_lamb_total=None, pts_lamb_detail=None,
+    ):
         import tofu.spectro._fit12d as _fit12d
         return _fit12d.fit1d_extract(
             dfit1d=dfit,
@@ -2524,7 +2540,6 @@ class CrystalBragg(utils.ToFuObject):
             msg = ("Arg lphi must be provided !")
             raise Exception(msg)
 
-
         # ----------------------
         # Prepare input data
         # (geometrical transform, domain, binning, subset, noise...)
@@ -2537,7 +2552,6 @@ class CrystalBragg(utils.ToFuObject):
                 nbsplines=False, subset=False,
                 lphi=lphi, lphi_tol=lphi_tol)
 
-
         # ----------------------
         # Get dinput for 2d fitting from dlines, and dconstraints
         if dinput is None:
@@ -2549,21 +2563,23 @@ class CrystalBragg(utils.ToFuObject):
 
         # ----------------------
         # fit
-        out = self.fit1d(xi=None, xj=None, data=None, mask=None,
-              det=None, dtheta=None, psi=None, n=None,
-              nlambfit=None, nphifit=None,
-              lambmin=None, lambmax=None,
-              dlines=None, spect1d=None,
-              dconstraints=None, dx0=None,
-              same_spectrum=None, dlamb=None,
-              double=None,
-              dscales=None, x0_scale=None, bounds_scale=None,
-              method=None, max_nfev=None,
-              xtol=None, ftol=None, gtol=None,
-              loss=None, verbose=0, chain=None,
-              jac=None, showonly=None,
-              plot=None, fs=None, dmargin=None,
-              tit=None, wintit=None, returnas=None)
+        out = self.fit1d(
+            xi=None, xj=None, data=None, mask=None,
+            det=None, dtheta=None, psi=None, n=None,
+            nlambfit=None, nphifit=None,
+            lambmin=None, lambmax=None,
+            dlines=None, spect1d=None,
+            dconstraints=None, dx0=None,
+            same_spectrum=None, dlamb=None,
+            double=None,
+            dscales=None, x0_scale=None, bounds_scale=None,
+            method=None, max_nfev=None,
+            xtol=None, ftol=None, gtol=None,
+            loss=None, verbose=0, chain=None,
+            jac=None, showonly=None,
+            plot=None, fs=None, dmargin=None,
+            tit=None, wintit=None, returnas=None,
+        )
         pass
 
     def fit2d_dinput(
@@ -2574,7 +2590,8 @@ class CrystalBragg(utils.ToFuObject):
         # lphi=None, lphi_tol=None,
         deg=None, knots=None, nbsplines=None,
         focus=None, valid_fraction=None, valid_nsigma=None,
-        focus_half_width=None, valid_return_fract=None):
+        focus_half_width=None, valid_return_fract=None,
+    ):
         """ Return a formatted dict of lines and constraints
 
         To be fed to _fit12d.multigausfit1d_from_dlines()
@@ -2607,7 +2624,7 @@ class CrystalBragg(utils.ToFuObject):
                 pos=pos, binning=binning,
                 nbsplines=nbsplines, subset=subset,
                 nxi=nxi, nxj=nxj,
-            ) # , lphi=lphi, lphi_tol=lphi_tol)
+            )   # , lphi=lphi, lphi_tol=lphi_tol)
         return _fit12d.fit2d_dinput(
             dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
             deg=deg, knots=knots, nbsplines=nbsplines,
@@ -2638,7 +2655,8 @@ class CrystalBragg(utils.ToFuObject):
         # Saving and plotting kwdargs
         save=None, name=None, path=None,
         plot=None, fs=None, dmargin=None,
-        tit=None, wintit=None, returnas=None):
+        tit=None, wintit=None, returnas=None,
+    ):
 
         # npts=None, dax=None,
         # spect1d=None, nlambfit=None,
@@ -2730,7 +2748,8 @@ class CrystalBragg(utils.ToFuObject):
         dax=None, fs=None, dmargin=None,
         wintit=None, tit=None, sublab=None,
         save_fig=None, name_fig=None, path_fig=None,
-        fmt=None, return_dax=None):
+        fmt=None, return_dax=None,
+    ):
 
         # ----------------------
         # Geometrical transform
@@ -2765,7 +2784,8 @@ class CrystalBragg(utils.ToFuObject):
         ms=None, dcolor=None,
         dax=None, fs=None, dmargin=None,
         wintit=None, tit=None, sublab=None,
-        save=None, name=None, path=None, fmt=None):
+        save=None, name=None, path=None, fmt=None,
+    ):
         import tofu.spectro._plot as _plot_spectro
         return _plot_spectro.plot_noise_analysis(
             dnoise=dnoise, margin=margin, valid_fraction=valid_fraction,
@@ -2787,7 +2807,8 @@ class CrystalBragg(utils.ToFuObject):
         ms=None, dax=None, fs=None, dmargin=None,
         wintit=None, tit=None, sublab=None,
         save_fig=None, name_fig=None, path_fig=None,
-        fmt=None, return_dax=None):
+        fmt=None, return_dax=None,
+    ):
 
         # ----------------------
         # Geometrical transform
@@ -2819,7 +2840,8 @@ class CrystalBragg(utils.ToFuObject):
         dnoise_scan=None, ms=None,
         dax=None, fs=None, dmargin=None,
         wintit=None, tit=None, sublab=None,
-        save=None, name=None, path=None, fmt=None):
+        save=None, name=None, path=None, fmt=None,
+    ):
         import tofu.spectro._plot as _plot_spectro
         return _plot_spectro.plot_noise_analysis_scannbs(
                 dnoise=dnoise_scan, ms=ms,
