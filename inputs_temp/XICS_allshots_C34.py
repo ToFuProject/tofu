@@ -26,8 +26,15 @@ import inputs_temp.XICS_allshots_C34 as xics
 _ = sys.path.pop(1)
 
 
-print(('tofu in {}: \n\t'.format(__file__)
-       + tf.__version__  + '\n\t' + tf.__file__), file=sys.stdout)
+print(
+    (
+        'tofu in {}: \n\t'.format(__file__)
+        + tf.__version__
+        + '\n\t'
+        + tf.__file__
+    ),
+    file=sys.stdout,
+)
 
 
 # #############################################################################
@@ -77,19 +84,27 @@ _DET_CAD_NOUT = _DET_CAD_NOUT / np.linalg.norm(_DET_CAD_NOUT)
 
 _DLINES_ARXVII = {
     k0: v0 for k0, v0 in dlines.items()
-    if ((v0['source'] == 'Vainshtein 85'
-         and v0['ION'] == 'ArXVII'
-         and v0['symbol'] not in ['y2', 'z2'])
-        or (v0['source'] == 'Goryaev 17'
+    if (
+        (
+            v0['source'] == 'Vainshtein 85'
+            and v0['ION'] == 'ArXVII'
+            and v0['symbol'] not in ['y2', 'z2']
+        )
+        or (
+            v0['source'] == 'Goryaev 17'
             and v0['ION'] == 'ArXVI'
-            and v0['symbol'] not in ['l', 'n3-h1', 'n3-h2', 'd',
-                                     'n3-e1', 'n3-f4', 'n3-f2', 'n3-e2',
-                                     'n3-f1', 'n3-g1', 'n3-g2', 'n3-g3',
-                                     'n3-f3', 'n3-a1', 'n3-a2', 'n3-c1',
-                                     'n3-c2', 'g', 'i', 'e', 'f', 'u',
-                                     'v', 'h', 'c', 'b', 'n3-b1',
-                                     'n3-b2', 'n3-b4', 'n3-d1', 'n3-d2']
-           ))}
+            and v0['symbol'] not in [
+                'l', 'n3-h1', 'n3-h2', 'd',
+                'n3-e1', 'n3-f4', 'n3-f2', 'n3-e2',
+                'n3-f1', 'n3-g1', 'n3-g2', 'n3-g3',
+                'n3-f3', 'n3-a1', 'n3-a2', 'n3-c1',
+                'n3-c2', 'g', 'i', 'e', 'f', 'u',
+                'v', 'h', 'c', 'b', 'n3-b1',
+                'n3-b2', 'n3-b4', 'n3-d1', 'n3-d2',
+            ]
+        )
+    )
+}
 
 
 # #############################################################################
@@ -124,13 +139,13 @@ _SHOTS = np.r_[
 
 _NSHOT = _SHOTS.size
 _CAMP = np.full((_NSHOT,), 3)
-_CAMP[_SHOTS>54178] = 4
+_CAMP[_SHOTS > 54178] = 4
 
 _TLIM = np.tile([-np.inf, np.inf], (_NSHOT, 1))
 
 _CRYST = np.full((_NSHOT,), 'ArXVII', dtype='<U7')
-iArXVIII = (_SHOTS>=54062) & (_SHOTS<=54107)
-iFe = (_SHOTS>=54123) & (_SHOTS<=54178)
+iArXVIII = (_SHOTS >= 54062) & (_SHOTS <= 54107)
+iFe = (_SHOTS >= 54123) & (_SHOTS <= 54178)
 _CRYST[iArXVIII] = 'ArXVIII'
 _CRYST[iFe] = 'FeXXV'
 _ANG = np.full((_NSHOT,), np.nan)
@@ -179,79 +194,79 @@ _DSHOTS = {
     },
 
     'ArXVIII':{
-        54062: {'ang': -101.0, 'tlim': [32,37]},
-        54063: {'ang': -101.0, 'tlim': [32,43]},
-        54064: {'ang': -101.0, 'tlim': [32,43]},
-        54065: {'ang': -101.099, 'tlim': [32,44]},
-        54066: {'ang': -101.099, 'tlim': [32,41]},
-        54067: {'ang': -101.099, 'tlim': [32,43]},
-        54069: {'ang': -101.099, 'tlim': [32,40]},
-        54070: {'ang': -101.099, 'tlim': [32,38]},
-        54071: {'ang': -101.099, 'tlim': [32,40]},
-        54072: {'ang': -101.099, 'tlim': [32,37]},
-        54073: {'ang': -101.2218, 'tlim': [32,38]},
-        54074: {'ang': -101.2218, 'tlim': [32,37]},
-        54075: {'ang': -101.2218, 'tlim': [32,37]},
-        54077: {'ang': -101.3507, 'tlim': [32,34]},
-        54088: {'ang': -101.3507, 'tlim': [32,38]},
-        54089: {'ang': -101.3507, 'tlim': [32,45]},
-        54090: {'ang': -101.4831, 'tlim': [32,40]},
-        54091: {'ang': -101.5800, 'tlim': [32,40]},
-        54092: {'ang': -101.5800, 'tlim': [32,40]},
-        54093: {'ang': -100.924, 'tlim': [32,37]},
-        54094: {'ang': -100.924, 'tlim': [32,40]},
-        54095: {'ang': -100.799, 'tlim': [32,48]},
-        54096: {'ang': -100.799, 'tlim': [32,39]},
-        54097: {'ang': -100.799, 'tlim': [32,37]},
-        54098: {'ang': -100.706, 'tlim': [32,39]},
-        54099: {'ang': -100.706, 'tlim': [32,39]},
-        54100: {'ang': -100.580, 'tlim': [32,44]},
-        54101: {'ang': -100.483, 'tlim': [32,40]},
-        54102: {'ang': -100.386, 'tlim': [32,45]},
-        54103: {'ang': -100.386, 'tlim': [32,38]},
-        54104: {'ang': -100.2644, 'tlim': [32,38]},
-        54105: {'ang': -100.132, 'tlim': [32,40]},
-        54107: {'ang': -100.038, 'tlim': [32,38]},
+        54062: {'ang': -101.0, 'tlim': [32, 37]},
+        54063: {'ang': -101.0, 'tlim': [32, 43]},
+        54064: {'ang': -101.0, 'tlim': [32, 43]},
+        54065: {'ang': -101.099, 'tlim': [32, 44]},
+        54066: {'ang': -101.099, 'tlim': [32, 41]},
+        54067: {'ang': -101.099, 'tlim': [32, 43]},
+        54069: {'ang': -101.099, 'tlim': [32, 40]},
+        54070: {'ang': -101.099, 'tlim': [32, 38]},
+        54071: {'ang': -101.099, 'tlim': [32, 40]},
+        54072: {'ang': -101.099, 'tlim': [32, 37]},
+        54073: {'ang': -101.2218, 'tlim': [32, 38]},
+        54074: {'ang': -101.2218, 'tlim': [32, 37]},
+        54075: {'ang': -101.2218, 'tlim': [32, 37]},
+        54077: {'ang': -101.3507, 'tlim': [32, 34]},
+        54088: {'ang': -101.3507, 'tlim': [32, 38]},
+        54089: {'ang': -101.3507, 'tlim': [32, 45]},
+        54090: {'ang': -101.4831, 'tlim': [32, 40]},
+        54091: {'ang': -101.5800, 'tlim': [32, 40]},
+        54092: {'ang': -101.5800, 'tlim': [32, 40]},
+        54093: {'ang': -100.924, 'tlim': [32, 37]},
+        54094: {'ang': -100.924, 'tlim': [32, 40]},
+        54095: {'ang': -100.799, 'tlim': [32, 48]},
+        54096: {'ang': -100.799, 'tlim': [32, 39]},
+        54097: {'ang': -100.799, 'tlim': [32, 37]},
+        54098: {'ang': -100.706, 'tlim': [32, 39]},
+        54099: {'ang': -100.706, 'tlim': [32, 39]},
+        54100: {'ang': -100.580, 'tlim': [32, 44]},
+        54101: {'ang': -100.483, 'tlim': [32, 40]},
+        54102: {'ang': -100.386, 'tlim': [32, 45]},
+        54103: {'ang': -100.386, 'tlim': [32, 38]},
+        54104: {'ang': -100.2644, 'tlim': [32, 38]},
+        54105: {'ang': -100.132, 'tlim': [32, 40]},
+        54107: {'ang': -100.038, 'tlim': [32, 38]},
     },
 
     'FeXXV':{
-        54123: {'ang': -181.547, 'tlim': [32,59]},
-        54126: {'ang': -181.547, 'tlim': [32,38]},
-        54127: {'ang': -181.547, 'tlim': [32,49]},
-        54128: {'ang': -181.547, 'tlim': [32,61]},
-        54129: {'ang': -181.547, 'tlim': [32,46]},
-        54130: {'ang': -181.547, 'tlim': [32,59]},
-        54131: {'ang': -181.647, 'tlim': [32,64]},
-        54133: {'ang': -181.746, 'tlim': [32,67]},
-        54134: {'ang': -181.846, 'tlim': [32,63]},
-        54135: {'ang': -181.946, 'tlim': [32,60]},
-        54136: {'ang': -181.428, 'tlim': [32,63]},
-        54137: {'ang': -181.3222, 'tlim': [32,44]},
-        54138: {'ang': -181.1954, 'tlim': [32,42]},
-        54139: {'ang': -181.1954, 'tlim': [32,65]},
-        54141: {'ang': -181.1954, 'tlim': [32,59]},
-        54142: {'ang': -181.1954, 'tlim': [32,54]},
-        54143: {'ang': -181.1954, 'tlim': [32,66]},
-        54144: {'ang': -181.1954, 'tlim': [32,65]},
-        54145: {'ang': -181.1954, 'tlim': [32,40]},
-        54150: {'ang': -181.0942, 'tlim': [32,57]},
-        54151: {'ang': -181.0942, 'tlim': [32,40]},
-        54152: {'ang': -180.9625, 'tlim': [32,61]},
-        54153: {'ang': -180.9625, 'tlim': [32,49]},
-        54154: {'ang': -180.8651, 'tlim': [32,49]},
-        54155: {'ang': -180.8651, 'tlim': [32,47]},
-        54158: {'ang': -180.8651, 'tlim': [32,67]},
-        54159: {'ang': -180.7667, 'tlim': [32,63]},
-        54160: {'ang': -180.7667, 'tlim': [32,66]},
-        54161: {'ang': -180.6687, 'tlim': [32,40]},
-        54162: {'ang': -180.6687, 'tlim': [32,37]},
-        54163: {'ang': -180.6687, 'tlim': [32,66]},
-        54164: {'ang': -180.5434, 'tlim': [32,65]},
-        54165: {'ang': -180.5803, 'tlim': [32,39]},
-        54166: {'ang': -180.5803, 'tlim': [32,65]},
-        54167: {'ang': -181.6169, 'tlim': [32,37]},
-        54173: {'ang': -181.6169, 'tlim': [32,69.5]},
-        54178: {'ang': -181.6169, 'tlim': [32,69.5]},
+        54123: {'ang': -181.547, 'tlim': [32, 59]},
+        54126: {'ang': -181.547, 'tlim': [32, 38]},
+        54127: {'ang': -181.547, 'tlim': [32, 49]},
+        54128: {'ang': -181.547, 'tlim': [32, 61]},
+        54129: {'ang': -181.547, 'tlim': [32, 46]},
+        54130: {'ang': -181.547, 'tlim': [32, 59]},
+        54131: {'ang': -181.647, 'tlim': [32, 64]},
+        54133: {'ang': -181.746, 'tlim': [32, 67]},
+        54134: {'ang': -181.846, 'tlim': [32, 63]},
+        54135: {'ang': -181.946, 'tlim': [32, 60]},
+        54136: {'ang': -181.428, 'tlim': [32, 63]},
+        54137: {'ang': -181.3222, 'tlim': [32, 44]},
+        54138: {'ang': -181.1954, 'tlim': [32, 42]},
+        54139: {'ang': -181.1954, 'tlim': [32, 65]},
+        54141: {'ang': -181.1954, 'tlim': [32, 59]},
+        54142: {'ang': -181.1954, 'tlim': [32, 54]},
+        54143: {'ang': -181.1954, 'tlim': [32, 66]},
+        54144: {'ang': -181.1954, 'tlim': [32, 65]},
+        54145: {'ang': -181.1954, 'tlim': [32, 40]},
+        54150: {'ang': -181.0942, 'tlim': [32, 57]},
+        54151: {'ang': -181.0942, 'tlim': [32, 40]},
+        54152: {'ang': -180.9625, 'tlim': [32, 61]},
+        54153: {'ang': -180.9625, 'tlim': [32, 49]},
+        54154: {'ang': -180.8651, 'tlim': [32, 49]},
+        54155: {'ang': -180.8651, 'tlim': [32, 47]},
+        54158: {'ang': -180.8651, 'tlim': [32, 67]},
+        54159: {'ang': -180.7667, 'tlim': [32, 63]},
+        54160: {'ang': -180.7667, 'tlim': [32, 66]},
+        54161: {'ang': -180.6687, 'tlim': [32, 40]},
+        54162: {'ang': -180.6687, 'tlim': [32, 37]},
+        54163: {'ang': -180.6687, 'tlim': [32, 66]},
+        54164: {'ang': -180.5434, 'tlim': [32, 65]},
+        54165: {'ang': -180.5803, 'tlim': [32, 39]},
+        54166: {'ang': -180.5803, 'tlim': [32, 65]},
+        54167: {'ang': -181.6169, 'tlim': [32, 37]},
+        54173: {'ang': -181.6169, 'tlim': [32, 69.5]},
+        54178: {'ang': -181.6169, 'tlim': [32, 69.5]},
     }
 }
 
@@ -286,22 +301,28 @@ for cryst, v0 in _DSHOTS.items():
 _DCRYST = {
     'ArXVII': os.path.abspath(os.path.join(
         _HERE,
-        'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVII_sh00000_Vers1.4.7-208-gb3dcce6e.npz')),
+        'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVII_sh00000_Vers1.4.7-208-gb3dcce6e.npz',
+    )),
     'ArXVIII': os.path.abspath(os.path.join(
         _HERE,
-        'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVIII_sh00000_Vers1.4.7-221-g65718177.npz')),
+        'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVIII_sh00000_Vers1.4.7-221-g65718177.npz',
+    )),
     'FeXXV': os.path.abspath(os.path.join(
         _HERE,
-        'TFG_CrystalBragg_ExpWEST_DgXICS_FeXXV_sh00000_Vers1.4.7-221-g65718177.npz')),
+        'TFG_CrystalBragg_ExpWEST_DgXICS_FeXXV_sh00000_Vers1.4.7-221-g65718177.npz',
+    )),
 }
 
-_DDET = {'ArXVII':
-         dict(ddist=0., di=-0.005, dj=0.,
-              dtheta=0., dpsi=-0.01, tilt=0.008, tangent_to_rowland=True),
-         'FeXXV':
-         dict(ddist=0., di=0., dj=0.,
-              dtheta=0., dpsi=0., tilt=0., tangent_to_rowland=True),
-        }
+_DDET = {
+    'ArXVII': dict(
+        ddist=0., di=-0.005, dj=0., dtheta=0., dpsi=-0.01,
+        tilt=0.008, tangent_to_rowland=True,
+    ),
+    'FeXXV': dict(
+        ddist=0., di=0., dj=0.,
+        dtheta=0., dpsi=0., tilt=0., tangent_to_rowland=True,
+    ),
+}
 
 
 # #############################################################################
@@ -323,6 +344,7 @@ _MASK = ~np.any(np.load(_MASKPATH)['ind'], axis=0)
 _DLINES = None
 _XJJ = np.r_[-0.08, -0.05, 0., 0.05, 0.1]
 _DXJ = 0.002
+
 
 def main(shots=_SHOTS,
          path=None,
@@ -444,14 +466,17 @@ def main(shots=_SHOTS,
 # #############################################################################
 
 
-_GEOM = {'pix':{'sizeH':172.e-6, 'sizeV':172.e-6,
-                'nbH':487,'nbV':1467,'nbVGap':17,'nbVMod':195,
-         'mod':{'nbV':7,'nbH':1,
-                'sizeH':83.764e-3, 'sizeV':33.54e-3}}}
+_GEOM = {
+    'pix': {
+        'sizeH': 172.e-6, 'sizeV': 172.e-6,
+        'nbH': 487,'nbV': 1467,'nbVGap': 17,'nbVMod': 195,
+        'mod': {'nbV': 7,'nbH': 1, 'sizeH': 83.764e-3, 'sizeV': 33.54e-3}
+    }
+}
 
 
 def _get_THR(shot):
-    if shot>=53700 and shot<=53723:
+    if shot >= 53700 and shot <= 53723:
         THR = 4024
     else:
         THR = np.nan
@@ -459,19 +484,19 @@ def _get_THR(shot):
 
 
 def _get_Ang(shot):
-    if shot>=53700 and shot<=53723:
+    if shot >= 53700 and shot <= 53723:
         angle = -181.546
-    elif shot>=54038 and shot<=54040:
+    elif shot >= 54038 and shot <= 54040:
         angle = 1.3115
-    elif shot>=54041 and shot<=54044:
+    elif shot >= 54041 and shot <= 54044:
         angle = 1.1498
-    elif shot==54045:
+    elif shot == 54045:
         angle = 1.28075
-    elif shot==54046:
+    elif shot == 54046:
         angle = 1.3124
-    elif shot==54047:
+    elif shot == 54047:
         angle = 1.3995
-    elif shot>=54048:
+    elif shot >= 54048:
         angle = 1.51995
     else:
         angle = np.nan
@@ -480,10 +505,10 @@ def _get_Ang(shot):
 
 def _utils_get_Pix2D(D1=0., D2=0., center=False, geom=_GEOM):
 
-    gridH = geom['pix']['sizeH']*np.arange(0,geom['pix']['nbH'])
-    gridV = geom['pix']['sizeV']*np.arange(0,geom['pix']['nbV'])
-    GH = np.tile(gridH,geom['pix']['nbV'])
-    GV = np.repeat(gridV,geom['pix']['nbH'])
+    gridH = geom['pix']['sizeH']*np.arange(0, geom['pix']['nbH'])
+    gridV = geom['pix']['sizeV']*np.arange(0, geom['pix']['nbV'])
+    GH = np.tile(gridH, geom['pix']['nbV'])
+    GV = np.repeat(gridV, geom['pix']['nbH'])
     mH = np.mean(gridH) if center else 0.
     mV = np.mean(gridV) if center else 0.
     pts2D = np.array([D1+GH-mH, D2+GV-mV])
@@ -509,8 +534,8 @@ def _get_indtlim(t, tlim=None, shot=None, out=bool):
             elif type(tlim[ii]) is str and 'ign' in tlim[ii].lower():
                 tlim[ii] = get_t0(shot)
 
-    assert tlim[0]<tlim[1]
-    indt = (t>=tlim[0]) & (t<=tlim[1])
+    assert tlim[0] < tlim[1]
+    indt = (t >= tlim[0]) & (t <= tlim[1])
     if out is int:
         indt = indt.nonzero()[0]
     return indt
@@ -524,7 +549,7 @@ def _load_data(shot, tlim=None, tmode='mean',
     from PIL import Image
     import zipfile
 
-    assert tmode in ['mean','start','end']
+    assert tmode in ['mean', 'start', 'end']
 
     # Pre-format input
     if path is None:
@@ -535,11 +560,11 @@ def _load_data(shot, tlim=None, tmode='mean',
     if Verb:
         msg = '(1/4) ' + rootstr + ' loading and unziping files...'
         print(msg)
-    targetf = os.path.join(path,'xics_{0:05.0f}.zip'.format(shot))
-    targetd = os.path.join(path,'xics_{0:05.0f}/'.format(shot))
+    targetf = os.path.join(path, 'xics_{0:05.0f}.zip'.format(shot))
+    targetd = os.path.join(path, 'xics_{0:05.0f}/'.format(shot))
     out = pw.TSRfile(shot, 'FXICS_MIDDLE', targetf)
 
-    if not out==0:
+    if not out == 0:
         msg = ("Could not run:"
                + "\n    out = "
                + "pw.TSRfile({0}, 'FXICS_MIDDLE', {1})".format(shot, targetf)
@@ -555,21 +580,21 @@ def _load_data(shot, tlim=None, tmode='mean',
     if Verb:
         msg = '(2/4) ' + rootstr + ' loading parameters...'
         print(msg)
-    t0 = 0. # Because startAcq on topOrigin (tIGNOTRON - 32 s)
-    NExp = pw.TSRqParm(shot,'DXICS', 'PIL_N', 'PIL_NMax', 1)[0][0][0]
-    TExpT = pw.TSRqParm(shot,'DXICS', 'PIL_Times', 'PIL_TExpT', 1)[0][0][0]
-    TExpP = pw.TSRqParm(shot,'DXICS', 'PIL_Times', 'PIL_TExpP', 1)[0][0][0]
-    TDelay = pw.TSRqParm(shot,'DXICS', 'PIL_Times', 'PIL_TDelay', 1)[0][0][0]
+    t0 = 0.     # Because startAcq on topOrigin (tIGNOTRON - 32 s)
+    NExp = pw.TSRqParm(shot, 'DXICS', 'PIL_N', 'PIL_NMax', 1)[0][0][0]
+    TExpT = pw.TSRqParm(shot, 'DXICS', 'PIL_Times', 'PIL_TExpT', 1)[0][0][0]
+    TExpP = pw.TSRqParm(shot, 'DXICS', 'PIL_Times', 'PIL_TExpP', 1)[0][0][0]
+    TDelay = pw.TSRqParm(shot, 'DXICS', 'PIL_Times', 'PIL_TDelay', 1)[0][0][0]
     # Delay not taken into account in this acquisition mode
     if TDelay >= 50:
         # TDelay now in ms
         TDelay *= 1.e-3
     try:
-        THR = pw.TSRqParm(shot,'DXICS','PIL_THR','THR',1)[0][0][0]
+        THR = pw.TSRqParm(shot, 'DXICS', 'PIL_THR', 'THR', 1)[0][0][0]
     except Exception as err:
         THR = _get_THR(shot)
     try:
-        Ang = pw.TSRqParm(shot,'DXICS','CRYST','Ang',1)[0][0][0]
+        Ang = pw.TSRqParm(shot, 'DXICS', 'CRYST', 'Ang', 1)[0][0][0]
     except Exception as err:
         Ang = _get_Ang(shot)
     if TExpP <= TExpT:
@@ -587,24 +612,24 @@ def _load_data(shot, tlim=None, tmode='mean',
     nIm = len(lf)
 
     # Check consistency of number of images (in case of early kill)
-    if nIm>NExp:
+    if nIm > NExp:
         msg = "The zip file contains more images than parameter NExp !"
         raise Exception(msg)
 
     # Build time vector (parameter Delay is only for external trigger !!!)
-    Dt = t0 + TExpP*np.arange(0,nIm) + np.array([[0.], [TExpT]])
+    Dt = t0 + TExpP*np.arange(0, nIm) + np.array([[0.], [TExpT]])
     if shot >= 54132:
         # Previously, TDelay had no effect
         # From 54132, TDelay is fed to a home-made QtTimer in:
         #    controller_acquisitions.cpp:168
         #    controller_pilotage.cpp:126
         Dt += TDelay
-    if tmode=='mean':
+    if tmode == 'mean':
         t = np.mean(Dt, axis=0)
-    elif tmode=='start':
-        t = Dt[0,:]
+    elif tmode == 'start':
+        t = Dt[0, :]
     else:
-        t = Dt[1,:]
+        t = Dt[1, :]
     indt = _get_indtlim(t, tlim=tlim, out=int)
     if indt.size == 0:
         msg = ("No time steps in the selected time interval:\n"
@@ -619,7 +644,7 @@ def _load_data(shot, tlim=None, tmode='mean',
     data = np.zeros((nt, geom['pix']['nbV'], geom['pix']['nbH']))
     ls = []
     try:
-        for ii in range(0,nt):
+        for ii in range(0, nt):
             im = Image.open(os.path.join(targetd, lf[ii]))
             s = str(im.tag.tagdata[270]).split('#')[1:]
             s = [ss[:ss.index('\\r')] for ss in s if '\\r' in ss]
@@ -634,10 +659,12 @@ def _load_data(shot, tlim=None, tmode='mean',
         shutil.rmtree(targetd)
 
     dunits = r'photons'
-    dbonus = {'Dt': Dt, 'dt': TExpT, 'THR': THR, 'mask': mask,
-              'NExp': NExp, 'nIm': nIm,
-              'TExpT': TExpT, 'TExpP': TExpP, 'TDelay':TDelay,
-              'nH': geom['pix']['nbH'], 'nV': geom['pix']['nbV']}
+    dbonus = {
+        'Dt': Dt, 'dt': TExpT, 'THR': THR, 'mask': mask,
+        'NExp': NExp, 'nIm': nIm,
+        'TExpT': TExpT, 'TExpP': TExpP, 'TDelay': TDelay,
+        'nH': geom['pix']['nbH'], 'nV': geom['pix']['nbV'],
+    }
     return data, t, dbonus
 
 
@@ -807,9 +834,9 @@ def plot(pfe=None, allow_pickle=True,
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.05, 'right':0.99,
-                   'bottom':0.06, 'top':0.93,
-                   'wspace':0.3, 'hspace':0.2}
+        dmargin = {'left': 0.05, 'right': 0.99,
+                   'bottom': 0.06, 'top': 0.93,
+                   'wspace': 0.3, 'hspace': 0.2}
 
     fig = plt.figure(figsize=fs)
     if shot is not None:
@@ -829,10 +856,10 @@ def plot(pfe=None, allow_pickle=True,
         dax['spect'][ii].set_ylabel('xj = {}\ndata (a.u.)'.format(xj[ii]))
 
         for jj in range(nang):
-            col = lcol[jj%ncol]
+            col = lcol[jj % ncol]
             lab0 = 'ang {}'.format(angu[jj])
             ind = (ang == angu[jj]).nonzero()[0]
-            xibis = xi #+ angu[jj]*0.05
+            xibis = xi  # + angu[jj]*0.05
             for ss in range(ind.size):
                 for tt in range(nt):
                     ls = '--' if iout[ind[ss], tt] else '-'
@@ -849,8 +876,10 @@ def plot(pfe=None, allow_pickle=True,
     dax['spectn'][0].set_title('normalized spectra')
     dax['spect'][-1].set_xlabel('xi (m)')
     dax['spectn'][-1].set_xlabel('xi (m)')
-    hand = [mlines.Line2D([], [], c=lcol[jj%ncol], ls='-')
-            for jj in range(nang)]
+    hand = [
+        mlines.Line2D([], [], c=lcol[jj % ncol], ls='-')
+        for jj in range(nang)
+    ]
     lab = ['{}'.format(aa) for aa in angu]
     dax['spect'][0].legend(hand, lab,
                            title='Table angle (deg.)',
@@ -882,10 +911,10 @@ def plot(pfe=None, allow_pickle=True,
         dax2['spect'][ii].set_ylabel('data (a.u.)'.format(xj[ii]))
 
         for jj in range(nang):
-            col = lcol[jj%ncol]
+            col = lcol[jj % ncol]
             lab0 = 'ang {}'.format(angu[jj])
             ind = (ang == angu[jj]).nonzero()[0]
-            xibis = xi #+ angu[jj]*0.05
+            xibis = xi  # + angu[jj]*0.05
             for ss in range(ind.size):
                 for tt in range(nt):
                     ls = '--' if iout[ind[ss], tt] else '-'
@@ -918,8 +947,10 @@ def plot(pfe=None, allow_pickle=True,
     dax2['spectn'][0].set_title('normalized spectra')
     dax2['spect'][-1].set_xlabel(r'$\lambda$' + ' (m)')
     dax2['spectn'][-1].set_xlabel(r'$\lambda$' + ' (m)')
-    hand = [mlines.Line2D([], [], c=lcol[jj%ncol], ls='-')
-            for jj in range(nang)]
+    hand = [
+        mlines.Line2D([], [], c=lcol[jj%ncol], ls='-')
+        for jj in range(nang)
+    ]
     lab = ['{}'.format(aa) for aa in angu]
     dax2['spect'][0].legend(hand, lab,
                             title='Table angle (deg.)',
@@ -1116,11 +1147,14 @@ def fit(pfe=None, allow_pickle=True,
                     lamb[jj, ii, :],
                     dinput=dinput, dx0=dx0,
                     lambmin=lambmin, lambmax=lambmax,
-                    dscales=dscales, x0_scale=x0_scale, bounds_scale=bounds_scale,
+                    dscales=dscales,
+                    x0_scale=x0_scale,
+                    bounds_scale=bounds_scale,
                     method=method, max_nfev=max_nfev,
                     chain=True, verbose=verbose,
                     xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
-                    ratio=None, jac='call')
+                    ratio=None, jac='call',
+                )
                 spectfit[ind[ll], :, ii, :] = dfit1d['sol']
                 time[ind[ll], :, ii] = dfit1d['time']
                 chinorm[ind[ll], :, ii] = np.sqrt(dfit1d['cost']) / nxi
@@ -1150,13 +1184,15 @@ def fit(pfe=None, allow_pickle=True,
                     ineg = dfit1d['dshift'] < 0.
                 if key0 is not None:
                     shift0[ind[ll], :, ii] = dfit1d['shift'][:, indl0]
-                    shift0[ind[ll], ineg, ii] += (dfit1d['dshift'][ineg]
-                                                  *dinput['lines'][indl0])
+                    shift0[ind[ll], ineg, ii] += (
+                        dfit1d['dshift'][ineg]*dinput['lines'][indl0]
+                    )
                     shift0[ind[ll], ind098 | ind102, ii] = np.nan
                 if key1 is not None:
                     shift1[ind[ll], :, ii] = dfit1d['shift'][:, indl1]
-                    shift1[ind[ll], ineg, ii] += (dfit1d['dshift'][ineg]
-                                                  *dinput['lines'][indl1])
+                    shift1[ind[ll], ineg, ii] += (
+                        dfit1d['dshift'][ineg]*dinput['lines'][indl1]
+                    )
                     shift1[ind[ll], ind098 | ind102, ii] = np.nan
 
     dcost = {}
@@ -1193,9 +1229,9 @@ def fit(pfe=None, allow_pickle=True,
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.06, 'right':0.99,
-                   'bottom':0.06, 'top':0.93,
-                   'wspace':0.3, 'hspace':0.2}
+        dmargin = {'left': 0.06, 'right': 0.99,
+                   'bottom': 0.06, 'top': 0.93,
+                   'wspace': 0.3, 'hspace': 0.2}
     extent = (0.5, nshot+0.5, -0.5, nt-0.5)
     tmin, tmax = np.nanmin(time), np.nanmax(time)
     chimin, chimax = np.nanmin(chinorm), np.nanmax(chinorm)
@@ -1205,14 +1241,15 @@ def fit(pfe=None, allow_pickle=True,
         fig.suptitle('shot = {}'.format(shot))
     gs = gridspec.GridSpec(nxj*2, 7, **dmargin)
 
-    dax = {'spectn': [None for ii in range(nxj)],
-           'time': [None for ii in range(nxj)],
-           'chinorm': [None for ii in range(nxj)],
-           'shift0': [None for ii in range(nxj)],
-           'shift1': [None for ii in range(nxj)],
-           'shift0_z': [None for ii in range(nxj)],
-           'shift1_z': [None for ii in range(nxj)],
-          }
+    dax = {
+        'spectn': [None for ii in range(nxj)],
+        'time': [None for ii in range(nxj)],
+        'chinorm': [None for ii in range(nxj)],
+        'shift0': [None for ii in range(nxj)],
+        'shift1': [None for ii in range(nxj)],
+        'shift0_z': [None for ii in range(nxj)],
+        'shift1_z': [None for ii in range(nxj)],
+    }
 
     xones = np.zeros((nt,))
     isortxj = nxj - 1 - np.argsort(xj)
@@ -1222,40 +1259,50 @@ def fit(pfe=None, allow_pickle=True,
         dax['spectn'][ii] = fig.add_subplot(gs[iax*2:iax*2+2, :3], sharex=shx0)
         if ii == 0:
             shx0 = dax['spectn'][ii]
-        dax['time'][ii] = fig.add_subplot(gs[iax*2:iax*2+2, 3],
-                                       sharex=shx1, sharey=shy1)
+        dax['time'][ii] = fig.add_subplot(
+            gs[iax*2:iax*2+2, 3],
+            sharex=shx1, sharey=shy1,
+        )
         if ii == 0:
             shx1 = dax['time'][ii]
             shy1 = dax['time'][ii]
-        dax['chinorm'][ii] = fig.add_subplot(gs[iax*2:iax*2+2, 4],
-                                       sharex=shx1, sharey=shy1)
-        dax['shift0'][ii] = fig.add_subplot(gs[iax*2, 5],
-                                             sharex=shx1, sharey=shy1)
-        dax['shift1'][ii] = fig.add_subplot(gs[iax*2, 6],
-                                             sharex=shx1, sharey=shy1)
-        dax['shift0_z'][ii] = fig.add_subplot(gs[iax*2+1, 5],
-                                               sharex=shx20)
-        dax['shift1_z'][ii] = fig.add_subplot(gs[iax*2+1, 6],
-                                               sharex=shx21)
+        dax['chinorm'][ii] = fig.add_subplot(
+            gs[iax*2:iax*2+2, 4], sharex=shx1, sharey=shy1,
+        )
+        dax['shift0'][ii] = fig.add_subplot(
+            gs[iax*2, 5], sharex=shx1, sharey=shy1,
+        )
+        dax['shift1'][ii] = fig.add_subplot(
+            gs[iax*2, 6], sharex=shx1, sharey=shy1,
+        )
+        dax['shift0_z'][ii] = fig.add_subplot(
+            gs[iax*2+1, 5], sharex=shx20,
+        )
+        dax['shift1_z'][ii] = fig.add_subplot(
+            gs[iax*2+1, 6], sharex=shx21,
+        )
         if ii == 0:
             shx20 = dax['shift0_z'][ii]
             shx21 = dax['shift1_z'][ii]
-        dax['spectn'][ii].set_ylabel(('xj = {}\n'.format(xj[ii])
-                                       + 'data (a.u.)'))
+        dax['spectn'][ii].set_ylabel('xj = {}\ndata (a.u.)'.format(xj[ii]))
         if iax != nxj-1:
             plt.setp(dax['time'][ii].get_xticklabels(), visible=False)
             plt.setp(dax['chinorm'][ii].get_xticklabels(), visible=False)
 
         for jj in range(nang):
-            col = lcol[jj%ncol]
+            col = lcol[jj % ncol]
             ind = (ang == angu[jj]).nonzero()[0]
             for ll in range(ind.size):
-                dax['spectn'][ii].plot(lamb[jj, ii, :],
-                                        spectn[ind[ll], :, ii, :].T,
-                                        ls='None', marker='.', ms=4., c=col)
-                dax['spectn'][ii].plot(lamb[jj, ii, :],
-                                        spectfit[ind[ll], :, ii, :].T,
-                                        ls='-', lw=1, c=col)
+                dax['spectn'][ii].plot(
+                    lamb[jj, ii, :],
+                    spectn[ind[ll], :, ii, :].T,
+                    ls='None', marker='.', ms=4., c=col,
+                )
+                dax['spectn'][ii].plot(
+                    lamb[jj, ii, :],
+                    spectfit[ind[ll], :, ii, :].T,
+                    ls='-', lw=1, c=col,
+                )
                 if key0 is not None:
                     dax['shift0_z'][ii].plot((dinput['lines'][indl0]
                                               + shift0[ind[ll], :, ii]),
@@ -1314,9 +1361,9 @@ def fit(pfe=None, allow_pickle=True,
     lkey = [kk for kk in [key0, key1] if kk is not None]
     nl = len(lkey)
 
-    dmargin = {'left':0.06, 'right':0.95,
-               'bottom':0.08, 'top':0.90,
-               'wspace':0.4, 'hspace':0.2}
+    dmargin = {'left': 0.06, 'right': 0.95,
+               'bottom': 0.08, 'top': 0.90,
+               'wspace': 0.4, 'hspace': 0.2}
 
     fig = plt.figure(figsize=fs)
     if shot is not None:
@@ -1348,10 +1395,8 @@ def fit(pfe=None, allow_pickle=True,
                          label='ang[{}] = {}'.format(jj, angu[jj]))
         ax1[ii].axhline(0, ls='--', lw=1., c='k')
 
-    ax0[0].legend(loc='upper left',
-                 bbox_to_anchor=(1.01, 1.))
-    ax1[0].legend(loc='upper left',
-                 bbox_to_anchor=(1.01, 1.))
+    ax0[0].legend(loc='upper left', bbox_to_anchor=(1.01, 1.))
+    ax1[0].legend(loc='upper left', bbox_to_anchor=(1.01, 1.))
     return dax
 
 
@@ -1367,17 +1412,18 @@ _NDROT = 2
 
 
 def _check_orthonormal(cent, nout, ei, ej, ndx, ndrot, msg=''):
-    lc = [cent.shape == (3, 2*ndx+1, 2*ndx+1, 2*ndx+1),
-          nout.shape == ei.shape == ej.shape == (3, 2*ndrot+1, 2*ndrot+1,
-                                                  2*ndrot+1),
-          np.allclose(np.sum(nout**2, axis=0), 1.),
-          np.allclose(np.sum(ei**2, axis=0), 1.),
-          np.allclose(np.sum(ej**2, axis=0), 1.),
-          np.allclose(np.sum(nout*ei, axis=0), 0.),
-          np.allclose(np.sum(nout*ej, axis=0), 0.)]
+    shape = (3, 2*ndrot+1, 2*ndrot+1, 2*ndrot+1)
+    lc = [
+        cent.shape == (3, 2*ndx+1, 2*ndx+1, 2*ndx+1),
+        nout.shape == ei.shape == ej.shape == shape,
+        np.allclose(np.sum(nout**2, axis=0), 1.),
+        np.allclose(np.sum(ei**2, axis=0), 1.),
+        np.allclose(np.sum(ej**2, axis=0), 1.),
+        np.allclose(np.sum(nout*ei, axis=0), 0.),
+        np.allclose(np.sum(nout*ej, axis=0), 0.),
+    ]
     if not all(lc):
         msg = ("Non-conform set of detector parameters! " + msg)
-        import pdb; pdb.set_trace()     # DB
         raise Exception(msg)
 
 
@@ -1424,17 +1470,21 @@ def scan_det(pfe=None, allow_pickle=True,
         dconstraints = {
             'double': True,
             'symmetry': False,
-            'width': {'wxyzkj':
-                      ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro',
-                       'ArXVII_x_Adhoc200408', 'ArXVII_y_Adhoc200408',
-                       'ArXVI_k_Adhoc200408', 'ArXVI_j_Adhoc200408',
-                       'ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
-                       'ArXVI_a_Adhoc200408'],
-            'amp': {'ArXVI_k_Adhoc200408': {'key': 'kj'},
-                    'ArXVI_j_Adhoc200408': {'key': 'kj', 'coef': 1.3576}},
-            'shift': {'wz':
-                      ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro']}}}
-
+            'width': {
+                'wxyzkj': [
+                    'ArXVII_w_Bruhns', 'ArXVII_z_Amaro',
+                    'ArXVII_x_Adhoc200408', 'ArXVII_y_Adhoc200408',
+                    'ArXVI_k_Adhoc200408', 'ArXVI_j_Adhoc200408',
+                    'ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
+                    'ArXVI_a_Adhoc200408',
+                ],
+            'amp': {
+                'ArXVI_k_Adhoc200408': {'key': 'kj'},
+                'ArXVI_j_Adhoc200408': {'key': 'kj', 'coef': 1.3576},
+            },
+            'shift': {'wz': ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro']}
+            }
+        }
 
     # input data file
     lc = [pfe is not None,
@@ -1483,7 +1533,6 @@ def scan_det(pfe=None, allow_pickle=True,
         dlines=dlines, dconstraints=dconstraints,
         lambmin=lambmin, lambmax=lambmax,
         same_spectrum=same_spectrum, nspect=spectn.shape[0], dlamb=dlamb)
-
 
     # --------
     # Prepare
@@ -1587,23 +1636,28 @@ def scan_det(pfe=None, allow_pickle=True,
                                     warn=False, plot=False)
                                 for ii in range(nang):
                                     indi = ang == angu[ii]
-                                    dout['time'][ind][:, ii] = \
-                                            np.nanmean(np.nanmean(
-                                                dfit1d['time'][indi, :, :],
-                                                axis=1), axis=0)
+                                    dout['time'][ind][:, ii] = (
+                                        np.nanmean(np.nanmean(
+                                            dfit1d['time'][indi, :, :],
+                                            axis=1,
+                                        ), axis=0)
                                 for kk in dfit1d['dcost'].keys():
                                     aa = dfit1d['dcost'][kk]['shiftm']
                                     dout['dcost'][kk]['detail'][ind] = aa
-                                    nbok = np.sum(np.sum(~np.isnan(aa),
-                                                         axis=-1), axis=-1)
-                                    dout['dcost'][kk]['chin'][ind] = \
-                                            np.sqrt(np.nansum(np.nansum(aa**2,
-                                                axis=-1), axis=-1)) / nbok
+                                    nbok = np.sum(np.sum(
+                                        ~np.isnan(aa),
+                                        axis=-1,
+                                    ), axis=-1)
+                                    dout['dcost'][kk]['chin'][ind] = (
+                                        np.sqrt(np.nansum(
+                                            np.nansum(aa**2, axis=-1),
+                                            axis=-1,
+                                        )) / nbok
                                     dout['done'][0, :] = [i0+1, i1+1, i2+1,
                                                           j0+1, j1+1, j2+1]
                                     print('ok', flush=True, file=sys.stdout)
                             except Exception as err:
-                                print('failed: '+ str(err),
+                                print('failed: ' + str(err),
                                       flush=True, file=sys.stdout)
                                 pass
                         # Save regulary (for long jobs)
@@ -1673,7 +1727,7 @@ def scan_det_plot(din,
             dxv[ix0]*dx[0], dxv[ix1]*dx[1], dxv[ix2]*dx[2],
             drotv[irot0]*drot[0], drotv[irot1]*drot[1], drotv[irot2]*drot[2]])
     i0 = int((dind[kk]['chinf'].size-1)/2)
-    i0bis = (dind[kk]['ind']==i0).nonzero()[0] + 1
+    i0bis = (dind[kk]['ind'] == i0).nonzero()[0] + 1
 
     ldet = [{'cent': din['cent'][:, ix0[ll], ix1[ll], ix2[ll]],
              'nout': din['nout'][:, irot0[ll], irot1[ll], irot2[ll]],
@@ -1697,9 +1751,9 @@ def scan_det_plot(din,
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.06, 'right':0.99,
-                   'bottom':0.06, 'top':0.93,
-                   'wspace':0.3, 'hspace':0.2}
+        dmargin = {'left': 0.06, 'right': 0.99,
+                   'bottom': 0.06, 'top': 0.93,
+                   'wspace': 0.3, 'hspace': 0.2}
 
     fig = plt.figure(figsize=fs)
     if din.get('shots') is not None:
@@ -1943,11 +1997,13 @@ def scan_det_least_square(pfe=None, allow_pickle=True,
     # --------
     # Extract solution
     det = _get_det_from_det0_xscale(res.x, det0, scales=scales)
-    return {'chin': np.sqrt(res.cost)/(nang*nxj),
-            'time': dt,
-            'x': res.x, 'det0': det0, 'det': det,
-            'nfev':res.nfev, 'xtol': xtol, 'ftol': ftol, 'gtol': gtol,
-            'method': method, 'scales': scales}
+    return {
+        'chin': np.sqrt(res.cost)/(nang*nxj),
+        'time': dt,
+        'x': res.x, 'det0': det0, 'det': det,
+        'nfev': res.nfev, 'xtol': xtol, 'ftol': ftol, 'gtol': gtol,
+        'method': method, 'scales': scales,
+    }
 
 
 # #############################################################################
@@ -2210,9 +2266,9 @@ def treat_plot_double(path=None, nameextra=None, nameexclude=None,
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.08, 'right':0.96,
-                   'bottom':0.08, 'top':0.93,
-                   'wspace':0.4, 'hspace':0.2}
+        dmargin = {'left': 0.08, 'right': 0.96,
+                   'bottom': 0.08, 'top': 0.93,
+                   'wspace': 0.4, 'hspace': 0.2}
 
     fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(2, 16, **dmargin)
@@ -2356,9 +2412,9 @@ def treat_plot_lineratio(ratio=None, path=None,
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.08, 'right':0.96,
-                   'bottom':0.08, 'top':0.93,
-                   'wspace':0.4, 'hspace':0.2}
+        dmargin = {'left': 0.08, 'right': 0.96,
+                   'bottom': 0.08, 'top': 0.93,
+                   'wspace': 0.4, 'hspace': 0.2}
 
     fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(2, 16, **dmargin)
@@ -2453,9 +2509,9 @@ def treat_plot_lineshift(path=None, diff=None,
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.08, 'right':0.96,
-                   'bottom':0.08, 'top':0.93,
-                   'wspace':0.4, 'hspace':0.2}
+        dmargin = {'left': 0.08, 'right': 0.96,
+                   'bottom': 0.08, 'top': 0.93,
+                   'wspace': 0.4, 'hspace': 0.2}
 
     fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(2, 16, **dmargin)
@@ -2483,10 +2539,12 @@ def treat_plot_lineshift(path=None, diff=None,
             dvmean = (np.nansum(dvims[:, jj, :]*dall['sumsig'][:, None])
                       / (dvims.shape[2]*np.nansum(dall['sumsig'])))
             dax['dvims'].axhline(dvmean, c=colord[jj], ls='--', lw=1.)
-            dax['dvims'].annotate('{:5.3e}'.format(dvmean),
-                                  xy=(1., dvmean),
-                                 xycoords=('axes fraction', 'data'),
-                                 color=colord[jj], size=10)
+            dax['dvims'].annotate(
+                '{:5.3e}'.format(dvmean),
+                xy=(1., dvmean),
+                xycoords=('axes fraction', 'data'),
+                color=colord[jj], size=10,
+            )
 
     dax['vims'].axhline(0., c='k', ls='--', lw=1.)
     dax['dvims'].axhline(0., c='k', ls='--', lw=1.)
@@ -2638,8 +2696,10 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
         filekeys = []
     filekeys += ['XICS', 'fit2d', 'prepare', '.npz']
     if lf is None:
-        lf = [ff for ff in os.listdir(path)
-             if all([ss in ff for ss in filekeys])]
+        lf = [
+            ff for ff in os.listdir(path)
+            if all([ss in ff for ss in filekeys])
+        ]
     if len(lf) == 0:
         return
     if tnoise is None:
@@ -2759,10 +2819,11 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
     errbin_var = np.full((dataphi1dbin.size, lnbsplines.size), np.nan)
     alpha_err = np.full((lnbsplines.size,), np.nan)
     for ii in range(dataphi1dbin.size):
-        nok = (~np.isnan(errok[indbin==ii])).sum()
-        errbin_mean[ii, :] = np.nanmean(errok[indbin==ii], axis=0)
-        errbin_var[ii, :] = (np.nanstd(errok[indbin==ii], axis=0)**2
-                             * (nok-1)/nok)
+        nok = (~np.isnan(errok[indbin == ii])).sum()
+        errbin_mean[ii, :] = np.nanmean(errok[indbin == ii], axis=0)
+        errbin_var[ii, :] = (
+            np.nanstd(errok[indbin == ii], axis=0)**2 * (nok-1)/nok
+        )
 
     if timeit is True:
         dall['timeit'] = (dtm.datetime.now()-t0).total_seconds()
@@ -2790,41 +2851,40 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
     # ijk = np.nonzero(ijk)[0]
     # plt.figure(figsize=(18, 6))
     # for ii in range(len(ijk)):
-        # plt.subplot(1, len(ijk), ii+1)
-        # tit = "{} - t = {} s".format(dall['shot'][ijk[ii]],
-                                     # dall['t'][ijk[ii]])
-        # plt.gca().set_title(tit)
-        # plt.plot(dall['phi1d'], dall['dataphi1d'][ijk[ii], :],
-                 # c='k', marker='.', ls='None')
-        # plt.plot(dall['phi1d'], dall['fitphi1d'][ijk[ii], :]*datamax[ijk[ii]],
-                 # c='r', marker='None', ls='-')
-        # dbsplines = tf.data._spectrafit2d.multigausfit2d_from_dlines_dbsplines(
-            # knots=None, deg=deg, nbsplines=nbsplines-1,
-            # phimin=phiminmax[0], phimax=phiminmax[1],
-            # symmetryaxis=symmetryaxis)
-        # fitphi1dtemp = scpinterp.LSQUnivariateSpline(
-            # dall['phi1d'], dall['dataphi1d'][ijk[ii], :],
-            # dbsplines['knots'][1:-1], w=None,
-            # bbox=[dbsplines['knots'][0], dbsplines['knots'][-1]],
-            # k=deg, ext=0, check_finite=False)(dall['phi1d'])
-        # plt.plot(dall['phi1d'], fitphi1dtemp,
-                 # c='g', marker='None', ls='-')
-        # dbsplines = tf.data._spectrafit2d.multigausfit2d_from_dlines_dbsplines(
-            # knots=None, deg=deg, nbsplines=nbsplines+1,
-            # phimin=phiminmax[0], phimax=phiminmax[1],
-            # symmetryaxis=symmetryaxis)
-        # fitphi1dtemp = scpinterp.LSQUnivariateSpline(
-            # dall['phi1d'], dall['dataphi1d'][ijk[ii], :],
-            # dbsplines['knots'][1:-1], w=None,
-            # bbox=[dbsplines['knots'][0], dbsplines['knots'][-1]],
-            # k=deg, ext=0, check_finite=False)(dall['phi1d'])
-        # plt.plot(dall['phi1d'], fitphi1dtemp,
-                 # c='b', marker='None', ls='-')
+    # plt.subplot(1, len(ijk), ii+1)
+    # tit = "{} - t = {} s".format(dall['shot'][ijk[ii]],
+    # dall['t'][ijk[ii]])
+    # plt.gca().set_title(tit)
+    # plt.plot(dall['phi1d'], dall['dataphi1d'][ijk[ii], :],
+    # c='k', marker='.', ls='None')
+    # plt.plot(dall['phi1d'], dall['fitphi1d'][ijk[ii], :]*datamax[ijk[ii]],
+    # c='r', marker='None', ls='-')
+    # dbsplines = tf.data._spectrafit2d.multigausfit2d_from_dlines_dbsplines(
+    # knots=None, deg=deg, nbsplines=nbsplines-1,
+    # phimin=phiminmax[0], phimax=phiminmax[1],
+    # symmetryaxis=symmetryaxis)
+    # fitphi1dtemp = scpinterp.LSQUnivariateSpline(
+    # dall['phi1d'], dall['dataphi1d'][ijk[ii], :],
+    # dbsplines['knots'][1:-1], w=None,
+    # bbox=[dbsplines['knots'][0], dbsplines['knots'][-1]],
+    # k=deg, ext=0, check_finite=False)(dall['phi1d'])
+    # plt.plot(dall['phi1d'], fitphi1dtemp,
+    # c='g', marker='None', ls='-')
+    # dbsplines = tf.data._spectrafit2d.multigausfit2d_from_dlines_dbsplines(
+    # knots=None, deg=deg, nbsplines=nbsplines+1,
+    # phimin=phiminmax[0], phimax=phiminmax[1],
+    # symmetryaxis=symmetryaxis)
+    # fitphi1dtemp = scpinterp.LSQUnivariateSpline(
+    # dall['phi1d'], dall['dataphi1d'][ijk[ii], :],
+    # dbsplines['knots'][1:-1], w=None,
+    # bbox=[dbsplines['knots'][0], dbsplines['knots'][-1]],
+    # k=deg, ext=0, check_finite=False)(dall['phi1d'])
+    # plt.plot(dall['phi1d'], fitphi1dtemp,
+    # c='b', marker='None', ls='-')
 
     # import pdb; pdb.set_trace()     # DB
     # End debug
     # --------------
-
 
     if plot is False:
         return dall
@@ -2836,9 +2896,9 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.08, 'right':0.96,
-                   'bottom':0.08, 'top':0.93,
-                   'wspace':0.4, 'hspace':0.2}
+        dmargin = {'left': 0.08, 'right': 0.96,
+                   'bottom': 0.08, 'top': 0.93,
+                   'wspace': 0.4, 'hspace': 0.2}
     tstr0 = '(t <= {} s)'.format(tnoise)
     tstr1 = '(t > {} s)'.format(tnoise)
 
@@ -2935,11 +2995,12 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
                                    dall['phi1d'],
                                    ls='-', marker='None', lw=1., c=col,
                                    alpha=alpha[ind[jj]])
-            dax['signal_chi2'].plot((dall['fitphi1d'][ind[jj], :]
-                                    - dataphi1dnorm[ind[jj], :]),
-                                   dall['phi1d'],
-                                   ls='-', marker='None', lw=1., c=col,
-                                   alpha=alpha[ind[jj]])
+            dax['signal_chi2'].plot(
+                (dall['fitphi1d'][ind[jj], :] - dataphi1dnorm[ind[jj], :]),
+                dall['phi1d'],
+                ls='-', marker='None', lw=1., c=col,
+                alpha=alpha[ind[jj]],
+            )
 
             # Convergence
             dax['signal_conv'].plot(lnbsplines, lchi2[ind[jj], :],
@@ -2962,9 +3023,11 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
         col = l.get_color()
         if lnbsplinesok[jj] == nbsplines:
             for ii in range(nbins):
-                if np.any(indbin==ii):
-                    dax['signal_err_hist'].hist(errok[indbin==ii, jj],
-                                                bins=10, density=True)
+                if np.any(indbin == ii):
+                    dax['signal_err_hist'].hist(
+                        errok[indbin == ii, jj],
+                        bins=10, density=True,
+                    )
         dax['signal_err_mean'].plot(dataphi1dbin,
                                     errbin_mean[:, indjj],
                                     ls='None', marker='.', c=col,
@@ -3001,7 +3064,7 @@ def plot_noise(filekeys=None, lf=None, path=None, deg=None, tnoise=None,
 
     dax['nosignal_mean2d'].set_xlim(lambminmax)
     dax['nosignal_mean2d'].set_ylim(phiminmax)
-    #dax['nosignal_mean'].set_ylim(phiminmax)
+    # dax['nosignal_mean'].set_ylim(phiminmax)
     dax['signal_err_var'].legend(loc='center left',
                                  bbox_to_anchor=(1., 0.5))
     return dall, dax

@@ -131,8 +131,8 @@ def Plot_LOSProj_DefAxes(Mode, Type='Tor',
                        'bottom': 0.08, 'top': 0.95,
                        'wspace': 0.20, 'hspace': 0.1}
         gs = gridspec.GridSpec(1, 2, **dmargin)
-        axP = f.add_subplot(gs[0, 0], frameon=True,facecolor=axCol)
-        axT = f.add_subplot(gs[0, 1], frameon=True,facecolor=axCol)
+        axP = f.add_subplot(gs[0, 0], frameon=True, facecolor=axCol)
+        axT = f.add_subplot(gs[0, 1], frameon=True, facecolor=axCol)
         if Type=='Tor':
             axP.set_xlabel(r"R (m)"),   axP.set_ylabel(r"Z (m)")
         else:
@@ -145,7 +145,7 @@ def Plot_LOSProj_DefAxes(Mode, Type='Tor',
         if dmargin is None:
             dmargin = {'left': 0.15, 'right': 0.7, 'bottom': 0.15, 'top': 0.7}
         gs = gridspec.GridSpec(1, 1, **dmargin)
-        ax = f.add_subplot(gs[0, 0], frameon=True,facecolor=axCol)
+        ax = f.add_subplot(gs[0, 0], frameon=True, facecolor=axCol)
         if Mode == 'Cross':
             if Type == 'Tor':
                 ax.set_xlabel(r"R (m)"),    ax.set_ylabel(r"Z (m)")
@@ -155,6 +155,7 @@ def Plot_LOSProj_DefAxes(Mode, Type='Tor',
             ax.set_xlabel(r"X (m)"),    ax.set_ylabel(r"Y (m)")
         ax.set_aspect(aspect="equal", adjustable='datalim')
     return ax
+
 
 def Plot_3D_plt_Tor_DefAxes(dmargin=None, fs=None, wintit='tofu'):
     assert fs is None or (type(fs) is str and fs=='a4') or len(fs)==2
@@ -178,12 +179,12 @@ def Plot_3D_plt_Tor_DefAxes(dmargin=None, fs=None, wintit='tofu'):
 
 
 def Plot_CrystIm(fs=None, dmargin=None, wintit=None):
-    assert fs is None or (type(fs) is str and fs=='a4') or len(fs)==2
+    assert fs is None or (type(fs) is str and fs == 'a4') or len(fs) == 2
     assert wintit is None or type(wintit) is str, "Arg wintit must be a str !"
     axCol, fdpi = 'w', 80
     if fs is None:
         fs = (6, 9)
-    elif type(fs) is str and fs=='a4':
+    elif type(fs) is str and fs == 'a4':
         fs = (11.69, 8.27)
 
     f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
@@ -208,12 +209,12 @@ def Plot_CrystIm(fs=None, dmargin=None, wintit=None):
 
 
 def Plot_AllCryst(fs=None, dmargin=None, wintit=None):
-    assert fs is None or (type(fs) is str and fs=='a4') or len(fs)==2
+    assert fs is None or (type(fs) is str and fs == 'a4') or len(fs) == 2
     assert wintit is None or type(wintit) is str, "Arg wintit must be a str !"
     axCol, fdpi = 'w', 80
     if fs is None:
         fs = (20, 11)
-    elif type(fs) is str and fs=='a4':
+    elif type(fs) is str and fs == 'a4':
         fs = (11.69, 8.27)
 
     f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
@@ -397,13 +398,13 @@ LOSImpElt = 'LV'
 
 LOSdict = dict(Lax=None, Proj='All', Lplot=LOSLplot, Elt='LDIORP', EltVes='', Leg='', Ldict=LOSLd, MdictD=LOSMd, MdictI=LOSMd, MdictO=LOSMd, MdictR=LOSMd, MdictP=LOSMd, LegDict=TorLegd, Vesdict=Vesdict, draw=True, Test=True)
 
+
 # -------------- Figures ------------------------
 
 
-
-#####################################################################
-#################  CrystalBragg class  ##############################
-#####################################################################
+# ####################################################################
+# ################  CrystalBragg class  ##############################
+# ####################################################################
 
 
 # ------------ Computing settings ---------------
@@ -416,14 +417,13 @@ _CRYSTAL_PLOT_DDICT = {
     'cent': {'ls': 'None', 'marker': 'o', 'ms': 6},
     'summit': {'ls': 'None', 'marker': '^', 'ms': 6},
     'rowland': {'ls': '--', 'lw': 1.},
-    'vectors': {'ls': '-', 'lw': 1.}#, 'scale': 10.},
+    'vectors': {'ls': '-', 'lw': 1.}    # , 'scale': 10.},
 }
 
 
-
-#####################################################################
-#######################  Detect class  ##############################
-#####################################################################
+# ####################################################################
+# ######################  Detect class  ##############################
+# ####################################################################
 
 
 # ------------ Computing settings ---------------
@@ -436,7 +436,7 @@ _DET_PLOT_DDICT = {
     'cent': {'ls': 'None', 'marker': 'o', 'ms': 6, 'color': 'k'},
     'summit': {'ls': 'None', 'marker': '^', 'ms': 6, 'color': 'k'},
     'rowland': {'ls': '--', 'lw': 1., 'color': 'k'},
-    'vectors': {'ls': '-', 'lw': 1., 'color': 'k'}, # 'scale': 10.,
+    'vectors': {'ls': '-', 'lw': 1., 'color': 'k'},     # 'scale': 10.,
 }
 
 """

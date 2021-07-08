@@ -141,7 +141,6 @@ def _Struct_plot_format(ss, proj='all', **kwdargs):
     return dout
 
 
-
 def Struct_plot(lS, lax=None, proj=None, element=None, dP=None,
                 dI=None, dBs=None, dBv=None,
                 dVect=None, dIHor=None, dBsHor=None, dBvHor=None,

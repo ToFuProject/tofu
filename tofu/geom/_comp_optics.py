@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 
 _LTYPES = [int, float, np.int_, np.float_]
-
+_USE_NON_PARALLELISM = True
 
 
 # ###############################################
@@ -201,13 +201,13 @@ def CrystBragg_get_noute1e2_from_psitheta(
             e2 = e2[:, None, None, None, None]
 
     # Not necessary for broadcasting (last dims first)
-    theta = dtheta#  + np.pi/2.
-    #psi = psi[None, ...]
+    theta = dtheta  # + np.pi/2.
+    # psi = psi[None, ...]
 
     # Compute
     # vout = (
-         # (np.cos(psi)*nout + np.sin(psi)*e1)*np.sin(theta) + np.cos(theta)*e2
-         # )
+    # (np.cos(psi)*nout + np.sin(psi)*e1)*np.sin(theta) + np.cos(theta)*e2
+    # )
     vout = (
          (np.cos(psi)*nout + np.sin(psi)*e1)*np.cos(theta) + np.sin(theta)*e2
          )
@@ -299,8 +299,9 @@ def get_vectors_from_angles(alpha, beta, nout, e1, e2):
     e2_bis = np.cos(beta)*e2-np.sin(beta)*e1
 
     nout_bis = (
-        np.cos(alpha)*nout + np.sin(alpha)*(np.cos(beta)*e1+ np.sin(beta)*e2)
+        np.cos(alpha)*nout + np.sin(alpha)*(np.cos(beta)*e1 + np.sin(beta)*e2)
     )
+
     nin_bis = -nout_bis
 
     return nin_bis, nout_bis, e1_bis, e2_bis
@@ -324,7 +325,7 @@ def get_approx_detector_rel(rcurve, bragg,
     Possibility to define tangential position of the detector to the Rowland
     circle or not.
     On WEST, the maximum non-parallelism between two halves can be up to few
-    arcmin so here, doesn't need to define the precise location of the detector.
+    arcmin so here, doesn't need to define the precise location of the detector
     The bragg angle is provided and naturally defined as the angle between the
     emissed photon vector and the crystal mesh.
     So, if non parallelism approuved, bragg is relative
@@ -337,7 +338,7 @@ def get_approx_detector_rel(rcurve, bragg,
         tangent_to_rowland = True
 
     # distance crystal - det_center
-    ## bragg between incident vector and mesh
+    # bragg between incident vector and mesh
     det_dist = rcurve*np.sin(bragg)
 
     # det_nout and det_e1 in (nout, e1, e2) (det_e2 = e2)
@@ -357,7 +358,7 @@ def get_approx_detector_rel(rcurve, bragg,
         # l = l2 (tan(theta1) + tan(theta2)) / tan(theta1)
         # l = l2 / cos(theta2)
         # l = l tan(theta1) / (cos(theta2) * (tan(theta1) + tan(theta2)))
-        theta2 = bragg  if tangent_to_rowland is True else np.pi/2
+        theta2 = bragg if tangent_to_rowland is True else np.pi/2
         theta1 = np.abs(bragg-bragg01[0])
         tan1 = np.tan(theta1)
         d0 = det_dist * tan1 / (np.cos(theta2) * (tan1+np.tan(theta2)))
@@ -447,20 +448,19 @@ def calc_meridional_sagital_focus(
         )
         raise Exception(msg)
 
-    if alpha is None:
-        alpha = 0.
-
     verb = _check_bool(verb, vardef=True, varname='verb')
     use_non_parallelism = _check_bool(
-        use_non_parallelism, vardef=True, varname='use_non_parallelism',
+        use_non_parallelism,
+        vardef=_USE_NON_PARALLELISM,
+        varname='use_non_parallelism',
     )
 
     # Compute
     s_merid_ref = rcurve*np.sin(bragg)
-    s_sagit_ref = -s_merid_ref / np.cos(2.*bragg)
+    s_sagit_ref = -s_merid_ref/np.cos(2.*bragg)
 
-    s_merid_unp = rcurve * (np.sin(bragg) + np.cos(bragg)*np.sin(alpha))
-    s_sagit_unp = rcurve*np.sin(bragg-alpha)
+    s_merid_unp = rcurve*(np.sin(bragg) + np.cos(bragg)*np.sin(alpha))
+    s_sagit_unp = -s_merid_unp/(1-2.*np.sin(bragg+alpha)**2.)
 
     # verb
     if verb is True:
@@ -482,7 +482,7 @@ def calc_meridional_sagital_focus(
             mcr = round(100. * delta_merid / s_merid_ref, ndigits=3)
             scr = round(100. * delta_sagit / s_sagit_ref, ndigits=3)
             msg += (
-                f"\nTaking into account non-parallelism (alpha = {alpha}):\n"
+                f"\nConsidering non-parallelism (alpha = {alpha} rad):\n"
                 f"\t- meridonal focus at {mnp} m (delta = {mca} m / {mcr} %)\n"
                 f"\t- sagital focus at {snp} m (delta = {sca} m / {scr} %)"
             )
@@ -601,7 +601,6 @@ def calc_xixj_from_braggphi(
         option = lc.index(True)
     assert (lc[0] and option == 0) or (lc[1] and option == 1)
 
-    # Prepare
     if option == 0:
         summit = summit.ravel()
         nout, e1, e2 = nout.ravel(), e1.ravel(), e2.ravel()
@@ -839,7 +838,7 @@ def calc_braggphi_from_xixjpts(
 
 def get_lambphifit(lamb, phi, nxi, nxj):
     lambD = np.nanmax(lamb)-np.nanmin(lamb)
-    lambfit = np.nanmin(lamb) +lambD*np.linspace(0, 1, nxi)
+    lambfit = np.nanmin(lamb) + lambD*np.linspace(0, 1, nxi)
     phiD = np.nanmax(phi) - np.nanmin(phi)
     phifit = np.nanmin(phi) + phiD*np.linspace(0, 1, nxj)
     return lambfit, phifit

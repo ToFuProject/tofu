@@ -20,7 +20,7 @@ __all__ = [
 _LTYPES = [int, float, np.int_, np.float_]
 
 _GITHUB = 'https://github.com/ToFuProject/tofu/issues'
-_WINTIT = 'tofu-%s        report issues / requests at %s'%(__version__, _GITHUB)
+_WINTIT = f'tofu-{__version__}\treport issues / requests at {_GITHUB}'
 
 
 ###########################################################
@@ -331,9 +331,15 @@ def get_localextrema_1d(
             maxima = np.zeros(data.shape, dtype=bool)
             for ii in range(data.shape[0]):
                 if len(mini[ii]) > 0:
-                    minima[ii, np.digitize(mini[ii], bins, right=False)-1] = True
+                    minima[
+                        ii,
+                        np.digitize(mini[ii], bins, right=False)-1
+                    ] = True
                 if len(maxi[ii]) > 0:
-                    maxima[ii, np.digitize(maxi[ii], bins, right=False)-1] = True
+                    maxima[
+                        ii,
+                        np.digitize(maxi[ii], bins, right=False)-1
+                    ] = True
         else:
             nmin = np.max([len(mm) for mm in mini])
             nmax = np.max([len(mm) for mm in maxi])
@@ -372,7 +378,6 @@ def peak_analysis_spect1d(
     return_prominence=None,
     return_width=None,
 ):
-
 
     # ------------------
     #   check inputs
@@ -427,11 +432,11 @@ def peak_analysis_spect1d(
     prom0 = np.copy(prom)
     dt = np.mean(np.diff(t))
 
-    prom0[prom0< thresh_prom] = np.nan
+    prom0[prom0 < thresh_prom] = np.nan
     # if thresh_prom is not None:
-        # for ii, (i0, i1) in enumerate(intervals):
-            # ind = (t >= i0) & (t <= i1)
-            # prom0[ind[:, None] & np.all(prom0[ind, :] < thresh_prom, axis=0)] = np.nan
+    # for ii, (i0, i1) in enumerate(intervals):
+    # ind = (t >= i0) & (t <= i1)
+    # prom0[ind[:, None] & np.all(prom0[ind, :] < thresh_prom, axis=0)] = np.nan
 
     if thresh_time is not None:
         fract_time = (~np.isnan(prom0))
@@ -476,12 +481,12 @@ def peak_analysis_spect1d(
                     if jj == inds[-1]:
                         cont = False
         lines = [
-            lamb[hist0[ii, :]>thresh_lines_prom]
+            lamb[hist0[ii, :] > thresh_lines_prom]
             for ii in range(hist0.shape[0])
         ]
     else:
         lines = [
-            lamb[hist[ii, :]>thresh_lines_prom]
+            lamb[hist[ii, :] > thresh_lines_prom]
             for ii in range(hist.shape[0])
         ]
 
@@ -510,8 +515,6 @@ def plot_peak_analysis_spect1d(
     # ------------
     nint = len(danalysis['intervals'])
 
-
-
     # Check plot inputs
     # ------------------
 
@@ -524,12 +527,11 @@ def plot_peak_analysis_spect1d(
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.05, 'right':0.99,
-                   'bottom':0.07, 'top':0.92,
-                   'wspace':0.2, 'hspace':0.3}
+        dmargin = {'left': 0.05, 'right': 0.99,
+                   'bottom': 0.07, 'top': 0.92,
+                   'wspace': 0.2, 'hspace': 0.3}
     if sharey is None:
         sharey = len(danalysis['lines']) > 1
-
 
     if dax is None:
         fig = plt.figure(figsize=fs)
@@ -576,10 +578,14 @@ def plot_peak_analysis_spect1d(
             indt = (danalysis['t'] >= i0) & (danalysis['t'] <= i1)
             if sharey is not None:
                 intmin = np.min(danalysis['t'][indt])
-                intdelta = danalysis['t'][indt].max() - danalysis['t'][indt].min()
+                intdelta = (
+                    danalysis['t'][indt].max() - danalysis['t'][indt].min()
+                )
                 ymax = np.nanmax(danalysis['hist'][ii, :])
                 y = danalysis['hist'][ii, :] * (intdelta/ymax) + intmin
-                ythr = danalysis['thresh_lines_prom'] * (intdelta/ymax) + intmin
+                ythr = (
+                    danalysis['thresh_lines_prom'] * (intdelta/ymax) + intmin
+                )
             else:
                 intmin = 0.
                 y = danalysis['hist'][ii, :]

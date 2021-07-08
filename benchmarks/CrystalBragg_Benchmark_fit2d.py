@@ -39,22 +39,36 @@ _MASKPATH = os.path.abspath(os.path.join(
     'inputs_temp',
     'XICS_mask.npz'
 ))
-_DLINES = {k0: v0 for k0, v0 in dlines.items()
-           if ((v0['source'] == 'Vainshtein 85'
-                and v0['ION'] == 'ArXVII' and v0['symbol'] not in ['y2', 'z2'])
-               or (v0['source'] == 'Goryaev 17'
-                   and v0['ION'] == 'ArXVI'
-                   and v0['symbol'] not in ['l', 'n3-h1', 'n3-h2', 'd',
-                                            'n3-e1', 'n3-f4', 'n3-f2', 'n3-e2',
-                                            'n3-f1', 'n3-g1', 'n3-g2', 'n3-g3',
-                                            'n3-f3', 'n3-a1', 'n3-a2', 'n3-c1',
-                                            'n3-c2', 'g', 'i', 'e', 'f', 'u',
-                                            'v', 'h', 'c', 'b', 'n3-b1',
-                                            'n3-b2', 'n3-b4', 'n3-d1', 'n3-d2']
-                  ))
-          }
-_DLINESFE = {k0: v0 for k0, v0 in dlines.items()
-             if v0['element'] == 'Fe'
+
+
+_DLINES = {
+    k0: v0 for k0, v0 in dlines.items()
+    if (
+        (
+            v0['source'] == 'Vainshtein 85'
+            and v0['ION'] == 'ArXVII'
+            and v0['symbol'] not in ['y2', 'z2']
+        )
+        or (
+            v0['source'] == 'Goryaev 17'
+            and v0['ION'] == 'ArXVI'
+            and v0['symbol'] not in [
+                'l', 'n3-h1', 'n3-h2', 'd',
+                'n3-e1', 'n3-f4', 'n3-f2', 'n3-e2',
+                'n3-f1', 'n3-g1', 'n3-g2', 'n3-g3',
+                'n3-f3', 'n3-a1', 'n3-a2', 'n3-c1',
+                'n3-c2', 'g', 'i', 'e', 'f', 'u',
+                'v', 'h', 'c', 'b', 'n3-b1',
+                'n3-b2', 'n3-b4', 'n3-d1', 'n3-d2',
+            ]
+        )
+    )
+}
+
+
+_DLINESFE = {
+    k0: v0 for k0, v0 in dlines.items()
+    if v0['element'] == 'Fe'
 }
 
 _DCONST0 = {
@@ -79,7 +93,7 @@ _RATIO_ZXY = 1.35
 _DCONST1 = copy.deepcopy(_DCONST0)
 _DCONST1['amp'].update({
     'ArXVII_y_Vainshtein': {'key': 'xy'},
-    'ArXVII_x_Vainshtein': {'key': 'xy', 'coef':_RATIO_XY}})
+    'ArXVII_x_Vainshtein': {'key': 'xy', 'coef': _RATIO_XY}})
 _DCONST2 = copy.deepcopy(_DCONST1)
 _DCONST2['amp'].update({
     'ArXVII_z_Vainshtein': {'key': 'xy', 'coef': _RATIO_ZXY*(1.+_RATIO_XY)}})
@@ -206,10 +220,9 @@ def plot_benchmark(input_file,
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.05, 'right':0.95,
-                   'bottom':0.06, 'top':0.93,
-                   'wspace':None, 'hspace':0.2}
-
+        dmargin = {'left': 0.05, 'right': 0.95,
+                   'bottom': 0.06, 'top': 0.93,
+                   'wspace': None, 'hspace': 0.2}
 
     # Load data
     out = np.load(input_file)
@@ -258,8 +271,10 @@ def plot_benchmark(input_file,
     yt = np.arange(1, ntol+1)
     ytl = ['{:1.0e}'.format(tt) for tt in tol]
 
-    alpha = 1. - mplcolors.Normalize(vmin=np.log(np.nanmin(chin)),
-                                     vmax=np.log(np.nanmax(chin)))(np.log(chin))
+    alpha = 1. - mplcolors.Normalize(
+        vmin=np.log(np.nanmin(chin)),
+        vmax=np.log(np.nanmax(chin)),
+    )(np.log(chin))
 
     # -------------
     # Plot 1
@@ -347,7 +362,6 @@ def plot_benchmark(input_file,
         plt.colorbar(imnfev, cax=dax['nfev_cb'],
                      orientation='vertical')
 
-
     # -------------
     # Plot 2
     fig = plt.figure(figsize=fs)
@@ -385,29 +399,28 @@ def plot_benchmark(input_file,
             dax2['ratio'][ii].set_ylabel(r'ratio' + ' (a.u.)')
 
         for jj in range(ntol):
-            col0 = mplcolors.to_rgb(lcol[jj%ncol])
+            col0 = mplcolors.to_rgb(lcol[jj % ncol])
             for ll in range(nnbs):
                 if np.all(np.isnan(Ti[jj, ii, ll, :])):
                     continue
-                ls = lls[ll%nls]
+                ls = lls[ll % nls]
                 col = np.r_[col0, alpha[jj, ii, ll]]
                 dax2['Ti'][ii].plot(phi, Ti[jj, ii, ll, :],
                                     c=col, ls=ls)
                 dax2['ratio'][ii].plot(phi, ratio[jj, ii, ll, :],
                                        c=col, ls=ls)
 
-
     # Polish
     dax2['Ti'][0].set_ylim(bottom=0., top=3.)
     dax2['ratio'][0].set_ylim(bottom=0.)
-    hand = [mlines.Line2D([], [], c='k', ls=lls[ll%nls])
+    hand = [mlines.Line2D([], [], c='k', ls=lls[ll % nls])
             for ll in range(nnbs)]
     lab = ['{}'.format(nn) for nn in nbs]
     dax2['Ti'][indax].legend(hand, lab,
                              title='nbsplines',
                              loc='lower left',
                              bbox_to_anchor=(1.02, 0.))
-    hand = [mlines.Line2D([], [], c=lcol[jj%ncol], ls='-')
+    hand = [mlines.Line2D([], [], c=lcol[jj % ncol], ls='-')
             for jj in range(ntol)]
     lab = ['{:1.0e}'.format(tt) for tt in tol]
     dax2['ratio'][indax].legend(hand, lab,
