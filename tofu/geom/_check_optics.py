@@ -151,7 +151,6 @@ def _checkformat_dgeom(dgeom=None, ddef=None, valid_keys=None):
     basis of unit vectors (e1, e2, nout) + nin
     """
 
-
     if dgeom is None:
         return
 
@@ -255,13 +254,12 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
     + nin + alpha, beta
     """
 
-
     if dmat is None:
         return
 
-    #---------------------
+    # ---------------------
     # check dict integrity
-    #---------------------
+    # ---------------------
 
     # Check dict typeand content (each key is a valid string)
     _check_dict_valid_keys(var=dmat, varname='dmat', valid_keys=valid_keys)
@@ -270,11 +268,11 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
     for kk in ddef.keys():
         dmat[kk] = dmat.get(kk, ddef[kk])
 
-    #-------------------------------
+    # -------------------------------
     # check each value independently
-    #-------------------------------
+    # -------------------------------
 
-    # Check dimension of array and its size 	
+    # Check dimension of array and its size
     dmat['lengths'] = _check_flat1darray_size(
         var=dmat.get('lengths'), varname='lengths', size=3)
     dmat['angles'] = _check_flat1darray_size(
@@ -317,12 +315,12 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
     _check_dict_unitvector(dd=dmat, dd_name='dmat')
 
     # Check all additionnal angles to define the new basis
-    for k0 in ['alpha', 'beta',]:
+    for k0 in ['alpha', 'beta']:
         dmat[k0] = _check_flat1darray_size(
             var=dmat.get(k0), varname=k0, size=1, norm=False)
 
     # -------------------------------------------------------------
-    # Add missing vectors and parameters according to the new basis 
+    # Add missing vectors and parameters according to the new basis
     # -------------------------------------------------------------
 
     if all([dgeom[kk] is not None for kk in ['nout', 'e1', 'e2']]):
@@ -347,7 +345,7 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
         # setting to default value if any is None
         lparNone = [aa for aa in dpar.keys() if dmat.get(aa) is None]
 
-        # if any is None, assigning default value and send a warning message 
+        # if any is None, assigning default value and send a warning message
         if len(lparNone) > 0:
             msg = "The following parameters were set to their default values:"
             for aa in lparNone:
@@ -387,7 +385,6 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
                 + "\nProvided:\n\t{}".format(dmat['beta'])
             )
             raise Exception(msg)
-
 
         # dict of value, comment, default value and type of unit vectors in
         #  dmat, computting default value of unit vectors, corresponding to
@@ -476,9 +473,9 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None, dmat=None):
     if dbragg is None:
         dbragg = dict.fromkeys(valid_keys)
 
-    #---------------------
+    # ---------------------
     # check dict integrity
-    #---------------------
+    # ---------------------
 
     # Check type dict and content (each key is a valid string)
     _check_dict_valid_keys(var=dbragg, varname='dbragg', valid_keys=valid_keys)
@@ -487,9 +484,9 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None, dmat=None):
     for kk in ddef.keys():
         dbragg[kk] = dbragg.get(kk, ddef[kk])
 
-    #------------------------------------------------
+    # ------------------------------------------------
     # Check braggref and lambref type and computation
-    #------------------------------------------------
+    # ------------------------------------------------
 
     # Check braggref
     ltypes = [int, float, np.int_, np.float_]
@@ -541,9 +538,9 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None, dmat=None):
     if user_prov is True:
         dbragg['braggref'] = braggref
 
-    #------------------------------------------------
-    # Check rocking curve value 
-    #------------------------------------------------
+    # ------------------------------------------------
+    # Check rocking curve value
+    # ------------------------------------------------
 
     # Check type dict and content (each key is a valid string)
     drock = dbragg.get('rockingcurve')
@@ -562,7 +559,9 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None, dmat=None):
         try:
             if drock.get('sigma') is not None:
                 dbragg['rockingcurve']['sigma'] = float(drock['sigma'])
-                dbragg['rockingcurve']['deltad'] = float(drock.get('deltad', 0.))
+                dbragg['rockingcurve']['deltad'] = float(
+                    drock.get('deltad', 0.),
+                )
                 dbragg['rockingcurve']['Rmax'] = float(drock.get('Rmax', 1.))
                 dbragg['rockingcurve']['type'] = 'lorentz-log'
 
