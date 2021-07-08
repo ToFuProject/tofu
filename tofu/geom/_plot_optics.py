@@ -463,14 +463,14 @@ def _CrystalBragg_plot(
     if 'o' in element:
         if cross:
             dax['cross'].plot(
-                np.hypot(outline[0,:], outline[1,:]),
-                outline[2,:],
+                np.hypot(outline[0, :], outline[1, :]),
+                outline[2, :],
                 label=cryst.Id.NameLTX+' outline',
                 **dcryst['outline'],
             )
         if hor:
             dax['hor'].plot(
-                outline[0,:], outline[1,:],
+                outline[0, :], outline[1, :],
                 label=cryst.Id.NameLTX+' outline',
                 **dcryst['outline'],
             )
@@ -524,13 +524,13 @@ def _CrystalBragg_plot(
     if 'r' in element:
         if cross:
             dax['cross'].plot(
-                np.hypot(row[0,:], row[1,:]), row[2,:],
+                np.hypot(row[0, :], row[1, :]), row[2, :],
                 label=cryst.Id.NameLTX+' rowland',
                 **dcryst['rowland'],
             )
         if hor:
             dax['hor'].plot(
-                row[0,:], row[1,:],
+                row[0, :], row[1, :],
                 label=cryst.Id.NameLTX+' rowland',
                 **dcryst['rowland'],
             )
@@ -639,9 +639,11 @@ def _CrystalBragg_plot(
                 )
 
         if det.get('outline') is not None and 'o' in element:
-            det_out = (det['outline'][0:1, :]*det['ei'][:, None]
-                        + det['outline'][1:2, :]*det['ej'][:, None]
-                       + det['cent'][:, None])
+            det_out = (
+                det['outline'][0:1, :]*det['ei'][:, None]
+                + det['outline'][1:2, :]*det['ej'][:, None]
+                + det['cent'][:, None]
+            )
 
             if cross:
                 dax['cross'].plot(
@@ -864,7 +866,6 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
     if leg is True:
         leg = {}
 
-
     # Prepare axes
     if ax is None:
         fig = plt.figure(figsize=fs)
@@ -920,8 +921,8 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
     if colorbar is True:
         cax0 = plt.colorbar(dobj['bragg']['obj'], ax=dobj['bragg']['ax'])
         cax1 = plt.colorbar(dobj['phi']['obj'], ax=dobj['phi']['ax'])
-        cax0.ax.set_title(r'$\theta_{bragg}$' + '\n' + r'($%s$)'%braggunits)
-        cax1.ax.set_title(r'$ang$' + '\n' + r'($%s$)'%angunits)
+        cax0.ax.set_title(r'$\theta_{bragg}$' + '\n' + r'($%s$)' % braggunits)
+        cax1.ax.set_title(r'$ang$' + '\n' + r'($%s$)' % angunits)
 
     if leg is not False:
         ax.legend(**leg)
@@ -1043,7 +1044,7 @@ def CrystalBragg_plot_johannerror(
     # ------------
     fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(1, 3, **dmargin)
-    ax0 = fig.add_subplot(gs[0, 0], aspect='equal') # adjustable='datalim')
+    ax0 = fig.add_subplot(gs[0, 0], aspect='equal')     # adjustable='datalim')
     ax1 = fig.add_subplot(
         gs[0, 1], aspect='equal', sharex=ax0, sharey=ax0,
     )
@@ -1106,7 +1107,6 @@ def CrystalBragg_plot_focal_error_summed(
         contour = [errmin + (np.nanmax(error_lambda) - errmin)/50.]
     if fs is None:
         fs = (6, 8)
-
 
     if ax is None:
         fig = plt.figure(figsize=fs)
@@ -1224,11 +1224,15 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
     if '2d' in proj or '3d' in proj:
         pts = np.repeat(np.repeat(pts[:, None, :], nlamb, axis=1)[..., None],
                         ndtheta, axis=-1)[..., None]
-        ptsall = np.concatenate((pts,
-                                 ptscryst[..., None],
-                                 ptsdet[..., None],
-                                 np.full((3, nlamb, npts, ndtheta, 1), np.nan)),
-                                axis=-1).reshape((3, nlamb, npts, ndtheta*4))
+        ptsall = np.concatenate(
+            (
+                pts,
+                ptscryst[..., None],
+                ptsdet[..., None],
+                np.full((3, nlamb, npts, ndtheta, 1), np.nan),
+            ),
+            axis=-1,
+        ).reshape((3, nlamb, npts, ndtheta*4))
         del pts, ptscryst, ptsdet
         if '2d' in proj:
             R = np.hypot(ptsall[0, ...], ptsall[1, ...])
@@ -1256,7 +1260,9 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
                 titi = tit
             fig = plt.figure(figsize=fsi)
             gs = gridspec.GridSpec(1, 1, **dmargini)
-            axi = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
+            axi = fig.add_subplot(
+                gs[0, 0], aspect='equal', adjustable='datalim',
+            )
             axi.set_xlabel(r'$x_i$ (m)')
             axi.set_ylabel(r'$x_j$ (m)')
         else:
@@ -1266,10 +1272,15 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
         axi.plot(det[0, :], det[1, :], ls='-', lw=1., c='k')
         for pp in range(npts):
             for ll in range(nlamb):
-                lab = (r'pts {} - '.format(pp)
-                       + '$\lambda$'+' = {:6.3f} A'.format(lamb[ll]*1.e10))
-                axi.plot(xi[ll, pp, :], xj[ll, pp, :],
-                         ls='None', marker=lm[ll%nm], c=lcol[pp%ncol], label=lab)
+                lab = (
+                    r'pts {} - '.format(pp)
+                    + r'$\lambda$' + ' = {:6.3f} A'.format(lamb[ll]*1.e10)
+                )
+                axi.plot(
+                    xi[ll, pp, :], xj[ll, pp, :],
+                    ls='None', marker=lm[ll % nm],
+                    c=lcol[pp % ncol], label=lab,
+                )
 
         # decorate
         if legend is not False:
@@ -1297,12 +1308,16 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
         for pp in range(npts):
             for ll in range(nlamb):
                 lab = (r'pts {} - '.format(pp)
-                       + '$\lambda$'+' = {:6.3f} A'.format(lamb[ll]*1.e10))
-                dax['cross'].plot(R[ll, pp, :], ptsall[2, ll, pp, :],
-                                  ls=lls[ll%nls], color=lcol[pp%ncol],
-                                  label=lab)
-                dax['hor'].plot(ptsall[0, ll, pp, :], ptsall[1, ll, pp, :],
-                                ls=lls[ll%nls], color=lcol[pp%ncol], label=lab)
+                       + r'$\lambda$'+' = {:6.3f} A'.format(lamb[ll]*1.e10))
+                dax['cross'].plot(
+                    R[ll, pp, :], ptsall[2, ll, pp, :],
+                    ls=lls[ll % nls], color=lcol[pp % ncol],
+                    label=lab,
+                )
+                dax['hor'].plot(
+                    ptsall[0, ll, pp, :], ptsall[1, ll, pp, :],
+                    ls=lls[ll % nls], color=lcol[pp % ncol], label=lab,
+                )
         # decorate
         if legend is not False:
             dax['cross'].legend(**legend)
