@@ -66,8 +66,9 @@ _DLINES = {
 }
 
 
-_DLINESFE = {k0: v0 for k0, v0 in dlines.items()
-             if v0['element'] == 'Fe'
+_DLINESFE = {
+    k0: v0 for k0, v0 in dlines.items()
+    if v0['element'] == 'Fe'
 }
 
 _DCONST0 = {
