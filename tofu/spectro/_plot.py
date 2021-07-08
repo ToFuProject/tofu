@@ -23,7 +23,9 @@ __all__ = ['plot_fit1d']
 
 
 _GITHUB = 'https://github.com/ToFuProject/tofu/issues'
-_WINTIT = 'tofu-%s        report issues / requests at %s'%(__version__, _GITHUB)
+_WINTIT = 'tofu-%s        report issues / requests at %s' % (
+                __version__, _GITHUB
+                )
 
 _QUIVERCOLOR = plt.cm.viridis(np.linspace(0, 1, 3))
 _QUIVERCOLOR = np.array([[1., 0., 0., 1.],
@@ -66,9 +68,9 @@ def CrystalBragg_plot_data_vs_lambphi(
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
-        dmargin = {'left':0.05, 'right':0.99,
-                   'bottom':0.07, 'top':0.92,
-                   'wspace':0.2, 'hspace':0.3}
+        dmargin = {'left': 0.05, 'right': 0.99,
+                   'bottom': 0.07, 'top': 0.92,
+                   'wspace': 0.2, 'hspace': 0.3}
     assert angunits in ['deg', 'rad']
     if angunits == 'deg':
         bragg = bragg*180./np.pi
@@ -126,7 +128,7 @@ def CrystalBragg_plot_data_vs_lambphi(
     gs = gridspec.GridSpec(4, 4, **dmargin)
     ax0 = fig.add_subplot(gs[:3, 0], aspect='equal')    #, adjustable='datalim'
     ax1 = fig.add_subplot(gs[:3, 1], aspect='equal',
-                          sharex=ax0, sharey=ax0)       #, adjustable='datalim'
+                          sharex=ax0, sharey=ax0)    #, adjustable='datalim'
     axs1 = fig.add_subplot(gs[3, 1], sharex=ax0)
     ax2 = fig.add_subplot(gs[:3, 2])
     axs2 = fig.add_subplot(gs[3, 2], sharex=ax2, sharey=axs1)
@@ -175,7 +177,7 @@ def CrystalBragg_plot_data_vs_lambphi(
         for ii, k0 in enumerate(lions):
             for jj in range(dions[k0]['lamb'].size):
                 x = dions[k0]['lamb'][jj]
-                col = lcol[ii%ncol]
+                col = lcol[ii % ncol]
                 axs2.axvline(x,
                              c=col, ls='--')
                 axs2.annotate(dions[k0]['symbol'][jj],
@@ -187,18 +189,38 @@ def CrystalBragg_plot_data_vs_lambphi(
                 if xjcut is not None:
                     ax3.axvline(x,
                                 c=col, ls='--')
-        hand = [mlines.Line2D([], [], color=lcol[ii%ncol], ls='--')
+        hand = [mlines.Line2D([], [], color=lcol[ii % ncol], ls='--')
                 for ii in range(nions)]
         axs2.legend(hand, lions,
                     bbox_to_anchor=(1., 1.02), loc='upper left')
 
     # Plot 1d spectra and associated phi windows
     for ii in range(nspect):
-        axs2.plot(lambfit, spect1d[ii], c=lcolspect[ii%ncolspect], ls='-')
-        ax2.axhline(phiminmax[ii ,0], c=lcolspect[ii%ncolspect], ls='-', lw=1.)
-        ax2.axhline(phiminmax[ii, 1], c=lcolspect[ii%ncolspect], ls='-', lw=1.)
-        ax3.axhline(phiminmax[ii ,0], c=lcolspect[ii%ncolspect], ls='-', lw=1.)
-        ax3.axhline(phiminmax[ii, 1], c=lcolspect[ii%ncolspect], ls='-', lw=1.)
+        axs2.plot(
+            lambfit, spect1d[ii],
+            c=lcolspect[ii % ncolspect],
+            ls='-',
+            )
+        ax2.axhline(
+            phiminmax[ii ,0],
+            c=lcolspect[ii % ncolspect],
+            ls='-', lw=1.,
+            )
+        ax2.axhline(
+            phiminmax[ii, 1],
+            c=lcolspect[ii % ncolspect],
+            ls='-', lw=1.,
+            )
+        ax3.axhline(
+            phiminmax[ii ,0],
+            c=lcolspect[ii % ncolspect],
+            ls='-', lw=1.,
+            )
+        ax3.axhline(
+            phiminmax[ii, 1],
+            c=lcolspect[ii % ncolspect],
+            ls='-', lw=1.,
+            )
 
     ax2.set_xlim(lambmin, lambmax)
     ax2.set_ylim(phifit.min(), phifit.max())
@@ -242,9 +264,9 @@ def plot_fit1d(
     if wintit is None:
         wintit = _WINTIT
     if dmargin is None:
-        dmargin = {'left':0.05, 'right':0.85,
-                   'bottom':0.07, 'top':0.85,
-                   'wspace':0.2, 'hspace':0.3}
+        dmargin = {'left': 0.05, 'right': 0.85,
+                   'bottom': 0.07, 'top': 0.85,
+                   'wspace': 0.2, 'hspace': 0.3}
 
     # Extract (better redeability)
     dprepare = dfit1d['dinput']['dprepare']
@@ -328,8 +350,8 @@ def plot_fit1d(
             if dextract['sol_detail'] is not False:
                 if dextract['Ti'] is not False or dextract['vi'] is not False:
                     for jj in range(nlines):
-                        col = lfcol[indwidth[jj]%nfcol]
-                        hatch = lhatch[indshift[jj]%nhatch]
+                        col = lfcol[indwidth[jj] % nfcol]
+                        hatch = lhatch[indshift[jj] % nhatch]
                         ax.fill_between(
                             dprepare['lamb'],
                             dextract['sol_detail'][ispect, :, 1+jj],
@@ -350,7 +372,7 @@ def plot_fit1d(
         # Annotate lines
         if annotate is not False:
             for jj, k0 in enumerate(ions_u):
-                col = lcol[jj%ncol]
+                col = lcol[jj % ncol]
                 ind = (dinput['ion'] == k0).nonzero()[0]
                 for nn in ind:
                     if dinput['keys'][nn] not in annotate:
@@ -376,7 +398,7 @@ def plot_fit1d(
             hand = [
                 mlines.Line2D(
                     [], [],
-                    color=lcol[jj%ncol], ls='--', label=ions_u[jj]
+                    color=lcol[jj % ncol], ls='--', label=ions_u[jj]
                 )
                 for jj in range(nions)
             ]
@@ -390,15 +412,17 @@ def plot_fit1d(
 
         # Ti legend
         if dextract['Ti'] is not False:
-            hand = [mpatches.Patch(color=lfcol[jj%nfcol])
+            hand = [mpatches.Patch(color=lfcol[jj % nfcol])
                     for jj in range(dinput['width']['ind'].shape[0])]
             lleg = [str(dinput['width']['keys'][jj])
-                    + '  {:4.2f}'.format(dextract['Ti']['values'][ispect, jj]*1.e-3)
+                    + '{:4.2f}'.format(
+                            dextract['Ti']['values'][ispect, jj]*1.e-3
+                            )
                     for jj in range(dinput['width']['ind'].shape[0])]
             legT = ax.legend(
                 handles=hand, labels=lleg,
                 title='Ti (keV)',
-                bbox_to_anchor=(1.01, 1.), # 0.8
+                bbox_to_anchor=(1.01, 1.),    # 0.8
                 loc='upper left',
             )
             ax.add_artist(legT)
@@ -406,15 +430,17 @@ def plot_fit1d(
         # vi legend
         if dextract['vi'] is not False:
             hand = [mpatches.Patch(facecolor='w', edgecolor='k',
-                                   hatch=lhatch[jj%nhatch])
+                                   hatch=lhatch[jj % nhatch])
                     for jj in range(dinput['shift']['ind'].shape[0])]
             lleg = [str(dinput['shift']['keys'][jj])
-                    + '  {:4.2f}'.format(dextract['vi']['values'][ispect, jj]*1.e-3)
+                    + '{:4.2f}'.format(
+                            dextract['vi']['values'][ispect, jj]*1.e-3
+                            )
                     for jj in range(dinput['shift']['ind'].shape[0])]
             legv = ax.legend(
                 handles=hand, labels=lleg,
                 title='vi (km/s)',
-                bbox_to_anchor=(1.01, 0.75), # 0.5
+                bbox_to_anchor=(1.01, 0.75),    # 0.5
                 loc='upper left',
             )
             ax.add_artist(legv)
@@ -431,7 +457,7 @@ def plot_fit1d(
                 handles=hand,
                 labels=lleg,
                 title='line ratio',
-                bbox_to_anchor=(1.01, 0.30), # 0.21
+                bbox_to_anchor=(1.01, 0.30),    # 0.21
                 loc='lower left',
             )
             ax.add_artist(legr)
@@ -497,9 +523,9 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
         if cmap is None:
             cmap = plt.cm.viridis
         if dmargin is None:
-            dmargin = {'left':0.05, 'right':0.99,
-                       'bottom':0.06, 'top':0.95,
-                       'wspace':None, 'hspace':0.8}
+            dmargin = {'left': 0.05, 'right': 0.99,
+                       'bottom': 0.06, 'top': 0.95,
+                       'wspace': None, 'hspace': 0.8}
         if wintit is None:
             wintit = _WINTIT
         if tit is None:
@@ -509,9 +535,6 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
     if angunits is None:
         angunits = 'deg'
     assert angunits in ['deg', 'rad']
-
-
-
 
     phiflat = dfit2d['phi']
     pts_phi = dfit2d['pts_phi']
@@ -543,7 +566,6 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
     err = dfit2d['sol_tot'][indspect, :] - dfit2d['data'][indspect, :]
     errm = vmax/10.
 
-
     # Prepare figure if dax not provided
     # ------------
     if dax is None:
@@ -561,9 +583,11 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
             ax0 = fig.add_subplot(gs[:9, :3], aspect='equal')
         ax0c = fig.add_subplot(gs[10, :3])
         ax1 = fig.add_subplot(gs[:9, 3:6],
-                          sharex=ax0, sharey=ax0)
+                          sharex=ax0, sharey=ax0,
+                          )
         ax2 = fig.add_subplot(gs[:9, 6:9],
-                          sharex=ax0, sharey=ax0)
+                          sharex=ax0, sharey=ax0,
+                          )
         ax1c = fig.add_subplot(gs[10, 3:6])
 
         ax0.set_title('Residu')
@@ -684,7 +708,7 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
         lcol = ['r', 'k', 'm']
         for ii in range(spect1d.shape[0]):
             l, = dax['fit1d'].plot(lambfit, fit1d[ii, :],
-                                   ls='-', lw=1., c=lcol[ii%len(lcol)])
+                                   ls='-', lw=1., c=lcol[ii % len(lcol)])
             col = l.get_color()
             dax['fit1d'].plot(lambfit, spect1d[ii, :],
                               ls='None', marker='.', c=col, ms=4)
@@ -732,7 +756,8 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
         plt.colorbar(errax, ax=dax['err'], cax=dax['err_colorbar'],
                      orientation='horizontal', extend='both')
     if (dax.get('data_colorbar') is not None
-        and (dax['data'] is not None or dax['fit'] is not None)):
+        and (dax['data'] is not None or dax['fit'] is not None)
+        ):
         plt.colorbar(dataax, ax=dax['data'], cax=dax['data_colorbar'],
                      orientation='horizontal')
     return dax
@@ -835,7 +860,6 @@ def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
         msg = "Overlapping indout!"
         raise Exception(msg)
 
-
     # get plotting indout
     indout_maskplot = np.tile(np.insert(
         indout_mask[indsort[0, :], indsort[1, :]], indnan, False),
@@ -847,8 +871,10 @@ def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
         indout_var[:, indsort[0, :], indsort[1, :]],
         indnan, False, axis=1).ravel()
     dindout = {'mask': {'ind': indout_mask, 'plot': indout_maskplot},
-               'noeval': {'ind': indout_noeval}, #, 'plot': indout_noevalplot},
-               'S/N': {'ind': indout_var_agg, 'plot': indout_varplot}}
+               'noeval': {'ind': indout_noeval},
+               #,'plot': {indout_noevalplot},
+               'S/N': {'ind': indout_var_agg, 'plot': indout_varplot},
+               }
     indinplot = ~(indout_maskplot | indout_noevalplot | indout_varplot)
 
     # cam and cmap
@@ -905,7 +931,7 @@ def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
                'errbin': ax3,
                'cam': ax4,
                'chi2': ax6,
-              }
+               }
 
     # Plot main images
     # ------------
@@ -1066,7 +1092,8 @@ def plot_noise_analysis_scannbs(
     dnoise=None, ms=None,
     dax=None, fs=None, dmargin=None,
     wintit=None, tit=None, sublab=None,
-    save=None, name=None, path=None, fmt=None):
+    save=None, name=None, path=None, fmt=None,
+):
 
     # Check inputs
     # ------------
@@ -1166,8 +1193,9 @@ def plot_noise_analysis_scannbs(
 
     # Fit chi2n vs nbs
     if dax.get('conv') is not None:
+        minus_one = chi2nmean[-1]
         chi2nn = ((dnoise['var_const'][0] - dnoise['var_const'][-1])
-                  * (chi2nmean - chi2nmean[-1]) / (chi2nmean[0] - chi2nmean[-1])
+                  * (chi2nmean - minus_one) / (chi2nmean[0] - minus_one)
                   + dnoise['var_const'][-1])
         dax['conv'].plot(dnoise['lnbsplines'], chi2nn,
                          c='k', ls='-', lw=2., label='fit cost')
@@ -1188,7 +1216,8 @@ def plot_noise_analysis_scannbs(
         dax['conv'].legend(loc='best')
 
     # Particular cases
-    if dax.get('cases_fit') is not None and dnoise.get('nbsplines') is not None:
+    l0 = (dax.get('case_fit') is not None, dnoise.get('nbsplines') is not None)
+    if l0:
         inbs = [np.nonzero(dnoise['lnbsplines'] == nbs)[0][0]
                 for nbs in dnoise['nbsplines']]
         for ii in range(dnoise['nbsplines'].size):
