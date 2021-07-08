@@ -166,9 +166,9 @@ class Test01_DataCollection(object):
             spect2d += noise(
                 lamb=lamb[None, :],
                 amp=dlines[k0]['noise'] * np.exp(-var[:, None]**2/10**2),
-                    freq=10*(len(dlines)-ii),
-                    phase=ii,
-                )
+                freq=10*(len(dlines)-ii),
+                phase=ii,
+            )
 
         mask = np.repeat((np.abs(var-15) < 3)[:, None], nlamb, axis=1)
 
@@ -213,7 +213,7 @@ class Test01_DataCollection(object):
         pass
 
     def test01_fit1d_dinput(self):
-        defconst={
+        defconst = {
             'amp': False,
             'width': False,
             'shift': False,
@@ -221,7 +221,7 @@ class Test01_DataCollection(object):
             'symmetry': False,
         }
 
-        # Define constraint dict 
+        # Define constraint dict
         ldconst = [
             {
                 'amp': {'a1': ['a', 'd']},
@@ -399,7 +399,7 @@ class Test01_DataCollection(object):
         plt.close('all')
 
     def test06_fit2d_dinput(self):
-        defconst={
+        defconst = {
             'amp': False,
             'width': False,
             'shift': False,
@@ -407,7 +407,7 @@ class Test01_DataCollection(object):
             'symmetry': False,
         }
 
-        # Define constraint dict 
+        # Define constraint dict
         ldconst = [
             {
                 'amp': {'a1': ['a', 'd']},
@@ -504,34 +504,36 @@ class Test01_DataCollection(object):
             )
             self.ldinput2d.append(dinput)
 
-    # def test07_funccostjac_2d(self):
-        # func = tfs._fit12d_funccostjac.multigausfit2d_from_dlines_funccostjac
-        # for ii, dd in enumerate(self.ldinput2d):
-            # func_detail, func_cost, func_jac = func(
-                # lamb=dd['dprepare']['lamb'],
-                # phi=dd['dprepare']['phi'],
-                # dinput=dd,
-                # dind=dd['dind'], jac='dense',
-            # )
+    """
+    def test07_funccostjac_2d(self):
+        func = tfs._fit12d_funccostjac.multigausfit2d_from_dlines_funccostjac
+        for ii, dd in enumerate(self.ldinput2d):
+            func_detail, func_cost, func_jac = func(
+                lamb=dd['dprepare']['lamb'],
+                phi=dd['dprepare']['phi'],
+                dinput=dd,
+                dind=dd['dind'], jac='dense',
+            )
 
-            # # Get x0
-            # x0 = tfs._fit12d._dict2vector_dscalesx0bounds(
-                # dd=dd['dx0'], dd_name='dx0', dinput=dd,
-            # )
-            # scales = tfs._fit12d._dict2vector_dscalesx0bounds(
-                # dd=dd['dscales'], dd_name='dscales', dinput=dd,
-            # )
+            # Get x0
+            x0 = tfs._fit12d._dict2vector_dscalesx0bounds(
+                dd=dd['dx0'], dd_name='dx0', dinput=dd,
+            )
+            scales = tfs._fit12d._dict2vector_dscalesx0bounds(
+                dd=dd['dscales'], dd_name='dscales', dinput=dd,
+            )
 
-            # y0 = func_detail(x0[0, :], scales=scales[0, :])
-            # y1 = func_cost(
-                # x0[0, :],
-                # scales=scales[0, :],
-                # data=dd['dprepare']['data'][0, :],
-            # )
+            y0 = func_detail(x0[0, :], scales=scales[0, :])
+            y1 = func_cost(
+                x0[0, :],
+                scales=scales[0, :],
+                data=dd['dprepare']['data'][0, :],
+            )
 
-            # # check consistency between func_detail and func_cost
-            # assert np.allclose(
-                # np.sum(y0, axis=1) - dd['dprepare']['data'][0, :],
-                # y1,
-                # equal_nan=True,
-            # )
+            # check consistency between func_detail and func_cost
+            assert np.allclose(
+                np.sum(y0, axis=1) - dd['dprepare']['data'][0, :],
+                y1,
+                equal_nan=True,
+            )
+    """
