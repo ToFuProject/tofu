@@ -1226,7 +1226,6 @@ class CrystalBragg(utils.ToFuObject):
 
         Update new values into dmat dict
         """
-
         if alpha is None:
             alpha = 0
         if beta is None:
