@@ -1,8 +1,12 @@
+# -*- coding: utf-8 -*-
+
+
 import os
 import sys
 import shutil
 import warnings
 import datetime as dtm
+
 
 import numpy as np
 import scipy.optimize as scpopt
@@ -15,8 +19,10 @@ import matplotlib.gridspec as gridspec
 import matplotlib.lines as mlines
 import matplotlib.colors as mcolors
 
+
 _HERE = os.path.dirname(__file__)
 _TOFUPATH = os.path.abspath(os.path.join(_HERE, os.pardir))
+
 
 sys.path.insert(1, _TOFUPATH)
 import tofu as tf
@@ -1640,6 +1646,7 @@ def scan_det(pfe=None, allow_pickle=True,
                                             dfit1d['time'][indi, :, :],
                                             axis=1,
                                         ), axis=0)
+                                    )
                                 for kk in dfit1d['dcost'].keys():
                                     aa = dfit1d['dcost'][kk]['shiftm']
                                     dout['dcost'][kk]['detail'][ind] = aa
@@ -1652,6 +1659,7 @@ def scan_det(pfe=None, allow_pickle=True,
                                             np.nansum(aa**2, axis=-1),
                                             axis=-1,
                                         )) / nbok
+                                    )
                                     dout['done'][0, :] = [i0+1, i1+1, i2+1,
                                                           j0+1, j1+1, j2+1]
                                     print('ok', flush=True, file=sys.stdout)
