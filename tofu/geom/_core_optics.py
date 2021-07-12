@@ -81,12 +81,14 @@ class CrystalBragg(utils.ToFuObject):
     _ddef = {
         'Id': {
             'shot': 0, 'Exp': 'dummy', 'Diag': 'dummy',
-            'include':['Mod', 'Cls', 'Exp', 'Diag', 'Name', 'shot', 'version'],
+            'include': [
+                'Mod', 'Cls', 'Exp', 'Diag', 'Name', 'shot', 'version',
+            ],
         },
-        'dgeom':{'Type': 'sph', 'Typeoutline': 'rect'},
-        'dmat':{},
-        'dbragg':{'braggref': np.pi/4.},
-        'dmisc':{'color':'k'},
+        'dgeom': {'Type': 'sph', 'Typeoutline': 'rect'},
+        'dmat': {},
+        'dbragg': {'braggref': np.pi/4.},
+        'dmisc': {'color': 'k'},
     }
     _dplot = {'cross':{'Elt':'P',
                        'dP':{'color':'k','lw':2},

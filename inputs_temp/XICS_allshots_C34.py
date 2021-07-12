@@ -198,7 +198,7 @@ _DSHOTS = {
         55607: {'ang': 1.3405, 'tlim': [32.5, 40.4]},   # ICRH
     },
 
-    'ArXVIII':{
+    'ArXVIII': {
         54062: {'ang': -101.0, 'tlim': [32, 37]},
         54063: {'ang': -101.0, 'tlim': [32, 43]},
         54064: {'ang': -101.0, 'tlim': [32, 43]},
@@ -234,7 +234,7 @@ _DSHOTS = {
         54107: {'ang': -100.038, 'tlim': [32, 38]},
     },
 
-    'FeXXV':{
+    'FeXXV': {
         54123: {'ang': -181.547, 'tlim': [32, 59]},
         54126: {'ang': -181.547, 'tlim': [32, 38]},
         54127: {'ang': -181.547, 'tlim': [32, 49]},
@@ -303,18 +303,19 @@ for cryst, v0 in _DSHOTS.items():
         _TLIM[ishot] = v1['tlim']
 
 
+_CRYSTBASE = 'TFG_CrystalBragg_ExpWEST_DgXICS_'
 _DCRYST = {
     'ArXVII': os.path.abspath(os.path.join(
         _HERE,
-        'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVII_sh00000_Vers1.4.7-208-gb3dcce6e.npz',
+        _CRYSTBASE + 'ArXVII_sh00000_Vers1.4.7-208-gb3dcce6e.npz',
     )),
     'ArXVIII': os.path.abspath(os.path.join(
         _HERE,
-        'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVIII_sh00000_Vers1.4.7-221-g65718177.npz',
+        _CRYSTBASE + 'ArXVIII_sh00000_Vers1.4.7-221-g65718177.npz',
     )),
     'FeXXV': os.path.abspath(os.path.join(
         _HERE,
-        'TFG_CrystalBragg_ExpWEST_DgXICS_FeXXV_sh00000_Vers1.4.7-221-g65718177.npz',
+        _CRYSTBASE + 'FeXXV_sh00000_Vers1.4.7-221-g65718177.npz',
     )),
 }
 
@@ -474,8 +475,8 @@ def main(shots=_SHOTS,
 _GEOM = {
     'pix': {
         'sizeH': 172.e-6, 'sizeV': 172.e-6,
-        'nbH': 487,'nbV': 1467,'nbVGap': 17,'nbVMod': 195,
-        'mod': {'nbV': 7,'nbH': 1, 'sizeH': 83.764e-3, 'sizeV': 33.54e-3}
+        'nbH': 487, 'nbV': 1467, 'nbVGap': 17, 'nbVMod': 195,
+        'mod': {'nbV': 7, 'nbH': 1, 'sizeH': 83.764e-3, 'sizeV': 33.54e-3}
     }
 }
 
@@ -953,7 +954,7 @@ def plot(pfe=None, allow_pickle=True,
     dax2['spect'][-1].set_xlabel(r'$\lambda$' + ' (m)')
     dax2['spectn'][-1].set_xlabel(r'$\lambda$' + ' (m)')
     hand = [
-        mlines.Line2D([], [], c=lcol[jj%ncol], ls='-')
+        mlines.Line2D([], [], c=lcol[jj % ncol], ls='-')
         for jj in range(nang)
     ]
     lab = ['{}'.format(aa) for aa in angu]
@@ -1410,8 +1411,8 @@ def fit(pfe=None, allow_pickle=True,
 # #############################################################################
 
 
-_DX = [0.01, 0.002, 0.002] # 0.0004
-_DROT = [0.01, 0.01, 0.01]   # 0.0004
+_DX = [0.01, 0.002, 0.002]      # 0.0004
+_DROT = [0.01, 0.01, 0.01]      # 0.0004
 _NDX = 2
 _NDROT = 2
 
@@ -1483,12 +1484,12 @@ def scan_det(pfe=None, allow_pickle=True,
                     'ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
                     'ArXVI_a_Adhoc200408',
                 ],
+            },
             'amp': {
                 'ArXVI_k_Adhoc200408': {'key': 'kj'},
                 'ArXVI_j_Adhoc200408': {'key': 'kj', 'coef': 1.3576},
             },
-            'shift': {'wz': ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro']}
-            }
+            'shift': {'wz': ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro']},
         }
 
     # input data file

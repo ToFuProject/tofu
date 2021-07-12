@@ -436,7 +436,7 @@ def peak_analysis_spect1d(
     # if thresh_prom is not None:
     # for ii, (i0, i1) in enumerate(intervals):
     # ind = (t >= i0) & (t <= i1)
-    # prom0[ind[:, None] & np.all(prom0[ind, :] < thresh_prom, axis=0)] = np.nan
+    # prom0[ind[:, None] & np.all(prom0[ind, :]< thresh_prom, axis=0)] = np.nan
 
     if thresh_time is not None:
         fract_time = (~np.isnan(prom0))
