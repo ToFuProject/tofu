@@ -86,7 +86,6 @@ class SpectralLines(DataCollection):
     def add_pec(self, key=None, pec=None, ref=None):
         pass
 
-
     def remove_line(
         self,
         key=None,
@@ -598,7 +597,6 @@ class SpectralLines(DataCollection):
             returnas2 = 'data'
         else:
             returnas2 = 'coef'
-
 
         key = self._ind_tofrom_key(
             which=self._grouplines, key=key, ind=ind, returnas=str,
