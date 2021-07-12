@@ -316,7 +316,7 @@ def multigausfit1d_from_dlines_funccostjac(
                         (
                             -alphad[:, iwj[jj]] * amp[:, iwj[jj]]
                             * expd[:, iwj[jj]] * coefswl[:, iwj[jj]]
-                            * inv_wi2[:, iwj[jj]],
+                            * inv_wi2[:, iwj[jj]]
                         ),
                         axis=1,
                     ) * scales[iwx[jj]] * dratio
@@ -331,8 +331,8 @@ def multigausfit1d_from_dlines_funccostjac(
                 # dratio
                 if double is True or double.get('dratio') is None:
                     jac0[indok, idratiox] = (
-                        scales[idratiox] * np.sum(amp * expd, axis=1),
-                        )
+                        scales[idratiox] * np.sum(amp * expd, axis=1)
+                    )
 
                 # dshift
                 if double is True or double.get('dshift') is None:
@@ -612,7 +612,7 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                         (
                             -alpha[:, iwj[jj]] * amp[:, iwj[jj]]
                             * bsexp[:, iwj[jj]] * coefswl[:, iwj[jj]]
-                            / wi2[:, iwj[jj]],
+                            / wi2[:, iwj[jj]]
                         ), axis=1,
                     ) * scales[ix]
 
@@ -626,9 +626,12 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                     # * coefssl[0:1, ishj[jj]]),
                     # axis=1)
                     jac0[libs[ii], ix] = np.sum(
-                        (amp[:, ishj[jj]] * 2. * beta[:, ishj[jj]])
-                        * bsexp[:, ishj[jj]] * coefssl[:, ishj[jj]],
-                        axis=1) * scales[ix]
+                        (
+                            amp[:, ishj[jj]] * 2. * beta[:, ishj[jj]]
+                            * bsexp[:, ishj[jj]] * coefssl[:, ishj[jj]]
+                        ),
+                        axis=1,
+                    ) * scales[ix]
 
                 # double
                 if double is False:
