@@ -3122,7 +3122,6 @@ def multigausfit2d_from_dlines(
     )
     bounds = np.array([boundmin[0, :], boundmax[0, :]])
 
-
     # ---------------------------
     # Separate free from constant parameters
     const = _dict2vector_dscalesx0bounds(
@@ -3387,6 +3386,7 @@ def fit1d(
         return dfit1d, dax
     else:
         return dfit1d
+
 
 # TBF
 def fit2d(

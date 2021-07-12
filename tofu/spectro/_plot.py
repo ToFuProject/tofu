@@ -126,9 +126,12 @@ def CrystalBragg_plot_data_vs_lambphi(
 
     fig = fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(4, 4, **dmargin)
-    ax0 = fig.add_subplot(gs[:3, 0], aspect='equal')    #, adjustable='datalim'
-    ax1 = fig.add_subplot(gs[:3, 1], aspect='equal',
-                          sharex=ax0, sharey=ax0)    #, adjustable='datalim'
+    ax0 = fig.add_subplot(gs[:3, 0], aspect='equal')   # , adjustable='datalim'
+    ax1 = fig.add_subplot(
+        gs[:3, 1],
+        aspect='equal',
+        sharex=ax0, sharey=ax0,
+    )    # , adjustable='datalim'
     axs1 = fig.add_subplot(gs[3, 1], sharex=ax0)
     ax2 = fig.add_subplot(gs[:3, 2])
     axs2 = fig.add_subplot(gs[3, 2], sharex=ax2, sharey=axs1)
@@ -202,7 +205,7 @@ def CrystalBragg_plot_data_vs_lambphi(
             ls='-',
             )
         ax2.axhline(
-            phiminmax[ii ,0],
+            phiminmax[ii, 0],
             c=lcolspect[ii % ncolspect],
             ls='-', lw=1.,
             )
@@ -212,7 +215,7 @@ def CrystalBragg_plot_data_vs_lambphi(
             ls='-', lw=1.,
             )
         ax3.axhline(
-            phiminmax[ii ,0],
+            phiminmax[ii, 0],
             c=lcolspect[ii % ncolspect],
             ls='-', lw=1.,
             )
@@ -582,12 +585,14 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
         else:
             ax0 = fig.add_subplot(gs[:9, :3], aspect='equal')
         ax0c = fig.add_subplot(gs[10, :3])
-        ax1 = fig.add_subplot(gs[:9, 3:6],
-                          sharex=ax0, sharey=ax0,
-                          )
-        ax2 = fig.add_subplot(gs[:9, 6:9],
-                          sharex=ax0, sharey=ax0,
-                          )
+        ax1 = fig.add_subplot(
+            gs[:9, 3:6],
+            sharex=ax0, sharey=ax0,
+        )
+        ax2 = fig.add_subplot(
+            gs[:9, 6:9],
+            sharex=ax0, sharey=ax0,
+        )
         ax1c = fig.add_subplot(gs[10, 3:6])
 
         ax0.set_title('Residu')
@@ -755,9 +760,10 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
     if dax.get('err_colorbar') is not None and dax['err'] is not None:
         plt.colorbar(errax, ax=dax['err'], cax=dax['err_colorbar'],
                      orientation='horizontal', extend='both')
-    if (dax.get('data_colorbar') is not None
+    if (
+        dax.get('data_colorbar') is not None
         and (dax['data'] is not None or dax['fit'] is not None)
-        ):
+    ):
         plt.colorbar(dataax, ax=dax['data'], cax=dax['data_colorbar'],
                      orientation='horizontal')
     return dax
@@ -870,11 +876,12 @@ def plot_noise_analysis(dnoise=None, margin=None, fraction=None,
     indout_varplot = np.insert(
         indout_var[:, indsort[0, :], indsort[1, :]],
         indnan, False, axis=1).ravel()
-    dindout = {'mask': {'ind': indout_mask, 'plot': indout_maskplot},
-               'noeval': {'ind': indout_noeval},
-               #,'plot': {indout_noevalplot},
-               'S/N': {'ind': indout_var_agg, 'plot': indout_varplot},
-               }
+    dindout = {
+        'mask': {'ind': indout_mask, 'plot': indout_maskplot},
+        'noeval': {'ind': indout_noeval},
+        # ,'plot': {indout_noevalplot},
+        'S/N': {'ind': indout_var_agg, 'plot': indout_varplot},
+    }
     indinplot = ~(indout_maskplot | indout_noevalplot | indout_varplot)
 
     # cam and cmap
