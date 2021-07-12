@@ -613,7 +613,8 @@ def multigausfit2d_from_dlines_funccostjac(lamb, phi,
                             -alpha[:, iwj[jj]] * amp[:, iwj[jj]]
                             * bsexp[:, iwj[jj]] * coefswl[:, iwj[jj]]
                             / wi2[:, iwj[jj]]
-                        ), axis=1,
+                        ),
+                        axis=1,
                     ) * scales[ix]
 
                 # shift
