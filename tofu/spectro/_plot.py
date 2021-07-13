@@ -334,15 +334,15 @@ def plot_fit1d(
         else:
             titi = tit
 
-        fig = fig = plt.figure(figsize=fs)
+        fig = plt.figure(figsize=fs)
         gs = gridspec.GridSpec(1, 1, **dmargin)
         ax = fig.add_subplot(gs[0, 0])
         ax.set_ylabel(r'data (a.u.)')
         ax.set_xlabel(r'$\lambda$ (m)')
 
-        ax.plot(dprepare['lamb'][dprepare['indok'][ispect, :]],
-                dprepare['data'][ispect, dprepare['indok'][ispect, :]],
-                marker='.', c='k', ls='None', ms=8)
+        # ax.plot(dprepare['lamb'][dprepare['indok'][ispect, :]],
+                # dprepare['data'][ispect, dprepare['indok'][ispect, :]],
+                # marker='.', c='k', ls='None', ms=8)
         # if showonly is not True:
             # if dextract['sol_detail'] is not False:
                 # ax.plot(
