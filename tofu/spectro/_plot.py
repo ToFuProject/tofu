@@ -326,51 +326,51 @@ def plot_fit1d(
     # Plot
     # ------------
 
-    # for ii in range(nspect):
-        # ispect = indspect[ii]
-        # if tit is None:
-            # titi = ("spect {}\n".format(ispect+1)
-                    # + "({}/{})".format(ispect, dprepare['data'].shape[0]))
-        # else:
-            # titi = tit
+    for ii in range(nspect):
+        ispect = indspect[ii]
+        if tit is None:
+            titi = ("spect {}\n".format(ispect+1)
+                    + "({}/{})".format(ispect, dprepare['data'].shape[0]))
+        else:
+            titi = tit
 
-        # fig = fig = plt.figure(figsize=fs)
-        # gs = gridspec.GridSpec(1, 1, **dmargin)
-        # ax = fig.add_subplot(gs[0, 0])
-        # ax.set_ylabel(r'data (a.u.)')
-        # ax.set_xlabel(r'$\lambda$ (m)')
+        fig = fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(1, 1, **dmargin)
+        ax = fig.add_subplot(gs[0, 0])
+        ax.set_ylabel(r'data (a.u.)')
+        ax.set_xlabel(r'$\lambda$ (m)')
 
-        # ax.plot(dprepare['lamb'][dprepare['indok'][ispect, :]],
-                # dprepare['data'][ispect, dprepare['indok'][ispect, :]],
-                # marker='.', c='k', ls='None', ms=8)
-        # if showonly is not True:
-            # if dextract['sol_detail'] is not False:
-                # ax.plot(
-                    # dprepare['lamb'], dextract['sol_detail'][ispect, :, 0],
-                    # ls='-', c='k',
-                # )
-            # ax.set_prop_cycle(None)
-            # if dextract['sol_detail'] is not False:
-                # if dextract['Ti'] is not False or dextract['vi'] is not False:
-                    # for jj in range(nlines):
-                        # col = lfcol[indwidth[jj] % nfcol]
-                        # hatch = lhatch[indshift[jj] % nhatch]
-                        # ax.fill_between(
-                            # dprepare['lamb'],
-                            # dextract['sol_detail'][ispect, :, 1+jj],
-                            # alpha=0.3, color=col, hatch=hatch,
-                        # )
-                # else:
-                    # ax.plot(
-                        # dprepare['lamb'],
-                        # dextract['sol_detail'][ispect, :, 1:].T,
-                    # )
-            # if dextract['sol_tot'] is not False:
-                # ax.plot(
-                    # dprepare['lamb'],
-                    # dextract['sol_tot'][ispect, :],
-                    # c='k', lw=2.,
-                # )
+        ax.plot(dprepare['lamb'][dprepare['indok'][ispect, :]],
+                dprepare['data'][ispect, dprepare['indok'][ispect, :]],
+                marker='.', c='k', ls='None', ms=8)
+        if showonly is not True:
+            if dextract['sol_detail'] is not False:
+                ax.plot(
+                    dprepare['lamb'], dextract['sol_detail'][ispect, :, 0],
+                    ls='-', c='k',
+                )
+            ax.set_prop_cycle(None)
+            if dextract['sol_detail'] is not False:
+                if dextract['Ti'] is not False or dextract['vi'] is not False:
+                    for jj in range(nlines):
+                        col = lfcol[indwidth[jj] % nfcol]
+                        hatch = lhatch[indshift[jj] % nhatch]
+                        ax.fill_between(
+                            dprepare['lamb'],
+                            dextract['sol_detail'][ispect, :, 1+jj],
+                            alpha=0.3, color=col, hatch=hatch,
+                        )
+                else:
+                    ax.plot(
+                        dprepare['lamb'],
+                        dextract['sol_detail'][ispect, :, 1:].T,
+                    )
+            if dextract['sol_tot'] is not False:
+                ax.plot(
+                    dprepare['lamb'],
+                    dextract['sol_tot'][ispect, :],
+                    c='k', lw=2.,
+                )
 
         # # Annotate lines
         # if annotate is not False:
