@@ -326,185 +326,185 @@ def plot_fit1d(
     # Plot
     # ------------
 
-    for ii in range(nspect):
-        ispect = indspect[ii]
-        if tit is None:
-            titi = ("spect {}\n".format(ispect+1)
-                    + "({}/{})".format(ispect, dprepare['data'].shape[0]))
-        else:
-            titi = tit
+    # for ii in range(nspect):
+        # ispect = indspect[ii]
+        # if tit is None:
+            # titi = ("spect {}\n".format(ispect+1)
+                    # + "({}/{})".format(ispect, dprepare['data'].shape[0]))
+        # else:
+            # titi = tit
 
-        fig = fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(1, 1, **dmargin)
-        ax = fig.add_subplot(gs[0, 0])
-        ax.set_ylabel(r'data (a.u.)')
-        ax.set_xlabel(r'$\lambda$ (m)')
+        # fig = fig = plt.figure(figsize=fs)
+        # gs = gridspec.GridSpec(1, 1, **dmargin)
+        # ax = fig.add_subplot(gs[0, 0])
+        # ax.set_ylabel(r'data (a.u.)')
+        # ax.set_xlabel(r'$\lambda$ (m)')
 
-        ax.plot(dprepare['lamb'][dprepare['indok'][ispect, :]],
-                dprepare['data'][ispect, dprepare['indok'][ispect, :]],
-                marker='.', c='k', ls='None', ms=8)
-        if showonly is not True:
-            if dextract['sol_detail'] is not False:
-                ax.plot(
-                    dprepare['lamb'], dextract['sol_detail'][ispect, :, 0],
-                    ls='-', c='k',
-                )
-            ax.set_prop_cycle(None)
-            if dextract['sol_detail'] is not False:
-                if dextract['Ti'] is not False or dextract['vi'] is not False:
-                    for jj in range(nlines):
-                        col = lfcol[indwidth[jj] % nfcol]
-                        hatch = lhatch[indshift[jj] % nhatch]
-                        ax.fill_between(
-                            dprepare['lamb'],
-                            dextract['sol_detail'][ispect, :, 1+jj],
-                            alpha=0.3, color=col, hatch=hatch,
-                        )
-                else:
-                    ax.plot(
-                        dprepare['lamb'],
-                        dextract['sol_detail'][ispect, :, 1:].T,
-                    )
-            if dextract['sol_tot'] is not False:
-                ax.plot(
-                    dprepare['lamb'],
-                    dextract['sol_tot'][ispect, :],
-                    c='k', lw=2.,
-                )
+        # ax.plot(dprepare['lamb'][dprepare['indok'][ispect, :]],
+                # dprepare['data'][ispect, dprepare['indok'][ispect, :]],
+                # marker='.', c='k', ls='None', ms=8)
+        # if showonly is not True:
+            # if dextract['sol_detail'] is not False:
+                # ax.plot(
+                    # dprepare['lamb'], dextract['sol_detail'][ispect, :, 0],
+                    # ls='-', c='k',
+                # )
+            # ax.set_prop_cycle(None)
+            # if dextract['sol_detail'] is not False:
+                # if dextract['Ti'] is not False or dextract['vi'] is not False:
+                    # for jj in range(nlines):
+                        # col = lfcol[indwidth[jj] % nfcol]
+                        # hatch = lhatch[indshift[jj] % nhatch]
+                        # ax.fill_between(
+                            # dprepare['lamb'],
+                            # dextract['sol_detail'][ispect, :, 1+jj],
+                            # alpha=0.3, color=col, hatch=hatch,
+                        # )
+                # else:
+                    # ax.plot(
+                        # dprepare['lamb'],
+                        # dextract['sol_detail'][ispect, :, 1:].T,
+                    # )
+            # if dextract['sol_tot'] is not False:
+                # ax.plot(
+                    # dprepare['lamb'],
+                    # dextract['sol_tot'][ispect, :],
+                    # c='k', lw=2.,
+                # )
 
-        # Annotate lines
-        if annotate is not False:
-            for jj, k0 in enumerate(ions_u):
-                col = lcol[jj % ncol]
-                ind = (dinput['ion'] == k0).nonzero()[0]
-                for nn in ind:
-                    if dinput['keys'][nn] not in annotate:
-                        continue
-                    lab = dinput['symb'][nn]
-                    ax.axvline(x[ispect, nn], c=col, ls='--')
-                    if dextract['coefs'] is not False:
-                        val = dextract['coefs']['values'][ispect, nn]
-                        lab += '\n{:4.2e}'.format(val)
-                    if dextract['shift'] is not False:
-                        val = dextract['shift']['values'][ispect, nn]*1.e10
-                        lab += '\n({:+4.2e} A)'.format(val)
-                    ax.annotate(
-                        lab,
-                        xy=(x[ispect, nn], 1.01), xytext=None,
-                        xycoords=('data', 'axes fraction'),
-                        color=col, arrowprops=None,
-                        horizontalalignment='center',
-                        verticalalignment='bottom',
-                    )
+        # # Annotate lines
+        # if annotate is not False:
+            # for jj, k0 in enumerate(ions_u):
+                # col = lcol[jj % ncol]
+                # ind = (dinput['ion'] == k0).nonzero()[0]
+                # for nn in ind:
+                    # if dinput['keys'][nn] not in annotate:
+                        # continue
+                    # lab = dinput['symb'][nn]
+                    # ax.axvline(x[ispect, nn], c=col, ls='--')
+                    # if dextract['coefs'] is not False:
+                        # val = dextract['coefs']['values'][ispect, nn]
+                        # lab += '\n{:4.2e}'.format(val)
+                    # if dextract['shift'] is not False:
+                        # val = dextract['shift']['values'][ispect, nn]*1.e10
+                        # lab += '\n({:+4.2e} A)'.format(val)
+                    # ax.annotate(
+                        # lab,
+                        # xy=(x[ispect, nn], 1.01), xytext=None,
+                        # xycoords=('data', 'axes fraction'),
+                        # color=col, arrowprops=None,
+                        # horizontalalignment='center',
+                        # verticalalignment='bottom',
+                    # )
 
-            # Ion legend
-            hand = [
-                mlines.Line2D(
-                    [], [],
-                    color=lcol[jj % ncol], ls='--', label=ions_u[jj]
-                )
-                for jj in range(nions)
-            ]
-            legi = ax.legend(
-                handles=hand,
-                title='ions',
-                bbox_to_anchor=(1.01, 1.),
-                loc='upper left',
-            )
-            ax.add_artist(legi)
+            # # Ion legend
+            # hand = [
+                # mlines.Line2D(
+                    # [], [],
+                    # color=lcol[jj % ncol], ls='--', label=ions_u[jj]
+                # )
+                # for jj in range(nions)
+            # ]
+            # legi = ax.legend(
+                # handles=hand,
+                # title='ions',
+                # bbox_to_anchor=(1.01, 1.),
+                # loc='upper left',
+            # )
+            # ax.add_artist(legi)
 
-        # Ti legend
-        if dextract['Ti'] is not False:
-            hand = [mpatches.Patch(color=lfcol[jj % nfcol])
-                    for jj in range(dinput['width']['ind'].shape[0])]
-            lleg = [str(dinput['width']['keys'][jj])
-                    + '{:4.2f}'.format(
-                            dextract['Ti']['values'][ispect, jj]*1.e-3
-                            )
-                    for jj in range(dinput['width']['ind'].shape[0])]
-            legT = ax.legend(
-                handles=hand, labels=lleg,
-                title='Ti (keV)',
-                bbox_to_anchor=(1.01, 1.),    # 0.8
-                loc='upper left',
-            )
-            ax.add_artist(legT)
+        # # Ti legend
+        # if dextract['Ti'] is not False:
+            # hand = [mpatches.Patch(color=lfcol[jj % nfcol])
+                    # for jj in range(dinput['width']['ind'].shape[0])]
+            # lleg = [str(dinput['width']['keys'][jj])
+                    # + '{:4.2f}'.format(
+                            # dextract['Ti']['values'][ispect, jj]*1.e-3
+                            # )
+                    # for jj in range(dinput['width']['ind'].shape[0])]
+            # legT = ax.legend(
+                # handles=hand, labels=lleg,
+                # title='Ti (keV)',
+                # bbox_to_anchor=(1.01, 1.),    # 0.8
+                # loc='upper left',
+            # )
+            # ax.add_artist(legT)
 
-        # vi legend
-        if dextract['vi'] is not False:
-            hand = [mpatches.Patch(facecolor='w', edgecolor='k',
-                                   hatch=lhatch[jj % nhatch])
-                    for jj in range(dinput['shift']['ind'].shape[0])]
-            lleg = [str(dinput['shift']['keys'][jj])
-                    + '{:4.2f}'.format(
-                            dextract['vi']['values'][ispect, jj]*1.e-3
-                            )
-                    for jj in range(dinput['shift']['ind'].shape[0])]
-            legv = ax.legend(
-                handles=hand, labels=lleg,
-                title='vi (km/s)',
-                bbox_to_anchor=(1.01, 0.75),    # 0.5
-                loc='upper left',
-            )
-            ax.add_artist(legv)
+        # # vi legend
+        # if dextract['vi'] is not False:
+            # hand = [mpatches.Patch(facecolor='w', edgecolor='k',
+                                   # hatch=lhatch[jj % nhatch])
+                    # for jj in range(dinput['shift']['ind'].shape[0])]
+            # lleg = [str(dinput['shift']['keys'][jj])
+                    # + '{:4.2f}'.format(
+                            # dextract['vi']['values'][ispect, jj]*1.e-3
+                            # )
+                    # for jj in range(dinput['shift']['ind'].shape[0])]
+            # legv = ax.legend(
+                # handles=hand, labels=lleg,
+                # title='vi (km/s)',
+                # bbox_to_anchor=(1.01, 0.75),    # 0.5
+                # loc='upper left',
+            # )
+            # ax.add_artist(legv)
 
-        # Ratios legend
-        if dextract['ratio'] is not False:
-            nratio = dextract['ratio']['values'].shape[1]
-            hand = [mlines.Line2D([], [], c='k', ls='None')]*nratio
-            lleg = ['{} =  {:4.2e}'.format(
-                dextract['ratio']['lab'][jj],
-                dextract['ratio']['values'][ispect, jj])
-                    for jj in range(nratio)]
-            legr = ax.legend(
-                handles=hand,
-                labels=lleg,
-                title='line ratio',
-                bbox_to_anchor=(1.01, 0.30),    # 0.21
-                loc='lower left',
-            )
-            ax.add_artist(legr)
+        # # Ratios legend
+        # if dextract['ratio'] is not False:
+            # nratio = dextract['ratio']['values'].shape[1]
+            # hand = [mlines.Line2D([], [], c='k', ls='None')]*nratio
+            # lleg = ['{} =  {:4.2e}'.format(
+                # dextract['ratio']['lab'][jj],
+                # dextract['ratio']['values'][ispect, jj])
+                    # for jj in range(nratio)]
+            # legr = ax.legend(
+                # handles=hand,
+                # labels=lleg,
+                # title='line ratio',
+                # bbox_to_anchor=(1.01, 0.30),    # 0.21
+                # loc='lower left',
+            # )
+            # ax.add_artist(legr)
 
-        # bck legend
-        if True:
-            hand = [mlines.Line2D([], [], c='k', ls='None')]*2
-            lleg = [
-                'amp = {:4.2e}'.format(dextract['bck_amp']['values'][ispect]),
-                'rate = {:4.2e}'.format(dextract['bck_rate']['values'][ispect])
-            ]
-            legr = ax.legend(
-                handles=hand,
-                labels=lleg,
-                title='background',
-                bbox_to_anchor=(1.01, 0.10),    # 0.05
-                loc='lower left',
-            )
-            ax.add_artist(legr)
+        # # bck legend
+        # if True:
+            # hand = [mlines.Line2D([], [], c='k', ls='None')]*2
+            # lleg = [
+                # 'amp = {:4.2e}'.format(dextract['bck_amp']['values'][ispect]),
+                # 'rate = {:4.2e}'.format(dextract['bck_rate']['values'][ispect])
+            # ]
+            # legr = ax.legend(
+                # handles=hand,
+                # labels=lleg,
+                # title='background',
+                # bbox_to_anchor=(1.01, 0.10),    # 0.05
+                # loc='lower left',
+            # )
+            # ax.add_artist(legr)
 
-        # double legend
-        if dinput['double'] is not False:
-            hand = [mlines.Line2D([], [], c='k', ls='None')]*2
-            lleg = [
-                'ratio = {:4.2f}'.format(dextract['dratio'][ispect]),
-                'shift ' + r'$\approx$'
-                + ' {:4.2e}'.format(dextract['dshift'][ispect])
-            ]
-            legr = ax.legend(
-                handles=hand,
-                labels=lleg,
-                title='double',
-                bbox_to_anchor=(1.01, -0.1),
-                loc='lower left',
-            )
+        # # double legend
+        # if dinput['double'] is not False:
+            # hand = [mlines.Line2D([], [], c='k', ls='None')]*2
+            # lleg = [
+                # 'ratio = {:4.2f}'.format(dextract['dratio'][ispect]),
+                # 'shift ' + r'$\approx$'
+                # + ' {:4.2e}'.format(dextract['dshift'][ispect])
+            # ]
+            # legr = ax.legend(
+                # handles=hand,
+                # labels=lleg,
+                # title='double',
+                # bbox_to_anchor=(1.01, -0.1),
+                # loc='lower left',
+            # )
 
-        ax.set_xlim(dinput['dprepare']['domain']['lamb']['minmax'])
+        # ax.set_xlim(dinput['dprepare']['domain']['lamb']['minmax'])
 
-        if titi is not False:
-            fig.suptitle(titi, size=14, weight='bold')
-        if wintit is not False:
-            fig.canvas.set_window_title(wintit)
-    if xlim is not False:
-        ax.set_xlim(xlim)
+        # if titi is not False:
+            # fig.suptitle(titi, size=14, weight='bold')
+        # if wintit is not False:
+            # fig.canvas.set_window_title(wintit)
+    # if xlim is not False:
+        # ax.set_xlim(xlim)
     return ax
 
 
