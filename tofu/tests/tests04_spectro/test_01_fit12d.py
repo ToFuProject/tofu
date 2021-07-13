@@ -384,6 +384,7 @@ class Test01_DataCollection(object):
                     dfit1d=self.ldfit1d[ii],
                     dextract=dd,
                     annotate=self.ldfit1d[ii]['dinput']['keys'][0],
+                    fs=(4, 6),
                 )
             except Exception as err:
                 lwar.append((ii, str(err)))

@@ -124,7 +124,7 @@ def CrystalBragg_plot_data_vs_lambphi(
     # Plot
     # ------------
 
-    fig = fig = plt.figure(figsize=fs)
+    fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(4, 4, **dmargin)
     ax0 = fig.add_subplot(gs[:3, 0], aspect='equal')   # , adjustable='datalim'
     ax1 = fig.add_subplot(
@@ -334,7 +334,7 @@ def plot_fit1d(
         else:
             titi = tit
 
-        # fig = plt.figure(figsize=fs)
+        fig = plt.figure(figsize=fs)
         # gs = gridspec.GridSpec(1, 1, **dmargin)
         # ax = fig.add_subplot(gs[0, 0])
         # ax.set_ylabel(r'data (a.u.)')
