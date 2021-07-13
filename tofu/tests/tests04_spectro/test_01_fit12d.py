@@ -384,10 +384,12 @@ class Test01_DataCollection(object):
                     dfit1d=self.ldfit1d[ii],
                     dextract=dd,
                     annotate=self.ldfit1d[ii]['dinput']['keys'][0],
-                    fs=(4, 6),
+                    fs=(4, 4),
                 )
             except Exception as err:
                 lwar.append((ii, str(err)))
+            finally:
+                plt.close('all')
 
         if len(lwar) > 0:
             msg = (
@@ -397,7 +399,6 @@ class Test01_DataCollection(object):
                 + "\n".join(["\t- {}: {}".format(ww[0], ww[1]) for ww in lwar])
             )
             warnings.warn(msg)
-        plt.close('all')
 
     def test06_fit2d_dinput(self):
         defconst = {
