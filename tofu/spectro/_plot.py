@@ -334,7 +334,7 @@ def plot_fit1d(
         else:
             titi = tit
 
-        fig = plt.figure(figsize=fs)
+        # fig = plt.figure(figsize=fs)
         # gs = gridspec.GridSpec(1, 1, **dmargin)
         # ax = fig.add_subplot(gs[0, 0])
         # ax.set_ylabel(r'data (a.u.)')
