@@ -3768,7 +3768,7 @@ class Config(utils.ToFuObject):
     def plot(
         self,
         lax=None,
-        proj="all",
+        proj=None,
         element="P",
         dLeg=_def.TorLegd,
         indices=False,

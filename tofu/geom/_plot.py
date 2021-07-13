@@ -141,8 +141,7 @@ def _Struct_plot_format(ss, proj='all', **kwdargs):
     return dout
 
 
-
-def Struct_plot(lS, lax=None, proj='all', element=None, dP=None,
+def Struct_plot(lS, lax=None, proj=None, element=None, dP=None,
                 dI=None, dBs=None, dBv=None,
                 dVect=None, dIHor=None, dBsHor=None, dBvHor=None,
                 Lim=None, Nstep=None, dLeg=None, indices=False,
@@ -161,6 +160,8 @@ def Struct_plot(lS, lax=None, proj='all', element=None, dP=None,
         axP          The plt.Axes instance on which the poloidal plot was performed
         axT          The plt.Axes instance on which the toroidal plot was performed
     """
+    if proj is None:
+        proj = 'all'
     proj = proj.lower()
     if Test:
         msg = "Arg proj must be in ['cross','hor','all','3d'] !"
@@ -500,7 +501,7 @@ def _Plot_3D_plt_Ves(V, ax=None, Elt='P', Lim=None,
                 Y = np.dot(V.Poly_closed[0:1,:].T,np.ones((1,Nstep)))
                 Z = np.dot(V.Poly_closed[1:2,:].T,np.ones((1,Nstep)))
             ax.plot_surface(X,Y,Z, label=V.Id.NameLTX, **Pdict)
-        proxy = plt.Rectangle((0,0),1,1, fc=Pdict['color'])
+        proxy = plt.Rectangle((0, 0), 1, 1, fc=Pdict['color'])
         handles.append(proxy)
         labels.append(V.Id.NameLTX)
     return ax
