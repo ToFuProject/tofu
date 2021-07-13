@@ -340,9 +340,9 @@ def plot_fit1d(
         ax.set_ylabel(r'data (a.u.)')
         ax.set_xlabel(r'$\lambda$ (m)')
 
-        # ax.plot(dprepare['lamb'][dprepare['indok'][ispect, :]],
-                # dprepare['data'][ispect, dprepare['indok'][ispect, :]],
-                # marker='.', c='k', ls='None', ms=8)
+        ax.plot(dprepare['lamb'][dprepare['indok'][ispect, :]],
+                dprepare['data'][ispect, dprepare['indok'][ispect, :]],
+                marker='.', c='k', ls='None', ms=8)
         # if showonly is not True:
             # if dextract['sol_detail'] is not False:
                 # ax.plot(
