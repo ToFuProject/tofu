@@ -5,6 +5,7 @@ This module contains tests for tofu.geom in its structured version
 
 # Built-in
 import os
+import sys
 import warnings
 import itertools as itt
 
