@@ -330,7 +330,7 @@ def calc_solidangle_particle_integ(
         surf = [
             config._dStruct['dObj']['Ves'][k0]._dgeom['Surf'] for k0 in ves
         ]
-        ves = ves[np.argsort(surf)]
+        ves = [ves[np.argsort(surf)[0]]]
     ves = config._dStruct['dObj']['Ves'][ves[0]]
 
     # derive limits for sampling

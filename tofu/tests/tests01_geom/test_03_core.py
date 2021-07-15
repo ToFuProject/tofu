@@ -782,6 +782,7 @@ class Test02_Config(object):
         out = conf.calc_solidangle_particle_integrated(
             part_traj=part_traj,
             part_radius=part_radius,
+            resolution=0.2,
         )
         plt.close('all')
 
