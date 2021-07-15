@@ -14,6 +14,7 @@ from . import _GG
 _APPROX = True
 _ANISO = False
 _BLOCK = True
+_LTYPES = [int, float, np.int_, np.float_]
 
 
 ###############################################################################
@@ -69,23 +70,25 @@ def _check_calc_solidangle_particle(
     # arrays
     try:
         traj = np.ascontiguousarray(traj, dtype=float)
-        pts = np.ascontiguousarray(pts, dtype=float)
         rad = np.r_[rad].astype(float).ravel()
 
         # Check pts, traj and r are array of good shape
-        c0 = (traj.ndim in [1, 2]
-              and pts.ndim in [1, 2]
-              and 3 in traj.shape
-              and 3 in pts.shape)
+        c0 = traj.ndim in [1, 2] and 3 in traj.shape
+        if pts is not False:
+            pts = np.ascontiguousarray(pts, dtype=float)
+            c0 = c0 and pts.ndim in [1, 2] and 3 in pts.shape
         assert c0
         if traj.ndim == 1:
             traj = traj.reshape((3, 1))
         if traj.shape[0] != 3:
             traj = traj.T
-        if pts.ndim == 1:
-            pts = pts.reshape((3, 1))
-        if pts.shape[0] != 3:
-            pts = pts.T
+        traj = np.ascontiguousarray(traj)
+        if pts is not False:
+            if pts.ndim == 1:
+                pts = pts.reshape((3, 1))
+            if pts.shape[0] != 3:
+                pts = pts.T
+            pts = np.ascontiguousarray(pts)
     except Exception:
         msg = (
             "Args traj and pts must be convertible to np.ndarrays of shape"
@@ -122,8 +125,8 @@ def _check_calc_solidangle_particle(
 
 def calc_solidangle_particle(
     pts=None,
-    traj=None,
-    rad=None,
+    part_traj=None,
+    part_radius=None,
     config=None,
     approx=None,
     aniso=None,
@@ -145,45 +148,45 @@ def calc_solidangle_particle(
 
     Parameters
     ----------
-    traj:       np.ndarray
-        Array of (3, N) pts coordinates (X, Y, Z) representing the particle
-        positions
-    pts:        np.ndarray
+    pts:            np.ndarray
         Array of (3, M) pts coordinates (X, Y, Z) representing the points from
         which the particle is observed
-    rad:        float / np.ndarray
+    part_traj:      np.ndarray
+        Array of (3, N) pts coordinates (X, Y, Z) representing the particle
+        positions
+    part_radius:    float / np.ndarray
         Unique of multiple values for the radius of the spherical particle
             if multiple, rad is a np.ndarray of shape (N,)
-    config:     None / tf.geom.Config
+    config:         None / tf.geom.Config
         if block = True, solid angles are non-zero only if the field of view is
         not blocked bya structural element in teh chamber
-    approx:     None / bool
+    approx:         None / bool
         Flag indicating whether to compute the solid angle using an 1st-order
         series development (in whichcase the solid angle becomes proportional
         to the radius of the particle, see Notes_Upgrades/)
-    aniso:      None / bool
+    aniso:          None / bool
         Flag indicating whether to consider anisotropic emissivity, meaning the
         routine must also compute and return the unit vector directing the flux
         from each pts to each position on the trajectory of the particle
-    block:      None / bool
+    block:          None / bool
         Flag indicating whether to check for vignetting by structural elements
         provided by config
 
     Return:
     -------
-    sang: np.ndarray
+    sang:           np.ndarray
         (N, M) Array of floats, solid angles
 
     """
     ################
     # Prepare inputs
     (
-        traj, pts, rad, config,
+        part_traj, pts, part_radius, config,
         approx, aniso, block
     ) = _check_calc_solidangle_particle(
-        traj=traj,
+        traj=part_traj,
         pts=pts,
-        rad=rad,
+        rad=part_radius,
         config=config,
         approx=approx,
         aniso=aniso,
@@ -194,7 +197,7 @@ def calc_solidangle_particle(
     # Main computation
 
     # traj2pts vector, with length (3d array (3, N, M))
-    vect = - pts[:, :, None] + traj[:, None, :]
+    vect = - pts[:, :, None] + part_traj[:, None, :]
     len_v = np.ascontiguousarray(np.sqrt(np.sum(vect**2, axis=0)))
 
     # If aniso or block, normalize
@@ -202,8 +205,8 @@ def calc_solidangle_particle(
         vect = vect / len_v[None, :, :]
 
     # Solid angle
-    r_d = rad[None, :] / len_v
-    where_zero = len_v <= rad[None, :]
+    r_d = part_radius[None, :] / len_v
+    where_zero = len_v <= part_radius[None, :]
     r_d[where_zero] = 0.  # temporary value
     if approx:
         sang = np.pi * (r_d**2 + r_d**4 / 4. + r_d**6 / 8. + r_d**8 * 5 / 64)
@@ -217,7 +220,7 @@ def calc_solidangle_particle(
     if block:
         kwdargs = config.get_kwdargs_LOS_isVis()
         indvis = _GG.LOS_areVis_PtsFromPts_VesStruct(
-            pts, traj, dist=len_v, **kwdargs
+            pts, part_traj, dist=len_v, **kwdargs
         )
         iout = indvis == 0
         sang[iout] = 0.
@@ -232,7 +235,15 @@ def calc_solidangle_particle(
 
 
 def calc_solidangle_particle_integ(
-    traj, r=1.0, config=None, approx=True, block=True, res=0.01
+    part_traj=None,
+    part_radius=None,
+    config=None,
+    approx=True,
+    block=True,
+    resolution=None,
+    DR=None,
+    DZ=None,
+    DPhi=None,
 ):
 
     # step0: if block : generate kwdargs from config
@@ -250,4 +261,93 @@ def calc_solidangle_particle_integ(
     # integrate (sum * res) on each phi the solid angle
 
     # Return sang as (N,nR,nZ) array
-    return
+
+    # ----------------
+    # check resolution
+
+    if resolution is None:
+        resolution = 0.1
+    if type(resolution) in _LTYPES:
+        resolution = [resolution, resolution, resolution]
+    c0 = (
+        isinstance(resolution, list)
+        and all([type(ss) in _LTYPES for ss in resolution])
+    )
+    if not c0:
+        msg = (
+            "Arg resolution must be a list of 3 floats [r, z, rphi]\n"
+            "Each representing the spatial sampling step in a direction\n"
+            "If a single float is provided, the same is used for all"
+        )
+        raise Exception(msg)
+    resolution = [float(rr) for rr in resolution]
+
+    # ------------------
+    # Check DR, DZ, DPhi
+    dD = {'DR': DR, 'DZ': DZ, 'DPhi': DPhi}
+    dfail = {}
+    for k0, v0 in dD.items():
+        c0 = (
+            v0 is None
+            or (
+                isinstance(v0, list)
+                and len(v0) == 2
+                and all([v1 is None or type(v1) in _LTYPES for v1 in v0])
+            )
+        )
+        if not c0:
+            dfail[k0] = str(v0)
+    if len(dfail) > 0:
+        lstr = [f'\t- {k0}: {v0}' for k0, v0 in dfail.items()]
+        msg = (
+            "The following arguments are invalid:\n"
+            "Expected None or a list of len(2) of None or floats!\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # ------------------
+    # check other inputs
+
+    (
+        part_traj, _, part_radius, config,
+        approx, _, block
+    ) = _check_calc_solidangle_particle(
+        traj=part_traj,
+        pts=False,
+        rad=part_radius,
+        config=config,
+        approx=approx,
+        aniso=False,
+        block=block,
+    )
+
+    # ------------------
+    # Define the volume to be sampled: smallest vessel
+
+    ves = [k0 for k0 in config._dStruct['dObj']['Ves'].keys()]
+    if len(ves) > 1:
+        surf = [
+            config._dStruct['dObj']['Ves'][k0]._dgeom['Surf'] for k0 in ves
+        ]
+        ves = ves[np.argsort(surf)]
+    ves = config._dStruct['dObj']['Ves'][ves[0]]
+
+    # derive limits for sampling
+    limits_r = np.r_[ves._dgeom['P1Min'][0], ves._dgeom['P1Max'][0]]
+    limits_z = np.r_[ves._dgeom['P2Min'][1], ves._dgeom['P2Max'][1]]
+
+    # Get kwdargs for LOS blocking
+    kwdargs = config.get_kwdargs_LOS_isVis()
+
+    return _GG.compute_solid_angle_map(
+        part_traj, part_radius,
+        resolution[0], resolution[1], resolution[2],
+        limits_r, limits_z,
+        DR=DR, DZ=DZ,
+        DPhi=DPhi,
+        block=block,
+        approx=approx,
+        limit_vpoly=ves.Poly,
+        **kwdargs,
+    )
