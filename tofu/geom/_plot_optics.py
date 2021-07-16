@@ -1083,11 +1083,13 @@ def CrystalBragg_plot_johannerror(
 
 def CrystalBragg_plot_focal_error_summed(
     cryst=None, dcryst=None,
+    lamb=None, bragg=None,
     error_lambda=None,
     ddist=None, di=None,
     det_ref=None,
     units=None,
     plot_dets=None, nsort=None,
+    use_non_parallelism=None,
     tangent_to_rowland=None,
     contour=None,
     fs=None,
@@ -1141,6 +1143,35 @@ def CrystalBragg_plot_focal_error_summed(
         linewstyles='-',
         linewidths=1.,
     )
+
+    ## need here to also plot BAR det if det_ref is activated
+    ## calling a core_optics method to compute from det_ref its coord.
+    ## (ddist, di, dj) for now
+    if det_ref:
+        (
+            diff_centers, sum_diff,
+            det_ddist, det_di, det_dj
+        ) = cryst._get_local_coordinates_of_det(
+            lamb=lamb,
+            det_ref=det_ref,
+            use_non_parallelism=use_non_parallelism,
+            tangent_to_rowland=tangent_to_rowland,
+        )
+        detector_ref = cryst.get_detector_approx(
+            ddist=det_ddist,
+            di=det_di,
+            dj=det_dj,
+            lamb=lamb,
+            use_non_parallelism=use_non_parallelism,
+            tangent_to_rowland=tangent_to_rowland,
+        )
+        ax.plot(
+            det_ddist,
+            det_di,
+            marker='x',
+            ls='None',
+            color='r',
+        )
 
     if plot_dets:
         indsort = np.argsort(np.ravel(error_lambda))

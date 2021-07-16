@@ -1965,12 +1965,14 @@ class CrystalBragg(utils.ToFuObject):
         if plot:
             ax = _plot_optics.CrystalBragg_plot_focal_error_summed(
                 cryst=self, dcryst=dcryst,
+                lamb=lamb, bragg=bragg,
                 error_lambda=error_lambda,
                 ddist=ddist, di=di,
                 det_ref=det_ref,
                 units=units,
                 plot_dets=plot_dets, nsort=nsort,
                 tangent_to_rowland=tangent_to_rowland,
+                use_non_parallelism=use_non_parallelism,
                 contour=contour,
                 fs=fs,
                 ax=ax,
@@ -1982,6 +1984,65 @@ class CrystalBragg(utils.ToFuObject):
             return error_lambda, ddist, di, ax
         else:
             return error_lambda, ddist, di
+
+    def _get_local_coordinates_of_det(
+        self,
+        lamb=None,
+        det_ref=None,
+        use_non_parallelism=None,
+        tangent_to_rowland=None,
+    ):
+        """
+        Computation of translation (ddist, di, dj) and angular
+        (dtheta, dpsi, tilt) properties of an arbitrary detector choosen by
+        the user.
+        """
+        if lamb is None:
+            lamb = self._dbragg['lambref']
+        if det_ref is None:
+            msg = (
+                "You need to provide your arbitrary detector\n"
+                + "\t in order to compute its spatial properties !\n"
+                + "\t You provided: {}".format(det)
+            )
+            raise Exception(msg)
+        rcurve = self._dgeom['rcurve']
+
+        # Checkformat det
+        det_ref = self._checkformat_det(det=det_ref)
+
+        ddist = np.linspace(-0.05, 0., 20)
+        di = np.linspace(-0.05, 0., 20)
+        dj = np.linspace(-1e-4, 1e-4, 20)
+        test_rep = np.array(['result', 'sum', 'ddist', 'di', 'dj'])
+        end = '\r'
+        for ii in range(ddist.size):
+            for jj in range(di.size):
+                for kk in range(dj.size):
+                    if ii == 50-1 and jj == 50-1 and kk == 50-1:
+                        end='\n'
+                    msg = (
+                        "Computing combinations"
+                        f"({ii+1}, {jj+1}, {kk+1} / ({20}, {20}, {20}))"
+                    ).ljust(60)
+                print(msg, end=end, flush=True)
+                det_test = self.get_detector_approx(
+                    lamb=lamb,
+                    ddist=ddist[ii],
+                    di=di[jj],
+                    dj=dj[kk],
+                    use_non_parallelism=use_non_parallelism,
+                    tangent_to_rowland=tangent_to_rowland,
+                )
+                test = (det_test['cent'] - det_ref['cent'])**2
+                sum_test = test[0] + test[1] + test[2]
+                test_res = np.array([test, sum_test, ddist[ii], di[jj], dj[kk]])
+                test_rep = np.vstack([test_rep, test_res])
+        answer = test_rep[np.where(test_rep[1:,1] == np.min(test_rep[1:,1]))]
+        #import pdb; pdb.set_trace()  # DB
+        return [answer[0][0], answer[0][1], answer[0][2],
+                answer[0][3], answer[0][4],
+                ]
 
     def get_lambbraggphi_from_ptsxixj_dthetapsi(
         self,
