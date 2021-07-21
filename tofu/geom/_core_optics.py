@@ -1987,18 +1987,20 @@ class CrystalBragg(utils.ToFuObject):
 
     def _get_local_coordinates_of_det(
         self,
+        bragg=None,
         lamb=None,
         det_ref=None,
         use_non_parallelism=None,
-        tangent_to_rowland=None,
     ):
         """
         Computation of translation (ddist, di, dj) and angular
         (dtheta, dpsi, tilt) properties of an arbitrary detector choosen by
         the user.
         """
-        if lamb is None:
-            lamb = self._dbragg['lambref']
+
+        # ------------
+        # check inputs
+
         if det_ref is None:
             msg = (
                 "You need to provide your arbitrary detector\n"
@@ -2006,101 +2008,52 @@ class CrystalBragg(utils.ToFuObject):
                 + "\t You provided: {}".format(det)
             )
             raise Exception(msg)
-        rcurve = self._dgeom['rcurve']
 
         # Checkformat det
         det_ref = self._checkformat_det(det=det_ref)
 
-        ddist = np.linspace(-0.05, 0., 30)
-        di = np.linspace(-0.05, 0., 30)
-        dj = np.linspace(-1e-4, 1e-4, 30)
-        test_rep = np.array(['result', 'sum', 'ddist', 'di', 'dj'])
-        end = '\r'
-        for ii in range(ddist.size):
-            for jj in range(di.size):
-                for kk in range(dj.size):
-                    if ii == 30-1 and jj == 30-1 and kk == 30-1:
-                        end='\n'
-                    msg = (
-                        "Computing combinations (ddist, di, dj):"
-                        f"({ii+1}, {jj+1}, {kk+1} / ({30}, {30}, {30}))"
-                    ).ljust(60)
-                    print(msg, end=end, flush=True)
+        # ------------
+        # get approx detect
 
-                    det_test = self.get_detector_approx(
-                        lamb=lamb,
-                        ddist=ddist[ii],
-                        di=di[jj],
-                        dj=dj[kk],
-                        use_non_parallelism=use_non_parallelism,
-                        tangent_to_rowland=tangent_to_rowland,
-                    )
-                    test = (det_test['cent'] - det_ref['cent'])**2
-                    sum_test = test[0] + test[1] + test[2]
-                    test_res = np.array([
-                        test, sum_test, ddist[ii], di[jj], dj[kk]
-                    ])
-                    test_rep = np.vstack([test_rep, test_res])
-        #import pdb; pdb.set_trace()  # DB
-        answer = test_rep[np.where(test_rep[1:,1] == np.min(test_rep[1:,1]))]
-
-        """dtheta = np.linspace(-np.pi/40, -np.pi/10, 40)
-        dpsi = np.linspace(np.pi/120, np.pi/90, 40)
-        tilt = np.linspace(-np.pi/400, -np.pi/200, 40)
-        test_rep2 = np.array(['tests nout', 'test ei', 'test ej',
-            'sum nout', 'sum ei', 'sum ej',
-            'dtheta', 'dpsi', 'tilt',
-        ])
-
-        for ll in range(dtheta.size):
-            for mm in range(dpsi.size):
-                for nn in range(tilt.size):
-                    if ll == 40-1 and mm == 40-1 and nn == 40-1:
-                        end='\n'
-                    msg = (
-                        "Computing combinations (dtheta, dpsi, tilt):"
-                        f"({ll+1}, {mm+1}, {nn+1} / ({40}, {40}, {40}))"
-                    ).ljust(60)
-                    print(msg, end=end, flush=True)
-
-                    det_test2 = self.get_detector_approx(
-                        lamb=lamb,
-                        ddist=answer[0][2],
-                        di=answer[0][3],
-                        dj=answer[0][4],
-                        dtheta=dtheta[ll],
-                        dpsi=dpsi[mm],
-                        tilt=tilt[nn],
-                        use_non_parallelism=use_non_parallelism,
-                        tangent_to_rowland=tangent_to_rowland,
-                    )
-                    test_nout = (det_test2['nout'] - det_ref['nout'])**2
-                    test_ei = (det_test2['ei'] - det_ref['ei'])**2
-                    test_ej = (det_test2['ej'] - det_ref['ej'])**2
-                    sum_test_nout = test_nout[0] + test_nout[1] + test_nout[2]
-                    sum_test_ei = test_ei[0] + test_ei[1] + test_ei[2]
-                    sum_test_ej = test_ej[0] + test_ej[1] + test_ej[2]
-                    test_res2 = np.array([
-                        test_nout, sum_test_nout,
-                        test_ei, sum_test_ei,
-                        test_ej, sum_test_ej,
-                        dtheta[ll],
-                        dpsi[mm],
-                        tilt[nn],
-                    ])
-                    test_rep2 = np.vstack([test_rep2, test_res2])
-        l0 = (
-            np.where(test_rep2[1:,1] == np.min(test_rep2[1:,1]))
-            and np.where(test_rep2[1:,3] == np.min(test_rep2[1:,3]))
-            and np.where(test_rep2[1:,5] == np.min(test_rep2[1:,5]))
+        det_approx = self.get_detector_approx(
+            bragg=bragg, lamb=lamb,
+            tangent_to_rowland=False,
+            use_non_parallelism=use_non_parallelism,
         )
-        answer2 = test_rep2[l0]"""
 
-        return [
-                    answer[0][0], answer[0][1], answer[0][2],
-                    answer[0][3], answer[0][4],
-                    #answer2[1][6], answer2[1][7], answer2[1][8],
-               ]
+        # ------------
+        # get vector delta between centers
+
+        delta = det_ref['cent'] - det_approx['cent']
+        ddist = np.sum(delta * (-det_approx['nout']))
+        di = np.sum(delta * det_approx['ei'])
+        dj = np.sum(delta * det_approx['ej'])
+
+        # ---------------
+        # get angles from unit vectors
+        dtheta, dpsi, tilt = None, None, None
+        # use formulas in _comp_optics.get_det_abs_from_rel() 
+        sindtheta = np.sum(det_approx['ej'] * det_ref['nout'])
+        costheta_cospsi = np.sum(det_approx['nout'] * det_ref['nout'])
+        costheta_sinpsi = np.sum(det_approx['ei'] * det_ref['nout'])
+        costheta = np.sqrt(costheta_cospsi**2 + costheta_sinpsi**2)
+        dtheta = np.arctan2(sindtheta, costheta)
+        dpsi = np.arctan2(
+            costheta_sinpsi / costheta,
+            costheta_cospsi / costheta,
+        )
+
+        # ---------
+        # tilt
+        det_ei2 = (
+            np.cos(dpsi)*det_approx['ei'] - np.sin(dpsi)*det_approx['nout']
+        )
+        det_ej2 = np.cross(det_ref['nout'], det_ei2)
+        costilt = np.sum(det_ref['ei']*det_ei2)
+        sintilt = np.sum(det_ref['ei']*det_ej2)
+        tilt = np.arctan2(sintilt, costilt)
+
+        return ddist, di, dj, dtheta, dpsi, tilt
 
     def get_lambbraggphi_from_ptsxixj_dthetapsi(
         self,
