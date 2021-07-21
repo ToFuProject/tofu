@@ -1941,6 +1941,10 @@ class CrystalBragg(utils.ToFuObject):
                 det = self.get_detector_approx(
                     ddist=ddist[ii],
                     di=di[jj],
+                    dj=dj,
+                    dtheta=dtheta,
+                    dpsi=dpsi,
+                    tilt=tilt,
                     lamb=lamb,
                     bragg=bragg,
                     use_non_parallelism=use_non_parallelism,
@@ -1957,6 +1961,23 @@ class CrystalBragg(utils.ToFuObject):
                     )[0],
                 )
 
+        # ------------
+        # Compute local coordinates of det_ref
+        ddist0, di0, dj0, dtheta0, dpsi0, tilt0 = self._get_()
+
+        c0 = (
+            dj == dj0
+            and dtheta == dtheta0
+            and dpsi == dpsi0
+            and tilt == tilt0
+        )
+        if not c0:
+            msg = (
+                "Beware..."
+            )
+            raise Exception(msg)
+
+
         if 'rel' in err:
             units = '%'
         else:
@@ -1968,6 +1989,7 @@ class CrystalBragg(utils.ToFuObject):
                 lamb=lamb, bragg=bragg,
                 error_lambda=error_lambda,
                 ddist=ddist, di=di,
+                ddist0=ddist0, di0=di0,
                 det_ref=det_ref,
                 units=units,
                 plot_dets=plot_dets, nsort=nsort,
