@@ -230,7 +230,7 @@ def Struct_plot(lS, lax=None, proj=None, element=None, dP=None,
     if tit != False:
         lax[0].figure.suptitle(tit)
 
-    if not dLeg is None:
+    if dLeg not in [None, False]:
         lax[0].legend(**dLeg)
     if draw:
         lax[0].relim()
@@ -757,7 +757,97 @@ def Config_phithetaproj_dist(config, refpt, dist, indStruct,
 
 
 
+############################################
+#       Solid angles - particles
+############################################
 
+
+def Config_plot_solidangle_map_particle(
+    config=None,
+    part_traj=None,
+    part_radius=None,
+    ptsRZ=None,
+    sang=None,
+    indices=None,
+    reseff=None,
+    vmin=None,
+    vmax=None,
+    scale=None,
+    fs=None,
+    dmargin=None,
+):
+
+    # ---------
+    # Prepare
+    npart = sang.shape[1]
+
+    if scale is None:
+        scale = 'lin'
+    if scale == 'log':
+        sang2 = np.full(sang.shape, np.nan)
+        indok = (~np.isnan(sang)) & (sang>0.)
+        sang2[indok] = np.log10(sang[indok])
+        sang = sang2
+
+    if vmin  is None:
+        vmin = min(0., np.nanmin(sang))
+    if vmax is None:
+        vmax = np.nanmax(sang)
+    if vmax is False:
+        vmax = None
+
+    if fs is None:
+        fs = (12, 6)
+    if dmargin is None:
+        dmargin = {
+            'left': 0.06, 'right': 0.95,
+            'bottom': 0.06, 'top': 0.85,
+            'wspace': 0.03, 'hspace': 0.1,
+        }
+
+    # -----------------
+    # reshape RZ
+    R = np.unique(ptsRZ[0, :])
+    Z = np.unique(ptsRZ[1, :])
+    dR2 = np.mean(np.diff(R))/2.
+    dZ2 = np.mean(np.diff(Z))/2.
+
+    shape = tuple([npart, Z.size, R.size])
+    sangmap = np.full(shape, np.nan)
+    for ii in range(sang.shape[0]):
+        iR = (R == ptsRZ[0, ii]).nonzero()[0][0]
+        iZ = (Z == ptsRZ[1, ii]).nonzero()[0][0]
+        sangmap[:, iZ, iR] = sang[ii, :]
+
+    extent = (R.min()-dR2, R.max()+dR2, Z.min()-dZ2, Z.max()+dZ2)
+
+    # -----------------
+    # plot
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(1, npart, **dmargin)
+    dax = {}
+    sharex, sharey = None, None
+    for ii in range(npart):
+        k0 = f'map{ii}'
+        dax[k0] = fig.add_subplot(gs[0, ii], sharex=sharex, sharey=sharey)
+        dax[k0] = config.plot(lax=dax[k0], proj='cross', dLeg=False)
+        obj = dax[k0].imshow(
+            sangmap[ii, :, :],
+            origin='lower',
+            interpolation='nearest',
+            extent=extent,
+            vmin=vmin,
+            vmax=vmax,
+        )
+        dax[k0].set_title(f'radius = {part_radius[ii]}')
+        dax[k0].set_xlabel(r'$R$ (m)')
+        if ii == 0:
+            dax[k0].set_ylabel(r'$Z$ (m)')
+        if ii == 0:
+            sharex = dax[k0]
+            sharey = dax[k0]
+            dax[k0].set_aspect('equal')
+    return dax
 
 
 """
