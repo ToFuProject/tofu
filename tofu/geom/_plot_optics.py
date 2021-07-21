@@ -1144,20 +1144,18 @@ def CrystalBragg_plot_focal_error_summed(
         linewidths=1.,
     )
 
-    ## need here to also plot BAR det if det_ref is activated
-    ## calling a core_optics method to compute from det_ref its coord.
-    ## (ddist, di, dj) for now
     if det_ref:
         (
             diff_centers, sum_diff,
-            det_ddist, det_di, det_dj
+            det_ddist, det_di, det_dj,
+            #det_dtheta, det_dpsi, det_tilt,
         ) = cryst._get_local_coordinates_of_det(
             lamb=lamb,
             det_ref=det_ref,
             use_non_parallelism=use_non_parallelism,
             tangent_to_rowland=tangent_to_rowland,
         )
-        detector_ref = cryst.get_detector_approx(
+        detector_comp = cryst.get_detector_approx(
             ddist=det_ddist,
             di=det_di,
             dj=det_dj,
@@ -1165,6 +1163,9 @@ def CrystalBragg_plot_focal_error_summed(
             use_non_parallelism=use_non_parallelism,
             tangent_to_rowland=tangent_to_rowland,
         )
+        detector_comp['outline'] = np.array([
+            0.04*np.r_[-1,-1,1,1,-1], 0.12*np.r_[-1,1,1,-1,-1]
+        ])
         ax.plot(
             det_ddist,
             det_di,
@@ -1172,6 +1173,24 @@ def CrystalBragg_plot_focal_error_summed(
             ls='None',
             color='r',
         )
+
+        msg = (
+            "Centers position in (x, y, z) of the :\n"
+            + "\t - Provided detector: {} [m]\n".format(
+                np.round(det_ref['cent'], decimals=4)
+                )
+            + "\t - Best approximated detector: {} [m]\n".format(
+                np.round(detector_comp['cent'], decimals=4)
+                )
+            + "\t - Difference: {} [m]\n".format(
+                np.round(detector_comp['cent'] - det_ref['cent'], decimals=9)
+                )
+            #+ "Rotations parameters (dtheta, dpsi, tilt) of the :\n"
+            #+ "\t - Best approximated detector : ({},{},{})\n".format(
+                #det_dtheta, det_dpsi, det_tilt
+                #)
+         ) 
+        print(msg)
 
     if plot_dets:
         indsort = np.argsort(np.ravel(error_lambda))
@@ -1205,7 +1224,13 @@ def CrystalBragg_plot_focal_error_summed(
                     cryst=cryst, dcryst=dcryst,
                     det=det[ii], color='red',
                     dax=dax,
-                    element='o',
+                    element='oc',
+                )
+                dax = CrystalBragg_plot(
+                    cryst=cryst, dcryst=dcryst,
+                    det=detector_comp, color='blue',
+                    dax=dax,
+                    element='ocv',
                 )
     return ax
 
