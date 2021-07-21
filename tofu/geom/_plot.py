@@ -846,6 +846,7 @@ def Config_plot_solidangle_map_particle(
         if ii == 0:
             sharex = dax[k0]
             sharey = dax[k0]
+            dax[k0].set_aspect('equal')
     return dax
 
 

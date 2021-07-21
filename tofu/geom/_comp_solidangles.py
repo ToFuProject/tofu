@@ -325,20 +325,18 @@ def calc_solidangle_particle_integ(
     # ------------------
     # Define the volume to be sampled: smallest vessel
 
-    ves = [k0 for k0 in config._dStruct['dObj']['Ves'].keys()]
-    if len(ves) > 1:
-        surf = [
-            config._dStruct['dObj']['Ves'][k0]._dgeom['Surf'] for k0 in ves
-        ]
-        ves = [ves[np.argsort(surf)[0]]]
-    ves = config._dStruct['dObj']['Ves'][ves[0]]
-
-    # derive limits for sampling
-    limits_r = np.r_[ves._dgeom['P1Min'][0], ves._dgeom['P1Max'][0]]
-    limits_z = np.r_[ves._dgeom['P2Min'][1], ves._dgeom['P2Max'][1]]
-
     # Get kwdargs for LOS blocking
     kwdargs = config.get_kwdargs_LOS_isVis()
+
+    # derive limits for sampling
+    limits_r = np.r_[
+        np.min(kwdargs['ves_poly'][0, :]),
+        np.max(kwdargs['ves_poly'][0, :]),
+    ]
+    limits_z = np.r_[
+        np.min(kwdargs['ves_poly'][1, :]),
+        np.max(kwdargs['ves_poly'][1, :]),
+    ]
 
     return _GG.compute_solid_angle_map(
         part_traj, part_radius,
@@ -348,6 +346,6 @@ def calc_solidangle_particle_integ(
         DPhi=DPhi,
         block=block,
         approx=approx,
-        limit_vpoly=ves.Poly,
+        limit_vpoly=kwdargs['ves_poly'],
         **kwdargs,
     )
