@@ -1121,7 +1121,7 @@ def CrystalBragg_plot_focal_error_summed(
         ax.set_xlabel('ddist (m)')
         ax.set_ylabel('di (m)')
 
-    # plot error map
+    # plot error map function(ddist, di)
     extent = (ddist.min(), ddist.max(), di.min(), di.max())
     errmap = ax.imshow(
         error_lambda,
@@ -1147,6 +1147,7 @@ def CrystalBragg_plot_focal_error_summed(
         linewidths=1.,
     )
 
+    # computing detector with exact position of det_ref
     if det_ref:
         if not tangent_to_rowland:
             detector_comp = cryst.get_detector_approx(
@@ -1178,7 +1179,7 @@ def CrystalBragg_plot_focal_error_summed(
             di0,
             marker='x',
             ls='None',
-            color='r',
+            color='w',
         )
 
     if plot_dets:
@@ -1186,7 +1187,7 @@ def CrystalBragg_plot_focal_error_summed(
         inddist = indsort % ddist.size
         inddi = indsort // ddist.size
 
-        # plot nbr of dets on map
+        # plot nbr of dets on map "mean focalization error = f(ddist, di)"
         ax.plot(
             ddist[inddist[:nsort]],
             di[inddi[:nsort]],
@@ -1195,7 +1196,7 @@ def CrystalBragg_plot_focal_error_summed(
             color='r',
         )
 
-        # plot det geometry
+        # plot dets geometry with CrystalBragg_plot()
         if det_ref is not None:
             dax = CrystalBragg_plot(
                 cryst=cryst, dcryst=dcryst,
@@ -1216,7 +1217,7 @@ def CrystalBragg_plot_focal_error_summed(
                 + "Translations (ddist, di, dj): ({}, {}, {}) [m]\n".format(
                     ddist0, di0, dj0,
                     )
-                + "Rotations (dtheta, dpsi, tilt): ({}, {}, {}) [m]\n".format(
+                + "Rotations (dtheta, dpsi, tilt): ({}, {}, {}) [rad]\n".format(
                     dtheta0, dpsi0, tilt0,
                     )
             )
@@ -1234,6 +1235,11 @@ def CrystalBragg_plot_focal_error_summed(
                     det=det[ii], color='red',
                     dax=dax,
                     element='oc',
+                )
+                print(
+                    "det: {}\n".format(det[ii])
+                    + "\t ddist: {}\n".format(ddist[inddist[ii]])
+                    + "\t di: {}\n".format(di[inddi[ii]])
                 )
     return ax
 
