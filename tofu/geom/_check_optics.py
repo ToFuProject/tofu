@@ -116,7 +116,7 @@ def _check_dict_unitvector(dd=None, dd_name=None):
                     - {0}['e1'] must be perpendicular to {0}['e2']
 
                 Provided:
-                    {}
+                    {1}
                 """.format(dd_name, dd['e2'])
             )
             raise Exception(msg)
