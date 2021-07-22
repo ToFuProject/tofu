@@ -377,7 +377,13 @@ class Test01_Crystal(object):
             )
         plt.close('all')
 
-    def test15_saveload(self, verb=False):
+    def test15_split(self):
+        for ii, (k0, obj) in enumerate(self.dobj.items()):
+            direction = None if ii == 0 else ('e1' if ii % 2 == 0 else 'e2')
+            nb = None if ii == 0 else (2 if ii % 2 == 0 else 3)
+            lcryst = obj.split(direction=direction, nb=nb)
+
+    def test16_saveload(self, verb=False):
         for k0, obj in self.dobj.items():
             obj.strip(-1)
             pfe = obj.save(verb=verb, return_pfe=True)
