@@ -1920,6 +1920,40 @@ class CrystalBragg(utils.ToFuObject):
             )
             raise Exception(msg)
 
+        # ------------
+        # Compute local coordinates of det_ref
+        (
+            ddist0, di0, dj0,
+            dtheta0, dpsi0, tilt0,
+        ) = self._get_local_coordinates_of_det(
+            bragg=bragg,
+            lamb=lamb,
+            det_ref=det_ref,
+            use_non_parallelism=use_non_parallelism,
+        )
+
+        # angle between nout vectors from get_det_approx() &
+        ## get_det_approx(tangent=False)
+
+        det1 = self.get_detector_approx(
+            lamb=lamb,
+            bragg=bragg,
+            use_non_parallelism=use_non_parallelism,
+            tangent_to_rowland=True,
+        )
+        det2 = self.get_detector_approx(
+            lamb=lamb,
+            bragg=bragg,
+            use_non_parallelism=use_non_parallelism,
+            tangent_to_rowland=False,
+        )
+        cos_angle_nout = np.sum(
+            det1['nout'] * det2['nout']
+            ) / (
+            np.linalg.norm(det1['nout'] * np.linalg.norm(det2['nout']))
+            )
+        angle_nout = np.arccos(cos_angle_nout)
+
         # Compute
         ddist = np.linspace(dist_min, dist_max, int(ndist))
         di = np.linspace(di_min, di_max, int(ndi))
@@ -1938,18 +1972,33 @@ class CrystalBragg(utils.ToFuObject):
                 print(msg, end=end, flush=True)
 
                 # Get det
-                det = self.get_detector_approx(
-                    ddist=ddist[ii],
-                    di=di[jj],
-                    dj=dj,
-                    dtheta=dtheta,
-                    dpsi=dpsi,
-                    tilt=tilt,
-                    lamb=lamb,
-                    bragg=bragg,
-                    use_non_parallelism=use_non_parallelism,
-                    tangent_to_rowland=tangent_to_rowland,
-                )
+                if not tangent_to_rowland:
+                    det = self.get_detector_approx(
+                        ddist=ddist[ii],
+                        di=di[jj],
+                        dj=dj0,
+                        dtheta=dtheta0,
+                        dpsi=dpsi0,
+                        tilt=tilt0,
+                        lamb=lamb,
+                        bragg=bragg,
+                        use_non_parallelism=use_non_parallelism,
+                        tangent_to_rowland=False,
+                    )
+                else:
+                    det = self.get_detector_approx(
+                        ddist=ddist[ii],
+                        di=di[jj],
+                        dj=dj0,
+                        # need to re-adapt these rotations to tangent case
+                        dtheta=dtheta0,
+                        dpsi=dpsi0-angle_nout,
+                        tilt=tilt0,
+                        lamb=lamb,
+                        bragg=bragg,
+                        use_non_parallelism=use_non_parallelism,
+                        tangent_to_rowland=True,
+                    )
 
                 # Integrate error
                 error_lambda[jj, ii] = np.nanmean(
@@ -1960,23 +2009,6 @@ class CrystalBragg(utils.ToFuObject):
                         plot=False,
                     )[0],
                 )
-
-        # ------------
-        # Compute local coordinates of det_ref
-        ddist0, di0, dj0, dtheta0, dpsi0, tilt0 = self._get_()
-
-        c0 = (
-            dj == dj0
-            and dtheta == dtheta0
-            and dpsi == dpsi0
-            and tilt == tilt0
-        )
-        if not c0:
-            msg = (
-                "Beware..."
-            )
-            raise Exception(msg)
-
 
         if 'rel' in err:
             units = '%'
@@ -1989,7 +2021,9 @@ class CrystalBragg(utils.ToFuObject):
                 lamb=lamb, bragg=bragg,
                 error_lambda=error_lambda,
                 ddist=ddist, di=di,
-                ddist0=ddist0, di0=di0,
+                ddist0=ddist0, di0=di0, dj0=dj0,
+                dtheta0=dtheta0, dpsi0=dpsi0, tilt0=tilt0,
+                angle_nout=angle_nout,
                 det_ref=det_ref,
                 units=units,
                 plot_dets=plot_dets, nsort=nsort,
@@ -2054,6 +2088,7 @@ class CrystalBragg(utils.ToFuObject):
         # ---------------
         # get angles from unit vectors
         dtheta, dpsi, tilt = None, None, None
+
         # use formulas in _comp_optics.get_det_abs_from_rel() 
         sindtheta = np.sum(det_approx['ej'] * det_ref['nout'])
         costheta_cospsi = np.sum(det_approx['nout'] * det_ref['nout'])

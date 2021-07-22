@@ -1086,6 +1086,9 @@ def CrystalBragg_plot_focal_error_summed(
     lamb=None, bragg=None,
     error_lambda=None,
     ddist=None, di=None,
+    ddist0=None, di0=None, dj0=None,
+    dtheta0=None, dpsi0=None, tilt0=None,
+    angle_nout=None,
     det_ref=None,
     units=None,
     plot_dets=None, nsort=None,
@@ -1145,59 +1148,45 @@ def CrystalBragg_plot_focal_error_summed(
     )
 
     if det_ref:
-        (
-            diff_centers, sum_diff,
-            det_ddist, det_di, det_dj,
-            #det_dtheta, det_dpsi, det_tilt,
-        ) = cryst._get_local_coordinates_of_det(
-            lamb=lamb,
-            det_ref=det_ref,
-            use_non_parallelism=use_non_parallelism,
-            tangent_to_rowland=tangent_to_rowland,
-        )
-        detector_comp = cryst.get_detector_approx(
-            ddist=det_ddist,
-            di=det_di,
-            dj=det_dj,
-            lamb=lamb,
-            use_non_parallelism=use_non_parallelism,
-            tangent_to_rowland=tangent_to_rowland,
-        )
-        detector_comp['outline'] = np.array([
-            0.04*np.r_[-1,-1,1,1,-1], 0.12*np.r_[-1,1,1,-1,-1]
-        ])
+        if not tangent_to_rowland:
+            detector_comp = cryst.get_detector_approx(
+                ddist=ddist0,
+                di=di0,
+                dj=dj0,
+                dtheta=dtheta0,
+                dpsi=dpsi0,
+                tilt=tilt0,
+                lamb=lamb,
+                use_non_parallelism=use_non_parallelism,
+                tangent_to_rowland=False,
+            )
+        else:
+            detector_comp = cryst.get_detector_approx(
+                ddist=ddist0,
+                di=di0,
+                dj=dj0,
+                dtheta=dtheta0,
+                dpsi=dpsi0-angle_nout,
+                tilt=tilt0,
+                lamb=lamb,
+                use_non_parallelism=use_non_parallelism,
+                tangent_to_rowland=True,
+            )
+        detector_comp['outline'] = det_ref['outline']
         ax.plot(
-            det_ddist,
-            det_di,
+            ddist0,
+            di0,
             marker='x',
             ls='None',
             color='r',
         )
-
-        msg = (
-            "Centers position in (x, y, z) of the :\n"
-            + "\t - Provided detector: {} [m]\n".format(
-                np.round(det_ref['cent'], decimals=4)
-                )
-            + "\t - Best approximated detector: {} [m]\n".format(
-                np.round(detector_comp['cent'], decimals=4)
-                )
-            + "\t - Difference: {} [m]\n".format(
-                np.round(detector_comp['cent'] - det_ref['cent'], decimals=9)
-                )
-            #+ "Rotations parameters (dtheta, dpsi, tilt) of the :\n"
-            #+ "\t - Best approximated detector : ({},{},{})\n".format(
-                #det_dtheta, det_dpsi, det_tilt
-                #)
-         ) 
-        print(msg)
 
     if plot_dets:
         indsort = np.argsort(np.ravel(error_lambda))
         inddist = indsort % ddist.size
         inddi = indsort // ddist.size
 
-        # plot det on map
+        # plot nbr of dets on map
         ax.plot(
             ddist[inddist[:nsort]],
             di[inddi[:nsort]],
@@ -1211,7 +1200,27 @@ def CrystalBragg_plot_focal_error_summed(
             dax = CrystalBragg_plot(
                 cryst=cryst, dcryst=dcryst,
                 det=det_ref,
+                color='black',
                 )
+            dax = CrystalBragg_plot(
+                    cryst=cryst, dcryst=dcryst,
+                    det=detector_comp, color='blue',
+                    dax=dax,
+                    element='ocv',
+                )
+            msg = (
+                "Parameters of reference detector:\n"
+                + "Center position in (x, y, z): ({})\n".format(
+                    np.round(detector_comp['cent'], decimals=4)
+                    )
+                + "Translations (ddist, di, dj): ({}, {}, {}) [m]\n".format(
+                    ddist0, di0, dj0,
+                    )
+                + "Rotations (dtheta, dpsi, tilt): ({}, {}, {}) [m]\n".format(
+                    dtheta0, dpsi0, tilt0,
+                    )
+            )
+            print(msg)
             det = {}
             for ii in range(nsort):
                 det[ii] = cryst.get_detector_approx(
@@ -1225,12 +1234,6 @@ def CrystalBragg_plot_focal_error_summed(
                     det=det[ii], color='red',
                     dax=dax,
                     element='oc',
-                )
-                dax = CrystalBragg_plot(
-                    cryst=cryst, dcryst=dcryst,
-                    det=detector_comp, color='blue',
-                    dax=dax,
-                    element='ocv',
                 )
     return ax
 
