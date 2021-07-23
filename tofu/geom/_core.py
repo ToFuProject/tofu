@@ -4,21 +4,25 @@ It includes all functions and object classes necessary for tomography
 on Tokamaks
 """
 
+
 # Built-in
 import os
 import warnings
 import copy
 import inspect
 
+
 # Common
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+
 # ToFu-specific
 from tofu import __version__ as __version__
 import tofu.pathfile as tfpf
 import tofu.utils as utils
+
 
 # test global import else relative
 try:
@@ -33,6 +37,7 @@ except Exception:
     from . import _comp as _comp
     from . import _comp_solidangles
     from . import _plot as _plot
+
 
 __all__ = [
     "PlasmaDomain",
@@ -4088,8 +4093,8 @@ class Config(utils.ToFuObject):
     def calc_solidangle_particle(
         self,
         pts=None,
-        traj=None,
-        rad=None,
+        part_traj=None,
+        part_radius=None,
         approx=None,
         aniso=None,
         block=None,
@@ -4140,13 +4145,120 @@ class Config(utils.ToFuObject):
         """
         return _comp_solidangles.calc_solidangle_particle(
             pts=pts,
-            traj=traj,
-            rad=rad,
+            part_traj=part_traj,
+            part_radius=part_radius,
             config=self,
             approx=approx,
             aniso=aniso,
             block=block,
         )
+
+
+    def calc_solidangle_particle_integrated(
+        self,
+        part_traj=None,
+        part_radius=None,
+        approx=None,
+        block=None,
+        resolution=None,
+        DR=None,
+        DZ=None,
+        DPhi=None,
+        plot=None,
+        vmin=None,
+        vmax=None,
+        scale=None,
+        fs=None,
+        dmargin=None,
+        returnax=None,
+    ):
+        """ Compute the integrated solid angle map subtended by particles
+
+        Integrates the solid angle toroidally on a volume sampling of Config
+
+        The particle has radius r, and trajectory (array of points) traj
+        It is observed from pts (array of points)
+        Takes into account blocking of the field of view by structural elements
+
+        traj and pts are (3, N) and (3, M) arrays of cartesian coordinates
+
+        approx = True => use approximation
+        block = True consider LOS collisions (with Ves, Struct...)
+
+        if block:
+            config used for LOS collisions
+
+        Parameters
+        ----------
+        traj:       np.ndarray
+            Array of (3, N) pts coordinates (X, Y, Z) representing the particle
+            positions
+        pts:        np.ndarray
+            Array of (3, M) pts coordinates (X, Y, Z) representing points from
+            which the particle is observed
+        rad:        float / np.ndarray
+            Unique of multiple values for the radius of the spherical particle
+                if multiple, rad is a np.ndarray of shape (N,)
+        approx:     None / bool
+            Flag indicating whether to compute the solid angle using a
+            1st-order series development (in which case the solid angle becomes
+            proportional to the radius of the particle, see Notes_Upgrades/)
+        block:      None / bool
+            Flag indicating whether to check for vignetting by structural
+            elements provided by config
+
+        Return:
+        -------
+        sang: np.ndarray
+            (N, M) Array of floats, solid angles
+
+        """
+        if plot is None:
+            plot = True
+        if returnax is None:
+            returnax = True
+
+        # -------------------
+        # Compute
+        (
+            ptsRZ, sang, indices, reseff,
+        ) = _comp_solidangles.calc_solidangle_particle_integ(
+            part_traj=part_traj,
+            part_radius=part_radius,
+            config=self,
+            resolution=resolution,
+            DR=DR,
+            DZ=DZ,
+            DPhi=DPhi,
+            block=block,
+            approx=approx,
+        )
+
+        if plot is False:
+            return ptsRZ, sang, indices, reseff
+
+        # -------------------
+        # plot
+        dax = _plot.Config_plot_solidangle_map_particle(
+            config=self,
+            part_traj=part_traj,
+            part_radius=part_radius,
+            ptsRZ=ptsRZ,
+            sang=sang,
+            indices=indices,
+            reseff=reseff,
+            vmin=vmin,
+            vmax=vmax,
+            scale=scale,
+            fs=fs,
+            dmargin=dmargin,
+        )
+        if returnax is True:
+            return ptsRZ, sang, indices, reseff, dax
+        else:
+            return ptsRZ, sang, indices, reseff
+
+
 
 """
 ###############################################################################

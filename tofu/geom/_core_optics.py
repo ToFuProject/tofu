@@ -1009,6 +1009,101 @@ class CrystalBragg(utils.ToFuObject):
                 return pts_start, vect, k
 
     # -----------------
+    # methods for crystal splitting
+    # -----------------
+
+    def split(self, direction=None, nb=None):
+
+        # ------------
+        # check inputs
+        if direction is None:
+            direction = 'e1'
+        if direction not in ['e1', 'e2']:
+            msg = (
+                "Arg direction must be either:\n"
+                "\t- 'e1': split along vector 'e1' (~horizontally)\n"
+                "\t- 'e2': split along vector 'e2' (~vertically)\n"
+                f"You provided: {direction}"
+            )
+            raise Exception(msg)
+
+        if nb is None:
+            nb = 2
+        if not (isinstance(nb, int) and nb > 1):
+            msg = (
+                "Arg nb must be a int > 1 !\n"
+                "It specifies the number of equal parts desired\n"
+                f"You provided: {nb}"
+            )
+            raise Exception(msg)
+
+        # ---------------
+        # split
+
+        edges = np.linspace(-1, 1, nb+1)
+        mid = 0.5*(edges[1:] + edges[:-1])[None, :]
+        if direction == 'e2':
+            dtheta = mid*self._dgeom['extenthalf'][1]
+            psi = np.zeros((1, nb), dtype=float)
+            extenthalf = [
+                self._dgeom['extenthalf'][0],
+                self._dgeom['extenthalf'][1]/nb,
+            ]
+        else:
+            dtheta = np.zeros((1, nb), dtype=float)
+            psi = mid*self._dgeom['extenthalf'][0]
+            extenthalf = [
+                self._dgeom['extenthalf'][0]/nb,
+                self._dgeom['extenthalf'][1],
+            ]
+
+        nouts = (
+            np.cos(dtheta)*(
+                self._dgeom['nout'][:, None]*np.cos(psi)
+                + self._dgeom['e1'][:, None]*np.sin(psi)
+            )
+            + np.sin(dtheta)*self._dgeom['e2'][:, None]
+        )
+        e1s = (
+            -self._dgeom['nout'][:, None]*np.sin(psi)
+            + self._dgeom['e1'][:, None]*np.cos(psi)
+        )
+        e2s = np.array([
+            nouts[1, :]*e1s[2, :] - nouts[2, :]*e1s[1, :],
+            nouts[2, :]*e1s[0, :] - nouts[0, :]*e1s[2, :],
+            nouts[0, :]*e1s[1, :] - nouts[1, :]*e1s[0, :],
+
+        ])
+
+        # -----------
+        # Construct list of instances
+
+        lobj = [
+            self.__class__(
+                dgeom={
+                    'rcurve': self._dgeom['rcurve'],
+                    'center': self._dgeom['center'],
+                    'nout': nouts[:, ii],
+                    'e1': e1s[:, ii],
+                    'e2': e2s[:, ii],
+                    'extenthalf': extenthalf,
+                },
+                dmat={
+                    k0: v0 for k0, v0 in self._dmat.items()
+                    if k0 not in ['nin', 'nout', 'e1', 'e2']
+                },
+                dbragg=dict(self._dbragg),
+                Name=f"{self.Id.Name}{ii}",
+                Exp=self.Id.Exp,
+            )
+            for ii in range(nb)
+        ]
+
+        return lobj
+
+
+
+    # -----------------
     # methods for general plotting
     # -----------------
 
