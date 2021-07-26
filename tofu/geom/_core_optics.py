@@ -2067,33 +2067,22 @@ class CrystalBragg(utils.ToFuObject):
                 print(msg, end=end, flush=True)
 
                 # Get det
-                if not tangent_to_rowland:
-                    det = self.get_detector_approx(
-                        ddist=ddist[ii],
-                        di=di[jj],
-                        dj=dj0,
-                        dtheta=dtheta0,
-                        dpsi=dpsi0,
-                        tilt=tilt0,
-                        lamb=lamb,
-                        bragg=bragg,
-                        use_non_parallelism=use_non_parallelism,
-                        tangent_to_rowland=False,
-                    )
-                else:
-                    det = self.get_detector_approx(
-                        ddist=ddist[ii],
-                        di=di[jj],
-                        dj=dj0,
-                        # need to re-adapt these rotations to tangent case
-                        dtheta=dtheta0,
-                        dpsi=dpsi0-angle_nout,
-                        tilt=tilt0,
-                        lamb=lamb,
-                        bragg=bragg,
-                        use_non_parallelism=use_non_parallelism,
-                        tangent_to_rowland=True,
-                    )
+                dpsi0bis = float(dpsi0)
+                if tangent_to_rowland:
+                    dpsi0bis = dpsi0 - angle_nout
+
+                det = self.get_detector_approx(
+                    ddist=ddist[ii],
+                    di=di[jj],
+                    dj=dj0,
+                    dtheta=dtheta0,
+                    dpsi=dpsi0bis,
+                    tilt=tilt0,
+                    lamb=lamb,
+                    bragg=bragg,
+                    use_non_parallelism=use_non_parallelism,
+                    tangent_to_rowland=False,
+                )
 
                 # Integrate error
                 error_lambda[jj, ii] = np.nanmean(

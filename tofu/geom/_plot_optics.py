@@ -1149,30 +1149,22 @@ def CrystalBragg_plot_focal_error_summed(
 
     # computing detector with exact position of det_ref
     if det_ref:
-        if not tangent_to_rowland:
-            detector_comp = cryst.get_detector_approx(
-                ddist=ddist0,
-                di=di0,
-                dj=dj0,
-                dtheta=dtheta0,
-                dpsi=dpsi0,
-                tilt=tilt0,
-                lamb=lamb,
-                use_non_parallelism=use_non_parallelism,
-                tangent_to_rowland=False,
-            )
-        else:
-            detector_comp = cryst.get_detector_approx(
-                ddist=ddist0,
-                di=di0,
-                dj=dj0,
-                dtheta=dtheta0,
-                dpsi=dpsi0-angle_nout,
-                tilt=tilt0,
-                lamb=lamb,
-                use_non_parallelism=use_non_parallelism,
-                tangent_to_rowland=True,
-            )
+        dpsi0bis = float(dpsi0)
+        if tangent_to_rowland:
+            dpsi0bis = dpsi0 - angle_nout
+
+        detector_comp = cryst.get_detector_approx(
+            ddist=ddist0,
+            di=di0,
+            dj=dj0,
+            dtheta=dtheta0,
+            dpsi=dpsi0bis,
+            tilt=tilt0,
+            lamb=lamb,
+            use_non_parallelism=use_non_parallelism,
+            tangent_to_rowland=False,
+        )
+
         detector_comp['outline'] = det_ref['outline']
         ax.plot(
             ddist0,
