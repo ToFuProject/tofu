@@ -1871,6 +1871,10 @@ class CrystalBragg(utils.ToFuObject):
         # Check xi, xj once before to avoid doing it twice
         if err is None:
             err = 'abs'
+        if lambda_interval_min is None:
+            lambda_interval_min = 3.93e-10
+        if lambda_interval_max is None:
+            lambda_interval_max = 4.00e-10
 
         xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
 
@@ -2028,7 +2032,6 @@ class CrystalBragg(utils.ToFuObject):
             lambda_interval_min = 3.93e-10
         if lambda_interval_max is None:
             lambda_interval_max = 4.00e-10
-
 
         l0 = [dist_min, dist_max, ndist, di_min, di_max, ndi]
         c0 = any([l00 is not None for l00 in l0])
