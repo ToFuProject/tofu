@@ -415,9 +415,10 @@ def get_det_abs_from_rel(det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
         tilt = 0.
 
     # dtheta and dpsi
-    det_nout2 = ((np.cos(dpsi)*det_nout
-                 + np.sin(dpsi)*det_ei)*np.cos(dtheta)
-                 + np.sin(dtheta)*det_ej)
+    det_nout2 = (
+        (np.cos(dpsi)*det_nout + np.sin(dpsi)*det_ei)*np.cos(dtheta)
+        + np.sin(dtheta)*det_ej
+    )
     det_ei2 = (np.cos(dpsi)*det_ei - np.sin(dpsi)*det_nout)
     det_ej2 = np.cross(det_nout2, det_ei2)
 

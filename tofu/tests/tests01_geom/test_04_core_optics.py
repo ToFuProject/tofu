@@ -367,12 +367,17 @@ class Test01_Crystal(object):
             raise Exception(msg)
 
     def test14_plot_focal_error_summed(self):
+        det = dict(np.load(
+            'inputs_temp/det37_CTVD_incC4_New.npz',
+            allow_pickle=True,
+            ))
         for k0, obj in self.dobj.items():
             out = obj.plot_focal_error_summed(
                 dist_min=-0.02, dist_max=0.02, ndist=5,
                 di_min=-0.02, di_max=0.02, ndi=5,
                 xi=self.xi[::20], xj=self.xj[::20],
                 use_non_parallelism=False,
+                det_ref=det,
                 plot_dets=True,
             )
         plt.close('all')

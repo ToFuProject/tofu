@@ -2015,6 +2015,40 @@ class CrystalBragg(utils.ToFuObject):
             )
             raise Exception(msg)
 
+        # ------------
+        # Compute local coordinates of det_ref
+        (
+            ddist0, di0, dj0,
+            dtheta0, dpsi0, tilt0,
+        ) = self._get_local_coordinates_of_det(
+            bragg=bragg,
+            lamb=lamb,
+            det_ref=det_ref,
+            use_non_parallelism=use_non_parallelism,
+        )
+
+        # angle between nout vectors from get_det_approx() &
+        ## get_det_approx(tangent=False)
+
+        det1 = self.get_detector_approx(
+            lamb=lamb,
+            bragg=bragg,
+            use_non_parallelism=use_non_parallelism,
+            tangent_to_rowland=True,
+        )
+        det2 = self.get_detector_approx(
+            lamb=lamb,
+            bragg=bragg,
+            use_non_parallelism=use_non_parallelism,
+            tangent_to_rowland=False,
+        )
+        cos_angle_nout = np.sum(
+            det1['nout'] * det2['nout']
+            ) / (
+            np.linalg.norm(det1['nout'] * np.linalg.norm(det2['nout']))
+            )
+        angle_nout = np.arccos(cos_angle_nout)
+
         # Compute
         ddist = np.linspace(dist_min, dist_max, int(ndist))
         di = np.linspace(di_min, di_max, int(ndi))
@@ -2033,13 +2067,21 @@ class CrystalBragg(utils.ToFuObject):
                 print(msg, end=end, flush=True)
 
                 # Get det
+                dpsi0bis = float(dpsi0)
+                if tangent_to_rowland:
+                    dpsi0bis = dpsi0 - angle_nout
+
                 det = self.get_detector_approx(
                     ddist=ddist[ii],
                     di=di[jj],
+                    dj=dj0,
+                    dtheta=dtheta0,
+                    dpsi=dpsi0bis,
+                    tilt=tilt0,
                     lamb=lamb,
                     bragg=bragg,
                     use_non_parallelism=use_non_parallelism,
-                    tangent_to_rowland=tangent_to_rowland,
+                    tangent_to_rowland=False,
                 )
 
                 # Integrate error
@@ -2060,12 +2102,17 @@ class CrystalBragg(utils.ToFuObject):
         if plot:
             ax = _plot_optics.CrystalBragg_plot_focal_error_summed(
                 cryst=self, dcryst=dcryst,
+                lamb=lamb, bragg=bragg,
                 error_lambda=error_lambda,
                 ddist=ddist, di=di,
+                ddist0=ddist0, di0=di0, dj0=dj0,
+                dtheta0=dtheta0, dpsi0=dpsi0, tilt0=tilt0,
+                angle_nout=angle_nout,
                 det_ref=det_ref,
                 units=units,
                 plot_dets=plot_dets, nsort=nsort,
                 tangent_to_rowland=tangent_to_rowland,
+                use_non_parallelism=use_non_parallelism,
                 contour=contour,
                 fs=fs,
                 ax=ax,
@@ -2077,6 +2124,77 @@ class CrystalBragg(utils.ToFuObject):
             return error_lambda, ddist, di, ax
         else:
             return error_lambda, ddist, di
+
+    def _get_local_coordinates_of_det(
+        self,
+        bragg=None,
+        lamb=None,
+        det_ref=None,
+        use_non_parallelism=None,
+    ):
+        """
+        Computation of translation (ddist, di, dj) and angular
+        (dtheta, dpsi, tilt) properties of an arbitrary detector choosen by
+        the user.
+        """
+
+        # ------------
+        # check inputs
+
+        if det_ref is None:
+            msg = (
+                "You need to provide your arbitrary detector\n"
+                + "\t in order to compute its spatial properties !\n"
+                + "\t You provided: {}".format(det)
+            )
+            raise Exception(msg)
+
+        # Checkformat det
+        det_ref = self._checkformat_det(det=det_ref)
+
+        # ------------
+        # get approx detect
+
+        det_approx = self.get_detector_approx(
+            bragg=bragg, lamb=lamb,
+            tangent_to_rowland=False,
+            use_non_parallelism=use_non_parallelism,
+        )
+
+        # ------------
+        # get vector delta between centers
+
+        delta = det_ref['cent'] - det_approx['cent']
+        ddist = np.sum(delta * (-det_approx['nout']))
+        di = np.sum(delta * det_approx['ei'])
+        dj = np.sum(delta * det_approx['ej'])
+
+        # ---------------
+        # get angles from unit vectors
+        dtheta, dpsi, tilt = None, None, None
+
+        # use formulas in _comp_optics.get_det_abs_from_rel() 
+        sindtheta = np.sum(det_approx['ej'] * det_ref['nout'])
+        costheta_cospsi = np.sum(det_approx['nout'] * det_ref['nout'])
+        costheta_sinpsi = np.sum(det_approx['ei'] * det_ref['nout'])
+        costheta = np.sqrt(costheta_cospsi**2 + costheta_sinpsi**2)
+        dtheta = np.arctan2(sindtheta, costheta)
+        dpsi = np.arctan2(
+            costheta_sinpsi / costheta,
+            costheta_cospsi / costheta,
+        )
+
+        # ---------
+        # tilt
+        det_ei2 = (
+            np.cos(dpsi)*det_approx['ei'] - np.sin(dpsi)*det_approx['nout']
+        )
+        det_ej2 = np.cross(det_ref['nout'], det_ei2)
+        costilt = np.sum(det_ref['ei']*det_ei2)
+        sintilt = np.sum(det_ref['ei']*det_ej2)
+        tilt = np.arctan2(sintilt, costilt)
+
+        return ddist, di, dj, dtheta, dpsi, tilt
 
     def get_lambbraggphi_from_ptsxixj_dthetapsi(
         self,

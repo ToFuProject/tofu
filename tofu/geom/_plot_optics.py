@@ -1083,11 +1083,16 @@ def CrystalBragg_plot_johannerror(
 
 def CrystalBragg_plot_focal_error_summed(
     cryst=None, dcryst=None,
+    lamb=None, bragg=None,
     error_lambda=None,
     ddist=None, di=None,
+    ddist0=None, di0=None, dj0=None,
+    dtheta0=None, dpsi0=None, tilt0=None,
+    angle_nout=None,
     det_ref=None,
     units=None,
     plot_dets=None, nsort=None,
+    use_non_parallelism=None,
     tangent_to_rowland=None,
     contour=None,
     fs=None,
@@ -1116,7 +1121,7 @@ def CrystalBragg_plot_focal_error_summed(
         ax.set_xlabel('ddist (m)')
         ax.set_ylabel('di (m)')
 
-    # plot error map
+    # plot error map function(ddist, di)
     extent = (ddist.min(), ddist.max(), di.min(), di.max())
     errmap = ax.imshow(
         error_lambda,
@@ -1142,12 +1147,39 @@ def CrystalBragg_plot_focal_error_summed(
         linewidths=1.,
     )
 
+    # computing detector with exact position of det_ref
+    if det_ref:
+        dpsi0bis = float(dpsi0)
+        if tangent_to_rowland:
+            dpsi0bis = dpsi0 - angle_nout
+
+        detector_comp = cryst.get_detector_approx(
+            ddist=ddist0,
+            di=di0,
+            dj=dj0,
+            dtheta=dtheta0,
+            dpsi=dpsi0bis,
+            tilt=tilt0,
+            lamb=lamb,
+            use_non_parallelism=use_non_parallelism,
+            tangent_to_rowland=False,
+        )
+
+        detector_comp['outline'] = det_ref['outline']
+        ax.plot(
+            ddist0,
+            di0,
+            marker='x',
+            ls='None',
+            color='w',
+        )
+
     if plot_dets:
         indsort = np.argsort(np.ravel(error_lambda))
         inddist = indsort % ddist.size
         inddi = indsort // ddist.size
 
-        # plot det on map
+        # plot nbr of dets on map "mean focalization error = f(ddist, di)"
         ax.plot(
             ddist[inddist[:nsort]],
             di[inddi[:nsort]],
@@ -1156,12 +1188,32 @@ def CrystalBragg_plot_focal_error_summed(
             color='r',
         )
 
-        # plot det geometry
+        # plot dets geometry with CrystalBragg_plot()
         if det_ref is not None:
             dax = CrystalBragg_plot(
                 cryst=cryst, dcryst=dcryst,
                 det=det_ref,
+                color='black',
                 )
+            dax = CrystalBragg_plot(
+                    cryst=cryst, dcryst=dcryst,
+                    det=detector_comp, color='blue',
+                    dax=dax,
+                    element='ocv',
+                )
+            msg = (
+                "Parameters of reference detector:\n"
+                + "Center position in (x, y, z): ({})\n".format(
+                    np.round(detector_comp['cent'], decimals=4)
+                    )
+                + "Translations (ddist, di, dj): ({}, {}, {}) [m]\n".format(
+                    ddist0, di0, dj0,
+                    )
+                + "Rotations (dtheta, dpsi, tilt): ({}, {}, {}) [rad]\n".format(
+                    dtheta0, dpsi0, tilt0,
+                    )
+            )
+            print(msg)
             det = {}
             for ii in range(nsort):
                 det[ii] = cryst.get_detector_approx(
@@ -1174,7 +1226,12 @@ def CrystalBragg_plot_focal_error_summed(
                     cryst=cryst, dcryst=dcryst,
                     det=det[ii], color='red',
                     dax=dax,
-                    element='o',
+                    element='oc',
+                )
+                print(
+                    "det: {}\n".format(det[ii])
+                    + "\t ddist: {}\n".format(ddist[inddist[ii]])
+                    + "\t di: {}\n".format(di[inddi[ii]])
                 )
     return ax
 
