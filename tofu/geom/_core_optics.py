@@ -1888,11 +1888,10 @@ class CrystalBragg(utils.ToFuObject):
         bragg, phi, lamb = bragg[..., 0], phi[..., 0], lamb[..., 0]
 
         # Check lambda interval into lamb array
-        c0= (
+        c0 = (
             np.min(lamb) < lambda_interval_min
             and np.max(lamb) > lambda_interval_max
         )
-        test_lambda_interv = None
         if c0:
             test_lambda_interv = True
         else:
@@ -2085,7 +2084,7 @@ class CrystalBragg(utils.ToFuObject):
         ddist = np.linspace(dist_min, dist_max, int(ndist))
         di = np.linspace(di_min, di_max, int(ndi))
         error_lambda = np.full((di.size, ddist.size), np.nan)
-        test_lamb_interv = np.full((di.size, ddist.size), np.nan, dtype='bool')
+        test_lamb_interv = np.zeros((di.size, ddist.size), dtype='bool')
         end = '\r'
         for ii in range(ddist.size):
             for jj in range(di.size):
@@ -2118,24 +2117,17 @@ class CrystalBragg(utils.ToFuObject):
                 )
 
                 # Integrate error
-                error_lambda[jj, ii] = np.nanmean(
-                    self.calc_johannerror(
-                        xi=xi, xj=xj,
-                        det=det,
-                        err=err,
-                        lambda_interval_min=lambda_interval_min,
-                        lambda_interval_max=lambda_interval_max,
-                        plot=False,
-                    )[0],
-                )
-                test_lamb_interv[jj, ii] = self.calc_johannerror(
+                (
+                    error_lambda_temp, test_lamb_interv[jj, ii],
+                ) = self.calc_johannerror(
                     xi=xi, xj=xj,
                     det=det,
                     err=err,
                     lambda_interval_min=lambda_interval_min,
                     lambda_interval_max=lambda_interval_max,
                     plot=False,
-                )[4]
+                )[::4]
+                error_lambda[jj, ii] = np.nanmean(error_lambda_temp)
 
         if 'rel' in err:
             units = '%'
