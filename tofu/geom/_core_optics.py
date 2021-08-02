@@ -1726,9 +1726,10 @@ class CrystalBragg(utils.ToFuObject):
         use_non_parallelism=None,
         lpsi=None, ldtheta=None,
         strict=None,
-        ax=None, dleg=None,
+        dax=None, dleg=None,
         rocking=None, fs=None, dmargin=None,
         wintit=None, tit=None,
+        plot=None,
     ):
         """ Visualize the de-focusing by ray-tracing of chosen lamb
         Possibility to plot few wavelength' arcs on the same plot.
@@ -1741,6 +1742,8 @@ class CrystalBragg(utils.ToFuObject):
             - johann: True or False
         """
         # Check / format inputs
+        if plot is None:
+            plot = True
         if lamb is None:
             lamb = self._dbragg['lambref']
         lamb = np.atleast_1d(lamb).ravel()
@@ -1828,11 +1831,175 @@ class CrystalBragg(utils.ToFuObject):
             pass
 
         # Plot
-        return _plot_optics.CrystalBragg_plot_line_tracing_on_det(
-            lamb, xi, xj, xi_er, xj_er,
-            det=det, ax=ax, dleg=dleg,
-            johann=johann, rocking=rocking,
-            fs=fs, dmargin=dmargin, wintit=wintit, tit=tit)
+        if plot:
+            dax =  _plot_optics.CrystalBragg_plot_line_tracing_on_det(
+                lamb, xi, xj, xi_er, xj_er,
+                det=det, dax=dax, dleg=dleg,
+                johann=johann, rocking=rocking,
+                fs=fs, dmargin=dmargin,
+                wintit=wintit, tit=tit,
+                plot=plot,
+            )
+        else:
+            return lamb, xi, xj, xi_er, xj_er
+
+    def gap_ray_tracing(
+        self,
+        lamb=None, n=None,
+        nphi=None, npts=None,
+        det=None, johann=None,
+        use_non_parallelism=None,
+        lpsi=None, ldtheta=None,
+        split=None, direction=None,
+        strict=None,
+        ax=None, dleg=None,
+        rocking=None, fs=None, dmargin=None,
+        wintit=None, tit=None,
+        plot=None,
+    ):
+        """
+        Parameters:
+        ----------
+        - lamb: float
+            Provide np.array of min size 1, in 1e-10 [m]
+        - det: dict
+            Detector of reference on which ray tracing is done
+        - npts: float
+            Number of gap points computed on xi pixels
+        - use_non_parallelism: boolean
+            True or False if non parallelism have to be taken into account
+        - split: boolean
+            True or False to split the crystal
+        - direction: 'e1' or 'e2'
+            direction of splitting
+        - nb: np.float
+            number of crystal's splits, fixed here at 2
+        """
+        # Check inputs
+        if lamb is None:
+            lamb = self._dbragg['lambref']
+        lamb = np.atleast_1d(lamb).ravel()
+        nlamb = lamb.size
+        if nphi is None:
+            nphi = 100
+        if npts is None:
+            npts = 10
+        if plot is None:
+            plot = True
+        if use_non_parallelism is None:
+            use_non_parallelism = True
+        if split is None:
+            split = False
+        if direction is None:
+            direction = 'e1'
+
+        # Building arrays of alpha angle values & for results
+        alphas = np.linspace(0, 0, 2)
+        alphas_split = np.linspace((3/60)*np.pi/180, -(3/60)*np.pi/180, 2)
+        lambdas1 = np.full((alphas.size, lamb.size), np.nan)
+        lambdas2 = lambdas1.copy()
+        xis1 = np.full((alphas.size, nlamb, nphi), np.nan)
+        xis2 = xis1.copy()
+        xjs1 = np.full((alphas.size, nlamb, nphi), np.nan)
+        xjs2 = xjs1.copy()
+
+        # Splitting crystal
+        if split:
+            cryst1, cryst2 = self.split(direction=direction, nb=2)
+
+        # Calling plot_line_on_det_tracing()
+        # 1st case: entire crystal, 2nd case: splitted crystal
+        # In both cases are taking a fixed one & another taking
+        # alpha angle values
+        for ii in list(range(alphas.size)):
+            if not split:
+                self.update_non_parallelism(alpha=alphas[ii], beta=0)
+                (
+                    lambdas1[ii, :], xis1[ii, :, :], xjs1[ii, :, :],
+                ) = self.plot_line_on_det_tracing(
+                    nphi=nphi,
+                    lamb=lamb,
+                    det=det, johann=johann,
+                    use_non_parallelism=use_non_parallelism,
+                    lpsi=lpsi, ldtheta=ldtheta,
+                    strict=strict,
+                    rocking=rocking,
+                    plot=False,
+                )[:3]
+                self.update_non_parallelism(alpha=alphas_split[ii], beta=0)
+                (
+                    lambdas2[ii, :], xis2[ii, :, :], xjs2[ii, :, :],
+                ) = self.plot_line_on_det_tracing(
+                    nphi=nphi,
+                    lamb=lamb,
+                    det=det, johann=johann,
+                    use_non_parallelism=use_non_parallelism,
+                    lpsi=lpsi, ldtheta=ldtheta,
+                    strict=strict,
+                    rocking=rocking,
+                    plot=False,
+                )[:3]
+            else:
+                cryst1.update_non_parallelism(alpha=alphas[ii], beta=0)
+                (
+                    lambdas1[ii, :], xis1[ii, :, :], xjs1[ii, :, :],
+                ) = cryst1.plot_line_on_det_tracing(
+                    nphi=nphi,
+                    lamb=lamb,
+                    det=det, johann=johann,
+                    use_non_parallelism=use_non_parallelism,
+                    lpsi=lpsi, ldtheta=ldtheta,
+                    strict=strict,
+                    rocking=rocking,
+                    plot=False,
+                )[:3]
+                cryst2.update_non_parallelism(alpha=alphas_split[ii], beta=0)
+                (
+                    lambdas2[ii, :], xis2[ii, :, :], xjs2[ii, :, :],
+                ) = cryst2.plot_line_on_det_tracing(
+                    nphi=nphi,
+                    lamb=lamb,
+                    det=det, johann=johann,
+                    use_non_parallelism=use_non_parallelism,
+                    lpsi=lpsi, ldtheta=ldtheta,
+                    strict=strict,
+                    rocking=rocking,
+                    plot=False,
+                )[:3]
+
+        # gap between random points on each wavelength's arc
+        if not split:
+            gap_xi = np.full((nlamb, npts), np.nan)
+        else:
+            gap_xi = np.full((2, nlamb, npts), np.nan)
+        nalpha = alphas.size
+
+        if not split:
+            for ii in range(nalpha):
+                for jj in range(nlamb):
+                    gap_xi[jj, :] = xis1[ii, jj, ::npts] - xis2[ii, jj, ::npts]
+        else:
+            for ii in range(nalpha):
+                for jj in range(nlamb):
+                    gap_xi[ii, jj, :] = xis1[ii, jj, ::npts] - xis2[ii, jj, ::npts]
+
+        # Reset cryst angles
+        cryst.update_non_parallelism(alpha=0, beta=0)
+
+        # Plot gap_xi function of detector's height
+        if plot:
+            ax = _plot_optics.CrystalBragg_gap_ray_tracing(
+                lamb, gap_xi,
+                xis1=xis1, xis2=xis2,
+                xjs1=xjs1, xjs2=xjs2,
+                npts=npts, nlamb=nlamb,
+                det=det, ax=ax,
+                dleg=dleg, fs=fs,
+                dmargin=dmargin,
+                wintit=wintit, tit=tit,
+            )
+        else:
+            return lamb, gap_xi
 
     def calc_johannerror(
         self,
@@ -2091,7 +2258,6 @@ class CrystalBragg(utils.ToFuObject):
         end = '\r'
         for ii in range(ddist.size):
             for jj in range(di.size):
-
                 # print progression
                 if ii == ndist-1 and jj == ndi-1:
                     end = '\n'

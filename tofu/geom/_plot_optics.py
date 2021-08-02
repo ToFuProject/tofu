@@ -937,9 +937,10 @@ def CrystalBragg_plot_line_tracing_on_det(
     lamb, xi, xj, xi_err, xj_err,
     det=None,
     johann=None, rocking=None,
-    ax=None, dleg=None,
+    dax=None, dleg=None,
     fs=None, dmargin=None,
     wintit=None, tit=None,
+    plot=None,
 ):
 
     # Check inputs
@@ -969,29 +970,92 @@ def CrystalBragg_plot_line_tracing_on_det(
     # Plot
     # ------------
 
-    if ax is None:
+    if dax is None:
         fig = plt.figure(figsize=fs)
         gs = gridspec.GridSpec(1, 1, **dmargin)
-        ax = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
+        dax = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
         if wintit is not False:
             fig.canvas.set_window_title(wintit)
         if tit is not False:
             fig.suptitle(tit, size=14, weight='bold')
 
     if det.get('outline') is not None:
-        ax.plot(
+        dax.plot(
             det['outline'][0, :], det['outline'][1, :],
             ls='-', lw=1., c='k',
         )
     for l in range(lamb.size):
         lab = r'$\lambda$'+' = {:6.3f} A'.format(lamb[l]*1.e10)
-        l0, = ax.plot(xi[l, :], xj[l, :], ls='-', lw=1., label=lab)
+        l0, = dax.plot(xi[l, :], xj[l, :], ls='-', lw=1., label=lab)
         if plot_err:
-            ax.plot(
+            dax.plot(
                 xi_err[l, ...], xj_err[l, ...],
                 ls='None', lw=1., c=l0.get_color(),
                 ms=4, marker='.',
             )
+
+    if dleg is not False:
+        dax.legend(**dleg)
+
+    return dax
+
+def CrystalBragg_gap_ray_tracing(
+    lamb, gap_xi,
+    xis1, xis2,
+    xjs1, xjs2,
+    npts, nlamb=None,
+    det=None, ax=None,
+    dleg=None, fs=None,
+    dmargin=None,
+    wintit=None, tit=None,
+):
+
+    # Check inputs
+    #-------------
+
+    if dleg is None:
+        dleg = {'loc': 'upper right', 'bbox_to_anchor': (0.93, 0.8)}
+    if fs is None:
+        fs = (6, 8)
+    if dmargin is None:
+        dmargin = {'left': 0.15, 'right': 0.99,
+            'bottom': 0.06, 'top': 0.92,
+            'wspace': None, 'hspace': 0.4}
+
+    if wintit is None:
+        wintit = _WINTIT
+    if tit is None:
+        tit = u"Gap between each wavelenth arc,\n with & without non-parallelism"
+    dcolor = ['red', 'pink', 'green', 'blue', 'black', 'purple']
+    dmarkers = ['o', 'v', 's', 'x', '*', 'P']
+
+    if ax is None:
+        fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(1, 1, **dmargin)
+        ax = fig.add_subplot(gs[0, 0])
+        if wintit is not False:
+            fig.canvas.set_window_title(wintit)
+        if tit is not False:
+            fig.suptitle(tit, size=12, weight='bold')
+
+    if det.get('outline') is not None:
+        ax.plot(
+            det['outline'][0, :], det['outline'][1, :],
+            ls='-', lw=1., c='k',
+        )
+    for l in range(nlamb):
+        lab = r'$\lambda$'+' = {:6.3f} A'.format(lamb[l]*1.e10)
+        l0 = ax.plot(
+            gap_xi[l, :],
+            xjs1[0, l, ::npts],
+            ls='-', lw=1.,
+            c=dcolor[l],
+            ms=4, marker=dmarkers[l],
+            label=lab,
+        )
+        #ax.set_xlim(2e-3, 3e-3)
+        ax.set_xlabel('Gap [m]')
+        ax.set_ylabel('Detector height [m]')
 
     if dleg is not False:
         ax.legend(**dleg)
