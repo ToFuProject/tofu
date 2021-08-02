@@ -1839,6 +1839,8 @@ class CrystalBragg(utils.ToFuObject):
         xi=None, xj=None, err=None,
         det=None, n=None,
         lpsi=None, ldtheta=None,
+        lambda_interval_min=None,
+        lambda_interval_max=None,
         use_non_parallelism=None,
         plot=True, fs=None, cmap=None,
         vmin=None, vmax=None, tit=None, wintit=None,
@@ -1861,11 +1863,18 @@ class CrystalBragg(utils.ToFuObject):
             - crystal's summit
         Then, computing error on bragg and phi angles on each pixels by
         computing lambda and phi from the crystal's outline
+        Provide lambda_interval_min/max to ensure the given wavelength interval
+        is detected over the whole surface area.
+        A True/False boolean is then returned.
         """
 
         # Check xi, xj once before to avoid doing it twice
         if err is None:
             err = 'abs'
+        if lambda_interval_min is None:
+            lambda_interval_min = 3.93e-10
+        if lambda_interval_max is None:
+            lambda_interval_max = 4.00e-10
 
         xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
 
@@ -1881,6 +1890,16 @@ class CrystalBragg(utils.ToFuObject):
 
         # Only one summit was selected
         bragg, phi, lamb = bragg[..., 0], phi[..., 0], lamb[..., 0]
+
+        # Check lambda interval into lamb array
+        c0 = (
+            np.min(lamb) < lambda_interval_min
+            and np.max(lamb) > lambda_interval_max
+        )
+        if c0:
+            test_lambda_interv = True
+        else:
+            test_lambda_interv = False
 
         # Get err from multiple ldtheta, lpsi
         if lpsi is None:
@@ -1928,7 +1947,10 @@ class CrystalBragg(utils.ToFuObject):
                 cmap=cmap, vmin=vmin, vmax=vmax,
                 fs=fs, tit=tit, wintit=wintit,
                 )
-        return err_lamb, err_phi, err_lamb_units, err_phi_units
+        return (
+            err_lamb, err_phi, err_lamb_units, err_phi_units,
+            test_lambda_interv,
+        )
 
     def plot_focal_error_summed(
         self,
@@ -1941,8 +1963,11 @@ class CrystalBragg(utils.ToFuObject):
         use_non_parallelism=None,
         tangent_to_rowland=None, n=None,
         plot=None,
+        pts=None,
         det_ref=None, plot_dets=None, nsort=None,
         dcryst=None,
+        lambda_interval_min=None,
+        lambda_interval_max=None,
         contour=None,
         fs=None,
         ax=None,
@@ -1974,18 +1999,21 @@ class CrystalBragg(utils.ToFuObject):
             detector
             dict(np.load('det37_CTVD_incC4_New.npz', allow_pickle=True))
         - nsort : float
-
+            Number of best detector's position to plot
+        - lambda_interv_min/max : float
+            To ensure the given wavelength interval is detected over the whole
+            surface area. A True/False boolean is then returned.
         """
 
         # Check / format inputs
         if dist_min is None:
-            dist_min = -0.08
+            dist_min = -0.15
         if dist_max is None:
-            dist_max = 0.01
+            dist_max = 0.15
         if di_min is None:
-            di_min = -0.41
+            di_min = -0.40
         if di_max is None:
-            di_max = -0.05
+            di_max = 0.40
         if ndist is None:
             ndist = 21
         if ndi is None:
@@ -1996,8 +2024,14 @@ class CrystalBragg(utils.ToFuObject):
             plot = True
         if plot_dets is None:
             plot_dets = det_ref is not None
+        if nsort is None:
+            nsort = 5
         if return_ax is None:
             return_ax = True
+        if lambda_interval_min is None:
+            lambda_interval_min = 3.93e-10
+        if lambda_interval_max is None:
+            lambda_interval_max = 4.00e-10
 
         l0 = [dist_min, dist_max, ndist, di_min, di_max, ndi]
         c0 = any([l00 is not None for l00 in l0])
@@ -2053,6 +2087,7 @@ class CrystalBragg(utils.ToFuObject):
         ddist = np.linspace(dist_min, dist_max, int(ndist))
         di = np.linspace(di_min, di_max, int(ndi))
         error_lambda = np.full((di.size, ddist.size), np.nan)
+        test_lamb_interv = np.zeros((di.size, ddist.size), dtype='bool')
         end = '\r'
         for ii in range(ddist.size):
             for jj in range(di.size):
@@ -2085,14 +2120,17 @@ class CrystalBragg(utils.ToFuObject):
                 )
 
                 # Integrate error
-                error_lambda[jj, ii] = np.nanmean(
-                    self.calc_johannerror(
-                        xi=xi, xj=xj,
-                        det=det,
-                        err=err,
-                        plot=False,
-                    )[0],
-                )
+                (
+                    error_lambda_temp, test_lamb_interv[jj, ii],
+                ) = self.calc_johannerror(
+                    xi=xi, xj=xj,
+                    det=det,
+                    err=err,
+                    lambda_interval_min=lambda_interval_min,
+                    lambda_interval_max=lambda_interval_max,
+                    plot=False,
+                )[::4]
+                error_lambda[jj, ii] = np.nanmean(error_lambda_temp)
 
         if 'rel' in err:
             units = '%'
@@ -2113,6 +2151,8 @@ class CrystalBragg(utils.ToFuObject):
                 plot_dets=plot_dets, nsort=nsort,
                 tangent_to_rowland=tangent_to_rowland,
                 use_non_parallelism=use_non_parallelism,
+                pts=pts,
+                test_lamb_interv=test_lamb_interv,
                 contour=contour,
                 fs=fs,
                 ax=ax,
@@ -2121,9 +2161,9 @@ class CrystalBragg(utils.ToFuObject):
                 vmax=vmax,
             )
         if return_ax:
-            return error_lambda, ddist, di, ax
+            return error_lambda, ddist, di, test_lamb_interv, ax
         else:
-            return error_lambda, ddist, di
+            return error_lambda, ddist, di, test_lamb_interv
 
     def _get_local_coordinates_of_det(
         self,
