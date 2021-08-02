@@ -516,7 +516,6 @@ class Test01_DataCollection(object):
             )
             self.ldinput2d.append(dinput)
 
-    """
     def test07_funccostjac_2d(self):
         func = tfs._fit12d_funccostjac.multigausfit2d_from_dlines_funccostjac
         for ii, dd in enumerate(self.ldinput2d):
@@ -548,4 +547,3 @@ class Test01_DataCollection(object):
                 y1,
                 equal_nan=True,
             )
-    """
