@@ -1004,9 +1004,11 @@ def CrystalBragg_gap_ray_tracing(
     xis1, xis2,
     xjs1, xjs2,
     npts, nlamb=None,
-    det=None, ax=None,
-    dleg=None, fs=None,
-    dmargin=None,
+    det=None,
+    split=None,
+    relation=None,
+    ax=None, dleg=None,
+    fs=None, dmargin=None,
     wintit=None, tit=None,
 ):
 
@@ -1014,25 +1016,38 @@ def CrystalBragg_gap_ray_tracing(
     #-------------
 
     if dleg is None:
-        dleg = {'loc': 'upper right', 'bbox_to_anchor': (0.93, 0.8)}
+        dleg = {'loc': 'upper right', 'bbox_to_anchor': (1.0, 1.0)}
     if fs is None:
-        fs = (6, 8)
+        fs = (12, 12)
     if dmargin is None:
-        dmargin = {'left': 0.15, 'right': 0.99,
+        dmargin = {'left': 0.12, 'right': 0.99,
             'bottom': 0.06, 'top': 0.92,
             'wspace': None, 'hspace': 0.4}
 
     if wintit is None:
         wintit = _WINTIT
     if tit is None:
-        tit = u"Gap between each wavelenth arc,\n with & without non-parallelism"
-    dcolor = ['red', 'pink', 'green', 'blue', 'black', 'purple']
-    dmarkers = ['o', 'v', 's', 'x', '*', 'P']
+        tit = u"Gap between each wavelenth arc, with & without non-parallelism"
+    dcolor = ['red', 'blue', 'green', 'pink', 'brown', 'orange', 'cyan',]
+    dmarkers = ['o', 'v', 's', 'x', '*', 'P', '+', 'p']
+    dls = [
+        '--', '-.', ':',
+        '--', '-.', ':',
+        '--', '-.', ':',
+        '--', '-.', ':',
+    ]
+    dlab = [r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = 3"',
+        r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = -3"',
+    ]
+
+    # Plot
+    #-----
 
     if ax is None:
         fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(1, 1, **dmargin)
+        gs = gridspec.GridSpec(1, 2, **dmargin)
         ax = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[0, 1])
         if wintit is not False:
             fig.canvas.set_window_title(wintit)
         if tit is not False:
@@ -1043,24 +1058,114 @@ def CrystalBragg_gap_ray_tracing(
             det['outline'][0, :], det['outline'][1, :],
             ls='-', lw=1., c='k',
         )
-    for l in range(nlamb):
-        lab = r'$\lambda$'+' = {:6.3f} A'.format(lamb[l]*1.e10)
-        l0 = ax.plot(
-            gap_xi[l, :],
-            xjs1[0, l, ::npts],
-            ls='-', lw=1.,
-            c=dcolor[l],
-            ms=4, marker=dmarkers[l],
-            label=lab,
+        ax2.plot(
+            det['outline'][0, :], det['outline'][1, :],
+            ls='-', lw=1., c='k',
         )
-        #ax.set_xlim(2e-3, 3e-3)
+    # legends TBD
+    for l in range(nlamb):
+        lab = r'$\lambda$'+' = {:6.3f} A\n'.format(lamb[l]*1.e10)
+        if not split:
+            ax2.plot(
+                xis1[0, l, :], xjs1[0, l, :], # both lines useless to call
+                ls='-', lw=1.,
+                c=dcolor[l],
+                marker=dmarkers[l],
+                ms=6,
+                label=lab+r'$\alpha_{c1}$ = $\alpha_{c2}$ = 0"'
+            )
+            for ii in range(2):
+                l0 = ax.plot(
+                    gap_xi[ii, l, :],
+                    xjs1[0, l, ::npts],
+                    ls=dls[ii], lw=1.,
+                    c=dcolor[l],
+                    marker=dmarkers[l],
+                    ms=6,
+                    label=lab,
+                )
+                ax2.plot(
+                    xis2[ii, l, :], xjs2[ii, l, :],
+                    ls=dls[ii], lw=1.,
+                    marker=dmarkers[l],
+                    markersize=6,
+                    label=lab+dlab[ii],
+                )
+        else:
+            ax2.plot(
+                xis1[0, l, :], xjs1[0, l, :],
+                ls='-', lw=1.,
+                marker=dmarkers[l],
+                markersize=6,
+                label=lab+r'$\alpha_{c1}$ = $\alpha_{c2}$ = 0"'
+            )
+            for ii in range(2):
+                l0 = ax.plot(
+                    gap_xi[ii, l, :],
+                    xjs1[0, l, ::npts],
+                    ls=dls[ii], lw=1.,
+                    c=dcolor[l],
+                    ms=4, marker=dmarkers[l],
+                    label=lab+dlab[ii],
+                )
+                ax2.plot(
+                    xis2[ii, l, :], xjs2[ii, l, :],
+                    ls=dls[ii], lw=1.,
+                    marker=dmarkers[l],
+                    markersize=6,
+                    label=lab+dlab[ii],
+                )
+
+        ax.set_xlim(np.nanmin(gap_xi)-0.0005, np.nanmax(gap_xi)+0.0005)
         ax.set_xlabel('Gap [m]')
-        ax.set_ylabel('Detector height [m]')
+        ax.set_ylabel('Xj [m]')
+        ax2.set_xlabel('Xi [m]')
+        ax2.set_ylabel('Xj [m]')
 
     if dleg is not False:
         ax.legend(**dleg)
+        ax2.legend(**dleg)
 
-    return ax
+    # plot relation between gap and wavelength, according xj positions
+    if relation is True:
+        fig = plt.figure(figsize=(8, 6))
+        gs = gridspec.GridSpec(1, 1,
+            left=0.12, right=0.9,
+            bottom=0.1, top=0.92,
+            wspace=None, hspace=0.4,
+        )
+        ax = fig.add_subplot(gs[0, 0])
+        if split is True:
+            for aa in range(npts):
+                for bb in range(2):
+                    ax.plot(
+                        lamb,
+                        gap_xi[bb, :, aa],
+                        ls=dls[aa],
+                        lw=1.,
+                        c=dcolor[bb],
+                        ms=4,
+                    )
+        else:
+            for aa in range(npts):
+                for bb in range(2):
+                    ax.plot(
+                        lamb,
+                        gap_xi[bb, :, aa],
+                        ls=dls[aa],
+                        lw=1.,
+                        c=dcolor[bb],
+                        ms=4,
+                    )
+
+        ax.set_xlim(np.nanmin(lamb)-0.02*1e-10, np.nanmax(lamb)+0.02*1e-10)
+        ax.set_ylim(np.nanmin(gap_xi)-0.0002, np.nanmax(gap_xi)+0.0002)
+        ax.set_xlabel(r'$\lambda$ [m]')
+        ax.set_ylabel('Gap [m]')
+        ax.legend([r'red: $\alpha_{c1}$ = 0" & $\alpha_{c2}$ = 3"',
+                  r'blue: $\alpha_{c1}$ = 0" & $\alpha_{c2}$ = -3"'])
+
+    return ax, ax2
 
 
 def CrystalBragg_plot_johannerror(

@@ -1851,13 +1851,17 @@ class CrystalBragg(utils.ToFuObject):
         use_non_parallelism=None,
         lpsi=None, ldtheta=None,
         split=None, direction=None,
+        relation=None,
         strict=None,
+        rocking=None,
         ax=None, dleg=None,
-        rocking=None, fs=None, dmargin=None,
+        fs=None, dmargin=None,
         wintit=None, tit=None,
         plot=None,
     ):
         """
+        With the plot_line_on_det_tracing() method, and using either the whole
+        crystal or a splitted into two pieces,
         Parameters:
         ----------
         - lamb: float
@@ -1872,8 +1876,6 @@ class CrystalBragg(utils.ToFuObject):
             True or False to split the crystal
         - direction: 'e1' or 'e2'
             direction of splitting
-        - nb: np.float
-            number of crystal's splits, fixed here at 2
         """
         # Check inputs
         if lamb is None:
@@ -1892,6 +1894,8 @@ class CrystalBragg(utils.ToFuObject):
             split = False
         if direction is None:
             direction = 'e1'
+        if relation is None:
+            relation = False
 
         # Building arrays of alpha angle values & for results
         alphas = np.linspace(0, 0, 2)
@@ -1967,24 +1971,19 @@ class CrystalBragg(utils.ToFuObject):
                     plot=False,
                 )[:3]
 
-        # gap between random points on each wavelength's arc
-        if not split:
-            gap_xi = np.full((nlamb, npts), np.nan)
-        else:
-            gap_xi = np.full((2, nlamb, npts), np.nan)
+        ## Computing difference between:
+        ## xi's coordinates of crystal of reference xis1 (alpha = 0") &
+        ## xi's coordinates of crystal with non parallelism xis2 (alpha=+-3")
+        gap_xi = np.full((2, nlamb, npts), np.nan)
         nalpha = alphas.size
-
-        if not split:
-            for ii in range(nalpha):
-                for jj in range(nlamb):
-                    gap_xi[jj, :] = xis1[ii, jj, ::npts] - xis2[ii, jj, ::npts]
-        else:
-            for ii in range(nalpha):
-                for jj in range(nlamb):
-                    gap_xi[ii, jj, :] = xis1[ii, jj, ::npts] - xis2[ii, jj, ::npts]
+        for ii in range(nalpha):
+            for jj in range(nlamb):
+                gap_xi[ii, jj, :] = (
+                    xis1[ii, jj, ::npts] - xis2[ii, jj, ::npts]
+                )
 
         # Reset cryst angles
-        cryst.update_non_parallelism(alpha=0, beta=0)
+        self.update_non_parallelism(alpha=0, beta=0)
 
         # Plot gap_xi function of detector's height
         if plot:
@@ -1994,6 +1993,8 @@ class CrystalBragg(utils.ToFuObject):
                 xjs1=xjs1, xjs2=xjs2,
                 npts=npts, nlamb=nlamb,
                 det=det, ax=ax,
+                split=split,
+                relation=relation,
                 dleg=dleg, fs=fs,
                 dmargin=dmargin,
                 wintit=wintit, tit=tit,
