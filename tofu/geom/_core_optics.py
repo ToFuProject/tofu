@@ -1861,7 +1861,8 @@ class CrystalBragg(utils.ToFuObject):
     ):
         """
         With the plot_line_on_det_tracing() method, and using either the whole
-        crystal or a splitted into two pieces,
+        crystal or a splitted into two pieces, plotting gap between ray-tracing
+        for a crystal with non-parallelism up to 3 arcsec and a perfect one.
         Parameters:
         ----------
         - lamb: float
@@ -1876,6 +1877,9 @@ class CrystalBragg(utils.ToFuObject):
             True or False to split the crystal
         - direction: 'e1' or 'e2'
             direction of splitting
+        - relation: boolean
+            True or False to plot xi's gap according to chosen wavelengths and
+            for npts
         """
         # Check inputs
         if lamb is None:
@@ -1973,7 +1977,7 @@ class CrystalBragg(utils.ToFuObject):
 
         ## Computing difference between:
         ## xi's coordinates of crystal of reference xis1 (alpha = 0") &
-        ## xi's coordinates of crystal with non parallelism xis2 (alpha=+-3")
+        ## xi's coordinates of crystal with non parallelism xis2 (alpha=+/-3")
         gap_xi = np.full((2, nlamb, npts), np.nan)
         nalpha = alphas.size
         for ii in range(nalpha):
