@@ -6,6 +6,7 @@ import itertools as itt
 # Common
 import numpy as np
 from scipy.interpolate import BSpline
+from scipy.optimize import least_squares 
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
@@ -1028,7 +1029,9 @@ def CrystalBragg_gap_ray_tracing(
         wintit = _WINTIT
     if tit is None:
         tit = u"Gap between each wavelenth arc, with & without non-parallelism"
-    dcolor = ['red', 'blue', 'green', 'pink', 'brown', 'orange', 'purple',]
+    dcolor = ['red', 'orange', 'yellow', 'green',
+             'blue', 'pink', 'purple', 'brown', 'black',
+             ]
     dmarkers = ['o', 'v', 's', 'x', '*', 'P', '+', 'p']
     dls = [
         '--', ':', '-.',
@@ -1099,12 +1102,12 @@ def CrystalBragg_gap_ray_tracing(
             )
 
         ax.set_xlim(
-            np.nanmin(gap_xi[1, ...])-0.00005,
-            np.nanmax(gap_xi[1, ...])+0.00005,
+            np.nanmin(gap_xi[1, ...])-5e-5,
+            np.nanmax(gap_xi[1, ...])+5e-5,
             )
         ax1.set_xlim(
-            np.nanmin(gap_xi[0, ...])-0.00005,
-            np.nanmax(gap_xi[0, ...])+0.00005,
+            np.nanmin(gap_xi[0, ...])-5e-5,
+            np.nanmax(gap_xi[0, ...])+5e-5,
             )
         ax.set_ylabel('Xj [m]')
         ax.set_xlabel('Gap [m]')
@@ -1128,6 +1131,13 @@ def CrystalBragg_gap_ray_tracing(
         )
         ax = fig.add_subplot(gs[0, 0])
         ax2 = fig.add_subplot(gs[1, 0])
+        def f(x, a, b, c):
+            return a*x*22 + b*x + c
+
+        def residual(p, x, y):
+            return y - f(x, *p)
+        p0 = [1., 1., 1.]
+
         for aa in range(npts):
             ax.plot(
                 lamb,
@@ -1137,6 +1147,16 @@ def CrystalBragg_gap_ray_tracing(
                 c=dcolor[0],
                 ms=4,
             )
+            import pdb; pdb.set_trace()  # DB
+            popt, pcov = least_squares(
+                residual, p0,
+                args=(lamb, gap_xi[0, :, 1:aa]),
+            )
+            print(popt)
+            xn = np.linspace(lamb.min(), lamb.max(), len(size))
+            yn = f(xn, *popt)
+            ax.plot(xn, yn, c='blue')
+
             ax2.plot(
                 lamb,
                 gap_xi[1, :, aa],
@@ -1145,14 +1165,19 @@ def CrystalBragg_gap_ray_tracing(
                 c=dcolor[1],
                 ms=4,
             )
+            popt = np.polyfit(lamb, gap_xi[1, :, aa], 3)
+            print(popt)
+            xn = np.linspace(lamb.min(), lamb.max(), len(size))
+            yn = np.polyval(popt, xn)
+            ax1.plot(xn, yn, c='blue')
 
-        ax.set_xlim(np.nanmin(lamb)-0.02*1e-10, np.nanmax(lamb)+0.02*1e-10)
-        ax2.set_xlim(np.nanmin(lamb)-0.02*1e-10, np.nanmax(lamb)+0.02*1e-10)
+        ax.set_xlim(np.nanmin(lamb)-2*1e-12, np.nanmax(lamb)+2*1e-12)
+        ax2.set_xlim(np.nanmin(lamb)-2*1e-12, np.nanmax(lamb)+2*1e-12)
         ax.set_ylim(
-            np.nanmin(gap_xi[0, ...])-0.0001, np.nanmax(gap_xi[0, ...])+0.0001,
+            np.nanmin(gap_xi[0, ...])-1e-4, np.nanmax(gap_xi[0, ...])+1e-4,
             )
         ax2.set_ylim(
-            np.nanmin(gap_xi[1, ...])-0.0001, np.nanmax(gap_xi[1, ...])+0.0001,
+            np.nanmin(gap_xi[1, ...])-1e-4, np.nanmax(gap_xi[1, ...])+1e-4,
             )
         ax.set_ylabel('Gap [m]')
         ax.legend([r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = 3"'])
