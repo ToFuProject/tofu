@@ -18,6 +18,7 @@ import scipy.stats as scpstats
 import datetime as dtm
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from math import *
 
 # ToFu-specific
 from tofu import __version__ as __version__
@@ -1834,6 +1835,7 @@ class CrystalBragg(utils.ToFuObject):
         if plot:
             dax =  _plot_optics.CrystalBragg_plot_line_tracing_on_det(
                 lamb, xi, xj, xi_er, xj_er,
+
                 det=det, dax=dax, dleg=dleg,
                 johann=johann, rocking=rocking,
                 fs=fs, dmargin=dmargin,
@@ -1841,13 +1843,195 @@ class CrystalBragg(utils.ToFuObject):
                 plot=plot,
             )
         else:
-            return lamb, xi, xj, xi_er, xj_er
+            if johann:
+                return lamb, xi, xj, xi_er, xj_er
+            else:
+                return lamb, xi, xj
+
+    def gap_pixels(
+        self,
+        lamb=None,
+        det=None,
+        split=None, direction=None,
+        xi=None, xj=None,
+        use_non_parallelism=None,
+        dtheta=None, psi=None,
+        strict=None, return_strict=None,
+        plot=None,
+        ax=None,
+        dleg=None,
+        fs=None,
+        dmargin=None,
+        wintit=None, tit=None,
+    ):
+        """
+        Using either the whole crystal or a splitted into two pieces,
+        plotting gap between each pixels of the detector.
+        Assuming both a crystal with non-parallelism up to 3 arcsec and a
+        perfect one, first this method compute the physical quantities
+        (lamb_ref, phi_ref, bragg_ref) of each pixel (xi, xj)
+        for a perfect crystal.
+        Then, retrieving this data, with a crystal with non-parallelism,
+        computing the pixel coordinates of diffraction on the detector
+        (xi_unp, xj_unp).
+        Finally, computing the gap between (xi, xj) and (xi_unp, xj_unp).
+        Parameters:
+        ----------
+        - lamb: float
+            Provide np.array of min size 1, in 1e-10 [m]
+        - det: dict
+            Detector of reference on which ray tracing is done
+        - split: boolean
+            True or False to split the crystal
+        - direction: 'e1' or 'e2'
+        - xi, xj :  np.ndarray
+            pixelization of the detector
+            (from "inputs_temp/XICS_allshots_C34.py" l.649)
+            direction of splitting
+        - use_non_parallelism: boolean
+            True or False if non parallelism have to be taken into account
+        """
+
+        # Check inputs
+        if lamb is None:
+            lamb = self._dbragg['lambref']
+        lamb = np.atleast_1d(lamb).ravel()
+        nlamb = lamb.size
+        if use_non_parallelism is None:
+            use_non_parallelism = True
+        if split is None:
+            split = False
+        if direction is None:
+            direction = 'e1'
+        if dtheta is None:
+            dtheta = 0.
+        if psi is None:
+            psi = 0.
+        if strict is None:
+            strict = True
+        if return_strict is None:
+            return_strict = True
+        if plot is None:
+            plot = True
+
+        # Checkformat det
+        det = self._checkformat_det(det=det)
+
+        # Checkformat detector pixels
+        xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
+
+        # Copying alpha and beta angles of origin
+        alpha0 = float(self.dmat['alpha'])
+        beta0 = float(self.dmat['beta'])
+
+        # Building arrays of alpha angle values & for results
+        alphas = np.linspace(0, 0, 2)
+        alphas_split = np.linspace((3/60)*np.pi/180, -(3/60)*np.pi/180, 2)
+        bragg = np.full((alphas.size, xi.size, xj.size, 1), np.nan)
+        lamb = np.full((alphas.size, xi.size, xj.size, 1), np.nan)
+        phi = np.full((alphas.size, xi.size, xj.size, 1), np.nan)
+        xi_unp = np.full((alphas.size, xi.size*xj.size), np.nan)
+        xj_unp = xi_unp.copy()
+
+        # Splitting crystal
+        if split:
+            cryst1, cryst2 = self.split(direction=direction, nb=2)
+
+        # If not splitting the crystal, superposing one with non-parallelism
+        # above the other with perfect parallelism.
+        # Else, the first splitted has alphas angles equal to 0 and
+        # the other have alphas = +/- 3"
+        # Computing wavelength, phi and bragg angle of reference for each pixel
+        # of the detector for perfect crystal.
+        # Then, with non-parallelism, computing new (xi, xj) positions for
+        # these physical quantities
+        for ii in list(range(alphas.size)):
+            if not split:
+                self.update_non_parallelism(alpha=alphas[ii], beta=0)
+                (
+                    bragg[ii, :, :], phi[ii, :, :], lamb[ii, :, :],
+                ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
+                    xi=xii, xj=xjj,
+                    det=det,
+                    use_non_parallelism=use_non_parallelism,
+                    return_lamb=True,
+                )
+                self.update_non_parallelism(alpha=alphas_split[ii], beta=0)
+                (
+                    xi_unp[ii, :], xj_unp[ii, :], strict,
+                ) = self.calc_xixj_from_braggphi(
+                    phi=phi[ii, ...].flatten(),
+                    lamb=lamb[ii, ...].flatten(),
+                    #(ii, xi.size, xj.size, 1) --> (ii, xi.size*xj.size)
+                    dtheta=dtheta, psi=psi,
+                    det=det,
+                    use_non_parallelism=use_non_parallelism,
+                    strict=strict,
+                    return_strict=return_strict,
+                    plot=False,
+                )
+            else:
+                cryst1.update_non_parallelism(alpha=alphas[ii], beta=0)
+                (
+                    bragg[ii, :, :], phi[ii, :, :], lamb[ii, :, :],
+                ) = cryst1.get_lambbraggphi_from_ptsxixj_dthetapsi(
+                    xi=xii, xj=xjj,
+                    det=det,
+                    use_non_parallelism=use_non_parallelism,
+                    return_lamb=True,
+                )
+                cryst2.update_non_parallelism(alpha=alphas_split[ii], beta=0)
+                (
+                    xi_unp[ii, :], xj_unp[ii, :], strict,
+                ) = cryst2.calc_xixj_from_braggphi(
+                    phi=phi[ii, ...].flatten(),
+                    lamb=lamb[ii, ...].flatten(),
+                    #(ii, xi.size, xj.size, 1) --> (ii, xi.size*xj.size)
+                    dtheta=dtheta, psi=psi,
+                    det=det,
+                    use_non_parallelism=use_non_parallelism,
+                    strict=strict,
+                    return_strict=return_strict,
+                    plot=False,
+                )
+
+        # Reshaping (xi,xj) grid from crystals with non-parallelism
+        xi_unp, xj_unp = (
+            xi_unp.reshape(2, 487, 1467),
+            xj_unp.reshape(2, 487, 1467),
+        )
+
+        # Computing gap between each pixels for each non-parallelism case
+        gap = np.full((2, xi.size, xj.size), np.nan)
+        for ii in range(alphas.size):
+            gap[ii, :, :] = np.sqrt(
+                (xii - xi_unp[ii, ...])**2 + (xjj - xj_unp[ii, ...])**2
+            )
+
+        # Reset cryst angles
+        self.update_non_parallelism(alpha=alpha0, beta=beta0)
+
+        # Plot gap_xi function of detector's height
+        if plot:
+            ax = _plot_optics.CrystalBragg_gap_pixels(
+                lamb, gap,
+                xi, xi_unp,
+                xj, xj_unp,
+                det=det, ax=ax,
+                split=split,
+                dleg=dleg, fs=fs,
+                dmargin=dmargin,
+                wintit=wintit, tit=tit,
+            )
+        else:
+            return xi, xj, xi_unp, xj_unp, lamb, gap
 
     def gap_ray_tracing(
         self,
         lamb=None, n=None,
         nphi=None, npts=None,
-        det=None, johann=None,
+        det=None,
+        xi=None, xj=None,
         use_non_parallelism=None,
         lpsi=None, ldtheta=None,
         split=None, direction=None,
@@ -1869,6 +2053,8 @@ class CrystalBragg(utils.ToFuObject):
             Provide np.array of min size 1, in 1e-10 [m]
         - det: dict
             Detector of reference on which ray tracing is done
+        - nphi: float
+            Number of points constituting ray tracing
         - npts: float
             Number of gap points computed on xi pixels
         - use_non_parallelism: boolean
@@ -1887,9 +2073,9 @@ class CrystalBragg(utils.ToFuObject):
         lamb = np.atleast_1d(lamb).ravel()
         nlamb = lamb.size
         if nphi is None:
-            nphi = 100
+            nphi = 1467
         if npts is None:
-            npts = 10
+            npts = 1467
         if plot is None:
             plot = True
         if use_non_parallelism is None:
@@ -1906,9 +2092,9 @@ class CrystalBragg(utils.ToFuObject):
         alphas_split = np.linspace((3/60)*np.pi/180, -(3/60)*np.pi/180, 2)
         lambdas1 = np.full((alphas.size, lamb.size), np.nan)
         lambdas2 = lambdas1.copy()
-        xis1 = np.full((alphas.size, nlamb, nphi), np.nan)
+        xis1 = np.full((alphas.size, nlamb, xj.size), np.nan)
         xis2 = xis1.copy()
-        xjs1 = np.full((alphas.size, nlamb, nphi), np.nan)
+        xjs1 = np.full((alphas.size, nlamb, xj.size), np.nan)
         xjs2 = xjs1.copy()
 
         # Splitting crystal
@@ -1927,7 +2113,7 @@ class CrystalBragg(utils.ToFuObject):
                 ) = self.plot_line_on_det_tracing(
                     nphi=nphi,
                     lamb=lamb,
-                    det=det, johann=johann,
+                    det=det,
                     use_non_parallelism=use_non_parallelism,
                     lpsi=lpsi, ldtheta=ldtheta,
                     strict=strict,
@@ -1940,7 +2126,7 @@ class CrystalBragg(utils.ToFuObject):
                 ) = self.plot_line_on_det_tracing(
                     nphi=nphi,
                     lamb=lamb,
-                    det=det, johann=johann,
+                    det=det,
                     use_non_parallelism=use_non_parallelism,
                     lpsi=lpsi, ldtheta=ldtheta,
                     strict=strict,
@@ -1954,7 +2140,7 @@ class CrystalBragg(utils.ToFuObject):
                 ) = cryst1.plot_line_on_det_tracing(
                     nphi=nphi,
                     lamb=lamb,
-                    det=det, johann=johann,
+                    det=det,
                     use_non_parallelism=use_non_parallelism,
                     lpsi=lpsi, ldtheta=ldtheta,
                     strict=strict,
@@ -1967,7 +2153,7 @@ class CrystalBragg(utils.ToFuObject):
                 ) = cryst2.plot_line_on_det_tracing(
                     nphi=nphi,
                     lamb=lamb,
-                    det=det, johann=johann,
+                    det=det,
                     use_non_parallelism=use_non_parallelism,
                     lpsi=lpsi, ldtheta=ldtheta,
                     strict=strict,
@@ -1978,12 +2164,13 @@ class CrystalBragg(utils.ToFuObject):
         ## Computing difference between:
         ## xi's coordinates of crystal of reference xis1 (alpha = 0") &
         ## xi's coordinates of crystal with non parallelism xis2 (alpha=+/-3")
+        n = int(ceil(nphi/npts))
         gap_xi = np.full((2, nlamb, npts), np.nan)
         nalpha = alphas.size
         for ii in range(nalpha):
             for jj in range(nlamb):
                 gap_xi[ii, jj, :] = (
-                    xis1[ii, jj, ::npts] - xis2[ii, jj, ::npts]
+                    xis1[ii, jj, ::n] - xis2[ii, jj, ::n]
                 )
 
         # Reset cryst angles
@@ -1995,7 +2182,7 @@ class CrystalBragg(utils.ToFuObject):
                 lamb, gap_xi,
                 xis1=xis1, xis2=xis2,
                 xjs1=xjs1, xjs2=xjs2,
-                npts=npts, nlamb=nlamb,
+                npts=npts, nlamb=nlamb, n=n,
                 det=det, ax=ax,
                 split=split,
                 relation=relation,

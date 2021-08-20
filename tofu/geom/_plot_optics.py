@@ -1000,11 +1000,111 @@ def CrystalBragg_plot_line_tracing_on_det(
 
     return dax
 
+def CrystalBragg_gap_pixels(
+    lamb, gap,
+    xi, xi_unp,
+    xj, xj_unp,
+    det=None,
+    split=None,
+    ax=None, dleg=None,
+    fs=None, dmargin=None,
+    wintit=None, tit=None,
+):
+
+    # Check inputs
+    #-------------
+
+    if dleg is None:
+        dleg = {'loc': 'upper right', 'bbox_to_anchor': (1.0, 1.0)}
+    if fs is None:
+        fs = (13, 10)
+    if dmargin is None:
+        dmargin = {'left': 0.05, 'right': 0.89,
+                   'bottom': 0.06, 'top': 0.92,
+                   'wspace': None, 'hspace': 0.4}
+
+    if wintit is None:
+        wintit = _WINTIT
+    if tit is None:
+        if split:
+            tit = (
+                u"Gap between each pixel, with & without non-parallelism,"
+                u" crystal splitted"
+            )
+        else:
+            tit = u"Gap between each pixel, with & without non-parallelism"
+
+    # Plot
+    #-----
+
+    if ax is None:
+        fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(6, 6, **dmargin)
+        ax = fig.add_subplot(gs[:, :3])
+        ax1 = fig.add_subplot(gs[:, 3:])
+        ax.set_xlabel('Xi [m]', fontsize=14)
+        ax.set_ylabel('Xj [m]', fontsize=14)
+        ax1.set_xlabel('Xi [m]', fontsize=14)
+        ax1.set_ylabel('Xj [m]', fontsize=14)
+
+        if wintit is not False:
+            fig.canvas.set_window_title(wintit)
+        if tit is not False:
+            fig.suptitle(tit, size=12, weight='bold')
+
+        if det.get('outline') is not None:
+            ax.plot(
+                det['outline'][0, :], det['outline'][1, :],
+                ls='-', lw=1., c='k',
+            )
+            ax1.plot(
+                det['outline'][0, :], det['outline'][1, :],
+                ls='-', lw=1., c='k',
+            )
+
+        extent = (
+            np.min(xi), np.max(xi), np.min(xj), np.max(xj),
+        )
+        errmap = ax.imshow(
+            gap[0, ...].T,
+            # keep the transposate, according to how xi_unp, xj_unp and
+            # gap arrays are shaped
+            cmap='RdYlBu',
+            origin='lower',
+            extent=extent,
+            interpolation='nearest',
+            aspect='equal',
+        )
+        errmap1 = ax1.imshow(
+            gap[1, ...].T,
+            # keep the transposate, according to how xi_unp, xj_unp and
+            # gap arrays are shaped
+            cmap='RdYlBu',
+            origin='lower',
+            extent=extent,
+            interpolation='nearest',
+            aspect='equal',
+        )
+        cbar = plt.colorbar(
+            errmap,
+            label="Gap (0/3 arcsec) [m]",
+            orientation="vertical",
+            ax=ax,
+        )
+        cbar1 = plt.colorbar(
+            errmap1,
+            label="Gap (0/-3 arcsec) [m]",
+            orientation="vertical",
+            ax=ax1,
+        )
+
+    return ax, ax1
+
 def CrystalBragg_gap_ray_tracing(
     lamb, gap_xi,
     xis1, xis2,
     xjs1, xjs2,
-    npts, nlamb=None,
+    npts, nlamb=None, n=None,
     det=None,
     split=None,
     relation=None,
@@ -1019,7 +1119,7 @@ def CrystalBragg_gap_ray_tracing(
     if dleg is None:
         dleg = {'loc': 'upper right', 'bbox_to_anchor': (1.0, 1.0)}
     if fs is None:
-        fs = (13, 13)
+        fs = (15, 13)
     if dmargin is None:
         dmargin = {'left': 0.06, 'right': 0.99,
             'bottom': 0.06, 'top': 0.92,
@@ -1028,7 +1128,17 @@ def CrystalBragg_gap_ray_tracing(
     if wintit is None:
         wintit = _WINTIT
     if tit is None:
-        tit = u"Gap between each wavelenth arc, with & without non-parallelism"
+        if split:
+            tit = (
+                u"Gap between each wavelength arc,"
+                u" with & without non-parallelism, crystal splitted"
+            )
+        else:
+            tit = (
+                u"Gap between each wavelength arc,"
+                u" with & without non-parallelism"
+            )
+
     dcolor = ['red', 'orange', 'yellow', 'green',
              'blue', 'pink', 'purple', 'brown', 'black',
              ]
@@ -1077,13 +1187,13 @@ def CrystalBragg_gap_ray_tracing(
         lab = r'$\lambda$'+' = {:6.3f} A\n'.format(lamb[l]*1.e10)
         ax.plot(
             gap_xi[1, l, :],  # plot diff between 0" and -3" [arcsec]
-            xjs1[0, l, ::npts],  # xj det coordinates
+            xjs1[0, l, ::n],  # xj det coordinates
             ls=dls[1], lw=3.,
             c=dcolor[l],
         )
         ax1.plot(
             gap_xi[0, l, :],  # plot diff between 0" and +3" [arcsec]
-            xjs1[0, l, ::npts],
+            xjs1[0, l, ::n],
             ls=dls[0], lw=3.,
             c=dcolor[l],
         )
@@ -1102,13 +1212,11 @@ def CrystalBragg_gap_ray_tracing(
             )
 
         ax.set_xlim(
-            np.nanmin(gap_xi[1, ...])-5e-5,
-            np.nanmax(gap_xi[1, ...])+5e-5,
-            )
+            np.nanmin(gap_xi[1, ...])-5e-5, np.nanmax(gap_xi[1, ...])+5e-5,
+        )
         ax1.set_xlim(
-            np.nanmin(gap_xi[0, ...])-5e-5,
-            np.nanmax(gap_xi[0, ...])+5e-5,
-            )
+            np.nanmin(gap_xi[0, ...])-5e-5, np.nanmax(gap_xi[0, ...])+5e-5,
+        )
         ax.set_ylabel('Xj [m]')
         ax.set_xlabel('Gap [m]')
         ax1.set_xlabel('Gap [m]')
@@ -1123,66 +1231,52 @@ def CrystalBragg_gap_ray_tracing(
 
     # plot relation between gap and wavelength, according xj positions
     if relation is True:
-        fig = plt.figure(figsize=(8, 6))
+        fig = plt.figure(figsize=(12, 10))
         gs = gridspec.GridSpec(2, 1,
-            left=0.12, right=0.9,
+            left=0.1, right=0.95,
             bottom=0.1, top=0.92,
             wspace=None, hspace=0.2,
         )
         ax = fig.add_subplot(gs[0, 0])
         ax2 = fig.add_subplot(gs[1, 0])
-        def f(x, a, b, c):
-            return a*x*22 + b*x + c
-
-        def residual(p, x, y):
-            return y - f(x, *p)
-        p0 = [1., 1., 1.]
+        ax.set_xlabel(r'$\lambda$ [m]')
+        ax.set_ylabel('Xj [m]')
+        ax2.set_xlabel(r'$\lambda$ [m]')
+        ax2.set_ylabel('Xj [m]')
 
         for aa in range(npts):
             ax.plot(
                 lamb,
                 gap_xi[0, :, aa],
-                ls=dls[aa],
+                ls='-',#dls[aa],
                 lw=1.,
                 c=dcolor[0],
                 ms=4,
             )
-            import pdb; pdb.set_trace()  # DB
-            popt, pcov = least_squares(
-                residual, p0,
-                args=(lamb, gap_xi[0, :, 1:aa]),
-            )
-            print(popt)
-            xn = np.linspace(lamb.min(), lamb.max(), len(size))
-            yn = f(xn, *popt)
-            ax.plot(xn, yn, c='blue')
-
             ax2.plot(
                 lamb,
                 gap_xi[1, :, aa],
-                ls=dls[aa],
+                ls='-',#dls[aa],
                 lw=1.,
                 c=dcolor[1],
                 ms=4,
             )
-            popt = np.polyfit(lamb, gap_xi[1, :, aa], 3)
-            print(popt)
-            xn = np.linspace(lamb.min(), lamb.max(), len(size))
-            yn = np.polyval(popt, xn)
-            ax1.plot(xn, yn, c='blue')
-
-        ax.set_xlim(np.nanmin(lamb)-2*1e-12, np.nanmax(lamb)+2*1e-12)
-        ax2.set_xlim(np.nanmin(lamb)-2*1e-12, np.nanmax(lamb)+2*1e-12)
+        ax.set_xlim(
+            np.nanmin(lamb)-2*1e-12, np.nanmax(lamb)+2*1e-12,
+        )
+        ax2.set_xlim(
+            np.nanmin(lamb)-2*1e-12, np.nanmax(lamb)+2*1e-12,
+        )
         ax.set_ylim(
             np.nanmin(gap_xi[0, ...])-1e-4, np.nanmax(gap_xi[0, ...])+1e-4,
-            )
+        )
         ax2.set_ylim(
             np.nanmin(gap_xi[1, ...])-1e-4, np.nanmax(gap_xi[1, ...])+1e-4,
-            )
+        )
         ax.set_ylabel('Gap [m]')
-        ax.legend([r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = 3"'])
         ax2.set_xlabel(r'$\lambda$ [m]')
         ax2.set_ylabel('Gap [m]')
+        ax.legend([r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = 3"'])
         ax2.legend([r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = -3"'])
 
     return ax, ax2
