@@ -987,7 +987,7 @@ def CrystalBragg_plot_line_tracing_on_det(
         )
     for l in range(lamb.size):
         lab = r'$\lambda$'+' = {:6.3f} A'.format(lamb[l]*1.e10)
-        l0, = dax.plot(xi[l, :], xj[l, :], ls='-', lw=1., label=lab)
+        l0, = dax.plot(xi[l, :], xj[l, :], ls='-', lw=3., label=lab)
         if plot_err:
             dax.plot(
                 xi_err[l, ...], xj_err[l, ...],
@@ -1001,9 +1001,13 @@ def CrystalBragg_plot_line_tracing_on_det(
     return dax
 
 def CrystalBragg_gap_pixels(
-    lamb, gap,
+    lamb, lamb_unp,
+    bragg, bragg_unp,
+    phi, pĥi_unp,
     xi, xi_unp,
     xj, xj_unp,
+    xii, xjj,
+    gap_xi, gap_lamb,
     det=None,
     split=None,
     ax=None, dleg=None,
@@ -1019,7 +1023,7 @@ def CrystalBragg_gap_pixels(
     if fs is None:
         fs = (13, 10)
     if dmargin is None:
-        dmargin = {'left': 0.05, 'right': 0.89,
+        dmargin = {'left': 0.09, 'right': 0.89,
                    'bottom': 0.06, 'top': 0.92,
                    'wspace': None, 'hspace': 0.4}
 
@@ -1040,63 +1044,109 @@ def CrystalBragg_gap_pixels(
     if ax is None:
         fig = plt.figure(figsize=fs)
         gs = gridspec.GridSpec(6, 6, **dmargin)
-        ax = fig.add_subplot(gs[:, :3])
-        ax1 = fig.add_subplot(gs[:, 3:])
+        ax = fig.add_subplot(gs[:, :2])
+        ax1 = fig.add_subplot(gs[:, 2:])
         ax.set_xlabel('Xi [m]', fontsize=14)
         ax.set_ylabel('Xj [m]', fontsize=14)
         ax1.set_xlabel('Xi [m]', fontsize=14)
         ax1.set_ylabel('Xj [m]', fontsize=14)
 
-        if wintit is not False:
-            fig.canvas.set_window_title(wintit)
-        if tit is not False:
-            fig.suptitle(tit, size=12, weight='bold')
+    if wintit is not False:
+        fig.canvas.set_window_title(wintit)
+    if tit is not False:
+        fig.suptitle(tit, size=12, weight='bold')
 
-        if det.get('outline') is not None:
-            ax.plot(
-                det['outline'][0, :], det['outline'][1, :],
-                ls='-', lw=1., c='k',
-            )
-            ax1.plot(
-                det['outline'][0, :], det['outline'][1, :],
-                ls='-', lw=1., c='k',
-            )
+    if det.get('outline') is not None:
+        ax.plot(
+            det['outline'][0, :], det['outline'][1, :],
+            ls='-', lw=1., c='k',
+        )
+        ax1.plot(
+            det['outline'][0, :], det['outline'][1, :],
+            ls='-', lw=1., c='k',
+        )
 
-        extent = (
-            np.min(xi), np.max(xi), np.min(xj), np.max(xj),
-        )
-        errmap = ax.imshow(
-            gap[0, ...].T,
-            # keep the transposate, according to how xi_unp, xj_unp and
-            # gap arrays are shaped
-            cmap='RdYlBu',
-            origin='lower',
-            extent=extent,
-            interpolation='nearest',
-            aspect='equal',
-        )
-        errmap1 = ax1.imshow(
-            gap[1, ...].T,
-            # keep the transposate, according to how xi_unp, xj_unp and
-            # gap arrays are shaped
-            cmap='RdYlBu',
-            origin='lower',
-            extent=extent,
-            interpolation='nearest',
-            aspect='equal',
-        )
-        cbar = plt.colorbar(
-            errmap,
-            label="Gap (0/3 arcsec) [m]",
-            orientation="vertical",
-            ax=ax,
-        )
-        cbar1 = plt.colorbar(
-            errmap1,
-            label="Gap (0/-3 arcsec) [m]",
-            orientation="vertical",
-            ax=ax1,
-        )
+    extent = (
+        np.min(xi), np.max(xi), np.min(xj), np.max(xj),
+    )
+    errmap = ax.imshow(
+        gap_xi[0, ...].T,
+        # keep the transposate, according to how xi_unp, xj_unp and
+        # gap arrays are shaped
+        cmap='RdYlBu',
+        origin='lower',
+        extent=extent,
+        interpolation='nearest',
+        aspect='equal',
+    )
+    errmap1 = ax1.imshow(
+        gap_xi[1, ...].T,
+        # keep the transposate, according to how xi_unp, xj_unp and
+        # gap arrays are shaped
+        cmap='RdYlBu',
+        origin='lower',
+        extent=extent,
+        interpolation='nearest',
+        aspect='equal',
+    )
+    cbar = plt.colorbar(
+        errmap,
+        label="Gap (0/3 arcsec) [m]",
+        orientation="vertical",
+        ax=ax,
+    )
+    cbar1 = plt.colorbar(
+        errmap1,
+        label="Gap (0/-3 arcsec) [m]",
+        orientation="vertical",
+        ax=ax1,
+    )
+
+    fig2 = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(6, 6, **dmargin)
+    ax = fig2.add_subplot(gs[:, :2])
+    ax1 = fig2.add_subplot(gs[:, 4:])
+    ax.set_xlabel(r'$\lambda$ [m]', fontsize=14)
+    ax1.set_xlabel(r'$\lambda$ [m]', fontsize=14)
+    ax.set_ylabel('Xj [m]', fontsize=14)
+    ax1.set_ylabel('Xj [m]', fontsize=14)
+
+    if wintit is not False:
+        fig.canvas.set_window_title(wintit)
+    if tit is not False:
+        fig.suptitle(tit, size=12, weight='bold')
+
+    extent = (
+        np.min(lamb[0, ...]), np.max(lamb[0, ...]), np.min(xj), np.max(xj),
+    )
+    errmap = ax.imshow(
+        gap_lamb[0, ...].T,
+        cmap='RdYlBu',
+        origin='lower',
+        extent=extent,
+        interpolation='nearest',
+        aspect='auto',
+    )
+    errmap1 = ax1.imshow(
+        gap_lamb[1, ...].T,
+        cmap='RdYlBu',
+        origin='lower',
+        extent=extent,
+        interpolation='nearest',
+        aspect='auto',
+    )
+    cbar = plt.colorbar(
+        errmap,
+        label="Gap (0/3 arcsec) [m]",
+        orientation="vertical",
+        ax=ax,
+    )
+    cbar1 = plt.colorbar(
+        errmap1,
+        label="Gap (0/-3 arcsec) [m]",
+        orientation="vertical",
+        ax=ax1,
+    )
 
     return ax, ax1
 
@@ -1162,10 +1212,11 @@ def CrystalBragg_gap_ray_tracing(
         ax = fig.add_subplot(gs[:, 0])
         ax1 = fig.add_subplot(gs[:, 1])
         ax2 = fig.add_subplot(gs[:, 2:])
-        if wintit is not False:
-            fig.canvas.set_window_title(wintit)
-        if tit is not False:
-            fig.suptitle(tit, size=12, weight='bold')
+
+    if wintit is not False:
+        fig.canvas.set_window_title(wintit)
+    if tit is not False:
+        fig.suptitle(tit, size=12, weight='bold')
 
     if det.get('outline') is not None:
         ax.plot(
@@ -1279,7 +1330,7 @@ def CrystalBragg_gap_ray_tracing(
         ax.legend([r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = 3"'])
         ax2.legend([r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = -3"'])
 
-    return ax, ax2
+    return ax, ax1, ax2
 
 
 def CrystalBragg_plot_johannerror(
