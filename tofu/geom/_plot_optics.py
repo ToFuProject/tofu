@@ -1008,6 +1008,8 @@ def CrystalBragg_gap_pixels(
     xj, xj_unp,
     xii, xjj,
     gap_xi, gap_lamb,
+    interp_plus=None,
+    interp_minus=None,
     det=None,
     split=None,
     ax=None, dleg=None,
@@ -1041,6 +1043,9 @@ def CrystalBragg_gap_pixels(
     # Plot
     #-----
 
+    # gap = f(xi, xj)
+    #----------------
+
     if ax is None:
         fig = plt.figure(figsize=fs)
         gs = gridspec.GridSpec(6, 6, **dmargin)
@@ -1069,6 +1074,7 @@ def CrystalBragg_gap_pixels(
     extent = (
         np.min(xi), np.max(xi), np.min(xj), np.max(xj),
     )
+
     errmap = ax.imshow(
         gap_xi[0, ...].T,
         # keep the transposate, according to how xi_unp, xj_unp and
@@ -1081,8 +1087,6 @@ def CrystalBragg_gap_pixels(
     )
     errmap1 = ax1.imshow(
         gap_xi[1, ...].T,
-        # keep the transposate, according to how xi_unp, xj_unp and
-        # gap arrays are shaped
         cmap='RdYlBu',
         origin='lower',
         extent=extent,
@@ -1102,25 +1106,80 @@ def CrystalBragg_gap_pixels(
         ax=ax1,
     )
 
+    # gap = f(lamb, phi)
+    #-------------------
+
     fig2 = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(6, 6, **dmargin)
     ax = fig2.add_subplot(gs[:, :2])
     ax1 = fig2.add_subplot(gs[:, 4:])
     ax.set_xlabel(r'$\lambda$ [m]', fontsize=14)
     ax1.set_xlabel(r'$\lambda$ [m]', fontsize=14)
+    ax.set_ylabel('phi [rad]', fontsize=14)
+    ax1.set_ylabel('phi [rad]', fontsize=14)
+    ax.set_xlim(3.92*1e-10, 4.03*1e-10)
+    ax1.set_xlim(3.92*1e-10, 4.03*1e-10)
+
+    errmap = ax.scatter(
+        lamb[0, ...].flatten(),
+        phi[0, ...].flatten(),
+        s=6,
+        c=gap_lamb[0, ...].flatten(),
+        cmap='RdYlBu',
+        marker='s',
+        edgecolors="None",
+    )
+    errmap1 = ax1.scatter(
+        lamb[1, ...].flatten(),
+        phi[1, ...].flatten(),
+        s=6,
+        c=gap_lamb[1, ...].flatten(),
+        cmap='RdYlBu',
+        marker='s',
+        edgecolors="None",
+    )
+    cbar = plt.colorbar(
+        errmap,
+        label="Gap (0/3 arcsec) [m]",
+        orientation="vertical",
+        ax=ax,
+    )
+    cbar1 = plt.colorbar(
+        errmap1,
+        label="Gap (0/-3 arcsec) [m]",
+        orientation="vertical",
+        ax=ax1,
+    )
+
+    # interpolated gap = f(lamb, xj)
+    #-------------------------------
+
+    fig3 = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(6, 6, **dmargin)
+    ax = fig3.add_subplot(gs[:, :2])
+    ax1 = fig3.add_subplot(gs[:, 4:])
+
     ax.set_ylabel('Xj [m]', fontsize=14)
     ax1.set_ylabel('Xj [m]', fontsize=14)
-
-    if wintit is not False:
-        fig.canvas.set_window_title(wintit)
-    if tit is not False:
-        fig.suptitle(tit, size=12, weight='bold')
+    ax.set_xlabel(r'$\lambda$ [m]', fontsize=14)
+    ax1.set_xlabel(r'$\lambda$ [m]', fontsize=14)
+    ax.set_xlim(3.92*1e-10, 4.03*1e-10)
+    ax1.set_xlim(3.92*1e-10, 4.03*1e-10)
 
     extent = (
         np.min(lamb[0, ...]), np.max(lamb[0, ...]), np.min(xj), np.max(xj),
     )
+
+    z_plus = interp_plus(
+        lamb[0, :, 0],
+        xj,
+    )
+    z_minus = interp_minus(
+        lamb[1, :, 0],
+        xj,
+    )
     errmap = ax.imshow(
-        gap_lamb[0, ...].T,
+        z_plus,
         cmap='RdYlBu',
         origin='lower',
         extent=extent,
@@ -1128,7 +1187,7 @@ def CrystalBragg_gap_pixels(
         aspect='auto',
     )
     errmap1 = ax1.imshow(
-        gap_lamb[1, ...].T,
+        z_minus,
         cmap='RdYlBu',
         origin='lower',
         extent=extent,

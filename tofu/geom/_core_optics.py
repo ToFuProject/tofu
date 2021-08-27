@@ -1850,7 +1850,6 @@ class CrystalBragg(utils.ToFuObject):
 
     def gap_pixels(
         self,
-        lamb=None,
         det=None,
         split=None, direction=None,
         xi=None, xj=None,
@@ -1878,8 +1877,6 @@ class CrystalBragg(utils.ToFuObject):
         Finally, computing the gap between (xi, xj) and (xi_unp, xj_unp).
         Parameters:
         ----------
-        - lamb: float
-            Provide np.array of min size 1, in 1e-10 [m]
         - det: dict
             Detector of reference on which ray tracing is done
         - split: boolean
@@ -1894,10 +1891,6 @@ class CrystalBragg(utils.ToFuObject):
         """
 
         # Check inputs
-        if lamb is None:
-            lamb = self._dbragg['lambref']
-        lamb = np.atleast_1d(lamb).ravel()
-        nlamb = lamb.size
         if use_non_parallelism is None:
             use_non_parallelism = True
         if split is None:
@@ -2048,6 +2041,29 @@ class CrystalBragg(utils.ToFuObject):
                 (lamb[ii, ...] - lamb_unp[ii, ...])**2
             )
 
+        # interpolation over (phi, lamb) grid: irregular to regular
+        # length of z array must be either len(x)*len(y) for row/columns coords
+        # or len(z) == len(x) == len(y) for each point coord
+        # TBF/TBC : NaNs problems for interpolation inside gap_lamb[0, ...]
+        z = gap_lamb[0,...].T.copy()
+        if split:
+            z[ np.isnan(z) ] = 2.0*1e-13
+        else:
+            z[ np.isnan(z) ] = 2.57*1e-13
+        interp_plus = scpinterp.interp2d(
+            lamb[0, :, 0],
+            phi[0, 0, :],
+            z,
+            kind='linear',
+        )
+
+        interp_minus = scpinterp.interp2d(
+            lamb[1, :, 0],
+            phi[1, 0, :],
+            gap_lamb[1, ...].T,
+            kind='linear',
+        )
+
         # Reset cryst angles
         self.update_non_parallelism(alpha=alpha0, beta=beta0)
 
@@ -2061,6 +2077,8 @@ class CrystalBragg(utils.ToFuObject):
                 xj, xj_unp,
                 xii, xjj,
                 gap_xi, gap_lamb,
+                interp_plus=interp_plus,
+                interp_minus=interp_minus,
                 det=det,
                 split=split,
                 ax=ax, dleg=dleg,
@@ -2069,7 +2087,6 @@ class CrystalBragg(utils.ToFuObject):
             )
         else:
             return (
-                xi, xj,
                 xi_unp, xj_unp,
                 lamb, lamb_unp,
                 gap_xi, gap_lamb,
