@@ -1159,28 +1159,29 @@ def CrystalBragg_gap_pixels(
     ax = fig3.add_subplot(gs[:, :2])
     ax1 = fig3.add_subplot(gs[:, 4:])
 
-    ax.set_ylabel('Xj [m]', fontsize=14)
-    ax1.set_ylabel('Xj [m]', fontsize=14)
+    ax.set_ylabel('phi [rad]', fontsize=14)
+    ax1.set_ylabel('phi [rad]', fontsize=14)
     ax.set_xlabel(r'$\lambda$ [m]', fontsize=14)
     ax1.set_xlabel(r'$\lambda$ [m]', fontsize=14)
     ax.set_xlim(3.92*1e-10, 4.03*1e-10)
     ax1.set_xlim(3.92*1e-10, 4.03*1e-10)
 
-    extent = (
-        np.min(lamb[0, ...]), np.max(lamb[0, ...]), np.min(xj), np.max(xj),
-    )
+    lamb_min = np.min(lamb[0, ...])
+    lamb_max = np.max(lamb[0, ...])
+    phi_min = np.min(phi[0, ...])
+    phi_max = np.max(phi[0, ...])
+    lamb_interv = np.linspace(lamb_min, lamb_max, 487)
+    phi_interv = np.linspace(phi_min, phi_max, 1467)
+    X,Y = np.meshgrid(lamb_interv, phi_interv)
 
-    z_plus = interp_plus(
-        lamb[0, :, 0],
-        xj,
-    )
-    z_minus = interp_minus(
-        lamb[1, :, 0],
-        xj,
-    )
+    extent = (lamb_min, lamb_max, phi_min, phi_max,)
+
+    z_plus = interp_plus(lamb_interv, phi_interv)
+    z_minus = interp_minus(lamb_interv, phi_interv)
+
     errmap = ax.imshow(
         z_plus,
-        cmap='RdYlBu',
+        cmap='viridis',
         origin='lower',
         extent=extent,
         interpolation='nearest',
@@ -1188,12 +1189,30 @@ def CrystalBragg_gap_pixels(
     )
     errmap1 = ax1.imshow(
         z_minus,
-        cmap='RdYlBu',
+        cmap='viridis',
         origin='lower',
         extent=extent,
         interpolation='nearest',
         aspect='auto',
     )
+    """errmap = ax.scatter(
+        lamb[0, ...].flatten()[::50],
+        phi[0,...].flatten()[::50],
+        s=6,
+        c=z_plus.flatten(),
+        cmap='viridis',
+        marker='s',
+        edgecolors="None",
+    )
+    errmap1 = ax1.scatter(
+        lamb[1, ...].flatten()[::50],
+        phi[1,...].flatten()[::50],
+        s=6,
+        c=z_minus.flatten(),
+        cmap='viridis',
+        marker='s',
+        edgecolors="None",
+    )"""
     cbar = plt.colorbar(
         errmap,
         label="Gap (0/3 arcsec) [m]",
@@ -1207,6 +1226,7 @@ def CrystalBragg_gap_pixels(
         ax=ax1,
     )
 
+    import pdb; pdb.set_trace()  # DB
     return ax, ax1
 
 def CrystalBragg_gap_ray_tracing(

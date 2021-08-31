@@ -2045,25 +2045,35 @@ class CrystalBragg(utils.ToFuObject):
         # length of z array must be either len(x)*len(y) for row/columns coords
         # or len(z) == len(x) == len(y) for each point coord
         # TBF/TBC : NaNs problems for interpolation inside gap_lamb[0, ...]
-        z = gap_lamb[0,...].T.copy()
+        """z = gap_lamb[0,...].T.copy()
         if split:
             z[ np.isnan(z) ] = 2.0*1e-13
         else:
-            z[ np.isnan(z) ] = 2.57*1e-13
+            z[ np.isnan(z) ] = 2.57*1e-13"""
+
+        nb = 97
+        ind_ok = ~np.isnan(gap_lamb[0,...])
+        indsort = np.argsort(lamb[0, ind_ok][::nb])
+        lamb_interp = lamb[0, ind_ok][::nb][indsort]
+        phi_interp = phi[0, ind_ok][::nb][indsort]
+
         interp_plus = scpinterp.interp2d(
-            lamb[0, :, 0],
-            phi[0, 0, :],
-            z,
+            lamb_interp,
+            phi_interp,
+            gap_lamb[0, ind_ok][::nb][indsort],
             kind='linear',
         )
 
+        ind_ok1 = ~np.isnan(gap_lamb[1,...])
+        indsort = np.argsort(lamb[0, ind_ok1][::nb])
+        lamb_interp = lamb[0, ind_ok1][::nb][indsort]
+        phi_interp = phi[0, ind_ok1][::nb][indsort]
         interp_minus = scpinterp.interp2d(
-            lamb[1, :, 0],
-            phi[1, 0, :],
-            gap_lamb[1, ...].T,
+            lamb_interp,
+            phi_interp,
+            gap_lamb[1, ind_ok1][::nb][indsort],
             kind='linear',
         )
-
         # Reset cryst angles
         self.update_non_parallelism(alpha=alpha0, beta=beta0)
 
