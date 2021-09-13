@@ -110,3 +110,50 @@ def _mesh2DRect_X_check(
         x_new = np.concatenate(x_new)
 
     return x_new, res_new, indsep
+
+
+
+def _mesh2DRect_check(
+    domain=None,
+    res=None,
+):
+
+    # --------------
+    # check inputs
+
+    # domain
+    c0 = (
+        isinstance(domain, list)
+        and len(domain) == 2
+        and all([hasattr(dd, '__iter__') and len(dd) >= 2 for dd in domain])
+    )
+    if not c0:
+        msg = (
+            "Arg domain must be a list of 2 iterables of len() >= 2\n"
+            f"Provided: {domain}"
+        )
+        raise Exception(msg)
+
+    # res
+    c0 = (
+        res is None
+        or np.isscalar(res)
+        or isinstance(res, list) and len(res) == 2
+    )
+    if not c0:
+        msg = (
+            "Arg res must be a int, float or array or a list of 2 such\n"
+            f"Provided: {res}"
+        )
+        raise Exception(msg)
+
+    if np.isscalar(res) or res is None:
+        res = [res, res]
+
+    # -------------
+    # check R and Z
+
+    R, resR = _mesh2DRect_X_check(domain[0], res=res[0])
+    Z, resZ = _mesh2DRect_X_check(domain[1], res=res[0])
+
+    return R, Z, resR, resZ
