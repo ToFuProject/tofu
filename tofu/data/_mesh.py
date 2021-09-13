@@ -12,10 +12,7 @@ import numpy as np
 # from tofu import __version__ as __version__
 import tofu.utils as utils
 from . import _core_new
-
-
-
-
+from . import _mesh_checks
 
 
 # #############################################################################
@@ -38,17 +35,17 @@ class Mesh2DRect(_core_new.DataCollection):
             'symbol':   (str, 'unknown'),
         },
     }
-    _forced_group = [_GROUP_NE, _GROUP_TE]
-    _data_none = True
+    # _forced_group = [_GROUP_NE, _GROUP_TE]
+    # _data_none = True
 
-    _show_in_summary_core = ['shape', 'ref', 'group']
-    _show_in_summary = 'all'
+    # _show_in_summary_core = ['shape', 'ref', 'group']
+    # _show_in_summary = 'all'
 
-    _grouplines = _GROUP_LINES
-    _groupne = _GROUP_NE
-    _groupte = _GROUP_TE
+    # _grouplines = _GROUP_LINES
+    # _groupne = _GROUP_NE
+    # _groupte = _GROUP_TE
 
-    _units_lambda0 = _UNITS_LAMBDA0
+    # _units_lambda0 = _UNITS_LAMBDA0
 
 
     def add_mesh(

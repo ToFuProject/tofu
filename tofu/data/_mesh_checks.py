@@ -108,6 +108,5 @@ def _mesh2DRect_X_check(
         indsep = np.cumsum(npairs[:-1]*2)
         res_new = np.concatenate(res_new)
         x_new = np.concatenate(x_new)
-        assert x_new.size == np.unique(x_new).size == res.size + 1
 
     return x_new, res_new, indsep
