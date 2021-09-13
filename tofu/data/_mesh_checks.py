@@ -153,7 +153,195 @@ def _mesh2DRect_check(
     # -------------
     # check R and Z
 
-    R, resR = _mesh2DRect_X_check(domain[0], res=res[0])
-    Z, resZ = _mesh2DRect_X_check(domain[1], res=res[0])
+    R, resR, indR = _mesh2DRect_X_check(domain[0], res=res[0])
+    Z, resZ, indZ = _mesh2DRect_X_check(domain[1], res=res[0])
 
-    return R, Z, resR, resZ
+    return R, Z, resR, resZ, indR, indZ
+
+
+def _mesh2DRect_to_dict(
+    domain=None,
+    res=None,
+    key=None,
+):
+
+    # --------------------
+    # check / format input
+
+    if not isinstance(key, str):
+        msg = "Arg key must be a str!"
+        raise Exception(msg)
+
+    kRknots, kZknots = f"{key}-R-knots", f"{key}-Z-knots"
+    kRcent, kZcent = f"{key}-R-cent", f"{key}-Z-cent"
+
+    R, Z, resR, resZ, indR, indZ = _mesh2DRect_check(domain=domain, res=res)
+    Rcent = 0.5*(R[1:] + R[:-1])
+    Zcent = 0.5*(Z[1:] + Z[:-1])
+
+    variable = not (np.isscalar(resR) and np.isscalar(resZ))
+
+    # --------------------
+    # prepare dict
+
+    dref = {
+        kRknots: {
+            'data': R,
+            'units': 'm',
+            # 'source': None,
+            'dim': 'distance',
+            'quant': 'R',
+            'name': 'R',
+            'group': 'R',
+        },
+        kZknots: {
+            'data': Z,
+            'units': 'm',
+            # 'source': None,
+            'dim': 'distance',
+            'quant': 'Z',
+            'name': 'Z',
+            'group': 'Z',
+        },
+        kRcent: {
+            'data': Rcent,
+            'units': 'm',
+            # 'source': None,
+            'dim': 'distance',
+            'quant': 'R',
+            'name': 'R',
+            'group': 'R',
+        },
+        kZcent: {
+            'data': Zcent,
+            'units': 'm',
+            # 'source': None,
+            'dim': 'distance',
+            'quant': 'Z',
+            'name': 'Z',
+            'group': 'Z',
+        },
+    }
+
+    # dobj
+    dmesh = {
+        key: {
+            'R-knots': kRknots,
+            'Z-knots': kZknots,
+            'R-cent': kRcent,
+            'Z-cent': kZcent,
+            'variable': variable,
+        },
+    }
+    return dref, dmesh
+
+
+def _mesh2DRect_from_Config(config=None, key_struct=None):
+
+    # ------------
+    # check inputs
+
+    if not config.__class__.__name__ == 'Config':
+        msg = "Arg config must be a Config instance!"
+        raise Exception(msg)
+
+    # -------------
+    # key_struct if None
+
+    if key_struct is None:
+        lk, ls = zip(*[
+            (ss.Id.Name, ss.dgeom['Surf']) for ss in config.lStructIn
+        ])
+        key_struct = lk[np.argmin(ls)]
+
+    # -------------
+    # domain
+
+    poly = config.dStruct['dObj']['Ves'][key_struct].Poly
+    domain = [
+        [poly[0, :].min(), poly[0, :].max()],
+        [poly[1, :].min(), poly[1, :].max()],
+    ]
+    return domain
+
+
+# #############################################################################
+# #############################################################################
+#                           Mesh2DRect
+# #############################################################################
+
+
+def _select_check(
+    ind=None,
+    elements=None,
+    returnas=None,
+    return_neighbours=None,
+):
+
+    # ind
+    lc = [
+        isinstance(ind, tuple)
+        and len(ind) == 2
+        and (
+            all([np.isscalar(ss) for ss in ind])
+            or all([hasattr(ss, '__iter__') and len(ss) == len(ind[0])])
+        ),
+        (
+            np.isscalar(ind)
+            or (
+                hasattr(ind, '__iter__')
+                and all([np.isscalar(ss) for ss in ind])
+            )
+        )
+    ]
+
+    if not any(lc):
+        msg = (
+            "Arg ind must be either:\n"
+            "\t- int or array of int: int indices in mixed (R, Z) indexing\n"
+            "\t- tuple of such: int indices in (R, Z) indexing respectively\n"
+            f"Provided: {ind}"
+        )
+        raise Exception(msg)
+
+    if lc[0]:
+        ind = (
+            np.atleast_1d(ind[0]).ravel().astype(int),
+            np.atleast_1d(ind[1]).ravel().astype(int),
+        )
+    else:
+        ind = np.atleast_1d(ind).ravel().astype(int)
+
+    # elements
+    if elements is None:
+        elements = 'knots'
+    if elements not in ['knots', 'cent']:
+        msg = (
+            "Arg elements must be in ['knots', 'cent']!\n"
+            f"Provided: {elements}"
+        )
+        raise Exception(msg)
+
+    # returnas
+    if returnas is None:
+        returnas = tuple
+
+    if returnas not in ['flat', tuple, 'data']:
+        msg = (
+            "Arg returnas must be in ['flat', tuple, 'data']\n"
+            f"Provided: {returnas}"
+        )
+        raise Exception(msg)
+
+    # return_neighbours
+    if return_neighbours is None:
+        return_neighbours = True
+
+    if not isinstance(return_neighbours, bool):
+        msg = (
+            "Arg return_neighbours must be a bool!\n"
+            f"Provided: {return_neighbours}"
+        )
+        raise Exception(msg)
+
+    return ind, elements, returnas, return_neighbours

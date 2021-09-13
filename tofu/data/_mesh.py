@@ -13,6 +13,12 @@ import numpy as np
 import tofu.utils as utils
 from . import _core_new
 from . import _mesh_checks
+from . import _mesh_plot
+
+
+_GROUP_MESH = 'mesh'
+_GROUP_R = 'R'
+_GROUP_Z = 'Z'
 
 
 # #############################################################################
@@ -35,61 +41,47 @@ class Mesh2DRect(_core_new.DataCollection):
             'symbol':   (str, 'unknown'),
         },
     }
-    # _forced_group = [_GROUP_NE, _GROUP_TE]
-    # _data_none = True
+    _forced_group = [_GROUP_R, _GROUP_Z]
+    _data_none = True
 
-    # _show_in_summary_core = ['shape', 'ref', 'group']
-    # _show_in_summary = 'all'
+    _show_in_summary_core = ['shape', 'ref', 'group']
+    _show_in_summary = 'all'
 
-    # _grouplines = _GROUP_LINES
-    # _groupne = _GROUP_NE
-    # _groupte = _GROUP_TE
-
-    # _units_lambda0 = _UNITS_LAMBDA0
-
+    _groupmesh = _GROUP_MESH
+    _groupR = _GROUP_R
+    _groupZ = _GROUP_Z
 
     def add_mesh(
         self,
         key=None,
-        lambda0=None,
-        pec=None,
-        source=None,
-        transition=None,
-        ion=None,
-        symbol=None,
-        **kwdargs,
+        domain=None,
+        res=None,
     ):
         """ Add a mesh by key
 
         """
-        self.add_obj(
-            which='lines',
+
+        dref, dmesh = _mesh_checks._mesh2DRect_to_dict(
+            domain=domain,
+            res=res,
             key=key,
-            lambda0=lambda0,
-            pec=pec,
-            source=source,
-            transition=transition,
-            ion=ion,
-            symbol=symbol,
-            **kwdargs,
         )
-        pass
-
-
+        dobj = {
+            self._groupmesh: dmesh,
+        }
+        self.update(dref=dref, dobj=dobj)
 
     # -----------------
     # from config
     # ------------------
 
     @classmethod
-    def _from_Config(
+    def from_Config(
         cls,
         config=None,
-        dsource0=None,
-        dref0=None,
-        ddata0=None,
-        dlines0=None,
-        grouplines=None,
+        key_struct=None,
+        res=None,
+        key=None,
     ):
         """
 
@@ -104,65 +96,72 @@ class Mesh2DRect(_core_new.DataCollection):
 
         """
 
-        # Preliminary import and checks
-
-        # Load from online if relevant
-
-        # Load for local files
-        dne, dte, dpec, lion, dsource, dlines = _read_files.step03_read_all(
-            lambmin=lambmin,
-            lambmax=lambmax,
-            element=element,
-            charge=charge,
-            pec_as_func=False,
-            format_for_DataCollection=True,
-            dsource0=dsource0,
-            dref0=dref0,
-            ddata0=ddata0,
-            dlines0=dlines0,
-            verb=False,
+        domain = _mesh_checks._mesh2DRect_from_Config(
+            config=config, key_struct=key_struct,
         )
 
-        # # dgroup
-        # dgroup = ['Te', 'ne']
+        obj = cls()
+        obj.add_mesh(domain=domain, res=res, key=key)
+        return obj
 
-        # dref - Te + ne
-        dref = dte
-        dref.update(dne)
+    # -----------------
+    # indices
+    # ------------------
 
-        # ddata - pec
-        ddata = dpec
-
-        # dref_static
-        dref_static = {
-            'ion': {k0: {} for k0 in lion},
-            'source': dsource,
-        }
-
-        # dobj (lines)
-        dobj = {
-            grouplines: dlines,
-        }
-        return ddata, dref, dref_static, dobj
-
-    @classmethod
-    def from_Config(
-        cls,
-        config=None,
+    def select_elements(
+        self,
+        key=None,
+        ind=None,
+        elements=None,
+        returnas=None,
+        return_neighbours=None,
     ):
+        """ Return indices or values of selected knots / cent
+
+        Can be used to convert tuple (R, Z) indices to flat (RZ,) indices
+        Can return values instead of indices
+        Can return indices / values of neighbourgs
+
         """
-        Load lines and pec from openadas, either:
-            - online = True:  directly from the website
-            - online = False: from pre-downloaded files in ~/.tofu/openadas/
-        """
-        ddata, dref, dref_static, dobj = cls._from_openadas(
-            lambmin=lambmin,
-            lambmax=lambmax,
-            element=element,
-            charge=charge,
-            online=online,
-            update=update,
-            create_custom=create_custom,
-            grouplines=grouplines,
+        (
+            ind, elements, returnas, return_neighbours
+        ) = _mesh_checks._select_check(
+            ind=ind,
+            returnas=returnas,
+            return_neighbours=return_neighbours,
         )
-        return cls(ddata=ddata, dref=dref, dref_static=dref_static, dobj=dobj)
+        kR = self.dobj[self._groupmesh][key][f'R-{elements}']
+        kZ = self.dobj[self._groupmesh][key][f'Z-{elements}']
+        return _select(
+            ind=ind,
+            R=self.ddata[kR]['data'],
+            Z=self.ddata[kZ]['data'],
+            returnas=returnas,
+            return_neighbours=return_neighbours,
+        )
+
+    # -----------------
+    # plotting
+    # ------------------
+
+    def plot(
+        self,
+        key=None,
+        ind_knot=None,
+        ind_cent=None,
+        color=None,
+        dax=None,
+        dmargin=None,
+        fs=None,
+    ):
+
+        return _mesh_plot.plot_basic(
+            mesh=self,
+            key=key,
+            ind_knot=ind_knot,
+            ind_cent=ind_cent,
+            color=color,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+        )
