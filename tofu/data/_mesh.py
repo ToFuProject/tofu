@@ -138,6 +138,7 @@ class Mesh2DRect(_core_new.DataCollection):
     # ------------------
 
     def add_bsplines(self, key=None, deg=None):
+        """ Add bspline basis functions on the chosen mesh """
 
         # --------------
         # check inputs
@@ -151,9 +152,36 @@ class Mesh2DRect(_core_new.DataCollection):
         # --------------
         # get bsplines
 
-        out = _mesh_comp._mesh2DRect_bsplines(key=key, deg=deg)
+        dref, dobj = _mesh_comp._mesh2DRect_bsplines(
+            mesh=self, key=key, deg=deg,
+        )
 
-        self.update(dobj=dobj)
+        self.update(dobj=dobj, dref=dref)
+
+    # -----------------
+    # interp tools
+    # ------------------
+
+    def get_sample(self, key=None, res=None, grid=None, mode=None):
+        """ Return a sampled version of the chosen mesh """
+        return _mesh_comp.sample(
+            mesh=self,
+            key=key,
+            res=res,
+            grid=grid,
+            mode=mode,
+        )
+
+    def interp(self, key=None, R=None, Z=None, grid=None, details=None):
+        """ Interp desired data on pts """
+        return _mesh_comp.interp(
+            mesh=self,
+            key=key,
+            R=R,
+            Z=Z,
+            grid=grid,
+            details=details,
+        )
 
     # -----------------
     # plotting

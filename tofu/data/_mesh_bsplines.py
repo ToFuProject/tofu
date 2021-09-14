@@ -21,20 +21,34 @@ def _get_bs2d_func_check(
     jj=None,
     r=None,
     z=None,
-    bsshape=None,
+    shapebs=None,
 ):
 
     # ii, jj
-    if ii is None:
-        ii = np.arange(0, shapebs[0])
-    else:
-        ii = np.atleast_1d(ii).ravel().astype(int)
-
-    if jj is None:
-        jj = np.arange(0, shapebs[1])
-    else:
-        jj = np.atleast_1d(ii).ravel().astype(int)
-    assert ii.size == jj.size
+    if ii is not None:
+        c0 = (
+            isinstance(ii, (int, np.int_))
+            and ii >= 0
+            and ii < shapebs[0]
+        )
+        if not c0:
+            msg = (
+                "Arg ii must be an index in the range [0, {shapebs[0]}[\n"
+                f"Provided: {ii}"
+            )
+            raise Exception(msg)
+    if jj is not None:
+        c0 = (
+            isinstance(jj, (int, np.int_))
+            and jj >= 0
+            and jj < shapebs[1]
+        )
+        if not c0:
+            msg = (
+                "Arg jj must be an index in the range [0, {shapebs[1]}[\n"
+                f"Provided: {jj}"
+            )
+            raise Exception(msg)
 
     # r, z
     r = np.atleast_1d(r)
@@ -56,94 +70,168 @@ def _get_bs2d_func_check(
     return coefs, ii, jj, r, z
 
 
-def _get_bs2d_func_knots(x, ii, deg=None):
+def _get_bs2d_func_knots(x, deg=None):
+    nkpbs = 2 + deg
+    nbs = x.size - 1 + deg
+    knots_per_bs = np.full((nkpbs, nbs), np.nan)
+
+    if deg == 0:
+        knots_per_bs = np.array([x[:-1], x[1:]])
+
+    elif deg == 1:
+        knots_per_bs[:, 1:-1] = np.array([x[:-2], x[1:-1], x[2:]])
+        knots_per_bs[:, 0] = [x[0], x[0], x[1]]
+        knots_per_bs[:, -1] = [x[-2], x[-1], x[-1]]
+
+    elif deg == 2:
+        knots_per_bs = np.array([x[:-3], x[1:-2], x[2:-1], x[3:]])
+        knots_per_bs[:, 0] = [x[0], x[0], x[0], x[1]]
+        knots_per_bs[:, 1] = [x[0], x[0], x[1], x[2]]
+        knots_per_bs[:, -2] = [x[-3], x[-2], x[-1], x[-1]]
+        knots_per_bs[:, -1] = [x[-2], x[-1], x[-1], x[-1]]
+
+    elif deg == 3:
+        knots_per_bs = np.array([x[:-4], x[1:-3], x[2:-2], x[3:-1], x[4:]])
+        knots_per_bs[:, 0] = [x[0], x[0], x[0], x[0], x[1]]
+        knots_per_bs[:, 1] = [x[0], x[0], x[0], x[1], x[2]]
+        knots_per_bs[:, 2] = [x[0], x[0], x[1], x[2], x[3]]
+        knots_per_bs[:, -3] = [x[-4], x[-3], x[-2], x[-1], x[-1]]
+        knots_per_bs[:, -2] = [x[-3], x[-2], x[-1], x[-1], x[-1]]
+        knots_per_bs[:, -1] = [x[-2], x[-1], x[-1], x[-1], x[-1]]
+
+    return knots_per_bs
 
 
 def get_bs2d_func(deg=None, Rknots=None, Zknots=None):
 
+    # ----------------
+    # get knots per bspline, nb of bsplines...
 
-    if deg == 0:
+    knots_per_bs_R = _get_bs2d_func_knots(Rknots, deg=deg)
+    knots_per_bs_Z = _get_bs2d_func_knots(Zknots, deg=deg)
+    nbkbs = knots_per_bs_R.shape[0]
+    nRbs = knots_per_bs_R.shape[1]
+    nZbs = knots_per_bs_Z.shape[1]
+    shapebs = (nRbs, nZbs)
 
-        nRbs = Rknots.size - 1
-        nZbs = Zknots.size - 1
-        bsshape = (nRbs, nZbs)
+    # ----------------
+    # get centers of bsplines
 
-        RectBiv = [[None for jj in range(nfZ)] for ii in range(nfR)]
-        for ii in range(shapebs[0]):
-            for jj in range(shapebs[1]):
-                knotsr = _get_bs2d_func_knots(Rknots, ii, deg=deg)
-                knotsz = _get_bs2d_func_knots(Zknots, jj, deg=deg)
-                br = scpinterp.Bspline.basis_element(knotsr, extrapolate=False)
-                bz = scpinterp.Bspline.basis_element(knotsz, extrapolate=False)
-                def func(r, z, coefs=None, br=br, bz=bz):
-                    if hasattr(coef, '__iter__'):
-                        val = coefs[:, None] * (br(r)*bz(z))[None, :]
+    if nbkbs % 2 == 0:
+        ii = int(nbkbs/2)
+        Rbs_cent = np.mean(knots_per_bs_R[ii-1:ii+1, :], axis=0)
+        Zbs_cent = np.mean(knots_per_bs_Z[ii-1:ii+1, :], axis=0)
+    else:
+        ii = int((nbkbs-1)/2)
+        Rbs_cent = knots_per_bs_R[ii, :]
+        Zbs_cent = knots_per_bs_Z[ii, :]
+
+    # ----------------
+    # Pre-compute bsplines basis elements
+
+    lbr = [
+        scpinterp.BSpline.basis_element(
+            knots_per_bs_R[:, ii],
+            extrapolate=False,
+        )
+        for ii in range(shapebs[0])
+    ]
+    lbz = [
+        scpinterp.BSpline.basis_element(
+            knots_per_bs_Z[:, jj],
+            extrapolate=False,
+        )
+        for jj in range(shapebs[1])
+    ]
+    RectBiv = [[None for jj in range(nZbs)] for ii in range(nRbs)]
+    for ii in range(shapebs[0]):
+        for jj in range(shapebs[1]):
+            def func(rr, zz, coefs=None, br=lbr[ii], bz=lbz[jj]):
+                if hasattr(coefs, '__iter__'):
+                    if rr.ndim == 1:
+                        val = coefs[:, None] * (br(rr)*bz(zz))[None, ...]
                     else:
-                        val = coefs * br(r)*bz(z)
-                    return val
-                RectBiv[ii][jj] = func
+                        val = coefs[:, None, None] * (br(rr)*bz(zz))[None, ...]
+                else:
+                    val = coefs * br(rr)*bz(zz)
+                return val
+            RectBiv[ii][jj] = func
 
+    # ----------------
+    # Define functions
 
-        def RectBiv_details(
-            r,
-            z,
-            coefs=None,
-            ii=None,
-            jj=None,
+    def RectBiv_details(
+        r,
+        z,
+        coefs=None,
+        ii=None,
+        jj=None,
+        shapebs=shapebs,
+        RectBiv=RectBiv,
+    ):
+        """ Return the value for each point for each bspline """
+
+        coefs, ii, jj, r, z = _get_bs2d_func_check(
+            coefs=coefs,
+            ii=ii,
+            jj=jj,
+            r=r,
+            z=z,
             shapebs=shapebs,
-        ):
+        )
+        nt = coefs.shape[0]
+        shapepts = r.shape
 
-            coefs, ii, jj, r, z = _get_bs2d_func_check(
-                coefs=coefs,
-                ii=ii,
-                jj=jj,
-                r=r,
-                z=z,
-            )
-            nt = coefs.shape[0]
-            shapepts = r.shape
-
-            if ii is None:
-                shape = tuple(np.r_[nt, shapepts, shapebs])
-                val = np.full(shape, np.nan)
-                for ii in range(shapebs[0]):
-                    for jj in range(shapebs[1]):
-                        val[..., ii, jj] = RectBiv[ii][jj](
-                            r,
-                            z,
-                            coef=coefs[:, ii, jj],
-                        )
-            else:
-                shape = tuple(np.r_[nt, shapepts])
-                val = RectBiv[ii][jj](r, z, coef=coefs[:, ii, jj])
-            return val
-
-        def RectBiv_sum(r, z, coefs=None, ii=None, jj=None):
-            coefs, ii, jj, r, z = _get_bs2d_func_check(
-                coefs=coefs,
-                ii=ii,
-                jj=jj,
-                r=r,
-                z=z,
-            )
-            nt = coefs.shape[0]
-            shapepts = r.shape
-
-            shape = tuple(np.r_[nt, shapepts])
-            val = np.zeros(shape, dtype=float)
+        if ii is None:
+            shape = tuple(np.r_[nt, shapepts, shapebs])
+            val = np.full(shape, np.nan)
             for ii in range(shapebs[0]):
                 for jj in range(shapebs[1]):
-                    boundr = _get_bs2d_func_bounds(Rknots, ii, deg=deg)
-                    boundz = _get_bs2d_func_bounds(Zknots, jj, deg=deg)
-                    indok = (
-                        (boundr[0] <= r <= boundr[1])
-                        & (boundz[0] <= z <= boundz[1])
+                    val[..., ii, jj] = RectBiv[ii][jj](
+                        r,
+                        z,
+                        coefs=coefs[:, ii, jj],
                     )
-                    val[indok] += RectBiv[ii][jj](
-                        r[indok],
-                        z[indok],
-                        coef=coefs[:, ii, jj],
-                    )
-            return val
+        else:
+            shape = tuple(np.r_[nt, shapepts])
+            val = RectBiv[ii][jj](r, z, coefs=coefs[:, ii, jj])
+        return val
 
-    return RectBiv_details, RectBiv_sum
+    def RectBiv_sum(
+        r,
+        z,
+        coefs=None,
+        shapebs=shapebs,
+        knots_per_bs_R=knots_per_bs_R,
+        knots_per_bs_Z=knots_per_bs_Z,
+        RectBiv=RectBiv,
+    ):
+        """ Return the value for each point summed on all bsplines """
+
+        coefs, _, _, r, z = _get_bs2d_func_check(
+            coefs=coefs,
+            r=r,
+            z=z,
+            shapebs=shapebs,
+        )
+        nt = coefs.shape[0]
+        shapepts = r.shape
+
+        shape = tuple(np.r_[nt, shapepts])
+        val = np.zeros(shape, dtype=float)
+        for ii in range(shapebs[0]):
+            for jj in range(shapebs[1]):
+                indok = (
+                    (knots_per_bs_R[0, ii] <= r)
+                    & (r <= knots_per_bs_R[-1, ii])
+                    & (knots_per_bs_Z[0, jj] <= z)
+                    & (z <= knots_per_bs_Z[-1, jj])
+                )
+                val[:, indok] += RectBiv[ii][jj](
+                    r[indok],
+                    z[indok],
+                    coefs=coefs[:, ii, jj],
+                )
+        return val
+
+    return RectBiv_details, RectBiv_sum, shapebs, Rbs_cent, Zbs_cent

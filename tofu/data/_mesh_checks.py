@@ -76,7 +76,7 @@ def _mesh2DRect_X_check(
         res = np.ravel(res).astype(float)
         delta = np.diff(x)
         res_sum = res[:-1] + res[1:]
-        ind = res_sum > delta
+        ind = res_sum > delta + 1.e-14
         if np.any(ind):
            msg = (
                "Desired resolution is not achievable for the following:\n"
