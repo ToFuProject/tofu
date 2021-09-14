@@ -109,7 +109,7 @@ class Mesh2DRect(_core_new.DataCollection):
     # indices
     # ------------------
 
-    def select_elements(
+    def select_mesh_elements(
         self,
         key=None,
         ind=None,
@@ -131,6 +131,30 @@ class Mesh2DRect(_core_new.DataCollection):
             elements=elements,
             returnas=returnas,
             return_neighbours=return_neighbours,
+        )
+
+    def select_bsplines(
+        self,
+        key=None,
+        ind=None,
+        returnas=None,
+        return_cents=None,
+        return_knots=None,
+    ):
+        """ Return indices or values of selected knots / cent
+
+        Can be used to convert tuple (R, Z) indices to flat (RZ,) indices
+        Can return values instead of indices
+        Can return indices / values of neighbourgs
+
+        """
+        return _mesh_comp._select_bsplines(
+            mesh=self,
+            key=key,
+            ind=ind,
+            returnas=returnas,
+            return_cents=return_cents,
+            return_knots=return_knots,
         )
 
     # -----------------
@@ -158,11 +182,25 @@ class Mesh2DRect(_core_new.DataCollection):
 
         self.update(dobj=dobj, dref=dref)
 
+    def get_knots_per_bspline(self, key=None):
+        """ Return 2 arrays of knots positions in R and Z directionss """
+        return _mesh_comp._mesh2DRect_bsplines_knots(mesh=self, key=key)
+
     # -----------------
     # interp tools
     # ------------------
 
-    def get_sample(self, key=None, res=None, grid=None, mode=None):
+    def get_sample_mesh(self, key=None, res=None, grid=None, mode=None):
+        """ Return a sampled version of the chosen mesh """
+        return _mesh_comp.sample(
+            mesh=self,
+            key=key,
+            res=res,
+            grid=grid,
+            mode=mode,
+        )
+
+    def get_sample_bspline(self, key=None, res=None, grid=None, mode=None):
         """ Return a sampled version of the chosen mesh """
         return _mesh_comp.sample(
             mesh=self,
@@ -187,23 +225,49 @@ class Mesh2DRect(_core_new.DataCollection):
     # plotting
     # ------------------
 
-    def plot(
+    def plot_mesh(
         self,
         key=None,
         ind_knot=None,
         ind_cent=None,
+        ind_bspline=None,
         color=None,
         dax=None,
         dmargin=None,
         fs=None,
     ):
 
-        return _mesh_plot.plot_basic(
+        return _mesh_plot.plot_mesh(
             mesh=self,
             key=key,
             ind_knot=ind_knot,
             ind_cent=ind_cent,
+            ind_bspline=ind_bspline,
             color=color,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+        )
+
+    def plot_bspline(
+        self,
+        key=None,
+        ind_bspline=None,
+        knots=None,
+        cents=None,
+        cmap=None,
+        dax=None,
+        dmargin=None,
+        fs=None,
+    ):
+
+        return _mesh_plot.plot_bspline(
+            mesh=self,
+            key=key,
+            ind_bspline=ind_bspline,
+            knots=knots,
+            cents=cents,
+            cmap=cmap,
             dax=dax,
             dmargin=dmargin,
             fs=fs,

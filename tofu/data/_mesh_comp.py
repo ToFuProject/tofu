@@ -193,6 +193,32 @@ def _mesh2DRect_bsplines(mesh=None, key=None, deg=None):
     return dref, dobj
 
 
+def _mesh2DRect_bsplines_knots(mesh=None, key=None):
+
+    # -------------
+    # check inputs
+
+    lk = list(mesh.dobj['bsplines'].keys())
+    if key is None and len(lk) == 1:
+        key = lk[0]
+    if key not in lk:
+        msg = (
+        )
+        raise Exception(msg)
+
+    deg = mesh.dobj['bsplines'][key]['deg']
+    mm = mesh.dobj['bsplines'][key]['mesh']
+    kR = mesh.dobj[mesh.groupmesh][mm]['R-knots']
+    kZ = mesh.dobj[mesh.groupmesh][mm]['Z-knots']
+    Rknots = mesh.ddata[kR]['data']
+    Zknots = mesh.ddata[kZ]['data']
+
+    knots_per_bs_R = _mesh_bsplines._get_bs2d_func_knots(Rknots, deg=deg)
+    
+    knots_per_bs_Z = _mesh_bsplines._get_bs2d_func_knots(Zknots, deg=deg)
+    return knots_per_bs_R, knots_per_bs_Z
+
+
 # #############################################################################
 # #############################################################################
 #                           Mesh2DRect - sample
