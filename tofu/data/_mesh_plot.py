@@ -41,8 +41,16 @@ def _plot_basic_check(
 
     # ind_knot
     if ind_knot is not None:
-        ind_knot = mesh.select_knots(
-            key=key, ind=ind_knots, returnas=None,
+        ind_knot = mesh.select_elements(
+            key=key, ind=ind_knot, elements='knots',
+            returnas='data', return_neighbours=True,
+        )
+
+    # ind_knot
+    if ind_cent is not None:
+        ind_cent = mesh.select_elements(
+            key=key, ind=ind_cent, elements='cent',
+            returnas='data', return_neighbours=True,
         )
 
     # color
@@ -71,7 +79,7 @@ def _plot_basic_check(
         )
         raise Exception(msg)
 
-    return key, color, dleg
+    return key, ind_knot, ind_cent, color, dleg
 
 
 def _plot_basic_prepare(
@@ -96,7 +104,7 @@ def _plot_basic_prepare(
     ])
     grid = np.concatenate((vert, hor), axis=1)
 
-    if ind_knot is not None:
+    # if ind_knot is not None:
 
     return grid
 
@@ -166,15 +174,49 @@ def plot_basic(
         )
 
         if ind_knot is not None:
-            dax[kax].plot()
+            dax[kax].plot(
+                ind_knot[0][0, :],
+                ind_knot[0][1, :],
+                marker='o',
+                ms=8,
+                ls='None',
+                color=color,
+                label='knots',
+            )
+            dax[kax].plot(
+                ind_knot[1][0, :, :],
+                ind_knot[1][1, :, :],
+                marker='x',
+                ms=4,
+                ls='None',
+                color=color,
+                label='knots - neigh',
+            )
 
         if ind_cent is not None:
-            dax[kax].plot()
+            dax[kax].plot(
+                ind_cent[0][0, :],
+                ind_cent[0][1, :],
+                marker='x',
+                ms=8,
+                ls='None',
+                color=color,
+                label='cents',
+            )
+            dax[kax].plot(
+                ind_cent[1][0, :, :],
+                ind_cent[1][1, :, :],
+                marker='o',
+                ms=4,
+                ls='None',
+                color=color,
+                label='cent - neigh',
+            )
 
     # --------------
     # dleg
 
     if dleg is not False:
-        dax['mesh'].legend(**dleg)
+        dax['cross'].legend(**dleg)
 
     return dax

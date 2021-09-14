@@ -13,6 +13,7 @@ import numpy as np
 import tofu.utils as utils
 from . import _core_new
 from . import _mesh_checks
+from . import _mesh_comp
 from . import _mesh_plot
 
 
@@ -123,19 +124,11 @@ class Mesh2DRect(_core_new.DataCollection):
         Can return indices / values of neighbourgs
 
         """
-        (
-            ind, elements, returnas, return_neighbours
-        ) = _mesh_checks._select_check(
+        return _mesh_comp._select(
+            mesh=self,
+            key=key,
             ind=ind,
-            returnas=returnas,
-            return_neighbours=return_neighbours,
-        )
-        kR = self.dobj[self._groupmesh][key][f'R-{elements}']
-        kZ = self.dobj[self._groupmesh][key][f'Z-{elements}']
-        return _select(
-            ind=ind,
-            R=self.ddata[kR]['data'],
-            Z=self.ddata[kZ]['data'],
+            elements=elements,
             returnas=returnas,
             return_neighbours=return_neighbours,
         )

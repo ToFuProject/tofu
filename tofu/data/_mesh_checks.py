@@ -154,7 +154,7 @@ def _mesh2DRect_check(
     # check R and Z
 
     R, resR, indR = _mesh2DRect_X_check(domain[0], res=res[0])
-    Z, resZ, indZ = _mesh2DRect_X_check(domain[1], res=res[0])
+    Z, resZ, indZ = _mesh2DRect_X_check(domain[1], res=res[1])
 
     return R, Z, resR, resZ, indR, indZ
 
@@ -284,7 +284,11 @@ def _select_check(
         and len(ind) == 2
         and (
             all([np.isscalar(ss) for ss in ind])
-            or all([hasattr(ss, '__iter__') and len(ss) == len(ind[0])])
+            or all([
+                hasattr(ss, '__iter__')
+                and len(ss) == len(ind[0])
+                for ss in ind
+            ])
         ),
         (
             np.isscalar(ind)
