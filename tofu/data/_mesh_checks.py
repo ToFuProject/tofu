@@ -267,7 +267,7 @@ def _mesh2DRect_from_Config(config=None, key_struct=None):
 
 # #############################################################################
 # #############################################################################
-#                           Mesh2DRect
+#                           Mesh2DRect - select
 # #############################################################################
 
 
@@ -349,3 +349,35 @@ def _select_check(
         raise Exception(msg)
 
     return ind, elements, returnas, return_neighbours
+
+
+# #############################################################################
+# #############################################################################
+#                           Mesh2DRect - bsplines
+# #############################################################################
+
+
+def _mesh2DRect_bsplines(key=None, lkeys=None, deg=None):
+
+    # key
+    if key is None and len(lkeys) == 1:
+        key = lkeys[0]
+    if key not in lkeys:
+        msg = (
+            "Arg key must be a valid mesh identifier!\n"
+            f"\t- available: {lkeys}\n"
+            f"\t- provided: {key}"
+        )
+        raise Exception(msg)
+
+    # deg
+    if deg is None:
+        deg = 2
+    if not isinstance(deg, int) and deg in [0, 1, 2, 3]:
+        msg = (
+            "Arg deg must be a int in [0, 1, 2, 3]\n"
+            f"Provided: {deg}"
+        )
+        raise Exception(msg)
+
+    return key, deg

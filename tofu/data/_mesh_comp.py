@@ -14,8 +14,9 @@ from . import _mesh_checks
 
 # #############################################################################
 # #############################################################################
-#                           Mesh2DRect
+#                           Mesh2DRect - select
 # #############################################################################
+
 
 def _select(
     mesh=None,
@@ -118,3 +119,74 @@ def _select(
         return out, neigh_out
     else:
         return out
+
+
+# #############################################################################
+# #############################################################################
+#                           Mesh2DRect - bsplines
+# #############################################################################
+
+
+def _mesh2DRect_bsplines(mesh=None, key=None, deg=None):
+
+    # ----------------
+    # prepare
+
+    keybs = f'{key}-bs{deg}'
+
+    # --------------
+    # create bsplines
+
+    kR = mesh.dobj[mesh._groupmesh][key]['R-knots']
+    kZ = mesh.dobj[mesh._groupmesh][key]['Z-knots']
+    Rknots = mesh.ddata[kR]['data']
+    Zknots = mesh.ddata[kZ]['data']
+
+    kRbsc = f'{keybs}-R'
+    kZbsc = f'{keybs}-Z'
+
+    func_details, func_sum = _mesh_bsplines.get_bs2d_func(
+        deg=deg,
+        Rknots=Rknots,
+        Zknots=Zknots,
+    )
+
+    # ----------------
+    # format into dict
+
+    dref = {
+        kRbsc: {
+            'data': Rbs_cent,
+            'units': 'm',
+            'dimension': 'distance',
+            'quant': 'R',
+            'name': 'R',
+        },
+        kZbsc: {
+            'data': Zbs_cent,
+            'units': 'm',
+            'dimension': 'distance',
+            'quant': 'Z',
+            'name': 'Z',
+        },
+    }
+
+    ddata = {
+        keybs: {
+            'ref': (kRbsc, kZbsc),
+            'data': funcarray,
+        },
+    }
+
+    dobj = {
+        'bsplines': {
+            keybs: {
+                'deg': deg,
+                'ncent1d': ncent1d,
+                'mesh': key_mesh,
+                'func': RectBiv,
+            }
+        },
+    }
+
+    return dref, ddata, dobj

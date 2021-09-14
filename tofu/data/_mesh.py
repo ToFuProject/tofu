@@ -134,6 +134,28 @@ class Mesh2DRect(_core_new.DataCollection):
         )
 
     # -----------------
+    # bsplines
+    # ------------------
+
+    def add_bsplines(self, key=None, deg=None):
+
+        # --------------
+        # check inputs
+
+        key, deg = _mesh_checks._mesh2DRect_bsplines(
+            key=key,
+            lkeys=list(self.dobj[self._groupmesh].keys()),
+            deg=deg,
+        )
+
+        # --------------
+        # get bsplines
+
+        out = _mesh_comp._mesh2DRect_bsplines(key=key, deg=deg)
+
+        self.update(dobj=dobj)
+
+    # -----------------
     # plotting
     # ------------------
 
