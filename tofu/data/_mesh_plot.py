@@ -64,14 +64,14 @@ def _plot_mesh_check(
 
     # ind_knot
     if ind_knot is not None:
-        ind_knot = mesh.select_elements(
+        ind_knot = mesh.select_mesh_elements(
             key=key, ind=ind_knot, elements='knots',
             returnas='data', return_neighbours=True,
         )
 
-    # ind_knot
+    # ind_cent
     if ind_cent is not None:
-        ind_cent = mesh.select_elements(
+        ind_cent = mesh.select_mesh_elements(
             key=key, ind=ind_cent, elements='cent',
             returnas='data', return_neighbours=True,
         )
@@ -92,9 +92,9 @@ def _plot_mesh_check(
         'loc': 'upper left',
         'frameon': True,
     }
-    dleg = _check_var(dleg, 'dleg', default=defleg, types=(bool, dict))
+    dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
 
-    return key, ind_knot, ind_cent, color, cmap, dleg
+    return key, ind_knot, ind_cent, color, dleg
 
 
 def _plot_mesh_prepare(
@@ -150,8 +150,6 @@ def plot_mesh(
     grid = _plot_mesh_prepare(
         mesh=mesh,
         key=key,
-        ind_knot=ind_knot,
-        ind_cent=ind_cent,
     )
 
     # --------------
@@ -189,8 +187,8 @@ def plot_mesh(
 
         if ind_knot is not None:
             dax[kax].plot(
-                ind_knot[0][0, :],
-                ind_knot[0][1, :],
+                ind_knot[0][0],
+                ind_knot[0][1],
                 marker='o',
                 ms=8,
                 ls='None',
@@ -204,13 +202,12 @@ def plot_mesh(
                 ms=4,
                 ls='None',
                 color=color,
-                label='knots - neigh',
             )
 
         if ind_cent is not None:
             dax[kax].plot(
-                ind_cent[0][0, :],
-                ind_cent[0][1, :],
+                ind_cent[0][0],
+                ind_cent[0][1],
                 marker='x',
                 ms=8,
                 ls='None',
@@ -224,7 +221,6 @@ def plot_mesh(
                 ms=4,
                 ls='None',
                 color=color,
-                label='cent - neigh',
             )
 
     # --------------
@@ -245,7 +241,7 @@ def plot_mesh(
 def _plot_bspline_check(
     mesh=None,
     key=None,
-    ind_bspline=None,
+    ind=None,
     knots=None,
     cents=None,
     cmap=None,
@@ -258,16 +254,26 @@ def _plot_bspline_check(
         key = lk[0]
     key = _check_var(key, 'key', default=None, types=str, allowed=lk)
 
-    # ind_bspline
-    if ind_bspline is not None:
-        ind_bspline = mesh.select_elements(
-            key=key, ind=ind_knot, elements='knots',
-            returnas='data', return_neighbours=True,
-        )
-
     # knots, cents
     knots = _check_var(knots, 'knots', default=True, types=bool)
     cents = _check_var(cents, 'cents', default=True, types=bool)
+
+    # ind_bspline
+    ind = mesh.select_bsplines(
+        key=key,
+        ind=ind,
+        returnas='ind',
+        return_knots=False,
+        return_cents=False,
+    )
+
+    _, knotsi, centsi = mesh.select_bsplines(
+        key=key,
+        ind=ind,
+        returnas='data',
+        return_knots=True,
+        return_cents=True,
+    )
 
     # cmap
     if cmap is None:
@@ -279,30 +285,59 @@ def _plot_bspline_check(
         'loc': 'upper left',
         'frameon': True,
     }
-    dleg = _check_var(dleg, 'dleg', default=defleg, types=(bool, dict))
+    dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
 
-    return key, ind_bspline, knots, cents, cmap, dleg
+    return key, ind, knotsi, centsi, cmap, dleg
 
 
 def _plot_bspline_prepare(
     mesh=None,
     key=None,
+    ind=None,
+    res=None,
+    knots=None,
+    cents=None,
 ):
 
-    Rk = mesh.dobj[mesh._groupmesh][key]['R-knots']
-    Zk = mesh.dobj[mesh._groupmesh][key]['Z-knots']
-    R = mesh.ddata[Rk]['data']
-    Z = mesh.ddata[Zk]['data']
+    # check input
+    deg = mesh.dobj['bsplines'][key]['deg']
+    km = mesh.dobj['bsplines'][key]['mesh']
+    kR = mesh.dobj['mesh'][km]['R-knots']
+    kZ = mesh.dobj['mesh'][km]['Z-knots']
+    Rk = mesh.ddata[kR]['data']
+    Zk = mesh.ddata[kZ]['data']
+    dR = np.min(np.diff(Rk))
+    dZ = np.min(np.diff(Zk))
+    if res is None:
+        res_coef = 0.05
+        res = [res_coef*dR, res_coef*dZ]
 
-    vert = np.array([
-        np.repeat(R, 3),
-        np.tile((Z[0], Z[-1], np.nan), R.size),
-    ])
-    hor = np.array([
-        np.tile((R[0], R[-1], np.nan), Z.size),
-        np.repeat(Z, 3),
-    ])
-    grid = np.concatenate((vert, hor), axis=1)
+    # bspline
+    km = mesh.dobj['bsplines'][key]['mesh']
+    R, Z = mesh.get_sample_mesh(key=km, res=res, mode='abs', grid=True)
+
+    shapebs = mesh.dobj['bsplines'][key]['shapebs']
+    coefs = np.zeros((1, shapebs[0], shapebs[1]), dtype=float)
+    coefs[0, ind[0], ind[1]] = 1.
+
+    bspline = mesh.dobj['bsplines'][key]['func_sum'](R, Z, coefs=coefs)[0, ...]
+    bspline[bspline == 0] = np.nan
+
+    # extent and interp
+
+    extent = (
+        Rk[0] - 0.*dR, Rk[-1] + 0.*dR,
+        Zk[0] - 0.*dZ, Zk[-1] + 0.*dZ,
+    )
+
+    if deg == 0:
+        interp = 'nearest'
+    elif deg == 1:
+        interp = 'bilinear'
+    elif deg >= 2:
+        interp = 'bicubic'
+
+    # knots and cents
 
     return bspline, extent, interp, knots, cents
 
@@ -310,9 +345,10 @@ def _plot_bspline_prepare(
 def plot_bspline(
     mesh=None,
     key=None,
-    ind_bspline=None,
+    ind=None,
     knots=None,
     cents=None,
+    res=None,
     cmap=None,
     dax=None,
     dmargin=None,
@@ -323,10 +359,10 @@ def plot_bspline(
     # --------------
     # check input
 
-    key, ind_bspline, knots, cents, cmap, dleg = _plot_bspline_check(
+    key, ind, knotsi, centsi, cmap, dleg = _plot_bspline_check(
         mesh=mesh,
         key=key,
-        ind_bspline=ind_bspline,
+        ind=ind,
         knots=knots,
         cents=cents,
         cmap=cmap,
@@ -336,12 +372,13 @@ def plot_bspline(
     # --------------
     #  Prepare data
 
-    bspline, extent, interp, knots, cents = _plot_bspline_prepare(
+    bspline, extent, interp, knotsi, centsi = _plot_bspline_prepare(
         mesh=mesh,
         key=key,
-        ind_bspline=ind_bspline,
-        knots=knots,
-        cents=cents,
+        ind=ind,
+        knots=knotsi,
+        cents=centsi,
+        res=res,
     )
 
     # --------------
@@ -370,20 +407,21 @@ def plot_bspline(
     kax = 'cross'
     if dax.get(kax) is not None:
 
-        if ind_bspline is not None:
-            dax[kax].imshow(
-                bspline,
-                extent=extent,
-                interpolation=interpolation,
-                origin='lower',
-                aspect='equal',
-                cmap=cmap,
-            )
+        dax[kax].imshow(
+            bspline,
+            extent=extent,
+            interpolation=interp,
+            origin='lower',
+            aspect='equal',
+            cmap=cmap,
+            vmin=0.,
+            vmax=1.,
+        )
 
         if knots is not False:
             dax[kax].plot(
-                knots[0, :],
-                knots[1, :],
+                knotsi[0].ravel(),
+                knotsi[1].ravel(),
                 marker='x',
                 ms=6,
                 ls='None',
@@ -392,8 +430,8 @@ def plot_bspline(
 
         if cents is not False:
             dax[kax].plot(
-                cents[0, :],
-                cents[1, :],
+                centsi[0].ravel(),
+                centsi[1].ravel(),
                 marker='o',
                 ms=6,
                 ls='None',

@@ -10,6 +10,34 @@ import numpy as np
 
 # #############################################################################
 # #############################################################################
+#                           Utilities
+# #############################################################################
+
+
+def _check_var(var, varname, types=None, default=None, allowed=None):
+    if var is None:
+        var = default
+
+    if types is not None:
+        if not isinstance(var, types):
+            msg = (
+                f"Arg {varname} must be of type {types}!\n"
+                f"Provided: {type(var)}"
+            )
+            raise Exception(msg)
+
+    if allowed is not None:
+        if var not in allowed:
+            msg = (
+                f"Arg {varname} must be in {allowed}!\n"
+                f"Provided: {var}"
+            )
+            raise Exception(msg)
+    return var
+
+
+# #############################################################################
+# #############################################################################
 #                           Mesh2DRect
 # #############################################################################
 
@@ -271,15 +299,15 @@ def _mesh2DRect_from_Config(config=None, key_struct=None):
 # #############################################################################
 
 
-def _select_check(
+def _select_ind_check(
     ind=None,
     elements=None,
     returnas=None,
-    return_neighbours=None,
 ):
 
     # ind
     lc = [
+        ind is None,
         isinstance(ind, tuple)
         and len(ind) == 2
         and (
@@ -289,6 +317,7 @@ def _select_check(
                 and len(ss) == len(ind[0])
                 for ss in ind
             ])
+            or all([isinstance(ss, np.ndarray) for ss in ind])
         ),
         (
             np.isscalar(ind)
@@ -296,12 +325,14 @@ def _select_check(
                 hasattr(ind, '__iter__')
                 and all([np.isscalar(ss) for ss in ind])
             )
+            or isinstance(ind, np.ndarray)
         )
     ]
 
     if not any(lc):
         msg = (
             "Arg ind must be either:\n"
+            "\t- None\n"
             "\t- int or array of int: int indices in mixed (R, Z) indexing\n"
             "\t- tuple of such: int indices in (R, Z) indexing respectively\n"
             f"Provided: {ind}"
@@ -309,46 +340,82 @@ def _select_check(
         raise Exception(msg)
 
     if lc[0]:
-        ind = (
-            np.atleast_1d(ind[0]).ravel().astype(int),
-            np.atleast_1d(ind[1]).ravel().astype(int),
-        )
+        pass
+    elif lc[1]:
+        if any([not isinstance(ss, np.ndarray) for ss in ind]):
+            ind = (
+                np.atleast_1d(ind[0]).astype(int),
+                np.atleast_1d(ind[1]).astype(int),
+            )
+        c0 = all([
+            isinstance(ss, np.ndarray)
+            and ss.dtype == np.int_
+            and ss.shape == ind[0].shape
+            for ss in ind
+        ])
+        if not c0:
+            msg = (
+                "Arg ind must be a tuple of 2 arrays of int of same shape"
+            )
+            raise Exception(msg)
     else:
-        ind = np.atleast_1d(ind).ravel().astype(int)
+        if not isinstance(ind, np.ndarray):
+            ind = np.atleast_1d(ind).astype(int)
+        if not ind.dtype == np.int_:
+            msg = (
+                "Arg ind must be an array of int"
+            )
+            raise Exception(msg)
 
     # elements
-    if elements is None:
-        elements = 'knots'
-    if elements not in ['knots', 'cent']:
-        msg = (
-            "Arg elements must be in ['knots', 'cent']!\n"
-            f"Provided: {elements}"
-        )
-        raise Exception(msg)
+    elements =  _check_var(
+        elements, 'elements',
+        types=str,
+        default='knots',
+        allowed=['knots', 'cent'],
+    )
 
     # returnas
-    if returnas is None:
-        returnas = tuple
+    returnas =  _check_var(
+        returnas, 'returnas',
+        types=None,
+        default=tuple,
+        allowed=[tuple, 'flat'],
+    )
 
-    if returnas not in ['flat', tuple, 'data']:
-        msg = (
-            "Arg returnas must be in ['flat', tuple, 'data']\n"
-            f"Provided: {returnas}"
-        )
-        raise Exception(msg)
+    return ind, elements, returnas
+
+
+def _select_check(
+    elements=None,
+    returnas=None,
+    return_neighbours=None,
+):
+
+    # elements
+    elements =  _check_var(
+        elements, 'elements',
+        types=str,
+        default='knots',
+        allowed=['knots', 'cent'],
+    )
+
+    # returnas
+    returnas =  _check_var(
+        returnas, 'returnas',
+        types=None,
+        default='ind',
+        allowed=['ind', 'data'],
+    )
 
     # return_neighbours
-    if return_neighbours is None:
-        return_neighbours = True
+    return_neighbours =  _check_var(
+        return_neighbours, 'return_neighbours',
+        types=bool,
+        default=True,
+    )
 
-    if not isinstance(return_neighbours, bool):
-        msg = (
-            "Arg return_neighbours must be a bool!\n"
-            f"Provided: {return_neighbours}"
-        )
-        raise Exception(msg)
-
-    return ind, elements, returnas, return_neighbours
+    return elements, returnas, return_neighbours,
 
 
 # #############################################################################

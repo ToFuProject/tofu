@@ -109,6 +109,26 @@ class Mesh2DRect(_core_new.DataCollection):
     # indices
     # ------------------
 
+    def select_ind(
+        self,
+        key=None,
+        ind=None,
+        elements=None,
+        returnas=None,
+    ):
+        """ Return ind for selected key (mesh or bspline) as:
+                - tuple (default)
+                - 'flat'
+
+        Can covert one into the other
+        """
+        return _mesh_comp._select_ind(
+            mesh=self,
+            key=key,
+            ind=ind,
+            returnas=returnas,
+        )
+
     def select_mesh_elements(
         self,
         key=None,
@@ -124,7 +144,13 @@ class Mesh2DRect(_core_new.DataCollection):
         Can return indices / values of neighbourgs
 
         """
-        return _mesh_comp._select(
+        lk = list(self.dobj[self._groupmesh].keys())
+        if key is None and len(lk) == 1:
+            key = lk[0]
+        ind = self.select_ind(
+            key=key, ind=ind, elements=elements, returnas=tuple,
+        )
+        return _mesh_comp._select_mesh(
             mesh=self,
             key=key,
             ind=ind,
@@ -148,6 +174,10 @@ class Mesh2DRect(_core_new.DataCollection):
         Can return indices / values of neighbourgs
 
         """
+        lk = list(self.dobj['bsplines'].keys())
+        if key is None and len(lk) == 1:
+            key = lk[0]
+        ind = self.select_ind(key=key, ind=ind, returnas=tuple)
         return _mesh_comp._select_bsplines(
             mesh=self,
             key=key,
@@ -230,7 +260,6 @@ class Mesh2DRect(_core_new.DataCollection):
         key=None,
         ind_knot=None,
         ind_cent=None,
-        ind_bspline=None,
         color=None,
         dax=None,
         dmargin=None,
@@ -242,19 +271,19 @@ class Mesh2DRect(_core_new.DataCollection):
             key=key,
             ind_knot=ind_knot,
             ind_cent=ind_cent,
-            ind_bspline=ind_bspline,
             color=color,
             dax=dax,
             dmargin=dmargin,
             fs=fs,
         )
 
-    def plot_bspline(
+    def plot_bsplines(
         self,
         key=None,
-        ind_bspline=None,
+        ind=None,
         knots=None,
         cents=None,
+        res=None,
         cmap=None,
         dax=None,
         dmargin=None,
@@ -264,9 +293,10 @@ class Mesh2DRect(_core_new.DataCollection):
         return _mesh_plot.plot_bspline(
             mesh=self,
             key=key,
-            ind_bspline=ind_bspline,
+            ind=ind,
             knots=knots,
             cents=cents,
+            res=res,
             cmap=cmap,
             dax=dax,
             dmargin=dmargin,
