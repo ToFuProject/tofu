@@ -222,7 +222,7 @@ class Mesh2DRect(_core_new.DataCollection):
 
     def get_sample_mesh(self, key=None, res=None, grid=None, mode=None):
         """ Return a sampled version of the chosen mesh """
-        return _mesh_comp.sample(
+        return _mesh_comp.sample_mesh(
             mesh=self,
             key=key,
             res=res,
@@ -230,15 +230,15 @@ class Mesh2DRect(_core_new.DataCollection):
             mode=mode,
         )
 
-    def get_sample_bspline(self, key=None, res=None, grid=None, mode=None):
-        """ Return a sampled version of the chosen mesh """
-        return _mesh_comp.sample(
-            mesh=self,
-            key=key,
-            res=res,
-            grid=grid,
-            mode=mode,
-        )
+    # def get_sample_bspline(self, key=None, res=None, grid=None, mode=None):
+        # """ Return a sampled version of the chosen mesh """
+        # return _mesh_comp.sample_bsplines(
+            # mesh=self,
+            # key=key,
+            # res=res,
+            # grid=grid,
+            # mode=mode,
+        # )
 
     def interp(self, key=None, R=None, Z=None, grid=None, details=None):
         """ Interp desired data on pts """

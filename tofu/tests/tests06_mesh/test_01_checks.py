@@ -200,7 +200,25 @@ class Test02_Mesh2DRect():
                 return_knots=lreturn_knots[ii],
             )
 
-    def test05_plot_mesh(self):
+    def test05_sample_mesh(self):
+        lres = [None, 0.1, 0.01, [0.1, 0.05]]
+        lmode = [None, 'rel', 'abs', 'abs']
+        lgrid = [None, True, False, False]
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            out = v0.get_sample_mesh(
+                res=lres[ii], grid=lgrid[ii], mode=lmode[ii],
+            )
+
+    # def test06_sample_bspline(self):
+        # lres = [None, 0.1, 0.01, [0.1, 0.05]]
+        # lmode = [None, 'rel', 'abs', 'abs']
+        # lgrid = [None, True, False, False]
+        # for ii, (k0, v0) in enumerate(self.dobj.items()):
+            # out = v0.get_sample_bspline(
+                # res=lres[ii], grid=lgrid[ii], mode=lmode[ii],
+            # )
+
+    def test07_plot_mesh(self):
         lik = [None, ([0, 2], [0, 3]), [2, 3], None]
         lic = [None, ([0, 2], [0, 3]), None, [2, 3]]
         for ii, (k0, v0) in enumerate(self.dobj.items()):
@@ -210,7 +228,7 @@ class Test02_Mesh2DRect():
             )
         plt.close('all')
 
-    def test06_plot_bsplines(self):
+    def test08_plot_bsplines(self):
         lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
         lind = [None, ([1, 2], [2, 1]), (1, 1), [1, 2, 10]]
         lknots = [None, True, False, True]

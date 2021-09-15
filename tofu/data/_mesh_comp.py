@@ -419,7 +419,7 @@ def _mesh2DRect_bsplines_knotscents(
 # #############################################################################
 
 
-def sample(mesh, key=None, res=None, mode=None, grid=None):
+def sample_mesh(mesh, key=None, res=None, mode=None, grid=None):
 
     # -------------
     # check inputs
