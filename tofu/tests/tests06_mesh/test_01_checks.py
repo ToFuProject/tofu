@@ -10,10 +10,13 @@ import warnings
 
 
 # Standard
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 # tofu-specific
 from tofu import __version__
+import tofu as tf
 import tofu.data as tfd
 
 
@@ -84,3 +87,139 @@ class Test01_checks():
             )
             if hasattr(lres, '__iter__'):
                 assert x_new.size == np.unique(x_new).size == res.size + 1
+
+
+
+class Test02_Mesh2DRect():
+
+    @classmethod
+    def setup_class(cls):
+        pass
+
+    def setup(self):
+        self.dobj = {
+            'm0': tfd.Mesh2DRect(),
+            'm1': tfd.Mesh2DRect(),
+            'm2': tfd.Mesh2DRect(),
+            'm3': None,
+        }
+
+        # add mesh
+        ldomain = [
+            [[2, 3], [-1, 1]],
+            [[2, 2.3, 2.6, 3], [-1, 0., 1]],
+            [[2, 3], [-1, 0, 1]],
+        ]
+        lres = [
+            0.1,
+            [[0.2, 0.1, 0.1, 0.2], [0.2, 0.1, 0.2]],
+            [0.1, [0.2, 0.1, 0.2]],
+        ]
+
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            if k0 != 'm3':
+                self.dobj[k0].add_mesh(
+                    domain=ldomain[ii],
+                    res=lres[ii],
+                    key=k0,
+                )
+            else:
+                self.dobj[k0] = tfd.Mesh2DRect.from_Config(
+                    tf.load_config('WEST'),
+                    res=0.1,
+                    key=k0,
+                )
+
+        # add splines
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            self.dobj[k0].add_bsplines(deg=ii)
+
+    def teardown(self):
+        pass
+
+    @classmethod
+    def teardown_class(cls):
+        pass
+
+    def test01_get_summary(self):
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            self.dobj[k0].get_summary()
+
+    def test02_select_ind(self):
+        lkey = ['m0', 'm1-bs1', 'm2', 'm3-bs3']
+        lelements = ['cent', None, 'knots', None]
+        lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            indt = self.dobj[k0].select_ind(
+                key=lkey[ii],
+                ind=lind[ii],
+                elements=lelements[ii],
+                returnas=tuple,
+            )
+            indf = self.dobj[k0].select_ind(
+                key=lkey[ii],
+                ind=indt,
+                elements=lelements[ii],
+                returnas='flat',
+            )
+            indt2 = self.dobj[k0].select_ind(
+                key=lkey[ii],
+                ind=indf,
+                elements=lelements[ii],
+                returnas=tuple,
+            )
+            assert all([np.allclose(indt[ii], indt2[ii]) for ii in [0, 1]])
+
+    def test03_select_mesh(self):
+        lkey = ['m0', 'm1', 'm2', 'm3']
+        lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
+        lelements = ['cent', None, 'knots', None]
+        lreturnas = ['ind', 'data', 'data', 'ind']
+        lreturn_neig = [None, True, False, True]
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            indf = self.dobj[k0].select_mesh_elements(
+                key=lkey[ii],
+                ind=lind[ii],
+                elements=lelements[ii],
+                returnas=lreturnas[ii],
+                return_neighbours=lreturn_neig[ii],
+            )
+
+    def test04_select_bsplines(self):
+        lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
+        lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
+        lreturnas = [None, 'data', 'data', 'ind']
+        lreturn_cents = [None, True, False, True]
+        lreturn_knots = [None, False, True, True]
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            indf = self.dobj[k0].select_bsplines(
+                key=lkey[ii],
+                ind=lind[ii],
+                returnas=lreturnas[ii],
+                return_cents=lreturn_cents[ii],
+                return_knots=lreturn_knots[ii],
+            )
+
+    def test05_plot_mesh(self):
+        lik = [None, ([0, 2], [0, 3]), [2, 3], None]
+        lic = [None, ([0, 2], [0, 3]), None, [2, 3]]
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            dax = self.dobj[k0].plot_mesh(
+                ind_knot=lik[ii],
+                ind_cent=lic[ii],
+            )
+        plt.close('all')
+
+    def test06_plot_bsplines(self):
+        lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
+        lind = [None, ([1, 2], [2, 1]), (1, 1), [1, 2, 10]]
+        lknots = [None, True, False, True]
+        lcents = [False, False, True, True]
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            dax = self.dobj[k0].plot_bsplines(
+                key=lkey[ii],
+                ind=lind[ii],
+                knots=lknots[ii],
+                cents=lcents[ii],
+            )
+        plt.close('all')
