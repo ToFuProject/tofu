@@ -57,8 +57,7 @@ def _select_ind(
         kR = mesh.dobj[mesh._groupmesh][key][f'R-{elements}']
         kZ = mesh.dobj[mesh._groupmesh][key][f'Z-{elements}']
     else:
-        kR = mesh.dobj['bsplines'][key]['Rbs']
-        kZ = mesh.dobj['bsplines'][key]['Zbs']
+        kR, kZ = mesh.dobj['bsplines'][key]['ref']
 
     nR = mesh.ddata[kR]['data'].size
     nZ = mesh.ddata[kZ]['data'].size
@@ -302,8 +301,9 @@ def _mesh2DRect_bsplines(mesh=None, key=None, deg=None):
             keybs: {
                 'deg': deg,
                 'mesh': key,
-                'Rbs': kRbsc,
-                'Zbs': kZbsc,
+                'ref': (kRbsc, kZbsc),
+                # 'Rbs': kRbsc,
+                # 'Zbs': kZbsc,
                 'shapebs': shapebs,
                 'func_details': func_details,
                 'func_sum': func_sum,
@@ -521,11 +521,11 @@ def _interp_check(
     dk = {
         kk: [
             k1 for k1, v1 in mesh.dobj['bsplines'].items()
-            if mesh.ddata[kk]['ref'][-2:] == (v1['Rbs'], v1['Zbs'])
+            if mesh.ddata[kk]['ref'][-2:] == v1['ref']
         ][0]
         for kk in mesh.ddata.keys()
         if any([
-            mesh.ddata[kk]['ref'][-2:] == (v1['Rbs'], v1['Zbs'])
+            mesh.ddata[kk]['ref'][-2:] == v1['ref']
             for v1 in mesh.dobj['bsplines'].values()
         ])
     }

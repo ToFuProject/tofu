@@ -445,3 +445,209 @@ def plot_bspline(
         dax['cross'].legend(**dleg)
 
     return dax
+
+
+# #############################################################################
+# #############################################################################
+#                           plot profile2d
+# #############################################################################
+
+
+def _plot_profile2d_check(
+    mesh=None,
+    key=None,
+    indt=None,
+    cmap=None,
+    dcolorbar=None,
+    dleg=None,
+):
+
+    # key
+    dk = mesh.get_profiles2d()
+    if key is None and len(dk) == 1:
+        key = list(dk.keys())[0]
+    key = _check_var(
+        key, 'key', default=None, types=str, allowed=list(dk.keys())
+    )
+    keybs = dk[key]
+    refbs = mesh.dobj['bsplines'][keybs]['ref']
+
+    # indt
+    if len(mesh.ddata[key]['ref']) > len(refbs):
+        if indt is None and mesh.ddata[key]['data'].shape[0] == 1:
+            indt = 0
+        try:
+            assert np.isscalar(indt)
+            indt = int(indt)
+        except Exception as err:
+            msg = (
+                f"Arg indt should be a int!\nProvided: {indt}"
+            )
+            raise Exception(msg)
+
+    # cmap
+    if cmap is None:
+        cmap = 'viridis'
+
+    # dcolorbar
+    defdcolorbar = {
+        # 'location': 'right',
+        'fraction': 0.15,
+        'orientation': 'vertical',
+    }
+    dcolorbar = _check_var(
+        dcolorbar, 'dcolorbar',
+        default=defdcolorbar,
+        types=dict,
+    )
+
+    # dleg
+    defdleg = {
+        'bbox_to_anchor': (1.1, 1.),
+        'loc': 'upper left',
+        'frameon': True,
+    }
+    dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
+
+    return key, keybs, indt, cmap, dcolorbar, dleg
+
+
+def _plot_profiles2d_prepare(
+    mesh=None,
+    key=None,
+    keybs=None,
+    indt=None,
+    res=None,
+):
+
+    # check input
+    deg = mesh.dobj['bsplines'][keybs]['deg']
+    km = mesh.dobj['bsplines'][keybs]['mesh']
+    kR = mesh.dobj['mesh'][km]['R-knots']
+    kZ = mesh.dobj['mesh'][km]['Z-knots']
+    Rk = mesh.ddata[kR]['data']
+    Zk = mesh.ddata[kZ]['data']
+    dR = np.min(np.diff(Rk))
+    dZ = np.min(np.diff(Zk))
+    if res is None:
+        res_coef = 0.05
+        res = [res_coef*dR, res_coef*dZ]
+
+    # bspline
+    km = mesh.dobj['bsplines'][keybs]['mesh']
+    R, Z = mesh.get_sample_mesh(key=km, res=res, mode='abs', grid=True)
+
+    shapebs = mesh.dobj['bsplines'][keybs]['shapebs']
+    coefs = mesh.ddata[key]['data']
+
+    if len(coefs.shape) > len(shapebs):
+        coefs = coefs[indt:indt+1, ...]
+
+    bspline = mesh.dobj['bsplines'][keybs]['func_sum'](
+        R, Z, coefs=coefs,
+    )[0, ...]
+    bspline[bspline == 0] = np.nan
+
+    # extent and interp
+
+    extent = (
+        Rk[0] - 0.*dR, Rk[-1] + 0.*dR,
+        Zk[0] - 0.*dZ, Zk[-1] + 0.*dZ,
+    )
+
+    if deg == 0:
+        interp = 'nearest'
+    elif deg == 1:
+        interp = 'bilinear'
+    elif deg >= 2:
+        interp = 'bicubic'
+
+    # knots and cents
+
+    return bspline, extent, interp
+
+
+def plot_profile2d(
+    mesh=None,
+    key=None,
+    indt=None,
+    res=None,
+    vmin=None,
+    vmax=None,
+    cmap=None,
+    dax=None,
+    dmargin=None,
+    fs=None,
+    dcolorbar=None,
+    dleg=None,
+):
+
+    # --------------
+    # check input
+
+    key, keybs, indt, cmap, dcolorbar, dleg = _plot_profile2d_check(
+        mesh=mesh,
+        key=key,
+        indt=indt,
+        cmap=cmap,
+        dcolorbar=dcolorbar,
+        dleg=dleg,
+    )
+
+    # --------------
+    #  Prepare data
+
+    bspline, extent, interp = _plot_profiles2d_prepare(
+        mesh=mesh,
+        key=key,
+        keybs=keybs,
+        indt=indt,
+        res=res,
+    )
+
+    # --------------
+    # plot - prepare
+
+    if dax is None:
+
+        if dmargin is None:
+            dmargin = {
+                'left': 0.1, 'right': 0.9,
+                'bottom': 0.1, 'top': 0.9,
+                'hspace': 0.1, 'wspace': 0.1,
+            }
+
+        fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
+        ax0 = fig.add_subplot(gs[0, 0], aspect='equal')
+        ax0.set_xlabel(f'R (m)')
+        ax0.set_ylabel(f'Z (m)')
+
+        dax = {'cross': ax0}
+
+    # --------------
+    # plot
+
+    kax = 'cross'
+    if dax.get(kax) is not None:
+
+        im = dax[kax].imshow(
+            bspline,
+            extent=extent,
+            interpolation=interp,
+            origin='lower',
+            aspect='equal',
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+        )
+
+        plt.colorbar(im, ax=dax[kax], **dcolorbar)
+
+    # --------------
+    # dleg
+
+    if dleg is not False:
+        dax['cross'].legend(**dleg)
+
+    return dax

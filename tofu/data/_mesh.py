@@ -106,6 +106,52 @@ class Mesh2DRect(_core_new.DataCollection):
         return obj
 
     # -----------------
+    # bsplines
+    # ------------------
+
+    def add_bsplines(self, key=None, deg=None):
+        """ Add bspline basis functions on the chosen mesh """
+
+        # --------------
+        # check inputs
+
+        key, deg = _mesh_checks._mesh2DRect_bsplines(
+            key=key,
+            lkeys=list(self.dobj[self._groupmesh].keys()),
+            deg=deg,
+        )
+
+        # --------------
+        # get bsplines
+
+        dref, dobj = _mesh_comp._mesh2DRect_bsplines(
+            mesh=self, key=key, deg=deg,
+        )
+
+        self.update(dobj=dobj, dref=dref)
+
+    # -----------------
+    # get data subset
+    # ------------------
+
+    def get_profiles2d(self):
+        """ Return dict of profiles2d with associated bsplines as values """
+
+        # dict of bsplines shapes
+        dbs = {
+            k0: v0['ref']
+            for k0, v0 in self.dobj['bsplines'].items()
+        }
+
+        # dict of profiles2d
+        dk = {
+            k0: [k1 for k1, v1 in dbs.items() if v0['ref'][-2:] == v1][0]
+            for k0, v0 in self.ddata.items()
+            if len([k1 for k1, v1 in dbs.items() if v0['ref'][-2:] == v1]) == 1
+        }
+        return dk
+
+    # -----------------
     # indices
     # ------------------
 
@@ -188,35 +234,6 @@ class Mesh2DRect(_core_new.DataCollection):
         )
 
     # -----------------
-    # bsplines
-    # ------------------
-
-    def add_bsplines(self, key=None, deg=None):
-        """ Add bspline basis functions on the chosen mesh """
-
-        # --------------
-        # check inputs
-
-        key, deg = _mesh_checks._mesh2DRect_bsplines(
-            key=key,
-            lkeys=list(self.dobj[self._groupmesh].keys()),
-            deg=deg,
-        )
-
-        # --------------
-        # get bsplines
-
-        dref, dobj = _mesh_comp._mesh2DRect_bsplines(
-            mesh=self, key=key, deg=deg,
-        )
-
-        self.update(dobj=dobj, dref=dref)
-
-    def get_knots_per_bspline(self, key=None):
-        """ Return 2 arrays of knots positions in R and Z directionss """
-        return _mesh_comp._mesh2DRect_bsplines_knots(mesh=self, key=key)
-
-    # -----------------
     # interp tools
     # ------------------
 
@@ -264,6 +281,7 @@ class Mesh2DRect(_core_new.DataCollection):
         dax=None,
         dmargin=None,
         fs=None,
+        dleg=None,
     ):
 
         return _mesh_plot.plot_mesh(
@@ -275,6 +293,7 @@ class Mesh2DRect(_core_new.DataCollection):
             dax=dax,
             dmargin=dmargin,
             fs=fs,
+            dleg=dleg,
         )
 
     def plot_bsplines(
@@ -288,6 +307,7 @@ class Mesh2DRect(_core_new.DataCollection):
         dax=None,
         dmargin=None,
         fs=None,
+        dleg=None,
     ):
 
         return _mesh_plot.plot_bspline(
@@ -301,4 +321,34 @@ class Mesh2DRect(_core_new.DataCollection):
             dax=dax,
             dmargin=dmargin,
             fs=fs,
+            dleg=dleg,
+        )
+
+    def plot_profile2d(
+        self,
+        key=None,
+        indt=None,
+        res=None,
+        vmin=None,
+        vmax=None,
+        cmap=None,
+        dax=None,
+        dmargin=None,
+        fs=None,
+        dcolorbar=None,
+        dleg=None,
+    ):
+        return _mesh_plot.plot_profile2d(
+            mesh=self,
+            key=key,
+            indt=indt,
+            res=res,
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
         )

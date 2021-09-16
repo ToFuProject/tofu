@@ -89,12 +89,22 @@ def _get_bs2d_func_check(
         coefs = np.ones(shapec, dtype=float)
     else:
         coefs = np.atleast_1d(coefs)
-        if coefs.ndim < len(shapebs):
-            msg = ()
+        if coefs.ndim < len(shapebs) or coefs.ndim > len(shapebs) + 1:
+            msg = (
+                "coefs has too small / big shape!\n"
+                f"\t- coefs.shape: {coefs.shape}\n"
+                f"\t- shapebs:     {shapebs}"
+            )
+            raise Exception(msg)
         if coefs.ndim == len(shapebs):
             coefs = coefs.reshape(tuple(np.r_[1, coefs.shape]))
         if coefs.shape[1:] != shapebs:
-            msg = ()
+            msg = (
+                "coefs has wrong shape!\n"
+                f"\t- coefs.shape: {coefs.shape}\n"
+                f"\t- shapebs:     {shapebs}"
+            )
+            raise Exception(msg)
     return coefs, ii, jj, r, z
 
 

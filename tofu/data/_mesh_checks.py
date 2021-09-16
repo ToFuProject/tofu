@@ -254,6 +254,7 @@ def _mesh2DRect_to_dict(
     # dobj
     dmesh = {
         key: {
+            'type': 'rect',
             'R-knots': kRknots,
             'Z-knots': kZknots,
             'R-cent': kRcent,
