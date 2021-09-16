@@ -199,7 +199,7 @@ def _mesh2DRect_to_dict(
         raise Exception(msg)
 
     kRknots, kZknots = f"{key}-R-knots", f"{key}-Z-knots"
-    kRcent, kZcent = f"{key}-R-cent", f"{key}-Z-cent"
+    kRcent, kZcent = f"{key}-R-cents", f"{key}-Z-cents"
 
     R, Z, resR, resZ, indR, indZ = _mesh2DRect_check(domain=domain, res=res)
     Rcent = 0.5*(R[1:] + R[:-1])
@@ -255,8 +255,8 @@ def _mesh2DRect_to_dict(
             'type': 'rect',
             'R-knots': kRknots,
             'Z-knots': kZknots,
-            'R-cent': kRcent,
-            'Z-cent': kZcent,
+            'R-cents': kRcent,
+            'Z-cents': kZcent,
             'variable': variable,
         },
     }

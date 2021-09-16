@@ -382,8 +382,8 @@ def _mesh2DRect_bsplines_knotscents(
 
     if return_cents is True:
 
-        kR = mesh.dobj[mesh._groupmesh][mm]['R-cent']
-        kZ = mesh.dobj[mesh._groupmesh][mm]['Z-cent']
+        kR = mesh.dobj[mesh._groupmesh][mm]['R-cents']
+        kZ = mesh.dobj[mesh._groupmesh][mm]['Z-cents']
         Rcents = mesh.ddata[kR]['data']
         Zcents = mesh.ddata[kZ]['data']
 
@@ -531,6 +531,7 @@ def _interp_check(
             for v1 in mesh.dobj['bsplines'].values()
         ])
     }
+    dk.update({kk: kk for kk in mesh.dobj['bsplines'].keys()})
     if key is None and len(dk) == 1:
         ky = list(dk.keys())[0]
     if key not in dk.keys():
@@ -593,15 +594,21 @@ def interp(mesh=None, key=None, R=None, Z=None, grid=None, details=None):
     )
 
     # ---------------
-    # interp
+    # prepare
+
+    if keybs == key:
+        coefs = None
+    else:
+        coefs = mesh.ddata[key]['data']
 
     if details is True:
-        val = mesh.dobj['bsplines'][keybs]['func_details'](
-            R, Z, coefs=mesh.ddata[key]['data'],
-        )
+        fname = 'func_details'
     else:
-        val = mesh.dobj['bsplines'][keybs]['func_sum'](
-            R, Z, coefs=mesh.ddata[key]['data'],
-        )
+        fname = 'func_sum'
+
+    # ---------------
+    # interp
+
+    val = mesh.dobj['bsplines'][keybs][fname](R, Z, coefs=coefs)
 
     return val

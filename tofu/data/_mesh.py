@@ -279,20 +279,22 @@ class Mesh2DRect(_core_new.DataCollection):
         key=None,
         cam=None,
         res=None,
+        resMode=None,
+        method=None,
+        name=None,
     ):
 
-        dout = _matrix_comp.compute(
+        dref, ddata, dobj = _matrix_comp.compute(
             mesh=self,
             key=key,
             cam=cam,
             res=res,
+            resMode=resMode,
+            method=method,
+            name=name,
         )
 
-
-        mat = Matrix()
-        return mat
-
-
+        return Matrix(dref=dref, ddata=ddata, dobj=dobj)
 
     # -----------------
     # plotting
@@ -383,4 +385,32 @@ class Mesh2DRect(_core_new.DataCollection):
 
 
 class Matrix(Mesh2DRect):
-    pass
+
+    def plot_matrix(
+        self,
+        key=None,
+        indt=None,
+        res=None,
+        vmin=None,
+        vmax=None,
+        cmap=None,
+        dax=None,
+        dmargin=None,
+        fs=None,
+        dcolorbar=None,
+        dleg=None,
+    ):
+        return _matrix_plot.plot_matrix(
+            matrix=self,
+            key=key,
+            indt=indt,
+            res=res,
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+        )

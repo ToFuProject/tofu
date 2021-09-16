@@ -85,8 +85,9 @@ def _get_bs2d_func_check(
 
     # coefs
     if coefs is None:
-        shapec = tuple(np.r_[1, shapebs])
-        coefs = np.ones(shapec, dtype=float)
+        coefs = 1.
+    if np.isscalar(coefs):
+        pass
     else:
         coefs = np.atleast_1d(coefs)
         if coefs.ndim < len(shapebs) or coefs.ndim > len(shapebs) + 1:
@@ -105,6 +106,7 @@ def _get_bs2d_func_check(
                 f"\t- shapebs:     {shapebs}"
             )
             raise Exception(msg)
+
     return coefs, ii, jj, r, z
 
 
@@ -337,22 +339,33 @@ def get_bs2d_func(deg=None, Rknots=None, Zknots=None):
             z=z,
             shapebs=shapebs,
         )
-        nt = coefs.shape[0]
+        nt = 1 if np.isscalar(coefs) else coefs.shape[0]
         shapepts = r.shape
 
         if ii is None:
             shape = tuple(np.r_[nt, shapepts, shapebs])
             val = np.full(shape, np.nan)
-            for ii in range(shapebs[0]):
-                for jj in range(shapebs[1]):
-                    val[..., ii, jj] = RectBiv[ii][jj](
-                        r,
-                        z,
-                        coefs=coefs[:, ii, jj],
-                    )
+            if np.isscalar(coefs):
+                for ii in range(shapebs[0]):
+                    for jj in range(shapebs[1]):
+                        val[..., ii, jj] = RectBiv[ii][jj](
+                            r,
+                            z,
+                            coefs=coefs,
+                        )
+            else:
+                for ii in range(shapebs[0]):
+                    for jj in range(shapebs[1]):
+                        val[..., ii, jj] = RectBiv[ii][jj](
+                            r,
+                            z,
+                            coefs=coefs[:, ii, jj],
+                        )
         else:
-            shape = tuple(np.r_[nt, shapepts])
-            val = RectBiv[ii][jj](r, z, coefs=coefs[:, ii, jj])
+            if np.isscalar(coefs):
+                val = RectBiv[ii][jj](r, z, coefs=coefs)
+            else:
+                val = RectBiv[ii][jj](r, z, coefs=coefs[:, ii, jj])
         return val
 
     def RectBiv_sum(
@@ -377,19 +390,35 @@ def get_bs2d_func(deg=None, Rknots=None, Zknots=None):
 
         shape = tuple(np.r_[nt, shapepts])
         val = np.zeros(shape, dtype=float)
-        for ii in range(shapebs[0]):
-            for jj in range(shapebs[1]):
-                indok = (
-                    (knots_per_bs_R[0, ii] <= r)
-                    & (r <= knots_per_bs_R[-1, ii])
-                    & (knots_per_bs_Z[0, jj] <= z)
-                    & (z <= knots_per_bs_Z[-1, jj])
-                )
-                val[:, indok] += RectBiv[ii][jj](
-                    r[indok],
-                    z[indok],
-                    coefs=coefs[:, ii, jj],
-                )
+        if np.isscalar(coefs):
+            for ii in range(shapebs[0]):
+                for jj in range(shapebs[1]):
+                    indok = (
+                        (knots_per_bs_R[0, ii] <= r)
+                        & (r <= knots_per_bs_R[-1, ii])
+                        & (knots_per_bs_Z[0, jj] <= z)
+                        & (z <= knots_per_bs_Z[-1, jj])
+                    )
+                    val[:, indok] += RectBiv[ii][jj](
+                        r[indok],
+                        z[indok],
+                        coefs=coefs,
+                    )
+
+        else:
+            for ii in range(shapebs[0]):
+                for jj in range(shapebs[1]):
+                    indok = (
+                        (knots_per_bs_R[0, ii] <= r)
+                        & (r <= knots_per_bs_R[-1, ii])
+                        & (knots_per_bs_Z[0, jj] <= z)
+                        & (z <= knots_per_bs_Z[-1, jj])
+                    )
+                    val[:, indok] += RectBiv[ii][jj](
+                        r[indok],
+                        z[indok],
+                        coefs=coefs[:, ii, jj],
+                    )
         return val
 
     return RectBiv_details, RectBiv_sum, shapebs, Rbs_cent, Zbs_cent
