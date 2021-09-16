@@ -142,7 +142,7 @@ def _select_mesh(
     # ------------
     # non-trivial case
 
-    if returnas is 'ind':
+    if returnas == 'ind':
         out = ind
     else:
         out = R[ind[0]], Z[ind[1]]
