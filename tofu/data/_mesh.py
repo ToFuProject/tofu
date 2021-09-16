@@ -15,6 +15,7 @@ from . import _core_new
 from . import _mesh_checks
 from . import _mesh_comp
 from . import _mesh_plot
+from . import _matrix_comp
 
 
 _GROUP_MESH = 'mesh'
@@ -270,6 +271,30 @@ class Mesh2DRect(_core_new.DataCollection):
         )
 
     # -----------------
+    # geometry matrix
+    # ------------------
+
+    def compute_geometry_matrix(
+        self,
+        key=None,
+        cam=None,
+        res=None,
+    ):
+
+        dout = _matrix_comp.compute(
+            mesh=self,
+            key=key,
+            cam=cam,
+            res=res,
+        )
+
+
+        mat = Matrix()
+        return mat
+
+
+
+    # -----------------
     # plotting
     # ------------------
 
@@ -353,3 +378,9 @@ class Mesh2DRect(_core_new.DataCollection):
             dcolorbar=dcolorbar,
             dleg=dleg,
         )
+
+
+
+
+class Matrix(Mesh2DRect):
+    pass
