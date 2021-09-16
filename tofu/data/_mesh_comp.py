@@ -43,7 +43,7 @@ def _select_ind(
 
     lk1 = list(mesh.dobj[mesh._groupmesh].keys())
     lk2 = list(mesh.dobj.get('bsplines', {}).keys())
-    if key is None and len(lk1 +lk2) == 1:
+    if key is None and len(lk1 + lk2) == 1:
         key = lk[0]
     if key not in lk1+lk2:
         msg = (
@@ -166,7 +166,9 @@ def _select_mesh(
             np.zeros(shape, dtype=int),
             np.zeros(shape, dtype=int),
         )
-        rsh = tuple([4 if ii==len(shape)-1 else 1 for ii in range(len(shape))])
+        rsh = tuple(
+            [4 if ii == len(shape)-1 else 1 for ii in range(len(shape))]
+        )
 
         if elements == 'cent':
             neig[0][...] = ind[0][..., None] + np.r_[0, 1, 1, 0].reshape(rsh)

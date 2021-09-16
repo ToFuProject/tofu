@@ -55,7 +55,6 @@ def _mesh2DRect_X_check(
 
     """
 
-
     # ------------
     # Check inputs
 
@@ -106,12 +105,12 @@ def _mesh2DRect_X_check(
         res_sum = res[:-1] + res[1:]
         ind = res_sum > delta + 1.e-14
         if np.any(ind):
-           msg = (
-               "Desired resolution is not achievable for the following:\n"
-               f"res_sum: {res_sum[ind]}\n"
-               f"delta  : {delta[ind]}"
-           )
-           raise Exception(msg)
+            msg = (
+                "Desired resolution is not achievable for the following:\n"
+                f"res_sum: {res_sum[ind]}\n"
+                f"delta  : {delta[ind]}"
+            )
+            raise Exception(msg)
 
         # compute nn
         # nn = how many pairs can fit in the interval
@@ -138,7 +137,6 @@ def _mesh2DRect_X_check(
         x_new = np.concatenate(x_new)
 
     return x_new, res_new, indsep
-
 
 
 def _mesh2DRect_check(
@@ -369,7 +367,7 @@ def _select_ind_check(
             raise Exception(msg)
 
     # elements
-    elements =  _check_var(
+    elements = _check_var(
         elements, 'elements',
         types=str,
         default='knots',
@@ -377,7 +375,7 @@ def _select_ind_check(
     )
 
     # returnas
-    returnas =  _check_var(
+    returnas = _check_var(
         returnas, 'returnas',
         types=None,
         default=tuple,
@@ -394,7 +392,7 @@ def _select_check(
 ):
 
     # elements
-    elements =  _check_var(
+    elements = _check_var(
         elements, 'elements',
         types=str,
         default='knots',
@@ -402,7 +400,7 @@ def _select_check(
     )
 
     # returnas
-    returnas =  _check_var(
+    returnas = _check_var(
         returnas, 'returnas',
         types=None,
         default='ind',
@@ -410,7 +408,7 @@ def _select_check(
     )
 
     # return_neighbours
-    return_neighbours =  _check_var(
+    return_neighbours = _check_var(
         return_neighbours, 'return_neighbours',
         types=bool,
         default=True,

@@ -89,7 +89,6 @@ class Test01_checks():
                 assert x_new.size == np.unique(x_new).size == res.size + 1
 
 
-
 class Test02_Mesh2DRect():
 
     @classmethod
@@ -209,14 +208,16 @@ class Test02_Mesh2DRect():
                 res=lres[ii], grid=lgrid[ii], mode=lmode[ii],
             )
 
-    # def test06_sample_bspline(self):
-        # lres = [None, 0.1, 0.01, [0.1, 0.05]]
-        # lmode = [None, 'rel', 'abs', 'abs']
-        # lgrid = [None, True, False, False]
-        # for ii, (k0, v0) in enumerate(self.dobj.items()):
-            # out = v0.get_sample_bspline(
-                # res=lres[ii], grid=lgrid[ii], mode=lmode[ii],
-            # )
+    """
+    def test06_sample_bspline(self):
+        lres = [None, 0.1, 0.01, [0.1, 0.05]]
+        lmode = [None, 'rel', 'abs', 'abs']
+        lgrid = [None, True, False, False]
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            out = v0.get_sample_bspline(
+                res=lres[ii], grid=lgrid[ii], mode=lmode[ii],
+            )
+    """
 
     def test07_plot_mesh(self):
         lik = [None, ([0, 2], [0, 3]), [2, 3], None]
