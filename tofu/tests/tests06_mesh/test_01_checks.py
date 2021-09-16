@@ -241,3 +241,22 @@ class Test02_Mesh2DRect():
                 cents=lcents[ii],
             )
         plt.close('all')
+
+    def test09_plot_profile2d(self):
+        lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            key = str(ii)
+            kbs = lkey[ii]
+            ref = self.dobj[k0].dobj['bsplines'][kbs]['ref']
+            shapebs = self.dobj[k0].dobj['bsplines'][kbs]['shapebs']
+
+            self.dobj[k0].add_data(
+                key=key,
+                data=np.random.random(shapebs),
+                ref=ref,
+            )
+
+            dax = self.dobj[k0].plot_profile2d(
+                key=key,
+            )
+        plt.close('all')
