@@ -178,7 +178,7 @@ def _select_mesh(
             neig[1][(neig[1] < 0) | (neig[1] >= nZneig)] = -1
 
         # return neighbours in desired format
-        if returnas is 'ind':
+        if returnas == 'ind':
             neig_out = neig
         else:
             neig_out = np.array([
