@@ -102,8 +102,7 @@ def _plot_mesh_prepare(
     key=None,
 ):
 
-    Rk = mesh.dobj[mesh._groupmesh][key]['R-knots']
-    Zk = mesh.dobj[mesh._groupmesh][key]['Z-knots']
+    Rk, Zk = mesh.dobj[mesh._groupmesh][key]['knots']
     R = mesh.ddata[Rk]['data']
     Z = mesh.ddata[Zk]['data']
 
@@ -302,8 +301,7 @@ def _plot_bspline_prepare(
     # check input
     deg = mesh.dobj['bsplines'][key]['deg']
     km = mesh.dobj['bsplines'][key]['mesh']
-    kR = mesh.dobj['mesh'][km]['R-knots']
-    kZ = mesh.dobj['mesh'][km]['Z-knots']
+    kR, kZ = mesh.dobj['mesh'][km]['knots']
     Rk = mesh.ddata[kR]['data']
     Zk = mesh.ddata[kZ]['data']
     dR = np.min(np.diff(Rk))
@@ -523,8 +521,7 @@ def _plot_profiles2d_prepare(
     # check input
     deg = mesh.dobj['bsplines'][keybs]['deg']
     km = mesh.dobj['bsplines'][keybs]['mesh']
-    kR = mesh.dobj['mesh'][km]['R-knots']
-    kZ = mesh.dobj['mesh'][km]['Z-knots']
+    kR, kZ = mesh.dobj['mesh'][km]['knots']
     Rk = mesh.ddata[kR]['data']
     Zk = mesh.ddata[kZ]['data']
     dR = np.min(np.diff(Rk))

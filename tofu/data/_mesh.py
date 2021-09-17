@@ -84,7 +84,9 @@ class Mesh2DRect(_core_new.DataCollection):
         config=None,
         key_struct=None,
         res=None,
+        deg=None,
         key=None,
+        thresh_in=None,
     ):
         """
 
@@ -99,12 +101,15 @@ class Mesh2DRect(_core_new.DataCollection):
 
         """
 
-        domain = _mesh_checks._mesh2DRect_from_Config(
+        domain, poly = _mesh_checks._mesh2DRect_from_Config(
             config=config, key_struct=key_struct,
         )
 
         obj = cls()
         obj.add_mesh(domain=domain, res=res, key=key)
+        if deg is not None:
+            obj.add_bsplines(deg=deg)
+        obj.crop(key=key, crop=poly, thresh_in=thresh_in)
         return obj
 
     # -----------------
@@ -174,6 +179,7 @@ class Mesh2DRect(_core_new.DataCollection):
             mesh=self,
             key=key,
             ind=ind,
+            elements=elements,
             returnas=returnas,
         )
 
@@ -278,6 +284,38 @@ class Mesh2DRect(_core_new.DataCollection):
             grid=grid,
             details=details,
         )
+
+    # -----------------
+    # crop
+    # ------------------
+
+    def crop(self, key=None, crop=None, thresh_in=None):
+        """ Crop a mesh using
+
+            - a mask of bool for each mesh elements
+            - a 2d (R, Z) closed polygon
+
+        If applied on a bspline, cropping is double-checked to make sure
+        all remaining bsplines have full support domain
+        """
+        crop, key, keybs, keym, thresh_in = _mesh_comp.crop(
+            mesh=self,
+            key=key,
+            crop=crop,
+            thresh_in=thresh_in,
+        )
+
+        keycrop = f'{key}-crop'
+        self.add_data(
+            key=keycrop,
+            data=crop,
+            ref=self.dobj['mesh'][keym]['ref'],
+            dim='bool',
+            quant='bool',
+        )
+
+        self._dobj['mesh'][keym]['crop'] = keycrop
+        self._dobj['mesh'][keym]['crop-thresh'] = thresh_in
 
     # -----------------
     # geometry matrix

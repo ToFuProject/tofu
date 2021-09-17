@@ -6,6 +6,7 @@
 
 # Common
 import numpy as np
+from matplotlib.path import Path
 
 
 # tofu
@@ -46,8 +47,8 @@ def _select_ind(
     lk1 = list(mesh.dobj[mesh._groupmesh].keys())
     lk2 = list(mesh.dobj.get('bsplines', {}).keys())
     if key is None and len(lk1 + lk2) == 1:
-        key = lk[0]
-    if key not in lk1+lk2:
+        key = (lk1 + lk2)[0]
+    if key not in lk1 + lk2:
         msg = (
             "Arg key must be a valid mesh identifier!\n"
             f"\t available: {lk1+lk2}\n"
@@ -56,8 +57,7 @@ def _select_ind(
         raise Exception(msg)
 
     if key in lk1:
-        kR = mesh.dobj[mesh._groupmesh][key][f'R-{elements}']
-        kZ = mesh.dobj[mesh._groupmesh][key][f'Z-{elements}']
+        kR, kZ = mesh.dobj[mesh._groupmesh][key][f'{elements}']
     else:
         kR, kZ = mesh.dobj['bsplines'][key]['ref']
 
@@ -141,8 +141,7 @@ def _select_mesh(
     # ------------
     # prepare
 
-    kR = mesh.dobj[mesh._groupmesh][key][f'R-{elements}']
-    kZ = mesh.dobj[mesh._groupmesh][key][f'Z-{elements}']
+    kR, kZ = mesh.dobj[mesh._groupmesh][key][f'{elements}']
     R = mesh.ddata[kR]['data']
     Z = mesh.ddata[kZ]['data']
     nR = R.size
@@ -161,9 +160,8 @@ def _select_mesh(
 
     if return_neighbours is True:
 
-        elneig = 'cent' if elements == 'knots' else 'knots'
-        kRneig = mesh.dobj[mesh._groupmesh][key][f'R-{elneig}']
-        kZneig = mesh.dobj[mesh._groupmesh][key][f'Z-{elneig}']
+        elneig = 'cents' if elements == 'knots' else 'knots'
+        kRneig, kZneig = mesh.dobj[mesh._groupmesh][key][f'{elneig}']
         Rneig = mesh.ddata[kRneig]['data']
         Zneig = mesh.ddata[kZneig]['data']
         nRneig = Rneig.size
@@ -179,7 +177,7 @@ def _select_mesh(
             [4 if ii == len(shape)-1 else 1 for ii in range(len(shape))]
         )
 
-        if elements == 'cent':
+        if elements == 'cents':
             neig[0][...] = ind[0][..., None] + np.r_[0, 1, 1, 0].reshape(rsh)
             neig[1][...] = ind[1][..., None] + np.r_[0, 0, 1, 1].reshape(rsh)
         elif elements == 'knots':
@@ -269,8 +267,7 @@ def _mesh2DRect_bsplines(mesh=None, key=None, deg=None):
     # --------------
     # create bsplines
 
-    kR = mesh.dobj[mesh._groupmesh][key]['R-knots']
-    kZ = mesh.dobj[mesh._groupmesh][key]['Z-knots']
+    kR, kZ = mesh.dobj[mesh._groupmesh][key]['knots']
     Rknots = mesh.ddata[kR]['data']
     Zknots = mesh.ddata[kZ]['data']
 
@@ -292,7 +289,7 @@ def _mesh2DRect_bsplines(mesh=None, key=None, deg=None):
         kRbsc: {
             'data': Rbs_cent,
             'units': 'm',
-            'dimension': 'distance',
+            'dim': 'distance',
             'quant': 'R',
             'name': 'R',
             'group': 'R',
@@ -300,7 +297,7 @@ def _mesh2DRect_bsplines(mesh=None, key=None, deg=None):
         kZbsc: {
             'data': Zbs_cent,
             'units': 'm',
-            'dimension': 'distance',
+            'dim': 'distance',
             'quant': 'Z',
             'name': 'Z',
             'group': 'Z',
@@ -313,9 +310,7 @@ def _mesh2DRect_bsplines(mesh=None, key=None, deg=None):
                 'deg': deg,
                 'mesh': key,
                 'ref': (kRbsc, kZbsc),
-                # 'Rbs': kRbsc,
-                # 'Zbs': kZbsc,
-                'shapebs': shapebs,
+                'shape': shapebs,
                 'func_details': func_details,
                 'func_sum': func_sum,
             }
@@ -370,8 +365,7 @@ def _mesh2DRect_bsplines_knotscents(
 
     if return_knots is True:
 
-        kR = mesh.dobj[mesh._groupmesh][mm]['R-knots']
-        kZ = mesh.dobj[mesh._groupmesh][mm]['Z-knots']
+        kR, kZ = mesh.dobj[mesh._groupmesh][mm]['knots']
         Rknots = mesh.ddata[kR]['data']
         Zknots = mesh.ddata[kZ]['data']
 
@@ -391,8 +385,7 @@ def _mesh2DRect_bsplines_knotscents(
 
     if return_cents is True:
 
-        kR = mesh.dobj[mesh._groupmesh][mm]['R-cents']
-        kZ = mesh.dobj[mesh._groupmesh][mm]['Z-cents']
+        kR, kZ = mesh.dobj[mesh._groupmesh][mm]['cents']
         Rcents = mesh.ddata[kR]['data']
         Zcents = mesh.ddata[kZ]['data']
 
@@ -485,8 +478,7 @@ def sample_mesh(mesh, key=None, res=None, mode=None, grid=None, imshow=None):
     # -------------
     # compute
 
-    kR = mesh.dobj[mesh._groupmesh][key]['R-knots']
-    kZ = mesh.dobj[mesh._groupmesh][key]['Z-knots']
+    kR, kZ = mesh.dobj[mesh._groupmesh][key]['knots']
     R = mesh.ddata[kR]['data']
     Z = mesh.ddata[kZ]['data']
 
@@ -523,6 +515,137 @@ def sample_mesh(mesh, key=None, res=None, mode=None, grid=None, imshow=None):
             Z = np.tile(Z, (nR, 1))
 
     return R, Z
+
+
+# #############################################################################
+# #############################################################################
+#                           Mesh2DRect - crop
+# #############################################################################
+
+
+def _crop_check(mesh=None, key=None, crop=None, thresh_in=None):
+
+    # key
+    lkm = list(mesh.dobj['mesh'].keys())
+    lkbs = list(mesh.dobj.get('bsplines', {}).keys())
+    if key is None and len(lkm + lkbs) == 1:
+        key = (lkm + lkbs)[0]
+    key = _mesh_checks._check_var(key, 'key', default=None, types=str, allowed=lkm + lkbs)
+
+    if key in lkbs:
+        keybs = key
+        keym = mesh.dobj['bsplines'][key]['mesh']
+    else:
+        keybs = None
+        keym = str(key)
+
+    shape = mesh.dobj['mesh'][keym]['shape']
+
+    # crop
+    c0 = (
+        isinstance(crop, np.ndarray)
+        and crop.ndim == 2
+        and np.all(np.isfinite(crop))
+        and (
+            (
+                crop.shape[0] == 2
+                and np.allclose(crop[:, 0], crop[:, -1])
+                and crop.dtype in [np.int_, np.float_]
+            )
+            or (
+                crop.shape == shape
+                and crop.dtype == np.bool_
+            )
+        )
+    )
+    if not c0:
+        msg = (
+            "Arg crop must be either:\n"
+            f"\t- array of bool: mask of shape {shape}\n"
+            f"\t- array of floats: (2, npts) closed (R, Z) polygon\n"
+            f"Provided:\n{crop}"
+        )
+        raise Exception(msg)
+
+    cropbool = crop.dtype == np.bool_
+
+    # thresh_in
+    if thresh_in is None:
+        thresh_in = 3
+    maxth = 5 if mesh.dobj['mesh'][keym]['type'] == 'rect' else 4
+    c0 = isinstance(thresh_in, (int, np.int_)) and (1 <= thresh_in <= maxth)
+    if not c0:
+        msg = (
+            f"Arg thresh_in must be a int in {1} <= thresh_in <= {maxth}\n"
+            f"Provided: {thresh_in}"
+        )
+        raise Exception(msg)
+
+    return key, keybs, keym, cropbool, thresh_in
+
+
+def crop(mesh=None, key=None, crop=None, thresh_in=None):
+
+    # ------------
+    # check inputs
+
+    key, keybs, keym, cropbool, thresh_in = _crop_check(
+        mesh=mesh, key=key, crop=crop, thresh_in=thresh_in,
+    )
+
+    # -----------
+    # if crop is a poly => compute as bool
+
+    if not cropbool:
+        (Rc, Zc), (Rk, Zk) = mesh.select_mesh_elements(
+            key=keym, elements='cents', return_neighbours=True, returnas='data',
+        )
+        nR, nZ = Rc.shape
+        npts = Rk.shape[-1] + 1
+
+        pts = np.concatenate(
+            (
+                np.concatenate((Rc[:, :, None], Rk), axis=-1)[..., None],
+                np.concatenate((Zc[:, :, None], Zk), axis=-1)[..., None],
+            ),
+            axis=-1,
+        ).reshape((npts*nR*nZ, 2))
+
+        isin = Path(crop.T).contains_points(pts).reshape((nR, nZ, npts))
+        crop = np.sum(isin, axis=-1) >= thresh_in
+
+    return crop, key, keybs, keym, thresh_in
+
+
+def get_cropbs_from_crop(mesh=None, crop=None, keybs=None):
+
+    if isinstance(crop, str) and crop in mesh.ddata.keys():
+        crop = mesh.ddata[crop]['data']
+
+    shaperef = mesh.dobj['mesh'][mesh.dobj['bsplines'][keybs]['mesh']]['shape']
+    if crop.shape != shaperef:
+        msg = "Arg crop seems to have the wrong shape!"
+        raise Exception(msg)
+
+    cents_per_bs_R, cents_per_bs_Z = _mesh2DRect_bsplines_knotscents(
+        mesh=mesh,
+        key=keybs,
+        returnas='ind',
+        return_knots=False,
+        return_cents=True,
+        ind=None,
+    )
+
+    shapebs = mesh.dobj['bsplines'][keybs]['shape']
+    cropbs = np.array([
+        [
+            np.all(crop[cents_per_bs_R[:, ii], cents_per_bs_Z[:, jj]])
+            for jj in range(shapebs[1])
+        ]
+        for ii in range(shapebs[0])
+    ], dtype=bool)
+
+    return cropbs
 
 
 # #############################################################################
@@ -632,3 +755,5 @@ def interp(mesh=None, key=None, R=None, Z=None, grid=None, details=None):
     val = mesh.dobj['bsplines'][keybs][fname](R, Z, coefs=coefs)
 
     return val
+
+

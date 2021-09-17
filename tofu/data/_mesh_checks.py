@@ -8,6 +8,9 @@
 import numpy as np
 
 
+_ELEMENTS = 'knots'
+
+
 # #############################################################################
 # #############################################################################
 #                           Utilities
@@ -253,10 +256,10 @@ def _mesh2DRect_to_dict(
     dmesh = {
         key: {
             'type': 'rect',
-            'R-knots': kRknots,
-            'Z-knots': kZknots,
-            'R-cents': kRcent,
-            'Z-cents': kZcent,
+            'knots': (kRknots, kZknots),
+            'cents': (kRcent, kZcent),
+            'ref': (kRcent, kZcent),
+            'shape': (Rcent.size, Zcent.size),
             'variable': variable,
         },
     }
@@ -284,12 +287,12 @@ def _mesh2DRect_from_Config(config=None, key_struct=None):
     # -------------
     # domain
 
-    poly = config.dStruct['dObj']['Ves'][key_struct].Poly
+    poly = config.dStruct['dObj']['Ves'][key_struct].Poly_closed
     domain = [
         [poly[0, :].min(), poly[0, :].max()],
         [poly[1, :].min(), poly[1, :].max()],
     ]
-    return domain
+    return domain, poly
 
 
 # #############################################################################
@@ -370,8 +373,8 @@ def _select_ind_check(
     elements = _check_var(
         elements, 'elements',
         types=str,
-        default='knots',
-        allowed=['knots', 'cent'],
+        default=_ELEMENTS,
+        allowed=['knots', 'cents'],
     )
 
     # returnas
@@ -395,8 +398,8 @@ def _select_check(
     elements = _check_var(
         elements, 'elements',
         types=str,
-        default='knots',
-        allowed=['knots', 'cent'],
+        default=_ELEMENTS,
+        allowed=['knots', 'cents'],
     )
 
     # returnas

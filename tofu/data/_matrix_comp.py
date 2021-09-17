@@ -104,7 +104,7 @@ def compute(
     # prepare
 
     nlos = cam.nRays
-    shapebs = mesh.dobj['bsplines'][key]['shapebs']
+    shapebs = mesh.dobj['bsplines'][key]['shape']
     shapemat = tuple(np.r_[nlos, shapebs])
     mat = np.zeros(shapemat, dtype=float)
 
