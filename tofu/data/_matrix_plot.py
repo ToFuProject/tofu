@@ -174,6 +174,7 @@ def _plot_matrix_check(
 
 
 def _plot_matrix_prepare(
+    cam=None,
     matrix=None,
     key=None,
     keybs=None,
@@ -182,10 +183,6 @@ def _plot_matrix_prepare(
     indchan=None,
     res=None,
 ):
-
-    # extent_mat
-    nchan, nbs = matrix.ddata[key]['data'].shape
-    extent_mat = (0-0.5, nbs-0.5, 0-0.5, nchan-0.5)
 
     # res
     deg = matrix.dobj['bsplines'][keybs]['deg']
@@ -212,7 +209,8 @@ def _plot_matrix_prepare(
     grid = np.concatenate((vert, hor), axis=1)
 
     # indchan => indchan_bf
-    indchan_bf = matrix.select_ind(key=keybs, returnas='flat')
+    indchan_bf = matrix.select_ind(key=keybs, returnas=np.ndarray)
+    indbf_tup = matrix.select_ind(key=keybs, ind=indbf, returnas=tuple)
 
     # bspline1
     km = matrix.dobj['bsplines'][keybs]['mesh']
@@ -234,7 +232,26 @@ def _plot_matrix_prepare(
     bspline1[bspline1 == 0] = np.nan
 
     # bspline2
-    bspline2 = None
+    coefs[...] = 0.
+    coefs[0, indbf_tup[0], indbf_tup[1]] = 1.
+    bspline2 = matrix.dobj['bsplines'][keybs]['func_sum'](
+        R, Z, coefs=coefs,
+    )[0, ...]
+    bspline2[bspline2 == 0] = np.nan
+
+    # los
+    ptslos, coefslines, indlosok = None, None, None
+    if cam is not None:
+        ptslos = cam._get_plotL(return_pts=True, proj='cross', Lplot='tot')
+        indsep = np.nonzero(np.isnan(ptslos[0, :]))[0]
+        ptslos = np.split(ptslos, indsep, axis=1)
+        coefslines = matrix.ddata[key]['data'][:, indbf]
+        indlosok = np.nonzero(coefslines > 0)[0]
+        # normalize for line width
+        coefslines =  (
+            (3. - 0.5) * (coefslines - coefslines.min())
+            / (coefslines.max() - coefslines.min()) + 0.5
+        )
 
     # extent and interp
     extent = (
@@ -249,10 +266,14 @@ def _plot_matrix_prepare(
     elif deg >= 2:
         interp = 'bicubic'
 
-    return extent_mat, bsplinetot, bspline1, bspline2, extent, interp, grid
+    return (
+        bsplinetot, bspline1, bspline2, extent, interp,
+        grid, ptslos, coefslines, indlosok
+    )
 
 
 def plot_matrix(
+    cam=None,
     matrix=None,
     key=None,
     indbf=None,
@@ -290,10 +311,11 @@ def plot_matrix(
     #  Prepare data
 
     (
-        extent_mat,
         bsplinetot, bspline1, bspline2,
         extent, interp, grid,
+        ptslos, coefslines, indlosok,
     ) = _plot_matrix_prepare(
+        cam=cam,
         matrix=matrix,
         key=key,
         keybs=keybs,
@@ -307,7 +329,6 @@ def plot_matrix(
     # --------------
     # plot - prepare
 
-    dax = _check_dax(dax=dax, main='matrix')
     if dax is None:
 
         if fs is None:
@@ -346,7 +367,7 @@ def plot_matrix(
             'matrix': ax01,
             'cross1': {'ax': ax10, 'type': 'cross'},
             'cross2': {'ax': ax12, 'type': 'cross'},
-            'cross3': {'ax': ax11, 'type': 'cross'},
+            'crosstot': {'ax': ax11, 'type': 'cross'},
             'misc1': {'ax': ax00, 'type': 'misc'},
             'misc2': {'ax': ax02, 'type': 'misc'},
         }
@@ -363,7 +384,6 @@ def plot_matrix(
         # matrix
         im = ax.imshow(
             matrix.ddata[key]['data'],
-            extent=extent_mat,
             interpolation='nearest',
             origin='upper',
             aspect='auto',
@@ -430,6 +450,15 @@ def plot_matrix(
             vmax=None,
         )
 
+        if ptslos is not None:
+            ax.plot(
+                ptslos[indchan][0, :],
+                ptslos[indchan][1, :],
+                ls='-',
+                lw=1.,
+                color='k',
+            )
+
     kax = 'cross2'
     if dax.get(kax) is not None:
         ax = dax[kax]['ax']
@@ -456,7 +485,17 @@ def plot_matrix(
                 vmax=1,
             )
 
-    kax = 'cross3'
+        if ptslos is not None:
+            for ii in indlosok:
+                ax.plot(
+                    ptslos[ii][0, :],
+                    ptslos[ii][1, :],
+                    ls='-',
+                    lw=coefslines[ii],
+                    color='k',
+                )
+
+    kax = 'crosstot'
     if dax.get(kax) is not None:
         ax = dax[kax]['ax']
 
