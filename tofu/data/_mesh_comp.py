@@ -85,11 +85,20 @@ def _select_ind(
         out = ind
 
     else:
-        c0 = np.all((ind >= 0) & (ind < nR*nZ))
-        if not c0:
-            msg = f"Arg ind has non-valid values (< 0 or >= size ({nR*nZ}))"
-            raise Exception(msg)
-        out = (ind % nR, ind // nR)
+        if ind.dtype == np.int_:
+            c0 = np.all((ind >= 0) & (ind < nR*nZ))
+            if not c0:
+                msg = f"Arg ind has non-valid values (< 0 or >= size ({nR*nZ}))"
+                raise Exception(msg)
+            out = (ind % nR, ind // nR)
+        else:
+            if ind.shape != (nR, nZ):
+                msg = (
+                    f"Arg ind, when array of bool, must have shape {(nR,nZ)}\n"
+                    "Provided: {ind.shape}"
+                )
+                raise Exception(msg)
+            out = ind.nonzero()
 
     # ------------
     # tuple to return
@@ -101,9 +110,13 @@ def _select_ind(
         out = (out[0].T.ravel(), out[1].T.ravel())
     elif returnas is np.ndarray:
         out = out[0] + out[1]*nR
-    else:
+    elif returnas == 'array-flat':
         # make sure R is varying first
         out = (out[0] + out[1]*nR).T.ravel()
+    else:
+        out2 = np.zeros((nR, nZ), dtype=bool)
+        out2[out[0], out[1]] = True
+        out = out2
 
     return out
 

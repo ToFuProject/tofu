@@ -261,6 +261,7 @@ def _mesh2DRect_to_dict(
             'ref': (kRcent, kZcent),
             'shape': (Rcent.size, Zcent.size),
             'variable': variable,
+            'crop': False,
         },
     }
     return dref, dmesh
@@ -363,9 +364,10 @@ def _select_ind_check(
     else:
         if not isinstance(ind, np.ndarray):
             ind = np.atleast_1d(ind).astype(int)
-        if not ind.dtype == np.int_:
+        if not ind.dtype in [np.bool_, np.int_]:
             msg = (
-                "Arg ind must be an array of int"
+                "Arg ind must be an array of bool or int\n"
+                f"Provided: {ind.dtype}"
             )
             raise Exception(msg)
 
@@ -382,7 +384,7 @@ def _select_ind_check(
         returnas, 'returnas',
         types=None,
         default=tuple,
-        allowed=[tuple, np.ndarray, 'tuple-flat', 'array-flat'],
+        allowed=[tuple, np.ndarray, 'tuple-flat', 'array-flat', bool],
     )
 
     return ind, elements, returnas

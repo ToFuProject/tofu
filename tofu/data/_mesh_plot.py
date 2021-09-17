@@ -52,6 +52,8 @@ def _plot_mesh_check(
     key=None,
     ind_knot=None,
     ind_cent=None,
+    crop=None,
+    bck=None,
     color=None,
     dleg=None,
 ):
@@ -76,6 +78,10 @@ def _plot_mesh_check(
             returnas='data', return_neighbours=True,
         )
 
+    # crop, bck
+    crop = _check_var(crop, 'crop', default=True, types=bool)
+    bck = _check_var(bck, 'bck', default=True, types=bool)
+
     # color
     if color is None:
         color = 'k'
@@ -94,15 +100,20 @@ def _plot_mesh_check(
     }
     dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
 
-    return key, ind_knot, ind_cent, color, dleg
+    return key, ind_knot, ind_cent, crop, bck, color, dleg
 
 
 def _plot_mesh_prepare(
     mesh=None,
     key=None,
+    crop=None,
+    bck=None,
 ):
 
-    Rk, Zk = mesh.dobj[mesh._groupmesh][key]['knots']
+    # --------
+    # prepare
+
+    Rk, Zk = mesh.dobj['mesh'][key]['knots']
     R = mesh.ddata[Rk]['data']
     Z = mesh.ddata[Zk]['data']
 
@@ -114,9 +125,80 @@ def _plot_mesh_prepare(
         np.tile((R[0], R[-1], np.nan), Z.size),
         np.repeat(Z, 3),
     ])
-    grid = np.concatenate((vert, hor), axis=1)
 
-    return grid
+    # --------
+    # compute
+
+    grid_bck = None
+    if crop is False or mesh.dobj['mesh'][key]['crop'] is False:
+        grid = np.concatenate((vert, hor), axis=1)
+
+    else:
+
+        crop = mesh.ddata[mesh.dobj['mesh'][key]['crop']]['data']
+
+        grid = []
+        icropR = np.r_[range(R.size-1), R.size-2]
+        jcropZ = np.r_[range(Z.size-1), Z.size-2]
+
+        # vertical lines  TBC
+        for ii, ic in enumerate(icropR):
+            if np.any(crop[ic, :]):
+                if ic == 0:
+                    cropi = crop[ic, :]
+                else:
+                    cropi = crop[ic, :] | crop[ic-1, :]
+                lseg = []
+                for jj, jc in enumerate(jcropZ):
+                    if jj == 0 and cropi[jc]:
+                        lseg.append(Z[jj])
+                    elif jj == Z.size-1 and cropi[jc]:
+                        lseg.append(Z[jj])
+                    elif cropi[jc] and not cropi[jc-1]:
+                        if len(lseg) > 0:
+                            lseg.append(np.nan)
+                        lseg.append(Z[jj])
+                    elif (not cropi[jc]) and cropi[jc-1]:
+                        lseg.append(Z[jj])
+                grid.append(np.concatenate(
+                    (
+                        np.array([R[ii]*np.ones((len(lseg),)), lseg]),
+                        np.full((2,1), np.nan)
+                    ),
+                    axis=1,
+                ))
+
+        # horizontal lines
+        for jj, jc in enumerate(jcropZ):
+            if np.any(crop[:, jc]):
+                if jc == 0:
+                    cropj = crop[:, jc]
+                else:
+                    cropj = crop[:, jc] | crop[:, jc-1]
+                lseg = []
+                for ii, ic in enumerate(icropR):
+                    if ii in [0, R.size-1] and cropj[ic]:
+                        lseg.append(R[ii])
+                    elif cropj[ic] and not cropj[ic-1]:
+                        if len(lseg) > 0:
+                            lseg.append(np.nan)
+                        lseg.append(R[ii])
+                    elif (not cropj[ic]) and cropj[ic-1]:
+                        lseg.append(R[ii])
+                grid.append(np.concatenate(
+                    (
+                        np.array([lseg, Z[jj]*np.ones((len(lseg),))]),
+                        np.full((2,1), np.nan)
+                    ),
+                    axis=1,
+                ))
+
+        grid = np.concatenate(tuple(grid), axis=1)
+
+        if bck is True:
+            grid_bck = np.concatenate((vert, hor), axis=1)
+
+    return grid, grid_bck
 
 
 def plot_mesh(
@@ -124,6 +206,8 @@ def plot_mesh(
     key=None,
     ind_knot=None,
     ind_cent=None,
+    crop=None,
+    bck=None,
     color=None,
     dax=None,
     dmargin=None,
@@ -134,11 +218,13 @@ def plot_mesh(
     # --------------
     # check input
 
-    key, ind_knot, ind_cent, color, dleg = _plot_mesh_check(
+    key, ind_knot, ind_cent, crop, bck, color, dleg = _plot_mesh_check(
         mesh=mesh,
         key=key,
         ind_knot=ind_knot,
         ind_cent=ind_cent,
+        crop=crop,
+        bck=bck,
         color=color,
         dleg=dleg,
     )
@@ -146,9 +232,11 @@ def plot_mesh(
     # --------------
     #  Prepare data
 
-    grid = _plot_mesh_prepare(
+    grid, grid_bck = _plot_mesh_prepare(
         mesh=mesh,
         key=key,
+        crop=crop,
+        bck=bck,
     )
 
     # --------------
@@ -176,11 +264,24 @@ def plot_mesh(
 
     kax = 'cross'
     if dax.get(kax) is not None:
+
+        if grid_bck is not None and bck is True:
+            dax[kax].plot(
+                grid_bck[0, :],
+                grid_bck[1, :],
+                ls='-',
+                lw=0.5,
+                color=color,
+                alpha=0.5,
+                label=key,
+            )
+
         dax[kax].plot(
             grid[0, :],
             grid[1, :],
             color=color,
             ls='-',
+            lw=1.,
             label=key,
         )
 
