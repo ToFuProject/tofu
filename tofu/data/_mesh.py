@@ -397,6 +397,7 @@ class Matrix(Mesh2DRect):
 
     def plot_matrix(
         self,
+        cam=None,
         key=None,
         indbf=None,
         indchan=None,
@@ -411,6 +412,7 @@ class Matrix(Mesh2DRect):
         dleg=None,
     ):
         return _matrix_plot.plot_matrix(
+            cam=cam,
             matrix=self,
             key=key,
             indbf=indbf,
