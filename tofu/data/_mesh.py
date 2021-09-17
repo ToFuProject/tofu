@@ -16,6 +16,7 @@ from . import _mesh_checks
 from . import _mesh_comp
 from . import _mesh_plot
 from . import _matrix_comp
+from . import _matrix_plot
 
 
 _GROUP_MESH = 'mesh'
@@ -238,7 +239,14 @@ class Mesh2DRect(_core_new.DataCollection):
     # interp tools
     # ------------------
 
-    def get_sample_mesh(self, key=None, res=None, grid=None, mode=None):
+    def get_sample_mesh(
+        self,
+        key=None,
+        res=None,
+        grid=None,
+        mode=None,
+        imshow=None,
+    ):
         """ Return a sampled version of the chosen mesh """
         return _mesh_comp.sample_mesh(
             mesh=self,
@@ -246,6 +254,7 @@ class Mesh2DRect(_core_new.DataCollection):
             res=res,
             grid=grid,
             mode=mode,
+            imshow=imshow,
         )
 
     """
@@ -389,10 +398,11 @@ class Matrix(Mesh2DRect):
     def plot_matrix(
         self,
         key=None,
-        indt=None,
-        res=None,
+        indbf=None,
+        indchan=None,
         vmin=None,
         vmax=None,
+        res=None,
         cmap=None,
         dax=None,
         dmargin=None,
@@ -403,10 +413,11 @@ class Matrix(Mesh2DRect):
         return _matrix_plot.plot_matrix(
             matrix=self,
             key=key,
-            indt=indt,
-            res=res,
+            indbf=indbf,
+            indchan=indchan,
             vmin=vmin,
             vmax=vmax,
+            res=res,
             cmap=cmap,
             dax=dax,
             dmargin=dmargin,

@@ -421,7 +421,7 @@ def _mesh2DRect_bsplines_knotscents(
 # #############################################################################
 
 
-def sample_mesh(mesh, key=None, res=None, mode=None, grid=None):
+def sample_mesh(mesh, key=None, res=None, mode=None, grid=None, imshow=None):
 
     # -------------
     # check inputs
@@ -466,6 +466,13 @@ def sample_mesh(mesh, key=None, res=None, mode=None, grid=None):
         msg = f"Arg grid must be a bool!\nProvided: {grid}"
         raise Exception(msg)
 
+    # imshow
+    if imshow is None:
+        imshow = False
+    if not isinstance(imshow, bool):
+        msg = f"Arg imshow must be a bool!\nProvided: {imshow}"
+        raise Exception(msg)
+
     # -------------
     # compute
 
@@ -499,8 +506,12 @@ def sample_mesh(mesh, key=None, res=None, mode=None, grid=None):
     if grid is True:
         nZ = Z.size
         nR = R.size
-        R = np.tile(R, (nZ, 1))
-        Z = np.repeat(Z[:, None], nR, axis=1)
+        if imshow is True:
+            R = np.repeat(R[:, None], nZ, axis=1)
+            Z = np.tile(Z, (nR, 1))
+        else:
+            R = np.tile(R, (nZ, 1))
+            Z = np.repeat(Z[:, None], nR, axis=1)
 
     return R, Z
 

@@ -194,12 +194,11 @@ def compute(
     dobj.update({
         'matrix': {
             name: {
-                'bspline': key,
+                'bsplines': key,
                 'cam': cam.Id.Name,
                 'data': name,
             },
         },
     })
 
-    import pdb; pdb.set_trace() # DB
     return dref, ddata, dobj
