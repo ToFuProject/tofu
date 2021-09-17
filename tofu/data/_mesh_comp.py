@@ -28,8 +28,10 @@ def _select_ind(
 ):
     """ ind can be:
             - None
-            - tuple
-            - 'flat'
+            - tuple: (R, Z), possibly 2d
+            - 'tuple-flat': (R, Z) flattened
+            - np.ndarray: array of unique indices
+            - 'array-flat': flattened ordered array of unique
     """
 
     # ------------
@@ -66,9 +68,10 @@ def _select_ind(
     # ind to tuple
 
     if ind is None:
+        # make sure R is varying in dimension 0
         out = (
-            np.tile(np.arange(0, nR), (nZ, 1)),
-            np.repeat(np.arange(0, nZ)[:, None], nR, axis=1),
+            np.repeat(np.arange(0, nR)[:, None], nZ, axis=1),
+            np.tile(np.arange(0, nZ), (nR, 1)),
         )
 
     elif isinstance(ind, tuple):
@@ -93,8 +96,14 @@ def _select_ind(
 
     if returnas is tuple:
         pass
-    else:
+    elif returnas == 'tuple-flat':
+        # make sure R is varying first
+        out = (out[0].T.ravel(), out[1].T.ravel())
+    elif returnas is np.ndarray:
         out = out[0] + out[1]*nR
+    else:
+        # make sure R is varying first
+        out = (out[0] + out[1]*nR).T.ravel()
 
     return out
 
@@ -507,11 +516,11 @@ def sample_mesh(mesh, key=None, res=None, mode=None, grid=None, imshow=None):
         nZ = Z.size
         nR = R.size
         if imshow is True:
-            R = np.repeat(R[:, None], nZ, axis=1)
-            Z = np.tile(Z, (nR, 1))
-        else:
             R = np.tile(R, (nZ, 1))
             Z = np.repeat(Z[:, None], nR, axis=1)
+        else:
+            R = np.repeat(R[:, None], nZ, axis=1)
+            Z = np.tile(Z, (nR, 1))
 
     return R, Z
 

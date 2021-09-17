@@ -392,10 +392,13 @@ def get_bs2d_func(deg=None, Rknots=None, Zknots=None):
         val = np.zeros(shape, dtype=float)
         if np.isscalar(coefs):
             for ii in range(shapebs[0]):
+                indok0 = (
+                    (knots_per_bs_R[0, ii] <= r)
+                    & (r <= knots_per_bs_R[-1, ii])
+                )
                 for jj in range(shapebs[1]):
                     indok = (
-                        (knots_per_bs_R[0, ii] <= r)
-                        & (r <= knots_per_bs_R[-1, ii])
+                        indok0
                         & (knots_per_bs_Z[0, jj] <= z)
                         & (z <= knots_per_bs_Z[-1, jj])
                     )
@@ -407,10 +410,13 @@ def get_bs2d_func(deg=None, Rknots=None, Zknots=None):
 
         else:
             for ii in range(shapebs[0]):
+                indok0 = (
+                    (knots_per_bs_R[0, ii] <= r)
+                    & (r <= knots_per_bs_R[-1, ii])
+                )
                 for jj in range(shapebs[1]):
                     indok = (
-                        (knots_per_bs_R[0, ii] <= r)
-                        & (r <= knots_per_bs_R[-1, ii])
+                        indok0
                         & (knots_per_bs_Z[0, jj] <= z)
                         & (z <= knots_per_bs_Z[-1, jj])
                     )

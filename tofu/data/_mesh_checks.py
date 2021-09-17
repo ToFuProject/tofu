@@ -379,7 +379,7 @@ def _select_ind_check(
         returnas, 'returnas',
         types=None,
         default=tuple,
-        allowed=[tuple, 'flat'],
+        allowed=[tuple, np.ndarray, 'tuple-flat', 'array-flat'],
     )
 
     return ind, elements, returnas

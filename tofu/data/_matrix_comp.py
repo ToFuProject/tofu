@@ -137,8 +137,8 @@ def compute(
             )
 
         if mat.ndim > 2:
-            indflat = mesh.select_ind(key=key, returnas=None)
-            mat = mat[:, indflat[0].ravel(), indflat[1].ravel()]
+            indflat = mesh.select_ind(key=key, returnas='tuple-flat')
+            mat = mat[:, indflat[0], indflat[1]]
 
         mat = mat * reseff[:, None]
         # scpintg.simps(val, x=None, axis=-1, dx=loc_eff_res[0])
