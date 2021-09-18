@@ -26,6 +26,7 @@ def _select_ind(
     ind=None,
     elements=None,
     returnas=None,
+    crop=None,
 ):
     """ ind can be:
             - None
@@ -38,10 +39,11 @@ def _select_ind(
     # ------------
     # check inputs
 
-    ind, elements, returnas = _mesh_checks._select_ind_check(
+    ind, elements, returnas, crop = _mesh_checks._select_ind_check(
         ind=ind,
         elements=elements,
         returnas=returnas,
+        crop=crop,
     )
 
     lk1 = list(mesh.dobj[mesh._groupmesh].keys())
@@ -56,10 +58,9 @@ def _select_ind(
         )
         raise Exception(msg)
 
-    if key in lk1:
-        kR, kZ = mesh.dobj[mesh._groupmesh][key][f'{elements}']
-    else:
-        kR, kZ = mesh.dobj['bsplines'][key]['ref']
+    cat = 'mesh' if key in lk1 else 'bsplines'
+    elem = f'{elements}' if key in lk1 else 'ref'
+    kR, kZ = mesh.dobj[cat][key][elem]
 
     nR = mesh.ddata[kR]['data'].size
     nZ = mesh.ddata[kZ]['data'].size
@@ -67,12 +68,14 @@ def _select_ind(
     # ------------
     # ind to tuple
 
+    ind_bool = np.zeros((nR, nZ), dtype=bool)
     if ind is None:
         # make sure R is varying in dimension 0
-        out = (
+        ind_tup = (
             np.repeat(np.arange(0, nR)[:, None], nZ, axis=1),
             np.tile(np.arange(0, nZ), (nR, 1)),
         )
+        ind_bool[...] = True
 
     elif isinstance(ind, tuple):
         c0 = (
@@ -82,7 +85,8 @@ def _select_ind(
         if not c0:
             msg = f"Arg ind has non-valid values (< 0 or >= size ({nR}, {nZ}))"
             raise Exception(msg)
-        out = ind
+        ind_tup = ind
+        ind_bool[ind_tup[0], ind_tup[1]] = True
 
     else:
         if ind.dtype == np.int_:
@@ -90,7 +94,8 @@ def _select_ind(
             if not c0:
                 msg = f"Arg ind has non-valid values (< 0 or >= size ({nR*nZ}))"
                 raise Exception(msg)
-            out = (ind % nR, ind // nR)
+            ind_tup = (ind % nR, ind // nR)
+            ind_bool[ind_tup[0], ind_tup[1]] = True
         else:
             if ind.shape != (nR, nZ):
                 msg = (
@@ -98,7 +103,32 @@ def _select_ind(
                     "Provided: {ind.shape}"
                 )
                 raise Exception(msg)
-            out = ind.nonzero()
+            ind_tup = ind.nonzero()
+            ind_bool = ind
+
+    if ind_tup[0].shape != ind_tup[1].shape:
+        msg = (
+            "ind_tup components do not have the same shape!\n"
+            f"\t- ind_tup[0].shape = {ind_tup[0].shape}\n"
+            f"\t- ind_tup[1].shape = {ind_tup[1].shape}"
+        )
+        raise Exception(msg)
+
+    # ------------
+    # optional crop
+
+    crop = crop is True and mesh.dobj[cat][key]['crop'] is not False
+    if crop is True:
+        cropi = mesh.ddata[mesh.dobj[cat][key]['crop']]['data']
+        if cat == 'mesh' and elements == 'knots':
+            pass
+        elif ind_tup[0].shape == crop.shape:
+            ind_bool = ind_bool & cropi
+        else:
+            cropiR, cropiZ = crop.nonzero()
+            indout = None
+            out[0]
+        import pdb; pdb.set_trace()     # DB
 
     # ------------
     # tuple to return

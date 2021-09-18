@@ -168,6 +168,7 @@ class Mesh2DRect(_core_new.DataCollection):
         ind=None,
         elements=None,
         returnas=None,
+        crop=None,
     ):
         """ Return ind for selected key (mesh or bspline) as:
                 - tuple (default)
@@ -181,6 +182,7 @@ class Mesh2DRect(_core_new.DataCollection):
             ind=ind,
             elements=elements,
             returnas=returnas,
+            crop=crop,
         )
 
     def select_mesh_elements(

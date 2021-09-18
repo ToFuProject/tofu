@@ -306,6 +306,7 @@ def _select_ind_check(
     ind=None,
     elements=None,
     returnas=None,
+    crop=None,
 ):
 
     # ind
@@ -387,7 +388,14 @@ def _select_ind_check(
         allowed=[tuple, np.ndarray, 'tuple-flat', 'array-flat', bool],
     )
 
-    return ind, elements, returnas
+    # crop
+    crop = _check_var(
+        crop, 'crop',
+        types=bool,
+        default=True,
+    )
+
+    return ind, elements, returnas, crop
 
 
 def _select_check(
