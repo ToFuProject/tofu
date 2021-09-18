@@ -20,7 +20,14 @@ from . import _mesh_bsplines
 # #############################################################################
 
 
-def _compute_check(mesh=None, key=None, method=None, resMode=None, name=None):
+def _compute_check(
+    mesh=None,
+    key=None,
+    method=None,
+    resMode=None,
+    name=None,
+    verb=None,
+):
 
     # key
     lk = list(mesh.dobj.get('bsplines', {}).keys())
@@ -75,7 +82,17 @@ def _compute_check(mesh=None, key=None, method=None, resMode=None, name=None):
         )
         raise Exception(msg)
 
-    return key, method, resMode, name
+    # verb
+    if verb is None:
+        verb = True
+    if not isinstance(verb, bool):
+        msg = (
+            f"Arg verb must be a bool!\n"
+            f"\t- provided: {verb}"
+        )
+        raise Exception(msg)
+
+    return key, method, resMode, name, verb
 
 
 def compute(
@@ -86,6 +103,7 @@ def compute(
     resMode=None,
     method=None,
     name=None,
+    verb=None,
 ):
     """ Compute the geometry matrix using:
             - a mesh2DRect instance with a key to a bspline set
@@ -96,8 +114,9 @@ def compute(
     # -----------
     # check input
 
-    key, method, resMode, name = _compute_check(
-        mesh=mesh, key=key, method=method, resMode=resMode, name=name,
+    key, method, resMode, name, verb = _compute_check(
+        mesh=mesh, key=key, method=method, resMode=resMode,
+        name=name, verb=verb,
     )
 
     # -----------
@@ -127,7 +146,18 @@ def compute(
         lr = np.split(np.hypot(pts[0, :], pts[1, :]), ind)
         lz = np.split(pts[2, :], ind)
 
+        if verb:
+            nmax = len(f"Geometry matrix, channel {nlos} / {nlos}")
+            nn = 10**(np.log10(nlos)-1)
+
         for ii in range(nlos):
+
+            # verb
+            if verb and (ii == 0 or int(nn*ii/nlos) != int(nn*(ii-1)/nlos)):
+                msg = f"Geometry matrix, channel {ii+1} / {nlos}".ljust(nmax)
+                print(msg, end='\r', flush=True)
+
+            # compute
             mat[ii, ...] = np.nansum(
                 mesh.interp(
                     key=key, R=lr[ii], Z=lz[ii],
