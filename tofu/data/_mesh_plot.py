@@ -144,7 +144,7 @@ def _plot_mesh_prepare(
         # vertical lines  TBC
         for ii, ic in enumerate(icropR):
             if np.any(crop[ic, :]):
-                if ic == 0:
+                if ii in [0, R.size-1]:
                     cropi = crop[ic, :]
                 else:
                     cropi = crop[ic, :] | crop[ic-1, :]
@@ -159,7 +159,7 @@ def _plot_mesh_prepare(
                             lseg.append(np.nan)
                         lseg.append(Z[jj])
                     elif (not cropi[jc]) and cropi[jc-1]:
-                        lseg.append(Z[jj])
+                        lseg.append(Z[jc])
                 grid.append(np.concatenate(
                     (
                         np.array([R[ii]*np.ones((len(lseg),)), lseg]),
@@ -171,7 +171,7 @@ def _plot_mesh_prepare(
         # horizontal lines
         for jj, jc in enumerate(jcropZ):
             if np.any(crop[:, jc]):
-                if jc == 0:
+                if jj in [0, Z.size-1]:
                     cropj = crop[:, jc]
                 else:
                     cropj = crop[:, jc] | crop[:, jc-1]
@@ -184,7 +184,7 @@ def _plot_mesh_prepare(
                             lseg.append(np.nan)
                         lseg.append(R[ii])
                     elif (not cropj[ic]) and cropj[ic-1]:
-                        lseg.append(R[ii])
+                        lseg.append(R[ic])
                 grid.append(np.concatenate(
                     (
                         np.array([lseg, Z[jj]*np.ones((len(lseg),))]),
