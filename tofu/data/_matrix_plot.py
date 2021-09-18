@@ -187,8 +187,7 @@ def _plot_matrix_prepare(
     # res
     deg = matrix.dobj['bsplines'][keybs]['deg']
     km = matrix.dobj['bsplines'][keybs]['mesh']
-    kR = matrix.dobj['mesh'][km]['R-knots']
-    kZ = matrix.dobj['mesh'][km]['Z-knots']
+    kR, kZ = matrix.dobj['mesh'][km]['knots']
     Rk = matrix.ddata[kR]['data']
     Zk = matrix.ddata[kZ]['data']
     dR = np.min(np.diff(Rk))
@@ -218,7 +217,7 @@ def _plot_matrix_prepare(
         key=km, res=res, mode='abs', grid=True, imshow=True,
     )
 
-    shapebs = matrix.dobj['bsplines'][keybs]['shapebs']
+    shapebs = matrix.dobj['bsplines'][keybs]['shape']
     coefs = np.zeros(tuple(np.r_[1, shapebs]), dtype=float)
     coefs[0, :, :] = np.nansum(matrix.ddata[key]['data'], axis=0)[indchan_bf]
     bsplinetot = matrix.dobj['bsplines'][keybs]['func_sum'](

@@ -153,7 +153,10 @@ def compute(
         for ii in range(nlos):
 
             # verb
-            if verb and (ii == 0 or int(nn*ii/nlos) != int(nn*(ii-1)/nlos)):
+            if verb and (
+                ii in [0, nlos-1]
+                or int(nn*ii/nlos) != int(nn*(ii-1)/nlos)
+            ):
                 msg = f"Geometry matrix, channel {ii+1} / {nlos}".ljust(nmax)
                 print(msg, end='\r', flush=True)
 
@@ -188,10 +191,8 @@ def compute(
     })
 
     lref = (
-        [
-            mesh.dobj['mesh'][km][ss]
-            for ss in ['R-knots', 'Z-knots', 'R-cents', 'Z-cents']
-        ]
+        list(mesh.dobj['mesh'][km]['cents'])
+        + list(mesh.dobj['mesh'][km]['knots'])
         + list(mesh.dobj['bsplines'][key]['ref'])
     )
     dref = {k0: mesh.dref[k0] for k0 in lref}
