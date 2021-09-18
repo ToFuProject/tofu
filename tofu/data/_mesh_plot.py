@@ -74,7 +74,7 @@ def _plot_mesh_check(
     # ind_cent
     if ind_cent is not None:
         ind_cent = mesh.select_mesh_elements(
-            key=key, ind=ind_cent, elements='cent',
+            key=key, ind=ind_cent, elements='cents',
             returnas='data', return_neighbours=True,
         )
 
@@ -365,6 +365,7 @@ def _plot_bspline_check(
         returnas='ind',
         return_knots=False,
         return_cents=False,
+        crop=False,
     )
 
     _, knotsi, centsi = mesh.select_bsplines(
@@ -373,6 +374,7 @@ def _plot_bspline_check(
         returnas='data',
         return_knots=True,
         return_cents=True,
+        crop=False,
     )
 
     # cmap
@@ -413,9 +415,10 @@ def _plot_bspline_prepare(
 
     # bspline
     km = mesh.dobj['bsplines'][key]['mesh']
-    R, Z = mesh.get_sample_mesh(key=km, res=res, mode='abs', grid=True)
-
-    shapebs = mesh.dobj['bsplines'][key]['shapebs']
+    R, Z = mesh.get_sample_mesh(
+        key=km, res=res, mode='abs', grid=True, imshow=True,
+    )
+    shapebs = mesh.dobj['bsplines'][key]['shape']
     coefs = np.zeros((1, shapebs[0], shapebs[1]), dtype=float)
     coefs[0, ind[0], ind[1]] = 1.
 
@@ -555,6 +558,7 @@ def plot_bspline(
 def _plot_profile2d_check(
     mesh=None,
     key=None,
+    coefs=None,
     indt=None,
     cmap=None,
     dcolorbar=None,
@@ -571,9 +575,16 @@ def _plot_profile2d_check(
     keybs = dk[key]
     refbs = mesh.dobj['bsplines'][keybs]['ref']
 
+    # coefs
+    if coefs is None:
+        if key == keybs:
+            pass
+        else:
+            coefs = mesh.ddata[key]['data']
+
     # indt
-    if len(mesh.ddata[key]['ref']) > len(refbs):
-        if indt is None and mesh.ddata[key]['data'].shape[0] == 1:
+    if coefs is not None and len(coefs.shape) > len(refbs):
+        if indt is None and coefs.shape[0] == 1:
             indt = 0
         try:
             assert np.isscalar(indt)
@@ -608,13 +619,14 @@ def _plot_profile2d_check(
     }
     dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
 
-    return key, keybs, indt, cmap, dcolorbar, dleg
+    return key, keybs, coefs, indt, cmap, dcolorbar, dleg
 
 
 def _plot_profiles2d_prepare(
     mesh=None,
     key=None,
     keybs=None,
+    coefs=None,
     indt=None,
     res=None,
 ):
@@ -631,26 +643,27 @@ def _plot_profiles2d_prepare(
         res_coef = 0.05
         res = [res_coef*dR, res_coef*dZ]
 
-    # bspline
-    km = mesh.dobj['bsplines'][keybs]['mesh']
-    R, Z = mesh.get_sample_mesh(key=km, res=res, mode='abs', grid=True)
-
-    shapebs = mesh.dobj['bsplines'][keybs]['shapebs']
-    coefs = mesh.ddata[key]['data']
-
-    if len(coefs.shape) > len(shapebs):
+    # adjust coefs for single time step selection
+    shapebs = mesh.dobj['bsplines'][keybs]['shape']
+    if coefs is not None and len(coefs.shape) > len(shapebs):
         coefs = coefs[indt:indt+1, ...]
 
-    bspline = mesh.dobj['bsplines'][keybs]['func_sum'](
-        R, Z, coefs=coefs,
+    # compute
+    bspline = mesh.interp2d(
+        key=key,
+        coefs=coefs,
+        R=None,
+        Z=None,
+        res=res,
+        details=False,
+        nan0=True,
+        imshow=True,
     )[0, ...]
-    bspline[bspline == 0] = np.nan
 
     # extent and interp
-
     extent = (
-        Rk[0] - 0.*dR, Rk[-1] + 0.*dR,
-        Zk[0] - 0.*dZ, Zk[-1] + 0.*dZ,
+        Rk[0], Rk[-1],
+        Zk[0], Zk[-1],
     )
 
     if deg == 0:
@@ -669,6 +682,7 @@ def plot_profile2d(
     mesh=None,
     key=None,
     indt=None,
+    coefs=None,
     res=None,
     vmin=None,
     vmax=None,
@@ -683,9 +697,10 @@ def plot_profile2d(
     # --------------
     # check input
 
-    key, keybs, indt, cmap, dcolorbar, dleg = _plot_profile2d_check(
+    key, keybs, coefs, indt, cmap, dcolorbar, dleg = _plot_profile2d_check(
         mesh=mesh,
         key=key,
+        coefs=coefs,
         indt=indt,
         cmap=cmap,
         dcolorbar=dcolorbar,
@@ -699,6 +714,7 @@ def plot_profile2d(
         mesh=mesh,
         key=key,
         keybs=keybs,
+        coefs=coefs,
         indt=indt,
         res=res,
     )

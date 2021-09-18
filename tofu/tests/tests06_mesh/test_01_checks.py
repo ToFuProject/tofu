@@ -146,7 +146,7 @@ class Test02_Mesh2DRect():
 
     def test02_select_ind(self):
         lkey = ['m0', 'm1-bs1', 'm2', 'm3-bs3']
-        lelements = ['cent', None, 'knots', None]
+        lelements = ['cents', None, 'knots', None]
         lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
         for ii, (k0, v0) in enumerate(self.dobj.items()):
             indt = self.dobj[k0].select_ind(
@@ -159,7 +159,7 @@ class Test02_Mesh2DRect():
                 key=lkey[ii],
                 ind=indt,
                 elements=lelements[ii],
-                returnas='flat',
+                returnas=np.ndarray,
             )
             indt2 = self.dobj[k0].select_ind(
                 key=lkey[ii],
@@ -172,9 +172,10 @@ class Test02_Mesh2DRect():
     def test03_select_mesh(self):
         lkey = ['m0', 'm1', 'm2', 'm3']
         lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
-        lelements = ['cent', None, 'knots', None]
+        lelements = ['cents', 'cents', 'knots', None]
         lreturnas = ['ind', 'data', 'data', 'ind']
         lreturn_neig = [None, True, False, True]
+        lcrop = [False, True, False, False]
         for ii, (k0, v0) in enumerate(self.dobj.items()):
             indf = self.dobj[k0].select_mesh_elements(
                 key=lkey[ii],
@@ -182,6 +183,7 @@ class Test02_Mesh2DRect():
                 elements=lelements[ii],
                 returnas=lreturnas[ii],
                 return_neighbours=lreturn_neig[ii],
+                crop=lcrop[ii],
             )
 
     def test04_select_bsplines(self):
@@ -249,7 +251,7 @@ class Test02_Mesh2DRect():
             key = str(ii)
             kbs = lkey[ii]
             ref = self.dobj[k0].dobj['bsplines'][kbs]['ref']
-            shapebs = self.dobj[k0].dobj['bsplines'][kbs]['shapebs']
+            shapebs = self.dobj[k0].dobj['bsplines'][kbs]['shape']
 
             self.dobj[k0].add_data(
                 key=key,

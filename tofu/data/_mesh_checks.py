@@ -459,4 +459,7 @@ def _mesh2DRect_bsplines(key=None, lkeys=None, deg=None):
         )
         raise Exception(msg)
 
-    return key, deg
+    # keybs
+    keybs = f'{key}-bs{deg}'
+
+    return key, keybs, deg

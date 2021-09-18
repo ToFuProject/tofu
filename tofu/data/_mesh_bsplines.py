@@ -47,9 +47,11 @@ def _get_bs2d_func_check(
     coefs=None,
     ii=None,
     jj=None,
-    r=None,
-    z=None,
+    R=None,
+    Z=None,
     shapebs=None,
+    crop=None,
+    cropbs=None,
 ):
 
     # ii, jj
@@ -78,10 +80,12 @@ def _get_bs2d_func_check(
             )
             raise Exception(msg)
 
-    # r, z
-    r = np.atleast_1d(r)
-    z = np.atleast_1d(z)
-    assert r.shape == z.shape
+    # R, Z
+    if not isinstance(R, np.ndarray):
+        R = np.atleast_1d(R)
+    if not isinstance(Z, np.ndarray):
+        Z = np.atleast_1d(Z)
+    assert R.shape == Z.shape
 
     # coefs
     if coefs is None:
@@ -107,7 +111,18 @@ def _get_bs2d_func_check(
             )
             raise Exception(msg)
 
-    return coefs, ii, jj, r, z
+    # crop
+    if crop is None:
+        crop = True
+    if not isinstance(crop, bool):
+        msg = (
+            "Arg crop must be a bool!\n"
+            f"Provided: {crop}"
+        )
+        raise Exception(msg)
+    crop = crop and cropbs is not None and cropbs is not False
+
+    return coefs, ii, jj, R, Z, crop
 
 
 def _get_bs2d_func_knots(knots, deg=None, returnas=None):
@@ -266,7 +281,7 @@ def _get_bs2d_func_max(Rknots=None, Zknots=None, deg=None):
     return Rbs_cent, Zbs_cent
 
 
-def get_bs2d_func(deg=None, Rknots=None, Zknots=None):
+def get_bs2d_RZ(deg=None, Rknots=None, Zknots=None):
 
     # ----------------
     # get knots per bspline, nb of bsplines...
@@ -274,9 +289,7 @@ def get_bs2d_func(deg=None, Rknots=None, Zknots=None):
     knots_per_bs_R = _get_bs2d_func_knots(Rknots, deg=deg, returnas='data')
     knots_per_bs_Z = _get_bs2d_func_knots(Zknots, deg=deg, returnas='data')
     nbkbs = knots_per_bs_R.shape[0]
-    nRbs = knots_per_bs_R.shape[1]
-    nZbs = knots_per_bs_Z.shape[1]
-    shapebs = (nRbs, nZbs)
+    shapebs = (knots_per_bs_R.shape[1], knots_per_bs_Z.shape[1])
 
     # ----------------
     # get centers of bsplines
@@ -284,6 +297,16 @@ def get_bs2d_func(deg=None, Rknots=None, Zknots=None):
     Rbs_cent, Zbs_cent = _get_bs2d_func_max(
         Rknots=Rknots, Zknots=Zknots, deg=deg,
     )
+    return shapebs, Rbs_cent, Zbs_cent, knots_per_bs_R, knots_per_bs_Z
+
+def get_bs2d_func(
+    deg=None,
+    Rknots=None,
+    Zknots=None,
+    shapebs=None,
+    knots_per_bs_R=None,
+    knots_per_bs_Z=None,
+):
 
     # ----------------
     # Pre-compute bsplines basis elements
@@ -303,7 +326,7 @@ def get_bs2d_func(deg=None, Rknots=None, Zknots=None):
         for jj in range(shapebs[1])
     ]
 
-    RectBiv = [[None for jj in range(nZbs)] for ii in range(nRbs)]
+    RectBiv = [[None for jj in range(shapebs[1])] for ii in range(shapebs[0])]
     for ii in range(shapebs[0]):
         for jj in range(shapebs[1]):
             def func(rr, zz, coefs=None, br=lbr[ii], bz=lbz[jj]):
@@ -321,110 +344,191 @@ def get_bs2d_func(deg=None, Rknots=None, Zknots=None):
     # Define functions
 
     def RectBiv_details(
-        r,
-        z,
+        R,
+        Z,
         coefs=None,
         ii=None,
         jj=None,
         shapebs=shapebs,
         RectBiv=RectBiv,
+        cropbs=None,
+        crop=None,
     ):
         """ Return the value for each point for each bspline """
 
-        coefs, ii, jj, r, z = _get_bs2d_func_check(
+        coefs, ii, jj, R, Z, crop = _get_bs2d_func_check(
             coefs=coefs,
             ii=ii,
             jj=jj,
-            r=r,
-            z=z,
+            R=R,
+            Z=Z,
             shapebs=shapebs,
+            crop=crop,
+            cropbs=cropbs,
         )
         nt = 1 if np.isscalar(coefs) else coefs.shape[0]
-        shapepts = r.shape
+        shapepts = R.shape
 
         if ii is None:
             shape = tuple(np.r_[nt, shapepts, shapebs])
             val = np.full(shape, np.nan)
-            if np.isscalar(coefs):
-                for ii in range(shapebs[0]):
-                    for jj in range(shapebs[1]):
-                        val[..., ii, jj] = RectBiv[ii][jj](
-                            r,
-                            z,
-                            coefs=coefs,
-                        )
+
+            if crop:
+                if np.isscalar(coefs):
+                    for ii in range(shapebs[0]):
+                        if not np.any(cropbs[ii, :]):
+                            continue
+                        for jj in range(shapebs[1]):
+                            if cropbs[ii, jj]:
+                                val[..., ii, jj] = RectBiv[ii][jj](
+                                    R,
+                                    Z,
+                                    coefs=coefs,
+                                )
+                else:
+                    for ii in range(shapebs[0]):
+                        if not np.any(cropbs[ii, :]):
+                            continue
+                        for jj in range(shapebs[1]):
+                            if cropbs[ii, jj]:
+                                val[..., ii, jj] = RectBiv[ii][jj](
+                                    R,
+                                    Z,
+                                    coefs=coefs[:, ii, jj],
+                                )
+
             else:
-                for ii in range(shapebs[0]):
-                    for jj in range(shapebs[1]):
-                        val[..., ii, jj] = RectBiv[ii][jj](
-                            r,
-                            z,
-                            coefs=coefs[:, ii, jj],
-                        )
+                if np.isscalar(coefs):
+                    for ii in range(shapebs[0]):
+                        for jj in range(shapebs[1]):
+                            val[..., ii, jj] = RectBiv[ii][jj](
+                                R,
+                                Z,
+                                coefs=coefs,
+                            )
+                else:
+                    for ii in range(shapebs[0]):
+                        for jj in range(shapebs[1]):
+                            val[..., ii, jj] = RectBiv[ii][jj](
+                                R,
+                                Z,
+                                coefs=coefs[:, ii, jj],
+                            )
         else:
-            if np.isscalar(coefs):
-                val = RectBiv[ii][jj](r, z, coefs=coefs)
+            if crop and cropbs[ii, jj]:
+                if np.isscalar(coefs):
+                    val = RectBiv[ii][jj](R, Z, coefs=coefs)
+                else:
+                    val = RectBiv[ii][jj](R, Z, coefs=coefs[:, ii, jj])
             else:
-                val = RectBiv[ii][jj](r, z, coefs=coefs[:, ii, jj])
+                val = np.nan
         return val
 
     def RectBiv_sum(
-        r,
-        z,
+        R,
+        Z,
         coefs=None,
         shapebs=shapebs,
         knots_per_bs_R=knots_per_bs_R,
         knots_per_bs_Z=knots_per_bs_Z,
         RectBiv=RectBiv,
+        crop=None,
+        cropbs=None,
     ):
         """ Return the value for each point summed on all bsplines """
 
-        coefs, _, _, r, z = _get_bs2d_func_check(
+        coefs, _, _, r, z, crop = _get_bs2d_func_check(
             coefs=coefs,
-            r=r,
-            z=z,
+            R=R,
+            Z=Z,
             shapebs=shapebs,
+            crop=crop,
+            cropbs=cropbs,
         )
-        nt = coefs.shape[0]
+        nt = 1 if np.isscalar(coefs) else coefs.shape[0]
         shapepts = r.shape
 
         shape = tuple(np.r_[nt, shapepts])
         val = np.zeros(shape, dtype=float)
-        if np.isscalar(coefs):
-            for ii in range(shapebs[0]):
-                indok0 = (
-                    (knots_per_bs_R[0, ii] <= r)
-                    & (r <= knots_per_bs_R[-1, ii])
-                )
-                for jj in range(shapebs[1]):
-                    indok = (
-                        indok0
-                        & (knots_per_bs_Z[0, jj] <= z)
-                        & (z <= knots_per_bs_Z[-1, jj])
+        if crop:
+            if np.isscalar(coefs):
+                for ii in range(shapebs[0]):
+                    if not np.any(cropbs[ii, :]):
+                        continue
+                    indok0 = (
+                        (knots_per_bs_R[0, ii] <= R)
+                        & (R <= knots_per_bs_R[-1, ii])
                     )
-                    val[:, indok] += RectBiv[ii][jj](
-                        r[indok],
-                        z[indok],
-                        coefs=coefs,
+                    for jj in range(shapebs[1]):
+                        if cropbs[ii, jj]:
+                            indok = (
+                                indok0
+                                & (knots_per_bs_Z[0, jj] <= Z)
+                                & (Z <= knots_per_bs_Z[-1, jj])
+                            )
+                            val[:, indok] += RectBiv[ii][jj](
+                                R[indok],
+                                Z[indok],
+                                coefs=coefs,
+                            )
+
+            else:
+                for ii in range(shapebs[0]):
+                    if not np.any(cropbs[ii, :]):
+                        continue
+                    indok0 = (
+                        (knots_per_bs_R[0, ii] <= R)
+                        & (R <= knots_per_bs_R[-1, ii])
                     )
+                    for jj in range(shapebs[1]):
+                        if cropbs[ii, jj]:
+                            indok = (
+                                indok0
+                                & (knots_per_bs_Z[0, jj] <= Z)
+                                & (Z <= knots_per_bs_Z[-1, jj])
+                            )
+                            val[:, indok] += RectBiv[ii][jj](
+                                R[indok],
+                                Z[indok],
+                                coefs=coefs[:, ii, jj],
+                            )
 
         else:
-            for ii in range(shapebs[0]):
-                indok0 = (
-                    (knots_per_bs_R[0, ii] <= r)
-                    & (r <= knots_per_bs_R[-1, ii])
-                )
-                for jj in range(shapebs[1]):
-                    indok = (
-                        indok0
-                        & (knots_per_bs_Z[0, jj] <= z)
-                        & (z <= knots_per_bs_Z[-1, jj])
+            if np.isscalar(coefs):
+                for ii in range(shapebs[0]):
+                    indok0 = (
+                        (knots_per_bs_R[0, ii] <= R)
+                        & (R <= knots_per_bs_R[-1, ii])
                     )
-                    val[:, indok] += RectBiv[ii][jj](
-                        r[indok],
-                        z[indok],
-                        coefs=coefs[:, ii, jj],
+                    for jj in range(shapebs[1]):
+                        indok = (
+                            indok0
+                            & (knots_per_bs_Z[0, jj] <= Z)
+                            & (Z <= knots_per_bs_Z[-1, jj])
+                        )
+                        val[:, indok] += RectBiv[ii][jj](
+                            R[indok],
+                            Z[indok],
+                            coefs=coefs,
+                        )
+
+            else:
+                for ii in range(shapebs[0]):
+                    indok0 = (
+                        (knots_per_bs_R[0, ii] <= R)
+                        & (R <= knots_per_bs_R[-1, ii])
                     )
+                    for jj in range(shapebs[1]):
+                        indok = (
+                            indok0
+                            & (knots_per_bs_Z[0, jj] <= Z)
+                            & (Z <= knots_per_bs_Z[-1, jj])
+                        )
+                        val[:, indok] += RectBiv[ii][jj](
+                            R[indok],
+                            Z[indok],
+                            coefs=coefs[:, ii, jj],
+                        )
         return val
 
-    return RectBiv_details, RectBiv_sum, shapebs, Rbs_cent, Zbs_cent
+    return RectBiv_details, RectBiv_sum
