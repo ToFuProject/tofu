@@ -96,6 +96,7 @@ def _check_dax(dax=None, main=None):
 
     return dax
 
+
 # #############################################################################
 # #############################################################################
 #                           plot matrix
@@ -379,7 +380,14 @@ def plot_matrix(
     dax = _check_dax(dax=dax, main='matrix')
 
     # --------------
-    # plot
+    # plot mesh
+
+    dax = matrix.plot_mesh(
+        key=keym, dax=dax, crop=True, dleg=False,
+    )
+
+    # --------------
+    # plot matrix
 
     kax = 'matrix'
     if dax.get(kax) is not None:
@@ -433,10 +441,6 @@ def plot_matrix(
     if dax.get(kax) is not None:
         ax = dax[kax]['ax']
 
-        matrix.plot_mesh(
-            key=keym, dax={'cross': dax[kax]['ax']}, crop=True, dleg=False,
-        )
-
         im = ax.imshow(
             bspline1,
             extent=extent,
@@ -460,10 +464,6 @@ def plot_matrix(
     kax = 'cross2'
     if dax.get(kax) is not None:
         ax = dax[kax]['ax']
-
-        matrix.plot_mesh(
-            key=keym, dax={'cross': dax[kax]['ax']}, crop=True, dleg=False,
-        )
 
         if bspline2 is not None:
             im = ax.imshow(
@@ -490,10 +490,6 @@ def plot_matrix(
     kax = 'crosstot'
     if dax.get(kax) is not None:
         ax = dax[kax]['ax']
-
-        matrix.plot_mesh(
-            key=keym, dax={'cross': dax[kax]['ax']}, crop=True, dleg=False,
-        )
 
         im = ax.imshow(
             bsplinetot,

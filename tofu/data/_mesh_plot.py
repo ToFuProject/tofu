@@ -11,6 +11,16 @@ import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
 
 
+_LALLOWED_AXESTYPES = [
+    'cross', 'hor',
+    'matrix',
+    'timetrace',
+    'profile1d',
+    'image',
+    'misc'
+]
+
+
 # #############################################################################
 # #############################################################################
 #                           utility
@@ -39,6 +49,52 @@ def _check_var(var, varname, default=None, types=None, allowed=None):
             raise Exception(msg)
 
     return var
+
+
+def _check_dax(dax=None, main=None):
+
+    # None
+    if dax is None:
+        return dax
+
+    # Axes
+    if issubclass(dax.__class__, plt.Axes):
+        if main is None:
+            msg = (
+            )
+            raise Exception(msg)
+        else:
+            return {main: dax}
+
+    # dict
+    c0 = (
+        isinstance(dax, dict)
+        and all([
+            isinstance(k0, str)
+            and (
+                (
+                    k0 in _LALLOWED_AXESTYPES
+                    and issubclass(v0.__class__, plt.Axes)
+                )
+                or (
+                    isinstance(v0, dict)
+                    and issubclass(v0.get('ax').__class__, plt.Axes)
+                    and v0.get('type') in _LALLOWED_AXESTYPES
+                )
+            )
+            for k0, v0 in dax.items()
+        ])
+    )
+    if not c0:
+        msg = (
+        )
+        raise Exception(msg)
+
+    for k0, v0 in dax.items():
+        if issubclass(v0.__class__, plt.Axes):
+            dax[k0] = {'ax': v0, 'type': k0}
+
+    return dax
 
 
 # #############################################################################
@@ -259,14 +315,18 @@ def plot_mesh(
 
         dax = {'cross': ax0}
 
+    dax = _check_dax(dax=dax, main='cross')
+
     # --------------
     # plot
 
-    kax = 'cross'
-    if dax.get(kax) is not None:
+    axtype = 'cross'
+    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
+    for kax in lkax:
+        ax = dax[kax]['ax']
 
         if grid_bck is not None and bck is True:
-            dax[kax].plot(
+            ax.plot(
                 grid_bck[0, :],
                 grid_bck[1, :],
                 ls='-',
@@ -276,7 +336,7 @@ def plot_mesh(
                 label=key,
             )
 
-        dax[kax].plot(
+        ax.plot(
             grid[0, :],
             grid[1, :],
             color=color,
@@ -286,7 +346,7 @@ def plot_mesh(
         )
 
         if ind_knot is not None:
-            dax[kax].plot(
+            ax.plot(
                 ind_knot[0][0],
                 ind_knot[0][1],
                 marker='o',
@@ -295,7 +355,7 @@ def plot_mesh(
                 color=color,
                 label='knots',
             )
-            dax[kax].plot(
+            ax.plot(
                 ind_knot[1][0, :, :],
                 ind_knot[1][1, :, :],
                 marker='x',
@@ -305,7 +365,7 @@ def plot_mesh(
             )
 
         if ind_cent is not None:
-            dax[kax].plot(
+            ax.plot(
                 ind_cent[0][0],
                 ind_cent[0][1],
                 marker='x',
@@ -314,7 +374,7 @@ def plot_mesh(
                 color=color,
                 label='cents',
             )
-            dax[kax].plot(
+            ax.plot(
                 ind_cent[1][0, :, :],
                 ind_cent[1][1, :, :],
                 marker='o',
@@ -327,7 +387,8 @@ def plot_mesh(
     # dleg
 
     if dleg is not False:
-        dax['cross'].legend(**dleg)
+        for kax in lkax:
+            dax[kax]['ax'].legend(**dleg)
 
     return dax
 
