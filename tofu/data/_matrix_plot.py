@@ -196,17 +196,6 @@ def _plot_matrix_prepare(
         res_coef = 0.025
         res = [res_coef*dR, res_coef*dZ]
 
-    # grid
-    vert = np.array([
-        np.repeat(Rk, 3),
-        np.tile((Zk[0], Zk[-1], np.nan), Rk.size),
-    ])
-    hor = np.array([
-        np.tile((Rk[0], Rk[-1], np.nan), Zk.size),
-        np.repeat(Zk, 3),
-    ])
-    grid = np.concatenate((vert, hor), axis=1)
-
     # crop
     crop = matrix.dobj['matrix'][key]['crop']
 
@@ -283,7 +272,7 @@ def _plot_matrix_prepare(
 
     return (
         bsplinetot, bspline1, bspline2, extent, interp,
-        grid, ptslos, coefslines, indlosok
+        ptslos, coefslines, indlosok
     )
 
 
@@ -327,7 +316,7 @@ def plot_matrix(
 
     (
         bsplinetot, bspline1, bspline2,
-        extent, interp, grid,
+        extent, interp,
         ptslos, coefslines, indlosok,
     ) = _plot_matrix_prepare(
         cam=cam,
@@ -444,14 +433,8 @@ def plot_matrix(
     if dax.get(kax) is not None:
         ax = dax[kax]['ax']
 
-        ax.plot(
-            grid[0, :],
-            grid[1, :],
-            ls='-',
-            marker='None',
-            lw=1.,
-            color='k',
-            label=keym,
+        matrix.plot_mesh(
+            key=keym, dax={'cross': dax[kax]['ax']}, crop=True, dleg=False,
         )
 
         im = ax.imshow(
@@ -478,14 +461,8 @@ def plot_matrix(
     if dax.get(kax) is not None:
         ax = dax[kax]['ax']
 
-        ax.plot(
-            grid[0, :],
-            grid[1, :],
-            ls='-',
-            marker='None',
-            lw=1.,
-            color='k',
-            label=keym,
+        matrix.plot_mesh(
+            key=keym, dax={'cross': dax[kax]['ax']}, crop=True, dleg=False,
         )
 
         if bspline2 is not None:
@@ -514,14 +491,8 @@ def plot_matrix(
     if dax.get(kax) is not None:
         ax = dax[kax]['ax']
 
-        ax.plot(
-            grid[0, :],
-            grid[1, :],
-            ls='-',
-            marker='None',
-            lw=1.,
-            color='k',
-            label=keym,
+        matrix.plot_mesh(
+            key=keym, dax={'cross': dax[kax]['ax']}, crop=True, dleg=False,
         )
 
         im = ax.imshow(
