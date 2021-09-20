@@ -207,26 +207,42 @@ def _plot_matrix_prepare(
     ])
     grid = np.concatenate((vert, hor), axis=1)
 
-    # indchan => indchan_bf
-    indchan_bf = matrix.select_ind(key=keybs, returnas=np.ndarray)
-    indbf_tup = matrix.select_ind(key=keybs, ind=indbf, returnas=tuple)
+    # crop
+    crop = matrix.dobj['matrix'][key]['crop']
 
-    # bspline1
+    # indchan => indchan_bf
+    ich_bf_tup = matrix.select_ind(key=keybs, returnas='tuple-flat', crop=crop)
+    ich_bf = matrix.select_ind(key=keybs, returnas=np.ndarray, crop=crop)
+    indbf_full = matrix.select_ind(
+        key=keybs, returnas='array-flat', crop=crop,
+    )[indbf]
+    indbf_tup = matrix.select_ind(
+        key=keybs, ind=indbf_full, returnas=tuple, crop=crop,
+    )
+
+    # mesh sampling
     km = matrix.dobj['bsplines'][keybs]['mesh']
     R, Z = matrix.get_sample_mesh(
         key=km, res=res, mode='abs', grid=True, imshow=True,
     )
 
+    # bsplinetot
     shapebs = matrix.dobj['bsplines'][keybs]['shape']
     coefs = np.zeros(tuple(np.r_[1, shapebs]), dtype=float)
-    coefs[0, :, :] = np.nansum(matrix.ddata[key]['data'], axis=0)[indchan_bf]
+    coefs[0, ich_bf_tup[0], ich_bf_tup[1]] = np.nansum(
+        matrix.ddata[key]['data'],
+        axis=0,
+    )
+
     bsplinetot = matrix.dobj['bsplines'][keybs]['func_sum'](
-        R, Z, coefs=coefs,
+        R, Z, coefs=coefs, crop=crop,
     )[0, ...]
     bsplinetot[bsplinetot == 0] = np.nan
-    coefs[0, :, :] = matrix.ddata[key]['data'][indchan, indchan_bf]
+
+    # bspline1
+    coefs[0, ich_bf_tup[0], ich_bf_tup[1]] = matrix.ddata[key]['data'][indchan, :]
     bspline1 = matrix.dobj['bsplines'][keybs]['func_sum'](
-        R, Z, coefs=coefs,
+        R, Z, coefs=coefs, crop=crop,
     )[0, ...]
     bspline1[bspline1 == 0] = np.nan
 
