@@ -366,6 +366,7 @@ class Mesh2DRect(_core_new.DataCollection):
         cam=None,
         res=None,
         resMode=None,
+        crop=None,
         method=None,
         name=None,
     ):
@@ -376,6 +377,7 @@ class Mesh2DRect(_core_new.DataCollection):
             cam=cam,
             res=res,
             resMode=resMode,
+            crop=crop,
             method=method,
             name=name,
         )

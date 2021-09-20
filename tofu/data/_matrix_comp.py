@@ -25,6 +25,7 @@ def _compute_check(
     key=None,
     method=None,
     resMode=None,
+    crop=None,
     name=None,
     verb=None,
 ):
@@ -42,26 +43,28 @@ def _compute_check(
         raise Exception(msg)
 
     # method
-    if method is None:
-        method = 'los'
-    lok = ['los']
-    if method not in lok:
-        msg = (
-            f"Arg method must be in {lok}!\n"
-            f"\t- provided: {method}"
-        )
-        raise Exception(msg)
+    method = _mesh_checks._check_var(
+        method, 'method',
+        default='los',
+        types=str,
+        allowed=['los'],
+    )
 
     # resMode
-    if resMode is None:
-        resMode = 'abs'
-    lok = ['abs', 'rel']
-    if resMode not in lok:
-        msg = (
-            f"Arg resMode must be in {lok}!\n"
-            f"\t- provided: {resMode}"
-        )
-        raise Exception(msg)
+    resMode = _mesh_checks._check_var(
+        resMode, 'resMode',
+        default='abs',
+        types=str,
+        allowed=['abs', 'rel'],
+    )
+
+    # crop
+    crop = _mesh_checks._check_var(
+        crop, 'crop',
+        default=True,
+        types=bool,
+    )
+    crop = crop and mesh.dobj['bsplines'][key]['crop'] is not False
 
     # name
     if name is None:
@@ -92,7 +95,7 @@ def _compute_check(
         )
         raise Exception(msg)
 
-    return key, method, resMode, name, verb
+    return key, method, resMode, crop, name, verb
 
 
 def compute(
@@ -102,6 +105,7 @@ def compute(
     res=None,
     resMode=None,
     method=None,
+    crop=None,
     name=None,
     verb=None,
 ):
@@ -114,9 +118,9 @@ def compute(
     # -----------
     # check input
 
-    key, method, resMode, name, verb = _compute_check(
+    key, method, resMode, crop, name, verb = _compute_check(
         mesh=mesh, key=key, method=method, resMode=resMode,
-        name=name, verb=verb,
+        crop=crop, name=name, verb=verb,
     )
 
     # -----------
@@ -153,24 +157,27 @@ def compute(
         for ii in range(nlos):
 
             # verb
-            if verb and (
-                ii in [0, nlos-1]
-                or int(nn*ii/nlos) != int(nn*(ii-1)/nlos)
-            ):
-                msg = f"Geometry matrix, channel {ii+1} / {nlos}".ljust(nmax)
-                print(msg, end='\r', flush=True)
+            if verb:
+                if ii in [0, nlos-1] or int(nn*ii/nlos) != int(nn*(ii-1)/nlos):
+                    msg = f"Geom. matrix, channel {ii+1} / {nlos}".ljust(nmax)
+                    end = '\n' if ii == nlos-1 else '\r'
+                    print(msg, end=end, flush=True)
 
             # compute
             mat[ii, ...] = np.nansum(
-                mesh.interp(
-                    key=key, R=lr[ii], Z=lz[ii],
-                    grid=False, details=True,
+                mesh.interp2d(
+                    key=key,
+                    R=lr[ii],
+                    Z=lz[ii],
+                    grid=False,
+                    details=True,
+                    crop=crop,
                 )[0, ...],
                 axis=0,
             )
 
         if mat.ndim > 2:
-            indflat = mesh.select_ind(key=key, returnas='tuple-flat')
+            indflat = mesh.select_ind(key=key, crop=crop, returnas='tuple-flat')
             mat = mat[:, indflat[0], indflat[1]]
 
         mat = mat * reseff[:, None]
@@ -180,6 +187,8 @@ def compute(
     # return
 
     # extract existing parts relevant to the geometry matrix (mesh + bsplines)
+
+    # dobj
     km = mesh.dobj['bsplines'][key]['mesh']
     dobj = copy.deepcopy({
         'mesh': {
@@ -190,6 +199,7 @@ def compute(
         },
     })
 
+    # dref
     lref = (
         list(mesh.dobj['mesh'][km]['cents'])
         + list(mesh.dobj['mesh'][km]['knots'])
@@ -203,6 +213,13 @@ def compute(
         })
     dref = copy.deepcopy(dref)
 
+    # ddata
+    lcrop = [mesh.dobj['mesh'][km]['crop'], mesh.dobj['bsplines'][key]['crop']]
+    ddata = copy.deepcopy({
+        k0: v0 for k0, v0 in mesh.ddata.items()
+        if k0 in lcrop
+    })
+
     # add new parts relevant to the geometry matrix (matrix + ref)
     dref.update({
         'channels': {
@@ -215,12 +232,12 @@ def compute(
         },
     })
 
-    ddata = {
+    ddata.update({
         name: {
             'data': mat,
             'ref': ('channels', key)
         },
-    }
+    })
 
     dobj.update({
         'matrix': {
@@ -228,6 +245,8 @@ def compute(
                 'bsplines': key,
                 'cam': cam.Id.Name,
                 'data': name,
+                'crop': crop,
+                'shape': mat.shape,
             },
         },
     })
