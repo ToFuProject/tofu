@@ -490,19 +490,21 @@ def _mesh2DRect_bsplines_knotscents(
 # #############################################################################
 
 
-def sample_mesh(
+def _sample_mesh_check(
     mesh=None,
     key=None,
     res=None,
     mode=None,
-    R=None,
-    Z=None,
     grid=None,
     imshow=None,
+    R=None,
+    Z=None,
+    DR=None,
+    DZ=None,
 ):
 
-    # -------------
-    # check inputs
+    # -----------
+    # Parameters
 
     # key
     lk = list(mesh.dobj[mesh._groupmesh].keys())
@@ -568,24 +570,85 @@ def sample_mesh(
         raise Exception(msg)
 
     # -------------
-    # compute
+    # R, Z
 
     kR, kZ = mesh.dobj[mesh._groupmesh][key]['knots']
     Rk = mesh.ddata[kR]['data']
     Zk = mesh.ddata[kZ]['data']
 
+    # custom R xor Z for vertical / horizontal lines only
     if R is None and Z is not None:
         R = Rk
     if Z is None and R is not None:
         Z = Zk
 
+    # custom DR or DZ for mode='abs' only
+    if DR is not None or DZ is not None:
+        if mode != 'abs':
+            msg = "Custom DR or DZ can only be provided with mode = 'abs'!"
+            raise Exception(msg)
+
+        for DD, DN in [(DR, 'DR'), (DZ, 'DZ')]:
+            if DD is not None:
+                c0 = (
+                    hasattr(DD, '__iter__')
+                    and len(DD) == 2
+                    and all([
+                        rr is None or (np.isscalar(rr) and np.isfinite(rr))
+                        for rr in DD
+                    ])
+                )
+                if not c0:
+                    msg = f'Arg {DN} must be an iterable of 2 scalars!'
+                    raise Exception(msg)
+
+        if DR is None:
+            DR = [Rk.min(), Rk.max()]
+        if DZ is None:
+            DZ = [Zk.min(), Zk.max()]
+
+    return key, res, mode, grid, imshow, R, Z, DR, DZ, Rk, Zk
+
+
+def sample_mesh(
+    mesh=None,
+    key=None,
+    res=None,
+    mode=None,
+    R=None,
+    Z=None,
+    DR=None,
+    DZ=None,
+    grid=None,
+    imshow=None,
+):
+
+    # -------------
+    # check inputs
+
+    key, res, mode, grid, imshow, R, Z, DR, DZ, Rk, Zk = _sample_mesh_check(
+        mesh=mesh,
+        key=key,
+        res=res,
+        mode=mode,
+        grid=grid,
+        imshow=imshow,
+        R=R,
+        Z=Z,
+        DR=DR,
+        DZ=DZ,
+    )
+
+    # -------------
+    # compute
+
     if mode == 'abs':
         if R is None:
-            nR = int(np.ceil((Rk[-1] - Rk[0]) / res[0]))
-            R = np.linspace(Rk[0], Rk[-1], nR)
+            nR = int(np.ceil((DR[1] - DR[0]) / res[0]))
+            R = np.linspace(DR[0], DR[1], nR)
         if Z is None:
-            nZ = int(np.ceil((Zk[-1] - Zk[0]) / res[1]))
-            Z = np.linspace(Zk[0], Zk[-1], nZ)
+            nZ = int(np.ceil((DZ[1] - DZ[0]) / res[1]))
+            Z = np.linspace(DZ[0], DZ[1], nZ)
     else:
         if R is None:
             nR = int(np.ceil(1./res[0]))

@@ -344,6 +344,7 @@ def _plot_bspline_check(
     ind=None,
     knots=None,
     cents=None,
+    plot_mesh=None,
     cmap=None,
     dleg=None,
 ):
@@ -377,6 +378,9 @@ def _plot_bspline_check(
         crop=False,
     )
 
+    # plot_mesh
+    plot_mesh = _check_var(plot_mesh, 'plot_mesh', default=True, types=bool)
+
     # cmap
     if cmap is None:
         cmap = 'viridis'
@@ -389,7 +393,7 @@ def _plot_bspline_check(
     }
     dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
 
-    return key, ind, knotsi, centsi, cmap, dleg
+    return key, ind, knotsi, centsi, plot_mesh, cmap, dleg
 
 
 def _plot_bspline_prepare(
@@ -413,23 +417,41 @@ def _plot_bspline_prepare(
         res_coef = 0.05
         res = [res_coef*dR, res_coef*dZ]
 
-    # bspline
+    # sample
+    knotsRi, knotsZi = mesh.select_bsplines(
+        ind=ind,
+        key=key,
+        return_knots=True,
+        return_cents=False,
+        returnas='data',
+    )[1]
+    dR = np.min(np.diff(Rk))
+    dZ = np.min(np.diff(Zk))
+    DR = [knotsRi.min() + dR*1.e-10, knotsRi.max() - dR*1.e-10]
+    DZ = [knotsZi.min() + dZ*1.e-10, knotsZi.max() - dZ*1.e-10]
+
     km = mesh.dobj['bsplines'][key]['mesh']
     R, Z = mesh.get_sample_mesh(
-        key=km, res=res, mode='abs', grid=True, imshow=True,
+        key=km, res=res,
+        DR=DR,
+        DZ=DZ,
+        mode='abs', grid=True, imshow=True,
     )
+
+    # bspline
     shapebs = mesh.dobj['bsplines'][key]['shape']
     coefs = np.zeros((1, shapebs[0], shapebs[1]), dtype=float)
     coefs[0, ind[0], ind[1]] = 1.
-
     bspline = mesh.dobj['bsplines'][key]['func_sum'](R, Z, coefs=coefs)[0, ...]
-    bspline[bspline == 0] = np.nan
+
+    # nan if 0
+    bspline[bspline == 0.] = np.nan
 
     # extent and interp
 
     extent = (
-        Rk[0] - 0.*dR, Rk[-1] + 0.*dR,
-        Zk[0] - 0.*dZ, Zk[-1] + 0.*dZ,
+        DR[0], DR[1],
+        DZ[0], DZ[1],
     )
 
     if deg == 0:
@@ -451,6 +473,7 @@ def plot_bspline(
     knots=None,
     cents=None,
     res=None,
+    plot_mesh=None,
     cmap=None,
     dax=None,
     dmargin=None,
@@ -461,12 +484,13 @@ def plot_bspline(
     # --------------
     # check input
 
-    key, ind, knotsi, centsi, cmap, dleg = _plot_bspline_check(
+    key, ind, knotsi, centsi, plot_mesh, cmap, dleg = _plot_bspline_check(
         mesh=mesh,
         key=key,
         ind=ind,
         knots=knots,
         cents=cents,
+        plot_mesh=plot_mesh,
         cmap=cmap,
         dleg=dleg,
     )
@@ -506,6 +530,10 @@ def plot_bspline(
     # --------------
     # plot
 
+    if plot_mesh is True:
+        keym = mesh.dobj['bsplines'][key]['mesh']
+        dax = mesh.plot_mesh(key=keym, dax=dax, dleg=False)
+
     kax = 'cross'
     if dax.get(kax) is not None:
 
@@ -539,6 +567,9 @@ def plot_bspline(
                 ls='None',
                 color='k',
             )
+
+        dax[kax].relim()
+        dax[kax].autoscale()
 
     # --------------
     # dleg

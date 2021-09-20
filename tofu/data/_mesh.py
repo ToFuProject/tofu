@@ -260,6 +260,8 @@ class Mesh2DRect(_core_new.DataCollection):
         mode=None,
         R=None,
         Z=None,
+        DR=None,
+        DZ=None,
         imshow=None,
     ):
         """ Return a sampled version of the chosen mesh """
@@ -271,6 +273,8 @@ class Mesh2DRect(_core_new.DataCollection):
             mode=mode,
             R=R,
             Z=Z,
+            DR=DR,
+            DZ=DZ,
             imshow=imshow,
         )
 
@@ -415,6 +419,7 @@ class Mesh2DRect(_core_new.DataCollection):
         knots=None,
         cents=None,
         res=None,
+        plot_mesh=None,
         cmap=None,
         dax=None,
         dmargin=None,
@@ -429,6 +434,7 @@ class Mesh2DRect(_core_new.DataCollection):
             knots=knots,
             cents=cents,
             res=res,
+            plot_mesh=plot_mesh,
             cmap=cmap,
             dax=dax,
             dmargin=dmargin,
