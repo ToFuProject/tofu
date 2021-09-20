@@ -2,7 +2,7 @@
 
 
 # Built-in
-
+import warnings
 
 # Common
 import numpy as np
@@ -103,7 +103,8 @@ def _select_ind(
                     "Provided: {ind.shape}"
                 )
                 raise Exception(msg)
-            ind_tup = ind.nonzero()
+            # make sure R varies first
+            ind_tup = ind.T.nonzero()[::-1]
             ind_bool = ind
 
     if ind_tup[0].shape != ind_tup[1].shape:
@@ -129,11 +130,11 @@ def _select_ind(
         elif ind_tup[0].shape == cropi.shape:
             ind_bool = ind_bool & cropi
             # ind_tup is not 2d anymore
-            ind_tup = ind_bool.nonzero()
+            ind_tup = ind_bool.T.nonzero()[::-1]  # R varies first
             warnings.warn("ind is not 2d anymore!")
         else:
             ind_bool = ind_bool & cropi
-            ind_tup = ind_bool.nonzero()
+            ind_tup = ind_bool.T.nonzero()[::-1]
 
     # ------------
     # tuple to return
@@ -602,10 +603,10 @@ def _sample_mesh_check(
                     msg = f'Arg {DN} must be an iterable of 2 scalars!'
                     raise Exception(msg)
 
-        if DR is None:
-            DR = [Rk.min(), Rk.max()]
-        if DZ is None:
-            DZ = [Zk.min(), Zk.max()]
+    if DR is None:
+        DR = [Rk.min(), Rk.max()]
+    if DZ is None:
+        DZ = [Zk.min(), Zk.max()]
 
     return key, res, mode, grid, imshow, R, Z, DR, DZ, Rk, Zk
 
@@ -938,13 +939,13 @@ def _interp_check(
             imshow=imshow,
         )
     else:
-        if not np.isinstance(R, np.darray):
+        if not isinstance(R, np.ndarray):
             try:
                 R = np.atleast_1d(R).astype(float)
             except Exception as err:
                 msg = "R must be convertible to np.arrays of floats"
                 raise Exception(msg)
-        if not np.isinstance(Z, np.darray):
+        if not isinstance(Z, np.ndarray):
             try:
                 Z = np.atleast_1d(Z).astype(float)
             except Exception as err:
