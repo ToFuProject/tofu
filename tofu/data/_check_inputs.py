@@ -714,7 +714,7 @@ def _check_dref_static(
 
 class DataRefException(Exception):
 
-    def __init__(ref=None, data=None):
+    def __init__(self, ref=None, data=None):
         msg = (
             """
             To be a valid reference for {}, provided data must be either:
