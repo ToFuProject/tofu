@@ -2,7 +2,7 @@
 
 
 # Built-in
-
+import datetime as dtm
 
 # Common
 import numpy as np
@@ -185,6 +185,9 @@ def _plot_matrix_prepare(
     res=None,
 ):
 
+
+    t0 = dtm.datetime.now()     # DB
+
     # res
     deg = matrix.dobj['bsplines'][keybs]['deg']
     km = matrix.dobj['bsplines'][keybs]['mesh']
@@ -200,6 +203,9 @@ def _plot_matrix_prepare(
     # crop
     crop = matrix.dobj['matrix'][key]['crop']
 
+    t1 = dtm.datetime.now()     # DB
+    print('\tres and knots', t1-t0)     # DB
+
     # indchan => indchan_bf
     ich_bf_tup = matrix.select_ind(key=keybs, returnas='tuple-flat', crop=crop)
     ich_bf = matrix.select_ind(key=keybs, returnas=np.ndarray, crop=crop)
@@ -210,11 +216,17 @@ def _plot_matrix_prepare(
         key=keybs, ind=indbf_full, returnas=tuple, crop=crop,
     )
 
+    t2 = dtm.datetime.now()     # DB
+    print('\tindices', t2-t1)     # DB
+
     # mesh sampling
     km = matrix.dobj['bsplines'][keybs]['mesh']
     R, Z = matrix.get_sample_mesh(
         key=km, res=res, mode='abs', grid=True, imshow=True,
     )
+
+    t3 = dtm.datetime.now()     # DB
+    print('\tmesh sampling', t3-t2)     # DB
 
     # bsplinetot
     shapebs = matrix.dobj['bsplines'][keybs]['shape']
@@ -229,12 +241,18 @@ def _plot_matrix_prepare(
     )[0, ...]
     bsplinetot[bsplinetot == 0] = np.nan
 
+    t4 = dtm.datetime.now()     # DB
+    print('\tbsplinetot:', t4-t3)     # DB
+
     # bspline1
     coefs[0, ich_bf_tup[0], ich_bf_tup[1]] = matrix.ddata[key]['data'][indchan, :]
     bspline1 = matrix.dobj['bsplines'][keybs]['func_sum'](
         R, Z, coefs=coefs, crop=crop,
     )[0, ...]
     bspline1[bspline1 == 0] = np.nan
+
+    t5 = dtm.datetime.now()     # DB
+    print('\tbspline1: ', t5-t4)     # DB
 
     # bspline2
     coefs[...] = 0.
@@ -243,6 +261,9 @@ def _plot_matrix_prepare(
         R, Z, coefs=coefs,
     )[0, ...]
     bspline2[bspline2 == 0] = np.nan
+
+    t6 = dtm.datetime.now()     # DB
+    print('\tbspline2', t6-t5)     # DB
 
     # los
     ptslos, coefslines, indlosok = None, None, None
@@ -257,6 +278,9 @@ def _plot_matrix_prepare(
             (3. - 0.5) * (coefslines - coefslines.min())
             / (coefslines.max() - coefslines.min()) + 0.5
         )
+
+    t7 = dtm.datetime.now()     # DB
+    print('\tlos', t7-t6)     # DB
 
     # extent and interp
     extent = (
@@ -297,6 +321,8 @@ def plot_matrix(
     # --------------
     # check input
 
+    t0 = dtm.datetime.now()     # DB
+
     (
         key, keybs, keym,
         indbf, indchan,
@@ -311,6 +337,9 @@ def plot_matrix(
         dleg=dleg,
         dax=dax,
     )
+
+    t1 = dtm.datetime.now()     # DB
+    print('checks: ', t1-t0)     # DB
 
     # --------------
     #  Prepare data
@@ -330,6 +359,9 @@ def plot_matrix(
         res=res,
     )
     nchan, nbs = matrix.ddata[key]['data'].shape
+
+    t2 = dtm.datetime.now()     # DB
+    print('prepare: ', t2-t1)     # DB
 
     # --------------
     # plot - prepare
@@ -379,12 +411,18 @@ def plot_matrix(
 
     dax = _check_dax(dax=dax, main='matrix')
 
+    t3 = dtm.datetime.now()     # DB
+    print('prepare dax: ', t3-t2)     # DB
+
     # --------------
     # plot mesh
 
     dax = matrix.plot_mesh(
         key=keym, dax=dax, crop=True, dleg=False,
     )
+
+    t4 = dtm.datetime.now()     # DB
+    print('plot mesh: ', t4-t3)     # DB
 
     # --------------
     # plot matrix
@@ -436,6 +474,10 @@ def plot_matrix(
             lw=1.,
             color='k',
         )
+
+    t5 = dtm.datetime.now()     # DB
+    print('plot matrix and misc: ', t5-t4)     # DB
+
 
     kax = 'cross1'
     if dax.get(kax) is not None:
@@ -501,6 +543,10 @@ def plot_matrix(
             vmin=0,
             vmax=None,
         )
+
+    t6 = dtm.datetime.now()     # DB
+    print('plot 3 cross: ', t6-t5)     # DB
+
 
     # --------------
     # dleg

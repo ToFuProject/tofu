@@ -330,7 +330,7 @@ def _mesh2DRect_bsplines(mesh=None, keym=None, keybs=None, deg=None):
         deg=deg, Rknots=Rknots, Zknots=Zknots,
     )
 
-    func_details, func_sum = _mesh_bsplines.get_bs2d_func(
+    func_details, func_sum, func_scipy = _mesh_bsplines.get_bs2d_func(
         deg=deg,
         Rknots=Rknots,
         Zknots=Zknots,
@@ -372,6 +372,7 @@ def _mesh2DRect_bsplines(mesh=None, keym=None, keybs=None, deg=None):
                 'crop': False,
                 'func_details': func_details,
                 'func_sum': func_sum,
+                'func_scipy': func_scipy,
             }
         },
     }

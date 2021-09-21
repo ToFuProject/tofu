@@ -39,6 +39,59 @@ def _check_var(var, varname, types=None, default=None, allowed=None):
 
 # #############################################################################
 # #############################################################################
+#                       BivariateSplineRect - scipy subclass
+# #############################################################################
+
+
+class BivariateSplineRect(scpinterp.BivariateSpline):
+    """ Subclass for tofu
+
+    Defined from knots (unique) and deg
+    coefs set to 1 by default
+
+    Used self.set_coefs() to update
+    """
+
+    def __init__(self, knotsR=None, knotsZ=None, deg=None):
+
+        assert np.allclose(np.unique(knotsR), knotsR)
+        assert np.allclose(np.unique(knotsZ), knotsZ)
+        assert deg in [0, 1, 2, 3]
+
+        knotsR, nbsR = _get_bs2d_func_knots(
+            knotsR, deg=deg, returnas='data', return_unique=True,
+        )
+        knotsZ, nbsZ = _get_bs2d_func_knots(
+            knotsZ, deg=deg, returnas='data', return_unique=True,
+        )
+
+        coefs = np.ones((nbsR*nbsZ,), dtype=float)
+
+        self.__nbs = (nbsR, nbsZ)
+        self.tck = [knotsR, knotsZ, coefs]
+        self.degrees = [deg, deg]
+
+    def set_coefs(self, coefs=None):
+
+        shape = (self.__nbs[0]*self.__nbs[1],)
+        if np.isscalar(coefs):
+            coefs = np.full(shape, coefs)
+        else:
+            if not isinstance(coefs, np.ndarray):
+                coefs = np.asarray(coefs)
+            if coefs.shape != shape:
+                msg = (
+                    "Arg coefs has wrong shape!\n"
+                    f"\t- expected: {shape}\n"
+                    f"\t- provided: {coefs.shape}\n"
+                )
+                raise Exception(msg)
+
+        self.tck[2] = coefs
+
+
+# #############################################################################
+# #############################################################################
 #                           Mesh2DRect - bsplines
 # #############################################################################
 
@@ -125,7 +178,10 @@ def _get_bs2d_func_check(
     return coefs, ii, jj, R, Z, crop
 
 
-def _get_bs2d_func_knots(knots, deg=None, returnas=None):
+def _get_bs2d_func_knots(knots, deg=None, returnas=None, return_unique=None):
+
+    # ----------
+    # check input
 
     returnas = _check_var(
         returnas, 'returnas',
@@ -133,58 +189,86 @@ def _get_bs2d_func_knots(knots, deg=None, returnas=None):
         default='data',
         allowed=['ind', 'data'],
     )
+    return_unique = _check_var(
+        return_unique, 'return_unique',
+        types=bool,
+        default=False,
+    )
+
+    # ----------
+    # compute
 
     nkpbs = 2 + deg
     size = knots.size
     nbs = size - 1 + deg
-    knots_per_bs = np.zeros((nkpbs, nbs), dtype=int)
 
-    if deg == 0:
-        knots_per_bs[:, :] = np.array([
-            np.arange(0, size-1),
-            np.arange(1, size),
-        ])
+    if return_unique:
+        if deg == 0:
+            knots_per_bs = np.arange(0, size)
+        elif deg == 1:
+            knots_per_bs = np.r_[0, np.arange(0, size), size-1]
+        elif deg == 2:
+            knots_per_bs = np.r_[0, 0, np.arange(0, size), size-1, size-1]
+        elif deg == 3:
+            knots_per_bs = np.r_[
+                0, 0, 0, np.arange(0, size), size-1, size-1, size-1,
+            ]
 
-    elif deg == 1:
-        knots_per_bs[:, 1:-1] = np.array([
-            np.arange(0, size-2),
-            np.arange(1, size-1),
-            np.arange(2, size),
-        ])
-        knots_per_bs[:, 0] = [0, 0, 1]
-        knots_per_bs[:, -1] = [-2, -1, -1]
+    else:
+        knots_per_bs = np.zeros((nkpbs, nbs), dtype=int)
 
-    elif deg == 2:
-        knots_per_bs[:, 2:-2] = np.array([
-            np.arange(0, size-3),
-            np.arange(1, size-2),
-            np.arange(2, size-1),
-            np.arange(3, size),
-        ])
-        knots_per_bs[:, 0] = [0, 0, 0, 1]
-        knots_per_bs[:, 1] = [0, 0, 1, 2]
-        knots_per_bs[:, -2] = [-3, -2, -1, -1]
-        knots_per_bs[:, -1] = [-2, -1, -1, -1]
+        if deg == 0:
+            knots_per_bs[:, :] = np.array([
+                np.arange(0, size-1),
+                np.arange(1, size),
+            ])
 
-    elif deg == 3:
-        knots_per_bs[:, 3:-3] = np.array([
-            np.arange(0, size-4),
-            np.arange(1, size-3),
-            np.arange(2, size-2),
-            np.arange(3, size-1),
-            np.arange(4, size),
-        ])
-        knots_per_bs[:, 0] = [0, 0, 0, 0, 1]
-        knots_per_bs[:, 1] = [0, 0, 0, 1, 2]
-        knots_per_bs[:, 2] = [0, 0, 1, 2, 3]
-        knots_per_bs[:, -3] = [-4, -3, -2, -1, -1]
-        knots_per_bs[:, -2] = [-3, -2, -1, -1, -1]
-        knots_per_bs[:, -1] = [-2, -1, -1, -1, -1]
+        elif deg == 1:
+            knots_per_bs[:, 1:-1] = np.array([
+                np.arange(0, size-2),
+                np.arange(1, size-1),
+                np.arange(2, size),
+            ])
+            knots_per_bs[:, 0] = [0, 0, 1]
+            knots_per_bs[:, -1] = [-2, -1, -1]
+
+        elif deg == 2:
+            knots_per_bs[:, 2:-2] = np.array([
+                np.arange(0, size-3),
+                np.arange(1, size-2),
+                np.arange(2, size-1),
+                np.arange(3, size),
+            ])
+            knots_per_bs[:, 0] = [0, 0, 0, 1]
+            knots_per_bs[:, 1] = [0, 0, 1, 2]
+            knots_per_bs[:, -2] = [-3, -2, -1, -1]
+            knots_per_bs[:, -1] = [-2, -1, -1, -1]
+
+        elif deg == 3:
+            knots_per_bs[:, 3:-3] = np.array([
+                np.arange(0, size-4),
+                np.arange(1, size-3),
+                np.arange(2, size-2),
+                np.arange(3, size-1),
+                np.arange(4, size),
+            ])
+            knots_per_bs[:, 0] = [0, 0, 0, 0, 1]
+            knots_per_bs[:, 1] = [0, 0, 0, 1, 2]
+            knots_per_bs[:, 2] = [0, 0, 1, 2, 3]
+            knots_per_bs[:, -3] = [-4, -3, -2, -1, -1]
+            knots_per_bs[:, -2] = [-3, -2, -1, -1, -1]
+            knots_per_bs[:, -1] = [-2, -1, -1, -1, -1]
+
+    # ----------
+    # return
 
     if returnas == 'data':
         knots_per_bs = knots[knots_per_bs]
 
-    return knots_per_bs
+    if return_unique:
+        return knots_per_bs, nbs
+    else:
+        return knots_per_bs
 
 
 def _get_bs2d_func_cents(cents, deg=None, returnas=None):
@@ -298,6 +382,7 @@ def get_bs2d_RZ(deg=None, Rknots=None, Zknots=None):
         Rknots=Rknots, Zknots=Zknots, deg=deg,
     )
     return shapebs, Rbs_cent, Zbs_cent, knots_per_bs_R, knots_per_bs_Z
+
 
 def get_bs2d_func(
     deg=None,
@@ -531,4 +616,87 @@ def get_bs2d_func(
                         )
         return val
 
-    return RectBiv_details, RectBiv_sum
+    RectBiv_scipy = BivariateSplineRect(knotsR=Rknots, knotsZ=Zknots, deg=deg)
+
+    def RectBiv_sum2(
+        R,
+        Z,
+        coefs=None,
+        shapebs=shapebs,
+        knots_per_bs_R=knots_per_bs_R,
+        knots_per_bs_Z=knots_per_bs_Z,
+        RectBiv=RectBiv,
+        crop=None,
+        cropbs=None,
+        RectBiv_scipy=RectBiv_scipy,
+    ):
+        """ Return the value for each point summed on all bsplines """
+
+        coefs, _, _, r, z, crop = _get_bs2d_func_check(
+            coefs=coefs,
+            R=R,
+            Z=Z,
+            shapebs=shapebs,
+            crop=crop,
+            cropbs=cropbs,
+        )
+        nt = 1 if np.isscalar(coefs) else coefs.shape[0]
+        shapepts = r.shape
+
+        shape = tuple(np.r_[nt, shapepts])
+        val = np.zeros(shape, dtype=float)
+        if crop:
+            if np.isscalar(coefs):
+                for ii in range(shapebs[0]):
+                    if not np.any(cropbs[ii, :]):
+                        continue
+                    indok0 = (
+                        (knots_per_bs_R[0, ii] <= R)
+                        & (R <= knots_per_bs_R[-1, ii])
+                    )
+                    for jj in range(shapebs[1]):
+                        if cropbs[ii, jj]:
+                            indok = (
+                                indok0
+                                & (knots_per_bs_Z[0, jj] <= Z)
+                                & (Z <= knots_per_bs_Z[-1, jj])
+                            )
+                            val[:, indok] += RectBiv[ii][jj](
+                                R[indok],
+                                Z[indok],
+                                coefs=coefs,
+                            )
+
+            else:
+                for ii in range(shapebs[0]):
+                    if not np.any(cropbs[ii, :]):
+                        continue
+                    indok0 = (
+                        (knots_per_bs_R[0, ii] <= R)
+                        & (R <= knots_per_bs_R[-1, ii])
+                    )
+                    for jj in range(shapebs[1]):
+                        if cropbs[ii, jj]:
+                            indok = (
+                                indok0
+                                & (knots_per_bs_Z[0, jj] <= Z)
+                                & (Z <= knots_per_bs_Z[-1, jj])
+                            )
+                            val[:, indok] += RectBiv[ii][jj](
+                                R[indok],
+                                Z[indok],
+                                coefs=coefs[:, ii, jj],
+                            )
+
+        else:
+            if np.isscalar(coefs):
+                RectBiv_scipy.set_coefs(coefs=coefs)
+                val = RectBiv_scipy(R, Z, grid=False)
+
+            else:
+                for ii in range(coefs.shape[0]):
+                    RectBiv_scipy.set_coefs(coefs=coefs)
+                    val = RectBiv_scipy(R, Z, grid=False)
+        return val
+
+    return RectBiv_details, RectBiv_sum, RectBiv_sum2
