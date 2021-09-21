@@ -482,7 +482,6 @@ cdef inline void compute_vec_ass_tri(const double pt0, const double pt1,
         num[ii] = 3.0 * (  vec_OG[0] * cross_bc[0, ii]
                          + vec_OG[1] * cross_bc[1, ii]
                          + vec_OG[2] * cross_bc[2, ii])
-        num[ii] = cross_bc[1, ii]
         dot_Gb[ii] = (vec_OG[0]   * vecb[0, ii]
                       + vec_OG[1] * vecb[1, ii]
                       + vec_OG[2] * vecb[2, ii])

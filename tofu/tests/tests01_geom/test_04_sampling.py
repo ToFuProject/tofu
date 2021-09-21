@@ -397,6 +397,42 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
             [2.7, 0, -0.4],
         ]).T,  # first polygon
         np.array([
+            [2.50, 0, -0.1],
+            [2.60, 0, -0.1],
+            [2.70, 0, -0.1],
+            [2.75, 0, -0.1],
+            [2.75, 0, -0.4],
+            [2.7, 0, -0.4],
+            [2.50, 0, -0.4],
+        ]).T,  # first polygon
+        np.array([
+            [2.60, 0, -0.1],
+            [2.70, 0, -0.1],
+            [2.75, 0, -0.1],
+            [2.75, 0, -0.4],
+            [2.7, 0, -0.4],
+            [2.50, 0, -0.4],
+            [2.50, 0, -0.1],
+        ]).T,  # first polygon
+        np.array([
+            [2.70, 0, -0.1],
+            [2.75, 0, -0.1],
+            [2.75, 0, -0.4],
+            [2.7, 0, -0.4],
+            [2.50, 0, -0.4],
+            [2.50, 0, -0.1],
+            [2.60, 0, -0.1],
+        ]).T,  # first polygon
+        np.array([
+            [2.75, 0, -0.1],
+            [2.75, 0, -0.4],
+            [2.7, 0, -0.4],
+            [2.50, 0, -0.4],
+            [2.50, 0, -0.1],
+            [2.60, 0, -0.1],
+            [2.70, 0, -0.1],
+        ]).T,  # first polygon
+        np.array([
             [2.2, 0., 0.25],
             [2.2, 0., 0.50],
             [2.5, 0., 0.50],
@@ -408,6 +444,10 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
     ]
     poly_coords = [np.ascontiguousarray(poly) for poly in poly_coords]
     poly_lnorms = np.array([
+        [0, 1., 0],
+        [0, 1., 0],
+        [0, 1., 0],
+        [0, 1., 0],
         [0, 1., 0],
         [0, 1., 0],
     ])
@@ -481,6 +521,10 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
                     "r-", marker='o',
                     linewidth=2,
                 )
+                # for iii in range(np.size(xpoly)):
+                #     ax.annotate(iii,
+                #                 (xpoly[iii],
+                #                  zpoly[iii]))
                 ax.plot()
                 ax.set_title("cython function")
                 fig.colorbar(im, ax=ax)

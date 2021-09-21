@@ -1,7 +1,7 @@
 # cython: language_level=3
-# cython: boundscheck=False
+# cython: boundscheck=True
 # cython: wraparound=False
-# cython: initializedcheck=False
+# cython: initializedcheck=True
 # cython: cdivision=True
 #
 # -- Python libraries imports --------------------------------------------------
@@ -5178,6 +5178,9 @@ def compute_solid_angle_poly_map(list poly_coords,
         f"Total number of triangles = {tot_num_tri} "
         + " and was expecting: "
         + str(np.shape(poly_lnorms_tot)))
+
+    print("vec GB = ", vec_GB)
+    print("vec GC = ", vec_GC)
     _bgt.compute_dot_cross_vec(vec_GB,
                                vec_GC,
                                cross_GBGC,

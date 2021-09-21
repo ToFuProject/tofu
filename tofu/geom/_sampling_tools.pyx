@@ -1,8 +1,8 @@
 # cython: language_level=3
-# cython: boundscheck=False
+# cython: boundscheck=True
 # cython: wraparound=False
 # cython: cdivision=True
-# cython: initializedcheck=False
+# cython: initializedcheck=True
 #
 ################################################################################
 # Utility functions for sampling and discretizating
@@ -3106,4 +3106,10 @@ cdef inline double comp_sa_tri_appx(
         + dot_Gc * (normA - normC)
     )
 
+    if (numerator / denumerator) > 1000000:
+        with gil:
+            print("found big value = ",
+                  numerator/denumerator,
+                  numerator,
+                  denumerator)
     return numerator / denumerator
