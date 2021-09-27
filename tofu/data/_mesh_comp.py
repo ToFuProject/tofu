@@ -330,7 +330,7 @@ def _mesh2DRect_bsplines(mesh=None, keym=None, keybs=None, deg=None):
         deg=deg, Rknots=Rknots, Zknots=Zknots,
     )
 
-    func_details, func_sum, func_scipy = _mesh_bsplines.get_bs2d_func(
+    func_details, func_sum = _mesh_bsplines.get_bs2d_func(
         deg=deg,
         Rknots=Rknots,
         Zknots=Zknots,
@@ -372,7 +372,6 @@ def _mesh2DRect_bsplines(mesh=None, keym=None, keybs=None, deg=None):
                 'crop': False,
                 'func_details': func_details,
                 'func_sum': func_sum,
-                'func_scipy': func_scipy,
             }
         },
     }
@@ -835,6 +834,7 @@ def _interp_check(
     R=None,
     Z=None,
     grid=None,
+    indbs=None,
     indt=None,
     details=None,
     res=None,
@@ -854,10 +854,11 @@ def _interp_check(
             mesh.ddata[kk]['ref'][-2:] == v1['ref']
             for v1 in mesh.dobj['bsplines'].values()
         ])
+        and 'crop' not in kk
     }
     dk.update({kk: kk for kk in mesh.dobj['bsplines'].keys()})
     if key is None and len(dk) == 1:
-        ky = list(dk.keys())[0]
+        key = list(dk.keys())[0]
     if key not in dk.keys():
         msg = (
             "Arg key must the key to a data referenced on a bsplines set\n"
@@ -886,6 +887,8 @@ def _interp_check(
                 f"Provided: coefs.shape"
             )
             raise Exception(msg)
+
+    # indbs
 
     # indt
     c0 = (
@@ -971,7 +974,7 @@ def _interp_check(
             R = np.tile(R, Z.size)
             Z = np.repeat(Z, R.size)
 
-    return key, keybs, R, Z, coefs, indt, details, crop, nan0
+    return key, keybs, R, Z, coefs, indbs, indt, details, crop, nan0
 
 
 def interp2d(
@@ -980,9 +983,11 @@ def interp2d(
     R=None,
     Z=None,
     coefs=None,
+    indbs=None,
     indt=None,
     grid=None,
     details=None,
+    reshape=None,
     res=None,
     crop=None,
     nan0=None,
@@ -992,12 +997,13 @@ def interp2d(
     # ---------------
     # check inputs
 
-    key, keybs, R, Z, coefs, indt, details, crop, nan0 = _interp_check(
+    key, keybs, R, Z, coefs, indbs, indt, details, crop, nan0 = _interp_check(
         mesh=mesh,
         key=key,
         R=R,
         Z=Z,
         coefs=coefs,
+        indbs=indbs,
         indt=indt,
         grid=grid,
         details=details,
@@ -1010,15 +1016,12 @@ def interp2d(
     # ---------------
     # prepare
 
-    if keybs == key:
-        coefs = None
-    else:
-        coefs = mesh.ddata[key]['data']
-
     if details is True:
         fname = 'func_details'
-    else:
+    elif details is False:
         fname = 'func_sum'
+    else:
+        raise Exception("Unknown details!")
 
     # ---------------
     # interp
@@ -1027,11 +1030,22 @@ def interp2d(
     if cropbs is not False:
         cropbs = mesh.ddata[cropbs]['data']
 
+    if details is not False:
+        indbs_tuple_flat = mesh.select_ind(
+            key=keybs,
+            returnas='tuple-flat',
+            ind=indbs,
+        )
+    else:
+        indbs_tuple_flat = None
+
     val = mesh.dobj['bsplines'][keybs][fname](
         R, Z,
         coefs=coefs,
         crop=crop,
         cropbs=cropbs,
+        indbs_tuple_flat=indbs_tuple_flat,
+        reshape=reshape,
     )
 
     # ---------------
@@ -1041,5 +1055,3 @@ def interp2d(
         val[val == 0] = np.nan
 
     return val
-
-

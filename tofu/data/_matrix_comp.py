@@ -128,8 +128,6 @@ def compute(
 
     nlos = cam.nRays
     shapebs = mesh.dobj['bsplines'][key]['shape']
-    shapemat = tuple(np.r_[nlos, shapebs])
-    mat = np.zeros(shapemat, dtype=float)
 
     # -----------
     # compute
@@ -154,31 +152,38 @@ def compute(
             nmax = len(f"Geometry matrix, channel {nlos} / {nlos}")
             nn = 10**(np.log10(nlos)-1)
 
+        # prepare indices
+        indbs = mesh.select_ind(
+            key=key,
+            returnas=tuple,
+            crop=crop,
+        )
+
+        # prepare matrix
+        shapemat = tuple(np.r_[nlos, indbs[0].size])
+        mat = np.zeros(shapemat, dtype=float)
+
         for ii in range(nlos):
 
             # verb
             if verb:
-                if ii in [0, nlos-1] or int(nn*ii/nlos) != int(nn*(ii-1)/nlos):
-                    msg = f"Geom. matrix, channel {ii+1} / {nlos}".ljust(nmax)
-                    end = '\n' if ii == nlos-1 else '\r'
-                    print(msg, end=end, flush=True)
+                msg = f"Geom. matrix, chan {ii+1} / {nlos}".ljust(nmax)
+                end = '\n' if ii == nlos-1 else '\r'
+                print(msg, end=end, flush=True)
 
             # compute
-            mat[ii, ...] = np.nansum(
+            mat[ii, :] = np.nansum(
                 mesh.interp2d(
                     key=key,
                     R=lr[ii],
                     Z=lz[ii],
                     grid=False,
+                    indbs=indbs,
                     details=True,
-                    crop=crop,
-                )[0, ...],
+                    reshape=False,
+                ),
                 axis=0,
             )
-
-        if mat.ndim > 2:
-            indflat = mesh.select_ind(key=key, crop=crop, returnas='tuple-flat')
-            mat = mat[:, indflat[0], indflat[1]]
 
         mat = mat * reseff[:, None]
         # scpintg.simps(val, x=None, axis=-1, dx=loc_eff_res[0])

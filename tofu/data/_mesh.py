@@ -295,8 +295,10 @@ class Mesh2DRect(_core_new.DataCollection):
         R=None,
         Z=None,
         grid=None,
+        indbs=None,
         indt=None,
         details=None,
+        reshape=None,
         res=None,
         coefs=None,
         crop=None,
@@ -310,8 +312,10 @@ class Mesh2DRect(_core_new.DataCollection):
             R=R,
             Z=Z,
             grid=grid,
+            indbs=indbs,
             indt=indt,
             details=details,
+            reshape=reshape,
             res=res,
             coefs=coefs,
             crop=crop,
@@ -366,9 +370,10 @@ class Mesh2DRect(_core_new.DataCollection):
         cam=None,
         res=None,
         resMode=None,
-        crop=None,
         method=None,
+        crop=None,
         name=None,
+        verb=None,
     ):
 
         dref, ddata, dobj = _matrix_comp.compute(
@@ -377,9 +382,10 @@ class Mesh2DRect(_core_new.DataCollection):
             cam=cam,
             res=res,
             resMode=resMode,
-            crop=crop,
             method=method,
+            crop=crop,
             name=name,
+            verb=verb,
         )
 
         return Matrix(dref=dref, ddata=ddata, dobj=dobj)
