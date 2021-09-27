@@ -717,9 +717,17 @@ class DataCollection(utils.ToFuObject):
     # Methods for showing data
     # ---------------------
 
-    def get_summary(self, show=None, show_core=None,
-                    sep='  ', line='-', just='l',
-                    table_sep=None, verb=True, return_=False):
+    def get_summary(
+        self,
+        show=None,
+        show_core=None,
+        sep='  ',
+        line='-',
+        just='l',
+        table_sep=None,
+        verb=True,
+        return_=False,
+    ):
         """ Summary description of the object content """
         # # Make sure the data is accessible
         # msg = "The data is not accessible because self.strip(2) was used !"
@@ -802,6 +810,7 @@ class DataCollection(utils.ToFuObject):
         if len(self._dobj) > 0:
             for k0, v0 in self._dobj.items():
                 lk = self.get_lparam(which=k0)
+                lk = [kk for kk in lk if 'func' not in kk]
                 lcol.append([k0] + [pp for pp in lk])
                 lar.append([
                     tuple([k1] + [str(v1[kk]) for kk in lk])
@@ -809,9 +818,14 @@ class DataCollection(utils.ToFuObject):
                 ])
 
         return self._get_summary(
-            lar, lcol,
-            sep=sep, line=line, table_sep=table_sep,
-            verb=verb, return_=return_)
+            lar,
+            lcol,
+            sep=sep,
+            line=line,
+            table_sep=table_sep,
+            verb=verb,
+            return_=return_,
+        )
 
     # -----------------
     # conversion wavelength - energy - frequency
