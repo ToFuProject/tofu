@@ -485,6 +485,7 @@ def _plot_bspline_prepare(
         return_knots=True,
         return_cents=False,
         returnas='data',
+        crop=False,
     )[1]
     dR = np.min(np.diff(Rk))
     dZ = np.min(np.diff(Zk))
@@ -588,6 +589,8 @@ def plot_bspline(
 
         dax = {'cross': ax0}
 
+    dax = _check_dax(dax=dax, main='cross')
+
     # --------------
     # plot
 
@@ -595,10 +598,12 @@ def plot_bspline(
         keym = mesh.dobj['bsplines'][key]['mesh']
         dax = mesh.plot_mesh(key=keym, dax=dax, dleg=False)
 
-    kax = 'cross'
-    if dax.get(kax) is not None:
+    axtype = 'cross'
+    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
+    for kax in lkax:
+        ax = dax[kax]['ax']
 
-        dax[kax].imshow(
+        ax.imshow(
             bspline,
             extent=extent,
             interpolation=interp,
@@ -610,7 +615,7 @@ def plot_bspline(
         )
 
         if knots is not False:
-            dax[kax].plot(
+            ax.plot(
                 knotsi[0].ravel(),
                 knotsi[1].ravel(),
                 marker='x',
@@ -620,7 +625,7 @@ def plot_bspline(
             )
 
         if cents is not False:
-            dax[kax].plot(
+            ax.plot(
                 centsi[0].ravel(),
                 centsi[1].ravel(),
                 marker='o',
@@ -629,14 +634,14 @@ def plot_bspline(
                 color='k',
             )
 
-        dax[kax].relim()
-        dax[kax].autoscale()
+        ax.relim()
+        ax.autoscale()
 
-    # --------------
-    # dleg
+        # --------------
+        # dleg
 
-    if dleg is not False:
-        dax['cross'].legend(**dleg)
+        if dleg is not False:
+            ax.legend(**dleg)
 
     return dax
 
