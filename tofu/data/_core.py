@@ -3150,8 +3150,15 @@ class Plasma2D(utils.ToFuObject):
     # Methods for showing data
     #---------------------
 
-    def get_summary(self, sep='  ', line='-', just='l',
-                    table_sep=None, verb=True, return_=False):
+    def get_summary(
+        self,
+        sep='  ',
+        line='-',
+        just='l',
+        table_sep=None,
+        verb=True,
+        return_=False,
+    ):
         """ Summary description of the object content """
         # # Make sure the data is accessible
         # msg = "The data is not accessible because self.strip(2) was used !"
@@ -3182,9 +3189,15 @@ class Plasma2D(utils.ToFuObject):
                   str(v0['depend']), str(v0['lgroup'])]
             ar2.append(lu)
 
-        return self._get_summary([ar0,ar1,ar2], [col0, col1, col2],
-                                  sep=sep, line=line, table_sep=table_sep,
-                                  verb=verb, return_=return_)
+        return self._get_summary(
+            [ar0,ar1,ar2],
+            [col0, col1, col2],
+            sep=sep,
+            line=line,
+            table_sep=table_sep,
+            verb=verb,
+            return_=return_,
+        )
 
     #---------------------
     # Methods for adding ref / quantities
