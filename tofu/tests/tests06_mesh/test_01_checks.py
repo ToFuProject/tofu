@@ -162,21 +162,21 @@ class Test02_Mesh2DRect():
                 ind=lind[ii],
                 elements=lelements[ii],
                 returnas=tuple,
-                # crop=lcrop[ii],
+                crop=lcrop[ii],
             )
             indf = self.dobj[k0].select_ind(
                 key=lkey[ii],
                 ind=indt,
                 elements=lelements[ii],
                 returnas=np.ndarray,
-                # crop=lcrop[ii],
+                crop=lcrop[ii],
             )
             indt2 = self.dobj[k0].select_ind(
                 key=lkey[ii],
                 ind=indf,
                 elements=lelements[ii],
                 returnas=tuple,
-                # crop=lcrop[ii],
+                crop=lcrop[ii],
             )
             assert all([np.allclose(indt[ii], indt2[ii]) for ii in [0, 1]])
 

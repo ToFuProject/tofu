@@ -70,14 +70,14 @@ def _format_ind(ind=None, n=None):
         ind = np.ones((n,),dtype=bool)
     else:
         # list of accepted integer types
-        lInt = [int, np.integer]
+        lInt = (int, np.integer)
         if isinstance(ind, lInt):
             ii = np.zeros((n,),dtype=bool)
             ii[int(ii)] = True
             ind = ii
         else:
             assert hasattr(ind,'__iter__')
-            if isinstance(ind[0], [bool, np.bool_]):
+            if isinstance(ind[0], (bool, np.bool_)):
                 ind = np.asarray(ind).astype(bool)
                 assert ind.size==n
             elif isinstance(ind[0], lInt):
