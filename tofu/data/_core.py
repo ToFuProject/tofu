@@ -70,17 +70,17 @@ def _format_ind(ind=None, n=None):
         ind = np.ones((n,),dtype=bool)
     else:
         # list of accepted integer types
-        lInt = [int, np.int64, np.int32, np.int_, np.longlong]
-        if type(ind) in lInt:
+        lInt = (int, np.integer)
+        if isinstance(ind, lInt):
             ii = np.zeros((n,),dtype=bool)
             ii[int(ii)] = True
             ind = ii
         else:
             assert hasattr(ind,'__iter__')
-            if type(ind[0]) in [bool,np.bool_]:
+            if isinstance(ind[0], (bool, np.bool_)):
                 ind = np.asarray(ind).astype(bool)
                 assert ind.size==n
-            elif type(ind[0]) in lInt:
+            elif isinstance(ind[0], lInt):
                 ind = np.asarray(ind).astype(int)
                 ii = np.zeros((n,),dtype=bool)
                 ii[ind] = True
@@ -3145,13 +3145,19 @@ class Plasma2D(utils.ToFuObject):
                 raise Exception(msg)
         return key, msg
 
-
     #---------------------
     # Methods for showing data
     #---------------------
 
-    def get_summary(self, sep='  ', line='-', just='l',
-                    table_sep=None, verb=True, return_=False):
+    def get_summary(
+        self,
+        sep='  ',
+        line='-',
+        just='l',
+        table_sep=None,
+        verb=True,
+        return_=False,
+    ):
         """ Summary description of the object content """
         # # Make sure the data is accessible
         # msg = "The data is not accessible because self.strip(2) was used !"
@@ -3182,9 +3188,15 @@ class Plasma2D(utils.ToFuObject):
                   str(v0['depend']), str(v0['lgroup'])]
             ar2.append(lu)
 
-        return self._get_summary([ar0,ar1,ar2], [col0, col1, col2],
-                                  sep=sep, line=line, table_sep=table_sep,
-                                  verb=verb, return_=return_)
+        return self._get_summary(
+            [ar0, ar1, ar2],
+            [col0, col1, col2],
+            sep=sep,
+            line=line,
+            table_sep=table_sep,
+            verb=verb,
+            return_=return_,
+        )
 
     #---------------------
     # Methods for adding ref / quantities

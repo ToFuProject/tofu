@@ -11,6 +11,16 @@ import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
 
 
+_LALLOWED_AXESTYPES = [
+    'cross', 'hor',
+    'matrix',
+    'timetrace',
+    'profile1d',
+    'image',
+    'misc'
+]
+
+
 # #############################################################################
 # #############################################################################
 #                           utility
@@ -41,6 +51,52 @@ def _check_var(var, varname, default=None, types=None, allowed=None):
     return var
 
 
+def _check_dax(dax=None, main=None):
+
+    # None
+    if dax is None:
+        return dax
+
+    # Axes
+    if issubclass(dax.__class__, plt.Axes):
+        if main is None:
+            msg = (
+            )
+            raise Exception(msg)
+        else:
+            return {main: dax}
+
+    # dict
+    c0 = (
+        isinstance(dax, dict)
+        and all([
+            isinstance(k0, str)
+            and (
+                (
+                    k0 in _LALLOWED_AXESTYPES
+                    and issubclass(v0.__class__, plt.Axes)
+                )
+                or (
+                    isinstance(v0, dict)
+                    and issubclass(v0.get('ax').__class__, plt.Axes)
+                    and v0.get('type') in _LALLOWED_AXESTYPES
+                )
+            )
+            for k0, v0 in dax.items()
+        ])
+    )
+    if not c0:
+        msg = (
+        )
+        raise Exception(msg)
+
+    for k0, v0 in dax.items():
+        if issubclass(v0.__class__, plt.Axes):
+            dax[k0] = {'ax': v0, 'type': k0}
+
+    return dax
+
+
 # #############################################################################
 # #############################################################################
 #                           plot mesh
@@ -52,6 +108,8 @@ def _plot_mesh_check(
     key=None,
     ind_knot=None,
     ind_cent=None,
+    crop=None,
+    bck=None,
     color=None,
     dleg=None,
 ):
@@ -72,9 +130,13 @@ def _plot_mesh_check(
     # ind_cent
     if ind_cent is not None:
         ind_cent = mesh.select_mesh_elements(
-            key=key, ind=ind_cent, elements='cent',
+            key=key, ind=ind_cent, elements='cents',
             returnas='data', return_neighbours=True,
         )
+
+    # crop, bck
+    crop = _check_var(crop, 'crop', default=True, types=bool)
+    bck = _check_var(bck, 'bck', default=True, types=bool)
 
     # color
     if color is None:
@@ -94,16 +156,20 @@ def _plot_mesh_check(
     }
     dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
 
-    return key, ind_knot, ind_cent, color, dleg
+    return key, ind_knot, ind_cent, crop, bck, color, dleg
 
 
 def _plot_mesh_prepare(
     mesh=None,
     key=None,
+    crop=None,
+    bck=None,
 ):
 
-    Rk = mesh.dobj[mesh._groupmesh][key]['R-knots']
-    Zk = mesh.dobj[mesh._groupmesh][key]['Z-knots']
+    # --------
+    # prepare
+
+    Rk, Zk = mesh.dobj['mesh'][key]['knots']
     R = mesh.ddata[Rk]['data']
     Z = mesh.ddata[Zk]['data']
 
@@ -115,9 +181,80 @@ def _plot_mesh_prepare(
         np.tile((R[0], R[-1], np.nan), Z.size),
         np.repeat(Z, 3),
     ])
-    grid = np.concatenate((vert, hor), axis=1)
 
-    return grid
+    # --------
+    # compute
+
+    grid_bck = None
+    if crop is False or mesh.dobj['mesh'][key]['crop'] is False:
+        grid = np.concatenate((vert, hor), axis=1)
+
+    else:
+
+        crop = mesh.ddata[mesh.dobj['mesh'][key]['crop']]['data']
+
+        grid = []
+        icropR = np.r_[range(R.size-1), R.size-2]
+        jcropZ = np.r_[range(Z.size-1), Z.size-2]
+
+        # vertical lines  TBC
+        for ii, ic in enumerate(icropR):
+            if np.any(crop[ic, :]):
+                if ii in [0, R.size-1]:
+                    cropi = crop[ic, :]
+                else:
+                    cropi = crop[ic, :] | crop[ic-1, :]
+                lseg = []
+                for jj, jc in enumerate(jcropZ):
+                    if jj == 0 and cropi[jc]:
+                        lseg.append(Z[jj])
+                    elif jj == Z.size-1 and cropi[jc]:
+                        lseg.append(Z[jj])
+                    elif cropi[jc] and not cropi[jc-1]:
+                        if len(lseg) > 0:
+                            lseg.append(np.nan)
+                        lseg.append(Z[jj])
+                    elif (not cropi[jc]) and cropi[jc-1]:
+                        lseg.append(Z[jc])
+                grid.append(np.concatenate(
+                    (
+                        np.array([R[ii]*np.ones((len(lseg),)), lseg]),
+                        np.full((2, 1), np.nan)
+                    ),
+                    axis=1,
+                ))
+
+        # horizontal lines
+        for jj, jc in enumerate(jcropZ):
+            if np.any(crop[:, jc]):
+                if jj in [0, Z.size-1]:
+                    cropj = crop[:, jc]
+                else:
+                    cropj = crop[:, jc] | crop[:, jc-1]
+                lseg = []
+                for ii, ic in enumerate(icropR):
+                    if ii in [0, R.size-1] and cropj[ic]:
+                        lseg.append(R[ii])
+                    elif cropj[ic] and not cropj[ic-1]:
+                        if len(lseg) > 0:
+                            lseg.append(np.nan)
+                        lseg.append(R[ii])
+                    elif (not cropj[ic]) and cropj[ic-1]:
+                        lseg.append(R[ic])
+                grid.append(np.concatenate(
+                    (
+                        np.array([lseg, Z[jj]*np.ones((len(lseg),))]),
+                        np.full((2, 1), np.nan)
+                    ),
+                    axis=1,
+                ))
+
+        grid = np.concatenate(tuple(grid), axis=1)
+
+        if bck is True:
+            grid_bck = np.concatenate((vert, hor), axis=1)
+
+    return grid, grid_bck
 
 
 def plot_mesh(
@@ -125,6 +262,8 @@ def plot_mesh(
     key=None,
     ind_knot=None,
     ind_cent=None,
+    crop=None,
+    bck=None,
     color=None,
     dax=None,
     dmargin=None,
@@ -135,11 +274,13 @@ def plot_mesh(
     # --------------
     # check input
 
-    key, ind_knot, ind_cent, color, dleg = _plot_mesh_check(
+    key, ind_knot, ind_cent, crop, bck, color, dleg = _plot_mesh_check(
         mesh=mesh,
         key=key,
         ind_knot=ind_knot,
         ind_cent=ind_cent,
+        crop=crop,
+        bck=bck,
         color=color,
         dleg=dleg,
     )
@@ -147,9 +288,11 @@ def plot_mesh(
     # --------------
     #  Prepare data
 
-    grid = _plot_mesh_prepare(
+    grid, grid_bck = _plot_mesh_prepare(
         mesh=mesh,
         key=key,
+        crop=crop,
+        bck=bck,
     )
 
     # --------------
@@ -172,21 +315,38 @@ def plot_mesh(
 
         dax = {'cross': ax0}
 
+    dax = _check_dax(dax=dax, main='cross')
+
     # --------------
     # plot
 
-    kax = 'cross'
-    if dax.get(kax) is not None:
-        dax[kax].plot(
+    axtype = 'cross'
+    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
+    for kax in lkax:
+        ax = dax[kax]['ax']
+
+        if grid_bck is not None and bck is True:
+            ax.plot(
+                grid_bck[0, :],
+                grid_bck[1, :],
+                ls='-',
+                lw=0.5,
+                color=color,
+                alpha=0.5,
+                label=key,
+            )
+
+        ax.plot(
             grid[0, :],
             grid[1, :],
             color=color,
             ls='-',
+            lw=1.,
             label=key,
         )
 
         if ind_knot is not None:
-            dax[kax].plot(
+            ax.plot(
                 ind_knot[0][0],
                 ind_knot[0][1],
                 marker='o',
@@ -195,7 +355,7 @@ def plot_mesh(
                 color=color,
                 label='knots',
             )
-            dax[kax].plot(
+            ax.plot(
                 ind_knot[1][0, :, :],
                 ind_knot[1][1, :, :],
                 marker='x',
@@ -205,7 +365,7 @@ def plot_mesh(
             )
 
         if ind_cent is not None:
-            dax[kax].plot(
+            ax.plot(
                 ind_cent[0][0],
                 ind_cent[0][1],
                 marker='x',
@@ -214,7 +374,7 @@ def plot_mesh(
                 color=color,
                 label='cents',
             )
-            dax[kax].plot(
+            ax.plot(
                 ind_cent[1][0, :, :],
                 ind_cent[1][1, :, :],
                 marker='o',
@@ -227,7 +387,8 @@ def plot_mesh(
     # dleg
 
     if dleg is not False:
-        dax['cross'].legend(**dleg)
+        for kax in lkax:
+            dax[kax]['ax'].legend(**dleg)
 
     return dax
 
@@ -244,6 +405,7 @@ def _plot_bspline_check(
     ind=None,
     knots=None,
     cents=None,
+    plot_mesh=None,
     cmap=None,
     dleg=None,
 ):
@@ -265,6 +427,7 @@ def _plot_bspline_check(
         returnas='ind',
         return_knots=False,
         return_cents=False,
+        crop=False,
     )
 
     _, knotsi, centsi = mesh.select_bsplines(
@@ -273,7 +436,11 @@ def _plot_bspline_check(
         returnas='data',
         return_knots=True,
         return_cents=True,
+        crop=False,
     )
+
+    # plot_mesh
+    plot_mesh = _check_var(plot_mesh, 'plot_mesh', default=True, types=bool)
 
     # cmap
     if cmap is None:
@@ -287,7 +454,7 @@ def _plot_bspline_check(
     }
     dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
 
-    return key, ind, knotsi, centsi, cmap, dleg
+    return key, ind, knotsi, centsi, plot_mesh, cmap, dleg
 
 
 def _plot_bspline_prepare(
@@ -302,8 +469,7 @@ def _plot_bspline_prepare(
     # check input
     deg = mesh.dobj['bsplines'][key]['deg']
     km = mesh.dobj['bsplines'][key]['mesh']
-    kR = mesh.dobj['mesh'][km]['R-knots']
-    kZ = mesh.dobj['mesh'][km]['Z-knots']
+    kR, kZ = mesh.dobj['mesh'][km]['knots']
     Rk = mesh.ddata[kR]['data']
     Zk = mesh.ddata[kZ]['data']
     dR = np.min(np.diff(Rk))
@@ -312,22 +478,42 @@ def _plot_bspline_prepare(
         res_coef = 0.05
         res = [res_coef*dR, res_coef*dZ]
 
-    # bspline
-    km = mesh.dobj['bsplines'][key]['mesh']
-    R, Z = mesh.get_sample_mesh(key=km, res=res, mode='abs', grid=True)
+    # sample
+    knotsRi, knotsZi = mesh.select_bsplines(
+        ind=ind,
+        key=key,
+        return_knots=True,
+        return_cents=False,
+        returnas='data',
+        crop=False,
+    )[1]
+    dR = np.min(np.diff(Rk))
+    dZ = np.min(np.diff(Zk))
+    DR = [knotsRi.min() + dR*1.e-10, knotsRi.max() - dR*1.e-10]
+    DZ = [knotsZi.min() + dZ*1.e-10, knotsZi.max() - dZ*1.e-10]
 
-    shapebs = mesh.dobj['bsplines'][key]['shapebs']
+    km = mesh.dobj['bsplines'][key]['mesh']
+    R, Z = mesh.get_sample_mesh(
+        key=km, res=res,
+        DR=DR,
+        DZ=DZ,
+        mode='abs', grid=True, imshow=True,
+    )
+
+    # bspline
+    shapebs = mesh.dobj['bsplines'][key]['shape']
     coefs = np.zeros((1, shapebs[0], shapebs[1]), dtype=float)
     coefs[0, ind[0], ind[1]] = 1.
-
     bspline = mesh.dobj['bsplines'][key]['func_sum'](R, Z, coefs=coefs)[0, ...]
-    bspline[bspline == 0] = np.nan
+
+    # nan if 0
+    bspline[bspline == 0.] = np.nan
 
     # extent and interp
 
     extent = (
-        Rk[0] - 0.*dR, Rk[-1] + 0.*dR,
-        Zk[0] - 0.*dZ, Zk[-1] + 0.*dZ,
+        DR[0], DR[1],
+        DZ[0], DZ[1],
     )
 
     if deg == 0:
@@ -349,6 +535,7 @@ def plot_bspline(
     knots=None,
     cents=None,
     res=None,
+    plot_mesh=None,
     cmap=None,
     dax=None,
     dmargin=None,
@@ -359,12 +546,13 @@ def plot_bspline(
     # --------------
     # check input
 
-    key, ind, knotsi, centsi, cmap, dleg = _plot_bspline_check(
+    key, ind, knotsi, centsi, plot_mesh, cmap, dleg = _plot_bspline_check(
         mesh=mesh,
         key=key,
         ind=ind,
         knots=knots,
         cents=cents,
+        plot_mesh=plot_mesh,
         cmap=cmap,
         dleg=dleg,
     )
@@ -401,13 +589,21 @@ def plot_bspline(
 
         dax = {'cross': ax0}
 
+    dax = _check_dax(dax=dax, main='cross')
+
     # --------------
     # plot
 
-    kax = 'cross'
-    if dax.get(kax) is not None:
+    if plot_mesh is True:
+        keym = mesh.dobj['bsplines'][key]['mesh']
+        dax = mesh.plot_mesh(key=keym, dax=dax, dleg=False)
 
-        dax[kax].imshow(
+    axtype = 'cross'
+    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
+    for kax in lkax:
+        ax = dax[kax]['ax']
+
+        ax.imshow(
             bspline,
             extent=extent,
             interpolation=interp,
@@ -419,7 +615,7 @@ def plot_bspline(
         )
 
         if knots is not False:
-            dax[kax].plot(
+            ax.plot(
                 knotsi[0].ravel(),
                 knotsi[1].ravel(),
                 marker='x',
@@ -429,7 +625,7 @@ def plot_bspline(
             )
 
         if cents is not False:
-            dax[kax].plot(
+            ax.plot(
                 centsi[0].ravel(),
                 centsi[1].ravel(),
                 marker='o',
@@ -438,11 +634,14 @@ def plot_bspline(
                 color='k',
             )
 
-    # --------------
-    # dleg
+        ax.relim()
+        ax.autoscale()
 
-    if dleg is not False:
-        dax['cross'].legend(**dleg)
+        # --------------
+        # dleg
+
+        if dleg is not False:
+            ax.legend(**dleg)
 
     return dax
 
@@ -456,6 +655,7 @@ def plot_bspline(
 def _plot_profile2d_check(
     mesh=None,
     key=None,
+    coefs=None,
     indt=None,
     cmap=None,
     dcolorbar=None,
@@ -472,9 +672,16 @@ def _plot_profile2d_check(
     keybs = dk[key]
     refbs = mesh.dobj['bsplines'][keybs]['ref']
 
+    # coefs
+    if coefs is None:
+        if key == keybs:
+            pass
+        else:
+            coefs = mesh.ddata[key]['data']
+
     # indt
-    if len(mesh.ddata[key]['ref']) > len(refbs):
-        if indt is None and mesh.ddata[key]['data'].shape[0] == 1:
+    if coefs is not None and len(coefs.shape) > len(refbs):
+        if indt is None and coefs.shape[0] == 1:
             indt = 0
         try:
             assert np.isscalar(indt)
@@ -509,13 +716,14 @@ def _plot_profile2d_check(
     }
     dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
 
-    return key, keybs, indt, cmap, dcolorbar, dleg
+    return key, keybs, coefs, indt, cmap, dcolorbar, dleg
 
 
 def _plot_profiles2d_prepare(
     mesh=None,
     key=None,
     keybs=None,
+    coefs=None,
     indt=None,
     res=None,
 ):
@@ -523,8 +731,7 @@ def _plot_profiles2d_prepare(
     # check input
     deg = mesh.dobj['bsplines'][keybs]['deg']
     km = mesh.dobj['bsplines'][keybs]['mesh']
-    kR = mesh.dobj['mesh'][km]['R-knots']
-    kZ = mesh.dobj['mesh'][km]['Z-knots']
+    kR, kZ = mesh.dobj['mesh'][km]['knots']
     Rk = mesh.ddata[kR]['data']
     Zk = mesh.ddata[kZ]['data']
     dR = np.min(np.diff(Rk))
@@ -533,26 +740,27 @@ def _plot_profiles2d_prepare(
         res_coef = 0.05
         res = [res_coef*dR, res_coef*dZ]
 
-    # bspline
-    km = mesh.dobj['bsplines'][keybs]['mesh']
-    R, Z = mesh.get_sample_mesh(key=km, res=res, mode='abs', grid=True)
-
-    shapebs = mesh.dobj['bsplines'][keybs]['shapebs']
-    coefs = mesh.ddata[key]['data']
-
-    if len(coefs.shape) > len(shapebs):
+    # adjust coefs for single time step selection
+    shapebs = mesh.dobj['bsplines'][keybs]['shape']
+    if coefs is not None and len(coefs.shape) > len(shapebs):
         coefs = coefs[indt:indt+1, ...]
 
-    bspline = mesh.dobj['bsplines'][keybs]['func_sum'](
-        R, Z, coefs=coefs,
+    # compute
+    bspline = mesh.interp2d(
+        key=key,
+        coefs=coefs,
+        R=None,
+        Z=None,
+        res=res,
+        details=False,
+        nan0=True,
+        imshow=True,
     )[0, ...]
-    bspline[bspline == 0] = np.nan
 
     # extent and interp
-
     extent = (
-        Rk[0] - 0.*dR, Rk[-1] + 0.*dR,
-        Zk[0] - 0.*dZ, Zk[-1] + 0.*dZ,
+        Rk[0], Rk[-1],
+        Zk[0], Zk[-1],
     )
 
     if deg == 0:
@@ -571,6 +779,7 @@ def plot_profile2d(
     mesh=None,
     key=None,
     indt=None,
+    coefs=None,
     res=None,
     vmin=None,
     vmax=None,
@@ -585,9 +794,10 @@ def plot_profile2d(
     # --------------
     # check input
 
-    key, keybs, indt, cmap, dcolorbar, dleg = _plot_profile2d_check(
+    key, keybs, coefs, indt, cmap, dcolorbar, dleg = _plot_profile2d_check(
         mesh=mesh,
         key=key,
+        coefs=coefs,
         indt=indt,
         cmap=cmap,
         dcolorbar=dcolorbar,
@@ -601,6 +811,7 @@ def plot_profile2d(
         mesh=mesh,
         key=key,
         keybs=keybs,
+        coefs=coefs,
         indt=indt,
         res=res,
     )
