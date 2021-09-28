@@ -155,24 +155,28 @@ class Test02_Mesh2DRect():
         lkey = ['m0', 'm1-bs1', 'm2', 'm3-bs3']
         lelements = ['cents', None, 'knots', None]
         lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
+        lcrop = [True, False, True, False]
         for ii, (k0, v0) in enumerate(self.dobj.items()):
             indt = self.dobj[k0].select_ind(
                 key=lkey[ii],
                 ind=lind[ii],
                 elements=lelements[ii],
                 returnas=tuple,
+                # crop=lcrop[ii],
             )
             indf = self.dobj[k0].select_ind(
                 key=lkey[ii],
                 ind=indt,
                 elements=lelements[ii],
                 returnas=np.ndarray,
+                # crop=lcrop[ii],
             )
             indt2 = self.dobj[k0].select_ind(
                 key=lkey[ii],
                 ind=indf,
                 elements=lelements[ii],
                 returnas=tuple,
+                # crop=lcrop[ii],
             )
             assert all([np.allclose(indt[ii], indt2[ii]) for ii in [0, 1]])
 

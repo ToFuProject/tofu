@@ -89,7 +89,7 @@ def _select_ind(
         ind_bool[ind_tup[0], ind_tup[1]] = True
 
     else:
-        if not np.issubdtype(ind.dtype, np.integer):
+        if np.issubdtype(ind.dtype, np.integer):
             c0 = np.all((ind >= 0) & (ind < nR*nZ))
             if not c0:
                 msg = (
@@ -98,7 +98,7 @@ def _select_ind(
                 raise Exception(msg)
             ind_tup = (ind % nR, ind // nR)
             ind_bool[ind_tup[0], ind_tup[1]] = True
-        else:
+        elif np.issubdtype(ind.dtype, np.bool_):
             if ind.shape != (nR, nZ):
                 msg = (
                     f"Arg ind, when array of bool, must have shape {(nR,nZ)}\n"
@@ -108,6 +108,9 @@ def _select_ind(
             # make sure R varies first
             ind_tup = ind.T.nonzero()[::-1]
             ind_bool = ind
+        else:
+            msg = f"Unknown ind dtype!\n\t- ind.dtype: {ind.dtype}"
+            raise Exception(msg)
 
     if ind_tup[0].shape != ind_tup[1].shape:
         msg = (

@@ -71,16 +71,16 @@ def _format_ind(ind=None, n=None):
     else:
         # list of accepted integer types
         lInt = [int, np.integer]
-        if type(ind) in lInt:
+        if isinstance(ind, lInt):
             ii = np.zeros((n,),dtype=bool)
             ii[int(ii)] = True
             ind = ii
         else:
             assert hasattr(ind,'__iter__')
-            if type(ind[0]) in [bool,np.bool_]:
+            if isinstance(ind[0], [bool, np.bool_]):
                 ind = np.asarray(ind).astype(bool)
                 assert ind.size==n
-            elif type(ind[0]) in lInt:
+            elif isinstance(ind[0], lInt):
                 ind = np.asarray(ind).astype(int)
                 ii = np.zeros((n,),dtype=bool)
                 ii[ind] = True
