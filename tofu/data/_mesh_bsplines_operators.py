@@ -10,6 +10,7 @@ import scipy.sparse as scpsp
 
 
 _LOPERATORS_INT = [
+    'D0',
     'D0N2',
     'D1N2',
     'D2N2',
@@ -55,7 +56,7 @@ def _get_mesh2dRect_operators_check(operator=None, geometry=None):
     # operator
     operator = _check_var(
         operator, 'operator',
-        default='D0N2',
+        default='D0',
         types=str,
         allowed=_LOPERATORS_INT,
     )
