@@ -73,7 +73,7 @@ def _mesh2DRect_X_check(
         res = 10
 
     lc = [
-        isinstance(res, (int, np.int_)) and len(x) == 2,
+        isinstance(res, (int, np.int64, np.int32)) and len(x) == 2,
         isinstance(res, (float, np.float_)) and len(x) == 2,
         isinstance(res, (list, tuple, np.ndarray)) and len(x) == len(res),
     ]
@@ -354,7 +354,7 @@ def _select_ind_check(
         lc0 = [
             [
                 isinstance(ss, np.ndarray),
-                ss.dtype in [np.int_, np.int64, np.int32],
+                np.issubdtype(ss.dtype, np.integer),
                 ss.shape == ind[0].shape,
             ]
                 for ss in ind
@@ -381,7 +381,11 @@ def _select_ind_check(
     else:
         if not isinstance(ind, np.ndarray):
             ind = np.atleast_1d(ind).astype(int)
-        if ind.dtype not in [np.bool_, np.int_]:
+        c0 = (
+            np.issubdtype(ind.dtype, np.integer)
+            or np.issubdtype(ind.dtype, np.bool_)
+        )
+        if not c0:
             msg = (
                 "Arg ind must be an array of bool or int\n"
                 f"Provided: {ind.dtype}"
