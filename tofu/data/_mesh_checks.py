@@ -352,12 +352,14 @@ def _select_ind_check(
                 np.atleast_1d(ind[1]).astype(int),
             )
         lc0 = [
-            isinstance(ss, np.ndarray)
-            and ss.dtype == np.int_
-            and ss.shape == ind[0].shape
-            for ss in ind
+            [
+                isinstance(ss, np.ndarray),
+                ss.dtype == np.int_,
+                ss.shape == ind[0].shape,
+            ]
+                for ss in ind
         ]
-        if not all(lc0):
+        if not all([all(cc) for cc in lc0]):
             ltype = [type(ss) for ss in ind]
             ltypes = [
                 ss.dtype if isinstance(ss, np.ndarray) else False
