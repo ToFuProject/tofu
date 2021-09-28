@@ -358,8 +358,21 @@ def _select_ind_check(
             for ss in ind
         ])
         if not c0:
+            ltype = [type(ss) for ss in ind]
+            ltypes = [
+                ss.dtype if isinstance(ss, np.ndarray) else False
+                for ss in ind
+            ]
+            lshapes = [
+                ss.shape if isinstance(ss, np.ndarray) else len(ss)
+                for ss in ind
+            ]
             msg = (
-                "Arg ind must be a tuple of 2 arrays of int of same shape"
+                "Arg ind must be a tuple of 2 arrays of int of same shape\n"
+                f"\t- types: {ltype}\n"
+                f"\t- type each: {ltypes}\n"
+                f"\t- shape: {lshapes}\n"
+                f"\t- ind: {ind}"
             )
             raise Exception(msg)
     else:
