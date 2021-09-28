@@ -89,7 +89,7 @@ def _select_ind(
         ind_bool[ind_tup[0], ind_tup[1]] = True
 
     else:
-        if ind.dtype == np.int_:
+        if not np.issubdtype(ind.dtype, np.integer):
             c0 = np.all((ind >= 0) & (ind < nR*nZ))
             if not c0:
                 msg = (
@@ -102,7 +102,7 @@ def _select_ind(
             if ind.shape != (nR, nZ):
                 msg = (
                     f"Arg ind, when array of bool, must have shape {(nR,nZ)}\n"
-                    "Provided: {ind.shape}"
+                    f"Provided: {ind.shape}"
                 )
                 raise Exception(msg)
             # make sure R varies first
@@ -719,7 +719,10 @@ def _crop_check(mesh=None, key=None, crop=None, thresh_in=None):
             (
                 crop.shape[0] == 2
                 and np.allclose(crop[:, 0], crop[:, -1])
-                and crop.dtype in [np.int_, np.float_]
+                and (
+                    np.issubdtype(crop.dtype, np.integer)
+                    or np.issubdtype(crop.dtype, np.floating)
+                )
             )
             or (
                 crop.shape == shape
@@ -742,7 +745,7 @@ def _crop_check(mesh=None, key=None, crop=None, thresh_in=None):
     if thresh_in is None:
         thresh_in = 3
     maxth = 5 if mesh.dobj['mesh'][key]['type'] == 'rect' else 4
-    c0 = isinstance(thresh_in, (int, np.int_)) and (1 <= thresh_in <= maxth)
+    c0 = isinstance(thresh_in, (int, np.integer)) and (1 <= thresh_in <= maxth)
     if not c0:
         msg = (
             f"Arg thresh_in must be a int in {1} <= thresh_in <= {maxth}\n"

@@ -669,7 +669,7 @@ class SpectralLines(DataCollection):
             key = [kk for kk in key if kk not in lc]
 
         # Check ne, Te
-        ltype = [int, float, np.int_, np.float_]
+        ltype = [int, float, np.integer, np.floating]
         dnTe = {'ne': ne, 'Te': Te}
         for k0, v0 in dnTe.items():
             if type(v0) in ltype:
@@ -886,7 +886,7 @@ class SpectralLines(DataCollection):
             param_txt = 'symbol'
 
         # Check ne, Te
-        ltypes = [int, float, np.int_, np.float_]
+        ltypes = [int, float, np.integer, np.floating]
         dnTe = {'ne': ne, 'Te': Te}
         single = all([
             type(v0) in ltypes or len(v0) == 1 for v0 in dnTe.values()
@@ -986,7 +986,7 @@ class SpectralLines(DataCollection):
             Te_scale = 'linear'
 
         # Check ne, Te
-        ltypes = [int, float, np.int_, np.float_]
+        ltypes = [int, float, np.integer, np.floating]
         dnTe = {
             'ne': type(ne) in ltypes or len(ne) == 1,
             'Te': type(Te) in ltypes or len(Te) == 1,

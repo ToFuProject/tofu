@@ -214,8 +214,8 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         deg = self.degrees[0]
         nbs = indbs_tuple_flat[0].size
         shape = x.shape
-        x = np.ascontiguousarray(x.ravel(), dtype=np.float_)
-        y = np.ascontiguousarray(y.ravel(), dtype=np.float_)
+        x = np.ascontiguousarray(x.ravel(), dtype=np.floating)
+        y = np.ascontiguousarray(y.ravel(), dtype=np.floating)
         coef = np.zeros((deg + 4, 1), dtype=float)
         coef[deg] = 1.
         outy = np.full((x.size, 1), np.nan)
@@ -298,7 +298,7 @@ def _get_bs2d_func_check(
     # ii, jj
     if ii is not None:
         c0 = (
-            isinstance(ii, (int, np.int_))
+            isinstance(ii, (int, np.integer))
             and ii >= 0
             and ii < shapebs[0]
         )
@@ -310,7 +310,7 @@ def _get_bs2d_func_check(
             raise Exception(msg)
     if jj is not None:
         c0 = (
-            isinstance(jj, (int, np.int_))
+            isinstance(jj, (int, np.integer))
             and jj >= 0
             and jj < shapebs[1]
         )
