@@ -351,13 +351,13 @@ def _select_ind_check(
                 np.atleast_1d(ind[0]).astype(int),
                 np.atleast_1d(ind[1]).astype(int),
             )
-        c0 = all([
+        lc0 = [
             isinstance(ss, np.ndarray)
             and ss.dtype == np.int_
             and ss.shape == ind[0].shape
             for ss in ind
-        ])
-        if not c0:
+        ]
+        if not all(lc0):
             ltype = [type(ss) for ss in ind]
             ltypes = [
                 ss.dtype if isinstance(ss, np.ndarray) else False
@@ -369,6 +369,7 @@ def _select_ind_check(
             ]
             msg = (
                 "Arg ind must be a tuple of 2 arrays of int of same shape\n"
+                f"\t- lc0: {lc0}\n"
                 f"\t- types: {ltype}\n"
                 f"\t- type each: {ltypes}\n"
                 f"\t- shape: {lshapes}\n"
