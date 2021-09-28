@@ -51,7 +51,7 @@ def teardown_module():
 
 #######################################################
 #
-#     Creating Ves objects and testing methods
+#     checking routines
 #
 #######################################################
 
@@ -87,6 +87,13 @@ class Test01_checks():
             )
             if hasattr(lres, '__iter__'):
                 assert x_new.size == np.unique(x_new).size == res.size + 1
+
+
+#######################################################
+#
+#     object mesh2D
+#
+#######################################################
 
 
 class Test02_Mesh2DRect():
@@ -263,3 +270,28 @@ class Test02_Mesh2DRect():
                 key=key,
             )
         plt.close('all')
+
+    def test10_compute_plot_geometry_matrix(self):
+
+        # get config and cam
+        conf = tf.load_config('WEST-V0')
+        cam = tf.geom.utils.create_CamLOS1D(
+            pinhole=[3., 1., 0.],
+            orientation=[np.pi, 0., 0],
+            focal=0.1,
+            sensor_nb=50,
+            sensor_size=0.15,
+            config=conf,
+            Diag='SXR',
+            Exp='WEST',
+            Name='cam1',
+        )
+
+        # compute geometry matrices
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            mat = self.dobj[k0].compute_geometry_matrix(
+                cam=cam, res=0.01, crop=True,
+            )
+
+            dax = mat.plot_matrix(cam=cam, indchan=12, indbf=100)
+            plt.close('all')
