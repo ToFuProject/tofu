@@ -2,12 +2,15 @@
 
 
 # Built-in
-import datetime as dtm
 
 
 # Common
 import numpy as np
 import scipy.interpolate as scpinterp
+
+
+# specific
+from . import _mesh_bsplines_operators
 
 
 # #############################################################################
@@ -275,6 +278,14 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             val = np.reshape(val, shape)
 
         return val
+
+    def get_operator(self, operator=None, geometry=None):
+        """ Get desired operator """
+        return _mesh_bsplines_operators.get_mesh2dRect_operators(
+            operator=operator,
+            geometry=geometry,
+        )
+
 
 
 # #############################################################################
