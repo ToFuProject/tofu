@@ -354,7 +354,7 @@ def _select_ind_check(
         lc0 = [
             [
                 isinstance(ss, np.ndarray),
-                ss.dtype == np.int64,
+                ss.dtype in [np.int_, np.int64, np.int32],
                 ss.shape == ind[0].shape,
             ]
                 for ss in ind
