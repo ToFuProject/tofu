@@ -114,7 +114,6 @@ def compute(
             - a cam instance with a resolution
     """
 
-
     # -----------
     # check input
 

@@ -482,8 +482,6 @@ class Mesh2DRect(_core_new.DataCollection):
         )
 
 
-
-
 class Matrix(Mesh2DRect):
 
     def plot_matrix(

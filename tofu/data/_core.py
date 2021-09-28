@@ -3145,7 +3145,6 @@ class Plasma2D(utils.ToFuObject):
                 raise Exception(msg)
         return key, msg
 
-
     #---------------------
     # Methods for showing data
     #---------------------
@@ -3190,7 +3189,7 @@ class Plasma2D(utils.ToFuObject):
             ar2.append(lu)
 
         return self._get_summary(
-            [ar0,ar1,ar2],
+            [ar0, ar1, ar2],
             [col0, col1, col2],
             sep=sep,
             line=line,

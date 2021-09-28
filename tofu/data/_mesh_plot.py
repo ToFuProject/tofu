@@ -219,7 +219,7 @@ def _plot_mesh_prepare(
                 grid.append(np.concatenate(
                     (
                         np.array([R[ii]*np.ones((len(lseg),)), lseg]),
-                        np.full((2,1), np.nan)
+                        np.full((2, 1), np.nan)
                     ),
                     axis=1,
                 ))
@@ -244,7 +244,7 @@ def _plot_mesh_prepare(
                 grid.append(np.concatenate(
                     (
                         np.array([lseg, Z[jj]*np.ones((len(lseg),))]),
-                        np.full((2,1), np.nan)
+                        np.full((2, 1), np.nan)
                     ),
                     axis=1,
                 ))

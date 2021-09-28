@@ -365,7 +365,7 @@ def _select_ind_check(
     else:
         if not isinstance(ind, np.ndarray):
             ind = np.atleast_1d(ind).astype(int)
-        if not ind.dtype in [np.bool_, np.int_]:
+        if ind.dtype not in [np.bool_, np.int_]:
             msg = (
                 "Arg ind must be an array of bool or int\n"
                 f"Provided: {ind.dtype}"

@@ -92,7 +92,9 @@ def _select_ind(
         if ind.dtype == np.int_:
             c0 = np.all((ind >= 0) & (ind < nR*nZ))
             if not c0:
-                msg = f"Arg ind has non-valid values (< 0 or >= size ({nR*nZ}))"
+                msg = (
+                    f"Arg ind has non-valid values (< 0 or >= size ({nR*nZ}))"
+                )
                 raise Exception(msg)
             ind_tup = (ind % nR, ind // nR)
             ind_bool[ind_tup[0], ind_tup[1]] = True

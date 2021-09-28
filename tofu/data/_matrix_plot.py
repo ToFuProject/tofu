@@ -235,7 +235,9 @@ def _plot_matrix_prepare(
     )[0, ...]
 
     # bspline1
-    coefs[0, ich_bf_tup[0], ich_bf_tup[1]] = matrix.ddata[key]['data'][indchan, :]
+    coefs[0, ich_bf_tup[0], ich_bf_tup[1]] = (
+        matrix.ddata[key]['data'][indchan, :]
+    )
     bspline1 = matrix.interp2d(
         key=keybs,
         R=R,
@@ -255,7 +257,7 @@ def _plot_matrix_prepare(
         coefslines = matrix.ddata[key]['data'][:, indbf]
         indlosok = np.nonzero(coefslines > 0)[0]
         # normalize for line width
-        coefslines =  (
+        coefslines = (
             (3. - 0.5) * (coefslines - coefslines.min())
             / (coefslines.max() - coefslines.min()) + 0.5
         )
@@ -412,7 +414,6 @@ def plot_matrix(
         # indbf, indchan
         ax.axhline(indchan, c='r', lw=1., ls='-')
         ax.axvline(indbf, c='r', lw=1., ls='-')
-
 
     kax = 'misc1'
     if dax.get(kax) is not None:
