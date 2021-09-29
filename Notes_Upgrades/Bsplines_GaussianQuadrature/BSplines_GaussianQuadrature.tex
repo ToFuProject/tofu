@@ -27,9 +27,10 @@
 %\title{Project Report}
 %
 %%% Preamble
-\documentclass[paper=a4, fontsize=11pt]{scrartcl}
+\documentclass[paper=a4, fontsize=11pt]{book}
 \usepackage[T1]{fontenc}
-\usepackage{fourier}
+\usepackage{lmodern}
+%\usepackage{fourier}
 
 \usepackage[english]{babel}															% English language/hyphenation
 \usepackage[protrusion=true,expansion=true]{microtype}
@@ -948,7 +949,16 @@ $$
 & = & \frac{ 3(x_1^2+x_0^2)(x_1+x_0) - 8x_0(x_1^2+x_1x_0+x_0^2) + 6x_0^2(x_1+x_0) }{12(x_1-x_0)} + \frac{ 3(x_2^2+x_1^2)(x_2+x_1) - 8x_2(x_2^2+x_2x_1+x_1^2) + 6x_2^2(x_2+x_1) }{12(x_2-x_1)}\\
 & = & \frac{ 3x_1^3 + 3x_1^2x_0 + 3x_0^2x_1 + 3x_0^3 - 8x_0x_1^2 - 8x_1x_0^2 - 8x_0^3 + 6x_0^2x_1+6x_0^3 }{12(x_1-x_0)}
 + \frac{ 3x_2^3 + 3x_2^2x_1 + 3x_2x_1^2 + 3x_1^3 - 8x_2^3 - 8x_2^2x_1 - 8x_2x_1^2 + 6x_2^3 + 6x_2^2x_1 }{12(x_2-x_1)}\\
-& = & \frac{ 3x_1^3 - 5x_1^2x_0 + x_0^2x_1 + x_0^3 }{12(x_1-x_0)} + \frac{ x_2^3 + x_2^2x_1 - 5x_2x_1^2 + 3x_1^3 }{12(x_2-x_1)}
+& = & \frac{ 3x_1^3 - 5x_1^2x_0 + x_0^2x_1 + x_0^3 }{12(x_1-x_0)} + \frac{x_2^3 + x_2^2x_1 - 5x_2x_1^2 + 3x_1^3 }{12(x_2-x_1)}\\
+& = & \frac{ 
+    (3x_1^3 - 5x_1^2x_0 + x_0^2x_1 + x_0^3)(x_2-x_1)
+    + (x_2^3 + x_2^2x_1 - 5x_2x_1^2 + 3x_1^3)(x_1-x_0)
+    }{12(x_1-x_0)(x_2-x_1)}\\
+& = & \frac{ 
+    x_2(3x_1^3 - 5x_1^2x_0 + x_0^2x_1 + x_0^3)
+    + x_1(x_2^3 + x_2^2x_1 - 5x_2x_1^2 + 5x_1^2x_0 - x_0^2x_1 - x_0^3)
+    - x_0(x_2^3 + x_2^2x_1 - 5x_2x_1^2 + 3x_1^3)
+    }{12(x_1-x_0)(x_2-x_1)}\\
 \end{array}
 $$
 
