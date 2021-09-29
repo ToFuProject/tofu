@@ -249,6 +249,63 @@ class Mesh2DRect(_core_new.DataCollection):
         )
 
     # -----------------
+    # Integration operators
+    # ------------------
+
+    def get_bsplines_operator(
+        self,
+        key=None,
+        operator=None,
+        geometry=None,
+        store=None,
+        returnas=None,
+    ):
+
+        # check inputs
+        lk = list(self.dobj['bsplines'].keys())
+        if key is None and len(lk) == 1:
+            key = lk[0]
+        key = _mesh_checks._check_var(
+            key, 'key',
+            types=str,
+            allowed=lk,
+        )
+
+        store = _mesh_checks._check_var(
+            store, 'store',
+            default=True,
+            types=bool,
+        )
+
+        returnas = _mesh_checks._check_var(
+            returnas, 'returnas',
+            default=store is False,
+            types=bool,
+        )
+
+        # compute and return
+        (
+            opmat, operator, geometry,
+        ) = self.dobj['bsplines'][key]['class'].get_operator(
+            operator=operator,
+            geometry=geometry,
+        )
+
+        # store
+        if store is True:
+            # TBF
+            name = f'{key}-{operator}-{geometry}'
+            self.add_data(
+                key=name,
+                data=opmat,
+                ref=(),
+            )
+
+        # return
+        if returnas is True:
+            return operator, opmat
+
+    # -----------------
     # interp tools
     # ------------------
 
