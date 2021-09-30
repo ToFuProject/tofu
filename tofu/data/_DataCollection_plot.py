@@ -15,14 +15,9 @@ import matplotlib.lines as mlines
 # from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # tofu
-try:
-    from tofu.version import __version__
-    import tofu.utils as utils
-    import tofu.data._def as _def
-except Exception:
-    from tofu.version import __version__
-    from .. import utils as utils
-    from . import _def as _def
+from tofu.version import __version__
+from .. import utils as utils
+from . import _def as _def
 
 
 __all__ = [
@@ -359,6 +354,176 @@ def plot_DataColl(coll, overhead=None,
     collplot = None
 
     return collplot
+
+
+# #############################################################################
+# #############################################################################
+#                       plot_as_matrix
+# #############################################################################
+
+
+def _plot_as_matrix_check(
+    coll=None,
+    key=None,
+    ind=None,
+    cmap=None,
+    dcolorbar=None,
+    dleg=None,
+):
+
+    # key
+    lk = [kk for kk, vv in coll.ddata.items() if vv['data'].ndim == 2]
+    key = _generic_check._check_var(
+        key, 'key', default=None, types=str, allowed=lk,
+    )
+
+    # ind
+
+    # cmap
+    if cmap is None:
+        cmap = 'viridis'
+
+    # dcolorbar
+    defdcolorbar = {
+        # 'location': 'right',
+        'fraction': 0.15,
+        'orientation': 'vertical',
+    }
+    dcolorbar = _generic_check._check_var(
+        dcolorbar, 'dcolorbar',
+        default=defdcolorbar,
+        types=dict,
+    )
+
+    # dleg
+    defdleg = {
+        'bbox_to_anchor': (1.1, 1.),
+        'loc': 'upper left',
+        'frameon': True,
+    }
+    dleg = _generic_check._check_var(
+        dleg, 'dleg',
+        default=defdleg,
+        types=(bool, dict),
+    )
+
+    return key, ind, cmap, dcolorbar, dleg
+
+
+def plot_as_matrix(
+    coll=None,
+    key=None,
+    ind=None,
+    vmin=None,
+    vmax=None,
+    cmap=None,
+    dax=None,
+    dmargin=None,
+    fs=None,
+    dcolorbar=None,
+    dleg=None,
+):
+
+    # --------------
+    # check input
+
+    key, ind, cmap, dcolorbar, dleg = _plot_profile2d_check(
+        coll=coll,
+        key=key,
+        ind=ind,
+        cmap=cmap,
+        dcolorbar=dcolorbar,
+        dleg=dleg,
+    )
+
+    # --------------
+    #  Prepare data
+
+    data = coll.ddata[key]['data']
+    n0, n1 = data.shape
+
+    # --------------
+    # plot - prepare
+
+    if dax is None:
+
+        if dmargin is None:
+            dmargin = {
+                'left': 0.1, 'right': 0.9,
+                'bottom': 0.1, 'top': 0.9,
+                'hspace': 0.1, 'wspace': 0.1,
+            }
+
+        fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
+        ax0 = fig.add_subplot(gs[0, 1], aspect='auto')
+        ax0.set_xlabel('ind0')
+        ax0.set_ylabel('ind1')
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax1.set_ylabel('data')
+        ax1.set_xlabel('ind0')
+        ax2 = fig.add_subplot(gs[0, 2])
+        ax2.set_ylabel('data')
+        ax2.set_xlabel('ind1')
+
+        dax = {
+            'matrix': ax0,
+            'misc1': {'ax': ax1, 'type': 'misc'},
+            'misc2': {'ax': ax2, 'type': 'misc'},
+        }
+
+    dax = _generic_check._check_dax(dax=dax, main='matrix')
+
+    # --------------
+    # plot
+
+    axtype = 'matrix'
+    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
+    for kax in lkax:
+        ax = dax[kax]['ax']
+
+        im = ax.imshow(
+            matrix,
+            extent=None,
+            interpolation='nearest',
+            origin='upper',
+            aspect='auto',
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+        )
+
+        plt.colorbar(im, ax=ax, **dcolorbar)
+
+        if dleg is not False:
+            ax.legend(**dleg)
+
+    kax = 'misc1'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['ax']
+
+        ax.plot(
+            np.arange(0, n1),
+            data[ind[0], :],
+            ls='-',
+            marker='.',
+            lw=1.,
+            color='k',
+        )
+
+    kax = 'misc2'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['ax']
+
+        ax.plot(
+            np.arange(0, n2),
+            data[:, ind[1]],
+            ls='-',
+            marker='.',
+            lw=1.,
+            color='k',
+        )
+    return dax
 
 
 # #############################################################################

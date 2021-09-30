@@ -704,8 +704,6 @@ def _crop_check(mesh=None, key=None, crop=None, thresh_in=None):
 
     # key
     lkm = list(mesh.dobj['mesh'].keys())
-    if key is None and len(lkm) == 1:
-        key = lkm[0]
     key = _generic_check._check_var(
         key, 'key',
         default=None,

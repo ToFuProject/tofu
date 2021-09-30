@@ -35,8 +35,6 @@ def _plot_geometry_matrix_check(
 
     # key
     lk = list(matrix.dobj['matrix'].keys())
-    if key is None and len(lk) == 1:
-        key = lk[0]
     key = _generic_check._check_var(
         key, 'key',
         default=None,

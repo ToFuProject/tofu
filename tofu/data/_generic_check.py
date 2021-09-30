@@ -22,9 +22,14 @@ _LALLOWED_AXESTYPES = [
 
 
 def _check_var(var, varname, types=None, default=None, allowed=None):
+
+    # set to default
     if var is None:
         var = default
+    if var is None and allowed is not None and len(allowed) == 1:
+        var = allowed[0]
 
+    # check type
     if types is not None:
         if not isinstance(var, types):
             msg = (
@@ -33,6 +38,7 @@ def _check_var(var, varname, types=None, default=None, allowed=None):
             )
             raise Exception(msg)
 
+    # check if allowed
     if allowed is not None:
         if var not in allowed:
             msg = (
@@ -40,6 +46,7 @@ def _check_var(var, varname, types=None, default=None, allowed=None):
                 f"Provided: {var}"
             )
             raise Exception(msg)
+
     return var
 
 

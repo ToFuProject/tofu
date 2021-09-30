@@ -34,8 +34,6 @@ def _plot_mesh_check(
 
     # key
     lk = list(mesh.dobj[mesh._groupmesh].keys())
-    if key is None and len(lk) == 1:
-        key = lk[0]
     key = _generic_check._check_var(
         key, 'key',
         default=None,
@@ -339,8 +337,6 @@ def _plot_bspline_check(
 
     # key
     lk = list(mesh.dobj['bsplines'].keys())
-    if key is None and len(lk) == 1:
-        key = lk[0]
     key = _generic_check._check_var(
         key, 'key',
         default=None,
@@ -604,8 +600,6 @@ def _plot_profile2d_check(
 
     # key
     dk = mesh.get_profiles2d()
-    if key is None and len(dk) == 1:
-        key = list(dk.keys())[0]
     key = _generic_check._check_var(
         key, 'key', default=None, types=str, allowed=list(dk.keys())
     )
@@ -759,139 +753,6 @@ def plot_profile2d(
         indt=indt,
         res=res,
     )
-
-    # --------------
-    # plot - prepare
-
-    if dax is None:
-
-        if dmargin is None:
-            dmargin = {
-                'left': 0.1, 'right': 0.9,
-                'bottom': 0.1, 'top': 0.9,
-                'hspace': 0.1, 'wspace': 0.1,
-            }
-
-        fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
-        ax0 = fig.add_subplot(gs[0, 0], aspect='equal')
-        ax0.set_xlabel(f'R (m)')
-        ax0.set_ylabel(f'Z (m)')
-
-        dax = {'cross': ax0}
-
-    # --------------
-    # plot
-
-    kax = 'cross'
-    if dax.get(kax) is not None:
-
-        im = dax[kax].imshow(
-            bspline,
-            extent=extent,
-            interpolation=interp,
-            origin='lower',
-            aspect='equal',
-            cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
-        )
-
-        plt.colorbar(im, ax=dax[kax], **dcolorbar)
-
-    # --------------
-    # dleg
-
-    if dleg is not False:
-        dax['cross'].legend(**dleg)
-
-    return dax
-
-
-# #############################################################################
-# #############################################################################
-#                           plot as matrix
-# #############################################################################
-
-
-def _plot_as_matrix_check(
-    mesh=None,
-    key=None,
-    ind=None,
-    cmap=None,
-    dcolorbar=None,
-    dleg=None,
-):
-
-    # key
-    dk = mesh.get_profiles2d()
-    if key is None and len(dk) == 1:
-        key = list(dk.keys())[0]
-    key = _generic_check._check_var(
-        key, 'key', default=None, types=str, allowed=list(dk.keys())
-    )
-
-    # ind
-
-    # cmap
-    if cmap is None:
-        cmap = 'viridis'
-
-    # dcolorbar
-    defdcolorbar = {
-        # 'location': 'right',
-        'fraction': 0.15,
-        'orientation': 'vertical',
-    }
-    dcolorbar = _generic_check._check_var(
-        dcolorbar, 'dcolorbar',
-        default=defdcolorbar,
-        types=dict,
-    )
-
-    # dleg
-    defdleg = {
-        'bbox_to_anchor': (1.1, 1.),
-        'loc': 'upper left',
-        'frameon': True,
-    }
-    dleg = _generic_check._check_var(
-        dleg, 'dleg',
-        default=defdleg,
-        types=(bool, dict),
-    )
-
-    return key, ind, cmap, dcolorbar, dleg
-
-
-def plot_as_matrix(
-    mesh=None,
-    key=None,
-    ind=None,
-    vmin=None,
-    vmax=None,
-    cmap=None,
-    dax=None,
-    dmargin=None,
-    fs=None,
-    dcolorbar=None,
-    dleg=None,
-):
-
-    # --------------
-    # check input
-
-    key, ind, cmap, dcolorbar, dleg = _plot_profile2d_check(
-        mesh=mesh,
-        key=key,
-        ind=ind,
-        cmap=cmap,
-        dcolorbar=dcolorbar,
-        dleg=dleg,
-    )
-
-    # --------------
-    #  Prepare data
 
     # --------------
     # plot - prepare
