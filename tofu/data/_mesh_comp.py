@@ -409,11 +409,20 @@ def add_cropbs_from_crop(mesh=None, keybs=None, keym=None):
             keybs=keybs,
         )
         kcropbs = f'{keybs}-crop'
+        kcroppedbs = f'{keybs}-cropped'
 
     # ----------------
     # optional crop
 
     if kcropbs is not False:
+
+        # add cropped flat reference
+        mesh.add_ref(
+            key=kcroppedbs,
+            data=np.arange(0, cropbs.sum()),
+            group='index',
+        )
+
         mesh.add_data(
             key=kcropbs,
             data=cropbs,

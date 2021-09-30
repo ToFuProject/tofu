@@ -410,11 +410,8 @@ class Mesh2DRect(DataCollection):
             thresh_in=thresh_in,
         )
 
-        keycrop = f'{key}-crop'
-
-        # add cropped flat reference
-
         # add crop data
+        keycrop = f'{key}-crop'
         self.add_data(
             key=keycrop,
             data=crop,
