@@ -538,10 +538,41 @@ class Mesh2DRect(_core_new.DataCollection):
             dleg=dleg,
         )
 
+    def plot_as_matrix(
+        self,
+        key=None,
+        ind=None,
+        vmin=None,
+        vmax=None,
+        cmap=None,
+        dax=None,
+        dmargin=None,
+        fs=None,
+        dcolorbar=None,
+        dleg=None,
+    ):
+        """ plot a 2d data as a matrix """
+        return self._plot_as_matrix(
+            mesh=self,
+            key=key,
+            ind=ind,
+            vmin=vmin,
+            vmax=vmax,
+            res=res,
+            cmap=cmap,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+        )
+
+
+
 
 class Matrix(Mesh2DRect):
 
-    def plot_matrix(
+    def plot_geometry_matrix(
         self,
         cam=None,
         key=None,
@@ -557,7 +588,7 @@ class Matrix(Mesh2DRect):
         dcolorbar=None,
         dleg=None,
     ):
-        return _matrix_plot.plot_matrix(
+        return _matrix_plot.plot_geometry_matrix(
             cam=cam,
             matrix=self,
             key=key,

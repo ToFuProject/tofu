@@ -4,6 +4,7 @@
 # Built-in
 import datetime as dtm
 
+
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,90 +12,8 @@ import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
 
 
-_LALLOWED_AXESTYPES = [
-    'cross', 'hor',
-    'matrix',
-    'timetrace',
-    'profile1d',
-    'image',
-    'misc'
-]
-
-
-# #############################################################################
-# #############################################################################
-#                           utility
-# #############################################################################
-
-
-def _check_var(var, varname, default=None, types=None, allowed=None):
-
-    if var is None:
-        var = default
-
-    if types is not None:
-        if not isinstance(var, types):
-            msg = (
-                f"Arg {varname} must be a {types}!\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
-
-    if allowed is not None:
-        if var not in allowed:
-            msg = (
-                f"Arg {varname} must be in {allowed}!\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
-
-    return var
-
-
-def _check_dax(dax=None, main=None):
-
-    # None
-    if dax is None:
-        return dax
-
-    # Axes
-    if issubclass(dax.__class__, plt.Axes):
-        if main is None:
-            msg = (
-            )
-            raise Exception(msg)
-        else:
-            return {main: dax}
-
-    # dict
-    c0 = (
-        isinstance(dax, dict)
-        and all([
-            isinstance(k0, str)
-            and (
-                (
-                    k0 in _LALLOWED_AXESTYPES
-                    and issubclass(v0.__class__, plt.Axes)
-                )
-                or (
-                    isinstance(v0, dict)
-                    and issubclass(v0.get('ax').__class__, plt.Axes)
-                    and v0.get('type') in _LALLOWED_AXESTYPES
-                )
-            )
-            for k0, v0 in dax.items()
-        ])
-    )
-    if not c0:
-        msg = (
-        )
-        raise Exception(msg)
-
-    for k0, v0 in dax.items():
-        if issubclass(v0.__class__, plt.Axes):
-            dax[k0] = {'ax': v0, 'type': k0}
-
-    return dax
+# specific
+from . import _generic_check
 
 
 # #############################################################################
@@ -118,7 +37,12 @@ def _plot_matrix_check(
     lk = list(matrix.dobj['matrix'].keys())
     if key is None and len(lk) == 1:
         key = lk[0]
-    key = _check_var(key, 'key', default=None, types=str, allowed=lk)
+    key = _generic_check._check_var(
+        key, 'key',
+        default=None,
+        types=str,
+        allowed=lk,
+    )
     keybs = matrix.dobj['matrix'][key]['bsplines']
     refbs = matrix.dobj['bsplines'][keybs]['ref']
     keym = matrix.dobj['bsplines'][keybs]['mesh']
@@ -157,7 +81,7 @@ def _plot_matrix_check(
         'fraction': 0.15,
         'orientation': 'vertical',
     }
-    dcolorbar = _check_var(
+    dcolorbar = _generic_check._check_var(
         dcolorbar, 'dcolorbar',
         default=defdcolorbar,
         types=dict,
@@ -169,7 +93,11 @@ def _plot_matrix_check(
         'loc': 'upper left',
         'frameon': True,
     }
-    dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
+    dleg = _generic_check._check_var(
+        dleg, 'dleg',
+        default=defdleg,
+        types=(bool, dict),
+    )
 
     return key, keybs, keym, indbf, indchan, cmap, dcolorbar, dleg
 
@@ -382,7 +310,7 @@ def plot_matrix(
             'misc2': {'ax': ax02, 'type': 'misc'},
         }
 
-    dax = _check_dax(dax=dax, main='matrix')
+    dax = _generic_check._check_dax(dax=dax, main='matrix')
 
     # --------------
     # plot mesh

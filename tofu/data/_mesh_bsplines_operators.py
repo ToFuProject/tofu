@@ -9,40 +9,16 @@ import numpy as np
 import scipy.sparse as scpsp
 
 
+# specific
+from . import _generic_check
+
+
 _LOPERATORS_INT = [
     'D0',
     'D0N2',
     'D1N2',
     'D2N2',
 ]
-
-
-# #############################################################################
-# #############################################################################
-#                           Utilities
-# #############################################################################
-
-
-def _check_var(var, varname, types=None, default=None, allowed=None):
-    if var is None:
-        var = default
-
-    if types is not None:
-        if not isinstance(var, types):
-            msg = (
-                f"Arg {varname} must be of type {types}!\n"
-                f"Provided: {type(var)}"
-            )
-            raise Exception(msg)
-
-    if allowed is not None:
-        if var not in allowed:
-            msg = (
-                f"Arg {varname} must be in {allowed}!\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
-    return var
 
 
 # #############################################################################
@@ -59,14 +35,14 @@ def _get_mesh2dRect_operators_check(
 ):
 
     # deg
-    deg = _check_var(
+    deg = _generic_check._check_var(
         deg, 'deg',
         types=int,
         allowed=[0, 1, 2, 3],
     )
 
     # operator
-    operator = _check_var(
+    operator = _generic_check._check_var(
         operator, 'operator',
         default='D0',
         types=str,
@@ -74,7 +50,7 @@ def _get_mesh2dRect_operators_check(
     )
 
     # geometry
-    geometry = _check_var(
+    geometry = _generic_check._check_var(
         geometry, 'geometry',
         default='toroidal',
         types=str,
@@ -82,7 +58,7 @@ def _get_mesh2dRect_operators_check(
     )
 
     # sparse_fmt
-    sparse_fmt = _check_var(
+    sparse_fmt = _generic_check._check_var(
         sparse_fmt, 'sparse_fmt',
         default='csr',
         types=str,

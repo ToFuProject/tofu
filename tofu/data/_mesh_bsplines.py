@@ -10,35 +10,8 @@ import scipy.interpolate as scpinterp
 
 
 # specific
+from . import _generic_check
 from . import _mesh_bsplines_operators
-
-
-# #############################################################################
-# #############################################################################
-#                           Utilities
-# #############################################################################
-
-
-def _check_var(var, varname, types=None, default=None, allowed=None):
-    if var is None:
-        var = default
-
-    if types is not None:
-        if not isinstance(var, types):
-            msg = (
-                f"Arg {varname} must be of type {types}!\n"
-                f"Provided: {type(var)}"
-            )
-            raise Exception(msg)
-
-    if allowed is not None:
-        if var not in allowed:
-            msg = (
-                f"Arg {varname} must be in {allowed}!\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
-    return var
 
 
 # #############################################################################
@@ -433,13 +406,13 @@ def _get_bs2d_func_knots(knots, deg=None, returnas=None, return_unique=None):
     # ----------
     # check input
 
-    returnas = _check_var(
+    returnas = _generic_check._check_var(
         returnas, 'returnas',
         types=str,
         default='data',
         allowed=['ind', 'data'],
     )
-    return_unique = _check_var(
+    return_unique = _generic_check._check_var(
         return_unique, 'return_unique',
         types=bool,
         default=False,
@@ -523,7 +496,7 @@ def _get_bs2d_func_knots(knots, deg=None, returnas=None, return_unique=None):
 
 def _get_bs2d_func_cents(cents, deg=None, returnas=None):
 
-    returnas = _check_var(
+    returnas = _generic_check._check_var(
         returnas, 'returnas',
         types=str,
         default='data',

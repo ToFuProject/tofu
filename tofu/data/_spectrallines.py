@@ -10,7 +10,7 @@ import warnings
 
 from ._core_new import DataCollection
 from . import _comp_spectrallines
-from . import _comp_new
+from . import _DataCollection_comp
 from . import _plot_new
 
 
@@ -1021,10 +1021,10 @@ class SpectralLines(DataCollection):
         damp = {k0: {'data': v0} for k0, v0 in dpec.items()}
 
         # Create grid
-        ne_grid = _comp_new._get_grid1d(
+        ne_grid = _DataCollection_comp._get_grid1d(
             ne, scale=ne_scale, npts=ne.size*2, nptsmin=3,
         )
-        Te_grid = _comp_new._get_grid1d(
+        Te_grid = _DataCollection_comp._get_grid1d(
             Te, scale=Te_scale, npts=Te.size*2, nptsmin=3,
         )
 

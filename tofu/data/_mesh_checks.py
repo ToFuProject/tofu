@@ -8,35 +8,11 @@
 import numpy as np
 
 
+# specific
+from . import _generic_check
+
+
 _ELEMENTS = 'knots'
-
-
-# #############################################################################
-# #############################################################################
-#                           Utilities
-# #############################################################################
-
-
-def _check_var(var, varname, types=None, default=None, allowed=None):
-    if var is None:
-        var = default
-
-    if types is not None:
-        if not isinstance(var, types):
-            msg = (
-                f"Arg {varname} must be of type {types}!\n"
-                f"Provided: {type(var)}"
-            )
-            raise Exception(msg)
-
-    if allowed is not None:
-        if var not in allowed:
-            msg = (
-                f"Arg {varname} must be in {allowed}!\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
-    return var
 
 
 # #############################################################################
@@ -393,7 +369,7 @@ def _select_ind_check(
             raise Exception(msg)
 
     # elements
-    elements = _check_var(
+    elements = _generic_check._check_var(
         elements, 'elements',
         types=str,
         default=_ELEMENTS,
@@ -401,7 +377,7 @@ def _select_ind_check(
     )
 
     # returnas
-    returnas = _check_var(
+    returnas = _generic_check._check_var(
         returnas, 'returnas',
         types=None,
         default=tuple,
@@ -409,7 +385,7 @@ def _select_ind_check(
     )
 
     # crop
-    crop = _check_var(
+    crop = _generic_check._check_var(
         crop, 'crop',
         types=bool,
         default=True,
@@ -425,7 +401,7 @@ def _select_check(
 ):
 
     # elements
-    elements = _check_var(
+    elements = _generic_check._check_var(
         elements, 'elements',
         types=str,
         default=_ELEMENTS,
@@ -433,7 +409,7 @@ def _select_check(
     )
 
     # returnas
-    returnas = _check_var(
+    returnas = _generic_check._check_var(
         returnas, 'returnas',
         types=None,
         default='ind',
@@ -441,7 +417,7 @@ def _select_check(
     )
 
     # return_neighbours
-    return_neighbours = _check_var(
+    return_neighbours = _generic_check._check_var(
         return_neighbours, 'return_neighbours',
         types=bool,
         default=True,

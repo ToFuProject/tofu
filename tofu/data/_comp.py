@@ -12,7 +12,7 @@ import scipy.stats as scpstats
 from matplotlib.tri import LinearTriInterpolator as mplTriLinInterp
 
 
-from . import _comp_new
+from . import _DataCollection_comp
 
 
 _fmin_coef = 5.
@@ -57,14 +57,17 @@ def spectrogram(data, t,
     # Compute
     if method in ['scipy-fourier', 'scipy-stft']:
         stft = 'stft' in method
-        f, tf, lpsd, lang = _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=fmin,
-                                                       stft=stft, deg=deg,
-                                                       window=window,
-                                                       nperseg=nperseg,
-                                                       noverlap=noverlap,
-                                                       detrend=detrend,
-                                                       boundary=boundary,
-                                                       padded=padded, warn=warn)
+        f, tf, lpsd, lang = _spectrogram_scipy_fourier(
+            data, fs, nt, nch, fmin=fmin,
+            stft=stft, deg=deg,
+            window=window,
+            nperseg=nperseg,
+            noverlap=noverlap,
+            detrend=detrend,
+            boundary=boundary,
+            padded=padded,
+            warn=warn,
+        )
         tf = tf + t[0]
     elif method=='scipy-wavelet':
         f, lspect = _spectrogram_scipy_wavelet(data, fs, nt, nch,
@@ -231,7 +234,7 @@ def filter_bandpass_fourier(t, data, method='stft', detrend='linear',
         If True all the higher harmonics of df will also be included
     df_out :    None / list
         List or tuple of len()=2, containing the bandpass lower / upper bounds
-        to be excluded from filtering (if it overlaps with high harmonics of df)
+        to be excluded from filtering (if overlaps with high harmonics of df)
     harm_out :  bool
         If True, the higher harmonics of the interval df_out are also excluded
     Test :      bool
@@ -422,7 +425,7 @@ def get_finterp_isotropic(
                 shapeval[0] = ntall if t is None else t.size
                 val = np.full(tuple(shapeval), fill_value)
 
-                ntall, indt, indtu, indtq = _comp_new._get_indtu(
+                ntall, indt, indtu, indtq = _DataCollection_comp._get_indtu(
                     t=t, tall=tall,
                     tbinall=tbinall,
                     indtq=indtq,
@@ -465,7 +468,7 @@ def get_finterp_isotropic(
                     indok = indpts > -1
                     indpts = indpts[indok]
 
-                ntall, indt, indtu, indtq = _comp_new._get_indtu(
+                ntall, indt, indtu, indtq = _DataCollection_comp._get_indtu(
                     t=t, tall=tall,
                     tbinall=tbinall,
                     indtq=indtq,
@@ -507,7 +510,7 @@ def get_finterp_isotropic(
                 t0tri, t0int = 0., 0.
 
                 ntall, indt, indtu, indtq, indtr1, indtr2 = \
-                        _comp_new._get_indtu(
+                        _DataCollection_comp._get_indtu(
                             t=t, tall=tall, tbinall=tbinall,
                             indtq=indtq,
                             indtr1=indtr1, indtr2=indtr2,
@@ -561,7 +564,7 @@ def get_finterp_isotropic(
                     indpts = indpts[indok]
 
                 ntall, indt, indtu, indtq, indtr1, indtr2 = \
-                        _comp_new._get_indtu(
+                        _DataCollection_comp._get_indtu(
                             t=t, tall=tall, tbinall=tbinall,
                             indtq=indtq,
                             indtr1=indtr1, indtr2=indtr2,
@@ -648,7 +651,7 @@ def get_finterp_ani(
             valZ = np.full(tuple(shapeval), fill_value)
 
             # Interpolate
-            ntall, indt, indtu, indtq = _comp_new._get_indtu(
+            ntall, indt, indtu, indtq = _DataCollection_comp._get_indtu(
                 t=t, tall=tall,
                 indtq=indtq,
                 tbinall=tbinall,
@@ -720,7 +723,7 @@ def get_finterp_ani(
                 indok = indpts > -1
                 indpts = indpts[indok]
 
-            ntall, indt, indtu, indtq = _comp_new._get_indtu(
+            ntall, indt, indtu, indtq = _DataCollection_comp._get_indtu(
                 t=t, tall=tall,
                 indtq=indtq,
                 tbinall=tbinall,
