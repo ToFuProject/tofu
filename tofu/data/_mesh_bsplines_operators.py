@@ -65,7 +65,29 @@ def _get_mesh2dRect_operators_check(
         allowed=['dia', 'csr', 'csc', 'lil'],
     )
 
-    return operator, geometry, sparse_fmt
+    # dim
+    if operator == 'D0':
+        if  geometry == 'linear':
+            dim = 'origin x m2'
+        else:
+            dim = 'origin x m3/rad'
+    elif operator == 'D0N2':
+        if  geometry == 'linear':
+            dim = 'origin2 x m2'
+        else:
+            dim = 'origin2 x m3/rad'
+    elif operator == 'D1N2':
+        if  geometry == 'linear':
+            dim = 'origin2'
+        else:
+            dim = 'origin2 x m/rad'
+    elif operator == 'D2N2':
+        if  geometry == 'linear':
+            dim = 'origin2 / m2'
+        else:
+            dim = 'origin2 / (m2.rad)'
+
+    return operator, geometry, sparse_fmt, dim
 
 
 def get_mesh2dRect_operators(
@@ -81,7 +103,7 @@ def get_mesh2dRect_operators(
     # ------------
     # check inputs
 
-    operator, geometry, sparse_fmt = _get_mesh2dRect_operators_check(
+    operator, geometry, sparse_fmt, dim = _get_mesh2dRect_operators_check(
         deg=deg,
         operator=operator,
         geometry=geometry,
@@ -374,7 +396,7 @@ def get_mesh2dRect_operators(
 
         raise NotImplementedError("Integral D3N2 not implemented for deg=3!")
 
-    return operator, opmat
+    return opmat, operator, geometry, dim
 
 
 

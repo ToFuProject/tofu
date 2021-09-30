@@ -468,6 +468,8 @@ def plot_as_matrix(
     #  Prepare data
 
     data = coll.ddata[key]['data']
+    if hasattr(data, 'nnz'):
+        data = data.toarray()
     n0, n1 = data.shape
     ref0, ref1 = coll.ddata[key]['ref']
     lab0 = f'ind0 ({ref0})'

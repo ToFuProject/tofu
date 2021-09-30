@@ -278,13 +278,15 @@ class Mesh2DRect(DataCollection):
 
         (
             opmat, operator, geometry, dim, ref, crop,
-            store, returnas,
+            store, returnas, key,
         ) = _mesh_comp.get_bsplines_operator(
-            coll,
+            self,
             key=key,
             operator=operator,
             geometry=geometry,
             crop=crop,
+            store=store,
+            returnas=returnas,
         )
 
         # store
@@ -294,7 +296,7 @@ class Mesh2DRect(DataCollection):
                 key=name,
                 data=opmat,
                 ref=ref,
-                units=None,
+                units='',
                 name=operator,
                 dim=dim,
             )

@@ -6,6 +6,7 @@ import warnings
 
 # Common
 import numpy as np
+import scipy.sparse as scpsp
 from matplotlib.tri import Triangulation as mplTri
 
 
@@ -1271,7 +1272,11 @@ def _check_data(data=None, key=None, max_ndim=None):
     # => try converting or get class (dict, mesh...)
     shape = None
     group = None
-    if not isinstance(data, np.ndarray):
+    c0_array = (
+        isinstance(data, np.ndarray)
+        or scpsp.issparse(data)
+    )
+    if not c0_array:
         if isinstance(data, list) or isinstance(data, tuple):
             c0 = (
                 all([hasattr(oo, '__iter__') for oo in data])
@@ -1300,11 +1305,11 @@ def _check_data(data=None, key=None, max_ndim=None):
                 shape = data.__class__.__name__
 
     # if array => check unique (unique + sorted)
-    if isinstance(data, np.ndarray) and shape is None:
+    if c0_array and shape is None:
         shape = data.shape
 
     # Check max_dim if any
-    if isinstance(data, np.ndarray) and max_ndim is not None:
+    if c0_array and max_ndim is not None:
         if data.ndim > max_ndim:
             msg = (
                 """
