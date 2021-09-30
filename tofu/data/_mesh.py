@@ -252,6 +252,7 @@ class Mesh2DRect(DataCollection):
     # Integration operators
     # ------------------
 
+
     def get_bsplines_operator(
         self,
         key=None,
@@ -261,46 +262,33 @@ class Mesh2DRect(DataCollection):
         store=None,
         returnas=None,
     ):
+        """ Get a matrix operator to compute an integral
 
-        # check inputs
-        lk = list(self.dobj['bsplines'].keys())
-        key = _generic_check._check_var(
-            key, 'key',
-            types=str,
-            allowed=lk,
-        )
+        operator specifies the integrand:
+            - 'D0': integral of the value
+            - 'D0N2': integral of the squared value
+            - 'D1N2': integral of the squared gradient
+            - 'D2N2': integral of the squared laplacian
 
-        store = _generic_check._check_var(
-            store, 'store',
-            default=True,
-            types=bool,
-        )
+        geometry specifies in which geometry:
+            - 'linear': linear geometry (cross-section = surface)
+            - 'toroidal': toroildal geometry (cross-section = volumic slice)
 
-        returnas = _generic_check._check_var(
-            returnas, 'returnas',
-            default=store is False,
-            types=bool,
-        )
+        """
 
-        # compute and return
         (
-            opmat, operator, geometry, dim,
-        ) = self.dobj['bsplines'][key]['class'].get_operator(
+            opmat, operator, geometry, dim, ref, crop,
+            store, returnas,
+        ) = _mesh_comp.get_bsplines_operator(
+            coll,
+            key=key,
             operator=operator,
             geometry=geometry,
+            crop=crop,
         )
-
-        # cropping
-        if crop is True:
-            opmat = opmat[np.any(crop, axis=0), :]
-            opmat = opmat[:, np.any(crop, axis=1)]
-            ref = ('', '')
-        else:
-            ref = ('', '')
 
         # store
         if store is True:
-            # TBF
             name = f'{key}-{operator}-{geometry}'
             self.add_data(
                 key=name,
@@ -313,7 +301,7 @@ class Mesh2DRect(DataCollection):
 
         # return
         if returnas is True:
-            return operator, opmat
+            return opmat, operator, geometry, dim, ref, crop
 
     # -----------------
     # interp tools

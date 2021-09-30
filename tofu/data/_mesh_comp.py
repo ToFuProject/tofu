@@ -1081,3 +1081,66 @@ def interp2d(
         val[val == 0] = np.nan
 
     return val
+
+
+# #############################################################################
+# #############################################################################
+#                           Mesh2DRect - operators
+# #############################################################################
+
+
+def get_bsplines_operator(
+    coll,
+    key=None,
+    operator=None,
+    geometry=None,
+    crop=None,
+    store=None,
+    returnas=None,
+):
+
+    # check inputs
+    lk = list(coll.dobj.get('bsplines', {}).keys())
+    key = _generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lk,
+    )
+
+    store = _generic_check._check_var(
+        store, 'store',
+        default=True,
+        types=bool,
+    )
+
+    returnas = _generic_check._check_var(
+        returnas, 'returnas',
+        default=store is False,
+        types=bool,
+    )
+
+    crop = _generic_check._check_var(
+        crop, 'crop',
+        default=True,
+        types=bool,
+    )
+    crop = crop is True and coll.dobj['bsplines'][key]['crop'] is not False
+
+    # compute and return
+    (
+        opmat, operator, geometry, dim,
+    ) = coll.dobj['bsplines'][key]['class'].get_operator(
+        operator=operator,
+        geometry=geometry,
+    )
+
+    # cropping
+    if crop is True:
+        opmat = opmat[np.any(crop, axis=0), :]
+        opmat = opmat[:, np.any(crop, axis=1)]
+
+        ref = (keycropped, keycropped)
+    else:
+        ref = (key, key)
+
+    return opmat, operator, geometry, dim, ref, crop, store, returnas
