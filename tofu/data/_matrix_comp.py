@@ -208,6 +208,7 @@ def compute(
         list(mesh.dobj['mesh'][km]['cents'])
         + list(mesh.dobj['mesh'][km]['knots'])
         + list(mesh.dobj['bsplines'][key]['ref'])
+        + [key]
     )
     dref = {k0: mesh.dref[k0] for k0 in lref}
     for k0 in lref:
@@ -225,21 +226,22 @@ def compute(
     })
 
     # add new parts relevant to the geometry matrix (matrix + ref)
+    key_crop = f'{key}-cropped'
     dref.update({
         'channels': {
             'data': np.arange(0, nlos),
             'group': 'chan',
         },
-        key: {
+        key_crop: {
             'data': np.arange(0, mat.shape[1]),
-            'group': 'bsplines',
+            'group': 'index',
         },
     })
 
     ddata.update({
         name: {
             'data': mat,
-            'ref': ('channels', key)
+            'ref': ('channels', key_crop)
         },
     })
 

@@ -335,6 +335,7 @@ def _mesh2DRect_bsplines(mesh=None, keym=None, keybs=None, deg=None):
     ) = _mesh_bsplines.get_bs2d_RZ(
         deg=deg, Rknots=Rknots, Zknots=Zknots,
     )
+    nbs = int(np.prod(shapebs))
 
     func_details, func_sum, clas = _mesh_bsplines.get_bs2d_func(
         deg=deg,
@@ -365,6 +366,14 @@ def _mesh2DRect_bsplines(mesh=None, keym=None, keybs=None, deg=None):
             'quant': 'Z',
             'name': 'Z',
             'group': 'Z',
+        },
+        keybs: {
+            'data': np.arange(0, nbs),
+            'units': '',
+            'dim': 'index',
+            'quant': 'index',
+            'name': '',
+            'group': 'index',
         },
     }
 

@@ -1544,9 +1544,9 @@ def _check_ddata(
         )
         if not c0:
             msg = (
-                "ddata['{}']['ref'] contains unknown ref:\n"
-                + "\t- ddata['{}']['ref'] = {}\n".format(k0, v0['ref'])
-                + "\t- dref0.keys() = {}\n".format(sorted(dref0.keys()))
+                f"ddata['{k0}']['ref'] contains unknown ref:\n"
+                f"\t- ddata['{k0}']['ref'] = {v0['ref']}\n"
+                f"\t- dref0.keys() = {sorted(dref0.keys())}\n"
                 + "\t- dref_add.keys() = {}".format(
                     None if dref_add is None else sorted(dref_add.keys())
                 )

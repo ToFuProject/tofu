@@ -578,7 +578,7 @@ def plot_as_matrix(
 
         ax.plot(
             np.arange(0, n1),
-            data[ind[1], :],
+            data[ind[0], :],
             ls='-',
             marker='.',
             lw=1.,
