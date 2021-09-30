@@ -257,6 +257,7 @@ class Mesh2DRect(DataCollection):
         key=None,
         operator=None,
         geometry=None,
+        crop=None,
         store=None,
         returnas=None,
     ):
@@ -283,11 +284,19 @@ class Mesh2DRect(DataCollection):
 
         # compute and return
         (
-            opmat, operator, geometry,
+            opmat, operator, geometry, dim,
         ) = self.dobj['bsplines'][key]['class'].get_operator(
             operator=operator,
             geometry=geometry,
         )
+
+        # cropping
+        if crop is True:
+            opmat = opmat[np.any(crop, axis=0), :]
+            opmat = opmat[:, np.any(crop, axis=1)]
+            ref = ('', '')
+        else:
+            ref = ('', '')
 
         # store
         if store is True:
@@ -296,7 +305,10 @@ class Mesh2DRect(DataCollection):
             self.add_data(
                 key=name,
                 data=opmat,
-                ref=(),
+                ref=ref,
+                units=None,
+                name=operator,
+                dim=dim,
             )
 
         # return
@@ -399,6 +411,10 @@ class Mesh2DRect(DataCollection):
         )
 
         keycrop = f'{key}-crop'
+
+        # add cropped flat reference
+
+        # add crop data
         self.add_data(
             key=keycrop,
             data=crop,
@@ -407,6 +423,7 @@ class Mesh2DRect(DataCollection):
             quant='bool',
         )
 
+        # update obj
         self._dobj['mesh'][key]['crop'] = keycrop
         self._dobj['mesh'][key]['crop-thresh'] = thresh_in
 
