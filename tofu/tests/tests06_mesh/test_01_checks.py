@@ -297,5 +297,5 @@ class Test02_Mesh2DRect():
                 cam=cam, res=0.01, crop=True,
             )
 
-            dax = mat.plot_matrix(cam=cam, indchan=12, indbf=100)
+            dax = mat.plot_geometry_matrix(cam=cam, indchan=12, indbf=100)
             plt.close('all')

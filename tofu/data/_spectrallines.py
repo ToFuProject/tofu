@@ -8,7 +8,7 @@ import matplotlib.colors as mcolors
 import warnings
 
 
-from ._core_new import DataCollection
+from ._DataCollection_class import DataCollection
 from . import _comp_spectrallines
 from . import _DataCollection_comp
 from . import _plot_new

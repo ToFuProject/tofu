@@ -10,6 +10,7 @@ from matplotlib.path import Path
 
 
 # tofu
+from . import _generic_check
 from . import _mesh_checks
 from . import _mesh_bsplines
 
@@ -429,12 +430,12 @@ def _mesh2DRect_bsplines_knotscents(
     # -------------
     # check inputs
 
-    return_knots = _mesh_checks._check_var(
+    return_knots = _generic_check._check_var(
         return_knots, 'return_knots',
         types=bool,
         default=True,
     )
-    return_cents = _mesh_checks._check_var(
+    return_cents = _generic_check._check_var(
         return_cents, 'return_cents',
         types=bool,
         default=True,
@@ -540,21 +541,21 @@ def _sample_mesh_check(
         raise Exception(msg)
 
     # mode
-    mode = _mesh_checks._check_var(
+    mode = _generic_check._check_var(
         mode, 'mode',
         types=str,
         default='abs',
     )
 
     # grid
-    grid = _mesh_checks._check_var(
+    grid = _generic_check._check_var(
         grid, 'grid',
         types=bool,
         default=False,
     )
 
     # imshow
-    imshow = _mesh_checks._check_var(
+    imshow = _generic_check._check_var(
         imshow, 'imshow',
         types=bool,
         default=False,
@@ -705,7 +706,7 @@ def _crop_check(mesh=None, key=None, crop=None, thresh_in=None):
     lkm = list(mesh.dobj['mesh'].keys())
     if key is None and len(lkm) == 1:
         key = lkm[0]
-    key = _mesh_checks._check_var(
+    key = _generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
@@ -920,21 +921,21 @@ def _interp_check(
         coefs = coefs[indt:indt+1, ...]
 
     # details
-    details = _mesh_checks._check_var(
+    details = _generic_check._check_var(
         details, 'details',
         types=bool,
         default=False,
     )
 
     # crop
-    crop = _mesh_checks._check_var(
+    crop = _generic_check._check_var(
         crop, 'crop',
         types=bool,
         default=True,
     )
 
     # nan0
-    nan0 = _mesh_checks._check_var(
+    nan0 = _generic_check._check_var(
         nan0, 'nan0',
         types=bool,
         default=True,

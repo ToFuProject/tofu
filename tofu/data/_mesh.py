@@ -10,8 +10,8 @@ import numpy as np
 
 # tofu
 # from tofu import __version__ as __version__
-import tofu.utils as utils
-from . import _core_new
+from . import _generic_check
+from ._DataCollection_class import DataCollection
 from . import _mesh_checks
 from . import _mesh_comp
 from . import _mesh_plot
@@ -30,7 +30,7 @@ _GROUP_Z = 'Z'
 # #############################################################################
 
 
-class Mesh2DRect(_core_new.DataCollection):
+class Mesh2DRect(DataCollection):
 
     _ddef = {
         'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
@@ -265,19 +265,19 @@ class Mesh2DRect(_core_new.DataCollection):
         lk = list(self.dobj['bsplines'].keys())
         if key is None and len(lk) == 1:
             key = lk[0]
-        key = _mesh_checks._check_var(
+        key = _generic_check._check_var(
             key, 'key',
             types=str,
             allowed=lk,
         )
 
-        store = _mesh_checks._check_var(
+        store = _generic_check._check_var(
             store, 'store',
             default=True,
             types=bool,
         )
 
-        returnas = _mesh_checks._check_var(
+        returnas = _generic_check._check_var(
             returnas, 'returnas',
             default=store is False,
             types=bool,

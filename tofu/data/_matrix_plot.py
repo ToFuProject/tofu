@@ -22,7 +22,7 @@ from . import _generic_check
 # #############################################################################
 
 
-def _plot_matrix_check(
+def _plot_geometry_matrix_check(
     matrix=None,
     key=None,
     indbf=None,
@@ -102,7 +102,7 @@ def _plot_matrix_check(
     return key, keybs, keym, indbf, indchan, cmap, dcolorbar, dleg
 
 
-def _plot_matrix_prepare(
+def _plot_geometry_matrix_prepare(
     cam=None,
     matrix=None,
     key=None,
@@ -209,7 +209,7 @@ def _plot_matrix_prepare(
     )
 
 
-def plot_matrix(
+def plot_geometry_matrix(
     cam=None,
     matrix=None,
     key=None,
@@ -233,7 +233,7 @@ def plot_matrix(
         key, keybs, keym,
         indbf, indchan,
         cmap, dcolorbar, dleg,
-    ) = _plot_matrix_check(
+    ) = _plot_geometry_matrix_check(
         matrix=matrix,
         key=key,
         indbf=indbf,
@@ -252,7 +252,7 @@ def plot_matrix(
         extent, interp,
         ptslos, coefslines, indlosok,
         ich_bf_tup,
-    ) = _plot_matrix_prepare(
+    ) = _plot_geometry_matrix_prepare(
         cam=cam,
         matrix=matrix,
         key=key,

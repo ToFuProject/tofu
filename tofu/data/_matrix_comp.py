@@ -10,7 +10,7 @@ import numpy as np
 
 
 # tofu
-from . import _mesh_checks
+from . import _generic_check
 from . import _mesh_bsplines
 
 
@@ -43,7 +43,7 @@ def _compute_check(
         raise Exception(msg)
 
     # method
-    method = _mesh_checks._check_var(
+    method = _generic_check._check_var(
         method, 'method',
         default='los',
         types=str,
@@ -51,7 +51,7 @@ def _compute_check(
     )
 
     # resMode
-    resMode = _mesh_checks._check_var(
+    resMode = _generic_check._check_var(
         resMode, 'resMode',
         default='abs',
         types=str,
@@ -59,7 +59,7 @@ def _compute_check(
     )
 
     # crop
-    crop = _mesh_checks._check_var(
+    crop = _generic_check._check_var(
         crop, 'crop',
         default=True,
         types=bool,

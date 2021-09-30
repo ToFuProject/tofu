@@ -2,7 +2,7 @@
 """
 Provide data handling class and methods (storing, processing, plotting...)
 """
-from tofu.data._core import *
-from tofu.data._core_new import *
-from tofu.data._spectrallines import *
-from tofu.data._mesh import *
+from ._core import *
+from ._DataCollection_class import *
+from ._spectrallines import *
+from ._mesh import *
