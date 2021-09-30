@@ -24,7 +24,7 @@ import tofu.utils as utils
 from . import _DataCollection_check_inputs
 from . import _comp
 from . import _DataCollection_comp
-from . import _plot_new
+from . import _DataCollection_plot
 from . import _def
 from . import _comp_spectrallines
 
@@ -1405,7 +1405,7 @@ class DataCollection(utils.ToFuObject):
                          legend=None, draw=None, connect=None, lib=None):
         plotcoll = self.to_PlotCollection(ind=ind, key=key, group=group,
                                           Name=Name, dnmax={group: ntmax})
-        return _plot_new.plot_DataColl(
+        return _DataCollection_plot.plot_DataColl(
             plotcoll,
             color=color, ls=ls, marker=marker, ax=ax,
             axgrid=axgrid, fs=fs, dmargin=dmargin,
@@ -1460,7 +1460,7 @@ class DataCollection(utils.ToFuObject):
             )
             raise Exception(msg)
 
-        return _plot_new.plot_axvline(
+        return _DataCollection_plot.plot_axvline(
             din=dd,
             key=key,
             param_x='lambda0',
