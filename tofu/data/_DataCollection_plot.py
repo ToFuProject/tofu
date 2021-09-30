@@ -18,6 +18,7 @@ import matplotlib.lines as mlines
 from tofu.version import __version__
 from .. import utils as utils
 from . import _def as _def
+from . import _generic_check
 
 
 __all__ = [
@@ -367,6 +368,7 @@ def _plot_as_matrix_check(
     key=None,
     ind=None,
     cmap=None,
+    aspect=None,
     dcolorbar=None,
     dleg=None,
 ):
@@ -378,10 +380,34 @@ def _plot_as_matrix_check(
     )
 
     # ind
+    ind = _generic_check._check_var(
+        ind, 'ind', default=[0, 0], types=(list, tuple, np.ndarray),
+    )
+    c0 = (
+        len(ind) == 2
+        and all([
+            np.isscalar(ii) and isinstance(ii, (int, np.integer))
+            for ii in ind
+        ])
+    )
+    if not c0:
+        msg = (
+            "Arg ind must be an iterable of 2 integer indices!\n"
+            f"Provided: {ind}"
+        )
+        raise Exception(msg)
 
     # cmap
     if cmap is None:
         cmap = 'viridis'
+
+    # aspect
+    aspect = _generic_check._check_var(
+        aspect, 'aspect',
+        default='equal',
+        types=str,
+        allowed=['auto', 'equal'],
+    )
 
     # dcolorbar
     defdcolorbar = {
@@ -407,7 +433,7 @@ def _plot_as_matrix_check(
         types=(bool, dict),
     )
 
-    return key, ind, cmap, dcolorbar, dleg
+    return key, ind, cmap, aspect, dcolorbar, dleg
 
 
 def plot_as_matrix(
@@ -417,6 +443,7 @@ def plot_as_matrix(
     vmin=None,
     vmax=None,
     cmap=None,
+    aspect=None,
     dax=None,
     dmargin=None,
     fs=None,
@@ -427,11 +454,12 @@ def plot_as_matrix(
     # --------------
     # check input
 
-    key, ind, cmap, dcolorbar, dleg = _plot_profile2d_check(
+    key, ind, cmap, aspect, dcolorbar, dleg = _plot_as_matrix_check(
         coll=coll,
         key=key,
         ind=ind,
         cmap=cmap,
+        aspect=aspect,
         dcolorbar=dcolorbar,
         dleg=dleg,
     )
@@ -441,30 +469,58 @@ def plot_as_matrix(
 
     data = coll.ddata[key]['data']
     n0, n1 = data.shape
+    ref0, ref1 = coll.ddata[key]['ref']
+    lab0 = f'ind0 ({ref0})'
+    lab1 = f'ind1 ({ref1})'
 
     # --------------
     # plot - prepare
 
     if dax is None:
 
+        if fs is None:
+            fs = (12, 8)
+
         if dmargin is None:
             dmargin = {
-                'left': 0.1, 'right': 0.9,
-                'bottom': 0.1, 'top': 0.9,
-                'hspace': 0.1, 'wspace': 0.1,
+                'left': 0.05, 'right': 0.95,
+                'bottom': 0.05, 'top': 0.90,
+                'hspace': 0.15, 'wspace': 0.1,
             }
 
         fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
-        ax0 = fig.add_subplot(gs[0, 1], aspect='auto')
-        ax0.set_xlabel('ind0')
-        ax0.set_ylabel('ind1')
-        ax1 = fig.add_subplot(gs[0, 0])
-        ax1.set_ylabel('data')
-        ax1.set_xlabel('ind0')
-        ax2 = fig.add_subplot(gs[0, 2])
+        gs = gridspec.GridSpec(ncols=3, nrows=3, **dmargin)
+
+        ax0 = fig.add_subplot(gs[:2, :2], aspect='auto')
+        ax0.set_ylabel(lab0)
+        ax0.set_xlabel(lab1)
+        ax0.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax0.xaxis.set_label_position('top')
+        ax0.set_title(key, size=14, fontweight='bold')
+
+        ax1 = fig.add_subplot(gs[:2, 2], sharey=ax0)
+        ax1.set_xlabel('data')
+        ax1.set_ylabel(lab0)
+        ax1.tick_params(
+            axis="y",
+            left=False, right=True,
+            labelleft=False, labelright=True,
+        )
+        ax1.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax1.yaxis.set_label_position('right')
+        ax1.xaxis.set_label_position('top')
+
+        ax2 = fig.add_subplot(gs[2, :2], sharex=ax0)
         ax2.set_ylabel('data')
-        ax2.set_xlabel('ind1')
+        ax2.set_xlabel(lab1)
 
         dax = {
             'matrix': ax0,
@@ -483,17 +539,21 @@ def plot_as_matrix(
         ax = dax[kax]['ax']
 
         im = ax.imshow(
-            matrix,
+            data,
             extent=None,
             interpolation='nearest',
             origin='upper',
-            aspect='auto',
+            aspect=aspect,
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,
         )
 
-        plt.colorbar(im, ax=ax, **dcolorbar)
+        # plt.colorbar(im, ax=ax, **dcolorbar)
+
+        # ind0, ind1
+        ax.axhline(ind[0], c='k', lw=1., ls='-')
+        ax.axvline(ind[1], c='k', lw=1., ls='-')
 
         if dleg is not False:
             ax.legend(**dleg)
@@ -503,12 +563,13 @@ def plot_as_matrix(
         ax = dax[kax]['ax']
 
         ax.plot(
-            np.arange(0, n1),
-            data[ind[0], :],
+            data[:, ind[1]],
+            np.arange(0, n0),
             ls='-',
             marker='.',
             lw=1.,
             color='k',
+            label=f'ind0 = {ind[0]}',
         )
 
     kax = 'misc2'
@@ -516,12 +577,13 @@ def plot_as_matrix(
         ax = dax[kax]['ax']
 
         ax.plot(
-            np.arange(0, n2),
-            data[:, ind[1]],
+            np.arange(0, n1),
+            data[ind[1], :],
             ls='-',
             marker='.',
             lw=1.,
             color='k',
+            label=f'ind1 = {ind[1]}',
         )
     return dax
 

@@ -1398,6 +1398,36 @@ class DataCollection(utils.ToFuObject):
     # Methods for plotting data
     # ---------------------
 
+    def plot_as_matrix(
+        self,
+        key=None,
+        ind=None,
+        vmin=None,
+        vmax=None,
+        cmap=None,
+        aspect=None,
+        dax=None,
+        dmargin=None,
+        fs=None,
+        dcolorbar=None,
+        dleg=None,
+    ):
+        """ Plot the desired 2d data array as a matrix """
+        return _DataCollection_plot.plot_as_matrix(
+            coll=self,
+            key=key,
+            ind=ind,
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            aspect=aspect,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+        )
+
     def _plot_timetraces(self, ntmax=1, group='time',
                          key=None, ind=None, Name=None,
                          color=None, ls=None, marker=None, ax=None,

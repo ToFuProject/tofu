@@ -263,8 +263,6 @@ class Mesh2DRect(DataCollection):
 
         # check inputs
         lk = list(self.dobj['bsplines'].keys())
-        if key is None and len(lk) == 1:
-            key = lk[0]
         key = _generic_check._check_var(
             key, 'key',
             types=str,
@@ -537,37 +535,6 @@ class Mesh2DRect(DataCollection):
             dcolorbar=dcolorbar,
             dleg=dleg,
         )
-
-    def plot_as_matrix(
-        self,
-        key=None,
-        ind=None,
-        vmin=None,
-        vmax=None,
-        cmap=None,
-        dax=None,
-        dmargin=None,
-        fs=None,
-        dcolorbar=None,
-        dleg=None,
-    ):
-        """ plot a 2d data as a matrix """
-        return self._plot_as_matrix(
-            mesh=self,
-            key=key,
-            ind=ind,
-            vmin=vmin,
-            vmax=vmax,
-            res=res,
-            cmap=cmap,
-            dax=dax,
-            dmargin=dmargin,
-            fs=fs,
-            dcolorbar=dcolorbar,
-            dleg=dleg,
-        )
-
-
 
 
 class Matrix(Mesh2DRect):
