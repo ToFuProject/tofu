@@ -94,8 +94,10 @@ def get_mesh2dRect_operators(
     operator=None,
     geometry=None,
     deg=None,
-    knotsx=None,
-    knotsy=None,
+    knotsx_mult=None,
+    knotsy_mult=None,
+    knotsx_per_bs=None,
+    knotsy_per_bs=None,
     overlap=None,
     sparse_fmt=None,
 ):
@@ -113,9 +115,9 @@ def get_mesh2dRect_operators(
     # ------------
     # prepare
 
-    nx, ny = knotsx.shape[1], knotsy.shape[1]
-    kR = np.tile(knotsx, ny)
-    kZ = np.repeat(knotsy, nx, axis=1)
+    nx, ny = knotsx_per_bs.shape[1], knotsy_per_bs.shape[1]
+    kR = np.tile(knotsx_per_bs, ny)
+    kZ = np.repeat(knotsy_per_bs, nx, axis=1)
     nbs = nx*ny
 
     if 'N' in operator and deg >= 1:
@@ -306,57 +308,49 @@ def get_mesh2dRect_operators(
                 column[i0] = jj
                 i0 += 1
 
+        assert i0 == nbtot
         opmat = scpsp.csr_matrix((data, (row, column)), shape=(nbs, nbs))
 
     elif operator == 'D0N2' and deg == 2:
 
-        d0Z = _D0N2_Deg2_full_linear(kZ)
-
-        if geometry == 'linear':
-            d0R = _D0N2_Deg2_full_linear(kR)
-        else:
-            d0R = _D0N2_Deg2_full_toroidal(kR)
-
-        # set diagonal elements
-        data[:nbs] = d0Z*d0R
-        row[:nbs] = np.arange(nbs)
-        column[:nbs] = np.arange(nbs)
+        # pre-compute integrals
+        iR = _D0N2_Deg2(knotsx_mult, geometry=geometry)
+        iZ = _D0N2_Deg2(knotsy_mult, geometry='linear')
 
         # set non-diagonal elements
-        i0 = nbs
-        for ii in range(nbs):
-            overlapi = overlap[:, ii][overlap[:, ii] >= 0]
-            for jj in overlapi:
-                if jj == ii:
-                    continue
+        i0 = 0
+        for ir in range(nx):
+            for iz in range(ny):
 
-                # get overlapping knots
-                overR = np.intersect1d(kR[:, ii], kR[:, jj])
-                overZ = np.intersect1d(kZ[:, ii], kZ[:, jj])
+                iflat = ir + iz*nx
 
-                if overR.size == 2 and geometry == 'linear':
-                    iRj = _D0N2_Deg2_2_linear(kx)   # x1, x4 ?
-                elif overR.size == 2 and geometry == 'toroidal':
-                    iRj = _D0N2_Deg2_2_toroidal(kx)   # x1, x4 ?
-                elif overR.size == 3 and geometry == 'linear':
-                    iRj = None
-                elif overR.size == 3 and geometry == 'toroidal':
-                    iRj = None
-                elif overR.size == 4:
-                    iRj = d0R[ii]
+                # general case
+                overlapi = overlap[:, iflat][overlap[:, iflat] > iflat]
 
-                if overZ.size == 2:
-                    iZj = _D0N2_Deg2_2_linear(kx)   # x1, x4 ?
-                elif overZ.size == 3:
-                    iZj = _D0N2_Deg2_3_linear(kx)   # x1, x4 ?
-                elif overZ.size == 4:
-                    iZj = d0Z[ii]
-
-                data[i0] = iRj * iZj
-                row[i0] = ii
-                column[i0] = jj
+                # diagonal element
+                data[i0] = iR[0, ir] * iZ[0, iz]
+                row[i0] = iflat
+                column[i0] = iflat
                 i0 += 1
 
+                # non-diagonal elements (symmetric)
+                for jflat in overlapi:
+
+                    jr = jflat % nx
+                    jz = jflat // nx
+
+                    # store (i, j) and (j, i) (symmetric matrix)
+                    data[i0:i0+2] = iR[jr - ir, ir] * iZ[jz - iz, iz]
+                    row[i0:i0+2] = (iflat, jflat)
+                    column[i0:i0+2] = (jflat, iflat)
+                    i0 += 2
+
+                    if jr == ir - 1 and jz == iz + 1:
+                        import pdb; pdb.set_trace()     # DB
+                        pass
+
+
+        assert i0 == nbtot
         opmat = scpsp.csr_matrix((data, (row, column)), shape=(nbs, nbs))
 
     elif operator == 'D0N2' and deg == 3:
@@ -406,91 +400,193 @@ def get_mesh2dRect_operators(
 # #############################################################################
 
 
-def _D0N2_Deg1_full_toroidal(kx):
+def _D0N2_Deg1_full_toroidal(k0, k1, k2):
     """ from 1d knots, return int_0^2 x b**2(x) dx """
-    assert kx.shape[0] == 3
     return (
-        (3. * kx[1]**3 - 5.*kx[0]*kx[1]**2 + kx[1]*kx[0]**2 + kx[0]**3)
-        / (12. * (kx[1] - kx[0]))
-        + (3.*kx[1]**3 - 5.*kx[2]*kx[1]**2 + kx[1]*kx[2]**2 + kx[2]**3)
-        /(12. * (kx[2] - kx[1]))
+        (3. * k1**3 - 5.*k0*k1**2 + k1*k0**2 + k0**3)
+        / (12. * (k1 - k0))
+        + (3.*k1**3 - 5.*k2*k1**2 + k1*k2**2 + k2**3)
+        /(12. * (k2 - k1))
     )
 
 
-def _D0N2_Deg2_full_linear(kx):
-    """ from 1d knots, return int_0^3 b**2(x) dx """
-    assert kx.shape[0] == 4
-    return (
-        (kx[1] - kx[0])**3 / (5.*(kx[2] - kx[0])**2)
-        + (
-            (kx[2] - kx[1])
-            * (
-                10.*kx[0]**2 + 6.*kx[1]**2 + 3.*kx[1]*kx[2] + kx[2]**2
-                - 5.*kx[0]*(3.*kx[1] + kx[2])
-            ) / (30.*(kx[2] - kx[0])**2)
-        )
-        + (
-            (kx[2] - kx[1])
-            * (
-                10.*kx[3]**2 + 6.*kx[2]**2 + 3.*kx[1]*kx[2] + kx[1]**2
-                - 5.*kx[3]*(3.*kx[2] + kx[1])
-            ) / (30.*(kx[3] - kx[1])**2)
+def _D0N2_Deg2(knots, geometry=None):
 
-        )
-        + (
-            (kx[1] - kx[2])
-            * (
-                -3.*kx[1]**2 - 4.*kx[1]*kx[2] - 3.*kx[2]**2
-                + 5.*kx[0]*(kx[1] + kx[2] - 2.*kx[3])
-                + 5.*kx[3]*(kx[1] + kx[2])
-            ) / (60.*(kx[2] - kx[0])*(kx[3] - kx[1]))
-        )
-        - (kx[3] - kx[2])**3 / (5.*(kx[3] - kx[1])**2)
+    if geometry == 'linear':
+        integ = np.array([
+            # _D0N2_Deg2_2_linear(
+                # np.r_[np.nan, np.nan, ky[1:-4]],
+                # np.r_[np.nan, np.nan, ky[2:-3]],
+                # np.r_[np.nan, np.nan, ky[3:-2]],
+                # np.r_[np.nan, np.nan, ky[4:-1]],
+            # )
+            # _D0N2_Deg2_3_linear(
+                # np.r_[np.nan, ky[:-4]],
+                # np.r_[np.nan, ky[1:-3]],
+                # np.r_[np.nan, ky[2:-2]],
+                # np.r_[np.nan, ky[3:-1]],
+                # np.r_[np.nan, ky[4:]],
+            # )
+            _D0N2_Deg2_full_linear(
+                knots[:-3],
+                knots[1:-2],
+                knots[2:-1],
+                knots[3:],
+            ),
+            _D0N2_Deg2_3_linear(
+                np.r_[knots[:-4], np.nan],
+                np.r_[knots[1:-3], np.nan],
+                np.r_[knots[2:-2], np.nan],
+                np.r_[knots[3:-1], np.nan],
+                np.r_[knots[4:], np.nan],
+            ),
+            _D0N2_Deg2_2_linear(
+                np.r_[knots[1:-4], np.nan, np.nan],
+                np.r_[knots[2:-3], np.nan, np.nan],
+                np.r_[knots[3:-2], np.nan, np.nan],
+                np.r_[knots[4:-1], np.nan, np.nan],
+            ),
+        ])
+    else:
+        integ = np.array([
+            # _D0N2_Deg2_2_toroidal(
+                # np.r_[np.nan, np.nan, ky[1:-4]],
+                # np.r_[np.nan, np.nan, ky[2:-3]],
+                # np.r_[np.nan, np.nan, ky[3:-2]],
+                # np.r_[np.nan, np.nan, ky[4:-1]],
+            # )
+            # _D0N2_Deg2_3_toroidal(
+                # np.r_[np.nan, ky[:-4]],
+                # np.r_[np.nan, ky[1:-3]],
+                # np.r_[np.nan, ky[2:-2]],
+                # np.r_[np.nan, ky[3:-1]],
+                # np.r_[np.nan, ky[4:]],
+            # )
+            _D0N2_Deg2_full_toroidal(
+                knots[:-3],
+                knots[1:-2],
+                knots[2:-1],
+                knots[3:],
+            ),
+            _D0N2_Deg2_3_toroidal(
+                np.r_[knots[:-4], np.nan],
+                np.r_[knots[1:-3], np.nan],
+                np.r_[knots[2:-2], np.nan],
+                np.r_[knots[3:-1], np.nan],
+                np.r_[knots[4:], np.nan],
+            ),
+            _D0N2_Deg2_2_toroidal(
+                np.r_[knots[1:-4], np.nan, np.nan],
+                np.r_[knots[2:-3], np.nan, np.nan],
+                np.r_[knots[3:-2], np.nan, np.nan],
+                np.r_[knots[4:-1], np.nan, np.nan],
+            ),
+        ])
+    return integ
+
+
+def _D0N2_Deg2_full_linear(k0, k1, k2, k3):
+    """ from 1d knots, return int_0^3 b**2(x) dx """
+    intt = np.zeros((k0.size,))
+    intt[1:] += (
+        (k1 - k0)[1:]**3 / (5.*(k2 - k0)[1:]**2)
+        + (k2 - k1)[1:]
+        * (
+            10.*k0**2 + 6.*k1**2 + 3.*k1*k2 + k2**2 - 5.*k0*(3.*k1 + k2)
+        )[1:] / (30.*(k2 - k0)[1:]**2)
     )
+    intt[1:-1] += (
+        (k1 - k2)[1:-1]
+        * (
+            -3.*k1**2 - 4.*k1*k2 - 3.*k2**2 + 5.*k0*(k1 + k2 - 2.*k3)
+            + 5.*k3*(k1 + k2)
+        )[1:-1] / (60.*(k2 - k0)*(k3 - k1))[1:-1]
+    )
+    intt[:-1] += (
+        (k2 - k1)[:-1]
+        * (
+            10.*k3**2 + 6.*k2**2 + 3.*k1*k2 + k1**2 - 5.*k3*(3.*k2 + k1)
+        )[:-1] / (30.*(k3 - k1)[:-1]**2)
+        - (k3 - k2)[:-1]**3 / (5.*(k3 - k1)[:-1]**2)
+    )
+    return intt
 
 
-def _D0N2_Deg2_full_toroidal(kx):
+def _D0N2_Deg2_full_toroidal(k0, k1, k2, k3):
     """ from 1d knots, return int_0^3 b**2(x) dx """
-    assert kx.shape[0] == 4
     return (
-        (5.*kx[1] + kx[0])*(kx[1] - kx[0])**3 / (30.*(kx[2] - kx[0])**2)
-        + (kx[2] - kx[1]) * (
+        (5.*k1 + k0)*(k1 - k0)**3 / (30.*(k2 - k0)**2)
+        + (k2 - k1) * (
             (
-                10*kx[1]**3 + 6.*kx[1]**2*kx[2] + 3.*kx[1]*kx[2]**2
-                + kx[2]**3 + 5.*kx[0]**2*(3.*kx[1] + kx[2])
-                - 4.*kx[0]*(6.*kx[1]**2 + 3.*kx[1]*kx[2] + kx[2]**2)
-            ) / (60.*(kx[2] - kx[0])**2)
+                10*k1**3 + 6.*k1**2*k2 + 3.*k1*k2**2
+                + k2**3 + 5.*k0**2*(3.*k1 + k2)
+                - 4.*k0*(6.*k1**2 + 3.*k1*k2 + k2**2)
+            ) / (60.*(k2 - k0)**2)
             + (
-                10*kx[2]**3 + 6.*kx[2]**2*kx[1] + 3.*kx[2]*kx[1]**2
-                + kx[1]**3 + 5.*kx[3]**2*(3.*kx[2] + kx[1])
-                - 4.*kx[3]*(6.*kx[2]**2 + 3.*kx[2]*kx[1] + kx[1]**2)
-            ) / (60.*(kx[3] - kx[1])**2)
+                10*k2**3 + 6.*k2**2*k1 + 3.*k2*k1**2
+                + k1**3 + 5.*k3**2*(3.*k2 + k1)
+                - 4.*k3*(6.*k2**2 + 3.*k2*k1 + k1**2)
+            ) / (60.*(k3 - k1)**2)
             + (
-                -2.*kx[1]**3 - 2.*kx[2]**3
-                -3.*kx[1]*kx[2]*(kx[1] + kx[2])
-                - 5.*kx[0]*kx[3]*(kx[1] + kx[2])
-                + (kx[0] + kx[3])*(3.*kx[2]**2 + 4.*kx[1]*kx[2] + 3.*kx[1]**2)
-            ) / (30.*(kx[3] - kx[1])*(kx[2] - kx[0]))
+                -2.*k1**3 - 2.*k2**3
+                -3.*k1*k2*(k1 + k2)
+                - 5.*k0*k3*(k1 + k2)
+                + (k0 + k3)*(3.*k2**2 + 4.*k1*k2 + 3.*k1**2)
+            ) / (30.*(k3 - k1)*(k2 - k0))
         )
-        + (5.*kx[2] + kx[3])*(kx[3] - kx[2])**3 / (30.*(kx[3] - kx[1])**2)
+        + (5.*k2 + k3)*(k3 - k2)**3 / (30.*(k3 - k1)**2)
     )
 
 
-def _D0N2_Deg2_2_linear(kx):
+def _D0N2_Deg2_3_linear(k0, k1, k2, k3, k4):
     """ from 1d knots, return int_0^3 b**2(x) dx """
-    assert kx.shape[0] == 4
-    # TBF
+    intt = np.zeros((k0.size,))
+    intt[1:-1] += (
+        (3.*k2 + 2.*k1 - 5.*k0)[1:-1]*(k2 - k1)[1:-1]**2
+        / (60.*(k3 - k1)*(k2 - k0))[1:-1]
+        + (3.*k2 + 2.*k1 - 5.*k0)[1:-1]*(k2 - k1)[1:-1]**2
+        / (60.*(k3 - k1)*(k2 - k0))[1:-1]
+    )
+    intt[:-1] += (
+        + (5.*k3 - 4.*k2 - k1)[:-1]*(k2 - k1)[:-1]**2
+        / (20.*(k3 - k1)**2)[:-1]
+        + (4.*k2 + k3 - 5.*k1)[:-1]*(k3 - k2)[:-1]**2
+        / (20.*(k3 - k1)**2)[:-1]
+    )
+    return intt
+
+
+def _D0N2_Deg2_3_toroidal(k0, k1, k2, k3, k4):
+    """ from 1d knots, return int_0^3 b**2(x) dx """
     return (
-        (kx[2] - kx[1])**3
-        / (30.*(kx[3]-kx[1])*(kx[2]-kx[0]))
+        (k2 - k1)**2
+        * (2*k2**2 + 2*k1*k2 + k1**2 - k0*(3.*k2 + 2.*k1))
+        / (60.*(k3 - k1)*(k2 - k0))
+        + (k2 - k1)**2
+        * (-10*k2**2 - 4*k1*k2 - k1**2 + 3*k3*(4*k2 + k1))
+        / (60.*(k3 - k1)**2)
+        + ((k3 - k2)**2)
+        * (k3**2 + 4*k3*k2 + 10*k2**2 - 3*k1*(k3 + 4*k2))
+        / (60*(k3 - k1)**2)
+        + ((k3 - k2)**2)
+        * (-k3**2 - 2*k3*k2 - 2*k2**2 + k4*(2*k3 + 3*k2))
+        / (60*(k4 - k2)*(k3 - k1))
     )
 
 
-def _D0N2_Deg2_2_toroidal(kx):
+def _D0N2_Deg2_2_linear(k0, k1, k2, k3):
     """ from 1d knots, return int_0^3 b**2(x) dx """
-    assert kx.shape[0] == 4
-    # TBF
+    intt = np.zeros((k0.size,))
+    intt[1:-1] = (
+        (k2 - k1)[1:-1]**3
+        / (30.*(k3-k1)*(k2-k0))[1:-1]
+    )
+    return intt
+
+
+def _D0N2_Deg2_2_toroidal(k0, k1, k2, k3):
+    """ from 1d knots, return int_0^3 b**2(x) dx """
     return (
-        (kx[2] + kx[1])*(kx[2] - kx[1])**3
-        / (60.*(kx[3] - kx[1])*(kx[2] - kx[0]))
+        (k2 + k1)*(k2 - k1)**3
+        / (60.*(k3 - k1)*(k2 - k0))
     )
