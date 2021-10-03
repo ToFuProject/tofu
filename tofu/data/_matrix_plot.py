@@ -354,53 +354,6 @@ def plot_geometry_matrix(
         cmap=cmap, vmin=vmin, vmax=vmax, aspect=aspect,
     )
 
-    # kax = 'matrix'
-    # if dax.get(kax) is not None:
-        # ax = dax[kax]['ax']
-
-        # # matrix
-        # im = ax.imshow(
-            # matrix.ddata[key]['data'],
-            # interpolation='nearest',
-            # origin='upper',
-            # aspect='auto',
-            # cmap=cmap,
-            # vmin=vmin,
-            # vmax=vmax,
-        # )
-
-        # plt.colorbar(im, ax=ax, **dcolorbar)
-
-        # # indbf, indchan
-        # ax.axhline(indchan, c='r', lw=1., ls='-')
-        # ax.axvline(indbf, c='r', lw=1., ls='-')
-
-    # kax = 'misc1'
-    # if dax.get(kax) is not None:
-        # ax = dax[kax]['ax']
-
-        # ax.plot(
-            # np.arange(0, nbs),
-            # matrix.ddata[key]['data'][indchan, :],
-            # ls='-',
-            # marker='None',
-            # lw=1.,
-            # color='k',
-        # )
-
-    # kax = 'misc2'
-    # if dax.get(kax) is not None:
-        # ax = dax[kax]['ax']
-
-        # ax.plot(
-            # np.arange(0, nchan),
-            # matrix.ddata[key]['data'][:, indbf],
-            # ls='-',
-            # marker='None',
-            # lw=1.,
-            # color='k',
-        # )
-
     kax = 'cross1'
     if dax.get(kax) is not None:
         ax = dax[kax]['ax']

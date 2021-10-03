@@ -252,7 +252,6 @@ class Mesh2DRect(DataCollection):
     # Integration operators
     # ------------------
 
-
     def add_bsplines_operator(
         self,
         key=None,

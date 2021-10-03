@@ -67,22 +67,22 @@ def _get_mesh2dRect_operators_check(
 
     # dim
     if operator == 'D0':
-        if  geometry == 'linear':
+        if geometry == 'linear':
             dim = 'origin x m2'
         else:
             dim = 'origin x m3/rad'
     elif operator == 'D0N2':
-        if  geometry == 'linear':
+        if geometry == 'linear':
             dim = 'origin2 x m2'
         else:
             dim = 'origin2 x m3/rad'
     elif operator == 'D1N2':
-        if  geometry == 'linear':
+        if geometry == 'linear':
             dim = 'origin2'
         else:
             dim = 'origin2 x m/rad'
     elif operator == 'D2N2':
-        if  geometry == 'linear':
+        if geometry == 'linear':
             dim = 'origin2 / m2'
         else:
             dim = 'origin2 / (m2.rad)'
@@ -200,7 +200,7 @@ def get_mesh2dRect_operators(
                     kZ[2, :]**2
                     - 2*kZ[1, :]**2
                     + kZ[1, :]*kZ[2, :]
-                    + 3.*kZ[0, :]*(kZ[1,:] - kZ[2,:])
+                    + 3.*kZ[0, :]*(kZ[1, :] - kZ[2, :])
                 )
                 / (6.*(kZ[2, :]-kZ[0, :]))
             )
@@ -209,7 +209,7 @@ def get_mesh2dRect_operators(
                     -2.*kZ[2, :]**2
                     + kZ[1, :]**2
                     + kZ[1, :]*kZ[2, :]
-                    + 3.*kZ[3,:]*(kZ[2, :] - kZ[1,:])
+                    + 3.*kZ[3, :]*(kZ[2, :] - kZ[1, :])
                 )
                 / (6.*(kZ[3, :] - kZ[1, :]))
             )
@@ -222,7 +222,7 @@ def get_mesh2dRect_operators(
                         kR[2, :]**2
                         - 2. * kR[1, :]**2
                         + kR[1, :] * kR[2, :]
-                        + 3. * kR[0, :] * (kR[1,:] - kR[2,:])
+                        + 3. * kR[0, :] * (kR[1, :] - kR[2, :])
                     )
                     / (6. * (kR[2, :] - kR[0, :]))
                 )
@@ -231,7 +231,7 @@ def get_mesh2dRect_operators(
                         -2. * kR[2, :]**2
                         + kR[1, :]**2
                         + kR[1, :] * kR[2, :]
-                        + 3. * kR[3,:] * (kR[2, :] - kR[1,:])
+                        + 3. * kR[3, :] * (kR[2, :] - kR[1, :])
                     )
                     / (6.*(kR[3, :] - kR[1, :]))
                 )
@@ -284,7 +284,8 @@ def get_mesh2dRect_operators(
 
         elif deg == 3:
 
-            raise NotImplementedError("Integral D0 not implemented for deg=3 yet!")
+            msg = "Integral D0 not implemented for deg=3 yet!"
+            raise NotImplementedError(msg)
 
         # crop
         if cropbs_flat is not False:
@@ -532,7 +533,7 @@ def get_mesh2dRect_operators(
 
 # #############################################################################
 # #############################################################################
-#               Operator sub-routines: D0N2 
+#               Operator sub-routines: D0N2
 # #############################################################################
 
 
@@ -550,7 +551,7 @@ def _D0N2_Deg1_full_toroidal(k0, k1, k2):
     )
     intt[:-1] = (
         + (3.*k1**3 - 5.*k2*k1**2 + k1*k2**2 + k2**3)[:-1]
-        /(12. * (k2 - k1))[:-1]
+        / (12. * (k2 - k1))[:-1]
     )
     return intt
 
@@ -680,7 +681,7 @@ def _D0N2_Deg2_full_toroidal(k0, k1, k2, k3):
         (k2 - k1)[1:-1]
         * (
             -2.*k1**3 - 2.*k2**3
-            -3.*k1*k2*(k1 + k2)
+            -3. * k1*k2*(k1 + k2)
             - 5.*k0*k3*(k1 + k2)
             + (k0 + k3)*(3.*k2**2 + 4.*k1*k2 + 3.*k1**2)
         )[1:-1] / (30.*(k3 - k1)*(k2 - k0))[1:-1]
@@ -755,7 +756,7 @@ def _D0N2_Deg2_2_toroidal(k1, k2, k3, k4):
 
 # #############################################################################
 # #############################################################################
-#               Operator sub-routines: D1N2 
+#               Operator sub-routines: D1N2
 # #############################################################################
 
 
@@ -935,7 +936,7 @@ def _D1N2_Deg2_2_toroidal(k1, k2, k3, k4):
 
 # #############################################################################
 # #############################################################################
-#               Operator sub-routines: D2N2 
+#               Operator sub-routines: D2N2
 # #############################################################################
 
 
@@ -1032,5 +1033,3 @@ def _D2N2_Deg2_2_toroidal(k1, k2, k3, k4):
     intt = np.zeros((k1.size,))
     intt[:-2] += 2.*(k3 + k2)[:-2] / ((k4 - k2)*(k3 - k2)*(k3 - k1))[:-2]
     return intt
-
-

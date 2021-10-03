@@ -100,7 +100,7 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
         lk = [
             kk for kk in lk
             if not (
-                type(v0[kk]) == type(dd0[k0][kk])
+                isinstance(v0[kk], dd0[k0][kk].__class__)
                 and (
                     (
                         isinstance(v0[kk], np.ndarray)

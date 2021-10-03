@@ -263,7 +263,6 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             shapebs=self.shapebs,
         )
 
-
     def get_operator(
         self,
         operator=None,
