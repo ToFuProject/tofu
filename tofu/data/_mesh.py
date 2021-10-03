@@ -10,8 +10,8 @@ import numpy as np
 
 # tofu
 # from tofu import __version__ as __version__
-import tofu.utils as utils
-from . import _core_new
+from . import _generic_check
+from ._DataCollection_class import DataCollection
 from . import _mesh_checks
 from . import _mesh_comp
 from . import _mesh_plot
@@ -30,7 +30,7 @@ _GROUP_Z = 'Z'
 # #############################################################################
 
 
-class Mesh2DRect(_core_new.DataCollection):
+class Mesh2DRect(DataCollection):
 
     _ddef = {
         'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
@@ -249,6 +249,113 @@ class Mesh2DRect(_core_new.DataCollection):
         )
 
     # -----------------
+    # Integration operators
+    # ------------------
+
+    def add_bsplines_operator(
+        self,
+        key=None,
+        operator=None,
+        geometry=None,
+        crop=None,
+        store=None,
+        returnas=None,
+    ):
+        """ Get a matrix operator to compute an integral
+
+        operator specifies the integrand:
+            - 'D0': integral of the value
+            - 'D0N2': integral of the squared value
+            - 'D1N2': integral of the squared gradient
+            - 'D2N2': integral of the squared laplacian
+
+        geometry specifies in which geometry:
+            - 'linear': linear geometry (cross-section = surface)
+            - 'toroidal': toroildal geometry (cross-section = volumic slice)
+
+        """
+
+        (
+            opmat, operator, geometry, dim, ref, crop,
+            store, returnas, key,
+        ) = _mesh_comp.get_bsplines_operator(
+            self,
+            key=key,
+            operator=operator,
+            geometry=geometry,
+            crop=crop,
+            store=store,
+            returnas=returnas,
+        )
+
+        # store
+        if store is True:
+            if operator in ['D0', 'D0N2']:
+                name = f'{key}-{operator}-{geometry}'
+                self.add_data(
+                    key=name,
+                    data=opmat,
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+            elif operator == 'D1N2':
+                name = f'{key}-{operator}-dR-{geometry}'
+                self.add_data(
+                    key=name,
+                    data=opmat[0],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+                name = f'{key}-{operator}-dZ-{geometry}'
+                self.add_data(
+                    key=name,
+                    data=opmat[1],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+            elif operator == 'D2N2':
+                name = f'{key}-{operator}-d2R-{geometry}'
+                self.add_data(
+                    key=name,
+                    data=opmat[0],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+                name = f'{key}-{operator}-d2Z-{geometry}'
+                self.add_data(
+                    key=name,
+                    data=opmat[1],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+                name = f'{key}-{operator}-dRZ-{geometry}'
+                self.add_data(
+                    key=name,
+                    data=opmat[2],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+            else:
+                msg = "Unknown opmat type!"
+                raise Exception(msg)
+
+        # return
+        if returnas is True:
+            return opmat, operator, geometry, dim, ref, crop
+
+    # -----------------
     # interp tools
     # ------------------
 
@@ -343,6 +450,7 @@ class Mesh2DRect(_core_new.DataCollection):
             thresh_in=thresh_in,
         )
 
+        # add crop data
         keycrop = f'{key}-crop'
         self.add_data(
             key=keycrop,
@@ -352,6 +460,7 @@ class Mesh2DRect(_core_new.DataCollection):
             quant='bool',
         )
 
+        # update obj
         self._dobj['mesh'][key]['crop'] = keycrop
         self._dobj['mesh'][key]['crop-thresh'] = thresh_in
 
@@ -484,7 +593,7 @@ class Mesh2DRect(_core_new.DataCollection):
 
 class Matrix(Mesh2DRect):
 
-    def plot_matrix(
+    def plot_geometry_matrix(
         self,
         cam=None,
         key=None,
@@ -500,7 +609,7 @@ class Matrix(Mesh2DRect):
         dcolorbar=None,
         dleg=None,
     ):
-        return _matrix_plot.plot_matrix(
+        return _matrix_plot.plot_geometry_matrix(
             cam=cam,
             matrix=self,
             key=key,

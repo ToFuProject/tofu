@@ -10,7 +10,7 @@ import numpy as np
 
 
 # tofu
-from . import _mesh_checks
+from . import _generic_check
 from . import _mesh_bsplines
 
 
@@ -43,7 +43,7 @@ def _compute_check(
         raise Exception(msg)
 
     # method
-    method = _mesh_checks._check_var(
+    method = _generic_check._check_var(
         method, 'method',
         default='los',
         types=str,
@@ -51,7 +51,7 @@ def _compute_check(
     )
 
     # resMode
-    resMode = _mesh_checks._check_var(
+    resMode = _generic_check._check_var(
         resMode, 'resMode',
         default='abs',
         types=str,
@@ -59,7 +59,7 @@ def _compute_check(
     )
 
     # crop
-    crop = _mesh_checks._check_var(
+    crop = _generic_check._check_var(
         crop, 'crop',
         default=True,
         types=bool,
@@ -204,11 +204,16 @@ def compute(
     })
 
     # dref
+    keycropped = f'{key}-cropped' if crop is True else key
     lref = (
         list(mesh.dobj['mesh'][km]['cents'])
         + list(mesh.dobj['mesh'][km]['knots'])
         + list(mesh.dobj['bsplines'][key]['ref'])
+        + [key]
     )
+    if crop is True:
+        lref.append(keycropped)
+
     dref = {k0: mesh.dref[k0] for k0 in lref}
     for k0 in lref:
         dref[k0].update({
@@ -230,16 +235,12 @@ def compute(
             'data': np.arange(0, nlos),
             'group': 'chan',
         },
-        key: {
-            'data': np.arange(0, mat.shape[1]),
-            'group': 'bsplines',
-        },
     })
 
     ddata.update({
         name: {
             'data': mat,
-            'ref': ('channels', key)
+            'ref': ('channels', keycropped)
         },
     })
 

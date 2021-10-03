@@ -2,7 +2,6 @@
 
 
 # Built-in
-import datetime as dtm
 
 
 # Common
@@ -10,32 +9,9 @@ import numpy as np
 import scipy.interpolate as scpinterp
 
 
-# #############################################################################
-# #############################################################################
-#                           Utilities
-# #############################################################################
-
-
-def _check_var(var, varname, types=None, default=None, allowed=None):
-    if var is None:
-        var = default
-
-    if types is not None:
-        if not isinstance(var, types):
-            msg = (
-                f"Arg {varname} must be of type {types}!\n"
-                f"Provided: {type(var)}"
-            )
-            raise Exception(msg)
-
-    if allowed is not None:
-        if var not in allowed:
-            msg = (
-                f"Arg {varname} must be in {allowed}!\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
-    return var
+# specific
+from . import _generic_check
+from . import _mesh_bsplines_operators
 
 
 # #############################################################################
@@ -94,6 +70,9 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         knots_per_bs_x = _get_bs2d_func_knots(knotsR, deg=deg, returnas='data')
         knots_per_bs_y = _get_bs2d_func_knots(knotsZ, deg=deg, returnas='data')
 
+        self.knots_per_bs_x = knots_per_bs_x
+        self.knots_per_bs_y = knots_per_bs_y
+
         if deg == 0:
             pass
         else:
@@ -114,8 +93,8 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
                 axis=0,
             )
 
-        self.knots_per_bs_x = np.asfortranarray(knots_per_bs_x)
-        self.knots_per_bs_y = np.asfortranarray(knots_per_bs_y)
+        self.knots_per_bs_x_pad = np.asfortranarray(knots_per_bs_x)
+        self.knots_per_bs_y_pad = np.asfortranarray(knots_per_bs_y)
 
     def set_coefs(
         self,
@@ -231,7 +210,7 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         for iz in iz_u:
 
             scpinterp._bspl.evaluate_spline(
-                self.knots_per_bs_y[:, iz],
+                self.knots_per_bs_y_pad[:, iz],
                 coef,
                 self.degrees[1],
                 y,
@@ -255,7 +234,7 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
                 outx = np.full((indoky.sum(), 1), np.nan)
 
                 scpinterp._bspl.evaluate_spline(
-                    self.knots_per_bs_x[:, iir],
+                    self.knots_per_bs_x_pad[:, iir],
                     coef,
                     self.degrees[0],
                     x[indoky[:, 0]],
@@ -275,6 +254,69 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             val = np.reshape(val, shape)
 
         return val
+
+    def get_overlap(self):
+        return _get_overlap(
+            deg=self.degrees[0],
+            knotsx=self.knots_per_bs_x,
+            knotsy=self.knots_per_bs_y,
+            shapebs=self.shapebs,
+        )
+
+    def get_operator(
+        self,
+        operator=None,
+        geometry=None,
+        cropbs_flat=None,
+    ):
+        """ Get desired operator """
+        return _mesh_bsplines_operators.get_mesh2dRect_operators(
+            deg=self.degrees[0],
+            operator=operator,
+            geometry=geometry,
+            knotsx_mult=self.tck[0],
+            knotsy_mult=self.tck[1],
+            knotsx_per_bs=self.knots_per_bs_x,
+            knotsy_per_bs=self.knots_per_bs_y,
+            overlap=self.get_overlap(),
+            cropbs_flat=cropbs_flat,
+        )
+
+
+# #############################################################################
+# #############################################################################
+#                       Mesh2DRect - bsplines - overlap
+# #############################################################################
+
+
+def _get_overlap(
+    deg=None,
+    knotsx=None,
+    knotsy=None,
+    shapebs=None,
+):
+    # nb of overlapping, inc. itself in 1d
+    nbsR, nbsZ = shapebs
+    indR0 = np.tile(np.arange(0, nbsR), nbsZ)
+    indZ0 = np.repeat(np.arange(0, nbsZ), nbsR)
+
+    # complete
+    ntot = 2*deg + 1
+
+    addR = np.tile(np.arange(-deg, deg+1), ntot)
+    addZ = np.repeat(np.arange(-deg, deg+1), ntot)
+
+    interR = indR0[None, :] + addR[:, None]
+    interZ = indZ0[None, :] + addZ[:, None]
+
+    # purge
+    inter = interR + interZ*nbsR
+    indneg = (
+        (interR < 0) | (interR >= nbsR) | (interZ < 0) | (interZ >= nbsZ)
+    )
+    inter[indneg] = -1
+
+    return inter
 
 
 # #############################################################################
@@ -371,13 +413,13 @@ def _get_bs2d_func_knots(knots, deg=None, returnas=None, return_unique=None):
     # ----------
     # check input
 
-    returnas = _check_var(
+    returnas = _generic_check._check_var(
         returnas, 'returnas',
         types=str,
         default='data',
         allowed=['ind', 'data'],
     )
-    return_unique = _check_var(
+    return_unique = _generic_check._check_var(
         return_unique, 'return_unique',
         types=bool,
         default=False,
@@ -461,7 +503,7 @@ def _get_bs2d_func_knots(knots, deg=None, returnas=None, return_unique=None):
 
 def _get_bs2d_func_cents(cents, deg=None, returnas=None):
 
-    returnas = _check_var(
+    returnas = _generic_check._check_var(
         returnas, 'returnas',
         types=str,
         default='data',
@@ -705,4 +747,4 @@ def get_bs2d_func(
 
         return val
 
-    return RectBiv_details, RectBiv_sum
+    return RectBiv_details, RectBiv_sum, RectBiv_scipy

@@ -4,6 +4,7 @@
 # Built-in
 import datetime as dtm
 
+
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,90 +12,8 @@ import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
 
 
-_LALLOWED_AXESTYPES = [
-    'cross', 'hor',
-    'matrix',
-    'timetrace',
-    'profile1d',
-    'image',
-    'misc'
-]
-
-
-# #############################################################################
-# #############################################################################
-#                           utility
-# #############################################################################
-
-
-def _check_var(var, varname, default=None, types=None, allowed=None):
-
-    if var is None:
-        var = default
-
-    if types is not None:
-        if not isinstance(var, types):
-            msg = (
-                f"Arg {varname} must be a {types}!\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
-
-    if allowed is not None:
-        if var not in allowed:
-            msg = (
-                f"Arg {varname} must be in {allowed}!\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
-
-    return var
-
-
-def _check_dax(dax=None, main=None):
-
-    # None
-    if dax is None:
-        return dax
-
-    # Axes
-    if issubclass(dax.__class__, plt.Axes):
-        if main is None:
-            msg = (
-            )
-            raise Exception(msg)
-        else:
-            return {main: dax}
-
-    # dict
-    c0 = (
-        isinstance(dax, dict)
-        and all([
-            isinstance(k0, str)
-            and (
-                (
-                    k0 in _LALLOWED_AXESTYPES
-                    and issubclass(v0.__class__, plt.Axes)
-                )
-                or (
-                    isinstance(v0, dict)
-                    and issubclass(v0.get('ax').__class__, plt.Axes)
-                    and v0.get('type') in _LALLOWED_AXESTYPES
-                )
-            )
-            for k0, v0 in dax.items()
-        ])
-    )
-    if not c0:
-        msg = (
-        )
-        raise Exception(msg)
-
-    for k0, v0 in dax.items():
-        if issubclass(v0.__class__, plt.Axes):
-            dax[k0] = {'ax': v0, 'type': k0}
-
-    return dax
+# specific
+from . import _generic_check
 
 
 # #############################################################################
@@ -103,12 +22,13 @@ def _check_dax(dax=None, main=None):
 # #############################################################################
 
 
-def _plot_matrix_check(
+def _plot_geometry_matrix_check(
     matrix=None,
     key=None,
     indbf=None,
     indchan=None,
     cmap=None,
+    aspect=None,
     dcolorbar=None,
     dleg=None,
     dax=None,
@@ -116,9 +36,12 @@ def _plot_matrix_check(
 
     # key
     lk = list(matrix.dobj['matrix'].keys())
-    if key is None and len(lk) == 1:
-        key = lk[0]
-    key = _check_var(key, 'key', default=None, types=str, allowed=lk)
+    key = _generic_check._check_var(
+        key, 'key',
+        default=None,
+        types=str,
+        allowed=lk,
+    )
     keybs = matrix.dobj['matrix'][key]['bsplines']
     refbs = matrix.dobj['bsplines'][keybs]['ref']
     keym = matrix.dobj['bsplines'][keybs]['mesh']
@@ -151,13 +74,21 @@ def _plot_matrix_check(
     if cmap is None:
         cmap = 'viridis'
 
+    # aspect
+    aspect = _generic_check._check_var(
+        aspect, 'aspect',
+        default='auto',
+        types=str,
+        allowed=['auto', 'equal'],
+    )
+
     # dcolorbar
     defdcolorbar = {
         # 'location': 'right',
         'fraction': 0.15,
         'orientation': 'vertical',
     }
-    dcolorbar = _check_var(
+    dcolorbar = _generic_check._check_var(
         dcolorbar, 'dcolorbar',
         default=defdcolorbar,
         types=dict,
@@ -169,12 +100,16 @@ def _plot_matrix_check(
         'loc': 'upper left',
         'frameon': True,
     }
-    dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
+    dleg = _generic_check._check_var(
+        dleg, 'dleg',
+        default=defdleg,
+        types=(bool, dict),
+    )
 
-    return key, keybs, keym, indbf, indchan, cmap, dcolorbar, dleg
+    return key, keybs, keym, indbf, indchan, cmap, aspect, dcolorbar, dleg
 
 
-def _plot_matrix_prepare(
+def _plot_geometry_matrix_prepare(
     cam=None,
     matrix=None,
     key=None,
@@ -281,7 +216,7 @@ def _plot_matrix_prepare(
     )
 
 
-def plot_matrix(
+def plot_geometry_matrix(
     cam=None,
     matrix=None,
     key=None,
@@ -291,6 +226,7 @@ def plot_matrix(
     vmax=None,
     res=None,
     cmap=None,
+    aspect=None,
     dax=None,
     dmargin=None,
     fs=None,
@@ -304,13 +240,14 @@ def plot_matrix(
     (
         key, keybs, keym,
         indbf, indchan,
-        cmap, dcolorbar, dleg,
-    ) = _plot_matrix_check(
+        cmap, aspect, dcolorbar, dleg,
+    ) = _plot_geometry_matrix_check(
         matrix=matrix,
         key=key,
         indbf=indbf,
         indchan=indchan,
         cmap=cmap,
+        aspect=aspect,
         dcolorbar=dcolorbar,
         dleg=dleg,
         dax=dax,
@@ -324,7 +261,7 @@ def plot_matrix(
         extent, interp,
         ptslos, coefslines, indlosok,
         ich_bf_tup,
-    ) = _plot_matrix_prepare(
+    ) = _plot_geometry_matrix_prepare(
         cam=cam,
         matrix=matrix,
         key=key,
@@ -348,27 +285,45 @@ def plot_matrix(
             dmargin = {
                 'left': 0.05, 'right': 0.98,
                 'bottom': 0.05, 'top': 0.95,
-                'hspace': 0.1, 'wspace': 0.1,
+                'hspace': 0.15, 'wspace': 0.15,
             }
 
         fig = plt.figure(figsize=fs)
         gs = gridspec.GridSpec(ncols=3, nrows=2, **dmargin)
-        ax00 = fig.add_subplot(gs[0, 0])
-        ax00.set_xlabel(f'basis functions (m)')
-        ax00.set_ylabel(f'matrix')
-        ax10 = fig.add_subplot(gs[1, 0], aspect='equal')
-        ax10.set_xlabel(f'R (m)')
-        ax10.set_ylabel(f'Z (m)')
         ax01 = fig.add_subplot(gs[0, 1])
         ax01.set_ylabel(f'channels')
         ax01.set_xlabel(f'basis functions')
         ax01.set_title(key, size=14)
+        ax01.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax01.xaxis.set_label_position('top')
+        ax00 = fig.add_subplot(gs[0, 0], sharex=ax01)
+        ax00.set_xlabel(f'basis functions (m)')
+        ax00.set_ylabel(f'data')
+        ax10 = fig.add_subplot(gs[1, 0], aspect='equal')
+        ax10.set_xlabel(f'R (m)')
+        ax10.set_ylabel(f'Z (m)')
         ax11 = fig.add_subplot(gs[1, 1], aspect='equal')
         ax11.set_ylabel(f'R (m)')
         ax11.set_xlabel(f'Z (m)')
-        ax02 = fig.add_subplot(gs[0, 2])
+        ax02 = fig.add_subplot(gs[0, 2], sharey=ax01)
         ax02.set_xlabel(f'channels')
-        ax02.set_ylabel(f'matrix')
+        ax02.set_ylabel(f'data')
+        ax02.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax02.xaxis.set_label_position('top')
+        ax02.tick_params(
+            axis="y",
+            left=False, right=True,
+            labelleft=False, labelright=True,
+        )
+        ax02.yaxis.set_label_position('right')
         ax12 = fig.add_subplot(gs[1, 2], aspect='equal')
         ax12.set_xlabel(f'R (m)')
         ax12.set_ylabel(f'Z (m)')
@@ -378,11 +333,11 @@ def plot_matrix(
             'cross1': {'ax': ax10, 'type': 'cross'},
             'cross2': {'ax': ax12, 'type': 'cross'},
             'crosstot': {'ax': ax11, 'type': 'cross'},
-            'misc1': {'ax': ax00, 'type': 'misc'},
-            'misc2': {'ax': ax02, 'type': 'misc'},
+            'misc1': {'ax': ax02, 'type': 'misc'},
+            'misc2': {'ax': ax00, 'type': 'misc'},
         }
 
-    dax = _check_dax(dax=dax, main='matrix')
+    dax = _generic_check._check_dax(dax=dax, main='matrix')
 
     # --------------
     # plot mesh
@@ -394,52 +349,10 @@ def plot_matrix(
     # --------------
     # plot matrix
 
-    kax = 'matrix'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['ax']
-
-        # matrix
-        im = ax.imshow(
-            matrix.ddata[key]['data'],
-            interpolation='nearest',
-            origin='upper',
-            aspect='auto',
-            cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
-        )
-
-        plt.colorbar(im, ax=ax, **dcolorbar)
-
-        # indbf, indchan
-        ax.axhline(indchan, c='r', lw=1., ls='-')
-        ax.axvline(indbf, c='r', lw=1., ls='-')
-
-    kax = 'misc1'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['ax']
-
-        ax.plot(
-            np.arange(0, nbs),
-            matrix.ddata[key]['data'][indchan, :],
-            ls='-',
-            marker='None',
-            lw=1.,
-            color='k',
-        )
-
-    kax = 'misc2'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['ax']
-
-        ax.plot(
-            np.arange(0, nchan),
-            matrix.ddata[key]['data'][:, indbf],
-            ls='-',
-            marker='None',
-            lw=1.,
-            color='k',
-        )
+    dax = matrix.plot_as_matrix(
+        key=key, dax=dax, ind=[indchan, indbf],
+        cmap=cmap, vmin=vmin, vmax=vmax, aspect=aspect,
+    )
 
     kax = 'cross1'
     if dax.get(kax) is not None:

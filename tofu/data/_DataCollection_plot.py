@@ -15,14 +15,10 @@ import matplotlib.lines as mlines
 # from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # tofu
-try:
-    from tofu.version import __version__
-    import tofu.utils as utils
-    import tofu.data._def as _def
-except Exception:
-    from tofu.version import __version__
-    from .. import utils as utils
-    from . import _def as _def
+from tofu.version import __version__
+from .. import utils as utils
+from . import _def as _def
+from . import _generic_check
 
 
 __all__ = [
@@ -359,6 +355,264 @@ def plot_DataColl(coll, overhead=None,
     collplot = None
 
     return collplot
+
+
+# #############################################################################
+# #############################################################################
+#                       plot_as_matrix
+# #############################################################################
+
+
+def _plot_as_matrix_check(
+    coll=None,
+    key=None,
+    ind=None,
+    cmap=None,
+    vmin=None,
+    vmax=None,
+    aspect=None,
+    dcolorbar=None,
+    dleg=None,
+    data=None,
+):
+
+    # key
+    lk = [kk for kk, vv in coll.ddata.items() if vv['data'].ndim == 2]
+    key = _generic_check._check_var(
+        key, 'key', default=None, types=str, allowed=lk,
+    )
+
+    # ind
+    ind = _generic_check._check_var(
+        ind, 'ind', default=[0, 0], types=(list, tuple, np.ndarray),
+    )
+    c0 = (
+        len(ind) == 2
+        and all([
+            np.isscalar(ii) and isinstance(ii, (int, np.integer))
+            for ii in ind
+        ])
+    )
+    if not c0:
+        msg = (
+            "Arg ind must be an iterable of 2 integer indices!\n"
+            f"Provided: {ind}"
+        )
+        raise Exception(msg)
+
+    # cmap
+    if cmap is None or vmin is None or vmax is None:
+        if isinstance(coll.ddata[key]['data'], np.ndarray):
+            nanmax = np.nanmax(coll.ddata[key]['data'])
+            nanmin = np.nanmin(coll.ddata[key]['data'])
+        else:
+            nanmax = coll.ddata[key]['data'].max()
+            nanmin = coll.ddata[key]['data'].min()
+        diverging = nanmin * nanmax <= 0
+
+    if cmap is None:
+        if diverging:
+            cmap = 'seismic'
+        else:
+            cmap = 'viridis'
+
+    # vmin, vmax
+    if vmin is None and diverging:
+        vmin = -max(abs(nanmin), nanmax)
+    if vmax is None and diverging:
+        vmax = max(abs(nanmin), nanmax)
+
+    # aspect
+    aspect = _generic_check._check_var(
+        aspect, 'aspect',
+        default='equal',
+        types=str,
+        allowed=['auto', 'equal'],
+    )
+
+    # dcolorbar
+    defdcolorbar = {
+        # 'location': 'right',
+        'fraction': 0.15,
+        'orientation': 'vertical',
+    }
+    dcolorbar = _generic_check._check_var(
+        dcolorbar, 'dcolorbar',
+        default=defdcolorbar,
+        types=dict,
+    )
+
+    # dleg
+    defdleg = {
+        'bbox_to_anchor': (1.1, 1.),
+        'loc': 'upper left',
+        'frameon': True,
+    }
+    dleg = _generic_check._check_var(
+        dleg, 'dleg',
+        default=defdleg,
+        types=(bool, dict),
+    )
+
+    return key, ind, cmap, vmin, vmax, aspect, dcolorbar, dleg
+
+
+def plot_as_matrix(
+    coll=None,
+    key=None,
+    ind=None,
+    vmin=None,
+    vmax=None,
+    cmap=None,
+    aspect=None,
+    dax=None,
+    dmargin=None,
+    fs=None,
+    dcolorbar=None,
+    dleg=None,
+):
+
+    # --------------
+    # check input
+
+    (
+        key, ind, cmap, vmin, vmax, aspect, dcolorbar, dleg,
+    ) = _plot_as_matrix_check(
+        coll=coll,
+        key=key,
+        ind=ind,
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
+        aspect=aspect,
+        dcolorbar=dcolorbar,
+        dleg=dleg,
+    )
+
+    # --------------
+    #  Prepare data
+
+    data = coll.ddata[key]['data']
+    if hasattr(data, 'nnz'):
+        data = data.toarray()
+    n0, n1 = data.shape
+    ref0, ref1 = coll.ddata[key]['ref']
+    lab0 = f'ind0 ({ref0})'
+    lab1 = f'ind1 ({ref1})'
+
+    # --------------
+    # plot - prepare
+
+    if dax is None:
+
+        if fs is None:
+            fs = (12, 8)
+
+        if dmargin is None:
+            dmargin = {
+                'left': 0.05, 'right': 0.95,
+                'bottom': 0.05, 'top': 0.90,
+                'hspace': 0.15, 'wspace': 0.1,
+            }
+
+        fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(ncols=3, nrows=3, **dmargin)
+
+        ax0 = fig.add_subplot(gs[:2, :2], aspect='auto')
+        ax0.set_ylabel(lab0)
+        ax0.set_xlabel(lab1)
+        ax0.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax0.xaxis.set_label_position('top')
+        ax0.set_title(key, size=14, fontweight='bold')
+
+        ax1 = fig.add_subplot(gs[:2, 2], sharey=ax0)
+        ax1.set_xlabel('data')
+        ax1.set_ylabel(lab0)
+        ax1.tick_params(
+            axis="y",
+            left=False, right=True,
+            labelleft=False, labelright=True,
+        )
+        ax1.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax1.yaxis.set_label_position('right')
+        ax1.xaxis.set_label_position('top')
+
+        ax2 = fig.add_subplot(gs[2, :2], sharex=ax0)
+        ax2.set_ylabel('data')
+        ax2.set_xlabel(lab1)
+
+        dax = {
+            'matrix': ax0,
+            'misc1': {'ax': ax1, 'type': 'misc'},
+            'misc2': {'ax': ax2, 'type': 'misc'},
+        }
+
+    dax = _generic_check._check_dax(dax=dax, main='matrix')
+
+    # --------------
+    # plot
+
+    axtype = 'matrix'
+    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
+    for kax in lkax:
+        ax = dax[kax]['ax']
+
+        im = ax.imshow(
+            data,
+            extent=None,
+            interpolation='nearest',
+            origin='upper',
+            aspect=aspect,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+        )
+
+        # plt.colorbar(im, ax=ax, **dcolorbar)
+
+        # ind0, ind1
+        ax.axhline(ind[0], c='k', lw=1., ls='-')
+        ax.axvline(ind[1], c='k', lw=1., ls='-')
+
+        if dleg is not False:
+            ax.legend(**dleg)
+
+    kax = 'misc1'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['ax']
+
+        ax.plot(
+            data[:, ind[1]],
+            np.arange(0, n0),
+            ls='-',
+            marker='.',
+            lw=1.,
+            color='k',
+            label=f'ind0 = {ind[0]}',
+        )
+
+    kax = 'misc2'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['ax']
+
+        ax.plot(
+            np.arange(0, n1),
+            data[ind[0], :],
+            ls='-',
+            marker='.',
+            lw=1.,
+            color='k',
+            label=f'ind1 = {ind[1]}',
+        )
+    return dax
 
 
 # #############################################################################

@@ -10,6 +10,7 @@ from matplotlib.path import Path
 
 
 # tofu
+from . import _generic_check
 from . import _mesh_checks
 from . import _mesh_bsplines
 
@@ -334,8 +335,9 @@ def _mesh2DRect_bsplines(mesh=None, keym=None, keybs=None, deg=None):
     ) = _mesh_bsplines.get_bs2d_RZ(
         deg=deg, Rknots=Rknots, Zknots=Zknots,
     )
+    nbs = int(np.prod(shapebs))
 
-    func_details, func_sum = _mesh_bsplines.get_bs2d_func(
+    func_details, func_sum, clas = _mesh_bsplines.get_bs2d_func(
         deg=deg,
         Rknots=Rknots,
         Zknots=Zknots,
@@ -365,6 +367,14 @@ def _mesh2DRect_bsplines(mesh=None, keym=None, keybs=None, deg=None):
             'name': 'Z',
             'group': 'Z',
         },
+        keybs: {
+            'data': np.arange(0, nbs),
+            'units': '',
+            'dim': 'index',
+            'quant': 'index',
+            'name': '',
+            'group': 'index',
+        },
     }
 
     dobj = {
@@ -377,6 +387,7 @@ def _mesh2DRect_bsplines(mesh=None, keym=None, keybs=None, deg=None):
                 'crop': False,
                 'func_details': func_details,
                 'func_sum': func_sum,
+                'class': clas,
             }
         },
     }
@@ -398,11 +409,20 @@ def add_cropbs_from_crop(mesh=None, keybs=None, keym=None):
             keybs=keybs,
         )
         kcropbs = f'{keybs}-crop'
+        kcroppedbs = f'{keybs}-cropped'
 
     # ----------------
     # optional crop
 
     if kcropbs is not False:
+
+        # add cropped flat reference
+        mesh.add_ref(
+            key=kcroppedbs,
+            data=np.arange(0, cropbs.sum()),
+            group='index',
+        )
+
         mesh.add_data(
             key=kcropbs,
             data=cropbs,
@@ -428,12 +448,12 @@ def _mesh2DRect_bsplines_knotscents(
     # -------------
     # check inputs
 
-    return_knots = _mesh_checks._check_var(
+    return_knots = _generic_check._check_var(
         return_knots, 'return_knots',
         types=bool,
         default=True,
     )
-    return_cents = _mesh_checks._check_var(
+    return_cents = _generic_check._check_var(
         return_cents, 'return_cents',
         types=bool,
         default=True,
@@ -539,21 +559,21 @@ def _sample_mesh_check(
         raise Exception(msg)
 
     # mode
-    mode = _mesh_checks._check_var(
+    mode = _generic_check._check_var(
         mode, 'mode',
         types=str,
         default='abs',
     )
 
     # grid
-    grid = _mesh_checks._check_var(
+    grid = _generic_check._check_var(
         grid, 'grid',
         types=bool,
         default=False,
     )
 
     # imshow
-    imshow = _mesh_checks._check_var(
+    imshow = _generic_check._check_var(
         imshow, 'imshow',
         types=bool,
         default=False,
@@ -702,9 +722,7 @@ def _crop_check(mesh=None, key=None, crop=None, thresh_in=None):
 
     # key
     lkm = list(mesh.dobj['mesh'].keys())
-    if key is None and len(lkm) == 1:
-        key = lkm[0]
-    key = _mesh_checks._check_var(
+    key = _generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
@@ -919,21 +937,21 @@ def _interp_check(
         coefs = coefs[indt:indt+1, ...]
 
     # details
-    details = _mesh_checks._check_var(
+    details = _generic_check._check_var(
         details, 'details',
         types=bool,
         default=False,
     )
 
     # crop
-    crop = _mesh_checks._check_var(
+    crop = _generic_check._check_var(
         crop, 'crop',
         types=bool,
         default=True,
     )
 
     # nan0
-    nan0 = _mesh_checks._check_var(
+    nan0 = _generic_check._check_var(
         nan0, 'nan0',
         types=bool,
         default=True,
@@ -1063,3 +1081,72 @@ def interp2d(
         val[val == 0] = np.nan
 
     return val
+
+
+# #############################################################################
+# #############################################################################
+#                           Mesh2DRect - operators
+# #############################################################################
+
+
+def get_bsplines_operator(
+    coll,
+    key=None,
+    operator=None,
+    geometry=None,
+    crop=None,
+    store=None,
+    returnas=None,
+):
+
+    # check inputs
+    lk = list(coll.dobj.get('bsplines', {}).keys())
+    key = _generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lk,
+    )
+
+    store = _generic_check._check_var(
+        store, 'store',
+        default=True,
+        types=bool,
+    )
+
+    returnas = _generic_check._check_var(
+        returnas, 'returnas',
+        default=store is False,
+        types=bool,
+    )
+
+    crop = _generic_check._check_var(
+        crop, 'crop',
+        default=True,
+        types=bool,
+    )
+
+    cropbs_flat = coll.dobj['bsplines'][key]['crop']
+    if cropbs_flat is not False and crop is True:
+        cropbs_flat = coll.ddata[cropbs_flat]['data'].ravel(order='F')
+        keycropped = f'{key}-cropped'
+    else:
+        crop = False
+        cropbs_flat = False
+        keycropped = key
+
+    # compute and return
+    (
+        opmat, operator, geometry, dim,
+    ) = coll.dobj['bsplines'][key]['class'].get_operator(
+        operator=operator,
+        geometry=geometry,
+        cropbs_flat=cropbs_flat,
+    )
+
+    # cropping
+    if operator == 'D0':
+        ref = (keycropped,)
+    elif 'N' in operator:
+        ref = (keycropped, keycropped)
+
+    return opmat, operator, geometry, dim, ref, crop, store, returnas, key

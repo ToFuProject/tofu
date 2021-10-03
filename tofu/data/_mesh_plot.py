@@ -11,90 +11,8 @@ import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
 
 
-_LALLOWED_AXESTYPES = [
-    'cross', 'hor',
-    'matrix',
-    'timetrace',
-    'profile1d',
-    'image',
-    'misc'
-]
-
-
-# #############################################################################
-# #############################################################################
-#                           utility
-# #############################################################################
-
-
-def _check_var(var, varname, default=None, types=None, allowed=None):
-
-    if var is None:
-        var = default
-
-    if types is not None:
-        if not isinstance(var, types):
-            msg = (
-                f"Arg {varname} must be a {types}!\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
-
-    if allowed is not None:
-        if var not in allowed:
-            msg = (
-                f"Arg {varname} must be in {allowed}!\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
-
-    return var
-
-
-def _check_dax(dax=None, main=None):
-
-    # None
-    if dax is None:
-        return dax
-
-    # Axes
-    if issubclass(dax.__class__, plt.Axes):
-        if main is None:
-            msg = (
-            )
-            raise Exception(msg)
-        else:
-            return {main: dax}
-
-    # dict
-    c0 = (
-        isinstance(dax, dict)
-        and all([
-            isinstance(k0, str)
-            and (
-                (
-                    k0 in _LALLOWED_AXESTYPES
-                    and issubclass(v0.__class__, plt.Axes)
-                )
-                or (
-                    isinstance(v0, dict)
-                    and issubclass(v0.get('ax').__class__, plt.Axes)
-                    and v0.get('type') in _LALLOWED_AXESTYPES
-                )
-            )
-            for k0, v0 in dax.items()
-        ])
-    )
-    if not c0:
-        msg = (
-        )
-        raise Exception(msg)
-
-    for k0, v0 in dax.items():
-        if issubclass(v0.__class__, plt.Axes):
-            dax[k0] = {'ax': v0, 'type': k0}
-
-    return dax
+# specific
+from . import _generic_check
 
 
 # #############################################################################
@@ -116,9 +34,12 @@ def _plot_mesh_check(
 
     # key
     lk = list(mesh.dobj[mesh._groupmesh].keys())
-    if key is None and len(lk) == 1:
-        key = lk[0]
-    key = _check_var(key, 'key', default=None, types=str, allowed=lk)
+    key = _generic_check._check_var(
+        key, 'key',
+        default=None,
+        types=str,
+        allowed=lk,
+    )
 
     # ind_knot
     if ind_knot is not None:
@@ -135,8 +56,8 @@ def _plot_mesh_check(
         )
 
     # crop, bck
-    crop = _check_var(crop, 'crop', default=True, types=bool)
-    bck = _check_var(bck, 'bck', default=True, types=bool)
+    crop = _generic_check._check_var(crop, 'crop', default=True, types=bool)
+    bck = _generic_check._check_var(bck, 'bck', default=True, types=bool)
 
     # color
     if color is None:
@@ -154,7 +75,11 @@ def _plot_mesh_check(
         'loc': 'upper left',
         'frameon': True,
     }
-    dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
+    dleg = _generic_check._check_var(
+        dleg, 'dleg',
+        default=defdleg,
+        types=(bool, dict),
+    )
 
     return key, ind_knot, ind_cent, crop, bck, color, dleg
 
@@ -315,7 +240,7 @@ def plot_mesh(
 
         dax = {'cross': ax0}
 
-    dax = _check_dax(dax=dax, main='cross')
+    dax = _generic_check._check_dax(dax=dax, main='cross')
 
     # --------------
     # plot
@@ -412,13 +337,16 @@ def _plot_bspline_check(
 
     # key
     lk = list(mesh.dobj['bsplines'].keys())
-    if key is None and len(lk) == 1:
-        key = lk[0]
-    key = _check_var(key, 'key', default=None, types=str, allowed=lk)
+    key = _generic_check._check_var(
+        key, 'key',
+        default=None,
+        types=str,
+        allowed=lk,
+    )
 
     # knots, cents
-    knots = _check_var(knots, 'knots', default=True, types=bool)
-    cents = _check_var(cents, 'cents', default=True, types=bool)
+    knots = _generic_check._check_var(knots, 'knots', default=True, types=bool)
+    cents = _generic_check._check_var(cents, 'cents', default=True, types=bool)
 
     # ind_bspline
     ind = mesh.select_bsplines(
@@ -440,7 +368,11 @@ def _plot_bspline_check(
     )
 
     # plot_mesh
-    plot_mesh = _check_var(plot_mesh, 'plot_mesh', default=True, types=bool)
+    plot_mesh = _generic_check._check_var(
+        plot_mesh, 'plot_mesh',
+        default=True,
+        types=bool,
+    )
 
     # cmap
     if cmap is None:
@@ -452,7 +384,11 @@ def _plot_bspline_check(
         'loc': 'upper left',
         'frameon': True,
     }
-    dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
+    dleg = _generic_check._check_var(
+        dleg, 'dleg',
+        default=defdleg,
+        types=(bool, dict),
+    )
 
     return key, ind, knotsi, centsi, plot_mesh, cmap, dleg
 
@@ -589,7 +525,7 @@ def plot_bspline(
 
         dax = {'cross': ax0}
 
-    dax = _check_dax(dax=dax, main='cross')
+    dax = _generic_check._check_dax(dax=dax, main='cross')
 
     # --------------
     # plot
@@ -664,9 +600,7 @@ def _plot_profile2d_check(
 
     # key
     dk = mesh.get_profiles2d()
-    if key is None and len(dk) == 1:
-        key = list(dk.keys())[0]
-    key = _check_var(
+    key = _generic_check._check_var(
         key, 'key', default=None, types=str, allowed=list(dk.keys())
     )
     keybs = dk[key]
@@ -702,7 +636,7 @@ def _plot_profile2d_check(
         'fraction': 0.15,
         'orientation': 'vertical',
     }
-    dcolorbar = _check_var(
+    dcolorbar = _generic_check._check_var(
         dcolorbar, 'dcolorbar',
         default=defdcolorbar,
         types=dict,
@@ -714,7 +648,11 @@ def _plot_profile2d_check(
         'loc': 'upper left',
         'frameon': True,
     }
-    dleg = _check_var(dleg, 'dleg', default=defdleg, types=(bool, dict))
+    dleg = _generic_check._check_var(
+        dleg, 'dleg',
+        default=defdleg,
+        types=(bool, dict),
+    )
 
     return key, keybs, coefs, indt, cmap, dcolorbar, dleg
 
