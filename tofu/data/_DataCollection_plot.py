@@ -368,9 +368,12 @@ def _plot_as_matrix_check(
     key=None,
     ind=None,
     cmap=None,
+    vmin=None,
+    vmax=None,
     aspect=None,
     dcolorbar=None,
     dleg=None,
+    data=None,
 ):
 
     # key
@@ -398,8 +401,26 @@ def _plot_as_matrix_check(
         raise Exception(msg)
 
     # cmap
+    if cmap is None or vmin is None or vmax is None:
+        if isinstance(coll.ddata[key]['data'], np.ndarray):
+            nanmax = np.nanmax(coll.ddata[key]['data'])
+            nanmin = np.nanmin(coll.ddata[key]['data'])
+        else:
+            nanmax = coll.ddata[key]['data'].max()
+            nanmin = coll.ddata[key]['data'].min()
+        diverging = nanmin * nanmax <= 0
+
     if cmap is None:
-        cmap = 'viridis'
+        if diverging:
+            cmap = 'seismic'
+        else:
+            cmap = 'viridis'
+
+    # vmin, vmax
+    if vmin is None and diverging:
+        vmin = -max(abs(nanmin), nanmax)
+    if vmax is None and diverging:
+        vmax = max(abs(nanmin), nanmax)
 
     # aspect
     aspect = _generic_check._check_var(
@@ -433,7 +454,7 @@ def _plot_as_matrix_check(
         types=(bool, dict),
     )
 
-    return key, ind, cmap, aspect, dcolorbar, dleg
+    return key, ind, cmap, vmin, vmax, aspect, dcolorbar, dleg
 
 
 def plot_as_matrix(
@@ -454,11 +475,15 @@ def plot_as_matrix(
     # --------------
     # check input
 
-    key, ind, cmap, aspect, dcolorbar, dleg = _plot_as_matrix_check(
+    (
+        key, ind, cmap, vmin, vmax, aspect, dcolorbar, dleg,
+    ) = _plot_as_matrix_check(
         coll=coll,
         key=key,
         ind=ind,
         cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
         aspect=aspect,
         dcolorbar=dcolorbar,
         dleg=dleg,

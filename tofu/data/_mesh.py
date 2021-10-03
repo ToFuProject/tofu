@@ -291,15 +291,66 @@ class Mesh2DRect(DataCollection):
 
         # store
         if store is True:
-            name = f'{key}-{operator}-{geometry}'
-            self.add_data(
-                key=name,
-                data=opmat,
-                ref=ref,
-                units='',
-                name=operator,
-                dim=dim,
-            )
+            if operator in ['D0', 'D0N2']:
+                name = f'{key}-{operator}-{geometry}'
+                self.add_data(
+                    key=name,
+                    data=opmat,
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+            elif operator == 'D1N2':
+                name = f'{key}-{operator}-dR-{geometry}'
+                self.add_data(
+                    key=name,
+                    data=opmat[0],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+                name = f'{key}-{operator}-dZ-{geometry}'
+                self.add_data(
+                    key=name,
+                    data=opmat[1],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+            elif operator == 'D2N2':
+                name = f'{key}-{operator}-d2R-{geometry}'
+                self.add_data(
+                    key=name,
+                    data=opmat[0],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+                name = f'{key}-{operator}-d2Z-{geometry}'
+                self.add_data(
+                    key=name,
+                    data=opmat[1],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+                name = f'{key}-{operator}-dRZ-{geometry}'
+                self.add_data(
+                    key=name,
+                    data=opmat[2],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+            else:
+                msg = "Unknown opmat type!"
+                raise Exception(msg)
 
         # return
         if returnas is True:
