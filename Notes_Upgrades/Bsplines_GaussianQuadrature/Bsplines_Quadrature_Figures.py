@@ -30,8 +30,8 @@ def Fig01(Deriv=0, a4=False, figNb=1, save=True):
     (fW, fH) = (11.69, 8.27) if a4 else (6, 4)
     f, axarr = plt.subplots(
         nrows=1, ncols=1, facecolor='w',
-        figsize=(fW,fH),
-        subplot_kw={'adjustable':'datalim','frameon':True,'axisbg':axCol},
+        figsize=(fW, fH),
+        subplot_kw={'adjustable': 'datalim', 'frameon': True, 'axisbg': axCol},
     )
     plt.subplots_adjust(
         left=0.08, bottom=0.07, right=0.96, top=0.98, wspace=0.05, hspace=0.05,

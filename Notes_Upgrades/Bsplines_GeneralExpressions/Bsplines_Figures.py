@@ -19,13 +19,13 @@ def Fig01(Deriv=0, a4=False, save=True):
     x = np.linspace(knt[0], knt[-1], 500)
 
     LF = {}
-    for jj in range(0,len(Deg)):
+    for jj in range(0, len(Deg)):
         LFunc = _tfm_bs.BSpline_LFunc(Deg[jj], knt, Deriv=Deriv, Test=True)[0]
         LF[Deg[jj]] = LFunc
 
     # Plotting
-    fdpi,axCol = 80, 'w'
-    (fW,fH) = (11.69, 8.27) if a4 else (8, 6)
+    fdpi, axCol = 80, 'w'
+    (fW, fH) = (11.69, 8.27) if a4 else (8, 6)
     f = plt.figure(facecolor="w", figsize=(fW, fH), dpi=fdpi)
     ax0 = f.add_axes([0.06, 0.53, 0.43, 0.42], frameon=True, axisbg=axCol)
     ax1 = f.add_axes([0.54, 0.53, 0.43, 0.42], frameon=True, axisbg=axCol)
@@ -34,7 +34,7 @@ def Fig01(Deriv=0, a4=False, save=True):
 
     La = [ax0, ax1, ax2, ax3]
     for ii in range(0, len(Deg)):
-        for jj in range(0,len(LF[Deg[ii]])):
+        for jj in range(0, len(LF[Deg[ii]])):
             La[ii].plot(x, LF[Deg[ii]][jj](x), ls='-', lw=2.)
 
         La[ii].set_xlim(3., 7.)
