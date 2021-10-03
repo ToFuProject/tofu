@@ -301,7 +301,15 @@ def get_mesh2dRect_operators(
                     jz = jflat // nx
 
                     # store (i, j) and (j, i) (symmetric matrix)
-                    data[i0:i0+2] = iR[abs(jr - ir), ir] * iZ[abs(jz - iz), iz]
+                    if jr >= ir:
+                        iiR = iR[jr - ir, ir]
+                    else:
+                        iiR = iR[abs(jr - ir), jr]
+                    if jz >= iz:
+                        iiZ = iZ[jz - iz, iz]
+                    else:
+                        iiZ = iZ[abs(jz - iz), jz]
+                    data[i0:i0+2] = iiR * iiZ
                     row[i0:i0+2] = (iflat, jflat)
                     column[i0:i0+2] = (jflat, iflat)
                     i0 += 2
@@ -412,49 +420,35 @@ def _D0N2_Deg1(knots, geometry=None):
 def _D0N2_Deg2(knots, geometry=None):
 
     if geometry == 'linear':
-        integ = np.array([
-            _D0N2_Deg2_full_linear(
-                knots[:-3],
-                knots[1:-2],
-                knots[2:-1],
-                knots[3:],
-            ),
-            _D0N2_Deg2_3_linear(
-                knots[:-3],
-                knots[1:-2],
-                knots[2:-1],
-                knots[3:],
-                np.r_[knots[4:], np.nan],
-            ),
-            _D0N2_Deg2_2_linear(
-                knots[1:-2],
-                knots[2:-1],
-                knots[3:],
-                np.r_[knots[4:], np.nan],
-            ),
-        ])
+        ffull = _D0N2_Deg2_full_linear
+        f3 = _D0N2_Deg2_3_linear
+        f2 = _D0N2_Deg2_2_linear
     else:
-        integ = np.array([
-            _D0N2_Deg2_full_toroidal(
-                knots[:-3],
-                knots[1:-2],
-                knots[2:-1],
-                knots[3:],
-            ),
-            _D0N2_Deg2_3_toroidal(
-                knots[:-3],
-                knots[1:-2],
-                knots[2:-1],
-                knots[3:],
-                np.r_[knots[4:], np.nan],
-            ),
-            _D0N2_Deg2_2_toroidal(
-                knots[1:-2],
-                knots[2:-1],
-                knots[3:],
-                np.r_[knots[4:], np.nan],
-            ),
-        ])
+        ffull = _D0N2_Deg2_full_toroidal
+        f3 = _D0N2_Deg2_3_toroidal
+        f2 = _D0N2_Deg2_2_toroidal
+
+    integ = np.array([
+        ffull(
+            knots[:-3],
+            knots[1:-2],
+            knots[2:-1],
+            knots[3:],
+        ),
+        f3(
+            knots[:-3],
+            knots[1:-2],
+            knots[2:-1],
+            knots[3:],
+            np.r_[knots[4:], np.nan],
+        ),
+        f2(
+            knots[1:-2],
+            knots[2:-1],
+            knots[3:],
+            np.r_[knots[4:], np.nan],
+        ),
+    ])
     return integ
 
 
