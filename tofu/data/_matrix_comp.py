@@ -204,13 +204,16 @@ def compute(
     })
 
     # dref
-    keycropped = f'{key}-cropped'
+    keycropped = f'{key}-cropped' if crop is True else key
     lref = (
         list(mesh.dobj['mesh'][km]['cents'])
         + list(mesh.dobj['mesh'][km]['knots'])
         + list(mesh.dobj['bsplines'][key]['ref'])
-        + [key, keycropped]
+        + [key]
     )
+    if crop is True:
+        lref.append(keycropped)
+
     dref = {k0: mesh.dref[k0] for k0 in lref}
     for k0 in lref:
         dref[k0].update({

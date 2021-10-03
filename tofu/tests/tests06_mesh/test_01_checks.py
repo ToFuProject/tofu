@@ -275,7 +275,27 @@ class Test02_Mesh2DRect():
             )
         plt.close('all')
 
-    def test10_compute_plot_geometry_matrix(self):
+    def test10_add_bsplines_operator(self):
+        lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2']
+        lop = ['D0', 'D0N2', 'D1N2', 'D2N2']
+        lgeom = ['linear', 'toroidal']
+        lcrop = [False, True]
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            if ii == 3:
+                continue
+
+            for comb in itt.product(lop, lgeom, lcrop):
+                deg = self.dobj[k0].dobj['bsplines'][lkey[ii]]['deg']
+                if int(comb[0][1]) > deg:
+                    continue
+                self.dobj[k0].add_bsplines_operator(
+                    key=lkey[ii],
+                    operator=comb[0],
+                    geometry=comb[1],
+                    crop=comb[2],
+                )
+
+    def test11_compute_plot_geometry_matrix(self):
 
         # get config and cam
         conf = tf.load_config('WEST-V0')
@@ -293,6 +313,7 @@ class Test02_Mesh2DRect():
 
         # compute geometry matrices
         for ii, (k0, v0) in enumerate(self.dobj.items()):
+
             mat = self.dobj[k0].compute_geometry_matrix(
                 cam=cam, res=0.01, crop=True,
             )

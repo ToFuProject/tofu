@@ -253,7 +253,7 @@ class Mesh2DRect(DataCollection):
     # ------------------
 
 
-    def get_bsplines_operator(
+    def add_bsplines_operator(
         self,
         key=None,
         operator=None,

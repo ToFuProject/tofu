@@ -100,9 +100,22 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
         lk = [
             kk for kk in lk
             if not (
-                np.allclose(v0[kk], dd0[k0][kk])
-                if isinstance(v0[kk], np.ndarray)
-                else v0[kk] == dd0[k0][kk]
+                type(v0[kk]) == type(dd0[k0][kk])
+                and (
+                    (
+                        isinstance(v0[kk], np.ndarray)
+                        and np.allclose(v0[kk], dd0[k0][kk], equal_nan=True)
+                    )
+                    or (
+                        scpsp.issparse(v0[kk])
+                        and np.allclose(
+                            v0[kk].data, dd0[k0][kk].data, equal_nan=True,
+                        )
+                    )
+                    or (
+                        v0[kk] == dd0[k0][kk]
+                    )
+                )
             )
         ]
         if len(lk) > 0:
@@ -120,7 +133,7 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
         msg = (
             "Conflicts with pre-existing values found in {}:\n".format(dd_name)
             + "\n".join([
-                "\t- {}['{}']: {}".format(dd_name, k0, v0)
+                f"\t- {dd_name}['{k0}']: {v0}"
                 for k0, v0 in dconflict.items()
             ])
         )
@@ -131,7 +144,7 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
         msg = (
             "\nExisting {} keys will be overwritten:\n".format(dd_name)
             + "\n".join([
-                "\t- {}[{}]: {}".format(dd_name, k0, v0)
+                f"\t- {dd_name}['{k0}']: {v0}"
                 for k0, v0 in dupdate.items()
             ])
         )
@@ -1370,7 +1383,8 @@ def _check_ddata(
                 (
                     nref == 1
                     and (
-                        type(v0) in [np.ndarray, list, tuple]
+                        isinstance(v0, (np.ndarray, list, tuple))
+                        or scpsp.issparse(v0)
                         or (
                             isinstance(v0, dict)
                             and all([isinstance(ss, str) for ss in v0.keys()])
@@ -2311,9 +2325,9 @@ def _set_param(
     key = _ind_tofrom_key(dd=dd, ind=ind, key=key, returnas='key')
 
     # Check value
-    ltypes = [str, int, np.int, float, np.float, tuple]
+    ltypes = [str, int, np.integer, float, np.floating, tuple]
     lc = [
-        type(value) in ltypes,
+        isinstance(value, tuple(ltypes)),
         isinstance(value, list) and all([type(tt) in ltypes for tt in value])
         and len(value) == len(key),
         isinstance(value, np.ndarray) and value.shape[0] == len(key),
