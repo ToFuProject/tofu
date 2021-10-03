@@ -1125,12 +1125,14 @@ def get_bsplines_operator(
         types=bool,
     )
 
-    cropbs = coll.dobj['bsplines'][key]['crop']
-    if cropbs is not False and crop is True:
-        cropbs = coll.ddata[cropbs]['data']
+    cropbs_flat = coll.dobj['bsplines'][key]['crop']
+    if cropbs_flat is not False and crop is True:
+        cropbs_flat = coll.ddata[cropbs_flat]['data'].ravel(order='F')
         keycropped = f'{key}-cropped'
     else:
         crop = False
+        cropbs_flat = False
+        keycropped = key
 
     # compute and return
     (
@@ -1138,22 +1140,13 @@ def get_bsplines_operator(
     ) = coll.dobj['bsplines'][key]['class'].get_operator(
         operator=operator,
         geometry=geometry,
+        cropbs_flat=cropbs_flat,
     )
 
     # cropping
-    if crop is True:
-        cropbs = cropbs.ravel(order='F')
-        if 'N' in  operator:
-            opmat = opmat[:, cropbs]
-            opmat = opmat[cropbs, :]
-            ref = (keycropped, keycropped)
-        else:
-            opmat = opmat[cropbs]
-            ref = (keycropped,)
-    else:
-        if 'N' in  operator:
-            ref = (key, key)
-        else:
-            ref = (key,)
+    if operator == 'D0':
+        ref = (keycropped,)
+    elif 'N' in operator:
+        ref = (keycropped, keycropped)
 
     return opmat, operator, geometry, dim, ref, crop, store, returnas, key

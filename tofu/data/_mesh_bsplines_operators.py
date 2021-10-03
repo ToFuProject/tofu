@@ -100,6 +100,7 @@ def get_mesh2dRect_operators(
     knotsy_per_bs=None,
     overlap=None,
     sparse_fmt=None,
+    cropbs_flat=None,
 ):
 
     # ------------
@@ -120,143 +121,174 @@ def get_mesh2dRect_operators(
     kZ = np.repeat(knotsy_per_bs, nx, axis=1)
     nbs = nx*ny
 
+    if cropbs_flat is None:
+        cropbs_flat = False
+    if cropbs_flat is not False:
+        c0 = (
+            isinstance(cropbs_flat, np.ndarray)
+            and cropbs_flat.shape == (nbs,)
+            and cropbs_flat.dtype == np.bool_
+        )
+        if not c0:
+            msg = (
+                f"Arg cropbs_flat must be a bool array of shape {(nbs,)}\n"
+                f"Provided: {cropbs_flat.shape}"
+            )
+            raise Exception(msg)
+        nbscrop = cropbs_flat.sum()
+        shape = (nbscrop, nbscrop)
+        indbs = -np.ones((nbs,), dtype=int)
+        indbs[cropbs_flat] = np.arange(0, nbscrop)
+    else:
+        shape = (nbs, nbs)
+        indbs = np.arange(0, nbs)
+
     if 'N' in operator and deg >= 1:
         # get intersection indices array
-        nbtot = np.sum(overlap >= 0)
+        if cropbs_flat is False:
+            nbtot = np.sum(overlap >= 0)
+        else:
+            ind = cropbs_flat[None, :] & cropbs_flat[overlap]
+            nbtot = np.sum(ind)
 
         # prepare data and indices arrays
         if operator == 'D0N2':
             data = np.full((nbtot,), np.nan)
-            row = np.full((nbtot,), np.nan)
-            column = np.full((nbtot,), np.nan)
+            row = np.zeros((nbtot,), dtype=int)
+            column = np.zeros((nbtot,), dtype=int)
         elif operator == 'D1N2':
             datadR = np.full((nbtot,), np.nan)
             datadZ = np.full((nbtot,), np.nan)
-            row = np.full((nbtot,), np.nan)
-            column = np.full((nbtot,), np.nan)
+            row = np.zeros((nbtot,), dtype=int)
+            column = np.zeros((nbtot,), dtype=int)
         elif operator == 'D2N2':
             datad2R = np.full((nbtot,), np.nan)
             datad2Z = np.full((nbtot,), np.nan)
             datadRZ = np.full((nbtot,), np.nan)
-            row = np.full((nbtot,), np.nan)
-            column = np.full((nbtot,), np.nan)
+            row = np.zeros((nbtot,), dtype=int)
+            column = np.zeros((nbtot,), dtype=int)
 
     # ------------
     # D0
 
-    if operator == 'D0' and deg == 0 and geometry == 'linear':
+    if operator == 'D0':
+        if deg == 0 and geometry == 'linear':
 
-        opmat = (kR[1, :] - kR[0, :]) * (kZ[1, :] - kZ[0, :])
+            opmat = (kR[1, :] - kR[0, :]) * (kZ[1, :] - kZ[0, :])
 
-    elif operator == 'D0' and deg == 0 and geometry == 'toroidal':
+        elif deg == 0 and geometry == 'toroidal':
 
-        opmat = 0.5 * (kR[1, :]**2 - kR[0, :]**2) * (kZ[1, :] - kZ[0, :])
+            opmat = 0.5 * (kR[1, :]**2 - kR[0, :]**2) * (kZ[1, :] - kZ[0, :])
 
-    elif operator == 'D0' and deg == 1 and geometry == 'linear':
+        elif deg == 1 and geometry == 'linear':
 
-        opmat = 0.25 * (kR[2, :] - kR[0, :]) * (kZ[2, :] - kZ[0, :])
+            opmat = 0.25 * (kR[2, :] - kR[0, :]) * (kZ[2, :] - kZ[0, :])
 
-    elif operator == 'D0' and deg == 1 and geometry == 'toroidal':
+        elif deg == 1 and geometry == 'toroidal':
 
-        opmat = (
-            0.5
-            * (kR[2, :]**2 - kR[0, :]**2 + kR[1, :]*(kR[2, :]-kR[0, :]))
-            * (kZ[2, :] - kZ[0, :])
-        ) / 6.
+            opmat = (
+                0.5
+                * (kR[2, :]**2 - kR[0, :]**2 + kR[1, :]*(kR[2, :]-kR[0, :]))
+                * (kZ[2, :] - kZ[0, :])
+            ) / 6.
 
-    elif operator == 'D0' and deg == 2:
+        elif deg == 2:
 
-        iZ1 = (kZ[1, :] - kZ[0, :])**2 / (3.*(kZ[2, :] - kZ[0, :]))
-        iZ21 = (
-            (
-                kZ[2, :]**2
-                - 2*kZ[1, :]**2
-                + kZ[1, :]*kZ[2, :]
-                + 3.*kZ[0, :]*(kZ[1,:] - kZ[2,:])
-            )
-            / (6.*(kZ[2, :]-kZ[0, :]))
-        )
-        iZ22 = (
-            (
-                -2.*kZ[2, :]**2
-                + kZ[1, :]**2
-                + kZ[1, :]*kZ[2, :]
-                + 3.*kZ[3,:]*(kZ[2, :] - kZ[1,:])
-            )
-            / (6.*(kZ[3, :] - kZ[1, :]))
-        )
-        iZ3 = (kZ[3, :] - kZ[2, :])**2 / (3.*(kZ[3, :] - kZ[1, :]))
-
-        if geometry == 'linear':
-            iR1 = (kR[1, :] - kR[0, :])**2 / (3.*(kR[2, :] - kR[0, :]))
-            iR21 = (
+            iZ1 = (kZ[1, :] - kZ[0, :])**2 / (3.*(kZ[2, :] - kZ[0, :]))
+            iZ21 = (
                 (
-                    kR[2, :]**2
-                    - 2. * kR[1, :]**2
-                    + kR[1, :] * kR[2, :]
-                    + 3. * kR[0, :] * (kR[1,:] - kR[2,:])
+                    kZ[2, :]**2
+                    - 2*kZ[1, :]**2
+                    + kZ[1, :]*kZ[2, :]
+                    + 3.*kZ[0, :]*(kZ[1,:] - kZ[2,:])
                 )
-                / (6. * (kR[2, :] - kR[0, :]))
+                / (6.*(kZ[2, :]-kZ[0, :]))
             )
-            iR22 = (
+            iZ22 = (
                 (
-                    -2. * kR[2, :]**2
-                    + kR[1, :]**2
-                    + kR[1, :] * kR[2, :]
-                    + 3. * kR[3,:] * (kR[2, :] - kR[1,:])
+                    -2.*kZ[2, :]**2
+                    + kZ[1, :]**2
+                    + kZ[1, :]*kZ[2, :]
+                    + 3.*kZ[3,:]*(kZ[2, :] - kZ[1,:])
                 )
-                / (6.*(kR[3, :] - kR[1, :]))
+                / (6.*(kZ[3, :] - kZ[1, :]))
             )
-            iR3 = (kR[3, :] - kR[2, :])**2 / (3.*(kR[3, :] - kR[1, :]))
+            iZ3 = (kZ[3, :] - kZ[2, :])**2 / (3.*(kZ[3, :] - kZ[1, :]))
 
-        else:
-            iR1 = (
-                (
-                    3.*kR[1, :]**3
-                    + kR[0, :]**3
-                    - 5.*kR[0, :] * kR[1, :]**2
-                    + kR[0, :]**2 * kR[1, :]
+            if geometry == 'linear':
+                iR1 = (kR[1, :] - kR[0, :])**2 / (3.*(kR[2, :] - kR[0, :]))
+                iR21 = (
+                    (
+                        kR[2, :]**2
+                        - 2. * kR[1, :]**2
+                        + kR[1, :] * kR[2, :]
+                        + 3. * kR[0, :] * (kR[1,:] - kR[2,:])
+                    )
+                    / (6. * (kR[2, :] - kR[0, :]))
                 )
-                / (12. * (kR[2, :] - kR[0, :]))
-            )
-            iR21 = (
-                (
-                    kR[2, :]**3
-                    - 3.*kR[1, :]**3
-                    + kR[1, :]**2 * kR[2, :]
-                    + kR[1, :] * kR[2, :]**2
-                    - 2.*kR[0, :] * kR[2, :]**2
-                    - 2.*kR[0, :] * kR[1, :] * kR[2, :]
-                    + 4.*kR[0, :] * kR[1, :]**2
+                iR22 = (
+                    (
+                        -2. * kR[2, :]**2
+                        + kR[1, :]**2
+                        + kR[1, :] * kR[2, :]
+                        + 3. * kR[3,:] * (kR[2, :] - kR[1,:])
+                    )
+                    / (6.*(kR[3, :] - kR[1, :]))
                 )
-                / (12. * (kR[2, :] - kR[0, :]))
-            )
-            iR22 = (
-                (
-                    -3.*kR[2, :]**3
-                    + kR[1, :]**3
-                    + kR[1, :] * kR[2, :]**2
-                    + kR[1, :]**2 * kR[2, :]
-                    + 4.*kR[2, :]**2 * kR[3, :]
-                    - 2.*kR[1, :]*kR[2, :]*kR[3, :]
-                    - 2.*kR[1, :]**2 * kR[3, :]
+                iR3 = (kR[3, :] - kR[2, :])**2 / (3.*(kR[3, :] - kR[1, :]))
+
+            else:
+                iR1 = (
+                    (
+                        3.*kR[1, :]**3
+                        + kR[0, :]**3
+                        - 5.*kR[0, :] * kR[1, :]**2
+                        + kR[0, :]**2 * kR[1, :]
+                    )
+                    / (12. * (kR[2, :] - kR[0, :]))
                 )
-                / (12. * (kR[3, :] - kR[1, :]))
-            )
-            iR3 = (
-                (
-                    kR[3, :]**3
-                    + 3.*kR[2, :]**3
-                    - 5.*kR[2, :]**2 * kR[3, :]
-                    + kR[2, :]*kR[3, :]**2
-                ) / (12. * (kR[3, :] - kR[1, :]))
-            )
+                iR21 = (
+                    (
+                        kR[2, :]**3
+                        - 3.*kR[1, :]**3
+                        + kR[1, :]**2 * kR[2, :]
+                        + kR[1, :] * kR[2, :]**2
+                        - 2.*kR[0, :] * kR[2, :]**2
+                        - 2.*kR[0, :] * kR[1, :] * kR[2, :]
+                        + 4.*kR[0, :] * kR[1, :]**2
+                    )
+                    / (12. * (kR[2, :] - kR[0, :]))
+                )
+                iR22 = (
+                    (
+                        -3.*kR[2, :]**3
+                        + kR[1, :]**3
+                        + kR[1, :] * kR[2, :]**2
+                        + kR[1, :]**2 * kR[2, :]
+                        + 4.*kR[2, :]**2 * kR[3, :]
+                        - 2.*kR[1, :]*kR[2, :]*kR[3, :]
+                        - 2.*kR[1, :]**2 * kR[3, :]
+                    )
+                    / (12. * (kR[3, :] - kR[1, :]))
+                )
+                iR3 = (
+                    (
+                        kR[3, :]**3
+                        + 3.*kR[2, :]**3
+                        - 5.*kR[2, :]**2 * kR[3, :]
+                        + kR[2, :]*kR[3, :]**2
+                    ) / (12. * (kR[3, :] - kR[1, :]))
+                )
 
-        opmat = (iR1 + iR21 + iR22 + iR3) * (iZ1 + iZ21 + iZ22 + iZ3)
+            opmat = (iR1 + iR21 + iR22 + iR3) * (iZ1 + iZ21 + iZ22 + iZ3)
 
-    elif operator == 'D0' and deg == 3:
+        elif deg == 3:
 
-        raise NotImplementedError("Integral D0 not implemented for deg=3 yet!")
+            raise NotImplementedError("Integral D0 not implemented for deg=3 yet!")
+
+        # crop
+        if cropbs_flat is not False:
+            opmat = opmat[indbs_flat]
 
     # ------------
     # D0N2
@@ -268,6 +300,10 @@ def get_mesh2dRect_operators(
             iR = kR[1, :] - kR[0, :]
         else:
             iR = 0.5 * (kR[1, :]**2 - kR[0, :]**2)
+
+        if cropbs_flat is not False:
+            iR = iR[cropbs_flat]
+            iZ = iZ[cropbs_flat]
 
         opmat = scpsp.diags(
             [iR*iZ],
@@ -296,18 +332,23 @@ def get_mesh2dRect_operators(
             for iz in range(ny):
 
                 iflat = ir + iz*nx
+                if cropbs_flat is not False and not cropbs_flat[iflat]:
+                    continue
 
                 # general case
                 overlapi = overlap[:, iflat][overlap[:, iflat] > iflat]
 
                 # diagonal element
                 data[i0] = iR[0, ir] * iZ[0, iz]
-                row[i0] = iflat
-                column[i0] = iflat
+                row[i0] = indbs[iflat]
+                column[i0] = indbs[iflat]
                 i0 += 1
 
                 # non-diagonal elements (symmetric)
                 for jflat in overlapi:
+
+                    if cropbs_flat is not False and not cropbs_flat[jflat]:
+                        continue
 
                     jr = jflat % nx
                     jz = jflat // nx
@@ -322,8 +363,8 @@ def get_mesh2dRect_operators(
                     else:
                         iiZ = iZ[abs(jz - iz), jz]
                     data[i0:i0+2] = iiR * iiZ
-                    row[i0:i0+2] = (iflat, jflat)
-                    column[i0:i0+2] = (jflat, iflat)
+                    row[i0:i0+2] = (indbs[iflat], indbs[jflat])
+                    column[i0:i0+2] = (indbs[jflat], indbs[iflat])
                     i0 += 2
 
         assert i0 == nbtot
@@ -355,6 +396,8 @@ def get_mesh2dRect_operators(
             for iz in range(ny):
 
                 iflat = ir + iz*nx
+                if cropbs_flat is not False and not cropbs_flat[iflat]:
+                    continue
 
                 # general case
                 overlapi = overlap[:, iflat][overlap[:, iflat] > iflat]
@@ -362,12 +405,15 @@ def get_mesh2dRect_operators(
                 # diagonal element
                 datadR[i0] = idR[0, ir] * iZ[0, iz]
                 datadZ[i0] = iR[0, ir] * idZ[0, iz]
-                row[i0] = iflat
-                column[i0] = iflat
+                row[i0] = indbs[iflat]
+                column[i0] = indbs[iflat]
                 i0 += 1
 
                 # non-diagonal elements (symmetric)
                 for jflat in overlapi:
+
+                    if cropbs_flat is not False and not cropbs_flat[jflat]:
+                        continue
 
                     jr = jflat % nx
                     jz = jflat // nx
@@ -387,8 +433,8 @@ def get_mesh2dRect_operators(
                         iiZ = iZ[abs(jz - iz), jz]
                     datadR[i0:i0+2] = iidR * iiZ
                     datadZ[i0:i0+2] = iiR * iidZ
-                    row[i0:i0+2] = (iflat, jflat)
-                    column[i0:i0+2] = (jflat, iflat)
+                    row[i0:i0+2] = (indbs[iflat], indbs[jflat])
+                    column[i0:i0+2] = (indbs[jflat], indbs[iflat])
                     i0 += 2
 
         assert i0 == nbtot
@@ -420,6 +466,8 @@ def get_mesh2dRect_operators(
             for iz in range(ny):
 
                 iflat = ir + iz*nx
+                if cropbs_flat is not False and not cropbs_flat[iflat]:
+                    continue
 
                 # general case
                 overlapi = overlap[:, iflat][overlap[:, iflat] > iflat]
@@ -428,12 +476,15 @@ def get_mesh2dRect_operators(
                 datad2R[i0] = id2R[0, ir] * iZ[0, iz]
                 datad2Z[i0] = iR[0, ir] * id2Z[0, iz]
                 datadRZ[i0] = idR[0, ir] * idZ[0, iz]
-                row[i0] = iflat
-                column[i0] = iflat
+                row[i0] = indbs[iflat]
+                column[i0] = indbs[iflat]
                 i0 += 1
 
                 # non-diagonal elements (symmetric)
                 for jflat in overlapi:
+
+                    if cropbs_flat is not False and not cropbs_flat[jflat]:
+                        continue
 
                     jr = jflat % nx
                     jz = jflat // nx
@@ -458,15 +509,15 @@ def get_mesh2dRect_operators(
                     datad2R[i0:i0+2] = iid2R * iiZ
                     datad2Z[i0:i0+2] = iiR * iid2Z
                     datadRZ[i0:i0+2] = iidR * iidZ
-                    row[i0:i0+2] = (iflat, jflat)
-                    column[i0:i0+2] = (jflat, iflat)
+                    row[i0:i0+2] = (indbs[iflat], indbs[jflat])
+                    column[i0:i0+2] = (indbs[jflat], indbs[iflat])
                     i0 += 2
 
         assert i0 == nbtot
         opmat = (
-            scpsp.csr_matrix((datad2R, (row, column)), shape=(nbs, nbs)),
-            scpsp.csr_matrix((datad2Z, (row, column)), shape=(nbs, nbs)),
-            scpsp.csr_matrix((datadRZ, (row, column)), shape=(nbs, nbs)),
+            scpsp.csr_matrix((datad2R, (row, column)), shape=shape),
+            scpsp.csr_matrix((datad2Z, (row, column)), shape=shape),
+            scpsp.csr_matrix((datadRZ, (row, column)), shape=shape),
         )
 
     # ------------
