@@ -4,6 +4,10 @@ on:
   release:
     types:
       [created]
+  push:
+    branches:
+      - master
+      - deploy-test
 
 jobs:
   deploy:
