@@ -33,7 +33,6 @@ jobs:
         python-versions: 'cp36-cp36m cp37-cp37m'
         build-requirements: 'cython numpy'
     - name: Publish package to TestPyPI
-      if: startsWith(github.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
