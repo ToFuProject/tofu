@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.6', '3.7', '3.8']
-    name: Publish Python ${{ matrix.python-version }} 🐍 distributions to PyPI
+    name: Publish Python ${{ matrix.python-version }} SRC distributions to PyPI
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
@@ -31,14 +31,12 @@ jobs:
     - name: check ref and event
       run: |
         echo ${{github.ref}}
-    - name: Build manylinux Python wheels
-      uses: RalfG/python-wheels-manylinux-build@v0.3.3-manylinux2010_x86_64
-      with:
-        python-versions: 'cp36-cp36m cp37-cp37m'
-        build-requirements: 'cython numpy'
-    - name: Publish wheels to PyPI
+    - name: Build sdist
+      run: |
+        python setup.py sdist
+    - name: Publish source to PyPI
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       run: |
-        twine upload dist/*-manylinux*.whl
+        twine upload dist/*.tar.gz
