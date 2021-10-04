@@ -11,9 +11,6 @@ on:
 
 jobs:
   deploy:
-    on:
-      tags: true
-
     runs-on: ubuntu-latest
     strategy:
       matrix:
