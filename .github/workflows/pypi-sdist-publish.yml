@@ -1,5 +1,3 @@
-name: Publish Python ${{ matrix.python-version }} SRC distributions to PyPI
-
 on:
   release:
     types:
@@ -16,6 +14,8 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.6', '3.7', '3.8']
+
+    name: Publish Python ${{ matrix.python-version }} SRC distributions to PyPI
 
     steps:
     - uses: actions/checkout@v2
