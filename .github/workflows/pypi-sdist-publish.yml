@@ -12,18 +12,13 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: '3.9'
-
-    name: Publish Python ${{ matrix.python-version }} SRC distributions to PyPI
 
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.9'
     - name: Display python version
       run: |
         python -c "import sys; print(sys.version)"
