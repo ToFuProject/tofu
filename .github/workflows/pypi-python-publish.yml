@@ -13,7 +13,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
         python-version: ['3.6', '3.7', '3.8']
     name: Publish Python ${{ matrix.python-version }} 🐍 distributions to TestPyPI
     steps:
