@@ -1,3 +1,5 @@
+name: Publish Python SRC distributions to PyPI
+
 on:
   release:
     types:
@@ -9,6 +11,8 @@ on:
 
 jobs:
   deploy:
+    on:
+      tags: true
 
     runs-on: ubuntu-latest
     strategy:

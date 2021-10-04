@@ -1,3 +1,5 @@
+name: Publish Python wheel distributions to PyPI
+
 on:
   release:
     types:
