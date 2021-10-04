@@ -111,7 +111,8 @@ Structdict['dP'] = StructPd_Tor
 # -------------- Figures ------------------------
 
 
-def Plot_LOSProj_DefAxes(Mode, Type='Tor', fs=None, wintit='tofu'):
+def Plot_LOSProj_DefAxes(Mode, Type='Tor',
+                         dmargin=None, fs=None, wintit='tofu'):
     assert fs is None or (type(fs) is str and fs=='a4') or len(fs)==2
     assert Mode.lower() in ['cross','hor','all'], "Arg should be 'Cross' or 'Hor' or 'All' !"
     assert Type in ['Tor','Lin'], "Arg Type must be in ['Tor','Lin'] !"
@@ -124,10 +125,14 @@ def Plot_LOSProj_DefAxes(Mode, Type='Tor', fs=None, wintit='tofu'):
     f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     if wintit is not None:
         f.canvas.set_window_title(wintit)
-    if Mode.lower()=='all':
-        axPosP, axPosT = [0.07, 0.1, 0.3, 0.8], [0.55, 0.1, 0.3, 0.8]
-        axP = f.add_axes(axPosP,frameon=True,facecolor=axCol)
-        axT = f.add_axes(axPosT,frameon=True,facecolor=axCol)
+    if Mode.lower() == 'all':
+        if dmargin is None:
+            dmargin = {'left': 0.06, 'right': 0.95,
+                       'bottom': 0.08, 'top': 0.95,
+                       'wspace': 0.20, 'hspace': 0.1}
+        gs = gridspec.GridSpec(1, 2, **dmargin)
+        axP = f.add_subplot(gs[0, 0], frameon=True, facecolor=axCol)
+        axT = f.add_subplot(gs[0, 1], frameon=True, facecolor=axCol)
         if Type=='Tor':
             axP.set_xlabel(r"R (m)"),   axP.set_ylabel(r"Z (m)")
         else:
@@ -135,12 +140,14 @@ def Plot_LOSProj_DefAxes(Mode, Type='Tor', fs=None, wintit='tofu'):
         axT.set_xlabel(r"X (m)"),   axT.set_ylabel(r"Y (m)")
         axP.set_aspect(aspect="equal", adjustable='datalim')
         axT.set_aspect(aspect="equal", adjustable='datalim')
-        ax = [axP,axT]
+        ax = [axP, axT]
     else:
-        axPos = [0.15, 0.15, 0.6, 0.7]
-        ax = f.add_axes(axPos,frameon=True,facecolor=axCol)
+        if dmargin is None:
+            dmargin = {'left': 0.15, 'right': 0.7, 'bottom': 0.15, 'top': 0.7}
+        gs = gridspec.GridSpec(1, 1, **dmargin)
+        ax = f.add_subplot(gs[0, 0], frameon=True, facecolor=axCol)
         if Mode == 'Cross':
-            if Type=='Tor':
+            if Type == 'Tor':
                 ax.set_xlabel(r"R (m)"),    ax.set_ylabel(r"Z (m)")
             else:
                 ax.set_xlabel(r"Y (m)"),    ax.set_ylabel(r"Z (m)")
@@ -149,23 +156,115 @@ def Plot_LOSProj_DefAxes(Mode, Type='Tor', fs=None, wintit='tofu'):
         ax.set_aspect(aspect="equal", adjustable='datalim')
     return ax
 
-def Plot_3D_plt_Tor_DefAxes(fs=None, wintit='tofu'):
+
+def Plot_3D_plt_Tor_DefAxes(dmargin=None, fs=None, wintit='tofu'):
     assert fs is None or (type(fs) is str and fs=='a4') or len(fs)==2
     axCol, fdpi = 'w', 80
     if fs is None:
-        fs = (14,10)
+        fs = (14, 10)
     elif type(fs) is str and fs=='a4':
-        fs = (11.69,8.27)
+        fs = (11.69, 8.27)
+    if dmargin is None:
+        dmargin = {'left': 0.05, 'right': 0.75, 'bottom': 0.05, 'top': 0.85}
     f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     if wintit is not None:
         f.canvas.set_window_title(wintit)
-    axPos = [0.05, 0.05, 0.75, 0.85]
-    ax = f.add_axes(axPos,facecolor=axCol,projection='3d')
+    gs = gridspec.GridSpec(1, 1, **dmargin)
+    ax = f.add_subplot(gs[0, 0], facecolor=axCol, projection='3d')
     ax.set_xlabel(r"X (m)")
     ax.set_ylabel(r"Y (m)")
     ax.set_zlabel(r"Z (m)")
     # ax.set_aspect(aspect="equal", adjustable='datalim')
     return ax
+
+
+def Plot_CrystIm(fs=None, dmargin=None, wintit=None):
+    assert fs is None or (type(fs) is str and fs == 'a4') or len(fs) == 2
+    assert wintit is None or type(wintit) is str, "Arg wintit must be a str !"
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (6, 9)
+    elif type(fs) is str and fs == 'a4':
+        fs = (11.69, 8.27)
+
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
+    if wintit is not None:
+        f.canvas.set_window_title(wintit)
+
+    if dmargin is None:
+        dmargin = {
+            'left': 0.06, 'right': 0.95,
+            'bottom': 0.08, 'top': 0.95,
+            'wspace': 0.20, 'hspace': 0.1,
+        }
+    gs = gridspec.GridSpec(1, 1, **dmargin)
+
+    dax = {
+        'im': f.add_subplot(gs[0, 0], frameon=True, facecolor=axCol),
+    }
+    k0 = 'im'
+    dax[k0].set_xlabel(r"$x_i$ (m)")
+    dax[k0].set_ylabel(r"$x_j$ (m)")
+    return dax['im']
+
+
+def Plot_AllCryst(fs=None, dmargin=None, wintit=None):
+    assert fs is None or (type(fs) is str and fs == 'a4') or len(fs) == 2
+    assert wintit is None or type(wintit) is str, "Arg wintit must be a str !"
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (20, 11)
+    elif type(fs) is str and fs == 'a4':
+        fs = (11.69, 8.27)
+
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
+    if wintit is not None:
+        f.canvas.set_window_title(wintit)
+
+    if dmargin is None:
+        dmargin = {
+            'left': 0.06, 'right': 0.90,
+            'bottom': 0.08, 'top': 0.95,
+            'wspace': 0.50, 'hspace': 0.2,
+        }
+    gs = gridspec.GridSpec(3, 3, **dmargin)
+
+    dax = {
+        'cross': f.add_subplot(
+            gs[0, :2], frameon=True, facecolor=axCol,
+            aspect='equal', adjustable='datalim',
+        ),
+        'hor': f.add_subplot(
+            gs[0, 2], frameon=True, facecolor=axCol,
+            aspect='equal', adjustable='datalim',
+        ),
+        '3d': f.add_subplot(
+            gs[1:, :2], facecolor=axCol,
+            projection='3d',
+        ),
+        'im': f.add_subplot(
+            gs[1:, 2], frameon=True, facecolor=axCol,
+            aspect='equal', adjustable='datalim',
+        ),
+    }
+
+    k0 = 'cross'
+    dax[k0].set_xlabel(r"R (m)")
+    dax[k0].set_ylabel(r"Z (m)")
+
+    k0 = 'hor'
+    dax[k0].set_xlabel(r"X (m)")
+    dax[k0].set_ylabel(r"Y (m)")
+
+    k0 = '3d'
+    dax[k0].set_xlabel(r"X (m)")
+    dax[k0].set_ylabel(r"Y (m)")
+    dax[k0].set_zlabel(r"Z (m)")
+
+    k0 = 'im'
+    dax[k0].set_xlabel(r"$x_i$ (m)")
+    dax[k0].set_ylabel(r"$x_j$ (m)")
+    return dax
 
 
 def Plot_Impact_DefAxes(Proj, Ang='theta', AngUnit='rad', fs=None, wintit='tofu', Sketch=True):
@@ -299,8 +398,46 @@ LOSImpElt = 'LV'
 
 LOSdict = dict(Lax=None, Proj='All', Lplot=LOSLplot, Elt='LDIORP', EltVes='', Leg='', Ldict=LOSLd, MdictD=LOSMd, MdictI=LOSMd, MdictO=LOSMd, MdictR=LOSMd, MdictP=LOSMd, LegDict=TorLegd, Vesdict=Vesdict, draw=True, Test=True)
 
+
 # -------------- Figures ------------------------
 
+
+# ####################################################################
+# ################  CrystalBragg class  ##############################
+# ####################################################################
+
+
+# ------------ Computing settings ---------------
+
+
+# --- Plotting dictionaries and parameters ------
+
+_CRYSTAL_PLOT_DDICT = {
+    'outline': {'ls': '-', 'lw': 2.},
+    'cent': {'ls': 'None', 'marker': 'o', 'ms': 6},
+    'summit': {'ls': 'None', 'marker': '^', 'ms': 6},
+    'rowland': {'ls': '--', 'lw': 1.},
+    'vectors': {'ls': '-', 'lw': 1.}    # , 'scale': 10.},
+}
+
+
+# ####################################################################
+# ######################  Detect class  ##############################
+# ####################################################################
+
+
+# ------------ Computing settings ---------------
+
+
+# --- Plotting dictionaries and parameters ------
+
+_DET_PLOT_DDICT = {
+    'outline': {'ls': '-', 'lw': 2., 'color': 'k'},
+    'cent': {'ls': 'None', 'marker': 'o', 'ms': 6, 'color': 'k'},
+    'summit': {'ls': 'None', 'marker': '^', 'ms': 6, 'color': 'k'},
+    'rowland': {'ls': '--', 'lw': 1., 'color': 'k'},
+    'vectors': {'ls': '-', 'lw': 1., 'color': 'k'},     # 'scale': 10.,
+}
 
 """
 #####################################################################

@@ -31,6 +31,10 @@ NextUpdate*
 # No swap files
 *.swp
 
+# No PBS files
+*.ER
+*.OU
+
 # No plugins
 tofu/plugins/
 tofu/geom/build/
@@ -43,6 +47,8 @@ build/
 # Tex files
 *.aux
 *.log
+*.out
+*.toc
 
 # coverage output
 .coverage
@@ -73,6 +79,10 @@ doc/source/auto_examples/
 
 # no pip wheel metadata
 pip-wheel-metadata/
+
+# no temporary data files
+inputs_temp/*.txt
+#inputs_temp/*.npz
 
 # Notebooks checkpoints
 **/.ipynb_checkpoints

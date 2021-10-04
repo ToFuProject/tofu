@@ -754,7 +754,39 @@ class Test02_Config(object):
         for cc in lc:
             conf = tf.load_config(cc, strict=True)
 
-    def test16_saveload(self, verb=False):
+    def test16_calc_solidangle_particle(self):
+        conf = tf.load_config('AUG', strict=True)
+        pts = np.array([[2.5, 0., 0.], [2.5, 0., 0.5]])
+        theta = np.linspace(-1, 1, 4)*np.pi/4.
+        part_traj = np.array([
+            2.4*np.cos(theta),
+            2.4*np.sin(theta),
+            0*theta,
+        ])
+        part_radius = np.array([1e-6, 10e-6, 100e-6, 1e-3])
+        out = conf.calc_solidangle_particle(
+            pts=pts,
+            part_traj=part_traj,
+            part_radius=part_radius,
+        )
+
+    def test17_calc_solidangle_particle_integrated(self):
+        conf = tf.load_config('WEST', strict=True)
+        theta = np.linspace(-1, 1, 4)*np.pi/4.
+        part_traj = np.array([
+            2.4*np.cos(theta),
+            2.4*np.sin(theta),
+            0*theta,
+        ])
+        part_radius = np.array([1e-6, 10e-6, 100e-6, 1e-3])
+        out = conf.calc_solidangle_particle_integrated(
+            part_traj=part_traj,
+            part_radius=part_radius,
+            resolution=0.2,
+        )
+        plt.close('all')
+
+    def test18_saveload(self, verb=False):
         for typ in self.dobj.keys():
             self.dobj[typ].strip(-1)
             pfe = self.dobj[typ].save(verb=verb, return_pfe=True)

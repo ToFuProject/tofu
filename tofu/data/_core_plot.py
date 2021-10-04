@@ -20,10 +20,7 @@ import numpy as np
 from tofu import __version__ as __version__
 import tofu.pathfile as tfpf
 import tofu.utils as utils
-try:
-    import tofu.data._core_new as _core_new
-except Exception:
-    from . import _core_new as _core_new
+from ._DataCollection_class import DataCollection
 
 
 __all__ = ['DataCollectPlot']
@@ -37,7 +34,7 @@ _SAVEPATH = os.path.abspath('./')
 #############################################
 
 
-class DataCollectionPlot_mpl(_core_new.DataCollection):
+class DataCollectionPlot_mpl(DataCollection):
 
     _DTYPES = {'vline': 'set_xdata',
                'hline': 'set_ydata',

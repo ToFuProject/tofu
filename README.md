@@ -1,3 +1,4 @@
+[![Build Status](https://app.travis-ci.com/ToFuProject/tofu.svg?branch=devel)](https://app.travis-ci.com/ToFuProject/tofu)
 [![Travis-CI](https://travis-ci.org/ToFuProject/tofu.svg?branch=master)](https://travis-ci.org/ToFuProject/tofu)
 [![Conda]( https://anaconda.org/conda-forge/tofu/badges/version.svg)](https://anaconda.org/conda-forge/tofu)
 [![](https://anaconda.org/conda-forge/tofu/badges/downloads.svg)](https://anaconda.org/conda-forge/tofu)
