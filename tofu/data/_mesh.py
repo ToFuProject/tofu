@@ -17,6 +17,7 @@ from . import _mesh_comp
 from . import _mesh_plot
 from . import _matrix_comp
 from . import _matrix_plot
+from . import _inversions_comp
 
 
 _GROUP_MESH = 'mesh'
@@ -625,3 +626,22 @@ class Matrix(Mesh2DRect):
             dcolorbar=dcolorbar,
             dleg=dleg,
         )
+
+    def compute_inversion(
+        self,
+        key=None,
+        data=None,
+        operator=None,
+        geometry=None,
+        isotropic=None,
+    ):
+
+        out = _inversions_comp.compute_inversions(
+            coll=self,
+            key=key,
+            data=data,
+            operator=operator,
+            geometry=geometry,
+            isotropic=isotropic,
+        )
+        return out
