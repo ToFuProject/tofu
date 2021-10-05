@@ -104,10 +104,12 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
                 and (
                     (
                         isinstance(v0[kk], np.ndarray)
+                        and v0[kk].shape == dd0[k0][kk].shape
                         and np.allclose(v0[kk], dd0[k0][kk], equal_nan=True)
                     )
                     or (
                         scpsp.issparse(v0[kk])
+                        and v0[kk].shape == dd0[k0][kk].shape
                         and np.allclose(
                             v0[kk].data, dd0[k0][kk].data, equal_nan=True,
                         )

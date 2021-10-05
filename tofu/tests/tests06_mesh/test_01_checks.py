@@ -290,12 +290,16 @@ class Test02_Mesh2DRect():
                 deg = self.dobj[k0].dobj['bsplines'][lkey[ii]]['deg']
                 if int(comb[0][1]) > deg:
                     continue
-                self.dobj[k0].add_bsplines_operator(
-                    key=lkey[ii],
-                    operator=comb[0],
-                    geometry=comb[1],
-                    crop=comb[2],
-                )
+                try:
+                    self.dobj[k0].add_bsplines_operator(
+                        key=lkey[ii],
+                        operator=comb[0],
+                        geometry=comb[1],
+                        crop=comb[2],
+                    )
+                except Exception as err:
+                    import pdb; pdb.set_trace()     # DB
+                    pass
 
     def test11_compute_plot_geometry_matrix(self):
 

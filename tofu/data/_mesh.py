@@ -293,6 +293,8 @@ class Mesh2DRect(DataCollection):
         if store is True:
             if operator in ['D0', 'D0N2']:
                 name = f'{key}-{operator}-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat,
@@ -303,6 +305,8 @@ class Mesh2DRect(DataCollection):
                 )
             elif operator == 'D1N2':
                 name = f'{key}-{operator}-dR-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[0],
@@ -312,6 +316,8 @@ class Mesh2DRect(DataCollection):
                     dim=dim,
                 )
                 name = f'{key}-{operator}-dZ-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[1],
@@ -322,6 +328,8 @@ class Mesh2DRect(DataCollection):
                 )
             elif operator == 'D2N2':
                 name = f'{key}-{operator}-d2R-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[0],
@@ -331,6 +339,8 @@ class Mesh2DRect(DataCollection):
                     dim=dim,
                 )
                 name = f'{key}-{operator}-d2Z-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[1],
@@ -340,6 +350,8 @@ class Mesh2DRect(DataCollection):
                     dim=dim,
                 )
                 name = f'{key}-{operator}-dRZ-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[2],

@@ -289,7 +289,7 @@ def get_mesh2dRect_operators(
 
         # crop
         if cropbs_flat is not False:
-            opmat = opmat[indbs_flat]
+            opmat = opmat[cropbs_flat]
 
     # ------------
     # D0N2
@@ -369,7 +369,7 @@ def get_mesh2dRect_operators(
                     i0 += 2
 
         assert i0 == nbtot
-        opmat = scpsp.csr_matrix((data, (row, column)), shape=(nbs, nbs))
+        opmat = scpsp.csr_matrix((data, (row, column)), shape=shape)
 
     # ------------
     # D1N2
@@ -440,8 +440,8 @@ def get_mesh2dRect_operators(
 
         assert i0 == nbtot
         opmat = (
-            scpsp.csr_matrix((datadR, (row, column)), shape=(nbs, nbs)),
-            scpsp.csr_matrix((datadZ, (row, column)), shape=(nbs, nbs)),
+            scpsp.csr_matrix((datadR, (row, column)), shape=shape),
+            scpsp.csr_matrix((datadZ, (row, column)), shape=shape),
         )
 
     # ------------
