@@ -132,7 +132,15 @@ def _select_ind(
     if crop is True:
         cropi = mesh.ddata[mesh.dobj[cat][key]['crop']]['data']
         if cat == 'mesh' and elements == 'knots':
-            raise NotImplementedError()
+            cropiknots = np.zeros(ind_bool.shape, dtype=bool)
+            cropiknots[:-1, :-1] = cropi
+            cropiknots[1:, :-1] = cropiknots[1:, :-1] | cropi
+            cropiknots[1:, 1:] = cropiknots[1:, 1:] | cropi
+            cropiknots[:-1, 1:] = cropiknots[:-1, 1:] | cropi
+            ind_bool = ind_bool & cropiknots
+            # ind_tup is not 2d anymore
+            ind_tup = ind_bool.T.nonzero()[::-1]  # R varies first
+            warnings.warn("ind is not 2d anymore!")
         elif ind_tup[0].shape == cropi.shape:
             ind_bool = ind_bool & cropi
             # ind_tup is not 2d anymore

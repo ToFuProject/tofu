@@ -41,23 +41,23 @@ def _plot_mesh_check(
         allowed=lk,
     )
 
+    # crop, bck
+    crop = _generic_check._check_var(crop, 'crop', default=True, types=bool)
+    bck = _generic_check._check_var(bck, 'bck', default=True, types=bool)
+
     # ind_knot
     if ind_knot is not None:
         ind_knot = mesh.select_mesh_elements(
             key=key, ind=ind_knot, elements='knots',
-            returnas='data', return_neighbours=True,
+            returnas='data', return_neighbours=True, crop=crop,
         )
 
     # ind_cent
     if ind_cent is not None:
         ind_cent = mesh.select_mesh_elements(
             key=key, ind=ind_cent, elements='cents',
-            returnas='data', return_neighbours=True,
+            returnas='data', return_neighbours=True, crop=crop,
         )
-
-    # crop, bck
-    crop = _generic_check._check_var(crop, 'crop', default=True, types=bool)
-    bck = _generic_check._check_var(bck, 'bck', default=True, types=bool)
 
     # color
     if color is None:

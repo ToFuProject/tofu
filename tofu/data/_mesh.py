@@ -631,17 +631,23 @@ class Matrix(Mesh2DRect):
         self,
         key=None,
         data=None,
+        sigma=None,
         operator=None,
         geometry=None,
         isotropic=None,
+        method=None,
+        sparse=None,
     ):
 
         out = _inversions_comp.compute_inversions(
             coll=self,
             key=key,
             data=data,
+            sigma=sigma,
             operator=operator,
             geometry=geometry,
             isotropic=isotropic,
+            method=method,
+            sparse=sparse,
         )
         return out

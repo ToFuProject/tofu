@@ -106,8 +106,8 @@ class Test02_Mesh2DRect():
         self.dobj = {
             'm0': tfd.Mesh2DRect(),
             'm1': tfd.Mesh2DRect(),
-            'm2': tfd.Mesh2DRect(),
-            'm3': None,
+            'm2': None,
+            'm3': tfd.Mesh2DRect(),
         }
 
         # add mesh
@@ -122,13 +122,15 @@ class Test02_Mesh2DRect():
             [0.1, [0.2, 0.1, 0.2]],
         ]
 
+        i0 = 0
         for ii, (k0, v0) in enumerate(self.dobj.items()):
-            if k0 != 'm3':
+            if k0 != 'm2':
                 self.dobj[k0].add_mesh(
-                    domain=ldomain[ii],
-                    res=lres[ii],
+                    domain=ldomain[i0],
+                    res=lres[i0],
                     key=k0,
                 )
+                i0 += 1
             else:
                 self.dobj[k0] = tfd.Mesh2DRect.from_Config(
                     tf.load_config('WEST'),
@@ -153,7 +155,7 @@ class Test02_Mesh2DRect():
 
     def test02_select_ind(self):
         lkey = ['m0', 'm1-bs1', 'm2', 'm3-bs3']
-        lelements = ['cents', None, 'knots', None]
+        lelements = ['knots', None, 'cents', None]
         lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
         lcrop = [True, False, True, False]
         for ii, (k0, v0) in enumerate(self.dobj.items()):
@@ -183,10 +185,10 @@ class Test02_Mesh2DRect():
     def test03_select_mesh(self):
         lkey = ['m0', 'm1', 'm2', 'm3']
         lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
-        lelements = ['cents', 'cents', 'knots', None]
+        lelements = ['cents', 'knots', 'cents', None]
         lreturnas = ['ind', 'data', 'data', 'ind']
         lreturn_neig = [None, True, False, True]
-        lcrop = [False, True, False, False]
+        lcrop = [False, True, True, False]
         for ii, (k0, v0) in enumerate(self.dobj.items()):
             indf = self.dobj[k0].select_mesh_elements(
                 key=lkey[ii],
