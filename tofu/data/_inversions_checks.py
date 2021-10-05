@@ -26,6 +26,7 @@ def _compute_check(
     sigma=None,
     isotropic=None,
     sparse=None,
+    chain=None,
 ):
 
     # key
@@ -41,6 +42,7 @@ def _compute_check(
     keym = coll.dobj['bsplines'][keybs]['mesh']
     matrix = coll.ddata[coll.dobj['matrix'][key]['data']]['data']
     shapemat = matrix.shape
+    crop = coll.dobj['matrix'][key]['crop']
 
     # data
     data = _generic_check._check_var(
@@ -61,9 +63,14 @@ def _compute_check(
         data = data.T
 
     # sigma
+    sigmadef = np.repeat(
+        0.1*np.nanmean(data, axis=1)[:, None],
+        shapemat[0],
+        axis=1,
+    )
     sigma = _generic_check._check_var(
         sigma, 'sigma',
-        default=np.ones((shapemat[0],), dtype=float),
+        default=sigmadef,
         types=(np.ndarray, list, tuple),
     )
     if not isinstance(sigma, np.ndarray):
@@ -76,6 +83,13 @@ def _compute_check(
         raise Exception(msg)
     if sigma.ndim == 1:
         sigma = sigma[None, :]
+    elif sigma.ndim == 2 and data.shape != sigma.shape:
+        msg = (
+            "Arg sigma must have the same shape as data!\n"
+            f"\t- data.shape: {data.shape}\n"
+            f"\t- sigma.shape: {sigma.shape}\n"
+        )
+        raise Exception(msg)
     if sigma.shape[1] != shapemat[0]:
         sigma = sigma.T
 
@@ -85,16 +99,27 @@ def _compute_check(
         default=True,
         types=bool,
     )
+    if isotropic is False:
+        raise NotImplementedError("Anisotropic regularization unavailable yet")
 
     # sparse and matrix
-    sparse = generic_check._check_var(
+    sparse = _generic_check._check_var(
         sparse, 'sparse',
-        default=scpsp.issparse(matrix),
+        default=True,
         types=bool,
     )
     if sparse is True and not scpsp.issparse(matrix):
-        matrix = None
+        matrix = scpsp.csr_matrix(matrix)
     elif sparse is False and scpsp.issparse(matrix):
         matrix = matrix.toarray()
 
-    return keymat, keybs, keym, data, sigma, isotropic, sparse, matrix
+    # chain
+    chain = _generic_check._check_var(
+        chain, 'chain',
+        default=True,
+        types=bool,
+    )
+
+    return (
+        key, keybs, keym, data, sigma, isotropic, sparse, matrix, crop, chain,
+    )
