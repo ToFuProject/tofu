@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Overview: module code &#8212; Tofu 1.4.15</title>
+    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../installation.html">Installation</a></li>
+                <li><a href="../contributing.html">Contributing</a></li>
+                <li><a href="../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../aboutus.html">About</a></li>
+                <li><a href="../releases.html">Releases</a></li>
+                <li><a href="../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>All modules for which code is available</h1>
+<ul><li><a href="_updateversion.html">_updateversion</a></li>
+<li><a href="scripts/_dparser.html">scripts._dparser</a></li>
+<li><a href="scripts/tofu_bash.html">scripts.tofu_bash</a></li>
+<li><a href="scripts/tofucustom.html">scripts.tofucustom</a></li>
+<li><a href="scripts/tofuversion.html">scripts.tofuversion</a></li>
+<li><a href="tofu/_physics.html">tofu._physics</a></li>
+<li><a href="tofu/_plot.html">tofu._plot</a></li>
+<li><a href="tofu/data/_comp.html">tofu.data._comp</a></li>
+<li><a href="tofu/data/_core.html">tofu.data._core</a></li>
+<li><a href="tofu/data/_plot.html">tofu.data._plot</a></li>
+<li><a href="tofu/defaults.html">tofu.defaults</a></li>
+<li><a href="tofu/dust/_core.html">tofu.dust._core</a></li>
+<li><a href="tofu/dust/_plot.html">tofu.dust._plot</a></li>
+<li><a href="tofu/geom/_GG.html">tofu.geom._GG</a></li>
+<li><a href="tofu/geom/_comp.html">tofu.geom._comp</a></li>
+<li><a href="tofu/geom/_comp_optics.html">tofu.geom._comp_optics</a></li>
+<li><a href="tofu/geom/_comp_solidangles.html">tofu.geom._comp_solidangles</a></li>
+<li><a href="tofu/geom/_core.html">tofu.geom._core</a></li>
+<li><a href="tofu/geom/_core_optics.html">tofu.geom._core_optics</a></li>
+<li><a href="tofu/geom/_def.html">tofu.geom._def</a></li>
+<li><a href="tofu/geom/_openmp_tools.html">tofu.geom._openmp_tools</a></li>
+<li><a href="tofu/geom/_plot.html">tofu.geom._plot</a></li>
+<li><a href="tofu/geom/_plot_optics.html">tofu.geom._plot_optics</a></li>
+<li><a href="tofu/geom/_sampling_tools.html">tofu.geom._sampling_tools</a></li>
+<li><a href="tofu/geom/inputs/WEST_get_details_from_excel.html">tofu.geom.inputs.WEST_get_details_from_excel</a></li>
+<li><a href="tofu/geom/inputs/get_geom_TCV.html">tofu.geom.inputs.get_geom_TCV</a></li>
+<li><a href="tofu/geom/openmp_enabled.html">tofu.geom.openmp_enabled</a></li>
+<li><a href="tofu/geom/utils.html">tofu.geom.utils</a></li>
+<li><a href="tofu/imas2tofu/_def.html">tofu.imas2tofu._def</a></li>
+<li><a href="tofu/openadas2tofu/_read_files.html">tofu.openadas2tofu._read_files</a></li>
+<li><a href="tofu/openadas2tofu/_requests.html">tofu.openadas2tofu._requests</a></li>
+<li><a href="tofu/pathfile.html">tofu.pathfile</a></li>
+<li><a href="tofu/tests/tests00_root/test_03_plot.html">tofu.tests.tests00_root.test_03_plot</a></li>
+<li><a href="tofu/tests/tests01_geom/test_01_GG.html">tofu.tests.tests01_geom.test_01_GG</a></li>
+<li><a href="tofu/tests/tests01_geom/test_02_compute.html">tofu.tests.tests01_geom.test_02_compute</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core.html">tofu.tests.tests01_geom.test_03_core</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_CoilPF_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_CoilPF_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_Baffle_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Baffle_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_BumperInner_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperInner_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_BumperOuter_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_BumperOuter_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_DivLowGC_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowGC_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_DivLowITER_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivLowITER_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_DivUp_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_IC1_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_IC2_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC2_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_IC3_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC3_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_LH1_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH1_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_LH2_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_LH2_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_PFC_Ripple_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_Ripple_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_Ves_VesIn_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesIn_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_03_core_data/WEST_Ves_VesOut_Notes.html">tofu.tests.tests01_geom.test_03_core_data.WEST_Ves_VesOut_Notes</a></li>
+<li><a href="tofu/tests/tests01_geom/test_04_sampling.html">tofu.tests.tests01_geom.test_04_sampling</a></li>
+<li><a href="tofu/tests/tests01_geom/testing_tools.html">tofu.tests.tests01_geom.testing_tools</a></li>
+<li><a href="tofu/tests/tests02_data/test_03_core.html">tofu.tests.tests02_data.test_03_core</a></li>
+<li><a href="tofu/tests/tests09_tutorials/test_01_runall.html">tofu.tests.tests09_tutorials.test_01_runall</a></li>
+<li><a href="tofu/tests/tests09_tutorials/tuto_plot_custom_emissivity.html">tofu.tests.tests09_tutorials.tuto_plot_custom_emissivity</a></li>
+<li><a href="tofu/utils.html">tofu.utils</a></li>
+</ul>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Oct 06, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,245 @@
+.. note::
+    :class: sphx-glr-download-link-note
+
+    Click :ref:`here <sphx_glr_download_auto_examples_tutorials_tuto_plot_gallery_fusion_machines.py>` to download the full example code
+.. rst-class:: sphx-glr-example-title
+
+.. _sphx_glr_auto_examples_tutorials_tuto_plot_gallery_fusion_machines.py:
+
+
+A gallery of Fusion Machines
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This tutorial functions as a gallery of fusion machines that can easily be
+loaded with `tofu`.
+
+We start by importing `tofu`.
+
+
+.. code-block:: default
+
+
+    import tofu as tf
+
+
+
+
+
+
+
+
+`tofu` provides a geometry helper function that allows creating a
+configuration with a single call.
+
+Some configurations are pre-defined, for example ITER's configuration.
+
+By printing the `config` object created, a text representation of its
+components is printed. This allows inspecting the component names, number
+of sections, color or visibility.
+
+
+.. code-block:: default
+
+
+    config = tf.load_config("ITER")  # create ITER configuration
+    print(config)
+
+
+
+
+
+.. rst-class:: sphx-glr-script-out
+
+ Out:
+
+ .. code-block:: none
+
+    tot. Struct  tot. occur  tot. points
+    -----------  ----------  -----------
+    27           759         671        
+
+    class  Name      SaveName                                     nP   noccur  move  color                     visible
+    -----  --------  -------------------------------------------  ---  ------  ----  ------------------------  -------
+    Ves    InnerV0   TFG_Ves_ExpITER_InnerV0_sh00000_Vers1.4.15   135  0       None  ( 0.0,  0.0,  0.0,  1.0)  True   
+    Ves    OuterV0   TFG_Ves_ExpITER_OuterV0_sh00000_Vers1.4.15   151  0       None  ( 0.0,  0.0,  0.0,  1.0)  True   
+    Ves    Cryostat  TFG_Ves_ExpITER_Cryostat_sh00000_Vers1.4.15  16   0       None  ( 0.0,  0.0,  0.0,  1.0)  True   
+    PFC    BLK01     TFG_PFC_ExpITER_BLK01_sh00000_Vers1.4.15     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK02     TFG_PFC_ExpITER_BLK02_sh00000_Vers1.4.15     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK03     TFG_PFC_ExpITER_BLK03_sh00000_Vers1.4.15     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK04     TFG_PFC_ExpITER_BLK04_sh00000_Vers1.4.15     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK05     TFG_PFC_ExpITER_BLK05_sh00000_Vers1.4.15     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK06     TFG_PFC_ExpITER_BLK06_sh00000_Vers1.4.15     6    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK07     TFG_PFC_ExpITER_BLK07_sh00000_Vers1.4.15     8    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK08     TFG_PFC_ExpITER_BLK08_sh00000_Vers1.4.15     10   18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK09     TFG_PFC_ExpITER_BLK09_sh00000_Vers1.4.15     9    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK10     TFG_PFC_ExpITER_BLK10_sh00000_Vers1.4.15     5    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK11     TFG_PFC_ExpITER_BLK11_sh00000_Vers1.4.15     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK12     TFG_PFC_ExpITER_BLK12_sh00000_Vers1.4.15     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK13     TFG_PFC_ExpITER_BLK13_sh00000_Vers1.4.15     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK14     TFG_PFC_ExpITER_BLK14_sh00000_Vers1.4.15     4    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK15     TFG_PFC_ExpITER_BLK15_sh00000_Vers1.4.15     4    18      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK16     TFG_PFC_ExpITER_BLK16_sh00000_Vers1.4.15     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK17     TFG_PFC_ExpITER_BLK17_sh00000_Vers1.4.15     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    BLK18     TFG_PFC_ExpITER_BLK18_sh00000_Vers1.4.15     4    36      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    Div1      TFG_PFC_ExpITER_Div1_sh00000_Vers1.4.15      76   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    Div2      TFG_PFC_ExpITER_Div2_sh00000_Vers1.4.15      11   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    Div3      TFG_PFC_ExpITER_Div3_sh00000_Vers1.4.15      60   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    Div4      TFG_PFC_ExpITER_Div4_sh00000_Vers1.4.15      10   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    Div5      TFG_PFC_ExpITER_Div5_sh00000_Vers1.4.15      60   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+    PFC    Div6      TFG_PFC_ExpITER_Div6_sh00000_Vers1.4.15      52   54      None  ( 0.8,  0.8,  0.8,  0.8)  True   
+
+
+
+
+To get a list of all available built-in configs, one has to know some details
+about `tofu`. Configurations can be accessed by names (ITER, WEST, JET, etc).
+
+
+.. code-block:: default
+
+
+    print(tf.geom.utils.get_available_config())
+
+
+
+
+
+.. rst-class:: sphx-glr-script-out
+
+ Out:
+
+ .. code-block:: none
+
+    A config is the geometry of a tokamak
+    You can define your own, see online tutorial at:
+            https://tofuproject.github.io/tofu/auto_examples/tutorials/tuto_plot_create_geometry.html
+    tofu also also provides some pre-defined config ready to load
+    They are available via their name or via shortcuts
+
+            unique names    shortcuts
+            ------------    -------------------------
+            - AUG-V1        ['AUG-V1', 'AUG']
+            - COMPASS-V0    ['COMPASS-V0', 'COMPASS']
+            - DEMO-2019     ['DEMO-2019', 'DEMO']
+            - ITER-V0       ['ITER-V0']
+            - ITER-V1       ['ITER-V1', 'A2']
+            - ITER-V2       ['ITER-V2', 'B4', 'ITER']
+            - JET-V0        ['JET-V0', 'JET']
+            - NSTX-V0       ['NSTX-V0', 'NSTX']
+            - TCV-V0        ['TCV-V0', 'TCV']
+            - TOMAS-V0      ['TOMAS-V0', 'TOMAS']
+            - WEST-Sep      ['WEST-Sep', 'A3']
+            - WEST-V0       ['WEST-V0']
+            - WEST-V1       ['WEST-V1', 'A1']
+            - WEST-V2       ['WEST-V2', 'B1']
+            - WEST-V3       ['WEST-V3', 'B2']
+            - WEST-V4       ['WEST-V4', 'B3', 'WEST']
+
+      => to get a pre-defined config, call for example:
+            config = tf.geom.utils.create_config('ITER')
+
+     => to also load coils add '-coils' to the config name, e.g.:
+            config = tf.geom.utils.create_config('ITER-coils')
+    None
+
+
+
+
+With that being said, let's create a gallery of the "top 3" fusion machines
+provided by `tofu` to accelerate diagnostic development.
+
+
+.. code-block:: default
+
+
+    for fusion_machine in ['ITER', 'WEST', 'JET', 'NSTX', 'AUG', 'DEMO', 'TOMAS',
+                           'COMPASS', 'TCV']:
+        config = tf.load_config(fusion_machine)
+        config.plot()
+
+
+
+.. rst-class:: sphx-glr-horizontal
+
+
+    *
+
+      .. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_gallery_fusion_machines_001.png
+            :class: sphx-glr-multi-img
+
+    *
+
+      .. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_gallery_fusion_machines_002.png
+            :class: sphx-glr-multi-img
+
+    *
+
+      .. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_gallery_fusion_machines_003.png
+            :class: sphx-glr-multi-img
+
+    *
+
+      .. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_gallery_fusion_machines_004.png
+            :class: sphx-glr-multi-img
+
+    *
+
+      .. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_gallery_fusion_machines_005.png
+            :class: sphx-glr-multi-img
+
+    *
+
+      .. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_gallery_fusion_machines_006.png
+            :class: sphx-glr-multi-img
+
+    *
+
+      .. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_gallery_fusion_machines_007.png
+            :class: sphx-glr-multi-img
+
+    *
+
+      .. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_gallery_fusion_machines_008.png
+            :class: sphx-glr-multi-img
+
+    *
+
+      .. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_gallery_fusion_machines_009.png
+            :class: sphx-glr-multi-img
+
+
+
+
+
+
+.. rst-class:: sphx-glr-timing
+
+   **Total running time of the script:** ( 0 minutes  3.483 seconds)
+
+
+.. _sphx_glr_download_auto_examples_tutorials_tuto_plot_gallery_fusion_machines.py:
+
+
+.. only :: html
+
+ .. container:: sphx-glr-footer
+    :class: sphx-glr-footer-example
+
+
+
+  .. container:: sphx-glr-download
+
+     :download:`Download Python source code: tuto_plot_gallery_fusion_machines.py <tuto_plot_gallery_fusion_machines.py>`
+
+
+
+  .. container:: sphx-glr-download
+
+     :download:`Download Jupyter notebook: tuto_plot_gallery_fusion_machines.ipynb <tuto_plot_gallery_fusion_machines.ipynb>`
+
+
+.. only:: html
+
+ .. rst-class:: sphx-glr-signature
+
+    `Gallery generated by Sphinx-Gallery <https://sphinx-gallery.github.io>`_

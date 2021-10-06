@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>tofu._physics &#8212; Tofu 1.4.15</title>
+    <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../installation.html">Installation</a></li>
+                <li><a href="../../contributing.html">Contributing</a></li>
+                <li><a href="../../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../../aboutus.html">About</a></li>
+                <li><a href="../../releases.html">Releases</a></li>
+                <li><a href="../../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for tofu._physics</h1><div class="highlight"><pre>
+<span></span>
+
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.constants</span> <span class="k">as</span> <span class="nn">scpct</span>
+
+
+
+<div class="viewcode-block" id="compute_bremzeff"><a class="viewcode-back" href="../../tofu.html#tofu._physics.compute_bremzeff">[docs]</a><span class="k">def</span> <span class="nf">compute_bremzeff</span><span class="p">(</span><span class="n">Te</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ne</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">zeff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lamb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return the bremsstrahlun spectral radiance at lamb</span>
+
+<span class="sd">    The plasma conditions are set by:</span>
+<span class="sd">        - Te   (eV)</span>
+<span class="sd">        - ne   (/m3)</span>
+<span class="sd">        - zeff (adim.)</span>
+
+<span class="sd">    The wavelength is set by the diagnostics</span>
+<span class="sd">        - lamb (m)</span>
+
+<span class="sd">    The vol. spectral emis. is returned in ph / (s.m3.sr.m)</span>
+
+<span class="sd">    The computation requires an intermediate : gff(Te, zeff)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ktkeV</span> <span class="o">=</span> <span class="n">Te</span> <span class="o">*</span> <span class="mf">1.e-3</span>
+    <span class="n">ktJ</span> <span class="o">=</span> <span class="n">Te</span> <span class="o">*</span> <span class="n">scpct</span><span class="o">.</span><span class="n">e</span>
+    <span class="n">gff</span> <span class="o">=</span> <span class="mf">5.54</span> <span class="o">-</span> <span class="p">(</span><span class="mf">3.11</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">ktkeV</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="mf">0.69</span><span class="o">-</span><span class="mf">0.13</span><span class="o">/</span><span class="n">zeff</span><span class="p">)</span>
+    <span class="n">Const</span> <span class="o">=</span> <span class="p">((</span><span class="n">scpct</span><span class="o">.</span><span class="n">e</span><span class="o">**</span><span class="mi">6</span><span class="o">/</span><span class="p">(</span><span class="n">scpct</span><span class="o">.</span><span class="n">h</span><span class="o">*</span><span class="n">scpct</span><span class="o">.</span><span class="n">c</span><span class="o">**</span><span class="mi">3</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">scpct</span><span class="o">.</span><span class="n">epsilon_0</span><span class="p">)</span><span class="o">**</span><span class="mi">3</span><span class="p">))</span>
+             <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="p">(</span><span class="mf">864.</span><span class="o">*</span><span class="n">scpct</span><span class="o">.</span><span class="n">m_e</span><span class="o">**</span><span class="mi">3</span><span class="p">)))</span>
+    <span class="n">hc</span> <span class="o">=</span> <span class="n">scpct</span><span class="o">.</span><span class="n">h</span><span class="o">*</span><span class="n">scpct</span><span class="o">.</span><span class="n">c</span>
+    <span class="n">emis</span> <span class="o">=</span> <span class="n">Const</span><span class="o">/</span><span class="n">lamb</span> <span class="o">*</span> <span class="n">ne</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">zeff</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">hc</span><span class="o">/</span><span class="p">(</span><span class="n">lamb</span><span class="o">*</span><span class="n">ktJ</span><span class="p">))</span> <span class="o">*</span> <span class="n">gff</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">ktJ</span><span class="p">)</span>
+    <span class="n">units</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;ph / (s.m3.sr.m)&#39;</span>
+    <span class="k">return</span> <span class="n">emis</span><span class="p">,</span> <span class="n">units</span></div>
+
+
+<div class="viewcode-block" id="compute_fangle"><a class="viewcode-back" href="../../tofu.html#tofu._physics.compute_fangle">[docs]</a><span class="k">def</span> <span class="nf">compute_fangle</span><span class="p">(</span><span class="n">BR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">BPhi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">BZ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ne</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lamb</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; The the vector quantity to be integrated on LOS to get faraday angle</span>
+
+<span class="sd">    fangle = int_LOS ( abs(sca(quant, u_LOS)) )</span>
+<span class="sd">    Where:</span>
+<span class="sd">        quant = C * lamb**2 * ne * Bv</span>
+
+<span class="sd">    With:</span>
+<span class="sd">        - C = 2.615e-13  (1/T)</span>
+<span class="sd">        - ne    (/m3)</span>
+<span class="sd">        - lamb  (m)</span>
+<span class="sd">        - Bv    (T)</span>
+
+<span class="sd">    The resulting faraday angle (after integration) will be in radians</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">const</span> <span class="o">=</span> <span class="n">scpct</span><span class="o">.</span><span class="n">e</span><span class="o">**</span><span class="mi">3</span> <span class="o">/</span> <span class="p">(</span><span class="mf">8.</span><span class="o">*</span><span class="n">scpct</span><span class="o">.</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span>
+                          <span class="o">*</span> <span class="n">scpct</span><span class="o">.</span><span class="n">epsilon_0</span> <span class="o">*</span> <span class="n">scpct</span><span class="o">.</span><span class="n">m_e</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">scpct</span><span class="o">.</span><span class="n">c</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">quant</span> <span class="o">=</span> <span class="n">const</span> <span class="o">*</span> <span class="n">lamb</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">ne</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">BR</span><span class="p">,</span> <span class="n">BPhi</span><span class="p">,</span> <span class="n">BZ</span><span class="p">])</span>
+    <span class="n">units</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;rad / m&#39;</span>
+    <span class="k">return</span> <span class="n">quant</span><span class="p">,</span> <span class="n">units</span></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Oct 06, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>tofu.data._comp &#8212; Tofu 1.4.15</title>
+    <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../installation.html">Installation</a></li>
+                <li><a href="../../../contributing.html">Contributing</a></li>
+                <li><a href="../../../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../../../aboutus.html">About</a></li>
+                <li><a href="../../../releases.html">Releases</a></li>
+                <li><a href="../../../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for tofu.data._comp</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1"># Builtin</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="c1"># Common</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.signal</span> <span class="k">as</span> <span class="nn">scpsig</span>
+<span class="kn">import</span> <span class="nn">scipy.interpolate</span> <span class="k">as</span> <span class="nn">scpinterp</span>
+<span class="kn">import</span> <span class="nn">scipy.linalg</span> <span class="k">as</span> <span class="nn">scplin</span>
+<span class="kn">import</span> <span class="nn">scipy.stats</span> <span class="k">as</span> <span class="nn">scpstats</span>
+<span class="kn">from</span> <span class="nn">matplotlib.tri</span> <span class="k">import</span> <span class="n">LinearTriInterpolator</span> <span class="k">as</span> <span class="n">mplTriLinInterp</span>
+
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_DataCollection_comp</span>
+
+
+<span class="n">_fmin_coef</span> <span class="o">=</span> <span class="mf">5.</span>
+<span class="n">_ANITYPE</span> <span class="o">=</span> <span class="s1">&#39;sca&#39;</span>
+<span class="n">_FILLVALUE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+
+<span class="c1">#############################################</span>
+<span class="c1">#############################################</span>
+<span class="c1">#############################################</span>
+<span class="c1">#       Spectrograms</span>
+<span class="c1">#############################################</span>
+<span class="c1">#############################################</span>
+
+
+<div class="viewcode-block" id="spectrogram"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp.spectrogram">[docs]</a><span class="k">def</span> <span class="nf">spectrogram</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span>
+                <span class="n">fmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;scipy-fourier&#39;</span><span class="p">,</span> <span class="n">deg</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">window</span><span class="o">=</span><span class="s1">&#39;hann&#39;</span><span class="p">,</span> <span class="n">detrend</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span>
+                <span class="n">nperseg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">noverlap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">boundary</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">padded</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">wave</span><span class="o">=</span><span class="s1">&#39;morlet&#39;</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+    <span class="c1"># Format/check inputs</span>
+    <span class="n">lm</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;scipy-fourier&#39;</span><span class="p">,</span> <span class="s1">&#39;scipy-stft&#39;</span><span class="p">]</span><span class="c1">#, &#39;scipy-wavelet&#39;]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">lm</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Alowed methods are:&quot;</span>
+        <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    - scipy-fourier: scipy.signal.spectrogram()&quot;</span>
+        <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    - scipy-stft: scipy.signal.stft()&quot;</span>
+        <span class="c1">#msg += &quot;\n    - scpipy-wavelet: scipy.signal.cwt()&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="o">==</span><span class="p">(</span><span class="n">nt</span><span class="p">,)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nt</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">t</span><span class="p">))</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nt</span><span class="p">)):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Time vector does not seem to be regularly increasing !&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+    <span class="n">fs</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="n">dt</span>
+
+    <span class="c1"># Compute</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;scipy-fourier&#39;</span><span class="p">,</span> <span class="s1">&#39;scipy-stft&#39;</span><span class="p">]:</span>
+        <span class="n">stft</span> <span class="o">=</span> <span class="s1">&#39;stft&#39;</span> <span class="ow">in</span> <span class="n">method</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">tf</span><span class="p">,</span> <span class="n">lpsd</span><span class="p">,</span> <span class="n">lang</span> <span class="o">=</span> <span class="n">_spectrogram_scipy_fourier</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span> <span class="n">fmin</span><span class="o">=</span><span class="n">fmin</span><span class="p">,</span>
+            <span class="n">stft</span><span class="o">=</span><span class="n">stft</span><span class="p">,</span> <span class="n">deg</span><span class="o">=</span><span class="n">deg</span><span class="p">,</span>
+            <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span>
+            <span class="n">nperseg</span><span class="o">=</span><span class="n">nperseg</span><span class="p">,</span>
+            <span class="n">noverlap</span><span class="o">=</span><span class="n">noverlap</span><span class="p">,</span>
+            <span class="n">detrend</span><span class="o">=</span><span class="n">detrend</span><span class="p">,</span>
+            <span class="n">boundary</span><span class="o">=</span><span class="n">boundary</span><span class="p">,</span>
+            <span class="n">padded</span><span class="o">=</span><span class="n">padded</span><span class="p">,</span>
+            <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">tf</span> <span class="o">=</span> <span class="n">tf</span> <span class="o">+</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">method</span><span class="o">==</span><span class="s1">&#39;scipy-wavelet&#39;</span><span class="p">:</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">lspect</span> <span class="o">=</span> <span class="n">_spectrogram_scipy_wavelet</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span>
+                                               <span class="n">fmin</span><span class="o">=</span><span class="n">fmin</span><span class="p">,</span> <span class="n">wave</span><span class="o">=</span><span class="n">wave</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">)</span>
+        <span class="n">tf</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">lpsd</span><span class="p">,</span> <span class="n">lang</span></div>
+
+
+<div class="viewcode-block" id="_spectrogram_scipy_fourier"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp._spectrogram_scipy_fourier">[docs]</a><span class="k">def</span> <span class="nf">_spectrogram_scipy_fourier</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span> <span class="n">fmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">window</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;tukey&#39;</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">),</span> <span class="n">deg</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                               <span class="n">nperseg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">noverlap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">detrend</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">stft</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                               <span class="n">boundary</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">padded</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return a spectrogram for each channel, and a common frequency vector</span>
+
+<span class="sd">    The min frequency of interest fmin fixes the nb. of pt. per seg. (if None)</span>
+<span class="sd">    The number of overlapping points is set to nperseg-1 if None</span>
+<span class="sd">    The choice of the window type is a trade-off between:</span>
+<span class="sd">        Spectral resolution between similar frequencies/amplitudes:</span>
+<span class="sd">            =&gt;</span>
+<span class="sd">        Dynamic range (lots of != frequencies of != amplitudes):</span>
+<span class="sd">            =&gt;</span>
+<span class="sd">        Compromise:</span>
+<span class="sd">            =&gt; &#39;hann&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Check inputs</span>
+    <span class="k">if</span> <span class="n">nperseg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fmin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fmin</span> <span class="o">=</span> <span class="n">_fmin_coef</span><span class="o">*</span><span class="p">(</span><span class="n">fs</span><span class="o">/</span><span class="n">nt</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;nperseg and fmin were not provided</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;    =&gt; fmin automatically set to 10.*fs/nt:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;       fmin = 10.*</span><span class="si">{0}</span><span class="s2"> / </span><span class="si">{1}</span><span class="s2"> = </span><span class="si">{2}</span><span class="s2"> Hz&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fs</span><span class="p">,</span><span class="n">nt</span><span class="p">,</span><span class="n">fmin</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># Format inputs</span>
+    <span class="k">if</span> <span class="n">nperseg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">fmin</span> <span class="o">&gt;</span> <span class="n">fs</span><span class="o">/</span><span class="n">nt</span>
+        <span class="n">nperseg</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">fs</span><span class="o">/</span><span class="n">fmin</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">nperseg</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">nperseg</span> <span class="o">=</span> <span class="n">nperseg</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">noverlap</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">noverlap</span> <span class="o">=</span> <span class="n">nperseg</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">nperseg</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
+    <span class="n">nfft</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="n">n</span>
+
+    <span class="c1"># Prepare output</span>
+    <span class="k">if</span> <span class="n">stft</span><span class="p">:</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">tf</span><span class="p">,</span> <span class="n">ssx</span> <span class="o">=</span> <span class="n">scpsig</span><span class="o">.</span><span class="n">stft</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
+                                 <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="n">nperseg</span><span class="o">=</span><span class="n">nperseg</span><span class="p">,</span>
+                                 <span class="n">noverlap</span><span class="o">=</span><span class="n">noverlap</span><span class="p">,</span> <span class="n">nfft</span><span class="o">=</span><span class="n">nfft</span><span class="p">,</span> <span class="n">detrend</span><span class="o">=</span><span class="n">detrend</span><span class="p">,</span>
+                                 <span class="n">return_onesided</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="n">boundary</span><span class="p">,</span>
+                                 <span class="n">padded</span><span class="o">=</span><span class="n">padded</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">tf</span><span class="p">,</span> <span class="n">ssx</span> <span class="o">=</span> <span class="n">scpsig</span><span class="o">.</span><span class="n">spectrogram</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
+                                        <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="n">nperseg</span><span class="o">=</span><span class="n">nperseg</span><span class="p">,</span>
+                                        <span class="n">noverlap</span><span class="o">=</span><span class="n">noverlap</span><span class="p">,</span> <span class="n">nfft</span><span class="o">=</span><span class="n">nfft</span><span class="p">,</span>
+                                        <span class="n">detrend</span><span class="o">=</span><span class="n">detrend</span><span class="p">,</span> <span class="n">return_onesided</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                        <span class="n">scaling</span><span class="o">=</span><span class="s1">&#39;density&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                        <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;complex&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Split in list (per channel)</span>
+    <span class="n">lssx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">ssx</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">nch</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">lssx</span> <span class="o">=</span> <span class="p">[</span><span class="n">ss</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">T</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lssx</span><span class="p">]</span>
+    <span class="n">lpsd</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lssx</span><span class="p">]</span>
+    <span class="n">lang</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">ss</span><span class="p">,</span> <span class="n">deg</span><span class="o">=</span><span class="n">deg</span><span class="p">)</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lssx</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">f</span><span class="p">,</span> <span class="n">tf</span><span class="p">,</span> <span class="n">lpsd</span><span class="p">,</span> <span class="n">lang</span></div>
+
+
+<div class="viewcode-block" id="_spectrogram_scipy_wavelet"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp._spectrogram_scipy_wavelet">[docs]</a><span class="k">def</span> <span class="nf">_spectrogram_scipy_wavelet</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span> <span class="n">fmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wave</span><span class="o">=</span><span class="s1">&#39;morlet&#39;</span><span class="p">,</span>
+                               <span class="n">warn</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="n">wave</span><span class="o">!=</span><span class="s1">&#39;morlet&#39;</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Only the morlet wavelet implmented so far !&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+
+    <span class="c1"># Check inputs</span>
+    <span class="k">if</span> <span class="n">fmin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fmin</span> <span class="o">=</span> <span class="n">_fmin_coef</span><span class="o">*</span><span class="p">(</span><span class="n">fs</span><span class="o">/</span><span class="n">nt</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;fmin was not provided =&gt; set to 10.*fs/nt&quot;</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">nw</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="mf">1.</span><span class="o">/</span><span class="n">fmin</span><span class="o">-</span><span class="mf">2.</span><span class="o">/</span><span class="n">fs</span><span class="p">)</span><span class="o">*</span><span class="n">fs</span><span class="p">)</span>
+    <span class="n">widths</span> <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">fmin</span><span class="p">,</span><span class="n">fs</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span><span class="n">nw</span><span class="p">)</span>
+    <span class="n">wave</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="s1">&#39;scpsig.</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="n">wave</span><span class="p">)</span>
+
+    <span class="n">lcwt</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">nch</span><span class="p">):</span>
+        <span class="n">cwt</span> <span class="o">=</span> <span class="n">scpsig</span><span class="o">.</span><span class="n">cwt</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span><span class="n">ii</span><span class="p">],</span> <span class="n">wave</span><span class="p">,</span> <span class="n">widths</span><span class="p">)</span>
+        <span class="n">lcwt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">cwt</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="n">widths</span><span class="o">/</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">f</span><span class="p">,</span> <span class="n">lcwt</span></div>
+
+
+
+<span class="c1">#############################################</span>
+<span class="c1">#############################################</span>
+<span class="c1">#############################################</span>
+<span class="c1">#       SVD</span>
+<span class="c1">#############################################</span>
+<span class="c1">#############################################</span>
+
+<div class="viewcode-block" id="calc_svd"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp.calc_svd">[docs]</a><span class="k">def</span> <span class="nf">calc_svd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">lapack_driver</span><span class="o">=</span><span class="s1">&#39;gesdd&#39;</span><span class="p">):</span>
+    <span class="n">chronos</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">topos</span> <span class="o">=</span> <span class="n">scplin</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">compute_uv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                   <span class="n">overwrite_a</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">check_finite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                   <span class="n">lapack_driver</span><span class="o">=</span><span class="n">lapack_driver</span><span class="p">)</span>
+
+    <span class="c1"># Test if reversed correlation</span>
+    <span class="n">lind</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nanargmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nanargmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
+            <span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">lind</span><span class="p">),</span><span class="mi">2</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">lind</span><span class="p">)):</span>
+        <span class="n">corr</span><span class="p">[</span><span class="n">ii</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">scpstats</span><span class="o">.</span><span class="n">pearsonr</span><span class="p">(</span><span class="n">chronos</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="p">[:,</span><span class="n">lind</span><span class="p">[</span><span class="n">ii</span><span class="p">]])</span>
+
+    <span class="n">ind</span> <span class="o">=</span> <span class="n">corr</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.05</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
+        <span class="n">corr</span> <span class="o">=</span> <span class="n">corr</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">corr</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">corr</span><span class="p">))]</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">:</span>
+            <span class="n">chronos</span><span class="p">,</span> <span class="n">topos</span> <span class="o">=</span> <span class="o">-</span><span class="n">chronos</span><span class="p">,</span> <span class="o">-</span><span class="n">topos</span>
+
+    <span class="k">return</span> <span class="n">chronos</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">topos</span></div>
+
+
+
+
+
+<span class="c1">#############################################</span>
+<span class="c1">#############################################</span>
+<span class="c1">#############################################</span>
+<span class="c1">#       Filtering</span>
+<span class="c1">#############################################</span>
+<span class="c1">#############################################</span>
+
+
+<div class="viewcode-block" id="filter_bandpass_fourier"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp.filter_bandpass_fourier">[docs]</a><span class="k">def</span> <span class="nf">filter_bandpass_fourier</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;stft&#39;</span><span class="p">,</span> <span class="n">detrend</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span>
+                            <span class="n">df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">df_out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harm_out</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return bandpass FFT-filtered signal (and the rest)</span>
+
+<span class="sd">    Optionnally include all higher harmonics</span>
+<span class="sd">    Can also exclude a frequency interval and its higher harmonics</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    t :         np.ndarray</span>
+<span class="sd">        1D array, monotonously increasing time vector with regular spacing</span>
+<span class="sd">    data :      np.ndarray</span>
+<span class="sd">        1 or 2D array, with shape[0]=t.size, the data to be filtered</span>
+<span class="sd">    method:     str</span>
+<span class="sd">        Flag indicating which method to use:</span>
+<span class="sd">            - &#39;rfft&#39;:   scipy.fftpack.rfft</span>
+<span class="sd">            - &#39;stft&#39;:   scipy.signal.stft</span>
+<span class="sd">    df :        None / list</span>
+<span class="sd">        List or tuple of len()=2, containing the bandpass lower / upper bounds</span>
+<span class="sd">    harm :      bool</span>
+<span class="sd">        If True all the higher harmonics of df will also be included</span>
+<span class="sd">    df_out :    None / list</span>
+<span class="sd">        List or tuple of len()=2, containing the bandpass lower / upper bounds</span>
+<span class="sd">        to be excluded from filtering (if overlaps with high harmonics of df)</span>
+<span class="sd">    harm_out :  bool</span>
+<span class="sd">        If True, the higher harmonics of the interval df_out are also excluded</span>
+<span class="sd">    Test :      bool</span>
+<span class="sd">        If True tests all the input arguments for any mistake</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    In :        np.ndarray</span>
+<span class="sd">        Array with shape=data.shape, filtered signal retrieved from inverse FFT</span>
+<span class="sd">    Out :       np.ndarray</span>
+<span class="sd">        Array with shape=data.shape, excluded signal from filtering</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Check / format inputs</span>
+    <span class="k">assert</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">2</span> <span class="ow">and</span> <span class="n">t</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">1</span>
+    <span class="k">assert</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">size</span><span class="p">,)</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">t</span><span class="p">))</span><span class="o">&lt;=</span><span class="mf">1.e-12</span>
+    <span class="k">assert</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;rfft&#39;</span><span class="p">,</span><span class="s1">&#39;stft&#39;</span><span class="p">]</span>
+    <span class="n">lC</span> <span class="o">=</span> <span class="p">[</span><span class="n">df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">df_out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">lC</span><span class="p">)</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;At least one of df or df_out must be provided !&quot;</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">harm</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">harm_out</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span>
+    <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="o">==</span><span class="p">(</span><span class="mi">2</span><span class="p">,)</span>
+    <span class="k">if</span> <span class="n">df_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">df_out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">df_out</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">df_out</span><span class="o">.</span><span class="n">shape</span><span class="o">==</span><span class="p">(</span><span class="mi">2</span><span class="p">,)</span>
+
+    <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+    <span class="n">fs</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="n">dt</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;rfft&#39;</span><span class="p">:</span>
+        <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span> <span class="o">=</span> <span class="n">_filter_bandpass_rfft</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span>
+                                                  <span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">harm</span><span class="o">=</span><span class="n">harm</span><span class="p">,</span>
+                                                  <span class="n">df_out</span><span class="o">=</span><span class="n">df_out</span><span class="p">,</span>
+                                                  <span class="n">harm_out</span><span class="o">=</span><span class="n">harm_out</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;stft&#39;</span><span class="p">:</span>
+        <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span> <span class="o">=</span> <span class="n">_filter_bandpass_stft</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span>
+                                                  <span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">harm</span><span class="o">=</span><span class="n">harm</span><span class="p">,</span>
+                                                  <span class="n">df_out</span><span class="o">=</span><span class="n">df_out</span><span class="p">,</span>
+                                                  <span class="n">harm_out</span><span class="o">=</span><span class="n">harm_out</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_filter_bandpass_rfft"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp._filter_bandpass_rfft">[docs]</a><span class="k">def</span> <span class="nf">_filter_bandpass_rfft</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span>
+                          <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
+
+    <span class="c1"># Get frequency</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftfreq</span><span class="p">(</span><span class="n">nt</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="n">f</span><span class="o">&gt;=</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">nt</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">dt</span><span class="o">*</span><span class="n">nt</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">nf</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">size</span>
+
+    <span class="c1"># Get rfft</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="n">nf</span><span class="p">,</span> <span class="s2">&quot;Problem with frequency scale !&quot;</span>
+
+    <span class="c1"># Intervals of interest for reconstruction</span>
+    <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">indin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">nf</span><span class="p">,),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">indin</span> <span class="o">=</span> <span class="p">(</span><span class="n">f</span><span class="o">&gt;=</span><span class="n">df</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">&lt;=</span><span class="n">df</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">harm</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="n">df</span><span class="p">[</span><span class="mi">0</span><span class="p">]))):</span>
+                <span class="n">indin</span> <span class="o">=</span> <span class="n">indin</span> <span class="o">|</span> <span class="p">((</span><span class="n">f</span><span class="o">&gt;=</span><span class="n">df</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">ii</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">&lt;=</span><span class="n">df</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">ii</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">df_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">indin</span> <span class="o">=</span> <span class="n">indin</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">((</span><span class="n">f</span><span class="o">&gt;=</span><span class="n">df_out</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">&lt;=</span><span class="n">df_out</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">harm_out</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="n">df_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]))):</span>
+                <span class="n">indin</span> <span class="o">=</span> <span class="n">indin</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">((</span><span class="n">f</span><span class="o">&gt;=</span><span class="n">df_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">ii</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">&lt;=</span><span class="n">df_out</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">ii</span><span class="p">))</span>
+
+    <span class="c1"># Reconstructing</span>
+    <span class="n">Aphys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+    <span class="n">Aphys</span><span class="p">[</span><span class="o">~</span><span class="n">indin</span><span class="p">,:]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">A</span><span class="p">[</span><span class="n">indin</span><span class="p">,:]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">irfft</span><span class="p">(</span><span class="n">Aphys</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">irfft</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_filter_bandpass_stft"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp._filter_bandpass_stft">[docs]</a><span class="k">def</span> <span class="nf">_filter_bandpass_stft</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span>
+                          <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
+
+    <span class="c1"># Get stft</span>
+    <span class="n">f</span><span class="p">,</span> <span class="n">tf</span><span class="p">,</span> <span class="n">ssx</span> <span class="o">=</span> <span class="n">scpsig</span><span class="o">.</span><span class="n">stft</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
+                             <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="n">nperseg</span><span class="o">=</span><span class="n">nperseg</span><span class="p">,</span>
+                             <span class="n">noverlap</span><span class="o">=</span><span class="n">noverlap</span><span class="p">,</span> <span class="n">nfft</span><span class="o">=</span><span class="n">nfft</span><span class="p">,</span> <span class="n">detrend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                             <span class="n">return_onesided</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="n">boundary</span><span class="p">,</span>
+                             <span class="n">padded</span><span class="o">=</span><span class="n">padded</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">ssx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">ssx</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">nf</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">size</span>
+
+    <span class="c1"># Intervals of interest for reconstruction</span>
+    <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">indin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">nf</span><span class="p">,),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">indin</span> <span class="o">=</span> <span class="p">(</span><span class="n">f</span><span class="o">&gt;=</span><span class="n">df</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">&lt;=</span><span class="n">df</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">harm</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="n">df</span><span class="p">[</span><span class="mi">0</span><span class="p">]))):</span>
+                <span class="n">indin</span> <span class="o">=</span> <span class="n">indin</span> <span class="o">|</span> <span class="p">((</span><span class="n">f</span><span class="o">&gt;=</span><span class="n">df</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">ii</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">&lt;=</span><span class="n">df</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">ii</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">df_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">indin</span> <span class="o">=</span> <span class="n">indin</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">((</span><span class="n">f</span><span class="o">&gt;=</span><span class="n">df_out</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">&lt;=</span><span class="n">df_out</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">harm_out</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="n">df_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]))):</span>
+                <span class="n">indin</span> <span class="o">=</span> <span class="n">indin</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">((</span><span class="n">f</span><span class="o">&gt;=</span><span class="n">df_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">ii</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">&lt;=</span><span class="n">df_out</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">ii</span><span class="p">))</span>
+
+    <span class="c1"># Reconstructing</span>
+    <span class="n">ssxphys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">ssx</span><span class="p">)</span>
+    <span class="n">ssxphys</span><span class="p">[</span><span class="o">~</span><span class="n">indin</span><span class="p">,:]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">ssx</span><span class="p">[</span><span class="n">indin</span><span class="p">,:]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">data_in</span> <span class="o">=</span> <span class="n">scpsig</span><span class="o">.</span><span class="n">istft</span><span class="p">(</span><span class="n">ssxphys</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="n">nperseg</span><span class="o">=</span><span class="n">nperseg</span><span class="p">,</span>
+                           <span class="n">noverlap</span><span class="o">=</span><span class="n">noverlap</span><span class="p">,</span> <span class="n">nfft</span><span class="o">=</span><span class="n">nfft</span><span class="p">,</span>
+                           <span class="n">input_onesided</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="n">boundary</span><span class="p">,</span>
+                           <span class="n">time_axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">freq_axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">data_out</span> <span class="o">=</span> <span class="n">scpsig</span><span class="o">.</span><span class="n">istft</span><span class="p">(</span><span class="n">ssx</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="n">nperseg</span><span class="o">=</span><span class="n">nperseg</span><span class="p">,</span>
+                            <span class="n">noverlap</span><span class="o">=</span><span class="n">noverlap</span><span class="p">,</span> <span class="n">nfft</span><span class="o">=</span><span class="n">nfft</span><span class="p">,</span>
+                            <span class="n">input_onesided</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="n">boundary</span><span class="p">,</span>
+                            <span class="n">time_axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">freq_axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span></div>
+
+
+
+
+<div class="viewcode-block" id="filter_svd"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp.filter_svd">[docs]</a><span class="k">def</span> <span class="nf">filter_svd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">lapack_driver</span><span class="o">=</span><span class="s1">&#39;gesdd&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">[]):</span>
+    <span class="sd">&quot;&quot;&quot; Return the svd-filtered signal using only the selected mode</span>
+
+<span class="sd">    Provide the indices of the modes desired</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Check input</span>
+    <span class="n">modes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">modes</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">modes</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">1</span>
+    <span class="k">assert</span> <span class="n">modes</span><span class="o">.</span><span class="n">size</span><span class="o">&gt;=</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;No modes selected !&quot;</span>
+
+    <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">scplin</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">compute_uv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                         <span class="n">overwrite_a</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">check_finite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                         <span class="n">lapack_driver</span><span class="o">=</span><span class="n">lapack_driver</span><span class="p">)</span>
+    <span class="n">indout</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">s</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">indout</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">indout</span><span class="p">,</span> <span class="n">modes</span><span class="p">)</span>
+
+    <span class="n">data_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">u</span><span class="p">[:,</span><span class="n">modes</span><span class="p">]</span><span class="o">*</span><span class="n">s</span><span class="p">[</span><span class="n">modes</span><span class="p">],</span><span class="n">v</span><span class="p">[</span><span class="n">modes</span><span class="p">,:])</span>
+    <span class="n">data_out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">u</span><span class="p">[:,</span><span class="n">indout</span><span class="p">]</span><span class="o">*</span><span class="n">s</span><span class="p">[</span><span class="n">indout</span><span class="p">],</span><span class="n">v</span><span class="p">[</span><span class="n">indout</span><span class="p">,:])</span>
+    <span class="k">return</span> <span class="n">data_in</span><span class="p">,</span> <span class="n">data_out</span></div>
+
+
+<span class="c1">#############################################</span>
+<span class="c1">#############################################</span>
+<span class="c1">#############################################</span>
+<span class="c1">#       Interpolating</span>
+<span class="c1">#############################################</span>
+<span class="c1">#############################################</span>
+
+
+<div class="viewcode-block" id="get_finterp_isotropic"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp.get_finterp_isotropic">[docs]</a><span class="k">def</span> <span class="nf">get_finterp_isotropic</span><span class="p">(</span>
+    <span class="n">idquant</span><span class="p">,</span> <span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="p">,</span>
+    <span class="n">vquant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vr1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vr2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">interp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">idmesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">tall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">indtq</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indtr1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">mpltri</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trifind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="k">if</span> <span class="n">fill_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fill_value</span> <span class="o">=</span> <span class="n">_FILLVALUE</span>
+    <span class="k">if</span> <span class="n">interp_t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">interp_t</span> <span class="o">=</span> <span class="s1">&#39;nearest&#39;</span>
+
+    <span class="c1"># -----------------------------------</span>
+    <span class="c1"># Interpolate directly on 2d quantity</span>
+    <span class="c1"># -----------------------------------</span>
+    <span class="k">if</span> <span class="n">idref1d</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="c1"># --------------------</span>
+        <span class="c1"># Linear interpolation</span>
+        <span class="k">if</span> <span class="n">interp_space</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+
+            <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntall</span><span class="o">=</span><span class="n">ntall</span><span class="p">,</span>
+                     <span class="n">mplTriLinInterp</span><span class="o">=</span><span class="n">mplTriLinInterp</span><span class="p">,</span>
+                     <span class="n">mpltri</span><span class="o">=</span><span class="n">mpltri</span><span class="p">,</span> <span class="n">trifind</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                     <span class="n">vquant</span><span class="o">=</span><span class="n">vquant</span><span class="p">,</span> <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                     <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                     <span class="n">idref1d</span><span class="o">=</span><span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="n">idref2d</span><span class="p">):</span>
+
+                <span class="n">r</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="n">shapeval</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="n">shapeval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntall</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
+
+                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_DataCollection_comp</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                    <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
+                    <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                    <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                <span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                    <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                    <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
+                        <span class="n">mpltri</span><span class="p">,</span>
+                        <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                        <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                    <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">fill_value</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">fill_value</span><span class="p">):</span>
+                    <span class="n">val</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fill_value</span>
+                <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tall</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
+                <span class="k">return</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span>
+
+        <span class="c1"># --------------------</span>
+        <span class="c1"># Degree 0 interpolation</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntall</span><span class="o">=</span><span class="n">ntall</span><span class="p">,</span>
+                     <span class="n">trifind</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                     <span class="n">vquant</span><span class="o">=</span><span class="n">vquant</span><span class="p">,</span> <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                     <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                     <span class="n">idref1d</span><span class="o">=</span><span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="n">idref2d</span><span class="p">):</span>
+
+                <span class="n">r</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]),</span> <span class="n">pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,:]</span>
+                <span class="n">shapeval</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="n">shapeval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntall</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
+
+                <span class="n">indpts</span> <span class="o">=</span> <span class="n">trifind</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">z</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indpts</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                    <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span> <span class="o">=</span> <span class="n">indpts</span>
+                    <span class="n">indok</span> <span class="o">=</span> <span class="p">(</span><span class="n">indr</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">indz</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">indr</span> <span class="o">=</span> <span class="n">indr</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+                    <span class="n">indz</span> <span class="o">=</span> <span class="n">indz</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">indok</span> <span class="o">=</span> <span class="n">indpts</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
+                    <span class="n">indpts</span> <span class="o">=</span> <span class="n">indpts</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+
+                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_DataCollection_comp</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                    <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
+                    <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                    <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                <span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indpts</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                        <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                        <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                        <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                        <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indpts</span><span class="p">]</span>
+
+
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">fill_value</span><span class="p">):</span>
+                    <span class="n">val</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fill_value</span>
+                <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tall</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
+                <span class="k">return</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span>
+
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">interp_space</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+
+            <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntall</span><span class="o">=</span><span class="n">ntall</span><span class="p">,</span>
+                     <span class="n">mplTriLinInterp</span><span class="o">=</span><span class="n">mplTriLinInterp</span><span class="p">,</span>
+                     <span class="n">mpltri</span><span class="o">=</span><span class="n">mpltri</span><span class="p">,</span> <span class="n">trifind</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                     <span class="n">vquant</span><span class="o">=</span><span class="n">vquant</span><span class="p">,</span> <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                     <span class="n">interp_space</span><span class="o">=</span><span class="n">interp_space</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span>
+                     <span class="n">vr1</span><span class="o">=</span><span class="n">vr1</span><span class="p">,</span> <span class="n">indtr1</span><span class="o">=</span><span class="n">indtr1</span><span class="p">,</span> <span class="n">vr2</span><span class="o">=</span><span class="n">vr2</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="n">indtr2</span><span class="p">,</span>
+                     <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                     <span class="n">idref1d</span><span class="o">=</span><span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="n">idref2d</span><span class="p">):</span>
+
+                <span class="n">r</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]),</span> <span class="n">pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,:]</span>
+                <span class="n">shapeval</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="n">shapeval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntall</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
+                <span class="n">t0tri</span><span class="p">,</span> <span class="n">t0int</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span>
+
+                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span><span class="p">,</span> <span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span> <span class="o">=</span> \
+                        <span class="n">_DataCollection_comp</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                            <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                            <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                            <span class="n">indtr1</span><span class="o">=</span><span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="n">indtr2</span><span class="p">,</span>
+                        <span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
+
+                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                    <span class="c1"># get ref values for mapping</span>
+                    <span class="n">vii</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
+                        <span class="n">mpltri</span><span class="p">,</span>
+                        <span class="n">vr2</span><span class="p">[</span><span class="n">indtr2</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                        <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                    <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+
+                    <span class="c1"># interpolate 1d</span>
+                    <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                    <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">scpinterp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span>
+                        <span class="n">vr1</span><span class="p">[</span><span class="n">indtr1</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                        <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                        <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span>
+                        <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span>
+                    <span class="p">)(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vii</span><span class="p">))</span>
+
+                <span class="n">val</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fill_value</span>
+                <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tall</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
+                <span class="k">return</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntall</span><span class="o">=</span><span class="n">ntall</span><span class="p">,</span>
+                     <span class="n">trifind</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                     <span class="n">vquant</span><span class="o">=</span><span class="n">vquant</span><span class="p">,</span> <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                     <span class="n">interp_space</span><span class="o">=</span><span class="n">interp_space</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span>
+                     <span class="n">vr1</span><span class="o">=</span><span class="n">vr1</span><span class="p">,</span> <span class="n">indtr1</span><span class="o">=</span><span class="n">indtr1</span><span class="p">,</span> <span class="n">vr2</span><span class="o">=</span><span class="n">vr2</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="n">indtr2</span><span class="p">,</span>
+                     <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                     <span class="n">idref1d</span><span class="o">=</span><span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="n">idref2d</span><span class="p">):</span>
+
+                <span class="n">r</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]),</span> <span class="n">pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,:]</span>
+                <span class="n">shapeval</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="n">shapeval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntall</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
+
+                <span class="n">indpts</span> <span class="o">=</span> <span class="n">trifind</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">z</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indpts</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                    <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span> <span class="o">=</span> <span class="n">indpts</span>
+                    <span class="n">indok</span> <span class="o">=</span> <span class="p">(</span><span class="n">indr</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">indz</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">indr</span> <span class="o">=</span> <span class="n">indr</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+                    <span class="n">indz</span> <span class="o">=</span> <span class="n">indz</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">indok</span> <span class="o">=</span> <span class="n">indpts</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
+                    <span class="n">indpts</span> <span class="o">=</span> <span class="n">indpts</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+
+                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span><span class="p">,</span> <span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span> <span class="o">=</span> \
+                        <span class="n">_DataCollection_comp</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                            <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                            <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                            <span class="n">indtr1</span><span class="o">=</span><span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="n">indtr2</span><span class="p">,</span>
+                        <span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indpts</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                        <span class="c1"># interpolate 1d</span>
+                        <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                        <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">scpinterp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span>
+                            <span class="n">vr1</span><span class="p">[</span><span class="n">indtr1</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                            <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                            <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span>
+                            <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span>
+                        <span class="p">)(</span><span class="n">vr2</span><span class="p">[</span><span class="n">indtr2</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                        <span class="c1"># interpolate 1d</span>
+                        <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                        <span class="n">val</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">scpinterp</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span>
+                            <span class="n">vr1</span><span class="p">[</span><span class="n">indtr1</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                            <span class="n">vquant</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                            <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span>
+                            <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span>
+                        <span class="p">)(</span><span class="n">vr2</span><span class="p">[</span><span class="n">indtr2</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indpts</span><span class="p">])</span>
+
+                <span class="c1"># Double check nan in case vr2 is itself nan on parts of mesh</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">fill_value</span><span class="p">):</span>
+                    <span class="n">val</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fill_value</span>
+                <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tall</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
+                <span class="k">return</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span>
+    <span class="k">return</span> <span class="n">func</span></div>
+
+
+<div class="viewcode-block" id="get_finterp_ani"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._comp.get_finterp_ani">[docs]</a><span class="k">def</span> <span class="nf">get_finterp_ani</span><span class="p">(</span>
+    <span class="n">idq2dR</span><span class="p">,</span> <span class="n">idq2dPhi</span><span class="p">,</span> <span class="n">idq2dZ</span><span class="p">,</span>
+    <span class="n">interp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">fill_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mpltri</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">idmesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vq2dR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">vq2dPhi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vq2dZ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">tall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">indtq</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trifind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="c1"># -----------------------------------</span>
+    <span class="c1"># Interpolate directly on 2d quantity</span>
+    <span class="c1"># -----------------------------------</span>
+
+    <span class="k">if</span> <span class="n">Type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">Type</span> <span class="o">=</span> <span class="n">_ANITYPE</span>
+    <span class="k">if</span> <span class="n">fill_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fill_value</span> <span class="o">=</span> <span class="n">_FILLVALUE</span>
+    <span class="k">if</span> <span class="n">interp_t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">interp_t</span> <span class="o">=</span> <span class="s1">&#39;nearest&#39;</span>
+
+    <span class="c1"># --------------------</span>
+    <span class="c1"># Linear interpolation</span>
+    <span class="k">if</span> <span class="n">interp_space</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntall</span><span class="o">=</span><span class="n">ntall</span><span class="p">,</span>
+                 <span class="n">mplTriLinInterp</span><span class="o">=</span><span class="n">mplTriLinInterp</span><span class="p">,</span>
+                 <span class="n">mpltri</span><span class="o">=</span><span class="n">mpltri</span><span class="p">,</span> <span class="n">trifind</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                 <span class="n">vq2dR</span><span class="o">=</span><span class="n">vq2dR</span><span class="p">,</span> <span class="n">vq2dPhi</span><span class="o">=</span><span class="n">vq2dPhi</span><span class="p">,</span>
+                 <span class="n">vq2dZ</span><span class="o">=</span><span class="n">vq2dZ</span><span class="p">,</span> <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                 <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">):</span>
+
+            <span class="c1"># Get pts in (r,z,phi)</span>
+            <span class="n">r</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span>
+
+            <span class="c1"># Deduce vect in (r,z,phi)</span>
+            <span class="n">vR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">vPhi</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">vZ</span> <span class="o">=</span> <span class="n">vect</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+
+            <span class="c1"># Prepare output</span>
+            <span class="n">shapeval</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="n">shapeval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntall</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span>
+            <span class="n">valR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
+            <span class="n">valPhi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
+            <span class="n">valZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
+
+            <span class="c1"># Interpolate</span>
+            <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_DataCollection_comp</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
+                <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+            <span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                <span class="n">valR</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
+                    <span class="n">mpltri</span><span class="p">,</span>
+                    <span class="n">vq2dR</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                    <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+                <span class="n">valPhi</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
+                    <span class="n">mpltri</span><span class="p">,</span>
+                    <span class="n">vq2dPhi</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                    <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+                <span class="n">valZ</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mplTriLinInterp</span><span class="p">(</span>
+                    <span class="n">mpltri</span><span class="p">,</span>
+                    <span class="n">vq2dZ</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="p">:],</span>
+                    <span class="n">trifinder</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                <span class="p">)(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">Type</span> <span class="o">==</span> <span class="s1">&#39;sca&#39;</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="p">(</span><span class="n">valR</span><span class="o">*</span><span class="n">vR</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">valPhi</span><span class="o">*</span><span class="n">vPhi</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+                       <span class="o">+</span> <span class="n">valZ</span><span class="o">*</span><span class="n">vZ</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span>
+            <span class="k">elif</span> <span class="n">Type</span> <span class="o">==</span> <span class="s1">&#39;abs(sca)&#39;</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">valR</span><span class="o">*</span><span class="n">vR</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">valPhi</span><span class="o">*</span><span class="n">vPhi</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+                             <span class="o">+</span> <span class="n">valZ</span><span class="o">*</span><span class="n">vZ</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span>
+
+            <span class="n">val</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fill_value</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tall</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
+            <span class="k">return</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span>
+
+    <span class="c1"># --------------------</span>
+    <span class="c1"># Degree 0 interpolation</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ntall</span><span class="o">=</span><span class="n">ntall</span><span class="p">,</span>
+                 <span class="n">trifind</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                 <span class="n">vq2dR</span><span class="o">=</span><span class="n">vq2dR</span><span class="p">,</span> <span class="n">vq2dPhi</span><span class="o">=</span><span class="n">vq2dPhi</span><span class="p">,</span>
+                 <span class="n">vq2dZ</span><span class="o">=</span><span class="n">vq2dZ</span><span class="p">,</span> <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                 <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">):</span>
+
+            <span class="c1"># Get pts in (r,z,phi)</span>
+            <span class="n">r</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span>
+
+            <span class="c1"># Deduce vect in (r,z,phi)</span>
+            <span class="n">vR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">vPhi</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span><span class="o">*</span><span class="n">vect</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">vZ</span> <span class="o">=</span> <span class="n">vect</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+
+            <span class="c1"># Prepare output</span>
+            <span class="n">shapeval</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="n">shapeval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntall</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span>
+            <span class="n">valR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
+            <span class="n">valPhi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
+            <span class="n">valZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
+
+            <span class="c1"># Interpolate</span>
+            <span class="n">indpts</span> <span class="o">=</span> <span class="n">trifind</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indpts</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span> <span class="o">=</span> <span class="n">trifind</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+                <span class="n">indok</span> <span class="o">=</span> <span class="p">(</span><span class="n">indr</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">indz</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">indr</span> <span class="o">=</span> <span class="n">indr</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+                <span class="n">indz</span> <span class="o">=</span> <span class="n">indz</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">indok</span> <span class="o">=</span> <span class="n">indpts</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">indpts</span> <span class="o">=</span> <span class="n">indpts</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
+
+            <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_DataCollection_comp</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
+                <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
+                <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+            <span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indpts</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                    <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                    <span class="n">valR</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dR</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span><span class="p">]</span>
+                    <span class="n">valPhi</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dPhi</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span><span class="p">]</span>
+                    <span class="n">valZ</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dZ</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indr</span><span class="p">,</span> <span class="n">indz</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ntall</span><span class="p">):</span>
+                    <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span> <span class="o">==</span> <span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+                    <span class="n">valR</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dR</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indpts</span><span class="p">]</span>
+                    <span class="n">valPhi</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dPhi</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indpts</span><span class="p">]</span>
+                    <span class="n">valZ</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="n">indok</span><span class="p">]</span> <span class="o">=</span> <span class="n">vq2dZ</span><span class="p">[</span><span class="n">indtq</span><span class="p">[</span><span class="n">indtu</span><span class="p">[</span><span class="n">ii</span><span class="p">]],</span> <span class="n">indpts</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">Type</span> <span class="o">==</span> <span class="s1">&#39;sca&#39;</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="p">(</span><span class="n">valR</span><span class="o">*</span><span class="n">vR</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">valPhi</span><span class="o">*</span><span class="n">vPhi</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+                       <span class="o">+</span> <span class="n">valZ</span><span class="o">*</span><span class="n">vZ</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span>
+            <span class="k">elif</span> <span class="n">Type</span> <span class="o">==</span> <span class="s1">&#39;abs(sca)&#39;</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">valR</span><span class="o">*</span><span class="n">vR</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">valPhi</span><span class="o">*</span><span class="n">vPhi</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+                             <span class="o">+</span> <span class="n">valZ</span><span class="o">*</span><span class="n">vZ</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span>
+
+            <span class="n">val</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fill_value</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tall</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">tall</span>
+            <span class="k">return</span> <span class="n">val</span><span class="p">,</span> <span class="n">t</span>
+    <span class="k">return</span> <span class="n">func</span></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Oct 06, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
