@@ -65,7 +65,7 @@ ax.scatter(pts[0, :], pts[1, :],    # R and Z coordinates
            s=10,                    # size of pixel
            c=sa_map[:, 0].flatten(),  # pixel color is value of int solid angle
            )
-ax.set_box_aspect(1)
+ax.set_aspect("equal")
 plt.show()
 
 ###############################################################################
@@ -80,7 +80,8 @@ for (ind, ax) in enumerate(list_axes):
                s=10,
                c=sa_map[:, ind].flatten(),  # we change particle number
                )
-    ax.set_box_aspect(1)
+    ax.set_aspect("equal")
+
 
 plt.show()
 
@@ -92,5 +93,5 @@ fig3, list_axes = plt.subplots(ncols=3, sharey=False)
 
 for (ind, ax) in enumerate(list_axes):
     ax.plot(pts[0, izero], sa_map[izero, ind])
-    ax.set_box_aspect(1)
+
 plt.show()

@@ -70,8 +70,8 @@ config = tf.geom.Config.from_svg(
     Name="Traced from pdf",
     Exp="Test",
     res=10,
-    point1=(0.7, -2),
-    point2=(2.8, 2)
+    point_ref1=(0.7, -2),
+    point_ref2=(2.8, 2)
 )
 config.plot()
 # sphinx_gallery_thumbnail_number = 3
