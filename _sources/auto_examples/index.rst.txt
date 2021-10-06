@@ -30,7 +30,6 @@ This directory contains tutorial examples for `tofu`.
 .. only:: html
 
  .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_basic_thumb.png
-     :alt: Getting started: 5 minutes tutorial for `tofu`
 
      :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_basic.py`
 
@@ -51,7 +50,6 @@ This directory contains tutorial examples for `tofu`.
 .. only:: html
 
  .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_create_geometry_thumb.png
-     :alt: Creating your first Geometry
 
      :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_create_geometry.py`
 
@@ -72,7 +70,6 @@ This directory contains tutorial examples for `tofu`.
 .. only:: html
 
  .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_create_geometry_from_svg_thumb.png
-     :alt: Creating a geometry with Inkscape
 
      :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_create_geometry_from_svg.py`
 
@@ -93,7 +90,6 @@ This directory contains tutorial examples for `tofu`.
 .. only:: html
 
  .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_custom_emissivity_thumb.png
-     :alt: Computing a camera image with custom emissivity
 
      :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_custom_emissivity.py`
 
@@ -114,7 +110,6 @@ This directory contains tutorial examples for `tofu`.
 .. only:: html
 
  .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_gallery_fusion_machines_thumb.png
-     :alt: A gallery of Fusion Machines
 
      :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_gallery_fusion_machines.py`
 
@@ -135,7 +130,6 @@ This directory contains tutorial examples for `tofu`.
 .. only:: html
 
  .. figure:: /auto_examples/tutorials/images/thumb/sphx_glr_tuto_plot_solid_angles_thumb.png
-     :alt: Computing the integrated solid angle of a particle
 
      :ref:`sphx_glr_auto_examples_tutorials_tuto_plot_solid_angles.py`
 
@@ -160,15 +154,15 @@ This directory contains tutorial examples for `tofu`.
     :class: sphx-glr-footer-gallery
 
 
-  .. container:: sphx-glr-download sphx-glr-download-python
+  .. container:: sphx-glr-download
 
-    :download:`Download all examples in Python source code: auto_examples_python.zip </auto_examples/auto_examples_python.zip>`
+    :download:`Download all examples in Python source code: auto_examples_python.zip <//home/mendoza/tofu/doc/source/auto_examples/auto_examples_python.zip>`
 
 
 
-  .. container:: sphx-glr-download sphx-glr-download-jupyter
+  .. container:: sphx-glr-download
 
-    :download:`Download all examples in Jupyter notebooks: auto_examples_jupyter.zip </auto_examples/auto_examples_jupyter.zip>`
+    :download:`Download all examples in Jupyter notebooks: auto_examples_jupyter.zip <//home/mendoza/tofu/doc/source/auto_examples/auto_examples_jupyter.zip>`
 
 
 .. only:: html

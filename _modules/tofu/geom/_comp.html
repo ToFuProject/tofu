@@ -1,21 +1,19 @@
 <!DOCTYPE html>
 
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.geom._comp &#8212; Tofu 1.4.10</title>
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <title>tofu.geom._comp &#8212; Tofu 1.4.15</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/gallery.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery-binder.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery-dataframe.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery-rendered-html.css" />
-    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-    <script src="../../../_static/jquery.js"></script>
-    <script src="../../../_static/underscore.js"></script>
-    <script src="../../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
 <meta charset='utf-8'>
@@ -40,7 +38,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -123,13 +121,13 @@
 <span class="c1"># Built-in</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">xml.dom</span> <span class="kn">import</span> <span class="n">minidom</span>
+<span class="kn">from</span> <span class="nn">xml.dom</span> <span class="k">import</span> <span class="n">minidom</span>
 
 <span class="c1"># Common</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">scipy.interpolate</span> <span class="k">as</span> <span class="nn">scpinterp</span>
 <span class="kn">import</span> <span class="nn">scipy.integrate</span> <span class="k">as</span> <span class="nn">scpintg</span>
-<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span> <span class="k">as</span> <span class="n">insp</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="k">import</span> <span class="n">signature</span> <span class="k">as</span> <span class="n">insp</span>
 
 
 
@@ -138,8 +136,8 @@
     <span class="kn">import</span> <span class="nn">tofu.geom._def</span> <span class="k">as</span> <span class="nn">_def</span>
     <span class="kn">import</span> <span class="nn">tofu.geom._GG</span> <span class="k">as</span> <span class="nn">_GG</span>
 <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_GG</span> <span class="k">as</span> <span class="n">_GG</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_GG</span> <span class="k">as</span> <span class="n">_GG</span>
 
 
 <span class="n">_LTYPES</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">]</span>
@@ -170,7 +168,7 @@
         <span class="n">var</span> <span class="o">=</span> <span class="n">vardef</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">var</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_LTYPES</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="s2">&quot;Arg </span><span class="si">{}</span><span class="s2"> must be a float!</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;Arg </span><span class="si">{}</span><span class="s2"> must be a float!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">varname</span><span class="p">)</span>
             <span class="o">+</span> <span class="s2">&quot;Provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">var</span><span class="p">))</span>
         <span class="p">)</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
@@ -196,7 +194,7 @@
 
     <span class="c1"># try loading</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">svg.path</span> <span class="kn">import</span> <span class="n">parse_path</span>
+        <span class="kn">from</span> <span class="nn">svg.path</span> <span class="k">import</span> <span class="n">parse_path</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
             <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
@@ -239,7 +237,16 @@
     <span class="c1"># Check for reference line</span>
     <span class="n">isref</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="s1">&#39;z&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">path_str</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
-        <span class="n">isref</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">isref</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;Non-conform path (</span><span class="si">{}</span><span class="s2">) identified!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="o">+</span> <span class="s2">&quot;All path must be either:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- closed</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- or a unique straight line with 2 points</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">pts</span><span class="p">,</span> <span class="n">isref</span></div>
 
@@ -249,9 +256,9 @@
     <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">r0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">z0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">point1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">point2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">point_ref1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">point_ref2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">length_ref</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">verb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
@@ -341,27 +348,44 @@
     <span class="c1"># Set origin and rescale</span>
     <span class="k">if</span> <span class="n">ref</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">point1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">point2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">point1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">point_ref1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">point_ref2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">point_ref1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">length_ref</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">]</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="s2">&quot;Arg reference line for scaling has been detected!</span><span class="se">\n</span><span class="s2">&quot;</span>
                 <span class="o">+</span> <span class="s2">&quot;But it cannot be used without providing:</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- point1 and point2: iterables of len() = 2</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- point1 and length: iterable of len() = 2 + scalar</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- point_ref1 + point_ref2: iterables of len() = 2</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- point_Ref1 + length_ref: iterable len() = 2 + scalar</span><span class="se">\n</span><span class="s2">&quot;</span>
             <span class="p">)</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">unit</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="p">[</span><span class="o">-</span><span class="n">unit</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]])</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-                <span class="n">unit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-                <span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
-                <span class="n">unit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">unit</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="p">[</span><span class="o">-</span><span class="n">unit</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]])</span>
-                <span class="n">point2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">point1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">length</span><span class="o">*</span><span class="n">unit</span>
-            <span class="n">r_coef</span> <span class="o">=</span> <span class="p">(</span><span class="n">point2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">point1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-            <span class="n">r_offset</span> <span class="o">=</span> <span class="n">point1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">r_coef</span><span class="o">*</span><span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-            <span class="n">z_coef</span> <span class="o">=</span> <span class="p">(</span><span class="n">point2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">point1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">ref</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-            <span class="n">z_offset</span> <span class="o">=</span> <span class="n">point1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">z_coef</span><span class="o">*</span><span class="n">ref</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="n">point_ref2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">point_ref1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">length_ref</span><span class="o">*</span><span class="n">unit</span>
+
+            <span class="c1"># if horizontal (resp. vertical line) =&gt; coef = inf</span>
+            <span class="c1"># =&gt; assume equal scale for r and z instead to avoid inf</span>
+            <span class="n">eps</span> <span class="o">=</span> <span class="mf">1.e-8</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">unit</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">eps</span><span class="p">:</span>
+                <span class="n">r_coef</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="n">point_ref2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">point_ref1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">unit</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">eps</span><span class="p">:</span>
+                <span class="n">z_coef</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="n">point_ref2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">point_ref1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">ref</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">unit</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">eps</span><span class="p">:</span>
+                <span class="c1"># vertical line =&gt; assume rscale  = zscale</span>
+                <span class="n">r_coef</span> <span class="o">=</span> <span class="o">-</span><span class="n">z_coef</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">unit</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">eps</span><span class="p">:</span>
+                <span class="c1"># horizontal line =&gt; assume rscale  = zscale</span>
+                <span class="n">z_coef</span> <span class="o">=</span> <span class="o">-</span><span class="n">r_coef</span>
+            <span class="n">r_offset</span> <span class="o">=</span> <span class="n">point_ref1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">r_coef</span><span class="o">*</span><span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">z_offset</span> <span class="o">=</span> <span class="n">point_ref1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">z_coef</span><span class="o">*</span><span class="n">ref</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+
             <span class="k">for</span> <span class="n">k0</span> <span class="ow">in</span> <span class="n">dpath</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                 <span class="n">dpath</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;poly&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
                     <span class="n">r_coef</span><span class="o">*</span><span class="n">dpath</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;poly&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">r_offset</span><span class="p">,</span>
@@ -1564,8 +1588,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 30, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
+      Last updated on Oct 06, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>

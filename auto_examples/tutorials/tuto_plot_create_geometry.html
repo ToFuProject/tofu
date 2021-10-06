@@ -1,21 +1,19 @@
 <!DOCTYPE html>
 
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Creating your first Geometry &#8212; Tofu 1.4.10</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <title>Creating your first Geometry &#8212; Tofu 1.4.15</title>
     <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../_static/gallery.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/gallery-binder.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/gallery-dataframe.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/gallery-rendered-html.css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-    <script src="../../_static/jquery.js"></script>
-    <script src="../../_static/underscore.js"></script>
-    <script src="../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Creating a geometry with Inkscape" href="tuto_plot_create_geometry_from_svg.html" />
@@ -42,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -126,8 +124,7 @@
       
   <div class="sphx-glr-download-link-note admonition note">
 <p class="admonition-title">Note</p>
-<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-tutorials-tuto-plot-create-geometry-py"><span class="std std-ref">here</span></a>
-to download the full example code</p>
+<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-tutorials-tuto-plot-create-geometry-py"><span class="std std-ref">here</span></a> to download the full example code</p>
 </div>
 <div class="sphx-glr-example-title section" id="creating-your-first-geometry">
 <span id="sphx-glr-auto-examples-tutorials-tuto-plot-create-geometry-py"></span><h1>Creating your first Geometry<a class="headerlink" href="#creating-your-first-geometry" title="Permalink to this headline">¶</a></h1>
@@ -165,7 +162,7 @@ shape at the bottom:</p>
 <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<img alt="tuto plot create geometry" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_001.png" />
+<img alt="../../_images/sphx_glr_tuto_plot_create_geometry_001.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_001.png" />
 <p class="sphx-glr-script-out">Out:</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>(0.900292944643613, 3.099707055356387, -1.3099829327148826, 1.1096415870125362)
 </pre></div>
@@ -205,7 +202,7 @@ object, it is advised not to modify it.</p>
 </pre></div>
 </div>
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.10-alpha9-349-gd9149398
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.15
 </pre></div>
 </div>
 <p>Now, we can simply visualise the created vessel by using the dedicated method
@@ -217,7 +214,7 @@ polygon):</p>
 <span class="n">lax</span> <span class="o">=</span> <span class="n">ves</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">element</span><span class="o">=</span><span class="s2">&quot;P&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<img alt="tuto plot create geometry" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_002.png" />
+<img alt="../../_images/sphx_glr_tuto_plot_create_geometry_002.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_002.png" />
 <p>The created vessel instance, plotted in cross-section and horizontal
 projections
 Since the vessel is an important object (it defines where the plasma lives),
@@ -228,7 +225,7 @@ it so that it can be used by other ToFu objects when necessary.</p>
 </div>
 <p class="sphx-glr-script-out">Out:</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Saved in :
-    /home/lasofivec/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.10-alpha9-349-gd9149398.npz
+    /home/mendoza/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.15.npz
 </pre></div>
 </div>
 <p>This method will save the instance as a numpy compressed file (.npz), using
@@ -289,18 +286,18 @@ otherwise the type must be specified.</p>
 <span class="c1"># sphinx_gallery_thumbnail_number = 3</span>
 </pre></div>
 </div>
-<img alt="test" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_003.png" />
+<img alt="../../_images/sphx_glr_tuto_plot_create_geometry_003.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_003.png" />
 <p class="sphx-glr-script-out">Out:</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Saved in :
-    /home/lasofivec/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.10-alpha9-349-gd9149398.npz
+    /home/mendoza/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.15.npz
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  1.026 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  0.548 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-create-geometry-py">
-<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<div class="sphx-glr-download docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/821737f695d098026bf8ea2b1bfa6101/tuto_plot_create_geometry.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_create_geometry.py</span></code></a></p>
 </div>
-<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<div class="sphx-glr-download docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/721ae2bd4e53ca4b2cdb8d4e88f9536a/tuto_plot_create_geometry.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">tuto_plot_create_geometry.ipynb</span></code></a></p>
 </div>
 </div>
@@ -328,8 +325,8 @@ otherwise the type must be specified.</p>
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 30, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
+      Last updated on Oct 06, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>

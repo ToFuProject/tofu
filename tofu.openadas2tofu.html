@@ -1,21 +1,19 @@
 <!DOCTYPE html>
 
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.openadas2tofu package &#8212; Tofu 1.4.10</title>
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <title>tofu.openadas2tofu package &#8212; Tofu 1.4.15</title>
     <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="_static/gallery.css" />
-    <link rel="stylesheet" type="text/css" href="_static/gallery-binder.css" />
-    <link rel="stylesheet" type="text/css" href="_static/gallery-dataframe.css" />
-    <link rel="stylesheet" type="text/css" href="_static/gallery-rendered-html.css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="tofu.tests package" href="tofu.tests.html" />
@@ -42,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -133,9 +131,9 @@
 </div>
 <div class="section" id="module-tofu.openadas2tofu._read_files">
 <span id="tofu-openadas2tofu-read-files-module"></span><h2>tofu.openadas2tofu._read_files module<a class="headerlink" href="#module-tofu.openadas2tofu._read_files" title="Permalink to this headline">¶</a></h2>
-<dl class="py function">
+<dl class="function">
 <dt id="tofu.openadas2tofu._read_files.step03_read">
-<code class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._read_files.</span></code><code class="sig-name descname"><span class="pre">step03_read</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adas_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pec_as_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwdargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_read_files.html#step03_read"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._read_files.step03_read" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.openadas2tofu._read_files.</code><code class="sig-name descname">step03_read</code><span class="sig-paren">(</span><em class="sig-param">adas_path</em>, <em class="sig-param">pec_as_func=None</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_read_files.html#step03_read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.openadas2tofu._read_files.step03_read" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read openadas-formatted files and return a dict with the data</p>
 <p>Povide the full adas file name
 The result is returned as a dict</p>
@@ -149,9 +147,9 @@ The result is returned as a dict</p>
 </div>
 </dd></dl>
 
-<dl class="py function">
+<dl class="function">
 <dt id="tofu.openadas2tofu._read_files.step03_read_all">
-<code class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._read_files.</span></code><code class="sig-name descname"><span class="pre">step03_read_all</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">element</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typ1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typ2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pec_as_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format_for_DataCollection</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dsource0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dref0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ddata0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dlines0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwdargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_read_files.html#step03_read_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._read_files.step03_read_all" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.openadas2tofu._read_files.</code><code class="sig-name descname">step03_read_all</code><span class="sig-paren">(</span><em class="sig-param">element=None</em>, <em class="sig-param">charge=None</em>, <em class="sig-param">typ1=None</em>, <em class="sig-param">typ2=None</em>, <em class="sig-param">pec_as_func=None</em>, <em class="sig-param">format_for_DataCollection=None</em>, <em class="sig-param">dsource0=None</em>, <em class="sig-param">dref0=None</em>, <em class="sig-param">ddata0=None</em>, <em class="sig-param">dlines0=None</em>, <em class="sig-param">verb=None</em>, <em class="sig-param">**kwdargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_read_files.html#step03_read_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.openadas2tofu._read_files.step03_read_all" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read all relevant openadas files for chosen typ1</p>
 <dl class="simple">
 <dt>Please specify:</dt><dd><ul class="simple">
@@ -192,15 +190,9 @@ The result is returned as a dict</p>
 </div>
 <div class="section" id="module-tofu.openadas2tofu._requests">
 <span id="tofu-openadas2tofu-requests-module"></span><h2>tofu.openadas2tofu._requests module<a class="headerlink" href="#module-tofu.openadas2tofu._requests" title="Permalink to this headline">¶</a></h2>
-<dl class="py function">
-<dt id="tofu.openadas2tofu._requests.clear_downloads">
-<code class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._requests.</span></code><code class="sig-name descname"><span class="pre">clear_downloads</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#clear_downloads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.clear_downloads" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delete all openadas files downloaded in your ~/.tofu/ directory</p>
-</dd></dl>
-
-<dl class="py function">
+<dl class="function">
 <dt id="tofu.openadas2tofu._requests.step01_search_online">
-<code class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._requests.</span></code><code class="sig-name descname"><span class="pre">step01_search_online</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">searchstr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_partial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#step01_search_online"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.step01_search_online" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.openadas2tofu._requests.</code><code class="sig-name descname">step01_search_online</code><span class="sig-paren">(</span><em class="sig-param">searchstr=None</em>, <em class="sig-param">returnas=None</em>, <em class="sig-param">include_partial=None</em>, <em class="sig-param">verb=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#step01_search_online"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.step01_search_online" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform an online freeform search on <a class="reference external" href="https://open.adas.ac.uk">https://open.adas.ac.uk</a></p>
 <p>Pass searchstr to the online freeform search
 Prints the results (if verb=True)</p>
@@ -218,9 +210,9 @@ Prints the results (if verb=True)</p>
 </div>
 </dd></dl>
 
-<dl class="py function">
+<dl class="function">
 <dt id="tofu.openadas2tofu._requests.step01_search_online_by_wavelengthA">
-<code class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._requests.</span></code><code class="sig-name descname"><span class="pre">step01_search_online_by_wavelengthA</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lambmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolveby</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#step01_search_online_by_wavelengthA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.step01_search_online_by_wavelengthA" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.openadas2tofu._requests.</code><code class="sig-name descname">step01_search_online_by_wavelengthA</code><span class="sig-paren">(</span><em class="sig-param">lambmin=None</em>, <em class="sig-param">lambmax=None</em>, <em class="sig-param">element=None</em>, <em class="sig-param">charge=None</em>, <em class="sig-param">resolveby=None</em>, <em class="sig-param">returnas=None</em>, <em class="sig-param">verb=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#step01_search_online_by_wavelengthA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.step01_search_online_by_wavelengthA" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform an online search by wavelength on <a class="reference external" href="https://open.adas.ac.uk">https://open.adas.ac.uk</a></p>
 <p>Pass the min / max wavelength (in Angstrom) to the online wavelength search
 Prints the results (if verb=True)</p>
@@ -248,9 +240,9 @@ Prints the results (if verb=True)</p>
 </div>
 </dd></dl>
 
-<dl class="py function">
+<dl class="function">
 <dt id="tofu.openadas2tofu._requests.step02_download">
-<code class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._requests.</span></code><code class="sig-name descname"><span class="pre">step02_download</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_custom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#step02_download"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.step02_download" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.openadas2tofu._requests.</code><code class="sig-name descname">step02_download</code><span class="sig-paren">(</span><em class="sig-param">filename=None</em>, <em class="sig-param">update=None</em>, <em class="sig-param">create_custom=None</em>, <em class="sig-param">verb=None</em>, <em class="sig-param">returnas=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#step02_download"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.step02_download" title="Permalink to this definition">¶</a></dt>
 <dd><p>Download desired file from  <a class="reference external" href="https://open.adas.ac.uk">https://open.adas.ac.uk</a></p>
 <p>All downloaded files are stored in your local tofu directory (~/.tofu/)</p>
 <p>Automatically runs tofu-custom if create_custom=True</p>
@@ -262,9 +254,9 @@ Prints the results (if verb=True)</p>
 </div>
 </dd></dl>
 
-<dl class="py function">
+<dl class="function">
 <dt id="tofu.openadas2tofu._requests.step02_download_all">
-<code class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._requests.</span></code><code class="sig-name descname"><span class="pre">step02_download_all</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">searchstr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_partial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_custom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#step02_download_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.step02_download_all" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">tofu.openadas2tofu._requests.</code><code class="sig-name descname">step02_download_all</code><span class="sig-paren">(</span><em class="sig-param">files=None</em>, <em class="sig-param">searchstr=None</em>, <em class="sig-param">lambmin=None</em>, <em class="sig-param">lambmax=None</em>, <em class="sig-param">element=None</em>, <em class="sig-param">include_partial=None</em>, <em class="sig-param">update=None</em>, <em class="sig-param">create_custom=None</em>, <em class="sig-param">verb=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#step02_download_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.step02_download_all" title="Permalink to this definition">¶</a></dt>
 <dd><p>Download all desired files from  <a class="reference external" href="https://open.adas.ac.uk">https://open.adas.ac.uk</a></p>
 <dl class="simple">
 <dt>The files to download can be provided either as:</dt><dd><ul class="simple">
@@ -293,6 +285,12 @@ All downloaded files are stored in your local tofu directory (~/.tofu/)</p>
 </div>
 </dd></dl>
 
+<dl class="function">
+<dt id="tofu.openadas2tofu._requests.clear_downloads">
+<code class="sig-prename descclassname">tofu.openadas2tofu._requests.</code><code class="sig-name descname">clear_downloads</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#clear_downloads"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.clear_downloads" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete all openadas files downloaded in your ~/.tofu/ directory</p>
+</dd></dl>
+
 </div>
 </div>
 
@@ -316,8 +314,8 @@ All downloaded files are stored in your local tofu directory (~/.tofu/)</p>
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 30, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
+      Last updated on Oct 06, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>

@@ -1,21 +1,19 @@
 <!DOCTYPE html>
 
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.openadas2tofu._read_files &#8212; Tofu 1.4.10</title>
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <title>tofu.openadas2tofu._read_files &#8212; Tofu 1.4.15</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/gallery.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery-binder.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery-dataframe.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery-rendered-html.css" />
-    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-    <script src="../../../_static/jquery.js"></script>
-    <script src="../../../_static/underscore.js"></script>
-    <script src="../../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
 <meta charset='utf-8'>
@@ -40,7 +38,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -125,7 +123,7 @@
 
 <span class="c1"># Common</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="kn">import</span> <span class="n">RectBivariateSpline</span> <span class="k">as</span> <span class="n">scpRectSpl</span>
+<span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="k">import</span> <span class="n">RectBivariateSpline</span> <span class="k">as</span> <span class="n">scpRectSpl</span>
 
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;step03_read&#39;</span><span class="p">,</span> <span class="s1">&#39;step03_read_all&#39;</span><span class="p">]</span>
@@ -222,7 +220,6 @@
         <span class="p">]</span>
         <span class="n">element</span> <span class="o">=</span> <span class="p">[</span><span class="n">ff</span><span class="p">[</span><span class="n">ff</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;][&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">2</span><span class="p">:]</span> <span class="k">for</span> <span class="n">ff</span> <span class="ow">in</span> <span class="n">lf</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">element</span>
-
 
 
 <span class="k">def</span> <span class="nf">_format_for_DataCollection_adf15</span><span class="p">(</span>
@@ -1049,7 +1046,9 @@
                             <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">te</span><span class="p">),</span>
                             <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">pec</span><span class="p">),</span>
                             <span class="n">kx</span><span class="o">=</span><span class="n">deg</span><span class="p">,</span>
-                            <span class="n">ky</span><span class="o">=</span><span class="n">deg</span><span class="p">)</span>
+                            <span class="n">ky</span><span class="o">=</span><span class="n">deg</span><span class="p">,</span>
+                        <span class="p">)</span>
+
                         <span class="k">def</span> <span class="nf">pec</span><span class="p">(</span><span class="n">Te</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ne</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pec_rec</span><span class="o">=</span><span class="n">pec_rec</span><span class="p">):</span>
                             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">pec_rec</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">ne</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Te</span><span class="p">)))</span>
 
@@ -1120,8 +1119,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 30, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
+      Last updated on Oct 06, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>

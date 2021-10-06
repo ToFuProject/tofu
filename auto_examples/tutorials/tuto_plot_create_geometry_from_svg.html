@@ -1,21 +1,19 @@
 <!DOCTYPE html>
 
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Creating a geometry with Inkscape &#8212; Tofu 1.4.10</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <title>Creating a geometry with Inkscape &#8212; Tofu 1.4.15</title>
     <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../_static/gallery.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/gallery-binder.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/gallery-dataframe.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/gallery-rendered-html.css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-    <script src="../../_static/jquery.js"></script>
-    <script src="../../_static/underscore.js"></script>
-    <script src="../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Computing a camera image with custom emissivity" href="tuto_plot_custom_emissivity.html" />
@@ -42,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -122,8 +120,7 @@
       
   <div class="sphx-glr-download-link-note admonition note">
 <p class="admonition-title">Note</p>
-<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-tutorials-tuto-plot-create-geometry-from-svg-py"><span class="std std-ref">here</span></a>
-to download the full example code</p>
+<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-tutorials-tuto-plot-create-geometry-from-svg-py"><span class="std std-ref">here</span></a> to download the full example code</p>
 </div>
 <div class="sphx-glr-example-title section" id="creating-a-geometry-with-inkscape">
 <span id="sphx-glr-auto-examples-tutorials-tuto-plot-create-geometry-from-svg-py"></span><h1>Creating a geometry with Inkscape<a class="headerlink" href="#creating-a-geometry-with-inkscape" title="Permalink to this headline">¶</a></h1>
@@ -160,7 +157,7 @@ configuration from a <cite>svg</cite> file. Supposing you saved it in a file nam
         - Ves: vessel (9 pts, None)
         - PFC: struct1 (5 pts, #000080)
         - PFC: struct2 (5 pts, #d40000)
-from /home/lasofivec/tofu/examples/tutorials/myfirstgeom.svg
+from /home/mendoza/tofu/examples/tutorials/myfirstgeom.svg
 </pre></div>
 </div>
 <p>It already gives you some information on what you loaded, but to see what it
@@ -173,20 +170,20 @@ actually contains:</p>
 -----------  ----------  -----------
 3            3           15
 
-class  Name     SaveName                                                         nP  noccur  move  color                     visible
------  -------  ---------------------------------------------------------------  --  ------  ----  ------------------------  -------
-Ves    vessel   TFG_Ves_ExpTest_vessel_sh00000_Vers1.4.10-alpha9-349-gd9149398   7   0       None  ( 0.0,  0.0,  0.0,  1.0)  True
-PFC    struct1  TFG_PFC_ExpTest_struct1_sh00000_Vers1.4.10-alpha9-349-gd9149398  4   0       None  ( 0.0,  0.0,  0.5,  1.0)  True
-PFC    struct2  TFG_PFC_ExpTest_struct2_sh00000_Vers1.4.10-alpha9-349-gd9149398  4   0       None  (0.83,  0.0,  0.0,  1.0)  True
+class  Name     SaveName                                    nP  noccur  move  color                     visible
+-----  -------  ------------------------------------------  --  ------  ----  ------------------------  -------
+Ves    vessel   TFG_Ves_ExpTest_vessel_sh00000_Vers1.4.15   7   0       None  ( 0.0,  0.0,  0.0,  1.0)  True
+PFC    struct1  TFG_PFC_ExpTest_struct1_sh00000_Vers1.4.15  4   0       None  ( 0.0,  0.0,  0.5,  1.0)  True
+PFC    struct2  TFG_PFC_ExpTest_struct2_sh00000_Vers1.4.15  4   0       None  (0.83,  0.0,  0.0,  1.0)  True
 </pre></div>
 </div>
 <p>To plot it, simply do</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">config</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
 </pre></div>
 </div>
-<img alt="Test" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_001.png" />
+<img alt="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_001.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_001.png" />
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>[&lt;matplotlib.axes._axes.Axes object at 0x7fc4261289d0&gt;, &lt;matplotlib.axes._axes.Axes object at 0x7fc425eaf340&gt;]
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>[&lt;matplotlib.axes._subplots.AxesSubplot object at 0x7ff22fed3a20&gt;, &lt;matplotlib.axes._subplots.AxesSubplot object at 0x7ff236db01d0&gt;]
 </pre></div>
 </div>
 <p>We can see that the z- and r-axis might not be exactly what we wanted. We
@@ -200,15 +197,15 @@ when loading the configuration.</p>
 <span class="n">config</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
 </pre></div>
 </div>
-<img alt="Test" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_002.png" />
+<img alt="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_002.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_002.png" />
 <p class="sphx-glr-script-out">Out:</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>The following structures were loaded:
         - Ves: vessel (9 pts, None)
         - PFC: struct1 (5 pts, #000080)
         - PFC: struct2 (5 pts, #d40000)
-from /home/lasofivec/tofu/examples/tutorials/myfirstgeom.svg
+from /home/mendoza/tofu/examples/tutorials/myfirstgeom.svg
 
-[&lt;matplotlib.axes._axes.Axes object at 0x7fc425e4a280&gt;, &lt;matplotlib.axes._axes.Axes object at 0x7fc425785d00&gt;]
+[&lt;matplotlib.axes._subplots.AxesSubplot object at 0x7ff236d362e8&gt;, &lt;matplotlib.axes._subplots.AxesSubplot object at 0x7ff22ff5e898&gt;]
 </pre></div>
 </div>
 <p>Or, even better, if you have a figure where there is known measure you can
@@ -218,14 +215,14 @@ let tofu scale the figure automatically for you</p>
     <span class="n">Name</span><span class="o">=</span><span class="s2">&quot;Traced from pdf&quot;</span><span class="p">,</span>
     <span class="n">Exp</span><span class="o">=</span><span class="s2">&quot;Test&quot;</span><span class="p">,</span>
     <span class="n">res</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-    <span class="n">point1</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span>
-    <span class="n">point2</span><span class="o">=</span><span class="p">(</span><span class="mf">2.8</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">point_ref1</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span>
+    <span class="n">point_ref2</span><span class="o">=</span><span class="p">(</span><span class="mf">2.8</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 <span class="p">)</span>
 <span class="n">config</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
 <span class="c1"># sphinx_gallery_thumbnail_number = 3</span>
 </pre></div>
 </div>
-<img alt="Traced from pdf" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_003.png" />
+<img alt="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_003.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_create_geometry_from_svg_003.png" />
 <p class="sphx-glr-script-out">Out:</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>The following structures were loaded:
         - Ves: path10373 (23 pts, None)
@@ -249,17 +246,17 @@ let tofu scale the figure automatically for you</p>
         - PFC: path10966 (5 pts, #ff7f2a)
         - PFC: path11150 (5 pts, #8080ff)
         - PFC: path11185 (5 pts, #8787de)
-from /home/lasofivec/tofu/examples/tutorials/from_pdf.svg
+from /home/mendoza/tofu/examples/tutorials/from_pdf.svg
 
-[&lt;matplotlib.axes._axes.Axes object at 0x7fc4116ca100&gt;, &lt;matplotlib.axes._axes.Axes object at 0x7fc4116d5910&gt;]
+[&lt;matplotlib.axes._subplots.AxesSubplot object at 0x7ff2348da860&gt;, &lt;matplotlib.axes._subplots.AxesSubplot object at 0x7ff22ffa1c88&gt;]
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  1.042 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  0.598 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-create-geometry-from-svg-py">
-<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<div class="sphx-glr-download docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/7c8f7a207fc58893b4716e92b89deba1/tuto_plot_create_geometry_from_svg.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_create_geometry_from_svg.py</span></code></a></p>
 </div>
-<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<div class="sphx-glr-download docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/0edac1a83e79d8f02ba1a73cbc2b2b3d/tuto_plot_create_geometry_from_svg.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">tuto_plot_create_geometry_from_svg.ipynb</span></code></a></p>
 </div>
 </div>
@@ -286,8 +283,8 @@ from /home/lasofivec/tofu/examples/tutorials/from_pdf.svg
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 30, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
+      Last updated on Oct 06, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>

@@ -1,21 +1,19 @@
 <!DOCTYPE html>
 
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.data._core &#8212; Tofu 1.4.10</title>
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <title>tofu.data._core &#8212; Tofu 1.4.15</title>
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/gallery.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery-binder.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery-dataframe.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery-rendered-html.css" />
-    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-    <script src="../../../_static/jquery.js"></script>
-    <script src="../../../_static/underscore.js"></script>
-    <script src="../../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
 <meta charset='utf-8'>
@@ -40,7 +38,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -124,18 +122,18 @@
 <span class="kn">import</span> <span class="nn">itertools</span> <span class="k">as</span> <span class="nn">itt</span>
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
 
 <span class="c1"># Common</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">scipy.interpolate</span> <span class="k">as</span> <span class="nn">scpinterp</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">from</span> <span class="nn">matplotlib.tri</span> <span class="kn">import</span> <span class="n">Triangulation</span> <span class="k">as</span> <span class="n">mplTri</span>
+<span class="kn">from</span> <span class="nn">matplotlib.tri</span> <span class="k">import</span> <span class="n">Triangulation</span> <span class="k">as</span> <span class="n">mplTri</span>
 
 
 <span class="c1"># tofu</span>
-<span class="kn">from</span> <span class="nn">tofu</span> <span class="kn">import</span> <span class="n">__version__</span> <span class="k">as</span> <span class="n">__version__</span>
+<span class="kn">from</span> <span class="nn">tofu</span> <span class="k">import</span> <span class="n">__version__</span> <span class="k">as</span> <span class="n">__version__</span>
 <span class="kn">import</span> <span class="nn">tofu.pathfile</span> <span class="k">as</span> <span class="nn">tfpf</span>
 <span class="kn">import</span> <span class="nn">tofu.utils</span> <span class="k">as</span> <span class="nn">utils</span>
 <span class="k">try</span><span class="p">:</span>
@@ -143,13 +141,11 @@
     <span class="kn">import</span> <span class="nn">tofu.data._plot</span> <span class="k">as</span> <span class="nn">_plot</span>
     <span class="kn">import</span> <span class="nn">tofu.data._def</span> <span class="k">as</span> <span class="nn">_def</span>
     <span class="kn">import</span> <span class="nn">tofu._physics</span> <span class="k">as</span> <span class="nn">_physics</span>
-    <span class="kn">import</span> <span class="nn">tofu.data._spectrafit2d</span> <span class="k">as</span> <span class="nn">_spectrafit2d</span>
 <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_comp</span> <span class="k">as</span> <span class="n">_comp</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plot</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
-    <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">_physics</span> <span class="k">as</span> <span class="n">_physics</span>
-    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_spectrafit2d</span> <span class="k">as</span> <span class="n">_spectrafit2d</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_comp</span> <span class="k">as</span> <span class="n">_comp</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_plot</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_def</span>
+    <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">_physics</span> <span class="k">as</span> <span class="n">_physics</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DataCam1D&#39;</span><span class="p">,</span><span class="s1">&#39;DataCam2D&#39;</span><span class="p">,</span>
            <span class="s1">&#39;DataCam1DSpectral&#39;</span><span class="p">,</span><span class="s1">&#39;DataCam2DSpectral&#39;</span><span class="p">,</span>
@@ -190,17 +186,17 @@
         <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># list of accepted integer types</span>
-        <span class="n">lInt</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">longlong</span><span class="p">]</span>
-        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="ow">in</span> <span class="n">lInt</span><span class="p">:</span>
+        <span class="n">lInt</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ind</span><span class="p">,</span> <span class="n">lInt</span><span class="p">):</span>
             <span class="n">ii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
             <span class="n">ii</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">ii</span><span class="p">)]</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="n">ind</span> <span class="o">=</span> <span class="n">ii</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">ind</span><span class="p">,</span><span class="s1">&#39;__iter__&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">bool</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)):</span>
                 <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
                 <span class="k">assert</span> <span class="n">ind</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="n">n</span>
-            <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">in</span> <span class="n">lInt</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">lInt</span><span class="p">):</span>
                 <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
                 <span class="n">ii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
                 <span class="n">ii</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
@@ -282,7 +278,7 @@
         <span class="c1">#cls._set_color_ddef(cls._color)</span>
 
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">X</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lamb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">X</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lamb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">dchans</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dlabels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dX12</span><span class="o">=</span><span class="s1">&#39;geom&#39;</span><span class="p">,</span>
                  <span class="n">Id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">dextra</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lCam</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -2056,7 +2052,7 @@
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="n">chronos</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">topos</span> <span class="o">=</span> <span class="n">_comp</span><span class="o">.</span><span class="n">calc_svd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">lapack_driver</span><span class="o">=</span><span class="n">lapack_driver</span><span class="p">)</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmult</span><span class="p">(</span><span class="n">chronos</span><span class="p">[:,</span><span class="n">modes</span><span class="p">],</span> <span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="n">modes</span><span class="p">,</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">topos</span><span class="p">[</span><span class="n">modes</span><span class="p">,:]))</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">chronos</span><span class="p">[:,</span> <span class="n">modes</span><span class="p">],</span> <span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="n">modes</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">topos</span><span class="p">[</span><span class="n">modes</span><span class="p">,</span> <span class="p">:]))</span>
         <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="nb">object</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">X</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span>
                                   <span class="n">lCam</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lCam</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
@@ -2208,47 +2204,47 @@
         <span class="k">return</span> <span class="n">d0</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="s1">&#39;New&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">dcom</span><span class="p">)</span>
 
 
-    <span class="k">def</span> <span class="fm">__abs__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__abs__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">opfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recreatefromoperator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">opfunc</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data</span>
 
-    <span class="k">def</span> <span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="n">opfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">-</span><span class="n">y</span>
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recreatefromoperator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">opfunc</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data</span>
 
-    <span class="k">def</span> <span class="fm">__rsub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__rsub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="n">opfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">-</span><span class="n">y</span>
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recreatefromoperator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">opfunc</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data</span>
 
-    <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="n">opfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">+</span><span class="n">y</span>
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recreatefromoperator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">opfunc</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data</span>
 
-    <span class="k">def</span> <span class="fm">__radd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__radd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="n">opfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">+</span><span class="n">y</span>
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recreatefromoperator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">opfunc</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data</span>
 
-    <span class="k">def</span> <span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="n">opfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">*</span><span class="n">y</span>
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recreatefromoperator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">opfunc</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data</span>
 
-    <span class="k">def</span> <span class="fm">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="n">opfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">*</span><span class="n">y</span>
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recreatefromoperator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">opfunc</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data</span>
 
-    <span class="k">def</span> <span class="fm">__truediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__truediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="n">opfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">/</span><span class="n">y</span>
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recreatefromoperator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">opfunc</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data</span>
 
-    <span class="k">def</span> <span class="fm">__pow__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__pow__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="n">opfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">**</span><span class="n">y</span>
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recreatefromoperator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">opfunc</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data</span>
@@ -2422,7 +2418,7 @@
         <span class="c1"># cls._set_color_ddef(cls._color)</span>
 
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dradius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">d0d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">d1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dradius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">d0d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">d1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">d2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dmesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">Id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">fromdict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s1">&#39;./&#39;</span><span class="p">),</span>
@@ -3265,13 +3261,19 @@
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">msg</span></div>
 
-
     <span class="c1">#---------------------</span>
     <span class="c1"># Methods for showing data</span>
     <span class="c1">#---------------------</span>
 
-<div class="viewcode-block" id="Plasma2D.get_summary"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D.get_summary">[docs]</a>    <span class="k">def</span> <span class="nf">get_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;  &#39;</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">just</span><span class="o">=</span><span class="s1">&#39;l&#39;</span><span class="p">,</span>
-                    <span class="n">table_sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Plasma2D.get_summary"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D.get_summary">[docs]</a>    <span class="k">def</span> <span class="nf">get_summary</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;  &#39;</span><span class="p">,</span>
+        <span class="n">line</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span>
+        <span class="n">just</span><span class="o">=</span><span class="s1">&#39;l&#39;</span><span class="p">,</span>
+        <span class="n">table_sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">return_</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Summary description of the object content &quot;&quot;&quot;</span>
         <span class="c1"># # Make sure the data is accessible</span>
         <span class="c1"># msg = &quot;The data is not accessible because self.strip(2) was used !&quot;</span>
@@ -3302,9 +3304,15 @@
                   <span class="nb">str</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;depend&#39;</span><span class="p">]),</span> <span class="nb">str</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;lgroup&#39;</span><span class="p">])]</span>
             <span class="n">ar2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lu</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_summary</span><span class="p">([</span><span class="n">ar0</span><span class="p">,</span><span class="n">ar1</span><span class="p">,</span><span class="n">ar2</span><span class="p">],</span> <span class="p">[</span><span class="n">col0</span><span class="p">,</span> <span class="n">col1</span><span class="p">,</span> <span class="n">col2</span><span class="p">],</span>
-                                  <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="p">,</span> <span class="n">table_sep</span><span class="o">=</span><span class="n">table_sep</span><span class="p">,</span>
-                                  <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">,</span> <span class="n">return_</span><span class="o">=</span><span class="n">return_</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_summary</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">ar0</span><span class="p">,</span> <span class="n">ar1</span><span class="p">,</span> <span class="n">ar2</span><span class="p">],</span>
+            <span class="p">[</span><span class="n">col0</span><span class="p">,</span> <span class="n">col1</span><span class="p">,</span> <span class="n">col2</span><span class="p">],</span>
+            <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">,</span>
+            <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="p">,</span>
+            <span class="n">table_sep</span><span class="o">=</span><span class="n">table_sep</span><span class="p">,</span>
+            <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">,</span>
+            <span class="n">return_</span><span class="o">=</span><span class="n">return_</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
     <span class="c1">#---------------------</span>
     <span class="c1"># Methods for adding ref / quantities</span>
@@ -4062,12 +4070,13 @@
             <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_indtmult</span><span class="p">(</span><span class="n">idquant</span><span class="o">=</span><span class="n">idq2dR</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span></div>
 
-
-<div class="viewcode-block" id="Plasma2D._get_finterp"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_finterp">[docs]</a>    <span class="k">def</span> <span class="nf">_get_finterp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                     <span class="n">idquant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                     <span class="n">idq2dR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idq2dPhi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idq2dZ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                     <span class="n">interp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                     <span class="n">fill_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ani</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Plasma2D._get_finterp"><a class="viewcode-back" href="../../../tofu.data.html#tofu.data._core.Plasma2D._get_finterp">[docs]</a>    <span class="k">def</span> <span class="nf">_get_finterp</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">idquant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">idq2dR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idq2dPhi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idq2dZ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">interp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">fill_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ani</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
 
         <span class="k">if</span> <span class="n">interp_t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">interp_t</span> <span class="o">=</span> <span class="s1">&#39;nearest&#39;</span>
@@ -4122,26 +4131,31 @@
         <span class="c1"># get interpolation function</span>
         <span class="k">if</span> <span class="n">ani</span><span class="p">:</span>
             <span class="c1"># Assuming same mesh and time vector for all 3 components</span>
-            <span class="n">func</span> <span class="o">=</span> <span class="n">_comp</span><span class="o">.</span><span class="n">get_finterp_ani</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idq2dR</span><span class="p">,</span> <span class="n">idq2dPhi</span><span class="p">,</span> <span class="n">idq2dZ</span><span class="p">,</span>
-                                         <span class="n">interp_t</span><span class="o">=</span><span class="n">interp_t</span><span class="p">,</span>
-                                         <span class="n">interp_space</span><span class="o">=</span><span class="n">interp_space</span><span class="p">,</span>
-                                         <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span>
-                                         <span class="n">idmesh</span><span class="o">=</span><span class="n">idmesh</span><span class="p">,</span> <span class="n">vq2dR</span><span class="o">=</span><span class="n">vq2dR</span><span class="p">,</span>
-                                         <span class="n">vq2dZ</span><span class="o">=</span><span class="n">vq2dZ</span><span class="p">,</span> <span class="n">vq2dPhi</span><span class="o">=</span><span class="n">vq2dPhi</span><span class="p">,</span>
-                                         <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
-                                         <span class="n">ntall</span><span class="o">=</span><span class="n">ntall</span><span class="p">,</span>
-                                         <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span> <span class="n">trifind</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
-                                         <span class="n">Type</span><span class="o">=</span><span class="n">Type</span><span class="p">,</span> <span class="n">mpltri</span><span class="o">=</span><span class="n">mpltri</span><span class="p">)</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="n">_comp</span><span class="o">.</span><span class="n">get_finterp_ani</span><span class="p">(</span>
+                <span class="n">idq2dR</span><span class="p">,</span> <span class="n">idq2dPhi</span><span class="p">,</span> <span class="n">idq2dZ</span><span class="p">,</span>
+                <span class="n">idmesh</span><span class="o">=</span><span class="n">idmesh</span><span class="p">,</span> <span class="n">vq2dR</span><span class="o">=</span><span class="n">vq2dR</span><span class="p">,</span>
+                <span class="n">vq2dZ</span><span class="o">=</span><span class="n">vq2dZ</span><span class="p">,</span> <span class="n">vq2dPhi</span><span class="o">=</span><span class="n">vq2dPhi</span><span class="p">,</span>
+                <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                <span class="n">ntall</span><span class="o">=</span><span class="n">ntall</span><span class="p">,</span>
+                <span class="n">interp_t</span><span class="o">=</span><span class="n">interp_t</span><span class="p">,</span>
+                <span class="n">interp_space</span><span class="o">=</span><span class="n">interp_space</span><span class="p">,</span>
+                <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span>
+                <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span> <span class="n">trifind</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+                <span class="n">Type</span><span class="o">=</span><span class="n">Type</span><span class="p">,</span> <span class="n">mpltri</span><span class="o">=</span><span class="n">mpltri</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">func</span> <span class="o">=</span> <span class="n">_comp</span><span class="o">.</span><span class="n">get_finterp_isotropic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idquant</span><span class="p">,</span> <span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="p">,</span>
-                                               <span class="n">interp_t</span><span class="o">=</span><span class="n">interp_t</span><span class="p">,</span>
-                                               <span class="n">interp_space</span><span class="o">=</span><span class="n">interp_space</span><span class="p">,</span>
-                                               <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span>
-                                               <span class="n">idmesh</span><span class="o">=</span><span class="n">idmesh</span><span class="p">,</span> <span class="n">vquant</span><span class="o">=</span><span class="n">vquant</span><span class="p">,</span>
-                                               <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
-                                               <span class="n">ntall</span><span class="o">=</span><span class="n">ntall</span><span class="p">,</span> <span class="n">mpltri</span><span class="o">=</span><span class="n">mpltri</span><span class="p">,</span>
-                                               <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span> <span class="n">indtr1</span><span class="o">=</span><span class="n">indtr1</span><span class="p">,</span>
-                                               <span class="n">indtr2</span><span class="o">=</span><span class="n">indtr2</span><span class="p">,</span> <span class="n">trifind</span><span class="o">=</span><span class="n">trifind</span><span class="p">)</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="n">_comp</span><span class="o">.</span><span class="n">get_finterp_isotropic</span><span class="p">(</span>
+                <span class="n">idquant</span><span class="p">,</span> <span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="p">,</span>
+                <span class="n">vquant</span><span class="o">=</span><span class="n">vquant</span><span class="p">,</span>
+                <span class="n">interp_t</span><span class="o">=</span><span class="n">interp_t</span><span class="p">,</span>
+                <span class="n">interp_space</span><span class="o">=</span><span class="n">interp_space</span><span class="p">,</span>
+                <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span>
+                <span class="n">idmesh</span><span class="o">=</span><span class="n">idmesh</span><span class="p">,</span>
+                <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
+                <span class="n">ntall</span><span class="o">=</span><span class="n">ntall</span><span class="p">,</span> <span class="n">mpltri</span><span class="o">=</span><span class="n">mpltri</span><span class="p">,</span>
+                <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span> <span class="n">indtr1</span><span class="o">=</span><span class="n">indtr1</span><span class="p">,</span>
+                <span class="n">indtr2</span><span class="o">=</span><span class="n">indtr2</span><span class="p">,</span> <span class="n">trifind</span><span class="o">=</span><span class="n">trifind</span><span class="p">,</span>
+            <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">func</span></div>
 
@@ -4278,10 +4292,12 @@
 
         <span class="c1"># Interpolation (including time broadcasting)</span>
         <span class="c1"># this is the second slowest step (~0.08 s)</span>
-        <span class="n">func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_finterp</span><span class="p">(</span><span class="n">idquant</span><span class="o">=</span><span class="n">idquant</span><span class="p">,</span> <span class="n">idref1d</span><span class="o">=</span><span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="n">idref2d</span><span class="p">,</span>
-                                 <span class="n">idq2dR</span><span class="o">=</span><span class="n">idq2dR</span><span class="p">,</span> <span class="n">idq2dPhi</span><span class="o">=</span><span class="n">idq2dPhi</span><span class="p">,</span> <span class="n">idq2dZ</span><span class="o">=</span><span class="n">idq2dZ</span><span class="p">,</span>
-                                 <span class="n">interp_t</span><span class="o">=</span><span class="n">interp_t</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="n">interp_space</span><span class="p">,</span>
-                                 <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span> <span class="n">ani</span><span class="o">=</span><span class="n">ani</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="n">Type</span><span class="p">)</span>
+        <span class="n">func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_finterp</span><span class="p">(</span>
+            <span class="n">idquant</span><span class="o">=</span><span class="n">idquant</span><span class="p">,</span> <span class="n">idref1d</span><span class="o">=</span><span class="n">idref1d</span><span class="p">,</span> <span class="n">idref2d</span><span class="o">=</span><span class="n">idref2d</span><span class="p">,</span>
+            <span class="n">idq2dR</span><span class="o">=</span><span class="n">idq2dR</span><span class="p">,</span> <span class="n">idq2dPhi</span><span class="o">=</span><span class="n">idq2dPhi</span><span class="p">,</span> <span class="n">idq2dZ</span><span class="o">=</span><span class="n">idq2dZ</span><span class="p">,</span>
+            <span class="n">interp_t</span><span class="o">=</span><span class="n">interp_t</span><span class="p">,</span> <span class="n">interp_space</span><span class="o">=</span><span class="n">interp_space</span><span class="p">,</span>
+            <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">,</span> <span class="n">ani</span><span class="o">=</span><span class="n">ani</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="n">Type</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="c1"># This is the slowest step (~1.8 s)</span>
         <span class="n">val</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">vect</span><span class="o">=</span><span class="n">vect</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">)</span>
@@ -4368,7 +4384,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="kn">import</span> <span class="nn">tofu.data</span> <span class="k">as</span> <span class="nn">tfd</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">data</span> <span class="k">as</span> <span class="n">tfd</span>
+            <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">data</span> <span class="k">as</span> <span class="n">tfd</span>
 
         <span class="c1"># Check and format input</span>
         <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">lquant</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">list</span><span class="p">]</span>
@@ -4501,8 +4517,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 30, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
+      Last updated on Oct 06, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>

@@ -1,21 +1,19 @@
 <!DOCTYPE html>
 
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Computing a camera image with custom emissivity &#8212; Tofu 1.4.10</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <title>Computing a camera image with custom emissivity &#8212; Tofu 1.4.15</title>
     <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../_static/gallery.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/gallery-binder.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/gallery-dataframe.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/gallery-rendered-html.css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-    <script src="../../_static/jquery.js"></script>
-    <script src="../../_static/underscore.js"></script>
-    <script src="../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Computing the integrated solid angle of a particle" href="tuto_plot_solid_angles.html" />
@@ -42,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -122,8 +120,7 @@
       
   <div class="sphx-glr-download-link-note admonition note">
 <p class="admonition-title">Note</p>
-<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-tutorials-tuto-plot-custom-emissivity-py"><span class="std std-ref">here</span></a>
-to download the full example code</p>
+<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-tutorials-tuto-plot-custom-emissivity-py"><span class="std std-ref">here</span></a> to download the full example code</p>
 </div>
 <div class="sphx-glr-example-title section" id="computing-a-camera-image-with-custom-emissivity">
 <span id="sphx-glr-auto-examples-tutorials-tuto-plot-custom-emissivity-py"></span><h1>Computing a camera image with custom emissivity<a class="headerlink" href="#computing-a-camera-image-with-custom-emissivity" title="Permalink to this headline">¶</a></h1>
@@ -150,7 +147,7 @@ signal received by a camera using this emissivity.</p>
 </pre></div>
 </div>
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/miniconda3/envs/tofu3/lib/python3.8/site-packages/numpy/core/_asarray.py:102: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify &#39;dtype=object&#39; when creating the ndarray.
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/mendoza/miniconda3/envs/tofu3/lib/python3.7/site-packages/numpy/core/_asarray.py:102: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify &#39;dtype=object&#39; when creating the ndarray.
   return array(a, dtype, copy=False, order=order)
 </pre></div>
 </div>
@@ -202,12 +199,9 @@ We can plot its profile in the (0, X, Z) plane.</p>
 <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="p">[</span><span class="n">cam_center</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;camera pinhole&#39;</span><span class="p">],</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<img alt="WEST-V3" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_custom_emissivity_001.png" />
+<img alt="../../_images/sphx_glr_tuto_plot_custom_emissivity_001.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_custom_emissivity_001.png" />
 <p class="sphx-glr-script-out">Out:</p>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/tofu/examples/tutorials/tuto_plot_custom_emissivity.py:72: MatplotlibDeprecationWarning: shading=&#39;flat&#39; when X and Y have the same dimensions as C is deprecated since 3.3.  Either specify the corners of the quadrilaterals with X and Y, or pass shading=&#39;auto&#39;, &#39;nearest&#39; or &#39;gouraud&#39;, or set rcParams[&#39;pcolor.shading&#39;].  This will become an error two minor releases later.
-  ax.pcolormesh(Y, Z, emissivity_vals)
-
-&lt;matplotlib.legend.Legend object at 0x7fc426db2a30&gt;
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;matplotlib.legend.Legend object at 0x7ff22ff9bb38&gt;
 </pre></div>
 </div>
 <p>Finally, we compute an image using the 2D camera and this emissivity.
@@ -229,21 +223,23 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
-<img alt="-" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_custom_emissivity_002.png" />
+<img alt="../../_images/sphx_glr_tuto_plot_custom_emissivity_002.png" class="sphx-glr-single-img" src="../../_images/sphx_glr_tuto_plot_custom_emissivity_002.png" />
 <p class="sphx-glr-script-out">Out:</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>No handles with labels found to put in legend.
-/home/lasofivec/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
+/home/mendoza/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
     - backend : agg   (prefer Qt5Agg)
     - canvas  : FigureCanvasAgg
   warnings.warn(msg)
+/home/mendoza/miniconda3/envs/tofu3/lib/python3.7/site-packages/matplotlib/figure.py:445: UserWarning: Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.
+  % get_backend())
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  3.218 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  2.684 seconds)</p>
 <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-custom-emissivity-py">
-<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<div class="sphx-glr-download docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/e2798ac0f164c4954f702fbc6d882178/tuto_plot_custom_emissivity.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_custom_emissivity.py</span></code></a></p>
 </div>
-<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<div class="sphx-glr-download docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/f8311ebbce02f30d48720c0b74630aa8/tuto_plot_custom_emissivity.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">tuto_plot_custom_emissivity.ipynb</span></code></a></p>
 </div>
 </div>
@@ -270,8 +266,8 @@ If we provide a time vector, the field will vary in a cosinusoidal fashion
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 30, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
+      Last updated on Oct 06, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>

@@ -1,21 +1,19 @@
 <!DOCTYPE html>
 
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.tests.tests01_geom.test_04_sampling &#8212; Tofu 1.4.10</title>
-    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <title>tofu.tests.tests01_geom.test_04_sampling &#8212; Tofu 1.4.15</title>
     <link rel="stylesheet" href="../../../../_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/gallery.css" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/gallery-binder.css" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/gallery-dataframe.css" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/gallery-rendered-html.css" />
-    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
-    <script src="../../../../_static/jquery.js"></script>
-    <script src="../../../../_static/underscore.js"></script>
-    <script src="../../../../_static/doctools.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
 <meta charset='utf-8'>
@@ -40,7 +38,7 @@
         </button>
         <a class="navbar-brand" href="../../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -122,9 +120,9 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">tofu</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">import</span> <span class="nn">tofu.geom._GG</span> <span class="k">as</span> <span class="nn">GG</span>
-<span class="kn">from</span> <span class="nn">matplotlib.path</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">.testing_tools</span> <span class="kn">import</span> <span class="n">compute_ves_norm</span>
-<span class="kn">from</span> <span class="nn">.testing_tools</span> <span class="kn">import</span> <span class="n">compute_min_max_r_and_z</span>
+<span class="kn">from</span> <span class="nn">matplotlib.path</span> <span class="k">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">.testing_tools</span> <span class="k">import</span> <span class="n">compute_ves_norm</span>
+<span class="kn">from</span> <span class="nn">.testing_tools</span> <span class="k">import</span> <span class="n">compute_min_max_r_and_z</span>
 
 <span class="c1"># Global variables for testing</span>
 <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
@@ -303,6 +301,8 @@
 <span class="c1"># =============================================================================</span>
 <span class="c1"># Ves  - Solid angles</span>
 <span class="c1"># =============================================================================</span>
+
+
 <div class="viewcode-block" id="test05_sa_integ_map"><a class="viewcode-back" href="../../../../tofu.tests.tests01_geom.html#tofu.tests.tests01_geom.test_04_sampling.test05_sa_integ_map">[docs]</a><span class="k">def</span> <span class="nf">test05_sa_integ_map</span><span class="p">(</span><span class="n">ves_poly</span><span class="o">=</span><span class="n">VPoly</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
     <span class="nb">print</span><span class="p">()</span>
@@ -346,7 +346,7 @@
         <span class="n">npts_sa</span><span class="p">,</span> <span class="n">sz_p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">sa_map_cy</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sa_map_cy is of size </span><span class="si">{</span><span class="n">npts_sa</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">sz_p</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;sa_map_cy is of size </span><span class="si">{npts_sa}</span><span class="s2">,</span><span class="si">{sz_p}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="c1"># Checking shapes, sizes, types</span>
         <span class="k">assert</span> <span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span>
@@ -370,7 +370,7 @@
         <span class="n">pts_ex</span><span class="p">,</span> <span class="n">sa_map_cy_ex</span><span class="p">,</span> <span class="n">ind_ex</span><span class="p">,</span> <span class="n">reso_r_z_ex</span> <span class="o">=</span> <span class="n">res</span>
 
         <span class="k">if</span> <span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sa_map_cy_ex is of size </span><span class="si">{</span><span class="n">npts_sa</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">sz_p</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;sa_map_cy_ex is of size </span><span class="si">{npts_sa}</span><span class="s2">,</span><span class="si">{sz_p}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="c1"># Checking if pts, indices and resolution same as with approx</span>
         <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">pts_ex</span><span class="p">,</span> <span class="n">pts</span><span class="p">)</span>
@@ -409,7 +409,7 @@
         <span class="k">assert</span> <span class="n">npts_disc</span> <span class="o">&gt;=</span> <span class="n">npts</span>
         <span class="k">assert</span> <span class="n">reso_r</span> <span class="o">*</span> <span class="n">reso_z</span> <span class="o">==</span> <span class="n">reso_r_z</span>
         <span class="k">if</span> <span class="n">ves_poly</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">npts_sa</span> <span class="o">==</span> <span class="n">sz_z</span> <span class="o">*</span> <span class="n">sz_r</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;sizes r and z = </span><span class="si">{</span><span class="n">sz_r</span><span class="si">}{</span><span class="n">sz_z</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">assert</span> <span class="n">npts_sa</span> <span class="o">==</span> <span class="n">sz_z</span> <span class="o">*</span> <span class="n">sz_r</span><span class="p">,</span> <span class="n">f</span><span class="s2">&quot;sizes r and z = </span><span class="si">{sz_r}{sz_z}</span><span class="s2">&quot;</span>
 
         <span class="n">sa_map_py</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">npts_sa</span><span class="p">,</span> <span class="n">sz_p</span><span class="p">))</span>
         <span class="n">sa_map_py_ex</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">npts_sa</span><span class="p">,</span> <span class="n">sz_p</span><span class="p">))</span>
@@ -499,8 +499,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 30, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
+      Last updated on Oct 06, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
     </p>
   </div>
 </footer>
