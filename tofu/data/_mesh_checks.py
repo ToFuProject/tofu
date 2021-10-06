@@ -8,32 +8,11 @@
 import numpy as np
 
 
-# #############################################################################
-# #############################################################################
-#                           Utilities
-# #############################################################################
+# specific
+from . import _generic_check
 
 
-def _check_var(var, varname, types=None, default=None, allowed=None):
-    if var is None:
-        var = default
-
-    if types is not None:
-        if not isinstance(var, types):
-            msg = (
-                f"Arg {varname} must be of type {types}!\n"
-                f"Provided: {type(var)}"
-            )
-            raise Exception(msg)
-
-    if allowed is not None:
-        if var not in allowed:
-            msg = (
-                f"Arg {varname} must be in {allowed}!\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
-    return var
+_ELEMENTS = 'knots'
 
 
 # #############################################################################
@@ -70,8 +49,8 @@ def _mesh2DRect_X_check(
         res = 10
 
     lc = [
-        isinstance(res, (int, np.int_)) and len(x) == 2,
-        isinstance(res, (float, np.float_)) and len(x) == 2,
+        isinstance(res, (int, np.int64, np.int32)) and len(x) == 2,
+        isinstance(res, (float, np.floating)) and len(x) == 2,
         isinstance(res, (list, tuple, np.ndarray)) and len(x) == len(res),
     ]
     if not any(lc):
@@ -199,7 +178,7 @@ def _mesh2DRect_to_dict(
         raise Exception(msg)
 
     kRknots, kZknots = f"{key}-R-knots", f"{key}-Z-knots"
-    kRcent, kZcent = f"{key}-R-cent", f"{key}-Z-cent"
+    kRcent, kZcent = f"{key}-R-cents", f"{key}-Z-cents"
 
     R, Z, resR, resZ, indR, indZ = _mesh2DRect_check(domain=domain, res=res)
     Rcent = 0.5*(R[1:] + R[:-1])
@@ -253,11 +232,12 @@ def _mesh2DRect_to_dict(
     dmesh = {
         key: {
             'type': 'rect',
-            'R-knots': kRknots,
-            'Z-knots': kZknots,
-            'R-cent': kRcent,
-            'Z-cent': kZcent,
+            'knots': (kRknots, kZknots),
+            'cents': (kRcent, kZcent),
+            'ref': (kRcent, kZcent),
+            'shape': (Rcent.size, Zcent.size),
             'variable': variable,
+            'crop': False,
         },
     }
     return dref, dmesh
@@ -284,12 +264,12 @@ def _mesh2DRect_from_Config(config=None, key_struct=None):
     # -------------
     # domain
 
-    poly = config.dStruct['dObj']['Ves'][key_struct].Poly
+    poly = config.dStruct['dObj']['Ves'][key_struct].Poly_closed
     domain = [
         [poly[0, :].min(), poly[0, :].max()],
         [poly[1, :].min(), poly[1, :].max()],
     ]
-    return domain
+    return domain, poly
 
 
 # #############################################################################
@@ -302,6 +282,7 @@ def _select_ind_check(
     ind=None,
     elements=None,
     returnas=None,
+    crop=None,
 ):
 
     # ind
@@ -346,43 +327,71 @@ def _select_ind_check(
                 np.atleast_1d(ind[0]).astype(int),
                 np.atleast_1d(ind[1]).astype(int),
             )
-        c0 = all([
-            isinstance(ss, np.ndarray)
-            and ss.dtype == np.int_
-            and ss.shape == ind[0].shape
-            for ss in ind
-        ])
-        if not c0:
+        lc0 = [
+            [
+                isinstance(ss, np.ndarray),
+                np.issubdtype(ss.dtype, np.integer),
+                ss.shape == ind[0].shape,
+            ]
+                for ss in ind
+        ]
+        if not all([all(cc) for cc in lc0]):
+            ltype = [type(ss) for ss in ind]
+            ltypes = [
+                ss.dtype if isinstance(ss, np.ndarray) else False
+                for ss in ind
+            ]
+            lshapes = [
+                ss.shape if isinstance(ss, np.ndarray) else len(ss)
+                for ss in ind
+            ]
             msg = (
-                "Arg ind must be a tuple of 2 arrays of int of same shape"
+                "Arg ind must be a tuple of 2 arrays of int of same shape\n"
+                f"\t- lc0: {lc0}\n"
+                f"\t- types: {ltype}\n"
+                f"\t- type each: {ltypes}\n"
+                f"\t- shape: {lshapes}\n"
+                f"\t- ind: {ind}"
             )
             raise Exception(msg)
     else:
         if not isinstance(ind, np.ndarray):
             ind = np.atleast_1d(ind).astype(int)
-        if not ind.dtype == np.int_:
+        c0 = (
+            np.issubdtype(ind.dtype, np.integer)
+            or np.issubdtype(ind.dtype, np.bool_)
+        )
+        if not c0:
             msg = (
-                "Arg ind must be an array of int"
+                "Arg ind must be an array of bool or int\n"
+                f"Provided: {ind.dtype}"
             )
             raise Exception(msg)
 
     # elements
-    elements = _check_var(
+    elements = _generic_check._check_var(
         elements, 'elements',
         types=str,
-        default='knots',
-        allowed=['knots', 'cent'],
+        default=_ELEMENTS,
+        allowed=['knots', 'cents'],
     )
 
     # returnas
-    returnas = _check_var(
+    returnas = _generic_check._check_var(
         returnas, 'returnas',
         types=None,
         default=tuple,
-        allowed=[tuple, 'flat'],
+        allowed=[tuple, np.ndarray, 'tuple-flat', 'array-flat', bool],
     )
 
-    return ind, elements, returnas
+    # crop
+    crop = _generic_check._check_var(
+        crop, 'crop',
+        types=bool,
+        default=True,
+    )
+
+    return ind, elements, returnas, crop
 
 
 def _select_check(
@@ -392,15 +401,15 @@ def _select_check(
 ):
 
     # elements
-    elements = _check_var(
+    elements = _generic_check._check_var(
         elements, 'elements',
         types=str,
-        default='knots',
-        allowed=['knots', 'cent'],
+        default=_ELEMENTS,
+        allowed=['knots', 'cents'],
     )
 
     # returnas
-    returnas = _check_var(
+    returnas = _generic_check._check_var(
         returnas, 'returnas',
         types=None,
         default='ind',
@@ -408,7 +417,7 @@ def _select_check(
     )
 
     # return_neighbours
-    return_neighbours = _check_var(
+    return_neighbours = _generic_check._check_var(
         return_neighbours, 'return_neighbours',
         types=bool,
         default=True,
@@ -446,4 +455,7 @@ def _mesh2DRect_bsplines(key=None, lkeys=None, deg=None):
         )
         raise Exception(msg)
 
-    return key, deg
+    # keybs
+    keybs = f'{key}-bs{deg}'
+
+    return key, keybs, deg

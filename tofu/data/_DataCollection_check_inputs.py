@@ -6,6 +6,7 @@ import warnings
 
 # Common
 import numpy as np
+import scipy.sparse as scpsp
 from matplotlib.tri import Triangulation as mplTri
 
 
@@ -99,9 +100,22 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
         lk = [
             kk for kk in lk
             if not (
-                np.allclose(v0[kk], dd0[k0][kk])
-                if isinstance(v0[kk], np.ndarray)
-                else v0[kk] == dd0[k0][kk]
+                isinstance(v0[kk], dd0[k0][kk].__class__)
+                and (
+                    (
+                        isinstance(v0[kk], np.ndarray)
+                        and np.allclose(v0[kk], dd0[k0][kk], equal_nan=True)
+                    )
+                    or (
+                        scpsp.issparse(v0[kk])
+                        and np.allclose(
+                            v0[kk].data, dd0[k0][kk].data, equal_nan=True,
+                        )
+                    )
+                    or (
+                        v0[kk] == dd0[k0][kk]
+                    )
+                )
             )
         ]
         if len(lk) > 0:
@@ -119,7 +133,7 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
         msg = (
             "Conflicts with pre-existing values found in {}:\n".format(dd_name)
             + "\n".join([
-                "\t- {}['{}']: {}".format(dd_name, k0, v0)
+                f"\t- {dd_name}['{k0}']: {v0}"
                 for k0, v0 in dconflict.items()
             ])
         )
@@ -130,7 +144,7 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
         msg = (
             "\nExisting {} keys will be overwritten:\n".format(dd_name)
             + "\n".join([
-                "\t- {}[{}]: {}".format(dd_name, k0, v0)
+                f"\t- {dd_name}['{k0}']: {v0}"
                 for k0, v0 in dupdate.items()
             ])
         )
@@ -1271,7 +1285,11 @@ def _check_data(data=None, key=None, max_ndim=None):
     # => try converting or get class (dict, mesh...)
     shape = None
     group = None
-    if not isinstance(data, np.ndarray):
+    c0_array = (
+        isinstance(data, np.ndarray)
+        or scpsp.issparse(data)
+    )
+    if not c0_array:
         if isinstance(data, list) or isinstance(data, tuple):
             c0 = (
                 all([hasattr(oo, '__iter__') for oo in data])
@@ -1300,11 +1318,11 @@ def _check_data(data=None, key=None, max_ndim=None):
                 shape = data.__class__.__name__
 
     # if array => check unique (unique + sorted)
-    if isinstance(data, np.ndarray) and shape is None:
+    if c0_array and shape is None:
         shape = data.shape
 
     # Check max_dim if any
-    if isinstance(data, np.ndarray) and max_ndim is not None:
+    if c0_array and max_ndim is not None:
         if data.ndim > max_ndim:
             msg = (
                 """
@@ -1365,7 +1383,8 @@ def _check_ddata(
                 (
                     nref == 1
                     and (
-                        type(v0) in [np.ndarray, list, tuple]
+                        isinstance(v0, (np.ndarray, list, tuple))
+                        or scpsp.issparse(v0)
                         or (
                             isinstance(v0, dict)
                             and all([isinstance(ss, str) for ss in v0.keys()])
@@ -1544,9 +1563,9 @@ def _check_ddata(
         )
         if not c0:
             msg = (
-                "ddata['{}']['ref'] contains unknown ref:\n"
-                + "\t- ddata['{}']['ref'] = {}\n".format(k0, v0['ref'])
-                + "\t- dref0.keys() = {}\n".format(sorted(dref0.keys()))
+                f"ddata['{k0}']['ref'] contains unknown ref:\n"
+                f"\t- ddata['{k0}']['ref'] = {v0['ref']}\n"
+                f"\t- dref0.keys() = {sorted(dref0.keys())}\n"
                 + "\t- dref_add.keys() = {}".format(
                     None if dref_add is None else sorted(dref_add.keys())
                 )
@@ -2306,9 +2325,9 @@ def _set_param(
     key = _ind_tofrom_key(dd=dd, ind=ind, key=key, returnas='key')
 
     # Check value
-    ltypes = [str, int, np.int, float, np.float, tuple]
+    ltypes = [str, int, np.integer, float, np.floating, tuple]
     lc = [
-        type(value) in ltypes,
+        isinstance(value, tuple(ltypes)),
         isinstance(value, list) and all([type(tt) in ltypes for tt in value])
         and len(value) == len(key),
         isinstance(value, np.ndarray) and value.shape[0] == len(key),

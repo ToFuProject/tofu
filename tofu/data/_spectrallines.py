@@ -8,10 +8,10 @@ import matplotlib.colors as mcolors
 import warnings
 
 
-from ._core_new import DataCollection
+from ._DataCollection_class import DataCollection
 from . import _comp_spectrallines
-from . import _comp_new
-from . import _plot_new
+from . import _DataCollection_comp
+from . import _DataCollection_plot
 
 
 __all__ = ['SpectralLines', 'TimeTraces']
@@ -669,7 +669,7 @@ class SpectralLines(DataCollection):
             key = [kk for kk in key if kk not in lc]
 
         # Check ne, Te
-        ltype = [int, float, np.int_, np.float_]
+        ltype = [int, float, np.integer, np.floating]
         dnTe = {'ne': ne, 'Te': Te}
         for k0, v0 in dnTe.items():
             if type(v0) in ltype:
@@ -886,7 +886,7 @@ class SpectralLines(DataCollection):
             param_txt = 'symbol'
 
         # Check ne, Te
-        ltypes = [int, float, np.int_, np.float_]
+        ltypes = [int, float, np.integer, np.floating]
         dnTe = {'ne': ne, 'Te': Te}
         single = all([
             type(v0) in ltypes or len(v0) == 1 for v0 in dnTe.values()
@@ -986,7 +986,7 @@ class SpectralLines(DataCollection):
             Te_scale = 'linear'
 
         # Check ne, Te
-        ltypes = [int, float, np.int_, np.float_]
+        ltypes = [int, float, np.integer, np.floating]
         dnTe = {
             'ne': type(ne) in ltypes or len(ne) == 1,
             'Te': type(Te) in ltypes or len(Te) == 1,
@@ -1021,10 +1021,10 @@ class SpectralLines(DataCollection):
         damp = {k0: {'data': v0} for k0, v0 in dpec.items()}
 
         # Create grid
-        ne_grid = _comp_new._get_grid1d(
+        ne_grid = _DataCollection_comp._get_grid1d(
             ne, scale=ne_scale, npts=ne.size*2, nptsmin=3,
         )
-        Te_grid = _comp_new._get_grid1d(
+        Te_grid = _DataCollection_comp._get_grid1d(
             Te, scale=Te_scale, npts=Te.size*2, nptsmin=3,
         )
 
@@ -1089,7 +1089,7 @@ class SpectralLines(DataCollection):
         if dtit is None:
             dtit = {'map': 'norder = {}'.format(norder)}
 
-        return _plot_new.plot_dominance_map(
+        return _DataCollection_plot.plot_dominance_map(
             din=self._dobj['lines'], im=im, extent=extent,
             xval=ne, yval=Te, damp=damp,
             x_scale=ne_scale, y_scale=Te_scale, amp_scale='log',
@@ -1135,7 +1135,7 @@ class TimeTraces(DataCollection):
         dout = self._fit_one_dim(ind=ind, key=key, group=self._forced_group,
                                  Type=Type, func=func, **kwdargs)
         if plot:
-            kh = _plot_new.plot_fit_1d(self, dout)
+            kh = _DataCollection_plot.plot_fit_1d(self, dout)
         return dout
 
     def add_plateaux(self, verb=False):

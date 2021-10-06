@@ -21,10 +21,10 @@ import scipy.interpolate as scpinterp
 # tofu
 # from tofu import __version__ as __version__
 import tofu.utils as utils
-from . import _check_inputs
+from . import _DataCollection_check_inputs
 from . import _comp
-from . import _comp_new
-from . import _plot_new
+from . import _DataCollection_comp
+from . import _DataCollection_plot
 from . import _def
 from . import _comp_spectrallines
 
@@ -190,7 +190,7 @@ class DataCollection(utils.ToFuObject):
         """
         # Check consistency
         self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
-                _check_inputs._consistency(
+                _DataCollection_check_inputs._consistency(
                     dobj=dobj, dobj0=self._dobj,
                     ddata=ddata, ddata0=self._ddata,
                     dref=dref, dref0=self._dref,
@@ -242,7 +242,7 @@ class DataCollection(utils.ToFuObject):
     def remove_group(self, group=None):
         """ Remove a group (or list of groups) and all associated ref, data """
         self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
-                _check_inputs._remove_group(
+                _DataCollection_check_inputs._remove_group(
                     group=group,
                     dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
                     dref_static0=self._dref_static,
@@ -258,7 +258,7 @@ class DataCollection(utils.ToFuObject):
     def remove_ref(self, key=None, propagate=None):
         """ Remove a ref (or list of refs) and all associated data """
         self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
-                _check_inputs._remove_ref(
+                _DataCollection_check_inputs._remove_ref(
                     key=key,
                     dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
                     dref_static0=self._dref_static,
@@ -283,7 +283,7 @@ class DataCollection(utils.ToFuObject):
             => treated as param, the whole category of ref_static is removed
                 if propagate, the parameter is removed from ddata and dobj
         """
-        _check_inputs._remove_ref_static(
+        _DataCollection_check_inputs._remove_ref_static(
             key=key,
             which=which,
             propagate=propagate,
@@ -295,7 +295,7 @@ class DataCollection(utils.ToFuObject):
     def remove_data(self, key=None, propagate=True):
         """ Remove a data (or list of data) """
         self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
-                _check_inputs._remove_data(
+                _DataCollection_check_inputs._remove_data(
                     key=key,
                     dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
                     dref_static0=self._dref_static,
@@ -312,7 +312,7 @@ class DataCollection(utils.ToFuObject):
     def remove_obj(self, key=None, which=None, propagate=True):
         """ Remove a data (or list of data) """
         self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
-                _check_inputs._remove_obj(
+                _DataCollection_check_inputs._remove_obj(
                     key=key,
                     which=which,
                     dobj0=self._dobj,
@@ -334,7 +334,7 @@ class DataCollection(utils.ToFuObject):
 
     def __check_which(self, which=None, return_dict=None):
         """ Check which in ['data'] + list(self._dobj.keys() """
-        return _check_inputs._check_which(
+        return _DataCollection_check_inputs._check_which(
             ddata=self._ddata,
             dobj=self._dobj,
             which=which,
@@ -371,7 +371,7 @@ class DataCollection(utils.ToFuObject):
         which, dd = self.__check_which(which, return_dict=True)
         if which is None:
             return
-        return _check_inputs._get_param(
+        return _DataCollection_check_inputs._get_param(
             dd=dd, dd_name=which,
             param=param, key=key, ind=ind, returnas=returnas,
         )
@@ -398,7 +398,7 @@ class DataCollection(utils.ToFuObject):
         which, dd = self.__check_which(which, return_dict=True)
         if which is None:
             return
-        _check_inputs._set_param(
+        _DataCollection_check_inputs._set_param(
             dd=dd, dd_name=which,
             param=param, value=value, ind=ind, key=key,
         )
@@ -413,7 +413,7 @@ class DataCollection(utils.ToFuObject):
         which, dd = self.__check_which(which, return_dict=True)
         if which is None:
             return
-        _check_inputs._add_param(
+        _DataCollection_check_inputs._add_param(
             dd=dd, dd_name=which,
             param=param, value=value,
         )
@@ -427,7 +427,7 @@ class DataCollection(utils.ToFuObject):
         which, dd = self.__check_which(which, return_dict=True)
         if which is None:
             return
-        _check_inputs._remove_param(
+        _DataCollection_check_inputs._remove_param(
             dd=dd, dd_name=which,
             param=param,
         )
@@ -536,7 +536,7 @@ class DataCollection(utils.ToFuObject):
         which, dd = self.__check_which(which, return_dict=True)
         if which is None:
             return
-        return _check_inputs._select(
+        return _DataCollection_check_inputs._select(
             dd=dd, dd_name=which,
             log=log, returnas=returnas, **kwdargs,
         )
@@ -553,7 +553,7 @@ class DataCollection(utils.ToFuObject):
         which, dd = self.__check_which(which, return_dict=True)
         if which is None:
             return
-        return _check_inputs._ind_tofrom_key(
+        return _DataCollection_check_inputs._ind_tofrom_key(
             dd=dd, dd_name=which, ind=ind, key=key,
             group=group, dgroup=self._dgroup,
             returnas=returnas,
@@ -651,7 +651,7 @@ class DataCollection(utils.ToFuObject):
     def switch_ref(self, new_ref=None):
         """Use the provided key as ref (if valid) """
         self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
-                _check_inputs.switch_ref(
+                _DataCollection_check_inputs.switch_ref(
                     new_ref=new_ref,
                     ddata=self._ddata,
                     dref=self._dref,
@@ -717,9 +717,17 @@ class DataCollection(utils.ToFuObject):
     # Methods for showing data
     # ---------------------
 
-    def get_summary(self, show=None, show_core=None,
-                    sep='  ', line='-', just='l',
-                    table_sep=None, verb=True, return_=False):
+    def get_summary(
+        self,
+        show=None,
+        show_core=None,
+        sep='  ',
+        line='-',
+        just='l',
+        table_sep=None,
+        verb=True,
+        return_=False,
+    ):
         """ Summary description of the object content """
         # # Make sure the data is accessible
         # msg = "The data is not accessible because self.strip(2) was used !"
@@ -802,6 +810,11 @@ class DataCollection(utils.ToFuObject):
         if len(self._dobj) > 0:
             for k0, v0 in self._dobj.items():
                 lk = self.get_lparam(which=k0)
+                lk = [
+                    kk for kk in lk
+                    if 'func' not in kk
+                    and 'class' not in kk
+                ]
                 lcol.append([k0] + [pp for pp in lk])
                 lar.append([
                     tuple([k1] + [str(v1[kk]) for kk in lk])
@@ -809,9 +822,14 @@ class DataCollection(utils.ToFuObject):
                 ])
 
         return self._get_summary(
-            lar, lcol,
-            sep=sep, line=line, table_sep=table_sep,
-            verb=verb, return_=return_)
+            lar,
+            lcol,
+            sep=sep,
+            line=line,
+            table_sep=table_sep,
+            verb=verb,
+            return_=return_,
+        )
 
     # -----------------
     # conversion wavelength - energy - frequency
@@ -854,7 +872,7 @@ class DataCollection(utils.ToFuObject):
             such that t[ind] = tall (with nearest approximation)
 
         """
-        return _comp_new._get_unique_ref_dind(
+        return _DataCollection_comp._get_unique_ref_dind(
             dd=self._ddata, group=group,
             lkey=lkey, return_all=return_all,
         )
@@ -948,7 +966,9 @@ class DataCollection(utils.ToFuObject):
 
         # Check requested quant is available in 2d or 1d
         if all(lc1):
-            idquant, idref1d, idref2d = _check_inputs._get_possible_ref12d(
+            (
+                idquant, idref1d, idref2d,
+            ) = _DataCollection_check_inputs._get_possible_ref12d(
                 dd=self._ddata,
                 key=quant, ref1d=ref1d, ref2d=ref2d,
                 group1d=group1d,
@@ -957,15 +977,15 @@ class DataCollection(utils.ToFuObject):
             idq2dR, idq2dPhi, idq2dZ = None, None, None
             ani = False
         else:
-            idq2dR, msg = _check_inputs._get_keyingroup_ddata(
+            idq2dR, msg = _DataCollection_check_inputs._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dR, group=group2d, msgstr='quant', raise_=True,
             )
-            idq2dPhi, msg = _check_inputs._get_keyingroup_ddata(
+            idq2dPhi, msg = _DataCollection_check_inputs._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dPhi, group=group2d, msgstr='quant', raise_=True,
             )
-            idq2dZ, msg = _check_inputs._get_keyingroup_ddata(
+            idq2dZ, msg = _DataCollection_check_inputs._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dZ, group=group2d, msgstr='quant', raise_=True,
             )
@@ -1016,7 +1036,7 @@ class DataCollection(utils.ToFuObject):
 
         # Get common time indices
         if interp_t == 'nearest':
-            tall, tbinall, ntall, dind = _comp_new._get_tcom(
+            tall, tbinall, ntall, dind = _DataCollection_comp._get_tcom(
                 idquant, idref1d, idref2d, idq2dR,
                 dd=self._ddata, group=group0d,
             )
@@ -1362,9 +1382,14 @@ class DataCollection(utils.ToFuObject):
         for kk in lk:
             x = None
             axis = None
-            dfit = _comp_new.fit(self._ddata['dict'][kk]['data'],
-                                 x=x, axis=axis,
-                                 func=func, Type=Type, **kwdargs)
+            dfit = _DataCollection_comp.fit(
+                self._ddata['dict'][kk]['data'],
+                x=x,
+                axis=axis,
+                func=func,
+                Type=Type,
+                **kwdargs,
+            )
             dout[kk] = dfit
 
         return dout
@@ -1373,6 +1398,36 @@ class DataCollection(utils.ToFuObject):
     # Methods for plotting data
     # ---------------------
 
+    def plot_as_matrix(
+        self,
+        key=None,
+        ind=None,
+        vmin=None,
+        vmax=None,
+        cmap=None,
+        aspect=None,
+        dax=None,
+        dmargin=None,
+        fs=None,
+        dcolorbar=None,
+        dleg=None,
+    ):
+        """ Plot the desired 2d data array as a matrix """
+        return _DataCollection_plot.plot_as_matrix(
+            coll=self,
+            key=key,
+            ind=ind,
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            aspect=aspect,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+        )
+
     def _plot_timetraces(self, ntmax=1, group='time',
                          key=None, ind=None, Name=None,
                          color=None, ls=None, marker=None, ax=None,
@@ -1380,7 +1435,7 @@ class DataCollection(utils.ToFuObject):
                          legend=None, draw=None, connect=None, lib=None):
         plotcoll = self.to_PlotCollection(ind=ind, key=key, group=group,
                                           Name=Name, dnmax={group: ntmax})
-        return _plot_new.plot_DataColl(
+        return _DataCollection_plot.plot_DataColl(
             plotcoll,
             color=color, ls=ls, marker=marker, ax=ax,
             axgrid=axgrid, fs=fs, dmargin=dmargin,
@@ -1435,7 +1490,7 @@ class DataCollection(utils.ToFuObject):
             )
             raise Exception(msg)
 
-        return _plot_new.plot_axvline(
+        return _DataCollection_plot.plot_axvline(
             din=dd,
             key=key,
             param_x='lambda0',
