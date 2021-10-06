@@ -2,11 +2,13 @@
 
 
 # Built-in
+import time
 
 
 # Common
 import numpy as np
 import scipy.sparse as scpsp
+import matplotlib.pyplot as plt
 
 
 # tofu
@@ -24,83 +26,74 @@ def compute_inversions(
     key=None,
     data=None,
     sigma=None,
+    conv_crit=None,
     operator=None,
     geometry=None,
     isotropic=None,
     method=None,
     sparse=None,
     chain=None,
+    positive=None,
+    verb=None,
+    **kwdargs,
 ):
 
     # -------------
     # check inputs
 
     (
-        keymat, keybs, keym, data, sigma,
-        isotropic, sparse, matrix, crop, chain,
+        keymat, keybs, keym, data, sigma, opmat,
+        conv_crit, isotropic, sparse, matrix, crop, chain,
+        positive, method, kwdargs, verb,
     ) = _inversions_checks._compute_check(
         coll=coll,
         key=key,
         data=data,
         sigma=sigma,
+        conv_crit=conv_crit,
         isotropic=isotropic,
         sparse=sparse,
         chain=chain,
+        positive=positive,
+        method=method,
+        kwdargs=kwdargs,
+        operator=operator,
+        geometry=geometry,
+        verb=verb,
     )
 
-    # kwdargs
-    if KWARGS is None:
-        if SolMethod in 'InvLin_AugTikho_V1':
-            KWARGS = {'a0':TFD.AugTikho_a0, 'b0':TFD.AugTikho_b0, 'a1':TFD.AugTikho_a1, 'b1':TFD.AugTikho_b1, 'd':TFD.AugTikho_d, 'ConvReg':True, 'FixedNb':True}
-        elif SolMethod == 'InvLin_DisPrinc_V1':
-            KWARGS = {'chi2Tol':TFD.chi2Tol, 'chi2Obj':TFD.chi2Obj}
-        elif SolMethod == 'InvLinQuad_AugTikho_V1':
-            KWARGS = {'a0':TFD.AugTikho_a0, 'b0':TFD.AugTikho_b0, 'a1':TFD.AugTikho_a1, 'b1':TFD.AugTikho_b1, 'd':TFD.AugTikho_d, 'ConvReg':True, 'FixedNb':True}
-        elif SolMethod == 'InvQuad_AugTikho_V1':
-            KWARGS = {'a0':TFD.AugTikho_a0, 'b0':TFD.AugTikho_b0, 'a1':TFD.AugTikho_a1, 'b1':TFD.AugTikho_b1, 'd':TFD.AugTikho_d, 'ConvReg':True, 'FixedNb':True}
+    nt, nchan = data.shape
+    nbs = matrix.shape[1]
+    func = eval(method)
 
     # -------------
     # prepare data
 
-    # get operator
-    opmat, operator, geometry, dim, ref, crop = coll.add_bsplines_operator(
-        key=keybs,
-        operator=operator,
-        geometry=geometry,
-        returnas=True,
-        store=False,
-        crop=crop,
-    )
-
-    # data and sigma
+    if verb:
+        t0 = time.process_time()
+        t0 = time.perf_counter()
+        print("Preparing data... ", end='', flush=True)
 
     # indt (later)
-
-
-    nchan, nbs = matrix.shape
-    if isinstance(opmat, tuple):
-        assert all([op.shape == (nbs, nbs) for op in opmat])
-    elif opmat.ndim == 1:
-        msg = "Inversion algorithm requires a quadratic operator!"
-        raise Exception(msg)
-    else:
-        assert opmat.shape == (nbs,) or opmat.shape == (nbs, nbs)
-        opmat = (opmat,)
-
-    assert data.shape[1] == nchan
-    nt = data.shape[0]
 
     # normalization
     data_n = data / sigma
 
-    # tmat = matrix dense
-    # ddat = data copy
-    # ssigm = sigma[0, :]
-    # b = ddat/ssigm
-    # Tm = np.diag(1./ssigm).dot(tmat)
-    # Tb = Tm.T.dot(b)
-    # TT = SpFc[SpType](Tm.T.dot(Tm))
-    # M = scpsplin.inv((TT+mu0*LL/sol0.dot(LL.dot(sol0))).tocsc())
+    regparam0 = 1.
+
+    # prepare computation intermediates
+    Tyn = np.full((nbs,), np.nan)
+    R = opmat[0] + opmat[1]
+    if sparse is True:
+        Tn = scpsp.diags(1./np.nanmean(sigma, axis=0)).dot(matrix)
+        TTn = Tn.T.dot(Tn)
+        # preconditioner to approx inv(TTn + reg*Rn), improves convergence
+        precond = scpsp.linalg.inv(TTn + regparam0*R)
+    else:
+        Tn = np.full(matrix.shape, np.nan)
+        TTn = np.full((nbs, nbs), np.nan)
+        Rn = np.full((nbs, nbs), np.nan)
+        precond = np.full((nbs, nbs), np.nan)
 
     # prepare output arrays
     sol = np.full((nt, nbs), np.nan)
@@ -108,12 +101,22 @@ def compute_inversions(
     chi2n = np.full((nt,), np.nan)
     regularity = np.full((nt,), np.nan)
     niter = np.zeros((nt,), dtype=int)
+    spec = [None for ii in range(nt)]
     # Spec = [[] for ii in range(0,Nt)]
     # NormL = sol0.dot(LL.dot(sol0))
 
     # -------------
     # initial guess
 
+    if verb:
+        t1 = time.process_time()
+        t1 = time.perf_counter()
+        print(f"{t1-t0} s", end='\n', flush=True)
+        print("Setting inital guess... ", end='', flush=True)
+
+    sol0 = np.full((nbs,), np.nanmean(data[0, :]) / matrix.mean())
+
+    """
     sol0 = Default_sol(BF2, tmat, ddat, sigma0=ssigm, N=3)
     # Using discrepancy principle on averaged signal
     LL, mm = BF2.get_IntOp(Deriv=Deriv, Mode=IntMode)
@@ -148,28 +151,54 @@ def compute_inversions(
         NMes, Nbf, SpFc[SpType](Tm), TT, LL, Tb, b, sol0,
         ConvCrit=ConvCrit, mu0=mu0, M=None, Verb=False, **KWARGS,
     )
-    M = scpsplin.inv((TT+mu0*LL/sol0.dot(LL.dot(sol0))).tocsc())
-    NormL = sol0.dot(LL.dot(sol0))
+    """
 
     # -------------
     # compute
 
+    if verb:
+        t2 = time.process_time()
+        t2 = time.perf_counter()
+        print(f"{t2-t1} s", end='\n', flush=True)
+        print("Starting time loop...", end='\n', flush=True)
+
     out = _compute_inv_loop(
+        func=func,
+        sol0=sol0,
+        regparam0=regparam0,
         matrix=matrix,
-        key=key,
-        keybs=keybs,
-        keym=keym,
-        data=data,
+        Tn=Tn,
+        TTn=TTn,
+        Tyn=Tyn,
+        R=R,
+        precond=precond,
+        data_n=data_n,
         sigma=sigma,
         isotropic=isotropic,
+        conv_crit=conv_crit,
         sparse=sparse,
+        chain=chain,
+        verb=verb,
+        sol=sol,
+        regparam=regparam,
+        chi2n=chi2n,
+        regularity=regularity,
+        niter=niter,
+        spec=spec,
+        **kwdargs,
     )
+
+    if verb:
+        t3 = time.process_time()
+        t3 = time.perf_counter()
+        print(f"{t3-t2} s", end='\n', flush=True)
+        print("Post-formatting results...", end='\n', flush=True)
 
     # -------------
     # format output
 
 
-    return
+    return sol, regparam, chi2n, regularity, niter, spec
 
 
 # #############################################################################
@@ -179,39 +208,37 @@ def compute_inversions(
 
 
 def _compute_inv_loop(
+    func=None,
+    sol0=None,
+    regparam0=None,
     matrix=None,
-    key=None,
-    keybs=None,
-    keym=None,
+    Tn=None,
+    TTn=None,
+    Tyn=None,
+    R=None,
+    precond=None,
     data_n=None,
     sigma=None,
+    conv_crit=None,
     isotropic=None,
     sparse=None,
+    chain=None,
     verb=None,
+    sol=None,
+    regparam=None,
+    chi2n=None,
+    regularity=None,
+    niter=None,
+    spec=None,
+    **kwdargs,
 ):
-
-    # method
-    if SolMethod == 'InvLin_AugTikho_V1' and Pos:
-        SolMethod = 'InvLinQuad_AugTikho_V1'
-
-    import pdb; pdb.set_trace()     # DB
-    # prepare computation intermediates
-    Tn = np.full(matrix.shape, np.nan)
-    Tyn = np.full((nbs,), np.nan)
-    TTn = np.full((nbs, nbs), np.nan)
-    Rn = np.full((nbs, nbs), np.nan)
-    total_mat_op = np.full((nbs, nbs), np.nan)
-
 
     # -----------------------------------
     # Getting initial solution - step 1/2
 
-    if mm==2:
-        LL = LL[0]+LL[1]
-
+    nt, nchan = data_n.shape
+    nbs = R.shape[0]
     if sparse:
-
-        func = globals()[SolMethod+'_Sparse']
 
         # Beware of element-wise operations vs matrix operations !!!!
         for ii in range(0, nt):
@@ -221,36 +248,34 @@ def _compute_inv_loop(
                 print(msg)
 
             # intermediates
-            Tn[...] = scpsp.diags(1./sigma[ii, :]).dot(matrix)
+            Tn.data = scpsp.diags(1./sigma[ii, :]).dot(matrix).data
             Tyn[...] = Tn.T.dot(data_n[ii, :])
-            TTn[...] = Tn.T.dot(mat_n)
-            total_mat_op = scpsplin.inv(
-                (TTn + regparam0*opmat/sol0.dot(opmat.dot(sol0))).tocsc()
-            )
-            Rn[...] = opmat / sol0.dot(opmat.dot(sol0))
-
-            # preconditioner to approx inv(TTn + reg*Rn), improves convergence
-            M = scpsplin.inv((TTn + regparam0*opmat).tocsc())
+            TTn.data = Tn.T.dot(Tn).data
 
             # solving
             (
                 sol[ii, :], regparam[ii], chi2n[ii], regularity[ii],
                 niter[ii], spec[ii],
             ) = func(
-                Tn, TTn, Tyn, Rn, data_n[ii, :],
+                Tn=Tn,
+                TTn=TTn,
+                Tyn=Tyn,
+                R=R,
+                yn=data_n[ii, :],
                 sol0=sol0,
                 nchan=nchan,
                 nbs=nbs,
-                ConvCrit=ConvCrit,
-                regparam0=regparam0,
-                NormL=NormL,
-                M=M,
-                Verb=Verb,
-                **KWARGS,
+                mu0=regparam0,
+                conv_crit=conv_crit,
+                precond=precond,
+                chain=chain,
+                verb=verb,
+                **kwdargs,
             )
 
             # post
-            sol0[:] = sol[ii, :]
+            if chain:
+                sol0[:] = sol[ii, :]
             regparam0 = regparam[ii]
 
     else:
@@ -360,13 +385,17 @@ def InvLin_AugTikho_V1(
 """
 
 
-def InvLin_AugTikho_V1_Sparse_verb(
-    nchan, nbs,
-    Tn, TTn, Tyn, Rn, yni,
-    opmat=None,
+def inv_linear_augTikho_v1_sparse(
+    Tn=None,
+    TTn=None,
+    Tyn=None,
+    R=None,
+    yn=None,
     sol0=None,
+    nchan=None,
+    nbs=None,
     mu0=None,
-    ConvCrit=None,
+    conv_crit=None,
     a0=None,
     b0=None,
     a1=None,
@@ -376,10 +405,11 @@ def InvLin_AugTikho_V1_Sparse_verb(
     btol=None,
     conlim=None,
     maxiter=None,
-    NormL=None,
-    M=None,
-    ConvReg=True,
-    FixedNb=True,
+    precond=None,
+    conv_reg=True,
+    nbs_fixed=None,
+    chain=None,
+    verb=None,
 ):
     # Install scikit !
     # Install scikits and use CHOLMOD fast cholesky factorization !!!
@@ -388,57 +418,67 @@ def InvLin_AugTikho_V1_Sparse_verb(
     see TFI.InvLin_AugTikho_V1.__doc__ for details
     """
 
-    a0bis = a0 - 1. + nbs/2. if not FixedNb else a0-1. + 1200./2.
+    a0bis = a0 - 1. + nbs/2. if not nbs_fixed else a0-1. + 1200./2.
     a1bis = a1 - 1. + nchan/2.
 
-    conv = 0.           # Initialise convergence variable
-    niter = 0           # Initialise number of iterations
-    chi2n = []          # Initialise residu list
-    regularity = []     # Initialise regularisation term list
-    lmu = [mu0]         # Initialise regularisation param
+    conv = 0.           # convergence variable
+    niter = 0           # number of iterations
+    chi2n = []          # residu list
+    regularity = []     # regularisation term list
+    lmu = [mu0]         # regularisation param
 
     # verb
-    temp = np.sum((Tn.dot(sol0) - yni)**2) / nchan
-    temp = f"{nchan*temp} + {lmu[-1]} * {sol0.dot(LL.dot(sol0))}"
-    temp0 = np.sum((Tm.dot(sol0)-b)**2) + lmu[-1]*sol0.dot(LL.dot(sol0))
-    print(f"\t\tInitial guess: nchan*chi2n + mu*Reg = {temp} = {temp0}")
+    if verb is True:
+        temp = np.sum((Tn.dot(sol0) - yn)**2) / nchan
+        temp = f"{nchan*temp} + {lmu[-1]} * {sol0.dot(R.dot(sol0))}"
+        temp0 = np.sum((Tn.dot(sol0)-yn)**2) + lmu[-1]*sol0.dot(R.dot(sol0))
+        print(f"\t\tInitial: phi = nchan*chi2n + mu*R = {temp} = {temp0}")
 
     # loop
     # Continue until convergence criterion, and at least 2 iterations
-    while  niter < 2 or Conv > ConvCrit:
+    while  niter < 2 or conv > conv_crit:
         # sol, itconv = scpsplin.minres(
-        #       TTn + mu*Rn, Tyn,
+        #       TTn + mu*R, Tyn,
         #       x0=sol0, shift=0.0, tol=1e-10,
         #       maxiter=None, M=M, show=False, check=False,
         # )   # 2
-        sol, itconv = scpsplin.cg(
-            TTn + lmu[-1]*Rn, Tyn,
+        sol, itconv = scpsp.linalg.cg(
+            TTn + lmu[-1]*R, Tyn,
             x0=sol0,
-            tol=1e-08,
-            maxiter=None,
-            M=M,
+            tol=1.e-8,
+            maxiter=maxiter,
+            M=precond,
         )    # 1
         # sol = scpsplin.spsolve(
-        #       TTn + lmu[-1]*Rn, Tyn,
+        #       TTn + lmu[-1]*R, Tyn,
         #       permc_spec=None,
         #       use_umfpack=False,
         # ) # 3
         # sol, isstop, itn, normr, normar, norma, conda, normx = scpsplin.lsmr(
-        #       TTn + lmu[-1]*Rn, Tyn,
+        #       TTn + lmu[-1]*R, Tyn,
         #       atol=atol, btol=btol,
         #       conlim=conlim, maxiter=maxiter, show=False,
         # )
+        # sol, info = scpsp.linalg.lgmres(
+            # A, b, x0=None, tol=1e-05, maxiter=1000,
+            # M=None, callback=None, inner_m=30,
+            # outer_k=3, outer_v=None,
+            # store_outer_Av=True, prepend_outer_v=False, atol=None,
+        # )
 
-        res2 = np.sum((Tn.dot(sol)-yni)**2)         # Compute residu**2
+        if itconv != 0:
+            break
+
+        res2 = np.sum((Tn.dot(sol)-yn)**2)         # Compute residu**2
         chi2n.append(res2/nchan)                    # Record normalised residu history
-        regularity.append(sol.dot(opmat.dot(sol)))  # Compute and record regularity term
+        regularity.append(sol.dot(R.dot(sol)))  # Compute and record regularity term
 
         lamb = a0bis/(0.5*regularity[niter] + b0)   # Update reg. param. estimate
-        tau = a1bis/(0.5*res1 + b1)                 # Update noise coef. estimate
+        tau = a1bis/(0.5*res2 + b1)                 # Update noise coef. estimate
         lmu.append((lamb/tau) * (2*a1bis/res2)**d)  # Update regularisation parameter taking into account rescaling with noise estimate
 
         # Compute convergence variable
-        if ConvReg:
+        if conv_reg:
             conv = np.abs(lmu[-1]-lmu[-2]) / lmu[-1]
         else:
             conv = (
@@ -452,12 +492,17 @@ def InvLin_AugTikho_V1_Sparse_verb(
             )
 
         # verb
-        temp0 = "nchan*chi2n + mu*R"
-        temp1 = f"{nchan} * {chi2n[-1]} + {lmu[-1]} * {regularity[-1]}"
-        temp2 = f"{res2 + lmu[-1]*regularity[-1]}"
-        temp = f"{temp0} = {temp1} = {temp2}"
-        print(f"\tniter = {niter}   {temp}   tau = {tau}   conv = {conv}")
-        # print '\t\ŧ\tisstop,itn=',isstop,itn, '  normRArAX=',normr, normar, norma,normx, 'condA=',conda
+        if verb is True:
+            temp1 = (
+                f"{nchan} * {chi2n[-1]:.2e} "
+                f"+ {lmu[-1]:.2e} * {regularity[-1]:.2e}"
+            )
+            temp2 = f"{res2 + lmu[-1]*regularity[-1]:.2e}"
+            temp = f"phi = {temp1} = {temp2}"
+            print(
+                f"\tniter = {niter}   {temp}   tau = {tau:.2e}   conv = {conv:.2e}"
+            )
+            # print '\t\ŧ\tisstop,itn=',isstop,itn, '  normRArAX=',normr, normar, norma,normx, 'condA=',conda
 
         sol0[:] = sol[:]            # Update reference solution
         niter += 1                  # Update number of iterations

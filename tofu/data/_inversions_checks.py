@@ -24,9 +24,16 @@ def _compute_check(
     key=None,
     data=None,
     sigma=None,
+    conv_crit=None,
     isotropic=None,
     sparse=None,
     chain=None,
+    positive=None,
+    method=None,
+    operator=None,
+    geometry=None,
+    kwdargs=None,
+    verb=None,
 ):
 
     # key
@@ -93,6 +100,13 @@ def _compute_check(
     if sigma.shape[1] != shapemat[0]:
         sigma = sigma.T
 
+    # conv_crit
+    conv_crit = _generic_check._check_var(
+        conv_crit, 'conv_crit',
+        default=1e-5,
+        types=float,
+    )
+
     # isotropic
     isotropic = _generic_check._check_var(
         isotropic, 'isotropic',
@@ -113,6 +127,29 @@ def _compute_check(
     elif sparse is False and scpsp.issparse(matrix):
         matrix = matrix.toarray()
 
+    # get operator
+    opmat, operator, geometry, dim, ref, crop = coll.add_bsplines_operator(
+        key=keybs,
+        operator=operator,
+        geometry=geometry,
+        returnas=True,
+        store=False,
+        crop=crop,
+    )
+
+    nchan, nbs = matrix.shape
+    if isinstance(opmat, tuple):
+        assert all([op.shape == (nbs, nbs) for op in opmat])
+    elif opmat.ndim == 1:
+        msg = "Inversion algorithm requires a quadratic operator!"
+        raise Exception(msg)
+    else:
+        assert opmat.shape == (nbs,) or opmat.shape == (nbs, nbs)
+        opmat = (opmat,)
+
+    assert data.shape[1] == nchan
+    nt = data.shape[0]
+
     # chain
     chain = _generic_check._check_var(
         chain, 'chain',
@@ -120,6 +157,64 @@ def _compute_check(
         types=bool,
     )
 
+    # verb
+    verb = _generic_check._check_var(
+        verb, 'verb',
+        default=True,
+        types=bool,
+    )
+
+    # positive
+    positive = _generic_check._check_var(
+        positive, 'positive',
+        default=False,
+        types=bool,
+    )
+
+    # method
+    if positive is True:
+        metdef = 'InvLinQuad_AugTikho_V1'
+    else:
+        metdef = 'inv_linear_augTikho_v1_sparse'
+    metok = [
+        'inv_linear_augTikho_v1_sparse',
+        'InvLinQuad_AugTikho_V1',
+        'InvQuad_AugTikho_V1',
+        'InvLin_DisPrinc_V1',
+    ]
+    method = _generic_check._check_var(
+        method, 'method',
+        default=metdef,
+        types=str,
+        allowed=metok,
+    )
+
+    # kwdargs
+    if len(kwdargs) == 0:
+        c0 = (
+            method in [
+                'inv_linear_augTikho_v1_sparse',
+                'InvLinQuad_AugTikho_V1',
+                'InvQuad_AugTikho_V1',
+            ]
+        )
+        if c0:
+            a0 = 10
+            a1 = 2
+            kwdargs = {
+                'a0': a0,   # (Regul. parameter, larger a => larger variance)
+                'b0': np.math.factorial(a0)**(1 / (a0 + 1)),    # To have [x]=1
+                'a1': a1,   # (Noise), a as small as possible for small variance
+                'b1': np.math.factorial(a1)**(1/(a1 + 1)),  # To have [x] = 1
+                'd': 0.95,  # Exponent for rescaling of a0bis in V2, typically in [1/3 ; 1/2], but real limits are 0 < d < 1 (or 2 ?)
+                'conv_reg':True,
+                'nbs_fixed':True,
+            }
+        elif method == 'InvLin_DisPrinc_V1':
+            kwdargs = {'chi2Tol': 0.05, 'chi2Obj': 1.}
+
     return (
-        key, keybs, keym, data, sigma, isotropic, sparse, matrix, crop, chain,
+        key, keybs, keym, data, sigma, opmat,
+        conv_crit, isotropic, sparse, matrix, crop, chain,
+        positive, method, kwdargs, verb,
     )
