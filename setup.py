@@ -333,7 +333,9 @@ setup(
     #    'ITER': ['*.csv'],
     # },
     package_data={
-        "tofu.tests.tests01_geom.test_03_core_data": ["*.py", "*.txt"],
+        "tofu.tests.tests01_geom.test_03_core_data": [
+            "*.py", "*.txt", ".svg", ".npz"
+        ],
         "tofu.tests.tests04_spectro.test_data": ["*.npz"],
         "tofu.geom.inputs": ["*.txt"],
         "tofu.mag.mag_ripple": ['*.sh', '*.f']
