@@ -23,7 +23,8 @@ from . import _inversions_checks
 
 def compute_inversions(
     coll=None,
-    key=None,
+    key_matrix=None,
+    key_data=None,
     data=None,
     sigma=None,
     conv_crit=None,
@@ -31,23 +32,28 @@ def compute_inversions(
     geometry=None,
     isotropic=None,
     method=None,
+    solver=None,
     sparse=None,
     chain=None,
     positive=None,
     verb=None,
-    **kwdargs,
+    maxiter=None,
+    store=None,
 ):
 
     # -------------
     # check inputs
 
+    # kwdargs = {'maxiter': maxiter}
+
     (
-        keymat, keybs, keym, data, sigma, opmat,
+        key_matrix, key_data, keybs, keym, data, sigma, opmat,
         conv_crit, isotropic, sparse, matrix, crop, chain,
-        positive, method, kwdargs, verb,
+        positive, method, solver, kwdargs, verb, store,
     ) = _inversions_checks._compute_check(
         coll=coll,
-        key=key,
+        key_matrix=key_matrix,
+        key_data=key_data,
         data=data,
         sigma=sigma,
         conv_crit=conv_crit,
@@ -56,7 +62,8 @@ def compute_inversions(
         chain=chain,
         positive=positive,
         method=method,
-        kwdargs=kwdargs,
+        solver=solver,
+        kwdargs=None,
         operator=operator,
         geometry=geometry,
         verb=verb,
@@ -78,17 +85,18 @@ def compute_inversions(
 
     # normalization
     data_n = data / sigma
-
     regparam0 = 1.
 
     # prepare computation intermediates
     Tyn = np.full((nbs,), np.nan)
     R = opmat[0] + opmat[1]
+    precond = None
     if sparse is True:
         Tn = scpsp.diags(1./np.nanmean(sigma, axis=0)).dot(matrix)
         TTn = Tn.T.dot(Tn)
-        # preconditioner to approx inv(TTn + reg*Rn), improves convergence
-        precond = scpsp.linalg.inv(TTn + regparam0*R)
+        if solver != 'spsolve':
+            # preconditioner to approx inv(TTn + reg*Rn), improves convergence
+            precond = scpsp.linalg.inv(TTn + regparam0*R)
     else:
         Tn = np.full(matrix.shape, np.nan)
         TTn = np.full((nbs, nbs), np.nan)
@@ -197,8 +205,65 @@ def compute_inversions(
     # -------------
     # format output
 
+    if crop is True:
+        shapesol = tuple(np.r_[nt, coll.dobj['bsplines'][keybs]['shape']])
+        sol_full = np.zeros(shapesol, dtype=float)
+        cropbs = coll.ddata[coll.dobj['bsplines'][keybs]['crop']]['data']
+        sol_full[:, cropbs] = sol
 
-    return sol, regparam, chi2n, regularity, niter, spec
+    if store is True:
+
+        if coll.dobj.get('inversions') is None:
+            ninv = 0
+        else:
+            ninv = np.max([int(kk[3:]) for kk in coll.dobj['inversions']])
+        keyinv = f'inv{ninv}'
+
+        if key_data == 'custom':
+            pass
+        else:
+            if nt > 1:
+                refinv = tuple(np.r_[
+                    coll.ddata[key_data]['ref'][0],
+                    coll.ddata[keybs]['ref']
+                ])
+            else:
+                refinv = coll.ddata[keybs]['ref']
+
+        if nt == 1:
+            sol_full = sol_full[0, ...]
+
+        ddata = {
+            keyinv: {
+                'data': sol_full,
+                'ref': refinv,
+            },
+
+        }
+
+        dobj = {
+            'inversions': {
+                keyinv: {
+                    'data_in': key_data,
+                    'matrix': key_matrix,
+                    'sol': keyinv,
+                    'operator': operator,
+                    'geometry': geometry,
+                    'isotropic': isotropic,
+                    'method': method,
+                    'solver': solver,
+                    'chain': chain,
+                    'positive': positive,
+                    'conv_crit': conv_crit,
+                },
+            },
+        }
+
+        coll.update(dobj=dobj, ddata=ddata)
+
+
+    else:
+        return solfull, regparam, chi2n, regularity, niter, spec
 
 
 # #############################################################################
@@ -408,7 +473,7 @@ def inv_linear_augTikho_v1_sparse(
     maxiter=None,
     precond=None,
     conv_reg=True,
-    nbs_fixed=None,
+    nbs_fixed=True,
     chain=None,
     verb=None,
 ):
@@ -419,72 +484,65 @@ def inv_linear_augTikho_v1_sparse(
     see TFI.InvLin_AugTikho_V1.__doc__ for details
     """
 
-    a0bis = a0 - 1. + nbs/2. if not nbs_fixed else a0-1. + 1200./2.
+    a0bis = a0 - 1. + nbs/2. if not nbs_fixed else a0 - 1. + 1200./2.
     a1bis = a1 - 1. + nchan/2.
 
     conv = 0.           # convergence variable
     niter = 0           # number of iterations
-    chi2n = []          # residu list
-    regularity = []     # regularisation term list
-    lmu = [mu0]         # regularisation param
+    chi2n = 0.          # residu
+    regularity = 0.     # regularisation term list
+    mu1 = 0.            # regularisation param
 
     # verb
     if verb >= 2:
         temp = np.sum((Tn.dot(sol0) - yn)**2) / nchan
-        temp = f"{nchan*temp} + {lmu[-1]} * {sol0.dot(R.dot(sol0))}"
-        temp0 = np.sum((Tn.dot(sol0)-yn)**2) + lmu[-1]*sol0.dot(R.dot(sol0))
+        temp = f"{nchan*temp} + {mu0} * {sol0.dot(R.dot(sol0))}"
+        temp0 = np.sum((Tn.dot(sol0)-yn)**2) + mu0*sol0.dot(R.dot(sol0))
         print(f"\t\tInitial: phi = nchan*chi2n + mu*R = {temp} = {temp0}")
 
     # loop
     # Continue until convergence criterion, and at least 2 iterations
     while  niter < 2 or conv > conv_crit:
-        # sol, itconv = scpsplin.minres(
-        #       TTn + mu*R, Tyn,
-        #       x0=sol0, shift=0.0, tol=1e-10,
-        #       maxiter=None, M=M, show=False, check=False,
+        # sol, itconv = scpsp.linalg.minres(
+            # TTn + mu0*R, Tyn,
+            # x0=sol0,
+            # shift=0.0, tol=1e-10,
+            # maxiter=None,
+            # M=precond,
+            # show=False,
+            # check=False,
         # )   # 2
-        sol, itconv = scpsp.linalg.cg(
-            TTn + lmu[-1]*R, Tyn,
-            x0=sol0,
-            tol=1.e-8,
-            maxiter=maxiter,
-            M=precond,
-        )    # 1
-        # sol = scpsplin.spsolve(
-        #       TTn + lmu[-1]*R, Tyn,
-        #       permc_spec=None,
-        #       use_umfpack=False,
-        # ) # 3
-        # sol, isstop, itn, normr, normar, norma, conda, normx = scpsplin.lsmr(
-        #       TTn + lmu[-1]*R, Tyn,
-        #       atol=atol, btol=btol,
-        #       conlim=conlim, maxiter=maxiter, show=False,
-        # )
-        # sol, info = scpsp.linalg.lgmres(
-            # A, b, x0=None, tol=1e-05, maxiter=1000,
-            # M=None, callback=None, inner_m=30,
-            # outer_k=3, outer_v=None,
-            # store_outer_Av=True, prepend_outer_v=False, atol=None,
-        # )
+        # sol, itconv = scpsp.linalg.bicgstab(
+            # TTn + mu0*R, Tyn,
+            # x0=sol0,
+            # tol=1.e-8,
+            # maxiter=maxiter,
+            # M=precond,
+        # )    # 1
+        sol = scpsp.linalg.spsolve(
+              TTn + mu0*R, Tyn,
+              permc_spec=None,
+              use_umfpack=False,
+        ) # 3
 
-        if itconv != 0:
-            break
+        # if itconv != 0:
+            # break
 
-        res2 = np.sum((Tn.dot(sol)-yn)**2)         # Compute residu**2
-        chi2n.append(res2/nchan)                    # Record normalised residu history
-        regularity.append(sol.dot(R.dot(sol)))  # Compute and record regularity term
+        res2 = np.sum((Tn.dot(sol)-yn)**2)      # residu**2
+        chi2n = res2/nchan                      # normalised residu
+        regularity = sol.dot(R.dot(sol))        # regularity term
 
-        lamb = a0bis/(0.5*regularity[niter] + b0)   # Update reg. param. estimate
+        lamb = a0bis/(0.5*regularity + b0)   # Update reg. param. estimate
         tau = a1bis/(0.5*res2 + b1)                 # Update noise coef. estimate
-        lmu.append((lamb/tau) * (2*a1bis/res2)**d)  # Update regularisation parameter taking into account rescaling with noise estimate
+        mu1 = (lamb/tau) * (2*a1bis/res2)**d        # Update reg. param. taking into account rescaling with noise estimate
 
         # Compute convergence variable
         if conv_reg:
-            conv = np.abs(lmu[-1]-lmu[-2]) / lmu[-1]
+            conv = np.abs(mu1 - mu0) / mu1
         else:
             conv = (
                 np.sqrt(np.sum(
-                    (sol-sol0)**2
+                    (sol - sol0)**2
                     / np.max(
                         [sol**2,0.001*np.max(sol**2)*np.ones((nbs,))],
                         axis=0,
@@ -495,10 +553,10 @@ def inv_linear_augTikho_v1_sparse(
         # verb
         if verb >= 2:
             temp1 = (
-                f"{nchan} * {chi2n[-1]:.2e} "
-                f"+ {lmu[-1]:.2e} * {regularity[-1]:.2e}"
+                f"{nchan} * {chi2n:.2e} "
+                f"+ {mu1:.2e} * {regularity:.2e}"
             )
-            temp2 = f"{res2 + lmu[-1]*regularity[-1]:.2e}"
+            temp2 = f"{res2 + mu1*regularity:.2e}"
             temp = f"phi = {temp1} = {temp2}"
             print(
                 f"\tniter = {niter}   {temp}   tau = {tau:.2e}   conv = {conv:.2e}"
@@ -507,7 +565,8 @@ def inv_linear_augTikho_v1_sparse(
 
         sol0[:] = sol[:]            # Update reference solution
         niter += 1                  # Update number of iterations
-    return sol, lmu[-1], chi2n[-1], regularity[-1], niter, [tau, lamb]
+        mu0 = mu1
+    return sol, mu1, chi2n, regularity, niter, [tau, lamb]
 
 
 """

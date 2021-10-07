@@ -641,7 +641,8 @@ class Matrix(Mesh2DRect):
 
     def compute_inversion(
         self,
-        key=None,
+        key_matrix=None,
+        key_data=None,
         data=None,
         sigma=None,
         conv_crit=None,
@@ -653,12 +654,17 @@ class Matrix(Mesh2DRect):
         chain=None,
         positive=None,
         verb=None,
-        **kwdargs,
+        maxiter=None,
+        store=None,
     ):
+        """ Compute tomographic inversion
 
-        out = _inversions_comp.compute_inversions(
+        """
+
+        return _inversions_comp.compute_inversions(
             coll=self,
-            key=key,
+            key_matrix=key_matrix,
+            key_data=key_data,
             data=data,
             sigma=sigma,
             conv_crit=conv_crit,
@@ -670,6 +676,6 @@ class Matrix(Mesh2DRect):
             chain=chain,
             positive=positive,
             verb=verb,
-            **kwdargs,
+            maxiter=maxiter,
+            store=store,
         )
-        return out

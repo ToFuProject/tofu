@@ -21,7 +21,8 @@ from . import _generic_check
 
 def _compute_check(
     coll=None,
-    key=None,
+    key_matrix=None,
+    key_data=None,
     data=None,
     sigma=None,
     conv_crit=None,
@@ -30,26 +31,46 @@ def _compute_check(
     chain=None,
     positive=None,
     method=None,
+    solver=None,
     operator=None,
     geometry=None,
     kwdargs=None,
     verb=None,
+    store=None,
 ):
 
-    # key
+    # key_matrix
     lk = list(coll.dobj.get('matrix', {}).keys())
-    if key is None and len(lk):
-        key = lk[0]
-    key = _generic_check._check_var(
-        key, 'key',
+    if key_matrix is None and len(lk):
+        key_matrix = lk[0]
+    key_matrix = _generic_check._check_var(
+        key_matrix, 'key_matrix',
         types=str,
         allowed=lk,
     )
-    keybs = coll.dobj['matrix'][key]['bsplines']
+    keybs = coll.dobj['matrix'][key_matrix]['bsplines']
     keym = coll.dobj['bsplines'][keybs]['mesh']
-    matrix = coll.ddata[coll.dobj['matrix'][key]['data']]['data']
+    matrix = coll.ddata[coll.dobj['matrix'][key_matrix]['data']]['data']
     shapemat = matrix.shape
-    crop = coll.dobj['matrix'][key]['crop']
+    crop = coll.dobj['matrix'][key_matrix]['crop']
+
+    # key_data
+    if key_data is None and data is not None:
+        key_data = 'custom'
+    else:
+        lk = [
+            kk for kk, vv in coll.ddata.items()
+            if vv['data'].ndim in [1, 2]
+            and vv['data'].shape[-1] == shapemat[0]
+        ]
+        if key_data is None and len(lk):
+            key_data = lk[0]
+        key_data = _generic_check._check_var(
+            key_data, 'key_data',
+            types=str,
+            allowed=lk,
+        )
+        data = coll.ddata[key_data]['data']
 
     # data
     data = _generic_check._check_var(
@@ -103,7 +124,7 @@ def _compute_check(
     # conv_crit
     conv_crit = _generic_check._check_var(
         conv_crit, 'conv_crit',
-        default=1e-5,
+        default=1e-6,
         types=float,
     )
 
@@ -169,6 +190,13 @@ def _compute_check(
     if verb is True:
         verb = 1
 
+    # store
+    store = _generic_check._check_var(
+        store, 'store',
+        default=True,
+        types=bool,
+    )
+
     # positive
     positive = _generic_check._check_var(
         positive, 'positive',
@@ -194,7 +222,18 @@ def _compute_check(
         allowed=metok,
     )
 
+    # solver
+    solver = _generic_check._check_var(
+        solver, 'solver',
+        default='spsolve',
+        types=str,
+        allowed=['spsolve'],
+    )
+
     # kwdargs
+    if kwdargs is None:
+        kwdargs = {}
+
     if len(kwdargs) == 0:
         c0 = (
             method in [
@@ -218,8 +257,10 @@ def _compute_check(
         elif method == 'InvLin_DisPrinc_V1':
             kwdargs = {'chi2Tol': 0.05, 'chi2Obj': 1.}
 
+    kwdargs['maxiter'] = 100
+
     return (
-        key, keybs, keym, data, sigma, opmat,
+        key_matrix, key_data, keybs, keym, data, sigma, opmat,
         conv_crit, isotropic, sparse, matrix, crop, chain,
-        positive, method, kwdargs, verb,
+        positive, method, solver, kwdargs, verb, store,
     )

@@ -1370,6 +1370,7 @@ def _check_ddata(
     # ----------------
     # Check conformity
     nref = len(dref0)
+    refref = None
     if nref == 1:
         refref = list(dref0.keys())[0]
 
@@ -1478,13 +1479,21 @@ def _check_ddata(
     lref_add = None
     for k0, v0 in ddata.items():
         if not isinstance(v0, dict):
-            ddata[k0] = {'ref': (refref,), 'data': v0}
+            if refref is None:
+                msg = f"ref must be specified for ddata['{k0}']!"
+                raise Exception(msg)
+            else:
+                ddata[k0] = {'ref': (refref,), 'data': v0}
         else:
             if v0.get('data') is None:
                 continue
             if v0.get('ref') is None:
                 if not isinstance(v0['data'], dict):
-                    ddata[k0]['ref'] = (refref,)
+                    if refref is None:
+                        msg = f"ref must be specified for ddata['{k0}']!"
+                        raise Exception(msg)
+                    else:
+                        ddata[k0]['ref'] = (refref,)
             elif isinstance(v0['ref'], str):
                 ddata[k0]['ref'] = (v0['ref'],)
             elif v0['ref'] is True:

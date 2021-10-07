@@ -917,8 +917,8 @@ def _interp_check(
         )
         if not c0:
             msg = (
-                "Arg coefs must be a {shapebs} array!\n"
-                f"Provided: coefs.shape"
+                f"Arg coefs must be a {shapebs} array!\n"
+                f"Provided: {coefs.shape}"
             )
             raise Exception(msg)
 

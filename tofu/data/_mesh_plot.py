@@ -600,8 +600,10 @@ def _plot_profile2d_check(
 
     # key
     dk = mesh.get_profiles2d()
+    if key is None and len(dk) == 1:
+        key = list(dk.keys())[0]
     key = _generic_check._check_var(
-        key, 'key', default=None, types=str, allowed=list(dk.keys())
+        key, 'key', types=str, allowed=list(dk.keys())
     )
     keybs = dk[key]
     refbs = mesh.dobj['bsplines'][keybs]['ref']
