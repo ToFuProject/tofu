@@ -4,6 +4,7 @@ jobs:
   - name: "Bionic python 3.7"
     os: linux
     dist: bionic
+    if: branch = master OR branch = devel OR branch = deploy-test OR tag is present
     python: 3.7
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -12,6 +13,7 @@ jobs:
     os: linux
     dist: trusty
     python: 3.6
+    if: branch = master OR branch = devel OR branch = deploy-test OR tag is present
     env:
     - REPO=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - OS=linux-64
@@ -106,6 +108,7 @@ deploy:
     username: __token__
     skip_existing: true
     skip_cleanup: true
+    
     on:
       tags: true
       condition: $IS_DEPLOY = "deploy-test"
