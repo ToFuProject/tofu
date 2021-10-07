@@ -55,9 +55,7 @@ def _compute_check(
     crop = coll.dobj['matrix'][key_matrix]['crop']
 
     # key_data
-    if key_data is None and data is not None:
-        key_data = 'custom'
-    else:
+    if key_data is not None or (key_data is None and data is None):
         lk = [
             kk for kk, vv in coll.ddata.items()
             if vv['data'].ndim in [1, 2]
@@ -82,7 +80,8 @@ def _compute_check(
     if data.ndim not in [1, 2] or shapemat[0] not in data.shape:
         msg = (
             "Arg data must have dim in [1, 2]"
-            f" and {shapemat[0]} must be in shape"
+            f" and {shapemat[0]} must be in shape\n"
+            f"\t- data.shape: {data.shape}"
         )
         raise Exception(msg)
     if data.ndim == 1:
@@ -196,6 +195,8 @@ def _compute_check(
         default=True,
         types=bool,
     )
+    if key_data is None:
+        store = False
 
     # positive
     positive = _generic_check._check_var(

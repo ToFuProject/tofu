@@ -486,7 +486,7 @@ class Mesh2DRect(DataCollection):
     # geometry matrix
     # ------------------
 
-    def compute_geometry_matrix(
+    def add_geometry_matrix(
         self,
         key=None,
         cam=None,
@@ -496,10 +496,11 @@ class Mesh2DRect(DataCollection):
         crop=None,
         name=None,
         verb=None,
+        store=None,
     ):
 
-        dref, ddata, dobj = _matrix_comp.compute(
-            mesh=self,
+        return _matrix_comp.compute(
+            coll=self,
             key=key,
             cam=cam,
             res=res,
@@ -508,9 +509,53 @@ class Mesh2DRect(DataCollection):
             crop=crop,
             name=name,
             verb=verb,
+            store=store,
         )
 
-        return Matrix(dref=dref, ddata=ddata, dobj=dobj)
+    # -----------------
+    # inversions
+    # ------------------
+
+    def add_inversion(
+        self,
+        key_matrix=None,
+        key_data=None,
+        data=None,
+        sigma=None,
+        conv_crit=None,
+        operator=None,
+        geometry=None,
+        isotropic=None,
+        method=None,
+        sparse=None,
+        chain=None,
+        positive=None,
+        verb=None,
+        maxiter=None,
+        store=None,
+    ):
+        """ Compute tomographic inversion
+
+        """
+
+        return _inversions_comp.compute_inversions(
+            coll=self,
+            key_matrix=key_matrix,
+            key_data=key_data,
+            data=data,
+            sigma=sigma,
+            conv_crit=conv_crit,
+            operator=operator,
+            geometry=geometry,
+            isotropic=isotropic,
+            method=method,
+            sparse=sparse,
+            chain=chain,
+            positive=positive,
+            verb=verb,
+            maxiter=maxiter,
+            store=store,
+        )
 
     # -----------------
     # plotting
@@ -603,9 +648,6 @@ class Mesh2DRect(DataCollection):
             dleg=dleg,
         )
 
-
-class Matrix(Mesh2DRect):
-
     def plot_geometry_matrix(
         self,
         cam=None,
@@ -639,43 +681,30 @@ class Matrix(Mesh2DRect):
             dleg=dleg,
         )
 
-    def compute_inversion(
+    def plot_inversion(
         self,
-        key_matrix=None,
-        key_data=None,
-        data=None,
-        sigma=None,
-        conv_crit=None,
-        operator=None,
-        geometry=None,
-        isotropic=None,
-        method=None,
-        sparse=None,
-        chain=None,
-        positive=None,
-        verb=None,
-        maxiter=None,
-        store=None,
+        key=None,
+        vmin=None,
+        vmax=None,
+        res=None,
+        cmap=None,
+        dax=None,
+        dmargin=None,
+        fs=None,
+        dcolorbar=None,
+        dleg=None,
     ):
-        """ Compute tomographic inversion
 
-        """
-
-        return _inversions_comp.compute_inversions(
+        return _inversions_plot.plot_inversion(
             coll=self,
-            key_matrix=key_matrix,
-            key_data=key_data,
-            data=data,
-            sigma=sigma,
-            conv_crit=conv_crit,
-            operator=operator,
-            geometry=geometry,
-            isotropic=isotropic,
-            method=method,
-            sparse=sparse,
-            chain=chain,
-            positive=positive,
-            verb=verb,
-            maxiter=maxiter,
-            store=store,
+            key=key,
+            vmin=vmin,
+            vmax=vmax,
+            res=res,
+            cmap=cmap,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
         )

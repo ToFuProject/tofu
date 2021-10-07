@@ -67,6 +67,7 @@ def compute_inversions(
         operator=operator,
         geometry=geometry,
         verb=verb,
+        store=store,
     )
 
     nt, nchan = data.shape
@@ -205,34 +206,37 @@ def compute_inversions(
     # -------------
     # format output
 
+    # reshape solution
     if crop is True:
-        shapesol = tuple(np.r_[nt, coll.dobj['bsplines'][keybs]['shape']])
+        shapebs = coll.dobj['bsplines'][keybs]['shape']
+        shapesol = tuple(np.r_[nt, shapebs])
         sol_full = np.zeros(shapesol, dtype=float)
         cropbs = coll.ddata[coll.dobj['bsplines'][keybs]['crop']]['data']
-        sol_full[:, cropbs] = sol
+        cropbsflat = cropbs.ravel(order='F')
+        iR = np.tile(np.arange(0, shapebs[0]), shapebs[1])[cropbsflat]
+        iZ = np.repeat(np.arange(0, shapebs[1]), shapebs[0])[cropbsflat]
+        sol_full[:, iR, iZ] = sol
 
+    # store
     if store is True:
 
+        # key
         if coll.dobj.get('inversions') is None:
             ninv = 0
         else:
             ninv = np.max([int(kk[3:]) for kk in coll.dobj['inversions']])
         keyinv = f'inv{ninv}'
 
-        if key_data == 'custom':
-            pass
-        else:
-            if nt > 1:
-                refinv = tuple(np.r_[
-                    coll.ddata[key_data]['ref'][0],
-                    coll.ddata[keybs]['ref']
-                ])
-            else:
-                refinv = coll.ddata[keybs]['ref']
+        # ref
+        refinv = [kk for kk in coll.dobj['bsplines'][keybs]['ref']]
+        if nt > 1:
+            refinv.insert(0, coll.ddata[key_data]['ref'][0])
+        refinv = tuple(refinv)
 
         if nt == 1:
             sol_full = sol_full[0, ...]
 
+        # dict
         ddata = {
             keyinv: {
                 'data': sol_full,
@@ -263,7 +267,7 @@ def compute_inversions(
 
 
     else:
-        return solfull, regparam, chi2n, regularity, niter, spec
+        return sol_full, regparam, chi2n, regularity, niter, spec
 
 
 # #############################################################################
@@ -522,7 +526,7 @@ def inv_linear_augTikho_v1_sparse(
         sol = scpsp.linalg.spsolve(
               TTn + mu0*R, Tyn,
               permc_spec=None,
-              use_umfpack=False,
+              use_umfpack=True,
         ) # 3
 
         # if itconv != 0:
