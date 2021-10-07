@@ -644,11 +644,16 @@ class Matrix(Mesh2DRect):
         key=None,
         data=None,
         sigma=None,
+        conv_crit=None,
         operator=None,
         geometry=None,
         isotropic=None,
         method=None,
         sparse=None,
+        chain=None,
+        positive=None,
+        verb=None,
+        **kwdargs,
     ):
 
         out = _inversions_comp.compute_inversions(
@@ -656,10 +661,15 @@ class Matrix(Mesh2DRect):
             key=key,
             data=data,
             sigma=sigma,
+            conv_crit=conv_crit,
             operator=operator,
             geometry=geometry,
             isotropic=isotropic,
             method=method,
             sparse=sparse,
+            chain=chain,
+            positive=positive,
+            verb=verb,
+            **kwdargs,
         )
         return out

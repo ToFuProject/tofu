@@ -69,7 +69,7 @@ def compute_inversions(
     # -------------
     # prepare data
 
-    if verb:
+    if verb >= 1:
         t0 = time.process_time()
         t0 = time.perf_counter()
         print("Preparing data... ", end='', flush=True)
@@ -108,7 +108,7 @@ def compute_inversions(
     # -------------
     # initial guess
 
-    if verb:
+    if verb >= 1:
         t1 = time.process_time()
         t1 = time.perf_counter()
         print(f"{t1-t0} s", end='\n', flush=True)
@@ -156,7 +156,7 @@ def compute_inversions(
     # -------------
     # compute
 
-    if verb:
+    if verb >= 1:
         t2 = time.process_time()
         t2 = time.perf_counter()
         print(f"{t2-t1} s", end='\n', flush=True)
@@ -188,7 +188,7 @@ def compute_inversions(
         **kwdargs,
     )
 
-    if verb:
+    if verb >= 1:
         t3 = time.process_time()
         t3 = time.perf_counter()
         print(f"{t3-t2} s", end='\n', flush=True)
@@ -243,14 +243,15 @@ def _compute_inv_loop(
         # Beware of element-wise operations vs matrix operations !!!!
         for ii in range(0, nt):
 
-            if verb is True:
+            if verb >= 1:
                 msg = f"\tRunning inversion for time step {ii+1} / {nt}"
                 print(msg)
 
             # intermediates
-            Tn.data = scpsp.diags(1./sigma[ii, :]).dot(matrix).data
+            if sigma.shape[0] > 1:
+                Tn.data = scpsp.diags(1./sigma[ii, :]).dot(matrix).data
+                TTn.data = Tn.T.dot(Tn).data
             Tyn[...] = Tn.T.dot(data_n[ii, :])
-            TTn.data = Tn.T.dot(Tn).data
 
             # solving
             (
@@ -428,7 +429,7 @@ def inv_linear_augTikho_v1_sparse(
     lmu = [mu0]         # regularisation param
 
     # verb
-    if verb is True:
+    if verb >= 2:
         temp = np.sum((Tn.dot(sol0) - yn)**2) / nchan
         temp = f"{nchan*temp} + {lmu[-1]} * {sol0.dot(R.dot(sol0))}"
         temp0 = np.sum((Tn.dot(sol0)-yn)**2) + lmu[-1]*sol0.dot(R.dot(sol0))
@@ -492,7 +493,7 @@ def inv_linear_augTikho_v1_sparse(
             )
 
         # verb
-        if verb is True:
+        if verb >= 2:
             temp1 = (
                 f"{nchan} * {chi2n[-1]:.2e} "
                 f"+ {lmu[-1]:.2e} * {regularity[-1]:.2e}"

@@ -161,8 +161,13 @@ def _compute_check(
     verb = _generic_check._check_var(
         verb, 'verb',
         default=True,
-        types=bool,
+        types=(bool, int),
+        allowed=[False, 0, True, 1, 2],
     )
+    if verb is False:
+        verb = 0
+    if verb is True:
+        verb = 1
 
     # positive
     positive = _generic_check._check_var(
