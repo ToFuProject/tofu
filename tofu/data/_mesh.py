@@ -18,6 +18,7 @@ from . import _mesh_plot
 from . import _matrix_comp
 from . import _matrix_plot
 from . import _inversions_comp
+from . import _inversions_plot
 
 
 _GROUP_MESH = 'mesh'
@@ -684,6 +685,7 @@ class Mesh2DRect(DataCollection):
     def plot_inversion(
         self,
         key=None,
+        indt=None,
         vmin=None,
         vmax=None,
         res=None,
@@ -698,6 +700,7 @@ class Mesh2DRect(DataCollection):
         return _inversions_plot.plot_inversion(
             coll=self,
             key=key,
+            indt=indt,
             vmin=vmin,
             vmax=vmax,
             res=res,
