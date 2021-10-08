@@ -91,7 +91,7 @@ def _compute_check(
 
     # sigma
     sigmadef = np.repeat(
-        0.1*np.nanmean(data, axis=1)[:, None],
+        0.05*np.nanmean(data, axis=1)[:, None],
         shapemat[0],
         axis=1,
     )
@@ -209,9 +209,14 @@ def _compute_check(
     if positive is True:
         metdef = 'InvLinQuad_AugTikho_V1'
     else:
-        metdef = 'inv_linear_augTikho_v1_sparse'
+        if sparse:
+            metdef = 'inv_linear_augTikho_v1_sparse'
+        else:
+            metdef = 'inv_linear_augTikho_v1'
+
     metok = [
         'inv_linear_augTikho_v1_sparse',
+        'inv_linear_augTikho_v1',
         'InvLinQuad_AugTikho_V1',
         'InvQuad_AugTikho_V1',
         'InvLin_DisPrinc_V1',
@@ -239,6 +244,7 @@ def _compute_check(
         c0 = (
             method in [
                 'inv_linear_augTikho_v1_sparse',
+                'inv_linear_augTikho_v1',
                 'InvLinQuad_AugTikho_V1',
                 'InvQuad_AugTikho_V1',
             ]
@@ -262,6 +268,6 @@ def _compute_check(
 
     return (
         key_matrix, key_data, keybs, keym, data, sigma, opmat,
-        conv_crit, isotropic, sparse, matrix, crop, chain,
+        conv_crit, operator, isotropic, sparse, matrix, crop, chain,
         positive, method, solver, kwdargs, verb, store,
     )
