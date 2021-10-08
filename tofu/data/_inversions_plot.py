@@ -6,7 +6,8 @@
 
 # Common
 import numpy as np
-
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 # tofu
 # from tofu import __version__ as __version__
@@ -25,7 +26,6 @@ def _plot_geometry_matrix_check(
     indbf=None,
     indchan=None,
     cmap=None,
-    aspect=None,
     dcolorbar=None,
     dleg=None,
     dax=None,
@@ -46,19 +46,18 @@ def _plot_geometry_matrix_check(
     keymat = coll.dobj['inversions'][keyinv]['matrix']
     keydata = coll.dobj['inversions'][keyinv]['data_in']
     keybs = coll.dobj['matrix'][keymat]['bsplines']
-    refbs = coll.dobj['bsplines'][keybs]['ref']
+    # refbs = coll.dobj['bsplines'][keybs]['ref']
+
+    crop = coll.dobj['matrix'][keymat]['crop']
+    if crop is True:
+        cropbs = coll.dobj['bsplines'][keybs]['crop']
+        cropbs = coll.ddata[cropbs]['data']
+    else:
+        cropbs = None
 
     # cmap
     if cmap is None:
         cmap = 'viridis'
-
-    # aspect
-    aspect = _generic_check._check_var(
-        aspect, 'aspect',
-        default='auto',
-        types=str,
-        allowed=['auto', 'equal'],
-    )
 
     # dcolorbar
     defdcolorbar = {
@@ -84,7 +83,7 @@ def _plot_geometry_matrix_check(
         types=(bool, dict),
     )
 
-    return keyinv, keymat, keybs, keym, cmap, aspect, dcolorbar, dleg
+    return keyinv, keymat, keybs, keydata, cropbs, cmap, dcolorbar, dleg
 
 
 def plot_inversion(
@@ -94,7 +93,6 @@ def plot_inversion(
     res=None,
     vmin=None,
     vmax=None,
-    res=None,
     cmap=None,
     dax=None,
     dmargin=None,
@@ -107,11 +105,11 @@ def plot_inversion(
     # check inputs
 
     (
-        keyinv, keymat, keybs, keydata, cmap, aspect, dcolorbar, dleg,
+        keyinv, keymat, keybs, keydata, cropbs, cmap, dcolorbar, dleg,
     ) = _plot_geometry_matrix_check(
+        coll=coll,
         key=key,
         cmap=cmap,
-        aspect=aspect,
         dcolorbar=dcolorbar,
         dleg=dleg,
     )
@@ -119,11 +117,39 @@ def plot_inversion(
     # ------------
     # prepare data
 
+    # synthetic ?
+    synthetic = keydata in coll.dobj.get('synthetic', {}).keys()
+
+    # data
     data = coll.ddata[keydata]['data']
     keychan = coll.ddata[keydata]['ref'][-1]
     chan = coll.ddata[keychan]['data']
+    keyt = coll.ddata[keydata]['ref'][0]
+    time = coll.ddata[keyt]['data']
+
+    # reconstructed data
     matrix = coll.ddata[keymat]['data']
-    data_re = matrix.dot(coll.ddata[keyinv]['data'].T).T
+    sol = coll.ddata[keyinv]['data']
+    nt = sol.shape[0]
+    shapebs = coll.dobj['bsplines'][keybs]['shape']
+    nbs = int(np.prod(shapebs))
+    if cropbs is None:
+        data_re = matrix.dot(sol.reshape((nt, nbs), order='F'))
+    else:
+        cropbsflat = cropbs.ravel(order='F')
+        iR = np.tile(np.arange(0, shapebs[0]), shapebs[1])[cropbsflat]
+        iZ = np.repeat(np.arange(0, shapebs[1]), shapebs[0])[cropbsflat]
+        data_re = matrix.dot(sol[:, iR, iZ].T)
+
+    # inversion parameters
+    nchi2n = chan.size*coll.ddata[f'{keyinv}-niter']['data']
+    mu = coll.ddata[f'{keyinv}-mu']['data']
+    reg = coll.ddata[f'{keyinv}-reg']['data']
+    niter = coll.ddata[f'{keyinv}-niter']['data']
+
+    # indt
+    if indt is None:
+        indt = 0
 
     # --------------
     # plot - prepare
@@ -141,92 +167,87 @@ def plot_inversion(
             }
 
         fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(ncols=3, nrows=2, **dmargin)
-        ax01 = fig.add_subplot(gs[0, 1])
-        ax01.set_ylabel(f'channels')
-        ax01.set_xlabel(f'basis functions')
-        ax01.set_title(key, size=14)
-        ax01.tick_params(
-            axis="x",
-            bottom=False, top=True,
-            labelbottom=False, labeltop=True,
-        )
-        ax01.xaxis.set_label_position('top')
-        ax00 = fig.add_subplot(gs[0, 0], sharex=ax01)
-        ax00.set_xlabel(f'basis functions (m)')
-        ax00.set_ylabel(f'data')
-        ax10 = fig.add_subplot(gs[1, 0], aspect='equal')
-        ax10.set_xlabel(f'R (m)')
-        ax10.set_ylabel(f'Z (m)')
-        ax11 = fig.add_subplot(gs[1, 1], aspect='equal')
-        ax11.set_ylabel(f'R (m)')
-        ax11.set_xlabel(f'Z (m)')
-        ax02 = fig.add_subplot(gs[0, 2], sharey=ax01)
-        ax02.set_xlabel(f'channels')
-        ax02.set_ylabel(f'data')
-        ax02.tick_params(
-            axis="x",
-            bottom=False, top=True,
-            labelbottom=False, labeltop=True,
-        )
-        ax02.xaxis.set_label_position('top')
-        ax02.tick_params(
-            axis="y",
-            left=False, right=True,
-            labelleft=False, labelright=True,
-        )
-        ax02.yaxis.set_label_position('right')
-        ax12 = fig.add_subplot(gs[1, 2], aspect='equal')
-        ax12.set_xlabel(f'R (m)')
-        ax12.set_ylabel(f'Z (m)')
+        if synthetic:
+            gs = gridspec.GridSpec(ncols=4, nrows=2, **dmargin)
+            ax0 = fig.add_subplot(gs[1, 1])
+            ax1 = fig.add_subplot(gs[:2, 2:])
+            ax2 = fig.add_subplot(gs[2, 2:], sharex=ax1)
+            ax3 = fig.add_subplot(gs[3, 2:])
+            ax4 = fig.add_subplot(gs[4, 2:], sharex=ax3)
+
+            ax5 = fig.add_subplot(gs[0, 1], sharex=ax0, sharey=ax0)
+            ax6 = fig.add_subplot(gs[1, 0], sharex=ax0, sharey=ax0)
+
+        else:
+            gs = gridspec.GridSpec(ncols=2, nrows=5, **dmargin)
+            ax0 = fig.add_subplot(gs[:, 0])
+            ax1 = fig.add_subplot(gs[:2, 1])
+            ax2 = fig.add_subplot(gs[2, 1], sharex=ax1)
+            ax3 = fig.add_subplot(gs[3, 1])
+            ax4 = fig.add_subplot(gs[4, 1], sharex=ax3)
+
+        ax0.set_xlabel(f'R (m)')
+        ax0.set_ylabel(f'Z (m)')
+        ax0.set_title('reconstruction', size=14)
+
+        ax1.set_xlabel(f'chan')
+        ax1.set_ylabel(f'data')
+        ax1.set_title('data', size=14)
+
+        ax2.set_xlabel(f'chan')
+        ax2.set_ylabel(f'error')
+
+        ax3.set_xlabel(f'time')
+        ax3.set_ylabel(f'potential')
+
+        ax4.set_xlabel(f'time')
+        ax4.set_ylabel(f'niter')
 
         dax = {
-            'cross': ax0,
-            'data': {'ax': ax10, 'type': 'cross'},
-            'trace0': {'ax': ax12, 'type': 'cross'},
-            'trace1': {'ax': ax11, 'type': 'cross'},
-            'trace2': {'ax': ax02, 'type': 'misc'},
+            'reconstruction': {'ax': ax0, 'type': 'cross'},
+            'data': {'ax': ax1, 'type': 'misc'},
+            'data-err': {'ax': ax2, 'type': 'misc'},
+            'inv-param': {'ax': ax3, 'type': 'misc'},
+            'niter': {'ax': ax4, 'type': 'misc'},
         }
+
+        if synthetic:
+            ax5.set_xlabel(f'R (m)')
+            ax5.set_ylabel(f'Z (m)')
+            ax5.set_title('original', size=14)
+
+            ax6.set_xlabel(f'R (m)')
+            ax6.set_ylabel(f'Z (m)')
+            ax6.set_title('error', size=14)
+
+            dax.update({
+                'original': {'ax': ax5, 'type': 'cross'},
+                'error': {'ax': ax6, 'type': 'cross'},
+            })
 
     dax = _generic_check._check_dax(dax=dax, main='cross')
 
     # ---------
     # plot inv
 
-    dax = coll.plot_profile2d(
-        key=keyinv,
-        indt=indt,
-        res=res,
-        dax=dax,
-        cmap=cmap,
-        vmin=vmin,
-        vmax=vmax,
-    )
+    kax = 'reconstruction'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['ax']
+        coll.plot_profile2d(
+            key=keyinv,
+            indt=indt,
+            res=res,
+            dax={'cross': ax},
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+            dleg=False,
+        )
 
     # ---------
     # plot data
 
     kax = 'data'
-    if dax.get('data') is not None:
-        ax = dax[kax]['ax']
-        ax.plot(
-            chan,
-            data[indt, :],
-            c='k',
-            ls='-',
-            lw=1.,
-            marker='.',
-        )
-        ax.plot(
-            chan,
-            data_re[indt, :],
-            c='k',
-            ls='--',
-            lw=1.,
-            marker='.',
-        )
-
-    kax = 'trace0'
     if dax.get(kax) is not None:
         ax = dax[kax]['ax']
         ax.plot(
@@ -237,5 +258,79 @@ def plot_inversion(
             lw=1.,
             marker='.',
         )
+        ax.plot(
+            chan,
+            data_re[:, indt],
+            c='k',
+            ls='--',
+            lw=1.,
+            marker='.',
+        )
+
+    kax = 'data-err'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['ax']
+        ax.plot(
+            chan,
+            data_re[:, indt] - data[indt, :],
+            c='k',
+            ls='-',
+            lw=1.,
+            marker='.',
+        )
+        ax.axhline(
+            0.,
+            c='k',
+            ls='-',
+            lw=1.,
+        )
+
+    # -------------------------
+    # plot inversion parameters
+
+    kax = 'inv-param'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['ax']
+        ax.plot(
+            time,
+            nchi2n + mu*reg,
+            c='k',
+            ls='-',
+            lw=1.,
+            marker='.',
+            label='n*chi2n + mu*reg',
+        )
+        ax.plot(
+            time,
+            nchi2n,
+            c='r',
+            ls='-',
+            lw=1.,
+            marker='.',
+            label='nchi2n',
+        )
+        ax.plot(
+            time,
+            mu*reg,
+            c='b',
+            ls='-',
+            lw=1.,
+            marker='.',
+            label='mu*reg',
+        )
+        ax.axvline(time[indt], c='k', ls='-', lw=1.)
+
+    kax = 'niter'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['ax']
+        ax.plot(
+            time,
+            niter,
+            c='k',
+            ls='-',
+            lw=1.,
+            marker='.',
+        )
+        ax.axvline(time[indt], c='k', ls='-', lw=1.)
 
     return dax
