@@ -115,7 +115,9 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
                         )
                     )
                     or (
-                        v0[kk] == dd0[k0][kk]
+                        not isinstance(v0[kk], np.ndarray)
+                        and not scpsp.issparse(v0[kk])
+                        and v0[kk] == dd0[k0][kk]
                     )
                 )
             )
