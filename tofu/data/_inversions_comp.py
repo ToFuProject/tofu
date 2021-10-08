@@ -7,6 +7,7 @@ import time
 
 # Common
 import numpy as np
+import scipy.linalg as scplin
 import scipy.sparse as scpsp
 import matplotlib.pyplot as plt
 
@@ -48,7 +49,7 @@ def compute_inversions(
 
     (
         key_matrix, key_data, keybs, keym, data, sigma, opmat,
-        conv_crit, isotropic, sparse, matrix, crop, chain,
+        conv_crit, operator, isotropic, sparse, matrix, crop, chain,
         positive, method, solver, kwdargs, verb, store,
     ) = _inversions_checks._compute_check(
         coll=coll,
@@ -85,34 +86,46 @@ def compute_inversions(
     # indt (later)
 
     # normalization
-    data_n = data / sigma
-    regparam0 = 1.
+    data_n = (data / sigma)
+    mu0 = 1.
+
+    # Define Regularization operator
+    if operator == 'D0N2':
+        R = opmat[0]
+    elif operator == 'D1N2':
+        R = opmat[0] + opmat[1]
+    elif operator == 'D2N2':
+        R = opmat[0] + opmat[1]
+    else:
+        msg = 'unknown operator!'
+        raise Exception(msg)
 
     # prepare computation intermediates
-    Tyn = np.full((nbs,), np.nan)
-    R = opmat[0] + opmat[1]
     precond = None
+    Tyn = np.full((nbs,), np.nan)
     if sparse is True:
         Tn = scpsp.diags(1./np.nanmean(sigma, axis=0)).dot(matrix)
         TTn = Tn.T.dot(Tn)
         if solver != 'spsolve':
             # preconditioner to approx inv(TTn + reg*Rn), improves convergence
-            precond = scpsp.linalg.inv(TTn + regparam0*R)
+            precond = scpsp.linalg.inv(TTn + mu0*R)
+
     else:
         Tn = np.full(matrix.shape, np.nan)
         TTn = np.full((nbs, nbs), np.nan)
         Rn = np.full((nbs, nbs), np.nan)
-        precond = np.full((nbs, nbs), np.nan)
+        if solver != 'spsolve':
+            precond = np.full((nbs, nbs), np.nan)
+
+    sol0 = np.full((nbs,), np.nanmean(data[0, :]) / matrix.mean())
 
     # prepare output arrays
     sol = np.full((nt, nbs), np.nan)
-    regparam = np.full((nt,), np.nan)
+    mu = np.full((nt,), np.nan)
     chi2n = np.full((nt,), np.nan)
     regularity = np.full((nt,), np.nan)
     niter = np.zeros((nt,), dtype=int)
     spec = [None for ii in range(nt)]
-    # Spec = [[] for ii in range(0,Nt)]
-    # NormL = sol0.dot(LL.dot(sol0))
 
     # -------------
     # initial guess
@@ -122,8 +135,6 @@ def compute_inversions(
         t1 = time.perf_counter()
         print(f"{t1-t0} s", end='\n', flush=True)
         print("Setting inital guess... ", end='', flush=True)
-
-    sol0 = np.full((nbs,), np.nanmean(data[0, :]) / matrix.mean())
 
     """
     sol0 = Default_sol(BF2, tmat, ddat, sigma0=ssigm, N=3)
@@ -174,7 +185,7 @@ def compute_inversions(
     out = _compute_inv_loop(
         func=func,
         sol0=sol0,
-        regparam0=regparam0,
+        mu0=mu0,
         matrix=matrix,
         Tn=Tn,
         TTn=TTn,
@@ -189,7 +200,7 @@ def compute_inversions(
         chain=chain,
         verb=verb,
         sol=sol,
-        regparam=regparam,
+        mu=mu,
         chi2n=chi2n,
         regularity=regularity,
         niter=niter,
@@ -224,7 +235,7 @@ def compute_inversions(
         if coll.dobj.get('inversions') is None:
             ninv = 0
         else:
-            ninv = np.max([int(kk[3:]) for kk in coll.dobj['inversions']])
+            ninv = np.max([int(kk[3:]) for kk in coll.dobj['inversions']]) + 1
         keyinv = f'inv{ninv}'
 
         # ref
@@ -242,7 +253,22 @@ def compute_inversions(
                 'data': sol_full,
                 'ref': refinv,
             },
-
+            f'{keyinv}-chi2n': {
+                'data': chi2n,
+                'ref': refinv[0],
+            },
+            f'{keyinv}-mu': {
+                'data': mu,
+                'ref': refinv[0],
+            },
+            f'{keyinv}-reg': {
+                'data': regularity,
+                'ref': refinv[0],
+            },
+            f'{keyinv}-niter': {
+                'data': niter,
+                'ref': refinv[0],
+            },
         }
 
         dobj = {
@@ -267,7 +293,7 @@ def compute_inversions(
 
 
     else:
-        return sol_full, regparam, chi2n, regularity, niter, spec
+        return sol_full, mu, chi2n, regularity, niter, spec
 
 
 # #############################################################################
@@ -279,7 +305,7 @@ def compute_inversions(
 def _compute_inv_loop(
     func=None,
     sol0=None,
-    regparam0=None,
+    mu0=None,
     matrix=None,
     Tn=None,
     TTn=None,
@@ -294,7 +320,7 @@ def _compute_inv_loop(
     chain=None,
     verb=None,
     sol=None,
-    regparam=None,
+    mu=None,
     chi2n=None,
     regularity=None,
     niter=None,
@@ -307,24 +333,31 @@ def _compute_inv_loop(
 
     nt, nchan = data_n.shape
     nbs = R.shape[0]
+
+    if verb >= 2:
+        form = "nchan * chi2n   +   mu *  R           "
+        verb2head = f"\n\t\titer    {form} \t\t\t  tau  \t      conv"
+    else:
+        verb2head = None
+
     if sparse:
 
         # Beware of element-wise operations vs matrix operations !!!!
         for ii in range(0, nt):
 
             if verb >= 1:
-                msg = f"\tRunning inversion for time step {ii+1} / {nt}"
-                print(msg)
+                msg = f"\ttime step {ii+1} / {nt} "
+                print(msg, end='', flush=True)
 
             # intermediates
             if sigma.shape[0] > 1:
                 Tn.data = scpsp.diags(1./sigma[ii, :]).dot(matrix).data
                 TTn.data = Tn.T.dot(Tn).data
-            Tyn[...] = Tn.T.dot(data_n[ii, :])
+                Tyn[:] = Tn.T.dot(data_n[ii, :])
 
             # solving
             (
-                sol[ii, :], regparam[ii], chi2n[ii], regularity[ii],
+                sol[ii, :], mu[ii], chi2n[ii], regularity[ii],
                 niter[ii], spec[ii],
             ) = func(
                 Tn=Tn,
@@ -335,23 +368,68 @@ def _compute_inv_loop(
                 sol0=sol0,
                 nchan=nchan,
                 nbs=nbs,
-                mu0=regparam0,
+                mu0=mu0,
                 conv_crit=conv_crit,
                 precond=precond,
                 chain=chain,
                 verb=verb,
+                verb2head=verb2head,
                 **kwdargs,
             )
 
             # post
             if chain:
                 sol0[:] = sol[ii, :]
-            regparam0 = regparam[ii]
+            mu0 = mu[ii]
+
+            if verb == 1:
+                msg = f"   chi2n = {chi2n[ii]:.3e}    niter = {niter[ii]}"
+                print(msg, end='\n', flush=True)
 
     else:
-        pass
+        # Beware of element-wise operations vs matrix operations !!!!
+        for ii in range(0, nt):
 
-    return
+            if verb >= 1:
+                msg = f"\ttime step {ii+1} / {nt} "
+                print(msg, end='', flush=True)
+
+            # intermediates
+            if sigma.shape[0] > 1:
+                Tn[...] = matrix / sigma[ii, :][:, None]
+                TTn[...] = Tn.T.dot(Tn)
+            Tyn[:] = Tn.T.dot(data_n[ii, :])
+
+            # solving
+            (
+                sol[ii, :], mu[ii], chi2n[ii], regularity[ii],
+                niter[ii], spec[ii],
+            ) = func(
+                Tn=Tn,
+                TTn=TTn,
+                Tyn=Tyn,
+                R=R,
+                yn=data_n[ii, :],
+                sol0=sol0,
+                nchan=nchan,
+                nbs=nbs,
+                mu0=mu0,
+                conv_crit=conv_crit,
+                precond=precond,
+                chain=chain,
+                verb=verb,
+                verb2head=verb2head,
+                **kwdargs,
+            )
+
+            # post
+            if chain:
+                sol0[:] = sol[ii, :]
+            mu0 = mu[ii]
+
+            if verb == 1:
+                msg = f"   chi2n = {chi2n[ii]:.3e}    niter = {niter[ii]}"
+                print(msg, end='\n', flush=True)
 
 
 # #############################################################################
@@ -455,6 +533,100 @@ def InvLin_AugTikho_V1(
 """
 
 
+def inv_linear_augTikho_v1(
+    Tn=None,
+    TTn=None,
+    Tyn=None,
+    R=None,
+    yn=None,
+    sol0=None,
+    nchan=None,
+    nbs=None,
+    mu0=None,
+    conv_crit=None,
+    a0=None,
+    b0=None,
+    a1=None,
+    b1=None,
+    d=None,
+    atol=None,
+    btol=None,
+    conlim=None,
+    maxiter=None,
+    precond=None,
+    conv_reg=True,
+    nbs_fixed=True,
+    chain=None,
+    verb=None,
+    verb2head=None,
+):
+    # Install scikit !
+    # Install scikits and use CHOLMOD fast cholesky factorization !!!
+    """
+    Linear algorithm for Phillips-Tikhonov regularisation, called "Augmented Tikhonov", sparese matrix version
+    see TFI.InvLin_AugTikho_V1.__doc__ for details
+    """
+
+    a0bis = a0 - 1. + nbs/2. if not nbs_fixed else a0 - 1. + 1200./2.
+    a1bis = a1 - 1. + nchan/2.
+
+    conv = 0.           # convergence variable
+    niter = 0           # number of iterations
+    mu1 = 0.            # regularisation param
+
+    # verb
+    if verb >= 2:
+        chi2n = np.sum((Tn.dot(sol0) - yn)**2) / nchan
+        reg = sol0.dot(R.dot(sol0))
+        temp = f"{nchan} * {chi2n:.3e} + {mu0:.3e} * {reg:.3e}"
+        print(
+            f"{verb2head}\n\t\t\t {temp} = {nchan*chi2n + mu0*reg:.3e}",
+            end='\n',
+        )
+
+    # loop
+    # Continue until convergence criterion, and at least 2 iterations
+    while  niter < 2 or conv > conv_crit:
+        sol = scplin.solve(
+            TTn + mu0*R, Tyn,
+            assume_a='sym',     # or 'pos' ?
+            overwrite_a=False,
+            overwrite_b=False,
+            check_finite=False,
+            transposed=False,
+        ) # 3
+
+
+        res2 = np.sum((Tn.dot(sol)-yn)**2)  # residu**2
+        chi2n = res2/nchan                  # normalised residu
+        reg = sol.dot(R.dot(sol))           # regularity term
+
+        lamb = a0bis/(0.5*reg + b0)             # Update reg. param. estimate
+        tau = a1bis/(0.5*res2 + b1)             # Update noise coef. estimate
+        mu1 = (lamb/tau) * (2*a1bis/res2)**d    # Update reg. param. taking into account rescaling with noise estimate
+
+        # Compute convergence variable
+        if conv_reg:
+            conv = np.abs(mu1 - mu0) / mu1
+        else:
+            sol2 = sol**2
+            sol2max = np.max(sol2)
+            sol2[sol2 < 0.001*sol2max] = 0.001*sol2max
+            conv = np.sqrt(np.sum((sol - sol0)**2 / sol2) / nbs)
+
+        # verb
+        if verb >= 2:
+            temp1 = f"{nchan} * {chi2n:.3e} + {mu1:.3e} * {reg:.3e}"
+            temp2 = f"{res2 + mu1*reg:.3e}"
+            temp = f"{temp1} = {temp2}"
+            print(f"\t\t{niter} \t {temp}   {tau:.3e}   {conv:.3e}")
+
+        sol0[:] = sol[:]            # Update reference solution
+        niter += 1                  # Update number of iterations
+        mu0 = mu1
+    return sol, mu1, chi2n, reg, niter, [tau, lamb]
+
+
 def inv_linear_augTikho_v1_sparse(
     Tn=None,
     TTn=None,
@@ -480,6 +652,7 @@ def inv_linear_augTikho_v1_sparse(
     nbs_fixed=True,
     chain=None,
     verb=None,
+    verb2head=None,
 ):
     # Install scikit !
     # Install scikits and use CHOLMOD fast cholesky factorization !!!
@@ -493,16 +666,17 @@ def inv_linear_augTikho_v1_sparse(
 
     conv = 0.           # convergence variable
     niter = 0           # number of iterations
-    chi2n = 0.          # residu
-    regularity = 0.     # regularisation term list
     mu1 = 0.            # regularisation param
 
     # verb
     if verb >= 2:
-        temp = np.sum((Tn.dot(sol0) - yn)**2) / nchan
-        temp = f"{nchan*temp} + {mu0} * {sol0.dot(R.dot(sol0))}"
-        temp0 = np.sum((Tn.dot(sol0)-yn)**2) + mu0*sol0.dot(R.dot(sol0))
-        print(f"\t\tInitial: phi = nchan*chi2n + mu*R = {temp} = {temp0}")
+        chi2n = np.sum((Tn.dot(sol0) - yn)**2) / nchan
+        reg = sol0.dot(R.dot(sol0))
+        temp = f"{nchan} * {chi2n:.3e} + {mu0:.3e} * {reg:.3e}"
+        print(
+            f"{verb2head}\n\t\t\t {temp} = {nchan*chi2n + mu0*reg:.3e}",
+            end='\n',
+        )
 
     # loop
     # Continue until convergence criterion, and at least 2 iterations
@@ -529,14 +703,11 @@ def inv_linear_augTikho_v1_sparse(
               use_umfpack=True,
         ) # 3
 
-        # if itconv != 0:
-            # break
-
         res2 = np.sum((Tn.dot(sol)-yn)**2)      # residu**2
         chi2n = res2/nchan                      # normalised residu
-        regularity = sol.dot(R.dot(sol))        # regularity term
+        reg = sol.dot(R.dot(sol))       # regularity term
 
-        lamb = a0bis/(0.5*regularity + b0)   # Update reg. param. estimate
+        lamb = a0bis/(0.5*reg + b0)     # Update reg. param. estimate
         tau = a1bis/(0.5*res2 + b1)                 # Update noise coef. estimate
         mu1 = (lamb/tau) * (2*a1bis/res2)**d        # Update reg. param. taking into account rescaling with noise estimate
 
@@ -544,33 +715,25 @@ def inv_linear_augTikho_v1_sparse(
         if conv_reg:
             conv = np.abs(mu1 - mu0) / mu1
         else:
-            conv = (
-                np.sqrt(np.sum(
-                    (sol - sol0)**2
-                    / np.max(
-                        [sol**2,0.001*np.max(sol**2)*np.ones((nbs,))],
-                        axis=0,
-                    )
-                ) / nbs)
-            )
+            sol2 = sol**2
+            sol2max = np.max(sol2)
+            sol2[sol2 < 0.001*sol2max] = 0.001*sol2max
+            conv = np.sqrt(np.sum((sol - sol0)**2 / sol2) / nbs)
 
         # verb
         if verb >= 2:
-            temp1 = (
-                f"{nchan} * {chi2n:.2e} "
-                f"+ {mu1:.2e} * {regularity:.2e}"
-            )
-            temp2 = f"{res2 + mu1*regularity:.2e}"
-            temp = f"phi = {temp1} = {temp2}"
+            temp1 = f"{nchan} * {chi2n:.3e} + {mu1:.3e} * {reg:.3e}"
+            temp2 = f"{res2 + mu1*reg:.3e}"
+            temp = f"{temp1} = {temp2}"
             print(
-                f"\tniter = {niter}   {temp}   tau = {tau:.2e}   conv = {conv:.2e}"
+                f"\t\t{niter} \t {temp}   {tau:.3e}   {conv:.3e}"
             )
             # print '\t\ŧ\tisstop,itn=',isstop,itn, '  normRArAX=',normr, normar, norma,normx, 'condA=',conda
 
         sol0[:] = sol[:]            # Update reference solution
         niter += 1                  # Update number of iterations
         mu0 = mu1
-    return sol, mu1, chi2n, regularity, niter, [tau, lamb]
+    return sol, mu1, chi2n, reg, niter, [tau, lamb]
 
 
 """
