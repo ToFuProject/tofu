@@ -26,6 +26,7 @@ def compute_inversions(
     coll=None,
     key_matrix=None,
     key_data=None,
+    key_sigma=None,
     data=None,
     sigma=None,
     conv_crit=None,
@@ -48,13 +49,14 @@ def compute_inversions(
     # kwdargs = {'maxiter': maxiter}
 
     (
-        key_matrix, key_data, keybs, keym, data, sigma, opmat,
+        key_matrix, key_data, key_sigma, keybs, keym, data, sigma, opmat,
         conv_crit, operator, isotropic, sparse, matrix, crop, chain,
         positive, method, solver, kwdargs, verb, store,
     ) = _inversions_checks._compute_check(
         coll=coll,
         key_matrix=key_matrix,
         key_data=key_data,
+        key_sigma=key_sigma,
         data=data,
         sigma=sigma,
         conv_crit=conv_crit,
@@ -111,11 +113,8 @@ def compute_inversions(
             precond = scpsp.linalg.inv(TTn + mu0*R)
 
     else:
-        Tn = np.full(matrix.shape, np.nan)
-        TTn = np.full((nbs, nbs), np.nan)
-        Rn = np.full((nbs, nbs), np.nan)
-        if solver != 'spsolve':
-            precond = np.full((nbs, nbs), np.nan)
+        Tn = matrix / np.nanmean(sigma, axis=0)[:, None]
+        TTn = Tn.T.dot(Tn)
 
     sol0 = np.full((nbs,), np.nanmean(data[0, :]) / matrix.mean())
 
@@ -271,6 +270,22 @@ def compute_inversions(
             },
         }
 
+        if key_sigma is None:
+            key_sigma = f'{key_data}-sigma'
+            if sigma.shape == data.shape:
+                ref_sigma = coll.ddata[key_data]['ref']
+            else:
+                ref_sigma = coll.ddata[key_data]['ref'][1:]
+                sigma = sigma[0, :]
+            ddata.update({
+                key_sigma: {
+                    'data': sigma,
+                    'ref': ref_sigma,
+                    'units': coll.ddata[key_data].get('units'),
+                    'dim': coll.ddata[key_data].get('dim'),
+                },
+            })
+
         dobj = {
             'inversions': {
                 keyinv: {
@@ -353,7 +368,8 @@ def _compute_inv_loop(
             if sigma.shape[0] > 1:
                 Tn.data = scpsp.diags(1./sigma[ii, :]).dot(matrix).data
                 TTn.data = Tn.T.dot(Tn).data
-                Tyn[:] = Tn.T.dot(data_n[ii, :])
+
+            Tyn[:] = Tn.T.dot(data_n[ii, :])
 
             # solving
             (
@@ -398,6 +414,7 @@ def _compute_inv_loop(
             if sigma.shape[0] > 1:
                 Tn[...] = matrix / sigma[ii, :][:, None]
                 TTn[...] = Tn.T.dot(Tn)
+
             Tyn[:] = Tn.T.dot(data_n[ii, :])
 
             # solving
@@ -589,13 +606,12 @@ def inv_linear_augTikho_v1(
     while  niter < 2 or conv > conv_crit:
         sol = scplin.solve(
             TTn + mu0*R, Tyn,
-            assume_a='sym',     # or 'pos' ?
-            overwrite_a=False,
-            overwrite_b=False,
-            check_finite=False,
+            assume_a='pos',     # faster than 'sym'
+            overwrite_a=True,  # no significant gain
+            overwrite_b=False,  # True is faster, but a copy of Tyn is needed
+            check_finite=False, # small speed gain compared to True
             transposed=False,
         ) # 3
-
 
         res2 = np.sum((Tn.dot(sol)-yn)**2)  # residu**2
         chi2n = res2/nchan                  # normalised residu
@@ -681,27 +697,11 @@ def inv_linear_augTikho_v1_sparse(
     # loop
     # Continue until convergence criterion, and at least 2 iterations
     while  niter < 2 or conv > conv_crit:
-        # sol, itconv = scpsp.linalg.minres(
-            # TTn + mu0*R, Tyn,
-            # x0=sol0,
-            # shift=0.0, tol=1e-10,
-            # maxiter=None,
-            # M=precond,
-            # show=False,
-            # check=False,
-        # )   # 2
-        # sol, itconv = scpsp.linalg.bicgstab(
-            # TTn + mu0*R, Tyn,
-            # x0=sol0,
-            # tol=1.e-8,
-            # maxiter=maxiter,
-            # M=precond,
-        # )    # 1
         sol = scpsp.linalg.spsolve(
               TTn + mu0*R, Tyn,
               permc_spec=None,
               use_umfpack=True,
-        ) # 3
+        )
 
         res2 = np.sum((Tn.dot(sol)-yn)**2)      # residu**2
         chi2n = res2/nchan                      # normalised residu

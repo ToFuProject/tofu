@@ -23,6 +23,7 @@ def _compute_check(
     coll=None,
     key_matrix=None,
     key_data=None,
+    key_sigma=None,
     data=None,
     sigma=None,
     conv_crit=None,
@@ -89,23 +90,37 @@ def _compute_check(
     if data.shape[1] != shapemat[0]:
         data = data.T
 
+    # key_sigma
+    if key_sigma is not None:
+        lk = [
+            kk for kk, vv in coll.ddata.items()
+            if vv['data'].ndim in [1, 2]
+            and vv['data'].shape[-1] == shapemat[0]
+        ]
+        key_sigma = _generic_check._check_var(
+            key_sigma, 'key_sigma',
+            types=str,
+            allowed=lk,
+        )
+        sigma = coll.ddata[key_sigma]['data']
+
     # sigma
-    sigmadef = np.repeat(
-        0.05*np.nanmean(data, axis=1)[:, None],
-        shapemat[0],
-        axis=1,
-    )
+    if np.isscalar(sigma):
+        sigma = np.full((shapemat[0],), sigma*np.nanmean(np.abs(data)))
+
     sigma = _generic_check._check_var(
         sigma, 'sigma',
-        default=sigmadef,
+        default=np.full((shapemat[0],), 0.05*np.nanmean(np.abs(data))),
         types=(np.ndarray, list, tuple),
     )
+
     if not isinstance(sigma, np.ndarray):
         sigma = np.asarray(sigma)
     if sigma.ndim not in [1, 2] or shapemat[0] not in sigma.shape:
         msg = (
             "Arg sigma must have dim in [1, 2]"
-            f" and {shapemat[0]} must be in shape"
+            f" and {shapemat[0]} must be in shape\n"
+            f"\t- sigma.shape = {sigma.shape}"
         )
         raise Exception(msg)
     if sigma.ndim == 1:
@@ -136,17 +151,6 @@ def _compute_check(
     if isotropic is False:
         raise NotImplementedError("Anisotropic regularization unavailable yet")
 
-    # sparse and matrix
-    sparse = _generic_check._check_var(
-        sparse, 'sparse',
-        default=True,
-        types=bool,
-    )
-    if sparse is True and not scpsp.issparse(matrix):
-        matrix = scpsp.csr_matrix(matrix)
-    elif sparse is False and scpsp.issparse(matrix):
-        matrix = matrix.toarray()
-
     # get operator
     opmat, operator, geometry, dim, ref, crop = coll.add_bsplines_operator(
         key=keybs,
@@ -169,6 +173,23 @@ def _compute_check(
 
     assert data.shape[1] == nchan
     nt = data.shape[0]
+
+    # sparse and matrix and operator
+    sparse = _generic_check._check_var(
+        sparse, 'sparse',
+        default=True,
+        types=bool,
+    )
+    if sparse is True:
+        if not scpsp.issparse(matrix):
+            matrix = scpsp.csr_matrix(matrix)
+        if not scpsp.issparse(opmat[0]):
+            opmat = [scpsp.csr_matrix(pp) for pp in opmat]
+    elif sparse is False:
+        if scpsp.issparse(matrix):
+            matrix = matrix.toarray()
+        if scpsp.issparse(opmat[0]):
+            opmat = [scpsp.csr_matrix(pp).toarray() for pp in opmat]
 
     # chain
     chain = _generic_check._check_var(
@@ -267,7 +288,7 @@ def _compute_check(
     kwdargs['maxiter'] = 100
 
     return (
-        key_matrix, key_data, keybs, keym, data, sigma, opmat,
+        key_matrix, key_data, key_sigma, keybs, keym, data, sigma, opmat,
         conv_crit, operator, isotropic, sparse, matrix, crop, chain,
         positive, method, solver, kwdargs, verb, store,
     )
