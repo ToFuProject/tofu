@@ -55,6 +55,10 @@ def _compute_check(
     shapemat = matrix.shape
     crop = coll.dobj['matrix'][key_matrix]['crop']
 
+    if np.any(~np.isfinite(matrix)):
+        msg = "Geometry matrix should not contain NaNs or infs!"
+        raise Exception(msg)
+
     # key_data
     if key_data is not None or (key_data is None and data is None):
         lk = [
@@ -89,6 +93,9 @@ def _compute_check(
         data = data[None, :]
     if data.shape[1] != shapemat[0]:
         data = data.T
+    if np.any(~np.isfinite(data)):
+        msg = "Arg data should not contain NaNs or inf!"
+        raise Exception(msg)
 
     # key_sigma
     if key_sigma is not None:
@@ -135,6 +142,10 @@ def _compute_check(
     if sigma.shape[1] != shapemat[0]:
         sigma = sigma.T
 
+    if np.any(~np.isfinite(sigma)):
+        msg = "Arg sigma should not contain NaNs or inf!"
+        raise Exception(msg)
+
     # conv_crit
     conv_crit = _generic_check._check_var(
         conv_crit, 'conv_crit',
@@ -170,6 +181,9 @@ def _compute_check(
     else:
         assert opmat.shape == (nbs,) or opmat.shape == (nbs, nbs)
         opmat = (opmat,)
+
+    if not scpsp.issparse(opmat[0]):
+        assert all([np.all(np.isfinite(op)) for op in opmat])
 
     assert data.shape[1] == nchan
     nt = data.shape[0]
@@ -238,6 +252,7 @@ def _compute_check(
     metok = [
         'inv_linear_augTikho_v1_sparse',
         'inv_linear_augTikho_v1',
+        'inv_linear_augTikho_chol',
         'InvLinQuad_AugTikho_V1',
         'InvQuad_AugTikho_V1',
         'InvLin_DisPrinc_V1',
@@ -266,6 +281,7 @@ def _compute_check(
             method in [
                 'inv_linear_augTikho_v1_sparse',
                 'inv_linear_augTikho_v1',
+                'inv_linear_augTikho_chol',
                 'InvLinQuad_AugTikho_V1',
                 'InvQuad_AugTikho_V1',
             ]

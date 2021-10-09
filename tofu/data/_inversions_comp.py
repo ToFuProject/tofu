@@ -454,101 +454,6 @@ def _compute_inv_loop(
 #                       functions
 # #############################################################################
 
-"""
-def InvLin_AugTikho_V1(
-    NMes, Nbf, Tm, TT, LL, Tb, b, sol0,
-    mu0=TFD.mu0,
-    ConvCrit=TFD.ConvCrit,
-    a0=TFD.AugTikho_a0,
-    b0=TFD.AugTikho_b0,
-    a1=TFD.AugTikho_a1,
-    b1=TFD.AugTikho_b1,
-    d=TFD.AugTikho_d,
-    NormL=None,
-    Verb=False,
-    ConvReg=True,
-    FixedNb=True,
-):
-    Linear algorithm for Phillips-Tikhonov regularisation, called "Augmented Tikhonov"
-    augmented in the sense that bayesian statistics are combined with standard Tikhonov regularisation
-    Determines both noise (common multiplicative coefficient) and regularisation paremeter automatically
-    We assume here that all arrays have previously been scaled (noise, conditioning...)
-    Sparse matrixes are also prefered to speed-up the computation
-    In this method:
-      tau is an approximation of the inverse of the noise coefficient
-      lamb is an approximation of the regularisation parameter
-    N.B.: The noise and reg. param. have probability densities of the form : f(x) = x^(a-1) * exp(-bx)
-    This function maximum is in x = (a-1)/b, so a = b+1 gives a maximum at 1.
-    (a0,b0) for the reg. param. and (a1,b1) for the noise estimate
-    Ref:
-      [1] Jin B., Zou J., Inverse Problems, vol.25, nb.2, 025001, 2009
-      [2] http://www.math.uni-bremen.de/zetem/cms/media.php/250/nov14talk_jin%20bangti.pdf
-      [3] Kazufumi Ito, Bangti Jin, Jun Zou, "A New Choice Rule for Regularization Parameters in Tikhonov Regularization", Research report, University of Hong Kong, 2008
-
-
-    a0bis = a0-1.+Nbf/2. if not FixedNb else a0-1.+1200./2.
-    a1bis = a1-1.+NMes/2.
-
-    Conv = 0.                                                   # Initialise convergence variable
-    Nit = 0                                                     # Initialise number of iterations
-    chi2N, R = [], []                                           # Initialise residu list and regularisation term list
-    lmu = [mu0]                                                 # Initialise regularisation parameter
-    if NormL is None:
-        NormL = sol0.dot(LL.dot(sol0))
-    LL = LL / NormL                                               # Scale the regularity operator
-    if Verb:
-        print("        Init. guess : N*Chi2N + mu*RN = ",
-              NMes,'*',np.sum((Tm.dot(sol0)-b)**2)/NMes,'+',lmu[-1],'*',sol0.dot(LL.dot(sol0)),
-              ' = ',
-              np.sum((Tm.dot(sol0)-b)**2)+lmu[-1]*sol0.dot(LL.dot(sol0)))
-        while  Nit<2 or Conv>ConvCrit:                              # Continue until convergence criterion is fulfilled, and do at least 2 iterations
-            if np.linalg.det(TT + lmu[-1]*LL)==0.:
-                sol = np.linalg.lstsq(TT + lmu[-1]*LL,Tb)[0]
-            else:
-                Chol = np.linalg.cholesky(TT + lmu[-1]*LL)                   # Use Choleski factorisation (Chol(A).T * Chol(A) = A) for faster computation
-                sol = np.linalg.lstsq(Chol,np.linalg.lstsq(Chol.T,Tb)[0])[0]  # Use np.linalg.lstsq for double-solving the equation
-
-            Res = np.sum((Tm.dot(sol)-b)**2)                        # Compute residu**2
-            chi2N.append(Res/NMes)                                  # Record normalised residu history
-            R.append(sol.dot(LL.dot(sol)))                          # Compute and record regularity term
-
-            lamb = a0bis/(0.5*R[Nit]+b0)                            # Update reg. param. estimate
-            tau = a1bis/(0.5*Res+b1)                                # Update noise coef. estimate
-            lmu.append((lamb/tau) * (2*a1bis/Res)**d)               # Update regularisation parameter taking into account rescaling with noise estimate
-            if ConvReg:
-                Conv = np.abs(lmu[-1]-lmu[-2])/lmu[-1]
-            else:
-                Conv = np.sqrt(np.sum((sol-sol0)**2/np.max([sol**2,0.001*np.max(sol**2)*np.ones((Nbf,))],axis=0))/Nbf)        # Compute convergence variable
-            print("        Nit = ",str(Nit),"   N*Chi2N + mu*R = ",
-                  NMes,'*',chi2N[Nit],'+',lmu[-1],'*',R[Nit], ' = ',
-                  Res+lmu[-1]*R[Nit], '    tau = ',tau, '    Conv = ',Conv)
-            sol0[:] = sol[:]                                           # Update reference solution
-            Nit += 1                                                # Update number of iterations
-    else:
-        while  Nit<2 or Conv>ConvCrit:                              # Continue until convergence criterion is fulfilled, and do at least 2 iterations
-            if np.linalg.det(TT + lmu[-1]*LL)==0.:
-                sol = np.linalg.lstsq(TT + lmu[-1]*LL,Tb)[0]
-            else:
-                Chol = np.linalg.cholesky(TT + lmu[-1]*LL)                   # Use Choleski factorisation (Chol(A).T * Chol(A) = A) for faster computation
-                sol = np.linalg.lstsq(Chol,np.linalg.lstsq(Chol.T,Tb)[0])[0]  # Use np.linalg.lstsq for double-solving the equation
-
-            Res = np.sum((Tm.dot(sol)-b)**2)                        # Compute residu**2
-            chi2N.append(Res/NMes)                                  # Record normalised residu history
-            R.append(sol.dot(LL.dot(sol)))                          # Compute and record regularity term
-
-            lamb = a0bis/(0.5*R[Nit]+b0)                            # Update reg. param. estimate
-            tau = a1bis/(0.5*Res+b1)                                # Update noise coef. estimate
-            lmu.append((lamb/tau) * (2*a1bis/Res)**d)               # Update regularisation parameter taking into account rescaling with noise estimate
-            if ConvReg:
-                Conv = np.abs(lmu[-1]-lmu[-2])/lmu[-1]
-            else:
-                Conv = np.sqrt(np.sum((sol-sol0)**2/np.max([sol**2,0.001*np.max(sol**2)*np.ones((Nbf,))],axis=0))/Nbf)        # Compute convergence variable
-            sol0[:] = sol[:]                                           # Update reference solution
-            Nit += 1                                                # Update number of iterations
-
-    return sol, lmu[-1], chi2N[-1], R[-1], Nit, [tau, lamb]
-"""
-
 
 def inv_linear_augTikho_v1(
     Tn=None,
@@ -604,6 +509,8 @@ def inv_linear_augTikho_v1(
     # loop
     # Continue until convergence criterion, and at least 2 iterations
     while  niter < 2 or conv > conv_crit:
+
+        # call solver
         sol = scplin.solve(
             TTn + mu0*R, Tyn,
             assume_a='pos',     # faster than 'sym'
@@ -613,10 +520,12 @@ def inv_linear_augTikho_v1(
             transposed=False,
         ) # 3
 
+        # compute residu, regularity...
         res2 = np.sum((Tn.dot(sol)-yn)**2)  # residu**2
         chi2n = res2/nchan                  # normalised residu
         reg = sol.dot(R.dot(sol))           # regularity term
 
+        # update lamb, tau
         lamb = a0bis/(0.5*reg + b0)             # Update reg. param. estimate
         tau = a1bis/(0.5*res2 + b1)             # Update noise coef. estimate
         mu1 = (lamb/tau) * (2*a1bis/res2)**d    # Update reg. param. taking into account rescaling with noise estimate
@@ -637,9 +546,11 @@ def inv_linear_augTikho_v1(
             temp = f"{temp1} = {temp2}"
             print(f"\t\t{niter} \t {temp}   {tau:.3e}   {conv:.3e}")
 
-        sol0[:] = sol[:]            # Update reference solution
-        niter += 1                  # Update number of iterations
+        # update sol0, mu0 for next iteration
+        sol0[:] = sol[:]
         mu0 = mu1
+        niter += 1
+
     return sol, mu1, chi2n, reg, niter, [tau, lamb]
 
 
@@ -674,7 +585,7 @@ def inv_linear_augTikho_v1_sparse(
     # Install scikits and use CHOLMOD fast cholesky factorization !!!
     """
     Linear algorithm for Phillips-Tikhonov regularisation, called "Augmented Tikhonov", sparese matrix version
-    see TFI.InvLin_AugTikho_V1.__doc__ for details
+    see InvLin_AugTikho_V1.__doc__ for details
     """
 
     a0bis = a0 - 1. + nbs/2. if not nbs_fixed else a0 - 1. + 1200./2.
@@ -733,6 +644,125 @@ def inv_linear_augTikho_v1_sparse(
         sol0[:] = sol[:]            # Update reference solution
         niter += 1                  # Update number of iterations
         mu0 = mu1
+    return sol, mu1, chi2n, reg, niter, [tau, lamb]
+
+
+def inv_linear_augTikho_chol(
+    Tn=None,
+    TTn=None,
+    Tyn=None,
+    R=None,
+    yn=None,
+    sol0=None,
+    nchan=None,
+    nbs=None,
+    mu0=None,
+    conv_crit=None,
+    a0=None,
+    b0=None,
+    a1=None,
+    b1=None,
+    d=None,
+    atol=None,
+    btol=None,
+    conlim=None,
+    maxiter=None,
+    precond=None,
+    conv_reg=True,
+    nbs_fixed=True,
+    chain=None,
+    verb=None,
+    verb2head=None,
+):
+    """
+    Linear algorithm for Phillips-Tikhonov regularisation, called "Augmented Tikhonov"
+    augmented in the sense that bayesian statistics are combined with standard Tikhonov regularisation
+    Determines both noise (common multiplicative coefficient) and regularisation paremeter automatically
+    We assume here that all arrays have previously been scaled (noise, conditioning...)
+    Sparse matrixes are also prefered to speed-up the computation
+    In this method:
+      tau is an approximation of the inverse of the noise coefficient
+      lamb is an approximation of the regularisation parameter
+    N.B.: The noise and reg. param. have probability densities of the form : f(x) = x^(a-1) * exp(-bx)
+    This function maximum is in x = (a-1)/b, so a = b+1 gives a maximum at 1.
+    (a0,b0) for the reg. param. and (a1,b1) for the noise estimate
+    Ref:
+      [1] Jin B., Zou J., Inverse Problems, vol.25, nb.2, 025001, 2009
+      [2] http://www.math.uni-bremen.de/zetem/cms/media.php/250/nov14talk_jin%20bangti.pdf
+      [3] Kazufumi Ito, Bangti Jin, Jun Zou, "A New Choice Rule for Regularization Parameters in Tikhonov Regularization", Research report, University of Hong Kong, 2008
+    """
+
+    a0bis = a0 - 1. + nbs/2. if not nbs_fixed else a0 - 1. + 1200./2.
+    a1bis = a1 - 1. + nchan/2.
+
+    conv = 0.           # convergence variable
+    niter = 0           # number of iterations
+    mu1 = 0.            # regularisation param
+
+    # verb
+    if verb >= 2:
+        chi2n = np.sum((Tn.dot(sol0) - yn)**2) / nchan
+        reg = sol0.dot(R.dot(sol0))
+        temp = f"{nchan} * {chi2n:.3e} + {mu0:.3e} * {reg:.3e}"
+        print(
+            f"{verb2head}\n\t\t\t {temp} = {nchan*chi2n + mu0*reg:.3e}",
+            end='\n',
+        )
+
+    # loop
+    # Continue until convergence criterion, and at least 2 iterations
+    while  niter < 2 or conv > conv_crit:
+
+        if np.linalg.det(TTn + mu0*R) == 0.:
+            sol = np.linalg.lstsq(
+                TTn + mu0*R, Tyn,
+                rcond=None,
+            )[0]
+        else:
+            # choleski decomposition requires det(TT + mu0*LL) != 0
+            # (chol(A).T * chol(A) = A
+            chol = scplin.cholesky(
+                TTn + mu0*R,
+                check_finite=False,
+                overwrite_a=False,
+            )
+            # Use np.linalg.lstsq for double-solving the equation
+            sol = np.linalg.lstsq(
+                chol, np.linalg.lstsq(chol.T, Tyn, rcond=None)[0],
+                rcond=None,
+            )[0]
+
+        # compute residu, regularity...
+        res2 = np.sum((Tn.dot(sol)-yn)**2)  # residu**2
+        chi2n = res2/nchan                  # normalised residu
+        reg = sol.dot(R.dot(sol))           # regularity term
+
+        # update lamb, tau
+        lamb = a0bis/(0.5*reg + b0)             # Update reg. param. estimate
+        tau = a1bis/(0.5*res2 + b1)             # Update noise coef. estimate
+        mu1 = (lamb/tau) * (2*a1bis/res2)**d    # Update reg. param. taking into account rescaling with noise estimate
+
+        # Compute convergence variable
+        if conv_reg:
+            conv = np.abs(mu1 - mu0) / mu1
+        else:
+            sol2 = sol**2
+            sol2max = np.max(sol2)
+            sol2[sol2 < 0.001*sol2max] = 0.001*sol2max
+            conv = np.sqrt(np.sum((sol - sol0)**2 / sol2) / nbs)
+
+        # verb
+        if verb >= 2:
+            temp1 = f"{nchan} * {chi2n:.3e} + {mu1:.3e} * {reg:.3e}"
+            temp2 = f"{res2 + mu1*reg:.3e}"
+            temp = f"{temp1} = {temp2}"
+            print(f"\t\t{niter} \t {temp}   {tau:.3e}   {conv:.3e}")
+
+        # update sol0, mu0 for next iteration
+        sol0[:] = sol[:]
+        mu0 = mu1
+        niter += 1
+
     return sol, mu1, chi2n, reg, niter, [tau, lamb]
 
 
