@@ -18,6 +18,7 @@ import tofu.geom as tfg
 
 
 _here = os.path.abspath(os.path.dirname(__file__))
+_PATH_DATA = os.path.join(_here, 'test_03_core_data')
 VerbHead = 'tofu.geom.test_04_core_optics'
 keyVers = 'Vers'
 _Exp = 'WEST'
@@ -368,7 +369,7 @@ class Test01_Crystal(object):
 
     def test14_plot_focal_error_summed(self):
         det = dict(np.load(
-            'inputs_temp/det37_CTVD_incC4_New.npz',
+            os.path.join(_PATH_DATA, 'det37_CTVD_incC4_New.npz'),
             allow_pickle=True,
             ))
         for k0, obj in self.dobj.items():
