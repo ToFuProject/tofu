@@ -166,7 +166,7 @@ def _check_remove(key=None, dkey=None, name=None):
             """
             Removed param must be a str already in self.d{}
             It can also be a list of such
-            \t- provided: {}
+            \t- provided: '{}'
             \t- already available: {}
             """.format(name, key, sorted(dkey.keys()))
         )
@@ -403,16 +403,23 @@ def _remove_data(
         for k1 in dgroup0.keys():
             if k0 in dgroup0[k1]['ldata']:
                 dgroup0[k1]['ldata'].remove(k0)
+        for k1 in dref0.keys():
             if k0 in dref0[k1]['ldata']:
                 dref0[k1]['ldata'].remove(k0)
         del ddata0[k0]
 
     # Propagate upward
     if propagate is True:
-        lk = [k0 for k0 in dgroup0.keys() if len(dgroup0['ldata']) == 0]
+        lk = [
+            k0 for k0, v0 in dgroup0.items()
+            if len(v0.get('ldata', [])) == 0
+        ]
         for kk in lk:
             del dgroup0[kk]
-        lk = [k0 for k0 in dref0.keys() if len(dref0['ldata']) == 0]
+        lk = [
+            k0 for k0, v0 in dref0.items()
+            if len(dref0[k0].get('ldata', [])) == 0
+        ]
         for kk in lk:
             del dref0[kk]
 
@@ -1617,9 +1624,9 @@ def _check_ddata(
             else:
                 msg = (
                     "ddata[{0}]['ref'] != ({0},)".format(k0)
-                    + "\n\t- ddata[{}]['ref'] = {}\n\n".format(k0, v0['ref'])
+                    + "\n\t- ddata['{}']['ref'] = {}\n\n".format(k0, v0['ref'])
                     + "... or there might be an issue with:\n"
-                    + "\t- type(ddata[{}]['shape']) = {} ({})".format(
+                    + "\t- type(ddata['{}']['shape']) = {} ({})".format(
                         k0, type(v0['shape']), v0['shape'],
                     )
                 )
