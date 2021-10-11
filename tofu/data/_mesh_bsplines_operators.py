@@ -60,7 +60,7 @@ def _get_mesh2dRect_operators_check(
     # sparse_fmt
     sparse_fmt = _generic_check._check_var(
         sparse_fmt, 'sparse_fmt',
-        default='csr',
+        default='csc',
         types=str,
         allowed=['dia', 'csr', 'csc', 'lil'],
     )
@@ -369,7 +369,7 @@ def get_mesh2dRect_operators(
                     i0 += 2
 
         assert i0 == nbtot
-        opmat = scpsp.csr_matrix((data, (row, column)), shape=shape)
+        opmat = scpsp.csc_matrix((data, (row, column)), shape=shape)
 
     # ------------
     # D1N2
@@ -440,8 +440,8 @@ def get_mesh2dRect_operators(
 
         assert i0 == nbtot
         opmat = (
-            scpsp.csr_matrix((datadR, (row, column)), shape=shape),
-            scpsp.csr_matrix((datadZ, (row, column)), shape=shape),
+            scpsp.csc_matrix((datadR, (row, column)), shape=shape),
+            scpsp.csc_matrix((datadZ, (row, column)), shape=shape),
         )
 
     # ------------
@@ -516,9 +516,9 @@ def get_mesh2dRect_operators(
 
         assert i0 == nbtot
         opmat = (
-            scpsp.csr_matrix((datad2R, (row, column)), shape=shape),
-            scpsp.csr_matrix((datad2Z, (row, column)), shape=shape),
-            scpsp.csr_matrix((datadRZ, (row, column)), shape=shape),
+            scpsp.csc_matrix((datad2R, (row, column)), shape=shape),
+            scpsp.csc_matrix((datad2Z, (row, column)), shape=shape),
+            scpsp.csc_matrix((datadRZ, (row, column)), shape=shape),
         )
 
     # ------------
