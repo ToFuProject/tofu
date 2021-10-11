@@ -200,8 +200,20 @@ def compute(
     # return
 
     if store:
+
+        lrchan = [
+            k0 for k0, v0 in coll.dref.items()
+            if v0['group'] == 'chan'
+            and k0.startswith('chan') and k0[4:].isdecimal()
+        ]
+        if len(lrchan) == 0:
+            chann = 0
+        else:
+            chann = max([int(k0.replace('chan', '')) for k0 in lrchan]) + 1
+        kchan = f'chan{chann}'
+
         dref = {
-            'channels': {
+            kchan: {
                 'data': np.arange(0, nlos),
                 'group': 'chan',
             },
@@ -211,7 +223,7 @@ def compute(
         ddata = {
             name: {
                 'data': mat,
-                'ref': ('channels', keycropped)
+                'ref': (kchan, keycropped)
             },
         }
 
