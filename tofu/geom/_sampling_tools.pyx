@@ -3050,14 +3050,6 @@ cdef inline void tri_asmbl_unblock_approx(
                                                  &dist_opts[0])
                         for itri in range(lnvert_poly[ipoly] - 2):
                             iglob = ipoly + itri * npoly
-                            if numerator[ipoly] > 1000000 or numerator[ipoly] < -1000000:
-                                with gil:
-                                    print("found inf numerator: ",
-                                          iglob, "/", num_tot_tri,
-                                          numerator[ipoly],
-                                          ipoly, itri, npoly,
-                                          )
-
                             sa_map[ind_pol,
                                    ipoly] += comp_sa_tri_appx(
                                        itri,
@@ -3114,10 +3106,4 @@ cdef inline double comp_sa_tri_appx(
         + dot_Gc * (normA - normC)
     )
 
-    if (numerator / denumerator) > 1000000:
-        with gil:
-            print("found big value = ",
-                  numerator/denumerator,
-                  numerator,
-                  denumerator)
     return numerator / denumerator
