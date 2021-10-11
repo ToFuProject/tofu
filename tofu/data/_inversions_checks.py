@@ -31,11 +31,13 @@ def _compute_check(
     sparse=None,
     chain=None,
     positive=None,
-    method=None,
+    algo=None,
     solver=None,
     operator=None,
     geometry=None,
     kwdargs=None,
+    method=None,
+    options=None,
     verb=None,
     store=None,
 ):
@@ -149,7 +151,7 @@ def _compute_check(
     # conv_crit
     conv_crit = _generic_check._check_var(
         conv_crit, 'conv_crit',
-        default=1e-6,
+        default=1e-4,
         types=float,
     )
 
@@ -240,7 +242,7 @@ def _compute_check(
         types=bool,
     )
 
-    # method
+    # algo
     if positive is True:
         metdef = 'InvLinQuad_AugTikho_V1'
     else:
@@ -254,12 +256,11 @@ def _compute_check(
         'inv_linear_augTikho_v1',
         'inv_linear_augTikho_chol',
         'inv_linear_augTikho_chol_sparse',
-        'InvLinQuad_AugTikho_V1',
-        'InvQuad_AugTikho_V1',
-        'InvLin_DisPrinc_V1',
+        'inv_linquad_augTikho_v1',
+        'inv_linear_DisPrinc_v1',
     ]
-    method = _generic_check._check_var(
-        method, 'method',
+    algo = _generic_check._check_var(
+        algo, 'algo',
         default=metdef,
         types=str,
         allowed=metok,
@@ -273,40 +274,110 @@ def _compute_check(
         allowed=['spsolve'],
     )
 
-    # kwdargs
-    if kwdargs is None:
-        kwdargs = {}
-
-    if len(kwdargs) == 0:
-        c0 = (
-            method in [
-                'inv_linear_augTikho_v1_sparse',
-                'inv_linear_augTikho_v1',
-                'inv_linear_augTikho_chol',
-                'inv_linear_augTikho_chol_sparse',
-                'InvLinQuad_AugTikho_V1',
-                'InvQuad_AugTikho_V1',
-            ]
-        )
-        if c0:
-            a0 = 10
-            a1 = 2
-            kwdargs = {
-                'a0': a0,   # (Regul. parameter, larger a => larger variance)
-                'b0': np.math.factorial(a0)**(1 / (a0 + 1)),    # To have [x]=1
-                'a1': a1,   # (Noise), a as small as possible for small variance
-                'b1': np.math.factorial(a1)**(1/(a1 + 1)),  # To have [x] = 1
-                'd': 0.95,  # Exponent for rescaling of a0bis in V2, typically in [1/3 ; 1/2], but real limits are 0 < d < 1 (or 2 ?)
-                'conv_reg':True,
-                'nbs_fixed':True,
-            }
-        elif method == 'InvLin_DisPrinc_V1':
-            kwdargs = {'chi2Tol': 0.05, 'chi2Obj': 1.}
-
-    kwdargs['maxiter'] = 100
+    # kwdargs, method, options
+    kwdargs, method, options = _algo_check(
+        algo,
+        kwdargs=kwdargs,
+        options=options,
+        nchan=shapemat[0],
+        nbs=shapemat[1],
+        conv_crit=conv_crit,
+    )
 
     return (
         key_matrix, key_data, key_sigma, keybs, keym, data, sigma, opmat,
         conv_crit, operator, isotropic, sparse, matrix, crop, chain,
-        positive, method, solver, kwdargs, verb, store,
+        positive, algo, solver, kwdargs, method, options, verb, store,
     )
+
+
+# #############################################################################
+# #############################################################################
+#                  ikwdargs / options for each algo
+# #############################################################################
+
+
+def _algo_check(
+    algo,
+    kwdargs=None,
+    method=None,
+    options=None,
+    nchan=None,
+    nbs=None,
+    conv_crit=None,
+):
+
+    # ------------------------
+    # algo specific kwdargs
+
+    # kwdargs
+    if kwdargs is None:
+        kwdargs = {}
+
+    # generic kwdargs
+    if kwdargs.get('maxiter') is None:
+        kwdargs['maxiter'] = 100
+
+    # kwdargs specific to aug. tikhonov
+    laugtikho = [
+        'inv_linear_augTikho_v1',
+        'inv_linear_augTikho_v1_sparse',
+        'inv_linear_augTikho_chol',
+        'inv_linear_augTikho_chol_sparse',
+        'inv_linquad_augTikho_v1',
+    ]
+    if algo in laugtikho:
+        if kwdargs.get('a0') is None:
+            kwdargs['a0'] = 10
+        if kwdargs.get('a1') is None:
+            kwdargs['a1'] = 2
+
+        # to have [x]=1
+        kwdargs['b0'] = np.math.factorial(kwdargs['a0'])**(1 / (kwdargs['a0'] + 1))
+        kwdargs['b1'] = np.math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1))
+
+        # Exponent for rescaling of a0bis
+        # typically in [1/3 ; 1/2], but real limits are 0 < d < 1 (or 2 ?)
+        if kwdargs.get('d') is None:
+            kwdargs['d'] = 0.95
+
+        if kwdargs.get('conv_reg') is None:
+            kwdargs['conv_reg'] = True
+
+        if kwdargs.get('nbs_fixed') is None:
+            kwdargs['nbs_fixed'] = True
+
+        if kwdargs['nbs_fixed']:
+            kwdargs['a0bis'] = kwdargs['a0'] - 1. + 1200./2.
+        else:
+            kwdargs['a0bis'] = kwdargs['a0'] - 1. + nbs/2.
+        kwdargs['a1bis'] = kwdargs['a1'] - 1. + nchan/2.
+
+
+    # kwdargs specific to discrepancy principle
+    elif 'DisPrinc' in algo:
+        if kwdargs.get('chi2n_obj') is None:
+            kwdargs['chi2n_obj'] = 1.
+        if kwdargs.get('chi2n_tol') is None:
+            kwdargs['chi2n_tol'] = 0.05
+
+    # ------------------------
+    # low-level solver options
+
+    if 'quad' in algo:
+
+        if options is None:
+            options = {}
+
+        if method is None:
+            method = 'L-BFGS-B'
+
+        if method == 'L-BFGS-B':
+            if options.get('ftol') is None:
+                options['ftol'] = conv_crit/100.
+            if options.get('disp') is None:
+                options['disp'] = False
+        else:
+            raise NotImplementedError
+
+    return kwdargs, method, options
