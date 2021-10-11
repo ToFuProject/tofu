@@ -10,6 +10,7 @@ import numpy as np
 import scipy.linalg as scplin
 import scipy.sparse as scpsp
 import sksparse as sksp
+import scipy.optimize as scpop
 import matplotlib.pyplot as plt
 
 
@@ -34,7 +35,7 @@ def compute_inversions(
     operator=None,
     geometry=None,
     isotropic=None,
-    method=None,
+    algo=None,
     solver=None,
     sparse=None,
     chain=None,
@@ -42,6 +43,9 @@ def compute_inversions(
     verb=None,
     maxiter=None,
     store=None,
+    kwdargs=None,
+    method=None,
+    options=None,
 ):
 
     # -------------
@@ -52,7 +56,7 @@ def compute_inversions(
     (
         key_matrix, key_data, key_sigma, keybs, keym, data, sigma, opmat,
         conv_crit, operator, isotropic, sparse, matrix, crop, chain,
-        positive, method, solver, kwdargs, verb, store,
+        positive, algo, solver, kwdargs, method, options, verb, store,
     ) = _inversions_checks._compute_check(
         coll=coll,
         key_matrix=key_matrix,
@@ -65,9 +69,11 @@ def compute_inversions(
         sparse=sparse,
         chain=chain,
         positive=positive,
-        method=method,
+        algo=algo,
         solver=solver,
-        kwdargs=None,
+        kwdargs=kwdargs,
+        method=method,
+        options=options,
         operator=operator,
         geometry=geometry,
         verb=verb,
@@ -76,7 +82,7 @@ def compute_inversions(
 
     nt, nchan = data.shape
     nbs = matrix.shape[1]
-    func = eval(method)
+    func = eval(algo)
 
     # -------------
     # prepare data
@@ -183,6 +189,7 @@ def compute_inversions(
         print("Starting time loop...", end='\n', flush=True)
 
     out = _compute_inv_loop(
+        algo=algo,
         func=func,
         sol0=sol0,
         mu0=mu0,
@@ -205,7 +212,9 @@ def compute_inversions(
         regularity=regularity,
         niter=niter,
         spec=spec,
-        **kwdargs,
+        kwdargs=kwdargs,
+        method=method,
+        options=options,
     )
 
     if verb >= 1:
@@ -293,7 +302,7 @@ def compute_inversions(
                     'operator': operator,
                     'geometry': geometry,
                     'isotropic': isotropic,
-                    'method': method,
+                    'algo': algo,
                     'solver': solver,
                     'chain': chain,
                     'positive': positive,
@@ -311,11 +320,12 @@ def compute_inversions(
 
 # #############################################################################
 # #############################################################################
-#                           _compute
+#                   _compute time loop
 # #############################################################################
 
 
 def _compute_inv_loop(
+    algo=None,
     func=None,
     sol0=None,
     mu0=None,
@@ -338,7 +348,9 @@ def _compute_inv_loop(
     regularity=None,
     niter=None,
     spec=None,
-    **kwdargs,
+    kwdargs=None,
+    method=None,
+    options=None,
 ):
 
     # -----------------------------------
@@ -353,103 +365,110 @@ def _compute_inv_loop(
     else:
         verb2head = None
 
-    if sparse:
+    # -----------------------------------
+    # Options for quadratic solvers only
 
-        # Beware of element-wise operations vs matrix operations !!!!
-        for ii in range(0, nt):
+    if 'quad' in algo:
 
-            if verb >= 1:
-                msg = f"\ttime step {ii+1} / {nt} "
-                print(msg, end='', flush=True)
-
-            # intermediates
-            if sigma.shape[0] > 1:
-                Tn.data = scpsp.diags(1./sigma[ii, :]).dot(matrix).data
-                TTn.data = Tn.T.dot(Tn).data
-
-            Tyn[:] = Tn.T.dot(data_n[ii, :])
-
-            # solving
-            (
-                sol[ii, :], mu[ii], chi2n[ii], regularity[ii],
-                niter[ii], spec[ii],
-            ) = func(
-                Tn=Tn,
-                TTn=TTn,
-                Tyn=Tyn,
-                R=R,
-                yn=data_n[ii, :],
-                sol0=sol0,
-                nchan=nchan,
-                nbs=nbs,
-                mu0=mu0,
-                conv_crit=conv_crit,
-                precond=precond,
-                chain=chain,
-                verb=verb,
-                verb2head=verb2head,
-                **kwdargs,
-            )
-
-            # post
-            if chain:
-                sol0[:] = sol[ii, :]
-            mu0 = mu[ii]
-
-            if verb == 1:
-                msg = f"   chi2n = {chi2n[ii]:.3e}    niter = {niter[ii]}"
-                print(msg, end='\n', flush=True)
+        bounds = tuple([(0., None) for ii in range(0, sol0.size)])
+        def func_val(x, mu=mu0, Tn=Tn, yn=data_n[0, :], TTn=None, Tyn=None):
+            return np.sum((Tn.dot(x) - yn)**2) + mu*x.dot(R.dot(x))
+        def func_jac(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn):
+            return 2.*(TTn + mu*R).dot(x) - 2.*Tyn
+        def func_hess(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn):
+            return 2.*(TTn + mu*R)
 
     else:
-        # Beware of element-wise operations vs matrix operations !!!!
-        for ii in range(0, nt):
+        bounds = None
+        func_val, func_jac, func_hess = None, None, None
 
-            if verb >= 1:
-                msg = f"\ttime step {ii+1} / {nt} "
-                print(msg, end='', flush=True)
+    # ---------
+    # time loop
 
-            # intermediates
-            if sigma.shape[0] > 1:
-                Tn[...] = matrix / sigma[ii, :][:, None]
-                TTn[...] = Tn.T.dot(Tn)
+    # Beware of element-wise operations vs matrix operations !!!!
+    for ii in range(0, nt):
 
-            Tyn[:] = Tn.T.dot(data_n[ii, :])
+        if verb >= 1:
+            msg = f"\ttime step {ii+1} / {nt} "
+            print(msg, end='', flush=True)
 
-            # solving
-            (
-                sol[ii, :], mu[ii], chi2n[ii], regularity[ii],
-                niter[ii], spec[ii],
-            ) = func(
+        # update intermediates if multiple sigmas
+        if sigma.shape[0] > 1:
+            _update_TTyn(
+                sparse=sparse,
+                sigma=sigma,
+                matrix=matrix,
                 Tn=Tn,
                 TTn=TTn,
-                Tyn=Tyn,
-                R=R,
-                yn=data_n[ii, :],
-                sol0=sol0,
-                nchan=nchan,
-                nbs=nbs,
-                mu0=mu0,
-                conv_crit=conv_crit,
-                precond=precond,
-                chain=chain,
-                verb=verb,
-                verb2head=verb2head,
-                **kwdargs,
+                ii=ii,
             )
 
-            # post
-            if chain:
-                sol0[:] = sol[ii, :]
-            mu0 = mu[ii]
+        Tyn[:] = Tn.T.dot(data_n[ii, :])
 
-            if verb == 1:
-                msg = f"   chi2n = {chi2n[ii]:.3e}    niter = {niter[ii]}"
-                print(msg, end='\n', flush=True)
+        # solving
+        (
+            sol[ii, :], mu[ii], chi2n[ii], regularity[ii],
+            niter[ii], spec[ii],
+        ) = func(
+            Tn=Tn,
+            TTn=TTn,
+            Tyn=Tyn,
+            R=R,
+            yn=data_n[ii, :],
+            sol0=sol0,
+            nchan=nchan,
+            nbs=nbs,
+            mu0=mu0,
+            conv_crit=conv_crit,
+            precond=precond,
+            verb=verb,
+            verb2head=verb2head,
+            # quad-only
+            func_val=func_val,
+            func_jac=func_jac,
+            func_hess=func_hess,
+            bounds=bounds,
+            method=method,
+            options=options,
+            **kwdargs,
+        )
+
+        # post
+        if chain:
+            sol0[:] = sol[ii, :]
+        mu0 = mu[ii]
+
+        if verb == 1:
+            msg = f"   chi2n = {chi2n[ii]:.3e}    niter = {niter[ii]}"
+            print(msg, end='\n', flush=True)
 
 
 # #############################################################################
 # #############################################################################
-#                       functions
+#                      utility
+# #############################################################################
+
+
+def _update_TTyn(
+    sparse=None,
+    sigma=None,
+    matrix=None,
+    Tn=None,
+    TTn=None,
+    ii=None,
+):
+    # intermediates
+    if sparse:
+        Tn.data = scpsp.diags(1./sigma[ii, :]).dot(matrix).data
+        TTn.data = Tn.T.dot(Tn).data
+    else:
+        Tn[...] = matrix / sigma[ii, :][:, None]
+        TTn[...] = Tn.T.dot(Tn)
+
+
+# #############################################################################
+# #############################################################################
+#                      Basic routines - augmented tikhonov 
 # #############################################################################
 
 
@@ -464,31 +483,20 @@ def inv_linear_augTikho_v1(
     nbs=None,
     mu0=None,
     conv_crit=None,
-    a0=None,
+    a0bis=None,
     b0=None,
-    a1=None,
+    a1bis=None,
     b1=None,
     d=None,
-    atol=None,
-    btol=None,
-    conlim=None,
-    maxiter=None,
-    precond=None,
     conv_reg=True,
-    nbs_fixed=True,
-    chain=None,
     verb=None,
     verb2head=None,
+    **kwdargs,
 ):
-    # Install scikit !
-    # Install scikits and use CHOLMOD fast cholesky factorization !!!
     """
-    Linear algorithm for Phillips-Tikhonov regularisation, called "Augmented Tikhonov", sparese matrix version
-    see TFI.InvLin_AugTikho_V1.__doc__ for details
+    Linear algorithm for Phillips-Tikhonov regularisation
+    Called "Augmented Tikhonov", dense matrix version
     """
-
-    a0bis = a0 - 1. + nbs/2. if not nbs_fixed else a0 - 1. + 1200./2.
-    a1bis = a1 - 1. + nchan/2.
 
     conv = 0.           # convergence variable
     niter = 0           # number of iterations
@@ -512,7 +520,7 @@ def inv_linear_augTikho_v1(
         sol = scplin.solve(
             TTn + mu0*R, Tyn,
             assume_a='pos',     # faster than 'sym'
-            overwrite_a=True,  # no significant gain
+            overwrite_a=True,   # no significant gain
             overwrite_b=False,  # True is faster, but a copy of Tyn is needed
             check_finite=False, # small speed gain compared to True
             transposed=False,
@@ -520,7 +528,6 @@ def inv_linear_augTikho_v1(
 
         # compute residu, regularity...
         res2 = np.sum((Tn.dot(sol)-yn)**2)  # residu**2
-        chi2n = res2/nchan                  # normalised residu
         reg = sol.dot(R.dot(sol))           # regularity term
 
         # update lamb, tau
@@ -539,7 +546,7 @@ def inv_linear_augTikho_v1(
 
         # verb
         if verb >= 2:
-            temp1 = f"{nchan} * {chi2n:.3e} + {mu1:.3e} * {reg:.3e}"
+            temp1 = f"{nchan} * {res2/nchan:.3e} + {mu1:.3e} * {reg:.3e}"
             temp2 = f"{res2 + mu1*reg:.3e}"
             temp = f"{temp1} = {temp2}"
             print(f"\t\t{niter} \t {temp}   {tau:.3e}   {conv:.3e}")
@@ -549,7 +556,7 @@ def inv_linear_augTikho_v1(
         mu0 = mu1
         niter += 1
 
-    return sol, mu1, chi2n, reg, niter, [tau, lamb]
+    return sol, mu1, res2/nchan, reg, niter, [tau, lamb]
 
 
 def inv_linear_augTikho_v1_sparse(
@@ -563,31 +570,22 @@ def inv_linear_augTikho_v1_sparse(
     nbs=None,
     mu0=None,
     conv_crit=None,
-    a0=None,
+    a0bis=None,
     b0=None,
-    a1=None,
+    a1bis=None,
     b1=None,
     d=None,
-    atol=None,
-    btol=None,
-    conlim=None,
-    maxiter=None,
-    precond=None,
     conv_reg=True,
-    nbs_fixed=True,
-    chain=None,
     verb=None,
     verb2head=None,
+    precond=None,       # test
+    **kwdargs,
 ):
-    # Install scikit !
-    # Install scikits and use CHOLMOD fast cholesky factorization !!!
     """
-    Linear algorithm for Phillips-Tikhonov regularisation, called "Augmented Tikhonov", sparese matrix version
+    Linear algorithm for Phillips-Tikhonov regularisation
+    Called "Augmented Tikhonov", sparese matrix version
     see InvLin_AugTikho_V1.__doc__ for details
     """
-
-    a0bis = a0 - 1. + nbs/2. if not nbs_fixed else a0 - 1. + 1200./2.
-    a1bis = a1 - 1. + nchan/2.
 
     conv = 0.           # convergence variable
     niter = 0           # number of iterations
@@ -611,9 +609,15 @@ def inv_linear_augTikho_v1_sparse(
               permc_spec=None,
               use_umfpack=True,
         )
+        # sol, itconv = scpsp.linalg.cg(
+            # TTn + mu0*R, Tyn,
+            # x0=sol0,
+            # tol=1e-08,
+            # maxiter=100,
+            # M=precond,
+        # )
 
         res2 = np.sum((Tn.dot(sol)-yn)**2)      # residu**2
-        chi2n = res2/nchan                      # normalised residu
         reg = sol.dot(R.dot(sol))       # regularity term
 
         lamb = a0bis/(0.5*reg + b0)     # Update reg. param. estimate
@@ -631,7 +635,7 @@ def inv_linear_augTikho_v1_sparse(
 
         # verb
         if verb >= 2:
-            temp1 = f"{nchan} * {chi2n:.3e} + {mu1:.3e} * {reg:.3e}"
+            temp1 = f"{nchan} * {res2/nchan:.3e} + {mu1:.3e} * {reg:.3e}"
             temp2 = f"{res2 + mu1*reg:.3e}"
             temp = f"{temp1} = {temp2}"
             print(
@@ -642,7 +646,7 @@ def inv_linear_augTikho_v1_sparse(
         sol0[:] = sol[:]            # Update reference solution
         niter += 1                  # Update number of iterations
         mu0 = mu1
-    return sol, mu1, chi2n, reg, niter, [tau, lamb]
+    return sol, mu1, res2/nchan, reg, niter, [tau, lamb]
 
 
 def inv_linear_augTikho_chol(
@@ -656,21 +660,15 @@ def inv_linear_augTikho_chol(
     nbs=None,
     mu0=None,
     conv_crit=None,
-    a0=None,
+    a0bis=None,
     b0=None,
-    a1=None,
+    a1bis=None,
     b1=None,
     d=None,
-    atol=None,
-    btol=None,
-    conlim=None,
-    maxiter=None,
-    precond=None,
     conv_reg=True,
-    nbs_fixed=True,
-    chain=None,
     verb=None,
     verb2head=None,
+    **kwdargs,
 ):
     """
     Linear algorithm for Phillips-Tikhonov regularisation, called "Augmented Tikhonov"
@@ -689,9 +687,6 @@ def inv_linear_augTikho_chol(
       [2] http://www.math.uni-bremen.de/zetem/cms/media.php/250/nov14talk_jin%20bangti.pdf
       [3] Kazufumi Ito, Bangti Jin, Jun Zou, "A New Choice Rule for Regularization Parameters in Tikhonov Regularization", Research report, University of Hong Kong, 2008
     """
-
-    a0bis = a0 - 1. + nbs/2. if not nbs_fixed else a0 - 1. + 1200./2.
-    a1bis = a1 - 1. + nchan/2.
 
     conv = 0.           # convergence variable
     niter = 0           # number of iterations
@@ -738,7 +733,6 @@ def inv_linear_augTikho_chol(
 
         # compute residu, regularity...
         res2 = np.sum((Tn.dot(sol)-yn)**2)  # residu**2
-        chi2n = res2/nchan                  # normalised residu
         reg = sol.dot(R.dot(sol))           # regularity term
 
         # update lamb, tau
@@ -757,7 +751,7 @@ def inv_linear_augTikho_chol(
 
         # verb
         if verb >= 2:
-            temp1 = f"{nchan} * {chi2n:.3e} + {mu1:.3e} * {reg:.3e}"
+            temp1 = f"{nchan} * {res2/nchan:.3e} + {mu1:.3e} * {reg:.3e}"
             temp2 = f"{res2 + mu1*reg:.3e}"
             temp = f"{temp1} = {temp2}"
             print(f"\t\t{niter} \t {temp}   {tau:.3e}   {conv:.3e}")
@@ -767,7 +761,7 @@ def inv_linear_augTikho_chol(
         mu0 = mu1
         niter += 1
 
-    return sol, mu1, chi2n, reg, niter, [tau, lamb]
+    return sol, mu1, res2/nchan, reg, niter, [tau, lamb]
 
 
 def inv_linear_augTikho_chol_sparse(
@@ -781,21 +775,15 @@ def inv_linear_augTikho_chol_sparse(
     nbs=None,
     mu0=None,
     conv_crit=None,
-    a0=None,
+    a0bis=None,
     b0=None,
-    a1=None,
+    a1bis=None,
     b1=None,
     d=None,
-    atol=None,
-    btol=None,
-    conlim=None,
-    maxiter=None,
-    precond=None,
     conv_reg=True,
-    nbs_fixed=True,
-    chain=None,
     verb=None,
     verb2head=None,
+    **kwdargs,
 ):
     """
     Linear algorithm for Phillips-Tikhonov regularisation, called "Augmented Tikhonov"
@@ -814,9 +802,6 @@ def inv_linear_augTikho_chol_sparse(
       [2] http://www.math.uni-bremen.de/zetem/cms/media.php/250/nov14talk_jin%20bangti.pdf
       [3] Kazufumi Ito, Bangti Jin, Jun Zou, "A New Choice Rule for Regularization Parameters in Tikhonov Regularization", Research report, University of Hong Kong, 2008
     """
-
-    a0bis = a0 - 1. + nbs/2. if not nbs_fixed else a0 - 1. + 1200./2.
-    a1bis = a1 - 1. + nchan/2.
 
     conv = 0.           # convergence variable
     niter = 0           # number of iterations
@@ -862,7 +847,6 @@ def inv_linear_augTikho_chol_sparse(
 
         # compute residu, regularity...
         res2 = np.sum((Tn.dot(sol)-yn)**2)  # residu**2
-        chi2n = res2/nchan                  # normalised residu
         reg = sol.dot(R.dot(sol))           # regularity term
 
         # update lamb, tau
@@ -881,7 +865,7 @@ def inv_linear_augTikho_chol_sparse(
 
         # verb
         if verb >= 2:
-            temp1 = f"{nchan} * {chi2n:.3e} + {mu1:.3e} * {reg:.3e}"
+            temp1 = f"{nchan} * {res2/nchan:.3e} + {mu1:.3e} * {reg:.3e}"
             temp2 = f"{res2 + mu1*reg:.3e}"
             temp = f"{temp1} = {temp2}"
             print(f"\t\t{niter} \t {temp}   {tau:.3e}   {conv:.3e}")
@@ -891,10 +875,10 @@ def inv_linear_augTikho_chol_sparse(
         mu0 = mu1
         niter += 1
 
-    return sol, mu1, chi2n, reg, niter, [tau, lamb]
+    return sol, mu1, res2/nchan, reg, niter, [tau, lamb]
 
-"""
-def inv_linquad_augTikho_v1_sparse(
+
+def inv_linquad_augTikho_v1(
     Tn=None,
     TTn=None,
     Tyn=None,
@@ -905,53 +889,31 @@ def inv_linquad_augTikho_v1_sparse(
     nbs=None,
     mu0=None,
     conv_crit=None,
-    a0=None,
+    a0bis=None,
     b0=None,
-    a1=None,
+    a1bis=None,
     b1=None,
     d=None,
-    atol=None,
-    btol=None,
-    conlim=None,
-    maxiter=None,
-    precond=None,
     conv_reg=True,
-    nbs_fixed=True,
-    chain=None,
     verb=None,
     verb2head=None,
-
-
-    NMes, Nbf, Tm, TT, LL, Tb, b, sol0,
-    mu0=TFD.mu0,
-    ConvCrit=TFD.ConvCrit,
-    a0=TFD.AugTikho_a0,
-    b0=TFD.AugTikho_b0,
-    a1=TFD.AugTikho_a1,
-    b1=TFD.AugTikho_b1,
-    d=TFD.AugTikho_d,
-    atol=TFD.AugTkLsmrAtol,
-    btol=TFD.AugTkLsmrBtol,
-    conlim=TFD.AugTkLsmrConlim,
-    maxiter=TFD.AugTkLsmrMaxiter,
-    NormL=None,
-    M=None,
-    Verb=False,
-    ConvReg=True,
-    FixedNb=True,
+    # specific
+    method=None,
+    options=None,
+    bounds=None,
+    func_val=None,
+    func_jac=None,
+    func_hess=None,
+    **kwdargs,
 ):
+    """
     Quadratic algorithm for Phillips-Tikhonov regularisation, alternative to the linear version with positivity constraint
     see TFI.InvLin_AugTikho_V1.__doc__ for details
-
-    a0bis = a0 - 1. + nbs/2. if not nbs_fixed else a0 - 1. + 1200./2.
-    a1bis = a1 - 1. + nchan/2.
+    """
 
     conv = 0.           # convergence variable
     niter = 0           # number of iterations
     mu1 = 0.            # regularisation param
-
-    if M is None:
-        M = scpsplin.inv((TT + lmu[-1]*LL).tocsc())
 
     # verb
     if verb >= 2:
@@ -963,185 +925,152 @@ def inv_linquad_augTikho_v1_sparse(
             end='\n',
         )
 
-    Bds = tuple([(-0.2,None) for ii in range(0,sol0.size)])
-    F = lambda X, mu=lmu[-1]: np.sum((Tm.dot(X)-b)**2) + mu*X.dot(LL.dot(X))
-    F_g = lambda X, mu=lmu[-1]: 2.*(TT + mu*LL).dot(X) - 2.*Tb
-    F_h = lambda X, mu=lmu[-1]: 2.*(TT + mu*LL)
+    while  niter < 2 or conv > conv_crit:
+        # quadratic method for positivity constraint
+        sol = scpop.minimize(
+            func_val, sol0,
+            args=(mu0, Tn, yn, TTn, Tyn),
+            jac=func_jac,
+            hess=func_hess,
+            method=method,
+            bounds=bounds,
+            options=options,
+        ).x
 
-    Method = 'L-BFGS-B'
-    if Method == 'L-BFGS-B':
-        options={'ftol':ConvCrit/100., 'disp':False}
-    elif Method == 'TNC':
-        options={'ftol':ConvCrit/100., 'disp':False, 'minfev':1, 'rescale':1., 'maxCGit':0, 'offset':0.}  # Not working....
-    elif Method == 'SLSQP':
-        options={'ftol':ConvCrit/100., 'disp':False}      # Very slow... (maybe not updated ?)
+        # compute residu, regularity...
+        res2 = np.sum((Tn.dot(sol)-yn)**2)  # residu**2
+        reg = sol.dot(R.dot(sol))           # regularity term
 
-    while  niter < 2 or conv > conv_crit:                              # Continue until convergence criterion is fulfilled, and do at least 2 iterations
-        Out = scpop.minimize(F, sol0, args=([lmu[-1]]), jac=F_g, hess=F_h, method=Method, bounds=Bds, options=options)       # Minimisation de la fonction (method quadratique)
-        sol = Out.x
-        Res = np.sum((Tm.dot(sol)-b)**2)                        # Compute residu**2
-        chi2N.append(Res/NMes)                                  # Record normalised residu history
-        R.append(sol.dot(LL.dot(sol)))                          # Compute and record regularity term
+        # update lamb, tau
+        lamb = a0bis/(0.5*reg + b0)             # Update reg. param. estimate
+        tau = a1bis/(0.5*res2 + b1)             # Update noise coef. estimate
+        mu1 = (lamb/tau) * (2*a1bis/res2)**d    # Update reg. param. rescaling
 
-        lamb = a0bis/(0.5*R[Nit]+b0)                            # Update reg. param. estimate
-        tau = a1bis/(0.5*Res+b1)                                # Update noise coef. estimate
-        lmu.append((lamb/tau) * (2*a1bis/Res)**d)               # Update regularisation parameter taking into account rescaling with noise estimate
-        if ConvReg:
-            Conv = np.abs(lmu[-1]-lmu[-2])/lmu[-1]
+        # Compute convergence variable
+        if conv_reg:
+            conv = np.abs(mu1 - mu0) / mu1
         else:
-            Conv = np.sqrt(np.sum((sol-sol0)**2/np.max([sol**2,0.001*np.max(sol**2)*np.ones((Nbf,))],axis=0))/Nbf)        # Compute convergence variable
-        if Verb:
-            print("        Nit = ",str(Nit),"  N*Chi2N + mu*R = ",
-                  NMes,'*',chi2N[Nit],'+',lmu[-1],'*',R[Nit], ' = ',
-                  Res+lmu[-1]*R[Nit], '  tau = ',tau, '  Conv = ',Conv)
-        sol0[:] = sol[:]                                           # Update reference solution
-        Nit += 1                                                # Update number of iterations
+            sol2 = sol**2
+            sol2max = np.max(sol2)
+            sol2[sol2 < 0.001*sol2max] = 0.001*sol2max
+            conv = np.sqrt(np.sum((sol - sol0)**2 / sol2) / nbs)
 
-    return sol, lmu[-1], chi2N[-1], R[-1], Nit, [tau, lamb]
-"""
+        # verb
+        if verb >= 2:
+            temp1 = f"{nchan} * {res2/nchan:.3e} + {mu1:.3e} * {reg:.3e}"
+            temp2 = f"{res2 + mu1*reg:.3e}"
+            temp = f"{temp1} = {temp2}"
+            print(f"\t\t{niter} \t {temp}   {tau:.3e}   {conv:.3e}")
 
+        # update sol0, mu0 for next iteration
+        sol0[:] = sol[:]
+        mu0 = mu1
+        niter += 1
 
-"""
-def estimate_jacob_scalar_Spec(ff, x0, ratio=0.05):
-    nV = x0.size
-    jac = np.zeros((nV,))
-    dx = np.zeros((nV,))
-    for ii in range(0,nV):
-        dx[ii] = ratio*x0[ii]
-        jac[ii] = (ff(x0+dx)[-1]-ff(x0)[-1])/dx[ii]
-        dx[ii] = 0.
-    return jac
+    return sol, mu1, res2/nchan, reg, niter, [tau, lamb]
 
 
+# #############################################################################
+# #############################################################################
+#               Basic routines - discrepancy principle 
+# #############################################################################
 
-def InvQuad_AugTikho_V1(NMes, Nbf, Tm, TT, LL, Tb, b, sol0, mu0=TFD.mu0, ConvCrit=TFD.ConvCrit, a0=TFD.AugTikho_a0, b0=TFD.AugTikho_b0, a1=TFD.AugTikho_a1, b1=TFD.AugTikho_b1, d=TFD.AugTikho_d, NormL=None, Verb=False, ConvReg=True, ratiojac=0.05, Method='Newton-CG', FixedNb=True):
-    Non-linear (quadratic) algorithm for Phillips-Tikhonov regularisation, inspired from "Augmented Tikhonov"
-    see TFI.InvLin_AugTikho_V1.__doc__ for details
 
+def inv_linear_DisPrinc_v1(
+    Tn=None,
+    TTn=None,
+    Tyn=None,
+    R=None,
+    yn=None,
+    sol0=None,
+    nchan=None,
+    mu0=None,
+    precond=None,
+    verb=None,
+    verb2head=None,
+    # specific
+    chi2n_tol=None,
+    chi2n_obj=None,
+    maxiter=None,
+    **kwdargs,
+):
+    """
+    Discrepancy principle: find mu such that chi2n = 1 +/- tol
+    """
 
-    a0bis = a0-1.+Nbf/2. if not FixedNb else a0-1.+1200./2.
-    a1bis = a1-1.+NMes/2.
+    niter = 0
+    lchi2n = np.array([np.sum((Tn.dot(sol0) - yn)**2) / nchan])
+    lmu = np.array([mu0])
+    chi2n_obj_log = np.log(chi2n_obj)
 
-    Conv = 0.                                                   # Initialise convergence variable
-    Nit = 0                                                     # Initialise number of iterations
-    chi2N, R = [], []                                           # Initialise residu list and regularisation term list
-    mu = mu0                                                    # Initialise regularisation parameter
-    if NormL is None:
-        NormL = sol0.dot(LL.dot(sol0))
-    LL = LL/NormL                                               # Scale the regularity operator
-    if Verb:
-        print("        Init. guess : N*Chi2N + mu*RN = ",
-              NMes,'*',np.sum((Tm.dot(sol0)-b)**2)/NMes,'+',mu,'*',sol0.dot(LL.dot(sol0)),
-              ' = ', np.sum((Tm.dot(sol0)-b)**2)+mu*sol0.dot(LL.dot(sol0)))
-        while  Nit<2 or Conv>ConvCrit:                              # Continue until convergence criterion is fulfilled, and do at least 2 iterations
-            F = lambda X, mu=mu: np.sum((Tm.dot(X)-b)**2) + mu*X.dot(LL.dot(X))
-            Out = scpop.minimize(F, sol0, tol=None, method=Method, options={'maxiter':100, 'disp':True})       # Minimisation de la fonction (method quadratique)
-            sol = Out.x
-            Res = np.sum((Tm.dot(sol)-b)**2)                        # Compute residu**2
-            chi2N.append(Res/NMes)                                  # Record normalised residu history
-            R.append(sol.dot(LL.dot(sol)))                          # Compute and record regularity term
+    # verb
+    if verb >= 2:
+        reg = sol0.dot(R.dot(sol0))
+        temp = f"{nchan} * {lchi2n[0]:.3e} + {mu0:.3e} * {reg:.3e}"
+        print(
+            f"{verb2head}\n\t\t\t {temp} = {nchan*lchi2n[0] + mu0*reg:.3e}",
+            end='\n',
+        )
 
-            lamb = a0bis/(0.5*R[Nit]+b0)                            # Update reg. param. estimate
-            tau = a1bis/(0.5*Res+b1)                                # Update noise coef. estimate
-            mu = (lamb/tau) * (2*a1bis/Res)**d                      # Update regularisation parameter taking into account rescaling with noise estimate
-            if ConvReg:
-                Conv = np.abs(lmu[-1]-lmu[-2])/lmu[-1]
+    while niter == 0 or np.abs(lchi2n[-1] - chi2n_obj) > chi2n_tol:
+        sol, itconv = scpsp.linalg.cg(
+            TTn + lmu[-1]*R, Tyn,
+            x0=sol0,
+            tol=1e-08,
+            maxiter=maxiter,
+            M=precond,
+        )
+
+        lchi2n = np.append(lchi2n, np.sum((Tn.dot(sol) - yn)**2) / nchan)
+        reg = sol.dot(R.dot(sol))           # regularity term
+
+        if niter == 0:
+            if lchi2n[-1] >= chi2n_obj + chi2n_tol:
+                lmu = np.append(lmu, lmu[-1] / 50.)
+            elif lchi2n[-1] <= chi2n_obj - chi2n_tol:
+                lmu = np.append(lmu, lmu[-1] * 50.)
             else:
-                Conv = np.sqrt(np.sum((sol-sol0)**2/np.max([sol**2,0.001*np.max(sol**2)*np.ones((Nbf,))],axis=0))/Nbf)        # Compute convergence variable
-            print("        Nit = ",str(Nit),"   N*Chi2N + mu*R = ",
-                  NMes,'*',chi2N[Nit],'+',mu,'*',R[Nit], ' = ', Res+mu*R[Nit],
-                  '    tau = ',tau, '    Conv = ',Conv)
-            sol0[:] = sol[:]                                        # Update reference solution
-            Nit += 1                                                # Update number of iterations
-    else:
-        xx = np.zeros((Nbf,))
-        F = lambda X : np.sum((Tm.dot(X[:-1])-b)**2) + X[-1]*X[:-1].dot(LL.dot(X[:-1]))
-        Out = scpop.minimize(F, np.append(sol0,mu), tol=None, options={'maxiter':100, 'disp':False})
-        sol = Out.x[:-1]
-        Res = np.sum((Tm.dot(sol)-b)**2)
-        chi2N.append(np.sum((Tm.dot(sol)-b)**2)/NMes)
-        R.append(sol.dot(LL.dot(sol)))
-        lamb = a0bis/(0.5*R[-1]+b0)                            # Update reg. param. estimate
-        tau = a1bis/(0.5*Res+b1)                                # Update noise coef. estimate
-        mu = (lamb/tau) * (2*a1bis/Res)**d
-        print("    Done :", chi2N)
-
-    return sol, mu, chi2N[-1], R[-1], Nit, [tau, lamb]
-
-
-
-def InvLin_DisPrinc_V1_Sparse(NMes, Nbf, Tm, TT, LL, Tb, b, sol0, mu0=TFD.mu0, ConvCrit=TFD.ConvCrit, chi2Tol=TFD.chi2Tol, chi2Obj=TFD.chi2Obj, M=None, Verb=False, NormL=None):
-    Discrepancy principle
-
-    Ntry = 0
-    LogTol = np.log(chi2Obj)
-
-    chi2N = []                                                  # Initialise residu list and regularisation term list
-    lmu = [mu0]                                                 # Initialise regularisation parame
-    if NormL is None:
-        NormL = sol0.dot(LL.dot(sol0))
-    LL = LL/NormL                                               # Scale the regularity operator
-    if M is None:
-        M = scpsplin.inv((TT + lmu[-1]*LL).tocsc())
-    #try:
-    if Verb:
-        print("        Initial guess : N*Chi2N + mu*RN = ",
-              NMes,'*',np.sum((Tm.dot(sol0)-b)**2)/NMes,'+',lmu[-1],'*',sol0.dot(LL.dot(sol0)),
-              ' = ',
-              np.sum((Tm.dot(sol0)-b)**2)+lmu[-1]*sol0.dot(LL.dot(sol0)))
-        while Ntry==0 or np.abs(chi2N[-1]-chi2Obj)>chi2Tol:
-            sol, itconv = scpsplin.cg(TT + lmu[-1]*LL, Tb, x0=sol0, tol=1e-08, maxiter=None, M=M)    # 1
-            Ntry += 1
-            chi2N.append(np.sum((Tm.dot(sol)-b)**2)/NMes)
-            if Ntry==1:
-                if chi2N[-1]>=chi2Obj+chi2Tol:
-                    lmu.append(lmu[-1]/50.)
-                elif chi2N[-1]<=chi2Obj-chi2Tol:
-                    lmu.append(lmu[-1]*50.)
-                else:
-                    lmu.append(lmu[-1])
-            elif all([chi>=chi2Obj+chi2Tol for chi in chi2N]) or all([chi<=chi2Obj-chi2Tol for chi in chi2N]):
-                if chi2N[-1]>=chi2Obj+chi2Tol:
-                    lmu.append(lmu[-1]/50.)
-                else:
-                    lmu.append(lmu[-1]*50.)
+                lmu = np.append(lmu, lmu[-1])
+        elif niter == 1 or (
+            np.all(lchi2n >= chi2n_obj + chi2n_tol)
+            or np.all(lchi2n <= chi2n_obj - chi2n_tol)
+        ):
+            if lchi2n[-1] >= chi2n_obj + chi2n_tol:
+                lmu = np.append(lmu, lmu[-1] / 50.)
             else:
-                indsort = np.argsort(chi2N)
-                lmu.append(np.exp(np.interp(LogTol, np.log(np.asarray(chi2N)[indsort]), np.log(np.asarray(lmu)[indsort]))))
-            print("        InvLin_DisPrinc_V1 : try ",Ntry-1, "mu =",
-                  lmu[-2],"chi2N = ",chi2N[-1], "New mu = ", lmu[-1])
-    else:
-        while Ntry==0 or np.abs(chi2N[-1]-chi2Obj)>chi2Tol:
-            sol, itconv = scpsplin.cg(TT + lmu[-1]*LL, Tb, x0=sol0, tol=1e-08, maxiter=None, M=M)
-            Ntry += 1
-            chi2N.append(np.sum((Tm.dot(sol)-b)**2)/NMes)
-            if Ntry==1:
-                if chi2N[-1]>=chi2Obj+chi2Tol:
-                    lmu.append(lmu[-1]/50.)
-                elif chi2N[-1]<=chi2Obj-chi2Tol:
-                    lmu.append(lmu[-1]*50.)
-                else:
-                    lmu.append(lmu[-1])
-            elif all([chi>=chi2Obj+chi2Tol for chi in chi2N]) or all([chi<=chi2Obj-chi2Tol for chi in chi2N]):
-                if chi2N[-1]>=chi2Obj+chi2Tol:
-                    lmu.append(mu[-1]/50.)
-                else:
-                    lmu.append(mu[-1]*50.)
+                lmu = np.append(lmu, lmu[-1] * 50.)
+        else:
+            if lmu[-2] == lmu[-1]:
+                # if the algo is stuck => break to avoid infinite loop
+                ind = np.argmin(lchi2n[1:] - chi2n_obj)
+                lmu[-1] = lmu[ind]
+                lchi2n[-1] = lchi2n[ind]
+                sol, itconv = scpsp.linalg.cg(
+                    TTn + lmu[-1]*R, Tyn,
+                    x0=sol0,
+                    tol=1e-08,
+                    maxiter=maxiter,
+                    M=precond,
+                )
+                reg = sol.dot(R.dot(sol))           # regularity term
+                break
             else:
-                indsort = np.argsort(chi2N)
-                #mu.append(np.exp(np.log(mu[-1]) - np.log(chi2N[-1])*(np.log(mu[-1])-np.log(mu[-2]))/(np.log(chi2N[-1])-np.log(chi2N[-2])))
-                lmu.append(np.exp(np.interp(LogTol, np.log(np.asarray(chi2N)[indsort]),np.log(np.asarray(lmu[:-1])[indsort]))))
-    # except:
-        # print np.asarray(lmu[:-1]), np.asarray(chi2N), np.arange(0,len(chi2N))
-        # plt.figure()
-        # plt.scatter(np.asarray(lmu[:-1]),np.asarray(chi2N), c=np.arange(0,len(chi2N)),edgecolors='none')
-        # plt.gca().set_xscale('log'), plt.gca().set_yscale('log')
-        # plt.gca().set_xlim(r"$\log_10(\mu)$"), plt.gca().set_ylim(r"$\log_10(\chi^2_N)$")
-        # plt.figure()
-        # plt.plot(np.asarray(LL),'b-')
-        # plt.figure()
-        # plt.plot(TT,'ko'), plt.plot(TT+lmu[-1]*LL,'r--')
-        # plt.show()
+                indsort = np.argsort(lchi2n[1:])
+                lmu = np.append(lmu, np.exp(np.interp(
+                    chi2n_obj_log,
+                    np.log(lchi2n[1:])[indsort],
+                    np.log(lmu)[indsort]
+                )))
 
-    return sol, lmu[-1], chi2N[-1], sol.dot(LL.dot(sol)), Ntry, []
-"""
+        # verb
+        if verb >= 2:
+            res2 = np.sum((Tn.dot(sol)-yn)**2)
+            temp1 = f"{nchan} * {lchi2n[-1]:.3e} + {lmu[-1]:.3e} * {reg:.3e}"
+            temp2 = f"{res2 + lmu[-1]*reg:.3e}"
+            temp = f"{temp1} = {temp2}"
+            print(f"\t\t{niter} \t {temp}")
+
+        sol0[:] = sol
+        niter += 1
+
+    return sol, lmu[-1], lchi2n[-1], reg, niter, None
