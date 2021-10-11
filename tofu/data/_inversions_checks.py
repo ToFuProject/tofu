@@ -196,14 +196,14 @@ def _compute_check(
     )
     if sparse is True:
         if not scpsp.issparse(matrix):
-            matrix = scpsp.csr_matrix(matrix)
+            matrix = scpsp.csc_matrix(matrix)
         if not scpsp.issparse(opmat[0]):
-            opmat = [scpsp.csr_matrix(pp) for pp in opmat]
+            opmat = [scpsp.csc_matrix(pp) for pp in opmat]
     elif sparse is False:
         if scpsp.issparse(matrix):
             matrix = matrix.toarray()
         if scpsp.issparse(opmat[0]):
-            opmat = [scpsp.csr_matrix(pp).toarray() for pp in opmat]
+            opmat = [scpsp.csc_matrix(pp).toarray() for pp in opmat]
 
     # chain
     chain = _generic_check._check_var(
@@ -245,7 +245,7 @@ def _compute_check(
         metdef = 'InvLinQuad_AugTikho_V1'
     else:
         if sparse:
-            metdef = 'inv_linear_augTikho_v1_sparse'
+            metdef = 'inv_linear_augTikho_chol_sparse'
         else:
             metdef = 'inv_linear_augTikho_v1'
 
@@ -253,6 +253,7 @@ def _compute_check(
         'inv_linear_augTikho_v1_sparse',
         'inv_linear_augTikho_v1',
         'inv_linear_augTikho_chol',
+        'inv_linear_augTikho_chol_sparse',
         'InvLinQuad_AugTikho_V1',
         'InvQuad_AugTikho_V1',
         'InvLin_DisPrinc_V1',
@@ -282,6 +283,7 @@ def _compute_check(
                 'inv_linear_augTikho_v1_sparse',
                 'inv_linear_augTikho_v1',
                 'inv_linear_augTikho_chol',
+                'inv_linear_augTikho_chol_sparse',
                 'InvLinQuad_AugTikho_V1',
                 'InvQuad_AugTikho_V1',
             ]
