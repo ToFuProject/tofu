@@ -1,7 +1,7 @@
 ####### Requirements without Version Specifiers #######
 numpy
 scipy
-scikit-sparse
+# scikit-sparse    does not work on windows, and requires "apt/brew install libsuitesparse-dev/suite-sparse" on linux / MacOs 
 scikit-umfpack
 matplotlib
 requests

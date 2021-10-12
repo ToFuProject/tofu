@@ -3,15 +3,21 @@
 
 # Built-in
 import time
+import warnings
 
 
 # Common
 import numpy as np
 import scipy.linalg as scplin
 import scipy.sparse as scpsp
-import sksparse as sksp
 import scipy.optimize as scpop
 import matplotlib.pyplot as plt
+try:
+    import sksparse as sksp
+except Excetpion  as err:
+    sksp = False
+    msg = "Consider installing scikit-sparse for faster innversions"
+    warnings.warn(msg)
 
 
 # tofu
@@ -842,18 +848,22 @@ def inv_linear_augTikho_chol_sparse(
             # choleski decomposition requires det(TT + mu0*LL) != 0
             # A = (chol(A).T * chol(A)
             # optimal if matrix is csc
-            if factor is None:
-                factor = sksp.cholmod.cholesky(
-                    TTn + mu0*R,
-                    beta=0,
-                    mode='auto',
-                    ordering_method='default',
-                    use_long=False,
-                )
+            if sksp is False:
+                factor = scpsp.linalg.factorized(TTn + mu0*R)
+                sol = factor(Tyn)
             else:
-                # re-use same factor
-                factor.cholesky_inplace(TTn + mu0*R, beta=0)
-            sol = factor.solve_A(Tyn)
+                if factor is None:
+                    factor = sksp.cholmod.cholesky(
+                        TTn + mu0*R,
+                        beta=0,
+                        mode='auto',
+                        ordering_method='default',
+                        use_long=False,
+                    )
+                else:
+                    # re-use same factor
+                    factor.cholesky_inplace(TTn + mu0*R, beta=0)
+                sol = factor.solve_A(Tyn)
         except Exception as err:
             # call solver
             sol = scpsp.linalg.spsolve(
