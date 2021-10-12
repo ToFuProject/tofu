@@ -1,5 +1,5 @@
 ====================
-What's new in 1.4.10
+What's new in 1.4.12
 ====================
 
 tofu 1.4.12 is a minor upgrade from 1.4.11
