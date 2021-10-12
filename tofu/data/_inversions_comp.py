@@ -42,7 +42,7 @@ def compute_inversions(
     # regularity operator
     operator=None,
     geometry=None,
-    # misc 
+    # misc
     solver=None,
     conv_crit=None,
     chain=None,
@@ -82,7 +82,7 @@ def compute_inversions(
         solver=solver,
         operator=operator,
         geometry=geometry,
-        # misc 
+        # misc
         conv_crit=conv_crit,
         chain=chain,
         verb=verb,
@@ -385,10 +385,13 @@ def _compute_inv_loop(
     if positive is True:
 
         bounds = tuple([(0., None) for ii in range(0, sol0.size)])
+
         def func_val(x, mu=mu0, Tn=Tn, yn=data_n[0, :], TTn=None, Tyn=None):
             return np.sum((Tn.dot(x) - yn)**2) + mu*x.dot(R.dot(x))
+
         def func_jac(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn):
             return 2.*(TTn + mu*R).dot(x) - 2.*Tyn
+
         def func_hess(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn):
             return 2.*(TTn + mu*R)
 
@@ -482,7 +485,7 @@ def _update_TTyn(
 
 # #############################################################################
 # #############################################################################
-#                      Basic routines - augmented tikhonov 
+#                      Basic routines - augmented tikhonov
 # #############################################################################
 
 
@@ -528,26 +531,26 @@ def inv_linear_augTikho_dense(
 
     # loop
     # Continue until convergence criterion, and at least 2 iterations
-    while  niter < 2 or conv > conv_crit:
+    while niter < 2 or conv > conv_crit:
 
         # call solver
         sol = scplin.solve(
             TTn + mu0*R, Tyn,
-            assume_a='pos',     # faster than 'sym'
-            overwrite_a=True,   # no significant gain
-            overwrite_b=False,  # True is faster, but a copy of Tyn is needed
-            check_finite=False, # small speed gain compared to True
+            assume_a='pos',      # faster than 'sym'
+            overwrite_a=True,    # no significant gain
+            overwrite_b=False,   # True is faster, but a copy of Tyn is needed
+            check_finite=False,  # small speed gain compared to True
             transposed=False,
-        ) # 3
+        )  # 3
 
         # compute residu, regularity...
         res2 = np.sum((Tn.dot(sol)-yn)**2)  # residu**2
         reg = sol.dot(R.dot(sol))           # regularity term
 
         # update lamb, tau
-        lamb = a0bis/(0.5*reg + b0)             # Update reg. param. estimate
-        tau = a1bis/(0.5*res2 + b1)             # Update noise coef. estimate
-        mu1 = (lamb/tau) * (2*a1bis/res2)**d    # Update reg. param. taking into account rescaling with noise estimate
+        lamb = a0bis/(0.5*reg + b0)           # Update reg. param. estimate
+        tau = a1bis/(0.5*res2 + b1)           # Update noise coef. estimate
+        mu1 = (lamb/tau) * (2*a1bis/res2)**d  # rescale mu with noise estimate
 
         # Compute convergence variable
         if conv_reg:
@@ -619,12 +622,12 @@ def inv_linear_augTikho_sparse(
 
     # loop
     # Continue until convergence criterion, and at least 2 iterations
-    while  niter < 2 or conv > conv_crit:
+    while niter < 2 or conv > conv_crit:
 
         # sol = scpsp.linalg.spsolve(
-              # TTn + mu0*R, Tyn,
-              # permc_spec=None,
-              # use_umfpack=True,
+        #    TTn + mu0*R, Tyn,
+        #    permc_spec=None,
+        #    use_umfpack=True,
         # )
 
         # seems faster
@@ -636,12 +639,12 @@ def inv_linear_augTikho_sparse(
             M=precond,
         )
 
-        res2 = np.sum((Tn.dot(sol)-yn)**2)      # residu**2
-        reg = sol.dot(R.dot(sol))       # regularity term
+        res2 = np.sum((Tn.dot(sol)-yn)**2)    # residu**2
+        reg = sol.dot(R.dot(sol))             # regularity term
 
-        lamb = a0bis/(0.5*reg + b0)     # Update reg. param. estimate
-        tau = a1bis/(0.5*res2 + b1)                 # Update noise coef. estimate
-        mu1 = (lamb/tau) * (2*a1bis/res2)**d        # Update reg. param. taking into account rescaling with noise estimate
+        lamb = a0bis/(0.5*reg + b0)           # Update reg. param. estimate
+        tau = a1bis/(0.5*res2 + b1)           # Update noise coef. estimate
+        mu1 = (lamb/tau) * (2*a1bis/res2)**d  # rescale mu with noise estimate
 
         # Compute convergence variable
         if conv_reg:
@@ -660,7 +663,6 @@ def inv_linear_augTikho_sparse(
             print(
                 f"\t\t{niter} \t {temp}   {tau:.3e}   {conv:.3e}"
             )
-            # print '\t\ŧ\tisstop,itn=',isstop,itn, '  normRArAX=',normr, normar, norma,normx, 'condA=',conda
 
         sol0[:] = sol[:]            # Update reference solution
         niter += 1                  # Update number of iterations
@@ -690,21 +692,6 @@ def inv_linear_augTikho_chol_dense(
     **kwdargs,
 ):
     """
-    Linear algorithm for Phillips-Tikhonov regularisation, called "Augmented Tikhonov"
-    augmented in the sense that bayesian statistics are combined with standard Tikhonov regularisation
-    Determines both noise (common multiplicative coefficient) and regularisation paremeter automatically
-    We assume here that all arrays have previously been scaled (noise, conditioning...)
-    Sparse matrixes are also prefered to speed-up the computation
-    In this method:
-      tau is an approximation of the inverse of the noise coefficient
-      lamb is an approximation of the regularisation parameter
-    N.B.: The noise and reg. param. have probability densities of the form : f(x) = x^(a-1) * exp(-bx)
-    This function maximum is in x = (a-1)/b, so a = b+1 gives a maximum at 1.
-    (a0,b0) for the reg. param. and (a1,b1) for the noise estimate
-    Ref:
-      [1] Jin B., Zou J., Inverse Problems, vol.25, nb.2, 025001, 2009
-      [2] http://www.math.uni-bremen.de/zetem/cms/media.php/250/nov14talk_jin%20bangti.pdf
-      [3] Kazufumi Ito, Bangti Jin, Jun Zou, "A New Choice Rule for Regularization Parameters in Tikhonov Regularization", Research report, University of Hong Kong, 2008
     """
 
     conv = 0.           # convergence variable
@@ -723,7 +710,7 @@ def inv_linear_augTikho_chol_dense(
 
     # loop
     # Continue until convergence criterion, and at least 2 iterations
-    while  niter < 2 or conv > conv_crit:
+    while niter < 2 or conv > conv_crit:
         try:
             # choleski decomposition requires det(TT + mu0*LL) != 0
             # (chol(A).T * chol(A) = A
@@ -743,21 +730,21 @@ def inv_linear_augTikho_chol_dense(
             # call solver
             sol = scplin.solve(
                 TTn + mu0*R, Tyn,
-                assume_a='sym',     # chol failed => not 'pos'
-                overwrite_a=True,   # no significant gain
-                overwrite_b=False,  # True is faster, but a copy of Tyn is needed
-                check_finite=False, # small speed gain compared to True
+                assume_a='sym',         # chol failed => not 'pos'
+                overwrite_a=True,       # no significant gain
+                overwrite_b=False,      # True faster, but a copy of Tyn needed
+                check_finite=False,     # small speed gain compared to True
                 transposed=False,
-            ) # 3
+            )  # 3
 
         # compute residu, regularity...
         res2 = np.sum((Tn.dot(sol)-yn)**2)  # residu**2
         reg = sol.dot(R.dot(sol))           # regularity term
 
         # update lamb, tau
-        lamb = a0bis/(0.5*reg + b0)             # Update reg. param. estimate
-        tau = a1bis/(0.5*res2 + b1)             # Update noise coef. estimate
-        mu1 = (lamb/tau) * (2*a1bis/res2)**d    # Update reg. param. taking into account rescaling with noise estimate
+        lamb = a0bis/(0.5*reg + b0)           # Update reg. param. estimate
+        tau = a1bis/(0.5*res2 + b1)           # Update noise coef. estimate
+        mu1 = (lamb/tau) * (2*a1bis/res2)**d  # mu rescale with noise estimate
 
         # Compute convergence variable
         if conv_reg:
@@ -805,21 +792,32 @@ def inv_linear_augTikho_chol_sparse(
     **kwdargs,
 ):
     """
-    Linear algorithm for Phillips-Tikhonov regularisation, called "Augmented Tikhonov"
-    augmented in the sense that bayesian statistics are combined with standard Tikhonov regularisation
-    Determines both noise (common multiplicative coefficient) and regularisation paremeter automatically
-    We assume here that all arrays have previously been scaled (noise, conditioning...)
+    Linear algorithm for Phillips-Tikhonov regularisation
+    Called "Augmented Tikhonov"
+
+    Augmented in the sense that bayesian statistics are combined
+        with standard Tikhonov regularisation
+    Determines both noise (common multiplicative coefficient) and
+        regularisation parameter automatically
+    We assume here that all arrays are scaled (noise, conditioning...)
     Sparse matrixes are also prefered to speed-up the computation
+
     In this method:
       tau is an approximation of the inverse of the noise coefficient
       lamb is an approximation of the regularisation parameter
-    N.B.: The noise and reg. param. have probability densities of the form : f(x) = x^(a-1) * exp(-bx)
-    This function maximum is in x = (a-1)/b, so a = b+1 gives a maximum at 1.
-    (a0,b0) for the reg. param. and (a1,b1) for the noise estimate
+
+    N.B.: The noise and reg. param. have probability densities of the form:
+        f(x) = x^(a-1) * exp(-bx)
+    This function's maximum is in x = (a-1)/b, so a = b+1 gives a maximum at 1.
+        (a0, b0) for the reg. param.
+        (a1, b1) for the noise estimate
+
     Ref:
       [1] Jin B., Zou J., Inverse Problems, vol.25, nb.2, 025001, 2009
       [2] http://www.math.uni-bremen.de/zetem/cms/media.php/250/nov14talk_jin%20bangti.pdf
-      [3] Kazufumi Ito, Bangti Jin, Jun Zou, "A New Choice Rule for Regularization Parameters in Tikhonov Regularization", Research report, University of Hong Kong, 2008
+      [3] Kazufumi Ito, Bangti Jin, Jun Zou,
+        "A New Choice Rule for Regularization Parameters in Tikhonov
+        Regularization", Research report, University of Hong Kong, 2008
     """
 
     conv = 0.           # convergence variable
@@ -839,7 +837,7 @@ def inv_linear_augTikho_chol_sparse(
     # loop
     # Continue until convergence criterion, and at least 2 iterations
     factor = None
-    while  niter < 2 or conv > conv_crit:
+    while niter < 2 or conv > conv_crit:
         try:
             # choleski decomposition requires det(TT + mu0*LL) != 0
             # A = (chol(A).T * chol(A)
@@ -871,7 +869,7 @@ def inv_linear_augTikho_chol_sparse(
         # update lamb, tau
         lamb = a0bis/(0.5*reg + b0)             # Update reg. param. estimate
         tau = a1bis/(0.5*res2 + b1)             # Update noise coef. estimate
-        mu1 = (lamb/tau) * (2*a1bis/res2)**d    # Update reg. param. taking into account rescaling with noise estimate
+        mu1 = (lamb/tau) * (2*a1bis/res2)**d    # Update reg. param. rescaling
 
         # Compute convergence variable
         if conv_reg:
@@ -926,7 +924,8 @@ def inv_linear_augTikho_pos_dense(
     **kwdargs,
 ):
     """
-    Quadratic algorithm for Phillips-Tikhonov regularisation, alternative to the linear version with positivity constraint
+    Quadratic algorithm for Phillips-Tikhonov regularisation
+    Alternative to the linear version with positivity constraint
     see TFI.InvLin_AugTikho_V1.__doc__ for details
     """
 
@@ -944,7 +943,7 @@ def inv_linear_augTikho_pos_dense(
             end='\n',
         )
 
-    while  niter < 2 or conv > conv_crit:
+    while niter < 2 or conv > conv_crit:
         # quadratic method for positivity constraint
         sol = scpop.minimize(
             func_val, sol0,
@@ -991,7 +990,7 @@ def inv_linear_augTikho_pos_dense(
 
 # #############################################################################
 # #############################################################################
-#               Basic routines - discrepancy principle 
+#               Basic routines - discrepancy principle
 # #############################################################################
 
 

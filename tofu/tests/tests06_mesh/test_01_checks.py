@@ -298,8 +298,7 @@ class Test02_Mesh2DRect():
                         crop=comb[2],
                     )
                 except Exception as err:
-                    import pdb; pdb.set_trace()     # DB
-                    pass
+                    raise err
 
     def test11_compute_plot_geometry_matrix(self):
 

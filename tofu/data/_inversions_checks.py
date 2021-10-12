@@ -27,7 +27,6 @@ _LREGPARAM_ALGO = [
 ]
 
 
-
 # #############################################################################
 # #############################################################################
 #                           main
@@ -53,7 +52,7 @@ def _compute_check(
     solver=None,
     operator=None,
     geometry=None,
-    # misc 
+    # misc
     conv_crit=None,
     chain=None,
     verb=None,
@@ -329,7 +328,6 @@ def _compute_check(
         types=float,
     )
 
-
     # chain
     chain = _generic_check._check_var(
         chain, 'chain',
@@ -423,14 +421,14 @@ def _algo_check(
 
     # kwdargs specific to aug. tikhonov
     if 'augTikho' in algo:
-        if kwdargs.get('a0') is None:
-            kwdargs['a0'] = 10
-        if kwdargs.get('a1') is None:
-            kwdargs['a1'] = 2
+        a0 = kwdargs.get('a0', 10)
+        a1 = kwdargs.get('a1', 2)
 
         # to have [x]=1
-        kwdargs['b0'] = np.math.factorial(kwdargs['a0'])**(1 / (kwdargs['a0'] + 1))
-        kwdargs['b1'] = np.math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1))
+        kwdargs['b0'] = np.math.factorial(a0)**(1 / (a0 + 1))
+        kwdargs['b1'] = np.math.factorial(a1)**(1 / (a1 + 1))
+        kwdargs['a0'] = a0
+        kwdargs['a1'] = a1
 
         # Exponent for rescaling of a0bis
         # typically in [1/3 ; 1/2], but real limits are 0 < d < 1 (or 2 ?)
@@ -448,7 +446,6 @@ def _algo_check(
         else:
             kwdargs['a0bis'] = kwdargs['a0'] - 1. + nbs/2.
         kwdargs['a1bis'] = kwdargs['a1'] - 1. + nchan/2.
-
 
     # kwdargs specific to discrepancy principle
     elif 'DisPrinc' in algo:

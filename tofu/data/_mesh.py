@@ -537,7 +537,7 @@ class Mesh2DRect(DataCollection):
         # regularity operator
         operator=None,
         geometry=None,
-        # misc 
+        # misc
         solver=None,
         conv_crit=None,
         chain=None,
@@ -570,7 +570,7 @@ class Mesh2DRect(DataCollection):
             # regularity operator
             operator=operator,
             geometry=geometry,
-            # misc 
+            # misc
             conv_crit=conv_crit,
             chain=chain,
             verb=verb,
