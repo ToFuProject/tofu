@@ -371,11 +371,9 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
     print()
 
     config = tf.load_config("A1")
+    # lightening up config by removing all PFCs
     for name_pfc in ['BaffleV0', "DivUpV1", "DivLowITERV1"]:
-        try:
-            config.remove_Struct("PFC", name_pfc)
-        except:
-            pass
+        config.remove_Struct("PFC", name_pfc)
 
     kwdargs = config.get_kwdargs_LOS_isVis()
     ves_poly = kwdargs["ves_poly"]
@@ -440,7 +438,7 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
             [3.0, 0., 0.50],
             [3.0, 0., 0.25],
             [2.6, 0., 0.25],
-        ]).T, # 6th polygon
+        ]).T,  # 6th polygon
     ]
     poly_coords = [np.ascontiguousarray(poly) for poly in poly_coords]
     poly_lnorms = np.array([
@@ -454,9 +452,9 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
     poly_lnvert = np.array([poly.shape[1] for poly in poly_coords])
     limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
 
-    lblock = [False]  #, True]
+    lblock = [False, True]
     lstep_rz = [
-        #  0.01,
+        0.03,
         0.01,
     ]
 
@@ -467,9 +465,9 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
         rstep = zstep = step_rz
         zstep = step_rz
         phistep = 0.01
-        DR = None  # [2.45, 2.8]
-        DZ = None  # [-0.5, 0.]
-        DPhi = None  # [-0.1, 0.1]
+        DR = [2.45, 2.8]
+        DZ = [-0.5, 0.]
+        DPhi = [-0.1, 0.1]
 
         # -- Getting cython APPROX computation --------------------------------
         res = GG.compute_solid_angle_poly_map(
@@ -521,10 +519,6 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
                     "r-", marker='o',
                     linewidth=2,
                 )
-                # for iii in range(np.size(xpoly)):
-                #     ax.annotate(iii,
-                #                 (xpoly[iii],
-                #                  zpoly[iii]))
                 ax.plot()
                 ax.set_title("cython function")
                 fig.colorbar(im, ax=ax)
@@ -532,30 +526,5 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
                             + "_block" + str(block)
                             + "_steprz" + str(step_rz).replace(".", "_"))
 
-        # max_py = np.max(sa_map_py)
-        # max_cy = np.max(sa_map_cy)
-        # max_py_ex = np.max(sa_map_py_ex)
-        # max_cy_ex = np.max(sa_map_cy_ex)
-
-        # err = np.abs(sa_map_py - sa_map_cy) / max(max_py, max_cy)
-        # print("max error approx py vs cy =", np.max(err))
-
-        # err = np.abs(sa_map_py_ex - sa_map_cy_ex) / max(max_py_ex, max_cy_ex)
-        # print("max error exacts py vs cy =", np.max(err))
-
-        # err = np.abs(sa_map_py_ex - sa_map_py) / max(max_py, max_py_ex)
-        # print("max error python approx vs exact =", np.max(err))
-
-        # err = np.abs(sa_map_cy_ex - sa_map_cy) / max(max_cy, max_cy_ex)
-        # print("max error cython approx vs exact =", np.max(err))
-
-        # assert np.allclose(sa_map_cy, sa_map_py, atol=1e-16, rtol=1e-16,
-        #                    equal_nan=True)
-        # assert np.allclose(sa_map_cy_ex, sa_map_py_ex, atol=1e-16, rtol=1e-16,
-        #                    equal_nan=True)
-        # assert np.allclose(sa_map_cy, sa_map_cy_ex, atol=1e-14, rtol=1e-16,
-        #                    equal_nan=True)
-        # assert np.allclose(sa_map_py, sa_map_py_ex, atol=1e-14, rtol=1e-16,
-        #                    equal_nan=True)
     # ...
     return
