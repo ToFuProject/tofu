@@ -301,8 +301,8 @@ setup(
     install_requires=[
         "numpy",
         "scipy",
-        "scikit-sparse",
-        "scikit-umfpack",
+        # "scikit-sparse",
+        # "scikit-umfpack",
         "matplotlib",
         "requests",
         "cython>=0.26",
