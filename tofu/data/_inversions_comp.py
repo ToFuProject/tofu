@@ -14,14 +14,14 @@ import scipy.optimize as scpop
 import matplotlib.pyplot as plt
 try:
     import sksparse as sksp
-except Exception  as err:
+except Exception as err:
     sksp = False
     msg = "Consider installing scikit-sparse for faster innversions"
     warnings.warn(msg)
 
 try:
     import scikits.umfpack
-except Exception  as err:
+except Exception as err:
     skumf = False
     msg = "Consider installing scikit-umfpack for faster innversions"
     warnings.warn(msg)
