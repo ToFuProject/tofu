@@ -1,7 +1,7 @@
 # cython: language_level=3
-# cython: boundscheck=True
+# cython: boundscheck=False
 # cython: wraparound=False
-# cython: initializedcheck=True
+# cython: initializedcheck=False
 # cython: cdivision=True
 #
 # -- Python libraries imports --------------------------------------------------
@@ -2748,7 +2748,7 @@ def triangulate_by_earclipping(np.ndarray[double,ndim=2] poly):
     Params
     =====
     poly : (3, nvert) double array
-        Contains 3D coordinates of polygon in counter clockwise order
+        Contains 3D coordinates of open polygon in counter clockwise order
     Returns
     =======
     ltri : (3*(nvert-2)) int array
@@ -2779,7 +2779,7 @@ def vignetting(double[:, ::1] ray_orig, double[:, ::1] ray_vdir,
        LOS normalized direction vector
     vignett_poly : (num_vign, 3, num_vertex) double list of arrays
        Coordinates of the vertices of the Polygon defining the 3D vignett.
-       POLY CLOSED
+       POLY CLOSED in counter clockwise
     lnvert : (num_vign) long array
        Number of vertices for each vignett (without counting the rebound)
     Returns
@@ -4989,9 +4989,13 @@ def compute_solid_angle_poly_map(list poly_coords,
         coordinates of the points defining the polygons.
         not necessarily flat.
         poly_coords[np, i] being the i-th coordinate of the np polygon
+        The coordinates should be given in anti clockwise order and the polygon
+        should be open
     poly_lnorms: double array
         normal vector that defines the visible face of the polygon
         poly_lnorms[np] defines the norm of the np-th polygon
+    poly_lnvert: int array
+        number of vertices for each polygon
     rstep: double
         refinement along radius `r`
     zstep: double
@@ -5139,7 +5143,6 @@ def compute_solid_angle_poly_map(list poly_coords,
                 + " lstruct_normx, lstruct_normy, must be None or"\
                 + " lists of same len()!"
             assert bool1 and bool2, msg
-        # TODO: add tests to verify shape of poly_coords
         msg = "[eps_uz,eps_vz,eps_a,eps_b] must be floats < 1.e-4!"
         assert all([ee < 1.e-4 for ee in [eps_uz, eps_a,
                                           eps_vz, eps_b,

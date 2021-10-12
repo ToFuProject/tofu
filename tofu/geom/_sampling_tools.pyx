@@ -1,8 +1,8 @@
 # cython: language_level=3
-# cython: boundscheck=True
+# cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
-# cython: initializedcheck=True
+# cython: initializedcheck=False
 #
 ################################################################################
 # Utility functions for sampling and discretizating

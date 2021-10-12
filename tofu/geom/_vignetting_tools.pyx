@@ -34,17 +34,21 @@ cdef inline bint is_reflex(const double[3] u,
        \______>
        P  u
     Determines if the angle between U and -V is reflex (angle > pi) or not.
+    We suppose the angle is defined anticlockwise from u to v
     Warning: note the MINUS in front of V, this was done as this is the only
              form how we will need this function. but it is NOT general.
     Is reflex if
-            u x v has a negative 3rd coordinate
+            u x -v has a negative 3rd coordinate
+    https://dai.fmph.uniba.sk/upload/8/89/Gm17_lesson05.pdf
     """
     cdef int ii
     cdef double sumc
     cdef double[3] ucrossv
     # ...
     _bgt.compute_cross_prod(u, v, &ucrossv[0])
-    return ucrossv[2] >= 0.
+    # reflexive if u x v 3rd coordinate is negative, since we computed u x -v
+    # the angle in P is reflexive if the 3rd coordinate is positive
+    return ucrossv[2] > 0.
 
 
 cdef inline void compute_diff3d(double* orig,
@@ -176,6 +180,15 @@ cdef inline int get_one_ear(double* polygon,
                 return i # if not, we found an ear
     # if we havent returned, either, there was an error somerwhere
     with gil:
+        for j in range(nvert):
+            wj = working_index[j]
+            print("coordinates at i =", j,
+                  " ", polygon[0 * orig_nvert + wj],
+                  " ", polygon[1 * orig_nvert + wj],
+                  " ", polygon[2 * orig_nvert + wj],
+                  )
+        print("... and btw, original polygon had : ", orig_nvert,
+              " vertices, now we are working on :", nvert)
         raise ValueError("Didn't find a non reflex angle in polygon")
 
 
