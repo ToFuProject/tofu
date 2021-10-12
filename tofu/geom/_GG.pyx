@@ -1621,7 +1621,7 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
     # Number of Phi per R
     dRPhirRef, dPhir, dRPhir = np.empty((Ln,)), np.empty((Ln,)), -np.ones((Ln,))
     dLr, Rref = -np.ones((Ln,)), -np.ones((Ln,))
-    NRPhi, NRPhi0 = np.empty((Ln,),dtype=int), np.empty((Ln,),dtype=int)
+    NRPhi, NRPhi0 = np.empty((Ln,),dtype=int), np.empty((Ln+1,),dtype=int)
     radius_ratio = int(c_ceil(np.max(RrefRef)/np.min(RrefRef)))
     for ii in range(0,Ln):
         NRPhi[ii] = <long>(c_ceil(DPhiMinMax*RrefRef[ii]/dRPhi))
@@ -1637,8 +1637,8 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
     nRPhi0 = NRPhi0[Ln-1]+NRPhi[Ln-1]
 
     if Out.lower()=='(x,y,z)':
-        for ii in range(0,NP):
-            for jj in range(0,Ln+1):
+        for ii in range(NP):
+            for jj in range(Ln + 1):
                 if ind[ii]-NRPhi0[jj]<0.:
                     break
             iiL = jj-1
@@ -1653,8 +1653,8 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
                 Rref[iiL] = RrefRef[iiL]
 
     else:
-        for ii in range(0,NP):
-            for jj in range(0,Ln+1):
+        for ii in range(NP):
+            for jj in range(Ln + 1):
                 if ind[ii]-NRPhi0[jj]<0.:
                     break
             iiL = jj-1
@@ -1690,7 +1690,7 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
     for the desired resolution (dR,dZ,dRphi)
     """
     cdef double Dphi, dR0r=0., dZ0r=0.
-    cdef int NR0=0, NZ0=0, R0n, Z0n, NRPhi0
+    cdef int NR0=0, NZ0=0, R0n, Z0n
     cdef double[::1] phiMinMax = np.array([c_atan2(c_sin(PhiMinMax[0]),
                                                   c_cos(PhiMinMax[0])),
                                            c_atan2(c_sin(PhiMinMax[1]),
@@ -1835,7 +1835,7 @@ def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
     """ Return the desired surfacic submesh indicated by the limits (DR,DZ,DPhi)
     for the desired resolution (dR,dZ,dRphi) """
     cdef double Dphi, dR0r, dZ0r
-    cdef int NR0, NZ0, R0n, Z0n, NRPhi0
+    cdef int NR0, NZ0, R0n, Z0n
     cdef double[::1] phiMinMax = np.array([c_atan2(c_sin(PhiMinMax[0]),
                                                   c_cos(PhiMinMax[0])),
                                            c_atan2(c_sin(PhiMinMax[1]),
