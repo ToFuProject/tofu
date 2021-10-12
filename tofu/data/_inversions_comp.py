@@ -25,24 +25,30 @@ from . import _inversions_checks
 
 
 def compute_inversions(
+    # input data
     coll=None,
     key_matrix=None,
     key_data=None,
     key_sigma=None,
     data=None,
     sigma=None,
-    conv_crit=None,
+    # choice of algo
+    isotropic=None,
+    sparse=None,
+    positive=None,
+    cholesky=None,
+    regparam_algo=None,
+    algo=None,
+    # regularity operator
     operator=None,
     geometry=None,
-    isotropic=None,
-    algo=None,
+    # misc 
     solver=None,
-    sparse=None,
+    conv_crit=None,
     chain=None,
-    positive=None,
     verb=None,
-    maxiter=None,
     store=None,
+    # algo and solver-specific options
     kwdargs=None,
     method=None,
     options=None,
@@ -51,33 +57,40 @@ def compute_inversions(
     # -------------
     # check inputs
 
-    # kwdargs = {'maxiter': maxiter}
-
     (
-        key_matrix, key_data, key_sigma, keybs, keym, data, sigma, opmat,
-        conv_crit, operator, isotropic, sparse, matrix, crop, chain,
-        positive, algo, solver, kwdargs, method, options, verb, store,
+        key_matrix, key_data, key_sigma, keybs, keym,
+        data, sigma, matrix, opmat, operator, geometry,
+        isotropic, sparse, positive, cholesky, regparam_algo, algo,
+        conv_crit, crop, chain, kwdargs, method, options,
+        solver, verb, store,
     ) = _inversions_checks._compute_check(
+        # input data
         coll=coll,
         key_matrix=key_matrix,
         key_data=key_data,
         key_sigma=key_sigma,
         data=data,
         sigma=sigma,
-        conv_crit=conv_crit,
+        # choice of algo
         isotropic=isotropic,
         sparse=sparse,
-        chain=chain,
         positive=positive,
+        cholesky=cholesky,
+        regparam_algo=regparam_algo,
         algo=algo,
+        # regularity operator
         solver=solver,
+        operator=operator,
+        geometry=geometry,
+        # misc 
+        conv_crit=conv_crit,
+        chain=chain,
+        verb=verb,
+        store=store,
+        # algo and solver-specific options
         kwdargs=kwdargs,
         method=method,
         options=options,
-        operator=operator,
-        geometry=geometry,
-        verb=verb,
-        store=store,
     )
 
     nt, nchan = data.shape
@@ -88,7 +101,7 @@ def compute_inversions(
     # prepare data
 
     if verb >= 1:
-        t0 = time.process_time()
+        # t0 = time.process_time()
         t0 = time.perf_counter()
         print("Preparing data... ", end='', flush=True)
 
@@ -116,14 +129,14 @@ def compute_inversions(
         Tn = scpsp.diags(1./np.nanmean(sigma, axis=0)).dot(matrix)
         TTn = Tn.T.dot(Tn)
         if solver != 'spsolve':
-            # preconditioner to approx inv(TTn + reg*Rn), improves convergence
-            precond = scpsp.linalg.inv(TTn + mu0*R)
+            # preconditioner to approx inv(TTn + reg*Rn)
+            # should improves convergence, but actually slower...
+            # precond = scpsp.linalg.inv(TTn + mu0*R)
+            pass
 
     else:
         Tn = matrix / np.nanmean(sigma, axis=0)[:, None]
         TTn = Tn.T.dot(Tn)
-
-    sol0 = np.full((nbs,), np.nanmean(data[0, :]) / matrix.mean())
 
     # prepare output arrays
     sol = np.full((nt, nbs), np.nan)
@@ -136,54 +149,19 @@ def compute_inversions(
     # -------------
     # initial guess
 
+    sol0 = np.full((nbs,), np.nanmean(data[0, :]) / matrix.mean())
+
     if verb >= 1:
-        t1 = time.process_time()
+        # t1 = time.process_time()
         t1 = time.perf_counter()
         print(f"{t1-t0} s", end='\n', flush=True)
         print("Setting inital guess... ", end='', flush=True)
-
-    """
-    sol0 = Default_sol(BF2, tmat, ddat, sigma0=ssigm, N=3)
-    # Using discrepancy principle on averaged signal
-    LL, mm = BF2.get_IntOp(Deriv=Deriv, Mode=IntMode)
-
-    if True:
-        LL = LL[0] + LL[1]
-    b = ddat/ssigm                      # DB
-    Tm = np.diag(1./ssigm).dot(tmat)    # DB
-    Tb = Tm.T.dot(b)                    # DB
-    TT = Tm.T.dot(Tm)                   # DB
-    sol0, mu0 = InvLin_DisPrinc_V1_Sparse(
-        NMes, Nbf,
-        SpFc[SpType](Tm),
-        SpFc[SpType](TT),
-        SpFc[SpType](LL),
-        Tb,
-        b,
-        sol0,
-        ConvCrit=ConvCrit,
-        mu0=mu0,
-        chi2Tol=0.2,
-        chi2Obj=1.2,
-        M=None,
-        Verb=True,
-    )[0:2]    # DB
-
-    Tm = np.diag(1./ssigm).dot(tmat)
-    Tb = Tm.T.dot(b)
-    TT = SpFc[SpType](Tm.T.dot(Tm))
-
-    sol0, mu0, chi2N0, R0, Nit0, spec0 = func(
-        NMes, Nbf, SpFc[SpType](Tm), TT, LL, Tb, b, sol0,
-        ConvCrit=ConvCrit, mu0=mu0, M=None, Verb=False, **KWARGS,
-    )
-    """
 
     # -------------
     # compute
 
     if verb >= 1:
-        t2 = time.process_time()
+        # t2 = time.process_time()
         t2 = time.perf_counter()
         print(f"{t2-t1} s", end='\n', flush=True)
         print("Starting time loop...", end='\n', flush=True)
@@ -218,7 +196,7 @@ def compute_inversions(
     )
 
     if verb >= 1:
-        t3 = time.process_time()
+        # t3 = time.process_time()
         t3 = time.perf_counter()
         print(f"{t3-t2} s", end='\n', flush=True)
         print("Post-formatting results...", end='\n', flush=True)
@@ -472,7 +450,7 @@ def _update_TTyn(
 # #############################################################################
 
 
-def inv_linear_augTikho_v1(
+def inv_linear_augTikho_dense(
     Tn=None,
     TTn=None,
     Tyn=None,
@@ -559,7 +537,7 @@ def inv_linear_augTikho_v1(
     return sol, mu1, res2/nchan, reg, niter, [tau, lamb]
 
 
-def inv_linear_augTikho_v1_sparse(
+def inv_linear_augTikho_sparse(
     Tn=None,
     TTn=None,
     Tyn=None,
@@ -578,6 +556,8 @@ def inv_linear_augTikho_v1_sparse(
     conv_reg=True,
     verb=None,
     verb2head=None,
+    maxiter=None,
+    tol=None,
     precond=None,       # test
     **kwdargs,
 ):
@@ -604,18 +584,21 @@ def inv_linear_augTikho_v1_sparse(
     # loop
     # Continue until convergence criterion, and at least 2 iterations
     while  niter < 2 or conv > conv_crit:
-        sol = scpsp.linalg.spsolve(
-              TTn + mu0*R, Tyn,
-              permc_spec=None,
-              use_umfpack=True,
-        )
-        # sol, itconv = scpsp.linalg.cg(
-            # TTn + mu0*R, Tyn,
-            # x0=sol0,
-            # tol=1e-08,
-            # maxiter=100,
-            # M=precond,
+
+        # sol = scpsp.linalg.spsolve(
+              # TTn + mu0*R, Tyn,
+              # permc_spec=None,
+              # use_umfpack=True,
         # )
+
+        # seems faster
+        sol, itconv = scpsp.linalg.cg(
+            TTn + mu0*R, Tyn,
+            x0=sol0,
+            tol=tol,
+            maxiter=maxiter,
+            M=precond,
+        )
 
         res2 = np.sum((Tn.dot(sol)-yn)**2)      # residu**2
         reg = sol.dot(R.dot(sol))       # regularity term
@@ -649,7 +632,7 @@ def inv_linear_augTikho_v1_sparse(
     return sol, mu1, res2/nchan, reg, niter, [tau, lamb]
 
 
-def inv_linear_augTikho_chol(
+def inv_linear_augTikho_chol_dense(
     Tn=None,
     TTn=None,
     Tyn=None,
@@ -878,7 +861,7 @@ def inv_linear_augTikho_chol_sparse(
     return sol, mu1, res2/nchan, reg, niter, [tau, lamb]
 
 
-def inv_linquad_augTikho_v1(
+def inv_linear_augTikho_pos_dense(
     Tn=None,
     TTn=None,
     Tyn=None,
@@ -976,7 +959,7 @@ def inv_linquad_augTikho_v1(
 # #############################################################################
 
 
-def inv_linear_DisPrinc_v1(
+def inv_linear_DisPrinc_sparse(
     Tn=None,
     TTn=None,
     Tyn=None,
@@ -992,6 +975,7 @@ def inv_linear_DisPrinc_v1(
     chi2n_tol=None,
     chi2n_obj=None,
     maxiter=None,
+    tol=None,
     **kwdargs,
 ):
     """
@@ -1016,13 +1000,12 @@ def inv_linear_DisPrinc_v1(
         sol, itconv = scpsp.linalg.cg(
             TTn + lmu[-1]*R, Tyn,
             x0=sol0,
-            tol=1e-08,
+            tol=tol,
             maxiter=maxiter,
             M=precond,
         )
 
         lchi2n = np.append(lchi2n, np.sum((Tn.dot(sol) - yn)**2) / nchan)
-        reg = sol.dot(R.dot(sol))           # regularity term
 
         if niter == 0:
             if lchi2n[-1] >= chi2n_obj + chi2n_tol:
@@ -1048,11 +1031,10 @@ def inv_linear_DisPrinc_v1(
                 sol, itconv = scpsp.linalg.cg(
                     TTn + lmu[-1]*R, Tyn,
                     x0=sol0,
-                    tol=1e-08,
+                    tol=tol,
                     maxiter=maxiter,
                     M=precond,
                 )
-                reg = sol.dot(R.dot(sol))           # regularity term
                 break
             else:
                 indsort = np.argsort(lchi2n[1:])
@@ -1064,6 +1046,7 @@ def inv_linear_DisPrinc_v1(
 
         # verb
         if verb >= 2:
+            reg = sol.dot(R.dot(sol))
             res2 = np.sum((Tn.dot(sol)-yn)**2)
             temp1 = f"{nchan} * {lchi2n[-1]:.3e} + {lmu[-1]:.3e} * {reg:.3e}"
             temp2 = f"{res2 + lmu[-1]*reg:.3e}"
@@ -1073,4 +1056,5 @@ def inv_linear_DisPrinc_v1(
         sol0[:] = sol
         niter += 1
 
+    reg = sol.dot(R.dot(sol))           # regularity term
     return sol, lmu[-1], lchi2n[-1], reg, niter, None

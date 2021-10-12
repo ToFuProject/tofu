@@ -13,6 +13,21 @@ import scipy.sparse as scpsp
 from . import _generic_check
 
 
+_LALGO = [
+    'inv_linear_augTikho_sparse',
+    'inv_linear_augTikho_dense',
+    'inv_linear_augTikho_chol_dense',
+    'inv_linear_augTikho_chol_sparse',
+    'inv_linear_augTikho_pos_dense',
+    'inv_linear_DisPrinc_sparse',
+]
+_LREGPARAM_ALGO = [
+    'augTikho',
+    'DisPrinc',
+]
+
+
+
 # #############################################################################
 # #############################################################################
 #                           main
@@ -20,27 +35,37 @@ from . import _generic_check
 
 
 def _compute_check(
+    # input data
     coll=None,
     key_matrix=None,
     key_data=None,
     key_sigma=None,
     data=None,
     sigma=None,
-    conv_crit=None,
+    # choice of algo
     isotropic=None,
     sparse=None,
-    chain=None,
     positive=None,
+    cholesky=None,
+    regparam_algo=None,
     algo=None,
+    # regularity operator
     solver=None,
     operator=None,
     geometry=None,
+    # misc 
+    conv_crit=None,
+    chain=None,
+    verb=None,
+    store=None,
+    # algo and solver-specific options
     kwdargs=None,
     method=None,
     options=None,
-    verb=None,
-    store=None,
 ):
+
+    # ----
+    # keys
 
     # key_matrix
     lk = list(coll.dobj.get('matrix', {}).keys())
@@ -76,6 +101,9 @@ def _compute_check(
             allowed=lk,
         )
         data = coll.ddata[key_data]['data']
+
+    # ------------
+    # data, sigma
 
     # data
     data = _generic_check._check_var(
@@ -148,21 +176,107 @@ def _compute_check(
         msg = "Arg sigma should not contain NaNs or inf!"
         raise Exception(msg)
 
-    # conv_crit
-    conv_crit = _generic_check._check_var(
-        conv_crit, 'conv_crit',
-        default=1e-4,
-        types=float,
+    # --------------
+    # choice of algo
+
+    lc = [
+        algo is None,
+        all([kk is None for kk in [isotropic, positive, sparse, cholesky]])
+    ]
+
+    if not any(lc):
+        msg = (
+            "Please provide either (xor):\n"
+            "\t- algo: directly provide the algo name\n"
+            "\t- flags for choosing the algo:\n"
+            "\t\t- isotropic: whether to perform isotropic regularization\n"
+            "\t\t- sparse: whether to use sparse matrices\n"
+            "\t\t- positive: whether to enforce a positivity constraint\n"
+            "\t\t- cholesky: whether to use cholesky factorization\n"
+        )
+        raise Exception(msg)
+
+    if all(lc):
+        algo = 'inv_linear_augTikho_sparse'
+        lc[0] = False
+
+    if not lc[0] and lc[1]:
+        # extract keywrods from algo name
+        isotropic = True
+        positive = 'pos' in algo
+        sparse = 'sparse' in algo
+        cholesky = 'chol' in algo
+
+        for aa in _LREGPARAM_ALGO:
+            if f'_{aa}_' in algo:
+                regparam_algo = aa
+                break
+        else:
+            msg = 'Unreckognized algo for regularization parameter!'
+            raise Exception(msg)
+
+    elif lc[0] and not lc[1]:
+        # get algo name from keywords
+
+        # isotropic
+        isotropic = _generic_check._check_var(
+            isotropic, 'isotropic',
+            default=True,
+            types=bool,
+        )
+        if isotropic is False:
+            msg = "Anisotropic regularization unavailable yet"
+            raise NotImplementedError(msg)
+
+        # sparse and matrix and operator
+        sparse = _generic_check._check_var(
+            sparse, 'sparse',
+            default=True,
+            types=bool,
+        )
+
+        # positive
+        positive = _generic_check._check_var(
+            positive, 'positive',
+            default=False,
+            types=bool,
+        )
+
+        # cholesky
+        cholesky = _generic_check._check_var(
+            cholesky, 'cholesky',
+            default=False,
+            types=bool,
+        )
+        if positive and cholesky is False:
+            msg = "cholesky cannot be used for positive constraint!"
+            raise Exception(msg)
+
+        # regparam_algo
+        regparam_algo = _generic_check._check_var(
+            regparam_algo, 'regparam_algo',
+            default='augTikho',
+            types=str,
+            allowed=_LREGPARAM_ALGO,
+        )
+
+        algo = f"inv_linear_{regparam_algo}"
+        if cholesky:
+            algo += '_chol'
+        elif positive:
+            algo += '_pos'
+        algo += f"_{'sparse' if sparse else 'dense'}"
+
+    # final algo check
+    algo = _generic_check._check_var(
+        algo, 'algo',
+        default=None,
+        types=str,
+        allowed=_LALGO,
     )
 
-    # isotropic
-    isotropic = _generic_check._check_var(
-        isotropic, 'isotropic',
-        default=True,
-        types=bool,
-    )
-    if isotropic is False:
-        raise NotImplementedError("Anisotropic regularization unavailable yet")
+    # -------------------
+    # regularity operator
 
     # get operator
     opmat, operator, geometry, dim, ref, crop = coll.add_bsplines_operator(
@@ -190,12 +304,10 @@ def _compute_check(
     assert data.shape[1] == nchan
     nt = data.shape[0]
 
-    # sparse and matrix and operator
-    sparse = _generic_check._check_var(
-        sparse, 'sparse',
-        default=True,
-        types=bool,
-    )
+    # -------------------
+    # consistent sparsity
+
+    # sparse
     if sparse is True:
         if not scpsp.issparse(matrix):
             matrix = scpsp.csc_matrix(matrix)
@@ -206,6 +318,17 @@ def _compute_check(
             matrix = matrix.toarray()
         if scpsp.issparse(opmat[0]):
             opmat = [scpsp.csc_matrix(pp).toarray() for pp in opmat]
+
+    # -----------------------
+    # miscellaneous parameter
+
+    # conv_crit
+    conv_crit = _generic_check._check_var(
+        conv_crit, 'conv_crit',
+        default=1e-4,
+        types=float,
+    )
+
 
     # chain
     chain = _generic_check._check_var(
@@ -235,37 +358,6 @@ def _compute_check(
     if key_data is None:
         store = False
 
-    # positive
-    positive = _generic_check._check_var(
-        positive, 'positive',
-        default=False,
-        types=bool,
-    )
-
-    # algo
-    if positive is True:
-        metdef = 'InvLinQuad_AugTikho_V1'
-    else:
-        if sparse:
-            metdef = 'inv_linear_augTikho_chol_sparse'
-        else:
-            metdef = 'inv_linear_augTikho_v1'
-
-    metok = [
-        'inv_linear_augTikho_v1_sparse',
-        'inv_linear_augTikho_v1',
-        'inv_linear_augTikho_chol',
-        'inv_linear_augTikho_chol_sparse',
-        'inv_linquad_augTikho_v1',
-        'inv_linear_DisPrinc_v1',
-    ]
-    algo = _generic_check._check_var(
-        algo, 'algo',
-        default=metdef,
-        types=str,
-        allowed=metok,
-    )
-
     # solver
     solver = _generic_check._check_var(
         solver, 'solver',
@@ -273,6 +365,9 @@ def _compute_check(
         types=str,
         allowed=['spsolve'],
     )
+
+    # ----------------------------------------
+    # algo-specific kwdargs and solver options
 
     # kwdargs, method, options
     kwdargs, method, options = _algo_check(
@@ -285,9 +380,11 @@ def _compute_check(
     )
 
     return (
-        key_matrix, key_data, key_sigma, keybs, keym, data, sigma, opmat,
-        conv_crit, operator, isotropic, sparse, matrix, crop, chain,
-        positive, algo, solver, kwdargs, method, options, verb, store,
+        key_matrix, key_data, key_sigma, keybs, keym,
+        data, sigma, matrix, opmat, operator, geometry,
+        isotropic, sparse, positive, cholesky, regparam_algo, algo,
+        conv_crit, crop, chain, kwdargs, method, options,
+        solver, verb, store,
     )
 
 
@@ -308,7 +405,7 @@ def _algo_check(
 ):
 
     # ------------------------
-    # algo specific kwdargs
+    # generic kwdargs
 
     # kwdargs
     if kwdargs is None:
@@ -318,15 +415,14 @@ def _algo_check(
     if kwdargs.get('maxiter') is None:
         kwdargs['maxiter'] = 100
 
+    if kwdargs.get('tol') is None:
+        kwdargs['tol'] = 1.e-6
+
+    # ------------------------
+    # algo specific kwdargs
+
     # kwdargs specific to aug. tikhonov
-    laugtikho = [
-        'inv_linear_augTikho_v1',
-        'inv_linear_augTikho_v1_sparse',
-        'inv_linear_augTikho_chol',
-        'inv_linear_augTikho_chol_sparse',
-        'inv_linquad_augTikho_v1',
-    ]
-    if algo in laugtikho:
+    if 'augTikho' in algo:
         if kwdargs.get('a0') is None:
             kwdargs['a0'] = 10
         if kwdargs.get('a1') is None:

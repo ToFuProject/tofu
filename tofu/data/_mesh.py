@@ -519,43 +519,64 @@ class Mesh2DRect(DataCollection):
 
     def add_inversion(
         self,
+        # input data
         key_matrix=None,
         key_data=None,
+        key_sigma=None,
         data=None,
         sigma=None,
-        conv_crit=None,
+        # choice of algo
+        isotropic=None,
+        sparse=None,
+        positive=None,
+        cholesky=None,
+        regparam_algo=None,
+        algo=None,
+        # regularity operator
         operator=None,
         geometry=None,
-        isotropic=None,
-        algo=None,
-        sparse=None,
+        # misc 
+        solver=None,
+        conv_crit=None,
         chain=None,
-        positive=None,
         verb=None,
-        maxiter=None,
         store=None,
+        # algo and solver-specific options
+        kwdargs=None,
+        method=None,
+        options=None,
     ):
         """ Compute tomographic inversion
 
         """
 
         return _inversions_comp.compute_inversions(
+            # input data
             coll=self,
             key_matrix=key_matrix,
             key_data=key_data,
+            key_sigma=key_sigma,
             data=data,
             sigma=sigma,
-            conv_crit=conv_crit,
+            # choice of algo
+            isotropic=isotropic,
+            sparse=sparse,
+            positive=positive,
+            cholesky=cholesky,
+            regparam_algo=regparam_algo,
+            algo=algo,
+            # regularity operator
             operator=operator,
             geometry=geometry,
-            isotropic=isotropic,
-            algo=algo,
-            sparse=sparse,
+            # misc 
+            conv_crit=conv_crit,
             chain=chain,
-            positive=positive,
             verb=verb,
-            maxiter=maxiter,
             store=store,
+            # algo and solver-specific options
+            kwdargs=kwdargs,
+            method=method,
+            options=options,
         )
 
     # -----------------
