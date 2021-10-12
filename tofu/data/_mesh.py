@@ -690,7 +690,7 @@ class Mesh2DRect(DataCollection):
     ):
         return _matrix_plot.plot_geometry_matrix(
             cam=cam,
-            matrix=self,
+            coll=self,
             key=key,
             indbf=indbf,
             indchan=indchan,

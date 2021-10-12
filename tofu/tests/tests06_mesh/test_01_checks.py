@@ -319,9 +319,14 @@ class Test02_Mesh2DRect():
         # compute geometry matrices
         for ii, (k0, v0) in enumerate(self.dobj.items()):
 
-            mat = self.dobj[k0].compute_geometry_matrix(
-                cam=cam, res=0.01, crop=True,
+            self.dobj[k0].add_geometry_matrix(
+                cam=cam,
+                res=0.01,
+                crop=True,
+                store=True,
             )
 
-            dax = mat.plot_geometry_matrix(cam=cam, indchan=12, indbf=100)
+            dax = self.dobj[k0].plot_geometry_matrix(
+                cam=cam, indchan=12, indbf=100,
+            )
             plt.close('all')
