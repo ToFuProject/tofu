@@ -182,6 +182,7 @@ def compute_inversions(
         isotropic=isotropic,
         conv_crit=conv_crit,
         sparse=sparse,
+        positive=positive,
         chain=chain,
         verb=verb,
         sol=sol,
@@ -226,10 +227,30 @@ def compute_inversions(
         keyinv = f'inv{ninv}'
 
         # ref
-        refinv = tuple(
-            [coll.ddata[key_data]['ref'][0]]
-            + list(coll.dobj['bsplines'][keybs]['ref'])
-        )
+        refmat = coll.ddata[key_matrix]['ref']
+        refdata = coll.ddata[key_data]['ref']
+
+        if refdata == (refmat[0],):
+            refinv = coll.dobj['bsplines'][keybs]['ref']
+            assert sol_full.shape[0] == 1
+            sol_full = sol_full[0, ...]
+            notime = True
+
+        elif refdata[0] not in refmat:
+            refinv = tuple(
+                [refdata[0]] + list(coll.dobj['bsplines'][keybs]['ref'])
+            )
+            notime = False
+
+        else:
+            msg = (
+                "Unreckognized shape of sol_full vs refinv!\n"
+                f"\t- sol_full.shape: {sol_full.shape}\n"
+                f"\t- inv['ref']:    {refinv}\n"
+                f"\t- matrix['ref']: {refmat}\n"
+                f"\t- data['ref']:   {refdata}\n"
+            )
+            raise Exception(msg)
 
         # dict
         ddata = {
@@ -237,31 +258,39 @@ def compute_inversions(
                 'data': sol_full,
                 'ref': refinv,
             },
-            f'{keyinv}-chi2n': {
-                'data': chi2n,
-                'ref': refinv[0],
-            },
-            f'{keyinv}-mu': {
-                'data': mu,
-                'ref': refinv[0],
-            },
-            f'{keyinv}-reg': {
-                'data': regularity,
-                'ref': refinv[0],
-            },
-            f'{keyinv}-niter': {
-                'data': niter,
-                'ref': refinv[0],
-            },
         }
+        if notime is False:
+            ddata.update({
+                f'{keyinv}-chi2n': {
+                    'data': chi2n,
+                    'ref': refinv[0],
+                },
+                f'{keyinv}-mu': {
+                    'data': mu,
+                    'ref': refinv[0],
+                },
+                f'{keyinv}-reg': {
+                    'data': regularity,
+                    'ref': refinv[0],
+                },
+                f'{keyinv}-niter': {
+                    'data': niter,
+                    'ref': refinv[0],
+                },
+            })
 
         if key_sigma is None:
             key_sigma = f'{key_data}-sigma'
-            if sigma.shape == data.shape:
+            if notime:
                 ref_sigma = coll.ddata[key_data]['ref']
-            else:
-                ref_sigma = coll.ddata[key_data]['ref'][1:]
                 sigma = sigma[0, :]
+            else:
+                if sigma.shape == data.shape:
+                    ref_sigma = coll.ddata[key_data]['ref']
+                else:
+                    ref_sigma = coll.ddata[key_data]['ref'][1:]
+                    sigma = sigma[0, :]
+
             ddata.update({
                 key_sigma: {
                     'data': sigma,
@@ -288,9 +317,15 @@ def compute_inversions(
                 },
             },
         }
+        if notime is True:
+            dobj['inversions'][keyinv].update({
+                'chi2n': chi2n,
+                'mu': mu,
+                'reg': regularity,
+                'niter': niter,
+            })
 
         coll.update(dobj=dobj, ddata=ddata)
-
 
     else:
         return sol_full, mu, chi2n, regularity, niter, spec
@@ -318,6 +353,7 @@ def _compute_inv_loop(
     conv_crit=None,
     isotropic=None,
     sparse=None,
+    positive=None,
     chain=None,
     verb=None,
     sol=None,
@@ -346,7 +382,7 @@ def _compute_inv_loop(
     # -----------------------------------
     # Options for quadratic solvers only
 
-    if 'quad' in algo:
+    if positive is True:
 
         bounds = tuple([(0., None) for ii in range(0, sol0.size)])
         def func_val(x, mu=mu0, Tn=Tn, yn=data_n[0, :], TTn=None, Tyn=None):

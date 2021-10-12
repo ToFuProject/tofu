@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 # tofu-specific
 from tofu import __version__
 import tofu as tf
-import tofu.data as tfd
 
 
 _here = os.path.abspath(os.path.dirname(__file__))
@@ -56,273 +55,95 @@ def teardown_module():
 #######################################################
 
 
-class Test01_checks():
-
-    @classmethod
-    def setup_class(cls):
-        pass
-
-    @classmethod
-    def setup(self):
-        pass
-
-    def teardown(self):
-        pass
-
-    @classmethod
-    def teardown_class(cls):
-        pass
-
-    def test01_mesh2DRect_X_check(self):
-
-        lx = [[1, 2], [1, 2, 3, 4]]
-        lres = [None, 10, 0.1, [0.1, 0.2], [0.1, 0.2, 0.3, 0.1]]
-
-        for comb in itt.product(lx, lres):
-            if hasattr(lres, '__iter__') and len(lres) != len(lx):
-                continue
-            x, res, ind = tfd._mesh_checks._mesh2DRect_X_check(
-                x=[1, 2, 3, 4],
-                res=10,
-            )
-            if hasattr(lres, '__iter__'):
-                assert x_new.size == np.unique(x_new).size == res.size + 1
-
-
-#######################################################
-#
-#     object mesh2D
-#
-#######################################################
-
-
-class Test02_Mesh2DRect():
+class Test01_Inversions():
 
     @classmethod
     def setup_class(cls):
         pass
 
     def setup(self):
-        self.dobj = {
-            'm0': tfd.Mesh2DRect(),
-            'm1': tfd.Mesh2DRect(),
-            'm2': None,
-            'm3': tfd.Mesh2DRect(),
-        }
 
-        # add mesh
-        ldomain = [
-            [[2, 3], [-1, 1]],
-            [[2, 2.3, 2.6, 3], [-1, 0., 1]],
-            [[2, 3], [-1, 0, 1]],
-        ]
-        lres = [
-            0.1,
-            [[0.2, 0.1, 0.1, 0.2], [0.2, 0.1, 0.2]],
-            [0.1, [0.2, 0.1, 0.2]],
-        ]
-
-        i0 = 0
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            if k0 != 'm2':
-                self.dobj[k0].add_mesh(
-                    domain=ldomain[i0],
-                    res=lres[i0],
-                    key=k0,
-                )
-                i0 += 1
-            else:
-                self.dobj[k0] = tfd.Mesh2DRect.from_Config(
-                    tf.load_config('WEST'),
-                    res=0.1,
-                    key=k0,
-                )
-
-        # add splines
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            self.dobj[k0].add_bsplines(deg=ii)
-
-    def teardown(self):
-        pass
-
-    @classmethod
-    def teardown_class(cls):
-        pass
-
-    def test01_get_summary(self):
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            self.dobj[k0].get_summary()
-
-    def test02_select_ind(self):
-        lkey = ['m0', 'm1-bs1', 'm2', 'm3-bs3']
-        lelements = ['knots', None, 'cents', None]
-        lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
-        lcrop = [True, False, True, False]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            indt = self.dobj[k0].select_ind(
-                key=lkey[ii],
-                ind=lind[ii],
-                elements=lelements[ii],
-                returnas=tuple,
-                crop=lcrop[ii],
-            )
-            indf = self.dobj[k0].select_ind(
-                key=lkey[ii],
-                ind=indt,
-                elements=lelements[ii],
-                returnas=np.ndarray,
-                crop=lcrop[ii],
-            )
-            indt2 = self.dobj[k0].select_ind(
-                key=lkey[ii],
-                ind=indf,
-                elements=lelements[ii],
-                returnas=tuple,
-                crop=lcrop[ii],
-            )
-            assert all([np.allclose(indt[ii], indt2[ii]) for ii in [0, 1]])
-
-    def test03_select_mesh(self):
-        lkey = ['m0', 'm1', 'm2', 'm3']
-        lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
-        lelements = ['cents', 'knots', 'cents', None]
-        lreturnas = ['ind', 'data', 'data', 'ind']
-        lreturn_neig = [None, True, False, True]
-        lcrop = [False, True, True, False]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            indf = self.dobj[k0].select_mesh_elements(
-                key=lkey[ii],
-                ind=lind[ii],
-                elements=lelements[ii],
-                returnas=lreturnas[ii],
-                return_neighbours=lreturn_neig[ii],
-                crop=lcrop[ii],
-            )
-
-    def test04_select_bsplines(self):
-        lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
-        lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
-        lreturnas = [None, 'data', 'data', 'ind']
-        lreturn_cents = [None, True, False, True]
-        lreturn_knots = [None, False, True, True]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            indf = self.dobj[k0].select_bsplines(
-                key=lkey[ii],
-                ind=lind[ii],
-                returnas=lreturnas[ii],
-                return_cents=lreturn_cents[ii],
-                return_knots=lreturn_knots[ii],
-            )
-
-    def test05_sample_mesh(self):
-        lres = [None, 0.1, 0.01, [0.1, 0.05]]
-        lmode = [None, 'rel', 'abs', 'abs']
-        lgrid = [None, True, False, False]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            out = v0.get_sample_mesh(
-                res=lres[ii], grid=lgrid[ii], mode=lmode[ii],
-            )
-
-    """
-    def test06_sample_bspline(self):
-        lres = [None, 0.1, 0.01, [0.1, 0.05]]
-        lmode = [None, 'rel', 'abs', 'abs']
-        lgrid = [None, True, False, False]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            out = v0.get_sample_bspline(
-                res=lres[ii], grid=lgrid[ii], mode=lmode[ii],
-            )
-    """
-
-    def test07_plot_mesh(self):
-        lik = [None, ([0, 2], [0, 3]), [2, 3], None]
-        lic = [None, ([0, 2], [0, 3]), None, [2, 3]]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            dax = self.dobj[k0].plot_mesh(
-                ind_knot=lik[ii],
-                ind_cent=lic[ii],
-            )
-        plt.close('all')
-
-    def test08_plot_bsplines(self):
-        lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
-        lind = [None, ([1, 2], [2, 1]), (1, 1), [1, 2, 10]]
-        lknots = [None, True, False, True]
-        lcents = [False, False, True, True]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            dax = self.dobj[k0].plot_bsplines(
-                key=lkey[ii],
-                ind=lind[ii],
-                knots=lknots[ii],
-                cents=lcents[ii],
-            )
-        plt.close('all')
-
-    def test09_plot_profile2d(self):
-        lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            key = str(ii)
-            kbs = lkey[ii]
-            ref = self.dobj[k0].dobj['bsplines'][kbs]['ref']
-            shapebs = self.dobj[k0].dobj['bsplines'][kbs]['shape']
-
-            self.dobj[k0].add_data(
-                key=key,
-                data=np.random.random(shapebs),
-                ref=ref,
-            )
-
-            dax = self.dobj[k0].plot_profile2d(
-                key=key,
-            )
-        plt.close('all')
-
-    def test10_add_bsplines_operator(self):
-        lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2']
-        lop = ['D0', 'D0N2', 'D1N2', 'D2N2']
-        lgeom = ['linear', 'toroidal']
-        lcrop = [False, True]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            if ii == 3:
-                continue
-
-            for comb in itt.product(lop, lgeom, lcrop):
-                deg = self.dobj[k0].dobj['bsplines'][lkey[ii]]['deg']
-                if int(comb[0][1]) > deg:
-                    continue
-                try:
-                    self.dobj[k0].add_bsplines_operator(
-                        key=lkey[ii],
-                        operator=comb[0],
-                        geometry=comb[1],
-                        crop=comb[2],
-                    )
-                except Exception as err:
-                    import pdb; pdb.set_trace()     # DB
-                    pass
-
-    def test11_compute_plot_geometry_matrix(self):
-
-        # get config and cam
-        conf = tf.load_config('WEST-V0')
+        # create conf and cam
+        conf0 = tf.load_config('WEST-V0')
         cam = tf.geom.utils.create_CamLOS1D(
-            pinhole=[3., 1., 0.],
-            orientation=[np.pi, 0., 0],
+            pinhole=[3.0, 1., 0.3],
             focal=0.1,
-            sensor_nb=50,
-            sensor_size=0.15,
-            config=conf,
-            Diag='SXR',
+            sensor_size=0.1,
+            sensor_nb=30,
+            orientation=[-5*np.pi/6, 0, 0],
+            config=conf0,
+            Name='camH',
             Exp='WEST',
-            Name='cam1',
+            Diag='SXR',
         )
 
-        # compute geometry matrices
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
+        # mesh deg 1 and 2
+        mesh = tf.data.Mesh2DRect.from_Config(
+            config=conf0,
+            key='try1',
+            res=0.10,
+            deg=1,
+        )
+        mesh.add_bsplines(deg=2)
 
-            mat = self.dobj[k0].compute_geometry_matrix(
-                cam=cam, res=0.01, crop=True,
-            )
+        # add geometry matrices
+        chan = np.arange(0, 30)
+        mesh.add_ref(key='chan', data=chan, group='chan')
+        mesh.add_geometry_matrix(cam=cam, key='try1-bs1', key_chan='chan')
+        mesh.add_geometry_matrix(cam=cam, key='try1-bs2', key_chan='chan')
 
-            dax = mat.plot_geometry_matrix(cam=cam, indchan=12, indbf=100)
-            plt.close('all')
+        # add data
+        t0 = np.array([0])
+        t1 = np.array([0, 1.])
+        data0 = np.exp(-(chan - 15.)**2/10**2)
+        data1 = (
+            np.exp(-(chan - 15.)**2/10**2)
+            + 0.1*np.cos(t1)[:, None]*np.exp(-(chan - 15)**2/2**2)
+        )
+        # mesh.add_ref(key='t0', data=t0, units='s', group='time')
+        mesh.add_ref(key='t1', data=t1, units='s', group='time')
+        mesh.add_data(key='data0', data=data0, ref=('chan',))
+        mesh.add_data(key='data1', data=data1, ref=('t1', 'chan'))
+
+        self.mesh = mesh
+
+    def teardown(self):
+        pass
+
+    @classmethod
+    def teardown_class(cls):
+        pass
+
+    def test01_run_all_and_plot(self):
+
+        lalgo = tf.data._mesh._inversions_comp._inversions_checks._LALGO
+        lstore = [True, False]
+        lkdata = ['data0', 'data1']
+
+        # running
+        for kmat in ['matrix0', 'matrix1']:
+
+            lop = ['D1N2'] if kmat == 'matrix0' else ['D1N2', 'D2N2']
+
+            for comb in itt.product(lalgo, lkdata, lop, lstore):
+                self.mesh.add_inversion(
+                    algo=comb[0],
+                    key_matrix=kmat,
+                    key_data=comb[1],
+                    sigma=0.10,
+                    operator=comb[2],
+                    store=comb[3],
+                    conv_crit=1.e-3,
+                    kwdargs={'tol': 1.e-4},
+                    verb=0,
+                )
+                ksig = f'{comb[1]}-sigma'
+                if ksig in self.mesh.ddata.keys():
+                    self.mesh.remove_data(ksig)
+
+        # plotting
+        linv = list(self.mesh.dobj['inversions'].keys())[::7]
+        for kinv in linv:
+            dax = self.mesh.plot_inversion(key=kinv)
+
+        plt.close('all')

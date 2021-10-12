@@ -490,6 +490,7 @@ class Mesh2DRect(DataCollection):
     def add_geometry_matrix(
         self,
         key=None,
+        key_chan=None,
         cam=None,
         res=None,
         resMode=None,
@@ -503,6 +504,7 @@ class Mesh2DRect(DataCollection):
         return _matrix_comp.compute(
             coll=self,
             key=key,
+            key_chan=key_chan,
             cam=cam,
             res=res,
             resMode=resMode,

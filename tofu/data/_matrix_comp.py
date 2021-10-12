@@ -109,6 +109,7 @@ def _compute_check(
 def compute(
     coll=None,
     key=None,
+    key_chan=None,
     cam=None,
     res=None,
     resMode=None,
@@ -201,32 +202,37 @@ def compute(
 
     if store:
 
-        lrchan = [
-            k0 for k0, v0 in coll.dref.items()
-            if v0['group'] == 'chan'
-            and k0.startswith('chan') and k0[4:].isdecimal()
-        ]
-        if len(lrchan) == 0:
-            chann = 0
-        else:
-            chann = max([int(k0.replace('chan', '')) for k0 in lrchan]) + 1
-        kchan = f'chan{chann}'
+        # add key chan is necessary
+        dref = None
+        if key_chan is None:
+            lrchan = [
+                k0 for k0, v0 in coll.dref.items()
+                if v0['group'] == 'chan'
+                and k0.startswith('chan') and k0[4:].isdecimal()
+            ]
+            if len(lrchan) == 0:
+                chann = 0
+            else:
+                chann = max([int(k0.replace('chan', '')) for k0 in lrchan]) + 1
+            key_chan = f'chan{chann}'
 
-        dref = {
-            kchan: {
-                'data': np.arange(0, nlos),
-                'group': 'chan',
-            },
-        }
+            dref = {
+                key_chan: {
+                    'data': np.arange(0, nlos),
+                    'group': 'chan',
+                },
+            }
 
+        # add matrix data
         keycropped = f'{key}-cropped' if crop is True else key
         ddata = {
             name: {
                 'data': mat,
-                'ref': (kchan, keycropped)
+                'ref': (key_chan, keycropped)
             },
         }
 
+        # add matrix obj
         dobj = {
             'matrix': {
                 name: {

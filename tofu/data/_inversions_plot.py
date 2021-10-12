@@ -121,31 +121,56 @@ def plot_inversion(
     synthetic = keydata in coll.dobj.get('synthetic', {}).keys()
 
     # data
-    data = coll.ddata[keydata]['data']
     keychan = coll.ddata[keydata]['ref'][-1]
     chan = coll.ddata[keychan]['data']
-    keyt = coll.ddata[keydata]['ref'][0]
-    time = coll.ddata[keyt]['data']
+    if 'time' in coll.ddata[keyinv]['group']:
+        data = coll.ddata[keydata]['data']
+        keyt = coll.ddata[keydata]['ref'][0]
+        time = coll.ddata[keyt]['data']
+    else:
+        data = coll.ddata[keydata]['data'][None, :]
+        time = [0]
+        indt = 0
 
     # reconstructed data
     matrix = coll.ddata[keymat]['data']
     sol = coll.ddata[keyinv]['data']
-    nt = sol.shape[0]
     shapebs = coll.dobj['bsplines'][keybs]['shape']
     nbs = int(np.prod(shapebs))
-    if cropbs is None:
-        data_re = matrix.dot(sol.reshape((nt, nbs), order='F'))
+
+    if cropbs is not None:
+        cropbs_flat = cropbs.ravel(order='F')
+    if 'time' in coll.ddata[keyinv]['group']:
+        nt = sol.shape[0]
+        if sol.ndim == 3:
+            sol_flat = sol.reshape((nt, nbs), order='F')
+        else:
+            sol_flat = sol
+        if cropbs is not None:
+            data_re = matrix.dot(sol_flat[:, cropbs_flat].T)
+        else:
+            data_re = matrix.dot(sol_flat[:, ...].T)
     else:
-        cropbsflat = cropbs.ravel(order='F')
-        iR = np.tile(np.arange(0, shapebs[0]), shapebs[1])[cropbsflat]
-        iZ = np.repeat(np.arange(0, shapebs[1]), shapebs[0])[cropbsflat]
-        data_re = matrix.dot(sol[:, iR, iZ].T)
+        if sol.ndim == 2:
+            sol_flat = sol.ravel(order='F')
+        else:
+            sol_flat = sol
+        if cropbs is not None:
+            data_re = matrix.dot(sol_flat[cropbs_flat].T)[:, None]
+        else:
+            data_re = matrix.dot(sol_flat.T)[:, None]
 
     # inversion parameters
-    nchi2n = chan.size*coll.ddata[f'{keyinv}-niter']['data']
-    mu = coll.ddata[f'{keyinv}-mu']['data']
-    reg = coll.ddata[f'{keyinv}-reg']['data']
-    niter = coll.ddata[f'{keyinv}-niter']['data']
+    if 'time' in coll.ddata[keyinv]['group']:
+        nchi2n = chan.size * coll.ddata[f'{keyinv}-niter']['data']
+        mu = coll.ddata[f'{keyinv}-mu']['data']
+        reg = coll.ddata[f'{keyinv}-reg']['data']
+        niter = coll.ddata[f'{keyinv}-niter']['data']
+    else:
+        nchi2n = chan.size * coll.dobj['inversions'][keyinv]['chi2n']
+        mu = coll.dobj['inversions'][keyinv]['mu']
+        reg = coll.dobj['inversions'][keyinv]['reg']
+        niter = coll.dobj['inversions'][keyinv]['niter']
 
     # indt
     if indt is None:
