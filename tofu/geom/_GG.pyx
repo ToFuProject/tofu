@@ -2743,6 +2743,17 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 #
 # ==============================================================================
 def triangulate_by_earclipping(np.ndarray[double,ndim=2] poly):
+    """
+    Triangulates a polygon by the earclipping method.
+    Params
+    =====
+    poly : (3, nvert) double array
+        Contains 3D coordinates of polygon in counter clockwise order
+    Returns
+    =======
+    ltri : (3*(nvert-2)) int array
+        Indices of triangles
+    """
     cdef int nvert = poly.shape[1]
     cdef np.ndarray[long,ndim=1] ltri = np.empty((nvert-2)*3, dtype=int)
     cdef double* diff = NULL
@@ -2750,10 +2761,10 @@ def triangulate_by_earclipping(np.ndarray[double,ndim=2] poly):
     # Initialization ...........................................................
     diff = <double*>malloc(3*nvert*sizeof(double))
     lref = <bint*>malloc(nvert*sizeof(bint))
-    _vt.compute_diff3d(&poly[0,0], nvert, diff)
-    _vt.are_points_reflex(nvert, diff, lref)
+    _vt.compute_diff3d(&poly[0,0], nvert, &diff[0])
+    _vt.are_points_reflex(nvert, diff, &lref[0])
     # Calling core function.....................................................
-    _vt.earclipping_poly(&poly[0,0], &ltri[0], diff, lref, nvert)
+    _vt.earclipping_poly(&poly[0,0], &ltri[0], &diff[0], &lref[0], nvert)
     free(diff)
     free(lref)
     return ltri
@@ -5178,9 +5189,6 @@ def compute_solid_angle_poly_map(list poly_coords,
         f"Total number of triangles = {tot_num_tri} "
         + " and was expecting: "
         + str(np.shape(poly_lnorms_tot)))
-
-    print("vec GB = ", vec_GB)
-    print("vec GC = ", vec_GC)
     _bgt.compute_dot_cross_vec(vec_GB,
                                vec_GC,
                                cross_GBGC,

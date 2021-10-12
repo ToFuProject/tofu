@@ -1571,6 +1571,12 @@ def test21_which_los_closer_vpoly_vec():
 # ==============================================================================
 def test22_earclipping():
     # .. First test ............................................................
+    #
+    #   (4,5) +------+(5,5)
+    #         |      |
+    #         |      |
+    #   (4,4) +------+(5,4)
+    #
     ves_poly0 = np.zeros((3, 4))
     ves_poly00 = [4, 5, 5, 4]
     ves_poly01 = [4, 4, 5, 5]
@@ -1587,8 +1593,6 @@ def test22_earclipping():
     ves_poly1[1] = y1
     # ...computing
     out = GG.triangulate_by_earclipping(ves_poly1)
-    # out = out.reshape((7, 3))
-    # print(out)
     assert np.allclose(out, [1, 2, 3, 1, 3, 4, 1, 4, 5,
                              0, 1, 5, 0, 5, 6, 0, 6, 7,
                              0, 7, 8])
@@ -1603,10 +1607,9 @@ def test22_earclipping():
     ves_poly2[2] = z2
     # ...computing
     out = GG.triangulate_by_earclipping(ves_poly2)
+
     assert np.allclose(out, [0, 1, 2, 2, 3, 4, 2, 4, 5, 2, 5, 6, 2, 6, 7,
                              0, 2, 7, 0, 7, 8, 0, 8, 9])
-    # out = out.reshape((npts-2, 3))
-    # print(out)
 
 def test23_vignetting():
    # .. First configuration ....................................................

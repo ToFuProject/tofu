@@ -28,20 +28,24 @@ from . cimport _basic_geom_tools as _bgt
 cdef inline bint is_reflex(const double[3] u,
                            const double[3] v) nogil:
     """
+    /\
+     \
+     v\
+       \______>
+       P  u
     Determines if the angle between U and -V is reflex (angle > pi) or not.
     Warning: note the MINUS in front of V, this was done as this is the only
              form how we will need this function. but it is NOT general.
+    Is reflex if
+            u x v has a negative 3rd coordinate
     """
     cdef int ii
     cdef double sumc
     cdef double[3] ucrossv
     # ...
-    _bgt.compute_cross_prod(u, v, ucrossv)
-    sumc = 0.0
-    for ii in range(3):
-        # normally it should be a sum, but it is a minus cause is we have (U,-V)
-        sumc += ucrossv[ii]
-    return sumc >= 0.
+    _bgt.compute_cross_prod(u, v, &ucrossv[0])
+    return ucrossv[2] >= 0.
+
 
 cdef inline void compute_diff3d(double* orig,
                                 int nvert,
