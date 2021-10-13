@@ -1,4 +1,4 @@
-name: Publish Python 🐍 distributions to TestPyPI
+name: Publish Python wheel distributions to PyPI
 
 on:
   release:
@@ -19,7 +19,10 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        python-version: '3.9'
+    - name: Display python version
+      run: |
+        python -c "import sys; print(sys.version)"
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -28,20 +31,13 @@ jobs:
       run: |
         echo ${{github.ref}}
     - name: Build manylinux Python wheels
-      uses: RalfG/python-wheels-manylinux-build@v0.3.3-manylinux2010_x86_64
+      uses: RalfG/python-wheels-manylinux-build@v0.3.4-manylinux2010_x86_64
       with:
-        python-versions: 'cp36-cp36m cp37-cp37m'
+        python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
         build-requirements: 'cython numpy'
-    - name: Publish package to TestPyPI
-      if: startsWith(github.ref, 'refs/tags')
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        user: __token__
-        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        repository_url: https://test.pypi.org/legacy/
-    - name: Publish package
-      if: startsWith(github.ref, 'refs/tags')
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+    - name: Publish wheels to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        twine upload dist/*-manylinux*.whl

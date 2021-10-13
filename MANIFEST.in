@@ -7,5 +7,8 @@ include _updateversion.py
 recursive-include tofu/geom *.pxd
 recursive-include tofu/geom/inputs *.txt
 recursive-include tofu/tests/tests01_geom/test_03_core_data *.txt
+recursive-include tofu/tests/tests01_geom/test_03_core_data *.npz
+recursive-include tofu/tests/tests01_geom/test_03_core_data *.svg
+recursive-include tofu/tests/tests04_spectro/test_data *.npz
 recursive-include tofu/mag/mag_ripple *.sh
 recursive-include tofu/mag/mag_ripple *.f

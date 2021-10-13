@@ -1092,8 +1092,10 @@ def CrystalBragg_plot_focal_error_summed(
     det_ref=None,
     units=None,
     plot_dets=None, nsort=None,
-    use_non_parallelism=None,
     tangent_to_rowland=None,
+    use_non_parallelism=None,
+    pts=None,
+    test_lamb_interv=None,
     contour=None,
     fs=None,
     cmap=None,
@@ -1146,8 +1148,17 @@ def CrystalBragg_plot_focal_error_summed(
         linewstyles='-',
         linewidths=1.,
     )
+    ax.contour(
+        ddist,
+        di,
+        test_lamb_interv,
+        contour,
+        colors='yellow',
+        linewstyles='-',
+        linewidths=1.,
+    )
 
-    # computing detector with exact position of det_ref
+    # Computing detector with exact position of det_ref
     if det_ref:
         dpsi0bis = float(dpsi0)
         if tangent_to_rowland:
@@ -1164,7 +1175,6 @@ def CrystalBragg_plot_focal_error_summed(
             use_non_parallelism=use_non_parallelism,
             tangent_to_rowland=False,
         )
-
         detector_comp['outline'] = det_ref['outline']
         ax.plot(
             ddist0,
@@ -1190,17 +1200,18 @@ def CrystalBragg_plot_focal_error_summed(
 
         # plot dets geometry with CrystalBragg_plot()
         if det_ref is not None:
-            dax = CrystalBragg_plot(
-                cryst=cryst, dcryst=dcryst,
+            dax = cryst.plot(
                 det=det_ref,
+                pts=pts,
                 color='black',
-                )
-            dax = CrystalBragg_plot(
-                    cryst=cryst, dcryst=dcryst,
-                    det=detector_comp, color='blue',
-                    dax=dax,
-                    element='ocv',
-                )
+            )
+            dax = cryst.plot(
+                det=detector_comp,
+                pts=pts,
+                color='blue',
+                element='ocv',
+                dax=dax,
+            )
             msg = (
                 "Parameters of reference detector:\n"
                 + "Center position in (x, y, z): ({})\n".format(
@@ -1222,11 +1233,12 @@ def CrystalBragg_plot_focal_error_summed(
                     tangent_to_rowland=tangent_to_rowland,
                 )
                 det[ii]['outline'] = det_ref['outline']
-                dax = CrystalBragg_plot(
-                    cryst=cryst, dcryst=dcryst,
-                    det=det[ii], color='red',
-                    dax=dax,
+                dax = cryst.plot(
+                    det=det[ii],
+                    pts=pts,
+                    color='red',
                     element='oc',
+                    dax=dax,
                 )
                 print(
                     "det: {}\n".format(det[ii])
