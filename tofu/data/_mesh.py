@@ -17,6 +17,8 @@ from . import _mesh_comp
 from . import _mesh_plot
 from . import _matrix_comp
 from . import _matrix_plot
+from . import _inversions_comp
+from . import _inversions_plot
 
 
 _GROUP_MESH = 'mesh'
@@ -292,6 +294,8 @@ class Mesh2DRect(DataCollection):
         if store is True:
             if operator in ['D0', 'D0N2']:
                 name = f'{key}-{operator}-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat,
@@ -302,6 +306,8 @@ class Mesh2DRect(DataCollection):
                 )
             elif operator == 'D1N2':
                 name = f'{key}-{operator}-dR-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[0],
@@ -311,6 +317,8 @@ class Mesh2DRect(DataCollection):
                     dim=dim,
                 )
                 name = f'{key}-{operator}-dZ-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[1],
@@ -321,6 +329,8 @@ class Mesh2DRect(DataCollection):
                 )
             elif operator == 'D2N2':
                 name = f'{key}-{operator}-d2R-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[0],
@@ -330,6 +340,8 @@ class Mesh2DRect(DataCollection):
                     dim=dim,
                 )
                 name = f'{key}-{operator}-d2Z-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[1],
@@ -339,6 +351,8 @@ class Mesh2DRect(DataCollection):
                     dim=dim,
                 )
                 name = f'{key}-{operator}-dRZ-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[2],
@@ -473,9 +487,10 @@ class Mesh2DRect(DataCollection):
     # geometry matrix
     # ------------------
 
-    def compute_geometry_matrix(
+    def add_geometry_matrix(
         self,
         key=None,
+        key_chan=None,
         cam=None,
         res=None,
         resMode=None,
@@ -483,11 +498,13 @@ class Mesh2DRect(DataCollection):
         crop=None,
         name=None,
         verb=None,
+        store=None,
     ):
 
-        dref, ddata, dobj = _matrix_comp.compute(
-            mesh=self,
+        return _matrix_comp.compute(
+            coll=self,
             key=key,
+            key_chan=key_chan,
             cam=cam,
             res=res,
             resMode=resMode,
@@ -495,9 +512,74 @@ class Mesh2DRect(DataCollection):
             crop=crop,
             name=name,
             verb=verb,
+            store=store,
         )
 
-        return Matrix(dref=dref, ddata=ddata, dobj=dobj)
+    # -----------------
+    # inversions
+    # ------------------
+
+    def add_inversion(
+        self,
+        # input data
+        key_matrix=None,
+        key_data=None,
+        key_sigma=None,
+        data=None,
+        sigma=None,
+        # choice of algo
+        isotropic=None,
+        sparse=None,
+        positive=None,
+        cholesky=None,
+        regparam_algo=None,
+        algo=None,
+        # regularity operator
+        operator=None,
+        geometry=None,
+        # misc
+        solver=None,
+        conv_crit=None,
+        chain=None,
+        verb=None,
+        store=None,
+        # algo and solver-specific options
+        kwdargs=None,
+        method=None,
+        options=None,
+    ):
+        """ Compute tomographic inversion
+
+        """
+
+        return _inversions_comp.compute_inversions(
+            # input data
+            coll=self,
+            key_matrix=key_matrix,
+            key_data=key_data,
+            key_sigma=key_sigma,
+            data=data,
+            sigma=sigma,
+            # choice of algo
+            isotropic=isotropic,
+            sparse=sparse,
+            positive=positive,
+            cholesky=cholesky,
+            regparam_algo=regparam_algo,
+            algo=algo,
+            # regularity operator
+            operator=operator,
+            geometry=geometry,
+            # misc
+            conv_crit=conv_crit,
+            chain=chain,
+            verb=verb,
+            store=store,
+            # algo and solver-specific options
+            kwdargs=kwdargs,
+            method=method,
+            options=options,
+        )
 
     # -----------------
     # plotting
@@ -590,9 +672,6 @@ class Mesh2DRect(DataCollection):
             dleg=dleg,
         )
 
-
-class Matrix(Mesh2DRect):
-
     def plot_geometry_matrix(
         self,
         cam=None,
@@ -611,10 +690,40 @@ class Matrix(Mesh2DRect):
     ):
         return _matrix_plot.plot_geometry_matrix(
             cam=cam,
-            matrix=self,
+            coll=self,
             key=key,
             indbf=indbf,
             indchan=indchan,
+            vmin=vmin,
+            vmax=vmax,
+            res=res,
+            cmap=cmap,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+        )
+
+    def plot_inversion(
+        self,
+        key=None,
+        indt=None,
+        vmin=None,
+        vmax=None,
+        res=None,
+        cmap=None,
+        dax=None,
+        dmargin=None,
+        fs=None,
+        dcolorbar=None,
+        dleg=None,
+    ):
+
+        return _inversions_plot.plot_inversion(
+            coll=self,
+            key=key,
+            indt=indt,
             vmin=vmin,
             vmax=vmax,
             res=res,
