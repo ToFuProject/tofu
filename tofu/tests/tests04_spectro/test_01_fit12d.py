@@ -156,7 +156,9 @@ class Test01_DataCollection(object):
                 amp=dlines[k0]['amp'] * np.exp(-var[:, None]**2/20**2),
                 lamb0=dlines[k0]['lambda0'],
                 sigma=dlines[k0]['sigma']*(
-                    1 + 2*(ii/len(dlines))*np.cos(var[:, None]*2*np.pi/50)
+                    1
+                    + 2*(ii/len(dlines))
+                    *np.cos(var[:, None]*2*np.pi/(2.1*(var[-1] - var[0])))
                 ),
                 delta=dlines[k0]['delta']*(
                     1 + 2*(ii/len(dlines))*np.sin(
@@ -171,7 +173,7 @@ class Test01_DataCollection(object):
                 phase=ii,
             )
 
-        mask = np.repeat((np.abs(var-15) < 3)[:, None], nlamb, axis=1)
+        mask = np.repeat((np.abs(var-15) > 3)[:, None], nlamb, axis=1)
 
         # Plot spect 2d
         # fig = plt.figure(figsize=(12, 10));
@@ -190,30 +192,7 @@ class Test01_DataCollection(object):
         # plt.show();
         # import pdb; pdb.set_trace()     # DB
 
-        cls.lamb = lamb
-        cls.var = var
-        cls.dlines = dlines
-        cls.spect2d = spect2d
-        cls.mask = mask
-        cls.ldinput1d = []
-        cls.ldfit1d = []
-        cls.ldex1d = []
-        cls.ldinput2d = []
-        cls.ldfit2d = []
-        cls.ldex2d = []
-
-    @classmethod
-    def setup(self):
-        pass
-
-    def teardown(self):
-        pass
-
-    @classmethod
-    def teardown_class(cls):
-        pass
-
-    def test01_fit1d_dinput(self):
+        # Define constraint dict
         defconst = {
             'amp': False,
             'width': False,
@@ -222,7 +201,6 @@ class Test01_DataCollection(object):
             'symmetry': False,
         }
 
-        # Define constraint dict
         ldconst = [
             {
                 'amp': {'a1': ['a', 'd']},
@@ -235,17 +213,6 @@ class Test01_DataCollection(object):
                 },
                 'double': True,
                 'symmetry': True,
-            },
-            {
-                'amp': False,
-                'width': 'group',
-                'shift': {
-                    'a': {'key': 's1', 'coef': 1., 'offset': 0.},
-                    'c': {'key': 's2', 'coef': 2., 'offset': 0.},
-                    'd': {'key': 's2', 'coef': 1., 'offset': 0.001e-10},
-                },
-                'double': False,
-                'symmetry': False,
             },
             {
                 'amp': False,
@@ -286,32 +253,70 @@ class Test01_DataCollection(object):
         ]
 
         ldata = [
-            self.spect2d[5, :],
-            self.spect2d[:5, :],
+            spect2d[5, :],
+            spect2d[5:8, :],
         ]
-        lpos = [False, True]
 
         lfocus = [None, 'a', [3.94e-10, 3.96e-10]]
 
         ldconstants = [None, {'shift': {'s1': 0}}]
 
-        combin = [ldconst, ldx0, ldomain, ldata, lpos, lfocus, ldconstants]
-        for comb in itt.product(*combin):
+        cls.lamb = lamb
+        cls.var = var
+        cls.dlines = dlines
+        cls.spect2d = spect2d
+        cls.mask = mask
+        cls.defconst = defconst
+        cls.ldconst = ldconst
+        cls.ldx0 = ldx0
+        cls.ldomain = ldomain
+        cls.ldata = ldata
+        cls.lfocus = lfocus
+        cls.ldconstants = ldconstants
+        cls.ldinput1d = []
+        cls.ldfit1d = []
+        cls.ldex1d = []
+        cls.ldinput2d = []
+        cls.ldfit2d = []
+        cls.ldex2d = []
+
+    @classmethod
+    def setup(self):
+        pass
+
+    def teardown(self):
+        pass
+
+    @classmethod
+    def teardown_class(cls):
+        pass
+
+    def test01_fit1d_dinput(self, full=None):
+
+        combin = [
+            self.ldconst, self.ldx0, self.ldomain, self.ldata,
+            self.lfocus, self.ldconstants,
+        ]
+        nn = int(np.prod([len(cc) for cc in combin]))
+        run = np.ones((nn,), dtype=bool)
+        for ii, comb in enumerate(itt.product(*combin)):
+
+            pos = ii % 2 == 0
             dinput = tfs.fit1d_dinput(
                 dlines=self.dlines,
                 dconstraints=comb[0],
-                dconstants=comb[6],
+                dconstants=comb[5],
                 dprepare=None,
                 data=np.copy(comb[3]),
                 lamb=self.lamb,
                 mask=None,
                 domain=comb[2],
-                pos=comb[4],
+                pos=pos,
                 subset=None,
                 same_spectrum=None,
                 nspect=None,
                 same_spectrum_dlamb=None,
-                focus=comb[5],
+                focus=comb[4],
                 valid_fraction=0.28,     # fraction of pixels ok per time step
                 valid_nsigma=0,         # S/N ratio for each pixel
                 focus_half_width=None,
@@ -319,26 +324,32 @@ class Test01_DataCollection(object):
                 dscales=None,
                 dx0=comb[1],
                 dbounds=None,
-                defconst=defconst,
+                defconst=self.defconst,
             )
             self.ldinput1d.append(dinput)
+            self.ldinput1d_run = run
 
     def test02_funccostjac_1d(self):
         func = tfs._fit12d_funccostjac.multigausfit1d_from_dlines_funccostjac
         for ii, dd in enumerate(self.ldinput1d):
             func_detail, func_cost, func_jac = func(
-                lamb=dd['dprepare']['lamb'], dinput=dd,
-                dind=dd['dind'], jac='dense',
+                lamb=dd['dprepare']['lamb'],
+                dinput=dd,
+                dind=dd['dind'],
+                jac='dense',
             )
 
-            # Get x0
+            # x0
             x0 = tfs._fit12d._dict2vector_dscalesx0bounds(
                 dd=dd['dx0'], dd_name='dx0', dinput=dd,
             )
+
+            # scales
             scales = tfs._fit12d._dict2vector_dscalesx0bounds(
                 dd=dd['dscales'], dd_name='dscales', dinput=dd,
             )
 
+            # y0
             y0 = func_detail(x0[0, :], scales=scales[0, :])
             y1 = func_cost(
                 x0[0, :],
@@ -353,16 +364,25 @@ class Test01_DataCollection(object):
                 equal_nan=True,
             )
 
-    def test03_fit1d(self):
-        lchain = [False, True]
-        for ii, dd in enumerate(itt.product(self.ldinput1d, lchain)):
+    def test03_fit1d(self, verb=None):
+        if verb:
+            nprod = self.ldinput1d_run.sum()
+            nn = len(f'\tspectrum {nprod} / {nprod}')
+
+        for ii, inn in enumerate(self.ldinput1d_run.nonzero()[0]):
+
+            if verb:
+                msg = f"\tspectrum {ii+1} / {nprod}".ljust(nn)
+                print(msg, end='\r', flush=True)
+
+            chain = ii%2 == 0
             dfit1d = tfs.fit1d(
-                dinput=dd[0],
+                dinput=self.ldinput1d[inn],
                 method=None,
                 Ti=None,
-                chain=dd[1],
+                chain=chain,
                 jac='dense',
-                verbose=None,
+                verbose=False,
                 plot=False,
             )
             assert np.sum(dfit1d['validity'] < 0) == 0
@@ -381,7 +401,7 @@ class Test01_DataCollection(object):
         lwar = []
         for ii, dd in enumerate(self.ldex1d):
             try:
-                # For a yet unknown reason, this particular test crahses on
+                # For a yet unknown reason, this particular test crashes on
                 # Windows only due to figure creation at
                 # tfs._plot.plot_fit1d(): line 337
                 # already investigated: reducing figure size and early closing
@@ -411,100 +431,27 @@ class Test01_DataCollection(object):
             warnings.warn(msg)
 
     def test06_fit2d_dinput(self):
-        defconst = {
-            'amp': False,
-            'width': False,
-            'shift': False,
-            'double': False,
-            'symmetry': False,
-        }
-
-        # Define constraint dict
-        ldconst = [
-            {
-                'amp': {'a1': ['a', 'd']},
-                'width': 'group',
-                'shift': {
-                    'a': {'key': 's1', 'coef': 1., 'offset': 0.},
-                    'b': {'key': 's1', 'coef': 1., 'offset': 0.},
-                    'c': {'key': 's2', 'coef': 2., 'offset': 0.},
-                    'd': {'key': 's3', 'coef': 1., 'offset': 0.001e-10},
-                },
-                'double': True,
-                'symmetry': True,
-            },
-            {
-                'amp': False,
-                'width': 'group',
-                'shift': {
-                    'a': {'key': 's1', 'coef': 1., 'offset': 0.},
-                    'c': {'key': 's2', 'coef': 2., 'offset': 0.},
-                    'd': {'key': 's2', 'coef': 1., 'offset': 0.001e-10},
-                },
-                'double': False,
-                'symmetry': False,
-            },
-            {
-                'amp': False,
-                'width': 'group',
-                'shift': {
-                    'a': {'key': 's1', 'coef': 1., 'offset': 0.},
-                    'c': {'key': 's2', 'coef': 2., 'offset': 0.},
-                    'd': {'key': 's2', 'coef': 1., 'offset': 0.001e-10},
-                },
-                'double': False,
-                'symmetry': False,
-            },
+        combin = [
+            self.ldconst, self.ldx0, self.ldomain,
+            self.lfocus, self.ldconstants,
         ]
-
-        ldx0 = [
-            None,
-            {
-                # 'amp': {''},
-                'width': 1.,
-                'shift': {
-                    's1': 0.,
-                    's2': 1.,
-                },
-                'dratio': 0,
-                'dshift': 0,
-            }
-        ]
-
-        ldomain = [
-            None,
-            {
-                'lamb': [
-                    [3.94e-10, 3.952e-10],
-                    (3.95e-10, 3.956e-10),
-                    [3.96e-10, 4e-10],
-                ],
-            },
-        ]
-
-        lpos = [False, True]
-        lmask = [None, self.mask]
-
-        lfocus = [None, 'a', [3.94e-10, 3.96e-10]]
-
-        ldconstants = [None, {'shift': {'s1': 0}}]
-
-        combin = [ldconst, ldx0, ldomain, lmask, lpos, lfocus, ldconstants]
-        for comb in itt.product(*combin):
+        for ii, comb in enumerate(itt.product(*combin)):
+            pos = ii % 2 == 0
+            mask = self.mask if ii % 3 == 0 else None
             dinput = tfs.fit2d_dinput(
                 dlines=self.dlines,
                 dconstraints=comb[0],
-                dconstants=comb[6],
+                dconstants=comb[4],
                 dprepare=None,
                 data=np.copy(self.spect2d),
                 lamb=self.lamb,
                 phi=self.var,
-                mask=comb[3],
+                mask=mask,
                 nbsplines=5,
                 domain=comb[2],
-                pos=comb[4],
+                pos=pos,
                 subset=None,
-                focus=comb[5],
+                focus=comb[3],
                 valid_fraction=0.28,     # fraction of pixels ok per time step
                 valid_nsigma=0,         # S/N ratio for each pixel
                 focus_half_width=None,
@@ -512,7 +459,7 @@ class Test01_DataCollection(object):
                 dscales=None,
                 dx0=comb[1],
                 dbounds=None,
-                defconst=defconst,
+                defconst=self.defconst,
             )
             self.ldinput2d.append(dinput)
 
@@ -522,18 +469,25 @@ class Test01_DataCollection(object):
             func_detail, func_cost, func_jac = func(
                 lamb=dd['dprepare']['lamb'],
                 phi=dd['dprepare']['phi'],
+                indx=None, # TBC
                 dinput=dd,
-                dind=dd['dind'], jac='dense',
+                binning=None,   # TBC
+                dind=dd['dind'],
+                scales=None, # TBC
+                jac='dense',
             )
 
-            # Get x0
+            # x0
             x0 = tfs._fit12d._dict2vector_dscalesx0bounds(
                 dd=dd['dx0'], dd_name='dx0', dinput=dd,
             )
+
+            # scales
             scales = tfs._fit12d._dict2vector_dscalesx0bounds(
                 dd=dd['dscales'], dd_name='dscales', dinput=dd,
             )
 
+            # y0
             y0 = func_detail(x0[0, :], scales=scales[0, :])
             y1 = func_cost(
                 x0[0, :],
@@ -547,3 +501,28 @@ class Test01_DataCollection(object):
                 y1,
                 equal_nan=True,
             )
+
+    # TBC
+    def test08_fit2d(self, verb=None):
+        if verb:
+            nprod = self.ldinput1d_run.sum()
+            nn = len(f'\tspectrum {nprod} / {nprod}')
+
+        for ii, inn in enumerate(self.ldinput1d_run.nonzero()[0]):
+
+            if verb:
+                msg = f"\tspectrum {ii+1} / {nprod}".ljust(nn)
+                print(msg, end='\r', flush=True)
+
+            chain = ii%2 == 0
+            dfit1d = tfs.fit1d(
+                dinput=self.ldinput1d[inn],
+                method=None,
+                Ti=None,
+                chain=chain,
+                jac='dense',
+                verbose=False,
+                plot=False,
+            )
+            assert np.sum(dfit1d['validity'] < 0) == 0
+            self.ldfit1d.append(dfit1d)
