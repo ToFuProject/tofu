@@ -1319,7 +1319,11 @@ def _dvalid_checkfocus(
     if lc0[0] is True:
         focus = [focus]
     for ii in range(len(focus)):
-        if focus[ii] not in lines_keys and type(focus[ii]) not in _LTYPES:
+        c0 = (
+            (isinstance(focus[ii], tuple(_LTYPES)) and focus[ii] > 0.)
+            or (isinstance(focus[ii], str) and focus[ii] in lines_keys)
+        )
+        if not c0:
             msg = _dvalid_checkfocus_errmsg(
                 focus, focus_half_width, lines_keys,
             )
@@ -1327,7 +1331,7 @@ def _dvalid_checkfocus(
 
     focus = np.array([
         lines_lamb[(lines_keys == ff).nonzero()[0][0]]
-        if ff in lines_keys else ff for ff in focus
+        if isinstance(ff, str) else ff for ff in focus
     ])
 
     # Check focus_half_width and transform to array of floats
@@ -1393,14 +1397,14 @@ def fit12d_dvalid(
 
     # Get indices of pts with enough signal
     ind = np.zeros(data.shape, dtype=bool)
+    isafe = np.isfinite(data)
+    isafe[isafe] = data[isafe] >= 0.
     if indok is None:
-        isafe = (~np.isnan(data))
-        isafe[isafe] = data[isafe] >= 0.
         # Ok with and w/o binning if data provided as counts / photons
         # and binning was done by sum (and not mean)
         ind[isafe] = np.sqrt(data[isafe]) > valid_nsigma
     else:
-        ind[indok] = np.sqrt(data[indok]) > valid_nsigma
+        ind[indok & isafe] = np.sqrt(data[indok & isafe]) > valid_nsigma
 
     # Derive indt and optionally dphi and indknots
     indbs, dphi = False, False

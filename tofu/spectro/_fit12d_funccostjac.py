@@ -22,7 +22,7 @@ _JAC = 'dense'
 
 
 def multigausfit1d_from_dlines_funccostjac(
-    lamb,
+    lamb=None,
     indx=None,
     dinput=None,
     dind=None,
@@ -366,7 +366,8 @@ def multigausfit1d_from_dlines_funccostjac(
 
 
 def multigausfit2d_from_dlines_funccostjac(
-    lamb, phi,
+    lamb=None,
+    phi=None,
     indx=None,
     dinput=None,
     binning=None,
@@ -567,7 +568,8 @@ def multigausfit2d_from_dlines_funccostjac(
         xscale[indx] = x*scales[indx]
         xscale[~indx] = const
 
-        # Backgroundi: TBC !!!
+        # HERERERERERERERERERRERERERERERERERERERRERERER
+        # Background: TBC !!!
         y = BSpline(
             km,
             xscale[ibckx],
