@@ -340,14 +340,16 @@ class Test01_DataCollection(object):
             )
 
             # x0
-            x0 = tfs._fit12d._dict2vector_dscalesx0bounds(
+            x0 = tfs._fit12d_dinput._dict2vector_dscalesx0bounds(
                 dd=dd['dx0'], dd_name='dx0', dinput=dd,
             )
 
             # scales
-            scales = tfs._fit12d._dict2vector_dscalesx0bounds(
+            scales = tfs._fit12d_dinput._dict2vector_dscalesx0bounds(
                 dd=dd['dscales'], dd_name='dscales', dinput=dd,
             )
+
+            assert np.all(np.isfinite(x0)) and np.all(np.isfinite(scales))
 
             # y0
             y0 = func_detail(x0[0, :], scales=scales[0, :])
@@ -375,7 +377,7 @@ class Test01_DataCollection(object):
                 msg = f"\tspectrum {ii+1} / {nprod}".ljust(nn)
                 print(msg, end='\r', flush=True)
 
-            chain = ii%2 == 0
+            chain = ii % 2 == 0
             dfit1d = tfs.fit1d(
                 dinput=self.ldinput1d[inn],
                 method=None,
@@ -466,57 +468,54 @@ class Test01_DataCollection(object):
     def test07_funccostjac_2d(self):
         func = tfs._fit12d_funccostjac.multigausfit2d_from_dlines_funccostjac
         for ii, dd in enumerate(self.ldinput2d):
+
+            if ii < 24:
+                continue
+
             func_detail, func_cost, func_jac = func(
                 lamb=dd['dprepare']['lamb'],
                 phi=dd['dprepare']['phi'],
-                indx=None, # TBC
                 dinput=dd,
                 binning=None,   # TBC
                 dind=dd['dind'],
-                scales=None, # TBC
                 jac='dense',
             )
 
             # x0
-            x0 = tfs._fit12d._dict2vector_dscalesx0bounds(
+            x0 = tfs._fit12d_dinput._dict2vector_dscalesx0bounds(
                 dd=dd['dx0'], dd_name='dx0', dinput=dd,
             )
 
             # scales
-            scales = tfs._fit12d._dict2vector_dscalesx0bounds(
+            scales = tfs._fit12d_dinput._dict2vector_dscalesx0bounds(
                 dd=dd['dscales'], dd_name='dscales', dinput=dd,
             )
 
-            # y0
+            assert np.all(np.isfinite(x0)) and np.all(np.isfinite(scales))
+
+            # dy0 vs dy1
             y0 = func_detail(x0[0, :], scales=scales[0, :])
-            y1 = func_cost(
+            indnan = np.all(np.all(np.isnan(y0), axis=-1), axis=-1).ravel()
+            dy0 = (
+                np.nansum(np.nansum(y0, axis=-1), axis=-1)
+                - dd['dprepare']['data'][0, ...]
+            ).ravel()
+            # beware, nansum returns 0 for all-nans in numpy >= 1.9.0
+            dy0[indnan] = np.nan
+            dy1 = func_cost(
                 x0[0, :],
                 scales=scales[0, :],
-                data=dd['dprepare']['data'][0, :],
+                data_flat=dd['dprepare']['data'][0, ...].ravel(),
             )
-
             # check consistency between func_detail and func_cost
-            assert np.allclose(
-                np.sum(y0, axis=1) - dd['dprepare']['data'][0, :],
-                y1,
-                equal_nan=True,
-            )
+            assert np.sum(np.isfinite(dy0)) == np.sum(np.isfinite(dy1))
+            assert np.allclose(dy0, dy1, equal_nan=True)
 
-    # TBC
-    def test08_fit2d(self, verb=None):
-        if verb:
-            nprod = self.ldinput1d_run.sum()
-            nn = len(f'\tspectrum {nprod} / {nprod}')
-
-        for ii, inn in enumerate(self.ldinput1d_run.nonzero()[0]):
-
-            if verb:
-                msg = f"\tspectrum {ii+1} / {nprod}".ljust(nn)
-                print(msg, end='\r', flush=True)
-
-            chain = ii%2 == 0
-            dfit1d = tfs.fit1d(
-                dinput=self.ldinput1d[inn],
+    def test08_fit2d(self):
+        for ii, din in enumerate(self.ldinput2d):
+            chain = ii % 2 == 0
+            dfit2d = tfs.fit2d(
+                dinput=din,
                 method=None,
                 Ti=None,
                 chain=chain,
@@ -524,5 +523,5 @@ class Test01_DataCollection(object):
                 verbose=False,
                 plot=False,
             )
-            assert np.sum(dfit1d['validity'] < 0) == 0
-            self.ldfit1d.append(dfit1d)
+            assert np.sum(dfit2d['validity'] < 0) == 0
+            self.ldfit2d.append(dfit2d)
