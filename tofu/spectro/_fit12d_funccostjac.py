@@ -427,13 +427,6 @@ def multigausfit2d_from_dlines_funccostjac(
         (phi_flat >= km[ii]) & (phi_flat <= km[ii+kpb-1])
         for ii in range(nbs)
     ])
-    lbs = [
-        BSpline.basis_element(
-            km[ii:ii+kpb],
-            extrapolate=False,
-        )(phi_flat[libs[ii]])[:, None]
-        for ii in range(nbs)
-    ]
     BS = BSpline(
         km,
         np.ones(ial.shape, dtype=float),
@@ -441,15 +434,6 @@ def multigausfit2d_from_dlines_funccostjac(
         extrapolate=False,
         axis=0,
     )
-
-    # Safety check on Jacobian
-    lcond = [np.any(np.isnan(bs)) for bs in lbs]
-    if np.any(lcond):
-        msg = (
-            "Some nan have been detected in the jacobian!\n"
-            + "\t- lbs[{}]".format(lcond.index(True))
-        )
-        raise Exception(msg)
 
     # func_details returns result in same shape as input
     def func_detail(
@@ -602,7 +586,6 @@ def multigausfit2d_from_dlines_funccostjac(
             axis=1,
         )
 
-        # HERERERERERERERERERRERERERERERERERERERRERERER
         if double is not False:
             if double is True:
                 dratio = xscale[idratiox]
@@ -659,7 +642,6 @@ def multigausfit2d_from_dlines_funccostjac(
             const=None,
             # specific to jac
             jac0=jac0,
-            lbs=lbs,
             libs=libs,
             # useless but for compatibility
             data_flat=None,
@@ -673,62 +655,64 @@ def multigausfit2d_from_dlines_funccostjac(
 
             # Loop on bs
             for ii in range(nbs):
-                bs = lbs[ii]
 
-                # Intermediates
+                # phi interval
+                ibs = libs[ii] & indok_flat
+
+                # bspline
+                bs = BSpline.basis_element(
+                    km[ii:ii+kpb],
+                    extrapolate=False,
+                )(phi_flat[ibs])[:, None]
+
+                # check bspline
+                if np.any(~np.isfinite(bs)):
+                    msg = "Non-finite values in bs (affecting jacobian)!"
+                    raise Exception(msg)
+
+                # Intermediates - background
                 BS.c = xscale[ibckax]
-                bcka = BS(phi_flat)
-                BS.c = xscale[ibckrx]
-                bckr = BS(phi_flat)
-                expbck = np.exp(bckr*lambrel_flat)
+                bcka = BS(phi_flat[ibs])
+                BS.c[...] = xscale[ibckrx]
+                bckr = BS(phi_flat[ibs])
+                expbck = np.exp(bckr*lambrel_flat[ibs])
 
-
-                # TBC, debugging
+                # Intermediates - amp, wi2, shift
                 BS.c = xscale[ial] * coefsal + offsetal
-                amp = BS(phi[libs[ii]])
-                BS.c = xscale[iwl] * coefswl + offsetwl
-                wi2 = BS(phi[libs[ii]])
-                BS.c = xscale[ishl] * coefssl + offsetsl
-                shift = BS(phi[libs[ii]])
+                amp = BS(phi_flat[ibs])
+                BS.c[...] = xscale[iwl] * coefswl + offsetwl
+                wi2 = BS(phi_flat[ibs])
+                BS.c[...] = xscale[ishl] * coefssl + offsetsl
+                shift = BS(phi_flat[ibs])
 
-                beta = (lambn_flat[libs[ii], :] - (1 + shift)) / (2*wi2)
+                beta = (lambn_flat[ibs, :] - (1 + shift)) / (2*wi2)
                 alpha = -beta**2 * (2*wi2)
                 # exp = np.exp(alpha)
                 bsexp = bs * np.exp(alpha)
 
-                import pdb; pdb.set_trace()     # DB
                 # Background amplitude
-                jac0[libs[ii], ibckax[ii]] = (
+                jac0[ibs, ibckax[ii]] = (
                     bs[:, 0] * scales[ibckax[ii]] * expbck
                 )
 
                 # Background rate
-                jac0[libs[ii], ibckrx[ii]] = (
-                    bs[:, 0] * scales[ibckrx[ii]] * lambrel_flat * bcka * expbck
+                jac0[ibs, ibckrx[ii]] = (
+                    bs[:, 0] * scales[ibckrx[ii]]
+                    * lambrel_flat[ibs] * bcka * expbck
                 )
 
                 # amp (shape: nphi/lamb, namp[jj])
                 for jj in range(len(iaj)):
                     ix = iax[ii, jj]
-                    # jac0[libs[ii], ix] = np.sum(
-                    # (bs * exp[:, iaj[jj]] * scales[ix]
-                    # * coefsal[0:1, iaj[jj]]),
-                    # axis=1)
-                    jac0[libs[ii], ix] = np.sum(
+                    jac0[ibs, ix] = np.sum(
                         bsexp[:, iaj[jj]] * coefsal[:, iaj[jj]],
-                        axis=1) * scales[ix]
+                        axis=1,
+                    ) * scales[ix]
 
                 # width2
                 for jj in range(len(iwj)):
                     ix = iwx[ii, jj]
-                    # jac0[libs[ii], ix] = np.sum(
-                    # (amp[:, iwj[jj]]
-                    # * (-alpha[:, iwj[jj]]
-                    # * bs * exp[:, iwj[jj]] * scales[ix]
-                    # * coefswl[0:1, iwj[jj]]
-                    # / wi2[:, iwj[jj]])),
-                    # axis=1)
-                    jac0[libs[ii], ix] = np.sum(
+                    jac0[ibs, ix] = np.sum(
                         (
                             -alpha[:, iwj[jj]] * amp[:, iwj[jj]]
                             * bsexp[:, iwj[jj]] * coefswl[:, iwj[jj]]
@@ -740,13 +724,7 @@ def multigausfit2d_from_dlines_funccostjac(
                 # shift
                 for jj in range(len(ishj)):
                     ix = ishx[ii, jj]
-                    # jac0[libs[ii], ix] = np.sum(
-                    # (amp[:, ishj[jj]]
-                    # * 2.*beta[:, ishj[jj]]
-                    # * bs * exp[:, ishj[jj]] * scales[ix]
-                    # * coefssl[0:1, ishj[jj]]),
-                    # axis=1)
-                    jac0[libs[ii], ix] = np.sum(
+                    jac0[ibs, ix] = np.sum(
                         (
                             amp[:, ishj[jj]] * 2. * beta[:, ishj[jj]]
                             * bsexp[:, ishj[jj]] * coefssl[:, ishj[jj]]
@@ -767,7 +745,7 @@ def multigausfit2d_from_dlines_funccostjac(
                     dshift = shift + double.get('dshift', xscale[idshx])
 
                 # ampd = amp*dratio
-                betad = (lambnorm[libs[ii], :] - (1 + dshift)) / (2*wi2)
+                betad = (lambn_flat[ibs, :] - (1 + dshift)) / (2*wi2)
                 alphad = -betad**2 * (2*wi2)
                 expd = np.exp(alphad)
                 bsexpd = bs * expd
@@ -775,53 +753,44 @@ def multigausfit2d_from_dlines_funccostjac(
                 # amp
                 for jj in range(len(iaj)):
                     ix = iax[ii, jj]
-                    # jac0[libs[ii], ix] += dratio*np.sum(
-                    # (bs * scales[ix] * coefsal[0:1, iaj[jj]]
-                    # * expd[:, iaj[jj]]),
-                    # axis=1)
-                    jac0[libs[ii], ix] += dratio*np.sum(
+                    jac0[ibs, ix] += dratio*np.sum(
                         bsexpd[:, iaj[jj]] * coefsal[:, iaj[jj]],
-                        axis=1) * scales[ix]
+                        axis=1,
+                    ) * scales[ix]
 
                 # width2
                 for jj in range(len(iwj)):
                     ix = iwx[ii, jj]
-                    # jac0[libs[ii], ix] += np.sum(
-                    # (ampd[:, iwj[jj]]
-                    # * (-alphad[:, iwj[jj]]
-                    # * bs * scales[ix] * coefswl[0:1, iwj[jj]]
-                    # / wi2[:, iwj[jj]])
-                    # * expd[:, iwj[jj]]),
-                    # axis=1)
-                    jac0[libs[ii], ix] += np.sum(
+                    jac0[ibs, ix] += np.sum(
                         (-alphad[:, iwj[jj]] * amp[:, iwj[jj]]
                          * bsexpd[:, iwj[jj]] * coefswl[:, iwj[jj]]
-                         / wi2[:, iwj[jj]]), axis=1) * scales[ix] * dratio
+                         / wi2[:, iwj[jj]]),
+                        axis=1,
+                    ) * scales[ix] * dratio
 
                 # shift
                 for jj in range(len(ishj)):
                     ix = ishx[ii, jj]
-                    # jac0[libs[ii], ix] += np.sum(
-                    # (ampd[:, ishj[jj]]
-                    # * 2.*betad[:, ishj[jj]]
-                    # * bs * scales[ix] * coefssl[0:1, ishj[jj]]
-                    # * expd[:, ishj[jj]]),
-                    # axis=1)
-                    jac0[libs[ii], ix] += np.sum(
+                    jac0[ibs, ix] += np.sum(
                         (amp[:, ishj[jj]] * 2.*betad[:, ishj[jj]]
                          * bsexpd[:, ishj[jj]] * coefssl[:, ishj[jj]]),
-                        axis=1) * scales[ix] * dratio
+                        axis=1,
+                    ) * scales[ix] * dratio
 
                 # dratio
                 if double is True or double.get('dratio') is None:
-                    jac0[libs[ii], idratiox] = (scales[idratiox]
-                                                * np.sum(amp * expd, axis=1))
+                    jac0[ibs, idratiox] = (
+                        scales[idratiox] * np.sum(amp * expd, axis=1)
+                    )
 
                 # dshift
                 if double is True or double.get('dshift') is None:
-                    jac0[libs[ii], idshx] = dratio * np.sum(
-                        amp * 2.*betad*scales[idshx] * expd, axis=1)
-            return jac0
+                    jac0[ibs, idshx] = dratio * np.sum(
+                        amp * 2.*betad*scales[idshx] * expd,
+                        axis=1,
+                    )
+
+            return jac0[indok_flat, :][:, indx]
 
     elif jac == 'sparse':
 

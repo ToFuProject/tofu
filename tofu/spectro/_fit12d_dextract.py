@@ -45,12 +45,15 @@ _ALLOW_PICKLE = True
 
 def fit12d_get_data_checkformat(
     dfit=None,
-    pts_phi=None, npts_phi=None,
     bck=None,
     amp=None, coefs=None, ratio=None,
     Ti=None, width=None,
     vi=None, shift=None,
-    pts_total=None, pts_detail=None,
+    pts_total=None,
+    pts_detail=None,
+    phi_prof=None,
+    phi_npts=None,
+    vs_nbs=None,
     allow_pickle=None,
 ):
 
@@ -236,22 +239,35 @@ def fit12d_get_data_checkformat(
 
     d3['ratio'] = ratio
 
-    # pts_phi, npts_phi
+    # phi_prof, phi_npts
     if is2d is True:
         c0 = any([v0 is not False for v0 in d3.values()])
-        c1 = [pts_phi is not None, npts_phi is not None]
+        c1 = [phi_prof is not None, phi_npts is not None]
         if all(c1):
-            msg = "Arg pts_phi and npts_phi cannot be both provided!"
+            msg = "Arg phi_prof and phi_npts cannot be both provided!"
             raise Exception(msg)
-        if not any(c1):
-            npts_phi = (2*dinput['deg']-1)*(dinput['knots'].size-1) + 1
-        if npts_phi is not None:
-            npts_phi = int(npts_phi)
-            pts_phi = np.linspace(dprepare['domain']['phi']['minmax'][0],
-                                  dprepare['domain']['phi']['minmax'][1],
-                                  npts_phi)
+
+        if phi_npts is False or phi_prof is False:
+            phi_prof = False
         else:
-            pts_phi = np.array(pts_phi).ravel()
+            if not any(c1):
+                phi_npts = (2*dinput['deg']-1)*(dinput['knots'].size-1) + 1
+            if phi_npts is not None:
+                phi_npts = int(npts_phi)
+                phi_prof = np.linspace(
+                    dprepare['domain']['phi']['minmax'][0],
+                    dprepare['domain']['phi']['minmax'][1],
+                    phi_npts,
+                )
+            else:
+                phi_prof = np.array(phi_prof).ravel()
+
+        # vs_nbs
+        if vs_nbs is None:
+            vs_nbs = True
+        if not isinstance(vs_nbs, bool):
+            msg = "Arg vs_nbs must be a bool!"
+            raise Exception(msg)
 
     # pts_total, pts_detail
     if pts_total is None:
@@ -271,7 +287,7 @@ def fit12d_get_data_checkformat(
     if pts_total is not False:
         pts_total = np.array(pts_total)
 
-    return dfit, d3, pts_phi, pts_total, pts_detail
+    return dfit, d3, pts_phi, pts_total, pts_detail, phi_prof, vs_nbs
 
 
 def fit1d_extract(
@@ -282,12 +298,29 @@ def fit1d_extract(
     vi=None, shift=None,
     pts_lamb_total=None, pts_lamb_detail=None,
 ):
+    """
+    Return a dict with extarcted data of interest
+
+    bck_amp:    (nt,) array
+    bck_rate:   (nt,) array
+    amp:        (nt, namp) array
+    coefs:      (nt, nlines) array
+    ratio:      (nt, nratio) array
+    width:      (nt, nwidth) array
+    Ti:         (nt, nlines) array
+    shift:      (nt, nshift) array
+    vi:         (nt, nlines) array
+
+    """
+
+
 
     # -------------------
     # Check format input
     (
         dfit1d, d3, pts_phi,
         pts_lamb_total, pts_lamb_detail,
+        _, _,
     ) = fit12d_get_data_checkformat(
         dfit=dfit1d,
         bck=bck,
@@ -304,9 +337,16 @@ def fit1d_extract(
     nspect = dprepare['data'].shape[0]
 
     # Prepare extract func
-    def _get_values(key, pts_phi=None,
-                    d3=d3, nspect=nspect, dinput=dfit1d['dinput'],
-                    dind=dind, sol_x=dfit1d['sol_x'], scales=dfit1d['scales']):
+    def _get_values(
+        key,
+        pts_phi=None,
+        d3=d3,
+        nspect=nspect,
+        dinput=dfit1d['dinput'],
+        dind=dind,
+        sol_x=dfit1d['sol_x'],
+        scales=dfit1d['scales'],
+    ):
         if d3[key]['type'] == 'lines':
             keys = dinput['keys'][d3[key]['ind']]
         else:
@@ -469,10 +509,14 @@ def _get_phi_profile(key,
                      typ=None, ind=None, pts_phi=None):
     ncoefs = ind.size
     val = np.full((nspect, pts_phi.size, ncoefs), np.nan)
-    BS = BSpline(dinput['knots_mult'],
-                 np.ones((dinput['nbs'], ncoefs), dtype=float),
-                 dinput['deg'],
-                 extrapolate=False, axis=0)
+    BS = BSpline(
+        dinput['knots_mult'],
+        np.ones((dinput['nbs'], ncoefs), dtype=float),
+        dinput['deg'],
+        extrapolate=False,
+        axis=0,
+    )
+
     if typ == 'lines':
         keys = dinput['keys'][ind]
     else:
@@ -484,23 +528,52 @@ def _get_phi_profile(key,
     return keys, val
 
 
-def fit2d_extract(dfit2d=None,
-                  amp=None, coefs=None, ratio=None,
-                  Ti=None, width=None,
-                  vi=None, shift=None,
-                  pts_lamb_phi_total=None, pts_lamb_phi_detail=None):
+# Debugging, TBF
+def fit2d_extract(
+    dfit2d=None,
+    bck=None,
+    amp=None, coefs=None, ratio=None,
+    Ti=None, width=None,
+    vi=None, shift=None,
+    pts_lamb_phi_total=None,
+    pts_lamb_phi_detail=None,
+    phi_prof=None,
+    phi_npts=None,
+    vs_nbs=None,
+):
+    """
+    Return a dict with extarcted data of interest
+
+    bck_amp:    (nt, nbs) array
+    bck_rate:   (nt, nbs) array
+    amp:        (nt, nbs, namp)   and/or (nt, phi_npts, namp) array
+    coefs:      (nt, nbs, nlines) and/or (nt, phi_npts, nlines) array
+    ratio:      (nt, nratio) array
+    width:      (nt, nwidth) array
+    Ti:         (nt, nlines) array
+    shift:      (nt, nshift) array
+    vi:         (nt, nlines) array
+
+    """
 
     # -------------------
     # Check format input
-    out = fit12d_get_data_checkformat(
+    (
+        dfit1d, d3, pts_phi,
+        pts_lamb_total, pts_lamb_detail,
+        phi_prof, vs_nbs,
+    ) = fit12d_get_data_checkformat(
         dfit=dfit2d,
+        bck=bck,
         amp=amp, coefs=coefs, ratio=ratio,
         Ti=Ti, width=width,
         vi=vi, shift=shift,
-        pts_total=pts_lamb_total,
-        pts_detail=pts_lamb_detail)
-
-    d3, pts_phi, pts_lamb_phi_total, pts_lamb_phi_detail = out
+        pts_total=pts_lamb_phi_total,
+        pts_detail=pts_lamb_phi_detail,
+        phi_prof=phi_prof,
+        phi_npts=phi_npts,
+        vs_nbs=vs_nbs,
+    )
 
     # Extract dprepare and dind (more readable)
     dprepare = dfit1d['dinput']['dprepare']
@@ -508,45 +581,99 @@ def fit2d_extract(dfit2d=None,
     nspect = dprepare['data'].shape[0]
 
     # Prepare extract func
-    # TBF
-    def _get_values(key, pts_phi=None,
-                    d3=d3, nspect=nspect, dinput=dfit1d['dinput'],
-                    dind=dind, sol_x=dfit1d['sol_x'], scales=dfit1d['scales']):
+    def _get_values(
+        key,
+        phi_prof=phi_prof,
+        d3=d3,
+        nspect=nspect,
+        dinput=dfit1d['dinput'],
+        dind=dind,
+        sol_x=dfit1d['sol_x'],
+        scales=dfit1d['scales'],
+    ):
         if d3[key]['type'] == 'lines':
             keys = dinput['keys'][d3[key]['ind']]
         else:
             keys = dinput[d3[key]['field']]['keys'][d3[key]['ind']]
         indbis = dind[d3[key]['field']][d3[key]['type']][d3[key]['ind']]
 
-        # 1d vs 2d
-        if pts_phi is None:
-            val = sol_x[:, indbis] * scales[:, indbis]
-        else:
-            BS = BSpline(dinput['knots_mult'],
-                         np.ones((dinput['nbs'], ncoefs), dtype=float),
-                         dinput['deg'],
-                         extrapolate=False, axis=0)
+        # coefs
+        coefs = sol_x[:, indbis] * scales[:, indbis]
+
+        # values at phi_prof
+        BS = BSpline(
+            dinput['knots_mult'],
+            np.ones((dinput['nbs'], ncoefs), dtype=float),
+            dinput['deg'],
+            extrapolate=False,
+            axis=0,
+        )
+        val = np.full((sol_x.shape[0], phi_prof.size), np.nan)
         for ii in range(nspect):
             BS.c = sol_x[ii, indbis] * scales[ii, indbis]
-            val[ii, :, :] = BS(pts_phi)
+            val[ii, :, :] = BS(phi_prof)
 
-        return keys, val
+        return keys, coefs, val
 
     # -------------------
     # Prepare output
-    lk = ['amp', 'coefs', 'ratio', 'Ti', 'width', 'vi', 'shift',
-          'dratio', 'dshift']
+    lk = [
+        'bck_amp', 'bck_rate',
+        'amp', 'coefs', 'ratio', 'Ti', 'width', 'vi', 'shift',
+        'dratio', 'dshift',
+    ]
     dout = dict.fromkeys(lk, False)
 
+    # bck_amp
+    if d3['bck_amp'] is not False:
+        keys, coefs, val = _get_values(key='bck_amp')
+        dout['bck_amp'] = {
+            'keys': keys,
+            'coefs': coefs,
+            'values': val,
+            'units': 'a.u.',
+        }
+            # 'coefs': (
+                # dfit1d['sol_x'][:, dind['bck_amp']['x']]
+                # * dfit1d['scales'][:, dind['bck_amp']['x']]
+            # ),
+        # dout['bck_rate'] = {
+            # 'coefs': (
+                # dfit1d['sol_x'][:, dind['bck_rate']['x']]
+                # * dfit1d['scales'][:, dind['bck_rate']['x']]
+            # ),
+        # }
+
+    # bck_rate
+    if d3['bck_rate'] is not False:
+        keys, coefs, val = _get_values(key='bck_rate')
+        dout['bck_rate'] = {
+            'keys': keys,
+            'coefs': coefs,
+            'values': val,
+            'units': 'a.u.',
+        }
+
+    import pdb; pdb.set_trace()     # DB
     # amp
     if d3['amp'] is not False:
-        keys, val = _get_values('amp')
-        dout['amp'] = {'keys': keys, 'values': val, 'units': 'a.u.'}
+        keys, coefs, val = _get_values('amp')
+        dout['amp'] = {
+            'keys': keys,
+            'coefs': coefs,
+            'values': val,
+            'units': 'a.u.',
+        }
 
     # coefs
     if d3['coefs'] is not False:
-        keys, val = _get_values('coefs')
-        dout['coefs'] = {'keys': keys, 'values': val, 'units': 'a.u.'}
+        keys, coefs, val = _get_values('coefs')
+        dout['coefs'] = {
+            'keys': keys,
+            'coefs': coefs,
+            'values': val,
+            'units': 'a.u.',
+        }
 
     # ratio
     if d3['ratio'] is not False:

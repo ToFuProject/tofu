@@ -557,62 +557,59 @@ def multigausfit2d_from_dlines(
             msg = "\nSpect {} / {}".format(ii+1, nspect)
             print(msg)
 
+        try:
+            dti = None
+            t0i = dtm.datetime.now()     # DB
+            if not dinput['valid']['indt'][ii]:
+                continue
 
-        # HERERERERERERE: debugging functions
-        # try:
-        dti = None
-        t0i = dtm.datetime.now()     # DB
-        if not dinput['valid']['indt'][ii]:
-            continue
+            # optimization
+            res = scpopt.least_squares(
+                func_cost,
+                x0[ii, indx],
+                jac=func_jac,
+                bounds=bounds[:, indx],
+                method=method,
+                ftol=ftol,
+                xtol=xtol,
+                gtol=gtol,
+                x_scale=1.0,
+                f_scale=1.0,
+                loss=loss,
+                diff_step=None,
+                tr_solver=tr_solver,
+                tr_options=tr_options,
+                jac_sparsity=None,
+                max_nfev=max_nfev,
+                verbose=verbscp,
+                args=(),
+                kwargs={
+                    'data_flat': data_flat[ii, :],
+                    'scales': scales[ii, :],
+                    'const': const[ii, :],
+                    'indok_flat': indok_flat[ii],
+                    'ind_bs': dinput['valid']['indbs'][ii, :],
+                }
+            )
+            dti = (dtm.datetime.now() - t0i).total_seconds()
 
-        # optimization
-        res = scpopt.least_squares(
-            func_cost,
-            x0[ii, indx],
-            jac=func_jac,
-            bounds=bounds[:, indx],
-            method=method,
-            ftol=ftol,
-            xtol=xtol,
-            gtol=gtol,
-            x_scale=1.0,
-            f_scale=1.0,
-            loss=loss,
-            diff_step=None,
-            tr_solver=tr_solver,
-            tr_options=tr_options,
-            jac_sparsity=None,
-            max_nfev=max_nfev,
-            verbose=verbscp,
-            args=(),
-            kwargs={
-                'data_flat': data_flat[ii, :],
-                'scales': scales[ii, :],
-                'const': const[ii, :],
-                'indok_flat': indok_flat[ii],
-                'ind_bs': dinput['valid']['indbs'][ii, :],
-            }
-        )
-        dti = (dtm.datetime.now() - t0i).total_seconds()
+            if chain is True and ii < nspect-1:
+                x0[ii+1, indx] = res.x
 
-        if chain is True and ii < nspect-1:
-            x0[ii+1, indx] = res.x
+            # cost, message, time
+            success[ii] = res.success
+            cost[ii] = res.cost
+            nfev[ii] = res.nfev
+            message[ii] = res.message
+            time[ii] = round(
+                (dtm.datetime.now()-t0i).total_seconds(),
+                ndigits=3,
+            )
+            sol_x[ii, indx] = res.x
 
-        # cost, message, time
-        success[ii] = res.success
-        cost[ii] = res.cost
-        nfev[ii] = res.nfev
-        message[ii] = res.message
-        time[ii] = round(
-            (dtm.datetime.now()-t0i).total_seconds(),
-            ndigits=3,
-        )
-        sol_x[ii, :] = res.x
-
-        # except Exception as err:
-            # import pdb; pdb.set_trace()     # DB
-            # errmsg[ii] = str(err)
-            # validity[ii] = -1
+        except Exception as err:
+            errmsg[ii] = str(err)
+            validity[ii] = -1
 
         # verbose
         if verbose in [1, 2]:
@@ -710,7 +707,6 @@ def fit1d(
     method=None, tr_solver=None, tr_options=None,
     xtol=None, ftol=None, gtol=None,
     max_nfev=None, loss=None, chain=None,
-    dx0=None, x0_scale=None, bounds_scale=None,
     jac=None, verbose=None, showonly=None,
     save=None, name=None, path=None,
     amp=None, coefs=None, ratio=None,
@@ -746,38 +742,47 @@ def fit1d(
         msg = "TBF: lambfit and spect1d not defined"
         raise Exception(msg)
 
-        dfit1d = {'shift': np.zeros((1, dinput['nlines'])),
-                  'coefs': np.zeros((1, dinput['nlines'])),
-                  'lamb': lambfit,
-                  'data': spect1d,
-                  'double': False,
-                  'Ti': False,
-                  'vi': False,
-                  'ratio': None}
+        dfit1d = {
+            'shift': np.zeros((1, dinput['nlines'])),
+            'coefs': np.zeros((1, dinput['nlines'])),
+            'lamb': lambfit,
+            'data': spect1d,
+            'double': False,
+            'Ti': False,
+            'vi': False,
+            'ratio': None,
+        }
     else:
         dfit1d = multigausfit1d_from_dlines(
             dinput=dinput,
-            method=method, max_nfev=max_nfev,
-            tr_solver=tr_solver, tr_options=tr_options,
-            xtol=xtol, ftol=ftol, gtol=gtol, loss=loss,
-            chain=chain, verbose=verbose, jac=jac)
+            method=method,
+            max_nfev=max_nfev,
+            tr_solver=tr_solver,
+            tr_options=tr_options,
+            xtol=xtol,
+            ftol=ftol,
+            gtol=gtol,
+            loss=loss,
+            chain=chain,
+            verbose=verbose,
+            jac=jac,
+        )
 
     # ----------------------
     # Optional saving
     if save is True:
         if name is None:
             name = 'custom'
-        name = 'TFS_fit1d_doutput_{}_nbs{}_{}_tol{}_{}.npz'.format(
-            name, dinput['nbs'], dinput['method'], dinput['xtol'])
-        if name[-4:] != '.npz':
+        name = 'TFS_fit1d_doutput_{}_{}_tol{}.npz'.format(
+            name, dinput['method'], dinput['xtol'],
+        )
+        if not name.endswith('.npz'):
             name = name + '.npz'
         if path is None:
-            path = './'
+            path = os.getcwd()
         pfe = os.path.join(os.path.abspath(path), name)
-        np.savez(pfe, **dfit2d)
-        msg = ("Saved in:\n"
-               + "\t{}".format(pfe))
-        print(msg)
+        np.savez(pfe, **dfit1d)
+        print(f"Saved in:\n\t{pfe}")
 
     # ----------------------
     # Optional plotting
@@ -793,7 +798,8 @@ def fit1d(
         dax = _plot.plot_fit1d(
             dfit1d=dfit1d, dout=dout, showonly=showonly,
             fs=fs, dmargin=dmargin,
-            tit=tit, wintit=wintit)
+            tit=tit, wintit=wintit,
+        )
 
     # ----------------------
     # return
@@ -803,16 +809,11 @@ def fit1d(
         return dfit1d
 
 
-# TBF
 def fit2d(
-    dinput=None, dprepare=None, dlines=None, dconstraints=None,
-    lamb=None, phi=None, data=None, mask=None,
-    domain=None, pos=None, subset=None, binning=None,
-    deg=None, knots=None, nbsplines=None,
+    dinput=None,
     method=None, tr_solver=None, tr_options=None,
     xtol=None, ftol=None, gtol=None,
     max_nfev=None, loss=None, chain=None,
-    dx0=None, x0_scale=None, bounds_scale=None,
     jac=None, nxi=None, nxj=None, verbose=None, showonly=None,
     save=None, name=None, path=None,
     amp=None, coefs=None, ratio=None,
@@ -835,21 +836,30 @@ def fit2d(
         return_dax = False
 
     # ----------------------
-    # Get dinput for 2d fitting from dlines, dconstraints, dprepare...
-    if dinput is None:
-        dinput = fit2d_dinput(
-            dlines=dlines, dconstraints=dconstraints, dprepare=dprepare,
-            data=data, lamb=lamb, phi=phi,
-            mask=mask, domain=domain,
-            pos=pos, subset=subset, binning=binning,
-            nxi=nxi, nxj=nxj, lphi=None, lphi_tol=None,
-            deg=deg, knots=knots, nbsplines=nbsplines)
+    # Get dinput for 1d fitting from dlines, dconstraints, dprepare...
+    if not isinstance(dinput, dict):
+        msg = ("Please provide a properly formatted dict of inputs!\n"
+               + "fit2d() needs the problem to be given as a dinput dict\n"
+               + "  => Use dinput = fit2d_dinput()")
+        raise Exception(msg)
 
     # ----------------------
     # Perform 2d fitting
     if showonly is True:
-        # TBF
-        pass
+        msg = "TBF: lambfit and spect1d not defined"
+        raise Exception(msg)
+
+        dfit2d = {
+            'shift': np.zeros((1, dinput['nlines'])),
+            'coefs': np.zeros((1, dinput['nlines'])),
+            'lamb': None,
+            'phi': None,
+            'data': spect1d,
+            'double': False,
+            'Ti': False,
+            'vi': False,
+            'ratio': None,
+        }
     else:
         dfit2d = multigausfit2d_from_dlines(
             dinput=dinput,
@@ -871,23 +881,33 @@ def fit2d(
     if save is True:
         if name is None:
             name = 'custom'
-        name = 'TFS_fit2d_doutput_{}_nbs{}_{}_tol{}_{}.npz'.format(
-            name, dinput['nbs'], dinput['method'], dinput['xtol'])
-        if name[-4:] != '.npz':
+        name = 'TFS_fit2d_doutput_{}_nbs{}_{}_tol{}.npz'.format(
+            name, dinput['nbs'], dinput['method'], dinput['xtol'],
+        )
+        if not name.endswith('.npz'):
             name = name + '.npz'
         if path is None:
-            path = './'
+            path = os.getcwd()
         pfe = os.path.join(os.path.abspath(path), name)
         np.savez(pfe, **dfit2d)
-        msg = ("Saved in:\n"
-               + "\t{}".format(pfe))
-        print(msg)
+        print(f"Saved in:\n\t{pfe}")
 
     # ----------------------
     # Optional plotting
     if plot is True:
-        dout = fit2d_extract(dfit2d)
-        dax = None
+        dout = fit2d_extract(
+            dfit2d,
+            amp=amp, coefs=coefs, ratio=ratio,
+            Ti=Ti, width=width, vi=vi, shift=shift,
+            pts_lamb_total=pts_lamb_total,
+            pts_lamb_detail=pts_lamb_detail,
+        )
+        # TBF
+        dax = _plot.plot_fit2d(
+            dfit2d=dfit2d, dout=dout, showonly=showonly,
+            fs=fs, dmargin=dmargin,
+            tit=tit, wintit=wintit,
+        )
 
     # ----------------------
     # return
@@ -895,8 +915,6 @@ def fit2d(
         return dfit2d, dax
     else:
         return dfit2d
-
-
 
 
 ###########################################################
