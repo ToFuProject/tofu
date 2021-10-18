@@ -437,6 +437,11 @@ class Test01_DataCollection(object):
             self.ldconst, self.ldx0, self.ldomain,
             self.lfocus, self.ldconstants,
         ]
+        ntot = (
+            len(self.ldconst) * len(self.ldx0) * len(self.ldomain)
+            * len(self.lfocus) * len(self.ldconstants)
+        )
+        ind2dok = np.zeros((ntot,), dtype=bool)
         for ii, comb in enumerate(itt.product(*combin)):
             pos = ii % 2 == 0
             mask = self.mask if ii % 3 == 0 else None
@@ -464,6 +469,17 @@ class Test01_DataCollection(object):
                 defconst=self.defconst,
             )
             self.ldinput2d.append(dinput)
+
+            c0 = (
+                comb[1] == self.ldx0[1]
+                and comb[2] == self.ldomain[1]
+                and comb[3] == self.lfocus[0]
+                and comb[4] == self.ldconstants[0]
+            )
+            if c0:
+                ind2dok[ii] = True
+
+        self.ind2dok = ind2dok
 
     def test07_funccostjac_2d(self):
         func = tfs._fit12d_funccostjac.multigausfit2d_from_dlines_funccostjac
@@ -511,17 +527,28 @@ class Test01_DataCollection(object):
             assert np.sum(np.isfinite(dy0)) == np.sum(np.isfinite(dy1))
             assert np.allclose(dy0, dy1, equal_nan=True)
 
-    def test08_fit2d(self):
-        for ii, din in enumerate(self.ldinput2d):
+    def test08_fit2d(self, verb=False):
+        for ii, ij in enumerate(self.ind2dok.nonzero()[0]):
+            din = self.ldinput2d[ij]
             chain = ii % 2 == 0
+
             dfit2d = tfs.fit2d(
                 dinput=din,
                 method=None,
                 Ti=None,
                 chain=chain,
                 jac='dense',
-                verbose=False,
+                verbose=verb,
                 plot=False,
             )
             assert np.sum(dfit2d['validity'] < 0) == 0
             self.ldfit2d.append(dfit2d)
+
+    def test09_fit2d_dextract(self):
+        for ii, dd in enumerate(self.ldfit2d):
+            dex = tfs.fit2d_extract(
+                dfit2d=dd,
+                ratio=('a', 'c'),
+                pts_lamb_phi_detail=True,
+            )
+            self.ldex2d.append(dex)
