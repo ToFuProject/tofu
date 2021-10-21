@@ -815,6 +815,14 @@ def crop(mesh=None, key=None, crop=None, thresh_in=None):
         isin = Path(crop.T).contains_points(pts).reshape((nR, nZ, npts))
         crop = np.sum(isin, axis=-1) >= thresh_in
 
+        # Remove isolated pixels
+        # All pixels should have at least one neighbour in R and one in Z
+        # This constraint is useful for discrete gradient evaluation (D1N2)
+        noneigh_R = None
+        noneigh_Z = None
+
+        crop[noneigh_R | noneigh_Z] = False
+
     return crop, key, thresh_in
 
 
