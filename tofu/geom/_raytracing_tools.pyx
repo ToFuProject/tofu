@@ -715,7 +715,8 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
     cdef int* sign_ray = NULL
     cdef int* ind_loc = NULL
     # == Defining parallel part ================================================
-    with nogil, parallel(num_threads=num_threads):
+#    with nogil, parallel(num_threads=num_threads):
+    if True:
         # We use local arrays for each thread so
         loc_org   = <double *> malloc(sizeof(double) * 3)
         loc_dir   = <double *> malloc(sizeof(double) * 3)
@@ -730,7 +731,7 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
             lim_ves   = <double *> malloc(sizeof(double) * 2)
             sign_ray  = <int *> malloc(sizeof(int) * 3)
         # == The parallelization over the LOS ==================================
-        for ind_los in prange(num_los):
+        for ind_los in range(num_los):
             ind_struct = 0
             loc_org[0] = ray_orig[0, ind_los]
             loc_org[1] = ray_orig[1, ind_los]

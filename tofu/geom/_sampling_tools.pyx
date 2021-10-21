@@ -17,6 +17,7 @@ from libc.math cimport log2 as c_log2
 from libc.stdlib cimport malloc, free, realloc
 from cython.parallel import prange
 from cython.parallel cimport parallel
+from cython.parallel cimport threadid
 from cpython.array cimport array, clone
 # for utility functions:
 import numpy as np
@@ -27,7 +28,6 @@ from ._basic_geom_tools cimport _VSMALL
 from ._basic_geom_tools cimport _TWOPI
 from . cimport _basic_geom_tools as _bgt
 from . cimport _raytracing_tools as _rt
-
 
 # ==============================================================================
 # =  LINEAR MESHING
@@ -2078,6 +2078,7 @@ cdef inline void sa_assemble_arrays(int block,
                                     double[:, ::1] pts_mv,
                                     long[::1] ind_mv,
                                     int num_threads):
+
     if block and use_approx:
         # .. useless tabs .....................................................
         # declared here so that cython can run without gil
@@ -2086,12 +2087,12 @@ cdef inline void sa_assemble_arrays(int block,
         else:
             sz_ves_lims = 0
         npts_poly = ves_norm.shape[1]
-        ray_orig = np.zeros((3, sz_p))
-        ray_vdir = np.zeros((3, sz_p))
-        vperp_out = clone(array('d'), sz_p * 3, True)
-        coeff_inter_in  = clone(array('d'), sz_p, True)
-        coeff_inter_out = clone(array('d'), sz_p, True)
-        ind_inter_out = clone(array('i'), sz_p * 3, True)
+        ray_orig = np.zeros((num_threads, 3, sz_p))
+        ray_vdir = np.zeros((num_threads, 3, sz_p))
+        vperp_out = np.zeros((num_threads, 3 * sz_p))
+        coeff_inter_in  = np.zeros((num_threads, sz_p))
+        coeff_inter_out = np.zeros((num_threads, sz_p))
+        ind_inter_out = np.zeros((num_threads, sz_p * 3), dtype=np.int32)
 
         assemble_block_approx(part_coords, part_rad,
                               is_in_vignette,
@@ -2203,13 +2204,13 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
                                        double[::1] lstruct_normx,
                                        double[::1] lstruct_normy,
                                        long[::1] lnvert,
-                                       double[::1] vperp_out,
-                                       double[::1] coeff_inter_in,
-                                       double[::1] coeff_inter_out,
-                                       int[::1] ind_inter_out,
+                                       double[:, ::1] vperp_out,
+                                       double[:, ::1] coeff_inter_in,
+                                       double[:, ::1] coeff_inter_out,
+                                       int[:, ::1] ind_inter_out,
                                        int sz_ves_lims,
-                                       double[:, ::1] ray_orig,
-                                       double[:, ::1] ray_vdir,
+                                       double[:, :, ::1] ray_orig,
+                                       double[:, :, ::1] ray_vdir,
                                        int npts_poly,
                                        int nstruct_tot,
                                        int nstruct_lim,
@@ -2250,66 +2251,74 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
     cdef double loc_step_rphi
     cdef long* is_vis
     cdef double* dist = NULL
+    cdef long thid
 
-    dist = <double*> malloc(sz_p * sizeof(double))
-    is_vis = <long*> malloc(sz_p * sizeof(long))
-    for rr in range(sz_r):
-        loc_r = disc_r[rr]
-        vol_pi = step_rphi[rr] * loc_r * c_pi
-        loc_size_phi = sz_phi[rr]
-        loc_step_rphi = step_rphi[rr]
-        loc_first_ind = first_ind_mv[rr]
-        for zz in range(sz_z):
-            loc_z = disc_z[zz]
-            if is_in_vignette[rr, zz]:
-                ind_pol = ind_rz2pol[rr, zz]
-                ind_mv[ind_pol] = rr * sz_z + zz
-                reso_rdrdz[ind_pol] = loc_r * reso_r_z
-                pts_mv[0, ind_pol] = loc_r
-                pts_mv[1, ind_pol] = loc_z
-                for jj in range(loc_size_phi):
-                    indiijj = indi_mv[rr, loc_first_ind + jj]
-                    loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
-                    loc_x = loc_r * c_cos(loc_phi)
-                    loc_y = loc_r * c_sin(loc_phi)
-                    # computing distance ....
-                    _bgt.compute_dist_pt_vec(loc_x, loc_y, loc_z,
-                                             sz_p, part_coords,
-                                             &dist[0])
-                    # checking if visible .....
-                    _rt.is_visible_pt_vec_core(loc_x, loc_y, loc_z,
-                                               part_coords,
-                                               sz_p,
-                                               ves_poly, ves_norm,
-                                               &is_vis[0], dist,
-                                               ves_lims,
-                                               lstruct_nlim,
-                                               lstruct_polyx,
-                                               lstruct_polyy,
-                                               lstruct_lims,
-                                               lstruct_normx,
-                                               lstruct_normy,
-                                               lnvert, vperp_out,
-                                               coeff_inter_in,
-                                               coeff_inter_out,
-                                               ind_inter_out, sz_ves_lims,
-                                               ray_orig, ray_vdir,
-                                               npts_poly,
-                                               nstruct_tot, nstruct_lim,
-                                               rmin,
-                                               eps_uz, eps_a,
-                                               eps_vz, eps_b, eps_plane,
-                                               1, # is toroidal
-                                               forbid, 1)
+    with nogil, parallel(num_threads=num_threads):
+        dist = <double*> malloc(sz_p * sizeof(double))
+        is_vis = <long*> malloc(sz_p * sizeof(long))
 
-                    for pp in range(sz_p):
-                        if is_vis[pp] and dist[pp] > part_rad[pp]:
-                            sa_map[ind_pol,
-                                   pp] += sa_approx_formula(part_rad[pp],
-                                                            dist[pp],
-                                                            vol_pi)
-    free(dist)
-    free(is_vis)
+        thid = threadid()
+
+        for rr in prange(sz_r, schedule="dynamic"):
+            loc_r = disc_r[rr]
+            vol_pi = step_rphi[rr] * loc_r * c_pi
+            loc_size_phi = sz_phi[rr]
+            loc_step_rphi = step_rphi[rr]
+            loc_first_ind = first_ind_mv[rr]
+            for zz in range(sz_z):
+                loc_z = disc_z[zz]
+                if is_in_vignette[rr, zz]:
+                    ind_pol = ind_rz2pol[rr, zz]
+                    ind_mv[ind_pol] = rr * sz_z + zz
+                    reso_rdrdz[ind_pol] = loc_r * reso_r_z
+                    pts_mv[0, ind_pol] = loc_r
+                    pts_mv[1, ind_pol] = loc_z
+                    for jj in range(loc_size_phi):
+                        indiijj = indi_mv[rr, loc_first_ind + jj]
+                        loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
+                        loc_x = loc_r * c_cos(loc_phi)
+                        loc_y = loc_r * c_sin(loc_phi)
+                        # computing distance ....
+                        _bgt.compute_dist_pt_vec(loc_x, loc_y, loc_z,
+                                                 sz_p, part_coords,
+                                                 &dist[0])
+                        # checking if visible .....
+                        _rt.is_visible_pt_vec_core(loc_x, loc_y, loc_z,
+                                                   part_coords,
+                                                   sz_p,
+                                                   ves_poly, ves_norm,
+                                                   &is_vis[0], dist,
+                                                   ves_lims,
+                                                   lstruct_nlim,
+                                                   lstruct_polyx,
+                                                   lstruct_polyy,
+                                                   lstruct_lims,
+                                                   lstruct_normx,
+                                                   lstruct_normy,
+                                                   lnvert, 
+                                                   vperp_out[thid],
+                                                   coeff_inter_in[thid],
+                                                   coeff_inter_out[thid],
+                                                   ind_inter_out[thid],
+                                                   sz_ves_lims,
+                                                   ray_orig[thid],
+                                                   ray_vdir[thid],
+                                                   npts_poly,
+                                                   nstruct_tot, nstruct_lim,
+                                                   rmin,
+                                                   eps_uz, eps_a,
+                                                   eps_vz, eps_b, eps_plane,
+                                                   1, # is toroidal
+                                                   forbid, 1)
+                        for pp in range(sz_p):
+                            if is_vis[pp] and dist[pp] > part_rad[pp]:
+                                sa_map[ind_pol,
+                                       pp] += sa_approx_formula(part_rad[pp],
+                                                                dist[pp],
+                                                                vol_pi)
+        free(dist)
+        free(is_vis)
+
     return
 
 
