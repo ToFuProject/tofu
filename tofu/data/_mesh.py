@@ -300,7 +300,31 @@ class Mesh2DRect(DataCollection):
 
         # store
         if store is True:
-            if operator in ['D0', 'D0N2']:
+            if operator == 'D1':
+                name = f'{key}-{operator}-dR'
+                if crop is True:
+                    name = f'{name}-cropped'
+                self.add_data(
+                    key=name,
+                    data=opmat[0],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+                name = f'{key}-{operator}-dZ'
+                if crop is True:
+                    name = f'{name}-cropped'
+                self.add_data(
+                    key=name,
+                    data=opmat[1],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+
+            elif operator in ['D0N1', 'D0N2']:
                 name = f'{key}-{operator}-{geometry}'
                 if crop is True:
                     name = f'{name}-cropped'

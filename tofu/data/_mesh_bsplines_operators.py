@@ -156,7 +156,7 @@ def get_mesh2dRect_operators(
         shape = (nbs, nbs)
         indbs = np.arange(0, nbs)
 
-    if operator == 'D1N2' and deg == 0:
+    if operator == 'D1' and deg == 0:
         datadR = np.zeros((nbs, nbs), dtype=float)
         datadZ = np.zeros((nbs, nbs), dtype=float)
 
@@ -377,7 +377,7 @@ def get_mesh2dRect_operators(
                 scpsp.csc_matrix(datadZ[cropbs_flat, :][:, cropbs_flat]),
             )
 
-        elif deg =>1:
+        elif deg >= 1:
             raise NotImplementedError()
 
     # ------------
@@ -471,6 +471,13 @@ def get_mesh2dRect_operators(
             centsR = 0.5*(knotsx_mult[1:] + knotsx_mult[:-1])
             centsZ = 0.5*(knotsy_mult[1:] + knotsy_mult[:-1])
 
+            # integration
+            dZ = np.diff(knotsy_mult)
+            if geometry == 'linear':
+                dR = np.diff(knotsx_mult)
+            else:
+                dR = 0.5*(knotsx_mult[1:]**2 - knotsx_mult[:-1]**2)
+
             n2R = np.zeros(cropbs.shape, dtype=bool)
             n2R[1:-1, :] = cropbs[1:-1, :] & cropbs[2:, :] & cropbs[:-2, :]
             npR = cropbs & (~n2R)
@@ -523,7 +530,7 @@ def get_mesh2dRect_operators(
                 datadZ[iflat, iflat] = dZi
 
             # This is the gradient ! not the integral of the squared gradient !
-
+            # TBC !!!!!!!!!!!!!!!!!!!!!!!!!!!!
             opmat = (
                 scpsp.csc_matrix(datadR[cropbs_flat, :][:, cropbs_flat]),
                 scpsp.csc_matrix(datadZ[cropbs_flat, :][:, cropbs_flat]),

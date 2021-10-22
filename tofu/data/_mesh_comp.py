@@ -1140,12 +1140,6 @@ def get_bsplines_operator(
         allowed=lk,
     )
 
-    integral = _generic_check._check_var(
-        integral, 'integral',
-        default=True,
-        types=bool,
-    )
-
     store = _generic_check._check_var(
         store, 'store',
         default=True,
@@ -1187,9 +1181,11 @@ def get_bsplines_operator(
     )
 
     # cropping
-    if operator == 'D0':
+    if operator == 'D1':
+        ref = (keycropped, keycropped)
+    elif operator == 'D0N1':
         ref = (keycropped,)
-    elif 'N' in operator:
+    elif 'N2' in operator:
         ref = (keycropped, keycropped)
 
     return opmat, operator, geometry, dim, ref, crop, store, returnas, key
