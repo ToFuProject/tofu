@@ -726,7 +726,9 @@ def sample_mesh(
 # #############################################################################
 
 
-def _crop_check(mesh=None, key=None, crop=None, thresh_in=None):
+def _crop_check(
+    mesh=None, key=None, crop=None, thresh_in=None, remove_isolated=None,
+):
 
     # key
     lkm = list(mesh.dobj['mesh'].keys())
@@ -782,16 +784,24 @@ def _crop_check(mesh=None, key=None, crop=None, thresh_in=None):
         )
         raise Exception(msg)
 
-    return key, cropbool, thresh_in
+    # remove_isolated
+    remove_isolated = _generic_check._check_var(
+        remove_isolated, 'remove_isolated',
+        default=True,
+        types=bool,
+    )
+
+    return key, cropbool, thresh_in, remove_isolated
 
 
-def crop(mesh=None, key=None, crop=None, thresh_in=None):
+def crop(mesh=None, key=None, crop=None, thresh_in=None, remove_isolated=None):
 
     # ------------
     # check inputs
 
-    key, cropbool, thresh_in = _crop_check(
+    key, cropbool, thresh_in, remove_isolated = _crop_check(
         mesh=mesh, key=key, crop=crop, thresh_in=thresh_in,
+        remove_isolated=remove_isolated,
     )
 
     # -----------
@@ -815,13 +825,19 @@ def crop(mesh=None, key=None, crop=None, thresh_in=None):
         isin = Path(crop.T).contains_points(pts).reshape((nR, nZ, npts))
         crop = np.sum(isin, axis=-1) >= thresh_in
 
-        # Remove isolated pixels
-        # All pixels should have at least one neighbour in R and one in Z
-        # This constraint is useful for discrete gradient evaluation (D1N2)
-        noneigh_R = None
-        noneigh_Z = None
-
-        crop[noneigh_R | noneigh_Z] = False
+        # Remove isolated pixelsi
+        if remove_isolated is True:
+            # All pixels should have at least one neighbour in R and one in Z
+            # This constraint is useful for discrete gradient evaluation (D1N2)
+            neighR = np.copy(crop)
+            neighR[0, :] &= neighR[1, :]
+            neighR[-1, :] &= neighR[-2, :]
+            neighR[1:-1, :] &= (neighR[:-2, :] | neighR[2:, :])
+            neighZ = np.copy(crop)
+            neighZ[:, 0] &= neighZ[:, 1]
+            neighZ[:, -1] &= neighZ[:, -2]
+            neighZ[:, 1:-1] &= (neighZ[:, :-2] | neighZ[:, 2:])
+            crop = neighR & neighZ
 
     return crop, key, thresh_in
 
