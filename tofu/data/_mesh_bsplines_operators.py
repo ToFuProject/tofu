@@ -90,7 +90,7 @@ def _get_mesh2dRect_operators_check(
     return operator, geometry, sparse_fmt, dim
 
 
-def get_mesh2dRect_operators(
+def get_mesh2dRect_operators_integral(
     operator=None,
     geometry=None,
     deg=None,
@@ -438,6 +438,8 @@ def get_mesh2dRect_operators(
                 dZi = 1./(centsZ[iz] - centsZ[iz - 1])
                 datadZ[iflat, iflat - nx] = -dZi
                 datadZ[iflat, iflat] = dZi
+
+            # This is the gradient ! not the integral of the squared gradient !
 
             opmat = (
                 scpsp.csc_matrix(datadR[cropbs_flat, :][:, cropbs_flat]),

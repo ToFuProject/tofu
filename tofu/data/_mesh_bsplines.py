@@ -263,7 +263,7 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             shapebs=self.shapebs,
         )
 
-    def get_operator(
+    def get_operator_integral(
         self,
         operator=None,
         geometry=None,
@@ -272,7 +272,7 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         cropbs=None,
     ):
         """ Get desired operator """
-        return _mesh_bsplines_operators.get_mesh2dRect_operators(
+        return _mesh_bsplines_operators.get_mesh2dRect_operators_integral(
             deg=self.degrees[0],
             operator=operator,
             geometry=geometry,
