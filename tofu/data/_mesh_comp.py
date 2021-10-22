@@ -1126,6 +1126,7 @@ def get_bsplines_operator(
     key=None,
     operator=None,
     geometry=None,
+    integral=None,
     crop=None,
     store=None,
     returnas=None,
@@ -1137,6 +1138,12 @@ def get_bsplines_operator(
         key, 'key',
         types=str,
         allowed=lk,
+    )
+
+    integral = _generic_check._check_var(
+        integral, 'integral',
+        default=True,
+        types=bool,
     )
 
     store = _generic_check._check_var(
@@ -1171,9 +1178,10 @@ def get_bsplines_operator(
     # compute and return
     (
         opmat, operator, geometry, dim,
-    ) = coll.dobj['bsplines'][key]['class'].get_operator_integral(
+    ) = coll.dobj['bsplines'][key]['class'].get_operator(
         operator=operator,
         geometry=geometry,
+        integral=integral,
         cropbs_flat=cropbs_flat,
         cropbs=cropbs,
     )
