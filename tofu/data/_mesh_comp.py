@@ -1157,9 +1157,11 @@ def get_bsplines_operator(
         types=bool,
     )
 
-    cropbs_flat = coll.dobj['bsplines'][key]['crop']
-    if cropbs_flat is not False and crop is True:
-        cropbs_flat = coll.ddata[cropbs_flat]['data'].ravel(order='F')
+    cropbs = coll.dobj['bsplines'][key]['crop']
+    if cropbs is not False and crop is True:
+        cropbs_flat = coll.ddata[cropbs]['data'].ravel(order='F')
+        if coll.dobj['bsplines'][key]['deg'] == 0:
+            cropbs = coll.ddata[cropbs]['data']
         keycropped = f'{key}-cropped'
     else:
         crop = False
@@ -1173,6 +1175,7 @@ def get_bsplines_operator(
         operator=operator,
         geometry=geometry,
         cropbs_flat=cropbs_flat,
+        cropbs=cropbs,
     )
 
     # cropping

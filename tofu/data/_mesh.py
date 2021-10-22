@@ -89,6 +89,7 @@ class Mesh2DRect(DataCollection):
         deg=None,
         key=None,
         thresh_in=None,
+        remove_isolated=None,
     ):
         """
 
@@ -111,7 +112,12 @@ class Mesh2DRect(DataCollection):
         obj.add_mesh(domain=domain, res=res, key=key)
         if deg is not None:
             obj.add_bsplines(deg=deg)
-        obj.crop(key=key, crop=poly, thresh_in=thresh_in)
+        obj.crop(
+            key=key,
+            crop=poly,
+            thresh_in=thresh_in,
+            remove_isolated=remove_isolated,
+        )
         return obj
 
     # -----------------
@@ -448,7 +454,7 @@ class Mesh2DRect(DataCollection):
     # crop
     # ------------------
 
-    def crop(self, key=None, crop=None, thresh_in=None):
+    def crop(self, key=None, crop=None, thresh_in=None, remove_isolated=None):
         """ Crop a mesh using
 
             - a mask of bool for each mesh elements
@@ -462,6 +468,7 @@ class Mesh2DRect(DataCollection):
             key=key,
             crop=crop,
             thresh_in=thresh_in,
+            remove_isolated=remove_isolated,
         )
 
         # add crop data
