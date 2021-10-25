@@ -316,6 +316,7 @@ def get_mesh2dRect_operators(
                 cropbs=cropbs,
                 cropbs_flat=cropbs_flat,
                 nx=nx,
+                ny=ny,
                 nbs=nbs,
             )
             opmat = (
@@ -419,19 +420,26 @@ def get_mesh2dRect_operators(
                 cropbs=cropbs,
                 cropbs_flat=cropbs_flat,
                 nx=nx,
+                ny=ny,
                 nbs=nbs,
             )
-            dZ = np.repeat(knotsy_mult[1:] - knotsy_mult[:-1], nx)[cropbs_flat]
+
+            # surface elements
+            dZ = np.repeat(knotsy_mult[1:] - knotsy_mult[:-1], nx)
             if geometry == 'linear':
                 dR = np.tile(
                     knotsx_mult[1:] - knotsx_mult[:-1],
                     ny,
-                )[cropbs_flat]
+                )
             else:
                 dR = np.tile(
                     0.5*(knotsx_mult[1:]**2 - knotsx_mult[:-1]**2),
                     ny,
-                )[cropbs_flat]
+                )
+
+            if cropbs_flat is not False:
+                dR = dR[cropbs_flat]
+                dZ = dZ[cropbs_flat]
 
             opmat = (
                 scpsp.csc_matrix(gradR.T.dot(gradR*(dR*dZ)[:, None])),
@@ -830,6 +838,7 @@ def _D1_Deg0(
     cropbs=None,
     cropbs_flat=None,
     nx=None,
+    ny=None,
     nbs=None,
 ):
     """ Discrete apprmixation of the gradient for pixels
@@ -842,6 +851,8 @@ def _D1_Deg0(
     # initialize output
     datadR = np.zeros((nbs, nbs), dtype=float)
     datadZ = np.zeros((nbs, nbs), dtype=float)
+    if cropbs is False:
+        cropbs = np.ones((nx, ny), dtype=bool)
 
     # positions of centers
     centsR = 0.5*(knotsx_mult[1:] + knotsx_mult[:-1])
@@ -907,10 +918,13 @@ def _D1_Deg0(
         datadZ[iflat, iflat] = dZi
 
     # crop and return
-    return (
-        datadR[cropbs_flat, :][:, cropbs_flat],
-        datadZ[cropbs_flat, :][:, cropbs_flat],
-    )
+    if cropbs_flat is False:
+        return datadR, datadZ
+    else:
+        return (
+            datadR[cropbs_flat, :][:, cropbs_flat],
+            datadZ[cropbs_flat, :][:, cropbs_flat],
+        )
 
 
 # #############################################################################
