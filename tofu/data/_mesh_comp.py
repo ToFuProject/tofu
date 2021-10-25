@@ -1164,7 +1164,7 @@ def get_bsplines_operator(
             cropbs = coll.ddata[cropbs]['data']
         keycropped = f'{key}-cropped'
     else:
-        crop = False
+        cropbs = False
         cropbs_flat = False
         keycropped = key
 

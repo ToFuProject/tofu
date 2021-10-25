@@ -290,7 +290,10 @@ class Test02_Mesh2DRect():
 
             for comb in itt.product(lop, lgeom, lcrop):
                 deg = self.dobj[k0].dobj['bsplines'][lkey[ii]]['deg']
+
+                # only test exact operators
                 if int(comb[0][1]) > deg:
+                    # except deg =0 D1N2
                     if deg == 0 and comb[0] == 'D1N2':
                         pass
                     else:
