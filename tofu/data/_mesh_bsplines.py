@@ -267,7 +267,6 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         self,
         operator=None,
         geometry=None,
-        integral=None,
         cropbs_flat=None,
         # specific to deg = 0
         cropbs=None,
@@ -277,7 +276,6 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             deg=self.degrees[0],
             operator=operator,
             geometry=geometry,
-            integral=integral,
             knotsx_mult=self.tck[0],
             knotsy_mult=self.tck[1],
             knotsx_per_bs=self.knots_per_bs_x,

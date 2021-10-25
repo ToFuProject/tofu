@@ -1126,7 +1126,6 @@ def get_bsplines_operator(
     key=None,
     operator=None,
     geometry=None,
-    integral=None,
     crop=None,
     store=None,
     returnas=None,
@@ -1175,7 +1174,6 @@ def get_bsplines_operator(
     ) = coll.dobj['bsplines'][key]['class'].get_operator(
         operator=operator,
         geometry=geometry,
-        integral=integral,
         cropbs_flat=cropbs_flat,
         cropbs=cropbs,
     )

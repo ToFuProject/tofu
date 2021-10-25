@@ -265,7 +265,6 @@ class Mesh2DRect(DataCollection):
         key=None,
         operator=None,
         geometry=None,
-        integral=None,
         crop=None,
         store=None,
         returnas=None,
@@ -273,7 +272,7 @@ class Mesh2DRect(DataCollection):
         """ Get a matrix operator to compute an integral
 
         operator specifies the integrand:
-            - 'D0': integral of the value
+            - 'D0N1': integral of the value
             - 'D0N2': integral of the squared value
             - 'D1N2': integral of the squared gradient
             - 'D2N2': integral of the squared laplacian
@@ -292,7 +291,6 @@ class Mesh2DRect(DataCollection):
             key=key,
             operator=operator,
             geometry=geometry,
-            integral=integral,
             crop=crop,
             store=store,
             returnas=returnas,

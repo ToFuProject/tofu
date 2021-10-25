@@ -103,7 +103,6 @@ def _get_mesh2dRect_operators_check(
 def get_mesh2dRect_operators(
     operator=None,
     geometry=None,
-    integral=None,
     deg=None,
     knotsx_mult=None,
     knotsy_mult=None,
@@ -155,10 +154,6 @@ def get_mesh2dRect_operators(
     else:
         shape = (nbs, nbs)
         indbs = np.arange(0, nbs)
-
-    if operator == 'D1' and deg == 0:
-        datadR = np.zeros((nbs, nbs), dtype=float)
-        datadZ = np.zeros((nbs, nbs), dtype=float)
 
     if 'N2' in operator and deg >= 1:
         # get intersection indices array
@@ -315,66 +310,17 @@ def get_mesh2dRect_operators(
 
         # Treat separately discrete case
         if deg == 0:
-            # positions of centers
-            centsR = 0.5*(knotsx_mult[1:] + knotsx_mult[:-1])
-            centsZ = 0.5*(knotsy_mult[1:] + knotsy_mult[:-1])
-
-            n2R = np.zeros(cropbs.shape, dtype=bool)
-            n2R[1:-1, :] = cropbs[1:-1, :] & cropbs[2:, :] & cropbs[:-2, :]
-            npR = cropbs & (~n2R)
-            npR[-1, :] = False
-            npR[:-1, :] &= cropbs[1:, :]
-            nmR = cropbs & (~n2R) & (~npR)
-            nmR[0, :] = False
-            nmR[1:, :] &= cropbs[:-1, :]
-
-            n2Z = np.zeros(cropbs.shape, dtype=bool)
-            n2Z[:, 1:-1] = cropbs[:, 1:-1] & cropbs[:, 2:] & cropbs[:, :-2]
-            n2Z[:, 1:-1] = n2Z[:, 1:-1] & n2Z[:, 2:] & n2Z[:, :-2]
-            npZ = cropbs & (~n2Z)
-            npZ[:, -1] = False
-            npZ[:, :-1] &= cropbs[:, 1:]
-            nmZ = cropbs & (~n2Z) & (~npZ)
-            nmZ[:, 0] = False
-            nmZ[:, 1:] &= cropbs[:, :-1]
-
-            for ir, iz in zip(*n2R.nonzero()):
-                iflat = ir + iz*nx
-                dRi = 1./(centsR[ir + 1] - centsR[ir - 1])
-                datadR[iflat, iflat - 1] = -dRi
-                datadR[iflat, iflat + 1] = dRi
-            for ir, iz in zip(*npR.nonzero()):
-                iflat = ir + iz*nx
-                dRi = 1./(centsR[ir + 1] - centsR[ir])
-                datadR[iflat, iflat] = -dRi
-                datadR[iflat, iflat + 1] = dRi
-            for ir, iz in zip(*nmR.nonzero()):
-                iflat = ir + iz*nx
-                dRi = 1./(centsR[ir] - centsR[ir-1])
-                datadR[iflat, iflat - 1] = -dRi
-                datadR[iflat, iflat] = dRi
-
-            for ir, iz in zip(*n2Z.nonzero()):
-                iflat = ir + iz*nx
-                dZi = 1./(centsZ[iz + 1] - centsZ[iz - 1])
-                datadZ[iflat, iflat - nx] = -dZi
-                datadZ[iflat, iflat + nx] = dZi
-            for ir, iz in zip(*npZ.nonzero()):
-                iflat = ir + iz*nx
-                dZi = 1./(centsZ[iz + 1] - centsZ[iz])
-                datadZ[iflat, iflat] = -dZi
-                datadZ[iflat, iflat + nx] = dZi
-            for ir, iz in zip(*nmZ.nonzero()):
-                iflat = ir + iz*nx
-                dZi = 1./(centsZ[iz] - centsZ[iz - 1])
-                datadZ[iflat, iflat - nx] = -dZi
-                datadZ[iflat, iflat] = dZi
-
-            # This is the gradient ! not the integral of the squared gradient !
-
+            gradR, gradZ = _D1_Deg0(
+                knotsx_mult=knotsx_mult,
+                knotsy_mult=knotsy_mult,
+                cropbs=cropbs,
+                cropbs_flat=cropbs_flat,
+                nx=nx,
+                nbs=nbs,
+            )
             opmat = (
-                scpsp.csc_matrix(datadR[cropbs_flat, :][:, cropbs_flat]),
-                scpsp.csc_matrix(datadZ[cropbs_flat, :][:, cropbs_flat]),
+                scpsp.csc_matrix(gradR),
+                scpsp.csc_matrix(gradZ),
             )
 
         elif deg >= 1:
@@ -467,73 +413,29 @@ def get_mesh2dRect_operators(
 
         # Treat separately discrete case
         if deg == 0:
-            # positions of centers
-            centsR = 0.5*(knotsx_mult[1:] + knotsx_mult[:-1])
-            centsZ = 0.5*(knotsy_mult[1:] + knotsy_mult[:-1])
-
-            # integration
-            dZ = np.diff(knotsy_mult)
+            gradR, gradZ = _D1_Deg0(
+                knotsx_mult=knotsx_mult,
+                knotsy_mult=knotsy_mult,
+                cropbs=cropbs,
+                cropbs_flat=cropbs_flat,
+                nx=nx,
+                nbs=nbs,
+            )
+            dZ = np.repeat(knotsy_mult[1:] - knotsy_mult[:-1], nx)[cropbs_flat]
             if geometry == 'linear':
-                dR = np.diff(knotsx_mult)
+                dR = np.tile(
+                    knotsx_mult[1:] - knotsx_mult[:-1],
+                    ny,
+                )[cropbs_flat]
             else:
-                dR = 0.5*(knotsx_mult[1:]**2 - knotsx_mult[:-1]**2)
+                dR = np.tile(
+                    0.5*(knotsx_mult[1:]**2 - knotsx_mult[:-1]**2),
+                    ny,
+                )[cropbs_flat]
 
-            n2R = np.zeros(cropbs.shape, dtype=bool)
-            n2R[1:-1, :] = cropbs[1:-1, :] & cropbs[2:, :] & cropbs[:-2, :]
-            npR = cropbs & (~n2R)
-            npR[-1, :] = False
-            npR[:-1, :] &= cropbs[1:, :]
-            nmR = cropbs & (~n2R) & (~npR)
-            nmR[0, :] = False
-            nmR[1:, :] &= cropbs[:-1, :]
-
-            n2Z = np.zeros(cropbs.shape, dtype=bool)
-            n2Z[:, 1:-1] = cropbs[:, 1:-1] & cropbs[:, 2:] & cropbs[:, :-2]
-            n2Z[:, 1:-1] = n2Z[:, 1:-1] & n2Z[:, 2:] & n2Z[:, :-2]
-            npZ = cropbs & (~n2Z)
-            npZ[:, -1] = False
-            npZ[:, :-1] &= cropbs[:, 1:]
-            nmZ = cropbs & (~n2Z) & (~npZ)
-            nmZ[:, 0] = False
-            nmZ[:, 1:] &= cropbs[:, :-1]
-
-            for ir, iz in zip(*n2R.nonzero()):
-                iflat = ir + iz*nx
-                dRi = 1./(centsR[ir + 1] - centsR[ir - 1])
-                datadR[iflat, iflat - 1] = -dRi
-                datadR[iflat, iflat + 1] = dRi
-            for ir, iz in zip(*npR.nonzero()):
-                iflat = ir + iz*nx
-                dRi = 1./(centsR[ir + 1] - centsR[ir])
-                datadR[iflat, iflat] = -dRi
-                datadR[iflat, iflat + 1] = dRi
-            for ir, iz in zip(*nmR.nonzero()):
-                iflat = ir + iz*nx
-                dRi = 1./(centsR[ir] - centsR[ir-1])
-                datadR[iflat, iflat - 1] = -dRi
-                datadR[iflat, iflat] = dRi
-
-            for ir, iz in zip(*n2Z.nonzero()):
-                iflat = ir + iz*nx
-                dZi = 1./(centsZ[iz + 1] - centsZ[iz - 1])
-                datadZ[iflat, iflat - nx] = -dZi
-                datadZ[iflat, iflat + nx] = dZi
-            for ir, iz in zip(*npZ.nonzero()):
-                iflat = ir + iz*nx
-                dZi = 1./(centsZ[iz + 1] - centsZ[iz])
-                datadZ[iflat, iflat] = -dZi
-                datadZ[iflat, iflat + nx] = dZi
-            for ir, iz in zip(*nmZ.nonzero()):
-                iflat = ir + iz*nx
-                dZi = 1./(centsZ[iz] - centsZ[iz - 1])
-                datadZ[iflat, iflat - nx] = -dZi
-                datadZ[iflat, iflat] = dZi
-
-            # This is the gradient ! not the integral of the squared gradient !
-            # TBC !!!!!!!!!!!!!!!!!!!!!!!!!!!!
             opmat = (
-                scpsp.csc_matrix(datadR[cropbs_flat, :][:, cropbs_flat]),
-                scpsp.csc_matrix(datadZ[cropbs_flat, :][:, cropbs_flat]),
+                scpsp.csc_matrix(gradR.T.dot(gradR*(dR*dZ)[:, None])),
+                scpsp.csc_matrix(gradZ.T.dot(gradZ*(dR*dZ)[:, None])),
             )
 
         else:
@@ -918,7 +820,102 @@ def _D0N2_Deg2_2_toroidal(k1, k2, k3, k4):
 
 # #############################################################################
 # #############################################################################
-#               Operator sub-routines: D1N2
+#               Operator sub-routines: D1 - deg = 0 - discrete
+# #############################################################################
+
+
+def _D1_Deg0(
+    knotsx_mult=None,
+    knotsy_mult=None,
+    cropbs=None,
+    cropbs_flat=None,
+    nx=None,
+    nbs=None,
+):
+    """ Discrete apprmixation of the gradient for pixels
+
+    Centered when possible
+    Non-centered otherwise
+
+    """
+
+    # initialize output
+    datadR = np.zeros((nbs, nbs), dtype=float)
+    datadZ = np.zeros((nbs, nbs), dtype=float)
+
+    # positions of centers
+    centsR = 0.5*(knotsx_mult[1:] + knotsx_mult[:-1])
+    centsZ = 0.5*(knotsy_mult[1:] + knotsy_mult[:-1])
+
+    # Determine points that have 2 neighbours in R (centered)
+    n2R = np.zeros(cropbs.shape, dtype=bool)
+    n2R[1:-1, :] = cropbs[1:-1, :] & cropbs[2:, :] & cropbs[:-2, :]
+    # points with a neighbours at higher R
+    npR = cropbs & (~n2R)
+    npR[-1, :] = False
+    npR[:-1, :] &= cropbs[1:, :]
+    # points with a neighbours at lower R
+    nmR = cropbs & (~n2R) & (~npR)
+    nmR[0, :] = False
+    nmR[1:, :] &= cropbs[:-1, :]
+
+    # Determine points that have 2 neighbours in Z (centered)
+    n2Z = np.zeros(cropbs.shape, dtype=bool)
+    n2Z[:, 1:-1] = cropbs[:, 1:-1] & cropbs[:, 2:] & cropbs[:, :-2]
+    n2Z[:, 1:-1] = n2Z[:, 1:-1] & n2Z[:, 2:] & n2Z[:, :-2]
+    # points with a neighbours at higher Z
+    npZ = cropbs & (~n2Z)
+    npZ[:, -1] = False
+    npZ[:, :-1] &= cropbs[:, 1:]
+    # points with a neighbours at lower Z
+    nmZ = cropbs & (~n2Z) & (~npZ)
+    nmZ[:, 0] = False
+    nmZ[:, 1:] &= cropbs[:, :-1]
+
+    # iterate on each type of point in R
+    for ir, iz in zip(*n2R.nonzero()):
+        iflat = ir + iz*nx
+        dRi = 1./(centsR[ir + 1] - centsR[ir - 1])
+        datadR[iflat, iflat - 1] = -dRi
+        datadR[iflat, iflat + 1] = dRi
+    for ir, iz in zip(*npR.nonzero()):
+        iflat = ir + iz*nx
+        dRi = 1./(centsR[ir + 1] - centsR[ir])
+        datadR[iflat, iflat] = -dRi
+        datadR[iflat, iflat + 1] = dRi
+    for ir, iz in zip(*nmR.nonzero()):
+        iflat = ir + iz*nx
+        dRi = 1./(centsR[ir] - centsR[ir-1])
+        datadR[iflat, iflat - 1] = -dRi
+        datadR[iflat, iflat] = dRi
+
+    # iterate on each type of point in Z
+    for ir, iz in zip(*n2Z.nonzero()):
+        iflat = ir + iz*nx
+        dZi = 1./(centsZ[iz + 1] - centsZ[iz - 1])
+        datadZ[iflat, iflat - nx] = -dZi
+        datadZ[iflat, iflat + nx] = dZi
+    for ir, iz in zip(*npZ.nonzero()):
+        iflat = ir + iz*nx
+        dZi = 1./(centsZ[iz + 1] - centsZ[iz])
+        datadZ[iflat, iflat] = -dZi
+        datadZ[iflat, iflat + nx] = dZi
+    for ir, iz in zip(*nmZ.nonzero()):
+        iflat = ir + iz*nx
+        dZi = 1./(centsZ[iz] - centsZ[iz - 1])
+        datadZ[iflat, iflat - nx] = -dZi
+        datadZ[iflat, iflat] = dZi
+
+    # crop and return
+    return (
+        datadR[cropbs_flat, :][:, cropbs_flat],
+        datadZ[cropbs_flat, :][:, cropbs_flat],
+    )
+
+
+# #############################################################################
+# #############################################################################
+#               Operator sub-routines: D1N2 - exact
 # #############################################################################
 
 
