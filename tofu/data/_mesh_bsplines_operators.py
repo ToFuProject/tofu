@@ -14,10 +14,14 @@ from . import _generic_check
 
 
 _LOPERATORS_INT = [
-    'D0',
+    'D1',
+    'D2',
+    'D3',
+    'D0N1',
     'D0N2',
     'D1N2',
     'D2N2',
+    'D3N2',
 ]
 
 
@@ -44,7 +48,7 @@ def _get_mesh2dRect_operators_check(
     # operator
     operator = _generic_check._check_var(
         operator, 'operator',
-        default='D0',
+        default='D0N1',
         types=str,
         allowed=_LOPERATORS_INT,
     )
@@ -66,7 +70,13 @@ def _get_mesh2dRect_operators_check(
     )
 
     # dim
-    if operator == 'D0':
+    if operator == 'D1':
+        dim = 'origin / m'
+    elif operator == 'D2':
+        dim = 'origin / m2'
+    elif operator == 'D3':
+        dim = 'origin / m3'
+    elif operator == 'D0N1':
         if geometry == 'linear':
             dim = 'origin x m2'
         else:
@@ -101,6 +111,8 @@ def get_mesh2dRect_operators(
     overlap=None,
     sparse_fmt=None,
     cropbs_flat=None,
+    # specific to deg = 0
+    cropbs=None,
 ):
 
     # ------------
@@ -143,7 +155,7 @@ def get_mesh2dRect_operators(
         shape = (nbs, nbs)
         indbs = np.arange(0, nbs)
 
-    if 'N' in operator and deg >= 1:
+    if 'N2' in operator and deg >= 1:
         # get intersection indices array
         if cropbs_flat is False:
             nbtot = np.sum(overlap >= 0)
@@ -169,9 +181,9 @@ def get_mesh2dRect_operators(
             column = np.zeros((nbtot,), dtype=int)
 
     # ------------
-    # D0
+    # D0 - integral
 
-    if operator == 'D0':
+    if operator == 'D0N1':
         if deg == 0 and geometry == 'linear':
 
             opmat = (kR[1, :] - kR[0, :]) * (kZ[1, :] - kZ[0, :])
@@ -284,12 +296,36 @@ def get_mesh2dRect_operators(
 
         elif deg == 3:
 
-            msg = "Integral D0 not implemented for deg=3 yet!"
+            msg = "Integral D0N1 not implemented for deg=3 yet!"
             raise NotImplementedError(msg)
 
         # crop
         if cropbs_flat is not False:
             opmat = opmat[cropbs_flat]
+
+    # ------------
+    # D1 - gradient
+
+    elif operator == 'D1':
+
+        # Treat separately discrete case
+        if deg == 0:
+            gradR, gradZ = _D1_Deg0(
+                knotsx_mult=knotsx_mult,
+                knotsy_mult=knotsy_mult,
+                cropbs=cropbs,
+                cropbs_flat=cropbs_flat,
+                nx=nx,
+                ny=ny,
+                nbs=nbs,
+            )
+            opmat = (
+                scpsp.csc_matrix(gradR),
+                scpsp.csc_matrix(gradZ),
+            )
+
+        elif deg >= 1:
+            raise NotImplementedError()
 
     # ------------
     # D0N2
@@ -376,73 +412,109 @@ def get_mesh2dRect_operators(
 
     elif operator == 'D1N2':
 
-        # pre-compute integrals
-        if deg == 1:
-            idR = _D1N2_Deg1(knotsx_mult, geometry=geometry)
-            idZ = _D1N2_Deg1(knotsy_mult, geometry='linear')
-            iR = _D0N2_Deg1(knotsx_mult, geometry=geometry)
-            iZ = _D0N2_Deg1(knotsy_mult, geometry='linear')
-        elif deg == 2:
-            idR = _D1N2_Deg2(knotsx_mult, geometry=geometry)
-            idZ = _D1N2_Deg2(knotsy_mult, geometry='linear')
-            iR = _D0N2_Deg2(knotsx_mult, geometry=geometry)
-            iZ = _D0N2_Deg2(knotsy_mult, geometry='linear')
-        elif deg == 3:
-            msg = "Integral D1N2 not implemented for deg=3!"
-            raise NotImplementedError(msg)
+        # Treat separately discrete case
+        if deg == 0:
+            gradR, gradZ = _D1_Deg0(
+                knotsx_mult=knotsx_mult,
+                knotsy_mult=knotsy_mult,
+                cropbs=cropbs,
+                cropbs_flat=cropbs_flat,
+                nx=nx,
+                ny=ny,
+                nbs=nbs,
+            )
 
-        # set non-diagonal elements
-        i0 = 0
-        for ir in range(nx):
-            for iz in range(ny):
+            # surface elements
+            dZ = np.repeat(knotsy_mult[1:] - knotsy_mult[:-1], nx)
+            if geometry == 'linear':
+                dR = np.tile(
+                    knotsx_mult[1:] - knotsx_mult[:-1],
+                    ny,
+                )
+            else:
+                dR = np.tile(
+                    0.5*(knotsx_mult[1:]**2 - knotsx_mult[:-1]**2),
+                    ny,
+                )
 
-                iflat = ir + iz*nx
-                if cropbs_flat is not False and not cropbs_flat[iflat]:
-                    continue
+            if cropbs_flat is not False:
+                dR = dR[cropbs_flat]
+                dZ = dZ[cropbs_flat]
 
-                # general case
-                overlapi = overlap[:, iflat][overlap[:, iflat] > iflat]
+            opmat = (
+                scpsp.csc_matrix(gradR.T.dot(gradR*(dR*dZ)[:, None])),
+                scpsp.csc_matrix(gradZ.T.dot(gradZ*(dR*dZ)[:, None])),
+            )
 
-                # diagonal element
-                datadR[i0] = idR[0, ir] * iZ[0, iz]
-                datadZ[i0] = iR[0, ir] * idZ[0, iz]
-                row[i0] = indbs[iflat]
-                column[i0] = indbs[iflat]
-                i0 += 1
+        else:
 
-                # non-diagonal elements (symmetric)
-                for jflat in overlapi:
+            # pre-compute integrals for exact operator deg >= 1
+            if deg == 1:
+                idR = _D1N2_Deg1(knotsx_mult, geometry=geometry)
+                idZ = _D1N2_Deg1(knotsy_mult, geometry='linear')
+                iR = _D0N2_Deg1(knotsx_mult, geometry=geometry)
+                iZ = _D0N2_Deg1(knotsy_mult, geometry='linear')
+            elif deg == 2:
+                idR = _D1N2_Deg2(knotsx_mult, geometry=geometry)
+                idZ = _D1N2_Deg2(knotsy_mult, geometry='linear')
+                iR = _D0N2_Deg2(knotsx_mult, geometry=geometry)
+                iZ = _D0N2_Deg2(knotsy_mult, geometry='linear')
+            elif deg == 3:
+                msg = "Integral D1N2 not implemented for deg=3!"
+                raise NotImplementedError(msg)
 
-                    if cropbs_flat is not False and not cropbs_flat[jflat]:
+            # set non-diagonal elements
+            i0 = 0
+            for ir in range(nx):
+                for iz in range(ny):
+
+                    iflat = ir + iz*nx
+                    if cropbs_flat is not False and not cropbs_flat[iflat]:
                         continue
 
-                    jr = jflat % nx
-                    jz = jflat // nx
+                    # general case
+                    overlapi = overlap[:, iflat][overlap[:, iflat] > iflat]
 
-                    # store (i, j) and (j, i) (symmetric matrix)
-                    if jr >= ir:
-                        iidR = idR[jr - ir, ir]
-                        iiR = iR[jr - ir, ir]
-                    else:
-                        iidR = idR[abs(jr - ir), jr]
-                        iiR = iR[abs(jr - ir), jr]
-                    if jz >= iz:
-                        iidZ = idZ[jz - iz, iz]
-                        iiZ = iZ[jz - iz, iz]
-                    else:
-                        iidZ = idZ[abs(jz - iz), jz]
-                        iiZ = iZ[abs(jz - iz), jz]
-                    datadR[i0:i0+2] = iidR * iiZ
-                    datadZ[i0:i0+2] = iiR * iidZ
-                    row[i0:i0+2] = (indbs[iflat], indbs[jflat])
-                    column[i0:i0+2] = (indbs[jflat], indbs[iflat])
-                    i0 += 2
+                    # diagonal element
+                    datadR[i0] = idR[0, ir] * iZ[0, iz]
+                    datadZ[i0] = iR[0, ir] * idZ[0, iz]
+                    row[i0] = indbs[iflat]
+                    column[i0] = indbs[iflat]
+                    i0 += 1
 
-        assert i0 == nbtot
-        opmat = (
-            scpsp.csc_matrix((datadR, (row, column)), shape=shape),
-            scpsp.csc_matrix((datadZ, (row, column)), shape=shape),
-        )
+                    # non-diagonal elements (symmetric)
+                    for jflat in overlapi:
+
+                        if cropbs_flat is not False and not cropbs_flat[jflat]:
+                            continue
+
+                        jr = jflat % nx
+                        jz = jflat // nx
+
+                        # store (i, j) and (j, i) (symmetric matrix)
+                        if jr >= ir:
+                            iidR = idR[jr - ir, ir]
+                            iiR = iR[jr - ir, ir]
+                        else:
+                            iidR = idR[abs(jr - ir), jr]
+                            iiR = iR[abs(jr - ir), jr]
+                        if jz >= iz:
+                            iidZ = idZ[jz - iz, iz]
+                            iiZ = iZ[jz - iz, iz]
+                        else:
+                            iidZ = idZ[abs(jz - iz), jz]
+                            iiZ = iZ[abs(jz - iz), jz]
+                        datadR[i0:i0+2] = iidR * iiZ
+                        datadZ[i0:i0+2] = iiR * iidZ
+                        row[i0:i0+2] = (indbs[iflat], indbs[jflat])
+                        column[i0:i0+2] = (indbs[jflat], indbs[iflat])
+                        i0 += 2
+
+            assert i0 == nbtot
+            opmat = (
+                scpsp.csc_matrix((datadR, (row, column)), shape=shape),
+                scpsp.csc_matrix((datadZ, (row, column)), shape=shape),
+            )
 
     # ------------
     # D2N2
@@ -756,7 +828,108 @@ def _D0N2_Deg2_2_toroidal(k1, k2, k3, k4):
 
 # #############################################################################
 # #############################################################################
-#               Operator sub-routines: D1N2
+#               Operator sub-routines: D1 - deg = 0 - discrete
+# #############################################################################
+
+
+def _D1_Deg0(
+    knotsx_mult=None,
+    knotsy_mult=None,
+    cropbs=None,
+    cropbs_flat=None,
+    nx=None,
+    ny=None,
+    nbs=None,
+):
+    """ Discrete apprmixation of the gradient for pixels
+
+    Centered when possible
+    Non-centered otherwise
+
+    """
+
+    # initialize output
+    datadR = np.zeros((nbs, nbs), dtype=float)
+    datadZ = np.zeros((nbs, nbs), dtype=float)
+    if cropbs is False:
+        cropbs = np.ones((nx, ny), dtype=bool)
+
+    # positions of centers
+    centsR = 0.5*(knotsx_mult[1:] + knotsx_mult[:-1])
+    centsZ = 0.5*(knotsy_mult[1:] + knotsy_mult[:-1])
+
+    # Determine points that have 2 neighbours in R (centered)
+    n2R = np.zeros(cropbs.shape, dtype=bool)
+    n2R[1:-1, :] = cropbs[1:-1, :] & cropbs[2:, :] & cropbs[:-2, :]
+    # points with a neighbours at higher R
+    npR = cropbs & (~n2R)
+    npR[-1, :] = False
+    npR[:-1, :] &= cropbs[1:, :]
+    # points with a neighbours at lower R
+    nmR = cropbs & (~n2R) & (~npR)
+    nmR[0, :] = False
+    nmR[1:, :] &= cropbs[:-1, :]
+
+    # Determine points that have 2 neighbours in Z (centered)
+    n2Z = np.zeros(cropbs.shape, dtype=bool)
+    n2Z[:, 1:-1] = cropbs[:, 1:-1] & cropbs[:, 2:] & cropbs[:, :-2]
+    n2Z[:, 1:-1] = n2Z[:, 1:-1] & n2Z[:, 2:] & n2Z[:, :-2]
+    # points with a neighbours at higher Z
+    npZ = cropbs & (~n2Z)
+    npZ[:, -1] = False
+    npZ[:, :-1] &= cropbs[:, 1:]
+    # points with a neighbours at lower Z
+    nmZ = cropbs & (~n2Z) & (~npZ)
+    nmZ[:, 0] = False
+    nmZ[:, 1:] &= cropbs[:, :-1]
+
+    # iterate on each type of point in R
+    for ir, iz in zip(*n2R.nonzero()):
+        iflat = ir + iz*nx
+        dRi = 1./(centsR[ir + 1] - centsR[ir - 1])
+        datadR[iflat, iflat - 1] = -dRi
+        datadR[iflat, iflat + 1] = dRi
+    for ir, iz in zip(*npR.nonzero()):
+        iflat = ir + iz*nx
+        dRi = 1./(centsR[ir + 1] - centsR[ir])
+        datadR[iflat, iflat] = -dRi
+        datadR[iflat, iflat + 1] = dRi
+    for ir, iz in zip(*nmR.nonzero()):
+        iflat = ir + iz*nx
+        dRi = 1./(centsR[ir] - centsR[ir-1])
+        datadR[iflat, iflat - 1] = -dRi
+        datadR[iflat, iflat] = dRi
+
+    # iterate on each type of point in Z
+    for ir, iz in zip(*n2Z.nonzero()):
+        iflat = ir + iz*nx
+        dZi = 1./(centsZ[iz + 1] - centsZ[iz - 1])
+        datadZ[iflat, iflat - nx] = -dZi
+        datadZ[iflat, iflat + nx] = dZi
+    for ir, iz in zip(*npZ.nonzero()):
+        iflat = ir + iz*nx
+        dZi = 1./(centsZ[iz + 1] - centsZ[iz])
+        datadZ[iflat, iflat] = -dZi
+        datadZ[iflat, iflat + nx] = dZi
+    for ir, iz in zip(*nmZ.nonzero()):
+        iflat = ir + iz*nx
+        dZi = 1./(centsZ[iz] - centsZ[iz - 1])
+        datadZ[iflat, iflat - nx] = -dZi
+        datadZ[iflat, iflat] = dZi
+
+    # crop and return
+    if cropbs_flat is False:
+        return datadR, datadZ
+    else:
+        return (
+            datadR[cropbs_flat, :][:, cropbs_flat],
+            datadZ[cropbs_flat, :][:, cropbs_flat],
+        )
+
+
+# #############################################################################
+# #############################################################################
+#               Operator sub-routines: D1N2 - exact
 # #############################################################################
 
 

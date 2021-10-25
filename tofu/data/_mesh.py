@@ -89,6 +89,7 @@ class Mesh2DRect(DataCollection):
         deg=None,
         key=None,
         thresh_in=None,
+        remove_isolated=None,
     ):
         """
 
@@ -111,7 +112,12 @@ class Mesh2DRect(DataCollection):
         obj.add_mesh(domain=domain, res=res, key=key)
         if deg is not None:
             obj.add_bsplines(deg=deg)
-        obj.crop(key=key, crop=poly, thresh_in=thresh_in)
+        obj.crop(
+            key=key,
+            crop=poly,
+            thresh_in=thresh_in,
+            remove_isolated=remove_isolated,
+        )
         return obj
 
     # -----------------
@@ -266,7 +272,7 @@ class Mesh2DRect(DataCollection):
         """ Get a matrix operator to compute an integral
 
         operator specifies the integrand:
-            - 'D0': integral of the value
+            - 'D0N1': integral of the value
             - 'D0N2': integral of the squared value
             - 'D1N2': integral of the squared gradient
             - 'D2N2': integral of the squared laplacian
@@ -292,7 +298,31 @@ class Mesh2DRect(DataCollection):
 
         # store
         if store is True:
-            if operator in ['D0', 'D0N2']:
+            if operator == 'D1':
+                name = f'{key}-{operator}-dR'
+                if crop is True:
+                    name = f'{name}-cropped'
+                self.add_data(
+                    key=name,
+                    data=opmat[0],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+                name = f'{key}-{operator}-dZ'
+                if crop is True:
+                    name = f'{name}-cropped'
+                self.add_data(
+                    key=name,
+                    data=opmat[1],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+
+            elif operator in ['D0N1', 'D0N2']:
                 name = f'{key}-{operator}-{geometry}'
                 if crop is True:
                     name = f'{name}-cropped'
@@ -448,7 +478,7 @@ class Mesh2DRect(DataCollection):
     # crop
     # ------------------
 
-    def crop(self, key=None, crop=None, thresh_in=None):
+    def crop(self, key=None, crop=None, thresh_in=None, remove_isolated=None):
         """ Crop a mesh using
 
             - a mask of bool for each mesh elements
@@ -462,6 +492,7 @@ class Mesh2DRect(DataCollection):
             key=key,
             crop=crop,
             thresh_in=thresh_in,
+            remove_isolated=remove_isolated,
         )
 
         # add crop data

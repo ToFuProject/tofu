@@ -279,17 +279,25 @@ class Test02_Mesh2DRect():
 
     def test10_add_bsplines_operator(self):
         lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2']
-        lop = ['D0', 'D0N2', 'D1N2', 'D2N2']
+        lop = ['D0N1', 'D0N2', 'D1N2', 'D2N2']
         lgeom = ['linear', 'toroidal']
         lcrop = [False, True]
+
+        dfail = {}
         for ii, (k0, v0) in enumerate(self.dobj.items()):
             if ii == 3:
                 continue
 
             for comb in itt.product(lop, lgeom, lcrop):
                 deg = self.dobj[k0].dobj['bsplines'][lkey[ii]]['deg']
+
+                # only test exact operators
                 if int(comb[0][1]) > deg:
-                    continue
+                    # except deg =0 D1N2
+                    if deg == 0 and comb[0] == 'D1N2':
+                        pass
+                    else:
+                        continue
                 try:
                     self.dobj[k0].add_bsplines_operator(
                         key=lkey[ii],
@@ -298,7 +306,19 @@ class Test02_Mesh2DRect():
                         crop=comb[2],
                     )
                 except Exception as err:
-                    raise err
+                    dfail[k0] = (
+                        f"key {lkey[ii]}, op '{comb[0]}', geom '{comb[1]}': "
+                        + str(err)
+                    )
+
+        # Raise error if any fail
+        if len(dfail) > 0:
+            lstr = [f'\t- {k0}: {v0}' for k0, v0 in dfail.items()]
+            msg = (
+                "The following operators failed:\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
 
     def test11_compute_plot_geometry_matrix(self):
 
