@@ -2,6 +2,7 @@
 
 
 # Built-in
+import warnings
 
 
 # Common
@@ -28,7 +29,7 @@ def _mesh2D_check(
     res=None,
     R=None,
     Z=None,
-    nodes=None,
+    knots=None,
     faces=None,
     trifind=None,
     key=None,
@@ -44,14 +45,14 @@ def _mesh2D_check(
     # rect of tri ?
     lc = [
         domain is not None,
-        nodes is not None and faces is not None,
+        knots is not None and faces is not None,
     ]
     if all(lc) or not any(lc):
         msg = (
-            "Either domain xor (nodes, faces) must be provided, not both!\n"
+            "Either domain xor (knots, faces) must be provided, not both!\n"
             "Provided:\n"
             f"\t- domain: {domain}\n"
-            f"\t- type(nodes), type(faces): {type(nodes)}, {type(faces)}\n"
+            f"\t- type(knots), type(faces): {type(knots)}, {type(faces)}\n"
         )
         raise Exception(msg)
 
@@ -67,7 +68,7 @@ def _mesh2D_check(
 
     elif lc[1]:
         dref, ddata, dmesh = _mesh2DTri_to_dict(
-            nodes=nodes
+            knots=knots,
             faces=faces,
             trifind=trifind,
             key=key,
@@ -81,54 +82,54 @@ def _mesh2D_check(
 # #############################################################################
 
 
-def _mesh2DTri_conformity(nodes=None, faces=None, key=None):
+def _mesh2DTri_conformity(knots=None, faces=None, key=None):
 
     # ---------------------------------
     # make sure np.ndarrays of dim = 2
 
-    nodes = np.atleast_2d(nodes).astype(float)
+    knots = np.atleast_2d(knots).astype(float)
     faces = np.atleast_2d(faces).astype(int)
 
     # --------------
     # check shapes
 
     c0 = (
-        nodes.shape[1] == 2
-        and nodes.shape[0] >= 3
+        knots.shape[1] == 2
+        and knots.shape[0] >= 3
         and faces.shape[1] in [3, 4]
         and faces.shape[0] >= 1
         and faces.dtype == np.int
     )
     if not c0:
         msg = (
-            "Arg nodes must be of shape (nnodes>=3, 2) and "
+            "Arg knots must be of shape (nknots>=3, 2) and "
             "arg faces must be of shape (nfaces>=1, 3 or 4) and dtype = int\n"
             "Provided:\n"
-            f"\t- nodes.shape: {nodes.shape}\n"
+            f"\t- knots.shape: {knots.shape}\n"
             f"\t- faces.shape: {faces.shape}\n"
             f"\t- faces.dtype: {faces.dtype}\n"
         )
         raise Exception(msg)
 
-    nnodes = nodes.shape[0]
+    nknots = knots.shape[0]
     nfaces = faces.shape[0]
 
     # -------------------
     # Test for duplicates
 
-    nodesu = np.unique(nodes, axis=0)
+    knotsu = np.unique(knots, axis=0)
     facesu = np.unique(faces, axis=0)
     lc = [
-        nodesu.shape[0] != nnodes,
+        knotsu.shape[0] != nknots,
         facesu.shape[0] != nfaces,
     ]
     if any(lc):
         msg = f"Non-valid mesh {key}: \n"
         if lc[0]:
             msg += (
-                f"  Duplicate nodes: {nnodes - nodesu.shape[0]}\n"
-                f"\t- nodes.shape: {nodes.shape}\n"
-                f"\t- unique shape: {nodesu.shape}\n"
+                f"  Duplicate knots: {nknots - knotsu.shape[0]}\n"
+                f"\t- knots.shape: {knots.shape}\n"
+                f"\t- unique shape: {knotsu.shape}\n"
             )
         if lc[1]:
             msg += (
@@ -139,36 +140,36 @@ def _mesh2DTri_conformity(nodes=None, faces=None, key=None):
         raise Exception(msg)
 
     # ---------------------
-    # Test for unused nodes
+    # Test for unused knots
 
     facesu = np.unique(facesu)
-    c0 = np.all(facesu >= 0) and facesu.size == nnodes
-    if facesu.size < nnodes:
+    c0 = np.all(facesu >= 0) and facesu.size == nknots
+    if facesu.size < nknots:
         ino = (~np.in1d(
-            range(0, nnodes),
+            range(0, nknots),
             facesu,
             assume_unique=False,
             invert=False,
         )).nonzero()[0]
         msg = (
-            f"Unused nodes in {key}:\n"
-            f"\t- unused nodes indices: {ino}"
+            f"Unused knots in {key}:\n"
+            f"\t- unused knots indices: {ino}"
         )
         warnings.warn(msg)
-    elif facesu.size > nnodes or facesu.max() != nnodes - 1:
-        unknown = np.setdiff1d(facesu, range(nnodes), assume_sorted=True)
+    elif facesu.size > nknots or facesu.max() != nknots - 1:
+        unknown = np.setdiff1d(facesu, range(nknots), assume_sorted=True)
         msg = (
-            "Unknown nodes refered to in faces!\n"
-            f"\t- unknown nodes: {unknown}"
+            "Unknown knots refered to in faces!\n"
+            f"\t- unknown knots: {unknown}"
         )
         raise Exception(msg)
 
-    return faces, nodes
+    return faces, knots
 
 
-def _mesh2DTri_clockwise(nodes=None, faces=None, key=None):
+def _mesh2DTri_clockwise(knots=None, faces=None, key=None):
 
-    x, y = nodes[faces, 0], nodes[faces, 1]
+    x, y = knots[faces, 0], knots[faces, 1]
     orient = (
         (y[:, 1] - y[:, 0])*(x[:, 2] - x[:, 1])
         - (y[:, 2] - y[:, 1])*(x[:, 1] - x[:, 0])
@@ -179,18 +180,18 @@ def _mesh2DTri_clockwise(nodes=None, faces=None, key=None):
         msg = (
             "Some triangles not counter-clockwise\n"
             "  (necessary for matplotlib.tri.Triangulation)\n"
-            f"    => {clock.sum()}/{nfaces} triangles reshaped"
+            f"    => {clock.sum()}/{faces.shape[0]} triangles reshaped"
         )
         warnings.warn(msg)
         faces[clock, 1], faces[clock, 2] = faces[clock, 2], faces[clock, 1]
     return faces
 
-def _mesh2DTri_to_dict(nodes=None, faces=None, key=None, trifind=None):
+def _mesh2DTri_to_dict(knots=None, faces=None, key=None, trifind=None):
 
     # ---------------------
     # check mesh conformity
 
-    faces, nodes = _mesh2DTri_conformity(nodes=nodes, faces=faces, key=key)
+    faces, knots = _mesh2DTri_conformity(knots=knots, faces=faces, key=key)
 
     # ---------------------------------------------
     # define triangular mesh and trifinder function
@@ -199,11 +200,11 @@ def _mesh2DTri_to_dict(nodes=None, faces=None, key=None, trifind=None):
     if faces.shape[1] == 3:
 
         # check clock-wise triangles
-        faces = _mesh2DTri_clockwise(nodes=nodes, faces=faces, key=key)
+        faces = _mesh2DTri_clockwise(knots=knots, faces=faces, key=key)
 
         # check trifinder
         if trifind is None:
-            mpltri = mplTri(nodes[:, 0], nodes[:, 1], faces)
+            mpltri = mplTri(knots[:, 0], knots[:, 1], faces)
             trifind = mpltri.get_trifinder()
 
         meshtype = 'tri'
@@ -218,12 +219,12 @@ def _mesh2DTri_to_dict(nodes=None, faces=None, key=None, trifind=None):
         faces = faces2
 
         # Re-check mesh conformity
-        faces, nodes = _mesh2DTri_conformity(nodes=nodes, faces=faces, key=key)
-        faces = _mesh2DTri_clockwise(nodes=nodes, faces=faces, key=key)
+        faces, knots = _mesh2DTri_conformity(knots=knots, faces=faces, key=key)
+        faces = _mesh2DTri_clockwise(knots=knots, faces=faces, key=key)
 
         # check trifinder
         if trifind is None:
-            mpltri = mplTri(nodes[:, 0], nodes[:, 1], faces)
+            mpltri = mplTri(knots[:, 0], knots[:, 1], faces)
             trifind = mpltri.get_trifinder()
 
         meshtype = 'quadtri'
@@ -249,14 +250,14 @@ def _mesh2DTri_to_dict(nodes=None, faces=None, key=None, trifind=None):
 
     kfaces = f"{key}-faces"
     kfaces_pts = f"{key}-faces-pts"
-    knodes = f"{key}-nodes"
-    knodesR = f"{key}-nodesR"
-    knodesZ = f"{key}-nodesZ"
+    kknots = f"{key}-knots"
+    kknotsR = f"{key}-knotsR"
+    kknotsZ = f"{key}-knotsZ"
 
     # dref
     dref = {
-        knodes: {
-            'data': np.arange(0, nodes.shape[0]),
+        kknots: {
+            'data': np.arange(0, knots.shape[0]),
             'units': '',
             # 'source': None,
             'dim': '',
@@ -286,21 +287,29 @@ def _mesh2DTri_to_dict(nodes=None, faces=None, key=None, trifind=None):
 
     # ddata
     ddata = {
-        knodesR: {
-            'data': nodes[:, 0],
-            'ref': (knodes,),
+        kknotsR: {
+            'data': knots[:, 0],
+            'ref': (kknots,),
             'units': 'm',
             'quant': 'R',
             'dim': 'distance',
             'group': 'R',
         },
-        knodesZ: {
-            'data': nodes[:, 1],
-            'ref': (knodes,),
+        kknotsZ: {
+            'data': knots[:, 1],
+            'ref': (kknots,),
             'units': 'm',
             'quant': 'Z',
             'dim': 'distance',
             'group': 'Z',
+        },
+        kfaces: {
+            'data': faces,
+            'ref': (kfaces, kfaces_pts),
+            'units': '',
+            'quant': 'ind',
+            'dim': 'ind',
+            'group': 'ind',
         },
     }
 
@@ -309,7 +318,7 @@ def _mesh2DTri_to_dict(nodes=None, faces=None, key=None, trifind=None):
         key: {
             'type': meshtype,
             'faces': kfaces,
-            'nodes': knodes,
+            'knots': kknots,
             'ref': (kfaces,),
             'shape': (faces.shape[0],),
             'trifind': trifind,
@@ -488,7 +497,7 @@ def _mesh2DRect_check(
         c0 = (
             hasattr(R, '__iter__')
             and np.asarray(R).ndim == 1
-            and np.unique(R).size = np.array(R).size
+            and np.unique(R).size == np.array(R).size
             and np.allclose(np.unique(R), R)
         )
         if not c0:
@@ -498,7 +507,7 @@ def _mesh2DRect_check(
         c0 = (
             hasattr(Z, '__iter__')
             and np.asarray(Z).ndim == 1
-            and np.unique(Z).size = np.array(Z).size
+            and np.unique(Z).size == np.array(Z).size
             and np.allclose(np.unique(Z), Z)
         )
         if not c0:
@@ -647,45 +656,66 @@ def _select_ind_check(
     elements=None,
     returnas=None,
     crop=None,
+    meshtype=None,
 ):
 
     # ind
-    lc = [
-        ind is None,
-        isinstance(ind, tuple)
-        and len(ind) == 2
-        and (
-            all([np.isscalar(ss) for ss in ind])
-            or all([
-                hasattr(ss, '__iter__')
-                and len(ss) == len(ind[0])
-                for ss in ind
-            ])
-            or all([isinstance(ss, np.ndarray) for ss in ind])
-        ),
-        (
+    if meshtype in [None, 'rect']:
+        lc = [
+            ind is None,
+            isinstance(ind, tuple)
+            and len(ind) == 2
+            and (
+                all([np.isscalar(ss) for ss in ind])
+                or all([
+                    hasattr(ss, '__iter__')
+                    and len(ss) == len(ind[0])
+                    for ss in ind
+                ])
+                or all([isinstance(ss, np.ndarray) for ss in ind])
+            ),
+            (
+                np.isscalar(ind)
+                or (
+                    hasattr(ind, '__iter__')
+                    and all([np.isscalar(ss) for ss in ind])
+                )
+                or isinstance(ind, np.ndarray)
+            )
+        ]
+    else:
+        lc = [
+            ind is None,
             np.isscalar(ind)
             or (
                 hasattr(ind, '__iter__')
                 and all([np.isscalar(ss) for ss in ind])
             )
             or isinstance(ind, np.ndarray)
-        )
-    ]
+        ]
 
     if not any(lc):
-        msg = (
-            "Arg ind must be either:\n"
-            "\t- None\n"
-            "\t- int or array of int: int indices in mixed (R, Z) indexing\n"
-            "\t- tuple of such: int indices in (R, Z) indexing respectively\n"
-            f"Provided: {ind}"
-        )
+        if meshtype in [None, 'rect']:
+            msg = (
+                "Arg ind must be either:\n"
+                "\t- None\n"
+                "\t- int or array of int: int indices in mixed (R, Z) indexing\n"
+                "\t- tuple of such: int indices in (R, Z) indexing respectively\n"
+                f"Provided: {ind}"
+            )
+        else:
+            msg = (
+                "Arg ind must be either:\n"
+                "\t- None\n"
+                "\t- int or array of int: int indices\n"
+                "\t- array of bool: bool indices\n"
+                f"Provided: {ind}"
+            )
         raise Exception(msg)
 
     if lc[0]:
         pass
-    elif lc[1]:
+    elif lc[1] and meshtype in [None, 'rect']:
         if any([not isinstance(ss, np.ndarray) for ss in ind]):
             ind = (
                 np.atleast_1d(ind[0]).astype(int),
@@ -718,6 +748,20 @@ def _select_ind_check(
                 f"\t- ind: {ind}"
             )
             raise Exception(msg)
+    elif lc[1] and meshtype in ['tri', 'quadtri']:
+        if not isinstance(ind, np.ndarray):
+            ind = np.atleast_1d(ind).astype(int)
+        c0 = (
+            np.issubdtype(ind.dtype, np.integer)
+            or np.issubdtype(ind.dtype, np.bool_)
+        )
+        if not c0:
+            msg = (
+                "Arg ind must be an array of bool or int\n"
+                f"Provided: {ind.dtype}"
+            )
+            raise Exception(msg)
+
     else:
         if not isinstance(ind, np.ndarray):
             ind = np.atleast_1d(ind).astype(int)
@@ -741,11 +785,17 @@ def _select_ind_check(
     )
 
     # returnas
+    if meshtype in [None, 'rect']:
+        retdef = tuple
+        retok = [tuple, np.ndarray, 'tuple-flat', 'array-flat', bool]
+    else:
+        retdef = bool
+        retok = [int, bool]
     returnas = _generic_check._check_var(
         returnas, 'returnas',
         types=None,
-        default=tuple,
-        allowed=[tuple, np.ndarray, 'tuple-flat', 'array-flat', bool],
+        default=retdef,
+        allowed=retok,
     )
 
     # crop

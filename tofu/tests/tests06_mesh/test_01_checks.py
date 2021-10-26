@@ -96,7 +96,7 @@ class Test01_checks():
 #######################################################
 
 
-class Test02_Mesh2DRect():
+class Test02_Mesh2D():
 
     @classmethod
     def setup_class(cls):
@@ -104,10 +104,10 @@ class Test02_Mesh2DRect():
 
     def setup(self):
         self.dobj = {
-            'm0': tfd.Mesh2DRect(),
-            'm1': tfd.Mesh2DRect(),
+            'm0': tfd.Mesh2D(),
+            'm1': tfd.Mesh2D(),
             'm2': None,
-            'm3': tfd.Mesh2DRect(),
+            'm3': tfd.Mesh2D(),
         }
 
         # add mesh
@@ -132,7 +132,7 @@ class Test02_Mesh2DRect():
                 )
                 i0 += 1
             else:
-                self.dobj[k0] = tfd.Mesh2DRect.add_mesh_from_Config(
+                self.dobj[k0] = tfd.Mesh2D.add_mesh_from_Config(
                     tf.load_config('WEST'),
                     res=0.1,
                     key=k0,
@@ -141,6 +141,16 @@ class Test02_Mesh2DRect():
         # add splines
         for ii, (k0, v0) in enumerate(self.dobj.items()):
             self.dobj[k0].add_bsplines(deg=ii)
+
+        # Add triangular mesh
+        knots = np.array([
+            [0, 0], [0, 1], [1, 0], [1, 1],
+        ])
+        faces = np.array([[0, 1, 2], [1, 2, 3]])
+        self.dobjtri = {
+            'tri0': tf.data.Mesh2D(),
+        }
+        self.dobjtri['tri0'].add_mesh(faces=faces, knots=knots, key='tri0')
 
     def teardown(self):
         pass
@@ -152,8 +162,12 @@ class Test02_Mesh2DRect():
     def test01_get_summary(self):
         for ii, (k0, v0) in enumerate(self.dobj.items()):
             self.dobj[k0].get_summary()
+        for ii, (k0, v0) in enumerate(self.dobjtri.items()):
+            self.dobjtri[k0].get_summary()
 
     def test02_select_ind(self):
+
+        # Rect mesh
         lkey = ['m0', 'm1-bs1', 'm2', 'm3-bs3']
         lelements = ['knots', None, 'cents', None]
         lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
@@ -181,6 +195,17 @@ class Test02_Mesh2DRect():
                 crop=lcrop[ii],
             )
             assert all([np.allclose(indt[ii], indt2[ii]) for ii in [0, 1]])
+
+        # triangular meshes
+        lind = [None, [1], 1]
+        for ii, (k0, v0) in enumerate(self.dobjtri.items()):
+            indt = self.dobjtri[k0].select_ind(
+                key=lkey[ii],
+                ind=lind[ii],
+                elements=lelements[ii],
+                returnas=tuple,
+                crop=lcrop[ii],
+            )
 
     def test03_select_mesh(self):
         lkey = ['m0', 'm1', 'm2', 'm3']

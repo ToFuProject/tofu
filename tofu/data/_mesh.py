@@ -28,11 +28,11 @@ _GROUP_Z = 'Z'
 
 # #############################################################################
 # #############################################################################
-#                           Mesh2DRect
+#                           Mesh2D
 # #############################################################################
 
 
-class Mesh2DRect(DataCollection):
+class Mesh2D(DataCollection):
 
     _ddef = {
         'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
@@ -63,7 +63,7 @@ class Mesh2DRect(DataCollection):
         res=None,
         R=None,
         Z=None,
-        nodes=None,
+        knots=None,
         faces=None,
     ):
         """ Add a mesh by key
@@ -71,10 +71,13 @@ class Mesh2DRect(DataCollection):
         """
 
         dref, ddata, dmesh = _mesh_checks._mesh2D_check(
+            coll=self,
             domain=domain,
             res=res,
             R=R,
             Z=Z,
+            knots=knots,
+            faces=faces,
             key=key,
         )
         dobj = {
@@ -97,13 +100,13 @@ class Mesh2DRect(DataCollection):
         thresh_in=None,
         remove_isolated=None,
     ):
-        """
+        """ Only able to create a rectangular mesh so far
 
         Example:
         --------
                 >>> import tofu as tf
                 >>> conf = tf.load_config('ITER')
-                >>> mesh = tf.data.Mesh2DRect.from_Config(
+                >>> mesh = tf.data.Mesh2D.from_Config(
                     config=conf,
                     res=[],
                 )
@@ -146,11 +149,11 @@ class Mesh2DRect(DataCollection):
         # get bsplines
 
         dref, dobj = _mesh_comp._mesh2DRect_bsplines(
-            mesh=self, keym=keym, keybs=keybs, deg=deg,
+            coll=self, keym=keym, keybs=keybs, deg=deg,
         )
 
         self.update(dobj=dobj, dref=dref)
-        _mesh_comp.add_cropbs_from_crop(mesh=self, keybs=keybs, keym=keym)
+        _mesh_comp.add_cropbs_from_crop(coll=self, keybs=keybs, keym=keym)
 
     # -----------------
     # get data subset
@@ -194,7 +197,7 @@ class Mesh2DRect(DataCollection):
         Can covert one into the other
         """
         return _mesh_comp._select_ind(
-            mesh=self,
+            coll=self,
             key=key,
             ind=ind,
             elements=elements,
@@ -225,7 +228,7 @@ class Mesh2DRect(DataCollection):
             key=key, ind=ind, elements=elements, returnas=tuple, crop=crop,
         )
         return _mesh_comp._select_mesh(
-            mesh=self,
+            coll=self,
             key=key,
             ind=ind,
             elements=elements,
@@ -254,7 +257,7 @@ class Mesh2DRect(DataCollection):
             key = lk[0]
         ind = self.select_ind(key=key, ind=ind, returnas=tuple, crop=crop)
         return _mesh_comp._select_bsplines(
-            mesh=self,
+            coll=self,
             key=key,
             ind=ind,
             returnas=returnas,
@@ -423,7 +426,7 @@ class Mesh2DRect(DataCollection):
     ):
         """ Return a sampled version of the chosen mesh """
         return _mesh_comp.sample_mesh(
-            mesh=self,
+            coll=self,
             key=key,
             res=res,
             grid=grid,
@@ -438,7 +441,7 @@ class Mesh2DRect(DataCollection):
     """
     def get_sample_bspline(self, key=None, res=None, grid=None, mode=None):
         return _mesh_comp.sample_bsplines(
-            mesh=self,
+            coll=self,
             key=key,
             res=res,
             grid=grid,
@@ -464,7 +467,7 @@ class Mesh2DRect(DataCollection):
     ):
         """ Interp desired data on pts """
         return _mesh_comp.interp2d(
-            mesh=self,
+            coll=self,
             key=key,
             R=R,
             Z=Z,
@@ -494,7 +497,7 @@ class Mesh2DRect(DataCollection):
         all remaining bsplines have full support domain
         """
         crop, key, thresh_in = _mesh_comp.crop(
-            mesh=self,
+            coll=self,
             key=key,
             crop=crop,
             thresh_in=thresh_in,
@@ -518,7 +521,7 @@ class Mesh2DRect(DataCollection):
         # also crop bsplines
         for k0 in self.dobj.get('bsplines', {}).keys():
             if self.dobj['bsplines'][k0]['mesh'] == key:
-                _mesh_comp.add_cropbs_from_crop(mesh=self, keybs=k0, keym=key)
+                _mesh_comp.add_cropbs_from_crop(coll=self, keybs=k0, keym=key)
 
     # -----------------
     # geometry matrix
@@ -636,7 +639,7 @@ class Mesh2DRect(DataCollection):
     ):
 
         return _mesh_plot.plot_mesh(
-            mesh=self,
+            coll=self,
             key=key,
             ind_knot=ind_knot,
             ind_cent=ind_cent,
@@ -664,7 +667,7 @@ class Mesh2DRect(DataCollection):
     ):
 
         return _mesh_plot.plot_bspline(
-            mesh=self,
+            coll=self,
             key=key,
             ind=ind,
             knots=knots,
@@ -694,7 +697,7 @@ class Mesh2DRect(DataCollection):
         dleg=None,
     ):
         return _mesh_plot.plot_profile2d(
-            mesh=self,
+            coll=self,
             key=key,
             coefs=coefs,
             indt=indt,
