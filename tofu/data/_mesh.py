@@ -64,7 +64,7 @@ class Mesh2D(DataCollection):
         R=None,
         Z=None,
         knots=None,
-        faces=None,
+        cents=None,
     ):
         """ Add a mesh by key
 
@@ -77,7 +77,7 @@ class Mesh2D(DataCollection):
             R=R,
             Z=Z,
             knots=knots,
-            faces=faces,
+            cents=cents,
             key=key,
         )
         dobj = {

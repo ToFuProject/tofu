@@ -150,7 +150,7 @@ class Test02_Mesh2D():
         self.dobjtri = {
             'tri0': tf.data.Mesh2D(),
         }
-        self.dobjtri['tri0'].add_mesh(faces=faces, knots=knots, key='tri0')
+        self.dobjtri['tri0'].add_mesh(cents=faces, knots=knots, key='tri0')
 
     def teardown(self):
         pass
@@ -201,13 +201,17 @@ class Test02_Mesh2D():
         lind = [None, [1], 1]
         lelements = ['knots', None, 'cents']
         for ii, k0 in enumerate(lkeys):
-            indt = self.dobjtri[k0].select_ind(
+            out = self.dobjtri[k0].select_ind(
                 key=k0,
                 ind=lind[ii],
                 elements=lelements[ii],
                 returnas=int,
                 crop=lcrop[ii],
             )
+            if ii == 0:
+                assert np.allclose(out, np.r_[0, 1, 2, 3])
+            elif ii >= 1:
+                assert np.allclose(out, np.r_[1])
 
     def test03_select_mesh(self):
         lkey = ['m0', 'm1', 'm2', 'm3']
@@ -223,6 +227,20 @@ class Test02_Mesh2D():
                 elements=lelements[ii],
                 returnas=lreturnas[ii],
                 return_neighbours=lreturn_neig[ii],
+                crop=lcrop[ii],
+            )
+
+        # triangular meshes - TBF
+        lkeys = ['tri0', 'tri0', 'tri0']
+        lind = [None, [1], 1]
+        lelements = ['knots', None, 'cents']
+        for ii, k0 in enumerate(lkeys):
+            out = self.dobjtri[k0].select_mesh_elements(
+                key=k0,
+                ind=lind[ii],
+                elements=lelements[ii],
+                returnas=int,
+                return_neighbours=True,
                 crop=lcrop[ii],
             )
 

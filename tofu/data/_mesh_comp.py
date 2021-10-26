@@ -72,10 +72,8 @@ def _select_ind(
         nR = coll.ddata[kR]['data'].size
         nZ = coll.ddata[kZ]['data'].size
     else:
-        kn = coll.dobj[cat][key]['knots']
-        kf = coll.dobj[cat][key]['faces']
-        nfaces = coll.ddata[kf]['data'].shape[0]
-        nknots = coll.ddata[kn]['data'].shape[0]
+        kn = coll.dobj[cat][key][elem]
+        nelem = coll.ddata[kn]['data'].shape[0]
 
     # ------------
     # ind to tuple
@@ -134,42 +132,78 @@ def _select_ind(
                 f"\t- ind_tup[1].shape = {ind_tup[1].shape}"
             )
             raise Exception(msg)
+
+    # triangular case
     else:
-        ind_bool = np.zeros((nfaces,), dtype=bool)
+        ind_bool = np.zeros((nelem,), dtype=bool)
+        if ind is None:
+            ind_bool[...] = True
+        elif np.issubdtype(ind.dtype, np.integer):
+            c0 = np.all((ind >= 0) & (ind < nelem))
+            if not c0:
+                msg = (
+                    f"Arg ind has non-valid values (< 0 or >= size ({nelem}))"
+                )
+                raise Exception(msg)
+            ind_bool[ind] = True
+        elif np.issubdtype(ind.dtype, np.bool_):
+            if ind.shape != (nelem,):
+                msg = (
+                    f"Arg ind, when array of bool, must have shape {(nelem,)}"
+                    f"\nProvided: {ind.shape}"
+                )
+                raise Exception(msg)
+            ind_bool = ind
+        else:
+            msg = (
+                "Non-valid ind format!"
+            )
+            raise Exception(msg)
 
     # ------------
     # optional crop
 
     crop = (
         crop is True
-        and coll.dobj[cat][key]['crop'] is not False
+        and coll.dobj[cat][key].get('crop') not in [None, False]
         and bool(np.any(~coll.ddata[coll.dobj[cat][key]['crop']]['data']))
     )
     if crop is True:
         cropi = coll.ddata[coll.dobj[cat][key]['crop']]['data']
-        if cat == 'mesh' and elements == 'knots':
-            cropiknots = np.zeros(ind_bool.shape, dtype=bool)
-            cropiknots[:-1, :-1] = cropi
-            cropiknots[1:, :-1] = cropiknots[1:, :-1] | cropi
-            cropiknots[1:, 1:] = cropiknots[1:, 1:] | cropi
-            cropiknots[:-1, 1:] = cropiknots[:-1, 1:] | cropi
-            ind_bool = ind_bool & cropiknots
-            # ind_tup is not 2d anymore
-            ind_tup = ind_bool.T.nonzero()[::-1]  # R varies first
-            warnings.warn("ind is not 2d anymore!")
-        elif ind_tup[0].shape == cropi.shape:
-            ind_bool = ind_bool & cropi
-            # ind_tup is not 2d anymore
-            ind_tup = ind_bool.T.nonzero()[::-1]  # R varies first
-            warnings.warn("ind is not 2d anymore!")
+        if meshtype in [None, 'rect']:
+            if cat == 'mesh' and elements == 'knots':
+                cropiknots = np.zeros(ind_bool.shape, dtype=bool)
+                cropiknots[:-1, :-1] = cropi
+                cropiknots[1:, :-1] = cropiknots[1:, :-1] | cropi
+                cropiknots[1:, 1:] = cropiknots[1:, 1:] | cropi
+                cropiknots[:-1, 1:] = cropiknots[:-1, 1:] | cropi
+
+                ind_bool = ind_bool & cropiknots
+
+                # ind_tup is not 2d anymore
+                ind_tup = ind_bool.T.nonzero()[::-1]  # R varies first
+                warnings.warn("ind is not 2d anymore!")
+
+            elif ind_tup[0].shape == cropi.shape:
+                ind_bool = ind_bool & cropi
+                # ind_tup is not 2d anymore
+                ind_tup = ind_bool.T.nonzero()[::-1]  # R varies first
+                warnings.warn("ind is not 2d anymore!")
+
+            else:
+                ind_bool = ind_bool & cropi
+                ind_tup = ind_bool.T.nonzero()[::-1]
         else:
-            ind_bool = ind_bool & cropi
-            ind_tup = ind_bool.T.nonzero()[::-1]
+            ind_bool &= cropi
 
     # ------------
     # tuple to return
 
-    if returnas is tuple:
+    if returnas is bool:
+        out = ind_bool
+    elif returnas is int:
+        out = ind_bool.nonzero()[0]
+    elif returnas is tuple:
         out = ind_tup
     elif returnas == 'tuple-flat':
         # make sure R is varying first
@@ -198,12 +232,6 @@ def _select_mesh(
     # ------------
     # check inputs
 
-    elements, returnas, return_neighbours = _mesh_checks._select_check(
-        elements=elements,
-        returnas=returnas,
-        return_neighbours=return_neighbours,
-    )
-
     lk = list(coll.dobj[coll._groupmesh])
     if key is None and len(lk) == 1:
         key = lk[0]
@@ -214,15 +242,27 @@ def _select_mesh(
             f"\t- provided: {key}"
         )
         raise Exception(msg)
+    meshtype = coll.dobj['mesh'][key]['type']
+
+    elements, returnas, return_neighbours = _mesh_checks._select_check(
+        elements=elements,
+        returnas=returnas,
+        return_neighbours=return_neighbours,
+    )
 
     # ------------
     # prepare
 
-    kR, kZ = coll.dobj[coll._groupmesh][key][f'{elements}']
-    R = coll.ddata[kR]['data']
-    Z = coll.ddata[kZ]['data']
-    nR = R.size
-    nZ = Z.size
+    if meshtype == 'rect':
+        kR, kZ = coll.dobj[coll._groupmesh][key][f'{elements}']
+        R = coll.ddata[kR]['data']
+        Z = coll.ddata[kZ]['data']
+        nR = R.size
+        nZ = Z.size
+    else:
+        # TBF
+        kn = coll.dobj['mesh'][key][f'{elements}']
+        R = coll.ddata
 
     # ------------
     # non-trivial case
