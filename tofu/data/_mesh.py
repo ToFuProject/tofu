@@ -61,27 +61,33 @@ class Mesh2DRect(DataCollection):
         key=None,
         domain=None,
         res=None,
+        R=None,
+        Z=None,
+        nodes=None,
+        faces=None,
     ):
         """ Add a mesh by key
 
         """
 
-        dref, dmesh = _mesh_checks._mesh2DRect_to_dict(
+        dref, ddata, dmesh = _mesh_checks._mesh2D_check(
             domain=domain,
             res=res,
+            R=R,
+            Z=Z,
             key=key,
         )
         dobj = {
             self._groupmesh: dmesh,
         }
-        self.update(dref=dref, dobj=dobj)
+        self.update(dref=dref, ddata=ddata, dobj=dobj)
 
     # -----------------
     # from config
     # ------------------
 
     @classmethod
-    def from_Config(
+    def add_mesh_from_Config(
         cls,
         config=None,
         key_struct=None,

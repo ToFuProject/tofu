@@ -132,7 +132,7 @@ class Test02_Mesh2DRect():
                 )
                 i0 += 1
             else:
-                self.dobj[k0] = tfd.Mesh2DRect.from_Config(
+                self.dobj[k0] = tfd.Mesh2DRect.add_mesh_from_Config(
                     tf.load_config('WEST'),
                     res=0.1,
                     key=k0,
