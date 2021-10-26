@@ -197,13 +197,15 @@ class Test02_Mesh2D():
             assert all([np.allclose(indt[ii], indt2[ii]) for ii in [0, 1]])
 
         # triangular meshes
+        lkeys = ['tri0', 'tri0', 'tri0']
         lind = [None, [1], 1]
-        for ii, (k0, v0) in enumerate(self.dobjtri.items()):
+        lelements = ['knots', None, 'cents']
+        for ii, k0 in enumerate(lkeys):
             indt = self.dobjtri[k0].select_ind(
-                key=lkey[ii],
+                key=k0,
                 ind=lind[ii],
                 elements=lelements[ii],
-                returnas=tuple,
+                returnas=int,
                 crop=lcrop[ii],
             )
 

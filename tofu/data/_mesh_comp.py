@@ -47,8 +47,8 @@ def _select_ind(
     if key not in lk1 + lk2:
         msg = (
             "Arg key must be a valid mesh identifier!\n"
-            f"\t available: {lk1+lk2}\n"
-            f"\t- provided: {key}"
+            f"\t- available: {lk1+lk2}\n"
+            f"\t- provided: '{key}'"
         )
         raise Exception(msg)
     cat = 'mesh' if key in lk1 else 'bsplines'
