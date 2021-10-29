@@ -852,7 +852,7 @@ def _D1_Deg0(
     """
 
     # check input
-    centered = _generic_check.check_var(
+    centered = _generic_check._check_var(
         centered, 'centered',
         types=bool,
         default=False,
