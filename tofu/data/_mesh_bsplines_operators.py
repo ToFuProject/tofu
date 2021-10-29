@@ -113,6 +113,7 @@ def get_mesh2dRect_operators(
     cropbs_flat=None,
     # specific to deg = 0
     cropbs=None,
+    centered=None,
 ):
 
     # ------------
@@ -318,6 +319,7 @@ def get_mesh2dRect_operators(
                 nx=nx,
                 ny=ny,
                 nbs=nbs,
+                centered=centered,
             )
             opmat = (
                 scpsp.csc_matrix(gradR),
@@ -840,6 +842,7 @@ def _D1_Deg0(
     nx=None,
     ny=None,
     nbs=None,
+    centered=None,
 ):
     """ Discrete apprmixation of the gradient for pixels
 
@@ -847,6 +850,13 @@ def _D1_Deg0(
     Non-centered otherwise
 
     """
+
+    # check input
+    centered = _generic_check.check_var(
+        centered, 'centered',
+        types=bool,
+        default=False,
+    )
 
     # initialize output
     datadR = np.zeros((nbs, nbs), dtype=float)
@@ -858,37 +868,63 @@ def _D1_Deg0(
     centsR = 0.5*(knotsx_mult[1:] + knotsx_mult[:-1])
     centsZ = 0.5*(knotsy_mult[1:] + knotsy_mult[:-1])
 
-    # Determine points that have 2 neighbours in R (centered)
-    n2R = np.zeros(cropbs.shape, dtype=bool)
-    n2R[1:-1, :] = cropbs[1:-1, :] & cropbs[2:, :] & cropbs[:-2, :]
-    # points with a neighbours at higher R
-    npR = cropbs & (~n2R)
-    npR[-1, :] = False
-    npR[:-1, :] &= cropbs[1:, :]
-    # points with a neighbours at lower R
-    nmR = cropbs & (~n2R) & (~npR)
-    nmR[0, :] = False
-    nmR[1:, :] &= cropbs[:-1, :]
+    if centered is True:
+        # Determine points that have 2 neighbours in R (centered)
+        n2R = np.zeros(cropbs.shape, dtype=bool)
+        n2R[1:-1, :] = cropbs[1:-1, :] & cropbs[2:, :] & cropbs[:-2, :]
+        # points with a neighbours at higher R
+        npR = cropbs & (~n2R)
+        npR[-1, :] = False
+        npR[:-1, :] &= cropbs[1:, :]
+        # points with a neighbours at lower R
+        nmR = cropbs & (~n2R) & (~npR)
+        nmR[0, :] = False
+        nmR[1:, :] &= cropbs[:-1, :]
 
-    # Determine points that have 2 neighbours in Z (centered)
-    n2Z = np.zeros(cropbs.shape, dtype=bool)
-    n2Z[:, 1:-1] = cropbs[:, 1:-1] & cropbs[:, 2:] & cropbs[:, :-2]
-    n2Z[:, 1:-1] = n2Z[:, 1:-1] & n2Z[:, 2:] & n2Z[:, :-2]
-    # points with a neighbours at higher Z
-    npZ = cropbs & (~n2Z)
-    npZ[:, -1] = False
-    npZ[:, :-1] &= cropbs[:, 1:]
-    # points with a neighbours at lower Z
-    nmZ = cropbs & (~n2Z) & (~npZ)
-    nmZ[:, 0] = False
-    nmZ[:, 1:] &= cropbs[:, :-1]
+        # Determine points that have 2 neighbours in Z (centered)
+        n2Z = np.zeros(cropbs.shape, dtype=bool)
+        n2Z[:, 1:-1] = cropbs[:, 1:-1] & cropbs[:, 2:] & cropbs[:, :-2]
+        n2Z[:, 1:-1] = n2Z[:, 1:-1] & n2Z[:, 2:] & n2Z[:, :-2]
+        # points with a neighbours at higher Z
+        npZ = cropbs & (~n2Z)
+        npZ[:, -1] = False
+        npZ[:, :-1] &= cropbs[:, 1:]
+        # points with a neighbours at lower Z
+        nmZ = cropbs & (~n2Z) & (~npZ)
+        nmZ[:, 0] = False
+        nmZ[:, 1:] &= cropbs[:, :-1]
+
+        # iterate on each type of point in R
+        for ir, iz in zip(*n2R.nonzero()):
+            iflat = ir + iz*nx
+            dRi = 1./(centsR[ir + 1] - centsR[ir - 1])
+            datadR[iflat, iflat - 1] = -dRi
+            datadR[iflat, iflat + 1] = dRi
+        for ir, iz in zip(*n2Z.nonzero()):
+            iflat = ir + iz*nx
+            dZi = 1./(centsZ[iz + 1] - centsZ[iz - 1])
+            datadZ[iflat, iflat - nx] = -dZi
+            datadZ[iflat, iflat + nx] = dZi
+    else:
+        # points with a neighbours at higher R
+        npR = np.copy(cropbs)
+        npR[-1, :] = False
+        npR[:-1, :] &= cropbs[1:, :]
+        # points with a neighbours at lower R
+        nmR = cropbs & (~npR)
+        nmR[0, :] = False
+        nmR[1:, :] &= cropbs[:-1, :]
+
+        # points with a neighbours at higher Z
+        npZ = np.copy(cropbs)
+        npZ[:, -1] = False
+        npZ[:, :-1] &= cropbs[:, 1:]
+        # points with a neighbours at lower Z
+        nmZ = cropbs & (~npZ)
+        nmZ[:, 0] = False
+        nmZ[:, 1:] &= cropbs[:, :-1]
 
     # iterate on each type of point in R
-    for ir, iz in zip(*n2R.nonzero()):
-        iflat = ir + iz*nx
-        dRi = 1./(centsR[ir + 1] - centsR[ir - 1])
-        datadR[iflat, iflat - 1] = -dRi
-        datadR[iflat, iflat + 1] = dRi
     for ir, iz in zip(*npR.nonzero()):
         iflat = ir + iz*nx
         dRi = 1./(centsR[ir + 1] - centsR[ir])
@@ -901,11 +937,6 @@ def _D1_Deg0(
         datadR[iflat, iflat] = dRi
 
     # iterate on each type of point in Z
-    for ir, iz in zip(*n2Z.nonzero()):
-        iflat = ir + iz*nx
-        dZi = 1./(centsZ[iz + 1] - centsZ[iz - 1])
-        datadZ[iflat, iflat - nx] = -dZi
-        datadZ[iflat, iflat + nx] = dZi
     for ir, iz in zip(*npZ.nonzero()):
         iflat = ir + iz*nx
         dZi = 1./(centsZ[iz + 1] - centsZ[iz])
