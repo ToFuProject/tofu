@@ -1849,11 +1849,12 @@ class CrystalBragg(utils.ToFuObject):
                 return lamb, xi, xj
 
     def gap_pixels(
-        self,
+        self, dcryst=None,
         det=None,
         split=None, direction=None,
         xi=None, xj=None,
         use_non_parallelism=None,
+        val_phi=None,
         dtheta=None, psi=None,
         strict=None, return_strict=None,
         plot=None,
@@ -1888,6 +1889,8 @@ class CrystalBragg(utils.ToFuObject):
             direction of splitting
         - use_non_parallelism: boolean
             True or False if non parallelism have to be taken into account
+        - val_phi: np.array
+            Phi coord. at which to make a slice for spectrum
         """
 
         # Check inputs
@@ -1909,6 +1912,8 @@ class CrystalBragg(utils.ToFuObject):
             plot = True
         if plot_lambda is None:
             plot_lambda = True
+        if val_phi is None:
+            val_phi = np.r_[-0.075, -0.025, 0.000, 0.050, 0.090]
 
         # Checkformat det
         det = self._checkformat_det(det=det)
@@ -2052,28 +2057,59 @@ class CrystalBragg(utils.ToFuObject):
             z[ np.isnan(z) ] = 2.57*1e-13"""
 
         nb = 97
+        lamb_min = np.min(lamb[0, ...])
+        lamb_max = np.max(lamb[0, ...])
+        phi_min = np.min(phi[0, ...])
+        phi_max = np.max(phi[0, ...])
+        lamb_interv = np.linspace(lamb_min, lamb_max, 487)
+        phi_interv = np.linspace(phi_min, phi_max, 1467)
+
         ind_ok = ~np.isnan(gap_lamb[0,...])
         indsort = np.argsort(lamb[0, ind_ok][::nb])
         lamb_interp = lamb[0, ind_ok][::nb][indsort]
         phi_interp = phi[0, ind_ok][::nb][indsort]
-
-        interp_plus = scpinterp.interp2d(
+        """interp_plus = scpinterp.interp2d(
             lamb_interp,
             phi_interp,
             gap_lamb[0, ind_ok][::nb][indsort],
             kind='linear',
+        )"""
+        """lamb_interp, phi_interp = np.mgrid[
+            lamb[0,...].min():lamb[0,...].max():487,
+            phi[0,...].min():phi[0,...].max():1467,
+        ]"""
+        interp_plus = scpinterp.bisplrep(
+            lamb_interp,
+            phi_interp,
+            gap_lamb[0, ind_ok][::nb][indsort],
+            s=0,
         )
+        z_plus = scpinterp.bisplev(lamb_interv, phi_interv, interp_plus)
 
-        ind_ok1 = ~np.isnan(gap_lamb[1,...])
-        indsort = np.argsort(lamb[0, ind_ok1][::nb])
-        lamb_interp = lamb[0, ind_ok1][::nb][indsort]
-        phi_interp = phi[0, ind_ok1][::nb][indsort]
-        interp_minus = scpinterp.interp2d(
+        """interp_minus = scpinterp.interp2d(
             lamb_interp,
             phi_interp,
             gap_lamb[1, ind_ok1][::nb][indsort],
             kind='linear',
+        )"""
+
+        """lamb_interp, phi_interp = np.mgrid[
+            lamb[1,...].min():lamb[1,...].max():487,
+            phi[1,...].min():phi[1,...].max():1467,
+        ]"""
+        ind_ok1 = ~np.isnan(gap_lamb[1,...])
+        indsort = np.argsort(lamb[0, ind_ok1][::nb])
+        lamb_interp = lamb[0, ind_ok1][::nb][indsort]
+        phi_interp = phi[0, ind_ok1][::nb][indsort]
+
+        interp_minus = scpinterp.bisplrep(
+            lamb_interp,
+            phi_interp,
+            gap_lamb[1, ind_ok1][::nb][indsort],
+            s=0,
         )
+        z_minus = scpinterp.bisplev(lamb_interv, phi_interv ,interp_minus)
+
         # Reset cryst angles
         self.update_non_parallelism(alpha=alpha0, beta=beta0)
 
@@ -2087,10 +2123,11 @@ class CrystalBragg(utils.ToFuObject):
                 xj, xj_unp,
                 xii, xjj,
                 gap_xi, gap_lamb,
-                interp_plus=interp_plus,
-                interp_minus=interp_minus,
+                z_plus, z_minus,
+                lamb_interv, phi_interv,
+                cryst=self, dcryst=dcryst,
                 det=det,
-                split=split,
+                split=split, val_phi=val_phi,
                 ax=ax, dleg=dleg,
                 fs=fs, dmargin=dmargin,
                 wintit=wintit, tit=tit,
