@@ -795,6 +795,16 @@ def _crop_check(
         allowed=lkm,
     )
 
+    # Only implemented for rect mesh so far
+    if coll.dobj['mesh'][key]['type'] != 'rect':
+        typ = coll.dobj['mesh'][key]['type']
+        msg = (
+            "Cropping only implemented for rectangular mesh so far!\n"
+            f"coll.dobj['mesh']['{key}']['type'] = {typ}"
+        )
+        raise Exception(msg)
+
+    # shape
     shape = coll.dobj['mesh'][key]['shape']
 
     # crop
@@ -828,10 +838,11 @@ def _crop_check(
 
     cropbool = crop.dtype == np.bool_
 
-    # thresh_in
+    # thresh_in and maxth
     if thresh_in is None:
         thresh_in = 3
     maxth = 5 if coll.dobj['mesh'][key]['type'] == 'rect' else 4
+
     c0 = isinstance(thresh_in, (int, np.integer)) and (1 <= thresh_in <= maxth)
     if not c0:
         msg = (
@@ -864,8 +875,10 @@ def crop(coll=None, key=None, crop=None, thresh_in=None, remove_isolated=None):
     # if crop is a poly => compute as bool
 
     if not cropbool:
+
         (Rc, Zc), (Rk, Zk) = coll.select_mesh_elements(
-            key=key, elements='cents', return_neighbours=True, returnas='data',
+            key=key, elements='cents',
+            return_neighbours=True, returnas='data',
         )
         nR, nZ = Rc.shape
         npts = Rk.shape[-1] + 1

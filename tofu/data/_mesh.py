@@ -128,20 +128,21 @@ class Mesh2D(DataCollection):
             self._groupmesh: dmesh,
         }
 
-        # optional bspline
-        if deg is not None:
-            obj.add_bsplines(deg=deg)
-
-        # optional cropping
-        obj.crop(
-            key=key,
-            crop=poly,
-            thresh_in=thresh_in,
-            remove_isolated=remove_isolated,
-        )
-
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+        # optional bspline
+        if deg is not None:
+            self.add_bsplines(deg=deg)
+
+        # optional cropping
+        if self.dobj['mesh'][key]['type'] == 'rect':
+            self.crop(
+                key=key,
+                crop=poly,
+                thresh_in=thresh_in,
+                remove_isolated=remove_isolated,
+            )
 
     # -----------------
     # bsplines
@@ -155,7 +156,7 @@ class Mesh2D(DataCollection):
 
         keym, keybs, deg = _mesh_checks._mesh2DRect_bsplines(
             key=key,
-            lkeys=list(self.dobj[self._groupmesh].keys()),
+            lkeys=list(self.dobj['mesh'].keys()),
             deg=deg,
         )
 
@@ -167,7 +168,8 @@ class Mesh2D(DataCollection):
         )
 
         self.update(dobj=dobj, dref=dref)
-        _mesh_comp.add_cropbs_from_crop(coll=self, keybs=keybs, keym=keym)
+        if self.dobj['mesh'][key]['type'] == 'rect':
+            _mesh_comp.add_cropbs_from_crop(coll=self, keybs=keybs, keym=keym)
 
     # -----------------
     # crop
