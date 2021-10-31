@@ -58,76 +58,90 @@ class Mesh2D(DataCollection):
 
     def add_mesh(
         self,
+        # rectangular mesh
         key=None,
         domain=None,
         res=None,
         R=None,
         Z=None,
+        # triangular mesh
         knots=None,
         cents=None,
-    ):
-        """ Add a mesh by key
-
-        """
-
-        dref, ddata, dmesh = _mesh_checks._mesh2D_check(
-            coll=self,
-            domain=domain,
-            res=res,
-            R=R,
-            Z=Z,
-            knots=knots,
-            cents=cents,
-            key=key,
-        )
-        dobj = {
-            self._groupmesh: dmesh,
-        }
-        self.update(dref=dref, ddata=ddata, dobj=dobj)
-
-    # -----------------
-    # from config
-    # ------------------
-
-    @classmethod
-    def add_mesh_from_Config(
-        cls,
-        config=None,
-        key_struct=None,
-        res=None,
-        deg=None,
-        key=None,
+        # cropping
+        crop_poly=None,
         thresh_in=None,
         remove_isolated=None,
+        # direct addition of bsplines
+        deg=None,
     ):
-        """ Only able to create a rectangular mesh so far
+        """ Add a mesh by key and domain / resolution
+
+        Can create a rectangular or triangular mesh:
+            - rectangular: provide (domain, res) or (R, Z)
+                - domain:
+                - res:
+                - R:
+                - Z:
+            - triangular:
+                - knots: (nknots, 2) array of (R, Z) coordinates
+                - cents: (ncents, 3 or 4) array of int indices
+
+        Can optionally be cropped by a closed polygon crop_poly, that can be:
+            - a (2, N) np.narray of (R, Z) coordinates
+            - a tuple (Config, key_struct) to designate a struct poly
+
+        Args thresh_in and remove_isolated control the level of cropping:
+            - thresh_in:
+            - remove_isolated:
+
+        If deg is provided, immediately adds a bsplines
 
         Example:
         --------
                 >>> import tofu as tf
                 >>> conf = tf.load_config('ITER')
-                >>> mesh = tf.data.Mesh2D.from_Config(
-                    config=conf,
-                    res=[],
-                )
+                >>> mesh = tf.data.Mesh2D()
+                >>> mesh.add_mesh(config=conf, res=0.1, deg=1)
 
         """
 
-        domain, poly = _mesh_checks._mesh2DRect_from_Config(
-            config=config, key_struct=key_struct,
+        # get domain, poly from crop_poly
+        domain, poly = _mesh_checks._mesh2DRect_from_croppoly(crop_poly)
+
+        # check input data and get input dicts
+        dref, ddata, dmesh = _mesh_checks._mesh2D_check(
+            coll=self,
+            # rectangular
+            domain=domain,
+            res=res,
+            R=R,
+            Z=Z,
+            # triangular
+            knots=knots,
+            cents=cents,
+            trifind=None,
+            # key
+            key=key,
         )
 
-        obj = cls()
-        obj.add_mesh(domain=domain, res=res, key=key)
+        dobj = {
+            self._groupmesh: dmesh,
+        }
+
+        # optional bspline
         if deg is not None:
             obj.add_bsplines(deg=deg)
+
+        # optional cropping
         obj.crop(
             key=key,
             crop=poly,
             thresh_in=thresh_in,
             remove_isolated=remove_isolated,
         )
-        return obj
+
+        # update dicts
+        self.update(dref=dref, ddata=ddata, dobj=dobj)
 
     # -----------------
     # bsplines
@@ -154,6 +168,46 @@ class Mesh2D(DataCollection):
 
         self.update(dobj=dobj, dref=dref)
         _mesh_comp.add_cropbs_from_crop(coll=self, keybs=keybs, keym=keym)
+
+    # -----------------
+    # crop
+    # ------------------
+
+    def crop(self, key=None, crop=None, thresh_in=None, remove_isolated=None):
+        """ Crop a mesh using
+
+            - a mask of bool for each mesh elements
+            - a 2d (R, Z) closed polygon
+
+        If applied on a bspline, cropping is double-checked to make sure
+        all remaining bsplines have full support domain
+        """
+        crop, key, thresh_in = _mesh_comp.crop(
+            coll=self,
+            key=key,
+            crop=crop,
+            thresh_in=thresh_in,
+            remove_isolated=remove_isolated,
+        )
+
+        # add crop data
+        keycrop = f'{key}-crop'
+        self.add_data(
+            key=keycrop,
+            data=crop,
+            ref=self.dobj['mesh'][key]['ref'],
+            dim='bool',
+            quant='bool',
+        )
+
+        # update obj
+        self._dobj['mesh'][key]['crop'] = keycrop
+        self._dobj['mesh'][key]['crop-thresh'] = thresh_in
+
+        # also crop bsplines
+        for k0 in self.dobj.get('bsplines', {}).keys():
+            if self.dobj['bsplines'][k0]['mesh'] == key:
+                _mesh_comp.add_cropbs_from_crop(coll=self, keybs=k0, keym=key)
 
     # -----------------
     # get data subset
@@ -221,7 +275,7 @@ class Mesh2D(DataCollection):
         Can return indices / values of neighbourgs
 
         """
-        lk = list(self.dobj[self._groupmesh].keys())
+        lk = list(self.dobj['mesh'].keys())
         if key is None and len(lk) == 1:
             key = lk[0]
         ind = self.select_ind(
@@ -482,46 +536,6 @@ class Mesh2D(DataCollection):
             nan0=nan0,
             imshow=imshow,
         )
-
-    # -----------------
-    # crop
-    # ------------------
-
-    def crop(self, key=None, crop=None, thresh_in=None, remove_isolated=None):
-        """ Crop a mesh using
-
-            - a mask of bool for each mesh elements
-            - a 2d (R, Z) closed polygon
-
-        If applied on a bspline, cropping is double-checked to make sure
-        all remaining bsplines have full support domain
-        """
-        crop, key, thresh_in = _mesh_comp.crop(
-            coll=self,
-            key=key,
-            crop=crop,
-            thresh_in=thresh_in,
-            remove_isolated=remove_isolated,
-        )
-
-        # add crop data
-        keycrop = f'{key}-crop'
-        self.add_data(
-            key=keycrop,
-            data=crop,
-            ref=self.dobj['mesh'][key]['ref'],
-            dim='bool',
-            quant='bool',
-        )
-
-        # update obj
-        self._dobj['mesh'][key]['crop'] = keycrop
-        self._dobj['mesh'][key]['crop-thresh'] = thresh_in
-
-        # also crop bsplines
-        for k0 in self.dobj.get('bsplines', {}).keys():
-            if self.dobj['bsplines'][k0]['mesh'] == key:
-                _mesh_comp.add_cropbs_from_crop(coll=self, keybs=k0, keym=key)
 
     # -----------------
     # geometry matrix

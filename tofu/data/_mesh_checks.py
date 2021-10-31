@@ -44,14 +44,15 @@ def _mesh2D_check(
 
     # rect of tri ?
     lc = [
-        domain is not None,
+        domain is not None or (R is not None and Z is not None),
         knots is not None and cents is not None,
     ]
     if all(lc) or not any(lc):
         msg = (
-            "Either domain xor (knots, cents) must be provided, not both!\n"
+            "Either domain xor (R, Z) xor (knots, cents) must be provided!\n"
             "Provided:\n"
-            f"\t- domain: {domain}\n"
+            f"\t- domain, res: {domain}, {res}\n"
+            f"\t- type(R), type(Z): {type(R)}, {type(Z)}\n"
             f"\t- type(knots), type(cents): {type(knots)}, {type(cents)}\n"
         )
         raise Exception(msg)
@@ -618,32 +619,78 @@ def _mesh2DRect_to_dict(
     return dref, dmesh
 
 
-def _mesh2DRect_from_Config(config=None, key_struct=None):
+def _mesh2DRect_from_croppoly(crop_poly=None):
 
     # ------------
     # check inputs
 
-    if not config.__class__.__name__ == 'Config':
-        msg = "Arg config must be a Config instance!"
+    c0 = hasattr(crop_poly, '__iter__') and len(crop_poly) == 2
+    lc = [
+        crop_poly is None,
+        (
+            c0
+            and isinstance(crop_poly, tuple)
+            and crop_poly[0].__class__.__name__ == 'Config'
+            and (isinstance(crop_poly[1], str) or crop_poly[1] is None)
+        )
+        or crop_poly.__class__.__name__ == 'Config',
+        c0
+        and all([hasattr(cc, '__iter__') and len(cc) == len(crop_poly[0])])
+        and np.asrray(crop_poly).ndim == 2
+    ]
+
+    if not any(lc):
+        msg = (
+            "Arg config must be a Config instance!"
+        )
         raise Exception(msg)
 
     # -------------
-    # key_struct if None
+    # Get polyand domain
 
-    if key_struct is None:
-        lk, ls = zip(*[
-            (ss.Id.Name, ss.dgeom['Surf']) for ss in config.lStructIn
-        ])
-        key_struct = lk[np.argmin(ls)]
+    if lc[0]:
+        # trivial case
+        poly = None
+        domain = None
 
-    # -------------
-    # domain
+    else:
 
-    poly = config.dStruct['dObj']['Ves'][key_struct].Poly_closed
-    domain = [
-        [poly[0, :].min(), poly[0, :].max()],
-        [poly[1, :].min(), poly[1, :].max()],
-    ]
+        # -------------
+        # Get poly from input
+
+        if lc[1]:
+
+            if crop_poly.__class__.__name__ == 'Config':
+                config = crop_poly
+                key_struct = None
+            else:
+                config, key_struct = crop_poly
+
+            # key_struct if None
+            if key_struct is None:
+                lk, ls = zip(*[
+                    (ss.Id.Name, ss.dgeom['Surf']) for ss in config.lStructIn
+                ])
+                key_struct = lk[np.argmin(ls)]
+
+            # poly
+            poly = config.dStruct['dObj']['Ves'][key_struct].Poly_closed
+
+        else:
+
+            # make sure poloy is np.ndarraya and closed
+            poly = np.asarray(crop_poly).astype(float)
+            if not np.allclose(poly[:, 0], poly[:, -1]):
+                poly = np.concatenate((poly, poly[:, 0:1]))
+
+        # -------------
+        # Get domain from poly
+
+        domain = [
+            [poly[0, :].min(), poly[0, :].max()],
+            [poly[1, :].min(), poly[1, :].max()],
+        ]
+
     return domain, poly
 
 
