@@ -11,7 +11,7 @@ import scipy.interpolate as scpinterp
 
 # specific
 from . import _generic_check
-from . import _mesh_bsplines_operators
+from . import _mesh_bsplines_operators_tri
 
 
 # #############################################################################
@@ -272,7 +272,7 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         cropbs=None,
     ):
         """ Get desired operator """
-        return _mesh_bsplines_operators.get_mesh2dRect_operators(
+        return _mesh_bsplines_operators_tri.get_mesh2dRect_operators(
             deg=self.degrees[0],
             operator=operator,
             geometry=geometry,

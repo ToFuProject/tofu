@@ -12,7 +12,7 @@ from matplotlib.path import Path
 # tofu
 from . import _generic_check
 from . import _mesh_checks
-from . import _mesh_bsplines
+from . import _mesh_bsplines_rect
 
 
 # #############################################################################
@@ -377,6 +377,90 @@ def _select_bsplines(
 
 # #############################################################################
 # #############################################################################
+#                           Mesh2 - Tri - bsplines
+# #############################################################################
+
+
+def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
+
+    # --------------
+    # create bsplines
+
+    kR, kZ = coll.dobj['mesh'][keym]['knots']
+    Rknots = coll.ddata[kR]['data']
+    Zknots = coll.ddata[kZ]['data']
+
+    kRbsc = f'{keybs}-R'
+    kZbsc = f'{keybs}-Z'
+
+    (
+        shapebs, Rbs_cent, Zbs_cent,
+        knots_per_bs_R, knots_per_bs_Z,
+    ) = _mesh_bsplines_rect.get_bs2d_RZ(
+        deg=deg, Rknots=Rknots, Zknots=Zknots,
+    )
+    nbs = int(np.prod(shapebs))
+
+    func_details, func_sum, clas = _mesh_bsplines_rect.get_bs2d_func(
+        deg=deg,
+        Rknots=Rknots,
+        Zknots=Zknots,
+        shapebs=shapebs,
+        knots_per_bs_R=knots_per_bs_R,
+        knots_per_bs_Z=knots_per_bs_Z,
+    )
+    ref = (kRbsc, kZbsc)
+
+    # ----------------
+    # format into dict
+
+    dref = {
+        kRbsc: {
+            'data': Rbs_cent,
+            'units': 'm',
+            'dim': 'distance',
+            'quant': 'R',
+            'name': 'R',
+            'group': 'R',
+        },
+        kZbsc: {
+            'data': Zbs_cent,
+            'units': 'm',
+            'dim': 'distance',
+            'quant': 'Z',
+            'name': 'Z',
+            'group': 'Z',
+        },
+        keybs: {
+            'data': np.arange(0, nbs),
+            'units': '',
+            'dim': 'index',
+            'quant': 'index',
+            'name': '',
+            'group': 'index',
+        },
+    }
+
+    dobj = {
+        'bsplines': {
+            keybs: {
+                'deg': deg,
+                'mesh': keym,
+                'ref': ref,
+                'shape': shapebs,
+                'crop': False,
+                'func_details': func_details,
+                'func_sum': func_sum,
+                'class': clas,
+            }
+        },
+    }
+
+    return dref, dobj
+
+
+# #############################################################################
+# #############################################################################
 #                           Mesh2DRect - bsplines
 # #############################################################################
 
@@ -396,12 +480,12 @@ def _mesh2DRect_bsplines(coll=None, keym=None, keybs=None, deg=None):
     (
         shapebs, Rbs_cent, Zbs_cent,
         knots_per_bs_R, knots_per_bs_Z,
-    ) = _mesh_bsplines.get_bs2d_RZ(
+    ) = _mesh_bsplines_rect.get_bs2d_RZ(
         deg=deg, Rknots=Rknots, Zknots=Zknots,
     )
     nbs = int(np.prod(shapebs))
 
-    func_details, func_sum, clas = _mesh_bsplines.get_bs2d_func(
+    func_details, func_sum, clas = _mesh_bsplines_rect.get_bs2d_func(
         deg=deg,
         Rknots=Rknots,
         Zknots=Zknots,
@@ -530,10 +614,10 @@ def _mesh2DRect_bsplines_knotscents(
 
     if return_knots is True:
 
-        knots_per_bs_R = _mesh_bsplines._get_bs2d_func_knots(
+        knots_per_bs_R = _mesh_bsplines_rect._get_bs2d_func_knots(
             Rknots, deg=deg, returnas=returnas,
         )
-        knots_per_bs_Z = _mesh_bsplines._get_bs2d_func_knots(
+        knots_per_bs_Z = _mesh_bsplines_rect._get_bs2d_func_knots(
             Zknots, deg=deg, returnas=returnas,
         )
         if ind is not None:
@@ -546,10 +630,10 @@ def _mesh2DRect_bsplines_knotscents(
 
     if return_cents is True:
 
-        cents_per_bs_R = _mesh_bsplines._get_bs2d_func_cents(
+        cents_per_bs_R = _mesh_bsplines_rect._get_bs2d_func_cents(
             Rcents, deg=deg, returnas=returnas,
         )
-        cents_per_bs_Z = _mesh_bsplines._get_bs2d_func_cents(
+        cents_per_bs_Z = _mesh_bsplines_rect._get_bs2d_func_cents(
             Zcents, deg=deg, returnas=returnas,
         )
         if ind is not None:
