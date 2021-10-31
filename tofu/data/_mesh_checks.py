@@ -250,6 +250,8 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
     # Format ouput dict
 
     kcents = f"{key}-cents"
+    kcentsR = f"{kcents}-R"
+    kcentsZ = f"{kcents}-Z"
     kcents_pts = f"{kcents}-pts"
     kcents_ind = f"{kcents}-ind"
     kknots = f"{key}-knots"
@@ -301,6 +303,22 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
         kknotsZ: {
             'data': knots[:, 1],
             'ref': (kknots_ind,),
+            'units': 'm',
+            'quant': 'Z',
+            'dim': 'distance',
+            'group': 'Z',
+        },
+        kcentsR: {
+            'data': np.mean(knots[cents, 0], axis=1),
+            'ref': (kcents_ind,),
+            'units': 'm',
+            'quant': 'R',
+            'dim': 'distance',
+            'group': 'R',
+        },
+        kcentsZ: {
+            'data': np.mean(knots[cents, 1], axis=1),
+            'ref': (kcents_ind,),
             'units': 'm',
             'quant': 'Z',
             'dim': 'distance',
@@ -865,6 +883,7 @@ def _select_ind_check(
 def _select_check(
     elements=None,
     returnas=None,
+    return_ind_as=None,
     return_neighbours=None,
 ):
 
@@ -884,6 +903,14 @@ def _select_check(
         allowed=['ind', 'data'],
     )
 
+    # return_ind_as
+    return_ind_as = _generic_check._check_var(
+        return_ind_as, 'return_ind_as',
+        types=None,
+        default=int,
+        allowed=[int, bool],
+    )
+
     # return_neighbours
     return_neighbours = _generic_check._check_var(
         return_neighbours, 'return_neighbours',
@@ -891,7 +918,7 @@ def _select_check(
         default=True,
     )
 
-    return elements, returnas, return_neighbours,
+    return elements, returnas, return_ind_as, return_neighbours,
 
 
 # #############################################################################

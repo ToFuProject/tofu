@@ -106,7 +106,10 @@ class Mesh2D(DataCollection):
         """
 
         # get domain, poly from crop_poly
-        domain, poly = _mesh_checks._mesh2DRect_from_croppoly(crop_poly)
+        if crop_poly is not None:
+            domain, poly = _mesh_checks._mesh2DRect_from_croppoly(crop_poly)
+        else:
+            poly = None
 
         # check input data and get input dicts
         dref, ddata, dmesh = _mesh_checks._mesh2D_check(
@@ -136,7 +139,7 @@ class Mesh2D(DataCollection):
             self.add_bsplines(deg=deg)
 
         # optional cropping
-        if self.dobj['mesh'][key]['type'] == 'rect':
+        if self.dobj['mesh'][key]['type'] == 'rect' and poly is not None:
             self.crop(
                 key=key,
                 crop=poly,
@@ -168,7 +171,7 @@ class Mesh2D(DataCollection):
         )
 
         self.update(dobj=dobj, dref=dref)
-        if self.dobj['mesh'][key]['type'] == 'rect':
+        if self.dobj['mesh'][keym]['type'] == 'rect':
             _mesh_comp.add_cropbs_from_crop(coll=self, keybs=keybs, keym=keym)
 
     # -----------------
@@ -277,20 +280,43 @@ class Mesh2D(DataCollection):
         Can return indices / values of neighbourgs
 
         """
-        lk = list(self.dobj['mesh'].keys())
-        if key is None and len(lk) == 1:
-            key = lk[0]
+        # check key
+        key = _generic_check._check_var(
+            key, 'key',
+            allowed=list(self.dobj.get('mesh', {}).keys()),
+            types=str,
+        )
+
+        # get ind
+        if self.dobj['mesh'][key]['type'] == 'rect':
+            returnas_ind = tuple
+        else:
+            returnas_ind = bool
+
         ind = self.select_ind(
-            key=key, ind=ind, elements=elements, returnas=tuple, crop=crop,
+            key=key, ind=ind, elements=elements,
+            returnas=returnas_ind, crop=crop,
         )
-        return _mesh_comp._select_mesh(
-            coll=self,
-            key=key,
-            ind=ind,
-            elements=elements,
-            returnas=returnas,
-            return_neighbours=return_neighbours,
-        )
+
+        if self.dobj['mesh'][key]['type'] == 'rect':
+            return _mesh_comp._select_mesh_rect(
+                coll=self,
+                key=key,
+                ind=ind,
+                elements=elements,
+                returnas=returnas,
+                return_neighbours=return_neighbours,
+            )
+        else:
+            return _mesh_comp._select_mesh_tri(
+                coll=self,
+                key=key,
+                ind=ind,
+                elements=elements,
+                returnas=returnas,
+                return_neighbours=return_neighbours,
+            )
+
 
     def select_bsplines(
         self,

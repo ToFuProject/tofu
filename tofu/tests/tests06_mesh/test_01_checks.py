@@ -106,7 +106,7 @@ class Test02_Mesh2D():
         self.dobj = {
             'm0': tfd.Mesh2D(),
             'm1': tfd.Mesh2D(),
-            'm2': None,
+            'm2': tfd.Mesh2D(),
             'm3': tfd.Mesh2D(),
         }
 
@@ -132,8 +132,8 @@ class Test02_Mesh2D():
                 )
                 i0 += 1
             else:
-                self.dobj[k0] = tfd.Mesh2D.add_mesh_from_Config(
-                    tf.load_config('WEST'),
+                self.dobj[k0].add_mesh(
+                    crop_poly=tf.load_config('WEST'),
                     res=0.1,
                     key=k0,
                 )
@@ -234,12 +234,13 @@ class Test02_Mesh2D():
         lkeys = ['tri0', 'tri0', 'tri0']
         lind = [None, [1], 1]
         lelements = ['knots', None, 'cents']
+        lreturnas = ['ind', 'data', 'ind']
         for ii, k0 in enumerate(lkeys):
             out = self.dobjtri[k0].select_mesh_elements(
                 key=k0,
                 ind=lind[ii],
                 elements=lelements[ii],
-                returnas=int,
+                returnas=lreturnas[ii],
                 return_neighbours=True,
                 crop=lcrop[ii],
             )
