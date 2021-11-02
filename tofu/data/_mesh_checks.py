@@ -729,7 +729,7 @@ def _select_ind_check(
     # ----------------------
     # check basic conditions
 
-    if meshtype in [None, 'rect']:
+    if meshtype == 'rect':
         lc = [
             ind is None,
             isinstance(ind, tuple)
@@ -764,7 +764,7 @@ def _select_ind_check(
         ]
 
     if not any(lc):
-        if meshtype in [None, 'rect']:
+        if meshtype == 'rect':
             msg = (
                 "Arg ind must be either:\n"
                 "\t- None\n"
@@ -787,7 +787,7 @@ def _select_ind_check(
 
     if lc[0]:
         pass
-    elif lc[1] and meshtype in [None, 'rect']:
+    elif lc[1] and meshtype == 'rect':
         if any([not isinstance(ss, np.ndarray) for ss in ind]):
             ind = (
                 np.atleast_1d(ind[0]).astype(int),
@@ -857,7 +857,7 @@ def _select_ind_check(
     )
 
     # returnas
-    if meshtype in [None, 'rect']:
+    if meshtype == 'rect':
         retdef = tuple
         retok = [tuple, np.ndarray, 'tuple-flat', 'array-flat', bool]
     else:
@@ -927,28 +927,22 @@ def _select_check(
 # #############################################################################
 
 
-def _mesh2DRect_bsplines(key=None, lkeys=None, deg=None):
+def _mesh2D_bsplines(key=None, lkeys=None, deg=None):
 
     # key
-    if key is None and len(lkeys) == 1:
-        key = lkeys[0]
-    if key not in lkeys:
-        msg = (
-            "Arg key must be a valid mesh identifier!\n"
-            f"\t- available: {lkeys}\n"
-            f"\t- provided: {key}"
-        )
-        raise Exception(msg)
+    key = _generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lkeys,
+    )
 
     # deg
-    if deg is None:
-        deg = 2
-    if not isinstance(deg, int) and deg in [0, 1, 2, 3]:
-        msg = (
-            "Arg deg must be a int in [0, 1, 2, 3]\n"
-            f"Provided: {deg}"
-        )
-        raise Exception(msg)
+    deg = _generic_check._check_var(
+        deg, 'deg',
+        types=int,
+        default=2,
+        allowed=[0, 1, 2, 3],
+    )
 
     # keybs
     keybs = f'{key}-bs{deg}'

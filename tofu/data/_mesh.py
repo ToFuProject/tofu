@@ -157,7 +157,7 @@ class Mesh2D(DataCollection):
         # --------------
         # check inputs
 
-        keym, keybs, deg = _mesh_checks._mesh2DRect_bsplines(
+        keym, keybs, deg = _mesh_checks._mesh2D_bsplines(
             key=key,
             lkeys=list(self.dobj['mesh'].keys()),
             deg=deg,
@@ -166,9 +166,17 @@ class Mesh2D(DataCollection):
         # --------------
         # get bsplines
 
-        dref, dobj = _mesh_comp._mesh2DRect_bsplines(
-            coll=self, keym=keym, keybs=keybs, deg=deg,
-        )
+        if self.dobj['mesh'][keym]['type'] == 'rect':
+            dref, dobj = _mesh_comp._mesh2DRect_bsplines(
+                coll=self, keym=keym, keybs=keybs, deg=deg,
+            )
+        else:
+            dref, dobj = _mesh_comp._mesh2DTri_bsplines(
+                coll=self, keym=keym, keybs=keybs, deg=deg,
+            )
+
+        # --------------
+        # update dict and crop if relevant
 
         self.update(dobj=dobj, dref=dref)
         if self.dobj['mesh'][keym]['type'] == 'rect':
@@ -294,8 +302,11 @@ class Mesh2D(DataCollection):
             returnas_ind = bool
 
         ind = self.select_ind(
-            key=key, ind=ind, elements=elements,
-            returnas=returnas_ind, crop=crop,
+            key=key,
+            ind=ind,
+            elements=elements,
+            returnas=returnas_ind,
+            crop=crop,
         )
 
         if self.dobj['mesh'][key]['type'] == 'rect':
@@ -334,10 +345,6 @@ class Mesh2D(DataCollection):
         Can return indices / values of neighbourgs
 
         """
-        lk = list(self.dobj['bsplines'].keys())
-        if key is None and len(lk) == 1:
-            key = lk[0]
-        ind = self.select_ind(key=key, ind=ind, returnas=tuple, crop=crop)
         return _mesh_comp._select_bsplines(
             coll=self,
             key=key,
@@ -345,6 +352,7 @@ class Mesh2D(DataCollection):
             returnas=returnas,
             return_cents=return_cents,
             return_knots=return_knots,
+            crop=crop,
         )
 
     # -----------------

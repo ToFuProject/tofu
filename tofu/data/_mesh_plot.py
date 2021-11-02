@@ -33,12 +33,11 @@ def _plot_mesh_check(
 ):
 
     # key
-    lk = list(coll.dobj[coll._groupmesh].keys())
     key = _generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
-        allowed=lk,
+        allowed=list(coll.dobj.get('mesh', {}).keys()),
     )
 
     # crop, bck
@@ -94,90 +93,140 @@ def _plot_mesh_prepare(
     # --------
     # prepare
 
-    Rk, Zk = coll.dobj['mesh'][key]['knots']
-    R = coll.ddata[Rk]['data']
-    Z = coll.ddata[Zk]['data']
-
-    vert = np.array([
-        np.repeat(R, 3),
-        np.tile((Z[0], Z[-1], np.nan), R.size),
-    ])
-    hor = np.array([
-        np.tile((R[0], R[-1], np.nan), Z.size),
-        np.repeat(Z, 3),
-    ])
-
-    # --------
-    # compute
+    meshtype = coll.dobj['mesh'][key]['type']
 
     grid_bck = None
-    if crop is False or coll.dobj['mesh'][key]['crop'] is False:
-        grid = np.concatenate((vert, hor), axis=1)
+    if meshtype == 'rect':
+        Rk, Zk = coll.dobj['mesh'][key]['knots']
+        R = coll.ddata[Rk]['data']
+        Z = coll.ddata[Zk]['data']
+
+        vert = np.array([
+            np.repeat(R, 3),
+            np.tile((Z[0], Z[-1], np.nan), R.size),
+        ])
+        hor = np.array([
+            np.tile((R[0], R[-1], np.nan), Z.size),
+            np.repeat(Z, 3),
+        ])
+
+        # --------
+        # compute
+
+        if crop is False or coll.dobj['mesh'][key]['crop'] is False:
+            grid = np.concatenate((vert, hor), axis=1)
+
+        else:
+
+            crop = coll.ddata[coll.dobj['mesh'][key]['crop']]['data']
+
+            grid = []
+            icropR = np.r_[range(R.size-1), R.size-2]
+            jcropZ = np.r_[range(Z.size-1), Z.size-2]
+
+            # vertical lines  TBC
+            for ii, ic in enumerate(icropR):
+                if np.any(crop[ic, :]):
+                    if ii in [0, R.size-1]:
+                        cropi = crop[ic, :]
+                    else:
+                        cropi = crop[ic, :] | crop[ic-1, :]
+                    lseg = []
+                    for jj, jc in enumerate(jcropZ):
+                        if jj == 0 and cropi[jc]:
+                            lseg.append(Z[jj])
+                        elif jj == Z.size-1 and cropi[jc]:
+                            lseg.append(Z[jj])
+                        elif cropi[jc] and not cropi[jc-1]:
+                            if len(lseg) > 0:
+                                lseg.append(np.nan)
+                            lseg.append(Z[jj])
+                        elif (not cropi[jc]) and cropi[jc-1]:
+                            lseg.append(Z[jc])
+                    grid.append(np.concatenate(
+                        (
+                            np.array([R[ii]*np.ones((len(lseg),)), lseg]),
+                            np.full((2, 1), np.nan)
+                        ),
+                        axis=1,
+                    ))
+
+            # horizontal lines
+            for jj, jc in enumerate(jcropZ):
+                if np.any(crop[:, jc]):
+                    if jj in [0, Z.size-1]:
+                        cropj = crop[:, jc]
+                    else:
+                        cropj = crop[:, jc] | crop[:, jc-1]
+                    lseg = []
+                    for ii, ic in enumerate(icropR):
+                        if ii in [0, R.size-1] and cropj[ic]:
+                            lseg.append(R[ii])
+                        elif cropj[ic] and not cropj[ic-1]:
+                            if len(lseg) > 0:
+                                lseg.append(np.nan)
+                            lseg.append(R[ii])
+                        elif (not cropj[ic]) and cropj[ic-1]:
+                            lseg.append(R[ic])
+                    grid.append(np.concatenate(
+                        (
+                            np.array([lseg, Z[jj]*np.ones((len(lseg),))]),
+                            np.full((2, 1), np.nan)
+                        ),
+                        axis=1,
+                    ))
+
+            grid = np.concatenate(tuple(grid), axis=1)
+
+            if bck is True:
+                grid_bck = np.concatenate((vert, hor), axis=1)
 
     else:
+        kknots = coll.dobj['mesh'][key]['knots']
+        R = coll.ddata[f'{kknots}-R']['data']
+        Z = coll.ddata[f'{kknots}-Z']['data']
 
-        crop = coll.ddata[coll.dobj['mesh'][key]['crop']]['data']
+        cents = coll.ddata[coll.dobj['mesh'][key]['cents']]['data']
 
-        grid = []
-        icropR = np.r_[range(R.size-1), R.size-2]
-        jcropZ = np.r_[range(Z.size-1), Z.size-2]
+        # find unique segments from all triangles
+        segs = np.unique(
+            np.sort(np.concatenate(
+                (cents[:, 0:2], cents[:, 1:], cents[:, ::2]),
+                axis=0,
+            )),
+            axis=0,
+        )
 
-        # vertical lines  TBC
-        for ii, ic in enumerate(icropR):
-            if np.any(crop[ic, :]):
-                if ii in [0, R.size-1]:
-                    cropi = crop[ic, :]
-                else:
-                    cropi = crop[ic, :] | crop[ic-1, :]
-                lseg = []
-                for jj, jc in enumerate(jcropZ):
-                    if jj == 0 and cropi[jc]:
-                        lseg.append(Z[jj])
-                    elif jj == Z.size-1 and cropi[jc]:
-                        lseg.append(Z[jj])
-                    elif cropi[jc] and not cropi[jc-1]:
-                        if len(lseg) > 0:
-                            lseg.append(np.nan)
-                        lseg.append(Z[jj])
-                    elif (not cropi[jc]) and cropi[jc-1]:
-                        lseg.append(Z[jc])
-                grid.append(np.concatenate(
-                    (
-                        np.array([R[ii]*np.ones((len(lseg),)), lseg]),
-                        np.full((2, 1), np.nan)
-                    ),
-                    axis=1,
-                ))
+        # build long segments if possible
+        ind = np.ones((segs.shape[0],), dtype=bool)
+        ind[0] = False
+        lseg = [segs[0, :]]
+        last = segs[0, :]
+        while np.any(ind):
+            ii = segs[ind, 0] == last[-1]
+            if np.any(ii):
+                ii = ind.nonzero()[0][ii]
+                dR0 = R[last[1]] - R[last[0]]
+                dZ0 = Z[last[1]] - Z[last[0]]
+                dR = np.diff(R[segs[ii, :]], axis=1)[:, 0]
+                dZ = np.diff(Z[segs[ii, :]], axis=1)[:, 0]
+                norm0 = np.sqrt(dR0**2 + dZ0**2)
+                norm = np.sqrt(dR**2 + dZ**2)
+                sca = (dR0*dR + dZ0*dZ) / (norm0 * norm)
+                iwin = ii[np.argmax(sca)]
+                lseg.append([segs[iwin, 1]])
 
-        # horizontal lines
-        for jj, jc in enumerate(jcropZ):
-            if np.any(crop[:, jc]):
-                if jj in [0, Z.size-1]:
-                    cropj = crop[:, jc]
-                else:
-                    cropj = crop[:, jc] | crop[:, jc-1]
-                lseg = []
-                for ii, ic in enumerate(icropR):
-                    if ii in [0, R.size-1] and cropj[ic]:
-                        lseg.append(R[ii])
-                    elif cropj[ic] and not cropj[ic-1]:
-                        if len(lseg) > 0:
-                            lseg.append(np.nan)
-                        lseg.append(R[ii])
-                    elif (not cropj[ic]) and cropj[ic-1]:
-                        lseg.append(R[ic])
-                grid.append(np.concatenate(
-                    (
-                        np.array([lseg, Z[jj]*np.ones((len(lseg),))]),
-                        np.full((2, 1), np.nan)
-                    ),
-                    axis=1,
-                ))
+            else:
+                lseg.append([-1])
+                iwin = ind.nonzero()[0][0]
+                lseg.append(segs[iwin, :])
 
-        grid = np.concatenate(tuple(grid), axis=1)
+            last = segs[iwin, :]
+            ind[iwin] = False
 
-        if bck is True:
-            grid_bck = np.concatenate((vert, hor), axis=1)
+        lseg = np.concatenate(lseg)
+        grid = np.array([R[lseg], Z[lseg]])
+        grid[0, lseg == -1] = np.nan
 
     return grid, grid_bck
 

@@ -152,6 +152,11 @@ class Test02_Mesh2D():
         }
         self.dobjtri['tri0'].add_mesh(cents=faces, knots=knots, key='tri0')
 
+        # add splines
+        for ii, (k0, v0) in enumerate(self.dobjtri.items()):
+            self.dobjtri[k0].add_bsplines(deg=ii)
+
+
     def teardown(self):
         pass
 
@@ -214,6 +219,8 @@ class Test02_Mesh2D():
                 assert np.allclose(out, np.r_[1])
 
     def test03_select_mesh(self):
+
+        # rectangular meshes
         lkey = ['m0', 'm1', 'm2', 'm3']
         lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
         lelements = ['cents', 'knots', 'cents', None]
@@ -230,11 +237,11 @@ class Test02_Mesh2D():
                 crop=lcrop[ii],
             )
 
-        # triangular meshes - TBF
-        lkeys = ['tri0', 'tri0', 'tri0']
-        lind = [None, [1], 1]
-        lelements = ['knots', None, 'cents']
-        lreturnas = ['ind', 'data', 'ind']
+        # triangular meshes
+        lkeys = ['tri0', 'tri0', 'tri0', 'tri0']
+        lind = [None, [1], 1, [0, 1]]
+        lelements = ['knots', None, 'cents', 'cents']
+        lreturnas = ['ind', 'data', 'ind', 'data']
         for ii, k0 in enumerate(lkeys):
             out = self.dobjtri[k0].select_mesh_elements(
                 key=k0,
@@ -246,6 +253,8 @@ class Test02_Mesh2D():
             )
 
     def test04_select_bsplines(self):
+
+        # rectangular meshes
         lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
         lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
         lreturnas = [None, 'data', 'data', 'ind']
@@ -260,12 +269,39 @@ class Test02_Mesh2D():
                 return_knots=lreturn_knots[ii],
             )
 
+        # triangular meshes
+        lkeys = ['tri0', 'tri0', 'tri0', 'tri0']
+        lkeysbs = ['tri0-bs0', 'tri0-bs0', 'tri0-bs0', 'tri0-bs0']
+        lind = [None, [1], 1, [0, 1]]
+        lelements = ['knots', None, 'cents', 'cents']
+        lreturnas = ['ind', 'data', 'ind', 'data']
+        for ii, k0 in enumerate(lkeys):
+            indf = self.dobjtri[k0].select_bsplines(
+                key=lkeysbs[ii],
+                ind=lind[ii],
+                returnas=lreturnas[ii],
+                return_cents=lreturn_cents[ii],
+                return_knots=lreturn_knots[ii],
+            )
+
     def test05_sample_mesh(self):
+
+        # rectangular meshes
         lres = [None, 0.1, 0.01, [0.1, 0.05]]
         lmode = [None, 'rel', 'abs', 'abs']
         lgrid = [None, True, False, False]
         for ii, (k0, v0) in enumerate(self.dobj.items()):
             out = v0.get_sample_mesh(
+                res=lres[ii], grid=lgrid[ii], mode=lmode[ii],
+            )
+
+        # triangular meshes
+        lkeys = ['tri0', 'tri0', 'tri0', 'tri0']
+        lres = [None, 0.1, 0.01, [0.1, 0.05]]
+        lmode = [None, 'rel', 'abs', 'abs']
+        lgrid = [None, True, False, False]
+        for ii, k0 in enumerate(lkeys):
+            out = self.dobjtri[k0].get_sample_mesh(
                 res=lres[ii], grid=lgrid[ii], mode=lmode[ii],
             )
 
@@ -281,6 +317,8 @@ class Test02_Mesh2D():
     """
 
     def test07_plot_mesh(self):
+
+        # rectangular meshes
         lik = [None, ([0, 2], [0, 3]), [2, 3], None]
         lic = [None, ([0, 2], [0, 3]), None, [2, 3]]
         for ii, (k0, v0) in enumerate(self.dobj.items()):
@@ -290,6 +328,16 @@ class Test02_Mesh2D():
             )
         plt.close('all')
 
+        lik = [None, ([0, 2], [0, 3]), [2, 3], None]
+        lic = [None, ([0, 2], [0, 3]), None, [2, 3]]
+        for ii, (k0, v0) in enumerate(self.dobjtri.items()):
+            dax = self.dobjtri[k0].plot_mesh(
+                ind_knot=lik[ii],
+                ind_cent=lic[ii],
+            )
+        plt.close('all')
+
+    # TBF for triangular
     def test08_plot_bsplines(self):
         lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
         lind = [None, ([1, 2], [2, 1]), (1, 1), [1, 2, 10]]
@@ -304,6 +352,7 @@ class Test02_Mesh2D():
             )
         plt.close('all')
 
+    # TBF for triangular
     def test09_plot_profile2d(self):
         lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
         for ii, (k0, v0) in enumerate(self.dobj.items()):
@@ -323,6 +372,7 @@ class Test02_Mesh2D():
             )
         plt.close('all')
 
+    # TBF for triangular
     def test10_add_bsplines_operator(self):
         lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2']
         lop = ['D0N1', 'D0N2', 'D1N2', 'D2N2']
@@ -366,6 +416,7 @@ class Test02_Mesh2D():
             )
             raise Exception(msg)
 
+    # TBF for triangular
     def test11_compute_plot_geometry_matrix(self):
 
         # get config and cam
