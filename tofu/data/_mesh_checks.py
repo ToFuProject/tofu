@@ -120,12 +120,15 @@ def _mesh2DTri_conformity(knots=None, cents=None, key=None):
 
     # knots (floats => distance)
     dist = np.full((nknots, nknots), np.nan)
+    ind = np.zeros(dist.shape, dtype=bool)
     for ii in range(nknots):
         dist[ii, ii+1:] = np.sqrt(
             (knots[ii+1:, 0] - knots[ii, 0])**2
             + (knots[ii+1:, 1] - knots[ii, 1])**2
         )
-    ind = dist < 1.e-6
+        ind[ii, ii+1:] = True
+
+    ind[ind] = dist[ind] < 1.e-6
     if np.any(ind):
         iind = np.any(ind, axis=1).nonzero()[0]
         lstr = [f'\t\t- {ii}: {ind[ii, :].nonzero()[0]}' for ii in iind]

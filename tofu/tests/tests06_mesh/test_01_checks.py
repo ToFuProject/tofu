@@ -165,7 +165,7 @@ class Test02_Mesh2D():
 
         # add splines
         for ii, (k0, v0) in enumerate(self.dobjtri.items()):
-            self.dobjtri[k0].add_bsplines(deg=ii)
+            self.dobjtri[k0].add_bsplines(deg=0)
 
 
     def teardown(self):
@@ -213,7 +213,7 @@ class Test02_Mesh2D():
             assert all([np.allclose(indt[ii], indt2[ii]) for ii in [0, 1]])
 
         # triangular meshes
-        lkeys = ['tri0', 'tri0', 'tri0']
+        lkeys = ['tri0', 'tri0', 'tri1']
         lind = [None, [1], 1]
         lelements = ['knots', None, 'cents']
         for ii, k0 in enumerate(lkeys):
@@ -249,7 +249,7 @@ class Test02_Mesh2D():
             )
 
         # triangular meshes
-        lkeys = ['tri0', 'tri0', 'tri0', 'tri0']
+        lkeys = ['tri0', 'tri0', 'tri0', 'tri1']
         lind = [None, [1], 1, [0, 1]]
         lelements = ['knots', None, 'cents', 'cents']
         lreturnas = ['ind', 'data', 'ind', 'data']
@@ -281,8 +281,8 @@ class Test02_Mesh2D():
             )
 
         # triangular meshes
-        lkeys = ['tri0', 'tri0', 'tri0', 'tri0']
-        lkeysbs = ['tri0-bs0', 'tri0-bs0', 'tri0-bs0', 'tri0-bs0']
+        lkeys = ['tri0', 'tri0', 'tri0', 'tri1']
+        lkeysbs = ['tri0-bs0', None, 'tri0-bs0', 'tri1-bs0']
         lind = [None, [1], 1, [0, 1]]
         lelements = ['knots', None, 'cents', 'cents']
         lreturnas = ['ind', 'data', 'ind', 'data']
@@ -307,7 +307,7 @@ class Test02_Mesh2D():
             )
 
         # triangular meshes
-        lkeys = ['tri0', 'tri0', 'tri0', 'tri0']
+        lkeys = ['tri0', 'tri0', 'tri0', 'tri1']
         lres = [None, 0.1, 0.01, [0.1, 0.05]]
         lmode = [None, 'rel', 'abs', 'abs']
         lgrid = [None, True, False, False]
@@ -339,8 +339,9 @@ class Test02_Mesh2D():
             )
         plt.close('all')
 
-        lik = [None, ([0, 2], [0, 3]), [2, 3], None]
-        lic = [None, ([0, 2], [0, 3]), None, [2, 3]]
+        # triangular meshes
+        lik = [None, [0, 2], [2, 3], None]
+        lic = [None, [0, 2], None, [2, 3]]
         for ii, (k0, v0) in enumerate(self.dobjtri.items()):
             dax = self.dobjtri[k0].plot_mesh(
                 ind_knot=lik[ii],
