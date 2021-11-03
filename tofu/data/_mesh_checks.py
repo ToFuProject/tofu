@@ -118,26 +118,35 @@ def _mesh2DTri_conformity(knots=None, cents=None, key=None):
     # -------------------
     # Test for duplicates
 
-    knotsu = np.unique(knots, axis=0)
+    # knots (floats => distance)
+    dist = np.full((nknots, nknots), np.nan)
+    for ii in range(nknots):
+        dist[ii, ii+1:] = np.sqrt(
+            (knots[ii+1:, 0] - knots[ii, 0])**2
+            + (knots[ii+1:, 1] - knots[ii, 1])**2
+        )
+    ind = dist < 1.e-6
+    if np.any(ind):
+        iind = np.any(ind, axis=1).nonzero()[0]
+        lstr = [f'\t\t- {ii}: {ind[ii, :].nonzero()[0]}' for ii in iind]
+        msg = (
+            f"Non-valid mesh {key}: \n"
+            f"  Duplicate knots: {ind.sum()}\n"
+            f"\t- knots.shape: {cents.shape}\n"
+            f"\t- duplicate indices:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # cents (indices)
     centsu = np.unique(cents, axis=0)
-    lc = [
-        knotsu.shape[0] != nknots,
-        centsu.shape[0] != ncents,
-    ]
-    if any(lc):
-        msg = f"Non-valid mesh {key}: \n"
-        if lc[0]:
-            msg += (
-                f"  Duplicate knots: {nknots - knotsu.shape[0]}\n"
-                f"\t- knots.shape: {knots.shape}\n"
-                f"\t- unique shape: {knotsu.shape}\n"
-            )
-        if lc[1]:
-            msg += (
-                f"  Duplicate cents: {ncents - centsu.shape[0]}\n"
-                f"\t- cents.shape: {cents.shape}\n"
-                f"\t- unique shape: {centsu.shape}"
-            )
+    if centsu.shape[0] != ncents:
+        msg = (
+            f"Non-valid mesh {key}: \n"
+            f"  Duplicate cents: {ncents - centsu.shape[0]}\n"
+            f"\t- cents.shape: {cents.shape}\n"
+            f"\t- unique shape: {centsu.shape}"
+        )
         raise Exception(msg)
 
     # ---------------------

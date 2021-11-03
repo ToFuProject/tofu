@@ -20,11 +20,12 @@ import tofu as tf
 import tofu.data as tfd
 
 
-_here = os.path.abspath(os.path.dirname(__file__))
-VerbHead = 'tofu.mesh.test_01_checks'
+_HERE = os.path.abspath(os.path.dirname(__file__))
+_PATH_DATA = os.path.join(_HERE, 'test_data')
 _TOFU_USER = os.path.join(os.path.expanduser("~"), '.tofu')
-_CUSTOM = os.path.dirname(os.path.dirname(os.path.dirname(_here)))
+_CUSTOM = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 _CUSTOM = os.path.join(_CUSTOM, 'scripts', 'tofucustom.py')
+VerbHead = 'tofu.mesh.test_01_checks'
 
 
 #######################################################
@@ -149,8 +150,18 @@ class Test02_Mesh2D():
         faces = np.array([[0, 1, 2], [1, 2, 3]])
         self.dobjtri = {
             'tri0': tf.data.Mesh2D(),
+            'tri1': tf.data.Mesh2D(),
         }
         self.dobjtri['tri0'].add_mesh(cents=faces, knots=knots, key='tri0')
+
+        # Add realistic NICE mesh for WEST
+        pfe = os.path.join(_PATH_DATA, 'mesh_triangular_WEST_eq.txt')
+        out = np.loadtxt(pfe)
+        nknots, ncents = int(out[0, 0]), int(out[0, 1])
+        assert out.shape == (nknots + ncents + 1, 3)
+        knots = out[1:nknots + 1, :][:, :2]
+        cents = out[nknots + 1:, :]
+        self.dobjtri['tri1'].add_mesh(cents=cents, knots=knots, key='tri1')
 
         # add splines
         for ii, (k0, v0) in enumerate(self.dobjtri.items()):
