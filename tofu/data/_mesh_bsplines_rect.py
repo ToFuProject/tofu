@@ -181,11 +181,11 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             )
             raise Exception(msg)
 
-        if reshape is None:
-            reshape = True
-        if not isinstance(reshape, bool):
-            msg = f"Arg reshape must be a bool!\nProvided {reshape}"
-            raise Exception(msg)
+        reshape = _generic_check._check_var(
+            reshape, 'reshape',
+            default=True,
+            types=bool,
+        )
 
         # -----------
         # prepare
@@ -251,7 +251,7 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
                 val[indokx[:, 0], indtot[indr][ii]] = (outx[ixok]*outy[indokx])
 
         if reshape:
-            val = np.reshape(val, shape)
+            val = np.reshape(val, tuple(np.r_[shape, -1]))
 
         return val
 

@@ -1289,11 +1289,11 @@ def _interp_check(
                 raise Exception(msg)
 
         # grid
-        if grid is None:
-            grid = R.shape != Z.shape
-        if not isinstance(grid, bool):
-            msg = f"Arg grid must be a bool!\nProvided: {grid}"
-            raise Exception(msg)
+        grid = _generic_check._check_var(
+            grid, 'grid',
+            default=R.shape != Z.shape,
+            types=bool,
+        )
 
         if grid is True and (R.ndim > 1 or Z.ndim > 1):
             msg = "If grid=True, R and Z must be 1d!"
@@ -1344,6 +1344,8 @@ def interp2d(
         nan0=nan0,
         imshow=imshow,
     )
+    keym = coll.dobj['bsplines'][keybs]['mesh']
+    meshtype = coll.dobj['mesh'][keym]['type']
 
     # ---------------
     # prepare
@@ -1363,9 +1365,13 @@ def interp2d(
         cropbs = coll.ddata[cropbs]['data']
 
     if details is not False:
+        if meshtype == 'rect':
+            returnas = 'tuple-flat'
+        else:
+            returnas = bool
         indbs_tuple_flat = coll.select_ind(
             key=keybs,
-            returnas='tuple-flat',
+            returnas=returnas,
             ind=indbs,
         )
     else:

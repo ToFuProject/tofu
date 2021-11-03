@@ -385,7 +385,7 @@ def _plot_bspline_check(
 ):
 
     # key
-    lk = list(coll.dobj['bsplines'].keys())
+    lk = list(coll.dobj.get('bsplines', {}).keys())
     key = _generic_check._check_var(
         key, 'key',
         default=None,
@@ -454,11 +454,30 @@ def _plot_bspline_prepare(
     # check input
     deg = coll.dobj['bsplines'][key]['deg']
     km = coll.dobj['bsplines'][key]['mesh']
-    kR, kZ = coll.dobj['mesh'][km]['knots']
-    Rk = coll.ddata[kR]['data']
-    Zk = coll.ddata[kZ]['data']
-    dR = np.min(np.diff(Rk))
-    dZ = np.min(np.diff(Zk))
+    meshtype = coll.dobj['mesh'][km]['type']
+
+    # Get minimum distances
+    if meshtype == 'rect':
+        kR, kZ = coll.dobj['mesh'][km]['knots']
+        Rk = coll.ddata[kR]['data']
+        Zk = coll.ddata[kZ]['data']
+        dR = np.min(np.diff(Rk))
+        dZ = np.min(np.diff(Zk))
+    else:
+        cents = coll.ddata[coll.dobj['mesh'][km]['cents']]['data']
+        kknots = coll.dobj['mesh'][km]['knots']
+        Rk = coll.ddata[f'{kknots}-R']['data']
+        Zk = coll.ddata[f'{kknots}-Z']['data']
+        R = Rk[cents]
+        Z = Zk[cents]
+        dist = np.min(np.array([
+            np.sqrt((R[:, 1] - R[:, 0])**2 + (Z[:, 1] - Z[:, 0])**2),
+            np.sqrt((R[:, 2] - R[:, 1])**2 + (Z[:, 2] - Z[:, 1])**2),
+            np.sqrt((R[:, 2] - R[:, 0])**2 + (Z[:, 2] - Z[:, 0])**2),
+        ]))
+        dR, dZ = dist, dist
+
+    # resolution of sampling
     if res is None:
         res_coef = 0.05
         res = [res_coef*dR, res_coef*dZ]
@@ -472,14 +491,12 @@ def _plot_bspline_prepare(
         returnas='data',
         crop=False,
     )[1]
-    dR = np.min(np.diff(Rk))
-    dZ = np.min(np.diff(Zk))
     DR = [knotsRi.min() + dR*1.e-10, knotsRi.max() - dR*1.e-10]
     DZ = [knotsZi.min() + dZ*1.e-10, knotsZi.max() - dZ*1.e-10]
 
-    km = coll.dobj['bsplines'][key]['mesh']
     R, Z = coll.get_sample_mesh(
-        key=km, res=res,
+        key=km,
+        res=res,
         DR=DR,
         DZ=DZ,
         mode='abs', grid=True, imshow=True,
@@ -487,15 +504,18 @@ def _plot_bspline_prepare(
 
     # bspline
     shapebs = coll.dobj['bsplines'][key]['shape']
-    coefs = np.zeros((1, shapebs[0], shapebs[1]), dtype=float)
-    coefs[0, ind[0], ind[1]] = 1.
+    shapecoefs = np.r_[1, shapebs]
+    coefs = np.zeros(shapecoefs, dtype=float)
+    if meshtype == 'rect':
+        coefs[0, ind[0], ind[1]] = 1.
+    else:
+        coefs[0, ind] = 1.
     bspline = coll.dobj['bsplines'][key]['func_sum'](R, Z, coefs=coefs)[0, ...]
 
     # nan if 0
     bspline[bspline == 0.] = np.nan
 
     # extent and interp
-
     extent = (
         DR[0], DR[1],
         DZ[0], DZ[1],

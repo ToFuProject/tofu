@@ -130,15 +130,65 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         heights = np.full(self.cents.shape, np.nan)
 
         for iref, (i0, i1) in enumerate([(1, 2), (2, 0), (0, 1)]):
-            v0norm = np.sqrt(
-                (R[:, i0] - R[:, iref])**2 + (Z[:, i0] - Z[:, iref])**2
+            base = np.sqrt(
+                (R[:, i1] - R[:, i0])**2 + (Z[:, i1] - Z[:, i0])**2
             )
-            heights[:, iref] = (
-                (R[:, i0] - R[:, iref])*(R[:, i1] - R[:, iref])
-                 + (Z[:, i0] - Z[:, iref])*(Z[:, i1] - Z[:, iref])
-            ) / v0norm
+            heights[:, iref] = np.abs(
+                (R[:, i0] - R[:, iref])*(Z[:, i1] - Z[:, iref])
+                 - (Z[:, i0] - Z[:, iref])*(R[:, i1] - R[:, iref])
+            ) / base
 
         return heights
+
+    def get_heights_per_centsknots_pts(self, x, y):
+        """ Return the height of each knot in each cent
+
+        Returnad as (ncents, 3) array, like cents
+        """
+
+        if x.shape != y.shape:
+            msg = "Arg x and y must hae the same shape!"
+            raise Exception(msg)
+
+        R = self.knotsR[self.cents]
+        Z = self.knotsZ[self.cents]
+
+        heights = np.full(tuple(np.r_[x.shape, 3]), np.nan)
+        ind = self.trifind(x, y)
+
+        for ii in np.unique(ind):
+            if ii == -1:
+                continue
+            indi = ind == ii
+            for iref, (i0, i1) in enumerate([(1, 2), (2, 0), (0, 1)]):
+                v_base = np.array([
+                    R[ii, i1] - R[ii, i0],
+                    Z[ii, i1] - Z[ii, i0],
+                ])
+                v_perp = np.array([v_base[1], -v_base[0]])
+                v_base = v_base / np.linalg.norm(v_base)
+                v_perp = v_perp / np.linalg.norm(v_perp)
+
+                v0 = np.array([
+                    R[ii, i0] - R[ii, iref],
+                    Z[ii, i0] - Z[ii, iref],
+                ])
+                v0_base = v0[0]*v_base[0] + v0[1]*v_base[1]
+                v0_perp = v0[0]*v_perp[0] + v0[1]*v_perp[1]
+
+                v_height = (v0 + (-v0_base*v_base + v0_perp*v_perp))/2.
+                v_height_norm = np.linalg.norm(v_height)
+
+                dR = x[indi] - R[ii, iref]
+                dZ = y[indi] - Z[ii, iref]
+                heights[indi, iref] = (
+                    dR*v_height[0] + dZ*v_height[1]
+                ) / v_height_norm**2
+
+        indok = ~np.isnan(heights)
+        assert np.all(heights[indok] >= 0. - 1e-14)
+        assert np.all(heights[indok] <= 1. + 1e-14)
+        return heights, ind
 
     # --------
     # bsplines
@@ -190,12 +240,12 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                 cents_per_bs = self.cents_per_knots
             if return_knots:
                 knots0 = np.arange(0, self.nknots)
-                knots_per_bs = -np.ones((self.nbs, ), dtype=int)
+                nmax = self.cents_per_knots.shape[1] + 3
+                knots_per_bs = -np.ones((self.nbs, nmax), dtype=int)
                 knots_per_bs[:, 0] = knots0
                 for ii in range(self.nbs):
-                    import pdb; pdb.set_trace()     # DB  / TBF
-                    nn = np.unique(self.cents[cents_per_bs, :])
-                    knots_per_bs[ii, 1:] = None
+                    nu = np.unique(self.cents[cents_per_bs[ii, :], :])
+                    knots_per_bs[ii, 1:nu.size] = [nn for nn in nu if nn != ii]
 
         elif self.deg == 2:
             raise NotImplementedError()
@@ -273,97 +323,66 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         self,
         x,
         y,
-        indbs_tuple_flat=None,
-        reshape=None,
+        indbs=None,
     ):
-        raise NotImplementedError()
 
         # -----------
         # check input
 
+        if indbs is None:
+            indbs = np.ones((self.nbs,), dtype=bool)
+
         c0 = (
-            isinstance(indbs_tuple_flat, tuple)
-            and len(indbs_tuple_flat) == 2
-            and all([isinstance(ind, np.ndarray) for ind in indbs_tuple_flat])
-            and indbs_tuple_flat[0].shape == indbs_tuple_flat[1].shape
+            isinstance(indbs, np.ndarray)
+            and indbs.dtype == np.bool_
+            and indbs.size == self.nbs
         )
         if not c0:
             msg = (
-                "Arg indbs_tuple_flat must be a tuple of indices!"
+                "Arg indbs must be  a (nbs,) bool array!"
+                "\nProvided: {indbs}"
             )
             raise Exception(msg)
 
-        if reshape is None:
-            reshape = True
-        if not isinstance(reshape, bool):
-            msg = f"Arg reshape must be a bool!\nProvided {reshape}"
-            raise Exception(msg)
+        # indbs => indcent : triangles which are ok
+        cents_per_bs, knots_per_bs = self._get_centsknots_per_bs(
+            return_cents=True,
+            return_knots=True,
+            returnas='ind',
+        )
+        indcent = np.unique(cents_per_bs[indbs, :])
+        indcent = indcent[indcent >= 0]
 
         # -----------
         # prepare
 
-        deg = self.degrees[0]
-        nbs = indbs_tuple_flat[0].size
-        shape = x.shape
-        x = np.ascontiguousarray(x.ravel(), dtype=np.floating)
-        y = np.ascontiguousarray(y.ravel(), dtype=np.floating)
-        coef = np.zeros((deg + 4, 1), dtype=float)
-        coef[deg] = 1.
-        outy = np.full((x.size, 1), np.nan)
+        deg = self.deg
+        nbs = indbs.sum()
 
         # -----------
         # compute
 
-        val = np.zeros(tuple(np.r_[x.size, nbs]))
-        indtot = np.arange(0, nbs)
+        val = np.full(tuple(np.r_[x.shape, nbs]), np.nan)
+        heights, ind = self.get_heights_per_centsknots_pts(x, y)
 
-        iz_u = np.unique(indbs_tuple_flat[1])
+        if deg == 0:
+            for ii in np.intersect1d(np.unique(ind), indcent):
+                indi = ind == ii
+                val[indi, ii] = self.coefs[ii]
 
-        for iz in iz_u:
-
-            scpinterp._bspl.evaluate_spline(
-                self.knots_per_bs_y_pad[:, iz],
-                coef,
-                self.degrees[1],
-                y,
-                0,
-                False,
-                outy,
-            )
-
-            indoky = ~np.isnan(outy)
-            if not np.any(indoky):
-                continue
-            indokx = np.copy(indoky)
-
-            indr = indbs_tuple_flat[1] == iz
-            ir = indbs_tuple_flat[0][indr]
-            for ii, iir in enumerate(ir):
-
-                if ii > 0:
-                    indokx[...] = indoky
-
-                outx = np.full((indoky.sum(), 1), np.nan)
-
-                scpinterp._bspl.evaluate_spline(
-                    self.knots_per_bs_x_pad[:, iir],
-                    coef,
-                    self.degrees[0],
-                    x[indoky[:, 0]],
-                    0,
-                    False,
-                    outx,
-                )
-
-                ixok = ~np.isnan(outx)
-                if not np.any(ixok):
-                    continue
-
-                indokx[indoky] = ixok[:, 0]
-                val[indokx[:, 0], indtot[indr][ii]] = (outx[ixok]*outy[indokx])
-
-        if reshape:
-            val = np.reshape(val, shape)
+        elif deg == 1:
+            knots_per_bs
+            for ii in np.intersect1d(np.unique(ind), indcent):
+                indi = ind == ii
+                # get bs
+                ibs = np.any(cents_per_bs == ii, axis=1).nonzero()[0]
+                sorter = np.argsort(self.cents[ii, :])
+                inum = sorter[np.searchsorted(
+                    self.cents[ii, :],
+                    knots_per_bs[ibs, 0],
+                    sorter=sorter,
+                )]
+                val[indi, ibs] = 1. - heights[indi, inum]
 
         return val
 
@@ -548,7 +567,7 @@ def _get_bs2d_func_check(
             )
             raise Exception(msg)
         if coefs.ndim == len(shapebs):
-            coefs = coefs.reshape(tuple(np.r_[1, coefs.shape]))
+            coefs = coefs[None, ...]
         if coefs.shape[1:] != shapebs:
             msg = (
                 "coefs has wrong shape!\n"
@@ -558,14 +577,11 @@ def _get_bs2d_func_check(
             raise Exception(msg)
 
     # crop
-    if crop is None:
-        crop = True
-    if not isinstance(crop, bool):
-        msg = (
-            "Arg crop must be a bool!\n"
-            f"Provided: {crop}"
-        )
-        raise Exception(msg)
+    crop = _generic_check._check_var(
+        crop, 'crop',
+        default=True,
+        types=bool,
+    )
     crop = crop and cropbs is not None and cropbs is not False
 
     return coefs, ii, jj, R, Z, crop
@@ -783,6 +799,7 @@ def get_bs2d_func(
     cents=None,
     trifind=None,
     deg=None,
+    shapebs=None,
 ):
 
     # -----------------
@@ -796,35 +813,29 @@ def get_bs2d_func(
         deg=deg,
     )
 
-    # TBC
     def ev_details(
         R,
         Z,
         clas=clas,
-        indbs_tuple_flat=None,
         crop=None,
         cropbs=None,
+        # for compatibility (unused)
         coefs=None,
+        indbs_tuple_flat=None,
         reshape=None,
     ):
         """ Return the value for each point summed on all bsplines """
 
         # check inputs
-        _, _, _, r, z, crop = _get_bs2d_func_check(
+        _, _, _, rr, zz, crop = _get_bs2d_func_check(
             R=R,
             Z=Z,
             shapebs=shapebs,
         )
 
         # compute
-        return RectBiv_scipy.ev_details(
-            r,
-            z,
-            indbs_tuple_flat=indbs_tuple_flat,
-            reshape=reshape,
-        )
+        return clas.ev_details(rr, zz)
 
-    # TBC
     def ev_sum(
         R,
         Z,
@@ -838,7 +849,7 @@ def get_bs2d_func(
         """ Return the value for each point summed on all bsplines """
 
         # check inputs
-        coefs, _, _, r, z, crop = _get_bs2d_func_check(
+        coefs, _, _, rr, zz, crop = _get_bs2d_func_check(
             coefs=coefs,
             R=R,
             Z=Z,
@@ -849,30 +860,20 @@ def get_bs2d_func(
 
         # prepare
         nt = 1 if np.isscalar(coefs) else coefs.shape[0]
-        shapepts = r.shape
+        shapepts = rr.shape
 
         shape = tuple(np.r_[nt, shapepts])
         val = np.zeros(shape, dtype=float)
-        cropbs_neg_flat = ~cropbs.ravel() if crop else None
 
         # compute
         if np.isscalar(coefs):
-            val[0, ...] = RectBiv_scipy(
-                r,
-                z,
-                grid=False,
-                coefs=coefs,
-                cropbs_neg_flat=cropbs_neg_flat,
-            )
+            val[0, ...] = np.nansum(clas.ev_details(rr, zz), axis=-1)*coefs
 
         else:
             for ii in range(coefs.shape[0]):
-                val[ii, ...] = RectBiv_scipy(
-                    r,
-                    z,
-                    grid=False,
-                    coefs=coefs[ii, ...],
-                    cropbs_neg_flat=cropbs_neg_flat,
+                val[ii, ...] = np.nansum(
+                    clas.ev_details(rr, zz)*coefs[ii, ...],
+                    axis=-1,
                 )
 
         return val
