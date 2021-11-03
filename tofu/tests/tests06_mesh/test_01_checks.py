@@ -145,7 +145,7 @@ class Test02_Mesh2D():
 
         # Add triangular mesh
         knots = np.array([
-            [0, 0], [0, 1], [1, 0], [1, 1],
+            [2, 0], [2, 1], [3, 0], [3, 1],
         ])
         faces = np.array([[0, 1, 2], [1, 2, 3]])
         self.dobjtri = {
@@ -165,7 +165,7 @@ class Test02_Mesh2D():
 
         # add splines
         for ii, (k0, v0) in enumerate(self.dobjtri.items()):
-            self.dobjtri[k0].add_bsplines(deg=0)
+            self.dobjtri[k0].add_bsplines(deg=ii)
 
 
     def teardown(self):
@@ -327,7 +327,113 @@ class Test02_Mesh2D():
             )
     """
 
-    def test07_plot_mesh(self):
+    def test07_ev_details_vs_sum(self):
+
+        x = np.linspace(2.2, 2.8, 5)
+        y = np.linspace(-0.5, 0.5, 5)
+        x = np.tile(x, (y.size, 1))
+        y = np.tile(y, (x.shape[1], 1)).T
+
+        # rectangular meshes
+        lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
+        for ii, (k0, v0) in enumerate(self.dobj.items()):
+            val = v0.interp2d(
+                key=lkey[ii],
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=True,
+                reshape=True,
+                res=None,
+                crop=True,
+                nan0=ii%2 == 0,
+                imshow=False,
+            )
+            crop = v0.dobj['bsplines'][lkey[ii]]['crop']
+            if crop is False:
+                shap = np.prod(v0.dobj['bsplines'][lkey[ii]]['shape'])
+            else:
+                shap = v0.ddata[crop]['data'].sum()
+            assert val.shape == tuple(np.r_[x.shape, shap])
+
+            val_sum = v0.interp2d(
+                key=lkey[ii],
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=False,
+                reshape=True,
+                res=None,
+                crop=True,
+                nan0=ii%2 == 0,
+                imshow=False,
+            )
+            indok = ~np.isnan(val_sum[0, ...])
+
+            # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            # Does not work because of knots padding used in func_details
+            # Due to scpinterp._bspl.evaluate_spline()...
+            assert np.allclose(
+                val_sum[0, indok],
+                np.nansum(val, axis=-1)[indok],
+                equal_nan=True,
+            )
+            # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        # triangular meshes
+        lkey = ['tri0-bs0', 'tri1-bs1']
+        for ii, (k0, v0) in enumerate(self.dobjtri.items()):
+            val = v0.interp2d(
+                key=lkey[ii],
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=True,
+                reshape=None,
+                res=None,
+                crop=True,
+                nan0=ii%2 == 0,
+                imshow=False,
+            )
+            crop = v0.dobj['bsplines'][lkey[ii]].get('crop', False)
+            if crop is False:
+                shap = np.prod(v0.dobj['bsplines'][lkey[ii]]['shape'])
+            else:
+                shap = v0.ddata[crop]['data'].sum()
+            assert val.shape == tuple(np.r_[x.shape, shap])
+
+            val_sum = v0.interp2d(
+                key=lkey[ii],
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=False,
+                reshape=None,
+                res=None,
+                crop=True,
+                nan0=ii%2 == 0,
+                imshow=False,
+            )
+            indok = ~np.isnan(val_sum[0, ...])
+            assert np.allclose(
+                val_sum[0, indok],
+                np.nansum(val, axis=-1)[indok],
+                equal_nan=True,
+            )
+
+    def test08_plot_mesh(self):
 
         # rectangular meshes
         lik = [None, ([0, 2], [0, 3]), [2, 3], None]
@@ -350,7 +456,9 @@ class Test02_Mesh2D():
         plt.close('all')
 
     # TBF for triangular
-    def test08_plot_bsplines(self):
+    def test09_plot_bsplines(self):
+
+        # rectangular meshes
         lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
         lind = [None, ([1, 2], [2, 1]), (1, 1), [1, 2, 10]]
         lknots = [None, True, False, True]
@@ -364,8 +472,22 @@ class Test02_Mesh2D():
             )
         plt.close('all')
 
+        # triangular meshes
+        lkey = ['tri0-bs0', 'tri1-bs1']  # , 'm2-bs2', 'm3-bs3']
+        lind = [None, [1, 2], (1, 1), [1, 2, 10]]
+        lknots = [None, True, False, True]
+        lcents = [False, False, True, True]
+        for ii, (k0, v0) in enumerate(self.dobjtri.items()):
+            dax = self.dobjtri[k0].plot_bsplines(
+                key=lkey[ii],
+                ind=lind[ii],
+                knots=lknots[ii],
+                cents=lcents[ii],
+            )
+        plt.close('all')
+
     # TBF for triangular
-    def test09_plot_profile2d(self):
+    def test10_plot_profile2d(self):
         lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
         for ii, (k0, v0) in enumerate(self.dobj.items()):
             key = str(ii)
@@ -385,7 +507,7 @@ class Test02_Mesh2D():
         plt.close('all')
 
     # TBF for triangular
-    def test10_add_bsplines_operator(self):
+    def test11_add_bsplines_operator(self):
         lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2']
         lop = ['D0N1', 'D0N2', 'D1N2', 'D2N2']
         lgeom = ['linear', 'toroidal']
@@ -429,7 +551,7 @@ class Test02_Mesh2D():
             raise Exception(msg)
 
     # TBF for triangular
-    def test11_compute_plot_geometry_matrix(self):
+    def test12_compute_plot_geometry_matrix(self):
 
         # get config and cam
         conf = tf.load_config('WEST-V0')
