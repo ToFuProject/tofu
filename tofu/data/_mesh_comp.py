@@ -1003,15 +1003,11 @@ def _crop_check(
         types=str,
         allowed=lkm,
     )
+    meshtype = coll.dobj['mesh'][key]['type']
 
-    # Only implemented for rect mesh so far
-    if coll.dobj['mesh'][key]['type'] != 'rect':
-        typ = coll.dobj['mesh'][key]['type']
-        msg = (
-            "Cropping only implemented for rectangular mesh so far!\n"
-            f"coll.dobj['mesh']['{key}']['type'] = {typ}"
-        )
-        raise Exception(msg)
+    if meshtype != 'rect':
+        import pdb; pdb.set_trace()     # DB
+        pass
 
     # shape
     shape = coll.dobj['mesh'][key]['shape']
