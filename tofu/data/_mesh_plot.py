@@ -373,6 +373,32 @@ def plot_mesh(
 # #############################################################################
 
 
+def _plot_bsplines_get_dRdZ(coll=None, km=None, meshtype=None):
+    # Get minimum distances
+    if meshtype == 'rect':
+        kR, kZ = coll.dobj['mesh'][km]['knots']
+        Rk = coll.ddata[kR]['data']
+        Zk = coll.ddata[kZ]['data']
+        dR = np.min(np.diff(Rk))
+        dZ = np.min(np.diff(Zk))
+    else:
+        cents = coll.ddata[coll.dobj['mesh'][km]['cents']]['data']
+        kknots = coll.dobj['mesh'][km]['knots']
+        Rk = coll.ddata[f'{kknots}-R']['data']
+        Zk = coll.ddata[f'{kknots}-Z']['data']
+        R = Rk[cents]
+        Z = Zk[cents]
+        dist = np.mean(np.array([
+            np.sqrt((R[:, 1] - R[:, 0])**2 + (Z[:, 1] - Z[:, 0])**2),
+            np.sqrt((R[:, 2] - R[:, 1])**2 + (Z[:, 2] - Z[:, 1])**2),
+            np.sqrt((R[:, 2] - R[:, 0])**2 + (Z[:, 2] - Z[:, 0])**2),
+        ]))
+        dR, dZ = dist, dist
+    Rminmax = [Rk.min(), Rk.max()]
+    Zminmax = [Zk.min(), Zk.max()]
+    return dR, dZ, Rminmax, Zminmax
+
+
 def _plot_bspline_check(
     coll=None,
     key=None,
@@ -439,7 +465,7 @@ def _plot_bspline_check(
         types=(bool, dict),
     )
 
-    return key, ind, knotsi, centsi, plot_mesh, cmap, dleg
+    return key, ind, knots, cents, knotsi, centsi, plot_mesh, cmap, dleg
 
 
 def _plot_bspline_prepare(
@@ -447,8 +473,8 @@ def _plot_bspline_prepare(
     key=None,
     ind=None,
     res=None,
-    knots=None,
-    cents=None,
+    knotsi=None,
+    centsi=None,
 ):
 
     # check input
@@ -456,26 +482,10 @@ def _plot_bspline_prepare(
     km = coll.dobj['bsplines'][key]['mesh']
     meshtype = coll.dobj['mesh'][km]['type']
 
-    # Get minimum distances
-    if meshtype == 'rect':
-        kR, kZ = coll.dobj['mesh'][km]['knots']
-        Rk = coll.ddata[kR]['data']
-        Zk = coll.ddata[kZ]['data']
-        dR = np.min(np.diff(Rk))
-        dZ = np.min(np.diff(Zk))
-    else:
-        cents = coll.ddata[coll.dobj['mesh'][km]['cents']]['data']
-        kknots = coll.dobj['mesh'][km]['knots']
-        Rk = coll.ddata[f'{kknots}-R']['data']
-        Zk = coll.ddata[f'{kknots}-Z']['data']
-        R = Rk[cents]
-        Z = Zk[cents]
-        dist = np.min(np.array([
-            np.sqrt((R[:, 1] - R[:, 0])**2 + (Z[:, 1] - Z[:, 0])**2),
-            np.sqrt((R[:, 2] - R[:, 1])**2 + (Z[:, 2] - Z[:, 1])**2),
-            np.sqrt((R[:, 2] - R[:, 0])**2 + (Z[:, 2] - Z[:, 0])**2),
-        ]))
-        dR, dZ = dist, dist
+    # get dR, dZ
+    dR, dZ, _, _ = _plot_bsplines_get_dRdZ(
+        coll=coll, km=km, meshtype=meshtype,
+    )
 
     # resolution of sampling
     if res is None:
@@ -483,16 +493,9 @@ def _plot_bspline_prepare(
         res = [res_coef*dR, res_coef*dZ]
 
     # sample
-    knotsRi, knotsZi = coll.select_bsplines(
-        ind=ind,
-        key=key,
-        return_knots=True,
-        return_cents=False,
-        returnas='data',
-        crop=False,
-    )[1]
-    DR = [knotsRi.min() + dR*1.e-10, knotsRi.max() - dR*1.e-10]
-    DZ = [knotsZi.min() + dZ*1.e-10, knotsZi.max() - dZ*1.e-10]
+    knotsiR, knotsiZ = knotsi
+    DR = [knotsiR.min() + dR*1.e-10, knotsiR.max() - dR*1.e-10]
+    DZ = [knotsiZ.min() + dZ*1.e-10, knotsiZ.max() - dZ*1.e-10]
 
     R, Z = coll.get_sample_mesh(
         key=km,
@@ -528,9 +531,7 @@ def _plot_bspline_prepare(
     elif deg >= 2:
         interp = 'bicubic'
 
-    # knots and cents
-
-    return bspline, extent, interp, knots, cents
+    return bspline, extent, interp
 
 
 def plot_bspline(
@@ -551,7 +552,7 @@ def plot_bspline(
     # --------------
     # check input
 
-    key, ind, knotsi, centsi, plot_mesh, cmap, dleg = _plot_bspline_check(
+    key, ind, knots, cents, knotsi, centsi, plot_mesh, cmap, dleg = _plot_bspline_check(
         coll=coll,
         key=key,
         ind=ind,
@@ -565,12 +566,12 @@ def plot_bspline(
     # --------------
     #  Prepare data
 
-    bspline, extent, interp, knotsi, centsi = _plot_bspline_prepare(
+    bspline, extent, interp = _plot_bspline_prepare(
         coll=coll,
         key=key,
         ind=ind,
-        knots=knotsi,
-        cents=centsi,
+        knotsi=knotsi,
+        centsi=centsi,
         res=res,
     )
 
@@ -669,13 +670,12 @@ def _plot_profile2d_check(
 
     # key
     dk = coll.get_profiles2d()
-    if key is None and len(dk) == 1:
-        key = list(dk.keys())[0]
     key = _generic_check._check_var(
         key, 'key', types=str, allowed=list(dk.keys())
     )
     keybs = dk[key]
     refbs = coll.dobj['bsplines'][keybs]['ref']
+    keym = coll.dobj['bsplines'][keybs]['mesh']
 
     # coefs
     if coefs is None:
@@ -725,13 +725,14 @@ def _plot_profile2d_check(
         types=(bool, dict),
     )
 
-    return key, keybs, coefs, indt, cmap, dcolorbar, dleg
+    return key, keybs, keym, coefs, indt, cmap, dcolorbar, dleg
 
 
 def _plot_profiles2d_prepare(
     coll=None,
     key=None,
     keybs=None,
+    keym=None,
     coefs=None,
     indt=None,
     res=None,
@@ -740,11 +741,13 @@ def _plot_profiles2d_prepare(
     # check input
     deg = coll.dobj['bsplines'][keybs]['deg']
     km = coll.dobj['bsplines'][keybs]['mesh']
-    kR, kZ = coll.dobj['mesh'][km]['knots']
-    Rk = coll.ddata[kR]['data']
-    Zk = coll.ddata[kZ]['data']
-    dR = np.min(np.diff(Rk))
-    dZ = np.min(np.diff(Zk))
+    meshtype = coll.dobj['mesh'][km]['type']
+
+    # get dR, dZ
+    dR, dZ, Rminmax, Zminmax = _plot_bsplines_get_dRdZ(
+        coll=coll, km=km, meshtype=meshtype,
+    )
+
     if res is None:
         res_coef = 0.05
         res = [res_coef*dR, res_coef*dZ]
@@ -768,8 +771,8 @@ def _plot_profiles2d_prepare(
 
     # extent and interp
     extent = (
-        Rk[0], Rk[-1],
-        Zk[0], Zk[-1],
+        Rminmax[0], Rminmax[1],
+        Zminmax[0], Zminmax[1],
     )
 
     if deg == 0:
@@ -803,7 +806,9 @@ def plot_profile2d(
     # --------------
     # check input
 
-    key, keybs, coefs, indt, cmap, dcolorbar, dleg = _plot_profile2d_check(
+    (
+        key, keybs, keym, coefs, indt, cmap, dcolorbar, dleg,
+    ) = _plot_profile2d_check(
         coll=coll,
         key=key,
         coefs=coefs,
@@ -820,6 +825,7 @@ def plot_profile2d(
         coll=coll,
         key=key,
         keybs=keybs,
+        keym=keym,
         coefs=coefs,
         indt=indt,
         res=res,
