@@ -144,6 +144,8 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         """ Return the height of each knot in each cent
 
         Returnad as (ncents, 3) array, like cents
+
+        OPTIMIZATION POSSIBLE FOR EV_DETAILS BY TAKING INDBS ASINPUT ARG !!!
         """
 
         if x.shape != y.shape:
@@ -441,7 +443,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                         val[0, indi] += coefs
             else:
                 for ii in np.intersect1d(np.unique(ind), indcent):
-                    indi = ind == iij
+                    indi = ind == ii
                     val[:, indi] += coefs[:, ii, ...]
 
         elif self.deg == 1:
