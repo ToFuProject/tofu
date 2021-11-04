@@ -64,7 +64,6 @@ def _select_ind(
         meshtype=meshtype,
     )
 
-
     elem = f'{elements}' if cat == 'mesh' else 'ref'
 
     if meshtype == 'rect':
@@ -109,7 +108,7 @@ def _select_ind(
                 c0 = np.all((ind >= 0) & (ind < nR*nZ))
                 if not c0:
                     msg = (
-                        f"Arg ind has non-valid values (< 0 or >= size ({nR*nZ}))"
+                        f"Non-valid values in ind (< 0 or >= size ({nR*nZ}))"
                     )
                     raise Exception(msg)
                 ind_tup = (ind % nR, ind // nR)
@@ -117,7 +116,7 @@ def _select_ind(
             elif np.issubdtype(ind.dtype, np.bool_):
                 if ind.shape != (nR, nZ):
                     msg = (
-                        f"Arg ind, when array of bool, must have shape {(nR,nZ)}\n"
+                        f"Arg ind, if bool, must have shape {(nR, nZ)}\n"
                         f"Provided: {ind.shape}"
                     )
                     raise Exception(msg)
@@ -542,23 +541,25 @@ def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
     # format into dict
 
     dref = {
-        # cents of bsplines
-        # kRbsc: {
-            # 'data': Rbs_cent,
-            # 'units': 'm',
-            # 'dim': 'distance',
-            # 'quant': 'R',
-            # 'name': 'R',
-            # 'group': 'R',
-        # },
-        # kZbsc: {
-            # 'data': Zbs_cent,
-            # 'units': 'm',
-            # 'dim': 'distance',
-            # 'quant': 'Z',
-            # 'name': 'Z',
-            # 'group': 'Z',
-        # },
+        """
+        cents of bsplines
+        kRbsc: {
+            'data': Rbs_cent,
+            'units': 'm',
+            'dim': 'distance',
+            'quant': 'R',
+            'name': 'R',
+            'group': 'R',
+        },
+        kZbsc: {
+            'data': Zbs_cent,
+            'units': 'm',
+            'dim': 'distance',
+            'quant': 'Z',
+            'name': 'Z',
+            'group': 'Z',
+        },
+        """
         # bs index
         keybs: {
             'data': np.arange(0, clas.nbs),
@@ -1011,8 +1012,7 @@ def _crop_check(
     meshtype = coll.dobj['mesh'][key]['type']
 
     if meshtype != 'rect':
-        import pdb; pdb.set_trace()     # DB
-        pass
+        raise NotImplementedError()
 
     # shape
     shape = coll.dobj['mesh'][key]['shape']

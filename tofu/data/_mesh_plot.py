@@ -552,7 +552,9 @@ def plot_bspline(
     # --------------
     # check input
 
-    key, ind, knots, cents, knotsi, centsi, plot_mesh, cmap, dleg = _plot_bspline_check(
+    (
+        key, ind, knots, cents, knotsi, centsi, plot_mesh, cmap, dleg,
+    ) = _plot_bspline_check(
         coll=coll,
         key=key,
         ind=ind,

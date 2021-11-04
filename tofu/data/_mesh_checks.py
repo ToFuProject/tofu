@@ -199,6 +199,7 @@ def _mesh2DTri_clockwise(knots=None, cents=None, key=None):
         cents[clock, 1], cents[clock, 2] = cents[clock, 2], cents[clock, 1]
     return cents
 
+
 def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
 
     # ---------------------
@@ -493,7 +494,9 @@ def _mesh2DRect_check(
         c0 = (
             isinstance(domain, list)
             and len(domain) == 2
-            and all([hasattr(dd, '__iter__') and len(dd) >= 2 for dd in domain])
+            and all([
+                hasattr(dd, '__iter__') and len(dd) >= 2 for dd in domain
+            ])
         )
         if not c0:
             msg = (
@@ -780,8 +783,8 @@ def _select_ind_check(
             msg = (
                 "Arg ind must be either:\n"
                 "\t- None\n"
-                "\t- int or array of int: int indices in mixed (R, Z) indexing\n"
-                "\t- tuple of such: int indices in (R, Z) indexing respectively\n"
+                "\t- int or array of int: int indices in mixed (R, Z) index\n"
+                "\t- tuple of such: int indices in (R, Z) index respectively\n"
                 f"Provided: {ind}"
             )
         else:

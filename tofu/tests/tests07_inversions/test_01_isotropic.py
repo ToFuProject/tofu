@@ -78,7 +78,7 @@ class Test01_Inversions():
         )
 
         # mesh deg 1 and 2
-        mesh = tf.data.Mesh2DRect.from_Config(
+        mesh = tf.data.Mesh2D.from_Config(
             config=conf0,
             key='try1',
             res=0.10,

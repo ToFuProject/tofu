@@ -135,7 +135,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
             )
             heights[:, iref] = np.abs(
                 (R[:, i0] - R[:, iref])*(Z[:, i1] - Z[:, iref])
-                 - (Z[:, i0] - Z[:, iref])*(R[:, i1] - R[:, iref])
+                - (Z[:, i0] - Z[:, iref])*(R[:, i1] - R[:, iref])
             ) / base
 
         return heights
@@ -252,7 +252,9 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                 knots_per_bs = -np.ones((nbs, nmax), dtype=int)
                 knots_per_bs[:, 0] = ind_num
                 for ii, i0 in enumerate(ind_num):
-                    nu = np.unique(self.cents[cents_per_bs[ii, :nmax_cents[ii]], :])
+                    nu = np.unique(
+                        self.cents[cents_per_bs[ii, :nmax_cents[ii]], :]
+                    )
                     knots_per_bs[ii, 1:nu.size] = [nn for nn in nu if nn != i0]
 
         elif self.deg == 2:
@@ -438,9 +440,9 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
 
         if self.deg == 0:
             if np.isscalar(coefs):
-                    for ii in np.intersect1d(np.unique(ind), indcent):
-                        indi = ind == ii
-                        val[0, indi] += coefs
+                for ii in np.intersect1d(np.unique(ind), indcent):
+                    indi = ind == ii
+                    val[0, indi] += coefs
             else:
                 for ii in np.intersect1d(np.unique(ind), indcent):
                     indi = ind == ii
@@ -472,7 +474,9 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                         sorter=sorter,
                     )]
                     for jj, jbs in enumerate(ibs):
-                        val[:, indi] += (1. - heights[indi, inum[jj]])*coefs[:, jbs, ...]
+                        val[:, indi] += (
+                            1. - heights[indi, inum[jj]]
+                        ) * coefs[:, jbs, ...]
 
         return val
 
@@ -517,6 +521,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
 # #############################################################################
 
 
+# DEPRECATED ???
 def _eval_bsplinestri(x, y, deg=None):
 
     # ------------
@@ -539,7 +544,6 @@ def _eval_bsplinestri(x, y, deg=None):
     val = np.full(x.shape, np.nan)
 
     ind = trifind(x, y)
-    import pdb; pdb.set_trace()     # DB
     if deg == 0:
         pass
 

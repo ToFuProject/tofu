@@ -349,7 +349,7 @@ class Test02_Mesh2D():
                 reshape=True,
                 res=None,
                 crop=True,
-                nan0=ii%2 == 0,
+                nan0=ii % 2 == 0,
                 imshow=False,
             )
             crop = v0.dobj['bsplines'][lkey[ii]]['crop']
@@ -371,7 +371,7 @@ class Test02_Mesh2D():
                 reshape=True,
                 res=None,
                 crop=True,
-                nan0=ii%2 == 0,
+                nan0=ii % 2 == 0,
                 imshow=False,
             )
             indok = ~np.isnan(val_sum[0, ...])
@@ -379,7 +379,7 @@ class Test02_Mesh2D():
             # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             # Does not work because of knots padding used in func_details
             # Due to scpinterp._bspl.evaluate_spline()...
-            if False: # To be debugged
+            if False:   # To be debugged
                 assert np.allclose(
                     val_sum[0, indok],
                     np.nansum(val, axis=-1)[indok],
@@ -402,7 +402,7 @@ class Test02_Mesh2D():
                 reshape=None,
                 res=None,
                 crop=True,
-                nan0=ii%2 == 0,
+                nan0=ii % 2 == 0,
                 imshow=False,
             )
             crop = v0.dobj['bsplines'][lkey[ii]].get('crop', False)
@@ -424,7 +424,7 @@ class Test02_Mesh2D():
                 reshape=None,
                 res=None,
                 crop=True,
-                nan0=ii%2 == 0,
+                nan0=ii % 2 == 0,
                 imshow=False,
             )
             indok = ~np.isnan(val_sum[0, ...])
@@ -510,23 +510,24 @@ class Test02_Mesh2D():
 
         # triangular meshes
         # DEACTIVATED BECAUSE TOO SLOW IN CURRENT VERSION !!!
-        # lkey = ['tri0-bs0', 'tri1-bs1']
-        # for ii, (k0, v0) in enumerate(self.dobjtri.items()):
-            # key = str(ii)
-            # kbs = lkey[ii]
-            # ref = self.dobjtri[k0].dobj['bsplines'][kbs]['ref']
-            # shapebs = self.dobjtri[k0].dobj['bsplines'][kbs]['shape']
+        if False:
+            lkey = ['tri0-bs0', 'tri1-bs1']
+            for ii, (k0, v0) in enumerate(self.dobjtri.items()):
+                key = str(ii)
+                kbs = lkey[ii]
+                ref = self.dobjtri[k0].dobj['bsplines'][kbs]['ref']
+                shapebs = self.dobjtri[k0].dobj['bsplines'][kbs]['shape']
 
-            # self.dobjtri[k0].add_data(
-                # key=key,
-                # data=np.random.random(shapebs),
-                # ref=ref,
-            # )
+                self.dobjtri[k0].add_data(
+                    key=key,
+                    data=np.random.random(shapebs),
+                    ref=ref,
+                )
 
-            # dax = self.dobjtri[k0].plot_profile2d(
-                # key=key,
-            # )
-        # plt.close('all')
+                dax = self.dobjtri[k0].plot_profile2d(
+                    key=key,
+                )
+            plt.close('all')
 
     # TBF for triangular
     def test11_add_bsplines_operator(self):
