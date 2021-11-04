@@ -1414,6 +1414,8 @@ def get_bsplines_operator(
     crop=None,
     store=None,
     returnas=None,
+    # specific to deg = 0
+    centered=None,
 ):
 
     # check inputs
@@ -1460,7 +1462,9 @@ def get_bsplines_operator(
         operator=operator,
         geometry=geometry,
         cropbs_flat=cropbs_flat,
+        # specific to deg=0
         cropbs=cropbs,
+        centered=centered,
     )
 
     # cropping

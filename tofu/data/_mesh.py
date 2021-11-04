@@ -367,6 +367,8 @@ class Mesh2D(DataCollection):
         crop=None,
         store=None,
         returnas=None,
+        # specific to deg = 0
+        centered=None,
     ):
         """ Get a matrix operator to compute an integral
 
@@ -393,6 +395,8 @@ class Mesh2D(DataCollection):
             crop=crop,
             store=store,
             returnas=returnas,
+            # specific to deg = 0
+            centered=centered,
         )
 
         # store

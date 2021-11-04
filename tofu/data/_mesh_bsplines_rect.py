@@ -270,6 +270,7 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         cropbs_flat=None,
         # specific to deg = 0
         cropbs=None,
+        centered=None,
     ):
         """ Get desired operator """
         return _mesh_bsplines_operators_rect.get_mesh2dRect_operators(
@@ -282,7 +283,9 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             knotsy_per_bs=self.knots_per_bs_y,
             overlap=self.get_overlap(),
             cropbs_flat=cropbs_flat,
+            # specific to deg = 0
             cropbs=cropbs,
+            centered=centered,
         )
 
 
