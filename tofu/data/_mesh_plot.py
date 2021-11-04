@@ -22,7 +22,7 @@ from . import _generic_check
 
 
 def _plot_mesh_check(
-    mesh=None,
+    coll=None,
     key=None,
     ind_knot=None,
     ind_cent=None,
@@ -33,12 +33,11 @@ def _plot_mesh_check(
 ):
 
     # key
-    lk = list(mesh.dobj[mesh._groupmesh].keys())
     key = _generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
-        allowed=lk,
+        allowed=list(coll.dobj.get('mesh', {}).keys()),
     )
 
     # crop, bck
@@ -47,14 +46,14 @@ def _plot_mesh_check(
 
     # ind_knot
     if ind_knot is not None:
-        ind_knot = mesh.select_mesh_elements(
+        ind_knot = coll.select_mesh_elements(
             key=key, ind=ind_knot, elements='knots',
             returnas='data', return_neighbours=True, crop=crop,
         )
 
     # ind_cent
     if ind_cent is not None:
-        ind_cent = mesh.select_mesh_elements(
+        ind_cent = coll.select_mesh_elements(
             key=key, ind=ind_cent, elements='cents',
             returnas='data', return_neighbours=True, crop=crop,
         )
@@ -85,7 +84,7 @@ def _plot_mesh_check(
 
 
 def _plot_mesh_prepare(
-    mesh=None,
+    coll=None,
     key=None,
     crop=None,
     bck=None,
@@ -94,96 +93,146 @@ def _plot_mesh_prepare(
     # --------
     # prepare
 
-    Rk, Zk = mesh.dobj['mesh'][key]['knots']
-    R = mesh.ddata[Rk]['data']
-    Z = mesh.ddata[Zk]['data']
-
-    vert = np.array([
-        np.repeat(R, 3),
-        np.tile((Z[0], Z[-1], np.nan), R.size),
-    ])
-    hor = np.array([
-        np.tile((R[0], R[-1], np.nan), Z.size),
-        np.repeat(Z, 3),
-    ])
-
-    # --------
-    # compute
+    meshtype = coll.dobj['mesh'][key]['type']
 
     grid_bck = None
-    if crop is False or mesh.dobj['mesh'][key]['crop'] is False:
-        grid = np.concatenate((vert, hor), axis=1)
+    if meshtype == 'rect':
+        Rk, Zk = coll.dobj['mesh'][key]['knots']
+        R = coll.ddata[Rk]['data']
+        Z = coll.ddata[Zk]['data']
+
+        vert = np.array([
+            np.repeat(R, 3),
+            np.tile((Z[0], Z[-1], np.nan), R.size),
+        ])
+        hor = np.array([
+            np.tile((R[0], R[-1], np.nan), Z.size),
+            np.repeat(Z, 3),
+        ])
+
+        # --------
+        # compute
+
+        if crop is False or coll.dobj['mesh'][key]['crop'] is False:
+            grid = np.concatenate((vert, hor), axis=1)
+
+        else:
+
+            crop = coll.ddata[coll.dobj['mesh'][key]['crop']]['data']
+
+            grid = []
+            icropR = np.r_[range(R.size-1), R.size-2]
+            jcropZ = np.r_[range(Z.size-1), Z.size-2]
+
+            # vertical lines  TBC
+            for ii, ic in enumerate(icropR):
+                if np.any(crop[ic, :]):
+                    if ii in [0, R.size-1]:
+                        cropi = crop[ic, :]
+                    else:
+                        cropi = crop[ic, :] | crop[ic-1, :]
+                    lseg = []
+                    for jj, jc in enumerate(jcropZ):
+                        if jj == 0 and cropi[jc]:
+                            lseg.append(Z[jj])
+                        elif jj == Z.size-1 and cropi[jc]:
+                            lseg.append(Z[jj])
+                        elif cropi[jc] and not cropi[jc-1]:
+                            if len(lseg) > 0:
+                                lseg.append(np.nan)
+                            lseg.append(Z[jj])
+                        elif (not cropi[jc]) and cropi[jc-1]:
+                            lseg.append(Z[jc])
+                    grid.append(np.concatenate(
+                        (
+                            np.array([R[ii]*np.ones((len(lseg),)), lseg]),
+                            np.full((2, 1), np.nan)
+                        ),
+                        axis=1,
+                    ))
+
+            # horizontal lines
+            for jj, jc in enumerate(jcropZ):
+                if np.any(crop[:, jc]):
+                    if jj in [0, Z.size-1]:
+                        cropj = crop[:, jc]
+                    else:
+                        cropj = crop[:, jc] | crop[:, jc-1]
+                    lseg = []
+                    for ii, ic in enumerate(icropR):
+                        if ii in [0, R.size-1] and cropj[ic]:
+                            lseg.append(R[ii])
+                        elif cropj[ic] and not cropj[ic-1]:
+                            if len(lseg) > 0:
+                                lseg.append(np.nan)
+                            lseg.append(R[ii])
+                        elif (not cropj[ic]) and cropj[ic-1]:
+                            lseg.append(R[ic])
+                    grid.append(np.concatenate(
+                        (
+                            np.array([lseg, Z[jj]*np.ones((len(lseg),))]),
+                            np.full((2, 1), np.nan)
+                        ),
+                        axis=1,
+                    ))
+
+            grid = np.concatenate(tuple(grid), axis=1)
+
+            if bck is True:
+                grid_bck = np.concatenate((vert, hor), axis=1)
 
     else:
+        kknots = coll.dobj['mesh'][key]['knots']
+        R = coll.ddata[f'{kknots}-R']['data']
+        Z = coll.ddata[f'{kknots}-Z']['data']
 
-        crop = mesh.ddata[mesh.dobj['mesh'][key]['crop']]['data']
+        cents = coll.ddata[coll.dobj['mesh'][key]['cents']]['data']
 
-        grid = []
-        icropR = np.r_[range(R.size-1), R.size-2]
-        jcropZ = np.r_[range(Z.size-1), Z.size-2]
+        # find unique segments from all triangles
+        segs = np.unique(
+            np.sort(np.concatenate(
+                (cents[:, 0:2], cents[:, 1:], cents[:, ::2]),
+                axis=0,
+            )),
+            axis=0,
+        )
 
-        # vertical lines  TBC
-        for ii, ic in enumerate(icropR):
-            if np.any(crop[ic, :]):
-                if ii in [0, R.size-1]:
-                    cropi = crop[ic, :]
-                else:
-                    cropi = crop[ic, :] | crop[ic-1, :]
-                lseg = []
-                for jj, jc in enumerate(jcropZ):
-                    if jj == 0 and cropi[jc]:
-                        lseg.append(Z[jj])
-                    elif jj == Z.size-1 and cropi[jc]:
-                        lseg.append(Z[jj])
-                    elif cropi[jc] and not cropi[jc-1]:
-                        if len(lseg) > 0:
-                            lseg.append(np.nan)
-                        lseg.append(Z[jj])
-                    elif (not cropi[jc]) and cropi[jc-1]:
-                        lseg.append(Z[jc])
-                grid.append(np.concatenate(
-                    (
-                        np.array([R[ii]*np.ones((len(lseg),)), lseg]),
-                        np.full((2, 1), np.nan)
-                    ),
-                    axis=1,
-                ))
+        # build long segments if possible
+        ind = np.ones((segs.shape[0],), dtype=bool)
+        ind[0] = False
+        lseg = [segs[0, :]]
+        last = segs[0, :]
+        while np.any(ind):
+            ii = segs[ind, 0] == last[-1]
+            if np.any(ii):
+                ii = ind.nonzero()[0][ii]
+                dR0 = R[last[1]] - R[last[0]]
+                dZ0 = Z[last[1]] - Z[last[0]]
+                dR = np.diff(R[segs[ii, :]], axis=1)[:, 0]
+                dZ = np.diff(Z[segs[ii, :]], axis=1)[:, 0]
+                norm0 = np.sqrt(dR0**2 + dZ0**2)
+                norm = np.sqrt(dR**2 + dZ**2)
+                sca = (dR0*dR + dZ0*dZ) / (norm0 * norm)
+                iwin = ii[np.argmax(sca)]
+                lseg.append([segs[iwin, 1]])
 
-        # horizontal lines
-        for jj, jc in enumerate(jcropZ):
-            if np.any(crop[:, jc]):
-                if jj in [0, Z.size-1]:
-                    cropj = crop[:, jc]
-                else:
-                    cropj = crop[:, jc] | crop[:, jc-1]
-                lseg = []
-                for ii, ic in enumerate(icropR):
-                    if ii in [0, R.size-1] and cropj[ic]:
-                        lseg.append(R[ii])
-                    elif cropj[ic] and not cropj[ic-1]:
-                        if len(lseg) > 0:
-                            lseg.append(np.nan)
-                        lseg.append(R[ii])
-                    elif (not cropj[ic]) and cropj[ic-1]:
-                        lseg.append(R[ic])
-                grid.append(np.concatenate(
-                    (
-                        np.array([lseg, Z[jj]*np.ones((len(lseg),))]),
-                        np.full((2, 1), np.nan)
-                    ),
-                    axis=1,
-                ))
+            else:
+                lseg.append([-1])
+                iwin = ind.nonzero()[0][0]
+                lseg.append(segs[iwin, :])
 
-        grid = np.concatenate(tuple(grid), axis=1)
+            last = segs[iwin, :]
+            ind[iwin] = False
 
-        if bck is True:
-            grid_bck = np.concatenate((vert, hor), axis=1)
+        lseg = np.concatenate(lseg)
+        grid = np.array([R[lseg], Z[lseg]])
+        grid[0, lseg == -1] = np.nan
 
     return grid, grid_bck
 
 
 def plot_mesh(
-    mesh=None,
+    coll=None,
     key=None,
     ind_knot=None,
     ind_cent=None,
@@ -200,7 +249,7 @@ def plot_mesh(
     # check input
 
     key, ind_knot, ind_cent, crop, bck, color, dleg = _plot_mesh_check(
-        mesh=mesh,
+        coll=coll,
         key=key,
         ind_knot=ind_knot,
         ind_cent=ind_cent,
@@ -214,7 +263,7 @@ def plot_mesh(
     #  Prepare data
 
     grid, grid_bck = _plot_mesh_prepare(
-        mesh=mesh,
+        coll=coll,
         key=key,
         crop=crop,
         bck=bck,
@@ -324,8 +373,34 @@ def plot_mesh(
 # #############################################################################
 
 
+def _plot_bsplines_get_dRdZ(coll=None, km=None, meshtype=None):
+    # Get minimum distances
+    if meshtype == 'rect':
+        kR, kZ = coll.dobj['mesh'][km]['knots']
+        Rk = coll.ddata[kR]['data']
+        Zk = coll.ddata[kZ]['data']
+        dR = np.min(np.diff(Rk))
+        dZ = np.min(np.diff(Zk))
+    else:
+        cents = coll.ddata[coll.dobj['mesh'][km]['cents']]['data']
+        kknots = coll.dobj['mesh'][km]['knots']
+        Rk = coll.ddata[f'{kknots}-R']['data']
+        Zk = coll.ddata[f'{kknots}-Z']['data']
+        R = Rk[cents]
+        Z = Zk[cents]
+        dist = np.mean(np.array([
+            np.sqrt((R[:, 1] - R[:, 0])**2 + (Z[:, 1] - Z[:, 0])**2),
+            np.sqrt((R[:, 2] - R[:, 1])**2 + (Z[:, 2] - Z[:, 1])**2),
+            np.sqrt((R[:, 2] - R[:, 0])**2 + (Z[:, 2] - Z[:, 0])**2),
+        ]))
+        dR, dZ = dist, dist
+    Rminmax = [Rk.min(), Rk.max()]
+    Zminmax = [Zk.min(), Zk.max()]
+    return dR, dZ, Rminmax, Zminmax
+
+
 def _plot_bspline_check(
-    mesh=None,
+    coll=None,
     key=None,
     ind=None,
     knots=None,
@@ -336,7 +411,7 @@ def _plot_bspline_check(
 ):
 
     # key
-    lk = list(mesh.dobj['bsplines'].keys())
+    lk = list(coll.dobj.get('bsplines', {}).keys())
     key = _generic_check._check_var(
         key, 'key',
         default=None,
@@ -349,7 +424,7 @@ def _plot_bspline_check(
     cents = _generic_check._check_var(cents, 'cents', default=True, types=bool)
 
     # ind_bspline
-    ind = mesh.select_bsplines(
+    ind = coll.select_bsplines(
         key=key,
         ind=ind,
         returnas='ind',
@@ -358,7 +433,7 @@ def _plot_bspline_check(
         crop=False,
     )
 
-    _, knotsi, centsi = mesh.select_bsplines(
+    _, knotsi, centsi = coll.select_bsplines(
         key=key,
         ind=ind,
         returnas='data',
@@ -390,63 +465,60 @@ def _plot_bspline_check(
         types=(bool, dict),
     )
 
-    return key, ind, knotsi, centsi, plot_mesh, cmap, dleg
+    return key, ind, knots, cents, knotsi, centsi, plot_mesh, cmap, dleg
 
 
 def _plot_bspline_prepare(
-    mesh=None,
+    coll=None,
     key=None,
     ind=None,
     res=None,
-    knots=None,
-    cents=None,
+    knotsi=None,
+    centsi=None,
 ):
 
     # check input
-    deg = mesh.dobj['bsplines'][key]['deg']
-    km = mesh.dobj['bsplines'][key]['mesh']
-    kR, kZ = mesh.dobj['mesh'][km]['knots']
-    Rk = mesh.ddata[kR]['data']
-    Zk = mesh.ddata[kZ]['data']
-    dR = np.min(np.diff(Rk))
-    dZ = np.min(np.diff(Zk))
+    deg = coll.dobj['bsplines'][key]['deg']
+    km = coll.dobj['bsplines'][key]['mesh']
+    meshtype = coll.dobj['mesh'][km]['type']
+
+    # get dR, dZ
+    dR, dZ, _, _ = _plot_bsplines_get_dRdZ(
+        coll=coll, km=km, meshtype=meshtype,
+    )
+
+    # resolution of sampling
     if res is None:
         res_coef = 0.05
         res = [res_coef*dR, res_coef*dZ]
 
     # sample
-    knotsRi, knotsZi = mesh.select_bsplines(
-        ind=ind,
-        key=key,
-        return_knots=True,
-        return_cents=False,
-        returnas='data',
-        crop=False,
-    )[1]
-    dR = np.min(np.diff(Rk))
-    dZ = np.min(np.diff(Zk))
-    DR = [knotsRi.min() + dR*1.e-10, knotsRi.max() - dR*1.e-10]
-    DZ = [knotsZi.min() + dZ*1.e-10, knotsZi.max() - dZ*1.e-10]
+    knotsiR, knotsiZ = knotsi
+    DR = [knotsiR.min() + dR*1.e-10, knotsiR.max() - dR*1.e-10]
+    DZ = [knotsiZ.min() + dZ*1.e-10, knotsiZ.max() - dZ*1.e-10]
 
-    km = mesh.dobj['bsplines'][key]['mesh']
-    R, Z = mesh.get_sample_mesh(
-        key=km, res=res,
+    R, Z = coll.get_sample_mesh(
+        key=km,
+        res=res,
         DR=DR,
         DZ=DZ,
         mode='abs', grid=True, imshow=True,
     )
 
     # bspline
-    shapebs = mesh.dobj['bsplines'][key]['shape']
-    coefs = np.zeros((1, shapebs[0], shapebs[1]), dtype=float)
-    coefs[0, ind[0], ind[1]] = 1.
-    bspline = mesh.dobj['bsplines'][key]['func_sum'](R, Z, coefs=coefs)[0, ...]
+    shapebs = coll.dobj['bsplines'][key]['shape']
+    shapecoefs = np.r_[1, shapebs]
+    coefs = np.zeros(shapecoefs, dtype=float)
+    if meshtype == 'rect':
+        coefs[0, ind[0], ind[1]] = 1.
+    else:
+        coefs[0, ind] = 1.
+    bspline = coll.dobj['bsplines'][key]['func_sum'](R, Z, coefs=coefs)[0, ...]
 
     # nan if 0
     bspline[bspline == 0.] = np.nan
 
     # extent and interp
-
     extent = (
         DR[0], DR[1],
         DZ[0], DZ[1],
@@ -459,13 +531,11 @@ def _plot_bspline_prepare(
     elif deg >= 2:
         interp = 'bicubic'
 
-    # knots and cents
-
-    return bspline, extent, interp, knots, cents
+    return bspline, extent, interp
 
 
 def plot_bspline(
-    mesh=None,
+    coll=None,
     key=None,
     ind=None,
     knots=None,
@@ -482,8 +552,10 @@ def plot_bspline(
     # --------------
     # check input
 
-    key, ind, knotsi, centsi, plot_mesh, cmap, dleg = _plot_bspline_check(
-        mesh=mesh,
+    (
+        key, ind, knots, cents, knotsi, centsi, plot_mesh, cmap, dleg,
+    ) = _plot_bspline_check(
+        coll=coll,
         key=key,
         ind=ind,
         knots=knots,
@@ -496,12 +568,12 @@ def plot_bspline(
     # --------------
     #  Prepare data
 
-    bspline, extent, interp, knotsi, centsi = _plot_bspline_prepare(
-        mesh=mesh,
+    bspline, extent, interp = _plot_bspline_prepare(
+        coll=coll,
         key=key,
         ind=ind,
-        knots=knotsi,
-        cents=centsi,
+        knotsi=knotsi,
+        centsi=centsi,
         res=res,
     )
 
@@ -531,8 +603,8 @@ def plot_bspline(
     # plot
 
     if plot_mesh is True:
-        keym = mesh.dobj['bsplines'][key]['mesh']
-        dax = mesh.plot_mesh(key=keym, dax=dax, dleg=False)
+        keym = coll.dobj['bsplines'][key]['mesh']
+        dax = coll.plot_mesh(key=keym, dax=dax, dleg=False)
 
     axtype = 'cross'
     lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
@@ -589,7 +661,7 @@ def plot_bspline(
 
 
 def _plot_profile2d_check(
-    mesh=None,
+    coll=None,
     key=None,
     coefs=None,
     indt=None,
@@ -599,21 +671,20 @@ def _plot_profile2d_check(
 ):
 
     # key
-    dk = mesh.get_profiles2d()
-    if key is None and len(dk) == 1:
-        key = list(dk.keys())[0]
+    dk = coll.get_profiles2d()
     key = _generic_check._check_var(
         key, 'key', types=str, allowed=list(dk.keys())
     )
     keybs = dk[key]
-    refbs = mesh.dobj['bsplines'][keybs]['ref']
+    refbs = coll.dobj['bsplines'][keybs]['ref']
+    keym = coll.dobj['bsplines'][keybs]['mesh']
 
     # coefs
     if coefs is None:
         if key == keybs:
             pass
         else:
-            coefs = mesh.ddata[key]['data']
+            coefs = coll.ddata[key]['data']
 
     # indt
     if coefs is not None and len(coefs.shape) > len(refbs):
@@ -656,37 +727,40 @@ def _plot_profile2d_check(
         types=(bool, dict),
     )
 
-    return key, keybs, coefs, indt, cmap, dcolorbar, dleg
+    return key, keybs, keym, coefs, indt, cmap, dcolorbar, dleg
 
 
 def _plot_profiles2d_prepare(
-    mesh=None,
+    coll=None,
     key=None,
     keybs=None,
+    keym=None,
     coefs=None,
     indt=None,
     res=None,
 ):
 
     # check input
-    deg = mesh.dobj['bsplines'][keybs]['deg']
-    km = mesh.dobj['bsplines'][keybs]['mesh']
-    kR, kZ = mesh.dobj['mesh'][km]['knots']
-    Rk = mesh.ddata[kR]['data']
-    Zk = mesh.ddata[kZ]['data']
-    dR = np.min(np.diff(Rk))
-    dZ = np.min(np.diff(Zk))
+    deg = coll.dobj['bsplines'][keybs]['deg']
+    km = coll.dobj['bsplines'][keybs]['mesh']
+    meshtype = coll.dobj['mesh'][km]['type']
+
+    # get dR, dZ
+    dR, dZ, Rminmax, Zminmax = _plot_bsplines_get_dRdZ(
+        coll=coll, km=km, meshtype=meshtype,
+    )
+
     if res is None:
         res_coef = 0.05
         res = [res_coef*dR, res_coef*dZ]
 
     # adjust coefs for single time step selection
-    shapebs = mesh.dobj['bsplines'][keybs]['shape']
+    shapebs = coll.dobj['bsplines'][keybs]['shape']
     if coefs is not None and len(coefs.shape) > len(shapebs):
         coefs = coefs[indt:indt+1, ...]
 
     # compute
-    bspline = mesh.interp2d(
+    bspline = coll.interp2d(
         key=key,
         coefs=coefs,
         R=None,
@@ -699,8 +773,8 @@ def _plot_profiles2d_prepare(
 
     # extent and interp
     extent = (
-        Rk[0], Rk[-1],
-        Zk[0], Zk[-1],
+        Rminmax[0], Rminmax[1],
+        Zminmax[0], Zminmax[1],
     )
 
     if deg == 0:
@@ -716,7 +790,7 @@ def _plot_profiles2d_prepare(
 
 
 def plot_profile2d(
-    mesh=None,
+    coll=None,
     key=None,
     indt=None,
     coefs=None,
@@ -734,8 +808,10 @@ def plot_profile2d(
     # --------------
     # check input
 
-    key, keybs, coefs, indt, cmap, dcolorbar, dleg = _plot_profile2d_check(
-        mesh=mesh,
+    (
+        key, keybs, keym, coefs, indt, cmap, dcolorbar, dleg,
+    ) = _plot_profile2d_check(
+        coll=coll,
         key=key,
         coefs=coefs,
         indt=indt,
@@ -748,9 +824,10 @@ def plot_profile2d(
     #  Prepare data
 
     bspline, extent, interp = _plot_profiles2d_prepare(
-        mesh=mesh,
+        coll=coll,
         key=key,
         keybs=keybs,
+        keym=keym,
         coefs=coefs,
         indt=indt,
         res=res,
