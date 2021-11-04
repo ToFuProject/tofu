@@ -491,7 +491,12 @@ def _select_bsplines(
         )
     else:
         clas = coll.dobj['bsplines'][key]['class']
-        out = clas._get_centsknots_per_bs(returnas=returnas)
+        out = clas._get_knotscents_per_bs(
+            returnas=returnas,
+            return_knots=return_knots,
+            return_cents=return_cents,
+            ind=ind,
+        )
 
     # ------------
     # return
