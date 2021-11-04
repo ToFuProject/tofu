@@ -541,25 +541,6 @@ def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
     # format into dict
 
     dref = {
-        """
-        cents of bsplines
-        kRbsc: {
-            'data': Rbs_cent,
-            'units': 'm',
-            'dim': 'distance',
-            'quant': 'R',
-            'name': 'R',
-            'group': 'R',
-        },
-        kZbsc: {
-            'data': Zbs_cent,
-            'units': 'm',
-            'dim': 'distance',
-            'quant': 'Z',
-            'name': 'Z',
-            'group': 'Z',
-        },
-        """
         # bs index
         keybs: {
             'data': np.arange(0, clas.nbs),
