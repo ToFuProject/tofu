@@ -61,7 +61,7 @@ class Geometry:
             ]).T,
             'part_radius': np.array([10e-6, 10e-6]),
             'resolution': 0.3,
-            'DPhi': [np.pi/2, np.pi/2]
+            'DPhi': [-np.pi/2, np.pi/2],
             'vmax': False,
             'approx': False,
         }
