@@ -2,10 +2,21 @@
 # See "Writing benchmarks" in the asv docs for more information.
 
 
+import numpy as np
+import matplotlib.pyplot as plt
+
+
 import tofu as tf
 
 
-class Geometry:
+# #############################################################################
+# #############################################################################
+#               Benchmark of geometry routines
+#                   High level routines
+# #############################################################################
+
+
+class Geometry_HighLevel:
     """ Benchmark the geometry-oriented routines
 
     In particular:
@@ -91,8 +102,10 @@ class Geometry:
         (
             ptsRZ, sang, indices, reseff, dax,
         ) = self.conf.calc_solidangle_particle_integrated(**self.dpart)
+        plt.close('all')
 
     def peakmem_solidangle_part(self):
         (
             ptsRZ, sang, indices, reseff, dax,
         ) = self.conf.calc_solidangle_particle_integrated(**self.dpart)
+        plt.close('all')

@@ -136,7 +136,7 @@ class Mesh2D(DataCollection):
 
         # optional bspline
         if deg is not None:
-            self.add_bsplines(deg=deg)
+            self.add_bsplines(deg=deg, key=key)
 
         # optional cropping
         if self.dobj['mesh'][key]['type'] == 'rect' and poly is not None:
