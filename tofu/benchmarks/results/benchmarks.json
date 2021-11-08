@@ -1,7 +1,7 @@
 {
-    "benchmarks_Geometry.Geometry_HighLevel.peakmem_camlos1d": {
+    "benchmarks_00_Geometry_peakmem.Geometry_HighLevel.peakmem_camlos1d": {
         "code": "class Geometry_HighLevel:\n    def peakmem_camlos1d(self):\n        cam = tf.geom.utils.create_CamLOS1D(**self.dcam1d)\n\n    def setup(self):\n    \n        # Load a configuration\n        self.conf = tf.load_config('ITER')\n    \n        # prepare input dict for a cam1d\n        self.dcam1d = {\n            'pinhole': [8.38/np.sqrt(2.), 8.38/np.sqrt(2.), 0.],\n            'orientation': [-np.pi, 0., 0],\n            'focal': 0.08,\n            'sensor_nb': 100,\n            'sensor_size': 0.3,\n            'config': self.conf,\n            'Diag': 'SXR',\n            'Exp': 'WEST',\n            'Name': 'cam1',\n        }\n    \n        # prepare input dict for a cam2d\n        self.dcam2d = {\n            'pinhole': [8.38, 0., 0.],\n            'orientation': [-7*np.pi/8, np.pi/6, 0],\n            'focal': 0.08,\n            'sensor_nb': 400,\n            'sensor_size': 0.2,\n            'config': self.conf,\n            'Diag': 'SXR',\n            'Exp': 'WEST',\n            'Name': 'cam2',\n        }\n    \n        # prepare input dict for particle solid angle toroidal integration\n        self.dpart = {\n            'part_traj': np.array([\n                [6., 0., 0.], [6., 0.01, -4],\n            ]).T,\n            'part_radius': np.array([10e-6, 10e-6]),\n            'resolution': 0.3,\n            'DPhi': [-np.pi/2, np.pi/2],\n            'vmax': False,\n            'approx': False,\n        }",
-        "name": "benchmarks_Geometry.Geometry_HighLevel.peakmem_camlos1d",
+        "name": "benchmarks_00_Geometry_peakmem.Geometry_HighLevel.peakmem_camlos1d",
         "param_names": [],
         "params": [],
         "timeout": 60,
@@ -9,9 +9,9 @@
         "unit": "bytes",
         "version": "81f8b81e177d5998658416016beedaa1a51c2e44e9e755e31ca5bf3e63a5dd1f"
     },
-    "benchmarks_Geometry.Geometry_HighLevel.peakmem_camlos2d": {
+    "benchmarks_00_Geometry_peakmem.Geometry_HighLevel.peakmem_camlos2d": {
         "code": "class Geometry_HighLevel:\n    def peakmem_camlos2d(self):\n        cam = tf.geom.utils.create_CamLOS2D(**self.dcam2d)\n\n    def setup(self):\n    \n        # Load a configuration\n        self.conf = tf.load_config('ITER')\n    \n        # prepare input dict for a cam1d\n        self.dcam1d = {\n            'pinhole': [8.38/np.sqrt(2.), 8.38/np.sqrt(2.), 0.],\n            'orientation': [-np.pi, 0., 0],\n            'focal': 0.08,\n            'sensor_nb': 100,\n            'sensor_size': 0.3,\n            'config': self.conf,\n            'Diag': 'SXR',\n            'Exp': 'WEST',\n            'Name': 'cam1',\n        }\n    \n        # prepare input dict for a cam2d\n        self.dcam2d = {\n            'pinhole': [8.38, 0., 0.],\n            'orientation': [-7*np.pi/8, np.pi/6, 0],\n            'focal': 0.08,\n            'sensor_nb': 400,\n            'sensor_size': 0.2,\n            'config': self.conf,\n            'Diag': 'SXR',\n            'Exp': 'WEST',\n            'Name': 'cam2',\n        }\n    \n        # prepare input dict for particle solid angle toroidal integration\n        self.dpart = {\n            'part_traj': np.array([\n                [6., 0., 0.], [6., 0.01, -4],\n            ]).T,\n            'part_radius': np.array([10e-6, 10e-6]),\n            'resolution': 0.3,\n            'DPhi': [-np.pi/2, np.pi/2],\n            'vmax': False,\n            'approx': False,\n        }",
-        "name": "benchmarks_Geometry.Geometry_HighLevel.peakmem_camlos2d",
+        "name": "benchmarks_00_Geometry_peakmem.Geometry_HighLevel.peakmem_camlos2d",
         "param_names": [],
         "params": [],
         "timeout": 60,
@@ -19,9 +19,9 @@
         "unit": "bytes",
         "version": "327f7aec4ce98d4bbe05295a201bf6d2663cac0aa6c2f86535c736bd31240d05"
     },
-    "benchmarks_Geometry.Geometry_HighLevel.peakmem_solidangle_part": {
+    "benchmarks_00_Geometry_peakmem.Geometry_HighLevel.peakmem_solidangle_part": {
         "code": "class Geometry_HighLevel:\n    def peakmem_solidangle_part(self):\n        (\n            ptsRZ, sang, indices, reseff, dax,\n        ) = self.conf.calc_solidangle_particle_integrated(**self.dpart)\n        plt.close('all')\n\n    def setup(self):\n    \n        # Load a configuration\n        self.conf = tf.load_config('ITER')\n    \n        # prepare input dict for a cam1d\n        self.dcam1d = {\n            'pinhole': [8.38/np.sqrt(2.), 8.38/np.sqrt(2.), 0.],\n            'orientation': [-np.pi, 0., 0],\n            'focal': 0.08,\n            'sensor_nb': 100,\n            'sensor_size': 0.3,\n            'config': self.conf,\n            'Diag': 'SXR',\n            'Exp': 'WEST',\n            'Name': 'cam1',\n        }\n    \n        # prepare input dict for a cam2d\n        self.dcam2d = {\n            'pinhole': [8.38, 0., 0.],\n            'orientation': [-7*np.pi/8, np.pi/6, 0],\n            'focal': 0.08,\n            'sensor_nb': 400,\n            'sensor_size': 0.2,\n            'config': self.conf,\n            'Diag': 'SXR',\n            'Exp': 'WEST',\n            'Name': 'cam2',\n        }\n    \n        # prepare input dict for particle solid angle toroidal integration\n        self.dpart = {\n            'part_traj': np.array([\n                [6., 0., 0.], [6., 0.01, -4],\n            ]).T,\n            'part_radius': np.array([10e-6, 10e-6]),\n            'resolution': 0.3,\n            'DPhi': [-np.pi/2, np.pi/2],\n            'vmax': False,\n            'approx': False,\n        }",
-        "name": "benchmarks_Geometry.Geometry_HighLevel.peakmem_solidangle_part",
+        "name": "benchmarks_00_Geometry_peakmem.Geometry_HighLevel.peakmem_solidangle_part",
         "param_names": [],
         "params": [],
         "timeout": 60,
@@ -29,10 +29,10 @@
         "unit": "bytes",
         "version": "8d28ae91ad8b6882f1a5b5b14cc10644ba81f73e17fc9bb4c283c8d56fb1f79d"
     },
-    "benchmarks_Geometry.Geometry_HighLevel.time_camlos1d": {
+    "benchmarks_00_Geometry_time.Geometry_HighLevel.time_camlos1d": {
         "code": "class Geometry_HighLevel:\n    def time_camlos1d(self):\n        cam = tf.geom.utils.create_CamLOS1D(**self.dcam1d)\n\n    def setup(self):\n    \n        # Load a configuration\n        self.conf = tf.load_config('ITER')\n    \n        # prepare input dict for a cam1d\n        self.dcam1d = {\n            'pinhole': [8.38/np.sqrt(2.), 8.38/np.sqrt(2.), 0.],\n            'orientation': [-np.pi, 0., 0],\n            'focal': 0.08,\n            'sensor_nb': 100,\n            'sensor_size': 0.3,\n            'config': self.conf,\n            'Diag': 'SXR',\n            'Exp': 'WEST',\n            'Name': 'cam1',\n        }\n    \n        # prepare input dict for a cam2d\n        self.dcam2d = {\n            'pinhole': [8.38, 0., 0.],\n            'orientation': [-7*np.pi/8, np.pi/6, 0],\n            'focal': 0.08,\n            'sensor_nb': 400,\n            'sensor_size': 0.2,\n            'config': self.conf,\n            'Diag': 'SXR',\n            'Exp': 'WEST',\n            'Name': 'cam2',\n        }\n    \n        # prepare input dict for particle solid angle toroidal integration\n        self.dpart = {\n            'part_traj': np.array([\n                [6., 0., 0.], [6., 0.01, -4],\n            ]).T,\n            'part_radius': np.array([10e-6, 10e-6]),\n            'resolution': 0.3,\n            'DPhi': [-np.pi/2, np.pi/2],\n            'vmax': False,\n            'approx': False,\n        }",
         "min_run_count": 2,
-        "name": "benchmarks_Geometry.Geometry_HighLevel.time_camlos1d",
+        "name": "benchmarks_00_Geometry_time.Geometry_HighLevel.time_camlos1d",
         "number": 0,
         "param_names": [],
         "params": [],
@@ -45,10 +45,10 @@
         "version": "8ae0cfe43f52e16d81a015a0f091ebf6a2bb6caabce9b513f51452ff8cd53326",
         "warmup_time": -1
     },
-    "benchmarks_Geometry.Geometry_HighLevel.time_camlos2d": {
+    "benchmarks_00_Geometry_time.Geometry_HighLevel.time_camlos2d": {
         "code": "class Geometry_HighLevel:\n    def time_camlos2d(self):\n        cam = tf.geom.utils.create_CamLOS2D(**self.dcam2d)\n\n    def setup(self):\n    \n        # Load a configuration\n        self.conf = tf.load_config('ITER')\n    \n        # prepare input dict for a cam1d\n        self.dcam1d = {\n            'pinhole': [8.38/np.sqrt(2.), 8.38/np.sqrt(2.), 0.],\n            'orientation': [-np.pi, 0., 0],\n            'focal': 0.08,\n            'sensor_nb': 100,\n            'sensor_size': 0.3,\n            'config': self.conf,\n            'Diag': 'SXR',\n            'Exp': 'WEST',\n            'Name': 'cam1',\n        }\n    \n        # prepare input dict for a cam2d\n        self.dcam2d = {\n            'pinhole': [8.38, 0., 0.],\n            'orientation': [-7*np.pi/8, np.pi/6, 0],\n            'focal': 0.08,\n            'sensor_nb': 400,\n            'sensor_size': 0.2,\n            'config': self.conf,\n            'Diag': 'SXR',\n            'Exp': 'WEST',\n            'Name': 'cam2',\n        }\n    \n        # prepare input dict for particle solid angle toroidal integration\n        self.dpart = {\n            'part_traj': np.array([\n                [6., 0., 0.], [6., 0.01, -4],\n            ]).T,\n            'part_radius': np.array([10e-6, 10e-6]),\n            'resolution': 0.3,\n            'DPhi': [-np.pi/2, np.pi/2],\n            'vmax': False,\n            'approx': False,\n        }",
         "min_run_count": 2,
-        "name": "benchmarks_Geometry.Geometry_HighLevel.time_camlos2d",
+        "name": "benchmarks_00_Geometry_time.Geometry_HighLevel.time_camlos2d",
         "number": 0,
         "param_names": [],
         "params": [],
@@ -61,10 +61,10 @@
         "version": "4d2fe98a4e883acfccffee15d89ce8992993cf8e837db071b7199d5923ff4f0a",
         "warmup_time": -1
     },
-    "benchmarks_Geometry.Geometry_HighLevel.time_solidangle_part": {
+    "benchmarks_00_Geometry_time.Geometry_HighLevel.time_solidangle_part": {
         "code": "class Geometry_HighLevel:\n    def time_solidangle_part(self):\n        (\n            ptsRZ, sang, indices, reseff, dax,\n        ) = self.conf.calc_solidangle_particle_integrated(**self.dpart)\n        plt.close('all')\n\n    def setup(self):\n    \n        # Load a configuration\n        self.conf = tf.load_config('ITER')\n    \n        # prepare input dict for a cam1d\n        self.dcam1d = {\n            'pinhole': [8.38/np.sqrt(2.), 8.38/np.sqrt(2.), 0.],\n            'orientation': [-np.pi, 0., 0],\n            'focal': 0.08,\n            'sensor_nb': 100,\n            'sensor_size': 0.3,\n            'config': self.conf,\n            'Diag': 'SXR',\n            'Exp': 'WEST',\n            'Name': 'cam1',\n        }\n    \n        # prepare input dict for a cam2d\n        self.dcam2d = {\n            'pinhole': [8.38, 0., 0.],\n            'orientation': [-7*np.pi/8, np.pi/6, 0],\n            'focal': 0.08,\n            'sensor_nb': 400,\n            'sensor_size': 0.2,\n            'config': self.conf,\n            'Diag': 'SXR',\n            'Exp': 'WEST',\n            'Name': 'cam2',\n        }\n    \n        # prepare input dict for particle solid angle toroidal integration\n        self.dpart = {\n            'part_traj': np.array([\n                [6., 0., 0.], [6., 0.01, -4],\n            ]).T,\n            'part_radius': np.array([10e-6, 10e-6]),\n            'resolution': 0.3,\n            'DPhi': [-np.pi/2, np.pi/2],\n            'vmax': False,\n            'approx': False,\n        }",
         "min_run_count": 2,
-        "name": "benchmarks_Geometry.Geometry_HighLevel.time_solidangle_part",
+        "name": "benchmarks_00_Geometry_time.Geometry_HighLevel.time_solidangle_part",
         "number": 0,
         "param_names": [],
         "params": [],

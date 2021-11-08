@@ -84,26 +84,14 @@ class Geometry_HighLevel:
     # benchmarks methods for geometry tools
 
     # CAMLOS1D
-    def time_camlos1d(self):
-        cam = tf.geom.utils.create_CamLOS1D(**self.dcam1d)
-
     def peakmem_camlos1d(self):
         cam = tf.geom.utils.create_CamLOS1D(**self.dcam1d)
 
     # CAMLOS2D
-    def time_camlos2d(self):
-        cam = tf.geom.utils.create_CamLOS2D(**self.dcam2d)
-
     def peakmem_camlos2d(self):
         cam = tf.geom.utils.create_CamLOS2D(**self.dcam2d)
 
     # Solid angle toroidal integral for particle
-    def time_solidangle_part(self):
-        (
-            ptsRZ, sang, indices, reseff, dax,
-        ) = self.conf.calc_solidangle_particle_integrated(**self.dpart)
-        plt.close('all')
-
     def peakmem_solidangle_part(self):
         (
             ptsRZ, sang, indices, reseff, dax,
