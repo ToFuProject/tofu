@@ -1678,6 +1678,8 @@ class CrystalBragg(utils.ToFuObject):
         """
         if return_strict is None:
             return_strict = False
+        if plot is None:
+            plot = False
 
         # Check / format inputs
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
@@ -1919,7 +1921,7 @@ class CrystalBragg(utils.ToFuObject):
         if val_phi is None:
             val_phi = np.r_[-0.075, -0.025, 0.000, 0.050, 0.090]
         if n_val_phi is None:
-            n_val_phi = 2e-3
+            n_val_phi = 1e-3
 
         # Checkformat det
         det = self._checkformat_det(det=det)
@@ -2134,6 +2136,7 @@ class CrystalBragg(utils.ToFuObject):
                 #lamb_interv, phi_interv,
                 #z_plus=None, z_minus=None,
                 cryst=self, dcryst=dcryst,
+                use_non_parallelism=use_non_parallelism,
                 det=det,
                 split=split,
                 val_phi=val_phi, n_val_phi=n_val_phi,

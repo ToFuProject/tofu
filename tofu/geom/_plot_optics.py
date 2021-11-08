@@ -1016,6 +1016,7 @@ def CrystalBragg_gap_pixels(
     #lamb_interv, phi_interv,
     #z_plus=None, z_minus=None,
     cryst=None, dcryst=None,
+    use_non_parallelism=None,
     det=None,
     split=None,
     val_phi=None, n_val_phi=None,
@@ -1204,27 +1205,30 @@ def CrystalBragg_gap_pixels(
         ids = (np.abs(arr-val)).argmin();
         return arr[ids]
 
-    nearest = np.full((val_phi.size), np.nan)
-    ind_near, ix, jx = nearest.copy(), nearest.copy(), nearest.copy()
     nn = int(val_phi.size)
-    colors = np.random.rand(nn)
+    nearest = np.full((nn), np.nan)
+    ind_near, ix, jx = nearest.copy(), nearest.copy(), nearest.copy()
+    colors = ['midnightblue', 'royalblue', 'turquoise', 'limegreen', 'gold']
     for bb in np.linspace(0, nn-1, nn):
         bb = int(bb)
         nearest[bb] = find_nearest(phi[0, 0, :], val_phi[bb])
         ind_near[bb] = phi[0, 0, :].tolist().index(nearest[bb])
-        ix[bb], jx[bb] = self.calc_xixj_from_braggphi(
+        ix[bb], jx[bb] = cryst.calc_xixj_from_braggphi(
             phi=val_phi[bb],
             det=det,
             use_non_parallelism=use_non_parallelism,
+            plot=False,
         )
         ax3.plot(
             xii[:, int(ind_near[bb])],
             gap_xi[0, :, int(ind_near[bb])],
+            color=colors[bb],
         )
         ax4.plot(
             xii[:, int(ind_near[bb])],
             gap_xi[1, :, int(ind_near[bb])],
-            label='Xj coord:'+str(np.round(jx[bb], 3)),
+            label='$X_{j}$='+str(np.round(jx[bb], 3)),
+            color=colors[bb],
         )
         for i in np.linspace(0, int(xi.size)-1, int(xi.size)):
             i = int(i)
@@ -1238,6 +1242,7 @@ def CrystalBragg_gap_pixels(
                     (phi[0,i]<nearest[bb]+n_val_phi)&(phi[0,i]>nearest[bb]-n_val_phi)
                 ],
                 marker='.',
+                c=colors[bb],
             )
             ax6.scatter(
                 lamb[
@@ -1249,6 +1254,8 @@ def CrystalBragg_gap_pixels(
                     (phi[1,i]<nearest[bb]+n_val_phi)&(phi[1,i]>nearest[bb]-n_val_phi)
                 ],
                 marker='.',
+                c=colors[bb],
+                label=r'$\phi$='+str(val_phi[bb]) if i == 0 else None,
             )
             ax1.scatter(
                 xii[
@@ -1260,6 +1267,8 @@ def CrystalBragg_gap_pixels(
                     (phi[0,i]<nearest[bb]+n_val_phi)&(phi[0,i]>nearest[bb]-n_val_phi)
                 ],
                 marker='.',
+                c=colors[bb],
+                label=r'$\phi$='+str(val_phi[bb]) if i == 0 else None,
             )
             ax2.scatter(
                 lamb[
@@ -1271,6 +1280,7 @@ def CrystalBragg_gap_pixels(
                     (phi[0,i]<nearest[bb]+n_val_phi)&(phi[0,i]>nearest[bb]-n_val_phi)
                 ],
                 marker='.',
+                c=colors[bb],
             )
 
     ax5.set_xlim(lamb.min()-1e-12, lamb.max()+1e-12)
@@ -1281,8 +1291,9 @@ def CrystalBragg_gap_pixels(
     ax6.set_ylim(
         np.nanmin(gap_lamb[1,...])-1e-15, np.nanmax(gap_lamb[1,...])+1e-15,
     )
-    ax4.legend()
-    ax6.legend(loc='best')
+    ax1.legend(loc='upper right', markerscale=4)
+    ax4.legend(loc='best', markerscale=4)
+    ax6.legend(loc='best', markerscale=4)
 
     ## computing analytical expressions of gaps
     """r = cryst._dgeom['rcurve']
