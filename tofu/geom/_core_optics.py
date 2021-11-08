@@ -1723,11 +1723,11 @@ class CrystalBragg(utils.ToFuObject):
     def plot_line_on_det_tracing(
         self, lamb=None, n=None,
         nphi=None,
-        det=None, johann=None,
+        det=None, ddet=None, johann=None,
         use_non_parallelism=None,
         lpsi=None, ldtheta=None,
         strict=None,
-        dax=None, dleg=None,
+        ax=None, dleg=None, dcryst=None,
         rocking=None, fs=None, dmargin=None,
         wintit=None, tit=None,
         plot=None,
@@ -1749,6 +1749,8 @@ class CrystalBragg(utils.ToFuObject):
             lamb = self._dbragg['lambref']
         lamb = np.atleast_1d(lamb).ravel()
         nlamb = lamb.size
+        if use_non_parallelism is None:
+            use_non_parallelism = False
 
         if johann is None:
             johann = lpsi is not None or ldtheta is not None
@@ -1833,11 +1835,13 @@ class CrystalBragg(utils.ToFuObject):
 
         # Plot
         if plot:
-            dax =  _plot_optics.CrystalBragg_plot_line_tracing_on_det(
+            ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
                 lamb, xi, xj, xi_er, xj_er,
-
-                det=det, dax=dax, dleg=dleg,
+                det=det, ddet=ddet,
+                use_non_parallelism=use_non_parallelism,
                 johann=johann, rocking=rocking,
+                cryst=self, dcryst=dcryst,
+                ax=ax, dleg=dleg,
                 fs=fs, dmargin=dmargin,
                 wintit=wintit, tit=tit,
                 plot=plot,
@@ -1854,7 +1858,7 @@ class CrystalBragg(utils.ToFuObject):
         split=None, direction=None,
         xi=None, xj=None,
         use_non_parallelism=None,
-        val_phi=None,
+        val_phi=None, n_val_phi=None,
         dtheta=None, psi=None,
         strict=None, return_strict=None,
         plot=None,
@@ -1914,6 +1918,8 @@ class CrystalBragg(utils.ToFuObject):
             plot_lambda = True
         if val_phi is None:
             val_phi = np.r_[-0.075, -0.025, 0.000, 0.050, 0.090]
+        if n_val_phi is None:
+            n_val_phi = 2e-3
 
         # Checkformat det
         det = self._checkformat_det(det=det)
@@ -2039,13 +2045,15 @@ class CrystalBragg(utils.ToFuObject):
         gap_xi = np.full((2, xi.size, xj.size), np.nan)
         gap_lamb = np.full((2, xi.size, xj.size), np.nan)
         for ii in range(alphas.size):
+            """gap_xi[ii, :, :] = np.sqrt(
+                (xii - xi_unp[ii, ...])**2
+            )"""
             gap_xi[ii, :, :] = np.sqrt(
                 (xii - xi_unp[ii, ...])**2 + (xjj - xj_unp[ii, ...])**2
             )
             gap_lamb[ii, :, :] = np.sqrt(
                 (lamb[ii, ...] - lamb_unp[ii, ...])**2
             )
-
         # interpolation over (phi, lamb) grid: irregular to regular
         # length of z array must be either len(x)*len(y) for row/columns coords
         # or len(z) == len(x) == len(y) for each point coord
@@ -2054,7 +2062,7 @@ class CrystalBragg(utils.ToFuObject):
         if split:
             z[ np.isnan(z) ] = 2.0*1e-13
         else:
-            z[ np.isnan(z) ] = 2.57*1e-13"""
+            z[ np.isnan(z) ] = 2.57*1e-13
 
         nb = 97
         lamb_min = np.min(lamb[0, ...])
@@ -2068,16 +2076,16 @@ class CrystalBragg(utils.ToFuObject):
         indsort = np.argsort(lamb[0, ind_ok][::nb])
         lamb_interp = lamb[0, ind_ok][::nb][indsort]
         phi_interp = phi[0, ind_ok][::nb][indsort]
-        """interp_plus = scpinterp.interp2d(
+        interp_plus = scpinterp.interp2d(
             lamb_interp,
             phi_interp,
             gap_lamb[0, ind_ok][::nb][indsort],
             kind='linear',
-        )"""
-        """lamb_interp, phi_interp = np.mgrid[
+        )
+        lamb_interp, phi_interp = np.mgrid[
             lamb[0,...].min():lamb[0,...].max():487,
             phi[0,...].min():phi[0,...].max():1467,
-        ]"""
+        ]
         interp_plus = scpinterp.bisplrep(
             lamb_interp,
             phi_interp,
@@ -2086,17 +2094,17 @@ class CrystalBragg(utils.ToFuObject):
         )
         z_plus = scpinterp.bisplev(lamb_interv, phi_interv, interp_plus)
 
-        """interp_minus = scpinterp.interp2d(
+        interp_minus = scpinterp.interp2d(
             lamb_interp,
             phi_interp,
             gap_lamb[1, ind_ok1][::nb][indsort],
             kind='linear',
-        )"""
+        )
 
-        """lamb_interp, phi_interp = np.mgrid[
+        lamb_interp, phi_interp = np.mgrid[
             lamb[1,...].min():lamb[1,...].max():487,
             phi[1,...].min():phi[1,...].max():1467,
-        ]"""
+        ]
         ind_ok1 = ~np.isnan(gap_lamb[1,...])
         indsort = np.argsort(lamb[0, ind_ok1][::nb])
         lamb_interp = lamb[0, ind_ok1][::nb][indsort]
@@ -2108,7 +2116,7 @@ class CrystalBragg(utils.ToFuObject):
             gap_lamb[1, ind_ok1][::nb][indsort],
             s=0,
         )
-        z_minus = scpinterp.bisplev(lamb_interv, phi_interv ,interp_minus)
+        z_minus = scpinterp.bisplev(lamb_interv, phi_interv ,interp_minus)"""
 
         # Reset cryst angles
         self.update_non_parallelism(alpha=alpha0, beta=beta0)
@@ -2123,11 +2131,12 @@ class CrystalBragg(utils.ToFuObject):
                 xj, xj_unp,
                 xii, xjj,
                 gap_xi, gap_lamb,
-                z_plus, z_minus,
-                lamb_interv, phi_interv,
+                #lamb_interv, phi_interv,
+                #z_plus=None, z_minus=None,
                 cryst=self, dcryst=dcryst,
                 det=det,
-                split=split, val_phi=val_phi,
+                split=split,
+                val_phi=val_phi, n_val_phi=n_val_phi,
                 ax=ax, dleg=dleg,
                 fs=fs, dmargin=dmargin,
                 wintit=wintit, tit=tit,
@@ -2456,15 +2465,19 @@ class CrystalBragg(utils.ToFuObject):
 
         Parameters:
         -----------
+        - dist_min/max, di_min/max, ndist, ndi: np.float
+            If None, set to dist_min=-0.15, dist_max=0.15,
+            di_min=-0.4, di_max=0.4,
+            ndist = ndi = 21
         - lamb/bragg :  float
             Automatically set to crystal's references
         - xi, xj :  np.ndarray
             pixelization of the detector
             (from "inputs_temp/XICS_allshots_C34.py" l.649)
-        - alpha, beta : float
-            Values of Non Parallelism references angles
         - use_non_parallelism : str
         - tangent_to_rowland :  str
+        - det_ref: dict
+            detector's dictionnary to take into reference
         - plot_dets : str
             Possibility to plot the nsort- detectors with the lowest
             summed focalization error, next to the Best Approximate Real
@@ -2475,6 +2488,7 @@ class CrystalBragg(utils.ToFuObject):
         - lambda_interv_min/max : float
             To ensure the given wavelength interval is detected over the whole
             surface area. A True/False boolean is then returned.
+            If None, min at 3.93 Angs. and max at 4.00 Angs.
         """
 
         # Check / format inputs
@@ -2491,7 +2505,7 @@ class CrystalBragg(utils.ToFuObject):
         if ndi is None:
             ndi = 21
         if err is None:
-            err = 'rel'
+            err = 'abs'
         if plot is None:
             plot = True
         if plot_dets is None:
