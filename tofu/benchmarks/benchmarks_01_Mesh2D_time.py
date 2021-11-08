@@ -92,23 +92,12 @@ class Mesh2D_HighLevel:
     def time_00_mesh2d_rect_bs2(self):
         self.mesh2d.add_mesh(key='temp', **self.dmesh2drect)
 
-    def peakmem_00_mesh2d_rect_bs2(self):
-        self.mesh2d.add_mesh(key='temp', **self.dmesh2drect)
-
     # Mesh2D - tri
     # def time_00_mesh2dtri_bs1(self):
         # self.mesh2d.add_mesh(**self.dmesh2dtri)
 
-    # def peakmem_mesh2dtri_bs1(self):
-        # self.mesh2d.add_mesh(**self.dmesh2dtri)
-
     # Geometry matrix - rect
     def time_02_geommatrix_rect(self):
-        self.mesh2d.add_geometry_matrix(
-            key='rect1-bs2', cam=self.cam1d, res=0.01, verb=False,
-        )
-
-    def peakmem_02_geommatrix_rect(self):
         self.mesh2d.add_geometry_matrix(
             key='rect1-bs2', cam=self.cam1d, res=0.01, verb=False,
         )
