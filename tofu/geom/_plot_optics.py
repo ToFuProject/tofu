@@ -1203,6 +1203,27 @@ def CrystalBragg_gap_pixels(
     ax6.set_xlabel(r'$\lambda$ [m]', fontsize=14)
     ax6.set_ylabel(' Gap [m]', fontsize=14)
 
+    ## computing analytical expressions of gaps
+    r = cryst._dgeom['rcurve']
+    braggzero = cryst._dbragg['braggref']
+    lambref = cryst._dbragg['lambref']
+    alpha = (3/60)*(np.pi/180)
+    dbragg = np.linspace(0.959-braggzero, braggzero-0.959, 487)
+
+    def xi_gap(r, bragg, dbragg):
+        return abs(r*np.sin(bragg)*(
+            np.cos(bragg) - np.sin(bragg)/np.tan(bragg-dbragg)
+        ))
+    def diff_gap(r, bragg, dbragg, alpha):
+        return abs(r*np.sin(bragg)**2*(
+            1/np.tan(bragg-dbragg) - 1/np.tan(bragg-dbragg-alpha)
+        ))
+
+    y0 = xi_gap(r=r, bragg=braggzero, dbragg=dbragg)
+    y1 = diff_gap(r=r, bragg=braggzero, dbragg=dbragg, alpha=alpha)
+    #y00 = conv*xi_gap(r=r, bragg=braggzero, dbragg=dbragg)
+    #y11 = conv*diff_gap(r=r, bragg=braggzero, dbragg=dbragg, alpha=alpha)
+
     ## find indices of Phi wanted values
     def find_nearest(arr, val):
         arr = np.asarray(arr);
@@ -1213,12 +1234,14 @@ def CrystalBragg_gap_pixels(
     nearest = np.full((nn), np.nan)
     ind_near, ix, jx = nearest.copy(), nearest.copy(), nearest.copy()
     mean_xii = np.full((nn, xi.size), np.nan)
-    mean_lamb0 = np.full((nn, xi.size), np.nan)
-    mean_lamb1 = mean_lamb0.copy()
-    mean_phi = np.full((nn, xi.size), np.nan)
-    mean_gap_lamb0 = np.full((nn, xi.size), np.nan)
-    mean_gap_lamb1 = mean_gap_lamb0.copy()
+    mean_lamb0 = mean_xii.copy()
+    mean_lamb1 = mean_xii.copy()
+    mean_phi = mean_xii.copy()
+    mean_gap_lamb0 = mean_xii.copy()
+    mean_gap_lamb1 = mean_xii.copy()
+    model1 = np.full((nn, nn, nn), np.nan)  #nb phi, direct coeff, coord origin
     colors = ['midnightblue', 'royalblue', 'turquoise', 'limegreen', 'gold']
+
     for bb in np.linspace(0, nn-1, nn):
         bb = int(bb)
         nearest[bb] = find_nearest(phi[0, 0, :], val_phi[bb])
@@ -1241,6 +1264,8 @@ def CrystalBragg_gap_pixels(
             label='$X_{j}$='+str(np.round(jx[bb], 3)),
             color=colors[bb],
         )
+        ax3.plot(xi, y0, 'k:', label=r'gap_xi($\theta, \Delta\theta$)')
+        ax3.plot(xi, y1, 'r:', label=r'gap_xi($\theta, \Delta\theta, \alpha$)')
         for i in np.linspace(0, int(xi.size)-1, int(xi.size)):
             i = int(i)
             ax5.scatter(
@@ -1319,13 +1344,13 @@ def CrystalBragg_gap_pixels(
                     (phi[0,i]<nearest[bb]+n_val_phi)&(phi[0,i]>nearest[bb]-n_val_phi)
                 ],
             )
-            mean_gal_lamb0 = np.mean(
+            mean_gap_lamb0[bb, i] = np.mean(
                 gap_lamb[
                     0, i,
                     (phi[0,i]<nearest[bb]+n_val_phi)&(phi[0,i]>nearest[bb]-n_val_phi)
                 ],
             )
-            mean_gal_lamb1 = np.mean(
+            mean_gap_lamb1[bb, i] = np.mean(
                 gap_lamb[
                     1, i,
                     (phi[1,i]<nearest[bb]+n_val_phi)&(phi[1,i]>nearest[bb]-n_val_phi)
@@ -1335,8 +1360,7 @@ def CrystalBragg_gap_pixels(
             mean_xii[bb, :], mean_lamb0[bb, :],
             color=colors[bb], linewidth=2,
         )
-        model1 = np.poly1d(np.polyfit(mean_xii[bb, :], mean_lamb0[bb, :], 1))
-        print(r'quad. reg of lamb=f(xi) for phi='+str(val_phi[bb])+' :'+str(model1))
+        #model1[bb, ...] = np.poly1d(np.polyfit(mean_xii[bb, :], mean_lamb0[bb, :], 1))
         ax5.plot(
             mean_lamb0[bb, :], mean_gap_lamb0[bb, :],
             color=colors[bb], linewidth=2,
@@ -1346,6 +1370,7 @@ def CrystalBragg_gap_pixels(
             color=colors[bb], linewidth=2,
         )
 
+    print(r'quad. reg of lamb=f(xi) for phi='+str(val_phi[bb])+' :'+str(model1[bb]))
     ax5.set_xlim(lamb.min()-1e-12, lamb.max()+1e-12)
     ax5.set_ylim(
         np.nanmin(gap_lamb[0,...])-1e-15, np.nanmax(gap_lamb[0,...])+1e-15,
@@ -1357,31 +1382,9 @@ def CrystalBragg_gap_pixels(
     fig3.legend(**dleg)
     fig4.legend(**dleg)
 
-    ## computing analytical expressions of gaps
-    """r = cryst._dgeom['rcurve']
-    braggzero = cryst._dbragg['braggref']
-    lambref = cryst._dbragg['lambref']
-    alpha = (3/60)*(np.pi/180)
-    dbragg = np.linspace(0.959-braggzero, braggzero-0.959, 487)
-
-    def xi_gap(r, bragg, dbragg):
-        return abs(r*np.sin(bragg)*(
-            np.cos(bragg) - np.sin(bragg)/np.tan(bragg-dbragg)
-        ))
-    def diff_gap(r, bragg, dbragg, alpha):
-        return abs(r*np.sin(bragg)**2*(
-            1/np.tan(bragg-dbragg) - 1/np.tan(bragg-dbragg-alpha)
-        ))
-    y0 = xi_gap(r=r, bragg=braggzero, dbragg=dbragg)
-    y1 = diff_gap(r=r, bragg=braggzero, dbragg=dbragg, alpha=alpha)
-    conv = (xi.max)-xi.min())/(lamb.max()-lamb.min())
-    y00 = conv*xi_gap(r=r, bragg=braggzero, dbragg=dbragg)
-    y11 = conv*diff_gap(r=r, bragg=braggzero, dbragg=dbragg, alpha=alpha)
-
-    ax4.plot(xi, y0, 'k:', label=r'gap_xi($\theta, \Delta\theta$)')
+    """
     ax4.plot(xi, y1, 'r:',
         label=r'gap_xi($\theta, \Delta\theta, \alpha$)'+r'-gap_xi($\theta, \Delta\theta$)')
-    ax4.legend()
     ax5.plot(xi, y0, 'k:')
     ax5.plot(xi, y1, 'r:')
     ax6.plot(xi, y00, 'k:', label=r'gap_xi($\theta, \Delta\theta$)')
@@ -1389,7 +1392,8 @@ def CrystalBragg_gap_pixels(
         label=r'gap_xi($\theta, \Delta\theta, \alpha$)'+r'-gap_xi($\theta, \Delta\theta$)')
     ax6.legend()
     ax7.plot(xi, y00, 'k:')
-    ax7.plot(xi, y11, 'r:')"""
+    ax7.plot(xi, y11, 'r:')
+    """
 
     return ax, ax1, ax2, ax3, ax4, ax5, ax6,
 

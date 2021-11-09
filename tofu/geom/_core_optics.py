@@ -2047,14 +2047,14 @@ class CrystalBragg(utils.ToFuObject):
         gap_xi = np.full((2, xi.size, xj.size), np.nan)
         gap_lamb = np.full((2, xi.size, xj.size), np.nan)
         for ii in range(alphas.size):
-            """gap_xi[ii, :, :] = np.sqrt(
-                (xii - xi_unp[ii, ...])**2
-            )"""
-            gap_xi[ii, :, :] = (
-                (xii - xi_unp[ii, ...])**2 + (xjj - xj_unp[ii, ...])**2
+            gap_xi[ii, :, :] = np.sqrt(
+                (xi_unp[ii, ...] - xii)**2
             )
+            """gap_xi[ii, :, :] = (
+                (xii - xi_unp[ii, ...])**2 + (xjj - xj_unp[ii, ...])**2
+            )"""
             gap_lamb[ii, :, :] = np.sqrt(
-                (lamb[ii, ...] - lamb_unp[ii, ...])**2
+                (lamb_unp[ii, ...] - lamb[ii, ...])**2
             )
 
         # Reset cryst angles
