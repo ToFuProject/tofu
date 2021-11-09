@@ -2050,75 +2050,12 @@ class CrystalBragg(utils.ToFuObject):
             """gap_xi[ii, :, :] = np.sqrt(
                 (xii - xi_unp[ii, ...])**2
             )"""
-            gap_xi[ii, :, :] = np.sqrt(
+            gap_xi[ii, :, :] = (
                 (xii - xi_unp[ii, ...])**2 + (xjj - xj_unp[ii, ...])**2
             )
             gap_lamb[ii, :, :] = np.sqrt(
                 (lamb[ii, ...] - lamb_unp[ii, ...])**2
             )
-        # interpolation over (phi, lamb) grid: irregular to regular
-        # length of z array must be either len(x)*len(y) for row/columns coords
-        # or len(z) == len(x) == len(y) for each point coord
-        # TBF/TBC : NaNs problems for interpolation inside gap_lamb[0, ...]
-        """z = gap_lamb[0,...].T.copy()
-        if split:
-            z[ np.isnan(z) ] = 2.0*1e-13
-        else:
-            z[ np.isnan(z) ] = 2.57*1e-13
-
-        nb = 97
-        lamb_min = np.min(lamb[0, ...])
-        lamb_max = np.max(lamb[0, ...])
-        phi_min = np.min(phi[0, ...])
-        phi_max = np.max(phi[0, ...])
-        lamb_interv = np.linspace(lamb_min, lamb_max, 487)
-        phi_interv = np.linspace(phi_min, phi_max, 1467)
-
-        ind_ok = ~np.isnan(gap_lamb[0,...])
-        indsort = np.argsort(lamb[0, ind_ok][::nb])
-        lamb_interp = lamb[0, ind_ok][::nb][indsort]
-        phi_interp = phi[0, ind_ok][::nb][indsort]
-        interp_plus = scpinterp.interp2d(
-            lamb_interp,
-            phi_interp,
-            gap_lamb[0, ind_ok][::nb][indsort],
-            kind='linear',
-        )
-        lamb_interp, phi_interp = np.mgrid[
-            lamb[0,...].min():lamb[0,...].max():487,
-            phi[0,...].min():phi[0,...].max():1467,
-        ]
-        interp_plus = scpinterp.bisplrep(
-            lamb_interp,
-            phi_interp,
-            gap_lamb[0, ind_ok][::nb][indsort],
-            s=0,
-        )
-        z_plus = scpinterp.bisplev(lamb_interv, phi_interv, interp_plus)
-
-        interp_minus = scpinterp.interp2d(
-            lamb_interp,
-            phi_interp,
-            gap_lamb[1, ind_ok1][::nb][indsort],
-            kind='linear',
-        )
-
-        lamb_interp, phi_interp = np.mgrid[
-            lamb[1,...].min():lamb[1,...].max():487,
-            phi[1,...].min():phi[1,...].max():1467,
-        ]
-        ind_ok1 = ~np.isnan(gap_lamb[1,...])
-        indsort = np.argsort(lamb[0, ind_ok1][::nb])
-        lamb_interp = lamb[0, ind_ok1][::nb][indsort]
-        phi_interp = phi[0, ind_ok1][::nb][indsort]
-
-        interp_minus = scpinterp.bisplrep(
-            lamb_interp,
-            phi_interp,
-            gap_lamb[1, ind_ok1][::nb][indsort],
-            s=0,
-        )
-        z_minus = scpinterp.bisplev(lamb_interv, phi_interv ,interp_minus)"""
 
         # Reset cryst angles
         self.update_non_parallelism(alpha=alpha0, beta=beta0)

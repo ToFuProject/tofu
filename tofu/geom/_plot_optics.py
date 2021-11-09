@@ -1029,7 +1029,11 @@ def CrystalBragg_gap_pixels(
     #-------------
 
     if dleg is None:
-        dleg = {'loc': 'upper right', 'bbox_to_anchor': (1.0, 1.0)}
+        dleg = {
+            'loc': 'upper right',
+            'bbox_to_anchor': (1.0, 1.0),
+            'markerscale': 4.,
+        }
     if fs is None:
         fs = (14, 10)
     if dmargin is None:
@@ -1208,6 +1212,12 @@ def CrystalBragg_gap_pixels(
     nn = int(val_phi.size)
     nearest = np.full((nn), np.nan)
     ind_near, ix, jx = nearest.copy(), nearest.copy(), nearest.copy()
+    mean_xii = np.full((nn, xi.size), np.nan)
+    mean_lamb0 = np.full((nn, xi.size), np.nan)
+    mean_lamb1 = mean_lamb0.copy()
+    mean_phi = np.full((nn, xi.size), np.nan)
+    mean_gap_lamb0 = np.full((nn, xi.size), np.nan)
+    mean_gap_lamb1 = mean_gap_lamb0.copy()
     colors = ['midnightblue', 'royalblue', 'turquoise', 'limegreen', 'gold']
     for bb in np.linspace(0, nn-1, nn):
         bb = int(bb)
@@ -1222,6 +1232,7 @@ def CrystalBragg_gap_pixels(
         ax3.plot(
             xii[:, int(ind_near[bb])],
             gap_xi[0, :, int(ind_near[bb])],
+            label='$X_{j}$='+str(np.round(jx[bb], 3)),
             color=colors[bb],
         )
         ax4.plot(
@@ -1268,7 +1279,7 @@ def CrystalBragg_gap_pixels(
                 ],
                 marker='.',
                 c=colors[bb],
-                label=r'$\phi$='+str(val_phi[bb]) if i == 0 else None,
+                alpha=0.2,
             )
             ax2.scatter(
                 lamb[
@@ -1281,7 +1292,59 @@ def CrystalBragg_gap_pixels(
                 ],
                 marker='.',
                 c=colors[bb],
+                alpha=0.2,
+                label=r'$\phi$='+str(val_phi[bb]) if i == 0 else None,
             )
+            mean_xii[bb, i] = np.mean(
+                xii[
+                    i,
+                    (phi[0,i]<nearest[bb]+n_val_phi)&(phi[0,i]>nearest[bb]-n_val_phi)
+                ],
+            )
+            mean_lamb0[bb, i] = np.mean(
+                lamb[
+                    0, i,
+                    (phi[0,i]<nearest[bb]+n_val_phi)&(phi[0,i]>nearest[bb]-n_val_phi)
+                ],
+            )
+            mean_lamb1[bb, i] = np.mean(
+                lamb[
+                    1, i,
+                    (phi[1,i]<nearest[bb]+n_val_phi)&(phi[1,i]>nearest[bb]-n_val_phi)
+                ],
+            )
+            mean_phi[bb, i] = np.mean(
+                phi[
+                    0, i,
+                    (phi[0,i]<nearest[bb]+n_val_phi)&(phi[0,i]>nearest[bb]-n_val_phi)
+                ],
+            )
+            mean_gal_lamb0 = np.mean(
+                gap_lamb[
+                    0, i,
+                    (phi[0,i]<nearest[bb]+n_val_phi)&(phi[0,i]>nearest[bb]-n_val_phi)
+                ],
+            )
+            mean_gal_lamb1 = np.mean(
+                gap_lamb[
+                    1, i,
+                    (phi[1,i]<nearest[bb]+n_val_phi)&(phi[1,i]>nearest[bb]-n_val_phi)
+                ],
+            )
+        ax1.plot(
+            mean_xii[bb, :], mean_lamb0[bb, :],
+            color=colors[bb], linewidth=2,
+        )
+        model1 = np.poly1d(np.polyfit(mean_xii[bb, :], mean_lamb0[bb, :], 1))
+        print(r'quad. reg of lamb=f(xi) for phi='+str(val_phi[bb])+' :'+str(model1))
+        ax5.plot(
+            mean_lamb0[bb, :], mean_gap_lamb0[bb, :],
+            color=colors[bb], linewidth=2,
+        )
+        ax6.plot(
+            mean_lamb1[bb, :], mean_gap_lamb1[bb, :],
+            color=colors[bb], linewidth=2,
+        )
 
     ax5.set_xlim(lamb.min()-1e-12, lamb.max()+1e-12)
     ax5.set_ylim(
@@ -1291,9 +1354,8 @@ def CrystalBragg_gap_pixels(
     ax6.set_ylim(
         np.nanmin(gap_lamb[1,...])-1e-15, np.nanmax(gap_lamb[1,...])+1e-15,
     )
-    ax1.legend(loc='upper right', markerscale=4)
-    ax4.legend(loc='best', markerscale=4)
-    ax6.legend(loc='best', markerscale=4)
+    fig3.legend(**dleg)
+    fig4.legend(**dleg)
 
     ## computing analytical expressions of gaps
     """r = cryst._dgeom['rcurve']
@@ -1312,8 +1374,7 @@ def CrystalBragg_gap_pixels(
         ))
     y0 = xi_gap(r=r, bragg=braggzero, dbragg=dbragg)
     y1 = diff_gap(r=r, bragg=braggzero, dbragg=dbragg, alpha=alpha)
-    conv = (xi.max()-xi.min())/(lamb.max()-lamb.min())
-    print(conv)
+    conv = (xi.max)-xi.min())/(lamb.max()-lamb.min())
     y00 = conv*xi_gap(r=r, bragg=braggzero, dbragg=dbragg)
     y11 = conv*diff_gap(r=r, bragg=braggzero, dbragg=dbragg, alpha=alpha)
 
@@ -1328,52 +1389,7 @@ def CrystalBragg_gap_pixels(
         label=r'gap_xi($\theta, \Delta\theta, \alpha$)'+r'-gap_xi($\theta, \Delta\theta$)')
     ax6.legend()
     ax7.plot(xi, y00, 'k:')
-    ax7.plot(xi, y11, 'r:')
-
-    # interpolated gap = f(lamb, xj)
-    #-------------------------------
-
-    fig3 = plt.figure(figsize=fs)
-    gs = gridspec.GridSpec(6, 6, **dmargin)
-    ax = fig3.add_subplot(gs[:, :2])
-    ax1 = fig3.add_subplot(gs[:, 4:])
-
-    ax.set_ylabel('phi [rad]', fontsize=14)
-    ax1.set_ylabel('phi [rad]', fontsize=14)
-    ax.set_xlabel(r'$\lambda$ [m]', fontsize=14)
-    ax1.set_xlabel(r'$\lambda$ [m]', fontsize=14)
-    ax.set_xlim(3.92*1e-10, 4.03*1e-10)
-    ax1.set_xlim(3.92*1e-10, 4.03*1e-10)
-
-    errmap = ax.pcolormesh(lamb_interv, phi_interv, z_plus, shading='flat',)
-    errmap1 = ax1.pcolormesh(lamb_interv, phi_interv, z_minus, shading='flat',)
-
-    z_plus = interp_plus(lamb_interv, phi_interv)
-    z_minus = interp_minus(lamb_interv, phi_interv)
-
-    errmap = ax.imshow(
-        z_plus,
-        cmap='viridis',
-        origin='lower',
-        extent=extent,
-        interpolation='nearest',
-        aspect='auto',
-    )
-    errmap = ax.scatter(
-        lamb[0, ...].flatten()[::50],
-        phi[0,...].flatten()[::50],
-        s=6,
-        c=z_plus.flatten(),
-        cmap='viridis',
-        marker='s',
-        edgecolors="None",
-    )
-    cbar = plt.colorbar(
-        errmap,
-        label="Gap (0/3 arcsec) [m]",
-        orientation="vertical",
-        ax=ax,
-    )"""
+    ax7.plot(xi, y11, 'r:')"""
 
     return ax, ax1, ax2, ax3, ax4, ax5, ax6,
 
