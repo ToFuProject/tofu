@@ -1,0 +1,41 @@
+name: Publish Python SRC distributions to PyPI
+
+on:
+  release:
+    types:
+      [created]
+  push:
+    branches:
+      - master
+      - deploy-test
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+    - name: Display python version
+      run: |
+        python -c "import sys; print(sys.version)"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel twine
+        pip install -r requirements.txt
+    - name: check ref and event
+      run: |
+        echo ${{github.ref}}
+    - name: Build sdist
+      run: |
+        python setup.py sdist
+    - name: Publish source to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        twine upload dist/*.tar.gz

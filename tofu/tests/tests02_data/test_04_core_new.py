@@ -3,14 +3,17 @@
 This module contains tests for tofu.geom in its structured version
 """
 
+
 # Built-in
 import os
 import warnings
+
 
 # Standard
 import numpy as np
 import scipy.constants as scpct
 import matplotlib.pyplot as plt
+
 
 # tofu-specific
 from tofu import __version__
