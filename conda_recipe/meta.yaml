@@ -34,6 +34,8 @@ requirements:
     - setuptools_scm
     - numpy
     - scipy
+    - scikit-sparse,
+    - scikit-umfpack,
     - matplotlib
     - Cython >=0.26
     - pytest

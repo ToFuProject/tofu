@@ -3,25 +3,32 @@
 See:
 https://github.com/ToFuProject/tofu
 """
+
+# Built-in
 import os
 import glob
 import shutil
 import logging
 import platform
 import subprocess
-import numpy as np
 from codecs import open
 # ... setup tools
 from setuptools import setup, find_packages
-# ... packages that need to be in pyproject.toml
-from Cython.Distutils import Extension
-from Cython.Distutils import build_ext
-# ... local script
-import _updateversion as up
 # ... for `clean` command
 from distutils.command.clean import clean as Clean
+
+
+# ... packages that need to be in pyproject.toml
+import numpy as np
+from Cython.Distutils import Extension
+from Cython.Distutils import build_ext
+
+
+# ... local script
+import _updateversion as up
 # ... openmp utilities
 from tofu_helpers.openmp_helpers import is_openmp_installed
+
 
 # == Checking platform ========================================================
 is_platform_windows = platform.system() == "Windows"
@@ -301,6 +308,8 @@ setup(
     install_requires=[
         "numpy",
         "scipy",
+        # "scikit-sparse",
+        # "scikit-umfpack",
         "matplotlib",
         "requests",
         "cython>=0.26",

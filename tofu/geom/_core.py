@@ -2630,6 +2630,8 @@ class Config(utils.ToFuObject):
             msg0 = "If an extra attribute is provided as a dict,"
             msg0 += " it should have the same structure as self.dStruct !"
             lk = sorted(self._dStruct["lCls"])
+            # removing empty dict first
+            extraval = {k0: v0 for k0, v0 in extraval.items() if len(v0) > 0}
             c = lk == sorted(extraval.keys())
             if not c:
                 msg = "\nThe value for %s has wrong keys !" % key
@@ -2791,8 +2793,9 @@ class Config(utils.ToFuObject):
                     ii += 1
             else:
                 for k0 in self._dStruct["dObj"].keys():
-                    for k1 in self._dextraprop[dp][k0].keys():
-                        self._dextraprop[dp][k0][k1] = val[k0][k1]
+                    if k0 in self._dextraprop[dp].keys():
+                        for k1 in self._dextraprop[dp][k0].keys():
+                            self._dextraprop[dp][k0][k1] = val[k0][k1]
         elif k1 is None:
             size = len(self._dextraprop[dp][k0].keys())
             C = self._checkformat_inputs_extraval(val, pp, size=size)
@@ -2853,6 +2856,10 @@ class Config(utils.ToFuObject):
 
         # Set
         for k in self._dStruct["dObj"].keys():
+
+            if len(self._dStruct["dObj"][k]) == 0:
+                continue
+
             # Find a way to programmatically add dynamic properties to the
             # instances , like visible
             # In the meantime use a simple functions
@@ -3442,6 +3449,14 @@ class Config(utils.ToFuObject):
             for cc in dextra[k].keys():
                 dx[k[1:]][cc] = dict(dextra[k][cc])
             del dx[k[1:]][Cls][Name]
+
+            # remove Cls if empty
+            if len(dx[k[1:]][Cls]) == 0:
+                del dx[k[1:]][Cls]
+
+            # remove empty parts
+            if len(dx[k[1:]]) == 0:
+                del dx[k[1:]]
 
         self._init(lStruct=lS, Lim=self.Lim, dextraprop=dx)
 
