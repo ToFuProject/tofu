@@ -371,8 +371,9 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
     print()
 
     config = tf.load_config("A1")
-    # lightening up config by removing all PFCs
-    for name_pfc in ['BaffleV0', "DivUpV1", "DivLowITERV1"]:
+
+    # lightening up config by removing some PFCs
+    for name_pfc in ['BaffleV0', "DivUpV1"]:
         config.remove_Struct("PFC", name_pfc)
 
     kwdargs = config.get_kwdargs_LOS_isVis()
@@ -384,6 +385,7 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
         fig.savefig("configuration")
 
     # coordonnées en x,y,z:
+    # Tester : enlever des points au rectangle et puis un rectangle avec plus de points
     poly_coords = [
         np.array([
             [2.7, 0, -0.4],
@@ -413,19 +415,15 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
             [2.50, 0, -0.1],
         ]).T,  # 3rd polygon
         np.array([
-            [2.70, 0, -0.1],
-            [2.75, 0, -0.1],
-            [2.75, 0, -0.4],
-            [2.7, 0, -0.4],
-            [2.50, 0, -0.4],
-            [2.50, 0, -0.1],
-            [2.60, 0, -0.1],
+            [-2.5, 0, -0.35],
+            [2.70, 0, -0.15],
+            [2.68, 0, -0.3],
+            [2.65, 0, -0.4],
         ]).T,  # 4th polygon
         np.array([
             [2.75, 0, -0.1],
-            [2.75, 0, -0.4],
-            [2.7, 0, -0.4],
-            [2.50, 0, -0.4],
+            [2.65, 0, -0.35],
+            [2.55, 0, -0.35],
             [2.50, 0, -0.1],
             [2.60, 0, -0.1],
             [2.70, 0, -0.1],
@@ -454,7 +452,7 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
 
     lblock = [False, True]
     lstep_rz = [
-        0.03,
+        0.005,
         0.01,
     ]
 
@@ -500,31 +498,41 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
         assert isinstance(reso_r_z, float)
 
         if debug > 0:
+            print(f">>>>>>>>>> THERE IS {npoly=}")
             for pp in range(npoly):
+                print(f"...... {pp} / {npoly}")
                 plt.clf()
                 fig = plt.figure()
                 ax = plt.subplot(111)
-                # import pdb; pdb.set_trace()
+                print("begining")
                 im = ax.scatter(pts[0, :], pts[1, :],
                                 marker="s", edgecolors="None",
-                                s=40, c=sa_map_cy[:, pp].flatten(),
+                                s=40, c=sa_map_cy[:, pp],
                                 vmin=sa_map_cy[:, pp].min(),
                                 vmax=sa_map_cy[:, pp].max())
                 poly = poly_coords[pp]
+                poly = np.concatenate((poly, poly[:, 0].reshape(-1, 1)), axis=1)
                 xpoly = np.sqrt(poly[0]**2 + poly[1]**2)
+                print(f"{xpoly=}")
                 zpoly = poly[2]
                 ax.plot(
-                    xpoly[[iii for iii in range(np.size(xpoly))]+[0]],
-                    zpoly[[iii for iii in range(np.size(xpoly))]+[0]],
+                    xpoly, zpoly,
                     "r-", marker='o',
                     linewidth=2,
                 )
+                print("so far so good")
+                for xzi, (x,z) in enumerate(zip(xpoly, zpoly)):
+                    #ax.annotate(f"({x},{z})", (x, z))
+                    ax.annotate(f"{xzi}", (x,z))
                 ax.plot()
+                print("sfsg 2")
                 ax.set_title("cython function")
                 fig.colorbar(im, ax=ax)
+                print("sfsg 3")
                 plt.savefig("sa_map_poly" + str(pp)
                             + "_block" + str(block)
                             + "_steprz" + str(step_rz).replace(".", "_"))
+                print("...saved!\n")
 
     # ...
     return
