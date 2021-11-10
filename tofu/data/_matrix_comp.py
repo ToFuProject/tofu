@@ -11,7 +11,6 @@ import numpy as np
 
 # tofu
 from . import _generic_check
-from . import _mesh_bsplines
 
 
 # #############################################################################

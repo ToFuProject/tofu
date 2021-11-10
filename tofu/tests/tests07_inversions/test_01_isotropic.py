@@ -78,8 +78,9 @@ class Test01_Inversions():
         )
 
         # mesh deg 1 and 2
-        mesh = tf.data.Mesh2DRect.from_Config(
-            config=conf0,
+        mesh = tf.data.Mesh2D()
+        mesh.add_mesh(
+            crop_poly=conf0,
             key='try1',
             res=0.10,
             deg=1,

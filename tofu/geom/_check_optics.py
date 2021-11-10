@@ -301,13 +301,14 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
 
     if dmat.get('cut') is not None:
         dmat['cut'] = np.atleast_1d(dmat['cut']).ravel().astype(int)
-        if dmat['cut'].size < 4:
+        if dmat['cut'].size == 3:
+            pass
+        elif dmat['cut'].size == 4:
+            pass
+        else:
             msg = (
-                """
-                Var {} should be convertible to a 1d array of minimal size {}.
-
-                Provided: {}
-                """.format('cut', 4, dmat.get('cut'))
+                "Var 'cut' should be convertible to a 1d array of size 3 or 4"
+                f"\nProvided: {dmat.get('cut')}"
             )
             raise Exception(msg)
 
