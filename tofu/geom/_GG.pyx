@@ -5125,6 +5125,7 @@ def compute_solid_angle_poly_map(list poly_coords,
     cdef np.ndarray[double, ndim=2] poly_lnorms_tot
     cdef np.ndarray[double, ndim=2] cross_GBGC
     cdef double[:, ::1] temp
+    print("begining.....................................")
     #
     # == Testing inputs ========================================================
     if test:
@@ -5150,11 +5151,15 @@ def compute_solid_angle_poly_map(list poly_coords,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
     # ...
+    print("after tests.................................")
     # .. Formatting polygon coordinates ........................................
     npoly = len(poly_coords)
     for ii in range(npoly):
+        print(poly_coords[ii])
         poly_coords[ii] = format_poly(poly_coords[ii], Clock=False,
                                       close=False, Test=True)
+        print(poly_coords[ii])
+    print("......................... after format")
     # .. Dividing polys in triangles ...........................................
     ltri = <long**>malloc(sizeof(long*) * npoly)
     # re writting_polygons coordinates to C type:
@@ -5169,6 +5174,7 @@ def compute_solid_angle_poly_map(list poly_coords,
         ltri,
         num_threads
     )
+    print("...............after triangulate")
     # cpumputing total number of triangles
     tot_num_tri = np.sum(poly_lnvert) - 2 * npoly
     # .. Getting centroids of triangles .......................................
@@ -5187,6 +5193,8 @@ def compute_solid_angle_poly_map(list poly_coords,
         vec_GB,
         vec_GC,
     )
+
+    print("............ got here 1")
 
     poly_lnorms_tot = np.repeat(poly_lnorms,
                                 np.asarray(poly_lnvert) - 2,
@@ -5227,6 +5235,7 @@ def compute_solid_angle_poly_map(list poly_coords,
                                       ncells_z)
     # .. Preparing for phi: get the limits if any and make sure to replace them
     # .. in the proper quadrants ...............................................
+    print("got here 2...........................")
     if DPhi is None:
         min_phi = -c_pi
         max_phi = c_pi
@@ -5307,6 +5316,7 @@ def compute_solid_angle_poly_map(list poly_coords,
         for jj in range(loc_nc_rphi - nphi0, sz_phi[0]):
             indi_mv[0, jj] = jj - (loc_nc_rphi - nphi0)
         npts_disc += sz_z * sz_phi[0]
+    print("Got heeeeeeere 3...........................")
     # ... doing the others .....................................................
     npts_disc += _st.sa_disc_phi(sz_r, sz_z, ncells_rphi, phistep,
                                  disc_r, disc_r0, step_rphi,
@@ -5314,6 +5324,7 @@ def compute_solid_angle_poly_map(list poly_coords,
                                  ncells_r0[0], ncells_z[0], &max_sz_phi[0],
                                  min_phi, max_phi, sz_phi, indi_mv,
                                  margin, num_threads)
+    print("Got heeeeeeere 4...........................")
     # ... vignetting ...........................................................
     is_in_vignette = np.ones((sz_r, sz_z), dtype=int) # by default yes
     if limit_vpoly is not None:
@@ -5329,6 +5340,7 @@ def compute_solid_angle_poly_map(list poly_coords,
                                 poly_mv, npts_vpoly,
                                 disc_r, disc_z,
                                 is_in_vignette)
+    print("Got heeeeeeere 5...........................")
     # .. preparing for actual discretization ...................................
     ind_rz2pol = np.empty((sz_r, sz_z), dtype=int)
     npts_pol = _st.sa_get_index_arrays(ind_rz2pol,
@@ -5349,6 +5361,7 @@ def compute_solid_angle_poly_map(list poly_coords,
     # initializing utilitary arrays
     num_threads = _ompt.get_effective_num_threads(num_threads)
     lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
+    print("Got heeeeeeere 6...........................")
     # ..............
     _st.sa_tri_assemble(
         block,
@@ -5396,6 +5409,7 @@ def compute_solid_angle_poly_map(list poly_coords,
         ind_mv,
         num_threads
     )
+    print("Got heeeeeeere 7...........................")
     # ... freeing up memory ....................................................
     free(lindex_z)
     free(disc_r)

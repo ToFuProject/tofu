@@ -211,6 +211,12 @@ cdef inline void earclipping_poly(double* vignett,
     cdef int wi, wim1, wip1
     cdef int iear
     cdef vecpp[int] working_index
+    # .. Checking if poly is a triangle .......................................
+    if nvert == 3:
+        ltri[0] = 0
+        ltri[1] = 1
+        ltri[2] = 2
+        return
     # .. First computing the edges coodinates .................................
     # .. and checking if the angles defined by the edges are reflex or not.....
     # initialization of working index tab:

@@ -11,6 +11,7 @@ from libc.math cimport ceil as c_ceil, fabs as c_abs
 from libc.math cimport floor as c_floor, round as c_round
 from libc.math cimport sqrt as c_sqrt
 from libc.math cimport pi as c_pi, cos as c_cos, sin as c_sin
+from libc.math cimport atan2 as c_atan2
 from libc.math cimport isnan as c_isnan
 from libc.math cimport NAN as C_NAN
 from libc.math cimport log2 as c_log2
@@ -18,6 +19,7 @@ from libc.stdlib cimport malloc, free, realloc
 from cython.parallel import prange
 from cython.parallel cimport parallel
 from cpython.array cimport array, clone
+from libc.stdio cimport printf
 # for utility functions:
 import numpy as np
 cimport numpy as cnp
@@ -3069,7 +3071,9 @@ cdef inline void tri_asmbl_unblock_approx(
     free(side_of_poly)
     return
 
-
+#TODO : checker que ce qui va dans le arctan() est forcement positif !
+# TODO : numerateur : prend la valeur absolue
+#        denumerateur : ajouter pi si negatif
 cdef inline double comp_sa_tri_appx(
     int itri,
     long* ltri,
@@ -3106,4 +3110,10 @@ cdef inline double comp_sa_tri_appx(
         + dot_Gc * (normA - normC)
     )
 
-    return numerator / denumerator
+    if denumerator < 0. :
+        denumerator += c_pi
+
+    if denumerator < 0. :
+        printf(">>>>>> denumerator is still negative: %f", denumerator)
+
+    return c_atan2(c_abs(numerator), denumerator)

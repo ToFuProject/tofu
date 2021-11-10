@@ -387,68 +387,88 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
     # coordonnées en x,y,z:
     # Tester : enlever des points au rectangle et puis un rectangle avec plus de points
     poly_coords = [
-        np.array([
-            [2.7, 0, -0.4],
-            [2.75, 0, -0.4],
-            [2.75, 0, -0.1],
-            [2.70, 0, -0.1],
-            [2.60, 0, -0.1],
-            [2.50, 0, -0.1],
-            [2.50, 0, -0.4],
-        ]).T,  # 1st polygon
-        np.array([
-            [2.50, 0, -0.1],
-            [2.60, 0, -0.1],
-            [2.70, 0, -0.1],
-            [2.75, 0, -0.1],
-            [2.75, 0, -0.4],
-            [2.7, 0, -0.4],
-            [2.50, 0, -0.4],
-        ]).T,  # 2nd polygon
-        np.array([
-            [2.60, 0, -0.1],
-            [2.70, 0, -0.1],
-            [2.75, 0, -0.1],
-            [2.75, 0, -0.4],
-            [2.7, 0, -0.4],
-            [2.50, 0, -0.4],
-            [2.50, 0, -0.1],
-        ]).T,  # 3rd polygon
+        # np.array([
+        #     [2.7, 0, -0.4],
+        #     [2.75, 0, -0.4],
+        #     [2.75, 0, -0.1],
+        #     [2.70, 0, -0.1],
+        #     [2.60, 0, -0.1],
+        #     [2.50, 0, -0.1],
+        #     [2.50, 0, -0.4],
+        # ]).T,  # 1st polygon
+        # np.array([
+        #     [2.50, 0, -0.1],
+        #     [2.50, 0, -0.4],
+        #     [2.7, 0, -0.4],
+        #     [2.75, 0, -0.4],
+        #     [2.75, 0, -0.1],
+        #     [2.70, 0, -0.1],
+        #     [2.60, 0, -0.1],
+        # ]).T,  # 2nd polygon
+        # np.array([
+        #     [2.60, 0, -0.1],
+        #     [2.50, 0, -0.1],
+        #     [2.50, 0, -0.4],
+        #     [2.7, 0, -0.4],
+        #     [2.75, 0, -0.4],
+        #     [2.75, 0, -0.1],
+        #     [2.70, 0, -0.1],
+        # ]).T,  # 3rd polygon
         np.array([
             [-2.5, 0, -0.35],
-            [2.70, 0, -0.15],
-            [2.68, 0, -0.3],
             [2.65, 0, -0.4],
+            [2.70, 0, -0.15],
         ]).T,  # 4th polygon
-        np.array([
-            [2.75, 0, -0.1],
-            [2.65, 0, -0.35],
-            [2.55, 0, -0.35],
-            [2.50, 0, -0.1],
-            [2.60, 0, -0.1],
-            [2.70, 0, -0.1],
-        ]).T,  # 5th polygon
-        np.array([
-            [2.2, 0., 0.25],
-            [2.2, 0., 0.50],
-            [2.5, 0., 0.50],
-            [2.7, 0., 0.50],
-            [3.0, 0., 0.50],
-            [3.0, 0., 0.25],
-            [2.6, 0., 0.25],
-        ]).T,  # 6th polygon
+        # np.array([
+        #     [2.75, 0, -0.1],
+        #     [2.70, 0, -0.1],
+        #     [2.60, 0, -0.1],
+        #     [2.50, 0, -0.1],
+        #     [2.55, 0, -0.35],
+        #     [2.65, 0, -0.35],
+        # ]).T,  # 5th polygon
+        # np.array([
+        #     [2.2, 0., 0.25],
+        #     [2.6, 0., 0.25],
+        #     [3.0, 0., 0.25],
+        #     [3.0, 0., 0.50],
+        #     [2.7, 0., 0.50],
+        #     [2.5, 0., 0.50],
+        #     [2.2, 0., 0.50],
+        # ]).T,  # 6th polygon
     ]
     poly_coords = [np.ascontiguousarray(poly) for poly in poly_coords]
     poly_lnorms = np.array([
+        # [0, 1., 0],
+        # [0, 1., 0],
+        # [0, 1., 0],
         [0, 1., 0],
-        [0, 1., 0],
-        [0, 1., 0],
-        [0, 1., 0],
-        [0, 1., 0],
-        [0, 1., 0],
+        # [0, 1., 0],
+        # [0, 1., 0],
     ])
     poly_lnvert = np.array([poly.shape[1] for poly in poly_coords])
     limits_r, limits_z = compute_min_max_r_and_z(ves_poly)
+
+    if debug > 0:
+        for pp in range(len(poly_coords)):
+            plt.clf()
+            fig = plt.figure()
+            ax = plt.subplot(111)
+            poly = poly_coords[pp]
+            poly = np.concatenate((poly, poly[:, 0].reshape(-1, 1)), axis=1)
+            xpoly = np.sqrt(poly[0]**2 + poly[1]**2)
+            zpoly = poly[2]
+            ax.plot(
+                xpoly, zpoly,
+                "r-", marker='o',
+                linewidth=2,
+            )
+            for xzi, (x,z) in enumerate(zip(xpoly, zpoly)):
+                #ax.annotate(f"({x},{z})", (x, z))
+                ax.annotate(f"{xzi}", (x,z))
+            ax.plot()
+            plt.savefig("poly" + str(pp))
+            print("...saved!\n")
 
     lblock = [False, True]
     lstep_rz = [
