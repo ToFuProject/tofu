@@ -26,7 +26,6 @@ from ._basic_geom_tools cimport is_point_in_path
 from ._basic_geom_tools cimport is_point_in_path_vec
 from ._basic_geom_tools cimport compute_inv_and_sign
 from . cimport _basic_geom_tools as _bgt
-from libc.stdio cimport printf
 
 # ==============================================================================
 # =  3D Bounding box (not Toroidal)
@@ -1045,8 +1044,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                       const double* normy,
                                       const int nvert,
                                       const bint lim_is_none,
-                                      double lim_min,
-                                      double lim_max,
+                                      const double lim_min,
+                                      const double lim_max,
                                       const bint forbidbis,
                                       const double upscaDp, const double upar2,
                                       const double dpar2, const double invuz,
@@ -1146,13 +1145,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
     cdef double sin1, sin0
     cdef double invupar2
     cdef double cosl0, cosl1, sinl0, sinl1
-    cdef double tmp
 
     # -- Computing some seful values -------------------------------------------
-    if lim_min > lim_max:
-        tmp = lim_min
-        lim_min = lim_max
-        lim_max = tmp
     cosl0 = c_cos(lim_min)
     cosl1 = c_cos(lim_max)
     sinl0 = c_sin(lim_min)
@@ -1179,8 +1173,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                         sqd = c_sqrt(delta)
                         # The intersection must be on the semi-line (i.e.: k>=0)
                         # First solution
-                        k = (-upscaDp - sqd) * invupar2
-                        if k >= 0 and k < kout: #!OKd if k>=kout, results were ignored anyway
+                        if -upscaDp - sqd >= 0:
+                            k = (-upscaDp - sqd) * invupar2
                             sol0 = ray_orig[0] + k * ray_vdir[0]
                             sol1 = ray_orig[1] + k * ray_vdir[1]
                             if forbidbis:
@@ -1195,28 +1189,29 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                 # at intersection
                                 phi = c_atan2(sol1, sol0)
                                 # Check sol inside the Lim
-                                if lim_is_none or \
-                                   (lim_min<=phi and phi<=lim_max):
+                                if lim_is_none or (not lim_is_none and
+                                                   ((lim_min<lim_max and
+                                                     lim_min<=phi and
+                                                     phi<=lim_max)
+                                                    or (lim_min>lim_max and
+                                                        (phi>=lim_min or
+                                                         phi<=lim_max)))):
                                     # Get the scalar product to determine
                                     # entry or exit point
-#                                    sca = c_cos(phi)*normx[jj]*ray_vdir[0] + \
-#                                          c_sin(phi)*normx[jj]*ray_vdir[1] + \
-#                                          normy[jj]*ray_vdir[2]
-                                    sca = (sol0*ray_vdir[0] + sol1*ray_vdir[1]) * \
-                                          normx[jj] / c_sqrt(sol0**2 + sol1**2) + \
-                                          normy[jj] * ray_vdir[2] #!OKd same but sin and cos not called
-                                    if sca<=0: #!OKd k<kout to kout already checked
+                                    sca = c_cos(phi)*normx[jj]*ray_vdir[0] + \
+                                          c_sin(phi)*normx[jj]*ray_vdir[1] + \
+                                          normy[jj]*ray_vdir[2]
+                                    if sca<=0 and k<kout:
                                         kout = k
                                         done = 1
                                         indout = jj
-                                    elif sca>=0 and k<kin: #!OKd k<kout to kout already checked
+                                    elif sca>=0 and k<min(kin,kout):
                                         kin = k
                                         indin = jj
-                                    #!OKd what about the case 0?
 
                         # Second solution
-                        k = (-upscaDp + sqd)*invupar2
-                        if k >=0 and k < kout: #!!!
+                        if -upscaDp + sqd >=0:
+                            k = (-upscaDp + sqd)*invupar2
                             sol0 = ray_orig[0] + k * ray_vdir[0]
                             sol1 = ray_orig[1] + k * ray_vdir[1]
                             if forbidbis:
@@ -1230,21 +1225,24 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                 # Get the normalized perpendicular vector
                                 # at intersection
                                 phi = c_atan2(sol1,sol0)
-                                if lim_is_none or \
-                                   (lim_min<=phi and phi<=lim_max):
+                                if lim_is_none or (not lim_is_none and
+                                                   ((lim_min<lim_max and
+                                                     lim_min<=phi and
+                                                     phi<=lim_max) or
+                                                    (lim_min>lim_max and
+                                                     (phi>=lim_min or
+                                                      phi<=lim_max))
+                                                   )):
                                     # Get the scalar product to determine
                                     # entry or exit point
-#                                    sca = c_cos(phi)*normx[jj]*ray_vdir[0] + \
-#                                          c_sin(phi)*normx[jj]*ray_vdir[1] + \
-#                                          normy[jj]*ray_vdir[2]
-                                    sca = (sol0*ray_vdir[0] + sol1*ray_vdir[1]) * \
-                                          normx[jj] / c_sqrt(sol0**2 + sol1**2) + \
-                                          normy[jj] * ray_vdir[2]
-                                    if sca<=0:
+                                    sca = c_cos(phi)*normx[jj]*ray_vdir[0] + \
+                                          c_sin(phi)*normx[jj]*ray_vdir[1] + \
+                                          normy[jj]*ray_vdir[2]
+                                    if sca<=0 and k<kout:
                                         kout = k
                                         done = 1
                                         indout = jj
-                                    elif sca>=0 and k<kin:
+                                    elif sca>=0 and k<min(kin,kout):
                                         kin = k
                                         indin = jj
     else:
@@ -1263,7 +1261,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                 q = -coeff / (2. * val_b)
                 if q >= 0. and q < 1.:
                     k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
-                    if k >= 0 and k < kout: #!!!
+                    if k >= 0:
                         sol0 = ray_orig[0] + k * ray_vdir[0]
                         sol1 = ray_orig[1] + k * ray_vdir[1]
                         if forbidbis:
@@ -1275,31 +1273,32 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                 continue
                         # Get the normalized perpendicular vect at intersection
                         phi = c_atan2(sol1,sol0)
-                        if lim_is_none or \
-                           (lim_min <= phi and phi <= lim_max):
+                        if lim_is_none or (not lim_is_none and
+                                           ((lim_min < lim_max and
+                                             lim_min <= phi and
+                                             phi <= lim_max) or
+                                            (lim_min > lim_max and
+                                             (phi >= lim_min or
+                                              phi <= lim_max)))):
                             # Get the scal prod to determine entry or exit point
-#                            sca = c_cos(phi) * normx[jj] * ray_vdir[0] + \
-#                                  c_sin(phi) * normx[jj] * ray_vdir[1] + \
-#                                  normy[jj] * ray_vdir[2]
-                            sca = (sol0*ray_vdir[0] + sol1*ray_vdir[1]) * \
-                                  normx[jj] / c_sqrt(sol0**2 + sol1**2) + \
+                            sca = c_cos(phi) * normx[jj] * ray_vdir[0] + \
+                                  c_sin(phi) * normx[jj] * ray_vdir[1] + \
                                   normy[jj] * ray_vdir[2]
-                            if sca<=0:
+                            if sca<=0 and k<kout:
                                 kout = k
                                 done = 1
                                 indout = jj
-                            elif sca>=0 and k<kin:
+                            elif sca>=0 and k<min(kin,kout):
                                 kin = k
                                 indin = jj
             elif ((val_a * val_a >= eps_a * eps_a) and
                   (val_b * val_b > val_a * coeff)):
                 sqd = c_sqrt(val_b * val_b - val_a * coeff)
-                
                 # First solution
                 q = (-val_b + sqd) / val_a
                 if q >= 0. and q < 1.:
                     k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
-                    if k >= 0. and k < kout: #!!!
+                    if k >= 0.:
                         sol0 = ray_orig[0] + k * ray_vdir[0]
                         sol1 = ray_orig[1] + k * ray_vdir[1]
                         if forbidbis:
@@ -1307,23 +1306,27 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                    (sol1-s1y) * ray_orig[1]
                             sca1 = (sol0-s1x) * s1x + (sol1-s1y) * s1y
                             sca2 = (sol0-s2x) * s2x + (sol1-s2y) * s2y
-                        if not forbidbis or not (sca0<0 and sca1<0 and sca2<0):
+                        if not forbidbis or (forbidbis and
+                                             not (sca0<0 and sca1<0 and
+                                                  sca2<0)):
                             # Get the normalized perpendicular vector at inter
                             phi = c_atan2(sol1, sol0)
-                            if lim_is_none or \
-                               (lim_min <= phi and phi <= lim_max):
+                            if lim_is_none or (not lim_is_none and
+                                               ((lim_min < lim_max and
+                                                 lim_min <= phi and
+                                                 phi <= lim_max) or
+                                                (lim_min > lim_max and
+                                                 (phi >= lim_min or
+                                                  phi <= lim_max)))):
                                 # Get the scal prod to determine in or out point
-#                                sca = c_cos(phi) * normx[jj] * ray_vdir[0] + \
-#                                      c_sin(phi) * normx[jj] * ray_vdir[1] + \
-#                                      normy[jj] * ray_vdir[2]
-                                sca = (sol0*ray_vdir[0] + sol1*ray_vdir[1]) * \
-                                      normx[jj] / c_sqrt(sol0**2 + sol1**2) + \
+                                sca = c_cos(phi) * normx[jj] * ray_vdir[0] + \
+                                      c_sin(phi) * normx[jj] * ray_vdir[1] + \
                                       normy[jj] * ray_vdir[2]
-                                if sca<=0:
+                                if sca<=0 and k<kout:
                                     kout = k
                                     done = 1
                                     indout = jj
-                                elif sca>=0 and k<kin:
+                                elif sca>=0 and k<min(kin,kout):
                                     kin = k
                                     indin = jj
 
@@ -1331,7 +1334,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                 q = (-val_b - sqd) / val_a
                 if q >= 0. and q < 1.:
                     k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
-                    if k >= 0. and k < kout: #!!!
+                    if k>=0.:
                         sol0 = ray_orig[0] + k * ray_vdir[0]
                         sol1 = ray_orig[1] + k * ray_vdir[1]
                         if forbidbis:
@@ -1339,23 +1342,27 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                    (sol1-s1y) * ray_orig[1]
                             sca1 = (sol0-s1x) * s1x + (sol1-s1y) * s1y
                             sca2 = (sol0-s2x) * s2x + (sol1-s2y) * s2y
-                        if not forbidbis or not (sca0<0 and sca1<0 and sca2<0):
+                        if not forbidbis or (forbidbis and
+                                             not (sca0<0 and sca1<0 and
+                                                  sca2<0)):
                             # Get the normalized perpendicular vector at inter
                             phi = c_atan2(sol1,sol0)
-                            if lim_is_none or \
-                               (lim_min <= phi and phi <= lim_max):
+                            if lim_is_none or (not lim_is_none and
+                                               ((lim_min < lim_max and
+                                                 lim_min <= phi and
+                                                 phi <= lim_max) or
+                                                (lim_min>lim_max and
+                                                 (phi>=lim_min or
+                                                  phi<=lim_max)))):
                                 # Get the scal prod to determine if in or out
-#                                sca = c_cos(phi) * normx[jj] * ray_vdir[0] + \
-#                                      c_sin(phi) * normx[jj] * ray_vdir[1] + \
-#                                      normy[jj] * ray_vdir[2]
-                                sca = (sol0*ray_vdir[0] + sol1*ray_vdir[1]) * \
-                                      normx[jj] / c_sqrt(sol0**2 + sol1**2) + \
+                                sca = c_cos(phi) * normx[jj] * ray_vdir[0] + \
+                                      c_sin(phi) * normx[jj] * ray_vdir[1] + \
                                       normy[jj] * ray_vdir[2]
-                                if sca<=0:
+                                if sca<=0 and k<kout:
                                     kout = k
                                     done = 1
                                     indout = jj
-                                elif sca>=0 and k<kin:
+                                elif sca>=0 and k<min(kin,kout):
                                     kin = k
                                     indin = jj
 
@@ -1365,7 +1372,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
         if c_abs(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1) > eps_pln:
             k = -(ray_orig[0] * ephi_in0 + ray_orig[1] * ephi_in1) \
                 /(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1)
-            if k >= 0 and k < kout: #!!!
+            if k >= 0:
                 # Check if in ves_poly
                 sol0 = (ray_orig[0] + k * ray_vdir[0]) * cosl0 + \
                        (ray_orig[1] + k * ray_vdir[1]) * sinl0
@@ -1374,11 +1381,11 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                 if inter_bbox:
                     # Check PIn (POut not possible for limited torus)
                     sca = ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1
-                    if sca<=0:
+                    if sca<=0 and k<kout:
                         kout = k
                         done = 1
                         indout = -1
-                    elif sca>=0 and k<kin:
+                    elif sca>=0 and k<min(kin,kout):
                         kin = k
                         indin = -1
 
@@ -1387,7 +1394,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
         if c_abs(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1) > eps_pln:
             k = -(ray_orig[0] * ephi_in0 + ray_orig[1] * ephi_in1)\
                 /(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1)
-            if k >= 0 and k < kout: #!!!
+            if k >= 0:
                 sol0 = (ray_orig[0] + k * ray_vdir[0]) * cosl1 +\
                        (ray_orig[1] + k * ray_vdir[1]) * sinl1
                 sol1 =  ray_orig[2] + k * ray_vdir[2]
@@ -1396,11 +1403,11 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                 if inter_bbox:
                     # Check PIn (POut not possible for limited torus)
                     sca = ray_vdir[0]*ephi_in0 + ray_vdir[1]*ephi_in1
-                    if sca<=0:
+                    if sca<=0 and k<kout:
                         kout = k
                         done = 1
                         indout = -2
-                    elif sca>=0 and k<kin:
+                    elif sca>=0 and k<min(kin,kout):
                         kin = k
                         indin = -2
     # == Analyzing if there was impact =========================================
