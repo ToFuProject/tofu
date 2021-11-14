@@ -1,0 +1,9 @@
+{
+    "arch": "x86_64",
+    "cpu": "Intel(R) Core(TM) i7-9700 CPU @ 3.00GHz",
+    "machine": "didier-XH310V2",
+    "num_cpu": "8",
+    "os": "Linux 5.11.0-38-generic",
+    "ram": "32797816",
+    "version": 1
+}
