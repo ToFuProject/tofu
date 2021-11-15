@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>What’s new in 1.4.12 &#8212; Tofu 1.5.0</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../_static/js/jquery-1.12.4.min.js "></script>
+<script type="text/javascript" src="../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.5.0</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../installation.html">Installation</a></li>
+                <li><a href="../contributing.html">Contributing</a></li>
+                <li><a href="../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../aboutus.html">About</a></li>
+                <li><a href="../releases.html">Releases</a></li>
+                <li><a href="../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">What’s new in 1.4.12</a><ul>
+<li><a class="reference internal" href="#main-changes">Main changes:</a></li>
+<li><a class="reference internal" href="#detailed-changes">Detailed changes:</a><ul>
+<li><a class="reference internal" href="#mesh-and-basis-functions">Mesh and basis functions:</a></li>
+<li><a class="reference internal" href="#geometry-matrix">Geometry matrix:</a></li>
+<li><a class="reference internal" href="#imaging-x-ray-spectrometer">Imaging X-Ray spectrometer:</a></li>
+<li><a class="reference internal" href="#spectral-fitting">Spectral fitting:</a></li>
+<li><a class="reference internal" href="#solid-angles">Solid angles:</a></li>
+<li><a class="reference internal" href="#imas-interfacing">IMAS interfacing:</a></li>
+<li><a class="reference internal" href="#portability-ci">Portability / CI:</a></li>
+<li><a class="reference internal" href="#miscellaneous">Miscellaneous:</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#contributors">Contributors:</a></li>
+<li><a class="reference internal" href="#what-s-next-indicative">What’s next (indicative):</a></li>
+<li><a class="reference internal" href="#list-of-pr-merged-into-this-release">List of PR merged into this release:</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <section id="what-s-new-in-1-4-12">
+<h1>What’s new in 1.4.12<a class="headerlink" href="#what-s-new-in-1-4-12" title="Permalink to this headline">¶</a></h1>
+<p>tofu 1.4.12 is a minor upgrade from 1.4.11</p>
+<section id="main-changes">
+<h2>Main changes:<a class="headerlink" href="#main-changes" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Mesh2DRect class and bsplines implemented #545</p></li>
+<li><p>Geometry matrix computation implemented #549</p></li>
+<li><p>Operators for integration implemented #551</p></li>
+<li><p>CrystalBragg (spherical), splittable, implemented #532 #538</p></li>
+<li><p>Non-parallelism implemented for Crystals #531, #542</p></li>
+<li><p>Possibility of getting local coordinates of an arbitrary detector implemented #541</p></li>
+<li><p>1d spectrum fitting implemented #532</p></li>
+<li><p>Solid angle integrated toroidally for spherical particle implemented #535</p></li>
+<li><p>IMAS interface improved (more robust) #530</p></li>
+</ul>
+</section>
+<section id="detailed-changes">
+<h2>Detailed changes:<a class="headerlink" href="#detailed-changes" title="Permalink to this headline">¶</a></h2>
+<section id="mesh-and-basis-functions">
+<h3>Mesh and basis functions:<a class="headerlink" href="#mesh-and-basis-functions" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>A generic Mesh2DRect class is created, can create an arbitrary non-uniform rectangular mesh from a tokamak geometry, provides cropping and plotting #545</p></li>
+<li><p>Bivariate b-splines of degree 0, 1, 2, 3 can be used on that mesh #545</p></li>
+<li><p>Operators D0, D0N2, D1N2, D2N2 can be computed for any bsplines of deg 0, 1, 2, in toroidal and linear geometry #551</p></li>
+</ul>
+</section>
+<section id="geometry-matrix">
+<h3>Geometry matrix:<a class="headerlink" href="#geometry-matrix" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Mesh2DRect.compute_geometry_matrix() implemented for LOS-approximation, reasonably fast, with plotting routines and cropping #549</p></li>
+</ul>
+</section>
+<section id="imaging-x-ray-spectrometer">
+<h3>Imaging X-Ray spectrometer:<a class="headerlink" href="#imaging-x-ray-spectrometer" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>A CrystalBragg class is created to model a 2D spherically curved X-ray spectrometer, to be used with a detector, with ray-tracing and plots #532</p></li>
+<li><p>The non-parallelism between optical surface and crystal lattice can be set and taken into account in ray-tracing, to account for defects on WEST spectrometer (&#64;adriendaros) #542</p></li>
+<li><p>Crystal splitting in halves implemented, as non-parallelism to can set for each half independently (&#64;adriendaros) #538</p></li>
+<li><p>The possibility of getting the local coordinates of an arbitrary detector in the Crystal’s frame is implemented (&#64;adriendaros) #541</p></li>
+</ul>
+</section>
+<section id="spectral-fitting">
+<h3>Spectral fitting:<a class="headerlink" href="#spectral-fitting" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>1d spectrum fitting routine implemented, with lot of flexibility and re-use of solution for next time step #532</p></li>
+<li><p>2d fitting pre-implemented, to be finished #532</p></li>
+</ul>
+</section>
+<section id="solid-angles">
+<h3>Solid angles:<a class="headerlink" href="#solid-angles" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>The toroidal integral of the solid angles subtended by a spherical particle can be computed (&#64;lasofivec) #535</p></li>
+</ul>
+</section>
+<section id="imas-interfacing">
+<h3>IMAS interfacing:<a class="headerlink" href="#imas-interfacing" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>IMAS interface more robust when writing data to bolometers IDS #530</p></li>
+</ul>
+</section>
+<section id="portability-ci">
+<h3>Portability / CI:<a class="headerlink" href="#portability-ci" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Github Actions and porting of travis-ci.org to travis-ci.com fixed (&#64;lasofivec)</p></li>
+</ul>
+</section>
+<section id="miscellaneous">
+<h3>Miscellaneous:<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>More detailed error messages</p></li>
+<li><p>More unit tests</p></li>
+</ul>
+</section>
+</section>
+<section id="contributors">
+<h2>Contributors:<a class="headerlink" href="#contributors" title="Permalink to this headline">¶</a></h2>
+<p>Many thanks to all developpers and contributors:
+- Didier Vezinet (&#64;Didou09)
+- Laura Mendoza (&#64;lasofivec)
+- Adrien Da Ros (&#64;adriendaros)</p>
+</section>
+<section id="what-s-next-indicative">
+<h2>What’s next (indicative):<a class="headerlink" href="#what-s-next-indicative" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Solid angles for Volume-Of-Sight and radiative heat loads computation (ongoing for &#64;lasofivec : Issues #74, #75, #76, #77, #78)</p></li>
+<li><p>Basic tools for inversions</p></li>
+<li><p>Generic data class to incorporate plateau-finding, data analysis and 1d Bayesian fitting routines and classes (ongoing for &#64;Didou09 and &#64;jmoralesFusion and &#64;MohammadKozeiha: issues #208, #260 and #262)</p></li>
+<li><p>More general magnetic field line tracing workflow</p></li>
+<li><p>Better unit tests coverage</p></li>
+<li><p>More complete documentation</p></li>
+</ul>
+</section>
+<section id="list-of-pr-merged-into-this-release">
+<h2>List of PR merged into this release:<a class="headerlink" href="#list-of-pr-merged-into-this-release" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>PR: #530, #531, #532, #535, #538, #541, #542, #545, #549, #551</p></li>
+</ul>
+</section>
+</section>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+<div id="sourcelink">
+  <a href="../_sources/release_notes/release_notes_1412.rst.txt"
+     rel="nofollow">Source</a>
+</div>
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

@@ -96,9 +96,10 @@ The configuration can easily be visualized using the `.plot()` method:
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_basic_001.png
-    :alt: WEST-V3
-    :class: sphx-glr-single-img
+.. image-sg:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_basic_001.png
+   :alt: WEST-V3
+   :srcset: /auto_examples/tutorials/images/sphx_glr_tuto_plot_basic_001.png
+   :class: sphx-glr-single-img
 
 
 .. rst-class:: sphx-glr-script-out
@@ -107,8 +108,11 @@ The configuration can easily be visualized using the `.plot()` method:
 
  .. code-block:: none
 
+    /home/lasofivec/tofu/tofu/geom/_def.py:127: MatplotlibDeprecationWarning: 
+    The set_window_title function was deprecated in Matplotlib 3.4 and will be removed two minor releases later. Use manager.set_window_title or GUI-specific methods instead.
+      f.canvas.set_window_title(wintit)
 
-    [<matplotlib.axes._axes.Axes object at 0x7fc426154d60>, <matplotlib.axes._axes.Axes object at 0x7fc426132a90>]
+    [<AxesSubplot:xlabel='R (m)', ylabel='Z (m)'>, <AxesSubplot:xlabel='X (m)', ylabel='Y (m)'>]
 
 
 
@@ -140,9 +144,10 @@ output.
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_basic_002.png
-    :alt:  -  - 
-    :class: sphx-glr-single-img
+.. image-sg:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_basic_002.png
+   :alt:  -  - 
+   :srcset: /auto_examples/tutorials/images/sphx_glr_tuto_plot_basic_002.png
+   :class: sphx-glr-single-img
 
 
 .. rst-class:: sphx-glr-script-out
@@ -151,14 +156,17 @@ output.
 
  .. code-block:: none
 
-    /home/lasofivec/miniconda3/envs/tofu3/lib/python3.8/site-packages/numpy/core/_asarray.py:102: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
-      return array(a, dtype, copy=False, order=order)
+    /home/lasofivec/miniconda3/envs/newtofu3/lib/python3.9/site-packages/numpy/core/fromnumeric.py:3208: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
+      return asarray(a).size
+    /home/lasofivec/tofu/tofu/geom/_plot.py:1412: MatplotlibDeprecationWarning: 
+    The set_window_title function was deprecated in Matplotlib 3.4 and will be removed two minor releases later. Use manager.set_window_title or GUI-specific methods instead.
+      fig.canvas.set_window_title(wintit)
     /home/lasofivec/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
 
-    <tofu.utils.KeyHandler_mpl object at 0x7fc411746f10>
+    <tofu.utils.KeyHandler_mpl object at 0x7f31585b4790>
 
 
 
@@ -187,9 +195,10 @@ The principle is similar for 2D cameras.
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_basic_003.png
-    :alt:  -  - 
-    :class: sphx-glr-single-img
+.. image-sg:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_basic_003.png
+   :alt:  -  - 
+   :srcset: /auto_examples/tutorials/images/sphx_glr_tuto_plot_basic_003.png
+   :class: sphx-glr-single-img
 
 
 .. rst-class:: sphx-glr-script-out
@@ -198,14 +207,17 @@ The principle is similar for 2D cameras.
 
  .. code-block:: none
 
-    /home/lasofivec/miniconda3/envs/tofu3/lib/python3.8/site-packages/numpy/core/_asarray.py:102: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
-      return array(a, dtype, copy=False, order=order)
+    /home/lasofivec/miniconda3/envs/newtofu3/lib/python3.9/site-packages/numpy/core/fromnumeric.py:3208: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
+      return asarray(a).size
+    /home/lasofivec/tofu/tofu/geom/_plot.py:1412: MatplotlibDeprecationWarning: 
+    The set_window_title function was deprecated in Matplotlib 3.4 and will be removed two minor releases later. Use manager.set_window_title or GUI-specific methods instead.
+      fig.canvas.set_window_title(wintit)
     /home/lasofivec/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
         - backend : agg   (prefer Qt5Agg)
         - canvas  : FigureCanvasAgg
       warnings.warn(msg)
 
-    <tofu.utils.KeyHandler_mpl object at 0x7fc4116c4370>
+    <tofu.utils.KeyHandler_mpl object at 0x7f31685bc670>
 
 
 
@@ -220,7 +232,7 @@ configuration.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  6.299 seconds)
+   **Total running time of the script:** ( 0 minutes  6.412 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_basic.py:

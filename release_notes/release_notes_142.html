@@ -3,16 +3,17 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>What’s new in 1.4.2 &#8212; Tofu 1.4.10</title>
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>What’s new in 1.4.2 &#8212; Tofu 1.5.0</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery-binder.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery-dataframe.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery-rendered-html.css" />
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
@@ -22,9 +23,9 @@
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../_static/js/jquery-1.12.4.min.js "></script>
 <script type="text/javascript" src="../_static/js/jquery-fix.js "></script>
-<script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
 <script type="text/javascript" src="../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
@@ -40,7 +41,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.5.0</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -131,9 +132,9 @@
   <div class="row">
     <div class="body col-md-12 content" role="main">
       
-  <div class="section" id="what-s-new-in-1-4-2">
+  <section id="what-s-new-in-1-4-2">
 <h1>What’s new in 1.4.2<a class="headerlink" href="#what-s-new-in-1-4-2" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="main-changes">
+<section id="main-changes">
 <h2>Main changes:<a class="headerlink" href="#main-changes" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Python 2.7 is not supported anymore</p></li>
@@ -151,10 +152,10 @@
 <li><p>extra tools for computing LOS length, closest point to magnetic axis…</p></li>
 <li><p>Better PEP8 compliance</p></li>
 </ul>
-</div>
-<div class="section" id="detailed-changes">
+</section>
+<section id="detailed-changes">
 <h2>Detailed changes:<a class="headerlink" href="#detailed-changes" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="installation-portability">
+<section id="installation-portability">
 <h3>Installation / portability:<a class="headerlink" href="#installation-portability" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Bug fixes for installation on ITER and Gateway clusters #250</p></li>
@@ -171,8 +172,8 @@
 - made necessary changes in <code class="docutils literal notranslate"><span class="pre">setup.py</span></code>
 - <code class="docutils literal notranslate"><span class="pre">benchmarks/calc_signal_benchmark.py</span></code>: now working with python 3</p></li>
 </ul>
-</div>
-<div class="section" id="bug-fixes">
+</section>
+<section id="bug-fixes">
 <h3>Bug fixes:<a class="headerlink" href="#bug-fixes" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Major bug fix in <code class="docutils literal notranslate"><span class="pre">LOS_calc_signal()</span></code> for computing the synthetic signal of a LOS camera using a particular algortihm : method=’sum’, minimize=’hybrid’, ani=True,  #247 #255</p></li>
@@ -189,8 +190,8 @@ in some cases the formula for sampling a LOS was wrong (<code class="docutils li
 <li><p>__repr__() is now overloaded in a more robust way so it falls back to printing the class if get_summary() fails to avoid crashing in debug mode #242</p></li>
 <li><p>Minor bug in time interpolation in Plasma2D methods #215</p></li>
 </ul>
-</div>
-<div class="section" id="documentation">
+</section>
+<section id="documentation">
 <h3>Documentation:<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Updated information about support of python version #273</p></li>
@@ -206,8 +207,8 @@ Jupyter notebook!</p></li>
 now in rST and not HTML), small changes in navigation bar.</p></li>
 <li><p>Guide on how to contribute to ToFu.</p></li>
 </ul>
-</div>
-<div class="section" id="new-features">
+</section>
+<section id="new-features">
 <h3>New features:<a class="headerlink" href="#new-features" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>First version of <strong>magnetic field line tracing</strong> (for WEST only so far, to be improved) #213 #235</p></li>
@@ -229,9 +230,9 @@ a 1D array if <code class="docutils literal notranslate"><span class="pre">t=Non
 <li><p>More explicit names for default configurations #264</p></li>
 <li><p>The github homepage now includes a badge to the gitter chatroom #277</p></li>
 </ul>
-</div>
-</div>
-<div class="section" id="contributors">
+</section>
+</section>
+<section id="contributors">
 <h2>Contributors:<a class="headerlink" href="#contributors" title="Permalink to this headline">¶</a></h2>
 <p>Many thanks to all developpers:</p>
 <ul class="simple">
@@ -242,8 +243,8 @@ a 1D array if <code class="docutils literal notranslate"><span class="pre">t=Non
 <li><p>Koyo Munechika (&#64;munechika-koyo)</p></li>
 <li><p>Louwrens Van Dellen (&#64;Louwrensth)</p></li>
 </ul>
-</div>
-<div class="section" id="what-s-next-indicative">
+</section>
+<section id="what-s-next-indicative">
 <h2>What’s next (indicative):<a class="headerlink" href="#what-s-next-indicative" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Migrating from nosetests (ongoing for &#64;lasofivec : issues #95 and #232 )</p></li>
@@ -255,16 +256,16 @@ a 1D array if <code class="docutils literal notranslate"><span class="pre">t=Non
 <li><p>Better unit tests coverage</p></li>
 <li><p>More complete documentation</p></li>
 </ul>
-</div>
-<div class="section" id="list-of-issues-and-pr-closed">
+</section>
+<section id="list-of-issues-and-pr-closed">
 <h2>List of issues and PR closed:<a class="headerlink" href="#list-of-issues-and-pr-closed" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Issues: #30, #180, #183, #185, #186, #187, #188, #189, #190, #201, #209, #211, #213, #215, #217, #218, #220, #224, #227, #228, #230, #235, #243, #247, #248, #250, #252, #255, #264, #277</p></li>
 <li><p>PR: #173, #175, #179, #181, #182, #184, #191, #192, #193, #194, #195, #196, #197, #199, #206, #207, #210, #212, #222, #223, #225, #226, #229, #231, #233, #234, #236, #237, #238, #240, #242, #244, #245, #246, #249, #251, #253, #254, #256, #257, #258,
 #261, #265, #267, #269, #270, #273, #278, #279, #280, #282</p></li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
     </div>
@@ -286,8 +287,8 @@ a 1D array if <code class="docutils literal notranslate"><span class="pre">t=Non
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 30, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
     </p>
   </div>
 </footer>

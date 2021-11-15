@@ -3,16 +3,17 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>What’s new in 1.4.8 &#8212; Tofu 1.4.10</title>
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>What’s new in 1.4.8 &#8212; Tofu 1.5.0</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery-binder.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery-dataframe.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery-rendered-html.css" />
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
@@ -22,9 +23,9 @@
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../_static/js/jquery-1.12.4.min.js "></script>
 <script type="text/javascript" src="../_static/js/jquery-fix.js "></script>
-<script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
 <script type="text/javascript" src="../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
@@ -40,7 +41,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.5.0</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -134,11 +135,11 @@
   <div class="row">
     <div class="body col-md-12 content" role="main">
       
-  <div class="section" id="what-s-new-in-1-4-8">
+  <section id="what-s-new-in-1-4-8">
 <h1>What’s new in 1.4.8<a class="headerlink" href="#what-s-new-in-1-4-8" title="Permalink to this headline">¶</a></h1>
 <p>tofu 1.4.8 is a minor upgrade from 1.4.7
 It contains bug fixes, optimized volume sampling routines and new tokamak geometries</p>
-<div class="section" id="main-changes">
+<section id="main-changes">
 <h2>Main changes:<a class="headerlink" href="#main-changes" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Optimized volume sampling #334</p></li>
@@ -149,61 +150,61 @@ It contains bug fixes, optimized volume sampling routines and new tokamak geomet
 <li><p>Updated README for PlasmaPy and conda-forge #426</p></li>
 <li><p>Better PEP8 compliance</p></li>
 </ul>
-</div>
-<div class="section" id="detailed-changes">
+</section>
+<section id="detailed-changes">
 <h2>Detailed changes:<a class="headerlink" href="#detailed-changes" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="community">
+<section id="community">
 <h3>Community:<a class="headerlink" href="#community" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>README now includes PlasmaPy badges</p></li>
 </ul>
-</div>
-<div class="section" id="scripts">
+</section>
+<section id="scripts">
 <h3>scripts:<a class="headerlink" href="#scripts" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Cleaner and more flexible #417</p></li>
 </ul>
-</div>
-<div class="section" id="geometry">
+</section>
+<section id="geometry">
 <h3>Geometry:<a class="headerlink" href="#geometry" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>New <strong>TCV configuration</strong> available thanks to Oulfa Chellai! #419</p></li>
 </ul>
-</div>
-<div class="section" id="imas-interfacing">
+</section>
+<section id="imas-interfacing">
 <h3>IMAS interfacing:<a class="headerlink" href="#imas-interfacing" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Debugging for compatibility with tools_dc/5 #396</p></li>
 </ul>
-</div>
-<div class="section" id="id1">
+</section>
+<section id="id1">
 <h3>Geometry:<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Faster (optimized and parallelized) volume sampling from sub-domain and indices (in toroidql geometry only) #334</p></li>
 </ul>
-</div>
-<div class="section" id="documentation">
+</section>
+<section id="documentation">
 <h3>Documentation:<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li></li>
 </ul>
-</div>
-<div class="section" id="miscellaneous">
+</section>
+<section id="miscellaneous">
 <h3>Miscellaneous:<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Better PEP8 compliance</p></li>
 </ul>
-</div>
-</div>
-<div class="section" id="contributors">
+</section>
+</section>
+<section id="contributors">
 <h2>Contributors:<a class="headerlink" href="#contributors" title="Permalink to this headline">¶</a></h2>
 <p>Many thanks to all developpers and contributors:
 - Didier Vezinet (&#64;Didou09)
 - Laura Mendoza (&#64;lasofivec)
 - Florian Le Bourdais  (&#64;flothesof)
 - Oulfa Chellai for TCV geometry</p>
-</div>
-<div class="section" id="what-s-next-indicative">
+</section>
+<section id="what-s-next-indicative">
 <h2>What’s next (indicative):<a class="headerlink" href="#what-s-next-indicative" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Migrating from nosetests (ongoing for &#64;lasofivec : issues #95 and #232)</p></li>
@@ -215,14 +216,14 @@ It contains bug fixes, optimized volume sampling routines and new tokamak geomet
 <li><p>Better unit tests coverage</p></li>
 <li><p>More complete documentation</p></li>
 </ul>
-</div>
-<div class="section" id="list-of-pr-merged-into-this-release">
+</section>
+<section id="list-of-pr-merged-into-this-release">
 <h2>List of PR merged into this release:<a class="headerlink" href="#list-of-pr-merged-into-this-release" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>PR: #334, #417, #418, #419, #423, #425, #426, #427</p></li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
     </div>
@@ -244,8 +245,8 @@ It contains bug fixes, optimized volume sampling routines and new tokamak geomet
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 30, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
     </p>
   </div>
 </footer>

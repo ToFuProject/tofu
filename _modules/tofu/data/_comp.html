@@ -4,15 +4,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tofu.data._comp &#8212; Tofu 1.4.10</title>
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
+    <title>tofu.data._comp &#8212; Tofu 1.5.0</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery-binder.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery-dataframe.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery-rendered-html.css" />
-    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
     <script src="../../../_static/jquery.js"></script>
     <script src="../../../_static/underscore.js"></script>
     <script src="../../../_static/doctools.js"></script>
@@ -22,9 +22,9 @@
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../../_static/js/jquery-1.12.4.min.js "></script>
 <script type="text/javascript" src="../../../_static/js/jquery-fix.js "></script>
-<script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
 <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
@@ -40,7 +40,7 @@
         </button>
         <a class="navbar-brand" href="../../../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.5.0</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -130,7 +130,7 @@
 <span class="kn">from</span> <span class="nn">matplotlib.tri</span> <span class="kn">import</span> <span class="n">LinearTriInterpolator</span> <span class="k">as</span> <span class="n">mplTriLinInterp</span>
 
 
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_comp_new</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_DataCollection_comp</span>
 
 
 <span class="n">_fmin_coef</span> <span class="o">=</span> <span class="mf">5.</span>
@@ -175,14 +175,17 @@
     <span class="c1"># Compute</span>
     <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;scipy-fourier&#39;</span><span class="p">,</span> <span class="s1">&#39;scipy-stft&#39;</span><span class="p">]:</span>
         <span class="n">stft</span> <span class="o">=</span> <span class="s1">&#39;stft&#39;</span> <span class="ow">in</span> <span class="n">method</span>
-        <span class="n">f</span><span class="p">,</span> <span class="n">tf</span><span class="p">,</span> <span class="n">lpsd</span><span class="p">,</span> <span class="n">lang</span> <span class="o">=</span> <span class="n">_spectrogram_scipy_fourier</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span> <span class="n">fmin</span><span class="o">=</span><span class="n">fmin</span><span class="p">,</span>
-                                                       <span class="n">stft</span><span class="o">=</span><span class="n">stft</span><span class="p">,</span> <span class="n">deg</span><span class="o">=</span><span class="n">deg</span><span class="p">,</span>
-                                                       <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span>
-                                                       <span class="n">nperseg</span><span class="o">=</span><span class="n">nperseg</span><span class="p">,</span>
-                                                       <span class="n">noverlap</span><span class="o">=</span><span class="n">noverlap</span><span class="p">,</span>
-                                                       <span class="n">detrend</span><span class="o">=</span><span class="n">detrend</span><span class="p">,</span>
-                                                       <span class="n">boundary</span><span class="o">=</span><span class="n">boundary</span><span class="p">,</span>
-                                                       <span class="n">padded</span><span class="o">=</span><span class="n">padded</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">)</span>
+        <span class="n">f</span><span class="p">,</span> <span class="n">tf</span><span class="p">,</span> <span class="n">lpsd</span><span class="p">,</span> <span class="n">lang</span> <span class="o">=</span> <span class="n">_spectrogram_scipy_fourier</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span> <span class="n">fmin</span><span class="o">=</span><span class="n">fmin</span><span class="p">,</span>
+            <span class="n">stft</span><span class="o">=</span><span class="n">stft</span><span class="p">,</span> <span class="n">deg</span><span class="o">=</span><span class="n">deg</span><span class="p">,</span>
+            <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span>
+            <span class="n">nperseg</span><span class="o">=</span><span class="n">nperseg</span><span class="p">,</span>
+            <span class="n">noverlap</span><span class="o">=</span><span class="n">noverlap</span><span class="p">,</span>
+            <span class="n">detrend</span><span class="o">=</span><span class="n">detrend</span><span class="p">,</span>
+            <span class="n">boundary</span><span class="o">=</span><span class="n">boundary</span><span class="p">,</span>
+            <span class="n">padded</span><span class="o">=</span><span class="n">padded</span><span class="p">,</span>
+            <span class="n">warn</span><span class="o">=</span><span class="n">warn</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="n">tf</span> <span class="o">=</span> <span class="n">tf</span> <span class="o">+</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">elif</span> <span class="n">method</span><span class="o">==</span><span class="s1">&#39;scipy-wavelet&#39;</span><span class="p">:</span>
         <span class="n">f</span><span class="p">,</span> <span class="n">lspect</span> <span class="o">=</span> <span class="n">_spectrogram_scipy_wavelet</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span>
@@ -349,7 +352,7 @@
 <span class="sd">        If True all the higher harmonics of df will also be included</span>
 <span class="sd">    df_out :    None / list</span>
 <span class="sd">        List or tuple of len()=2, containing the bandpass lower / upper bounds</span>
-<span class="sd">        to be excluded from filtering (if it overlaps with high harmonics of df)</span>
+<span class="sd">        to be excluded from filtering (if overlaps with high harmonics of df)</span>
 <span class="sd">    harm_out :  bool</span>
 <span class="sd">        If True, the higher harmonics of the interval df_out are also excluded</span>
 <span class="sd">    Test :      bool</span>
@@ -540,7 +543,7 @@
                 <span class="n">shapeval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntall</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span>
                 <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
 
-                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_comp_new</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_DataCollection_comp</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
                     <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
                     <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
                     <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
@@ -583,7 +586,7 @@
                     <span class="n">indok</span> <span class="o">=</span> <span class="n">indpts</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
                     <span class="n">indpts</span> <span class="o">=</span> <span class="n">indpts</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
 
-                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_comp_new</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_DataCollection_comp</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
                     <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
                     <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
                     <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
@@ -625,7 +628,7 @@
                 <span class="n">t0tri</span><span class="p">,</span> <span class="n">t0int</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span>
 
                 <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span><span class="p">,</span> <span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span> <span class="o">=</span> \
-                        <span class="n">_comp_new</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                        <span class="n">_DataCollection_comp</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
                             <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
                             <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
                             <span class="n">indtr1</span><span class="o">=</span><span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="n">indtr2</span><span class="p">,</span>
@@ -679,7 +682,7 @@
                     <span class="n">indpts</span> <span class="o">=</span> <span class="n">indpts</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
 
                 <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span><span class="p">,</span> <span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span> <span class="o">=</span> \
-                        <span class="n">_comp_new</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+                        <span class="n">_DataCollection_comp</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
                             <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span> <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
                             <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
                             <span class="n">indtr1</span><span class="o">=</span><span class="n">indtr1</span><span class="p">,</span> <span class="n">indtr2</span><span class="o">=</span><span class="n">indtr2</span><span class="p">,</span>
@@ -766,7 +769,7 @@
             <span class="n">valZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">shapeval</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">)</span>
 
             <span class="c1"># Interpolate</span>
-            <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_comp_new</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+            <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_DataCollection_comp</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
                 <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
                 <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
                 <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
@@ -838,7 +841,7 @@
                 <span class="n">indok</span> <span class="o">=</span> <span class="n">indpts</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
                 <span class="n">indpts</span> <span class="o">=</span> <span class="n">indpts</span><span class="p">[</span><span class="n">indok</span><span class="p">]</span>
 
-            <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_comp_new</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
+            <span class="n">ntall</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">indtu</span><span class="p">,</span> <span class="n">indtq</span> <span class="o">=</span> <span class="n">_DataCollection_comp</span><span class="o">.</span><span class="n">_get_indtu</span><span class="p">(</span>
                 <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">tall</span><span class="o">=</span><span class="n">tall</span><span class="p">,</span>
                 <span class="n">indtq</span><span class="o">=</span><span class="n">indtq</span><span class="p">,</span>
                 <span class="n">tbinall</span><span class="o">=</span><span class="n">tbinall</span><span class="p">,</span>
@@ -886,8 +889,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 30, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
     </p>
   </div>
 </footer>

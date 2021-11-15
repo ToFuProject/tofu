@@ -81,9 +81,10 @@ shape at the bottom:
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_001.png
-    :alt: tuto plot create geometry
-    :class: sphx-glr-single-img
+.. image-sg:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_001.png
+   :alt: tuto plot create geometry
+   :srcset: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_001.png
+   :class: sphx-glr-single-img
 
 
 .. rst-class:: sphx-glr-script-out
@@ -162,7 +163,7 @@ object, it is advised not to modify it.
 
  .. code-block:: none
 
-    TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.10-alpha9-349-gd9149398
+    TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.5.0-3-g96c1c10c
 
 
 
@@ -187,10 +188,21 @@ polygon):
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_002.png
-    :alt: tuto plot create geometry
-    :class: sphx-glr-single-img
+.. image-sg:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_002.png
+   :alt: tuto plot create geometry
+   :srcset: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_002.png
+   :class: sphx-glr-single-img
 
+
+.. rst-class:: sphx-glr-script-out
+
+ Out:
+
+ .. code-block:: none
+
+    /home/lasofivec/tofu/tofu/geom/_def.py:127: MatplotlibDeprecationWarning: 
+    The set_window_title function was deprecated in Matplotlib 3.4 and will be removed two minor releases later. Use manager.set_window_title or GUI-specific methods instead.
+      f.canvas.set_window_title(wintit)
 
 
 
@@ -221,7 +233,7 @@ it so that it can be used by other ToFu objects when necessary.
  .. code-block:: none
 
     Saved in :
-        /home/lasofivec/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.4.10-alpha9-349-gd9149398.npz
+        /home/lasofivec/tofu/examples/tutorials/TFG_Ves_ExpMisc_MyFirstVessel_sh00000_Vers1.5.0-3-g96c1c10c.npz
 
 
 
@@ -296,9 +308,10 @@ otherwise the type must be specified.
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_003.png
-    :alt: test
-    :class: sphx-glr-single-img
+.. image-sg:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_003.png
+   :alt: test
+   :srcset: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_003.png
+   :class: sphx-glr-single-img
 
 
 .. rst-class:: sphx-glr-script-out
@@ -307,8 +320,11 @@ otherwise the type must be specified.
 
  .. code-block:: none
 
+    /home/lasofivec/tofu/tofu/geom/_def.py:127: MatplotlibDeprecationWarning: 
+    The set_window_title function was deprecated in Matplotlib 3.4 and will be removed two minor releases later. Use manager.set_window_title or GUI-specific methods instead.
+      f.canvas.set_window_title(wintit)
     Saved in :
-        /home/lasofivec/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.4.10-alpha9-349-gd9149398.npz
+        /home/lasofivec/tofu/doc/source/TFG_Config_ExpMisc_test_sh00000_Vers1.5.0-3-g96c1c10c.npz
 
 
 
@@ -316,7 +332,7 @@ otherwise the type must be specified.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  1.026 seconds)
+   **Total running time of the script:** ( 0 minutes  0.703 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_create_geometry.py:

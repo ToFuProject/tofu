@@ -142,15 +142,16 @@ Now we can plot the results the first point on the trajectory
                s=10,                    # size of pixel
                c=sa_map[:, 0].flatten(),  # pixel color is value of int solid angle
                )
-    ax.set_box_aspect(1)
+    ax.set_aspect("equal")
     plt.show()
 
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_solid_angles_001.png
-    :alt: tuto plot solid angles
-    :class: sphx-glr-single-img
+.. image-sg:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_solid_angles_001.png
+   :alt: tuto plot solid angles
+   :srcset: /auto_examples/tutorials/images/sphx_glr_tuto_plot_solid_angles_001.png
+   :class: sphx-glr-single-img
 
 
 
@@ -160,7 +161,7 @@ Now we can plot the results the first point on the trajectory
 
 or the three points in the trajectory
 
-.. GENERATED FROM PYTHON SOURCE LINES 73-87
+.. GENERATED FROM PYTHON SOURCE LINES 73-88
 
 .. code-block:: default
 
@@ -174,26 +175,28 @@ or the three points in the trajectory
                    s=10,
                    c=sa_map[:, ind].flatten(),  # we change particle number
                    )
-        ax.set_box_aspect(1)
+        ax.set_aspect("equal")
+
 
     plt.show()
 
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_solid_angles_002.png
-    :alt: tuto plot solid angles
-    :class: sphx-glr-single-img
+.. image-sg:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_solid_angles_002.png
+   :alt: tuto plot solid angles
+   :srcset: /auto_examples/tutorials/images/sphx_glr_tuto_plot_solid_angles_002.png
+   :class: sphx-glr-single-img
 
 
 
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 88-89
+.. GENERATED FROM PYTHON SOURCE LINES 89-90
 
 Now let's see the 1D profile of all particles for z = 0.
 
-.. GENERATED FROM PYTHON SOURCE LINES 89-97
+.. GENERATED FROM PYTHON SOURCE LINES 90-98
 
 .. code-block:: default
 
@@ -203,14 +206,15 @@ Now let's see the 1D profile of all particles for z = 0.
 
     for (ind, ax) in enumerate(list_axes):
         ax.plot(pts[0, izero], sa_map[izero, ind])
-        ax.set_box_aspect(1)
+
     plt.show()
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_solid_angles_003.png
-    :alt: tuto plot solid angles
-    :class: sphx-glr-single-img
+.. image-sg:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_solid_angles_003.png
+   :alt: tuto plot solid angles
+   :srcset: /auto_examples/tutorials/images/sphx_glr_tuto_plot_solid_angles_003.png
+   :class: sphx-glr-single-img
 
 
 
@@ -219,7 +223,7 @@ Now let's see the 1D profile of all particles for z = 0.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  20.809 seconds)
+   **Total running time of the script:** ( 0 minutes  20.896 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_solid_angles.py:

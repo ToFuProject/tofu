@@ -123,11 +123,11 @@ actually contains:
     -----------  ----------  -----------
     3            3           15         
 
-    class  Name     SaveName                                                         nP  noccur  move  color                     visible
-    -----  -------  ---------------------------------------------------------------  --  ------  ----  ------------------------  -------
-    Ves    vessel   TFG_Ves_ExpTest_vessel_sh00000_Vers1.4.10-alpha9-349-gd9149398   7   0       None  ( 0.0,  0.0,  0.0,  1.0)  True   
-    PFC    struct1  TFG_PFC_ExpTest_struct1_sh00000_Vers1.4.10-alpha9-349-gd9149398  4   0       None  ( 0.0,  0.0,  0.5,  1.0)  True   
-    PFC    struct2  TFG_PFC_ExpTest_struct2_sh00000_Vers1.4.10-alpha9-349-gd9149398  4   0       None  (0.83,  0.0,  0.0,  1.0)  True   
+    class  Name     SaveName                                               nP  noccur  move  color                     visible
+    -----  -------  -----------------------------------------------------  --  ------  ----  ------------------------  -------
+    Ves    vessel   TFG_Ves_ExpTest_vessel_sh00000_Vers1.5.0-3-g96c1c10c   7   0       None  ( 0.0,  0.0,  0.0,  1.0)  True   
+    PFC    struct1  TFG_PFC_ExpTest_struct1_sh00000_Vers1.5.0-3-g96c1c10c  4   0       None  ( 0.0,  0.0,  0.5,  1.0)  True   
+    PFC    struct2  TFG_PFC_ExpTest_struct2_sh00000_Vers1.5.0-3-g96c1c10c  4   0       None  (0.83,  0.0,  0.0,  1.0)  True   
 
 
 
@@ -145,9 +145,10 @@ To plot it, simply do
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_from_svg_001.png
-    :alt: Test
-    :class: sphx-glr-single-img
+.. image-sg:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_from_svg_001.png
+   :alt: Test
+   :srcset: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_from_svg_001.png
+   :class: sphx-glr-single-img
 
 
 .. rst-class:: sphx-glr-script-out
@@ -156,8 +157,11 @@ To plot it, simply do
 
  .. code-block:: none
 
+    /home/lasofivec/tofu/tofu/geom/_def.py:127: MatplotlibDeprecationWarning: 
+    The set_window_title function was deprecated in Matplotlib 3.4 and will be removed two minor releases later. Use manager.set_window_title or GUI-specific methods instead.
+      f.canvas.set_window_title(wintit)
 
-    [<matplotlib.axes._axes.Axes object at 0x7fc4261289d0>, <matplotlib.axes._axes.Axes object at 0x7fc425eaf340>]
+    [<AxesSubplot:xlabel='R (m)', ylabel='Z (m)'>, <AxesSubplot:xlabel='X (m)', ylabel='Y (m)'>]
 
 
 
@@ -181,9 +185,10 @@ when loading the configuration.
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_from_svg_002.png
-    :alt: Test
-    :class: sphx-glr-single-img
+.. image-sg:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_from_svg_002.png
+   :alt: Test
+   :srcset: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_from_svg_002.png
+   :class: sphx-glr-single-img
 
 
 .. rst-class:: sphx-glr-script-out
@@ -197,8 +202,11 @@ when loading the configuration.
             - PFC: struct1 (5 pts, #000080)
             - PFC: struct2 (5 pts, #d40000)
     from /home/lasofivec/tofu/examples/tutorials/myfirstgeom.svg
+    /home/lasofivec/tofu/tofu/geom/_def.py:127: MatplotlibDeprecationWarning: 
+    The set_window_title function was deprecated in Matplotlib 3.4 and will be removed two minor releases later. Use manager.set_window_title or GUI-specific methods instead.
+      f.canvas.set_window_title(wintit)
 
-    [<matplotlib.axes._axes.Axes object at 0x7fc425e4a280>, <matplotlib.axes._axes.Axes object at 0x7fc425785d00>]
+    [<AxesSubplot:xlabel='R (m)', ylabel='Z (m)'>, <AxesSubplot:xlabel='X (m)', ylabel='Y (m)'>]
 
 
 
@@ -216,17 +224,18 @@ let tofu scale the figure automatically for you
         Name="Traced from pdf",
         Exp="Test",
         res=10,
-        point1=(0.7, -2),
-        point2=(2.8, 2)
+        point_ref1=(0.7, -2),
+        point_ref2=(2.8, 2)
     )
     config.plot()
     # sphinx_gallery_thumbnail_number = 3
 
 
 
-.. image:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_from_svg_003.png
-    :alt: Traced from pdf
-    :class: sphx-glr-single-img
+.. image-sg:: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_from_svg_003.png
+   :alt: Traced from pdf
+   :srcset: /auto_examples/tutorials/images/sphx_glr_tuto_plot_create_geometry_from_svg_003.png
+   :class: sphx-glr-single-img
 
 
 .. rst-class:: sphx-glr-script-out
@@ -258,15 +267,18 @@ let tofu scale the figure automatically for you
             - PFC: path11150 (5 pts, #8080ff)
             - PFC: path11185 (5 pts, #8787de)
     from /home/lasofivec/tofu/examples/tutorials/from_pdf.svg
+    /home/lasofivec/tofu/tofu/geom/_def.py:127: MatplotlibDeprecationWarning: 
+    The set_window_title function was deprecated in Matplotlib 3.4 and will be removed two minor releases later. Use manager.set_window_title or GUI-specific methods instead.
+      f.canvas.set_window_title(wintit)
 
-    [<matplotlib.axes._axes.Axes object at 0x7fc4116ca100>, <matplotlib.axes._axes.Axes object at 0x7fc4116d5910>]
+    [<AxesSubplot:xlabel='R (m)', ylabel='Z (m)'>, <AxesSubplot:xlabel='X (m)', ylabel='Y (m)'>]
 
 
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 0 minutes  1.042 seconds)
+   **Total running time of the script:** ( 0 minutes  0.950 seconds)
 
 
 .. _sphx_glr_download_auto_examples_tutorials_tuto_plot_create_geometry_from_svg.py:

@@ -3,16 +3,17 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>What’s new in 1.4.1 &#8212; Tofu 1.4.10</title>
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>What’s new in 1.4.1 &#8212; Tofu 1.5.0</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery-binder.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery-dataframe.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery-rendered-html.css" />
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
@@ -22,9 +23,9 @@
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../_static/js/jquery-1.12.4.min.js "></script>
 <script type="text/javascript" src="../_static/js/jquery-fix.js "></script>
-<script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
 <script type="text/javascript" src="../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
@@ -40,7 +41,7 @@
         </button>
         <a class="navbar-brand" href="../index.html">
           tofu</a>
-        <span class="navbar-text navbar-version pull-left"><b>1.4.10</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>1.5.0</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -158,11 +159,11 @@
   <div class="row">
     <div class="body col-md-12 content" role="main">
       
-  <div class="section" id="what-s-new-in-1-4-1">
+  <section id="what-s-new-in-1-4-1">
 <h1>What’s new in 1.4.1<a class="headerlink" href="#what-s-new-in-1-4-1" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="summary">
+<section id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="general">
+<section id="general">
 <h3>General<a class="headerlink" href="#general" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>All tofu object have overloaded <strong>repr</strong> method</p></li>
@@ -172,8 +173,8 @@ bugs fixed</p></li>
 <li><p>More robust saving to .mat</p></li>
 <li><p>tofuplot and tofucalc now provide simple bash interfaces</p></li>
 </ul>
-</div>
-<div class="section" id="the-geometry-module-is-now-more-complete">
+</section>
+<section id="the-geometry-module-is-now-more-complete">
 <h3>The geometry module is now more complete<a class="headerlink" href="#the-geometry-module-is-now-more-complete" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>A Config class handles the tokamak geometry</p></li>
@@ -187,8 +188,8 @@ useful geometrical computations</p></li>
 <li><p>The basics of a magnetic field-line tracing algorithm and plotting
 routine have been implemented</p></li>
 </ul>
-</div>
-<div class="section" id="imas-interfacing">
+</section>
+<section id="imas-interfacing">
 <h3>IMAS-interfacing<a class="headerlink" href="#imas-interfacing" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>More robust MultiIDSLoader class for IMAS interfacing</p></li>
@@ -196,21 +197,21 @@ routine have been implemented</p></li>
 <li><p>Very flexible and customizable</p></li>
 <li><p>Some classes have a save_to_imas() method</p></li>
 </ul>
-</div>
-<div class="section" id="next-to-come">
+</section>
+<section id="next-to-come">
 <h3>Next to come<a class="headerlink" href="#next-to-come" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Solid angles, solid angles, solid angles</p></li>
 </ul>
-</div>
-</div>
-<div class="section" id="detailed-changelog">
+</section>
+</section>
+<section id="detailed-changelog">
 <h2>Detailed Changelog<a class="headerlink" href="#detailed-changelog" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="enhancements">
+<section id="enhancements">
 <h3>Enhancements<a class="headerlink" href="#enhancements" title="Permalink to this headline">¶</a></h3>
-<div class="section" id="geometry">
+<section id="geometry">
 <h4>Geometry<a class="headerlink" href="#geometry" title="Permalink to this headline">¶</a></h4>
-<div class="section" id="algorithms-to-compute-distance-between-los-and-a-flux-surfaces">
+<section id="algorithms-to-compute-distance-between-los-and-a-flux-surfaces">
 <h5>Algorithms to compute distance between LOS and a flux surfaces<a class="headerlink" href="#algorithms-to-compute-distance-between-los-and-a-flux-surfaces" title="Permalink to this headline">¶</a></h5>
 <ul class="simple">
 <li><p>Compute distance between LOS and a circle (<em>+ vectorial version</em>)</p></li>
@@ -222,8 +223,8 @@ version</em>)</p></li>
 <li><p>Compute which LOS is closer to a VPoly</p></li>
 <li><p>Compute which VPoly is closer to a LOS</p></li>
 </ul>
-</div>
-<div class="section" id="algorithms-for-discretization-and-sampling">
+</section>
+<section id="algorithms-for-discretization-and-sampling">
 <h5>Algorithms for discretization and sampling<a class="headerlink" href="#algorithms-for-discretization-and-sampling" title="Permalink to this headline">¶</a></h5>
 <ul class="simple">
 <li><p>Optimization of discretization of 1D lines (simple + complex
@@ -231,15 +232,15 @@ version), 2D lines, 2D polygons</p></li>
 <li><p>Optimization of LOS sampling and all the different rules:
 parallelized and using less memory.</p></li>
 </ul>
-</div>
-<div class="section" id="calc-signal-function-integration-over-los">
+</section>
+<section id="calc-signal-function-integration-over-los">
 <h5>Calc signal (function integration over LOS):<a class="headerlink" href="#calc-signal-function-integration-over-los" title="Permalink to this headline">¶</a></h5>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">LOS_calc_signal</span></code> now cythonized for isotropic and anisotropic
 emissivity and several sampling / integration strategies</p></li>
 </ul>
-</div>
-<div class="section" id="algorithms-to-check-if-visible">
+</section>
+<section id="algorithms-to-check-if-visible">
 <h5>Algorithms to check if visible<a class="headerlink" href="#algorithms-to-check-if-visible" title="Permalink to this headline">¶</a></h5>
 <ul class="simple">
 <li><p>Optimization <code class="docutils literal notranslate"><span class="pre">LOS_isVis_PtFromPts_VesStruct</span></code> checks if a point is
@@ -251,8 +252,8 @@ input is a list of points</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Dust_calc_SolidAngle</span></code> is now using new versions of above mentioned
 functions</p></li>
 </ul>
-</div>
-<div class="section" id="vignetting">
+</section>
+<section id="vignetting">
 <h5>Vignetting<a class="headerlink" href="#vignetting" title="Permalink to this headline">¶</a></h5>
 <ul class="simple">
 <li><p>Added functions to compute the 3d bounding box of a polygon in 3d
@@ -263,8 +264,8 @@ space</p></li>
 <li><p>Added functions for vignetting : for a set of rays and a sets of
 polygons, test if the rays go through the polygons or not.</p></li>
 </ul>
-</div>
-<div class="section" id="structures-and-configuration">
+</section>
+<section id="structures-and-configuration">
 <h5>Structures and Configuration<a class="headerlink" href="#structures-and-configuration" title="Permalink to this headline">¶</a></h5>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">tf.geom.Struct._get_phithetaproj()</span></code>: to get the (phi, theta)
@@ -275,16 +276,16 @@ respect to a refpt in (R,Z)</p></li>
 of a Config</p></li>
 <li><p>Config has set_colors_random()</p></li>
 </ul>
-</div>
-<div class="section" id="solid-angles">
+</section>
+<section id="solid-angles">
 <h5>Solid angles<a class="headerlink" href="#solid-angles" title="Permalink to this headline">¶</a></h5>
 <ul class="simple">
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">_GG.Dust_calc_SolidAngle</span></code> for computation of a solid angle
 on dust particle (multi-pos, multi-pts, with and without vect, with
 and without approx, with and without block)</p></li>
 </ul>
-</div>
-<div class="section" id="basic-reflexions">
+</section>
+<section id="basic-reflexions">
 <h5>Basic Reflexions<a class="headerlink" href="#basic-reflexions" title="Permalink to this headline">¶</a></h5>
 <ul class="simple">
 <li><p>Rays subclasses can now have added reflections
@@ -301,15 +302,15 @@ represent reflections</p></li>
 <li><p>Rays.calc_signal() and Rays.calc_signal_from_Plasma2D() have been
 updated to account for reflections with a user-provided coefficient</p></li>
 </ul>
-</div>
-<div class="section" id="cythonization">
+</section>
+<section id="cythonization">
 <h5>Cythonization<a class="headerlink" href="#cythonization" title="Permalink to this headline">¶</a></h5>
 <ul class="simple">
 <li><p>Re wrote some numpy function to avoid over heading: hypothenus and
 composition of minimum of hypotenus, minimum of vector, tile,</p></li>
 </ul>
-</div>
-<div class="section" id="extra">
+</section>
+<section id="extra">
 <h5>Extra<a class="headerlink" href="#extra" title="Permalink to this headline">¶</a></h5>
 <ul class="simple">
 <li><p>Erased <em>old</em> functions:</p>
@@ -325,9 +326,9 @@ structure (as in config.lStruct)</p></li>
 <li><p>Operator overloading of ____repr____ of all tofu objects with
 attribute get_summary()</p></li>
 </ul>
-</div>
-</div>
-<div class="section" id="cameras-and-visualization">
+</section>
+</section>
+<section id="cameras-and-visualization">
 <h4>Cameras and visualization<a class="headerlink" href="#cameras-and-visualization" title="Permalink to this headline">¶</a></h4>
 <ul class="simple">
 <li><p>overloaded <strong>add</strong> operator to allow for easy CamLOS1D concatenation</p></li>
@@ -336,8 +337,8 @@ a place holder for time traces, the (phi,theta) projection (with
 aspect ratio), the cross and hor Config projections and legend</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Rays.plot_touch()</span></code> now handles: angles (wrote docstring)</p></li>
 </ul>
-</div>
-<div class="section" id="id1">
+</section>
+<section id="id1">
 <h4>General<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
 <ul class="simple">
 <li><p>get_summary() is now a method of the AbstractToFuObject parent
@@ -345,9 +346,9 @@ class, implemented for Config, CamLOS1D, Plasma2D</p></li>
 <li><p>saving to .mat file is now more robust (operational)</p></li>
 <li><p>Added benchmarking for <code class="docutils literal notranslate"><span class="pre">calc_signal</span></code></p></li>
 </ul>
-</div>
-</div>
-<div class="section" id="id2">
+</section>
+</section>
+<section id="id2">
 <h3>IMAS interfacing<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
 <ol class="arabic simple">
 <li><p>libraries that need imas2tofu are only imported if the <strong>IMAS</strong>
@@ -393,17 +394,17 @@ equilibrium</p></li>
 <li><p>Synthetic diag operational on WEST for interferometer, polarimeter,
 bremsstrahlung and bolometers</p></li>
 </ul>
-</div>
-<div class="section" id="bash-interface">
+</section>
+<section id="bash-interface">
 <h3>bash interface:<a class="headerlink" href="#bash-interface" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>tofuplot debugged</p></li>
 <li><p>tofucalc created</p></li>
 </ul>
-</div>
-<div class="section" id="code-structure-and-format">
+</section>
+<section id="code-structure-and-format">
 <h3>Code structure and format<a class="headerlink" href="#code-structure-and-format" title="Permalink to this headline">¶</a></h3>
-<div class="section" id="restructuring-of-the-geometry-modules">
+<section id="restructuring-of-the-geometry-modules">
 <h4>Restructuring of the geometry modules<a class="headerlink" href="#restructuring-of-the-geometry-modules" title="Permalink to this headline">¶</a></h4>
 <p>Created cython include files <code class="docutils literal notranslate"><span class="pre">*.pxd</span></code> and <code class="docutils literal notranslate"><span class="pre">*.pyx</span></code> for the following
 group of functions: - <code class="docutils literal notranslate"><span class="pre">_basic_geom_tools.*</span></code>: global variables
@@ -413,9 +414,9 @@ definition (<code class="docutils literal notranslate"><span class="pre">_VSMALL
 (bounding boxes, poly, surfaces, …) - <code class="docutils literal notranslate"><span class="pre">_distance_tools.*</span></code>: distance
 between LOS and circle, VPoly and so on - <code class="docutils literal notranslate"><span class="pre">_sampling_tools.*</span></code>: line,
 LOS, poly, volume, and surface sampling</p>
-</div>
-</div>
-<div class="section" id="installation-and-portability">
+</section>
+</section>
+<section id="installation-and-portability">
 <h3>Installation and portability<a class="headerlink" href="#installation-and-portability" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Had to use some cpp tools, so had to update the <code class="docutils literal notranslate"><span class="pre">setup.py</span></code></p></li>
@@ -431,8 +432,8 @@ impossible</p></li>
 if compilation is slower</p></li>
 <li><p>Removed all <strong>Polygon</strong> dependencies</p></li>
 </ul>
-</div>
-<div class="section" id="unit-test">
+</section>
+<section id="unit-test">
 <h3>Unit test<a class="headerlink" href="#unit-test" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Added unit tests for triangulations, and vignetting</p></li>
@@ -449,8 +450,8 @@ run</strong>.</p></li>
 of integration, steps relative, absolute, unique or changing for each
 los, etc.).</p></li>
 </ul>
-</div>
-<div class="section" id="update-of-documentation">
+</section>
+<section id="update-of-documentation">
 <h3>Update of documentation<a class="headerlink" href="#update-of-documentation" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Added documentation on how to install on Windows</p></li>
@@ -458,8 +459,8 @@ los, etc.).</p></li>
 <code class="docutils literal notranslate"><span class="pre">*.rst</span></code> to <code class="docutils literal notranslate"><span class="pre">*.md</span></code></p></li>
 <li><p>Updated Wiki pages on GitHub</p></li>
 </ul>
-</div>
-<div class="section" id="bugs">
+</section>
+<section id="bugs">
 <h3>Bugs<a class="headerlink" href="#bugs" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Found several small bugs in the function that computes for a list of
@@ -473,9 +474,9 @@ solved</p></li>
 were provided, the reference time was not properly defined
 (short-term fix, on the long term issue #79 should fix it)</p></li>
 </ul>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
     </div>
@@ -497,8 +498,8 @@ were provided, the reference time was not properly defined
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Jun 30, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.2.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
     </p>
   </div>
 </footer>
