@@ -1584,6 +1584,7 @@ def CrystalBragg_plot_johannerror(
     xi, xj, lamb, phi, err_lamb, err_phi,
     err_lamb_units=None,
     err_phi_units=None,
+    split=None,
     cmap=None, vmin=None, vmax=None,
     fs=None, dmargin=None, wintit=None, tit=None,
     angunits=None,
@@ -1593,7 +1594,7 @@ def CrystalBragg_plot_johannerror(
     # ------------
 
     if fs is None:
-        fs = (15, 8)
+        fs = (15, 8)  # (15, 8)
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
@@ -1605,7 +1606,6 @@ def CrystalBragg_plot_johannerror(
         angunits = 'rad'
     assert angunits in ['deg', 'rad']
     if angunits == 'deg':
-        # bragg = bragg*180./np.pi
         phi = phi*180./np.pi
         err_phi = err_phi*180./np.pi
         err_phi_units = angunits
@@ -1625,7 +1625,7 @@ def CrystalBragg_plot_johannerror(
     # ------------
     fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(1, 3, **dmargin)
-    ax0 = fig.add_subplot(gs[0, 0], aspect='equal')     # adjustable='datalim')
+    ax0 = fig.add_subplot(gs[0, 0], aspect='equal')
     ax1 = fig.add_subplot(
         gs[0, 1], aspect='equal', sharex=ax0, sharey=ax0,
     )
@@ -1635,24 +1635,30 @@ def CrystalBragg_plot_johannerror(
 
     ax0.set_title('Iso-lamb and iso-phi at crystal summit')
     ax1.set_title(f'Focalization error on lamb ({err_lamb_units})')
-    ax2.set_title(f'Focalization error on phi ({err_phi_units})')
-    ax0.contour(xi, xj, lamb.T, 10, cmap=cmap)
-    ax0.contour(xi, xj, phi.T, 10, cmap=cmap, ls='--')
+    #ax2.set_title(f'Focalization error on phi ({err_phi_units})')
+    if split:
+        ax0.contour(xi, xj, lamb[0, ...].T, 10, cmap=cmap)
+        ax0.contour(xi, xj, phi[0, ...].T, 10, cmap=cmap, ls='--')
+        ax2.contour(xi, xj, lamb[1, ...].T, 10, cmap=cmap)
+        ax2.contour(xi, xj, phi[1, ...].T, 10, cmap=cmap, ls='--')
+    else:
+        ax0.contour(xi, xj, lamb.T, 10, cmap=cmap)
+        ax0.contour(xi, xj, phi.T, 10, cmap=cmap, ls='--')
     imlamb = ax1.imshow(
         err_lamb.T,
         extent=extent, aspect='equal',
         origin='lower', interpolation='nearest',
         vmin=vmin, vmax=vmax,
     )
-    imphi = ax2.imshow(
+    """imphi = ax2.imshow(
         err_phi.T,
         extent=extent, aspect='equal',
         origin='lower', interpolation='nearest',
         vmin=vmin, vmax=vmax,
-    )
+    )"""
 
     plt.colorbar(imlamb, ax=ax1)
-    plt.colorbar(imphi, ax=ax2)
+    #plt.colorbar(imphi, ax=ax2)
 
     if wintit is not False:
         fig.canvas.set_window_title(wintit)

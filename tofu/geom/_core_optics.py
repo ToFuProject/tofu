@@ -2262,6 +2262,7 @@ class CrystalBragg(utils.ToFuObject):
         lpsi=None, ldtheta=None,
         lambda_interval_min=None,
         lambda_interval_max=None,
+        split=None, direction=None, nb=None,
         use_non_parallelism=None,
         plot=True, fs=None, cmap=None,
         vmin=None, vmax=None, tit=None, wintit=None,
@@ -2275,7 +2276,7 @@ class CrystalBragg(utils.ToFuObject):
         If provided, lpsi and ldtheta are taken as normalized variations with
             respect to the crystal summit and to its extenthalf.
             Typical values are:
-                - lpsi   = [-1, 1, 1, -1]
+                - lpsi = [-1, 1, 1, -1]
                 - ldtheta = [-1, -1, 1, 1]
             They must have the same len()
 
@@ -2296,18 +2297,58 @@ class CrystalBragg(utils.ToFuObject):
             lambda_interval_min = 3.93e-10
         if lambda_interval_max is None:
             lambda_interval_max = 4.00e-10
+        if split is None:
+            split = False
+        if direction is None:
+            direction = 'e1'
+        if nb is None:
+            nb = 2
+        if use_non_parallelism is None:
+            use_non_parallelism = False
 
         xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
 
+        if split:
+            c1, c2 = self.split(direction=direction, nb=nb)
+            c1.update_non_parallelism(alpha=0, beta=0)
+            c2.update_non_parallelism(alpha=(3/60)*np.pi/180, beta=0)
+            use_non_parallelism = True
+            bragg = np.full((nb, xi.size, xj.size, 1), np.nan)
+            phi, lamb = bragg.copy(), bragg.copy()
+        else:
+            pass
+
         # Check / format inputs
-        bragg, phi, lamb = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
-            xi=xii, xj=xjj, det=det,
-            dtheta=0, psi=0,
-            use_non_parallelism=use_non_parallelism,
-            n=n,
-            grid=True,
-            return_lamb=True,
-        )
+        if not split:
+            bragg, phi, lamb = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
+                xi=xii, xj=xjj, det=det,
+                dtheta=0, psi=0,
+                use_non_parallelism=use_non_parallelism,
+                n=n,
+                grid=True,
+                return_lamb=True,
+            )
+        else:
+            (
+                bragg[0, ...], phi[0, ...], lamb[0, ...],
+            ) = c1.get_lambbraggphi_from_ptsxixj_dthetapsi(
+                xi=xii, xj=xjj, det=det,
+                dtheta=0, psi=0,
+                use_non_parallelism=use_non_parallelism,
+                n=n,
+                grid=True,
+                return_lamb=True,
+            )
+            (
+                bragg[1, ...], phi[1, ...], lamb[1, ...],
+            ) = c2.get_lambbraggphi_from_ptsxixj_dthetapsi(
+                xi=xii, xj=xjj, det=det,
+                dtheta=0, psi=0,
+                use_non_parallelism=use_non_parallelism,
+                n=n,
+                grid=True,
+                return_lamb=True,
+            )
 
         # Only one summit was selected
         bragg, phi, lamb = bragg[..., 0], phi[..., 0], lamb[..., 0]
@@ -2332,27 +2373,63 @@ class CrystalBragg(utils.ToFuObject):
         npsi = lpsi.size
         assert npsi == ldtheta.size
 
-        (
-            braggerr, phierr, lamberr,
-        ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
-            xi=xii, xj=xjj, det=det,
-            dtheta=ldtheta, psi=lpsi,
-            use_non_parallelism=use_non_parallelism,
-            n=n,
-            grid=True,
-            return_lamb=True,
-        )
-        err_lamb = np.nanmax(np.abs(lamb[..., None] - lamberr), axis=-1)
-        err_phi = np.nanmax(np.abs(phi[..., None] - phierr), axis=-1)
+        if split:
+            braggerr = np.full((nb, xi.size, xj.size, ldtheta.size), np.nan)
+            phierr, lamberr = braggerr.copy(), braggerr.copy()
+        else:
+            pass
 
+        if not split:
+            (
+                braggerr, phierr, lamberr,
+            ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
+                xi=xii, xj=xjj, det=det,
+                dtheta=ldtheta, psi=lpsi,
+                use_non_parallelism=use_non_parallelism,
+                n=n,
+                grid=True,
+                return_lamb=True,
+            )
+            err_lamb = np.nanmax(np.abs(lamb[..., None] - lamberr), axis=-1)
+            err_phi = np.nanmax(np.abs(phi[..., None] - phierr), axis=-1)
+        else:
+            (
+                braggerr[0, ...], phierr[0, ...], lamberr[0, ...],
+            ) = c1.get_lambbraggphi_from_ptsxixj_dthetapsi(
+                xi=xii, xj=xjj, det=det,
+                dtheta=ldtheta, psi=lpsi,
+                use_non_parallelism=use_non_parallelism,
+                n=n,
+                grid=True,
+                return_lamb=True,
+            )
+            (
+                braggerr[1, ...], phierr[1, ...], lamberr[1, ...],
+            ) = c2.get_lambbraggphi_from_ptsxixj_dthetapsi(
+                xi=xii, xj=xjj, det=det,
+                dtheta=ldtheta, psi=lpsi,
+                use_non_parallelism=use_non_parallelism,
+                n=n,
+                grid=True,
+                return_lamb=True,
+            )
+
+            braggerrsum = braggerr[0, ...] + braggerr[1, ...]
+            lamberrsum = lamberr[0, ...] + lamberr[1, ...]
+            phierrsum = phierr[0, ...] + phierr[1, ...]
+
+            err_lamb = np.nanmax(np.abs(lamb[0, :, :, None] - lamberrsum), axis=-1)
+            err_phi = np.nanmax(np.abs(phi[0, :, :, None] - phierrsum), axis=-1)
+        import pdb; pdb.set_trace()  # DB
         # absolute vs relative error
         if 'rel' in err:
             if err == 'rel':
-                err_lamb = 100.*err_lamb / (np.nanmax(lamb) - np.nanmin(lamb))
-                err_phi = 100.*err_phi / (np.nanmax(phi) - np.nanmin(phi))
-            elif err == 'rel2':
-                err_lamb = 100.*err_lamb / np.mean(lamb)
-                err_phi = 100.*err_phi / np.mean(phi)
+                if not split:
+                    err_lamb = 100.*err_lamb / (np.nanmax(lamb) - np.nanmin(lamb))
+                    err_phi = 100.*err_phi / (np.nanmax(phi) - np.nanmin(phi))
+                else:
+                    err_lamb = 100.*err_lamb / (np.nanmax(lamb[0, ...]) - np.nanmin(lamb[0, ...]))
+                    err_phi = 100.*err_phi / (np.nanmax(phi[0, ...]) - np.nanmin(phi[0, ...]))
             err_lamb_units = '%'
             err_phi_units = '%'
         else:
@@ -2365,6 +2442,7 @@ class CrystalBragg(utils.ToFuObject):
                 err_lamb, err_phi,
                 err_lamb_units=err_lamb_units,
                 err_phi_units=err_phi_units,
+                split=split,
                 cmap=cmap, vmin=vmin, vmax=vmax,
                 fs=fs, tit=tit, wintit=wintit,
                 )
