@@ -113,8 +113,8 @@ Using \eqref{eq1}
 
 \begin{align}
  \left({A}\cdot {B}\right)\mathbf{C}
-	 =& (\mathbf{G}^2 +  G \cdot b	+ (-b - c) \cdot G + (-b - c) \cdot b    ) c \nonumber \\
-	 =& (\mathbf{G}^2 - G \cdot c - c \cdot b)\mathbf{C}
+	 =& (\mathbf{G}^2 +  G \cdot b	+ (-b - c) \cdot G + (-b - c) \cdot b    ) \mathbf{C} \nonumber \\
+	 =& (\mathbf{G}^2 - G \cdot c - c \cdot b -\mathbf{b}^2)\mathbf{C}
 \end{align}
 
 
@@ -132,8 +132,8 @@ Using \eqref{eq1}
 
 \begin{align}
  \left({A}\cdot {C}\right)\mathbf{B}
-	 =& (\mathbf{G}^2 +  G \cdot c	+ (-b - c) \cdot G + (-b - c) \cdot c    ) b \nonumber \\
-	 =& (\mathbf{G}^2 - G \cdot c - c \cdot b)\mathbf{B}
+	 =& (\mathbf{G}^2 +  G \cdot c	+ (-b - c) \cdot G + (-b - c) \cdot c    ) \mathbf{B} \nonumber \\
+	 =& (\mathbf{G}^2 - G \cdot b - c \cdot b - \mathbf{c}^2)\mathbf{B}
 \end{align}
 
 
@@ -158,7 +158,7 @@ and respectively with B and C, we obtain
 
 
 \begin{align}
-(\mathbf{A}\mathbf{B}\mathbf{C}) &= ||G-b-c||\,||G+b||\,||G+c||
+(\mathbf{A}\mathbf{B}\mathbf{C}) &= ||G-b-c||^2\,||G+b||^2\,||G+c||^2
 \end{align}
 
 and
@@ -166,12 +166,13 @@ and
 
 \begin{align}
  \left({A}\cdot {B}\right)\mathbf{C}
-  + \left({A}\cdot {C}\right)\mathbf{B}
-   + \left({B}\cdot {C}\right)\mathbf{A}
+  +& \left({A}\cdot {C}\right)\mathbf{B}
+   +  \left({B}\cdot {C}\right)\mathbf{A} \\ \nonumber
 	=& \mathbf{G}^2 (\mathbf{A} + \mathbf{B} + \mathbf{C})
 	+ c \cdot b (\mathbf{A} - \mathbf{B} - \mathbf{C})
 	 + G \cdot b (\mathbf{A} - \mathbf{B})
 	  + G \cdot c (\mathbf{A} - \mathbf{C})
+	  -  ||b||^2\, \mathbf{C} -  ||c||^2\, \mathbf{B}
 \end{align}
 
 
