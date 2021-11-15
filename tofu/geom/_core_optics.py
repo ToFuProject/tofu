@@ -912,12 +912,14 @@ class CrystalBragg(utils.ToFuObject):
         But that can be changed using:
             - ('dtheta', 'psi')
             - ('ntheta', 'npsi', 'include_summit')
+        These arguments are fed to self.get_local_noute1e2() which will compute
+        the start points
 
         End point or unit vector
         ------------------------
-        An end point can be computed automatically if:
-            - 'config' is provided
-
+        End point are computed automatically if:
+            - 'config' is provided: ray-tracing is done like for any camera
+            - 'det' is provided: xi and xj can be computed
 
         Returning format
         ----------------
@@ -1626,20 +1628,27 @@ class CrystalBragg(utils.ToFuObject):
             They are the spherical coordinates from a sphere centered on the
             crystal's center of curvature.
 
-        Return the pts themselves and the 3 perpendicular unit vectors
+        Return the pts themselves and the 3 perpendicular local unit vectors
             (nout, e1, e2), where nout is towards the outside of the sphere and
             nout = np.cross(e1, e2)
 
         Return:
         -------
         summit:     np.ndarray
-            (3,) array of (x, y, z) coordinates of the points on the surface
+            coordinates of the points on the surface
         nout:       np.ndarray
-            (3,) array of (x, y, z) coordinates of outward unit vector
+            coordinates of outward unit vector
         e1:         np.ndarray
-            (3,) array of (x, y, z) coordinates of first unit vector
+            coordinates of first tangential unit vector
         e2:         np.ndarray
-            (3,) array of (x, y, z) coordinates of second unit vector
+            coordinates of second tangential unit vector
+
+        All are cartesian (X, Y, Z) coordinates in the tokamak's frame
+
+        Dimensions
+        ----------
+        Depending on the input, the output arrays of coordinates can have
+        various dimensions:
 
         """
         # Get local basis at crystal summit
