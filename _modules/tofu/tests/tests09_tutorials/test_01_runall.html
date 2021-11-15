@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tofu.tests.tests09_tutorials.test_01_runall &#8212; Tofu 1.5.0</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/bootstrap-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../../_static/js/jquery-1.12.4.min.js "></script>
+<script type="text/javascript" src="../../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.5.0</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../../installation.html">Installation</a></li>
+                <li><a href="../../../../contributing.html">Contributing</a></li>
+                <li><a href="../../../../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../../../../aboutus.html">About</a></li>
+                <li><a href="../../../../releases.html">Releases</a></li>
+                <li><a href="../../../../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for tofu.tests.tests09_tutorials.test_01_runall</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">tofu</span> <span class="kn">import</span> <span class="n">__version__</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="n">_HERE</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+<span class="n">_TFROOT</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">_HERE</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+
+<span class="n">keyVers</span> <span class="o">=</span> <span class="s1">&#39;Vers&#39;</span>
+
+
+<span class="c1">#######################################################</span>
+<span class="c1">#</span>
+<span class="c1">#     Setup and Teardown</span>
+<span class="c1">#</span>
+<span class="c1">#######################################################</span>
+
+<div class="viewcode-block" id="setup_module"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.test_01_runall.setup_module">[docs]</a><span class="k">def</span> <span class="nf">setup_module</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">here</span><span class="o">=</span><span class="n">_HERE</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>   <span class="c1"># this is to get a newline after the dots</span>
+    <span class="n">lf</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">here</span><span class="p">)</span>
+    <span class="n">lf</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lf</span>
+          <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">s</span> <span class="ow">in</span> <span class="n">f</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;.npz&#39;</span><span class="p">]])]</span>
+    <span class="n">lF</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lf</span><span class="p">:</span>
+        <span class="n">ff</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="n">fff</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">keyVers</span><span class="p">):]</span> <span class="k">for</span> <span class="n">fff</span> <span class="ow">in</span> <span class="n">ff</span>
+             <span class="k">if</span> <span class="n">fff</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">keyVers</span><span class="p">)]</span> <span class="o">==</span> <span class="n">keyVers</span><span class="p">]</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">f</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">msg</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;.npz&#39;</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="p">[:</span><span class="n">v</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;.npz&#39;</span><span class="p">)]</span>
+        <span class="c1"># print(v, __version__)</span>
+        <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">__version__</span><span class="p">:</span>
+            <span class="n">lF</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lF</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Removing the following previous test files:&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lF</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">here</span><span class="p">,</span> <span class="n">f</span><span class="p">))</span></div>
+        <span class="c1"># print(&quot;setup_module before anything in this file&quot;)</span>
+
+
+<div class="viewcode-block" id="teardown_module"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.test_01_runall.teardown_module">[docs]</a><span class="k">def</span> <span class="nf">teardown_module</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">here</span><span class="o">=</span><span class="n">_HERE</span><span class="p">):</span>
+    <span class="c1"># os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + &#39;.npz&#39;)</span>
+    <span class="c1"># os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + &#39;.npz&#39;)</span>
+    <span class="c1"># print(&quot;teardown_module after everything in this file&quot;)</span>
+    <span class="c1"># print(&quot;&quot;) # this is to get a newline</span>
+    <span class="n">lf</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">here</span><span class="p">)</span>
+    <span class="n">lf</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lf</span>
+          <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">s</span> <span class="ow">in</span> <span class="n">f</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;.npz&#39;</span><span class="p">]])]</span>
+    <span class="n">lF</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lf</span><span class="p">:</span>
+        <span class="n">ff</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="n">fff</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">keyVers</span><span class="p">):]</span> <span class="k">for</span> <span class="n">fff</span> <span class="ow">in</span> <span class="n">ff</span>
+             <span class="k">if</span> <span class="n">fff</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">keyVers</span><span class="p">)]</span> <span class="o">==</span> <span class="n">keyVers</span><span class="p">]</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">f</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">msg</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;.npz&#39;</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="p">[:</span><span class="n">v</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;.npz&#39;</span><span class="p">)]</span>
+        <span class="c1"># print(v, __version__)</span>
+        <span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="n">__version__</span><span class="p">:</span>
+            <span class="n">lF</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lF</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Removing the following test files:&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lF</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">here</span><span class="p">,</span> <span class="n">f</span><span class="p">))</span></div>
+
+
+<span class="c1">#######################################################</span>
+<span class="c1">#</span>
+<span class="c1">#   Struct subclasses</span>
+<span class="c1">#</span>
+<span class="c1">#######################################################</span>
+
+<div class="viewcode-block" id="get_list_toturials"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.test_01_runall.get_list_toturials">[docs]</a><span class="k">def</span> <span class="nf">get_list_toturials</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">_HERE</span><span class="p">):</span>
+    <span class="n">ltut</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">ltut</span> <span class="o">=</span> <span class="p">[</span><span class="n">tt</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="k">for</span> <span class="n">tt</span> <span class="ow">in</span> <span class="n">ltut</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">tt</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;tuto&#39;</span><span class="p">,</span> <span class="s1">&#39;.py&#39;</span><span class="p">]])</span>
+                <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">tt</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;__init__&#39;</span><span class="p">,</span> <span class="s1">&#39;.swp&#39;</span><span class="p">]]))]</span>
+    <span class="k">return</span> <span class="n">ltut</span></div>
+
+
+<div class="viewcode-block" id="Test00_tuto"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.test_01_runall.Test00_tuto">[docs]</a><span class="k">class</span> <span class="nc">Test00_tuto</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="Test00_tuto.setup_class"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.test_01_runall.Test00_tuto.setup_class">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">setup_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">here</span><span class="o">=</span><span class="n">_HERE</span><span class="p">,</span> <span class="n">pathtuto</span><span class="o">=</span><span class="n">_HERE</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="n">_TFROOT</span><span class="p">):</span>
+        <span class="c1"># print(&quot;&quot;)</span>
+        <span class="c1"># print(&quot;---- &quot;+cls.__name__)</span>
+        <span class="c1"># ii = 0</span>
+        <span class="c1"># for tuto in get_list_toturials(path=pathtuto):</span>
+        <span class="c1"># # Create local temporary copy to make sure the</span>
+        <span class="c1"># local version of tofu is imported</span>
+        <span class="c1"># method = &#39;test{0:02.0f}_{1}&#39;.format(ii, tuto)</span>
+        <span class="c1"># fmethod = lambda tuto=tuto: cls.Test_tuto._test_tuto(tuto)</span>
+        <span class="c1"># setattr(cls, method, types.MethodType(fmethod, cls))</span>
+        <span class="c1"># # setattr(cls, method, lambda cls: cls._test_tuto(tuto))</span>
+        <span class="c1"># ii += 1</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Test00_tuto.teardown_class"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.test_01_runall.Test00_tuto.teardown_class">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">teardown_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="c1"># print(&quot;teardown_class() after any methods in this class&quot;)</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Test00_tuto.setup"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.test_01_runall.Test00_tuto.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># print(&quot;TestUM:setup() before each test method&quot;)</span>
+        <span class="c1"># self.setup_class()</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Test00_tuto.teardown"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.test_01_runall.Test00_tuto.teardown">[docs]</a>    <span class="k">def</span> <span class="nf">teardown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># print(&quot;TestUM:teardown() after each test method&quot;)</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Test00_tuto._test_tuto"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.test_01_runall.Test00_tuto._test_tuto">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_test_tuto</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tuto</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pathtuto</span><span class="o">=</span><span class="n">_HERE</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="n">_TFROOT</span><span class="p">):</span>
+        <span class="n">src</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pathtuto</span><span class="p">,</span> <span class="n">tuto</span> <span class="o">+</span> <span class="s1">&#39;.py&#39;</span><span class="p">)</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">tuto</span> <span class="o">+</span> <span class="s1">&#39;.py&#39;</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;python &#39;</span> <span class="o">+</span> <span class="n">target</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                 <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                                 <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+            <span class="n">ls</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="s1">&#39;Error&#39;</span> <span class="ow">in</span> <span class="n">ss</span> <span class="ow">and</span> <span class="ow">not</span> <span class="s1">&#39;ModuleNotFoundError&#39;</span> <span class="ow">in</span> <span class="n">ss</span>
+                    <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">ls</span><span class="p">]):</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ls</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="n">err</span>
+
+        <span class="k">if</span> <span class="n">error</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s1">&#39;all&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Remove temporary files and saved files</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+        <span class="n">stdout</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">lf</span> <span class="o">=</span> <span class="p">[</span><span class="n">stdout</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">stdout</span><span class="p">))</span>
+              <span class="k">if</span> <span class="s1">&#39;saved&#39;</span> <span class="ow">in</span> <span class="n">stdout</span><span class="p">[</span><span class="n">ii</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lf</span><span class="p">)):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">lf</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Test00_tuto.test01_plot_basic_tutorial"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.test_01_runall.Test00_tuto.test01_plot_basic_tutorial">[docs]</a>    <span class="k">def</span> <span class="nf">test01_plot_basic_tutorial</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_tuto</span><span class="p">(</span><span class="s1">&#39;tuto_plot_basic&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test00_tuto.test02_plot_create_geometry"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.test_01_runall.Test00_tuto.test02_plot_create_geometry">[docs]</a>    <span class="k">def</span> <span class="nf">test02_plot_create_geometry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_tuto</span><span class="p">(</span><span class="s1">&#39;tuto_plot_create_geometry&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Test00_tuto.test03_plot_custom_emissivity"><a class="viewcode-back" href="../../../../tofu.tests.tests09_tutorials.html#tofu.tests.tests09_tutorials.test_01_runall.Test00_tuto.test03_plot_custom_emissivity">[docs]</a>    <span class="k">def</span> <span class="nf">test03_plot_custom_emissivity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_tuto</span><span class="p">(</span><span class="s1">&#39;tuto_plot_custom_emissivity&#39;</span><span class="p">)</span></div></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes &#8212; Tofu 1.5.0</title>
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/bootstrap-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../_static/jquery.js"></script>
+    <script src="../../../../../_static/underscore.js"></script>
+    <script src="../../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../../../_static/js/jquery-1.12.4.min.js "></script>
+<script type="text/javascript" src="../../../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../../../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../../../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.5.0</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../../../installation.html">Installation</a></li>
+                <li><a href="../../../../../contributing.html">Contributing</a></li>
+                <li><a href="../../../../../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../../../../../aboutus.html">About</a></li>
+                <li><a href="../../../../../releases.html">Releases</a></li>
+                <li><a href="../../../../../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="n">_save</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_here</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+<span class="n">_Exp</span><span class="p">,</span> <span class="n">_Cls</span><span class="p">,</span> <span class="n">_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[:</span><span class="mi">3</span><span class="p">]</span>
+<span class="k">assert</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="nb">any</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">s</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Notes&#39;</span><span class="p">,</span><span class="s1">&#39;.&#39;</span><span class="p">]])</span>
+               <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">_Exp</span><span class="p">,</span> <span class="n">_Cls</span><span class="p">,</span> <span class="n">_name</span><span class="p">]])</span>
+
+<div class="viewcode-block" id="get_notes"><a class="viewcode-back" href="../../../../../tofu.tests.tests01_geom.test_03_core_data.html#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes.get_notes">[docs]</a><span class="k">def</span> <span class="nf">get_notes</span><span class="p">():</span>
+
+    <span class="n">notes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;DPhi&#39;</span><span class="p">:{},</span> <span class="s1">&#39;dPhi&#39;</span><span class="p">:{}}</span>
+    <span class="c1"># Total length</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;DL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">449.000</span>
+
+    <span class="c1"># Toroidal width</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;DPhi&#39;</span><span class="p">][</span><span class="s1">&#39;In&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">26.151</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;DPhi&#39;</span><span class="p">][</span><span class="s1">&#39;Out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">31.887</span>
+
+    <span class="c1"># Toroidal gap</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;dPhi&#39;</span><span class="p">][</span><span class="s1">&#39;In&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.681</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;dPhi&#39;</span><span class="p">][</span><span class="s1">&#39;Out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.680</span>
+
+    <span class="c1"># Height</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;DZ&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">41.562</span>
+
+    <span class="c1"># Number in toroidal direction</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;nbPhi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">12</span><span class="o">*</span><span class="mi">38</span>
+
+    <span class="c1"># sample (X,Z,Y)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[[</span><span class="o">-</span><span class="mf">1917.967</span><span class="p">,</span> <span class="mf">640.060</span><span class="p">,</span> <span class="o">-</span><span class="mf">293.245</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">1932.817</span><span class="p">,</span> <span class="mf">601.230</span><span class="p">,</span> <span class="o">-</span><span class="mf">299.739</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">2167.242</span><span class="p">,</span> <span class="mf">697.010</span><span class="p">,</span> <span class="o">-</span><span class="mf">335.545</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">2168.645</span><span class="p">,</span> <span class="mf">697.479</span><span class="p">,</span> <span class="o">-</span><span class="mf">335.689</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">2198.613</span><span class="p">,</span> <span class="mf">709.727</span><span class="p">,</span> <span class="o">-</span><span class="mf">340.266</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">2201.495</span><span class="p">,</span> <span class="mf">711.408</span><span class="p">,</span> <span class="o">-</span><span class="mf">340.635</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">2344.246</span><span class="p">,</span> <span class="mf">769.769</span><span class="p">,</span> <span class="o">-</span><span class="mf">362.438</span><span class="p">],</span>
+                          <span class="p">[</span><span class="o">-</span><span class="mf">2329.510</span><span class="p">,</span> <span class="mf">808.258</span><span class="p">,</span> <span class="o">-</span><span class="mf">356.103</span><span class="p">]]</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">],</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">notes</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
+            <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;In&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;In&#39;</span><span class="p">]</span><span class="o">*</span><span class="mf">1.e-3</span>
+            <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;Out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;Out&#39;</span><span class="p">]</span><span class="o">*</span><span class="mf">1.e-3</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="s1">&#39;nb&#39;</span> <span class="ow">in</span> <span class="n">kk</span><span class="p">:</span>
+            <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">*</span><span class="mf">1.e-3</span>
+    <span class="k">return</span> <span class="n">notes</span></div>
+
+
+<div class="viewcode-block" id="make_Poly"><a class="viewcode-back" href="../../../../../tofu.tests.tests01_geom.test_03_core_data.html#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_DivUp_Notes.make_Poly">[docs]</a><span class="k">def</span> <span class="nf">make_Poly</span><span class="p">(</span><span class="n">save</span><span class="o">=</span><span class="n">_save</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">_here</span><span class="p">):</span>
+
+    <span class="n">notes</span> <span class="o">=</span> <span class="n">get_notes</span><span class="p">()</span>
+
+    <span class="n">Poly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">][:,</span><span class="mi">0</span><span class="p">],</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">][:,</span><span class="mi">2</span><span class="p">]),</span>
+                     <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampleXZY&#39;</span><span class="p">][:,</span><span class="mi">1</span><span class="p">]])</span>
+    <span class="n">Poly0</span> <span class="o">=</span> <span class="n">Poly</span><span class="p">[:,[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="n">PM</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Poly</span><span class="p">[:,[</span><span class="mi">2</span><span class="p">,</span><span class="mi">5</span><span class="p">]],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">Poly1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">Poly0</span><span class="p">[:,:</span><span class="mi">2</span><span class="p">],</span> <span class="n">PM</span><span class="p">,</span><span class="n">Poly0</span><span class="p">[:,</span><span class="mi">2</span><span class="p">:]),</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+        <span class="n">cstr</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">_Exp</span><span class="p">,</span><span class="n">_Cls</span><span class="p">,</span><span class="n">_name</span><span class="p">)</span>
+        <span class="n">pathfilext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">cstr</span><span class="o">+</span><span class="s1">&#39;_V0.txt&#39;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">pathfilext</span><span class="p">,</span> <span class="n">Poly0</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">pathfilext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">cstr</span><span class="o">+</span><span class="s1">&#39;_V1.txt&#39;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">pathfilext</span><span class="p">,</span> <span class="n">Poly1</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">pathfilext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">cstr</span><span class="o">+</span><span class="s1">&#39;_V2.txt&#39;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">pathfilext</span><span class="p">,</span> <span class="n">Poly</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Poly0</span><span class="p">,</span> <span class="n">Poly1</span><span class="p">,</span> <span class="n">Poly</span><span class="p">,</span> <span class="n">notes</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span><span class="o">==</span><span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="c1"># Parse input arguments</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Launch creation of polygons txt from bash&#39;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span> <span class="o">=</span> <span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-save&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;save ?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_save</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-path&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;saving path ?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_here</span><span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># Call wrapper function</span>
+    <span class="n">make_Poly</span><span class="p">(</span><span class="n">save</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">save</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

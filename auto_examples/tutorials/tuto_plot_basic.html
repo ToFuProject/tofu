@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Getting started: 5 minutes tutorial for tofu &#8212; Tofu 1.5.0</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/bootstrap-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Creating your first Geometry" href="tuto_plot_create_geometry.html" />
+    <link rel="prev" title="tofu examples and tutorials" href="../index.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../_static/js/jquery-1.12.4.min.js "></script>
+<script type="text/javascript" src="../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.5.0</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../installation.html">Installation</a></li>
+                <li><a href="../../contributing.html">Contributing</a></li>
+                <li><a href="../index.html">Gallery</a></li>
+                <li><a href="../../aboutus.html">About</a></li>
+                <li><a href="../../releases.html">Releases</a></li>
+                <li><a href="../../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">Getting started: 5 minutes tutorial for <cite>tofu</cite></a></li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-tutorials-tuto-plot-basic-py"><span class="std std-ref">here</span></a>
+to download the full example code</p>
+</div>
+<section class="sphx-glr-example-title" id="getting-started-5-minutes-tutorial-for-tofu">
+<span id="sphx-glr-auto-examples-tutorials-tuto-plot-basic-py"></span><h1>Getting started: 5 minutes tutorial for <cite>tofu</cite><a class="headerlink" href="#getting-started-5-minutes-tutorial-for-tofu" title="Permalink to this headline">¶</a></h1>
+<p>This is a tutorial that aims to get a new user a little familiar with tofu’s
+structure.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># The following imports matplotlib, preferably using a</span>
+<span class="c1"># backend that allows the plots to be interactive (Qt5Agg).</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</pre></div>
+</div>
+<p>We start by loading <cite>tofu</cite>. You might see some warnings at this stage since
+optional modules for <cite>tofu</cite> could
+be missing on the machine you are working on. This can be ignored safely.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tofu</span> <span class="k">as</span> <span class="nn">tf</span>
+</pre></div>
+</div>
+<p>We can now create our first configuration.
+In <cite>tofu</cite> speak, a configuration is the geometry of the device and its
+structures. <cite>tofu</cite> provides pre-defined ones for your to try, so we’re going
+to do just that:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">configB2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">load_config</span><span class="p">(</span><span class="s2">&quot;B2&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The configuration can easily be visualized using the <cite>.plot()</cite> method:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">configB2</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_tuto_plot_basic_001.png" srcset="../../_images/sphx_glr_tuto_plot_basic_001.png" alt="WEST-V3" class = "sphx-glr-single-img"/><p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/tofu/tofu/geom/_def.py:127: MatplotlibDeprecationWarning:
+The set_window_title function was deprecated in Matplotlib 3.4 and will be removed two minor releases later. Use manager.set_window_title or GUI-specific methods instead.
+  f.canvas.set_window_title(wintit)
+
+[&lt;AxesSubplot:xlabel=&#39;R (m)&#39;, ylabel=&#39;Z (m)&#39;&gt;, &lt;AxesSubplot:xlabel=&#39;X (m)&#39;, ylabel=&#39;Y (m)&#39;&gt;]
+</pre></div>
+</div>
+<p>Since <cite>tofu</cite> is all about tomography, let’s create a 1D camera and plot its
+output.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cam1d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS1D</span><span class="p">(</span>
+    <span class="n">config</span><span class="o">=</span><span class="n">configB2</span><span class="p">,</span>
+    <span class="n">pinhole</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">sensor_nb</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">focal</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">sensor_size</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">orientation</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">Name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">Exp</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">Diag</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># interactive plot</span>
+<span class="n">cam1d</span><span class="o">.</span><span class="n">plot_touch</span><span class="p">()</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_tuto_plot_basic_002.png" srcset="../../_images/sphx_glr_tuto_plot_basic_002.png" alt="-  -" class = "sphx-glr-single-img"/><p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/miniconda3/envs/newtofu3/lib/python3.9/site-packages/numpy/core/fromnumeric.py:3208: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify &#39;dtype=object&#39; when creating the ndarray.
+  return asarray(a).size
+/home/lasofivec/tofu/tofu/geom/_plot.py:1412: MatplotlibDeprecationWarning:
+The set_window_title function was deprecated in Matplotlib 3.4 and will be removed two minor releases later. Use manager.set_window_title or GUI-specific methods instead.
+  fig.canvas.set_window_title(wintit)
+/home/lasofivec/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
+    - backend : agg   (prefer Qt5Agg)
+    - canvas  : FigureCanvasAgg
+  warnings.warn(msg)
+
+&lt;tofu.utils.KeyHandler_mpl object at 0x7f31585b4790&gt;
+</pre></div>
+</div>
+<p>The principle is similar for 2D cameras.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cam2d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">create_CamLOS2D</span><span class="p">(</span>
+    <span class="n">config</span><span class="o">=</span><span class="n">configB2</span><span class="p">,</span>
+    <span class="n">pinhole</span><span class="o">=</span><span class="p">[</span><span class="mf">3.4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">sensor_nb</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">focal</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">sensor_size</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">orientation</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">Name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">Exp</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">Diag</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">cam2d</span><span class="o">.</span><span class="n">plot_touch</span><span class="p">()</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_tuto_plot_basic_003.png" srcset="../../_images/sphx_glr_tuto_plot_basic_003.png" alt="-  -" class = "sphx-glr-single-img"/><p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/home/lasofivec/miniconda3/envs/newtofu3/lib/python3.9/site-packages/numpy/core/fromnumeric.py:3208: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify &#39;dtype=object&#39; when creating the ndarray.
+  return asarray(a).size
+/home/lasofivec/tofu/tofu/geom/_plot.py:1412: MatplotlibDeprecationWarning:
+The set_window_title function was deprecated in Matplotlib 3.4 and will be removed two minor releases later. Use manager.set_window_title or GUI-specific methods instead.
+  fig.canvas.set_window_title(wintit)
+/home/lasofivec/tofu/tofu/utils.py:3476: UserWarning: Not interactive backend!:
+    - backend : agg   (prefer Qt5Agg)
+    - canvas  : FigureCanvasAgg
+  warnings.warn(msg)
+
+&lt;tofu.utils.KeyHandler_mpl object at 0x7f31685bc670&gt;
+</pre></div>
+</div>
+<p>What comes next is up to you!
+You could now play with the function parameters (change the cameras
+direction, refinement, aperture),
+with the plots (many are interactive) or create you own tomographic
+configuration.</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  6.412 seconds)</p>
+<div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-tutorials-tuto-plot-basic-py">
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/dfd620612c263f27595ef0dc852ec1a7/tuto_plot_basic.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">tuto_plot_basic.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/c0bee79daf543f87292f8026f8ecc925/tuto_plot_basic.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">tuto_plot_basic.ipynb</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+<div id="sourcelink">
+  <a href="../../_sources/auto_examples/tutorials/tuto_plot_basic.rst.txt"
+     rel="nofollow">Source</a>
+</div>
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tofu.geom._comp_solidangles &#8212; Tofu 1.5.0</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../_static/js/jquery-1.12.4.min.js "></script>
+<script type="text/javascript" src="../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.5.0</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../installation.html">Installation</a></li>
+                <li><a href="../../../contributing.html">Contributing</a></li>
+                <li><a href="../../../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../../../aboutus.html">About</a></li>
+                <li><a href="../../../releases.html">Releases</a></li>
+                <li><a href="../../../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for tofu.geom._comp_solidangles</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Built-in</span>
+<span class="c1"># import warnings</span>
+
+<span class="c1"># Common</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="c1"># import scipy.interpolate as scpinterp</span>
+<span class="c1"># import scipy.integrate as scpintg</span>
+<span class="c1"># from inspect import signature as insp</span>
+
+<span class="c1"># local</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_GG</span>
+
+
+<span class="n">_APPROX</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_ANISO</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">_BLOCK</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_LTYPES</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">]</span>
+
+
+<span class="c1">###############################################################################</span>
+<span class="c1">###############################################################################</span>
+<span class="c1">#                       Check inputs</span>
+<span class="c1">###############################################################################</span>
+
+
+<div class="viewcode-block" id="_check_calc_solidangle_particle"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp_solidangles._check_calc_solidangle_particle">[docs]</a><span class="k">def</span> <span class="nf">_check_calc_solidangle_particle</span><span class="p">(</span>
+    <span class="n">traj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">pts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">rad</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">approx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">aniso</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">block</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="c1"># Check booleans</span>
+    <span class="k">if</span> <span class="n">approx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">approx</span> <span class="o">=</span> <span class="n">_APPROX</span>
+    <span class="k">if</span> <span class="n">aniso</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">aniso</span> <span class="o">=</span> <span class="n">_ANISO</span>
+
+    <span class="n">lbool</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;approx&#39;</span><span class="p">,</span> <span class="n">approx</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;aniso&#39;</span><span class="p">,</span> <span class="n">aniso</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">kk</span><span class="p">,</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">lbool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vv</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg </span><span class="si">{}</span><span class="s2"> must be a bool</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kk</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">vv</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># Check config</span>
+    <span class="n">c0</span> <span class="o">=</span> <span class="p">[</span><span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;Config&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">c0</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg config must be either Noen or a tf.geom.Config instance!</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># Double-check block vs config</span>
+    <span class="k">if</span> <span class="n">block</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">block</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">block</span> <span class="o">=</span> <span class="n">_BLOCK</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg </span><span class="si">{}</span><span class="s2"> must be a bool</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;block&#39;</span><span class="p">)</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">block</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">block</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg block cannot be True of config is not provided!&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># arrays</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">traj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">traj</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">rad</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+        <span class="c1"># Check pts, traj and r are array of good shape</span>
+        <span class="n">c0</span> <span class="o">=</span> <span class="n">traj</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="ow">and</span> <span class="mi">3</span> <span class="ow">in</span> <span class="n">traj</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">if</span> <span class="n">pts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">c0</span> <span class="o">=</span> <span class="n">c0</span> <span class="ow">and</span> <span class="n">pts</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="ow">and</span> <span class="mi">3</span> <span class="ow">in</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="n">c0</span>
+        <span class="k">if</span> <span class="n">traj</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">traj</span> <span class="o">=</span> <span class="n">traj</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">traj</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">traj</span> <span class="o">=</span> <span class="n">traj</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">traj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pts</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">pts</span> <span class="o">=</span> <span class="n">pts</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">pts</span> <span class="o">=</span> <span class="n">pts</span><span class="o">.</span><span class="n">T</span>
+            <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Args traj and pts must be convertible to np.ndarrays of shape&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">- traj: (N,), (3, N) or (N, 3)&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">- pts: (M,), (3, M) or (M, 3)&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">   You provided:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">- traj: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">traj</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">- pts: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">- rad: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rad</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># check rad vs traj</span>
+    <span class="n">ntraj</span> <span class="o">=</span> <span class="n">traj</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">nrad</span> <span class="o">=</span> <span class="n">rad</span><span class="o">.</span><span class="n">size</span>
+
+    <span class="n">nmax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">nrad</span><span class="p">,</span> <span class="n">ntraj</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">nrad</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">nmax</span><span class="p">]</span> <span class="ow">and</span> <span class="n">ntraj</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">nmax</span><span class="p">]):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;rad must be an array with shape (1,) or (N,)</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;  provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rad</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">nrad</span> <span class="o">&lt;</span> <span class="n">nmax</span><span class="p">:</span>
+        <span class="n">rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">nmax</span><span class="p">,),</span> <span class="n">rad</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">ntraj</span> <span class="o">&lt;</span> <span class="n">nmax</span><span class="p">:</span>
+        <span class="n">traj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">traj</span><span class="p">,</span> <span class="n">nmax</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">traj</span><span class="p">,</span> <span class="n">pts</span><span class="p">,</span> <span class="n">rad</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">approx</span><span class="p">,</span> <span class="n">aniso</span><span class="p">,</span> <span class="n">block</span></div>
+
+
+<span class="c1">###############################################################################</span>
+<span class="c1">###############################################################################</span>
+<span class="c1">#                       Solid Angle particle</span>
+<span class="c1">###############################################################################</span>
+
+
+<div class="viewcode-block" id="calc_solidangle_particle"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp_solidangles.calc_solidangle_particle">[docs]</a><span class="k">def</span> <span class="nf">calc_solidangle_particle</span><span class="p">(</span>
+    <span class="n">pts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">part_traj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">part_radius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">approx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">aniso</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">block</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Compute the solid angle subtended by a particle along a trajectory</span>
+
+<span class="sd">    The particle has radius r, and trajectory (array of points) traj</span>
+<span class="sd">    It is observed from pts (array of points)</span>
+
+<span class="sd">    traj and pts are (3, N) and (3, M) arrays of cartesian coordinates</span>
+
+<span class="sd">    approx = True =&gt; use approximation</span>
+<span class="sd">    aniso = True =&gt; return also unit vector of emission</span>
+<span class="sd">    block = True consider LOS collisions (with Ves, Struct...)</span>
+
+<span class="sd">    if block:</span>
+<span class="sd">        config used for LOS collisions</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pts:            np.ndarray</span>
+<span class="sd">        Array of (3, M) pts coordinates (X, Y, Z) representing the points from</span>
+<span class="sd">        which the particle is observed</span>
+<span class="sd">    part_traj:      np.ndarray</span>
+<span class="sd">        Array of (3, N) pts coordinates (X, Y, Z) representing the particle</span>
+<span class="sd">        positions</span>
+<span class="sd">    part_radius:    float / np.ndarray</span>
+<span class="sd">        Unique of multiple values for the radius of the spherical particle</span>
+<span class="sd">            if multiple, rad is a np.ndarray of shape (N,)</span>
+<span class="sd">    config:         None / tf.geom.Config</span>
+<span class="sd">        if block = True, solid angles are non-zero only if the field of view is</span>
+<span class="sd">        not blocked bya structural element in teh chamber</span>
+<span class="sd">    approx:         None / bool</span>
+<span class="sd">        Flag indicating whether to compute the solid angle using an 1st-order</span>
+<span class="sd">        series development (in whichcase the solid angle becomes proportional</span>
+<span class="sd">        to the radius of the particle, see Notes_Upgrades/)</span>
+<span class="sd">    aniso:          None / bool</span>
+<span class="sd">        Flag indicating whether to consider anisotropic emissivity, meaning the</span>
+<span class="sd">        routine must also compute and return the unit vector directing the flux</span>
+<span class="sd">        from each pts to each position on the trajectory of the particle</span>
+<span class="sd">    block:          None / bool</span>
+<span class="sd">        Flag indicating whether to check for vignetting by structural elements</span>
+<span class="sd">        provided by config</span>
+
+<span class="sd">    Return:</span>
+<span class="sd">    -------</span>
+<span class="sd">    sang:           np.ndarray</span>
+<span class="sd">        (N, M) Array of floats, solid angles</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">################</span>
+    <span class="c1"># Prepare inputs</span>
+    <span class="p">(</span>
+        <span class="n">part_traj</span><span class="p">,</span> <span class="n">pts</span><span class="p">,</span> <span class="n">part_radius</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span>
+        <span class="n">approx</span><span class="p">,</span> <span class="n">aniso</span><span class="p">,</span> <span class="n">block</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">_check_calc_solidangle_particle</span><span class="p">(</span>
+        <span class="n">traj</span><span class="o">=</span><span class="n">part_traj</span><span class="p">,</span>
+        <span class="n">pts</span><span class="o">=</span><span class="n">pts</span><span class="p">,</span>
+        <span class="n">rad</span><span class="o">=</span><span class="n">part_radius</span><span class="p">,</span>
+        <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+        <span class="n">approx</span><span class="o">=</span><span class="n">approx</span><span class="p">,</span>
+        <span class="n">aniso</span><span class="o">=</span><span class="n">aniso</span><span class="p">,</span>
+        <span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1">################</span>
+    <span class="c1"># Main computation</span>
+
+    <span class="c1"># traj2pts vector, with length (3d array (3, N, M))</span>
+    <span class="n">vect</span> <span class="o">=</span> <span class="o">-</span> <span class="n">pts</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">part_traj</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">len_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">vect</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)))</span>
+
+    <span class="c1"># If aniso or block, normalize</span>
+    <span class="k">if</span> <span class="n">aniso</span> <span class="ow">or</span> <span class="n">block</span><span class="p">:</span>
+        <span class="n">vect</span> <span class="o">=</span> <span class="n">vect</span> <span class="o">/</span> <span class="n">len_v</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+
+    <span class="c1"># Solid angle</span>
+    <span class="n">r_d</span> <span class="o">=</span> <span class="n">part_radius</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="n">len_v</span>
+    <span class="n">where_zero</span> <span class="o">=</span> <span class="n">len_v</span> <span class="o">&lt;=</span> <span class="n">part_radius</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">r_d</span><span class="p">[</span><span class="n">where_zero</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>  <span class="c1"># temporary value</span>
+    <span class="k">if</span> <span class="n">approx</span><span class="p">:</span>
+        <span class="n">sang</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">r_d</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">r_d</span><span class="o">**</span><span class="mi">4</span> <span class="o">/</span> <span class="mf">4.</span> <span class="o">+</span> <span class="n">r_d</span><span class="o">**</span><span class="mi">6</span> <span class="o">/</span> <span class="mf">8.</span> <span class="o">+</span> <span class="n">r_d</span><span class="o">**</span><span class="mi">8</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">/</span> <span class="mi">64</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sang</span> <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">r_d</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+
+    <span class="c1"># when particle in mesh point, distance len_v = 0 thus sang neglected</span>
+    <span class="n">sang</span><span class="p">[</span><span class="n">where_zero</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+
+    <span class="c1"># block</span>
+    <span class="k">if</span> <span class="n">block</span><span class="p">:</span>
+        <span class="n">kwdargs</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get_kwdargs_LOS_isVis</span><span class="p">()</span>
+        <span class="n">indvis</span> <span class="o">=</span> <span class="n">_GG</span><span class="o">.</span><span class="n">LOS_areVis_PtsFromPts_VesStruct</span><span class="p">(</span>
+            <span class="n">pts</span><span class="p">,</span> <span class="n">part_traj</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="n">len_v</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span>
+        <span class="p">)</span>
+        <span class="n">iout</span> <span class="o">=</span> <span class="n">indvis</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">sang</span><span class="p">[</span><span class="n">iout</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="n">vect</span><span class="p">[:,</span> <span class="n">iout</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+    <span class="c1">################</span>
+    <span class="c1"># Return</span>
+    <span class="k">if</span> <span class="n">aniso</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sang</span><span class="p">,</span> <span class="n">vect</span>
+
+    <span class="k">return</span> <span class="n">sang</span></div>
+
+
+<div class="viewcode-block" id="calc_solidangle_particle_integ"><a class="viewcode-back" href="../../../tofu.geom.html#tofu.geom._comp_solidangles.calc_solidangle_particle_integ">[docs]</a><span class="k">def</span> <span class="nf">calc_solidangle_particle_integ</span><span class="p">(</span>
+    <span class="n">part_traj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">part_radius</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">approx</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">resolution</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">DR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">DZ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">DPhi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+
+    <span class="c1"># step0: if block : generate kwdargs from config</span>
+
+    <span class="c1"># step 1: sample cross-section</span>
+
+    <span class="c1"># step 2: loop on R of  pts of cross-section (parallelize ?)</span>
+    <span class="c1"># =&gt; fix nb. of phi for the rest of the loop</span>
+
+    <span class="c1"># loop of Z</span>
+
+    <span class="c1"># step 3: loop phi</span>
+    <span class="c1"># Check visibility (if block = True) for each phi (LOS collision)</span>
+    <span class="c1"># If visible =&gt; compute solid angle</span>
+    <span class="c1"># integrate (sum * res) on each phi the solid angle</span>
+
+    <span class="c1"># Return sang as (N,nR,nZ) array</span>
+
+    <span class="c1"># ----------------</span>
+    <span class="c1"># check resolution</span>
+
+    <span class="k">if</span> <span class="n">resolution</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">resolution</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_LTYPES</span><span class="p">:</span>
+        <span class="n">resolution</span> <span class="o">=</span> <span class="p">[</span><span class="n">resolution</span><span class="p">,</span> <span class="n">resolution</span><span class="p">,</span> <span class="n">resolution</span><span class="p">]</span>
+    <span class="n">c0</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nb">isinstance</span><span class="p">(</span><span class="n">resolution</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_LTYPES</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">resolution</span><span class="p">])</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Arg resolution must be a list of 3 floats [r, z, rphi]</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;Each representing the spatial sampling step in a direction</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;If a single float is provided, the same is used for all&quot;</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">resolution</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">rr</span><span class="p">)</span> <span class="k">for</span> <span class="n">rr</span> <span class="ow">in</span> <span class="n">resolution</span><span class="p">]</span>
+
+    <span class="c1"># ------------------</span>
+    <span class="c1"># Check DR, DZ, DPhi</span>
+    <span class="n">dD</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;DR&#39;</span><span class="p">:</span> <span class="n">DR</span><span class="p">,</span> <span class="s1">&#39;DZ&#39;</span><span class="p">:</span> <span class="n">DZ</span><span class="p">,</span> <span class="s1">&#39;DPhi&#39;</span><span class="p">:</span> <span class="n">DPhi</span><span class="p">}</span>
+    <span class="n">dfail</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k0</span><span class="p">,</span> <span class="n">v0</span> <span class="ow">in</span> <span class="n">dD</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">c0</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">v0</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="ow">or</span> <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">v0</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">v0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+                <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="n">v1</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">v1</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_LTYPES</span> <span class="k">for</span> <span class="n">v1</span> <span class="ow">in</span> <span class="n">v0</span><span class="p">])</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+            <span class="n">dfail</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dfail</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">lstr</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">- </span><span class="si">{</span><span class="n">k0</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="n">v0</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">k0</span><span class="p">,</span> <span class="n">v0</span> <span class="ow">in</span> <span class="n">dfail</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;The following arguments are invalid:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;Expected None or a list of len(2) of None or floats!</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lstr</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># ------------------</span>
+    <span class="c1"># check other inputs</span>
+
+    <span class="p">(</span>
+        <span class="n">part_traj</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">part_radius</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span>
+        <span class="n">approx</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">block</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">_check_calc_solidangle_particle</span><span class="p">(</span>
+        <span class="n">traj</span><span class="o">=</span><span class="n">part_traj</span><span class="p">,</span>
+        <span class="n">pts</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">rad</span><span class="o">=</span><span class="n">part_radius</span><span class="p">,</span>
+        <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+        <span class="n">approx</span><span class="o">=</span><span class="n">approx</span><span class="p">,</span>
+        <span class="n">aniso</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># ------------------</span>
+    <span class="c1"># Define the volume to be sampled: smallest vessel</span>
+
+    <span class="c1"># Get kwdargs for LOS blocking</span>
+    <span class="n">kwdargs</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get_kwdargs_LOS_isVis</span><span class="p">()</span>
+
+    <span class="c1"># derive limits for sampling</span>
+    <span class="n">limits_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">kwdargs</span><span class="p">[</span><span class="s1">&#39;ves_poly&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]),</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">kwdargs</span><span class="p">[</span><span class="s1">&#39;ves_poly&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]),</span>
+    <span class="p">]</span>
+    <span class="n">limits_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">kwdargs</span><span class="p">[</span><span class="s1">&#39;ves_poly&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]),</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">kwdargs</span><span class="p">[</span><span class="s1">&#39;ves_poly&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]),</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">_GG</span><span class="o">.</span><span class="n">compute_solid_angle_map</span><span class="p">(</span>
+        <span class="n">part_traj</span><span class="p">,</span> <span class="n">part_radius</span><span class="p">,</span>
+        <span class="n">resolution</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+        <span class="n">limits_r</span><span class="p">,</span> <span class="n">limits_z</span><span class="p">,</span>
+        <span class="n">DR</span><span class="o">=</span><span class="n">DR</span><span class="p">,</span> <span class="n">DZ</span><span class="o">=</span><span class="n">DZ</span><span class="p">,</span>
+        <span class="n">DPhi</span><span class="o">=</span><span class="n">DPhi</span><span class="p">,</span>
+        <span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">,</span>
+        <span class="n">approx</span><span class="o">=</span><span class="n">approx</span><span class="p">,</span>
+        <span class="n">limit_vpoly</span><span class="o">=</span><span class="n">kwdargs</span><span class="p">[</span><span class="s1">&#39;ves_poly&#39;</span><span class="p">],</span>
+        <span class="o">**</span><span class="n">kwdargs</span><span class="p">,</span>
+    <span class="p">)</span></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

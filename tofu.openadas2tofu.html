@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>tofu.openadas2tofu package &#8212; Tofu 1.5.0</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="tofu.tests package" href="tofu.tests.html" />
+    <link rel="prev" title="tofu.geom package" href="tofu.geom.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="_static/js/jquery-1.12.4.min.js "></script>
+<script type="text/javascript" src="_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.5.0</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="installation.html">Installation</a></li>
+                <li><a href="contributing.html">Contributing</a></li>
+                <li><a href="auto_examples/index.html">Gallery</a></li>
+                <li><a href="aboutus.html">About</a></li>
+                <li><a href="releases.html">Releases</a></li>
+                <li><a href="tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">tofu.openadas2tofu package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-tofu.openadas2tofu._read_files">tofu.openadas2tofu._read_files module</a></li>
+<li><a class="reference internal" href="#module-tofu.openadas2tofu._requests">tofu.openadas2tofu._requests module</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <section id="module-tofu.openadas2tofu">
+<span id="tofu-openadas2tofu-package"></span><h1>tofu.openadas2tofu package<a class="headerlink" href="#module-tofu.openadas2tofu" title="Permalink to this headline">¶</a></h1>
+<p>The openadas-compatibility module of tofu</p>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-tofu.openadas2tofu._read_files">
+<span id="tofu-openadas2tofu-read-files-module"></span><h2>tofu.openadas2tofu._read_files module<a class="headerlink" href="#module-tofu.openadas2tofu._read_files" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.openadas2tofu._read_files.step03_read">
+<span class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._read_files.</span></span><span class="sig-name descname"><span class="pre">step03_read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adas_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pec_as_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwdargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_read_files.html#step03_read"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._read_files.step03_read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read openadas-formatted files and return a dict with the data</p>
+<p>Povide the full adas file name
+The result is returned as a dict</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">tofu</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fn</span> <span class="o">=</span> <span class="s1">&#39;/adf11/scd74/scd74_ar.dat&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">openadas2tofu</span><span class="o">.</span><span class="n">step03_read</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fn</span> <span class="o">=</span> <span class="s1">&#39;/adf15/pec40][ar/pec40][ar_ca][ar16.dat&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">openadas2tofu</span><span class="o">.</span><span class="n">step03_read</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.openadas2tofu._read_files.step03_read_all">
+<span class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._read_files.</span></span><span class="sig-name descname"><span class="pre">step03_read_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">element</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typ1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typ2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pec_as_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format_for_DataCollection</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dsource0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dref0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ddata0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dlines0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwdargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_read_files.html#step03_read_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._read_files.step03_read_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read all relevant openadas files for chosen typ1</p>
+<dl class="simple">
+<dt>Please specify:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>typ1:</dt><dd><ul>
+<li><p>‘adf11’: ionisation / recombination data</p></li>
+<li><p>‘adf15’: pec data</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>element: the symbol of the element</p></li>
+</ul>
+</dd>
+<dt>If typ1 = ‘adf11’, you can also provide typ2 to specify the coefficients:</dt><dd><ul class="simple">
+<li><p>‘scd’: effective ionisation coefficients</p></li>
+<li><p>‘acd’: effective electron-impact recombination coefficients</p></li>
+<li><p>‘ccd’: effective hydrogen-impact recombination coefficients</p></li>
+<li><p>‘plt’: line power due to electron-impact excitation</p></li>
+<li><p>‘prc’: line power due to hydrogen-impact excitation</p></li>
+<li><p>‘prb’: rad. recombination and bremmstrahlung due to electron-impact</p></li>
+</ul>
+</dd>
+</dl>
+<p>If typ1 = ‘adf15’, you can optioanlly provide a min/max wavelength</p>
+<p>The result is returned as a dict</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">tofu</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dout</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">openadas2tofu</span><span class="o">.</span><span class="n">step03_read_all</span><span class="p">(</span><span class="n">element</span><span class="o">=</span><span class="s1">&#39;ar&#39;</span><span class="p">,</span> <span class="n">typ1</span><span class="o">=</span><span class="s1">&#39;adf11&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dout</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">openadas2tofu</span><span class="o">.</span><span class="n">step03_read_all</span><span class="p">(</span><span class="n">element</span><span class="o">=</span><span class="s1">&#39;ar&#39;</span><span class="p">,</span> <span class="n">typ1</span><span class="o">=</span><span class="s1">&#39;adf15&#39;</span><span class="p">,</span>
+<span class="go">                                            charge=16,</span>
+<span class="go">                                            lambmin=3.94e-10,</span>
+<span class="go">                                            lambmax=4.e-10)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+<section id="module-tofu.openadas2tofu._requests">
+<span id="tofu-openadas2tofu-requests-module"></span><h2>tofu.openadas2tofu._requests module<a class="headerlink" href="#module-tofu.openadas2tofu._requests" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.openadas2tofu._requests.clear_downloads">
+<span class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._requests.</span></span><span class="sig-name descname"><span class="pre">clear_downloads</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#clear_downloads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.clear_downloads" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete all openadas files downloaded in your ~/.tofu/ directory</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.openadas2tofu._requests.step01_search_online">
+<span class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._requests.</span></span><span class="sig-name descname"><span class="pre">step01_search_online</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">searchstr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_partial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#step01_search_online"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.step01_search_online" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform an online freeform search on <a class="reference external" href="https://open.adas.ac.uk">https://open.adas.ac.uk</a></p>
+<p>Pass searchstr to the online freeform search
+Prints the results (if verb=True)</p>
+<dl class="simple">
+<dt>Optionally return the result as:</dt><dd><ul class="simple">
+<li><p>np.ndarray    : a char array</p></li>
+<li><p>str           : a formatted str</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">tofu</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tf</span><span class="o">.</span><span class="n">openadas2tofu</span><span class="o">.</span><span class="n">step01_search_online</span><span class="p">(</span><span class="s1">&#39;ar+16 ADF15&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.openadas2tofu._requests.step01_search_online_by_wavelengthA">
+<span class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._requests.</span></span><span class="sig-name descname"><span class="pre">step01_search_online_by_wavelengthA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lambmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolveby</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#step01_search_online_by_wavelengthA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.step01_search_online_by_wavelengthA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform an online search by wavelength on <a class="reference external" href="https://open.adas.ac.uk">https://open.adas.ac.uk</a></p>
+<p>Pass the min / max wavelength (in Angstrom) to the online wavelength search
+Prints the results (if verb=True)</p>
+<dl class="simple">
+<dt>Optionally return the result as:</dt><dd><ul class="simple">
+<li><p>np.ndarray    : a char array</p></li>
+<li><p>str           : a formatted str</p></li>
+</ul>
+</dd>
+<dt>The result can be resolved by:</dt><dd><ul class="simple">
+<li><p>‘transition’  : by spectral transition</p></li>
+<li><p>‘file’        : by adas file</p></li>
+</ul>
+</dd>
+</dl>
+<p>Optionally filter by element and charge</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">tofu</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tf</span><span class="o">.</span><span class="n">openadas2tofu</span><span class="o">.</span><span class="n">step01_earch_online_by_wavelengthA</span><span class="p">(</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">4.</span><span class="p">,</span> <span class="s1">&#39;ar&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tf</span><span class="o">.</span><span class="n">openadas2tofu</span><span class="o">.</span><span class="n">step01_earch_online_by_wavelengthA</span><span class="p">(</span>
+<span class="go">    3., 4., &#39;w&#39;,</span>
+<span class="go">    resolveby=&#39;file&#39;,</span>
+<span class="go">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.openadas2tofu._requests.step02_download">
+<span class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._requests.</span></span><span class="sig-name descname"><span class="pre">step02_download</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_custom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">returnas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#step02_download"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.step02_download" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download desired file from  <a class="reference external" href="https://open.adas.ac.uk">https://open.adas.ac.uk</a></p>
+<p>All downloaded files are stored in your local tofu directory (~/.tofu/)</p>
+<p>Automatically runs tofu-custom if create_custom=True</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">tofu</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;/adf15/pec40][ar/pec40][ar_ls][ar16.dat&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tf</span><span class="o">.</span><span class="n">openadas2tofu</span><span class="o">.</span><span class="n">step02_download</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.openadas2tofu._requests.step02_download_all">
+<span class="sig-prename descclassname"><span class="pre">tofu.openadas2tofu._requests.</span></span><span class="sig-name descname"><span class="pre">step02_download_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">searchstr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_partial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_custom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/openadas2tofu/_requests.html#step02_download_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.openadas2tofu._requests.step02_download_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download all desired files from  <a class="reference external" href="https://open.adas.ac.uk">https://open.adas.ac.uk</a></p>
+<dl class="simple">
+<dt>The files to download can be provided either as:</dt><dd><ul class="simple">
+<li><p>a list of full openadas file names (files)</p></li>
+<li><dl class="simple">
+<dt>the result of an online freeform search</dt><dd><p>(searchstr fed to search_online)</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>the input to an online search by wavelength</dt><dd><p>(lambmin, lambmax and element fed to search_online_by_wavelengthA)</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<p>Automatically runs tofu-custom if create_custom=True
+All downloaded files are stored in your local tofu directory (~/.tofu/)</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">tofu</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tf</span><span class="o">.</span><span class="n">openadas2tofu</span><span class="o">.</span><span class="n">step02_download_all</span><span class="p">(</span>
+<span class="go">    lambmin=3., lambmax=4., element=&#39;ar&#39;,</span>
+<span class="go">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+<div id="sourcelink">
+  <a href="_sources/tofu.openadas2tofu.rst.txt"
+     rel="nofollow">Source</a>
+</div>
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

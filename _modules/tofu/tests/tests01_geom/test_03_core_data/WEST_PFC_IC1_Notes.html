@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes &#8212; Tofu 1.5.0</title>
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/bootstrap-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../_static/jquery.js"></script>
+    <script src="../../../../../_static/underscore.js"></script>
+    <script src="../../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../../../_static/js/jquery-1.12.4.min.js "></script>
+<script type="text/javascript" src="../../../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../../../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../../../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.5.0</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../../../installation.html">Installation</a></li>
+                <li><a href="../../../../../contributing.html">Contributing</a></li>
+                <li><a href="../../../../../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../../../../../aboutus.html">About</a></li>
+                <li><a href="../../../../../releases.html">Releases</a></li>
+                <li><a href="../../../../../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="c1"># Built-in</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+
+<span class="c1"># Common</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">_save</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_here</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+<span class="n">_Exp</span><span class="p">,</span> <span class="n">_Cls</span><span class="p">,</span> <span class="n">_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[:</span><span class="mi">3</span><span class="p">]</span>
+<span class="k">assert</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="nb">any</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">s</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Notes&#39;</span><span class="p">,</span><span class="s1">&#39;.&#39;</span><span class="p">]])</span>
+               <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">_Exp</span><span class="p">,</span> <span class="n">_Cls</span><span class="p">,</span> <span class="n">_name</span><span class="p">]])</span>
+
+<div class="viewcode-block" id="get_notes"><a class="viewcode-back" href="../../../../../tofu.tests.tests01_geom.test_03_core_data.html#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes.get_notes">[docs]</a><span class="k">def</span> <span class="nf">get_notes</span><span class="p">():</span>
+    <span class="n">notes</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="c1"># Samples from 3D drawings</span>
+    <span class="c1"># IC1</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampXYZ&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[[</span><span class="o">-</span><span class="mf">2471.450</span><span class="p">,</span> <span class="o">-</span><span class="mf">494.911</span><span class="p">,</span> <span class="mf">1590.106</span><span class="p">],</span>  <span class="c1"># Back</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2469.748</span><span class="p">,</span> <span class="o">-</span><span class="mf">335.000</span><span class="p">,</span> <span class="mf">1749.276</span><span class="p">],</span>  <span class="c1"># Back</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2515.174</span><span class="p">,</span> <span class="o">-</span><span class="mf">335.000</span><span class="p">,</span> <span class="mf">1787.393</span><span class="p">],</span>  <span class="c1"># Back</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2515.174</span><span class="p">,</span>  <span class="mf">335.000</span><span class="p">,</span> <span class="mf">1787.393</span><span class="p">],</span>  <span class="c1"># Back</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2469.748</span><span class="p">,</span>  <span class="mf">335.000</span><span class="p">,</span> <span class="mf">1749.276</span><span class="p">],</span>  <span class="c1"># Back</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2471.450</span><span class="p">,</span>  <span class="mf">494.911</span><span class="p">,</span> <span class="mf">1590.106</span><span class="p">],</span>  <span class="c1"># Back</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2292.115</span><span class="p">,</span>  <span class="mf">504.105</span><span class="p">,</span> <span class="mf">1578.294</span><span class="p">],</span>    <span class="c1"># 1st pt</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2286.026</span><span class="p">,</span>  <span class="mf">504.799</span><span class="p">,</span> <span class="mf">1544.321</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2287.754</span><span class="p">,</span>  <span class="mf">465.078</span><span class="p">,</span> <span class="mf">1545.771</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2293.653</span><span class="p">,</span>  <span class="mf">468.768</span><span class="p">,</span> <span class="mf">1579.584</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2293.811</span><span class="p">,</span>  <span class="mf">467.342</span><span class="p">,</span> <span class="mf">1579.717</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2287.937</span><span class="p">,</span>  <span class="mf">463.423</span><span class="p">,</span> <span class="mf">1545.925</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2294.923</span><span class="p">,</span>  <span class="mf">424.698</span><span class="p">,</span> <span class="mf">1551.787</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2300.025</span><span class="p">,</span>  <span class="mf">432.890</span><span class="p">,</span> <span class="mf">1584.931</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2300.371</span><span class="p">,</span>  <span class="mf">431.522</span><span class="p">,</span> <span class="mf">1585.221</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2295.324</span><span class="p">,</span>  <span class="mf">423.110</span><span class="p">,</span> <span class="mf">1552.123</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2307.354</span><span class="p">,</span>  <span class="mf">386.556</span><span class="p">,</span> <span class="mf">1562.218</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2311.074</span><span class="p">,</span>  <span class="mf">399.002</span><span class="p">,</span> <span class="mf">1594.202</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2310.685</span><span class="p">,</span>  <span class="mf">397.685</span><span class="p">,</span> <span class="mf">1595.181</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2307.977</span><span class="p">,</span>  <span class="mf">385.107</span><span class="p">,</span> <span class="mf">1562.740</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2319.952</span><span class="p">,</span>  <span class="mf">356.614</span><span class="p">,</span> <span class="mf">1572.789</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2322.660</span><span class="p">,</span>  <span class="mf">369.192</span><span class="p">,</span> <span class="mf">1605.229</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2323.367</span><span class="p">,</span>  <span class="mf">367.162</span><span class="p">,</span> <span class="mf">1605.909</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2320.358</span><span class="p">,</span>  <span class="mf">355.596</span><span class="p">,</span> <span class="mf">1573.129</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2331.369</span><span class="p">,</span>  <span class="mf">326.447</span><span class="p">,</span> <span class="mf">1582.369</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2334.481</span><span class="p">,</span>  <span class="mf">338.013</span><span class="p">,</span> <span class="mf">1615.148</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2335.222</span><span class="p">,</span>  <span class="mf">335.939</span><span class="p">,</span> <span class="mf">1615.770</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2331.741</span><span class="p">,</span>  <span class="mf">325.407</span><span class="p">,</span> <span class="mf">1582.681</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2341.768</span><span class="p">,</span>  <span class="mf">295.659</span><span class="p">,</span> <span class="mf">1591.094</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2345.249</span><span class="p">,</span>  <span class="mf">306.191</span><span class="p">,</span> <span class="mf">1624.184</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2345.920</span><span class="p">,</span>  <span class="mf">304.077</span><span class="p">,</span> <span class="mf">1624.747</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2342.104</span><span class="p">,</span>  <span class="mf">294.599</span><span class="p">,</span> <span class="mf">1591.377</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2351.128</span><span class="p">,</span>  <span class="mf">264.308</span><span class="p">,</span> <span class="mf">1598.948</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2354.943</span><span class="p">,</span>  <span class="mf">273.786</span><span class="p">,</span> <span class="mf">1632.318</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2355.543</span><span class="p">,</span>  <span class="mf">271.635</span><span class="p">,</span> <span class="mf">1632.821</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2351.429</span><span class="p">,</span>  <span class="mf">263.230</span><span class="p">,</span> <span class="mf">1599.201</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2359.431</span><span class="p">,</span>  <span class="mf">232.454</span><span class="p">,</span> <span class="mf">1605.916</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2363.545</span><span class="p">,</span>  <span class="mf">240.860</span><span class="p">,</span> <span class="mf">1639.536</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2364.073</span><span class="p">,</span>  <span class="mf">238.677</span><span class="p">,</span> <span class="mf">1639.979</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2359.696</span><span class="p">,</span>  <span class="mf">231.360</span><span class="p">,</span> <span class="mf">1606.138</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2366.663</span><span class="p">,</span>  <span class="mf">200.158</span><span class="p">,</span> <span class="mf">1611.984</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2371.039</span><span class="p">,</span>  <span class="mf">207.476</span><span class="p">,</span> <span class="mf">1645.825</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2371.493</span><span class="p">,</span>  <span class="mf">205.265</span><span class="p">,</span> <span class="mf">1646.205</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2366.890</span><span class="p">,</span>  <span class="mf">199.049</span><span class="p">,</span> <span class="mf">1612.174</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2372.808</span><span class="p">,</span>  <span class="mf">167.481</span><span class="p">,</span> <span class="mf">1617.140</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2377.411</span><span class="p">,</span>  <span class="mf">173.696</span><span class="p">,</span> <span class="mf">1651.171</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2377.790</span><span class="p">,</span>  <span class="mf">171.461</span><span class="p">,</span> <span class="mf">1651.489</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2372.998</span><span class="p">,</span>  <span class="mf">166.360</span><span class="p">,</span> <span class="mf">1617.300</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2377.855</span><span class="p">,</span>  <span class="mf">134.484</span><span class="p">,</span> <span class="mf">1621.375</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2382.647</span><span class="p">,</span>  <span class="mf">139.586</span><span class="p">,</span> <span class="mf">1655.565</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2382.952</span><span class="p">,</span>  <span class="mf">137.332</span><span class="p">,</span> <span class="mf">1655.820</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2378.008</span><span class="p">,</span>  <span class="mf">133.354</span><span class="p">,</span> <span class="mf">1621.503</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2381.795</span><span class="p">,</span>  <span class="mf">101.232</span><span class="p">,</span> <span class="mf">1624.681</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2386.739</span><span class="p">,</span>  <span class="mf">105.210</span><span class="p">,</span> <span class="mf">1658.998</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2386.968</span><span class="p">,</span>  <span class="mf">102.941</span><span class="p">,</span> <span class="mf">1659.190</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2381.910</span><span class="p">,</span>  <span class="mf">100.094</span><span class="p">,</span> <span class="mf">1624.778</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2384.620</span><span class="p">,</span>   <span class="mf">67.787</span><span class="p">,</span> <span class="mf">1627.052</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2389.678</span><span class="p">,</span>   <span class="mf">70.634</span><span class="p">,</span> <span class="mf">1661.465</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2389.831</span><span class="p">,</span>   <span class="mf">68.354</span><span class="p">,</span> <span class="mf">1661.593</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2384.697</span><span class="p">,</span>   <span class="mf">66.644</span><span class="p">,</span> <span class="mf">1627.116</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2386.325</span><span class="p">,</span>   <span class="mf">34.213</span><span class="p">,</span> <span class="mf">1628.482</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2391.459</span><span class="p">,</span>   <span class="mf">35.923</span><span class="p">,</span> <span class="mf">1662.959</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2391.536</span><span class="p">,</span>   <span class="mf">33.637</span><span class="p">,</span> <span class="mf">1663.023</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2386.364</span><span class="p">,</span>   <span class="mf">33.066</span><span class="p">,</span> <span class="mf">1628.515</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2386.907</span><span class="p">,</span>    <span class="mf">0.574</span><span class="p">,</span> <span class="mf">1628.970</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2392.079</span><span class="p">,</span>    <span class="mf">1.144</span><span class="p">,</span> <span class="mf">1663.479</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2392.079</span><span class="p">,</span>   <span class="o">-</span><span class="mf">1.144</span><span class="p">,</span> <span class="mf">1663.479</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2386.907</span><span class="p">,</span>   <span class="o">-</span><span class="mf">0.574</span><span class="p">,</span> <span class="mf">1628.970</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2386.364</span><span class="p">,</span>  <span class="o">-</span><span class="mf">33.066</span><span class="p">,</span> <span class="mf">1628.515</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2391.536</span><span class="p">,</span>  <span class="o">-</span><span class="mf">33.637</span><span class="p">,</span> <span class="mf">1663.023</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2391.459</span><span class="p">,</span>  <span class="o">-</span><span class="mf">35.923</span><span class="p">,</span> <span class="mf">1662.959</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2386.325</span><span class="p">,</span>  <span class="o">-</span><span class="mf">34.213</span><span class="p">,</span> <span class="mf">1628.482</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2384.697</span><span class="p">,</span>  <span class="o">-</span><span class="mf">66.644</span><span class="p">,</span> <span class="mf">1627.116</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2389.831</span><span class="p">,</span>  <span class="o">-</span><span class="mf">68.354</span><span class="p">,</span> <span class="mf">1661.593</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2389.678</span><span class="p">,</span>  <span class="o">-</span><span class="mf">70.634</span><span class="p">,</span> <span class="mf">1661.465</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2384.620</span><span class="p">,</span>  <span class="o">-</span><span class="mf">67.787</span><span class="p">,</span> <span class="mf">1627.052</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2381.910</span><span class="p">,</span> <span class="o">-</span><span class="mf">100.094</span><span class="p">,</span> <span class="mf">1624.778</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2386.968</span><span class="p">,</span> <span class="o">-</span><span class="mf">102.941</span><span class="p">,</span> <span class="mf">1659.190</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2386.739</span><span class="p">,</span> <span class="o">-</span><span class="mf">105.210</span><span class="p">,</span> <span class="mf">1658.998</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2381.795</span><span class="p">,</span> <span class="o">-</span><span class="mf">101.232</span><span class="p">,</span> <span class="mf">1624.681</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2378.008</span><span class="p">,</span> <span class="o">-</span><span class="mf">133.354</span><span class="p">,</span> <span class="mf">1621.503</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2382.952</span><span class="p">,</span> <span class="o">-</span><span class="mf">137.332</span><span class="p">,</span> <span class="mf">1655.820</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2382.647</span><span class="p">,</span> <span class="o">-</span><span class="mf">139.586</span><span class="p">,</span> <span class="mf">1655.565</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2377.855</span><span class="p">,</span> <span class="o">-</span><span class="mf">134.484</span><span class="p">,</span> <span class="mf">1621.375</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2372.998</span><span class="p">,</span> <span class="o">-</span><span class="mf">166.360</span><span class="p">,</span> <span class="mf">1617.300</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2377.790</span><span class="p">,</span> <span class="o">-</span><span class="mf">171.461</span><span class="p">,</span> <span class="mf">1651.489</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2377.411</span><span class="p">,</span> <span class="o">-</span><span class="mf">173.696</span><span class="p">,</span> <span class="mf">1651.171</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2372.808</span><span class="p">,</span> <span class="o">-</span><span class="mf">167.481</span><span class="p">,</span> <span class="mf">1617.140</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2366.890</span><span class="p">,</span> <span class="o">-</span><span class="mf">199.049</span><span class="p">,</span> <span class="mf">1612.174</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2371.493</span><span class="p">,</span> <span class="o">-</span><span class="mf">205.265</span><span class="p">,</span> <span class="mf">1646.205</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2371.039</span><span class="p">,</span> <span class="o">-</span><span class="mf">207.476</span><span class="p">,</span> <span class="mf">1645.825</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2366.663</span><span class="p">,</span> <span class="o">-</span><span class="mf">200.158</span><span class="p">,</span> <span class="mf">1611.984</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2359.696</span><span class="p">,</span> <span class="o">-</span><span class="mf">231.360</span><span class="p">,</span> <span class="mf">1606.138</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2364.073</span><span class="p">,</span> <span class="o">-</span><span class="mf">238.677</span><span class="p">,</span> <span class="mf">1639.979</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2363.545</span><span class="p">,</span> <span class="o">-</span><span class="mf">240.860</span><span class="p">,</span> <span class="mf">1639.536</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2359.431</span><span class="p">,</span> <span class="o">-</span><span class="mf">232.454</span><span class="p">,</span> <span class="mf">1605.916</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2351.429</span><span class="p">,</span> <span class="o">-</span><span class="mf">263.230</span><span class="p">,</span> <span class="mf">1599.201</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2355.543</span><span class="p">,</span> <span class="o">-</span><span class="mf">271.635</span><span class="p">,</span> <span class="mf">1632.821</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2354.943</span><span class="p">,</span> <span class="o">-</span><span class="mf">273.786</span><span class="p">,</span> <span class="mf">1632.318</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2351.128</span><span class="p">,</span> <span class="o">-</span><span class="mf">264.308</span><span class="p">,</span> <span class="mf">1598.948</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2342.104</span><span class="p">,</span> <span class="o">-</span><span class="mf">294.599</span><span class="p">,</span> <span class="mf">1591.377</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2345.920</span><span class="p">,</span> <span class="o">-</span><span class="mf">304.077</span><span class="p">,</span> <span class="mf">1624.747</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2345.249</span><span class="p">,</span> <span class="o">-</span><span class="mf">306.191</span><span class="p">,</span> <span class="mf">1624.184</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2341.768</span><span class="p">,</span> <span class="o">-</span><span class="mf">295.659</span><span class="p">,</span> <span class="mf">1591.094</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2331.741</span><span class="p">,</span> <span class="o">-</span><span class="mf">325.407</span><span class="p">,</span> <span class="mf">1582.681</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2335.222</span><span class="p">,</span> <span class="o">-</span><span class="mf">335.939</span><span class="p">,</span> <span class="mf">1615.770</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2334.481</span><span class="p">,</span> <span class="o">-</span><span class="mf">338.013</span><span class="p">,</span> <span class="mf">1615.148</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2331.369</span><span class="p">,</span> <span class="o">-</span><span class="mf">326.447</span><span class="p">,</span> <span class="mf">1582.369</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2320.358</span><span class="p">,</span> <span class="o">-</span><span class="mf">355.596</span><span class="p">,</span> <span class="mf">1573.129</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2323.469</span><span class="p">,</span> <span class="o">-</span><span class="mf">367.162</span><span class="p">,</span> <span class="mf">1605.909</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2322.660</span><span class="p">,</span> <span class="o">-</span><span class="mf">369.192</span><span class="p">,</span> <span class="mf">1605.229</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2319.952</span><span class="p">,</span> <span class="o">-</span><span class="mf">356.614</span><span class="p">,</span> <span class="mf">1572.789</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2307.977</span><span class="p">,</span> <span class="o">-</span><span class="mf">385.107</span><span class="p">,</span> <span class="mf">1562.740</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2310.685</span><span class="p">,</span> <span class="o">-</span><span class="mf">397.685</span><span class="p">,</span> <span class="mf">1595.181</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2311.074</span><span class="p">,</span> <span class="o">-</span><span class="mf">399.002</span><span class="p">,</span> <span class="mf">1594.202</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2307.354</span><span class="p">,</span> <span class="o">-</span><span class="mf">386.556</span><span class="p">,</span> <span class="mf">1562.218</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2295.324</span><span class="p">,</span> <span class="o">-</span><span class="mf">423.110</span><span class="p">,</span> <span class="mf">1552.123</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2300.371</span><span class="p">,</span> <span class="o">-</span><span class="mf">431.522</span><span class="p">,</span> <span class="mf">1585.211</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2300.025</span><span class="p">,</span> <span class="o">-</span><span class="mf">432.890</span><span class="p">,</span> <span class="mf">1584.931</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2294.923</span><span class="p">,</span> <span class="o">-</span><span class="mf">424.698</span><span class="p">,</span> <span class="mf">1551.787</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2287.937</span><span class="p">,</span> <span class="o">-</span><span class="mf">463.423</span><span class="p">,</span> <span class="mf">1545.925</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2293.811</span><span class="p">,</span> <span class="o">-</span><span class="mf">467.342</span><span class="p">,</span> <span class="mf">1579.717</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2293.653</span><span class="p">,</span> <span class="o">-</span><span class="mf">468.768</span><span class="p">,</span> <span class="mf">1579.584</span><span class="p">],</span>    <span class="c1"># bottom</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2287.754</span><span class="p">,</span> <span class="o">-</span><span class="mf">465.078</span><span class="p">,</span> <span class="mf">1545.771</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2286.026</span><span class="p">,</span> <span class="o">-</span><span class="mf">504.799</span><span class="p">,</span> <span class="mf">1544.321</span><span class="p">],</span>
+                        <span class="p">[</span><span class="o">-</span><span class="mf">2292.115</span><span class="p">,</span> <span class="o">-</span><span class="mf">504.105</span><span class="p">,</span> <span class="mf">1578.294</span><span class="p">]]</span>    <span class="c1"># Last pt</span>
+
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampXYZ&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampXYZ&#39;</span><span class="p">])</span>
+    <span class="n">nn</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampXYZ&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="n">nn</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;indedges&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ind</span><span class="p">,</span><span class="n">ind</span><span class="o">+</span><span class="mi">3</span><span class="p">])</span>
+    <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="n">nn</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;indbottom&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ind</span><span class="p">,</span><span class="n">ind</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">notes</span></div>
+
+
+<div class="viewcode-block" id="make_Poly"><a class="viewcode-back" href="../../../../../tofu.tests.tests01_geom.test_03_core_data.html#tofu.tests.tests01_geom.test_03_core_data.WEST_PFC_IC1_Notes.make_Poly">[docs]</a><span class="k">def</span> <span class="nf">make_Poly</span><span class="p">(</span><span class="n">save</span><span class="o">=</span><span class="n">_save</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">_here</span><span class="p">):</span>
+    <span class="n">notes</span> <span class="o">=</span> <span class="n">get_notes</span><span class="p">()</span>
+    <span class="n">Rref</span><span class="p">,</span> <span class="n">Rmax</span> <span class="o">=</span> <span class="mf">3.</span><span class="p">,</span> <span class="mf">3.4</span>
+
+    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampXYZ&#39;</span><span class="p">][:,</span><span class="mi">0</span><span class="p">],</span><span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampXYZ&#39;</span><span class="p">][:,</span><span class="mi">2</span><span class="p">])</span><span class="o">/</span><span class="mf">1000.</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;sampXYZ&#39;</span><span class="p">][:,</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="mf">1000.</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">R</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">R</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Z</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">0.01</span><span class="p">])</span><span class="o">+</span><span class="n">Rref</span>
+    <span class="n">R</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">Rmax</span>
+
+    <span class="n">Poly1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">R</span><span class="p">,</span><span class="n">Z</span><span class="p">])</span>
+    <span class="n">ind</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="s1">&#39;indedges&#39;</span><span class="p">]</span>
+    <span class="n">Ptemp</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">Poly1</span><span class="p">[:,</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]]</span> <span class="o">+</span> <span class="n">Poly1</span><span class="p">[:,</span><span class="n">ind</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]])</span>
+    <span class="n">Poly0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">Poly1</span><span class="p">[:,:</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]],</span> <span class="n">Ptemp</span><span class="p">,</span>
+                            <span class="n">Poly1</span><span class="p">[:,</span><span class="n">ind</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">:]),</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+        <span class="n">cstr</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">_Exp</span><span class="p">,</span><span class="n">_Cls</span><span class="p">,</span><span class="n">_name</span><span class="p">)</span>
+        <span class="n">pathfilext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">cstr</span><span class="o">+</span><span class="s1">&#39;_V0.txt&#39;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">pathfilext</span><span class="p">,</span> <span class="n">Poly0</span><span class="p">)</span>
+        <span class="n">pathfilext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">cstr</span><span class="o">+</span><span class="s1">&#39;_V1.txt&#39;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">pathfilext</span><span class="p">,</span> <span class="n">Poly1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Poly0</span><span class="p">,</span> <span class="n">Poly1</span><span class="p">,</span> <span class="n">notes</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span><span class="o">==</span><span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="c1"># Parse input arguments</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Launch creation of polygons txt from bash&#39;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span> <span class="o">=</span> <span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-save&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;save ?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_save</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-path&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;saving path ?&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_here</span><span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># Call wrapper function</span>
+    <span class="n">make_Poly</span><span class="p">(</span><span class="n">save</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">save</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

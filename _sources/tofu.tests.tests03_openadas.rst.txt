@@ -1,0 +1,20 @@
+tofu.tests.tests03\_openadas package
+====================================
+
+.. automodule:: tofu.tests.tests03_openadas
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
+
+Submodules
+----------
+
+tofu.tests.tests03\_openadas.test\_03\_core module
+--------------------------------------------------
+
+.. automodule:: tofu.tests.tests03_openadas.test_03_core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:

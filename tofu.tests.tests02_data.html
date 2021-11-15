@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>tofu.tests.tests02_data package &#8212; Tofu 1.5.0</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="tofu.tests.tests03_openadas package" href="tofu.tests.tests03_openadas.html" />
+    <link rel="prev" title="tofu.tests.tests01_geom.test_03_core_data package" href="tofu.tests.tests01_geom.test_03_core_data.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="_static/js/jquery-1.12.4.min.js "></script>
+<script type="text/javascript" src="_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.5.0</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="installation.html">Installation</a></li>
+                <li><a href="contributing.html">Contributing</a></li>
+                <li><a href="auto_examples/index.html">Gallery</a></li>
+                <li><a href="aboutus.html">About</a></li>
+                <li><a href="releases.html">Releases</a></li>
+                <li><a href="tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">tofu.tests.tests02_data package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-tofu.tests.tests02_data.test_03_core">tofu.tests.tests02_data.test_03_core module</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <section id="module-tofu.tests.tests02_data">
+<span id="tofu-tests-tests02-data-package"></span><h1>tofu.tests.tests02_data package<a class="headerlink" href="#module-tofu.tests.tests02_data" title="Permalink to this headline">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-tofu.tests.tests02_data.test_03_core">
+<span id="tofu-tests-tests02-data-test-03-core-module"></span><h2>tofu.tests.tests02_data.test_03_core module<a class="headerlink" href="#module-tofu.tests.tests02_data.test_03_core" title="Permalink to this headline">¶</a></h2>
+<p>This module contains tests for tofu.geom in its structured version</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">tofu.tests.tests02_data.test_03_core.</span></span><span class="sig-name descname"><span class="pre">Test01_DataCam12D</span></span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D._create_cams">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">_create_cams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lconf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ld</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SavePath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D._create_cams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D._create_cams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.setup">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">setup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.setup" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.setup_class">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">setup_class</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SavePath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.setup_class"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.setup_class" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.teardown">
+<span class="sig-name descname"><span class="pre">teardown</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.teardown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.teardown" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.teardown_class">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">teardown_class</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.teardown_class"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.teardown_class" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test01_set_dchans">
+<span class="sig-name descname"><span class="pre">test01_set_dchans</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test01_set_dchans"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test01_set_dchans" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test02_set_dextra">
+<span class="sig-name descname"><span class="pre">test02_set_dextra</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test02_set_dextra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test02_set_dextra" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test03_select_t">
+<span class="sig-name descname"><span class="pre">test03_select_t</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test03_select_t"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test03_select_t" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test04_select_ch">
+<span class="sig-name descname"><span class="pre">test04_select_ch</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test04_select_ch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test04_select_ch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test05_set_dtreat_indt">
+<span class="sig-name descname"><span class="pre">test05_set_dtreat_indt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test05_set_dtreat_indt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test05_set_dtreat_indt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test06_set_dtreat_indch">
+<span class="sig-name descname"><span class="pre">test06_set_dtreat_indch</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test06_set_dtreat_indch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test06_set_dtreat_indch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test07_set_dtreat_mask">
+<span class="sig-name descname"><span class="pre">test07_set_dtreat_mask</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test07_set_dtreat_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test07_set_dtreat_mask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test08_dtreat_set_data0">
+<span class="sig-name descname"><span class="pre">test08_dtreat_set_data0</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test08_dtreat_set_data0"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test08_dtreat_set_data0" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test09_dtreat_set_interp_indt">
+<span class="sig-name descname"><span class="pre">test09_dtreat_set_interp_indt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test09_dtreat_set_interp_indt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test09_dtreat_set_interp_indt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test10_dtreat_set_interp_indch">
+<span class="sig-name descname"><span class="pre">test10_dtreat_set_interp_indch</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test10_dtreat_set_interp_indch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test10_dtreat_set_interp_indch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test11_streat_set_dfit">
+<span class="sig-name descname"><span class="pre">test11_streat_set_dfit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test11_streat_set_dfit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test11_streat_set_dfit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test12_streat_set_interpt">
+<span class="sig-name descname"><span class="pre">test12_streat_set_interpt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test12_streat_set_interpt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test12_streat_set_interpt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test13_clear_ddata">
+<span class="sig-name descname"><span class="pre">test13_clear_ddata</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test13_clear_ddata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test13_clear_ddata" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test14_clear_dtreat">
+<span class="sig-name descname"><span class="pre">test14_clear_dtreat</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test14_clear_dtreat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test14_clear_dtreat" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test15_plot">
+<span class="sig-name descname"><span class="pre">test15_plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test15_plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test15_plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test16_compare">
+<span class="sig-name descname"><span class="pre">test16_compare</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test16_compare"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test16_compare" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test17_plot_combine">
+<span class="sig-name descname"><span class="pre">test17_plot_combine</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test17_plot_combine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test17_plot_combine" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test18_spectrogram">
+<span class="sig-name descname"><span class="pre">test18_spectrogram</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test18_spectrogram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test18_spectrogram" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test19_plot_svd">
+<span class="sig-name descname"><span class="pre">test19_plot_svd</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test19_plot_svd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test19_plot_svd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test20_copy_equal">
+<span class="sig-name descname"><span class="pre">test20_copy_equal</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test20_copy_equal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test20_copy_equal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test21_get_nbytes">
+<span class="sig-name descname"><span class="pre">test21_get_nbytes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test21_get_nbytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test21_get_nbytes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test22_strip_nbytes">
+<span class="sig-name descname"><span class="pre">test22_strip_nbytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test22_strip_nbytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test22_strip_nbytes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test23_saveload">
+<span class="sig-name descname"><span class="pre">test23_saveload</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test01_DataCam12D.test23_saveload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D.test23_saveload" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">tofu.tests.tests02_data.test_03_core.</span></span><span class="sig-name descname"><span class="pre">Test02_DataCam12DSpectral</span></span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test02_DataCam12DSpectral"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tofu.tests.tests02_data.test_03_core.Test01_DataCam12D" title="tofu.tests.tests02_data.test_03_core.Test01_DataCam12D"><code class="xref py py-class docutils literal notranslate"><span class="pre">tofu.tests.tests02_data.test_03_core.Test01_DataCam12D</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.setup_class">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">setup_class</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SavePath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test02_DataCam12DSpectral.setup_class"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.setup_class" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.test08_dtreat_set_data0">
+<span class="sig-name descname"><span class="pre">test08_dtreat_set_data0</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test02_DataCam12DSpectral.test08_dtreat_set_data0"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.test08_dtreat_set_data0" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.test17_plot_combine">
+<span class="sig-name descname"><span class="pre">test17_plot_combine</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test02_DataCam12DSpectral.test17_plot_combine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.test17_plot_combine" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.test18_spectrogram">
+<span class="sig-name descname"><span class="pre">test18_spectrogram</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test02_DataCam12DSpectral.test18_spectrogram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.test18_spectrogram" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.test19_plot_svd">
+<span class="sig-name descname"><span class="pre">test19_plot_svd</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#Test02_DataCam12DSpectral.test19_plot_svd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.Test02_DataCam12DSpectral.test19_plot_svd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.emiss">
+<span class="sig-prename descclassname"><span class="pre">tofu.tests.tests02_data.test_03_core.</span></span><span class="sig-name descname"><span class="pre">emiss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#emiss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.emiss" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.setup_module">
+<span class="sig-prename descclassname"><span class="pre">tofu.tests.tests02_data.test_03_core.</span></span><span class="sig-name descname"><span class="pre">setup_module</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#setup_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.setup_module" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.tests.tests02_data.test_03_core.teardown_module">
+<span class="sig-prename descclassname"><span class="pre">tofu.tests.tests02_data.test_03_core.</span></span><span class="sig-name descname"><span class="pre">teardown_module</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/tests/tests02_data/test_03_core.html#teardown_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.tests.tests02_data.test_03_core.teardown_module" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+<div id="sourcelink">
+  <a href="_sources/tofu.tests.tests02_data.rst.txt"
+     rel="nofollow">Source</a>
+</div>
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
