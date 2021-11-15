@@ -61,7 +61,7 @@ Optimization / parallelization:
 
 Contributors:
 =============
-Many thanks to all developpers and contributors:
+Many thanks to all developpers and contributors
 - Didier Vezinet (@Didou09)
 - Laura Mendoza (@lasofivec)
 - Kevin Obrejan (@obrejank)
