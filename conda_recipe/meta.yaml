@@ -41,6 +41,7 @@ requirements:
     - pytest
     - pygments
     - requests
+    - svg.path
 
 test:
   requires:
