@@ -14,6 +14,7 @@ _ExpNSTX = 'NSTX'
 _ExpDEMO = 'DEMO'
 _ExpTOMAS = 'TOMAS'
 _ExpCOMPASS = 'COMPASS'
+_ExpCOMPASS2 = 'COMPASS2'
 _ExpTCV = 'TCV'
 
 # Default config
@@ -216,6 +217,17 @@ _DCONFIG = {
     # COMPASS
     'COMPASS-V0': {
         'Exp': _ExpCOMPASS,
+        'Ves': ['V0'],
+    },
+    'COMPASS-V1': {
+        'Exp': _ExpCOMPASS,
+        'Ves': ['InnerV1'],
+        'PFC': ['lower', 'upper', 'inner', 'outer'],
+    },
+
+    # COMPASS2
+    'COMPASS2-V0': {
+        'Exp': _ExpCOMPASS2,
         'Ves': ['V0'],
     },
 
