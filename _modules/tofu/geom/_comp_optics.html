@@ -1,28 +1,30 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>tofu.geom._comp_optics &#8212; Tofu 1.4.15</title>
-    <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../../_static/doctools.js"></script>
-    <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../../_static/js/jquery-1.12.4.min.js "></script>
 <script type="text/javascript" src="../../../_static/js/jquery-fix.js "></script>
-<script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
 <script type="text/javascript" src="../../../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
@@ -186,8 +188,8 @@
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
             <span class="s2">&quot;Arg xi and xj must be provided!</span><span class="se">\n</span><span class="s2">&quot;</span>
             <span class="s2">&quot;Provided:</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- xi: </span><span class="si">{xi}</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- xj: </span><span class="si">{xj}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- xi: </span><span class="si">{</span><span class="n">xi</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- xj: </span><span class="si">{</span><span class="n">xj</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="p">)</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
@@ -585,8 +587,8 @@
         <span class="n">sr</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">s_sagit_ref</span><span class="p">,</span> <span class="n">ndigits</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
             <span class="s2">&quot;Assuming a perfect crystal:</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- meridonal focus at </span><span class="si">{mr}</span><span class="s2"> m</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- sagittal focus at </span><span class="si">{sr}</span><span class="s2"> m</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- meridonal focus at </span><span class="si">{</span><span class="n">mr</span><span class="si">}</span><span class="s2"> m</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- sagittal focus at </span><span class="si">{</span><span class="n">sr</span><span class="si">}</span><span class="s2"> m</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">use_non_parallelism</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
@@ -599,9 +601,9 @@
             <span class="n">mcr</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="mf">100.</span> <span class="o">*</span> <span class="n">delta_merid</span> <span class="o">/</span> <span class="n">s_merid_ref</span><span class="p">,</span> <span class="n">ndigits</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
             <span class="n">scr</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="mf">100.</span> <span class="o">*</span> <span class="n">delta_sagit</span> <span class="o">/</span> <span class="n">s_sagit_ref</span><span class="p">,</span> <span class="n">ndigits</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
             <span class="n">msg</span> <span class="o">+=</span> <span class="p">(</span>
-                <span class="n">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Considering non-parallelism (alpha = </span><span class="si">{alpha}</span><span class="s2"> rad):</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="n">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- meridonal focus at </span><span class="si">{mnp}</span><span class="s2"> m (delta = </span><span class="si">{mca}</span><span class="s2"> m / </span><span class="si">{mcr}</span><span class="s2"> %)</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="n">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- sagital focus at </span><span class="si">{snp}</span><span class="s2"> m (delta = </span><span class="si">{sca}</span><span class="s2"> m / </span><span class="si">{scr}</span><span class="s2"> %)&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Considering non-parallelism (alpha = </span><span class="si">{</span><span class="n">alpha</span><span class="si">}</span><span class="s2"> rad):</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- meridonal focus at </span><span class="si">{</span><span class="n">mnp</span><span class="si">}</span><span class="s2"> m (delta = </span><span class="si">{</span><span class="n">mca</span><span class="si">}</span><span class="s2"> m / </span><span class="si">{</span><span class="n">mcr</span><span class="si">}</span><span class="s2"> %)</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- sagital focus at </span><span class="si">{</span><span class="n">snp</span><span class="si">}</span><span class="s2"> m (delta = </span><span class="si">{</span><span class="n">sca</span><span class="si">}</span><span class="s2"> m / </span><span class="si">{</span><span class="n">scr</span><span class="si">}</span><span class="s2"> %)&quot;</span>
             <span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
@@ -1268,8 +1270,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Oct 06, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
     </p>
   </div>
 </footer>

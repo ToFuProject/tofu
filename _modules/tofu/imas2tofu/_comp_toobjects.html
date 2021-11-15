@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tofu.imas2tofu._comp_toobjects &#8212; Tofu 1.4.15</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../_static/js/jquery-1.12.4.min.js "></script>
+<script type="text/javascript" src="../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../installation.html">Installation</a></li>
+                <li><a href="../../../contributing.html">Contributing</a></li>
+                <li><a href="../../../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../../../aboutus.html">About</a></li>
+                <li><a href="../../../releases.html">Releases</a></li>
+                <li><a href="../../../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for tofu.imas2tofu._comp_toobjects</h1><div class="highlight"><pre>
+<span></span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="c1"># tofu</span>
+<span class="n">pfe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">),</span> <span class="s1">&#39;.tofu&#39;</span><span class="p">,</span> <span class="s1">&#39;_imas2tofu_def.py&#39;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">pfe</span><span class="p">):</span>
+    <span class="c1"># Make sure we load the user-specific file</span>
+    <span class="c1"># sys.path method</span>
+    <span class="c1"># sys.path.insert(1, os.path.join(os.path.expanduser(&#39;~&#39;), &#39;.tofu&#39;))</span>
+    <span class="c1"># import _scripts_def as _defscripts</span>
+    <span class="c1"># _ = sys.path.pop(1)</span>
+    <span class="c1"># importlib method</span>
+    <span class="kn">import</span> <span class="nn">importlib.util</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">spec_from_file_location</span><span class="p">(</span><span class="s2">&quot;_defimas2tofu&quot;</span><span class="p">,</span> <span class="n">pfe</span><span class="p">)</span>
+    <span class="n">_defimas2tofu</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">module_from_spec</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
+    <span class="n">spec</span><span class="o">.</span><span class="n">loader</span><span class="o">.</span><span class="n">exec_module</span><span class="p">(</span><span class="n">_defimas2tofu</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">tofu.imas2tofu._def</span> <span class="k">as</span> <span class="nn">_defimas2tofu</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_defimas2tofu</span>
+
+<span class="n">_ERRSHOT</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">_ERREXP</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="n">_DTLIM</span> <span class="o">=</span> <span class="n">_defimas2tofu</span><span class="o">.</span><span class="n">_DTLIM</span>
+<span class="n">_INDEVENT</span> <span class="o">=</span> <span class="n">_defimas2tofu</span><span class="o">.</span><span class="n">_INDEVENT</span>
+
+
+<span class="c1"># #############################################################################</span>
+<span class="c1">#                       Generic</span>
+<span class="c1"># #############################################################################</span>
+
+
+<div class="viewcode-block" id="_check_shotExp_consistency"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects._check_shotExp_consistency">[docs]</a><span class="k">def</span> <span class="nf">_check_shotExp_consistency</span><span class="p">(</span><span class="n">didd</span><span class="p">,</span> <span class="n">lidd</span><span class="p">,</span> <span class="n">tofustr</span><span class="o">=</span><span class="s1">&#39;shot&#39;</span><span class="p">,</span> <span class="n">imasstr</span><span class="o">=</span><span class="s1">&#39;shot&#39;</span><span class="p">,</span>
+                               <span class="n">err</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="n">crit</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">idd</span> <span class="ow">in</span> <span class="n">lidd</span><span class="p">:</span>
+        <span class="n">v0</span> <span class="o">=</span> <span class="n">didd</span><span class="p">[</span><span class="n">idd</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">imasstr</span> <span class="ow">in</span> <span class="n">v0</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">crit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">crit</span> <span class="o">=</span> <span class="n">v0</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">][</span><span class="n">imasstr</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">crit</span> <span class="o">!=</span> <span class="n">v0</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">][</span><span class="n">imasstr</span><span class="p">]:</span>
+                <span class="n">ss</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> : </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idd</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">][</span><span class="n">imasstr</span><span class="p">]))</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;All idd refer to different </span><span class="si">{}</span><span class="s2">!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">imasstr</span><span class="p">)</span>
+                       <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ss</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">err</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">crit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">crit</span> <span class="o">=</span> <span class="n">fallback</span>
+    <span class="k">return</span> <span class="n">crit</span></div>
+
+
+<div class="viewcode-block" id="get_lidsidd_shotExp"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.get_lidsidd_shotExp">[docs]</a><span class="k">def</span> <span class="nf">get_lidsidd_shotExp</span><span class="p">(</span><span class="n">lidsok</span><span class="p">,</span>
+                        <span class="n">errshot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">errExp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">dids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">didd</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Check whether all shot / Exp are consistent accross the ids &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">errshot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">errshot</span> <span class="o">=</span> <span class="n">_ERRSHOT</span>
+    <span class="k">if</span> <span class="n">errExp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">errExp</span> <span class="o">=</span> <span class="n">_ERREXP</span>
+
+    <span class="n">lids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">lidsok</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">lidd</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">dids</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;idd&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">lids</span><span class="p">])</span>
+
+    <span class="c1"># shot (non-identical =&gt; error if errshot is True, warning otherwise)</span>
+    <span class="n">shot</span> <span class="o">=</span> <span class="n">_check_shotExp_consistency</span><span class="p">(</span><span class="n">didd</span><span class="p">,</span> <span class="n">lidd</span><span class="p">,</span>
+                                      <span class="n">tofustr</span><span class="o">=</span><span class="s1">&#39;shot&#39;</span><span class="p">,</span> <span class="n">imasstr</span><span class="o">=</span><span class="s1">&#39;shot&#39;</span><span class="p">,</span>
+                                      <span class="n">err</span><span class="o">=</span><span class="n">errshot</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Exp (non-identical =&gt; error if errExp is True, warning otherwise)</span>
+    <span class="n">Exp</span> <span class="o">=</span> <span class="n">_check_shotExp_consistency</span><span class="p">(</span><span class="n">didd</span><span class="p">,</span> <span class="n">lidd</span><span class="p">,</span>
+                                     <span class="n">tofustr</span><span class="o">=</span><span class="s1">&#39;Exp&#39;</span><span class="p">,</span> <span class="n">imasstr</span><span class="o">=</span><span class="s1">&#39;database&#39;</span><span class="p">,</span>
+                                     <span class="n">err</span><span class="o">=</span><span class="n">errExp</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="s1">&#39;Dummy&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">upper</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">Exp</span> <span class="o">=</span> <span class="n">Exp</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">lids</span><span class="p">,</span> <span class="n">lidd</span><span class="p">,</span> <span class="n">shot</span><span class="p">,</span> <span class="n">Exp</span></div>
+
+
+<span class="c1"># #############################################################################</span>
+<span class="c1">#                       Extra</span>
+<span class="c1"># #############################################################################</span>
+
+
+<div class="viewcode-block" id="extra_checkformat"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.extra_checkformat">[docs]</a><span class="k">def</span> <span class="nf">extra_checkformat</span><span class="p">(</span><span class="n">dextra</span><span class="p">,</span> <span class="n">fordata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">dids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">didd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dshort</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">dextra</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dextra</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+          <span class="nb">isinstance</span><span class="p">(</span><span class="n">dextra</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+          <span class="nb">isinstance</span><span class="p">(</span><span class="n">dextra</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span>
+          <span class="nb">isinstance</span><span class="p">(</span><span class="n">dextra</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg dextra must be either:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- None:     set to default</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- False:    no extra signal</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- str:      a single extra signal (shortcut)</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- list:     a list of extra signals</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- dict:     a dict of extra signals {ids: list of short}</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  You provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dextra</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dextra</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">fordata</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="k">elif</span> <span class="n">dextra</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dextra</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="s1">&#39;equilibrium&#39;</span> <span class="ow">in</span> <span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">dextra</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;equilibrium&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="s1">&#39;ip&#39;</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;BT0&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">),</span>
+                                           <span class="p">(</span><span class="s1">&#39;axR&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)),</span>
+                                           <span class="p">(</span><span class="s1">&#39;axZ&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)),</span>
+                                           <span class="s1">&#39;ax&#39;</span><span class="p">,</span> <span class="s1">&#39;sep&#39;</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">]})</span>
+        <span class="k">if</span> <span class="s1">&#39;core_profiles&#39;</span> <span class="ow">in</span> <span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">dextra</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;core_profiles&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;ip&#39;</span><span class="p">,</span> <span class="s1">&#39;vloop&#39;</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">]})</span>
+        <span class="k">if</span> <span class="s1">&#39;lh_antennas&#39;</span> <span class="ow">in</span> <span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">dextra</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;lh_antennas&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="s1">&#39;power0&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)),</span>
+                                           <span class="p">(</span><span class="s1">&#39;power1&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)),</span> <span class="s1">&#39;t&#39;</span><span class="p">]})</span>
+        <span class="k">if</span> <span class="s1">&#39;ic_antennas&#39;</span> <span class="ow">in</span> <span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">dextra</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;ic_antennas&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">(</span><span class="s1">&#39;power0&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;power1&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;power2&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">)),</span> <span class="s1">&#39;t&#39;</span><span class="p">]})</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">dextra</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">dextra</span> <span class="o">=</span> <span class="p">[</span><span class="n">dextra</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">dextra</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="n">dex</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">ee</span> <span class="ow">in</span> <span class="n">dextra</span><span class="p">:</span>
+            <span class="n">lids</span> <span class="o">=</span> <span class="p">[</span><span class="n">ids</span> <span class="k">for</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">ee</span> <span class="ow">in</span> <span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lids</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;No / multiple matches:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="o">+</span> <span class="s2">&quot;extra </span><span class="si">{}</span><span class="s2"> not available from self._dshort&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ee</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">lids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dex</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">dex</span> <span class="o">=</span> <span class="p">{</span><span class="n">lids</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="p">[</span><span class="n">ee</span><span class="p">]}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">dex</span><span class="p">[</span><span class="n">lids</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ee</span><span class="p">)</span>
+        <span class="n">dextra</span> <span class="o">=</span> <span class="n">dex</span>
+    <span class="k">return</span> <span class="n">dextra</span></div>
+
+
+<div class="viewcode-block" id="extra_get_fordataTrue"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.extra_get_fordataTrue">[docs]</a><span class="k">def</span> <span class="nf">extra_get_fordataTrue</span><span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">vs</span><span class="p">,</span> <span class="n">vc</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">dout</span><span class="p">,</span>
+                          <span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dshort</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dcomp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">inds</span><span class="p">:</span>
+        <span class="n">ss</span> <span class="o">=</span> <span class="n">vs</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ss</span> <span class="o">==</span> <span class="s1">&#39;t&#39;</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">out</span><span class="p">[</span><span class="n">ss</span><span class="p">][</span><span class="s1">&#39;isempty&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">dd</span> <span class="o">=</span> <span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">ss</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dd</span> <span class="o">=</span> <span class="n">dcomp</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">ss</span><span class="p">]</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">dd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;quant&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">ss</span><span class="p">][</span><span class="s1">&#39;units&#39;</span><span class="p">]</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">ss</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;sep&#39;</span> <span class="o">==</span> <span class="n">ss</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">ss</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="n">ss</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">datastr</span> <span class="o">=</span> <span class="s1">&#39;data&#39;</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">s0</span> <span class="k">for</span> <span class="n">s0</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sep&#39;</span><span class="p">,</span> <span class="s1">&#39;ax&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">]]):</span>
+            <span class="n">datastr</span> <span class="o">=</span> <span class="s1">&#39;data2D&#39;</span>
+
+        <span class="n">dout</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;t&#39;</span><span class="p">:</span> <span class="n">out</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">],</span>
+                     <span class="n">datastr</span><span class="p">:</span> <span class="n">out</span><span class="p">[</span><span class="n">ss</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">],</span>
+                     <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span> <span class="s1">&#39;units&#39;</span><span class="p">:</span> <span class="n">units</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="n">vc</span><span class="p">[</span><span class="n">ii</span><span class="p">]}</span></div>
+
+
+<div class="viewcode-block" id="extra_get_fordataFalse"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.extra_get_fordataFalse">[docs]</a><span class="k">def</span> <span class="nf">extra_get_fordataFalse</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">d0d</span><span class="p">,</span> <span class="n">dt0</span><span class="p">,</span>
+                           <span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dshort</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dcomp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">any_</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">keyt</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.t&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">ss</span> <span class="o">==</span> <span class="s1">&#39;t&#39;</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">out</span><span class="p">[</span><span class="n">ss</span><span class="p">][</span><span class="s1">&#39;isempty&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">dd</span> <span class="o">=</span> <span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">ss</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dd</span> <span class="o">=</span> <span class="n">dcomp</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">ss</span><span class="p">]</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="n">dd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dim&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+        <span class="n">quant</span> <span class="o">=</span> <span class="n">dd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;quant&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">ss</span><span class="p">][</span><span class="s1">&#39;units&#39;</span><span class="p">]</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">ss</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;sep&#39;</span> <span class="o">==</span> <span class="n">ss</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">ss</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="n">ss</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">d0d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">out</span><span class="p">[</span><span class="n">ss</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">],</span> <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">ss</span><span class="p">,</span>
+                    <span class="s1">&#39;origin&#39;</span><span class="p">:</span> <span class="n">ids</span><span class="p">,</span> <span class="s1">&#39;dim&#39;</span><span class="p">:</span> <span class="n">dim</span><span class="p">,</span> <span class="s1">&#39;quant&#39;</span><span class="p">:</span> <span class="n">quant</span><span class="p">,</span>
+                    <span class="s1">&#39;units&#39;</span><span class="p">:</span> <span class="n">units</span><span class="p">,</span> <span class="s1">&#39;depend&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">keyt</span><span class="p">,)}</span>
+        <span class="n">any_</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">any_</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">dt0</span><span class="p">[</span><span class="n">keyt</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">out</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">],</span> <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;origin&#39;</span><span class="p">:</span> <span class="n">ids</span><span class="p">,</span> <span class="s1">&#39;depend&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">keyt</span><span class="p">,)}</span></div>
+
+
+<span class="c1"># #############################################################################</span>
+<span class="c1">#                       Config</span>
+<span class="c1"># #############################################################################</span>
+
+
+<div class="viewcode-block" id="config_extract_lS"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.config_extract_lS">[docs]</a><span class="k">def</span> <span class="nf">config_extract_lS</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">occ</span><span class="p">,</span> <span class="n">wall</span><span class="p">,</span> <span class="n">description_2d</span><span class="p">,</span> <span class="n">mod</span><span class="p">,</span>
+                      <span class="n">kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mobile</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extract all relevant structures &quot;&quot;&quot;</span>
+
+    <span class="n">nlim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">wall</span><span class="o">.</span><span class="n">limiter</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+    <span class="n">nmob</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">wall</span><span class="o">.</span><span class="n">mobile</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+    <span class="c1"># onelimonly = False</span>
+
+    <span class="c1"># ----------------------------------</span>
+    <span class="c1"># Relevant only if vessel is filled</span>
+    <span class="c1"># try:</span>
+    <span class="c1">#    if len(wall.vessel.unit) != 1:</span>
+    <span class="c1">#        msg = &quot;There is no / several vessel.unit!&quot;</span>
+    <span class="c1">#        raise Exception(msg)</span>
+    <span class="c1">#    if len(wall.vessel.unit[0].element) != 1:</span>
+    <span class="c1">#        msg = &quot;There is no / several vessel.unit[0].element!&quot;</span>
+    <span class="c1">#        raise Exception(msg)</span>
+    <span class="c1">#    if len(wall.vessel.unit[0].element[0].outline.r) &lt; 3:</span>
+    <span class="c1">#        msg = &quot;wall.vessel polygon has less than 3 points!&quot;</span>
+    <span class="c1">#        raise Exception(msg)</span>
+    <span class="c1">#    name = wall.vessel.unit[0].element[0].name</span>
+    <span class="c1">#    poly = np.array([wall.vessel.unit[0].element[0].outline.r,</span>
+    <span class="c1">#                     wall.vessel.unit[0].element[0].outline.z])</span>
+    <span class="c1"># except Exception as err:</span>
+    <span class="c1">#    # If vessel not in vessel, sometimes stored a a single limiter</span>
+    <span class="c1">#    if nlim == 1:</span>
+    <span class="c1">#        name = wall.limiter.unit[0].name</span>
+    <span class="c1">#        poly = np.array([wall.limiter.unit[0].outline.r,</span>
+    <span class="c1">#                         wall.limiter.unit[0].outline.z])</span>
+    <span class="c1">#        onelimonly = True</span>
+    <span class="c1">#    else:</span>
+    <span class="c1">#        msg = (&quot;There does not seem to be any vessel, &quot;</span>
+    <span class="c1">#               + &quot;not in wall.vessel nor in wall.limiter!&quot;)</span>
+    <span class="c1">#        raise Exception(msg)</span>
+    <span class="c1"># cls = None</span>
+    <span class="c1"># if name == &#39;&#39;:</span>
+    <span class="c1">#     name = &#39;ImasVessel&#39;</span>
+    <span class="c1"># if &#39;_&#39; in name:</span>
+    <span class="c1">#     ln = name.split(&#39;_&#39;)</span>
+    <span class="c1">#     if len(ln) == 2:</span>
+    <span class="c1">#         cls, name = ln</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         name = name.replace(&#39;_&#39;, &#39;&#39;)</span>
+    <span class="c1"># if cls is None:</span>
+    <span class="c1">#     cls = &#39;Ves&#39;</span>
+    <span class="c1"># assert cls in [&#39;Ves&#39;, &#39;PlasmaDomain&#39;]</span>
+    <span class="c1"># ves = getattr(mod, cls)(Poly=poly, Name=name, **kwargs)</span>
+
+    <span class="c1"># Determine if mobile or not</span>
+    <span class="c1"># if onelimonly is False:</span>
+    <span class="k">if</span> <span class="n">mobile</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">nlim</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">nmob</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">mobile</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">nmob</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">nlim</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">mobile</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">nmob</span> <span class="o">&gt;</span> <span class="n">nlim</span><span class="p">:</span>
+            <span class="n">msgw</span> <span class="o">=</span> <span class="s1">&#39;wall.description_2[</span><span class="si">{}</span><span class="s1">]&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">description_2d</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">ids wall has less limiter than mobile units</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- len(</span><span class="si">{}</span><span class="s2">.limiter.unit) = </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msgw</span><span class="p">,</span> <span class="n">nlim</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- len(</span><span class="si">{}</span><span class="s2">.mobile.unit) = </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msgw</span><span class="p">,</span> <span class="n">nmob</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;  =&gt; Choosing mobile by default&quot;</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">mobile</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">nmob</span> <span class="o">&lt;=</span> <span class="n">nlim</span><span class="p">:</span>
+            <span class="n">msgw</span> <span class="o">=</span> <span class="s1">&#39;wall.description_2[</span><span class="si">{}</span><span class="s1">]&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">description_2d</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">ids wall has more limiter than mobile units</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- len(</span><span class="si">{}</span><span class="s2">.limiter.unit) = </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msgw</span><span class="p">,</span> <span class="n">nlim</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- len(</span><span class="si">{}</span><span class="s2">.mobile.unit) = </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msgw</span><span class="p">,</span> <span class="n">nmob</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;  =&gt; Choosing limiter by default&quot;</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">mobile</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mobile</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+
+    <span class="c1"># Get PFC</span>
+    <span class="k">if</span> <span class="n">mobile</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="n">wall</span><span class="o">.</span><span class="n">mobile</span><span class="o">.</span><span class="n">unit</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="n">wall</span><span class="o">.</span><span class="n">limiter</span><span class="o">.</span><span class="n">unit</span>
+    <span class="n">nunits</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">units</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">nunits</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;There is no unit stored !</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;The required 2d description is empty:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">ms</span> <span class="o">=</span> <span class="s2">&quot;len(idd.</span><span class="si">{}</span><span class="s2">[occ=</span><span class="si">{}</span><span class="s2">].description_2d&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">occ</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].limiter.unit) = 0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span>
+                                                 <span class="n">description_2d</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">lS</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">units</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nunits</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">mobile</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">outline</span> <span class="o">=</span> <span class="n">units</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">outline</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">outline</span> <span class="o">=</span> <span class="n">units</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">outline</span>
+            <span class="n">poly</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">outline</span><span class="o">.</span><span class="n">r</span><span class="p">,</span> <span class="n">outline</span><span class="o">.</span><span class="n">z</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">units</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">phi_extensions</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">pos</span><span class="p">,</span> <span class="n">extent</span> <span class="o">=</span> <span class="n">units</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">phi_extensions</span><span class="o">.</span><span class="n">T</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pos</span><span class="p">,</span> <span class="n">extent</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">units</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+            <span class="bp">cls</span><span class="p">,</span> <span class="n">mobi</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;unit</span><span class="si">{:02.0f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;_&#39;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+                <span class="n">ln</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ln</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="bp">cls</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">ln</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">ln</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">mobi</span> <span class="o">=</span> <span class="n">ln</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39; &#39;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+                <span class="n">ln</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ln</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ln</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                        <span class="k">if</span> <span class="n">nn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">islower</span><span class="p">():</span>
+                            <span class="n">ln</span><span class="p">[</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ln</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">cls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ii</span> <span class="o">==</span> <span class="n">nunits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="bp">cls</span> <span class="o">=</span> <span class="s1">&#39;Ves&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">cls</span> <span class="o">=</span> <span class="s1">&#39;PFC&#39;</span>
+            <span class="c1"># mobi = mobi == &#39;mobile&#39;</span>
+            <span class="n">lS</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)(</span><span class="n">Poly</span><span class="o">=</span><span class="n">poly</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span>
+                                       <span class="n">extent</span><span class="o">=</span><span class="n">extent</span><span class="p">,</span>
+                                       <span class="n">Name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                                       <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;PFC unit[</span><span class="si">{}</span><span class="s2">] named </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;could not be loaded!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">lS</span></div>
+
+
+<span class="c1"># #############################################################################</span>
+<span class="c1">#                       Plasma</span>
+<span class="c1"># #############################################################################</span>
+
+
+<div class="viewcode-block" id="plasma_checkformat_dsig"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.plasma_checkformat_dsig">[docs]</a><span class="k">def</span> <span class="nf">plasma_checkformat_dsig</span><span class="p">(</span><span class="n">dsig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">lidsplasma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">dshort</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dcomp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">lidsok</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">lidsplasma</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="n">lscom</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">]</span>
+    <span class="n">lsmesh</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;2dmeshNodes&#39;</span><span class="p">,</span> <span class="s1">&#39;2dmeshFaces&#39;</span><span class="p">,</span>
+              <span class="s1">&#39;2dmeshR&#39;</span><span class="p">,</span> <span class="s1">&#39;2dmeshZ&#39;</span><span class="p">]</span>
+
+    <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">dsig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+          <span class="nb">type</span><span class="p">(</span><span class="n">dsig</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span>
+          <span class="nb">type</span><span class="p">(</span><span class="n">dsig</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">,</span>
+          <span class="nb">type</span><span class="p">(</span><span class="n">dsig</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">)</span>
+
+    <span class="c1"># Convert to dict</span>
+    <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">dsig</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">lidsok</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">or</span> <span class="n">lc</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">dsig</span> <span class="o">=</span> <span class="p">[</span><span class="n">dsig</span><span class="p">]</span>
+        <span class="n">dsig</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">lidsok</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">dsig</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">dsig</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">dsig</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dsig</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                                   <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">dcomp</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+
+    <span class="c1"># Check content</span>
+    <span class="n">dout</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k0</span><span class="p">,</span> <span class="n">v0</span> <span class="ow">in</span> <span class="n">dsig</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">lkeysok</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">dshort</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                             <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">dcomp</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+        <span class="k">if</span> <span class="n">k0</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">lidsok</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Only the following ids are relevant to Plasma2D:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lidsok</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;  =&gt; ids </span><span class="si">{}</span><span class="s2"> from dsig is ignored&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k0</span><span class="p">))</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">v0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">v0</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">v0</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Each value in dsig must be either:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- None</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- str : a valid shortcut</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- list of str: list of valid shortcuts</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;You provided:</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dsig</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">=</span> <span class="n">lkeysok</span>
+        <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">lkeysok</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]]):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;All requested signals must be valid shortcuts !</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;    - dsig[</span><span class="si">{}</span><span class="s2">] = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k0</span><span class="p">,</span> <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># Check presence of minimum</span>
+        <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">ss</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lscom</span> <span class="k">if</span> <span class="n">ss</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lc</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;dsig[</span><span class="si">{}</span><span class="s2">] does not have </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k0</span><span class="p">,</span> <span class="n">lc</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;    - dsig[</span><span class="si">{}</span><span class="s2">] = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k0</span><span class="p">,</span> <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># Check required minimum for 2dmesh, for valid shortcuts</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="s1">&#39;2d&#39;</span> <span class="ow">in</span> <span class="n">ss</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]]):</span>
+            <span class="n">lsmesh0</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">lsmesh</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">dshort</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">lsmesh0</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]))</span>
+        <span class="n">dout</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">=</span> <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">dout</span></div>
+
+
+<div class="viewcode-block" id="plasma_plot_args"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.plasma_plot_args">[docs]</a><span class="k">def</span> <span class="nf">plasma_plot_args</span><span class="p">(</span><span class="n">plot</span><span class="p">,</span> <span class="n">plot_X</span><span class="p">,</span> <span class="n">plot_sig</span><span class="p">,</span>
+                     <span class="n">dsig</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># Set plot</span>
+    <span class="k">if</span> <span class="n">plot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plot</span> <span class="o">=</span> <span class="ow">not</span> <span class="p">(</span><span class="n">plot_sig</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">plot_X</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">plot</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1"># set plot_sig</span>
+        <span class="k">if</span> <span class="n">plot_sig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lsplot</span> <span class="o">=</span> <span class="p">[</span><span class="n">ss</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">dsig</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+                      <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;1d&#39;</span> <span class="ow">in</span> <span class="n">ss</span> <span class="ow">and</span> <span class="n">ss</span> <span class="o">!=</span> <span class="s1">&#39;t&#39;</span>
+                          <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="n">sub</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ss</span>
+                                   <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;rho&#39;</span><span class="p">,</span> <span class="s1">&#39;psi&#39;</span><span class="p">,</span> <span class="s1">&#39;phi&#39;</span><span class="p">]]))]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dsig</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">lsplot</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Direct plotting only possible if</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="o">+</span> <span class="s2">&quot;sig_plot is provided, or can be derived from:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- unique ids: </span><span class="si">{}</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dsig</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                       <span class="o">+</span> <span class="s2">&quot;- unique non-(t, radius) 1d sig: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lsplot</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">plot_sig</span> <span class="o">=</span> <span class="n">lsplot</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">plot_sig</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">plot_sig</span> <span class="o">=</span> <span class="p">[</span><span class="n">plot_sig</span><span class="p">]</span>
+
+        <span class="c1"># set plot_X</span>
+        <span class="k">if</span> <span class="n">plot_X</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lsplot</span> <span class="o">=</span> <span class="p">[</span><span class="n">ss</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">dsig</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+                      <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;1d&#39;</span> <span class="ow">in</span> <span class="n">ss</span> <span class="ow">and</span> <span class="n">ss</span> <span class="o">!=</span> <span class="s1">&#39;t&#39;</span>
+                          <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">sub</span> <span class="ow">in</span> <span class="n">ss</span>
+                                   <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;rho&#39;</span><span class="p">,</span> <span class="s1">&#39;psi&#39;</span><span class="p">,</span> <span class="s1">&#39;phi&#39;</span><span class="p">]]))]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dsig</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">lsplot</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Direct plotting only possible if</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="o">+</span> <span class="s2">&quot;X_plot is provided, or can be derived from:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                       <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- unique ids: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dsig</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                       <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- unique non-t, 1d radius: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lsplot</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">plot_X</span> <span class="o">=</span> <span class="n">lsplot</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">plot_X</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">plot_X</span> <span class="o">=</span> <span class="p">[</span><span class="n">plot_X</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">plot</span><span class="p">,</span> <span class="n">plot_X</span><span class="p">,</span> <span class="n">plot_sig</span></div>
+
+
+<span class="c1"># #############################################################################</span>
+<span class="c1">#                       Cam</span>
+<span class="c1"># #############################################################################</span>
+
+
+<div class="viewcode-block" id="cam_checkformat_geom"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.cam_checkformat_geom">[docs]</a><span class="k">def</span> <span class="nf">cam_checkformat_geom</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">geomcls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">lidsdiag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">didsdiag</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="c1"># Check ids</span>
+    <span class="n">idsok</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">lidsdiag</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">idsok</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">idsok</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">ids</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Provided ids should be available as a self.dids.keys()!</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- available: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ids</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">lidsdiag</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Requested ids is not pre-tabulated !</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;  =&gt; Be careful with args (geomcls, indch)&quot;</span><span class="p">)</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">geomcls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">geomcls</span> <span class="o">=</span> <span class="n">didsdiag</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;geomcls&#39;</span><span class="p">]</span>
+
+    <span class="c1"># Check data and geom</span>
+    <span class="kn">import</span> <span class="nn">tofu.geom</span> <span class="k">as</span> <span class="nn">tfg</span>
+
+    <span class="n">lgeom</span> <span class="o">=</span> <span class="p">[</span><span class="n">kk</span> <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">tfg</span><span class="p">)</span> <span class="k">if</span> <span class="s1">&#39;Cam&#39;</span> <span class="ow">in</span> <span class="n">kk</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">geomcls</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">+</span> <span class="n">lgeom</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Arg geomcls must be in </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">([</span><span class="kc">False</span><span class="p">]</span><span class="o">+</span><span class="n">lgeom</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">geomcls</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;ids </span><span class="si">{}</span><span class="s2"> does not seem to be a ids with a camera&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">geomcls</span></div>
+
+
+<div class="viewcode-block" id="cam_compare_indch_indchr"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.cam_compare_indch_indchr">[docs]</a><span class="k">def</span> <span class="nf">cam_compare_indch_indchr</span><span class="p">(</span><span class="n">indch</span><span class="p">,</span> <span class="n">indchr</span><span class="p">,</span> <span class="n">nch</span><span class="p">,</span> <span class="n">indch_auto</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">indch_auto</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">indch_auto</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">indch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">indch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nch</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">in1d</span><span class="p">(</span><span class="n">indch</span><span class="p">,</span> <span class="n">indchr</span><span class="p">)):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;indch has to be changed, some data may be missing</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- indch: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">indch</span><span class="p">)</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- indch recommended: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">indchr</span><span class="p">)</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">  =&gt; check self.inspect_channels() for details&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">indch_auto</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">indch</span> <span class="o">=</span> <span class="n">indchr</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">indch</span></div>
+
+
+<div class="viewcode-block" id="inspect_channels_dout"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.inspect_channels_dout">[docs]</a><span class="k">def</span> <span class="nf">inspect_channels_dout</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">geom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dshort</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">lsig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lsigshape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">compute_ind</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">dout</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k0</span><span class="p">,</span> <span class="n">v0</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">v0</span> <span class="o">=</span> <span class="n">v0</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v0</span><span class="p">)</span> <span class="o">!=</span> <span class="n">nch</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v0</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="kn">import</span> <span class="nn">pdb</span>          <span class="c1"># DB</span>
+                <span class="n">pdb</span><span class="o">.</span><span class="n">set_trace</span><span class="p">()</span>     <span class="c1"># DB</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">dout</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;shapes&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vv</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">v0</span><span class="p">]),</span>
+                        <span class="s1">&#39;isnan&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">vv</span><span class="p">))</span>
+                                           <span class="k">for</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">v0</span><span class="p">])}</span>
+            <span class="k">if</span> <span class="n">k0</span> <span class="o">==</span> <span class="s1">&#39;los_ptsRZPhi&#39;</span><span class="p">:</span>
+                <span class="n">dout</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;equal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">vv</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+                                                          <span class="n">vv</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+                                             <span class="k">for</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">v0</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+            <span class="n">dout</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">v0</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">typv</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">v0</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">k0str</span> <span class="o">=</span> <span class="p">(</span><span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;str&#39;</span><span class="p">]</span>
+                     <span class="k">if</span> <span class="n">k0</span> <span class="ow">in</span> <span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="n">k0</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Unknown data type:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">type(</span><span class="si">{}</span><span class="s2">) = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k0str</span><span class="p">,</span> <span class="n">typv</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">lsig</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">lsig</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">dout</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+    <span class="n">lsigshape</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">lsigshape</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">dout</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+    <span class="c1"># --------------</span>
+    <span class="c1"># Get indchout</span>
+    <span class="n">indchout</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">compute_ind</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">geom</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;only&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span> <span class="ow">and</span> <span class="s1">&#39;los_ptsRZPhi&#39;</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">indg</span> <span class="o">=</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="s1">&#39;los_ptsRZPhi&#39;</span><span class="p">][</span><span class="s1">&#39;shapes&#39;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="o">|</span> <span class="n">dout</span><span class="p">[</span><span class="s1">&#39;los_ptsRZPhi&#39;</span><span class="p">][</span><span class="s1">&#39;isnan&#39;</span><span class="p">]</span>
+                    <span class="o">|</span> <span class="n">dout</span><span class="p">[</span><span class="s1">&#39;los_ptsRZPhi&#39;</span><span class="p">][</span><span class="s1">&#39;equal&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">geom</span> <span class="o">==</span> <span class="s1">&#39;only&#39;</span><span class="p">:</span>
+                <span class="n">indok</span> <span class="o">=</span> <span class="o">~</span><span class="n">indg</span>
+                <span class="n">indchout</span> <span class="o">=</span> <span class="n">indok</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">geom</span> <span class="o">!=</span> <span class="s1">&#39;only&#39;</span><span class="p">:</span>
+            <span class="n">shapes0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;shapes&#39;</span><span class="p">],</span>
+                                              <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                                      <span class="k">for</span> <span class="n">k0</span> <span class="ow">in</span> <span class="n">lsigshape</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">indok</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">shapes0</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">geom</span> <span class="ow">is</span> <span class="kc">True</span> <span class="ow">and</span> <span class="s1">&#39;los_ptsRZPhi&#39;</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">indok</span><span class="p">[</span><span class="n">indg</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">indok</span><span class="p">):</span>
+            <span class="n">indchout</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">geom</span> <span class="o">!=</span> <span class="s1">&#39;only&#39;</span><span class="p">:</span>
+            <span class="n">indchout</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nch</span><span class="p">)[</span><span class="n">indok</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">indch</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">indch</span><span class="p">][</span><span class="n">indok</span><span class="p">])</span>
+            <span class="n">lshapes</span> <span class="o">=</span> <span class="p">[</span><span class="n">dout</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;shapes&#39;</span><span class="p">][</span><span class="n">indchout</span><span class="p">,</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">k0</span> <span class="ow">in</span> <span class="n">lsigshape</span><span class="p">]</span>
+            <span class="n">lshapesu</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ss</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lshapes</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lshapesu</span><span class="p">]):</span>
+                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lshapesu</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="n">lshapesu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">_</span><span class="p">,</span> <span class="n">inv</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">lshapes</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                                   <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                   <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="n">indchout</span> <span class="o">=</span> <span class="n">indchout</span><span class="p">[</span><span class="n">inv</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">counts</span><span class="p">)]</span>
+                        <span class="n">lshapes</span> <span class="o">=</span> <span class="p">[</span><span class="n">dout</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;shapes&#39;</span><span class="p">][</span><span class="n">indchout</span><span class="p">,</span> <span class="p">:]</span>
+                                   <span class="k">for</span> <span class="n">k0</span> <span class="ow">in</span> <span class="n">lsigshape</span><span class="p">]</span>
+                        <span class="n">lshapesu</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ss</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">lshapes</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">dout</span><span class="p">,</span> <span class="n">indchout</span></div>
+
+
+<div class="viewcode-block" id="cam_to_Cam_Du"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.cam_to_Cam_Du">[docs]</a><span class="k">def</span> <span class="nf">cam_to_Cam_Du</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">Etendues</span><span class="p">,</span> <span class="n">Surfaces</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="s1">&#39;los_ptsRZPhi&#39;</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">oo</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s1">&#39;los_ptsRZPhi&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">oo</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">oo</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+                      <span class="n">oo</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">oo</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span> <span class="n">oo</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">oo</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">oo</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+                      <span class="n">oo</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">oo</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span> <span class="n">oo</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="p">(</span><span class="n">u</span><span class="o">-</span><span class="n">D</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">u</span><span class="o">-</span><span class="n">D</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">dgeom</span> <span class="o">=</span> <span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+        <span class="n">indnan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">D</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">indnan</span><span class="p">):</span>
+            <span class="n">nunav</span><span class="p">,</span> <span class="n">ntot</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">indnan</span><span class="o">.</span><span class="n">sum</span><span class="p">()),</span> <span class="nb">str</span><span class="p">(</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Some lines of sight unavailable in </span><span class="si">{}</span><span class="s2">:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- unavailable LOS: </span><span class="si">{0}</span><span class="s2"> / </span><span class="si">{1}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nunav</span><span class="p">,</span> <span class="n">ntot</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- indices: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">indnan</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">])))</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dgeom</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="s1">&#39;etendue&#39;</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">Etendues</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s1">&#39;etendue&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s1">&#39;surface&#39;</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">Surfaces</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s1">&#39;surface&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s1">&#39;names&#39;</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s1">&#39;names&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">dgeom</span><span class="p">,</span> <span class="n">Etendues</span><span class="p">,</span> <span class="n">Surfaces</span><span class="p">,</span> <span class="n">names</span></div>
+
+
+<span class="c1"># #############################################################################</span>
+<span class="c1">#                       Data</span>
+<span class="c1"># #############################################################################</span>
+
+
+<div class="viewcode-block" id="data_checkformat_tlim"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.data_checkformat_tlim">[docs]</a><span class="k">def</span> <span class="nf">data_checkformat_tlim</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tlim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">times</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indevent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">returnas</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># Check inputs</span>
+    <span class="k">if</span> <span class="n">tlim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">tlim</span> <span class="o">=</span> <span class="n">_DTLIM</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">Exp</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">indevent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">indevent</span> <span class="o">=</span> <span class="n">_INDEVENT</span>
+    <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">returnas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">returnas</span> <span class="o">=</span> <span class="nb">bool</span>
+    <span class="k">if</span> <span class="n">returnas</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg returnas must be in [bool, int]</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">returnas</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">returnas</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+    <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">tlim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+          <span class="n">tlim</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">,</span>
+          <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">tlim</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">tlim</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+           <span class="ow">and</span> <span class="nb">all</span><span class="p">([(</span><span class="nb">type</span><span class="p">(</span><span class="n">tt</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">]</span>
+                     <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">tt</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                         <span class="ow">and</span> <span class="n">names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                         <span class="ow">and</span> <span class="n">tt</span> <span class="ow">in</span> <span class="n">names</span><span class="p">)</span>
+                     <span class="ow">or</span> <span class="n">tt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">tt</span> <span class="ow">in</span> <span class="n">tlim</span><span class="p">]))]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;tlim must be either:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- None:  set to default (False)</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- False: no time limit</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- list:  a list of 2, lower and upper limits [t0, t1]:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2">- [None, float]: no lower, explicit upper limit</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2">- [float, float]: explicit lower and upper limit</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2">- [float, str]: explicit lower, event name for upper</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;  You provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tlim</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">tt</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">tt</span> <span class="ow">in</span> <span class="n">tlim</span><span class="p">]):</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">Available events:</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">tlim</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">tlim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">tlim</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># Compute</span>
+    <span class="n">indt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">t</span><span class="o">.</span><span class="n">size</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">tlim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tlim</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tlim</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">ind</span> <span class="o">=</span> <span class="p">(</span><span class="n">names</span> <span class="o">==</span> <span class="n">tlim</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="n">indevent</span><span class="p">]</span>
+                <span class="n">tlim</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">times</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">tlim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">indt</span><span class="p">[</span><span class="n">t</span> <span class="o">&lt;</span> <span class="n">tlim</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">tlim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">indt</span><span class="p">[</span><span class="n">t</span> <span class="o">&gt;</span> <span class="n">tlim</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="n">indt</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">returnas</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">indt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">indt</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;tlim&#39;</span><span class="p">:</span> <span class="n">tlim</span><span class="p">,</span> <span class="s1">&#39;nt&#39;</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">:</span> <span class="n">t</span><span class="p">,</span> <span class="s1">&#39;indt&#39;</span><span class="p">:</span> <span class="n">indt</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="data_checkformat_dsig"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.data_checkformat_dsig">[docs]</a><span class="k">def</span> <span class="nf">data_checkformat_dsig</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dsig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">X</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">datacls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">geomcls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">lidsdiag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">didsdiag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">dshort</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dcomp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="c1"># Check ids</span>
+    <span class="n">idsok</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">lidsdiag</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">idsok</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">idsok</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">ids</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Provided ids should be available as a self.dids.keys() !&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ids</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">lidsdiag</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Requested ids is not pre-tabulated !</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;  =&gt; Be careful with args (dsig, datacls, geomcls)&quot;</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">datacls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">datacls</span> <span class="o">=</span> <span class="n">didsdiag</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;datacls&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">geomcls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">geomcls</span> <span class="o">=</span> <span class="n">didsdiag</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;geomcls&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">dsig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dsig</span> <span class="o">=</span> <span class="n">didsdiag</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;sig&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;data was expected as a str</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">dsig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="k">if</span> <span class="n">X</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;X was expected as a str</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">X</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">dsig</span><span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span>
+
+    <span class="c1"># Check data and geom</span>
+    <span class="kn">import</span> <span class="nn">tofu.geom</span> <span class="k">as</span> <span class="nn">tfg</span>
+    <span class="kn">import</span> <span class="nn">tofu.data</span> <span class="k">as</span> <span class="nn">tfd</span>
+
+    <span class="k">if</span> <span class="n">datacls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">datacls</span> <span class="o">=</span> <span class="s1">&#39;DataCam1D&#39;</span>
+    <span class="n">ldata</span> <span class="o">=</span> <span class="p">[</span><span class="n">kk</span> <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">tfd</span><span class="p">)</span> <span class="k">if</span> <span class="s1">&#39;DataCam&#39;</span> <span class="ow">in</span> <span class="n">kk</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">datacls</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ldata</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Arg datacls must be in </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ldata</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">lgeom</span> <span class="o">=</span> <span class="p">[</span><span class="n">kk</span> <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">tfg</span><span class="p">)</span> <span class="k">if</span> <span class="s1">&#39;Cam&#39;</span> <span class="ow">in</span> <span class="n">kk</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">geomcls</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">+</span> <span class="n">lgeom</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Arg geom must be in </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">([</span><span class="kc">False</span><span class="p">]</span> <span class="o">+</span> <span class="n">lgeom</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># Check signals</span>
+    <span class="n">c0</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">dsig</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span>
+    <span class="n">c0</span> <span class="o">=</span> <span class="n">c0</span> <span class="ow">and</span> <span class="s1">&#39;data&#39;</span> <span class="ow">in</span> <span class="n">dsig</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="n">ls</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;lamb&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">]</span>
+    <span class="n">c0</span> <span class="o">=</span> <span class="n">c0</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">ls</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">dsig</span><span class="o">.</span><span class="n">keys</span><span class="p">()])</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg dsig must be a dict with keys:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- &#39;data&#39; : shortcut to the main data to be loaded</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- &#39;t&#39;:       (optional) shortcut to time vector</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- &#39;X&#39;:       (optional) shortcut to abscissa vector</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- &#39;lamb&#39;:    (optional) shortcut to wavelengths&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">dout</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">lok</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">dcomp</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dsig</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">lok</span><span class="p">:</span>
+            <span class="n">dout</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="k">return</span> <span class="n">datacls</span><span class="p">,</span> <span class="n">geomcls</span><span class="p">,</span> <span class="n">dout</span></div>
+
+
+<span class="c1"># #############################################################################</span>
+<span class="c1">#                       signal</span>
+<span class="c1"># #############################################################################</span>
+
+
+<div class="viewcode-block" id="signal_get_synth"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp_toobjects.signal_get_synth">[docs]</a><span class="k">def</span> <span class="nf">signal_get_synth</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">dsig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">quant</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref1d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ref2d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">q2dR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">q2dPhi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">q2dZ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">didsdiag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lidsplasma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dshort</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dcomp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="c1"># Check quant, ref1d, ref2d</span>
+    <span class="n">dq</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;quant&#39;</span><span class="p">:</span> <span class="n">quant</span><span class="p">,</span> <span class="s1">&#39;ref1d&#39;</span><span class="p">:</span> <span class="n">ref1d</span><span class="p">,</span> <span class="s1">&#39;ref2d&#39;</span><span class="p">:</span> <span class="n">ref2d</span><span class="p">,</span>
+          <span class="s1">&#39;q2dR&#39;</span><span class="p">:</span> <span class="n">q2dR</span><span class="p">,</span> <span class="s1">&#39;q2dPhi&#39;</span><span class="p">:</span> <span class="n">q2dPhi</span><span class="p">,</span> <span class="s1">&#39;q2dZ&#39;</span><span class="p">:</span> <span class="n">q2dZ</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">kk</span><span class="p">,</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">dq</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">vv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">vv</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">vv</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">]]</span>
+        <span class="k">assert</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">dq</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span> <span class="o">=</span> <span class="n">didsdiag</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;synth&#39;</span><span class="p">][</span><span class="s1">&#39;dsynth&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">kk</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">dq</span><span class="p">[</span><span class="n">kk</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">dq</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">dq</span><span class="p">[</span><span class="n">kk</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="n">dq</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dq</span><span class="p">[</span><span class="n">kk</span><span class="p">])):</span>
+                <span class="n">v1</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">dq</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">))</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">v1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+                <span class="k">assert</span> <span class="n">v1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">lidsplasma</span>
+                <span class="k">assert</span> <span class="p">(</span><span class="n">v1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="n">dshort</span><span class="p">[</span><span class="n">v1</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                        <span class="ow">or</span> <span class="n">v1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="n">dcomp</span><span class="p">[</span><span class="n">v1</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                <span class="n">dq</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">v1</span>
+
+    <span class="c1"># Check dsig</span>
+    <span class="k">if</span> <span class="n">dsig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dsig</span> <span class="o">=</span> <span class="n">didsdiag</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;synth&#39;</span><span class="p">][</span><span class="s1">&#39;dsig&#39;</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">k0</span><span class="p">,</span> <span class="n">v0</span> <span class="ow">in</span> <span class="n">dsig</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v0</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="n">v0</span> <span class="o">=</span> <span class="p">[</span><span class="n">v0</span><span class="p">]</span>
+        <span class="n">c0</span> <span class="o">=</span> <span class="n">k0</span> <span class="ow">in</span> <span class="n">lidsplasma</span>
+        <span class="n">c0</span> <span class="o">=</span> <span class="n">c0</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">vv</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">v0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">c0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Arg dsig must be a dict (ids:[shortcut1, shortcut2...])&quot;</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">=</span> <span class="n">v0</span>
+
+    <span class="c1"># Check dsig vs quant/ref1d/ref2d consistency</span>
+    <span class="k">for</span> <span class="n">kk</span><span class="p">,</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">dq</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">vv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">vv</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">vv</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dsig</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">dsig</span><span class="p">[</span><span class="n">vv</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">vv</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dsig</span><span class="p">[</span><span class="n">vv</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">0</span><span class="p">]]:</span>
+                <span class="n">dsig</span><span class="p">[</span><span class="n">vv</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vv</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">dq</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">vv</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">vv</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">lq</span> <span class="o">=</span> <span class="n">didsdiag</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;synth&#39;</span><span class="p">][</span><span class="s1">&#39;dsynth&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;fargs&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">lq</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">qq</span> <span class="ow">in</span> <span class="n">lq</span><span class="p">:</span>
+            <span class="n">q01</span> <span class="o">=</span> <span class="n">qq</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">q01</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+            <span class="k">if</span> <span class="n">q01</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dsig</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">dsig</span><span class="p">[</span><span class="n">q01</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span><span class="n">q01</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">dsig</span><span class="p">[</span><span class="n">q01</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q01</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">dq</span><span class="p">[</span><span class="s1">&#39;quant&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">dq</span><span class="p">[</span><span class="s1">&#39;q2dR&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">lq</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;both quant and q2dR are not specified !&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># Remove unused keys</span>
+    <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">dq</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="n">dq</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">dq</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">dsig</span><span class="p">,</span> <span class="n">dq</span><span class="p">,</span> <span class="n">lq</span></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

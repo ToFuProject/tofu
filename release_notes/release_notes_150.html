@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>What’s new in 1.5.0 &#8212; Tofu 1.4.15</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../_static/js/jquery-1.12.4.min.js "></script>
+<script type="text/javascript" src="../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../installation.html">Installation</a></li>
+                <li><a href="../contributing.html">Contributing</a></li>
+                <li><a href="../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../aboutus.html">About</a></li>
+                <li><a href="../releases.html">Releases</a></li>
+                <li><a href="../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">What’s new in 1.5.0</a><ul>
+<li><a class="reference internal" href="#main-changes">Main changes:</a></li>
+<li><a class="reference internal" href="#detailed-changes">Detailed changes:</a><ul>
+<li><a class="reference internal" href="#mesh-and-basis-functions">Mesh and basis functions:</a></li>
+<li><a class="reference internal" href="#config-object">Config object:</a></li>
+<li><a class="reference internal" href="#tokamak-geometries">Tokamak geometries:</a></li>
+<li><a class="reference internal" href="#ci-packaging-and-doc">CI, packaging and doc:</a></li>
+<li><a class="reference internal" href="#benchmarks">Benchmarks:</a></li>
+<li><a class="reference internal" href="#optimization-parallelization">Optimization / parallelization:</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#contributors">Contributors:</a></li>
+<li><a class="reference internal" href="#what-s-next-indicative">What’s next (indicative):</a></li>
+<li><a class="reference internal" href="#list-of-pr-merged-into-this-release">List of PR merged into this release:</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <section id="what-s-new-in-1-5-0">
+<h1>What’s new in 1.5.0<a class="headerlink" href="#what-s-new-in-1-5-0" title="Permalink to this headline">¶</a></h1>
+<p>tofu 1.5.0 is a major upgrade from 1.4.15
+It is the first release with basic tools for inversions</p>
+<section id="main-changes">
+<h2>Main changes:<a class="headerlink" href="#main-changes" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Better CI, packaging and doc #554, #556, #558, #560</p></li>
+<li><p>Implemented basics for tomographic inversions on rectangular meshes #561, #564, #570</p></li>
+<li><p>Implemented basics for triangular meshes #571</p></li>
+<li><p>More robust Config object #562</p></li>
+<li><p>Basic standardized speed and memory benchmarks implemented using asv #573</p></li>
+<li><p>New tokamak geometry #577</p></li>
+<li><p>Optimized solid angle toroidal integral for spherical particle #578</p></li>
+</ul>
+</section>
+<section id="detailed-changes">
+<h2>Detailed changes:<a class="headerlink" href="#detailed-changes" title="Permalink to this headline">¶</a></h2>
+<section id="mesh-and-basis-functions">
+<h3>Mesh and basis functions:<a class="headerlink" href="#mesh-and-basis-functions" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Mesh2DRect renamed into Mesh2D to handle both rectangular and triangular meshes
+Triangular meshes handle bsplines of degree 0 and 1
+Interpolation, geometry matrix computation and inversion operators remain to be done for triangular meshes #571</p></li>
+<li><p>Mesh2D.add_inversion() implemented for rectangular meshes, for linear operators up to degree 2 #561</p></li>
+<li><p>Mesh2D.add_inversion() implemented for discrete gradient operator for deg 0, in non-centered version #564, #570</p></li>
+</ul>
+</section>
+<section id="config-object">
+<h3>Config object:<a class="headerlink" href="#config-object" title="Permalink to this headline">¶</a></h3>
+<p>-Config object now more robust against deleting of all structures #562</p>
+</section>
+<section id="tokamak-geometries">
+<h3>Tokamak geometries:<a class="headerlink" href="#tokamak-geometries" title="Permalink to this headline">¶</a></h3>
+<p>-Added COMPASS simplified 2D geometry in 2 versions #577</p>
+</section>
+<section id="ci-packaging-and-doc">
+<h3>CI, packaging and doc:<a class="headerlink" href="#ci-packaging-and-doc" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Added release notes of versions 1.4.10 and 1.4.12 to doc #564</p></li>
+<li><p>Simplified Travis builds (now runs on tagged, master, devel and deploy-test only) #556</p></li>
+<li><p>Added missing package data (for test data) #558</p></li>
+<li><p>Fixed a selector issue for the sphinx gallery in the doc (for Windows) #560</p></li>
+</ul>
+</section>
+<section id="benchmarks">
+<h3>Benchmarks:<a class="headerlink" href="#benchmarks" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Created a standardized benchmark suite using the asv library #573
+To be used to follow in time the evolution of the speed and peak memory usage of key methods
+To be used to make sure the optimization of a routine does not slow down other use cases</p></li>
+</ul>
+</section>
+<section id="optimization-parallelization">
+<h3>Optimization / parallelization:<a class="headerlink" href="#optimization-parallelization" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>The routine conf.calc_solidangle_particle_integrated() has been optimized further
+A double loop with unbalanced load on CPUs has been replaced by a single pre-computed and more balanced loop
+The parallelization schedule has been changed (to guided) in some cases
+Two more routines were parallelized
+Results in a very good scaling and 80 % speed gain in the standardized benchmark #578</p></li>
+</ul>
+</section>
+</section>
+<section id="contributors">
+<h2>Contributors:<a class="headerlink" href="#contributors" title="Permalink to this headline">¶</a></h2>
+<p>Many thanks to all developpers and contributors
+- Didier Vezinet (&#64;Didou09)
+- Laura Mendoza (&#64;lasofivec)
+- Kevin Obrejan (&#64;obrejank)
+- Florian Le Bourdais (&#64;flothesof)
+- Adrien Da Ros (&#64;adriendaros)</p>
+</section>
+<section id="what-s-next-indicative">
+<h2>What’s next (indicative):<a class="headerlink" href="#what-s-next-indicative" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Solid angles for Volume-Of-Sight and radiative heat loads computation (ongoing: Issues #74, #75, #76, #77, #78)</p></li>
+<li><p>Basic tools for inversions on triangular meshes</p></li>
+<li><p>Basic tools for inversions on global basis functions</p></li>
+<li><p>Generic data class to incorporate plateau-finding, data analysis and 1d Bayesian fitting routines and classes (ongoing for &#64;Didou09 and &#64;jmoralesFusion and &#64;MohammadKozeiha: issues #208, #260 and #262)</p></li>
+<li><p>More general magnetic field line tracing workflow</p></li>
+<li><p>Better unit tests coverage</p></li>
+<li><p>Better benchmarks</p></li>
+<li><p>More complete documentation</p></li>
+<li><p>Reference article</p></li>
+</ul>
+</section>
+<section id="list-of-pr-merged-into-this-release">
+<h2>List of PR merged into this release:<a class="headerlink" href="#list-of-pr-merged-into-this-release" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>PR: #554, #556, #558, #560, #561, #562, #564, #570, #571, #573, #575, #577, #578</p></li>
+</ul>
+</section>
+</section>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+<div id="sourcelink">
+  <a href="../_sources/release_notes/release_notes_150.rst.txt"
+     rel="nofollow">Source</a>
+</div>
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

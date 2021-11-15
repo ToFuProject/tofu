@@ -1,28 +1,31 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>What’s new in 1.4.7 &#8212; Tofu 1.4.15</title>
-    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="../_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../_static/js/jquery-1.12.4.min.js "></script>
 <script type="text/javascript" src="../_static/js/jquery-fix.js "></script>
-<script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
 <script type="text/javascript" src="../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
@@ -132,11 +135,11 @@
   <div class="row">
     <div class="body col-md-12 content" role="main">
       
-  <div class="section" id="what-s-new-in-1-4-7">
+  <section id="what-s-new-in-1-4-7">
 <h1>What’s new in 1.4.7<a class="headerlink" href="#what-s-new-in-1-4-7" title="Permalink to this headline">¶</a></h1>
 <p>tofu 1.4.7 is a minor upgrade from 1.4.6
 It is the first attempt at porting tofu to conda-forge</p>
-<div class="section" id="main-changes">
+<section id="main-changes">
 <h2>Main changes:<a class="headerlink" href="#main-changes" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Better portability #398</p></li>
@@ -148,65 +151,65 @@ It is the first attempt at porting tofu to conda-forge</p>
 <li><p>Compatibility with SOLEDGE3X wall geometry #411</p></li>
 <li><p>Better PEP8 compliance</p></li>
 </ul>
-</div>
-<div class="section" id="detailed-changes">
+</section>
+<section id="detailed-changes">
 <h2>Detailed changes:<a class="headerlink" href="#detailed-changes" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="installation-portability">
+<section id="installation-portability">
 <h3>Installation / portability:<a class="headerlink" href="#installation-portability" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Added missing files in MANIFEST.in #398</p></li>
 <li><p>tests data is now included in sdist for conda-forge #410</p></li>
 </ul>
-</div>
-<div class="section" id="scripts">
+</section>
+<section id="scripts">
 <h3>scripts:<a class="headerlink" href="#scripts" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>arg bck can now be used from tofucalc #402</p></li>
 <li><p>‘tofu XXX’ can now be used instead of ‘tofuXXX’ #404</p></li>
 <li><p>Minor debugging #405</p></li>
 </ul>
-</div>
-<div class="section" id="geometry">
+</section>
+<section id="geometry">
 <h3>Geometry:<a class="headerlink" href="#geometry" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>New <strong>COMPASS configuration</strong> available! #406</p></li>
 </ul>
-</div>
-<div class="section" id="imas-interfacing">
+</section>
+<section id="imas-interfacing">
 <h3>IMAS interfacing:<a class="headerlink" href="#imas-interfacing" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>tofu now provides units harmonized with IMAS #396</p></li>
 </ul>
-</div>
-<div class="section" id="soledge3x-interfacing">
+</section>
+<section id="soledge3x-interfacing">
 <h3>SOLEDGE3X interfacing:<a class="headerlink" href="#soledge3x-interfacing" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>tofu can now read/write tokamak wall geometry from/to SOLEGDE3X format: #411
 - Config.to_SOLEGDE3X() to save a mat file
 - Config.from_SOLEDGE3X() to read from a mat file</p></li>
 </ul>
-</div>
-<div class="section" id="documentation">
+</section>
+<section id="documentation">
 <h3>Documentation:<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li></li>
 </ul>
-</div>
-<div class="section" id="miscellaneous">
+</section>
+<section id="miscellaneous">
 <h3>Miscellaneous:<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Better PEP8 compliance</p></li>
 </ul>
-</div>
-</div>
-<div class="section" id="contributors">
+</section>
+</section>
+<section id="contributors">
 <h2>Contributors:<a class="headerlink" href="#contributors" title="Permalink to this headline">¶</a></h2>
 <p>Many thanks to all developpers and contributors:
 - Didier Vezinet (&#64;Didou09)
 - Laura Mendoza (&#64;lasofivec)
 - Florian Le Bourdais  (&#64;flothesof)</p>
-</div>
-<div class="section" id="what-s-next-indicative">
+</section>
+<section id="what-s-next-indicative">
 <h2>What’s next (indicative):<a class="headerlink" href="#what-s-next-indicative" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Migrating from nosetests (ongoing for &#64;lasofivec : issues #95 and #232)</p></li>
@@ -218,14 +221,14 @@ It is the first attempt at porting tofu to conda-forge</p>
 <li><p>Better unit tests coverage</p></li>
 <li><p>More complete documentation</p></li>
 </ul>
-</div>
-<div class="section" id="list-of-pr-merged-into-this-release">
+</section>
+<section id="list-of-pr-merged-into-this-release">
 <h2>List of PR merged into this release:<a class="headerlink" href="#list-of-pr-merged-into-this-release" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>PR: #396, #398, #399, #402, #404, #405, #406, #410, #412</p></li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
     </div>
@@ -247,8 +250,8 @@ It is the first attempt at porting tofu to conda-forge</p>
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Oct 06, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
     </p>
   </div>
 </footer>

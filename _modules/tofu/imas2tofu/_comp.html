@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tofu.imas2tofu._comp &#8212; Tofu 1.4.15</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/bootstrap-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../_static/js/jquery-1.12.4.min.js "></script>
+<script type="text/javascript" src="../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../index.html">
+          tofu</a>
+        <span class="navbar-text navbar-version pull-left"><b>1.4.15</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../installation.html">Installation</a></li>
+                <li><a href="../../../contributing.html">Contributing</a></li>
+                <li><a href="../../../auto_examples/index.html">Gallery</a></li>
+                <li><a href="../../../aboutus.html">About</a></li>
+                <li><a href="../../../releases.html">Releases</a></li>
+                <li><a href="../../../tofu.html">API</a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">How to install tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">A guide to contributing to tofu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html">A list of all different device configurations available (ITER, WEST, JET, ...)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Tutorials and examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu_from_bash.html">Using tofu from a bash terminal</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.html">tofu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.geom.html">tofu.geom package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.dumpro.html">tofu.dumpro package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.data.html">tofu.data package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tofu.dust.html">tofu.dust package</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for tofu.imas2tofu._comp</h1><div class="highlight"><pre>
+<span></span>
+<span class="c1"># Built-in</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">functools</span> <span class="k">as</span> <span class="nn">ftools</span>
+
+<span class="c1"># Common</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># tofu</span>
+<span class="n">pfe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">),</span> <span class="s1">&#39;.tofu&#39;</span><span class="p">,</span> <span class="s1">&#39;_imas2tofu_def.py&#39;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">pfe</span><span class="p">):</span>
+    <span class="c1"># Make sure we load the user-specific file</span>
+    <span class="c1"># sys.path method</span>
+    <span class="c1"># sys.path.insert(1, os.path.join(os.path.expanduser(&#39;~&#39;), &#39;.tofu&#39;))</span>
+    <span class="c1"># import _scripts_def as _defscripts</span>
+    <span class="c1"># _ = sys.path.pop(1)</span>
+    <span class="c1"># importlib method</span>
+    <span class="kn">import</span> <span class="nn">importlib.util</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">spec_from_file_location</span><span class="p">(</span><span class="s2">&quot;_defimas2tofu&quot;</span><span class="p">,</span> <span class="n">pfe</span><span class="p">)</span>
+    <span class="n">_defimas2tofu</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">module_from_spec</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
+    <span class="n">spec</span><span class="o">.</span><span class="n">loader</span><span class="o">.</span><span class="n">exec_module</span><span class="p">(</span><span class="n">_defimas2tofu</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">tofu.imas2tofu._def</span> <span class="k">as</span> <span class="nn">_defimas2tofu</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_def</span> <span class="k">as</span> <span class="n">_defimas2tofu</span>
+
+<span class="c1"># imas</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">imas</span>
+<span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;imas not available&#39;</span><span class="p">)</span>
+
+
+<span class="n">_DSHORT</span> <span class="o">=</span> <span class="n">_defimas2tofu</span><span class="o">.</span><span class="n">_dshort</span>
+<span class="n">_DCOMP</span> <span class="o">=</span> <span class="n">_defimas2tofu</span><span class="o">.</span><span class="n">_dcomp</span>
+<span class="n">_DDUNITS</span> <span class="o">=</span> <span class="n">imas</span><span class="o">.</span><span class="n">dd_units</span><span class="o">.</span><span class="n">DataDictionaryUnits</span><span class="p">()</span>
+
+<span class="n">_ISCLOSE</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_POS</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">_EMPTY</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_NAN</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_DATA</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_UNITS</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_STRICT</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_STACK</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_WARN</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_RETURN_ALL</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="c1"># #############################################################################</span>
+<span class="c1">#                      Units functions</span>
+<span class="c1"># #############################################################################</span>
+
+
+<div class="viewcode-block" id="_prepare_sig_units"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp._prepare_sig_units">[docs]</a><span class="k">def</span> <span class="nf">_prepare_sig_units</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Remove brackest from shortcut, if any &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s1">&#39;[&#39;</span> <span class="ow">in</span> <span class="n">sig</span><span class="p">:</span>
+        <span class="k">while</span> <span class="s1">&#39;[&#39;</span> <span class="ow">in</span> <span class="n">sig</span><span class="p">:</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">sig</span><span class="p">[:</span><span class="n">sig</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="p">)]</span> <span class="o">+</span> <span class="n">sig</span><span class="p">[</span><span class="n">sig</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;]&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">return</span> <span class="n">sig</span></div>
+
+
+<div class="viewcode-block" id="get_units"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp.get_units">[docs]</a><span class="k">def</span> <span class="nf">get_units</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">dshort</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dcomp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Get units from imas.dd_units.DataDictionaryUnits() &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">dshort</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dshort</span> <span class="o">=</span> <span class="n">_DSHORT</span>
+    <span class="k">if</span> <span class="n">dcomp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dcomp</span> <span class="o">=</span> <span class="n">_DCOMP</span>
+    <span class="k">if</span> <span class="n">force</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">force</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">sig</span> <span class="ow">in</span> <span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">_prepare_sig_units</span><span class="p">(</span><span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sig</span><span class="p">][</span><span class="s1">&#39;str&#39;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">_prepare_sig_units</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span>
+    <span class="n">units</span> <span class="o">=</span> <span class="n">_DDUNITS</span><span class="o">.</span><span class="n">get_units</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">sig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">))</span>
+
+    <span class="c1"># Condition in which to use tofu units instead of imas units</span>
+    <span class="n">c0</span> <span class="o">=</span> <span class="p">(</span><span class="n">units</span> <span class="ow">is</span> <span class="kc">None</span>
+          <span class="ow">and</span> <span class="n">force</span> <span class="ow">is</span> <span class="kc">True</span>
+          <span class="ow">and</span> <span class="p">(</span><span class="n">sig</span> <span class="ow">in</span> <span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="n">sig</span> <span class="ow">in</span> <span class="n">dcomp</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+    <span class="k">if</span> <span class="n">c0</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sig</span> <span class="ow">in</span> <span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">tofuunits</span> <span class="o">=</span> <span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sig</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;units&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tofuunits</span> <span class="o">=</span> <span class="n">dcomp</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sig</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;units&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tofuunits</span> <span class="o">!=</span> <span class="n">units</span><span class="p">:</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="n">tofuunits</span>
+    <span class="k">return</span> <span class="n">units</span></div>
+
+
+<span class="c1"># #############################################################################</span>
+<span class="c1">#                      Data retrieveing function</span>
+<span class="c1"># #############################################################################</span>
+
+
+<div class="viewcode-block" id="_prepare_sig"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp._prepare_sig">[docs]</a><span class="k">def</span> <span class="nf">_prepare_sig</span><span class="p">(</span><span class="n">sig</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s1">&#39;[&#39;</span> <span class="ow">in</span> <span class="n">sig</span><span class="p">:</span>
+        <span class="c1"># Get nb and ind</span>
+        <span class="n">ind0</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="s1">&#39;[&#39;</span> <span class="ow">in</span> <span class="n">sig</span><span class="p">[</span><span class="n">ind0</span><span class="p">:]:</span>
+            <span class="n">ind1</span> <span class="o">=</span> <span class="n">ind0</span> <span class="o">+</span> <span class="n">sig</span><span class="p">[</span><span class="n">ind0</span><span class="p">:]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="p">)</span>
+            <span class="n">ind2</span> <span class="o">=</span> <span class="n">ind0</span> <span class="o">+</span> <span class="n">sig</span><span class="p">[</span><span class="n">ind0</span><span class="p">:]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;]&#39;</span><span class="p">)</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">sig</span><span class="p">[</span><span class="n">ind1</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">ind2</span><span class="p">],</span>
+                              <span class="n">sig</span><span class="p">[</span><span class="n">ind1</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">ind2</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">))</span>
+            <span class="n">ind0</span> <span class="o">=</span> <span class="n">ind2</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">sig</span></div>
+
+
+<div class="viewcode-block" id="_get_condfromstr"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp._get_condfromstr">[docs]</a><span class="k">def</span> <span class="nf">_get_condfromstr</span><span class="p">(</span><span class="n">sid</span><span class="p">,</span> <span class="n">sig</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">lid0</span><span class="p">,</span> <span class="n">id1</span> <span class="o">=</span> <span class="n">sid</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
+    <span class="n">lid0</span> <span class="o">=</span> <span class="n">lid0</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">id1</span> <span class="ow">and</span> <span class="n">id1</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">isdecimal</span><span class="p">():</span>
+        <span class="n">id1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">id1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">id1</span><span class="o">.</span><span class="n">isdecimal</span><span class="p">():</span>
+        <span class="n">id1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">id1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">id1</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Not clear how to interpret the following condition:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- sig: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- condition: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sid</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">lid0</span><span class="p">,</span> <span class="n">id1</span></div>
+
+
+<div class="viewcode-block" id="get_fsig"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp.get_fsig">[docs]</a><span class="k">def</span> <span class="nf">get_fsig</span><span class="p">(</span><span class="n">sig</span><span class="p">):</span>
+    <span class="c1"># break sig in list of elementary nodes</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">_prepare_sig</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span>
+    <span class="n">ls0</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="n">ls0</span> <span class="o">=</span> <span class="p">[</span><span class="n">ss</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">ls0</span><span class="p">]</span>
+    <span class="n">ns</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ls0</span><span class="p">)</span>
+
+    <span class="c1"># For each node, identify type (i.e. [])</span>
+    <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="nb">all</span><span class="p">([</span><span class="n">si</span> <span class="ow">in</span> <span class="n">ss</span> <span class="k">for</span> <span class="n">si</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;[&#39;</span><span class="p">,</span> <span class="s1">&#39;]&#39;</span><span class="p">]])</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">ls0</span><span class="p">]</span>
+    <span class="n">dcond</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="n">nseq</span><span class="p">,</span> <span class="n">jj</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">[],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ns</span><span class="p">):</span>
+        <span class="n">nseq</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="n">ii</span><span class="p">]:</span>
+            <span class="c1"># there is []</span>
+            <span class="k">if</span> <span class="n">nseq</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">dcond</span><span class="p">[</span><span class="n">jj</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;lstr&#39;</span><span class="p">:</span> <span class="n">seq</span><span class="p">}</span>
+                <span class="n">seq</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">jj</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1"># Isolate [strin]</span>
+            <span class="n">ss</span> <span class="o">=</span> <span class="n">ls0</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+            <span class="n">strin</span> <span class="o">=</span> <span class="n">ss</span><span class="p">[</span><span class="n">ss</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># typ 0 =&gt; no dependency</span>
+            <span class="c1"># typ 1 =&gt; dependency ([],[time],[chan],[int])</span>
+            <span class="c1"># typ 2 =&gt; selection ([...=...])</span>
+            <span class="n">cond</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">typ</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="s1">&#39;=&#39;</span> <span class="ow">in</span> <span class="n">strin</span><span class="p">:</span>
+                <span class="n">typ</span> <span class="o">=</span> <span class="mi">2</span>
+                <span class="n">cond</span> <span class="o">=</span> <span class="n">_get_condfromstr</span><span class="p">(</span><span class="n">strin</span><span class="p">,</span> <span class="n">sig</span><span class="o">=</span><span class="n">sig</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">strin</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="s1">&#39;chan&#39;</span><span class="p">]:</span>
+                <span class="n">ind</span> <span class="o">=</span> <span class="n">strin</span>
+            <span class="k">elif</span> <span class="n">strin</span><span class="o">.</span><span class="n">isnumeric</span><span class="p">():</span>
+                <span class="n">ind</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">strin</span><span class="p">)]</span>
+            <span class="n">dcond</span><span class="p">[</span><span class="n">jj</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;str&#39;</span><span class="p">:</span> <span class="n">ss</span><span class="p">[:</span><span class="n">ss</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="p">)],</span> <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">typ</span><span class="p">,</span>
+                         <span class="s1">&#39;ind&#39;</span><span class="p">:</span> <span class="n">ind</span><span class="p">,</span> <span class="s1">&#39;cond&#39;</span><span class="p">:</span> <span class="n">cond</span><span class="p">}</span>
+            <span class="n">jj</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ls0</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">ii</span> <span class="o">==</span> <span class="n">ns</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">dcond</span><span class="p">[</span><span class="n">jj</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;lstr&#39;</span><span class="p">:</span> <span class="n">seq</span><span class="p">}</span>
+
+    <span class="n">c0</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;ind&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;ind&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dcond</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">c0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Cannot handle mutiple iterative levels yet !</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- sig: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sig</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># Create function for getting signal</span>
+    <span class="k">def</span> <span class="nf">fsig</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">indt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stack</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dcond</span><span class="o">=</span><span class="n">dcond</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">stack</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stack</span> <span class="o">=</span> <span class="n">_STACK</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="p">[</span><span class="n">obj</span><span class="p">]</span>
+        <span class="n">nsig</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">dcond</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+
+            <span class="c1"># Standard case (no [])</span>
+            <span class="k">if</span> <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">sig</span> <span class="o">=</span> <span class="p">[</span><span class="n">ftools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="nb">getattr</span><span class="p">,</span> <span class="p">[</span><span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">]]</span><span class="o">+</span><span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;lstr&#39;</span><span class="p">])</span>
+                       <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nsig</span><span class="p">)]</span>
+
+            <span class="c1"># dependency</span>
+            <span class="k">elif</span> <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nsig</span><span class="p">):</span>
+                    <span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">],</span> <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;str&#39;</span><span class="p">])</span>
+                    <span class="n">nb</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;ind&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;time&#39;</span><span class="p">:</span>
+                        <span class="n">ind</span> <span class="o">=</span> <span class="n">indt</span>
+                    <span class="k">elif</span> <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;ind&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;chan&#39;</span><span class="p">:</span>
+                        <span class="n">ind</span> <span class="o">=</span> <span class="n">indch</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">ind</span> <span class="o">=</span> <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;ind&#39;</span><span class="p">]</span>
+
+                    <span class="k">if</span> <span class="n">ind</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">ind</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nb</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">nsig</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ind</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;ind should be have len() = 1</span><span class="se">\n</span><span class="s1">&#39;</span>
+                                   <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">- ind: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ind</span><span class="p">))</span>
+                            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">]</span> <span class="o">=</span> <span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">][</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">nsig</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;nsig should be 1!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- nsig: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nsig</span><span class="p">))</span>
+                            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                        <span class="n">sig</span> <span class="o">=</span> <span class="p">[</span><span class="n">sig</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">ll</span><span class="p">]</span> <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">]</span>
+                        <span class="n">nsig</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span>
+
+            <span class="c1"># one index to be found</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nsig</span><span class="p">):</span>
+                    <span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">],</span> <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;str&#39;</span><span class="p">])</span>
+                    <span class="n">nb</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">])</span>
+                    <span class="n">typ</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">ftools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span>
+                        <span class="nb">getattr</span><span class="p">,</span> <span class="p">[</span><span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;cond&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
+                    <span class="k">if</span> <span class="n">typ</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+                        <span class="n">ind</span> <span class="o">=</span> <span class="p">[</span>
+                            <span class="n">ll</span> <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nb</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="p">(</span><span class="n">ftools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span>
+                                <span class="nb">getattr</span><span class="p">,</span>
+                                <span class="p">[</span><span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">][</span><span class="n">ll</span><span class="p">]]</span> <span class="o">+</span> <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;cond&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                                <span class="o">==</span> <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;cond&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">ind</span> <span class="o">=</span> <span class="p">[</span><span class="n">ll</span> <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nb</span><span class="p">)</span>
+                               <span class="k">if</span> <span class="p">(</span><span class="n">ftools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span>
+                                   <span class="nb">getattr</span><span class="p">,</span>
+                                   <span class="p">[</span><span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">][</span><span class="n">ll</span><span class="p">]]</span><span class="o">+</span><span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;cond&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+                                   <span class="o">==</span> <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;cond&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">])]</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;No / several matching signals for:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- </span><span class="si">{}</span><span class="s2">[]</span><span class="si">{}</span><span class="s2"> = </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                   <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;str&#39;</span><span class="p">],</span>
+                                   <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;cond&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                                   <span class="n">dcond</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="s1">&#39;cond&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+                               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- nb.of matches: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">)))</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                    <span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">]</span> <span class="o">=</span> <span class="n">sig</span><span class="p">[</span><span class="n">jj</span><span class="p">][</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+        <span class="c1"># Conditions for stacking / sqeezing sig</span>
+        <span class="n">lc</span> <span class="o">=</span> <span class="p">[(</span><span class="n">stack</span> <span class="ow">and</span> <span class="n">nsig</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sig</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+               <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">sig</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">sig</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])),</span>
+              <span class="p">(</span><span class="n">stack</span> <span class="ow">and</span> <span class="n">nsig</span> <span class="o">&gt;</span> <span class="mi">1</span>
+               <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">sig</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,</span> <span class="nb">str</span><span class="p">]),</span>
+              <span class="p">(</span><span class="n">stack</span> <span class="ow">and</span> <span class="n">nsig</span> <span class="o">==</span> <span class="mi">1</span>
+               <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">])]</span>
+
+        <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">sig</span><span class="p">)))</span>
+        <span class="k">elif</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">or</span> <span class="n">lc</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">sig</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">sig</span>
+    <span class="k">return</span> <span class="n">fsig</span></div>
+
+
+<span class="c1"># #############################################################################</span>
+<span class="c1">#                      Data functions</span>
+<span class="c1"># #############################################################################</span>
+
+
+<div class="viewcode-block" id="_checkformat_getdata_dsig"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp._checkformat_getdata_dsig">[docs]</a><span class="k">def</span> <span class="nf">_checkformat_getdata_dsig</span><span class="p">(</span>
+    <span class="n">dsig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">occ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">indch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">indt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dshort</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dcomp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dall_except</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Check the desired ids / signal is available &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dids</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;dids must be a dict</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">dids</span><span class="p">)))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">dsig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+          <span class="nb">isinstance</span><span class="p">(</span><span class="n">dsig</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dsig</span> <span class="ow">in</span> <span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
+          <span class="nb">isinstance</span><span class="p">(</span><span class="n">dsig</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">dsig</span><span class="p">]),</span>
+          <span class="nb">isinstance</span><span class="p">(</span><span class="n">dsig</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+          <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="n">k0</span> <span class="ow">in</span> <span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                   <span class="ow">and</span> <span class="p">(</span><span class="n">v0</span> <span class="ow">is</span> <span class="kc">None</span>
+                        <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v0</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                        <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">v0</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+                            <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">ss</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">v0</span><span class="p">]))</span>
+                        <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v0</span><span class="p">,</span> <span class="nb">dict</span><span class="p">))</span>
+                   <span class="k">for</span> <span class="n">k0</span><span class="p">,</span> <span class="n">v0</span> <span class="ow">in</span> <span class="n">dsig</span><span class="o">.</span><span class="n">items</span><span class="p">()])]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg dsig must be either:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- None: All shortucts of all ids</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- str: a valid ids, all shortcuts</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- list: a list of valid ids, all shortcuts for each</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- dict: a dict of the form:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">        {ids0: [short00, ..., short0N],</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">         ids1: [short10, ..., short1M],</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">         ids2: short2}</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">    Where the values are shortucts or list of such</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;  Provided : </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dids</span><span class="p">)</span>
+               <span class="o">+</span> <span class="s2">&quot;  Available: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+               <span class="o">+</span> <span class="s2">&quot;  =&gt; Consider using self.add_ids(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">dids</span><span class="p">)))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">dsig</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">dids</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">elif</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">dsig</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">([</span><span class="n">dsig</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="n">lc</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+        <span class="n">dsig</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">dsig</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">lc</span><span class="p">[</span><span class="mi">3</span><span class="p">]:</span>
+        <span class="c1"># copy to avoid reference</span>
+        <span class="n">dsig</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">dsig</span><span class="p">)</span>
+
+    <span class="c1"># Check occurences, channels and signals</span>
+    <span class="k">for</span> <span class="n">k0</span> <span class="ow">in</span> <span class="n">dsig</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+
+        <span class="c1"># Extract occ, indch and sig if any</span>
+        <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="nb">isinstance</span><span class="p">(</span><span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">],</span> <span class="nb">str</span><span class="p">),</span>
+              <span class="nb">isinstance</span><span class="p">(</span><span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">],</span> <span class="nb">list</span><span class="p">),</span>
+              <span class="nb">isinstance</span><span class="p">(</span><span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">],</span> <span class="nb">dict</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">or</span> <span class="n">lc</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+            <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;sig&#39;</span><span class="p">:</span> <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]}</span>
+            <span class="n">occi</span><span class="p">,</span> <span class="n">indchi</span><span class="p">,</span> <span class="n">indti</span><span class="p">,</span> <span class="n">sig</span> <span class="o">=</span> <span class="n">occ</span><span class="p">,</span> <span class="n">indch</span><span class="p">,</span> <span class="n">indt</span><span class="p">,</span> <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;sig&#39;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">lc</span><span class="p">[</span><span class="mi">3</span><span class="p">]:</span>
+            <span class="n">occi</span> <span class="o">=</span> <span class="n">dsig</span><span class="p">[</span><span class="s1">&#39;k0&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;occ&#39;</span><span class="p">,</span> <span class="n">occ</span><span class="p">)</span>
+            <span class="n">indchi</span> <span class="o">=</span> <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;indch&#39;</span><span class="p">,</span> <span class="n">indch</span><span class="p">)</span>
+            <span class="n">indti</span> <span class="o">=</span> <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;indt&#39;</span><span class="p">,</span> <span class="n">indt</span><span class="p">)</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sig&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Check occ</span>
+        <span class="n">occi</span> <span class="o">=</span> <span class="n">_checkformat_getdata_occ</span><span class="p">(</span><span class="n">occi</span><span class="p">,</span> <span class="n">k0</span><span class="p">,</span> <span class="n">dids</span><span class="o">=</span><span class="n">dids</span><span class="p">)</span>
+        <span class="n">indoc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">dids</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;occ&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">occi</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Check all occ have isget = True</span>
+        <span class="n">indok</span> <span class="o">=</span> <span class="n">dids</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;isget&#39;</span><span class="p">][</span><span class="n">indoc</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">indok</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;All desired occurences shall have not been gotten!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;    - desired occ:   </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">occi</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;    - available occ: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dids</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;occ&#39;</span><span class="p">])</span>
+                   <span class="o">+</span> <span class="s2">&quot;    - isget:         </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dids</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;isget&#39;</span><span class="p">])</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  =&gt; Try running self.open_get_close()&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># Check indch</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dids</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;ids&#39;</span><span class="p">][</span><span class="n">indoc</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="s1">&#39;channel&#39;</span><span class="p">):</span>
+            <span class="n">nch</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">dids</span><span class="p">[</span><span class="n">k0</span><span class="p">][</span><span class="s1">&#39;ids&#39;</span><span class="p">][</span><span class="n">indoc</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="s1">&#39;channel&#39;</span><span class="p">))</span>
+            <span class="n">indchi</span> <span class="o">=</span> <span class="n">_checkformat_getdata_indch</span><span class="p">(</span><span class="n">indchi</span><span class="p">,</span> <span class="n">nch</span><span class="p">)</span>
+
+        <span class="c1"># Check shortcuts</span>
+        <span class="n">sig</span><span class="p">,</span> <span class="n">comp</span> <span class="o">=</span> <span class="n">_checkformat_getdata_sig</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">k0</span><span class="p">,</span>
+                                             <span class="n">dshort</span><span class="o">=</span><span class="n">dshort</span><span class="p">,</span> <span class="n">dcomp</span><span class="o">=</span><span class="n">dcomp</span><span class="p">,</span>
+                                             <span class="n">dall_except</span><span class="o">=</span><span class="n">dall_except</span><span class="p">)</span>
+        <span class="n">dsig</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;occ&#39;</span><span class="p">:</span> <span class="n">occi</span><span class="p">,</span> <span class="s1">&#39;indch&#39;</span><span class="p">:</span> <span class="n">indchi</span><span class="p">,</span> <span class="s1">&#39;indt&#39;</span><span class="p">:</span> <span class="n">indti</span><span class="p">,</span>
+                    <span class="s1">&#39;sig&#39;</span><span class="p">:</span> <span class="n">sig</span><span class="p">,</span> <span class="s1">&#39;comp&#39;</span><span class="p">:</span> <span class="n">comp</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">dsig</span></div>
+
+
+<div class="viewcode-block" id="_checkformat_getdata_sig"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp._checkformat_getdata_sig">[docs]</a><span class="k">def</span> <span class="nf">_checkformat_getdata_sig</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span>
+                             <span class="n">dshort</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dcomp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dall_except</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">for</span> <span class="n">dd</span> <span class="ow">in</span> <span class="p">[</span><span class="n">dshort</span><span class="p">,</span> <span class="n">dcomp</span><span class="p">,</span> <span class="n">dall_except</span><span class="p">]]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;dshort, dcomp and dall_except must be dict:</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- type(dshort): </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">dshort</span><span class="p">))</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- type(dcomp): </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">dcomp</span><span class="p">))</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- type(dall_except): </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">dall_except</span><span class="p">)))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg sig must be a str or a list of str!</span><span class="se">\n</span><span class="s2">&quot;</span>
+           <span class="o">+</span> <span class="s2">&quot;  More specifically, a list of valid ids nodes paths&quot;</span><span class="p">)</span>
+    <span class="n">lks</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">lkc</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dcomp</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">lk</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">lks</span><span class="p">)</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">lkc</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">dall_except</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">lk</span> <span class="o">=</span> <span class="n">lk</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">dall_except</span><span class="p">[</span><span class="n">ids</span><span class="p">])</span>
+
+    <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">sig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">lk</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="p">[</span><span class="n">sig</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">lc</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">sig</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">nsig</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span>
+
+    <span class="c1"># Check each sig is either a key / value[str] to dshort</span>
+    <span class="n">comp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nsig</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nsig</span><span class="p">):</span>
+        <span class="n">lc0</span> <span class="o">=</span> <span class="p">[</span><span class="n">sig</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="ow">in</span> <span class="n">lks</span><span class="p">,</span>
+               <span class="p">[</span><span class="n">sig</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">==</span> <span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;str&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">lks</span><span class="p">]]</span>
+        <span class="n">c1</span> <span class="o">=</span> <span class="n">sig</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="ow">in</span> <span class="n">lkc</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">lc0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc0</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="ow">or</span> <span class="n">c1</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Each provided sig must be either:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- a valid shortcut (cf. self.shortcuts()</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- a valid long version (cf. self.shortcuts)</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  Provided sig: </span><span class="si">{}</span><span class="s2"> for ids </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sig</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">ids</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">c1</span><span class="p">:</span>
+            <span class="n">comp</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">lc0</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">sig</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">lks</span><span class="p">[</span><span class="n">lc0</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="kc">True</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">sig</span><span class="p">,</span> <span class="n">comp</span></div>
+
+
+<div class="viewcode-block" id="_checkformat_getdata_occ"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp._checkformat_getdata_occ">[docs]</a><span class="k">def</span> <span class="nf">_checkformat_getdata_occ</span><span class="p">(</span><span class="n">occ</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">dids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dids</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;dids must be a dict</span><span class="se">\n</span><span class="s2">&quot;</span>
+               <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- provided: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">dids</span><span class="p">)))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg occ must be a either:</span><span class="se">\n</span><span class="s2">&quot;</span>
+           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- None: all occurences are used</span><span class="se">\n</span><span class="s2">&quot;</span>
+           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- int: occurence (in self.dids[</span><span class="si">{}</span><span class="s2">][&#39;occ&#39;])</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+           <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- int array: occurences (in self.dids[</span><span class="si">{}</span><span class="s2">][&#39;occ&#39;])&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
+    <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">occ</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+          <span class="nb">type</span><span class="p">(</span><span class="n">occ</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">,</span>
+          <span class="nb">hasattr</span><span class="p">(</span><span class="n">occ</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">occ</span> <span class="o">=</span> <span class="n">dids</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;occ&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">occ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">occ</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">oc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dids</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;occ&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">oc</span> <span class="ow">in</span> <span class="n">occ</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">occ</span></div>
+
+
+<div class="viewcode-block" id="_checkformat_getdata_indch"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp._checkformat_getdata_indch">[docs]</a><span class="k">def</span> <span class="nf">_checkformat_getdata_indch</span><span class="p">(</span><span class="n">indch</span><span class="p">,</span> <span class="n">nch</span><span class="p">):</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Arg indch must be a either:</span><span class="se">\n</span><span class="s2">&quot;</span>
+           <span class="o">+</span> <span class="s2">&quot;    - None: all channels used</span><span class="se">\n</span><span class="s2">&quot;</span>
+           <span class="o">+</span> <span class="s2">&quot;    - int: channel to use (index)</span><span class="se">\n</span><span class="s2">&quot;</span>
+           <span class="o">+</span> <span class="s2">&quot;    - array of int: channels to use (indices)</span><span class="se">\n</span><span class="s2">&quot;</span>
+           <span class="o">+</span> <span class="s2">&quot;    - array of bool: channels to use (indices)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">indch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+          <span class="nb">isinstance</span><span class="p">(</span><span class="n">indch</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+          <span class="nb">hasattr</span><span class="p">(</span><span class="n">indch</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indch</span><span class="p">,</span> <span class="nb">str</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">indch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nch</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">or</span> <span class="n">lc</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+        <span class="n">indch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">indch</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">indch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">,</span> <span class="n">indch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">bool</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">indch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">indch</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">((</span><span class="n">indch</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">indch</span> <span class="o">&lt;</span> <span class="n">nch</span><span class="p">)):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Some channel indices are out of scope!</span><span class="se">\n</span><span class="s2">&quot;</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- nch: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nch</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- indch: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">indch</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">indch</span></div>
+
+
+<div class="viewcode-block" id="_check_data"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp._check_data">[docs]</a><span class="k">def</span> <span class="nf">_check_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">isclose</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">empty</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Check the data loaded from imas against several safety checks</span>
+
+<span class="sd">    For each occurence</span>
+
+<span class="sd">    Available checks:</span>
+<span class="sd">        - only positive values</span>
+<span class="sd">        - default IMAS values (&gt;1e30)</span>
+<span class="sd">        - duplicated unique vector</span>
+<span class="sd">        - empty data (shape contains 0 oir size 0 or only nan)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># ------------</span>
+    <span class="c1"># Check inputs</span>
+    <span class="k">if</span> <span class="n">pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">_POS</span>
+    <span class="k">if</span> <span class="n">nan</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nan</span> <span class="o">=</span> <span class="n">_NAN</span>
+    <span class="k">if</span> <span class="n">isclose</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">isclose</span> <span class="o">=</span> <span class="n">_ISCLOSE</span>
+    <span class="k">if</span> <span class="n">empty</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">empty</span> <span class="o">=</span> <span class="n">_EMPTY</span>
+
+    <span class="c1"># ------------</span>
+    <span class="c1"># Run checks on data</span>
+
+    <span class="c1"># If isclose, check data contains a replicated vector (keep vector only)</span>
+    <span class="k">if</span> <span class="n">isclose</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]):</span>
+                    <span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># All values larger than 1e30 are default imas values =&gt; nan</span>
+    <span class="k">if</span> <span class="n">nan</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)):</span>
+            <span class="n">c0</span> <span class="o">=</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                  <span class="ow">and</span> <span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">in</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">c0</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="c1"># Make sure to test only non-nan to avoid warning</span>
+                <span class="n">ind</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">]))</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()</span>
+                <span class="n">ind2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">ind</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mf">1.e30</span>
+                <span class="n">ind</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">ii</span><span class="p">[</span><span class="n">ind2</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">])</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+    <span class="c1"># data supposed to be positive only (nan otherwise)</span>
+    <span class="k">if</span> <span class="n">pos</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+    <span class="c1"># data appears to be empty or all nan</span>
+    <span class="n">isempty</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))]</span>
+    <span class="k">if</span> <span class="n">empty</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)):</span>
+            <span class="n">isempty</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span>
+                           <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                               <span class="ow">and</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span>
+                                    <span class="ow">or</span> <span class="mi">0</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="s1">&#39;U&#39;</span><span class="p">:</span>
+                <span class="n">isempty</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">&amp;=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">ii</span><span class="p">])))</span>
+    <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">isempty</span></div>
+
+
+<div class="viewcode-block" id="_get_data_units"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp._get_data_units">[docs]</a><span class="k">def</span> <span class="nf">_get_data_units</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">occ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">comp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">stack</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">isclose</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">flatocc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">nan</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">empty</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">dids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dcomp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dshort</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dall_except</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Reference method for getting data and units, using shortcuts</span>
+
+<span class="sd">    For a given ids, sig (shortcut) and occurence (occ)</span>
+<span class="sd">    Get data if data = True</span>
+<span class="sd">    Get units if units = True</span>
+
+<span class="sd">    The data is:</span>
+<span class="sd">        - restricted to the desired time indices (indt)</span>
+<span class="sd">        - restricted to the desired channels (indch)</span>
+<span class="sd">        - stacked into a single array if stack = True</span>
+<span class="sd">        - checked whether many vectors are duplicates (expected)</span>
+<span class="sd">            in which case a single vector is kept</span>
+<span class="sd">        - checked for NaNs if nan = True</span>
+<span class="sd">        - checked for positive values if pos = True</span>
+<span class="sd">        - All occurences are flatened if flatocc = True</span>
+
+<span class="sd">    If comp = True, it means the data is not loaded directly from the ids,</span>
+<span class="sd">    but computed from a combination of signals in the ids.</span>
+<span class="sd">    The computation function must have been defined previously</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># --------------</span>
+    <span class="c1"># Check inputs</span>
+
+    <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">_DATA</span>
+    <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="n">_UNITS</span>
+
+    <span class="c1"># --------------</span>
+    <span class="c1"># Load data</span>
+
+    <span class="c1"># get list of results for occ</span>
+    <span class="n">occref</span> <span class="o">=</span> <span class="n">dids</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;occ&#39;</span><span class="p">]</span>
+    <span class="n">indoc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">occref</span> <span class="o">==</span> <span class="n">oc</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">oc</span> <span class="ow">in</span> <span class="n">occ</span><span class="p">])</span>
+    <span class="n">nocc</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">indoc</span><span class="p">)</span>
+    <span class="n">out</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">errdata</span><span class="p">,</span> <span class="n">errunits</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="c1"># Data has te be computed</span>
+    <span class="k">if</span> <span class="n">comp</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">stack</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">stack</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">lstr</span> <span class="o">=</span> <span class="n">dcomp</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sig</span><span class="p">][</span><span class="s1">&#39;lstr&#39;</span><span class="p">]</span>
+                <span class="n">kargs</span> <span class="o">=</span> <span class="n">dcomp</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sig</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;kargs&#39;</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="n">ddata</span> <span class="o">=</span> <span class="n">get_data_units</span><span class="p">(</span>
+                    <span class="n">dsig</span><span class="o">=</span><span class="p">{</span><span class="n">ids</span><span class="p">:</span> <span class="n">lstr</span><span class="p">},</span> <span class="n">occ</span><span class="o">=</span><span class="n">occ</span><span class="p">,</span> <span class="n">indch</span><span class="o">=</span><span class="n">indch</span><span class="p">,</span>
+                    <span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">indt</span><span class="o">=</span><span class="n">indt</span><span class="p">,</span> <span class="n">stack</span><span class="o">=</span><span class="n">stack</span><span class="p">,</span>
+                    <span class="n">flatocc</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nan</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">dids</span><span class="o">=</span><span class="n">dids</span><span class="p">,</span> <span class="n">dcomp</span><span class="o">=</span><span class="n">dcomp</span><span class="p">,</span> <span class="n">dshort</span><span class="o">=</span><span class="n">dshort</span><span class="p">,</span>
+                    <span class="n">dall_except</span><span class="o">=</span><span class="n">dall_except</span><span class="p">)[</span><span class="n">ids</span><span class="p">]</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="n">dcomp</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sig</span><span class="p">][</span><span class="s1">&#39;func&#39;</span><span class="p">](</span>
+                    <span class="o">*</span><span class="p">[</span><span class="n">ddata</span><span class="p">[</span><span class="n">kk</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">nn</span><span class="p">]</span> <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="n">lstr</span><span class="p">],</span>
+                    <span class="o">**</span><span class="n">kargs</span><span class="p">)</span>
+                       <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nocc</span><span class="p">)]</span>
+                <span class="k">if</span> <span class="n">pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">pos</span> <span class="o">=</span> <span class="n">dcomp</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sig</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="n">errdata</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">unit</span> <span class="o">=</span> <span class="n">dcomp</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sig</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;units&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="n">errunits</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+    <span class="c1"># Data available from ids</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sig</span><span class="p">][</span><span class="s1">&#39;fsig&#39;</span><span class="p">](</span><span class="n">dids</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;ids&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">],</span>
+                                                <span class="n">indt</span><span class="o">=</span><span class="n">indt</span><span class="p">,</span> <span class="n">indch</span><span class="o">=</span><span class="n">indch</span><span class="p">,</span>
+                                                <span class="n">stack</span><span class="o">=</span><span class="n">stack</span><span class="p">)</span>
+                       <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">indoc</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">pos</span> <span class="o">=</span> <span class="n">dshort</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sig</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="n">errdata</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">unit</span> <span class="o">=</span> <span class="n">get_units</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="n">errunits</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+    <span class="c1"># Check data</span>
+    <span class="n">isempty</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">errdata</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">out</span><span class="p">,</span> <span class="n">isempty</span> <span class="o">=</span> <span class="n">_check_data</span><span class="p">(</span><span class="n">out</span><span class="p">,</span>
+                                   <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="n">nan</span><span class="p">,</span>
+                                   <span class="n">isclose</span><span class="o">=</span><span class="n">isclose</span><span class="p">,</span> <span class="n">empty</span><span class="o">=</span><span class="n">empty</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">isempty</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;empty data in </span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">sig</span><span class="p">))</span>
+            <span class="n">errdata</span> <span class="o">=</span> <span class="n">msg</span>
+        <span class="k">elif</span> <span class="n">nocc</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">flatocc</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">isempty</span> <span class="o">=</span> <span class="n">isempty</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">out</span><span class="p">,</span> <span class="s1">&#39;units&#39;</span><span class="p">:</span> <span class="n">unit</span><span class="p">,</span>
+            <span class="s1">&#39;isempty&#39;</span><span class="p">:</span> <span class="n">isempty</span><span class="p">,</span> <span class="s1">&#39;errdata&#39;</span><span class="p">:</span> <span class="n">errdata</span><span class="p">,</span> <span class="s1">&#39;errunits&#39;</span><span class="p">:</span> <span class="n">errunits</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="get_data_units"><a class="viewcode-back" href="../../../tofu.imas2tofu.html#tofu.imas2tofu._comp.get_data_units">[docs]</a><span class="k">def</span> <span class="nf">get_data_units</span><span class="p">(</span><span class="n">dsig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">occ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">indch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stack</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">isclose</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">flatocc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                   <span class="n">nan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">empty</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">return_all</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">warn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">dids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dshort</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dcomp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dall_except</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return a dict with the data and units (and empty, errors)</span>
+
+<span class="sd">    Can be used:</span>
+<span class="sd">        - For multiple (all) shorcuts from a unique ids</span>
+<span class="sd">        - For all shortcuts from multiple ids</span>
+<span class="sd">        - For a custom ids: shortcuts dict</span>
+
+<span class="sd">    For the desired ids and signal (shortcut), load the data and units</span>
+<span class="sd">    Return a dict also containing a bool indicating whether the data is empty</span>
+<span class="sd">    and error strings if any was raised</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># ------------------</span>
+    <span class="c1"># Check format input</span>
+
+    <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">_DATA</span>
+    <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="n">_UNITS</span>
+    <span class="k">if</span> <span class="n">strict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">strict</span> <span class="o">=</span> <span class="n">_STRICT</span>
+    <span class="k">if</span> <span class="n">warn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">warn</span> <span class="o">=</span> <span class="n">_WARN</span>
+    <span class="k">if</span> <span class="n">return_all</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">return_all</span> <span class="o">=</span> <span class="n">_RETURN_ALL</span>
+
+    <span class="c1"># dsig = {ids: {&#39;sig&#39;: [...], &#39;comp&#39;: [...]}}</span>
+    <span class="n">dsig</span> <span class="o">=</span> <span class="n">_checkformat_getdata_dsig</span><span class="p">(</span>
+        <span class="n">dsig</span><span class="p">,</span>
+        <span class="n">occ</span><span class="o">=</span><span class="n">occ</span><span class="p">,</span>
+        <span class="n">indch</span><span class="o">=</span><span class="n">indch</span><span class="p">,</span>
+        <span class="n">indt</span><span class="o">=</span><span class="n">indt</span><span class="p">,</span>
+        <span class="n">dids</span><span class="o">=</span><span class="n">dids</span><span class="p">,</span>
+        <span class="n">dshort</span><span class="o">=</span><span class="n">dshort</span><span class="p">,</span>
+        <span class="n">dcomp</span><span class="o">=</span><span class="n">dcomp</span><span class="p">,</span>
+        <span class="n">dall_except</span><span class="o">=</span><span class="n">dall_except</span><span class="p">)</span>
+
+    <span class="c1"># ------------------</span>
+    <span class="c1"># get data</span>
+
+    <span class="n">anyfail</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">dout</span> <span class="o">=</span> <span class="p">{</span><span class="n">ids</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">dsig</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+    <span class="n">dfail</span> <span class="o">=</span> <span class="p">{</span><span class="n">ids</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">dsig</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+    <span class="k">for</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">dsig</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">indchi</span> <span class="o">=</span> <span class="n">dsig</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;indch&#39;</span><span class="p">]</span>
+        <span class="n">indti</span> <span class="o">=</span> <span class="n">dsig</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;indt&#39;</span><span class="p">]</span>
+        <span class="n">occi</span> <span class="o">=</span> <span class="n">dsig</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;occ&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dsig</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;sig&#39;</span><span class="p">])):</span>
+            <span class="n">sigi</span> <span class="o">=</span> <span class="n">dsig</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;sig&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span>
+            <span class="n">compi</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">dsig</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="s1">&#39;comp&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">isclose</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">isclose_</span> <span class="o">=</span> <span class="n">sigi</span> <span class="o">==</span> <span class="s1">&#39;t&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">isclose_</span> <span class="o">=</span> <span class="n">isclose</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">dout</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sigi</span><span class="p">]</span> <span class="o">=</span> <span class="n">_get_data_units</span><span class="p">(</span>
+                    <span class="n">ids</span><span class="p">,</span> <span class="n">sigi</span><span class="p">,</span> <span class="n">occi</span><span class="p">,</span> <span class="n">comp</span><span class="o">=</span><span class="n">compi</span><span class="p">,</span>
+                    <span class="n">indt</span><span class="o">=</span><span class="n">indti</span><span class="p">,</span> <span class="n">indch</span><span class="o">=</span><span class="n">indchi</span><span class="p">,</span>
+                    <span class="n">stack</span><span class="o">=</span><span class="n">stack</span><span class="p">,</span> <span class="n">isclose</span><span class="o">=</span><span class="n">isclose_</span><span class="p">,</span> <span class="n">flatocc</span><span class="o">=</span><span class="n">flatocc</span><span class="p">,</span>
+                    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span>
+                    <span class="n">nan</span><span class="o">=</span><span class="n">nan</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span> <span class="n">empty</span><span class="o">=</span><span class="n">empty</span><span class="p">,</span>
+                    <span class="n">dids</span><span class="o">=</span><span class="n">dids</span><span class="p">,</span> <span class="n">dcomp</span><span class="o">=</span><span class="n">dcomp</span><span class="p">,</span> <span class="n">dshort</span><span class="o">=</span><span class="n">dshort</span><span class="p">,</span>
+                    <span class="n">dall_except</span><span class="o">=</span><span class="n">dall_except</span><span class="p">)</span>
+
+                <span class="n">lc</span> <span class="o">=</span> <span class="p">[</span><span class="n">dout</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sigi</span><span class="p">][</span><span class="s1">&#39;errdata&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">dout</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sigi</span><span class="p">][</span><span class="s1">&#39;errunits&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">lc</span><span class="p">):</span>
+                    <span class="n">anyfail</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                        <span class="n">dfail</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sigi</span><span class="o">+</span><span class="s1">&#39; data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dout</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sigi</span><span class="p">][</span><span class="s1">&#39;errdata&#39;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">lc</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                        <span class="n">dfail</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sigi</span><span class="o">+</span><span class="s1">&#39; units&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dout</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sigi</span><span class="p">][</span><span class="s1">&#39;errunits&#39;</span><span class="p">]</span>
+
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="n">dfail</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sigi</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                <span class="n">anyfail</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dfail</span><span class="p">[</span><span class="n">ids</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">dfail</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span>
+
+    <span class="c1"># Print if any failure</span>
+    <span class="k">if</span> <span class="n">anyfail</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">dfail</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">sigi</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">dout</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                    <span class="k">if</span> <span class="n">dout</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sigi</span><span class="p">][</span><span class="s1">&#39;errdata&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">del</span> <span class="n">dout</span><span class="p">[</span><span class="n">ids</span><span class="p">][</span><span class="n">sigi</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">warn</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;The following data could not be retrieved:&quot;</span>
+            <span class="k">for</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">dfail</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">nmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">k1</span><span class="p">)</span> <span class="k">for</span> <span class="n">k1</span> <span class="ow">in</span> <span class="n">dfail</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()])</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">- </span><span class="si">{}</span><span class="s2">:&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">sigi</span><span class="p">,</span> <span class="n">msgi</span> <span class="ow">in</span> <span class="n">dfail</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="si">{0}</span><span class="s2">:  </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sigi</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="n">nmax</span><span class="p">),</span>
+                                                    <span class="n">msgi</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">))</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1"># return</span>
+    <span class="k">if</span> <span class="n">return_all</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dout</span><span class="p">,</span> <span class="n">dfail</span><span class="p">,</span> <span class="n">dsig</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dout</span></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2016-2021, Tofu contributors.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

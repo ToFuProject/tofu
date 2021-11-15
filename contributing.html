@@ -1,19 +1,22 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>Contribute to tofu &#8212; Tofu 1.4.15</title>
-    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="A gallery of Fusion Machines" href="auto_examples/tutorials/tuto_plot_gallery_fusion_machines.html" />
@@ -22,9 +25,9 @@
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script type="text/javascript" src="_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="_static/js/jquery-1.12.4.min.js "></script>
 <script type="text/javascript" src="_static/js/jquery-fix.js "></script>
-<script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
 <script type="text/javascript" src="_static/bootstrap-sphinx.js "></script>
 
   </head><body>
@@ -132,12 +135,12 @@
   <div class="row">
     <div class="body col-md-12 content" role="main">
       
-  <div class="section" id="contribute-to-tofu">
+  <section id="contribute-to-tofu">
 <h1>Contribute to tofu<a class="headerlink" href="#contribute-to-tofu" title="Permalink to this headline">¶</a></h1>
 <p>You found a bug, or you want to add something to the library? This
 tutorial will show you how to get the repository and the first steps to
 contribute to the project.</p>
-<div class="section" id="bug-reports-and-suggestions">
+<section id="bug-reports-and-suggestions">
 <h2>Bug reports and suggestions<a class="headerlink" href="#bug-reports-and-suggestions" title="Permalink to this headline">¶</a></h2>
 <p>If you found a bug in <strong>tofu</strong>, or if you have a suggestion, the best is to open
 an issue directly on our <a class="reference external" href="https://github.com/ToFuProject/tofu/issues">github page</a>.
@@ -147,10 +150,10 @@ information that might be helpful to us (OS, server, how you installed
 <strong>tofu</strong>), a minimal example to recreate the bug (if possible), and the log
 files or errors you might have got.</p>
 <p>For known bugs, <a class="reference internal" href="#knownbugs"><span class="std std-ref">scroll down to the last section</span></a>.</p>
-</div>
-<div class="section" id="developping-in-the-code">
+</section>
+<section id="developping-in-the-code">
 <h2>Developping in the code<a class="headerlink" href="#developping-in-the-code" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="the-basic-tools">
+<section id="the-basic-tools">
 <h3>The basic tools<a class="headerlink" href="#the-basic-tools" title="Permalink to this headline">¶</a></h3>
 <p>There are many tools and concepts to get familiar with when contributing
 to an <strong>open-source python library</strong>. A good place to get started is the
@@ -206,16 +209,16 @@ one</a></p></li>
 <li><p>Compile <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">build_ext</span> <span class="pre">--inplace</span></code></p></li>
 <li><p>Make sure tests are running <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">tofu/tests</span></code></p></li>
 </ul>
-</div>
-<div class="section" id="where-to-start">
+</section>
+<section id="where-to-start">
 <h3>Where to start?<a class="headerlink" href="#where-to-start" title="Permalink to this headline">¶</a></h3>
 <p>If you wish to contribute, but don’t know where to start, check <a class="reference external" href="https://github.com/ToFuProject/tofu/issues">our
 open issues</a>. You can
 also read <a class="reference external" href="https://github.com/firstcontributions/first-contributions">this
 tutorial</a>,
 on how to contribute to a github project.</p>
-</div>
-<div class="section" id="git-branches-and-pull-requests">
+</section>
+<section id="git-branches-and-pull-requests">
 <h3>Git branches and pull requests<a class="headerlink" href="#git-branches-and-pull-requests" title="Permalink to this headline">¶</a></h3>
 <p>Before modifying the code, you
 should create a new branch (based on the <em>devel</em> branch) and switch to it.</p>
@@ -230,8 +233,8 @@ should create a new branch (based on the <em>devel</em> branch) and switch to it
 page</a>, from your branch,
 <code class="docutils literal notranslate"><span class="pre">theNameOfYourBranch</span></code> to <code class="docutils literal notranslate"><span class="pre">devel</span></code>. We will review it, comment it, and
 accept it.</p>
-</div>
-<div class="section" id="continuous-integration">
+</section>
+<section id="continuous-integration">
 <h3>Continuous integration<a class="headerlink" href="#continuous-integration" title="Permalink to this headline">¶</a></h3>
 <p>For each pull request (PR) on github, there will be a series of tests run to
 make sure the modifications introduced to the library did not introduce any
@@ -244,11 +247,11 @@ If you cannot find the problem, you can ask for help by commenting on the PR.
 Additionally to the unit tests, we have integrated <a class="reference external" href="https://pep8speaks.com/">pep8speaks</a>, a bot that will
 check your coding style.</p>
 <img alt="_images/pep8speaks.png" src="_images/pep8speaks.png" />
-</div>
-</div>
-<div class="section" id="known-bugs">
+</section>
+</section>
+<section id="known-bugs">
 <span id="knownbugs"></span><h2>Known bugs<a class="headerlink" href="#known-bugs" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="numpy-ndarayy-size-changed">
+<section id="numpy-ndarayy-size-changed">
 <h3><code class="docutils literal notranslate"><span class="pre">numpy.ndarayy</span> <span class="pre">size</span> <span class="pre">changed</span></code><a class="headerlink" href="#numpy-ndarayy-size-changed" title="Permalink to this headline">¶</a></h3>
 <p><a class="reference external" href="https://numpy.org/devdocs/release/1.20.0-notes.html#the-pyarray-descrcheck-macro-is-modified">NumPy 1.20</a>
 introduced a different ABI (application binary interface, basically changing the
@@ -268,9 +271,9 @@ to compile <code class="docutils literal notranslate"><span class="pre">tofu</sp
 <p>If you still encounter this issue, if you have questions, or want to
 suggests other solutions, you can comment in the issue opened on github
 for this matter: <a class="reference external" href="https://github.com/ToFuProject/tofu/issues/483">here</a>.</p>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
     </div>
@@ -292,8 +295,8 @@ for this matter: <a class="reference external" href="https://github.com/ToFuProj
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Oct 06, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
     </p>
   </div>
 </footer>

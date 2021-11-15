@@ -1,19 +1,22 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>tofu.dust package &#8212; Tofu 1.4.15</title>
-    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="tofu.entrypoints package" href="tofu.entrypoints.html" />
@@ -22,9 +25,9 @@
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script type="text/javascript" src="_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="_static/js/jquery-1.12.4.min.js "></script>
 <script type="text/javascript" src="_static/js/jquery-fix.js "></script>
-<script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
 <script type="text/javascript" src="_static/bootstrap-sphinx.js "></script>
 
   </head><body>
@@ -124,120 +127,120 @@
   <div class="row">
     <div class="body col-md-12 content" role="main">
       
-  <div class="section" id="module-tofu.dust">
+  <section id="module-tofu.dust">
 <span id="tofu-dust-package"></span><h1>tofu.dust package<a class="headerlink" href="#module-tofu.dust" title="Permalink to this headline">¶</a></h1>
 <p>The dust module of tofu</p>
-<div class="section" id="submodules">
+<section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="module-tofu.dust._comp">
+</section>
+<section id="module-tofu.dust._comp">
 <span id="tofu-dust-comp-module"></span><h2>tofu.dust._comp module<a class="headerlink" href="#module-tofu.dust._comp" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="module-tofu.dust._core">
+</section>
+<section id="module-tofu.dust._core">
 <span id="tofu-dust-core-module"></span><h2>tofu.dust._core module<a class="headerlink" href="#module-tofu.dust._core" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="tofu.dust._core.Dust">
-<em class="property">class </em><code class="sig-prename descclassname">tofu.dust._core.</code><code class="sig-name descname">Dust</code><span class="sig-paren">(</span><em class="sig-param">Id=None</em>, <em class="sig-param">dmat=None</em>, <em class="sig-param">traj=None</em>, <em class="sig-param">VType='Tor'</em>, <em class="sig-param">Ves=None</em>, <em class="sig-param">LStruct=None</em>, <em class="sig-param">res=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.dust._core.Dust" title="Permalink to this definition">¶</a></dt>
+<dl class="py class">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">tofu.dust._core.</span></span><span class="sig-name descname"><span class="pre">Dust</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dmat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">VType</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Tor'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ves</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LStruct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">res</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.dust._core.Dust" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A generic Dust class to handle dust trajectories, radiative power
 balance…</p>
-<dl class="method">
-<dt id="tofu.dust._core.Dust.LStruct">
-<em class="property">property </em><code class="sig-name descname">LStruct</code><a class="headerlink" href="#tofu.dust._core.Dust.LStruct" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.LStruct">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">LStruct</span></span><a class="headerlink" href="#tofu.dust._core.Dust.LStruct" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tofu.dust._core.Dust.Ves">
-<em class="property">property </em><code class="sig-name descname">Ves</code><a class="headerlink" href="#tofu.dust._core.Dust.Ves" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.Ves">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">Ves</span></span><a class="headerlink" href="#tofu.dust._core.Dust.Ves" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tofu.dust._core.Dust.direct">
-<em class="property">property </em><code class="sig-name descname">direct</code><a class="headerlink" href="#tofu.dust._core.Dust.direct" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.direct">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">direct</span></span><a class="headerlink" href="#tofu.dust._core.Dust.direct" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tofu.dust._core.Dust.dmat">
-<em class="property">property </em><code class="sig-name descname">dmat</code><a class="headerlink" href="#tofu.dust._core.Dust.dmat" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.dmat">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">dmat</span></span><a class="headerlink" href="#tofu.dust._core.Dust.dmat" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tofu.dust._core.Dust.emiss">
-<em class="property">property </em><code class="sig-name descname">emiss</code><a class="headerlink" href="#tofu.dust._core.Dust.emiss" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.emiss">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">emiss</span></span><a class="headerlink" href="#tofu.dust._core.Dust.emiss" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tofu.dust._core.Dust.plot">
-<code class="sig-name descname">plot</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.dust._core.Dust.plot" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.dust._core.Dust.plot" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tofu.dust._core.Dust.res">
-<em class="property">property </em><code class="sig-name descname">res</code><a class="headerlink" href="#tofu.dust._core.Dust.res" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.res">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">res</span></span><a class="headerlink" href="#tofu.dust._core.Dust.res" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tofu.dust._core.Dust.set_directproblem">
-<code class="sig-name descname">set_directproblem</code><span class="sig-paren">(</span><em class="sig-param">pts=None</em>, <em class="sig-param">r=None</em>, <em class="sig-param">t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.set_directproblem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.dust._core.Dust.set_directproblem" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.set_directproblem">
+<span class="sig-name descname"><span class="pre">set_directproblem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.set_directproblem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.dust._core.Dust.set_directproblem" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tofu.dust._core.Dust.set_emiss">
-<code class="sig-name descname">set_emiss</code><span class="sig-paren">(</span><em class="sig-param">emiss=None</em>, <em class="sig-param">t=None</em>, <em class="sig-param">Ani=None</em>, <em class="sig-param">axisym=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.set_emiss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.dust._core.Dust.set_emiss" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.set_emiss">
+<span class="sig-name descname"><span class="pre">set_emiss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">emiss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ani</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axisym</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.set_emiss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.dust._core.Dust.set_emiss" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tofu.dust._core.Dust.set_geom">
-<code class="sig-name descname">set_geom</code><span class="sig-paren">(</span><em class="sig-param">Ves=None</em>, <em class="sig-param">LStruct=None</em>, <em class="sig-param">res=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.set_geom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.dust._core.Dust.set_geom" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.set_geom">
+<span class="sig-name descname"><span class="pre">set_geom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Ves</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LStruct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">res</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.set_geom"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.dust._core.Dust.set_geom" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tofu.dust._core.Dust.set_material_properties">
-<code class="sig-name descname">set_material_properties</code><span class="sig-paren">(</span><em class="sig-param">dmat=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.set_material_properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.dust._core.Dust.set_material_properties" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.set_material_properties">
+<span class="sig-name descname"><span class="pre">set_material_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dmat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.set_material_properties"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.dust._core.Dust.set_material_properties" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tofu.dust._core.Dust.set_sampleV">
-<code class="sig-name descname">set_sampleV</code><span class="sig-paren">(</span><em class="sig-param">res=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.set_sampleV"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.dust._core.Dust.set_sampleV" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.set_sampleV">
+<span class="sig-name descname"><span class="pre">set_sampleV</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.set_sampleV"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.dust._core.Dust.set_sampleV" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tofu.dust._core.Dust.set_traj">
-<code class="sig-name descname">set_traj</code><span class="sig-paren">(</span><em class="sig-param">traj=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.set_traj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.dust._core.Dust.set_traj" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.set_traj">
+<span class="sig-name descname"><span class="pre">set_traj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">traj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#Dust.set_traj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.dust._core.Dust.set_traj" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tofu.dust._core.Dust.traj">
-<em class="property">property </em><code class="sig-name descname">traj</code><a class="headerlink" href="#tofu.dust._core.Dust.traj" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="tofu.dust._core.Dust.traj">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">traj</span></span><a class="headerlink" href="#tofu.dust._core.Dust.traj" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-<dl class="function">
-<dt id="tofu.dust._core._check_trajpts">
-<code class="sig-prename descclassname">tofu.dust._core.</code><code class="sig-name descname">_check_trajpts</code><span class="sig-paren">(</span><em class="sig-param">pts</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#_check_trajpts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.dust._core._check_trajpts" title="Permalink to this definition">¶</a></dt>
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.dust._core._check_trajpts">
+<span class="sig-prename descclassname"><span class="pre">tofu.dust._core.</span></span><span class="sig-name descname"><span class="pre">_check_trajpts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#_check_trajpts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.dust._core._check_trajpts" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="function">
-<dt id="tofu.dust._core._check_trajt">
-<code class="sig-prename descclassname">tofu.dust._core.</code><code class="sig-name descname">_check_trajt</code><span class="sig-paren">(</span><em class="sig-param">t</em>, <em class="sig-param">npts</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#_check_trajt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.dust._core._check_trajt" title="Permalink to this definition">¶</a></dt>
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.dust._core._check_trajt">
+<span class="sig-prename descclassname"><span class="pre">tofu.dust._core.</span></span><span class="sig-name descname"><span class="pre">_check_trajt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_core.html#_check_trajt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.dust._core._check_trajt" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</div>
-<div class="section" id="module-tofu.dust._plot">
+</section>
+<section id="module-tofu.dust._plot">
 <span id="tofu-dust-plot-module"></span><h2>tofu.dust._plot module<a class="headerlink" href="#module-tofu.dust._plot" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="tofu.dust._plot._plot_traj">
-<code class="sig-prename descclassname">tofu.dust._plot.</code><code class="sig-name descname">_plot_traj</code><span class="sig-paren">(</span><em class="sig-param">dust</em>, <em class="sig-param">lax=None</em>, <em class="sig-param">Proj='All'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_plot.html#_plot_traj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.dust._plot._plot_traj" title="Permalink to this definition">¶</a></dt>
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.dust._plot._plot_traj">
+<span class="sig-prename descclassname"><span class="pre">tofu.dust._plot.</span></span><span class="sig-name descname"><span class="pre">_plot_traj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dust</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Proj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'All'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_plot.html#_plot_traj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.dust._plot._plot_traj" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="function">
-<dt id="tofu.dust._plot.plot">
-<code class="sig-prename descclassname">tofu.dust._plot.</code><code class="sig-name descname">plot</code><span class="sig-paren">(</span><em class="sig-param">dust</em>, <em class="sig-param">lax=None</em>, <em class="sig-param">Proj='All'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_plot.html#plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.dust._plot.plot" title="Permalink to this definition">¶</a></dt>
+<dl class="py function">
+<dt class="sig sig-object py" id="tofu.dust._plot.plot">
+<span class="sig-prename descclassname"><span class="pre">tofu.dust._plot.</span></span><span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dust</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Proj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'All'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/dust/_plot.html#plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tofu.dust._plot.plot" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</div>
-</div>
+</section>
+</section>
 
 
     </div>
@@ -259,8 +262,8 @@ balance…</p>
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Oct 06, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
     </p>
   </div>
 </footer>

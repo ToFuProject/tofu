@@ -4,6 +4,7 @@ Latest release
 .. toctree::
    :maxdepth: 1
 
+   release_notes/release_notes_150.txt
    release_notes/release_notes_1412.txt
    release_notes/release_notes_1411.txt
    release_notes/release_notes_1410.txt

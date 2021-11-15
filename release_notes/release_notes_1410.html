@@ -1,28 +1,31 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>What’s new in 1.4.10 &#8212; Tofu 1.4.15</title>
-    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="../_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../_static/js/jquery-1.12.4.min.js "></script>
 <script type="text/javascript" src="../_static/js/jquery-fix.js "></script>
-<script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
 <script type="text/javascript" src="../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
@@ -131,10 +134,10 @@
   <div class="row">
     <div class="body col-md-12 content" role="main">
       
-  <div class="section" id="what-s-new-in-1-4-10">
+  <section id="what-s-new-in-1-4-10">
 <h1>What’s new in 1.4.10<a class="headerlink" href="#what-s-new-in-1-4-10" title="Permalink to this headline">¶</a></h1>
 <p>tofu 1.4.10 is a minor upgrade from 1.4.9</p>
-<div class="section" id="main-changes">
+<section id="main-changes">
 <h2>Main changes:<a class="headerlink" href="#main-changes" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>More detailed tokamak geometries (ITER, WEST, TCV)</p></li>
@@ -143,16 +146,16 @@
 <li><p>Updated CI (nosetests -&gt; pytest and Github Actions)</p></li>
 <li><p>Better code, documentation</p></li>
 </ul>
-</div>
-<div class="section" id="detailed-changes">
+</section>
+<section id="detailed-changes">
 <h2>Detailed changes:<a class="headerlink" href="#detailed-changes" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="scripts">
+<section id="scripts">
 <h3>scripts:<a class="headerlink" href="#scripts" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Keyword arg t0 is now properly handled by tofuplot and tofucalc #451</p></li>
 </ul>
-</div>
-<div class="section" id="geometry">
+</section>
+<section id="geometry">
 <h3>Geometry:<a class="headerlink" href="#geometry" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>ITER: more detailed geometry, with inner and outer vessel, poloidal field coils, and cryostat #460</p></li>
@@ -161,8 +164,8 @@
 <li><p>General: new, more accessible, function tf.load_config() (alias for tf.geom.utils.create_Config()) #464</p></li>
 <li><p>TCV: inner and outer vessel are now separated, avoiding a bug in collision-detection #468</p></li>
 </ul>
-</div>
-<div class="section" id="computation">
+</section>
+<section id="computation">
 <h3>Computation:<a class="headerlink" href="#computation" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Debugged a cython / numpy issue #461</p></li>
@@ -170,14 +173,14 @@
 <li><p>Implemented: computation of solid angles subtended by a spherical particle from point in the plasma #470</p></li>
 <li><p>Fixed: wrong definition of input k (renamed dist) in _GG.LOS_areVis_PtsFromPts_VesStruct() #472</p></li>
 </ul>
-</div>
-<div class="section" id="documentation">
+</section>
+<section id="documentation">
 <h3>Documentation:<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Minor updates #436, #469</p></li>
 </ul>
-</div>
-<div class="section" id="unit-tests-and-ci">
+</section>
+<section id="unit-tests-and-ci">
 <h3>Unit tests and CI:<a class="headerlink" href="#unit-tests-and-ci" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Switched from nosetests to pytest #445</p></li>
@@ -185,8 +188,8 @@
 <li><p>Github Actions implemented: light tests on all branches except devel and master #455</p></li>
 <li><p>Removed a few warnings #476</p></li>
 </ul>
-</div>
-<div class="section" id="miscellaneous">
+</section>
+<section id="miscellaneous">
 <h3>Miscellaneous:<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>tofu does not force matplotlib’s backend to agg anymore #448</p></li>
@@ -195,16 +198,16 @@
 <li><p>Data.plot() now properly takes into account arguments vmin and vmax #457</p></li>
 <li><p>More explicit input arguments for tofu.geom.utils.create_camLOS1D() and tofu.geom.utils.create_camLOS2D() #474</p></li>
 </ul>
-</div>
-</div>
-<div class="section" id="contributors">
+</section>
+</section>
+<section id="contributors">
 <h2>Contributors:<a class="headerlink" href="#contributors" title="Permalink to this headline">¶</a></h2>
 <p>Many thanks to all developpers and contributors:
 - Didier Vezinet (&#64;Didou09)
 - Laura Mendoza (&#64;lasofivec)
 - Florian Le Bourdais  (&#64;flothesof)</p>
-</div>
-<div class="section" id="what-s-next-indicative">
+</section>
+<section id="what-s-next-indicative">
 <h2>What’s next (indicative):<a class="headerlink" href="#what-s-next-indicative" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Solid angles for Volume-Of-Sight and radiative heat loads computation (ongoing for &#64;lasofivec : Issues #73, #74, #75, #76, #77, #78)</p></li>
@@ -214,14 +217,14 @@
 <li><p>Better unit tests coverage</p></li>
 <li><p>More complete documentation</p></li>
 </ul>
-</div>
-<div class="section" id="list-of-pr-merged-into-this-release">
+</section>
+<section id="list-of-pr-merged-into-this-release">
 <h2>List of PR merged into this release:<a class="headerlink" href="#list-of-pr-merged-into-this-release" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>PR: #436, #445, #448, #449, #451, #455, #456, #457, #460, #460, #462, #464, #466, #468, #469, #470, #472, #474, #476</p></li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
     </div>
@@ -243,8 +246,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Oct 06, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
     </p>
   </div>
 </footer>

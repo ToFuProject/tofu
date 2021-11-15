@@ -1,28 +1,30 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>tofu.utils &#8212; Tofu 1.4.15</title>
-    <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/bootstrap-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../../_static/jquery.js"></script>
-    <script type="text/javascript" src="../../_static/underscore.js"></script>
-    <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <script type="text/javascript" src="../../_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../_static/js/jquery-1.12.4.min.js "></script>
 <script type="text/javascript" src="../../_static/js/jquery-fix.js "></script>
-<script type="text/javascript" src="../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
 <script type="text/javascript" src="../../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
@@ -119,7 +121,7 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">collections</span>
-<span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
 <span class="kn">import</span> <span class="nn">importlib</span>
 <span class="kn">import</span> <span class="nn">getpass</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
@@ -131,12 +133,12 @@
 <span class="kn">import</span> <span class="nn">scipy.io</span> <span class="k">as</span> <span class="nn">scpio</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
-<span class="kn">from</span> <span class="nn">matplotlib.tri</span> <span class="k">import</span> <span class="n">Triangulation</span> <span class="k">as</span> <span class="n">mplTri</span>
+<span class="kn">from</span> <span class="nn">matplotlib.tri</span> <span class="kn">import</span> <span class="n">Triangulation</span> <span class="k">as</span> <span class="n">mplTri</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
 
 <span class="c1"># tofu-specific</span>
-<span class="kn">from</span> <span class="nn">tofu</span> <span class="k">import</span> <span class="n">__version__</span>
+<span class="kn">from</span> <span class="nn">tofu</span> <span class="kn">import</span> <span class="n">__version__</span>
 
 <span class="n">_SAVEPATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
 <span class="n">_SEP</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span>
@@ -327,12 +329,12 @@
 <div class="viewcode-block" id="Dictattr"><a class="viewcode-back" href="../../tofu.html#tofu.utils.Dictattr">[docs]</a><span class="k">class</span> <span class="nc">Dictattr</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
     <span class="fm">__getattr__</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="fm">__getitem__</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">extra</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">extra</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
         <span class="c1">#super()</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Dictattr</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwdargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_extra</span> <span class="o">=</span> <span class="n">extra</span>
 
-    <span class="k">def</span> <span class="nf">__dir__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__dir__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">_extra</span></div>
 
 
@@ -889,7 +891,7 @@
     <span class="c1"># import imas2tofu</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="kn">import</span> <span class="nn">imas</span>
-        <span class="kn">from</span> <span class="nn">tofu.imas2tofu</span> <span class="k">import</span> <span class="n">MultiIDSLoader</span>
+        <span class="kn">from</span> <span class="nn">tofu.imas2tofu</span> <span class="kn">import</span> <span class="n">MultiIDSLoader</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
         <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2"> module imas2tofu does not seem available</span><span class="se">\n</span><span class="s2">&quot;</span>
@@ -1857,7 +1859,7 @@
         <span class="bp">cls</span><span class="o">.</span><span class="n">_dstrip</span> <span class="o">=</span> <span class="n">ToFuObjectBase</span><span class="o">.</span><span class="n">_dstrip</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_strip_init</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fromdict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fromdict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="o">**</span><span class="n">kwdargs</span><span class="p">):</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_Done</span> <span class="o">=</span> <span class="kc">False</span>
@@ -2022,7 +2024,7 @@
         <span class="c1"># &quot;&quot;&quot; Summary description of the object content as a np.array of str &quot;&quot;&quot;</span>
         <span class="c1"># pass</span>
 
-    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;get_summary&#39;</span><span class="p">):</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_summary</span><span class="p">(</span><span class="n">return_</span><span class="o">=</span><span class="s1">&#39;msg&#39;</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -2210,7 +2212,7 @@
     <span class="c1">#############################</span>
 
 
-    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">lexcept</span><span class="o">=</span><span class="p">[],</span> <span class="n">detail</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">lexcept</span><span class="o">=</span><span class="p">[],</span> <span class="n">detail</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;The 2 objects have different &quot;</span>
         <span class="c1"># Check class</span>
         <span class="n">eq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">==</span><span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span>
@@ -2328,7 +2330,7 @@
         <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="n">detail</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span>
 
     <span class="c1"># Python 2</span>
-    <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="n">detail</span><span class="p">,</span> <span class="n">verb</span><span class="o">=</span><span class="n">verb</span><span class="p">)</span></div>
 
 
@@ -2751,7 +2753,7 @@
     <span class="n">_dPref</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Exp&#39;</span><span class="p">:</span><span class="s1">&#39;Exp&#39;</span><span class="p">,</span><span class="s1">&#39;Diag&#39;</span><span class="p">:</span><span class="s1">&#39;Dg&#39;</span><span class="p">,</span><span class="s1">&#39;shot&#39;</span><span class="p">:</span><span class="s1">&#39;sh&#39;</span><span class="p">,</span><span class="s1">&#39;Deg&#39;</span><span class="p">:</span><span class="s1">&#39;Deg&#39;</span><span class="p">,</span>
               <span class="s1">&#39;version&#39;</span><span class="p">:</span><span class="s1">&#39;Vers&#39;</span><span class="p">,</span><span class="s1">&#39;usr&#39;</span><span class="p">:</span><span class="s1">&#39;U&#39;</span><span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Deg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Deg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">Exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">SaveName</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">SavePath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">usr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dUSR</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lObj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">fromdict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">include</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -3206,7 +3208,7 @@
 <div class="viewcode-block" id="DChans"><a class="viewcode-back" href="../../tofu.html#tofu.utils.DChans">[docs]</a><span class="k">class</span> <span class="nc">DChans</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Base class for handling event on tofu interactive figures &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dchans</span><span class="p">,</span> <span class="n">fromdict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dchans</span><span class="p">,</span> <span class="n">fromdict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="k">if</span> <span class="n">fromdict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dchans</span><span class="p">,</span> <span class="n">nch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_inputs</span><span class="p">(</span><span class="n">dchans</span><span class="p">)</span>
@@ -3543,7 +3545,7 @@
     <span class="n">_ltypesref</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">,</span><span class="s1">&#39;2d&#39;</span><span class="p">]</span>
 
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">can</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dgroup</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dref</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ddata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">can</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dgroup</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dref</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ddata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">dobj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lax_fix</span><span class="o">=</span><span class="p">[],</span>
                  <span class="n">groupinit</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">follow</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">can</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">mpl</span><span class="o">.</span><span class="n">backend_bases</span><span class="o">.</span><span class="n">FigureCanvasBase</span><span class="p">)</span>
@@ -4349,8 +4351,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Oct 06, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
     </p>
   </div>
 </footer>

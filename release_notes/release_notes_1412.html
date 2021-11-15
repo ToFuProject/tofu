@@ -1,28 +1,31 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>What’s new in 1.4.12 &#8212; Tofu 1.4.15</title>
-    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/bootstrap-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="../_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../_static/js/jquery-1.12.4.min.js "></script>
 <script type="text/javascript" src="../_static/js/jquery-fix.js "></script>
-<script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
 <script type="text/javascript" src="../_static/bootstrap-sphinx.js "></script>
 
   </head><body>
@@ -133,10 +136,10 @@
   <div class="row">
     <div class="body col-md-12 content" role="main">
       
-  <div class="section" id="what-s-new-in-1-4-12">
+  <section id="what-s-new-in-1-4-12">
 <h1>What’s new in 1.4.12<a class="headerlink" href="#what-s-new-in-1-4-12" title="Permalink to this headline">¶</a></h1>
 <p>tofu 1.4.12 is a minor upgrade from 1.4.11</p>
-<div class="section" id="main-changes">
+<section id="main-changes">
 <h2>Main changes:<a class="headerlink" href="#main-changes" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Mesh2DRect class and bsplines implemented #545</p></li>
@@ -149,24 +152,24 @@
 <li><p>Solid angle integrated toroidally for spherical particle implemented #535</p></li>
 <li><p>IMAS interface improved (more robust) #530</p></li>
 </ul>
-</div>
-<div class="section" id="detailed-changes">
+</section>
+<section id="detailed-changes">
 <h2>Detailed changes:<a class="headerlink" href="#detailed-changes" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="mesh-and-basis-functions">
+<section id="mesh-and-basis-functions">
 <h3>Mesh and basis functions:<a class="headerlink" href="#mesh-and-basis-functions" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>A generic Mesh2DRect class is created, can create an arbitrary non-uniform rectangular mesh from a tokamak geometry, provides cropping and plotting #545</p></li>
 <li><p>Bivariate b-splines of degree 0, 1, 2, 3 can be used on that mesh #545</p></li>
 <li><p>Operators D0, D0N2, D1N2, D2N2 can be computed for any bsplines of deg 0, 1, 2, in toroidal and linear geometry #551</p></li>
 </ul>
-</div>
-<div class="section" id="geometry-matrix">
+</section>
+<section id="geometry-matrix">
 <h3>Geometry matrix:<a class="headerlink" href="#geometry-matrix" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Mesh2DRect.compute_geometry_matrix() implemented for LOS-approximation, reasonably fast, with plotting routines and cropping #549</p></li>
 </ul>
-</div>
-<div class="section" id="imaging-x-ray-spectrometer">
+</section>
+<section id="imaging-x-ray-spectrometer">
 <h3>Imaging X-Ray spectrometer:<a class="headerlink" href="#imaging-x-ray-spectrometer" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>A CrystalBragg class is created to model a 2D spherically curved X-ray spectrometer, to be used with a detector, with ray-tracing and plots #532</p></li>
@@ -174,48 +177,48 @@
 <li><p>Crystal splitting in halves implemented, as non-parallelism to can set for each half independently (&#64;adriendaros) #538</p></li>
 <li><p>The possibility of getting the local coordinates of an arbitrary detector in the Crystal’s frame is implemented (&#64;adriendaros) #541</p></li>
 </ul>
-</div>
-<div class="section" id="spectral-fitting">
+</section>
+<section id="spectral-fitting">
 <h3>Spectral fitting:<a class="headerlink" href="#spectral-fitting" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>1d spectrum fitting routine implemented, with lot of flexibility and re-use of solution for next time step #532</p></li>
 <li><p>2d fitting pre-implemented, to be finished #532</p></li>
 </ul>
-</div>
-<div class="section" id="solid-angles">
+</section>
+<section id="solid-angles">
 <h3>Solid angles:<a class="headerlink" href="#solid-angles" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>The toroidal integral of the solid angles subtended by a spherical particle can be computed (&#64;lasofivec) #535</p></li>
 </ul>
-</div>
-<div class="section" id="imas-interfacing">
+</section>
+<section id="imas-interfacing">
 <h3>IMAS interfacing:<a class="headerlink" href="#imas-interfacing" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>IMAS interface more robust when writing data to bolometers IDS #530</p></li>
 </ul>
-</div>
-<div class="section" id="portability-ci">
+</section>
+<section id="portability-ci">
 <h3>Portability / CI:<a class="headerlink" href="#portability-ci" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Github Actions and porting of travis-ci.org to travis-ci.com fixed (&#64;lasofivec)</p></li>
 </ul>
-</div>
-<div class="section" id="miscellaneous">
+</section>
+<section id="miscellaneous">
 <h3>Miscellaneous:<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>More detailed error messages</p></li>
 <li><p>More unit tests</p></li>
 </ul>
-</div>
-</div>
-<div class="section" id="contributors">
+</section>
+</section>
+<section id="contributors">
 <h2>Contributors:<a class="headerlink" href="#contributors" title="Permalink to this headline">¶</a></h2>
 <p>Many thanks to all developpers and contributors:
 - Didier Vezinet (&#64;Didou09)
 - Laura Mendoza (&#64;lasofivec)
 - Adrien Da Ros (&#64;adriendaros)</p>
-</div>
-<div class="section" id="what-s-next-indicative">
+</section>
+<section id="what-s-next-indicative">
 <h2>What’s next (indicative):<a class="headerlink" href="#what-s-next-indicative" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Solid angles for Volume-Of-Sight and radiative heat loads computation (ongoing for &#64;lasofivec : Issues #74, #75, #76, #77, #78)</p></li>
@@ -225,14 +228,14 @@
 <li><p>Better unit tests coverage</p></li>
 <li><p>More complete documentation</p></li>
 </ul>
-</div>
-<div class="section" id="list-of-pr-merged-into-this-release">
+</section>
+<section id="list-of-pr-merged-into-this-release">
 <h2>List of PR merged into this release:<a class="headerlink" href="#list-of-pr-merged-into-this-release" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>PR: #530, #531, #532, #535, #538, #541, #542, #545, #549, #551</p></li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
     </div>
@@ -254,8 +257,8 @@
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Oct 06, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
     </p>
   </div>
 </footer>

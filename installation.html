@@ -1,19 +1,22 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>Installing tofu &#8212; Tofu 1.4.15</title>
-    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="_static/gallery.css" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/bootstrap-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Contribute to tofu" href="contributing.html" />
@@ -22,9 +25,9 @@
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script type="text/javascript" src="_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="_static/js/jquery-1.12.4.min.js "></script>
 <script type="text/javascript" src="_static/js/jquery-fix.js "></script>
-<script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="_static/bootstrap-3.4.1/js/bootstrap.min.js "></script>
 <script type="text/javascript" src="_static/bootstrap-sphinx.js "></script>
 
   </head><body>
@@ -125,7 +128,7 @@
   <div class="row">
     <div class="body col-md-12 content" role="main">
       
-  <div class="section" id="installing-tofu">
+  <section id="installing-tofu">
 <span id="installation"></span><h1>Installing tofu<a class="headerlink" href="#installing-tofu" title="Permalink to this headline">¶</a></h1>
 <p>As of March 2021, <cite>tofu</cite> is still under development. Therefore, installation
 instructions are provided officialy for Linux and ITER users. However, instructions
@@ -144,7 +147,7 @@ at <a class="reference external" href="https://github.com/ToFuProject/tofu/">Git
 <p>If you encounter problems during the installation, check our list of
 <a class="reference internal" href="contributing.html#knownbugs"><span class="std std-ref">known bugs</span></a> or <a class="reference external" href="https://github.com/ToFuProject/tofu/issues">open an issue.</a>.</p>
 </div>
-<div class="section" id="linux">
+<section id="linux">
 <span id="installing-tofu-on-linux"></span><h2>Linux<a class="headerlink" href="#linux" title="Permalink to this headline">¶</a></h2>
 <p>To install and use <cite>tofu</cite> on Linux, we recommend to proceed in two steps: install the
 Python package manager conda and then install tofu.
@@ -166,20 +169,20 @@ it.</a></p></li>
 </pre></div>
 </div>
 <p>Now you can <a class="reference external" href="auto_examples/index.html">follow a tutorial.</a></p>
-</div>
-<div class="section" id="mac-os-x">
+</section>
+<section id="mac-os-x">
 <span id="installing-tofu-on-mac"></span><h2>Mac OS X<a class="headerlink" href="#mac-os-x" title="Permalink to this headline">¶</a></h2>
 <p>See <a class="reference internal" href="#installing-as-a-developer"><span class="std std-ref">Installing tofu as a developer</span></a>.</p>
 <p>Additional <em>caveat</em>: if you are using a version of <cite>gcc &lt; 8</cite> be sure to
 turn off all parallelizations since there is a <a class="reference external" href="https://github.com/ToFuProject/tofu/issues/183">known bug with cython</a>.</p>
-</div>
-<div class="section" id="windows">
+</section>
+<section id="windows">
 <span id="installing-tofu-on-windows"></span><h2>Windows<a class="headerlink" href="#windows" title="Permalink to this headline">¶</a></h2>
 <p>See <a class="reference internal" href="#installing-as-a-developer"><span class="std std-ref">Installing tofu as a developer</span></a>.</p>
 <p>Additional <em>caveat</em>: you may need to open an <code class="docutils literal notranslate"><span class="pre">Anaconda</span> <span class="pre">prompt</span></code> (usually found by pressing
 the Windows key) to run the commands described in the linked section.</p>
-</div>
-<div class="section" id="using-tofu-on-a-iter-cluster">
+</section>
+<section id="using-tofu-on-a-iter-cluster">
 <span id="iter-users"></span><h2>Using tofu on a ITER cluster<a class="headerlink" href="#using-tofu-on-a-iter-cluster" title="Permalink to this headline">¶</a></h2>
 <p>If you have an <strong>ITER</strong> account, you can use <strong>tofu</strong> directly from ITER
 Computing Cluster. No need to install tofu !</p>
@@ -195,10 +198,10 @@ link.</a></p></li>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">module</span> <span class="n">refresh</span>
 <span class="n">source</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">profile</span><span class="o">.</span><span class="n">d</span><span class="o">/</span><span class="n">modules</span><span class="o">.</span><span class="n">sh</span> <span class="c1"># make sure you have the module environment</span>
 <span class="n">module</span> <span class="n">purge</span> <span class="c1"># unload any previously loaded modules</span>
-<span class="n">module</span> <span class="n">load</span> <span class="n">IMAS</span><span class="o">/</span><span class="mf">3.24</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="mf">4.1</span><span class="o">.</span><span class="mi">5</span> <span class="c1"># for IMAS data base</span>
-<span class="n">module</span> <span class="n">load</span> <span class="n">IPython</span><span class="o">/</span><span class="mf">6.3</span><span class="o">.</span><span class="mi">1</span><span class="o">-</span><span class="n">intel</span><span class="o">-</span><span class="mi">2018</span><span class="n">a</span><span class="o">-</span><span class="n">Python</span><span class="o">-</span><span class="mf">3.6</span><span class="o">.</span><span class="mi">4</span> <span class="c1"># for iPython</span>
-<span class="n">module</span> <span class="n">load</span> <span class="n">PySide2</span><span class="o">/</span><span class="mf">5.12</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="n">intel</span><span class="o">-</span><span class="mi">2018</span><span class="n">a</span><span class="o">-</span><span class="n">Python</span><span class="o">-</span><span class="mf">3.6</span><span class="o">.</span><span class="mi">4</span>
-<span class="n">module</span> <span class="n">load</span> <span class="n">ToFu</span><span class="o">/</span><span class="mf">1.4</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="n">intel</span><span class="o">-</span><span class="mi">2018</span><span class="n">a</span><span class="o">-</span><span class="n">Python</span><span class="o">-</span><span class="mf">3.6</span><span class="o">.</span><span class="mi">4</span> <span class="c1"># Load tofu :)</span>
+<span class="n">module</span> <span class="n">load</span> <span class="n">IMAS</span><span class="o">/</span><span class="mf">3.24.0</span><span class="o">-</span><span class="mf">4.1.5</span> <span class="c1"># for IMAS data base</span>
+<span class="n">module</span> <span class="n">load</span> <span class="n">IPython</span><span class="o">/</span><span class="mf">6.3.1</span><span class="o">-</span><span class="n">intel</span><span class="o">-</span><span class="mi">2018</span><span class="n">a</span><span class="o">-</span><span class="n">Python</span><span class="o">-</span><span class="mf">3.6.4</span> <span class="c1"># for iPython</span>
+<span class="n">module</span> <span class="n">load</span> <span class="n">PySide2</span><span class="o">/</span><span class="mf">5.12.0</span><span class="o">-</span><span class="n">intel</span><span class="o">-</span><span class="mi">2018</span><span class="n">a</span><span class="o">-</span><span class="n">Python</span><span class="o">-</span><span class="mf">3.6.4</span>
+<span class="n">module</span> <span class="n">load</span> <span class="n">ToFu</span><span class="o">/</span><span class="mf">1.4.0</span><span class="o">-</span><span class="n">intel</span><span class="o">-</span><span class="mi">2018</span><span class="n">a</span><span class="o">-</span><span class="n">Python</span><span class="o">-</span><span class="mf">3.6.4</span> <span class="c1"># Load tofu :)</span>
 </pre></div>
 </div>
 <ul class="simple">
@@ -218,8 +221,8 @@ In [1]: import tofu as tf
 </pre></div>
 </div>
 <p>You can now <a class="reference external" href="auto_examples/index.html">follow a tutorial.</a></p>
-</div>
-<div class="section" id="installing-tofu-as-a-developer">
+</section>
+<section id="installing-tofu-as-a-developer">
 <span id="installing-as-a-developer"></span><h2>Installing tofu as a developer<a class="headerlink" href="#installing-tofu-as-a-developer" title="Permalink to this headline">¶</a></h2>
 <p>To install tofu as a developer, we recommend using the conda ecosystem (Miniconda in particular):</p>
 <ul class="simple">
@@ -250,8 +253,8 @@ tofu cython extensions and install it into your conda environment while you can 
 modify the source files in the current repository.`</p></li>
 <li><p>Make sure tofu tests are running by typing <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">tofu/tests</span></code></p></li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
     </div>
@@ -273,8 +276,8 @@ modify the source files in the current repository.`</p></li>
     </p>
     <p>
         &copy; Copyright 2016-2021, Tofu contributors.<br/>
-      Last updated on Oct 06, 2021.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.3.1.<br/>
+      Last updated on Nov 15, 2021.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br/>
     </p>
   </div>
 </footer>
