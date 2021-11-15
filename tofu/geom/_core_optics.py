@@ -910,8 +910,11 @@ class CrystalBragg(utils.ToFuObject):
         ------------
         The start point is the crystal summit by default
         But that can be changed using:
-            - ('dtheta', 'psi')
-            - ('ntheta', 'npsi', 'include_summit')
+            - ('dtheta', 'psi'): can be arbitrary but with same shape
+                up to 4 dimensions
+                - ('ntheta', 'npsi', 'include_summit'): will be used to
+                compute the envelop (contour) of the crystal, as 2 1d arrays
+
         These arguments are fed to self.get_local_noute1e2() which will compute
         the start points
 
@@ -1618,7 +1621,7 @@ class CrystalBragg(utils.ToFuObject):
         use_non_parallelism=None,
         include_summit=None,
     ):
-        """ Return (nout, e1, e2) associated to pts on the crystal's surface
+        """ Return (vout, ve1, ve2) associated to pts on the crystal's surface
 
         All points on the spherical crystal's surface are identified
             by (dtheta, psi) coordinates, where:
@@ -1628,27 +1631,29 @@ class CrystalBragg(utils.ToFuObject):
             They are the spherical coordinates from a sphere centered on the
             crystal's center of curvature.
 
+        Args (dtheta, psi) can be:
+            - arbitrary: same shape and dimension up to 4
+            - 'envelop': will be computed to represent the crystal contour
+                will be returned as 2 1d arrays
+
         Return the pts themselves and the 3 perpendicular local unit vectors
             (nout, e1, e2), where nout is towards the outside of the sphere and
             nout = np.cross(e1, e2)
 
+        In all cases, the output have shape (3, psi.shape)
+
         Return:
         -------
-        summit:     np.ndarray
+        summ:       np.ndarray
             coordinates of the points on the surface
-        nout:       np.ndarray
+        vout:       np.ndarray
             coordinates of outward unit vector
-        e1:         np.ndarray
+        ve1:        np.ndarray
             coordinates of first tangential unit vector
-        e2:         np.ndarray
+        ve2:        np.ndarray
             coordinates of second tangential unit vector
 
         All are cartesian (X, Y, Z) coordinates in the tokamak's frame
-
-        Dimensions
-        ----------
-        Depending on the input, the output arrays of coordinates can have
-        various dimensions:
 
         """
         # Get local basis at crystal summit
@@ -1670,6 +1675,7 @@ class CrystalBragg(utils.ToFuObject):
         vin = -vout
         # cent no longer dgeom['center'] because no longer a fixed point
         cent = self._dgeom['summit'] + self._dgeom['rcurve']*nin
+        reshape = np.r_[3, [1 for 1 in range(vout.ndim)]]       # TBF/TBC
         if vout.ndim == 2:
             cent = cent[:, None]
         elif vout.ndim == 3:

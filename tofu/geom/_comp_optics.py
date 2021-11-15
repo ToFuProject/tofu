@@ -98,6 +98,19 @@ def _check_dthetapsi(
     ntheta=None, npsi=None,
     include_summit=None,
 ):
+    """ Return formatted dtheta and psi
+
+    They are returned with the same shape (at least 1d arrays)
+
+    They can be:
+        - 'envelop': if psi of dtheta = 'envelop', psi and dtheta are computed
+            to describe the contour of the crystal as 2 (nenvelop,) arrays
+            The nvelop is computed from (npsi, ntheta)
+        - np.ndarrays or scalar: the routine just converts to np.ndarrays
+            (using np.atleast_1d()) and checks they have the same shape
+
+    """
+
     # Check inputs
     if dtheta is None:
         dtheta = 0.
@@ -135,6 +148,19 @@ def CrystBragg_sample_outline_sphrect(
     npsi=None, ntheta=None,
     include_summit=None,
 ):
+    """ Return psi, dtheta describing the envelop of a crystal
+
+    They are computed from
+        - extent_psi, extent_dtheta: np.ndarrays for size 2
+        - npsi, ntheta: integers
+
+    They are returned with the same shape:
+        (nenvelop,) arrays describing the contour of the crystal
+
+    Optionally, the crystal summit can be appended at the end
+
+    """
+
     # check inputs
     if include_summit is None:
         include_summit = True
@@ -167,6 +193,33 @@ def CrystBragg_get_noute1e2_from_psitheta(
     ntheta=None, npsi=None,
     include_summit=None,
 ):
+    """ Return local unit vectors at chosen points on the crystal surface
+
+    The points are defined by (psi, dtheta), which have to be the same shape
+    and can be:
+        - arbitrary: must be the same shape, can have up to 4 dimensions
+        - defined from the envelop using (nspi, ntheta) fed to
+            CrystBragg_sample_outline_sphrect()
+            In this case psi and theta are 1d
+
+    Local unit vectors (vout, ve1, ve2) at each point are defined the global
+    unit vectors (taken at the crystal summit) passed as input (nout, e1, e2)
+
+    Return
+    ------
+    vout:   np.ndarray
+        (X, Y, Z) coordinates of nout normal outwards local vectors
+    ve1:    np.ndarray
+        (X, Y, Z) coordinates of e1 local tangential vectors
+        Only returned if e1e2 is True
+    ve2:    np.ndarray
+        (X, Y, Z) coordinates of e2 local tangential vectors
+        Only returned if e1e2 is True
+
+    In all cases, the shape of the unit vectors is (3, psi.shape)
+
+    """
+
     # check inputs
     if e1e2 is None:
         e1e2 = True
