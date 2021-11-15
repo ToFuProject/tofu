@@ -17,6 +17,8 @@ from . import _mesh_comp
 from . import _mesh_plot
 from . import _matrix_comp
 from . import _matrix_plot
+from . import _inversions_comp
+from . import _inversions_plot
 
 
 _GROUP_MESH = 'mesh'
@@ -26,11 +28,11 @@ _GROUP_Z = 'Z'
 
 # #############################################################################
 # #############################################################################
-#                           Mesh2DRect
+#                           Mesh2D
 # #############################################################################
 
 
-class Mesh2DRect(DataCollection):
+class Mesh2D(DataCollection):
 
     _ddef = {
         'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
@@ -56,61 +58,94 @@ class Mesh2DRect(DataCollection):
 
     def add_mesh(
         self,
+        # rectangular mesh
         key=None,
         domain=None,
         res=None,
-    ):
-        """ Add a mesh by key
-
-        """
-
-        dref, dmesh = _mesh_checks._mesh2DRect_to_dict(
-            domain=domain,
-            res=res,
-            key=key,
-        )
-        dobj = {
-            self._groupmesh: dmesh,
-        }
-        self.update(dref=dref, dobj=dobj)
-
-    # -----------------
-    # from config
-    # ------------------
-
-    @classmethod
-    def from_Config(
-        cls,
-        config=None,
-        key_struct=None,
-        res=None,
-        deg=None,
-        key=None,
+        R=None,
+        Z=None,
+        # triangular mesh
+        knots=None,
+        cents=None,
+        # cropping
+        crop_poly=None,
         thresh_in=None,
+        remove_isolated=None,
+        # direct addition of bsplines
+        deg=None,
     ):
-        """
+        """ Add a mesh by key and domain / resolution
+
+        Can create a rectangular or triangular mesh:
+            - rectangular: provide (domain, res) or (R, Z)
+                - domain:
+                - res:
+                - R:
+                - Z:
+            - triangular:
+                - knots: (nknots, 2) array of (R, Z) coordinates
+                - cents: (ncents, 3 or 4) array of int indices
+
+        Can optionally be cropped by a closed polygon crop_poly, that can be:
+            - a (2, N) np.narray of (R, Z) coordinates
+            - a tuple (Config, key_struct) to designate a struct poly
+
+        Args thresh_in and remove_isolated control the level of cropping:
+            - thresh_in:
+            - remove_isolated:
+
+        If deg is provided, immediately adds a bsplines
 
         Example:
         --------
                 >>> import tofu as tf
                 >>> conf = tf.load_config('ITER')
-                >>> mesh = tf.data.Mesh2DRect.from_Config(
-                    config=conf,
-                    res=[],
-                )
+                >>> mesh = tf.data.Mesh2D()
+                >>> mesh.add_mesh(config=conf, res=0.1, deg=1)
 
         """
 
-        domain, poly = _mesh_checks._mesh2DRect_from_Config(
-            config=config, key_struct=key_struct,
+        # get domain, poly from crop_poly
+        if crop_poly is not None:
+            domain, poly = _mesh_checks._mesh2DRect_from_croppoly(crop_poly)
+        else:
+            poly = None
+
+        # check input data and get input dicts
+        dref, ddata, dmesh = _mesh_checks._mesh2D_check(
+            coll=self,
+            # rectangular
+            domain=domain,
+            res=res,
+            R=R,
+            Z=Z,
+            # triangular
+            knots=knots,
+            cents=cents,
+            trifind=None,
+            # key
+            key=key,
         )
 
-        obj = cls()
-        obj.add_mesh(domain=domain, res=res, key=key)
+        dobj = {
+            self._groupmesh: dmesh,
+        }
+
+        # update dicts
+        self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+        # optional bspline
         if deg is not None:
-            obj.add_bsplines(deg=deg)
-        obj.crop(key=key, crop=poly, thresh_in=thresh_in)
-        return obj
+            self.add_bsplines(deg=deg, key=key)
+
+        # optional cropping
+        if self.dobj['mesh'][key]['type'] == 'rect' and poly is not None:
+            self.crop(
+                key=key,
+                crop=poly,
+                thresh_in=thresh_in,
+                remove_isolated=remove_isolated,
+            )
 
     # -----------------
     # bsplines
@@ -122,21 +157,70 @@ class Mesh2DRect(DataCollection):
         # --------------
         # check inputs
 
-        keym, keybs, deg = _mesh_checks._mesh2DRect_bsplines(
+        keym, keybs, deg = _mesh_checks._mesh2D_bsplines(
             key=key,
-            lkeys=list(self.dobj[self._groupmesh].keys()),
+            lkeys=list(self.dobj['mesh'].keys()),
             deg=deg,
         )
 
         # --------------
         # get bsplines
 
-        dref, dobj = _mesh_comp._mesh2DRect_bsplines(
-            mesh=self, keym=keym, keybs=keybs, deg=deg,
-        )
+        if self.dobj['mesh'][keym]['type'] == 'rect':
+            dref, dobj = _mesh_comp._mesh2DRect_bsplines(
+                coll=self, keym=keym, keybs=keybs, deg=deg,
+            )
+        else:
+            dref, dobj = _mesh_comp._mesh2DTri_bsplines(
+                coll=self, keym=keym, keybs=keybs, deg=deg,
+            )
+
+        # --------------
+        # update dict and crop if relevant
 
         self.update(dobj=dobj, dref=dref)
-        _mesh_comp.add_cropbs_from_crop(mesh=self, keybs=keybs, keym=keym)
+        if self.dobj['mesh'][keym]['type'] == 'rect':
+            _mesh_comp.add_cropbs_from_crop(coll=self, keybs=keybs, keym=keym)
+
+    # -----------------
+    # crop
+    # ------------------
+
+    def crop(self, key=None, crop=None, thresh_in=None, remove_isolated=None):
+        """ Crop a mesh using
+
+            - a mask of bool for each mesh elements
+            - a 2d (R, Z) closed polygon
+
+        If applied on a bspline, cropping is double-checked to make sure
+        all remaining bsplines have full support domain
+        """
+        crop, key, thresh_in = _mesh_comp.crop(
+            coll=self,
+            key=key,
+            crop=crop,
+            thresh_in=thresh_in,
+            remove_isolated=remove_isolated,
+        )
+
+        # add crop data
+        keycrop = f'{key}-crop'
+        self.add_data(
+            key=keycrop,
+            data=crop,
+            ref=self.dobj['mesh'][key]['ref'],
+            dim='bool',
+            quant='bool',
+        )
+
+        # update obj
+        self._dobj['mesh'][key]['crop'] = keycrop
+        self._dobj['mesh'][key]['crop-thresh'] = thresh_in
+
+        # also crop bsplines
+        for k0 in self.dobj.get('bsplines', {}).keys():
+            if self.dobj['bsplines'][k0]['mesh'] == key:
+                _mesh_comp.add_cropbs_from_crop(coll=self, keybs=k0, keym=key)
 
     # -----------------
     # get data subset
@@ -180,7 +264,7 @@ class Mesh2DRect(DataCollection):
         Can covert one into the other
         """
         return _mesh_comp._select_ind(
-            mesh=self,
+            coll=self,
             key=key,
             ind=ind,
             elements=elements,
@@ -204,20 +288,46 @@ class Mesh2DRect(DataCollection):
         Can return indices / values of neighbourgs
 
         """
-        lk = list(self.dobj[self._groupmesh].keys())
-        if key is None and len(lk) == 1:
-            key = lk[0]
-        ind = self.select_ind(
-            key=key, ind=ind, elements=elements, returnas=tuple, crop=crop,
+        # check key
+        key = _generic_check._check_var(
+            key, 'key',
+            allowed=list(self.dobj.get('mesh', {}).keys()),
+            types=str,
         )
-        return _mesh_comp._select_mesh(
-            mesh=self,
+
+        # get ind
+        if self.dobj['mesh'][key]['type'] == 'rect':
+            returnas_ind = tuple
+        else:
+            returnas_ind = bool
+
+        ind = self.select_ind(
             key=key,
             ind=ind,
             elements=elements,
-            returnas=returnas,
-            return_neighbours=return_neighbours,
+            returnas=returnas_ind,
+            crop=crop,
         )
+
+        if self.dobj['mesh'][key]['type'] == 'rect':
+            return _mesh_comp._select_mesh_rect(
+                coll=self,
+                key=key,
+                ind=ind,
+                elements=elements,
+                returnas=returnas,
+                return_neighbours=return_neighbours,
+            )
+        else:
+            return _mesh_comp._select_mesh_tri(
+                coll=self,
+                key=key,
+                ind=ind,
+                elements=elements,
+                returnas=returnas,
+                return_neighbours=return_neighbours,
+            )
+
 
     def select_bsplines(
         self,
@@ -235,17 +345,14 @@ class Mesh2DRect(DataCollection):
         Can return indices / values of neighbourgs
 
         """
-        lk = list(self.dobj['bsplines'].keys())
-        if key is None and len(lk) == 1:
-            key = lk[0]
-        ind = self.select_ind(key=key, ind=ind, returnas=tuple, crop=crop)
         return _mesh_comp._select_bsplines(
-            mesh=self,
+            coll=self,
             key=key,
             ind=ind,
             returnas=returnas,
             return_cents=return_cents,
             return_knots=return_knots,
+            crop=crop,
         )
 
     # -----------------
@@ -260,11 +367,13 @@ class Mesh2DRect(DataCollection):
         crop=None,
         store=None,
         returnas=None,
+        # specific to deg = 0
+        centered=None,
     ):
         """ Get a matrix operator to compute an integral
 
         operator specifies the integrand:
-            - 'D0': integral of the value
+            - 'D0N1': integral of the value
             - 'D0N2': integral of the squared value
             - 'D1N2': integral of the squared gradient
             - 'D2N2': integral of the squared laplacian
@@ -286,12 +395,40 @@ class Mesh2DRect(DataCollection):
             crop=crop,
             store=store,
             returnas=returnas,
+            # specific to deg = 0
+            centered=centered,
         )
 
         # store
         if store is True:
-            if operator in ['D0', 'D0N2']:
+            if operator == 'D1':
+                name = f'{key}-{operator}-dR'
+                if crop is True:
+                    name = f'{name}-cropped'
+                self.add_data(
+                    key=name,
+                    data=opmat[0],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+                name = f'{key}-{operator}-dZ'
+                if crop is True:
+                    name = f'{name}-cropped'
+                self.add_data(
+                    key=name,
+                    data=opmat[1],
+                    ref=ref,
+                    units='',
+                    name=operator,
+                    dim=dim,
+                )
+
+            elif operator in ['D0N1', 'D0N2']:
                 name = f'{key}-{operator}-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat,
@@ -302,6 +439,8 @@ class Mesh2DRect(DataCollection):
                 )
             elif operator == 'D1N2':
                 name = f'{key}-{operator}-dR-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[0],
@@ -311,6 +450,8 @@ class Mesh2DRect(DataCollection):
                     dim=dim,
                 )
                 name = f'{key}-{operator}-dZ-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[1],
@@ -321,6 +462,8 @@ class Mesh2DRect(DataCollection):
                 )
             elif operator == 'D2N2':
                 name = f'{key}-{operator}-d2R-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[0],
@@ -330,6 +473,8 @@ class Mesh2DRect(DataCollection):
                     dim=dim,
                 )
                 name = f'{key}-{operator}-d2Z-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[1],
@@ -339,6 +484,8 @@ class Mesh2DRect(DataCollection):
                     dim=dim,
                 )
                 name = f'{key}-{operator}-dRZ-{geometry}'
+                if crop is True:
+                    name = f'{name}-cropped'
                 self.add_data(
                     key=name,
                     data=opmat[2],
@@ -373,7 +520,7 @@ class Mesh2DRect(DataCollection):
     ):
         """ Return a sampled version of the chosen mesh """
         return _mesh_comp.sample_mesh(
-            mesh=self,
+            coll=self,
             key=key,
             res=res,
             grid=grid,
@@ -388,7 +535,7 @@ class Mesh2DRect(DataCollection):
     """
     def get_sample_bspline(self, key=None, res=None, grid=None, mode=None):
         return _mesh_comp.sample_bsplines(
-            mesh=self,
+            coll=self,
             key=key,
             res=res,
             grid=grid,
@@ -414,7 +561,7 @@ class Mesh2DRect(DataCollection):
     ):
         """ Interp desired data on pts """
         return _mesh_comp.interp2d(
-            mesh=self,
+            coll=self,
             key=key,
             R=R,
             Z=Z,
@@ -431,51 +578,13 @@ class Mesh2DRect(DataCollection):
         )
 
     # -----------------
-    # crop
-    # ------------------
-
-    def crop(self, key=None, crop=None, thresh_in=None):
-        """ Crop a mesh using
-
-            - a mask of bool for each mesh elements
-            - a 2d (R, Z) closed polygon
-
-        If applied on a bspline, cropping is double-checked to make sure
-        all remaining bsplines have full support domain
-        """
-        crop, key, thresh_in = _mesh_comp.crop(
-            mesh=self,
-            key=key,
-            crop=crop,
-            thresh_in=thresh_in,
-        )
-
-        # add crop data
-        keycrop = f'{key}-crop'
-        self.add_data(
-            key=keycrop,
-            data=crop,
-            ref=self.dobj['mesh'][key]['ref'],
-            dim='bool',
-            quant='bool',
-        )
-
-        # update obj
-        self._dobj['mesh'][key]['crop'] = keycrop
-        self._dobj['mesh'][key]['crop-thresh'] = thresh_in
-
-        # also crop bsplines
-        for k0 in self.dobj.get('bsplines', {}).keys():
-            if self.dobj['bsplines'][k0]['mesh'] == key:
-                _mesh_comp.add_cropbs_from_crop(mesh=self, keybs=k0, keym=key)
-
-    # -----------------
     # geometry matrix
     # ------------------
 
-    def compute_geometry_matrix(
+    def add_geometry_matrix(
         self,
         key=None,
+        key_chan=None,
         cam=None,
         res=None,
         resMode=None,
@@ -483,11 +592,13 @@ class Mesh2DRect(DataCollection):
         crop=None,
         name=None,
         verb=None,
+        store=None,
     ):
 
-        dref, ddata, dobj = _matrix_comp.compute(
-            mesh=self,
+        return _matrix_comp.compute(
+            coll=self,
             key=key,
+            key_chan=key_chan,
             cam=cam,
             res=res,
             resMode=resMode,
@@ -495,9 +606,74 @@ class Mesh2DRect(DataCollection):
             crop=crop,
             name=name,
             verb=verb,
+            store=store,
         )
 
-        return Matrix(dref=dref, ddata=ddata, dobj=dobj)
+    # -----------------
+    # inversions
+    # ------------------
+
+    def add_inversion(
+        self,
+        # input data
+        key_matrix=None,
+        key_data=None,
+        key_sigma=None,
+        data=None,
+        sigma=None,
+        # choice of algo
+        isotropic=None,
+        sparse=None,
+        positive=None,
+        cholesky=None,
+        regparam_algo=None,
+        algo=None,
+        # regularity operator
+        operator=None,
+        geometry=None,
+        # misc
+        solver=None,
+        conv_crit=None,
+        chain=None,
+        verb=None,
+        store=None,
+        # algo and solver-specific options
+        kwdargs=None,
+        method=None,
+        options=None,
+    ):
+        """ Compute tomographic inversion
+
+        """
+
+        return _inversions_comp.compute_inversions(
+            # input data
+            coll=self,
+            key_matrix=key_matrix,
+            key_data=key_data,
+            key_sigma=key_sigma,
+            data=data,
+            sigma=sigma,
+            # choice of algo
+            isotropic=isotropic,
+            sparse=sparse,
+            positive=positive,
+            cholesky=cholesky,
+            regparam_algo=regparam_algo,
+            algo=algo,
+            # regularity operator
+            operator=operator,
+            geometry=geometry,
+            # misc
+            conv_crit=conv_crit,
+            chain=chain,
+            verb=verb,
+            store=store,
+            # algo and solver-specific options
+            kwdargs=kwdargs,
+            method=method,
+            options=options,
+        )
 
     # -----------------
     # plotting
@@ -517,7 +693,7 @@ class Mesh2DRect(DataCollection):
     ):
 
         return _mesh_plot.plot_mesh(
-            mesh=self,
+            coll=self,
             key=key,
             ind_knot=ind_knot,
             ind_cent=ind_cent,
@@ -545,7 +721,7 @@ class Mesh2DRect(DataCollection):
     ):
 
         return _mesh_plot.plot_bspline(
-            mesh=self,
+            coll=self,
             key=key,
             ind=ind,
             knots=knots,
@@ -575,7 +751,7 @@ class Mesh2DRect(DataCollection):
         dleg=None,
     ):
         return _mesh_plot.plot_profile2d(
-            mesh=self,
+            coll=self,
             key=key,
             coefs=coefs,
             indt=indt,
@@ -589,9 +765,6 @@ class Mesh2DRect(DataCollection):
             dcolorbar=dcolorbar,
             dleg=dleg,
         )
-
-
-class Matrix(Mesh2DRect):
 
     def plot_geometry_matrix(
         self,
@@ -611,10 +784,40 @@ class Matrix(Mesh2DRect):
     ):
         return _matrix_plot.plot_geometry_matrix(
             cam=cam,
-            matrix=self,
+            coll=self,
             key=key,
             indbf=indbf,
             indchan=indchan,
+            vmin=vmin,
+            vmax=vmax,
+            res=res,
+            cmap=cmap,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+        )
+
+    def plot_inversion(
+        self,
+        key=None,
+        indt=None,
+        vmin=None,
+        vmax=None,
+        res=None,
+        cmap=None,
+        dax=None,
+        dmargin=None,
+        fs=None,
+        dcolorbar=None,
+        dleg=None,
+    ):
+
+        return _inversions_plot.plot_inversion(
+            coll=self,
+            key=key,
+            indt=indt,
             vmin=vmin,
             vmax=vmax,
             res=res,

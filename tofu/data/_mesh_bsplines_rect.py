@@ -11,7 +11,7 @@ import scipy.interpolate as scpinterp
 
 # specific
 from . import _generic_check
-from . import _mesh_bsplines_operators
+from . import _mesh_bsplines_operators_rect
 
 
 # #############################################################################
@@ -181,11 +181,11 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             )
             raise Exception(msg)
 
-        if reshape is None:
-            reshape = True
-        if not isinstance(reshape, bool):
-            msg = f"Arg reshape must be a bool!\nProvided {reshape}"
-            raise Exception(msg)
+        reshape = _generic_check._check_var(
+            reshape, 'reshape',
+            default=True,
+            types=bool,
+        )
 
         # -----------
         # prepare
@@ -251,7 +251,7 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
                 val[indokx[:, 0], indtot[indr][ii]] = (outx[ixok]*outy[indokx])
 
         if reshape:
-            val = np.reshape(val, shape)
+            val = np.reshape(val, tuple(np.r_[shape, -1]))
 
         return val
 
@@ -268,9 +268,12 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         operator=None,
         geometry=None,
         cropbs_flat=None,
+        # specific to deg = 0
+        cropbs=None,
+        centered=None,
     ):
         """ Get desired operator """
-        return _mesh_bsplines_operators.get_mesh2dRect_operators(
+        return _mesh_bsplines_operators_rect.get_mesh2dRect_operators(
             deg=self.degrees[0],
             operator=operator,
             geometry=geometry,
@@ -280,6 +283,9 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             knotsy_per_bs=self.knots_per_bs_y,
             overlap=self.get_overlap(),
             cropbs_flat=cropbs_flat,
+            # specific to deg = 0
+            cropbs=cropbs,
+            centered=centered,
         )
 
 

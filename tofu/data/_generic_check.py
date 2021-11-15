@@ -21,7 +21,14 @@ _LALLOWED_AXESTYPES = [
 # #############################################################################
 
 
-def _check_var(var, varname, types=None, default=None, allowed=None):
+def _check_var(
+    var,
+    varname,
+    types=None,
+    default=None,
+    allowed=None,
+    excluded=None,
+):
 
     # set to default
     if var is None:
@@ -43,6 +50,15 @@ def _check_var(var, varname, types=None, default=None, allowed=None):
         if var not in allowed:
             msg = (
                 f"Arg {varname} must be in {allowed}!\n"
+                f"Provided: {var}"
+            )
+            raise Exception(msg)
+
+    # check if excluded
+    if excluded is not None:
+        if var in excluded:
+            msg = (
+                f"Arg {varname} must not be in {excluded}!\n"
                 f"Provided: {var}"
             )
             raise Exception(msg)

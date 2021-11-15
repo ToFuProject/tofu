@@ -104,16 +104,20 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
                 and (
                     (
                         isinstance(v0[kk], np.ndarray)
+                        and v0[kk].shape == dd0[k0][kk].shape
                         and np.allclose(v0[kk], dd0[k0][kk], equal_nan=True)
                     )
                     or (
                         scpsp.issparse(v0[kk])
+                        and v0[kk].shape == dd0[k0][kk].shape
                         and np.allclose(
                             v0[kk].data, dd0[k0][kk].data, equal_nan=True,
                         )
                     )
                     or (
-                        v0[kk] == dd0[k0][kk]
+                        not isinstance(v0[kk], np.ndarray)
+                        and not scpsp.issparse(v0[kk])
+                        and v0[kk] == dd0[k0][kk]
                     )
                 )
             )
@@ -162,7 +166,7 @@ def _check_remove(key=None, dkey=None, name=None):
             """
             Removed param must be a str already in self.d{}
             It can also be a list of such
-            \t- provided: {}
+            \t- provided: '{}'
             \t- already available: {}
             """.format(name, key, sorted(dkey.keys()))
         )
@@ -399,16 +403,23 @@ def _remove_data(
         for k1 in dgroup0.keys():
             if k0 in dgroup0[k1]['ldata']:
                 dgroup0[k1]['ldata'].remove(k0)
+        for k1 in dref0.keys():
             if k0 in dref0[k1]['ldata']:
                 dref0[k1]['ldata'].remove(k0)
         del ddata0[k0]
 
     # Propagate upward
     if propagate is True:
-        lk = [k0 for k0 in dgroup0.keys() if len(dgroup0['ldata']) == 0]
+        lk = [
+            k0 for k0, v0 in dgroup0.items()
+            if len(v0.get('ldata', [])) == 0
+        ]
         for kk in lk:
             del dgroup0[kk]
-        lk = [k0 for k0 in dref0.keys() if len(dref0['ldata']) == 0]
+        lk = [
+            k0 for k0, v0 in dref0.items()
+            if len(dref0[k0].get('ldata', [])) == 0
+        ]
         for kk in lk:
             del dref0[kk]
 
@@ -1368,6 +1379,7 @@ def _check_ddata(
     # ----------------
     # Check conformity
     nref = len(dref0)
+    refref = None
     if nref == 1:
         refref = list(dref0.keys())[0]
 
@@ -1476,13 +1488,21 @@ def _check_ddata(
     lref_add = None
     for k0, v0 in ddata.items():
         if not isinstance(v0, dict):
-            ddata[k0] = {'ref': (refref,), 'data': v0}
+            if refref is None:
+                msg = f"ref must be specified for ddata['{k0}']!"
+                raise Exception(msg)
+            else:
+                ddata[k0] = {'ref': (refref,), 'data': v0}
         else:
             if v0.get('data') is None:
                 continue
             if v0.get('ref') is None:
                 if not isinstance(v0['data'], dict):
-                    ddata[k0]['ref'] = (refref,)
+                    if refref is None:
+                        msg = f"ref must be specified for ddata['{k0}']!"
+                        raise Exception(msg)
+                    else:
+                        ddata[k0]['ref'] = (refref,)
             elif isinstance(v0['ref'], str):
                 ddata[k0]['ref'] = (v0['ref'],)
             elif v0['ref'] is True:
@@ -1604,9 +1624,9 @@ def _check_ddata(
             else:
                 msg = (
                     "ddata[{0}]['ref'] != ({0},)".format(k0)
-                    + "\n\t- ddata[{}]['ref'] = {}\n\n".format(k0, v0['ref'])
+                    + "\n\t- ddata['{}']['ref'] = {}\n\n".format(k0, v0['ref'])
                     + "... or there might be an issue with:\n"
-                    + "\t- type(ddata[{}]['shape']) = {} ({})".format(
+                    + "\t- type(ddata['{}']['shape']) = {} ({})".format(
                         k0, type(v0['shape']), v0['shape'],
                     )
                 )
