@@ -901,6 +901,42 @@ class CrystalBragg(utils.ToFuObject):
         return_xixj=None,
         grid=None,
     ):
+        """ Return rays stemming from the crystal
+
+        The rays are defined by a start point (on the crystal surface) and
+        either an end point or a unit vector
+
+        Start points
+        ------------
+        The start point is the crystal summit by default
+        But that can be changed using:
+            - ('dtheta', 'psi')
+            - ('ntheta', 'npsi', 'include_summit')
+
+        End point or unit vector
+        ------------------------
+        An end point can be computed automatically if:
+            - 'config' is provided
+
+
+        Returning format
+        ----------------
+
+        The rays can be returned as:
+            - '(pts, vect, length)': a tuple of:
+                - pts: array of start points on the crystal
+                    (only the summit by default)
+                - vect: array
+                - length:
+            - '(pts, vect)': a tuple with only pts and vect
+            - 'pts': a tuple, where both start and end points are returned
+        All arrays represent (X, Y, Z) cartesian coordinates in the tokamak's
+        frame
+
+        Optionally, can return the (xi, xj) coordinates of points if a detector
+        (det) is provided.
+
+        """
 
         # -----------
         # Check input
@@ -2213,7 +2249,7 @@ class CrystalBragg(utils.ToFuObject):
         # get angles from unit vectors
         dtheta, dpsi, tilt = None, None, None
 
-        # use formulas in _comp_optics.get_det_abs_from_rel() 
+        # use formulas in _comp_optics.get_det_abs_from_rel()
         sindtheta = np.sum(det_approx['ej'] * det_ref['nout'])
         costheta_cospsi = np.sum(det_approx['nout'] * det_ref['nout'])
         costheta_sinpsi = np.sum(det_approx['ei'] * det_ref['nout'])
