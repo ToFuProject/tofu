@@ -5,6 +5,7 @@ scipy
 # scikit-umfpack   # similar issue
 matplotlib
 requests
+svg.path
 
 ######## Requirements with Version Specifier ########
 Cython>=0.26

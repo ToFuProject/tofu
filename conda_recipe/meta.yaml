@@ -39,6 +39,7 @@ requirements:
     - pytest
     - pygments
     - requests
+    - svg.path
     # - scikit-sparse   # not available on Windows
     # - scikit-umfpack  # not available on Windows
 
