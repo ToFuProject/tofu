@@ -313,6 +313,7 @@ setup(
         "matplotlib",
         "requests",
         "cython>=0.26",
+        "svg.path",
     ],
     python_requires=">=3.6",
 
@@ -322,7 +323,6 @@ setup(
     # $ pip install -e .[dev,test]
     extras_require={
         "dev": [
-            "svg.path",
             "check-manifest",
             "coverage",
             "pytest",
@@ -346,6 +346,7 @@ setup(
             "*.py", "*.txt", ".svg", ".npz"
         ],
         "tofu.tests.tests04_spectro.test_data": ["*.npz"],
+        "tofu.tests.tests06_mesh.test_data": ['*.txt'],
         "tofu.geom.inputs": ["*.txt"],
         "tofu.mag.mag_ripple": ['*.sh', '*.f']
     },
