@@ -14,7 +14,6 @@
 cimport cython
 from cython.parallel import prange
 from cython.parallel cimport parallel
-from libcpp.vector cimport vector as vecpp
 from libcpp.set cimport set as setpp
 from libc.stdlib cimport malloc, free
 from libc.math cimport sqrt as c_sqrt
@@ -138,22 +137,21 @@ cdef inline int get_one_ear(double* polygon,
                 lref = [ .. is_reflex(Pii-1), X, is_reflex(Pii+1),..]
                 where X represents values that will never be used !
     """
-    cdef int iloc
     cdef int i, j
     cdef int wi, wj
     cdef int wip1, wim1
     cdef bint a_pt_in_tri
     for i in range(1, nvert-1):
-        wi = _cl.get_at_pos(working_index, i)
+        wi = <int>_cl.get_at_pos(working_index, i)
         if not lref[wi]:
             # angle is not reflex
             a_pt_in_tri = False
             # we get some useful values
-            wip1 = _cl.get_at_pos(working_index, i+1)
-            wim1 = _cl.get_at_pos(working_index, i-1)
+            wip1 = <int>_cl.get_at_pos(working_index, i+1)
+            wim1 = <int>_cl.get_at_pos(working_index, i-1)
             # We can test if there is another vertex in the 'ear'
             for j in range(nvert):
-                wj = _cl.get_at_pos(working_index, j)
+                wj = <int>_cl.get_at_pos(working_index, j)
                 # We only test reflex angles, and points that are not
                 # edges of the triangle
                 if (lref[wj] and wj != wim1 and wj != wip1 and wj != wi):
@@ -202,9 +200,9 @@ cdef inline void earclipping_poly(double* vignett,
     for itri in range(nvert-3):
         iear =  get_one_ear(vignett, &diff[0], &lref[0],
                             working_index, loc_nv, nvert)
-        wim1 = _cl.get_at_pos(working_index, iear-1)
-        wi   = _cl.get_at_pos(working_index, iear)
-        wip1 = _cl.get_at_pos(working_index, iear+1)
+        wim1 = <int>_cl.get_at_pos(working_index, iear-1)
+        wi   = <int>_cl.get_at_pos(working_index, iear)
+        wip1 = <int>_cl.get_at_pos(working_index, iear+1)
         ltri[itri*3]   = wim1
         ltri[itri*3+1] = wi
         ltri[itri*3+2] = wip1
@@ -217,13 +215,13 @@ cdef inline void earclipping_poly(double* vignett,
         # if an angle is not reflex, then it will stay so, only chage if reflex
         if lref[wim1]:
             if iear >= 2:
-                lref[wim1] = is_reflex(&diff[3*wim1],
-                                       &diff[3*_cl.get_at_pos(working_index,
-                                                              iear-2)])
+                lref[wim1] = is_reflex(&diff[wim1 * 3],
+                                       &diff[<int>_cl.get_at_pos(working_index,
+                                                                 iear-2) * 3])
             else:
-                lref[wim1] = is_reflex(&diff[3*wim1],
-                                       &diff[3*_cl.get_at_pos(working_index,
-                                                              loc_nv-1)])
+                lref[wim1] = is_reflex(&diff[wim1 * 3],
+                                       &diff[<int>_cl.get_at_pos(working_index,
+                                                                 loc_nv-1) * 3])
         if lref[wip1]:
             lref[wip1] = is_reflex(&diff[wip1*3],
                                    &diff[wim1*3])
@@ -231,9 +229,9 @@ cdef inline void earclipping_poly(double* vignett,
         loc_nv = loc_nv - 1
         _cl.pop_at_pos(&working_index, iear)
     # we only have three points left, so that is the last triangle:
-    ltri[(itri+1)*3]   = _cl.get_at_pos(working_index, 0)
-    ltri[(itri+1)*3+1] = _cl.get_at_pos(working_index, 1)
-    ltri[(itri+1)*3+2] = _cl.get_at_pos(working_index, 2)
+    ltri[(itri+1)*3]   = <int>_cl.get_at_pos(working_index, 0)
+    ltri[(itri+1)*3+1] = <int>_cl.get_at_pos(working_index, 1)
+    ltri[(itri+1)*3+2] = <int>_cl.get_at_pos(working_index, 2)
     return
 
 # ==============================================================================
@@ -382,18 +380,15 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     cdef int ii, jj
     cdef int npts_vpoly
     cdef int nb_in_poly = 0
-    cdef int* are_in_poly = NULL
-    cdef double loc_rphi
     cdef double loc_hypot
     cdef setpp[double] set_r
-    cdef vecpp[double] vec_rphi
-    cdef vecpp[double] vec_x
-    cdef vecpp[double] vec_y
-    cdef vecpp[double] vec_z
-    cdef vecpp[double] vec_vres
-    cdef vecpp[long] vec_lind
+    cdef _cl.ChainedList* vec_x = NULL
+    cdef _cl.ChainedList* vec_y = NULL
+    cdef _cl.ChainedList* vec_z = NULL
+    cdef _cl.ChainedList* vec_rphi = NULL
+    cdef _cl.ChainedList* vec_vres = NULL
+    cdef _cl.ChainedList* vec_lind = NULL
     # -- initialization --------------------------------------------------------
-    are_in_poly = <int *>malloc(npts * sizeof(int))
     npts_vpoly = vpoly.shape[1] - 1
     # -- Main loops by case ----------------------------------------------------
     if is_cart:
@@ -402,11 +397,11 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
             if _bgt.is_point_in_path(npts_vpoly, &vpoly[0][0], &vpoly[1][0],
                                 loc_hypot, pts[2,ii]):
                 nb_in_poly += 1
-                vec_x.push_back(pts[0,ii])
-                vec_y.push_back(pts[1,ii])
-                vec_z.push_back(pts[2,ii])
-                vec_vres.push_back(vol_resol[ii])
-                vec_lind.push_back(lind[ii])
+                _cl.push_back(&vec_x, pts[0,ii])
+                _cl.push_back(&vec_y, pts[1,ii])
+                _cl.push_back(&vec_z, pts[2,ii])
+                _cl.push_back(&vec_vres, vol_resol[ii])
+                _cl.push_back(&vec_lind, lind[ii])
                 # we create a set for the new radius in vpoly:
                 set_r.insert(loc_hypot)
         # We initialize the arrays:
@@ -417,31 +412,31 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         res_lind[0] = <long*> malloc(nb_in_poly * sizeof(long))
         with nogil, parallel(num_threads=num_threads):
             for ii in prange(nb_in_poly):
-                res_x[0][ii] = vec_x[ii]
-                res_y[0][ii] = vec_y[ii]
-                res_z[0][ii] = vec_z[ii]
-                res_vres[0][ii] = vec_vres[ii]
-                res_lind[0][ii] = vec_lind[ii]
+                res_x[0][ii] = _cl.get_at_pos(vec_x, ii)
+                res_y[0][ii] = _cl.get_at_pos(vec_y, ii)
+                res_z[0][ii] = _cl.get_at_pos(vec_z, ii)
+                res_vres[0][ii] = _cl.get_at_pos(vec_vres, ii)
+                res_lind[0][ii] = <int> _cl.get_at_pos(vec_lind, ii)
         # we have to keep only the rphi in vpoly
         for ii in range(sz_r):
             if set_r.count(disc_r[ii]) > 0:
-                vec_rphi.push_back(r_on_phi[ii])
+                _cl.push_back(&vec_rphi, r_on_phi[ii])
         # we transform the set of rphi to an array
-        sz_rphi[0] = vec_rphi.size()
-        res_rphi[0] = <double*> malloc(vec_rphi.size() * sizeof(double))
+        sz_rphi[0] = vec_rphi.size
+        res_rphi[0] = <double*> malloc(vec_rphi.size * sizeof(double))
         with nogil, parallel(num_threads=num_threads):
             for ii in prange(sz_rphi[0]):
-                res_rphi[0][ii] = vec_rphi[ii]
+                res_rphi[0][ii] = _cl.get_at_pos(vec_rphi, ii)
     else:
         for ii in range(npts):
             if _bgt.is_point_in_path(npts_vpoly, &vpoly[0][0], &vpoly[1][0],
                                 pts[0,ii], pts[1,ii]):
                 nb_in_poly += 1
-                vec_x.push_back(pts[0,ii])
-                vec_y.push_back(pts[1,ii])
-                vec_z.push_back(pts[2,ii])
-                vec_vres.push_back(vol_resol[ii])
-                vec_lind.push_back(lind[ii])
+                _cl.push_back(&vec_x, pts[0,ii])
+                _cl.push_back(&vec_y, pts[1,ii])
+                _cl.push_back(&vec_z, pts[2,ii])
+                _cl.push_back(&vec_vres, vol_resol[ii])
+                _cl.push_back(&vec_lind, lind[ii])
                 # we create a set for the new radius in vpoly:
                 set_r.insert(pts[0,ii])
         # We initialize the arrays:
@@ -452,19 +447,19 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         res_lind[0] = <long*> malloc(nb_in_poly * sizeof(long))
         with nogil, parallel(num_threads=num_threads):
             for ii in prange(nb_in_poly):
-                res_x[0][ii] = vec_x[ii]
-                res_y[0][ii] = vec_y[ii]
-                res_z[0][ii] = vec_z[ii]
-                res_vres[0][ii] = vec_vres[ii]
-                res_lind[0][ii] = vec_lind[ii]
+                res_x[0][ii] = _cl.get_at_pos(vec_x, ii)
+                res_y[0][ii] = _cl.get_at_pos(vec_y, ii)
+                res_z[0][ii] = _cl.get_at_pos(vec_z, ii)
+                res_vres[0][ii] = _cl.get_at_pos(vec_vres, ii)
+                res_lind[0][ii] = <int>_cl.get_at_pos(vec_lind, ii)
         for ii in range(sz_r):
             if set_r.count(disc_r[ii]) > 0:
-                vec_rphi.push_back(r_on_phi[ii])
+                _cl.push_back(&vec_rphi, r_on_phi[ii])
         # we transform the set of rphi to an array
-        sz_rphi[0] = vec_rphi.size()
-        res_rphi[0] = <double*> malloc(vec_rphi.size() * sizeof(double))
+        sz_rphi[0] = vec_rphi.size
+        res_rphi[0] = <double*> malloc(vec_rphi.size * sizeof(double))
         for ii in prange(sz_rphi[0], num_threads=num_threads):
-            res_rphi[0][ii] = vec_rphi[ii]
+            res_rphi[0][ii] = _cl.get_at_pos(vec_rphi, ii)
     return nb_in_poly
 
 
