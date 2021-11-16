@@ -37,12 +37,21 @@ def _check_projdax_mpl(
 
     # ----------------------
     # Check inputs
+    lproj = ['cross', 'hor', '3d', 'im']
     if proj is None:
         proj = 'all'
-    assert isinstance(proj, str)
-    proj = proj.lower()
-    lproj = ['cross', 'hor', '3d', 'im']
-    assert proj in lproj + ['all']
+    if proj == 'all':
+        proj = lproj
+    if isinstance(proj, str):
+        proj = [proj]
+    c0 = isinstance(proj, list) and all([ss in lproj for ss in proj])
+    if not c0:
+        msg = (
+            "Arg proj must be a list of allowed projections:\n"
+            f"\t- allowed: {lproj}\n"
+            f"\t- provided: {proj}"
+        )
+        raise Exception(msg)
 
     # ----------------------
     # Check dax
@@ -78,23 +87,23 @@ def _check_projdax_mpl(
         dax = {'cross': dax[0], 'hor': dax[1]}
 
     # Populate with default axes if necessary
-    if proj == 'cross' and dax['cross'] is None:
+    if proj == ['cross'] and dax.get('cross') is None:
         dax['cross'] = _def.Plot_LOSProj_DefAxes(
             'cross', fs=fs, dmargin=dmargin, wintit=wintit,
         )
-    elif proj == 'hor' and dax['hor'] is None:
+    elif proj == ['hor'] and dax.get('hor') is None:
         dax['hor'] = _def.Plot_LOSProj_DefAxes(
             'hor', fs=fs, dmargin=dmargin, wintit=wintit,
         )
-    elif proj == '3d' and dax['3d'] is None:
+    elif proj == ['3d'] and dax.get('3d') is None:
         dax['3d'] = _def.Plot_3D_plt_Tor_DefAxes(
             fs=fs, dmargin=dmargin, wintit=wintit,
         )
-    elif proj == 'im' and dax['im'] is None:
+    elif proj == ['im'] and dax.get('im') is None:
         dax['im'] = _def.Plot_CrystIm(
             fs=fs, dmargin=dmargin, wintit=wintit,
         )
-    elif proj == 'all' and any([dax.get(k0) is None for k0 in lproj]):
+    elif any([dax.get(k0) is None for k0 in proj]):
         dax = _def.Plot_AllCryst(
             fs=fs, dmargin=dmargin, wintit=wintit,
         )
@@ -1400,3 +1409,98 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
         lax.append(dax['hor'])
 
     return lax
+
+
+# #################################################################
+# #################################################################
+#                   plot plasma domain from lamb
+# #################################################################
+
+
+def CrystalBragg_plot_plasma_domain_at_lamb(
+    cryst=None,
+    det=None,
+    config=None,
+    lamb=None,
+    pts=None,
+    lambok=None,
+):
+
+    # -------------
+    # prepare data
+
+    nlamb = lamb.size
+
+    R = np.hypot(pts[0, :], pts[1, :])
+    Phi = np.arctan2(pts[1, :], pts[0, :])
+    Z = pts[2, :]
+
+    R_u = np.unique(R)
+    Z_u = np.unique(Z)
+    extent = (R_u.min(), R_u.max(), Z_u.min(), Z_u.max())
+
+    indR = [R == rr for rr in R_u]
+    indZ = [Z == zz for zz in Z_u]
+    phi_per_R = [np.unique(Phi[R==rr]) for rr in R_u]
+    nphi_per_R = np.array([ppr.size for ppr in phi_per_R])
+    nphimax = np.max(nphi_per_R)
+    indPhi = [[Phi == phi for phi in phi_per_R[ii]] for ii in range(R_u.size)]
+
+    cross = np.full((nlamb, R_u.size, Z_u.size), np.nan)
+    hor = np.full((nlamb, R_u.size, nphimax), np.nan)
+    horR = np.full((R_u.size, nphimax), np.nan)
+    horPhi = np.full((R_u.size, nphimax), np.nan)
+
+    for ii, rr in enumerate(R_u):
+
+        for jj, zz in enumerate(Z_u):
+            ind = indR[ii] & indZ[jj]
+            for kk in range(nlamb):
+                if np.any(lambok[kk, ind]):
+                    cross[kk, ii, jj] = 1
+
+        horR[ii, :] = rr
+        horPhi[ii, :nphi_per_R[ii]] = phi_per_R[ii]
+        for jj, pp in enumerate(phi_per_R[ii]):
+            ind = indR[ii] & indPhi[ii][jj]
+            for kk in range(nlamb):
+                if np.any(lambok[kk, ind]):
+                    hor[kk, ii, jj] = 1
+    indok_hor = ~np.isnan(hor)
+
+    # ---------------------
+    # get contour for cross
+
+    cont_cross = None
+
+    # -------------
+    # plot context
+
+    lax = config.plot()
+    dax = {'cross': lax[0], 'hor': lax[1]}
+
+    for kk, ll in enumerate(lamb):
+        if kk == 0:
+            dax['cross'].imshow(
+                cross[kk, ...].T,
+                extent=extent,
+                origin='lower',
+                interpolation='nearest',
+            )
+        # dax['cross'].plot(cont_cross[:, 0], cont_cross[:, 1])
+        dax['hor'].plot(
+            horR[indok_hor[kk, ...]]*np.cos(horPhi[indok_hor[kk, ...]]),
+            horR[indok_hor[kk, ...]]*np.sin(horPhi[indok_hor[kk, ...]]),
+            alpha=0.4,
+            ls='None',
+            marker='o',
+            ms=6,
+            markeredgecolor='None',
+        )
+
+    dax = cryst.plot(
+        det=det,
+        dax=dax,
+        proj=['cross', 'hor'],
+    )
+    return dax
