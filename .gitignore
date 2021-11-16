@@ -14,6 +14,9 @@ tofu/geom/*.html
 # No images
 #*.png
 
+# automated creation
+tofu/geom/openmp_enabled.py
+
 # Mac stuff
 *.AppleDouble
 .DS_Store
@@ -86,3 +89,7 @@ inputs_temp/*.txt
 
 # Notebooks checkpoints
 **/.ipynb_checkpoints
+
+# benchmark
+tofu/benchmarks/results/didier-XH310V2/*.json
+
