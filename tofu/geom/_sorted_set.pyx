@@ -84,5 +84,17 @@ cdef int count(SortedSet* head, double val) nogil:
   # we ended and didnt find a match
   return 0
 
+cdef void free_ss(SortedSet** head) nogil:
+  cdef SortedSet* current
 
-# TODO : add free function !!!!!!!!!!!
+  if head[0] == NULL :
+      return
+
+  previous = head[0]
+  current = head[0].next
+  while current != NULL:
+      free(previous)
+      previous = current
+      current = current.next
+  free(previous)
+  return

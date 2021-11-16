@@ -1,4 +1,3 @@
-# distutils: language=c++
 # cython: language_level=3
 # cython: boundscheck=False
 # cython: wraparound=False
@@ -232,6 +231,7 @@ cdef inline void earclipping_poly(double* vignett,
     ltri[(itri+1)*3]   = <int>_cl.get_at_pos(working_index, 0)
     ltri[(itri+1)*3+1] = <int>_cl.get_at_pos(working_index, 1)
     ltri[(itri+1)*3+2] = <int>_cl.get_at_pos(working_index, 2)
+    _cl.free_cl(&working_index)
     return
 
 # ==============================================================================
@@ -460,6 +460,15 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         res_rphi[0] = <double*> malloc(vec_rphi.size * sizeof(double))
         for ii in prange(sz_rphi[0], num_threads=num_threads):
             res_rphi[0][ii] = _cl.get_at_pos(vec_rphi, ii)
+
+    _ss.free_ss(&set_r)
+    _cl.free_cl(&vec_x)
+    _cl.free_cl(&vec_y)
+    _cl.free_cl(&vec_z)
+    _cl.free_cl(&vec_rphi)
+    _cl.free_cl(&vec_vres)
+    _cl.free_cl(&vec_lind)
+
     return nb_in_poly
 
 

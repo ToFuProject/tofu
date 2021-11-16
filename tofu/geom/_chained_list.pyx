@@ -6,12 +6,6 @@
 #
 from libc.stdlib cimport malloc, free
 
-# TODO CREATE DELETE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# TODO CREATE DELETE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# TODO CREATE DELETE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# TODO CREATE DELETE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# TODO CREATE DELETE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 cdef ChainedList* create_ordered(int N) nogil:
    # Create a vector of size N, s.t. vecotr = {0, 1, 2, ..., N-1}
    cdef int ii
@@ -107,9 +101,17 @@ cdef void push_back(ChainedList** head, double val) nogil:
   return
 
 
-# TODO CREATE DELETE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# TODO CREATE DELETE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# TODO CREATE DELETE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# TODO CREATE DELETE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# TODO CREATE DELETE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# TODO CREATE DELETE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+cdef void free_cl(ChainedList** head) nogil:
+  cdef ChainedList* current
+
+  if head[0] == NULL :
+      return
+
+  previous = head[0]
+  current = head[0].next
+  while current != NULL:
+      free(previous)
+      previous = current
+      current = current.next
+  free(previous)
+  return

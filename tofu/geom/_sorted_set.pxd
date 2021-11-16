@@ -12,3 +12,4 @@ ctypedef struct SortedSet:
 
 cdef void insert(SortedSet** head, double val) nogil
 cdef int count(SortedSet* head, double val) nogil
+cdef void free_ss(SortedSet** head) nogil
