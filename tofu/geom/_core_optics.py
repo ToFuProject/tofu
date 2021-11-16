@@ -916,7 +916,7 @@ class CrystalBragg(utils.ToFuObject):
                 compute the envelop (contour) of the crystal, as 2 1d arrays
 
         These arguments are fed to self.get_local_noute1e2() which will compute
-        the start points
+        the start points and return them as shape (3, psi.shape)
 
         End point or unit vector
         ------------------------
@@ -1675,18 +1675,9 @@ class CrystalBragg(utils.ToFuObject):
         vin = -vout
         # cent no longer dgeom['center'] because no longer a fixed point
         cent = self._dgeom['summit'] + self._dgeom['rcurve']*nin
-        reshape = np.r_[3, [1 for 1 in range(vout.ndim)]]       # TBF/TBC
-        if vout.ndim == 2:
-            cent = cent[:, None]
-        elif vout.ndim == 3:
-            cent = cent[:, None, None]
-        elif vout.ndim == 4:
-            cent = cent[:, None, None, None]
-        elif vout.ndim == 5:
-            cent = cent[:, None, None, None, None]
-        else:
-            msg = "nout.ndim > 5!"
-            raise Exception(msg)
+        reshape = np.r_[3, [1 for ii in range(vout.ndim - 1)]]
+        cent = cent.reshape(reshape)
+
         # Redefining summit according to nout at each point at crystal
         summ = cent + self._dgeom['rcurve']*vout
         return summ, vout, ve1, ve2
@@ -2723,6 +2714,111 @@ class CrystalBragg(utils.ToFuObject):
             return spect1d, lambfit
         elif returnas == 'ax':
             return ax
+
+    def get_plasmadomain_at_lamb(
+        self,
+        config=None,
+        struct=None,
+        domain=None,
+        res=None,
+        det=None,
+        strict=None,
+        bragg=None,
+        lamb=None,
+        n=None,
+        use_non_parallelism=None,
+        plot=None,
+        return_dax=None,
+    ):
+        """ Return pts in the plasma domain and a mask
+
+        The mask is True only for points for which the desired wavelength is
+        accesible from the crystal (and from the detector if strict=True and
+        det is provided)
+
+        More than one value of lamb can be provided (nlamb >= 1)
+
+        pts is returned as a (3, npts) array
+        lambok is returned as a (nlamb, npts) array
+
+        """
+
+        # ------------
+        # check inputs
+
+        if config.__class__.__name__ != 'Config':
+            msg = (
+                "Arg config must be a Config object "
+                f"Provided:\n\t- config: {type(config)}"
+            )
+            raise Exception(msg)
+
+        lok = list(config.dStruct['dObj']['Ves'].keys())
+        if struct is None and len(lok) == 1:
+            struct = lok[0]
+        elif struct not in lok:
+            msg = (
+                "Arg struct must be the name of a StructIn in config!\n"
+                f"Provided:\n\t- Available: {lok}\n\t- struct: {struct}"
+            )
+            raise Exception(msg)
+
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+        lamb = self.get_lamb_from_bragg(bragg=bragg, n=n)
+
+        if plot is None:
+            plot = True
+        if return_dax is None:
+            return_dax = plot is True
+
+        # -------------
+        # sample volume
+
+        (
+            pts, dV, ind, (resR, resZ, resPhi),
+        ) = config.dStruct['dObj']['Ves'][struct].get_sampleV(
+            res=res,
+            domain=domain,
+        )
+
+        # ---------------
+        # test
+
+        lamb_access = self.get_lamb_avail_from_pts(
+            pts=pts,
+            nlamb=2,
+            det=det,
+            strict=strict,
+            use_non_parallelism=use_non_parallelism,
+            return_xixj=False,
+        )[0]
+
+        lambok = np.array([
+            (lamb_access[:, 0] <= ll)
+            & (ll <= lamb_access[:, 1])
+            for ll in lamb
+        ])
+
+        # ---------------
+        # return
+
+        if plot:
+            dax = _plot_optics.CrystalBragg_plot_plasma_domain_at_lamb(
+                cryst=self,
+                det=det,
+                config=config,
+                lamb=lamb,
+                pts=pts,
+                lambok=lambok,
+            )
+
+        # ---------------
+        # return
+
+        if return_dax is True:
+            return pts, lambok, dax
+        else:
+            return pts, lambok
 
     @staticmethod
     def fit1d_dinput(
