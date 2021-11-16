@@ -20,7 +20,7 @@ from libc.stdlib cimport malloc, free
 from libc.math cimport sqrt as c_sqrt
 from . cimport _raytracing_tools as _rt
 from . cimport _basic_geom_tools as _bgt
-
+from . cimport _chained_list as _cl
 
 # ==============================================================================
 # =  Basic utilities: is angle reflex, vector np.diff, is point in triangle,...
@@ -114,7 +114,7 @@ cdef inline bint is_pt_in_tri(double[3] v0, double[3] v1,
 cdef inline int get_one_ear(double* polygon,
                             double* diff,
                             bint* lref,
-                            vecpp[int] working_index,
+                            _cl.ChainedList* working_index,
                             int nvert, int orig_nvert) nogil:
     """
     A polygon's "ear" is defined as a triangle of vert_i-1, vert_i, vert_i+1,
@@ -144,16 +144,16 @@ cdef inline int get_one_ear(double* polygon,
     cdef int wip1, wim1
     cdef bint a_pt_in_tri
     for i in range(1, nvert-1):
-        wi = working_index[i]
+        wi = _cl.get_at_pos(working_index, i)
         if not lref[wi]:
             # angle is not reflex
             a_pt_in_tri = False
             # we get some useful values
-            wip1 = working_index[i+1]
-            wim1 = working_index[i-1]
+            wip1 = _cl.get_at_pos(working_index, i+1)
+            wim1 = _cl.get_at_pos(working_index, i-1)
             # We can test if there is another vertex in the 'ear'
             for j in range(nvert):
-                wj = working_index[j]
+                wj = _cl.get_at_pos(working_index, j)
                 # We only test reflex angles, and points that are not
                 # edges of the triangle
                 if (lref[wj] and wj != wim1 and wj != wip1 and wj != wi):
@@ -191,22 +191,20 @@ cdef inline void earclipping_poly(double* vignett,
     # init...
     cdef int loc_nv = nvert
     cdef int itri = 0
-    cdef int ii, jj
     cdef int wi, wim1, wip1
     cdef int iear
-    cdef vecpp[int] working_index
+    cdef _cl.ChainedList* working_index
     # .. First computing the edges coodinates .................................
     # .. and checking if the angles defined by the edges are reflex or not.....
     # initialization of working index tab:
-    for ii in range(nvert):
-        working_index.push_back(ii)
+    working_index = _cl.create_ordered(nvert)
     # .. Loop ..................................................................
     for itri in range(nvert-3):
         iear =  get_one_ear(vignett, &diff[0], &lref[0],
-            working_index, loc_nv, nvert)
-        wim1 = working_index[iear-1]
-        wi   = working_index[iear]
-        wip1 = working_index[iear+1]
+                            working_index, loc_nv, nvert)
+        wim1 = _cl.get_at_pos(working_index, iear-1)
+        wi   = _cl.get_at_pos(working_index, iear)
+        wip1 = _cl.get_at_pos(working_index, iear+1)
         ltri[itri*3]   = wim1
         ltri[itri*3+1] = wi
         ltri[itri*3+2] = wip1
@@ -220,20 +218,22 @@ cdef inline void earclipping_poly(double* vignett,
         if lref[wim1]:
             if iear >= 2:
                 lref[wim1] = is_reflex(&diff[3*wim1],
-                                       &diff[3*working_index[iear-2]])
+                                       &diff[3*_cl.get_at_pos(working_index,
+                                                              iear-2)])
             else:
                 lref[wim1] = is_reflex(&diff[3*wim1],
-                                       &diff[3*working_index[loc_nv-1]])
+                                       &diff[3*_cl.get_at_pos(working_index,
+                                                              loc_nv-1)])
         if lref[wip1]:
             lref[wip1] = is_reflex(&diff[wip1*3],
                                    &diff[wim1*3])
         # last but not least update on number of vertices and working indices
         loc_nv = loc_nv - 1
-        working_index.erase(working_index.begin()+iear)
+        _cl.pop_at_pos(&working_index, iear)
     # we only have three points left, so that is the last triangle:
-    ltri[(itri+1)*3]   = working_index[0]
-    ltri[(itri+1)*3+1] = working_index[1]
-    ltri[(itri+1)*3+2] = working_index[2]
+    ltri[(itri+1)*3]   = _cl.get_at_pos(working_index, 0)
+    ltri[(itri+1)*3+1] = _cl.get_at_pos(working_index, 1)
+    ltri[(itri+1)*3+2] = _cl.get_at_pos(working_index, 2)
     return
 
 # ==============================================================================

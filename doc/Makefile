@@ -5,7 +5,7 @@
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
-BUILDDIR      = ../../../tofu_doc/tofu
+BUILDDIR      = ../../test_doc/tofu
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
