@@ -82,9 +82,6 @@ class CleanCommand(Clean):
         cythonized_files = [
             path.replace(".pyx", ".c") for path in cython_files
         ]
-        cythonized_files += [
-            path.replace(".pyx", ".cpp") for path in cython_files
-        ]
         so_files = self.find(["*.so"])
         # really remove the directories
         # and not only if they are empty
@@ -216,13 +213,18 @@ extensions = [
     Extension(
         name="tofu.geom._vignetting_tools",
         sources=["tofu/geom/_vignetting_tools.pyx"],
-        language="c++",
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
     ),
     Extension(
         name="tofu.geom._chained_list",
         sources=["tofu/geom/_chained_list.pyx"],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+    ),
+    Extension(
+        name="tofu.geom._sorted_set",
+        sources=["tofu/geom/_sorted_set.pyx"],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
     ),

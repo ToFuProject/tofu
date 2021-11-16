@@ -14,12 +14,12 @@
 cimport cython
 from cython.parallel import prange
 from cython.parallel cimport parallel
-from libcpp.set cimport set as setpp
 from libc.stdlib cimport malloc, free
 from libc.math cimport sqrt as c_sqrt
 from . cimport _raytracing_tools as _rt
 from . cimport _basic_geom_tools as _bgt
 from . cimport _chained_list as _cl
+from . cimport _sorted_set as _ss
 
 # ==============================================================================
 # =  Basic utilities: is angle reflex, vector np.diff, is point in triangle,...
@@ -381,7 +381,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     cdef int npts_vpoly
     cdef int nb_in_poly = 0
     cdef double loc_hypot
-    cdef setpp[double] set_r
+    cdef _ss.SortedSet* set_r = NULL
     cdef _cl.ChainedList* vec_x = NULL
     cdef _cl.ChainedList* vec_y = NULL
     cdef _cl.ChainedList* vec_z = NULL
@@ -403,7 +403,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
                 _cl.push_back(&vec_vres, vol_resol[ii])
                 _cl.push_back(&vec_lind, lind[ii])
                 # we create a set for the new radius in vpoly:
-                set_r.insert(loc_hypot)
+                _ss.insert(&set_r, loc_hypot)
         # We initialize the arrays:
         res_x[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_y[0] = <double*> malloc(nb_in_poly * sizeof(double))
@@ -419,7 +419,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
                 res_lind[0][ii] = <int> _cl.get_at_pos(vec_lind, ii)
         # we have to keep only the rphi in vpoly
         for ii in range(sz_r):
-            if set_r.count(disc_r[ii]) > 0:
+            if _ss.count(set_r, disc_r[ii]) > 0:
                 _cl.push_back(&vec_rphi, r_on_phi[ii])
         # we transform the set of rphi to an array
         sz_rphi[0] = vec_rphi.size
@@ -438,7 +438,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
                 _cl.push_back(&vec_vres, vol_resol[ii])
                 _cl.push_back(&vec_lind, lind[ii])
                 # we create a set for the new radius in vpoly:
-                set_r.insert(pts[0,ii])
+                _ss.insert(&set_r, pts[0,ii])
         # We initialize the arrays:
         res_x[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_y[0] = <double*> malloc(nb_in_poly * sizeof(double))
@@ -453,7 +453,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
                 res_vres[0][ii] = _cl.get_at_pos(vec_vres, ii)
                 res_lind[0][ii] = <int>_cl.get_at_pos(vec_lind, ii)
         for ii in range(sz_r):
-            if set_r.count(disc_r[ii]) > 0:
+            if _ss.count(set_r, disc_r[ii]) > 0:
                 _cl.push_back(&vec_rphi, r_on_phi[ii])
         # we transform the set of rphi to an array
         sz_rphi[0] = vec_rphi.size
