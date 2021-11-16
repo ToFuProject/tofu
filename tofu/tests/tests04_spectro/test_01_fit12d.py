@@ -20,6 +20,48 @@ import tofu.spectro as tfs
 
 _here = os.path.abspath(os.path.dirname(__file__))
 VerbHead = 'tofu.spectro.fit12d'
+_PATH_TEST_DATA = os.path.join(_here, 'test_data')
+
+
+# #############################################################################
+#                           Default values
+# #############################################################################
+
+
+_DLINES = {
+    'a': {
+        'lambda0': 3.95e-10,
+        'delta': 0.001e-10,
+        'sigma': 0.002e-10,
+        'amp': 1.,
+        'noise': 0.01,
+        'group': 0,
+    },
+    'b': {
+        'lambda0': 3.97e-10,
+        'delta': -0.001e-10,
+        'sigma': 0.0015e-10,
+        'amp': 0.5,
+        'noise': 0.001,
+        'group': 1,
+    },
+    'c': {
+        'lambda0': 3.975e-10,
+        'delta': 0.001e-10,
+        'sigma': 0.001e-10,
+        'amp': 0.6,
+        'noise': 0.005,
+        'group': 0,
+    },
+    'd': {
+        'lambda0': 3.99e-10,
+        'delta': 0.002e-10,
+        'sigma': 0.002e-10,
+        'amp': 0.8,
+        'noise': 0.01,
+        'group': 1,
+    },
+}
 
 
 #######################################################
@@ -64,28 +106,76 @@ def teardown_module(module):
     pass
 
 
-# def my_setup_function():
-#    print ("my_setup_function")
-
-# def my_teardown_function():
-#    print ("my_teardown_function")
-
-# @with_setup(my_setup_function, my_teardown_function)
-# def test_numbers_3_4():
-#    print 'test_numbers_3_4  <============================ actual test code'
-#    assert multiply(3,4) == 12
-
-# @with_setup(my_setup_function, my_teardown_function)
-# def test_strings_a_3():
-#    print 'test_strings_a_3  <============================ actual test code'
-#    assert multiply('a',3) == 'aaa'
-
-
 #######################################################
+#
+#        saving input spect
+#       (To be run manually)
+#######################################################
+
+
+def _save_test_spect(path=_PATH_TEST_DATA, dlines=_DLINES, save=True):
+
+    nlamb = 100
+    lamb = np.linspace(3.94, 4, nlamb)*1e-10
+    var = np.linspace(-25, 25, 51)
+
+    def bck(lamb=None, offset=None, slope=None):
+        return offset + (lamb-lamb.min())*slope/(lamb.max()-lamb.min())
+
+    def gauss(lamb=None, lamb0=None, sigma=None, delta=None, amp=None):
+        return amp * np.exp(-(lamb-lamb0-delta)**2/(2*sigma**2))
+
+    def noise(lamb=None, amp=None, freq=None, phase=None):
+        return amp*np.sin(
+            lamb*freq*2.*np.pi/(lamb.max()-lamb.min()) + phase
+        )
+
+    spect2d = bck(
+        lamb=lamb[None, :],
+        offset=0.1*np.exp(-(var[:, None]-25)**2/10**2),
+        slope=0.001,
+    )
+    spect2d += noise(lamb=lamb[None, :], amp=0.01, freq=10, phase=0.)
+
+    for ii, k0 in enumerate(dlines.keys()):
+        spect2d += gauss(
+            lamb=lamb[None, :],
+            amp=dlines[k0]['amp'] * np.exp(-var[:, None]**2/20**2),
+            lamb0=dlines[k0]['lambda0'],
+            sigma=dlines[k0]['sigma']*(
+                1 + 2*(ii/len(dlines))*np.cos(var[:, None]*2*np.pi/50)
+            ),
+            delta=dlines[k0]['delta']*(
+                1 + 2*(ii/len(dlines))*np.sin(
+                    var[:, None]*2*np.pi*(len(dlines)-ii)/50
+                )
+            ),
+        )
+        spect2d += noise(
+            lamb=lamb[None, :],
+            amp=dlines[k0]['noise'] * np.exp(-var[:, None]**2/10**2),
+            freq=10*(len(dlines)-ii),
+            phase=ii,
+        )
+
+    # --------
+    # save
+    if save:
+        pfe = os.path.join(path, 'spectral_fit.npz')
+        np.savez(pfe, lamb=lamb, var=var, dlines=dlines, spect2d=spect2d)
+
+
+def _load_test_spect(path=_PATH_TEST_DATA):
+    pfe = os.path.join(path, 'spectral_fit.npz')
+    out = dict(np.load(pfe, allow_pickle=True))
+    return out['lamb'], out['var'], out['dlines'].tolist(), out['spect2d']
+
+
+# #############################################################################
 #
 #     Creating Ves objects and testing methods
 #
-#######################################################
+# #############################################################################
 
 
 class Test01_DataCollection(object):
@@ -93,85 +183,9 @@ class Test01_DataCollection(object):
     @classmethod
     def setup_class(cls):
 
-        nlamb = 100
-        lamb = np.linspace(3.94, 4, nlamb)*1e-10
-        var = np.linspace(-25, 25, 51)
-
-        def bck(lamb=None, offset=None, slope=None):
-            return offset + (lamb-lamb.min())*slope/(lamb.max()-lamb.min())
-
-        def gauss(lamb=None, lamb0=None, sigma=None, delta=None, amp=None):
-            return amp * np.exp(-(lamb-lamb0-delta)**2/(2*sigma**2))
-
-        def noise(lamb=None, amp=None, freq=None, phase=None):
-            return amp*np.sin(
-                lamb*freq*2.*np.pi/(lamb.max()-lamb.min()) + phase
-            )
-
-        dlines = {
-            'a': {
-                'lambda0': 3.95e-10,
-                'delta': 0.001e-10,
-                'sigma': 0.002e-10,
-                'amp': 1.,
-                'noise': 0.01,
-                'group': 0,
-            },
-            'b': {
-                'lambda0': 3.97e-10,
-                'delta': -0.001e-10,
-                'sigma': 0.0015e-10,
-                'amp': 0.5,
-                'noise': 0.001,
-                'group': 1,
-            },
-            'c': {
-                'lambda0': 3.975e-10,
-                'delta': 0.001e-10,
-                'sigma': 0.001e-10,
-                'amp': 0.6,
-                'noise': 0.005,
-                'group': 0,
-            },
-            'd': {
-                'lambda0': 3.99e-10,
-                'delta': 0.002e-10,
-                'sigma': 0.002e-10,
-                'amp': 0.8,
-                'noise': 0.01,
-                'group': 1,
-            },
-        }
-
-        spect2d = bck(
-            lamb=lamb[None, :],
-            offset=0.1*np.exp(-(var[:, None]-25)**2/10**2),
-            slope=0.001,
-        )
-        spect2d += noise(lamb=lamb[None, :], amp=0.01, freq=10, phase=0.)
-
-        for ii, k0 in enumerate(dlines.keys()):
-            spect2d += gauss(
-                lamb=lamb[None, :],
-                amp=dlines[k0]['amp'] * np.exp(-var[:, None]**2/20**2),
-                lamb0=dlines[k0]['lambda0'],
-                sigma=dlines[k0]['sigma']*(
-                    1 + 2*(ii/len(dlines))*np.cos(var[:, None]*2*np.pi/50)
-                ),
-                delta=dlines[k0]['delta']*(
-                    1 + 2*(ii/len(dlines))*np.sin(
-                        var[:, None]*2*np.pi*(len(dlines)-ii)/50
-                    )
-                ),
-            )
-            spect2d += noise(
-                lamb=lamb[None, :],
-                amp=dlines[k0]['noise'] * np.exp(-var[:, None]**2/10**2),
-                freq=10*(len(dlines)-ii),
-                phase=ii,
-            )
-
-        mask = np.repeat((np.abs(var-15) < 3)[:, None], nlamb, axis=1)
+        # load test data
+        lamb, var, dlines, spect2d = _load_test_spect()
+        mask = np.repeat((np.abs(var-15) < 3)[:, None], lamb.size, axis=1)
 
         # Plot spect 2d
         # fig = plt.figure(figsize=(12, 10));
