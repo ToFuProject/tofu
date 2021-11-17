@@ -18,10 +18,14 @@ import tofu.geom as tfg
 
 
 _here = os.path.abspath(os.path.dirname(__file__))
-_PATH_DATA = os.path.join(_here, 'test_03_core_data')
+_PATH_DATA = os.path.join(_here, 'test_data')
+_PFE_DET = os.path.join(_PATH_DATA, 'det37_CTVD_incC4_New.npz')
+
 VerbHead = 'tofu.geom.test_04_core_optics'
 keyVers = 'Vers'
 _Exp = 'WEST'
+
+
 
 
 #######################################################
@@ -389,7 +393,37 @@ class Test01_Crystal(object):
             nb = None if ii == 0 else (2 if ii % 2 == 0 else 3)
             lcryst = obj.split(direction=direction, nb=nb)
 
-    def test16_saveload(self, verb=False):
+    def test16_get_plasmadomain_at_lamb(self):
+
+        # load useful objects
+        conf0 = tf.geom.load_Config('WEST-V0')
+        det = dict(np.load(_PFE_DET, allow_pickle=True))
+
+        # test all crystals
+        for ii, (k0, obj) in enumerate(self.dobj.items()):
+            if ii % 2 == 0:
+                plot_as = 'poly'
+                xixj_lim = None
+                domain = [[None, None, [-4*np.pi/5., -np.pi/2.]]]
+                res = 0.05
+            else:
+                plot_as = 'pts'
+                xixj_lim = [[-0.04, 0.04], 172.e-4*np.r_[-0.5, 0.5]]
+                domain = [[None, [-0.1, 0.1], [-4*np.pi/5., -np.pi/2.]]]
+                res = 0.02
+
+            pts, lambok, dax = obj.get_plasmadomain_at_lamb(
+                det=det,
+                lamb=[3.94e-10, 4.e-10],
+                res=res,
+                config=conf0,
+                domain=domain,
+                xixj_lim=xixj_lim,
+                plot_as=plot_as,
+            )
+        plt.close('all')
+
+    def test17_saveload(self, verb=False):
         for k0, obj in self.dobj.items():
             obj.strip(-1)
             pfe = obj.save(verb=verb, return_pfe=True)
