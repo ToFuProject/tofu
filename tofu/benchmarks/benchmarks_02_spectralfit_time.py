@@ -2,6 +2,7 @@
 # See "Writing benchmarks" in the asv docs for more information.
 
 
+import sys
 import os
 
 
@@ -9,10 +10,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-import tofu as tf
-
-
 _PATH_HERE = os.path.dirname(__file__)
+_PATH_TOFU = os.path.dirname(os.path.dirname(_PATH_HERE))
+
+sys.path.insert(0, _PATH_TOFU)
+import tofu as tf
+sys.path.pop(0)
+
+
 _PATH_TESTDATA_01 = os.path.join(
     os.path.dirname(_PATH_HERE),
     'tests',
@@ -159,13 +164,13 @@ class HighLevel:
             plot=False,
         )
 
-        def time_02_get_plasmadomain_at_lamb(self, out):
-            pts, lambok, dax = obj.get_plasmadomain_at_lamb(
-                det=det,
-                lamb=[3.94e-10, 4.e-10],
-                res=[0.002, 0.002, 0.01],
-                config=conf0,
-                domain=[None, [-0.36, -0.22], [-4*np.pi/5., -np.pi/2.]],
-                xixj_lim=self.xixj_lim,
-                plot=False,
-            )
+    def time_02_get_plasmadomain_at_lamb(self, out):
+        pts, lambok, dax = self.cryst.get_plasmadomain_at_lamb(
+            det=self.det,
+            lamb=[3.94e-10, 4.e-10],
+            res=[0.002, 0.002, 0.01],
+            config=self.conf0,
+            domain=[None, [-0.36, -0.22], [-4*np.pi/5., -np.pi/2.]],
+            xixj_lim=self.xixj_lim,
+            plot=False,
+        )
