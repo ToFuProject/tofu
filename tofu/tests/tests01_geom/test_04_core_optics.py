@@ -396,7 +396,7 @@ class Test01_Crystal(object):
     def test16_get_plasmadomain_at_lamb(self):
 
         # load useful objects
-        conf0 = tf.geom.load_Config('WEST-V0')
+        conf0 = tf.load_config('WEST-V0')
         det = dict(np.load(_PFE_DET, allow_pickle=True))
 
         # test all crystals
@@ -404,12 +404,12 @@ class Test01_Crystal(object):
             if ii % 2 == 0:
                 plot_as = 'poly'
                 xixj_lim = None
-                domain = [[None, None, [-4*np.pi/5., -np.pi/2.]]]
+                domain = [None, None, [-4*np.pi/5., -np.pi/2.]]
                 res = 0.05
             else:
                 plot_as = 'pts'
                 xixj_lim = [[-0.04, 0.04], 172.e-4*np.r_[-0.5, 0.5]]
-                domain = [[None, [-0.1, 0.1], [-4*np.pi/5., -np.pi/2.]]]
+                domain = [None, [-0.1, 0.1], [-4*np.pi/5., -np.pi/2.]]
                 res = 0.02
 
             pts, lambok, dax = obj.get_plasmadomain_at_lamb(
