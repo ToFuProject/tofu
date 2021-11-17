@@ -2801,6 +2801,14 @@ class CrystalBragg(utils.ToFuObject):
             )
 
         # ---------------
+        # refactor pts and lambok
+
+        indok = np.any(lambok, axis=0)
+        pts = pts[:, indok]
+        ptsXYZ = ptsXYZ[:, indok]
+        lambok = lambok[:, indok]
+
+        # ---------------
         # check strict
         if strict is True:
 
