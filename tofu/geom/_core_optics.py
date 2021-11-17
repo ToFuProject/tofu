@@ -2332,7 +2332,7 @@ class CrystalBragg(utils.ToFuObject):
     def get_lamb_avail_from_pts(
         self,
         pts=None,
-        n=None, ndtheta=None, npsi=None,
+        n=None, ndtheta=None,
         det=None, nlamb=None, klamb=None,
         use_non_parallelism=None,
         strict=None,
@@ -2354,16 +2354,15 @@ class CrystalBragg(utils.ToFuObject):
         Using:
             - nlamb: sampling of the lamb interval (default: 100)
             - ndtheta: sampling of the lamb interval (default: 20)
-            - npsi: sampling of the lamb interval (default: 'envelop')
             - det: (optional) a detector dict, for xi and xj
         Returns:
             - lamb: (npts, nlamb) array of sampled valid wavelength interval
-            - phi:  (npts, nlamb, ndtheta, npsi, 2) array of phi
-            - dtheta:  (npts, nlamb, ndtheta, npsi, 2) array of dtheta
-            - psi:  (npts, nlamb, ndtheta, npsi, 2) array of psi
+            - phi:  (npts, nlamb, ndtheta, 2) array of phi
+            - dtheta:  (npts, nlamb, ndtheta, 2) array of dtheta
+            - psi:  (npts, nlamb, ndtheta, 2) array of psi
         And optionally (return_xixj=True and det provided as dict):
-            - xi:  (npts, nlamb, ndtheta, npsi, 2) array of xi
-            - xj:  (npts, nlamb, ndtheta, npsi, 2) array of xj
+            - xi:  (npts, nlamb, ndtheta, 2) array of xi
+            - xj:  (npts, nlamb, ndtheta, 2) array of xj
 
         The result is computed with or w/o taking into account non-parallelism
 
@@ -2376,6 +2375,10 @@ class CrystalBragg(utils.ToFuObject):
         assert nlamb >= 2, "nlamb must be >= 2"
         if return_xixj is None:
             return_xixj = det is not None
+        if det is None:
+            return_xixj = False
+        if det is None:
+            strict = False
 
         # Get lamb min / max
         bragg, phi, lamb = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
@@ -2413,7 +2416,7 @@ class CrystalBragg(utils.ToFuObject):
                 grid=False,
             )[:3]
 
-        if return_xixj is True and det is not None:
+        if return_xixj is True or strict is True:
             xi, xj, strict = self.calc_xixj_from_braggphi(
                 phi=phi+np.pi,
                 bragg=bragg[..., None, None],
@@ -2434,6 +2437,8 @@ class CrystalBragg(utils.ToFuObject):
                 dtheta[indnan] = np.nan
                 psi[indnan] = np.nan
                 lamb[np.all(np.all(indnan, axis=-1), axis=-1)] = np.nan
+
+        if return_xixj is True:
             return lamb, phi, dtheta, psi, xi, xj
         else:
             return lamb, phi, dtheta, psi
@@ -2722,9 +2727,13 @@ class CrystalBragg(utils.ToFuObject):
         domain=None,
         res=None,
         det=None,
+        xixj_lim=None,
         strict=None,
         bragg=None,
         lamb=None,
+        # for available lamb determination
+        ndtheta=None,
+        nlamb=None,
         n=None,
         use_non_parallelism=None,
         plot=None,
@@ -2767,6 +2776,13 @@ class CrystalBragg(utils.ToFuObject):
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
         lamb = self.get_lamb_from_bragg(bragg=bragg, n=n)
 
+        # To be refined if xjlim is narrow
+        if ndtheta is None:
+            ndtheta = 5
+        # To be refined if xilim is narrow
+        if nlamb is None:
+            nlamb = 11
+
         if plot is None:
             plot = True
         if return_dax is None:
@@ -2786,25 +2802,39 @@ class CrystalBragg(utils.ToFuObject):
         # ---------------
         # test
 
+        detbis = dict(det)
+        if xixj_lim is not None:
+            detbis['outline'] = np.array([
+                np.r_[xixj_lim[0][0], xixj_lim[0][1]*np.r_[1, 1], xixj_lim[0][0]],
+                np.r_[xixj_lim[1][0]*np.r_[1, 1], xixj_lim[1][1]*np.r_[1, 1]],
+            ])
+            detbis['outline'] = np.concatenate(
+                (detbis['outline'], detbis['outline'][:, 0:1]),
+                axis=1,
+            )
+
         lamb_access = self.get_lamb_avail_from_pts(
             pts=np.array([
                 pts[0, :]*np.cos(pts[2, :]),
                 pts[0, :]*np.sin(pts[2, :]),
-                pts[2, :],
+                pts[1, :],
             ]),
-
-            nlamb=2,
-            det=det,
+            nlamb=nlamb,
+            det=detbis,
+            ndtheta=ndtheta,
             strict=strict,
             use_non_parallelism=use_non_parallelism,
             return_xixj=False,
         )[0]
 
-        lambok = np.array([
-            (lamb_access[:, 0] <= ll)
-            & (ll <= lamb_access[:, 1])
-            for ll in lamb
-        ])
+        lambok = np.zeros((lamb.size, pts.shape[1]), dtype=bool)
+        ind2 = np.sum(~np.isnan(lamb_access), axis=1) >= 2
+        if np.any(ind2):
+            for ii, ll in enumerate(lamb):
+                lambok[ii, ind2] = (
+                    (np.nanmin(lamb_access[ind2, :], axis=1) <= ll)
+                    & (ll <= np.nanmax(lamb_access[ind2, :], axis=1))
+                )
 
         # ---------------
         # return
@@ -2813,6 +2843,7 @@ class CrystalBragg(utils.ToFuObject):
             dax = _plot_optics.CrystalBragg_plot_plasma_domain_at_lamb(
                 cryst=self,
                 det=det,
+                xixj_lim=xixj_lim,
                 config=config,
                 lamb=lamb,
                 pts=pts,

@@ -1420,6 +1420,7 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
 def CrystalBragg_plot_plasma_domain_at_lamb(
     cryst=None,
     det=None,
+    xixj_lim=None,
     config=None,
     lamb=None,
     pts=None,
@@ -1464,7 +1465,12 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
             for kk in range(nlamb):
                 if np.any(lambok[kk, ind]):
                     hor[kk, ii, jj] = 1
+
+    indok_cross = ~np.isnan(cross)
     indok_hor = ~np.isnan(hor)
+
+    R_cross = np.tile(R_u, (Z_u.size, 1)).T
+    Z_cross = np.tile(Z_u, (R_u.size, 1))
 
     # ---------------------
     # get contour for cross
@@ -1482,17 +1488,20 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
     dax = {'cross': lax[0], 'hor': lax[1]}
 
     for kk, ll in enumerate(lamb):
-        if kk == 0:
-            dax['cross'].imshow(
-                cross[kk, ...].T,
-                extent=extent,
-                origin='lower',
-                interpolation='nearest',
-            )
+        l, = dax['cross'].plot(
+            R_cross[indok_cross[kk, ...]],
+            Z_cross[indok_cross[kk, ...]],
+            alpha=0.4,
+            ls='None',
+            marker='o',
+            ms=6,
+            markeredgecolor='None',
+        )
         # dax['cross'].plot(cont_cross[:, 0], cont_cross[:, 1])
         dax['hor'].plot(
             horR[indok_hor[kk, ...]]*np.cos(horPhi[indok_hor[kk, ...]]),
             horR[indok_hor[kk, ...]]*np.sin(horPhi[indok_hor[kk, ...]]),
+            color=l.get_color(),
             alpha=0.4,
             ls='None',
             marker='o',
