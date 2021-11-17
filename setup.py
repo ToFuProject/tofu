@@ -321,6 +321,7 @@ setup(
         "matplotlib",
         "requests",
         "cython>=0.26",
+        "svg.path",
     ],
     python_requires=">=3.6",
 
@@ -330,7 +331,6 @@ setup(
     # $ pip install -e .[dev,test]
     extras_require={
         "dev": [
-            "svg.path",
             "check-manifest",
             "coverage",
             "pytest",
