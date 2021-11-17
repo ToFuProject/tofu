@@ -13,6 +13,9 @@ import matplotlib.colors as mplcol
 import matplotlib.gridspec as gridspec
 from matplotlib.axes._axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib._contour as mcontour
+from matplotlib.collections import PatchCollection
+import matplotlib as mpl
 
 # tofu
 from tofu.version import __version__
@@ -936,7 +939,7 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
     if leg is not False:
         ax.legend(**leg)
     if wintit is not False:
-        ax.figure.canvas.set_window_title(wintit)
+        ax.figure.canvas.manager.set_window_title(wintit)
     if tit is not False:
         ax.figure.suptitle(tit, size=10, weight='bold', ha='right')
     return ax
@@ -983,7 +986,7 @@ def CrystalBragg_plot_line_tracing_on_det(
         gs = gridspec.GridSpec(1, 1, **dmargin)
         ax = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
         if wintit is not False:
-            fig.canvas.set_window_title(wintit)
+            fig.canvas.manager.set_window_title(wintit)
         if tit is not False:
             fig.suptitle(tit, size=14, weight='bold')
 
@@ -1083,7 +1086,7 @@ def CrystalBragg_plot_johannerror(
     plt.colorbar(imphi, ax=ax2)
 
     if wintit is not False:
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
     if tit is not False:
         fig.suptitle(tit, size=14, weight='bold')
 
@@ -1364,7 +1367,7 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
         if legend is not False:
             axi.legend(**legend)
         if wintit is not False:
-            axi.figure.canvas.set_window_title(wintit)
+            axi.figure.canvas.manager.set_window_title(wintit)
         if titi is not False:
             axi.figure.suptitle(titi, size=14, weight='bold')
         if draw:
@@ -1400,7 +1403,7 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
         if legend is not False:
             dax['cross'].legend(**legend)
         if wintit is not False:
-            dax['cross'].figure.canvas.set_window_title(wintit)
+            dax['cross'].figure.canvas.manager.set_window_title(wintit)
         if titi is not False:
             dax['cross'].figure.suptitle(titi, size=14, weight='bold')
         if draw:
@@ -1427,15 +1430,41 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
     reseff=None,
     lambok=None,
     dax=None,
+    plot_as=None,
+    lcolor=None,
 ):
+
+    # -------------
+    # check inputs
+
+    if plot_as is None:
+        plot_as = 'poly'
+    if plot_as not in ['pts', 'poly']:
+        msg = (
+            "Arg plot_as not in allowed values!\n"
+            f"\t- allowed: {['pts', 'poly']}\n"
+            f"\t- plot_as: {plot_as}"
+        )
+        raise Exception(msg)
+
+    nlamb = lamb.size
+    if lcolor is None:
+        lcolor = [ss['color'] for ss in mpl.rcParams['axes.prop_cycle']]
+    if not isinstance(lcolor, list):
+        lcolor = [lcolor]
+    if not isinstance(lcolor, list):
+        msg = (
+            f"Arg lcolor must be a list of mpl colors\n"
+            f"\t- Provided: {lcolor}"
+        )
+        raise Exception(msg)
 
     # -------------
     # prepare data
 
-    nlamb = lamb.size
-
     R_u = np.unique(pts[0, :])
     Z_u = np.unique(pts[1, :])
+    nR, nZ = R_u.size, Z_u.size
     extent = (R_u.min(), R_u.max(), Z_u.min(), Z_u.max())
 
     indR = [pts[0, :] == rr for rr in R_u]
@@ -1445,8 +1474,8 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
     nphimax = np.max(nphi_per_R)
     indPhi = [[pts[2, :] == phi for phi in phi_per_R[ii]] for ii in range(R_u.size)]
 
-    cross = np.full((nlamb, R_u.size, Z_u.size), np.nan)
-    hor = np.full((nlamb, R_u.size, nphimax), np.nan)
+    cross = np.zeros((nlamb, R_u.size, Z_u.size), dtype=bool)
+    hor = np.zeros((nlamb, R_u.size, nphimax), dtype=bool)
     horR = np.full((R_u.size, nphimax), np.nan)
     horPhi = np.full((R_u.size, nphimax), np.nan)
 
@@ -1455,27 +1484,46 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
         for jj, zz in enumerate(Z_u):
             ind = indR[ii] & indZ[jj]
             for kk in range(nlamb):
-                if np.any(lambok[kk, ind]):
-                    cross[kk, ii, jj] = 1
+                cross[kk, ii, jj] = np.any(lambok[kk, ind])
 
         horR[ii, :] = rr
         horPhi[ii, :nphi_per_R[ii]] = phi_per_R[ii]
         for jj, pp in enumerate(phi_per_R[ii]):
             ind = indR[ii] & indPhi[ii][jj]
             for kk in range(nlamb):
-                if np.any(lambok[kk, ind]):
-                    hor[kk, ii, jj] = 1
+                hor[kk, ii, jj] = np.any(lambok[kk, ind])
 
-    indok_cross = ~np.isnan(cross)
-    indok_hor = ~np.isnan(hor)
+    # ------------
+    # get contours
 
-    R_cross = np.tile(R_u, (Z_u.size, 1)).T
-    Z_cross = np.tile(Z_u, (R_u.size, 1))
+    if plot_as == 'poly':
+        # Add envelop
+        dR = (R_u[-1] - R_u[0])/R_u.size
+        dZ = (Z_u[-1] - Z_u[0])/Z_u.size
+        x = np.tile(np.r_[R_u[0] - dR, R_u, R_u[-1] + dR], (nZ + 2, 1))
+        y = np.tile(np.r_[Z_u[0] - dZ, Z_u, Z_u[-1] + dZ], (nR + 2, 1)).T
+        z = np.zeros(x.shape, dtype=float)
 
-    # ---------------------
-    # get contour for cross
+        # see https://github.com/matplotlib/matplotlib/blob/main/src/_contour.h
+        cont_cross = [None for ll in lamb]
+        for kk, ll in enumerate(lamb):
+            z[1:-1, 1:-1] = cross[kk, ...].T
+            cont_cross[kk] = PatchCollection(
+                [plt.Polygon(
+                    mcontour.QuadContourGenerator(
+                        x, y, z,
+                        None,       # mask
+                        True,       # how to mask
+                        0,          # divide in sub-domains (0=not)
+                    ).create_contour(0.5)[0],
+                )],
+                color=lcolor[kk % nlamb],
+                alpha=0.4,
+            )
+    else:
+        R_cross = np.tile(R_u, (Z_u.size, 1)).T
+        Z_cross = np.tile(Z_u, (R_u.size, 1))
 
-    cont_cross = None
 
     # -------------
     # plot context
@@ -1487,27 +1535,44 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
     lax = config.plot(lax=lax)
     dax = {'cross': lax[0], 'hor': lax[1]}
 
-    for kk, ll in enumerate(lamb):
-        l, = dax['cross'].plot(
-            R_cross[indok_cross[kk, ...]],
-            Z_cross[indok_cross[kk, ...]],
-            alpha=0.4,
-            ls='None',
-            marker='o',
-            ms=6,
-            markeredgecolor='None',
-        )
-        # dax['cross'].plot(cont_cross[:, 0], cont_cross[:, 1])
-        dax['hor'].plot(
-            horR[indok_hor[kk, ...]]*np.cos(horPhi[indok_hor[kk, ...]]),
-            horR[indok_hor[kk, ...]]*np.sin(horPhi[indok_hor[kk, ...]]),
-            color=l.get_color(),
-            alpha=0.4,
-            ls='None',
-            marker='o',
-            ms=6,
-            markeredgecolor='None',
-        )
+    if plot_as == 'pts':
+        for kk, ll in enumerate(lamb):
+            dax['cross'].plot(
+                R_cross[cross[kk, ...]],
+                Z_cross[cross[kk, ...]],
+                alpha=0.4,
+                ls='None',
+                marker='o',
+                ms=6,
+                markeredgecolor='None',
+                color=lcolor[kk % nlamb],
+            )
+            # dax['cross'].plot(cont_cross[:, 0], cont_cross[:, 1])
+            dax['hor'].plot(
+                horR[hor[kk, ...]]*np.cos(horPhi[hor[kk, ...]]),
+                horR[hor[kk, ...]]*np.sin(horPhi[hor[kk, ...]]),
+                color=lcolor[kk % nlamb],
+                alpha=0.4,
+                ls='None',
+                marker='o',
+                ms=6,
+                markeredgecolor='None',
+            )
+    else:
+        for kk, ll in enumerate(lamb):
+            dax['cross'].add_collection(
+                cont_cross[kk],
+            )
+            dax['hor'].plot(
+                horR[hor[kk, ...]]*np.cos(horPhi[hor[kk, ...]]),
+                horR[hor[kk, ...]]*np.sin(horPhi[hor[kk, ...]]),
+                color=lcolor[kk % nlamb],
+                alpha=0.4,
+                ls='None',
+                marker='o',
+                ms=6,
+                markeredgecolor='None',
+            )
 
     dax = cryst.plot(
         det=det,

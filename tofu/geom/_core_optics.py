@@ -2736,8 +2736,11 @@ class CrystalBragg(utils.ToFuObject):
         nlamb=None,
         n=None,
         use_non_parallelism=None,
+        # plotting
         plot=None,
         dax=None,
+        plot_as=None,
+        lcolor=None,
         return_dax=None,
     ):
         """ Return pts in the plasma domain and a mask
@@ -2850,6 +2853,8 @@ class CrystalBragg(utils.ToFuObject):
                 reseff=[resR, resZ, resPhi],
                 lambok=lambok,
                 dax=dax,
+                plot_as=plot_as,
+                lcolor=lcolor,
             )
 
         # ---------------
