@@ -2757,6 +2757,8 @@ class CrystalBragg(utils.ToFuObject):
         # To be refined if xilim is narrow
         if nlamb is None:
             nlamb = 11
+        if strict is None:
+            strict = True
 
         if plot is None:
             plot = True
@@ -2777,12 +2779,14 @@ class CrystalBragg(utils.ToFuObject):
         # ------------------------------
         # check access from crystal only
 
+        ptsXYZ = np.array([
+            pts[0, :]*np.cos(pts[2, :]),
+            pts[0, :]*np.sin(pts[2, :]),
+            pts[1, :],
+        ])
+
         lamb_access = self.get_lamb_avail_from_pts(
-            pts=np.array([
-                pts[0, :]*np.cos(pts[2, :]),
-                pts[0, :]*np.sin(pts[2, :]),
-                pts[1, :],
-            ]),
+            pts=ptsXYZ,
             nlamb=2,
             use_non_parallelism=use_non_parallelism,
             return_phidtheta=False,
@@ -2819,14 +2823,13 @@ class CrystalBragg(utils.ToFuObject):
                     lamb=np.full((lambok[kk, :].sum(), 1), ll),
                     n=n,
                     ndtheta=ndtheta,
-                    pts=pts[:, lambok[kk, :]],
+                    pts=ptsXYZ[:, lambok[kk, :]],
                     use_non_parallelism=use_non_parallelism,
                     return_phidtheta=False,
                     return_xixj=False,
                     strict=strict,
                     det=detbis,
                 )
-                import pdb; pdb.set_trace()     # DB
                 lambok[kk, lambok[kk, :]] = ~np.isnan(lambi[:, 0])
 
         # -------

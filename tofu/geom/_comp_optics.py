@@ -950,7 +950,6 @@ def _get_lamb_avail_from_pts_phidtheta_xixj(
             )
             if strict is True and np.any(np.isnan(xi)):
                 indnan = np.isnan(xi)
-                import pdb; pdb.set_trace()     # DB
                 lamb[np.all(np.all(indnan, axis=-1), axis=-1)] = np.nan
                 if return_phidtheta:
                     phi[indnan] = np.nan
