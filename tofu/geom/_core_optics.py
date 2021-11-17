@@ -2728,6 +2728,7 @@ class CrystalBragg(utils.ToFuObject):
         n=None,
         use_non_parallelism=None,
         plot=None,
+        dax=None,
         return_dax=None,
     ):
         """ Return pts in the plasma domain and a mask
@@ -2779,13 +2780,19 @@ class CrystalBragg(utils.ToFuObject):
         ) = config.dStruct['dObj']['Ves'][struct].get_sampleV(
             res=res,
             domain=domain,
+            returnas='(R, Z, Phi)',
         )
 
         # ---------------
         # test
 
         lamb_access = self.get_lamb_avail_from_pts(
-            pts=pts,
+            pts=np.array([
+                pts[0, :]*np.cos(pts[2, :]),
+                pts[0, :]*np.sin(pts[2, :]),
+                pts[2, :],
+            ]),
+
             nlamb=2,
             det=det,
             strict=strict,
@@ -2809,7 +2816,9 @@ class CrystalBragg(utils.ToFuObject):
                 config=config,
                 lamb=lamb,
                 pts=pts,
+                reseff=[resR, resZ, resPhi],
                 lambok=lambok,
+                dax=dax,
             )
 
         # ---------------

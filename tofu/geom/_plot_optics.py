@@ -1423,7 +1423,9 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
     config=None,
     lamb=None,
     pts=None,
+    reseff=None,
     lambok=None,
+    dax=None,
 ):
 
     # -------------
@@ -1431,20 +1433,16 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
 
     nlamb = lamb.size
 
-    R = np.hypot(pts[0, :], pts[1, :])
-    Phi = np.arctan2(pts[1, :], pts[0, :])
-    Z = pts[2, :]
-
-    R_u = np.unique(R)
-    Z_u = np.unique(Z)
+    R_u = np.unique(pts[0, :])
+    Z_u = np.unique(pts[1, :])
     extent = (R_u.min(), R_u.max(), Z_u.min(), Z_u.max())
 
-    indR = [R == rr for rr in R_u]
-    indZ = [Z == zz for zz in Z_u]
-    phi_per_R = [np.unique(Phi[R==rr]) for rr in R_u]
+    indR = [pts[0, :] == rr for rr in R_u]
+    indZ = [pts[1, :] == zz for zz in Z_u]
+    phi_per_R = [np.unique(pts[2, pts[0, :] == rr]) for rr in R_u]
     nphi_per_R = np.array([ppr.size for ppr in phi_per_R])
     nphimax = np.max(nphi_per_R)
-    indPhi = [[Phi == phi for phi in phi_per_R[ii]] for ii in range(R_u.size)]
+    indPhi = [[pts[2, :] == phi for phi in phi_per_R[ii]] for ii in range(R_u.size)]
 
     cross = np.full((nlamb, R_u.size, Z_u.size), np.nan)
     hor = np.full((nlamb, R_u.size, nphimax), np.nan)
@@ -1476,7 +1474,11 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
     # -------------
     # plot context
 
-    lax = config.plot()
+    if dax is None:
+        lax = None
+    else:
+        lax = [dax['cross'], dax['hor']]
+    lax = config.plot(lax=lax)
     dax = {'cross': lax[0], 'hor': lax[1]}
 
     for kk, ll in enumerate(lamb):
