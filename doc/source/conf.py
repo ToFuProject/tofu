@@ -364,4 +364,4 @@ sphinx_gallery_conf = {
 
 
 def setup(app):
-    app.add_stylesheet("custom.css")  # also can be a full URL
+    app.add_css_file("custom.css")  # also can be a full URL
