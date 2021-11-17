@@ -1176,13 +1176,13 @@ def CrystalBragg_gap_pixels(
     ax1 = fig3.add_subplot(gs[0, 0])
     ax2 = fig3.add_subplot(gs[0, 1])
 
-    ax1.set_title(r'Relation between $x_{i}$ coord. and $\lambda$', fontsize=14)
-    ax2.set_title(r'$\phi$ ranges selected into $(\lambda,\phi)$ space', fontsize=14)
+    ax2.set_title(r'Relation between $x_{i}$ coord. and $\lambda$', fontsize=14)
+    ax1.set_title(r'$\phi$ ranges selected into $(\lambda,\phi)$ space', fontsize=14)
 
-    ax1.set_xlabel('Xi [m]', fontsize=14)
-    ax1.set_ylabel(r'$\lambda$ [m]', fontsize=14)
-    ax2.set_xlabel(r'$\lambda$ [m]', fontsize=14)
-    ax2.set_ylabel(r'$\phi$ [m]', fontsize=14)
+    ax2.set_xlabel('Xi [m]', fontsize=14)
+    ax2.set_ylabel(r'$\lambda$ [m]', fontsize=14)
+    ax1.set_xlabel(r'$\lambda$ [m]', fontsize=14)
+    ax1.set_ylabel(r'$\phi$ [m]', fontsize=14)
 
     fig4 = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(2, 2, **dmargin)
@@ -1195,13 +1195,13 @@ def CrystalBragg_gap_pixels(
     ax4.set_title(r'$\alpha_{C1}=0 / \alpha_{C2}=-3$', fontsize=14)
 
     ax3.set_xlabel('Xi [m]', fontsize=14)
-    ax3.set_ylabel(' Gap [m]', fontsize=14)
+    ax3.set_ylabel(r'$\Delta$Xi [m]', fontsize=14)
     ax4.set_xlabel('Xi [m]', fontsize=14)
-    ax4.set_ylabel(' Gap [m]', fontsize=14)
+    ax4.set_ylabel(r'$\Delta$Xi [m]', fontsize=14)
     ax5.set_xlabel(r'$\lambda$ [m]', fontsize=14)
-    ax5.set_ylabel(' Gap [m]', fontsize=14)
+    ax5.set_ylabel(r'$\Delta\lambda$ [m]', fontsize=14)
     ax6.set_xlabel(r'$\lambda$ [m]', fontsize=14)
-    ax6.set_ylabel(' Gap [m]', fontsize=14)
+    ax6.set_ylabel(r'$\Delta\lambda$ [m]', fontsize=14)
 
     ## computing analytical expressions of gaps
     r = cryst._dgeom['rcurve']
@@ -1239,7 +1239,6 @@ def CrystalBragg_gap_pixels(
     mean_phi = mean_xii.copy()
     mean_gap_lamb0 = mean_xii.copy()
     mean_gap_lamb1 = mean_xii.copy()
-    model1 = np.full((nn, nn, nn), np.nan)  #nb phi, direct coeff, coord origin
     colors = ['midnightblue', 'royalblue', 'turquoise', 'limegreen', 'gold']
 
     for bb in np.linspace(0, nn-1, nn):
@@ -1264,8 +1263,8 @@ def CrystalBragg_gap_pixels(
             label='$X_{j}$='+str(np.round(jx[bb], 3)),
             color=colors[bb],
         )
-        ax3.plot(xi, y0, 'k:', label=r'gap_xi($\theta, \Delta\theta$)')
-        ax3.plot(xi, y1, 'r:', label=r'gap_xi($\theta, \Delta\theta, \alpha$)')
+        #ax3.plot(xi, y0, 'k:', label=r'gap_xi($\theta, \Delta\theta$)')
+        #ax3.plot(xi, y1, 'r:', label=r'gap_xi($\theta, \Delta\theta, \alpha$)')
         for i in np.linspace(0, int(xi.size)-1, int(xi.size)):
             i = int(i)
             ax5.scatter(
@@ -1293,7 +1292,7 @@ def CrystalBragg_gap_pixels(
                 c=colors[bb],
                 label=r'$\phi$='+str(val_phi[bb]) if i == 0 else None,
             )
-            ax1.scatter(
+            ax2.scatter(
                 xii[
                     i,
                     (phi[0,i]<nearest[bb]+n_val_phi)&(phi[0,i]>nearest[bb]-n_val_phi)
@@ -1306,7 +1305,7 @@ def CrystalBragg_gap_pixels(
                 c=colors[bb],
                 alpha=0.2,
             )
-            ax2.scatter(
+            ax1.scatter(
                 lamb[
                     0, i,
                     (phi[0,i]<nearest[bb]+n_val_phi)&(phi[0,i]>nearest[bb]-n_val_phi)
@@ -1356,11 +1355,10 @@ def CrystalBragg_gap_pixels(
                     (phi[1,i]<nearest[bb]+n_val_phi)&(phi[1,i]>nearest[bb]-n_val_phi)
                 ],
             )
-        ax1.plot(
+        ax2.plot(
             mean_xii[bb, :], mean_lamb0[bb, :],
             color=colors[bb], linewidth=2,
         )
-        #model1[bb, ...] = np.poly1d(np.polyfit(mean_xii[bb, :], mean_lamb0[bb, :], 1))
         ax5.plot(
             mean_lamb0[bb, :], mean_gap_lamb0[bb, :],
             color=colors[bb], linewidth=2,
@@ -1370,7 +1368,6 @@ def CrystalBragg_gap_pixels(
             color=colors[bb], linewidth=2,
         )
 
-    print(r'quad. reg of lamb=f(xi) for phi='+str(val_phi[bb])+' :'+str(model1[bb]))
     ax5.set_xlim(lamb.min()-1e-12, lamb.max()+1e-12)
     ax5.set_ylim(
         np.nanmin(gap_lamb[0,...])-1e-15, np.nanmax(gap_lamb[0,...])+1e-15,
@@ -1581,10 +1578,12 @@ def CrystalBragg_gap_ray_tracing(
 
 
 def CrystalBragg_plot_johannerror(
-    xi, xj, lamb, phi, err_lamb, err_phi,
+    xi, xj, lamb, phi,
+    err_lamb, err_phi,
     err_lamb_units=None,
     err_phi_units=None,
     split=None,
+    plot_phi=None,
     cmap=None, vmin=None, vmax=None,
     fs=None, dmargin=None, wintit=None, tit=None,
     angunits=None,
@@ -1594,7 +1593,10 @@ def CrystalBragg_plot_johannerror(
     # ------------
 
     if fs is None:
-        fs = (15, 8)  # (15, 8)
+        if not plot_phi:
+            fs = (10, 8)
+        else:
+            fs = (15, 8)
     if cmap is None:
         cmap = plt.cm.viridis
     if dmargin is None:
@@ -1624,48 +1626,84 @@ def CrystalBragg_plot_johannerror(
     # Plot
     # ------------
     fig = plt.figure(figsize=fs)
-    gs = gridspec.GridSpec(1, 3, **dmargin)
+    if not plot_phi:
+        gs = gridspec.GridSpec(1, 2, **dmargin)
+    else:
+        gs = gridspec.GridSpec(1, 3, **dmargin)
     ax0 = fig.add_subplot(gs[0, 0], aspect='equal')
     ax1 = fig.add_subplot(
         gs[0, 1], aspect='equal', sharex=ax0, sharey=ax0,
     )
-    ax2 = fig.add_subplot(
-        gs[0, 2], aspect='equal', sharex=ax0, sharey=ax0,
-    )
-
     ax0.set_title('Iso-lamb and iso-phi at crystal summit')
-    ax1.set_title(f'Focalization error on lamb ({err_lamb_units})')
-    #ax2.set_title(f'Focalization error on phi ({err_phi_units})')
+    ax1.set_title(f'Focalization error on $\lambda$ [{err_lamb_units}]')
+    ax0.set_ylabel('Xj [m]', fontsize=14)
+    ax0.set_xlabel('Xi [m]', fontsize=14)
+    ax1.set_ylabel('Xj [m]', fontsize=14)
+    ax1.set_xlabel('Xi [m]', fontsize=14)
+    if plot_phi:
+        ax2 = fig.add_subplot(
+            gs[0, 2], aspect='equal', sharex=ax0, sharey=ax0,
+        )
+        ax2.set_title(f'Focalization error on $\phi$ [{err_phi_units}]')
+        ax2.set_ylabel('Xj [m]', fontsize=14)
+        ax2.set_xlabel('Xi [m]', fontsize=14)
+
     if split:
         ax0.contour(xi, xj, lamb[0, ...].T, 10, cmap=cmap)
         ax0.contour(xi, xj, phi[0, ...].T, 10, cmap=cmap, ls='--')
-        ax2.contour(xi, xj, lamb[1, ...].T, 10, cmap=cmap)
-        ax2.contour(xi, xj, phi[1, ...].T, 10, cmap=cmap, ls='--')
+        ax0.contour(xi, xj, lamb[1, ...].T, 10, cmap=cmap)
+        ax0.contour(xi, xj, phi[1, ...].T, 10, cmap=cmap, ls='--')
     else:
         ax0.contour(xi, xj, lamb.T, 10, cmap=cmap)
         ax0.contour(xi, xj, phi.T, 10, cmap=cmap, ls='--')
+
     imlamb = ax1.imshow(
         err_lamb.T,
         extent=extent, aspect='equal',
         origin='lower', interpolation='nearest',
         vmin=vmin, vmax=vmax,
     )
-    """imphi = ax2.imshow(
-        err_phi.T,
-        extent=extent, aspect='equal',
-        origin='lower', interpolation='nearest',
-        vmin=vmin, vmax=vmax,
-    )"""
+
+    ax1.contour(
+        xi,
+        xj,
+        err_lamb.T,
+        levels=11,
+        colors='w',
+        linewstyles='-',
+        linewidths=1.,
+    )
 
     plt.colorbar(imlamb, ax=ax1)
-    #plt.colorbar(imphi, ax=ax2)
+
+    if plot_phi:
+        imphi = ax2.imshow(
+            err_phi.T,
+            extent=extent, aspect='equal',
+            origin='lower', interpolation='nearest',
+            vmin=vmin, vmax=vmax,
+        )
+        ax2.contour(
+            xi,
+            xj,
+            err_phi.T,
+            levels=11,
+            colors='w',
+            linewstyles='-',
+            linewidths=1.,
+        )
+
+        plt.colorbar(imphi, ax=ax2)
 
     if wintit is not False:
         fig.canvas.set_window_title(wintit)
     if tit is not False:
         fig.suptitle(tit, size=14, weight='bold')
 
-    return [ax0, ax1, ax2]
+    if not plot_phi:
+        return ax0, ax1
+    else:
+        return ax0, ax1, ax2
 
 
 def CrystalBragg_plot_focal_error_summed(
