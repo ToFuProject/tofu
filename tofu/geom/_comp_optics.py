@@ -886,6 +886,91 @@ def calc_braggphi_from_xixjpts(
 
 
 # ###############################################
+#           lamb available from pts
+# ###############################################
+
+
+def _get_lamb_avail_from_pts_phidtheta_xixj(
+    cryst=None,
+    lamb=None,
+    n=None,
+    ndtheta=None,
+    pts=None,
+    use_non_parallelism=None,
+    return_phidtheta=None,
+    return_xixj=None,
+    strict=None,
+    det=None,
+):
+    """
+
+    Inputs
+    ------
+        pts = (3, npts) array
+        lamb = (npts, nlamb) array
+
+    """
+
+    keepon = return_phidtheta or return_xixj or strict
+
+    if keepon:
+        # Continue to get phi, dtheta...
+        bragg = cryst._checkformat_bragglamb(lamb=lamb, n=n)
+
+        # Compute dtheta / psi for each pts and lamb
+        npts, nlamb = lamb.shape
+        dtheta = np.full((npts, nlamb, ndtheta, 2), np.nan)
+        psi = np.full((npts, nlamb, ndtheta, 2), np.nan)
+        phi = np.full((npts, nlamb, ndtheta, 2), np.nan)
+        for ii in range(nlamb):
+            (
+                dtheta[:, ii, :, :], psi[:, ii, :, :],
+                phi[:, ii, :, :],
+            ) = cryst._calc_dthetapsiphi_from_lambpts(
+                pts=pts, bragg=bragg[:, ii], lamb=None,
+                n=n, ndtheta=ndtheta,
+                use_non_parallelism=use_non_parallelism,
+                grid=False,
+            )[:3]
+
+        if return_xixj is True or strict is True:
+            xi, xj, strict = cryst.calc_xixj_from_braggphi(
+                phi=phi + np.pi,    # from plasma to det
+                bragg=bragg[..., None, None],
+                n=n,
+                dtheta=dtheta,
+                psi=psi,
+                det=det,
+                data=None,
+                use_non_parallelism=use_non_parallelism,
+                strict=strict,
+                return_strict=True,
+                plot=False,
+                dax=None,
+            )
+            if strict is True and np.any(np.isnan(xi)):
+                indnan = np.isnan(xi)
+                import pdb; pdb.set_trace()     # DB
+                lamb[np.all(np.all(indnan, axis=-1), axis=-1)] = np.nan
+                if return_phidtheta:
+                    phi[indnan] = np.nan
+                    dtheta[indnan] = np.nan
+                    psi[indnan] = np.nan
+
+    # -----------
+    # return
+
+    if return_phidtheta and return_xixj:
+        return lamb, phi, dtheta, psi, xi, xj
+    elif return_phidtheta:
+        return lamb, phi, dtheta, psi
+    elif return_xixj:
+        return lamb, xi, xj
+    else:
+        return lamb
+
+
+# ###############################################
 #           2D spectra to 1D
 # ###############################################
 

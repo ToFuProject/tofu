@@ -2336,6 +2336,7 @@ class CrystalBragg(utils.ToFuObject):
         det=None, nlamb=None, klamb=None,
         use_non_parallelism=None,
         strict=None,
+        return_phidtheta=None,
         return_xixj=None,
     ):
         """ Return the wavelength accessible from plasma points on the crystal
@@ -2373,6 +2374,8 @@ class CrystalBragg(utils.ToFuObject):
         if nlamb is None:
             nlamb = 100
         assert nlamb >= 2, "nlamb must be >= 2"
+        if return_phidtheta is None:
+            return_phidtheta = True
         if return_xixj is None:
             return_xixj = det is not None
         if det is None:
@@ -2398,50 +2401,19 @@ class CrystalBragg(utils.ToFuObject):
             raise Exception(msg)
         nlamb = klamb.size
         lamb = lambmin[:, None] + (lambmax-lambmin)[:, None]*klamb
-        bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
 
-        # Compute dtheta / psi for each pts and lamb
-        npts = lamb.shape[0]
-        dtheta = np.full((npts, nlamb, ndtheta, 2), np.nan)
-        psi = np.full((npts, nlamb, ndtheta, 2), np.nan)
-        phi = np.full((npts, nlamb, ndtheta, 2), np.nan)
-        for ii in range(nlamb):
-            (
-                dtheta[:, ii, :, :], psi[:, ii, :, :],
-                phi[:, ii, :, :],
-            ) = self._calc_dthetapsiphi_from_lambpts(
-                pts=pts, bragg=bragg[:, ii], lamb=None,
-                n=n, ndtheta=ndtheta,
-                use_non_parallelism=use_non_parallelism,
-                grid=False,
-            )[:3]
-
-        if return_xixj is True or strict is True:
-            xi, xj, strict = self.calc_xixj_from_braggphi(
-                phi=phi+np.pi,
-                bragg=bragg[..., None, None],
-                n=n,
-                dtheta=dtheta,
-                psi=psi,
-                det=det,
-                data=None,
-                use_non_parallelism=use_non_parallelism,
-                strict=strict,
-                return_strict=True,
-                plot=False,
-                dax=None,
-            )
-            if strict is True and np.any(np.isnan(xi)):
-                indnan = np.isnan(xi)
-                phi[indnan] = np.nan
-                dtheta[indnan] = np.nan
-                psi[indnan] = np.nan
-                lamb[np.all(np.all(indnan, axis=-1), axis=-1)] = np.nan
-
-        if return_xixj is True:
-            return lamb, phi, dtheta, psi, xi, xj
-        else:
-            return lamb, phi, dtheta, psi
+        return _comp_optics._get_lamb_avail_from_pts_phidtheta_xixj(
+            cryst=self,
+            lamb=lamb,
+            n=n,
+            ndtheta=ndtheta,
+            pts=pts,
+            use_non_parallelism=use_non_parallelism,
+            return_phidtheta=return_phidtheta,
+            return_xixj=return_xixj,
+            strict=strict,
+            det=det,
+        )
 
     def _calc_dthetapsiphi_from_lambpts(
         self,
@@ -2802,19 +2774,8 @@ class CrystalBragg(utils.ToFuObject):
             returnas='(R, Z, Phi)',
         )
 
-        # ---------------
-        # test
-
-        detbis = dict(det)
-        if xixj_lim is not None:
-            detbis['outline'] = np.array([
-                np.r_[xixj_lim[0][0], xixj_lim[0][1]*np.r_[1, 1], xixj_lim[0][0]],
-                np.r_[xixj_lim[1][0]*np.r_[1, 1], xixj_lim[1][1]*np.r_[1, 1]],
-            ])
-            detbis['outline'] = np.concatenate(
-                (detbis['outline'], detbis['outline'][:, 0:1]),
-                axis=1,
-            )
+        # ------------------------------
+        # check access from crystal only
 
         lamb_access = self.get_lamb_avail_from_pts(
             pts=np.array([
@@ -2822,24 +2783,53 @@ class CrystalBragg(utils.ToFuObject):
                 pts[0, :]*np.sin(pts[2, :]),
                 pts[1, :],
             ]),
-            nlamb=nlamb,
-            det=detbis,
-            ndtheta=ndtheta,
-            strict=strict,
+            nlamb=2,
             use_non_parallelism=use_non_parallelism,
+            return_phidtheta=False,
             return_xixj=False,
-        )[0]
+            strict=False,
+        )
 
         lambok = np.zeros((lamb.size, pts.shape[1]), dtype=bool)
-        ind2 = np.sum(~np.isnan(lamb_access), axis=1) >= 2
-        if np.any(ind2):
-            for ii, ll in enumerate(lamb):
-                lambok[ii, ind2] = (
-                    (np.nanmin(lamb_access[ind2, :], axis=1) <= ll)
-                    & (ll <= np.nanmax(lamb_access[ind2, :], axis=1))
-                )
+        for ii, ll in enumerate(lamb):
+            lambok[ii, :] = (
+                (lamb_access[:, 0] <= ll) & (ll <= lamb_access[:, 1])
+            )
 
         # ---------------
+        # check strict
+        if strict is True:
+
+            # det vs detbis if xixj_lim
+            detbis = dict(det)
+            if xixj_lim is not None:
+                detbis['outline'] = np.array([
+                    np.r_[xixj_lim[0][0], xixj_lim[0][1]*np.r_[1, 1], xixj_lim[0][0]],
+                    np.r_[xixj_lim[1][0]*np.r_[1, 1], xixj_lim[1][1]*np.r_[1, 1]],
+                ])
+                detbis['outline'] = np.concatenate(
+                    (detbis['outline'], detbis['outline'][:, 0:1]),
+                    axis=1,
+                )
+
+            # intersection with detbis
+            for kk, ll in enumerate(lamb):
+                lambi = _comp_optics._get_lamb_avail_from_pts_phidtheta_xixj(
+                    cryst=self,
+                    lamb=np.full((lambok[kk, :].sum(), 1), ll),
+                    n=n,
+                    ndtheta=ndtheta,
+                    pts=pts[:, lambok[kk, :]],
+                    use_non_parallelism=use_non_parallelism,
+                    return_phidtheta=False,
+                    return_xixj=False,
+                    strict=strict,
+                    det=detbis,
+                )
+                import pdb; pdb.set_trace()     # DB
+                lambok[kk, lambok[kk, :]] = ~np.isnan(lambi[:, 0])
+
+        # -------
         # return
 
         if plot:
