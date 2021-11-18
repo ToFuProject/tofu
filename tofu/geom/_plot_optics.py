@@ -1472,7 +1472,10 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
     phi_per_R = [np.unique(pts[2, pts[0, :] == rr]) for rr in R_u]
     nphi_per_R = np.array([ppr.size for ppr in phi_per_R])
     nphimax = np.max(nphi_per_R)
-    indPhi = [[pts[2, :] == phi for phi in phi_per_R[ii]] for ii in range(R_u.size)]
+    indPhi = [
+        [pts[2, :] == phi for phi in phi_per_R[ii]]
+        for ii in range(R_u.size)
+    ]
 
     cross = np.zeros((nlamb, R_u.size, Z_u.size), dtype=bool)
     hor = np.zeros((nlamb, R_u.size, nphimax), dtype=bool)
@@ -1523,7 +1526,6 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
     else:
         R_cross = np.tile(R_u, (Z_u.size, 1)).T
         Z_cross = np.tile(Z_u, (R_u.size, 1))
-
 
     # -------------
     # plot context

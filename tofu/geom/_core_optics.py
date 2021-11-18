@@ -2816,8 +2816,15 @@ class CrystalBragg(utils.ToFuObject):
             detbis = dict(det)
             if xixj_lim is not None:
                 detbis['outline'] = np.array([
-                    np.r_[xixj_lim[0][0], xixj_lim[0][1]*np.r_[1, 1], xixj_lim[0][0]],
-                    np.r_[xixj_lim[1][0]*np.r_[1, 1], xixj_lim[1][1]*np.r_[1, 1]],
+                    np.r_[
+                        xixj_lim[0][0],
+                        xixj_lim[0][1]*np.r_[1, 1],
+                        xixj_lim[0][0],
+                    ],
+                    np.r_[
+                        xixj_lim[1][0]*np.r_[1, 1],
+                        xixj_lim[1][1]*np.r_[1, 1],
+                    ],
                 ])
                 detbis['outline'] = np.concatenate(
                     (detbis['outline'], detbis['outline'][:, 0:1]),
