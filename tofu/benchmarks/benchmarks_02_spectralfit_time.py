@@ -2,7 +2,6 @@
 # See "Writing benchmarks" in the asv docs for more information.
 
 
-import sys
 import os
 
 
@@ -13,9 +12,7 @@ import matplotlib.pyplot as plt
 _PATH_HERE = os.path.dirname(__file__)
 _PATH_TOFU = os.path.dirname(os.path.dirname(_PATH_HERE))
 
-sys.path.insert(0, _PATH_TOFU)
 import tofu as tf
-sys.path.pop(0)
 
 
 _PATH_TESTDATA_01 = os.path.join(
@@ -58,7 +55,7 @@ class HighLevel:
     # Attributes reckognized by asv
 
     # time before benchmark is killed
-    timeout = 30
+    timeout = 120
     repeat = (1, 10, 20.0)
     sample_time = 0.100
 
@@ -80,7 +77,7 @@ class HighLevel:
         self.cryst = tf.load(_PFE_CRYST)
         self.det = dict(np.load(_PFE_DET, allow_pickle=True))
         self.xixj_lim = [
-            [-0.041882, 0.041882], 0.1 + 10*172.e-6*np.r_[-0.5, 0.5]
+            [-0.041882, 0.041882], 0.1 + 100*172.e-6*np.r_[-0.5, 0.5]
         ]
 
     def teardown(self, out):
@@ -165,10 +162,10 @@ class HighLevel:
         )
 
     def time_02_get_plasmadomain_at_lamb(self, out):
-        pts, lambok, dax = self.cryst.get_plasmadomain_at_lamb(
+        pts, lambok = self.cryst.get_plasmadomain_at_lamb(
             det=self.det,
             lamb=[3.94e-10, 4.e-10],
-            res=[0.002, 0.002, 0.01],
+            res=[0.005, 0.005, 0.01],
             config=self.conf0,
             domain=[None, [-0.36, -0.22], [-4*np.pi/5., -np.pi/2.]],
             xixj_lim=self.xixj_lim,
