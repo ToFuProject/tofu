@@ -902,6 +902,47 @@ class CrystalBragg(utils.ToFuObject):
         return_xixj=None,
         grid=None,
     ):
+        """ Return rays stemming from the crystal
+
+        The rays are defined by a start point (on the crystal surface) and
+        either an end point or a unit vector
+
+        Start points
+        ------------
+        The start point is the crystal summit by default
+        But that can be changed using:
+            - ('dtheta', 'psi'): can be arbitrary but with same shape
+                up to 4 dimensions
+                - ('ntheta', 'npsi', 'include_summit'): will be used to
+                compute the envelop (contour) of the crystal, as 2 1d arrays
+
+        These arguments are fed to self.get_local_noute1e2() which will compute
+        the start points and return them as shape (3, psi.shape)
+
+        End point or unit vector
+        ------------------------
+        End point are computed automatically if:
+            - 'config' is provided: ray-tracing is done like for any camera
+            - 'det' is provided: xi and xj can be computed
+
+        Returning format
+        ----------------
+
+        The rays can be returned as:
+            - '(pts, vect, length)': a tuple of:
+                - pts: array of start points on the crystal
+                    (only the summit by default)
+                - vect: array
+                - length:
+            - '(pts, vect)': a tuple with only pts and vect
+            - 'pts': a tuple, where both start and end points are returned
+        All arrays represent (X, Y, Z) cartesian coordinates in the tokamak's
+        frame
+
+        Optionally, can return the (xi, xj) coordinates of points if a detector
+        (det) is provided.
+
+        """
 
         # -----------
         # Check input
@@ -1242,7 +1283,9 @@ class CrystalBragg(utils.ToFuObject):
 
             # pts.shape = (nlamb, npts, ndtheta)
             dtheta, psi, phi, bragg, _, _ = self.calc_raytracing_from_lambpts(
-                pts=pts, lamb=lamb,
+                pts=pts,
+                lamb=lamb,
+                ndtheta=ntheta,
             )
             pts_summit, pts2, xi, xj = self.get_rays_from_cryst(
                 phi=phi+np.pi, lamb=None, bragg=bragg,
@@ -1581,7 +1624,7 @@ class CrystalBragg(utils.ToFuObject):
         use_non_parallelism=None,
         include_summit=None,
     ):
-        """ Return (nout, e1, e2) associated to pts on the crystal's surface
+        """ Return (vout, ve1, ve2) associated to pts on the crystal's surface
 
         All points on the spherical crystal's surface are identified
             by (dtheta, psi) coordinates, where:
@@ -1591,20 +1634,29 @@ class CrystalBragg(utils.ToFuObject):
             They are the spherical coordinates from a sphere centered on the
             crystal's center of curvature.
 
-        Return the pts themselves and the 3 perpendicular unit vectors
+        Args (dtheta, psi) can be:
+            - arbitrary: same shape and dimension up to 4
+            - 'envelop': will be computed to represent the crystal contour
+                will be returned as 2 1d arrays
+
+        Return the pts themselves and the 3 perpendicular local unit vectors
             (nout, e1, e2), where nout is towards the outside of the sphere and
             nout = np.cross(e1, e2)
 
+        In all cases, the output have shape (3, psi.shape)
+
         Return:
         -------
-        summit:     np.ndarray
-            (3,) array of (x, y, z) coordinates of the points on the surface
-        nout:       np.ndarray
-            (3,) array of (x, y, z) coordinates of outward unit vector
-        e1:         np.ndarray
-            (3,) array of (x, y, z) coordinates of first unit vector
-        e2:         np.ndarray
-            (3,) array of (x, y, z) coordinates of second unit vector
+        summ:       np.ndarray
+            coordinates of the points on the surface
+        vout:       np.ndarray
+            coordinates of outward unit vector
+        ve1:        np.ndarray
+            coordinates of first tangential unit vector
+        ve2:        np.ndarray
+            coordinates of second tangential unit vector
+
+        All are cartesian (X, Y, Z) coordinates in the tokamak's frame
 
         """
         # Get local basis at crystal summit
@@ -1626,17 +1678,9 @@ class CrystalBragg(utils.ToFuObject):
         vin = -vout
         # cent no longer dgeom['center'] because no longer a fixed point
         cent = self._dgeom['summit'] + self._dgeom['rcurve']*nin
-        if vout.ndim == 2:
-            cent = cent[:, None]
-        elif vout.ndim == 3:
-            cent = cent[:, None, None]
-        elif vout.ndim == 4:
-            cent = cent[:, None, None, None]
-        elif vout.ndim == 5:
-            cent = cent[:, None, None, None, None]
-        else:
-            msg = "nout.ndim > 5!"
-            raise Exception(msg)
+        reshape = np.r_[3, [1 for ii in range(vout.ndim - 1)]]
+        cent = cent.reshape(reshape)
+
         # Redefining summit according to nout at each point at crystal
         summ = cent + self._dgeom['rcurve']*vout
         return summ, vout, ve1, ve2
@@ -2775,7 +2819,7 @@ class CrystalBragg(utils.ToFuObject):
         # get angles from unit vectors
         dtheta, dpsi, tilt = None, None, None
 
-        # use formulas in _comp_optics.get_det_abs_from_rel() 
+        # use formulas in _comp_optics.get_det_abs_from_rel()
         sindtheta = np.sum(det_approx['ej'] * det_ref['nout'])
         costheta_cospsi = np.sum(det_approx['nout'] * det_ref['nout'])
         costheta_sinpsi = np.sum(det_approx['ei'] * det_ref['nout'])
@@ -2852,10 +2896,11 @@ class CrystalBragg(utils.ToFuObject):
     def get_lamb_avail_from_pts(
         self,
         pts=None,
-        n=None, ndtheta=None, npsi=None,
+        n=None, ndtheta=None,
         det=None, nlamb=None, klamb=None,
         use_non_parallelism=None,
         strict=None,
+        return_phidtheta=None,
         return_xixj=None,
     ):
         """ Return the wavelength accessible from plasma points on the crystal
@@ -2874,16 +2919,15 @@ class CrystalBragg(utils.ToFuObject):
         Using:
             - nlamb: sampling of the lamb interval (default: 100)
             - ndtheta: sampling of the lamb interval (default: 20)
-            - npsi: sampling of the lamb interval (default: 'envelop')
             - det: (optional) a detector dict, for xi and xj
         Returns:
             - lamb: (npts, nlamb) array of sampled valid wavelength interval
-            - phi:  (npts, nlamb, ndtheta, npsi, 2) array of phi
-            - dtheta:  (npts, nlamb, ndtheta, npsi, 2) array of dtheta
-            - psi:  (npts, nlamb, ndtheta, npsi, 2) array of psi
+            - phi:  (npts, nlamb, ndtheta, 2) array of phi
+            - dtheta:  (npts, nlamb, ndtheta, 2) array of dtheta
+            - psi:  (npts, nlamb, ndtheta, 2) array of psi
         And optionally (return_xixj=True and det provided as dict):
-            - xi:  (npts, nlamb, ndtheta, npsi, 2) array of xi
-            - xj:  (npts, nlamb, ndtheta, npsi, 2) array of xj
+            - xi:  (npts, nlamb, ndtheta, 2) array of xi
+            - xj:  (npts, nlamb, ndtheta, 2) array of xj
 
         The result is computed with or w/o taking into account non-parallelism
 
@@ -2894,8 +2938,14 @@ class CrystalBragg(utils.ToFuObject):
         if nlamb is None:
             nlamb = 100
         assert nlamb >= 2, "nlamb must be >= 2"
+        if return_phidtheta is None:
+            return_phidtheta = True
         if return_xixj is None:
             return_xixj = det is not None
+        if det is None:
+            return_xixj = False
+        if det is None:
+            strict = False
 
         # Get lamb min / max
         bragg, phi, lamb = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
@@ -2915,48 +2965,19 @@ class CrystalBragg(utils.ToFuObject):
             raise Exception(msg)
         nlamb = klamb.size
         lamb = lambmin[:, None] + (lambmax-lambmin)[:, None]*klamb
-        bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
 
-        # Compute dtheta / psi for each pts and lamb
-        npts = lamb.shape[0]
-        dtheta = np.full((npts, nlamb, ndtheta, 2), np.nan)
-        psi = np.full((npts, nlamb, ndtheta, 2), np.nan)
-        phi = np.full((npts, nlamb, ndtheta, 2), np.nan)
-        for ii in range(nlamb):
-            (
-                dtheta[:, ii, :, :], psi[:, ii, :, :],
-                phi[:, ii, :, :],
-            ) = self._calc_dthetapsiphi_from_lambpts(
-                pts=pts, bragg=bragg[:, ii], lamb=None,
-                n=n, ndtheta=ndtheta,
-                use_non_parallelism=use_non_parallelism,
-                grid=False,
-            )[:3]
-
-        if return_xixj is True and det is not None:
-            xi, xj, strict = self.calc_xixj_from_braggphi(
-                phi=phi+np.pi,
-                bragg=bragg[..., None, None],
-                n=n,
-                dtheta=dtheta,
-                psi=psi,
-                det=det,
-                data=None,
-                use_non_parallelism=use_non_parallelism,
-                strict=strict,
-                return_strict=True,
-                plot=False,
-                dax=None,
-            )
-            if strict is True and np.any(np.isnan(xi)):
-                indnan = np.isnan(xi)
-                phi[indnan] = np.nan
-                dtheta[indnan] = np.nan
-                psi[indnan] = np.nan
-                lamb[np.all(np.all(indnan, axis=-1), axis=-1)] = np.nan
-            return lamb, phi, dtheta, psi, xi, xj
-        else:
-            return lamb, phi, dtheta, psi
+        return _comp_optics._get_lamb_avail_from_pts_phidtheta_xixj(
+            cryst=self,
+            lamb=lamb,
+            n=n,
+            ndtheta=ndtheta,
+            pts=pts,
+            use_non_parallelism=use_non_parallelism,
+            return_phidtheta=return_phidtheta,
+            return_xixj=return_xixj,
+            strict=strict,
+            det=det,
+        )
 
     def _calc_dthetapsiphi_from_lambpts(
         self,
@@ -3234,6 +3255,187 @@ class CrystalBragg(utils.ToFuObject):
             return spect1d, lambfit
         elif returnas == 'ax':
             return ax
+
+    def get_plasmadomain_at_lamb(
+        self,
+        config=None,
+        struct=None,
+        domain=None,
+        res=None,
+        det=None,
+        xixj_lim=None,
+        strict=None,
+        bragg=None,
+        lamb=None,
+        # for available lamb determination
+        ndtheta=None,
+        nlamb=None,
+        n=None,
+        use_non_parallelism=None,
+        # plotting
+        plot=None,
+        dax=None,
+        plot_as=None,
+        lcolor=None,
+        return_dax=None,
+    ):
+        """ Return pts in the plasma domain and a mask
+
+        The mask is True only for points for which the desired wavelength is
+        accesible from the crystal (and from the detector if strict=True and
+        det is provided)
+
+        More than one value of lamb can be provided (nlamb >= 1)
+
+        pts is returned as a (3, npts) array
+        lambok is returned as a (nlamb, npts) array
+
+        """
+
+        # ------------
+        # check inputs
+
+        if config.__class__.__name__ != 'Config':
+            msg = (
+                "Arg config must be a Config object "
+                f"Provided:\n\t- config: {type(config)}"
+            )
+            raise Exception(msg)
+
+        lok = list(config.dStruct['dObj']['Ves'].keys())
+        if struct is None and len(lok) == 1:
+            struct = lok[0]
+        elif struct not in lok:
+            msg = (
+                "Arg struct must be the name of a StructIn in config!\n"
+                f"Provided:\n\t- Available: {lok}\n\t- struct: {struct}"
+            )
+            raise Exception(msg)
+
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+        lamb = self.get_lamb_from_bragg(bragg=bragg, n=n)
+
+        # To be refined if xjlim is narrow
+        if ndtheta is None:
+            ndtheta = 5
+        # To be refined if xilim is narrow
+        if nlamb is None:
+            nlamb = 11
+        if strict is None:
+            strict = True
+
+        if plot is None:
+            plot = True
+        if return_dax is None:
+            return_dax = plot is True
+
+        # -------------
+        # sample volume
+
+        (
+            pts, dV, ind, (resR, resZ, resPhi),
+        ) = config.dStruct['dObj']['Ves'][struct].get_sampleV(
+            res=res,
+            domain=domain,
+            returnas='(R, Z, Phi)',
+        )
+
+        # ------------------------------
+        # check access from crystal only
+
+        ptsXYZ = np.array([
+            pts[0, :]*np.cos(pts[2, :]),
+            pts[0, :]*np.sin(pts[2, :]),
+            pts[1, :],
+        ])
+
+        lamb_access = self.get_lamb_avail_from_pts(
+            pts=ptsXYZ,
+            nlamb=2,
+            use_non_parallelism=use_non_parallelism,
+            return_phidtheta=False,
+            return_xixj=False,
+            strict=False,
+        )
+
+        lambok = np.zeros((lamb.size, pts.shape[1]), dtype=bool)
+        for ii, ll in enumerate(lamb):
+            lambok[ii, :] = (
+                (lamb_access[:, 0] <= ll) & (ll <= lamb_access[:, 1])
+            )
+
+        # ---------------
+        # refactor pts and lambok
+
+        indok = np.any(lambok, axis=0)
+        pts = pts[:, indok]
+        ptsXYZ = ptsXYZ[:, indok]
+        lambok = lambok[:, indok]
+
+        # ---------------
+        # check strict
+        if strict is True:
+
+            # det vs detbis if xixj_lim
+            detbis = dict(det)
+            if xixj_lim is not None:
+                detbis['outline'] = np.array([
+                    np.r_[
+                        xixj_lim[0][0],
+                        xixj_lim[0][1]*np.r_[1, 1],
+                        xixj_lim[0][0],
+                    ],
+                    np.r_[
+                        xixj_lim[1][0]*np.r_[1, 1],
+                        xixj_lim[1][1]*np.r_[1, 1],
+                    ],
+                ])
+                detbis['outline'] = np.concatenate(
+                    (detbis['outline'], detbis['outline'][:, 0:1]),
+                    axis=1,
+                )
+
+            # intersection with detbis
+            for kk, ll in enumerate(lamb):
+                lambi = _comp_optics._get_lamb_avail_from_pts_phidtheta_xixj(
+                    cryst=self,
+                    lamb=np.full((lambok[kk, :].sum(), 1), ll),
+                    n=n,
+                    ndtheta=ndtheta,
+                    pts=ptsXYZ[:, lambok[kk, :]],
+                    use_non_parallelism=use_non_parallelism,
+                    return_phidtheta=False,
+                    return_xixj=False,
+                    strict=strict,
+                    det=detbis,
+                )
+                lambok[kk, lambok[kk, :]] = ~np.isnan(lambi[:, 0])
+
+        # -------
+        # return
+
+        if plot:
+            dax = _plot_optics.CrystalBragg_plot_plasma_domain_at_lamb(
+                cryst=self,
+                det=det,
+                xixj_lim=xixj_lim,
+                config=config,
+                lamb=lamb,
+                pts=pts,
+                reseff=[resR, resZ, resPhi],
+                lambok=lambok,
+                dax=dax,
+                plot_as=plot_as,
+                lcolor=lcolor,
+            )
+
+        # ---------------
+        # return
+
+        if return_dax is True:
+            return pts, lambok, dax
+        else:
+            return pts, lambok
 
     @staticmethod
     def fit1d_dinput(

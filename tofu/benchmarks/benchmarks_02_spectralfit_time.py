@@ -9,17 +9,30 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+_PATH_HERE = os.path.dirname(__file__)
+_PATH_TOFU = os.path.dirname(os.path.dirname(_PATH_HERE))
+
 import tofu as tf
 
 
-_PATH_HERE = os.path.dirname(__file__)
-_PATH_TESTDATA = os.path.join(
+_PATH_TESTDATA_01 = os.path.join(
+    os.path.dirname(_PATH_HERE),
+    'tests',
+    'tests01_geom',
+    'test_data',
+)
+_PATH_TESTDATA_04 = os.path.join(
     os.path.dirname(_PATH_HERE),
     'tests',
     'tests04_spectro',
     'test_data',
 )
-_PFE_TESTDATA = os.path.join(_PATH_TESTDATA, 'spectral_fit.npz')
+_PFE_TESTDATA = os.path.join(_PATH_TESTDATA_04, 'spectral_fit.npz')
+_PFE_DET = os.path.join(_PATH_TESTDATA_01, 'det37_CTVD_incC4_New.npz')
+_PFE_CRYST = os.path.join(
+    _PATH_TESTDATA_04,
+    'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVII_sh00000_Vers1.5.0.npz',
+)
 
 
 # #############################################################################
@@ -42,7 +55,7 @@ class HighLevel:
     # Attributes reckognized by asv
 
     # time before benchmark is killed
-    timeout = 30
+    timeout = 120
     repeat = (1, 10, 20.0)
     sample_time = 0.100
 
@@ -59,6 +72,13 @@ class HighLevel:
         self.var = out['var']
         self.dlines = out['dlines'].tolist()
         self.spect2d = out['spect2d']
+
+        self.conf0 = tf.load_config('WEST-V0')
+        self.cryst = tf.load(_PFE_CRYST)
+        self.det = dict(np.load(_PFE_DET, allow_pickle=True))
+        self.xixj_lim = [
+            [-0.041882, 0.041882], 0.1 + 100*172.e-6*np.r_[-0.5, 0.5]
+        ]
 
     def teardown(self, out):
         pass
@@ -138,5 +158,16 @@ class HighLevel:
             chain=True,
             jac='dense',
             verbose=False,
+            plot=False,
+        )
+
+    def time_02_get_plasmadomain_at_lamb(self, out):
+        pts, lambok = self.cryst.get_plasmadomain_at_lamb(
+            det=self.det,
+            lamb=[3.94e-10, 4.e-10],
+            res=[0.005, 0.005, 0.01],
+            config=self.conf0,
+            domain=[None, [-0.36, -0.22], [-4*np.pi/5., -np.pi/2.]],
+            xixj_lim=self.xixj_lim,
             plot=False,
         )
