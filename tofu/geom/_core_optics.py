@@ -1282,7 +1282,9 @@ class CrystalBragg(utils.ToFuObject):
 
             # pts.shape = (nlamb, npts, ndtheta)
             dtheta, psi, phi, bragg, _, _ = self.calc_raytracing_from_lambpts(
-                pts=pts, lamb=lamb,
+                pts=pts,
+                lamb=lamb,
+                ndtheta=ntheta,
             )
             pts_summit, pts2, xi, xj = self.get_rays_from_cryst(
                 phi=phi+np.pi, lamb=None, bragg=bragg,
