@@ -31,7 +31,7 @@ _PFE_TESTDATA = os.path.join(_PATH_TESTDATA_04, 'spectral_fit.npz')
 _PFE_DET = os.path.join(_PATH_TESTDATA_01, 'det37_CTVD_incC4_New.npz')
 _PFE_CRYST = os.path.join(
     _PATH_TESTDATA_04,
-    'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVII_sh00000_Vers1.4.15-112-gddc0126a.npz',
+    'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVII_sh00000_Vers1.5.0.npz',
 )
 
 
