@@ -1068,7 +1068,7 @@ def CrystalBragg_plot_johannerror(
     ax1.set_title(f'Focalization error on lamb ({err_lamb_units})')
     ax2.set_title(f'Focalization error on phi ({err_phi_units})')
     ax0.contour(xi, xj, lamb.T, 10, cmap=cmap)
-    ax0.contour(xi, xj, phi.T, 10, cmap=cmap, ls='--')
+    ax0.contour(xi, xj, phi.T, 10, cmap=cmap, linestyles='--')
     imlamb = ax1.imshow(
         err_lamb.T,
         extent=extent, aspect='equal',
@@ -1157,7 +1157,7 @@ def CrystalBragg_plot_focal_error_summed(
         error_lambda,
         contour,
         colors='w',
-        linewstyles='-',
+        linestyles='-',
         linewidths=1.,
     )
     ax.contour(
@@ -1166,7 +1166,7 @@ def CrystalBragg_plot_focal_error_summed(
         test_lamb_interv,
         contour,
         colors='yellow',
-        linewstyles='-',
+        linestyles='-',
         linewidths=1.,
     )
 
@@ -1511,15 +1511,17 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
         cont_cross = [None for ll in lamb]
         for kk, ll in enumerate(lamb):
             z[1:-1, 1:-1] = cross[kk, ...].T
+            cont_raw = mcontour.QuadContourGenerator(
+                x, y, z,
+                None,       # mask
+                True,       # how to mask
+                0,          # divide in sub-domains (0=not)
+            ).create_contour(0.5)
+            if isinstance(cont_raw, tuple):
+                cont_raw = cont_raw[0]
+            assert all([pp.ndim == 2  and pp.shape[1] == 2 for pp in cont_raw])
             cont_cross[kk] = PatchCollection(
-                [plt.Polygon(
-                    mcontour.QuadContourGenerator(
-                        x, y, z,
-                        None,       # mask
-                        True,       # how to mask
-                        0,          # divide in sub-domains (0=not)
-                    ).create_contour(0.5)[0],
-                )],
+                [plt.Polygon(pp) for pp in cont_raw],
                 color=lcolor[kk % nlamb],
                 alpha=0.4,
             )
