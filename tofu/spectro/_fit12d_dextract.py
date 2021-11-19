@@ -41,12 +41,12 @@ _D3 = {
         'field': 'amp',
     },
     'width': {
-        'types': ['x'],
+        'types': ['x', 'lines'],
         'units': 'a.u.',
         'field': 'width',
     },
     'shift': {
-        'types': ['x'],
+        'types': ['x', 'lines'],
         'units': 'a.u.',
         'field': 'shift',
     },
@@ -63,6 +63,7 @@ _D3 = {
     'vi': {
         'types': ['lines'],  # necessarily by line for de-normalization (*lamb0)
         'units': 'm.s^-1',
+        'field': 'shift',
     },
     'dratio': {
         'types': ['x'],
@@ -88,7 +89,7 @@ _ALLOW_PICKLE = True
 def fit12d_get_data_checkformat(
     dfit=None,
     bck=None,
-    amp=None, coefs=None, ratio=None,
+    amp=None, ratio=None,
     Ti=None, width=None,
     vi=None, shift=None,
     pts_total=None,
@@ -149,25 +150,6 @@ def fit12d_get_data_checkformat(
     if ratio is not False:
         amp = ['lines', 'x']
 
-    # ----------------
-    # Check / format amp, Ti, vi
-
-    d3 = {k0: dict(v0) for k0, v0 in _D3}
-
-    d3 = {
-        'bck_amp': [bck, 'bck_amp'],
-        'bck_rate': [bck, 'bck_rate'],
-        'amp': [amp, 'amp'],
-        'coefs': [coefs, 'amp'],
-        'Ti': [Ti, 'width'],
-        'width': [width, 'width'],
-        'vi': [vi, 'shift'],
-        'shift': [shift, 'shift'],
-    }
-
-    # ----------------
-    # Ratio
-
     if ratio is not False:
         lkeys = dfit['dinput']['keys']
         if isinstance(ratio, tuple):
@@ -197,47 +179,74 @@ def fit12d_get_data_checkformat(
         if lc[0]:
             ratio = np.atleast_2d(ratio).T
 
-    d3['ratio'] = ratio
+    # ----------------
+    # Check / format amp, Ti, vi
+
+    # check if double
+    isdouble = dfit['dinput']['double']
+
+    d3 = {k0: dict(v0) for k0, v0 in _D3.items()}
+    lval = [
+        [bck, 'bck_amp'], [bck, 'bck_rate'],
+        [amp, 'amp'], [width, 'width'], [shift, 'shift'],
+        [ratio, 'ratio'], [Ti, 'Ti'], [vi, 'vi'],
+        [isdouble, 'dratio'], [isdouble, 'dshift'],
+    ]
+    for (v0, k0) in lval:
+        if v0 is None or v0 is True:
+            d3[k0]['requested'] = _D3[k0]['types']
+        else:
+            d3[k0]['requested'] = v0
+
+    # remove non-requested
+    lout = [k0 for k0, v0 in d3.items() if v0['requested'] is False]
+    for k0 in lout:
+        del d3[k0]
 
     # ----------------
     # amp, Ti, vi from d3
 
+    lkkeys = ['amp', 'width', 'shift', 'Ti', 'vi']
     for k0 in d3.keys():
 
-        # default
-        if d3[k0][0] is None:
-            d3[k0][0] = True
-        if d3[k0][0] is True:
-            d3[k0][0] = _D3[k0]
-        if d3[k0][0] is False:
-            d3[k0] = d3[k0][0]
-            continue
-
-        if 'bck' in k0:
-            continue
+        if k0 == 'ratio':
+            v0 = d3[k0]['types']
+        else:
+            v0 = d3[k0]['requested']
 
         # basic conformity check
-        if isinstance(d3[k0][0], str):
-            d3[k0][0] = [d3[k0][0]]
+        if isinstance(v0, str):
+            v0 = [v0]
+            d3[k0]['requested'] = v0
+
         c0 = (
-            isinstance(d3[k0][0], list)
-            and all([isinstance(ss, str) for ss in d3[k0][0]])
+            k0 != 'ratio'
+            and isinstance(v0, list)
+            and all([isinstance(ss, str) for ss in v0])
         )
-        if not c0:
+        if not (k0 == 'ratio' or c0):
             msg = (
                 f"Arg {k0} must be a list of str!\n"
-                f"Provided: {d3[k0][0]}"
+                f"Provided: {v0}"
             )
             raise Exception(msg)
 
         # check if trying to get all/some lines and / or all/some x
-        lc = [
-            all([ss in ['x', 'lines'] for ss in d3[k0][0]]),    # all lines/x
-            all([ss in dinput['keys'] for ss in d3[k0][0]]),    # some lines
-            all([ss in dinput[d3[k0][1]]['keys'] for ss in d3[k0][0]]), # x
-        ]
+        ltypes = d3[k0]['types']
+        c0 = all([ss in ltypes for ss in v0]),               # all lines/x
+        c1 = (
+            not c0
+            and 'lines' in ltypes
+            and all([ss in dinput['keys'] for ss in v0]),       # some lines
+        )
+        c2 = (
+            not c0
+            and not c1
+            and 'x' in ltypes
+            and all([ss in dinput[k0]['keys'] for ss in v0]),   # some x
+        )
 
-        if not any(lc):
+        if not any([c0, c1, c2]):
             msg = (
                 f"Arg {k0} elements must be either:\n"
                 f"\t- 'x': return all unique {k0}\n"
@@ -249,44 +258,48 @@ def fit12d_get_data_checkformat(
             )
             raise Exception(msg)
 
-        if lc[0]:
+        if c0:
             # 'lines' and/or 'x'
-            lok = [('lines', dinput['keys']), ('x', dinput[d3[k0][1]]['keys'])]
-            d3[k0][0] = {
-                k1: {
-                    'keys': v1,
-                    'ind': np.arange(0, len(v1)),
-                }
-                for (k1, v1) in lkok
-                if k0 in d3[k0][0]
-            }
+            for k1 in v0:
+
+                if k0 in lkkeys:
+                    if k1 == 'lines':
+                        keys = dinput['keys']
+                    else:
+                        keys = dinput[d3[k0]['field']]['keys']
+
+                    d3[k0][k1] = {
+                        'keys': keys,
+                        'ind': np.arange(0, len(keys)),
+                    }
+
+                else:
+                    d3[k0][k1] = {}
 
         else:
-            if lc[1]:
+            if c1:
                 # a selection of lines
+                typ = 'lines'
                 keysok = dinput['keys']
-                keys = d3[k0][0]
+                keys = v0
                 if k0 == 'amp' and ratio is not False:
-                    keys += list(set(ratio.ravel().tolist()))
+                    for rr in set(ratio.ravel().tolist()):
+                        if rr not in keys:
+                            keys.append(rr)
 
-            elif lc[2]:
+            elif c2:
                 # a selection of variables 'x'
+                typ = 'x'
                 keysok = dinput[d3[k0][1]]['keys']
-                keys = d3[k0][0]
+                keys = v0
 
-            d3[k0][0] = {
-                k1: {
-                    'keys': keys,
-                    'ind': np.array(
-                        [(keysok == ss).nonzero()[0][0] for ss in keys],
-                        dtype=int,
-                    )
-                }
-                for k1 in d3[k0][0]
+            d3[k0][typ] = {
+                'keys': keys,
+                'ind': np.array(
+                    [(keysok == ss).nonzero()[0][0] for ss in keys],
+                    dtype=int,
+                )
             }
-
-        d3[k0][0]['field'] = d3[k0][1]
-        d3[k0] = d3[k0][0]
 
     # ----------------
     # phi_prof, phi_npts
@@ -345,10 +358,11 @@ def fit12d_get_data_checkformat(
 def fit1d_extract(
     dfit1d=None,
     bck=None,
-    amp=None, coefs=None, ratio=None,
+    amp=None, ratio=None,
     Ti=None, width=None,
     vi=None, shift=None,
-    pts_lamb_total=None, pts_lamb_detail=None,
+    pts_lamb_total=None,
+    pts_lamb_detail=None,
 ):
     """
     Return a dict with extarcted data of interest
@@ -376,7 +390,7 @@ def fit1d_extract(
     ) = fit12d_get_data_checkformat(
         dfit=dfit1d,
         bck=bck,
-        amp=amp, coefs=coefs, ratio=ratio,
+        amp=amp, ratio=ratio,
         Ti=Ti, width=width,
         vi=vi, shift=shift,
         pts_total=pts_lamb_total,
@@ -390,58 +404,68 @@ def fit1d_extract(
 
     # Prepare extract func
     def _get_values(
-        k0,
+        k0=None,
+        typ=None,
         d3=d3,
         dind=dind,
         sol_x=dfit1d['sol_x'],
         scales=dfit1d['scales'],
     ):
-        for k1, v1 in d3[k0].items():
-            ind = dind[d3[k0]['field']][k1][d3[k0]['ind']]
-            d3[k0]['values'] = sol_x[:, ind] * scales[:, ind]
+        ind = dind[d3[k0]['field']][k1][d3[k0][k1]['ind']]
+        return sol_x[:, ind] * scales[:, ind]
 
     # -------------------
     # Prepare output
-    dout = dict(d3)
-    dout.update(dict.fromkeys(['dratio', 'dshift'], False))
 
-    # bck
-    if d3['bck_amp'] is not False:
-        dout['bck_amp'] = {
-            'values': (
-                dfit1d['sol_x'][:, dind['bck_amp']['x'][0]]
-                * dfit1d['scales'][:, dind['bck_amp']['x'][0]]
-            ),
-            'units': 'a.u.',
-        }
-        dout['bck_rate'] = {
-            'values': (
-                dfit1d['sol_x'][:, dind['bck_rate']['x'][0]]
-                * dfit1d['scales'][:, dind['bck_rate']['x'][0]]
-            ),
-            'units': 'a.u.',
-        }
 
-    # amp
-    if d3['amp'] is not False:
-        _get_values('amp')
-        dout['amp'] = dict(d3['amp'])
-        dout['amp']{'units': 'a.u.'}
+    # single-value variable
+    lk_single = ['bck_amp', 'bck_rate']
+    for k0 in set(lk_single).intersection(d3.keys()):
+        d3[k0]['x']['values']= (
+            dfit1d['sol_x'][:, dind[k0]['x'][0]]
+            * dfit1d['scales'][:, dind[k0]['x'][0]]
+        )
+
+    # multiple-value, direct computation
+    lk_direct = ['amp', 'width', 'shift']
+    for k0 in set(lk_direct).intersection(d3.keys()):
+        for k1 in set(['x', 'lines']).intersection(d3[k0].keys()):
+            d3[k0][k1]['values'] = _get_values(k0=k0, typ=k1)
+
+    # multiple-value, indirect computation
+    k0 = 'Ti'
+    if k0 in d3.keys():
+        k1 = d3[k0]['types'][0]
+        val = _get_values(k0=k0, typ=k1)
+        conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
+        d3[k0][k1]['values'] = (
+            val * conv * scpct.c**2
+            * dfit1d['dinput']['mz'][d3[k0][k1]['ind']][None, :]
+        )
+
+    # vi
+    k0 = 'vi'
+    if k0 in d3.keys():
+        k1 = d3[k0]['types'][0]
+        val = _get_values(k0=k0, typ=k1)
+        d3['vi']['lines']['values'] = val * scpct.c
 
     # ratio
-    if d3['ratio'] is not False:
-        nratio = d3['ratio'].shape[1]
+    k0 = 'ratio'
+    if k0 in d3.keys():
+        k1 = d3[k0]['types'][0]
+        nratio = d3[k0]['requested'].shape[1]
         indup = np.r_[[
-            (dout['amp']['lines']['keys'] == kk).nonzero()[0][0]
-            for kk in d3['ratio'][0, :]
+            (d3['amp']['lines']['keys'] == kk).nonzero()[0][0]
+            for kk in d3['ratio']['requested'][0, :]
         ]]
         indlo = np.r_[[
-            (dout['amp']['lines']['keys'] == kk).nonzero()[0][0]
-            for kk in d3['ratio'][1, :]]
+            (d3['amp']['lines']['keys'] == kk).nonzero()[0][0]
+            for kk in d3['ratio']['requested'][1, :]]
         ]
         val = (
-            dout['amp']['lines']['values'][:, indup]
-            / dout['amp']['lines']['values'][:, indlo]
+            d3['amp']['lines']['values'][:, indup]
+            / d3['amp']['lines']['values'][:, indlo]
         )
         lab = np.r_[
             ['{} / {}'.format(
@@ -450,58 +474,26 @@ def fit1d_extract(
             )
             for ii in range(nratio)]
         ]
-        dout['ratio'] = {
-            'keys': dout['ratio'],
-            'values': val,
-            'lab': lab,
-            'units': 'a.u.',
-        }
-
-    # Ti
-    if d3['Ti'] is not False:
-        _get_values('Ti')
-        conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
-        indTi = np.array([iit[0] for iit in dind['width']['jac']])  # TBC
-        indTi = indTi[d3['Ti']['lines']['ind']]
-        dout['Ti'] = dict(d3['Ti'])
-        dout['Ti']['values'] = (
-            dout['Ti']['values']
-            * conv * scpct.c**2
-            * dfit1d['dinput']['mz'][indTi][None, :]
-        )
-        dout['Ti']['units'] = 'eV'
-
-    # width
-    if d3['width'] is not False:
-        _get_values('width')
-        dout['width'] = dict(d3['vi'])
-        dout['width']['units'] = 'a.u.'
-
-    # vi
-    if d3['vi'] is not False:
-        _get_values('vi')
-        val = val * scpct.c
-        dout['vi'] = dict(d3['vi'])
-        dout['vi']['values'] = dout['vi']['values'] * scpct.c
-        dout['vi']['units'] = 'm.s^-1'
-
-    # shift
-    if d3['shift'] is not False:
-        _get_values('shift')
-        val = val * dfit1d['dinput']['lines'][None, :]
-        dout['shift'] = {'keys': keys, 'values': val, 'units': 'm'}
+        d3['ratio']['lines']['values'] = val
+        d3['ratio']['lines']['lab'] = lab
 
     # double
     if dfit1d['dinput']['double'] is not False:
+
+        # dratio
         double = dfit1d['dinput']['double']
         if double is True or double.get('dratio') is None:
-            dout['dratio'] = dfit1d['sol_x'][:, dind['dratio']['x']]
+            val = dfit1d['sol_x'][:, dind['dratio']['x']]
         else:
-            dout['dratio'] = np.full((nspect,), double['dratio'])
+            val = np.full((nspect,), double['dratio'])
+        d3['dratio']['x']['values'] = val
+
+        # dshift
         if double is True or double.get('dratio') is None:
-            dout['dshift'] = dfit1d['sol_x'][:, dind['dshift']['x']]
+            val = dfit1d['sol_x'][:, dind['dshift']['x']]
         else:
-            dout['dshift'] = np.full((nspect,), double['dshift'])
+            val = np.full((nspect,), double['dshift'])
+        d3['dshift']['x']['values'] = val
 
     # -------------------
     # sol_detail and sol_tot
@@ -546,15 +538,14 @@ def fit1d_extract(
                     msg = "Inconsistent computations detail vs total"
                     raise Exception(msg)
 
-    dout['sol_detail'] = sold
-    dout['sol_tot'] = solt
-    dout['units'] = 'a.u.'
-
-    # -------------------
-    # Add input args
-    dout['d3'] = d3
-    dout['pts_lamb_detail'] = pts_lamb_detail
-    dout['pts_lamb_total'] = pts_lamb_total
+    dout = {
+        'sol_detail': sold,
+        'sol_tot': solt,
+        'units': 'a.u.',
+        'd3': d3,
+        'pts_lamb_detail': pts_lamb_detail,
+        'pts_lamb_total': pts_lamb_total,
+    }
     return dout
 
 
@@ -587,7 +578,7 @@ def _get_phi_profile(key,
 def fit2d_extract(
     dfit2d=None,
     bck=None,
-    amp=None, coefs=None, ratio=None,
+    amp=None, ratio=None,
     Ti=None, width=None,
     vi=None, shift=None,
     pts_lamb_phi_total=None,
@@ -614,13 +605,13 @@ def fit2d_extract(
     # -------------------
     # Check format input
     (
-        dfit1d, d3,
+        dfit2d, d3,
         pts_lamb_total, pts_lamb_detail,
         phi_prof, vs_nbs,
     ) = fit12d_get_data_checkformat(
         dfit=dfit2d,
         bck=bck,
-        amp=amp, coefs=coefs, ratio=ratio,
+        amp=amp, ratio=ratio,
         Ti=Ti, width=width,
         vi=vi, shift=shift,
         pts_total=pts_lamb_phi_total,
@@ -635,37 +626,40 @@ def fit2d_extract(
     dind = dfit1d['dinput']['dind']
     nspect = dprepare['data'].shape[0]
 
+    # Prepare Bsplines
+    nbs = dinput['nbs']
+    BS = BSpline(
+        dinput['knots_mult'],
+        np.ones((nbs, ncoefs), dtype=float),
+        dinput['deg'],
+        extrapolate=False,
+        axis=0,
+    )
+
     # Prepare extract func
     def _get_values(
-        key,
+        k0,
+        typ=None,
         phi_prof=phi_prof,
         d3=d3,
         nspect=nspect,
-        dinput=dfit1d['dinput'],
+        BS=BS,
         dind=dind,
         sol_x=dfit1d['sol_x'],
         scales=dfit1d['scales'],
     ):
-        if d3[key]['type'] == 'lines':
-            keys = dinput['keys'][d3[key]['ind']]
-        else:
-            keys = dinput[d3[key]['field']]['keys'][d3[key]['ind']]
-        indbis = dind[d3[key]['field']][d3[key]['type']][d3[key]['ind']]
+        ind = dind[d3[k0]['field']][k1][d3[k0][k1]['ind']]
 
         # coefs
-        coefs = sol_x[:, indbis] * scales[:, indbis]
+        shape = tuple(np.r_[nspect, nbs, ind.size])
+        coefs = np.full(shape, np.nan)
+        coefs = sol_x[:, ind] * scales[:, ind]
 
         # values at phi_prof
-        BS = BSpline(
-            dinput['knots_mult'],
-            np.ones((dinput['nbs'], ncoefs), dtype=float),
-            dinput['deg'],
-            extrapolate=False,
-            axis=0,
-        )
-        val = np.full((sol_x.shape[0], phi_prof.size), np.nan)
+        shape = tuple(np.r_[nspect, phi_prof.size, ind.size])
+        val = np.full(shape, np.nan)
         for ii in range(nspect):
-            BS.c = sol_x[ii, indbis] * scales[ii, indbis]
+            BS.c = coefs[ii, :]
             val[ii, :, :] = BS(phi_prof)
 
         return keys, coefs, val
@@ -681,6 +675,7 @@ def fit2d_extract(
 
     # bck_amp
     if d3['bck_amp'] is not False:
+        import pdb; pdb.set_trace()     # DB
         keys, coefs, val = _get_values(key='bck_amp')
         dout['bck_amp'] = {
             'keys': keys,

@@ -412,7 +412,7 @@ class Test01_DataCollection(object):
             )
             self.ldex1d.append(dex)
 
-    def test05_fit1d_plot(self):
+    def test05_fit1d_plot(self, warn=True):
         lwar = []
         for ii, dd in enumerate(self.ldex1d):
             try:
@@ -432,7 +432,10 @@ class Test01_DataCollection(object):
                         fs=(4, 4),
                     )
             except Exception as err:
-                lwar.append((ii, str(err)))
+                if warn:
+                    lwar.append((ii, str(err)))
+                else:
+                    raise err
             finally:
                 plt.close('all')
 

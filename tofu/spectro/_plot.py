@@ -274,6 +274,7 @@ def plot_fit1d(
     # Extract (better redeability)
     dprepare = dfit1d['dinput']['dprepare']
     dinput = dfit1d['dinput']
+    d3 = dextract['d3']
 
     # Index of spectra to plot
     if not np.any(dinput['valid']['indt']):
@@ -307,16 +308,20 @@ def plot_fit1d(
     indwidth = np.argmax(dinput['width']['ind'], axis=0)
     indshift = np.argmax(dinput['shift']['ind'], axis=0)
 
-    x = dinput['lines'][None, :] + dextract['shift']['values']
+    x = dinput['lines'][None, :] + d3['shift']['lines']['values']
 
     lcol = ['k', 'r', 'b', 'g', 'm', 'c']
     ncol = len(lcol)
-    if dextract['Ti'] is not False:
+    Ti = 'Ti' in d3.keys()
+    vi = 'vi' in d3.keys()
+    ratio = 'ratio' in d3.keys()
+
+    if Ti:
         lfcol = ['y', 'g', 'c', 'm']
     else:
         lfcol = [None]
     nfcol = len(lfcol)
-    if dextract['vi'] is not False:
+    if vi:
         lhatch = [None, '/', '\\', '|', '-', '+', 'x', '//']
     else:
         lhatch = [None]
@@ -351,7 +356,7 @@ def plot_fit1d(
                 )
             ax.set_prop_cycle(None)
             if dextract['sol_detail'] is not False:
-                if dextract['Ti'] is not False or dextract['vi'] is not False:
+                if Ti or vi:
                     for jj in range(nlines):
                         col = lfcol[indwidth[jj] % nfcol]
                         hatch = lhatch[indshift[jj] % nhatch]
@@ -382,11 +387,11 @@ def plot_fit1d(
                         continue
                     lab = dinput['symb'][nn]
                     ax.axvline(x[ispect, nn], c=col, ls='--')
-                    if dextract['coefs'] is not False:
-                        val = dextract['coefs']['values'][ispect, nn]
+                    if 'x' in d3['amp'].keys():
+                        val = d3['amp']['x']['values'][ispect, nn]
                         lab += '\n{:4.2e}'.format(val)
-                    if dextract['shift'] is not False:
-                        val = dextract['shift']['values'][ispect, nn]*1.e10
+                    if 'x' in d3['shift'].keys():
+                        val = d3['shift']['x']['values'][ispect, nn]*1.e10
                         lab += '\n({:+4.2e} A)'.format(val)
                     ax.annotate(
                         lab,
@@ -414,14 +419,18 @@ def plot_fit1d(
             ax.add_artist(legi)
 
         # Ti legend
-        if dextract['Ti'] is not False:
-            hand = [mpatches.Patch(color=lfcol[jj % nfcol])
-                    for jj in range(dinput['width']['ind'].shape[0])]
-            lleg = [str(dinput['width']['keys'][jj])
-                    + '{:4.2f}'.format(
-                            dextract['Ti']['values'][ispect, jj]*1.e-3
-                            )
-                    for jj in range(dinput['width']['ind'].shape[0])]
+        if Ti:
+            hand = [
+                mpatches.Patch(color=lfcol[jj % nfcol])
+                for jj in range(dinput['width']['ind'].shape[0])
+            ]
+            lleg = [
+                str(dinput['width']['keys'][jj])
+                 + '{:4.2f}'.format(
+                    d3['Ti']['lines']['values'][ispect, jj]*1.e-3
+                )
+                for jj in range(dinput['width']['ind'].shape[0])
+            ]
             legT = ax.legend(
                 handles=hand, labels=lleg,
                 title='Ti (keV)',
@@ -431,15 +440,21 @@ def plot_fit1d(
             ax.add_artist(legT)
 
         # vi legend
-        if dextract['vi'] is not False:
-            hand = [mpatches.Patch(facecolor='w', edgecolor='k',
-                                   hatch=lhatch[jj % nhatch])
-                    for jj in range(dinput['shift']['ind'].shape[0])]
-            lleg = [str(dinput['shift']['keys'][jj])
-                    + '{:4.2f}'.format(
-                            dextract['vi']['values'][ispect, jj]*1.e-3
-                            )
-                    for jj in range(dinput['shift']['ind'].shape[0])]
+        if vi:
+            hand = [
+                mpatches.Patch(
+                    facecolor='w', edgecolor='k',
+                    hatch=lhatch[jj % nhatch],
+                )
+                for jj in range(dinput['shift']['ind'].shape[0])
+            ]
+            lleg = [
+                str(dinput['shift']['keys'][jj])
+                + '{:4.2f}'.format(
+                    d3['vi']['lines']['values'][ispect, jj]*1.e-3
+                )
+                for jj in range(dinput['shift']['ind'].shape[0])
+            ]
             legv = ax.legend(
                 handles=hand, labels=lleg,
                 title='vi (km/s)',
@@ -449,12 +464,12 @@ def plot_fit1d(
             ax.add_artist(legv)
 
         # Ratios legend
-        if dextract['ratio'] is not False:
-            nratio = dextract['ratio']['values'].shape[1]
+        if ratio:
+            nratio = d3['ratio']['lines']['values'].shape[1]
             hand = [mlines.Line2D([], [], c='k', ls='None')]*nratio
             lleg = ['{} =  {:4.2e}'.format(
-                dextract['ratio']['lab'][jj],
-                dextract['ratio']['values'][ispect, jj])
+                d3['ratio']['lines']['lab'][jj],
+                d3['ratio']['lines']['values'][ispect, jj])
                     for jj in range(nratio)]
             legr = ax.legend(
                 handles=hand,
@@ -469,8 +484,8 @@ def plot_fit1d(
         if True:
             hand = [mlines.Line2D([], [], c='k', ls='None')]*2
             lleg = [
-                'amp = {:4.2e}'.format(dextract['bck_amp']['values'][ispect]),
-                'rate = {:4.2e}'.format(dextract['bck_rate']['values'][ispect])
+                'amp = {:4.2e}'.format(d3['bck_amp']['x']['values'][ispect]),
+                'rate = {:4.2e}'.format(d3['bck_rate']['x']['values'][ispect])
             ]
             legr = ax.legend(
                 handles=hand,
@@ -485,9 +500,9 @@ def plot_fit1d(
         if dinput['double'] is not False:
             hand = [mlines.Line2D([], [], c='k', ls='None')]*2
             lleg = [
-                'ratio = {:4.2f}'.format(dextract['dratio'][ispect]),
+                'ratio = {:4.2f}'.format(d3['dratio']['x']['values'][ispect]),
                 'shift ' + r'$\approx$'
-                + ' {:4.2e}'.format(dextract['dshift'][ispect])
+                + ' {:4.2e}'.format(d3['dshift']['x']['values'][ispect])
             ]
             legr = ax.legend(
                 handles=hand,
