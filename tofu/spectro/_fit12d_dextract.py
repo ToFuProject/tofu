@@ -273,6 +273,10 @@ def fit12d_get_data_checkformat(
                         'ind': np.arange(0, len(keys)),
                     }
 
+                elif k0 != 'ratio':
+                    d3[k0][k1] = {
+                        'ind': np.arange(0, dinput['dind'][k0][k1].size),
+                    }
                 else:
                     d3[k0][k1] = {}
 
@@ -405,7 +409,7 @@ def fit1d_extract(
     # Prepare extract func
     def _get_values(
         k0=None,
-        typ=None,
+        k1=None,
         d3=d3,
         dind=dind,
         sol_x=dfit1d['sol_x'],
@@ -417,26 +421,17 @@ def fit1d_extract(
     # -------------------
     # Prepare output
 
-
-    # single-value variable
-    lk_single = ['bck_amp', 'bck_rate']
-    for k0 in set(lk_single).intersection(d3.keys()):
-        d3[k0]['x']['values']= (
-            dfit1d['sol_x'][:, dind[k0]['x'][0]]
-            * dfit1d['scales'][:, dind[k0]['x'][0]]
-        )
-
     # multiple-value, direct computation
-    lk_direct = ['amp', 'width', 'shift']
+    lk_direct = ['bck_amp', 'bck_rate', 'amp', 'width', 'shift']
     for k0 in set(lk_direct).intersection(d3.keys()):
         for k1 in set(['x', 'lines']).intersection(d3[k0].keys()):
-            d3[k0][k1]['values'] = _get_values(k0=k0, typ=k1)
+            d3[k0][k1]['values'] = _get_values(k0=k0, k1=k1)
 
     # multiple-value, indirect computation
     k0 = 'Ti'
     if k0 in d3.keys():
         k1 = d3[k0]['types'][0]
-        val = _get_values(k0=k0, typ=k1)
+        val = _get_values(k0=k0, k1=k1)
         conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
         d3[k0][k1]['values'] = (
             val * conv * scpct.c**2
@@ -447,7 +442,7 @@ def fit1d_extract(
     k0 = 'vi'
     if k0 in d3.keys():
         k1 = d3[k0]['types'][0]
-        val = _get_values(k0=k0, typ=k1)
+        val = _get_values(k0=k0, k1=k1)
         d3['vi']['lines']['values'] = val * scpct.c
 
     # ratio
@@ -622,16 +617,16 @@ def fit2d_extract(
     )
 
     # Extract dprepare and dind (more readable)
-    dprepare = dfit1d['dinput']['dprepare']
-    dind = dfit1d['dinput']['dind']
+    dprepare = dfit2d['dinput']['dprepare']
+    dind = dfit2d['dinput']['dind']
     nspect = dprepare['data'].shape[0]
 
     # Prepare Bsplines
-    nbs = dinput['nbs']
+    nbs = dfit2d['dinput']['nbs']
     BS = BSpline(
-        dinput['knots_mult'],
-        np.ones((nbs, ncoefs), dtype=float),
-        dinput['deg'],
+        dfit2d['dinput']['knots_mult'],
+        np.ones((nbs, 1), dtype=float),
+        dfit2d['dinput']['deg'],
         extrapolate=False,
         axis=0,
     )
@@ -639,30 +634,46 @@ def fit2d_extract(
     # Prepare extract func
     def _get_values(
         k0,
-        typ=None,
+        k1=None,
         phi_prof=phi_prof,
         d3=d3,
         nspect=nspect,
         BS=BS,
         dind=dind,
-        sol_x=dfit1d['sol_x'],
-        scales=dfit1d['scales'],
+        sol_x=dfit2d['sol_x'],
+        scales=dfit2d['scales'],
     ):
-        ind = dind[d3[k0]['field']][k1][d3[k0][k1]['ind']]
+
+        # For bck_amp, bck_rate and dratio, dshift
+        # => need to make ind 2d !! [nbs, 1] and not 1d [nbs,]
+        ind = dind[d3[k0]['field']][k1][:, d3[k0][k1]['ind']]
+        assert ind.shape[0] == nbs
 
         # coefs
-        shape = tuple(np.r_[nspect, nbs, ind.size])
+        shape = tuple(np.r_[nspect, ind.shape])
         coefs = np.full(shape, np.nan)
+        import pdb; pdb.set_trace()     # DB
         coefs = sol_x[:, ind] * scales[:, ind]
 
         # values at phi_prof
         shape = tuple(np.r_[nspect, phi_prof.size, ind.size])
         val = np.full(shape, np.nan)
         for ii in range(nspect):
+            import pdb; pdb.set_trace()     # DB
             BS.c = coefs[ii, :]
             val[ii, :, :] = BS(phi_prof)
 
         return keys, coefs, val
+
+    # multiple-value, direct computation
+    lk_direct = ['bck_amp', 'bck_rate', 'amp', 'width', 'shift']
+    for k0 in set(lk_direct).intersection(d3.keys()):
+        for k1 in set(['x', 'lines']).intersection(d3[k0].keys()):
+            d3[k0][k1]['values'] = _get_values(k0=k0, k1=k1)
+
+
+
+
 
     # -------------------
     # Prepare output

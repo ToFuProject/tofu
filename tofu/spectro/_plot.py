@@ -484,8 +484,8 @@ def plot_fit1d(
         if True:
             hand = [mlines.Line2D([], [], c='k', ls='None')]*2
             lleg = [
-                'amp = {:4.2e}'.format(d3['bck_amp']['x']['values'][ispect]),
-                'rate = {:4.2e}'.format(d3['bck_rate']['x']['values'][ispect])
+                f"amp = {d3['bck_amp']['x']['values'][ispect, 0]:4.2e}",
+                f"rate = {d3['bck_rate']['x']['values'][ispect, 0]:4.2e}"
             ]
             legr = ax.legend(
                 handles=hand,
@@ -500,9 +500,9 @@ def plot_fit1d(
         if dinput['double'] is not False:
             hand = [mlines.Line2D([], [], c='k', ls='None')]*2
             lleg = [
-                'ratio = {:4.2f}'.format(d3['dratio']['x']['values'][ispect]),
+                f"ratio = {d3['dratio']['x']['values'][ispect, 0]:4.2f}",
                 'shift ' + r'$\approx$'
-                + ' {:4.2e}'.format(d3['dshift']['x']['values'][ispect])
+                + f" {d3['dshift']['x']['values'][ispect, 0]:4.2e}"
             ]
             legr = ax.legend(
                 handles=hand,

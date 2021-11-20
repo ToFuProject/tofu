@@ -1922,15 +1922,15 @@ def multigausfit1d_from_dlines_ind(dinput=None):
 
     # check if double
     if dinput['double'] is True:
-        dind['dshift'] = {'x': -2}
-        dind['dratio'] = {'x': -1}
+        dind['dshift'] = {'x': np.r_[-2]}
+        dind['dratio'] = {'x': np.r_[-1]}
         sizex += 2
     elif isinstance(dinput['double'], dict):
         if dinput['double'].get('dshift') is None:
-            dind['dshift'] = {'x': -1}
+            dind['dshift'] = {'x': np.r_[-1]}
             sizex += 1
         elif dinput['double'].get('dratio') is None:
-            dind['dratio'] = {'x': -1}
+            dind['dratio'] = {'x': np.r_[-1]}
             sizex += 1
 
     dind['sizex'] = sizex
@@ -1994,15 +1994,15 @@ def multigausfit2d_from_dlines_ind(dinput=None):
 
     # check if double
     if dinput['double'] is True:
-        dind['dshift'] = {'x': -2}
-        dind['dratio'] = {'x': -1}
+        dind['dshift'] = {'x': np.r_[-2]}
+        dind['dratio'] = {'x': np.r_[-1]}
         sizex += 2
     elif isinstance(dinput['double'], dict):
         if dinput['double'].get('dshift') is None:
-            dind['dshift'] = {'x': -1}
+            dind['dshift'] = {'x': np.r_[-1]}
             sizex += 1
         elif dinput['double'].get('dratio') is None:
-            dind['dratio'] = {'x': -1}
+            dind['dratio'] = {'x': np.r_[-1]}
             sizex += 1
 
     dind['sizex'] = sizex
@@ -2664,12 +2664,12 @@ def _dict2vector_dscalesx0bounds(
 
     if dinput['double'] is not False:
         if dinput['double'] is True:
-            x[:, dinput['dind']['dratio']['x']] = dd['dratio']
-            x[:, dinput['dind']['dshift']['x']] = dd['dshift']
+            x[:, dinput['dind']['dratio']['x']] = dd['dratio'][:, None]
+            x[:, dinput['dind']['dshift']['x']] = dd['dshift'][:, None]
         else:
             if dinput['double'].get('dratio') is None:
-                x[:, dinput['dind']['dratio']['x']] = dd['dratio']
+                x[:, dinput['dind']['dratio']['x']] = dd['dratio'][:, None]
             if dinput['double'].get('dshift') is None:
-                x[:, dinput['dind']['dshift']['x']] = dd['dshift']
+                x[:, dinput['dind']['dshift']['x']] = dd['dshift'][:, None]
 
     return x

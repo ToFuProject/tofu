@@ -291,6 +291,7 @@ class Test01_DataCollection(object):
         cls.ldfit1d = []
         cls.ldex1d = []
         cls.ldinput2d = []
+        cls.ldinput2d_run = []
         cls.ldfit2d = []
         cls.ldex2d = []
 
@@ -457,7 +458,6 @@ class Test01_DataCollection(object):
             len(self.ldconst) * len(self.ldx0) * len(self.ldomain)
             * len(self.lfocus) * len(self.ldconstants)
         )
-        ind2dok = np.zeros((ntot,), dtype=bool)
         for ii, comb in enumerate(itt.product(*combin)):
             pos = ii % 2 == 0
             mask = self.mask if ii % 3 == 0 else None
@@ -493,9 +493,7 @@ class Test01_DataCollection(object):
                 and comb[4] == self.ldconstants[0]
             )
             if c0:
-                ind2dok[ii] = True
-
-        self.ind2dok = ind2dok
+                self.ldinput2d_run.append(ii)
 
     def test07_funccostjac_2d(self):
         func = tfs._fit12d_funccostjac.multigausfit2d_from_dlines_funccostjac
@@ -544,7 +542,7 @@ class Test01_DataCollection(object):
             assert np.allclose(dy0, dy1, equal_nan=True)
 
     def test08_fit2d(self, verb=False):
-        for ii, ij in enumerate(self.ind2dok.nonzero()[0]):
+        for ii, ij in enumerate(self.ldinput2d_run):
             din = self.ldinput2d[ij]
             chain = ii % 2 == 0
 
