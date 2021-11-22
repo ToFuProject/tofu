@@ -68,10 +68,12 @@ _D3 = {
     'dratio': {
         'types': ['x'],
         'units': 'a.u.',
+        'field': 'dratio',
     },
     'dshift': {
         'types': ['x'],
         'units': 'a.u.',
+        'field': 'dshift',
     },
 }
 _ALLOW_PICKLE = True
@@ -92,8 +94,9 @@ def fit12d_get_data_checkformat(
     amp=None, ratio=None,
     Ti=None, width=None,
     vi=None, shift=None,
-    pts_total=None,
-    pts_detail=None,
+    sol_total=None,
+    sol_detail=None,
+    sol_pts=None,
     phi_prof=None,
     phi_npts=None,
     vs_nbs=None,
@@ -128,11 +131,16 @@ def fit12d_get_data_checkformat(
     # ----------------
     # Identify if fit1d or fit2d
 
-    is2d = 'nbsplines' in dfit['dinput'].keys()
+    is2d = 'nbs' in dfit['dinput'].keys()
     if is2d is True:
-        if 'phi2' not in dfit.keys():
-            msg = "dfit is a fit2d output but does not have key 'phi2'!"
+        if 'symmetry' not in dfit['dinput'].keys():
+            msg = "dfit is a fit2d but does not have key 'symmetry'!"
             raise Exception(msg)
+        if dfit['dinput']['symmetry']:
+            c0 = dfit['dinput'].get('symmetry_axis', False) is False
+            if c0:
+                msg = "dfit is a fit2d but does not have key 'symmetry_axis'!"
+                raise Exception(msg)
     else:
         phi_prof = False
 
@@ -275,7 +283,7 @@ def fit12d_get_data_checkformat(
 
                 elif k0 != 'ratio':
                     d3[k0][k1] = {
-                        'ind': np.arange(0, dinput['dind'][k0][k1].size),
+                        'ind': np.r_[0],
                     }
                 else:
                     d3[k0][k1] = {}
@@ -320,7 +328,7 @@ def fit12d_get_data_checkformat(
             if not any(c1):
                 phi_npts = (2*dinput['deg']-1)*(dinput['knots'].size-1) + 1
             if phi_npts is not None:
-                phi_npts = int(npts_phi)
+                phi_npts = int(phi_npts)
                 phi_prof = np.linspace(
                     dprepare['domain']['phi']['minmax'][0],
                     dprepare['domain']['phi']['minmax'][1],
@@ -337,26 +345,53 @@ def fit12d_get_data_checkformat(
             raise Exception(msg)
 
     # ----------------
-    # pts_total, pts_detail
+    # sol_total, sol_detail, sol_pts
 
-    if pts_total is None:
+    if sol_pts is not None:
+        if is2d is True:
+            c0 = (
+                isinstance(sol_pts, (tuple, list, np.ndarray))
+                and len(sol_pts) == 2
+                and all([isinstance(ss, np.ndarray) for ss in sol_pts])
+                and sol_pts[0].shape == sol_pts[1].shape
+            )
+            if not c0:
+                msg = (
+                    "Arg sol_lamb_phi must be a tuple of 2 np.ndarray"
+                    " of same shape!"
+                )
+                raise Exception(msg)
+        else:
+            c0 = isinstance(sol_pts, np.ndarray)
+            if not c0:
+                msg = "Arg sol_lamb must be a np.ndarray!"
+                raise Exception(msg)
+
+    if sol_total is None:
+        sol_total = sol_pts is not None
+    if sol_detail is None:
+        sol_detail = False
+
+    if not isinstance(sol_total, bool):
+        msg = f"Arg sol_total must be a bool!\nProvided: {sol_total}"
+        raise Exception(msg)
+    if not isinstance(sol_detail, bool):
+        msg = f"Arg sol_detail must be a bool!\nProvided: {sol_detail}"
+        raise Exception(msg)
+
+    c0 = (sol_total is True or sol_detail is True) and sol_pts is None
+    if c0:
         if dprepare is None:
-            pts_total = False
+            sol_pts = False
         else:
             if is2d is True:
-                pts_total = np.array([dprepare['lamb'], dprepare['phi']])
+                sol_pts = (dprepare['lamb'], dprepare['phi'])
             else:
-                pts_total = dprepare['lamb']
-    if pts_detail is None:
-        pts_detail = False
-    if pts_detail is True and pts_total is not False:
-        pts_detail = pts_total
-    if pts_detail is not False:
-        pts_detail = np.array(pts_detail)
-    if pts_total is not False:
-        pts_total = np.array(pts_total)
+                sol_pts = dprepare['lamb']
+    if any([sol_total, sol_detail]):
+        assert sol_pts is not None
 
-    return dfit, d3, pts_total, pts_detail, phi_prof, vs_nbs
+    return dfit, d3, sol_total, sol_detail, sol_pts, phi_prof, vs_nbs
 
 
 def fit1d_extract(
@@ -365,8 +400,9 @@ def fit1d_extract(
     amp=None, ratio=None,
     Ti=None, width=None,
     vi=None, shift=None,
-    pts_lamb_total=None,
-    pts_lamb_detail=None,
+    sol_total=None,
+    sol_detail=None,
+    sol_lamb=None,
 ):
     """
     Return a dict with extarcted data of interest
@@ -389,7 +425,7 @@ def fit1d_extract(
     # Check format input
     (
         dfit1d, d3,
-        pts_lamb_total, pts_lamb_detail,
+        sol_total, sol_detail, sol_lamb,
         _, _,
     ) = fit12d_get_data_checkformat(
         dfit=dfit1d,
@@ -397,8 +433,9 @@ def fit1d_extract(
         amp=amp, ratio=ratio,
         Ti=Ti, width=width,
         vi=vi, shift=shift,
-        pts_total=pts_lamb_total,
-        pts_detail=pts_lamb_detail,
+        sol_total=sol_total,
+        sol_detail=sol_detail,
+        sol_pts=sol_lamb,
     )
 
     # Extract dprepare and dind (more readable)
@@ -443,7 +480,7 @@ def fit1d_extract(
     if k0 in d3.keys():
         k1 = d3[k0]['types'][0]
         val = _get_values(k0=k0, k1=k1)
-        d3['vi']['lines']['values'] = val * scpct.c
+        d3[k0]['lines']['values'] = val * scpct.c
 
     # ratio
     k0 = 'ratio'
@@ -474,72 +511,77 @@ def fit1d_extract(
 
     # double
     if dfit1d['dinput']['double'] is not False:
-
-        # dratio
         double = dfit1d['dinput']['double']
-        if double is True or double.get('dratio') is None:
-            val = dfit1d['sol_x'][:, dind['dratio']['x']]
-        else:
-            val = np.full((nspect,), double['dratio'])
-        d3['dratio']['x']['values'] = val
-
-        # dshift
-        if double is True or double.get('dratio') is None:
-            val = dfit1d['sol_x'][:, dind['dshift']['x']]
-        else:
-            val = np.full((nspect,), double['dshift'])
-        d3['dshift']['x']['values'] = val
+        for k0 in ['dratio', 'dshift']:
+            if double is True or double.get(k0) is None:
+                val = _get_values(k0=k0, k1='x')
+            else:
+                val = np.full((nspect, 1), double[k0])
+            d3[k0]['x']['values'] = val
 
     # -------------------
     # sol_detail and sol_tot
     sold, solt = False, False
-    if pts_lamb_detail is not False or pts_lamb_total is not False:
+    if any([sol_total, sol_detail]):
 
         (
-            func_detail, func_cost, _,
+            func_detail, func_cost,
         ) = _funccostjac.multigausfit1d_from_dlines_funccostjac(
-            dprepare['lamb'],
+            lamb=sol_lamb,
+            indx=None,      # because dfit['sol_x' built with const]
             dinput=dfit1d['dinput'],
-            dind=dind, jac=dfit1d['jac'])
+            dind=dind,
+            jac=None,
+        )[:2]
 
-        if pts_lamb_detail is not False:
-            shape = tuple(np.r_[nspect, pts_lamb_detail.shape,
-                                dfit1d['dinput']['nlines']+1])
+        # sol_details
+        if sol_detail:
+            shape = tuple(np.r_[
+                nspect,
+                sol_lamb.shape,
+                dfit1d['dinput']['nlines'] + 1,
+            ])
             sold = np.full(shape, np.nan)
             for ii in range(nspect):
-                sold[ii, dprepare['indok'][ii, :], :] = func_detail(
+                if dfit1d['validity'][ii] < 0:
+                    continue
+                sold[ii, ...] = func_detail(
                     dfit1d['sol_x'][ii, :],
                     scales=dfit1d['scales'][ii, :],
-                    indok=dprepare['indok'][ii, :],
+                    indok=None,
+                    const=None,
                 )
-                # indok_var=dprepare['indok_var'][ii])
 
-        if pts_lamb_total is not False:
-            shape = tuple(np.r_[nspect, pts_lamb_total.shape])
+        # sol_total
+        if sol_total:
+            shape = tuple(np.r_[nspect, sol_lamb.shape])
             solt = np.full(shape, np.nan)
             for ii in range(nspect):
-                solt[ii, dprepare['indok'][ii, :]] = func_cost(
+                if dfit1d['validity'][ii] < 0:
+                    continue
+                solt[ii, ...] = func_cost(
                     dfit1d['sol_x'][ii, :],
                     scales=dfit1d['scales'][ii, :],
-                    indok=dprepare['indok'][ii, :],
-                    data=0.)
+                    indok=None,
+                    const=None,
+                    data=0.,
+                )
 
             # Double-check consistency if possible
-            c0 = (pts_lamb_detail is not False
-                  and np.allclose(pts_lamb_total, pts_lamb_detail))
-            if c0:
-                if not np.allclose(solt, np.sum(sold, axis=-1),
-                                   equal_nan=True):
+            if sol_detail:
+                soldsum = np.nansum(sold, axis=-1)
+                iok = (~np.isnan(solt)) & (~np.isnan(soldsum))
+                c1 = np.allclose(solt[iok], soldsum[iok], equal_nan=True)
+                if not c1:
                     msg = "Inconsistent computations detail vs total"
                     raise Exception(msg)
 
     dout = {
         'sol_detail': sold,
-        'sol_tot': solt,
+        'sol_total': solt,
         'units': 'a.u.',
         'd3': d3,
-        'pts_lamb_detail': pts_lamb_detail,
-        'pts_lamb_total': pts_lamb_total,
+        'sol_lamb': sol_lamb,
     }
     return dout
 
@@ -576,8 +618,9 @@ def fit2d_extract(
     amp=None, ratio=None,
     Ti=None, width=None,
     vi=None, shift=None,
-    pts_lamb_phi_total=None,
-    pts_lamb_phi_detail=None,
+    sol_total=None,
+    sol_detail=None,
+    sol_lamb_phi=None,
     phi_prof=None,
     phi_npts=None,
     vs_nbs=None,
@@ -601,7 +644,7 @@ def fit2d_extract(
     # Check format input
     (
         dfit2d, d3,
-        pts_lamb_total, pts_lamb_detail,
+        sol_total, sol_detail, sol_lamb_phi,
         phi_prof, vs_nbs,
     ) = fit12d_get_data_checkformat(
         dfit=dfit2d,
@@ -609,8 +652,9 @@ def fit2d_extract(
         amp=amp, ratio=ratio,
         Ti=Ti, width=width,
         vi=vi, shift=shift,
-        pts_total=pts_lamb_phi_total,
-        pts_detail=pts_lamb_phi_detail,
+        sol_total=sol_total,
+        sol_detail=sol_detail,
+        sol_pts=sol_lamb_phi,
         phi_prof=phi_prof,
         phi_npts=phi_npts,
         vs_nbs=vs_nbs,
@@ -647,193 +691,162 @@ def fit2d_extract(
         # For bck_amp, bck_rate and dratio, dshift
         # => need to make ind 2d !! [nbs, 1] and not 1d [nbs,]
         ind = dind[d3[k0]['field']][k1][:, d3[k0][k1]['ind']]
-        assert ind.shape[0] == nbs
+        assert k0 in ['dratio', 'dshift'] or ind.shape[0] == nbs
 
         # coefs
         shape = tuple(np.r_[nspect, ind.shape])
         coefs = np.full(shape, np.nan)
-        import pdb; pdb.set_trace()     # DB
         coefs = sol_x[:, ind] * scales[:, ind]
 
         # values at phi_prof
-        shape = tuple(np.r_[nspect, phi_prof.size, ind.size])
+        shape = tuple(np.r_[nspect, phi_prof.size, ind.shape[1]])
         val = np.full(shape, np.nan)
         for ii in range(nspect):
-            import pdb; pdb.set_trace()     # DB
-            BS.c = coefs[ii, :]
+            BS.c = coefs[ii, :, :]
             val[ii, :, :] = BS(phi_prof)
 
-        return keys, coefs, val
+        return coefs, val
 
     # multiple-value, direct computation
     lk_direct = ['bck_amp', 'bck_rate', 'amp', 'width', 'shift']
     for k0 in set(lk_direct).intersection(d3.keys()):
         for k1 in set(['x', 'lines']).intersection(d3[k0].keys()):
-            d3[k0][k1]['values'] = _get_values(k0=k0, k1=k1)
+            d3[k0][k1]['coefs'], d3[k0][k1]['values'] = _get_values(
+                k0=k0, k1=k1,
+            )
 
-
-
-
-
-    # -------------------
-    # Prepare output
-    lk = [
-        'bck_amp', 'bck_rate',
-        'amp', 'coefs', 'ratio', 'Ti', 'width', 'vi', 'shift',
-        'dratio', 'dshift',
-    ]
-    dout = dict.fromkeys(lk, False)
-
-    # bck_amp
-    if d3['bck_amp'] is not False:
-        import pdb; pdb.set_trace()     # DB
-        keys, coefs, val = _get_values(key='bck_amp')
-        dout['bck_amp'] = {
-            'keys': keys,
-            'coefs': coefs,
-            'values': val,
-            'units': 'a.u.',
-        }
-            # 'coefs': (
-                # dfit1d['sol_x'][:, dind['bck_amp']['x']]
-                # * dfit1d['scales'][:, dind['bck_amp']['x']]
-            # ),
-        # dout['bck_rate'] = {
-            # 'coefs': (
-                # dfit1d['sol_x'][:, dind['bck_rate']['x']]
-                # * dfit1d['scales'][:, dind['bck_rate']['x']]
-            # ),
-        # }
-
-    # bck_rate
-    if d3['bck_rate'] is not False:
-        keys, coefs, val = _get_values(key='bck_rate')
-        dout['bck_rate'] = {
-            'keys': keys,
-            'coefs': coefs,
-            'values': val,
-            'units': 'a.u.',
-        }
-
-    import pdb; pdb.set_trace()     # DB
-    # amp
-    if d3['amp'] is not False:
-        keys, coefs, val = _get_values('amp')
-        dout['amp'] = {
-            'keys': keys,
-            'coefs': coefs,
-            'values': val,
-            'units': 'a.u.',
-        }
-
-    # coefs
-    if d3['coefs'] is not False:
-        keys, coefs, val = _get_values('coefs')
-        dout['coefs'] = {
-            'keys': keys,
-            'coefs': coefs,
-            'values': val,
-            'units': 'a.u.',
-        }
-
-    # ratio
-    if d3['ratio'] is not False:
-        nratio = d3['ratio'].shape[1]
-        indup = np.r_[[(dout['coefs']['keys'] == kk).nonzero()[0][0]
-                       for kk in d3['ratio'][0, :]]]
-        indlo = np.r_[[(dout['coefs']['keys'] == kk).nonzero()[0][0]
-                       for kk in d3['ratio'][1, :]]]
-        val = (dout['coefs']['values'][:, indup]
-               / dout['coefs']['values'][:, indlo])
-        lab = np.r_[['{} / {}'.format(dfit1d['dinput']['symb'][indup[ii]],
-                                      dfit1d['dinput']['symb'][indlo[ii]])
-                     for ii in range(nratio)]]
-        dout['ratio'] = {'keys': dout['ratio'], 'values': val,
-                         'lab': lab, 'units': 'a.u.'}
-
-    dout = {}
-    # amp
-    if d3['amp'] is not False:
-        keys, val = _get_phi_profile(
-            d3['amp']['field'], nspect=nspect,
-            dinput=dfit2d['dinput'],
-            dind=dfit2d['dind'], sol_x=dfit2d['sol_x'],
-            scales=dfit2d['scales'], pts_phi=pts_phi,
-            typ=d3['amp']['type'], ind=d3['amp']['ind'])
-        dout['amp'] = {'keys': keys, 'values': val, 'units': 'a.u.'}
-
-    # Ti
-    if d3['Ti'] is not False:
-        keys, val = _get_phi_profile(
-            d3['Ti']['field'], nspect=nspect,
-            dinput=dfit2d['dinput'],
-            dind=dfit2d['dind'], sol_x=dfit2d['sol_x'],
-            scales=dfit2d['scales'], pts_phi=pts_phi,
-            typ=d3['Ti']['type'], ind=d3['Ti']['ind'])
+    # multiple-value, indirect computation
+    k0 = 'Ti'
+    if k0 in d3.keys():
+        k1 = d3[k0]['types'][0]
+        coefs, val = _get_values(k0=k0, k1=k1)
         conv = np.sqrt(scpct.mu_0*scpct.c / (2.*scpct.h*scpct.alpha))
-        if d3['Ti']['type'] == 'lines':
-            indTi = np.arange(0, dfit2d['dinput']['nlines'])
-        else:
-            indTi = np.array([iit[0]
-                              for iit in dfit2d['dind']['width']['jac']])
-        indTi = indTi[d3['Ti']['ind']]
-        val = (conv * val
-               * dfit2d['dinput']['mz'][indTi][None, None, :]
-               * scpct.c**2)
-        dout['Ti'] = {'keys': keys, 'values': val, 'units': 'eV'}
+        mz = dfit2d['dinput']['mz'][d3[k0][k1]['ind']]
+        d3[k0][k1]['coefs'] = (
+            coefs * conv * scpct.c**2 * mz[None, None, :]
+        )
+        d3[k0][k1]['values'] = (
+            val * conv * scpct.c**2 * mz[None, None, :]
+        )
 
     # vi
-    if d3['vi'] is not False:
-        keys, val = _get_phi_profile(
-            d3['vi']['field'], nspect=nspect,
-            dinput=dfit2d['dinput'],
-            dind=dfit2d['dind'], sol_x=dfit2d['sol_x'],
-            scales=dfit2d['scales'], pts_phi=pts_phi,
-            typ=d3['vi']['type'], ind=d3['vi']['ind'])
-        val = val * scpct.c
-        dout['vi'] = {'keys': keys, 'values': val, 'units': 'm.s^-1'}
+    k0 = 'vi'
+    if k0 in d3.keys():
+        k1 = d3[k0]['types'][0]
+        coefs, val = _get_values(k0=k0, k1=k1)
+        d3[k0]['lines']['coefs'] = coefs * scpct.c
+        d3[k0]['lines']['values'] = val * scpct.c
+
+    # ratio
+    k0 = 'ratio'
+    if k0 in d3.keys():
+        k1 = d3[k0]['types'][0]
+        nratio = d3[k0]['requested'].shape[1]
+        indup = np.r_[[
+            (d3['amp']['lines']['keys'] == kk).nonzero()[0][0]
+            for kk in d3['ratio']['requested'][0, :]
+        ]]
+        indlo = np.r_[[
+            (d3['amp']['lines']['keys'] == kk).nonzero()[0][0]
+            for kk in d3['ratio']['requested'][1, :]]
+        ]
+        val = (
+            d3['amp']['lines']['values'][:, :, indup]
+            / d3['amp']['lines']['values'][:, :, indlo]
+        )
+        lab = np.r_[
+            ['{} / {}'.format(
+                dfit2d['dinput']['symb'][indup[ii]],
+                dfit2d['dinput']['symb'][indlo[ii]],
+            )
+            for ii in range(nratio)]
+        ]
+        d3['ratio']['lines']['values'] = val
+        d3['ratio']['lines']['lab'] = lab
+
+    # double
+    if dfit2d['dinput']['double'] is not False:
+        double = dfit2d['dinput']['double']
+        for k0 in ['dratio', 'dshift']:
+            if double is True or double.get(k0) is None:
+                coefs, val = _get_values(k0=k0, k1='x')
+            else:
+                coefs = np.full((nspect, nbs, 1), double[k0])
+                val = np.full((nspect, nbs, 1), double[k0])
+            d3[k0]['x']['coefs'] = coefs
+            d3[k0]['x']['values'] = val
 
     # -------------------
     # sol_detail and sol_tot
     sold, solt = False, False
-    if pts_lamb_phi_detail is not False or pts_lamb_phi_total is not False:
+    if sol_total or sol_detail:
 
-        func_detail = _funccostjac.multigausfit2d_from_dlines_funccostjac(
-            dfit2d['dprepare']['lamb'], dfit2d['phi2'],
-            indok=dfit2d['dprepare']['indok'],
-            binning=dfit2d['dprepare']['binning'],
+        # func
+        (
+            func_detail, func_cost,
+        ) = _funccostjac.multigausfit2d_from_dlines_funccostjac(
+            lamb=sol_lamb_phi[0],
+            phi=sol_lamb_phi[1],
+            indx=None,      # because dfit['sol_x' built with const]
             dinput=dfit2d['dinput'],
-            dind=dfit2d['dind'], jac=dfit2d['jac'])[0]
+            dind=dind,
+            jac=None,
+        )[:2]
 
-        if pts_lamb_phi_detail is not False:
-            shape = tuple(np.r_[nspect, pts_lamb_phi_detail.shape,
-                                dfit2d['dinput']['nlines']+1,
-                                dfit2d['dinput']['nbs']])
+        # sol_details
+        if sol_detail:
+            shape = tuple(np.r_[
+                nspect,
+                sol_lamb_phi[0].shape,
+                dfit2d['dinput']['nlines'] + 1,
+                nbs,
+            ])
             sold = np.full(shape, np.nan)
-        if pts_lamb_phi_total is not False:
-            shape = tuple(np.r_[nspect, pts_lamb_phi_total.shape])
+            for ii in range(nspect):
+                if dfit2d['validity'][ii] < 0:
+                    continue
+                sold[ii, ...] = func_detail(
+                    dfit2d['sol_x'][ii, :],
+                    scales=dfit2d['scales'][ii, :],
+                    indok=None,
+                    const=None,
+                )
+
+        # sol_total
+        if sol_total:
+            shape = tuple(np.r_[nspect, sol_lamb_phi[0].shape])
             solt = np.full(shape, np.nan)
+            for ii in range(nspect):
+                if dfit2d['validity'][ii] < 0:
+                    continue
+                # Separate and reshape output
+                solt[ii, ...] = func_cost(
+                    dfit2d['sol_x'][ii, :],
+                    scales=dfit2d['scales'][ii, :],
+                    indok_flat=None,
+                    const=None,
+                    data_flat=0.,
+                ).reshape(sol_lamb_phi[0].shape)
 
-        for ii in range(nspect):
-
-            # Separate and reshape output
-            fd = func_detail(dfit2d['sol_x'][ii, :],
-                             scales=dfit2d['scales'][ii, :],
-                             indok_var=dfit2d['dprepare']['indok_var'][ii])
-
-            if pts_lamb_phi_detail is not False:
-                sold[ii, ...] = fd
-            if pts_lamb_phi_total is not False:
-                solt[ii, ...] = np.nansum(np.nansum(fd, axis=-1), axis=-1)
-
-    dout['sol_detail'] = sold
-    dout['sol_tot'] = solt
-    dout['units'] = 'a.u.'
+            # Double-check consistency if possible
+            if sol_detail:
+                soldsum = np.nansum(np.nansum(sold, axis=-1), axis=-1)
+                iok = (~np.isnan(solt)) & (~np.isnan(soldsum))
+                c1 = np.allclose(solt[iok], soldsum[iok], equal_nan=True)
+                if not c1:
+                    msg = "Inconsistent computations detail vs total"
+                    raise Exception(msg)
 
     # -------------------
     # Add input args
-    dout['d3'] = d3
-    dout['pts_phi'] = pts_phi
-    dout['pts_lamb_phi_detail'] = pts_lamb_phi_detail
-    dout['pts_lamb_phi_total'] = pts_lamb_phi_total
+
+    dout = {
+        'sol_detail': sold,
+        'sol_tot': solt,
+        'units': 'a.u.',
+        'd3': d3,
+        'phi_prof': phi_prof,
+        'sol_lamb_phi': sol_lamb_phi,
+    }
+
     return dout

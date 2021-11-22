@@ -86,8 +86,10 @@ def _checkformat_dinput(dinput, allow_pickle=True):
 ###########################################################
 
 
-def _checkformat_options(chain, method, tr_solver, tr_options,
-                         xtol, ftol, gtol, loss, max_nfev, verbose):
+def _checkformat_options(
+    chain, method, tr_solver, tr_options,
+    xtol, ftol, gtol, loss, max_nfev, verbose, strict,
+):
     if chain is None:
         chain = _CHAIN
     if method is None:
@@ -113,9 +115,11 @@ def _checkformat_options(chain, method, tr_solver, tr_options,
         verbscp = 2
     else:
         verbscp = 0
+    if strict is None:
+        strict = False
 
     return (chain, method, tr_solver, tr_options,
-            xtol, ftol, gtol, loss, max_nfev, verbose, verbscp)
+            xtol, ftol, gtol, loss, max_nfev, verbose, verbscp, strict)
 
 
 def multigausfit1d_from_dlines(
@@ -124,6 +128,7 @@ def multigausfit1d_from_dlines(
     xtol=None, ftol=None, gtol=None,
     max_nfev=None, chain=None, verbose=None,
     loss=None, jac=None,
+    strict=None,
 ):
     """ Solve multi_gaussian fit in 1d from dlines
 
@@ -151,10 +156,10 @@ def multigausfit1d_from_dlines(
     (
         chain, method, tr_solver, tr_options,
         xtol, ftol, gtol, loss, max_nfev,
-        verbose, verbscp,
+        verbose, verbscp, strict,
     ) = _checkformat_options(
          chain, method, tr_solver, tr_options,
-         xtol, ftol, gtol, loss, max_nfev, verbose,
+         xtol, ftol, gtol, loss, max_nfev, verbose, strict,
     )
 
     # ---------------------------
@@ -417,6 +422,8 @@ def multigausfit1d_from_dlines(
         'time': time, 'success': success,
         'validity': validity, 'errmsg': np.array(errmsg),
         'cost': cost, 'nfev': nfev, 'msg': np.array(message),
+        'indx': indx,
+        'const': const,
     }
     return dfit
 
@@ -427,6 +434,7 @@ def multigausfit2d_from_dlines(
     xtol=None, ftol=None, gtol=None,
     max_nfev=None, chain=None, verbose=None,
     loss=None, jac=None,
+    strict=None,
 ):
     """ Solve multi_gaussian fit in 1d from dlines
 
@@ -454,10 +462,10 @@ def multigausfit2d_from_dlines(
     (
         chain, method, tr_solver, tr_options,
         xtol, ftol, gtol, loss, max_nfev,
-        verbose, verbscp,
+        verbose, verbscp, strict,
     ) = _checkformat_options(
          chain, method, tr_solver, tr_options,
-         xtol, ftol, gtol, loss, max_nfev, verbose,
+         xtol, ftol, gtol, loss, max_nfev, verbose, strict,
     )
 
     # ---------------------------
@@ -467,7 +475,7 @@ def multigausfit2d_from_dlines(
     nspect = dprepare['data'].shape[0]
 
     # ---------------------------
-    # DEPRECATED?
+    # lamb and phi (symmetry axis?)
     lamb = dprepare['lamb']
     if dinput['symmetry'] is True:
         phi = np.abs(dprepare['phi'] - np.nanmean(dinput['symmetry_axis']))
@@ -608,8 +616,11 @@ def multigausfit2d_from_dlines(
             sol_x[ii, indx] = res.x
 
         except Exception as err:
-            errmsg[ii] = str(err)
-            validity[ii] = -1
+            if strict:
+                raise err
+            else:
+                errmsg[ii] = str(err)
+                validity[ii] = -1
 
         # verbose
         if verbose in [1, 2]:
@@ -689,6 +700,8 @@ def multigausfit2d_from_dlines(
         'validity': validity, 'errmsg': np.array(errmsg),
         'cost': cost, 'nfev': nfev, 'msg': np.array(message),
         'phi': phi,
+        'indx': indx,
+        'const': const,
     }
     return dfit
 
@@ -707,7 +720,7 @@ def fit1d(
     method=None, tr_solver=None, tr_options=None,
     xtol=None, ftol=None, gtol=None,
     max_nfev=None, loss=None, chain=None,
-    jac=None, verbose=None, showonly=None,
+    jac=None, verbose=None, showonly=None, strict=None,
     save=None, name=None, path=None,
     amp=None, coefs=None, ratio=None,
     Ti=None, width=None,
@@ -766,6 +779,7 @@ def fit1d(
             chain=chain,
             verbose=verbose,
             jac=jac,
+            strict=strict,
         )
 
     # ----------------------
@@ -814,7 +828,8 @@ def fit2d(
     method=None, tr_solver=None, tr_options=None,
     xtol=None, ftol=None, gtol=None,
     max_nfev=None, loss=None, chain=None,
-    jac=None, nxi=None, nxj=None, verbose=None, showonly=None,
+    jac=None, nxi=None, nxj=None,
+    verbose=None, showonly=None, strict=None,
     save=None, name=None, path=None,
     amp=None, coefs=None, ratio=None,
     Ti=None, width=None,
@@ -874,6 +889,7 @@ def fit2d(
             verbose=verbose,
             loss=loss,
             jac=jac,
+            strict=strict,
         )
 
     # ----------------------

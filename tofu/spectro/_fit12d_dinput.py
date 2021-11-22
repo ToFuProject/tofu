@@ -1955,8 +1955,8 @@ def multigausfit2d_from_dlines_ind(dinput=None):
     # Except for bck, all indices should render nlines (2*nlines if double)
     nbs = dinput['nbs']
     dind = {
-        'bck_amp': {'x': np.arange(0, nbs)},
-        'bck_rate': {'x': np.arange(nbs, 2*nbs)},
+        'bck_amp': {'x': np.arange(0, nbs)[:, None]},
+        'bck_rate': {'x': np.arange(nbs, 2*nbs)[:, None]},
         'dshift': None,
         'dratio': None,
     }
@@ -1984,8 +1984,8 @@ def multigausfit2d_from_dlines_ind(dinput=None):
 
     sizex = dind['shift']['x'][-1, -1] + 1
     indx = np.r_[
-        dind['bck_amp']['x'],
-        dind['bck_rate']['x'],
+        dind['bck_amp']['x'].ravel(order='F'),
+        dind['bck_rate']['x'].ravel(order='F'),
         dind['amp']['x'].ravel(order='F'),
         dind['width']['x'].ravel(order='F'),
         dind['shift']['x'].ravel(order='F'),
@@ -1994,15 +1994,15 @@ def multigausfit2d_from_dlines_ind(dinput=None):
 
     # check if double
     if dinput['double'] is True:
-        dind['dshift'] = {'x': np.r_[-2]}
-        dind['dratio'] = {'x': np.r_[-1]}
+        dind['dshift'] = {'x': np.r_[-2][:, None]}
+        dind['dratio'] = {'x': np.r_[-1][:, None]}
         sizex += 2
     elif isinstance(dinput['double'], dict):
         if dinput['double'].get('dshift') is None:
-            dind['dshift'] = {'x': np.r_[-1]}
+            dind['dshift'] = {'x': np.r_[-1][:, None]}
             sizex += 1
         elif dinput['double'].get('dratio') is None:
-            dind['dratio'] = {'x': np.r_[-1]}
+            dind['dratio'] = {'x': np.r_[-1][:, None]}
             sizex += 1
 
     dind['sizex'] = sizex

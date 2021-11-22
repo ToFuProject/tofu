@@ -369,7 +369,6 @@ def multigausfit2d_from_dlines_funccostjac(
     phi=None,
     indx=None,
     dinput=None,
-    binning=None,
     dind=None,
     jac=None,
 ):
@@ -416,7 +415,6 @@ def multigausfit2d_from_dlines_funccostjac(
     if indx is None:
         indx = np.ones((dind['sizex'],), dtype=bool)
 
-    # If no binning => no fast indexing on lamb / phi (e.g.: for sparse)
     km = dinput['knots_mult']
     kpb = dinput['nknotsperbs']
     nbs = dinput['nbs']
@@ -478,8 +476,8 @@ def multigausfit2d_from_dlines_funccostjac(
         xscale[~indx] = const
 
         # bck rate
-        BS.c[...] = ibckrx[:, None]
-        bckr = BS(phi)[..., 0]
+        BS.c = xscale[ibckrx]
+        bckr = BS(phi)
 
         # make sure iwl is 2D to get all lines at once
         BS.c = xscale[iwl] * coefswl[None, :] + offsetwl[None, :]
@@ -491,11 +489,11 @@ def multigausfit2d_from_dlines_funccostjac(
         if double is not False:
             # coefssl are line-specific, they do not affect dshift
             if double is True:
-                dratio = xscale[idratiox]
-                dshift = shift + xscale[idshx]  # *coefssl
+                dratio = xscale[idratiox[:, 0]]
+                dshift = shift + xscale[idshx[:, 0]]  # *coefssl
             else:
-                dratio = double.get('dratio', xscale[idratiox])
-                dshift = shift + double.get('dshift', xscale[idshx])
+                dratio = double.get('dratio', xscale[idratiox[:, 0]])
+                dshift = shift + double.get('dshift', xscale[idshx[:, 0]])
             expd = np.exp(-(lambn - (1 + dshift))**2 / (2*wi2))
 
         # Loop on individual bsplines for amp
@@ -510,12 +508,14 @@ def multigausfit2d_from_dlines_funccostjac(
             )(phi)
 
             indbs = indok & np.isfinite(bs)
+            if not np.any(indbs):
+                continue
             bs = bs[indbs]
 
             # bck
             y[indbs, 0, ii] = (
-                xscale[ibckax[ii]]*bs
-                * np.exp(bckr[indbs]*lambrel[indbs])
+                xscale[ibckax[ii, 0]]*bs
+                * np.exp(bckr[indbs, 0]*lambrel[indbs])
             )
 
             # lines
@@ -568,9 +568,9 @@ def multigausfit2d_from_dlines_funccostjac(
         xscale[~indx] = const
 
         # Background
-        BS.c = xscale[ibckax]
+        BS.c = xscale[ibckax][:, 0]
         bcka = BS(phi_flat)
-        BS.c = xscale[ibckrx]
+        BS.c = xscale[ibckrx][:, 0]
         y = bcka * np.exp(BS(phi_flat)*lambrel_flat)
 
         # make sure iwl is 2D to get all lines at once
@@ -588,17 +588,20 @@ def multigausfit2d_from_dlines_funccostjac(
 
         if double is not False:
             if double is True:
-                dratio = xscale[idratiox]
+                dratio = xscale[idratiox[:, 0]]
                 # scales[ishl] or scales[idshx] ? coefssl ? +> no
-                dcsh = csh + xscale[idshx]
+                dcsh = csh + xscale[idshx[:, 0]]
             else:
-                dratio = double.get('dratio', xscale[idratiox])
-                dcsh = csh + double.get('dshift', xscale[idshx])
+                dratio = double.get('dratio', xscale[idratiox[:, 0]])
+                dcsh = csh + double.get('dshift', xscale[idshx[:, 0]])
 
             expd = np.exp(-(lambn_flat[indok_flat, :] - (1 + dcsh))**2 / (2*wi2))
             y[indok_flat] += np.nansum(amp * dratio * expd, axis=1)
 
-        return y[indok_flat] - data_flat[indok_flat]
+        if isinstance(data_flat, np.ndarray):
+            return y[indok_flat] - data_flat[indok_flat]
+        else:
+            return y - data_flat
 
     # Prepare jac
     if jac in ['dense', 'sparse']:
@@ -671,9 +674,9 @@ def multigausfit2d_from_dlines_funccostjac(
                     raise Exception(msg)
 
                 # Intermediates - background
-                BS.c = xscale[ibckax]
+                BS.c = xscale[ibckax[:, 0]]
                 bcka = BS(phi_flat[ibs])
-                BS.c[...] = xscale[ibckrx]
+                BS.c[...] = xscale[ibckrx[:, 0]]
                 bckr = BS(phi_flat[ibs])
                 expbck = np.exp(bckr*lambrel_flat[ibs])
 
@@ -691,13 +694,13 @@ def multigausfit2d_from_dlines_funccostjac(
                 bsexp = bs * np.exp(alpha)
 
                 # Background amplitude
-                jac0[ibs, ibckax[ii]] = (
-                    bs[:, 0] * scales[ibckax[ii]] * expbck
+                jac0[ibs, ibckax[ii, 0]] = (
+                    bs[:, 0] * scales[ibckax[ii, 0]] * expbck
                 )
 
                 # Background rate
-                jac0[ibs, ibckrx[ii]] = (
-                    bs[:, 0] * scales[ibckrx[ii]]
+                jac0[ibs, ibckrx[ii, 0]] = (
+                    bs[:, 0] * scales[ibckrx[ii, 0]]
                     * lambrel_flat[ibs] * bcka * expbck
                 )
 
@@ -737,12 +740,12 @@ def multigausfit2d_from_dlines_funccostjac(
                     continue
 
                 if double is True:
-                    dratio = xscale[idratiox]
+                    dratio = xscale[idratiox[:, 0]]
                     # coefssl are line-specific, they do not affect dshift
-                    dshift = shift + xscale[idshx]
+                    dshift = shift + xscale[idshx[:, 0]]
                 else:
-                    dratio = double.get('dratio', xscale[idratiox])
-                    dshift = shift + double.get('dshift', xscale[idshx])
+                    dratio = double.get('dratio', xscale[idratiox[:, 0]])
+                    dshift = shift + double.get('dshift', xscale[idshx[:, 0]])
 
                 # ampd = amp*dratio
                 betad = (lambn_flat[ibs, :] - (1 + dshift)) / (2*wi2)
@@ -779,13 +782,13 @@ def multigausfit2d_from_dlines_funccostjac(
 
                 # dratio
                 if double is True or double.get('dratio') is None:
-                    jac0[ibs, idratiox] = (
-                        scales[idratiox] * np.sum(amp * expd, axis=1)
+                    jac0[ibs, idratiox[:, 0]] = (
+                        scales[idratiox[:, 0]] * np.sum(amp * expd, axis=1)
                     )
 
                 # dshift
                 if double is True or double.get('dshift') is None:
-                    jac0[ibs, idshx] = dratio * np.sum(
+                    jac0[ibs, idshx[:, 0]] = dratio * np.sum(
                         amp * 2.*betad*scales[idshx] * expd,
                         axis=1,
                     )

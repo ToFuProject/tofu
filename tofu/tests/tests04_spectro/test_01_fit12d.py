@@ -186,7 +186,7 @@ class Test01_DataCollection(object):
 
         # load test data
         lamb, var, dlines, spect2d = _load_test_spect()
-        mask = np.repeat((np.abs(var-15) < 3)[:, None], lamb.size, axis=1)
+        mask = np.repeat((np.abs(var-15) > 3)[:, None], lamb.size, axis=1)
 
         # Plot spect 2d
         # fig = plt.figure(figsize=(12, 10));
@@ -380,7 +380,7 @@ class Test01_DataCollection(object):
                 equal_nan=True,
             )
 
-    def test03_fit1d(self, verb=None):
+    def test03_fit1d(self, strict=None, verb=None):
         if verb:
             nprod = np.array(self.ldinput1d_run).sum()
             nn = len(f'\tspectrum {nprod} / {nprod}')
@@ -399,6 +399,7 @@ class Test01_DataCollection(object):
                 chain=chain,
                 jac='dense',
                 verbose=False,
+                strict=strict,
                 plot=False,
             )
             assert np.sum(dfit1d['validity'] < 0) == 0
@@ -409,7 +410,8 @@ class Test01_DataCollection(object):
             dex = tfs.fit1d_extract(
                 dfit1d=dd,
                 ratio=('a', 'c'),
-                pts_lamb_detail=True,
+                sol_total=True,
+                sol_detail=ii % 2 == 0,
             )
             self.ldex1d.append(dex)
 
@@ -476,7 +478,7 @@ class Test01_DataCollection(object):
                 subset=None,
                 focus=comb[3],
                 valid_fraction=0.28,     # fraction of pixels ok per time step
-                valid_nsigma=0,         # S/N ratio for each pixel
+                valid_nsigma=0.2,         # S/N ratio for each pixel
                 focus_half_width=None,
                 valid_return_fract=None,
                 dscales=None,
@@ -487,7 +489,7 @@ class Test01_DataCollection(object):
             self.ldinput2d.append(dinput)
 
             c0 = (
-                comb[1] == self.ldx0[1]
+                comb[1] == self.ldx0[0]
                 and comb[2] == self.ldomain[1]
                 and comb[3] == self.lfocus[0]
                 and comb[4] == self.ldconstants[0]
@@ -506,7 +508,6 @@ class Test01_DataCollection(object):
                 lamb=dd['dprepare']['lamb'],
                 phi=dd['dprepare']['phi'],
                 dinput=dd,
-                binning=None,   # TBC
                 dind=dd['dind'],
                 jac='dense',
             )
@@ -541,7 +542,7 @@ class Test01_DataCollection(object):
             assert np.sum(np.isfinite(dy0)) == np.sum(np.isfinite(dy1))
             assert np.allclose(dy0, dy1, equal_nan=True)
 
-    def test08_fit2d(self, verb=False):
+    def test08_fit2d(self, strict=None, verb=False):
         for ii, ij in enumerate(self.ldinput2d_run):
             din = self.ldinput2d[ij]
             chain = ii % 2 == 0
@@ -553,6 +554,7 @@ class Test01_DataCollection(object):
                 chain=chain,
                 jac='dense',
                 verbose=verb,
+                strict=strict,
                 plot=False,
             )
             assert np.sum(dfit2d['validity'] < 0) == 0
@@ -563,6 +565,7 @@ class Test01_DataCollection(object):
             dex = tfs.fit2d_extract(
                 dfit2d=dd,
                 ratio=('a', 'c'),
-                pts_lamb_phi_detail=True,
+                sol_total=True,
+                sol_detail=ii % 2 == 0,
             )
             self.ldex2d.append(dex)
