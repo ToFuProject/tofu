@@ -247,9 +247,19 @@ def CrystalBragg_plot_data_vs_lambphi(
 
 
 def plot_fit1d(
-    dfit1d=None, dextract=None, annotate=None, showonly=None,
-    indspect=None, xlim=None, fs=None, dmargin=None,
-    tit=None, wintit=None,
+    # input data
+    dfit2d=None,
+    dextract=None,
+    # options
+    annotate=None,
+    showonly=None,
+    indspect=None,
+    xlim=None,
+    # figure
+    fs=None,
+    dmargin=None,
+    tit=None,
+    wintit=None,
 ):
 
     # Check inputs
@@ -268,13 +278,16 @@ def plot_fit1d(
         wintit = _WINTIT
     if dmargin is None:
         dmargin = {'left': 0.05, 'right': 0.85,
-                   'bottom': 0.07, 'top': 0.85,
+                   'bottom': 0.07, 'top': 0.90,
                    'wspace': 0.2, 'hspace': 0.3}
 
     # Extract (better redeability)
     dprepare = dfit1d['dinput']['dprepare']
     dinput = dfit1d['dinput']
     d3 = dextract['d3']
+
+    lamb = dprepare['lamb']
+    data = dprepare['data']
 
     # Index of spectra to plot
     if not np.any(dinput['valid']['indt']):
@@ -340,42 +353,58 @@ def plot_fit1d(
             titi = tit
 
         fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(1, 1, **dmargin)
-        ax = fig.add_subplot(gs[0, 0])
-        ax.set_ylabel(r'data (a.u.)')
-        ax.set_xlabel(r'$\lambda$ (m)')
+        gs = gridspec.GridSpec(4, 1, **dmargin)
+        ax0 = fig.add_subplot(gs[:-1, 0])
+        ax1 = fig.add_subplot(gs[-1, 0], sharex=ax0)
 
-        ax.plot(dprepare['lamb'][dprepare['indok'][ispect, :]],
-                dprepare['data'][ispect, dprepare['indok'][ispect, :]],
-                marker='.', c='k', ls='None', ms=8)
+        ax0.set_ylabel(r'data (a.u.)')
+        ax1.set_ylabel(r'error (a.u.)')
+        ax1.set_xlabel(r'$\lambda$ (m)')
+
+        ax0.plot(
+            lamb[dprepare['indok'][ispect, :]],
+            data[ispect, dprepare['indok'][ispect, :]],
+            marker='.', c='k', ls='None', ms=8,
+        )
+        ax0.plot(
+            lamb[~dprepare['indok'][ispect, :]],
+            data[ispect, ~dprepare['indok'][ispect, :]],
+            marker='x', c='k', ls='None', ms=4,
+        )
         if showonly is not True:
             if dextract['sol_detail'] is not False:
-                ax.plot(
+                ax0.plot(
                     dprepare['lamb'], dextract['sol_detail'][ispect, :, 0],
                     ls='-', c='k',
                 )
-            ax.set_prop_cycle(None)
+            ax0.set_prop_cycle(None)
             if dextract['sol_detail'] is not False:
                 if Ti or vi:
                     for jj in range(nlines):
                         col = lfcol[indwidth[jj] % nfcol]
                         hatch = lhatch[indshift[jj] % nhatch]
-                        ax.fill_between(
+                        ax0.fill_between(
                             dprepare['lamb'],
                             dextract['sol_detail'][ispect, :, 1+jj],
                             alpha=0.3, color=col, hatch=hatch,
                         )
                 else:
-                    ax.plot(
+                    ax0.plot(
                         dprepare['lamb'],
                         dextract['sol_detail'][ispect, :, 1:].T,
                     )
-            if dextract['sol_tot'] is not False:
-                ax.plot(
+            if dextract['sol_total'] is not False:
+                ax0.plot(
                     dprepare['lamb'],
-                    dextract['sol_tot'][ispect, :],
+                    dextract['sol_total'][ispect, :],
                     c='k', lw=2.,
                 )
+                ax1.plot(
+                    dprepare['lamb'],
+                    dextract['sol_total'][ispect, :] - dprepare['data'][ispect, :],
+                    c='k', lw=2.,
+                )
+                ax1.axhline(0, c='k', ls='--')
 
         # Annotate lines
         if annotate is not False:
@@ -386,14 +415,14 @@ def plot_fit1d(
                     if dinput['keys'][nn] not in annotate:
                         continue
                     lab = dinput['symb'][nn]
-                    ax.axvline(x[ispect, nn], c=col, ls='--')
+                    ax0.axvline(x[ispect, nn], c=col, ls='--')
                     if 'x' in d3['amp'].keys():
-                        val = d3['amp']['x']['values'][ispect, nn]
+                        val = d3['amp']['lines']['values'][ispect, nn]
                         lab += '\n{:4.2e}'.format(val)
                     if 'x' in d3['shift'].keys():
-                        val = d3['shift']['x']['values'][ispect, nn]*1.e10
+                        val = d3['shift']['lines']['values'][ispect, nn]*1.e10
                         lab += '\n({:+4.2e} A)'.format(val)
-                    ax.annotate(
+                    ax0.annotate(
                         lab,
                         xy=(x[ispect, nn], 1.01), xytext=None,
                         xycoords=('data', 'axes fraction'),
@@ -410,13 +439,13 @@ def plot_fit1d(
                 )
                 for jj in range(nions)
             ]
-            legi = ax.legend(
+            legi = ax0.legend(
                 handles=hand,
                 title='ions',
                 bbox_to_anchor=(1.01, 1.),
                 loc='upper left',
             )
-            ax.add_artist(legi)
+            ax0.add_artist(legi)
 
         # Ti legend
         if Ti:
@@ -431,13 +460,13 @@ def plot_fit1d(
                 )
                 for jj in range(dinput['width']['ind'].shape[0])
             ]
-            legT = ax.legend(
+            legT = ax0.legend(
                 handles=hand, labels=lleg,
                 title='Ti (keV)',
                 bbox_to_anchor=(1.01, 1.),    # 0.8
                 loc='upper left',
             )
-            ax.add_artist(legT)
+            ax0.add_artist(legT)
 
         # vi legend
         if vi:
@@ -455,13 +484,13 @@ def plot_fit1d(
                 )
                 for jj in range(dinput['shift']['ind'].shape[0])
             ]
-            legv = ax.legend(
+            legv = ax0.legend(
                 handles=hand, labels=lleg,
                 title='vi (km/s)',
                 bbox_to_anchor=(1.01, 0.75),    # 0.5
                 loc='upper left',
             )
-            ax.add_artist(legv)
+            ax0.add_artist(legv)
 
         # Ratios legend
         if ratio:
@@ -471,14 +500,14 @@ def plot_fit1d(
                 d3['ratio']['lines']['lab'][jj],
                 d3['ratio']['lines']['values'][ispect, jj])
                     for jj in range(nratio)]
-            legr = ax.legend(
+            legr = ax0.legend(
                 handles=hand,
                 labels=lleg,
                 title='line ratio',
                 bbox_to_anchor=(1.01, 0.30),    # 0.21
                 loc='lower left',
             )
-            ax.add_artist(legr)
+            ax0.add_artist(legr)
 
         # bck legend
         if True:
@@ -487,14 +516,14 @@ def plot_fit1d(
                 f"amp = {d3['bck_amp']['x']['values'][ispect, 0]:4.2e}",
                 f"rate = {d3['bck_rate']['x']['values'][ispect, 0]:4.2e}"
             ]
-            legr = ax.legend(
+            legr = ax0.legend(
                 handles=hand,
                 labels=lleg,
                 title='background',
                 bbox_to_anchor=(1.01, 0.10),    # 0.05
                 loc='lower left',
             )
-            ax.add_artist(legr)
+            ax0.add_artist(legr)
 
         # double legend
         if dinput['double'] is not False:
@@ -504,7 +533,7 @@ def plot_fit1d(
                 'shift ' + r'$\approx$'
                 + f" {d3['dshift']['x']['values'][ispect, 0]:4.2e}"
             ]
-            legr = ax.legend(
+            legr = ax0.legend(
                 handles=hand,
                 labels=lleg,
                 title='double',
@@ -512,15 +541,272 @@ def plot_fit1d(
                 loc='lower left',
             )
 
-        ax.set_xlim(dinput['dprepare']['domain']['lamb']['minmax'])
+        ax0.set_xlim(dinput['dprepare']['domain']['lamb']['minmax'])
 
         if titi is not False:
             fig.suptitle(titi, size=14, weight='bold')
         if wintit is not False:
             fig.canvas.set_window_title(wintit)
     if xlim is not False:
-        ax.set_xlim(xlim)
-    return ax
+        ax0.set_xlim(xlim)
+    return {'data': ax0, 'error': ax1}
+
+
+def plot_fit2d(
+    # input data
+    dfit2d=None,
+    dextract=None,
+    # options
+    annotate=None,
+    showonly=None,
+    indspect=None,
+    xlim=None,
+    phi=None,
+    phi_name=None,
+    # figure
+    fs=None,
+    dmargin=None,
+    tit=None,
+    wintit=None,
+    cmap=None,
+    vmin=None,
+    vmax=None,
+    vmin_err=None,
+    vmax_err=None,
+):
+
+    # Check inputs
+    # ------------
+    if annotate is None:
+        annotate = True
+    if annotate is True:
+        annotate = dfit2d['dinput']['keys']
+    if isinstance(annotate, str):
+        annotate = [annotate]
+    if xlim is None:
+        xlim = False
+    if phi is None:
+        phi = dfit2d['dinput']['dprepare']['phi']
+        Dphi = (phi.max() - phi.min())
+        phi = phi.mean() + 0.05 * Dphi * np.r_[-0.5, 0.5]
+    if phi_name is None:
+        phi_name = r'$phi$'
+
+    if fs is None:
+        fs = (15, 8)
+    if wintit is None:
+        wintit = _WINTIT
+    if dmargin is None:
+        dmargin = {
+            'left': 0.05, 'right': 0.95,
+            'bottom': 0.07, 'top': 0.90,
+            'wspace': 0.2, 'hspace': 0.4,
+        }
+
+    if vmin is None:
+        vmin = 0.
+    if vmax is None:
+        vmax = np.nanmax(dfit2d['dinput']['dprepare']['data'])
+
+    # Extract (better redeability)
+    dprepare = dfit2d['dinput']['dprepare']
+    dinput = dfit2d['dinput']
+    d3 = dextract['d3']
+
+    # Index of spectra to plot
+    if not np.any(dinput['valid']['indt']):
+        msg = "The provided fit1d result has no valid time step!"
+        raise Exception(msg)
+
+    if indspect is None:
+        indspect = dinput['valid']['indt'].nonzero()[0][0]
+    indspect = np.atleast_1d(indspect).ravel()
+    if indspect.dtype == 'bool':
+        indspect = np.nonzero(indspect)[0]
+
+    nlines = dinput['lines'].size
+    ions_u = sorted(set(dinput['ion'].tolist()))
+    nions = len(ions_u)
+
+    indwidth = np.argmax(dinput['width']['ind'], axis=0)
+    indshift = np.argmax(dinput['shift']['ind'], axis=0)
+
+    x = dinput['lines'][None, :] + d3['shift']['lines']['values']
+
+    lcol = ['k', 'r', 'b', 'g', 'm', 'c']
+    ncol = len(lcol)
+    Ti = 'Ti' in d3.keys()
+    vi = 'vi' in d3.keys()
+    ratio = 'ratio' in d3.keys()
+
+    if Ti:
+        lfcol = ['y', 'g', 'c', 'm']
+    else:
+        lfcol = [None]
+    nfcol = len(lfcol)
+    if vi:
+        lhatch = [None, '/', '\\', '|', '-', '+', 'x', '//']
+    else:
+        lhatch = [None]
+    nhatch = len(lhatch)
+    nspect = indspect.size
+    nspecttot = dprepare['data'].shape[0]
+
+    # Extract data
+    lamb = dprepare['lamb']
+    phi = dprepare['phi']
+    data = dprepare['data'][indspect, ...]
+    sol_tot = dextract['sol_tot'][indspect, ...]
+
+    # Error if relevant
+    if True:
+        err = sol_tot - data
+        if vmin_err is None or vmax_err is None:
+            v_err = np.nanmax(np.abs(err))
+            if vmin_err is None:
+                vmin_err = -v_err
+            if vmax_err is None:
+                vmax_err = v_err
+
+    # Extent
+    extent = (lamb.min(), lamb.max(), phi.min(), phi.max())
+
+    # Plot
+    # ------------
+
+    ldax = []
+    for ii, ispect in enumerate(indspect):
+        if tit is None:
+            titi = f"spect {ispect} ({ii+1}/{nspect} out of {nspecttot})"
+        else:
+            titi = tit
+
+        fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(7, 9, **dmargin)
+        ax0 = fig.add_subplot(gs[:4, :2])
+        ax1 = fig.add_subplot(gs[:4, 2:4], sharex=ax0, sharey=ax0)
+        ax2 = fig.add_subplot(gs[:4, 4:6], sharex=ax0, sharey=ax0)
+        ax3 = fig.add_subplot(gs[:4, 6], sharey=ax0)
+        ax4 = fig.add_subplot(gs[:4, 7], sharey=ax0)
+        ax5 = fig.add_subplot(gs[:4, 8], sharey=ax0)
+        ax6 = fig.add_subplot(gs[4:6, :6])
+        ax7 = fig.add_subplot(gs[6, :6], sharex=ax6)
+
+        ax0.set_ylabel(phi_name)
+        ax0.set_xlabel(r'$\lambda$ (m)')
+
+        ax5.set_xlabel(r'$v_{rot}$ (km/s)')
+
+        ax6.set_ylabel('data (a.u.)')
+        ax6.set_xlabel(r'$\lambda$ (m)')
+
+        dax = {
+            'img_data': {'ax': ax0},
+            'img_fit': {'ax': ax1},
+            'img_err': {'ax': ax2},
+            'prof_Te': {'ax': ax3},
+            'prof_Ti': {'ax': ax4},
+            'prof_vi': {'ax': ax5},
+            'spect': {'ax': ax6},
+            'spect_err': {'ax': ax7},
+        }
+
+        # plot images
+        k0 = 'img_data'
+        if dax.get(k0) is not None:
+            ax = dax[k0]['ax']
+            im = ax.imshow(
+                data[ispect, ...],
+                extent=extent,
+                interpolation='nearest',
+                origin='lower',
+                vmin=vmin,
+                vmax=vmax,
+                cmap=cmap,
+                aspect='auto',
+            )
+            fig.colorbar(im, ax=ax, orientation='vertical')
+
+        k0 = 'img_fit'
+        if dax.get(k0) is not None:
+            ax = dax[k0]['ax']
+            ax.imshow(
+                dextract['sol_tot'][ispect, ...],
+                extent=extent,
+                interpolation='nearest',
+                origin='lower',
+                vmin=vmin,
+                vmax=vmax,
+                cmap=cmap,
+                aspect='auto',
+            )
+
+        k0 = 'img_err'
+        if dax.get(k0) is not None:
+            ax = dax[k0]['ax']
+            im = ax.imshow(
+                err[ispect, ...],
+                extent=extent,
+                interpolation='nearest',
+                origin='lower',
+                vmin=0.1*vmin,
+                vmax=0.1*vmax,
+                cmap=plt.cm.seismic,
+                aspect='auto',
+            )
+            plt.colorbar(im, ax=ax, orientation='vertical')
+
+
+        k0, k1 = 'prof_Te', 'ratio'
+        if dax.get(k0) is not None and 'ratio' in d3.keys():
+            ax = dax[k0]['ax']
+            for ii in range(d3['ratio']['requested'].shape[-1]):
+                ax.plot(
+                    d3['ratio']['lines']['values'][ispect, :, ii],
+                    dextract['phi_prof'],
+                    ls='-',
+                    lw=1,
+                    label=d3['ratio']['lines']['lab'][ii],
+                )
+            ax.axvline(0, c='k', ls='--', lw=1.)
+
+        k0, k1 = 'prof_Ti', 'Ti'
+        if dax.get(k0) is not None and 'Ti' in d3.keys():
+            ax = dax[k0]['ax']
+            for ii in range(d3[k1]['lines']['values'].shape[-1]):
+                ax.plot(
+                    d3[k1]['lines']['values'][ispect, :, ii],
+                    dextract['phi_prof'],
+                    ls='-',
+                    lw=1,
+                    label=d3[k1]['lines']['keys'][ii],
+                )
+            ax.axvline(0, c='k', ls='--', lw=1.)
+
+        k0, k1 = 'prof_vi', 'vi'
+        if dax.get(k0) is not None and k1 in d3.keys():
+            ax = dax[k0]['ax']
+            for ii in range(d3[k1]['lines']['values'].shape[-1]):
+                ax.plot(
+                    d3[k1]['lines']['values'][ispect, :, ii]*1.e-3,
+                    dextract['phi_prof'],
+                    ls='-',
+                    lw=1,
+                    label=d3[k1]['lines']['keys'][ii],
+                )
+            ax.axvline(0, c='k', ls='--', lw=1.)
+
+        ldax.append(dax)
+
+    return ldax
+
+
+
+
+
+
+
+
 
 
 def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
@@ -580,8 +866,8 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
         vmin = 0.
     if vmax is None:
         vmax = max(np.nanmax(dfit2d['data'][indspect, :]),
-                   np.nanmax(dfit2d['sol_tot'][indspect, :]))
-    err = dfit2d['sol_tot'][indspect, :] - dfit2d['data'][indspect, :]
+                   np.nanmax(dfit2d['sol_total'][indspect, :]))
+    err = dfit2d['sol_total'][indspect, :] - dfit2d['data'][indspect, :]
     errm = vmax/10.
 
     # Prepare figure if dax not provided
@@ -666,11 +952,13 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
                                          s=6, marker='s', edgecolors='None',
                                          vmin=vmin, vmax=vmax, cmap=cmap)
         if dax.get('fit') is not None:
-            dax['fit'].scatter(dfit2d['lamb'],
-                               phiflat,
-                               c=dfit2d['sol_tot'][indspect, :],
-                               s=6, marker='s', edgecolors='None',
-                               vmin=vmin, vmax=vmax, cmap=cmap)
+            dax['fit'].scatter(
+                dfit2d['lamb'],
+                phiflat,
+                c=dfit2d['sol_total'][indspect, :],
+                s=6, marker='s', edgecolors='None',
+                vmin=vmin, vmax=vmax, cmap=cmap,
+            )
             if dfit2d['dinput']['symmetry'] is True:
                 dax['fit'].axhline(symaxis,
                                    c='k', ls='--', lw=2.)
