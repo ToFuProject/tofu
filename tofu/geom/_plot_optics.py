@@ -13,6 +13,9 @@ import matplotlib.colors as mplcol
 import matplotlib.gridspec as gridspec
 from matplotlib.axes._axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib._contour as mcontour
+from matplotlib.collections import PatchCollection
+import matplotlib as mpl
 
 # tofu
 from tofu.version import __version__
@@ -37,12 +40,21 @@ def _check_projdax_mpl(
 
     # ----------------------
     # Check inputs
+    lproj = ['cross', 'hor', '3d', 'im']
     if proj is None:
         proj = 'all'
-    assert isinstance(proj, str)
-    proj = proj.lower()
-    lproj = ['cross', 'hor', '3d', 'im']
-    assert proj in lproj + ['all']
+    if proj == 'all':
+        proj = lproj
+    if isinstance(proj, str):
+        proj = [proj]
+    c0 = isinstance(proj, list) and all([ss in lproj for ss in proj])
+    if not c0:
+        msg = (
+            "Arg proj must be a list of allowed projections:\n"
+            f"\t- allowed: {lproj}\n"
+            f"\t- provided: {proj}"
+        )
+        raise Exception(msg)
 
     # ----------------------
     # Check dax
@@ -78,23 +90,23 @@ def _check_projdax_mpl(
         dax = {'cross': dax[0], 'hor': dax[1]}
 
     # Populate with default axes if necessary
-    if proj == 'cross' and dax['cross'] is None:
+    if proj == ['cross'] and dax.get('cross') is None:
         dax['cross'] = _def.Plot_LOSProj_DefAxes(
             'cross', fs=fs, dmargin=dmargin, wintit=wintit,
         )
-    elif proj == 'hor' and dax['hor'] is None:
+    elif proj == ['hor'] and dax.get('hor') is None:
         dax['hor'] = _def.Plot_LOSProj_DefAxes(
             'hor', fs=fs, dmargin=dmargin, wintit=wintit,
         )
-    elif proj == '3d' and dax['3d'] is None:
+    elif proj == ['3d'] and dax.get('3d') is None:
         dax['3d'] = _def.Plot_3D_plt_Tor_DefAxes(
             fs=fs, dmargin=dmargin, wintit=wintit,
         )
-    elif proj == 'im' and dax['im'] is None:
+    elif proj == ['im'] and dax.get('im') is None:
         dax['im'] = _def.Plot_CrystIm(
             fs=fs, dmargin=dmargin, wintit=wintit,
         )
-    elif proj == 'all' and any([dax.get(k0) is None for k0 in lproj]):
+    elif any([dax.get(k0) is None for k0 in proj]):
         dax = _def.Plot_AllCryst(
             fs=fs, dmargin=dmargin, wintit=wintit,
         )
@@ -927,7 +939,7 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
     if leg is not False:
         ax.legend(**leg)
     if wintit is not False:
-        ax.figure.canvas.set_window_title(wintit)
+        ax.figure.canvas.manager.set_window_title(wintit)
     if tit is not False:
         ax.figure.suptitle(tit, size=10, weight='bold', ha='right')
     return ax
@@ -974,7 +986,7 @@ def CrystalBragg_plot_line_tracing_on_det(
         gs = gridspec.GridSpec(1, 1, **dmargin)
         ax = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
         if wintit is not False:
-            fig.canvas.set_window_title(wintit)
+            fig.canvas.manager.set_window_title(wintit)
         if tit is not False:
             fig.suptitle(tit, size=14, weight='bold')
 
@@ -1056,7 +1068,7 @@ def CrystalBragg_plot_johannerror(
     ax1.set_title(f'Focalization error on lamb ({err_lamb_units})')
     ax2.set_title(f'Focalization error on phi ({err_phi_units})')
     ax0.contour(xi, xj, lamb.T, 10, cmap=cmap)
-    ax0.contour(xi, xj, phi.T, 10, cmap=cmap, ls='--')
+    ax0.contour(xi, xj, phi.T, 10, cmap=cmap, linestyles='--')
     imlamb = ax1.imshow(
         err_lamb.T,
         extent=extent, aspect='equal',
@@ -1074,7 +1086,7 @@ def CrystalBragg_plot_johannerror(
     plt.colorbar(imphi, ax=ax2)
 
     if wintit is not False:
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
     if tit is not False:
         fig.suptitle(tit, size=14, weight='bold')
 
@@ -1145,7 +1157,7 @@ def CrystalBragg_plot_focal_error_summed(
         error_lambda,
         contour,
         colors='w',
-        linewstyles='-',
+        linestyles='-',
         linewidths=1.,
     )
     ax.contour(
@@ -1154,7 +1166,7 @@ def CrystalBragg_plot_focal_error_summed(
         test_lamb_interv,
         contour,
         colors='yellow',
-        linewstyles='-',
+        linestyles='-',
         linewidths=1.,
     )
 
@@ -1355,7 +1367,7 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
         if legend is not False:
             axi.legend(**legend)
         if wintit is not False:
-            axi.figure.canvas.set_window_title(wintit)
+            axi.figure.canvas.manager.set_window_title(wintit)
         if titi is not False:
             axi.figure.suptitle(titi, size=14, weight='bold')
         if draw:
@@ -1391,7 +1403,7 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
         if legend is not False:
             dax['cross'].legend(**legend)
         if wintit is not False:
-            dax['cross'].figure.canvas.set_window_title(wintit)
+            dax['cross'].figure.canvas.manager.set_window_title(wintit)
         if titi is not False:
             dax['cross'].figure.suptitle(titi, size=14, weight='bold')
         if draw:
@@ -1400,3 +1412,175 @@ def CrystalBragg_plot_raytracing_from_lambpts(xi=None, xj=None, lamb=None,
         lax.append(dax['hor'])
 
     return lax
+
+
+# #################################################################
+# #################################################################
+#                   plot plasma domain from lamb
+# #################################################################
+
+
+def CrystalBragg_plot_plasma_domain_at_lamb(
+    cryst=None,
+    det=None,
+    xixj_lim=None,
+    config=None,
+    lamb=None,
+    pts=None,
+    reseff=None,
+    lambok=None,
+    dax=None,
+    plot_as=None,
+    lcolor=None,
+):
+
+    # -------------
+    # check inputs
+
+    if plot_as is None:
+        plot_as = 'poly'
+    if plot_as not in ['pts', 'poly']:
+        msg = (
+            "Arg plot_as not in allowed values!\n"
+            f"\t- allowed: {['pts', 'poly']}\n"
+            f"\t- plot_as: {plot_as}"
+        )
+        raise Exception(msg)
+
+    nlamb = lamb.size
+    if lcolor is None:
+        lcolor = [ss['color'] for ss in mpl.rcParams['axes.prop_cycle']]
+    if not isinstance(lcolor, list):
+        lcolor = [lcolor]
+    if not isinstance(lcolor, list):
+        msg = (
+            f"Arg lcolor must be a list of mpl colors\n"
+            f"\t- Provided: {lcolor}"
+        )
+        raise Exception(msg)
+
+    # -------------
+    # prepare data
+
+    R_u = np.unique(pts[0, :])
+    Z_u = np.unique(pts[1, :])
+    nR, nZ = R_u.size, Z_u.size
+    extent = (R_u.min(), R_u.max(), Z_u.min(), Z_u.max())
+
+    indR = [pts[0, :] == rr for rr in R_u]
+    indZ = [pts[1, :] == zz for zz in Z_u]
+    phi_per_R = [np.unique(pts[2, pts[0, :] == rr]) for rr in R_u]
+    nphi_per_R = np.array([ppr.size for ppr in phi_per_R])
+    nphimax = np.max(nphi_per_R)
+    indPhi = [
+        [pts[2, :] == phi for phi in phi_per_R[ii]]
+        for ii in range(R_u.size)
+    ]
+
+    cross = np.zeros((nlamb, R_u.size, Z_u.size), dtype=bool)
+    hor = np.zeros((nlamb, R_u.size, nphimax), dtype=bool)
+    horR = np.full((R_u.size, nphimax), np.nan)
+    horPhi = np.full((R_u.size, nphimax), np.nan)
+
+    for ii, rr in enumerate(R_u):
+
+        for jj, zz in enumerate(Z_u):
+            ind = indR[ii] & indZ[jj]
+            for kk in range(nlamb):
+                cross[kk, ii, jj] = np.any(lambok[kk, ind])
+
+        horR[ii, :] = rr
+        horPhi[ii, :nphi_per_R[ii]] = phi_per_R[ii]
+        for jj, pp in enumerate(phi_per_R[ii]):
+            ind = indR[ii] & indPhi[ii][jj]
+            for kk in range(nlamb):
+                hor[kk, ii, jj] = np.any(lambok[kk, ind])
+
+    # ------------
+    # get contours
+
+    if plot_as == 'poly':
+        # Add envelop
+        dR = (R_u[-1] - R_u[0])/R_u.size
+        dZ = (Z_u[-1] - Z_u[0])/Z_u.size
+        x = np.tile(np.r_[R_u[0] - dR, R_u, R_u[-1] + dR], (nZ + 2, 1))
+        y = np.tile(np.r_[Z_u[0] - dZ, Z_u, Z_u[-1] + dZ], (nR + 2, 1)).T
+        z = np.zeros(x.shape, dtype=float)
+
+        # see https://github.com/matplotlib/matplotlib/blob/main/src/_contour.h
+        cont_cross = [None for ll in lamb]
+        for kk, ll in enumerate(lamb):
+            z[1:-1, 1:-1] = cross[kk, ...].T
+            cont_raw = mcontour.QuadContourGenerator(
+                x, y, z,
+                None,       # mask
+                True,       # how to mask
+                0,          # divide in sub-domains (0=not)
+            ).create_contour(0.5)
+            if isinstance(cont_raw, tuple):
+                cont_raw = cont_raw[0]
+            assert all([pp.ndim == 2  and pp.shape[1] == 2 for pp in cont_raw])
+            cont_cross[kk] = PatchCollection(
+                [plt.Polygon(pp) for pp in cont_raw],
+                color=lcolor[kk % nlamb],
+                alpha=0.4,
+            )
+    else:
+        R_cross = np.tile(R_u, (Z_u.size, 1)).T
+        Z_cross = np.tile(Z_u, (R_u.size, 1))
+
+    # -------------
+    # plot context
+
+    if dax is None:
+        lax = None
+    else:
+        lax = [dax['cross'], dax['hor']]
+    lax = config.plot(lax=lax)
+    dax = {'cross': lax[0], 'hor': lax[1]}
+
+    if plot_as == 'pts':
+        for kk, ll in enumerate(lamb):
+            dax['cross'].plot(
+                R_cross[cross[kk, ...]],
+                Z_cross[cross[kk, ...]],
+                alpha=0.4,
+                ls='None',
+                marker='o',
+                ms=6,
+                markeredgecolor='None',
+                color=lcolor[kk % nlamb],
+            )
+            # dax['cross'].plot(cont_cross[:, 0], cont_cross[:, 1])
+            dax['hor'].plot(
+                horR[hor[kk, ...]]*np.cos(horPhi[hor[kk, ...]]),
+                horR[hor[kk, ...]]*np.sin(horPhi[hor[kk, ...]]),
+                color=lcolor[kk % nlamb],
+                alpha=0.4,
+                ls='None',
+                marker='o',
+                ms=6,
+                markeredgecolor='None',
+            )
+    else:
+        for kk, ll in enumerate(lamb):
+            dax['cross'].add_collection(
+                cont_cross[kk],
+            )
+            dax['hor'].plot(
+                horR[hor[kk, ...]]*np.cos(horPhi[hor[kk, ...]]),
+                horR[hor[kk, ...]]*np.sin(horPhi[hor[kk, ...]]),
+                color=lcolor[kk % nlamb],
+                alpha=0.4,
+                ls='None',
+                marker='o',
+                ms=6,
+                markeredgecolor='None',
+            )
+
+    dax = cryst.plot(
+        det=det,
+        dax=dax,
+        proj=['cross', 'hor'],
+    )
+    return dax
