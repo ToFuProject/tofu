@@ -248,7 +248,7 @@ def CrystalBragg_plot_data_vs_lambphi(
 
 def plot_fit1d(
     # input data
-    dfit2d=None,
+    dfit1d=None,
     dextract=None,
     # options
     annotate=None,
@@ -480,7 +480,7 @@ def plot_fit1d(
             lleg = [
                 str(dinput['shift']['keys'][jj])
                 + '{:4.2f}'.format(
-                    d3['vi']['lines']['values'][ispect, jj]*1.e-3
+                    d3['vi']['x']['values'][ispect, jj]*1.e-3
                 )
                 for jj in range(dinput['shift']['ind'].shape[0])
             ]
@@ -561,7 +561,7 @@ def plot_fit2d(
     showonly=None,
     indspect=None,
     xlim=None,
-    phi=None,
+    phi_lim=None,
     phi_name=None,
     # figure
     fs=None,
@@ -585,15 +585,15 @@ def plot_fit2d(
         annotate = [annotate]
     if xlim is None:
         xlim = False
-    if phi is None:
+    if phi_lim is None:
         phi = dfit2d['dinput']['dprepare']['phi']
-        Dphi = (phi.max() - phi.min())
-        phi = phi.mean() + 0.05 * Dphi * np.r_[-0.5, 0.5]
+        dphi = np.mean(np.diff(np.unique(phi)))
+        phi_lim = phi.mean() + dphi * np.r_[-0.6, 0.6]
     if phi_name is None:
         phi_name = r'$phi$'
 
     if fs is None:
-        fs = (15, 8)
+        fs = (16, 9)
     if wintit is None:
         wintit = _WINTIT
     if dmargin is None:
@@ -671,6 +671,17 @@ def plot_fit2d(
     # Extent
     extent = (lamb.min(), lamb.max(), phi.min(), phi.max())
 
+    # 1d slice
+    indphi = (phi >= phi_lim[0]) & (phi < phi_lim[1])
+    spect_lamb = lamb[indphi]
+    indlamb = np.argsort(spect_lamb)
+    spect_data = data[:, indphi][:, indlamb]
+    spect_fit = dextract['func_tot'](
+        lamb=spect_lamb[indlamb],
+        phi=phi[indphi][indlamb],
+    )[indspect, ...]
+    spect_err = spect_fit - spect_data
+
     # Plot
     # ------------
 
@@ -712,9 +723,9 @@ def plot_fit2d(
         }
 
         # plot images
-        k0 = 'img_data'
-        if dax.get(k0) is not None:
-            ax = dax[k0]['ax']
+        kax = 'img_data'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['ax']
             im = ax.imshow(
                 data[ispect, ...],
                 extent=extent,
@@ -726,10 +737,12 @@ def plot_fit2d(
                 aspect='auto',
             )
             fig.colorbar(im, ax=ax, orientation='vertical')
+            ax.axhline(phi_lim[0], c='k', lw=1., ls='-')
+            ax.axhline(phi_lim[1], c='k', lw=1., ls='-')
 
-        k0 = 'img_fit'
-        if dax.get(k0) is not None:
-            ax = dax[k0]['ax']
+        kax = 'img_fit'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['ax']
             ax.imshow(
                 dextract['sol_tot'][ispect, ...],
                 extent=extent,
@@ -740,10 +753,12 @@ def plot_fit2d(
                 cmap=cmap,
                 aspect='auto',
             )
+            ax.axhline(phi_lim[0], c='k', lw=1., ls='-')
+            ax.axhline(phi_lim[1], c='k', lw=1., ls='-')
 
-        k0 = 'img_err'
-        if dax.get(k0) is not None:
-            ax = dax[k0]['ax']
+        kax = 'img_err'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['ax']
             im = ax.imshow(
                 err[ispect, ...],
                 extent=extent,
@@ -756,10 +771,9 @@ def plot_fit2d(
             )
             plt.colorbar(im, ax=ax, orientation='vertical')
 
-
-        k0, k1 = 'prof_Te', 'ratio'
-        if dax.get(k0) is not None and 'ratio' in d3.keys():
-            ax = dax[k0]['ax']
+        kax, k1 = 'prof_Te', 'ratio'
+        if dax.get(kax) is not None and 'ratio' in d3.keys():
+            ax = dax[kax]['ax']
             for ii in range(d3['ratio']['requested'].shape[-1]):
                 ax.plot(
                     d3['ratio']['lines']['values'][ispect, :, ii],
@@ -770,9 +784,9 @@ def plot_fit2d(
                 )
             ax.axvline(0, c='k', ls='--', lw=1.)
 
-        k0, k1 = 'prof_Ti', 'Ti'
-        if dax.get(k0) is not None and 'Ti' in d3.keys():
-            ax = dax[k0]['ax']
+        kax, k1 = 'prof_Ti', 'Ti'
+        if dax.get(kax) is not None and k1 in d3.keys():
+            ax = dax[kax]['ax']
             for ii in range(d3[k1]['lines']['values'].shape[-1]):
                 ax.plot(
                     d3[k1]['lines']['values'][ispect, :, ii],
@@ -783,32 +797,50 @@ def plot_fit2d(
                 )
             ax.axvline(0, c='k', ls='--', lw=1.)
 
-        k0, k1 = 'prof_vi', 'vi'
-        if dax.get(k0) is not None and k1 in d3.keys():
-            ax = dax[k0]['ax']
-            for ii in range(d3[k1]['lines']['values'].shape[-1]):
+        kax, k1 = 'prof_vi', 'vi'
+        if dax.get(kax) is not None and k1 in d3.keys():
+            ax = dax[kax]['ax']
+            for ii in range(d3[k1]['x']['values'].shape[-1]):
                 ax.plot(
-                    d3[k1]['lines']['values'][ispect, :, ii]*1.e-3,
+                    d3[k1]['x']['values'][ispect, :, ii]*1.e-3,
                     dextract['phi_prof'],
                     ls='-',
                     lw=1,
-                    label=d3[k1]['lines']['keys'][ii],
+                    label=d3[k1]['x']['keys'][ii],
                 )
             ax.axvline(0, c='k', ls='--', lw=1.)
+            # adjust
+            ax.set_ylim(phi.min(), phi.max())
+
+        kax = 'spect'
+        if dax.get(kax) is not None and k1 in d3.keys():
+            ax = dax[kax]['ax']
+            ax.plot(
+                spect_lamb,
+                spect_data[ispect, ...],
+                ls='None',
+                marker='.',
+                c='k',
+            )
+            ax.plot(
+                spect_lamb,
+                spect_fit[ispect, ...],
+                marker='.',
+                c='r',
+            )
+
+        kax = 'spect_err'
+        if dax.get(kax) is not None and k1 in d3.keys():
+            ax = dax[kax]['ax']
+            ax.plot(spect_lamb, spect_err[ispect, ...], marker='.', c='k')
+            ax.axhline(0, ls='--', c='k', lw=1.)
 
         ldax.append(dax)
 
     return ldax
 
 
-
-
-
-
-
-
-
-
+# DEPRECATED - keeping for back-up
 def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
                                  dfit2d=None,
                                  dax=None, indspect=None,

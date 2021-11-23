@@ -541,19 +541,6 @@ def multigausfit2d_from_dlines(
                          ' '.join(['-'*maxl]*6)])
         print(msg)
 
-    # indok_var
-    if dprepare.get('indok_var') is not None:
-        msg = ('indok_var not implemented yet!')
-        raise Exception(msg)
-        if dprepare['indok_var'].ndim == 3:
-            indok_var = dprepare['indok_var'].reshape(
-                (nspect, dprepare['lamb'].size))
-        else:
-            indok_var = [dprepare['indok_var'].ravel()]*nspect
-    else:
-        indok_var = [False]*nspect
-    dprepare['indok_var'] = indok_var
-
     # ------------
     # Main loop
 

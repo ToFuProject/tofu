@@ -61,7 +61,7 @@ _D3 = {
         'field': 'shift',
     },
     'vi': {
-        'types': ['lines'],  # necessarily by line for de-normalization (*lamb0)
+        'types': ['x'],
         'units': 'm.s^-1',
         'field': 'shift',
     },
@@ -480,7 +480,7 @@ def fit1d_extract(
     if k0 in d3.keys():
         k1 = d3[k0]['types'][0]
         val = _get_values(k0=k0, k1=k1)
-        d3[k0]['lines']['values'] = val * scpct.c
+        d3[k0][k1]['values'] = val * scpct.c
 
     # ratio
     k0 = 'ratio'
@@ -586,32 +586,6 @@ def fit1d_extract(
     return dout
 
 
-def _get_phi_profile(key,
-                     nspect=None, dinput=None,
-                     dind=None, sol_x=None, scales=None,
-                     typ=None, ind=None, pts_phi=None):
-    ncoefs = ind.size
-    val = np.full((nspect, pts_phi.size, ncoefs), np.nan)
-    BS = BSpline(
-        dinput['knots_mult'],
-        np.ones((dinput['nbs'], ncoefs), dtype=float),
-        dinput['deg'],
-        extrapolate=False,
-        axis=0,
-    )
-
-    if typ == 'lines':
-        keys = dinput['keys'][ind]
-    else:
-        keys = dinput[key]['keys'][ind]
-    indbis = dind[key][typ][:, ind]
-    for ii in range(nspect):
-        BS.c = sol_x[ii, indbis] * scales[ii, indbis]
-        val[ii, :, :] = BS(pts_phi)
-    return keys, val
-
-
-# Debugging, TBF
 def fit2d_extract(
     dfit2d=None,
     bck=None,
@@ -734,8 +708,8 @@ def fit2d_extract(
     if k0 in d3.keys():
         k1 = d3[k0]['types'][0]
         coefs, val = _get_values(k0=k0, k1=k1)
-        d3[k0]['lines']['coefs'] = coefs * scpct.c
-        d3[k0]['lines']['values'] = val * scpct.c
+        d3[k0][k1]['coefs'] = coefs * scpct.c
+        d3[k0][k1]['values'] = val * scpct.c
 
     # ratio
     k0 = 'ratio'
@@ -777,7 +751,42 @@ def fit2d_extract(
             d3[k0]['x']['values'] = val
 
     # -------------------
+    # func_tot
+
+    def func_tot(
+        lamb=None,
+        phi=None,
+        nspect=nspect,
+        dfit2d=dfit2d,
+    ):
+        assert lamb.shape == phi.shape
+        func_cost = _funccostjac.multigausfit2d_from_dlines_funccostjac(
+            lamb=lamb,
+            phi=phi,
+            indx=None,      # because dfit['sol_x' built with const]
+            dinput=dfit2d['dinput'],
+            dind=dind,
+            jac=None,
+        )[1]
+
+        shape = tuple(np.r_[nspect, lamb.shape])
+        solt = np.full(shape, np.nan)
+        for ii in range(nspect):
+            if dfit2d['validity'][ii] < 0:
+                continue
+            # Separate and reshape output
+            solt[ii, ...] = func_cost(
+                dfit2d['sol_x'][ii, :],
+                scales=dfit2d['scales'][ii, :],
+                indok_flat=None,
+                const=None,
+                data_flat=0.,
+            ).reshape(lamb.shape)
+        return solt
+
+    # -------------------
     # sol_detail and sol_tot
+
     sold, solt = False, False
     if sol_total or sol_detail:
 
@@ -843,6 +852,7 @@ def fit2d_extract(
     dout = {
         'sol_detail': sold,
         'sol_tot': solt,
+        'func_tot': func_tot,
         'units': 'a.u.',
         'd3': d3,
         'phi_prof': phi_prof,

@@ -569,3 +569,30 @@ class Test01_DataCollection(object):
                 sol_detail=ii % 2 == 0,
             )
             self.ldex2d.append(dex)
+
+    def test10_fit2d_plot(self, warn=True):
+        lwar = []
+        for ii, dd in enumerate(self.ldex2d):
+            try:
+                # For a yet unknown reason, this particular test crashes on
+                # Windows only due to figure creation at
+                # tfs._plot.plot_fit1d(): line 337
+                # already investigated: reducing figure size and early closing
+                # No more ideas...
+                # This link suggests it may have something to do with 
+                # inches => pixels conversion of figure size...
+                # https://github.com/matplotlib/matplotlib/issues/14225
+                if 'win' not in sys.platform.lower():
+                    dax = tfs._plot.plot_fit2d(
+                        dfit2d=self.ldfit2d[ii],
+                        dextract=dd,
+                        annotate=self.ldfit2d[ii]['dinput']['keys'][0],
+                        fs=(4, 4),
+                    )
+            except Exception as err:
+                if warn:
+                    lwar.append((ii, str(err)))
+                else:
+                    raise err
+            finally:
+                plt.close('all')
