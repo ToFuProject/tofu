@@ -808,17 +808,19 @@ def binning_2d_data(
     nspect = data.shape[0]
     if binning is False:
         if phi1d is None:
-            phi1d_bins = np.linspace(domain['phi'][0], domain['phi'][1], 100)
+            phi1d_bins = np.linspace(
+                domain['phi']['minmax'][0], domain['phi']['minmax'][1], 100,
+            )
             lamb1d_bins = np.linspace(
-                domain['lamb'][0], domain['lamb'][1], 100,
+                domain['lamb']['minmax'][0], domain['lamb']['minmax'][1], 100,
             )
             dataf = data.reshape((nspect, data.shape[1]*data.shape[2]))
-            dataphi1d = scpstats.binned_statistics(
+            dataphi1d = scpstats.binned_statistic(
                 phi.ravel(),
                 dataf,
                 statistic='sum',
             )
-            datalamb1d = scpstats.binned_statistics(
+            datalamb1d = scpstats.binned_statistic(
                 lamb.ravel(),
                 dataf,
                 statistic='sum',
@@ -835,7 +837,7 @@ def binning_2d_data(
     else:
         nphi = binning['phi']['nbins']
         nlamb = binning['lamb']['nbins']
-        bins = (binning['lamb']['edges'], binning['phi']['edges'])
+        bins = (binning['phi']['edges'], binning['lamb']['edges'])
 
         # ------------------
         # Compute
@@ -845,7 +847,7 @@ def binning_2d_data(
             databin[ii, ...] = scpstats.binned_statistic_2d(
                 phi[indok[ii, ...]],
                 lamb[indok[ii, ...]],
-                data[indok[ii, ...]],
+                data[ii, indok[ii, ...]],
                 statistic='sum', bins=bins,
                 range=None, expand_binnumbers=True,
             )[0]
@@ -1365,7 +1367,7 @@ def fit12d_dvalid(
     nspect = data.shape[0]
 
     focus = _dvalid_checkfocus(
-        focus,
+        focus=focus,
         focus_half_width=focus_half_width,
         lines_keys=lines_keys,
         lines_lamb=lines_lamb,
@@ -1456,6 +1458,7 @@ def fit12d_dvalid(
             + "\t- valid_nsigma = {}\n".format(valid_nsigma)
             + "\t- valid_fraction = {}\n".format(valid_fraction)
             + "\t- focus = {}\n".format(focus)
+            + f"\t- fract max, mean = {np.max(fract), np.mean(fract)}\n"
             + "\t- fract = {}\n".format(fract)
         )
         raise Exception(msg)

@@ -707,13 +707,20 @@ def fit1d(
     method=None, tr_solver=None, tr_options=None,
     xtol=None, ftol=None, gtol=None,
     max_nfev=None, loss=None, chain=None,
-    jac=None, verbose=None, showonly=None, strict=None,
-    save=None, name=None, path=None,
-    amp=None, coefs=None, ratio=None,
+    jac=None, verbose=None, strict=None,
+    # saving
+    save=None,
+    name=None,
+    path=None,
+    # extract for plotting
+    amp=None, ratio=None,
     Ti=None, width=None,
     vi=None, shift=None,
-    pts_lamb_total=None, pts_lamb_detail=None,
-    plot=None, fs=None, wintit=None, tit=None, dmargin=None,
+    sol_total=None, sol_detail=None, sol_lamb=None,
+    # plotting
+    plot=None,
+    showonly=None,
+    fs=None, wintit=None, tit=None, dmargin=None,
     return_dax=None,
 ):
 
@@ -790,10 +797,12 @@ def fit1d(
     if plot is True:
         dout = fit1d_extract(
             dfit1d,
-            amp=amp, coefs=coefs, ratio=ratio,
-            Ti=Ti, width=width, vi=vi, shift=shift,
-            pts_lamb_total=pts_lamb_total,
-            pts_lamb_detail=pts_lamb_detail,
+            amp=amp, ratio=ratio,
+            Ti=Ti, width=width,
+            vi=vi, shift=shift,
+            sol_total=sol_total,
+            sol_detail=sol_detail,
+            sol_lamb=sol_lamb,
         )
         # TBF
         dax = _plot.plot_fit1d(
@@ -815,14 +824,21 @@ def fit2d(
     method=None, tr_solver=None, tr_options=None,
     xtol=None, ftol=None, gtol=None,
     max_nfev=None, loss=None, chain=None,
-    jac=None, nxi=None, nxj=None,
-    verbose=None, showonly=None, strict=None,
-    save=None, name=None, path=None,
-    amp=None, coefs=None, ratio=None,
+    jac=None,
+    verbose=None, strict=None,
+    # saving
+    save=None,
+    name=None,
+    path=None,
+    # extract for plotting
+    amp=None, ratio=None,
     Ti=None, width=None,
     vi=None, shift=None,
-    pts_lamb_total=None, pts_lamb_detail=None,
-    plot=None, fs=None, wintit=None, tit=None, dmargin=None,
+    sol_total=None, sol_detail=None, sol_lamb_phi=None,
+    # plotting
+    plot=None,
+    showonly=None,
+    fs=None, wintit=None, tit=None, dmargin=None,
     return_dax=None,
 ):
 
@@ -900,10 +916,12 @@ def fit2d(
     if plot is True:
         dout = fit2d_extract(
             dfit2d,
-            amp=amp, coefs=coefs, ratio=ratio,
-            Ti=Ti, width=width, vi=vi, shift=shift,
-            pts_lamb_total=pts_lamb_total,
-            pts_lamb_detail=pts_lamb_detail,
+            amp=amp, ratio=ratio,
+            Ti=Ti, width=width,
+            vi=vi, shift=shift,
+            sol_total=sol_total,
+            sol_detail=sol_detail,
+            sol_lamb_phi=sol_lamb_phi,
         )
         # TBF
         dax = _plot.plot_fit2d(
