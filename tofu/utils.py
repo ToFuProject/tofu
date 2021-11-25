@@ -4012,8 +4012,8 @@ class KeyHandler_mpl(object):
 
         # Check axes is relevant and toolbar not active
         c_activeax = 'fix' not in self.dax[event.inaxes].keys()
-        c_toolbar = self.can.manager.toolbar._active in [None,False]
-        if not all([c_activeax,c_toolbar]):
+        c_toolbar = not self.can.manager.toolbar.mode
+        if not all([c_activeax, c_toolbar]):
             return
 
         # Set self.dcur
@@ -4072,8 +4072,8 @@ class KeyHandler_mpl(object):
     def mouserelease(self, event):
         msg = "Make sure you release the mouse button on an axes !"
         msg += "\n Otherwise the background plot cannot be properly updated !"
-        c0 = self.can.manager.toolbar._active == 'PAN'
-        c1 = self.can.manager.toolbar._active == 'ZOOM'
+        c0 = 'pan' in self.can.manager.toolbar.mode.lower()
+        c1 = 'zoom' in self.can.manager.toolbar.mode.lower()
 
         if c0 or c1:
             ax = self.curax_panzoom
@@ -4088,7 +4088,7 @@ class KeyHandler_mpl(object):
 
         lkey = event.key.split('+')
 
-        c0 = self.can.manager.toolbar._active is not None
+        c0 = self.can.manager.toolbar.mode != ''
         c1 = len(lkey) not in [1,2]
         c2 = [ss not in self.dkeys.keys() for ss in lkey]
         if c0 or c1 or any(c2):
