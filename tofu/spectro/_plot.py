@@ -235,7 +235,7 @@ def CrystalBragg_plot_data_vs_lambphi(
     if tit is not False:
         fig.suptitle(tit, size=14, weight='bold')
     if wintit is not False:
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
     return [ax0, ax1]
 
 
@@ -502,7 +502,7 @@ def plot_fit1d(
         if titi is not False:
             fig.suptitle(titi, size=14, weight='bold')
         if wintit is not False:
-            fig.canvas.set_window_title(wintit)
+            fig.canvas.manager.set_window_title(wintit)
     if xlim is not False:
         ax.set_xlim(xlim)
     return ax
@@ -607,7 +607,7 @@ def CrystalBragg_plot_data_fit2d(xi, xj, data, lamb, phi, indok=None,
         if tit is not False:
             fig.suptitle(tit)
         if wintit is not False:
-            fig.canvas.set_window_title(wintit)
+            fig.canvas.manager.set_window_title(wintit)
 
         if naxv == 1:
             dax['fit1d'] = fig.add_subplot(gs[9:11, 6:9], sharex=ax2)
