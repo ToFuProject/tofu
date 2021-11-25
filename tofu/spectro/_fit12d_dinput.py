@@ -2194,6 +2194,7 @@ def _fit12d_filldef_dscalesx0_float(
 ###########################################################
 
 
+# Double-check 1d vs 2d: TBF / TBC
 def fit12d_dscales(dscales=None, dinput=None):
 
     # --------------
@@ -2226,18 +2227,18 @@ def fit12d_dscales(dscales=None, dinput=None):
                 indnonan = (
                     (~np.isnan(datavert[ii, :]))
                     & (
-                        np.abs(phi-dinput['symmetry_axis'][ii])
+                        np.abs(phi[:, 0]-dinput['symmetry_axis'][ii])
                         < dinput['knots'][-1]
                     )
                 ).nonzero()[0]
                 indnonan = indnonan[
                     np.unique(
-                        np.abs(phi[indnonan]-dinput['symmetry_axis'][ii]),
+                        np.abs(phi[indnonan, 0]-dinput['symmetry_axis'][ii]),
                         return_index=True,
                     )[1]
                 ]
                 bs = scpinterp.LSQUnivariateSpline(
-                    np.abs(phi[indnonan]-dinput['symmetry_axis'][ii]),
+                    np.abs(phi[indnonan, 0]-dinput['symmetry_axis'][ii]),
                     datavert[ii, indnonan],
                     dinput['knots'][1:-1],
                     k=dinput['deg'],
@@ -2249,12 +2250,12 @@ def fit12d_dscales(dscales=None, dinput=None):
             for ii in dinput['valid']['indt'].nonzero()[0]:
                 indnonan = (
                     (~np.isnan(datavert[ii, :]))
-                    & (dinput['knots'][0] <= phi)
-                    & (phi <= dinput['knots'][-1])
+                    & (dinput['knots'][0] <= phi[:, 0])
+                    & (phi[:, 0] <= dinput['knots'][-1])
                 )
                 try:
                     bs = scpinterp.LSQUnivariateSpline(
-                        phi[indnonan],
+                        phi[indnonan, 0],
                         datavert[ii, indnonan],
                         dinput['knots'][1:-1],
                         k=dinput['deg'],
