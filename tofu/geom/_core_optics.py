@@ -998,7 +998,15 @@ class CrystalBragg(utils.ToFuObject):
         }
         xi, xj = None, None
         if config is not None:
+            # Here insert ray-tracing from config!
             dk['config'] = None
+            (
+                kIn, kOut, vperp, indout, indStruct,
+            ) = Rays._compute_kInOut(
+                largs=None, dkwd=None, indStruct=None
+            )
+
+
         if det is not None:
             shape = tuple([3] + [1 for ii in range(vect.ndim-1)])
             cent = det['cent'].reshape(shape)
@@ -2551,7 +2559,7 @@ class CrystalBragg(utils.ToFuObject):
             det=det, strict=strict, plot=False,
         )
 
-        # Plot to be checked
+        # Plot to be checked - unnecessary ?
         plot = False
         if plot is not False:
             ptscryst, ptsdet = None, None
