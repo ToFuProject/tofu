@@ -2213,8 +2213,8 @@ def fit12d_dscales(dscales=None, dinput=None):
     if is2d is True:
         data = dinput['dprepare']['datalamb1d']
         datavert = dinput['dprepare']['dataphi1d']
-        lamb = dinput['dprepare']['lamb1d']
-        phi = dinput['dprepare']['phi1d']
+        lamb = dinput['dprepare']['lamb1d'][0, :]
+        phi = dinput['dprepare']['phi1d'][:, 0]
         indok = np.any(dinput['dprepare']['indok'], axis=1)
 
         # bsplines modulation of bck and amp, if relevant
@@ -2227,18 +2227,18 @@ def fit12d_dscales(dscales=None, dinput=None):
                 indnonan = (
                     (~np.isnan(datavert[ii, :]))
                     & (
-                        np.abs(phi[:, 0]-dinput['symmetry_axis'][ii])
+                        np.abs(phi - dinput['symmetry_axis'][ii])
                         < dinput['knots'][-1]
                     )
                 ).nonzero()[0]
                 indnonan = indnonan[
                     np.unique(
-                        np.abs(phi[indnonan, 0]-dinput['symmetry_axis'][ii]),
+                        np.abs(phi[indnonan]-dinput['symmetry_axis'][ii]),
                         return_index=True,
                     )[1]
                 ]
                 bs = scpinterp.LSQUnivariateSpline(
-                    np.abs(phi[indnonan, 0]-dinput['symmetry_axis'][ii]),
+                    np.abs(phi[indnonan]-dinput['symmetry_axis'][ii]),
                     datavert[ii, indnonan],
                     dinput['knots'][1:-1],
                     k=dinput['deg'],
@@ -2250,12 +2250,12 @@ def fit12d_dscales(dscales=None, dinput=None):
             for ii in dinput['valid']['indt'].nonzero()[0]:
                 indnonan = (
                     (~np.isnan(datavert[ii, :]))
-                    & (dinput['knots'][0] <= phi[:, 0])
-                    & (phi[:, 0] <= dinput['knots'][-1])
+                    & (dinput['knots'][0] <= phi)
+                    & (phi <= dinput['knots'][-1])
                 )
                 try:
                     bs = scpinterp.LSQUnivariateSpline(
-                        phi[indnonan, 0],
+                        phi[indnonan],
                         datavert[ii, indnonan],
                         dinput['knots'][1:-1],
                         k=dinput['deg'],
@@ -2646,7 +2646,8 @@ def fit12d_dconstants(dconstants=None, dinput=None):
 
 
 def _dict2vector_dscalesx0bounds(
-    dd=None, dd_name=None,
+    dd=None,
+    dd_name=None,
     dinput=None,
 ):
     nspect = dinput['dprepare']['data'].shape[0]
@@ -2658,13 +2659,13 @@ def _dict2vector_dscalesx0bounds(
         x[:, dinput['dind']['bck_amp']['x'][0]] = dd['bck_amp']
         x[:, dinput['dind']['bck_rate']['x'][0]] = dd['bck_rate']
     else:
-        x[:, dinput['dind']['bck_amp']['x']] = dd['bck_amp']
-        x[:, dinput['dind']['bck_rate']['x']] = dd['bck_rate']
+        x[:, dinput['dind']['bck_amp']['x'].ravel()] = dd['bck_amp'][:, None]
+        x[:, dinput['dind']['bck_rate']['x'].ravel()] = dd['bck_rate'][:, None]
     for k0 in _DORDER:
         for ii, k1 in enumerate(dinput[k0]['keys']):
             # 1d => 'x' (nlines,)
             # 2d => 'x' (nbs, nlines)
-            x[:, dinput['dind'][k0]['x'].T[ii]] = dd[k0][k1]
+            x[:, dinput['dind'][k0]['x'][:, ii]] = dd[k0][k1]
 
     if dinput['double'] is not False:
         if dinput['double'] is True:
