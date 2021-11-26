@@ -913,7 +913,7 @@ class CrystalBragg(utils.ToFuObject):
         But that can be changed using:
             - ('dtheta', 'psi'): can be arbitrary but with same shape
                 up to 4 dimensions
-                - ('ntheta', 'npsi', 'include_summit'): will be used to
+            - ('ntheta', 'npsi', 'include_summit'): will be used to
                 compute the envelop (contour) of the crystal, as 2 1d arrays
 
         These arguments are fed to self.get_local_noute1e2() which will compute
@@ -1965,7 +1965,7 @@ class CrystalBragg(utils.ToFuObject):
         if plot_lambda is None:
             plot_lambda = True
         if val_phi is None:
-            val_phi = np.r_[-0.075, -0.025, 0.000, 0.050, 0.090]
+            val_phi = np.r_[-0.09, -0.06, -0.03, 0.00, 0.03, 0.06, 0.09]
         if n_val_phi is None:
             n_val_phi = 1e-3
 
@@ -1984,11 +1984,9 @@ class CrystalBragg(utils.ToFuObject):
         alphas = np.linspace(alpha0, alpha0, 2)
         alphas_split = np.linspace((3/60)*np.pi/180, -(3/60)*np.pi/180, 2)
         bragg = np.full((alphas.size, xi.size, xj.size, 1), np.nan)
-        lamb = bragg.copy()
-        phi = bragg.copy()
+        lamb, phi = bragg.copy(), bragg.copy()
         bragg_unp = bragg.copy()
-        lamb_unp = bragg.copy()
-        phi_unp = bragg.copy()
+        lamb_unp, phi_unp = bragg.copy(), bragg.copy()
         xi_unp = np.full((alphas.size, xi.size*xj.size), np.nan)
         xj_unp = xi_unp.copy()
 
@@ -2019,7 +2017,6 @@ class CrystalBragg(utils.ToFuObject):
                 ) = self.calc_xixj_from_braggphi(
                     phi=phi[ii, ...].flatten(),
                     lamb=lamb[ii, ...].flatten(),
-                    #(ii, xi.size, xj.size, 1) --> (ii, xi.size*xj.size)
                     dtheta=dtheta, psi=psi,
                     det=det,
                     use_non_parallelism=use_non_parallelism,
@@ -2057,7 +2054,6 @@ class CrystalBragg(utils.ToFuObject):
                 ) = cryst2.calc_xixj_from_braggphi(
                     phi=phi[ii, ...].flatten(),
                     lamb=lamb[ii, ...].flatten(),
-                    #(ii, xi.size, xj.size, 1) --> (ii, xi.size*xj.size)
                     dtheta=dtheta, psi=psi,
                     det=det,
                     use_non_parallelism=use_non_parallelism,
@@ -2091,16 +2087,16 @@ class CrystalBragg(utils.ToFuObject):
 
         # Computing gap between each pixels for each non-parallelism case
         gap_xi = np.full((2, xi.size, xj.size), np.nan)
-        gap_lamb = np.full((2, xi.size, xj.size), np.nan)
+        gap_lamb = gap_xi.copy()
         for ii in range(alphas.size):
-            gap_xi[ii, :, :] = np.sqrt(
-                (xi_unp[ii, ...] - xii)**2
+            gap_xi[ii, :, :] = (
+                (xi_unp[ii, ...] - xii)
             )
             """gap_xi[ii, :, :] = (
                 (xii - xi_unp[ii, ...])**2 + (xjj - xj_unp[ii, ...])**2
             )"""
-            gap_lamb[ii, :, :] = np.sqrt(
-                (lamb_unp[ii, ...] - lamb[ii, ...])**2
+            gap_lamb[ii, :, :] = (
+                (lamb_unp[ii, ...] - lamb[ii, ...])
             )
 
         # Reset cryst angles
@@ -2116,8 +2112,6 @@ class CrystalBragg(utils.ToFuObject):
                 xj, xj_unp,
                 xii, xjj,
                 gap_xi, gap_lamb,
-                #lamb_interv, phi_interv,
-                #z_plus=None, z_minus=None,
                 cryst=self, dcryst=dcryst,
                 use_non_parallelism=use_non_parallelism,
                 det=det,
