@@ -32,12 +32,12 @@ def multigausfit1d_from_dlines_funccostjac(
     if jac is None:
         jac = _JAC
 
-    ibckax = dind['bck_amp']['x']
-    ibckrx = dind['bck_rate']['x']
+    ibckax = dind['bck_amp']['x'][0, :]
+    ibckrx = dind['bck_rate']['x'][0, :]
     nbck = 1    # ibckax.size + ibckrx.size
-    iax = dind['amp']['x']
-    iwx = dind['width']['x']
-    ishx = dind['shift']['x']
+    iax = dind['amp']['x'][0, :]
+    iwx = dind['width']['x'][0, :]
+    ishx = dind['shift']['x'][0, :]
     idratiox, idshx = None, None
     if dinput['double'] is not False:
         c0 = dinput['double'] is True
@@ -46,9 +46,9 @@ def multigausfit1d_from_dlines_funccostjac(
         if c0 or dinput['double'].get('dshift') is None:
             idshx = dind['dshift']['x']
 
-    ial = dind['amp']['lines']
-    iwl = dind['width']['lines']
-    ishl = dind['shift']['lines']
+    ial = dind['amp']['lines'][0, :]
+    iwl = dind['width']['lines'][0, :]
+    ishl = dind['shift']['lines'][0, :]
 
     iaj = dind['amp']['jac']
     iwj = dind['width']['jac']
@@ -68,23 +68,6 @@ def multigausfit1d_from_dlines_funccostjac(
     xscale = np.full((dind['sizex'],), np.nan)
     if indx is None:
         indx = np.ones((dind['sizex'],), dtype=bool)
-
-    # # bsplines-specific
-    # lambnormcost = lamb[indok].ravel()[:, None] / dinput['lines'][None, :]
-    # libs = np.array([((phicost>=km[ii]) & (phicost<=km[ii+kpb-1]))
-        # for ii in range(nbs)])
-    # lbs = [BSpline.basis_element(
-        # km[ii:ii+kpb],
-        # extrapolate=False)(phicost[libs[ii]])[:, None]
-        # for ii in range(nbs)]
-    # BS = BSpline(km, np.ones(ial.shape, dtype=float), dinput['deg'],
-        # extrapolate=False, axis=0)
-
-    # lcond = [np.any(np.isnan(bs)) for bs in lbs]
-    # if np.any(lcond):
-        # msg = ("Some nan have been detected in the jacobian!\n"
-        # + "\t- lbs[{}]".format(lcond.index(True)))
-        # raise Exception(msg)
 
     # func_details returns result in same shape as input
     def func_detail(
@@ -173,7 +156,7 @@ def multigausfit1d_from_dlines_funccostjac(
         data=0.,
     ):
         if indok is None:
-            indok = np.ones(lamb.shape, dtype=bool)
+            indok = np.ones(lambrel.shape, dtype=bool)
 
         # xscale = x*scales   !!! scales ??? !!! TBC
         xscale[indx] = x*scales[indx]
@@ -561,7 +544,7 @@ def multigausfit2d_from_dlines_funccostjac(
     ):
 
         if indok_flat is None:
-            indok_flat = np.ones(phi_flat.shape, dtype=bool)
+            indok_flat = np.ones(lambrel_flat.shape, dtype=bool)
 
         # xscale = x*scales
         xscale[indx] = x*scales[indx]

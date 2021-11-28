@@ -1717,7 +1717,7 @@ def fit1d_dinput(
     dinput['dprepare'] = dict(dprepare)
 
     # Add dind
-    dinput['dind'] = multigausfit1d_from_dlines_ind(dinput)
+    dinput['dind'] = multigausfit12d_from_dlines_ind(dinput)
 
     # Add dscales, dx0 and dbounds
     dinput['dscales'] = fit12d_dscales(dscales=dscales, dinput=dinput)
@@ -1865,7 +1865,7 @@ def fit2d_dinput(
     dinput['dprepare'] = dict(dprepare)
 
     # Add dind
-    dinput['dind'] = multigausfit2d_from_dlines_ind(dinput)
+    dinput['dind'] = multigausfit12d_from_dlines_ind(dinput)
 
     # Add dscales, dx0 and dbounds
     dinput['dscales'] = fit12d_dscales(dscales=dscales, dinput=dinput)
@@ -1886,77 +1886,78 @@ def fit2d_dinput(
 ###########################################################
 
 
-def multigausfit1d_from_dlines_ind(dinput=None):
+# def multigausfit1d_from_dlines_ind(dinput=None):
+    # """ Return the indices of quantities in x to compute y """
+
+    # # indices
+    # # General shape: [bck, amp, widths, shifts]
+    # # If double [..., double_shift, double_ratio]
+    # # Except for bck, all indices should render nlines (2*nlines if double)
+    # dind = {
+        # 'bck_amp': {'x': np.r_[0][:, None]},
+        # 'bck_rate': {'x': np.r_[1][:, None]},
+        # 'dshift': None,
+        # 'dratio': None,
+    # }
+    # nn = dind['bck_amp']['x'].size + dind['bck_rate']['x'].size
+    # inddratio, inddshift = None, None
+    # for k0 in _DORDER:
+        # ind = dinput[k0]['ind']
+        # lnl = np.sum(ind, axis=1).astype(int)
+        # dind[k0] = {
+            # 'x': (nn + np.arange(0, ind.shape[0]))[None, :],
+            # 'lines': (nn + np.argmax(ind, axis=0))[None, :],
+            # # TBC for shape
+            # 'jac': [
+                # tuple(ind[ii, :].nonzero()[0]) for ii in range(ind.shape[0])
+            # ]
+        # }
+        # nn += dind[k0]['x'].size
+
+    # sizex = dind['shift']['x'][-1, -1] + 1
+    # indx = np.r_[
+        # dind['bck_amp']['x'],
+        # dind['bck_rate']['x'],
+        # dind['amp']['x'],
+        # dind['width']['x'],
+        # dind['shift']['x'],
+    # ]
+    # assert np.all(np.arange(0, sizex) == indx)
+
+    # # check if double
+    # if dinput['double'] is True:
+        # dind['dshift'] = {'x': np.r_[-2]}
+        # dind['dratio'] = {'x': np.r_[-1]}
+        # sizex += 2
+    # elif isinstance(dinput['double'], dict):
+        # if dinput['double'].get('dshift') is None:
+            # dind['dshift'] = {'x': np.r_[-1]}
+            # sizex += 1
+        # elif dinput['double'].get('dratio') is None:
+            # dind['dratio'] = {'x': np.r_[-1]}
+            # sizex += 1
+
+    # dind['sizex'] = sizex
+    # dind['nbck'] = 2
+    # # dind['shapey1'] = dind['bck']['x'].size + dinput['nlines']
+
+    # # Ref line for amp (for dscales)
+    # amp_x0 = np.zeros((dinput['amp']['ind'].shape[0],), dtype=int)
+    # for ii in range(dinput['amp']['ind'].shape[0]):
+        # indi = dinput['amp']['ind'][ii, :].nonzero()[0]
+        # amp_x0[ii] = indi[np.argmin(np.abs(dinput['amp']['coefs'][indi]-1.))]
+    # dind['amp_x0'] = amp_x0
+    # return dind
+
+
+def multigausfit12d_from_dlines_ind(dinput=None):
     """ Return the indices of quantities in x to compute y """
 
     # indices
     # General shape: [bck, amp, widths, shifts]
     # If double [..., double_shift, double_ratio]
     # Except for bck, all indices should render nlines (2*nlines if double)
-    dind = {
-        'bck_amp': {'x': np.r_[0]},
-        'bck_rate': {'x': np.r_[1]},
-        'dshift': None,
-        'dratio': None,
-    }
-    nn = dind['bck_amp']['x'].size + dind['bck_rate']['x'].size
-    inddratio, inddshift = None, None
-    for k0 in _DORDER:
-        ind = dinput[k0]['ind']
-        lnl = np.sum(ind, axis=1).astype(int)
-        dind[k0] = {
-            'x': nn + np.arange(0, ind.shape[0]),
-            'lines': nn + np.argmax(ind, axis=0),
-            'jac': [
-                tuple(ind[ii, :].nonzero()[0]) for ii in range(ind.shape[0])
-            ]
-        }
-        nn += dind[k0]['x'].size
-
-    sizex = dind['shift']['x'][-1] + 1
-    indx = np.r_[
-        dind['bck_amp']['x'],
-        dind['bck_rate']['x'],
-        dind['amp']['x'],
-        dind['width']['x'],
-        dind['shift']['x'],
-    ]
-    assert np.all(np.arange(0, sizex) == indx)
-
-    # check if double
-    if dinput['double'] is True:
-        dind['dshift'] = {'x': np.r_[-2]}
-        dind['dratio'] = {'x': np.r_[-1]}
-        sizex += 2
-    elif isinstance(dinput['double'], dict):
-        if dinput['double'].get('dshift') is None:
-            dind['dshift'] = {'x': np.r_[-1]}
-            sizex += 1
-        elif dinput['double'].get('dratio') is None:
-            dind['dratio'] = {'x': np.r_[-1]}
-            sizex += 1
-
-    dind['sizex'] = sizex
-    dind['nbck'] = 2
-    # dind['shapey1'] = dind['bck']['x'].size + dinput['nlines']
-
-    # Ref line for amp (for dscales)
-    amp_x0 = np.zeros((dinput['amp']['ind'].shape[0],), dtype=int)
-    for ii in range(dinput['amp']['ind'].shape[0]):
-        indi = dinput['amp']['ind'][ii, :].nonzero()[0]
-        amp_x0[ii] = indi[np.argmin(np.abs(dinput['amp']['coefs'][indi]-1.))]
-    dind['amp_x0'] = amp_x0
-    return dind
-
-
-def multigausfit2d_from_dlines_ind(dinput=None):
-    """ Return the indices of quantities in x to compute y """
-
-    # indices
-    # General shape: [bck, amp, widths, shifts]
-    # If double [..., double_shift, double_ratio]
-    # Except for bck, all indices should render nlines (2*nlines if double)
-    nbs = dinput['nbs']
+    nbs = dinput.get('nbs', 1)
     dind = {
         'bck_amp': {'x': np.arange(0, nbs)[:, None]},
         'bck_rate': {'x': np.arange(nbs, 2*nbs)[:, None]},
@@ -2071,7 +2072,7 @@ def _fit12d_checkformat_dscalesx0(
 
     if len(lkfalse) > 0:
         msg = (
-            "Arg {} must be a dict of the form:\n".format(name)
+            f"Arg {name} must be a dict of the form:\n"
             + "\t- {}\n".format({
                 kk: 'float' if kk in lkconst+lk
                 else {k1: 'float' for k1 in dinput[kk]['keys']}
@@ -2298,7 +2299,7 @@ def fit12d_dscales(dscales=None, dinput=None):
         # bck_rate
         if bck_rate is None:
             bck_rate = (
-                np.log((bcky+bckstd)/bcky) / (lamb.max()-lamb.min())
+                np.log((bcky + bckstd)/bcky) / (lamb.max()-lamb.min())
             )
         if bck_amp is None:
             # Assuming bck = A*exp(rate*(lamb-lamb.min()))
@@ -2653,28 +2654,24 @@ def _dict2vector_dscalesx0bounds(
     nspect = dinput['dprepare']['data'].shape[0]
     x = np.full((nspect, dinput['dind']['sizex']), np.nan)
 
-    # 1d => (1,)
-    # 2d => (nbs,)
-    if dinput['dind']['bck_amp']['x'].size == 1:
-        x[:, dinput['dind']['bck_amp']['x'][0]] = dd['bck_amp']
-        x[:, dinput['dind']['bck_rate']['x'][0]] = dd['bck_rate']
-    else:
-        x[:, dinput['dind']['bck_amp']['x'].ravel()] = dd['bck_amp'][:, None]
-        x[:, dinput['dind']['bck_rate']['x'].ravel()] = dd['bck_rate'][:, None]
+    # 1d => (1, nvar)
+    # 2d => (nbs, nvar)
+    x[:, dinput['dind']['bck_amp']['x'][:, 0]] = dd['bck_amp'][:, None]
+    x[:, dinput['dind']['bck_rate']['x'][:, 0]] = dd['bck_rate'][:, None]
     for k0 in _DORDER:
         for ii, k1 in enumerate(dinput[k0]['keys']):
             # 1d => 'x' (nlines,)
             # 2d => 'x' (nbs, nlines)
-            x[:, dinput['dind'][k0]['x'][:, ii]] = dd[k0][k1]
+            x[:, dinput['dind'][k0]['x'][:, ii]] = dd[k0][k1][:, None]
 
     if dinput['double'] is not False:
         if dinput['double'] is True:
-            x[:, dinput['dind']['dratio']['x']] = dd['dratio'][:, None]
-            x[:, dinput['dind']['dshift']['x']] = dd['dshift'][:, None]
+            x[:, dinput['dind']['dratio']['x'][:, 0]] = dd['dratio'][:, None]
+            x[:, dinput['dind']['dshift']['x'][:, 0]] = dd['dshift'][:, None]
         else:
             if dinput['double'].get('dratio') is None:
-                x[:, dinput['dind']['dratio']['x']] = dd['dratio'][:, None]
+                x[:, dinput['dind']['dratio']['x'][:, 0]] = dd['dratio'][:, None]
             if dinput['double'].get('dshift') is None:
-                x[:, dinput['dind']['dshift']['x']] = dd['dshift'][:, None]
+                x[:, dinput['dind']['dshift']['x'][:, 0]] = dd['dshift'][:, None]
 
     return x
