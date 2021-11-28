@@ -452,7 +452,7 @@ def fit1d_extract(
         sol_x=dfit1d['sol_x'],
         scales=dfit1d['scales'],
     ):
-        ind = dind[d3[k0]['field']][k1][d3[k0][k1]['ind']]
+        ind = dind[d3[k0]['field']][k1][0, d3[k0][k1]['ind']]
         return sol_x[:, ind] * scales[:, ind]
 
     # -------------------

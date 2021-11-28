@@ -298,8 +298,11 @@ def multigausfit1d_from_dlines(
             sol_x[ii, ~indx] = const[ii, :] / scales[ii, ~indx]
 
         except Exception as err:
-            errmsg[ii] = str(err)
-            validity[ii] = -1
+            if strict:
+                raise err
+            else:
+                errmsg[ii] = str(err)
+                validity[ii] = -1
 
         # verbose
         if verbose in [1, 2]:

@@ -492,6 +492,9 @@ def _checkformat_data_fit12d_dlines(
             phi1d = np.copy(phi)
             lamb = np.repeat(lamb[None, :], nxj, axis=0)
             phi = np.repeat(phi[:, None], nxi, axis=1)
+        else:
+            import pdb; pdb.set_trace()     # DB
+            pass
 
         c0 = (
             data.ndim in mindim + np.r_[0, 1]
@@ -2214,8 +2217,11 @@ def fit12d_dscales(dscales=None, dinput=None):
     if is2d is True:
         data = dinput['dprepare']['datalamb1d']
         datavert = dinput['dprepare']['dataphi1d']
-        lamb = dinput['dprepare']['lamb1d'][0, :]
-        phi = dinput['dprepare']['phi1d'][:, 0]
+        if dinput['dprepare']['lamb1d'].ndim == 2:
+            import pdb; pdb.set_trace()     # DB
+            pass
+        lamb = dinput['dprepare']['lamb1d']
+        phi = dinput['dprepare']['phi1d']
         indok = np.any(dinput['dprepare']['indok'], axis=1)
 
         # bsplines modulation of bck and amp, if relevant
