@@ -808,10 +808,10 @@ def binning_2d_data(
     nspect = data.shape[0]
     if binning is False:
         if phi1d is None:
-            phi1d_bins = np.linspace(
+            phi1d_edges = np.linspace(
                 domain['phi']['minmax'][0], domain['phi']['minmax'][1], 100,
             )
-            lamb1d_bins = np.linspace(
+            lamb1d_edges = np.linspace(
                 domain['lamb']['minmax'][0], domain['lamb']['minmax'][1], 100,
             )
             dataf = data.reshape((nspect, data.shape[1]*data.shape[2]))
@@ -819,15 +819,16 @@ def binning_2d_data(
                 phi.ravel(),
                 dataf,
                 statistic='sum',
+                bins=phi1d_edges,
             )
             datalamb1d = scpstats.binned_statistic(
                 lamb.ravel(),
                 dataf,
                 statistic='sum',
+                bins=lamb1d_edges,
             )
-            phi1d = 0.5*(phi1d_bins[1:] + phi1d_bins[:-1])
-            lamb1d = 0.5*(lamb1d_bins[1:] + lamb1d_bins[:-1])
-            import pdb; pdb.set_trace()     # DB
+            phi1d = 0.5*(phi1d_edges[1:] + phi1d_edges[:-1])
+            lamb1d = 0.5*(lamb1d_edges[1:] + lamb1d_edges[:-1])
 
         return (
             lamb, phi, data, indok, binning,
@@ -848,31 +849,33 @@ def binning_2d_data(
                 phi[indok[ii, ...]],
                 lamb[indok[ii, ...]],
                 data[ii, indok[ii, ...]],
-                statistic='sum', bins=bins,
-                range=None, expand_binnumbers=True,
+                statistic='sum',
+                bins=bins,
+                range=None,
+                expand_binnumbers=True,
             )[0]
             nperbin[ii, ...] = scpstats.binned_statistic_2d(
                 phi[indok[ii, ...]],
                 lamb[indok[ii, ...]],
                 np.ones((indok[ii, ...].sum(),), dtype=int),
-                statistic='sum', bins=bins,
-                range=None, expand_binnumbers=True,
+                statistic='sum',
+                bins=bins,
+                range=None,
+                expand_binnumbers=True,
             )[0]
         binning['nperbin'] = nperbin
 
-        lambbin = 0.5*(
+        lamb1d = 0.5*(
             binning['lamb']['edges'][1:] + binning['lamb']['edges'][:-1]
         )
-        phibin = 0.5*(
+        phi1d = 0.5*(
             binning['phi']['edges'][1:] + binning['phi']['edges'][:-1]
         )
-        lambbin = np.repeat(lambbin[None, :], nphi, axis=0)
-        phibin = np.repeat(phibin[:, None], nlamb, axis=1)
+        lambbin = np.repeat(lamb1d[None, :], nphi, axis=0)
+        phibin = np.repeat(phi1d[:, None], nlamb, axis=1)
         indok = ~np.isnan(databin)
 
         # dataphi1d
-        phi1d = phibin
-        lamb1d = lambbin
         dataphi1d = np.nanmean(databin, axis=2)
         datalamb1d = np.nanmean(databin, axis=1)
 
