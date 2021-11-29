@@ -791,7 +791,8 @@ def _binning_check(
 
 
 def binning_2d_data(
-    lamb, phi, data, indok=None,
+    lamb, phi, data,
+    indok_bool=None,
     domain=None, binning=None,
     nbsplines=None,
     phi1d=None, lamb1d=None,
@@ -802,7 +803,8 @@ def binning_2d_data(
     # Checkformat input
     binning = _binning_check(
         binning,
-        domain=domain, nbsplines=nbsplines,
+        domain=domain,
+        nbsplines=nbsplines,
     )
 
     nspect = data.shape[0]
@@ -831,7 +833,7 @@ def binning_2d_data(
             lamb1d = 0.5*(lamb1d_edges[1:] + lamb1d_edges[:-1])
 
         return (
-            lamb, phi, data, indok, binning,
+            lamb, phi, data, indok_bool, binning,
             phi1d, lamb1d, dataphi1d, datalamb1d,
         )
 
@@ -844,25 +846,27 @@ def binning_2d_data(
         # Compute
         databin = np.full((nspect, nphi, nlamb), np.nan)
         nperbin = np.full((nspect, nphi, nlamb), np.nan)
+        indok_new = np.zeros((nspect, nphi, nlamb), dtype=np.int8)
         for ii in range(nspect):
             databin[ii, ...] = scpstats.binned_statistic_2d(
-                phi[indok[ii, ...]],
-                lamb[indok[ii, ...]],
-                data[ii, indok[ii, ...]],
+                phi[indok_bool[ii, ...]],
+                lamb[indok_bool[ii, ...]],
+                data[ii, indok_bool[ii, ...]],
                 statistic='sum',
                 bins=bins,
                 range=None,
                 expand_binnumbers=True,
             )[0]
             nperbin[ii, ...] = scpstats.binned_statistic_2d(
-                phi[indok[ii, ...]],
-                lamb[indok[ii, ...]],
-                np.ones((indok[ii, ...].sum(),), dtype=int),
+                phi[indok_bool[ii, ...]],
+                lamb[indok_bool[ii, ...]],
+                np.ones((indok_bool[ii, ...].sum(),), dtype=int),
                 statistic='sum',
                 bins=bins,
                 range=None,
                 expand_binnumbers=True,
             )[0]
+
         binning['nperbin'] = nperbin
 
         lamb1d = 0.5*(
@@ -873,14 +877,16 @@ def binning_2d_data(
         )
         lambbin = np.repeat(lamb1d[None, :], nphi, axis=0)
         phibin = np.repeat(phi1d[:, None], nlamb, axis=1)
-        indok = ~np.isnan(databin)
+
+        # reconstructing indok
+        indok_new[np.isnan(databin) | (nperbin == 0)] = -1
 
         # dataphi1d
         dataphi1d = np.nanmean(databin, axis=2)
         datalamb1d = np.nanmean(databin, axis=1)
 
         return (
-            lambbin, phibin, databin, indok, binning,
+            lambbin, phibin, databin, indok_new, binning,
             phi1d, lamb1d, dataphi1d, datalamb1d,
         )
 
@@ -900,11 +906,17 @@ def _get_subset_indices(subset, indlogical):
     if subset is False:
         return indlogical
 
-    c0 = ((isinstance(subset, np.ndarray)
-           and subset.shape == indlogical.shape
-           and 'bool' in subset.dtype.name)
-          or (type(subset) in [int, float, np.int_, np.float_]
-              and subset >= 0))
+    c0 = (
+        (
+            isinstance(subset, np.ndarray)
+            and subset.shape == indlogical.shape
+            and 'bool' in subset.dtype.name
+        )
+          or (
+              type(subset) in [int, float, np.int_, np.float_]
+              and subset >= 0
+          )
+    )
     if not c0:
         msg = ("subset must be either:\n"
                + "\t- an array of bool of shape: {}\n".format(indlogical.shape)
@@ -916,8 +928,11 @@ def _get_subset_indices(subset, indlogical):
         indlogical = subset[None, ...] & indlogical
     else:
         subset = np.random.default_rng().choice(
-            indlogical.sum(), size=int(indlogical.sum() - subset),
-            replace=False, shuffle=False)
+            indlogical.sum(),
+            size=int(indlogical.sum() - subset),
+            replace=False,
+            shuffle=False,
+        )
         for ii in range(indlogical.shape[0]):
             ind = indlogical[ii, ...].nonzero()
             indlogical[ii, ind[0][subset], ind[1][subset]] = False
@@ -1082,9 +1097,11 @@ def multigausfit2d_from_dlines_prepare(
 
     # --------------
     # Use valid data only and optionally restrict lamb / phi
-    indok, domain = apply_domain(lamb, phi, domain=domain)
-    if mask is not None:
-        indok &= mask
+    indok = np.zeros(data.shape, dtype=np.int8)
+    indok[:, ~mask] = -1
+
+    inddomain, domain = apply_domain(lamb, phi, domain=domain)
+    indok[:, (~inddomain) & mask] = -2
 
     # Optional positivity constraint
     if pos is not False:
@@ -1094,16 +1111,18 @@ def multigausfit2d_from_dlines_prepare(
             data[data < 0.] = pos
 
     # Introduce time-dependence (useful for valid)
-    indok = indok[None, ...] & (~np.isnan(data))
+    indok[(indok == 0) & np.isnan(data)] = -3
+    dindok = {0: 'ok', -1: 'mask', -2: 'domain', -3: 'neg or NaN', -4: 'valid'}
 
     # Recompute domain
+    indok_bool = indok == 0
     domain['lamb']['minmax'] = [
-        np.nanmin(lamb[np.any(indok, axis=0)]),
-        np.nanmax(lamb[np.any(indok, axis=0)])
+        np.nanmin(lamb[np.any(indok_bool, axis=0)]),
+        np.nanmax(lamb[np.any(indok_bool, axis=0)])
     ]
     domain['phi']['minmax'] = [
-        np.nanmin(phi[np.any(indok, axis=0)]),
-        np.nanmax(phi[np.any(indok, axis=0)])
+        np.nanmin(phi[np.any(indok_bool, axis=0)]),
+        np.nanmax(phi[np.any(indok_bool, axis=0)])
     ]
 
     # --------------
@@ -1112,17 +1131,20 @@ def multigausfit2d_from_dlines_prepare(
         lambbin, phibin, databin, indok, binning,
         phi1d, lamb1d, dataphi1d, datalamb1d,
     ) = binning_2d_data(
-        lamb, phi, data, indok=indok,
-        binning=binning, domain=domain,
+        lamb, phi, data,
+        indok_bool=indok_bool,
+        binning=binning,
+        domain=domain,
         nbsplines=nbsplines,
         phi1d=phi1d, lamb1d=lamb1d,
         dataphi1d=dataphi1d, datalamb1d=datalamb1d,
     )
+    indok_bool = indok == 0
 
     # --------------
     # Optionally fit only on subset
     # randomly pick subset indices (replace=False => no duplicates)
-    indok = _get_subset_indices(subset, indok)
+    # indok_bool = _get_subset_indices(subset, indok == 0)
 
     # --------------
     # Optionally extract 1d spectra at lphi
@@ -1137,7 +1159,8 @@ def multigausfit2d_from_dlines_prepare(
     # Return
     dprepare = {
         'data': databin, 'lamb': lambbin, 'phi': phibin,
-        'domain': domain, 'binning': binning, 'indok': indok,
+        'domain': domain, 'binning': binning,
+        'indok': indok, 'indok_bool': indok_bool, 'dindok': dindok,
         'pos': pos, 'subset': subset, 'nxi': nxi, 'nxj': nxj,
         'lphi': lphi, 'lphi_tol': lphi_tol,
         'lphi_spectra': lphi_spectra, 'lphi_lamb': lphi_lamb,
@@ -1428,6 +1451,13 @@ def fit12d_dvalid(
             indbs = np.all(fract > valid_fraction, axis=2)
         indt = np.any(indbs, axis=1)
         dphi = deltaphi*(deg + indbs[:, deg:-deg].sum(axis=1))
+
+        ibsmin = np.argmax(indbs, axis=1)
+        ibsmax = indbs.shape[1] - 1 - np.argmax(indbs[:, ::-1], axis=1)
+        dphi = np.array([
+            knots_mult[:-(deg + 1)][ibsmin],
+            knots_mult[(deg + 1):][ibsmax],
+        ]).T
 
     else:
         # 1d spectra
@@ -1852,7 +1882,7 @@ def fit2d_dinput(
         lamb=dprepare['lamb'],
         phi=dprepare['phi'],
         binning=dprepare['binning'],
-        indok=dprepare['indok'],
+        indok=dprepare['indok_bool'],
         valid_nsigma=valid_nsigma,
         valid_fraction=valid_fraction,
         focus=focus, focus_half_width=focus_half_width,

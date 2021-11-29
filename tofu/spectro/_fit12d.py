@@ -277,7 +277,7 @@ def multigausfit1d_from_dlines(
                     'data': datacost[ii, :],
                     'scales': scales[ii, :],
                     'const': const[ii, :],
-                    'indok': dprepare['indok'][ii, :],
+                    'indok': dprepare['indok_bool'][ii, :],
                 },
             )
             dti = (dtm.datetime.now() - t0i).total_seconds()
@@ -533,7 +533,7 @@ def multigausfit2d_from_dlines(
 
     # reshape input
     data_flat = dprepare['data'].reshape((nspect, -1))
-    indok_flat = dprepare['indok'].reshape((nspect, -1))
+    indok_flat = dprepare['indok_bool'].reshape((nspect, -1))
 
     # Prepare msg
     if verbose in [1, 2]:
