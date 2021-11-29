@@ -42,9 +42,9 @@ def multigausfit1d_from_dlines_funccostjac(
     if dinput['double'] is not False:
         c0 = dinput['double'] is True
         if c0 or dinput['double'].get('dratio') is None:
-            idratiox = dind['dratio']['x']
+            idratiox = dind['dratio']['x'][0, :]
         if c0 or dinput['double'].get('dshift') is None:
-            idshx = dind['dshift']['x']
+            idshx = dind['dshift']['x'][0, :]
 
     ial = dind['amp']['lines'][0, :]
     iwl = dind['width']['lines'][0, :]
