@@ -74,7 +74,7 @@ def _plot_shotoverview_init(ns=1, sharet=True, sharey=True, shareRZ=True,
     # Make figure and axes
     fig = plt.figure(figsize=fs)
     if wintit is not None:
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
     axarr = GridSpec(ns, 3, **dmargin)
 
     laxt = [None for ii in range(0,ns)]

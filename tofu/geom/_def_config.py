@@ -14,7 +14,10 @@ _ExpNSTX = 'NSTX'
 _ExpDEMO = 'DEMO'
 _ExpTOMAS = 'TOMAS'
 _ExpCOMPASS = 'COMPASS'
+_ExpCOMPASS2 = 'COMPASS2'
 _ExpTCV = 'TCV'
+_ExpSPARC = 'SPARC'
+
 
 # Default config
 _DEFCONFIG = _ExpITER
@@ -218,6 +221,17 @@ _DCONFIG = {
         'Exp': _ExpCOMPASS,
         'Ves': ['V0'],
     },
+    'COMPASS-V1': {
+        'Exp': _ExpCOMPASS,
+        'Ves': ['InnerV1'],
+        'PFC': ['lower', 'upper', 'inner', 'outer'],
+    },
+
+    # COMPASS2
+    'COMPASS2-V0': {
+        'Exp': _ExpCOMPASS2,
+        'Ves': ['V0'],
+    },
 
     # TCV
     'TCV-V0': {
@@ -232,6 +246,51 @@ _DCONFIG = {
             'E03A1', 'E03A2', 'E03A3',
             'F001', 'F002', 'F003', 'F004', 'F005', 'F006', 'F007', 'F008',
             'T03A1', 'T03A2', 'T03A3'],
+    },
+
+    # SPARC
+    'SPARC-V0': {
+        'Exp': _ExpSPARC,
+        'Ves': ['FirstWallV0'],
+    },
+
+    'SPARC-V1': {
+        'Exp': _ExpSPARC,
+        'Ves': ['FirstWallV0', 'VesInner', 'VesOuter'],
+        'PFC': ['ICRH0'],
+        'CoilPF': [
+            'Div1lower', 'Div2lower', 'Div1upper', 'Div2upper',
+            'EFClower0', 'EFClower1', 'EFCmed0', 'EFCmed1',
+            'EFCupper0', 'EFCupper1', 'PF1lower', 'PF1upper',
+            'PF2lower', 'PF2upper', 'PF3lower', 'PF3upper',
+            'PF4lower', 'PF4upper', 'VS1lower', 'VS1upper',
+            'VStabPlatelower', 'VStabPlateupper',
+        ],
+        'CoilCS': [
+            'CS1lower', 'CS2lower', 'CS3lower',
+            'CS1upper', 'CS2upper', 'CS3upper',
+        ],
+    },
+
+    'SPARC-V2': {
+        'Exp': _ExpSPARC,
+        'Ves': [
+            'FirstWallV0', 'VesInner', 'VesOuter',
+            'CoilTFInner', 'CoilTFOuter',
+        ],
+        'PFC': ['ICRH0'],
+        'CoilPF': [
+            'Div1lower', 'Div2lower', 'Div1upper', 'Div2upper',
+            'EFClower0', 'EFClower1', 'EFCmed0', 'EFCmed1',
+            'EFCupper0', 'EFCupper1', 'PF1lower', 'PF1upper',
+            'PF2lower', 'PF2upper', 'PF3lower', 'PF3upper',
+            'PF4lower', 'PF4upper', 'VS1lower', 'VS1upper',
+            'VStabPlatelower', 'VStabPlateupper',
+        ],
+        'CoilCS': [
+            'CS1lower', 'CS2lower', 'CS3lower',
+            'CS1upper', 'CS2upper', 'CS3upper',
+        ],
     },
 }
 
@@ -256,6 +315,7 @@ _DCONFIG_SHORTCUTS = {
     'TOMAS': 'TOMAS-V0',
     'COMPASS': 'COMPASS-V0',
     'TCV': 'TCV-V0',
+    'SPARC': 'SPARC-V1',
 }
 
 
