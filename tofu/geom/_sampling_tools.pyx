@@ -2929,6 +2929,11 @@ cdef inline void tri_asmbl_block_approx(
                                                  &dist_opts[0])
                         for itri in range(lnvert_poly[ipoly] - 2):
                             iglob = ipoly + itri * npoly
+                            if rr < 2 and zz < 2 and jj < 2:
+                                printf("r, z, p = %f, %f, %f\n", loc_r, loc_z, loc_phi)
+                                printf("x, y, z = %f, %f, %f\n", loc_x, loc_y, loc_z)
+                                printf("Poly %d at the %d itri, iglob = %d => is vis = %d\n",
+                                       ipoly, itri, iglob, is_vis[iglob])
                             if is_vis[iglob]:
                                 sa_map[ind_pol,
                                        ipoly] += comp_sa_tri_appx(
@@ -2946,6 +2951,8 @@ cdef inline void tri_asmbl_block_approx(
     free(dot_Gc)
     free(norm_G2)
     free(is_vis)
+    free(numerator)
+    free(side_of_poly)
     return
 
 cdef inline void tri_asmbl_unblock_approx(
@@ -3065,9 +3072,6 @@ cdef inline void tri_asmbl_unblock_approx(
     free(side_of_poly)
     return
 
-#TODO : checker que ce qui va dans le arctan() est forcement positif !
-# TODO : numerateur : prend la valeur absolue
-#        denumerateur : ajouter pi si negatif
 cdef inline double comp_sa_tri_appx(
     int itri,
     long* ltri,

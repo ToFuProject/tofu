@@ -5195,6 +5195,7 @@ def compute_solid_angle_poly_map(list poly_coords,
     )
 
     print("............ got here 1")
+    print(centroids)
 
     poly_lnorms_tot = np.repeat(poly_lnorms,
                                 np.asarray(poly_lnvert) - 2,

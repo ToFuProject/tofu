@@ -415,7 +415,7 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
         #     [2.70, 0, -0.1],
         # ]).T,  # 3rd polygon
         np.array([
-            [-2.5, 0, -0.35],
+            [2.5, 0, -0.35],
             [2.65, 0, -0.4],
             [2.70, 0, -0.15],
         ]).T,  # 4th polygon
@@ -437,7 +437,12 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
         #     [2.2, 0., 0.50],
         # ]).T,  # 6th polygon
     ]
+    # print(poly_coords)
+    # poly_coords = [GG.coord_shift(np.ascontiguousarray(poly),
+    #                               in_format="(r,z,phi)",
+    #                               out_format="(x,y,z)") for poly in poly_coords]
     poly_coords = [np.ascontiguousarray(poly) for poly in poly_coords]
+    # print(poly_coords)
     poly_lnorms = np.array([
         # [0, 1., 0],
         # [0, 1., 0],
@@ -541,7 +546,7 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
                     linewidth=2,
                 )
                 print("so far so good")
-                for xzi, (x,z) in enumerate(zip(xpoly, zpoly)):
+                for xzi, (x, z) in enumerate(zip(xpoly, zpoly)):
                     #ax.annotate(f"({x},{z})", (x, z))
                     ax.annotate(f"{xzi}", (x,z))
                 ax.plot()
