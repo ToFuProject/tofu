@@ -61,6 +61,15 @@ _DX0 = {
     'dshift': 0.,
     'bs': 1.,
 }
+_DINDOK = {
+    0: 'ok',
+    -1: 'mask',
+    -2: 'out of domain',
+    -3: 'neg or NaN',
+    -4: 'binning=0',
+    -5: 'non-valid S/N',
+}
+
 
 
 ###########################################################
@@ -856,7 +865,7 @@ def binning_2d_data(
                 phi[indok_bool[ii, ...]],
                 lamb[indok_bool[ii, ...]],
                 data[ii, indok_bool[ii, ...]],
-                statistic='sum',
+                statistic='mean',       # Beware: for valid S/N use sum!
                 bins=bins,
                 range=None,
                 expand_binnumbers=True,
@@ -883,7 +892,8 @@ def binning_2d_data(
         phibin = np.repeat(phi1d[:, None], nlamb, axis=1)
 
         # reconstructing indok
-        indok_new[np.isnan(databin) | (nperbin == 0)] = -1
+        indok_new[np.isnan(databin)] = -1
+        indok_new[nperbin == 0] = -4
 
         # dataphi1d
         dataphi1d = np.nanmean(databin, axis=2)
@@ -1051,7 +1061,6 @@ def multigausfit1d_from_dlines_prepare(
             data[data < 0.] = pos
 
     indok[(indok == 0) & np.isnan(data)] = -3
-    dindok = {0: 'ok', -1: 'mask', -2: 'domain', -3: 'neg or NaN', -4: 'valid'}
 
     # Recompute domain
     indok_bool = indok == 0
@@ -1083,7 +1092,7 @@ def multigausfit1d_from_dlines_prepare(
         'domain': domain,
         'indok': indok,
         'indok_bool': indok_bool,
-        'dindok': dindok,
+        'dindok': dict(_DINDOK),
         'pos': pos,
         'subset': subset,
     }
@@ -1134,7 +1143,6 @@ def multigausfit2d_from_dlines_prepare(
 
     # Introduce time-dependence (useful for valid)
     indok[(indok == 0) & np.isnan(data)] = -3
-    dindok = {0: 'ok', -1: 'mask', -2: 'domain', -3: 'neg or NaN', -4: 'valid'}
 
     # Recompute domain
     indok_bool = indok == 0
@@ -1187,7 +1195,7 @@ def multigausfit2d_from_dlines_prepare(
     dprepare = {
         'data': databin, 'lamb': lambbin, 'phi': phibin,
         'domain': domain, 'binning': binning,
-        'indok': indok, 'indok_bool': indok_bool, 'dindok': dindok,
+        'indok': indok, 'indok_bool': indok_bool, 'dindok': dict(_DINDOK),
         'pos': pos, 'subset': subset, 'nxi': nxi, 'nxj': nxj,
         'lphi': lphi, 'lphi_tol': lphi_tol,
         'lphi_spectra': lphi_spectra, 'lphi_lamb': lphi_lamb,
@@ -1431,13 +1439,16 @@ def fit12d_dvalid(
     ind = np.zeros(data.shape, dtype=bool)
     isafe = np.isfinite(data)
     isafe[isafe] = data[isafe] >= 0.
-    if indok_bool is None:
-        # Ok with and w/o binning if data provided as counts / photons
-        # and binning was done by sum (and not mean)
+    if indok_bool is not None:
+        isafe &= indok_bool
+
+    # Ok with and w/o binning if data provided as counts
+    if binning is False:
         ind[isafe] = np.sqrt(data[isafe]) > valid_nsigma
     else:
-        ind[indok_bool & isafe] = (
-            np.sqrt(data[indok_bool & isafe]) > valid_nsigma
+        # For S/N in binning, if counts => sum = mean * nbperbin
+        ind[isafe] = (
+            np.sqrt(data[isafe] * binning['nperbin'][isafe]) > valid_nsigma
         )
 
     # Derive indt and optionally dphi and indknots
