@@ -402,7 +402,7 @@ def plot_dinput2d(
         if dax.get(kax) is not None:
             ax = dax[kax]['ax']
             im = ax.imshow(
-                indok[ispect, ...],
+                indok[ii, ...],
                 extent=extent,
                 cmap=cmap_indok,
                 vmin=-cmap_indok.N + 0.5,
@@ -424,7 +424,7 @@ def plot_dinput2d(
         if dax.get(kax) is not None:
             ax = dax[kax]['ax']
             im = ax.imshow(
-                data[ispect, ...],
+                data[ii, ...],
                 extent=extent,
                 cmap=cmap,
                 vmin=vmin,
