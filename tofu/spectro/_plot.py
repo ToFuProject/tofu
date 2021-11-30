@@ -246,7 +246,16 @@ def CrystalBragg_plot_data_vs_lambphi(
 # #################################################################
 
 
-def plot_dinput_2d(
+
+def _domain2str(domain, key):
+    return [
+        ss.tolist() if isinstance(ss, np.ndarray)
+        else ss
+        for ss in domain[key]['spec']
+    ]
+
+
+def plot_dinput2d(
     # input data
     dinput=None,
     indspect=None,
@@ -260,10 +269,12 @@ def plot_dinput_2d(
     cmap=None,
     vmin=None,
     vmax=None,
+    cmap_indok=None,
 ):
 
     # Check inputs
     # ------------
+
     # if annotate is None:
         # annotate = True
     # if annotate is True:
@@ -277,23 +288,26 @@ def plot_dinput_2d(
         dphi = np.mean(np.diff(np.unique(phi)))
         phi_lim = phi.mean() + dphi * np.r_[-0.6, 0.6]
     if phi_name is None:
-        phi_name = r'$phi$'
+        phi_name = r'$\phi$'
 
     if fs is None:
-        fs = (16, 9)
+        fs = (15, 8)
     if wintit is None:
         wintit = _WINTIT
     if dmargin is None:
         dmargin = {
             'left': 0.05, 'right': 0.95,
             'bottom': 0.07, 'top': 0.90,
-            'wspace': 0.2, 'hspace': 0.4,
+            'wspace': 1., 'hspace': 0.4,
         }
 
     if vmin is None:
         vmin = 0.
     if vmax is None:
         vmax = np.nanmax(dinput['dprepare']['data'])
+
+    if cmap_indok is None:
+        cmap_indok = plt.cm.Accent_r
 
     if indspect is None:
         indspect = dinput['valid']['indt'].nonzero()[0][0]
@@ -311,6 +325,7 @@ def plot_dinput_2d(
     phi = dprepare['phi']
     data = dprepare['data'][indspect, ...]
     indok = dprepare['indok'][indspect, ...]
+    nbs = dinput['nbs']
 
     # Extent
     extent = (lamb.min(), lamb.max(), phi.min(), phi.max())
@@ -319,7 +334,28 @@ def plot_dinput_2d(
     indphi = (phi >= phi_lim[0]) & (phi < phi_lim[1])
     spect_lamb = lamb[indphi]
     indlamb = np.argsort(spect_lamb)
+    spect_lamb = spect_lamb[indlamb]
     spect_data = data[:, indphi][:, indlamb]
+
+    # Extent
+    if dprepare['binning'] is False:
+        nxi, nxj = data.shape[1:]
+        extent = (0, nxi, 0, nxj)
+        x0_lab = 'xi'
+        x1_lab = 'xj'
+        aspect = 'equal'
+    else:
+        nlamb, nphi = data.shape[1:]
+        extent = (lamb.min(), lamb.max(), phi.min(), phi.max())
+        x0_lab = r'$\lambda$'
+        x1_lab = phi_name
+        aspect = 'auto'
+
+    # indok lab
+    indok_lab = [
+        dprepare['dindok'].get(ii, ii) for ii in range(-cmap_indok.N + 1, 1)
+    ]
+
 
     # Plot
     # ------------
@@ -332,21 +368,26 @@ def plot_dinput_2d(
             titi = tit
 
         fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(3, 3, **dmargin)
-        ax0 = fig.add_subplot(gs[:2, 0])
-        ax1 = fig.add_subplot(gs[:2, 1], sharex=ax0, sharey=ax0)
-        ax2 = fig.add_subplot(gs[:2, 2], sharex=ax0, sharey=ax0)
-        ax3 = fig.add_subplot(gs[2, 1], sharex=ax0)
+        gs = gridspec.GridSpec(3, 16, **dmargin)
+        ax0 = fig.add_subplot(gs[:2, :5])
+        cax0 = fig.add_subplot(gs[:2, 5])
+        ax1 = fig.add_subplot(gs[:2, 10:15], sharex=ax0, sharey=ax0)
+        cax1 = fig.add_subplot(gs[:2, 15])
+        ax2 = fig.add_subplot(gs[:2, 8], sharey=ax0)
+        ax3 = fig.add_subplot(gs[2, 10:15], sharex=ax0)
 
-        ax0.set_ylabel(phi_name)
-        ax0.set_xlabel(r'$\lambda$ (m)')
+        ax0.set_ylabel(x1_lab)
+        ax0.set_xlabel(x0_lab)
+
+        ax2.set_title('Bsplines knots', size=12, fontweight='bold')
 
         ax3.set_ylabel('data (a.u.)')
-        ax3.set_xlabel(r'$\lambda$ (m)')
+        ax3.set_xlabel(x0_lab)
 
         dax = {
             'img_indok': {'ax': ax0},
             'img_original_data': {'ax': ax1},
+            'bsplines': {'ax': ax2},
             'spect': {'ax': ax3},
         }
 
@@ -354,36 +395,97 @@ def plot_dinput_2d(
         kax = 'img_indok'
         if dax.get(kax) is not None:
             ax = dax[kax]['ax']
-            for jj, ju in enumerate(np.unique(indok[ii, ...])):
-                indj = indok[ii, ...] == ju
-                ax.plot(
-                    lamb[indj],
-                    phi[indj],
-                    marker='.',
-                    ms=2,
-                    ls='None',
-                    label=dprepare['dindok'][ju],
-                )
+            im = ax.imshow(
+                indok[ispect, ...],
+                extent=extent,
+                cmap=cmap_indok,
+                vmin=-cmap_indok.N + 0.5,
+                vmax=0.5,
+                interpolation='nearest',
+                origin='lower',
+                aspect=aspect,
+            )
+            fig.colorbar(
+                im,
+                ax=ax,
+                cax=cax0,
+                ticks=range(-cmap_indok.N+1, 1),
+                orientation='vertical',
+            )
+            cax0.set_yticklabels(indok_lab)
+            ax.set_title(f"indt ok: {dinput['valid']['indt'][ispect]}")
 
         kax = 'img_original_data'
         if dax.get(kax) is not None:
             ax = dax[kax]['ax']
-            im = ax.scatter(
-                lamb,
-                phi,
-                s=2,
-                c=data[ii, ...],
+            im = ax.imshow(
+                data[ispect, ...],
+                extent=extent,
+                cmap=cmap,
                 vmin=vmin,
                 vmax=vmax,
-                cmap=cmap,
-                edgecolors='None',
-                marker='s',
+                interpolation='nearest',
+                origin='lower',
+                aspect=aspect,
             )
-            fig.colorbar(im, ax=ax, orientation='vertical')
+            fig.colorbar(im, ax=ax, cax=cax1, orientation='vertical')
             ax.axhline(phi_lim[0], c='k', lw=1., ls='-')
             ax.axhline(phi_lim[1], c='k', lw=1., ls='-')
             ax.axhline(dinput['valid']['dphi'][ispect, 0], c='k', lw=2., ls='-')
             ax.axhline(dinput['valid']['dphi'][ispect, 1], c='k', lw=2., ls='-')
+
+        kax = 'bsplines'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['ax']
+            for jj, jk in enumerate(np.unique(dinput['knots_mult'])):
+                ax.axhline(jk, c='k', ls='-', lw=1.)
+
+        kax = 'spect'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['ax']
+            ax.plot(
+                spect_lamb,
+                spect_data[ii, :],
+                marker='.',
+                color='k',
+                ls='None',
+            )
+            ax.axhline(0, c='k', lw=1., ls='-')
+
+            # add lines
+            for jj, jk in enumerate(dinput['lines']):
+                ax.axvline(jk, c='k', ls='--', lw=1.)
+                ax.text(
+                    jk, 1, dinput['symb'][jj],
+                    transform=ax.get_xaxis_transform(),
+                    verticalalignment='bottom',
+                    horizontalalignment='center',
+                )
+
+        # text
+        focusstr = dinput['valid']['focus']
+        if focusstr is not False:
+            focusstr = focusstr.tolist()
+        msg = (
+            "domain:\n"
+            f"    'lamb' = {_domain2str(dprepare['domain'], 'lamb')}\n"
+            f"    'phi' = {_domain2str(dprepare['domain'], 'phi')}\n\n"
+            f"symmetry: {dinput['symmetry'] is True}\n\n"
+            "S/N:\n"
+            f"    nsigma: {dinput['valid']['valid_nsigma']}\n"
+            f"    fraction: {dinput['valid']['valid_fraction']}\n"
+            f"    focus: {focusstr}\n"
+            f"    indbs: {dinput['valid']['indbs'][ispect, :].sum()} / {nbs}\n"
+
+        )
+        fig.text(
+            0.04,
+            0.25,
+            msg,
+            color='k',
+            fontsize=12,
+            verticalalignment='top',
+        )
 
         ldax.append(dax)
 
