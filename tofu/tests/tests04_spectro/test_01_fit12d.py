@@ -179,7 +179,7 @@ def _load_test_spect(path=_PATH_TEST_DATA):
 # #############################################################################
 
 
-class Test01_DataCollection(object):
+class Test01_ProofOfPrinciple(object):
 
     @classmethod
     def setup_class(cls):
@@ -607,3 +607,14 @@ class Test01_DataCollection(object):
                     raise err
             finally:
                 plt.close('all')
+
+
+class Test02_RealisticWESTCase(object):
+
+    def setup(
+        self,
+
+    ):
+
+        # load test data
+        data, t, indt, nt, names, dunits, dbonus = None
