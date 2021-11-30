@@ -795,6 +795,7 @@ def _binning_check(
 
 def binning_2d_data(
     lamb, phi, data,
+    indok=None,
     indok_bool=None,
     domain=None, binning=None,
     nbsplines=None,
@@ -836,7 +837,7 @@ def binning_2d_data(
             lamb1d = 0.5*(lamb1d_edges[1:] + lamb1d_edges[:-1])
 
         return (
-            lamb, phi, data, indok_bool, binning,
+            lamb, phi, data, indok, binning,
             phi1d, lamb1d, dataphi1d, datalamb1d,
         )
 
@@ -1032,9 +1033,15 @@ def multigausfit1d_from_dlines_prepare(
 
     # --------------
     # Use valid data only and optionally restrict lamb
-    indok, domain = apply_domain(lamb, domain=domain)
+    indok = np.zeros(data.shape, dtype=np.int8)
     if mask is not None:
-        indok &= mask
+        indok[:, ~mask] = -1
+
+    inddomain, domain = apply_domain(lamb, domain=domain)
+    if mask is not None:
+        indok[:, (~inddomain) & mask] = -2
+    else:
+        indok[:, ~inddomain] = -2
 
     # Optional positivity constraint
     if pos is not False:
@@ -1043,24 +1050,29 @@ def multigausfit1d_from_dlines_prepare(
         else:
             data[data < 0.] = pos
 
-    # Introduce time-dependence (useful for valid)
-    indok = indok[None, ...] & (~np.isnan(data))
+    indok[(indok == 0) & np.isnan(data)] = -3
+    dindok = {0: 'ok', -1: 'mask', -2: 'domain', -3: 'neg or NaN', -4: 'valid'}
 
     # Recompute domain
+    indok_bool = indok == 0
     domain['lamb']['minmax'] = [
-        np.nanmin(lamb[np.any(indok, axis=0)]),
-        np.nanmax(lamb[np.any(indok, axis=0)])
+        np.nanmin(lamb[np.any(indok_bool, axis=0)]),
+        np.nanmax(lamb[np.any(indok_bool, axis=0)])
     ]
 
     # --------------
     # Optionally fit only on subset
     # randomly pick subset indices (replace=False => no duplicates)
-    indok = _get_subset_indices(subset, indok)
+    # indok = _get_subset_indices(subset, indok)
 
-    if np.any(np.isnan(data[indok])):
+    if np.any(np.isnan(data[indok_bool])):
         msg = (
             "Some NaNs in data not caught by indok!"
         )
+        raise Exception(msg)
+
+    if np.sum(indok_bool) == 0:
+        msg = "There does not seem to be any usable data (no indok)"
         raise Exception(msg)
 
     # --------------
@@ -1070,6 +1082,8 @@ def multigausfit1d_from_dlines_prepare(
         'lamb': lamb,
         'domain': domain,
         'indok': indok,
+        'indok_bool': indok_bool,
+        'dindok': dindok,
         'pos': pos,
         'subset': subset,
     }
@@ -1101,10 +1115,15 @@ def multigausfit2d_from_dlines_prepare(
     # --------------
     # Use valid data only and optionally restrict lamb / phi
     indok = np.zeros(data.shape, dtype=np.int8)
-    indok[:, ~mask] = -1
+    if mask is not None:
+        indok[:, ~mask] = -1
 
     inddomain, domain = apply_domain(lamb, phi, domain=domain)
-    indok[:, (~inddomain) & mask] = -2
+    if mask is not None:
+        indok[:, (~inddomain) & mask] = -2
+    else:
+        indok[:, ~inddomain] = -2
+
 
     # Optional positivity constraint
     if pos is not False:
@@ -1135,6 +1154,7 @@ def multigausfit2d_from_dlines_prepare(
         phi1d, lamb1d, dataphi1d, datalamb1d,
     ) = binning_2d_data(
         lamb, phi, data,
+        indok=indok,
         indok_bool=indok_bool,
         binning=binning,
         domain=domain,
@@ -1157,6 +1177,10 @@ def multigausfit2d_from_dlines_prepare(
         databin=databin,
         binning=binning,
     )
+
+    if np.sum(indok_bool) == 0:
+        msg = "There does not seem to be any usable data (no indok)"
+        raise Exception(msg)
 
     # --------------
     # Return
@@ -1365,7 +1389,7 @@ def _dvalid_checkfocus(
 
 def fit12d_dvalid(
     data=None, lamb=None, phi=None,
-    indok=None, binning=None,
+    indok_bool=None, binning=None,
     valid_nsigma=None, valid_fraction=None,
     focus=None, focus_half_width=None,
     lines_keys=None, lines_lamb=None, dphimin=None,
@@ -1407,12 +1431,14 @@ def fit12d_dvalid(
     ind = np.zeros(data.shape, dtype=bool)
     isafe = np.isfinite(data)
     isafe[isafe] = data[isafe] >= 0.
-    if indok is None:
+    if indok_bool is None:
         # Ok with and w/o binning if data provided as counts / photons
         # and binning was done by sum (and not mean)
         ind[isafe] = np.sqrt(data[isafe]) > valid_nsigma
     else:
-        ind[indok & isafe] = np.sqrt(data[indok & isafe]) > valid_nsigma
+        ind[indok_bool & isafe] = (
+            np.sqrt(data[indok_bool & isafe]) > valid_nsigma
+        )
 
     # Derive indt and optionally dphi and indknots
     indbs, dphi = False, False
@@ -1741,7 +1767,7 @@ def fit1d_dinput(
     dinput['valid'] = fit12d_dvalid(
         data=dprepare['data'],
         lamb=dprepare['lamb'],
-        indok=dprepare['indok'],
+        indok_bool=dprepare['indok_bool'],
         valid_nsigma=valid_nsigma,
         valid_fraction=valid_fraction,
         focus=focus, focus_half_width=focus_half_width,
@@ -1885,7 +1911,7 @@ def fit2d_dinput(
         lamb=dprepare['lamb'],
         phi=dprepare['phi'],
         binning=dprepare['binning'],
-        indok=dprepare['indok_bool'],
+        indok_bool=dprepare['indok_bool'],
         valid_nsigma=valid_nsigma,
         valid_fraction=valid_fraction,
         focus=focus, focus_half_width=focus_half_width,
@@ -2252,7 +2278,7 @@ def fit12d_dscales(dscales=None, dinput=None):
         datavert = dinput['dprepare']['dataphi1d']
         lamb = dinput['dprepare']['lamb1d']
         phi = dinput['dprepare']['phi1d']
-        indok = np.any(dinput['dprepare']['indok'], axis=1)
+        indok = np.any(dinput['dprepare']['indok_bool'], axis=1)
 
         # bsplines modulation of bck and amp, if relevant
         # fit bsplines on datavert (vertical profile)
@@ -2307,7 +2333,7 @@ def fit12d_dscales(dscales=None, dinput=None):
         corr = np.max(dscales['bs'][dinput['valid']['indt'], :], axis=1)
         dscales['bs'][dinput['valid']['indt'], :] /= corr[:, None]
     else:
-        indok = dinput['dprepare']['indok']
+        indok = dinput['dprepare']['indok_bool']
 
     # --------------
     # Default values for filling missing fields
