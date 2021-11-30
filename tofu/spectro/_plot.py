@@ -291,13 +291,13 @@ def plot_dinput2d(
         phi_name = r'$\phi$'
 
     if fs is None:
-        fs = (15, 8)
+        fs = (13, 6)
     if wintit is None:
         wintit = _WINTIT
     if dmargin is None:
         dmargin = {
-            'left': 0.05, 'right': 0.95,
-            'bottom': 0.07, 'top': 0.90,
+            'left': 0.08, 'right': 0.97,
+            'bottom': 0.07, 'top': 0.95,
             'wspace': 1., 'hspace': 0.4,
         }
 
@@ -324,7 +324,11 @@ def plot_dinput2d(
     lamb = dprepare['lamb']
     phi = dprepare['phi']
     data = dprepare['data'][indspect, ...]
+
+    # indok
     indok = dprepare['indok'][indspect, ...]
+    # add valid
+    indok[(indok == 0) & (~dinput['valid']['ind'][indspect, ...])] = -5
     nbs = dinput['nbs']
 
     # Extent
@@ -373,16 +377,18 @@ def plot_dinput2d(
         cax0 = fig.add_subplot(gs[:2, 5])
         ax1 = fig.add_subplot(gs[:2, 10:15], sharex=ax0, sharey=ax0)
         cax1 = fig.add_subplot(gs[:2, 15])
-        ax2 = fig.add_subplot(gs[:2, 8], sharey=ax0)
+        ax2 = fig.add_subplot(gs[:2, 9], sharey=ax0)
         ax3 = fig.add_subplot(gs[2, 10:15], sharex=ax0)
 
         ax0.set_ylabel(x1_lab)
         ax0.set_xlabel(x0_lab)
+        ax0.set_title(f"indt ok: {dinput['valid']['indt'][ispect]}")
 
-        ax2.set_title('Bsplines knots', size=12, fontweight='bold')
+        ax2.set_title('knots', size=12, fontweight='bold')
 
         ax3.set_ylabel('data (a.u.)')
         ax3.set_xlabel(x0_lab)
+        ax3.set_title('data')
 
         dax = {
             'img_indok': {'ax': ax0},
@@ -413,7 +419,6 @@ def plot_dinput2d(
                 orientation='vertical',
             )
             cax0.set_yticklabels(indok_lab)
-            ax.set_title(f"indt ok: {dinput['valid']['indt'][ispect]}")
 
         kax = 'img_original_data'
         if dax.get(kax) is not None:
@@ -463,27 +468,34 @@ def plot_dinput2d(
                 )
 
         # text
+        binstr = dprepare['binning']
+        if binstr is False:
+            binstr = (False, False)
+        else:
+            binstr = (binstr['lamb']['nbins'], binstr['phi']['nbins'])
         focusstr = dinput['valid']['focus']
         if focusstr is not False:
             focusstr = focusstr.tolist()
         msg = (
+            f"symmetry: {dinput['symmetry'] is True}\n\n"
             "domain:\n"
             f"    'lamb' = {_domain2str(dprepare['domain'], 'lamb')}\n"
             f"    'phi' = {_domain2str(dprepare['domain'], 'phi')}\n\n"
-            f"symmetry: {dinput['symmetry'] is True}\n\n"
+            "Binning:\n"
+            f"    'lamb': {binstr[0]}\n"
+            f"    'phi': {binstr[1]}\n\n"
             "S/N:\n"
             f"    nsigma: {dinput['valid']['valid_nsigma']}\n"
             f"    fraction: {dinput['valid']['valid_fraction']}\n"
             f"    focus: {focusstr}\n"
-            f"    indbs: {dinput['valid']['indbs'][ispect, :].sum()} / {nbs}\n"
-
+            f"    nbs: {dinput['valid']['indbs'][ispect, :].sum()} / {nbs}\n"
         )
         fig.text(
             0.04,
-            0.25,
+            0.29,
             msg,
             color='k',
-            fontsize=12,
+            fontsize=8,
             verticalalignment='top',
         )
 

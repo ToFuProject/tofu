@@ -501,9 +501,6 @@ def _checkformat_data_fit12d_dlines(
             phi1d = np.copy(phi)
             lamb = np.repeat(lamb[None, :], nxj, axis=0)
             phi = np.repeat(phi[:, None], nxi, axis=1)
-        else:
-            import pdb; pdb.set_trace()     # DB
-            pass
 
         c0 = (
             data.ndim in mindim + np.r_[0, 1]
