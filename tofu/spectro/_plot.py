@@ -241,6 +241,157 @@ def CrystalBragg_plot_data_vs_lambphi(
 
 # #################################################################
 # #################################################################
+#                   fit1d_dinput plot
+# #################################################################
+# #################################################################
+
+
+def plot_dinput_2d(
+    # input data
+    dinput=None,
+    indspect=None,
+    phi_lim=None,
+    phi_name=None,
+    # figure
+    fs=None,
+    dmargin=None,
+    tit=None,
+    wintit=None,
+    cmap=None,
+    vmin=None,
+    vmax=None,
+):
+
+    # Check inputs
+    # ------------
+    # if annotate is None:
+        # annotate = True
+    # if annotate is True:
+        # annotate = dfit2d['dinput']['keys']
+    # if isinstance(annotate, str):
+        # annotate = [annotate]
+    # if xlim is None:
+        # xlim = False
+    if phi_lim is None:
+        phi = dinput['dprepare']['phi']
+        dphi = np.mean(np.diff(np.unique(phi)))
+        phi_lim = phi.mean() + dphi * np.r_[-0.6, 0.6]
+    if phi_name is None:
+        phi_name = r'$phi$'
+
+    if fs is None:
+        fs = (16, 9)
+    if wintit is None:
+        wintit = _WINTIT
+    if dmargin is None:
+        dmargin = {
+            'left': 0.05, 'right': 0.95,
+            'bottom': 0.07, 'top': 0.90,
+            'wspace': 0.2, 'hspace': 0.4,
+        }
+
+    if vmin is None:
+        vmin = 0.
+    if vmax is None:
+        vmax = np.nanmax(dinput['dprepare']['data'])
+
+    if indspect is None:
+        indspect = dinput['valid']['indt'].nonzero()[0][0]
+    indspect = np.atleast_1d(indspect).ravel()
+    if indspect.dtype == 'bool':
+        indspect = np.nonzero(indspect)[0]
+    nspect = indspect.size
+    nspecttot = dinput['dprepare']['data'].shape[0]
+
+    # Extract (better redeability)
+    dprepare = dinput['dprepare']
+
+    # Extract data
+    lamb = dprepare['lamb']
+    phi = dprepare['phi']
+    data = dprepare['data'][indspect, ...]
+    indok = dprepare['indok'][indspect, ...]
+
+    # Extent
+    extent = (lamb.min(), lamb.max(), phi.min(), phi.max())
+
+    # 1d slice
+    indphi = (phi >= phi_lim[0]) & (phi < phi_lim[1])
+    spect_lamb = lamb[indphi]
+    indlamb = np.argsort(spect_lamb)
+    spect_data = data[:, indphi][:, indlamb]
+
+    # Plot
+    # ------------
+
+    ldax = []
+    for ii, ispect in enumerate(indspect):
+        if tit is None:
+            titi = f"spect {ispect} ({ii+1}/{nspect} out of {nspecttot})"
+        else:
+            titi = tit
+
+        fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(3, 3, **dmargin)
+        ax0 = fig.add_subplot(gs[:2, 0])
+        ax1 = fig.add_subplot(gs[:2, 1], sharex=ax0, sharey=ax0)
+        ax2 = fig.add_subplot(gs[:2, 2], sharex=ax0, sharey=ax0)
+        ax3 = fig.add_subplot(gs[2, 1], sharex=ax0)
+
+        ax0.set_ylabel(phi_name)
+        ax0.set_xlabel(r'$\lambda$ (m)')
+
+        ax3.set_ylabel('data (a.u.)')
+        ax3.set_xlabel(r'$\lambda$ (m)')
+
+        dax = {
+            'img_indok': {'ax': ax0},
+            'img_original_data': {'ax': ax1},
+            'spect': {'ax': ax3},
+        }
+
+        # plot images
+        kax = 'img_indok'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['ax']
+            for jj, ju in enumerate(np.unique(indok[ii, ...])):
+                indj = indok[ii, ...] == ju
+                ax.plot(
+                    lamb[indj],
+                    phi[indj],
+                    marker='.',
+                    ms=2,
+                    ls='None',
+                    label=dprepare['dindok'][ju],
+                )
+
+        kax = 'img_original_data'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['ax']
+            im = ax.scatter(
+                lamb,
+                phi,
+                s=2,
+                c=data[ii, ...],
+                vmin=vmin,
+                vmax=vmax,
+                cmap=cmap,
+                edgecolors='None',
+                marker='s',
+            )
+            fig.colorbar(im, ax=ax, orientation='vertical')
+            ax.axhline(phi_lim[0], c='k', lw=1., ls='-')
+            ax.axhline(phi_lim[1], c='k', lw=1., ls='-')
+            ax.axhline(dinput['valid']['dphi'][ispect, 0], c='k', lw=2., ls='-')
+            ax.axhline(dinput['valid']['dphi'][ispect, 1], c='k', lw=2., ls='-')
+
+        ldax.append(dax)
+
+    return ldax
+
+
+# #################################################################
+# #################################################################
 #                   fit1d plot
 # #################################################################
 # #################################################################
