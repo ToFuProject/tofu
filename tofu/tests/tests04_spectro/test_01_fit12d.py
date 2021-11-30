@@ -18,6 +18,12 @@ import matplotlib.pyplot as plt
 from tofu import __version__
 import tofu.spectro as tfs
 
+
+from .test_data._spectral_constraints import _DLINES_TOT, _DLINES
+from .test_data._spectral_constraints import _DCONSTRAINTS, _DCONSTANTS
+from .test_data._spectral_constraints import _DOMAIN, _FOCUS, _BINNING
+
+
 _here = os.path.abspath(os.path.dirname(__file__))
 VerbHead = 'tofu.spectro.fit12d'
 _PATH_TEST_DATA = os.path.join(_here, 'test_data')
@@ -611,10 +617,233 @@ class Test01_ProofOfPrinciple(object):
 
 class Test02_RealisticWESTCase(object):
 
-    def setup(
+    def test00_load_dinput_dfit_dextract(
         self,
-
     ):
 
         # load test data
         data, t, indt, nt, names, dunits, dbonus = None
+
+        # reshape data into a (nt, nxi, nxj) array
+        nt = t.size
+        nxi, nxj = dbonus['nH'], dbonus['nV']
+        data = data.reshape((nt, nxj, nxi)).swapaxes(1, 2)
+
+        # ----------------
+        # Get crystal and det
+
+        det = dict(np.load(
+            os.path.join(_PATH_TEST_DATA, 'det37_CTVD_incC4_New.npz'),
+            allow_pickle=True,
+        ))
+
+        cryst = tf.load(os.path.join(
+            _PATH_TEST_DATA,
+            'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVII_sh00000_Vers1.5.0.npz',
+        ))
+        angle = 1.3124
+        tlim2 = [32, 46]
+        cryst.move(angle*np.pi/180.)
+
+        # Optional: adjust tlim
+        if tlim is None and tlim2 is not None:
+            tlim = tlim2
+            indt = (t >= tlim[0]) & (t <= tlim[1])
+            data = data[indt, ...]
+            nt = t.size
+
+        # get lamb / phi
+        bragg, phi, lamb = cryst.get_lambbraggphi_from_ptsxixj_dthetapsi(
+            det=det, xi=_DET['xi'], xj=_DET['xj'], grid=True,
+        )
+
+        # computed from a unique point on the crystal (the summit)
+        lamb, bragg, phi = lamb[..., 0], bragg[..., 0], phi[..., 0]
+
+        # ------------------------------------
+        # Start data treatment: dict of inputs
+
+        # get dict of constraints
+        (
+            dlines, dconstraints, dconstants, domain, focus, defconst,
+            valid_fraction, valid_nsigma, binning, nbsplines, deg, mask, tol,
+        ) = get_constraints(
+            shot=shot,
+            cryst=cryst,
+            det=det,
+            # non-default parameters
+            mask=mask,
+            domain=domain,
+            binning=binning,
+            focus=focus,
+            valid_fraction=valid_fraction,
+            valid_nsigma=valid_nsigma,
+            nbsplines=nbsplines,
+            tol=tol,
+        )
+
+        # format into a unique input dict
+        dinput = tf.spectro.fit2d_dinput(
+            dlines=dlines,
+            dconstraints=dconstraints,
+            dconstants=dconstants,
+            dprepare=None,
+            deg=deg,
+            nbsplines=nbsplines,
+            knots=None,
+            data=data,
+            lamb=lamb,
+            phi=phi,
+            mask=mask,
+            domain=domain,
+            pos=None,
+            subset=None,
+            binning=binning,
+            cent_fraction=None,
+            focus=focus,
+            valid_fraction=valid_fraction,
+            valid_nsigma=valid_nsigma,
+            focus_half_width=None,
+            valid_return_fract=None,
+            dscales=None,
+            dx0=None,
+            dbounds=None,
+            nxi=nxi,
+            nxj=nxj,
+            lphi=None,
+            lphi_tol=None,
+            defconst=defconst,
+        )
+
+        # --------------
+        # Optional debug
+
+        if plot_dinput is not False:
+            ldax = tf.spectro._plot.plot_dinput2d(
+                dinput=dinput,
+                indspect=plot_dinput,
+                vmin=vmin,
+                vmax=vmax,
+            )
+            return dinput, ldax
+
+        # ------------------------------------
+        # Perform main data treatment: fit
+
+        dfit2d = tf.spectro.fit2d(
+            dinput=dinput,
+            method=None,
+            tr_solver=None,
+            tr_options=None,
+            xtol=tol,
+            ftol=tol,
+            gtol=tol,
+            max_nfev=None,
+            loss=None,
+            chain=True,
+            jac=None,
+            verbose=verb,
+            strict=False,       # to make sure a corrupted time step doesn't stop
+            save=False,
+            plot=False,
+        )
+
+        # ------------------------------------
+        # Finish data treatment: extract quantities
+
+        dextract = tf.spectro.fit2d_extract(
+            dfit2d=dfit2d,
+            bck=True,
+            amp=True,
+            ratio=None,
+            Ti=True,
+            width=True,
+            vi=True,
+            shift=True,
+            sol_total=True,
+            sol_detail=sol_detail,
+            sol_lamb_phi=None,
+            phi_prof=phi_prof,
+            phi_npts=phi_npts,
+            vs_nbs=None,
+        )
+
+        return dinput, dfit2d, dextract, t
+
+
+def get_constraints(
+    shot=None,
+    cryst=None,
+    det=None,
+    # non-default parameters
+    mask=None,
+    domain=None,
+    binning=None,
+    focus=None,
+    valid_fraction=None,
+    valid_nsigma=None,
+    nbsplines=None,
+    tol=None,
+):
+
+    crystname = 'ArXVII'
+
+    # dlines
+    dlines = {
+        k0: dict(_DLINES_TOT[k0])
+        for k0 in _DLINES[crystname]
+    }
+
+    # dconstraints
+    dconstraints = dict(_DCONSTRAINTS[crystname])
+
+    # dconstants
+    dconstants = dict(_DCONSTANTS[crystname])
+
+    # domain
+    if domain is None:
+        domain = _DOMAIN[crystname]
+
+    # binning
+    if binning is None:
+        binning = _BINNING[crystname]
+
+    # focus
+    if focus is None:
+        focus = _FOCUS[crystname]
+
+    # valid
+    if valid_fraction is None:
+        valid_fraction = 0.05
+    if valid_nsigma is None:
+        valid_nsigma = 3
+
+    # nbsplines
+    if nbsplines is None:
+        nbsplines = 15
+
+    # defconst
+    defconst = {
+        'bck_amp': False, 'bck_rate': False, 'amp': False,
+        'width': False, 'shift': False, 'double': False,
+    }
+
+    # deg
+    deg = 2
+
+    # mask
+    # (nxj, nxi) array
+    # False where corrupt pixels
+    if mask is None:
+        pfe = os.path.join(_PATH_TEST_DATA, '_mask_54041.npz')
+        mask = dict(np.load(pfe, allow_pickle=True))
+        mask = ~np.any(mask['ind'], axis=0).T
+
+    # tol
+    if tol is None:
+        tol = None
+
+    return (
+        dlines, dconstraints, dconstants, domain, focus, defconst,
+        valid_fraction, valid_nsigma, binning, nbsplines, deg, mask, tol,
+    )
