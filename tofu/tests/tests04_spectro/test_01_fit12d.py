@@ -16,12 +16,14 @@ import matplotlib.pyplot as plt
 
 # tofu-specific
 from tofu import __version__
+import tofu as tf
 import tofu.spectro as tfs
 
 
 from .test_data._spectral_constraints import _DLINES_TOT, _DLINES
 from .test_data._spectral_constraints import _DCONSTRAINTS, _DCONSTANTS
 from .test_data._spectral_constraints import _DOMAIN, _FOCUS, _BINNING
+from .test_data._spectral_constraints import _DSCALES, _DX0, _DBOUNDS
 
 
 _here = os.path.abspath(os.path.dirname(__file__))
@@ -34,7 +36,7 @@ _PATH_TEST_DATA = os.path.join(_here, 'test_data')
 # #############################################################################
 
 
-_DLINES = {
+_DLINES_LOCAL = {
     'a': {
         'lambda0': 3.95e-10,
         'delta': 0.001e-10,
@@ -119,7 +121,7 @@ def teardown_module(module):
 #######################################################
 
 
-def _save_test_spect(path=_PATH_TEST_DATA, dlines=_DLINES, save=True):
+def _save_test_spect(path=_PATH_TEST_DATA, dlines=_DLINES_LOCAL, save=True):
 
     nlamb = 100
     lamb = np.linspace(3.94, 4, nlamb)*1e-10
@@ -619,10 +621,40 @@ class Test02_RealisticWESTCase(object):
 
     def test00_load_dinput_dfit_dextract(
         self,
+        verb=None,
+        # non-default parameters
+        mask=None,
+        domain=None,
+        binning=None,
+        dscales=None,
+        dx0=None,
+        dbounds=None,
+        focus=None,
+        valid_fraction=None,
+        valid_nsigma=None,
+        nbsplines=None,
+        tol=None,
+        # debug
+        plot_dinput=False,
+        vmin=None,
+        vmax=None,
+        # extract
+        sol_detail=None,
+        phi_prof=None,
+        phi_npts=None,
     ):
 
         # load test data
-        data, t, indt, nt, names, dunits, dbonus = None
+        shot = 54046
+        dout = dict(np.load(
+            os.path.join(_PATH_TEST_DATA, f'west_{shot}_xics.npz'),
+            allow_pickle=True,
+        ))
+
+        lk = ['data', 't', 'indt', 'nt', 'names', 'dunits', 'dbonus']
+        data, t, indt, nt, names, dunits, dbonus = [dout[k0] for k0 in lk]
+        dunits = dunits.tolist()
+        dbonus = dbonus.tolist()
 
         # reshape data into a (nt, nxi, nxj) array
         nt = t.size
@@ -642,19 +674,14 @@ class Test02_RealisticWESTCase(object):
             'TFG_CrystalBragg_ExpWEST_DgXICS_ArXVII_sh00000_Vers1.5.0.npz',
         ))
         angle = 1.3124
-        tlim2 = [32, 46]
+        # tlim2 = [32, 46]
         cryst.move(angle*np.pi/180.)
 
-        # Optional: adjust tlim
-        if tlim is None and tlim2 is not None:
-            tlim = tlim2
-            indt = (t >= tlim[0]) & (t <= tlim[1])
-            data = data[indt, ...]
-            nt = t.size
-
         # get lamb / phi
+        xi = 172e-6*(np.arange(0, 487) - (487 - 1)/2.)
+        xj = 172e-6*(np.arange(0, 1467) - (1467 - 1)/2.)
         bragg, phi, lamb = cryst.get_lambbraggphi_from_ptsxixj_dthetapsi(
-            det=det, xi=_DET['xi'], xj=_DET['xj'], grid=True,
+            det=det, xi=xi, xj=xj, grid=True,
         )
 
         # computed from a unique point on the crystal (the summit)
@@ -666,7 +693,9 @@ class Test02_RealisticWESTCase(object):
         # get dict of constraints
         (
             dlines, dconstraints, dconstants, domain, focus, defconst,
-            valid_fraction, valid_nsigma, binning, nbsplines, deg, mask, tol,
+            valid_fraction, valid_nsigma, binning,
+            dscales, dx0, dbounds,
+            nbsplines, deg, mask, tol,
         ) = get_constraints(
             shot=shot,
             cryst=cryst,
@@ -675,6 +704,9 @@ class Test02_RealisticWESTCase(object):
             mask=mask,
             domain=domain,
             binning=binning,
+            dscales=dscales,
+            dx0=dx0,
+            dbounds=dbounds,
             focus=focus,
             valid_fraction=valid_fraction,
             valid_nsigma=valid_nsigma,
@@ -705,9 +737,9 @@ class Test02_RealisticWESTCase(object):
             valid_nsigma=valid_nsigma,
             focus_half_width=None,
             valid_return_fract=None,
-            dscales=None,
-            dx0=None,
-            dbounds=None,
+            dscales=dscales,
+            dx0=dx0,
+            dbounds=dbounds,
             nxi=nxi,
             nxj=nxj,
             lphi=None,
@@ -755,7 +787,7 @@ class Test02_RealisticWESTCase(object):
             dfit2d=dfit2d,
             bck=True,
             amp=True,
-            ratio=None,
+            ratio=[('ArXVII_w_Bruhns', 'ArXVI_k_Adhoc200408')],
             Ti=True,
             width=True,
             vi=True,
@@ -779,6 +811,9 @@ def get_constraints(
     mask=None,
     domain=None,
     binning=None,
+    dscales=None,
+    dx0=None,
+    dbounds=None,
     focus=None,
     valid_fraction=None,
     valid_nsigma=None,
@@ -802,15 +837,33 @@ def get_constraints(
 
     # domain
     if domain is None:
-        domain = _DOMAIN[crystname]
+        if _DOMAIN[crystname] is not None:
+            domain = dict(_DOMAIN[crystname])
 
     # binning
     if binning is None:
-        binning = _BINNING[crystname]
+        if _BINNING[crystname] is not None:
+            binning = dict(_BINNING[crystname])
+
+    # dscales
+    if dscales is None:
+        if _DSCALES[crystname] is not None:
+            dscales = dict(_DSCALES[crystname])
+
+    # dx0
+    if dx0 is None:
+        if _DX0[crystname] is not None:
+            dx0 = dict(_DX0[crystname])
+
+    # dbounds
+    if dbounds is None:
+        if _DBOUNDS[crystname] is not None:
+            dbounds = dict(_DBOUNDS[crystname])
 
     # focus
     if focus is None:
-        focus = _FOCUS[crystname]
+        if _FOCUS[crystname] is not None:
+            focus = dict(_FOCUS[crystname])
 
     # valid
     if valid_fraction is None:
@@ -845,5 +898,7 @@ def get_constraints(
 
     return (
         dlines, dconstraints, dconstants, domain, focus, defconst,
-        valid_fraction, valid_nsigma, binning, nbsplines, deg, mask, tol,
+        valid_fraction, valid_nsigma, binning,
+        dscales, dx0, dbounds,
+        nbsplines, deg, mask, tol,
     )

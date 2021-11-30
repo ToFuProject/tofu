@@ -940,9 +940,10 @@ def plot_fit2d(
     indphi = (phi >= phi_lim[0]) & (phi < phi_lim[1])
     spect_lamb = lamb[indphi]
     indlamb = np.argsort(spect_lamb)
+    spect_lamb = spect_lamb[indlamb]
     spect_data = data[:, indphi][:, indlamb]
     spect_fit = dextract['func_tot'](
-        lamb=spect_lamb[indlamb],
+        lamb=spect_lamb,
         phi=phi[indphi][indlamb],
     )[indspect, ...]
     spect_err = spect_fit - spect_data
