@@ -461,8 +461,13 @@ class Test01_DataCollection(object):
             * len(self.lfocus) * len(self.ldconstants)
         )
         for ii, comb in enumerate(itt.product(*combin)):
+
+            # additional parameters
             pos = ii % 2 == 0
             mask = self.mask if ii % 3 == 0 else None
+            binning = False if ii % 2 == 0 else {'lamb': 85, 'phi': 40}
+
+            # set dinput
             dinput = tfs.fit2d_dinput(
                 dlines=self.dlines,
                 dconstraints=comb[0],
@@ -476,6 +481,7 @@ class Test01_DataCollection(object):
                 domain=comb[2],
                 pos=pos,
                 subset=None,
+                binning=binning,
                 focus=comb[3],
                 valid_fraction=0.28,     # fraction of pixels ok per time step
                 valid_nsigma=0.2,         # S/N ratio for each pixel
@@ -497,7 +503,12 @@ class Test01_DataCollection(object):
             if c0:
                 self.ldinput2d_run.append(ii)
 
-    def test07_funccostjac_2d(self):
+    def test07_plot_dinput2d(self):
+        for ii, dd in enumerate(self.ldinput2d):
+            dax = tfs._plot.plot_dinput2d(dinput=dd)
+        plt.close('all')
+
+    def test08_funccostjac_2d(self):
         func = tfs._fit12d_funccostjac.multigausfit2d_from_dlines_funccostjac
         for ii, dd in enumerate(self.ldinput2d):
 
@@ -542,7 +553,7 @@ class Test01_DataCollection(object):
             assert np.sum(np.isfinite(dy0)) == np.sum(np.isfinite(dy1))
             assert np.allclose(dy0, dy1, equal_nan=True)
 
-    def test08_fit2d(self, strict=None, verb=False):
+    def test09_fit2d(self, strict=None, verb=False):
         for ii, ij in enumerate(self.ldinput2d_run):
             din = self.ldinput2d[ij]
             chain = ii % 2 == 0
