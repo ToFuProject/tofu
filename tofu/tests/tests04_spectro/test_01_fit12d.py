@@ -867,9 +867,9 @@ def get_constraints(
 
     # valid
     if valid_fraction is None:
-        valid_fraction = 0.05
+        valid_fraction = 0.6
     if valid_nsigma is None:
-        valid_nsigma = 3
+        valid_nsigma = 4
 
     # nbsplines
     if nbsplines is None:

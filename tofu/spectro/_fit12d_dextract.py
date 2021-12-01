@@ -58,7 +58,7 @@ _D3 = {
     'Ti': {
         'types': ['lines'],
         'units': 'eV',
-        'field': 'shift',
+        'field': 'width',
     },
     'vi': {
         'types': ['x'],
@@ -819,6 +819,7 @@ def fit2d_extract(
                     scales=dfit2d['scales'][ii, :],
                     indok=None,
                     const=None,
+                    # indbs=None,
                 )
 
         # sol_total
@@ -835,6 +836,7 @@ def fit2d_extract(
                     indok_flat=None,
                     const=None,
                     data_flat=0.,
+                    # indbs=None,
                 ).reshape(sol_lamb_phi[0].shape)
 
             # Double-check consistency if possible

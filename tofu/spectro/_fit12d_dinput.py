@@ -44,9 +44,9 @@ _LTYPES = [int, float, np.int_, np.float_]
 _DBOUNDS = {
     'bck_amp': (0., 3.),
     'bck_rate': (-3., 3.),
-    'amp': (0, 2),
+    'amp': (0, 10),
     'width': (0.01, 2.),
-    'shift': (-2, 2),
+    'shift': (-1, 1),
     'dratio': (0., 2.),
     'dshift': (-10., 10.),
     'bs': (-10., 10.),
@@ -894,7 +894,7 @@ def binning_2d_data(
 
         # dataphi1d
         dataphi1d = np.nanmean(databin, axis=2)
-        datalamb1d = np.nanmean(databin, axis=1)
+        datalamb1d = np.nanmean(databin, axis=1) + np.nanstd(databin, axis=1)
 
         return (
             lambbin, phibin, databin, indok_new, binning,
@@ -2389,15 +2389,16 @@ def fit12d_dscales(dscales=None, dinput=None):
     for ii, ij in enumerate(dinput['dind']['amp_x0']):
         key = dinput['amp']['keys'][ii]
         if dscales['amp'].get(key) is None:
-            conv = np.exp(-(lamb-dinput['lines'][ij])**2/(2*(Dlamb/20.)**2))
-            # indi = (
-            # indok
-            # & (np.abs(lamb-dinput['lines'][ij]) < Dlamb/20.)[None, :]
-            # )
-            # dscales['amp'][key] = np.array(np.ma.masked_where(
-            # ~indbck, data,
-            # ).mean(axis=1))
-            dscales['amp'][key] = np.nansum(data*conv, axis=1) / np.sum(conv)
+            # convoluate and estimate geometric mean
+            dataii = data[:, np.argmin(np.abs(lamb-dinput['lines'][ij]))]
+            conv = (
+                dataii[:, None]
+                * np.exp(
+                    -(lamb-dinput['lines'][ij])**2
+                    /(2*(Dlamb/25.)**2)
+                )[None, :]
+            )
+            dscales['amp'][key] = np.sqrt(np.nanmax(data*conv, axis=1))
         else:
             if type(dscales['amp'][key]) in _LTYPES:
                 dscales['amp'][key] = np.full((nspect,), dscales['amp'][key])
@@ -2413,9 +2414,9 @@ def fit12d_dscales(dscales=None, dinput=None):
         )
         nw0 = iwx.size / dinput['same_spectrum_nspect']
         lambmw = np.repeat(lambm2, nw0)
-        widthref = (Dlamb/(20*lambmw))**2
+        widthref = (Dlamb/(25*lambmw))**2
     else:
-        widthref = (Dlamb/(20*lambm))**2
+        widthref = (Dlamb/(25*lambm))**2
 
     dscales = _fit12d_filldef_dscalesx0_dict(
         din=dscales, din_name='dscales', key='width', vref=widthref,
@@ -2432,7 +2433,7 @@ def fit12d_dscales(dscales=None, dinput=None):
     # Double
     if dinput['double'] is not False:
         dratio = 1.
-        dshift = float(Dlamb/(40*lambm))
+        dshift = float(Dlamb/(25*lambm))
         if dinput['double'] is True:
             pass
         else:

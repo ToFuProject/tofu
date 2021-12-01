@@ -20,7 +20,7 @@ _DLINES = {
                 k0 in ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro']
                 or ('Adhoc200408' in k0)
             )
-            and v0['symbol'] not in ['q', 'r', 'a']
+            and v0['symbol'] not in ['q', 'r', 'a', 'n3', 'n4']
         )
     ],
     'ArXVIII': [
@@ -48,7 +48,7 @@ _DCONSTRAINTS = {
                 # 'ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
                 # 'ArXVI_a_Adhoc200408',
             ],
-            'n34': ['ArXV_n3_Adhoc200408', 'ArXIV_n4_Adhoc200408'],
+            # 'n34': ['ArXV_n4_Adhoc200408'], # 'ArXIV_n3_Adhoc200408'],
         },
         'amp': {
             'ArXVI_k_Adhoc200408': {'key': 'kj'},
@@ -57,18 +57,19 @@ _DCONSTRAINTS = {
         'shift': {
             'wxyzkj': [
                 'ArXVII_w_Bruhns', 'ArXVII_z_Amaro',
-                'ArXVII_x_Adhoc200408', 'ArXVII_y_Adhoc200408',
-                'ArXVI_k_Adhoc200408', 'ArXVI_j_Adhoc200408',
+                # 'ArXVII_x_Adhoc200408', 'ArXVII_y_Adhoc200408',
+                # 'ArXVI_k_Adhoc200408', 'ArXVI_j_Adhoc200408',
                 # 'ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
                 # 'ArXVI_a_Adhoc200408',
-                'ArXV_n3_Adhoc200408', 'ArXIV_n4_Adhoc200408',
+                # 'ArXV_n4_Adhoc200408', # 'ArXIV_n3_Adhoc200408',
             ],
             # 'wz': ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro'],
             # 'qra': [
                 # 'ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
                 # 'ArXVI_a_Adhoc200408',
             # ],
-            # 'xy': ['ArXVII_x_Adhoc200408', 'ArXVII_y_Adhoc200408'],
+            'xy': ['ArXVII_x_Adhoc200408', 'ArXVII_y_Adhoc200408'],
+            'kjz': ['ArXVI_k_Adhoc200408', 'ArXVI_j_Adhoc200408'],
         },
     },
     'ArXVIII': {
@@ -90,8 +91,8 @@ _DCONSTRAINTS = {
 
 _DCONSTANTS = {
     'ArXVII': {
-        # 'dratio': 0.7,
-        # 'dshift': 4.e-4,
+        'dratio': 0.7,
+        'dshift': 4.e-4,
     },
     'ArXVIII': {
     },
@@ -107,7 +108,7 @@ _DCONSTANTS = {
 
 
 _DOMAIN = {
-    'ArXVII': {'lamb': [[3.944e-10, 4e-10], (3.979e-10, 3.988e-10)]},
+    'ArXVII': {'lamb': [[3.94e-10, 4.009e-10], (3.95e-10, 3.96e-10), (3.979e-10, 3.988e-10)]},
     'ArXVIII': None,
     'FeXXV': None,
 }
@@ -132,7 +133,7 @@ _FOCUS = {
 # #############################################################################
 
 
-_PHI_BINS = 100
+_PHI_BINS = 300
 _LAMB_BINS = 305
 _BINNING = {
     'ArXVII': {
@@ -158,7 +159,8 @@ _BINNING = {
 
 _DSCALES = {
     'ArXVII': {
-        'width': 1e-8,      # To be tuned
+        #'width': 1e-8,      # To be tuned
+        # 'dshift': 5e-4,
     },
 }
 
@@ -172,7 +174,7 @@ _DSCALES = {
 _DX0 = {
     'ArXVII': {
         'dratio': 0.75,
-        'dshift': 4.e-4,
+        'dshift': 1.,
     },
 }
 
@@ -184,8 +186,8 @@ _DX0 = {
 
 
 _DBOUNDS = {
-    'ArXVII': {
-        'min': {},
-        'max': {'width': 1},
-    },
+    'ArXVII': None, #{
+        # 'min': {},
+        # 'max': {'width': 1},
+    # },
 }

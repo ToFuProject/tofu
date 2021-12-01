@@ -490,6 +490,9 @@ def multigausfit2d_from_dlines(
     scales = _dict2vector_dscalesx0bounds(
         dd=dinput['dscales'], dd_name='dscales', dinput=dinput,
     )
+    # muliply amplitudes by scales bs in [0, 1]
+    scales[:, dinput['dind']['amp']['x']] *= dinput['dscales']['bs'][..., None]
+
     x0 = _dict2vector_dscalesx0bounds(
         dd=dinput['dx0'], dd_name='dx0', dinput=dinput,
     )
@@ -523,11 +526,13 @@ def multigausfit2d_from_dlines(
     # ---------------------------
     # Prepare output
     sol_x = np.full((nspect, dind['sizex']), np.nan)
+    sol_x[:, ~indx] = const / scales[:, ~indx]
     success = np.full((nspect,), np.nan)
     time = np.full((nspect,), np.nan)
     cost = np.full((nspect,), np.nan)
     nfev = np.full((nspect,), np.nan)
     validity = np.zeros((nspect,), dtype=int)
+    saturated = np.zeros((nspect, dind['sizex']), dtype=bool)
     message = ['' for ss in range(nspect)]
     errmsg = ['' for ss in range(nspect)]
 
@@ -549,6 +554,7 @@ def multigausfit2d_from_dlines(
 
     end = '\r'
     t0 = dtm.datetime.now()     # DB
+    deltab = bounds[1, indx] - bounds[0, indx]
     for ii in range(nspect):
 
         if verbose == 3:
@@ -605,6 +611,12 @@ def multigausfit2d_from_dlines(
             )
             sol_x[ii, indx] = res.x
 
+            # detect saturated values
+            saturated[ii, indx] = (
+                (res.x < bounds[0, indx] + deltab*1e-4)
+                | (res.x > bounds[1, indx] - deltab*1e-4)
+            )
+
         except Exception as err:
             if strict:
                 raise err
@@ -637,6 +649,41 @@ def multigausfit2d_from_dlines(
                 print(msg, end=end, flush=True)
             else:
                 print(msg, end='\n')
+
+    # ---------------
+    # Display saturated values
+    dsat = None
+    if np.any(saturated):
+        lksat = [
+            'bck_amp', 'bck_rate',
+            'amp', 'width', 'shift',
+            'dshift', 'dratio',
+        ]
+        dsat = {
+            k0: {'ind': np.any(saturated[:, dind[k0]['x']], axis=1)}
+            for k0 in lksat
+            if k0 in dind.keys()
+            and np.any(saturated[:, dind[k0]['x']])
+        }
+
+        for k0 in dsat.keys():
+            dsat[k0]['str'] = {
+                k1: dsat[k0]['ind'][:, ik].sum()
+                for ik, k1 in enumerate(dinput[k0]['keys'])
+                if np.any(dsat[k0]['ind'][:, ik])
+            }
+
+        lstr = [
+            "\n".join([
+                f"\t{k0} {k1}: {v1} / {nspect}" for k1, v1 in v0['str'].items()
+            ])
+            for k0, v0 in dsat.items()
+        ]
+        msg = (
+            "The following variables seem to have saturated:\n"
+            + "\n".join(lstr)
+        )
+        print(msg)
 
     # ---------------------------
     # Isolate dratio and dshift
@@ -692,6 +739,7 @@ def multigausfit2d_from_dlines(
         'phi': phi,
         'indx': indx,
         'const': const,
+        'dsat': dsat,
     }
     return dfit
 
