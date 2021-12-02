@@ -62,7 +62,7 @@ def multigausfit1d_from_dlines_funccostjac(
     offsetwl = dinput['width']['offset']
     offsetsl = dinput['shift']['offset']
 
-    lambrel = lamb - np.nanmin(lamb)
+    lambrel = lamb - dinput['lambmin_bck']
     lambnorm = lamb[..., None]/dinput['lines'][None, ...]
 
     xscale = np.full((dind['sizex'],), np.nan)
@@ -407,6 +407,7 @@ def multigausfit2d_from_dlines_funccostjac(
     nlines = dinput['nlines']
     deg = dinput['deg']
     double = dinput['double']
+    lambmin_bck = dinput['lambmin_bck']
 
     # Pre-set kwdargs
     dkwdargs = dict(
@@ -433,6 +434,7 @@ def multigausfit2d_from_dlines_funccostjac(
         offsetwl=offsetwl[None, :],
         offsetsl=offsetsl[None, :],
         double=double,
+        lambmin_bck=lambmin_bck,
     )
 
     # ----------------------------
@@ -449,7 +451,7 @@ def multigausfit2d_from_dlines_funccostjac(
         **dkwdargs,
     ):
         # normalize lamb
-        lambrel = lamb - np.nanmin(lamb)
+        lambrel = lamb - lambmin_bck
         shape = tuple(np.r_[[1 for ii in range(lamb.ndim)], -1])
         lambn = lamb[..., None] / dinput['lines'].reshape(shape)
 
@@ -525,7 +527,7 @@ def multigausfit2d_from_dlines_funccostjac(
     ):
 
         # normalize lamb
-        lambrel = lamb - np.nanmin(lamb)
+        lambrel = lamb - lambmin_bck
         shape = tuple(np.r_[[1 for ii in range(lamb.ndim)], -1])
         lambn = lamb[..., None] / dinput['lines'].reshape(shape)
 
@@ -571,7 +573,7 @@ def multigausfit2d_from_dlines_funccostjac(
     func_cost, func_jacob = None, None
     if return_costjac:
         # cost and jacob return flattened results (for least_squares())
-        lambrel_flat = lamb_flat - np.nanmin(lamb_flat)
+        lambrel_flat = lamb_flat - lambmin_bck
         lambn_flat = lamb_flat[:, None] / dinput['lines'][None, ...]
 
         # bsplines-specific

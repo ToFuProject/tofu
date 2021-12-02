@@ -964,7 +964,10 @@ def plot_fit2d(
     phi = dprepare['phi']
     data = dprepare['data'][indspect, ...]
     sol_tot = dextract['sol_tot'][indspect, ...]
-    dphi = dfit2d['dinput']['valid']['dphi'][indspect, :]
+    # dphi = dfit2d['dinput']['valid']['dphi'][indspect, :]
+    dphi = np.tile(dextract['phi_prof'], (nspect, 1))
+    dphi = np.atleast_2d(dphi[dextract['indphi'][indspect, :]])
+    dphi = np.array([np.min(dphi, axis=1), np.max(dphi, axis=1)]).T
 
     # Error if relevant
     err = sol_tot - data

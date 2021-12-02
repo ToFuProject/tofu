@@ -764,6 +764,28 @@ def fit2d_extract(
             d3[k0]['x']['coefs'] = coefs
             d3[k0]['x']['values'] = val
 
+    # -------------------
+    # check lines / bck ratio
+    # a fit is usable if the lines amplitudes are >= background
+    # using lambda0 for simplicity
+    bcki = (
+        d3['bck_amp']['x']['values']
+        * np.exp(
+            d3['bck_rate']['x']['values']
+            * (
+                dfit2d['dinput']['lines'][None, None, :]
+                - dfit2d['dinput']['lambmin_bck']
+            )
+        )
+    )
+    indphi = d3['amp']['lines']['values'] >= 2.*bcki
+    indphi = np.all(indphi, axis=-1)
+    indphi = (
+        indphi
+        & (phi_prof[None, :] > dfit2d['dinput']['valid']['dphi'][:, 0:1])
+        & (phi_prof[None, :] < dfit2d['dinput']['valid']['dphi'][:, 1:2])
+    )
+
     # ----------
     # func
     (
@@ -869,6 +891,7 @@ def fit2d_extract(
         'units': 'a.u.',
         'd3': d3,
         'phi_prof': phi_prof,
+        'indphi': indphi,
         'sol_lamb_phi': sol_lamb_phi,
     }
 

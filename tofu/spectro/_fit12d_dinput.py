@@ -1801,6 +1801,8 @@ def fit1d_dinput(
         import pdb; pdb.set_trace()     # DB
         pass
 
+    # add lambmin for bck
+    dinput['lambmin_bck'] = np.min(dprepare['lamb'])
     return dinput
 
 
@@ -1948,6 +1950,9 @@ def fit2d_dinput(
     dinput['dconstants'] = fit12d_dconstants(
         dconstants=dconstants, dinput=dinput,
     )
+
+    # add lambmin for bck
+    dinput['lambmin_bck'] = np.min(dprepare['lamb'])
     return dinput
 
 
