@@ -926,7 +926,7 @@ def get_constraints(
 
     # tol
     if tol is None:
-        tol = None
+        tol = 1.e-2
 
     return (
         dlines, dconstraints, dconstants, domain, focus, defconst,
