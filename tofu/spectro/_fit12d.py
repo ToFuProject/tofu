@@ -513,15 +513,24 @@ def multigausfit2d_from_dlines(
     const = const[:, ~indx]
     x0[:, ~indx] = const / scales[:, ~indx]
 
+    # -----------------------
+    # Prepare flattened data
+
+    indok_all = np.all(dprepare['indok_bool'], axis=0)
+    indok_flat = dprepare['indok_bool'][:, indok_all].reshape((nspect, -1))
+    data_flat = dprepare['data'][:, indok_all].reshape((nspect, -1))
+    lamb_flat = lamb[indok_all].ravel()
+    phi_flat = phi[indok_all].ravel()
+
     # ---------------------------
     # Get function, cost function and jacobian
 
     (
-        func_detail, func_cost, func_jac,
+        func_cost, func_jac,
     ) = _funccostjac.multigausfit2d_from_dlines_funccostjac(
-         lamb, phi,
+         lamb_flat=lamb_flat, phi_flat=phi_flat,
          dinput=dinput, dind=dind, jac=jac, indx=indx,
-    )
+    )[2:]
 
     # ---------------------------
     # Prepare output
@@ -536,17 +545,15 @@ def multigausfit2d_from_dlines(
     message = ['' for ss in range(nspect)]
     errmsg = ['' for ss in range(nspect)]
 
-    # reshape input
-    data_flat = dprepare['data'].reshape((nspect, -1))
-    indok_flat = dprepare['indok_bool'].reshape((nspect, -1))
-
     # Prepare msg
     if verbose in [1, 2]:
         col = np.char.array(['Spect', 'time (s)', 'cost',
                              'nfev', 'njev', 'msg'])
         maxl = max(np.max(np.char.str_len(col)), 10)
-        msg = '\n'.join([' '.join([cc.ljust(maxl) for cc in col]),
-                         ' '.join(['-'*maxl]*6)])
+        msg = '\n'.join([
+            ' '.join([cc.ljust(maxl) for cc in col]),
+            ' '.join(['-'*maxl]*6),
+        ])
         print(msg)
 
     # ------------
@@ -662,16 +669,19 @@ def multigausfit2d_from_dlines(
         dsat = {
             k0: {'ind': np.any(saturated[:, dind[k0]['x']], axis=1)}
             for k0 in lksat
-            if k0 in dind.keys()
+            if dind.get(k0) is not None
             and np.any(saturated[:, dind[k0]['x']])
         }
 
         for k0 in dsat.keys():
-            dsat[k0]['str'] = {
-                k1: dsat[k0]['ind'][:, ik].sum()
-                for ik, k1 in enumerate(dinput[k0]['keys'])
-                if np.any(dsat[k0]['ind'][:, ik])
-            }
+            if k0 in ['amp', 'width', 'shift']:
+                dsat[k0]['str'] = {
+                    k1: dsat[k0]['ind'][:, ik].sum()
+                    for ik, k1 in enumerate(dinput[k0]['keys'])
+                    if np.any(dsat[k0]['ind'][:, ik])
+                }
+            else:
+                dsat[k0]['str'] = {'': dsat[k0]['ind'].sum()}
 
         lstr = [
             "\n".join([

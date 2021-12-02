@@ -348,16 +348,15 @@ def multigausfit1d_from_dlines_funccostjac(
 
 
 def multigausfit2d_from_dlines_funccostjac(
-    lamb=None,
-    phi=None,
+    lamb_flat=None,
+    phi_flat=None,
     indx=None,
     dinput=None,
     dind=None,
     jac=None,
 ):
 
-    if jac is None:
-        jac = _JAC
+    return_costjac = lamb_flat is not None and phi_flat is not None
 
     ibckax = dind['bck_amp']['x']
     ibckrx = dind['bck_rate']['x']
@@ -381,18 +380,13 @@ def multigausfit2d_from_dlines_funccostjac(
     iwj = dind['width']['jac']
     ishj = dind['shift']['jac']
 
-    coefsal = dinput['amp']['coefs']
-    coefswl = dinput['width']['coefs']
-    coefssl = dinput['shift']['coefs']
+    coefsal = dinput['amp']['coefs'][None, :]
+    coefswl = dinput['width']['coefs'][None, :]
+    coefssl = dinput['shift']['coefs'][None, :]
 
-    offsetal = dinput['amp']['offset']
-    offsetwl = dinput['width']['offset']
-    offsetsl = dinput['shift']['offset']
-
-    lambrel = lamb - np.nanmin(lamb)
-    lambn = lamb[..., None] / dinput['lines'][None, ...]
-    lambrel_flat = lambrel.ravel()
-    lambn_flat = lamb.ravel()[:, None] / dinput['lines'][None, ...]
+    offsetal = dinput['amp']['offset'][None, :]
+    offsetwl = dinput['width']['offset'][None, :]
+    offsetsl = dinput['shift']['offset'][None, :]
 
     xscale = np.full((dind['sizex'],), np.nan)
     if indx is None:
@@ -402,12 +396,6 @@ def multigausfit2d_from_dlines_funccostjac(
     kpb = dinput['nknotsperbs']
     nbs = dinput['nbs']
 
-    # bsplines-specific
-    phi_flat = phi.ravel()
-    libs = np.array([
-        (phi_flat >= km[ii]) & (phi_flat <= km[ii+kpb-1])
-        for ii in range(nbs)
-    ])
     BS = BSpline(
         km,
         np.ones(ial.shape, dtype=float),
@@ -416,14 +404,14 @@ def multigausfit2d_from_dlines_funccostjac(
         axis=0,
     )
 
-    # func_details returns result in same shape as input
-    def func_detail(
-        x,
+    nlines = dinput['nlines']
+    deg = dinput['deg']
+    double = dinput['double']
+
+    # Pre-set kwdargs
+    dkwdargs = dict(
         xscale=xscale,
-        phi=phi,
         indx=indx,
-        lambrel=lambrel,
-        lambn=lambn,
         ibckax=ibckax,
         ibckrx=ibckrx,
         ial=ial,
@@ -431,29 +419,42 @@ def multigausfit2d_from_dlines_funccostjac(
         ishl=ishl,
         idratiox=idratiox,
         idshx=idshx,
-        nlines=dinput['nlines'],
+        nlines=nlines,
         nbck=nbck,
         km=km,
         kpb=kpb,
         nbs=nbs,
-        deg=dinput['deg'],
+        deg=deg,
         BS=BS,
-        coefsal=coefsal,
-        coefswl=coefswl,
-        coefssl=coefssl,
-        offsetal=offsetal,
-        offsetwl=offsetwl,
-        offsetsl=offsetsl,
-        double=dinput['double'],
+        coefsal=coefsal[None, :],
+        coefswl=coefswl[None, :],
+        coefssl=coefssl[None, :],
+        offsetal=offsetal[None, :],
+        offsetwl=offsetwl[None, :],
+        offsetsl=offsetsl[None, :],
+        double=double,
+    )
+
+    # ----------------------------
+    # details and sum for end-user
+
+    # func_details returns result in same shape as input
+    def func_detail(
+        x,
+        phi=None,
+        lamb=None,
         scales=None,
-        indok=None,
         ind_bs=None,
         const=None,
+        **dkwdargs,
     ):
-        if indok is None:
-            indok = np.ones(phi.shape, dtype=bool)
+        # normalize lamb
+        lambrel = lamb - np.nanmin(lamb)
+        shape = tuple(np.r_[[1 for ii in range(lamb.ndim)], -1])
+        lambn = lamb[..., None] / dinput['lines'].reshape(shape)
+
         # shape = tuple(np.r_[indok.sum(), nbck+nlines, nbs])
-        shape = tuple(np.r_[phi.shape, nbck+nlines, nbs])
+        shape = tuple(np.r_[phi.shape, nbck + nlines, nbs])
         y = np.full(shape, np.nan)
         xscale[indx] = x*scales[indx]
         xscale[~indx] = const
@@ -463,9 +464,9 @@ def multigausfit2d_from_dlines_funccostjac(
         bckr = BS(phi)
 
         # make sure iwl is 2D to get all lines at once
-        BS.c = xscale[iwl] * coefswl[None, :] + offsetwl[None, :]
+        BS.c = xscale[iwl] * coefswl + offsetwl
         wi2 = BS(phi)
-        BS.c = xscale[ishl] * coefssl[None, :] + offsetsl[None, :]
+        BS.c = xscale[ishl] * coefssl + offsetsl
         shift = BS(phi)
         exp = np.exp(-(lambn - (1 + shift))**2 / (2*wi2))
 
@@ -490,7 +491,7 @@ def multigausfit2d_from_dlines_funccostjac(
                 extrapolate=False,
             )(phi)
 
-            indbs = indok & np.isfinite(bs)
+            indbs = np.isfinite(bs)
             if not np.any(indbs):
                 continue
             bs = bs[indbs]
@@ -503,7 +504,9 @@ def multigausfit2d_from_dlines_funccostjac(
 
             # lines
             for jj in range(nlines):
-                amp = bs * xscale[ial[ii, jj]] * coefsal[jj] + offsetal[jj]
+                amp = (
+                    bs * xscale[ial[ii, jj]] * coefsal[:, jj] + offsetal[:, jj]
+                )
                 y[indbs, nbck+jj, ii] = amp * exp[indbs, jj]
                 if double is not False:
                     y[indbs, nbck+jj, ii] += (amp * dratio * expd[indbs, jj])
@@ -511,40 +514,20 @@ def multigausfit2d_from_dlines_funccostjac(
         return y
 
     # cost and jacob return flattened results (for least_squares())
-    def cost(
+    def func_sum(
         x,
-        xscale=xscale,
-        phi_flat=phi_flat,
-        lambrel_flat=lambrel_flat,
-        lambn_flat=lambn_flat,
-        indx=indx,
-        ibckax=ibckax,
-        ibckrx=ibckrx,
-        ial=ial,
-        iwl=iwl,
-        ishl=ishl,
-        idratiox=idratiox,
-        idshx=idshx,
-        km=km,
-        kpb=kpb,
-        deg=dinput['deg'],
-        BS=BS,
-        coefsal=coefsal[None, :],
-        coefswl=coefswl[None, :],
-        coefssl=coefssl[None, :],
-        offsetal=offsetal[None, :],
-        offsetwl=offsetwl[None, :],
-        offsetsl=offsetsl[None, :],
-        double=dinput['double'],
+        phi=None,
+        lamb=None,
         scales=None,
-        indok_flat=None,
         ind_bs=None,
         const=None,
-        data_flat=0.,
+        **dkwdargs,
     ):
 
-        if indok_flat is None:
-            indok_flat = np.ones(lambrel_flat.shape, dtype=bool)
+        # normalize lamb
+        lambrel = lamb - np.nanmin(lamb)
+        shape = tuple(np.r_[[1 for ii in range(lamb.ndim)], -1])
+        lambn = lamb[..., None] / dinput['lines'].reshape(shape)
 
         # xscale = x*scales
         xscale[indx] = x*scales[indx]
@@ -552,21 +535,21 @@ def multigausfit2d_from_dlines_funccostjac(
 
         # Background
         BS.c = xscale[ibckax][:, 0]
-        bcka = BS(phi_flat)
+        bcka = BS(phi)
         BS.c = xscale[ibckrx][:, 0]
-        y = bcka * np.exp(BS(phi_flat)*lambrel_flat)
+        y = bcka * np.exp(BS(phi)*lambrel)
 
         # make sure iwl is 2D to get all lines at once
         BS.c = xscale[ial] * coefsal + offsetal
-        amp = BS(phi_flat[indok_flat])
+        amp = BS(phi)
         BS.c = xscale[iwl] * coefswl + offsetwl
-        wi2 = BS(phi_flat[indok_flat])
+        wi2 = BS(phi)
         BS.c = xscale[ishl] * coefssl + offsetsl
-        csh = BS(phi_flat[indok_flat])
+        csh = BS(phi)
 
-        y[indok_flat] += np.nansum(
-            amp * np.exp(-(lambn_flat[indok_flat, :] - (1 + csh))**2 / (2*wi2)),
-            axis=1,
+        y += np.nansum(
+            amp * np.exp(-(lambn - (1 + csh))**2 / (2*wi2)),
+            axis=-1,
         )
 
         if double is not False:
@@ -578,59 +561,99 @@ def multigausfit2d_from_dlines_funccostjac(
                 dratio = double.get('dratio', xscale[idratiox[:, 0]])
                 dcsh = csh + double.get('dshift', xscale[idshx[:, 0]])
 
-            expd = np.exp(-(lambn_flat[indok_flat, :] - (1 + dcsh))**2 / (2*wi2))
-            y[indok_flat] += np.nansum(amp * dratio * expd, axis=1)
+            expd = np.exp(-(lambn - (1 + dcsh))**2 / (2*wi2))
+            y += np.nansum(amp * dratio * expd, axis=-1)
+        return y
 
-        if isinstance(data_flat, np.ndarray):
-            return y[indok_flat] - data_flat[indok_flat]
-        else:
-            return y - data_flat
+    # -------------------------------
+    # cost and jacob for optimization
 
-    # Prepare jac
-    if jac in ['dense', 'sparse']:
-        # Define a callable jac returning (nlamb, sizex) matrix of partial
-        # derivatives of np.sum(func_details(scaled), axis=0)
+    func_cost, func_jacob = None, None
+    if return_costjac:
+        # cost and jacob return flattened results (for least_squares())
+        lambrel_flat = lamb_flat - np.nanmin(lamb_flat)
+        lambn_flat = lamb_flat[:, None] / dinput['lines'][None, ...]
 
-        # Pre-instanciate jacobian
+        # bsplines-specific
+        libs = np.array([
+            (phi_flat >= km[ii]) & (phi_flat <= km[ii+kpb-1])
+            for ii in range(nbs)
+        ])
+
+        # Prepare jac
         jac0 = np.zeros((phi_flat.size, dind['sizex']), dtype=float)
 
-        def jacob(
-            x,
-            xscale=xscale,
+        # update kwdargs
+        dkwdargs_cj = dict(dkwdargs)
+        dkwdargs_cj.update(dict(
+            # common to cost and jacob
             phi_flat=phi_flat,
             lambrel_flat=lambrel_flat,
             lambn_flat=lambn_flat,
-            indx=indx,
-            ibckax=ibckax,
-            ibckrx=ibckrx,
-            ial=ial,
-            iwl=iwl,
-            ishl=ishl,
-            idratiox=idratiox,
-            idshx=idshx,
-            nlines=dinput['nlines'],
-            nbck=nbck,
-            km=km,
-            kpb=kpb,
-            nbs=nbs,
-            deg=dinput['deg'],
-            BS=BS,
-            coefsal=coefsal[None, :],
-            coefswl=coefswl[None, :],
-            coefssl=coefssl[None, :],
-            offsetal=offsetal[None, :],
-            offsetwl=offsetwl[None, :],
-            offsetsl=offsetsl[None, :],
-            double=dinput['double'],
+            # specific to jacob
+            libs=libs,
+            jac0=jac0,
+        ))
+
+        def func_cost(
+            x,
             scales=None,
             indok_flat=None,
             ind_bs=None,
             const=None,
-            # specific to jac
-            jac0=jac0,
-            libs=libs,
-            # useless but for compatibility
             data_flat=None,
+            **dkwdargs_cj,
+        ):
+
+            assert data_flat.shape == lambrel_flat.shape
+            if indok_flat is None:
+                indok_flat = np.ones(lambrel_flat.shape, dtype=bool)
+
+            # xscale = x*scales
+            xscale[indx] = x*scales[indx]
+            xscale[~indx] = const
+
+            # Background
+            BS.c = xscale[ibckax][:, 0]
+            bcka = BS(phi_flat)
+            BS.c = xscale[ibckrx][:, 0]
+            y = bcka * np.exp(BS(phi_flat)*lambrel_flat)
+
+            # make sure iwl is 2D to get all lines at once
+            BS.c = xscale[ial] * coefsal + offsetal
+            amp = BS(phi_flat[indok_flat])
+            BS.c = xscale[iwl] * coefswl + offsetwl
+            wi2 = BS(phi_flat[indok_flat])
+            BS.c = xscale[ishl] * coefssl + offsetsl
+            csh = BS(phi_flat[indok_flat])
+
+            y[indok_flat] += np.nansum(
+                amp * np.exp(-(lambn_flat[indok_flat, :] - (1 + csh))**2 / (2*wi2)),
+                axis=-1,
+            )
+
+            if double is not False:
+                if double is True:
+                    dratio = xscale[idratiox[:, 0]]
+                    # scales[ishl] or scales[idshx] ? coefssl ? +> no
+                    dcsh = csh + xscale[idshx[:, 0]]
+                else:
+                    dratio = double.get('dratio', xscale[idratiox[:, 0]])
+                    dcsh = csh + double.get('dshift', xscale[idshx[:, 0]])
+
+                expd = np.exp(-(lambn_flat[indok_flat, :] - (1 + dcsh))**2 / (2*wi2))
+                y[indok_flat] += np.nansum(amp * dratio * expd, axis=-1)
+
+            return y[indok_flat] - data_flat[indok_flat]
+
+        def func_jacob(
+            x,
+            scales=None,
+            indok_flat=None,
+            ind_bs=None,
+            const=None,
+            data_flat=0.,
+            **dkwdargs_cj,
         ):
             """ Basic docstr """
             # xscale = x*scales
@@ -778,163 +801,4 @@ def multigausfit2d_from_dlines_funccostjac(
 
             return jac0[indok_flat, :][:, indx]
 
-    elif jac == 'sparse':
-
-        msg = ""
-        raise Exception(msg)
-
-        # Define a callable jac returning (nlamb, sizex) matrix of partial
-        # derivatives of np.sum(func_details(scaled), axis=0)
-
-        # Pre-instanciate jacobian
-        # libsT = libs.T
-        # indflat = np.flatnonzero(libsT)
-        # row_ind, col_ind = libsT.nonzero()
-        # libsi = [indflat[col_ind==ii] for ii in range(nbs)]
-
-        # jac0 = scpsparse.csr_matrix((libsT[libsT].astype(float),
-        # (row_ind, col_ind)),
-        # shape=libsT.shape)
-
-        # def jacob(x, lamb=lambcost, phi=phicost,
-        # ibckx=ibckx,
-        # iax=iax, iaj=iaj, ial=ial,
-        # iwx=iwx, iwj=iwj, iwl=iwl,
-        # ishx=ishx, ishj=ishj, ishl=ishl,
-        # idratiox=idratiox, idshx=idshx,
-        # lines=dinput['lines'][None, :],
-        # km=km, kpb=kpb, nbs=nbs,
-        # deg=dinput['deg'],
-        # coefsal=coefsal[None, :],
-        # coefswl=coefswl[None, :],
-        # coefssl=coefssl[None, :],
-        # double=dinput['double'],
-        # scales=None, indok_var=None, data=None,
-        # jac0=jac0, lbs=lbs, libsi=libsi):
-        # """ Basic docstr """
-        # xscale = x*scales
-
-        # # Intermediates
-
-    # # Loop on bs
-    # for ii in range(nbs):
-        # bs = lbs[ii]
-
-        # # Intermediates
-        # amp = BSpline(km, xscale[ial] * coefsal, deg,
-        # extrapolate=False, axis=0)(phi[libs[ii]])
-        # wi2 = BSpline(km, xscale[iwl] * coefswl, deg,
-        # extrapolate=False, axis=0)(phi[libs[ii]])
-        # shift = BSpline(km, xscale[ishl] * coefssl, deg,
-        # extrapolate=False, axis=0)(phi[libs[ii]])
-        # beta = (lamb[libs[ii], :]/lines - (1 + shift)) / (2*wi2)
-        # alpha = -beta**2 * (2*wi2)
-        # exp = np.exp(alpha)
-
-        # # Background
-        # import ipdb; ipdb.set_trace()       # DB
-        # jac0.data[libsi[ibckx[ii]]] = bs[:, 0] * scales[ibckx[ii]]
-        # #jac0[libs[ii], ibckx[ii]] = bs[:, 0] * scales[ibckx[ii]]
-
-        # # amp
-        # for jj in range(len(iaj)):
-        # ix = iax[ii, jj]
-        # jac0.data[libs[ii], ix] = np.sum(
-        # (bs * exp[:, iaj[jj]] * scales[ix]
-        # * coefsal[0:1, iaj[jj]]),
-        # axis=1)
-
-        # # width2
-        # for jj in range(len(iwj)):
-        # ix = iwx[ii, jj]
-        # jac0[libs[ii], ix] = np.sum(
-        # (amp[:, iwj[jj]]
-        # * (-alpha[:, iwj[jj]]
-        # * bs * exp[:, iwj[jj]] * scales[ix]
-        # * coefswl[0:1, iwj[jj]]
-        # / wi2[:, iwj[jj]])),
-        # axis=1)
-
-        # # shift
-        # for jj in range(len(ishj)):
-        # ix = ishx[ii, jj]
-        # jac0[libs[ii], ix] = np.sum(
-        # (amp[:, ishj[jj]]
-        # * 2.*beta[:, ishj[jj]]
-        # * bs * exp[:, ishj[jj]] * scales[ix]
-        # * coefssl[0:1, ishj[jj]]),
-        # axis=1)
-
-        # # double
-        # if double is False:
-        # continue
-
-        # if double is True:
-        # dratio = xscale[idratiox]
-        # # coefssl are line-specific, they do not affect dshift
-        # shiftd = shift + xscale[idshx]
-        # else:
-        # if double.get('dratio') is None:
-        # dratio = xscale[idratiox]
-        # else:
-        # dratio = double.get('dratio')
-        # if double.get('dshift') is None:
-        # shiftd = shift + xscale[idshx]
-        # else:
-        # shiftd = shift + double.get('dshift')
-
-        # ampd = amp*dratio
-        # betad = (lamb[libs[ii]]/lines - (1 + shiftd)) / (2*wi2)
-        # alphad = -betad**2 * (2*wi2)
-        # expd = np.exp(alphad)
-
-        # # amp
-        # for jj in range(len(iaj)):
-        # ix = iax[ii, jj]
-        # jac0[libs[ii], ix] += dratio*np.sum(
-        # (bs * scales[ix] * coefsal[0:1, iaj[jj]]
-        # * expd[:, iaj[jj]]),
-        # axis=1)
-
-        # # width2
-        # for jj in range(len(iwj)):
-        # ix = iwx[ii, jj]
-        # jac0[libs[ii], ix] += np.sum(
-        # (ampd[:, iwj[jj]]
-        # * (-alphad[:, iwj[jj]]
-        # * bs * scales[ix] * coefswl[0:1, iwj[jj]]
-        # / wi2[:, iwj[jj]])
-        # * expd[:, iwj[jj]]),
-        # axis=1)
-
-        # # shift
-        # for jj in range(len(ishj)):
-        # ix = ishx[ii, jj]
-        # jac0[libs[ii], ix] += np.sum(
-        # (ampd[:, ishj[jj]]
-        # * 2.*betad[:, ishj[jj]]
-        # * bs * scales[ix] * coefssl[0:1, ishj[jj]]
-        # * expd[:, ishj[jj]]),
-        # axis=1)
-
-        # # dratio
-        # if double is True or double.get('dratio') is None:
-        # jac0[libs[ii], idratiox] = (scales[idratiox]
-        # *np.sum(amp*expd, axis=1))
-
-        # # dshift
-        # if double is True or double.get('dshift') is None:
-        # jac0[libs[ii], idshx] = np.sum(
-        # ampd * 2.*betad*scales[idshx] * expd, axis=1)
-        # return jac0[indok, :]
-
-    if jac not in ['dense', 'sparse', 'LinearSparseOperator']:
-        if jac not in ['2-point', '3-point']:
-            msg = ("jac should be in "
-                   + "['dense', 'sparse', 'LinearsparseOp', "
-                   + "'2-point', '3-point']\n"
-                   + "\t- provided: {}".format(jac))
-            raise Exception(msg)
-        jacob = jac
-
-    return func_detail, cost, jacob
+    return func_detail, func_sum, func_cost, func_jacob

@@ -371,8 +371,6 @@ class Test01_ProofOfPrinciple(object):
                 dd=dd['dscales'], dd_name='dscales', dinput=dd,
             )
 
-            assert np.all(np.isfinite(x0)) and np.all(np.isfinite(scales))
-
             # y0
             y0 = func_detail(x0[0, :], scales=scales[0, :])
             y1 = func_cost(
@@ -523,9 +521,12 @@ class Test01_ProofOfPrinciple(object):
             if ii < 24:
                 continue
 
-            func_detail, func_cost, func_jac = func(
-                lamb=dd['dprepare']['lamb'],
-                phi=dd['dprepare']['phi'],
+            lamb_flat = dd['dprepare']['lamb'].ravel()
+            phi_flat = dd['dprepare']['phi'].ravel()
+            data_flat = dd['dprepare']['data'][0, ...].ravel()
+            func_detail, func_sum, func_cost, func_jac = func(
+                lamb_flat=lamb_flat,
+                phi_flat=phi_flat,
                 dinput=dd,
                 dind=dd['dind'],
                 jac='dense',
@@ -541,25 +542,33 @@ class Test01_ProofOfPrinciple(object):
                 dd=dd['dscales'], dd_name='dscales', dinput=dd,
             )
 
-            assert np.all(np.isfinite(x0)) and np.all(np.isfinite(scales))
-
             # dy0 vs dy1
-            y0 = func_detail(x0[0, :], scales=scales[0, :])
-            indnan = np.all(np.all(np.isnan(y0), axis=-1), axis=-1).ravel()
-            dy0 = (
-                np.nansum(np.nansum(y0, axis=-1), axis=-1)
-                - dd['dprepare']['data'][0, ...]
-            ).ravel()
+            y0 = func_detail(
+                x0[0, :],
+                lamb=lamb_flat,
+                phi=phi_flat,
+                scales=scales[0, :],
+            )
+            indnan = np.all(np.all(np.isnan(y0), axis=-1), axis=-1)
+            dy0 = np.nansum(np.nansum(y0, axis=-1), axis=-1) - data_flat
             # beware, nansum returns 0 for all-nans in numpy >= 1.9.0
             dy0[indnan] = np.nan
-            dy1 = func_cost(
+            dy1 = func_sum(
+                x0[0, :],
+                lamb=lamb_flat,
+                phi=phi_flat,
+                scales=scales[0, :],
+            ) - data_flat
+            dy2 = func_cost(
                 x0[0, :],
                 scales=scales[0, :],
-                data_flat=dd['dprepare']['data'][0, ...].ravel(),
+                data_flat=data_flat,
             )
             # check consistency between func_detail and func_cost
             assert np.sum(np.isfinite(dy0)) == np.sum(np.isfinite(dy1))
+            assert np.sum(np.isfinite(dy0)) == np.sum(np.isfinite(dy2))
             assert np.allclose(dy0, dy1, equal_nan=True)
+            assert np.allclose(dy0, dy2, equal_nan=True)
 
     def test09_fit2d(self, strict=None, verb=False):
         for ii, ij in enumerate(self.ldinput2d_run):
@@ -779,7 +788,7 @@ class Test02_RealisticWESTCase(object):
             chain=True,
             jac=None,
             verbose=verb,
-            strict=False,       # to make sure a corrupted time step doesn't stop
+            strict=True,       # to make sure a corrupted time step doesn't stop
             save=False,
             plot=False,
         )

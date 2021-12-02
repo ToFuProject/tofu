@@ -764,6 +764,17 @@ def fit2d_extract(
             d3[k0]['x']['coefs'] = coefs
             d3[k0]['x']['values'] = val
 
+    # ----------
+    # func
+    (
+        func_detail, func_sum,
+    ) = _funccostjac.multigausfit2d_from_dlines_funccostjac(
+        indx=None,      # because dfit['sol_x' built with const]
+        dinput=dfit2d['dinput'],
+        dind=dind,
+        jac=None,
+    )[:2]
+
     # -------------------
     # func_tot
 
@@ -772,18 +783,11 @@ def fit2d_extract(
         phi=None,
         nspect=nspect,
         dfit2d=dfit2d,
+        func_sum=func_sum,
     ):
         assert lamb.shape == phi.shape
         if dfit2d['dinput']['symmetry'] is True:
             phi = np.abs(phi - np.nanmean(dfit2d['dinput']['symmetry_axis']))
-        func_cost = _funccostjac.multigausfit2d_from_dlines_funccostjac(
-            lamb=lamb,
-            phi=phi,
-            indx=None,      # because dfit['sol_x' built with const]
-            dinput=dfit2d['dinput'],
-            dind=dind,
-            jac=None,
-        )[1]
 
         shape = tuple(np.r_[nspect, lamb.shape])
         solt = np.full(shape, np.nan)
@@ -791,13 +795,13 @@ def fit2d_extract(
             if dfit2d['validity'][ii] < 0:
                 continue
             # Separate and reshape output
-            solt[ii, ...] = func_cost(
+            solt[ii, ...] = func_sum(
                 dfit2d['sol_x'][ii, :],
+                lamb=lamb,
+                phi=phi,
                 scales=dfit2d['scales'][ii, :],
-                indok_flat=None,
                 const=None,
-                data_flat=0.,
-            ).reshape(lamb.shape)
+            )
         return solt
 
     # -------------------
@@ -810,18 +814,6 @@ def fit2d_extract(
                 sol_lamb_phi[1] - np.nanmean(dfit2d['dinput']['symmetry_axis'])
             )
 
-        # func
-        (
-            func_detail, func_cost,
-        ) = _funccostjac.multigausfit2d_from_dlines_funccostjac(
-            lamb=sol_lamb_phi[0],
-            phi=sol_lamb_phi[1],
-            indx=None,      # because dfit['sol_x' built with const]
-            dinput=dfit2d['dinput'],
-            dind=dind,
-            jac=None,
-        )[:2]
-
         # sol_details
         if sol_detail:
             shape = tuple(np.r_[
@@ -831,33 +823,32 @@ def fit2d_extract(
                 nbs,
             ])
             sold = np.full(shape, np.nan)
+            if dfit2d['dinput']['symmetry'] is True:
+                phi = np.abs(
+                    sol_lamb_phi[1]
+                    - np.nanmean(dfit2d['dinput']['symmetry_axis'])
+                )
+            else:
+                phi = sol_lamb_phi[1]
+
             for ii in range(nspect):
                 if dfit2d['validity'][ii] < 0:
                     continue
                 sold[ii, ...] = func_detail(
                     dfit2d['sol_x'][ii, :],
+                    lamb=sol_lamb_phi[0],
+                    phi=phi,
                     scales=dfit2d['scales'][ii, :],
-                    indok=None,
                     const=None,
                     # indbs=None,
                 )
 
         # sol_total
         if sol_total:
-            shape = tuple(np.r_[nspect, sol_lamb_phi[0].shape])
-            solt = np.full(shape, np.nan)
-            for ii in range(nspect):
-                if dfit2d['validity'][ii] < 0:
-                    continue
-                # Separate and reshape output
-                solt[ii, ...] = func_cost(
-                    dfit2d['sol_x'][ii, :],
-                    scales=dfit2d['scales'][ii, :],
-                    indok_flat=None,
-                    const=None,
-                    data_flat=0.,
-                    # indbs=None,
-                ).reshape(sol_lamb_phi[0].shape)
+            solt = func_tot(
+                lamb=sol_lamb_phi[0],
+                phi=sol_lamb_phi[1],
+            )
 
             # Double-check consistency if possible
             if sol_detail:

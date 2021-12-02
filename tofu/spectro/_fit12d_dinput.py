@@ -1793,9 +1793,13 @@ def fit1d_dinput(
     dinput['dscales'] = fit12d_dscales(dscales=dscales, dinput=dinput)
     dinput['dbounds'] = fit12d_dbounds(dbounds=dbounds, dinput=dinput)
     dinput['dx0'] = fit12d_dx0(dx0=dx0, dinput=dinput)
-    dinput['dconstants'] = fit12d_dconstants(
-        dconstants=dconstants, dinput=dinput,
-    )
+    try:
+        dinput['dconstants'] = fit12d_dconstants(
+            dconstants=dconstants, dinput=dinput,
+        )
+    except Exception as err:
+        import pdb; pdb.set_trace()     # DB
+        pass
 
     return dinput
 
@@ -2265,6 +2269,26 @@ def _fit12d_filldef_dscalesx0_float(
 ###########################################################
 
 
+def _check_finit_dict(dd=None, dd_name=None):
+    dfail = {}
+    for k0, v0 in dd.items():
+        if k0 in ['amp', 'width', 'shift']:
+            for k1, v1 in v0.items():
+                if np.any(~np.isfinite(v1)):
+                    dfail[f"'{k0}'['{k1}']"] = v1
+        else:
+            if np.any(~np.isfinite(v0)):
+                dfail[f"'{k0}'"] = v0
+
+    if len(dfail) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = (
+            f"The following {dd_name} values are non-finite:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+
 # Double-check 1d vs 2d: TBF / TBC
 def fit12d_dscales(dscales=None, dinput=None):
 
@@ -2390,15 +2414,11 @@ def fit12d_dscales(dscales=None, dinput=None):
         key = dinput['amp']['keys'][ii]
         if dscales['amp'].get(key) is None:
             # convoluate and estimate geometric mean
-            dataii = data[:, np.argmin(np.abs(lamb-dinput['lines'][ij]))]
-            conv = (
-                dataii[:, None]
-                * np.exp(
+            conv = np.exp(
                     -(lamb-dinput['lines'][ij])**2
                     /(2*(Dlamb/25.)**2)
                 )[None, :]
-            )
-            dscales['amp'][key] = np.sqrt(np.nanmax(data*conv, axis=1))
+            dscales['amp'][key] = np.nanmax(data*conv, axis=1)
         else:
             if type(dscales['amp'][key]) in _LTYPES:
                 dscales['amp'][key] = np.full((nspect,), dscales['amp'][key])
@@ -2448,6 +2468,8 @@ def fit12d_dscales(dscales=None, dinput=None):
                 vref=din[k0], nspect=nspect,
             )
 
+    # check
+    _check_finit_dict(dd=dscales, dd_name='dscales')
     return dscales
 
 
@@ -2705,6 +2727,10 @@ def fit12d_dconstants(dconstants=None, dinput=None):
                 din=dconstants, din_name="dconstants",
                 key=k0, vref=np.nan, nspect=nspect,
             )
+
+    # no check: dconstant can be nan if indx not used
+    # _check_finit_dict(dd=dconstants, dd_name='dconstants')
+
     return dconstants
 
 
@@ -2745,4 +2771,10 @@ def _dict2vector_dscalesx0bounds(
             if dinput['double'].get('dshift') is None:
                 x[:, dinput['dind']['dshift']['x'][:, 0]] = dd['dshift'][:, None]
 
+    if dd_name != 'dconstants' and not np.all(np.isfinite(x)):
+        msg = (
+            f"dict {dd_name} seems to have non-finite values!\n"
+            f"\t- x: {x}"
+        )
+        raise Exception(msg)
     return x
