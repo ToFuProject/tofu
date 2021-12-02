@@ -623,8 +623,10 @@ class Test02_RealisticWESTCase(object):
         self,
         verb=None,
         # non-default parameters
+        symmetry=None,
         mask=None,
         domain=None,
+        dconstants=None,
         binning=None,
         dscales=None,
         dx0=None,
@@ -701,8 +703,10 @@ class Test02_RealisticWESTCase(object):
             cryst=cryst,
             det=det,
             # non-default parameters
+            symmetry=symmetry,
             mask=mask,
             domain=domain,
+            dconstants=dconstants,
             binning=binning,
             dscales=dscales,
             dx0=dx0,
@@ -808,8 +812,10 @@ def get_constraints(
     cryst=None,
     det=None,
     # non-default parameters
+    symmetry=None,
     mask=None,
     domain=None,
+    dconstants=None,
     binning=None,
     dscales=None,
     dx0=None,
@@ -831,37 +837,54 @@ def get_constraints(
 
     # dconstraints
     dconstraints = dict(_DCONSTRAINTS[crystname])
+    if symmetry is not None:
+        dconstraints['symmetry'] = symmetry
 
     # dconstants
-    dconstants = dict(_DCONSTANTS[crystname])
+    if dconstants is False:
+        dconstants = None
+    elif dconstants is None:
+        dconstants = dict(_DCONSTANTS[crystname])
 
     # domain
-    if domain is None:
+    if domain is False:
+        domain = None
+    elif domain is None:
         if _DOMAIN[crystname] is not None:
             domain = dict(_DOMAIN[crystname])
 
     # binning
-    if binning is None:
+    if binning is False:
+        binning = None
+    elif binning is None:
         if _BINNING[crystname] is not None:
             binning = dict(_BINNING[crystname])
 
     # dscales
-    if dscales is None:
+    if dscales is False:
+        dscales = None
+    elif dscales is None:
         if _DSCALES[crystname] is not None:
             dscales = dict(_DSCALES[crystname])
 
     # dx0
-    if dx0 is None:
+    if dx0 is False:
+        dx0 = None
+    elif dx0 is None:
         if _DX0[crystname] is not None:
             dx0 = dict(_DX0[crystname])
 
     # dbounds
-    if dbounds is None:
+    if dbounds is False:
+        dbounds = False
+    elif dbounds is None:
         if _DBOUNDS[crystname] is not None:
             dbounds = dict(_DBOUNDS[crystname])
 
     # focus
     if focus is None:
+        focus = None
+    elif focus is None:
         if _FOCUS[crystname] is not None:
             focus = dict(_FOCUS[crystname])
 

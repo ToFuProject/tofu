@@ -329,8 +329,15 @@ def fit12d_get_data_checkformat(
                 phi_npts = (2*dinput['deg']-1)*(dinput['knots'].size-1) + 1
             if phi_npts is not None:
                 phi_npts = int(phi_npts)
+                if dfit['dinput']['symmetry'] is True:
+                    phimin = (
+                        np.mean(dfit['dinput']['symmetry_axis'])
+                        - dprepare['domain']['phi']['minmax'][1]
+                    )
+                else:
+                    phimin = dprepare['domain']['phi']['minmax'][0]
                 phi_prof = np.linspace(
-                    dprepare['domain']['phi']['minmax'][0],
+                    phimin,
                     dprepare['domain']['phi']['minmax'][1],
                     phi_npts,
                 )
@@ -350,7 +357,7 @@ def fit12d_get_data_checkformat(
     if sol_pts is not None:
         if is2d is True:
             c0 = (
-                isinstance(sol_pts, (tuple, list, np.ndarray))
+                isinstance(sol_pts, (list, np.ndarray))
                 and len(sol_pts) == 2
                 and all([isinstance(ss, np.ndarray) for ss in sol_pts])
                 and sol_pts[0].shape == sol_pts[1].shape
@@ -385,7 +392,7 @@ def fit12d_get_data_checkformat(
             sol_pts = False
         else:
             if is2d is True:
-                sol_pts = (dprepare['lamb'], dprepare['phi'])
+                sol_pts = [dprepare['lamb'], dprepare['phi']]
             else:
                 sol_pts = dprepare['lamb']
     if any([sol_total, sol_detail]):
@@ -418,7 +425,6 @@ def fit1d_extract(
     vi:         (nt, nlines) array
 
     """
-
 
 
     # -------------------
@@ -649,11 +655,19 @@ def fit2d_extract(
         axis=0,
     )
 
+    # phi_prof symmetric
+    if dfit2d['dinput']['symmetry'] is True:
+        phi_prof2 = np.abs(
+            phi_prof - np.mean(dfit2d['dinput']['symmetry_axis'])
+        )
+    else:
+        phi_prof2 = phi_prof
+
     # Prepare extract func
     def _get_values(
         k0,
         k1=None,
-        phi_prof=phi_prof,
+        phi_prof2=phi_prof2,
         d3=d3,
         nspect=nspect,
         BS=BS,
@@ -673,11 +687,11 @@ def fit2d_extract(
         coefs = sol_x[:, ind] * scales[:, ind]
 
         # values at phi_prof
-        shape = tuple(np.r_[nspect, phi_prof.size, ind.shape[1]])
+        shape = tuple(np.r_[nspect, phi_prof2.size, ind.shape[1]])
         val = np.full(shape, np.nan)
         for ii in range(nspect):
             BS.c = coefs[ii, :, :]
-            val[ii, :, :] = BS(phi_prof)
+            val[ii, :, :] = BS(phi_prof2)
 
         return coefs, val
 
@@ -760,6 +774,8 @@ def fit2d_extract(
         dfit2d=dfit2d,
     ):
         assert lamb.shape == phi.shape
+        if dfit2d['dinput']['symmetry'] is True:
+            phi = np.abs(phi - np.nanmean(dfit2d['dinput']['symmetry_axis']))
         func_cost = _funccostjac.multigausfit2d_from_dlines_funccostjac(
             lamb=lamb,
             phi=phi,
@@ -789,6 +805,10 @@ def fit2d_extract(
 
     sold, solt = False, False
     if sol_total or sol_detail:
+        if dfit2d['dinput']['symmetry'] is True:
+            sol_lamb_phi[1] = np.abs(
+                sol_lamb_phi[1] - np.nanmean(dfit2d['dinput']['symmetry_axis'])
+            )
 
         # func
         (
