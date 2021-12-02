@@ -832,13 +832,13 @@ def binning_2d_data(
                 dataf,
                 statistic='sum',
                 bins=phi1d_edges,
-            )
+            )[0]
             datalamb1d = scpstats.binned_statistic(
                 lamb.ravel(),
                 dataf,
                 statistic='sum',
                 bins=lamb1d_edges,
-            )
+            )[0]
             phi1d = 0.5*(phi1d_edges[1:] + phi1d_edges[:-1])
             lamb1d = 0.5*(lamb1d_edges[1:] + lamb1d_edges[:-1])
 
