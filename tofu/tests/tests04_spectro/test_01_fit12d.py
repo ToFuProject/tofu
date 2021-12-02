@@ -891,7 +891,7 @@ def get_constraints(
             dbounds = dict(_DBOUNDS[crystname])
 
     # focus
-    if focus is None:
+    if focus is False:
         focus = None
     elif focus is None:
         if _FOCUS[crystname] is not None:
