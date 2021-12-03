@@ -251,6 +251,7 @@ def multigausfit1d_from_dlines(
             dti = None
             t0i = dtm.datetime.now()     # DB
             if not dinput['valid']['indt'][ii]:
+                validity[ii] = -1
                 continue
 
             # optimization
@@ -572,6 +573,7 @@ def multigausfit2d_from_dlines(
             dti = None
             t0i = dtm.datetime.now()     # DB
             if not dinput['valid']['indt'][ii]:
+                validity[ii] = -1
                 continue
 
             # optimization
