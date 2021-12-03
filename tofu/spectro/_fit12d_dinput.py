@@ -2274,15 +2274,15 @@ def _fit12d_filldef_dscalesx0_float(
 ###########################################################
 
 
-def _check_finit_dict(dd=None, dd_name=None):
+def _check_finit_dict(dd=None, dd_name=None, indtok=None):
     dfail = {}
     for k0, v0 in dd.items():
         if k0 in ['amp', 'width', 'shift']:
             for k1, v1 in v0.items():
-                if np.any(~np.isfinite(v1)):
+                if np.any(~np.isfinite(v1[indtok, ...])):
                     dfail[f"'{k0}'['{k1}']"] = v1
         else:
-            if np.any(~np.isfinite(v0)):
+            if np.any(~np.isfinite(v0[indtok, ...])):
                 dfail[f"'{k0}'"] = v0
 
     if len(dfail) > 0:
@@ -2474,7 +2474,11 @@ def fit12d_dscales(dscales=None, dinput=None):
             )
 
     # check
-    _check_finit_dict(dd=dscales, dd_name='dscales')
+    _check_finit_dict(
+        dd=dscales,
+        dd_name='dscales',
+        indtok=dinput['valid']['indt'],
+    )
     return dscales
 
 
