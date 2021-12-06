@@ -2387,9 +2387,9 @@ class CrystalBragg(utils.ToFuObject):
                 )
         return (
             bragg, phi, lamb,
-            #err_lamb, err_phi,
-            #err_lamb_units, err_phi_units,
-            #test_lambda_interv,
+            err_lamb, err_phi,
+            err_lamb_units, err_phi_units,
+            test_lambda_interv,
         )
 
     def calc_isolamb(
@@ -2483,7 +2483,7 @@ class CrystalBragg(utils.ToFuObject):
                     lambda_interval_max=lambda_interval_max,
                     split=split,
                     plot=False,
-                )
+                )[:3]
         else:
             for ii in list(range(nb)):
                 (
@@ -2497,7 +2497,7 @@ class CrystalBragg(utils.ToFuObject):
                     lambda_interval_max=lambda_interval_max,
                     split=split,
                     plot=False,
-                )
+                )[:3]
 
         if plot:
             ax = _plot_optics.CrystalBragg_plot_isolamb_isophi(
@@ -2696,7 +2696,7 @@ class CrystalBragg(utils.ToFuObject):
                     lambda_interval_min=lambda_interval_min,
                     lambda_interval_max=lambda_interval_max,
                     plot=False,
-                )[::4]
+                )[3:][::4]
                 error_lambda[jj, ii] = np.nanmean(error_lambda_temp)
 
         if 'rel' in err:
