@@ -1403,188 +1403,6 @@ def CrystalBragg_plot_dshift_maps(
 
     return ax, ax1, ax2, ax3, ax4, ax5,
 
-def CrystalBragg_gap_ray_tracing(
-    lamb, gap_xi,
-    xis1, xis2,
-    xjs1, xjs2,
-    npts, nlamb=None, n=None,
-    det=None,
-    split=None,
-    relation=None,
-    ax=None, dleg=None,
-    fs=None, dmargin=None,
-    wintit=None, tit=None,
-):
-
-    # Check inputs
-    #-------------
-
-    if dleg is None:
-        dleg = {'loc': 'upper right', 'bbox_to_anchor': (1.0, 1.0)}
-    if fs is None:
-        fs = (15, 13)
-    if dmargin is None:
-        dmargin = {'left': 0.06, 'right': 0.99,
-            'bottom': 0.06, 'top': 0.92,
-            'wspace': None, 'hspace': 0.4}
-
-    if wintit is None:
-        wintit = _WINTIT
-    if tit is None:
-        if split:
-            tit = (
-                u"Gap between each wavelength arc,"
-                u" with & without non-parallelism, crystal splitted"
-            )
-        else:
-            tit = (
-                u"Gap between each wavelength arc,"
-                u" with & without non-parallelism"
-            )
-
-    dcolor = ['red', 'orange', 'yellow', 'green',
-             'blue', 'pink', 'purple', 'brown', 'black',
-             ]
-    dmarkers = ['o', 'v', 's', 'x', '*', 'P', '+', 'p']
-    dls = [
-        '--', ':', '-.',
-        '--', ':', '-.',
-        '--', ':', '-.',
-        '--', ':', '-.',
-    ]
-    dlab = [r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = 3"',
-        r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = -3"',
-    ]
-
-    # Plot
-    #-----
-
-    if ax is None:
-        fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(4, 4, **dmargin)
-        ax = fig.add_subplot(gs[:, 0])
-        ax1 = fig.add_subplot(gs[:, 1])
-        ax2 = fig.add_subplot(gs[:, 2:])
-
-    if wintit is not False:
-        fig.canvas.set_window_title(wintit)
-    if tit is not False:
-        fig.suptitle(tit, size=12, weight='bold')
-
-    if det.get('outline') is not None:
-        ax.plot(
-            det['outline'][0, :], det['outline'][1, :],
-            ls='-', lw=1., c='k',
-        )
-        ax1.plot(
-            det['outline'][0, :], det['outline'][1, :],
-            ls='-', lw=1., c='k',
-        )
-        ax2.plot(
-            det['outline'][0, :], det['outline'][1, :],
-            ls='-', lw=1., c='k',
-        )
-
-    ## Plotting ray-tracing on det (ax2) and
-    ## xi's gap on each case of non-parallelism (ax & ax1)
-    for l in range(nlamb):
-        lab = r'$\lambda$'+' = {:6.3f} A\n'.format(lamb[l]*1.e10)
-        ax.plot(
-            gap_xi[1, l, :],  # plot diff between 0" and -3" [arcsec]
-            xjs1[0, l, ::n],  # xj det coordinates
-            ls=dls[1], lw=3.,
-            c=dcolor[l],
-        )
-        ax1.plot(
-            gap_xi[0, l, :],  # plot diff between 0" and +3" [arcsec]
-            xjs1[0, l, ::n],
-            ls=dls[0], lw=3.,
-            c=dcolor[l],
-        )
-        ax2.plot(
-            xis1[0, l, :], xjs1[0, l, :],  # plot ray-tracing without non-para
-            ls='-', lw=3.,
-            c=dcolor[l],
-            label=lab
-        )
-        for ii in range(2):
-            ax2.plot(
-                xis2[ii, l, :], xjs2[ii, l, :],  # plot rays with non-para
-                ls=dls[ii], lw=3.,
-                c=dcolor[l],
-                label=dlab[ii]
-            )
-
-        ax.set_xlim(
-            np.nanmin(gap_xi[1, ...])-5e-5, np.nanmax(gap_xi[1, ...])+5e-5,
-        )
-        ax1.set_xlim(
-            np.nanmin(gap_xi[0, ...])-5e-5, np.nanmax(gap_xi[0, ...])+5e-5,
-        )
-        ax.set_ylabel('Xj [m]')
-        ax.set_xlabel('Gap [m]')
-        ax1.set_xlabel('Gap [m]')
-        ax2.set_xlabel('Xi [m]')
-        ax.legend([r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = -3"'],
-                  loc='lower center')
-        ax1.legend([r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = +3"'],
-                  loc='lower center')
-
-    if dleg is not False:
-        ax2.legend(**dleg)
-
-    # plot relation between gap and wavelength, according xj positions
-    if relation is True:
-        fig = plt.figure(figsize=(12, 10))
-        gs = gridspec.GridSpec(2, 1,
-            left=0.1, right=0.95,
-            bottom=0.1, top=0.92,
-            wspace=None, hspace=0.2,
-        )
-        ax = fig.add_subplot(gs[0, 0])
-        ax2 = fig.add_subplot(gs[1, 0])
-        ax.set_xlabel(r'$\lambda$ [m]')
-        ax.set_ylabel('Xj [m]')
-        ax2.set_xlabel(r'$\lambda$ [m]')
-        ax2.set_ylabel('Xj [m]')
-
-        for aa in range(npts):
-            ax.plot(
-                lamb,
-                gap_xi[0, :, aa],
-                ls='-',#dls[aa],
-                lw=1.,
-                c=dcolor[0],
-                ms=4,
-            )
-            ax2.plot(
-                lamb,
-                gap_xi[1, :, aa],
-                ls='-',#dls[aa],
-                lw=1.,
-                c=dcolor[1],
-                ms=4,
-            )
-        ax.set_xlim(
-            np.nanmin(lamb)-2*1e-12, np.nanmax(lamb)+2*1e-12,
-        )
-        ax2.set_xlim(
-            np.nanmin(lamb)-2*1e-12, np.nanmax(lamb)+2*1e-12,
-        )
-        ax.set_ylim(
-            np.nanmin(gap_xi[0, ...])-1e-4, np.nanmax(gap_xi[0, ...])+1e-4,
-        )
-        ax2.set_ylim(
-            np.nanmin(gap_xi[1, ...])-1e-4, np.nanmax(gap_xi[1, ...])+1e-4,
-        )
-        ax.set_ylabel('Gap [m]')
-        ax2.set_xlabel(r'$\lambda$ [m]')
-        ax2.set_ylabel('Gap [m]')
-        ax.legend([r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = 3"'])
-        ax2.legend([r'$\alpha_{c1}$ = 0" & $\alpha_{c2}$ = -3"'])
-
-    return ax, ax1, ax2
-
 
 def CrystalBragg_plot_johannerror(
     xi, xj, lamb, phi,
@@ -1592,6 +1410,8 @@ def CrystalBragg_plot_johannerror(
     err_lamb_units=None,
     err_phi_units=None,
     split=None,
+    use_non_parallelism=None,
+    alpha=None, beta=None,
     plot_phi=None,
     cmap=None, vmin=None, vmax=None,
     fs=None, dmargin=None, wintit=None, tit=None,
@@ -1624,7 +1444,26 @@ def CrystalBragg_plot_johannerror(
     if wintit is None:
         wintit = _WINTIT
     if tit is None:
-        tit = False
+        if use_non_parallelism:
+            if split:
+                tit = (
+                    "Splitted crystal, perfect VS alpha="+str(alpha*180/np.pi)
+                    +", beta="+str(np.round((beta), decimals=3))+" [rad]"
+                )
+            else:
+                tit = (
+                    "Monocrystal, alpha="+str(alpha*180/np.pi)
+                    +", beta="+str(np.round((beta), decimals=3))+" [rad]"
+                )
+        else:
+            if split:
+                tit = (
+                    "Splitted crystal, perfect VS perfect"
+                )
+            else:
+                tit = (
+                    "Monocrystal, perfect"
+                )
 
     # pre-compute
     # ------------
@@ -1650,6 +1489,7 @@ def CrystalBragg_plot_johannerror(
     ax0.set_xlabel('Xi [m]', fontsize=14)
     ax1.set_ylabel('Xj [m]', fontsize=14)
     ax1.set_xlabel('Xi [m]', fontsize=14)
+
     if plot_phi:
         ax2 = fig.add_subplot(
             gs[0, 2], aspect='equal', sharex=ax0, sharey=ax0,
@@ -1659,13 +1499,13 @@ def CrystalBragg_plot_johannerror(
         ax2.set_xlabel('Xi [m]', fontsize=14)
 
     if split:
-        ax0.contour(xi, xj, lamb[0, ...].T, 10, cmap=cmap)
-        ax0.contour(xi, xj, phi[0, ...].T, 10, cmap=cmap, ls='--')
-        ax0.contour(xi, xj, lamb[1, ...].T, 10, cmap=cmap)
-        ax0.contour(xi, xj, phi[1, ...].T, 10, cmap=cmap, ls='--')
+        l0=ax0.contour(xi, xj, lamb[0, ...].T, 10, cmap=cmap, linestyles='-')
+        l00=ax0.contour(xi, xj, phi[0, ...].T, 10, cmap=cmap, linestyles='-')
+        l1=ax0.contour(xi, xj, lamb[1, ...].T, 10, cmap=cmap, linestyles='--')
+        l11=ax0.contour(xi, xj, phi[1, ...].T, 10, cmap=cmap, linestyles='--')
     else:
-        ax0.contour(xi, xj, lamb.T, 10, cmap=cmap)
-        ax0.contour(xi, xj, phi.T, 10, cmap=cmap, ls='--')
+        l0=ax0.contour(xi, xj, lamb.T, 10, cmap=cmap, linestyles='-')
+        l00=ax0.contour(xi, xj, phi.T, 10, cmap=cmap, linestyles='-')
 
     imlamb = ax1.imshow(
         err_lamb.T,
@@ -1685,6 +1525,11 @@ def CrystalBragg_plot_johannerror(
     )
 
     plt.colorbar(imlamb, ax=ax1)
+    plt.clabel(l0, inline=1, fontsize=10, zorder=6)
+    plt.clabel(l00, inline=1, fontsize=10, zorder=6)
+    if split:
+        plt.clabel(l1, inline=1, fontsize=10, zorder=6)
+        plt.clabel(l11, inline=1, fontsize=10, zorder=6)
 
     if plot_phi:
         imphi = ax2.imshow(
@@ -1714,6 +1559,113 @@ def CrystalBragg_plot_johannerror(
         return ax0, ax1
     else:
         return ax0, ax1, ax2
+
+
+def CrystalBragg_plot_isolamb(
+    nbr, nb, lbda,
+    xi, xj,
+    lamb=None, phi=None,
+    det=None,
+    split=None,
+    use_non_parallelism=None,
+    alpha=None, beta=None,
+    cmap=None, vmin=None, vmax=None,
+    dleg=None,
+    fs=None, dmargin=None, wintit=None, tit=None,
+    angunits=None,
+):
+
+    # Check inputs
+    # ------------
+
+    if dleg is None:
+        dleg = {'loc': 'best', 'bbox_to_anchor': (1.0, 1.0)}
+    if fs is None:
+        fs = (9, 13)
+    if cmap is None:
+        cmap = plt.cm.viridis
+    if dmargin is None:
+        dmargin = {'left': 0.09, 'right': 0.90,
+                   'bottom': 0.06, 'top': 0.92,
+                   'wspace': None, 'hspace': 0.4}
+
+    if wintit is None:
+        wintit = _WINTIT
+    if tit is None:
+        if split:
+            tit = (
+                r'Splitted crystal'+'\n'
+                r'$\alpha_{C1}$='+str(alpha[0]*180/np.pi)
+                +r'/ $\beta_{C1}$='+str(np.round((beta[0]), decimals=3))+'\n'
+                r'VS $\alpha_{C2}$='+str(alpha[1]*180/np.pi)
+                +r'/ $\beta_{C2}$='+str(np.round((beta[1]), decimals=3))+'\n'
+            )
+        else:
+            tit = (
+                r'Monocrystal'+'\n'
+                r'$\alpha_{C1}$='+str(alpha[0]*180/np.pi)
+                +r'/ $\beta_{C1}$='+str(np.round((beta[0]), decimals=3))+'\n'
+                r'VS $\alpha_{C2}$='+str(alpha[1]*180/np.pi)
+                +r'/ $\beta_{C2}$='+str(np.round((beta[1]), decimals=3))+'\n'
+            )
+
+    # Plot
+    # ------------
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(1, 1, **dmargin)
+    ax = fig.add_subplot(gs[0, 0], aspect='equal')
+
+    ax.set_xlabel('Xi [m]', fontsize=14)
+    ax.set_ylabel('Xj [m]', fontsize=14)
+
+    colors = [
+        'black', 'navy', 'royalblue',
+        'darkcyan', 'turquoise', 'limegreen', 'gold',
+    ]
+
+    if det.get('outline') is not None:
+        ax.plot(
+            det['outline'][0, :], det['outline'][1, :],
+            ls='-', lw=1., c='k',
+        )
+    if not split:
+        for aa in list(range(nbr)):
+            result = np.where(
+                (lamb.T[:, :, aa] - lbda < 1e-14)&
+                (lamb.T[:,:,aa] - lbda > 0)
+            )
+            ax.plot(
+                xi[result[1][:]],
+                xj[result[0][:]],
+                c=colors[aa],
+                label=(
+                    r'$\lambda$='+str(lbda)
+                    +r',$\alpha$='+str(alpha[aa]*180/np.pi)
+                ),
+            )
+    else:
+        for aa in list(range(nb)):
+            result = np.where(
+                (lamb.T[:, :, aa] - lbda < 1e-14)&
+                (lamb.T[:,:,aa] - lbda > 0)
+            )
+            ax.plot(
+                xi[result[1][:]],
+                xj[result[0][:]],
+                c=colors[aa],
+                label=(
+                    r'$\lambda$='+str(lbda)
+                    +r',$\alpha$='+str(alpha[aa]*180/np.pi)
+                ),
+            )
+
+    ax.legend(**dleg)
+    if wintit is not False:
+        fig.canvas.manager.set_window_title(wintit)
+    if tit is not False:
+        fig.suptitle(tit, size=12, weight='bold')
+
+    return ax
 
 
 def CrystalBragg_plot_focal_error_summed(
