@@ -405,6 +405,10 @@ def _width_shift_amp(
         assert outdict['coefs'].shape == (nlines,)
         assert outdict['offset'].shape == (nlines,)
 
+    if k0 == 'amp' and np.any(np.any(ind, axis=1)):
+        import pdb; pdb.set_trace()     # DB
+        pass
+
     return outdict
 
 
@@ -2096,6 +2100,8 @@ def multigausfit12d_from_dlines_ind(dinput=None):
     amp_x0 = np.zeros((dinput['amp']['ind'].shape[0],), dtype=int)
     for ii in range(dinput['amp']['ind'].shape[0]):
         indi = dinput['amp']['ind'][ii, :].nonzero()[0]
+        if indi.size == 0:
+            import pdb; pdb.set_trace()     # DB
         amp_x0[ii] = indi[np.argmin(np.abs(dinput['amp']['coefs'][indi]-1.))]
     dind['amp_x0'] = amp_x0
 
