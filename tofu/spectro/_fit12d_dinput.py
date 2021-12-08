@@ -295,19 +295,19 @@ def _width_shift_amp(
     )
     if not any([c0, c1, c2, c3, c4]):
         msg = (
-            "dconstraints['{}'] shoud be either:\n".format(k0)
-            + "\t- False ({}): no constraint\n".format(c0)
-            + "\t- str ({}): key from dlines['<lines>'] ".format(c1)
-            + "to be used as criterion\n"
-            + "\t\t available crit: {}\n".format(pavail)
-            + "\t- dict ({}): ".format(c2)
-            + "{str: line_keyi or [line_keyi, ..., line_keyj}\n"
-            + "\t- dict ({}): ".format(c3)
-            + "{line_keyi: {'key': str, 'coef': , 'offset': }}\n"
-            + "\t- dict ({}): ".format(c4)
-            + "{'keys': [], 'ind': np.ndarray}\n"
-            + "  Available line_keys:\n{}\n".format(sorted(keys))
-            + "  You provided:\n{}".format(indict)
+            f"dconstraints['{k0}'] shoud be either:\n"
+            f"\t- False ({c0}): no constraint\n"
+            f"\t- str ({c1}): key from dlines['<lines>'] "
+            "to be used as criterion\n"
+            f"\t\t available crit: {pavail}\n"
+            f"\t- dict ({c2}): "
+            "{str: line_keyi or [line_keyi, ..., line_keyj}\n"
+            f"\t- dict ({c3}): "
+            "{line_keyi: {'key': str, 'coef': , 'offset': }}\n"
+            f"\t- dict ({c4}): "
+            "{'keys': [], 'ind': np.ndarray}\n"
+            f"  Available line_keys:\n{sorted(keys)}\n"
+            f"  You provided:\n{indict}"
         )
         raise Exception(msg)
 
@@ -395,19 +395,36 @@ def _width_shift_amp(
             outdict['offset'] = np.zeros((nlines,))
 
     # ------------------------
-    # Ultimate conformity checks
-    if not c0:
-        assert sorted(outdict.keys()) == ['coefs', 'ind', 'keys', 'offset']
-        assert isinstance(outdict['ind'], np.ndarray)
-        assert outdict['ind'].dtype == np.bool_
-        assert outdict['ind'].shape == (outdict['keys'].size, nlines)
-        assert np.all(np.sum(outdict['ind'], axis=0) == 1)
-        assert outdict['coefs'].shape == (nlines,)
-        assert outdict['offset'].shape == (nlines,)
+    # Remove group with no match
 
-    if k0 == 'amp' and np.any(np.any(ind, axis=1)):
-        import pdb; pdb.set_trace()     # DB
-        pass
+    indnomatch = np.sum(ind, axis=1) ==0
+    if np.any(indnomatch):
+        lknom = outdict['keys'][indnomatch]
+        outdict['keys'] = outdict['keys'][~indnomatch]
+        outdict['ind'] = outdict['ind'][~indnomatch, :]
+        lstr = [f"\t- {k1}" for k1 in lknom]
+        msg = (
+            f"The following {k0} groups match no lines, they are removed:\n"
+            + "\n".join(lstr)
+        )
+        warnings.warn(msg)
+
+    # ------------------------
+    # Ultimate conformity checks
+
+    assert sorted(outdict.keys()) == ['coefs', 'ind', 'keys', 'offset']
+
+    # check ind (root of all subsequent ind arrays)
+    assert isinstance(outdict['ind'], np.ndarray)
+    assert outdict['ind'].dtype == np.bool_
+    assert outdict['ind'].shape == (outdict['keys'].size, nlines)
+    # check each line is associated to a unique group
+    assert np.all(np.sum(outdict['ind'], axis=0) == 1)
+    # check each group is associated to at least one line
+    assert np.all(np.sum(outdict['ind'], axis=1) >= 1)
+
+    assert outdict['coefs'].shape == (nlines,)
+    assert outdict['offset'].shape == (nlines,)
 
     return outdict
 
