@@ -1901,16 +1901,17 @@ class CrystalBragg(utils.ToFuObject):
                 return lamb, xi, xj
 
     def dshift_maps(
-        self, dcryst=None,
+        self,
         det=None,
         split=None,
-        direction=None, n=None,
+        direction=None, nb=None,
         xi=None, xj=None,
         use_non_parallelism=None,
         val_phi=None, n_val_phi=None,
         plot=None,
         ax=None,
         dleg=None,
+        dcryst=None,
         fs=None,
         dmargin=None,
         wintit=None, tit=None,
@@ -1969,6 +1970,17 @@ class CrystalBragg(utils.ToFuObject):
 
         # Checkformat detector pixels
         xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
+        ix = np.full((val_phi.size), np.nan)
+        jx = ix.copy()
+        nn = int(val_phi.size)
+        for bb in np.linspace(0, nn-1, nn):
+            bb = int(bb)
+            ix[bb], jx[bb] = self.calc_xixj_from_braggphi(
+                phi=val_phi[bb],
+                det=det,
+                use_non_parallelism=use_non_parallelism,
+                plot=False,
+            )
 
         # Copying alpha and beta angles of origin
         # alpha and beta angles of reference = (0", 0")
@@ -1979,7 +1991,7 @@ class CrystalBragg(utils.ToFuObject):
         alphas = np.linspace(alpha0, alpha0, 2)
         alphas_split = np.linspace(0, (3/60)*np.pi/180, 2)
         betas = np.linspace(beta0, beta0, 4)
-        betas_split = np.linspace(0, 3*np.pi/2, 4)
+        betas_split = np.linspace(0, 0, 4) # np.pi/32, 4)
         bragg = np.full(
             (alphas.size, betas.size, xi.size, xj.size, 1),
             np.nan,
@@ -1991,6 +2003,7 @@ class CrystalBragg(utils.ToFuObject):
             np.nan,
         )
         xj_unp = xi_unp.copy()
+        xiii, xjjj = xi_unp.copy(), xi.copy()
 
         # Splitting crystal
         if split:
@@ -2028,6 +2041,24 @@ class CrystalBragg(utils.ToFuObject):
                         use_non_parallelism=True,
                         return_lamb=True,
                     )
+                    # From perfect crystal, (xi,xj) corresponding to
+                    # (bragg, phi, lamb)_unp
+                    self.update_non_parallelism(
+                        alpha=alphas[ii], beta=betas[jj],
+                    )
+                    (
+                        xi_unp[ii, jj, :],
+                        xj_unp[ii, jj, :], strict,
+                    ) = self.calc_xixj_from_braggphi(
+                        phi = phi_unp[ii, jj, ...].flatten(),
+                        lamb = lamb_unp[ii, jj, ...].flatten(),
+                        dtheta=0, psi=0,
+                        det=det,
+                        use_non_parallelism=True,
+                        strict=True,
+                        return_strict=True,
+                        plot=False,
+                    )
         else:
             for ii in list(range(alphas.size)):
                 for jj in list(range(betas.size)):
@@ -2057,6 +2088,21 @@ class CrystalBragg(utils.ToFuObject):
                         use_non_parallelism=True,
                         return_lamb=True,
                     )
+                    # From perfect crystal, (xi,xj) corresponding to
+                    # (bragg, phi, lamb)_unp
+                    (
+                        xi_unp[ii, jj, :],
+                        xj_unp[ii, jj, :], strict,
+                    ) = cryst1.calc_xixj_from_braggphi(
+                        phi = phi_unp[ii, jj, ...].flatten(),
+                        lamb = lamb_unp[ii, jj, ...].flatten(),
+                        det=det,
+                        dtheta=0, psi=0,
+                        use_non_parallelism=True,
+                        strict=True,
+                        return_strict=True,
+                        plot=False,
+                    )
 
         # Reshaping arrays resulting from previous iterations if
         lamb, phi, bragg = (
@@ -2065,13 +2111,21 @@ class CrystalBragg(utils.ToFuObject):
         lamb_unp, phi_unp, bragg_unp = (
             lamb_unp[..., 0], phi_unp[..., 0], bragg_unp[..., 0],
         )
+        xi_unp, xj_unp = (
+            xi_unp.reshape(2, 4, 487, 1467),
+            xj_unp.reshape(2, 4, 487, 1467),
+        )
 
         # Computing gap between each pixels for each non-parallelism case
         gap_lamb = np.full((2, 4, xi.size, xj.size), np.nan)
+        gap_xi = np.full((2, 4, xi.size, xj.size), np.nan)
         for ii in range(alphas.size):
             for jj in range(betas.size):
                 gap_lamb[ii, jj, :, :] = (
                     (lamb_unp[ii, jj, :, :] - lamb[ii, jj, :, :])
+                )
+                gap_xi[ii, jj, :, :] = (
+                    (xi_unp[ii, jj, :, :] - xii)
                 )
 
         # Reset cryst angles
@@ -2088,6 +2142,7 @@ class CrystalBragg(utils.ToFuObject):
                 xj, xj_unp,
                 xii, xjj,
                 gap_lamb,
+                gap_xi,
                 alphas_split,
                 betas_split,
                 cryst=self, dcryst=dcryst,
@@ -2095,6 +2150,7 @@ class CrystalBragg(utils.ToFuObject):
                 det=det,
                 split=split,
                 val_phi=val_phi, n_val_phi=n_val_phi,
+                ix=ix, jx=jx,
                 ax=ax, dleg=dleg,
                 fs=fs, dmargin=dmargin,
                 wintit=wintit, tit=tit,
@@ -2105,6 +2161,7 @@ class CrystalBragg(utils.ToFuObject):
                 phi, phi_unp,
                 lamb, lamb_unp,
                 gap_lamb,
+                gap_xi,
             )
 
     def calc_johannerror(
@@ -3301,7 +3358,10 @@ class CrystalBragg(utils.ToFuObject):
             res=res,
             domain=domain,
             returnas='(R, Z, Phi)',
-        )
+        )## TBC: according to spectrometer alignment on WEST, sagital focus for
+        ## from each crystal are well positionned around the plasma center.
+        ## It seems like this method creates a focus few tens of cm away from
+        ## its theoretical position.
 
         # ------------------------------
         # check access from crystal only

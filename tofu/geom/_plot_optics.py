@@ -1026,6 +1026,7 @@ def CrystalBragg_plot_dshift_maps(
     xj, xj_unp,
     xii, xjj,
     gap_lamb,
+    gap_xi,
     alphas_split,
     betas_split,
     cryst=None, dcryst=None,
@@ -1033,6 +1034,7 @@ def CrystalBragg_plot_dshift_maps(
     det=None,
     split=None,
     val_phi=None, n_val_phi=None,
+    ix=None, jx=None,
     ax=None, dleg=None,
     fs=None, dmargin=None,
     wintit=None, tit=None,
@@ -1077,7 +1079,7 @@ def CrystalBragg_plot_dshift_maps(
     ax2 = fig.add_subplot(gs[:, 6:8])
     ax3 = fig.add_subplot(gs[:, 9:11])
 
-    ax.set_ylabel(r'$\phi$ [rad]', fontsize=14)
+    """ax.set_ylabel(r'$\phi$ [rad]', fontsize=14)
     ax.set_xlabel(r'$\lambda$ [m]', fontsize=14)
     ax1.set_xlabel(r'$\lambda$ [m]', fontsize=14)
     ax2.set_xlabel(r'$\lambda$ [m]', fontsize=14)
@@ -1085,7 +1087,12 @@ def CrystalBragg_plot_dshift_maps(
     ax.set_xlim(3.92*1e-10, 4.03*1e-10)
     ax1.set_xlim(3.92*1e-10, 4.03*1e-10)
     ax2.set_xlim(3.92*1e-10, 4.03*1e-10)
-    ax3.set_xlim(3.92*1e-10, 4.03*1e-10)
+    ax3.set_xlim(3.92*1e-10, 4.03*1e-10)"""
+    ax.set_ylabel('Xj [m]', fontsize=14)
+    ax.set_xlabel('Xi [m]', fontsize=14)
+    ax1.set_xlabel('Xi [m]', fontsize=14)
+    ax2.set_xlabel('Xi [m]', fontsize=14)
+    ax3.set_xlabel('Xi [m]', fontsize=14)
 
     if wintit is not False:
         fig.canvas.set_window_title(wintit)
@@ -1115,7 +1122,7 @@ def CrystalBragg_plot_dshift_maps(
     ax2.set_title(r'$\alpha$=0/$\beta=\pi$', fontsize=14)
     ax3.set_title(r'$\alpha$=0/$\beta=3\pi/2$', fontsize=14)
 
-    errmap = ax.scatter(
+    """errmap = ax.scatter(
         lamb[0, 0, ...].flatten(),
         phi[0, 0, ...].flatten(),
         s=6,
@@ -1171,6 +1178,63 @@ def CrystalBragg_plot_dshift_maps(
         label="Computed dshift [m]",
         orientation="vertical",
         ax=ax3,
+    )"""
+
+    extent = (
+        np.min(xi), np.max(xi), np.min(xj), np.max(xj),
+    )
+    errmap = ax.imshow(
+        gap_xi[0, 0, ...].T,
+        cmap='viridis',
+        origin='lower',
+        extent=extent,
+        interpolation='nearest',
+        aspect='equal',
+    )
+    errmap1 = ax1.imshow(
+        gap_xi[0, 1, ...].T,
+        cmap='viridis',
+        origin='lower',
+        extent=extent,
+        interpolation='nearest',
+        aspect='equal',
+    )
+    errmap2 = ax2.imshow(
+        gap_xi[0, 2, ...].T,
+        cmap='viridis',
+        origin='lower',
+        extent=extent,
+        interpolation='nearest',
+        aspect='equal',
+    )
+    errmap3 = ax3.imshow(
+        gap_xi[0, 3, ...].T,
+        cmap='viridis',
+        origin='lower',
+        extent=extent,
+        interpolation='nearest',
+        aspect='equal',
+    )
+    cbar = plt.colorbar(
+        errmap,
+        orientation="vertical",
+        ax=ax,
+    )
+    cbar1 = plt.colorbar(
+        errmap1,
+        orientation="vertical",
+        ax=ax1,
+    )
+    cbar2 = plt.colorbar(
+        errmap2,
+        orientation="vertical",
+        ax=ax2,
+    )
+    cbar3 = plt.colorbar(
+        errmap3,
+        label="Computed dshift [m]",
+        orientation="vertical",
+        ax=ax3,
     )
 
     # dshift = f(lamb, phi) // alpha=3arcmin
@@ -1183,7 +1247,7 @@ def CrystalBragg_plot_dshift_maps(
     ax2 = fig1.add_subplot(gs[:, 6:8])
     ax3 = fig1.add_subplot(gs[:, 9:11])
 
-    ax.set_ylabel(r'$\phi$ [rad]', fontsize=14)
+    """ax.set_ylabel(r'$\phi$ [rad]', fontsize=14)
     ax.set_xlabel(r'$\lambda$ [m]', fontsize=14)
     ax1.set_xlabel(r'$\lambda$ [m]', fontsize=14)
     ax2.set_xlabel(r'$\lambda$ [m]', fontsize=14)
@@ -1191,7 +1255,12 @@ def CrystalBragg_plot_dshift_maps(
     ax.set_xlim(3.92*1e-10, 4.03*1e-10)
     ax1.set_xlim(3.92*1e-10, 4.03*1e-10)
     ax2.set_xlim(3.92*1e-10, 4.03*1e-10)
-    ax3.set_xlim(3.92*1e-10, 4.03*1e-10)
+    ax3.set_xlim(3.92*1e-10, 4.03*1e-10)"""
+    ax.set_ylabel('Xj [m]', fontsize=14)
+    ax.set_xlabel('Xi [m]', fontsize=14)
+    ax1.set_xlabel('Xi [m]', fontsize=14)
+    ax2.set_xlabel('Xi [m]', fontsize=14)
+    ax3.set_xlabel('Xi [m]', fontsize=14)
 
     if wintit is not False:
         fig1.canvas.set_window_title(wintit)
@@ -1221,7 +1290,7 @@ def CrystalBragg_plot_dshift_maps(
     ax2.set_title(r'$\alpha$=3/$\beta=\pi$', fontsize=14)
     ax3.set_title(r'$\alpha$=3/$\beta=3\pi/2$', fontsize=14)
 
-    errmap = ax.scatter(
+    """errmap = ax.scatter(
         lamb[1, 0, ...].flatten(),
         phi[1, 0, ...].flatten(),
         s=6,
@@ -1256,6 +1325,63 @@ def CrystalBragg_plot_dshift_maps(
         cmap='viridis',
         marker='s',
         edgecolors="None",
+    )
+    cbar = plt.colorbar(
+        errmap,
+        orientation="vertical",
+        ax=ax,
+    )
+    cbar1 = plt.colorbar(
+        errmap1,
+        orientation="vertical",
+        ax=ax1,
+    )
+    cbar2 = plt.colorbar(
+        errmap2,
+        orientation="vertical",
+        ax=ax2,
+    )
+    cbar3 = plt.colorbar(
+        errmap3,
+        label="Computed dshift [m]",
+        orientation="vertical",
+        ax=ax3,
+    )"""
+
+    extent = (
+        np.min(xi), np.max(xi), np.min(xj), np.max(xj),
+    )
+    errmap = ax.imshow(
+        gap_xi[1, 0, ...].T,
+        cmap='viridis',
+        origin='lower',
+        extent=extent,
+        interpolation='nearest',
+        aspect='equal',
+    )
+    errmap1 = ax1.imshow(
+        gap_xi[1, 1, ...].T,
+        cmap='viridis',
+        origin='lower',
+        extent=extent,
+        interpolation='nearest',
+        aspect='equal',
+    )
+    errmap2 = ax2.imshow(
+        gap_xi[1, 2, ...].T,
+        cmap='viridis',
+        origin='lower',
+        extent=extent,
+        interpolation='nearest',
+        aspect='equal',
+    )
+    errmap3 = ax3.imshow(
+        gap_xi[1, 3, ...].T,
+        cmap='viridis',
+        origin='lower',
+        extent=extent,
+        interpolation='nearest',
+        aspect='equal',
     )
     cbar = plt.colorbar(
         errmap,
@@ -1314,6 +1440,19 @@ def CrystalBragg_plot_dshift_maps(
     ax4.set_title(r'$\alpha$=3/$\beta=\pi$', fontsize=14)
     ax5.set_title(r'$\alpha$=3/$\beta=3\pi/2$', fontsize=14)
 
+    ## Analytical relations of dshift
+    rc = cryst._dgeom['rcurve']
+    braggref = cryst._dbragg['braggref']
+    dbragg = np.linspace(0.019, -0.012, 487)
+    alpha = (3/60)*(np.pi/180)  #(alphas_split[1]); print(alpha)
+
+    def xi_gap(r, bragg, dbragg, alpha):
+        return r*np.sin(bragg)*(
+            np.cos(bragg) - np.sin(bragg)/np.tan(bragg-dbragg-alpha)
+        )
+
+    y0 = xi_gap(r=rc, bragg=braggref, dbragg=-dbragg, alpha=alpha)
+
     ## find indices of Phi wanted values
     def find_nearest(arr, val):
         arr = np.asarray(arr);
@@ -1336,6 +1475,31 @@ def CrystalBragg_plot_dshift_maps(
         nearest[bb] = find_nearest(phi[1, 0, 0, :], val_phi[bb])
         ind_near[bb] = phi[1, 0, 0, :].tolist().index(nearest[bb])
         max_phi, min_phi = nearest[bb]+n_val_phi, nearest[bb]-n_val_phi
+        ax2.plot(
+            xii[:, int(ind_near[bb])],
+            gap_xi[1, 0, :, int(ind_near[bb])],
+            label='$x_{j}$='+str(np.round(jx[bb], 3)),
+            color=colors[bb],
+        )
+        ax2.plot(xi, y0, 'k:', label=r'$\deltaxi(\Delta\theta,\alpha)$')
+        ax3.plot(
+            xii[:, int(ind_near[bb])],
+            gap_xi[1, 1, :, int(ind_near[bb])],
+            label='$x_{j}$='+str(np.round(jx[bb], 3)),
+            color=colors[bb],
+        )
+        ax4.plot(
+            xii[:, int(ind_near[bb])],
+            gap_xi[1, 2, :, int(ind_near[bb])],
+            label='$x_{j}$='+str(np.round(jx[bb], 3)),
+            color=colors[bb],
+        )
+        ax5.plot(
+            xii[:, int(ind_near[bb])],
+            gap_xi[1, 3, :, int(ind_near[bb])],
+            label='$x_{j}$='+str(np.round(jx[bb], 3)),
+            color=colors[bb],
+        )
         for i in np.linspace(0, int(xi.size)-1, int(xi.size)):
             i = int(i)
             mean_xii[bb, i] = np.mean(
@@ -1377,7 +1541,7 @@ def CrystalBragg_plot_dshift_maps(
         )
         # Plot sections of dshift calculated, for alpha= 3arcmin and
         # beta variable, for each section of phi wanted
-        ax2.plot(
+        """ax2.plot(
             mean_lamb[bb, 0, :], mean_gap_lamb[bb, 0, :],
             color=colors[bb], linewidth=2,
             label=r'$\phi$='+str(val_phi[bb]),
@@ -1396,7 +1560,7 @@ def CrystalBragg_plot_dshift_maps(
             mean_lamb[bb, 3, :], mean_gap_lamb[bb, 3, :],
             color=colors[bb], linewidth=2,
             label=r'$\phi$='+str(val_phi[bb]),
-        )
+        )"""
 
     ax1.legend(**dleg)
     ax2.legend(**dleg)
