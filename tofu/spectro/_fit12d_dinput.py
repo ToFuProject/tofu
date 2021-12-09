@@ -2353,53 +2353,31 @@ def fit12d_dscales(dscales=None, dinput=None):
         # fit bsplines on datavert (vertical profile)
         # to modulate scales (bck and amp)
 
-        dscales['bs'] = np.full((nspect, dinput['nbs']), np.nan)
         if dinput['symmetry'] is True:
-            for ii in dinput['valid']['indt'].nonzero()[0]:
-                indnonan = (
-                    (~np.isnan(datavert[ii, :]))
-                    & (
-                        np.abs(phi - dinput['symmetry_axis'][ii])
-                        < dinput['knots'][-1]
-                    )
-                ).nonzero()[0]
-                indnonan = indnonan[
-                    np.unique(
-                        np.abs(phi[indnonan]-dinput['symmetry_axis'][ii]),
-                        return_index=True,
-                    )[1]
-                ]
-                bs = scpinterp.LSQUnivariateSpline(
-                    np.abs(phi[indnonan]-dinput['symmetry_axis'][ii]),
-                    datavert[ii, indnonan],
-                    dinput['knots'][1:-1],
-                    k=dinput['deg'],
-                    bbox=dinput['knots'][np.r_[0, -1]],
-                    ext=0,
-                )
-                dscales['bs'][ii, :] = bs.get_coeffs()
+            phitemp = np.abs(phi[None, :] - dinput['symmetry_axis'][:, None])
         else:
-            for ii in dinput['valid']['indt'].nonzero()[0]:
-                indnonan = (
-                    (~np.isnan(datavert[ii, :]))
-                    & (dinput['knots'][0] <= phi)
-                    & (phi <= dinput['knots'][-1])
-                )
-                try:
-                    bs = scpinterp.LSQUnivariateSpline(
-                        phi[indnonan],
-                        datavert[ii, indnonan],
-                        dinput['knots'][1:-1],
-                        k=dinput['deg'],
-                        bbox=dinput['knots'][np.r_[0, -1]],
-                        ext=0,
+            phitemp = np.tile(phi, (nspect, 1))
+
+        # Loop on time and bsplines
+        dscales['bs'] = np.full((nspect, dinput['nbs']), np.nan)
+        for ii in dinput['valid']['indt'].nonzero()[0]:
+            for jj, jbs in enumerate(range(dinput['nbs'])):
+                if dinput['valid']['indbs'][ii, jj]:
+                    indj = (
+                        (~np.isnan(datavert[ii, :]))
+                        & (dinput['knots_mult'][jj] <= phitemp[ii, :])
+                        & (
+                            phitemp[ii, :]
+                            <= dinput['knots_mult'][jj + dinput['nknotsperbs']]
+                        )
                     )
-                except Exception as err:
-                    import pdb; pdb.set_trace()     # DB
-                    pass
-                dscales['bs'][ii, :] = bs.get_coeffs()
+                    if not np.any(indj):
+                        msg = "Unconsistent indbs!"
+                        raise Exception(msg)
+                    dscales['bs'][ii, jj] = np.mean(datavert[ii, indj])
+
         # Normalize to avoid double-amplification when amp*bs
-        corr = np.max(dscales['bs'][dinput['valid']['indt'], :], axis=1)
+        corr = np.nanmax(dscales['bs'][dinput['valid']['indt'], :], axis=1)
         dscales['bs'][dinput['valid']['indt'], :] /= corr[:, None]
     else:
         indok = dinput['dprepare']['indok_bool']
