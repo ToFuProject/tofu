@@ -1011,7 +1011,7 @@ class DataAbstract(utils.ToFuObject):
 
     def set_dtreat_mask(self, ind=None, val=np.nan):
         assert ind is None or hasattr(ind,'__iter__')
-        assert type(val) in [int,float,np.int64,np.float64]
+        assert type(val) in [int, float, np.int64, np.float64]
         if ind is not None:
             ind = _format_ind(ind, n=self._ddataRef['nch'])
         self._dtreat['mask-ind'] = ind
