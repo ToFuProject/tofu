@@ -2096,6 +2096,7 @@ def multigausfit12d_from_dlines_ind(dinput=None):
         nn += dind[k0]['x'].size
 
     sizex = dind['shift']['x'][-1, -1] + 1
+    nvar_bs = 2 + np.sum([dinput[k0]['ind'].shape[0] for k0 in _DORDER])
     indx = np.r_[
         dind['bck_amp']['x'].ravel(order='F'),
         dind['bck_rate']['x'].ravel(order='F'),
@@ -2104,6 +2105,7 @@ def multigausfit12d_from_dlines_ind(dinput=None):
         dind['shift']['x'].ravel(order='F'),
     ]
     assert np.allclose(np.arange(0, sizex), indx)
+    assert nvar_bs == sizex / nbs
 
     # check if double
     if dinput['double'] is True:
@@ -2118,6 +2120,7 @@ def multigausfit12d_from_dlines_ind(dinput=None):
             dind['dratio'] = {'x': np.r_[-1][:, None]}
             sizex += 1
 
+    dind['nvar_bs'] = nvar_bs      # nb of spectral variable with bs dependence
     dind['sizex'] = sizex
     dind['nbck'] = 2
 
@@ -2306,13 +2309,16 @@ def _fit12d_filldef_dscalesx0_float(
 ###########################################################
 
 
-def _check_finit_dict(dd=None, dd_name=None, indtok=None):
+def _check_finit_dict(dd=None, dd_name=None, indtok=None, indbs=None):
     dfail = {}
     for k0, v0 in dd.items():
         if k0 in ['amp', 'width', 'shift']:
             for k1, v1 in v0.items():
                 if np.any(~np.isfinite(v1[indtok, ...])):
                     dfail[f"'{k0}'['{k1}']"] = v1
+        elif k0 == 'bs':
+            if np.any(~np.isfinite(v0[indbs])):
+                dfail[f"'{k0}'"] = v0
         else:
             if np.any(~np.isfinite(v0[indtok, ...])):
                 dfail[f"'{k0}'"] = v0
@@ -2363,13 +2369,12 @@ def fit12d_dscales(dscales=None, dinput=None):
         for ii in dinput['valid']['indt'].nonzero()[0]:
             for jj, jbs in enumerate(range(dinput['nbs'])):
                 if dinput['valid']['indbs'][ii, jj]:
+                    kn0 = dinput['knots_mult'][jj]
+                    kn1 = dinput['knots_mult'][jj + dinput['nknotsperbs'] - 1]
                     indj = (
                         (~np.isnan(datavert[ii, :]))
-                        & (dinput['knots_mult'][jj] <= phitemp[ii, :])
-                        & (
-                            phitemp[ii, :]
-                            <= dinput['knots_mult'][jj + dinput['nknotsperbs']]
-                        )
+                        & (kn0 <= phitemp[ii, :])
+                        & (phitemp[ii, :] <= kn1)
                     )
                     if not np.any(indj):
                         msg = "Unconsistent indbs!"
@@ -2488,6 +2493,7 @@ def fit12d_dscales(dscales=None, dinput=None):
         dd=dscales,
         dd_name='dscales',
         indtok=dinput['valid']['indt'],
+        indbs=dinput['valid']['indbs'],
     )
     return dscales
 

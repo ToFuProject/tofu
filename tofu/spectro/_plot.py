@@ -964,10 +964,13 @@ def plot_fit2d(
     phi = dprepare['phi']
     data = dprepare['data'][indspect, ...]
     sol_tot = dextract['sol_tot'][indspect, ...]
-    # dphi = dfit2d['dinput']['valid']['dphi'][indspect, :]
-    dphi = np.tile(dextract['phi_prof'], (nspect, 1))
-    dphi = np.atleast_2d(dphi[dextract['indphi'][indspect, :]])
-    dphi = np.array([np.min(dphi, axis=1), np.max(dphi, axis=1)]).T
+
+    if np.any(dextract['indphi'][indspect, :]):
+        dphi = np.tile(dextract['phi_prof'], (nspect, 1))
+        dphi = np.atleast_2d(dphi[dextract['indphi'][indspect, :]])
+        dphi = np.array([np.min(dphi, axis=1), np.max(dphi, axis=1)]).T
+    else:
+        dphi = None
 
     # Error if relevant
     err = sol_tot - data
@@ -1115,8 +1118,9 @@ def plot_fit2d(
                     label=d3['ratio']['lines']['lab'][jj],
                 )
             ax.axvline(0, c='k', ls='--', lw=1.)
-            ax.axhline(dphi[ii, 0], c='k', ls='-', lw=1.)
-            ax.axhline(dphi[ii, 1], c='k', ls='-', lw=1.)
+            if dphi is not None:
+                ax.axhline(dphi[ii, 0], c='k', ls='-', lw=1.)
+                ax.axhline(dphi[ii, 1], c='k', ls='-', lw=1.)
 
         kax, k1 = 'prof_Ti', 'Ti'
         if dax.get(kax) is not None and k1 in d3.keys():
@@ -1130,9 +1134,9 @@ def plot_fit2d(
                     label=d3[k1]['lines']['keys'][jj],
                 )
             ax.axvline(0, c='k', ls='--', lw=1.)
-            ax.axhline(dphi[ii, 0], c='k', ls='-', lw=1.)
-            ax.axhline(dphi[ii, 1], c='k', ls='-', lw=1.)
-            # ax.legend()
+            if dphi is not None:
+                ax.axhline(dphi[ii, 0], c='k', ls='-', lw=1.)
+                ax.axhline(dphi[ii, 1], c='k', ls='-', lw=1.)
 
         kax, k1 = 'prof_vi', 'vi'
         if dax.get(kax) is not None and k1 in d3.keys():
@@ -1146,8 +1150,9 @@ def plot_fit2d(
                     label=d3[k1]['x']['keys'][jj],
                 )
             ax.axvline(0, c='k', ls='--', lw=1.)
-            ax.axhline(dphi[ii, 0], c='k', ls='-', lw=1.)
-            ax.axhline(dphi[ii, 1], c='k', ls='-', lw=1.)
+            if dphi is not None:
+                ax.axhline(dphi[ii, 0], c='k', ls='-', lw=1.)
+                ax.axhline(dphi[ii, 1], c='k', ls='-', lw=1.)
             # adjust
             ax.set_ylim(phi.min(), phi.max())
             ax.legend()

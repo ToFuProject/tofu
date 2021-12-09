@@ -2,6 +2,8 @@
 
 # Built-in
 import os
+import warnings
+
 
 # Common
 import numpy as np
@@ -786,12 +788,20 @@ def fit2d_extract(
         & (phi_prof[None, :] < dfit2d['dinput']['valid']['dphi'][:, 1:2])
     )
 
+    if not np.any(indphi):
+        msg = (
+            "No usable vertical profile!\n"
+            "Conditions for usability include:\n"
+            "\t- lines amplitude > = 2 * background\n"
+            "\t- phi in a an interval of valid data"
+        )
+        warnings.warn(msg)
+
     # ----------
     # func
     (
         func_detail, func_sum,
     ) = _funccostjac.multigausfit2d_from_dlines_funccostjac(
-        indx=None,      # because dfit['sol_x' built with const]
         dinput=dfit2d['dinput'],
         dind=dind,
         jac=None,

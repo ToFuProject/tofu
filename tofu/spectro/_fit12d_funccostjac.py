@@ -350,7 +350,6 @@ def multigausfit1d_from_dlines_funccostjac(
 def multigausfit2d_from_dlines_funccostjac(
     lamb_flat=None,
     phi_flat=None,
-    indx=None,
     dinput=None,
     dind=None,
     jac=None,
@@ -389,8 +388,6 @@ def multigausfit2d_from_dlines_funccostjac(
     offsetsl = dinput['shift']['offset'][None, :]
 
     xscale = np.full((dind['sizex'],), np.nan)
-    if indx is None:
-        indx = np.ones((dind['sizex'],), dtype=bool)
 
     km = dinput['knots_mult']
     kpb = dinput['nknotsperbs']
@@ -411,8 +408,6 @@ def multigausfit2d_from_dlines_funccostjac(
 
     # Pre-set kwdargs
     dkwdargs = dict(
-        xscale=xscale,
-        indx=indx,
         ibckax=ibckax,
         ibckrx=ibckrx,
         ial=ial,
@@ -443,11 +438,13 @@ def multigausfit2d_from_dlines_funccostjac(
     # func_details returns result in same shape as input
     def func_detail(
         x,
+        xscale=xscale,
         phi=None,
         lamb=None,
         scales=None,
         ind_bs=None,
         const=None,
+        indx=None,
         **dkwdargs,
     ):
         # normalize lamb
@@ -458,8 +455,12 @@ def multigausfit2d_from_dlines_funccostjac(
         # shape = tuple(np.r_[indok.sum(), nbck+nlines, nbs])
         shape = tuple(np.r_[phi.shape, nbck + nlines, nbs])
         y = np.full(shape, np.nan)
-        xscale[indx] = x*scales[indx]
-        xscale[~indx] = const
+
+        if indx is None:
+            xscale = x*scales
+        else:
+            xscale[indx] = x*scales[indx]
+            xscale[~indx] = const
 
         # bck rate
         BS.c = xscale[ibckrx]
@@ -518,11 +519,13 @@ def multigausfit2d_from_dlines_funccostjac(
     # cost and jacob return flattened results (for least_squares())
     def func_sum(
         x,
+        xscale=xscale,
         phi=None,
         lamb=None,
         scales=None,
         ind_bs=None,
         const=None,
+        indx=None,
         **dkwdargs,
     ):
 
@@ -532,8 +535,11 @@ def multigausfit2d_from_dlines_funccostjac(
         lambn = lamb[..., None] / dinput['lines'].reshape(shape)
 
         # xscale = x*scales
-        xscale[indx] = x*scales[indx]
-        xscale[~indx] = const
+        if indx is None:
+            xscale = x*scales
+        else:
+            xscale[indx] = x*scales[indx]
+            xscale[~indx] = const
 
         # Background
         BS.c = xscale[ibckax][:, 0]
@@ -599,10 +605,12 @@ def multigausfit2d_from_dlines_funccostjac(
 
         def func_cost(
             x,
+            xscale=xscale,
             scales=None,
             indok_flat=None,
             ind_bs=None,
             const=None,
+            indx=None,
             data_flat=None,
             **dkwdargs_cj,
         ):
@@ -612,8 +620,11 @@ def multigausfit2d_from_dlines_funccostjac(
                 indok_flat = np.ones(lambrel_flat.shape, dtype=bool)
 
             # xscale = x*scales
-            xscale[indx] = x*scales[indx]
-            xscale[~indx] = const
+            if indx is None:
+                xscale = x*scales
+            else:
+                xscale[indx] = x*scales[indx]
+                xscale[~indx] = const
 
             # Background
             BS.c = xscale[ibckax][:, 0]
@@ -646,21 +657,27 @@ def multigausfit2d_from_dlines_funccostjac(
                 expd = np.exp(-(lambn_flat[indok_flat, :] - (1 + dcsh))**2 / (2*wi2))
                 y[indok_flat] += np.nansum(amp * dratio * expd, axis=-1)
 
+            import pdb; pdb.set_trace()     # DB
             return y[indok_flat] - data_flat[indok_flat]
 
         def func_jacob(
             x,
+            xscale=xscale,
             scales=None,
             indok_flat=None,
             ind_bs=None,
             const=None,
+            indx=None,
             data_flat=0.,
             **dkwdargs_cj,
         ):
             """ Basic docstr """
             # xscale = x*scales
-            xscale[indx] = x*scales[indx]
-            xscale[~indx] = const
+            if indx is None:
+                xscale = x*scales
+            else:
+                xscale[indx] = x*scales[indx]
+                xscale[~indx] = const
 
             # Intermediates
 
@@ -719,6 +736,8 @@ def multigausfit2d_from_dlines_funccostjac(
                         bsexp[:, iaj[jj]] * coefsal[:, iaj[jj]],
                         axis=1,
                     ) * scales[ix]
+                    if ix == 36:
+                        import pdb; pdb.set_trace()        # DB
 
                 # width2
                 for jj in range(len(iwj)):
@@ -801,6 +820,10 @@ def multigausfit2d_from_dlines_funccostjac(
                         axis=1,
                     )
 
-            return jac0[indok_flat, :][:, indx]
+            import pdb; pdb.set_trace()     # DB
+            if indx is None:
+                return jac0[indok_flat, :]
+            else:
+                return jac0[indok_flat, :][:, indx]
 
     return func_detail, func_sum, func_cost, func_jacob

@@ -426,7 +426,6 @@ def multigausfit1d_from_dlines(
         'time': time, 'success': success,
         'validity': validity, 'errmsg': np.array(errmsg),
         'cost': cost, 'nfev': nfev, 'msg': np.array(message),
-        'indx': indx,
         'const': const,
     }
     return dfit
@@ -506,13 +505,36 @@ def multigausfit2d_from_dlines(
     bounds = np.array([boundmin[0, :], boundmax[0, :]])
 
     # ---------------------------
-    # Separate free from constant parameters
+    # Prepare const
+
     const = _dict2vector_dscalesx0bounds(
         dd=dinput['dconstants'], dd_name='dconstants', dinput=dinput,
     )
-    indx = np.any(np.isnan(const), axis=0)
-    const = const[:, ~indx]
-    x0[:, ~indx] = const / scales[:, ~indx]
+
+    # -----------------------
+    # Prepare indbs
+
+    # bck_amp, bck_rate, all amp, width and shift are affected
+    indbs = dinput['valid']['indbs']
+    if np.any(np.sum(indbs, axis=1) == 1):
+        import pdb; pdb.set_trace()     # DB
+        pass
+    indbsfull = ~np.tile(indbs, dinput['dind']['nvar_bs'])
+    ndiff = const.shape[1] - indbsfull.shape[1]
+    assert ndiff <= 2
+    if ndiff > 0:
+        indbsfull = np.concatenate(
+            (indbsfull, np.zeros((nspect, ndiff), dtype=bool)),
+            axis=1,
+        )
+    const[indbsfull] = 1.
+
+    # ---------------------------
+    # Separate free from constant parameters
+
+    # const = nan => x valid
+    indx = np.isnan(const)
+    x0[~indx] = const[~indx] / scales[~indx]
 
     # -----------------------
     # Prepare flattened data
@@ -530,13 +552,13 @@ def multigausfit2d_from_dlines(
         func_cost, func_jac,
     ) = _funccostjac.multigausfit2d_from_dlines_funccostjac(
          lamb_flat=lamb_flat, phi_flat=phi_flat,
-         dinput=dinput, dind=dind, jac=jac, indx=indx,
+         dinput=dinput, dind=dind, jac=jac,
     )[2:]
 
     # ---------------------------
     # Prepare output
     sol_x = np.full((nspect, dind['sizex']), np.nan)
-    sol_x[:, ~indx] = const / scales[:, ~indx]
+    sol_x[~indx] = const[~indx] / scales[~indx]
     success = np.full((nspect,), np.nan)
     time = np.full((nspect,), np.nan)
     cost = np.full((nspect,), np.nan)
@@ -562,76 +584,77 @@ def multigausfit2d_from_dlines(
 
     end = '\r'
     t0 = dtm.datetime.now()     # DB
-    deltab = bounds[1, indx] - bounds[0, indx]
     for ii in range(nspect):
 
         if verbose == 3:
             msg = "\nSpect {} / {}".format(ii+1, nspect)
             print(msg)
 
-        try:
-            dti = None
-            t0i = dtm.datetime.now()     # DB
-            if not dinput['valid']['indt'][ii]:
-                validity[ii] = -1
-                continue
+        # try:
+        dti = None
+        t0i = dtm.datetime.now()     # DB
+        if not dinput['valid']['indt'][ii]:
+            validity[ii] = -1
+            continue
 
-            # optimization
-            res = scpopt.least_squares(
-                func_cost,
-                x0[ii, indx],
-                jac=func_jac,
-                bounds=bounds[:, indx],
-                method=method,
-                ftol=ftol,
-                xtol=xtol,
-                gtol=gtol,
-                x_scale=1.0,
-                f_scale=1.0,
-                loss=loss,
-                diff_step=None,
-                tr_solver=tr_solver,
-                tr_options=tr_options,
-                jac_sparsity=None,
-                max_nfev=max_nfev,
-                verbose=verbscp,
-                args=(),
-                kwargs={
-                    'data_flat': data_flat[ii, :],
-                    'scales': scales[ii, :],
-                    'const': const[ii, :],
-                    'indok_flat': indok_flat[ii],
-                    'ind_bs': dinput['valid']['indbs'][ii, :],
-                }
-            )
-            dti = (dtm.datetime.now() - t0i).total_seconds()
+        deltab = bounds[1, indx[ii, :]] - bounds[0, indx[ii, :]]
 
-            if chain is True and ii < nspect-1:
-                x0[ii+1, indx] = res.x
+        # optimization
+        res = scpopt.least_squares(
+            func_cost,
+            x0[ii, indx[ii, :]],
+            jac=func_jac,
+            bounds=bounds[:, indx[ii, :]],
+            method=method,
+            ftol=ftol,
+            xtol=xtol,
+            gtol=gtol,
+            x_scale=1.0,
+            f_scale=1.0,
+            loss=loss,
+            diff_step=None,
+            tr_solver=tr_solver,
+            tr_options=tr_options,
+            jac_sparsity=None,
+            max_nfev=max_nfev,
+            verbose=verbscp,
+            args=(),
+            kwargs={
+                'indx': indx[ii, :],
+                'data_flat': data_flat[ii, :],
+                'scales': scales[ii, :],
+                'const': const[ii, ~indx[ii, :]],
+                'indok_flat': indok_flat[ii],
+            }
+        )
+        dti = (dtm.datetime.now() - t0i).total_seconds()
 
-            # cost, message, time
-            success[ii] = res.success
-            cost[ii] = res.cost
-            nfev[ii] = res.nfev
-            message[ii] = res.message
-            time[ii] = round(
-                (dtm.datetime.now()-t0i).total_seconds(),
-                ndigits=3,
-            )
-            sol_x[ii, indx] = res.x
+        if chain is True and ii < nspect-1:
+            x0[ii+1, indx[ii, :]] = res.x
 
-            # detect saturated values
-            saturated[ii, indx] = (
-                (res.x < bounds[0, indx] + deltab*1e-4)
-                | (res.x > bounds[1, indx] - deltab*1e-4)
-            )
+        # cost, message, time
+        success[ii] = res.success
+        cost[ii] = res.cost
+        nfev[ii] = res.nfev
+        message[ii] = res.message
+        time[ii] = round(
+            (dtm.datetime.now()-t0i).total_seconds(),
+            ndigits=3,
+        )
+        sol_x[ii, indx[ii, :]] = res.x
 
-        except Exception as err:
-            if strict:
-                raise err
-            else:
-                errmsg[ii] = str(err)
-                validity[ii] = -1
+        # detect saturated values
+        saturated[ii, indx[ii, :]] = (
+            (res.x < bounds[0, indx[ii, :]] + deltab*1e-4)
+            | (res.x > bounds[1, indx[ii, :]] - deltab*1e-4)
+        )
+
+        # except Exception as err:
+            # if strict:
+                # raise err
+            # else:
+                # errmsg[ii] = str(err)
+                # validity[ii] = -1
 
         # verbose
         if verbose in [1, 2]:
@@ -749,7 +772,6 @@ def multigausfit2d_from_dlines(
         'validity': validity, 'errmsg': np.array(errmsg),
         'cost': cost, 'nfev': nfev, 'msg': np.array(message),
         'phi': phi,
-        'indx': indx,
         'const': const,
         'dsat': dsat,
     }
