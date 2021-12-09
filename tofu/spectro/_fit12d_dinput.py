@@ -315,7 +315,7 @@ def _width_shift_amp(
     # str key to be taken from dlines as criterion
     if c0:
         lk = keys
-        ind = np.eye(nlines)
+        ind = np.eye(nlines, dtype=bool)
         outdict = {
             'keys': np.r_[lk],
             'ind': ind,
@@ -325,10 +325,13 @@ def _width_shift_amp(
 
     if c1:
         lk = sorted(set([dlines[k1].get(indict, k1) for k1 in keys]))
-        ind = np.array([
-            [dlines[k2].get(indict, k2) == k1 for k2 in keys]
-            for k1 in lk
-        ])
+        ind = np.array(
+            [
+                [dlines[k2].get(indict, k2) == k1 for k2 in keys]
+                for k1 in lk
+            ],
+            dtype=bool,
+        )
         outdict = {
             'keys': np.r_[lk],
             'ind': ind,
@@ -359,7 +362,10 @@ def _width_shift_amp(
         for k1 in set(keys).difference(lkl):
             indict[k1] = [k1]
         lk = sorted(set(indict.keys()))
-        ind = np.array([[k2 in indict[k1] for k2 in keys] for k1 in lk])
+        ind = np.array(
+            [[k2 in indict[k1] for k2 in keys] for k1 in lk],
+            dtype=bool,
+        )
         outdict = {
             'keys': np.r_[lk],
             'ind': ind,
@@ -370,10 +376,13 @@ def _width_shift_amp(
     elif c3:
         lk = sorted(set([v0['key'] for v0 in indict.values()]))
         lk += sorted(set(keys).difference(indict.keys()))
-        ind = np.array([
-            [indict.get(k2, {'key': k2})['key'] == k1 for k2 in keys]
-            for k1 in lk
-        ])
+        ind = np.array(
+            [
+                [indict.get(k2, {'key': k2})['key'] == k1 for k2 in keys]
+                for k1 in lk
+            ],
+            dtype=bool,
+        )
         coefs = np.array([
             indict.get(k1, {'coef': 1.}).get('coef', 1.) for k1 in keys
         ])
