@@ -525,7 +525,6 @@ class Test01_ProofOfPrinciple(object):
             phi_flat = dd['dprepare']['phi'].ravel()
             data_flat = dd['dprepare']['data'][0, ...].ravel()
             func_detail, func_sum, func_cost, func_jac = func(
-                lamb_flat=lamb_flat,
                 phi_flat=phi_flat,
                 dinput=dd,
                 dind=dd['dind'],
@@ -541,6 +540,10 @@ class Test01_ProofOfPrinciple(object):
             scales = tfs._fit12d_dinput._dict2vector_dscalesx0bounds(
                 dd=dd['dscales'], dd_name='dscales', dinput=dd,
             )
+
+            # lambrel qnd lambn
+            lambrel_flat = lamb_flat - dd['lambmin_bck']
+            lambn_flat = lamb_flat[..., None] / dd['lines'][None, :]
 
             # dy0 vs dy1
             y0 = func_detail(
@@ -562,7 +565,11 @@ class Test01_ProofOfPrinciple(object):
             dy2 = func_cost(
                 x0[0, :],
                 scales=scales[0, :],
+                phi_flat=phi_flat,
+                lambrel_flat=lambrel_flat,
+                lambn_flat=lambn_flat,
                 data_flat=data_flat,
+                indok_flat=np.ones((phi_flat.size,), dtype=bool)
             )
             # check consistency between func_detail and func_cost
             assert np.sum(np.isfinite(dy0)) == np.sum(np.isfinite(dy1))
