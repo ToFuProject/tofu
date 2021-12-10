@@ -206,6 +206,8 @@ class HighLevel:
             dprepare=None,
             data=data,
             lamb=self.lamb,
+            phi=np.arange(0, data.shape[0]),
+            binning=None,
             mask=None,
             domain=domain,
             pos=pos,
