@@ -368,7 +368,6 @@ def plot_dinput2d(
     # indok
     indok = dprepare['indok'][indspect, ...]
     # add valid
-    indok[(indok == 0) & (~dinput['valid']['ind'][indspect, ...])] = -5
     nbs = dinput['nbs']
 
     # Extent
@@ -964,6 +963,11 @@ def plot_fit2d(
     phi = dprepare['phi']
     data = dprepare['data'][indspect, ...]
     sol_tot = dextract['sol_tot'][indspect, ...]
+
+    # set to nan if not indok
+    for ii, ispect in enumerate(indspect):
+        data[ii, ~dprepare['indok_bool'][ispect, ...]] = np.nan
+        sol_tot[ii, ~dprepare['indok_bool'][ispect, ...]] = np.nan
 
     if np.any(dextract['indphi'][indspect, :]):
         dphi = np.tile(dextract['phi_prof'], (nspect, 1))

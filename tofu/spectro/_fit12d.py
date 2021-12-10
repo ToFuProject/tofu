@@ -516,9 +516,6 @@ def multigausfit2d_from_dlines(
 
     # bck_amp, bck_rate, all amp, width and shift are affected
     indbs = dinput['valid']['indbs']
-    if np.any(np.sum(indbs, axis=1) == 1):
-        import pdb; pdb.set_trace()     # DB
-        pass
     indbsfull = ~np.tile(indbs, dinput['dind']['nvar_bs'])
     ndiff = const.shape[1] - indbsfull.shape[1]
     assert ndiff <= 2
@@ -539,7 +536,7 @@ def multigausfit2d_from_dlines(
     # -----------------------
     # Prepare flattened data
 
-    indok_all = np.all(dprepare['indok_bool'], axis=0)
+    indok_all = np.any(dprepare['indok_bool'], axis=0)
     indok_flat = dprepare['indok_bool'][:, indok_all].reshape((nspect, -1))
     data_flat = dprepare['data'][:, indok_all].reshape((nspect, -1))
     lamb_flat = lamb[indok_all].ravel()
@@ -599,6 +596,7 @@ def multigausfit2d_from_dlines(
 
         deltab = bounds[1, indx[ii, :]] - bounds[0, indx[ii, :]]
 
+        # import pdb; pdb.set_trace()     # DB
         # optimization
         res = scpopt.least_squares(
             func_cost,

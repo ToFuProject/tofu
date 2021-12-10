@@ -657,7 +657,6 @@ def multigausfit2d_from_dlines_funccostjac(
                 expd = np.exp(-(lambn_flat[indok_flat, :] - (1 + dcsh))**2 / (2*wi2))
                 y[indok_flat] += np.nansum(amp * dratio * expd, axis=-1)
 
-            import pdb; pdb.set_trace()     # DB
             return y[indok_flat] - data_flat[indok_flat]
 
         def func_jacob(
@@ -736,8 +735,6 @@ def multigausfit2d_from_dlines_funccostjac(
                         bsexp[:, iaj[jj]] * coefsal[:, iaj[jj]],
                         axis=1,
                     ) * scales[ix]
-                    if ix == 36:
-                        import pdb; pdb.set_trace()        # DB
 
                 # width2
                 for jj in range(len(iwj)):
@@ -819,8 +816,6 @@ def multigausfit2d_from_dlines_funccostjac(
                         amp * 2.*betad*scales[idshx] * expd,
                         axis=1,
                     )
-
-            import pdb; pdb.set_trace()     # DB
             if indx is None:
                 return jac0[indok_flat, :]
             else:

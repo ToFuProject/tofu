@@ -68,6 +68,7 @@ _DINDOK = {
     -3: 'neg or NaN',
     -4: 'binning=0',
     -5: 'non-valid S/N',
+    -6: 'mid-valid S/N',
 }
 
 
@@ -1509,6 +1510,13 @@ def fit12d_dvalid(
             )
         indknots = np.all(fract > valid_fraction, axis=2)
 
+        # Deduce dphi
+        dphi = np.zeros((nspect, 2), dtype=float)
+        for ii in range(nspect):
+            if np.any(indknots[ii, :]):
+                dphi[ii, 0] = np.min(knots[:-1][indknots[ii, :]])
+                dphi[ii, 1] = np.max(knots[1:][indknots[ii, :]])
+
         # Deduce indbs that are ok
         nintpbs = nknotsperbs - 1
         indbs = np.zeros((nspect, nbs), dtype=bool)
@@ -1516,16 +1524,12 @@ def fit12d_dvalid(
             ibk = np.arange(max(0, ii-(nintpbs-1)), min(knots.size-1, ii+1))
             indbs[:, ii] = np.any(indknots[:, ibk], axis=1)
 
+        assert np.all(
+            (np.sum(indbs, axis=1) == 0) | (np.sum(indbs, axis=1) >= deg + 1)
+        )
+
         # Deduce indt
         indt = np.any(indbs, axis=1)
-
-        # Deduce dphi
-        ibsmin = np.argmax(indbs, axis=1)
-        ibsmax = indbs.shape[1] - 1 - np.argmax(indbs[:, ::-1], axis=1)
-        dphi = np.array([
-            knots_mult[:-(deg + 1)][ibsmin],
-            knots_mult[(deg + 1):][ibsmax],
-        ]).T
 
     else:
         # 1d spectra
@@ -1983,8 +1987,30 @@ def fit2d_dinput(
         dconstants=dconstants, dinput=dinput,
     )
 
+    # Update indok with non-valid phi
+    for ii in range(dinput['dprepare']['indok'].shape[0]):
+        iphino = (
+            (dinput['dprepare']['indok'][ii, ...] == 0)
+            & (
+                (dinput['dprepare']['phi'] < dinput['valid']['dphi'][ii, 0])
+                | (dinput['dprepare']['phi'] >= dinput['valid']['dphi'][ii, 1])
+            )
+        )
+        dinput['dprepare']['indok'][ii, iphino] = -5
+
+        iphinok = (
+            (dinput['dprepare']['indok'][ii, ...] == 0)
+            & (~dinput['valid']['ind'][ii, ...])
+        )
+        dinput['dprepare']['indok'][ii, iphinok] = -6
+
+    dinput['dprepare']['indok_bool'] = (
+        (dinput['dprepare']['indok'] == 0)
+        | (dinput['dprepare']['indok'] == -6)
+    )
+
     # add lambmin for bck
-    dinput['lambmin_bck'] = np.min(dprepare['lamb'])
+    dinput['lambmin_bck'] = np.min(dinput['dprepare']['lamb'])
     return dinput
 
 
