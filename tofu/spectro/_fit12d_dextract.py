@@ -780,7 +780,7 @@ def fit2d_extract(
             )
         )
     )
-    indphi = d3['amp']['lines']['values'] >= 2.*bcki
+    indphi = d3['amp']['lines']['values'] >= 1.5*bcki
     indphi = np.all(indphi, axis=-1)
     indphi = (
         indphi
@@ -796,6 +796,15 @@ def fit2d_extract(
             "\t- phi in a an interval of valid data"
         )
         warnings.warn(msg)
+
+    # ----------
+    # update phi profiles
+    for k0 in d3.keys():
+        for k1 in {'lines', 'x'}.intersection(d3[k0].keys()):
+            if 'values' in d3[k0][k1].keys():
+                for jj in range(d3[k0][k1]['values'].shape[-1]):
+                    d3[k0][k1]['values'][~indphi, jj] = np.nan
+
 
     # ----------
     # func

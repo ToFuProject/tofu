@@ -1024,8 +1024,8 @@ def plot_fit2d(
         ax3 = fig.add_subplot(gs[:4, 6], sharey=ax0)
         ax4 = fig.add_subplot(gs[:4, 7], sharey=ax0)
         ax5 = fig.add_subplot(gs[:4, 8], sharey=ax0)
-        ax6 = fig.add_subplot(gs[4:6, :6])
-        ax7 = fig.add_subplot(gs[6, :6], sharex=ax6)
+        ax6 = fig.add_subplot(gs[4:6, :6], sharex=ax0)
+        ax7 = fig.add_subplot(gs[6, :6], sharex=ax0)
 
         ax0.set_ylabel(phi_name)
         ax0.set_xlabel(r'$\lambda$ (m)')
