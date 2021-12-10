@@ -348,7 +348,6 @@ def multigausfit1d_from_dlines_funccostjac(
 
 
 def multigausfit2d_from_dlines_funccostjac(
-    # lamb_flat=None,
     phi_flat=None,
     dinput=None,
     dind=None,
@@ -578,30 +577,6 @@ def multigausfit2d_from_dlines_funccostjac(
 
     func_cost, func_jacob = None, None
     if return_costjac:
-        # cost and jacob return flattened results (for least_squares())
-        # lambrel_flat = lamb_flat - lambmin_bck
-        # lambn_flat = lamb_flat[:, None] / dinput['lines'][None, ...]
-
-        # bsplines-specific
-        # libs = np.array([
-            # (phi_flat >= km[ii]) & (phi_flat <= km[ii+kpb-1])
-            # for ii in range(nbs)
-        # ])
-
-        # Prepare jac
-        # jac0 = np.zeros((phi_flat.size, dind['sizex']), dtype=float)
-
-        # update kwdargs
-        # dkwdargs_cj = dict(dkwdargs)
-        # dkwdargs_cj.update(dict(
-            # # common to cost and jacob
-            # # phi_flat=phi_flat,
-            # # lambrel_flat=lambrel_flat,
-            # # lambn_flat=lambn_flat,
-            # # specific to jacob
-            # libs=libs,
-            # # jac0=jac0,
-        # ))
 
         def func_cost(
             x,
@@ -622,10 +597,7 @@ def multigausfit2d_from_dlines_funccostjac(
 
             assert data_flat.shape == lambrel_flat.shape
             assert indok_flat is not None
-            # if indok_flat is None:
-                # indok_flat = np.ones(lambrel_flat.shape, dtype=bool)
 
-            # xscale = x*scales
             if indx is None:
                 xscale = x*scales
             else:
@@ -634,22 +606,18 @@ def multigausfit2d_from_dlines_funccostjac(
 
             # Background
             BS.c = xscale[ibckax][:, 0]
-            bcka = BS(phi_flat) # [indok_flat])
+            bcka = BS(phi_flat)
             BS.c = xscale[ibckrx][:, 0]
             y = bcka * np.exp(BS(phi_flat)*lambrel_flat)
 
             # make sure iwl is 2D to get all lines at once
             BS.c = xscale[ial] * coefsal + offsetal
-            amp = BS(phi_flat) # [indok_flat])
+            amp = BS(phi_flat)
             BS.c = xscale[iwl] * coefswl + offsetwl
-            wi2 = BS(phi_flat) # [indok_flat])
+            wi2 = BS(phi_flat)
             BS.c = xscale[ishl] * coefssl + offsetsl
-            csh = BS(phi_flat) # [indok_flat])
+            csh = BS(phi_flat)
 
-            # y[indok_flat] += np.nansum(
-                # amp * np.exp(-(lambn_flat[indok_flat, :] - (1 + csh))**2 / (2*wi2)),
-                # axis=-1,
-            # )
             y += np.nansum(
                 amp * np.exp(-(lambn_flat - (1 + csh))**2 / (2*wi2)),
                 axis=-1,
@@ -664,8 +632,6 @@ def multigausfit2d_from_dlines_funccostjac(
                     dratio = double.get('dratio', xscale[idratiox[:, 0]])
                     dcsh = csh + double.get('dshift', xscale[idshx[:, 0]])
 
-                # expd = np.exp(-(lambn_flat[indok_flat, :] - (1 + dcsh))**2 / (2*wi2))
-                # y[indok_flat] += np.nansum(amp * dratio * expd, axis=-1)
                 expd = np.exp(-(lambn_flat - (1 + dcsh))**2 / (2*wi2))
                 y += np.nansum(amp * dratio * expd, axis=-1)
 
@@ -688,7 +654,6 @@ def multigausfit2d_from_dlines_funccostjac(
             **dkwdargs,
         ):
             """ Basic docstr """
-            # xscale = x*scales
             if indx is None:
                 xscale = x*scales
             else:
@@ -701,7 +666,7 @@ def multigausfit2d_from_dlines_funccostjac(
             for ii in range(nbs):
 
                 # phi interval
-                ibs = libs[ii]  # [indok_flat]
+                ibs = libs[ii]
 
                 # bspline
                 bs = BSpline.basis_element(
@@ -834,10 +799,8 @@ def multigausfit2d_from_dlines_funccostjac(
                         axis=1,
                     )
             if indx is None:
-                # return jac0[indok_flat, :]
                 return jac0
             else:
-                # return jac0[indok_flat, :][:, indx]
                 return jac0[:, indx]
 
     return func_detail, func_sum, func_cost, func_jacob

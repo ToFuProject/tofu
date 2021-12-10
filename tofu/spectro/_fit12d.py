@@ -562,7 +562,6 @@ def multigausfit2d_from_dlines(
     (
         func_cost, func_jac,
     ) = _funccostjac.multigausfit2d_from_dlines_funccostjac(
-        # lamb_flat=lamb_flat,
         phi_flat=phi_flat,
         dinput=dinput, dind=dind, jac=jac,
     )[2:]
@@ -602,77 +601,76 @@ def multigausfit2d_from_dlines(
             msg = "\nSpect {} / {}".format(ii+1, nspect)
             print(msg)
 
-        # try:
-        dti = None
-        t0i = dtm.datetime.now()     # DB
-        if not dinput['valid']['indt'][ii]:
-            validity[ii] = -1
-            continue
+        try:
+            dti = None
+            t0i = dtm.datetime.now()     # DB
+            if not dinput['valid']['indt'][ii]:
+                validity[ii] = -1
+                continue
 
-        deltab = bounds[1, indx[ii, :]] - bounds[0, indx[ii, :]]
+            deltab = bounds[1, indx[ii, :]] - bounds[0, indx[ii, :]]
 
-        # import pdb; pdb.set_trace()     # DB
-        # optimization
-        res = scpopt.least_squares(
-            func_cost,
-            x0[ii, indx[ii, :]],
-            jac=func_jac,
-            bounds=bounds[:, indx[ii, :]],
-            method=method,
-            ftol=ftol,
-            xtol=xtol,
-            gtol=gtol,
-            x_scale=1.0,
-            f_scale=1.0,
-            loss=loss,
-            diff_step=None,
-            tr_solver=tr_solver,
-            tr_options=tr_options,
-            jac_sparsity=None,
-            max_nfev=max_nfev,
-            verbose=verbscp,
-            args=(),
-            kwargs={
-                'indx': indx[ii, :],
-                'data_flat': data_flat[ii, indok_flat[ii]],
-                'scales': scales[ii, :],
-                'const': const[ii, ~indx[ii, :]],
-                'indok_flat': indok_flat[ii],
-                'phi_flat': phi_flat[indok_flat[ii]],
-                'lambrel_flat': lambrel_flat[indok_flat[ii]],
-                'lambn_flat': lambn_flat[indok_flat[ii], :],
-                'jac0': jac0[indok_flat[ii], :],
-                'libs': [ibs[indok_flat[ii]] for ibs in libs],
-            }
-        )
-        dti = (dtm.datetime.now() - t0i).total_seconds()
+            # optimization
+            res = scpopt.least_squares(
+                func_cost,
+                x0[ii, indx[ii, :]],
+                jac=func_jac,
+                bounds=bounds[:, indx[ii, :]],
+                method=method,
+                ftol=ftol,
+                xtol=xtol,
+                gtol=gtol,
+                x_scale=1.0,
+                f_scale=1.0,
+                loss=loss,
+                diff_step=None,
+                tr_solver=tr_solver,
+                tr_options=tr_options,
+                jac_sparsity=None,
+                max_nfev=max_nfev,
+                verbose=verbscp,
+                args=(),
+                kwargs={
+                    'indx': indx[ii, :],
+                    'data_flat': data_flat[ii, indok_flat[ii]],
+                    'scales': scales[ii, :],
+                    'const': const[ii, ~indx[ii, :]],
+                    'indok_flat': indok_flat[ii],
+                    'phi_flat': phi_flat[indok_flat[ii]],
+                    'lambrel_flat': lambrel_flat[indok_flat[ii]],
+                    'lambn_flat': lambn_flat[indok_flat[ii], :],
+                    'jac0': jac0[indok_flat[ii], :],
+                    'libs': [ibs[indok_flat[ii]] for ibs in libs],
+                }
+            )
+            dti = (dtm.datetime.now() - t0i).total_seconds()
 
-        if chain is True and ii < nspect-1:
-            x0[ii+1, indx[ii, :]] = res.x
+            if chain is True and ii < nspect-1:
+                x0[ii+1, indx[ii, :]] = res.x
 
-        # cost, message, time
-        success[ii] = res.success
-        cost[ii] = res.cost
-        nfev[ii] = res.nfev
-        message[ii] = res.message
-        time[ii] = round(
-            (dtm.datetime.now()-t0i).total_seconds(),
-            ndigits=3,
-        )
-        sol_x[ii, indx[ii, :]] = res.x
+            # cost, message, time
+            success[ii] = res.success
+            cost[ii] = res.cost
+            nfev[ii] = res.nfev
+            message[ii] = res.message
+            time[ii] = round(
+                (dtm.datetime.now()-t0i).total_seconds(),
+                ndigits=3,
+            )
+            sol_x[ii, indx[ii, :]] = res.x
 
-        # detect saturated values
-        saturated[ii, indx[ii, :]] = (
-            (res.x < bounds[0, indx[ii, :]] + deltab*1e-4)
-            | (res.x > bounds[1, indx[ii, :]] - deltab*1e-4)
-        )
+            # detect saturated values
+            saturated[ii, indx[ii, :]] = (
+                (res.x < bounds[0, indx[ii, :]] + deltab*1e-4)
+                | (res.x > bounds[1, indx[ii, :]] - deltab*1e-4)
+            )
 
-        # except Exception as err:
-            # if strict:
-                # raise err
-            # else:
-                # errmsg[ii] = str(err)
-                # validity[ii] = -1
+        except Exception as err:
+            if strict:
+                raise err
+            else:
+                errmsg[ii] = str(err)
+                validity[ii] = -1
 
         # verbose
         if verbose in [1, 2]:
