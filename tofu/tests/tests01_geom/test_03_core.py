@@ -805,53 +805,57 @@ class Test02_Config(object):
 #######################################################
 
 # Define a dict of cams to be tested
-dCams = {}
-foc = 0.08
-DX = 0.05
-for typ in dconf.keys():
-    dCams[typ] = {}
-    if typ=='Tor':
-        phi = np.pi/4.
-        eR = np.r_[np.cos(phi),np.sin(phi),0.]
-        ephi = np.r_[np.sin(phi),-np.cos(phi),0.]
-        R = 3.5
-        ph = np.r_[R*np.cos(phi),R*np.sin(phi),0.2]
-    else:
-        ph = np.r_[3.,4.,0.]
-    ez = np.r_[0.,0.,1.]
-    for c in ['CamLOS2D','CamLOS1D']:
-        if '1D' in c:
-            nP = 100
-            X = np.linspace(-DX,DX,nP)
-            if typ=='Tor':
-                D = (ph[:,np.newaxis] + foc*eR[:,np.newaxis]
-                     + X[np.newaxis,:]*ephi[:,np.newaxis])
-            else:
-                D = np.array([3.+X,
-                              np.full((nP,),4.+foc),
-                              np.full((nP,),0.02)])
+def get_dCams():
+    dCams = {}
+    foc = 0.08
+    DX = 0.05
+    for typ in dconf.keys():
+        dCams[typ] = {}
+        if typ=='Tor':
+            phi = np.pi/4.
+            eR = np.r_[np.cos(phi),np.sin(phi),0.]
+            ephi = np.r_[np.sin(phi),-np.cos(phi),0.]
+            R = 3.5
+            ph = np.r_[R*np.cos(phi),R*np.sin(phi),0.2]
         else:
-            if typ=='Tor':
+            ph = np.r_[3.,4.,0.]
+        ez = np.r_[0.,0.,1.]
+        for c in ['CamLOS2D','CamLOS1D']:
+            if '1D' in c:
                 nP = 100
                 X = np.linspace(-DX,DX,nP)
-                D = (ph[:,np.newaxis] + foc*eR[:,np.newaxis]
-                     + np.repeat(X[::-1],nP)[np.newaxis,:]*ephi[:,np.newaxis]
-                     + np.tile(X,nP)[np.newaxis,:]*ez[:,np.newaxis])
+                if typ=='Tor':
+                    D = (ph[:,np.newaxis] + foc*eR[:,np.newaxis]
+                         + X[np.newaxis,:]*ephi[:,np.newaxis])
+                else:
+                    D = np.array([3.+X,
+                                  np.full((nP,),4.+foc),
+                                  np.full((nP,),0.02)])
             else:
-                nP = 100
-                X = np.linspace(-DX,DX,nP)
-                D = np.array([np.repeat(3.+X[::-1],nP),
-                              np.full((nP*nP,),4.+foc),
-                              np.tile(0.01+X,nP)])
-        cls = eval("tfg.%s"%c)
-        dCams[typ][c] = cls(Name='V1000', config=dconf[typ],
-                            dgeom={'pinhole':ph, 'D':D}, method="optimized",
-                            Exp=_Exp, Diag='Test', SavePath=_here)
+                if typ=='Tor':
+                    nP = 100
+                    X = np.linspace(-DX,DX,nP)
+                    D = (ph[:,np.newaxis] + foc*eR[:,np.newaxis]
+                         + np.repeat(X[::-1],nP)[np.newaxis,:]*ephi[:,np.newaxis]
+                         + np.tile(X,nP)[np.newaxis,:]*ez[:,np.newaxis])
+                else:
+                    nP = 100
+                    X = np.linspace(-DX,DX,nP)
+                    D = np.array([np.repeat(3.+X[::-1],nP),
+                                  np.full((nP*nP,),4.+foc),
+                                  np.tile(0.01+X,nP)])
+            cls = eval("tfg.%s"%c)
+            dCams[typ][c] = cls(
+                Name='V1000', config=dconf[typ],
+                dgeom={'pinhole':ph, 'D':D}, method="optimized",
+                Exp=_Exp, Diag='Test', SavePath=_here,
+            )
+    return dCams
 
 class Test03_Rays(object):
 
     @classmethod
-    def setup_class(cls, dobj=dCams, verb=False):
+    def setup_class(cls, dobj=get_dCams(), verb=False):
         #print ("")
         #print "--------- "+VerbHead+cls.__name__
         dlpfe = {}
