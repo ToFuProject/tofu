@@ -539,8 +539,22 @@ def multigausfit2d_from_dlines(
     indok_all = np.any(dprepare['indok_bool'], axis=0)
     indok_flat = dprepare['indok_bool'][:, indok_all].reshape((nspect, -1))
     data_flat = dprepare['data'][:, indok_all].reshape((nspect, -1))
-    lamb_flat = lamb[indok_all].ravel()
     phi_flat = phi[indok_all].ravel()
+    lamb_flat = lamb[indok_all].ravel()
+
+    # prepare lambrel and lambn
+    lambrel_flat = lamb_flat - dinput['lambmin_bck']
+    lambn_flat = lamb_flat[:, None] / dinput['lines'][None, ...]
+
+    # jac0
+    jac0 = np.zeros((phi_flat.size, dind['sizex']), dtype=float)
+
+    # libs
+    libs = np.array([
+        (phi_flat >= dinput['knots_mult'][ii])
+        & (phi_flat <= dinput['knots_mult'][ii + dinput['nknotsperbs'] - 1])
+        for ii in range(dinput['nbs'])
+    ])
 
     # ---------------------------
     # Get function, cost function and jacobian
@@ -548,8 +562,9 @@ def multigausfit2d_from_dlines(
     (
         func_cost, func_jac,
     ) = _funccostjac.multigausfit2d_from_dlines_funccostjac(
-         lamb_flat=lamb_flat, phi_flat=phi_flat,
-         dinput=dinput, dind=dind, jac=jac,
+        # lamb_flat=lamb_flat,
+        phi_flat=phi_flat,
+        dinput=dinput, dind=dind, jac=jac,
     )[2:]
 
     # ---------------------------
@@ -619,10 +634,15 @@ def multigausfit2d_from_dlines(
             args=(),
             kwargs={
                 'indx': indx[ii, :],
-                'data_flat': data_flat[ii, :],
+                'data_flat': data_flat[ii, indok_flat[ii]],
                 'scales': scales[ii, :],
                 'const': const[ii, ~indx[ii, :]],
                 'indok_flat': indok_flat[ii],
+                'phi_flat': phi_flat[indok_flat[ii]],
+                'lambrel_flat': lambrel_flat[indok_flat[ii]],
+                'lambn_flat': lambn_flat[indok_flat[ii], :],
+                'jac0': jac0[indok_flat[ii], :],
+                'libs': [ibs[indok_flat[ii]] for ibs in libs],
             }
         )
         dti = (dtm.datetime.now() - t0i).total_seconds()
