@@ -1428,7 +1428,8 @@ def fit12d_dvalid(
     valid_nsigma=None, valid_fraction=None,
     focus=None, focus_half_width=None,
     lines_keys=None, lines_lamb=None, dphimin=None,
-    nbs=None, deg=None, knots_mult=None, nknotsperbs=None,
+    nbs=None, deg=None,
+    knots=None, knots_mult=None, nknotsperbs=None,
     return_fract=None,
 ):
     """ Return a dict of valid time steps and phi indices
@@ -1480,45 +1481,45 @@ def fit12d_dvalid(
 
     # Derive indt and optionally dphi and indknots
     indbs, dphi = False, False
-    if focus is not False:
+    if focus is False:
+        lambok = np.ones(tuple(np.r_[lamb.shape, 1]), dtype=bool)
+        indall = ind[..., None]
+    else:
         # TBC
         lambok = np.rollaxis(
             np.array([np.abs(lamb - ff[0]) < ff[1] for ff in focus]),
             0,
-            lamb.ndim+1,
+            lamb.ndim + 1,
         )
         indall = ind[..., None] & lambok[None, ...]
+    nfocus = lambok.shape[-1]
 
     if data2d is True:
-        # Make sure there are at least deg + 2 different phi
-        deltaphi = np.max(np.diff(knots_mult))
         # Code ok with and without binning :-)
-        if focus is False:
-            fract = np.full((nspect, nbs), np.nan)
-            for ii in range(nbs):
-                iphi = (
-                    (phi >= knots_mult[ii])
-                    & (phi < knots_mult[ii+nknotsperbs-1])
-                )
-                fract[:, ii] = (
-                    np.sum(np.sum(ind & iphi[None, ...], axis=-1), axis=-1)
-                    / np.sum(iphi)
-                )
-            indbs = fract > valid_fraction
-        else:
-            fract = np.full((nspect, nbs, len(focus)), np.nan)
-            for ii in range(nbs):
-                iphi = ((phi >= knots_mult[ii])
-                        & (phi < knots_mult[ii+nknotsperbs-1]))
-                fract[:, ii, :] = (
-                    np.sum(np.sum(indall & iphi[None, ..., None],
-                                  axis=1), axis=1)
-                    / np.sum(np.sum(iphi[..., None] & lambok,
-                                    axis=0), axis=0))
-            indbs = np.all(fract > valid_fraction, axis=2)
-        indt = np.any(indbs, axis=1)
-        dphi = deltaphi*(deg + indbs[:, deg:-deg].sum(axis=1))
 
+        # Get knots intervals that are ok
+        fract = np.full((nspect, knots.size-1, nfocus), np.nan)
+        for ii in range(knots.size - 1):
+            iphi = (phi >= knots[ii]) & (phi < knots[ii + 1])
+            fract[:, ii, :] = (
+                np.sum(np.sum(indall & iphi[None, ..., None],
+                              axis=1), axis=1)
+                / np.sum(np.sum(iphi[..., None] & lambok,
+                                axis=0), axis=0)
+            )
+        indknots = np.all(fract > valid_fraction, axis=2)
+
+        # Deduce indbs that are ok
+        nintpbs = nknotsperbs - 1
+        indbs = np.zeros((nspect, nbs), dtype=bool)
+        for ii in range(nbs):
+            ibk = np.arange(max(0, ii-(nintpbs-1)), min(knots.size-1, ii+1))
+            indbs[:, ii] = np.any(indknots[:, ibk], axis=1)
+
+        # Deduce indt
+        indt = np.any(indbs, axis=1)
+
+        # Deduce dphi
         ibsmin = np.argmax(indbs, axis=1)
         ibsmax = indbs.shape[1] - 1 - np.argmax(indbs[:, ::-1], axis=1)
         dphi = np.array([
@@ -1962,6 +1963,7 @@ def fit2d_dinput(
         lines_keys=lines_keys, lines_lamb=lines_lamb,
         nbs=dinput['nbs'],
         deg=dinput['deg'],
+        knots=dinput['knots'],
         knots_mult=dinput['knots_mult'],
         nknotsperbs=dinput['nknotsperbs'],
         return_fract=valid_return_fract,
