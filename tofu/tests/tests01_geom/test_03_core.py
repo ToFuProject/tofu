@@ -136,7 +136,7 @@ for tt in dobj.keys():
             else:
                 Lim = None
 
-            Poly = np.loadtxt(os.path.join(path,lfc[ii]))
+            Poly = np.loadtxt(os.path.join(path, lfc[ii]))
             assert Poly.ndim == 2
             assert Poly.size >= 2*3
             kwd = dict(Name=ln[ii]+tt, Exp=_Exp, SavePath=_here,
@@ -568,14 +568,17 @@ class Test01_Struct(object):
 #
 #######################################################
 
+
 # Define a dict dconfig holding all the typical Config we want to test
+
 
 dconf = dict.fromkeys(dobj.keys())
 for typ in dobj.keys():
 
     # Get list of structures (lS) composing the config
-    lS = list(itt.chain.from_iterable([list(dobj[typ][c].values())
-                                       for c in dobj[typ].keys()]))
+    lS = list(itt.chain.from_iterable(
+        [list(dobj[typ][c].values()) for c in dobj[typ].keys()]
+    ))
 
     # Set the limits (none in toroidal geometry, [0., 10.] in linear geometry)
     Lim = None if typ == 'Tor' else [0., 10.]
@@ -807,8 +810,9 @@ class Test02_Config(object):
 #
 #######################################################
 
+
 # Define a dict of cams to be tested
-def get_dCams():
+def get_dCams(dconf=dconf):
     dCams = {}
     foc = 0.08
     DX = 0.05
@@ -848,12 +852,14 @@ def get_dCams():
                                   np.full((nP*nP,),4.+foc),
                                   np.tile(0.01+X,nP)])
             cls = eval("tfg.%s"%c)
+            assert len(dconf[typ].lStruct) > 0
             dCams[typ][c] = cls(
                 Name='V1000', config=dconf[typ],
                 dgeom={'pinhole':ph, 'D':D}, method="optimized",
                 Exp=_Exp, Diag='Test', SavePath=_here,
             )
     return dCams
+
 
 class Test03_Rays(object):
 
