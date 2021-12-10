@@ -4734,10 +4734,13 @@ class Rays(utils.ToFuObject):
         # Check there is at least one struct which is a subclass of StructIn
         lSIn = [ss for ss in lS if ss._InOut == "in"]
         if len(lSIn) == 0:
-            lclsnames = ['{}; {}'.format(ss.Id.Name, ss.Id.Cls, ss._InOut)
-                         for ss in lS]
-            msg = ("Config {} is missing a StructIn!\n".format(config.Id.Name)
-                   + "\t- " + "\n\t- ".join(lclsnames))
+            lclsnames = [
+                f'\t- {ss.Id.Name}, {ss.Id.Cls}, {ss._InOut}' for ss in lS
+            ]
+            msg = (
+                f"Config {config.Id.Name} is missing a StructIn!\n"
+                + "\n".join(lclsnames)
+            )
             raise Exception(msg)
 
         # Add 'compute' parameter if not present

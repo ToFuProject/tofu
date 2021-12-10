@@ -585,6 +585,7 @@ for typ in dobj.keys():
                             lStruct=lS, Lim=Lim,
                             Type=typ, SavePath=_here)
 
+
 class Test02_Config(object):
     """ Class for testing the Config class and its methods
 
@@ -663,15 +664,17 @@ class Test02_Config(object):
             assert n in obj.dStruct['dObj']['PFC'].keys()
             assert n in obj.dextraprop['dvisible']['PFC'].keys()
             assert hasattr(obj.PFC,n)
-            obj.remove_Struct('PFC',n)
+            obj.remove_Struct('PFC', n)
             assert n not in obj.dStruct['dObj']['PFC'].keys()
             assert n not in obj.dextraprop['dvisible']['PFC'].keys()
             try:
-                hasattr(obj.PFC,n)
+                hasattr(obj.PFC, n)
             except Exception as err:
                 assert err.__class__.__name__=='KeyError'
-            self.dobj[typ].add_Struct(struct=B,
-                                      dextraprop={'visible':True})
+            self.dobj[typ].add_Struct(
+                struct=B,
+                dextraprop={'visible':True},
+            )
             assert n in obj.dStruct['dObj']['PFC'].keys()
             assert n in obj.dextraprop['dvisible']['PFC'].keys()
             assert hasattr(obj.PFC,n)
