@@ -55,7 +55,7 @@ class HighLevel:
     # Attributes reckognized by asv
 
     # time before benchmark is killed
-    timeout = 120
+    timeout = 500
     repeat = (1, 10, 20.0)
     sample_time = 0.100
 
@@ -160,6 +160,81 @@ class HighLevel:
             verbose=False,
             plot=False,
         )
+
+    def peakmem_01_fit2d(self, out):
+        # Define constraint dict
+        dconst = {
+            'amp': {'a1': ['a', 'd']},
+            'width': 'group',
+            'shift': {
+                'a': {'key': 's1', 'coef': 1., 'offset': 0.},
+                'b': {'key': 's1', 'coef': 1., 'offset': 0.},
+                'c': {'key': 's2', 'coef': 2., 'offset': 0.},
+                'd': {'key': 's3', 'coef': 1., 'offset': 0.001e-10},
+            },
+            'double': False,
+            'symmetry': False,
+        }
+
+        dx0 = {
+            'width': 1.,
+            'shift': {
+                's1': 0.,
+                's2': 1.,
+            },
+            'dratio': 0,
+            'dshift': 0,
+        }
+
+        domain = {
+            'lamb': [
+                [3.94e-10, 3.952e-10],
+                (3.95e-10, 3.956e-10),
+                [3.96e-10, 4e-10],
+            ],
+        }
+
+        data = self.spect2d
+        pos = True
+        focus = 'a'
+        dconstants = {'shift': {'s1': 0}}
+
+        dinput = tf.spectro.fit2d_dinput(
+            dlines=self.dlines,
+            dconstraints=dconst,
+            dconstants=dconstants,
+            dprepare=None,
+            data=data,
+            lamb=self.lamb,
+            phi=np.arange(0, data.shape[0]),
+            binning=None,
+            mask=None,
+            domain=domain,
+            pos=pos,
+            focus=focus,
+            valid_fraction=0.28,     # fraction of pixels ok per time step
+            valid_nsigma=0,         # S/N ratio for each pixel
+            focus_half_width=None,
+            valid_return_fract=None,
+            dscales=None,
+            dx0=dx0,
+            dbounds=None,
+            # defconst=None,
+        )
+
+        dfit2d = tf.spectro.fit2d(
+            dinput=dinput,
+            method=None,
+            Ti=None,
+            chain=True,
+            jac='dense',
+            xtol=1e-6,
+            ftol=1e-6,
+            gtol=1e-6,
+            verbose=False,
+            plot=False,
+        )
+
 
     def peakmem_02_get_plasmadomain_at_lamb(self, out):
         pts, lambok = self.cryst.get_plasmadomain_at_lamb(

@@ -55,7 +55,7 @@ class HighLevel:
     # Attributes reckognized by asv
 
     # time before benchmark is killed
-    timeout = 120
+    timeout = 500
     repeat = (1, 10, 20.0)
     sample_time = 0.100
 
@@ -172,7 +172,7 @@ class HighLevel:
                 'c': {'key': 's2', 'coef': 2., 'offset': 0.},
                 'd': {'key': 's3', 'coef': 1., 'offset': 0.001e-10},
             },
-            'double': True,
+            'double': False,
             'symmetry': False,
         }
 
@@ -228,6 +228,9 @@ class HighLevel:
             Ti=None,
             chain=True,
             jac='dense',
+            xtol=1e-6,
+            ftol=1e-6,
+            gtol=1e-6,
             verbose=False,
             plot=False,
         )
