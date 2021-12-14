@@ -705,6 +705,8 @@ def apply_domain(lamb=None, phi=None, domain=None):
 
 def _binning_check(
     binning,
+    dlamb_ref=None,
+    dphi_ref=None,
     domain=None, nbsplines=None,
 ):
     lk = ['phi', 'lamb']
@@ -742,12 +744,14 @@ def _binning_check(
         (
             isinstance(binning, dict)
             and all([kk in lkall for kk in binning.keys()])
+            and all([kk in binning.keys() for kk in lk])
         ),
         type(binning) in ltypes0,
         type(binning) in ltypes1,
     ]
     if not any(lc):
         raise Exception(msg)
+
     if binning is False:
         return binning
     elif type(binning) in ltypes0:
@@ -827,6 +831,25 @@ def _binning_check(
                 + "\t- nbsplines = {}".format(nbsplines)
             )
             raise Exception(msg)
+
+    # --------------
+    # Check binning
+
+    for (dref, k0) in [(dlamb_ref, 'lamb'), (dphi_ref, 'phi')]:
+        if dref is not None:
+            di = np.mean(np.diff(binning[k0]['edges']))
+            if di < dref:
+                ni_rec = (
+                    (domain[k0]['minmax'][1] - domain[k0]['minmax'][0]) / dref
+                )
+                msg = (
+                    f"binning[{k0}] seems finer than the original!\n"
+                    f"\t- estimated original step: {dref}\n"
+                    f"\t- binning step: {di}\n"
+                    f"  => nb. of recommended steps: {ni_rec}"
+                )
+                warnings.warn(msg)
+
     return binning
 
 
@@ -840,11 +863,25 @@ def binning_2d_data(
     dataphi1d=None, datalamb1d=None,
 ):
 
+    # -------------------------
+    # Preliminary check on bins
+
+    dlamb_ref, dphi_ref = None, None
+    if lamb.ndim == 2:
+        indmid = int(lamb.shape[0]/2)
+        dlamb_ref = (np.max(lamb[indmid, :]) - np.min(lamb[indmid, :]))
+        dlamb_ref = dlamb_ref / lamb.shape[1]
+        indmid = int(lamb.shape[1]/2)
+        dphi_ref = (np.max(phi[:, indmid]) - np.min(phi[:, indmid]))
+        dphi_ref = dphi_ref / lamb.shape[0]
+
     # ------------------
     # Checkformat input
+
     binning = _binning_check(
         binning,
         domain=domain,
+        dlamb_ref=dlamb_ref,
         nbsplines=nbsplines,
     )
 
@@ -885,6 +922,7 @@ def binning_2d_data(
 
         # ------------------
         # Compute
+
         databin = np.full((nspect, nphi, nlamb), np.nan)
         nperbin = np.full((nspect, nphi, nlamb), np.nan)
         indok_new = np.zeros((nspect, nphi, nlamb), dtype=np.int8)
@@ -1520,7 +1558,7 @@ def fit12d_dvalid(
                     if jj == indknots.shape[1] - 1:
                         ldphi[ii][-1].append(knots[jj+1])
                 else:
-                    if indknots[ii, jj-1]:
+                    if jj > 0 and indknots[ii, jj-1]:
                         ldphi[ii][-1].append(knots[jj])
 
         # Safety check
@@ -1638,11 +1676,15 @@ def _checkformat_dlines(dlines=None, domain=None):
     # Select relevant lines (keys, lamb)
     lines_keys = np.array([k0 for k0 in dlines.keys()])
     lines_lamb = np.array([float(dlines[k0]['lambda0']) for k0 in lines_keys])
+
     if domain not in [None, False]:
-        ind = (
-            (lines_lamb >= domain['lamb']['minmax'][0])
-            & (lines_lamb <= domain['lamb']['minmax'][1])
-        )
+        ind = np.zeros((len(lines_keys),), dtype=bool)
+        for ss in domain['lamb']['spec']:
+            if isinstance(ss, list):
+                ind[(lines_lamb >= ss[0]) & (lines_lamb < ss[1])] = True
+        for ss in domain['lamb']['spec']:
+            if isinstance(ss, tuple):
+                ind[(lines_lamb >= ss[0]) & (lines_lamb < ss[1])] = False
         lines_keys = lines_keys[ind]
         lines_lamb = lines_lamb[ind]
     inds = np.argsort(lines_lamb)
@@ -1897,6 +1939,7 @@ def fit2d_dinput(
     # ------------------------
     # Check / format dlines
     # ------------------------
+
     dlines, lines_keys, lines_lamb = _checkformat_dlines(
         dlines=dlines,
         domain=dprepare['domain'],
