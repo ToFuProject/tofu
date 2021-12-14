@@ -184,9 +184,9 @@ def fit12d_get_data_checkformat(
             f"  Provided: {ratio}\n"
         )
         if not any(lc):
-            raise Exception(msg)
-
-        if lc[0]:
+            warnings.warn(msg)
+            ratio = False
+        elif lc[0]:
             ratio = np.atleast_2d(ratio).T
 
     # ----------------
@@ -782,11 +782,14 @@ def fit2d_extract(
     )
     indphi = d3['amp']['lines']['values'] >= 1.5*bcki
     indphi = np.all(indphi, axis=-1)
-    indphi = (
-        indphi
-        & (phi_prof[None, :] > dfit2d['dinput']['valid']['dphi'][:, 0:1])
-        & (phi_prof[None, :] < dfit2d['dinput']['valid']['dphi'][:, 1:2])
-    )
+    for ii in range(nspect):
+        indphi_no = np.copy(indphi[ii, ...])
+        for jj in range(len(dfit2d['dinput']['valid']['ldphi'][ii])):
+            indphi_no &= (
+                (phi_prof < dfit2d['dinput']['valid']['ldphi'][ii][jj][0])
+                | (phi_prof >= dfit2d['dinput']['valid']['ldphi'][ii][jj][1])
+            )
+        indphi[ii, indphi_no] = False
 
     if not np.any(indphi):
         msg = (
