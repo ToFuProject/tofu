@@ -782,11 +782,14 @@ def fit2d_extract(
     )
     indphi = d3['amp']['lines']['values'] >= 1.5*bcki
     indphi = np.all(indphi, axis=-1)
-    indphi = (
-        indphi
-        & (phi_prof[None, :] > dfit2d['dinput']['valid']['dphi'][:, 0:1])
-        & (phi_prof[None, :] < dfit2d['dinput']['valid']['dphi'][:, 1:2])
-    )
+    for ii in range(nspect):
+        indphi_no = np.copy(indphi[ii, ...])
+        for jj in range(len(dfit2d['dinput']['valid']['ldphi'][ii])):
+            indphi_no &= (
+                (phi_prof < dfit2d['dinput']['valid']['ldphi'][ii][jj][0])
+                | (phi_prof >= dfit2d['dinput']['valid']['ldphi'][ii][jj][1])
+            )
+        indphi[ii, indphi_no] = False
 
     if not np.any(indphi):
         msg = (

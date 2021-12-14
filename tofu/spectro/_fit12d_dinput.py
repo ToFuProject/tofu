@@ -1510,12 +1510,24 @@ def fit12d_dvalid(
             )
         indknots = np.all(fract > valid_fraction, axis=2)
 
-        # Deduce dphi
-        dphi = np.zeros((nspect, 2), dtype=float)
+        # Deduce ldphi
+        ldphi = [[] for ii in range(nspect)]
         for ii in range(nspect):
-            if np.any(indknots[ii, :]):
-                dphi[ii, 0] = np.min(knots[:-1][indknots[ii, :]])
-                dphi[ii, 1] = np.max(knots[1:][indknots[ii, :]])
+            for jj in range(indknots.shape[1]):
+                if indknots[ii, jj]:
+                    if jj == 0 or not indknots[ii, jj-1]:
+                        ldphi[ii].append([knots[jj]])
+                    if jj == indknots.shape[1] - 1:
+                        ldphi[ii][-1].append(knots[jj+1])
+                else:
+                    if indknots[ii, jj-1]:
+                        ldphi[ii][-1].append(knots[jj])
+
+        # Safety check
+        assert all([
+            all([len(dd) == 2 and dd[0] < dd[1] for dd in ldphi[ii]])
+            for ii in range(nspect)
+        ])
 
         # Deduce indbs that are ok
         nintpbs = nknotsperbs - 1
@@ -1570,7 +1582,7 @@ def fit12d_dvalid(
 
     # return
     dvalid = {
-        'indt': indt, 'dphi': dphi, 'indbs': indbs, 'ind': ind,
+        'indt': indt, 'ldphi': ldphi, 'indbs': indbs, 'ind': ind,
         'focus': focus, 'valid_fraction': valid_fraction,
         'valid_nsigma': valid_nsigma,
     }
@@ -1989,13 +2001,18 @@ def fit2d_dinput(
 
     # Update indok with non-valid phi
     for ii in range(dinput['dprepare']['indok'].shape[0]):
-        iphino = (
-            (dinput['dprepare']['indok'][ii, ...] == 0)
-            & (
-                (dinput['dprepare']['phi'] < dinput['valid']['dphi'][ii, 0])
-                | (dinput['dprepare']['phi'] >= dinput['valid']['dphi'][ii, 1])
+        iphino = dinput['dprepare']['indok'][ii, ...] == 0
+        for jj in range(len(dinput['valid']['ldphi'][ii])):
+            iphino &= (
+                (
+                    dinput['dprepare']['phi']
+                    < dinput['valid']['ldphi'][ii][jj][0]
+                )
+                | (
+                    dinput['dprepare']['phi']
+                    >= dinput['valid']['ldphi'][ii][jj][1]
+                )
             )
-        )
         dinput['dprepare']['indok'][ii, iphino] = -5
 
         iphinok = (

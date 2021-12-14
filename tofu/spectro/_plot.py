@@ -451,8 +451,15 @@ def plot_dinput2d(
                 orientation='vertical',
             )
             cax0.set_yticklabels(indok_lab)
-            ax.axhline(dinput['valid']['dphi'][ispect, 0], c='k', lw=2., ls='-')
-            ax.axhline(dinput['valid']['dphi'][ispect, 1], c='k', lw=2., ls='-')
+            for jj in range(len(dinput['valid']['ldphi'][ispect])):
+                ax.axhline(
+                    dinput['valid']['ldphi'][ispect][jj][0],
+                    c='k', lw=2., ls='-',
+                )
+                ax.axhline(
+                    dinput['valid']['ldphi'][ispect][jj][1],
+                    c='k', lw=2., ls='-',
+                )
 
         kax = 'img_original_data'
         if dax.get(kax) is not None:
@@ -471,8 +478,15 @@ def plot_dinput2d(
             for jj in range(phi_lim.shape[0]):
                 ax.axhline(phi_lim[jj, 0], c=lcol[jj], lw=1., ls='-')
                 ax.axhline(phi_lim[jj, 1], c=lcol[jj], lw=1., ls='-')
-            ax.axhline(dinput['valid']['dphi'][ispect, 0], c='k', lw=2., ls='-')
-            ax.axhline(dinput['valid']['dphi'][ispect, 1], c='k', lw=2., ls='-')
+            for jj in range(len(dinput['valid']['ldphi'][ispect])):
+                ax.axhline(
+                    dinput['valid']['ldphi'][ispect][jj][0],
+                    c='k', lw=2., ls='-',
+                )
+                ax.axhline(
+                    dinput['valid']['ldphi'][ispect][jj][1],
+                    c='k', lw=2., ls='-',
+                )
 
         kax = 'bsplines'
         if dax.get(kax) is not None:
