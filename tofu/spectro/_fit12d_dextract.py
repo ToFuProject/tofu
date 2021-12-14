@@ -184,9 +184,9 @@ def fit12d_get_data_checkformat(
             f"  Provided: {ratio}\n"
         )
         if not any(lc):
-            raise Exception(msg)
-
-        if lc[0]:
+            warnings.warn(msg)
+            ratio = False
+        elif lc[0]:
             ratio = np.atleast_2d(ratio).T
 
     # ----------------
