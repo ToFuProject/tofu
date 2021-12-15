@@ -1741,6 +1741,9 @@ def CrystalBragg_plot_signal_from_emissivity(
         ax2.set_xlabel(r'$x_i$ (m)')
         ax2.set_ylabel(r'$x_j$ (m)')
 
+        ax3.set_xlabel(r'$x_i$ (m)')
+        ax3.set_ylabel(r'$x_j$ (m)')
+
         dax = {
             'cross': {'ax': ax0, 'type': 'cross'},
             'hor': {'ax': ax1, 'type': 'hor'},
