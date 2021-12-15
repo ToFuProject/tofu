@@ -1584,3 +1584,237 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
         proj=['cross', 'hor'],
     )
     return dax
+
+
+# #################################################################
+# #################################################################
+#               plot synthetic signal from emissivity
+# #################################################################
+
+
+def CrystalBragg_plot_signal_from_emissivity(
+    cryst=None,
+    det=None,
+    xixj_lim=None,
+    config=None,
+    lamb=None,
+    pts=None,
+    reseff=None,
+    xi=None,
+    xj=None,
+    val=None,
+    lambok=None,
+    binning=None,
+    binned=None,
+    # plotting
+    vmin=None,
+    vmax=None,
+    vmin_bin=None,
+    vmax_bin=None,
+    cmap=None,
+    dax=None,
+    fs=None,
+    dmargin=None,
+    tit=None,
+):
+
+    # -------------
+    # check inputs
+
+    nlamb = lamb.size
+
+    if fs is None:
+        fs = (12, 8)
+    if dmargin is None:
+        dmargin = {'left': 0.1, 'right': 0.95,
+                   'bottom': 0.1, 'top': 0.9,
+                   'wspace': 0.3, 'hspace': 0.2}
+    if tit is None:
+        tit = False
+
+    if vmin is None:
+        vmin = 0
+    if vmax is None:
+        vmax = np.nanmax(val)
+    if vmin_bin is None:
+        vmin_bin = 0
+    if vmax_bin is None and binning is not False:
+        vmax_bin = np.nanmax(binned)
+    if cmap is None:
+        cmap = plt.cm.viridis
+
+    # -------------
+    # prepare data
+
+    R_u = np.unique(pts[0, :])
+    Z_u = np.unique(pts[1, :])
+    nR, nZ = R_u.size, Z_u.size
+    extent = (R_u.min(), R_u.max(), Z_u.min(), Z_u.max())
+
+    indR = [pts[0, :] == rr for rr in R_u]
+    indZ = [pts[1, :] == zz for zz in Z_u]
+    phi_per_R = [np.unique(pts[2, pts[0, :] == rr]) for rr in R_u]
+    nphi_per_R = np.array([ppr.size for ppr in phi_per_R])
+    nphimax = np.max(nphi_per_R)
+    indPhi = [
+        [pts[2, :] == phi for phi in phi_per_R[ii]]
+        for ii in range(R_u.size)
+    ]
+
+    cross = np.zeros((R_u.size, Z_u.size), dtype=bool)
+    hor = np.zeros((R_u.size, nphimax), dtype=bool)
+    horR = np.full((R_u.size, nphimax), np.nan)
+    horPhi = np.full((R_u.size, nphimax), np.nan)
+
+    for ii, rr in enumerate(R_u):
+        for jj, zz in enumerate(Z_u):
+            ind = indR[ii] & indZ[jj]
+            cross[ii, jj] = np.any(lambok[:, ind])
+
+        horR[ii, :] = rr
+        horPhi[ii, :nphi_per_R[ii]] = phi_per_R[ii]
+        for jj, pp in enumerate(phi_per_R[ii]):
+            ind = indR[ii] & indPhi[ii][jj]
+            hor[ii, jj] = np.any(lambok[:, ind])
+
+    # ------------
+    # get contours
+
+    # plot_as == 'poly':
+    # Add envelop
+    dR = (R_u[-1] - R_u[0])/R_u.size
+    dZ = (Z_u[-1] - Z_u[0])/Z_u.size
+    x = np.tile(np.r_[R_u[0] - dR, R_u, R_u[-1] + dR], (nZ + 2, 1))
+    y = np.tile(np.r_[Z_u[0] - dZ, Z_u, Z_u[-1] + dZ], (nR + 2, 1)).T
+    z = np.zeros(x.shape, dtype=float)
+
+    # see https://github.com/matplotlib/matplotlib/blob/main/src/_contour.h
+    z[1:-1, 1:-1] = cross.T
+    cont_raw = mcontour.QuadContourGenerator(
+        x, y, z,
+        None,       # mask
+        True,       # how to mask
+        0,          # divide in sub-domains (0=not)
+    ).create_contour(0.5)
+    if isinstance(cont_raw, tuple):
+        cont_raw = cont_raw[0]
+    assert all([pp.ndim == 2 and pp.shape[1] == 2 for pp in cont_raw])
+    cont_cross = PatchCollection(
+        [plt.Polygon(pp) for pp in cont_raw],
+        color='k',
+        alpha=0.4,
+    )
+
+    # -----------
+    # binned data
+
+    if binning is not False:
+        extent = (binning[0][0], binning[0][-1], binning[1][0], binning[1][-1])
+
+    # -------------
+    # plot context
+
+    if dax is None:
+
+        fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(2, 3, **dmargin)
+
+        ax0 = fig.add_subplot(
+            gs[0, 0], aspect='equal', adjustable='datalim',
+        )
+        ax1 = fig.add_subplot(
+            gs[1, 0], aspect='equal', adjustable='datalim',
+        )
+        ax2 = fig.add_subplot(
+            gs[:, 1], aspect='equal',
+        )
+        ax3 = fig.add_subplot(
+            gs[:, 2], sharex=ax2, sharey=ax2,
+        )
+
+        ax0.set_xlabel(r'$R$ (m)')
+        ax0.set_ylabel(r'$Z$ (m)')
+
+        ax1.set_xlabel(r'$x$ (m)')
+        ax1.set_ylabel(r'$y$ (m)')
+
+        ax2.set_xlabel(r'$x_i$ (m)')
+        ax2.set_ylabel(r'$x_j$ (m)')
+
+        ax3.set_xlabel(r'$x_i$ (m)')
+        ax3.set_ylabel(r'$x_j$ (m)')
+
+        dax = {
+            'cross': {'ax': ax0, 'type': 'cross'},
+            'hor': {'ax': ax1, 'type': 'hor'},
+            'img1': {'ax': ax2, 'type': 'img'},
+            'img2': {'ax': ax3, 'type': 'img'},
+        }
+
+    lax = config.plot(lax=[dax.get('cross')['ax'], dax.get('hor')['ax']])
+
+    # ----------------
+    # actual plotting
+
+    k0 = 'cross'
+    if dax.get(k0) is not None:
+        ax = dax[k0]['ax']
+        ax.add_collection(cont_cross)
+
+    k0 = 'hor'
+    if dax.get(k0) is not None:
+        ax = dax[k0]['ax']
+        ax.plot(
+            horR[hor]*np.cos(horPhi[hor]),
+            horR[hor]*np.sin(horPhi[hor]),
+            color='k',
+            alpha=0.4,
+            ls='None',
+            marker='o',
+            ms=6,
+            markeredgecolor='None',
+        )
+
+    k0 = 'img1'
+    if dax.get(k0) is not None:
+        ax = dax[k0]['ax']
+        iok = np.isfinite(val)
+        ax.scatter(
+            xi[iok].ravel(),
+            xj[iok].ravel(),
+            s=2,
+            c=val[iok].ravel(),
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            marker='.',
+        )
+        ax.plot(
+            det['outline'][0, :],
+            det['outline'][1, :],
+            c='k',
+            ls='-',
+            lw=1.,
+        )
+
+    k0 = 'img2'
+    if dax.get(k0) is not None and binning is not False:
+        ax = dax[k0]['ax']
+        ax.imshow(
+            binned.T,
+            origin='lower',
+            extent=extent,
+            interpolation='nearest',
+            cmap=cmap,
+            vmin=vmin_bin,
+            vmax=vmax_bin,
+        )
+        ax.plot(
+            det['outline'][0, :],
+            det['outline'][1, :],
+            c='k',
+            ls='-',
+            lw=1.,
+        )
+
+    return dax
