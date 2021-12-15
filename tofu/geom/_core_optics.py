@@ -2733,22 +2733,9 @@ class CrystalBragg(utils.ToFuObject):
         # ------------
         # check inputs
 
-        if config.__class__.__name__ != 'Config':
-            msg = (
-                "Arg config must be a Config object "
-                f"Provided:\n\t- config: {type(config)}"
-            )
-            raise Exception(msg)
-
-        lok = list(config.dStruct['dObj']['Ves'].keys())
-        if struct is None and len(lok) == 1:
-            struct = lok[0]
-        elif struct not in lok:
-            msg = (
-                "Arg struct must be the name of a StructIn in config!\n"
-                f"Provided:\n\t- Available: {lok}\n\t- struct: {struct}"
-            )
-            raise Exception(msg)
+        struct = _check_optics._check_config_get_Ves(
+            config=config, struct=struct,
+        )
 
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
         lamb = self.get_lamb_from_bragg(bragg=bragg, n=n)
@@ -2874,6 +2861,229 @@ class CrystalBragg(utils.ToFuObject):
             return pts, lambok, dax
         else:
             return pts, lambok
+
+    def calc_signal_from_emissivity(
+        self,
+        emis=None,
+        config=None,
+        struct=None,
+        domain=None,
+        res=None,
+        det=None,
+        xixj_lim=None,
+        strict=None,
+        bragg=None,
+        lamb=None,
+        binning=None,
+        # for available lamb determination
+        ndtheta=None,
+        nlamb=None,
+        n=None,
+        use_non_parallelism=None,
+        # plotting
+        plot=None,
+        vmin=None,
+        vmax=None,
+        vmin_bin=None,
+        vmax_bin=None,
+        cmap=None,
+        dax=None,
+        fs=None,
+        dmargin=None,
+        tit=None,
+        return_dax=None,
+    ):
+        """ Return pts in the plasma domain and a mask
+
+        The mask is True only for points for which the desired wavelength is
+        accesible from the crystal (and from the detector if strict=True and
+        det is provided)
+
+        More than one value of lamb can be provided (nlamb >= 1)
+
+        pts is returned as a (3, npts) array
+        lambok is returned as a (nlamb, npts) array
+
+        """
+
+        # ------------
+        # check inputs
+
+        (
+            struct, lamb, binning,
+        ) = _check_optics._check_calc_signal_from_emissivity(
+            emis=emis, config=config, struct=struct,
+            lamb=lamb, det=det, binning=binning,
+        )
+
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+        lamb = self.get_lamb_from_bragg(bragg=bragg, n=n)
+
+        # To be refined if xjlim is narrow
+        if ndtheta is None:
+            ndtheta = 5
+        # To be refined if xilim is narrow
+        if nlamb is None:
+            nlamb = 11
+        if strict is None:
+            strict = True
+
+        if plot is None:
+            plot = True
+        if return_dax is None:
+            return_dax = plot is True
+
+        # -------------
+        # sample volume
+
+        (
+            pts, dV, ind, (resR, resZ, resPhi),
+        ) = config.dStruct['dObj']['Ves'][struct].get_sampleV(
+            res=res,
+            domain=domain,
+            returnas='(R, Z, Phi)',
+        )
+
+        # ------------------------------
+        # check access from crystal only
+
+        ptsXYZ = np.array([
+            pts[0, :]*np.cos(pts[2, :]),
+            pts[0, :]*np.sin(pts[2, :]),
+            pts[1, :],
+        ])
+
+        lamb_access = self.get_lamb_avail_from_pts(
+            pts=ptsXYZ,
+            nlamb=2,
+            use_non_parallelism=use_non_parallelism,
+            return_phidtheta=False,
+            return_xixj=False,
+            strict=False,
+        )
+
+        lambok = np.zeros((lamb.size, pts.shape[1]), dtype=bool)
+        for ii, ll in enumerate(lamb):
+            lambok[ii, :] = (
+                (lamb_access[:, 0] <= ll) & (ll <= lamb_access[:, 1])
+            )
+
+        # ---------------
+        # refactor pts and lambok
+
+        indok = np.any(lambok, axis=0)
+        pts = pts[:, indok]
+        ptsXYZ = ptsXYZ[:, indok]
+        lambok = lambok[:, indok]
+
+        # ---------------
+        # check strict
+
+        # det vs detbis if xixj_lim
+        detbis = dict(det)
+        if xixj_lim is not None:
+            detbis['outline'] = np.array([
+                np.r_[
+                    xixj_lim[0][0],
+                    xixj_lim[0][1]*np.r_[1, 1],
+                    xixj_lim[0][0],
+                ],
+                np.r_[
+                    xixj_lim[1][0]*np.r_[1, 1],
+                    xixj_lim[1][1]*np.r_[1, 1],
+                ],
+            ])
+            detbis['outline'] = np.concatenate(
+                (detbis['outline'], detbis['outline'][:, 0:1]),
+                axis=1,
+            )
+
+        # intersection with detbis
+        shape = tuple(np.r_[pts.shape[1], lamb.size, ndtheta, 2])
+        xi = np.full(shape, np.nan)
+        xj = np.full(shape, np.nan)
+        val = np.full(shape, np.nan)
+        for kk, ll in enumerate(lamb):
+            (
+                lambi, xii, xji,
+            ) = _comp_optics._get_lamb_avail_from_pts_phidtheta_xixj(
+                cryst=self,
+                lamb=np.full((lambok[kk, :].sum(), 1), ll),
+                n=n,
+                ndtheta=ndtheta,
+                pts=ptsXYZ[:, lambok[kk, :]],
+                use_non_parallelism=use_non_parallelism,
+                return_phidtheta=False,
+                return_xixj=True,
+                strict=True,
+                det=detbis,
+            )
+
+            iok = ~np.isnan(lambi[:, 0])
+            iokf = lambok[kk, :].nonzero()[0][iok]
+            lambok[kk, lambok[kk, :]] = iok
+            xi[iokf, kk, :, :] = xii[iok, 0, :, :]
+            xj[iokf, kk, :, :] = xji[iok, 0, :, :]
+            val[iokf, kk, :, :] = emis(
+                r=pts[0, iokf],
+                z=pts[1, iokf],
+                phi=pts[2, iokf],
+                lamb=lamb[kk:kk+1],
+                t=None,
+            )[:, 0, None, None]
+
+        # -------
+        # Optional binning
+
+        binned = None
+        if binning is not False:
+            iok = np.isfinite(val)
+            binned = scpstats.binned_statistic_2d(
+                xi[iok].ravel(),
+                xj[iok].ravel(),
+                val[iok].ravel(),
+                statistic='mean',
+                bins=binning,
+                expand_binnumbers=False,
+            )[0]
+
+        # -------
+        # return
+
+        if plot:
+            dax = _plot_optics.CrystalBragg_plot_signal_from_emissivity(
+                cryst=self,
+                det=det,
+                xixj_lim=xixj_lim,
+                config=config,
+                lamb=lamb,
+                pts=pts,
+                reseff=[resR, resZ, resPhi],
+                xi=xi,
+                xj=xj,
+                val=val,
+                lambok=lambok,
+                binning=binning,
+                binned=binned,
+                # plotting
+                vmin=vmin,
+                vmax=vmax,
+                vmin_bin=vmin_bin,
+                vmax_bin=vmax_bin,
+                cmap=cmap,
+                dax=dax,
+                fs=fs,
+                dmargin=dmargin,
+                tit=tit,
+            )
+
+        # ---------------
+        # return
+
+        if return_dax is True:
+            return pts, val, xi, xj, binned, dax
+        else:
+            return pts, val, xi, xj, binned
 
     @staticmethod
     def fit1d_dinput(
