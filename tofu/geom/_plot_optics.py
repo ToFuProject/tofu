@@ -1624,7 +1624,7 @@ def CrystalBragg_plot_signal_from_emissivity(
     nlamb = lamb.size
 
     if fs is None:
-        fs = (8, 6)
+        fs = (12, 8)
     if dmargin is None:
         dmargin = {'left': 0.1, 'right': 0.95,
                    'bottom': 0.1, 'top': 0.9,
@@ -1698,7 +1698,7 @@ def CrystalBragg_plot_signal_from_emissivity(
     ).create_contour(0.5)
     if isinstance(cont_raw, tuple):
         cont_raw = cont_raw[0]
-    assert all([pp.ndim == 2  and pp.shape[1] == 2 for pp in cont_raw])
+    assert all([pp.ndim == 2 and pp.shape[1] == 2 for pp in cont_raw])
     cont_cross = PatchCollection(
         [plt.Polygon(pp) for pp in cont_raw],
         color='k',
@@ -1732,8 +1732,14 @@ def CrystalBragg_plot_signal_from_emissivity(
             gs[:, 2], sharex=ax2, sharey=ax2,
         )
 
-        ax0.set_xlabel(r'$x_i$ (m)')
-        ax0.set_ylabel(r'$x_j$ (m)')
+        ax0.set_xlabel(r'$R$ (m)')
+        ax0.set_ylabel(r'$Z$ (m)')
+
+        ax1.set_xlabel(r'$x$ (m)')
+        ax1.set_ylabel(r'$y$ (m)')
+
+        ax2.set_xlabel(r'$x_i$ (m)')
+        ax2.set_ylabel(r'$x_j$ (m)')
 
         dax = {
             'cross': {'ax': ax0, 'type': 'cross'},
@@ -1773,11 +1779,12 @@ def CrystalBragg_plot_signal_from_emissivity(
         ax.scatter(
             xi[iok].ravel(),
             xj[iok].ravel(),
-            s=4,
+            s=2,
             c=val[iok].ravel(),
             vmin=vmin,
             vmax=vmax,
             cmap=cmap,
+            marker='.',
         )
         ax.plot(
             det['outline'][0, :],
