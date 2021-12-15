@@ -533,6 +533,10 @@ def _checkformat_data_fit12d_dlines(
             lamb = np.repeat(lamb[None, :], nxj, axis=0)
             phi = np.repeat(phi[:, None], nxi, axis=1)
 
+        if nxi is None or nxj is None:
+            msg = "Arg (nxi, nxj) must be provided for double-checking shapes"
+            raise Exception(msg)
+
         c0 = (
             data.ndim in mindim + np.r_[0, 1]
             and (
@@ -1212,6 +1216,10 @@ def multigausfit2d_from_dlines_prepare(
 
     # Recompute domain
     indok_bool = indok == 0
+    if not np.any(indok_bool):
+        msg = "No valid point in data!"
+        raise Exception(msg)
+
     domain['lamb']['minmax'] = [
         np.nanmin(lamb[np.any(indok_bool, axis=0)]),
         np.nanmax(lamb[np.any(indok_bool, axis=0)])
@@ -1691,6 +1699,12 @@ def _checkformat_dlines(dlines=None, domain=None):
     lines_keys, lines_lamb = lines_keys[inds], lines_lamb[inds]
     nlines = lines_lamb.size
     dlines = {k0: dict(dlines[k0]) for k0 in lines_keys}
+
+    # Warning if no lines left
+    if len(lines_keys) == 0:
+        msg = "There seems to be no lines left!"
+        warnings.warn(msg)
+
     return dlines, lines_keys, lines_lamb
 
 
