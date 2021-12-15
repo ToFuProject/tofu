@@ -909,6 +909,14 @@ def _get_lamb_avail_from_pts_phidtheta_xixj(
         pts = (3, npts) array
         lamb = (npts, nlamb) array
 
+    Return
+    ------
+        lamb    (npts, nlamb)
+        xi      (npts, nlamb, ndtheta, 2)   There can be 2 solutions
+        xj      (npts, nlamb, ndtheta, 2)
+        phi     (npts, nlamb, ndtheta, 2)
+        dtheta  (npts, nlamb, ndtheta, 2)
+
     """
 
     keepon = return_phidtheta or return_xixj or strict
