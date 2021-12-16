@@ -2041,18 +2041,14 @@ class CrystalBragg(utils.ToFuObject):
                         use_non_parallelism=True,
                         return_lamb=True,
                     )
-                    # From perfect crystal, (xi,xj) corresponding to
-                    # (bragg, phi, lamb)_unp
-                    self.update_non_parallelism(
-                        alpha=alphas[ii], beta=betas[jj],
-                    )
+                    # From unperfect crystal, (xi,xj)_unp corresponding to
+                    # (bragg, phi, lamb)
                     (
                         xi_unp[ii, jj, :],
                         xj_unp[ii, jj, :], strict,
                     ) = self.calc_xixj_from_braggphi(
-                        phi = phi_unp[ii, jj, ...].flatten(),
-                        lamb = lamb_unp[ii, jj, ...].flatten(),
-                        dtheta=0, psi=0,
+                        phi = phi[ii, jj, ...].flatten(),
+                        bragg = bragg[ii, jj, ...].flatten(),
                         det=det,
                         use_non_parallelism=True,
                         strict=True,
@@ -2088,16 +2084,15 @@ class CrystalBragg(utils.ToFuObject):
                         use_non_parallelism=True,
                         return_lamb=True,
                     )
-                    # From perfect crystal, (xi,xj) corresponding to
-                    # (bragg, phi, lamb)_unp
+                    # From unperfect crystal, (xi,xj)_unp corresponding to
+                    # (bragg, phi, lamb)
                     (
                         xi_unp[ii, jj, :],
                         xj_unp[ii, jj, :], strict,
-                    ) = cryst1.calc_xixj_from_braggphi(
-                        phi = phi_unp[ii, jj, ...].flatten(),
-                        lamb = lamb_unp[ii, jj, ...].flatten(),
+                    ) = cryst2.calc_xixj_from_braggphi(
+                        phi = phi[ii, jj, ...].flatten(),
+                        bragg = bragg[ii, jj, ...].flatten(),
                         det=det,
-                        dtheta=0, psi=0,
                         use_non_parallelism=True,
                         strict=True,
                         return_strict=True,

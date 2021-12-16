@@ -1052,7 +1052,7 @@ def CrystalBragg_plot_dshift_maps(
     if fs is None:
         fs = (18, 14)
     if dmargin is None:
-        dmargin = {'left': 0.07, 'right': 0.95,
+        dmargin = {'left': 0.07, 'right': 0.92,
                    'bottom': 0.06, 'top': 0.92,
                    'wspace': None, 'hspace': 0.6}
 
@@ -1061,19 +1061,25 @@ def CrystalBragg_plot_dshift_maps(
     if tit is None:
         if split:
             tit = (
-                u"Crystal splitted, non-parallelism on S2 crystal"
+                u"Crystal splitted, non-parallelism on C2 crystal"
             )
         else:
             tit = u"Monocrystal"
 
+    # Prepare angles data for titles (degrees)
+    #-----------------------------------------
+    alphas_split = np.round(alphas_split*(180/np.pi), 3)
+    betas_split = np.round(betas_split*(180/np.pi), 3)
+
     # Plot
     #-----
 
-    # dshift = f(lamb, phi) // alpha=0arcmin
-    #-------------------
+    # dshift = f(xi, xj) // alpha=0arcmin
+    #------------------------------------
 
     fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(8, 11, **dmargin)
+
     ax = fig.add_subplot(gs[:, :2])
     ax1 = fig.add_subplot(gs[:, 3:5])
     ax2 = fig.add_subplot(gs[:, 6:8])
@@ -1117,10 +1123,26 @@ def CrystalBragg_plot_dshift_maps(
             ls='-', lw=1., c='k',
         )
 
-    ax.set_title(r'$\alpha$=0/$\beta=0$', fontsize=14)
-    ax1.set_title(r'$\alpha$=0/$\beta=\pi/2$', fontsize=14)
-    ax2.set_title(r'$\alpha$=0/$\beta=\pi$', fontsize=14)
-    ax3.set_title(r'$\alpha$=0/$\beta=3\pi/2$', fontsize=14)
+    ax.set_title(
+        r'$\alpha$={}/$\beta$={} [deg]'.format(
+            alphas_split[0], betas_split[0],
+        ), fontsize=14,
+    )
+    ax1.set_title(
+        r'$\alpha$={}/$\beta$={} [deg]'.format(
+            alphas_split[0], betas_split[1],
+        ), fontsize=14,
+    )
+    ax2.set_title(
+        r'$\alpha$={}/$\beta$={} [deg]'.format(
+            alphas_split[0], betas_split[2],
+        ), fontsize=14,
+    )
+    ax3.set_title(
+        r'$\alpha$={}/$\beta$={} [deg]'.format(
+            alphas_split[0], betas_split[3],
+        ), fontsize=14,
+    )
 
     """errmap = ax.scatter(
         lamb[0, 0, ...].flatten(),
@@ -1237,11 +1259,12 @@ def CrystalBragg_plot_dshift_maps(
         ax=ax3,
     )
 
-    # dshift = f(lamb, phi) // alpha=3arcmin
-    #------------------
+    # dshift = f(xi, xj) // alpha=3arcmin
+    #------------------------------------
 
     fig1 = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(8, 11, **dmargin)
+
     ax = fig1.add_subplot(gs[:, :2])
     ax1 = fig1.add_subplot(gs[:, 3:5])
     ax2 = fig1.add_subplot(gs[:, 6:8])
@@ -1285,10 +1308,26 @@ def CrystalBragg_plot_dshift_maps(
             ls='-', lw=1., c='k',
         )
 
-    ax.set_title(r'$\alpha$=3/$\beta$=0', fontsize=14)
-    ax1.set_title(r'$\alpha$=3/$\beta=\pi/2$', fontsize=14)
-    ax2.set_title(r'$\alpha$=3/$\beta=\pi$', fontsize=14)
-    ax3.set_title(r'$\alpha$=3/$\beta=3\pi/2$', fontsize=14)
+    ax.set_title(
+        r'$\alpha$={}/$\beta$={} [deg]'.format(
+            alphas_split[1], betas_split[0],
+        ), fontsize=14,
+    )
+    ax1.set_title(
+        r'$\alpha$={}/$\beta$={} [deg]'.format(
+            alphas_split[1], betas_split[1],
+        ), fontsize=14,
+    )
+    ax2.set_title(
+        r'$\alpha$={}/$\beta$={} [deg]'.format(
+            alphas_split[1], betas_split[2],
+        ), fontsize=14,
+    )
+    ax3.set_title(
+        r'$\alpha$={}/$\beta$={} [deg]'.format(
+            alphas_split[1], betas_split[3],
+        ), fontsize=14,
+    )
 
     """errmap = ax.scatter(
         lamb[1, 0, ...].flatten(),
@@ -1406,12 +1445,14 @@ def CrystalBragg_plot_dshift_maps(
     )
 
     # Profiles
-    # ------------------------------
+    # --------
 
-    fig2 = plt.figure(figsize=(10, 10))
+    fig2 = plt.figure(figsize=(13, 13))
     gs = gridspec.GridSpec(1, 2, **dmargin)
+
     ax = fig2.add_subplot(gs[0, 0])
     ax1 = fig2.add_subplot(gs[0, 1])
+
     ax.set_title(
         r'$\phi$ ranges selected into $(\lambda,\phi)$ space',
         fontsize=14,
@@ -1420,6 +1461,7 @@ def CrystalBragg_plot_dshift_maps(
         r'Relation between $x_{i}$ coord. and $\lambda$',
         fontsize=14,
     )
+
     ax.set_xlabel(r'$\lambda$ [m]', fontsize=14)
     ax.set_ylabel(r'$\phi$ [m]', fontsize=14)
     ax1.set_xlabel('Xi [m]', fontsize=14)
@@ -1427,33 +1469,84 @@ def CrystalBragg_plot_dshift_maps(
 
     fig3 = plt.figure(figsize=(13, 13))
     gs = gridspec.GridSpec(2, 2, **dmargin)
+
     ax2 = fig3.add_subplot(gs[0, 0])
     ax3 = fig3.add_subplot(gs[0, 1])
     ax4 = fig3.add_subplot(gs[1, 0])
     ax5 = fig3.add_subplot(gs[1, 1])
+
     ax2.set_ylabel(r'$\Delta\lambda$ [m]', fontsize=14)
     ax4.set_ylabel(r'$\Delta\lambda$ [m]', fontsize=14)
     ax4.set_xlabel(r'$\lambda$ [m]', fontsize=14)
     ax5.set_xlabel(r'$\lambda$ [m]', fontsize=14)
-    ax2.set_title(r'$\alpha$=3/$\beta=0$', fontsize=14)
-    ax3.set_title(r'$\alpha$=3/$\beta=\pi/2$', fontsize=14)
-    ax4.set_title(r'$\alpha$=3/$\beta=\pi$', fontsize=14)
-    ax5.set_title(r'$\alpha$=3/$\beta=3\pi/2$', fontsize=14)
+
+    ax2.set_title(
+        r'$\alpha$={}/$\beta$={} [deg]'.format(
+            alphas_split[1], betas_split[0],
+        ), fontsize=14,
+    )
+    ax3.set_title(
+        r'$\alpha$={}/$\beta$={} [deg]'.format(
+            alphas_split[1], betas_split[1],
+        ), fontsize=14,
+    )
+    ax4.set_title(
+        r'$\alpha$={}/$\beta$={} [deg]'.format(
+            alphas_split[1], betas_split[2],
+        ), fontsize=14,
+    )
+    ax5.set_title(
+        r'$\alpha$={}/$\beta$={} [deg]'.format(
+            alphas_split[1], betas_split[3],
+        ), fontsize=14,
+    )
 
     ## Analytical relations of dshift
+
     rc = cryst._dgeom['rcurve']
     braggref = cryst._dbragg['braggref']
-    dbragg = np.linspace(0.019, -0.012, 487)
-    alpha = (3/60)*(np.pi/180)  #(alphas_split[1]); print(alpha)
+    dbragg = np.linspace(0.015, -0.015, 487)
+    alpha = (3/60)*(np.pi/180)
+    sphi = 0.08/(8*rc)
 
-    def xi_gap(r, bragg, dbragg, alpha):
-        return r*np.sin(bragg)*(
-            np.cos(bragg) - np.sin(bragg)/np.tan(bragg-dbragg-alpha)
+    if not split:
+        def xi_gap(r, bragg, dbragg, alpha):
+            return r*np.sin(bragg)*(
+                np.cos(bragg)-np.sin(bragg)/np.tan(bragg-dbragg-alpha)
+            )
+        y1 = xi_gap(r=rc, bragg=braggref, dbragg=dbragg, alpha=0)
+        y2 = xi_gap(r=rc, bragg=braggref, dbragg=dbragg, alpha=alpha)
+    else:
+        kappa1 = (rc/2)*np.sqrt(
+            6-4*np.cos(2*braggref+2*sphi)+2*np.cos(2*braggref)-4*np.cos(2*sphi)
         )
+        kappa2 = (rc/2)*np.sqrt(
+            6-4*np.cos(2*braggref-2*sphi)+2*np.cos(2*braggref)-4*np.cos(2*sphi)
+        )
+        def dxi2(r, bragg, dbragg, alpha, phi):
+            return kappa2*(
+                (
+                    (np.sin(2*bragg - phi) - np.sin(bragg)) /
+                    (np.sin(2*bragg - phi) - np.sin(bragg - dbragg - alpha))
+                )*
+                (np.cos(2*bragg - phi) - np.cos(bragg - dbragg - alpha)) -
+                np.cos(2*bragg - phi) + np.cos(bragg)
+            )
+        def dxi1(r, bragg, dbragg, alpha, phi):
+            return kappa1*(
+                (
+                    (np.sin(2*bragg + phi) + np.sin(bragg)) /
+                    (np.sin(2*bragg + phi) + np.sin(bragg - dbragg - alpha))
+                )*
+                (-np.cos(2*bragg + phi) - np.cos(bragg - dbragg - alpha)) +
+                np.cos(2*bragg + phi) + np.cos(bragg)
+            )
 
-    y0 = xi_gap(r=rc, bragg=braggref, dbragg=-dbragg, alpha=alpha)
+        y1 = dxi1(r=rc, bragg=braggref, dbragg=dbragg, alpha=alpha, phi=sphi)
+        y2 = dxi2(r=rc, bragg=braggref, dbragg=dbragg, alpha=alpha, phi=sphi)
 
     ## find indices of Phi wanted values
+
     def find_nearest(arr, val):
         arr = np.asarray(arr);
         ids = (np.abs(arr-val)).argmin();
@@ -1470,6 +1563,8 @@ def CrystalBragg_plot_dshift_maps(
         'darkcyan', 'turquoise', 'limegreen', 'gold',
     ]
 
+    ## Plot profiles
+
     for bb in np.linspace(0, nn-1, nn):
         bb = int(bb)
         nearest[bb] = find_nearest(phi[1, 0, 0, :], val_phi[bb])
@@ -1477,27 +1572,26 @@ def CrystalBragg_plot_dshift_maps(
         max_phi, min_phi = nearest[bb]+n_val_phi, nearest[bb]-n_val_phi
         ax2.plot(
             xii[:, int(ind_near[bb])],
-            gap_xi[1, 0, :, int(ind_near[bb])],
+            xi_unp[1, 0, :, int(ind_near[bb])],
+            #gap_xi[1, 0, :, int(ind_near[bb])],
             label='$x_{j}$='+str(np.round(jx[bb], 3)),
             color=colors[bb],
         )
-        ax2.plot(xi, y0, 'k:', label=r'$\deltaxi(\Delta\theta,\alpha)$')
+        ax2.plot(xi, y2, 'k:')
+        ax2.plot(xi, y1, 'b:')
         ax3.plot(
             xii[:, int(ind_near[bb])],
             gap_xi[1, 1, :, int(ind_near[bb])],
-            label='$x_{j}$='+str(np.round(jx[bb], 3)),
             color=colors[bb],
         )
         ax4.plot(
             xii[:, int(ind_near[bb])],
             gap_xi[1, 2, :, int(ind_near[bb])],
-            label='$x_{j}$='+str(np.round(jx[bb], 3)),
             color=colors[bb],
         )
         ax5.plot(
             xii[:, int(ind_near[bb])],
             gap_xi[1, 3, :, int(ind_near[bb])],
-            label='$x_{j}$='+str(np.round(jx[bb], 3)),
             color=colors[bb],
         )
         for i in np.linspace(0, int(xi.size)-1, int(xi.size)):
@@ -1539,6 +1633,7 @@ def CrystalBragg_plot_dshift_maps(
             color=colors[bb], linewidth=2,
             label=r'$\phi$='+str(val_phi[bb]),
         )
+
         # Plot sections of dshift calculated, for alpha= 3arcmin and
         # beta variable, for each section of phi wanted
         """ax2.plot(
@@ -1565,7 +1660,7 @@ def CrystalBragg_plot_dshift_maps(
     ax1.legend(**dleg)
     ax2.legend(**dleg)
 
-    return ax, ax1, ax2, ax3, ax4, ax5,
+    return ax, ax1, ax2, ax3, ax4, ax5
 
 
 def CrystalBragg_plot_johannerror(
