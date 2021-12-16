@@ -256,14 +256,24 @@ def _domain2str(domain, key):
 
 def _check_phi_lim(phi=None, phi_lim=None):
 
+    Dphi = (phi.max()-phi.min()) / 2.
+    dphi = np.mean(np.diff(np.unique(phi)))
     if phi_lim is None:
-        Dphi = (phi.max()-phi.min()) / 2.
-        dphi = np.mean(np.diff(np.unique(phi)))
-        phi_lim = (
-            phi.mean()
-            + dphi * np.r_[-0.6, 0.6][None, :]
-            + Dphi*np.r_[0., -0.2, -0.3, -0.4][:, None]
+        phi_lim = phi.mean() + Dphi*np.r_[0., -0.25, -0.5]
+
+    # check for phi values
+    c0 = (
+        np.isscalar(phi_lim)
+        or (
+            hasattr(phi_lim, '__iter__')
+            and len(phi_lim) != 2
+            and all([np.isscalar(pp) for pp in phi_lim])
         )
+    )
+    if c0:
+        if np.isscalar(phi_lim):
+            phi_lim = [phi_lim]
+        phi_lim = dphi * np.r_[-0.6, 0.6][None, :] + np.r_[phi_lim][:, None]
 
     # check
     c0 = (
