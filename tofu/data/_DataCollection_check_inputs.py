@@ -13,7 +13,7 @@ from matplotlib.tri import Triangulation as mplTri
 _DRESERVED_KEYS = {
     'dgroup': ['lref', 'ldata'],
     'dref': ['ldata', 'group', 'size', 'ind'],
-    'dref_static': [],
+    'dstatic': [],
     'ddata': ['ref', 'group', 'shape', 'data'],
     'dobj': [],
 }
@@ -183,7 +183,7 @@ def _check_remove(key=None, dkey=None, name=None):
 
 def _remove_group(
     group=None, dgroup0=None, dref0=None, ddata0=None,
-    dref_static0=None,
+    dstatic0=None,
     dobj0=None,
     allowed_groups=None,
     reserved_keys=None,
@@ -210,7 +210,7 @@ def _remove_group(
     return _consistency(
         ddata=None, ddata0=ddata0,
         dref=None, dref0=dref0,
-        dref_static=None, dref_static0=dref_static0,
+        dstatic=None, dstatic0=dstatic0,
         dobj=None, dobj0=dobj0,
         dgroup=None, dgroup0=dgroup0,
         allowed_groups=allowed_groups,
@@ -225,7 +225,7 @@ def _remove_group(
 def _remove_ref(
     key=None,
     dgroup0=None, dref0=None, ddata0=None,
-    dref_static0=None,
+    dstatic0=None,
     dobj0=None,
     propagate=None,
     allowed_groups=None,
@@ -263,7 +263,7 @@ def _remove_ref(
     return _consistency(
         ddata=None, ddata0=ddata0,
         dref=None, dref0=dref0,
-        dref_static=None, dref_static0=dref_static0,
+        dstatic=None, dstatic0=dstatic0,
         dobj=None, dobj0=dobj0,
         dgroup=None, dgroup0=dgroup0,
         allowed_groups=allowed_groups,
@@ -279,7 +279,7 @@ def _remove_ref_static(
     key=None,
     which=None,
     propagate=None,
-    dref_static0=None,
+    dstatic0=None,
     ddata0=None,
     dobj0=None,
 ):
@@ -307,21 +307,21 @@ def _remove_ref_static(
             key = [key]
 
         lk0 = [
-            k0 for k0, v0 in dref_static0.items()
+            k0 for k0, v0 in dstatic0.items()
             if all([kk in v0.keys() for kk in key])
         ]
         if len(lk0) != 1:
             msg = (
                 "No / several matches for '{}' in ref_static:\n".format(key)
                 + "\n".join([
-                    "\t- dref_static[{}][{}]".format(k0, key) for k0 in lk0
+                    "\t- dstatic[{}][{}]".format(k0, key) for k0 in lk0
                 ])
             )
             raise Exception(msg)
         k0 = lk0[0]
         key = _check_remove(
             key=key,
-            dkey=dref_static0[k0],
+            dkey=dstatic0[k0],
             name='ref_static[{}]'.format(k0),
         )
 
@@ -347,17 +347,17 @@ def _remove_ref_static(
                     )
                 )
                 raise Exception(msg)
-            del dref_static0[k0][kk]
+            del dstatic0[k0][kk]
 
     elif which is not None:
-        if which not in dref_static0.keys():
+        if which not in dstatic0.keys():
             msg = (
-                "Provided which not in dref_static.keys():\n"
-                + "\t- Available: {}\n".format(sorted(dref_static0.keys()))
+                "Provided which not in dstatic.keys():\n"
+                + "\t- Available: {}\n".format(sorted(dstatic0.keys()))
                 + "\t- Provided: {}".format(which)
             )
             raise Exception(msg)
-        del dref_static0[which]
+        del dstatic0[which]
 
         # Propagate (delete as partam in ddata and dobj)
         if propagate is None:
@@ -381,7 +381,7 @@ def _remove_ref_static(
 def _remove_data(
     key=None,
     dgroup0=None, dref0=None, ddata0=None,
-    dref_static0=None,
+    dstatic0=None,
     dobj0=None,
     propagate=None,
     allowed_groups=None,
@@ -427,7 +427,7 @@ def _remove_data(
     return _consistency(
         ddata=None, ddata0=ddata0,
         dref=None, dref0=dref0,
-        dref_static=None, dref_static0=dref_static0,
+        dstatic=None, dstatic0=dstatic0,
         dobj=None, dobj0=dobj0,
         dgroup=None, dgroup0=dgroup0,
         allowed_groups=allowed_groups,
@@ -445,7 +445,7 @@ def _remove_obj(
     dobj0=None,
     ddata0=None,
     dref0=None,
-    dref_static0=None,
+    dstatic0=None,
     dgroup0=None,
     allowed_groups=None,
     reserved_keys=None,
@@ -506,7 +506,7 @@ def _remove_obj(
     return _consistency(
         ddata=None, ddata0=ddata0,
         dref=None, dref0=dref0,
-        dref_static=None, dref_static0=dref_static0,
+        dstatic=None, dstatic0=dstatic0,
         dobj=None, dobj0=dobj0,
         dgroup=None, dgroup0=dgroup0,
         allowed_groups=allowed_groups,
@@ -618,30 +618,30 @@ def _check_dgroup(dgroup=None, dgroup0=None, allowed_groups=None):
 
 # #############################################################################
 # #############################################################################
-#                           dref_static
+#                           dstatic
 # #############################################################################
 
 
-def _check_dref_static(
-    dref_static=None, dref_static0=None,
+def _check_dstatic(
+    dstatic=None, dstatic0=None,
 ):
     """ Check and format dref_staytic
 
-    dref_static can be:
+    dstatic can be:
         - dict
 
     """
 
     # ----------------
     # Trivial case
-    if dref_static in [None, {}]:
+    if dstatic in [None, {}]:
         return {}
 
     # ----------------
     # Check conformity
 
     c0 = (
-        isinstance(dref_static, dict)
+        isinstance(dstatic, dict)
         and all([
             isinstance(k0, str)
             and isinstance(v0, dict)
@@ -650,7 +650,7 @@ def _check_dref_static(
                 and isinstance(v1, dict)
                 for k1, v1 in v0.items()
             ])
-            for k0, v0 in dref_static.items()
+            for k0, v0 in dstatic.items()
         ])
     )
 
@@ -658,7 +658,7 @@ def _check_dref_static(
     if not c0:
         msg = (
             """
-            Arg dref_static must be a dict of the form:
+            Arg dstatic must be a dict of the form:
             dict(
                 'type0': {'k0': {...},
                           'k1': {...}},
@@ -670,31 +670,31 @@ def _check_dref_static(
             """
             Provided:
             {}
-            """.format(dref_static)
+            """.format(dstatic)
         )
         raise Exception(msg)
 
     # raise except if conflict with existing entry
     dupdate = {}
     dconflict = {}
-    for k0, v0 in dref_static.items():
+    for k0, v0 in dstatic.items():
         lkout = ['nb. data']
         if k0 == 'ion':
             lkout += ['ION', 'charge', 'element']
-        if k0 not in dref_static0.keys():
+        if k0 not in dstatic0.keys():
             continue
 
         for k1, v1 in v0.items():
-            if k1 not in dref_static0[k0].keys():
+            if k1 not in dstatic0[k0].keys():
                 continue
             # conflicts
-            lk = set(v1.keys()).intersection(dref_static0[k0][k1].keys())
-            lk = [kk for kk in lk if v1[kk] != dref_static0[k0][k1][kk]]
+            lk = set(v1.keys()).intersection(dstatic0[k0][k1].keys())
+            lk = [kk for kk in lk if v1[kk] != dstatic0[k0][k1][kk]]
             if len(lk) > 0:
                 dconflict[k0] = (k1, lk)
             # updates
             lk = [
-                kk for kk in dref_static0[k0][k1].keys()
+                kk for kk in dstatic0[k0][k1].keys()
                 if kk not in v1.keys()
                 and kk not in lkout
                 and 'nb. ' not in kk
@@ -705,9 +705,9 @@ def _check_dref_static(
     # Conflicts => Exception
     if len(dconflict) > 0:
         msg = (
-            "The following dref_static keys are conflicting existing values:\n"
+            "The following dstatic keys are conflicting existing values:\n"
             + "\n".join([
-                "\t- dref_static['{}']['{}']: {}".format(k0, v0[0], v0[1])
+                "\t- dstatic['{}']['{}']: {}".format(k0, v0[0], v0[1])
                 for k0, v0 in dconflict.items()
             ])
         )
@@ -716,9 +716,9 @@ def _check_dref_static(
     # Updates => Warning
     if len(dupdate) > 0:
         msg = (
-            "\nThe following existing dref_static keys will be forgotten:\n"
+            "\nThe following existing dstatic keys will be forgotten:\n"
             + "\n".join([
-                "\t- dref_static['{}']['{}']: {}".format(k0, v0[0], v0[1])
+                "\t- dstatic['{}']['{}']: {}".format(k0, v0[0], v0[1])
                 for k0, v0 in dupdate.items()
             ])
         )
@@ -726,9 +726,9 @@ def _check_dref_static(
 
     # ------------------
     # Check element / ion / charge
-    _check_elementioncharge_dict(dref_static=dref_static)
+    _check_elementioncharge_dict(dstatic=dstatic)
 
-    return dref_static
+    return dstatic
 
 
 # #############################################################################
@@ -1816,20 +1816,20 @@ def _check_elementioncharge(
     return ION, ion, element, charge
 
 
-def _check_elementioncharge_dict(dref_static):
+def _check_elementioncharge_dict(dstatic):
     """ Specific to SpectralLines """
 
     # Assess if relevant
-    lk = [kk for kk in ['ion', 'ION'] if kk in dref_static.keys()]
+    lk = [kk for kk in ['ion', 'ION'] if kk in dstatic.keys()]
     if len(lk) == 0:
         return
     kion = lk[0]
     kION = 'ION' if kion == 'ion' else 'ion'
     if kion == 'ION':
-        dref_static['ion'] = {}
+        dstatic['ion'] = {}
 
     lerr = []
-    for k0, v0 in dref_static[kion].items():
+    for k0, v0 in dstatic[kion].items():
         try:
             if kion == 'ION':
                 ION, ion, element, charge = _check_elementioncharge(
@@ -1849,21 +1849,21 @@ def _check_elementioncharge_dict(dref_static):
             if ION is None:
                 continue
             if kion == 'ION':
-                dref_static['ion'][ion] = {
+                dstatic['ion'][ion] = {
                     'ION': ION,
                     'element': element,
                     'charge': charge,
                 }
             else:
-                dref_static['ion'][k0]['ION'] = ION
-                dref_static['ion'][k0]['element'] = element
-                dref_static['ion'][k0]['charge'] = charge
+                dstatic['ion'][k0]['ION'] = ION
+                dstatic['ion'][k0]['element'] = element
+                dstatic['ion'][k0]['charge'] = charge
 
         except Exception as err:
             lerr.append((k0, str(err)))
 
     if kion == 'ION':
-        del dref_static['ION']
+        del dstatic['ION']
 
     if len(lerr) > 0:
         lerr = ['\t- {}: {}'.format(pp[0], pp[1]) for pp in lerr]
@@ -1880,7 +1880,7 @@ def _harmonize_params(
     dd=None,
     dd_name=None,
     dd_name2=None,
-    dref_static=None,
+    dstatic=None,
     lkeys=None,
     reserved_keys=None,
     ddefparams=None,
@@ -1941,12 +1941,12 @@ def _harmonize_params(
             dd[k1][k0] = dd[k1].get(k0)
 
     # ------------------
-    # Check against dref_static0
+    # Check against dstatic0
     lkpout = [
         (k0, (k1, v0[k1]))
         for k0, v0 in dd.items()
-        if k1 in dref_static.keys()
-        and any([v0[k1] not in dref_static[k1].keys() for k1 in lparams])
+        if k1 in dstatic.keys()
+        and any([v0[k1] not in dstatic[k1].keys() for k1 in lparams])
     ]
     if len(lkpout) > 0:
         lpu = sorted(set([pp[1][0] for pp in lkpout]))
@@ -1954,7 +1954,7 @@ def _harmonize_params(
             '\t- {}[{}]: {}'.format(pp[0], pp[1], pp[2]) for pp in lkpout
         ])
         msg1 = '\n'.join([
-            '\t- dref_static[{}]: {}'.format(pp, dref_static[pp].keys())
+            '\t- dstatic[{}]: {}'.format(pp, dstatic[pp].keys())
             for pp in lpu
         ])
         msg = (
@@ -1971,10 +1971,10 @@ def _harmonize_params(
     return dd
 
 
-def _update_dref_static0(dref_static0=None, ddata0=None, dobj0=None):
+def _update_dstatic0(dstatic0=None, ddata0=None, dobj0=None):
     """ Count nb. of matching ref_static in ddata and dobj """
 
-    for k0, v0 in dref_static0.items():
+    for k0, v0 in dstatic0.items():
 
         # ddata
         dd = {
@@ -1985,7 +1985,7 @@ def _update_dref_static0(dref_static0=None, ddata0=None, dobj0=None):
         if len(dd) > 0:
             ss = 'nb. data'
             for k2, v2 in v0.items():
-                dref_static0[k0][k2][ss] = int(dd.get(k2, 0))
+                dstatic0[k0][k2][ss] = int(dd.get(k2, 0))
 
         # dobj
         for k1, v1 in dobj0.items():
@@ -1997,7 +1997,7 @@ def _update_dref_static0(dref_static0=None, ddata0=None, dobj0=None):
             if len(dd) > 0:
                 ss = 'nb. {}'.format(k1)
                 for k2, v2 in v0.items():
-                    dref_static0[k0][k2][ss] = int(dd.get(k2, 0))
+                    dstatic0[k0][k2][ss] = int(dd.get(k2, 0))
 
 
 # #############################################################################
@@ -2010,7 +2010,7 @@ def _consistency(
     dobj=None, dobj0=None,
     ddata=None, ddata0=None,
     dref=None, dref0=None,
-    dref_static=None, dref_static0=None,
+    dstatic=None, dstatic0=None,
     dgroup=None, dgroup0=None,
     allowed_groups=None,
     reserved_keys=None,
@@ -2043,15 +2043,15 @@ def _consistency(
     dref0.update(dref)
 
     # --------------
-    # dref_static
-    dref_static = _check_dref_static(
-        dref_static=dref_static, dref_static0=dref_static0,
+    # dstatic
+    dstatic = _check_dstatic(
+        dstatic=dstatic, dstatic0=dstatic0,
     )
-    for k0, v0 in dref_static.items():
-        if k0 not in dref_static0.keys():
-            dref_static0[k0] = v0
+    for k0, v0 in dstatic.items():
+        if k0 not in dstatic0.keys():
+            dstatic0[k0] = v0
         else:
-            dref_static0[k0].update(v0)
+            dstatic0[k0].update(v0)
 
     # --------------
     # ddata
@@ -2083,7 +2083,7 @@ def _consistency(
     ddata0 = _harmonize_params(
         dd=ddata0,
         dd_name='ddata',
-        dref_static=dref_static0,
+        dstatic=dstatic0,
         ddefparams=ddefparams_data, reserved_keys=reserved_keys,
     )
 
@@ -2094,7 +2094,7 @@ def _consistency(
             dd=v0,
             dd_name='dobj',
             dd_name2='dobj[{}]'.format(k0),
-            dref_static=dref_static0,
+            dstatic=dstatic0,
             ddefparams=ddefparams_obj.get(k0),
             reserved_keys=reserved_keys,
         )
@@ -2125,8 +2125,8 @@ def _consistency(
             if ddata0[k1].get('data') is not None and k0 in ddata0[k1]['group']
         ))
 
-    # dref_static0
-    _update_dref_static0(dref_static0=dref_static0, ddata0=ddata0, dobj0=dobj0)
+    # dstatic0
+    _update_dstatic0(dstatic0=dstatic0, ddata0=ddata0, dobj0=dobj0)
 
     # --------------
     # Check conventions
@@ -2141,7 +2141,7 @@ def _consistency(
             )
             raise Exception(msg)
 
-    return dgroup0, dref0, dref_static0, ddata0, dobj0
+    return dgroup0, dref0, dstatic0, ddata0, dobj0
 
 
 """
@@ -2167,7 +2167,7 @@ def switch_ref(
     dref=None,
     dgroup=None,
     dobj0=None,
-    dref_static0=None,
+    dstatic0=None,
     allowed_groups=None,
     reserved_keys=None,
     ddefparams_data=None,
@@ -2219,7 +2219,7 @@ def switch_ref(
         dref=dref, dref0={},
         dgroup=dgroup, dgroup0={},
         dobj=None, dobj0=dobj0,
-        dref_static=None, dref_static0=dref_static0,
+        dstatic=None, dstatic0=dstatic0,
         allowed_groups=None,
         reserved_keys=None,
         ddefparams_data=ddefparams_data,

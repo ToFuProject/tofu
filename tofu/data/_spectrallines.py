@@ -205,8 +205,8 @@ class SpectralLines(DataCollection):
         # ddata - pec
         ddata = dpec
 
-        # dref_static
-        dref_static = {
+        # dstatic
+        dstatic = {
             'ion': {k0: {} for k0 in lion},
             'source': dsource,
         }
@@ -215,7 +215,7 @@ class SpectralLines(DataCollection):
         dobj = {
             grouplines: dlines,
         }
-        return ddata, dref, dref_static, dobj
+        return ddata, dref, dstatic, dobj
 
     @classmethod
     def from_openadas(
@@ -234,7 +234,7 @@ class SpectralLines(DataCollection):
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        ddata, dref, dref_static, dobj = cls._from_openadas(
+        ddata, dref, dstatic, dobj = cls._from_openadas(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -244,7 +244,7 @@ class SpectralLines(DataCollection):
             create_custom=create_custom,
             grouplines=grouplines,
         )
-        return cls(ddata=ddata, dref=dref, dref_static=dref_static, dobj=dobj)
+        return cls(ddata=ddata, dref=dref, dstatic=dstatic, dobj=dobj)
 
     def add_from_openadas(
         self,
@@ -261,7 +261,7 @@ class SpectralLines(DataCollection):
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        ddata, dref, dref_static, dobj = self._from_openadas(
+        ddata, dref, dstatic, dobj = self._from_openadas(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -269,12 +269,12 @@ class SpectralLines(DataCollection):
             online=online,
             update=update,
             create_custom=create_custom,
-            dsource0=self._dref_static.get('source'),
+            dsource0=self._dstatic.get('source'),
             dref0=self._dref,
             ddata0=self._ddata,
             dlines0=self._dobj.get('lines'),
         )
-        self.update(ddata=ddata, dref=dref, dref_static=dref_static, dobj=dobj)
+        self.update(ddata=ddata, dref=dref, dstatic=dstatic, dobj=dobj)
 
     # -----------------
     # from nist
@@ -357,10 +357,10 @@ class SpectralLines(DataCollection):
             dlines0=dlines0,
         )
 
-        # dref_static
+        # dstatic
         lion = sorted(set([dlines[k0]['ion'] for k0 in dlines.keys()]))
 
-        dref_static = {
+        dstatic = {
             'ion': {k0: {} for k0 in lion},
             'source': dsources,
         }
@@ -369,7 +369,7 @@ class SpectralLines(DataCollection):
         dobj = {
             grouplines: dlines,
         }
-        return dref_static, dobj
+        return dstatic, dobj
 
     @classmethod
     def from_nist(
@@ -394,7 +394,7 @@ class SpectralLines(DataCollection):
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        dref_static, dobj = cls._from_nist(
+        dstatic, dobj = cls._from_nist(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -410,7 +410,7 @@ class SpectralLines(DataCollection):
             create_custom=create_custom,
             grouplines=grouplines,
         )
-        return cls(dref_static=dref_static, dobj=dobj)
+        return cls(dstatic=dstatic, dobj=dobj)
 
     def add_from_nist(
         self,
@@ -434,7 +434,7 @@ class SpectralLines(DataCollection):
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        dref_static, dobj = self._from_nist(
+        dstatic, dobj = self._from_nist(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -448,11 +448,11 @@ class SpectralLines(DataCollection):
             cache_info=cache_info,
             verb=verb,
             create_custom=create_custom,
-            dsource0=self._dref_static.get('source'),
+            dsource0=self._dstatic.get('source'),
             dlines0=self._dobj.get('lines'),
             grouplines=grouplines,
         )
-        self.update(dref_static=dref_static, dobj=dobj)
+        self.update(dstatic=dstatic, dobj=dobj)
 
     # -----------------
     # from file (.py)
@@ -505,21 +505,21 @@ class SpectralLines(DataCollection):
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
 
-        # extract dref_static
-        dref_static = {}
+        # extract dstatic
+        dstatic = {}
         for k0 in ['source', 'transition', 'ion', 'element']:
             dd = cls._check_extract_dict_from_mod(mod, k0)
             if dd is not None:
-                dref_static[k0] = dd
+                dstatic[k0] = dd
 
         # add ion
-        if 'ion' not in dref_static.keys():
+        if 'ion' not in dstatic.keys():
             lions = np.array([
                     v0['ion'] for k0, v0 in mod.dlines.items()
                     if 'ion' in v0.keys()
             ]).ravel()
             if len(lions) > 0:
-                dref_static['ion'] = {
+                dstatic['ion'] = {
                     k0: {'ion': k0} for k0 in lions
                 }
             else:
@@ -528,7 +528,7 @@ class SpectralLines(DataCollection):
                         if 'ION' in v0.keys()
                 ]).ravel()
                 if len(lIONS) > 0:
-                    dref_static['ION'] = {
+                    dstatic['ION'] = {
                         k0: {'ION': k0} for k0 in lIONS
                     }
 
@@ -538,18 +538,18 @@ class SpectralLines(DataCollection):
         }
 
         # Create collection
-        out = cls(dref_static=dref_static, dobj=dobj)
+        out = cls(dstatic=dstatic, dobj=dobj)
 
         # Replace ION by ion if relevant
         c0 = (
-            'ion' in out.dref_static.keys()
+            'ion' in out.dstatic.keys()
             and 'ion' not in out.get_lparam(which='lines')
             and 'ION' in out.get_lparam(which='lines')
         )
         if c0:
             for k0, v0 in out._dobj['lines'].items():
                 ion = [
-                    k1 for k1, v1 in out._dref_static['ion'].items()
+                    k1 for k1, v1 in out._dstatic['ion'].items()
                     if out._dobj['lines'][k0]['ION'] == v1['ION']
                 ][0]
                 out._dobj['lines'][k0]['ion'] = ion
@@ -921,7 +921,7 @@ class SpectralLines(DataCollection):
         }
 
         sortby_lok = ['ion', 'ION', 'source']
-        lk0 = [k0 for k0 in sortby_lok if k0 in self._dref_static.keys()]
+        lk0 = [k0 for k0 in sortby_lok if k0 in self._dstatic.keys()]
         if len(lk0) > 0:
             sortby_def = lk0[0]
         else:

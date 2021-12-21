@@ -33,9 +33,6 @@ __all__ = ['DataCollection']    # , 'TimeTraceCollection']
 
 
 _INTERPT = 'zero'
-_GROUP_0D = 'time'
-_GROUP_1D = 'radius'
-_GROUP_2D = 'mesh2d'
 
 
 #############################################
@@ -71,11 +68,6 @@ class DataCollection(utils.ToFuObject):
          },
     }
 
-    _forced_group = None
-    if _forced_group is not None:
-        _allowed_groups = [_forced_group]
-    else:
-        _allowed_groups = None
     # _dallowed_params = None
     _data_none = None
     _reserved_keys = None
@@ -84,15 +76,10 @@ class DataCollection(utils.ToFuObject):
     _show_in_summary = 'all'
     _max_ndim = None
 
-    _dgroup = {}
-    _dref = {}
-    _dref_static = {}
+    _dindref = {}
+    _dstatic = {}
     _ddata = {}
     _dobj = {}
-
-    _group0d = _GROUP_0D
-    _group1d = _GROUP_1D
-    _group2d = _GROUP_2D
 
     def __init_subclass__(cls, **kwdargs):
         # Does not exist before Python 3.6 !!!
@@ -106,9 +93,8 @@ class DataCollection(utils.ToFuObject):
 
     def __init__(
         self,
-        dgroup=None,
-        dref=None,
-        dref_static=None,
+        dindref=None,
+        dstatic=None,
         ddata=None,
         dobj=None,
         Id=None,
@@ -128,15 +114,15 @@ class DataCollection(utils.ToFuObject):
     def _reset(self):
         # Run by the parent class __init__()
         super()._reset()
-        self._dgroup = {}
-        self._dref = {}
-        self._dref_static = {}
+        self._dindref = {}
+        self._dstatic = {}
         self._ddata = {}
         self._dobj = {}
 
     @classmethod
-    def _checkformat_inputs_Id(cls, Id=None, Name=None,
-                               include=None, **kwdargs):
+    def _checkformat_inputs_Id(
+        cls, Id=None, Name=None, include=None, **kwdargs,
+    ):
         if Id is not None:
             assert isinstance(Id, utils.ID)
             Name = Id.Name
@@ -157,16 +143,15 @@ class DataCollection(utils.ToFuObject):
     def _init(
         self,
         dgroup=None,
-        dref=None,
-        dref_static=None,
+        dindref=None,
+        dstatic=None,
         ddata=None,
         dobj=None,
         **kwargs,
     ):
         self.update(
-            dgroup=dgroup,
-            dref=dref,
-            dref_static=dref_static,
+            dindref=dindref,
+            dstatic=dstatic,
             ddata=ddata,
             dobj=dobj,
         )
@@ -181,7 +166,7 @@ class DataCollection(utils.ToFuObject):
         dobj=None,
         ddata=None,
         dref=None,
-        dref_static=None,
+        dstatic=None,
         dgroup=None,
     ):
         """ Can be used to set/add data/ref/group
@@ -189,12 +174,12 @@ class DataCollection(utils.ToFuObject):
         Will update existing attribute with new dict
         """
         # Check consistency
-        self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
+        self._dgroup, self._dref, self._dstatic, self._ddata, self._dobj =\
                 _DataCollection_check_inputs._consistency(
                     dobj=dobj, dobj0=self._dobj,
                     ddata=ddata, ddata0=self._ddata,
                     dref=dref, dref0=self._dref,
-                    dref_static=dref_static, dref_static0=self._dref_static,
+                    dstatic=dstatic, dstatic0=self._dstatic,
                     dgroup=dgroup, dgroup0=self._dgroup,
                     allowed_groups=self._allowed_groups,
                     reserved_keys=self._reserved_keys,
@@ -210,30 +195,30 @@ class DataCollection(utils.ToFuObject):
 
     def add_group(self, group=None):
         # Check consistency
-        self.update(ddata=None, dref=None, dref_static=None, dgroup=group)
+        self.update(ddata=None, dref=None, dstatic=None, dgroup=group)
 
     def add_ref(self, key=None, group=None, data=None, **kwdargs):
         dref = {key: {'group': group, 'data': data, **kwdargs}}
         # Check consistency
-        self.update(ddata=None, dref=dref, dref_static=None, dgroup=None)
+        self.update(ddata=None, dref=dref, dstatic=None, dgroup=None)
 
     # TBF
     def add_ref_static(self, key=None, which=None, **kwdargs):
-        dref_static = {which: {key: kwdargs}}
+        dstatic = {which: {key: kwdargs}}
         # Check consistency
         self.update(
-            ddata=None, dref=None, dref_static=dref_static, dgroup=None,
+            ddata=None, dref=None, dstatic=dstatic, dgroup=None,
         )
 
     def add_data(self, key=None, data=None, ref=None, **kwdargs):
         ddata = {key: {'data': data, 'ref': ref, **kwdargs}}
         # Check consistency
-        self.update(ddata=ddata, dref=None, dref_static=None, dgroup=None)
+        self.update(ddata=ddata, dref=None, dstatic=None, dgroup=None)
 
     def add_obj(self, which=None, key=None, **kwdargs):
         dobj = {which: {key: kwdargs}}
         # Check consistency
-        self.update(dobj=dobj, dref=None, dref_static=None, dgroup=None)
+        self.update(dobj=dobj, dref=None, dstatic=None, dgroup=None)
 
     # ---------------------
     # Removing group / ref / quantities
@@ -241,11 +226,11 @@ class DataCollection(utils.ToFuObject):
 
     def remove_group(self, group=None):
         """ Remove a group (or list of groups) and all associated ref, data """
-        self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
+        self._dgroup, self._dref, self._dstatic, self._ddata, self._dobj =\
                 _DataCollection_check_inputs._remove_group(
                     group=group,
                     dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
-                    dref_static0=self._dref_static,
+                    dstatic0=self._dstatic,
                     dobj0=self._dobj,
                     allowed_groups=self._allowed_groups,
                     reserved_keys=self._reserved_keys,
@@ -257,11 +242,11 @@ class DataCollection(utils.ToFuObject):
 
     def remove_ref(self, key=None, propagate=None):
         """ Remove a ref (or list of refs) and all associated data """
-        self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
+        self._dgroup, self._dref, self._dstatic, self._ddata, self._dobj =\
                 _DataCollection_check_inputs._remove_ref(
                     key=key,
                     dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
-                    dref_static0=self._dref_static,
+                    dstatic0=self._dstatic,
                     dobj0=self._dobj,
                     propagate=propagate,
                     allowed_groups=self._allowed_groups,
@@ -287,18 +272,18 @@ class DataCollection(utils.ToFuObject):
             key=key,
             which=which,
             propagate=propagate,
-            dref_static0=self._dref_static,
+            dstatic0=self._dstatic,
             ddata0=self._ddata,
             dobj0=self._dobj,
         )
 
     def remove_data(self, key=None, propagate=True):
         """ Remove a data (or list of data) """
-        self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
+        self._dgroup, self._dref, self._dstatic, self._ddata, self._dobj =\
                 _DataCollection_check_inputs._remove_data(
                     key=key,
                     dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
-                    dref_static0=self._dref_static,
+                    dstatic0=self._dstatic,
                     dobj0=self._dobj,
                     propagate=propagate,
                     allowed_groups=self._allowed_groups,
@@ -311,7 +296,7 @@ class DataCollection(utils.ToFuObject):
 
     def remove_obj(self, key=None, which=None, propagate=True):
         """ Remove a data (or list of data) """
-        self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
+        self._dgroup, self._dref, self._dstatic, self._ddata, self._dobj =\
                 _DataCollection_check_inputs._remove_obj(
                     key=key,
                     which=which,
@@ -319,7 +304,7 @@ class DataCollection(utils.ToFuObject):
                     ddata0=self._ddata,
                     dgroup0=self._dgroup,
                     dref0=self._dref,
-                    dref_static0=self._dref_static,
+                    dstatic0=self._dstatic,
                     allowed_groups=self._allowed_groups,
                     reserved_keys=self._reserved_keys,
                     ddefparams_data=self._ddef['params']['ddata'],
@@ -464,14 +449,14 @@ class DataCollection(utils.ToFuObject):
         dout = {
             'dgroup': {'dict': self._dgroup, 'lexcept': None},
             'dref': {'dict': self._dref, 'lexcept': None},
-            'dref_static': {'dict': self._dref_static, 'lexcept': None},
+            'dstatic': {'dict': self._dstatic, 'lexcept': None},
             'ddata': {'dict': self._ddata, 'lexcept': None},
             'dobj': {'dict': self._dobj, 'lexcept': None},
         }
         return dout
 
     def _from_dict(self, fd):
-        for k0 in ['dgroup', 'dref', 'ddata', 'dref_static', 'dobj']:
+        for k0 in ['dgroup', 'dref', 'ddata', 'dstatic', 'dobj']:
             if fd.get(k0) is not None:
                 getattr(self, '_'+k0).update(**fd[k0])
         self.update()
@@ -491,9 +476,9 @@ class DataCollection(utils.ToFuObject):
         return self._dref
 
     @property
-    def dref_static(self):
+    def dstatic(self):
         """ the dict of references """
-        return self._dref_static
+        return self._dstatic
 
     @property
     def ddata(self):
@@ -650,14 +635,14 @@ class DataCollection(utils.ToFuObject):
 
     def switch_ref(self, new_ref=None):
         """Use the provided key as ref (if valid) """
-        self._dgroup, self._dref, self._dref_static, self._ddata, self._dobj =\
+        self._dgroup, self._dref, self._dstatic, self._ddata, self._dobj =\
                 _DataCollection_check_inputs.switch_ref(
                     new_ref=new_ref,
                     ddata=self._ddata,
                     dref=self._dref,
                     dgroup=self._dgroup,
                     dobj0=self._dobj,
-                    dref_static0=self._dref_static,
+                    dstatic0=self._dstatic,
                     allowed_groups=self._allowed_groups,
                     reserved_keys=self._reserved_keys,
                     ddefparams_data=self._ddef['params'].get('data'),
@@ -793,9 +778,9 @@ class DataCollection(utils.ToFuObject):
             lar.append(ar2)
 
         # -----------------------
-        # Build for dref_static
-        if len(self._dref_static) > 0:
-            for k0, v0 in self._dref_static.items():
+        # Build for dstatic
+        if len(self._dstatic) > 0:
+            for k0, v0 in self._dstatic.items():
                 lk = list(list(v0.values())[0].keys())
                 col = [k0] + [pp for pp in lk]
                 ar = [
