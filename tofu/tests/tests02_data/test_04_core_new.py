@@ -184,16 +184,16 @@ class Test01_DataCollection(object):
 
         dref = {
             't0': {
-                'data': cls.lt[0], 'group': 'time', 'units': 's',
+                'data': cls.lt[0], 'units': 's',
                 'quant': 'time',
             },
             't1': {
-                'data': cls.lt[1], 'group': 'time', 'units': 'min',
+                'data': cls.lt[1], 'units': 'min',
                 'quant': 'time',
             },
             'r2': {
                 'data': cls.lr[2],
-                'group': 'radius', 'units': 'm', 'quant': 'rho',
+                'units': 'm', 'quant': 'rho',
             },
             'mesh0': {
                 'data': mesh0,
@@ -220,10 +220,10 @@ class Test01_DataCollection(object):
 
         # Spectrallines
         dref = {
-            't0': {'data': cls.lt[0], 'group': 'time', 'units': 's'},
-            't1': {'data': cls.lt[1], 'group': 'time', 'units': 'min'},
+            't0': {'data': cls.lt[0], 'units': 's'},
+            't1': {'data': cls.lt[1], 'units': 'min'},
         }
-        dref_static = {
+        dstatic = {
             'source': {
                 '[1]': {'long': 'blabla'},
                 '[2]': {'long': 'blibli'},
@@ -249,7 +249,7 @@ class Test01_DataCollection(object):
         }
         sl = tfd.DataCollection()
         sl._data_none = True
-        sl.update(dref=dref, dref_static=dref_static, dobj=dobj)
+        sl.update(dref=dref, dstatic=dstatic, dobj=dobj)
 
         cls.lobj = [data, sl]
 
@@ -267,21 +267,21 @@ class Test01_DataCollection(object):
     def test01_init_from_combinations(self):
 
         # Try with minimalist input (implicit with n = 1)
-        dgroup = 'time'
         dref = {'t0': self.lt[0]}
         ddata = {
             'trace00': self.ltrace[0],
             'trace01': {'data': self.ltrace[1], 'units': 'a.u.'},
         }
         data = tfd.DataCollection(
-            dgroup=dgroup, dref=dref, ddata=ddata,
+            dref=dref,
+            ddata=ddata,
             Name='data',
         )
 
         # Try with minimalist input
-        dref = {'t0': {'data': self.lt[0], 'group': 'time'},
-                't1': {'data': self.lt[1], 'group': 'time', 'units': 's'},
-                'r2': {'data': self.lr[2], 'group': 'radius', 'foo': 'bar'}}
+        dref = {'t0': {'data': self.lt[0]},
+                't1': {'data': self.lt[1], 'units': 's'},
+                'r2': {'data': self.lr[2], 'foo': 'bar'}}
         ddata = {
             'trace00': {'data': self.ltrace[0], 'ref': 't0'},
             'trace10': {'data': self.ltrace[2], 'ref': 't1', 'units': 'a'},
@@ -290,22 +290,23 @@ class Test01_DataCollection(object):
             'trace31': {'data': self.ltrace[7], 'ref': ('t0', 'r2')}
         }
         data = tfd.DataCollection(
-            dgroup=None, dref=dref, ddata=ddata,
+            dref=dref,
+            ddata=ddata,
             Name='data',
         )
 
         # Try with meshes
         dref = {
-            't0': {'data': self.lt[0], 'group': 'time', 'units': 's'},
-            't1': {'data': self.lt[1], 'group': 'time', 'units': 's'},
-            'r2': {'data': self.lr[2], 'group': 'radius', 'foo': 'bar'},
+            't0': {'data': self.lt[0], 'units': 's'},
+            't1': {'data': self.lt[1], 'units': 's'},
+            'r2': {'data': self.lr[2], 'foo': 'bar'},
             'mesh1': {'data': self.lmesh[1], 'foo': 'bar', 'quant': 'rho'},
         }
         ddata = {
             'trace10': {'data': self.ltrace[2], 'ref': 't1', 'units': 'a'},
             'trace50': {'data': self.ltrace[-2], 'ref': ('t0', 'mesh0')},
             'trace51': {'data': self.ltrace[-1], 'ref': ('t1', 'mesh1')},
-            'mesh0': {'data': self.lmesh[0], 'foo': 'bar', 'group': 'mesh2d'},
+            'mesh0': {'data': self.lmesh[0], 'foo': 'bar'},
         }
         data = tfd.DataCollection(
             dref=dref, ddata=ddata,
@@ -316,15 +317,15 @@ class Test01_DataCollection(object):
         data = tfd.DataCollection()
         data.add_data(**self.llines[0])
         data.add_data(**self.llines[1])
-        data.add_ref(key='t0', data=self.lt[0], group='ne')
-        data.add_ref(key='t1', data=self.lt[1], group='Te')
+        data.add_ref(key='t0', data=self.lt[0])
+        data.add_ref(key='t1', data=self.lt[1])
         data.add_data(**self.llines[2])
 
     def test02_wrong_init(self):
         # Try with minimalist input
         dref = {
-            't0': {'data': self.lt[0], 'group': 'time'},
-            't1': {'data': self.lt[1], 'group': 'time'},
+            't0': {'data': self.lt[0]},
+            't1': {'data': self.lt[1]},
         }
         ddata = {
             'trace00': self.ltrace[0], 'ref': 't0',
@@ -333,7 +334,8 @@ class Test01_DataCollection(object):
         err = False
         try:
             data = tfd.DataCollection(
-                dgroup=None, dref=dref, ddata=ddata,
+                dref=dref,
+                ddata=ddata,
                 Name='data',
             )
         except Exception as er:
@@ -343,7 +345,7 @@ class Test01_DataCollection(object):
     def test03_add_remove_refdataobj(self):
         data = self.lobj[0]
 
-        data.add_ref(key='r0', data=self.lr[0], group='radius', foo='bar')
+        data.add_ref(key='r0', data=self.lr[0], foo='bar')
         assert 'r0' in data.dref.keys()
 
         data.remove_ref(key='t0')
@@ -352,7 +354,7 @@ class Test01_DataCollection(object):
         assert all([tt not in data.ddata.keys()
                     for tt in ['trace00', 'trace11', 'trace31']])
 
-        data.add_ref('t0', data=self.lt[0], group='time')
+        data.add_ref('t0', data=self.lt[0])
         assert 't0' in data.dref.keys()
 
         # Check ambiguous throws error
@@ -370,7 +372,7 @@ class Test01_DataCollection(object):
                     for tt in ['trace00', 'trace11', 'trace31']])
 
         # Add/remove mesh
-        data.add_ref(key='mesh0', data=self.lmesh[0], group='mesh2d')
+        data.add_ref(key='mesh0', data=self.lmesh[0])
         data.add_data(
             key='trace51', data=self.ltrace[-1],
             ref=('t1', 'mesh1'), quant='rho',
@@ -441,12 +443,10 @@ class Test01_DataCollection(object):
 
         # Check t0 removed
         assert 'trace00' in data.dref.keys()
-        assert 'trace00' in data.dgroup['time']['lref']
         assert all(['trace00' in v0['ref'] for k0, v0 in data.ddata.items()
                     if k0 in data.dref['trace00']['ldata']])
         # Check t0 removed
         assert 't0' not in data.dref.keys()
-        assert 't0' not in data.dgroup['time']['lref']
         assert all(['t0' not in v0['ref'] for k0, v0 in data.ddata.items()
                     if k0 in data.dref['trace00']['ldata']])
         # .. but still in data

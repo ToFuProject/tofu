@@ -10,11 +10,13 @@ import scipy.sparse as scpsp
 from matplotlib.tri import Triangulation as mplTri
 
 
+from . import _generic_check
+
+
 _DRESERVED_KEYS = {
-    'dgroup': ['lref', 'ldata'],
-    'dref': ['ldata', 'group', 'size', 'ind'],
+    'dref': ['ldata', 'size', 'ind'],
     'dstatic': [],
-    'ddata': ['ref', 'group', 'shape', 'data'],
+    'ddata': ['ref', 'shape', 'data'],
     'dobj': [],
 }
 
@@ -41,47 +43,49 @@ _DATA_NONE = False
 # #############################################################################
 
 
-def _check_which(ddata=None, dobj=None, which=None, return_dict=None):
+def _check_which(
+    dref=None,
+    ddata=None,
+    dobj=None,
+    dstatic=None,
+    which=None,
+    return_dict=None,
+):
     """ Check which in ['data'] + list(self._dobj.keys() """
 
     # --------------
     # Check inputs
 
-    if return_dict is None:
-        return_dict = True
+    return_dict = _generic_check._check_var(
+        return_dict,
+        'return_dict',
+        types=bool,
+        default=True,
+    )
 
-    # Trivial case
-    if len(ddata) == 0 and len(dobj) == 0:
-        if return_dict is True:
-            return None, None
-        else:
-            return
+    lkobj = list(dobj.keys())
+    lkstatic = list(dstatic.keys())
+    lkok = ['ref', 'data'] + lkobj + lkstatic
+    which = _generic_check._check_var(
+        which,
+        'which',
+        types=str,
+        allowed=lkok,
+        default='data',
+    )
 
-    # which ('data', or keys of dobj)
-    if which is None:
-        if len(dobj) == 0:
-            which = 'data'
-        elif len(dobj) == 1:
-            which = list(dobj.keys())[0]
-
-    c0 = which in ['data'] + list(dobj.keys())
-    if not c0:
-        msg = (
-            "Please specify whether to sort:\n"
-            + "\t- 'data': the content of self.ddata\n\t- "
-            + "\n\t- ".join([
-                "'{0}': the content of self.dobj['{0}']".format(k0)
-                for k0 in dobj.keys()
-            ])
-            + "\nProvided:\n\t- {}".format(which)
-        )
-        raise Exception(msg)
+    # -----------------
+    # return right dict
 
     if return_dict is True:
-        if which == 'data':
+        if which == 'ref':
+            dd = dref
+        elif which == 'ddata':
             dd = ddata
-        else:
+        elif which in lkobj:
             dd = dobj[which]
+        else:
+            dd = dstatic[which]
         return which, dd
     else:
         return which
@@ -89,13 +93,19 @@ def _check_which(ddata=None, dobj=None, which=None, return_dict=None):
 
 def _check_conflicts(dd=None, dd0=None, dd_name=None):
     """ Detect conflict with existing entries
+
+    Any pre-existing entry will trigger either an update or a conflict
     """
+
     dupdate = {}
     dconflict = {}
     for k0, v0 in dd.items():
+
+        # k0 not in existing dict => ok
         if k0 not in dd0.keys():
             continue
-        # conflicts
+
+        # find conflicts (same key and same parameters with different values)
         lk = set(v0.keys()).intersection(dd0[k0].keys())
         lk = [
             kk for kk in lk
@@ -119,38 +129,40 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
                         and not scpsp.issparse(v0[kk])
                         and v0[kk] == dd0[k0][kk]
                     )
+                    or (
+                        v0[kk] == dd0[k0][kk]
+                    )
                 )
             )
         ]
         if len(lk) > 0:
             dconflict[k0] = lk
-        # updates
-        lk = [
-            kk for kk in dd0[k0].keys()
-            if kk not in v0.keys() and kk not in ['ldata', 'size']
+
+        # find updates (same key but new parameters)
+        lkup = [
+            kk for kk in v0.keys()
+            if kk not in lk
+            and kk not in dd0[k0].keys()
+            and kk not in ['ldata', 'size']
         ]
-        if len(lk) > 0:
+        if len(lkup) > 0:
             dupdate[k0] = lk
 
     # Conflicts => Exception
     if len(dconflict) > 0:
+        lstr = [f"\t- {dd_name}['{k0}']: {v0}" for k0, v0 in dconflict.items()]
         msg = (
-            "Conflicts with pre-existing values found in {}:\n".format(dd_name)
-            + "\n".join([
-                f"\t- {dd_name}['{k0}']: {v0}"
-                for k0, v0 in dconflict.items()
-            ])
+            f"Conflicts with pre-existing values found in {dd_name}:\n"
+            + "\n".join(lstr)
         )
         raise Exception(msg)
 
     # Updates => Warning
     if len(dupdate) > 0:
+        lstr = [f"\t- {dd_name}['{k0}']: {v0}" for k0, v0 in dupdate.items()]
         msg = (
-            "\nExisting {} keys will be overwritten:\n".format(dd_name)
-            + "\n".join([
-                f"\t- {dd_name}['{k0}']: {v0}"
-                for k0, v0 in dupdate.items()
-            ])
+            f"\nExisting {dd_name} keys will be overwritten:\n"
+            + "\n".join(lstr)
         )
         warnings.warn(msg)
 
@@ -181,54 +193,13 @@ def _check_remove(key=None, dkey=None, name=None):
 #                           Removing routines
 # #############################################################################
 
-def _remove_group(
-    group=None, dgroup0=None, dref0=None, ddata0=None,
-    dstatic0=None,
-    dobj0=None,
-    allowed_groups=None,
-    reserved_keys=None,
-    ddefparams_data=None,
-    ddefparams_obj=None,
-    data_none=None,
-    max_ndim=None,
-):
-    """ Remove a group (or list of groups) and all associated ref, data """
-    if group is None:
-        return dgroup0, dref0, ddata0
-    group = _check_remove(key=group, dkey=dgroup0, name='group')
-
-    # Remove groups and orphan ref and data
-    for k0 in groups:
-        for k1 in dgroup0['lref']:
-            del dref0[k1]
-        lkdata = [k1 for k1, v1 in ddata0.items() if v1['group'] == (k0,)]
-        for kk in lkdata:
-            del ddata0[kk]
-        del dgroup0[k0]
-
-    # Double-check consistency
-    return _consistency(
-        ddata=None, ddata0=ddata0,
-        dref=None, dref0=dref0,
-        dstatic=None, dstatic0=dstatic0,
-        dobj=None, dobj0=dobj0,
-        dgroup=None, dgroup0=dgroup0,
-        allowed_groups=allowed_groups,
-        reserved_keys=reserved_keys,
-        ddefparams_data=ddefparams_data,
-        ddefparams_obj=ddefparams_obj,
-        data_none=data_none,
-        max_ndim=max_ndim,
-    )
-
 
 def _remove_ref(
     key=None,
-    dgroup0=None, dref0=None, ddata0=None,
+    dref0=None, ddata0=None,
     dstatic0=None,
     dobj0=None,
     propagate=None,
-    allowed_groups=None,
     reserved_keys=None,
     ddefparams_data=None,
     ddefparams_obj=None,
@@ -237,7 +208,7 @@ def _remove_ref(
 ):
     """ Remove a ref (or list of refs) and all associated data """
     if key is None:
-        return group0, dref0, ddata0
+        return dref0, ddata0
     key = _check_remove(
         key=key, dkey=dref0, name='ref',
     )
@@ -246,18 +217,7 @@ def _remove_ref(
         # Remove orphan ddata
         for k1 in dref0[k0]['ldata']:
             del ddata0[k1]
-
-        # Remove ref from dgroup['lref']
-        for k1 in dgroup0.keys():
-            if k0 in dgroup0[k1]['lref']:
-                dgroup0[k1]['lref'].remove(k0)
         del dref0[k0]
-
-    # Propagate upward
-    if propagate is True:
-        lg = [k0 for k0 in dgroup0.keys() if len(dgroup0['lref']) == 0]
-        for gg in lg:
-            del dgroup0[gg]
 
     # Double-check consistency
     return _consistency(
@@ -265,8 +225,6 @@ def _remove_ref(
         dref=None, dref0=dref0,
         dstatic=None, dstatic0=dstatic0,
         dobj=None, dobj0=dobj0,
-        dgroup=None, dgroup0=dgroup0,
-        allowed_groups=allowed_groups,
         reserved_keys=reserved_keys,
         ddefparams_data=ddefparams_data,
         ddefparams_obj=ddefparams_obj,
@@ -380,11 +338,10 @@ def _remove_ref_static(
 
 def _remove_data(
     key=None,
-    dgroup0=None, dref0=None, ddata0=None,
+    dref0=None, ddata0=None,
     dstatic0=None,
     dobj0=None,
     propagate=None,
-    allowed_groups=None,
     reserved_keys=None,
     ddefparams_data=None,
     ddefparams_obj=None,
@@ -393,16 +350,13 @@ def _remove_data(
 ):
     """ Remove a ref (or list of refs) and all associated data """
     if key is None:
-        return group0, dref0, ddata0
+        return dref0, ddata0
     key = _check_remove(
         key=key, dkey=ddata0, name='data',
     )
 
     for k0 in key:
-        # Remove key from dgroup['ldata'] and dref['ldata']
-        for k1 in dgroup0.keys():
-            if k0 in dgroup0[k1]['ldata']:
-                dgroup0[k1]['ldata'].remove(k0)
+        # Remove key from dref['ldata']
         for k1 in dref0.keys():
             if k0 in dref0[k1]['ldata']:
                 dref0[k1]['ldata'].remove(k0)
@@ -410,12 +364,6 @@ def _remove_data(
 
     # Propagate upward
     if propagate is True:
-        lk = [
-            k0 for k0, v0 in dgroup0.items()
-            if len(v0.get('ldata', [])) == 0
-        ]
-        for kk in lk:
-            del dgroup0[kk]
         lk = [
             k0 for k0, v0 in dref0.items()
             if len(dref0[k0].get('ldata', [])) == 0
@@ -429,8 +377,6 @@ def _remove_data(
         dref=None, dref0=dref0,
         dstatic=None, dstatic0=dstatic0,
         dobj=None, dobj0=dobj0,
-        dgroup=None, dgroup0=dgroup0,
-        allowed_groups=allowed_groups,
         reserved_keys=reserved_keys,
         ddefparams_data=ddefparams_data,
         ddefparams_obj=ddefparams_obj,
@@ -446,8 +392,6 @@ def _remove_obj(
     ddata0=None,
     dref0=None,
     dstatic0=None,
-    dgroup0=None,
-    allowed_groups=None,
     reserved_keys=None,
     ddefparams_data=None,
     ddefparams_obj=None,
@@ -508,112 +452,12 @@ def _remove_obj(
         dref=None, dref0=dref0,
         dstatic=None, dstatic0=dstatic0,
         dobj=None, dobj0=dobj0,
-        dgroup=None, dgroup0=dgroup0,
-        allowed_groups=allowed_groups,
         reserved_keys=reserved_keys,
         ddefparams_data=ddefparams_data,
         ddefparams_obj=ddefparams_obj,
         data_none=data_none,
         max_ndim=max_ndim,
     )
-
-
-# #############################################################################
-# #############################################################################
-#                           dgroup
-# #############################################################################
-
-
-def _check_dgroup(dgroup=None, dgroup0=None, allowed_groups=None):
-    """ dgroup must be
-    - str: turned to list
-    - list of str
-    - dict of dict
-    """
-
-    # ----------------
-    # Trivial case
-    if dgroup in [None, {}]:
-        return {}
-
-    # ----------------
-    # Check conformity
-    c0 = isinstance(dgroup, str) and dgroup not in dgroup0.keys()
-    c1 = (
-        isinstance(dgroup, list)
-        and all([
-            isinstance(gg, str) and gg not in dgroup0.keys() for gg in dgroup
-        ])
-    )
-    c2 = (
-        isinstance(dgroup, dict)
-        and all([
-            isinstance(k0, str)
-            and k0 not in dgroup0.keys()
-            and isinstance(v0, dict)
-            and all([
-                isinstance(k1, str)
-                and k1 in _DRESERVED_KEYS['dgroup']
-                and isinstance(v1, list)
-                and all([isinstance(v2, str) for v2 in v1])
-                for k1, v1 in v0.items()
-            ])
-            for k0, v0 in dgroup.items()
-        ])
-    )
-    if not (c0 or c1 or c2):
-        msg = (
-            """
-            Added group must be either:
-            \t- str: not already in self.dgroup
-            \t- list of str: each not already in self.dgroup
-            \t- dict: each key not already in self.dgroup, each value a dict
-            \t- allowed keys in values are:
-            \t\t- {}
-            You provided:
-            \t- {}
-            Already available in self.dgroup:
-            {}
-            """.format(
-                sorted(_DRESERVED_KEYS['dgroup']),
-                dgroup,
-                '\t- ' + '\n\t- '.join(sorted(dgroup0.keys())),
-            )
-        )
-        raise Exception(msg)
-
-    # Check compliance with allowed groups, if any
-    if allowed_groups is not None:
-        if c0:
-            lg = [dgroup] if dgroup not in allowed_groups else []
-        elif c1:
-            lg = [k0 for k0 in dgroup if k0 not in allowed_groups]
-        else:
-            lg = [k0 for k0 in dgroup > keys() if k0 not in allowed_groups]
-        if len(lg) > 0:
-            msg = (
-                """
-                The following group names are not allowed:
-                {}
-
-                Only the following group names are allowed:
-                {}
-                """.format(
-                    '\t- ' + '\n\t- '.join(lg),
-                    '\t- ' + '\n\t- '.join(allowed_groups),
-                )
-            )
-            raise Exception(msg)
-
-    # Convert if necessary
-    if c0:
-        dgroup = {dgroup: {'lref': [], 'ldata': []}}
-    elif c1:
-        dgroup = {k0: {'lref': [], 'ldata': []} for k0 in dgroup}
-    else:
-        dgroup = {k0: {'lref': [], 'ldata': []} for k0 in dgroup.keys()}
-
-    return dgroup
 
 
 # #############################################################################
@@ -760,7 +604,6 @@ def _check_dataref(data=None, key=None):
 
     # if not array
     # => try converting or get class (dict, mesh...)
-    group = None
     if not isinstance(data, np.ndarray):
         if isinstance(data, list) or isinstance(data, tuple):
             try:
@@ -773,7 +616,6 @@ def _check_dataref(data=None, key=None):
                 data, size = _check_mesh_temp(data=data, key=key)
                 if len(size) == 1:
                     size = size[0]
-                group = 'mesh2d'
             except Exception as err:
                 size = data.__class__.__name__
 
@@ -787,24 +629,20 @@ def _check_dataref(data=None, key=None):
             raise DataRefException(ref=key, data=data)
         size = data.size
 
-    return data, size, group
+    return data, size
 
 
 def _check_dref(
-    dref=None, dref0=None, dgroup0=None, ddata0=None, allowed_groups=None,
+    dref=None, dref0=None, ddata0=None,
 ):
     """ Check and format dref
 
     dref can be:
         - dict
 
-    If some groups are not already on dgroup0
-        => completes dgroups0
-
     If some data is provided
         => returns ddata to be added
 
-    Also think about meshes !!!
     """
 
     # ----------------
@@ -814,77 +652,45 @@ def _check_dref(
 
     # ----------------
     # Check conformity
-    ngroup = len(dgroup0)
-    if ngroup == 1:
-        groupref = list(dgroup0.keys())[0]
 
     # Basis
-    # lk_opt = ['ldata', 'size', 'group', 'data']
+    # lk_opt = ['ldata', 'size', 'data']
     c0 = isinstance(dref, dict)
-    lc = [
-        k0 for k0, v0 in dref.items()
-        if not (
-            isinstance(k0, str)
-            # and k0 not in dref0.keys()
-            and (
-                (
-                    ngroup == 1
-                    and (
-                        type(v0) in [np.ndarray, list, tuple]
-                        or (
-                            isinstance(v0, dict)
-                            and all([isinstance(ss, str) for ss in v0.keys()])
-                            and ('size' in v0.keys() or 'data' in v0.keys())
-                        )
-                    )
-                )
-                or (
-                    (ngroup == 0 or ngroup > 1)
-                    and isinstance(v0, dict)
-                    and all([isinstance(ss, str) for ss in v0.keys()])
-                    and ('size' in v0.keys() or 'data' in v0.keys())
-                    and (
-                        'group' in v0.keys()
-                        or (
-                            'data' in v0.keys()
-                            and isinstance(v0['data'], dict)
-                        )
-                    )
-                )
-            )
-        )
-    ]
-
-    # Raise exception if non-conformity
-    if not (c0 and len(lc) == 0):
-        msg = (
-            """
-            Arg dref must be a dict of the form:
-            {
-                'ref0': {'group': str, 'size': int, ...},       (A)
-                'ref1': {'group': str, 'data': np.array, ...},  (B)
-                'ref2': {'data': np.array, ...},                (C)
-                ...
-                'refn': np.array,                               (D)
-            }
-
-            Where:
-                - each 'refi' is a unique str identifier
-                - (A) & (B): 'group' is provided as well as 'size' of 'data'
-                - (C): 'group' is not provided if len(self.dgroup) == 1
-                - (D): only the data array is provided if len(self.dgroup) == 1
-
-            Non-conform refs
-            """
-            + '\t- ' + '\n\t- '.join(lc)
-        )
+    if not isinstance(dref, dict):
+        msg = "Arg dref must be a dict!"
         raise Exception(msg)
 
-    # -----------------------
-    # Make sure all are dict
+    keyroot = 'iref'
     for k0, v0 in dref.items():
-        if not isinstance(v0, dict):
+
+        # key
+        nmax = _generic_check._name_key(
+            dd=None, dd_name=None, keyroot=keyroot,
+        )[1]
+        key = f'{keyroot}{nmax:02.0f}'
+
+        key = _generic_checks._check_var(
+            k0,
+            'k0',
+            types=str,
+            default=key,
+        )
+
+        # v0
+        if isinstance(v0, (np.ndarray, list, tuple)):
             dref[k0] = {'data': v0}
+            v0 = dref[k0]
+
+        c0 = (
+            isinstance(v0, dict)
+            and (
+                isinstance(v0.get('data'), (np.ndarray, list, tuple))
+                or isinstance(v0.get('size'), int)
+            )
+        )
+        if not c0:
+            msg = "v0 must be a dict with either 'data' or 'size'"
+            raise Exception(msg)
 
     # -----------------------
     # raise except if conflict with existing entry
@@ -899,7 +705,7 @@ def _check_dref(
     }
     for k0, v0 in dref.items():
         if 'data' in v0.keys():
-            data, dref[k0]['size'], group = _check_dataref(
+            data, dref[k0]['size'] = _check_dataref(
                 data=v0['data'], key=k0,
             )
             if k0 in ddata_add.keys():
@@ -907,380 +713,15 @@ def _check_dref(
                 ddata_add[k0]['ref'] = (k0,)
                 ddata_add[k0].update({
                     k1: v1 for k1, v1 in v0.items()
-                    if k1 not in ['group', 'size', 'ldata']
+                    if k1 not in ['size', 'ldata']
                 })
-            if group is not None and dref.get('group') is None:
-                dref[k0]['group'] = group
-
-    # Make sure, if ngroup != 1, that NOW all refs have a group
-    if ngroup != 1:
-        lerr = [k0 for k0, v0 in dref.items() if v0.get('group') is None]
-        if len(lerr) > 0:
-            msg = "Some groups remain ambiguous!:\n{}".format(lerr)
-            raise Exception(msg)
-
-    # ----------------
-    # Convert and/or add group if necessary
-    for k0, v0 in dref.items():
-        if v0.get('group') is None:
-            dref[k0]['group'] = groupref
-
-    # Add missing groups
-    lgroups = sorted(set([
-        v0['group'] for v0 in dref.values()
-        if 'group' in v0.keys() and v0['group'] not in dgroup0.keys()
-    ]))
-
-    dgroup_add = None
-    if len(lgroups) > 0:
-        dgroup_add = _check_dgroup(
-            lgroups, dgroup0=dgroup0, allowed_groups=allowed_groups,
-        )
 
     # get rid of extra keys
     dref = {
         k0: {k1: v1 for k1, v1 in v0.items() if k1 in _DRESERVED_KEYS['dref']}
         for k0, v0 in dref.items()
     }
-    return dref, dgroup_add, ddata_add
-
-
-# #############################################################################
-# #############################################################################
-#               ddata - special case: meshes
-# #############################################################################
-
-
-def _get_RZ(arr, name=None, shapeRZ=None):
-    if arr.ndim == 1:
-        if np.any(np.diff(arr) <= 0.):
-            msg = "Non-increasing {}".format(name)
-            raise Exception(msg)
-    else:
-        lc = [np.all(np.diff(arr[0, :])) > 0.,
-              np.all(np.diff(arr[:, 0])) > 0.]
-        if np.sum(lc) != 1:
-            msg = "Impossible to know {} dimension!".format(name)
-            raise Exception(msg)
-        if lc[0]:
-            arr = arr[0, :]
-            if shapeRZ[1] is None:
-                shapeRZ[1] = name
-            if shapeRZ[1] != name:
-                msg = "Inconsistent shapeRZ"
-                raise Exception(msg)
-        else:
-            arr = arr[:, 0]
-            if shapeRZ[0] is None:
-                shapeRZ[0] = name
-            if shapeRZ[0] != name:
-                msg = "Inconsistent shapeRZ"
-                raise Exception(msg)
-    return arr, shapeRZ
-
-
-def _duplicates(arr, arru, nn, name=None, msg=None):
-    msg += (
-        "  Duplicate {}: {}\n".format(name, nn - arru.shape[0])
-        + "\t- {}.shape: {}\n".format(name, arr.shape)
-        + "\t- unique shape: {}".format(arru.shape)
-    )
-    return msg
-
-
-def _check_trimesh_conformity(nodes, faces, key=None):
-    nnodes = nodes.shape[0]
-    nfaces = faces.shape[0]
-
-    # Test for duplicates
-    nodesu = np.unique(nodes, axis=0)
-    facesu = np.unique(faces, axis=0)
-    lc = [nodesu.shape[0] != nnodes,
-          facesu.shape[0] != nfaces]
-    if any(lc):
-        msg = "Non-valid mesh ddata[{0}]: \n".format(key)
-        if lc[0]:
-            msg = _duplicates(nodes, nodesu, nnodes, name='nodes', msg=msg)
-        if lc[1]:
-            msg = _duplicates(faces, facesu, nfaces, name='faces', msg=msg)
-        raise Exception(msg)
-
-    # Test for unused nodes
-    facesu = np.unique(facesu)
-    c0 = np.all(facesu >= 0) and facesu.size == nnodes
-    if not c0:
-        ino = str([ii for ii in range(0, nnodes) if ii not in facesu])
-        msg = "Unused nodes in ddata[{0}]:\n".format(key)
-        msg += "    - unused nodes indices: {}".format(ino)
-        warnings.warn(msg)
-
-    # Check counter-clockwise orientation
-    x, y = nodes[faces, 0], nodes[faces, 1]
-    orient = ((y[:, 1] - y[:, 0])*(x[:, 2] - x[:, 1])
-              - (y[:, 2] - y[:, 1])*(x[:, 1] - x[:, 0]))
-
-    clock = orient > 0.
-    if np.any(clock):
-        msg = ("Some triangles not counter-clockwise\n"
-               + "  (necessary for matplotlib.tri.Triangulation)\n"
-               + "    => {}/{} triangles reshaped".format(clock.sum(), nfaces))
-        warnings.warn(msg)
-        faces[clock, 1], faces[clock, 2] = faces[clock, 2], faces[clock, 1]
-    return faces
-
-
-def _check_mesh_temp(data=None, key=None):
-    # Check if provided data is mesh (as a dict)
-
-    # ------------
-    # Check basics
-    lmok = ['rect', 'tri', 'quadtri']
-    c0 = (
-        isinstance(data, dict)
-        and all([ss in data.keys() for ss in ['type']])
-        and data['type'] in lmok
-        and (
-            (
-                data['type'] == 'rect'
-                and all([ss in data.keys() for ss in ['R', 'Z']])
-                and isinstance(data['R'], np.ndarray)
-                and isinstance(data['Z'], np.ndarray)
-                and data['R'].ndim in [1, 2]
-                and data['Z'].ndim in [1, 2]
-            )
-            or (
-                data['type'] in ['tri', 'quadtri', 'quad']
-                and all([ss in data.keys() for ss in ['nodes', 'faces']])
-                and isinstance(data['nodes'], np.ndarray)
-                and isinstance(data['faces'], np.ndarray)
-                and data['nodes'].ndim == 2
-                and data['faces'].ndim == 2
-                and data['faces'].dtype == np.int
-                and data['nodes'].shape[1] == 2
-                and (
-                    (
-                        data['type'] in ['tri', 'quadtri']
-                        and data['faces'].shape[1] == 3
-                    )
-                    or (
-                        data['type'] == 'quad'
-                        and data['faces'].shape[1] == 4
-                    )
-                )
-                and np.max(data['faces']) <= data['nodes'].shape[0]
-            )
-        )
-    )
-    if not c0:
-        msg = (
-            """
-            A mesh should be a dict of one of the following form:
-
-                dict(
-                 'type': 'rect',
-                 'R': np.ndarray (with ndim in [1, 2]),
-                 'Z': np.ndarray (with ndim in [1, 2]),
-                 'shapeRZ': ('R', 'Z') or ('Z', 'R')
-                )
-
-                 dict(
-                 'type': 'tri' or 'quadtri',
-                 'nodes': np.ndarray of shape (N, 2),
-                 'faces': np.ndarray of int of shape (N, 3)
-                )
-
-                dict(
-                 'type': 'quad',
-                 'nodes': np.ndarray of shape (N, 2),
-                 'faces': np.ndarray of int of shape (N, 4)
-                )
-
-            Provided:
-            {}
-            """.format(data)
-        )
-        raise Exception(msg)
-
-    # ------------
-    # Check per type
-    if data['type'] == 'rect':
-
-        shapeRZ = data.get('shapeRZ', [None, None])
-        if shapeRZ is None:
-            shapeRZ = [None, None]
-        else:
-            shapeRZ = list(shapeRZ)
-
-        R, shapeRZ = _get_RZ(data['R'], name='R', shapeRZ=shapeRZ)
-        Z, shapeRZ = _get_RZ(data['Z'], name='Z', shapeRZ=shapeRZ)
-        shapeRZ = tuple(shapeRZ)
-
-        if shapeRZ not in [('R', 'Z'), ('Z', 'R')]:
-            msg = "Inconsistent shapeRZ"
-            raise Exception(msg)
-
-        def trifind(
-            r, z,
-            Rbin=0.5*(R[1:] + R[:-1]),
-            Zbin=0.5*(Z[1:] + Z[:-1]),
-            nR=R.size, nZ=Z.size,
-            shapeRZ=shapeRZ
-        ):
-            indR = np.searchsorted(Rbin, r)
-            indZ = np.searchsorted(Zbin, z)
-            indR[(r < R[0]) | (r > R[-1])] = -1
-            indZ[(z < Z[0]) | (z > Z[-1])] = -1
-            return indR, indZ
-            # if shapeRZ == ('R', 'Z'):
-            #     indpts = indR*nZ + indZ
-            # else:
-            #     indpts = indZ*nR + indR
-            # indout = ((r < R[0]) | (r > R[-1])
-            #           | (z < Z[0]) | (z > Z[-1]))
-            # indpts[indout] = -1
-            # return indpts
-
-        data['R'] = R
-        data['Z'] = Z
-        data['shapeRZ'] = shapeRZ
-        data['nR'] = R.size
-        data['nZ'] = Z.size
-        data['shape'] = (R.size, Z.size)
-        data['trifind'] = trifind
-        data['ftype'] = data.get('ftype', 0)
-
-        if data['ftype'] != 0:
-            msg = "Linear interpolation not handled yet !"
-            raise Exception(msg)
-
-    else:
-        # Check mesh conformity for triangulation
-        data['faces'] = _check_trimesh_conformity(
-            nodes=data['nodes'], faces=data['faces'], key=key
-        )
-
-        data['nnodes'] = data['nodes'].shape[0]
-        data['nfaces'] = data['faces'].shape[0]
-        data['ftype'] = data.get('ftype', 0)
-
-        # Convert 'quad' to 'quadtri' if relevant
-        if data['type'] == 'quad':
-            # Convert to tri mesh (solution for unstructured meshes)
-            faces = np.empty((data['nfaces']*2, 3), dtype=int)
-            faces[::2, :] = data['faces'][:, :3]
-            faces[1::2, :-1] = data['faces'][:, 2:]
-            faces[1::2, -1] = data['faces'][:, 0]
-            data['faces'] = faces
-            data['type'] = 'quadtri'
-            data['ntri'] = 2
-
-            # Re-check mesh conformity
-            data['faces'] = _check_trimesh_conformity(
-                nodes=data['nodes'], faces=data['faces'], key=key
-            )
-
-        # Check ntri
-        if data['type'] == 'tri':
-            data['ntri'] = 1
-        elif 'ntri' not in data.keys():
-            msg = (
-                """
-                For ddata[{}] of type 'quadtri', 'ntri' must be provided
-                """.format(key)
-            )
-            raise Exception(msg)
-
-        # Only triangular meshes so far
-        if 'tri' in data['type']:
-            if data.get('mpltri', None) is None:
-                data['mpltri'] = mplTri(
-                    data['nodes'][:, 0],
-                    data['nodes'][:, 1],
-                    data['faces']
-                )
-            if not isinstance(data['mpltri'], mplTri):
-                msg = (
-                    """
-                    ddata[{}]['mpltri'] must be a matplotlib Triangulation
-                    Provided:
-                    {}
-                    """.format(key, data['mpltri'])
-                )
-            assert data['ftype'] in [0, 1]
-            if data['ftype'] == 1:
-                data['shape'] = (data['nnodes'],)
-            else:
-                data['shape'] = (int(data['nfaces'] / data['ntri']),)
-
-    return data, data['shape']
-
-
-# #############################################################################
-# #############################################################################
-#               ddata - special case: roman to int (SpectralLines)
-# #############################################################################
-
-
-def roman2int(ss):
-    """
-    :type s: str
-    :rtype: int
-
-    source: https://www.tutorialspoint.com/roman-to-integer-in-python
-    """
-    roman = {
-        'I': 1,
-        'V': 5,
-        'X': 10,
-        'L': 50,
-        'C': 100,
-        'D': 500,
-        'M': 1000,
-        'IV': 4,
-        'IX': 9,
-        'XL': 40,
-        'XC': 90,
-        'CD': 400,
-        'CM': 900,
-    }
-    i = 0
-    num = 0
-    while i < len(ss):
-        if i+1 < len(ss) and ss[i:i+2] in roman:
-            num += roman[ss[i:i+2]]
-            i += 2
-        else:
-            num += roman[ss[i]]
-            i += 1
-    return num
-
-
-def int2roman(num):
-    roman = {
-        1000: "M",
-        900: "CM",
-        500: "D",
-        400: "CD",
-        100: "C",
-        90: "XC",
-        50: "L",
-        40: "XL",
-        10: "X",
-        9: "IX",
-        5: "V",
-        4: "IV",
-        1: "I",
-    }
-
-    def roman_num(num):
-        for r in roman.keys():
-            x, y = divmod(num, r)
-            yield roman[r] * x
-            num -= (r * x)
-            if num <= 0:
-                break
-
-    return "".join([a for a in roman_num(num)])
+    return dref, ddata_add
 
 
 # #############################################################################
@@ -1290,57 +731,52 @@ def int2roman(num):
 
 
 def _check_data(data=None, key=None, max_ndim=None):
-    """ Check the conformity of data to be a valid reference """
+    """ Check the conformity of data to be a valid reference
+
+    max_ndim allows to define a maximum number of dimensions
+    lists and tuple of non-uniform len elements are converted to object arrays
+
+    """
 
     # if not array
     # => try converting or get class (dict, mesh...)
     shape = None
-    group = None
     c0_array = (
         isinstance(data, np.ndarray)
         or scpsp.issparse(data)
     )
+
+    # if not array => list, tuple
     if not c0_array:
-        if isinstance(data, list) or isinstance(data, tuple):
+        if isinstance(data, (list, tuple)):
             c0 = (
                 all([hasattr(oo, '__iter__') for oo in data])
                 and len(set([len(oo) for oo in data])) != 1
             )
-            c1 = (
-                all([hasattr(oo, '__iter__') for oo in data])
-                and len(set([len(oo) for oo in data])) == 1
-            )
             if c0:
+                # non-uniform len of element => object array
                 data = np.array(data, dtype=object)
                 shape = (data.shape[0],)
-            elif c1:
-                data = np.array(data)
+
             else:
+                # uniform len of all elements => convert to array
                 try:
                     data = np.array(data)
                     shape = data.shape
                 except Exception as err:
                     raise DataRefException(ref=key, data=data)
-        else:
-            try:
-                data, shape = _check_mesh_temp(data=data, key=key)
-                group = 'mesh2d'
-            except Exception as err:
-                shape = data.__class__.__name__
 
     # if array => check unique (unique + sorted)
-    if c0_array and shape is None:
+    if shape is None:
         shape = data.shape
 
     # Check max_dim if any
     if c0_array and max_ndim is not None:
         if data.ndim > max_ndim:
             msg = (
-                """
-                Provided data for ddata[{}] has too many dimensions!
-                - ndim:     {}
-                - max_ndim: {}
-                """.format(key, data.ndim, max_ndim)
+                "Provided data for ddata['{key}'] has too many dimensions!\n"
+                f"- ndim:     {data.ndim}\n"
+                f"- max_ndim: {max_ndim}\n"
             )
             raise Exception(msg)
 
@@ -1355,16 +791,44 @@ def _check_data(data=None, key=None, max_ndim=None):
         ])
     else:
         monotonous = (False,)
-    return data, shape, group, monotonous
+    return data, shape, monotonous
+
+
+def _get_suitable_ref(shape=None, key=None, dref=None):
+
+    lref = [
+        [
+            k0 for k0, v0 in dref.items()
+            if v0['size'] == shape[ii]
+        ]
+        for ii in range(len(shape))
+    ]
+
+    dnew = {}
+    for ii, rr in enumerate(lref):
+        if len(rr) == 1:
+            lref[ii] == rr[0]
+        elif len(rr) > 1:
+            msg = (
+                f"Ambiguous ref for ddata['{key}']\n"
+                f"Possible matches: {lref}"
+            )
+            raise Exception(msg)
+        else:
+            keyroot = 'iref'
+            nmax = _generic_check._name_key(
+                dd=None, dd_name=None, keyroot=keyroot,
+            )[1]
+            lref[ii] = f'{keyroot}{nmax:02.0f}'
+            dnew[lref[ii]] = {'size': shape[ii]}
+    return lref, dnew
 
 
 def _check_ddata(
     ddata=None,
     ddata0=None,
     dref0=None,
-    dgroup0=None,
     reserved_keys=None,
-    allowed_groups=None,
     data_none=None,
     max_ndim=None,
 ):
@@ -1378,73 +842,36 @@ def _check_ddata(
 
     # ----------------
     # Check conformity
-    nref = len(dref0)
-    refref = None
-    if nref == 1:
-        refref = list(dref0.keys())[0]
 
     # Basis
-    # lk_opt = ['ldata', 'size', 'group', 'data']
-    c0 = isinstance(ddata, dict)
-    lc = [
+    # lk_opt = ['ldata', 'size', 'data']
+    if not isinstance(ddata, dict):
+        msg = "Arg ddata must be dict!"
+        raise Exception(msg)
+
+    ltok = (np.ndarray, list, tuple)
+    lkout = [
         k0 for k0, v0 in ddata.items()
         if not (
             isinstance(k0, str)
             # and k0 not in ddata0.keys()
             and (
-                (
-                    nref == 1
-                    and (
-                        isinstance(v0, (np.ndarray, list, tuple))
-                        or scpsp.issparse(v0)
-                        or (
-                            isinstance(v0, dict)
-                            and all([isinstance(ss, str) for ss in v0.keys()])
-                            and (
-                                (
-                                    'data' in v0.keys()
-                                    and (
-                                        v0.get('ref') is None
-                                        or isinstance(v0.get('ref'), str)
-                                        or isinstance(v0.get('ref'), tuple)
-                                        or v0.get('ref') is True
-                                    )
-                                )
-                                or (
-                                    data_none is True
-                                    and v0.get('data') is None
-                                )
-                            )
-                        )
-                    )
-                )
+                (isinstance(v0, ltok) or scpsp.issparse(v0))
                 or (
-                    (nref == 0 or nref > 1)
-                    and isinstance(v0, dict)
+                    isinstance(v0, dict)
                     and all([isinstance(ss, str) for ss in v0.keys()])
                     and (
                         (
                             'data' in v0.keys()
                             and (
-                                (
-                                    'ref' in v0.keys()
-                                    and (
-                                        isinstance(v0.get('ref'), str)
-                                        or isinstance(v0.get('ref'), tuple)
-                                        or v0.get('ref') is True
-                                    )
-                                )
-                                or (
-                                    isinstance(v0['data'], dict)
-                                    or isinstance(v0.get('ref'), str)
-                                    or isinstance(v0.get('ref'), tuple)
-                                    or v0.get('ref') in [None, True]
-                                )
+                                isinstance(v0['data'], ltok)
+                                or scpsp.issparse(v0['data'])
                             )
-                        )
-                        or (
-                            data_none is True
-                            and v0.get('data') is None
+                            and (
+                                v0.get('ref') is None
+                                or isinstance(v0.get('ref'), str)
+                                or isinstance(v0.get('ref'), tuple)
+                            )
                         )
                     )
                 )
@@ -1453,7 +880,7 @@ def _check_ddata(
     ]
 
     # Raise exception if non-conformity
-    if not (c0 and len(lc) == 0):
+    if len(lkout) != 0:
         msg = (
             """
             Arg ddata must be a dict of the form:
@@ -1469,84 +896,72 @@ def _check_ddata(
                 - each 'datai' is a unique str identifier
                 - (A) & (B): 'data' is provided as well as 'ref'
                 - (C): 'ref' is not provided if len(self.dref) == 1
-                - (D): only the data array is provided if len(self.dgroup) == 1
+                - (D): only the data array is provided
 
             If ref = True, the data is itself considered a ref
 
             The following keys do not match the criteria:
             """
-            + '\t- '+'\n\t- '.join(lc)
+            + '\t- '+'\n\t- '.join(lkout)
         )
         raise Exception(msg)
 
     # -----------------------
     # raise except if conflict with existing entry
+
     _check_conflicts(dd=ddata, dd0=ddata0, dd_name='ddata')
 
     # ----------------
     # Convert and/or add ref if necessary
-    lref_add = None
+
+    dref_add = {}
     for k0, v0 in ddata.items():
+
         if not isinstance(v0, dict):
-            if refref is None:
-                msg = f"ref must be specified for ddata['{k0}']!"
-                raise Exception(msg)
-            else:
-                ddata[k0] = {'ref': (refref,), 'data': v0}
+            lref, dnew = _get_suitable_ref(shape=, key=k0, dref=dref0)
+            ddata[k0] = {'ref': lref, 'data': v0}
+            dref_add.update(dnew)
+
         else:
             if v0.get('data') is None:
                 continue
+
             if v0.get('ref') is None:
-                if not isinstance(v0['data'], dict):
-                    if refref is None:
-                        msg = f"ref must be specified for ddata['{k0}']!"
-                        raise Exception(msg)
-                    else:
-                        ddata[k0]['ref'] = (refref,)
+                lref, dnew = _get_suitable_ref(shape=, key=k0, dref=dref0)
+                ddata[k0['ref']] = lref
+                dref_add.update(dnew)
+
             elif isinstance(v0['ref'], str):
                 ddata[k0]['ref'] = (v0['ref'],)
-            elif v0['ref'] is True:
-                if k0 not in dref0.keys():
-                    if lref_add is None:
-                        lref_add = [k0]
-                    else:
-                        lref_add.append(k0)
-                ddata[k0]['ref'] = (k0,)
 
     # Check data and ref vs shape - and optionnally add to ref if mesh2d
     for k0, v0 in ddata.items():
         if v0.get('data') is not None:
             (
-                ddata[k0]['data'], ddata[k0]['shape'],
-                group, ddata[k0]['monot']
+                ddata[k0]['data'], ddata[k0]['shape'], ddata[k0]['monot']
             ) = _check_data(
                 data=v0['data'], key=k0, max_ndim=max_ndim,
             )
 
-            # Check if group / mesh2d
-            if group is not None:
-                c0 = ddata[k0].get('ref') in [None, (k0,)]
-                if not c0:
-                    msg = (
-                        """
-                        ddata[{}]['ref'] is a {}
-                          => it should have ref = ({},)
-                        """.format(k0, group, k0)
-                    )
-                    raise Exception(msg)
-                ddata[k0]['ref'] = (k0,)
-                c0 = (
-                    (lref_add is None or k0 not in lref_add)
-                    and k0 not in dref0.keys()
+            # Check if mesh2d
+            c0 = ddata[k0].get('ref') in [None, (k0,)]
+            if not c0:
+                msg = (
+                    f"ddata[{k0}]['ref'] should have ref = ({k0},)"
                 )
-                if c0:
-                    if lref_add is None:
-                        lref_add = [k0]
-                    else:
-                        lref_add.append(k0)
+                raise Exception(msg)
+            ddata[k0]['ref'] = (k0,)
+            c0 = (
+                (lref_add is None or k0 not in lref_add)
+                and k0 not in dref0.keys()
+            )
+            if c0:
+                if lref_add is None:
+                    lref_add = [k0]
+                else:
+                    lref_add.append(k0)
 
     # Add missing refs (only in ddata)
-    dgroup_add = None
     dref_add = None
     lref = list(itt.chain.from_iterable([
         [
@@ -1564,9 +979,8 @@ def _check_ddata(
     if len(lref) > 0:
         lref = set(lref)
         dref_add = {rr: {'data': ddata[rr]['data']} for rr in lref}
-        dref_add, dgroup_add, ddata_dadd = _check_dref(
-            dref=dref_add, dref0=dref0, ddata0=ddata0, dgroup0=dgroup0,
-            allowed_groups=allowed_groups,
+        dref_add, ddata_dadd = _check_dref(
+            dref=dref_add, dref0=dref0, ddata0=ddata0,
         )
 
     # Check shape vs ref
@@ -1632,7 +1046,7 @@ def _check_ddata(
                 )
             raise Exception(msg)
 
-    return ddata, dref_add, dgroup_add
+    return ddata, dref_add
 
 
 # #############################################################################
@@ -2011,8 +1425,6 @@ def _consistency(
     ddata=None, ddata0=None,
     dref=None, dref0=None,
     dstatic=None, dstatic0=None,
-    dgroup=None, dgroup0=None,
-    allowed_groups=None,
     reserved_keys=None,
     ddefparams_data=None,
     ddefparams_obj=None,
@@ -2021,20 +1433,10 @@ def _consistency(
 ):
 
     # --------------
-    # dgroup
-    dgroup = _check_dgroup(
-        dgroup=dgroup, dgroup0=dgroup0, allowed_groups=allowed_groups,
-    )
-    dgroup0.update(dgroup)
-
-    # --------------
     # dref
-    dref, dgroup_add, ddata_add = _check_dref(
-        dref=dref, dref0=dref0, dgroup0=dgroup0, ddata0=ddata0,
-        allowed_groups=allowed_groups,
+    dref, ddata_add = _check_dref(
+        dref=dref, dref0=dref0, ddata0=ddata0,
     )
-    if dgroup_add is not None:
-        dgroup0.update(dgroup_add)
     if ddata_add is not None:
         if ddata is None:
             ddata = ddata_add
@@ -2055,14 +1457,13 @@ def _consistency(
 
     # --------------
     # ddata
-    ddata, dref_add, dgroup_add = _check_ddata(
+    ddata, dref_add = _check_ddata(
         ddata=ddata, ddata0=ddata0,
-        dref0=dref0, dgroup0=dgroup0,
-        reserved_keys=reserved_keys, allowed_groups=allowed_groups,
-        data_none=data_none, max_ndim=max_ndim,
+        dref0=dref0,
+        reserved_keys=reserved_keys,
+        data_none=data_none,
+        max_ndim=max_ndim,
     )
-    if dgroup_add is not None:
-        dgroup0.update(dgroup_add)
     if dref_add is not None:
         dref0.update(dref_add)
     ddata0.update(ddata)
@@ -2106,7 +1507,6 @@ def _consistency(
     for k0, v0 in ddata0.items():
         if v0.get('data') is None:
             continue
-        ddata0[k0]['group'] = tuple([dref0[rr]['group'] for rr in v0['ref']])
 
     # dref0
     for k0, v0 in dref0.items():
@@ -2115,33 +1515,17 @@ def _consistency(
             if ddata0[k1].get('data') is not None and k0 in ddata0[k1]['ref']
         ))
 
-    # dgroup0
-    for k0, v0 in dgroup0.items():
-        dgroup0[k0]['lref'] = sorted(set(
-            k1 for k1, v1 in dref0.items() if v1['group'] == k0
-        ))
-        dgroup0[k0]['ldata'] = sorted(set(
-            k1 for k1 in ddata0.keys()
-            if ddata0[k1].get('data') is not None and k0 in ddata0[k1]['group']
-        ))
-
     # dstatic0
     _update_dstatic0(dstatic0=dstatic0, ddata0=ddata0, dobj0=dobj0)
 
     # --------------
     # Check conventions
+
     for k0, v0 in ddata0.items():
         if v0.get('data') is None:
             continue
-        if 'time' in v0['group'] and v0['group'].index('time') != 0:
-            msg = (
-                "ref 'time' must be placed at dimension 0!\n"
-                + "\t- ddata['{}']['ref'] = {}\n".format(k0, v0['ref'])
-                + "\t- ddata['{}']['group'] = {}".format(k0, v0['group'])
-            )
-            raise Exception(msg)
 
-    return dgroup0, dref0, dstatic0, ddata0, dobj0
+    return dref0, dstatic0, ddata0, dobj0
 
 
 """
@@ -2165,10 +1549,8 @@ def switch_ref(
     new_ref=None,
     ddata=None,
     dref=None,
-    dgroup=None,
     dobj0=None,
     dstatic0=None,
-    allowed_groups=None,
     reserved_keys=None,
     ddefparams_data=None,
     data_none=None,
@@ -2182,21 +1564,11 @@ def switch_ref(
         and ddata[new_ref].get('monot') == (True,)
     )
     if not c0:
-        strgroup = [
-            '{}: {}'.format(
-                k0,
-                [
-                    k1 for k1 in v0['ldata']
-                    if ddata[k1].get('monot') == (True,)
-                ]
-            )
-            for k0, v0 in dgroup.items()
-        ]
         msg = (
             "\nArg new_ref must be a key to a valid ref (monotonous)!\n"
             + "\t- Provided: {}\n\n".format(new_ref)
             + "Available valid ref candidates:\n"
-            + "\t- {}".format('\n\t- '.join(strgroup))
+            + "\t- {}".format('\n\t- '.join(list(dref.keys())))
         )
         raise Exception(msg)
 
@@ -2217,10 +1589,8 @@ def switch_ref(
     return _consistency(
         ddata=ddata, ddata0={},
         dref=dref, dref0={},
-        dgroup=dgroup, dgroup0={},
         dobj=None, dobj0=dobj0,
         dstatic=None, dstatic0=dstatic0,
-        allowed_groups=None,
         reserved_keys=None,
         ddefparams_data=ddefparams_data,
         ddefparams_obj=None,
@@ -2244,52 +1614,33 @@ def _get_param(
 
     Can be returned as:
         - dict: {param0: {key0: values0, key1: value1...}, ...}
-        - np[.ndarray: {param0: np.r_[values0, value1...], ...}
+        - np.ndarray: {param0: np.r_[values0, value1...], ...}
 
     """
-
-    # Trivial case
-    lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
-    if param is None:
-        param = lp
-
-    # Get key (which data to return param for)
-    key = _ind_tofrom_key(dd=dd, key=key, ind=ind, returnas=str)
 
     # ---------------
     # Check inputs
 
-    # param
-    lc = [
-        isinstance(param, str) and param in lp and param != 'data',
-        isinstance(param, list)
-        and all([isinstance(pp, str) and pp in lp for pp in param])
-    ]
-    if not any(lc):
-        msg = (
-            "Arg param must a valid param key of a list of such "
-            + "(except 'data')\n\n"
-            + "Valid params:\n\t- {}\n\n".format('\n\t- '.join(lp))
-            + "Provided:\n\t- {}\n".format(param)
-        )
-        raise Exception(msg)
+    # Get key (which data to return param for)
+    key = _ind_tofrom_key(dd=dd, key=key, ind=ind, returnas=str)
 
-    if lc[0]:
-        param = [param]
+    # param
+    lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
+    param = _generic_check._check_var_iter(
+        param,
+        'param',
+        types=list,
+        types_iter=str,
+        allowed=lp,
+    )
 
     # returnas
-    if returnas is None:
-        returnas = np.ndarray
-
-    c0 = returnas in [np.ndarray, dict]
-    if not c0:
-        msg = (
-            """
-            Arg returnas must be in [np.ndarray, dict]
-            Provided: {}
-            """.format(returnas)
-        )
-        raise Exception(msg)
+    returnas = _generic_check._check_var(
+        returnas,
+        'returnas',
+        allowed=[np.ndarray, dict],
+        default=np.ndarray,
+    )
 
     # -------------
     # Get output
@@ -2320,29 +1671,24 @@ def _set_param(
 
     """
 
-    # Check param
-    lp = [kk for kk in list(dd.values())[0].keys()]
-    if dd_name == 'ddata':
-        lp.remove('data')
-    if param is None:
-        return
+    # ---------------
+    # Check inputs
 
-    c0 = isinstance(param, str) and param in lp
-    if not c0:
-        msg = (
-            """
-            Provided param in not valid
-            Valid param:
-            {}
+    # Get key (which data to return param for)
+    key = _ind_tofrom_key(dd=dd, key=key, ind=ind, returnas=str)
 
-            Provided:
-            {}
-            """.format('\t- ' + '\n\t- '.join(lp), param)
-        )
-        raise Exception(msg)
+    # param
+    lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
+    param = _generic_check._check_var_iter(
+        param,
+        'param',
+        types=list,
+        types_iter=str,
+        allowed=lp,
+    )
 
-    # Check ind / key
-    key = _ind_tofrom_key(dd=dd, ind=ind, key=key, returnas='key')
+    # ---------------
+    # Set value
 
     # Check value
     ltypes = [str, int, np.integer, float, np.floating, tuple]
@@ -2388,24 +1734,21 @@ def _add_param(
     param=None, value=None,
 ):
     """ Add a parameter, optionnally also set its value """
-    lp = [kk for kk in list(dd.values())[0].keys()]
-    if dd_name == 'ddata':
-        lp.remove('data')
 
-    c0 = isinstance(param, str) and param not in lp
-    if not c0:
-        msg = (
-            """
-            param must be a str not matching any existing param
+    # ---------------
+    # Check inputs
 
-            Available param:
-            {}
+    # Get key (which data to return param for)
+    key = _ind_tofrom_key(dd=dd, key=key, ind=ind, returnas=str)
 
-            Provided:
-            {}
-            """.format(lp, param)
-        )
-        raise Exception(msg)
+    # param
+    lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
+    param = _generic_check._check_var(
+        param,
+        'param',
+        types=str,
+        excluded=lp,
+    )
 
     # Initialize and set
     for kk in dd.keys():
@@ -2418,19 +1761,20 @@ def _remove_param(dd=None, dd_name=None, param=None):
 
     # Check inputs
     lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
-    if param is None:
-        return
     if param == 'all':
         param = lp
-
-    c0 = isinstance(param, str) and param in lp
-    if not c0:
-        msg = "Param {} is not a parameter of {}!".format(param, dd_name)
-        raise Exception(msg)
+    param = _generic_check._check_var_iter(
+        param,
+        'param',
+        types=list,
+        types_iter=str,
+        allowed=lp,
+    )
 
     # Remove
-    for k0 in dd.keys():
-        del dd[k0][param]
+    if param is not None:
+        for k0 in dd.keys():
+            del dd[k0][param]
 
 
 # #############################################################################
@@ -2440,52 +1784,31 @@ def _remove_param(dd=None, dd_name=None, param=None):
 
 
 def _ind_tofrom_key(
-    dd=None, dd_name=None, dgroup=None,
-    ind=None, key=None, group=None, returnas=int,
+    dd=None, dd_name=None,
+    ind=None, key=None, returnas=int,
 ):
 
     # --------------------
     # Check / format input
+
     lc = [ind is not None, key is not None]
     if not np.sum(lc) <= 1:
         msg = ("Args ind and key cannot be prescribed simultaneously!")
         raise Exception(msg)
 
-    if dd_name == 'ddata' and group is not None:
-        if not (isinstance(group, str) and group in group.keys()):
-            msg = (
-                """
-                Provided group must be valid key of dgroup:
-                {}
-
-                Provided:
-                {}
-                """.format(sorted(dgroup.keys()), group)
-            )
-            raise Exception(msg)
-
-    lret = [int, bool, str, 'key']
-    if returnas not in lret:
-        msg = (
-            """
-            Possible values for returnas are:
-            {}
-
-            Provided:
-            {}
-            """.format(lret, returnas)
-        )
-        raise Exception(msg)
+    returnas = _check_generic._check_var(
+        returnas,
+        'returnas',
+        types=str,
+        allowed=[int, bool, str, 'key'],
+        default='key',
+    )
 
     # -----------------
     # Compute
 
     # Intialize output
     out = np.zeros((len(dd),), dtype=bool)
-
-    if not any(lc) and dd_name == 'ddata' and group is not None:
-        key = dgroup[group]['ldata']
-        lc[1] = True
 
     # Get output
     lk = list(dd.keys())
@@ -2498,7 +1821,11 @@ def _ind_tofrom_key(
             ind.ndim == 1
             and (
                 (ind.dtype == np.bool and ind.size == len(dd))
-                or (ind.dtype == np.int and ind.size <= len(dd))
+                or (
+                    ind.dtype == np.int
+                    and np.all(np.isfinite(ind))
+                    and np.max(ind) <= len(dd)
+                )
             )
         )
         if not c0:
@@ -2512,27 +1839,20 @@ def _ind_tofrom_key(
             if returnas in [str, 'key']:
                 out = np.array(
                     [kk for ii, kk in enumerate(lk) if ii in out],
-                    dtype=str
+                    dtype=str,
                 )
 
     elif lc[1]:
 
         # Check key
-        if isinstance(key, str):
-            key = [key]
-        c0 = (
-            isinstance(key, list)
-            and all([isinstance(kk, str) and kk in lk for kk in key])
+        key = _generic_check._check_var_iter(
+            key,
+            'key',
+            types_iter=str,
+            allowed=lk,
         )
-        if not c0:
-            msg = (
-                """
-                key must be valid key to {} (or list of such)
-                Provided: {}
-                """.format(dd_name, key)
-            )
-            raise Exception(msg)
 
+        # return
         if returnas in ['key', str]:
             out = key
         else:
@@ -2564,56 +1884,51 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
 
     """
 
-    # Format and check input
-    if log is None:
-        log = 'all'
-    if returnas is None:
-        returnas = bool if log == 'raw' else int
-    if log not in ['all', 'any', 'raw']:
-        msg = (
-            "Arg log must be:\n"
-            + "\t- 'all': all criteria should match\n"
-            + "\t- 'any': any criterion should match\n"
-            + "\t- 'raw': return the full 2d array of boolean indices\n\n"
-            + "Provided:\n\t{}".format(log)
-        )
-        raise Exception(msg)
-    if returnas not in [int, bool, str, 'key']:
-        msg = (
-            "Arg returnas must be:\n"
-            + "\t- bool: array of boolean indices\n"
-            + "\t- int: array of int indices\n"
-            + "\t- str / 'key': array of keys\n\n"
-            + "Provided:\n\t{}".format(returnas)
-        )
-        raise Exception(msg)
+    # -----------
+    # check input
+
+    # log
+    log = _generic_var._check_var(
+        log,
+        'log',
+        types=str,
+        default='all',
+        allowed=['all', 'any', 'raw'],
+    )
+
+    # returnas
+    # 'raw' => return the full 2d array of boolean indices
+    returnas = _generic_var._check_var(
+        returnas,
+        'returnas',
+        default=bool if log == 'raw' else int,
+        allowed=[int, bool, str, 'key'],
+    )
 
     kwdargs = {k0: v0 for k0, v0 in kwdargs.items() if v0 is not None}
 
     # Get list of relevant criteria
-    lp = [kk for kk in list(dd.values())[0].keys()]
-    if dd_name == 'ddata':
-        lp.remove('data')
+    lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
+    lk = list(kwdargs.keys())
+    lk = _generic_var._check_var_iter(
+        lk,
+        'lk',
+        types_iter=str,
+        default=lp,
+        allowed=lp,
+    )
 
-    lcritout = [ss for ss in kwdargs.keys() if ss not in lp]
-    if len(lcritout) > 0:
-        msg = (
-            """
-            The following criteria correspond to no parameters:
-                - {}
-              => only use known parameters (self.dparam_{}.keys()):
-                - {}
-            """.format(lcritout, dd_name, '\n\t- '.join(lp))
-        )
-        raise Exception(msg)
+    # --------------------
+    # Get raw bool indices
 
-    # Prepare array of bool indices and populate
+    # Get list of accessible param
     ltypes = [float, np.float_]
     lquant = [
         kk for kk in kwdargs.keys()
         if any([type(dd[k0][kk]) in ltypes for k0 in dd.keys()])
     ]
 
+    # Prepare array of bool indices and populate
     ind = np.zeros((len(kwdargs), len(dd)), dtype=bool)
     for ii, kk in enumerate(kwdargs.keys()):
         try:
@@ -2623,14 +1938,19 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
                 returnas=np.ndarray,
             )[kk]
             if kk in lquant:
+                # list => in interval
                 if isinstance(kwdargs[kk], list) and len(kwdargs[kk]) == 2:
                     ind[ii, :] = (
                         (kwdargs[kk][0] <= par) & (par <= kwdargs[kk][1])
                     )
+
+                # tuple => out of interval
                 elif isinstance(kwdargs[kk], tuple) and len(kwdargs[kk]) == 2:
                     ind[ii, :] = (
                         (kwdargs[kk][0] > par) | (par > kwdargs[kk][1])
                     )
+
+                # float / int => equal
                 else:
                     ind[ii, :] = par == kwdargs[kk]
             else:
@@ -2649,7 +1969,10 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
                 )
                 raise Exception(msg)
 
+    # -----------------
     # Format output ind
+
+    # return raw 2d array of bool indices
     if log == 'raw':
         if returnas in [str, 'key']:
             ind = {
@@ -2663,11 +1986,14 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
             }
         else:
             ind = {kk: ind[ii, :] for ii, kk in enumerate(kwdargs.keys())}
+
     else:
+        # return all or any
         if log == 'all':
             ind = np.all(ind, axis=0)
         else:
             ind = np.any(ind, axis=0)
+
         if returnas == int:
             ind = ind.nonzero()[0]
         elif returnas in [str, 'key']:
@@ -2680,10 +2006,10 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
 
 def _get_keyingroup_ddata(
     dd=None, dd_name='data',
-    key=None, group=None, monot=None,
+    key=None, monot=None,
     msgstr=None, raise_=False,
 ):
-    """ Return the unique data key matching key in desired group in ddata
+    """ Return the unique data key matching key
 
     Here, key can be interpreted as name / source / units / quant...
     All are tested using select() and a unique match is returned
@@ -2693,16 +2019,9 @@ def _get_keyingroup_ddata(
 
     # ------------------------
     # Trivial case: key is actually a ddata key
+
     if key in dd.keys():
-        lg = dd[key]['group']
-        if group is None or group in lg:
-            return key, None
-        else:
-            msg = ("Required data key does not have matching group:\n"
-                   + "\t- {}['{}']['group'] = {}\n".format(dd_name, key, lg)
-                   + "\t- Expected group:  {}".format(group))
-            if raise_:
-                raise Exception(msg)
+        return key, None
 
     # ------------------------
     # Non-trivial: check for a unique match on other params
@@ -2710,12 +2029,11 @@ def _get_keyingroup_ddata(
     dind = _select(
         dd=dd, dd_name=dd_name,
         dim=key, quant=key, name=key, units=key, source=key,
-        group=group, monot=monot,
-        log='raw', returnas=bool,
+        monot=monot,
+        log='raw',
+        returnas=bool,
     )
-    ind = np.array([ind for kk, ind in dind.items() if kk != 'group'])
-    if group is not None:
-        ind &= dind['group'][None, :]
+    ind = np.array([ind for kk, ind in dind.items()])
 
     # Any perfect match ?
     nind = np.sum(ind, axis=1)
@@ -2730,7 +2048,7 @@ def _get_keyingroup_ddata(
             msg = "Several possible matches in {} for {}".format(lstr, key)
     else:
         lstr = "[dim, quant, name, units, source]"
-        msg = "No match in {} for {} in group {}".format(lstr, key, group)
+        msg = "No match in {} for {}".format(lstr, key)
 
     # Complement error msg and optionally raise
     if msg is not None:

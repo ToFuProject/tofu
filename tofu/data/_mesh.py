@@ -543,6 +543,337 @@ class Mesh2D(DataCollection):
         )
     """
 
+    def _check_qr12RPZ(
+        self,
+        quant=None,
+        ref1d=None,
+        ref2d=None,
+        q2dR=None,
+        q2dPhi=None,
+        q2dZ=None,
+        group1d=None,
+        group2d=None,
+    ):
+
+        if group1d is None:
+            group1d = self._group1d
+        if group2d is None:
+            group2d = self._group2d
+
+        lc0 = [quant is None, ref1d is None, ref2d is None]
+        lc1 = [q2dR is None, q2dPhi is None, q2dZ is None]
+        if np.sum([all(lc0), all(lc1)]) != 1:
+            msg = (
+                "Please provide either (xor):\n"
+                + "\t- a scalar field (isotropic emissivity):\n"
+                + "\t\tquant : scalar quantity to interpolate\n"
+                + "\t\t\tif quant is 1d, intermediate reference\n"
+                + "\t\t\tfields are necessary for 2d interpolation\n"
+                + "\t\tref1d : 1d reference field on which to interpolate\n"
+                + "\t\tref2d : 2d reference field on which to interpolate\n"
+                + "\t- a vector (R,Phi,Z) field (anisotropic emissivity):\n"
+                + "\t\tq2dR :  R component of the vector field\n"
+                + "\t\tq2dPhi: R component of the vector field\n"
+                + "\t\tq2dZ :  Z component of the vector field\n"
+                + "\t\t=> all components have the same time and mesh!\n"
+            )
+            raise Exception(msg)
+
+        # Check requested quant is available in 2d or 1d
+        if all(lc1):
+            (
+                idquant, idref1d, idref2d,
+            ) = _DataCollection_check_inputs._get_possible_ref12d(
+                dd=self._ddata,
+                key=quant, ref1d=ref1d, ref2d=ref2d,
+                group1d=group1d,
+                group2d=group2d,
+            )
+            idq2dR, idq2dPhi, idq2dZ = None, None, None
+            ani = False
+        else:
+            idq2dR, msg = _DataCollection_check_inputs._get_keyingroup_ddata(
+                dd=self._ddata,
+                key=q2dR, group=group2d, msgstr='quant', raise_=True,
+            )
+            idq2dPhi, msg = _DataCollection_check_inputs._get_keyingroup_ddata(
+                dd=self._ddata,
+                key=q2dPhi, group=group2d, msgstr='quant', raise_=True,
+            )
+            idq2dZ, msg = _DataCollection_check_inputs._get_keyingroup_ddata(
+                dd=self._ddata,
+                key=q2dZ, group=group2d, msgstr='quant', raise_=True,
+            )
+            idquant, idref1d, idref2d = None, None, None
+            ani = True
+        return idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani
+
+    def _interp_pts2d_to_quant1d(
+        self,
+        pts=None,
+        vect=None,
+        t=None,
+        quant=None,
+        ref1d=None,
+        ref2d=None,
+        q2dR=None,
+        q2dPhi=None,
+        q2dZ=None,
+        interp_t=None,
+        interp_space=None,
+        fill_value=None,
+        Type=None,
+        group0d=None,
+        group1d=None,
+        group2d=None,
+        return_all=None,
+    ):
+        """ Return the value of the desired 1d quantity at 2d points
+
+        For the desired inputs points (pts):
+            - pts are in (X, Y, Z) coordinates
+            - space interpolation is linear on the 1d profiles
+        At the desired input times (t):
+            - using a nearest-neighbourg approach for time
+
+        """
+        # Check inputs
+        if group0d is None:
+            group0d = self._group0d
+        if group1d is None:
+            group1d = self._group1d
+        if group2d is None:
+            group2d = self._group2d
+        # msg = "Only 'nearest' available so far for interp_t!"
+        # assert interp_t == 'nearest', msg
+
+        # Check requested quant is available in 2d or 1d
+        idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani = \
+                self._check_qr12RPZ(
+                    quant=quant, ref1d=ref1d, ref2d=ref2d,
+                    q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
+                    group1d=group1d, group2d=group2d,
+                )
+
+        # Check the pts is (3,...) array of floats
+        idmesh = None
+        if pts is None:
+            # Identify mesh to get default points
+            if ani:
+                idmesh = [id_ for id_ in self._ddata[idq2dR]['ref']
+                          if self._dref[id_]['group'] == group2d][0]
+            else:
+                if idref1d is None:
+                    idmesh = [id_ for id_ in self._ddata[idquant]['ref']
+                              if self._dref[id_]['group'] == group2d][0]
+                else:
+                    idmesh = [id_ for id_ in self._ddata[idref2d]['ref']
+                              if self._dref[id_]['group'] == group2d][0]
+
+            # Derive pts
+            pts = self._get_pts_from_mesh(key=idmesh)
+
+        pts = np.atleast_2d(pts)
+        if pts.shape[0] != 3:
+            msg = (
+                "pts must be np.ndarray of (X,Y,Z) points coordinates\n"
+                + "Can be multi-dimensional, but 1st dimension is (X,Y,Z)\n"
+                + "    - Expected shape : (3,...)\n"
+                + "    - Provided shape : {}".format(pts.shape)
+            )
+            raise Exception(msg)
+
+        # Check t
+        lc = [t is None, type(t) is str, type(t) is np.ndarray]
+        assert any(lc)
+        if lc[1]:
+            assert t in self._ddata.keys()
+            t = self._ddata[t]['data']
+
+        # Interpolation (including time broadcasting)
+        # this is the second slowest step (~0.08 s)
+        func = self._get_finterp(
+            idquant=idquant, idref1d=idref1d, idref2d=idref2d,
+            idq2dR=idq2dR, idq2dPhi=idq2dPhi, idq2dZ=idq2dZ,
+            idmesh=idmesh,
+            interp_t=interp_t, interp_space=interp_space,
+            fill_value=fill_value, ani=ani, Type=Type,
+            group0d=group0d, group2d=group2d,
+        )
+
+        # Check vect of ani
+        c0 = (
+            ani is True
+            and (
+                vect is None
+                or not (
+                    isinstance(vect, np.ndarray)
+                    and vect.shape == pts.shape
+                )
+            )
+        )
+        if c0:
+            msg = (
+                "Anisotropic field interpolation needs a field of local vect\n"
+                + "  => Please provide vect as (3, npts) np.ndarray!"
+            )
+            raise Exception(msg)
+
+        # This is the slowest step (~1.8 s)
+        val, t = func(pts, vect=vect, t=t)
+
+        # return
+        if return_all is None:
+            return_all = True
+        if return_all is True:
+            dout = {
+                't': t,
+                'pts': pts,
+                'ref1d': idref1d,
+                'ref2d': idref2d,
+                'q2dR': idq2dR,
+                'q2dPhi': idq2dPhi,
+                'q2dZ': idq2dZ,
+                'interp_t': interp_t,
+                'interp_space': interp_space,
+            }
+            return val, dout
+        else:
+            return val
+
+    def _interp_pts2d_to_quant1d(
+        self,
+        pts=None,
+        vect=None,
+        t=None,
+        quant=None,
+        ref1d=None,
+        ref2d=None,
+        q2dR=None,
+        q2dPhi=None,
+        q2dZ=None,
+        interp_t=None,
+        interp_space=None,
+        fill_value=None,
+        Type=None,
+        group0d=None,
+        group1d=None,
+        group2d=None,
+        return_all=None,
+    ):
+        """ Return the value of the desired 1d quantity at 2d points
+
+        For the desired inputs points (pts):
+            - pts are in (X, Y, Z) coordinates
+            - space interpolation is linear on the 1d profiles
+        At the desired input times (t):
+            - using a nearest-neighbourg approach for time
+
+        """
+        # Check inputs
+        if group0d is None:
+            group0d = self._group0d
+        if group1d is None:
+            group1d = self._group1d
+        if group2d is None:
+            group2d = self._group2d
+        # msg = "Only 'nearest' available so far for interp_t!"
+        # assert interp_t == 'nearest', msg
+
+        # Check requested quant is available in 2d or 1d
+        idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani = \
+                self._check_qr12RPZ(
+                    quant=quant, ref1d=ref1d, ref2d=ref2d,
+                    q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
+                    group1d=group1d, group2d=group2d,
+                )
+
+        # Check the pts is (3,...) array of floats
+        idmesh = None
+        if pts is None:
+            # Identify mesh to get default points
+            if ani:
+                idmesh = [id_ for id_ in self._ddata[idq2dR]['ref']
+                          if self._dref[id_]['group'] == group2d][0]
+            else:
+                if idref1d is None:
+                    idmesh = [id_ for id_ in self._ddata[idquant]['ref']
+                              if self._dref[id_]['group'] == group2d][0]
+                else:
+                    idmesh = [id_ for id_ in self._ddata[idref2d]['ref']
+                              if self._dref[id_]['group'] == group2d][0]
+
+            # Derive pts
+            pts = self._get_pts_from_mesh(key=idmesh)
+
+        pts = np.atleast_2d(pts)
+        if pts.shape[0] != 3:
+            msg = (
+                "pts must be np.ndarray of (X,Y,Z) points coordinates\n"
+                + "Can be multi-dimensional, but 1st dimension is (X,Y,Z)\n"
+                + "    - Expected shape : (3,...)\n"
+                + "    - Provided shape : {}".format(pts.shape)
+            )
+            raise Exception(msg)
+
+        # Check t
+        lc = [t is None, type(t) is str, type(t) is np.ndarray]
+        assert any(lc)
+        if lc[1]:
+            assert t in self._ddata.keys()
+            t = self._ddata[t]['data']
+
+        # Interpolation (including time broadcasting)
+        # this is the second slowest step (~0.08 s)
+        func = self._get_finterp(
+            idquant=idquant, idref1d=idref1d, idref2d=idref2d,
+            idq2dR=idq2dR, idq2dPhi=idq2dPhi, idq2dZ=idq2dZ,
+            idmesh=idmesh,
+            interp_t=interp_t, interp_space=interp_space,
+            fill_value=fill_value, ani=ani, Type=Type,
+            group0d=group0d, group2d=group2d,
+        )
+
+        # Check vect of ani
+        c0 = (
+            ani is True
+            and (
+                vect is None
+                or not (
+                    isinstance(vect, np.ndarray)
+                    and vect.shape == pts.shape
+                )
+            )
+        )
+        if c0:
+            msg = (
+                "Anisotropic field interpolation needs a field of local vect\n"
+                + "  => Please provide vect as (3, npts) np.ndarray!"
+            )
+            raise Exception(msg)
+
+        # This is the slowest step (~1.8 s)
+        val, t = func(pts, vect=vect, t=t)
+
+        # return
+        if return_all is None:
+            return_all = True
+        if return_all is True:
+            dout = {
+                't': t,
+                'pts': pts,
+                'ref1d': idref1d,
+                'ref2d': idref2d,
+                'q2dR': idq2dR,
+                'q2dPhi': idq2dPhi,
+                'q2dZ': idq2dZ,
+                'interp_t': interp_t,
+                'interp_space': interp_space,
+            }
+            return val, dout
+        else:
+            return val
+
     def interp2d(
         self,
         key=None,

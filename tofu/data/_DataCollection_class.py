@@ -72,11 +72,11 @@ class DataCollection(utils.ToFuObject):
     _data_none = None
     _reserved_keys = None
 
-    _show_in_summary_core = ['shape', 'ref', 'group']
+    _show_in_summary_core = ['shape', 'ref']
     _show_in_summary = 'all'
     _max_ndim = None
 
-    _dindref = {}
+    _dref = {}
     _dstatic = {}
     _ddata = {}
     _dobj = {}
@@ -93,7 +93,7 @@ class DataCollection(utils.ToFuObject):
 
     def __init__(
         self,
-        dindref=None,
+        dref=None,
         dstatic=None,
         ddata=None,
         dobj=None,
@@ -114,15 +114,14 @@ class DataCollection(utils.ToFuObject):
     def _reset(self):
         # Run by the parent class __init__()
         super()._reset()
-        self._dindref = {}
+        self._dref = {}
         self._dstatic = {}
         self._ddata = {}
         self._dobj = {}
 
     @classmethod
-    def _checkformat_inputs_Id(
-        cls, Id=None, Name=None, include=None, **kwdargs,
-    ):
+    def _checkformat_inputs_Id(cls, Id=None, Name=None,
+                               include=None, **kwdargs):
         if Id is not None:
             assert isinstance(Id, utils.ID)
             Name = Id.Name
@@ -142,20 +141,19 @@ class DataCollection(utils.ToFuObject):
 
     def _init(
         self,
-        dgroup=None,
-        dindref=None,
+        dref=None,
         dstatic=None,
         ddata=None,
         dobj=None,
         **kwargs,
     ):
         self.update(
-            dindref=dindref,
+            dref=dref,
             dstatic=dstatic,
             ddata=ddata,
             dobj=dobj,
         )
-        self._dstrip['strip'] = 0
+        # self._dstrip['strip'] = 0
 
     ###########
     # set dictionaries
@@ -167,97 +165,72 @@ class DataCollection(utils.ToFuObject):
         ddata=None,
         dref=None,
         dstatic=None,
-        dgroup=None,
     ):
-        """ Can be used to set/add data/ref/group
+        """ Can be used to set/add data/ref
 
         Will update existing attribute with new dict
         """
         # Check consistency
-        self._dgroup, self._dref, self._dstatic, self._ddata, self._dobj =\
-                _DataCollection_check_inputs._consistency(
-                    dobj=dobj, dobj0=self._dobj,
-                    ddata=ddata, ddata0=self._ddata,
-                    dref=dref, dref0=self._dref,
-                    dstatic=dstatic, dstatic0=self._dstatic,
-                    dgroup=dgroup, dgroup0=self._dgroup,
-                    allowed_groups=self._allowed_groups,
-                    reserved_keys=self._reserved_keys,
-                    ddefparams_data=self._ddef['params']['ddata'],
-                    ddefparams_obj=self._ddef['params']['dobj'],
-                    data_none=self._data_none,
-                    max_ndim=self._max_ndim,
-                )
+        (
+            self._dref, self._dstatic, self._ddata, self._dobj,
+        ) = _DataCollection_check_inputs._consistency(
+            dobj=dobj, dobj0=self._dobj,
+            ddata=ddata, ddata0=self._ddata,
+            dref=dref, dref0=self._dref,
+            dstatic=dstatic, dstatic0=self._dstatic,
+            reserved_keys=self._reserved_keys,
+            ddefparams_data=self._ddef['params']['ddata'],
+            ddefparams_obj=self._ddef['params']['dobj'],
+            data_none=self._data_none,
+            max_ndim=self._max_ndim,
+        )
 
     # ---------------------
-    # Adding group / ref / quantity one by one
+    # Adding ref / quantity one by one
     # ---------------------
 
-    def add_group(self, group=None):
+    def add_ref(self, key=None, data=None, **kwdargs):
+        dref = {key: {'data': data, **kwdargs}}
         # Check consistency
-        self.update(ddata=None, dref=None, dstatic=None, dgroup=group)
+        self.update(ddata=None, dref=dref, dstatic=None)
 
-    def add_ref(self, key=None, group=None, data=None, **kwdargs):
-        dref = {key: {'group': group, 'data': data, **kwdargs}}
-        # Check consistency
-        self.update(ddata=None, dref=dref, dstatic=None, dgroup=None)
-
-    # TBF
-    def add_ref_static(self, key=None, which=None, **kwdargs):
+    def add_static(self, key=None, which=None, **kwdargs):
         dstatic = {which: {key: kwdargs}}
         # Check consistency
-        self.update(
-            ddata=None, dref=None, dstatic=dstatic, dgroup=None,
-        )
+        self.update(ddata=None, dref=None, dstatic=dstatic)
 
     def add_data(self, key=None, data=None, ref=None, **kwdargs):
         ddata = {key: {'data': data, 'ref': ref, **kwdargs}}
         # Check consistency
-        self.update(ddata=ddata, dref=None, dstatic=None, dgroup=None)
+        self.update(ddata=ddata, dref=None, dstatic=None)
 
     def add_obj(self, which=None, key=None, **kwdargs):
         dobj = {which: {key: kwdargs}}
         # Check consistency
-        self.update(dobj=dobj, dref=None, dstatic=None, dgroup=None)
+        self.update(dobj=dobj, dref=None, dstatic=None)
 
     # ---------------------
-    # Removing group / ref / quantities
+    # Removing ref / quantities
     # ---------------------
-
-    def remove_group(self, group=None):
-        """ Remove a group (or list of groups) and all associated ref, data """
-        self._dgroup, self._dref, self._dstatic, self._ddata, self._dobj =\
-                _DataCollection_check_inputs._remove_group(
-                    group=group,
-                    dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
-                    dstatic0=self._dstatic,
-                    dobj0=self._dobj,
-                    allowed_groups=self._allowed_groups,
-                    reserved_keys=self._reserved_keys,
-                    ddefparams_data=self._ddef['params']['ddata'],
-                    ddefparams_obj=self._ddef['params']['dobj'],
-                    data_none=self._data_none,
-                    max_ndim=self._max_ndim,
-                )
 
     def remove_ref(self, key=None, propagate=None):
         """ Remove a ref (or list of refs) and all associated data """
-        self._dgroup, self._dref, self._dstatic, self._ddata, self._dobj =\
-                _DataCollection_check_inputs._remove_ref(
-                    key=key,
-                    dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
-                    dstatic0=self._dstatic,
-                    dobj0=self._dobj,
-                    propagate=propagate,
-                    allowed_groups=self._allowed_groups,
-                    reserved_keys=self._reserved_keys,
-                    ddefparams_data=self._ddef['params']['ddata'],
-                    ddefparams_obj=self._ddef['params']['dobj'],
-                    data_none=self._data_none,
-                    max_ndim=self._max_ndim,
-                )
+        (
+            self._dref, self._dstatic, self._ddata, self._dobj,
+        ) = _DataCollection_check_inputs._remove_ref(
+            key=key,
+            dref0=self._dref, ddata0=self._ddata,
+            dstatic0=self._dstatic,
+            dobj0=self._dobj,
+            propagate=propagate,
+            reserved_keys=self._reserved_keys,
+            ddefparams_data=self._ddef['params']['ddata'],
+            ddefparams_obj=self._ddef['params']['dobj'],
+            data_none=self._data_none,
+            max_ndim=self._max_ndim,
+        )
 
-    def remove_ref_static(self, key=None, which=None, propagate=None):
+    def remove_static(self, key=None, which=None, propagate=None):
         """ Remove a static ref (or list) or a whole category
 
         key os provided:
@@ -268,7 +241,7 @@ class DataCollection(utils.ToFuObject):
             => treated as param, the whole category of ref_static is removed
                 if propagate, the parameter is removed from ddata and dobj
         """
-        _DataCollection_check_inputs._remove_ref_static(
+        _DataCollection_check_inputs._remove_static(
             key=key,
             which=which,
             propagate=propagate,
@@ -279,39 +252,38 @@ class DataCollection(utils.ToFuObject):
 
     def remove_data(self, key=None, propagate=True):
         """ Remove a data (or list of data) """
-        self._dgroup, self._dref, self._dstatic, self._ddata, self._dobj =\
-                _DataCollection_check_inputs._remove_data(
-                    key=key,
-                    dgroup0=self._dgroup, dref0=self._dref, ddata0=self._ddata,
-                    dstatic0=self._dstatic,
-                    dobj0=self._dobj,
-                    propagate=propagate,
-                    allowed_groups=self._allowed_groups,
-                    reserved_keys=self._reserved_keys,
-                    ddefparams_data=self._ddef['params']['ddata'],
-                    ddefparams_obj=self._ddef['params']['dobj'],
-                    data_none=self._data_none,
-                    max_ndim=self._max_ndim,
-                )
+        (
+            self._dref, self._dstatic, self._ddata, self._dobj,
+        ) = _DataCollection_check_inputs._remove_data(
+            key=key,
+            dref0=self._dref, ddata0=self._ddata,
+            dstatic0=self._dstatic,
+            dobj0=self._dobj,
+            propagate=propagate,
+            reserved_keys=self._reserved_keys,
+            ddefparams_data=self._ddef['params']['ddata'],
+            ddefparams_obj=self._ddef['params']['dobj'],
+            data_none=self._data_none,
+            max_ndim=self._max_ndim,
+        )
 
     def remove_obj(self, key=None, which=None, propagate=True):
         """ Remove a data (or list of data) """
-        self._dgroup, self._dref, self._dstatic, self._ddata, self._dobj =\
-                _DataCollection_check_inputs._remove_obj(
-                    key=key,
-                    which=which,
-                    dobj0=self._dobj,
-                    ddata0=self._ddata,
-                    dgroup0=self._dgroup,
-                    dref0=self._dref,
-                    dstatic0=self._dstatic,
-                    allowed_groups=self._allowed_groups,
-                    reserved_keys=self._reserved_keys,
-                    ddefparams_data=self._ddef['params']['ddata'],
-                    ddefparams_obj=self._ddef['params']['dobj'],
-                    data_none=self._data_none,
-                    max_ndim=self._max_ndim,
-                )
+        (
+            self._dref, self._dstatic, self._ddata, self._dobj,
+        ) = _DataCollection_check_inputs._remove_obj(
+            key=key,
+            which=which,
+            dobj0=self._dobj,
+            ddata0=self._ddata,
+            dref0=self._dref,
+            dstatic0=self._dstatic,
+            reserved_keys=self._reserved_keys,
+            ddefparams_data=self._ddef['params']['ddata'],
+            ddefparams_obj=self._ddef['params']['dobj'],
+            data_none=self._data_none,
+            max_ndim=self._max_ndim,
+        )
 
     # ---------------------
     # Get / set / add / remove params
@@ -320,23 +292,25 @@ class DataCollection(utils.ToFuObject):
     def __check_which(self, which=None, return_dict=None):
         """ Check which in ['data'] + list(self._dobj.keys() """
         return _DataCollection_check_inputs._check_which(
+            dref=self._dref,
             ddata=self._ddata,
             dobj=self._dobj,
+            dstatic=self._dstatic,
             which=which,
             return_dict=return_dict,
         )
 
     def get_lparam(self, which=None):
-        """ Return the list of params for the chosen dict ('data' or dobj[<>])
+        """ Return the list of params for the chosen dict
+
+        which can be:
+            - 'ref'
+            - 'data'
+            - dobj[<which>]
+            - dstatic[<which>]
         """
         which, dd = self.__check_which(which, return_dict=True)
-        if which is None:
-            return
-
-        lp = list(list(dd.values())[0].keys())
-        if which == 'data':
-            lp.remove('data')
-        return lp
+        return list(list(dd.values())[0].keys())
 
     def get_param(
         self,
@@ -348,14 +322,20 @@ class DataCollection(utils.ToFuObject):
     ):
         """ Return the array of the chosen parameter (or list of parameters)
 
+        which can be:
+            - 'ref'
+            - 'data'
+            - dobj[<which>]
+            - dstatic[<which>]
+
+        param cen be a str or a list of str
+
         Can be returned as:
             - dict: {param0: {key0: values0, key1: value1...}, ...}
-            - np[.ndarray: {param0: np.r_[values0, value1...], ...}
+            - np.ndarray: {param0: np.r_[values0, value1...], ...}
 
         """
         which, dd = self.__check_which(which, return_dict=True)
-        if which is None:
-            return
         return _DataCollection_check_inputs._get_param(
             dd=dd, dd_name=which,
             param=param, key=key, ind=ind, returnas=returnas,
@@ -371,6 +351,12 @@ class DataCollection(utils.ToFuObject):
     ):
         """ Set the value of a parameter
 
+        which can be:
+            - 'ref'
+            - 'data'
+            - dobj[<which>]
+            - dstatic[<which>]
+
         value can be:
             - None
             - a unique value (int, float, bool, str, tuple) common to all keys
@@ -381,8 +367,6 @@ class DataCollection(utils.ToFuObject):
 
         """
         which, dd = self.__check_which(which, return_dict=True)
-        if which is None:
-            return
         _DataCollection_check_inputs._set_param(
             dd=dd, dd_name=which,
             param=param, value=value, ind=ind, key=key,
@@ -396,8 +380,6 @@ class DataCollection(utils.ToFuObject):
     ):
         """ Add a parameter, optionnally also set its value """
         which, dd = self.__check_which(which, return_dict=True)
-        if which is None:
-            return
         _DataCollection_check_inputs._add_param(
             dd=dd, dd_name=which,
             param=param, value=value,
@@ -410,8 +392,6 @@ class DataCollection(utils.ToFuObject):
     ):
         """ Remove a parameter, none by default, all if param = 'all' """
         which, dd = self.__check_which(which, return_dict=True)
-        if which is None:
-            return
         _DataCollection_check_inputs._remove_param(
             dd=dd, dd_name=which,
             param=param,
@@ -447,7 +427,6 @@ class DataCollection(utils.ToFuObject):
 
     def _to_dict(self):
         dout = {
-            'dgroup': {'dict': self._dgroup, 'lexcept': None},
             'dref': {'dict': self._dref, 'lexcept': None},
             'dstatic': {'dict': self._dstatic, 'lexcept': None},
             'ddata': {'dict': self._ddata, 'lexcept': None},
@@ -456,7 +435,7 @@ class DataCollection(utils.ToFuObject):
         return dout
 
     def _from_dict(self, fd):
-        for k0 in ['dgroup', 'dref', 'ddata', 'dstatic', 'dobj']:
+        for k0 in ['dref', 'ddata', 'dstatic', 'dobj']:
             if fd.get(k0) is not None:
                 getattr(self, '_'+k0).update(**fd[k0])
         self.update()
@@ -464,11 +443,6 @@ class DataCollection(utils.ToFuObject):
     ###########
     # properties
     ###########
-
-    @property
-    def dgroup(self):
-        """ The dict of groups """
-        return self._dgroup
 
     @property
     def dref(self):
@@ -519,8 +493,6 @@ class DataCollection(utils.ToFuObject):
 
         """
         which, dd = self.__check_which(which, return_dict=True)
-        if which is None:
-            return
         return _DataCollection_check_inputs._select(
             dd=dd, dd_name=which,
             log=log, returnas=returnas, **kwdargs,
@@ -530,22 +502,18 @@ class DataCollection(utils.ToFuObject):
         self,
         ind=None,
         key=None,
-        group=None,
         returnas=int,
         which=None,
     ):
         """ Return ind from key or key from ind for all data """
         which, dd = self.__check_which(which, return_dict=True)
-        if which is None:
-            return
         return _DataCollection_check_inputs._ind_tofrom_key(
             dd=dd, dd_name=which, ind=ind, key=key,
-            group=group, dgroup=self._dgroup,
             returnas=returnas,
         )
 
     def _get_sort_index(self, which=None, param=None):
-        """ Return sorting index ofself.ddata dict """
+        """ Return sorting index of self.ddata dict """
 
         if param is None:
             return
@@ -564,31 +532,20 @@ class DataCollection(utils.ToFuObject):
     def sortby(self, param=None, order=None, which=None):
         """ sort the self.ddata dict by desired parameter """
 
-        # Trivial case
-        if len(self._ddata) == 0 and len(self._dobj) == 0:
-            return
-
         # --------------
         # Check inputs
 
         # order
-        if order is None:
-            order = 'increasing'
-
-        c0 = order in ['increasing', 'reverse']
-        if not c0:
-            msg = (
-                """
-                Arg order must be in [None, 'increasing', 'reverse']
-                Provided: {}
-                """.format(order)
-            )
-            raise Exception(msg)
+        order = _generic_check._check_var(
+            order,
+            'order',
+            types=str,
+            default='increasing',
+            allowed=['increasing', 'reverse'],
+        )
 
         # which
         which, dd = self.__check_which(which, return_dict=True)
-        if which is None:
-            return
 
         # --------------
         # sort
@@ -603,75 +560,33 @@ class DataCollection(utils.ToFuObject):
 
         if which == 'data':
             self._ddata = dd
-        else:
+        elif which == 'ref':
+            self.dref = dd
+        elif which in self._dobj.keys():
             self._dobj[which] = dd
-
-    # ---------------------
-    # Get refs from data key
-    # ---------------------
-
-    def _get_ref_from_key(self, key=None, group=None):
-        """ Get the key of the ref in chosen group """
-
-        # Check input
-        if key not in self._ddata.keys():
-            msg = "Provide a valid data key!\n\t- Provided: {}".format(key)
-            raise Exception(msg)
-
-        ref = self._ddata[key]['ref']
-        if len(ref) > 1:
-            if group not in self._dgroup.keys():
-                msg = "Provided group is not valid!\n\t{}".format(group)
-                raise Exception(msg)
-            ref = [rr for rr in ref if self._dref[rr]['group'] == group]
-            if len(ref) != 1:
-                msg = "Ambiguous ref for key {}!\n\t- {}".format(key, ref)
-                raise Exception(msg)
-        return ref[0]
-
-    # ---------------------
-    # Switch ref
-    # ---------------------
-
-    def switch_ref(self, new_ref=None):
-        """Use the provided key as ref (if valid) """
-        self._dgroup, self._dref, self._dstatic, self._ddata, self._dobj =\
-                _DataCollection_check_inputs.switch_ref(
-                    new_ref=new_ref,
-                    ddata=self._ddata,
-                    dref=self._dref,
-                    dgroup=self._dgroup,
-                    dobj0=self._dobj,
-                    dstatic0=self._dstatic,
-                    allowed_groups=self._allowed_groups,
-                    reserved_keys=self._reserved_keys,
-                    ddefparams_data=self._ddef['params'].get('data'),
-                    data_none=self._data_none,
-                    max_ndim=self._max_ndim,
-                )
+        elif which in self._dstatic.keys():
+            self._dstatic[which] = dd
 
     # ---------------------
     # Methods for getting a subset of the collection
     # ---------------------
 
     # TBC
-    def get_drefddata_as_input(self, key=None, ind=None, group=None):
-        lk = self._ind_tofrom_key(ind=ind, key=key, group=group, returnas=str)
+    def get_drefddata_as_input(self, key=None, ind=None):
+        lk = self._ind_tofrom_key(ind=ind, key=key, returnas=str)
         lkr = [kr for kr in self._dref['lkey']
                if any([kr in self._ddata['dict'][kk]['refs'] for kk in lk])]
-        dref = {kr: {'data': self._ddata['dict'][kr]['data'],
-                     'group': self._dref['dict'][kr]['group']} for kr in lkr}
+        dref = {kr: {'data': self._ddata['dict'][kr]['data']} for kr in lkr}
         lkr = dref.keys()
         ddata = {kk: self._ddata['dict'][kk] for kk in lk if kk not in lkr}
         return dref, ddata
 
     # TBC
-    def get_subset(self, key=None, ind=None, group=None, Name=None):
+    def get_subset(self, key=None, ind=None, Name=None):
         if key is None and ind is None:
             return self
         else:
-            dref, ddata = self.get_drefddata_as_input(key=key, ind=ind,
-                                                      group=group)
+            dref, ddata = self.get_drefddata_as_input(key=key, ind=ind)
             if Name is None and self.Id.Name is not None:
                 Name = self.Id.Name + '-subset'
             return self.__class__(dref=dref, ddata=ddata, Name=Name)
@@ -681,11 +596,9 @@ class DataCollection(utils.ToFuObject):
     # ---------------------
 
     # TBC
-    def to_PlotCollection(self, key=None, ind=None, group=None, Name=None,
+    def to_PlotCollection(self, key=None, ind=None, Name=None,
                           dnmax=None, lib='mpl'):
-        dref, ddata = self.get_drefddata_as_input(
-            key=key, ind=ind, group=group,
-        )
+        dref, ddata = self.get_drefddata_as_input(key=key, ind=ind)
         if Name is None and self.Id.Name is not None:
             Name = self.Id.Name + '-plot'
         import tofu.data._core_plot as _core_plot
@@ -721,26 +634,13 @@ class DataCollection(utils.ToFuObject):
         lcol, lar = [], []
 
         # -----------------------
-        # Build for groups
-        if len(self._dgroup) > 0:
-            lcol.append(['group', 'nb. ref', 'nb. data'])
-            lar.append([
-                (
-                    k0,
-                    len(self._dgroup[k0]['lref']),
-                    len(self._dgroup[k0]['ldata']),
-                )
-                for k0 in self._dgroup.keys()
-            ])
+        # Build for dref
 
-        # -----------------------
-        # Build for refs
         if len(self._dref) > 0:
-            lcol.append(['ref key', 'group', 'size', 'nb. data'])
+            lcol.append(['ref key', 'size', 'nb. data'])
             lar.append([
                 (
                     k0,
-                    self._dref[k0]['group'],
                     str(self._dref[k0]['size']),
                     len(self._dref[k0]['ldata'])
                 )
@@ -749,13 +649,14 @@ class DataCollection(utils.ToFuObject):
 
         # -----------------------
         # Build for ddata
+
         if len(self._ddata) > 0:
             if show_core is None:
                 show_core = self._show_in_summary_core
             if isinstance(show_core, str):
                 show_core = [show_core]
             lp = self.get_lparam(which='data')
-            lkcore = ['shape', 'group', 'ref']
+            lkcore = ['shape', 'ref']
             assert all([ss in lp + lkcore for ss in show_core])
             col2 = ['data key'] + show_core
 
@@ -846,7 +747,6 @@ class DataCollection(utils.ToFuObject):
 
     def _get_common_ref_data_nearest(
         self,
-        group=None,
         lkey=None,
         return_all=None,
     ):
@@ -858,8 +758,9 @@ class DataCollection(utils.ToFuObject):
 
         """
         return _DataCollection_comp._get_unique_ref_dind(
-            dd=self._ddata, group=group,
-            lkey=lkey, return_all=return_all,
+            dd=self._ddata,
+            lkey=lkey,
+            return_all=return_all,
         )
 
     def _get_pts_from_mesh(self, key=None):
@@ -897,88 +798,6 @@ class DataCollection(utils.ToFuObject):
         return pts
 
     # ---------------------
-    # Method for interpolation - inputs checks
-    # ---------------------
-
-    # Useful?
-    @property
-    def _get_lquant_both(self, group1d=None, group2d=None):
-        """ Return list of quantities available both in 1d and 2d """
-        lq1 = [
-            self._ddata[vd]['quant'] for vd in self._dgroup[group1d]['ldata']
-        ]
-        lq2 = [
-            self._ddata[vd]['quant'] for vd in self._dgroup[group2d]['ldata']
-        ]
-        lq = list(set(lq1).intersection(lq2))
-        return lq
-
-    def _check_qr12RPZ(
-        self,
-        quant=None,
-        ref1d=None,
-        ref2d=None,
-        q2dR=None,
-        q2dPhi=None,
-        q2dZ=None,
-        group1d=None,
-        group2d=None,
-    ):
-
-        if group1d is None:
-            group1d = self._group1d
-        if group2d is None:
-            group2d = self._group2d
-
-        lc0 = [quant is None, ref1d is None, ref2d is None]
-        lc1 = [q2dR is None, q2dPhi is None, q2dZ is None]
-        if np.sum([all(lc0), all(lc1)]) != 1:
-            msg = (
-                "Please provide either (xor):\n"
-                + "\t- a scalar field (isotropic emissivity):\n"
-                + "\t\tquant : scalar quantity to interpolate\n"
-                + "\t\t\tif quant is 1d, intermediate reference\n"
-                + "\t\t\tfields are necessary for 2d interpolation\n"
-                + "\t\tref1d : 1d reference field on which to interpolate\n"
-                + "\t\tref2d : 2d reference field on which to interpolate\n"
-                + "\t- a vector (R,Phi,Z) field (anisotropic emissivity):\n"
-                + "\t\tq2dR :  R component of the vector field\n"
-                + "\t\tq2dPhi: R component of the vector field\n"
-                + "\t\tq2dZ :  Z component of the vector field\n"
-                + "\t\t=> all components have the same time and mesh!\n"
-            )
-            raise Exception(msg)
-
-        # Check requested quant is available in 2d or 1d
-        if all(lc1):
-            (
-                idquant, idref1d, idref2d,
-            ) = _DataCollection_check_inputs._get_possible_ref12d(
-                dd=self._ddata,
-                key=quant, ref1d=ref1d, ref2d=ref2d,
-                group1d=group1d,
-                group2d=group2d,
-            )
-            idq2dR, idq2dPhi, idq2dZ = None, None, None
-            ani = False
-        else:
-            idq2dR, msg = _DataCollection_check_inputs._get_keyingroup_ddata(
-                dd=self._ddata,
-                key=q2dR, group=group2d, msgstr='quant', raise_=True,
-            )
-            idq2dPhi, msg = _DataCollection_check_inputs._get_keyingroup_ddata(
-                dd=self._ddata,
-                key=q2dPhi, group=group2d, msgstr='quant', raise_=True,
-            )
-            idq2dZ, msg = _DataCollection_check_inputs._get_keyingroup_ddata(
-                dd=self._ddata,
-                key=q2dZ, group=group2d, msgstr='quant', raise_=True,
-            )
-            idquant, idref1d, idref2d = None, None, None
-            ani = True
-        return idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani
-
-    # ---------------------
     # Method for interpolation
     # ---------------------
 
@@ -988,7 +807,6 @@ class DataCollection(utils.ToFuObject):
         idq2dR=None, idq2dPhi=None, idq2dZ=None,
         interp_t=None, interp_space=None,
         fill_value=None, ani=None, Type=None,
-        group0d=None, group2d=None,
     ):
 
         if interp_t is None:
@@ -996,26 +814,19 @@ class DataCollection(utils.ToFuObject):
         if interp_t != 'nearest':
             msg = "'nearest' is the only time-interpolation method available"
             raise NotImplementedError(msg)
-        if group0d is None:
-            group0d = self._group0d
-        if group2d is None:
-            group2d = self._group2d
 
         # Get idmesh
         if idmesh is None:
             if idquant is not None:
                 # isotropic
                 if idref1d is None:
-                    lidmesh = [qq for qq in self._ddata[idquant]['ref']
-                               if self._dref[qq]['group'] == group2d]
+                    lidmesh = [qq for qq in self._ddata[idquant]['ref']]
                 else:
-                    lidmesh = [qq for qq in self._ddata[idref2d]['ref']
-                               if self._dref[qq]['group'] == group2d]
+                    lidmesh = [qq for qq in self._ddata[idref2d]['ref']]
             else:
                 # anisotropic
                 assert idq2dR is not None
-                lidmesh = [qq for qq in self._ddata[idq2dR]['ref']
-                           if self._dref[qq]['group'] == group2d]
+                lidmesh = [qq for qq in self._ddata[idq2dR]['ref']]
             assert len(lidmesh) == 1
             idmesh = lidmesh[0]
 
@@ -1023,7 +834,7 @@ class DataCollection(utils.ToFuObject):
         if interp_t == 'nearest':
             tall, tbinall, ntall, dind = _DataCollection_comp._get_tcom(
                 idquant, idref1d, idref2d, idq2dR,
-                dd=self._ddata, group=group0d,
+                dd=self._ddata,
             )
 
         # Get mesh
@@ -1107,141 +918,8 @@ class DataCollection(utils.ToFuObject):
 
         return func
 
-    def _interp_pts2d_to_quant1d(
-        self,
-        pts=None,
-        vect=None,
-        t=None,
-        quant=None,
-        ref1d=None,
-        ref2d=None,
-        q2dR=None,
-        q2dPhi=None,
-        q2dZ=None,
-        interp_t=None,
-        interp_space=None,
-        fill_value=None,
-        Type=None,
-        group0d=None,
-        group1d=None,
-        group2d=None,
-        return_all=None,
-    ):
-        """ Return the value of the desired 1d quantity at 2d points
-
-        For the desired inputs points (pts):
-            - pts are in (X, Y, Z) coordinates
-            - space interpolation is linear on the 1d profiles
-        At the desired input times (t):
-            - using a nearest-neighbourg approach for time
-
-        """
-        # Check inputs
-        if group0d is None:
-            group0d = self._group0d
-        if group1d is None:
-            group1d = self._group1d
-        if group2d is None:
-            group2d = self._group2d
-        # msg = "Only 'nearest' available so far for interp_t!"
-        # assert interp_t == 'nearest', msg
-
-        # Check requested quant is available in 2d or 1d
-        idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani = \
-                self._check_qr12RPZ(
-                    quant=quant, ref1d=ref1d, ref2d=ref2d,
-                    q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
-                    group1d=group1d, group2d=group2d,
-                )
-
-        # Check the pts is (3,...) array of floats
-        idmesh = None
-        if pts is None:
-            # Identify mesh to get default points
-            if ani:
-                idmesh = [id_ for id_ in self._ddata[idq2dR]['ref']
-                          if self._dref[id_]['group'] == group2d][0]
-            else:
-                if idref1d is None:
-                    idmesh = [id_ for id_ in self._ddata[idquant]['ref']
-                              if self._dref[id_]['group'] == group2d][0]
-                else:
-                    idmesh = [id_ for id_ in self._ddata[idref2d]['ref']
-                              if self._dref[id_]['group'] == group2d][0]
-
-            # Derive pts
-            pts = self._get_pts_from_mesh(key=idmesh)
-
-        pts = np.atleast_2d(pts)
-        if pts.shape[0] != 3:
-            msg = (
-                "pts must be np.ndarray of (X,Y,Z) points coordinates\n"
-                + "Can be multi-dimensional, but 1st dimension is (X,Y,Z)\n"
-                + "    - Expected shape : (3,...)\n"
-                + "    - Provided shape : {}".format(pts.shape)
-            )
-            raise Exception(msg)
-
-        # Check t
-        lc = [t is None, type(t) is str, type(t) is np.ndarray]
-        assert any(lc)
-        if lc[1]:
-            assert t in self._ddata.keys()
-            t = self._ddata[t]['data']
-
-        # Interpolation (including time broadcasting)
-        # this is the second slowest step (~0.08 s)
-        func = self._get_finterp(
-            idquant=idquant, idref1d=idref1d, idref2d=idref2d,
-            idq2dR=idq2dR, idq2dPhi=idq2dPhi, idq2dZ=idq2dZ,
-            idmesh=idmesh,
-            interp_t=interp_t, interp_space=interp_space,
-            fill_value=fill_value, ani=ani, Type=Type,
-            group0d=group0d, group2d=group2d,
-        )
-
-        # Check vect of ani
-        c0 = (
-            ani is True
-            and (
-                vect is None
-                or not (
-                    isinstance(vect, np.ndarray)
-                    and vect.shape == pts.shape
-                )
-            )
-        )
-        if c0:
-            msg = (
-                "Anisotropic field interpolation needs a field of local vect\n"
-                + "  => Please provide vect as (3, npts) np.ndarray!"
-            )
-            raise Exception(msg)
-
-        # This is the slowest step (~1.8 s)
-        val, t = func(pts, vect=vect, t=t)
-
-        # return
-        if return_all is None:
-            return_all = True
-        if return_all is True:
-            dout = {
-                't': t,
-                'pts': pts,
-                'ref1d': idref1d,
-                'ref2d': idref2d,
-                'q2dR': idq2dR,
-                'q2dPhi': idq2dPhi,
-                'q2dZ': idq2dZ,
-                'interp_t': interp_t,
-                'interp_space': interp_space,
-            }
-            return val, dout
-        else:
-            return val
-
     # TBC
-    def _interp_one_dim(x=None, ind=None, key=None, group=None,
+    def _interp_one_dim(x=None, ind=None, key=None,
                         kind=None, bounds_error=None, fill_value=None):
         """ Return a dict of interpolated data
 
@@ -1254,7 +932,6 @@ class DataCollection(utils.ToFuObject):
         The interpolation is done against a reference vector x
             - x can be a key to an existing ref
             - x can be user-provided array
-                in thay case the group should be specified
                 (to properly identify the interpolation dimension)
 
         Returns:
@@ -1273,7 +950,6 @@ class DataCollection(utils.ToFuObject):
                 msg += "    - x: {}\n".format(x)
                 msg += "    - self.lref: {}".format(self.lref)
                 raise Exception(msg)
-            group = self._dref[x]['group']
             x = self._ddata[x]['data']
         else:
             try:
@@ -1285,30 +961,14 @@ class DataCollection(utils.ToFuObject):
                     + "    - a 1d np.ndarray"
                 )
                 raise Exception(x)
-            if group not in self.lgroup:
-                msg = "Interpolation must be with respect to a group\n"
-                msg += "Provided group is not in self.lgroup:\n"
-                msg += "    - group: {}".format(group)
-                raise Exception(msg)
 
         # Get keys to interpolate
-        if ind is None and key in None:
-            lk = self._dgroup[group]['ldata']
-        else:
-            lk = self._ind_tofrom_key(ind=ind, key=key, returnas=str)
+        lk = self._ind_tofrom_key(ind=ind, key=key, returnas=str)
 
         # Check provided keys are relevant, and get dim index
         dind, dfail = {}, {}
         for kk in lk:
-            if kk not in self._dgroup[group]['ldata']:
-                # gps = self._ddata[kk]['groups']
-                # msg = "Some data not in interpolation group:\n"
-                # msg += "    - self.ddata[%s]['groups'] = %s"%(kk,str(gps))
-                # msg += "    - Interpolation group: %s"%group
-                # raise Exception(msg)
-                dfail[kk] = "Not dependent on group {}".format(group)
-            else:
-                dind[kk] = self._ddata[kk]['groups'].index(group)
+            dind[kk] = self._ddata[kk]['groups'].index(group)
 
         # Start loop for interpolation
         dout = {}
@@ -1345,7 +1005,7 @@ class DataCollection(utils.ToFuObject):
     # ---------------------
 
     # TBC
-    def _fit_one_dim(ind=None, key=None, group=None,
+    def _fit_one_dim(ind=None, key=None,
                      Type=None, func=None, **kwdargs):
         """ Return the parameters of a fitted function
 
@@ -1360,7 +1020,7 @@ class DataCollection(utils.ToFuObject):
 
         """
         # Get keys to interpolate
-        lk = self._ind_tofrom_key(ind=ind, key=key, group=group, returnas=str)
+        lk = self._ind_tofrom_key(ind=ind, key=key, returnas=str)
 
         # Start model fitting loop on data keys
         dout = {}
@@ -1413,13 +1073,13 @@ class DataCollection(utils.ToFuObject):
             dleg=dleg,
         )
 
-    def _plot_timetraces(self, ntmax=1, group='time',
+    def _plot_timetraces(self, ntmax=1,
                          key=None, ind=None, Name=None,
                          color=None, ls=None, marker=None, ax=None,
                          axgrid=None, fs=None, dmargin=None,
                          legend=None, draw=None, connect=None, lib=None):
-        plotcoll = self.to_PlotCollection(ind=ind, key=key, group=group,
-                                          Name=Name, dnmax={group: ntmax})
+        plotcoll = self.to_PlotCollection(ind=ind, key=key,
+                                          Name=Name, dnmax={})
         return _DataCollection_plot.plot_DataColl(
             plotcoll,
             color=color, ls=ls, marker=marker, ax=ax,

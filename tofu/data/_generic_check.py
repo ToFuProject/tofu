@@ -66,6 +66,90 @@ def _check_var(
     return var
 
 
+def _check_var_iter(
+    var,
+    varname,
+    types=None,
+    types_iter=None,
+    default=None,
+    allowed=None,
+    excluded=None,
+):
+
+    # set to default
+    if var is None:
+        var = default
+    if var is None and allowed is not None:
+        var = allowed
+
+    if var is not None and not hasattr(var, '__iter__'):
+        var = [var]
+
+    # check type
+    if types is not None:
+        if not isinstance(var, types):
+            msg = (
+                f"Arg {varname} must be of type {types}!\n"
+                f"Provided: {type(var)}"
+            )
+            raise Exception(msg)
+
+    # check types_iter
+    if types_iter is not None and var is not None:
+        if not all([isinstance(vv, types_iter) for vv in var]):
+            msg = (
+                f"Arg {varname} must be an iterable of types {types_iter}\n"
+                f"Provided: {[type(vv) for vv in var]}"
+            )
+            raise Exception(msg)
+
+    # check if allowed
+    if allowed is not None:
+        if any([vv not in allowed for vv in var]):
+            msg = (
+                f"Arg {varname} must contain elements in {allowed}!\n"
+                f"Provided: {var}"
+            )
+            raise Exception(msg)
+
+    # check if excluded
+    if excluded is not None:
+        if any([vv in excluded for vv in var]):
+            msg = (
+                f"Arg {varname} must contain elements not in {excluded}!\n"
+                f"Provided: {var}"
+            )
+            raise Exception(msg)
+
+    return var
+
+
+# #############################################################################
+# #############################################################################
+#                   Utilities for naming keys
+# #############################################################################
+
+
+def _name_key(dd=None, dd_name=None, keyroot='key'):
+    """ Return existing default keys and their number as a dict
+
+    Used to automatically iterate on on dict keys
+
+    """
+
+    dk = {
+        kk: int(kk[len(keyroot):])
+        for kk in dd.keys()
+        if kk.startswith(keyroot)
+        and kk[len(keyroot):].isnumeric()
+    }
+    if len(dk) == 0:
+        nmax = 0
+    else:
+        nmax = max([v0 for v0 in dk.values()])
+    return dk, nmax
+
+
 # #############################################################################
 # #############################################################################
 #                   Utilities for plotting
