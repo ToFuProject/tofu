@@ -444,10 +444,10 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
     poly_coords = [np.ascontiguousarray(poly) for poly in poly_coords]
     # print(poly_coords)
     poly_lnorms = np.array([
-        # [0, 1., 0],
-        # [0, 1., 0],
-        # [0, 1., 0],
         [0, 1., 0],
+        # [0, 1., 0],
+        # [0, 1., 0],
+        # [0, 1., 0],
         # [0, 1., 0],
         # [0, 1., 0],
     ])
@@ -461,7 +461,7 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
             ax = plt.subplot(111)
             poly = poly_coords[pp]
             poly = np.concatenate((poly, poly[:, 0].reshape(-1, 1)), axis=1)
-            xpoly = np.sqrt(poly[0]**2 + poly[1]**2)
+            xpoly = poly[0]
             zpoly = poly[2]
             ax.plot(
                 xpoly, zpoly,
@@ -475,7 +475,7 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
             plt.savefig("poly" + str(pp))
             print("...saved!\n")
 
-    lblock = [False, True]
+    lblock = [False]
     lstep_rz = [
         0.005,
         0.01,
@@ -537,7 +537,7 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
                                 vmax=sa_map_cy[:, pp].max())
                 poly = poly_coords[pp]
                 poly = np.concatenate((poly, poly[:, 0].reshape(-1, 1)), axis=1)
-                xpoly = np.sqrt(poly[0]**2 + poly[1]**2)
+                xpoly = poly[0]
                 print(f"{xpoly=}")
                 zpoly = poly[2]
                 ax.plot(
