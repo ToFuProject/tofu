@@ -179,6 +179,10 @@ _DCONFIG = {
     # },
 
     # AUG
+    'AUG-V0': {
+        'Exp': _ExpAUG,
+        'Ves': ['V0'],
+    },
     'AUG-V1': {
         'Exp': _ExpAUG,
         'Ves': ['VESiR'],
