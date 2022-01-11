@@ -21,20 +21,13 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Add conda to system path
-      run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
-        # pip install --upgrade pip
-        # pip install flake8 pytest coverage wheel
-        # pip install -r requirements.txt
-        sudo conda config --append channels conda-forge
-        sudo conda env update --file requirements.txt --name base
+         pip install --upgrade pip
+         pip install flake8 pytest coverage wheel
+         pip install -r requirements.txt
     - name: Lint with flake8
       run: |
-        sudo conda install flake8
         # stop the build if there are Python syntax errors or undefined names
         # flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 . --count --select=E9,F63,F7 --show-source --statistics
