@@ -530,23 +530,23 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
             and np.all(Pts[1, :] <= 3. + np.abs(DIn))
         )
 
-        ind = (Pts[2, :] < -np.abs(DIn))
-        if np.any(ind):
+        indi = (Pts[2, :] < -np.abs(DIn))
+        if np.any(indi):
             msg = (
                 f"For ii = {ii}\n"
-                f"Wrong pts: {ind.sum()} / {ind.size}\n"
-                f"{np.mean(Pts[2, ind])} vs {-np.abs(DIn)}\n"
-                f"{Pts[2, ind]}"
+                f"Wrong pts: {indi.sum()} / {indi.size}\n"
+                f"{np.mean(Pts[2, indi])} vs {-np.abs(DIn)}\n"
+                f"{Pts[2, indi]}"
             )
             raise Exception(msg)
 
-        ind = Pts[2, :] > 1. + np.abs(DIn)
-        if np.any(ind):
+        indi = Pts[2, :] > 1. + np.abs(DIn)
+        if np.any(indi):
             msg = (
                 f"For ii = {ii}\n"
-                f"Wrong pts: {ind.sum()} / {ind.size}\n"
-                f"{np.mean(Pts[2, ind])} vs {1 + np.abs(DIn)}\n"
-                f"{Pts[2, ind]}"
+                f"Wrong pts: {indi.sum()} / {indi.size}\n"
+                f"{np.mean(Pts[2, indi])} vs {1 + np.abs(DIn)}\n"
+                f"{Pts[2, indi]}"
             )
             raise Exception(msg)
 
