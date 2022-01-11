@@ -30,11 +30,11 @@ jobs:
         # pip install --upgrade pip
         # pip install flake8 pytest coverage wheel
         # pip install -r requirements.txt
-        conda config --append channels conda-forge
-        conda env update --file requirements.txt --name base
+        sudo conda config --append channels conda-forge
+        sudo conda env update --file requirements.txt --name base
     - name: Lint with flake8
       run: |
-        conda install flake8
+        sudo conda install flake8
         # stop the build if there are Python syntax errors or undefined names
         # flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 . --count --select=E9,F63,F7 --show-source --statistics
