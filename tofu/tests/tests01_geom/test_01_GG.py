@@ -4,6 +4,9 @@ This module contains tests for tofu.geom in its structured version
 
 # External modules
 import numpy as np
+import matplotlib.pyplot as plt
+
+
 # ToFu-specific
 import tofu.geom._GG as GG
 from .testing_tools import compute_ves_norm
@@ -508,27 +511,29 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
     LDX = [None, [-1., 2.], [2., 5.], [8., 11.]]
 
     for ii in range(0,len(LDX)):
-        Pts, dS, ind,\
-            NL, dLr, Rref, \
-            dXr, dY0r, dZ0r, \
-            VPbis = GG._Ves_Smesh_Lin_SubFromD_cython(XMinMax, dL, dX, VPoly,
-                                                      DX=LDX[ii], DY=DY, DZ=DZ,
-                                                      DIn=DIn, VIn=VIn,
-                                                      margin=1.e-9)
+        (
+            Pts, dS, ind, NL, dLr, Rref,
+            dXr, dY0r, dZ0r, VPbis,
+        ) = GG._Ves_Smesh_Lin_SubFromD_cython(
+            XMinMax, dL, dX, VPoly,
+            DX=LDX[ii], DY=DY, DZ=DZ,
+            DIn=DIn, VIn=VIn, margin=1.e-9,
+        )
 
         assert Pts.ndim == 2 and Pts.shape[0] == 3
         assert (
-            np.all(Pts[0, :] >= XMinMax[0]-np.abs(DIn))
-            and np.all(Pts[0, :] <= XMinMax[1]+np.abs(DIn))
+            np.all(Pts[0, :] >= XMinMax[0] - np.abs(DIn))
+            and np.all(Pts[0, :] <= XMinMax[1] + np.abs(DIn))
         )
         assert (
-            np.all(Pts[1, :] >= 1.-np.abs(DIn))
-            and np.all(Pts[1, :] <= 3.+np.abs(DIn))
+            np.all(Pts[1, :] >= 1. - np.abs(DIn))
+            and np.all(Pts[1, :] <= 3. + np.abs(DIn))
         )
 
         ind = (Pts[2, :] < -np.abs(DIn))
         if np.any(ind):
             msg = (
+                f"For ii = {ii}\n"
                 f"Wrong pts: {ind.sum()} / {ind.size}\n"
                 f"{np.mean(Pts[2, ind])} vs {-np.abs(DIn)}\n"
                 f"{Pts[2, ind]}"
@@ -538,6 +543,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
         ind = Pts[2, :] > 1. + np.abs(DIn)
         if np.any(ind):
             msg = (
+                f"For ii = {ii}\n"
                 f"Wrong pts: {ind.sum()} / {ind.size}\n"
                 f"{np.mean(Pts[2, ind])} vs {1 + np.abs(DIn)}\n"
                 f"{Pts[2, ind]}"
@@ -557,9 +563,21 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
                 in_format='(X,Y,Z)', test=True,
             ))
         assert dS.shape == (Pts.shape[1],)
+
+        if ind.dtype != int:
+            msg = str(ind.dtype)
+            raise Exception(msg)
+
+        if np.unique(ind).size != ind.size:
+            msg = (
+                "in is not an array of unique values!\n"
+                f"\t- np.unique(ind).size = {np.unique(ind).size}\n"
+                f"\t- ind.size = {ind.size}\n"
+                f"ind = {ind}"
+            )
+            raise Exception(msg)
+
         assert all([ind.shape == (Pts.shape[1],),
-                    ind.dtype == int,
-                    np.unique(ind).size == ind.size,
                     np.all(ind == np.unique(ind)),
                     np.all(ind>=0)])
         assert (
