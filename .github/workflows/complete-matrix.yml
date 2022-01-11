@@ -35,7 +35,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: install tofu
       run: |
-        pip install -e ".[dev]"
+        pip install -e ".[dev]" --no-build-isolation
     - name: Test with pytest and coverage
       run: |
               coverage run --source=tofu/ -m pytest tofu/tests -v -x --durations=10

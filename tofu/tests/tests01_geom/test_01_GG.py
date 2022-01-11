@@ -395,7 +395,6 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
         # range(0,len(ind)) if ind[jj] == lii[ii]]])
 
 
-
 def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
 
     PhiMinMax = np.array([3.*np.pi/4.,5.*np.pi/4.])
@@ -501,6 +500,7 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
         for hh in [jj for jj in range(0,len(ind)) if ind[jj] == lii[ii]]])
         """
 
+
 def test12_Ves_Smesh_Lin(VPoly=VPoly):
 
     XMinMax = np.array([0., 10.])
@@ -521,19 +521,25 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
         )
 
         assert Pts.ndim == 2 and Pts.shape[0] == 3
+
+        # check limits along X
         assert (
             np.all(Pts[0, :] >= XMinMax[0] - np.abs(DIn))
             and np.all(Pts[0, :] <= XMinMax[1] + np.abs(DIn))
         )
+
+        # check limits along Y
         assert (
             np.all(Pts[1, :] >= 1. - np.abs(DIn))
             and np.all(Pts[1, :] <= 3. + np.abs(DIn))
         )
 
+        # check limits along Z
         indi = (Pts[2, :] < -np.abs(DIn))
         if np.any(indi):
             msg = (
                 f"For ii = {ii}\n"
+                f"DZ = {DZ}\n"
                 f"Wrong pts: {indi.sum()} / {indi.size}\n"
                 f"{np.mean(Pts[2, indi])} vs {-np.abs(DIn)}\n"
                 f"{Pts[2, indi]}"
@@ -550,6 +556,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
             )
             raise Exception(msg)
 
+        # Check all inside / outside polygon
         if DIn >= 0:
             assert np.all(GG._Ves_isInside(Pts, VPoly,
                                            vs_lims=XMinMax.reshape((1, 2)),
@@ -564,6 +571,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
             ))
         assert dS.shape == (Pts.shape[1],)
 
+        # Check indices
         if ind.dtype != int:
             msg = str(ind.dtype)
             raise Exception(msg)
@@ -584,6 +592,8 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
             ind.shape == (Pts.shape[1],) and ind.dtype == int
             and np.all(ind == np.unique(ind)) and np.all(ind >= 0)
         )
+
+        # Check other output
         assert NL.ndim == 1 and NL.size == VPoly.shape[1]-1
         assert dLr.ndim == 1 and dLr.size == NL.size
         assert Rref.ndim == 1
