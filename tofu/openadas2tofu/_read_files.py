@@ -369,6 +369,7 @@ def _format_for_DataCollection_adf15(
 
 def step03_read(
     adas_path,
+    file_type=None,
     pec_as_func=None,
     **kwdargs,
 ):
@@ -419,14 +420,28 @@ def step03_read(
                    + "tofu.openadas2tofu.step02_download()")
             raise FileNotFoundError(msg)
 
-    lc = [ss for ss in _DTYPES.keys() if ss in pfe]
-    if not len(lc) == 1:
-        msg = ("File type could not be derived from absolute path:\n"
-               + "\t- provided:  {}\n".format(pfe)
-               + "\t- supported: {}".format(sorted(_DTYPES.keys())))
-        raise Exception(msg)
+    # get file type
+    if file_type is None:
+        lc = [ss for ss in _DTYPES.keys() if ss in pfe]
+        if not len(lc) == 1:
+            msg = (
+                "File type could not be derived from absolute path:\n"
+                "\t- provided:  {pfe}\n"
+                "\t- supported: {sorted(_DTYPES.keys())}\n"
+                "  => Maybe consider providing the file_type?"
+            )
+            raise Exception(msg)
+        file_type = lc[0]
+    else:
+        if file_type not in _DTYPES.keys():
+            msg = (
+                f"Arg file_type must be in {sorted(_DTYPES.keys())}\n"
+                f"Provided: {file_type}"
+            )
+            raise exception(msg)
 
-    func = eval('_read_{}'.format(lc[0]))
+    # get reading function and read
+    func = eval('_read_{}'.format(file_type))
     return func(pfe, **kwdargs)
 
 
