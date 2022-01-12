@@ -850,7 +850,7 @@ def _binning_check(
                     f"binning[{k0}] seems finer than the original!\n"
                     f"\t- estimated original step: {dref}\n"
                     f"\t- binning step: {di}\n"
-                    f"  => nb. of recommended steps: {ni_rec}"
+                    f"  => nb. of recommended steps: {ni_rec:5.1f}"
                 )
                 warnings.warn(msg)
 
@@ -1100,10 +1100,15 @@ def multigausfit1d_from_dlines_prepare(
     data=None, lamb=None,
     mask=None, domain=None,
     pos=None, subset=None,
+    update_domain=None,
 ):
 
     # --------------
     # Check input
+
+    if update_domain is None:
+        update_domain = False
+
     pos, subset = _checkformat_possubset(pos=pos, subset=subset)
 
     # Check shape of data (multiple time slices possible)
@@ -1134,10 +1139,11 @@ def multigausfit1d_from_dlines_prepare(
 
     # Recompute domain
     indok_bool = indok == 0
-    domain['lamb']['minmax'] = [
-        np.nanmin(lamb[np.any(indok_bool, axis=0)]),
-        np.nanmax(lamb[np.any(indok_bool, axis=0)])
-    ]
+    if update_domain is True:
+        domain['lamb']['minmax'] = [
+            np.nanmin(lamb[np.any(indok_bool, axis=0)]),
+            np.nanmax(lamb[np.any(indok_bool, axis=0)])
+        ]
 
     # --------------
     # Optionally fit only on subset
@@ -1172,6 +1178,7 @@ def multigausfit1d_from_dlines_prepare(
 def multigausfit2d_from_dlines_prepare(
     data=None, lamb=None, phi=None,
     mask=None, domain=None,
+    update_domain=None,
     pos=None, binning=None,
     nbsplines=None, deg=None, subset=None,
     nxi=None, nxj=None,
@@ -1180,6 +1187,10 @@ def multigausfit2d_from_dlines_prepare(
 
     # --------------
     # Check input
+
+    if update_domain is None:
+        update_domain = False
+
     pos, subset = _checkformat_possubset(pos=pos, subset=subset)
 
     # Check shape of data (multiple time slices possible)
@@ -1220,14 +1231,15 @@ def multigausfit2d_from_dlines_prepare(
         msg = "No valid point in data!"
         raise Exception(msg)
 
-    domain['lamb']['minmax'] = [
-        np.nanmin(lamb[np.any(indok_bool, axis=0)]),
-        np.nanmax(lamb[np.any(indok_bool, axis=0)])
-    ]
-    domain['phi']['minmax'] = [
-        np.nanmin(phi[np.any(indok_bool, axis=0)]),
-        np.nanmax(phi[np.any(indok_bool, axis=0)])
-    ]
+    if update_domain is True:
+        domain['lamb']['minmax'] = [
+            np.nanmin(lamb[np.any(indok_bool, axis=0)]),
+            np.nanmax(lamb[np.any(indok_bool, axis=0)])
+        ]
+        domain['phi']['minmax'] = [
+            np.nanmin(phi[np.any(indok_bool, axis=0)]),
+            np.nanmax(phi[np.any(indok_bool, axis=0)])
+        ]
 
     # --------------
     # Optionnal 2d binning
@@ -1383,6 +1395,7 @@ def _dvalid_checkfocus_errmsg(focus=None, focus_half_width=None,
            + "\t\t{}\n".format(lines_keys)
            + "\t- float: a wavelength value\n"
            + "\t- a list / tuple / flat np.ndarray of such\n"
+           + "\t- a np.array of shape (2, N) or (N, 2) (focus + halfwidth)"
            + "  You provided:\n"
            + "{}\n\n".format(focus)
            + "Please provide focus_half_width as:\n"
@@ -1420,53 +1433,70 @@ def _dvalid_checkfocus(
         return False
 
     # Check focus and transform to array of floats
-    lc0 = [
-        type(focus) in [str] + _LTYPES,
-        type(focus) in [list, tuple, np.ndarray]
+    if isinstance(focus, tuple([str] + _LTYPES)):
+        focus = [focus]
+
+    lc = [
+        isinstance(focus, (list, tuple, np.ndarray))
+        and all([
+            (isinstance(ff, tuple(_LTYPES)) and ff > 0.)
+            or (isinstance(ff, str) and ff in lines_keys)
+            for ff in focus
+        ]),
+        isinstance(focus, (list, tuple, np.ndarray))
+        and all([
+            isinstance(ff, (list, tuple, np.ndarray))
+            for ff in focus
+        ])
+        and np.asarray(focus).ndim == 2
+        and 2 in np.asarray(focus).shape
+        and np.all(np.isfinite(focus))
+        and np.all(np.asarray(focus) > 0)
     ]
-    if not any(lc0):
+    if not any(lc):
         msg = _dvalid_checkfocus_errmsg(
             focus, focus_half_width, lines_keys,
         )
         raise Exception(msg)
 
-    if lc0[0] is True:
-        focus = [focus]
-    for ii in range(len(focus)):
-        c0 = (
-            (isinstance(focus[ii], tuple(_LTYPES)) and focus[ii] > 0.)
-            or (isinstance(focus[ii], str) and focus[ii] in lines_keys)
-        )
-        if not c0:
+    # Centered on lines
+    if lc[0]:
+
+        focus = np.array([
+            lines_lamb[(lines_keys == ff).nonzero()[0][0]]
+            if isinstance(ff, str) else ff for ff in focus
+        ])
+
+        # Check focus_half_width and transform to array of floats
+        if focus_half_width is None:
+            focus_half_width = (np.nanmax(lamb) - np.nanmin(lamb))/10.
+
+        lc0 = [
+            type(focus_half_width) in _LTYPES,
+            (
+                type(focus_half_width) in [list, tuple, np.ndarray]
+                and len(focus_half_width) == focus.size
+                and all([type(fhw) in _LTYPES for fhw in focus_half_width])
+            )
+        ]
+
+        if not any(lc0):
             msg = _dvalid_checkfocus_errmsg(
                 focus, focus_half_width, lines_keys,
             )
             raise Exception(msg)
 
-    focus = np.array([
-        lines_lamb[(lines_keys == ff).nonzero()[0][0]]
-        if isinstance(ff, str) else ff for ff in focus
-    ])
+        if lc0[0] is True:
+            focus_half_width = np.full((focus.size,), focus_half_width)
 
-    # Check focus_half_width and transform to array of floats
-    if focus_half_width is None:
-        focus_half_width = (np.nanmax(lamb) - np.nanmin(lamb))/10.
-    lc0 = [
-        type(focus_half_width) in _LTYPES,
-        (
-            type(focus_half_width) in [list, tuple, np.ndarray]
-            and len(focus_half_width) == focus.size
-            and all([type(fhw) in _LTYPES for fhw in focus_half_width])
-        )
-    ]
-    if not any(lc0):
-        msg = _dvalid_checkfocus_errmsg(
-            focus, focus_half_width, lines_keys,
-        )
-        raise Exception(msg)
-    if lc0[0] is True:
-        focus_half_width = np.full((focus.size,), focus_half_width)
-    return np.array([focus, np.r_[focus_half_width]]).T
+        focus = np.array([focus, np.r_[focus_half_width]]).T
+
+    elif lc[1]:
+        focus = np.asarray(focus, dtype=float)
+        if focus.shape[1] != 2:
+            focus = focus.T
+
+    return focus
 
 
 def fit12d_dvalid(
@@ -1721,6 +1751,7 @@ def fit1d_dinput(
     dlines=None, dconstraints=None, dconstants=None, dprepare=None,
     data=None, lamb=None, mask=None,
     domain=None, pos=None, subset=None,
+    update_domain=None,
     same_spectrum=None, nspect=None, same_spectrum_dlamb=None,
     focus=None, valid_fraction=None, valid_nsigma=None, focus_half_width=None,
     valid_return_fract=None,
@@ -1751,6 +1782,7 @@ def fit1d_dinput(
             data=data, lamb=lamb,
             mask=mask, domain=domain,
             pos=pos, subset=subset,
+            update_domain=update_domain,
         )
 
     # ------------------------
@@ -1914,6 +1946,7 @@ def fit2d_dinput(
     deg=None, nbsplines=None, knots=None,
     data=None, lamb=None, phi=None, mask=None,
     domain=None, pos=None, subset=None, binning=None, cent_fraction=None,
+    update_domain=None,
     focus=None, valid_fraction=None, valid_nsigma=None, focus_half_width=None,
     valid_return_fract=None,
     dscales=None, dx0=None, dbounds=None,
@@ -1945,6 +1978,7 @@ def fit2d_dinput(
             data=data, lamb=lamb, phi=phi,
             mask=mask, domain=domain,
             pos=pos, subset=subset, binning=binning,
+            update_domain=update_domain,
             nbsplines=nbsplines, deg=deg,
             nxi=nxi, nxj=nxj,
             lphi=None, lphi_tol=None,
