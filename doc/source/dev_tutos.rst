@@ -74,8 +74,9 @@ Adding text, updating the API:
 #. Commit and push the changes to the ``new-doc`` branch: to keep the changes in the sources
 #. Commit and push the changes to the ``gh-pages``, this will update the website.
 
-
-Adding a tutorial:
+-----------------
+Adding a tutorial
+-----------------
 
 #. Add your tutorial in ``$TOFU_DIR/examples/tutorials`` with the proper naming conventions
 #. The sphinx gallery is automatically updated when building the doc (as above)

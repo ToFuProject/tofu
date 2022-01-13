@@ -3,15 +3,16 @@
 Installing tofu
 ================
 
-As of March 2021, `tofu` is still under development. Therefore, installation
-instructions are provided officialy for Linux and ITER users. However, instructions
-for other platforms are also provided since they have been known to work out for some users.
+As of January 2022, `tofu` is still under development. Since binary packages of tofu are regularly released
+on `conda-forge` for Linux, Mac and Windows, this should be the preferred way for users to install `tofu` (see below),
+although it is not the only one.
+
+Special installation instructions are provided for *ITER users* as well as *developers*.
+
 If installation fails for your use-case, please open an issue over
 at `Github. <https://github.com/ToFuProject/tofu/>`__ so that we can try adressing it.
 
--  :ref:`installing-tofu-on-linux`
--  :ref:`installing-tofu-on-mac`
--  :ref:`installing-tofu-on-windows`
+-  :ref:`installing-tofu-using-conda-forge`
 -  :ref:`iter-users`
 -  :ref:`installing-as-a-developer`
 
@@ -19,54 +20,28 @@ at `Github. <https://github.com/ToFuProject/tofu/>`__ so that we can try adressi
    If you encounter problems during the installation, check our list of
    :ref:`known bugs <Knownbugs>` or `open an issue. <https://github.com/ToFuProject/tofu/issues>`__.
 
-.. _installing-tofu-on-linux:
+.. _installing-tofu-using-conda-forge:
 
-Linux
------
+Installing `tofu` from conda-forge
+-----------------------------------
 
-To install and use `tofu` on Linux, we recommend to proceed in two steps: install the
-Python package manager conda and then install tofu.
-We recommend ``Miniconda`` (light version of the Anaconda Python distribution for data science,
-but you can also work with ``pip`` or another Python package manager of
+`tofu` can be installed using the `conda` package manager and the `conda-forge` software channel.
+We recommend to proceed in two steps: install the `conda` package manager  and then install `tofu`.
+We recommend `Miniconda` (a light version of the Anaconda Python distribution for data science,
+but you can also work with `pip` or another Python package manager of
 your choice).
 
--  `Get the latest Miniconda version and install
+-  `get the latest Miniconda version and install
    it. <https://docs.conda.io/en/latest/miniconda.html>`__
-- Install tofu
+- install tofu with::
 
-::
+   $ conda install -c conda-forge tofu
 
-   $ conda install -c tofuproject tofu
-
-- Check that tofu works by printing its version number:
-
-::
+- check that tofu works by printing its version number:::
 
    $ python -c "import tofu; print(tofu.__version__)"
 
-Now you can `follow a tutorial. <auto_examples/index.html>`__
-
-.. _installing-tofu-on-mac:
-
-Mac OS X
---------
-
-See :ref:`installing-as-a-developer`.
-
-Additional *caveat*: if you are using a version of `gcc < 8` be sure to
-turn off all parallelizations since there is a `known bug with cython
-<https://github.com/ToFuProject/tofu/issues/183>`__.
-
-.. _installing-tofu-on-windows:
-
-Windows
--------
-
-See :ref:`installing-as-a-developer`.
-
-Additional *caveat*: you may need to open an ``Anaconda prompt`` (usually found by pressing
-the Windows key) to run the commands described in the linked section.
-
+If the version number printed correctly, congratulations, you can now `follow a tutorial! <auto_examples/index.html>`__
 
 .. _iter-users:
 
@@ -125,27 +100,47 @@ To install tofu as a developer, we recommend using the conda ecosystem (Minicond
 -  `Get the latest Miniconda version and install
    it. <https://docs.conda.io/en/latest/miniconda.html>`__
 
-- create a dedicated (Python 3) environment for tofu development and activate it
+- Create a dedicated (Python 3) environment for tofu development and activate it::
 
-::
+   $ conda create -n tofu_env python=3.9 scipy numpy cython git
+   $ conda activate tofu_env
 
-   $ conda create -n tofu3 python=3.6 scipy numpy cython git
-   $ conda activate tofu3
+-  Move to where you would like to install your local copy of ToFu ::
 
--  Move to where you would like to install your local copy of ToFu ``$ cd some_path``
--  ``$ git clone https://github.com/ToFuProject/tofu.git`` (make sure you
+    $ cd some_path
+
+-  Clone the repository source code (make sure you
    remember the path where you are installing, if you want to install it
    into your home repository, just make sure to ``$ cd ~`` before the
-   ``git clone...``)
--  Move to the "cloned" tofu directory that has been created by the git clone command:
-   ``cd ~/tofu``
+   ``git clone...``)::
+
+    $ git clone https://github.com/ToFuProject/tofu.git
+
+-  Move to the "cloned" tofu directory that has been created by the git clone command::
+
+   $ cd ~/tofu
+
 -  Switch to the ``git`` branch you will be working on. If you are just
-   starting you probably want to start from the latest develop branch:
-   ``git checkout devel``. If you are not familiar with **git** take a
-   look at `this tutorial
-   (long) <https://www.atlassian.com/git/tutorials>`__ or `this short
-   one <https://rogerdudler.github.io/git-guide/>`__
--  Run ``pip install -e .[dev]``. This will install dependencies, compile the
-   tofu cython extensions and install it into your conda environment while you can still
-   modify the source files in the current repository.`
--  Make sure tofu tests are running by typing ``pytest tofu/tests``
+   starting you probably want to start from the latest develop branch, which is
+   normally checked out by the above ``git clone`` command. If you were trying to fix a
+   bug or code up a new feature you would create or check out a dedicated branch at this point.
+   If you are not familiar with **git**, take a look at `this tutorial (long) <https://www.atlassian.com/git/tutorials>`__
+   or `this short one <https://rogerdudler.github.io/git-guide/>`__)::
+
+    $ git checkout devel
+
+-  We are now ready to install ``tofu``. The following command will install dependencies,
+   compile the tofu cython extensions and install it into your conda environment.
+   We use the ``-e`` flag to tell ``pip`` that it should install the package in editable mode,
+   which will allow you to modify the source files and run the modified code (although you sometimes need to reload your interpreter)::
+
+    $ pip install -e .[dev]
+
+-  To make sure the installation is working, we run the tofu test suite. This should yield
+   a report that indicates which tests passed at the end, for example ``==== 198 passed, 927 warnings in 670.06s (0:11:10) ====``.
+   All tests are expected to pass to indicate that tofu installed correctly::
+
+   $ pytest tofu/tests
+
+-  If you would like to contribute to `tofu`, check out our dedicated guide, :ref:`contributing-to-tofu`.
+   Alternatively, we also have some developer guides :ref:`devtutos`.
