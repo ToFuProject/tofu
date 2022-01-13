@@ -822,8 +822,20 @@ def _binning_check(
         else:
             raise Exception(msg)
 
-        if not np.allclose(binning[k0]['edges'],
-                           np.unique(binning[k0]['edges'])):
+        # ------------
+        # safet checks
+
+        if np.any(~np.isfinite(binning[k0]['edges'])):
+            msg = (
+                f"Non-finite value in binning['{k0}']['edges']\n"
+                str(binning[k0]['edges'])
+            )
+            raise Exception(msg)
+
+        if not np.allclose(
+            binning[k0]['edges'],
+            np.unique(binning[k0]['edges']),
+        ):
             raise Exception(msg)
 
     # Optional check vs nbsplines and deg
