@@ -320,7 +320,6 @@ class Test01_ProofOfPrinciple(object):
             self.lfocus, self.ldconstants,
         ]
         nn = int(np.prod([len(cc) for cc in combin]))
-        import pdb; pdb.set_trace()     # DB
         for ii, comb in enumerate(itt.product(*combin)):
 
             pos = ii % 2 == 0
@@ -351,7 +350,9 @@ class Test01_ProofOfPrinciple(object):
             self.ldinput1d.append(dinput)
 
             # run (fit1d) only for some cases
-            run = True
+            run = False
+            if comb[1] is None and comb[5] is not None and comb[4] != 'b':
+                run = True
             self.ldinput1d_run.append(run)
 
     def test02_funccostjac_1d(self):
@@ -394,6 +395,7 @@ class Test01_ProofOfPrinciple(object):
             nprod = np.array(self.ldinput1d_run).sum()
             nn = len(f'\tspectrum {nprod} / {nprod}')
 
+        import pdb; pdb.set_trace()     # DB
         for ii, inn in enumerate(np.array(self.ldinput1d_run).nonzero()[0]):
 
             if verb:
