@@ -606,7 +606,13 @@ def _checkformat_domain(domain=None, keys=['lamb', 'phi']):
         keys = [keys]
 
     if domain is None:
-        domain = {k0: {'spec': [np.inf*np.r_[-1., 1.]]} for k0 in keys}
+        domain = {
+            k0: {
+                'spec': [np.inf*np.r_[-1., 1.]],
+                'minmax': np.inf*np.r_[-1., 1.],
+            }
+            for k0 in keys
+        }
         return domain
 
     c0 = (
@@ -1119,9 +1125,6 @@ def multigausfit1d_from_dlines_prepare(
     # --------------
     # Check input
 
-    if update_domain is None:
-        update_domain = False
-
     pos, subset = _checkformat_possubset(pos=pos, subset=subset)
 
     # Check shape of data (multiple time slices possible)
@@ -1152,10 +1155,14 @@ def multigausfit1d_from_dlines_prepare(
 
     # Recompute domain
     indok_bool = indok == 0
+
+    if update_domain is None:
+        update_domain = bool(np.any(np.isinf(domain['lamb']['minmax'])))
+
     if update_domain is True:
         domain['lamb']['minmax'] = [
             np.nanmin(lamb[np.any(indok_bool, axis=0)]),
-            np.nanmax(lamb[np.any(indok_bool, axis=0)])
+            np.nanmax(lamb[np.any(indok_bool, axis=0)]),
         ]
 
     # --------------
@@ -1201,9 +1208,6 @@ def multigausfit2d_from_dlines_prepare(
     # --------------
     # Check input
 
-    if update_domain is None:
-        update_domain = False
-
     pos, subset = _checkformat_possubset(pos=pos, subset=subset)
 
     # Check shape of data (multiple time slices possible)
@@ -1244,14 +1248,20 @@ def multigausfit2d_from_dlines_prepare(
         msg = "No valid point in data!"
         raise Exception(msg)
 
+    if update_domain is None:
+        update_domain = bool(
+            np.any(np.isinf(domain['lamb']['minmax']))
+            or np.any(np.isinf(domain['phi']['minmax']))
+        )
+
     if update_domain is True:
         domain['lamb']['minmax'] = [
             np.nanmin(lamb[np.any(indok_bool, axis=0)]),
-            np.nanmax(lamb[np.any(indok_bool, axis=0)])
+            np.nanmax(lamb[np.any(indok_bool, axis=0)]),
         ]
         domain['phi']['minmax'] = [
             np.nanmin(phi[np.any(indok_bool, axis=0)]),
-            np.nanmax(phi[np.any(indok_bool, axis=0)])
+            np.nanmax(phi[np.any(indok_bool, axis=0)]),
         ]
 
     # --------------
@@ -1570,7 +1580,7 @@ def fit12d_dvalid(
         )
 
     # Derive indt and optionally dphi and indknots
-    indbs, dphi = False, False
+    indbs, ldphi = False, False
     if focus is False:
         lambok = np.ones(tuple(np.r_[lamb.shape, 1]), dtype=bool)
         indall = ind[..., None]
@@ -1731,7 +1741,7 @@ def _checkformat_dlines(dlines=None, domain=None):
     if domain not in [None, False]:
         ind = np.zeros((len(lines_keys),), dtype=bool)
         for ss in domain['lamb']['spec']:
-            if isinstance(ss, list):
+            if isinstance(ss, (list, np.ndarray)):
                 ind[(lines_lamb >= ss[0]) & (lines_lamb < ss[1])] = True
         for ss in domain['lamb']['spec']:
             if isinstance(ss, tuple):
@@ -1941,13 +1951,9 @@ def fit1d_dinput(
     dinput['dscales'] = fit12d_dscales(dscales=dscales, dinput=dinput)
     dinput['dbounds'] = fit12d_dbounds(dbounds=dbounds, dinput=dinput)
     dinput['dx0'] = fit12d_dx0(dx0=dx0, dinput=dinput)
-    try:
-        dinput['dconstants'] = fit12d_dconstants(
-            dconstants=dconstants, dinput=dinput,
-        )
-    except Exception as err:
-        import pdb; pdb.set_trace()     # DB
-        pass
+    dinput['dconstants'] = fit12d_dconstants(
+        dconstants=dconstants, dinput=dinput,
+    )
 
     # add lambmin for bck
     dinput['lambmin_bck'] = np.min(dprepare['lamb'])
@@ -2150,7 +2156,6 @@ def fit2d_dinput(
         | (dinput['dprepare']['indok'] == -6)
     )
 
-    import pdb; pdb.set_trace()     # DB
     # add lambmin for bck
     dinput['lambmin_bck'] = np.min(dinput['dprepare']['lamb'])
     return dinput
@@ -2331,24 +2336,25 @@ def _fit12d_checkformat_dscalesx0(
     lkdict = _DORDER
     if din is None:
         din = {}
+    if not isinstance(din, dict):
+        msg = f"Arg {name} must be a dict!"
+        raise Exception(msg)
+
     lkfalse = [
         k0 for k0, v0 in din.items()
         if not (
-            isinstance(din, dict)
-            and (
-                (k0 in lkconst and type(v0) in _LTYPES)
-                or (k0 in lk and type(v0) in _LTYPES + [np.ndarray])
+            (k0 in lkconst and type(v0) in _LTYPES)
+            or (k0 in lk and type(v0) in _LTYPES + [np.ndarray])
+            or (
+                k0 in lkdict
+                and type(v0) in _LTYPES + [np.ndarray]
                 or (
-                    k0 in lkdict
-                    and type(v0) in _LTYPES + [np.ndarray]
-                    or (
-                        isinstance(v0, dict)
-                        and all([
-                            k1 in dinput[k0]['keys']
-                            and type(v1) in _LTYPES + [np.ndarray]
-                            for k1, v1 in v0.items()
-                        ])
-                    )
+                    isinstance(v0, dict)
+                    and all([
+                        k1 in dinput[k0]['keys']
+                        and type(v1) in _LTYPES + [np.ndarray]
+                        for k1, v1 in v0.items()
+                    ])
                 )
             )
         )
@@ -2567,6 +2573,7 @@ def fit12d_dscales(dscales=None, dinput=None):
             + "\t- dinput['dprepare']['domain']['lamb']['minmax'] = {}".format(
                 dinput['dprepare']['domain']['lamb']['minmax']
             )
+            + "\n  => Please provide domain['lamb']"
         )
         raise Exception(msg)
     if lambm == 0:
