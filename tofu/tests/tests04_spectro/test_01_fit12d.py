@@ -314,6 +314,8 @@ class Test01_ProofOfPrinciple(object):
         pass
 
     def test01_fit1d_dinput(self, full=None):
+        """ Build the input dict for fitting a 1d spectrum
+        """
 
         combin = [
             self.ldconst, self.ldx0, self.ldomain, self.ldata,
@@ -356,6 +358,16 @@ class Test01_ProofOfPrinciple(object):
             self.ldinput1d_run.append(run)
 
     def test02_funccostjac_1d(self):
+        """ check that tofu properly returns 3 functions for fitting 1d spectra
+
+        func_detail: should return all components of a spectrum
+        func_cost: shoud return only the total minus the original data
+        func_jac: should return the jacobian
+
+        in principle: sum(func_detail) == func_cost(data=0)
+
+        """
+
         func = tfs._fit12d_funccostjac.multigausfit1d_from_dlines_funccostjac
         for ii, dd in enumerate(self.ldinput1d):
             func_detail, func_cost, func_jac = func(
@@ -391,11 +403,13 @@ class Test01_ProofOfPrinciple(object):
             )
 
     def test03_fit1d(self, strict=None, verb=None):
+        """ Actually run the 1d spectrum fitting routine,
+
+        """
         if verb:
             nprod = np.array(self.ldinput1d_run).sum()
             nn = len(f'\tspectrum {nprod} / {nprod}')
 
-        import pdb; pdb.set_trace()     # DB
         for ii, inn in enumerate(np.array(self.ldinput1d_run).nonzero()[0]):
 
             if verb:
@@ -417,6 +431,8 @@ class Test01_ProofOfPrinciple(object):
             self.ldfit1d.append(dfit1d)
 
     def test04_fit1d_dextract(self):
+        """ Extract dict of output from fitted 1d spectra
+        """
         for ii, dd in enumerate(self.ldfit1d):
             dex = tfs.fit1d_extract(
                 dfit1d=dd,
@@ -463,6 +479,8 @@ class Test01_ProofOfPrinciple(object):
             warnings.warn(msg)
 
     def test06_fit2d_dinput(self):
+        """ Build the input dict for fitting a 2d spectrum
+        """
         combin = [
             self.ldconst, self.ldx0, self.ldomain,
             self.lfocus, self.ldconstants,
@@ -520,6 +538,16 @@ class Test01_ProofOfPrinciple(object):
         plt.close('all')
 
     def test08_funccostjac_2d(self):
+        """ check that tofu properly returns 3 functions for fitting 1d spectra
+
+        func_detail: should return all components of a spectrum
+        func_sum: shoud return the total spectrum
+        func_cost: shoud return the total spectrum minus the original data
+        func_jac: should return the jacobian
+
+        in principle: sum(func_detail()) == func_sum() == func_cost(data=0)
+
+        """
         func = tfs._fit12d_funccostjac.multigausfit2d_from_dlines_funccostjac
         for ii, dd in enumerate(self.ldinput2d):
 
@@ -583,6 +611,9 @@ class Test01_ProofOfPrinciple(object):
             assert np.allclose(dy0, dy2, equal_nan=True)
 
     def test09_fit2d(self, strict=None, verb=False):
+        """ Actually run the 2d spectrum fitting routine,
+
+        """
         for ii, ij in enumerate(self.ldinput2d_run):
             din = self.ldinput2d[ij]
             chain = ii % 2 == 0
@@ -601,6 +632,8 @@ class Test01_ProofOfPrinciple(object):
             self.ldfit2d.append(dfit2d)
 
     def test09_fit2d_dextract(self):
+        """ Extract dict of output from fitted 2d spectra
+        """
         for ii, dd in enumerate(self.ldfit2d):
             dex = tfs.fit2d_extract(
                 dfit2d=dd,
