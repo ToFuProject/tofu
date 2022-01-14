@@ -613,7 +613,7 @@ class Test01_ProofOfPrinciple(object):
                 # tfs._plot.plot_fit1d(): line 337
                 # already investigated: reducing figure size and early closing
                 # No more ideas...
-                # This link suggests it may have something to do with 
+                # This link suggests it may have something to do with
                 # inches => pixels conversion of figure size...
                 # https://github.com/matplotlib/matplotlib/issues/14225
                 if 'win' not in sys.platform.lower():
@@ -794,7 +794,7 @@ class Test02_RealisticWESTCase(object):
             chain=True,
             jac=None,
             verbose=verb,
-            strict=True,       # to make sure a corrupted time step doesn't stop
+            strict=True,    # to make sure a corrupted time step doesn't stop
             save=False,
             plot=False,
         )

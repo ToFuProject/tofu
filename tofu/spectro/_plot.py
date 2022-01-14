@@ -312,6 +312,7 @@ def _check_phi_lim(phi=None, phi_lim=None):
 
     return phi_lim
 
+
 def plot_dinput2d(
     # input data
     dinput=None,
@@ -332,14 +333,6 @@ def plot_dinput2d(
     # Check inputs
     # ------------
 
-    # if annotate is None:
-        # annotate = True
-    # if annotate is True:
-        # annotate = dfit2d['dinput']['keys']
-    # if isinstance(annotate, str):
-        # annotate = [annotate]
-    # if xlim is None:
-        # xlim = False
     phi_lim = _check_phi_lim(phi=dinput['dprepare']['phi'], phi_lim=phi_lim)
     if phi_name is None:
         phi_name = r'$\phi$'
@@ -790,7 +783,7 @@ def plot_fit1d(
             ]
             lleg = [
                 str(dinput['width']['keys'][jj])
-                 + '{:4.2f}'.format(
+                + '{:4.2f}'.format(
                     d3['Ti']['lines']['values'][ispect, jj]*1.e-3
                 )
                 for jj in range(dinput['width']['ind'].shape[0])
@@ -1103,8 +1096,8 @@ def plot_fit2d(
             )
             fig.colorbar(im, ax=ax, orientation='vertical')
             # for jj in range(phi_lim.shape[0]):
-                # ax.axhline(phi_lim[jj, 0], c=lcol_spect[jj], lw=1., ls='-')
-                # ax.axhline(phi_lim[jj, 1], c=lcol_spect[jj], lw=1., ls='-')
+            # ax.axhline(phi_lim[jj, 0], c=lcol_spect[jj], lw=1., ls='-')
+            # ax.axhline(phi_lim[jj, 1], c=lcol_spect[jj], lw=1., ls='-')
 
         kax = 'img_fit'
         if dax.get(kax) is not None:

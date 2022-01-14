@@ -65,8 +65,8 @@ _DCONSTRAINTS = {
             ],
             # 'wz': ['ArXVII_w_Bruhns', 'ArXVII_z_Amaro'],
             # 'qra': [
-                # 'ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
-                # 'ArXVI_a_Adhoc200408',
+            # 'ArXVI_q_Adhoc200408', 'ArXVI_r_Adhoc200408',
+            # 'ArXVI_a_Adhoc200408',
             # ],
             'xy': ['ArXVII_x_Adhoc200408', 'ArXVII_y_Adhoc200408'],
             'kjz': ['ArXVI_k_Adhoc200408', 'ArXVI_j_Adhoc200408'],
@@ -132,7 +132,7 @@ _FOCUS = {
         [3.9490e-10, 2.e-13],
         [3.9680e-10, 4.e-13],
         [3.9930e-10, 3.e-13],
-    ], #['w', 'x', 'y', 'k', 'z'],
+    ],  # ['w', 'x', 'y', 'k', 'z'],
     'ArXVIII': None,
     'FeXXV': None,
 }
@@ -170,8 +170,8 @@ _BINNING = {
 
 _DSCALES = {
     'ArXVII': {
-        #'width': 1e-8,      # To be tuned
-        # 'dshift': 5e-4,
+    #'width': 1e-8,      # To be tuned
+    # 'dshift': 5e-4,
     },
 }
 
@@ -197,8 +197,8 @@ _DX0 = {
 
 
 _DBOUNDS = {
-    'ArXVII': None, #{
-        # 'min': {},
-        # 'max': {'width': 1},
+    'ArXVII': None,  # {
+    # 'min': {},
+    # 'max': {'width': 1},
     # },
 }

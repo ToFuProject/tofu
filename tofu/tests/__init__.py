@@ -9,6 +9,3 @@ from . import tests05_nist
 from . import tests06_mesh
 from . import tests07_inversions
 from . import tests09_tutorials
-
-
-

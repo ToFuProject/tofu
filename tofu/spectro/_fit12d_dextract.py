@@ -428,7 +428,6 @@ def fit1d_extract(
 
     """
 
-
     # -------------------
     # Check format input
     (
@@ -508,11 +507,13 @@ def fit1d_extract(
             / d3['amp']['lines']['values'][:, indlo]
         )
         lab = np.r_[
-            ['{} / {}'.format(
-                dfit1d['dinput']['symb'][indup[ii]],
-                dfit1d['dinput']['symb'][indlo[ii]],
-            )
-            for ii in range(nratio)]
+            [
+                '{} / {}'.format(
+                    dfit1d['dinput']['symb'][indup[ii]],
+                    dfit1d['dinput']['symb'][indlo[ii]],
+                )
+                for ii in range(nratio)
+            ]
         ]
         d3['ratio']['lines']['values'] = val
         d3['ratio']['lines']['lab'] = lab
@@ -745,11 +746,13 @@ def fit2d_extract(
             / d3['amp']['lines']['values'][:, :, indlo]
         )
         lab = np.r_[
-            ['{} / {}'.format(
-                dfit2d['dinput']['symb'][indup[ii]],
-                dfit2d['dinput']['symb'][indlo[ii]],
-            )
-            for ii in range(nratio)]
+            [
+                '{} / {}'.format(
+                    dfit2d['dinput']['symb'][indup[ii]],
+                    dfit2d['dinput']['symb'][indlo[ii]],
+                )
+                for ii in range(nratio)
+            ]
         ]
         d3['ratio']['lines']['values'] = val
         d3['ratio']['lines']['lab'] = lab
@@ -807,7 +810,6 @@ def fit2d_extract(
             if 'values' in d3[k0][k1].keys():
                 for jj in range(d3[k0][k1]['values'].shape[-1]):
                     d3[k0][k1]['values'][~indphi, jj] = np.nan
-
 
     # ----------
     # func
