@@ -19,7 +19,11 @@ from mpl_toolkits.mplot3d import Axes3D
 # tofu
 from tofu.version import __version__
 
-__all__ = ['plot_fit1d']
+__all__ = [
+    'plot_fit1d',
+    'plot_dinput2d',
+    'plot_fit2d',
+]
 
 
 _GITHUB = 'https://github.com/ToFuProject/tofu/issues'
