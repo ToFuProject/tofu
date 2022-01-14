@@ -73,7 +73,6 @@ _DINDOK = {
 }
 
 
-
 ###########################################################
 ###########################################################
 #
@@ -408,7 +407,7 @@ def _width_shift_amp(
     # ------------------------
     # Remove group with no match
 
-    indnomatch = np.sum(ind, axis=1) ==0
+    indnomatch = np.sum(ind, axis=1) == 0
     if np.any(indnomatch):
         lknom = outdict['keys'][indnomatch]
         outdict['keys'] = outdict['keys'][~indnomatch]
@@ -1015,10 +1014,10 @@ def _get_subset_indices(subset, indlogical):
             and subset.shape == indlogical.shape
             and 'bool' in subset.dtype.name
         )
-          or (
-              type(subset) in [int, float, np.int_, np.float_]
-              and subset >= 0
-          )
+        or (
+            type(subset) in [int, float, np.int_, np.float_]
+            and subset >= 0
+        )
     )
     if not c0:
         msg = ("subset must be either:\n"
@@ -1230,7 +1229,6 @@ def multigausfit2d_from_dlines_prepare(
         indok[:, (~inddomain) & mask] = -2
     else:
         indok[:, ~inddomain] = -2
-
 
     # Optional positivity constraint
     if pos is not False:
@@ -2149,7 +2147,6 @@ def fit2d_dinput(
         )
         dinput['dprepare']['indok'][ii, iphi] = -7
 
-
     # indok_bool True if indok == 0 or -5 (because ...)
     dinput['dprepare']['indok_bool'] = (
         (dinput['dprepare']['indok'] == 0)
@@ -2168,70 +2165,6 @@ def fit2d_dinput(
 #
 ###########################################################
 ###########################################################
-
-
-# def multigausfit1d_from_dlines_ind(dinput=None):
-    # """ Return the indices of quantities in x to compute y """
-
-    # # indices
-    # # General shape: [bck, amp, widths, shifts]
-    # # If double [..., double_shift, double_ratio]
-    # # Except for bck, all indices should render nlines (2*nlines if double)
-    # dind = {
-        # 'bck_amp': {'x': np.r_[0][:, None]},
-        # 'bck_rate': {'x': np.r_[1][:, None]},
-        # 'dshift': None,
-        # 'dratio': None,
-    # }
-    # nn = dind['bck_amp']['x'].size + dind['bck_rate']['x'].size
-    # inddratio, inddshift = None, None
-    # for k0 in _DORDER:
-        # ind = dinput[k0]['ind']
-        # lnl = np.sum(ind, axis=1).astype(int)
-        # dind[k0] = {
-            # 'x': (nn + np.arange(0, ind.shape[0]))[None, :],
-            # 'lines': (nn + np.argmax(ind, axis=0))[None, :],
-            # # TBC for shape
-            # 'jac': [
-                # tuple(ind[ii, :].nonzero()[0]) for ii in range(ind.shape[0])
-            # ]
-        # }
-        # nn += dind[k0]['x'].size
-
-    # sizex = dind['shift']['x'][-1, -1] + 1
-    # indx = np.r_[
-        # dind['bck_amp']['x'],
-        # dind['bck_rate']['x'],
-        # dind['amp']['x'],
-        # dind['width']['x'],
-        # dind['shift']['x'],
-    # ]
-    # assert np.all(np.arange(0, sizex) == indx)
-
-    # # check if double
-    # if dinput['double'] is True:
-        # dind['dshift'] = {'x': np.r_[-2]}
-        # dind['dratio'] = {'x': np.r_[-1]}
-        # sizex += 2
-    # elif isinstance(dinput['double'], dict):
-        # if dinput['double'].get('dshift') is None:
-            # dind['dshift'] = {'x': np.r_[-1]}
-            # sizex += 1
-        # elif dinput['double'].get('dratio') is None:
-            # dind['dratio'] = {'x': np.r_[-1]}
-            # sizex += 1
-
-    # dind['sizex'] = sizex
-    # dind['nbck'] = 2
-    # # dind['shapey1'] = dind['bck']['x'].size + dinput['nlines']
-
-    # # Ref line for amp (for dscales)
-    # amp_x0 = np.zeros((dinput['amp']['ind'].shape[0],), dtype=int)
-    # for ii in range(dinput['amp']['ind'].shape[0]):
-        # indi = dinput['amp']['ind'][ii, :].nonzero()[0]
-        # amp_x0[ii] = indi[np.argmin(np.abs(dinput['amp']['coefs'][indi]-1.))]
-    # dind['amp_x0'] = amp_x0
-    # return dind
 
 
 def multigausfit12d_from_dlines_ind(dinput=None):
@@ -2612,8 +2545,7 @@ def fit12d_dscales(dscales=None, dinput=None):
         if dscales['amp'].get(key) is None:
             # convoluate and estimate geometric mean
             conv = np.exp(
-                    -(lamb-dinput['lines'][ij])**2
-                    /(2*(Dlamb/25.)**2)
+                    -(lamb - dinput['lines'][ij])**2 / (2*(Dlamb / 25.)**2)
                 )[None, :]
             dscales['amp'][key] = np.nanmax(data*conv, axis=1)
         else:

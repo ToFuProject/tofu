@@ -676,7 +676,7 @@ class Test02_Config(object):
                 assert err.__class__.__name__=='KeyError'
             self.dobj[typ].add_Struct(
                 struct=B,
-                dextraprop={'visible':True},
+                dextraprop={'visible': True},
             )
             assert n in obj.dStruct['dObj']['PFC'].keys()
             assert n in obj.dextraprop['dvisible']['PFC'].keys()
@@ -820,42 +820,44 @@ def get_dCams(dconf=dconf):
         dCams[typ] = {}
         if typ=='Tor':
             phi = np.pi/4.
-            eR = np.r_[np.cos(phi),np.sin(phi),0.]
-            ephi = np.r_[np.sin(phi),-np.cos(phi),0.]
+            eR = np.r_[np.cos(phi), np.sin(phi), 0.]
+            ephi = np.r_[np.sin(phi), -np.cos(phi), 0.]
             R = 3.5
-            ph = np.r_[R*np.cos(phi),R*np.sin(phi),0.2]
+            ph = np.r_[R*np.cos(phi), R*np.sin(phi), 0.2]
         else:
-            ph = np.r_[3.,4.,0.]
-        ez = np.r_[0.,0.,1.]
-        for c in ['CamLOS2D','CamLOS1D']:
+            ph = np.r_[3., 4., 0.]
+        ez = np.r_[0., 0., 1.]
+        for c in ['CamLOS2D', 'CamLOS1D']:
             if '1D' in c:
                 nP = 100
-                X = np.linspace(-DX,DX,nP)
+                X = np.linspace(-DX, DX, nP)
                 if typ=='Tor':
-                    D = (ph[:,np.newaxis] + foc*eR[:,np.newaxis]
-                         + X[np.newaxis,:]*ephi[:,np.newaxis])
+                    D = (ph[:, np.newaxis] + foc*eR[:, np.newaxis]
+                         + X[np.newaxis, :]*ephi[:, np.newaxis])
                 else:
-                    D = np.array([3.+X,
-                                  np.full((nP,),4.+foc),
-                                  np.full((nP,),0.02)])
+                    D = np.array([3. + X,
+                                  np.full((nP,), 4. + foc),
+                                  np.full((nP,), 0.02)])
             else:
                 if typ=='Tor':
                     nP = 100
-                    X = np.linspace(-DX,DX,nP)
-                    D = (ph[:,np.newaxis] + foc*eR[:,np.newaxis]
-                         + np.repeat(X[::-1],nP)[np.newaxis,:]*ephi[:,np.newaxis]
-                         + np.tile(X,nP)[np.newaxis,:]*ez[:,np.newaxis])
+                    X = np.linspace(-DX, DX, nP)
+                    D = (
+                        ph[:, np.newaxis] + foc*eR[:, np.newaxis]
+                        + np.repeat(X[::-1], nP)[np.newaxis, :]*ephi[:, np.newaxis]
+                        + np.tile(X, nP)[np.newaxis, :]*ez[:, np.newaxis]
+                    )
                 else:
                     nP = 100
-                    X = np.linspace(-DX,DX,nP)
-                    D = np.array([np.repeat(3.+X[::-1],nP),
-                                  np.full((nP*nP,),4.+foc),
-                                  np.tile(0.01+X,nP)])
-            cls = eval("tfg.%s"%c)
+                    X = np.linspace(-DX, DX, nP)
+                    D = np.array([np.repeat(3. + X[::-1], nP),
+                                  np.full((nP*nP,),4. + foc),
+                                  np.tile(0.01 + X, nP)])
+            cls = eval(f"tfg.{c}")
             assert len(dconf[typ].lStruct) > 0
             dCams[typ][c] = cls(
                 Name='V1000', config=dconf[typ],
-                dgeom={'pinhole':ph, 'D':D}, method="optimized",
+                dgeom={'pinhole': ph, 'D': D}, method="optimized",
                 Exp=_Exp, Diag='Test', SavePath=_here,
             )
     return dCams
