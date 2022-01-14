@@ -320,6 +320,7 @@ class Test01_ProofOfPrinciple(object):
             self.lfocus, self.ldconstants,
         ]
         nn = int(np.prod([len(cc) for cc in combin]))
+        import pdb; pdb.set_trace()     # DB
         for ii, comb in enumerate(itt.product(*combin)):
 
             pos = ii % 2 == 0
@@ -348,7 +349,10 @@ class Test01_ProofOfPrinciple(object):
                 defconst=self.defconst,
             )
             self.ldinput1d.append(dinput)
-            self.ldinput1d_run.append(True)
+
+            # run (fit1d) only for some cases
+            run = True
+            self.ldinput1d_run.append(run)
 
     def test02_funccostjac_1d(self):
         func = tfs._fit12d_funccostjac.multigausfit1d_from_dlines_funccostjac
