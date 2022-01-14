@@ -254,7 +254,6 @@ class Test01_ProofOfPrinciple(object):
                 # 'amp': {''},
                 'width': 1.,
                 'shift': {
-                    's1': 0.,
                     's2': 1.,
                 },
                 'dratio': 0,
@@ -278,9 +277,9 @@ class Test01_ProofOfPrinciple(object):
             spect2d[5:8, :],
         ]
 
-        lfocus = [None, 'a', [3.94e-10, 3.96e-10]]
+        lfocus = [None, 'b', [3.94e-10, 3.96e-10]]
 
-        ldconstants = [None, {'shift': {'s1': 0}}]
+        ldconstants = [None, {'shift': {'s2': 0}}]
 
         cls.lamb = lamb
         cls.var = var
@@ -902,7 +901,7 @@ def get_constraints(
         focus = None
     elif focus is None:
         if _FOCUS[crystname] is not None:
-            focus = dict(_FOCUS[crystname])
+            focus = _FOCUS[crystname]
 
     # valid
     if valid_fraction is None:
