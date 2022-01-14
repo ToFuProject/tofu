@@ -108,7 +108,14 @@ _DCONSTANTS = {
 
 
 _DOMAIN = {
-    'ArXVII': {'lamb': [[3.94e-10, 4.009e-10], (3.95e-10, 3.96e-10), (3.979e-10, 3.988e-10)]},
+    'ArXVII': {
+        'phi': [-0.1, 0.1],
+        'lamb': [
+            [3.93e-10, 4.009e-10],
+            (3.95e-10, 3.96e-10),
+            (3.979e-10, 3.988e-10),
+        ],
+    },
     'ArXVIII': None,
     'FeXXV': None,
 }
@@ -121,7 +128,11 @@ _DOMAIN = {
 
 
 _FOCUS = {
-    'ArXVII': None, #['w', 'x', 'y', 'k', 'z'],
+    'ArXVII': [
+        [3.9490e-10, 2.e-13],
+        [3.9680e-10, 4.e-13],
+        [3.9930e-10, 3.e-13],
+    ], #['w', 'x', 'y', 'k', 'z'],
     'ArXVIII': None,
     'FeXXV': None,
 }
@@ -133,12 +144,12 @@ _FOCUS = {
 # #############################################################################
 
 
-_PHI_BINS = 100
-_LAMB_BINS = 305
+_PHI_BINS = 200
+_LAMB_BINS = 445
 _BINNING = {
     'ArXVII': {
         'phi': {'nbins': _PHI_BINS},
-        'lamb': {'nbins': 305},   # depends on domain width!
+        'lamb': {'nbins': 445},
     },
     'ArXVIII': {
         'phi': {'nbins': _PHI_BINS},
