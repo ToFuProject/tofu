@@ -818,7 +818,7 @@ def get_dCams(dconf=dconf):
     DX = 0.05
     for typ in dconf.keys():
         dCams[typ] = {}
-        if typ=='Tor':
+        if typ == 'Tor':
             phi = np.pi/4.
             eR = np.r_[np.cos(phi), np.sin(phi), 0.]
             ephi = np.r_[np.sin(phi), -np.cos(phi), 0.]
@@ -831,7 +831,7 @@ def get_dCams(dconf=dconf):
             if '1D' in c:
                 nP = 100
                 X = np.linspace(-DX, DX, nP)
-                if typ=='Tor':
+                if typ == 'Tor':
                     D = (ph[:, np.newaxis] + foc*eR[:, np.newaxis]
                          + X[np.newaxis, :]*ephi[:, np.newaxis])
                 else:
@@ -839,19 +839,19 @@ def get_dCams(dconf=dconf):
                                   np.full((nP,), 4. + foc),
                                   np.full((nP,), 0.02)])
             else:
-                if typ=='Tor':
+                if typ == 'Tor':
                     nP = 100
                     X = np.linspace(-DX, DX, nP)
                     D = (
-                        ph[:, np.newaxis] + foc*eR[:, np.newaxis]
-                        + np.repeat(X[::-1], nP)[np.newaxis, :]*ephi[:, np.newaxis]
-                        + np.tile(X, nP)[np.newaxis, :]*ez[:, np.newaxis]
+                        ph[:, None] + foc*eR[:, None]
+                        + np.repeat(X[::-1], nP)[None, :]*ephi[:, None]
+                        + np.tile(X, nP)[None, :]*ez[:, None]
                     )
                 else:
                     nP = 100
                     X = np.linspace(-DX, DX, nP)
                     D = np.array([np.repeat(3. + X[::-1], nP),
-                                  np.full((nP*nP,),4. + foc),
+                                  np.full((nP*nP,), 4. + foc),
                                   np.tile(0.01 + X, nP)])
             cls = eval(f"tfg.{c}")
             assert len(dconf[typ].lStruct) > 0

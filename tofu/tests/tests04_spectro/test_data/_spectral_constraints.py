@@ -170,8 +170,8 @@ _BINNING = {
 
 _DSCALES = {
     'ArXVII': {
-    #'width': 1e-8,      # To be tuned
-    # 'dshift': 5e-4,
+        # 'width': 1e-8,      # To be tuned
+        # 'dshift': 5e-4,
     },
 }
 

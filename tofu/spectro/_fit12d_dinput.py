@@ -2900,10 +2900,9 @@ def _dict2vector_dscalesx0bounds(
             x[:, dinput['dind']['dratio']['x'][:, 0]] = dd['dratio'][:, None]
             x[:, dinput['dind']['dshift']['x'][:, 0]] = dd['dshift'][:, None]
         else:
-            if dinput['double'].get('dratio') is None:
-                x[:, dinput['dind']['dratio']['x'][:, 0]] = dd['dratio'][:, None]
-            if dinput['double'].get('dshift') is None:
-                x[:, dinput['dind']['dshift']['x'][:, 0]] = dd['dshift'][:, None]
+            for kk in ['dratio', 'dshift']:
+                if dinput['double'].get(kk) is None:
+                    x[:, dinput['dind'][kk]['x'][:, 0]] = dd[kk][:, None]
 
     if dd_name != 'dconstants' and not np.all(np.isfinite(x)):
         msg = (
