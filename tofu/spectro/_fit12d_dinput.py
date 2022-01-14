@@ -828,7 +828,7 @@ def _binning_check(
         if np.any(~np.isfinite(binning[k0]['edges'])):
             msg = (
                 f"Non-finite value in binning['{k0}']['edges']\n"
-                str(binning[k0]['edges'])
+                + str(binning[k0]['edges'])
             )
             raise Exception(msg)
 
