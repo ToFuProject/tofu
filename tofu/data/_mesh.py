@@ -107,7 +107,10 @@ class Mesh2D(DataCollection):
 
         # get domain, poly from crop_poly
         if crop_poly is not None:
-            domain, poly = _mesh_checks._mesh2DRect_from_croppoly(crop_poly)
+            domain, poly = _mesh_checks._mesh2DRect_from_croppoly(
+                crop_poly=crop_poly,
+                domain=domain,
+            )
         else:
             poly = None
 
