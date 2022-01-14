@@ -67,8 +67,9 @@ _DINDOK = {
     -2: 'out of domain',
     -3: 'neg or NaN',
     -4: 'binning=0',
-    -5: 'non-valid S/N',
-    -6: 'mid-valid S/N',
+    -5: 'S/N valid, excluded',
+    -6: 'S/N non-valid, included',
+    -7: 'S/N non-valid, excluded',
 }
 
 
@@ -2103,6 +2104,7 @@ def fit2d_dinput(
     )
 
     # Update indok with non-valid phi
+    # non-valid = ok but out of dphi
     for ii in range(dinput['dprepare']['indok'].shape[0]):
         iphino = dinput['dprepare']['indok'][ii, ...] == 0
         for jj in range(len(dinput['valid']['ldphi'][ii])):
@@ -2116,19 +2118,39 @@ def fit2d_dinput(
                     >= dinput['valid']['ldphi'][ii][jj][1]
                 )
             )
-        dinput['dprepare']['indok'][ii, iphino] = -5
 
-        iphinok = (
+        # valid, but excluded (out of dphi)
+        iphi = (
+            (dinput['dprepare']['indok'][ii, ...] == 0)
+            & (dinput['valid']['ind'][ii, ...])
+            & (iphino)
+        )
+        dinput['dprepare']['indok'][ii, iphi] = -5
+
+        # non-valid, included (in dphi)
+        iphi = (
             (dinput['dprepare']['indok'][ii, ...] == 0)
             & (~dinput['valid']['ind'][ii, ...])
+            & (~iphino)
         )
-        dinput['dprepare']['indok'][ii, iphinok] = -6
+        dinput['dprepare']['indok'][ii, iphi] = -6
 
+        # non-valid, excluded (out of dphi)
+        iphi = (
+            (dinput['dprepare']['indok'][ii, ...] == 0)
+            & (~dinput['valid']['ind'][ii, ...])
+            & (iphino)
+        )
+        dinput['dprepare']['indok'][ii, iphi] = -7
+
+
+    # indok_bool True if indok == 0 or -5 (because ...)
     dinput['dprepare']['indok_bool'] = (
         (dinput['dprepare']['indok'] == 0)
         | (dinput['dprepare']['indok'] == -6)
     )
 
+    import pdb; pdb.set_trace()     # DB
     # add lambmin for bck
     dinput['lambmin_bck'] = np.min(dinput['dprepare']['lamb'])
     return dinput
