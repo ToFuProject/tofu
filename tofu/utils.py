@@ -3990,6 +3990,7 @@ class KeyHandler_mpl(object):
                 ii = self.dobj[obj]['dupdate'][k]['indrefind']  # 20 us
                 li = self.dind['arefind'][ii]   # 50 us
                 val = self.dobj[obj]['dupdate'][k]['fgetval']( li )    # 0.0001 s
+                # print(self.dgroup.keys(), group, indcur, obj, k, ii, li, val)      # DB
                 self.dobj[obj]['dupdate'][k]['fupdate']( val )  # 2 ms
 
         # --- Redraw all objects (due to background restore) --- 25 ms
