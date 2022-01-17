@@ -470,7 +470,7 @@ def _CrystalBragg_plot(
     cross = dax.get('cross') is not None
     hor = dax.get('hor') is not None
     d3 = dax.get('3d') is not None
-    im = dax.get('im') is not None
+    im = dax.get('im') is not None and xi is not None
 
     if 'o' in element:
         if cross:
