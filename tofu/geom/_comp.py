@@ -11,8 +11,8 @@ from xml.dom import minidom
 import numpy as np
 import scipy.interpolate as scpinterp
 import scipy.integrate as scpintg
+import matplotlib.colors as mplcol
 from inspect import signature as insp
-
 
 
 # ToFu-specific
@@ -71,6 +71,7 @@ def _check_float(var=None, varname=None, vardef=None):
 def _get_pts_from_path_svg(
     path_str=None,
     res=None,
+    k0=None,
 ):
 
     # Check inputs
@@ -123,14 +124,20 @@ def _get_pts_from_path_svg(
     if 'z' not in path_str.lower():
         if pts.shape[1] == 2:
             isref = True
+        elif np.allclose(pts[:, 0], pts[:, -1]):
+            pass
         else:
+            pts = np.concatenate((pts, pts[:, 0:1]), axis=1)
             msg = (
-                "Non-conform path ({}) identified!\n"
-                + "All path must be either:\n"
-                + "\t- closed\n"
-                + "\t- or a unique straight line with 2 points\n"
+                f"Non-conform path '{k0}' identified!\n"
+                "All path must be either:\n"
+                "\t- closed\n"
+                "\t- or a unique straight line with 2 points\n"
+                "Provided:\n"
+                f"path_str: {path_str}\n"
+                f"  => closed automatically"
             )
-            raise Exception(msg)
+            warnings.warn(msg)
 
     return pts, isref
 
@@ -192,12 +199,13 @@ def get_paths_from_svg(
 
     # Derive usable data
     kstr = 'fill:'
+    dpath = {k0: v0 for k0, v0 in dpath.items() if kstr in v0['color']}
     lk = list(dpath.keys())
     ref = None
     for ii, k0 in enumerate(lk):
 
         v0 = dpath[k0]
-        poly, isref = _get_pts_from_path_svg(v0['poly'], res=res)
+        poly, isref = _get_pts_from_path_svg(v0['poly'], res=res, k0=k0)
         if isref is True:
             ref = poly
             del dpath[k0]
@@ -210,7 +218,10 @@ def get_paths_from_svg(
             dpath[k0]['cls'] = 'Ves'
             color = None
         else:
-            dpath[k0]['cls'] = 'PFC'
+            if mplcol.to_rgb(color) == (1., 0., 0.):
+                dpath[k0]['cls'] = 'CoilPF'
+            else:
+                dpath[k0]['cls'] = 'PFC'
         dpath[k0]['color'] = color
 
     # Check for negative r
@@ -286,12 +297,13 @@ def get_paths_from_svg(
     if verb is True:
         lVes = sorted([k0 for k0, v0 in dpath.items() if v0['cls'] == 'Ves'])
         lPFC = sorted([k0 for k0, v0 in dpath.items() if v0['cls'] == 'PFC'])
+        lCoilPF = sorted([k0 for k0, v0 in dpath.items() if v0['cls'] == 'CoilPF'])
         lobj = [
             '\t- {}: {} ({} pts, {})'.format(
                 dpath[k0]['cls'], k0,
                 dpath[k0]['poly'].shape[1], dpath[k0]['color'],
             )
-            for k0 in lVes + lPFC
+            for k0 in lVes + lPFC + lCoilPF
         ]
         msg = (
             "The following structures were loaded:\n".format(pfe)
@@ -306,6 +318,8 @@ def get_paths_from_svg(
 # ==============================================================================
 # = Ves sub-functions
 # ==============================================================================
+
+
 def _Struct_set_Poly(
     Poly, pos=None, extent=None, arrayorder="C", Type="Tor", Clock=False
 ):

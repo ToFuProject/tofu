@@ -17,6 +17,7 @@ _ExpCOMPASS = 'COMPASS'
 _ExpCOMPASS2 = 'COMPASS2'
 _ExpTCV = 'TCV'
 _ExpSPARC = 'SPARC'
+_ExpNSTX = 'NSTX'
 
 
 # Default config
@@ -296,6 +297,28 @@ _DCONFIG = {
             'CS1upper', 'CS2upper', 'CS3upper',
         ],
     },
+
+    # NSTX
+    'NSTX-V1': {
+        'Exp': _ExpNSTX,
+        'Ves': ['VesselInner'],
+        'PFC': [
+            'VesselOutter01', 'VesselOutter02',
+            'BumperOutter01', 'BumperOutter02',
+            'BumperOutter03', 'BumperOutter04',
+            'DivertorUpper', 'DivertorLower',
+            'ICRFAntenna',
+            'path69778', 'path69912', 'path69980', 'path70015',
+            'path70085', 'path70153',
+        ],
+        'CoilPF': [
+            'CentralSolenoid', 'PFCoil01', 'PFCoil02', 'PFCoil03',
+            'PFCoil04', 'PFCoil05', 'PFCoil06', 'PFCoil07', 'PFCoil08',
+            'PFCoil09', 'PFCoil10', 'PFCoil11', 'PFCoil12', 'PFCoil13',
+            'PFCoil14', 'PFCoil16', 'PFCoil17', 'PFCoil18', 'PFCoil19',
+            'PFCoil20', 'PFCoil21', 'PFCoil22',
+        ],
+    },
 }
 
 # Each config can be called by various names / shortcuts (for benchmark and
@@ -320,6 +343,7 @@ _DCONFIG_SHORTCUTS = {
     'COMPASS': 'COMPASS-V0',
     'TCV': 'TCV-V0',
     'SPARC': 'SPARC-V1',
+    'NSTX': 'NSTX-V1',
 }
 
 

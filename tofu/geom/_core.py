@@ -3960,7 +3960,11 @@ class Config(utils.ToFuObject):
             derr = {}
             lstruct = []
             for k0, v0 in dpath.items():
-                clss = Ves if v0['cls'] == 'Ves' else PFC
+
+                # get class
+                clss = eval(v0['cls'])
+
+                # Instanciate
                 try:
                     lstruct.append(
                         clss(
@@ -3971,6 +3975,8 @@ class Config(utils.ToFuObject):
                 except Exception as err:
                     derr[k0] = str(err)
 
+
+            # Raise error if any
             if len(derr) > 0:
                 lerr = [
                     '\n\t- {}: {}'.format(k0, v0) for k0, v0 in derr.items()
