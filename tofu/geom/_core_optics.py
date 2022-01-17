@@ -25,6 +25,7 @@ import tofu.pathfile as tfpf
 import tofu.utils as utils
 from . import _def as _def
 from . import _GG as _GG
+from . import _core
 from . import _check_optics
 from . import _comp_optics as _comp_optics
 from . import _plot_optics as _plot_optics
@@ -912,7 +913,7 @@ class CrystalBragg(utils.ToFuObject):
         But that can be changed using:
             - ('dtheta', 'psi'): can be arbitrary but with same shape
                 up to 4 dimensions
-                - ('ntheta', 'npsi', 'include_summit'): will be used to
+            - ('ntheta', 'npsi', 'include_summit'): will be used to
                 compute the envelop (contour) of the crystal, as 2 1d arrays
 
         These arguments are fed to self.get_local_noute1e2() which will compute
@@ -962,12 +963,8 @@ class CrystalBragg(utils.ToFuObject):
             raise Exception(msg)
 
         det = self._checkformat_det(det)
-        if det is False:
-            msg = "det is required in get_Rays_from_summit_to_det()!"
-            raise Exception(msg)
-
         if length is None:
-            length = 7.
+            length = 10.
 
         if grid is None:
             try:
@@ -992,22 +989,51 @@ class CrystalBragg(utils.ToFuObject):
 
         # -----------
         # Get length (minimum between conf, det, length)
+        vectshape = vect.shape
         dk = {
-            k0: np.full(vect.shape[1:], np.nan)
+            k0: np.full(vectshape[1:], np.nan)
             for k0 in ['config', 'det', 'length']
         }
         xi, xj = None, None
         if config is not None:
             # Here insert ray-tracing from config!
-            dk['config'] = None
-            (
-                kIn, kOut, vperp, indout, indStruct,
-            ) = Rays._compute_kInOut(
-                largs=None, dkwd=None, indStruct=None
+            if vectshape != pts_start.shape:
+                if len(vectshape) == 3 and len(pts_start.shape) == 2:
+                    D = np.reshape(
+                        np.repeat(pts_start[..., None], vectshape[-1], axis=-1),
+                        (3, -1),
+                    )
+                    u = vect.reshape((3, -1))
+                else:
+                    msg = (
+                        "Not treated case!\n"
+                        f"\t- pts_start.shape: {pts_start.shape}\n"
+                        f"\t- vect.shape: {vectshape}\n"
+                    )
+                    raise Exception(msg)
+            else:
+                if len(vectshape) > 2:
+                    D = pts_start.reshape((3, -1))
+                    u = vect.reshape((3, -1))
+                else:
+                    D = pts_start
+                    u = vect
+
+            rays = _core.Rays(
+                dgeom=(D, u),
+                config=config,
+                strict=False,
+                Name='dummy',
+                Diag='dummy',
+                Exp='dummy',
             )
+            if u.shape != vectshape:
+                kout = rays.dgeom['kOut'].reshape(vectshape[1:])
+            else:
+                kout = rays.dgeom['kOut']
+            dk['config'] = kout
 
-
-        if det is not None:
+        if det is not None and det is not False:
             shape = tuple([3] + [1 for ii in range(vect.ndim-1)])
             cent = det['cent'].reshape(shape)
             nout = det['nout'].reshape(shape)
@@ -1031,6 +1057,7 @@ class CrystalBragg(utils.ToFuObject):
                 ej = det['ej'].reshape(shape)
                 xi = np.sum((pts_end - cent)*ei, axis=0)
                 xj = np.sum((pts_end - cent)*ej, axis=0)
+
         if length is not None:
             dk['length'][:] = length
 
