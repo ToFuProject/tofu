@@ -1176,7 +1176,7 @@ def CrystalBragg_plot_focal_error_summed(
         if tangent_to_rowland:
             dpsi0bis = dpsi0 - angle_nout
 
-        detector_comp = cryst.get_detector_approx(
+        detector_comp = cryst.get_detector_ideal(
             ddist=ddist0,
             di=di0,
             dj=dj0,
@@ -1239,7 +1239,7 @@ def CrystalBragg_plot_focal_error_summed(
             print(msg)
             det = {}
             for ii in range(nsort):
-                det[ii] = cryst.get_detector_approx(
+                det[ii] = cryst.get_detector_ideal(
                     ddist=ddist[inddist[ii]],
                     di=di[inddi[ii]],
                     tangent_to_rowland=tangent_to_rowland,

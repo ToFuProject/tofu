@@ -1480,7 +1480,7 @@ class CrystalBragg(utils.ToFuObject):
             bragg=bragg, rcurve=self._dgeom['rcurve'],
         )
 
-    def get_detector_approx(
+    def get_detector_ideal(
         self,
         bragg=None, lamb=None,
         rcurve=None, n=None,
@@ -1623,7 +1623,7 @@ class CrystalBragg(utils.ToFuObject):
         msg = ("det must be:\n"
                + "\t- False: not det provided\n"
                + "\t- None:  use default approx det from:\n"
-               + "\t           self.get_detector_approx()\n"
+               + "\t           self.get_detector_ideal()\n"
                + "\t- dict:  a dictionary of 3d (x,y,z) coordinates of a point"
                + " (local frame center) and 3 unit vectors forming a direct "
                + "orthonormal basis attached to the detector's frame\n"
@@ -1636,7 +1636,7 @@ class CrystalBragg(utils.ToFuObject):
         if not any(lc):
             raise Exception(msg)
         if lc[0]:
-            det = self.get_detector_approx(lamb=self._dbragg['lambref'])
+            det = self.get_detector_ideal(lamb=self._dbragg['lambref'])
         elif lc[2]:
             lk = ['cent', 'nout', 'ei', 'ej']
             c0 = (isinstance(det, dict)
@@ -2143,13 +2143,13 @@ class CrystalBragg(utils.ToFuObject):
         # angle between nout vectors from get_det_approx() &
         ## get_det_approx(tangent=False)
 
-        det1 = self.get_detector_approx(
+        det1 = self.get_detector_ideal(
             lamb=lamb,
             bragg=bragg,
             use_non_parallelism=use_non_parallelism,
             tangent_to_rowland=True,
         )
-        det2 = self.get_detector_approx(
+        det2 = self.get_detector_ideal(
             lamb=lamb,
             bragg=bragg,
             use_non_parallelism=use_non_parallelism,
@@ -2185,7 +2185,7 @@ class CrystalBragg(utils.ToFuObject):
                 if tangent_to_rowland:
                     dpsi0bis = dpsi0 - angle_nout
 
-                det = self.get_detector_approx(
+                det = self.get_detector_ideal(
                     ddist=ddist[ii],
                     di=di[jj],
                     dj=dj0,
@@ -2274,7 +2274,7 @@ class CrystalBragg(utils.ToFuObject):
         # ------------
         # get approx detect
 
-        det_approx = self.get_detector_approx(
+        det_approx = self.get_detector_ideal(
             bragg=bragg, lamb=lamb,
             tangent_to_rowland=False,
             use_non_parallelism=use_non_parallelism,
