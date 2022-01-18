@@ -989,18 +989,18 @@ class CrystalBragg(utils.ToFuObject):
 
         # -----------
         # Get length (minimum between conf, det, length)
-        vectshape = vect.shape
+        vshape = vect.shape
         dk = {
-            k0: np.full(vectshape[1:], np.nan)
+            k0: np.full(vshape[1:], np.nan)
             for k0 in ['config', 'det', 'length']
         }
         xi, xj = None, None
         if config is not None:
             # Here insert ray-tracing from config!
-            if vectshape != pts_start.shape:
-                if len(vectshape) == 3 and len(pts_start.shape) == 2:
+            if vshape != pts_start.shape:
+                if len(vshape) == 3 and len(pts_start.shape) == 2:
                     D = np.reshape(
-                        np.repeat(pts_start[..., None], vectshape[-1], axis=-1),
+                        np.repeat(pts_start[..., None], vshape[-1], axis=-1),
                         (3, -1),
                     )
                     u = vect.reshape((3, -1))
@@ -1008,11 +1008,11 @@ class CrystalBragg(utils.ToFuObject):
                     msg = (
                         "Not treated case!\n"
                         f"\t- pts_start.shape: {pts_start.shape}\n"
-                        f"\t- vect.shape: {vectshape}\n"
+                        f"\t- vect.shape: {vshape}\n"
                     )
                     raise Exception(msg)
             else:
-                if len(vectshape) > 2:
+                if len(vshape) > 2:
                     D = pts_start.reshape((3, -1))
                     u = vect.reshape((3, -1))
                 else:
@@ -1027,8 +1027,8 @@ class CrystalBragg(utils.ToFuObject):
                 Diag='dummy',
                 Exp='dummy',
             )
-            if u.shape != vectshape:
-                kout = rays.dgeom['kOut'].reshape(vectshape[1:])
+            if u.shape != vshape:
+                kout = rays.dgeom['kOut'].reshape(vshape[1:])
             else:
                 kout = rays.dgeom['kOut']
             dk['config'] = kout
