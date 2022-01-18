@@ -1475,10 +1475,10 @@ def CrystalBragg_plot_dshift_maps(
     ax4 = fig3.add_subplot(gs[1, 0])
     ax5 = fig3.add_subplot(gs[1, 1])
 
-    ax2.set_ylabel(r'$\Delta\lambda$ [m]', fontsize=14)
-    ax4.set_ylabel(r'$\Delta\lambda$ [m]', fontsize=14)
-    ax4.set_xlabel(r'$\lambda$ [m]', fontsize=14)
-    ax5.set_xlabel(r'$\lambda$ [m]', fontsize=14)
+    ax2.set_ylabel(r'$\Delta x_i$ [m]', fontsize=14)
+    ax4.set_ylabel(r'$\Delta x_i$ [m]', fontsize=14)
+    ax4.set_xlabel(r'$x_i$ [m]', fontsize=14)
+    ax5.set_xlabel(r'$x_i$ [m]', fontsize=14)
 
     ax2.set_title(
         r'$\alpha$={}/$\beta$={} [deg]'.format(
@@ -1506,14 +1506,16 @@ def CrystalBragg_plot_dshift_maps(
     rc = cryst._dgeom['rcurve']
     braggref = cryst._dbragg['braggref']
     dbragg = np.linspace(0.015, -0.015, 487)
-    alpha = (3/60)*(np.pi/180)
+    alpha = alphas_split[1]; print(alpha)
+    beta = betas_split[1]; print(beta)
     sphi = 0.08/(8*rc)
 
+    ## relation f(braggref, dbragg, alpha)
     if not split:
         def xi_gap(r, bragg, dbragg, alpha):
             return r*np.sin(bragg)*(
                 np.cos(bragg)-np.sin(bragg)/np.tan(bragg-dbragg-alpha)
-            )
+                )
         y1 = xi_gap(r=rc, bragg=braggref, dbragg=dbragg, alpha=0)
         y2 = xi_gap(r=rc, bragg=braggref, dbragg=dbragg, alpha=alpha)
     else:
@@ -1523,15 +1525,6 @@ def CrystalBragg_plot_dshift_maps(
         kappa2 = (rc/2)*np.sqrt(
             6-4*np.cos(2*braggref-2*sphi)+2*np.cos(2*braggref)-4*np.cos(2*sphi)
         )
-        def dxi2(r, bragg, dbragg, alpha, phi):
-            return kappa2*(
-                (
-                    (np.sin(2*bragg - phi) - np.sin(bragg)) /
-                    (np.sin(2*bragg - phi) - np.sin(bragg - dbragg - alpha))
-                )*
-                (np.cos(2*bragg - phi) - np.cos(bragg - dbragg - alpha)) -
-                np.cos(2*bragg - phi) + np.cos(bragg)
-            )
         def dxi1(r, bragg, dbragg, alpha, phi):
             return kappa1*(
                 (
@@ -1541,8 +1534,16 @@ def CrystalBragg_plot_dshift_maps(
                 (-np.cos(2*bragg + phi) - np.cos(bragg - dbragg - alpha)) +
                 np.cos(2*bragg + phi) + np.cos(bragg)
             )
-
-        y1 = dxi1(r=rc, bragg=braggref, dbragg=dbragg, alpha=alpha, phi=sphi)
+        def dxi2(r, bragg, dbragg, alpha, phi):
+            return kappa2*(
+                (
+                    (np.sin(2*bragg - phi) - np.sin(bragg)) /
+                    (np.sin(2*bragg - phi) - np.sin(bragg - dbragg - alpha))
+                )*
+                (np.cos(2*bragg - phi) - np.cos(bragg - dbragg - alpha)) -
+                np.cos(2*bragg - phi) + np.cos(bragg)
+            )
+        y1 = dxi1(r=rc, bragg=braggref, dbragg=dbragg, alpha=0, phi=sphi)
         y2 = dxi2(r=rc, bragg=braggref, dbragg=dbragg, alpha=alpha, phi=sphi)
 
     ## find indices of Phi wanted values
@@ -1572,13 +1573,14 @@ def CrystalBragg_plot_dshift_maps(
         max_phi, min_phi = nearest[bb]+n_val_phi, nearest[bb]-n_val_phi
         ax2.plot(
             xii[:, int(ind_near[bb])],
-            xi_unp[1, 0, :, int(ind_near[bb])],
-            #gap_xi[1, 0, :, int(ind_near[bb])],
+            #xi_unp[1, 0, :, int(ind_near[bb])],
+            gap_xi[1, 0, :, int(ind_near[bb])],
             label='$x_{j}$='+str(np.round(jx[bb], 3)),
             color=colors[bb],
         )
-        ax2.plot(xi, y2, 'k:')
-        ax2.plot(xi, y1, 'b:')
+        #ax2.plot(xi, y2, 'k:')
+        #ax2.plot(xi, y1, 'b:')
+        ax2.plot(xi, y2-y1, 'g:')
         ax3.plot(
             xii[:, int(ind_near[bb])],
             gap_xi[1, 1, :, int(ind_near[bb])],

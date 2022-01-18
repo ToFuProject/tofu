@@ -2047,7 +2047,7 @@ class CrystalBragg(utils.ToFuObject):
                         xi_unp[ii, jj, :],
                         xj_unp[ii, jj, :], strict,
                     ) = self.calc_xixj_from_braggphi(
-                        phi = phi[ii, jj, ...].flatten(),
+                        phi = np.zeros(487*1467), #phi[ii, jj, ...].flatten(),
                         bragg = bragg[ii, jj, ...].flatten(),
                         det=det,
                         use_non_parallelism=True,
@@ -2090,7 +2090,7 @@ class CrystalBragg(utils.ToFuObject):
                         xi_unp[ii, jj, :],
                         xj_unp[ii, jj, :], strict,
                     ) = cryst2.calc_xixj_from_braggphi(
-                        phi = phi[ii, jj, ...].flatten(),
+                        phi = np.zeros(487*1467), #phi[ii, jj, ...].flatten(),
                         bragg = bragg[ii, jj, ...].flatten(),
                         det=det,
                         use_non_parallelism=True,
@@ -3340,8 +3340,9 @@ class CrystalBragg(utils.ToFuObject):
             res=res,
             domain=domain,
             returnas='(R, Z, Phi)',
-        )## TBC: according to spectrometer alignment on WEST, sagital focus for
-        ## from each crystal are well positionned around the plasma center.
+        )## TBC: according to spectrometer alignment on WEST, sagital focus
+        ## point for each crystal is well positionned around the plasma center,
+        ## accordingly to Bertschinger's work on XICS.
         ## It seems like this method creates a focus few tens of cm away from
         ## its theoretical position.
 
