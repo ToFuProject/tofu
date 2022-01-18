@@ -10,7 +10,6 @@ _ExpWest = 'WEST'
 _ExpJET = 'JET'
 _ExpITER = 'ITER'
 _ExpAUG = 'AUG'
-_ExpNSTX = 'NSTX'
 _ExpDEMO = 'DEMO'
 _ExpTOMAS = 'TOMAS'
 _ExpCOMPASS = 'COMPASS'
@@ -199,12 +198,6 @@ _DCONFIG = {
         ],
     },
 
-    # NSTX
-    'NSTX-V0': {
-        'Exp': _ExpNSTX,
-        'Ves': ['V0'],
-    },
-
     # DEMO
     'DEMO-2019': {
         'Exp': _ExpDEMO,
@@ -299,7 +292,22 @@ _DCONFIG = {
     },
 
     # NSTX
+    'NSTX-V0': {
+        'Exp': _ExpNSTX,
+        'Ves': ['V0'],
+    },
     'NSTX-V1': {
+        'Exp': _ExpNSTX,
+        'Ves': ['VesselInner'],
+        'CoilPF': [
+            'CentralSolenoid', 'PFCoil01', 'PFCoil02', 'PFCoil03',
+            'PFCoil04', 'PFCoil05', 'PFCoil06', 'PFCoil07', 'PFCoil08',
+            'PFCoil09', 'PFCoil10', 'PFCoil11', 'PFCoil12', 'PFCoil13',
+            'PFCoil14', 'PFCoil16', 'PFCoil17', 'PFCoil18', 'PFCoil19',
+            'PFCoil20', 'PFCoil21', 'PFCoil22',
+        ],
+    },
+    'NSTX-V2': {
         'Exp': _ExpNSTX,
         'Ves': ['VesselInner'],
         'PFC': [
@@ -337,13 +345,12 @@ _DCONFIG_SHORTCUTS = {
     'B3': 'WEST-V4',
     'B4': 'ITER-V2',
     'AUG': 'AUG-V1',
-    'NSTX': 'NSTX-V0',
     'DEMO': 'DEMO-2019',
     'TOMAS': 'TOMAS-V0',
     'COMPASS': 'COMPASS-V0',
     'TCV': 'TCV-V0',
     'SPARC': 'SPARC-V1',
-    'NSTX': 'NSTX-V1',
+    'NSTX': 'NSTX-V2',
 }
 
 

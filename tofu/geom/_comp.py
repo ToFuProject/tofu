@@ -297,7 +297,9 @@ def get_paths_from_svg(
     if verb is True:
         lVes = sorted([k0 for k0, v0 in dpath.items() if v0['cls'] == 'Ves'])
         lPFC = sorted([k0 for k0, v0 in dpath.items() if v0['cls'] == 'PFC'])
-        lCoilPF = sorted([k0 for k0, v0 in dpath.items() if v0['cls'] == 'CoilPF'])
+        lCoilPF = sorted([
+            k0 for k0, v0 in dpath.items() if v0['cls'] == 'CoilPF'
+        ])
         lobj = [
             '\t- {}: {} ({} pts, {})'.format(
                 dpath[k0]['cls'], k0,

@@ -3975,7 +3975,6 @@ class Config(utils.ToFuObject):
                 except Exception as err:
                     derr[k0] = str(err)
 
-
             # Raise error if any
             if len(derr) > 0:
                 lerr = [
