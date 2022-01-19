@@ -670,6 +670,7 @@ def fit2d_extract(
     def _get_values(
         k0,
         k1=None,
+        indtok=dfit2d['validity'] == 0,
         phi_prof2=phi_prof2,
         d3=d3,
         nspect=nspect,
@@ -687,12 +688,14 @@ def fit2d_extract(
         # coefs
         shape = tuple(np.r_[nspect, ind.shape])
         coefs = np.full(shape, np.nan)
-        coefs = sol_x[:, ind] * scales[:, ind]
+        coefs[indtok, :] = (
+            sol_x[indtok, ...][:, ind] * scales[indtok, ...][:, ind]
+        )
 
         # values at phi_prof
         shape = tuple(np.r_[nspect, phi_prof2.size, ind.shape[1]])
         val = np.full(shape, np.nan)
-        for ii in range(nspect):
+        for ii in indtok.nonzero()[0]:
             BS.c = coefs[ii, :, :]
             val[ii, :, :] = BS(phi_prof2)
 
@@ -798,7 +801,7 @@ def fit2d_extract(
         msg = (
             "No usable vertical profile!\n"
             "Conditions for usability include:\n"
-            "\t- lines amplitude > = 2 * background\n"
+            "\t- lines amplitude > = 1.5 * background\n"
             "\t- phi in a an interval of valid data"
         )
         warnings.warn(msg)
@@ -810,6 +813,9 @@ def fit2d_extract(
             if 'values' in d3[k0][k1].keys():
                 for jj in range(d3[k0][k1]['values'].shape[-1]):
                     d3[k0][k1]['values'][~indphi, jj] = np.nan
+
+    # update validity according to indphi
+    dfit2d['validity'][np.all(~indphi, axis=1)] = -3
 
     # ----------
     # func
