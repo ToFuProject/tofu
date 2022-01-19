@@ -39,6 +39,13 @@ _CHAIN = True
 _METHOD = 'trf'
 _LOSS = 'linear'
 _SIGMA_MARGIN = 3.
+_DVALIDITY = {
+    0: 'ok',
+    -1: 'non-valid input data',
+    -2: 'convergence failed',
+    -3: 'insufficient lines / bck',
+}
+
 
 
 ###########################################################
@@ -303,7 +310,7 @@ def multigausfit1d_from_dlines(
                 raise err
             else:
                 errmsg[ii] = str(err)
-                validity[ii] = -1
+                validity[ii] = -2
 
         # verbose
         if verbose in [1, 2]:
@@ -424,7 +431,9 @@ def multigausfit1d_from_dlines(
         'dratio': dratio, 'dshift': dshift,
         'indx': indx,
         'time': time, 'success': success,
-        'validity': validity, 'errmsg': np.array(errmsg),
+        'validity': validity,
+        'dvalidity': _DVALIDITY,
+        'errmsg': np.array(errmsg),
         'cost': cost, 'nfev': nfev, 'msg': np.array(message),
         'const': const,
     }
@@ -670,7 +679,7 @@ def multigausfit2d_from_dlines(
                 raise err
             else:
                 errmsg[ii] = str(err)
-                validity[ii] = -1
+                validity[ii] = -2
 
         # verbose
         if verbose in [1, 2]:
@@ -785,7 +794,9 @@ def multigausfit2d_from_dlines(
         'dratio': dratio, 'dshift': dshift,
         'indx': indx,
         'time': time, 'success': success,
-        'validity': validity, 'errmsg': np.array(errmsg),
+        'validity': validity,
+        'dvalidity': _DVALIDITY,
+        'errmsg': np.array(errmsg),
         'cost': cost, 'nfev': nfev, 'msg': np.array(message),
         'phi': phi,
         'const': const,
