@@ -984,8 +984,15 @@ def binning_2d_data(
         indok_new[nperbin == 0] = -4
 
         # dataphi1d
-        dataphi1d = np.nanmean(databin, axis=2)
-        datalamb1d = np.nanmean(databin, axis=1) + np.nanstd(databin, axis=1)
+        dataphi1d = np.full(databin.shape[:2], np.nan)
+        indok = ~np.all(np.isnan(databin), axis=2)
+        dataphi1d[indok] = np.nanmean(databin[indok, :], axis=-1)
+        datalamb1d = np.full(databin.shape[::2], np.nan)
+        indok = ~np.all(np.isnan(databin), axis=1)
+        datalamb1d[indok] = (
+            np.nanmean(databin.swapaxes(1, 2)[indok, :], axis=-1)
+            + np.nanstd(databin.swapaxes(1, 2)[indok, :], axis=-1)
+        )
 
         return (
             lambbin, phibin, databin, indok_new, binning,
@@ -2519,6 +2526,14 @@ def fit12d_dscales(dscales=None, dinput=None):
         indbck = (data > np.nanmean(data, axis=1)[:, None]) | (~indok)
         bcky = np.array(np.ma.masked_where(indbck, data).mean(axis=1))
         bckstd = np.array(np.ma.masked_where(indbck, data).std(axis=1))
+
+        iok = (bcky > 0) & (bckstd > 0)
+        if (bck_rate is None or nbck_amp is None) and not np.any(iok):
+            bcky = 0.1*np.array(np.ma.masked_where(~indbck, data).mean(axis=1))
+            bckstd = 0.1*bcky
+        elif not np.all(iok):
+            bcky[~iok] = np.mean(bcky[iok])
+            bckstd[~iok] = np.mean(bckstd[iok])
 
         # bck_rate
         if bck_rate is None:
