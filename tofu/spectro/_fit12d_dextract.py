@@ -606,6 +606,7 @@ def fit2d_extract(
     sol_lamb_phi=None,
     phi_prof=None,
     phi_npts=None,
+    lines_indphi=None,
     vs_nbs=None,
 ):
     """
@@ -642,6 +643,19 @@ def fit2d_extract(
         phi_npts=phi_npts,
         vs_nbs=vs_nbs,
     )
+
+    # lines_indphi
+    if lines_indphi is None:
+        lines_indphi = dfit2d['dinput']['keys']
+    if isinstance(lines_indphi, str):
+        lines_indphi = [lines_indphi]
+    if not all([ss in dfit2d['dinput']['keys'] for ss in lines_indphi]):
+        msg = (
+            "Arg lines_indphi must be a list of lines keys:\n"
+            f"\t- lines_indphi: {lines_indphi}\n"
+            f"\t- available: {dfit2d['dinput']['keys']}\n"
+        )
+        raise Exception(msg)
 
     # Extract dprepare and dind (more readable)
     dprepare = dfit2d['dinput']['dprepare']
@@ -776,17 +790,22 @@ def fit2d_extract(
     # check lines / bck ratio
     # a fit is usable if the lines amplitudes are >= background
     # using lambda0 for simplicity
+    iiphi = np.array([
+        (dfit2d['dinput']['keys'] == ss).nonzero()[0][0]
+        for ss in lines_indphi
+    ])
     bcki = (
         d3['bck_amp']['x']['values']
         * np.exp(
             d3['bck_rate']['x']['values']
             * (
-                dfit2d['dinput']['lines'][None, None, :]
+                dfit2d['dinput']['lines'][None, None, iiphi]
                 - dfit2d['dinput']['lambmin_bck']
             )
         )
     )
-    indphi = d3['amp']['lines']['values'] >= 1.5*bcki
+
+    indphi = d3['amp']['lines']['values'][:, :, iiphi] >= 1.5*bcki
     indphi = np.all(indphi, axis=-1)
     for ii in range(nspect):
         indphi_no = np.copy(indphi[ii, ...])
