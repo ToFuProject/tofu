@@ -372,7 +372,7 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
 
     config = tf.load_config("A1")
     # lightening up config by removing all PFCs
-    for name_pfc in ['BaffleV0', "DivUpV1", "DivLowITERV1"]:
+    for name_pfc in ['BaffleV0', "DivUpV1"]:
         config.remove_Struct("PFC", name_pfc)
 
     kwdargs = config.get_kwdargs_LOS_isVis()
@@ -386,13 +386,10 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
     # coordonnées en x,y,z:
     poly_coords = [
         np.array([
-            [2.7, 0, -0.4],
-            [2.75, 0, -0.4],
-            [2.75, 0, -0.1],
-            [2.70, 0, -0.1],
-            [2.60, 0, -0.1],
-            [2.50, 0, -0.1],
-            [2.50, 0, -0.4],
+            [2.40, 0, +0.2],
+            [2.40, 0, -0.2],
+            [2.80, 0, -0.2],
+            [2.80, 0, +0.2],
         ]).T,  # 1st polygon
         np.array([
             [2.50, 0, -0.1],
@@ -454,7 +451,7 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
 
     lblock = [False, True]
     lstep_rz = [
-        0.03,
+        0.05,
         0.01,
     ]
 
@@ -465,8 +462,8 @@ def test06_sa_integ_poly_map(ves_poly=VPoly, debug=3):
         rstep = zstep = step_rz
         zstep = step_rz
         phistep = 0.01
-        DR = [2.45, 2.8]
-        DZ = [-0.5, 0.]
+        DR = [2.1, 2.9]
+        DZ = [-0.5, 0.5]
         DPhi = [-0.1, 0.1]
 
         # -- Getting cython APPROX computation --------------------------------
