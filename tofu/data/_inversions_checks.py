@@ -13,14 +13,74 @@ import scipy.sparse as scpsp
 from . import _generic_check
 
 
-_LALGO = [
-    'inv_linear_augTikho_sparse',
-    'inv_linear_augTikho_dense',
-    'inv_linear_augTikho_chol_dense',
-    'inv_linear_augTikho_chol_sparse',
-    'inv_linear_augTikho_pos_dense',
-    'inv_linear_DisPrinc_sparse',
-]
+_DALGO = {
+    'algo0': {
+        'source': 'tofu',
+        'family': 'Phillips-Tikhonov',
+        'reg. operator': 'any linear',
+        'reg. param': 'augTikho',
+        'decomposition': '',
+        'positivity': False,
+        'sparse': True,
+        'isotropic': True,
+        'func': 'inv_linear_augTikho_sparse',
+    },
+    'algo1': {
+        'source': 'tofu',
+        'family': 'Phillips-Tikhonov',
+        'reg. operator': 'any linear',
+        'reg. param': 'augTikho',
+        'decomposition': '',
+        'positivity': False,
+        'sparse': False,
+        'isotropic': True,
+        'func': 'inv_linear_augTikho_dense',
+    },
+    'algo2': {
+        'source': 'tofu',
+        'family': 'Phillips-Tikhonov',
+        'reg. operator': 'any linear',
+        'reg. param': 'augTikho',
+        'decomposition': 'cholesky',
+        'positivity': False,
+        'sparse': False,
+        'isotropic': True,
+        'func': 'inv_linear_augTikho_chol_dense',
+    },
+    'algo3': {
+        'source': 'tofu',
+        'family': 'Phillips-Tikhonov',
+        'reg. operator': 'any linear',
+        'reg. param': 'augTikho',
+        'decomposition': 'cholesky',
+        'positivity': False,
+        'sparse': True,
+        'isotropic': True,
+        'func': 'inv_linear_augTikho_chol_sparse',
+    },
+    'algo4': {
+        'source': 'tofu',
+        'family': 'Phillips-Tikhonov',
+        'reg. operator': 'any linear',
+        'reg. param': 'augTikho',
+        'decomposition': '',
+        'positivity': True,
+        'sparse': False,
+        'isotropic': True,
+        'func': 'inv_linear_augTikho_pos_dense',
+    },
+    'algo5': {
+        'source': 'tofu',
+        'family': 'Phillips-Tikhonov',
+        'reg. operator': 'any linear',
+        'reg. param': 'DisPrinc',
+        'decomposition': '',
+        'positivity': False,
+        'sparse': True,
+        'isotropic': True,
+        'func': 'inv_linear_DisPrinc_sparse',
+    },
+}
 _LREGPARAM_ALGO = [
     'augTikho',
     'DisPrinc',
@@ -48,6 +108,7 @@ def _compute_check(
     cholesky=None,
     regparam_algo=None,
     algo=None,
+    tofu2tomotok=None,
     # regularity operator
     solver=None,
     operator=None,
@@ -267,11 +328,14 @@ def _compute_check(
         algo += f"_{'sparse' if sparse else 'dense'}"
 
     # final algo check
+    lalgo = list(_DALGO.keys())
+    if tofu2tomotok is not None and tofu2tomotok is not False:
+        lalgo += tofu2tomotok.lalgo
     algo = _generic_check._check_var(
         algo, 'algo',
         default=None,
         types=str,
-        allowed=_LALGO,
+        allowed=lalgo,
     )
 
     # -------------------
