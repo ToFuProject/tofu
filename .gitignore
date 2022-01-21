@@ -50,6 +50,7 @@ build/
 # Tex files
 *.aux
 *.log
+*.synctex.gz
 *.out
 *.toc
 

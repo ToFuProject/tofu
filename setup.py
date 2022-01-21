@@ -158,13 +158,13 @@ print("")
 _README = [
     ff
     for ff in os.listdir(_HERE)
-    if len(ff) <= 10 and ff[:7] == "README."
+    if len(ff) <= 10 and ff.startswith("README.")
 ]
 assert len(_README) == 1
 _README = _README[0]
 with open(os.path.join(_HERE, _README), encoding="utf-8") as f:
     long_description = f.read()
-if _README[-3:] == ".md":
+if _README.endswith(".md"):
     long_description_content_type = "text/markdown"
 else:
     long_description_content_type = "text/x-rst"
@@ -175,7 +175,7 @@ else:
 #  Compiling files
 openmp_installed, openmp_flag = is_openmp_installed()
 
-extra_compile_args = ["-O3", "-Wall", "-fno-wrapv"] + openmp_flag
+extra_compile_args = ["-O3", "-Wall", "-fno-wrapv", "-ffast-math"] + openmp_flag
 extra_link_args = [] + openmp_flag
 
 extensions = [

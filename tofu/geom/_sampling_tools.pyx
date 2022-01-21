@@ -1,8 +1,8 @@
 # cython: language_level=3
-# cython: boundscheck=False
+# cython: boundscheck=True
 # cython: wraparound=False
 # cython: cdivision=True
-# cython: initializedcheck=False
+# cython: initializedcheck=True
 #
 ################################################################################
 # Utility functions for sampling and discretizating
@@ -11,6 +11,7 @@ from libc.math cimport ceil as c_ceil, fabs as c_abs
 from libc.math cimport floor as c_floor, round as c_round
 from libc.math cimport sqrt as c_sqrt
 from libc.math cimport pi as c_pi, cos as c_cos, sin as c_sin
+from libc.math cimport atan2 as c_atan2
 from libc.math cimport isnan as c_isnan
 from libc.math cimport NAN as C_NAN
 from libc.math cimport log2 as c_log2
@@ -19,6 +20,7 @@ from cython.parallel import prange
 from cython.parallel cimport parallel
 from cython.parallel cimport threadid
 from cpython.array cimport array, clone
+from libc.stdio cimport printf
 # for utility functions:
 import numpy as np
 cimport numpy as cnp
@@ -239,8 +241,8 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
     #.. Filling arrays..........................................................
     if c_abs(din) < _VSMALL:
         for ii in range(np-1):
-            v0 = ves_poly[0, ii+1]-ves_poly[0, ii]
-            v1 = ves_poly[1, ii+1]-ves_poly[1, ii]
+            v0 = ves_poly[0, ii+1] - ves_poly[0, ii]
+            v1 = ves_poly[1, ii+1] - ves_poly[1, ii]
             lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
             inv_norm = 1. / lminmax[1]
             discretize_line1d_core(lminmax, dstep, dl_array, True,
@@ -2040,7 +2042,10 @@ cdef inline int  sa_disc_phi(int sz_r, int sz_z,
     return npts_disc
 
 
-cdef inline void sa_assemble_arrays(int block,
+# ------------------------------------------------------------------------------
+# -- Solid Angle Computation subtended by a SPHERE
+# ------------------------------------------------------------------------------
+cdef inline void sa_sphere_assemble(int block,
                                     int use_approx,
                                     double[:, ::1] part_coords,
                                     double[::1] part_rad,
@@ -2124,124 +2129,124 @@ cdef inline void sa_assemble_arrays(int block,
 
         if use_approx: # if block and use_approx
 
-            assemble_block_approx(part_coords, part_rad,
-                                  sa_map,
-                                  ves_poly, ves_norm,
-                                  ves_lims,
-                                  lstruct_nlim, lstruct_polyx, lstruct_polyy,
-                                  lstruct_lims, lstruct_normx, lstruct_normy,
-                                  lnvert, vperp_out,
-                                  coeff_inter_in, coeff_inter_out,
-                                  ind_inter_out, sz_ves_lims,
-                                  ray_orig, ray_vdir, npts_poly,
-                                  nstruct_tot, nstruct_lim,
-                                  rmin,
-                                  eps_uz, eps_a,
-                                  eps_vz, eps_b, eps_plane,
-                                  forbid,
-                                  first_ind, indi_mv,
-                                  sz_p, sz_pol,
-                                  ncells_rphi,
-                                  disc_r, step_rphi,
-                                  disc_z, ind_pol2r, ind_pol2z, sz_phi,
-                                  num_threads)
+            sphr_asmbl_block_approx(part_coords, part_rad,
+                                    sa_map,
+                                    ves_poly, ves_norm,
+                                    ves_lims,
+                                    lstruct_nlim, lstruct_polyx, lstruct_polyy,
+                                    lstruct_lims, lstruct_normx, lstruct_normy,
+                                    lnvert, vperp_out,
+                                    coeff_inter_in, coeff_inter_out,
+                                    ind_inter_out, sz_ves_lims,
+                                    ray_orig, ray_vdir, npts_poly,
+                                    nstruct_tot, nstruct_lim,
+                                    rmin,
+                                    eps_uz, eps_a,
+                                    eps_vz, eps_b, eps_plane,
+                                    forbid,
+                                    first_ind, indi_mv,
+                                    sz_p, sz_pol,
+                                    ncells_rphi,
+                                    disc_r, step_rphi,
+                                    disc_z, ind_pol2r, ind_pol2z, sz_phi,
+                                    num_threads)
 
         else: # if block and (not use_approx)
 
-            assemble_block_exact(part_coords, part_rad,
-                                 sa_map,
-                                 ves_poly, ves_norm,
-                                 ves_lims,
-                                 lstruct_nlim,
-                                 lstruct_polyx,
-                                 lstruct_polyy,
-                                 lstruct_lims,
-                                 lstruct_normx,
-                                 lstruct_normy,
-                                 lnvert, vperp_out,
-                                 coeff_inter_in, coeff_inter_out,
-                                 ind_inter_out, sz_ves_lims,
-                                 ray_orig, ray_vdir, npts_poly,
-                                 nstruct_tot, nstruct_lim,
-                                 rmin,
-                                 eps_uz, eps_a,
-                                 eps_vz, eps_b, eps_plane,
-                                 forbid,
-                                 first_ind, indi_mv,
-                                 sz_p, sz_pol,
-                                 ncells_rphi,
-                                 disc_r, step_rphi,
-                                 disc_z, ind_pol2r, ind_pol2z, sz_phi,
-                                 num_threads)
+            sphr_asmbl_block_exact(part_coords, part_rad,
+                                   sa_map,
+                                   ves_poly, ves_norm,
+                                   ves_lims,
+                                   lstruct_nlim,
+                                   lstruct_polyx,
+                                   lstruct_polyy,
+                                   lstruct_lims,
+                                   lstruct_normx,
+                                   lstruct_normy,
+                                   lnvert, vperp_out,
+                                   coeff_inter_in, coeff_inter_out,
+                                   ind_inter_out, sz_ves_lims,
+                                   ray_orig, ray_vdir, npts_poly,
+                                   nstruct_tot, nstruct_lim,
+                                   rmin,
+                                   eps_uz, eps_a,
+                                   eps_vz, eps_b, eps_plane,
+                                   forbid,
+                                   first_ind, indi_mv,
+                                   sz_p, sz_pol,
+                                   ncells_rphi,
+                                   disc_r, step_rphi,
+                                   disc_z, ind_pol2r, ind_pol2z, sz_phi,
+                                   num_threads)
 
     else: # if not block
 
         if use_approx: # if (not block) and use_approx
 
-            assemble_unblock_approx(part_coords, part_rad,
-                                    sa_map,
-                                    first_ind, indi_mv,
-                                    sz_p, sz_pol,
-                                    ncells_rphi,
-                                    disc_r, step_rphi,
-                                    disc_z, ind_pol2r, ind_pol2z, 
-                                    sz_phi,
-                                    num_threads)
+            sphr_asmbl_unblock_approx(part_coords, part_rad,
+                                      sa_map,
+                                      first_ind, indi_mv,
+                                      sz_p, sz_pol,
+                                      ncells_rphi,
+                                      disc_r, step_rphi,
+                                      disc_z, ind_pol2r, ind_pol2z,
+                                      sz_phi,
+                                      num_threads)
 
         else: # if (not block) and (not use_approx)
 
-            assemble_unblock_exact(part_coords, part_rad,
-                                   sa_map,
-                                   first_ind, indi_mv,
-                                   sz_p, sz_pol,
-                                   ncells_rphi,
-                                   disc_r, step_rphi,
-                                   disc_z, ind_pol2r, ind_pol2z, 
-                                   sz_phi,
-                                   num_threads)
+            sphr_asmbl_unblock_exact(part_coords, part_rad,
+                                     sa_map,
+                                     first_ind, indi_mv,
+                                     sz_p, sz_pol,
+                                     ncells_rphi,
+                                     disc_r, step_rphi,
+                                     disc_z, ind_pol2r, ind_pol2z,
+                                     sz_phi,
+                                     num_threads)
     return
 
 
-cdef inline void assemble_block_approx(double[:, ::1] part_coords,
-                                       double[::1] part_rad,
-                                       double[:, ::1] sa_map,
-                                       double[:, ::1] ves_poly,
-                                       double[:, ::1] ves_norm,
-                                       double[::1] ves_lims,
-                                       long[::1] lstruct_nlim,
-                                       double[::1] lstruct_polyx,
-                                       double[::1] lstruct_polyy,
-                                       double[::1] lstruct_lims,
-                                       double[::1] lstruct_normx,
-                                       double[::1] lstruct_normy,
-                                       long[::1] lnvert,
-                                       double[:, ::1] vperp_out,
-                                       double[:, ::1] coeff_inter_in,
-                                       double[:, ::1] coeff_inter_out,
-                                       int[:, ::1] ind_inter_out,
-                                       int sz_ves_lims,
-                                       double[:, :, ::1] ray_orig,
-                                       double[:, :, ::1] ray_vdir,
-                                       int npts_poly,
-                                       int nstruct_tot,
-                                       int nstruct_lim,
-                                       double rmin,
-                                       double eps_uz, double eps_a,
-                                       double eps_vz, double eps_b,
-                                       double eps_plane,
-                                       bint forbid,
-                                       long[::1] first_ind_mv,
-                                       long[:, ::1] indi_mv,
-                                       int sz_p,
-                                       int sz_pol,
-                                       long* ncells_rphi,
-                                       double* disc_r,
-                                       double* step_rphi,
-                                       double* disc_z,
-                                       int[::1] ind_pol2r,
-                                       int[::1] ind_pol2z,
-                                       long* sz_phi,
-                                       int num_threads) nogil:
+cdef inline void sphr_asmbl_block_approx(double[:, ::1] part_coords,
+                                         double[::1] part_rad,
+                                         double[:, ::1] sa_map,
+                                         double[:, ::1] ves_poly,
+                                         double[:, ::1] ves_norm,
+                                         double[::1] ves_lims,
+                                         long[::1] lstruct_nlim,
+                                         double[::1] lstruct_polyx,
+                                         double[::1] lstruct_polyy,
+                                         double[::1] lstruct_lims,
+                                         double[::1] lstruct_normx,
+                                         double[::1] lstruct_normy,
+                                         long[::1] lnvert,
+                                         double[:, ::1] vperp_out,
+                                         double[:, ::1] coeff_inter_in,
+                                         double[:, ::1] coeff_inter_out,
+                                         int[:, ::1] ind_inter_out,
+                                         int sz_ves_lims,
+                                         double[:, :, ::1] ray_orig,
+                                         double[:, :, ::1] ray_vdir,
+                                         int npts_poly,
+                                         int nstruct_tot,
+                                         int nstruct_lim,
+                                         double rmin,
+                                         double eps_uz, double eps_a,
+                                         double eps_vz, double eps_b,
+                                         double eps_plane,
+                                         bint forbid,
+                                         long[::1] first_ind_mv,
+                                         long[:, ::1] indi_mv,
+                                         int sz_p,
+                                         int sz_pol,
+                                         long* ncells_rphi,
+                                         double* disc_r,
+                                         double* step_rphi,
+                                         double* disc_z,
+                                         int[::1] ind_pol2r,
+                                         int[::1] ind_pol2z,
+                                         long* sz_phi,
+                                         int num_threads) nogil:
     cdef int rr
     cdef int zz
     cdef int jj
@@ -2299,7 +2304,7 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
                                            lstruct_lims,
                                            lstruct_normx,
                                            lstruct_normy,
-                                           lnvert, 
+                                           lnvert,
                                            vperp_out[thid],
                                            coeff_inter_in[thid],
                                            coeff_inter_out[thid],
@@ -2317,7 +2322,7 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
                 for pp in range(sz_p):
                     if is_vis[pp] and dist[pp] > part_rad[pp]:
                         sa_map[ind_pol,
-                               pp] += sa_approx_formula(part_rad[pp],
+                               pp] += comp_sa_sphr_appx(part_rad[pp],
                                                         dist[pp],
                                                         vol_pi)
         free(dist)
@@ -2326,21 +2331,21 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
     return
 
 
-cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
-                                         double[::1] part_rad,
-                                         double[:, ::1] sa_map,
-                                         long[::1] first_ind_mv,
-                                         long[:, ::1] indi_mv,
-                                         int sz_p,
-                                         int sz_pol,
-                                         long* ncells_rphi,
-                                         double* disc_r,
-                                         double* step_rphi,
-                                         double* disc_z,
-                                         int[::1] ind_pol2r,
-                                         int[::1] ind_pol2z,
-                                         long* sz_phi,
-                                         int num_threads) nogil:
+cdef inline void sphr_asmbl_unblock_approx(double[:, ::1] part_coords,
+                                           double[::1] part_rad,
+                                           double[:, ::1] sa_map,
+                                           long[::1] first_ind_mv,
+                                           long[:, ::1] indi_mv,
+                                           int sz_p,
+                                           int sz_pol,
+                                           long* ncells_rphi,
+                                           double* disc_r,
+                                           double* step_rphi,
+                                           double* disc_z,
+                                           int[::1] ind_pol2r,
+                                           int[::1] ind_pol2z,
+                                           long* sz_phi,
+                                           int num_threads) nogil:
     cdef int rr
     cdef int zz
     cdef int jj
@@ -2383,14 +2388,14 @@ cdef inline void assemble_unblock_approx(double[:, ::1] part_coords,
                 for pp in range(sz_p):
                     if dist[pp] > part_rad[pp]:
                         sa_map[ind_pol,
-                               pp] += sa_approx_formula(part_rad[pp],
+                               pp] += comp_sa_sphr_appx(part_rad[pp],
                                                         dist[pp],
                                                         vol_pi)
         free(dist)
     return
 
 
-cdef inline double sa_approx_formula(double radius,
+cdef inline double comp_sa_sphr_appx(double radius,
                                      double distance,
                                      double volpi,
                                      int debug=0) nogil:
@@ -2423,46 +2428,46 @@ cdef inline double sa_approx_formula(double radius,
 # -----------------------------------------------------------------------------
 #                      Exact formula computation
 # -----------------------------------------------------------------------------
-cdef inline void assemble_block_exact(double[:, ::1] part_coords,
-                                      double[::1] part_rad,
-                                      double[:, ::1] sa_map,
-                                      double[:, ::1] ves_poly,
-                                      double[:, ::1] ves_norm,
-                                      double[::1] ves_lims,
-                                      long[::1] lstruct_nlim,
-                                      double[::1] lstruct_polyx,
-                                      double[::1] lstruct_polyy,
-                                      double[::1] lstruct_lims,
-                                      double[::1] lstruct_normx,
-                                      double[::1] lstruct_normy,
-                                      long[::1] lnvert,
-                                      double[:, ::1] vperp_out,
-                                      double[:, ::1] coeff_inter_in,
-                                      double[:, ::1] coeff_inter_out,
-                                      int[:, ::1] ind_inter_out,
-                                      int sz_ves_lims,
-                                      double[:, :, ::1] ray_orig,
-                                      double[:, :, ::1] ray_vdir,
-                                      int npts_poly,
-                                      int nstruct_tot,
-                                      int nstruct_lim,
-                                      double rmin,
-                                      double eps_uz, double eps_a,
-                                      double eps_vz, double eps_b,
-                                      double eps_plane,
-                                      bint forbid,
-                                      long[::1] first_ind_mv,
-                                      long[:, ::1] indi_mv,
-                                      int sz_p,
-                                      int sz_pol,
-                                      long* ncells_rphi,
-                                      double* disc_r,
-                                      double* step_rphi,
-                                      double* disc_z,
-                                      int[::1] ind_pol2r,
-                                      int[::1] ind_pol2z,
-                                      long* sz_phi,
-                                      int num_threads) nogil:
+cdef inline void sphr_asmbl_block_exact(double[:, ::1] part_coords,
+                                        double[::1] part_rad,
+                                        double[:, ::1] sa_map,
+                                        double[:, ::1] ves_poly,
+                                        double[:, ::1] ves_norm,
+                                        double[::1] ves_lims,
+                                        long[::1] lstruct_nlim,
+                                        double[::1] lstruct_polyx,
+                                        double[::1] lstruct_polyy,
+                                        double[::1] lstruct_lims,
+                                        double[::1] lstruct_normx,
+                                        double[::1] lstruct_normy,
+                                        long[::1] lnvert,
+                                        double[:, ::1] vperp_out,
+                                        double[:, ::1] coeff_inter_in,
+                                        double[:, ::1] coeff_inter_out,
+                                        int[:, ::1] ind_inter_out,
+                                        int sz_ves_lims,
+                                        double[:, :, ::1] ray_orig,
+                                        double[:, :, ::1] ray_vdir,
+                                        int npts_poly,
+                                        int nstruct_tot,
+                                        int nstruct_lim,
+                                        double rmin,
+                                        double eps_uz, double eps_a,
+                                        double eps_vz, double eps_b,
+                                        double eps_plane,
+                                        bint forbid,
+                                        long[::1] first_ind_mv,
+                                        long[:, ::1] indi_mv,
+                                        int sz_p,
+                                        int sz_pol,
+                                        long* ncells_rphi,
+                                        double* disc_r,
+                                        double* step_rphi,
+                                        double* disc_z,
+                                        int[::1] ind_pol2r,
+                                        int[::1] ind_pol2z,
+                                        long* sz_phi,
+                                        int num_threads) nogil:
     cdef int rr
     cdef int zz
     cdef int jj
@@ -2539,7 +2544,7 @@ cdef inline void assemble_block_exact(double[:, ::1] part_coords,
                 for pp in range(sz_p):
                     if is_vis[pp] and dist[pp] > part_rad[pp]:
                         sa_map[ind_pol,
-                               pp] += sa_exact_formula(part_rad[pp],
+                               pp] += comp_sa_sphr_ext(part_rad[pp],
                                                        dist[pp],
                                                        vol_pi)
         free(dist)
@@ -2547,21 +2552,21 @@ cdef inline void assemble_block_exact(double[:, ::1] part_coords,
     return
 
 
-cdef inline void assemble_unblock_exact(double[:, ::1] part_coords,
-                                        double[::1] part_rad,
-                                        double[:, ::1] sa_map,
-                                        long[::1] first_ind_mv,
-                                        long[:, ::1] indi_mv,
-                                        int sz_p,
-                                        int sz_pol,
-                                        long* ncells_rphi,
-                                        double* disc_r,
-                                        double* step_rphi,
-                                        double* disc_z,
-                                        int[::1] ind_pol2r,
-                                        int[::1] ind_pol2z,
-                                        long* sz_phi,
-                                        int num_threads) nogil:
+cdef inline void sphr_asmbl_unblock_exact(double[:, ::1] part_coords,
+                                          double[::1] part_rad,
+                                          double[:, ::1] sa_map,
+                                          long[::1] first_ind_mv,
+                                          long[:, ::1] indi_mv,
+                                          int sz_p,
+                                          int sz_pol,
+                                          long* ncells_rphi,
+                                          double* disc_r,
+                                          double* step_rphi,
+                                          double* disc_z,
+                                          int[::1] ind_pol2r,
+                                          int[::1] ind_pol2z,
+                                          long* sz_phi,
+                                          int num_threads) nogil:
     cdef int rr
     cdef int zz
     cdef int jj
@@ -2604,14 +2609,14 @@ cdef inline void assemble_unblock_exact(double[:, ::1] part_coords,
                 for pp in range(sz_p):
                     if dist[pp]  > part_rad[pp]:
                         sa_map[ind_pol,
-                               pp] += sa_exact_formula(part_rad[pp],
+                               pp] += comp_sa_sphr_ext(part_rad[pp],
                                                        dist[pp],
                                                        vol_pi)
         free(dist)
     return
 
 
-cdef inline double sa_exact_formula(double radius,
+cdef inline double comp_sa_sphr_ext(double radius,
                                     double distance,
                                     double volpi) nogil:
     """
@@ -2635,3 +2640,478 @@ cdef inline double sa_exact_formula(double radius,
     cdef double r_over_d = radius / distance
 
     return 2 * volpi * (1. - c_sqrt(1. - r_over_d**2))
+
+
+
+# ------------------------------------------------------------------------------
+# -- Solid Angle Computation subtended by a POLYGON
+# ------------------------------------------------------------------------------
+cdef inline void sa_tri_assemble(
+    int block,
+    int use_approx,
+    double** poly_coords,
+    int npoly,
+    long[::1] lnvert_poly,
+    long** ltri,
+    double[:, ::1] poly_norm,
+    double[:, ::1] centroids,
+    double[:, ::1] vec_GB,
+    double[:, ::1] vec_GC,
+    double[:, ::1] cross_GBGC,
+    double[::1] dot_GBGC,
+    long[:, ::1] is_in_vignette,
+    double[:, ::1] sa_map,
+    double[:, ::1] ves_poly,
+    double[:, ::1] ves_norm,
+    double[::1] ves_lims,
+    long[::1] lstruct_nlim,
+    double[::1] lstruct_polyx,
+    double[::1] lstruct_polyy,
+    double[::1] lstruct_lims,
+    double[::1] lstruct_normx,
+    double[::1] lstruct_normy,
+    long[::1] lnvert,
+    int nstruct_tot,
+    int nstruct_lim,
+    double rmin,
+    double eps_uz, double eps_a,
+    double eps_vz, double eps_b,
+    double eps_plane,
+    bint forbid,
+    long[::1] first_ind,
+    long[:, ::1] indi_mv,
+    int num_tot_tri,
+    int sz_r, int sz_z,
+    long* ncells_rphi,
+    double reso_r_z,
+    double* disc_r,
+    double* step_rphi,
+    double* disc_z,
+    long[:, ::1] ind_rz2pol,
+    long* sz_phi,
+    double[::1] reso_rdrdz,
+    double[:, ::1] pts_mv,
+    long[::1] ind_mv,
+    int num_threads
+):
+    if block and use_approx:
+        # .. useless tabs .....................................................
+        # declared here so that cython can run without gil
+        if ves_lims is not None:
+            sz_ves_lims = np.size(ves_lims)
+        else:
+            sz_ves_lims = 0
+        npts_poly = ves_norm.shape[1]
+        ray_orig = np.zeros((3, num_tot_tri))
+        ray_vdir = np.zeros((3, num_tot_tri))
+        vperp_out = clone(array('d'), num_tot_tri * 3, True)
+        coeff_inter_in  = clone(array('d'), num_tot_tri, True)
+        coeff_inter_out = clone(array('d'), num_tot_tri, True)
+        ind_inter_out = clone(array('i'), num_tot_tri * 3, True)
+
+        tri_asmbl_block_approx(
+            poly_coords,
+            npoly,
+            lnvert_poly,
+            ltri,
+            poly_norm,
+            centroids,
+            vec_GB,
+            vec_GC,
+            cross_GBGC,
+            dot_GBGC,
+            is_in_vignette,
+            sa_map,
+            ves_poly, ves_norm,
+            ves_lims,
+            lstruct_nlim,
+            lstruct_polyx,
+            lstruct_polyy,
+            lstruct_lims,
+            lstruct_normx,
+            lstruct_normy,
+            lnvert, vperp_out,
+            coeff_inter_in, coeff_inter_out,
+            ind_inter_out, sz_ves_lims,
+            ray_orig, ray_vdir, npts_poly,
+            nstruct_tot, nstruct_lim,
+            rmin, eps_uz, eps_a,
+            eps_vz, eps_b, eps_plane,
+            forbid,
+            first_ind, indi_mv,
+            num_tot_tri, sz_r, sz_z,
+            ncells_rphi,
+            reso_r_z, disc_r, step_rphi,
+            disc_z, ind_rz2pol, sz_phi,
+            reso_rdrdz, pts_mv, ind_mv,
+            num_threads)
+    elif not block and use_approx:
+        tri_asmbl_unblock_approx(
+            poly_coords,
+            npoly,
+            lnvert_poly,
+            ltri,
+            poly_norm,
+            centroids,
+            vec_GB,
+            vec_GC,
+            cross_GBGC,
+            dot_GBGC,
+            is_in_vignette,
+            sa_map,
+            first_ind,
+            indi_mv,
+            num_tot_tri,
+            sz_r, sz_z,
+            ncells_rphi,
+            reso_r_z,
+            disc_r,
+            step_rphi,
+            disc_z,
+            ind_rz2pol,
+            sz_phi,
+            reso_rdrdz,
+            pts_mv,
+            ind_mv,
+            num_threads
+        )
+    return
+
+
+cdef inline void tri_asmbl_block_approx(
+    double** poly_coords,
+    int npoly,
+    long[::1] lnvert_poly,
+    long** ltri,
+    double[:, ::1] poly_norm,
+    double[:, ::1] centroids,
+    double[:, ::1] vec_GB,
+    double[:, ::1] vec_GC,
+    double[:, ::1] cross_GBGC,
+    double[::1] dot_GBGC,
+    long[:, ::1] is_in_vignette,
+    double[:, ::1] sa_map,
+    double[:, ::1] ves_poly,
+    double[:, ::1] ves_norm,
+    double[::1] ves_lims,
+    long[::1] lstruct_nlim,
+    double[::1] lstruct_polyx,
+    double[::1] lstruct_polyy,
+    double[::1] lstruct_lims,
+    double[::1] lstruct_normx,
+    double[::1] lstruct_normy,
+    long[::1] lnvert,
+    double[::1] vperp_out,
+    double[::1] coeff_inter_in,
+    double[::1] coeff_inter_out,
+    int[::1] ind_inter_out,
+    int sz_ves_lims,
+    double[:, ::1] ray_orig,
+    double[:, ::1] ray_vdir,
+    int npts_poly,
+    int nstruct_tot,
+    int nstruct_lim,
+    double rmin,
+    double eps_uz, double eps_a,
+    double eps_vz, double eps_b,
+    double eps_plane,
+    bint forbid,
+    long[::1] first_ind_mv,
+    long[:, ::1] indi_mv,
+    int num_tot_tri,
+    int sz_r, int sz_z,
+    long* ncells_rphi,
+    double reso_r_z,
+    double* disc_r,
+    double* step_rphi,
+    double* disc_z,
+    long[:, ::1] ind_rz2pol,
+    long* sz_phi,
+    double[::1] reso_rdrdz,
+    double[:, ::1] pts_mv,
+    long[::1] ind_mv,
+    int num_threads
+) nogil:
+    cdef int rr
+    cdef int zz
+    cdef int jj
+    cdef int itri
+    cdef int ipoly
+    cdef int ind_pol
+    cdef int loc_first_ind
+    cdef int loc_size_phi
+    cdef long indiijj
+    cdef double loc_x
+    cdef double loc_y
+    cdef double loc_r
+    cdef double loc_z
+    cdef double loc_phi
+    cdef double loc_step_rphi
+    cdef long* is_vis
+    cdef double* dot_Gb = NULL
+    cdef double* dot_Gc = NULL
+    cdef double* norm_G2 = NULL
+    cdef double* dist_opts = NULL
+    cdef double* numerator = NULL
+    cdef double* side_of_poly = NULL
+
+    is_vis = <long*> malloc(num_tot_tri * sizeof(long))
+    dot_Gb = <double*> malloc(num_tot_tri * sizeof(double))
+    dot_Gc = <double*> malloc(num_tot_tri * sizeof(double))
+    norm_G2 = <double*> malloc(num_tot_tri * sizeof(double))
+    numerator = <double*> malloc(num_tot_tri * sizeof(double))
+    side_of_poly = <double*> malloc(num_tot_tri * sizeof(double))
+
+    for rr in range(sz_r):
+        loc_r = disc_r[rr]
+        loc_size_phi = sz_phi[rr]
+        loc_step_rphi = step_rphi[rr]
+        loc_first_ind = first_ind_mv[rr]
+        for zz in range(sz_z):
+            loc_z = disc_z[zz]
+            if is_in_vignette[rr, zz]:
+                ind_pol = ind_rz2pol[rr, zz]
+                ind_mv[ind_pol] = rr * sz_z + zz
+                reso_rdrdz[ind_pol] = loc_r * reso_r_z
+                pts_mv[0, ind_pol] = loc_r
+                pts_mv[1, ind_pol] = loc_z
+                for jj in range(loc_size_phi):
+                    indiijj = indi_mv[rr, loc_first_ind + jj]
+                    loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
+                    loc_x = loc_r * c_cos(loc_phi)
+                    loc_y = loc_r * c_sin(loc_phi)
+                    # OG norm and other associated values  ....
+                    _bgt.compute_vec_ass_tri(loc_x, loc_y, loc_z,
+                                             num_tot_tri, centroids,
+                                             poly_norm,
+                                             cross_GBGC,
+                                             vec_GB, vec_GC,
+                                             &side_of_poly[0],
+                                             &numerator[0],
+                                             &dot_Gb[0],
+                                             &dot_Gc[0],
+                                             &norm_G2[0])
+                    # checking if visible .....
+                    _rt.is_visible_pt_vec_core(loc_x, loc_y, loc_z,
+                                               centroids,
+                                               num_tot_tri,
+                                               ves_poly, ves_norm,
+                                               &is_vis[0], norm_G2,
+                                               ves_lims,
+                                               lstruct_nlim,
+                                               lstruct_polyx,
+                                               lstruct_polyy,
+                                               lstruct_lims,
+                                               lstruct_normx,
+                                               lstruct_normy,
+                                               lnvert, vperp_out,
+                                               coeff_inter_in,
+                                               coeff_inter_out,
+                                               ind_inter_out, sz_ves_lims,
+                                               ray_orig, ray_vdir,
+                                               npts_poly,
+                                               nstruct_tot, nstruct_lim,
+                                               rmin,
+                                               eps_uz, eps_a,
+                                               eps_vz, eps_b, eps_plane,
+                                               1, # is toroidal
+                                               forbid, 1)
+
+                    for ipoly in range(npoly):
+                        if side_of_poly[ipoly] < 0.:
+                            continue  # point is not on right side of poly
+                        dist_opts = <double*> malloc(lnvert_poly[ipoly]
+                                                     * sizeof(double))
+                        # computing distances to vertices of poly (OA, OB, OC)
+                        _bgt.compute_dist_pt_arr(loc_x, loc_y, loc_z,
+                                                 lnvert_poly[ipoly],
+                                                 poly_coords[ipoly],
+                                                 &dist_opts[0])
+                        for itri in range(lnvert_poly[ipoly] - 2):
+                            iglob = ipoly + itri * npoly
+                            if rr < 2 and zz < 2 and jj < 2:
+                                printf("r, z, p = %f, %f, %f\n", loc_r, loc_z, loc_phi)
+                                printf("x, y, z = %f, %f, %f\n", loc_x, loc_y, loc_z)
+                                printf("Poly %d at the %d itri, iglob = %d => is vis = %d\n",
+                                       ipoly, itri, iglob, is_vis[iglob])
+                            if is_vis[iglob]:
+                                sa_map[ind_pol,
+                                       ipoly] += comp_sa_tri_appx(
+                                           itri,
+                                           ltri[ipoly],
+                                           numerator[iglob],
+                                           dot_Gb[iglob],
+                                           dot_Gc[iglob],
+                                           norm_G2[iglob],
+                                           dot_GBGC[iglob],
+                                           dist_opts,
+                                       )
+                        free(dist_opts)
+    free(dot_Gb)
+    free(dot_Gc)
+    free(norm_G2)
+    free(is_vis)
+    free(numerator)
+    free(side_of_poly)
+    return
+
+cdef inline void tri_asmbl_unblock_approx(
+    double** poly_coords,
+    int npoly,
+    long[::1] lnvert_poly,
+    long** ltri,
+    double[:, ::1] poly_norm,
+    double[:, ::1] centroids,
+    double[:, ::1] vec_GB,
+    double[:, ::1] vec_GC,
+    double[:, ::1] cross_GBGC,
+    double[::1] dot_GBGC,
+    long[:, ::1] is_in_vignette,
+    double[:, ::1] sa_map,
+    long[::1] first_ind_mv,
+    long[:, ::1] indi_mv,
+    int num_tot_tri,
+    int sz_r, int sz_z,
+    long* ncells_rphi,
+    double reso_r_z,
+    double* disc_r,
+    double* step_rphi,
+    double* disc_z,
+    long[:, ::1] ind_rz2pol,
+    long* sz_phi,
+    double[::1] reso_rdrdz,
+    double[:, ::1] pts_mv,
+    long[::1] ind_mv,
+    int num_threads
+) nogil:
+    cdef int rr
+    cdef int zz
+    cdef int jj
+    cdef int itri
+    cdef int ipoly
+    cdef int ind_pol
+    cdef int loc_first_ind
+    cdef int loc_size_phi
+    cdef long indiijj
+    cdef double loc_x
+    cdef double loc_y
+    cdef double loc_r
+    cdef double loc_z
+    cdef double loc_phi
+    cdef double loc_step_rphi
+    cdef double* dot_Gb = NULL
+    cdef double* dot_Gc = NULL
+    cdef double* norm_G2 = NULL
+    cdef double* dist_opts = NULL
+    cdef double* numerator = NULL
+    cdef double* side_of_poly = NULL
+
+    dot_Gb = <double*> malloc(num_tot_tri * sizeof(double))
+    dot_Gc = <double*> malloc(num_tot_tri * sizeof(double))
+    norm_G2 = <double*> malloc(num_tot_tri * sizeof(double))
+    numerator = <double*> malloc(num_tot_tri * sizeof(double))
+    side_of_poly = <double*> malloc(num_tot_tri * sizeof(double))
+
+    for rr in range(sz_r):
+        loc_r = disc_r[rr]
+        loc_size_phi = sz_phi[rr]
+        loc_step_rphi = step_rphi[rr]
+        loc_first_ind = first_ind_mv[rr]
+        for zz in range(sz_z):
+            loc_z = disc_z[zz]
+            if is_in_vignette[rr, zz]:
+                ind_pol = ind_rz2pol[rr, zz]
+                ind_mv[ind_pol] = rr * sz_z + zz
+                reso_rdrdz[ind_pol] = loc_r * reso_r_z
+                pts_mv[0, ind_pol] = loc_r
+                pts_mv[1, ind_pol] = loc_z
+                for jj in range(loc_size_phi):
+                    indiijj = indi_mv[rr, loc_first_ind + jj]
+                    loc_phi = - c_pi + (0.5 + indiijj) * loc_step_rphi
+                    loc_x = loc_r * c_cos(loc_phi)
+                    loc_y = loc_r * c_sin(loc_phi)
+                    # OG norm and other associated values  ....
+                    _bgt.compute_vec_ass_tri(loc_x, loc_y, loc_z,
+                                             num_tot_tri, centroids,
+                                             poly_norm,
+                                             cross_GBGC,
+                                             vec_GB, vec_GC,
+                                             &side_of_poly[0],
+                                             &numerator[0],
+                                             &dot_Gb[0],
+                                             &dot_Gc[0],
+                                             &norm_G2[0])
+                    for ipoly in range(npoly):
+                        if side_of_poly[ipoly] < 0.:
+                            continue  # point is not on right side of poly
+                        dist_opts = <double*> malloc(lnvert_poly[ipoly]
+                                                     * sizeof(double))
+                        # computing distances to vertices of poly (OA, OB, OC)
+                        _bgt.compute_dist_pt_arr(loc_x, loc_y, loc_z,
+                                                 lnvert_poly[ipoly],
+                                                 poly_coords[ipoly],
+                                                 &dist_opts[0])
+                        for itri in range(lnvert_poly[ipoly] - 2):
+                            iglob = ipoly + itri * npoly
+                            sa_map[ind_pol,
+                                   ipoly] += comp_sa_tri_appx(
+                                       itri,
+                                       ltri[ipoly],
+                                       numerator[iglob],
+                                       dot_Gb[iglob],
+                                       dot_Gc[iglob],
+                                       norm_G2[iglob],
+                                       dot_GBGC[iglob],
+                                       dist_opts,
+                                   )
+                        free(dist_opts)
+    free(dot_Gb)
+    free(dot_Gc)
+    free(norm_G2)
+    free(numerator)
+    free(side_of_poly)
+    return
+
+cdef inline double comp_sa_tri_appx(
+    int itri,
+    long* ltri,
+    double numerator,
+    double dot_Gb,
+    double dot_Gc,
+    double norm_G2,
+    double dot_bc,
+    double* dist_opts,
+) nogil:
+    """
+    Given by:
+    numerator = 3 G \dot (b \cross c)
+    denominator = G \dot G (norm A + norm B + norm C)
+                  + (c \dot b) (norm A - norm B - norm C)
+                  + (c \dot G) (norm A - norm C)
+                  + (G \dot b) (norm A - norm B)
+    with G centroid of triangle
+    """
+    cdef double normA
+    cdef double normB
+    cdef double normC
+    cdef double denumerator
+
+    normA = dist_opts[ltri[itri*3]]
+    normB = dist_opts[ltri[itri*3 + 1]]
+    normC = dist_opts[ltri[itri*3 + 2]]
+
+    denumerator = (
+        normA * normB * normC
+        + norm_G2 * (normA + normB + normC)
+        + dot_bc * (normA - normB - normC)
+        + dot_Gb * (normA - normB)
+        + dot_Gc * (normA - normC)
+    )
+
+    if denumerator < 0. :
+        denumerator += c_pi
+
+    if denumerator < 0. :
+        printf(">>>>>> denumerator is still negative: %f", denumerator)
+
+    return c_atan2(c_abs(numerator), denumerator)

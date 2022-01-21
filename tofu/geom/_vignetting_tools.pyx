@@ -26,24 +26,33 @@ from . cimport _sorted_set as _ss
 cdef inline bint is_reflex(const double[3] u,
                            const double[3] v) nogil:
     """
+    /\
+     \
+     v\
+       \______>
+       P  u
     Determines if the angle between U and -V is reflex (angle > pi) or not.
+    We suppose the angle is defined anticlockwise from u to v
     Warning: note the MINUS in front of V, this was done as this is the only
              form how we will need this function. but it is NOT general.
+    Is reflex if
+            u x -v has a negative 3rd coordinate
+    https://dai.fmph.uniba.sk/upload/8/89/Gm17_lesson05.pdf
     """
     cdef int ii
     cdef double sumc
     cdef double[3] ucrossv
     # ...
-    _bgt.compute_cross_prod(u, v, ucrossv)
-    sumc = 0.0
-    for ii in range(3):
-        # normally it should be a sum, but it is a minus cause is we have (U,-V)
-        sumc = ucrossv[ii]
-    return sumc >= 0.
+    _bgt.compute_cross_prod(u, v, &ucrossv[0])
+    # reflexive if u x v 3rd coordinate is negative, since we computed u x -v
+    # the angle in P is reflexive if the 3rd coordinate is positive
+    return ucrossv[2] > 0.
+
 
 cdef inline void compute_diff3d(double* orig,
                                 int nvert,
                                 double* diff) nogil:
+    # poly can be open !
     cdef int ivert
     for ivert in range(nvert-1):
         diff[ivert*3 + 0] = orig[0*nvert+(ivert+1)] - orig[0*nvert+ivert]
@@ -55,6 +64,7 @@ cdef inline void compute_diff3d(double* orig,
     diff[3*(nvert-1) + 2] = orig[2*nvert] - orig[2*nvert+(nvert-1)]
     return
 
+
 cdef inline void are_points_reflex(int nvert,
                                    double* diff,
                                    bint* are_reflex) nogil:
@@ -63,10 +73,8 @@ cdef inline void are_points_reflex(int nvert,
     (angle > pi) or not.
     """
     cdef int ivert
-    cdef int icoord
-    cdef double[3] u1, v1, un, vn
     # .. Computing if reflex or not ...........................................
-    for ivert in range(1,nvert):
+    for ivert in range(1, nvert):
         are_reflex[ivert] = is_reflex(&diff[ivert*3], &diff[(ivert-1)*3])
     # doing first point:
     are_reflex[0] = is_reflex(&diff[0], &diff[(nvert-1)*3])
@@ -113,7 +121,7 @@ cdef inline int get_one_ear(double* polygon,
                             double* diff,
                             bint* lref,
                             _cl.ChainedList* working_index,
-                            int nvert, int orig_nvert) nogil:
+                            int nvert, int orig_nvert) nogil except-1:
     """
     A polygon's "ear" is defined as a triangle of vert_i-1, vert_i, vert_i+1,
     points on the polygon, where the point vert_i has the following properties:
@@ -155,12 +163,12 @@ cdef inline int get_one_ear(double* polygon,
                 # edges of the triangle
                 if (lref[wj] and wj != wim1 and wj != wip1 and wj != wi):
                     if is_pt_in_tri(&diff[wi*3], &diff[wim1*3],
-                                    polygon[0*orig_nvert+wi],
-                                    polygon[1*orig_nvert+wi],
-                                    polygon[2*orig_nvert+wi],
-                                    polygon[0*orig_nvert+wj],
-                                    polygon[1*orig_nvert+wj],
-                                    polygon[2*orig_nvert+wj]):
+                                    polygon[0 * orig_nvert + wi],
+                                    polygon[1 * orig_nvert + wi],
+                                    polygon[2 * orig_nvert + wi],
+                                    polygon[0 * orig_nvert + wj],
+                                    polygon[1 * orig_nvert + wj],
+                                    polygon[2 * orig_nvert + wj]):
                         # We found a point in the triangle, thus is not ear
                         # no need to keep testing....
                         a_pt_in_tri = True
@@ -168,10 +176,19 @@ cdef inline int get_one_ear(double* polygon,
             # Let's check if there was a point in the triangle....
             if not a_pt_in_tri:
                 return i # if not, we found an ear
-    # if we havent returned, either, there was an error somerwhere
+    # if we havent returned, there was an error somerwhere
     with gil:
-        assert False, "Got here but shouldnt have "
-    return -1
+        for j in range(nvert):
+            wj = <int>_cl.get_at_pos(working_index, j)
+            print("coordinates at i =", j,
+                  " ", polygon[0 * orig_nvert + wj],
+                  " ", polygon[1 * orig_nvert + wj],
+                  " ", polygon[2 * orig_nvert + wj],
+                  )
+        print("... and btw, original polygon had : ", orig_nvert,
+              " vertices, now we are working on :", nvert)
+        raise ValueError("Didn't find a non reflex angle in polygon")
+
 
 cdef inline void earclipping_poly(double* vignett,
                                   long* ltri,
@@ -188,9 +205,16 @@ cdef inline void earclipping_poly(double* vignett,
     # init...
     cdef int loc_nv = nvert
     cdef int itri = 0
+    cdef int ii
     cdef int wi, wim1, wip1
     cdef int iear
     cdef _cl.ChainedList* working_index
+    # .. Checking if poly is a triangle .......................................
+    if nvert == 3:
+        ltri[0] = 0
+        ltri[1] = 1
+        ltri[2] = 2
+        return
     # .. First computing the edges coodinates .................................
     # .. and checking if the angles defined by the edges are reflex or not.....
     # initialization of working index tab:
@@ -237,11 +261,38 @@ cdef inline void earclipping_poly(double* vignett,
 # ==============================================================================
 # =  Polygons triangulation and Intersection Ray-Poly
 # ==============================================================================
+cdef inline void triangulate_poly(double* vignett_poly,
+                                  long nvert,
+                                  long** ltri) nogil:
+    """
+    Triangulates a single 3d polygon using the earclipping techinque
+    https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
+    Returns
+        ltri: 3*(nvert-2) :
+            {tri_0_0, tri_0_1, ... tri_0_nvert0}
+            where tri_i_j are the 3 indices of the vertex forming a sub-triangle
+            on each vertex (-2) and for each vignett
+    """
+    cdef int ii
+    cdef double* diff = NULL
+    cdef bint* lref = NULL
+    # ...
+    # -- Defining parallel part ------------------------------------------------
+    diff = <double*>malloc(3*nvert*sizeof(double))
+    lref = <bint*>malloc(nvert*sizeof(bint))
+    ltri[0] = <long*>malloc((nvert-2)*3*sizeof(long))
+    compute_diff3d(vignett_poly, nvert, &diff[0])
+    are_points_reflex(nvert, diff, &lref[0])
+    earclipping_poly(vignett_poly, &ltri[0][0],
+                     &diff[0], &lref[0], nvert)
+    return
+
+
 cdef inline int triangulate_polys(double** vignett_poly,
-                                   long* lnvert,
-                                   int nvign,
-                                   long** ltri,
-                                   int num_threads) nogil except -1:
+                                  long* lnvert,
+                                  int nvign,
+                                  long** ltri,
+                                  int num_threads) nogil except -1:
     """
     Triangulates a list 3d polygon using the earclipping techinque
     https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
@@ -251,7 +302,7 @@ cdef inline int triangulate_polys(double** vignett_poly,
             where tri_i_j are the 3 indices of the vertex forming a sub-triangle
             on each vertex (-2) and for each vignett
     """
-    cdef int ivign, ii
+    cdef int ivign
     cdef int nvert
     cdef double* diff = NULL
     cdef bint* lref = NULL
@@ -276,6 +327,7 @@ cdef inline int triangulate_polys(double** vignett_poly,
                 free(lref)
 
     return 0
+
 
 cdef inline bint inter_ray_poly(const double[3] ray_orig,
                                 const double[3] ray_vdir,

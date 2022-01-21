@@ -4,12 +4,15 @@
 # cython: cdivision=True
 # cython: initializedcheck=False
 #
-from cython.parallel import prange
-from cpython.array cimport array, clone
 from libc.math cimport sqrt as c_sqrt
 from libc.math cimport NAN as CNAN
 from libc.math cimport pi as c_pi
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport free
+from libc.stdlib cimport malloc
+from cpython.array cimport clone
+from cpython.array cimport array
+from cython.parallel import prange
+from cython.parallel cimport parallel
 #
 cdef double _VSMALL = 1.e-9
 cdef double _SMALL = 1.e-6
@@ -53,6 +56,7 @@ cdef inline bint is_point_in_path(const int nvert,
              / (verty[i+1]-verty[i]) + vertx[i]) ):
             c = not c
     return c
+
 
 cdef inline int is_point_in_path_vec(const int nvert,
                                      const double* vertx,
@@ -184,6 +188,33 @@ cdef inline double compute_dot_prod(const double[3] vec_a,
     return vec_a[0] * vec_b[0] + vec_a[1] * vec_b[1] + vec_a[2] * vec_b[2]
 
 
+cdef inline void compute_dot_cross_vec(const double[:, ::1] lvec_a,
+                                       const double[:, ::1] lvec_b,
+                                       double[:, ::1] cross_p,
+                                       double[::1] dot_p,
+                                       const int npts,
+                                       const int num_threads,
+                                       ) nogil:
+    cdef int ii
+    cdef double vec1[3]
+    cdef double vec2[3]
+    cdef double vec3[3]
+
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(npts):
+            vec1[0] = lvec_a[0, ii]
+            vec1[1] = lvec_a[1, ii]
+            vec1[2] = lvec_a[2, ii]
+            vec2[0] = lvec_b[0, ii]
+            vec2[1] = lvec_b[1, ii]
+            vec2[2] = lvec_b[2, ii]
+            compute_cross_prod(vec1, vec2, &vec3[0])
+            cross_p[0, ii] = vec3[0]
+            cross_p[1, ii] = vec3[1]
+            cross_p[2, ii] = vec3[2]
+            dot_p[ii] = compute_dot_prod(vec1, vec2)
+    return
+
 cdef inline double compute_norm(const double[3] vec) nogil:
     return c_sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2])
 
@@ -287,9 +318,136 @@ cdef inline int find_ind_lowerright_corner(const double[::1] xpts,
     return res
 
 
+cdef inline void find_centroid_tri(const double[3] xpts,
+                                   const double[3] ypts,
+                                   const double[3] zpts,
+                                   double[:] centroid) nogil:
+    centroid[0] = (xpts[0] + xpts[1] + xpts[2]) / 3.
+    centroid[1] = (ypts[0] + ypts[1] + ypts[2]) / 3.
+    centroid[2] = (zpts[0] + zpts[1] + zpts[2]) / 3.
+    return
+
+
+cdef inline void find_centroids_ltri(const double[:, :, ::1] poly_coords,
+                                     const long** ltri,
+                                     const long* lnvert,
+                                     const int npoly,
+                                     const int num_threads,
+                                     double[:, ::1] centroid) nogil:
+    cdef int ipol
+    cdef int itri
+    cdef int wim1
+    cdef int wi
+    cdef int wip1
+    cdef double[3] xtri
+    cdef double[3] ytri
+    cdef double[3] ztri
+
+    with nogil, parallel(num_threads=num_threads):
+        for ipol in prange(npoly):
+            for itri in range(lnvert[ipol] - 2):
+                wim1 = ltri[ipol][itri*3]
+                wi   = ltri[ipol][itri*3+1]
+                wip1 = ltri[ipol][itri*3+2]
+                xtri[0] = poly_coords[ipol, 0, wim1]
+                ytri[0] = poly_coords[ipol, 1, wim1]
+                ztri[0] = poly_coords[ipol, 2, wim1]
+                xtri[1] = poly_coords[ipol, 0, wi]
+                ytri[1] = poly_coords[ipol, 1, wi]
+                ztri[1] = poly_coords[ipol, 2, wi]
+                xtri[2] = poly_coords[ipol, 0, wip1]
+                ytri[2] = poly_coords[ipol, 1, wip1]
+                ztri[2] = poly_coords[ipol, 2, wip1]
+                find_centroid_tri(xtri, ytri, ztri,
+                                  centroid[:, ipol + itri * npoly])
+    return
+
+
+
+cdef inline void find_centroids_GB_GC_ltri(const double** poly_coords,
+                                           const long** ltri,
+                                           const long* lnvert,
+                                           const int npoly,
+                                           const int num_threads,
+                                           double[:, ::1] centroid,
+                                           double[:, ::1] vec_GB,
+                                           double[:, ::1] vec_GC,
+                                           ) nogil:
+    cdef int wi
+    cdef int wip1
+    cdef int wim1
+    cdef int ipol
+    cdef int itri
+    cdef int iglob
+    cdef double* xtri
+    cdef double* ytri
+    cdef double* ztri
+
+    with nogil, parallel(num_threads=num_threads):
+        xtri = <double*>malloc(3*sizeof(double))
+        ytri = <double*>malloc(3*sizeof(double))
+        ztri = <double*>malloc(3*sizeof(double))
+        for ipol in prange(npoly):
+            with gil:
+                print(f"{ipol} / ({npoly})")
+            for itri in range(lnvert[ipol] - 2):
+                with gil:
+                    print(f"{itri}/({lnvert[ipol]}-2)")
+                    print(ltri == NULL)
+                    print(ltri[0] == NULL)
+                wim1 = ltri[ipol][itri*3]
+                wi   = ltri[ipol][itri*3+1]
+                wip1 = ltri[ipol][itri*3+2]
+                with gil:
+                    print("xxxxxxxxxxxxx 1", wim1, wi, wip1)
+                    print(lnvert == NULL)
+                    print(lnvert[ipol])
+                    print(poly_coords == NULL)
+                    print(poly_coords[0] == NULL)
+                xtri[0] = poly_coords[ipol][0 * lnvert[ipol] + wim1]
+                ytri[0] = poly_coords[ipol][1 * lnvert[ipol] + wim1]
+                ztri[0] = poly_coords[ipol][2 * lnvert[ipol] + wim1]
+                xtri[1] = poly_coords[ipol][0 * lnvert[ipol] + wi]
+                ytri[1] = poly_coords[ipol][1 * lnvert[ipol] + wi]
+                ztri[1] = poly_coords[ipol][2 * lnvert[ipol] + wi]
+                xtri[2] = poly_coords[ipol][0 * lnvert[ipol] + wip1]
+                ytri[2] = poly_coords[ipol][1 * lnvert[ipol] + wip1]
+                ztri[2] = poly_coords[ipol][2 * lnvert[ipol] + wip1]
+                iglob = ipol + itri * npoly
+                with gil:
+                    print("...........before find centroid")
+                find_centroid_tri(xtri, ytri, ztri,
+                                  centroid[:, iglob])
+                with gil:
+                    print("...........after find centroid")
+                vec_GB[0, iglob] = xtri[1] - centroid[0, iglob]
+                vec_GB[1, iglob] = ytri[1] - centroid[1, iglob]
+                vec_GB[2, iglob] = ztri[1] - centroid[2, iglob]
+                vec_GC[0, iglob] = xtri[2] - centroid[0, iglob]
+                vec_GC[1, iglob] = ytri[2] - centroid[1, iglob]
+                vec_GC[2, iglob] = ztri[2] - centroid[2, iglob]
+    return
+
 # ==============================================================================
 # =  Distance
 # ==============================================================================
+cdef inline void compute_dist_pt_arr(const double pt0, const double pt1,
+                                     const double pt2, int npts,
+                                     const double* vec,
+                                     double* dist) nogil:
+    """
+    Compute the distance between the point P = [pt0, pt1, pt2] and each point
+    Q_i, where vec = {Q_0, Q_1, ..., Q_npts-1}
+    """
+    cdef int ii
+    for ii in range(0, npts):
+        dist[ii] = c_sqrt(
+              (pt0 - vec[0 * npts +  ii]) * (pt0 - vec[0 * npts + ii])
+            + (pt1 - vec[1 * npts +  ii]) * (pt1 - vec[1 * npts + ii])
+            + (pt2 - vec[2 * npts +  ii]) * (pt2 - vec[2 * npts + ii]))
+    return
+
+
 cdef inline void compute_dist_pt_vec(const double pt0, const double pt1,
                                      const double pt2, int npts,
                                      const double[:, ::1] vec,
@@ -303,6 +461,55 @@ cdef inline void compute_dist_pt_vec(const double pt0, const double pt1,
         dist[ii] = c_sqrt((pt0 - vec[0, ii]) * (pt0 - vec[0, ii])
                           + (pt1 - vec[1, ii]) * (pt1 - vec[1, ii])
                           + (pt2 - vec[2, ii]) * (pt2 - vec[2, ii]))
+    return
+
+
+cdef inline void compute_vec_ass_tri(const double pt0, const double pt1,
+                                     const double pt2, int npts,
+                                     const double[:, ::1] ptG,
+                                     const double[:, ::1] poly_norm,
+                                     const double[:, ::1] cross_bc,
+                                     const double[:, ::1] vecb,
+                                     const double[:, ::1] vecc,
+                                     double* side_of_poly,
+                                     double* num,
+                                     double* dot_Gb,
+                                     double* dot_Gc,
+                                     double* normG2) nogil:
+    """
+    Computes:
+       - numerator of triangle SA comp : 3 G \dot (b \cross c)
+       - G \dot b = OG \dot Gb
+       - G \dot c = OG \dot Gc
+       - (norm G)**2 = G \dot G = OG \dot \OG
+    ptG are the coordinates of all G, centroids of all triangles
+    pt0, pt1, pt2 are the coordinates of O
+    cross_bc are b x c for all triangles
+    vecb = \vec Gb
+    vecc = \vec Gc
+    """
+    cdef int ii
+    cdef double[3] vec_OG
+
+    for ii in range(npts):
+        vec_OG[0] = ptG[0, ii] - pt0
+        vec_OG[1] = ptG[1, ii] - pt1
+        vec_OG[2] = ptG[2, ii] - pt2
+        normG2[ii] = (vec_OG[0] * vec_OG[0]
+                      + vec_OG[1] * vec_OG[1]
+                      + vec_OG[2] * vec_OG[2])
+        num[ii] = 3.0 * (  vec_OG[0] * cross_bc[0, ii]
+                         + vec_OG[1] * cross_bc[1, ii]
+                         + vec_OG[2] * cross_bc[2, ii])
+        dot_Gb[ii] = (vec_OG[0]   * vecb[0, ii]
+                      + vec_OG[1] * vecb[1, ii]
+                      + vec_OG[2] * vecb[2, ii])
+        dot_Gc[ii] = (vec_OG[0]   * vecc[0, ii]
+                      + vec_OG[1] * vecc[1, ii]
+                      + vec_OG[2] * vecc[2, ii])
+        side_of_poly[ii] = (vec_OG[0]   * poly_norm[ii, 0]
+                            + vec_OG[1] * poly_norm[ii, 1]
+                            + vec_OG[2] * poly_norm[ii, 2])
     return
 
 
