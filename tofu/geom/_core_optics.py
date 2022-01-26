@@ -788,6 +788,14 @@ class CrystalBragg(utils.ToFuObject):
             ang_units=ang_units, axtit=axtit, color=color,
             fs=fs, ax=ax, legend=legend)
 
+    def compute_rockingcurve(
+        self, h=None, k=None, l=None, lamb=None,
+    ):
+        import tofu.spectro._rockingcurve as _rockingcurve
+        return _rockingcurve.compute_rockingcurve(
+            h=h, k=k, l=l, lamb=lamb,
+        )
+
     # -----------------
     # methods for surface and contour sampling
     # -----------------
