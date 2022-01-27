@@ -2,9 +2,9 @@ name: Complete testing matrix
 
 on:
   push:
-    branches: [ devel, master, Issue_#612_bf ]
+    branches: [ devel, master ]
   pull_request:
-    branches: [ devel, master, Issue_#612_bf ]
+    branches: [ devel, master ]
 
 jobs:
   build:
