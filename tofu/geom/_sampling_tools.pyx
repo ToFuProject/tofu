@@ -114,6 +114,7 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     new_margin = margin*resolution[0]
     abs0 = c_abs(desired_limits[0] - lminmax[0])
     with gil:
+        print("dl0, dl1 = ", dl[0], dl[1])
         print("inv_resol, new marg, abs0 = ", inv_resol, new_margin, abs0)
     if abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin:
         nl0[0] = int(c_round((desired_limits[0] - lminmax[0]) * inv_resol))
