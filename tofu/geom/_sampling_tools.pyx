@@ -89,7 +89,7 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     if mode == 0: # absolute
         ncells[0] = <int>c_ceil((lminmax[1] - lminmax[0]) / dstep)
         with gil:
-            print(f">>>>> ncells = ", ncells[0])
+            print(f"===== ncells = ", ncells[0])
     else: # relative
         ncells[0] = <int>c_ceil(1. / dstep)
     resolution[0] = (lminmax[1] - lminmax[0]) / ncells[0]
@@ -101,19 +101,19 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
         if c_isnan(dl[0]):
             dl[0] = lminmax[0]
             with gil:
-                print(f">>>>> dl0 is nan and = ", lminmax[0])
+                print(f"===== dl0 is nan and = ", lminmax[0])
         if c_isnan(dl[1]):
             dl[1] = lminmax[1]
             with gil:
-                print(f">>>>> dl1 is nan and = ", lminmax[1])
+                print(f"===== dl1 is nan and = ", lminmax[1])
         if lim and dl[0]<lminmax[0]:
             dl[0] = lminmax[0]
             with gil:
-                print(f">>>>> dl0 is limited = ", lminmax[0])
+                print(f"===== dl0 is limited = ", lminmax[0])
         if lim and dl[1]>lminmax[1]:
             dl[1] = lminmax[1]
             with gil:
-                print(f">>>>> dl1 is limited = ", lminmax[1])
+                print(f"===== dl1 is limited = ", lminmax[1])
         desired_limits[0] = dl[0]
         desired_limits[1] = dl[1]
     # .. Get the extreme indices of the mesh elements that really need to be
