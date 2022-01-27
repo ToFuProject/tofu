@@ -1996,6 +1996,8 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
                                          debug=1)
         Y0n, Z0n = len(Y0), len(Z0)
         if debug:
+            print(f">>> lminmax =", np.array([np.min(VPoly[1,:]),
+                                              np.max(VPoly[1,:])]))
             print(f">>> Z0={Z0}")
             print(f">>> dZ0r={dZ0r}")
             print(f">>> indZ0={indZ0}")

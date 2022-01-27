@@ -48,7 +48,7 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
     cdef long[1] nind
     # ..
     first_discretize_line1d_core(lminmax, dstep,
-                                 resolution, n, nind, nL0,
+                                 resolution, n, &nind[0], &nL0[0],
                                  dl, lim, mode, margin)
     if ldiscret_arr[0] == NULL:
         ldiscret_arr[0] = <double *>malloc(nind[0] * sizeof(double))
@@ -116,6 +116,8 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     with gil:
         print("dl0, dl1 = ", dl[0], dl[1])
         print("inv_resol, new marg, abs0 = ", inv_resol, new_margin, abs0)
+        print("1er if = ", abs0 - resolution[0] * c_floor(abs0 * inv_resol),
+              " new margin =", new_margin)
     if abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin:
         nl0[0] = int(c_round((desired_limits[0] - lminmax[0]) * inv_resol))
     else:
@@ -125,6 +127,8 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
         nl1 = int(c_round((desired_limits[1] - lminmax[0]) * inv_resol) - 1)
     else:
         nl1 = int(c_floor((desired_limits[1] - lminmax[0]) * inv_resol))
+    with gil:
+        print("nl0, nl1 = ", nl0[0], nl1)
     # Get the total number of indices
     nind[0] = nl1 + 1 - nl0[0]
     return
