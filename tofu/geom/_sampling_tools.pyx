@@ -88,6 +88,8 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     # .. Computing "real" discretization step, depending on `mode`..............
     if mode == 0: # absolute
         ncells[0] = <int>c_ceil((lminmax[1] - lminmax[0]) / dstep)
+        with gil:
+            print(f">>>>> ncells = ", ncells[0])
     else: # relative
         ncells[0] = <int>c_ceil(1. / dstep)
     resolution[0] = (lminmax[1] - lminmax[0]) / ncells[0]
@@ -98,12 +100,20 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     else:
         if c_isnan(dl[0]):
             dl[0] = lminmax[0]
+            with gil:
+                print(f">>>>> dl0 is nan and = ", lminmax[0])
         if c_isnan(dl[1]):
             dl[1] = lminmax[1]
-        if lim and dl[0]<=lminmax[0]:
+            with gil:
+                print(f">>>>> dl1 is nan and = ", lminmax[1])
+        if lim and dl[0]<lminmax[0]:
             dl[0] = lminmax[0]
-        if lim and dl[1]>=lminmax[1]:
+            with gil:
+                print(f">>>>> dl0 is limited = ", lminmax[0])
+        if lim and dl[1]>lminmax[1]:
             dl[1] = lminmax[1]
+            with gil:
+                print(f">>>>> dl1 is limited = ", lminmax[1])
         desired_limits[0] = dl[0]
         desired_limits[1] = dl[1]
     # .. Get the extreme indices of the mesh elements that really need to be
@@ -111,6 +121,8 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     inv_resol = 1./resolution[0]
     new_margin = margin*resolution[0]
     abs0 = c_abs(desired_limits[0] - lminmax[0])
+    with gil:
+        print("inv_resol, new marg, abs0 = ", inv_resol, new_margin, abs0)
     if abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin:
         nl0[0] = int(c_round((desired_limits[0] - lminmax[0]) * inv_resol))
     else:

@@ -486,7 +486,8 @@ def _Ves_isInside(double[:, ::1] pts, double[:, ::1] ves_poly,
 # ==============================================================================
 def discretize_line1d(double[::1] LMinMax, double dstep,
                       DL=None, bint Lim=True,
-                      str mode='abs', double margin=_VSMALL):
+                      str mode='abs', double margin=_VSMALL,
+                      debug=0):
     """
     Discretize a 1D segment LMin-LMax. If `mode` is "abs" (absolute), then the
     segment will be discretized in cells each of size `dstep`. Else, if `mode`
@@ -540,7 +541,7 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     err_mess = "Mode has to be 'abs' (absolute) or 'rel' (relative)"
     assert mode_num >= 0, err_mess
     # .. preparing inputs.......................................................
-    _st.cythonize_subdomain_dl(DL, dl_array) # dl_array is initialized
+    _st.cythonize_subdomain_dl(DL, dl_array)  # dl_array is initialized
     #.. calling cython function.................................................
     sz_ld = _st.discretize_line1d_core(&LMinMax[0], dstep, dl_array, Lim,
                                        mode_num, margin, &ldiscret, resolution,
@@ -1986,12 +1987,13 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
         # Get the mesh for the faces
         Y0, dY0r,\
           indY0, NY0 = discretize_line1d(np.array([np.min(VPoly[0,:]),
-                                                    np.max(VPoly[0,:])]),
-                                          dL, DL=DY, Lim=True, margin=margin)
+                                                   np.max(VPoly[0,:])]),
+                                         dL, DL=DY, Lim=True, margin=margin)
         Z0, dZ0r,\
           indZ0, NZ0 = discretize_line1d(np.array([np.min(VPoly[1,:]),
-                                                    np.max(VPoly[1,:])]),
-                                          dL, DL=DZ, Lim=True, margin=margin)
+                                                   np.max(VPoly[1,:])]),
+                                         dL, DL=DZ, Lim=True, margin=margin,
+                                         debug=1)
         Y0n, Z0n = len(Y0), len(Z0)
         if debug:
             print(f">>> Z0={Z0}")
