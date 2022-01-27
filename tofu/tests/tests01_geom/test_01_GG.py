@@ -515,7 +515,6 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
             XMinMax, dL, dX, VPoly,
             DX=LDX[ii], DY=DY, DZ=DZ,
             DIn=DIn, VIn=VIn, margin=1.e-9,
-            debug=(ii == 0),
         )
 
         assert Pts.ndim == 2 and Pts.shape[0] == 3
