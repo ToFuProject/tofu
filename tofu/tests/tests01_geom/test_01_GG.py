@@ -4,9 +4,6 @@ This module contains tests for tofu.geom in its structured version
 
 # External modules
 import numpy as np
-import matplotlib.pyplot as plt
-
-
 # ToFu-specific
 import tofu.geom._GG as GG
 from .testing_tools import compute_ves_norm
@@ -23,29 +20,29 @@ VerbHead = 'tofu.geom.test_01_GG'
 #######################################################
 
 def setup_module(module):
-    print ("") # this is to get a newline after the dots
-    #print ("setup_module before anything in this file")
+    print("")  # this is to get a newline after the dots
+    # print ("setup_module before anything in this file")
+
 
 def teardown_module(module):
-    #os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
-    #os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
-    #print ("teardown_module after everything in this file")
-    #print ("") # this is to get a newline
+    # os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
+    # os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
+    # print ("teardown_module after everything in this file")
+    # print ("") # this is to get a newline
     pass
-
 
 #######################################################
 #
 #     Testing
 #
 #######################################################
-"""
 ######################################################
 ######################################################
 #               Commons
 ######################################################
 ######################################################
-"""
+
+
 def test01_CoordShift():
 
     # Tests 1D input
@@ -510,7 +507,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
     DY, DZ = [0., 2.], [0., 1.]
     LDX = [None, [-1., 2.], [2., 5.], [8., 11.]]
 
-    for ii in range(0,len(LDX)):
+    for ii in range(0, len(LDX)):
         (
             Pts, dS, ind, NL, dLr, Rref,
             dXr, dY0r, dZ0r, VPbis,
@@ -518,6 +515,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
             XMinMax, dL, dX, VPoly,
             DX=LDX[ii], DY=DY, DZ=DZ,
             DIn=DIn, VIn=VIn, margin=1.e-9,
+            debug=(ii == 0),
         )
 
         assert Pts.ndim == 2 and Pts.shape[0] == 3

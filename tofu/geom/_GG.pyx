@@ -1951,13 +1951,17 @@ cdef inline int _check_DLvsLMinMax(double[::1] LMinMax,
                 DL[1] = None
     return inter
 
+
 def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
                                    double[:,::1] VPoly,
                                    list DX=None,
                                    list DY=None,
                                    list DZ=None,
-                                   double DIn=0., VIn=None,
-                                   double margin=_VSMALL):
+                                   double DIn=0.,
+                                   double[:,::1] VIn=None,
+                                   double margin=_VSMALL,
+                                   int debug=0,
+                                   ):
     """Return the desired surfacic submesh indicated by the limits (DX,DY,DZ),
     for the desired resolution (dX,dL) """
     cdef np.ndarray[double,ndim=1] X, Y0, Z0
@@ -1974,6 +1978,8 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
                                           np.max(VPoly[0,:])]), DY)
     interZ = _check_DLvsLMinMax(np.array([np.min(VPoly[1,:]),
                                               np.max(VPoly[1,:])]), DZ)
+    if debug:
+        print(f">>> {interX=}, {interY=}, {interZ=}")
 
     if interX==1 and interY==1 and interZ==1:
 
@@ -1987,7 +1993,11 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
                                                     np.max(VPoly[1,:])]),
                                           dL, DL=DZ, Lim=True, margin=margin)
         Y0n, Z0n = len(Y0), len(Z0)
-
+        if debug:
+            print(f">>> {Z0=}")
+            print(f">>> {dZ0r=}")
+            print(f">>> {indZ0=}")
+            print(f">>> {NZ0=}")
         # Get the actual R and Z resolutions and mesh elements
         X, dXr, indX, NX = discretize_line1d(XMinMax, dX,
                                               DL=DX,
