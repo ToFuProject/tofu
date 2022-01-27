@@ -88,8 +88,6 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     # .. Computing "real" discretization step, depending on `mode`..............
     if mode == 0: # absolute
         ncells[0] = <int>c_ceil((lminmax[1] - lminmax[0]) / dstep)
-        with gil:
-            print(f"===== ncells = ", ncells[0])
     else: # relative
         ncells[0] = <int>c_ceil(1. / dstep)
     resolution[0] = (lminmax[1] - lminmax[0]) / ncells[0]
@@ -113,11 +111,6 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     inv_resol = 1./resolution[0]
     new_margin = margin*resolution[0]
     abs0 = c_abs(desired_limits[0] - lminmax[0])
-    with gil:
-        print("dl0, dl1 = ", dl[0], dl[1])
-        print("inv_resol, new marg, abs0 = ", inv_resol, new_margin, abs0)
-        print("1er if = ", abs0 - resolution[0] * c_floor(abs0 * inv_resol),
-              abs0, resolution[0], inv_resol, abs0 * inv_resol, c_floor(abs0 * inv_resol))
     if abs0 - resolution[0] * c_floor(abs0 * inv_resol + _VSMALL) < new_margin:
         nl0[0] = int(c_round((desired_limits[0] - lminmax[0]) * inv_resol))
     else:
@@ -127,8 +120,6 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
         nl1 = int(c_round((desired_limits[1] - lminmax[0]) * inv_resol) - 1)
     else:
         nl1 = int(c_floor((desired_limits[1] - lminmax[0]) * inv_resol))
-    with gil:
-        print("nl0, nl1 = ", nl0[0], nl1)
     # Get the total number of indices
     nind[0] = nl1 + 1 - nl0[0]
     return
