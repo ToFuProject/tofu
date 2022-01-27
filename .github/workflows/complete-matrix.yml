@@ -1,5 +1,10 @@
 name: Complete testing matrix
 
+on:
+  push:
+    branches: [ devel, master, Issue_#612_bf ]
+  pull_request:
+    branches: [ devel, master, Issue_#612_bf ]
 
 jobs:
   build:
@@ -33,4 +38,4 @@ jobs:
         pip install -e ".[dev]" --no-build-isolation
     - name: Test with pytest and coverage
       run: |
-              coverage run --source=tofu/ -m pytest tofu/tests/tests01_geom/test_01_GG.py -v -x --durations=10
+              coverage run --source=tofu/ -m pytest tofu/tests -v -x --durations=10
