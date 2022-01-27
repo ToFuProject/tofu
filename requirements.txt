@@ -1,5 +1,5 @@
 ####### Requirements without Version Specifiers #######
-numpy>=1.22.1
+numpy
 scipy
 # scikit-sparse    # does not work on windows, and requires "apt/brew install libsuitesparse-dev/suite-sparse" on linux / MacOs 
 # scikit-umfpack   # similar issue
