@@ -1979,7 +1979,7 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
     interZ = _check_DLvsLMinMax(np.array([np.min(VPoly[1,:]),
                                               np.max(VPoly[1,:])]), DZ)
     if debug:
-        print(f">>> {interX=}, {interY=}, {interZ=}")
+        print(f">>> interX={interX} interY={interY} interZ={interZ}")
 
     if interX==1 and interY==1 and interZ==1:
 
@@ -1994,10 +1994,10 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
                                           dL, DL=DZ, Lim=True, margin=margin)
         Y0n, Z0n = len(Y0), len(Z0)
         if debug:
-            print(f">>> {Z0=}")
-            print(f">>> {dZ0r=}")
-            print(f">>> {indZ0=}")
-            print(f">>> {NZ0=}")
+            print(f">>> Z0={Z0}")
+            print(f">>> dZ0r={dZ0r}")
+            print(f">>> indZ0={indZ0}")
+            print(f">>> NZ0={NZ0}")
         # Get the actual R and Z resolutions and mesh elements
         X, dXr, indX, NX = discretize_line1d(XMinMax, dX,
                                               DL=DX,
