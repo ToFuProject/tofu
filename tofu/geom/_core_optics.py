@@ -587,6 +587,15 @@ class CrystalBragg(utils.ToFuObject):
             dgeom0 = self.dgeom
             try:
                 self.set_dgeom(dgeom=dgeom)
+                self._dmat = _check_optics._checkformat_dmat(
+                    dmat={
+                        k0: v0 for k0, v0 in self._dmat.items()
+                        if k0 not in ['nin', 'nout', 'e1', 'e2']
+                    },
+                    dgeom=self._dgeom,
+                    ddef=self._ddef['dmat'],
+                    valid_keys=self._get_keys_dmat()
+                )
             except Exception as err:
                 # Make sure instance does not move
                 self.set_dgeom(dgeom=dgeom0)
@@ -598,8 +607,11 @@ class CrystalBragg(utils.ToFuObject):
     def _rotate_or_translate(self, func, **kwdargs):
         pts = np.array([self._dgeom['summit'], self._dgeom['center']]).T
         if 'rotate' in func.__name__:
-            vect = np.array([self._dgeom['nout'],
-                             self._dgeom['e1'], self._dgeom['e2']]).T
+            vect = np.array([
+                self._dgeom['nout'],
+                self._dgeom['e1'],
+                self._dgeom['e2']
+            ]).T
             pts, vect = func(pts=pts, vect=vect, **kwdargs)
             return {'summit': pts[:, 0], 'center': pts[:, 1],
                     'nout': vect[:, 0], 'nin': -vect[:, 0],
@@ -721,7 +733,6 @@ class CrystalBragg(utils.ToFuObject):
         """
         param = self._move(param, dictname='_dgeom')
         self._dgeom['move_param'] = param
-
 
     # -----------------
     # methods for rocking curve
