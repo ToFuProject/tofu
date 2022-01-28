@@ -48,7 +48,7 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
     cdef long[1] nind
     # ..
     first_discretize_line1d_core(lminmax, dstep,
-                                 resolution, n, nind, nL0,
+                                 resolution, n, &nind[0], &nL0[0],
                                  dl, lim, mode, margin)
     if ldiscret_arr[0] == NULL:
         ldiscret_arr[0] = <double *>malloc(nind[0] * sizeof(double))
@@ -100,9 +100,9 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
             dl[0] = lminmax[0]
         if c_isnan(dl[1]):
             dl[1] = lminmax[1]
-        if lim and dl[0]<=lminmax[0]:
+        if lim and dl[0]<lminmax[0]:
             dl[0] = lminmax[0]
-        if lim and dl[1]>=lminmax[1]:
+        if lim and dl[1]>lminmax[1]:
             dl[1] = lminmax[1]
         desired_limits[0] = dl[0]
         desired_limits[1] = dl[1]
@@ -111,12 +111,12 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     inv_resol = 1./resolution[0]
     new_margin = margin*resolution[0]
     abs0 = c_abs(desired_limits[0] - lminmax[0])
-    if abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin:
+    if abs0 - resolution[0] * c_floor(abs0 * inv_resol + _VSMALL) < new_margin:
         nl0[0] = int(c_round((desired_limits[0] - lminmax[0]) * inv_resol))
     else:
         nl0[0] = int(c_floor((desired_limits[0] - lminmax[0]) * inv_resol))
     abs1 = c_abs(desired_limits[1] - lminmax[0])
-    if abs1 - resolution[0] * c_floor(abs1 * inv_resol) < new_margin:
+    if abs1 - resolution[0] * c_floor(abs1 * inv_resol + _VSMALL) < new_margin:
         nl1 = int(c_round((desired_limits[1] - lminmax[0]) * inv_resol) - 1)
     else:
         nl1 = int(c_floor((desired_limits[1] - lminmax[0]) * inv_resol))
