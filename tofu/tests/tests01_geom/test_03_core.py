@@ -136,7 +136,7 @@ for tt in dobj.keys():
             else:
                 Lim = None
 
-            Poly = np.loadtxt(os.path.join(path,lfc[ii]))
+            Poly = np.loadtxt(os.path.join(path, lfc[ii]))
             assert Poly.ndim == 2
             assert Poly.size >= 2*3
             kwd = dict(Name=ln[ii]+tt, Exp=_Exp, SavePath=_here,
@@ -568,14 +568,17 @@ class Test01_Struct(object):
 #
 #######################################################
 
+
 # Define a dict dconfig holding all the typical Config we want to test
+
 
 dconf = dict.fromkeys(dobj.keys())
 for typ in dobj.keys():
 
     # Get list of structures (lS) composing the config
-    lS = list(itt.chain.from_iterable([list(dobj[typ][c].values())
-                                       for c in dobj[typ].keys()]))
+    lS = list(itt.chain.from_iterable(
+        [list(dobj[typ][c].values()) for c in dobj[typ].keys()]
+    ))
 
     # Set the limits (none in toroidal geometry, [0., 10.] in linear geometry)
     Lim = None if typ == 'Tor' else [0., 10.]
@@ -584,6 +587,7 @@ for typ in dobj.keys():
     dconf[typ] = tfg.Config(Name='Test%s'%typ, Exp=_Exp,
                             lStruct=lS, Lim=Lim,
                             Type=typ, SavePath=_here)
+
 
 class Test02_Config(object):
     """ Class for testing the Config class and its methods
@@ -663,15 +667,17 @@ class Test02_Config(object):
             assert n in obj.dStruct['dObj']['PFC'].keys()
             assert n in obj.dextraprop['dvisible']['PFC'].keys()
             assert hasattr(obj.PFC,n)
-            obj.remove_Struct('PFC',n)
+            obj.remove_Struct('PFC', n)
             assert n not in obj.dStruct['dObj']['PFC'].keys()
             assert n not in obj.dextraprop['dvisible']['PFC'].keys()
             try:
-                hasattr(obj.PFC,n)
+                hasattr(obj.PFC, n)
             except Exception as err:
                 assert err.__class__.__name__=='KeyError'
-            self.dobj[typ].add_Struct(struct=B,
-                                      dextraprop={'visible':True})
+            self.dobj[typ].add_Struct(
+                struct=B,
+                dextraprop={'visible': True},
+            )
             assert n in obj.dStruct['dObj']['PFC'].keys()
             assert n in obj.dextraprop['dvisible']['PFC'].keys()
             assert hasattr(obj.PFC,n)
@@ -804,54 +810,63 @@ class Test02_Config(object):
 #
 #######################################################
 
+
 # Define a dict of cams to be tested
-dCams = {}
-foc = 0.08
-DX = 0.05
-for typ in dconf.keys():
-    dCams[typ] = {}
-    if typ=='Tor':
-        phi = np.pi/4.
-        eR = np.r_[np.cos(phi),np.sin(phi),0.]
-        ephi = np.r_[np.sin(phi),-np.cos(phi),0.]
-        R = 3.5
-        ph = np.r_[R*np.cos(phi),R*np.sin(phi),0.2]
-    else:
-        ph = np.r_[3.,4.,0.]
-    ez = np.r_[0.,0.,1.]
-    for c in ['CamLOS2D','CamLOS1D']:
-        if '1D' in c:
-            nP = 100
-            X = np.linspace(-DX,DX,nP)
-            if typ=='Tor':
-                D = (ph[:,np.newaxis] + foc*eR[:,np.newaxis]
-                     + X[np.newaxis,:]*ephi[:,np.newaxis])
-            else:
-                D = np.array([3.+X,
-                              np.full((nP,),4.+foc),
-                              np.full((nP,),0.02)])
+def get_dCams(dconf=dconf):
+    dCams = {}
+    foc = 0.08
+    DX = 0.05
+    for typ in dconf.keys():
+        dCams[typ] = {}
+        if typ == 'Tor':
+            phi = np.pi/4.
+            eR = np.r_[np.cos(phi), np.sin(phi), 0.]
+            ephi = np.r_[np.sin(phi), -np.cos(phi), 0.]
+            R = 3.5
+            ph = np.r_[R*np.cos(phi), R*np.sin(phi), 0.2]
         else:
-            if typ=='Tor':
+            ph = np.r_[3., 4., 0.]
+        ez = np.r_[0., 0., 1.]
+        for c in ['CamLOS2D', 'CamLOS1D']:
+            if '1D' in c:
                 nP = 100
-                X = np.linspace(-DX,DX,nP)
-                D = (ph[:,np.newaxis] + foc*eR[:,np.newaxis]
-                     + np.repeat(X[::-1],nP)[np.newaxis,:]*ephi[:,np.newaxis]
-                     + np.tile(X,nP)[np.newaxis,:]*ez[:,np.newaxis])
+                X = np.linspace(-DX, DX, nP)
+                if typ == 'Tor':
+                    D = (ph[:, np.newaxis] + foc*eR[:, np.newaxis]
+                         + X[np.newaxis, :]*ephi[:, np.newaxis])
+                else:
+                    D = np.array([3. + X,
+                                  np.full((nP,), 4. + foc),
+                                  np.full((nP,), 0.02)])
             else:
-                nP = 100
-                X = np.linspace(-DX,DX,nP)
-                D = np.array([np.repeat(3.+X[::-1],nP),
-                              np.full((nP*nP,),4.+foc),
-                              np.tile(0.01+X,nP)])
-        cls = eval("tfg.%s"%c)
-        dCams[typ][c] = cls(Name='V1000', config=dconf[typ],
-                            dgeom={'pinhole':ph, 'D':D}, method="optimized",
-                            Exp=_Exp, Diag='Test', SavePath=_here)
+                if typ == 'Tor':
+                    nP = 100
+                    X = np.linspace(-DX, DX, nP)
+                    D = (
+                        ph[:, None] + foc*eR[:, None]
+                        + np.repeat(X[::-1], nP)[None, :]*ephi[:, None]
+                        + np.tile(X, nP)[None, :]*ez[:, None]
+                    )
+                else:
+                    nP = 100
+                    X = np.linspace(-DX, DX, nP)
+                    D = np.array([np.repeat(3. + X[::-1], nP),
+                                  np.full((nP*nP,), 4. + foc),
+                                  np.tile(0.01 + X, nP)])
+            cls = eval(f"tfg.{c}")
+            assert len(dconf[typ].lStruct) > 0
+            dCams[typ][c] = cls(
+                Name='V1000', config=dconf[typ],
+                dgeom={'pinhole': ph, 'D': D}, method="optimized",
+                Exp=_Exp, Diag='Test', SavePath=_here,
+            )
+    return dCams
+
 
 class Test03_Rays(object):
 
     @classmethod
-    def setup_class(cls, dobj=dCams, verb=False):
+    def setup_class(cls, dobj=get_dCams(), verb=False):
         #print ("")
         #print "--------- "+VerbHead+cls.__name__
         dlpfe = {}
