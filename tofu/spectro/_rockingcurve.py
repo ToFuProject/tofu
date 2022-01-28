@@ -141,7 +141,7 @@ def compute_rockingcurve(
     # sol = sin(theta)/lambda ["sol_values"], taking into account molecular
     # bounds
     # From Henry & Lonsdale, "International tables for Crystallography" (1969)
-    # Vol.IV page 73 for O(1-)
+    # Vol.III p202 or Vol.IV page 73 for O(1-), Vol.III p202 ? for Si(2+)
 
     sol_si = np.r_[
         0., 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6,
@@ -259,8 +259,10 @@ def compute_rockingcurve(
     # Im(psi) = psi'' = -(4pi*e**2*F''_H)/(m*w**2*V)
 
     psi_re = re*lamb**2*F_re/(np.pi*V)    # psihp
-    psiop = -re*lamb**2/(np.pi*V)*(6.*(Zo + dfo_re) + 3.*(Zsi + dfsi_re))
-    psios = -re*lamb**2/(np.pi*V)*(6.*fo_im + 3.*fsi_im)
+    psi_dre = -re*lamb**2/(np.pi*V)*(
+        6.*(Zo + dfo_re) + 3.*(Zsi + dfsi_re)
+    )    # psiop
+    psi_im = -re*lamb**2/(np.pi*V)*(6.*fo_im + 3.*fsi_im)    #psios
 
     # Integrated reflectivity for crystals models: perfect (Darwin model) &
     # ideally mosaic thick crystal
@@ -283,8 +285,40 @@ def compute_rockingcurve(
     # is the Francesca's work.
 
     polar = np.r_[1., abs(np.cos(2.*theta))]
-    g = psios/(polar*psi_re)
+    g = psi_im/(polar*psi_re)
+    ay = -10. + np.linspace(0, 200, 201)    # instead of findgen(201)
+    day = np.zeros(201) + 0.1    # instead of fltarr(201)
+    # TBD: check if wanted shape=(2, 201) or shape(201, 201)
+    # the following can't work before checking this point of course
+    al = np.full((2, 201), np.nan)    # instead of fltarr(2, 201)
+    if Fmod == 0.:
+        Fmod == 1e-30
+    phpo = al
+    th = al
+    r = day*0.
+    for i in range(al.size):
+        al[i] = (ay**2 + g[i]**2 + np.sqrt(
+            ay**2 - g[i]**2 + kk**2 - 1.
+            )**2 + 4.*(g[i]*ay - rek)**2
+        )/np.sqrt((kk**2 - 1.)**2 + 4.*rek**2)
+        phpo[i] = (Fmod/Fbmod)*(al[i] - np.sqrt((al[i]**2 - 1.)))
+        phpob = phpo[i]
+        th[i] = (ay*polar[i]*psi_re - psi_dre)/np.sin(2.*theta)
+        rhy = np.sum(day*phpob)
+        # r(1): R_perpendicular & r(0): R_parallel
+        r[i] = (polar[i]*psi_re*rhy)/np.sin(2.*theta)
+        # R_DIN <=> R_bombarda
+    R_din = np.sum(r)/2.
 
+    if R_din < 1e-7:
+        msg = (
+            "Please check the equations for integrated reflectivity :\n"
+            "the value of R_din ({}) is less than 1e-7.\n".format(ro)
+        )
+        raise Exception(msg)
+
+    fmax = np.max(phpo[0] + phpo[1])
+    det = (2.*R_din)/fmax
 
     return (
         "volume=", V,
@@ -307,4 +341,6 @@ def compute_rockingcurve(
         "imag. part of psi =", psios,
         "Integrated reflectivity, perfect model :", R_per,
         "Integrated reflectivity, mosaic model :", R_mos,
+        "Integrated reflectivity, thick crystal model :", R_din,
+        "RC width (Delta theta) :", det,
     )
