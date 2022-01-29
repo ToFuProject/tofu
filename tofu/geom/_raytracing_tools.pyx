@@ -729,7 +729,7 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
         # == Iterating over the LOS ============================================
         for ind_los_range in range(num_los):
             raytracing_inout_struct_tor_inomp(num_los, ray_vdir, ray_orig,
-                                              coeff_inter_out, 
+                                              coeff_inter_out,
                                               coeff_inter_in,
                                               vperp_out, lstruct_nlim,
                                               ind_inter_out,
@@ -784,7 +784,7 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
             # == Iterating over the LOS in parallel ============================
             for ind_los_prange in prange(num_los):
                 raytracing_inout_struct_tor_inomp(num_los, ray_vdir, ray_orig,
-                                                  coeff_inter_out, 
+                                                  coeff_inter_out,
                                                   coeff_inter_in,
                                                   vperp_out, lstruct_nlim,
                                                   ind_inter_out,
