@@ -71,7 +71,7 @@ _dshort = {
         'events_names': {'str': 'event[].identifier'}},
 
     'summary': {
-        'time': {
+        't': {
             'str': 'time',
             'units': 's',
         },
