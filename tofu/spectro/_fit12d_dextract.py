@@ -166,13 +166,10 @@ def fit12d_get_data_checkformat(
             ratio = [ratio]
         lc = [
             isinstance(ratio, list)
-            and all([isinstance(tt, tuple) and len(tt) == 2 for tt in ratio])
-            and all([all([ss in lkeys for ss in tt]) for tt in ratio]),
+            and all([isinstance(tt, tuple) and len(tt) == 2 for tt in ratio]),
             isinstance(ratio, np.ndarray)
             and ratio.ndim == 2
             and ratio.shape[0] == 2
-            and all([ss in lkeys for ss in ratio[0, :]])
-            and all([ss in lkeys for ss in ratio[1, :]]),
         ]
         msg = (
             "\nArg ratio (spectral lines magnitude ratio) must be either:\n"
@@ -188,6 +185,16 @@ def fit12d_get_data_checkformat(
             ratio = False
         elif lc[0]:
             ratio = np.atleast_2d(ratio).T
+
+        # Remove ratio using non-aviailable lines
+        indokratio = np.array([
+            ratio[0, ii] in lkeys and ratio[1, ii] in lkeys
+            for ii in range(ratio.shape[1])
+        ])
+        if np.any(indokratio):
+            ratio = ratio[:, indokratio]
+        else:
+            ratio = False
 
     # ----------------
     # Check / format amp, Ti, vi
@@ -750,14 +757,25 @@ def fit2d_extract(
     if k0 in d3.keys():
         k1 = d3[k0]['types'][0]
         nratio = d3[k0]['requested'].shape[1]
+
+        # safeguard against non-available lines
+        indrequest = np.array([
+            ii for ii in range(d3['ratio']['requested'].shape[1])
+            if d3['ratio']['requested'][0, ii] in d3['amp']['lines']['keys']
+            and d3['ratio']['requested'][1, ii] in d3['amp']['lines']['keys']
+        ])
+
+        # get indices for all ratios
         indup = np.r_[[
             (d3['amp']['lines']['keys'] == kk).nonzero()[0][0]
-            for kk in d3['ratio']['requested'][0, :]
+            for kk in d3['ratio']['requested'][0, indrequest]
         ]]
         indlo = np.r_[[
             (d3['amp']['lines']['keys'] == kk).nonzero()[0][0]
-            for kk in d3['ratio']['requested'][1, :]]
+            for kk in d3['ratio']['requested'][1, indrequest]]
         ]
+
+        # get values and labels
         val = (
             d3['amp']['lines']['values'][:, :, indup]
             / d3['amp']['lines']['values'][:, :, indlo]
@@ -790,22 +808,23 @@ def fit2d_extract(
     # check lines / bck ratio
     # a fit is usable if the lines amplitudes are >= background
     # using lambda0 for simplicity
-    iiphi = np.array([
-        (dfit2d['dinput']['keys'] == ss).nonzero()[0][0]
-        for ss in lines_indphi
-    ])
     bcki = (
         d3['bck_amp']['x']['values']
         * np.exp(
             d3['bck_rate']['x']['values']
             * (
-                dfit2d['dinput']['lines'][None, None, iiphi]
+                dfit2d['dinput']['lines'][None, None, :]
                 - dfit2d['dinput']['lambmin_bck']
             )
         )
     )
 
-    indphi = d3['amp']['lines']['values'][:, :, iiphi] >= 1.5*bcki
+    amp_on_bck = d3['amp']['lines']['values'][:, :, :] / bcki
+    iiphi = np.array([
+        (dfit2d['dinput']['keys'] == ss).nonzero()[0][0]
+        for ss in lines_indphi
+    ])
+    indphi = amp_on_bck[:, :, iiphi] >= 1.5
     indphi = np.all(indphi, axis=-1)
     for ii in range(nspect):
         indphi_no = np.copy(indphi[ii, ...])
@@ -939,6 +958,7 @@ def fit2d_extract(
         'func_tot': func_tot,
         'units': 'a.u.',
         'd3': d3,
+        'amp_on_bck': amp_on_bck,
         'phi_prof': phi_prof,
         'indphi': indphi,
         'sol_lamb_phi': sol_lamb_phi,
