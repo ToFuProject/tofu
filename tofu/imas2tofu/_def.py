@@ -105,15 +105,15 @@ _dshort = {
         },
         'beta_tor_norm': {
             'str': 'global_quantities.beta_tor_norm.value',
-            'units': '',
+            'units': '-',
         },
         'beta_tor': {
             'str': 'global_quantities.beta_tor.value',
-            'units': '',
+            'units': '-',
         },
         'beta_pol': {
             'str': 'global_quantities.beta_pol.value',
-            'units': '',
+            'units': '-',
         },
         'energy_total': {
             'str': 'global_quantities.energy_total.value',
@@ -125,7 +125,7 @@ _dshort = {
         },
         'fusion_gain': {
             'str': 'global_quantities.fusion_gain.value',
-            'units': '',
+            'units': '-',
         },
         'tau_resistive': {
             'str': 'global_quantities.tau_resistive.value',
@@ -141,15 +141,15 @@ _dshort = {
         },
         'ng_fraction': {
             'str': 'global_quantities.greenwald_fraction.value',
-            'units': '',
+            'units': '-',
         },
         'q95': {
             'str': 'global_quantities.q_95.value',
-            'units': '',
+            'units': '-',
         },
         'li': {
             'str': 'global_quantities.li.value',
-            'units': '',
+            'units': '-',
         },
     },
 
