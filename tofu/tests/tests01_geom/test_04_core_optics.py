@@ -246,10 +246,10 @@ class Test01_Crystal(object):
     def test07_rotate_copy(self):
         pass
 
-    def test08_get_detector_approx(self):
+    def test08_get_detector_ideal(self):
         for k0, obj in self.dobj.items():
-            det0 = obj.get_detector_approx(use_non_parallelism=False)
-            det1 = obj.get_detector_approx(use_non_parallelism=True)
+            det0 = obj.get_detector_ideal(use_non_parallelism=False)
+            det1 = obj.get_detector_ideal(use_non_parallelism=True)
             assert isinstance(det0, dict) and isinstance(det0, dict)
             lk = ['nout', 'ei']
             assert all([ss in det0.keys() for ss in lk])
@@ -270,7 +270,7 @@ class Test01_Crystal(object):
     def test09_plot(self):
         ii = 0
         for k0, obj in self.dobj.items():
-            det = obj.get_detector_approx()
+            det = obj.get_detector_ideal()
             det['outline'] = np.array([
                 0.1*np.r_[-1, 1, 1, -1, -1],
                 0.1*np.r_[-1, -1, 1, 1, -1],
@@ -292,7 +292,7 @@ class Test01_Crystal(object):
 
     def test10_get_lamb_avail_from_pts(self):
         for k0, obj in self.dobj.items():
-            det = obj.get_detector_approx()
+            det = obj.get_detector_ideal()
             pts, vect = obj.get_rays_from_cryst(
                 phi=-9*np.pi/10., returnas='(pts, vect)',
             )
@@ -316,7 +316,7 @@ class Test01_Crystal(object):
 
     def test11_calc_johann_error(self):
         for k0, obj in self.dobj.items():
-            det = obj.get_detector_approx()
+            det = obj.get_detector_ideal()
             err_lamb, err_phi, _, _, _ = obj.calc_johannerror(
                 xi=self.xi,
                 xj=self.xj,
@@ -325,7 +325,7 @@ class Test01_Crystal(object):
 
     def test12_plot_line_on_det_tracing(self):
         for k0, obj in self.dobj.items():
-            det = obj.get_detector_approx()
+            det = obj.get_detector_ideal()
             det['outline'] = np.array([
                 0.1*np.r_[-1, 1, 1, -1, -1],
                 0.1*np.r_[-1, -1, 1, 1, -1],

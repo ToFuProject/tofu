@@ -25,6 +25,7 @@ import tofu.pathfile as tfpf
 import tofu.utils as utils
 from . import _def as _def
 from . import _GG as _GG
+from . import _core
 from . import _check_optics
 from . import _comp_optics as _comp_optics
 from . import _plot_optics as _plot_optics
@@ -923,7 +924,7 @@ class CrystalBragg(utils.ToFuObject):
         But that can be changed using:
             - ('dtheta', 'psi'): can be arbitrary but with same shape
                 up to 4 dimensions
-                - ('ntheta', 'npsi', 'include_summit'): will be used to
+            - ('ntheta', 'npsi', 'include_summit'): will be used to
                 compute the envelop (contour) of the crystal, as 2 1d arrays
 
         These arguments are fed to self.get_local_noute1e2() which will compute
@@ -973,12 +974,8 @@ class CrystalBragg(utils.ToFuObject):
             raise Exception(msg)
 
         det = self._checkformat_det(det)
-        if det is False:
-            msg = "det is required in get_Rays_from_summit_to_det()!"
-            raise Exception(msg)
-
         if length is None:
-            length = 7.
+            length = 10.
 
         if grid is None:
             try:
@@ -1003,14 +1000,51 @@ class CrystalBragg(utils.ToFuObject):
 
         # -----------
         # Get length (minimum between conf, det, length)
+        vshape = vect.shape
         dk = {
-            k0: np.full(vect.shape[1:], np.nan)
+            k0: np.full(vshape[1:], np.nan)
             for k0 in ['config', 'det', 'length']
         }
         xi, xj = None, None
         if config is not None:
-            dk['config'] = None
-        if det is not None:
+            # Here insert ray-tracing from config!
+            if vshape != pts_start.shape:
+                if len(vshape) == 3 and len(pts_start.shape) == 2:
+                    D = np.reshape(
+                        np.repeat(pts_start[..., None], vshape[-1], axis=-1),
+                        (3, -1),
+                    )
+                    u = vect.reshape((3, -1))
+                else:
+                    msg = (
+                        "Not treated case!\n"
+                        f"\t- pts_start.shape: {pts_start.shape}\n"
+                        f"\t- vect.shape: {vshape}\n"
+                    )
+                    raise Exception(msg)
+            else:
+                if len(vshape) > 2:
+                    D = pts_start.reshape((3, -1))
+                    u = vect.reshape((3, -1))
+                else:
+                    D = pts_start
+                    u = vect
+
+            rays = _core.Rays(
+                dgeom=(D, u),
+                config=config,
+                strict=False,
+                Name='dummy',
+                Diag='dummy',
+                Exp='dummy',
+            )
+            if u.shape != vshape:
+                kout = rays.dgeom['kOut'].reshape(vshape[1:])
+            else:
+                kout = rays.dgeom['kOut']
+            dk['config'] = kout
+
+        if det is not None and det is not False:
             shape = tuple([3] + [1 for ii in range(vect.ndim-1)])
             cent = det['cent'].reshape(shape)
             nout = det['nout'].reshape(shape)
@@ -1034,6 +1068,7 @@ class CrystalBragg(utils.ToFuObject):
                 ej = det['ej'].reshape(shape)
                 xi = np.sum((pts_end - cent)*ei, axis=0)
                 xj = np.sum((pts_end - cent)*ej, axis=0)
+
         if length is not None:
             dk['length'][:] = length
 
@@ -1456,7 +1491,7 @@ class CrystalBragg(utils.ToFuObject):
             bragg=bragg, rcurve=self._dgeom['rcurve'],
         )
 
-    def get_detector_approx(
+    def get_detector_ideal(
         self,
         bragg=None, lamb=None,
         rcurve=None, n=None,
@@ -1599,7 +1634,7 @@ class CrystalBragg(utils.ToFuObject):
         msg = ("det must be:\n"
                + "\t- False: not det provided\n"
                + "\t- None:  use default approx det from:\n"
-               + "\t           self.get_detector_approx()\n"
+               + "\t           self.get_detector_ideal()\n"
                + "\t- dict:  a dictionary of 3d (x,y,z) coordinates of a point"
                + " (local frame center) and 3 unit vectors forming a direct "
                + "orthonormal basis attached to the detector's frame\n"
@@ -1612,7 +1647,7 @@ class CrystalBragg(utils.ToFuObject):
         if not any(lc):
             raise Exception(msg)
         if lc[0]:
-            det = self.get_detector_approx(lamb=self._dbragg['lambref'])
+            det = self.get_detector_ideal(lamb=self._dbragg['lambref'])
         elif lc[2]:
             lk = ['cent', 'nout', 'ei', 'ej']
             c0 = (isinstance(det, dict)
@@ -2119,13 +2154,13 @@ class CrystalBragg(utils.ToFuObject):
         # angle between nout vectors from get_det_approx() &
         ## get_det_approx(tangent=False)
 
-        det1 = self.get_detector_approx(
+        det1 = self.get_detector_ideal(
             lamb=lamb,
             bragg=bragg,
             use_non_parallelism=use_non_parallelism,
             tangent_to_rowland=True,
         )
-        det2 = self.get_detector_approx(
+        det2 = self.get_detector_ideal(
             lamb=lamb,
             bragg=bragg,
             use_non_parallelism=use_non_parallelism,
@@ -2161,7 +2196,7 @@ class CrystalBragg(utils.ToFuObject):
                 if tangent_to_rowland:
                     dpsi0bis = dpsi0 - angle_nout
 
-                det = self.get_detector_approx(
+                det = self.get_detector_ideal(
                     ddist=ddist[ii],
                     di=di[jj],
                     dj=dj0,
@@ -2250,7 +2285,7 @@ class CrystalBragg(utils.ToFuObject):
         # ------------
         # get approx detect
 
-        det_approx = self.get_detector_approx(
+        det_approx = self.get_detector_ideal(
             bragg=bragg, lamb=lamb,
             tangent_to_rowland=False,
             use_non_parallelism=use_non_parallelism,
@@ -2562,7 +2597,7 @@ class CrystalBragg(utils.ToFuObject):
             det=det, strict=strict, plot=False,
         )
 
-        # Plot to be checked
+        # Plot to be checked - unnecessary ?
         plot = False
         if plot is not False:
             ptscryst, ptsdet = None, None

@@ -3960,7 +3960,11 @@ class Config(utils.ToFuObject):
             derr = {}
             lstruct = []
             for k0, v0 in dpath.items():
-                clss = Ves if v0['cls'] == 'Ves' else PFC
+
+                # get class
+                clss = eval(v0['cls'])
+
+                # Instanciate
                 try:
                     lstruct.append(
                         clss(
@@ -3971,6 +3975,7 @@ class Config(utils.ToFuObject):
                 except Exception as err:
                     derr[k0] = str(err)
 
+            # Raise error if any
             if len(derr) > 0:
                 lerr = [
                     '\n\t- {}: {}'.format(k0, v0) for k0, v0 in derr.items()
@@ -4405,7 +4410,8 @@ class Rays(utils.ToFuObject):
     def _set_color_ddef(cls, color):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
-    def __init__(self, dgeom=None, lOptics=None, Etendues=None, Surfaces=None,
+    def __init__(self, dgeom=None, strict=None,
+                 lOptics=None, Etendues=None, Surfaces=None,
                  config=None, dchans=None, dX12='geom',
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
                  sino_RefPt=None, fromdict=None, sep=None, method='optimized',
@@ -4483,7 +4489,7 @@ class Rays(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dgeom(sino=True):
-        largs = ["dgeom", "Etendues", "Surfaces"]
+        largs = ["dgeom", 'strict', "Etendues", "Surfaces"]
         if sino:
             lsino = Rays._get_largs_dsino()
             largs += ["sino_{0}".format(s) for s in lsino]
@@ -4501,7 +4507,7 @@ class Rays(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dconfig():
-        largs = ["config"]
+        largs = ["config", "strict"]
         return largs
 
     @staticmethod
@@ -4553,10 +4559,13 @@ class Rays(utils.ToFuObject):
 
         def _checkformat_Du(arr, name):
             arr = np.asarray(arr, dtype=float)
-            msg = "Arg %s must be an iterable convertible into either:" % name
+            msg = f"Arg {name} must be an iterable convertible into either:"
             msg += "\n    - a 1D np.ndarray of size=3"
             msg += "\n    - a 2D np.ndarray of shape (3,N)"
-            assert arr.ndim in [1, 2], msg
+            if arr.ndim not in [1, 2]:
+                msg += f"\nProvided arr.shape: {arr.shape}"
+                raise Exception(msg)
+
             if arr.ndim == 1:
                 assert arr.size == 3, msg
                 arr = arr.reshape((3, 1))
@@ -4878,11 +4887,11 @@ class Rays(utils.ToFuObject):
     # set dictionaries
     ###########
 
-    def set_dconfig(self, config=None, calcdgeom=True):
+    def set_dconfig(self, config=None, strict=None, calcdgeom=True):
         config = self._checkformat_inputs_dconfig(config)
         self._dconfig["Config"] = config.copy()
         if calcdgeom:
-            self.compute_dgeom()
+            self.compute_dgeom(strict=strict)
 
     def _update_dgeom_from_TransRotFoc(self, val, key="x"):
         # To be finished for 1.4.1
@@ -5280,7 +5289,7 @@ class Rays(utils.ToFuObject):
         indout[0, :] = indStruct[indout[0, :]]
         return kIn, kOut, vperp, indout, indStruct
 
-    def compute_dgeom(self, extra=True, show_debug_plot=True):
+    def compute_dgeom(self, extra=True, strict=None, show_debug_plot=True):
         """ Compute dictionnary of geometrical attributes (dgeom)
 
         Parameters
@@ -5291,6 +5300,10 @@ class Rays(utils.ToFuObject):
             their indices and if show_debug_plot is True, try to plot a 3d
             figure to help understand why these los have no visibility
         """
+        # check inputs
+        if strict is None:
+            strict = True
+
         # Can only be computed if config if provided
         if self._dconfig["Config"] is None:
             msg = "Attribute dgeom cannot be computed without a config!"
@@ -5298,7 +5311,7 @@ class Rays(utils.ToFuObject):
             return
 
         # dX12
-        if self._dgeom["nRays"] > 1:
+        if self._dgeom["nRays"] > 1 and strict is True:
             self._dgeom = self._complete_dX12(self._dgeom)
 
         # Perform computation of kIn and kOut
@@ -5336,7 +5349,10 @@ class Rays(utils.ToFuObject):
                 # Nstep=50,
                 # )
             kOut[ind] = np.nan
-            raise Exception(msg)
+            if strict is True:
+                raise Exception(msg)
+            else:
+                warnings.warn(msg)
 
         # Handle particular cases with kIn > kOut
         ind = np.zeros(kIn.shape, dtype=bool)
@@ -5444,11 +5460,12 @@ class Rays(utils.ToFuObject):
         Surfaces=None,
         sino_RefPt=None,
         extra=True,
+        strict=None,
         sino=True,
     ):
         dgeom = self._checkformat_inputs_dgeom(dgeom=dgeom)
         self._dgeom.update(dgeom)
-        self.compute_dgeom(extra=extra)
+        self.compute_dgeom(extra=extra, strict=strict)
         self.set_Etendues(Etendues)
         self.set_Surfaces(Surfaces)
         if sino:
