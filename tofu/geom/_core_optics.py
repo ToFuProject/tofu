@@ -793,7 +793,7 @@ class CrystalBragg(utils.ToFuObject):
     ):
         import tofu.spectro._rockingcurve as _rockingcurve
         return _rockingcurve.compute_rockingcurve(
-            ih=ih, ik=ik, il=il, lamb=lamb,
+            self, ih=ih, ik=ik, il=il, lamb=lamb,
         )
 
     # -----------------

@@ -8,10 +8,6 @@ import itertools as itt
 import numpy as np
 import scipy.interpolate
 import matplotlib.pyplot as plt
-import matplotlib.lines as mlines
-import matplotlib.patches as mpatches
-import matplotlib.colors as mcolors
-from matplotlib.colors import ListedColormap
 import matplotlib.gridspec as gridspec
 from matplotlib.axes._axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
@@ -25,12 +21,7 @@ from tofu.version import __version__
 # ##########################################################
 # ##########################################################
 
-def compute_rockingcurve(
-    ih=None,
-    ik=None,
-    il=None,
-    lamb=None,
-):
+def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     """ The code evaluates, for a given wavelength, the atomic plane distance d,
     the Bragg angle, the complex structure factor, the integrated reflectivity
     with the perfect and mosaic crystal models, the reflectivity curve with the
@@ -69,14 +60,14 @@ def compute_rockingcurve(
     # Calculations of main crystal parameters
     # ---------------------------------------
 
-    # Classical electronical radius
+    # Classical electronical radius, in Angstroms
     re = 2.82084508e-5
 
     # From Ralph W.G. Wyckoff, "Crystal Structures" (1948)
     ## https://babel.hathitrust.org/cgi/pt?id=mdp.39015081138136&view=1up&seq=259&skin=2021
     ## Inter-atomic distances into hexagonal cell unit page 254 and
     ## calculation of the associated volume
-
+    # TBC with Francesca
     a0 = 4.9130
     c0 = 5.4045
     V = a0**2.*c0*np.sqrt(3.)/2.
@@ -86,14 +77,12 @@ def compute_rockingcurve(
     Zo = 8.
 
     ## Position of the three Si atoms in the unit cell (page 242 Wyckoff)
-
     u = 0.4705
     xsi = np.r_[-u, u, 0.]
     ysi = np.r_[-u, 0., u]
     zsi = np.r_[1./3., 0., 2./3.]
 
     ## Position of the six O atoms in the unit cell (page 242 Wyckoff)
-
     x = 0.4152
     y = 0.2678
     z = 0.1184
@@ -103,7 +92,6 @@ def compute_rockingcurve(
 
     # Bragg angle and atomic plane distance d for a given wavelength lamb and
     # Miller index (h,k,l)
-
     d_num = np.sqrt(3.)*a0*c0
     d_den = np.sqrt(4.*(ih**2 + ik**2 + ih*ik)*c0**2 + 3.*il**2*a0**2)
     if d_den == 0.:
@@ -120,7 +108,7 @@ def compute_rockingcurve(
     if d_atom < lamb/2.:
         msg = (
             "According to Bragg law, Bragg scattering need d > lamb/2!\n"
-            "Please check your wavelenght arg.\n"
+            "Please check your wavelength arg.\n"
         )
         raise Exception(msg)
     else:
@@ -142,7 +130,6 @@ def compute_rockingcurve(
     # bounds
     # From Henry & Lonsdale, "International tables for Crystallography" (1969)
     # Vol.III p202 or Vol.IV page 73 for O(1-), Vol.III p202 ? for Si(2+)
-
     sol_si = np.r_[
         0., 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6,
         0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5,
@@ -159,17 +146,19 @@ def compute_rockingcurve(
         1.373, 1.294,
     ]
 
-    plt.plot(sol_si, asf_si, label="Si")
-    plt.xlabel("sin(theta)/lamb")
-    plt.ylabel("atomic scattering factor")
-    plt.plot(sol_o, asf_o, label="O")
-    plt.legend()
+    fig = plt.figure(figsize=(8,6))
+    gs = gridspec.GridSpec(1, 1)
+    ax = fig.add_subplot(gs[0, 0])
+    ax.set_xlabel(r'sin($\theta$)/$\lambda$')
+    ax.set_ylabel("atomic scattering factor")
+    ax.plot(sol_si, asf_si, label="Si")
+    ax.plot(sol_o, asf_o, label="O")
+    ax.legend()
 
     # atomic absorption coefficient for Si and O as a function of lamb
     # focus on the photoelectric effect, mu=cte*(lamb*Z)**3 with
     # Z the atomic number
-    # TBD : I still didn't find where to pick up the cte values and the powers
-
+    # TBF : I still didn't find where to pick up the cte values and the powers
     mu_si = 1.38e-2*lamb**2.79*Zsi**2.73
     mu_si1 = 5.33e-4*lamb**2.74*Zsi**3.03
     if lamb > 6.74:
@@ -183,18 +172,15 @@ def compute_rockingcurve(
     # interpolation of atomic scattering factor ("f") in function of sol
     # ("si") for Silicium and ("o") for Oxygen
     # ("_re") for Real part and ("_im") for Imaginary part
-
     fsi_re = scipy.interpolate.interp1d(sol_si, asf_si)    #fsire
     dfsi_re = 0.1335*lamb - 0.006    #dfsire
-    print("interp de sin(theta)/lamb=", sol, "is:", fsi_re(sol))
     fsi_re = fsi_re(sol) + dfsi_re    #fsire
     fsi_im = 5.936e-4*Zsi*(mu_si/lamb)    #fsiim, =cte*(Z*mu)/lamb
 
     fo_re = scipy.interpolate.interp1d(sol_o, asf_o)    #fore
     dfo_re = 0.1335*lamb - 0.206    #dfore
-    print("interp de sin(theta)/lamb=", sol, "is:", fo_re(sol))
     fo_re = fo_re(sol) + dfo_re    #fore
-    fo_im = 5.936e-4*Zo*(mu_o/lamb)    #foim TBD: find where to find the cte
+    fo_im = 5.936e-4*Zo*(mu_o/lamb)    #foim TBF: find where to find the cte
 
     # structure factor ("F") for (hkl) reflection
     # In a unit cell contains N atoms, the resultant wave scattered by all the
@@ -207,7 +193,6 @@ def compute_rockingcurve(
     # with (xn,yn,zn) the coordinates of each atom inside the unit cell
     # And finally |F|²={sum(n=1 to N) fn*cos(2pi.phasen)}² +
     # {sum(n=1 to N) fn*sin(2pi.phasen)}²
-
     phasesi = np.full((xsi.size), np.nan)
     phaseo = np.full((xo.size), np.nan)
     for i in range(xsi.size):
@@ -215,30 +200,36 @@ def compute_rockingcurve(
     for j in range(xo.size):
         phaseo[j] = ih*xo[j] + ik*yo[j] + il*zo[j]    #aro
 
-    Fsi_re1 = np.sum(fsi_re*np.cos(2*np.pi*phasesi))    #resip: real si p...
-    Fsi_re2 = np.sum(fsi_re*np.sin(2*np.pi*phasesi))    #aimsip: imag si p...
+    Fsi_re1 = np.sum(fsi_re*np.cos(2*np.pi*phasesi))    #resip
+    Fsi_re2 = np.sum(fsi_re*np.sin(2*np.pi*phasesi))    #aimsip
     Fsi_im1 = np.sum(fsi_im*np.cos(2*np.pi*phasesi))    #resis
     Fsi_im2 = np.sum(fsi_im*np.sin(2*np.pi*phasesi))    #aimsis
-    print("Fsi_re (cos & sin), Fsi_im (cos & sin)", Fsi_re1, Fsi_re2, Fsi_im1, Fsi_im2)
 
-    Fo_re1 = np.sum(fo_re*np.cos(2*np.pi*phaseo))    #reop: real op...
-    Fo_re2 = np.sum(fo_re*np.sin(2*np.pi*phaseo))    #aimop: imag. op...
-    Fo_im1 = np.sum(fo_im*np.cos(2*np.pi*phaseo))    #reos: real os...
-    Fo_im2 = np.sum(fo_im*np.sin(2*np.pi*phaseo))    #aimos: imag. os...
-    print("Fo_re (cos & sin), Fo_im (cos & sin)", Fo_re1, Fo_re2, Fo_im1, Fo_im2)
+    Fo_re1 = np.sum(fo_re*np.cos(2*np.pi*phaseo))    #reop
+    Fo_re2 = np.sum(fo_re*np.sin(2*np.pi*phaseo))    #aimop
+    Fo_im1 = np.sum(fo_im*np.cos(2*np.pi*phaseo))    #reos
+    Fo_im2 = np.sum(fo_im*np.sin(2*np.pi*phaseo))    #aimos
 
     F_re_cos = Fsi_re1 + Fo_re1    #fpre
     F_re_sin = Fsi_re2 + Fo_re2    #fpim
     F_im_cos = Fsi_im1 + Fo_im1    #fsre
     F_im_sin = Fsi_im2 + Fo_im2    #fsim
-    print("F_re_(cos, sin), F_im_(cos, sin)", F_re_cos, F_re_sin, F_im_cos, F_im_sin)
 
     F_re = np.sqrt(F_re_cos**2 + F_re_sin**2)    #fpmod
     F_im = np.sqrt(F_im_cos**2 + F_im_sin**2)    #fsmod
 
+    # Calculation of Fourier coefficients of polarization
+    # ---------------------------------------------------
+
+    # dielectric constant = 1 + psi = 1 + 4pi.alpha with
+    # alpha the medium polarizability
+    # psi : complex number = psi' + i.psi"
+
+    # expression of the Fourier coef. psi_H
     Fmod = np.sqrt(
         F_re**2 + F_im**2 - 2.*(F_re_cos*F_re_sin - F_im_cos*F_im_sin)
     )    #fmod
+    # psi_-H equivalent to (-ih, -ik, -il)
     Fbmod = np.sqrt(
         F_re**2 + F_im**2 - 2.*(F_im_cos*F_im_sin - F_re_cos*F_re_sin)
     )    #fbmod
@@ -246,23 +237,22 @@ def compute_rockingcurve(
         Fmod == 1e-30
     if Fbmod == 0.:
         Fbmod == 1e-30
-    print("Fmod=", Fmod, "Fbmod=", Fbmod)
 
-    # ratio im. part and real part of structure factor
+    # ratio imaginary part and real part of the structure factor
     kk = F_im/F_re
-    # TBD : find what it is
+    # rek = Real(kk)
     rek = (F_re_cos*F_im_cos + F_re_sin*F_im_sin)/(F_re)
-    print("ratio real/im k=", kk, "rek=", rek)
 
-    # psi = 4pi*alpha <=> dielec. cte epsilon = 1 + psi
-    # Re(psi) = psi' = -(4pi*e**2*F'_H)/(m*w**2*V) => psi_re if 1/4piEps0 = 1
+    # Re(psi) = psi' = -(4pi*e**2*F'_H)/(m*w**2*V) if 1/4piEps0 = 1
     # Im(psi) = psi'' = -(4pi*e**2*F''_H)/(m*w**2*V)
-
+    # real part of psi_H
     psi_re = re*lamb**2*F_re/(np.pi*V)    # psihp
-    psi_dre = -re*lamb**2/(np.pi*V)*(
+    # zero-order real part (averaged) TBF
+    psi0_dre = -re*lamb**2/(np.pi*V)*(
         6.*(Zo + dfo_re) + 3.*(Zsi + dfsi_re)
     )    # psiop
-    psi_im = -re*lamb**2/(np.pi*V)*(6.*fo_im + 3.*fsi_im)    #psios
+    # zero-order imaginary part (averaged)
+    psi0_im = -re*lamb**2/(np.pi*V)*(6.*fo_im + 3.*fsi_im)    #psios
 
     # Integrated reflectivity for crystals models: perfect (Darwin model) &
     # ideally mosaic thick crystal
@@ -279,68 +269,80 @@ def compute_rockingcurve(
     # and for the 2 states of photon polarization
     # -------------------------------------------------------------------------
 
-    # be careful about this part
-    # From Zachariasen "The theory of X-ray diffraction in Crystals" (1945)
-    # for crystals with inversion centers. The extension of the general case
-    # is the Francesca's work.
-
+    # incident wave polarization (normal & parallel components)
     polar = np.r_[1., abs(np.cos(2.*theta))]
-    g = psi_im/(polar*psi_re)
-    ay = -10. + np.linspace(0, 200, 201)    # instead of findgen(201)
-    day = np.zeros(201) + 0.1    # instead of fltarr(201)
-    # TBD: check if wanted shape=(2, 201) or shape(201, 201)
-    # the following can't work before checking this point of course
-    al = np.full((2, 201), np.nan)    # instead of fltarr(2, 201)
-    if Fmod == 0.:
-        Fmod == 1e-30
-    phpo = al
-    th = al
-    r = day*0.
-    for i in range(al.size):
-        al[i] = (ay**2 + g[i]**2 + np.sqrt(
-            ay**2 - g[i]**2 + kk**2 - 1.
-            )**2 + 4.*(g[i]*ay - rek)**2
-        )/np.sqrt((kk**2 - 1.)**2 + 4.*rek**2)
-        phpo[i] = (Fmod/Fbmod)*(al[i] - np.sqrt((al[i]**2 - 1.)))
-        phpob = phpo[i]
-        th[i] = (ay*polar[i]*psi_re - psi_dre)/np.sin(2.*theta)
-        rhy = np.sum(day*phpob)
-        # r(1): R_perpendicular & r(0): R_parallel
-        r[i] = (polar[i]*psi_re*rhy)/np.sin(2.*theta)
-        # R_DIN <=> R_bombarda
-    R_din = np.sum(r)/2.
-
-    if R_din < 1e-7:
+    # variables of simplification y, dy, g, L
+    g = psi0_im/(polar*psi_re)
+    y = np.linspace(-10., 10., 301)    # ay # instead of findgen(201)
+    dy = np.zeros(301) + 0.1    # day # instead of fltarr(201)
+    al = np.full((2, 301), 0.)    # instead of fltarr(2, 201)
+    power_ratio = np.full((al.shape), np.nan)    #phpo
+    th = np.full((al.shape), np.nan)    #phpo
+    rr = np.full((polar.shape), np.nan)
+    for i in range(al[:, 0].size):
+        al[i, ...] = (y**2 + g[i]**2 + np.sqrt(
+            (y**2 - g[i]**2 + kk**2 - 1.)**2 + 4.*(g[i]*y - rek)**2
+            ))/np.sqrt((kk**2 - 1.)**2 + 4.*rek**2)
+        # reflecting power P_DIN
+        power_ratio[i, ...] = (Fmod/Fbmod)*(
+            al[i, :] - np.sqrt((al[i, :]**2 - 1.))
+        )
+        power_ratiob = power_ratio[i, ...]
+        # intensity scale on the glancing angle (y=kk/g)
+        th[i, ...] = (y*polar[i]*psi_re - psi0_dre)/np.sin(2.*theta)
+        # integration of the power ratio over dy
+        rhy = np.sum(dy*power_ratiob)
+        # diffraction radiation
+        # r(i=0): normal component & r(i=1): parallel component
+        rr[i, ...] = (polar[i]*psi_re*rhy)/np.sin(2.*theta)
+    R_dyn = np.sum(rr)/2.
+    if R_dyn < 1e-7:
         msg = (
-            "Please check the equations for integrated reflectivity :\n"
-            "the value of R_din ({}) is less than 1e-7.\n".format(ro)
+            "Please check the equations for integrated reflectivity:\n"
+            "the value of R_din ({}) is less than 1e-7.\n".format(R_dyn)
         )
         raise Exception(msg)
 
-    fmax = np.max(phpo[0] + phpo[1])
-    det = (2.*R_din)/fmax
+    fmax = np.max(power_ratio[0] + power_ratio[1])
+    det = (2.*R_dyn)/fmax
 
-    return (
-        "volume=", V,
-        "d=", d_atom,
-        "sin(theta)/lamb=", sol,
-        "theta=", theta,
-        "mu_si=", mu_si,
-        "mu_o=", mu_o,
-        "mu=", mu,
-        "factor_si_real=", fsi_re,
-        "factor_si_im=", fsi_im,
-        "factor_o_real=", fo_re,
-        "factor_o_im=", fo_im,
-        "phase Si:", phasesi,
-        "phase O:", phaseo,
-        "structure factor real:", F_re,
-        "structure factor imag.:", F_im,
-        "real part of psi =", psi_re,
-        "real dispersioned part of psi =", psiop,
-        "imag. part of psi =", psios,
-        "Integrated reflectivity, perfect model :", R_per,
-        "Integrated reflectivity, mosaic model :", R_mos,
-        "Integrated reflectivity, thick crystal model :", R_din,
-        "RC width (Delta theta) :", det,
+    # Plot power ratio
+    # ----------------
+
+    fig1 = plt.figure(figsize=(8,6))
+    gs = gridspec.GridSpec(1, 1)
+    ax = fig1.add_subplot(gs[0, 0])
+    ax.set_title(
+        'Qz, ' + f'({ih},{ik},{il})' + fr', $\lambda$={lamb} A' +
+        fr', Bragg angle={np.round(theta, decimals=3)} rad'
     )
+    ax.set_xlabel(r'$\theta$-$\theta_{B}$ (rad)')
+    ax.set_ylabel('P$_H$/P$_0$')
+    #ax.set_xlim(min(th[0, :]), max(th[0, :]))
+    #ax.set_ylim(0, 1)
+    ax.plot(th[0, :], power_ratio[0, :], label='normal component')
+    ax.plot(th[1, :], power_ratio[1, :], label='parallel component')
+    ax.legend()
+
+    # Create resuming table
+    # ---------------------
+
+    col0 = [
+        'Wavelength (A)', 'Miller indices', 'inter-reticular distance (A)',
+        'Bragg angle of reference (rad)',
+        'Integrated reflectivity, perfect model',
+        'Integrated reflectivity, mosaic model',
+        'Integrated reflectivity, thick crystal model',
+        'R_perp/R_par', 'RC width'
+    ]
+    ar0 = [
+        lamb, (ih, ik, il), d_atom,
+        str(np.round(theta, decimals=3)),
+        R_per,
+        R_mos,
+        R_dyn,
+        rr[1]/rr[0], det,
+    ]
+    table = [col0, ar0]
+
+    return table
