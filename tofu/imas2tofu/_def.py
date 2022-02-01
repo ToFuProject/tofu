@@ -99,10 +99,6 @@ _dshort = {
             'str': 'global_quantities.v_loop.value',
             'units': 'V',
         },
-        'fusion_power': {
-            'str': 'fusion.power.value',
-            'units': 'W',
-        },
         'beta_tor_norm': {
             'str': 'global_quantities.beta_tor_norm.value',
             'units': '-',
@@ -149,6 +145,26 @@ _dshort = {
         },
         'li': {
             'str': 'global_quantities.li.value',
+            'units': '-',
+        },
+        'fusion_power': {
+            'str': 'fusion.power.value',
+            'units': 'W',
+        },
+        'neutrons_flux': {
+            'str': 'fusion.neutron_fluxes.total.value',
+            'units': 'Hz',
+        },
+        'neutrons_power': {
+            'str': 'fusion.neutron_power_total.value',
+            'units': 'W',
+        },
+        'runaway_current': {
+            'str': 'runaways.current.value',
+            'units': 'A',
+        },
+        'runaway_particles': {
+            'str': 'runaways.particles.value',
             'units': '-',
         },
     },
