@@ -266,7 +266,14 @@ _dshort = {
         '1drhopn': {'str': 'profiles_1d[time].grid.rho_pol_norm',
                     'dim': 'rho', 'quant': 'rhopn', 'units': '-'},
         '1dnW': {'str': 'profiles_1d[time].ion[identifier.label=W].density',
-                 'dim': 'density', 'quant': 'nI', 'units': 'm^-3'}},
+                 'dim': 'density', 'quant': 'nI', 'units': 'm^-3'},
+        '1dTi_av': {
+            'str': 'profiles_1d[time].t_i_average',
+            'units': 'eV',
+            'dim': 'temperature',
+            'quant': 'Ti',
+        },
+    },
 
     'edge_profiles': {
         't': {'str': 'time', 'units': 's'}},
