@@ -681,7 +681,10 @@ def multigausfit2d_from_dlines(
             )
             saturated[ii, indx[ii, :] & (~indamp)] |= (
                 res.x[(~indamp)[indx[ii, :]]]
-                < bounds[0, indx[ii, :] & (~indamp)] + deltab*1e-4
+                < (
+                    bounds[0, indx[ii, :] & (~indamp)]
+                    + 1.e-4 * deltab[(~indamp)[indx[ii, :]]]
+                )
             )
 
         except Exception as err:
@@ -727,7 +730,9 @@ def multigausfit2d_from_dlines(
             'dshift', 'dratio',
         ]
         dsat = {
-            k0: {'ind': np.any(saturated[:, dind[k0]['x']], axis=1)}
+            k0: {
+                'ind': np.sum(saturated[:, dind[k0]['x']], axis=1),
+            }
             for k0 in lksat
             if dind.get(k0) is not None
             and np.any(saturated[:, dind[k0]['x']])
@@ -735,17 +740,26 @@ def multigausfit2d_from_dlines(
 
         for k0 in dsat.keys():
             if k0 in ['amp', 'width', 'shift']:
-                dsat[k0]['str'] = {
-                    k1: dsat[k0]['ind'][:, ik].sum()
-                    for ik, k1 in enumerate(dinput[k0]['keys'])
-                    if np.any(dsat[k0]['ind'][:, ik])
-                }
+                dsat[k0]['str'] = {}
+                for ik, k1 in enumerate(dinput[k0]['keys']):
+                    indk1 = dsat[k0]['ind'][:, ik] > 0
+                    if np.any(indk1):
+                        dsat[k0]['str'][k1] = (
+                            indk1.sum(),
+                            np.mean(dsat[k0]['ind'][indk1, ik]),
+                        )
             else:
-                dsat[k0]['str'] = {'': dsat[k0]['ind'].sum()}
+                indk1 = dsat[k0]['ind'][:, 0] > 0
+                if np.any(indk1):
+                    dsat[k0]['str'] = {
+                        '': (indk1.sum(), np.mean(dsat[k0]['ind'][indk1, 0])),
+                    }
 
         lstr = [
             "\n".join([
-                f"\t{k0} {k1}: {v1} / {nspect}" for k1, v1 in v0['str'].items()
+                f"\t{k0} {k1}: {v1[0]} / {nspect} "
+                f"(mean {v1[1]} / {dinput['nbs']} bsplines)"
+                for k1, v1 in v0['str'].items()
             ])
             for k0, v0 in dsat.items()
         ]
