@@ -853,7 +853,9 @@ def fit2d_extract(
                     d3[k0][k1]['values'][~indphi, jj] = np.nan
 
     # update validity according to indphi
-    dfit2d['validity'][np.all(~indphi, axis=1)] = -3
+    dfit2d['validity'][
+        (dfit2d['validity'] == 0) & np.all(~indphi, axis=1)
+    ] = -3
 
     # ----------
     # func
