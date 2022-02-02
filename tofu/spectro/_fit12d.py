@@ -588,6 +588,9 @@ def multigausfit2d_from_dlines(
     message = ['' for ss in range(nspect)]
     errmsg = ['' for ss in range(nspect)]
 
+    indamp = np.zeros((dind['sizex'],), dtype=bool)
+    indamp[dinput['dind']['amp']['x'].T.ravel()] = True
+
     # Prepare msg
     if verbose in [1, 2]:
         col = np.char.array(['Spect', 'time (s)', 'cost',
@@ -669,9 +672,16 @@ def multigausfit2d_from_dlines(
             sol_x[ii, indx[ii, :]] = res.x
 
             # detect saturated values
+            # amp at 0 are ok
             saturated[ii, indx[ii, :]] = (
-                (res.x < bounds[0, indx[ii, :]] + deltab*1e-4)
-                | (res.x > bounds[1, indx[ii, :]] - deltab*1e-4)
+                res.x > bounds[1, indx[ii, :]] - deltab*1e-4
+            )
+            saturated[ii, indx[ii, :] & indamp] |= (
+                res.x[indamp[indx[ii, :]]] < 0.
+            )
+            saturated[ii, indx[ii, :] & (~indamp)] |= (
+                res.x[(~indamp)[indx[ii, :]]]
+                < bounds[0, indx[ii, :] & (~indamp)] + deltab*1e-4
             )
 
         except Exception as err:
