@@ -15,14 +15,16 @@ from mpl_toolkits.mplot3d import Axes3D
 # tofu
 from tofu.version import __version__
 
+
 # ##########################################################
 # ##########################################################
 #            compute rocking curve
 # ##########################################################
 # ##########################################################
 
+
 def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
-    """ The code evaluates, for a given wavelength, the atomic plane distance d,
+    """The code evaluates, for a given wavelength, the atomic plane distance d,
     the Bragg angle, the complex structure factor, the integrated reflectivity
     with the perfect and mosaic crystal models, the reflectivity curve with the
     full dynamical model for parallel and perpendicular photon polarizations.
@@ -146,7 +148,7 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
         1.373, 1.294,
     ]
 
-    fig = plt.figure(figsize=(8,6))
+    fig = plt.figure(figsize=(8, 6))
     gs = gridspec.GridSpec(1, 1)
     ax = fig.add_subplot(gs[0, 0])
     ax.set_xlabel(r'sin($\theta$)/$\lambda$')
@@ -172,15 +174,15 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     # interpolation of atomic scattering factor ("f") in function of sol
     # ("si") for Silicium and ("o") for Oxygen
     # ("_re") for Real part and ("_im") for Imaginary part
-    fsi_re = scipy.interpolate.interp1d(sol_si, asf_si)    #fsire
-    dfsi_re = 0.1335*lamb - 0.006    #dfsire
-    fsi_re = fsi_re(sol) + dfsi_re    #fsire
-    fsi_im = 5.936e-4*Zsi*(mu_si/lamb)    #fsiim, =cte*(Z*mu)/lamb
+    fsi_re = scipy.interpolate.interp1d(sol_si, asf_si)    # fsire
+    dfsi_re = 0.1335*lamb - 0.006    # dfsire
+    fsi_re = fsi_re(sol) + dfsi_re    # fsire
+    fsi_im = 5.936e-4*Zsi*(mu_si/lamb)    # fsiim, =cte*(Z*mu)/lamb
 
-    fo_re = scipy.interpolate.interp1d(sol_o, asf_o)    #fore
-    dfo_re = 0.1335*lamb - 0.206    #dfore
-    fo_re = fo_re(sol) + dfo_re    #fore
-    fo_im = 5.936e-4*Zo*(mu_o/lamb)    #foim TBF: find where to find the cte
+    fo_re = scipy.interpolate.interp1d(sol_o, asf_o)    # fore
+    dfo_re = 0.1335*lamb - 0.206    # dfore
+    fo_re = fo_re(sol) + dfo_re    # fore
+    fo_im = 5.936e-4*Zo*(mu_o/lamb)    # foim TBF: find where to find the cte
 
     # structure factor ("F") for (hkl) reflection
     # In a unit cell contains N atoms, the resultant wave scattered by all the
@@ -196,27 +198,27 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     phasesi = np.full((xsi.size), np.nan)
     phaseo = np.full((xo.size), np.nan)
     for i in range(xsi.size):
-        phasesi[i] = ih*xsi[i] + ik*ysi[i] + il*zsi[i]    #arsi
+        phasesi[i] = ih*xsi[i] + ik*ysi[i] + il*zsi[i]    # arsi
     for j in range(xo.size):
-        phaseo[j] = ih*xo[j] + ik*yo[j] + il*zo[j]    #aro
+        phaseo[j] = ih*xo[j] + ik*yo[j] + il*zo[j]    # aro
 
-    Fsi_re1 = np.sum(fsi_re*np.cos(2*np.pi*phasesi))    #resip
-    Fsi_re2 = np.sum(fsi_re*np.sin(2*np.pi*phasesi))    #aimsip
-    Fsi_im1 = np.sum(fsi_im*np.cos(2*np.pi*phasesi))    #resis
-    Fsi_im2 = np.sum(fsi_im*np.sin(2*np.pi*phasesi))    #aimsis
+    Fsi_re1 = np.sum(fsi_re*np.cos(2*np.pi*phasesi))    # resip
+    Fsi_re2 = np.sum(fsi_re*np.sin(2*np.pi*phasesi))    # aimsip
+    Fsi_im1 = np.sum(fsi_im*np.cos(2*np.pi*phasesi))    # resis
+    Fsi_im2 = np.sum(fsi_im*np.sin(2*np.pi*phasesi))    # aimsis
 
-    Fo_re1 = np.sum(fo_re*np.cos(2*np.pi*phaseo))    #reop
-    Fo_re2 = np.sum(fo_re*np.sin(2*np.pi*phaseo))    #aimop
-    Fo_im1 = np.sum(fo_im*np.cos(2*np.pi*phaseo))    #reos
-    Fo_im2 = np.sum(fo_im*np.sin(2*np.pi*phaseo))    #aimos
+    Fo_re1 = np.sum(fo_re*np.cos(2*np.pi*phaseo))    # reop
+    Fo_re2 = np.sum(fo_re*np.sin(2*np.pi*phaseo))    # aimop
+    Fo_im1 = np.sum(fo_im*np.cos(2*np.pi*phaseo))    # reos
+    Fo_im2 = np.sum(fo_im*np.sin(2*np.pi*phaseo))    # aimos
 
-    F_re_cos = Fsi_re1 + Fo_re1    #fpre
-    F_re_sin = Fsi_re2 + Fo_re2    #fpim
-    F_im_cos = Fsi_im1 + Fo_im1    #fsre
-    F_im_sin = Fsi_im2 + Fo_im2    #fsim
+    F_re_cos = Fsi_re1 + Fo_re1    # fpre
+    F_re_sin = Fsi_re2 + Fo_re2    # fpim
+    F_im_cos = Fsi_im1 + Fo_im1    # fsre
+    F_im_sin = Fsi_im2 + Fo_im2    # fsim
 
-    F_re = np.sqrt(F_re_cos**2 + F_re_sin**2)    #fpmod
-    F_im = np.sqrt(F_im_cos**2 + F_im_sin**2)    #fsmod
+    F_re = np.sqrt(F_re_cos**2 + F_re_sin**2)    # fpmod
+    F_im = np.sqrt(F_im_cos**2 + F_im_sin**2)    # fsmod
 
     # Calculation of Fourier coefficients of polarization
     # ---------------------------------------------------
@@ -228,11 +230,11 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     # expression of the Fourier coef. psi_H
     Fmod = np.sqrt(
         F_re**2 + F_im**2 - 2.*(F_re_cos*F_re_sin - F_im_cos*F_im_sin)
-    )    #fmod
+    )    # fmod
     # psi_-H equivalent to (-ih, -ik, -il)
     Fbmod = np.sqrt(
         F_re**2 + F_im**2 - 2.*(F_im_cos*F_im_sin - F_re_cos*F_re_sin)
-    )    #fbmod
+    )    # fbmod
 
     if Fmod == 0.:
         Fmod == 1e-30
@@ -253,7 +255,7 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
         6.*(Zo + dfo_re) + 3.*(Zsi + dfsi_re)
         )/(np.pi*V)   # psiop
     # zero-order imaginary part (averaged)
-    psi0_im = -re*(lamb**2)*(6.*fo_im + 3.*fsi_im)/(np.pi*V)    #psios
+    psi0_im = -re*(lamb**2)*(6.*fo_im + 3.*fsi_im)/(np.pi*V)    # psios
 
     # Integrated reflectivity for crystals models: perfect (Darwin model) &
     # ideally mosaic thick crystal
@@ -278,8 +280,8 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     dy = np.zeros(501) + 0.1    # day
     al = np.full((2, 501), 0.)
 
-    power_ratio = np.full((al.shape), np.nan)    #phpo
-    th = np.full((al.shape), np.nan)    #phpo
+    power_ratio = np.full((al.shape), np.nan)    # phpo
+    th = np.full((al.shape), np.nan)    # phpo
     rr = np.full((polar.shape), np.nan)
     for i in range(al[:, 0].size):
         al[i, ...] = (y**2 + g[i]**2 + np.sqrt(
@@ -311,7 +313,7 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     # Plot power ratio
     # ----------------
 
-    fig1 = plt.figure(figsize=(8,6))
+    fig1 = plt.figure(figsize=(8, 6))
     gs = gridspec.GridSpec(1, 1)
     ax = fig1.add_subplot(gs[0, 0])
     ax.set_title(
@@ -331,7 +333,7 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
         'Volume of the unit cell (A^3):', str(np.round(V, decimals=3)),
         'Bragg angle of reference (rad):', str(np.round(theta, decimals=3)),
         'Integrated reflectivity, perfect model:',
-        str(np.round(R_per,decimals=8)),
+        str(np.round(R_per, decimals=8)),
         'Integrated reflectivity, mosaic model',
         str(np.round(R_mos, decimals=8)),
         'Integrated reflectivity, thick crystal model',
