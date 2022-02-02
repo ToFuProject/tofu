@@ -64,9 +64,9 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     re = 2.82084508e-5
 
     # From Ralph W.G. Wyckoff, "Crystal Structures" (1948)
-    ## https://babel.hathitrust.org/cgi/pt?id=mdp.39015081138136&view=1up&seq=259&skin=2021
-    ## Inter-atomic distances into hexagonal cell unit page 254 and
-    ## calculation of the associated volume
+    # https://babel.hathitrust.org/cgi/pt?id=mdp.39015081138136&view=1up&seq=259&skin=2021
+    # Inter-atomic distances into hexagonal cell unit (page 239 & 242) and
+    # calculation of the associated volume
     # TBC with Francesca
     a0 = 4.9130
     c0 = 5.4045
@@ -76,13 +76,13 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     Zsi = 14.
     Zo = 8.
 
-    ## Position of the three Si atoms in the unit cell (page 242 Wyckoff)
+    # Position of the three Si atoms in the unit cell (page 242 Wyckoff)
     u = 0.4705
     xsi = np.r_[-u, u, 0.]
     ysi = np.r_[-u, 0., u]
     zsi = np.r_[1./3., 0., 2./3.]
 
-    ## Position of the six O atoms in the unit cell (page 242 Wyckoff)
+    # Position of the six O atoms in the unit cell (page 242 Wyckoff)
     x = 0.4152
     y = 0.2678
     z = 0.1184
@@ -233,6 +233,7 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     Fbmod = np.sqrt(
         F_re**2 + F_im**2 - 2.*(F_im_cos*F_im_sin - F_re_cos*F_re_sin)
     )    #fbmod
+
     if Fmod == 0.:
         Fmod == 1e-30
     if Fbmod == 0.:
@@ -241,18 +242,18 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     # ratio imaginary part and real part of the structure factor
     kk = F_im/F_re
     # rek = Real(kk)
-    rek = (F_re_cos*F_im_cos + F_re_sin*F_im_sin)/(F_re)
+    rek = (F_re_cos*F_im_cos + F_re_sin*F_im_sin)/(F_re**2.)
 
     # Re(psi) = psi' = -(4pi*e**2*F'_H)/(m*w**2*V) if 1/4piEps0 = 1
     # Im(psi) = psi'' = -(4pi*e**2*F''_H)/(m*w**2*V)
     # real part of psi_H
-    psi_re = re*lamb**2*F_re/(np.pi*V)    # psihp
+    psi_re = (re*(lamb**2)*F_re)/(np.pi*V)    # psihp
     # zero-order real part (averaged) TBF
-    psi0_dre = -re*lamb**2/(np.pi*V)*(
+    psi0_dre = -re*(lamb**2)*(
         6.*(Zo + dfo_re) + 3.*(Zsi + dfsi_re)
-    )    # psiop
+        )/(np.pi*V)   # psiop
     # zero-order imaginary part (averaged)
-    psi0_im = -re*lamb**2/(np.pi*V)*(6.*fo_im + 3.*fsi_im)    #psios
+    psi0_im = -re*(lamb**2)*(6.*fo_im + 3.*fsi_im)/(np.pi*V)    #psios
 
     # Integrated reflectivity for crystals models: perfect (Darwin model) &
     # ideally mosaic thick crystal
@@ -273,9 +274,10 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     polar = np.r_[1., abs(np.cos(2.*theta))]
     # variables of simplification y, dy, g, L
     g = psi0_im/(polar*psi_re)
-    y = np.linspace(-10., 10., 301)    # ay # instead of findgen(201)
-    dy = np.zeros(301) + 0.1    # day # instead of fltarr(201)
-    al = np.full((2, 301), 0.)    # instead of fltarr(2, 201)
+    y = np.linspace(-10., 10., 501)    # ay
+    dy = np.zeros(501) + 0.1    # day
+    al = np.full((2, 501), 0.)
+
     power_ratio = np.full((al.shape), np.nan)    #phpo
     th = np.full((al.shape), np.nan)    #phpo
     rr = np.full((polar.shape), np.nan)
@@ -318,31 +320,20 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     )
     ax.set_xlabel(r'$\theta$-$\theta_{B}$ (rad)')
     ax.set_ylabel('P$_H$/P$_0$')
-    #ax.set_xlim(min(th[0, :]), max(th[0, :]))
-    #ax.set_ylim(0, 1)
     ax.plot(th[0, :], power_ratio[0, :], label='normal component')
     ax.plot(th[1, :], power_ratio[1, :], label='parallel component')
     ax.legend()
 
-    # Create resuming table
-    # ---------------------
-
-    col0 = [
-        'Wavelength (A)', 'Miller indices', 'inter-reticular distance (A)',
-        'Bragg angle of reference (rad)',
-        'Integrated reflectivity, perfect model',
-        'Integrated reflectivity, mosaic model',
-        'Integrated reflectivity, thick crystal model',
-        'R_perp/R_par', 'RC width'
-    ]
-    ar0 = [
-        lamb, (ih, ik, il), d_atom,
-        str(np.round(theta, decimals=3)),
-        R_per,
-        R_mos,
-        R_dyn,
-        rr[1]/rr[0], det,
-    ]
-    table = [col0, ar0]
-
-    return table
+    return (
+        'Wavelength (A):', lamb,
+        'Miller indices:', (ih, ik, il),
+        'Inter-reticular distance (A):', d_atom,
+        'Volume of the unit cell (A^3)', V,
+        'Bragg angle of reference (rad)', str(np.round(theta, decimals=3)),
+        'Integrated reflectivity, perfect model', R_per,
+        'Integrated reflectivity, mosaic model', R_mos,
+        'Integrated reflectivity, thick crystal model', R_dyn,
+        'Ratio imag. & real part of structure factor', kk,
+        'R_perp/R_par', rr[1]/rr[0],
+        'RC width', det,
+    )
