@@ -28,6 +28,7 @@ from . import _GG as _GG
 from . import _check_optics
 from . import _comp_optics as _comp_optics
 from . import _plot_optics as _plot_optics
+import tofu.spectro._rockingcurve as _rockingcurve
 
 
 __all__ = ['CrystalBragg']
@@ -790,10 +791,13 @@ class CrystalBragg(utils.ToFuObject):
 
     def compute_rockingcurve(
         self, ih=None, ik=None, il=None, lamb=None,
+        plot_asf=None, plot_power_ratio=None,
+        verb=None, returnas=None,
     ):
-        import tofu.spectro._rockingcurve as _rockingcurve
         return _rockingcurve.compute_rockingcurve(
             self, ih=ih, ik=ik, il=il, lamb=lamb,
+            plot_asf=plot_asf, plot_power_ratio=plot_power_ratio,
+            verb=None, returnas=None,
         )
 
     # -----------------

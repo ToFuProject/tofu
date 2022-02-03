@@ -23,7 +23,11 @@ from tofu.version import __version__
 # ##########################################################
 
 
-def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
+def compute_rockingcurve(self,
+    ih=None, ik=None, il=None, lamb=None,
+    plot_asf=None, plot_power_ratio=None,
+    verb=None, returnas=None,
+):
     """The code evaluates, for a given wavelength, the atomic plane distance d,
     the Bragg angle, the complex structure factor, the integrated reflectivity
     with the perfect and mosaic crystal models, the reflectivity curve with the
@@ -41,23 +45,34 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     -----------
     ih, ik, il:    int
         Miller indices of crystal used
-    lamb:   float
+    lamb:    float
         Wavelength of interest, in Angstroms (1e-10 m)
+    plot_asf:    str
+        Plotting the atomic scattering factor thanks to data with respect to
+        sin(theta)/lambda
+    plot_power_ratio:    str
+        Plot the power ratio with respect to the glancing angle
+    verb:    str
+        True or False to print the content of the results dictionnary 'dout'
+    returnas:    str
+        Entry 'dict' to allow optionnal returning of 'dout' dictionnary
     """
 
     # Check inputs
     # ------------
 
-    lc = [ih is not None, ik is not None, il is not None, lamb is not None]
-    if any(lc) and not all(lc):
-        msg = (
-            "Args h, k, l and lamb must be provided together:\n"
-            + "\t - h: first Miller index ({})\n".format(ih)
-            + "\t - k: second Miller index ({})\n".format(ik)
-            + "\t - l: third Miller index ({})\n".format(il)
-            + "\t - lamb: wavelength of interest ({})\n".format(lamb)
-        )
-        raise Exception(msg)
+    if plot_asf is None:
+        plot_asf = False
+    if plot_power_ratio is None:
+        plot_power_ratio = True
+    if verb is None:
+        verb = True
+    if returnas is None:
+        returnas = None
+
+    CrystalBragg_check_inputs_rockingcurve(
+        ih=ih, ik=ik, il=il, lamb=lamb,
+    )
 
     # Calculations of main crystal parameters
     # ---------------------------------------
@@ -105,19 +120,17 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
             + "\t - l: third Miller index ({})\n".format(il)
         )
         raise Exception(msg)
-    else:
-        d_atom = d_num/d_den
+    d_atom = d_num/d_den
     if d_atom < lamb/2.:
         msg = (
             "According to Bragg law, Bragg scattering need d > lamb/2!\n"
             "Please check your wavelength arg.\n"
         )
         raise Exception(msg)
-    else:
-        sol = 1./(2.*d_atom)
-        sin_theta = lamb/(2.*d_atom)
-        theta = np.arcsin(sin_theta)
-        theta_deg = theta*180./np.pi
+    sol = 1./(2.*d_atom)
+    sin_theta = lamb/(2.*d_atom)
+    theta = np.arcsin(sin_theta)
+    theta_deg = theta*180./np.pi
     lc = [theta_deg < 10., theta_deg > 89.]
     if any(lc):
         msg = (
@@ -148,14 +161,6 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
         1.373, 1.294,
     ]
 
-    fig = plt.figure(figsize=(8, 6))
-    gs = gridspec.GridSpec(1, 1)
-    ax = fig.add_subplot(gs[0, 0])
-    ax.set_xlabel(r'sin($\theta$)/$\lambda$')
-    ax.set_ylabel("atomic scattering factor")
-    ax.plot(sol_si, asf_si, label="Si")
-    ax.plot(sol_o, asf_o, label="O")
-    ax.legend()
 
     # atomic absorption coefficient for Si and O as a function of lamb
     # focus on the photoelectric effect, mu=cte*(lamb*Z)**3 with
@@ -185,16 +190,6 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     fo_im = 5.936e-4*Zo*(mu_o/lamb)    # foim TBF: find where to find the cte
 
     # structure factor ("F") for (hkl) reflection
-    # In a unit cell contains N atoms, the resultant wave scattered by all the
-    # N atoms in the direction of the (hkl) reflection is proportionnal to the
-    # atomic scattering factor ("fn") for each species and the phase difference
-    # between all the waves scattered by the different atoms:
-    # phasen = 2pi*(h*xn + k*yn + l*zn) for each atom
-    # So F = f1*exp(i*phase1) + f2*exp(i*phase2) + ... + fN*exp(i*phaseN)
-    # Then, F = sum(n=1 to N) fn*exp(2i*pi*(h*xn + k*yn + l*zn))
-    # with (xn,yn,zn) the coordinates of each atom inside the unit cell
-    # And finally |F|²={sum(n=1 to N) fn*cos(2pi.phasen)}² +
-    # {sum(n=1 to N) fn*sin(2pi.phasen)}²
     phasesi = np.full((xsi.size), np.nan)
     phaseo = np.full((xo.size), np.nan)
     for i in range(xsi.size):
@@ -223,14 +218,11 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     # Calculation of Fourier coefficients of polarization
     # ---------------------------------------------------
 
-    # dielectric constant = 1 + psi = 1 + 4pi.alpha with
-    # alpha the medium polarizability
-    # psi : complex number = psi' + i.psi"
-
     # expression of the Fourier coef. psi_H
     Fmod = np.sqrt(
         F_re**2 + F_im**2 - 2.*(F_re_cos*F_re_sin - F_im_cos*F_im_sin)
     )    # fmod
+
     # psi_-H equivalent to (-ih, -ik, -il)
     Fbmod = np.sqrt(
         F_re**2 + F_im**2 - 2.*(F_im_cos*F_im_sin - F_re_cos*F_re_sin)
@@ -243,37 +235,126 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
 
     # ratio imaginary part and real part of the structure factor
     kk = F_im/F_re
+
     # rek = Real(kk)
     rek = (F_re_cos*F_im_cos + F_re_sin*F_im_sin)/(F_re**2.)
 
-    # Re(psi) = psi' = -(4pi*e**2*F'_H)/(m*w**2*V) if 1/4piEps0 = 1
-    # Im(psi) = psi'' = -(4pi*e**2*F''_H)/(m*w**2*V)
     # real part of psi_H
     psi_re = (re*(lamb**2)*F_re)/(np.pi*V)    # psihp
+
     # zero-order real part (averaged) TBF
     psi0_dre = -re*(lamb**2)*(
         6.*(Zo + dfo_re) + 3.*(Zsi + dfsi_re)
         )/(np.pi*V)   # psiop
+
     # zero-order imaginary part (averaged)
     psi0_im = -re*(lamb**2)*(6.*fo_im + 3.*fsi_im)/(np.pi*V)    # psios
 
-    # Integrated reflectivity for crystals models: perfect (Darwin model) &
-    # ideally mosaic thick crystal
+    # Integrated reflectivity for 3 crystals models: perfect (Darwin model),
+    # ideally mosaic thick crystal and dynamical model
     # -------------------------------------------------------------
+
+    (
+        R_per, R_mos, R_dyn, power_ratio, th, rr, det,
+    ) = CrystBragg_comp_integrated_reflect(
+        lamb=lamb, re=re, V=V, Zo=Zo, theta=theta, mu=mu,
+        F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
+        Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
+        model=['perfect', 'mosaic', 'dynamical',],
+    )
+
+    # Plot atomic scattering factor
+    # -----------------------------
+
+    if plot_asf:
+        CrystalBragg_plot_atomic_scattering_factor(
+            sol_si=sol_si, sol_o=sol_o,
+            asf_si=asf_si, asf_o=asf_o,
+        )
+
+    # Plot power ratio
+    # ----------------
+
+    if plot_power_ratio:
+        CrystalBragg_plot_power_ratio(
+            ih=ih, ik=ik, il=il, lamb=lamb, theta=theta,
+            th=th, power_ratio=power_ratio,
+        )
+
+    # Print results
+    # -------------
+
+    dout = {
+        'Wavelength (A)': lamb,
+        'Miller indices': (ih, ik, il),
+        'Inter-reticular distance (A)': d_atom,
+        'Volume of the unit cell (A^3)': np.round(V, decimals=3),
+        'Bragg angle of reference (rad)': np.round(theta, decimals=3),
+        'Integrated reflectivity': {
+            'perfect model': np.round(R_per, decimals=9),
+            'mosaic model': np.round(R_mos, decimals=9),
+            'dynamical model': np.round(R_dyn, decimals=9),
+        },
+        'Ratio imag & real part of structure factor': np.round(kk, decimals=3),
+        'R_perp/R_par': np.round(rr[1]/rr[0], decimals=9),
+        'RC width': np.round(det, decimals=6),
+    }
+
+    if verb is True:
+        lstr = [f'\t -{k0}: {V0}' for k0, V0 in dout.items()]
+        msg = (
+            " The following data was calculated:\n"
+            + "\n".join(lstr)
+        )
+        print(msg)
+
+    if returnas is dict:
+        return dout
+
+
+def CrystBragg_check_inputs_rockingcurve(
+    ih=None, ik=None, il=None, lamb=None,
+):
+
+    lc = [ih is not None, ik is not None, il is not None, lamb is not None]
+    if any(lc) and not all(lc):
+        msg = (
+            "Args h, k, l and lamb must be provided together:\n"
+            + "\t - h: first Miller index ({})\n".format(ih)
+            + "\t - k: second Miller index ({})\n".format(ik)
+            + "\t - l: third Miller index ({})\n".format(il)
+            + "\t - lamb: wavelength of interest ({})\n".format(lamb)
+        )
+        raise Exception(msg)
+
+
+def CrystBragg_comp_integrated_reflect(
+    lamb=None, re=None, V=None, Zo=None, theta=None, mu=None,
+    F_re=None, psi_re=None, psi0_dre=None, psi0_im=None,
+    Fmod=None, Fbmod=None, kk=None, rek=None,
+    model=[None, None, None]
+):
+
+    # Perfect (darwin) model
+    # ----------------------
 
     R_per = Zo*F_re*re*lamb**2*(1. + abs(np.cos(2.*theta)))/(
         6.*np.pi*V*np.sin(2.*theta)
     )
+
+    # Ideally thick mosaic model
+    # --------------------------
+
     R_mos = F_re**2*re**2*lamb**3*(1. + (np.cos(2.*theta))**2)/(
         4.*mu*V**2*np.sin(2.*theta)
     )
 
-    # Rocking curve and integrated reflectivity with "dynamical" model vs angle
-    # and for the 2 states of photon polarization
-    # -------------------------------------------------------------------------
+    # Dynamical model
+    # ---------------
 
     # incident wave polarization (normal & parallel components)
     polar = np.r_[1., abs(np.cos(2.*theta))]
+
     # variables of simplification y, dy, g, L
     g = psi0_im/(polar*psi_re)
     y = np.linspace(-10., 10., 501)    # ay
@@ -303,15 +384,51 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     if R_dyn < 1e-7:
         msg = (
             "Please check the equations for integrated reflectivity:\n"
-            "the value of R_din ({}) is less than 1e-7.\n".format(R_dyn)
+            "the value of R_dyn ({}) is less than 1e-7.\n".format(R_dyn)
         )
         raise Exception(msg)
 
     fmax = np.max(power_ratio[0] + power_ratio[1])
     det = (2.*R_dyn)/fmax
 
-    # Plot power ratio
-    # ----------------
+    return (R_per, R_mos, R_dyn, power_ratio, th, rr, det,)
+
+
+def CrystalBragg_plot_atomic_scattering_factor(
+    sol_si=None, sol_o=None,
+    asf_si=None, asf_o=None,
+):
+
+    # Check inputs
+    # ------------
+
+    lc = [sol_si is None, sol_o is None, asf_si is None, asf_o is None]
+    if any(lc):
+        msg = (
+            "Please make sure that all entry arguments are valid and not None!"
+        )
+        raise Exception(msg)
+
+    # Plot
+    # ----
+
+    fig = plt.figure(figsize=(8, 6))
+    gs = gridspec.GridSpec(1, 1)
+    ax = fig.add_subplot(gs[0, 0])
+    ax.set_xlabel(r'sin($\theta$)/$\lambda$')
+    ax.set_ylabel("atomic scattering factor")
+    ax.plot(sol_si, asf_si, label="Si")
+    ax.plot(sol_o, asf_o, label="O")
+    ax.legend()
+
+
+def CrystalBragg_plot_power_ratio(
+    ih=None, ik=None, il=None, lamb=None, theta=None,
+    th=None, power_ratio=None,
+):
+
+    # Plot
+    # ----
 
     fig1 = plt.figure(figsize=(8, 6))
     gs = gridspec.GridSpec(1, 1)
@@ -326,20 +443,3 @@ def compute_rockingcurve(self, ih=None, ik=None, il=None, lamb=None):
     ax.plot(th[1, :], power_ratio[1, :], label='parallel component')
     ax.legend()
 
-    return (
-        'Wavelength (A):', lamb,
-        'Miller indices:', (ih, ik, il),
-        'Inter-reticular distance (A):', d_atom,
-        'Volume of the unit cell (A^3):', str(np.round(V, decimals=3)),
-        'Bragg angle of reference (rad):', str(np.round(theta, decimals=3)),
-        'Integrated reflectivity, perfect model:',
-        str(np.round(R_per, decimals=8)),
-        'Integrated reflectivity, mosaic model',
-        str(np.round(R_mos, decimals=8)),
-        'Integrated reflectivity, thick crystal model',
-        str(np.round(R_dyn, decimals=8)),
-        'Ratio imag. & real part of structure factor',
-        str(np.round(kk, decimals=3)),
-        'R_perp/R_par', str(np.round(rr[1]/rr[0], decimals=3)),
-        'RC width', str(np.round(det, decimals=6)),
-    )
