@@ -70,7 +70,7 @@ def compute_rockingcurve(self,
     if returnas is None:
         returnas = None
 
-    CrystalBragg_check_inputs_rockingcurve(
+    CrystBragg_check_inputs_rockingcurve(
         ih=ih, ik=ik, il=il, lamb=lamb,
     )
 
@@ -250,12 +250,12 @@ def compute_rockingcurve(self,
     # zero-order imaginary part (averaged)
     psi0_im = -re*(lamb**2)*(6.*fo_im + 3.*fsi_im)/(np.pi*V)    # psios
 
-    # Integrated reflectivity for 3 crystals models: perfect (Darwin model),
-    # ideally mosaic thick crystal and dynamical model
-    # -------------------------------------------------------------
+    # Power ratio and their integrated reflectivity for 3 crystals models:
+    # perfect (Darwin model), ideally mosaic thick crystal and dynamical model
+    # ------------------------------------------------------------------------
 
     (
-        R_per, R_mos, R_dyn, power_ratio, th, rr, det,
+        P_per, P_mos, P_dyn, power_ratio, th, rr, det, ymax,
     ) = CrystBragg_comp_integrated_reflect(
         lamb=lamb, re=re, V=V, Zo=Zo, theta=theta, mu=mu,
         F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
@@ -291,11 +291,12 @@ def compute_rockingcurve(self,
         'Volume of the unit cell (A^3)': np.round(V, decimals=3),
         'Bragg angle of reference (rad)': np.round(theta, decimals=3),
         'Integrated reflectivity': {
-            'perfect model': np.round(R_per, decimals=9),
-            'mosaic model': np.round(R_mos, decimals=9),
-            'dynamical model': np.round(R_dyn, decimals=9),
+            'perfect model': np.round(P_per, decimals=9),
+            'mosaic model': np.round(P_mos, decimals=9),
+            'dynamical model': np.round(P_dyn, decimals=9),
         },
         'Ratio imag & real part of structure factor': np.round(kk, decimals=3),
+        'Intensity maximum theoretical (normal & parallel compo)': ymax,
         'R_perp/R_par': np.round(rr[1]/rr[0], decimals=9),
         'RC width': np.round(det, decimals=6),
     }
@@ -338,14 +339,14 @@ def CrystBragg_comp_integrated_reflect(
     # Perfect (darwin) model
     # ----------------------
 
-    R_per = Zo*F_re*re*lamb**2*(1. + abs(np.cos(2.*theta)))/(
+    P_per = Zo*F_re*re*lamb**2*(1. + abs(np.cos(2.*theta)))/(
         6.*np.pi*V*np.sin(2.*theta)
     )
 
     # Ideally thick mosaic model
     # --------------------------
 
-    R_mos = F_re**2*re**2*lamb**3*(1. + (np.cos(2.*theta))**2)/(
+    P_mos = F_re**2*re**2*lamb**3*(1. + (np.cos(2.*theta))**2)/(
         4.*mu*V**2*np.sin(2.*theta)
     )
 
@@ -358,6 +359,7 @@ def CrystBragg_comp_integrated_reflect(
     # variables of simplification y, dy, g, L
     g = psi0_im/(polar*psi_re)
     y = np.linspace(-10., 10., 501)    # ay
+    ymax = kk/g
     dy = np.zeros(501) + 0.1    # day
     al = np.full((2, 501), 0.)
 
@@ -368,7 +370,7 @@ def CrystBragg_comp_integrated_reflect(
         al[i, ...] = (y**2 + g[i]**2 + np.sqrt(
             (y**2 - g[i]**2 + kk**2 - 1.)**2 + 4.*(g[i]*y - rek)**2
             ))/np.sqrt((kk**2 - 1.)**2 + 4.*rek**2)
-        # reflecting power P_DIN
+        # reflecting power or power ratio R_dyn
         power_ratio[i, ...] = (Fmod/Fbmod)*(
             al[i, :] - np.sqrt((al[i, :]**2 - 1.))
         )
@@ -380,18 +382,19 @@ def CrystBragg_comp_integrated_reflect(
         # diffraction radiation
         # r(i=0): normal component & r(i=1): parallel component
         rr[i, ...] = (polar[i]*psi_re*rhy)/np.sin(2.*theta)
-    R_dyn = np.sum(rr)/2.
-    if R_dyn < 1e-7:
+    # Integrated reflectivity
+    P_dyn = np.sum(rr)/2.
+    if P_dyn < 1e-7:
         msg = (
             "Please check the equations for integrated reflectivity:\n"
-            "the value of R_dyn ({}) is less than 1e-7.\n".format(R_dyn)
+            "the value of P_dyn ({}) is less than 1e-7.\n".format(P_dyn)
         )
         raise Exception(msg)
 
     fmax = np.max(power_ratio[0] + power_ratio[1])
-    det = (2.*R_dyn)/fmax
+    det = (2.*P_dyn)/fmax
 
-    return (R_per, R_mos, R_dyn, power_ratio, th, rr, det,)
+    return (P_per, P_mos, P_dyn, power_ratio, th, rr, det, ymax,)
 
 
 def CrystalBragg_plot_atomic_scattering_factor(
