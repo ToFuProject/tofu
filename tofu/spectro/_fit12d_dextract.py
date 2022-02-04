@@ -614,6 +614,7 @@ def fit2d_extract(
     phi_prof=None,
     phi_npts=None,
     lines_indphi=None,
+    amp_on_bck_thresh=None,
     vs_nbs=None,
 ):
     """
@@ -663,6 +664,9 @@ def fit2d_extract(
             f"\t- available: {dfit2d['dinput']['keys']}\n"
         )
         raise Exception(msg)
+
+    if amp_on_bck_thresh is None:
+        amp_on_bck_thresh = 2.
 
     # Extract dprepare and dind (more readable)
     dprepare = dfit2d['dinput']['dprepare']
@@ -824,7 +828,7 @@ def fit2d_extract(
         (dfit2d['dinput']['keys'] == ss).nonzero()[0][0]
         for ss in lines_indphi
     ])
-    indphi = amp_on_bck[:, :, iiphi] >= 1.5
+    indphi = amp_on_bck[:, :, iiphi] >= amp_on_bck_thresh
     indphi = np.all(indphi, axis=-1)
     for ii in range(nspect):
         indphi_no = np.copy(indphi[ii, ...])
