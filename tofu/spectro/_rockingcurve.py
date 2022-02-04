@@ -306,12 +306,20 @@ def compute_rockingcurve(self,
     if verb is True:
         dout['Volume of the unit cell (A^3)'] = np.round(V, decimals=3)
         dout['Bragg angle of reference (rad)'] = np.round(theta, decimals=3)
-        dout['Ratio imag & real part of structure factor'] = np.round(kk, decimals=3)
+        dout['Ratio imag & real part of structure factor'] = (
+            np.round(kk, decimals=3,)
+        )
         dout['R_perp/R_par'] = np.round(rr[1]/rr[0], decimals=9)
         dout['RC width'] = np.round(det, decimals=6)
-        dout['Integrated reflectivity']['perfect model'] = np.round(P_per, decimals=9)
-        dout['Integrated reflectivity']['mosaic model'] = np.round(P_mos, decimals=9)
-        dout['Integrated reflectivity']['dynamical model'] = np.round(P_dyn, decimals=9)
+        dout['Integrated reflectivity']['perfect model'] = (
+            np.round(P_per, decimals=9),
+        )
+        dout['Integrated reflectivity']['mosaic model'] = (
+            np.round(P_mos, decimals=9),
+        )
+        dout['Integrated reflectivity']['dynamical model'] = (
+            np.round(P_dyn, decimals=9),
+        )
         lstr = [f'\t -{k0}: {V0}' for k0, V0 in dout.items()]
         msg = (
             " The following data was calculated:\n"
