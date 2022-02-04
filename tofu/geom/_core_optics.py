@@ -1372,16 +1372,93 @@ class CrystalBragg(utils.ToFuObject):
     # methods for generic first-approx
     # -----------------
 
-    def get_phi_from_magaxis_summit(self, r, z, lamb=None, bragg=None, n=None):
+    def get_phi_from_magaxis_summit(
+        self,
+        axis_r,
+        axis_z,
+        axis_npts=None,
+        lamb=None,
+        lamb_tol=None,
+        bragg=None,
+        n=None,
+        use_non_parallelism=None,
+    ):
+        """ Return phi of a magnteic axis (at lamb with tolerance)
+
+        axis_r and axis_z must be np.ndarrays of the same shape
+        The magnetic axis is discretized toroidally in axis_npts (def: 1000)
+
+        The pts closest to the chosen lamb are picked
+        If no pts is found within tolerance, an error is raised
+
+        """
+
+        # --------------------
         # Check / format input
-        r = np.atleast_1d(r)
-        z = np.atleast_1d(z)
-        assert r.shape == z.shape
+
+        if axis_npts is None:
+            axis_npts = 1000
+
+        axis_r = np.atleast_1d(axis_r)
+        axis_z = np.atleast_1d(axis_z)
+        assert axis_r.shape == axis_z.shape
+
+        if lamb_tol is None:
+            lamb_tol = 0.01e-10
+
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+        lamb = self.get_lamb_from_bragg(bragg=bragg, n=n)
+
+        # --------------
+        # Disretize axis
+
+        shaperz = axis_r.shape
+        phi_ax = np.full(shaperz, np.nan)
 
         # Compute phi
+        theta_cryst = np.arctan2(
+            self._dgeom['summit'][1],
+            self._dgeom['summit'][0],
+        )
 
-        return phi
+        theta_ax = theta_cryst + np.pi/2*np.linspace(-1, 1, axis_npts)
+        shapetheta = np.r_[[1 for ii in shaperz], axis_npts]
+        theta_ax = theta_ax.reshape(shapetheta)
+
+        axis_x = (axis_r[..., None] * np.cos(theta_ax)).ravel()
+        axis_y = (axis_r[..., None] * np.sin(theta_ax)).ravel()
+        axis_z = (np.repeat(axis_z[..., None], axis_npts, axis=-1)).ravel()
+
+        # ----------------------------------------------
+        # Compute bragg, phi, lamb of each point on axis
+
+        (
+            bragg_ax_full, phi_ax_full, lamb_ax_full,
+        ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
+            pts=np.array([axis_x, axis_y, axis_z]),
+            dtheta=None, psi=None,
+            ntheta=None, npsi=None,
+            n=None,
+            use_non_parallelism=use_non_parallelism,
+            grid=None,
+            return_lamb=True,
+        )
+
+        # -------------------------------------
+        # Select points on axis closest to lamb
+
+        # lamb_ax_full = self.get_lamb_from_bragg(bragg_ax_full)
+        shape_full = tuple(np.r_[shaperz, axis_npts])
+        lamb_ax_full = lamb_ax_full.reshape(shape_full)
+        phi_ax_full = phi_ax_full.reshape(shape_full)
+        dlamb = np.abs(lamb_ax_full - lamb)
+
+        indok = np.any(dlamb <= lamb_tol, axis=-1)
+        indmin = np.nanargmin(dlamb[indok, :], axis=-1)
+        indtup = tuple([iii for iii in indok.nonzero()] + [indmin])
+        phi_ax[indok] = phi_ax_full[indtup]
+
+        return phi_ax
 
     def get_bragg_from_lamb(self, lamb=None, n=None):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
