@@ -367,7 +367,7 @@ def CrystBragg_check_inputs_rockingcurve(
     cdt = [type(v0) == str for k0, v0 in dd.items()]
     if any(cdt) or all(cdt):
         msg = (
-                        "Args h, k, l and lamb must not be string inputs:\n"
+            "Args h, k, l and lamb must not be string inputs:\n"
             "and have been put to default values:\n"
             + "\t - h: first Miller index ({})\n".format(ih)
             + "\t - k: second Miller index ({})\n".format(ik)
