@@ -58,13 +58,14 @@ class DataCollection(utils.ToFuObject):
         'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
         'params': {
             'ddata': {
-                'source': (str, 'unknown'),
+                'units':  (str, 'a.u.'),
                 'dim':    (str, 'unknown'),
                 'quant':  (str, 'unknown'),
                 'name':   (str, 'unknown'),
-                'units':  (str, 'a.u.'),
+                'source': (str, 'unknown'),
             },
             'dobj': {},
+            'dstatic': {},
          },
     }
 
@@ -181,6 +182,7 @@ class DataCollection(utils.ToFuObject):
             reserved_keys=self._reserved_keys,
             ddefparams_data=self._ddef['params']['ddata'],
             ddefparams_obj=self._ddef['params']['dobj'],
+            ddefparams_static=self._ddef['params']['dstatic'],
             data_none=self._data_none,
             max_ndim=self._max_ndim,
         )
@@ -189,8 +191,8 @@ class DataCollection(utils.ToFuObject):
     # Adding ref / quantity one by one
     # ---------------------
 
-    def add_ref(self, key=None, data=None, **kwdargs):
-        dref = {key: {'data': data, **kwdargs}}
+    def add_ref(self, key=None, data=None, size=None, **kwdargs):
+        dref = {key: {'data': data, 'size': size, **kwdargs}}
         # Check consistency
         self.update(ddata=None, dref=dref, dstatic=None)
 
@@ -617,6 +619,7 @@ class DataCollection(utils.ToFuObject):
 
     def get_summary(
         self,
+        show_which=None,
         show=None,
         show_core=None,
         sep='  ',
@@ -631,12 +634,18 @@ class DataCollection(utils.ToFuObject):
         # msg = "The data is not accessible because self.strip(2) was used !"
         # assert self._dstrip['strip']<2, msg
 
+        # ------------
+        # check inputs
+
+        if show_which is None:
+            show_which = ['ref', 'data', 'static', 'obj']
+
         lcol, lar = [], []
 
         # -----------------------
         # Build for dref
 
-        if len(self._dref) > 0:
+        if 'ref' in show_which and len(self._dref) > 0:
             lcol.append(['ref key', 'size', 'nb. data'])
             lar.append([
                 (
@@ -650,11 +659,13 @@ class DataCollection(utils.ToFuObject):
         # -----------------------
         # Build for ddata
 
-        if len(self._ddata) > 0:
+        if 'data' in show_which and len(self._ddata) > 0:
+
             if show_core is None:
                 show_core = self._show_in_summary_core
             if isinstance(show_core, str):
                 show_core = [show_core]
+
             lp = self.get_lparam(which='data')
             lkcore = ['shape', 'ref']
             assert all([ss in lp + lkcore for ss in show_core])
@@ -669,6 +680,7 @@ class DataCollection(utils.ToFuObject):
                     show = [show]
                 assert all([ss in lp for ss in show])
                 col2 += [pp for pp in show if pp not in col2]
+            col2 = [cc for cc in col2 if cc != 'data']
 
             ar2 = []
             for k0 in self._ddata.keys():
@@ -680,7 +692,8 @@ class DataCollection(utils.ToFuObject):
 
         # -----------------------
         # Build for dstatic
-        if len(self._dstatic) > 0:
+
+        if 'static' in show_which and len(self._dstatic) > 0:
             for k0, v0 in self._dstatic.items():
                 lk = list(list(v0.values())[0].keys())
                 col = [k0] + [pp for pp in lk]
@@ -693,7 +706,8 @@ class DataCollection(utils.ToFuObject):
 
         # -----------------------
         # Build for dobj
-        if len(self._dobj) > 0:
+
+        if 'obj' in show_which and len(self._dobj) > 0:
             for k0, v0 in self._dobj.items():
                 lk = self.get_lparam(which=k0)
                 lk = [
@@ -1043,7 +1057,7 @@ class DataCollection(utils.ToFuObject):
     # Methods for plotting data
     # ---------------------
 
-    def plot_as_matrix(
+    def plot_as_array(
         self,
         key=None,
         ind=None,
@@ -1058,7 +1072,7 @@ class DataCollection(utils.ToFuObject):
         dleg=None,
     ):
         """ Plot the desired 2d data array as a matrix """
-        return _DataCollection_plot.plot_as_matrix(
+        return _DataCollection_plot.plot_as_array(
             coll=self,
             key=key,
             ind=ind,

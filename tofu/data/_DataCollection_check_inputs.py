@@ -4,10 +4,10 @@
 import itertools as itt
 import warnings
 
+
 # Common
 import numpy as np
 import scipy.sparse as scpsp
-from matplotlib.tri import Triangulation as mplTri
 
 
 from . import _generic_check
@@ -19,6 +19,9 @@ _DRESERVED_KEYS = {
     'ddata': ['ref', 'shape', 'data'],
     'dobj': [],
 }
+_LRESERVED_KEYS = list(set(itt.chain.from_iterable([
+    v0 for v0 in _DRESERVED_KEYS.values()
+])))
 
 
 _DDEF_PARAMS = {
@@ -31,7 +34,13 @@ _DDEF_PARAMS = {
     },
     'dobj': {
     },
+    'dstatic': {
+    },
 }
+
+
+_IREF = 'iref'
+_IDATA = 'data'
 
 
 _DATA_NONE = False
@@ -51,7 +60,11 @@ def _check_which(
     which=None,
     return_dict=None,
 ):
-    """ Check which in ['data'] + list(self._dobj.keys() """
+    """ Check which in ['ref', 'data'] + dobj.keys() + dstatic.keys()
+
+    Optionally return the dict itself, by reference
+
+    """
 
     # --------------
     # Check inputs
@@ -80,7 +93,7 @@ def _check_which(
     if return_dict is True:
         if which == 'ref':
             dd = dref
-        elif which == 'ddata':
+        elif which == 'data':
             dd = ddata
         elif which in lkobj:
             dd = dobj[which]
@@ -91,11 +104,25 @@ def _check_which(
         return which
 
 
-def _check_conflicts(dd=None, dd0=None, dd_name=None):
+def _check_conflicts(dd=None, dd0=None, dd_name=None, returnas=None):
     """ Detect conflict with existing entries
 
     Any pre-existing entry will trigger either an update or a conflict
+
+    - conflic: same parameter, different value
+    - update: new parameter
+    - retro: parameter not filled (None)
+
     """
+
+    # ------------
+    # check inputs
+
+    if returnas is None:
+        returnas = False
+
+    # ----------------------------
+    # detect conflicts and updates
 
     dupdate = {}
     dconflict = {}
@@ -121,7 +148,9 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
                         scpsp.issparse(v0[kk])
                         and v0[kk].shape == dd0[k0][kk].shape
                         and np.allclose(
-                            v0[kk].data, dd0[k0][kk].data, equal_nan=True,
+                            v0[kk].data,
+                            dd0[k0][kk].data,
+                            equal_nan=True,
                         )
                     )
                     or (
@@ -143,28 +172,42 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None):
             kk for kk in v0.keys()
             if kk not in lk
             and kk not in dd0[k0].keys()
-            and kk not in ['ldata', 'size']
+            # and kk not in ['ldata', 'size']
+            and kk not in _LRESERVED_KEYS
         ]
         if len(lkup) > 0:
-            dupdate[k0] = lk
+            dupdate[k0] = lkup
 
-    # Conflicts => Exception
-    if len(dconflict) > 0:
-        lstr = [f"\t- {dd_name}['{k0}']: {v0}" for k0, v0 in dconflict.items()]
-        msg = (
-            f"Conflicts with pre-existing values found in {dd_name}:\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
+    # ---------------
+    # raise or return
 
-    # Updates => Warning
-    if len(dupdate) > 0:
-        lstr = [f"\t- {dd_name}['{k0}']: {v0}" for k0, v0 in dupdate.items()]
-        msg = (
-            f"\nExisting {dd_name} keys will be overwritten:\n"
-            + "\n".join(lstr)
-        )
-        warnings.warn(msg)
+    if returnas is False:
+        # Conflicts => Exception
+        if len(dconflict) > 0:
+            lstr = [
+                f"\t- {dd_name}['{k0}']: {v0}"
+                for k0, v0 in dconflict.items()
+            ]
+            msg = (
+                f"Conflicts with pre-existing values found in {dd_name}:\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+
+        # Updates => Warning
+        if len(dupdate) > 0:
+            lstr = [
+                f"\t- {dd_name}['{k0}']: {v0}"
+                for k0, v0 in dupdate.items()
+            ]
+            msg = (
+                f"\nExisting {dd_name} keys updated with new keys:\n"
+                + "\n".join(lstr)
+            )
+            warnings.warn(msg)
+
+    else:
+        return dconflict, dupdate
 
 
 def _check_remove(key=None, dkey=None, name=None):
@@ -194,21 +237,88 @@ def _check_remove(key=None, dkey=None, name=None):
 # #############################################################################
 
 
+def _get_whichorkey(key=None, which=None, din=None, dname=None):
+
+    # -------------
+    # trivial check
+
+    lc = [
+        key is not None,
+        which is not None,
+    ]
+    if np.sum(lc) == 0:
+        msg = "Please provide either key or/xor which!"
+        raise Exception(msg)
+
+    # ----------
+    # which only
+
+    if lc[1]:
+        which = _generic_check._check_var(
+            which, 'which',
+            allowed=sorted(din.keys()),
+        )
+
+    # ---------------------------------------
+    # key but not which => check and set which
+
+    elif lc[0] and not lc[1]:
+
+        if hasattr(key, '__iter__'):
+            lwhich = [
+                k0 for k0, v0 in din.items()
+                if key in v0.keys()
+            ]
+        else:
+            lwhich = [
+                k0 for k0, v0 in din.items()
+                if all([kk in v0.keys() for kk in key])
+            ]
+
+        if len(lwhich) == 1:
+            which = lwhich[0]
+
+        else:
+            msg = (
+                f"key {key} has no / several matches in {dname}:\n"
+                f"\t- matches: {lwhich}"
+            )
+            raise Exception(msg)
+
+    if key is not None:
+        key = _generic_check._check_var_iter(
+            key, 'key',
+            types=list,
+            allowed=sorted(din[which]),
+        )
+
+    return key, which
+
+
 def _remove_ref(
+    # key to remove
     key=None,
-    dref0=None, ddata0=None,
+    # dict
+    dref0=None,
+    ddata0=None,
     dstatic0=None,
     dobj0=None,
+    # parameters
     propagate=None,
     reserved_keys=None,
     ddefparams_data=None,
     ddefparams_obj=None,
+    ddefparams_static=None,
     data_none=None,
     max_ndim=None,
 ):
     """ Remove a ref (or list of refs) and all associated data """
+
+    # trivial case
     if key is None:
-        return dref0, ddata0
+        return dref0, dstatic0, ddata0, dobj0
+
+    # check input
     key = _check_remove(
         key=key, dkey=dref0, name='ref',
     )
@@ -228,18 +338,22 @@ def _remove_ref(
         reserved_keys=reserved_keys,
         ddefparams_data=ddefparams_data,
         ddefparams_obj=ddefparams_obj,
+        ddefparams_static=ddefparams_static,
         data_none=data_none,
         max_ndim=max_ndim,
     )
 
 
-def _remove_ref_static(
+def _remove_static(
+    # key to remove
     key=None,
     which=None,
-    propagate=None,
+    # dict
     dstatic0=None,
     ddata0=None,
     dobj0=None,
+    # parameters
+    propagate=None,
 ):
     """ Remove a static ref (or list) or a whole category
 
@@ -252,72 +366,22 @@ def _remove_ref_static(
             if propagate, the parameter is removed from ddata and dobj
     """
 
-    lc = [
-        key is not None,
-        which is not None,
-    ]
-    if np.sum(lc) != 1:
-        msg = "Please provide either key xor which!"
-        raise Exception(msg)
+    # ------------
+    # check inputs
 
-    if key is not None:
-        if isinstance(key, str):
-            key = [key]
+    key, which = _get_whichorkey(
+        key=key,
+        which=which,
+        din=dstatic,
+        dname='dstatic',
+    )
 
-        lk0 = [
-            k0 for k0, v0 in dstatic0.items()
-            if all([kk in v0.keys() for kk in key])
-        ]
-        if len(lk0) != 1:
-            msg = (
-                "No / several matches for '{}' in ref_static:\n".format(key)
-                + "\n".join([
-                    "\t- dstatic[{}][{}]".format(k0, key) for k0 in lk0
-                ])
-            )
-            raise Exception(msg)
-        k0 = lk0[0]
-        key = _check_remove(
-            key=key,
-            dkey=dstatic0[k0],
-            name='ref_static[{}]'.format(k0),
-        )
+    # --------------------------------
+    # key is None => delete whole dict
 
-        # Make sure key is not used (condition for removing)
-        for kk in key:
-            lk1 = [
-                k1 for k1, v1 in ddata0.items()
-                if kk == v1.get(k0)
-            ]
-            lk2 = [
-                k1 for k1, v1 in dobj0.items()
-                if any([kk == v2.get(k0) for v2 in v1.values()])
-            ]
-            if len(lk1) > 0 or len(lk2) > 0:
-                msg = (
-                    "Provided ref_static key ({}) is used in:\n".format(kk)
-                    + "\n".join(
-                        ["\t- self.ddata['{}']".format(k1) for k1 in lk1]
-                        + [
-                            "\t- self.dobj['{}']['{}']".format(k2, k0)
-                            for k2 in lk2
-                        ]
-                    )
-                )
-                raise Exception(msg)
-            del dstatic0[k0][kk]
+    if key is None:
 
-    elif which is not None:
-        if which not in dstatic0.keys():
-            msg = (
-                "Provided which not in dstatic.keys():\n"
-                + "\t- Available: {}\n".format(sorted(dstatic0.keys()))
-                + "\t- Provided: {}".format(which)
-            )
-            raise Exception(msg)
-        del dstatic0[which]
-
-        # Propagate (delete as partam in ddata and dobj)
+        # Propagate (delete as param in ddata and dobj)
         if propagate is None:
             propagate = True
 
@@ -335,25 +399,79 @@ def _remove_ref_static(
                         param=which,
                     )
 
+        # remove 
+        del dstatic0[which]
+
+    # -------------
+    # key and which
+
+    else:
+
+        key = _check_remove(
+            key=key,
+            dkey=dstatic0[which],
+            name=f'static[{k0}]',
+        )
+
+        # Make sure key is not used (condition for removing)
+        for kk in key:
+            lk1 = [
+                k1 for k1, v1 in ddata0.items()
+                if kk == v1.get(which)
+            ]
+            lk2 = [
+                k1 for k1, v1 in dobj0.items()
+                if any([kk == v2.get(which) for v2 in v1.values()])
+            ]
+            if len(lk1) > 0 or len(lk2) > 0:
+                msg = (
+                    f"Provided static key ({kk}) is used in:\n"
+                    + "\n".join(
+                        [f"\t- self.ddata['{k1}']" for k1 in lk1]
+                        + [
+                            f"\t- self.dobj['{k2}']['{which}']"
+                            for k2 in lk2
+                        ]
+                    )
+                )
+                raise Exception(msg)
+            del dstatic0[k0][kk]
+
 
 def _remove_data(
+    # key to remove
     key=None,
-    dref0=None, ddata0=None,
+    # dict
+    dref0=None,
+    ddata0=None,
     dstatic0=None,
     dobj0=None,
+    # parameters
     propagate=None,
     reserved_keys=None,
     ddefparams_data=None,
     ddefparams_obj=None,
+    ddefparams_static=None,
     data_none=None,
     max_ndim=None,
 ):
     """ Remove a ref (or list of refs) and all associated data """
+
+    # ------------
+    # trivial case
+
     if key is None:
-        return dref0, ddata0
+        return dref0, dstatic0, ddata0, dobj0
+
+    # ------------
+    # check inputs
+
     key = _check_remove(
         key=key, dkey=ddata0, name='data',
     )
+
+    # ------
+    # remove
 
     for k0 in key:
         # Remove key from dref['ldata']
@@ -362,7 +480,7 @@ def _remove_data(
                 dref0[k1]['ldata'].remove(k0)
         del ddata0[k0]
 
-    # Propagate upward
+    # Propagate upward to ref
     if propagate is True:
         lk = [
             k0 for k0, v0 in dref0.items()
@@ -380,72 +498,59 @@ def _remove_data(
         reserved_keys=reserved_keys,
         ddefparams_data=ddefparams_data,
         ddefparams_obj=ddefparams_obj,
+        ddefparams_static=ddefparams_static,
         data_none=data_none,
         max_ndim=max_ndim,
     )
 
 
 def _remove_obj(
+    # key to remove
     key=None,
     which=None,
+    # dict
     dobj0=None,
     ddata0=None,
     dref0=None,
     dstatic0=None,
+    # parameters
     reserved_keys=None,
     ddefparams_data=None,
     ddefparams_obj=None,
+    ddefparams_static=None,
     data_none=None,
     max_ndim=None,
 ):
 
     # ------------
+    # check inputs
+
+    key, which = _get_whichorkey(
+        key=key,
+        which=which,
+        din=dobj,
+        dname='dobj',
+    )
+
+    # --------------------------------
+    # key is None => delete whole dict
+
+    if key is None:
+
+        # remove 
+        del dstatic0[which]
+
+    # ------------
     # Check inputs
 
-    lc = [
-        key is not None,
-        which is not None,
-    ]
-    if np.sum(lc) != 1:
-        msg = "Please provide either key xor which!"
-        raise Exception(msg)
-
     if key is not None:
-        # key => delete list of obj
-        if isinstance(key, str):
-            key = [key]
-
-        lk0 = [
-            k0 for k0, v0 in dobj0.items()
-            if all([kk in v0.keys() for kk in key])
-        ]
-        if len(lk0) != 1:
-            msg = (
-                "No / several matches for '{}' in dobj:\n".format(key)
-                + "\n".join([
-                    "\t- dobj[{}][{}]".format(k0, key) for k0 in lk0
-                ])
-            )
-            raise Exception(msg)
-        k0 = lk0[0]
         key = _check_remove(
             key=key,
-            dkey=dobj0[k0],
-            name='dobj[{}]'.format(k0),
+            dkey=dobj0[which],
+            name=f"dobj['{which}']",
         )
-        for kk in set(key).intersection(dobj0[k0].keys()):
+        for kk in set(key).intersection(dobj0[which].keys()):
             del dobj0[k0][kk]
-
-    elif which is not None:
-        if which not in dobj0.keys():
-            msg = (
-                "Provided which is not a valid self.dobj.keys()!\n"
-                + "\t- provided: {}\n".format(which)
-                + "\t- available: {}\n".format(sorted(dobj0.keys()))
-            )
-            raise Exception(msg)
-
-        del dobj0[which]
 
     return _consistency(
         ddata=None, ddata0=ddata0,
@@ -455,6 +560,7 @@ def _remove_obj(
         reserved_keys=reserved_keys,
         ddefparams_data=ddefparams_data,
         ddefparams_obj=ddefparams_obj,
+        ddefparams_static=ddefparams_static,
         data_none=data_none,
         max_ndim=max_ndim,
     )
@@ -469,7 +575,7 @@ def _remove_obj(
 def _check_dstatic(
     dstatic=None, dstatic0=None,
 ):
-    """ Check and format dref_staytic
+    """ Check and format dstatic
 
     dstatic can be:
         - dict
@@ -501,50 +607,48 @@ def _check_dstatic(
     # Raise exception if non-conformity
     if not c0:
         msg = (
-            """
-            Arg dstatic must be a dict of the form:
-            dict(
-                'type0': {'k0': {...},
-                          'k1': {...}},
-                'type1': {'k0': {...},
-                          'k1': {...}},
-            )
-            """
-            +
-            """
-            Provided:
-            {}
-            """.format(dstatic)
+            "Arg dstatic must be a dict of the form:\n"
+            "\t dict(\n"
+            "\t     'type0': {\n"
+            "\t         'k0': {...},\n"
+            "\t         'k1': {...}\n"
+            "\t     },\n"
+            "\t     'type1': {\n"
+            "\t         'k2': {...},\n"
+            "\t         'k3': {...}\n"
+            "\t     },\n"
+            "\t )\n"
+            f"\nProvided:\n{dstatic}"
         )
         raise Exception(msg)
+
+    # ----------------------------
+    # Identify conflicts / updates
 
     # raise except if conflict with existing entry
     dupdate = {}
     dconflict = {}
     for k0, v0 in dstatic.items():
-        lkout = ['nb. data']
-        if k0 == 'ion':
-            lkout += ['ION', 'charge', 'element']
+
+        # lkout = ['nb. data']
+        # if k0 == 'ion':
+            # lkout += ['ION', 'charge', 'element']
+
         if k0 not in dstatic0.keys():
             continue
 
-        for k1, v1 in v0.items():
-            if k1 not in dstatic0[k0].keys():
-                continue
-            # conflicts
-            lk = set(v1.keys()).intersection(dstatic0[k0][k1].keys())
-            lk = [kk for kk in lk if v1[kk] != dstatic0[k0][k1][kk]]
-            if len(lk) > 0:
-                dconflict[k0] = (k1, lk)
-            # updates
-            lk = [
-                kk for kk in dstatic0[k0][k1].keys()
-                if kk not in v1.keys()
-                and kk not in lkout
-                and 'nb. ' not in kk
-            ]
-            if len(lk) > 0:
-                dupdate[k0] = (k1, lk)
+        dconflict0, dupdate0 = _check_conflicts(
+            dd=dstatic[k0],
+            dd0=dstatic0[k0],
+            dd_name=f"dstatic['{k0}']",
+            returnas=True,
+        )
+
+        if len(dconflict0) > 0:
+            dconflict[k0] = {k1: list(v1) for k1, v1 in dconflict0.items()}
+
+        if len(dupdate0) > 0:
+            dupdate[k0] = {k1: list(v1) for k1, v1 in dupdate0.items()}
 
     # Conflicts => Exception
     if len(dconflict) > 0:
@@ -559,18 +663,23 @@ def _check_dstatic(
 
     # Updates => Warning
     if len(dupdate) > 0:
+        lstr = list(itt.chain.from_iterable([
+            [
+                f"\t- dstatic['{k0}']['{k1}']: {v1}"
+                for k1, v1 in v0.items()
+            ]
+            for k0, v0 in dupdate.items()
+        ]))
         msg = (
-            "\nThe following existing dstatic keys will be forgotten:\n"
-            + "\n".join([
-                "\t- dstatic['{}']['{}']: {}".format(k0, v0[0], v0[1])
-                for k0, v0 in dupdate.items()
-            ])
+            "\nThe following keys will be added to dstatic:\n"
+            + "\n".join(lstr)
         )
         warnings.warn(msg)
 
     # ------------------
     # Check element / ion / charge
-    _check_elementioncharge_dict(dstatic=dstatic)
+
+    # _check_elementioncharge_dict(dstatic=dstatic)
 
     return dstatic
 
@@ -633,7 +742,9 @@ def _check_dataref(data=None, key=None):
 
 
 def _check_dref(
-    dref=None, dref0=None, ddata0=None,
+    dref=None,
+    dref0=None,
+    ddata0=None,
 ):
     """ Check and format dref
 
@@ -648,28 +759,27 @@ def _check_dref(
     # ----------------
     # Trivial case
     if dref in [None, {}]:
-        return {}, None, None
+        return {}, {}
 
     # ----------------
     # Check conformity
 
     # Basis
     # lk_opt = ['ldata', 'size', 'data']
-    c0 = isinstance(dref, dict)
     if not isinstance(dref, dict):
         msg = "Arg dref must be a dict!"
         raise Exception(msg)
 
-    keyroot = 'iref'
+    dref2 = {}
     for k0, v0 in dref.items():
 
         # key
         nmax = _generic_check._name_key(
-            dd=None, dd_name=None, keyroot=keyroot,
+            dd=dref0, dd_name='dref0', keyroot=_IREF,
         )[1]
-        key = f'{keyroot}{nmax:02.0f}'
+        key = f'{_IREF}{nmax:02.0f}'
 
-        key = _generic_checks._check_var(
+        key = _generic_check._check_var(
             k0,
             'k0',
             types=str,
@@ -692,20 +802,25 @@ def _check_dref(
             msg = "v0 must be a dict with either 'data' or 'size'"
             raise Exception(msg)
 
+        dref2[key] = dict(dref[k0])
+
     # -----------------------
     # raise except if conflict with existing entry
-    _check_conflicts(dd=dref, dd0=dref0, dd_name='dref')
+
+    _check_conflicts(dd=dref2, dd0=dref0, dd_name='dref')
 
     # ----------------
     # Add size / data if relevant
+
     ddata_add = {
         k0: {'data': None}
-        for k0, v0 in dref.items()
-        if 'data' in v0.keys() and k0 not in ddata0.keys()
+        for k0, v0 in dref2.items()
+        if v0.get('data') is not None
+        and k0 not in ddata0.keys()
     }
-    for k0, v0 in dref.items():
-        if 'data' in v0.keys():
-            data, dref[k0]['size'] = _check_dataref(
+    for k0, v0 in dref2.items():
+        if v0.get('data') is not None:
+            data, dref2[k0]['size'] = _check_dataref(
                 data=v0['data'], key=k0,
             )
             if k0 in ddata_add.keys():
@@ -718,8 +833,8 @@ def _check_dref(
 
     # get rid of extra keys
     dref = {
-        k0: {k1: v1 for k1, v1 in v0.items() if k1 in _DRESERVED_KEYS['dref']}
-        for k0, v0 in dref.items()
+        k0: {k1: v0.get(k1) for k1 in _DRESERVED_KEYS['dref']}
+        for k0, v0 in dref2.items()
     }
     return dref, ddata_add
 
@@ -763,8 +878,12 @@ def _check_data(data=None, key=None, max_ndim=None):
                 try:
                     data = np.array(data)
                     shape = data.shape
+                    c0_array = True
                 except Exception as err:
                     raise DataRefException(ref=key, data=data)
+        else:
+            msg = "Non-handled data type!"
+            raise Exception(msg)
 
     # if array => check unique (unique + sorted)
     if shape is None:
@@ -780,8 +899,8 @@ def _check_data(data=None, key=None, max_ndim=None):
             )
             raise Exception(msg)
 
-    # Check if valid ref candidate
-    if isinstance(data, np.ndarray):
+    # Check if valid ref candidate (monotonous = (True,))
+    if c0_array:
         monotonous = tuple([
             bool(
                 np.all(np.diff(data, axis=aa) > 0.)
@@ -794,34 +913,96 @@ def _check_data(data=None, key=None, max_ndim=None):
     return data, shape, monotonous
 
 
-def _get_suitable_ref(shape=None, key=None, dref=None):
+def _get_suitable_ref(
+    shape=None,
+    key=None,
+    dref0=None,
+    dref_add=None,
+    axis=None,
+):
+    """  For each dimension of data.shape, identify the relevant ref index """
 
+    if axis is None:
+        axis = 0
+    assert axis < len(shape)
+
+    # list all possible ref in each dimension
+    size = shape[axis]
     lref = [
-        [
-            k0 for k0, v0 in dref.items()
-            if v0['size'] == shape[ii]
-        ]
-        for ii in range(len(shape))
+        k0 for k0, v0 in dref0.items()
+        if v0['size'] == size
     ]
 
-    dnew = {}
-    for ii, rr in enumerate(lref):
-        if len(rr) == 1:
-            lref[ii] == rr[0]
-        elif len(rr) > 1:
-            msg = (
-                f"Ambiguous ref for ddata['{key}']\n"
-                f"Possible matches: {lref}"
+    # perfect match
+    if len(lref) == 1:
+        lref = lref[0]
+
+    # multiple matches
+    elif len(lref) > 1:
+        msg = (
+            f"Ambiguous ref for ddata['{key}']\n"
+            f"Possible matches: {lref}"
+        )
+        raise Exception(msg)
+
+    # no match => create new ref
+    else:
+        nmax0 = _generic_check._name_key(
+            dd=dref0, dd_name='dref', keyroot=_IREF,
+        )[1]
+        nmax1 = _generic_check._name_key(
+            dd=dref_add, dd_name='dref_add', keyroot=_IREF,
+        )[1]
+        lref = f'{_IREF}{max(nmax0, nmax1):02.0f}'
+
+    return lref, size
+
+
+def _check_data_ref(k0=None, ddata=None, dref0=None, dref_add=None):
+
+    if dref_add is None:
+        dref_add = {}
+
+    # None => create
+    if ddata[k0].get('ref') is None:
+        lref = []
+        for ii, ss in enumerate(ddata[k0]['shape']):
+            ref, size = _get_suitable_ref(
+                shape=ddata[k0]['shape'],
+                key=k0,
+                dref0=dref0,
+                dref_add=dref_add,
+                axis=ii,
             )
-            raise Exception(msg)
-        else:
-            keyroot = 'iref'
-            nmax = _generic_check._name_key(
-                dd=None, dd_name=None, keyroot=keyroot,
-            )[1]
-            lref[ii] = f'{keyroot}{nmax:02.0f}'
-            dnew[lref[ii]] = {'size': shape[ii]}
-    return lref, dnew
+
+            if ref not in dref0.keys() and ref not in dref_add.keys():
+                dref_add[ref] = {'size': size}
+
+            lref.append(ref)
+
+        ddata[k0]['ref'] = tuple(lref)
+
+    # length mismatch
+    elif len(ddata[k0]['shape']) != len(ddata[k0]['ref']):
+        msg = (
+            "Mismatching len(ref) and len(shape) for ddata['{k0}']"
+        )
+        raise Exception(msg)
+
+    # length match but unknown ref or size mismatch
+    else:
+        for ii, ss in enumerate(ddata[k0]['shape']):
+            if ddata[k0]['ref'][ii] not in dref0.keys():
+                if ddata[k0]['ref'][ii] not in dref_add.keys():
+                    dref_add[ddata[k0]['ref'][ii]] = {'size': ss}
+
+            elif ss != dref0[ddata[k0]['ref'][ii]]['size']:
+                msg = (
+                    f"Mismatching ref size and shape for ddata['{k0}']"
+                )
+                raise Exception(msg)
+
+    return dref_add
 
 
 def _check_ddata(
@@ -835,8 +1016,9 @@ def _check_ddata(
 
     # ----------------
     # Trivial case
+
     if ddata in [None, {}]:
-        return {}, None, None
+        return {}, {}
     if data_none is None:
         data_none = _DATA_NONE
 
@@ -853,7 +1035,7 @@ def _check_ddata(
     lkout = [
         k0 for k0, v0 in ddata.items()
         if not (
-            isinstance(k0, str)
+            (k0 is None or isinstance(k0, str))
             # and k0 not in ddata0.keys()
             and (
                 (isinstance(v0, ltok) or scpsp.issparse(v0))
@@ -870,7 +1052,13 @@ def _check_ddata(
                             and (
                                 v0.get('ref') is None
                                 or isinstance(v0.get('ref'), str)
-                                or isinstance(v0.get('ref'), tuple)
+                                or (
+                                    isinstance(v0.get('ref'), tuple)
+                                    and all([
+                                        isinstance(rr, str)
+                                        for rr in v0['ref']
+                                    ])
+                                )
                             )
                         )
                     )
@@ -902,7 +1090,7 @@ def _check_ddata(
 
             The following keys do not match the criteria:
             """
-            + '\t- '+'\n\t- '.join(lkout)
+            + '\t- ' + '\n\t- '.join(lkout)
         )
         raise Exception(msg)
 
@@ -914,85 +1102,61 @@ def _check_ddata(
     # ----------------
     # Convert and/or add ref if necessary
 
+    ddata2 = {}
     dref_add = {}
     for k0, v0 in ddata.items():
 
+        # key
+        nmax = _generic_check._name_key(
+            dd=ddata0, dd_name='ddata0', keyroot=_IDATA,
+        )[1]
+        key = f'{_IDATA}{nmax:02.0f}'
+
+        key = _generic_check._check_var(
+            k0,
+            'k0',
+            types=str,
+            default=key,
+        )
+
+        # convert to dict if needed
         if not isinstance(v0, dict):
-            lref, dnew = _get_suitable_ref(shape=, key=k0, dref=dref0)
-            ddata[k0] = {'ref': lref, 'data': v0}
-            dref_add.update(dnew)
+            ddata[k0] = {'data': v0}
 
-        else:
-            if v0.get('data') is None:
-                continue
-
-            if v0.get('ref') is None:
-                lref, dnew = _get_suitable_ref(shape=, key=k0, dref=dref0)
-                ddata[k0['ref']] = lref
-                dref_add.update(dnew)
-
-            elif isinstance(v0['ref'], str):
-                ddata[k0]['ref'] = (v0['ref'],)
-
-    # Check data and ref vs shape - and optionnally add to ref if mesh2d
-    for k0, v0 in ddata.items():
-        if v0.get('data') is not None:
-            (
-                ddata[k0]['data'], ddata[k0]['shape'], ddata[k0]['monot']
-            ) = _check_data(
-                data=v0['data'], key=k0, max_ndim=max_ndim,
-            )
-
-            # Check if mesh2d
-            c0 = ddata[k0].get('ref') in [None, (k0,)]
-            if not c0:
-                msg = (
-                    f"ddata[{k0}]['ref'] should have ref = ({k0},)"
-                )
-                raise Exception(msg)
-            ddata[k0]['ref'] = (k0,)
-            c0 = (
-                (lref_add is None or k0 not in lref_add)
-                and k0 not in dref0.keys()
-            )
-            if c0:
-                if lref_add is None:
-                    lref_add = [k0]
-                else:
-                    lref_add.append(k0)
-
-    # Add missing refs (only in ddata)
-    dref_add = None
-    lref = list(itt.chain.from_iterable([
-        [
-            rr for rr in v0['ref']
-            if rr not in dref0.keys() and rr in ddata.keys()
-        ]
-        for v0 in ddata.values() if (
-            'ref' in v0.keys() and v0.get('data') is not None
+        # check data itself
+        data, shape, monotonous = _check_data(
+            data=ddata[k0]['data'], key=k0, max_ndim=max_ndim,
         )
-    ]))
+        ddata[k0]['data'] = data
+        ddata[k0]['shape'] = shape
+        ddata[k0]['monot'] = monotonous
 
-    if lref_add is not None:
-        lref += lref_add
+        # find ref
+        if isinstance(v0['ref'], str):
+            ddata[k0]['ref'] = (v0['ref'],)
 
-    if len(lref) > 0:
-        lref = set(lref)
-        dref_add = {rr: {'data': ddata[rr]['data']} for rr in lref}
-        dref_add, ddata_dadd = _check_dref(
-            dref=dref_add, dref0=dref0, ddata0=ddata0,
+        _check_data_ref(
+            k0=k0, ddata=ddata, dref0=dref0, dref_add=dref_add,
         )
 
-    # Check shape vs ref
-    for k0, v0 in ddata.items():
-        if v0.get('data') is None:
-            continue
+        ddata2[key] = dict(ddata[k0])
+
+    # ------------------
+    # Check ref vs shape
+
+    for k0, v0 in ddata2.items():
         c0 = (
             isinstance(v0['ref'], tuple)
             and all([
-                ss in dref0.keys()
-                or (dref_add is not None and ss in dref_add.keys())
-                for ss in v0['ref']
+                (
+                    ss in dref0.keys()
+                    and dref0[ss]['size'] == ddata2[k0]['shape'][ii]
+                )
+                or (
+                    ss in dref_add.keys()
+                    and dref_add[ss]['size'] == ddata2[k0]['shape'][ii]
+                )
+                for ii, ss in enumerate(v0['ref'])
             ])
         )
         if not c0:
@@ -1000,53 +1164,11 @@ def _check_ddata(
                 f"ddata['{k0}']['ref'] contains unknown ref:\n"
                 f"\t- ddata['{k0}']['ref'] = {v0['ref']}\n"
                 f"\t- dref0.keys() = {sorted(dref0.keys())}\n"
-                + "\t- dref_add.keys() = {}".format(
-                    None if dref_add is None else sorted(dref_add.keys())
-                )
+                f"\t- dref_add.keys() = {sorted(dref_add.keys())}"
             )
             raise Exception(msg)
-        if c0:
-            if isinstance(v0['shape'], tuple):
-                shaperef = [
-                    dref0[rr]['size'] if rr in dref0.keys()
-                    else dref_add[rr]['size']
-                    for rr in v0['ref']
-                ]
-                c1 = (
-                    len(shaperef) > 1
-                    or any([isinstance(ss, tuple) for ss in shaperef])
-                )
-                if c1:
-                    shaperef = np.r_[tuple(shaperef)].ravel()
-                shaperef = tuple(shaperef)
-                c0 = c0 and shaperef == v0['shape']
-            else:
-                c0 = v0['ref'] == (k0,)
 
-        # Raise Exception if needed
-        if not c0:
-            if isinstance(v0['shape'], tuple):
-                msg = (
-                    """
-                    Inconsistent shape vs ref for ddata[{0}]:
-                        - ddata['{0}']['ref'] = {1}  ({2})
-                        - ddata['{0}']['shape'] = {3}
-
-                    If dict / object it should be its own ref!
-                    """.format(k0, v0['ref'], shaperef, v0['shape'])
-                )
-            else:
-                msg = (
-                    "ddata[{0}]['ref'] != ({0},)".format(k0)
-                    + "\n\t- ddata['{}']['ref'] = {}\n\n".format(k0, v0['ref'])
-                    + "... or there might be an issue with:\n"
-                    + "\t- type(ddata['{}']['shape']) = {} ({})".format(
-                        k0, type(v0['shape']), v0['shape'],
-                    )
-                )
-            raise Exception(msg)
-
-    return ddata, dref_add
+    return ddata2, dref_add
 
 
 # #############################################################################
@@ -1056,7 +1178,8 @@ def _check_ddata(
 
 
 def _check_dobj(
-    dobj=None, dobj0=None,
+    dobj=None,
+    dobj0=None,
 ):
 
     # ----------------
@@ -1071,18 +1194,21 @@ def _check_dobj(
     if not isinstance(dobj, dict):
         msg = (
             "Arg dobj must be a dict!\n"
-            "\t- Provided: {}".format(type(dobj))
+            f"\t- Provided: {type(dobj)}"
         )
         raise Exception(msg)
 
     # Map possible non-conformities
     dc = {}
     for k0, v0 in dobj.items():
+
+        # check types (str, dict)
         c1 = isinstance(k0, str) and isinstance(v0, dict)
         if not c1:
             dc[k0] = "type(key) != str or type(value) != dict"
             continue
 
+        # check pre-existing categories
         if k0 not in dobj0.keys():
             lc2 = [k1 for k1 in v0.keys() if not isinstance(k1, str)]
             if len(lc2) > 0:
@@ -1092,6 +1218,7 @@ def _check_dobj(
                     + "\n\t- ".join(lc2)
                 )
                 continue
+
         else:
             lc2 = [
                 k1 for k1 in v0.keys()
@@ -1123,171 +1250,6 @@ def _check_dobj(
 # #############################################################################
 #                           Params
 # #############################################################################
-
-
-def _check_elementioncharge(
-    ION=None, ion=None,
-    element=None, charge=None,
-    warn=None,
-):
-    """ Specific to SpectralLines """
-
-    if warn is None:
-        warn = True
-
-    # Assess if relevant
-    lc = [
-        ION is not None,
-        ion is not None,
-        element is not None and charge is not None,
-    ]
-    if not any(lc):
-        if warn is True:
-            msg = (
-                """
-                To determine ION, ion, element and charge, provide either:
-                - ION:  {}
-                - ion:  {}
-                - element and charge: {}, {}
-                """.format(ION, ion, element, charge)
-            )
-            warnings.warn(msg)
-        return None, None, None, None
-
-    # Get element and charge from ION if any
-    if lc[0] or lc[1]:
-        indc = 1
-        if (lc[0] and ION[1].islower()) or (lc[1] and ion[1].islower()):
-            indc = 2
-
-        # Infer element
-        elementi = ION[:indc] if lc[0] else ion[:indc]
-        if element is not None and element != elementi:
-            msg = (
-                """
-                Inconsistent ION ({}) vs element ({})
-                """.format(element, elementi)
-            )
-            raise Exception(msg)
-
-        # Infer charge
-        if lc[0]:
-            chargei = roman2int(ION[indc:]) - 1
-        else:
-            chargei = int(ion[indc:].replace('+', ''))
-        if charge is not None and charge != chargei:
-            msg = (
-                """
-                Inconsistent ION ({}) vs charge ({})
-                """.format(charge, chargei)
-            )
-            raise Exception(msg)
-        element = elementi
-        charge = chargei
-        if lc[0]:
-            ioni = '{}{}+'.format(element, charge)
-            if lc[1] and ioni != ion:
-                msg = (
-                    """
-                    Inconsistent ION ({}) vs ion ({})
-                    """.format(ION, ion)
-                )
-                raise Exception(msg)
-            ion = ioni
-
-        elif lc[1]:
-            IONi = '{}{}'.format(element, int2roman(charge+1))
-            if lc[0] and IONi != ION:
-                msg = (
-                    """
-                    Inconsistent ion ({}) vs ION ({})
-                    """.format(ion, ION)
-                )
-                raise Exception(msg)
-            ION = IONi
-
-    # ion provided -> element and charge
-    elif lc[2]:
-        ioni = '{}{}+'.format(element, charge)
-        IONi = '{}{}'.format(element, int2roman(charge+1))
-        if ion is not None and ion != ioni:
-            msg = (
-                """
-                Inconsistent (element, charge) ({}, {}) vs ion ({})
-                """.format(element, charge, ion)
-            )
-            raise Exception(msg)
-        if ION is not None and ION != IONi:
-            msg = (
-                """
-                Inconsistent (element, charge) ({}, {}) vs ION ({})
-                """.format(element, charge, ION)
-            )
-            raise Exception(msg)
-        ion = ioni
-        ION = IONi
-
-    return ION, ion, element, charge
-
-
-def _check_elementioncharge_dict(dstatic):
-    """ Specific to SpectralLines """
-
-    # Assess if relevant
-    lk = [kk for kk in ['ion', 'ION'] if kk in dstatic.keys()]
-    if len(lk) == 0:
-        return
-    kion = lk[0]
-    kION = 'ION' if kion == 'ion' else 'ion'
-    if kion == 'ION':
-        dstatic['ion'] = {}
-
-    lerr = []
-    for k0, v0 in dstatic[kion].items():
-        try:
-            if kion == 'ION':
-                ION, ion, element, charge = _check_elementioncharge(
-                    ION=k0,
-                    ion=v0.get('ion'),
-                    element=v0.get('element'),
-                    charge=v0.get('charge'),
-                )
-            else:
-                ION, ion, element, charge = _check_elementioncharge(
-                    ION=v0.get('ION'),
-                    ion=k0,
-                    element=v0.get('element'),
-                    charge=v0.get('charge'),
-                )
-
-            if ION is None:
-                continue
-            if kion == 'ION':
-                dstatic['ion'][ion] = {
-                    'ION': ION,
-                    'element': element,
-                    'charge': charge,
-                }
-            else:
-                dstatic['ion'][k0]['ION'] = ION
-                dstatic['ion'][k0]['element'] = element
-                dstatic['ion'][k0]['charge'] = charge
-
-        except Exception as err:
-            lerr.append((k0, str(err)))
-
-    if kion == 'ION':
-        del dstatic['ION']
-
-    if len(lerr) > 0:
-        lerr = ['\t- {}: {}'.format(pp[0], pp[1]) for pp in lerr]
-        msg = (
-            """
-            The following entries have non-conform ion / ION / element / charge
-            {}
-            """.format('\n'.join(lerr))
-        )
-        raise Exception(msg)
 
 
 def _harmonize_params(
@@ -1428,6 +1390,7 @@ def _consistency(
     reserved_keys=None,
     ddefparams_data=None,
     ddefparams_obj=None,
+    ddefparams_static=None,
     data_none=None,
     max_ndim=None,
 ):
@@ -1485,8 +1448,21 @@ def _consistency(
         dd=ddata0,
         dd_name='ddata',
         dstatic=dstatic0,
-        ddefparams=ddefparams_data, reserved_keys=reserved_keys,
+        ddefparams=ddefparams_data,
+        reserved_keys=reserved_keys,
     )
+
+    # --------------
+    # params harmonization - dstatic
+    for k0, v0 in dstatic0.items():
+        dstatic0[k0] = _harmonize_params(
+            dd=v0,
+            dd_name='dstatic',
+            dd_name2=f'dstatic[{k0}]',
+            dstatic=dstatic0,
+            ddefparams=ddefparams_static.get(k0),
+            reserved_keys=reserved_keys,
+        )
 
     # --------------
     # params harmonization - dobj
@@ -1594,6 +1570,7 @@ def switch_ref(
         reserved_keys=None,
         ddefparams_data=ddefparams_data,
         ddefparams_obj=None,
+        ddefparams_static=None,
         data_none=None,
         max_ndim=None,
     )
@@ -1777,12 +1754,6 @@ def _remove_param(dd=None, dd_name=None, param=None):
             del dd[k0][param]
 
 
-# #############################################################################
-# #############################################################################
-#               Selection
-# #############################################################################
-
-
 def _ind_tofrom_key(
     dd=None, dd_name=None,
     ind=None, key=None, returnas=int,
@@ -1868,337 +1839,3 @@ def _ind_tofrom_key(
         else:
             out = lk
     return out
-
-
-def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
-    """ Return the indices / keys of data matching criteria
-
-    The selection is done comparing the value of all provided parameters
-    The result is a boolean indices array, optionally with the keys list
-    It can include:
-        - log = 'all': only the data matching all criteria
-        - log = 'any': the data matching any criterion
-
-    If log = 'raw', a dict of indices arrays is returned, showing the
-    details for each criterion
-
-    """
-
-    # -----------
-    # check input
-
-    # log
-    log = _generic_var._check_var(
-        log,
-        'log',
-        types=str,
-        default='all',
-        allowed=['all', 'any', 'raw'],
-    )
-
-    # returnas
-    # 'raw' => return the full 2d array of boolean indices
-    returnas = _generic_var._check_var(
-        returnas,
-        'returnas',
-        default=bool if log == 'raw' else int,
-        allowed=[int, bool, str, 'key'],
-    )
-
-    kwdargs = {k0: v0 for k0, v0 in kwdargs.items() if v0 is not None}
-
-    # Get list of relevant criteria
-    lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
-    lk = list(kwdargs.keys())
-    lk = _generic_var._check_var_iter(
-        lk,
-        'lk',
-        types_iter=str,
-        default=lp,
-        allowed=lp,
-    )
-
-    # --------------------
-    # Get raw bool indices
-
-    # Get list of accessible param
-    ltypes = [float, np.float_]
-    lquant = [
-        kk for kk in kwdargs.keys()
-        if any([type(dd[k0][kk]) in ltypes for k0 in dd.keys()])
-    ]
-
-    # Prepare array of bool indices and populate
-    ind = np.zeros((len(kwdargs), len(dd)), dtype=bool)
-    for ii, kk in enumerate(kwdargs.keys()):
-        try:
-            par = _get_param(
-                dd=dd, dd_name=dd_name,
-                param=kk,
-                returnas=np.ndarray,
-            )[kk]
-            if kk in lquant:
-                # list => in interval
-                if isinstance(kwdargs[kk], list) and len(kwdargs[kk]) == 2:
-                    ind[ii, :] = (
-                        (kwdargs[kk][0] <= par) & (par <= kwdargs[kk][1])
-                    )
-
-                # tuple => out of interval
-                elif isinstance(kwdargs[kk], tuple) and len(kwdargs[kk]) == 2:
-                    ind[ii, :] = (
-                        (kwdargs[kk][0] > par) | (par > kwdargs[kk][1])
-                    )
-
-                # float / int => equal
-                else:
-                    ind[ii, :] = par == kwdargs[kk]
-            else:
-                ind[ii, :] = par == kwdargs[kk]
-        except Exception as err:
-            try:
-                ind[ii, :] = [
-                    dd[k0][kk] == kwdargs[kk] for k0 in dd.keys()
-                ]
-            except Exception as err:
-                msg = (
-                    "Could not determine whether:\n"
-                    + "\t- {}['{}'] == {}".format(
-                        dd_name, kk, kwdargs[kk],
-                    )
-                )
-                raise Exception(msg)
-
-    # -----------------
-    # Format output ind
-
-    # return raw 2d array of bool indices
-    if log == 'raw':
-        if returnas in [str, 'key']:
-            ind = {
-                kk: [k0 for jj, k0 in enumerate(dd.keys()) if ind[ii, jj]]
-                for ii, kk in enumerate(kwdargs.keys())
-            }
-        if returnas == int:
-            ind = {
-                kk: ind[ii, :].nonzero()[0]
-                for ii, kk in enumerate(kwdargs.keys())
-            }
-        else:
-            ind = {kk: ind[ii, :] for ii, kk in enumerate(kwdargs.keys())}
-
-    else:
-        # return all or any
-        if log == 'all':
-            ind = np.all(ind, axis=0)
-        else:
-            ind = np.any(ind, axis=0)
-
-        if returnas == int:
-            ind = ind.nonzero()[0]
-        elif returnas in [str, 'key']:
-            ind = np.array(
-                [k0 for jj, k0 in enumerate(dd.keys()) if ind[jj]],
-                dtype=str,
-            )
-    return ind
-
-
-def _get_keyingroup_ddata(
-    dd=None, dd_name='data',
-    key=None, monot=None,
-    msgstr=None, raise_=False,
-):
-    """ Return the unique data key matching key
-
-    Here, key can be interpreted as name / source / units / quant...
-    All are tested using select() and a unique match is returned
-    If not unique match an error message is either returned or raised
-
-    """
-
-    # ------------------------
-    # Trivial case: key is actually a ddata key
-
-    if key in dd.keys():
-        return key, None
-
-    # ------------------------
-    # Non-trivial: check for a unique match on other params
-
-    dind = _select(
-        dd=dd, dd_name=dd_name,
-        dim=key, quant=key, name=key, units=key, source=key,
-        monot=monot,
-        log='raw',
-        returnas=bool,
-    )
-    ind = np.array([ind for kk, ind in dind.items()])
-
-    # Any perfect match ?
-    nind = np.sum(ind, axis=1)
-    sol = (nind == 1).nonzero()[0]
-    key_out, msg = None, None
-    if sol.size > 0:
-        if np.unique(sol).size == 1:
-            indkey = ind[sol[0], :].nonzero()[0]
-            key_out = list(dd.keys())[indkey]
-        else:
-            lstr = "[dim, quant, name, units, source]"
-            msg = "Several possible matches in {} for {}".format(lstr, key)
-    else:
-        lstr = "[dim, quant, name, units, source]"
-        msg = "No match in {} for {}".format(lstr, key)
-
-    # Complement error msg and optionally raise
-    if msg is not None:
-        lk = ['dim', 'quant', 'name', 'units', 'source']
-        dk = {
-            kk: (
-                dind[kk].sum(),
-                sorted(set([vv[kk] for vv in dd.values()]))
-            ) for kk in lk
-        }
-        msg += (
-            "\n\nRequested {} could not be identified!\n".format(msgstr)
-            + "Please provide a valid (unique) key/name/dim/quant/units:\n\n"
-            + '\n'.join([
-                '\t- {} ({} matches): {}'.format(kk, dk[kk][0], dk[kk][1])
-                for kk in lk
-            ])
-            + "\nProvided:\n\t'{}'".format(key)
-        )
-        if raise_:
-            raise Exception(msg)
-    return key_out, msg
-
-
-def _get_possible_ref12d(
-    dd=None,
-    key=None, ref1d=None, ref2d=None,
-    group1d='radius',
-    group2d='mesh2d',
-):
-
-    # Get relevant lists
-    kq, msg = _get_keyingroup_ddata(
-        dd=dd,
-        key=key, group=group2d, msgstr='quant', raise_=False,
-    )
-
-    if kq is not None:
-        # The desired quantity is already 2d
-        k1d, k2d = None, None
-
-    else:
-        # Check if the desired quantity is 1d
-        kq, msg = _get_keyingroup_ddata(
-            dd=dd,
-            key=key, group=group1d,
-            msgstr='quant', raise_=True,
-        )
-
-        # Get dict of possible {ref1d: lref2d}
-        ref = [rr for rr in dd[kq]['ref'] if dd[rr]['group'] == (group1d,)][0]
-        lref1d = [
-            k0 for k0, v0 in dd.items()
-            if ref in v0['ref'] and v0['monot'][v0['ref'].index(ref)] is True
-        ]
-
-        # Get matching ref2d with same quant and good group
-        lquant = list(set([dd[kk]['quant'] for kk in lref1d]))
-        dref2d = {
-            k0: [
-                kk for kk in _select(
-                    dd=dd, quant=dd[k0]['quant'],
-                    log='all', returnas=str,
-                )
-                if group2d in dd[kk]['group']
-                and not isinstance(dd[kk]['data'], dict)
-            ]
-            for k0 in lref1d
-        }
-        dref2d = {k0: v0 for k0, v0 in dref2d.items() if len(v0) > 0}
-
-        if len(dref2d) == 0:
-            msg = (
-                "No match for (ref1d, ref2d) for ddata['{}']".format(kq)
-            )
-            raise Exception(msg)
-
-        # check ref1d
-        if ref1d is None:
-            if ref2d is not None:
-                lk = [k0 for k0, v0 in dref2d.items() if ref2d in v0]
-                if len(lk) == 0:
-                    msg = (
-                        "\nNon-valid interpolation intermediate\n"
-                        + "\t- provided:\n"
-                        + "\t\t- ref1d = {}, ref2d = {}\n".format(ref1d, ref2d)
-                        + "\t- valid:\n{}".format(
-                            '\n'.join([
-                                '\t\t- ref1d = {}  =>  ref2d in {}'.format(
-                                    k0, v0
-                                )
-                                for k0, v0 in dref2d.items()
-                            ])
-                        )
-                    )
-                    raise Exception(msg)
-                if kq in lk:
-                    ref1d = kq
-                else:
-                    ref1d = lk[0]
-            else:
-                if kq in dref2d.keys():
-                    ref1d = kq
-                else:
-                    ref1d = list(dref2d.keys())[0]
-        else:
-            ref1d, msg = _get_keyingroup_ddata(
-                dd=dd,
-                key=ref1d, group=group1d,
-                msgstr='ref1d', raise_=False,
-            )
-        if ref1d not in dref2d.keys():
-            msg = (
-                "\nNon-valid interpolation intermediate\n"
-                + "\t- provided:\n"
-                + "\t\t- ref1d = {}, ref2d = {}\n".format(ref1d, ref2d)
-                + "\t- valid:\n{}".format(
-                    '\n'.join([
-                        '\t\t- ref1d = {}  =>  ref2d in {}'.format(
-                            k0, v0
-                        )
-                        for k0, v0 in dref2d.items()
-                    ])
-                )
-            )
-            raise Exception(msg)
-
-        # check ref2d
-        if ref2d is None:
-            ref2d = dref2d[ref1d][0]
-        else:
-            ref2d, msg = _get_keyingroup_ddata(
-                dd=dd,
-                key=ref2d, group=group2d,
-                msgstr='ref2d', raise_=False,
-            )
-        if ref2d not in dref2d[ref1d]:
-            msg = (
-                "\nNon-valid interpolation intermediate\n"
-                + "\t- provided:\n"
-                + "\t\t- ref1d = {}, ref2d = {}\n".format(ref1d, ref2d)
-                + "\t- valid:\n{}".format(
-                    '\n'.join([
-                        '\t\t- ref1d = {}  =>  ref2d in {}'.format(
-                            k0, v0
-                        )
-                        for k0, v0 in dref2d.items()
-                    ])
-                )
-            )
-            raise Exception(msg)
-
-    return kq, ref1d, ref2d
