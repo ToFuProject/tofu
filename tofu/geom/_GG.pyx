@@ -540,7 +540,7 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     err_mess = "Mode has to be 'abs' (absolute) or 'rel' (relative)"
     assert mode_num >= 0, err_mess
     # .. preparing inputs.......................................................
-    _st.cythonize_subdomain_dl(DL, dl_array) # dl_array is initialized
+    _st.cythonize_subdomain_dl(DL, dl_array)  # dl_array is initialized
     #.. calling cython function.................................................
     sz_ld = _st.discretize_line1d_core(&LMinMax[0], dstep, dl_array, Lim,
                                        mode_num, margin, &ldiscret, resolution,
@@ -1951,13 +1951,16 @@ cdef inline int _check_DLvsLMinMax(double[::1] LMinMax,
                 DL[1] = None
     return inter
 
+
 def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
                                    double[:,::1] VPoly,
                                    list DX=None,
                                    list DY=None,
                                    list DZ=None,
-                                   double DIn=0., VIn=None,
-                                   double margin=_VSMALL):
+                                   double DIn=0.,
+                                   double[:,::1] VIn=None,
+                                   double margin=_VSMALL,
+                                   ):
     """Return the desired surfacic submesh indicated by the limits (DX,DY,DZ),
     for the desired resolution (dX,dL) """
     cdef np.ndarray[double,ndim=1] X, Y0, Z0
@@ -1980,14 +1983,13 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
         # Get the mesh for the faces
         Y0, dY0r,\
           indY0, NY0 = discretize_line1d(np.array([np.min(VPoly[0,:]),
-                                                    np.max(VPoly[0,:])]),
-                                          dL, DL=DY, Lim=True, margin=margin)
+                                                   np.max(VPoly[0,:])]),
+                                         dL, DL=DY, Lim=True, margin=margin)
         Z0, dZ0r,\
           indZ0, NZ0 = discretize_line1d(np.array([np.min(VPoly[1,:]),
-                                                    np.max(VPoly[1,:])]),
-                                          dL, DL=DZ, Lim=True, margin=margin)
+                                                   np.max(VPoly[1,:])]),
+                                         dL, DL=DZ, Lim=True, margin=margin)
         Y0n, Z0n = len(Y0), len(Z0)
-
         # Get the actual R and Z resolutions and mesh elements
         X, dXr, indX, NX = discretize_line1d(XMinMax, dX,
                                               DL=DX,

@@ -70,6 +70,105 @@ _dshort = {
                          'units': 's'},
         'events_names': {'str': 'event[].identifier'}},
 
+    'summary': {
+        't': {
+            'str': 'time',
+            'units': 's',
+        },
+        'power_ic': {
+            'str': 'heating_current_drive.power_ic.value',
+            'units': 'W',
+        },
+        'power_lh': {
+            'str': 'heating_current_drive.power_lh.value',
+            'units': 'W',
+        },
+        'power_ec': {
+            'str': 'heating_current_drive.power_ec.value',
+            'units': 'W',
+        },
+        'power_nbi': {
+            'str': 'heating_current_drive.power_nbi.value',
+            'units': 'W',
+        },
+        'ip': {
+            'str': 'global_quantities.ip.value',
+            'units': 'A',
+        },
+        'v_loop': {
+            'str': 'global_quantities.v_loop.value',
+            'units': 'V',
+        },
+        'beta_tor_norm': {
+            'str': 'global_quantities.beta_tor_norm.value',
+            'units': '-',
+        },
+        'beta_tor': {
+            'str': 'global_quantities.beta_tor.value',
+            'units': '-',
+        },
+        'beta_pol': {
+            'str': 'global_quantities.beta_pol.value',
+            'units': '-',
+        },
+        'energy_total': {
+            'str': 'global_quantities.energy_total.value',
+            'units': 'J',
+        },
+        'volume': {
+            'str': 'global_quantities.volume.value',
+            'units': 'm^3',
+        },
+        'fusion_gain': {
+            'str': 'global_quantities.fusion_gain.value',
+            'units': '-',
+        },
+        'tau_resistive': {
+            'str': 'global_quantities.tau_resistive.value',
+            'units': 's',
+        },
+        'tau_energy': {
+            'str': 'global_quantities.tau_energy.value',
+            'units': 's',
+        },
+        'fusion_fluence': {
+            'str': 'global_quantities.fusion_fluence.value',
+            'units': 'J',
+        },
+        'ng_fraction': {
+            'str': 'global_quantities.greenwald_fraction.value',
+            'units': '-',
+        },
+        'q95': {
+            'str': 'global_quantities.q_95.value',
+            'units': '-',
+        },
+        'li': {
+            'str': 'global_quantities.li.value',
+            'units': '-',
+        },
+        'fusion_power': {
+            'str': 'fusion.power.value',
+            'units': 'W',
+        },
+        'neutrons_flux': {
+            'str': 'fusion.neutron_fluxes.total.value',
+            'units': 'Hz',
+        },
+        'neutrons_power': {
+            'str': 'fusion.neutron_power_total.value',
+            'units': 'W',
+        },
+        'runaway_current': {
+            'str': 'runaways.current.value',
+            'units': 'A',
+        },
+        'runaway_particles': {
+            'str': 'runaways.particles.value',
+            'units': '-',
+        },
+    },
+
     'equilibrium': {
         't': {'str': 'time', 'units': 's'},
         'ip': {'str': 'time_slice[time].global_quantities.ip',
@@ -167,7 +266,14 @@ _dshort = {
         '1drhopn': {'str': 'profiles_1d[time].grid.rho_pol_norm',
                     'dim': 'rho', 'quant': 'rhopn', 'units': '-'},
         '1dnW': {'str': 'profiles_1d[time].ion[identifier.label=W].density',
-                 'dim': 'density', 'quant': 'nI', 'units': 'm^-3'}},
+                 'dim': 'density', 'quant': 'nI', 'units': 'm^-3'},
+        '1dTi_av': {
+            'str': 'profiles_1d[time].t_i_average',
+            'units': 'eV',
+            'dim': 'temperature',
+            'quant': 'Ti',
+        },
+    },
 
     'edge_profiles': {
         't': {'str': 'time', 'units': 's'}},

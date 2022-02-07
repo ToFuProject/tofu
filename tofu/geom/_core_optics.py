@@ -25,9 +25,11 @@ import tofu.pathfile as tfpf
 import tofu.utils as utils
 from . import _def as _def
 from . import _GG as _GG
+from . import _core
 from . import _check_optics
 from . import _comp_optics as _comp_optics
 from . import _plot_optics as _plot_optics
+import tofu.spectro._rockingcurve as _rockingcurve
 
 
 __all__ = ['CrystalBragg']
@@ -587,6 +589,15 @@ class CrystalBragg(utils.ToFuObject):
             dgeom0 = self.dgeom
             try:
                 self.set_dgeom(dgeom=dgeom)
+                self._dmat = _check_optics._checkformat_dmat(
+                    dmat={
+                        k0: v0 for k0, v0 in self._dmat.items()
+                        if k0 not in ['nin', 'nout', 'e1', 'e2']
+                    },
+                    dgeom=self._dgeom,
+                    ddef=self._ddef['dmat'],
+                    valid_keys=self._get_keys_dmat()
+                )
             except Exception as err:
                 # Make sure instance does not move
                 self.set_dgeom(dgeom=dgeom0)
@@ -598,8 +609,11 @@ class CrystalBragg(utils.ToFuObject):
     def _rotate_or_translate(self, func, **kwdargs):
         pts = np.array([self._dgeom['summit'], self._dgeom['center']]).T
         if 'rotate' in func.__name__:
-            vect = np.array([self._dgeom['nout'],
-                             self._dgeom['e1'], self._dgeom['e2']]).T
+            vect = np.array([
+                self._dgeom['nout'],
+                self._dgeom['e1'],
+                self._dgeom['e2']
+            ]).T
             pts, vect = func(pts=pts, vect=vect, **kwdargs)
             return {'summit': pts[:, 0], 'center': pts[:, 1],
                     'nout': vect[:, 0], 'nin': -vect[:, 0],
@@ -722,7 +736,6 @@ class CrystalBragg(utils.ToFuObject):
         param = self._move(param, dictname='_dgeom')
         self._dgeom['move_param'] = param
 
-
     # -----------------
     # methods for rocking curve
     # -----------------
@@ -787,6 +800,17 @@ class CrystalBragg(utils.ToFuObject):
             sigma=sigma, npts=npts,
             ang_units=ang_units, axtit=axtit, color=color,
             fs=fs, ax=ax, legend=legend)
+
+    def compute_rockingcurve(
+        self, ih=None, ik=None, il=None, lamb=None,
+        plot_asf=None, plot_power_ratio=None,
+        verb=None, returnas=None,
+    ):
+        return _rockingcurve.compute_rockingcurve(
+            self, ih=ih, ik=ik, il=il, lamb=lamb,
+            plot_asf=plot_asf, plot_power_ratio=plot_power_ratio,
+            verb=None, returnas=None,
+        )
 
     # -----------------
     # methods for surface and contour sampling
@@ -912,7 +936,7 @@ class CrystalBragg(utils.ToFuObject):
         But that can be changed using:
             - ('dtheta', 'psi'): can be arbitrary but with same shape
                 up to 4 dimensions
-                - ('ntheta', 'npsi', 'include_summit'): will be used to
+            - ('ntheta', 'npsi', 'include_summit'): will be used to
                 compute the envelop (contour) of the crystal, as 2 1d arrays
 
         These arguments are fed to self.get_local_noute1e2() which will compute
@@ -962,12 +986,8 @@ class CrystalBragg(utils.ToFuObject):
             raise Exception(msg)
 
         det = self._checkformat_det(det)
-        if det is False:
-            msg = "det is required in get_Rays_from_summit_to_det()!"
-            raise Exception(msg)
-
         if length is None:
-            length = 7.
+            length = 10.
 
         if grid is None:
             try:
@@ -992,14 +1012,51 @@ class CrystalBragg(utils.ToFuObject):
 
         # -----------
         # Get length (minimum between conf, det, length)
+        vshape = vect.shape
         dk = {
-            k0: np.full(vect.shape[1:], np.nan)
+            k0: np.full(vshape[1:], np.nan)
             for k0 in ['config', 'det', 'length']
         }
         xi, xj = None, None
         if config is not None:
-            dk['config'] = None
-        if det is not None:
+            # Here insert ray-tracing from config!
+            if vshape != pts_start.shape:
+                if len(vshape) == 3 and len(pts_start.shape) == 2:
+                    D = np.reshape(
+                        np.repeat(pts_start[..., None], vshape[-1], axis=-1),
+                        (3, -1),
+                    )
+                    u = vect.reshape((3, -1))
+                else:
+                    msg = (
+                        "Not treated case!\n"
+                        f"\t- pts_start.shape: {pts_start.shape}\n"
+                        f"\t- vect.shape: {vshape}\n"
+                    )
+                    raise Exception(msg)
+            else:
+                if len(vshape) > 2:
+                    D = pts_start.reshape((3, -1))
+                    u = vect.reshape((3, -1))
+                else:
+                    D = pts_start
+                    u = vect
+
+            rays = _core.Rays(
+                dgeom=(D, u),
+                config=config,
+                strict=False,
+                Name='dummy',
+                Diag='dummy',
+                Exp='dummy',
+            )
+            if u.shape != vshape:
+                kout = rays.dgeom['kOut'].reshape(vshape[1:])
+            else:
+                kout = rays.dgeom['kOut']
+            dk['config'] = kout
+
+        if det is not None and det is not False:
             shape = tuple([3] + [1 for ii in range(vect.ndim-1)])
             cent = det['cent'].reshape(shape)
             nout = det['nout'].reshape(shape)
@@ -1023,6 +1080,7 @@ class CrystalBragg(utils.ToFuObject):
                 ej = det['ej'].reshape(shape)
                 xi = np.sum((pts_end - cent)*ei, axis=0)
                 xj = np.sum((pts_end - cent)*ej, axis=0)
+
         if length is not None:
             dk['length'][:] = length
 
@@ -1326,16 +1384,93 @@ class CrystalBragg(utils.ToFuObject):
     # methods for generic first-approx
     # -----------------
 
-    def get_phi_from_magaxis_summit(self, r, z, lamb=None, bragg=None, n=None):
+    def get_phi_from_magaxis_summit(
+        self,
+        axis_r,
+        axis_z,
+        axis_npts=None,
+        lamb=None,
+        lamb_tol=None,
+        bragg=None,
+        n=None,
+        use_non_parallelism=None,
+    ):
+        """ Return phi of a magnteic axis (at lamb with tolerance)
+
+        axis_r and axis_z must be np.ndarrays of the same shape
+        The magnetic axis is discretized toroidally in axis_npts (def: 1000)
+
+        The pts closest to the chosen lamb are picked
+        If no pts is found within tolerance, an error is raised
+
+        """
+
+        # --------------------
         # Check / format input
-        r = np.atleast_1d(r)
-        z = np.atleast_1d(z)
-        assert r.shape == z.shape
+
+        if axis_npts is None:
+            axis_npts = 1000
+
+        axis_r = np.atleast_1d(axis_r)
+        axis_z = np.atleast_1d(axis_z)
+        assert axis_r.shape == axis_z.shape
+
+        if lamb_tol is None:
+            lamb_tol = 0.01e-10
+
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+        lamb = self.get_lamb_from_bragg(bragg=bragg, n=n)
+
+        # --------------
+        # Disretize axis
+
+        shaperz = axis_r.shape
+        phi_ax = np.full(shaperz, np.nan)
 
         # Compute phi
+        theta_cryst = np.arctan2(
+            self._dgeom['summit'][1],
+            self._dgeom['summit'][0],
+        )
 
-        return phi
+        theta_ax = theta_cryst + np.pi/2*np.linspace(-1, 1, axis_npts)
+        shapetheta = np.r_[[1 for ii in shaperz], axis_npts]
+        theta_ax = theta_ax.reshape(shapetheta)
+
+        axis_x = (axis_r[..., None] * np.cos(theta_ax)).ravel()
+        axis_y = (axis_r[..., None] * np.sin(theta_ax)).ravel()
+        axis_z = (np.repeat(axis_z[..., None], axis_npts, axis=-1)).ravel()
+
+        # ----------------------------------------------
+        # Compute bragg, phi, lamb of each point on axis
+
+        (
+            bragg_ax_full, phi_ax_full, lamb_ax_full,
+        ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
+            pts=np.array([axis_x, axis_y, axis_z]),
+            dtheta=None, psi=None,
+            ntheta=None, npsi=None,
+            n=None,
+            use_non_parallelism=use_non_parallelism,
+            grid=None,
+            return_lamb=True,
+        )
+
+        # -------------------------------------
+        # Select points on axis closest to lamb
+
+        # lamb_ax_full = self.get_lamb_from_bragg(bragg_ax_full)
+        shape_full = tuple(np.r_[shaperz, axis_npts])
+        lamb_ax_full = lamb_ax_full.reshape(shape_full)
+        phi_ax_full = phi_ax_full.reshape(shape_full)
+        dlamb = np.abs(lamb_ax_full - lamb)
+
+        indok = np.any(dlamb <= lamb_tol, axis=-1)
+        indmin = np.nanargmin(dlamb[indok, :], axis=-1)
+        indtup = tuple([iii for iii in indok.nonzero()] + [indmin])
+        phi_ax[indok] = phi_ax_full[indtup]
+
+        return phi_ax
 
     def get_bragg_from_lamb(self, lamb=None, n=None):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
@@ -1445,7 +1580,7 @@ class CrystalBragg(utils.ToFuObject):
             bragg=bragg, rcurve=self._dgeom['rcurve'],
         )
 
-    def get_detector_approx(
+    def get_detector_ideal(
         self,
         bragg=None, lamb=None,
         rcurve=None, n=None,
@@ -1588,7 +1723,7 @@ class CrystalBragg(utils.ToFuObject):
         msg = ("det must be:\n"
                + "\t- False: not det provided\n"
                + "\t- None:  use default approx det from:\n"
-               + "\t           self.get_detector_approx()\n"
+               + "\t           self.get_detector_ideal()\n"
                + "\t- dict:  a dictionary of 3d (x,y,z) coordinates of a point"
                + " (local frame center) and 3 unit vectors forming a direct "
                + "orthonormal basis attached to the detector's frame\n"
@@ -1601,7 +1736,7 @@ class CrystalBragg(utils.ToFuObject):
         if not any(lc):
             raise Exception(msg)
         if lc[0]:
-            det = self.get_detector_approx(lamb=self._dbragg['lambref'])
+            det = self.get_detector_ideal(lamb=self._dbragg['lambref'])
         elif lc[2]:
             lk = ['cent', 'nout', 'ei', 'ej']
             c0 = (isinstance(det, dict)
@@ -2108,13 +2243,13 @@ class CrystalBragg(utils.ToFuObject):
         # angle between nout vectors from get_det_approx() &
         ## get_det_approx(tangent=False)
 
-        det1 = self.get_detector_approx(
+        det1 = self.get_detector_ideal(
             lamb=lamb,
             bragg=bragg,
             use_non_parallelism=use_non_parallelism,
             tangent_to_rowland=True,
         )
-        det2 = self.get_detector_approx(
+        det2 = self.get_detector_ideal(
             lamb=lamb,
             bragg=bragg,
             use_non_parallelism=use_non_parallelism,
@@ -2150,7 +2285,7 @@ class CrystalBragg(utils.ToFuObject):
                 if tangent_to_rowland:
                     dpsi0bis = dpsi0 - angle_nout
 
-                det = self.get_detector_approx(
+                det = self.get_detector_ideal(
                     ddist=ddist[ii],
                     di=di[jj],
                     dj=dj0,
@@ -2239,7 +2374,7 @@ class CrystalBragg(utils.ToFuObject):
         # ------------
         # get approx detect
 
-        det_approx = self.get_detector_approx(
+        det_approx = self.get_detector_ideal(
             bragg=bragg, lamb=lamb,
             tangent_to_rowland=False,
             use_non_parallelism=use_non_parallelism,
@@ -2551,7 +2686,7 @@ class CrystalBragg(utils.ToFuObject):
             det=det, strict=strict, plot=False,
         )
 
-        # Plot to be checked
+        # Plot to be checked - unnecessary ?
         plot = False
         if plot is not False:
             ptscryst, ptsdet = None, None

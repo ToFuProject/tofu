@@ -1266,8 +1266,25 @@ def calc_dthetapsiphi_from_lambpts(
         (scaPCem[ind] - Z*np.sin(dtheta[ind])) / (XYnorm*np.cos(dtheta[ind]))
     )
     ind[ind] = np.abs(num[ind]) <= 1.
-    psi[ind] = np.arcsin(num[ind]) - angextra[ind]
-    ind[ind] = np.abs(psi[ind]) <= extenthalf[0]
+    # minus psi ref ?
+    # value of psi + angextra with cos > 0
+    psiang_pos = np.arcsin(num[ind])
+    psi1 = np.full(psi.shape, np.nan)
+    psi2 = np.full(psi.shape, np.nan)
+    psi1[ind] = (np.arctan2(num[ind], np.cos(psiang_pos)) - angextra[ind])
+    psi2[ind] = (np.arctan2(num[ind], -np.cos(psiang_pos)) - angextra[ind])
+
+    # Make sure only one of the 2 psi is correct
+    ind1 = np.copy(ind)
+    ind2 = np.copy(ind)
+    ind1[ind] = np.abs(psi1[ind]) <= extenthalf[0]
+    ind2[ind] = np.abs(psi2[ind]) <= extenthalf[0]
+    assert not np.any(ind1 & ind2), "Multiple solutions for psi!"
+    ind = ind1 | ind2
+
+    # Finally store into psi
+    psi[ind1] = psi1[ind1]
+    psi[ind2] = psi2[ind2]
     psi[~ind] = np.nan
     dtheta[~ind] = np.nan
     if np.any(np.sum(ind, axis=-1) == 2):
