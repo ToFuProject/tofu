@@ -29,6 +29,19 @@ def _check_var(
     allowed=None,
     excluded=None,
 ):
+    """ Check a variable, with options
+
+    - check is instance of any types
+    - check belongs to list of allowed values
+    - check does not belong to list of excluded values
+
+    if None:
+        - set to default if provided
+        - set to allowed value if only has 1 element
+
+    Print proper error message if necessary, return the variable itself
+
+    """
 
     # set to default
     if var is None:
@@ -75,6 +88,22 @@ def _check_var_iter(
     allowed=None,
     excluded=None,
 ):
+    """ Check a variable supposed to be an iterable, with options
+
+    - check is instance of any types
+    - check each element is instance of types_iter
+    - check each element belongs to list of allowed values
+    - check each element does not belong to list of excluded values
+
+    if var is not iterable, turned into a list of itself
+
+    if None:
+        - set to default if provided
+        - set to list of allowed if provided
+
+    Print proper error message if necessary, return the variable itself
+
+    """
 
     # set to default
     if var is None:
@@ -133,7 +162,7 @@ def _check_var_iter(
 def _name_key(dd=None, dd_name=None, keyroot='key'):
     """ Return existing default keys and their number as a dict
 
-    Used to automatically iterate on on dict keys
+    Used to automatically iterate on dict keys
 
     """
 
@@ -146,7 +175,7 @@ def _name_key(dd=None, dd_name=None, keyroot='key'):
     if len(dk) == 0:
         nmax = 0
     else:
-        nmax = max([v0 for v0 in dk.values()])
+        nmax = max([v0 for v0 in dk.values()]) + 1
     return dk, nmax
 
 
