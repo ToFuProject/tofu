@@ -557,8 +557,8 @@ def plot_as_array(
 
     dax = _generic_check._check_dax(dax=dax, main='matrix')
 
-    # --------------
-    # plot
+    # ---------------
+    # plot fixed part
 
     axtype = 'matrix'
     lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
@@ -577,19 +577,38 @@ def plot_as_array(
         )
 
         # plt.colorbar(im, ax=ax, **dcolorbar)
-
-        # ind0, ind1
-        ax.axhline(ind[0], c='k', lw=1., ls='-')
-        ax.axvline(ind[1], c='k', lw=1., ls='-')
-
         if dleg is not False:
             ax.legend(**dleg)
+
+    # ----------------
+    # Instanciate Axes collection
+
+    ac = AxesCollection()
+
+    # Add data useful for interactivity
+    ac.add_ref()
+    ac.add_ref()
+    ac.add_data()
+
+    # ----------------
+    # plot mobile part
+
+    axtype = 'matrix'
+    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
+    for kax in lkax:
+        ax = dax[kax]['ax']
+        # ind0, ind1
+        lh = ax.axhline(ind[0], c='k', lw=1., ls='-')
+        lv = ax.axvline(ind[1], c='k', lw=1., ls='-')
+
+        ac.add_mobile(key='', handle=lh, ref='')
+        ac.add_mobile(key='', handle=lv, ref='')
 
     kax = 'misc1'
     if dax.get(kax) is not None:
         ax = dax[kax]['ax']
 
-        ax.plot(
+        l0, = ax.plot(
             data[:, ind[1]],
             np.arange(0, n0),
             ls='-',
@@ -599,11 +618,13 @@ def plot_as_array(
             label=f'ind0 = {ind[0]}',
         )
 
+        ac.add_mobile(key='', handle=l0, ref='', data=None)
+
     kax = 'misc2'
     if dax.get(kax) is not None:
         ax = dax[kax]['ax']
 
-        ax.plot(
+        l1, = ax.plot(
             np.arange(0, n1),
             data[ind[0], :],
             ls='-',
@@ -612,7 +633,13 @@ def plot_as_array(
             color='k',
             label=f'ind1 = {ind[1]}',
         )
-    return dax
+
+        ac.add_mobile(key='', handle=l1, ref='', data=None)
+
+    if connect is True:
+        ac.connect()
+
+    return dax, ac
 
 
 # #############################################################################
