@@ -457,7 +457,7 @@ def _plot_as_matrix_check(
     return key, ind, cmap, vmin, vmax, aspect, dcolorbar, dleg
 
 
-def plot_as_matrix(
+def plot_as_array(
     coll=None,
     key=None,
     ind=None,
