@@ -374,6 +374,7 @@ def _plot_as_matrix_check(
     dcolorbar=None,
     dleg=None,
     data=None,
+    connect=None,
 ):
 
     # key
@@ -454,7 +455,14 @@ def _plot_as_matrix_check(
         types=(bool, dict),
     )
 
-    return key, ind, cmap, vmin, vmax, aspect, dcolorbar, dleg
+    # connect
+    connect = _generic_check._check_var(
+        connect, 'connect',
+        default=True,
+        types=bool,
+    )
+
+    return key, ind, cmap, vmin, vmax, aspect, dcolorbar, dleg, connect
 
 
 def plot_as_array(
@@ -470,13 +478,14 @@ def plot_as_array(
     fs=None,
     dcolorbar=None,
     dleg=None,
+    connect=None,
 ):
 
     # --------------
     # check input
 
     (
-        key, ind, cmap, vmin, vmax, aspect, dcolorbar, dleg,
+        key, ind, cmap, vmin, vmax, aspect, dcolorbar, dleg, connect,
     ) = _plot_as_matrix_check(
         coll=coll,
         key=key,
@@ -487,6 +496,7 @@ def plot_as_array(
         aspect=aspect,
         dcolorbar=dcolorbar,
         dleg=dleg,
+        connect=connect,
     )
 
     # --------------
@@ -557,6 +567,10 @@ def plot_as_array(
 
     dax = _generic_check._check_dax(dax=dax, main='matrix')
 
+    # add axes
+    for kax in dax.keys():
+        coll.add_axes(key=kax, **dax[kax])
+
     # ---------------
     # plot fixed part
 
@@ -581,16 +595,6 @@ def plot_as_array(
             ax.legend(**dleg)
 
     # ----------------
-    # Instanciate Axes collection
-
-    ac = AxesCollection()
-
-    # Add data useful for interactivity
-    ac.add_ref()
-    ac.add_ref()
-    ac.add_data()
-
-    # ----------------
     # plot mobile part
 
     axtype = 'matrix'
@@ -601,8 +605,8 @@ def plot_as_array(
         lh = ax.axhline(ind[0], c='k', lw=1., ls='-')
         lv = ax.axvline(ind[1], c='k', lw=1., ls='-')
 
-        ac.add_mobile(key='', handle=lh, ref='')
-        ac.add_mobile(key='', handle=lv, ref='')
+        coll.add_mobile(key='lh', handle=lh, ref=(ref0,))
+        coll.add_mobile(key='lv', handle=lv, ref=(ref1,))
 
     kax = 'misc1'
     if dax.get(kax) is not None:
@@ -618,7 +622,7 @@ def plot_as_array(
             label=f'ind0 = {ind[0]}',
         )
 
-        ac.add_mobile(key='', handle=l0, ref='', data=None)
+        coll.add_mobile(key='prof_vert', handle=l0, ref=(ref1,), data=key)
 
     kax = 'misc2'
     if dax.get(kax) is not None:
@@ -634,12 +638,12 @@ def plot_as_array(
             label=f'ind1 = {ind[1]}',
         )
 
-        ac.add_mobile(key='', handle=l1, ref='', data=None)
+        coll.add_mobile(key='prof_hor', handle=l1, ref=(ref0,), data=key)
 
     if connect is True:
-        ac.connect()
+        coll.connect()
 
-    return dax, ac
+    return dax
 
 
 # #############################################################################
