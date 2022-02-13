@@ -1208,14 +1208,20 @@ def _check_dobj(
             dc[k0] = "type(key) != str or type(value) != dict"
             continue
 
+        # set None to default keys - DB, TBF
+        for k1 in v0.keys():
+            if k1 is None:
+                pass
+
         # check pre-existing categories
         if k0 not in dobj0.keys():
-            lc2 = [k1 for k1 in v0.keys() if not isinstance(k1, str)]
+            lc2 = [
+                f'\t- {str(k1)}' for k1 in v0.keys() if not isinstance(k1, str)
+            ]
             if len(lc2) > 0:
                 dc[k0] = (
-                    "The following keys of dobj[{}] are not str:\n".format(k0)
-                    + "\n\t- "
-                    + "\n\t- ".join(lc2)
+                    f"The following keys of dobj['{k0}'] are not str:\n"
+                    + "\n".join(lc2)
                 )
                 continue
 
