@@ -1200,6 +1200,7 @@ def _check_dobj(
 
     # Map possible non-conformities
     dc = {}
+    dobj2 = {}
     for k0, v0 in dobj.items():
 
         # check types (str, dict)
@@ -1208,48 +1209,48 @@ def _check_dobj(
             dc[k0] = "type(key) != str or type(value) != dict"
             continue
 
-        # set None to default keys - DB, TBF
+        # check each key / value
+        lc2 = [
+            f'\t- {str(k1)}: {type(v1)}' for k1, v1 in v0.items()
+            if not (
+                (k1 is None or isinstance(k1, str))
+                and isinstance(v1, dict)
+                and k1 not in dobj0.get(k0, {}).keys()
+            )
+        ]
+        if len(lc2) > 0:
+            dc[k0] = (
+                f"The following keys of dobj['{k0}'] are not valid:\n"
+                + "\n".join(lc2)
+            )
+            continue
+
+        # set None to default keys if any None
+        dobj2[k0] = {}
         for k1 in v0.keys():
-            if k1 is None:
-                pass
+            nmax = _generic_check._name_key(
+                dd=dobj0.get(k0, {}), dd_name=f"dobj0['{k0}']", keyroot=k0[:3],
+            )[1]
+            key = f'{k0[:3]}{nmax:02.0f}'
 
-        # check pre-existing categories
-        if k0 not in dobj0.keys():
-            lc2 = [
-                f'\t- {str(k1)}' for k1 in v0.keys() if not isinstance(k1, str)
-            ]
-            if len(lc2) > 0:
-                dc[k0] = (
-                    f"The following keys of dobj['{k0}'] are not str:\n"
-                    + "\n".join(lc2)
-                )
-                continue
+            key = _generic_check._check_var(
+                k1,
+                'k1',
+                types=str,
+                default=key,
+            )
 
-        else:
-            lc2 = [
-                k1 for k1 in v0.keys()
-                if not isinstance(k1, str)
-                or k1 in dobj0[k0].keys()
-            ]
-            if len(lc2) > 0:
-                dc[k0] = (
-                    "The following keys of dobj[{}] are not str:\n".format(k0)
-                    + "\n\t- "
-                    + "\n\t- ".join(lc2)
-                    + "(or they are already in dobj0[{}]".format(k0)
-                )
+            dobj2[k0][key] = dict(dobj[k0][k1])
 
     # Raise Exception
     if len(dc) > 0:
         msg = (
             "The following keys of dobj are non-conform:\n"
-            + "\n\n".join([
-                'dobj[{}]: {}'.format(k0, v0) for k0, v0 in dc.items()
-            ])
+            + "\n\n".join([f"dobj['{k0}']: {v0}" for k0, v0 in dc.items()])
         )
         raise Exception(msg)
 
-    return dobj
+    return dobj2
 
 
 # #############################################################################
@@ -1662,18 +1663,17 @@ def _set_param(
 
     # param
     lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
-    param = _generic_check._check_var_iter(
+    param = _generic_check._check_var(
         param,
         'param',
-        types=list,
-        types_iter=str,
+        types=str,
         allowed=lp,
     )
 
     # ---------------
     # Set value
 
-    # Check value
+    # Check value - TBC: allow list
     ltypes = [str, int, np.integer, float, np.floating, tuple]
     lc = [
         isinstance(value, tuple(ltypes)),
@@ -1693,7 +1693,7 @@ def _set_param(
                 - None
                 - {}: common to all
                 - list, np.ndarray: key by key
-                - dict of {key: scalar / str}
+                - dict of scalar / str
 
             The length of value must match the selected keys ({})
             """.format(ltypes, len(key))
@@ -1722,7 +1722,7 @@ def _add_param(
     # Check inputs
 
     # Get key (which data to return param for)
-    key = _ind_tofrom_key(dd=dd, key=key, ind=ind, returnas=str)
+    # key = _ind_tofrom_key(dd=dd, key=key, ind=ind, returnas=str)
 
     # param
     lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
@@ -1773,10 +1773,9 @@ def _ind_tofrom_key(
         msg = ("Args ind and key cannot be prescribed simultaneously!")
         raise Exception(msg)
 
-    returnas = _check_generic._check_var(
+    returnas = _generic_check._check_var(
         returnas,
         'returnas',
-        types=str,
         allowed=[int, bool, str, 'key'],
         default='key',
     )

@@ -41,7 +41,7 @@ _INTERPT = 'zero'
 #############################################
 
 
-class DataCollectionBase(utils.ToFuObject):
+class DataCollection0(utils.ToFuObject):
     """ A generic class for handling data
 
     Provides methods for:
@@ -466,6 +466,18 @@ class DataCollectionBase(utils.ToFuObject):
         return self._dobj
 
     ###########
+    # set and propagate indices for refs
+    ###########
+
+    def set_indices_per_ref(self, indices=None, ref=None):
+
+        lparam = self.get_lparam(which='ref')
+        if 'indices' not in lparam:
+            self.add_param('indices', which='ref')
+
+        self.set_param(which='ref', key=ref, value=indices)
+
+    ###########
     # General use methods
     ###########
 
@@ -647,13 +659,17 @@ class DataCollectionBase(utils.ToFuObject):
         if 'ref' in show_which and len(self._dref) > 0:
             lcol.append(['ref key', 'size', 'nb. data'])
             lar.append([
-                (
+                [
                     k0,
                     str(self._dref[k0]['size']),
                     len(self._dref[k0]['ldata'])
-                )
+                ]
                 for k0 in self._dref.keys()
             ])
+            if 'indices' in self.get_lparam(which='ref'):
+                lcol[0].append('indices')
+                for ii, k0 in enumerate(self._dref.keys()):
+                    lar[0][ii].append(str(self._dref[k0]['indices']))
 
         # -----------------------
         # Build for ddata
@@ -729,6 +745,8 @@ class DataCollectionBase(utils.ToFuObject):
                         kk for kk in lk
                         if 'func' not in kk
                         and 'class' not in kk
+                        and kk not in ['handle']
+                        and not isinstance(v0[kk], dict)
                     ]
                     lcol.append([k0] + [pp for pp in lk])
                     lar.append([
