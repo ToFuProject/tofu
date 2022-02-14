@@ -1,8 +1,10 @@
 
 
 # Built-in
+import sys
 import os
-import itertools as itt
+import warnings
+import copy
 
 # Common
 import numpy as np
@@ -70,7 +72,7 @@ def compute_rockingcurve(self,
     if returnas is None:
         returnas = None
 
-    CrystBragg_check_inputs_rockingcurve(
+    ih, ik, il, lamb = CrystBragg_check_inputs_rockingcurve(
         ih=ih, ik=ik, il=il, lamb=lamb,
     )
 
@@ -288,20 +290,36 @@ def compute_rockingcurve(self,
         'Wavelength (A)': lamb,
         'Miller indices': (ih, ik, il),
         'Inter-reticular distance (A)': d_atom,
-        'Volume of the unit cell (A^3)': np.round(V, decimals=3),
-        'Bragg angle of reference (rad)': np.round(theta, decimals=3),
+        'Volume of the unit cell (A^3)': V,
+        'Bragg angle of reference (rad)': theta,
         'Integrated reflectivity': {
-            'perfect model': np.round(P_per, decimals=9),
-            'mosaic model': np.round(P_mos, decimals=9),
-            'dynamical model': np.round(P_dyn, decimals=9),
+            'perfect model': P_per,
+            'mosaic model': P_mos,
+            'dynamical model': P_dyn,
         },
-        'Ratio imag & real part of structure factor': np.round(kk, decimals=3),
+        'Ratio imag & real part of structure factor': kk,
         'Intensity maximum theoretical (normal & parallel compo)': ymax,
-        'R_perp/R_par': np.round(rr[1]/rr[0], decimals=9),
-        'RC width': np.round(det, decimals=6),
+        'R_perp/R_par': rr[1]/rr[0],
+        'RC width': det,
     }
 
     if verb is True:
+        dout['Volume of the unit cell (A^3)'] = np.round(V, decimals=3)
+        dout['Bragg angle of reference (rad)'] = np.round(theta, decimals=3)
+        dout['Ratio imag & real part of structure factor'] = (
+            np.round(kk, decimals=3,)
+        )
+        dout['R_perp/R_par'] = np.round(rr[1]/rr[0], decimals=9)
+        dout['RC width'] = np.round(det, decimals=6)
+        dout['Integrated reflectivity']['perfect model'] = (
+            np.round(P_per, decimals=9),
+        )
+        dout['Integrated reflectivity']['mosaic model'] = (
+            np.round(P_mos, decimals=9),
+        )
+        dout['Integrated reflectivity']['dynamical model'] = (
+            np.round(P_dyn, decimals=9),
+        )
         lstr = [f'\t -{k0}: {V0}' for k0, V0 in dout.items()]
         msg = (
             " The following data was calculated:\n"
@@ -317,8 +335,26 @@ def CrystBragg_check_inputs_rockingcurve(
     ih=None, ik=None, il=None, lamb=None,
 ):
 
-    lc = [ih is not None, ik is not None, il is not None, lamb is not None]
-    if any(lc) and not all(lc):
+    dd = {'ih': ih, 'ik': ik, 'il': il, 'lamb': lamb}
+    lc = [v0 is None for k0, v0 in dd.items()]
+    if all(lc):
+        ih = 1
+        ik = 1
+        il = 0
+        lamb = 3.96
+        msg = (
+            "Args h, k, l and lamb were not explicitely specified\n"
+            "and have been put to default values:\n"
+            + "\t - h: first Miller index ({})\n".format(ih)
+            + "\t - k: second Miller index ({})\n".format(ik)
+            + "\t - l: third Miller index ({})\n".format(il)
+            + "\t - lamb: wavelength of interest ({})\n".format(lamb)
+        )
+        warnings.warn(msg)
+
+    dd2 = {'ih': ih, 'ik': ik, 'il': il, 'lamb': lamb}
+    lc2 = [v0 is None for k0, v0 in dd2.items()]
+    if any(lc2):
         msg = (
             "Args h, k, l and lamb must be provided together:\n"
             + "\t - h: first Miller index ({})\n".format(ih)
@@ -327,6 +363,20 @@ def CrystBragg_check_inputs_rockingcurve(
             + "\t - lamb: wavelength of interest ({})\n".format(lamb)
         )
         raise Exception(msg)
+
+    cdt = [type(v0) == str for k0, v0 in dd.items()]
+    if any(cdt) or all(cdt):
+        msg = (
+            "Args h, k, l and lamb must not be string inputs:\n"
+            "and have been put to default values:\n"
+            + "\t - h: first Miller index ({})\n".format(ih)
+            + "\t - k: second Miller index ({})\n".format(ik)
+            + "\t - l: third Miller index ({})\n".format(il)
+            + "\t - lamb: wavelength of interest ({})\n".format(lamb)
+        )
+        raise Exception(msg)
+
+    return ih, ik, il, lamb,
 
 
 def CrystBragg_comp_integrated_reflect(
