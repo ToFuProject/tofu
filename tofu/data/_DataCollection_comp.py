@@ -11,6 +11,121 @@ import numpy as np
 # import scipy.linalg as scplin
 # import scipy.stats as scpstats
 
+from . import _generic_check
+
+
+#############################################
+#############################################
+#       ref indices propagation
+#############################################
+
+
+def propagate_ref_indices(
+    ref=None,
+    lref=None,
+    dref=None,
+    ddata=None,
+    param=None,
+    value=None,
+    lparam_data=None,
+):
+
+    # ------------
+    # check inputs
+
+    # ref
+    ref = _generic_check._check_var(
+        ref, 'ref',
+        types=str,
+        allowed=sorted(dref.keys())
+    )
+
+    ind = dref[ref].get('indices')
+    if ind is None:
+        return
+
+    # lref
+    if isinstance(lref, str):
+        lref = [lref]
+    lref = _generic_check._check_var_iter(
+        lref, 'lref',
+        types_iter=str,
+        allowed=sorted(dref.keys()),
+    )
+
+    # param
+    param = _generic_check._check_var(
+        param, 'param',
+        default='index',
+        allowed=['index'] + lparam_data,
+    )
+
+    # ---------
+    # propagate
+
+    if param == 'index':
+        for rr in lref:
+            dref[rr]['indices'] = dref[ref]['indices'] % dref[rr]['size']
+
+    else:
+
+        # For ref, pick data
+        ref_data = dref[ref]['ldata_monot']
+        if len(ref_data) > 1:
+            ref_data = [k0 for k0 in ref_data if ddata[k0][param] == value]
+        if len(ref_data) != 1:
+            msg = (
+                f"No / too many monotonous data for ref {ref}:\n"
+                f"\t- param / value: {param} / {value}\n"
+                f"\t- found: {ref_data}"
+            )
+            raise Exception(msg)
+        ref_data = ref_data[0]
+
+
+        # For each ref in lref, get list of matching data
+        drdata = {
+            rr: [
+                k0 for k0 in dref[rr]['ldata_monot']
+                if ddata[k0][param] == ddata[ref_data][param]
+            ]
+            for rr in [ref] + lref
+        }
+
+        # Raise exception if not unique
+        dout = {rr: len(drdata[rr]) for rr in lref if len(drdata[rr]) != 1}
+        if len(dout) > 0:
+            lstr = [
+                f"\t- {rr}: {vv} matching monotonous data"
+                for rr, vv in dout.items()
+            ]
+            msg = (
+                "The following ref in lref have no/several matching data "
+                f"for param {param}:\n"
+                "\n".join(lstr)
+            )
+            raise Exception(msg)
+
+        # propagate according to data (nearest neighbourg)
+        dataref = ddata[drdata[ref][0]]['data']
+        dataref = dataref[dref[ref]['indices']]
+        for rr in lref:
+            data = ddata[drdata[rr][0]]['data']
+            bins = np.r_[
+                data[0] - 0.5*(data[1] - data[0]),
+                0.5*(data[1:] + data[:-1]),
+                data[-1] + 0.5*(data[-1] - data[-2]),
+            ]
+            dref[rr]['indices'] = np.digitize(dataref, bins, right=False)
+
+            # corrections
+            if data[1] > data[0]:
+                dref[rr]['indices'][dataref < bins[0]] = 0
+                dref[rr]['indices'][dataref > bins[-1]] = data.size-1
+            else:
+                dref[rr]['indices'][dataref < bins[-1]] = data.size-1
+                dref[rr]['indices'][dataref > bins[0]] = 0
+
 
 #############################################
 #############################################

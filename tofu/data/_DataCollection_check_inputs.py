@@ -14,7 +14,7 @@ from . import _generic_check
 
 
 _DRESERVED_KEYS = {
-    'dref': ['ldata', 'size', 'ind'],
+    'dref': ['ldata', 'ldata_monot', 'size', 'ind'],
     'dstatic': [],
     'ddata': ['ref', 'shape', 'data'],
     'dobj': [],
@@ -1497,6 +1497,10 @@ def _consistency(
             k1 for k1 in ddata0.keys()
             if ddata0[k1].get('data') is not None and k0 in ddata0[k1]['ref']
         ))
+        dref0[k0]['ldata_monot'] = [
+            k1 for k1 in dref0[k0]['ldata']
+            if ddata0[k1]['monot'] == (True,)
+        ]
 
     # dstatic0
     _update_dstatic0(dstatic0=dstatic0, ddata0=ddata0, dobj0=dobj0)
@@ -1641,6 +1645,7 @@ def _set_param(
     dd=None, dd_name=None,
     param=None, value=None,
     ind=None, key=None,
+    distribute=None,
 ):
     """ Set the value of a parameter
 
@@ -1670,6 +1675,18 @@ def _set_param(
         allowed=lp,
     )
 
+    # distribute
+    if isinstance(value, (list, tuple, np.ndarray)):
+        defdist = len(key) == len(value)
+    else:
+        defdist = False
+    distribute = _generic_check._check_var(
+        distribute,
+        'distribute',
+        types=bool,
+        default=defdist,
+    )
+
     # ---------------
     # Set value
 
@@ -1677,9 +1694,11 @@ def _set_param(
     ltypes = [str, int, np.integer, float, np.floating, tuple]
     lc = [
         isinstance(value, tuple(ltypes)),
-        isinstance(value, list) and all([type(tt) in ltypes for tt in value])
-        and len(value) == len(key),
-        isinstance(value, np.ndarray) and value.shape[0] == len(key),
+        isinstance(value, (list, tuple, np.ndarray))
+        and distribute is False,
+        isinstance(value, (list, tuple, np.ndarray))
+        and np.array(value).shape[0] == len(key)
+        and distribute is True,
         isinstance(value, dict)
         and all([
             kk in dd.keys() and type(vv) in ltypes
@@ -1701,10 +1720,10 @@ def _set_param(
         raise Exception(msg)
 
     # Update data
-    if value is None or lc[0]:
+    if value is None or lc[0] or lc[1]:
         for kk in key:
             dd[kk][param] = value
-    elif lc[1] or lc[2]:
+    elif lc[2]:
         for ii, kk in enumerate(key):
             dd[kk][param] = value[ii]
     else:
@@ -1764,6 +1783,11 @@ def _ind_tofrom_key(
     dd=None, dd_name=None,
     ind=None, key=None, returnas=int,
 ):
+    """
+
+    From key return ind and vice-versa
+
+    """
 
     # --------------------
     # Check / format input
@@ -1821,6 +1845,8 @@ def _ind_tofrom_key(
     elif lc[1]:
 
         # Check key
+        if isinstance(key, str):
+            key = [key]
         key = _generic_check._check_var_iter(
             key,
             'key',

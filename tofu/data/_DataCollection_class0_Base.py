@@ -349,6 +349,7 @@ class DataCollection0(utils.ToFuObject):
         ind=None,
         key=None,
         which=None,
+        distribute=None,
     ):
         """ Set the value of a parameter
 
@@ -371,6 +372,7 @@ class DataCollection0(utils.ToFuObject):
         _DataCollection_check_inputs._set_param(
             dd=dd, dd_name=which,
             param=param, value=value, ind=ind, key=key,
+            distribute=distribute,
         )
 
     def add_param(
@@ -469,13 +471,35 @@ class DataCollection0(utils.ToFuObject):
     # set and propagate indices for refs
     ###########
 
-    def set_indices_per_ref(self, indices=None, ref=None):
+    def add_indices_per_ref(self, indices=None, ref=None, distribute=None):
 
         lparam = self.get_lparam(which='ref')
         if 'indices' not in lparam:
             self.add_param('indices', which='ref')
 
-        self.set_param(which='ref', key=ref, value=indices)
+        self.set_param(
+            which='ref',
+            param='indices',
+            key=ref,
+            value=np.array(indices).ravel(),
+            distribute=distribute,
+        )
+
+    def propagate_ref_indices(self, ref=None, lref=None, param=None):
+        """ Propagate the indices set for a ref to all other lref
+
+        Index propagation is done according to a criterion:
+            - 'index': set matching indices
+            - param: set matching monotonous quantities depending on ref
+        """
+        _DataCollection_comp.propagate_ref_indices(
+            ref=ref,
+            lref=lref,
+            dref=self._dref,
+            ddata=self._ddata,
+            param=param,
+            lparam_data=self.get_lparam(which='data')
+        )
 
     ###########
     # General use methods
@@ -657,12 +681,13 @@ class DataCollection0(utils.ToFuObject):
         # Build for dref
 
         if 'ref' in show_which and len(self._dref) > 0:
-            lcol.append(['ref key', 'size', 'nb. data'])
+            lcol.append(['ref key', 'size', 'nb. data', 'nb. data monot.'])
             lar.append([
                 [
                     k0,
                     str(self._dref[k0]['size']),
-                    len(self._dref[k0]['ldata'])
+                    len(self._dref[k0]['ldata']),
+                    len(self._dref[k0]['ldata_monot']),
                 ]
                 for k0 in self._dref.keys()
             ])
