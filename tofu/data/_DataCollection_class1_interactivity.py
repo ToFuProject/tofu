@@ -154,13 +154,13 @@ class DataCollection1(DataCollection0):
         dinter = {
             'group': group,
             'ref': ref,
-            'ind': ind,
             'nmax': nmax,
             'dgroup': dgroup,
             'dkeys': dkeys,
             'current_ax': None,
             'current_group': None,
             'current_ref': None,
+            'current_ind': None,
             'follow': False,
         }
 

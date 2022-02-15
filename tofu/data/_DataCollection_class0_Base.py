@@ -485,16 +485,26 @@ class DataCollection0(utils.ToFuObject):
             distribute=distribute,
         )
 
-    def propagate_ref_indices(self, ref=None, lref=None, param=None):
+    def propagate_indices_per_ref(
+        self,
+        ref=None,
+        lref=None,
+        ldata=None,
+        param=None,
+    ):
         """ Propagate the indices set for a ref to all other lref
 
-        Index propagation is done according to a criterion:
-            - 'index': set matching indices
-            - param: set matching monotonous quantities depending on ref
+        Index propagation is done:
+            - ldata = list of len() = 1 + len(lref)
+                according to arbitrary (monotonous) data for each ref
+            - according to a criterion:
+                - 'index': set matching indices (default)
+                - param: set matching monotonous quantities depending on ref
         """
-        _DataCollection_comp.propagate_ref_indices(
+        _DataCollection_comp.propagate_indices_per_ref(
             ref=ref,
             lref=lref,
+            ldata=ldata,
             dref=self._dref,
             ddata=self._ddata,
             param=param,
@@ -694,7 +704,10 @@ class DataCollection0(utils.ToFuObject):
             if 'indices' in self.get_lparam(which='ref'):
                 lcol[0].append('indices')
                 for ii, k0 in enumerate(self._dref.keys()):
-                    lar[0][ii].append(str(self._dref[k0]['indices']))
+                    if self._dref[k0]['indices'] is None:
+                        lar[0][ii].append(str(self._dref[k0]['indices']))
+                    else:
+                        lar[0][ii].append(str(list(self._dref[k0]['indices'])))
 
         # -----------------------
         # Build for ddata

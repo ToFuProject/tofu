@@ -20,11 +20,12 @@ from . import _generic_check
 #############################################
 
 
-def propagate_ref_indices(
+def propagate_indices_per_ref(
     ref=None,
     lref=None,
     dref=None,
     ddata=None,
+    ldata=None,
     param=None,
     value=None,
     lparam_data=None,
@@ -53,12 +54,40 @@ def propagate_ref_indices(
         allowed=sorted(dref.keys()),
     )
 
-    # param
-    param = _generic_check._check_var(
-        param, 'param',
-        default='index',
-        allowed=['index'] + lparam_data,
-    )
+    # param vs ldata
+    if ldata is None:
+        param = _generic_check._check_var(
+            param, 'param',
+            default='index',
+            allowed=['index'] + lparam_data,
+        )
+
+    else:
+
+        # check ldata length
+        if len(ldata) != len(lref) + 1:
+            msg = (
+                "Arg ldata must contain one data key for ref + for each lref\n"
+                f"\t- Provided: {ldata}"
+            )
+            raise Exception(msg)
+
+        # check content
+        dout = {
+            rr: (ii, ldata[ii], dref[rr]['ldata_monot'])
+            for ii, rr in enumerate([ref] + lref)
+            if ldata[ii] not in dref[rr]['ldata_monot']
+        }
+        if len(dout) > 0:
+            lstr = [
+                f"\t- {rr} ({vv[0]}): '{vv[1]}' vs {vv[2]}"
+                for rr, vv in dout.items()
+            ]
+            msg = (
+                "Provided ldata are not suitable:\n"
+                "\n".join(lstr)
+            )
+            raise Exception(msg)
 
     # ---------
     # propagate
@@ -69,48 +98,50 @@ def propagate_ref_indices(
 
     else:
 
-        # For ref, pick data
-        ref_data = dref[ref]['ldata_monot']
-        if len(ref_data) > 1:
-            ref_data = [k0 for k0 in ref_data if ddata[k0][param] == value]
-        if len(ref_data) != 1:
-            msg = (
-                f"No / too many monotonous data for ref {ref}:\n"
-                f"\t- param / value: {param} / {value}\n"
-                f"\t- found: {ref_data}"
-            )
-            raise Exception(msg)
-        ref_data = ref_data[0]
+        if ldata is None:
+            # For ref, pick data
+            ref_data = dref[ref]['ldata_monot']
+            if len(ref_data) > 1:
+                ref_data = [k0 for k0 in ref_data if ddata[k0][param] == value]
+            if len(ref_data) != 1:
+                msg = (
+                    f"No / too many monotonous data for ref {ref}:\n"
+                    f"\t- param / value: {param} / {value}\n"
+                    f"\t- found: {ref_data}"
+                )
+                raise Exception(msg)
+            ref_data = ref_data[0]
 
 
-        # For each ref in lref, get list of matching data
-        drdata = {
-            rr: [
-                k0 for k0 in dref[rr]['ldata_monot']
-                if ddata[k0][param] == ddata[ref_data][param]
-            ]
-            for rr in [ref] + lref
-        }
+            # For each ref in lref, get list of matching data
+            drdata = {
+                rr: [
+                    k0 for k0 in dref[rr]['ldata_monot']
+                    if ddata[k0][param] == ddata[ref_data][param]
+                ]
+                for rr in [ref] + lref
+            }
 
-        # Raise exception if not unique
-        dout = {rr: len(drdata[rr]) for rr in lref if len(drdata[rr]) != 1}
-        if len(dout) > 0:
-            lstr = [
-                f"\t- {rr}: {vv} matching monotonous data"
-                for rr, vv in dout.items()
-            ]
-            msg = (
-                "The following ref in lref have no/several matching data "
-                f"for param {param}:\n"
-                "\n".join(lstr)
-            )
-            raise Exception(msg)
+            # Raise exception if not unique
+            dout = {rr: len(drdata[rr]) for rr in lref if len(drdata[rr]) != 1}
+            if len(dout) > 0:
+                lstr = [
+                    f"\t- {rr}: {vv} matching monotonous data"
+                    for rr, vv in dout.items()
+                ]
+                msg = (
+                    "The following ref in lref have no/several matching data "
+                    f"for param {param}:\n"
+                    "\n".join(lstr)
+                )
+                raise Exception(msg)
+            ldata = [drdata[rr][0] for rr in [ref] + lref]
 
         # propagate according to data (nearest neighbourg)
-        dataref = ddata[drdata[ref][0]]['data']
+        dataref = ddata[ldata[0]]['data']
         dataref = dataref[dref[ref]['indices']]
-        for rr in lref:
-            data = ddata[drdata[rr][0]]['data']
+        for ii, rr in enumerate(lref):
+            data = ddata[ldata[ii+1]]['data']
             bins = np.r_[
                 data[0] - 0.5*(data[1] - data[0]),
                 0.5*(data[1:] + data[:-1]),
