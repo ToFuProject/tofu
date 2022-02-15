@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 
 from ._DataCollection_class0_Base import DataCollection0
+from . import _DataCollection_interactivity
 from . import _DataCollection_plot
 
 
@@ -20,9 +21,23 @@ class DataCollection1(DataCollection0):
     #   Add objects
     # ----------------------
 
-    def add_axes(self, key=None, handle=None, type=None, **kwdargs):
+    def add_axes(
+        self,
+        key=None,
+        handle=None,
+        type=None,
+        refx=None,
+        refy=None,
+        **kwdargs,
+    ):
         super().add_obj(
-            which='axes', key=key, handle=handle, type=type, **kwdargs,
+            which='axes',
+            key=key,
+            handle=handle,
+            type=type,
+            refx=refx,
+            refy=refy,
+            **kwdargs,
         )
 
         # add canvas if not already stored
@@ -55,6 +70,7 @@ class DataCollection1(DataCollection0):
         handle=None,
         ref=None,
         data=None,
+        visible=None,
         **kwdargs,
     ):
         super().add_obj(
@@ -63,6 +79,7 @@ class DataCollection1(DataCollection0):
             handle=handle,
             ref=ref,
             data=data,
+            visible=visible,
             **kwdargs,
         )
 
@@ -114,22 +131,16 @@ class DataCollection1(DataCollection0):
             msg = "Arg dgroup must be a dict of the form:\n"
             raise Exception(msg)
 
-        # TBF / TBC
         for k0, v0 in dgroup.items():
             if v0.get('nmax') is None:
                 dgroup[k0]['nmax'] = 1
-            dgroup[k0]['ind'] = np.zeros((dgroup[k0]['nmax']), dtype=int)
-            dgroup[k0]['ncur'] = 0
 
         # group, ref, nmax
-        group = sorted(dgroup.keys())
-        ref = list(itt.chain.from_iterable(
-            [dgroup[k0]['ref'] for k0 in group]
-        ))
-        nref = len(ref)
-        nmax = np.zeros((2, nref), dtype=int)
-        nmax[1, :] = [dgroup[k0]['nmax'] for k0 in group]
-        ind = np.zeros((np.max(nmax), nref), dtype=int)
+        lgroup = sorted(dgroup.keys())
+        ngroup = len(lgroup)
+        nmax = np.array([dgroup[k0]['nmax'] for k0 in lgroup])
+        nmaxcur = np.zeros((ngroup,), dtype=int)
+        indcur = np.zeros((ngroup,), dtype=int)
 
         # cumsum0 = np.r_[0, np.cumsum(nmax[1, :])]
         # arefind = np.zeros((np.sum(nmax[1, :]),), dtype=int)
@@ -152,11 +163,12 @@ class DataCollection1(DataCollection0):
         # ---------
         # dinter
         dinter = {
-            'group': group,
-            'ref': ref,
-            'nmax': nmax,
-            'dgroup': dgroup,
             'dkeys': dkeys,
+            'dgroup': dgroup,
+            'lgroup': lgroup,
+            'nmax': nmax,
+            'nmaxcur': nmaxcur,
+            'indcur': indcur,
             'current_ax': None,
             'current_group': None,
             'current_ref': None,
@@ -257,9 +269,21 @@ class DataCollection1(DataCollection0):
         kax = _generic_check._check_var(
             None, 'kax',
             types=str,
-            allowed=kax,
+            allowed=lkax,
         )
         ax = self._dobj['axes'][kax]['handle']
+
+        # Get current group and ref
+        groupx = self._dobj['axes'][kax]['groupx']
+        groupy = self._dobj['axes'][kax]['groupy']
+        refx = self._dobj['axes'][kax]['refx']
+        refy = self._dobj['axes'][kax]['refy']
+
+        current_group = self._dobj['interactivity'][kinter]['current_group']
+        if current_group in groupx + groupy:
+            pass
+        else:
+            pass
 
         # Check axes is relevant and toolbar not active
         c_activeax = 'fix' not in self.dobj['axes'][kax].keys() # TBC
@@ -272,7 +296,7 @@ class DataCollection1(DataCollection0):
 
         # get current group
         dgroup = self._dobj['interactivity'][kinter]['dgroup']
-        group = self._dobj['interactivity'][kinter]['group']
+        # group = self._dobj['interactivity'][kinter]['group']
         lgroup = [
             k0 for k0, v0['ref'] in dgroup.items()
             if any([rr in v0['ref'] for rr in self._dobj['axes'][kax]['ref']])
@@ -318,11 +342,26 @@ class DataCollection1(DataCollection0):
     # Interactivity: generic update
     # -----------------------------
 
-    def update_interactivity(self, excluderef=True):
+    def update_interactivity(self, ref_update=None, excluderef=True):
         """ Called at each event """
-        self._update_dcur() # 0.4 ms
-        self._update_dref(excluderef=excluderef)    # 0.1 ms
-        self._update_dobj() # 0.2 s
+
+        # Propagate indices through refs
+        for rr in ref_update:
+            lref = None
+            ldata = None
+            self.propagate_indices_per_ref(ref=rr, lref=lref, ldata=ldata)
+
+        # Set visibility of mobile objects
+        for k0, v0 in self._dobj['mobile'].items():
+            lref = v0['ref']
+            vis = None
+            self._dobj['mobile'][k0]['visible'] = vis
+
+        # Set list of mobile objects to be updated
+
+        # self._update_dcur() # 0.4 ms
+        # self._update_dref(excluderef=excluderef)    # 0.1 ms
+        self._update_mobiles(lmobiles=lmobiles) # 0.2 s
 
     def _update_dcur(self):
         """ Called at each event """
@@ -397,13 +436,17 @@ class DataCollection1(DataCollection0):
             self.dind['arefind'][i0:i1] = self.dref[rid]['ind']
 
 
-    def _update_dobj(self):
+    def _update_mobiles(self):
 
         # --- Prepare ----- 2 us
         group = self.dcur['group']
         refid = self.dcur['refid']
         indcur = self.dgroup[group]['indcur']
         lax = self.dgroup[group]['lax']
+
+        # ----- Get list of canvas and axes to be updated -----
+        lax = None
+        lcan = None
 
         # ---- Restore backgrounds ---- 1 ms
         for aa in lax:
@@ -418,9 +461,9 @@ class DataCollection1(DataCollection0):
                 self.dobj[obj]['dupdate'][k]['fupdate']( val )  # 2 ms
 
         # --- Redraw all objects (due to background restore) --- 25 ms
-        for obj in self.dobj.keys():
-            obj.set_visible(self.dobj[obj]['vis'])
-            self.dobj[obj]['ax'].draw_artist(obj)
+        for k0, v0 in self._dobj['mobile'].items():
+            v0['handle'].set_visible(v0['visible'])
+            self._dobj['axes'][v0['ax']]['handle'].draw_artist(v0['handle'])
 
         # ---- blit axes ------ 5 ms
         for aa in lax:
@@ -439,52 +482,65 @@ class DataCollection1(DataCollection0):
 
         # get / set cuurent interactive usabel axes and ref
         try:
-            kinter, kax, ax, group, ref = self._getset_current_axref(event)
+            self._getset_current_axref(event)
         except Exception as err:
             # warnings.warn(str(err))
             return
 
         kinter = self.kinter
-        group = self._dobj['interactivity'][kinter]['current_group']
-
-        dgroup = self._dobj['interactivity'][kinter]['dgroup']
-        dkeys = self._dobj['interactivity'][kinter]['dkeys']
-
-        # Check max number of occurences not reached if shift
-        c0 = (
-            dkeys['shift']['val']
-            and dgroup[group]['nind'] == dgroup[group]['nmax'] - 1
-        )
-        if c0:
-            msg = (
-                "Max nb. of plots reached:\n"
-                f"\t- {dgroup[group]['nmax']} for group {group}"
-            )
-            print(msg)
+        kax = self._dobj['interactivity'][kinter]['current_axe']
+        refx = self._dobj['axes'][kax]['refx']
+        refy = self._dobj['axes'][kax]['refy']
+        if refx is None and refy is None:
             return
 
-        # Update indices
+        dkeys = self._dobj['interactivity'][kinter]['dkeys']
+        shift = dkeys['shift']['val']
         ctrl = dkeys['control']['val'] or dkeys['ctrl']['val']
-        if ctrl:
-            nn = 0
-            ii = 0
-        elif dkeys['shift']['val']:
-            nn = int(dgroup[group]['nind']) + 1
-            ii = nn
-        else:
-            nn = int(dgroup[group]['ncur'])
-            ii = int(dgroup[group]['indcur'])
 
-        # Update dcur
-        dgroup[group]['ncur'] = nn
-        dgroup[group]['indcur'] = ii
+        # Update number of indices (for visibility)
+        for ii, (rr, gg) in [(refx, 'groupx'), (refy, 'groupy')]:
+            if rr is not None:
+                _DataCollection_interactivity._update_indices_nb(
+                    group=self._dobj['axes'][kax][gg],
+                    dinter=self._dobj['interactivity'][kinter],
+                    ctrl=ctrl,
+                    shift=shift,
+                )
+
+        # Update ref indices
+
+        if refx is not None and refy is not None:
+            kx = self._dobj['axes'][kax]['datax']
+            ky = self._dobj['axes'][kax]['datay']
+            datax = self._ddata[kx]['data']
+            datay = self._ddata[ky]['data']
+            deltax = None
+            deltay = None
+            dist = np.sqrt()
+
+            ind = np.nanargmin(dist)
+
+        elif refx is not None:
+            bins =
+            ind =
+            self._dref[refx]['indices'][iix] = ind
+
+        elif refy is not None:
+            pass
+
+        # Update ref indices
+        if self._dobj['interactivity'][kinter]['follow']:
+            self._dref[refx]['indices'][iix:] = indx
+        else:
+            self._dref[refx]['indices'][iix] = indx
 
         # Update group val
-        val = (event.xdata, event.ydata)
-        if self._dobj['interactivity'][kinter]['follow']:
-            dgroup[group]['valind'][ii:, :] = val
-        else:
-            dgroup[group]['valind'][ii, :] = val
+        # val = (event.xdata, event.ydata)
+        # if self._dobj['interactivity'][kinter]['follow']:
+            # dgroup[group]['valind'][ii:, :] = val
+        # else:
+            # dgroup[group]['valind'][ii, :] = val
 
         self.update_interactivity(excluderef=False)
 
