@@ -6,7 +6,7 @@ import os
 import itertools as itt
 import copy
 import warnings
-from abc import ABCMeta, abstractmethod
+# from abc import ABCMeta, abstractmethod
 import inspect
 
 # Common
@@ -143,7 +143,7 @@ def _select_ind(v, ref, nRef):
 
 class DataAbstract(utils.ToFuObject):
 
-    __metaclass__ = ABCMeta
+    #__metaclass__ = ABCMeta
 
     # Fixed (class-wise) dictionary of default properties
     _ddef = {'Id':{'include':['Mod','Cls','Exp','Diag',
@@ -932,10 +932,10 @@ class DataAbstract(utils.ToFuObject):
             c0 = all([cc._isLOS() for cc in self.dgeom['lCam']])
         return c0
 
-    @abstractmethod
+    # @abstractmethod
     def _isSpectral(self):
         return 'spectral' in self.__class__.name.lower()
-    @abstractmethod
+    # @abstractmethod
     def _is2D(self):
         return '2d' in self.__class__.__name__.lower()
 

@@ -20,6 +20,42 @@ from . import _generic_check
 #############################################
 
 
+def _get_index_from_data(data=None, data_pick=None, monot=None):
+
+    if isinstance(data, str) and data == 'index':
+        indices = np.round(data_pick)
+
+    elif monot:
+
+        bins = np.r_[
+            data[0] - 0.5*(data[1] - data[0]),
+            0.5*(data[1:] + data[:-1]),
+            data[-1] + 0.5*(data[-1] - data[-2]),
+        ]
+        indices = np.digitize(data_pick, bins, right=False)
+
+        # corrections
+        if data[1] > data[0]:
+            indices[data_pick < bins[0]] = 0
+            indices[data_pick > bins[-1]] = data.size-1
+        else:
+            indices[data_pick < bins[-1]] = data.size-1
+            indices[data_pick > bins[0]] = 0
+
+    elif data.ndim == 1:
+
+        indices = np.array([
+            np.nanargmin(np.abs(data - dd))
+            for dd in data_pick
+        ])
+
+    else:
+        msg = "Non-handled case yet"
+        raise Exception(msg)
+
+    return indices
+
+
 def propagate_indices_per_ref(
     ref=None,
     lref=None,
@@ -76,7 +112,10 @@ def propagate_indices_per_ref(
         dout = {
             rr: (ii, ldata[ii], dref[rr]['ldata_monot'])
             for ii, rr in enumerate([ref] + lref)
-            if ldata[ii] not in dref[rr]['ldata_monot']
+            if not (
+                ldata[ii] in dref[rr]['ldata_monot']
+                or ldata[ii] == 'index'
+            )
         }
         if len(dout) > 0:
             lstr = [
@@ -85,7 +124,7 @@ def propagate_indices_per_ref(
             ]
             msg = (
                 "Provided ldata are not suitable:\n"
-                "\n".join(lstr)
+                 + "\n".join(lstr)
             )
             raise Exception(msg)
 
@@ -138,24 +177,21 @@ def propagate_indices_per_ref(
             ldata = [drdata[rr][0] for rr in [ref] + lref]
 
         # propagate according to data (nearest neighbourg)
-        dataref = ddata[ldata[0]]['data']
-        dataref = dataref[dref[ref]['indices']]
+        if ldata[0] == 'index':
+            dataref = None
+        else:
+            dataref = ddata[ldata[0]]['data']
+            dataref = dataref[dref[ref]['indices']]
         for ii, rr in enumerate(lref):
-            data = ddata[ldata[ii+1]]['data']
-            bins = np.r_[
-                data[0] - 0.5*(data[1] - data[0]),
-                0.5*(data[1:] + data[:-1]),
-                data[-1] + 0.5*(data[-1] - data[-2]),
-            ]
-            dref[rr]['indices'] = np.digitize(dataref, bins, right=False)
-
-            # corrections
-            if data[1] > data[0]:
-                dref[rr]['indices'][dataref < bins[0]] = 0
-                dref[rr]['indices'][dataref > bins[-1]] = data.size-1
+            if ldata[ii+1] == 'index':
+                data = dref[rr]['indices']
             else:
-                dref[rr]['indices'][dataref < bins[-1]] = data.size-1
-                dref[rr]['indices'][dataref > bins[0]] = 0
+                data = ddata[ldata[ii+1]]['data']
+            dref[rr]['indices'] = _get_index_from_data(
+                data=dataref,
+                data_pick=data,
+                monot=True,
+            )
 
 
 #############################################

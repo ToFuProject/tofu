@@ -3,7 +3,7 @@
 import os
 import sys
 import collections
-from abc import ABCMeta, abstractmethod
+# from abc import ABCMeta, abstractmethod
 import importlib
 import getpass
 import subprocess
@@ -1733,8 +1733,9 @@ def _get_attrdictfromobj(obj, dd):
 
 class ToFuObjectBase(object):
 
-    __metaclass__ = ABCMeta
+    #__metaclass__ = ABCMeta
     _dstrip = {'strip':None, 'allowed':None}
+    __object = object()
 
     # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, *args, **kwdargs):
@@ -1756,8 +1757,7 @@ class ToFuObjectBase(object):
             self._init(**kwdargs)
         self._Done = True
 
-
-    @abstractmethod
+    # @abstractmethod
     def _reset(self):
         """ To be overloaded """
         pass
@@ -1766,7 +1766,7 @@ class ToFuObjectBase(object):
         """ To be overloaded """
         pass
 
-    @abstractmethod
+    # @abstractmethod
     def _init(self, **kwdargs):
         """ To be overloaded """
         pass
@@ -2095,7 +2095,6 @@ class ToFuObjectBase(object):
     #  operator overloading
     #############################
 
-
     def __eq__(self, obj, lexcept=[], detail=True, verb=True):
         msg = "The 2 objects have different "
         # Check class
@@ -2217,6 +2216,8 @@ class ToFuObjectBase(object):
     def __ne__(self, obj, detail=True, verb=True):
         return not self.__eq__(obj, detail=detail, verb=verb)
 
+    def __hash__(self):
+        return self.__object.__hash__()
 
 
 class ToFuObject(ToFuObjectBase):

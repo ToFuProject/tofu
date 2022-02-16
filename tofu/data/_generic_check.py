@@ -212,7 +212,7 @@ def _check_dax(dax=None, main=None):
                 )
                 or (
                     isinstance(v0, dict)
-                    and issubclass(v0.get('ax').__class__, plt.Axes)
+                    and issubclass(v0.get('handle').__class__, plt.Axes)
                     and v0.get('type') in _LALLOWED_AXESTYPES
                 )
             )
@@ -226,6 +226,6 @@ def _check_dax(dax=None, main=None):
 
     for k0, v0 in dax.items():
         if issubclass(v0.__class__, plt.Axes):
-            dax[k0] = {'ax': v0, 'type': k0}
+            dax[k0] = {'handle': v0, 'type': k0}
 
     return dax

@@ -7,7 +7,7 @@ import os
 # import itertools as itt
 import copy
 import warnings
-from abc import ABCMeta, abstractmethod
+# from abc import ABCMeta, abstractmethod
 import inspect
 
 
@@ -50,7 +50,7 @@ class DataCollection0(utils.ToFuObject):
         - visualization
 
     """
-    __metaclass__ = ABCMeta
+    # __metaclass__ = ABCMeta
 
     # Fixed (class-wise) dictionary of default properties
     _ddef = {
@@ -701,13 +701,20 @@ class DataCollection0(utils.ToFuObject):
                 ]
                 for k0 in self._dref.keys()
             ])
-            if 'indices' in self.get_lparam(which='ref'):
+
+            lp = self.get_lparam(which='ref')
+            if 'indices' in lp:
                 lcol[0].append('indices')
-                for ii, k0 in enumerate(self._dref.keys()):
+                for ii, (k0, v0) in enumerate(self._dref.items()):
                     if self._dref[k0]['indices'] is None:
-                        lar[0][ii].append(str(self._dref[k0]['indices']))
+                        lar[0][ii].append(str(v0['indices']))
                     else:
-                        lar[0][ii].append(str(list(self._dref[k0]['indices'])))
+                        lar[0][ii].append(str(list(v0['indices'])))
+
+            if 'group' in lp:
+                lcol[0].append('group')
+                for ii, (k0, v0) in enumerate(self._dref.items()):
+                    lar[0][ii].append(str(self._dref[k0]['group']))
 
         # -----------------------
         # Build for ddata
@@ -784,7 +791,10 @@ class DataCollection0(utils.ToFuObject):
                         if 'func' not in kk
                         and 'class' not in kk
                         and kk not in ['handle']
-                        and not isinstance(v0[kk], dict)
+                        and all([
+                            not isinstance(v1[kk], dict)
+                            for v1 in v0.values()
+                        ])
                     ]
                     lcol.append([k0] + [pp for pp in lk])
                     lar.append([

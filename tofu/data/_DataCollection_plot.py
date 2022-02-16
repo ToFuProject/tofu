@@ -371,6 +371,7 @@ def _plot_as_matrix_check(
     vmin=None,
     vmax=None,
     aspect=None,
+    nmax=None,
     dcolorbar=None,
     dleg=None,
     data=None,
@@ -431,6 +432,13 @@ def _plot_as_matrix_check(
         allowed=['auto', 'equal'],
     )
 
+    # nmax
+    nmax = _generic_check._check_var(
+        nmax, 'nmax',
+        default=3,
+        types=int,
+    )
+
     # dcolorbar
     defdcolorbar = {
         # 'location': 'right',
@@ -462,10 +470,11 @@ def _plot_as_matrix_check(
         types=bool,
     )
 
-    return key, ind, cmap, vmin, vmax, aspect, dcolorbar, dleg, connect
+    return key, ind, cmap, vmin, vmax, aspect, nmax, dcolorbar, dleg, connect
 
 
 def plot_as_array(
+    # parameters
     coll=None,
     key=None,
     ind=None,
@@ -473,6 +482,8 @@ def plot_as_array(
     vmax=None,
     cmap=None,
     aspect=None,
+    nmax=None,
+    # figure-specific
     dax=None,
     dmargin=None,
     fs=None,
@@ -485,7 +496,7 @@ def plot_as_array(
     # check input
 
     (
-        key, ind, cmap, vmin, vmax, aspect, dcolorbar, dleg, connect,
+        key, ind, cmap, vmin, vmax, aspect, nmax, dcolorbar, dleg, connect,
     ) = _plot_as_matrix_check(
         coll=coll,
         key=key,
@@ -494,6 +505,7 @@ def plot_as_array(
         vmin=vmin,
         vmax=vmax,
         aspect=aspect,
+        nmax=nmax,
         dcolorbar=dcolorbar,
         dleg=dleg,
         connect=connect,
@@ -561,15 +573,11 @@ def plot_as_array(
 
         dax = {
             'matrix': ax0,
-            'misc1': {'ax': ax1, 'type': 'misc'},
-            'misc2': {'ax': ax2, 'type': 'misc'},
+            'vertical': {'handle': ax1, 'type': 'misc'},
+            'horizontal': {'handle': ax2, 'type': 'misc'},
         }
 
     dax = _generic_check._check_dax(dax=dax, main='matrix')
-
-    # add axes
-    for kax in dax.keys():
-        coll.add_axes(key=kax, **dax[kax])
 
     # ---------------
     # plot fixed part
@@ -577,7 +585,7 @@ def plot_as_array(
     axtype = 'matrix'
     lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
     for kax in lkax:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
 
         im = ax.imshow(
             data,
@@ -600,46 +608,87 @@ def plot_as_array(
     axtype = 'matrix'
     lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
     for kax in lkax:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
+
         # ind0, ind1
-        lh = ax.axhline(ind[0], c='k', lw=1., ls='-')
-        lv = ax.axvline(ind[1], c='k', lw=1., ls='-')
+        lmob = []
+        for ii in range(nmax):
+            lh = ax.axhline(ind[0], c='k', lw=1., ls='-')
+            lv = ax.axvline(ind[1], c='k', lw=1., ls='-')
 
-        coll.add_mobile(key='lh', handle=lh, ref=(ref0,))
-        coll.add_mobile(key='lv', handle=lv, ref=(ref1,))
+            # update coll
+            kh = f'h{ii:02.0f}'
+            kv = f'v{ii:02.0f}'
+            coll.add_mobile(key=kh, handle=lh, data='index', ref=None, ax=kax)
+            coll.add_mobile(key=kv, handle=lv, data='index', ref=None, ax=kax)
+            lmob += [kh, kv]
 
-    kax = 'misc1'
+        dax[kax].update(refx=[ref0], refy=[ref1], mobiles=lmob)
+
+    kax = 'vertical'
     if dax.get(kax) is not None:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
 
-        l0, = ax.plot(
-            data[:, ind[1]],
-            np.arange(0, n0),
-            ls='-',
-            marker='.',
-            lw=1.,
-            color='k',
-            label=f'ind0 = {ind[0]}',
-        )
+        lmob = []
+        for ii in range(nmax):
+            l0, = ax.plot(
+                data[:, ind[1]],
+                np.arange(0, n0),
+                ls='-',
+                marker='.',
+                lw=1.,
+                color='k',
+                label=f'ind0 = {ind[0]}',
+            )
 
-        coll.add_mobile(key='prof_vert', handle=l0, ref=(ref1,), data=key)
+            km = f'vprof{ii:02.0f}'
+            coll.add_mobile(key=km, handle=l0, data=key, ref=(ref1,), ax=kax)
+            lmob.append(km)
 
-    kax = 'misc2'
+        dax[kax].update(refy=[ref1], mobiles=lmob)
+
+    kax = 'horizontal'
     if dax.get(kax) is not None:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
 
-        l1, = ax.plot(
-            np.arange(0, n1),
-            data[ind[0], :],
-            ls='-',
-            marker='.',
-            lw=1.,
-            color='k',
-            label=f'ind1 = {ind[1]}',
-        )
+        lmob = []
+        for ii in range(nmax):
+            l1, = ax.plot(
+                np.arange(0, n1),
+                data[ind[0], :],
+                ls='-',
+                marker='.',
+                lw=1.,
+                color='k',
+                label=f'ind1 = {ind[1]}',
+            )
 
-        coll.add_mobile(key='prof_hor', handle=l1, ref=(ref0,), data=key)
+            km = f'hprof{ii:02.0f}'
+            coll.add_mobile(key=km, handle=l1, ref=(ref0,), data=key, ax=kax)
+            lmob.append(km)
 
+        dax[kax].update(refx=[ref0], mobiles=lmob)
+
+    # add axes
+    for kax in dax.keys():
+        coll.add_axes(key=kax, **dax[kax])
+
+    # define and set dgroup
+    dgroup = {
+        'hor': {
+            'ref': [ref0],
+            'data': ['index'],
+            'nmax': 3,
+        },
+        'vert': {
+            'ref': [ref1],
+            'data': ['index'],
+            'nmax': 3,
+        },
+    }
+    coll.setup_interactivity(kinter='inter0', dgroup=dgroup)
+
+    # connect
     if connect is True:
         coll.connect()
 

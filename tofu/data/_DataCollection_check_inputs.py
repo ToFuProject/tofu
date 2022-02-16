@@ -1211,7 +1211,8 @@ def _check_dobj(
 
         # check each key / value
         lc2 = [
-            f'\t- {str(k1)}: {type(v1)}' for k1, v1 in v0.items()
+            f'\t- {str(k1)}: {type(v1)}, {k1 in dobj0.get(k0, {}).keys()}'
+            for k1, v1 in v0.items()
             if not (
                 (k1 is None or isinstance(k1, str))
                 and isinstance(v1, dict)
@@ -1701,7 +1702,7 @@ def _set_param(
         and distribute is True,
         isinstance(value, dict)
         and all([
-            kk in dd.keys() and type(vv) in ltypes
+            kk in dd.keys()
             for kk, vv in value.items()
         ])
     ]
