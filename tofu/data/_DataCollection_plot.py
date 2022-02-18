@@ -370,6 +370,8 @@ def _plot_as_matrix_check(
     cmap=None,
     vmin=None,
     vmax=None,
+    ymin=None,
+    ymax=None,
     aspect=None,
     nmax=None,
     dcolorbar=None,
@@ -424,6 +426,12 @@ def _plot_as_matrix_check(
     if vmax is None and diverging:
         vmax = max(abs(nanmin), nanmax)
 
+    # vmin, vmax
+    if ymin is None:
+        ymin = vmin
+    if ymax is None:
+        ymax = vmax
+
     # aspect
     aspect = _generic_check._check_var(
         aspect, 'aspect',
@@ -470,7 +478,12 @@ def _plot_as_matrix_check(
         types=bool,
     )
 
-    return key, ind, cmap, vmin, vmax, aspect, nmax, dcolorbar, dleg, connect
+    return (
+        key, ind,
+        cmap, vmin, vmax,
+        ymin, ymax,
+        aspect, nmax, dcolorbar, dleg, connect,
+    )
 
 
 def plot_as_array(
@@ -481,6 +494,8 @@ def plot_as_array(
     vmin=None,
     vmax=None,
     cmap=None,
+    ymin=None,
+    ymax=None,
     aspect=None,
     nmax=None,
     # figure-specific
@@ -496,7 +511,10 @@ def plot_as_array(
     # check input
 
     (
-        key, ind, cmap, vmin, vmax, aspect, nmax, dcolorbar, dleg, connect,
+        key, ind,
+        cmap, vmin, vmax,
+        ymin, ymax,
+        aspect, nmax, dcolorbar, dleg, connect,
     ) = _plot_as_matrix_check(
         coll=coll,
         key=key,
@@ -504,6 +522,8 @@ def plot_as_array(
         cmap=cmap,
         vmin=vmin,
         vmax=vmax,
+        ymin=ymin,
+        ymax=ymax,
         aspect=aspect,
         nmax=nmax,
         dcolorbar=dcolorbar,
@@ -518,6 +538,8 @@ def plot_as_array(
     if hasattr(data, 'nnz'):
         data = data.toarray()
     n0, n1 = data.shape
+    extent = (n1 - 0.5, n1 + 0.5, n0 - 0.5, n1 + 0.5)
+
     ref0, ref1 = coll.ddata[key]['ref']
     lab0 = f'ind0 ({ref0})'
     lab1 = f'ind1 ({ref1})'
@@ -571,6 +593,9 @@ def plot_as_array(
         ax2.set_ylabel('data')
         ax2.set_xlabel(lab1)
 
+        ax1.set_xlim(ymin, ymax)
+        ax2.set_ylim(ymin, ymax)
+
         dax = {
             'matrix': ax0,
             'vertical': {'handle': ax1, 'type': 'misc'},
@@ -603,6 +628,22 @@ def plot_as_array(
             ax.legend(**dleg)
 
     # ----------------
+    # define and set dgroup
+
+    dgroup = {
+        'hor': {
+            'ref': [ref0],
+            'data': ['index'],
+            'nmax': 3,
+        },
+        'vert': {
+            'ref': [ref1],
+            'data': ['index'],
+            'nmax': 3,
+        },
+    }
+
+    # ----------------
     # plot mobile part
 
     axtype = 'matrix'
@@ -619,11 +660,26 @@ def plot_as_array(
             # update coll
             kh = f'h{ii:02.0f}'
             kv = f'v{ii:02.0f}'
-            coll.add_mobile(key=kh, handle=lh, data='index', ref=None, ax=kax)
-            coll.add_mobile(key=kv, handle=lv, data='index', ref=None, ax=kax)
-            lmob += [kh, kv]
+            coll.add_mobile(
+                key=kh,
+                handle=lh,
+                ref=ref0,
+                data='index',
+                dtype='ydata',
+                ax=kax,
+                ind=ii,
+            )
+            coll.add_mobile(
+                key=kv,
+                handle=lv,
+                ref=ref1,
+                data='index',
+                dtype='xdata',
+                ax=kax,
+                ind=ii,
+            )
 
-        dax[kax].update(refx=[ref0], refy=[ref1], mobiles=lmob)
+        dax[kax].update(refx=[ref1], refy=[ref0])
 
     kax = 'vertical'
     if dax.get(kax) is not None:
@@ -642,10 +698,32 @@ def plot_as_array(
             )
 
             km = f'vprof{ii:02.0f}'
-            coll.add_mobile(key=km, handle=l0, data=key, ref=(ref1,), ax=kax)
-            lmob.append(km)
+            coll.add_mobile(
+                key=km,
+                handle=l0,
+                ref=(ref1,),
+                data=key,
+                dtype='xdata',
+                ax=kax,
+                ind=ii,
+            )
 
-        dax[kax].update(refy=[ref1], mobiles=lmob)
+            l0 = ax.axhline(
+                ind[1],
+                c='k',
+            )
+            km = f'lh-v{ii:02.0f}'
+            coll.add_mobile(
+                key=km,
+                handle=l0,
+                ref=(ref0,),
+                data='index',
+                dtype='ydata',
+                ax=kax,
+                ind=ii,
+            )
+
+        dax[kax].update(refy=[ref0])
 
     kax = 'horizontal'
     if dax.get(kax) is not None:
@@ -664,35 +742,44 @@ def plot_as_array(
             )
 
             km = f'hprof{ii:02.0f}'
-            coll.add_mobile(key=km, handle=l1, ref=(ref0,), data=key, ax=kax)
-            lmob.append(km)
+            coll.add_mobile(
+                key=km,
+                handle=l1,
+                ref=(ref0,),
+                data=key,
+                dtype='ydata',
+                ax=kax,
+                ind=ii,
+            )
 
-        dax[kax].update(refx=[ref0], mobiles=lmob)
+            l0 = ax.axvline(
+                ind[0],
+                c='k',
+            )
+            km = f'lv-h{ii:02.0f}'
+            coll.add_mobile(
+                key=km,
+                handle=l0,
+                ref=(ref1,),
+                data='index',
+                dtype='xdata',
+                ax=kax,
+                ind=ii,
+            )
+
+        dax[kax].update(refx=[ref1])
 
     # add axes
     for kax in dax.keys():
         coll.add_axes(key=kax, **dax[kax])
 
-    # define and set dgroup
-    dgroup = {
-        'hor': {
-            'ref': [ref0],
-            'data': ['index'],
-            'nmax': 3,
-        },
-        'vert': {
-            'ref': [ref1],
-            'data': ['index'],
-            'nmax': 3,
-        },
-    }
     coll.setup_interactivity(kinter='inter0', dgroup=dgroup)
 
     # connect
     if connect is True:
         coll.connect()
 
-    return dax
+    return coll
 
 
 # #############################################################################

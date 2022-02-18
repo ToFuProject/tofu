@@ -791,6 +791,7 @@ class DataCollection0(utils.ToFuObject):
                         if 'func' not in kk
                         and 'class' not in kk
                         and kk not in ['handle']
+                        and not (k0 == 'axes' and kk == 'bck')
                         and all([
                             not isinstance(v1[kk], dict)
                             for v1 in v0.values()

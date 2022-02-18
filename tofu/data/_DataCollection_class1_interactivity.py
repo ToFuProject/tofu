@@ -1,12 +1,15 @@
 
 
+import warnings
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 from . import _generic_check
 from ._DataCollection_class0_Base import DataCollection0
-from . import _DataCollection_interactivity
+from . import _DataCollection_interactivity as _interactivity
 from . import _DataCollection_comp
 from . import _DataCollection_plot
 
@@ -24,6 +27,80 @@ class DataCollection1(DataCollection0):
     #   Add objects
     # ----------------------
 
+    def add_mobile(
+        self,
+        key=None,
+        handle=None,
+        ref=None,
+        data=None,
+        dtype=None,
+        visible=None,
+        ax=None,
+        **kwdargs,
+    ):
+
+        # ----------
+        # check ref
+
+        if isinstance(ref, str):
+            ref = (ref,)
+        if isinstance(ref, list):
+            ref = tuple(ref)
+
+        if ref is None or not all([rr in self._dref.keys() for rr in ref]):
+            msg = (
+                "Arg ref must be a tuple of existing ref keys!\n"
+                f"\t- Provided: {ref}"
+            )
+            raise Exception(msg)
+
+        # ----------
+        # check dtype
+
+        dtype = _generic_check._check_var(
+            dtype,
+            'dtype',
+            types=str,
+            allowed=['xdata', 'ydata', 'data', 'alpha', 'txt']
+        )
+
+        # ----------
+        # check data
+
+        if isinstance(data, str):
+            data = (data,)
+        if isinstance(data, list):
+            data = tuple(data)
+        if data is None:
+            data = ['index' for rr in ref]
+
+        c0 = (
+            len(ref) == len(data)
+            and all([rr == 'index' or rr in self._ddata.keys() for rr in data])
+        )
+        if not c0:
+            msg = (
+                "Arg data must be a tuple of existing data keys!\n"
+                "It should hqve the same length as ref!\n"
+                f"\t- Provided ref: {ref}\n"
+                f"\t- Provided data: {data}"
+            )
+            raise Exception(msg)
+
+        super().add_obj(
+            which='mobile',
+            key=key,
+            handle=handle,
+            group=None,
+            ref=ref,
+            data=data,
+            dtype=dtype,
+            visible=visible,
+            ax=ax,
+            func=None,
+            **kwdargs,
+        )
+
     def add_axes(
         self,
         key=None,
@@ -33,8 +110,6 @@ class DataCollection1(DataCollection0):
         refy=None,
         datax=None,
         datay=None,
-        bck=None,
-        lmobile=None,
         **kwdargs,
     ):
 
@@ -81,8 +156,9 @@ class DataCollection1(DataCollection0):
             refy=refy,
             datax=datax,
             datay=datay,
-            bck=bck,
-            lmobile=lmobile,
+            bck=None,
+            mobile=None,
+            canvas=None,
             **kwdargs,
         )
 
@@ -110,27 +186,6 @@ class DataCollection1(DataCollection0):
             interactive=interactive,
         )
 
-    def add_mobile(
-        self,
-        key=None,
-        handle=None,
-        ref=None,
-        data=None,
-        visible=None,
-        ax=None,
-        **kwdargs,
-    ):
-        super().add_obj(
-            which='mobile',
-            key=key,
-            handle=handle,
-            ref=ref,
-            data=data,
-            visible=visible,
-            ax=ax,
-            **kwdargs,
-        )
-
     # ------------------
     # Properties
     # ------------------
@@ -144,6 +199,27 @@ class DataCollection1(DataCollection0):
         return self._dinteractivity
 
     # ------------------
+    # Debug mode
+    # ------------------
+
+    def set_debug(self, debug=None):
+        """ Set debug mode to True / False """
+        debug = _generic_check._check_var(
+            debug,
+            'debug',
+            default=False,
+            types=bool,
+        )
+        self.debug = debug
+
+    def show_debug(self):
+        """ Display information relevant for live debugging """
+        print('\n\n')
+        return self.get_summary(
+            show_which=['ref', 'group', 'interactivity'],
+        )
+
+    # ------------------
     # Setup interactivity
     # ------------------
 
@@ -151,6 +227,7 @@ class DataCollection1(DataCollection0):
         self,
         kinter=None,
         dgroup=None,
+        debug=None,
     ):
         """
 
@@ -186,6 +263,8 @@ class DataCollection1(DataCollection0):
         for k0, v0 in dgroup.items():
             if v0.get('nmax') is None:
                 dgroup[k0]['nmax'] = 1
+            dgroup[k0]['nmaxcur'] = 0
+            dgroup[k0]['indcur'] = 0
 
         # ----------------------------
         # make sure all refs are known
@@ -211,11 +290,6 @@ class DataCollection1(DataCollection0):
         self.add_param(which='ref', param='group')
         self.set_param(which='ref', param='group', value=drefgroup)
 
-        # ----------------------------
-        # add indices to ref
-
-
-
         # ------------------------------
         # update dax with groupx, groupy
 
@@ -235,58 +309,84 @@ class DataCollection1(DataCollection0):
                     self._dref[k1]['group'] for k1 in v0['refy']
                 ]
 
-        self.add_param(which='axes', param='groupx')
-        self.add_param(which='axes', param='groupy')
-        self.set_param(which='axes', param='groupx', value=daxgroupx)
-        self.set_param(which='axes', param='groupy', value=daxgroupy)
+        self.add_param(which='axes', param='groupx', value=daxgroupx)
+        self.add_param(which='axes', param='groupy', value=daxgroupy)
 
         # group, ref, nmax
-        lgroup = sorted(dgroup.keys())
-        ngroup = len(lgroup)
-        nmax = np.array([dgroup[k0]['nmax'] for k0 in lgroup])
-        nmaxcur = np.zeros((ngroup,), dtype=int)
-        indcur = np.zeros((ngroup,), dtype=int)
 
         # cumsum0 = np.r_[0, np.cumsum(nmax[1, :])]
         # arefind = np.zeros((np.sum(nmax[1, :]),), dtype=int)
 
-        # dind = {
-            # 'lrefid': lref,
-            # 'nmax': nmax,
-            # 'arefind': arefind,
-            # 'cumsum0': cumsum0,
-        # }
+        # --------------------------
+        # update mobile with groups
 
-        # -----
-        # axes
+        for k0, v0 in self._dobj['mobile'].items():
+             self._dobj['mobile'][k0]['group'] = tuple([
+                 self._dref[rr]['group'] for rr in v0['ref']
+             ])
+             self._dobj['mobile'][k0]['func'] = _interactivity.get_fupdate(
+                handle=v0['handle'],
+                dtype=v0['dtype'],
+                norm=None,
+                bstr=None,
+            )
 
+        # --------------------
+        # axes mobile, refs and canvas
+
+        daxcan = dict.fromkeys(self._dobj['axes'].keys())
         for k0, v0 in self._dobj['axes'].items():
-            self._dobj['axes'][k0]['lmob'] = [
+
+            # Update mobile
+            self._dobj['axes'][k0]['mobile'] = [
                 k1 for k1, v1 in self._dobj['mobile'].items()
                 if v1['ax'] == k0
             ]
+
+            # ref
             if v0['refx'] is not None:
                 for ii, rr in enumerate(v0['refx']):
                     if v0['datax'][ii] is None:
                         self._dobj['axes'][k0]['datax'][ii] = 'index'
 
+            # canvas
+            lcan = [
+                k1 for k1, v1 in self._dobj['canvas'].items()
+                if v1['handle'] == v0['handle'].figure.canvas
+            ]
+            assert len(lcan) == 1
+            self._dobj['axes'][k0]['canvas'] = lcan[0]
+
         # ---------
         # dkeys
+
         dkeys = {
             'control': {'val': False},
             'ctrl': {'val': False},
             'shift': {'val': False},
         }
 
+        for k0, v0 in dkeys.items():
+            self.add_obj(
+                which='key',
+                key=k0,
+                **v0,
+            )
+
+        # -------
+        # dgroup
+
+        for k0, v0 in dgroup.items():
+            self.add_obj(
+                which='group',
+                key=k0,
+                **v0,
+            )
+
         # ---------
         # dinter
+
         dinter = {
-            'dkeys': dkeys,
-            'dgroup': dgroup,
-            'lgroup': lgroup,
-            'nmax': nmax,
-            'nmaxcur': nmaxcur,
-            'indcur': indcur,
             'cur_ax': None,
             'cur_groupx': None,
             'cur_groupy': None,
@@ -294,6 +394,8 @@ class DataCollection1(DataCollection0):
             'cur_refy': None,
             'cur_ix': None,
             'cur_iy': None,
+            'cur_datax': None,
+            'cur_datay': None,
             'follow': False,
         }
 
@@ -303,6 +405,14 @@ class DataCollection1(DataCollection0):
             **dinter,
         )
 
+        _interactivity._set_dbck(
+            lax=self._dobj['axes'].keys(),
+            daxes=self._dobj['axes'],
+            dcanvas=self._dobj['canvas'],
+            dmobile=self._dobj['mobile'],
+        )
+
+        self.set_debug(debug)
 
     # ----------------------------
     # Ensure connectivity possible
@@ -353,7 +463,8 @@ class DataCollection1(DataCollection0):
             # keyr = v0['handle'].mpl_connect('key_release_event', self.onkeypress)
             butp = v0['handle'].mpl_connect('button_press_event', self.mouseclic)
             # res = v0['handle'].mpl_connect('resize_event', self.resize)
-            #butr = self.can.mpl_connect('button_release_event', self.mouserelease)
+            butr = v0['handle'].mpl_connect('button_release_event', self.mouserelease)
+            close = v0['handle'].mpl_connect('close_event', self.on_close)
             #if not plt.get_backend() == "agg":
             # v0['handle'].manager.toolbar.release = self.mouserelease
 
@@ -362,7 +473,8 @@ class DataCollection1(DataCollection0):
                 # 'keyr': keyr,
                 'butp': butp,
                 # 'res': res,
-                # 'butr': butr,
+                'butr': butr,
+                'close': close,
             }
 
     def disconnect(self):
@@ -403,43 +515,68 @@ class DataCollection1(DataCollection0):
 
         # Get kinter
         kinter = list(self._dobj['interactivity'].keys())[0]
-        dgroup = self._dobj['interactivity'][kinter]['dgroup']
 
         # Get current groups
         cur_groupx = self._dobj['interactivity'][kinter]['cur_groupx']
         cur_groupy = self._dobj['interactivity'][kinter]['cur_groupy']
-        if cur_groupx in groupx + groupy:
+
+        # determine whether cur_groupx shall be updated
+        if groupx is None:
+            cur_groupx = None
+        elif cur_groupx in groupx:
             pass
         else:
             cur_groupx = groupx[0]
-        if cur_groupy in groupx + groupy:
+        if groupy is None:
+            cur_groupy = None
+        elif cur_groupy in groupy:
             pass
         else:
             cur_groupy = groupy[0]
 
-        # get current refs
+        # # get current refs
         cur_refx = self._dobj['interactivity'][kinter]['cur_refx']
         cur_refy = self._dobj['interactivity'][kinter]['cur_refy']
-        if cur_refx in dgroup[cur_groupx]['ref']:
+        if cur_groupx is None:
+            cur_refx = None
+        elif cur_refx in self._dobj['group'][cur_groupx]['ref']:
             pass
         else:
-            cur_refx = dgroup[cur_groupx]['ref'][0]
-        if cur_refy in dgroup[cur_groupy]['ref']:
+            cur_refx = self._dobj['group'][cur_groupx]['ref'][0]
+        if cur_groupy is None:
+            cur_refy = None
+        elif cur_refy in self._dobj['group'][cur_groupy]['ref']:
             pass
         else:
-            cur_refy = dgroup[cur_groupy]['ref'][0]
+            cur_refy = self._dobj['group'][cur_groupy]['ref'][0]
+
+        # if cur_refy in self._dobj['group'][cur_groupy]['ref']:
+            # pass
+        # else:
+            # cur_refy = self._dobj['group'][cur_groupy]['ref'][0]
 
         # data
-        ix = self._dobj['axes'][kax]['refx'].index(cur_refx)
-        cur_datax = self._dobj['axes'][kax]['datax'][ix]
-        iy = self._dobj['axes'][kax]['refy'].index(cur_refy)
-        cur_datay = self._dobj['axes'][kax]['datay'][iy]
+        cur_datax = self._dobj['interactivity'][kinter]['cur_datax']
+        if cur_refx is None:
+            cur_datax = None
+        elif self._dobj['axes'][kax]['refx'] is not None:
+            ix = self._dobj['axes'][kax]['refx'].index(cur_refx)
+            cur_datax = self._dobj['axes'][kax]['datax'][ix]
+
+        cur_datay = self._dobj['interactivity'][kinter]['cur_datay']
+        if cur_refy is None:
+            cur_datay = None
+        elif self._dobj['axes'][kax]['refy'] is not None:
+            iy = self._dobj['axes'][kax]['refy'].index(cur_refy)
+            cur_datay = self._dobj['axes'][kax]['datay'][iy]
 
         # cur_ind
-        ix = self._dobj['interactivity'][kinter]['lgroup'].index(cur_groupx)
-        cur_ix = self._dobj['interactivity'][kinter]['indcur'][ix]
-        iy = self._dobj['interactivity'][kinter]['lgroup'].index(cur_groupy)
-        cur_iy = self._dobj['interactivity'][kinter]['indcur'][iy]
+        cur_ix = None
+        if cur_groupx is not None:
+            cur_ix = self._dobj['group'][cur_groupx]['indcur']
+        cur_iy = None
+        if cur_groupy is not None:
+            cur_iy = self._dobj['group'][cur_groupy]['indcur']
 
         # Check axes is relevant and toolbar not active
         lc = [
@@ -486,12 +623,10 @@ class DataCollection1(DataCollection0):
     ):
         """ Called at each event """
 
-        dgroup = self._dobj['interactivity'][self.kinter]['dgroup']
-
         # Propagate indices through refs
         if cur_refx is not None:
-            lref = dgroup[cur_groupx]['ref']
-            ldata = dgroup[cur_groupx]['data']
+            lref = self._dobj['group'][cur_groupx]['ref']
+            ldata = self._dobj['group'][cur_groupx]['data']
             self.propagate_indices_per_ref(
                 ref=cur_refx,
                 lref=[rr for rr in lref if rr != cur_refx],
@@ -500,8 +635,8 @@ class DataCollection1(DataCollection0):
             )
 
         if cur_refy is not None:
-            lref = dgroup[cur_groupy]['ref']
-            ldata = dgroup[cur_groupy]['data']
+            lref = self._dobj['group'][cur_groupy]['ref']
+            ldata = self._dobj['group'][cur_groupy]['data']
             self.propagate_indices_per_ref(
                 ref=cur_refy,
                 lref=[rr for rr in lref if rr != cur_refy],
@@ -509,98 +644,71 @@ class DataCollection1(DataCollection0):
                 param=None,
             )
 
-        # Set visibility of mobile objects - TBF/TBC
-        for k0, v0 in self._dobj['mobile'].items():
-            lref = v0['ref']
-            vis = None
-            self._dobj['mobile'][k0]['visible'] = vis
+        # get list of mobiles to update and set visible
+        lmobiles = []
+        if cur_groupx is not None:
+            lmobiles += [
+                k0 for k0, v0 in self._dobj['mobile'].items()
+                if any([
+                    rr in v0['ref']
+                    for rr in self._dobj['group'][cur_groupx]['ref']
+                ])
+            ]
 
-        # Set list of mobile objects to be updated
+            # visible ?
+            ic = self._dobj['group'][cur_groupx]['nmaxcur']
+            for k1 in lmobiles:
+                self._dobj['mobile'][k1]['visible'] = (
+                    self._dobj['mobile'][k1]['ind'] <= ic
+                )
 
-        # self._update_dcur() # 0.4 ms
-        # self._update_dref(excluderef=excluderef)    # 0.1 ms
+        if cur_groupy is not None:
+            lmobiles += [
+                k0 for k0, v0 in self._dobj['mobile'].items()
+                if any([
+                    rr in v0['ref']
+                    for rr in self._dobj['group'][cur_groupy]['ref']
+                ])
+            ]
+
         self._update_mobiles(lmobiles=lmobiles) # 0.2 s
 
-    def _update_dref(self, excluderef=True):
-        """   """
-        group = self.dcur['group']
-        ind = self.dgroup[group]['indcur']
-        val = self.dgroup[group]['valind'][ind,:]
+        if self.debug:
+            self.show_debug()
 
-        if excluderef and len(self.dgroup[group]['lrefid'])>1:
-            for rid in self.dgroup[group]['lrefid']:
-                if rid == self.dcur['refid']:
-                    continue
-                if self.dref[rid]['otherid'] is None:
-                    indother = None
-                else:
-                    group2 = self.dref[self.dref[rid]['otherid']]['group']
-                    ind2 = self.dgroup[group2]['indcur']
-                    indother = self.dref[self.dref[rid]['otherid']]['ind'][ind2]
-                lax = list(self.dref[rid]['df_ind_pos'].keys())
-                if len(lax) == 0:
-                    msg = "A ref has no associated ax !\n"
-                    msg += "    - group: %s\n"%group
-                    msg += "    - rid  : %s"%rid
-                    raise Exception(msg)
+    def _update_mobiles(self, lmobiles=None):
 
-                ii = self.dref[rid]['df_ind_pos'][lax[0]](val, indother)
-                if self._follow:
-                    self.dref[rid]['ind'][ind:] = ii
-                else:
-                    self.dref[rid]['ind'][ind] = ii
-        else:
-            for rid in self.dgroup[group]['lrefid']:
-                if self.dref[rid]['otherid'] is None:
-                    indother = None
-                else:
-                    group2 = self.dref[self.dref[rid]['otherid']]['group']
-                    ind2 = self.dgroup[group2]['indcur']
-                    indother = self.dref[self.dref[rid]['otherid']]['ind'][ind2]
-                lax = list(self.dref[rid]['df_ind_pos'].keys())
-                if len(lax) == 0:
-                    msg = "A ref has no associated ax !\n"
-                    msg += "    - group: %s\n"%group
-                    msg += "    - rid  : %s"%rid
-                    raise Exception(msg)
+        # Set visibility of mobile objects - TBF/TBC
+        for k0 in lmobiles:
+            vis = all([
+                self._dobj['mobile'][k0]['ind']     # + 1
+                <= self._dobj['group'][gg]['nmaxcur']
+                for gg in self._dobj['mobile'][k0]['group']
+            ])
+            self._dobj['mobile'][k0]['visible'] = vis
 
-                ii = self.dref[rid]['df_ind_pos'][lax[0]](val, indother)
-                if self._follow:
-                    self.dref[rid]['ind'][ind:] = ii
-                else:
-                    self.dref[rid]['ind'][ind] = ii
-
-        # Update dind['arefind']
-        for ii in range(0,len(self.dind['lrefid'])):
-            rid = self.dind['lrefid'][ii]
-            i0 = self.dind['cumsum0'][ii]
-            i1 = i0 + self.dgroup[self.dref[rid]['group']]['nMax']
-            self.dind['arefind'][i0:i1] = self.dref[rid]['ind']
-
-
-    def _update_mobiles(self):
-
-        # --- Prepare ----- 2 us
-        group = self.dcur['group']
-        refid = self.dcur['refid']
-        indcur = self.dgroup[group]['indcur']
-        lax = self.dgroup[group]['lax']
-
-        # ----- Get list of canvas and axes to be updated -----
-        lax = None
-        lcan = None
+        # get list of axes to update
+        lax = [
+            k0 for k0, v0 in self._dobj['axes'].items()
+            if any([self._dobj['mobile'][k1]['ax'] == k0 for k1 in lmobiles])
+        ]
 
         # ---- Restore backgrounds ---- 1 ms
         for aa in lax:
-            self.can.restore_region(self.dax[aa]['Bck'])
+            self._dobj['canvas'][
+                self._dobj['axes'][aa]['canvas']
+            ]['handle'].restore_region(
+                self._dobj['axes'][aa]['bck'],
+            )
 
         # ---- update data of group objects ----  0.15 s
-        for obj in self.dgroup[group]['d2obj'][indcur]:
-            for k in self.dobj[obj]['dupdate'].keys():
-                ii = self.dobj[obj]['dupdate'][k]['indrefind']  # 20 us
-                li = self.dind['arefind'][ii]   # 50 us
-                val = self.dobj[obj]['dupdate'][k]['fgetval']( li )    # 0.0001 s
-                self.dobj[obj]['dupdate'][k]['fupdate']( val )  # 2 ms
+        for k0 in lmobiles:
+            _interactivity._update_mobile(
+                dmobile=self._dobj['mobile'],
+                dref=self._dref,
+                ddata=self._ddata,
+                k0=k0,
+            )
 
         # --- Redraw all objects (due to background restore) --- 25 ms
         for k0, v0 in self._dobj['mobile'].items():
@@ -609,29 +717,17 @@ class DataCollection1(DataCollection0):
 
         # ---- blit axes ------ 5 ms
         for aa in lax:
-            self.can.blit(aa.bbox)
+            self._dobj['canvas'][
+                self._dobj['axes'][aa]['canvas']
+            ]['handle'].blit(self._dobj['axes'][aa]['handle'].bbox)
 
     def resize(self, event):
-        self._set_dbck(self.dax.keys())
-
-    def _set_dbck(self, lax):
-        # Make all invisible
-        for ax in lax:
-            for obj in self.dax[ax]['lobj']:
-                obj.set_visible(False)
-
-        # Draw and reset Bck
-        self.can.draw()
-        for ax in lax:
-            #ax.draw(self.can.renderer)
-            self.dax[ax]['bck'] = self.can.copy_from_bbox(ax.bbox)
-
-        # Redraw
-        for kax in lax:
-            for obj in self._dobj['axes'][kax]['lobj']:
-                obj.set_visible(self._obj['mobile'][obj]['vis'])
-                #ax.draw(self.can.renderer)
-        self.can.draw()
+        _interactivity._set_dbck(
+            lax=self._dobj['axes'].keys(),
+            daxes=self._dobj['axes'],
+            dcanvas=self._dobj['canvas'],
+            dmobile=self._dobj['mobile'],
+        )
 
     # ----------------------
     # Interactivity: mouse
@@ -648,9 +744,11 @@ class DataCollection1(DataCollection0):
         try:
             self._getset_current_axref(event)
         except Exception as err:
+            if str(err) == 'clic not in axes':
+                return
             raise err
             # warnings.warn(str(err))
-            return
+            # return
 
         kinter = self.kinter
         kax = self._dobj['interactivity'][kinter]['cur_ax']
@@ -664,31 +762,23 @@ class DataCollection1(DataCollection0):
         cur_groupy = self._dobj['interactivity'][kinter]['cur_groupy']
         cur_refx = self._dobj['interactivity'][kinter]['cur_refx']
         cur_refy = self._dobj['interactivity'][kinter]['cur_refy']
+        cur_datax = self._dobj['interactivity'][kinter]['cur_datax']
+        cur_datay = self._dobj['interactivity'][kinter]['cur_datay']
 
-        dkeys = self._dobj['interactivity'][kinter]['dkeys']
-        shift = dkeys['shift']['val']
-        ctrl = dkeys['control']['val'] or dkeys['ctrl']['val']
+        shift = self._dobj['key']['shift']['val']
+        ctrl = any([self._dobj['key'][ss]['val'] for ss in ['control', 'ctrl']])
 
         # Update number of indices (for visibility)
         for gg in [cur_groupx, cur_groupy]:
-            _DataCollection_interactivity._update_indices_nb(
-                group=gg,
-                dinter=self._dobj['interactivity'][kinter],
-                ctrl=ctrl,
-                shift=shift,
-            )
+            if gg is not None:
+                _interactivity._update_indices_nb(
+                    group=gg,
+                    dgroup=self._dobj['group'],
+                    ctrl=ctrl,
+                    shift=shift,
+                )
 
-        # Update ref indices
-        if cur_refx is not None:
-            cur_datax = self._dobj['interactivity'][kinter]['cur_datax']
-            if cur_datax != 'index':
-                cur_datax = self._ddata[cur_datax]['data']
-
-        if cur_refy is not None:
-            cur_datay = self._dobj['interactivity'][kinter]['cur_datay']
-            if cur_datay != 'index':
-                cur_datay = self._ddata[cur_datay]['data']
-
+        # CHeck refx/refy vs datax/datay
         if cur_refx is not None and cur_refy is not None:
             c0 = (
                 'index' in [cur_datax, cur_datay]
@@ -698,13 +788,15 @@ class DataCollection1(DataCollection0):
                 msg = (
                     "Invalid ref / data pairs:\n"
                     f"\t- cur_refx, cur_refy: {cur_refx}, {cur_refy}\n"
-                    f"\t- cur_datax, cur_datay: {cur_datax}, {cur_datay}"
+                    f"\t- cdx, cdy: {cdx}, {cdy}"
                 )
                 raise Exception(msg)
 
+        # update ref indices
         if None not in [cur_refx, cur_refy] and cur_refx == cur_refy:
 
-            dist = (cur_datax - event.xdata)**2 + (cur_datay - event.ydata)**2
+            raise NotImplementedError()
+            dist = (cdx - event.xdata)**2 + (cdy - event.ydata)**2
             lind = [
                 np.nanargmin(dist, axis=ii) for ii in range(datax.ndim)
             ]
@@ -713,22 +805,26 @@ class DataCollection1(DataCollection0):
 
             if cur_refx is not None:
                 monot = None
-                if cur_datax != 'index':
+                if cur_datax == 'index':
+                    cdx = 'index'
+                else:
                     monot = self._ddata[cur_datax]['monot'] == (True,)
-                    cur_datax = self._ddata[cur_datax]['data']
+                    cdx = self._ddata[cur_datax]['data']
                 ix = _DataCollection_comp._get_index_from_data(
-                    data=cur_datax,
+                    data=cdx,
                     data_pick=np.r_[event.xdata],
                     monot=monot,
                 )[0]
 
             if cur_refy is not None:
                 monot = None
-                if cur_datay != 'index':
+                if cur_datay == 'index':
+                    cdy = 'index'
+                else:
                     monot = self._ddata[cur_datay]['monot'] == (True,)
-                    cur_datay = self._ddata[cur_datay]['data']
+                    cdy = self._ddata[cur_datay]['data']
                 iy = _DataCollection_comp._get_index_from_data(
-                    data=cur_datay,
+                    data=cdy,
                     data_pick=np.r_[event.ydata],
                     monot=monot,
                 )[0]
@@ -760,21 +856,86 @@ class DataCollection1(DataCollection0):
         )
 
     def mouserelease(self, event):
-        c0 = 'pan' in self.can.manager.toolbar.mode.lower()
-        c1 = 'zoom' in self.can.manager.toolbar.mode.lower()
+        """ Mouse release: nothing except if resize ongoing (redraw bck) """
+
+        c0 = event.inaxes is not None and event.button == 1
+        if not c0:
+            return
+
+        can = [
+            k0 for k0, v0 in self._dobj['canvas'].items()
+            if v0['handle'] == event.inaxes.figure.canvas
+        ][0]
+        mode = self._dobj['canvas'][can]['handle'].manager.toolbar.mode.lower()
+        c0 = 'pan' in  mode
+        c1 = 'zoom' in mode
 
         if c0 or c1:
-            ax = self.curax_panzoom
-            if ax is None:
+            kax = self._dobj['interactivity']['curax_panzoom']
+            if kax is None:
                 msg = (
                     "Make sure you release the mouse button on an axes !"
                     "\n Otherwise the background plot cannot be properly updated !"
                 )
                 raise Exception(msg)
+            ax = self._dobj['axes'][kax]['handle']
             lax = ax.get_shared_x_axes().get_siblings(ax)
             lax += ax.get_shared_y_axes().get_siblings(ax)
             lax = list(set(lax))
-            self._set_dbck(lax)
+            _interactivity._set_dbck(
+                lax=lax,
+                daxes=self._dobj['axes'],
+                dcanvas=self._dobj['canvas'],
+                dmobile=self._dobj['mobile'],
+            )
+
+    # -------------------
+    # Close all
+    # -------------------
+
+    def on_close(self, event):
+        kcan = [
+            k0 for k0, v0 in self._dobj['canvas'].items()
+            if v0['handle'] == event.canvas
+        ]
+        if len(kcan) > 1:
+            raise Exception('Several matching canvas')
+        elif len(kcan) == 1:
+
+            if len(self._dobj['canvas']) == 1:
+                self.close_all()
+
+            else:
+                lax = [
+                    k1 for k1, v1 in self._dobj['axes'].items()
+                    if v1['canvas'] == kcan[0]
+                ]
+                lmob = [
+                    k1 for k1, v1 in self._dobj['mobile'].items()
+                    if v1['ax'] in lax
+                ]
+                for k1 in lax:
+                    del self._dobj['axes'][k1]
+                for k1 in lmob:
+                    del self._dobj['mobile'][k1]
+                del self._dobj['canvas'][kcan[0]]
+
+    def close_all(self):
+
+        # close figures
+        lfig = set([
+            v0['handle'].figure for v0 in self._dobj['axes'].values()
+        ])
+        for ff in lfig:
+            plt.close(ff)
+
+        # delete obj dict
+        lk = ['interactivity', 'mobile', 'key', 'canvas', 'group', 'axes']
+        for kk in lk:
+            del self._dobj[kk]
+
+        # remove interactivity-specific param in dref
+        self.remove_param(which='ref', param=['indices', 'group'])
 
     # -------------------
     # Generic plotting

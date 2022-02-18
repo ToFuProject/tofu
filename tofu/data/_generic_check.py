@@ -6,12 +6,13 @@ import matplotlib.pyplot as plt
 
 
 _LALLOWED_AXESTYPES = [
+    None,
     'cross', 'hor',
     'matrix',
     'timetrace',
     'profile1d',
     'image',
-    'misc'
+    'misc',
 ]
 
 
@@ -207,8 +208,7 @@ def _check_dax(dax=None, main=None):
             isinstance(k0, str)
             and (
                 (
-                    k0 in _LALLOWED_AXESTYPES
-                    and issubclass(v0.__class__, plt.Axes)
+                    issubclass(v0.__class__, plt.Axes)
                 )
                 or (
                     isinstance(v0, dict)
@@ -222,10 +222,14 @@ def _check_dax(dax=None, main=None):
     if not c0:
         msg = (
         )
+        import pdb; pdb.set_trace()     # DB
+        pass
         raise Exception(msg)
 
     for k0, v0 in dax.items():
         if issubclass(v0.__class__, plt.Axes):
             dax[k0] = {'handle': v0, 'type': k0}
+        if isinstance(v0, dict):
+            dax[k0] = {'handle': v0['handle'], 'type': v0.get('type')}
 
     return dax
