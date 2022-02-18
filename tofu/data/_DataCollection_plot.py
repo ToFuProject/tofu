@@ -12,6 +12,7 @@ from matplotlib import gridspec
 import matplotlib as mpl
 import matplotlib.transforms as transforms
 import matplotlib.lines as mlines
+import matplotlib.colors as mcolors
 # from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # tofu
@@ -51,6 +52,11 @@ _CONNECT = True
 _AXGRID = False
 _LIB = 'mpl'
 _BCKCOLOR = 'w'
+
+_LCOLOR_DICT = [
+    ['r', 'g', 'b'],
+    ['m', 'y', 'c'],
+]
 
 
 #############################################
@@ -374,10 +380,12 @@ def _plot_as_matrix_check(
     ymax=None,
     aspect=None,
     nmax=None,
+    color_dict=None,
     dcolorbar=None,
     dleg=None,
     data=None,
     connect=None,
+    groups=None,
 ):
 
     # key
@@ -447,6 +455,31 @@ def _plot_as_matrix_check(
         types=int,
     )
 
+    # color_dict
+    cdef = {
+        k0: _LCOLOR_DICT[ii] for ii, k0 in enumerate(groups)
+    }
+    color_dict = _generic_check._check_var(
+        color_dict, 'color_dict',
+        default=cdef,
+        types=dict,
+    )
+    dout = {
+        k0: str(v0)
+        for k0, v0 in color_dict.items()
+        if not (
+            isinstance(k0, str)
+            and k0 in groups
+            and isinstance(v0, list)
+            and all([mcolors.is_color_like(v1) for v1 in v0])
+        )
+    }
+    if len(dout) > 0:
+        lstr = [f"{k0}: {v0}" for k0, v0 in dout.items()]
+        msg = (
+            "The following entries of color_dict are invalid"
+        )
+
     # dcolorbar
     defdcolorbar = {
         # 'location': 'right',
@@ -482,7 +515,9 @@ def _plot_as_matrix_check(
         key, ind,
         cmap, vmin, vmax,
         ymin, ymax,
-        aspect, nmax, dcolorbar, dleg, connect,
+        aspect, nmax,
+        color_dict,
+        dcolorbar, dleg, connect,
     )
 
 
@@ -498,6 +533,7 @@ def plot_as_array(
     ymax=None,
     aspect=None,
     nmax=None,
+    color_dict=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -510,11 +546,14 @@ def plot_as_array(
     # --------------
     # check input
 
+    groups = ['hor', 'vert']
     (
         key, ind,
         cmap, vmin, vmax,
         ymin, ymax,
-        aspect, nmax, dcolorbar, dleg, connect,
+        aspect, nmax,
+        color_dict,
+        dcolorbar, dleg, connect,
     ) = _plot_as_matrix_check(
         coll=coll,
         key=key,
@@ -526,9 +565,11 @@ def plot_as_array(
         ymax=ymax,
         aspect=aspect,
         nmax=nmax,
+        color_dict=color_dict,
         dcolorbar=dcolorbar,
         dleg=dleg,
         connect=connect,
+        groups=groups,
     )
 
     # --------------
@@ -634,12 +675,12 @@ def plot_as_array(
         'hor': {
             'ref': [ref0],
             'data': ['index'],
-            'nmax': 3,
+            'nmax': nmax,
         },
         'vert': {
             'ref': [ref1],
             'data': ['index'],
-            'nmax': 3,
+            'nmax': nmax,
         },
     }
 
@@ -654,8 +695,8 @@ def plot_as_array(
         # ind0, ind1
         lmob = []
         for ii in range(nmax):
-            lh = ax.axhline(ind[0], c='k', lw=1., ls='-')
-            lv = ax.axvline(ind[1], c='k', lw=1., ls='-')
+            lh = ax.axhline(ind[0], c=color_dict['hor'][ii], lw=1., ls='-')
+            lv = ax.axvline(ind[1], c=color_dict['vert'][ii], lw=1., ls='-')
 
             # update coll
             kh = f'h{ii:02.0f}'
@@ -693,7 +734,7 @@ def plot_as_array(
                 ls='-',
                 marker='.',
                 lw=1.,
-                color='k',
+                color=color_dict['vert'][ii],
                 label=f'ind0 = {ind[0]}',
             )
 
@@ -710,7 +751,7 @@ def plot_as_array(
 
             l0 = ax.axhline(
                 ind[1],
-                c='k',
+                c=color_dict['hor'][ii],
             )
             km = f'lh-v{ii:02.0f}'
             coll.add_mobile(
@@ -737,7 +778,7 @@ def plot_as_array(
                 ls='-',
                 marker='.',
                 lw=1.,
-                color='k',
+                color=color_dict['hor'][ii],
                 label=f'ind1 = {ind[1]}',
             )
 
@@ -754,7 +795,7 @@ def plot_as_array(
 
             l0 = ax.axvline(
                 ind[0],
-                c='k',
+                c=color_dict['vert'][ii],
             )
             km = f'lv-h{ii:02.0f}'
             coll.add_mobile(

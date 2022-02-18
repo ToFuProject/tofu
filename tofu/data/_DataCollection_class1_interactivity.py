@@ -280,6 +280,7 @@ class DataCollection1(DataCollection0):
             msg = "Arg dgroup must be a dict of the form:\n"
             raise Exception(msg)
 
+        ic = 0
         for k0, v0 in dgroup.items():
             if v0.get('nmax') is None:
                 dgroup[k0]['nmax'] = 1
@@ -1105,7 +1106,10 @@ class DataCollection1(DataCollection0):
             # Check max number of occurences not reached if shift
             c0 = (
                 shift
-                and self._dobj[group]['indcur'] == self._dobj[group]['nmax']-1
+                and (
+                    self._dobj['group'][group]['indcur']
+                    == self._dobj['group'][group]['nmax'] - 1
+                )
             )
             if c0:
                 msg = "Max nb. of plots reached ({0}) for group {1}"
@@ -1134,7 +1138,6 @@ class DataCollection1(DataCollection0):
                 (self._dref[ref]['indices'][icur] + inc)
                 % self._dref[ref]['size']
             )
-            print(inc, ix)
 
             # Update ref indices
             if self._dobj['interactivity'][kinter]['follow']:
@@ -1179,16 +1182,18 @@ class DataCollection1(DataCollection0):
     def close_all(self):
 
         # close figures
-        lfig = set([
-            v0['handle'].figure for v0 in self._dobj['axes'].values()
-        ])
-        for ff in lfig:
-            plt.close(ff)
+        if 'axes' in self._dobj.keys():
+            lfig = set([
+                v0['handle'].figure for v0 in self._dobj['axes'].values()
+            ])
+            for ff in lfig:
+                plt.close(ff)
 
         # delete obj dict
         lk = ['interactivity', 'mobile', 'key', 'canvas', 'group', 'axes']
         for kk in lk:
-            del self._dobj[kk]
+            if kk in self._dobj.keys():
+                del self._dobj[kk]
 
         # remove interactivity-specific param in dref
-        self.remove_param(which='ref', param=['indices', 'group'])
+        self.remove_param(which='ref', param=['indices', 'group', 'inc'])
