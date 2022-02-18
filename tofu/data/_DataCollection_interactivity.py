@@ -71,7 +71,6 @@ def _get_nn_ii_group(
 
 def _update_indices_nb(group=None, dgroup=None, ctrl=None, shift=None):
     """"""
-
     (
         dgroup[group]['nmaxcur'],
         dgroup[group]['indcur'],

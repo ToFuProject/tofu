@@ -11,10 +11,27 @@ from . import _generic_check
 from ._DataCollection_class0_Base import DataCollection0
 from . import _DataCollection_interactivity as _interactivity
 from . import _DataCollection_comp
-from . import _DataCollection_plot
 
 
 __all__ = ['DataCollection1']    # , 'TimeTraceCollection']
+
+
+_DKEYS = {
+    'control': {'val': False, 'action': 'generic'},
+    'ctrl': {'val': False, 'action': 'generic'},
+    'shift': {'val': False, 'action': 'generic'},
+    'alt': {'val': False, 'action': 'generic'},
+    'left': {'val': False, 'action': 'move'},
+    'right': {'val': False, 'action': 'move'},
+    'up': {'val': False, 'action': 'move'},
+    'down': {'val': False, 'action': 'move'},
+}
+
+
+# #################################################################
+# #################################################################
+#               Main class
+# #################################################################
 
 
 class DataCollection1(DataCollection0):
@@ -152,6 +169,8 @@ class DataCollection1(DataCollection0):
             key=key,
             handle=handle,
             type=type,
+            groupx=None,
+            groupy=None,
             refx=refx,
             refy=refy,
             datax=datax,
@@ -227,6 +246,7 @@ class DataCollection1(DataCollection0):
         self,
         kinter=None,
         dgroup=None,
+        dkeys=None,
         debug=None,
     ):
         """
@@ -270,6 +290,7 @@ class DataCollection1(DataCollection0):
         # make sure all refs are known
 
         drefgroup = dict.fromkeys(self._dref.keys())
+        drefinc = dict.fromkeys(self._dref.keys())
         for k0, v0 in self._dref.items():
             lg = [k1 for k1, v1 in dgroup.items() if k0 in v1['ref']]
             if len(lg) > 1:
@@ -287,14 +308,18 @@ class DataCollection1(DataCollection0):
                     distribute=False,
                 )
 
-        self.add_param(which='ref', param='group')
-        self.set_param(which='ref', param='group', value=drefgroup)
+            # add inc
+            drefinc[k0] = [1, 10]
 
-        # ------------------------------
-        # update dax with groupx, groupy
+        self.add_param(which='ref', param='group', value=drefgroup)
+        self.add_param(which='ref', param='inc', value=drefinc)
+
+        # --------------------------------------
+        # update dax with groupx, groupy and inc
 
         daxgroupx = dict.fromkeys(self._dobj['axes'].keys())
         daxgroupy = dict.fromkeys(self._dobj['axes'].keys())
+        dinc = dict.fromkeys(self._dobj['axes'].keys())
         for k0, v0 in self._dobj['axes'].items():
             if v0['refx'] is None:
                 daxgroupx[k0] = None
@@ -309,8 +334,15 @@ class DataCollection1(DataCollection0):
                     self._dref[k1]['group'] for k1 in v0['refy']
                 ]
 
-        self.add_param(which='axes', param='groupx', value=daxgroupx)
-        self.add_param(which='axes', param='groupy', value=daxgroupy)
+            # increment
+            dinc[k0] = {
+                'left': -1, 'right': 1,
+                'down': -1, 'up': 1,
+            }
+
+        self.set_param(which='axes', param='groupx', value=daxgroupx)
+        self.set_param(which='axes', param='groupy', value=daxgroupy)
+        self.add_param(which='axes', param='inc', value=dinc)
 
         # group, ref, nmax
 
@@ -357,24 +389,17 @@ class DataCollection1(DataCollection0):
             assert len(lcan) == 1
             self._dobj['axes'][k0]['canvas'] = lcan[0]
 
-        # ---------
-        # dkeys
-
-        dkeys = {
-            'control': {'val': False},
-            'ctrl': {'val': False},
-            'shift': {'val': False},
-        }
-
-        for k0, v0 in dkeys.items():
-            self.add_obj(
-                which='key',
-                key=k0,
-                **v0,
-            )
-
         # -------
         # dgroup
+
+        # update with axes
+        for k0, v0 in dgroup.items():
+            lkax = [
+                k1 for k1, v1 in self._dobj['axes'].items()
+                if (v1['groupx'] is not None and k0 in v1['groupx'])
+                or (v1['groupy'] is not None and k0 in v1['groupy'])
+            ]
+            dgroup[k0]['axes'] = lkax
 
         for k0, v0 in dgroup.items():
             self.add_obj(
@@ -382,6 +407,43 @@ class DataCollection1(DataCollection0):
                 key=k0,
                 **v0,
             )
+
+        # ---------
+        # dkeys
+
+        if dkeys is None:
+            dkeys = _DKEYS
+
+        # add key for switching groups
+        dkeys.update({
+            v0.get('key', f'f{ii+1}'): {
+                'group': k0,
+                'val': False,
+                'action': 'group',
+            }
+            for ii, (k0, v0) in enumerate(self._dobj['group'].items())
+        })
+
+        # add keys for switching indices within groups
+        nMax = np.max([v0['nmax'] for v0 in dgroup.values()])
+        dkeys.update({
+            str(ii): {'ind': ii, 'val': False, 'action': 'indices'}
+            for ii in range(0, nMax)
+        })
+
+        # implement dict
+        for k0, v0 in dkeys.items():
+            self.add_obj(
+                which='key',
+                key=k0,
+                **v0,
+            )
+
+        lact = set([v0['action'] for v0 in dkeys.values()])
+        self.__dkeys_r = {
+            k0: [k1 for k1 in dkeys.keys() if dkeys[k1]['action'] == k0]
+            for k0 in lact
+        }
 
         # ---------
         # dinter
@@ -459,8 +521,8 @@ class DataCollection1(DataCollection0):
         if self._warn_ifnotInteractive():
             return
         for k0, v0 in self._dobj['canvas'].items():
-            # keyp = v0['handle'].mpl_connect('key_press_event', self.onkeypress)
-            # keyr = v0['handle'].mpl_connect('key_release_event', self.onkeypress)
+            keyp = v0['handle'].mpl_connect('key_press_event', self.onkeypress)
+            keyr = v0['handle'].mpl_connect('key_release_event', self.onkeypress)
             butp = v0['handle'].mpl_connect('button_press_event', self.mouseclic)
             # res = v0['handle'].mpl_connect('resize_event', self.resize)
             butr = v0['handle'].mpl_connect('button_release_event', self.mouserelease)
@@ -469,8 +531,8 @@ class DataCollection1(DataCollection0):
             # v0['handle'].manager.toolbar.release = self.mouserelease
 
             self._dobj['canvas'][k0]['cid'] = {
-                # 'keyp': keyp,
-                # 'keyr': keyr,
+                'keyp': keyp,
+                'keyr': keyr,
                 'butp': butp,
                 # 'res': res,
                 'butr': butr,
@@ -611,17 +673,15 @@ class DataCollection1(DataCollection0):
     # Interactivity: generic update
     # -----------------------------
 
-    def update_interactivity(
-        self,
-        cur_groupx=None,
-        cur_groupy=None,
-        cur_refx=None,
-        cur_refy=None,
-        cur_datax=None,
-        cur_datay=None,
-        excluderef=True,
-    ):
+    def update_interactivity(self):
         """ Called at each event """
+
+        cur_groupx = self._dobj['interactivity'][self.kinter]['cur_groupx']
+        cur_groupy = self._dobj['interactivity'][self.kinter]['cur_groupy']
+        cur_refx = self._dobj['interactivity'][self.kinter]['cur_refx']
+        cur_refy = self._dobj['interactivity'][self.kinter]['cur_refy']
+        cur_datax = self._dobj['interactivity'][self.kinter]['cur_datax']
+        cur_datay = self._dobj['interactivity'][self.kinter]['cur_datay']
 
         # Propagate indices through refs
         if cur_refx is not None:
@@ -845,15 +905,7 @@ class DataCollection1(DataCollection0):
             else:
                 self._dref[cur_refy]['indices'][cur_iy] = iy
 
-        self.update_interactivity(
-            cur_groupx=cur_groupx,
-            cur_groupy=cur_groupy,
-            cur_refx=cur_refx,
-            cur_refy=cur_refy,
-            cur_datax=cur_datax,
-            cur_datay=cur_datay,
-            # excluderef=True,
-        )
+        self.update_interactivity()
 
     def mouserelease(self, event):
         """ Mouse release: nothing except if resize ongoing (redraw bck) """
@@ -888,6 +940,210 @@ class DataCollection1(DataCollection0):
                 dcanvas=self._dobj['canvas'],
                 dmobile=self._dobj['mobile'],
             )
+
+    # ----------------------
+    # Interactivity: keys
+    # ----------------------
+
+    # @classmethod
+    # def _get_dmovkeys(cls, Type, inc, invert=False):
+        # assert Type in cls._ltypesref
+        # if Type[0] == 'x':
+            # dmovkeys = {'left':{False:-inc[0], True:-inc[1]},
+                        # 'right':{False:inc[0], True:inc[1]}}
+        # elif Type[0] == 'y':
+            # dmovkeys = {'down':{False:-inc[0], True:-inc[1]},
+                        # 'up':{False:inc[0], True:inc[1]}}
+        # elif Type == '2d':
+            # sig = -1 if invert else 1
+            # dmovkeys = {'left':{False:-sig*inc[0], True:-sig*inc[1]},
+                        # 'right':{False:sig*inc[0], True:sig*inc[1]},
+                        # 'down':{False:-sig*inc[0], True:-sig*inc[1]},
+                        # 'up':{False:sig*inc[0], True:sig*inc[1]}}
+        # return dmovkeys
+
+    def onkeypress(self, event):
+        """ Event handler in case of key press / release """
+
+        # -----------------------
+        # Check event is relevant 1
+
+        # decompose key combinations
+        lkey = event.key.split('+')
+
+        # get current inter, axes, canvas
+        kinter = self.kinter
+        kax = self._dobj['interactivity'][kinter]['cur_ax']
+        kcan = [
+            k0 for k0, v0 in self._dobj['canvas'].items()
+            if k0 == self._dobj['axes'][kax]['canvas']
+        ][0]
+        can = self._dobj['canvas'][kcan]['handle']
+
+        # check relevance
+        c0 = can.manager.toolbar.mode != ''
+        c1 = len(lkey) not in [1, 2]
+        c2 = [ss not in self._dobj['key'].keys() for ss in lkey]
+
+        if c0 or c1 or any(c2):
+            return
+
+        # -----------------------
+        # Check event is relevant 2
+
+        # get list of current keys for each action type
+        lgen = [kk for kk in self.__dkeys_r['generic'] if kk in lkey]
+        lmov = [kk for kk in self.__dkeys_r['move'] if kk in lkey]
+        lgrp = [kk for kk in self.__dkeys_r['group'] if kk in lkey]
+        lind = [kk for kk in self.__dkeys_r['indices'] if kk in lkey]
+
+        # if no relevant key pressed => return
+        ngen, nmov, ngrp, nind = len(lgen), len(lmov), len(lgrp), len(lind)
+        ln = np.r_[ngen, nmov, ngrp, nind]
+        if np.any(ln > 1) or np.sum(ln) > 2:
+            return
+        if np.sum(ln) == 2 and (ngrp == 1 or nind ==1 ):
+            return
+
+        # only keep relevant keys
+        genk = None if ngen == 0 else lgen[0]
+        movk = None if nmov == 0 else lmov[0]
+        grpk = None if ngrp == 0 else lgrp[0]
+        indk = None if nind == 0 else lind[0]
+
+        # ------------------------
+        # Event = change key value
+
+        # change key values if relevant
+        if event.name == 'key_release_event':
+            if event.key == genk:
+                self._dobj['key'][genk]['val'] = False
+            return
+
+        if genk is not None and event.key == genk:
+            self._dobj['key'][genk]['val'] = True
+            return
+
+        # ----------------------------
+        # Event = change current group
+
+        if grpk is not None:
+            # group
+            group = self._dobj['key'][event.key]['group']
+            self._dobj['interactivity'][self.kinter]['cur_groupx'] = group
+            self._dobj['interactivity'][self.kinter]['cur_groupy'] = group
+
+            # axes
+            cur_ax = self._dobj['interactivity'][self.kinter]['cur_ax']
+            if cur_ax not in self._dobj['group'][group]['axes']:
+                self._dobj['interactivity'][self.kinter]['cur_ax'] = (
+                    self._dobj['group'][group]['axes'][0]
+                )
+
+            # ref
+            cur_refx = self._dobj['interactivity'][self.kinter]['cur_refx']
+            if self._dref[cur_refx]['group'] != group:
+                cur_refx = self._dobj['group'][group]['ref'][0]
+            cur_refx = self._dobj['interactivity'][self.kinter]['cur_refx']
+            if self._dref[cur_refx]['group'] != group:
+                cur_refx = self._dobj['group'][group]['ref'][0]
+
+            # data
+            self._dobj['interactivity'][self.kinter]['cur_datax'] = 'index'
+            self._dobj['interactivity'][self.kinter]['cur_datay'] = 'index'
+            return
+
+        # ----------------------------
+        # Event = change current index
+
+        if indk is not None:
+            groupx = self._dobj['interactivity'][self.kinter]['cur_groupx']
+            groupy = self._dobj['interactivity'][self.kinter]['cur_groupy']
+
+            # groupx
+            imax = self._dobj['group'][groupx]['nmaxcur']
+            ii = int(event.key)
+            if ii > imax:
+                msg = "Set to current max index for group '{groupx}': {imax}"
+                print(msg)
+            ii = min(ii, indmax)
+            self._dobj['group'][groupx]['indcur'] = ii
+
+            # groupy
+            imax = self._dobj['group'][groupy]['nmaxcur']
+            ii = int(event.key)
+            if ii > imax:
+                msg = "Set to current max index for group '{groupy}': {imax}"
+                print(msg)
+            ii = min(ii, indmax)
+            self._dobj['group'][groupy]['indcur'] = ii
+            return
+
+        # ----------------------------
+        # Event = move current index
+
+        if movk is not None:
+
+            if movk in ['left', 'right']:
+                group = self._dobj['interactivity'][self.kinter]['cur_groupx']
+                ref = self._dobj['interactivity'][self.kinter]['cur_refx']
+            elif movk in ['up', 'down']:
+                group = self._dobj['interactivity'][self.kinter]['cur_groupy']
+                ref = self._dobj['interactivity'][self.kinter]['cur_refy']
+
+            if group is None:
+                return
+
+            # dmovkeys for inversions and steps ?
+
+            shift = self._dobj['key']['shift']['val']
+            ctrl = any([
+                self._dobj['key'][ss]['val'] for ss in ['control', 'ctrl']
+            ])
+            alt = self._dobj['key']['alt']['val']
+
+            # Check max number of occurences not reached if shift
+            c0 = (
+                shift
+                and self._dobj[group]['indcur'] == self._dobj[group]['nmax']-1
+            )
+            if c0:
+                msg = "Max nb. of plots reached ({0}) for group {1}"
+                msg  = msg.format(self.dgroup[group]['nMax'], group)
+                print(msg)
+                return
+
+            # update nb of visible indices
+            _interactivity._update_indices_nb(
+                group=group,
+                dgroup=self._dobj['group'],
+                ctrl=ctrl,
+                shift=shift,
+            )
+
+            # get increment from key
+            cax = self._dobj['interactivity'][self.kinter]['cur_ax']
+            inc = (
+                self._dref[ref]['inc'][int(alt)]
+                * self._dobj['axes'][cax]['inc'][movk]
+            )
+
+            # update ref indices
+            icur = self._dobj['group'][group]['indcur']
+            ix = (
+                (self._dref[ref]['indices'][icur] + inc)
+                % self._dref[ref]['size']
+            )
+            print(inc, ix)
+
+            # Update ref indices
+            if self._dobj['interactivity'][kinter]['follow']:
+                self._dref[ref]['indices'][icur:] = ix
+            else:
+                self._dref[ref]['indices'][icur] = ix
+
+            # global update of interactivity
+            self.update_interactivity()
 
     # -------------------
     # Close all
@@ -936,119 +1192,3 @@ class DataCollection1(DataCollection0):
 
         # remove interactivity-specific param in dref
         self.remove_param(which='ref', param=['indices', 'group'])
-
-    # -------------------
-    # Generic plotting
-    # -------------------
-
-    def plot_as_array(
-        self,
-        # parameters
-        key=None,
-        ind=None,
-        vmin=None,
-        vmax=None,
-        cmap=None,
-        aspect=None,
-        nmax=None,
-        # figure-specific
-        dax=None,
-        dmargin=None,
-        fs=None,
-        dcolorbar=None,
-        dleg=None,
-        connect=None,
-    ):
-        """ Plot the desired 2d data array as a matrix """
-        return _DataCollection_plot.plot_as_array(
-            coll=self,
-            key=key,
-            ind=ind,
-            vmin=vmin,
-            vmax=vmax,
-            cmap=cmap,
-            aspect=aspect,
-            nmax=nmax,
-            dax=dax,
-            dmargin=dmargin,
-            fs=fs,
-            dcolorbar=dcolorbar,
-            dleg=dleg,
-            connect=connect,
-        )
-
-    def _plot_timetraces(self, ntmax=1,
-                         key=None, ind=None, Name=None,
-                         color=None, ls=None, marker=None, ax=None,
-                         axgrid=None, fs=None, dmargin=None,
-                         legend=None, draw=None, connect=None, lib=None):
-        plotcoll = self.to_PlotCollection(ind=ind, key=key,
-                                          Name=Name, dnmax={})
-        return _DataCollection_plot.plot_DataColl(
-            plotcoll,
-            color=color, ls=ls, marker=marker, ax=ax,
-            axgrid=axgrid, fs=fs, dmargin=dmargin,
-            draw=draw, legend=legend,
-            connect=connect, lib=lib,
-        )
-
-    def _plot_axvlines(
-        self,
-        which=None,
-        key=None,
-        ind=None,
-        param_x=None,
-        param_txt=None,
-        sortby=None,
-        sortby_def=None,
-        sortby_lok=None,
-        ax=None,
-        ymin=None,
-        ymax=None,
-        ls=None,
-        lw=None,
-        fontsize=None,
-        side=None,
-        dcolor=None,
-        dsize=None,
-        fraction=None,
-        figsize=None,
-        dmargin=None,
-        wintit=None,
-        tit=None,
-    ):
-        """ plot rest wavelengths as vertical lines """
-
-        # Check inputs
-        which, dd = self.__check_which(
-            which=which, return_dict=True,
-        )
-        key = self._ind_tofrom_key(which=which, key=key, ind=ind, returnas=str)
-
-        if sortby is None:
-            sortby = sortby_def
-        if sortby not in sortby_lok:
-            msg = (
-                """
-                For plotting, sorting can be done only by:
-                {}
-
-                You provided:
-                {}
-                """.format(sortby_lok, sortby)
-            )
-            raise Exception(msg)
-
-        return _DataCollection_plot.plot_axvline(
-            din=dd,
-            key=key,
-            param_x='lambda0',
-            param_txt='symbol',
-            sortby=sortby, dsize=dsize,
-            ax=ax, ymin=ymin, ymax=ymax,
-            ls=ls, lw=lw, fontsize=fontsize,
-            side=side, dcolor=dcolor,
-            fraction=fraction,
-            figsize=figsize, dmargin=dmargin,
-            wintit=wintit, tit=tit,
-        )

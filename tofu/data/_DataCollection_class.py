@@ -1,3 +1,3 @@
 
 
-from ._DataCollection_class1_interactivity import DataCollection1 as DataCollection
+from ._DataCollection_class2_plots import DataCollection2 as DataCollection
