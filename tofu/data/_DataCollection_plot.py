@@ -54,6 +54,10 @@ _LIB = 'mpl'
 _BCKCOLOR = 'w'
 
 _LCOLOR_DICT = [
+    [
+        'tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
+        'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan',
+    ],
     ['r', 'g', 'b'],
     ['m', 'y', 'c'],
 ]
@@ -457,7 +461,7 @@ def _plot_as_matrix_check(
 
     # color_dict
     cdef = {
-        k0: _LCOLOR_DICT[ii] for ii, k0 in enumerate(groups)
+        k0: _LCOLOR_DICT[0] for ii, k0 in enumerate(groups)
     }
     color_dict = _generic_check._check_var(
         color_dict, 'color_dict',
