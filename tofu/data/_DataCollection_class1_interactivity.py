@@ -839,6 +839,9 @@ class DataCollection1(DataCollection0):
                     shift=shift,
                 )
 
+        # update indcur x/y vs shift / ctrl ?  TBF
+        pass
+
         # CHeck refx/refy vs datax/datay
         if cur_refx is not None and cur_refy is not None:
             c0 = (
@@ -1067,7 +1070,7 @@ class DataCollection1(DataCollection0):
             if ii > imax:
                 msg = "Set to current max index for group '{groupx}': {imax}"
                 print(msg)
-            ii = min(ii, indmax)
+            ii = min(ii, imax)
             self._dobj['group'][groupx]['indcur'] = ii
 
             # groupy
@@ -1076,7 +1079,7 @@ class DataCollection1(DataCollection0):
             if ii > imax:
                 msg = "Set to current max index for group '{groupy}': {imax}"
                 print(msg)
-            ii = min(ii, indmax)
+            ii = min(ii, imax)
             self._dobj['group'][groupy]['indcur'] = ii
             return
 
@@ -1113,7 +1116,7 @@ class DataCollection1(DataCollection0):
             )
             if c0:
                 msg = "Max nb. of plots reached ({0}) for group {1}"
-                msg  = msg.format(self.dgroup[group]['nMax'], group)
+                msg = msg.format(self._dobj['group'][group]['nmax'], group)
                 print(msg)
                 return
 
