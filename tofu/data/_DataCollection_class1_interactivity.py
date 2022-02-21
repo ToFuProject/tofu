@@ -26,6 +26,7 @@ _DKEYS = {
     'up': {'val': False, 'action': 'move'},
     'down': {'val': False, 'action': 'move'},
 }
+_INCREMENTS = [1, 10]
 
 
 # #################################################################
@@ -127,6 +128,8 @@ class DataCollection1(DataCollection0):
         refy=None,
         datax=None,
         datay=None,
+        invertx=None,
+        inverty=None,
         **kwdargs,
     ):
 
@@ -134,7 +137,7 @@ class DataCollection1(DataCollection0):
         # check refx, refy
 
         if refx is None and refy is None:
-            msg = "Please provide at leats refx or refy"
+            msg = f"Please provide at least refx or refy for axes {key}!"
             raise Exception(msg)
 
         if isinstance(refx, str):
@@ -175,6 +178,8 @@ class DataCollection1(DataCollection0):
             refy=refy,
             datax=datax,
             datay=datay,
+            invertx=invertx,
+            inverty=inverty,
             bck=None,
             mobile=None,
             canvas=None,
@@ -247,6 +252,7 @@ class DataCollection1(DataCollection0):
         kinter=None,
         dgroup=None,
         dkeys=None,
+        dinc=None,
         cur_ax=None,
         debug=None,
     ):
@@ -288,11 +294,40 @@ class DataCollection1(DataCollection0):
             dgroup[k0]['nmaxcur'] = 0
             dgroup[k0]['indcur'] = 0
 
+        # ----------
+        # Check increment dict
+
+        if dinc is None:
+            dinc = {k0: _INCREMENTS for k0 in self._dref.keys()}
+        elif isinstance(dinc, list) and len(dinc) == 2:
+            dinc = {k0: dinc for k0 in self._dref.keys()}
+        elif isinstance(dinc, dict):
+            c0 = all([
+                ss in self._dref.keys()
+                and isinstance(vv, list)
+                and len(vv) == 2
+                for ss, vv in dinc.items()
+            ])
+            if not c0:
+                msg = (
+                    "Arg dinc must be a dict of type {ref0: [inc0, inc1]}\n"
+                    f"\t- Provided: {dinc}"
+                )
+                raise Exception(msg)
+            for k0 in self._dref.keys():
+                if k0 not in dinc.keys():
+                    dinc[k0] = _INCREMENTS
+        else:
+            msg = (
+                "Arg dinc must be a dict of type {ref0: [inc0, inc1]}\n"
+                f"\t- Provided: {dinc}"
+            )
+            raise Exception(msg)
+
         # ----------------------------
         # make sure all refs are known
 
         drefgroup = dict.fromkeys(self._dref.keys())
-        drefinc = dict.fromkeys(self._dref.keys())
         for k0, v0 in self._dref.items():
             lg = [k1 for k1, v1 in dgroup.items() if k0 in v1['ref']]
             if len(lg) > 1:
@@ -310,11 +345,8 @@ class DataCollection1(DataCollection0):
                     distribute=False,
                 )
 
-            # add inc
-            drefinc[k0] = [1, 10]
-
         self.add_param(which='ref', param='group', value=drefgroup)
-        self.add_param(which='ref', param='inc', value=drefinc)
+        self.add_param(which='ref', param='inc', value=dinc)
 
         # --------------------------------------
         # update dax with groupx, groupy and inc
@@ -582,52 +614,39 @@ class DataCollection1(DataCollection0):
         cur_groupy = self._dobj['interactivity'][kinter]['cur_groupy']
 
         # determine whether cur_groupx shall be updated
-        if groupx is None:
-            cur_groupx = None
-        elif cur_groupx in groupx:
-            pass
-        else:
-            cur_groupx = groupx[0]
-        if groupy is None:
-            cur_groupy = None
-        elif cur_groupy in groupy:
-            pass
-        else:
-            cur_groupy = groupy[0]
+        if groupx is not None:
+            if cur_groupx in groupx:
+                pass
+            elif groupx is not None:
+                cur_groupx = groupx[0]
+        if groupy is not None:
+            if cur_groupy in groupy:
+                pass
+            elif groupy is not None:
+                cur_groupy = groupy[0]
 
         # # get current refs
         cur_refx = self._dobj['interactivity'][kinter]['cur_refx']
         cur_refy = self._dobj['interactivity'][kinter]['cur_refy']
-        if cur_groupx is None:
-            cur_refx = None
-        elif cur_refx in self._dobj['group'][cur_groupx]['ref']:
-            pass
-        else:
-            cur_refx = self._dobj['group'][cur_groupx]['ref'][0]
-        if cur_groupy is None:
-            cur_refy = None
-        elif cur_refy in self._dobj['group'][cur_groupy]['ref']:
-            pass
-        else:
-            cur_refy = self._dobj['group'][cur_groupy]['ref'][0]
-
-        # if cur_refy in self._dobj['group'][cur_groupy]['ref']:
-            # pass
-        # else:
-            # cur_refy = self._dobj['group'][cur_groupy]['ref'][0]
+        if groupx is not None:
+            if cur_refx in self._dobj['group'][cur_groupx]['ref']:
+                pass
+            elif cur_groupx is not None:
+                cur_refx = self._dobj['group'][cur_groupx]['ref'][0]
+        if groupy is not None:
+            if cur_refy in self._dobj['group'][cur_groupy]['ref']:
+                pass
+            elif cur_groupy is not None:
+                cur_refy = self._dobj['group'][cur_groupy]['ref'][0]
 
         # data
         cur_datax = self._dobj['interactivity'][kinter]['cur_datax']
-        if cur_refx is None:
-            cur_datax = None
-        elif self._dobj['axes'][kax]['refx'] is not None:
+        if self._dobj['axes'][kax]['refx'] is not None:
             ix = self._dobj['axes'][kax]['refx'].index(cur_refx)
             cur_datax = self._dobj['axes'][kax]['datax'][ix]
 
         cur_datay = self._dobj['interactivity'][kinter]['cur_datay']
-        if cur_refy is None:
-            cur_datay = None
-        elif self._dobj['axes'][kax]['refy'] is not None:
+        if self._dobj['axes'][kax]['refy'] is not None:
             iy = self._dobj['axes'][kax]['refy'].index(cur_refy)
             cur_datay = self._dobj['axes'][kax]['datay'][iy]
 
@@ -833,7 +852,7 @@ class DataCollection1(DataCollection0):
         # Update number of indices (for visibility)
         for gg in [cur_groupx, cur_groupy]:
             if gg is not None:
-                _interactivity._update_indices_nb(
+                out = _interactivity._update_indices_nb(
                     group=gg,
                     dgroup=self._dobj['group'],
                     ctrl=ctrl,
@@ -1043,8 +1062,18 @@ class DataCollection1(DataCollection0):
         if grpk is not None:
             # group
             group = self._dobj['key'][event.key]['group']
-            self._dobj['interactivity'][self.kinter]['cur_groupx'] = group
-            self._dobj['interactivity'][self.kinter]['cur_groupy'] = group
+            cx = any([
+                v0['groupx'] is not None and  group in v0['groupx']
+                for v0 in self._dobj['axes'].values()
+            ])
+            if cx:
+                self._dobj['interactivity'][self.kinter]['cur_groupx'] = group
+            cy = any([
+                v0['groupy'] is not None and group in v0['groupy']
+                for v0 in self._dobj['axes'].values()
+            ])
+            if cy:
+                self._dobj['interactivity'][self.kinter]['cur_groupy'] = group
 
             # axes
             cur_ax = self._dobj['interactivity'][self.kinter]['cur_ax']
@@ -1054,16 +1083,26 @@ class DataCollection1(DataCollection0):
                 )
 
             # ref
-            cur_refx = self._dobj['interactivity'][self.kinter]['cur_refx']
-            if self._dref[cur_refx]['group'] != group:
-                cur_refx = self._dobj['group'][group]['ref'][0]
-            cur_refx = self._dobj['interactivity'][self.kinter]['cur_refx']
-            if self._dref[cur_refx]['group'] != group:
-                cur_refx = self._dobj['group'][group]['ref'][0]
+            if cx:
+                cur_refx = self._dobj['interactivity'][self.kinter]['cur_refx']
+                if self._dref[cur_refx]['group'] != group:
+                    cur_refx = self._dobj['group'][group]['ref'][0]
+                self._dobj['interactivity'][self.kinter]['cur_refx'] = cur_refx
+
+            if cy:
+                cur_refy = self._dobj['interactivity'][self.kinter]['cur_refy']
+                if self._dref[cur_refy]['group'] != group:
+                    cur_refy = self._dobj['group'][group]['ref'][0]
+                self._dobj['interactivity'][self.kinter]['cur_refy'] = cur_refy
 
             # data
-            self._dobj['interactivity'][self.kinter]['cur_datax'] = 'index'
-            self._dobj['interactivity'][self.kinter]['cur_datay'] = 'index'
+            if c0:
+                self._dobj['interactivity'][self.kinter]['cur_datax'] = 'index'
+            if c0:
+                self._dobj['interactivity'][self.kinter]['cur_datay'] = 'index'
+
+            msg = f"Current group set to {group}"
+            print(msg)
             return
 
         # ----------------------------
@@ -1090,6 +1129,9 @@ class DataCollection1(DataCollection0):
                 print(msg)
             ii = min(ii, imax)
             self._dobj['group'][groupy]['indcur'] = ii
+
+            msg = f"Current indices set to {ii}"
+            print(msg)
             return
 
         # ----------------------------
@@ -1100,9 +1142,15 @@ class DataCollection1(DataCollection0):
             if movk in ['left', 'right']:
                 group = self._dobj['interactivity'][self.kinter]['cur_groupx']
                 ref = self._dobj['interactivity'][self.kinter]['cur_refx']
+                incsign = 1.
+                if self._dobj['axes'][kax].get('invertx', False):
+                    incsign = -1
             elif movk in ['up', 'down']:
                 group = self._dobj['interactivity'][self.kinter]['cur_groupy']
                 ref = self._dobj['interactivity'][self.kinter]['cur_refy']
+                incsign = 1.
+                if self._dobj['axes'][kax].get('inverty', False):
+                    incsign = -1
 
             if group is None:
                 return
@@ -1130,16 +1178,18 @@ class DataCollection1(DataCollection0):
                 return
 
             # update nb of visible indices
-            _interactivity._update_indices_nb(
+            out = _interactivity._update_indices_nb(
                 group=group,
                 dgroup=self._dobj['group'],
                 ctrl=ctrl,
                 shift=shift,
             )
+            if out is False:
+                return
 
             # get increment from key
             cax = self._dobj['interactivity'][self.kinter]['cur_ax']
-            inc = (
+            inc = incsign * (
                 self._dref[ref]['inc'][int(alt)]
                 * self._dobj['axes'][cax]['inc'][movk]
             )

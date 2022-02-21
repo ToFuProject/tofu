@@ -230,6 +230,6 @@ def _check_dax(dax=None, main=None):
         if issubclass(v0.__class__, plt.Axes):
             dax[k0] = {'handle': v0, 'type': k0}
         if isinstance(v0, dict):
-            dax[k0] = {'handle': v0['handle'], 'type': v0.get('type')}
+            dax[k0]['type'] = v0.get('type')
 
     return dax

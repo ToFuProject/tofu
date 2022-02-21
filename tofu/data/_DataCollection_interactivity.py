@@ -56,7 +56,8 @@ def _get_nn_ii_group(
 
     if shift and nmaxcur == nmax:
         msg = f"Max nb. of plots reached for group '{group}': {nmax}"
-        raise Exception(msg)
+        print(msg)
+        return False
 
     if ctrl:
         nn = 0
@@ -72,10 +73,7 @@ def _get_nn_ii_group(
 
 def _update_indices_nb(group=None, dgroup=None, ctrl=None, shift=None):
     """"""
-    (
-        dgroup[group]['nmaxcur'],
-        dgroup[group]['indcur'],
-    ) = _get_nn_ii_group(
+    out = _get_nn_ii_group(
         nmax=dgroup[group]['nmax'],
         nmaxcur=dgroup[group]['nmaxcur'],
         indcur=dgroup[group]['indcur'],
@@ -83,6 +81,11 @@ def _update_indices_nb(group=None, dgroup=None, ctrl=None, shift=None):
         shift=shift,
         group=group,
     )
+    if out is False:
+        return False
+    else:
+        dgroup[group]['nmaxcur'] = out[0]
+        dgroup[group]['indcur'] = out[1]
 
 
 # #############################################################################

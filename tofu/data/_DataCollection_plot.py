@@ -538,6 +538,7 @@ def plot_as_array(
     aspect=None,
     nmax=None,
     color_dict=None,
+    dinc=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -642,7 +643,7 @@ def plot_as_array(
         ax2.set_ylim(ymin, ymax)
 
         dax = {
-            'matrix': ax0,
+            'matrix': {'handle': ax0, 'type': 'matrix', 'inverty': True},
             'vertical': {'handle': ax1, 'type': 'misc'},
             'horizontal': {'handle': ax2, 'type': 'misc'},
         }
@@ -818,7 +819,9 @@ def plot_as_array(
     for kax in dax.keys():
         coll.add_axes(key=kax, **dax[kax])
 
-    coll.setup_interactivity(kinter='inter0', dgroup=dgroup)
+    # increment dict
+
+    coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
 
     # connect
     if connect is True:
