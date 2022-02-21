@@ -1218,7 +1218,7 @@ def plot_as_array_3d(
             dmargin = {
                 'left': 0.05, 'right': 0.95,
                 'bottom': 0.05, 'top': 0.90,
-                'hspace': 0.15, 'wspace': 0.2,
+                'hspace': 0.15, 'wspace': 0.3,
             }
 
         fig = plt.figure(figsize=fs)
