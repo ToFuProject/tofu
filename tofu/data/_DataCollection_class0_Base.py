@@ -9,6 +9,7 @@ import copy
 import warnings
 # from abc import ABCMeta, abstractmethod
 import inspect
+import copy
 
 
 # Common
@@ -21,6 +22,7 @@ import scipy.interpolate as scpinterp
 # tofu
 # from tofu import __version__ as __version__
 import tofu.utils as utils
+from . import _generic_check
 from . import _DataCollection_check_inputs
 from . import _comp
 from . import _DataCollection_comp
@@ -510,6 +512,65 @@ class DataCollection0(utils.ToFuObject):
             param=param,
             lparam_data=self.get_lparam(which='data')
         )
+
+    ###########
+    # extract
+    ###########
+
+    def extract(self, keys=None):
+        """ Extract some selected data and return as new instance """
+
+        # ----------------
+        # check inputs
+
+        if keys is None:
+            return
+        if isinstance(keys, str):
+            keys = [keys]
+
+        keys = _generic_check._check_var_iter(
+            keys, 'keys',
+            types=list,
+            allowed=self._ddata.keys(),
+        )
+
+        # -----------------------------
+        # Get corresponding list of ref
+
+        lref = set([
+            k0 for k0, v0 in self._dref.items()
+            if any([ss in keys for ss in v0['ldata']])
+        ])
+
+        # -------------------
+        # Populate with ref
+
+        coll = self.__class__()
+
+        lpar = [
+            pp for pp in self.get_lparam(which='ref')
+            if pp not in ['ldata', 'ldata_monot', 'ind', 'data']
+        ]
+        for k0 in lref:
+            coll.add_ref(
+                key=k0,
+                **copy.deepcopy({pp: self._dref[k0][pp] for pp in lpar}),
+            )
+
+        # -------------------
+        # Populate with data
+
+        lpar = [
+            pp for pp in self.get_lparam(which='data')
+            if pp not in ['shape', 'monot']
+        ]
+        for k0 in keys:
+            coll.add_data(
+                key=k0,
+                **copy.deepcopy({pp: self._ddata[k0][pp] for pp in lpar}),
+            )
+
+        return coll
 
     ###########
     # General use methods
