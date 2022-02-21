@@ -369,11 +369,12 @@ def plot_DataColl(coll, overhead=None,
 
 # #############################################################################
 # #############################################################################
-#                       plot_as_matrix
+#                       plot_as_array
 # #############################################################################
 
 
 def _plot_as_matrix_check(
+    ndim=None,
     coll=None,
     key=None,
     ind=None,
@@ -390,20 +391,23 @@ def _plot_as_matrix_check(
     data=None,
     connect=None,
     groups=None,
+    inplace=None,
 ):
 
     # key
-    lk = [kk for kk, vv in coll.ddata.items() if vv['data'].ndim == 2]
+    lk = [kk for kk, vv in coll.ddata.items() if vv['data'].ndim == ndim]
     key = _generic_check._check_var(
         key, 'key', default=None, types=str, allowed=lk,
     )
 
     # ind
     ind = _generic_check._check_var(
-        ind, 'ind', default=[0, 0], types=(list, tuple, np.ndarray),
+        ind, 'ind',
+        default=[0 for ii in range(ndim)],
+        types=(list, tuple, np.ndarray),
     )
     c0 = (
-        len(ind) == 2
+        len(ind) == ndim
         and all([
             np.isscalar(ii) and isinstance(ii, (int, np.integer))
             for ii in ind
@@ -515,13 +519,20 @@ def _plot_as_matrix_check(
         types=bool,
     )
 
+    # inplace
+    inplace = _generic_check._check_var(
+        inplace, 'inplace',
+        default=False,
+        types=bool,
+    )
+
     return (
         key, ind,
         cmap, vmin, vmax,
         ymin, ymax,
         aspect, nmax,
         color_dict,
-        dcolorbar, dleg, connect,
+        dcolorbar, dleg, connect, inplace,
     )
 
 
@@ -546,20 +557,136 @@ def plot_as_array(
     dcolorbar=None,
     dleg=None,
     connect=None,
+    inplace=None,
+):
+
+
+    # -------------------------
+    #  call appropriate routine
+
+    data = coll.ddata[key]['data']
+    if hasattr(data, 'nnz'):
+        data = data.toarray()
+
+    if data.ndim == 1:
+        return plot_as_array_1d(
+            # parameters
+            coll=coll,
+            key=key,
+            ind=ind,
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            ymin=ymin,
+            ymax=ymax,
+            aspect=aspect,
+            nmax=nmax,
+            color_dict=color_dict,
+            dinc=dinc,
+            # figure-specific
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+            connect=connect,
+            inplace=inplace,
+        )
+
+    elif data.ndim == 2:
+        return plot_as_array_2d(
+            # parameters
+            coll=coll,
+            key=key,
+            ind=ind,
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            ymin=ymin,
+            ymax=ymax,
+            aspect=aspect,
+            nmax=nmax,
+            color_dict=color_dict,
+            dinc=dinc,
+            # figure-specific
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+            connect=connect,
+            inplace=inplace,
+        )
+
+    elif data.ndim == 3:
+        return plot_as_array_3d(
+            # parameters
+            coll=coll,
+            key=key,
+            ind=ind,
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            ymin=ymin,
+            ymax=ymax,
+            aspect=aspect,
+            nmax=nmax,
+            color_dict=color_dict,
+            dinc=dinc,
+            # figure-specific
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+            connect=connect,
+            inplace=inplace,
+        )
+
+
+# #############################################################################
+# #############################################################################
+#                       plot_as_array: 1d
+# #############################################################################
+
+
+def plot_as_array_1d(
+    # parameters
+    coll=None,
+    key=None,
+    ind=None,
+    vmin=None,
+    vmax=None,
+    cmap=None,
+    ymin=None,
+    ymax=None,
+    aspect=None,
+    nmax=None,
+    color_dict=None,
+    dinc=None,
+    # figure-specific
+    dax=None,
+    dmargin=None,
+    fs=None,
+    dcolorbar=None,
+    dleg=None,
+    connect=None,
+    inplace=None,
 ):
 
     # --------------
     # check input
 
-    groups = ['hor', 'vert']
+    groups = ['misc']
     (
         key, ind,
         cmap, vmin, vmax,
         ymin, ymax,
         aspect, nmax,
         color_dict,
-        dcolorbar, dleg, connect,
+        dcolorbar, dleg, connect, inplace,
     ) = _plot_as_matrix_check(
+        ndim=1,
         coll=coll,
         key=key,
         ind=ind,
@@ -575,6 +702,187 @@ def plot_as_array(
         dleg=dleg,
         connect=connect,
         groups=groups,
+        inplace=inplace,
+    )
+
+    # --------------
+    #  Prepare data
+
+    if inplace:
+        coll2 = coll
+    else:
+        coll2 = coll.extract(ldata=key)
+
+    data = coll2.ddata[key]['data']
+    if hasattr(data, 'nnz'):
+        data = data.toarray()
+    assert data.ndim == len(coll2.ddata[key]['ref']) == 1
+    n0, = data.shape
+
+    ref = coll2.ddata[key]['ref'][0]
+    units = coll2._ddata[key]['units']
+    lab0 = f'ind ({ref})'
+    lab1 = f'{key} ({units})'
+
+    # --------------
+    # plot - prepare
+
+    if dax is None:
+
+        if fs is None:
+            fs = (12, 8)
+
+        if dmargin is None:
+            dmargin = {
+                'left': 0.05, 'right': 0.95,
+                'bottom': 0.05, 'top': 0.90,
+                'hspace': 0.15, 'wspace': 0.1,
+            }
+
+        fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
+
+        ax0 = fig.add_subplot(gs[0, 0], aspect='auto')
+        ax0.set_xlabel(lab0)
+        ax0.set_ylabel(lab1)
+        ax0.set_title(key, size=14, fontweight='bold')
+
+        dax = {
+            'misc': {'handle': ax0, 'type': 'misc', 'inverty': True},
+        }
+
+    dax = _generic_check._check_dax(dax=dax, main='misc')
+
+    # ---------------
+    # plot fixed part
+
+    axtype = 'misc'
+    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
+    for kax in lkax:
+        ax = dax[kax]['handle']
+
+        ax.plot(
+            data,
+            color='k',
+            marker='.',
+            ms=6,
+        )
+
+        # plt.colorbar(im, ax=ax, **dcolorbar)
+        if dleg is not False:
+            ax.legend(**dleg)
+
+    # ----------------
+    # define and set dgroup
+
+    dgroup = {
+        ref: {
+            'ref': [ref],
+            'data': ['index'],
+            'nmax': nmax,
+        },
+    }
+
+    # ----------------
+    # plot mobile part
+
+    axtype = 'misc'
+    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
+    for kax in lkax:
+        ax = dax[kax]['handle']
+
+        # ind0, ind1
+        for ii in range(nmax):
+            lv = ax.axvline(ind[0], c=color_dict['misc'][ii], lw=1., ls='-')
+
+            # update coll
+            kv = f'v{ii:02.0f}'
+            coll2.add_mobile(
+                key=kv,
+                handle=lv,
+                ref=ref,
+                data='index',
+                dtype='xdata',
+                ax=kax,
+                ind=ii,
+            )
+
+        dax[kax].update(refx=[ref])
+
+    # add axes
+    for kax in dax.keys():
+        coll2.add_axes(key=kax, **dax[kax])
+
+    # increment dict
+
+    coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+
+    # connect
+    if connect is True:
+        coll2.connect()
+
+    return coll2
+
+
+# #############################################################################
+# #############################################################################
+#                       plot_as_array: 2d
+# #############################################################################
+
+
+def plot_as_array_2d(
+    # parameters
+    coll=None,
+    key=None,
+    ind=None,
+    vmin=None,
+    vmax=None,
+    cmap=None,
+    ymin=None,
+    ymax=None,
+    aspect=None,
+    nmax=None,
+    color_dict=None,
+    dinc=None,
+    # figure-specific
+    dax=None,
+    dmargin=None,
+    fs=None,
+    dcolorbar=None,
+    dleg=None,
+    connect=None,
+    inplace=None,
+):
+
+    # --------------
+    # check input
+
+    groups = ['hor', 'vert']
+    (
+        key, ind,
+        cmap, vmin, vmax,
+        ymin, ymax,
+        aspect, nmax,
+        color_dict,
+        dcolorbar, dleg, connect, inplace,
+    ) = _plot_as_matrix_check(
+        ndim=2,
+        coll=coll,
+        key=key,
+        ind=ind,
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
+        ymin=ymin,
+        ymax=ymax,
+        aspect=aspect,
+        nmax=nmax,
+        color_dict=color_dict,
+        dcolorbar=dcolorbar,
+        dleg=dleg,
+        connect=connect,
+        groups=groups,
+        inplace=inplace,
     )
 
     # --------------
@@ -583,8 +891,9 @@ def plot_as_array(
     data = coll.ddata[key]['data']
     if hasattr(data, 'nnz'):
         data = data.toarray()
+    assert data.ndim == len(coll.ddata[key]['ref']) == 2
     n0, n1 = data.shape
-    extent = (n1 - 0.5, n1 + 0.5, n0 - 0.5, n1 + 0.5)
+    extent = (-0.5, n1 - 0.5, -0.5, n0 - 0.5)
 
     ref0, ref1 = coll.ddata[key]['ref']
     lab0 = f'ind0 ({ref0})'
@@ -606,6 +915,7 @@ def plot_as_array(
             }
 
         fig = plt.figure(figsize=fs)
+        fig.suptitle(key, size=14, fontweight='bold')
         gs = gridspec.GridSpec(ncols=3, nrows=3, **dmargin)
 
         ax0 = fig.add_subplot(gs[:2, :2], aspect='auto')
@@ -617,7 +927,6 @@ def plot_as_array(
             labelbottom=False, labeltop=True,
         )
         ax0.xaxis.set_label_position('top')
-        ax0.set_title(key, size=14, fontweight='bold')
 
         ax1 = fig.add_subplot(gs[:2, 2], sharey=ax0)
         ax1.set_xlabel('data')
@@ -660,7 +969,7 @@ def plot_as_array(
 
         im = ax.imshow(
             data,
-            extent=None,
+            extent=extent,
             interpolation='nearest',
             origin='upper',
             aspect=aspect,
@@ -668,10 +977,7 @@ def plot_as_array(
             vmin=vmin,
             vmax=vmax,
         )
-
-        # plt.colorbar(im, ax=ax, **dcolorbar)
-        if dleg is not False:
-            ax.legend(**dleg)
+        ax.invert_yaxis()
 
     # ----------------
     # define and set dgroup
@@ -698,7 +1004,6 @@ def plot_as_array(
         ax = dax[kax]['handle']
 
         # ind0, ind1
-        lmob = []
         for ii in range(nmax):
             lh = ax.axhline(ind[0], c=color_dict['hor'][ii], lw=1., ls='-')
             lv = ax.axvline(ind[1], c=color_dict['vert'][ii], lw=1., ls='-')
@@ -731,7 +1036,6 @@ def plot_as_array(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        lmob = []
         for ii in range(nmax):
             l0, = ax.plot(
                 data[:, ind[1]],
@@ -775,7 +1079,6 @@ def plot_as_array(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        lmob = []
         for ii in range(nmax):
             l1, = ax.plot(
                 np.arange(0, n1),
@@ -814,6 +1117,700 @@ def plot_as_array(
             )
 
         dax[kax].update(refx=[ref1])
+
+    # add axes
+    for kax in dax.keys():
+        coll.add_axes(key=kax, **dax[kax])
+
+    # increment dict
+
+    coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+
+    # connect
+    if connect is True:
+        coll.connect()
+
+    return coll
+
+
+# #############################################################################
+# #############################################################################
+#                       plot_as_array: 3d
+# #############################################################################
+
+
+def plot_as_array_3d(
+    # parameters
+    coll=None,
+    key=None,
+    ind=None,
+    vmin=None,
+    vmax=None,
+    cmap=None,
+    ymin=None,
+    ymax=None,
+    aspect=None,
+    nmax=None,
+    color_dict=None,
+    dinc=None,
+    # figure-specific
+    dax=None,
+    dmargin=None,
+    fs=None,
+    dcolorbar=None,
+    dleg=None,
+    connect=None,
+    inplace=None,
+):
+
+    # --------------
+    # check input
+
+    groups = ['i0', 'i1', 'i2']
+    (
+        key, ind,
+        cmap, vmin, vmax,
+        ymin, ymax,
+        aspect, nmax,
+        color_dict,
+        dcolorbar, dleg, connect, inplace,
+    ) = _plot_as_matrix_check(
+        ndim=3,
+        coll=coll,
+        key=key,
+        ind=ind,
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
+        ymin=ymin,
+        ymax=ymax,
+        aspect=aspect,
+        nmax=nmax,
+        color_dict=color_dict,
+        dcolorbar=dcolorbar,
+        dleg=dleg,
+        connect=connect,
+        groups=groups,
+        inplace=inplace,
+    )
+    nmax = 1
+
+    # --------------
+    #  Prepare data
+
+    data = coll.ddata[key]['data']
+    if hasattr(data, 'nnz'):
+        data = data.toarray()
+    assert data.ndim == len(coll.ddata[key]['ref']) == 3
+    n0, n1, n2 = data.shape
+    extent0 = (-0.5, n1 - 0.5, -0.5, n0 - 0.5)
+    extent1 = (-0.5, n2 - 0.5, -0.5, n0 - 0.5)
+    extent2 = (-0.5, n2 - 0.5, -0.5, n1 - 0.5)
+
+    ref0, ref1, ref2 = coll.ddata[key]['ref']
+    lab00 = f'ind0 ({ref0})'
+    lab01 = f'ind1 ({ref1})'
+    lab10 = f'ind0 ({ref0})'
+    lab11 = f'ind2 ({ref2})'
+    lab20 = f'ind1 ({ref1})'
+    lab21 = f'ind2 ({ref2})'
+
+    # --------------
+    # plot - prepare
+
+    if dax is None:
+
+        if fs is None:
+            fs = (14, 8)
+
+        if dmargin is None:
+            dmargin = {
+                'left': 0.05, 'right': 0.95,
+                'bottom': 0.05, 'top': 0.90,
+                'hspace': 0.15, 'wspace': 0.2,
+            }
+
+        fig = plt.figure(figsize=fs)
+        fig.suptitle(key, size=14, fontweight='bold')
+        gs = gridspec.GridSpec(nrows=3, ncols=9, **dmargin)
+
+        # n0, n1
+        ax0 = fig.add_subplot(gs[:2, :2], aspect='auto')
+        ax0.set_ylabel(lab00)
+        ax0.set_xlabel(lab01)
+        ax0.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax0.xaxis.set_label_position('top')
+
+        ax1 = fig.add_subplot(gs[:2, 2], sharey=ax0)
+        ax1.set_xlabel('data')
+        ax1.set_ylabel(lab00)
+        ax1.tick_params(
+            axis="y",
+            left=False, right=True,
+            labelleft=False, labelright=True,
+        )
+        ax1.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax1.yaxis.set_label_position('right')
+        ax1.xaxis.set_label_position('top')
+
+        ax2 = fig.add_subplot(gs[2, :2], sharex=ax0)
+        ax2.set_ylabel('data')
+        ax2.set_xlabel(lab01)
+
+        ax1.set_xlim(ymin, ymax)
+        ax2.set_ylim(ymin, ymax)
+
+        # n0, n2
+        ax3 = fig.add_subplot(gs[:2, 3:5], aspect='auto')
+        ax3.set_ylabel(lab10)
+        ax3.set_xlabel(lab11)
+        ax3.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax3.xaxis.set_label_position('top')
+
+        ax4 = fig.add_subplot(gs[2, 3:5], sharey=ax3)
+        ax4.set_xlabel('data')
+        ax4.set_ylabel(lab10)
+        ax4.tick_params(
+            axis="y",
+            left=False, right=True,
+            labelleft=False, labelright=True,
+        )
+        ax4.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax4.yaxis.set_label_position('right')
+        ax4.xaxis.set_label_position('top')
+
+        ax5 = fig.add_subplot(gs[:2, 5], sharex=ax3)
+        ax5.set_ylabel('data')
+        ax5.set_xlabel(lab11)
+
+        ax4.set_xlim(ymin, ymax)
+        ax5.set_ylim(ymin, ymax)
+
+        # n1, n2
+        ax6 = fig.add_subplot(gs[:2, 6:8], aspect='auto')
+        ax6.set_ylabel(lab20)
+        ax6.set_xlabel(lab21)
+        ax6.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax6.xaxis.set_label_position('top')
+
+        ax7 = fig.add_subplot(gs[2, 6:8], sharey=ax6)
+        ax7.set_xlabel('data')
+        ax7.set_ylabel(lab20)
+        ax7.tick_params(
+            axis="y",
+            left=False, right=True,
+            labelleft=False, labelright=True,
+        )
+        ax7.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax7.yaxis.set_label_position('right')
+        ax7.xaxis.set_label_position('top')
+
+        ax8 = fig.add_subplot(gs[:2, 8], sharex=ax6)
+        ax8.set_ylabel('data')
+        ax8.set_xlabel(lab21)
+
+        ax7.set_xlim(ymin, ymax)
+        ax8.set_ylim(ymin, ymax)
+
+        dax = {
+            'matrix0': {'handle': ax0, 'type': 'matrix', 'inverty': True},
+            'matrix1': {'handle': ax3, 'type': 'matrix', 'inverty': True},
+            'matrix2': {'handle': ax6, 'type': 'matrix', 'inverty': True},
+            'vertical0': {'handle': ax1, 'type': 'misc'},
+            'vertical1': {'handle': ax4, 'type': 'misc'},
+            'vertical2': {'handle': ax7, 'type': 'misc'},
+            'horizontal0': {'handle': ax2, 'type': 'misc'},
+            'horizontal1': {'handle': ax5, 'type': 'misc'},
+            'horizontal2': {'handle': ax8, 'type': 'misc'},
+        }
+
+    dax = _generic_check._check_dax(dax=dax, main='matrix')
+
+    # ---------------
+    # plot fixed part
+
+    # ----------------
+    # define and set dgroup
+
+    dgroup = {
+        'i0': {
+            'ref': [ref0],
+            'data': ['index'],
+            'nmax': nmax,
+        },
+        'i1': {
+            'ref': [ref1],
+            'data': ['index'],
+            'nmax': nmax,
+        },
+        'i2': {
+            'ref': [ref2],
+            'data': ['index'],
+            'nmax': nmax,
+        },
+    }
+
+    # -----------------
+    # plot first slice
+
+    kax = 'matrix0'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # image => ref2
+        im = ax.imshow(
+            data[:, :, ind[2]],
+            extent=extent0,
+            interpolation='nearest',
+            origin='upper',
+            aspect=aspect,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+        )
+        ax.invert_yaxis()
+
+        kim = 'im0'
+        coll.add_mobile(
+            key=kim,
+            handle=im,
+            ref=ref2,
+            data='index',
+            dtype='data',
+            ax=kax,
+            ind=0,
+        )
+
+        # lh, lv => ref0, ref1
+        ii = 0
+        lh = ax.axhline(ind[0], c=color_dict['i0'][ii], lw=1., ls='-')
+        lv = ax.axvline(ind[1], c=color_dict['i0'][ii], lw=1., ls='-')
+
+        # update coll
+        kh = f'lh0-{ii:02.0f}'
+        kv = f'lv0-{ii:02.0f}'
+        coll.add_mobile(
+            key=kh,
+            handle=lh,
+            ref=ref0,
+            data='index',
+            dtype='ydata',
+            ax=kax,
+            ind=ii,
+        )
+        coll.add_mobile(
+            key=kv,
+            handle=lv,
+            ref=ref1,
+            data='index',
+            dtype='xdata',
+            ax=kax,
+            ind=ii,
+        )
+
+        dax[kax].update(refx=[ref1], refy=[ref0])
+
+    kax = 'vertical0'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        ii = 0
+        l0, = ax.plot(
+            data[:, ind[1], ind[2]],
+            np.arange(0, n0),
+            ls='-',
+            marker='.',
+            lw=1.,
+            color=color_dict['i0'][ii],
+            label=f'ind0 = {ind[0]}',
+        )
+
+        km = f'vprof0'
+        coll.add_mobile(
+            key=km,
+            handle=l0,
+            ref=(ref1,),
+            data=key,
+            dtype='xdata',
+            ax=kax,
+            ind=ii,
+        )
+
+        l0 = ax.axhline(
+            ind[1],
+            c=color_dict['i0'][ii],
+        )
+        km = f'lh-v0'
+        coll.add_mobile(
+            key=km,
+            handle=l0,
+            ref=(ref0,),
+            data='index',
+            dtype='ydata',
+            ax=kax,
+            ind=ii,
+        )
+
+        dax[kax].update(refy=[ref0])
+
+    kax = 'horizontal0'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        ii = 0
+        l1, = ax.plot(
+            np.arange(0, n1),
+            data[ind[0], :, ind[2]],
+            ls='-',
+            marker='.',
+            lw=1.,
+            color=color_dict['i0'][ii],
+            label=f'ind1 = {ind[1]}',
+        )
+
+        km = f'hprof0-h{ii:02.0f}'
+        coll.add_mobile(
+            key=km,
+            handle=l1,
+            ref=(ref0,),
+            data=key,
+            dtype='ydata',
+            ax=kax,
+            ind=ii,
+        )
+
+        l0 = ax.axvline(
+            ind[0],
+            c=color_dict['i0'][ii],
+        )
+        km = f'lv0-h{ii:02.0f}'
+        coll.add_mobile(
+            key=km,
+            handle=l0,
+            ref=(ref1,),
+            data='index',
+            dtype='xdata',
+            ax=kax,
+            ind=ii,
+        )
+
+        dax[kax].update(refx=[ref1])
+
+    # -----------------
+    # plot second slice
+
+    kax = 'matrix1'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # image => ref2
+        im = ax.imshow(
+            data[:, ind[1], :],
+            extent=extent1,
+            interpolation='nearest',
+            origin='upper',
+            aspect=aspect,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+        )
+        ax.invert_yaxis()
+
+        kim = 'im1'
+        coll.add_mobile(
+            key=kim,
+            handle=im,
+            ref=ref1,
+            data='index',
+            dtype='data',
+            ax=kax,
+            ind=0,
+        )
+
+        # lh, lv => ref0, ref1
+        ii = 0
+        lh = ax.axhline(ind[0], c=color_dict['i1'][ii], lw=1., ls='-')
+        lv = ax.axvline(ind[2], c=color_dict['i1'][ii], lw=1., ls='-')
+
+        # update coll
+        kh = f'lh1-{ii:02.0f}'
+        kv = f'lv1-{ii:02.0f}'
+        coll.add_mobile(
+            key=kh,
+            handle=lh,
+            ref=ref0,
+            data='index',
+            dtype='ydata',
+            ax=kax,
+            ind=ii,
+        )
+        coll.add_mobile(
+            key=kv,
+            handle=lv,
+            ref=ref2,
+            data='index',
+            dtype='xdata',
+            ax=kax,
+            ind=ii,
+        )
+
+        dax[kax].update(refx=[ref2], refy=[ref0])
+
+    kax = 'vertical1'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        ii = 0
+        l0, = ax.plot(
+            data[:, ind[1], ind[2]],
+            np.arange(0, n0),
+            ls='-',
+            marker='.',
+            lw=1.,
+            color=color_dict['i0'][ii],
+            label=f'ind0 = {ind[0]}',
+        )
+
+        km = f'vprof1-{ii:02.0f}'
+        coll.add_mobile(
+            key=km,
+            handle=l0,
+            ref=(ref2,),
+            data=key,
+            dtype='xdata',
+            ax=kax,
+            ind=ii,
+        )
+
+        l0 = ax.axhline(
+            ind[2],
+            c=color_dict['i0'][ii],
+        )
+        km = f'lh1-v{ii:02.0f}'
+        coll.add_mobile(
+            key=km,
+            handle=l0,
+            ref=(ref0,),
+            data='index',
+            dtype='ydata',
+            ax=kax,
+            ind=ii,
+        )
+
+        dax[kax].update(refy=[ref0])
+
+    kax = 'horizontal1'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        ii = 0
+        l1, = ax.plot(
+            np.arange(0, n2),
+            data[ind[0], ind[1], :],
+            ls='-',
+            marker='.',
+            lw=1.,
+            color=color_dict['i0'][ii],
+            label=f'ind1 = {ind[2]}',
+        )
+
+        km = f'hprof1-{ii:02.0f}'
+        coll.add_mobile(
+            key=km,
+            handle=l1,
+            ref=(ref0,),
+            data=key,
+            dtype='ydata',
+            ax=kax,
+            ind=ii,
+        )
+
+        l0 = ax.axvline(
+            ind[0],
+            c=color_dict['i0'][ii],
+        )
+        km = f'lv1-h{ii:02.0f}'
+        coll.add_mobile(
+            key=km,
+            handle=l0,
+            ref=(ref2,),
+            data='index',
+            dtype='xdata',
+            ax=kax,
+            ind=ii,
+        )
+
+        dax[kax].update(refx=[ref2])
+
+    # -----------------
+    # plot third slice
+
+    kax = 'matrix2'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # image => ref2
+        im = ax.imshow(
+            data[ind[0], :, :],
+            extent=extent1,
+            interpolation='nearest',
+            origin='upper',
+            aspect=aspect,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+        )
+        ax.invert_yaxis()
+
+        kim = 'im2'
+        coll.add_mobile(
+            key=kim,
+            handle=im,
+            ref=ref1,
+            data='index',
+            dtype='data',
+            ax=kax,
+            ind=0,
+        )
+
+        # lh, lv => ref0, ref1
+        ii = 0
+        lh = ax.axhline(ind[1], c=color_dict['i1'][ii], lw=1., ls='-')
+        lv = ax.axvline(ind[2], c=color_dict['i1'][ii], lw=1., ls='-')
+
+        # update coll
+        kh = f'lh2-{ii:02.0f}'
+        kv = f'lv2-{ii:02.0f}'
+        coll.add_mobile(
+            key=kh,
+            handle=lh,
+            ref=ref1,
+            data='index',
+            dtype='ydata',
+            ax=kax,
+            ind=ii,
+        )
+        coll.add_mobile(
+            key=kv,
+            handle=lv,
+            ref=ref2,
+            data='index',
+            dtype='xdata',
+            ax=kax,
+            ind=ii,
+        )
+
+        dax[kax].update(refx=[ref2], refy=[ref1])
+
+    kax = 'vertical2'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        ii = 0
+        l0, = ax.plot(
+            data[ind[0], :, ind[2]],
+            np.arange(0, n1),
+            ls='-',
+            marker='.',
+            lw=1.,
+            color=color_dict['i0'][ii],
+            label=f'ind0 = {ind[0]}',
+        )
+
+        km = f'vprof2-{ii:02.0f}'
+        coll.add_mobile(
+            key=km,
+            handle=l0,
+            ref=(ref2,),
+            data=key,
+            dtype='xdata',
+            ax=kax,
+            ind=ii,
+        )
+
+        l0 = ax.axhline(
+            ind[2],
+            c=color_dict['i0'][ii],
+        )
+        km = f'lh2-v{ii:02.0f}'
+        coll.add_mobile(
+            key=km,
+            handle=l0,
+            ref=(ref1,),
+            data='index',
+            dtype='ydata',
+            ax=kax,
+            ind=ii,
+        )
+
+        dax[kax].update(refy=[ref0])
+
+    kax = 'horizontal2'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        ii = 0
+        l1, = ax.plot(
+            np.arange(0, n2),
+            data[ind[0], ind[1], :],
+            ls='-',
+            marker='.',
+            lw=1.,
+            color=color_dict['i0'][ii],
+            label=f'ind1 = {ind[2]}',
+        )
+
+        km = f'hprof2-{ii:02.0f}'
+        coll.add_mobile(
+            key=km,
+            handle=l1,
+            ref=(ref1,),
+            data=key,
+            dtype='ydata',
+            ax=kax,
+            ind=ii,
+        )
+
+        l0 = ax.axvline(
+            ind[1],
+            c=color_dict['i0'][ii],
+        )
+        km = f'lv2-h{ii:02.0f}'
+        coll.add_mobile(
+            key=km,
+            handle=l0,
+            ref=(ref2,),
+            data='index',
+            dtype='xdata',
+            ax=kax,
+            ind=ii,
+        )
+
+        dax[kax].update(refx=[ref2])
 
     # add axes
     for kax in dax.keys():

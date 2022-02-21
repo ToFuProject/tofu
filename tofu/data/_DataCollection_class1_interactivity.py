@@ -1113,22 +1113,24 @@ class DataCollection1(DataCollection0):
             groupy = self._dobj['interactivity'][self.kinter]['cur_groupy']
 
             # groupx
-            imax = self._dobj['group'][groupx]['nmaxcur']
-            ii = int(event.key)
-            if ii > imax:
-                msg = "Set to current max index for group '{groupx}': {imax}"
-                print(msg)
-            ii = min(ii, imax)
-            self._dobj['group'][groupx]['indcur'] = ii
+            if groupx is not None:
+                imax = self._dobj['group'][groupx]['nmaxcur']
+                ii = int(event.key)
+                if ii > imax:
+                    msg = "Set to current max index for group '{groupx}': {imax}"
+                    print(msg)
+                ii = min(ii, imax)
+                self._dobj['group'][groupx]['indcur'] = ii
 
             # groupy
-            imax = self._dobj['group'][groupy]['nmaxcur']
-            ii = int(event.key)
-            if ii > imax:
-                msg = "Set to current max index for group '{groupy}': {imax}"
-                print(msg)
-            ii = min(ii, imax)
-            self._dobj['group'][groupy]['indcur'] = ii
+            if groupy is not None:
+                imax = self._dobj['group'][groupy]['nmaxcur']
+                ii = int(event.key)
+                if ii > imax:
+                    msg = "Set to current max index for group '{groupy}': {imax}"
+                    print(msg)
+                ii = min(ii, imax)
+                self._dobj['group'][groupy]['indcur'] = ii
 
             msg = f"Current indices set to {ii}"
             print(msg)

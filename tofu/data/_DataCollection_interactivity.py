@@ -121,21 +121,27 @@ def _update_mobile_data(
 
     if kdata == 'index':
         func(iref)
-        # handle.set_xdata(iref)
 
     elif ddata[kdata]['data'].ndim == 1:
         func(ddata[kdata]['data'][iref])
-        # handle.set_xdata(ddata[kdata]['data'][iref])
 
     elif ddata[kdata]['data'].ndim == 2:
 
         idim = ddata[kdata]['ref'].index(kref)
         if idim == 0:
             func(ddata[kdata]['data'][iref, :])
-            # handle.set_xdata(ddata[kdata]['data'][iref, :])
         else:
             func(ddata[kdata]['data'][:, iref])
-            # handle.set_xdata(ddata[kdata]['data'][:, iref])
+
+    elif ddata[kdata]['data'].ndim == 3:
+
+        idim = ddata[kdata]['ref'].index(kref)
+        if idim == 0:
+            func(ddata[kdata]['data'][iref, :, :])
+        elif idim == 1:
+            func(ddata[kdata]['data'][:, iref, :])
+        elif idim == 2:
+            func(ddata[kdata]['data'][:, :, iref])
 
 
 def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
