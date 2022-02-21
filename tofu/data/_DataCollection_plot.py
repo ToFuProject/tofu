@@ -394,12 +394,6 @@ def _plot_as_matrix_check(
     inplace=None,
 ):
 
-    # key
-    lk = [kk for kk, vv in coll.ddata.items() if vv['data'].ndim == ndim]
-    key = _generic_check._check_var(
-        key, 'key', default=None, types=str, allowed=lk,
-    )
-
     # ind
     ind = _generic_check._check_var(
         ind, 'ind',
@@ -561,17 +555,36 @@ def plot_as_array(
 ):
 
 
+    # ------------
+    #  ceck inputs
+
+    # key
+    key = _generic_check._check_var(
+        key, 'key',
+        default=None,
+        types=str,
+        allowed=coll.ddata.keys(),
+    )
+    ndim = coll._ddata[key]['data'].ndim
+
+    inplace = _generic_check._check_var(
+        inplace, 'inplace',
+        types=bool,
+        default=False,
+    )
+
+    if inplace:
+        coll2 = coll
+    else:
+        coll2 = coll.extract(key)
+
     # -------------------------
     #  call appropriate routine
 
-    data = coll.ddata[key]['data']
-    if hasattr(data, 'nnz'):
-        data = data.toarray()
-
-    if data.ndim == 1:
+    if ndim == 1:
         return plot_as_array_1d(
             # parameters
-            coll=coll,
+            coll=coll2,
             key=key,
             ind=ind,
             vmin=vmin,
@@ -593,10 +606,10 @@ def plot_as_array(
             inplace=inplace,
         )
 
-    elif data.ndim == 2:
+    elif ndim == 2:
         return plot_as_array_2d(
             # parameters
-            coll=coll,
+            coll=coll2,
             key=key,
             ind=ind,
             vmin=vmin,
@@ -618,10 +631,10 @@ def plot_as_array(
             inplace=inplace,
         )
 
-    elif data.ndim == 3:
+    elif ndim == 3:
         return plot_as_array_3d(
             # parameters
-            coll=coll,
+            coll=coll2,
             key=key,
             ind=ind,
             vmin=vmin,

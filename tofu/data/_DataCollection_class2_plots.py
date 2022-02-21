@@ -28,6 +28,7 @@ class DataCollection2(DataCollection1):
         dcolorbar=None,
         dleg=None,
         connect=None,
+        inplace=None,
     ):
         """ Plot the desired 2d data array as a matrix """
         return _DataCollection_plot.plot_as_array(
@@ -45,6 +46,7 @@ class DataCollection2(DataCollection1):
             dcolorbar=dcolorbar,
             dleg=dleg,
             connect=connect,
+            inplace=inplace,
         )
 
     # def _plot_timetraces(self, ntmax=1,
