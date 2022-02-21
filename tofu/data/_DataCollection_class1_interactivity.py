@@ -247,6 +247,7 @@ class DataCollection1(DataCollection0):
         kinter=None,
         dgroup=None,
         dkeys=None,
+        cur_ax=None,
         debug=None,
     ):
         """
@@ -283,7 +284,7 @@ class DataCollection1(DataCollection0):
         ic = 0
         for k0, v0 in dgroup.items():
             if v0.get('nmax') is None:
-                dgroup[k0]['nmax'] = 1
+                dgroup[k0]['nmax'] = 0
             dgroup[k0]['nmaxcur'] = 0
             dgroup[k0]['indcur'] = 0
 
@@ -450,16 +451,14 @@ class DataCollection1(DataCollection0):
         # dinter
 
         dinter = {
-            'cur_ax': None,
+            'cur_ax': cur_ax,
             'cur_groupx': None,
             'cur_groupy': None,
             'cur_refx': None,
             'cur_refy': None,
-            'cur_ix': None,
-            'cur_iy': None,
             'cur_datax': None,
             'cur_datay': None,
-            'follow': False,
+            'follow': True,
         }
 
         self.add_obj(
@@ -467,6 +466,7 @@ class DataCollection1(DataCollection0):
             key='inter0',
             **dinter,
         )
+        self.kinter = 'inter0'
 
         _interactivity._set_dbck(
             lax=self._dobj['axes'].keys(),
@@ -475,6 +475,20 @@ class DataCollection1(DataCollection0):
             dmobile=self._dobj['mobile'],
         )
 
+        # -----------------------------------
+        # set current axe / group / ref / data...
+
+        if cur_ax is None:
+            cur_ax = [
+                k0 for k0, v0 in self._dobj['axes'].items()
+                if v0['groupx'] is not None and v0['groupy'] is not None
+            ]
+            if len(cur_ax) == 0:
+                cur_ax = list(self._dobj['axes'].keys())[0]
+            else:
+                cur_ax = cur_ax[0]
+
+        self._get_current_grouprefdata_from_kax(kax=cur_ax)
         self.set_debug(debug)
 
     # ----------------------------
@@ -552,23 +566,7 @@ class DataCollection1(DataCollection0):
     # Interactivity handling - preliminary
     # ------------------------------------
 
-    def _getset_current_axref(self, event):
-        # Check click is relevant
-        c0 = event.inaxes is not None and event.button == 1
-        if not c0:
-            raise Exception("clic not in axes")
-
-        # get current ax key
-        lkax = [
-            k0 for k0, v0 in self._dobj['axes'].items()
-            if v0['handle'] == event.inaxes
-        ]
-        kax = _generic_check._check_var(
-            None, 'kax',
-            types=str,
-            allowed=lkax,
-        )
-        ax = self._dobj['axes'][kax]['handle']
+    def _get_current_grouprefdata_from_kax(self, kax=None):
 
         # Get current group and ref
         groupx = self._dobj['axes'][kax]['groupx']
@@ -633,13 +631,36 @@ class DataCollection1(DataCollection0):
             iy = self._dobj['axes'][kax]['refy'].index(cur_refy)
             cur_datay = self._dobj['axes'][kax]['datay'][iy]
 
-        # cur_ind
-        cur_ix = None
-        if cur_groupx is not None:
-            cur_ix = self._dobj['group'][cur_groupx]['indcur']
-        cur_iy = None
-        if cur_groupy is not None:
-            cur_iy = self._dobj['group'][cur_groupy]['indcur']
+        # Update interactivity dict
+        self.kinter = kinter
+        self._dobj['interactivity'][kinter].update({
+            'cur_ax': kax,
+            'ax_panzoom': kax,
+            'cur_groupx': cur_groupx,
+            'cur_groupy': cur_groupy,
+            'cur_refx': cur_refx,
+            'cur_refy': cur_refy,
+            'cur_datax': cur_datax,
+            'cur_datay': cur_datay,
+        })
+
+    def _getset_current_axref(self, event):
+        # Check click is relevant
+        c0 = event.inaxes is not None and event.button == 1
+        if not c0:
+            raise Exception("clic not in axes")
+
+        # get current ax key
+        lkax = [
+            k0 for k0, v0 in self._dobj['axes'].items()
+            if v0['handle'] == event.inaxes
+        ]
+        kax = _generic_check._check_var(
+            None, 'kax',
+            types=str,
+            allowed=lkax,
+        )
+        ax = self._dobj['axes'][kax]['handle']
 
         # Check axes is relevant and toolbar not active
         lc = [
@@ -655,20 +676,7 @@ class DataCollection1(DataCollection0):
         if not all(lc):
             raise Exception("Not usable axes!")
 
-        # Update interactivity dict
-        self.kinter = kinter
-        self._dobj['interactivity'][kinter].update({
-            'cur_ax': kax,
-            'ax_panzoom': kax,
-            'cur_groupx': cur_groupx,
-            'cur_groupy': cur_groupy,
-            'cur_refx': cur_refx,
-            'cur_refy': cur_refy,
-            'cur_datax': cur_datax,
-            'cur_datay': cur_datay,
-            'cur_ix': cur_ix,
-            'cur_iy': cur_iy,
-        })
+        self._get_current_grouprefdata_from_kax(kax=kax)
 
     # -----------------------------
     # Interactivity: generic update
@@ -716,13 +724,6 @@ class DataCollection1(DataCollection0):
                 ])
             ]
 
-            # visible ?
-            ic = self._dobj['group'][cur_groupx]['nmaxcur']
-            for k1 in lmobiles:
-                self._dobj['mobile'][k1]['visible'] = (
-                    self._dobj['mobile'][k1]['ind'] <= ic
-                )
-
         if cur_groupy is not None:
             lmobiles += [
                 k0 for k0, v0 in self._dobj['mobile'].items()
@@ -742,8 +743,8 @@ class DataCollection1(DataCollection0):
         # Set visibility of mobile objects - TBF/TBC
         for k0 in lmobiles:
             vis = all([
-                self._dobj['mobile'][k0]['ind']     # + 1
-                <= self._dobj['group'][gg]['nmaxcur']
+                self._dobj['mobile'][k0]['ind']
+                < self._dobj['group'][gg]['nmaxcur']
                 for gg in self._dobj['mobile'][k0]['group']
             ])
             self._dobj['mobile'][k0]['visible'] = vis
@@ -895,16 +896,24 @@ class DataCollection1(DataCollection0):
 
         # Update ref indices
         if cur_refx is not None:
-            cur_ix = self._dobj['interactivity'][kinter]['cur_ix']
-            if self._dobj['interactivity'][kinter]['follow']:
+            cur_ix = self._dobj['group'][cur_groupx]['indcur']
+            follow = (
+                cur_ix == self._dobj['group'][cur_groupx]['nmaxcur'] - 1
+                and self._dobj['interactivity'][kinter]['follow']
+            )
+            if follow:
                 self._dref[cur_refx]['indices'][cur_ix:] = ix
             else:
                 self._dref[cur_refx]['indices'][cur_ix] = ix
 
         # Update ref indices
         if cur_refy is not None:
-            cur_iy = self._dobj['interactivity'][kinter]['cur_iy']
-            if self._dobj['interactivity'][kinter]['follow']:
+            cur_iy = self._dobj['group'][cur_groupy]['indcur']
+            follow = (
+                cur_iy == self._dobj['group'][cur_groupy]['nmaxcur'] - 1
+                and self._dobj['interactivity'][kinter]['follow']
+            )
+            if follow:
                 self._dref[cur_refy]['indices'][cur_iy:] = iy
             else:
                 self._dref[cur_refy]['indices'][cur_iy] = iy
@@ -1143,7 +1152,11 @@ class DataCollection1(DataCollection0):
             )
 
             # Update ref indices
-            if self._dobj['interactivity'][kinter]['follow']:
+            follow = (
+                icur == self._dobj['group'][group]['nmaxcur'] - 1
+                and self._dobj['interactivity'][kinter]['follow']
+            )
+            if follow:
                 self._dref[ref]['indices'][icur:] = ix
             else:
                 self._dref[ref]['indices'][icur] = ix
