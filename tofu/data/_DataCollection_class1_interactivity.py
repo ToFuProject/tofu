@@ -1264,4 +1264,7 @@ class DataCollection1(DataCollection0):
                 del self._dobj[kk]
 
         # remove interactivity-specific param in dref
-        self.remove_param(which='ref', param=['indices', 'group', 'inc'])
+        lp = list(set(self.get_lparam(which='ref')).intersection(
+            ['indices', 'group', 'inc']
+        ))
+        self.remove_param(which='ref', param=lp)

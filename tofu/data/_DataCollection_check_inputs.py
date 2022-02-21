@@ -1765,7 +1765,7 @@ def _remove_param(dd=None, dd_name=None, param=None):
     # Check inputs
     lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
     if param == 'all':
-        param = lpi
+        param = lp
     if isinstance(param, str):
         param = [param]
     param = _generic_check._check_var_iter(

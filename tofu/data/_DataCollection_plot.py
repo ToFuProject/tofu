@@ -391,7 +391,6 @@ def _plot_as_matrix_check(
     data=None,
     connect=None,
     groups=None,
-    inplace=None,
 ):
 
     # ind
@@ -513,20 +512,13 @@ def _plot_as_matrix_check(
         types=bool,
     )
 
-    # inplace
-    inplace = _generic_check._check_var(
-        inplace, 'inplace',
-        default=False,
-        types=bool,
-    )
-
     return (
         key, ind,
         cmap, vmin, vmax,
         ymin, ymax,
         aspect, nmax,
         color_dict,
-        dcolorbar, dleg, connect, inplace,
+        dcolorbar, dleg, connect,
     )
 
 
@@ -603,7 +595,6 @@ def plot_as_array(
             dcolorbar=dcolorbar,
             dleg=dleg,
             connect=connect,
-            inplace=inplace,
         )
 
     elif ndim == 2:
@@ -628,7 +619,6 @@ def plot_as_array(
             dcolorbar=dcolorbar,
             dleg=dleg,
             connect=connect,
-            inplace=inplace,
         )
 
     elif ndim == 3:
@@ -653,7 +643,6 @@ def plot_as_array(
             dcolorbar=dcolorbar,
             dleg=dleg,
             connect=connect,
-            inplace=inplace,
         )
 
 
@@ -684,7 +673,6 @@ def plot_as_array_1d(
     dcolorbar=None,
     dleg=None,
     connect=None,
-    inplace=None,
 ):
 
     # --------------
@@ -697,7 +685,7 @@ def plot_as_array_1d(
         ymin, ymax,
         aspect, nmax,
         color_dict,
-        dcolorbar, dleg, connect, inplace,
+        dcolorbar, dleg, connect,
     ) = _plot_as_matrix_check(
         ndim=1,
         coll=coll,
@@ -715,25 +703,19 @@ def plot_as_array_1d(
         dleg=dleg,
         connect=connect,
         groups=groups,
-        inplace=inplace,
     )
 
     # --------------
     #  Prepare data
 
-    if inplace:
-        coll2 = coll
-    else:
-        coll2 = coll.extract(ldata=key)
-
-    data = coll2.ddata[key]['data']
+    data = coll.ddata[key]['data']
     if hasattr(data, 'nnz'):
         data = data.toarray()
-    assert data.ndim == len(coll2.ddata[key]['ref']) == 1
+    assert data.ndim == len(coll.ddata[key]['ref']) == 1
     n0, = data.shape
 
-    ref = coll2.ddata[key]['ref'][0]
-    units = coll2._ddata[key]['units']
+    ref = coll._ddata[key]['ref'][0]
+    units = coll._ddata[key]['units']
     lab0 = f'ind ({ref})'
     lab1 = f'{key} ({units})'
 
@@ -810,7 +792,7 @@ def plot_as_array_1d(
 
             # update coll
             kv = f'v{ii:02.0f}'
-            coll2.add_mobile(
+            coll.add_mobile(
                 key=kv,
                 handle=lv,
                 ref=ref,
@@ -824,17 +806,17 @@ def plot_as_array_1d(
 
     # add axes
     for kax in dax.keys():
-        coll2.add_axes(key=kax, **dax[kax])
+        coll.add_axes(key=kax, **dax[kax])
 
     # increment dict
 
-    coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+    coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
 
     # connect
     if connect is True:
-        coll2.connect()
+        coll.connect()
 
-    return coll2
+    return coll
 
 
 # #############################################################################
@@ -864,7 +846,6 @@ def plot_as_array_2d(
     dcolorbar=None,
     dleg=None,
     connect=None,
-    inplace=None,
 ):
 
     # --------------
@@ -877,7 +858,7 @@ def plot_as_array_2d(
         ymin, ymax,
         aspect, nmax,
         color_dict,
-        dcolorbar, dleg, connect, inplace,
+        dcolorbar, dleg, connect,
     ) = _plot_as_matrix_check(
         ndim=2,
         coll=coll,
@@ -895,7 +876,6 @@ def plot_as_array_2d(
         dleg=dleg,
         connect=connect,
         groups=groups,
-        inplace=inplace,
     )
 
     # --------------
@@ -1173,7 +1153,6 @@ def plot_as_array_3d(
     dcolorbar=None,
     dleg=None,
     connect=None,
-    inplace=None,
 ):
 
     # --------------
@@ -1186,7 +1165,7 @@ def plot_as_array_3d(
         ymin, ymax,
         aspect, nmax,
         color_dict,
-        dcolorbar, dleg, connect, inplace,
+        dcolorbar, dleg, connect,
     ) = _plot_as_matrix_check(
         ndim=3,
         coll=coll,
@@ -1204,7 +1183,6 @@ def plot_as_array_3d(
         dleg=dleg,
         connect=connect,
         groups=groups,
-        inplace=inplace,
     )
     nmax = 1
 

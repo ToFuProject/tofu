@@ -386,8 +386,10 @@ class DataCollection0(utils.ToFuObject):
         """ Add a parameter, optionnally also set its value """
         which, dd = self.__check_which(which, return_dict=True)
         _DataCollection_check_inputs._add_param(
-            dd=dd, dd_name=which,
-            param=param, value=value,
+            dd=dd,
+            dd_name=which,
+            param=param,
+            value=value,
         )
 
     def remove_param(
@@ -398,7 +400,8 @@ class DataCollection0(utils.ToFuObject):
         """ Remove a parameter, none by default, all if param = 'all' """
         which, dd = self.__check_which(which, return_dict=True)
         _DataCollection_check_inputs._remove_param(
-            dd=dd, dd_name=which,
+            dd=dd,
+            dd_name=which,
             param=param,
         )
 
@@ -776,6 +779,11 @@ class DataCollection0(utils.ToFuObject):
                 lcol[0].append('group')
                 for ii, (k0, v0) in enumerate(self._dref.items()):
                     lar[0][ii].append(str(self._dref[k0]['group']))
+
+            if 'inc' in lp:
+                lcol[0].append('increment')
+                for ii, (k0, v0) in enumerate(self._dref.items()):
+                    lar[0][ii].append(str(self._dref[k0]['inc']))
 
         # -----------------------
         # Build for ddata
