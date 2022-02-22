@@ -1,7 +1,7 @@
 
 
 from ._DataCollection_class1_interactivity import DataCollection1
-from . import _DataCollection_plot
+from . import _DataCollection_plot_as_array
 
 
 class DataCollection2(DataCollection1):
@@ -35,7 +35,7 @@ class DataCollection2(DataCollection1):
         inplace=None,
     ):
         """ Plot the desired 2d data array as a matrix """
-        return _DataCollection_plot.plot_as_array(
+        return _DataCollection_plot_as_array.plot_as_array(
             # parameters
             coll=self,
             key=key,

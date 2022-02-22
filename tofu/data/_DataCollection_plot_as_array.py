@@ -985,7 +985,7 @@ def plot_as_array_2d(
         dax = {
             # data
             'matrix': {'handle': ax0, 'type': 'matrix', 'inverty': True},
-            'vertical': {'handle': ax1, 'type': 'misc'},
+            'vertical': {'handle': ax1, 'type': 'misc', 'inverty': True},
             'horizontal': {'handle': ax2, 'type': 'misc'},
             # text
             'text0': {'handle': ax3, 'type': 'text'},

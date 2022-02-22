@@ -11,7 +11,7 @@ import warnings
 from ._DataCollection_class import DataCollection
 from . import _comp_spectrallines
 from . import _DataCollection_comp
-from . import _DataCollection_plot
+from . import _DataCollection_plot_as_array
 
 
 __all__ = ['SpectralLines', 'TimeTraces']

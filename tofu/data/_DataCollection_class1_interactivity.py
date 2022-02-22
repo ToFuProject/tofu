@@ -864,7 +864,7 @@ class DataCollection1(DataCollection0):
         # update indcur x/y vs shift / ctrl ?  TBF
         pass
 
-        # CHeck refx/refy vs datax/datay
+        # Check refx/refy vs datax/datay
         if cur_refx is not None and cur_refy is not None:
             c0 = (
                 'index' in [cur_datax, cur_datay]
@@ -889,7 +889,12 @@ class DataCollection1(DataCollection0):
 
         else:
 
-            if cur_refx is not None:
+            c0x = (
+                cur_refx is not None
+                and self._dobj['axes'][kax]['refx'] is not None
+                and cur_refx in self._dobj['axes'][kax]['refx']
+            )
+            if c0x:
                 monot = None
                 if cur_datax == 'index':
                     cdx = 'index'
@@ -902,7 +907,12 @@ class DataCollection1(DataCollection0):
                     monot=monot,
                 )[0]
 
-            if cur_refy is not None:
+            c0y = (
+                cur_refy is not None
+                and self._dobj['axes'][kax]['refy'] is not None
+                and cur_refy in self._dobj['axes'][kax]['refy']
+            )
+            if c0y:
                 monot = None
                 if cur_datay == 'index':
                     cdy = 'index'
@@ -916,7 +926,7 @@ class DataCollection1(DataCollection0):
                 )[0]
 
         # Update ref indices
-        if cur_refx is not None:
+        if c0x:
             cur_ix = self._dobj['group'][cur_groupx]['indcur']
             follow = (
                 cur_ix == self._dobj['group'][cur_groupx]['nmaxcur'] - 1
@@ -928,7 +938,7 @@ class DataCollection1(DataCollection0):
                 self._dref[cur_refx]['indices'][cur_ix] = ix
 
         # Update ref indices
-        if cur_refy is not None:
+        if c0y:
             cur_iy = self._dobj['group'][cur_groupy]['indcur']
             follow = (
                 cur_iy == self._dobj['group'][cur_groupy]['nmaxcur'] - 1
