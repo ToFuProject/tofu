@@ -808,9 +808,8 @@ class CrystalBragg(utils.ToFuObject):
         verb=None, returnas=None,
     ):
         return _rockingcurve.compute_rockingcurve(
-            self, ih=ih, ik=ik, il=il, lamb=lamb,
-            use_non_parallelism=use_non_parallelism,
-            na=na,
+            ih=ih, ik=ik, il=il, lamb=lamb,
+            use_non_parallelism=use_non_parallelism, na=na,
             plot_asf=plot_asf,
             plot_power_ratio=plot_power_ratio,
             plot_relation=plot_relation,

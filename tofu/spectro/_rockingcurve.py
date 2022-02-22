@@ -19,12 +19,12 @@ from tofu.version import __version__
 
 # ##########################################################
 # ##########################################################
-#            compute rocking curve
+#                  compute rocking curve
 # ##########################################################
 # ##########################################################
 
 
-def compute_rockingcurve(self,
+def compute_rockingcurve(
     ih=None, ik=None, il=None, lamb=None,
     use_non_parallelism=None, na=None,
     plot_asf=None, plot_power_ratio=None, plot_relation=None,
@@ -40,7 +40,7 @@ def compute_rockingcurve(self,
     The possibility to add a non-parallelism between crystal's optical surface
     and inter-atomic planes is now available. Rocking curve plots are updated
     in order to show 3 cases: non-parallelism equal to zero and both limit
-    cases near to +/- the reference Bragg angle.
+    cases close to +/- the reference Bragg angle.
     The relation between the value of this non-parallelism and 3 physical
     quantities can also be plotted: the integrated reflectivity for the normal
     component of polarization, the rocking curve widths and the symmetry
@@ -84,7 +84,7 @@ def compute_rockingcurve(self,
     if use_non_parallelism is None:
         use_non_parallelism = False
     if na is None:
-        na = 21
+        na = 51
     if plot_asf is None:
         plot_asf = False
     if plot_power_ratio is None:
@@ -107,7 +107,7 @@ def compute_rockingcurve(self,
     re = 2.8208e-5
 
     # Inter-atomic distances into hexagonal cell unit and associated volume
-    # TBD with F.
+    # TBC with F.
     a0 = 4.9134
     c0 = 5.4051
     V = (a0**2.)*c0*np.sqrt(3.)/2.
@@ -149,7 +149,7 @@ def compute_rockingcurve(self,
     if d_atom < lamb/2.:
         msg = (
             "According to Bragg law, Bragg scattering need d > lamb/2!\n"
-            "Please check your wavelength arg.\n"
+            "Please check your wavelength argument.\n"
         )
         raise Exception(msg)
     sol = 1./(2.*d_atom)
@@ -278,24 +278,36 @@ def compute_rockingcurve(self,
     # perfect (Darwin model), ideally mosaic thick and dynamical
     # --------------------------------------------------------------------
 
-    (
-        alpha, bb, polar, g, y, y0, power_ratio, th, rhg,
-        P_per, P_mos, P_dyn, P_dyn_norm, det, det_norm,
-    ) = CrystBragg_comp_integrated_reflect(
-        lamb=lamb, re=re, V=V, Zo=Zo, theta=theta, mu=mu,
-        F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
-        Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
-        model=['perfect', 'mosaic', 'dynamical',],
-        use_non_parallelism=use_non_parallelism, na=na,
-    )
+    if use_non_parallelism:
+        (
+            alpha, bb, polar, g, y, y0, power_ratio, th,
+            rhg, rhg_perp_norm, rhg_para_norm,
+            P_per, P_mos, P_dyn, det, det_norm,
+        ) = CrystBragg_comp_integrated_reflect(
+            lamb=lamb, re=re, V=V, Zo=Zo, theta=theta, mu=mu,
+            F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
+            Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
+            model=['perfect', 'mosaic', 'dynamical',],
+            use_non_parallelism=use_non_parallelism, na=na,
+        )
+    else:
+        (
+            alpha, bb, polar, g, y, y0, power_ratio, th,
+            rhg, P_per, P_mos, P_dyn, det,
+        ) = CrystBragg_comp_integrated_reflect(
+            lamb=lamb, re=re, V=V, Zo=Zo, theta=theta, mu=mu,
+            F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
+            Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
+            model=['perfect', 'mosaic', 'dynamical',],
+            use_non_parallelism=use_non_parallelism, na=na,
+        )
 
     # Plot atomic scattering factor
     # -----------------------------
 
     if plot_asf:
         CrystalBragg_plot_atomic_scattering_factor(
-            sol_si=sol_si, sol_o=sol_o,
-            asf_si=asf_si, asf_o=asf_o,
+            sol_si=sol_si, sol_o=sol_o, asf_si=asf_si, asf_o=asf_o,
         )
 
     # Plot power ratio
@@ -317,8 +329,10 @@ def compute_rockingcurve(self,
         CrystalBragg_plot_reflect_glancing(
             ih=ih, ik=ik, il=il, lamb=lamb,
             theta=theta, theta_deg=theta_deg,
-            alpha=alpha, bb=bb, th=th,
-            P_dyn=P_dyn_norm, det=det_norm,
+            alpha=alpha, bb=bb, th=th, rhg=rhg,
+            rhg_perp_norm=rhg_perp_norm,
+            rhg_para_norm=rhg_para_norm,
+            det=det_norm,
         )
 
     # Print results
@@ -329,14 +343,14 @@ def compute_rockingcurve(self,
         'Miller indices': (ih, ik, il),
         'Inter-reticular distance (A)': d_atom,
         'Volume of the unit cell (A^3)': V,
-        'Bragg angle of reference (rad)': theta,
+        'Bragg angle of reference (rad, deg)': (theta, theta_deg),
+        'Ratio imag & real part of structure factor': kk,
         'Integrated reflectivity': {
             'perfect model': P_per,
             'mosaic model': P_mos,
             'dynamical model': P_dyn,
         },
-        'Ratio imag & real part of structure factor': kk,
-        'R_perp/R_par': rhg[1]/rhg[0],
+        'P_{dyn,para}/P_{dyn,norm} (integrated values)': rhg[1]/rhg[0],
         'RC width': det,
     }
     if use_non_parallelism:
@@ -345,11 +359,15 @@ def compute_rockingcurve(self,
     if verb is True:
         dout['Inter-reticular distance (A)'] = np.round(d_atom, decimals=3)
         dout['Volume of the unit cell (A^3)'] = np.round(V, decimals=3)
-        dout['Bragg angle of reference (rad)'] = np.round(theta, decimals=3)
+        dout['Bragg angle of reference (rad, deg)'] = (
+            np.round(theta, decimals=3), np.round(theta_deg, decimals=3),
+        )
         dout['Ratio imag & real part of structure factor'] = (
             np.round(kk, decimals=3,)
         )
-        dout['R_perp/R_par'] = np.round(rhg[1]/rhg[0], decimals=9)
+        dout['P_{dyn,para}/P_{dyn,norm} (integrated values)'] = np.round(
+            rhg[1]/rhg[0], decimals=9,
+        )
         dout['RC width'] = np.round(det, decimals=6)
         dout['Integrated reflectivity']['perfect model'] = (
             np.round(P_per, decimals=9),
@@ -434,10 +452,10 @@ def CrystBragg_comp_integrated_reflect(
     # ---------------------
 
     if use_non_parallelism == False:
-        alpha = 0.
+        alpha = np.r_[0.]
         bb = np.r_[-1.]
     else:
-        alpha = np.linspace(-theta + 0.05, theta - 0.05, na)
+        alpha = np.linspace(-theta + 0.01, theta - 0.01, na)
         #alpha = np.linspace(-0.05, 0.05, 5)*(np.pi/180)
         bb = np.sin(alpha + theta)/np.sin(alpha - theta)
 
@@ -507,6 +525,7 @@ def CrystBragg_comp_integrated_reflect(
             )
             rhg[i, ...] = conv_ygscale[i, :]*rhy
 
+    # Integrated reflectivity and rocking curve width
     def lin_interp(x, y, i, half):
         return x[i] + (x[i+1] - x[i])*((half - y[i])/(y[i+1] - y[i]))
 
@@ -520,15 +539,17 @@ def CrystBragg_comp_integrated_reflect(
             lin_interp(x, y, zero_cross_ind[1], half),
         ]
 
-    # Integrated reflectivity and rocking curve width
     P_dyn = np.full((bb.size), np.nan)
+    rhg_perp = P_dyn.copy()
+    rhg_para = P_dyn.copy()
     det = P_dyn.copy()
 
     for j in range(bb.size):
-        if use_non_parallelism:
-            P_dyn[j] = rhg[0, j]
-        else:
-            P_dyn[j] = np.sum(rhg[:, j])/2.
+        rhg_perp[j] = rhg[0, j]
+        rhg_para[j] = rhg[1, j]
+        # each component accounts for half the intensity of the incident beam
+        # if not polarized: reflecting power is an average over the 2 states
+        P_dyn[j] = np.sum(rhg[:, j])/2.
         if P_dyn[j] < 1e-7:
             msg = (
                 "Please check the equations for integrated reflectivity:\n"
@@ -539,26 +560,34 @@ def CrystBragg_comp_integrated_reflect(
         det[j] = hmx[1] - hmx[0]
 
     # Normalization for alpha=0 case
-    P_dyn_norm = np.full((P_dyn.size), np.nan)
-    det_norm = np.full((det.size), np.nan)
     if use_non_parallelism:
+        rhg_perp_norm = np.full((rhg_perp.size), np.nan)
+        rhg_para_norm = np.full((rhg_para.size), np.nan)
+        det_norm = np.full((det.size), np.nan)
         nn = (det.size/2.)
         if (nn % 2) == 0:
             nn = int(nn - 1)
         else:
             nn = int(nn - 0.5)
         det_norm = det/det[nn]
-        P_dyn_norm = P_dyn/P_dyn[nn]
+        rhg_perp_norm = rhg_perp/rhg_perp[nn]
+        rhg_para_norm = rhg_para/rhg_para[nn]
 
-    return (
-        alpha, bb, polar, g, y, y0, power_ratio, th, rhg,
-        P_per, P_mos, P_dyn, P_dyn_norm, det, det_norm,
-    )
+    if use_non_parallelism:
+        return (
+            alpha, bb, polar, g, y, y0, power_ratio, th,
+            rhg, rhg_perp_norm, rhg_para_norm,
+            P_per, P_mos, P_dyn, det, det_norm,
+        )
+    else:
+        return (
+            alpha, bb, polar, g, y, y0, power_ratio, th,
+            rhg, P_per, P_mos, P_dyn, det,
+        )
 
 
 def CrystalBragg_plot_atomic_scattering_factor(
-    sol_si=None, sol_o=None,
-    asf_si=None, asf_o=None,
+    sol_si=None, sol_o=None, asf_si=None, asf_o=None,
 ):
 
     # Check inputs
@@ -638,7 +667,7 @@ def CrystalBragg_plot_power_ratio(
                 power_ratio[0, j, :],
                 'k-',
                 label=r'normal, ({}): $\alpha$=({})deg'.format(
-                    keydd, np.round(alpha_deg[j], 1)
+                    keydd, np.round(alpha_deg[j], 3)
                 ),
             )
             ax.plot(
@@ -647,13 +676,14 @@ def CrystalBragg_plot_power_ratio(
                 'k:',
                 label=r'parallel',
             )
-    #ax.axvline(y0, linetsyle=":", label='pattern center')
+    #ax.axvline(y0, linetsyle=":", label='pattern centeri in y-scale')
     ax.legend()
 
 
 def CrystalBragg_plot_reflect_glancing(
     ih=None, ik=None, il=None, lamb=None, theta=None, theta_deg=None,
-    alpha=None, bb=None, rhg=None, P_dyn=None, th=None, det=None,
+    alpha=None, bb=None, th=None,
+    rhg=None, rhg_perp_norm=None, rhg_para_norm=None, det=None,
 ):
 
     # Plot
@@ -672,19 +702,25 @@ def CrystalBragg_plot_reflect_glancing(
 
     alpha_deg = alpha*(180/np.pi)
     f = scipy.interpolate.interp1d(alpha_deg, abs(bb), kind='cubic')
-    alpha_deg_bis = np.linspace(-alpha_deg, alpha_deg, 20)
+    alpha_deg_bis = np.linspace(-alpha_deg, alpha_deg, 21)
     bb_bis = f(alpha_deg_bis)
     ax.plot(
         alpha_deg,
         det,
-        'k--',
+        'k:',
         label=r'RC width $\Delta\theta$ (normalized)',
     )
     ax.plot(
         alpha_deg,
-        P_dyn,
+        rhg_perp_norm,
         'k-',
         label='P$_{dyn}$ (normal comp.) (normalized)',
+    )
+    ax.plot(
+        alpha_deg,
+        rhg_para_norm,
+        'k--',
+        label='P$_{dyn}$ (parallel comp.) (normalized)',
     )
     ax.plot(
         alpha_deg_bis[:, 0],
