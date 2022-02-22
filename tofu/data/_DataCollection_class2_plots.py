@@ -21,6 +21,10 @@ class DataCollection2(DataCollection1):
         cmap=None,
         aspect=None,
         nmax=None,
+        color_dict=None,
+        dinc=None,
+        lkeys=None,
+        bstr_dict=None,
         # figure-specific
         dax=None,
         dmargin=None,
@@ -32,6 +36,7 @@ class DataCollection2(DataCollection1):
     ):
         """ Plot the desired 2d data array as a matrix """
         return _DataCollection_plot.plot_as_array(
+            # parameters
             coll=self,
             key=key,
             ind=ind,
@@ -40,6 +45,11 @@ class DataCollection2(DataCollection1):
             cmap=cmap,
             aspect=aspect,
             nmax=nmax,
+            color_dict=color_dict,
+            dinc=dinc,
+            lkeys=lkeys,
+            bstr_dict=bstr_dict,
+            # figure-specific
             dax=dax,
             dmargin=dmargin,
             fs=fs,

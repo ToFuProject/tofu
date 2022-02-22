@@ -20,6 +20,7 @@ from tofu.version import __version__
 from .. import utils as utils
 from . import _def as _def
 from . import _generic_check
+from . import _DataCollection_plot_text
 
 
 __all__ = [
@@ -536,6 +537,8 @@ def plot_as_array(
     nmax=None,
     color_dict=None,
     dinc=None,
+    lkeys=None,
+    bstr_dict=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -568,7 +571,14 @@ def plot_as_array(
     if inplace:
         coll2 = coll
     else:
-        coll2 = coll.extract(key)
+        lk0 = list(itt.chain.from_iterable([
+            [
+                k0 for k0, v0 in coll._ddata.items()
+                if v0['ref'] == (rr,)
+            ]
+            for rr in coll._ddata[key]['ref']
+        ]))
+        coll2 = coll.extract([key] + lk0)
 
     # -------------------------
     #  call appropriate routine
@@ -612,6 +622,8 @@ def plot_as_array(
             nmax=nmax,
             color_dict=color_dict,
             dinc=dinc,
+            lkeys=lkeys,
+            bstr_dict=bstr_dict,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
@@ -839,6 +851,8 @@ def plot_as_array_2d(
     nmax=None,
     color_dict=None,
     dinc=None,
+    lkeys=None,
+    bstr_dict=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -898,20 +912,20 @@ def plot_as_array_2d(
     if dax is None:
 
         if fs is None:
-            fs = (12, 8)
+            fs = (14, 8)
 
         if dmargin is None:
             dmargin = {
                 'left': 0.05, 'right': 0.95,
-                'bottom': 0.05, 'top': 0.90,
-                'hspace': 0.15, 'wspace': 0.1,
+                'bottom': 0.06, 'top': 0.90,
+                'hspace': 0.2, 'wspace': 0.3,
             }
 
         fig = plt.figure(figsize=fs)
         fig.suptitle(key, size=14, fontweight='bold')
-        gs = gridspec.GridSpec(ncols=3, nrows=3, **dmargin)
+        gs = gridspec.GridSpec(ncols=4, nrows=6, **dmargin)
 
-        ax0 = fig.add_subplot(gs[:2, :2], aspect='auto')
+        ax0 = fig.add_subplot(gs[:4, :2], aspect='auto')
         ax0.set_ylabel(lab0)
         ax0.set_xlabel(lab1)
         ax0.tick_params(
@@ -921,7 +935,7 @@ def plot_as_array_2d(
         )
         ax0.xaxis.set_label_position('top')
 
-        ax1 = fig.add_subplot(gs[:2, 2], sharey=ax0)
+        ax1 = fig.add_subplot(gs[:4, 2], sharey=ax0)
         ax1.set_xlabel('data')
         ax1.set_ylabel(lab0)
         ax1.tick_params(
@@ -937,17 +951,47 @@ def plot_as_array_2d(
         ax1.yaxis.set_label_position('right')
         ax1.xaxis.set_label_position('top')
 
-        ax2 = fig.add_subplot(gs[2, :2], sharex=ax0)
+        ax2 = fig.add_subplot(gs[4:, :2], sharex=ax0)
         ax2.set_ylabel('data')
         ax2.set_xlabel(lab1)
 
         ax1.set_xlim(ymin, ymax)
         ax2.set_ylim(ymin, ymax)
 
+        # axes for text
+        ax3 = fig.add_subplot(gs[:3, 3], frameon=False)
+        ax3.set_xticks([])
+        ax3.set_yticks([])
+        ax4 = fig.add_subplot(gs[3:, 3], frameon=False)
+        ax4.set_xticks([])
+        ax4.set_yticks([])
+
+        axy = ax1.get_position().bounds
+        ax5 = fig.add_axes(
+            [axy[0], axy[1]-0.02, 0.9*axy[2], 0.02],
+            frameon=False,
+        )
+        ax5.set_xticks([])
+        ax5.set_yticks([])
+        axy = ax2.get_position().bounds
+        dy = 0.1*(axy[3] - axy[1])
+        ax6 = fig.add_axes(
+            [axy[0] + axy[2], axy[1] + dy, 0.03, axy[3] - dy],
+            frameon=False,
+        )
+        ax6.set_xticks([])
+        ax6.set_yticks([])
+
         dax = {
+            # data
             'matrix': {'handle': ax0, 'type': 'matrix', 'inverty': True},
             'vertical': {'handle': ax1, 'type': 'misc'},
             'horizontal': {'handle': ax2, 'type': 'misc'},
+            # text
+            'text0': {'handle': ax3, 'type': 'text'},
+            'text1': {'handle': ax4, 'type': 'text'},
+            'vertical_text': {'handle': ax5, 'type': 'text'},
+            'horizontal_text': {'handle': ax6, 'type': 'text'},
         }
 
     dax = _generic_check._check_dax(dax=dax, main='matrix')
@@ -964,7 +1008,7 @@ def plot_as_array_2d(
             data,
             extent=extent,
             interpolation='nearest',
-            origin='upper',
+            origin='lower',
             aspect=aspect,
             cmap=cmap,
             vmin=vmin,
@@ -991,8 +1035,7 @@ def plot_as_array_2d(
     # ----------------
     # plot mobile part
 
-    axtype = 'matrix'
-    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
+    kax = 'matrix'
     for kax in lkax:
         ax = dax[kax]['handle']
 
@@ -1110,6 +1153,122 @@ def plot_as_array_2d(
             )
 
         dax[kax].update(refx=[ref1])
+
+    # ---------
+    # add text
+
+    kax = 'vertical_text'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        for ii in range(nmax):
+            ht = ax.text(
+                (ii + 1)/nmax,
+                0,
+                '',
+                horizontalalignment='left',
+                verticalalignment='bottom',
+                transform=ax.transAxes,
+                size=10,
+                color=color_dict['hor'][ii],
+                fontweight='bold',
+            )
+            kt = f'vt0-v{ii:02.0f}'
+            coll.add_mobile(
+                key=kt,
+                handle=ht,
+                ref=(ref1,),
+                data='index',
+                dtype='txt',
+                bstr='{0}',
+                ax=kax,
+                ind=ii,
+            )
+
+        ax.text(
+            0, 0,
+            'ind1 = ',
+            horizontalalignment='left',
+            verticalalignment='bottom',
+            transform=ax.transAxes,
+            size=10,
+            fontweight='bold',
+        )
+
+    kax = 'horizontal_text'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        for ii in range(nmax):
+            ht = ax.text(
+                0,
+                1 - (ii + 1)/nmax,
+                '',
+                horizontalalignment='left',
+                verticalalignment='top',
+                transform=ax.transAxes,
+                size=10,
+                color=color_dict['hor'][ii],
+                fontweight='bold',
+            )
+            kt = f'ht0-v{ii:02.0f}'
+            coll.add_mobile(
+                key=kt,
+                handle=ht,
+                ref=(ref0,),
+                data='index',
+                dtype='txt',
+                bstr='{0}',
+                ax=kax,
+                ind=ii,
+            )
+
+        ax.text(
+            0, 1,
+            'ind0 = ',
+            horizontalalignment='left',
+            verticalalignment='top',
+            transform=ax.transAxes,
+            size=10,
+            fontweight='bold',
+        )
+
+    kax = 'text0'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        _DataCollection_plot_text.plot_text(
+            coll=coll,
+            kax=kax,
+            ax=ax,
+            ref=ref0,
+            group='hor',
+            ind=ind[0],
+            lkeys=lkeys,
+            nmax=nmax,
+            color_dict=color_dict,
+            bstr_dict=bstr_dict,
+        )
+
+    kax = 'text1'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        _DataCollection_plot_text.plot_text(
+            coll=coll,
+            kax=kax,
+            ax=ax,
+            ref=ref1,
+            group='vert',
+            ind=ind[1],
+            lkeys=lkeys,
+            nmax=nmax,
+            color_dict=color_dict,
+            bstr_dict=bstr_dict,
+        )
+
+    # --------------------------
+    # add axes and interactivity
 
     # add axes
     for kax in dax.keys():

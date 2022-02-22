@@ -12,6 +12,7 @@ _LALLOWED_AXESTYPES = [
     'timetrace',
     'profile1d',
     'image',
+    'text',
     'misc',
 ]
 

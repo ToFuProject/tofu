@@ -1211,7 +1211,8 @@ def _check_dobj(
 
         # check each key / value
         lc2 = [
-            f'\t- {str(k1)}: {type(v1)}, {k1 in dobj0.get(k0, {}).keys()}'
+            f'\t- {str(k1)}: type {type(v1)}'
+            f', key already in dobj0: {k1 in dobj0.get(k0, {}).keys()}'
             for k1, v1 in v0.items()
             if not (
                 (k1 is None or isinstance(k1, str))

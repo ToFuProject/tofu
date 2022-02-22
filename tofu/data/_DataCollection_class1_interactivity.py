@@ -52,6 +52,7 @@ class DataCollection1(DataCollection0):
         ref=None,
         data=None,
         dtype=None,
+        bstr=None,
         visible=None,
         ax=None,
         **kwdargs,
@@ -114,6 +115,7 @@ class DataCollection1(DataCollection0):
             data=data,
             dtype=dtype,
             visible=visible,
+            bstr=bstr,
             ax=ax,
             func=None,
             **kwdargs,
@@ -136,9 +138,9 @@ class DataCollection1(DataCollection0):
         # ----------------
         # check refx, refy
 
-        if refx is None and refy is None:
-            msg = f"Please provide at least refx or refy for axes {key}!"
-            raise Exception(msg)
+        # if refx is None and refy is None:
+            # msg = f"Please provide at least refx or refy for axes {key}!"
+            # raise Exception(msg)
 
         if isinstance(refx, str):
             refx = [refx]
@@ -394,7 +396,7 @@ class DataCollection1(DataCollection0):
                 handle=v0['handle'],
                 dtype=v0['dtype'],
                 norm=None,
-                bstr=None,
+                bstr=v0.get('bstr'),
             )
 
         # --------------------
