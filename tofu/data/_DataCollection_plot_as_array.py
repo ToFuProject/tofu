@@ -145,6 +145,8 @@ def plot_as_array(
             nmax=nmax,
             color_dict=color_dict,
             dinc=dinc,
+            lkeys=lkeys,
+            bstr_dict=bstr_dict,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
@@ -380,6 +382,8 @@ def plot_as_array_1d(
     nmax=None,
     color_dict=None,
     dinc=None,
+    lkeys=None,
+    bstr_dict=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -392,7 +396,7 @@ def plot_as_array_1d(
     # --------------
     # check input
 
-    groups = ['misc']
+    groups = ['ref']
     (
         key, ind,
         cmap, vmin, vmax,
@@ -445,19 +449,24 @@ def plot_as_array_1d(
             dmargin = {
                 'left': 0.05, 'right': 0.95,
                 'bottom': 0.05, 'top': 0.90,
-                'hspace': 0.15, 'wspace': 0.1,
+                'hspace': 0.15, 'wspace': 0.2,
             }
 
         fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
+        gs = gridspec.GridSpec(ncols=4, nrows=1, **dmargin)
 
-        ax0 = fig.add_subplot(gs[0, 0], aspect='auto')
+        ax0 = fig.add_subplot(gs[0, :3], aspect='auto')
         ax0.set_xlabel(lab0)
         ax0.set_ylabel(lab1)
         ax0.set_title(key, size=14, fontweight='bold')
 
+        ax1 = fig.add_subplot(gs[0, 3], frameon=False)
+        ax1.set_xticks([])
+        ax1.set_yticks([])
+
         dax = {
-            'misc': {'handle': ax0, 'type': 'misc', 'inverty': True},
+            'misc': {'handle': ax0, 'type': 'misc'},
+            'text': {'handle': ax1, 'type': 'text'},
         }
 
     dax = _generic_check._check_dax(dax=dax, main='misc')
@@ -502,7 +511,7 @@ def plot_as_array_1d(
 
         # ind0, ind1
         for ii in range(nmax):
-            lv = ax.axvline(ind[0], c=color_dict['misc'][ii], lw=1., ls='-')
+            lv = ax.axvline(ind[0], c=color_dict['ref'][ii], lw=1., ls='-')
 
             # update coll
             kv = f'v{ii:02.0f}'
@@ -517,6 +526,26 @@ def plot_as_array_1d(
             )
 
         dax[kax].update(refx=[ref])
+
+    # ---------
+    # add text
+
+    kax = 'text'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        _DataCollection_plot_text.plot_text(
+            coll=coll,
+            kax=kax,
+            ax=ax,
+            ref=ref,
+            group='ref',
+            ind=ind[0],
+            lkeys=lkeys,
+            nmax=nmax,
+            color_dict=color_dict,
+            bstr_dict=bstr_dict,
+        )
 
     # add axes
     for kax in dax.keys():
@@ -1015,6 +1044,10 @@ def plot_as_array_3d(
     dleg=None,
     connect=None,
 ):
+
+
+    msg = "Will be available in the next version"
+    raise NotImplementedError(msg)
 
     # --------------
     # check input
