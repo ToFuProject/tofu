@@ -9,6 +9,7 @@ import copy
 # Common
 import numpy as np
 import scipy.interpolate
+from scipy.interpolate import InterpolatedUnivariateSpline
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.axes._axes import Axes
@@ -287,7 +288,7 @@ def compute_rockingcurve(
             lamb=lamb, re=re, V=V, Zo=Zo, theta=theta, mu=mu,
             F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
             Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
-            model=['perfect', 'mosaic', 'dynamical',],
+            model=['perfect', 'mosaic', 'dynamical'],
             use_non_parallelism=use_non_parallelism, na=na,
         )
     else:
@@ -298,7 +299,7 @@ def compute_rockingcurve(
             lamb=lamb, re=re, V=V, Zo=Zo, theta=theta, mu=mu,
             F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
             Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
-            model=['perfect', 'mosaic', 'dynamical',],
+            model=['perfect', 'mosaic', 'dynamical'],
             use_non_parallelism=use_non_parallelism, na=na,
         )
 
@@ -451,12 +452,12 @@ def CrystBragg_comp_integrated_reflect(
     # Symmetry parameter b
     # ---------------------
 
-    if use_non_parallelism == False:
+    if not use_non_parallelism:
         alpha = np.r_[0.]
         bb = np.r_[-1.]
     else:
         alpha = np.linspace(-theta + 0.01, theta - 0.01, na)
-        #alpha = np.linspace(-0.05, 0.05, 5)*(np.pi/180)
+        # alpha = np.linspace(-0.05, 0.05, 5)*(np.pi/180)
         bb = np.sin(alpha + theta)/np.sin(alpha - theta)
 
     # Perfect (darwin) model
@@ -676,7 +677,7 @@ def CrystalBragg_plot_power_ratio(
                 'k:',
                 label=r'parallel',
             )
-    #ax.axvline(y0, linetsyle=":", label='pattern centeri in y-scale')
+    # ax.axvline(y0, linetsyle=":", label='pattern centeri in y-scale')
     ax.legend()
 
 
