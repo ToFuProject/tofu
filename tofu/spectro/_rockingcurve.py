@@ -26,15 +26,15 @@ from tofu.version import __version__
 
 def compute_rockingcurve(
     ih=None, ik=None, il=None, lamb=None,
-    therm_exp=None, plot_therm_exp=None,
     use_non_parallelism=None, na=None,
+    therm_exp=None, plot_therm_exp=None,
     plot_asf=None, plot_power_ratio=None,
-    plot_relation=None, plot_cmaps=None,
+    plot_asymmetry=None, plot_cmaps=None,
     verb=None, returnas=None,
 ):
-    """The code evaluates, for a given wavelength and Miller indices set,
-    the atomic plane distance d, the Bragg angle and the complex structure
-    factor for alpha_Quartz crystals.
+    """ The code evaluates, for a given wavelength and Miller indices set,
+    the inter-plane distance d, the Bragg angle of reference and the complex
+    structure factor for alpha-Quartz crystals.
     Then, the power ratio and their integrated reflectivity, for 3 differents
     models (perfect, mosaic and dynamical) are computed to obtain
     rocking curves, for parallel and perpendicular photon polarizations.
@@ -46,19 +46,26 @@ def compute_rockingcurve(
     unit cell.
 
     The possibility to add a non-parallelism between crystal's optical surface
-    and inter-atomic planes is now available. Rocking curve plots are updated
+    and inter-atomic planes is available. Rocking curve plots are updated
     in order to show 3 cases: non-parallelism equal to zero and both limit
     cases close to +/- the reference Bragg angle.
     The relation between the value of this non-parallelism and 3 physical
-    quantities can also be plotted: the integrated reflectivity for the normal
-    component of polarization, the rocking curve widths and the symmetry
+    quantities can also be plotted: the integrated reflectivity for both
+    components of polarization, the rocking curve widths and the asymmetry
     parameter b.
 
     According to Delgado-Aparicio et al.(2013), temperatures changes can affect
     the crystal inter-planar distance and thus introduce new errors concerning
     the Bragg focalization.
     We are introducing temperature changes option around a mean temperature of
-    25°C and studying the effect caused.
+    25°C and studying the effect caused by a temperature change of +/- 25°C.
+    Plots of the power ratio are taking into account both limit cases of the
+    temperatures changes, in addition to the limit cases of the asymmetry angle.
+
+    Finally, colormap plots can be used to study the dependency of main RC
+    components such as the integrated reflectivity, its maximum, its width and
+    the shift effect from the corresponding glancing angle of the maximum, with
+    respect to the temperatures changes and the asymmetry angle.
 
     All crystal lattice constants and wavelengths are in Angstroms (1e-10 m).
 
@@ -68,22 +75,22 @@ def compute_rockingcurve(
         Miller indices of crystal used
     lamb:    float
         Wavelength of interest, in Angstroms (1e-10 m)
+    use_non_parallelism:    str
+        Introduce non-parallelism between dioptre and reflecting planes
+    na:    int
+        Number of non-parallelism angles steps, odd number preferred
     therm_exp:    str
         Compute relative changes of the crystal inter-planar distance by
         thermal expansion
     plot_therm_exp:    str
         Plot the variation of the crystal inter-planar distance with respect to
         the temperature variation
-    use_non_parallelism:    str
-        Introduce non-parallelism between dioptre and reflecting planes
-    na:    int
-        Number of non-parallelism angles steps, odd number preferred
     plot_asf:    str
         Plotting the atomic scattering factor thanks to data with respect to
         sin(theta)/lambda
     plot_power_ratio:    str
         Plot the power ratio with respect to the glancing angle
-    plot_relation:    str
+    plot_asymmetry:    str
         Plot relations between the integrated reflectivity, the intrinsic
         width and the parameter b vs the glancing angle
     plot_cmaps:    str
@@ -116,8 +123,8 @@ def compute_rockingcurve(
         plot_asf = False
     if plot_power_ratio is None:
         plot_power_ratio = True
-    if plot_relation is None and use_non_parallelism is not False:
-        plot_relation = True
+    if plot_asymmetry is None and use_non_parallelism is not False:
+        plot_asymmetry = True
     if plot_cmaps is None and therm_exp is not False:
         plot_cmaps = True
     if verb is None:
@@ -132,24 +139,28 @@ def compute_rockingcurve(
     # Main crystal parameters
     # -----------------------
 
-    # Classical electronical radius, in Angstroms
-    re = 2.8208e-5
+    # Classical electronical radius, in Angstroms,
+    # from the NIST Reference on Constants, Units and Uncertainty,
+    # CODATA 2018 recommended values
+    re = 2.817940e-5
 
     # Atomic number of Si and O atoms
     Zsi = 14.
     Zo = 8.
 
-    # Position of the three Si atoms in the unit cell
-    u = 0.4705
+    # Position of the three Si atoms in the unit cell,
+    # from Wyckoff "Crystal Structures"
+    u = 0.465
     xsi = np.r_[-u, u, 0.]
     ysi = np.r_[-u, 0., u]
     zsi = np.r_[1./3., 0., 2./3.]
     Nsi = np.size(xsi)
 
-    # Position of the six O atoms in the unit cell
-    x = 0.4152
-    y = 0.2678
-    z = 0.1184
+    # Position of the six O atoms in the unit cell,
+    # from Wyckoff "Crystal Structures"
+    x = 0.415
+    y = 0.272
+    z = 0.120
     xo = np.r_[x, y - x, -y, x - y, y, -x]
     yo = np.r_[y, -x, x - y, -y, x, y - x]
     zo = np.r_[z, z + 1./3., z + 2./3., -z, 2./3. - z, 1./3. - z]
@@ -326,7 +337,7 @@ def compute_rockingcurve(
     # ----------------
 
     if plot_power_ratio:
-        CrystalBragg_plot_power_ratio(
+        CrystalBragg_plot_power_ratio_vs_glancing_angle(
             ih=ih, ik=ik, il=il, lamb=lamb,
             theta=theta, theta_deg=theta_deg,
             th=th, power_ratio=power_ratio, y=y,
@@ -338,8 +349,8 @@ def compute_rockingcurve(
     # Plot integrated reflect., asymmetry angle & RC width vs glancing angle
     # ----------------------------------------------------------------------
 
-    if plot_relation:
-        CrystalBragg_plot_reflect_glancing(
+    if plot_asymmetry:
+        CrystalBragg_plot_rc_components_vs_asymmetry(
             ih=ih, ik=ik, il=il, lamb=lamb,
             theta=theta, theta_deg=theta_deg,
             alpha=alpha, bb=bb, th=th, rhg=rhg,
@@ -355,7 +366,7 @@ def compute_rockingcurve(
     # ------------------------------------------------------------------
 
     if plot_cmaps:
-        CrystalBragg_plot_cmaps(
+        CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
             ih=ih, ik=ik, il=il, lamb=lamb,
             therm_exp=therm_exp, T0=T0, TD=TD,
             alpha=alpha, power_ratio=power_ratio, th=th,
@@ -367,47 +378,55 @@ def compute_rockingcurve(
 
     # Print results
     # -------------
+    rhg_perp = rhg[0]
+    rhg_para = rhg[1]
+
+    if not use_non_parallelism and not therm_exp:
+        P_dyn = P_dyn[0, 0]
+        rhg_perp = rhg[0, 0, 0]
+        rhg_para = rhg[1, 0, 0]
+        det_perp = det_perp[0, 0]
 
     dout = {
-        'Wavelength (A)': lamb,
-        'Miller indices': (ih, ik, il),
-        'Inter-reticular distance (A)': d_atom,
-        'Volume of the unit cell (A^3)': Volume,
-        'Bragg angle of reference (rad, deg)': (theta, theta_deg),
-        'Ratio imag & real part of structure factor': kk,
-        'Integrated reflectivity': {
+        'Wavelength (A)\n': lamb,
+        'Miller indices\n': (ih, ik, il),
+        'Inter-reticular distance (A)\n': d_atom,
+        'Volume of the unit cell (A^3)\n': Volume,
+        'Bragg angle of reference (rad, deg)\n': (theta, theta_deg),
+        'Ratio imag & real part of structure factor\n': kk,
+        'Integrated reflectivity\n': {
             'perfect model': P_per,
             'mosaic model': P_mos,
             'dynamical model': P_dyn,
         },
-        'P_{dyn,para}/P_{dyn,norm} (integrated values)': rhg[1]/rhg[0],
-        'RC width (perp. compo)': det_perp,
+        'P_{dyn,para}/P_{dyn,perp} (integrated values)\n': rhg_para/rhg_perp,
+        'RC width (perp. compo)\n': det_perp,
     }
     if use_non_parallelism:
-        dout['Non-parallelism angles (deg)'] = alpha*(180/np.pi)
+        dout['Non-parallelism angles (deg)\n'] = alpha*(180/np.pi)
 
     if verb is True:
-        dout['Inter-reticular distance (A)'] = np.round(d_atom, decimals=3)
-        dout['Volume of the unit cell (A^3)'] = np.round(Volume, decimals=3)
-        dout['Bragg angle of reference (rad, deg)'] = (
+        dout['Inter-reticular distance (A)\n'] = np.round(d_atom, decimals=3)
+        dout['Volume of the unit cell (A^3)\n'] = np.round(Volume, decimals=3)
+        dout['Bragg angle of reference (rad, deg)\n'] = (
             np.round(theta, decimals=3), np.round(theta_deg, decimals=3),
         )
-        dout['Ratio imag & real part of structure factor'] = (
+        dout['Ratio imag & real part of structure factor\n'] = (
             np.round(kk, decimals=3,)
         )
-        dout['P_{dyn,para}/P_{dyn,norm} (integrated values)'] = np.round(
-            rhg[1]/rhg[0], decimals=9,
-        )
-        dout['RC width'] = np.round(det_perp, decimals=6)
-        dout['Integrated reflectivity']['perfect model'] = (
+        dout['Integrated reflectivity\n']['perfect model'] = (
             np.round(P_per, decimals=9),
         )
-        dout['Integrated reflectivity']['mosaic model'] = (
+        dout['Integrated reflectivity\n']['mosaic model'] = (
             np.round(P_mos, decimals=9),
         )
-        dout['Integrated reflectivity']['dynamical model'] = (
+        dout['Integrated reflectivity\n']['dynamical model'] = (
             np.round(P_dyn, decimals=9),
         )
+        dout['P_{dyn,para}/P_{dyn,perp} (integrated values)\n'] = np.round(
+            rhg_para/rhg_perp, decimals=9,
+        )
+        dout['RC width (perp. compo)\n'] = np.round(det_perp, decimals=6)
         lstr = [f'\t -{k0}: {V0}' for k0, V0 in dout.items()]
         msg = (
             " The following data was calculated:\n"
@@ -494,8 +513,8 @@ def CrystBragg_comp_lattice_spacing(
     # -----------------------------------------------------------
 
     # Inter-atomic distances into hexagonal cell unit and associated volume
-    # at 25°C (=298K) in Angstroms
-    a0 = 4.9130
+    # at 25°C (=298K) in Angstroms, from Wyckoff "Crystal Structures"
+    a0 = 4.91304
     c0 = 5.40463
 
     # Thermal expansion coefficients in the directions parallel to a0 & c0
@@ -551,46 +570,10 @@ def CrystBragg_comp_lattice_spacing(
     # ----
 
     if plot_therm_exp:
-        fig = plt.figure(figsize=(9, 6))
-        gs = gridspec.GridSpec(1, 1)
-        ax = fig.add_subplot(gs[0, 0])
-        ax.set_title(
-            'Hexagonal Qz, ' + f'({ih},{ik},{il})' + fr', $\lambda$={lamb} A'
+        CrystalBragg_plot_thermal_expansion_vs_d(
+            ih=ih, ik=ik, il=il, lamb=lamb,
+            T0=T0, TD=TD, d_atom=d_atom, nn=nn,
         )
-        ax.set_xlabel(r'$\Delta$T ($T_{0}$=25°C)')
-        ax.set_ylabel("Inter-planar distance d (x1e-3) [Angstroms]")
-        ax.scatter(
-            TD, d_atom*(1e3),
-            marker='o', c='k', alpha=0.5,
-            label=r'd$_{(hkl)}$ computed points',
-        )
-
-        p = np.polyfit(TD[nn:], d_atom[nn:]*(1e3), 1)
-        p2 = np.polyfit(TD[:nn], d_atom[:nn]*(1e3), 1)
-        y_adj = p[0]*TD[nn:] + p[1]
-        y2_adj = p2[0]*TD[:nn] + p2[1]
-        ax.plot(
-            TD[nn:], y_adj,
-            'k-',
-            label='Linear fit (0<T[°C]<25)' + '\n' +
-                r'd = ' + str(np.round(p[1], 2)) +
-                r'x(1 + $\alpha_{eff}$.$\Delta$T)' + '\n' +
-                r'$\alpha_{eff}$ =' +
-                str(np.round(p[0]/p[1], decimals=9)) +
-                r'°C$^{-1}$',
-            )
-        ax.plot(
-            TD[:nn], y2_adj,
-            'k--',
-            label='Linear fit (-25<T[°C]<0)' + '\n' +
-                r'd = ' + str(np.round(p2[1], 2)) +
-                r'x(1 + $\alpha_{eff}$.$\Delta$T)' + '\n' +
-                r'$\alpha_{eff}$ =' +
-                str(np.round(p2[0]/p2[1], decimals=9)) +
-                r'°C$^{-1}$',
-            )
-
-        ax.legend(loc="best")
 
     return T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg
 
@@ -806,6 +789,53 @@ def CrystBragg_comp_integrated_reflect(
 # ##########################################################
 
 
+def CrystalBragg_plot_thermal_expansion_vs_d(
+    ih=None, ik=None, il=None, lamb=None,
+    T0=None, TD=None, d_atom=None, nn=None,
+):
+
+    fig = plt.figure(figsize=(9, 6))
+    gs = gridspec.GridSpec(1, 1)
+    ax = fig.add_subplot(gs[0, 0])
+    ax.set_title(
+        'Hexagonal Qz, ' + f'({ih},{ik},{il})' + fr', $\lambda$={lamb} A'
+    )
+    ax.set_xlabel(r'$\Delta$T ($T_{0}$=25°C)')
+    ax.set_ylabel("Inter-planar distance d (x1e-3) [Angstroms]")
+    ax.scatter(
+        TD, d_atom*(1e3),
+        marker='o', c='k', alpha=0.5,
+        label=r'd$_{(hkl)}$ computed points',
+    )
+
+    p = np.polyfit(TD[nn:], d_atom[nn:]*(1e3), 1)
+    p2 = np.polyfit(TD[:nn], d_atom[:nn]*(1e3), 1)
+    y_adj = p[0]*TD[nn:] + p[1]
+    y2_adj = p2[0]*TD[:nn] + p2[1]
+    ax.plot(
+        TD[nn:], y_adj,
+        'k-',
+        label='Linear fit (0<T[°C]<25)' + '\n' +
+            r'd = ' + str(np.round(p[1], 2)) +
+            r'x(1 + $\alpha_{eff}$.$\Delta$T)' + '\n' +
+            r'$\alpha_{eff}$ =' +
+            str(np.round(p[0]/p[1], decimals=9)) +
+            r'°C$^{-1}$',
+        )
+    ax.plot(
+        TD[:nn], y2_adj,
+        'k--',
+        label='Linear fit (-25<T[°C]<0)' + '\n' +
+            r'd = ' + str(np.round(p2[1], 2)) +
+            r'x(1 + $\alpha_{eff}$.$\Delta$T)' + '\n' +
+            r'$\alpha_{eff}$ =' +
+            str(np.round(p2[0]/p2[1], decimals=9)) +
+            r'°C$^{-1}$',
+        )
+
+    ax.legend(loc="best")
+
+
 def CrystalBragg_plot_atomic_scattering_factor(
     sol_si=None, sol_o=None, asf_si=None, asf_o=None,
 ):
@@ -833,7 +863,7 @@ def CrystalBragg_plot_atomic_scattering_factor(
     ax.legend()
 
 
-def CrystalBragg_plot_power_ratio(
+def CrystalBragg_plot_power_ratio_vs_glancing_angle(
     ih=None, ik=None, il=None, lamb=None,
     theta=None, theta_deg=None,
     th=None, power_ratio=None, y=None, y0=None,
@@ -1129,7 +1159,7 @@ def CrystalBragg_plot_power_ratio(
         ax20.legend(); ax21.legend(); ax22.legend();
 
 
-def CrystalBragg_plot_reflect_glancing(
+def CrystalBragg_plot_rc_components_vs_asymmetry(
     ih=None, ik=None, il=None, lamb=None, theta=None, theta_deg=None,
     alpha=None, bb=None, th=None,
     rhg=None, rhg_perp_norm=None, rhg_para_norm=None,
@@ -1184,7 +1214,7 @@ def CrystalBragg_plot_reflect_glancing(
     ax.legend()
 
 
-def CrystalBragg_plot_cmaps(
+def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     ih=None, ik=None, il=None, lamb=None,
     therm_exp=None, T0=None, TD=None,
     alpha=None, power_ratio=None, th=None,
