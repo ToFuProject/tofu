@@ -230,7 +230,6 @@ def _format_for_DataCollection_adf15(
                     'dim': 'temperature',
                     'quant': 'Te',
                     'name': 'Te',
-                    'group': 'Te',
                 }
             elif len(lk0) > 1:
                 msg = (
@@ -249,7 +248,6 @@ def _format_for_DataCollection_adf15(
                     'dim': 'temperature',
                     'quant': 'Te',
                     'name': 'Te',
-                    'group': 'Te',
                 }
                 ite += 1
             elif len(kte) == 1:
@@ -289,7 +287,6 @@ def _format_for_DataCollection_adf15(
                     'dim': 'density',
                     'quant': 'ne',
                     'name': 'ne',
-                    'group': 'ne',
                 }
             elif len(lk0) > 1:
                 msg = (
@@ -308,7 +305,6 @@ def _format_for_DataCollection_adf15(
                     'dim': 'density',
                     'quant': 'ne',
                     'name': 'ne',
-                    'group': 'ne',
                 }
                 ine += 1
             elif len(kne) == 1:

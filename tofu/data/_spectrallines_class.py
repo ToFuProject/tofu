@@ -11,7 +11,7 @@ import matplotlib.colors as mcolors
 import datastock as ds
 
 
-from . import _class0_spectrallines_comp
+from . import _spectrallines_compute
 # from ._DataCollection_class import DataCollection
 # from . import _comp_spectrallines
 # from . import _DataCollection_comp
@@ -20,8 +20,6 @@ from . import _class0_spectrallines_comp
 
 __all__ = ['SpectralLines']
 
-
-_OPENADAS_ONLINE = True
 
 _GROUP_LINES = 'lines'
 _GROUP_NE = 'ne'
@@ -109,7 +107,7 @@ class SpectralLines(ds.DataStock):
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        ddata, dref, dstatic, dobj = _class0_spectrallines_comp._from_openadas(
+        ddata, dref, dobj = _spectrallines_compute.from_openadas(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -117,9 +115,9 @@ class SpectralLines(ds.DataStock):
             online=online,
             update=update,
             create_custom=create_custom,
-            grouplines=cls._group_lines,
+            group_lines=cls._group_lines,
         )
-        return cls(ddata=ddata, dref=dref, dstatic=dstatic, dobj=dobj)
+        return cls(ddata=ddata, dref=dref, dobj=dobj)
 
     def add_from_openadas(
         self,
@@ -136,7 +134,7 @@ class SpectralLines(ds.DataStock):
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        ddata, dref, dstatic, dobj = _class0_spectrallines_comp._from_openadas(
+        ddata, dref, dobj = _spectrallines_compute.from_openadas(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -144,13 +142,13 @@ class SpectralLines(ds.DataStock):
             online=online,
             update=update,
             create_custom=create_custom,
-            dsource0=self._dstatic.get('source'),
+            dsource0=self._dobj.get('source'),
             dref0=self._dref,
             ddata0=self._ddata,
             dlines0=self._dobj.get('lines'),
-            grouplines=cls._group_lines,
+            group_lines=cls._group_lines,
         )
-        self.update(ddata=ddata, dref=dref, dstatic=dstatic, dobj=dobj)
+        self.update(ddata=ddata, dref=dref, dobj=dobj)
 
     # -----------------
     # from nist
@@ -178,7 +176,7 @@ class SpectralLines(ds.DataStock):
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        dstatic, dobj = _class0_spectrallines_comp._from_nist(
+        dobj = _spectrallines_compute._from_nist(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -194,7 +192,7 @@ class SpectralLines(ds.DataStock):
             create_custom=create_custom,
             group_lines=cls._group_lines,
         )
-        return cls(dstatic=dstatic, dobj=dobj)
+        return cls(dobj=dobj)
 
     def add_from_nist(
         self,
@@ -217,7 +215,7 @@ class SpectralLines(ds.DataStock):
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        dstatic, dobj = self._from_nist(
+        dobj = _spectrallines_compute._from_nist(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -231,11 +229,11 @@ class SpectralLines(ds.DataStock):
             cache_info=cache_info,
             verb=verb,
             create_custom=create_custom,
-            dsource0=self._dstatic.get('source'),
+            dsource0=self._dobj.get('source'),
             dlines0=self._dobj.get('lines'),
             group_lines=self._group_lines,
         )
-        self.update(dstatic=dstatic, dobj=dobj)
+        self.update(dobj=dobj)
 
     # -----------------
     # from file (.py)
@@ -244,21 +242,21 @@ class SpectralLines(ds.DataStock):
     @classmethod
     def from_module(cls, pfe=None):
 
-        dobj, dstatic = _class0_spectrallines_comp.from_module(pfe=pfe)
+        dobj = _spectrallines_compute.from_module(pfe=pfe)
 
         # Create collection
-        out = cls(dstatic=dstatic, dobj=dobj)
+        out = cls(dobj=dobj)
 
         # Replace ION by ion if relevant
         c0 = (
-            'ion' in out.dstatic.keys()
+            'ion' in out._dobj.keys()
             and 'ion' not in out.get_lparam(which='lines')
             and 'ION' in out.get_lparam(which='lines')
         )
         if c0:
             for k0, v0 in out._dobj['lines'].items():
                 ion = [
-                    k1 for k1, v1 in out._dstatic['ion'].items()
+                    k1 for k1, v1 in out._dobj['ion'].items()
                     if out._dobj['lines'][k0]['ION'] == v1['ION']
                 ][0]
                 out._dobj['lines'][k0]['ion'] = ion
@@ -308,7 +306,7 @@ class SpectralLines(ds.DataStock):
             returnas2 = 'coef'
 
         key = self._ind_tofrom_key(
-            which=self._grouplines, key=key, ind=ind, returnas=str,
+            which=self._group_lines, key=key, ind=ind, returnas=str,
         )
         lamb_in = self.get_param(
             'lambda0', key=key, returnas=np.ndarray,
@@ -352,20 +350,22 @@ class SpectralLines(ds.DataStock):
 
         # Check keys
         key = self._ind_tofrom_key(
-            which=self._grouplines, key=key, ind=ind, returnas=str,
+            which=self._group_lines, key=key, ind=ind, returnas=str,
         )
-        dlines = self._dobj[self._grouplines]
+        dlines = self._dobj[self._group_lines]
 
         if deg is None:
             deg = 2
 
         # Check data conformity
-        lg = (self._groupne, self._groupte)
         lc = [
             k0 for k0 in key
             if (
                 dlines[k0].get('pec') is None
-                or self._ddata[dlines[k0]['pec']]['group'] != lg
+                or [
+                    self._ddata[pp]['quant']
+                    for pp in self._ddata[dlines[k0]['pec']]['ref']
+                ] != [self._group_ne, self._group_Te]
             )
         ]
         if len(lc) > 0:
@@ -471,7 +471,7 @@ class SpectralLines(ds.DataStock):
 
         # Check keys
         key = self._ind_tofrom_key(
-            which=self._grouplines, key=key, ind=ind, returnas=str,
+            which=self._group_lines, key=key, ind=ind, returnas=str,
         )
 
         if isinstance(concentration, np.ndarray):
@@ -525,7 +525,7 @@ class SpectralLines(ds.DataStock):
     # plotting
     # ------------------
 
-    def plot(
+    def plot_spectral_lines(
         self,
         key=None,
         ind=None,
@@ -630,7 +630,7 @@ class SpectralLines(ds.DataStock):
         }
 
         sortby_lok = ['ion', 'ION', 'source']
-        lk0 = [k0 for k0 in sortby_lok if k0 in self._dstatic.keys()]
+        lk0 = [k0 for k0 in sortby_lok if k0 in self._dobj.keys()]
         if len(lk0) > 0:
             sortby_def = lk0[0]
         else:
@@ -817,52 +817,52 @@ class SpectralLines(ds.DataStock):
 
 
 # TBC
-class TimeTraces(DataCollection):
-    """ A generic class for handling multiple time traces """
+# class TimeTraces(DataCollection):
+    # """ A generic class for handling multiple time traces """
 
-    _forced_group = 'time'
-    _dallowed_params = {
-        'time': {
-            'origin': (str, 'unknown'),
-            'dim':    (str, 'time'),
-            'quant':  (str, 't'),
-            'name':   (str, 't'),
-            'units':  (str, 's')},
-    }
-    _plot_vignettes = False
+    # _forced_group = 'time'
+    # _dallowed_params = {
+        # 'time': {
+            # 'origin': (str, 'unknown'),
+            # 'dim':    (str, 'time'),
+            # 'quant':  (str, 't'),
+            # 'name':   (str, 't'),
+            # 'units':  (str, 's')},
+    # }
+    # _plot_vignettes = False
 
-    def fit(self, ind=None, key=None,
-            Type='staircase', func=None,
-            plot=True, fs=None, ax=None, draw=True, **kwdargs):
-        """  Fit the times traces with a model
+    # def fit(self, ind=None, key=None,
+            # Type='staircase', func=None,
+            # plot=True, fs=None, ax=None, draw=True, **kwdargs):
+        # """  Fit the times traces with a model
 
-        Typically try to fit plateaux and ramps i.e.: Type = 'staircase')
-        Return a dictionary of the fitted parameters, ordered by data key
+        # Typically try to fit plateaux and ramps i.e.: Type = 'staircase')
+        # Return a dictionary of the fitted parameters, ordered by data key
 
-        """
+        # """
 
-        dout = self._fit_one_dim(ind=ind, key=key, group=self._forced_group,
-                                 Type=Type, func=func, **kwdargs)
-        if plot:
-            kh = _DataCollection_plot.plot_fit_1d(self, dout)
-        return dout
+        # dout = self._fit_one_dim(ind=ind, key=key, group=self._forced_group,
+                                 # Type=Type, func=func, **kwdargs)
+        # if plot:
+            # kh = _DataCollection_plot.plot_fit_1d(self, dout)
+        # return dout
 
-    def add_plateaux(self, verb=False):
-        dout = self.fit(
-            ind=ind, key=key, group=group, Type='staircase',
-        )
+    # def add_plateaux(self, verb=False):
+        # dout = self.fit(
+            # ind=ind, key=key, group=group, Type='staircase',
+        # )
 
-        # Make Pandas Dataframe attribute
-        self.plateaux = None
-        if verb:
-            msg = ""
+        # # Make Pandas Dataframe attribute
+        # self.plateaux = None
+        # if verb:
+            # msg = ""
 
-    def plot(self, **kwdargs):
-        return self._plot_timetraces(**kwdargs)
+    # def plot(self, **kwdargs):
+        # return self._plot_timetraces(**kwdargs)
 
-    def plot_incremental(self, key=None, ind=None,
-                         plateaux=True, connect=True):
-        return
+    # def plot_incremental(self, key=None, ind=None,
+                         # plateaux=True, connect=True):
+        # return
 
-    def plot_plateau_validate(self, key=None, ind=None):
-        return
+    # def plot_plateau_validate(self, key=None, ind=None):
+        # return

@@ -3,6 +3,9 @@
 import numpy as np
 
 
+_OPENADAS_ONLINE = True
+
+
 # #############################################################################
 # #############################################################################
 #                       from openadas
@@ -104,17 +107,13 @@ def from_openadas(
     # ddata - pec
     ddata = dpec
 
-    # dstatic
-    dstatic = {
+    # dobj (lines, ion, source)
+    dobj = {
+        group_lines: dlines,
         'ion': {k0: {} for k0 in lion},
         'source': dsource,
     }
-
-    # dobj (lines)
-    dobj = {
-        group_lines: dlines,
-    }
-    return ddata, dref, dstatic, dobj
+    return ddata, dref, dobj
 
 
 # #############################################################################
@@ -194,19 +193,16 @@ def _from_nist(
         dlines0=dlines0,
     )
 
-    # dstatic
+    # ions
     lion = sorted(set([dlines[k0]['ion'] for k0 in dlines.keys()]))
-
-    dstatic = {
-        'ion': {k0: {} for k0 in lion},
-        'source': dsources,
-    }
 
     # dobj (lines)
     dobj = {
         group_lines: dlines,
+        'ion': {k0: {} for k0 in lion},
+        'source': dsources,
     }
-    return dstatic, dobj
+    return dobj
 
 
 # #############################################################################
@@ -260,21 +256,21 @@ def from_module(pfe=None):
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
 
-    # extract dstatic
-    dstatic = {}
+    # extract source, transition, ion, element
+    dobj = {}
     for k0 in ['source', 'transition', 'ion', 'element']:
         dd = _check_extract_dict_from_mod(mod, k0)
         if dd is not None:
-            dstatic[k0] = dd
+            dobj[k0] = dd
 
     # add ion
-    if 'ion' not in dstatic.keys():
+    if 'ion' not in dobj.keys():
         lions = np.array([
                 v0['ion'] for k0, v0 in mod.dlines.items()
                 if 'ion' in v0.keys()
         ]).ravel()
         if len(lions) > 0:
-            dstatic['ion'] = {
+            dobj['ion'] = {
                 k0: {'ion': k0} for k0 in lions
             }
         else:
@@ -283,12 +279,10 @@ def from_module(pfe=None):
                     if 'ION' in v0.keys()
             ]).ravel()
             if len(lIONS) > 0:
-                dstatic['ION'] = {
+                dobj['ION'] = {
                     k0: {'ION': k0} for k0 in lIONS
                 }
 
     # extract lines
-    dobj = {
-        'lines': mod.dlines
-    }
-    return dob, dstatic
+    dobj['lines'] = mod.dlines
+    return dobj
