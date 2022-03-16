@@ -12,6 +12,7 @@ import scipy.interpolate
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.axes._axes import Axes
+import datastock
 
 # tofu
 from tofu.version import __version__
@@ -26,7 +27,7 @@ from tofu.version import __version__
 
 def compute_rockingcurve(
     ih=None, ik=None, il=None, lamb=None,
-    use_non_parallelism=None, na=None,
+    use_non_parallelism=None, alpha_limits=None, na=None,
     therm_exp=None, plot_therm_exp=None,
     plot_asf=None, plot_power_ratio=None,
     plot_asymmetry=None, plot_cmaps=None,
@@ -77,6 +78,9 @@ def compute_rockingcurve(
         Wavelength of interest, in Angstroms (1e-10 m)
     use_non_parallelism:    str
         Introduce non-parallelism between dioptre and reflecting planes
+    alpha_limits:    array
+        Asymmetry angle range. Provide only both boundary limits
+        Ex: np.r_[-3, 3] in radians
     na:    int
         Number of non-parallelism angles steps, odd number preferred
     therm_exp:    str
@@ -175,6 +179,12 @@ def compute_rockingcurve(
         therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
     )
 
+    # Check validity of asymmetry angle alpha limits in arguments
+    alpha, bb = CrystBragg_check_alpha_angle(
+        theta=theta, alpha_limits=alpha_limits, na=na, nn=nn,
+        use_non_parallelism=use_non_parallelism, therm_exp=therm_exp,
+    )
+
     # Atomic scattering factors ("asf") for Si(2+) and O(1-) as a function of
     # sin(theta)/lambda ("sol"), taking into account molecular bounds
     # ("si") for Silicium and ("o") for Oxygen
@@ -234,7 +244,6 @@ def compute_rockingcurve(
         Fsi_re2[i] = np.sum(fsi_re[i]*np.sin(2*np.pi*phasesi))
         Fo_re1[i] = np.sum(fo_re[i]*np.cos(2*np.pi*phaseo))
         Fo_re2[i] = np.sum(fo_re[i]*np.sin(2*np.pi*phaseo))
-
     Fsi_im1 = np.sum(fsi_im*np.cos(2*np.pi*phasesi))
     Fsi_im2 = np.sum(fsi_im*np.sin(2*np.pi*phasesi))
     Fo_im1 = np.sum(fo_im*np.cos(2*np.pi*phaseo))
@@ -309,7 +318,8 @@ def compute_rockingcurve(
             F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
             Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
             model=['perfect', 'mosaic', 'dynamical'],
-            use_non_parallelism=use_non_parallelism, na=na, nn=nn,
+            use_non_parallelism=use_non_parallelism, alpha=alpha, bb=bb,
+            na=na, nn=nn,
             therm_exp=therm_exp,
         )
     else:
@@ -321,7 +331,8 @@ def compute_rockingcurve(
             F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
             Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
             model=['perfect', 'mosaic', 'dynamical'],
-            use_non_parallelism=use_non_parallelism, na=na, nn=nn,
+            use_non_parallelism=use_non_parallelism, alpha=alpha, bb=bb,
+            na=na, nn=nn,
             therm_exp=therm_exp,
         )
 
@@ -367,7 +378,7 @@ def compute_rockingcurve(
 
     if plot_cmaps:
         CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
-            ih=ih, ik=ik, il=il, lamb=lamb,
+            ih=ih, ik=ik, il=il, lamb=lamb, theta=theta,
             therm_exp=therm_exp, T0=T0, TD=TD,
             alpha=alpha, power_ratio=power_ratio, th=th,
             rhg_perp=rhg_perp, rhg_para=rhg_para,
@@ -496,6 +507,71 @@ def CrystBragg_check_inputs_rockingcurve(
     return ih, ik, il, lamb,
 
 
+def CrystBragg_check_alpha_angle(
+    theta=None, alpha_limits=None, na=None, nn=None,
+    use_non_parallelism=None, therm_exp=None,
+):
+
+    if alpha_limits is None:
+        if not use_non_parallelism:
+            alpha = np.full((na), 0.)
+            bb = np.full((theta.size, alpha.size), -1.)
+        else:
+            alpha = np.full((na), np.nan)
+            bb = np.full((theta.size, alpha.size), np.nan)
+            for i in range(theta.size):
+                if therm_exp:
+                    alpha = np.linspace(
+                        -theta[nn] + 0.01, theta[nn] - 0.01, na
+                    )
+                    bb[i, ...] = np.sin(alpha + theta[i])/np.sin(
+                        alpha - theta[i]
+                    )
+                else:
+                    alpha = np.linspace(
+                        -theta + 0.01, theta - 0.01, na
+                    ).reshape(51)
+                    bb[i, ...] = np.sin(alpha + theta[i])/np.sin(
+                        alpha - theta[i]
+                    )
+    else:
+        if not use_non_parallelism:
+            alpha = np.full((na), 0.)
+            bb = np.full((theta.size, alpha.size), -1.)
+        else:
+            if therm_exp:
+                lc = [alpha_limits[0] < -theta[nn], alpha_limits[1] > theta[nn]]
+            else:
+                lc = [alpha_limits[0] < -theta, alpha_limits[1] > theta]
+            if any(lc):
+                msg = (
+                    "Alpha angle limits are not valid!\n"
+                    "Please check the values:\n"
+                    "Limit condition: -({}) < |alpha| < ({}) and\n".format(
+                        theta, theta,
+                    )
+                    + "alpha = [({})] rad\n".format(alpha_limits)
+                )
+                raise Exception(msg)
+            alpha = np.full((na), np.nan)
+            bb = np.full((theta.size, alpha.size), np.nan)
+            for i in range(theta.size):
+                if therm_exp:
+                    alpha = np.linspace(alpha_limits[0], alpha_limits[1], na)
+                    bb[i, ...] = np.sin(alpha + theta[i])/np.sin(
+                        alpha - theta[i]
+                    )
+                else:
+                    alpha = np.linspace(
+                        alpha_limits[0], alpha_limits[1], na
+                    ).reshape(51)
+                    bb[i, ...] = np.sin(alpha + theta[i])/np.sin(
+                        alpha - theta[i]
+                    )
+
+    return alpha, bb,
+
+
 # ##########################################################
 # ##########################################################
 #             Computation of 2d lattice spacing
@@ -571,7 +647,7 @@ def CrystBragg_comp_lattice_spacing(
 
     if plot_therm_exp:
         CrystalBragg_plot_thermal_expansion_vs_d(
-            ih=ih, ik=ik, il=il, lamb=lamb,
+            ih=ih, ik=ik, il=il, lamb=lamb, theta=theta, theta_deg=theta_deg,
             T0=T0, TD=TD, d_atom=d_atom, nn=nn,
         )
 
@@ -583,32 +659,15 @@ def CrystBragg_comp_integrated_reflect(
     F_re=None, psi_re=None, psi0_dre=None, psi0_im=None,
     Fmod=None, Fbmod=None, kk=None, rek=None,
     model=[None, None, None],
-    use_non_parallelism=None, na=None, nn=None,
+    use_non_parallelism=None, alpha=None, bb=None, na=None, nn=None,
     therm_exp=None,
 ):
     """For simplification and line savings reasons, whether use_non_parallelism
-    is True or False, alpha and bb arrays have the same shape
+    is True or False, alpha and bb arrays have the same shape.
     For the same reasons, the theta-dimension, depending on therm_exp arg,
     is present in all the arrays, even if it means having a extra dimension
     equal to 1 and therfore useless.
     """
-
-    # Asymmetry parameter b
-    # ---------------------
-
-    if not use_non_parallelism:
-        alpha = np.full((na), 0.)
-        bb = np.full((theta.size, alpha.size), -1.)
-    else:
-        alpha = np.full((na), np.nan)
-        bb = np.full((theta.size, alpha.size), np.nan)
-        for i in range(theta.size):
-            if therm_exp:
-                alpha = np.linspace(-theta[nn] + 0.01, theta[nn] - 0.01, na)
-                bb[i, ...] = np.sin(alpha + theta[i])/np.sin(alpha - theta[i])
-            else:
-                alpha = np.linspace(-theta + 0.01, theta - 0.01, na).reshape(51)
-                bb[i, ...] = np.sin(alpha + theta[i])/np.sin(alpha - theta[i])
 
     # Perfect (darwin) and ideally thick mosaic models
     # ------------------------------------------------
@@ -660,10 +719,10 @@ def CrystBragg_comp_integrated_reflect(
         for i in range(theta.size):
             for j in range(alpha.size):
                 al[h, i, j, ...] = (y**2 + g[h, i, j]**2 + np.sqrt(
-                    (y**2 - g[h, i, j]**2 + abs(kk[i])**2 - 1.)**2 + 4.*(
+                    (y**2 - g[h, i, j]**2 + (kk[i])**2 - 1.)**2 + 4.*(
                         g[h, i, j]*y - rek[i]
                     )**2
-                ))/np.sqrt((abs(kk[i])**2 - 1.)**2 + 4.*(rek[i]**2))
+                ))/np.sqrt(((kk[i])**2 - 1.)**2 + 4.*(rek[i]**2))
                 # Reflecting power or power ratio R_dyn
                 power_ratio[h, i, j, ...] = (Fmod[i]/Fbmod[i])*(
                     al[h, i, j, :] - np.sqrt((al[h, i, j, :]**2) - 1.)
@@ -790,7 +849,7 @@ def CrystBragg_comp_integrated_reflect(
 
 
 def CrystalBragg_plot_thermal_expansion_vs_d(
-    ih=None, ik=None, il=None, lamb=None,
+    ih=None, ik=None, il=None, lamb=None, theta=None, theta_deg=None,
     T0=None, TD=None, d_atom=None, nn=None,
 ):
 
@@ -798,42 +857,48 @@ def CrystalBragg_plot_thermal_expansion_vs_d(
     gs = gridspec.GridSpec(1, 1)
     ax = fig.add_subplot(gs[0, 0])
     ax.set_title(
-        'Hexagonal Qz, ' + f'({ih},{ik},{il})' + fr', $\lambda$={lamb} A'
+        'Hexagonal Qz, ' + f'({ih},{ik},{il})' + fr', $\lambda$={lamb} $\AA$' +
+        r', $\theta_{B}$=' + fr'{np.round(theta_deg[nn], 3)} deg'
     )
     ax.set_xlabel(r'$\Delta$T ($T_{0}$=25°C)')
-    ax.set_ylabel("Inter-planar distance d (x1e-3) [Angstroms]")
+    ax.set_ylabel(r'Inter-planar distance d [m$\AA$]')
     ax.scatter(
-        TD, d_atom*(1e3),
+        TD[nn:], d_atom[nn:]*(1e3),
         marker='o', c='k', alpha=0.5,
         label=r'd$_{(hkl)}$ computed points',
     )
-
+    ax2 = ax.twinx()
+    ax2.set_ylabel(
+        r'Shift $\theta-\theta_{B}$ from Bragg angle of reference [arcsec]'
+    )
+    db = (theta[nn:]-theta[nn])*(180/np.pi)*(3600)
+    ax2.scatter(
+        TD[nn:], db,
+        marker='s', c='k', alpha=0.5,
+        label=r'$\theta_{B}$ computed points',
+    )
     p = np.polyfit(TD[nn:], d_atom[nn:]*(1e3), 1)
-    p2 = np.polyfit(TD[:nn], d_atom[:nn]*(1e3), 1)
+    p2 = np.polyfit(TD[nn:], db, 1)
     y_adj = p[0]*TD[nn:] + p[1]
-    y2_adj = p2[0]*TD[:nn] + p2[1]
+    y2_adj = p2[0]*TD[nn:] + p2[1]
     ax.plot(
         TD[nn:], y_adj,
         'k-',
-        label='Linear fit (0<T[°C]<25)' + '\n' +
-            r'd = ' + str(np.round(p[1], 2)) +
-            r'x(1 + $\alpha_{eff}$.$\Delta$T)' + '\n' +
-            r'$\alpha_{eff}$ =' +
+        label=r'd = ' + str(np.round(p[1], 2)) +
+            r' x (1 + $\alpha_{eff}$.$\Delta$T)' + '\n' +
+            r'$\alpha_{eff}$ = ' +
             str(np.round(p[0]/p[1], decimals=9)) +
             r'°C$^{-1}$',
         )
-    ax.plot(
-        TD[:nn], y2_adj,
+    ax2.plot(
+        TD[nn:], y2_adj,
         'k--',
-        label='Linear fit (-25<T[°C]<0)' + '\n' +
-            r'd = ' + str(np.round(p2[1], 2)) +
-            r'x(1 + $\alpha_{eff}$.$\Delta$T)' + '\n' +
-            r'$\alpha_{eff}$ =' +
-            str(np.round(p2[0]/p2[1], decimals=9)) +
-            r'°C$^{-1}$',
+        label=r'$\theta_{B}$ = ' + str(np.round(p2[0], 3)) + r' x $\Delta$T ' +
+            str(np.round(p2[1], decimals=3))
         )
 
-    ax.legend(loc="best")
+    ax.legend(loc="center left")
+    ax2.legend(loc="center right")
 
 
 def CrystalBragg_plot_atomic_scattering_factor(
@@ -880,7 +945,8 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         gs = gridspec.GridSpec(1, 1)
         ax = fig1.add_subplot(gs[0, 0])
         ax.set_title(
-            'Hexagonal Qz, ' + f'({ih},{ik},{il})' + fr', $\lambda$={lamb} A' +
+            'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
+            fr', $\lambda$={lamb} $\AA$' +
             fr', Bragg angle={np.round(theta_deg, decimals=3)}$\deg$'
         )
         ax.set_xlabel(r'$\theta$-$\theta_{B}$ (rad)')
@@ -900,7 +966,8 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         ax20 = fig1.add_subplot(gs[2, 0])
         ax22 = fig1.add_subplot(gs[2, 2])
         ax01.set_title(
-            'Hexagonal Qz, ' + f'({ih},{ik},{il})' + fr', $\lambda$={lamb} A,'+
+            'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
+            fr', $\lambda$={lamb} $\AA$' +
             fr', Bragg angle={np.round(theta_deg[nn], decimals=3)} deg,'+
             r' $\Delta$T = (-25, 0, +25) °C,'+
             r' $\alpha$ = (-$\theta_{B}$, 0, +$\theta_{B}$) deg'
@@ -965,7 +1032,6 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                     'k:',
                     label=r'parallel',
                 )
-
         ax.legend()
     else:
         ## DeltaT row = -T0 = -25°C
@@ -1174,7 +1240,8 @@ def CrystalBragg_plot_rc_components_vs_asymmetry(
     gs = gridspec.GridSpec(1, 1)
     ax = fig2.add_subplot(gs[0, 0])
     ax.set_title(
-        'Hexagonal Qz, ' + f'({ih},{ik},{il})' + fr', $\lambda$={lamb} A'
+        'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
+        fr', $\lambda$={lamb} $\AA$'
     )
     ax.set_xlabel(r'$\alpha$ (deg)')
     ax.set_ylim(0., 5.)
@@ -1215,7 +1282,7 @@ def CrystalBragg_plot_rc_components_vs_asymmetry(
 
 
 def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
-    ih=None, ik=None, il=None, lamb=None,
+    ih=None, ik=None, il=None, lamb=None, theta=None,
     therm_exp=None, T0=None, TD=None,
     alpha=None, power_ratio=None, th=None,
     rhg_perp=None, rhg_para=None,
@@ -1240,7 +1307,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     ax02 = fig.add_subplot(gs[0,2])
     ax02.set_title('Rocking curve width [deg]')
     ax03 = fig.add_subplot(gs[0,3])
-    ax03.set_title('Maximum shift from reference RC (abs) [deg]')
+    ax03.set_title('Shift from reference RC [deg]')
     ax10 = fig.add_subplot(gs[1,0])
     ax11 = fig.add_subplot(gs[1,1])
     ax12 = fig.add_subplot(gs[1,2])
@@ -1260,7 +1327,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     ## Integrated reflectivities
     ## -------------------------
     rghmap_perp = ax00.imshow(
-        np.log10(rhg_perp),
+        rhg_perp,
         cmap=cmap,
         #vmin=-7,
         #vmax=-4,
@@ -1271,11 +1338,10 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     cbar = plt.colorbar(
         rghmap_perp,
         orientation='vertical',
-        label='Log scale',
         ax=ax00,
     )
     rghmap_para = ax10.imshow(
-        np.log10(rhg_para),
+        rhg_para,
         cmap=cmap,
         origin='lower',
         extent=extent,
@@ -1284,7 +1350,6 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     cbar = plt.colorbar(
         rghmap_para,
         orientation='vertical',
-        label='Log scale',
         ax=ax10,
     )
 
@@ -1318,7 +1383,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     ## Rocking curve widths
     ## --------------------
     width_perp = ax02.imshow(
-        np.log10(det_perp*(180/np.pi)),
+        det_perp*(180/np.pi),
         cmap=cmap,
         origin='lower',
         extent=extent,
@@ -1327,11 +1392,10 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     cbar = plt.colorbar(
         width_perp,
         orientation='vertical',
-        label='Log scale',
         ax=ax02,
     )
     width_para = ax12.imshow(
-        np.log10(det_para*(180/np.pi)),
+        det_para*(180/np.pi),
         cmap=cmap,
         origin='lower',
         extent=extent,
@@ -1340,35 +1404,35 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     cbar = plt.colorbar(
         width_para,
         orientation='vertical',
-        label='Log scale',
         ax=ax12,
     )
 
     ## Shift on max. reflect. values from reference RC (TD = 0. & alpha=0.)
+
     ## --------------------------------------------------------------------
     shift_perp = ax03.imshow(
-        np.log10(abs(shift_thmaxpr_perp*(180/np.pi))),
-        cmap=cmap,
+        shift_thmaxpr_perp*(180/np.pi),
+        cmap=plt.cm.seismic,
         origin='lower',
         extent=extent,
         aspect='auto',
     )
     cbar = plt.colorbar(
         shift_perp,
-        label='Log scale \n (normal component)',
+        label='(normal component)',
         orientation='vertical',
         ax=ax03,
     )
     shift_para = ax13.imshow(
-        np.log10(abs(shift_thmaxpr_para*(180/np.pi))),
-        cmap=cmap,
+        shift_thmaxpr_para*(180/np.pi),
+        cmap=plt.cm.seismic,
         origin='lower',
         extent=extent,
         aspect='auto',
     )
     cbar = plt.colorbar(
         shift_para,
-        label='Log scale \n (parallel component)',
+        label='(parallel component)',
         orientation='vertical',
         ax=ax13,
     )

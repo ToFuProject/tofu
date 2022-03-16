@@ -803,7 +803,7 @@ class CrystalBragg(utils.ToFuObject):
 
     def compute_rockingcurve(
         self, ih=None, ik=None, il=None, lamb=None,
-        use_non_parallelism=None, na=None,
+        use_non_parallelism=None, alpha_limits=None, na=None,
         therm_exp=None, plot_therm_exp=None,
         plot_asf=None, plot_power_ratio=None,
         plot_asymmetry=None, plot_cmaps=None,
@@ -812,10 +812,11 @@ class CrystalBragg(utils.ToFuObject):
         return _rockingcurve.compute_rockingcurve(
             ih=ih, ik=ik, il=il, lamb=lamb,
             use_non_parallelism=use_non_parallelism, na=na,
+            alpha_limits=alpha_limits,
             therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
             plot_asf=plot_asf,
             plot_power_ratio=plot_power_ratio,
-            plot_asymmetry=plot_relation,
+            plot_asymmetry=plot_asymmetry,
             plot_cmaps=plot_cmaps,
             verb=None, returnas=None,
         )
