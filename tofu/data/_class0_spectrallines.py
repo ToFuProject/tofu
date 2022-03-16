@@ -2,10 +2,13 @@
 
 import os
 import sys
+import warnings
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-import warnings
+import datastock as ds
 
 
 from ._DataCollection_class import DataCollection
@@ -14,7 +17,7 @@ from . import _DataCollection_comp
 from . import _DataCollection_plot_as_array
 
 
-__all__ = ['SpectralLines', 'TimeTraces']
+__all__ = ['SpectralLines']
 
 
 _OPENADAS_ONLINE = True
@@ -31,7 +34,7 @@ _UNITS_LAMBDA0 = 'm'
 #############################################
 
 
-class SpectralLines(DataCollection):
+class SpectralLines(ds.DataStock):
 
     _ddef = {
         'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
