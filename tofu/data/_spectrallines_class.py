@@ -11,10 +11,11 @@ import matplotlib.colors as mcolors
 import datastock as ds
 
 
-from ._DataCollection_class import DataCollection
-from . import _comp_spectrallines
-from . import _DataCollection_comp
-from . import _DataCollection_plot_as_array
+from . import _class0_spectrallines_comp
+# from ._DataCollection_class import DataCollection
+# from . import _comp_spectrallines
+# from . import _DataCollection_comp
+# from . import _DataCollection_plot_as_array
 
 
 __all__ = ['SpectralLines']
@@ -37,7 +38,6 @@ _UNITS_LAMBDA0 = 'm'
 class SpectralLines(ds.DataStock):
 
     _ddef = {
-        'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
         'params': {
             'lambda0': (float, 0.),
             'source': (str, 'unknown'),
@@ -54,9 +54,9 @@ class SpectralLines(ds.DataStock):
     _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
 
-    _grouplines = _GROUP_LINES
-    _groupne = _GROUP_NE
-    _groupte = _GROUP_TE
+    _group_lines = _GROUP_LINES
+    _group_ne = _GROUP_NE
+    _group_te = _GROUP_TE
 
     _units_lambda0 = _UNITS_LAMBDA0
 
@@ -89,136 +89,9 @@ class SpectralLines(ds.DataStock):
     def add_pec(self, key=None, pec=None, ref=None):
         pass
 
-    def remove_line(
-        self,
-        key=None,
-        ion=None,
-        source=None,
-        lambda0=None,
-    ):
-        # Check inputs
-        lc = [
-            key is not None,
-            ion is not None or source is not None or lambda0 is not None,
-        ]
-        raise NotImplementedError
-
     # -----------------
     # from openadas
     # ------------------
-
-    @classmethod
-    def _from_openadas(
-        cls,
-        lambmin=None,
-        lambmax=None,
-        element=None,
-        charge=None,
-        online=None,
-        update=None,
-        create_custom=None,
-        dsource0=None,
-        dref0=None,
-        ddata0=None,
-        dlines0=None,
-        grouplines=None,
-    ):
-        """
-        Load lines and pec from openadas, either:
-            - online = True:  directly from the website
-            - online = False: from pre-downloaded files in ~/.tofu/openadas/
-
-        Provide wavelengths in m
-
-        Example:
-        --------
-                >>> import tofu as tf
-                >>> lines_mo = tf.data.SpectralLines.from_openadas(
-                    element='Mo',
-                    lambmin=3.94e-10,
-                    lambmax=4e-10,
-                )
-
-        """
-
-        # Preliminary import and checks
-        from ..openadas2tofu import _requests
-        from ..openadas2tofu import _read_files
-
-        if online is None:
-            online = _OPENADAS_ONLINE
-        if grouplines is None:
-            grouplines = cls._grouplines
-        else:
-            cls._grouplines = grouplines
-
-        # Load from online if relevant
-        if online is True:
-            try:
-                out = _requests.step01_search_online_by_wavelengthA(
-                    lambmin=lambmin*1e10,
-                    lambmax=lambmax*1e10,
-                    element=element,
-                    charge=charge,
-                    verb=False,
-                    returnas=np.ndarray,
-                    resolveby='file',
-                )
-                lf = sorted(set([oo[0] for oo in out]))
-                out = _requests.step02_download_all(
-                    files=lf,
-                    update=update,
-                    create_custom=create_custom,
-                    verb=False,
-                )
-            except Exception as err:
-                msg = (
-                    """
-                    {}
-
-                    For some reason data could not be downloaded from openadas
-                        => see error message above
-                        => maybe check your internet connection?
-                    """.format(err)
-                )
-                raise Exception(msg)
-
-        # Load for local files
-        dne, dte, dpec, lion, dsource, dlines = _read_files.step03_read_all(
-            lambmin=lambmin,
-            lambmax=lambmax,
-            element=element,
-            charge=charge,
-            pec_as_func=False,
-            format_for_DataCollection=True,
-            dsource0=dsource0,
-            dref0=dref0,
-            ddata0=ddata0,
-            dlines0=dlines0,
-            verb=False,
-        )
-
-        # # dgroup
-        # dgroup = ['Te', 'ne']
-
-        # dref - Te + ne
-        dref = dte
-        dref.update(dne)
-
-        # ddata - pec
-        ddata = dpec
-
-        # dstatic
-        dstatic = {
-            'ion': {k0: {} for k0 in lion},
-            'source': dsource,
-        }
-
-        # dobj (lines)
-        dobj = {
-            grouplines: dlines,
-        }
-        return ddata, dref, dstatic, dobj
 
     @classmethod
     def from_openadas(
@@ -230,14 +103,13 @@ class SpectralLines(ds.DataStock):
         online=None,
         update=None,
         create_custom=None,
-        grouplines=None,
     ):
         """
         Load lines and pec from openadas, either:
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        ddata, dref, dstatic, dobj = cls._from_openadas(
+        ddata, dref, dstatic, dobj = _class0_spectrallines_comp._from_openadas(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -245,7 +117,7 @@ class SpectralLines(ds.DataStock):
             online=online,
             update=update,
             create_custom=create_custom,
-            grouplines=grouplines,
+            grouplines=cls._group_lines,
         )
         return cls(ddata=ddata, dref=dref, dstatic=dstatic, dobj=dobj)
 
@@ -264,7 +136,7 @@ class SpectralLines(ds.DataStock):
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        ddata, dref, dstatic, dobj = self._from_openadas(
+        ddata, dref, dstatic, dobj = _class0_spectrallines_comp._from_openadas(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -276,103 +148,13 @@ class SpectralLines(ds.DataStock):
             dref0=self._dref,
             ddata0=self._ddata,
             dlines0=self._dobj.get('lines'),
+            grouplines=cls._group_lines,
         )
         self.update(ddata=ddata, dref=dref, dstatic=dstatic, dobj=dobj)
 
     # -----------------
     # from nist
     # ------------------
-
-    @classmethod
-    def _from_nist(
-        cls,
-        lambmin=None,
-        lambmax=None,
-        element=None,
-        charge=None,
-        ion=None,
-        wav_observed=None,
-        wav_calculated=None,
-        transitions_allowed=None,
-        transitions_forbidden=None,
-        cache_from=None,
-        cache_info=None,
-        verb=None,
-        create_custom=None,
-        dsource0=None,
-        dlines0=None,
-        grouplines=None,
-    ):
-        """
-        Load lines from nist, either:
-            - cache_from = False:  directly from the website
-            - cache_from = True: from pre-downloaded files in ~/.tofu/nist/
-
-        Provide wavelengths in m
-
-        Example:
-        --------
-                >>> import tofu as tf
-                >>> lines_mo = tf.data.SpectralLines.from_nist(
-                    element='Mo',
-                    lambmin=3.94e-10,
-                    lambmax=4e-10,
-                )
-
-        """
-
-        # Preliminary import and checks
-        from ..nist2tofu import _requests
-
-        if grouplines is None:
-            grouplines = cls._grouplines
-        else:
-            cls._grouplines = grouplines
-        if verb is None:
-            verb = False
-        if cache_info is None:
-            cache_info = False
-
-        # Load from online if relevant
-        dlines, dsources = _requests.step01_search_online_by_wavelengthA(
-            element=element,
-            charge=charge,
-            ion=ion,
-            lambmin=lambmin*1e10,
-            lambmax=lambmax*1e10,
-            wav_observed=wav_observed,
-            wav_calculated=wav_calculated,
-            transitions_allowed=transitions_allowed,
-            transitions_forbidden=transitions_forbidden,
-            info_ref=True,
-            info_conf=True,
-            info_term=True,
-            info_J=True,
-            info_g=True,
-            cache_from=cache_from,
-            cache_info=cache_info,
-            return_dout=True,
-            return_dsources=True,
-            verb=verb,
-            create_custom=create_custom,
-            format_for_DataCollection=True,
-            dsource0=dsource0,
-            dlines0=dlines0,
-        )
-
-        # dstatic
-        lion = sorted(set([dlines[k0]['ion'] for k0 in dlines.keys()]))
-
-        dstatic = {
-            'ion': {k0: {} for k0 in lion},
-            'source': dsources,
-        }
-
-        # dobj (lines)
-        dobj = {
-            grouplines: dlines,
-        }
-        return dstatic, dobj
 
     @classmethod
     def from_nist(
@@ -390,14 +172,13 @@ class SpectralLines(ds.DataStock):
         cache_info=None,
         verb=None,
         create_custom=None,
-        grouplines=None,
     ):
         """
         Load lines and pec from openadas, either:
             - online = True:  directly from the website
             - online = False: from pre-downloaded files in ~/.tofu/openadas/
         """
-        dstatic, dobj = cls._from_nist(
+        dstatic, dobj = _class0_spectrallines_comp._from_nist(
             lambmin=lambmin,
             lambmax=lambmax,
             element=element,
@@ -411,7 +192,7 @@ class SpectralLines(ds.DataStock):
             cache_info=cache_info,
             verb=verb,
             create_custom=create_custom,
-            grouplines=grouplines,
+            group_lines=cls._group_lines,
         )
         return cls(dstatic=dstatic, dobj=dobj)
 
@@ -430,7 +211,6 @@ class SpectralLines(ds.DataStock):
         cache_info=None,
         verb=None,
         create_custom=None,
-        grouplines=None,
     ):
         """
         Load and add lines and pec from openadas, either:
@@ -453,7 +233,7 @@ class SpectralLines(ds.DataStock):
             create_custom=create_custom,
             dsource0=self._dstatic.get('source'),
             dlines0=self._dobj.get('lines'),
-            grouplines=grouplines,
+            group_lines=self._group_lines,
         )
         self.update(dstatic=dstatic, dobj=dobj)
 
@@ -461,84 +241,10 @@ class SpectralLines(ds.DataStock):
     # from file (.py)
     # ------------------
 
-    @staticmethod
-    def _check_extract_dict_from_mod(mod, k0):
-        lk1 = [
-            k0, k0.upper(),
-            '_'+k0, '_'+k0.upper(),
-            '_d'+k0, '_D'+k0.upper(),
-            'd'+k0, 'D'+k0.upper(),
-            k0+'s', k0.upper()+'S'
-            '_d'+k0+'s', '_D'+k0.upper()+'S',
-            'd'+k0+'s', 'D'+k0.upper()+'S',
-        ]
-        lk1 = [k1 for k1 in lk1 if hasattr(mod, k1)]
-        if len(lk1) > 1:
-            msg = "Ambiguous attributes: {}".format(lk1)
-            raise Exception(msg)
-        elif len(lk1) == 0:
-            return
-
-        if hasattr(mod, lk1[0]):
-            return getattr(mod, lk1[0])
-        else:
-            return
-
     @classmethod
     def from_module(cls, pfe=None):
 
-        # Check input
-        c0 = (
-            os.path.isfile(pfe)
-            and pfe[-3:] == '.py'
-        )
-        if not c0:
-            msg = (
-                "\nProvided Path-File-Extension (pfe) not valid!\n"
-                + "\t- expected: absolute path to python module\n"
-                + "\t- provided: {}".format(pfe)
-            )
-            raise Exception(msg)
-        pfe = os.path.abspath(pfe)
-
-        # Load module
-        path, fid = os.path.split(pfe)
-        import importlib.util
-        spec = importlib.util.spec_from_file_location(fid[:-3], pfe)
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-
-        # extract dstatic
-        dstatic = {}
-        for k0 in ['source', 'transition', 'ion', 'element']:
-            dd = cls._check_extract_dict_from_mod(mod, k0)
-            if dd is not None:
-                dstatic[k0] = dd
-
-        # add ion
-        if 'ion' not in dstatic.keys():
-            lions = np.array([
-                    v0['ion'] for k0, v0 in mod.dlines.items()
-                    if 'ion' in v0.keys()
-            ]).ravel()
-            if len(lions) > 0:
-                dstatic['ion'] = {
-                    k0: {'ion': k0} for k0 in lions
-                }
-            else:
-                lIONS = np.array([
-                        v0['ION'] for k0, v0 in mod.dlines.items()
-                        if 'ION' in v0.keys()
-                ]).ravel()
-                if len(lIONS) > 0:
-                    dstatic['ION'] = {
-                        k0: {'ION': k0} for k0 in lIONS
-                    }
-
-        # extract lines
-        dobj = {
-            'lines': mod.dlines
-        }
+        dobj, dstatic = _class0_spectrallines_comp.from_module(pfe=pfe)
 
         # Create collection
         out = cls(dstatic=dstatic, dobj=dobj)
