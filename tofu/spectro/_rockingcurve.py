@@ -12,7 +12,7 @@ import scipy.interpolate
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.axes._axes import Axes
-import datastock
+#import datastock
 
 # tofu
 from tofu.version import __version__
@@ -129,7 +129,7 @@ def compute_rockingcurve(
         plot_power_ratio = True
     if plot_asymmetry is None and use_non_parallelism is not False:
         plot_asymmetry = True
-    if plot_cmaps is None and therm_exp is not False:
+    if plot_cmaps is None and therm_exp is True and use_non_parallelism is True:
         plot_cmaps = True
     if verb is None:
         verb = True
@@ -306,13 +306,10 @@ def compute_rockingcurve(
     # perfect (Darwin model), ideally mosaic thick and dynamical
     # --------------------------------------------------------------------
 
-    if use_non_parallelism:
+    if use_non_parallelism is False and therm_exp is False:
         (
             alpha, bb, polar, g, y, power_ratio, max_pr, th,
-            rhg, rhg_perp, rhg_para, rhg_perp_norm, rhg_para_norm,
-            P_per, P_mos, P_dyn,
-            det_perp, det_para, det_perp_norm, det_para_norm,
-            shift_thmaxpr_perp, shift_thmaxpr_para,
+            rhg, P_per, P_mos, P_dyn, det_perp, det_para,
         ) = CrystBragg_comp_integrated_reflect(
             lamb=lamb, re=re, Volume=Volume, Zo=Zo, theta=theta, mu=mu,
             F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
@@ -325,7 +322,10 @@ def compute_rockingcurve(
     else:
         (
             alpha, bb, polar, g, y, power_ratio, max_pr, th,
-            rhg, P_per, P_mos, P_dyn, det_perp, det_para,
+            rhg, rhg_perp, rhg_para, rhg_perp_norm, rhg_para_norm,
+            P_per, P_mos, P_dyn,
+            det_perp, det_para, det_perp_norm, det_para_norm,
+            shift_thmaxpr_perp, shift_thmaxpr_para,
         ) = CrystBragg_comp_integrated_reflect(
             lamb=lamb, re=re, Volume=Volume, Zo=Zo, theta=theta, mu=mu,
             F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
@@ -797,7 +797,8 @@ def CrystBragg_comp_integrated_reflect(
     # Normalization for DeltaT=0 & alpha=0 and
     # Computation of the shift in glancing angle corresponding to
     # the maximum value of each power ratio computed (each rocking curve)
-    if use_non_parallelism:
+    lc = [use_non_parallelism is True, therm_exp is True]
+    if any(lc) or all(lc):
         rhg_perp_norm = np.full((rhg_perp.shape), np.nan)
         rhg_para_norm = np.full((rhg_para.shape), np.nan)
         det_perp_norm = np.full((det_perp.shape), np.nan)
@@ -823,7 +824,14 @@ def CrystBragg_comp_integrated_reflect(
                         th_max_pr[1, i, nn] - th_max_pr[1, i, j]
                     )
 
-    if use_non_parallelism:
+    if use_non_parallelism is False and therm_exp is False:
+        return (
+            alpha, bb, polar, g, y,
+            power_ratio, max_pr, th,
+            rhg, P_per, P_mos, P_dyn,
+            det_perp, det_para,
+        )
+    else:
         return (
             alpha, bb, polar, g, y,
             power_ratio, max_pr, th,
@@ -831,13 +839,6 @@ def CrystBragg_comp_integrated_reflect(
             P_per, P_mos, P_dyn,
             det_perp, det_para, det_perp_norm, det_para_norm,
             shift_thmaxpr_perp, shift_thmaxpr_para,
-        )
-    else:
-        return (
-            alpha, bb, polar, g, y,
-            power_ratio, max_pr, th,
-            rhg, P_per, P_mos, P_dyn,
-            det_perp, det_para,
         )
 
 
@@ -940,18 +941,23 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
     # Plot
     # ----
 
-    if not therm_exp:
+    lc = [
+        use_non_parallelism is False and therm_exp is False,
+        use_non_parallelism is False and therm_exp is True,
+        use_non_parallelism is True and therm_exp is False,
+    ]
+    if any(lc):
         fig1 = plt.figure(figsize=(8, 6))
         gs = gridspec.GridSpec(1, 1)
         ax = fig1.add_subplot(gs[0, 0])
         ax.set_title(
             'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
-            fr', $\lambda$={lamb} $\AA$' +
-            fr', Bragg angle={np.round(theta_deg, decimals=3)}$\deg$'
+            fr', $\lambda$={lamb} $\AA$'# +
+            #fr', Bragg angle={np.round(theta_deg[nn], decimals=3)}$\deg$'
         )
         ax.set_xlabel(r'$\theta$-$\theta_{B}$ (rad)')
         ax.set_ylabel('Power ratio P$_H$/P$_0$')
-    else:
+    if use_non_parallelism and therm_exp:
         fig1 = plt.figure(figsize=(20, 18))
         gs = gridspec.GridSpec(3, 3)
         ## 3 rows -> temperature changes -T0 < 0 < +T0
@@ -1000,12 +1006,16 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         else:
             ntemp = int(ntemp - 0.5)
         dd2 = np.r_[0, int(ntemp/2), ntemp]
+        let2 = {'I': dd2[0], 'II': dd2[1], 'III': dd2[2]}
     else:
         dd2 = np.r_[0]
+        let2 = {'I': dd2[0]}
 
-    if not therm_exp:
+    lc = [use_non_parallelism is True, use_non_parallelism is False]
+    if not therm_exp and any(lc):
         for j in range(na):
             if any(j == dd):
+                ## power_ratio.shape: (polar, TD, alpha, y)
                 ind = np.where(
                     power_ratio[0, 0, j, :] == np.amax(power_ratio[0, 0, j, :])
                 )
@@ -1033,7 +1043,39 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                     label=r'parallel',
                 )
         ax.legend()
-    else:
+
+    if not use_non_parallelism and therm_exp is True:
+        for i in range(na):
+            if any(i == dd2):
+                ind = np.where(
+                    power_ratio[0, i, 0, :] == np.amax(power_ratio[0, i, 0, :])
+                )
+                keylist = list(let2.keys())
+                valuelist = list(let2.values())
+                valuedd = valuelist.index(i)
+                keydd = keylist[valuedd]
+                ax.text(
+                    th[0, i, 0, ind],
+                    np.max(power_ratio[0, i, 0, :] + 0.005),
+                    '({})'.format(keydd),
+                )
+                ax.plot(
+                    th[0, i, 0, :],
+                    power_ratio[0, i, 0, :],
+                    'k-',
+                    label=r'normal, ({}): $TD$=({})°C'.format(
+                        keydd, TD[i]
+                    ),
+                )
+                ax.plot(
+                    th[1, i, 0, :],
+                    power_ratio[1, i, 0, :],
+                    'k:',
+                    label=r'parallel',
+                )
+        ax.legend()
+
+    if use_non_parallelism and therm_exp:
         ## DeltaT row = -T0 = -25°C
         ## ------------------------
         ax01.plot(
