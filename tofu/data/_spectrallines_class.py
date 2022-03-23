@@ -49,7 +49,7 @@ class SpectralLines(ds.DataStock):
     _forced_group = [_GROUP_NE, _GROUP_TE]
     _data_none = True
 
-    _show_in_summary_core = ['shape', 'ref', 'group']
+    _show_in_summary_core = ['shape', 'ref']
     _show_in_summary = 'all'
 
     _group_lines = _GROUP_LINES
@@ -308,9 +308,12 @@ class SpectralLines(ds.DataStock):
         key = self._ind_tofrom_key(
             which=self._group_lines, key=key, ind=ind, returnas=str,
         )
+
         lamb_in = self.get_param(
-            'lambda0', key=key, returnas=np.ndarray,
+            which=self._group_lines, param='lambda0',
+            key=key, returnas=np.ndarray,
         )['lambda0']
+
         out = self.convert_spectral(
             data=lamb_in, units_in='m', units_out=units, returnas=returnas2,
         )
