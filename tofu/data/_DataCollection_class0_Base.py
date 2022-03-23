@@ -27,7 +27,7 @@ from . import _DataCollection_check_inputs
 from . import _comp
 from . import _DataCollection_comp
 from . import _def
-from . import _comp_spectrallines
+# from . import _comp_spectrallines
 
 
 __all__ = ['DataCollectionBase']    # , 'TimeTraceCollection']
