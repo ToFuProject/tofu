@@ -22,7 +22,7 @@ from . import _spectrallines_plot
 __all__ = ['SpectralLines']
 
 
-_GROUP_LINES = 'lines'
+_WHICH_LINES = 'lines'
 _GROUP_NE = 'ne'
 _GROUP_TE = 'Te'
 _UNITS_LAMBDA0 = 'm'
@@ -53,9 +53,9 @@ class SpectralLines(ds.DataStock):
     _show_in_summary_core = ['shape', 'ref']
     _show_in_summary = 'all'
 
-    _group_lines = _GROUP_LINES
+    _which_lines = _WHICH_LINES
     _group_ne = _GROUP_NE
-    _group_te = _GROUP_TE
+    _group_Te = _GROUP_TE
 
     _units_lambda0 = _UNITS_LAMBDA0
 
@@ -116,7 +116,7 @@ class SpectralLines(ds.DataStock):
             online=online,
             update=update,
             create_custom=create_custom,
-            group_lines=cls._group_lines,
+            group_lines=cls._which_lines,
         )
         return cls(ddata=ddata, dref=dref, dobj=dobj)
 
@@ -147,7 +147,7 @@ class SpectralLines(ds.DataStock):
             dref0=self._dref,
             ddata0=self._ddata,
             dlines0=self._dobj.get('lines'),
-            group_lines=cls._group_lines,
+            group_lines=cls._which_lines,
         )
         self.update(ddata=ddata, dref=dref, dobj=dobj)
 
@@ -191,7 +191,7 @@ class SpectralLines(ds.DataStock):
             cache_info=cache_info,
             verb=verb,
             create_custom=create_custom,
-            group_lines=cls._group_lines,
+            group_lines=cls._which_lines,
         )
         return cls(dobj=dobj)
 
@@ -232,7 +232,7 @@ class SpectralLines(ds.DataStock):
             create_custom=create_custom,
             dsource0=self._dobj.get('source'),
             dlines0=self._dobj.get('lines'),
-            group_lines=self._group_lines,
+            group_lines=self._which_lines,
         )
         self.update(dobj=dobj)
 
@@ -308,12 +308,12 @@ class SpectralLines(ds.DataStock):
 
         # get keys of desired lines
         key = self._ind_tofrom_key(
-            which=self._group_lines, key=key, ind=ind, returnas=str,
+            which=self._which_lines, key=key, ind=ind, returnas=str,
         )
 
         # get wavelength in m
         lamb_in = self.get_param(
-            which=self._group_lines, param='lambda0',
+            which=self._which_lines, param='lambda0',
             key=key, returnas=np.ndarray,
         )['lambda0']
 
@@ -360,9 +360,9 @@ class SpectralLines(ds.DataStock):
 
         # Check keys
         key = self._ind_tofrom_key(
-            which=self._group_lines, key=key, ind=ind, returnas=str,
+            which=self._which_lines, key=key, ind=ind, returnas=str,
         )
-        dlines = self._dobj[self._group_lines]
+        dlines = self._dobj[self._which_lines]
 
         if deg is None:
             deg = 2
@@ -408,12 +408,12 @@ class SpectralLines(ds.DataStock):
             try:
                 ne0 = [
                     kk for kk in self._ddata[dlines[k0]['pec']]['ref']
-                    if self._ddata[kk]['group'] == (self._groupne,)
+                    if self._ddata[kk]['group'] == (self._group_ne,)
                 ][0]
                 ne0 = self._ddata[ne0]['data']
                 Te0 = [
                     kk for kk in self._ddata[dlines[k0]['pec']]['ref']
-                    if self._ddata[kk]['group'] == (self._groupte,)
+                    if self._ddata[kk]['group'] == (self._group_Te,)
                 ][0]
                 Te0 = self._ddata[Te0]['data']
 
@@ -481,7 +481,7 @@ class SpectralLines(ds.DataStock):
 
         # Check keys
         key = self._ind_tofrom_key(
-            which=self._group_lines, key=key, ind=ind, returnas=str,
+            which=self._which_lines, key=key, ind=ind, returnas=str,
         )
 
         if isinstance(concentration, np.ndarray):
@@ -562,7 +562,7 @@ class SpectralLines(ds.DataStock):
 
         # Check inputs
         key = self._ind_tofrom_key(
-            which=self._group_lines, key=key, ind=ind, returnas=str,
+            which=self._which_lines, key=key, ind=ind, returnas=str,
         )
 
         sortby = ds._generic_check._check_var(
@@ -573,7 +573,7 @@ class SpectralLines(ds.DataStock):
         )
 
         return _spectrallines_plot.plot_axvlines(
-            din=self._dobj[self._group_lines],
+            din=self._dobj[self._which_lines],
             key=key,
             param_x='lambda0',
             param_txt=param_txt,
