@@ -12,7 +12,7 @@ import scipy.interpolate
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.axes._axes import Axes
-#import datastock
+import datastock
 
 # tofu
 from tofu.version import __version__
@@ -82,7 +82,8 @@ def compute_rockingcurve(
         Asymmetry angle range. Provide only both boundary limits
         Ex: np.r_[-3, 3] in radians
     na:    int
-        Number of non-parallelism angles steps, odd number preferred
+        Number of non-parallelism angles steps, odd number preferred in order
+        to have a median value at 0
     therm_exp:    str
         Compute relative changes of the crystal inter-planar distance by
         thermal expansion
@@ -350,6 +351,7 @@ def compute_rockingcurve(
     if plot_power_ratio:
         CrystalBragg_plot_power_ratio_vs_glancing_angle(
             ih=ih, ik=ik, il=il, lamb=lamb,
+            alpha_limits=alpha_limits,
             theta=theta, theta_deg=theta_deg,
             th=th, power_ratio=power_ratio, y=y,
             bb=bb, polar=polar, alpha=alpha,
@@ -379,7 +381,7 @@ def compute_rockingcurve(
     if plot_cmaps:
         CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
             ih=ih, ik=ik, il=il, lamb=lamb, theta=theta,
-            therm_exp=therm_exp, T0=T0, TD=TD,
+            therm_exp=therm_exp, T0=T0, TD=TD, na=na, nn=nn,
             alpha=alpha, power_ratio=power_ratio, th=th,
             rhg_perp=rhg_perp, rhg_para=rhg_para,
             max_pr=max_pr, det_perp=det_perp, det_para=det_para,
@@ -389,6 +391,7 @@ def compute_rockingcurve(
 
     # Print results
     # -------------
+
     rhg_perp = rhg[0]
     rhg_para = rhg[1]
 
@@ -642,8 +645,8 @@ def CrystBragg_comp_lattice_spacing(
             )
             raise Exception(msg)
 
-    # Plot
-    # ----
+    # Plot calling
+    # ------------
 
     if plot_therm_exp:
         CrystalBragg_plot_thermal_expansion_vs_d(
@@ -666,7 +669,7 @@ def CrystBragg_comp_integrated_reflect(
     is True or False, alpha and bb arrays have the same shape.
     For the same reasons, the theta-dimension, depending on therm_exp arg,
     is present in all the arrays, even if it means having a extra dimension
-    equal to 1 and therfore useless.
+    equal to 1 and therefore useless.
     """
 
     # Perfect (darwin) and ideally thick mosaic models
@@ -711,7 +714,9 @@ def CrystBragg_comp_integrated_reflect(
     power_ratiob = np.full((theta.size, alpha.size, y.size), np.nan)
     rhy = np.full((theta.size, alpha.size), np.nan)
     th = np.full((al.shape), np.nan)
+    dth = th.copy()
     th_max_pr = max_pr.copy()
+    dth_max_pr = max_pr.copy()
     conv_ygscale = np.full((2, theta.size, alpha.size), np.nan)
     rhg = np.full((2, theta.size, alpha.size), np.nan)
 
@@ -741,8 +746,10 @@ def CrystBragg_comp_integrated_reflect(
                     -y*polar[h][i]*psi_re[i]*np.sqrt(abs(bb[i, j]))
                     + psi0_dre[i]*((1. - bb[i, j])/2.)
                 )/(bb[i, j]*np.sin(2.*theta[i]))
+                dth[h, i, j, ...] = th[h, i, j, :] + theta[i]
                 ind = int(ind_max_pr[h, i, j])
                 th_max_pr[h, i, j] = th[h, i, j, int(ind_max_pr[h, i, j])]
+                dth_max_pr[h, i, j] = dth[h, i, j, int(ind_max_pr[h, i, j])]
                 # Integrated reflecting power in the glancing angle scale
                 # r(i=0): normal component & r(i=1): parallel component
                 conv_ygscale[h, i, ...] = (polar[h][i]*psi_re[i])/(
@@ -811,17 +818,17 @@ def CrystBragg_comp_integrated_reflect(
                 rhg_para_norm = rhg_para[i]/rhg_para[i, nn]
                 if therm_exp:
                     shift_thmaxpr_perp[i, j] = (
-                        th_max_pr[0, nn, nn] - th_max_pr[0, i, j]
+                        dth_max_pr[0, nn, nn] - dth_max_pr[0, i, j]
                     )
                     shift_thmaxpr_para[i, j] = (
-                        th_max_pr[1, nn, nn] - th_max_pr[1, i, j]
+                        dth_max_pr[1, nn, nn] - dth_max_pr[1, i, j]
                     )
                 else:
                     shift_thmaxpr_perp[i, j] = (
-                        th_max_pr[0, i, nn] - th_max_pr[0, i, j]
+                        dth_max_pr[0, i, nn] - dth_max_pr[0, i, j]
                     )
                     shift_thmaxpr_para[i, j] = (
-                        th_max_pr[1, i, nn] - th_max_pr[1, i, j]
+                        dth_max_pr[1, i, nn] - dth_max_pr[1, i, j]
                     )
 
     if use_non_parallelism is False and therm_exp is False:
@@ -885,7 +892,7 @@ def CrystalBragg_plot_thermal_expansion_vs_d(
     ax.plot(
         TD[nn:], y_adj,
         'k-',
-        label=r'd = ' + str(np.round(p[1], 2)) +
+        label=r'd = ' + str(np.round(p[1], 3)) +
             r' x (1 + $\alpha_{eff}$.$\Delta$T)' + '\n' +
             r'$\alpha_{eff}$ = ' +
             str(np.round(p[0]/p[1], decimals=9)) +
@@ -931,6 +938,7 @@ def CrystalBragg_plot_atomic_scattering_factor(
 
 def CrystalBragg_plot_power_ratio_vs_glancing_angle(
     ih=None, ik=None, il=None, lamb=None,
+    alpha_limits=None,
     theta=None, theta_deg=None,
     th=None, power_ratio=None, y=None, y0=None,
     bb=None, polar=None, alpha=None,
@@ -974,9 +982,12 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         ax01.set_title(
             'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
             fr', $\lambda$={lamb} $\AA$' +
-            fr', Bragg angle={np.round(theta_deg[nn], decimals=3)} deg,'+
+            r', $\theta_{B}$=' + fr'{np.round(theta_deg[nn], 3)} deg'+
             r' $\Delta$T = (-25, 0, +25) °C,'+
-            r' $\alpha$ = (-$\theta_{B}$, 0, +$\theta_{B}$) deg'
+            r' $\alpha$ = ({}, 0, {}) deg'.format(
+                np.round(alpha_limits[0]*180/np.pi, 3),
+                np.round(alpha_limits[1]*180/np.pi, 3),
+            )
         )
         ax20.set_xlabel(r'$\theta$-$\theta_{B}$ (x1e4 rad)')
         ax21.set_xlabel(r'$\theta$-$\theta_{B}$ (x1e4 rad)')
@@ -1325,7 +1336,7 @@ def CrystalBragg_plot_rc_components_vs_asymmetry(
 
 def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     ih=None, ik=None, il=None, lamb=None, theta=None,
-    therm_exp=None, T0=None, TD=None,
+    therm_exp=None, T0=None, TD=None, na=None, nn=None,
     alpha=None, power_ratio=None, th=None,
     rhg_perp=None, rhg_para=None,
     max_pr=None, det_perp=None, det_para=None,
@@ -1362,6 +1373,12 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     ax11.set_xlabel(r'$\alpha$ (deg)')
     ax12.set_xlabel(r'$\alpha$ (deg)')
     ax13.set_xlabel(r'$\alpha$ (deg)')
+
+    fig.suptitle(
+        'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
+        fr', $\lambda$={lamb} $\AA$' +
+        r', $\theta_{B}$=' + fr'{np.round(theta[nn]*180/np.pi, 3)} deg'
+    )
 
     alpha_deg = alpha*(180/np.pi)
     extent = (alpha_deg.min(), alpha_deg.max(), TD.min(), TD.max())
