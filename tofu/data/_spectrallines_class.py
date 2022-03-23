@@ -12,6 +12,7 @@ import datastock as ds
 
 
 from . import _spectrallines_compute
+from . import _spectrallines_plot
 # from ._DataCollection_class import DataCollection
 # from . import _comp_spectrallines
 # from . import _DataCollection_comp
@@ -305,17 +306,23 @@ class SpectralLines(ds.DataStock):
         else:
             returnas2 = 'coef'
 
+        # get keys of desired lines
         key = self._ind_tofrom_key(
             which=self._group_lines, key=key, ind=ind, returnas=str,
         )
 
+        # get wavelength in m
         lamb_in = self.get_param(
             which=self._group_lines, param='lambda0',
             key=key, returnas=np.ndarray,
         )['lambda0']
 
-        out = self.convert_spectral(
-            data=lamb_in, units_in='m', units_out=units, returnas=returnas2,
+        # conversion
+        out = _spectrallines_compute.convert_spectral(
+            data_in=lamb_in,
+            units_in='m',
+            units_out=units,
+            returnas=returnas2,
         )
         if returnas is dict:
             out = {k0: out[ii] for ii, k0 in enumerate(key)}
@@ -541,6 +548,7 @@ class SpectralLines(ds.DataStock):
         lw=None,
         fontsize=None,
         side=None,
+        dsize=None,
         dcolor=None,
         fraction=None,
         figsize=None,
@@ -552,14 +560,25 @@ class SpectralLines(ds.DataStock):
         if param_txt is None:
             param_txt = 'symbol'
 
-        return super()._plot_axvlines(
-            which='lines',
+        # Check inputs
+        key = self._ind_tofrom_key(
+            which=self._group_lines, key=key, ind=ind, returnas=str,
+        )
+
+        sortby = ds._generic_check._check_var(
+            sortby, 'sortby',
+            default='ion',
+            types=str,
+            allowed=['ion', 'ION', 'source'],
+        )
+
+        return _spectrallines_plot.plot_axvlines(
+            din=self._dobj[self._group_lines],
             key=key,
             param_x='lambda0',
             param_txt=param_txt,
             sortby=sortby,
-            sortby_def='ion',
-            sortby_lok=['ion', 'ION', 'source'],
+            dsize=dsize,
             ax=ax, ymin=ymin, ymax=ymax,
             ls=ls, lw=lw, fontsize=fontsize,
             side=side, dcolor=dcolor, fraction=fraction,
