@@ -27,7 +27,8 @@ from tofu.version import __version__
 
 def compute_rockingcurve(
     ih=None, ik=None, il=None, lamb=None,
-    use_non_parallelism=None, alpha_limits=None, na=None,
+    use_non_parallelism=None, na=None,
+    alpha_limits=None,
     therm_exp=None, plot_therm_exp=None,
     plot_asf=None, plot_power_ratio=None,
     plot_asymmetry=None, plot_cmaps=None,
@@ -117,6 +118,8 @@ def compute_rockingcurve(
         plot_therm_exp = True
     if use_non_parallelism is None:
         use_non_parallelism = False
+    if alpha_limits is None:
+        alpha_limits = np.r_[-np.pi/180, np.pi/180]
     if na is None:
         na = 51
     nn = (na/2.)
@@ -326,6 +329,7 @@ def compute_rockingcurve(
             rhg, rhg_perp, rhg_para, rhg_perp_norm, rhg_para_norm,
             P_per, P_mos, P_dyn,
             det_perp, det_para, det_perp_norm, det_para_norm,
+            shift_perp, shift_para,
             shift_thmaxpr_perp, shift_thmaxpr_para,
         ) = CrystBragg_comp_integrated_reflect(
             lamb=lamb, re=re, Volume=Volume, Zo=Zo, theta=theta, mu=mu,
@@ -385,6 +389,7 @@ def compute_rockingcurve(
             alpha=alpha, power_ratio=power_ratio, th=th,
             rhg_perp=rhg_perp, rhg_para=rhg_para,
             max_pr=max_pr, det_perp=det_perp, det_para=det_para,
+            shift_perp=shift_perp, shift_para=shift_para,
             shift_thmaxpr_perp=shift_thmaxpr_perp,
             shift_thmaxpr_para=shift_thmaxpr_para,
         )
@@ -406,18 +411,24 @@ def compute_rockingcurve(
         'Miller indices\n': (ih, ik, il),
         'Inter-reticular distance (A)\n': d_atom,
         'Volume of the unit cell (A^3)\n': Volume,
-        'Bragg angle of reference (rad, deg)\n': (theta, theta_deg),
-        'Ratio imag & real part of structure factor\n': kk,
+        'Bragg angle of reference (rad)\n': theta,
         'Integrated reflectivity\n': {
             'perfect model': P_per,
             'mosaic model': P_mos,
             'dynamical model': P_dyn,
         },
         'P_{dyn,para}/P_{dyn,perp} (integrated values)\n': rhg_para/rhg_perp,
+        'Maximum reflectivity (perp. compo)\n': max_pr[0],
+        'Maximum reflectivity (para. compo)\n': max_pr[1],
         'RC width (perp. compo)\n': det_perp,
+        'RC width (para. compo)\n': det_para,
     }
     if use_non_parallelism:
         dout['Non-parallelism angles (deg)\n'] = alpha*(180/np.pi)
+        dout['Shift from RC of reference (perp. compo)\n'] = shift_perp
+        dout['Shift from RC of reference (para. compo)\n'] = shift_para
+    if therm_exp:
+        dout['Temperature changes (°C)\n'] = TD
 
     if verb is True:
         dout['Inter-reticular distance (A)\n'] = np.round(d_atom, decimals=3)
@@ -440,7 +451,20 @@ def compute_rockingcurve(
         dout['P_{dyn,para}/P_{dyn,perp} (integrated values)\n'] = np.round(
             rhg_para/rhg_perp, decimals=9,
         )
-        dout['RC width (perp. compo)\n'] = np.round(det_perp, decimals=6)
+        dout['Maximum reflectivity (perp. compo)\n'] = np.round(
+            max_pr[0], decimals=3,
+        )
+        dout['Maximum reflectivity (para. compo)\n'] = np.round(
+            max_pr[1], decimals=3,
+        )
+        dout['RC width (perp. compo)\n'] = np.round(det_perp, decimals=8)
+        dout['RC width (para. compo)\n'] = np.round(det_para, decimals=8)
+        dout['Shift from RC of reference (perp. compo)\n'] = np.round(
+            shift_perp, decimals=8,
+        )
+        dout['Shift from RC of reference (para. compo)\n'] = np.round(
+            shift_para, decimals=8,
+        )
         lstr = [f'\t -{k0}: {V0}' for k0, V0 in dout.items()]
         msg = (
             " The following data was calculated:\n"
@@ -450,6 +474,261 @@ def compute_rockingcurve(
 
     if returnas is dict:
         return dout
+
+
+# #############################################################################
+# #############################################################################
+#             Plot variations of quantities vs temperature changes
+#                        for multiple wavelengths
+# #############################################################################
+# #############################################################################
+
+
+def plot_var_temp_changes_wavelengths(
+    ih=None, ik=None, il=None, lambdas=None,
+    use_non_parallelism=None, na=None,
+    alpha_limits=None,
+    therm_exp=None, plot_therm_exp=None,
+    plot_asf=None, plot_power_ratio=None,
+    plot_asymmetry=None, plot_cmaps=None,
+    quantity=None,
+    curv_radius=None, pixel_size=None,
+):
+    """ Using results from compute_rockingcurve() method, the aim is to study
+    the variations of few physical quantities accoridng to the temperature
+    changes for multiple wavelengths.
+    It is a complementary method permitting to get a global view, for a specific
+    crystal, of the spectral shift impinging very specific wavelengths, due to
+    the temperature changes and the asymetry angle.
+
+    All args of compute_rockingcurve() method are needed to compute this,
+    for each wavelength choosen in the input array 'lambdas'.
+    By default, two plots are setted: the variations of the inter-planar spacing
+    with respect to the temperature changes and another one where you can choose
+    the quantity to be observed, by the mean of 'quantity'.
+    The quantities 'integrated reflectivity', 'maximum reflectivity' and
+    'rocking curve width' are available.
+
+    By default, the 'lambdas' input array is setted to correspond to the
+    characteristic spectral lines for ArXVII crystal:
+        - the line w at 3.9491 A (He-like Ar),
+        - the line x at 3.9659 A (He-like Ar),
+        - the line y at 3.9630 A (He-like Ar),
+        - the line z at 3.9942 A (He-like Ar),
+        - the line k at 3.9898 A (Li-like Ar),
+
+    The programm will also need thr crystal's curvature radius and the pixel
+    size of the detector used in order to compute, thanks to RC shifts
+    computations, the inferred pixel shift.
+    The curvature radius and the pixels size should both be given in mm.
+    Default values are corresponding to the experimental set-up on WEST with the
+    ArXVII crystal and the installed PILATUS detector.
+    """
+
+    # Check inputs
+    # ------------
+
+    if use_non_parallelism is None:
+        use_non_parallelism = True
+    if therm_exp is None:
+        therm_exp = True
+    if na is None:
+        na = 51
+    nn = (na/2.)
+    if (nn % 2) == 0:
+        nn = int(nn - 1)
+    else:
+        nn = int(nn - 0.5)
+    if lambdas is None:
+        lambdas = np.r_[3.9491, 3.9659, 3.9630, 3.9942, 3.9898,]
+    nlamb = lambdas.size
+    if quantity is None:
+        quantity = 'integrated reflectivity'
+    if pixel_size is None:
+        pixel_size = 0.172
+    if curv_radius is None:
+        curv_radius = 2745
+
+    # Creating new dict with needed data
+    # ----------------------------------
+
+    din = {}
+    for aa in range(nlamb):
+        din[lambdas[aa]] = {}
+        dout = compute_rockingcurve(
+            ih=ih, ik=ik, il=il, lamb=lambdas[aa],
+            use_non_parallelism=use_non_parallelism,
+            alpha_limits=alpha_limits, na=na,
+            therm_exp=therm_exp, plot_therm_exp=False,
+            plot_asf=False, plot_power_ratio=False,
+            plot_asymmetry=False, plot_cmaps=False,
+            verb=False, returnas=dict,
+        )
+        din[lambdas[aa]]['Wavelength (A)'] = dout['Wavelength (A)\n']
+        din[lambdas[aa]]['Inter-reticular distance (A)'] = (
+            dout['Inter-reticular distance (A)\n']
+        )
+        din[lambdas[aa]]['Bragg angle of reference (rad)'] = (
+            dout['Bragg angle of reference (rad)\n']
+        )
+        din[lambdas[aa]]['Non-parallelism angles (deg)'] = (
+            dout['Non-parallelism angles (deg)\n']
+        )
+        din[lambdas[aa]]['Temperature changes (°C)'] = (
+            dout['Temperature changes (°C)\n']
+        )
+        din[lambdas[aa]]['Integrated reflectivity'] = (
+            dout['Integrated reflectivity\n']['perfect model']
+        )
+        din[lambdas[aa]]['Maximum reflectivity (perp. compo)'] = (
+            dout['Maximum reflectivity (perp. compo)\n']
+        )
+        din[lambdas[aa]]['Maximum reflectivity (para. compo)'] = (
+            dout['Maximum reflectivity (para. compo)\n']
+        )
+        din[lambdas[aa]]['RC width (perp. compo)'] = (
+            dout['RC width (perp. compo)\n']
+        )
+        din[lambdas[aa]]['RC width (para. compo)'] = (
+            dout['RC width (para. compo)\n']
+        )
+        din[lambdas[aa]]['Shift from RC of reference (perp. compo)'] = (
+            dout['Shift from RC of reference (perp. compo)\n']
+        )
+        din[lambdas[aa]]['Shift from RC of reference (para. compo)'] = (
+            dout['Shift from RC of reference (para. compo)\n']
+        )
+    for aa in range(nlamb):
+        din[lambdas[aa]]['Inter-planar spacing variations (perp. compo)'] = (
+            din[lambdas[aa]]['Shift from RC of reference (perp. compo)']/
+            np.tan(din[lambdas[aa]]['Bragg angle of reference (rad)'][nn])
+        )
+        din[lambdas[aa]]['Inter-planar spacing variations (para. compo)'] = (
+            din[lambdas[aa]]['Shift from RC of reference (para. compo)']/
+            np.tan(din[lambdas[aa]]['Bragg angle of reference (rad)'][nn])
+        )
+
+    for aa in range(nlamb):
+        din[lambdas[aa]]['shift in pixel'] = (
+            din[lambdas[aa]]['Shift from RC of reference (perp. compo)']
+            )*curv_radius*np.sin(
+                din[lambdas[aa]]['Bragg angle of reference (rad)'][nn]
+            )/pixel_size
+
+    # Plots
+    # -----
+
+    ## 1st: comparisons between spacing variations from theoretical (d_hkl)
+    ## and those induced from RC shifts computations; study of the impact of
+    ## asymetry and thermal expansion of few wavelengths of interest
+    fig = plt.figure(figsize=(15, 9))
+    gs = gridspec.GridSpec(1, 2)
+    ax = fig.add_subplot(gs[0, 0])
+    ax1 = fig.add_subplot(gs[0, 1])
+    fig.suptitle(
+        'Hexagonal Qz, ' + f'({ih},{ik},{il})'
+    )
+    ax.set_xlabel(r'$\Delta$T ($T_{0}$=25°C)')
+    ax.set_ylabel(r'Spacing variation $\Delta$d/d (x1e-5) (d in $\AA$)')
+    ax1.set_xlabel(r'$\Delta$T ($T_{0}$=25°C)')
+
+    markers = ['o', '^', 'D', 's', 'X']
+
+    for aa in range(nlamb):
+        ax.scatter(
+            din[lambdas[aa]]['Temperature changes (°C)'],
+            din[lambdas[aa]][
+                'Inter-planar spacing variations (perp. compo)'
+            ][:, nn]*1e5,
+            marker=markers[aa], c='k', alpha=0.5,
+            label=r'$\lambda$ = ({})$\AA$'.format(lambdas[aa]),
+        )
+        ax.scatter(
+            din[lambdas[aa]]['Temperature changes (°C)'],
+            1e5*(
+                din[lambdas[aa]]['Inter-reticular distance (A)']
+                - din[lambdas[aa]]['Inter-reticular distance (A)'][nn]
+            )/din[lambdas[aa]]['Inter-reticular distance (A)'][nn],
+            marker='*', c='k', alpha=None,
+            label=r'Theoretical $\Delta$d/d$_{(hkl)}$',
+        )
+        if quantity == 'integrated reflectivity':
+            ax1.set_ylabel(r'Integrated reflectivity')
+            ax1.scatter(
+                din[lambdas[aa]]['Temperature changes (°C)'],
+                din[lambdas[aa]]['Integrated reflectivity'],
+                marker=markers[aa], c='k', alpha=0.5,
+                label=r'$\lambda$ = ({})$\AA$'.format(lambdas[aa]),
+            )
+        if quantity == 'maximum reflectivity':
+            ax1.set_ylabel(r'Maximum reflectivity')
+            ax1.scatter(
+                din[lambdas[aa]]['Temperature changes (°C)'],
+                din[lambdas[aa]]['Maximum reflectivity (perp. compo)'][:, nn],
+                marker=markers[aa], c='k', alpha=0.5,
+                label=r'$\lambda$ = ({})$\AA$'.format(lambdas[aa]),
+            )
+        if quantity == 'rocking curve width':
+            ax1.set_ylabel(r'Rocking curve width')
+            ax1.scatter(
+                din[lambdas[aa]]['Temperature changes (°C)'],
+                din[lambdas[aa]]['RC width (perp. compo)'][:, nn],
+                marker=markers[aa], c='k', alpha=0.5,
+                label=r'$\lambda$ = ({})$\AA$'.format(lambdas[aa]),
+            )
+    ax.legend()
+    ax1.legend()
+
+    ## 2nd:
+    cmap = plt.cm.seismic  # plt.cm.viridis
+    fs = (22, 10)
+    dmargin = {'left': 0.05, 'right': 0.97,
+               'bottom': 0.06, 'top': 0.92,
+               'wspace': 0.4, 'hspace': 0.4}
+
+    fig2 = plt.figure(figsize=fs)
+    nrows = 1
+    ncols = nlamb
+    gs2 = gridspec.GridSpec(nrows, ncols, **dmargin)
+    fig2.suptitle(
+        r'Hexagonal $\alpha$-Qz, ' + f'({ih},{ik},{il})' +
+        r', inferred pixel shift $\Delta$p'
+    )
+    alpha_deg = din[lambdas[aa]]['Non-parallelism angles (deg)']
+    TD = din[lambdas[aa]]['Temperature changes (°C)']
+    extent = (alpha_deg.min(), alpha_deg.max(), TD.min(), TD.max())
+
+    for aa in range(ncols):
+        ax2 = fig2.add_subplot(gs2[0, aa])
+        ax2.set_ylabel(r'$\Delta$T ($T_{0}$=25°C)')
+        ax2.set_xlabel(r'$\alpha$ (deg)')
+        ax2.set_title(r'$\lambda$=({}) $\AA$'.format(lambdas[aa]))
+
+        shiftmin = (din[lambdas[aa]]['shift in pixel']).min()
+        shiftmax = (din[lambdas[aa]]['shift in pixel']).max()
+        if abs(shiftmin) < abs(shiftmax):
+            vmax = shiftmax
+            vmin = -shiftmax
+        if abs(shiftmin) > abs(shiftmax):
+            vmax = -shiftmin
+            vmin = shiftmin
+        if abs(shiftmin) == abs(shiftmax):
+            vmax = shiftmax
+            vmin = shiftmin
+        cmaps = ax2.imshow(
+            din[lambdas[aa]]['shift in pixel'],
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+            origin='lower',
+            extent=extent,
+            aspect='auto',
+        )
+        cbar = plt.colorbar(
+            cmaps,
+            orientation='vertical',
+            ax=ax2,
+        )
 
 
 # ##########################################################
@@ -773,11 +1052,11 @@ def CrystBragg_comp_integrated_reflect(
 
     P_dyn = np.full((theta.size, alpha.size), np.nan)
     (
-        rhg_perp, rhg_para, det_perp, det_para,
-        shift_thmaxpr_perp, shift_thmaxpr_para,
+        rhg_perp, rhg_para, pat_cent_perp, pat_cent_para, det_perp, det_para,
+        shift_perp, shift_para, shift_thmaxpr_perp, shift_thmaxpr_para,
     ) = (
-        P_dyn.copy(), P_dyn.copy(), P_dyn.copy(), P_dyn.copy(),
-        P_dyn.copy(), P_dyn.copy(),
+        P_dyn.copy(), P_dyn.copy(), P_dyn.copy(), P_dyn.copy(), P_dyn.copy(),
+        P_dyn.copy(), P_dyn.copy(), P_dyn.copy(), P_dyn.copy(), P_dyn.copy(),
     )
 
     for i in range(theta.size):
@@ -796,8 +1075,13 @@ def CrystBragg_comp_integrated_reflect(
                     )
                 )
                 raise Exception(msg)
+            ## Coordinates of full width at mid high FWHM
             hmx_perp = half_max_x(th[0, i, j, :], power_ratio[0, i, j, :])
             hmx_para = half_max_x(th[1, i, j, :], power_ratio[1, i, j, :])
+            ## Center of FWMH
+            pat_cent_perp[i, j] = (hmx_perp[1] + hmx_perp[0])/2. + theta[i]
+            pat_cent_para[i, j] = (hmx_para[1] + hmx_para[0])/2. + theta[i]
+            ## Length of FWMH
             det_perp[i, j] = hmx_perp[1] - hmx_perp[0]
             det_para[i, j] = hmx_para[1] - hmx_para[0]
 
@@ -816,20 +1100,37 @@ def CrystBragg_comp_integrated_reflect(
                 det_para_norm = det_para[i]/det_para[i, nn]
                 rhg_perp_norm = rhg_perp[i]/rhg_perp[i, nn]
                 rhg_para_norm = rhg_para[i]/rhg_para[i, nn]
+                ## Shift between each RC's max/pattern center
                 if therm_exp:
+                    shift_perp[i, j] = (
+                        pat_cent_perp[nn, nn] - pat_cent_perp[i, j]
+                    )
+                    shift_para[i, j] = (
+                        pat_cent_para[nn, nn] - pat_cent_para[i, j]
+                    )
+                    """
                     shift_thmaxpr_perp[i, j] = (
                         dth_max_pr[0, nn, nn] - dth_max_pr[0, i, j]
                     )
                     shift_thmaxpr_para[i, j] = (
                         dth_max_pr[1, nn, nn] - dth_max_pr[1, i, j]
                     )
+                    """
                 else:
+                    shift_perp[i, j] = (
+                        pat_cent_perp[i, nn] - pat_cent_perp[i, j]
+                    )
+                    shift_para[i, j] = (
+                        pat_cent_para[i, nn] - pat_cent_para[i, j]
+                    )
+                    """
                     shift_thmaxpr_perp[i, j] = (
                         dth_max_pr[0, i, nn] - dth_max_pr[0, i, j]
                     )
                     shift_thmaxpr_para[i, j] = (
                         dth_max_pr[1, i, nn] - dth_max_pr[1, i, j]
                     )
+                    """
 
     if use_non_parallelism is False and therm_exp is False:
         return (
@@ -845,6 +1146,7 @@ def CrystBragg_comp_integrated_reflect(
             rhg, rhg_perp, rhg_para, rhg_perp_norm, rhg_para_norm,
             P_per, P_mos, P_dyn,
             det_perp, det_para, det_perp_norm, det_para_norm,
+            shift_perp, shift_para,
             shift_thmaxpr_perp, shift_thmaxpr_para,
         )
 
@@ -983,8 +1285,8 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
             'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
             fr', $\lambda$={lamb} $\AA$' +
             r', $\theta_{B}$=' + fr'{np.round(theta_deg[nn], 3)} deg'+
-            r' $\Delta$T = (-25, 0, +25) °C,'+
-            r' $\alpha$ = ({}, 0, {}) deg'.format(
+            r', $\Delta$T = (-25, 0, +25) °C'+
+            r', $\alpha$ = ({}, 0, {}) deg'.format(
                 np.round(alpha_limits[0]*180/np.pi, 3),
                 np.round(alpha_limits[1]*180/np.pi, 3),
             )
@@ -1340,8 +1642,8 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     alpha=None, power_ratio=None, th=None,
     rhg_perp=None, rhg_para=None,
     max_pr=None, det_perp=None, det_para=None,
-    shift_thmaxpr_perp=None,
-    shift_thmaxpr_para=None,
+    shift_perp=None, shift_para=None,
+    shift_thmaxpr_perp=None, shift_thmaxpr_para=None,
 ):
 
     cmap = plt.cm.viridis
@@ -1356,9 +1658,9 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     ax00 = fig.add_subplot(gs[0,0])
     ax00.set_title('Integrated reflectivity')
     ax01 = fig.add_subplot(gs[0,1])
-    ax01.set_title('Maximum reflectivity')
+    #ax01.set_title('Maximum reflectivity')
     ax02 = fig.add_subplot(gs[0,2])
-    ax02.set_title('Rocking curve width [deg]')
+    #ax02.set_title('Rocking curve width [deg]')
     ax03 = fig.add_subplot(gs[0,3])
     ax03.set_title('Shift from reference RC [deg]')
     ax10 = fig.add_subplot(gs[1,0])
@@ -1370,8 +1672,8 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     ax00.set_ylabel(r'$\Delta$T ($T_{0}$=25°C)')
     ax10.set_ylabel(r'$\Delta$T ($T_{0}$=25°C)')
     ax10.set_xlabel(r'$\alpha$ (deg)')
-    ax11.set_xlabel(r'$\alpha$ (deg)')
-    ax12.set_xlabel(r'$\alpha$ (deg)')
+    #ax11.set_xlabel(r'$\alpha$ (deg)')
+    #ax12.set_xlabel(r'$\alpha$ (deg)')
     ax13.set_xlabel(r'$\alpha$ (deg)')
 
     fig.suptitle(
@@ -1388,8 +1690,6 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     rghmap_perp = ax00.imshow(
         rhg_perp,
         cmap=cmap,
-        #vmin=-7,
-        #vmax=-4,
         origin='lower',
         extent=extent,
         aspect='auto',
@@ -1411,7 +1711,6 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         orientation='vertical',
         ax=ax10,
     )
-
     ## Maximum values of reflectivities
     ## --------------------------------
     maxpowerratio_perp = ax01.imshow(
@@ -1438,7 +1737,6 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         orientation='vertical',
         ax=ax11,
     )
-
     ## Rocking curve widths
     ## --------------------
     width_perp = ax02.imshow(
@@ -1465,12 +1763,23 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         orientation='vertical',
         ax=ax12,
     )
-
     ## Shift on max. reflect. values from reference RC (TD = 0. & alpha=0.)
-
     ## --------------------------------------------------------------------
+    spemin = (shift_perp).min()*(180/np.pi)
+    spemax = (shift_perp).max()*(180/np.pi)
+    if abs(spemin) < abs(spemax):
+        vmax = spemax
+        vmin = -spemax
+    if abs(spemin) > abs(spemax):
+        vmax = -spemin
+        vmin = spemin
+    if abs(spemin) == abs(spemax):
+        vmax = spemax
+        vmin = spemin
     shift_perp = ax03.imshow(
-        shift_thmaxpr_perp*(180/np.pi),
+        shift_perp*(180/np.pi),
+        vmin=vmin,
+        vmax=vmax,
         cmap=plt.cm.seismic,
         origin='lower',
         extent=extent,
@@ -1482,8 +1791,21 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         orientation='vertical',
         ax=ax03,
     )
+    spamin = (shift_para).min()*(180/np.pi)
+    spamax = (shift_para).max()*(180/np.pi)
+    if abs(spamin) < abs(spamax):
+        vmax = spamax
+        vmin = -spamax
+    if abs(spamin) > abs(spamax):
+        vmax = -spamin
+        vmin = spamin
+    if abs(spamin) == abs(spamax):
+        vmax = spamax
+        vmin = spamin
     shift_para = ax13.imshow(
-        shift_thmaxpr_para*(180/np.pi),
+        shift_para*(180/np.pi),
+        vmin=vmin,
+        vmax=vmax,
         cmap=plt.cm.seismic,
         origin='lower',
         extent=extent,
