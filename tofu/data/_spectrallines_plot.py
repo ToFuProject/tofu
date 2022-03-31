@@ -7,6 +7,7 @@ from matplotlib import gridspec
 import matplotlib.transforms as transforms
 import matplotlib.lines as mlines
 # import matplotlib.colors as mcolors
+import datastock as ds
 
 
 # tofu
@@ -26,10 +27,44 @@ _WINTIT = 'tofu-%s        report issues / requests at {}'.format(
 
 
 def _check_axvline_inputs(
+    param_x=None,
+    param_txt=None,
+    sortby=None,
     ymin=None, ymax=None,
     ls=None, lw=None, fontsize=None,
     side=None, fraction=None,
 ):
+
+    # ------
+    # param_x
+
+    param_x = ds._generic_check._check_var(
+        param_x, 'param_x',
+        types=str,
+        default='lambda0',
+    )
+
+    # ------
+    # param_txt
+
+    param_txt = ds._generic_check._check_var(
+        param_txt, 'param_txt',
+        types=str,
+        default='symbol',
+    )
+
+    # ------
+    # sortby
+
+    sortby = ds._generic_check._check_var(
+        sortby, 'sortby',
+        types=str,
+        default='ion',
+        allowed=['ion', 'ION', 'source'],
+    )
+
+    # ---------
+    # others
 
     if ymin is None:
         ymin = 0
@@ -46,7 +81,10 @@ def _check_axvline_inputs(
     if fraction is None:
         fraction = 0.75
 
-    return ymin, ymax, ls, lw, fontsize, side, fraction
+    return (
+        param_x, param_txt, sortby,
+        ymin, ymax, ls, lw, fontsize, side, fraction,
+    )
 
 
 def _ax_axvline(
@@ -96,8 +134,16 @@ def plot_axvlines(
     wintit=None, tit=None,
 ):
 
+    # ------------
     # Check inputs
-    ymin, ymax, ls, lw, fontsize, side, fraction = _check_axvline_inputs(
+
+    (
+        param_x, param_txt, sortby,
+        ymin, ymax, ls, lw, fontsize, side, fraction,
+    ) = _check_axvline_inputs(
+        param_x=param_x,
+        param_txt=param_txt,
+        sortby=sortby,
         ymin=ymin, ymax=ymax,
         ls=ls, lw=lw,
         fontsize=fontsize,
@@ -105,7 +151,9 @@ def plot_axvlines(
         fraction=fraction,
     )
 
+    # ------------
     # Prepare data
+
     unique = sorted(set([din[k0][sortby] for k0 in key]))
     ny = len(unique)
     dy = (ymax-ymin)/ny
@@ -116,6 +164,9 @@ def plot_axvlines(
     if dcolor is None:
         lcol = plt.rcParams['axes.prop_cycle'].by_key()['color']
         dcolor = {uu: lcol[ii % len(lcol)] for ii, uu in enumerate(unique)}
+
+    # -----------------------------
+    # sizes for scatter if relevant
 
     if dsize is not None:
         x, y = [], []
@@ -137,7 +188,9 @@ def plot_axvlines(
         sizes = np.concatenate(sizes).ravel()
         colors = np.concatenate(colors).ravel()
 
+    # ----------------
     # plot preparation
+
     lamb = [din[k0][param_x] for k0 in key]
     Dlamb = np.nanmax(lamb) - np.nanmin(lamb)
     xlim = [np.nanmin(lamb) - 0.05*Dlamb, np.nanmax(lamb) + 0.05*Dlamb]
@@ -151,7 +204,9 @@ def plot_axvlines(
         ax.transAxes, ax.transData
     )
 
+    # ----
     # plot
+
     for ii, uu in enumerate(unique):
         lk = [k0 for k0 in key if din[k0][sortby] == uu]
         for k0 in lk:
@@ -187,7 +242,9 @@ def plot_axvlines(
             transform=blend,
         )
 
-    # Add markers
+    # -----------------------------------
+    # Add scatter plot if dsizes provided
+
     if dsize is not None:
         ax.scatter(
             x, y, s=sizes**2, c=colors,
@@ -202,6 +259,24 @@ def plot_axvlines(
 #               Dominance map
 # #############################################################################
 
+
+def _dominance_map_check(
+
+):
+
+    if param_txt is None:
+        param_txt = 'symbol'
+    if param_color is None:
+        param_color = 'ion'
+    if norder is None:
+        norder = 0
+
+    if ne_scale is None:
+        ne_scale = 'log'
+    if Te_scale is None:
+        Te_scale = 'linear'
+
+    return
 
 def _ax_dominance_map(
     dax=None, figsize=None, dmargin=None,

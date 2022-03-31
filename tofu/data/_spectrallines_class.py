@@ -519,25 +519,16 @@ class SpectralLines(ds.DataStock):
         tit=None,
     ):
         """ plot rest wavelengths as vertical lines """
-        if param_txt is None:
-            param_txt = 'symbol'
 
         # Check inputs
         key = self._ind_tofrom_key(
             which=self._which_lines, key=key, ind=ind, returnas=str,
         )
 
-        sortby = ds._generic_check._check_var(
-            sortby, 'sortby',
-            default='ion',
-            types=str,
-            allowed=['ion', 'ION', 'source'],
-        )
-
         return _spectrallines_plot.plot_axvlines(
             din=self._dobj[self._which_lines],
             key=key,
-            param_x='lambda0',
+            param_x=param_x,
             param_txt=param_txt,
             sortby=sortby,
             dsize=dsize,
@@ -559,6 +550,7 @@ class SpectralLines(ds.DataStock):
         grid=None,
         ax=None,
         sortby=None,
+        param_x=None,
         param_txt=None,
         ymin=None,
         ymax=None,
@@ -573,12 +565,19 @@ class SpectralLines(ds.DataStock):
         wintit=None,
         tit=None,
     ):
+        """ Same as plot_spectral_lines() with extra scatter plot with circles
 
-        # Check input
-        if param_txt is None:
-            param_txt = 'symbol'
+        The circles' diameters depend on the pec value for each line
 
+        Requires:
+            - Te = scalar (eV)
+            - ne = scalar (/m3)
+
+        """
+
+        # ------------
         # Check ne, Te
+
         ltypes = [int, float, np.integer, np.floating]
         dnTe = {'ne': ne, 'Te': Te}
         single = all([
@@ -588,6 +587,7 @@ class SpectralLines(ds.DataStock):
             msg = ("Arg ne and Te must be floats!")
             raise Exception(msg)
 
+        # --------
         # Get dpec
         dpec = self.calc_pec(
             key=key,
@@ -595,39 +595,31 @@ class SpectralLines(ds.DataStock):
             ne=ne,
             Te=Te,
             deg=deg,
-            grid=grid,
+            grid=False,
+            return_params=False,
         )
-        key = list(dpec.keys())
+        key = [k0[:-4] for k0 in dpec.keys()]
 
         ne = float(ne)
         Te = float(Te)
         tit = (
-            r'$n_e$' + '= {} '.format(ne) + r'$/m^3$'
-            + r' -  $T_e$ = ' + '{} keV'.format(Te/1000.)
+            r'$n_e$' + f'= {ne} ' + r'$/m^3$'
+            + r' -  $T_e$ = ' + f'{Te/1000.} keV'
         )
 
         pmax = np.max([np.log10(v0) for v0 in dpec.values()])
         pmin = np.min([np.log10(v0) for v0 in dpec.values()])
         dsize = {
-            k0: (np.log10(v0)-pmin)/(pmax-pmin)*19 + 1
+            k0[:-4]: (np.log10(v0) - pmin) / (pmax - pmin)*19 + 1
             for k0, v0 in dpec.items()
         }
 
-        sortby_lok = ['ion', 'ION', 'source']
-        lk0 = [k0 for k0 in sortby_lok if k0 in self._dobj.keys()]
-        if len(lk0) > 0:
-            sortby_def = lk0[0]
-        else:
-            sortby_def = None
-
-        return super()._plot_axvlines(
-            which='lines',
+        return _spectrallines_plot.plot_axvlines(
+            din=self._dobj[self._which_lines],
             key=key,
-            param_x='lambda0',
+            param_x=param_x,
             param_txt=param_txt,
             sortby=sortby,
-            sortby_def=sortby_def,
-            sortby_lok=sortby_lok,
             dsize=dsize,
             ax=ax, ymin=ymin, ymax=ymax,
             ls=ls, lw=lw, fontsize=fontsize,
@@ -665,41 +657,13 @@ class SpectralLines(ds.DataStock):
         wintit=None,
     ):
 
+        # -----------
         # Check input
-        if param_txt is None:
-            param_txt = 'symbol'
-        if param_color is None:
-            param_color = 'ion'
-        if norder is None:
-            norder = 0
-
-        if ne_scale is None:
-            ne_scale = 'log'
-        if Te_scale is None:
-            Te_scale = 'linear'
 
         # Check ne, Te
-        ltypes = [int, float, np.integer, np.floating]
-        dnTe = {
-            'ne': type(ne) in ltypes or len(ne) == 1,
-            'Te': type(Te) in ltypes or len(Te) == 1,
-        }
-        if all([v0 for v0 in dnTe.values()]):
-            msg = (
-                "For a single point in (ne, Te) space, use plot_pec_singe()"
-            )
-            raise Exception(msg)
-        elif dnTe['ne']:
-            ne = np.r_[ne].ravel()
-            ne = np.full((Te.size), ne[0])
-        elif dnTe['Te']:
-            Te = np.r_[Te].ravel()
-            Te = np.full((ne.size), Te[0])
-
-        if len(ne) != len(Te):
-            msg = (
-                "Please provide ne and Te as vectors of same size!"
-            )
+        lc = [np.isscalar(ne) or len(ne) == 1, np.isscalar(Te) or len(Te) == 1]
+        if all(lc):
+            msg = "For a single (ne, Te) space, use plot_pec_singe()"
             raise Exception(msg)
 
         # Get dpec
@@ -721,6 +685,7 @@ class SpectralLines(ds.DataStock):
             Te, scale=Te_scale, npts=Te.size*2, nptsmin=3,
         )
 
+        # get dpec for grid
         dpec_grid = self.calc_pec(
             key=key,
             ind=ind,
@@ -782,7 +747,7 @@ class SpectralLines(ds.DataStock):
         if dtit is None:
             dtit = {'map': 'norder = {}'.format(norder)}
 
-        return _DataCollection_plot.plot_dominance_map(
+        return _spectrallines_plot.plot_dominance_map(
             din=self._dobj['lines'], im=im, extent=extent,
             xval=ne, yval=Te, damp=damp,
             x_scale=ne_scale, y_scale=Te_scale, amp_scale='log',
