@@ -11,6 +11,7 @@ import matplotlib.colors as mcolors
 import datastock as ds
 
 
+from . import _spectrallines_checks
 from . import _spectrallines_compute
 from . import _spectrallines_plot
 # from ._DataCollection_class import DataCollection
@@ -54,8 +55,8 @@ class SpectralLines(ds.DataStock):
     _show_in_summary = 'all'
 
     _which_lines = _WHICH_LINES
-    _group_ne = _GROUP_NE
-    _group_Te = _GROUP_TE
+    _quant_ne = _GROUP_NE
+    _quant_Te = _GROUP_TE
 
     _units_lambda0 = _UNITS_LAMBDA0
 
@@ -340,6 +341,7 @@ class SpectralLines(ds.DataStock):
         Te=None,
         deg=None,
         grid=None,
+        return_params=None,
     ):
         """ Compute the pec (<sigma v>) by interpolation for chosen lines
 
@@ -364,81 +366,66 @@ class SpectralLines(ds.DataStock):
         )
         dlines = self._dobj[self._which_lines]
 
-        if deg is None:
-            deg = 2
+        key, dnTe, return_params = _spectrallines_checks._check_compute_pec(
+            # check keys
+            key=key,
+            dlines=dlines,
+            ddata=self._ddata,
+            _quant_ne=self._quant_ne,
+            _quant_Te=self._quant_Te,
+            # check ne, Te
+            ne=ne,
+            Te=Te,
+            return_params=return_params,
+        )
+        keypec = [f'{k0}-pec' for k0 in key]
 
-        # Check data conformity
-        lc = [
-            k0 for k0 in key
-            if (
-                dlines[k0].get('pec') is None
-                or [
-                    self._ddata[pp]['quant']
-                    for pp in self._ddata[dlines[k0]['pec']]['ref']
-                ] != [self._group_ne, self._group_Te]
-            )
-        ]
-        if len(lc) > 0:
-            msg = (
-                "The following lines have non-conform pec data:\n"
-                + "\t- {}\n\n".format(lc)
-                + "  => pec data should be tabulated vs (ne, Te)"
-            )
-            warnings.warn(msg)
-            key = [kk for kk in key if kk not in lc]
-
-        # Check ne, Te
-        ltype = [int, float, np.integer, np.floating]
-        dnTe = {'ne': ne, 'Te': Te}
-        for k0, v0 in dnTe.items():
-            if type(v0) in ltype:
-                dnTe[k0] = np.r_[v0]
-            if isinstance(dnTe[k0], list) or isinstance(dnTe[k0], tuple):
-                dnTe[k0] = np.array([dnTe[k0]])
-            if not (isinstance(dnTe[k0], np.ndarray) and dnTe[k0].ndim == 1):
-                msg = (
-                    "Arg {} should be a 1d np.ndarray!".format(k0)
-                )
-                raise Exception(msg)
+        # group lines per common ref
+        lref = set([self._ddata[k0]['ref'] for k0 in keypec])
+        dref = {
+            k0: [k1 for k1 in keypec if self._ddata[k1]['ref'] == k0]
+            for k0 in lref
+        }
 
         # Interpolate
-        dout = {}
-        derr = {}
-        for k0 in key:
-            try:
-                ne0 = [
-                    kk for kk in self._ddata[dlines[k0]['pec']]['ref']
-                    if self._ddata[kk]['group'] == (self._group_ne,)
-                ][0]
-                ne0 = self._ddata[ne0]['data']
-                Te0 = [
-                    kk for kk in self._ddata[dlines[k0]['pec']]['ref']
-                    if self._ddata[kk]['group'] == (self._group_Te,)
-                ][0]
-                Te0 = self._ddata[Te0]['data']
-
-                dout[k0] = _comp_spectrallines._interp_pec(
-                    ne0=ne0,
-                    Te0=Te0,
-                    pec0=self._ddata[dlines[k0]['pec']]['data'],
-                    ne=dnTe['ne'],
-                    Te=dnTe['Te'],
-                    deg=deg,
-                    grid=grid,
-                )
-            except Exception as err:
-                derr[k0] = str(err)
-
-        if len(derr) > 0:
-            msg = (
-                "The pec could not be interpolated for the following lines:\n"
-                + "\n".join([
-                    '\t- {} : {}'.format(k0, v0) for k0, v0 in derr.items()
-                ])
+        for ii, (k0, v0) in enumerate(dref.items()):
+            douti, dparami = self.interpolate(
+                # interpolation base
+                keys=v0,
+                ref_keys=None,
+                ref_quant=[self._quant_ne, self._quant_Te],
+                # interpolation pts
+                pts_axis0=dnTe['ne'],
+                pts_axis1=dnTe['Te'],
+                # parameters
+                deg=deg,
+                deriv=0,
+                grid=grid,
+                log_log=True,
+                return_params=True,
             )
-            raise Exception(msg)
 
-        return dout
+            # update dict
+            if ii == 0:
+                dout = douti
+                dparam = dparami
+            else:
+                dout.update(**douti)
+                dparam['keys'] += dparami['keys']
+                dparam['ref_keys'] += dparami['ref_keys']
+
+        # -------
+        # return
+
+        if return_params is True:
+            dparam['key'] = dparam['keys']
+            del dparam['keys']
+            dparam['ne'] = dparam['pts_axis0']
+            dparam['Te'] = dparam['pts_axis1']
+            del dparam['pts_axis0'], dparam['pts_axis1'], dparam['pts_axis2']
+            return dout, dparam
+        else:
+            return dout
 
     def calc_intensity(
         self,
@@ -453,6 +440,7 @@ class SpectralLines(ds.DataStock):
         """ Compute the lines intensities by pec interpolation for chosen lines
 
         Assumes Maxwellian electron distribution
+        Assumes concentration = nz / ne
 
         Provide ne and Te and 1d np.ndarrays
 
@@ -475,61 +463,35 @@ class SpectralLines(ds.DataStock):
 
         """
 
-        # check inputs
-        if grid is None:
-            grid = ne.size != Te.size
-
         # Check keys
         key = self._ind_tofrom_key(
             which=self._which_lines, key=key, ind=ind, returnas=str,
         )
 
-        if isinstance(concentration, np.ndarray):
-            concentration = {k0: concentration for k0 in key}
-        c0 = (
-            isinstance(concentration, dict)
-            and all([
-                k0 in key
-                and isinstance(cc, np.ndarray)
-                and (
-                    (grid is False and cc.shape == ne.shape == Te.shape)
-                    or
-                    (grid is True and cc.shape == (ne.size, Te.size))
-                )
-                and np.all((cc > 0.) & (cc <= 1.))
-                for k0, cc in concentration.items()
-            ])
-        )
-        if not c0:
-            shape = ne.shape if grid is False else (ne.size, Te.size)
-            msg = (
-                "Arg concentration is non-conform:\n"
-                + "\t- Expected: dict of {} arrays in [0, 1]\n".format(shape)
-                + "\t- Provided: {}".format(concentration)
-            )
-            raise Exception(msg)
 
         # interpolate pec
-        dpec = self.calc_pec(
+        dout, dparam = self.calc_pec(
             key=key,
             ind=ind,
             ne=ne,
             Te=Te,
             grid=grid,
             deg=deg,
+            return_params=True,
         )
 
-        # ne for broadcasting
-        if grid is True:
-            neb = ne[:, None]
-        else:
-            neb = ne
+        # check concentrations
+        concentration = _spectrallines_checks._check_compute_intensity(
+            key=[k0[:-4] for k0 in dparam['key']],
+            concentration=concentration,
+            shape=dparam['ne'].shape,
+        )
 
         # Derive intensity
-        dint = {
-            k0: v0*neb**2*concentration[k0] for k0, v0 in dpec.items()
-        }
-        return dint
+        for k0, v0 in dout.items():
+            dout[k0] = v0*dparam['ne']**2*concentration[k0[:-4]]
+
+        return dout
 
     # -----------------
     # plotting

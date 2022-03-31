@@ -519,28 +519,3 @@ def convert_spectral(
             return coef * data_in
     else:
         return coef, inv
-
-
-# #############################################################################
-# #############################################################################
-#                       Interpolation
-# #############################################################################
-
-
-def _interp_pec(
-    ne0=None,
-    Te0=None,
-    pec0=None,
-    ne=None,
-    Te=None,
-    deg=None,
-    grid=None,
-):
-    """ Interpolate the pec tabulated on a (ne, te) grid """
-    return np.exp(scpRectSpl(
-        np.log(ne0),
-        np.log(Te0),
-        np.log(pec0),
-        kx=deg,
-        ky=deg,
-    )(np.log(ne), np.log(Te), grid=grid))

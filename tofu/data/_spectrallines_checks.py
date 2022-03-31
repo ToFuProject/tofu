@@ -1,5 +1,7 @@
 
 
+import numpy as np
+import datastock as ds
 
 
 # #############################################################################
@@ -241,3 +243,101 @@ def _check_elementioncharge_dict(dstatic):
         raise Exception(msg)
 
 
+# #############################################################################
+# #############################################################################
+#               Check for computing pec / intensity
+# #############################################################################
+
+
+def _check_compute_pec(
+    # check keys
+    key=None,
+    dlines=None,
+    ddata=None,
+    _quant_ne=None,
+    _quant_Te=None,
+    # check ne, te
+    ne=None,
+    Te=None,
+    return_params=None,
+):
+
+    # Check data conformity
+    lc = [
+        k0 for k0 in key
+        if (
+            dlines[k0].get('pec') is None
+            or [
+                ddata[pp]['quant']
+                for pp in ddata[dlines[k0]['pec']]['ref']
+            ] != [_quant_ne, _quant_Te]
+        )
+    ]
+    if len(lc) > 0:
+        msg = (
+            "The following lines have non-conform pec data:\n"
+            + "\t- {}\n\n".format(lc)
+            + "  => pec data should be tabulated vs (ne, Te)"
+        )
+        warnings.warn(msg)
+        key = [kk for kk in key if kk not in lc]
+
+    # Check ne, Te
+    ltype = [int, float, np.integer, np.floating]
+    dnTe = {'ne': ne, 'Te': Te}
+    for k0, v0 in dnTe.items():
+        if type(v0) in ltype:
+            dnTe[k0] = np.r_[v0]
+        if isinstance(dnTe[k0], list) or isinstance(dnTe[k0], tuple):
+            dnTe[k0] = np.array([dnTe[k0]])
+        if not (isinstance(dnTe[k0], np.ndarray) and dnTe[k0].ndim == 1):
+            msg = (
+                "Arg {} should be a 1d np.ndarray!".format(k0)
+            )
+            raise Exception(msg)
+
+    # -----------
+    # return_neTe
+
+    return_params = ds._generic_check._check_var(
+        return_params, 'return_params',
+        types=bool,
+        default=False,
+    )
+
+    return key, dnTe, return_params
+
+
+def _check_compute_intensity(
+    # check keys
+    key=None,
+    concentration=None,
+    shape=None,
+):
+
+    if np.isscalar(concentration):
+        concentration = {k0: np.full(shape, concentration) for k0 in key}
+
+    if isinstance(concentration, np.ndarray):
+        concentration = {k0: concentration for k0 in key}
+
+    c0 = (
+        isinstance(concentration, dict)
+        and all([k0 in concentration.keys() for k0 in key])
+        and all([
+            k0 in key
+            and isinstance(cc, np.ndarray)
+            and cc.shape == shape
+            and np.all((cc > 0.) & (cc <= 1.))
+            for k0, cc in concentration.items()
+        ])
+    )
+    if not c0:
+        msg = (
+            "Arg concentration is non-conform:\n"
+            f"\t- Expected: dict of shape {shape} arrays in [0, 1]\n"
+            f"\t- Provided: {concentration}"
+        )
+        raise Exception(msg)
+
+    return concentration
