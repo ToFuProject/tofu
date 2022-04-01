@@ -503,6 +503,7 @@ class SpectralLines(ds.DataStock):
         ind=None,
         ax=None,
         sortby=None,
+        param_x=None,
         param_txt=None,
         ymin=None,
         ymax=None,
@@ -678,10 +679,10 @@ class SpectralLines(ds.DataStock):
         damp = {k0: {'data': v0} for k0, v0 in dpec.items()}
 
         # Create grid
-        ne_grid = _DataCollection_comp._get_grid1d(
+        ne_grid = ds._class1_compute._get_grid1d(
             ne, scale=ne_scale, npts=ne.size*2, nptsmin=3,
         )
-        Te_grid = _DataCollection_comp._get_grid1d(
+        Te_grid = ds._class1_compute._get_grid1d(
             Te, scale=Te_scale, npts=Te.size*2, nptsmin=3,
         )
 
@@ -695,57 +696,7 @@ class SpectralLines(ds.DataStock):
             grid=True,
         )
 
-        # Get dcolor
-        lcol = plt.rcParams['axes.prop_cycle'].by_key()['color']
-        dcolor = {}
-        if param_color != 'key':
-            lion = [self._dobj['lines'][k0][param_color] for k0 in dpec.keys()]
-            for ii, k0 in enumerate(set(lion)):
-                dcolor[k0] = mcolors.to_rgb(lcol[ii % len(lcol)])
-                lk1 = [
-                    k2 for k2 in dpec.keys()
-                    if self._dobj['lines'][k2][param_color] == k0
-                ]
-                for k1 in lk1:
-                    damp[k1]['color'] = k0
-        else:
-            for ii, k0 in enumerate(dpec.keys()):
-                dcolor[k0] = mcolors.to_rgb(lcol[ii % len(lcoil)])
-                damp[k0]['color'] = k0
-
-        # Create image
-        im_data = np.full((ne_grid.size, Te_grid.size), np.nan)
-        im = np.full((ne_grid.size, Te_grid.size, 4), np.nan)
-        dom_val = np.concatenate(
-            [v0[None, :, :] for v0 in dpec_grid.values()],
-            axis=0,
-        )
-
-        if norder == 0:
-            im_ind = np.nanargmax(dom_val, axis=0)
-        else:
-            im_ind = np.argsort(dom_val, axis=0)[-norder, :, :]
-
-        for ii in np.unique(im_ind):
-            ind = im_ind == ii
-            im_data[ind] = dom_val[ii, ind]
-
-        pmin = np.nanmin(np.log10(im_data))
-        pmax = np.nanmax(np.log10(im_data))
-
-        for ii, k0 in enumerate(dpec_grid.keys()):
-            if ii in np.unique(im_ind):
-                ind = im_ind == ii
-                im[ind, :-1] = dcolor[damp[k0]['color']]
-                im[ind, -1] = (
-                    (np.log10(im_data[ind])-pmin)/(pmax-pmin)*0.9 + 0.1
-                )
-        extent = (ne_grid.min(), ne_grid.max(), Te_grid.min(), Te_grid.max())
-
-        if tit is None:
-            tit = 'spectral lines PEC interpolations'
-        if dtit is None:
-            dtit = {'map': 'norder = {}'.format(norder)}
+        raise NotImplementedError()
 
         return _spectrallines_plot.plot_dominance_map(
             din=self._dobj['lines'], im=im, extent=extent,
