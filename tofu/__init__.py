@@ -63,6 +63,7 @@ import tofu.geom as geom
 from tofu.geom.utils import create_config as load_config
 import tofu.data as data
 import tofu.spectro as spectro
+import tofu.tests as tests
 
 
 # -------------------------------------
