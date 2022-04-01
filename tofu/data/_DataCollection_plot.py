@@ -172,7 +172,7 @@ def _get_fig_dax_mpl(dcases=None, axgrid=None,
     fs = utils.get_figuresize(fs)
     fig = plt.figure(facecolor=bckcolor, figsize=fs)
     if wintit is not False:
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
 
     # -----------------
     # Check all cases
@@ -667,7 +667,7 @@ def _ax_axvline(
             tit = ''
 
         fig = plt.figure(figsize=figsize)
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
         fig.suptitle(tit, size=12, fontweight='bold')
 
         gs = gridspec.GridSpec(1, 1, **dmargin)
@@ -829,7 +829,7 @@ def _ax_dominance_map(
             dtit = {}
 
         fig = plt.figure(figsize=figsize)
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
         fig.suptitle(tit, size=12, fontweight='bold')
 
         if len(proj) == 1:

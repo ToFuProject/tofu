@@ -1,5 +1,5 @@
 ====================
-What's new in 1.4.12
+What's new in 1.5.0
 ====================
 
 tofu 1.5.0 is a major upgrade from 1.4.15

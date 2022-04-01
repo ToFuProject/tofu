@@ -36,18 +36,20 @@ _LIDS_CUSTOM = ['magfieldlines', 'events', 'shortcuts', 'config']
 #           File searching
 ###############################################
 
-def FileNotFoundMsg(pattern,path,lF, nocc=1, ntab=0):
-    assert type(pattern) in [str,list]
+
+def FileNotFoundMsg(pattern, path, lF, nocc=1, ntab=0):
+    assert type(pattern) in [str, list]
     assert type(path) is str
     assert type(lF) is list
     pat = pattern if type(pattern) is str else str(pattern)
     tab = "    "*ntab
-    msg = ["Wrong number of matches (%i) !"%nocc]
-    msg += ["    for : %s"%pat]
-    msg += ["    in  : %s"%path]
-    msg += ["    =>    %s"%str(lF)]
-    msg = "\n".join([tab+ss for ss in msg])
-    return msg
+    msg = [
+        f"Wrong number of matches ({nocc} vs {len(lF)})!",
+        f"\tfor: {pat}",
+        f"\tin : {path}",
+        f"\t=>    {lF}",
+    ]
+    return "\n".join([tab + ss for ss in msg])
 
 
 def FindFilePattern(pattern, path, nocc=1, ntab=0):
@@ -57,7 +59,7 @@ def FindFilePattern(pattern, path, nocc=1, ntab=0):
     assert all([type(ss) is str for ss in pat])
     lF = os.listdir(path)
     lF = [ff for ff in lF if all([ss in ff for ss in pat])]
-    assert len(lF)==nocc, FileNotFoundMsg(pat,path,lF, nocc, ntab=ntab)
+    assert len(lF) == nocc, FileNotFoundMsg(pat, path, lF, nocc, ntab=ntab)
     return lF
 
 
@@ -4012,8 +4014,8 @@ class KeyHandler_mpl(object):
 
         # Check axes is relevant and toolbar not active
         c_activeax = 'fix' not in self.dax[event.inaxes].keys()
-        c_toolbar = self.can.manager.toolbar._active in [None,False]
-        if not all([c_activeax,c_toolbar]):
+        c_toolbar = not self.can.manager.toolbar.mode
+        if not all([c_activeax, c_toolbar]):
             return
 
         # Set self.dcur
@@ -4072,8 +4074,8 @@ class KeyHandler_mpl(object):
     def mouserelease(self, event):
         msg = "Make sure you release the mouse button on an axes !"
         msg += "\n Otherwise the background plot cannot be properly updated !"
-        c0 = self.can.manager.toolbar._active == 'PAN'
-        c1 = self.can.manager.toolbar._active == 'ZOOM'
+        c0 = 'pan' in self.can.manager.toolbar.mode.lower()
+        c1 = 'zoom' in self.can.manager.toolbar.mode.lower()
 
         if c0 or c1:
             ax = self.curax_panzoom
@@ -4088,7 +4090,7 @@ class KeyHandler_mpl(object):
 
         lkey = event.key.split('+')
 
-        c0 = self.can.manager.toolbar._active is not None
+        c0 = self.can.manager.toolbar.mode != ''
         c1 = len(lkey) not in [1,2]
         c2 = [ss not in self.dkeys.keys() for ss in lkey]
         if c0 or c1 or any(c2):

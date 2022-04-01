@@ -1,5 +1,8 @@
 
+
+import inspect
 import warnings
+
 
 import numpy as np
 import matplotlib as mpl
@@ -626,3 +629,98 @@ def _checkformat_inputs_dmisc(color=None, ddef=None):
         color = mpl.colors.to_rgba(ddef['dmisc']['color'])
     assert mpl.colors.is_color_like(color)
     return tuple(mpl.colors.to_rgba(color))
+
+
+# ####################################################################
+# ####################################################################
+#               check synthetic diags
+# ####################################################################
+# ####################################################################
+
+
+def _check_config_get_Ves(config=None, struct=None):
+
+    if config.__class__.__name__ != 'Config':
+        msg = (
+            "Arg config must be a Config object "
+            f"Provided:\n\t- config: {type(config)}"
+        )
+        raise Exception(msg)
+
+    lok = list(config.dStruct['dObj']['Ves'].keys())
+    if struct is None and len(lok) == 1:
+        struct = lok[0]
+    elif struct not in lok:
+        msg = (
+            "Arg struct must be the name of a StructIn in config!\n"
+            f"Provided:\n\t- Available: {lok}\n\t- struct: {struct}"
+        )
+        raise Exception(msg)
+    return struct
+
+
+def _check_calc_signal_from_emissivity(
+    emis=None,
+    config=None,
+    struct=None,
+    lamb=None,
+    det=None,
+    binning=None,
+):
+
+    # config
+    struct = _check_config_get_Ves(config=config, struct=struct)
+
+    # lamb
+    lamb = np.atleast_1d(lamb).ravel()
+
+    # det
+    assert det is not None
+
+    # emis
+    if not callable(emis):
+        msg = "Arg emis must be a callable!"
+        raise Exception(msg)
+
+    argspec = inspect.getfullargspec(emis)
+    c0 = (
+        all([ss in argspec.args for ss in ['r', 'z', 'phi', 'lamb', 't']])
+    )
+    if not c0:
+        msg = (
+            "Arg emis must take at least the following keyword args:\n"
+            "\t- r: major radius\n"
+            "\t- z: height\n"
+            "\t- phi: toroidal angle\n"
+            "\t- lambda: wavelength\n"
+            "\t- t: time\n"
+            f"\nProvided: {argspec.args}"
+        )
+        raise Exception(msg)
+
+    # binning
+    if binning is None:
+        binning = False
+    if binning is not False:
+        c0 = (
+            isinstance(binning, dict)
+            and sorted(binning.keys()) == ['xi', 'xj']
+            and all([isinstance(v0, np.ndarray) for k0, v0 in binning.items()])
+        )
+        if c0:
+            binning = (binning['xi'], binning['xj'])
+        c0 = (
+            hasattr(binning, '__iter__')
+            and len(binning) == 2
+            and all([isinstance(bb, np.ndarray) for bb in binning])
+            and all([np.allclose(bb, np.unique(bb)) for bb in binning])
+        )
+        if not c0:
+            msg = (
+                "Arg binning must be either:\n"
+                "\t- dict of keys ('xi', 'xj') with bin sorted edges arrays\n"
+                "\t- list of 2 'xi' and 'xj' bin sorted edges arrays\n"
+            )
+            raise Exception(msg)
+
+    return struct, lamb, binning

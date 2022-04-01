@@ -652,7 +652,7 @@ def _mesh2DRect_to_dict(
     return dref, dmesh
 
 
-def _mesh2DRect_from_croppoly(crop_poly=None):
+def _mesh2DRect_from_croppoly(crop_poly=None, domain=None):
 
     # ------------
     # check inputs
@@ -668,8 +668,11 @@ def _mesh2DRect_from_croppoly(crop_poly=None):
         )
         or crop_poly.__class__.__name__ == 'Config',
         c0
-        and all([hasattr(cc, '__iter__') and len(cc) == len(crop_poly[0])])
-        and np.asrray(crop_poly).ndim == 2
+        and all([
+            hasattr(cc, '__iter__') and len(cc) == len(crop_poly[0])
+            for cc in crop_poly[1:]
+        ])
+        and np.asarray(crop_poly).ndim == 2
     ]
 
     if not any(lc):
@@ -684,7 +687,6 @@ def _mesh2DRect_from_croppoly(crop_poly=None):
     if lc[0]:
         # trivial case
         poly = None
-        domain = None
 
     else:
 
@@ -692,6 +694,7 @@ def _mesh2DRect_from_croppoly(crop_poly=None):
         # Get poly from input
 
         if lc[1]:
+            # (config, structure name)
 
             if crop_poly.__class__.__name__ == 'Config':
                 config = crop_poly
@@ -711,7 +714,7 @@ def _mesh2DRect_from_croppoly(crop_poly=None):
 
         else:
 
-            # make sure poloy is np.ndarraya and closed
+            # make sure poly is np.ndarraya and closed
             poly = np.asarray(crop_poly).astype(float)
             if not np.allclose(poly[:, 0], poly[:, -1]):
                 poly = np.concatenate((poly, poly[:, 0:1]))
@@ -719,10 +722,11 @@ def _mesh2DRect_from_croppoly(crop_poly=None):
         # -------------
         # Get domain from poly
 
-        domain = [
-            [poly[0, :].min(), poly[0, :].max()],
-            [poly[1, :].min(), poly[1, :].max()],
-        ]
+        if domain is None:
+            domain = [
+                [poly[0, :].min(), poly[0, :].max()],
+                [poly[1, :].min(), poly[1, :].max()],
+            ]
 
     return domain, poly
 
