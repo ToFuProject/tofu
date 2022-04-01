@@ -3999,11 +3999,26 @@ class Plasma2D(utils.ToFuObject):
         # Note : Maybe consider using scipy.LinearNDInterpolator ?
         if idquant is not None:
             vquant = self._ddata[idquant]['data']
-            c0 = (self._ddata[idmesh]['data']['type'] == 'quadtri'
-                  and self._ddata[idmesh]['data']['ntri'] > 1)
+            if idref1d is not None:
+                vr1 = self._ddata[idref1d]['data']
+                vr2 = self._ddata[idref2d]['data']
+
+            c0 = (
+                self._ddata[idmesh]['data']['type'] == 'quadtri'
+                and self._ddata[idmesh]['data']['ntri'] > 1
+            )
             if c0:
-                vquant = np.repeat(vquant,
-                                   self._ddata[idmesh]['data']['ntri'], axis=0)
+                vquant = np.repeat(
+                    vquant,
+                    self._ddata[idmesh]['data']['ntri'],
+                    axis=0,
+                )
+                if idref1d is not None:
+                    vr2 = np.repeat(
+                        vr2,
+                        self._ddata[idmesh]['data']['ntri'],
+                        axis=0,
+                    )
         else:
             vq2dR   = self._ddata[idq2dR]['data']
             vq2dPhi = self._ddata[idq2dPhi]['data']
@@ -4031,6 +4046,8 @@ class Plasma2D(utils.ToFuObject):
             func = _comp.get_finterp_isotropic(
                 idquant, idref1d, idref2d,
                 vquant=vquant,
+                vr1=vr1,
+                vr2=vr2,
                 interp_t=interp_t,
                 interp_space=interp_space,
                 fill_value=fill_value,
