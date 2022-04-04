@@ -3,12 +3,9 @@
 import tomotok.core as tmtkc
 
 
-
-
-
 # #############################################################################
 # #############################################################################
-#                       
+#           Define DALGO for tomotok
 # #############################################################################
 
 
@@ -54,7 +51,12 @@ def get_dalgo():
         fam = 'Non-regularized' if 'bob' in k0.lower() else 'Phillips-Tikhonov'
 
         # reg. operator
-        regoper = 'MinFisher' if 'mfr' in k0.lower() else ''
+        if 'mfr' in k0.lower():
+            regoper = 'MinFisher'
+        elif 'algebraic' in k0.lower():
+            regoper = 'any linear'
+        elif 'bob' in k0.lower():
+            regoper = None
 
         # reg. parameter
         if 'algebraic' in k0.lower():
@@ -83,8 +85,8 @@ def get_dalgo():
         dalgo[k0] = {
             'source': 'tomotok',
             'family': fam,
-            'reg. operator': regoper,
-            'reg. param': regparam,
+            'reg_operator': regoper,
+            'reg_param': regparam,
             'decomposition': decomp,
             'positivity': pos,
             'sparse': sparse,
@@ -92,3 +94,9 @@ def get_dalgo():
         }
 
     return dalgo
+
+
+# #############################################################################
+# #############################################################################
+#           Define functions to be called by tofu
+# #############################################################################
