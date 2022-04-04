@@ -1,5 +1,8 @@
 
 
+import numpy as np
+
+
 import tomotok.core as tmtkc
 
 
@@ -56,7 +59,7 @@ def get_dalgo():
         elif 'algebraic' in k0.lower():
             regoper = 'any linear'
         elif 'bob' in k0.lower():
-            regoper = None
+            regoper = False
 
         # reg. parameter
         if 'algebraic' in k0.lower():
@@ -88,9 +91,10 @@ def get_dalgo():
             'reg_operator': regoper,
             'reg_param': regparam,
             'decomposition': decomp,
-            'positivity': pos,
+            'positive': pos,
             'sparse': sparse,
             'isotropic': True,
+            'func': k0,
         }
 
     return dalgo
@@ -100,3 +104,91 @@ def get_dalgo():
 # #############################################################################
 #           Define functions to be called by tofu
 # #############################################################################
+
+
+def SvdFastAlgebraic(
+    sig_norm=None,
+    gmat_norm=None,
+    deriv=None,
+    method=None,
+    num=None,
+    # additional
+    nchan=None,
+    **kwdargs,
+):
+
+    # solve
+    solver = tmtkc.SvdFastAlgebraic()
+    sol = solver.invert(
+        sig_norm,
+        gmat_norm,
+        deriv,
+        method=None,
+        num=None,
+    )
+
+    # compute residue
+    chi2n = np.sum((gmat_norm.dot(sol) - sig_norm)**2) / nchan
+    reg = sol.dot(deriv.dot(sol))
+
+    return sol, chi2n, reg
+
+
+def GevFastAlgebraic(
+    sig_norm=None,
+    gmat_norm=None,
+    deriv=None,
+    method=None,
+    num=None,
+    # additional
+    nchan=None,
+    **kwdargs,
+):
+
+    # solve
+    solver = tmtkc.GevFastAlgebraic()
+    sol = solver.invert(
+        sig_norm,
+        gmat_norm,
+        deriv,
+        method=None,
+        num=None,
+    )
+
+    # compute residue
+    chi2n = np.sum((gmat_norm.dot(sol) - sig_norm)**2) / nchan
+    reg = sol.dot(deriv.dot(sol))
+
+    return sol, chi2n, reg
+
+
+def Mfr(
+    sig_norm=None,
+    gmat_norm=None,
+    deriv=None,
+    method=None,
+    num=None,
+    # additional
+    nchan=None,
+    **kwdargs,
+):
+
+    # solve
+    solver = tmtkc.Mfr()
+    sol = solver.invert(
+        sig_norm,
+        gmat_norm,
+        derivatives,
+        w_factor=None,
+        mfi_num=3,
+        bounds=(-15, 0),
+        iter_max=10,
+        w_max=1,
+        danis=0,
+    )
+
+    # compute residue
+    chi2n = np.sum((gmat_norm.dot(sol) - sig_norm)**2) / nchan
+    reg = sol.dot(deriv.dot(sol))
+
+    return sol, chi2n, reg

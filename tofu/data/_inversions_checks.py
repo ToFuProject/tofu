@@ -2,6 +2,7 @@
 
 
 # Built-in
+import copy
 
 
 # Common
@@ -28,7 +29,7 @@ _DALGO = {
         'reg_operator': 'any linear',
         'reg_param': 'augTikho',
         'decomposition': '',
-        'positivity': False,
+        'positive': False,
         'sparse': True,
         'isotropic': True,
         'func': 'inv_linear_augTikho_sparse',
@@ -39,7 +40,7 @@ _DALGO = {
         'reg_operator': 'any linear',
         'reg_param': 'augTikho',
         'decomposition': '',
-        'positivity': False,
+        'positive': False,
         'sparse': False,
         'isotropic': True,
         'func': 'inv_linear_augTikho_dense',
@@ -50,7 +51,7 @@ _DALGO = {
         'reg_operator': 'any linear',
         'reg_param': 'augTikho',
         'decomposition': 'cholesky',
-        'positivity': False,
+        'positive': False,
         'sparse': False,
         'isotropic': True,
         'func': 'inv_linear_augTikho_chol_dense',
@@ -61,7 +62,7 @@ _DALGO = {
         'reg_operator': 'any linear',
         'reg_param': 'augTikho',
         'decomposition': 'cholesky',
-        'positivity': False,
+        'positive': False,
         'sparse': True,
         'isotropic': True,
         'func': 'inv_linear_augTikho_chol_sparse',
@@ -72,7 +73,7 @@ _DALGO = {
         'reg_operator': 'any linear',
         'reg_param': 'augTikho',
         'decomposition': '',
-        'positivity': True,
+        'positive': True,
         'sparse': False,
         'isotropic': True,
         'func': 'inv_linear_augTikho_pos_dense',
@@ -83,7 +84,7 @@ _DALGO = {
         'reg_operator': 'any linear',
         'reg_param': 'DisPrinc',
         'decomposition': '',
-        'positivity': False,
+        'positive': False,
         'sparse': True,
         'isotropic': True,
         'func': 'inv_linear_DisPrinc_sparse',
@@ -108,7 +109,7 @@ def get_available_inversions_algo(
     reg_operator=None,
     reg_param=None,
     decomposition=None,
-    positivity=None,
+    positive=None,
     sparse=None,
     isotropic=None,
     dalgo=None,
@@ -134,35 +135,20 @@ def get_available_inversions_algo(
         types=bool,
     )
 
-    # --------------
-    # Get tofu algo
-
-    dalgo = _DALGO
-
-    # -----------------
-    # Get tomotok algo
-
-    if tomotok2tofu is not False:
-        dalgo.update(tomotok2tofu.get_dalgo())
-
     # ------------------------------------
     # filter according to criteria, if any
 
-    lmatch = _inversion_check._match_algo(
+    dalgo = match_algo(
         # filtering
         source=source,
         family=family,
         reg_operator=reg_operator,
         reg_param=reg_param,
         decomposition=decomposition,
-        positivity=positivity,
+        positive=positive,
         sparse=sparse,
         isotropic=isotropic,
-        # ressources
-        dalgo=dalgo,
     )
-    if len(lmatch) < len(dalgo):
-        dalgo = {k0: dict(v0) for k0, v0 in dalgo.items() if k0 in lmatch}
 
     # ------------
     # print or str
@@ -170,8 +156,8 @@ def get_available_inversions_algo(
     if verb is True or returnas is str:
 
         head = ['key'] + [
-            'source', 'family', 'reg. operator', 'reg. param', 'decomposition',
-            'positivity', 'sparse',
+            'source', 'family', 'reg_operator', 'reg_param', 'decomposition',
+            'positive', 'sparse',
         ]
         sep = ['-'*len(kk) for kk in head]
         lstr = [head, sep] + [
@@ -206,41 +192,48 @@ def match_algo(
     reg_operator=None,
     reg_param=None,
     decomposition=None,
-    positivity=None,
+    positive=None,
     sparse=None,
     isotropic=None,
-    dalgo=None,
 ):
 
     # ------------
     # check inputs
 
-    dargs = {k0: v0 for k0, v0 in locals().items() if v0 is not None}
+    dargs = {
+        k0: v0 for k0, v0 in locals().items()
+        if v0 is not None
+    }
 
-    if dalgo is None:
-        dalgo = _DALGO
-        if tomotok is not False:
-            dalgo.update(tomotok2tofu.get_dalgo())
+    # --------------
+    # Get tofu algo
+
+    dalgo = _DALGO
+
+    # -----------------
+    # Get tomotok algo
+
+    if tomotok2tofu is not False:
+        dalgo.update(tomotok2tofu.get_dalgo())
 
     # ------------
     # find matches
 
     if len(dargs) > 0:
         lmatch = [
-            k0 for k0, v0 in dlago
+            k0 for k0, v0 in dalgo.items()
             if all([v0[k1] == v1 for k1, v1 in dargs.items()])
         ]
         if len(lmatch) == 0:
-            lstr = [f'\t- {k0}: v0' for k0, v0 in dargs.items()]
+            lstr = [f'\t- {k0}: {v0}' for k0, v0 in dargs.items()]
             msg = (
                 "No / several algorithms matching the following criteria:\n"
                 + "\n".join(lstr)
             )
             raise Exception(msg)
-    else:
-        lmatch = list(dalgo.keys())
+        dalgo = {k0: v0 for k0, v0 in dalgo.items() if k0 in lmatch}
 
-    return lmatch
+    return copy.deepcopy(dalgo)
 
 
 # #############################################################################
@@ -430,6 +423,16 @@ def _compute_check(
     dalgo = _DALGO[algo]
     dalgo['name'] = algo
 
+    # check vs deg
+    deg = coll.dobj['bsplines'][keybs]['deg']
+    if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
+        if deg != 0:
+            msg = (
+                "MinFisher regularization from tomotok requires deg = 0\n"
+                f"\t- deg: {deg}"
+            )
+            raise Exception(msg)
+
     # -------------------
     # consistent sparsity
 
@@ -584,7 +587,7 @@ def _algo_check(
     # ------------------------
     # low-level solver options
 
-    if dalgo['positivity'] is True:
+    if dalgo['positive'] is True:
 
         if options is None:
             options = {}
