@@ -27,87 +27,15 @@ except Exception as err:
     msg = "Consider installing scikit-umfpack for faster innversions"
     warnings.warn(msg)
 
-try:
-    from .. import tomotok2tofu
-except Exception as err:
-    tomotok2tofu = False
-
 
 # tofu
 from . import _generic_check
 from . import _inversions_checks
+from _inversions_checks import tomotok
+
+__all__ = ['get_available_inversions_algo']
 
 
-# #############################################################################
-# #############################################################################
-#                           info
-# #############################################################################
-
-
-def get_available_inversions_algo(returnas=None, verb=None):
-
-    # --------------
-    # check inputs
-
-    returnas = _generic_check._check_var(
-        returnas,
-        'returnas',
-        default=False,
-        allowed=[False, dict, list, str]
-    )
-
-    verb = _generic_check._check_var(
-        verb,
-        'verb',
-        default=returnas is False,
-        types=bool,
-    )
-
-    # --------------
-    # Get tofu algo
-
-    dalgo = _inversions_checks._DALGO
-
-    # -----------------
-    # Get tomotok algo
-
-    if tomotok2tofu is not False:
-        dalgo.update(tomotok2tofu.get_dalgo())
-
-    # ------------
-    # print or str
-
-    if verb is True or returnas is str:
-
-        head = ['key'] + [
-            'source', 'family', 'reg. operator', 'reg. param', 'decomposition',
-            'positivity', 'sparse',
-        ]
-        sep = ['-'*len(kk) for kk in head]
-        lstr = [head, sep] + [
-            [k0] + [v0[k1] for k1 in head[1:]]
-            for k0, v0 in dalgo.items()
-        ]
-
-        nmax = np.max(np.char.str_len(np.char.array(lstr)), axis=0)
-        lstr = [
-            ' '.join([str(ss).ljust(nmax[ii]) for ii, ss in enumerate(line)])
-            for line in lstr
-        ]
-        msg = "\n".join(lstr)
-
-        if verb:
-            print(msg)
-
-    # -------
-    # return
-
-    if returnas is dict:
-        return dalgo
-    elif returnas is list:
-        return sorted(dalgo.keys())
-    elif returnas is str:
-        return msg
 
 
 # #############################################################################
@@ -124,16 +52,11 @@ def compute_inversions(
     key_sigma=None,
     data=None,
     sigma=None,
-    # choice of algo
-    isotropic=None,
-    sparse=None,
-    positive=None,
-    cholesky=None,
-    regparam_algo=None,
-    algo=None,
     # regularity operator
     operator=None,
     geometry=None,
+    # choice of algo
+    algo=None,
     # misc
     solver=None,
     conv_crit=None,
@@ -152,7 +75,7 @@ def compute_inversions(
     (
         key_matrix, key_data, key_sigma, keybs, keym,
         data, sigma, matrix, opmat, operator, geometry,
-        isotropic, sparse, positive, cholesky, regparam_algo, algo,
+        dalgo,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
     ) = _inversions_checks._compute_check(
@@ -164,13 +87,7 @@ def compute_inversions(
         data=data,
         sigma=sigma,
         # choice of algo
-        isotropic=isotropic,
-        sparse=sparse,
-        positive=positive,
-        cholesky=cholesky,
-        regparam_algo=regparam_algo,
         algo=algo,
-        tofu2tomotok=tofu2tomotok,
         # regularity operator
         solver=solver,
         operator=operator,
@@ -188,7 +105,6 @@ def compute_inversions(
 
     nt, nchan = data.shape
     nbs = matrix.shape[1]
-    func = eval(algo)
 
     # -------------
     # prepare data
@@ -260,8 +176,8 @@ def compute_inversions(
         print("Starting time loop...", end='\n', flush=True)
 
     out = _compute_inv_loop(
-        algo=algo,
-        func=func,
+        dalgo=dalgo,
+        # func=func,
         sol0=sol0,
         mu0=mu0,
         matrix=matrix,
@@ -431,8 +347,8 @@ def compute_inversions(
 
 
 def _compute_inv_loop(
-    algo=None,
-    func=None,
+    dalgo=None,
+    # func=None,
     sol0=None,
     mu0=None,
     matrix=None,
@@ -519,7 +435,7 @@ def _compute_inv_loop(
         (
             sol[ii, :], mu[ii], chi2n[ii], regularity[ii],
             niter[ii], spec[ii],
-        ) = func(
+        ) = dalgo['func'](
             Tn=Tn,
             TTn=TTn,
             Tyn=Tyn,
