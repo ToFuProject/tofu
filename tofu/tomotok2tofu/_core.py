@@ -144,6 +144,10 @@ def GevFastAlgebraic(
     nchan=None,
     **kwdargs,
 ):
+    """
+    Expects deriv to be provided as tgradR.dot(gradR) + tgradZ.dot(gradZ)
+
+    """
 
     # solve
     solver = tmtkc.GevFastAlgebraic()
@@ -172,13 +176,17 @@ def Mfr(
     nchan=None,
     **kwdargs,
 ):
+    """
+    Expects deriv to be provided as a tuple (gradR, gradZ)
+
+    """
 
     # solve
     solver = tmtkc.Mfr()
     sol = solver.invert(
         sig_norm,
         gmat_norm,
-        derivatives,
+        deriv,          # here must be provided as (gradR, gradZ)
         w_factor=None,
         mfi_num=3,
         bounds=(-15, 0),
@@ -189,6 +197,42 @@ def Mfr(
 
     # compute residue
     chi2n = np.sum((gmat_norm.dot(sol) - sig_norm)**2) / nchan
-    reg = sol.dot(deriv.dot(sol))
+    reg = sol.dot(deriv[0][0].dot(sol)) + sol.dot(deriv[0][1].dot(sol))
+
+    return sol, chi2n, reg
+
+
+def CholmodMfr(
+    sig_norm=None,
+    gmat_norm=None,
+    deriv=None,
+    method=None,
+    num=None,
+    # additional
+    nchan=None,
+    **kwdargs,
+):
+    """
+    Expects deriv to be provided as a tuple (gradR, gradZ)
+
+    """
+
+    # solve
+    solver = tmtkc.CholmodMfr()
+    sol = solver.invert(
+        sig_norm,
+        gmat_norm,
+        deriv,          # here must be provided as (gradR, gradZ)
+        w_factor=None,
+        mfi_num=3,
+        bounds=(-15, 0),
+        iter_max=10,
+        w_max=1,
+        danis=0,
+    )
+
+    # compute residue
+    chi2n = np.sum((gmat_norm.dot(sol) - sig_norm)**2) / nchan
+    reg = sol.dot(deriv[0][0].dot(sol)) + sol.dot(deriv[0][1].dot(sol))
 
     return sol, chi2n, reg

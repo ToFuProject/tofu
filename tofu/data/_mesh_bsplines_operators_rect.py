@@ -456,23 +456,20 @@ def get_mesh2dRect_operators(
                     ny,
                 )
 
+            dS = dR*dZ
             if cropbs_flat is not False:
-                dR = dR[cropbs_flat]
-                dZ = dZ[cropbs_flat]
-
-            # Does not seem to give the same result !
-            import pdb; pdb.set_trace()     # DB
+                dS = dS[cropbs_flat]
 
             if returnas_element is True:
                 opmat = (
-                    scpsp.csc_matrix(gradR*np.sqrt(dR*dZ)[:, None]),
-                    scpsp.csc_matrix(gradZ*np.sqrt(dR*dZ)[:, None]),
+                    scpsp.csc_matrix(gradR*np.sqrt(dS[:, None])),
+                    scpsp.csc_matrix(gradZ*np.sqrt(dS[:, None])),
                 )
 
             else:
                 opmat = (
-                    scpsp.csc_matrix(gradR.T.dot(gradR*(dR*dZ)[:, None])),
-                    scpsp.csc_matrix(gradZ.T.dot(gradZ*(dR*dZ)[:, None])),
+                    scpsp.csc_matrix(gradR.T.dot(gradR*(dS[:, None]))),
+                    scpsp.csc_matrix(gradZ.T.dot(gradZ*(dS[:, None]))),
                 )
 
         else:

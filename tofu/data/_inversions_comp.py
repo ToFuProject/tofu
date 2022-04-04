@@ -111,7 +111,9 @@ def compute_inversions(
     mu0 = 1.
 
     # Define Regularization operator
-    if operator == 'D0N2':
+    if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
+        R = opmat
+    elif operator == 'D0N2':
         R = opmat[0]
     elif operator == 'D1N2':
         R = opmat[0] + opmat[1]
@@ -531,7 +533,11 @@ def _compute_inv_loop_tomotok(
     # Getting initial solution - step 1/2
 
     nt, nchan = data_n.shape
-    nbs = R.shape[0]
+    if not isinstance(R, np.ndarray):
+        nbs = R[0].shape[0]
+        R = (R,)
+    else:
+        nbs = R.shape[0]
 
     if verb >= 2:
         form = "nchan * chi2n   +   mu *  R           "
