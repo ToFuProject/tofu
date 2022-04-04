@@ -316,7 +316,7 @@ def compute_rockingcurve(
             rhg, P_per, P_mos, P_dyn, det_perp, det_para,
         ) = CrystBragg_comp_integrated_reflect(
             lamb=lamb, re=re, Volume=Volume, Zo=Zo, theta=theta, mu=mu,
-            F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
+            F_re=F_re, psi_re=psi_re, _max_prpsi0_dre=psi0_dre, psi0_im=psi0_im,
             Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
             model=['perfect', 'mosaic', 'dynamical'],
             use_non_parallelism=use_non_parallelism, alpha=alpha, bb=bb,
@@ -325,7 +325,7 @@ def compute_rockingcurve(
         )
     else:
         (
-            alpha, bb, polar, g, y, power_ratio, max_pr, th,
+            alpha, bb, polar, g, y, power_ratio, max_pr, th, dth,
             rhg, rhg_perp, rhg_para, rhg_perp_norm, rhg_para_norm,
             P_per, P_mos, P_dyn,
             det_perp, det_para, det_perp_norm, det_para_norm,
@@ -386,7 +386,8 @@ def compute_rockingcurve(
         CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
             ih=ih, ik=ik, il=il, lamb=lamb, theta=theta,
             therm_exp=therm_exp, T0=T0, TD=TD, na=na, nn=nn,
-            alpha=alpha, power_ratio=power_ratio, th=th,
+            alpha=alpha, power_ratio=power_ratio,
+            th=th, dth=dth,
             rhg_perp=rhg_perp, rhg_para=rhg_para,
             max_pr=max_pr, det_perp=det_perp, det_para=det_para,
             shift_perp=shift_perp, shift_para=shift_para,
@@ -478,14 +479,14 @@ def compute_rockingcurve(
 
 # #############################################################################
 # #############################################################################
-#             Plot variations of quantities vs temperature changes
+#          Plot variations of RC components vs temperature & asymetry
 #                        for multiple wavelengths
 # #############################################################################
 # #############################################################################
 
 
 def plot_var_temp_changes_wavelengths(
-    ih=None, ik=None, il=None, lambdas=None,
+    ih=None, ik=None, il=None, la_max_prmbdas=None,
     use_non_parallelism=None, na=None,
     alpha_limits=None,
     therm_exp=None, plot_therm_exp=None,
@@ -564,7 +565,7 @@ def plot_var_temp_changes_wavelengths(
             plot_asymmetry=False, plot_cmaps=False,
             verb=False, returnas=dict,
         )
-        din[lambdas[aa]]['Wavelength (A)'] = dout['Wavelength (A)\n']
+        din[lambdas[aa]]['Wavelength (A)'] = do, dth_max_pr,ut['Wavelength (A)\n']
         din[lambdas[aa]]['Inter-reticular distance (A)'] = (
             dout['Inter-reticular distance (A)\n']
         )
@@ -620,7 +621,7 @@ def plot_var_temp_changes_wavelengths(
 
     ## 1st: comparisons between spacing variations from theoretical (d_hkl)
     ## and those induced from RC shifts computations; study of the impact of
-    ## asymetry and thermal expansion of few wavelengths of interest
+    ## asymetry and thermal expansion on few wavelengths of interest
     fig = plt.figure(figsize=(15, 9))
     gs = gridspec.GridSpec(1, 2)
     ax = fig.add_subplot(gs[0, 0])
@@ -628,21 +629,35 @@ def plot_var_temp_changes_wavelengths(
     fig.suptitle(
         'Hexagonal Qz, ' + f'({ih},{ik},{il})'
     )
+    ax.set_title(
+        'Computed - theoretical spacing variations \n' +
+        fr'd$_{(ih,ik,il)}$ ~ 1e-5'  # d$_{({ih},{ik},{il})}$
+    )
     ax.set_xlabel(r'$\Delta$T ($T_{0}$=25°C)')
-    ax.set_ylabel(r'Spacing variation $\Delta$d/d (x1e-5) (d in $\AA$)')
+    ax.set_ylabel(r'$\Delta$[$\Delta$d$_{(hkl)}$/d$_{(hkl)}$]', fs=15)
     ax1.set_xlabel(r'$\Delta$T ($T_{0}$=25°C)')
 
     markers = ['o', '^', 'D', 's', 'X']
 
     for aa in range(nlamb):
-        ax.scatter(
-            din[lambdas[aa]]['Temperature changes (°C)'],
+        diff = (
             din[lambdas[aa]][
                 'Inter-planar spacing variations (perp. compo)'
-            ][:, nn]*1e5,
+            ][:, nn] - (
+                din[lambdas[aa]]['Inter-reticular distance (A)']
+                - din[lambdas[aa]]['Inter-reticular distance (A)'][nn]
+            )/din[lambdas[aa]]['Inter-reticular distance (A)'][nn]
+        )
+        ax.scatter(
+            din[lambdas[aa]]['Temperature changes (°C)'],
+            #din[lambdas[aa]][
+                #'Inter-planar spacing variations (perp. compo)'
+            #][:, nn]*1e5,
+            diff,
             marker=markers[aa], c='k', alpha=0.5,
             label=r'$\lambda$ = ({})$\AA$'.format(lambdas[aa]),
         )
+        """
         ax.scatter(
             din[lambdas[aa]]['Temperature changes (°C)'],
             1e5*(
@@ -652,6 +667,7 @@ def plot_var_temp_changes_wavelengths(
             marker='*', c='k', alpha=None,
             label=r'Theoretical $\Delta$d/d$_{(hkl)}$',
         )
+        """
         if quantity == 'integrated reflectivity':
             ax1.set_ylabel(r'Integrated reflectivity')
             ax1.scatter(
@@ -679,8 +695,10 @@ def plot_var_temp_changes_wavelengths(
     ax.legend()
     ax1.legend()
 
-    ## 2nd:
-    cmap = plt.cm.seismic  # plt.cm.viridis
+    ## 2nd: colormpas of inferred pixel shift computed from angular shifts of
+    ## rocking curves, with respect ot the temperature changes and asymetry
+    ## angles, for the choosen wavelengths of interest
+    cmap = plt.cm.seismic
     fs = (22, 10)
     dmargin = {'left': 0.05, 'right': 0.97,
                'bottom': 0.06, 'top': 0.92,
@@ -866,7 +884,23 @@ def CrystBragg_comp_lattice_spacing(
     ih=None, ik=None, il=None, lamb=None, na=None, nn=None,
     therm_exp=None, plot_therm_exp=None,
 ):
+    """
+    Compute the inter-atomic spacing d_hkl for a given crystal of Miller
+    indices (ih, ik ,il).
+    Eiher heating or colling it have been proved experimentally affecting
+    this quantity and this code will provide this case, for temperatures
+    changes of +/- 25°C around an ambiant estimated at 25°C.
+    This results to the variations of the inter-atomic spacing with respect
+    to the temperature changes.
+    An array containing these new values of d_hkl is provided through 'd_atom'
+    containing the 'na' values between -25°C and +25°C.
+    Indeed, the 'na'/2 value of 'd_atom' will correspond to the crystal
+    inter-atomic spacing without any temperature changes.
 
+    The values of the lattice parameters in the directions a and c for an
+    alpha-quartz crystal have been picked from the book "Crystal Structures"
+    of Wyckoff, as well as the thermal expansion coefficients in the directions
+    """
     # Lattice constants and thermal expansion coefficients for Qz
     # -----------------------------------------------------------
 
@@ -944,7 +978,24 @@ def CrystBragg_comp_integrated_reflect(
     use_non_parallelism=None, alpha=None, bb=None, na=None, nn=None,
     therm_exp=None,
 ):
-    """For simplification and line savings reasons, whether use_non_parallelism
+    """
+    This method provide a method to compute the rocking curve of the specified
+    crystal (ih, ik, il, lambda).
+    Three crystal model are then done: perfect, mosaic and dynamical.
+    The 'power_ratio' element correspond to the the reflecting power at a
+    specific mathematic data, which have been converted into glancing angle
+    data named 'th' for the quantity theta-theta_Bragg.
+    Be careful: theta_Bragg isn't the same in all cases if the arg
+    'therm_exp' have been picked!
+    The conversion made of the quantity theta-thetaBragg computed is at TD=!0,
+    as called 'th' has to be made by adding to each the Bragg angle of reference
+    at no thermal expansion AND no asymetry angle:
+    (theta - thetaBragg) + thetaBragg(at TD=alpha=0) => theta[na/2] !!
+    This is done because we have to get a fixed Bragg angle of reference through
+    all computations of rocking curves, whether the application of temperature
+    changes or asymetry angle is set.
+
+    For simplification and line savings reasons, whether use_non_parallelism
     is True or False, alpha and bb arrays have the same shape.
     For the same reasons, the theta-dimension, depending on therm_exp arg,
     is present in all the arrays, even if it means having a extra dimension
@@ -1025,9 +1076,11 @@ def CrystBragg_comp_integrated_reflect(
                     -y*polar[h][i]*psi_re[i]*np.sqrt(abs(bb[i, j]))
                     + psi0_dre[i]*((1. - bb[i, j])/2.)
                 )/(bb[i, j]*np.sin(2.*theta[i]))
-                dth[h, i, j, ...] = th[h, i, j, :] + theta[i]
                 ind = int(ind_max_pr[h, i, j])
                 th_max_pr[h, i, j] = th[h, i, j, int(ind_max_pr[h, i, j])]
+                # conversion of (theta-thetaBragg(TD=!0)) to
+                # (theta-thetaBragg(TD=!0))+thetaBragg(TD=alpha=0)
+                dth[h, i, j, ...] = th[h, i, j, :] + theta[i]
                 dth_max_pr[h, i, j] = dth[h, i, j, int(ind_max_pr[h, i, j])]
                 # Integrated reflecting power in the glancing angle scale
                 # r(i=0): normal component & r(i=1): parallel component
@@ -1142,7 +1195,7 @@ def CrystBragg_comp_integrated_reflect(
     else:
         return (
             alpha, bb, polar, g, y,
-            power_ratio, max_pr, th,
+            power_ratio, max_pr, th, dth,
             rhg, rhg_perp, rhg_para, rhg_perp_norm, rhg_para_norm,
             P_per, P_mos, P_dyn,
             det_perp, det_para, det_perp_norm, det_para_norm,
@@ -1639,7 +1692,7 @@ def CrystalBragg_plot_rc_components_vs_asymmetry(
 def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     ih=None, ik=None, il=None, lamb=None, theta=None,
     therm_exp=None, T0=None, TD=None, na=None, nn=None,
-    alpha=None, power_ratio=None, th=None,
+    alpha=None, power_ratio=None, th=None, dth=None,
     rhg_perp=None, rhg_para=None,
     max_pr=None, det_perp=None, det_para=None,
     shift_perp=None, shift_para=None,
@@ -1685,6 +1738,77 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     alpha_deg = alpha*(180/np.pi)
     extent = (alpha_deg.min(), alpha_deg.max(), TD.min(), TD.max())
 
+    ## Create axis dictionary
+    ## ----------------------
+    dax = {
+        'reflectivity_perp': {'handle': ax00},
+        'reflectivity_para': {'handle': ax10},
+        'reflectivity_perp_zoom': {'handle': ax01},
+        'reflectivity_para_zoom': {'handle': ax11},
+        'shift_perp_zoom': {'handle': ax02},
+        'shift_para_zoom': {'handle': ax12},
+        'shift_perp': {'handle': ax03},
+        'shift_para': {'handle': ax13},
+        'curve': {'handle': ax2},
+    }
+
+    ## Instanciate a DataStock object
+    ## ------------------------------
+    st = datastock.DataStock()
+
+    st.add_ref(key='nT', size=theta.size)
+    st.add_ref(key='nalpha', size=alpha.size)
+    st.add_ref(key='nangle', size=th[0, 0, 0, :].size)
+
+    st.add_data(key='TD', data=TD, ref=('nT',))
+    st.add_data(key='alpha', data=alpha, ref=('nalpha',))
+    st.add_data(key='angle', data=th[0, 0, 0, :], ref=('nangle',))
+    st.add_data(
+        key='power_ratio_perp',
+        data=power_ratio[0, :, :, :],
+        ref=('nT', 'nalpha', 'angle'),
+    )
+    st.add_data(
+        key='power_ratio_para',
+        data=power_ratio[1, :, :, :],
+        ref=('nT', 'nalpha', 'angle'),
+    )
+    st.add_data(
+        key='theta_perp',
+        data=dth[0, :, :, :],
+        ref=('nT', 'nalpha', 'angle'),
+    )
+    st.add_data(
+        key='theta_para',
+        data=dth[1, :, :, :],
+        ref=('nT', 'nalpha', 'angle'),
+    )
+    st.add_data(
+        key='reflectivity_integrated_perp',
+        data=rhg_perp,
+        ref=('nT', 'nalpha'),
+    )
+    st.add_data(
+        key='reflectivity_integrated_perp.T',
+        data=rhg_perp.T,
+        ref=('nalpha', 'nT'),
+    )
+    st.add_data(
+        key='reflectivity_integrated_para',
+        data=rhg_para,
+        ref=('nT', 'nalpha'),
+    )
+    st.add_data(
+        key='shift_perp',
+        data=shift_thmaxpr_perp,
+        ref=('nT', 'nalpha'),
+    )
+    st.add_data(
+        key='shift_para',
+        data=shift_thmaxpr_para,
+        ref=('nT', 'nalpha'),
+    )
+
     ## Integrated reflectivities
     ## -------------------------
     rghmap_perp = ax00.imshow(
@@ -1711,6 +1835,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         orientation='vertical',
         ax=ax10,
     )
+    """
     ## Maximum values of reflectivities
     ## --------------------------------
     maxpowerratio_perp = ax01.imshow(
@@ -1763,6 +1888,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         orientation='vertical',
         ax=ax12,
     )
+    """
     ## Shift on max. reflect. values from reference RC (TD = 0. & alpha=0.)
     ## --------------------------------------------------------------------
     spemin = (shift_perp).min()*(180/np.pi)
@@ -1817,3 +1943,140 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         orientation='vertical',
         ax=ax13,
     )
+
+    ## Define dgroup
+    ## -----------------
+
+    dgroup = {
+        'g0': {
+            'ref': ['nT'],
+            'data': ['index'],
+            'nmax': 1,
+        },
+        'g1': {
+            'ref': ['nalpha'],
+            'data': ['index'],
+            'nmax': 1,
+        },
+    }
+
+    ## Plot mobile part
+    ## -----------------
+    nmax = 10
+
+    kax = 'curve'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        # Power ratio vs glancing angle
+        for ii in range(nmax):
+            l0, = ax.plot(
+                th[0, 0, 0, :],
+                power_ratio[0, 0, 0, :],
+                c='k',
+                ls='-',
+            )
+            import pdb; pdb.set_trace()     # DB
+            st.add_mobile(
+                key=f'curve_perp{ii}',
+                handle=l0,
+                ax=ax,
+                ref=('nT', 'nalpha'),
+                data=('theta_perp', 'power_ratio_perp'),
+                dtype=['xdata', 'ydata'],
+                ind=ii,
+            )
+    """
+    kax = 'reflectivity_perp
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        # Integrated reflectivity, normal component
+        for ii in range(nmax):
+            l0, = ax.plot(
+                alpha[0],
+                TD[0],
+                marker='s',
+                markeredgecolor='k',
+                markerfacecolor='None',
+            )
+            st.add_mobile(
+                key='m0',
+                handle=l0,
+                ax=ax, #dax['reflectivity_perp_zoom']['handle'],
+                ref=(
+                    'nalpha', 'nT', 'reflectivity_integrated_perp',
+                    'reflectivity_integrated_perp.T',
+                    'ntransparency', 'ntext',
+                ),
+                ind=ii,
+            )
+
+    kax = 'reflectivity_para'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        # Integrated reflectivity, parallel component
+        for ii in range(nmax):
+            l0, = ax.plot(
+                alpha[0],
+                TD[0],
+                marker='s',
+                markeredgecolor='k',
+                markerfacecolor='None',
+            )
+            st.add_mobile(
+                key='m0',
+                handle=l0,
+                ax=ax,
+                ref=('DT', 'alpha'),
+                ind=ii,
+            )
+
+    kax = 'shift_perp'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        # Shift from the reference RC, normal component
+        for ii in range(nmax):
+            l0, = ax.plot(
+                alpha[0],
+                TD[0],
+                marker='s',
+                markeredgecolor='k',
+                markerfacecolor='None',
+            )
+            st.add_mobile(
+                key='m0',
+                handle=l0,
+                ax=ax,
+                ref=('DT', 'alpha'),
+                ind=ii,
+            )
+
+    kax = 'shift_para'
+    if dax.get(kax) is not None:
+        ax = dax[kax]
+        # Shift from the reference RC, parallel component
+        for ii in range(nmax):
+            l0, = ax.plot(
+                alpha[0],
+                TD[0],
+                marker='s',
+                markeredgecolor='k',
+                markerfacecolor='None',
+            )
+            st.add_mobile(
+                key='m0',
+                handle=l0,
+                ax=ax,
+                ref=('DT', 'alpha'),
+                ind=ii,
+            )
+    """
+
+
+
+    st.add_axes(**dax)
+
+    st.setup_interactivity(dgroup=dgroup)
+    st.disconnect_old()
+    st.connect()
+
+    return st
