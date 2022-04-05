@@ -139,24 +139,35 @@ class Test01_Inversions():
                 if 'mfr' in comb[0].lower() and kmat != 'matrix0':
                     continue
 
-                # Temporary
-                if dalgo[comb[0]]['source'] == 'tomotok':
-                    continue
+                try:
+                    self.mesh.add_inversion(
+                        algo=comb[0],
+                        key_matrix=kmat,
+                        key_data=comb[1],
+                        sigma=0.10,
+                        operator=comb[2],
+                        store=comb[3],
+                        conv_crit=1.e-3,
+                        kwdargs={'tol': 1.e-4},
+                        verb=0,
+                    )
+                    ksig = f'{comb[1]}-sigma'
+                    if ksig in self.mesh.ddata.keys():
+                        self.mesh.remove_data(ksig)
 
-                self.mesh.add_inversion(
-                    algo=comb[0],
-                    key_matrix=kmat,
-                    key_data=comb[1],
-                    sigma=0.10,
-                    operator=comb[2],
-                    store=comb[3],
-                    conv_crit=1.e-3,
-                    kwdargs={'tol': 1.e-4},
-                    verb=0,
-                )
-                ksig = f'{comb[1]}-sigma'
-                if ksig in self.mesh.ddata.keys():
-                    self.mesh.remove_data(ksig)
+                except Exception as err:
+                    c0 = (
+                        dalgo[comb[0]]['source'] == 'tomotok'
+                        and comb[2] == 'D1N2'
+                        and kmat == 'matrix0'
+                    )
+                    if c0:
+                        # Discrete gradient seem to be not positive-definite
+                        # To be investigated...
+                        pass
+                    else:
+                        raise err
+
 
         # plotting
         linv = list(self.mesh.dobj['inversions'].keys())[::7]
