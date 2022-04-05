@@ -91,10 +91,11 @@ def compute_inversions(
     # -------------
     # get func
 
-    if dalgo['source'] == 'tofu':
-        dalgo['func'] = getattr(_inversions_algos, dalgo['func'])
-    elif dalgo['source'] == 'tomotok':
-        dalgo['func'] = getattr(tomotok2tofu, dalgo['func'])
+    if isinstance(dalgo['func'], str):
+        if dalgo['source'] == 'tofu':
+            dalgo['func'] = getattr(_inversions_algos, dalgo['func'])
+        elif dalgo['source'] == 'tomotok':
+            dalgo['func'] = getattr(tomotok2tofu, dalgo['func'])
 
     # -------------
     # prepare data

@@ -1,6 +1,10 @@
 
 
 import numpy as np
+try:
+    from sksparse.cholmod import cholesky
+except Exception:
+    cholesky = False
 
 
 import tomotok.core as tmtkc
@@ -42,6 +46,8 @@ def get_dalgo():
     dalgo = dict.fromkeys([
         ss for ss in dir(tmtkc.inversions)
         if type(getattr(tmtkc.inversions, ss)) == type
+        and not (cholesky is False and ss == 'CholmodMfr')
+        and 'bob' not in ss.lower()
     ])
 
     # ---------
