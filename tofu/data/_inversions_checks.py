@@ -8,7 +8,6 @@ import copy
 # Common
 import numpy as np
 import scipy.sparse as scpsp
-import datastock as ds
 
 
 # specific
@@ -412,7 +411,7 @@ def _compute_check(
     # choice of algo
 
     lok = list(_DALGO.keys())
-    algo = ds._generic_check._check_var(
+    algo = _generic_check._check_var(
         algo, 'algo',
         default='algo1',
         types=str,
