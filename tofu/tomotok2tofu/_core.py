@@ -22,7 +22,7 @@ def _get_sparse_from_docstr(doc, k0=None):
         )
         raise Exception(msg)
     if any([ss in gmat[0] for ss in ['scipy', 'sparse', 'csr_matrix']]):
-        sparse  = True
+        sparse = True
     elif any([ss in gmat[0] for ss in ['np.ndarray', 'numpy']]):
         sparse = False
     else:
@@ -36,8 +36,7 @@ def _get_sparse_from_docstr(doc, k0=None):
 
 def get_dalgo():
 
-
-    #----------------
+    # ----------------
     # Initialize dict
 
     dalgo = dict.fromkeys([
@@ -45,7 +44,7 @@ def get_dalgo():
         if type(getattr(tmtkc.inversions, ss)) == type
     ])
 
-    #---------
+    # ---------
     # Complete
 
     for k0 in dalgo.keys():

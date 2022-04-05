@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
 #! /usr/bin/python
+
+
 """
 The openadas-compatibility module of tofu
 
 """
+
+
 import traceback
+
 
 try:
     try:
