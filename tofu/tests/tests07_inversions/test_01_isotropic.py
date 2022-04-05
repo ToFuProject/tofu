@@ -83,13 +83,15 @@ class Test01_Inversions():
             crop_poly=conf0,
             key='try1',
             res=0.10,
-            deg=1,
+            deg=0,
         )
+        mesh.add_bsplines(deg=1)
         mesh.add_bsplines(deg=2)
 
         # add geometry matrices
         chan = np.arange(0, 30)
         mesh.add_ref(key='chan', data=chan, group='chan')
+        mesh.add_geometry_matrix(cam=cam, key='try1-bs0', key_chan='chan')
         mesh.add_geometry_matrix(cam=cam, key='try1-bs1', key_chan='chan')
         mesh.add_geometry_matrix(cam=cam, key='try1-bs2', key_chan='chan')
 
@@ -117,16 +119,30 @@ class Test01_Inversions():
 
     def test01_run_all_and_plot(self):
 
-        lalgo = tf.data._mesh._inversions_comp._inversions_checks._LALGO
+        dalgo = tf.data.get_available_inversions_algo(returnas=dict)
         lstore = [True, False]
         lkdata = ['data0', 'data1']
 
         # running
-        for kmat in ['matrix0', 'matrix1']:
+        for kmat in ['matrix0', 'matrix1', 'matrix2']:
 
-            lop = ['D1N2'] if kmat == 'matrix0' else ['D1N2', 'D2N2']
+            if kmat in ['matrix0', 'matrix1']:
+                lop = ['D1N2']
+            else:
+                lop = ['D1N2', 'D2N2']
 
-            for comb in itt.product(lalgo, lkdata, lop, lstore):
+            for comb in itt.product(dalgo.keys(), lkdata, lop, lstore):
+
+                if comb[2] == 'D2N2' and kmat != 'matrix2':
+                    continue
+
+                if 'mfr' in comb[0].lower() and kmat != 'matrix0':
+                    continue
+
+                # Temporary
+                if dalgo[comb[0]]['source'] == 'tomotok':
+                    continue
+
                 self.mesh.add_inversion(
                     algo=comb[0],
                     key_matrix=kmat,
