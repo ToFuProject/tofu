@@ -460,6 +460,7 @@ def get_mesh2dRect_operators(
             if cropbs_flat is not False:
                 dS = dS[cropbs_flat]
 
+            # Does not seem to give positive definite matrix, to be checked ?
             if returnas_element is True:
                 opmat = (
                     scpsp.csc_matrix(gradR*np.sqrt(dS[:, None])),
@@ -468,8 +469,8 @@ def get_mesh2dRect_operators(
 
             else:
                 opmat = (
-                    scpsp.csc_matrix(gradR.T.dot(gradR*(dS[:, None]))),
-                    scpsp.csc_matrix(gradZ.T.dot(gradZ*(dS[:, None]))),
+                    scpsp.csc_matrix((gradR.T.dot(gradR))*(dS[:, None])),
+                    scpsp.csc_matrix((gradZ.T.dot(gradZ))*(dS[:, None])),
                 )
 
         else:
