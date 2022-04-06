@@ -10,10 +10,14 @@ Main changes:
 
 - Better packaging and CI #583, #584, #585, #587, #590
 - Better benchmarks #589
-- Improved and new features for CrystalBragg class #591, #601, #611, #616
+- Improved and new features for CrystalBragg class #591, #601, #611, #616, #623, #627, #630
+- Better fit2d #624, #628
+- Debuggued plasma2d interpolation #633
 - Figures interactivity recovered #594
 - New/improved tokamaks geometries: SPARC, AUG and NSTX #598, #606, #615
+- More complete IMAS shortcuts #622, #625
 - Better doc #609
+- Fixed unit tests #619, #620
 
 N.B: issue #603 was opened and designed as a tutorial for inversions
 
@@ -34,6 +38,28 @@ CrystalBragg class:
 - Cryst.calc_signal_from_emissivity() which plots the synthetic signal from a user-provided plasma emissivity map and spectrum #601
 - tofu.spectro has new routines for 2d spectra fitting and plotting (fit2d(), plot_dinput2d(), plot_fit2d()) #611
 - Cryst.plot() can now take any pts for ray-tracing, not only from the plasma (also from the detector) #616
+- Cryst.compute_rocking_curve() implemented, with plots #623
+- Cryst.compute_rocking_curve() works with default args #625
+- Cryst.compute_rocking_curve() takes non-parallelism #627
+
+Fit2d:
+~~~~~~
+- Saturation of amplitudes is fixed by allowing zero amplitude #624
+- Added extraction of phi from magaxis + amp_on_bck_thresh #628
+
+Plasma2D:
+~~~~~~~~~
+- Debuggued plasma2d interpolation for triangular meshes #633
+
+IMAS interfacing:
+~~~~~~~~~~~~~~~~~
+- Added ids summary #622
+- Added more shortcuts for ids summary #625
+
+Unit tests:
+~~~~~~~~~~~
+- Fixed a rounding error in the cython part that was breaking unit tests #619
+- Reactivated complete testing matrix #620
 
 CI, packaging and doc:
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -76,4 +102,4 @@ What's next (indicative):
 
 List of PR merged into this release:
 ====================================
-- PR: #583, #584, #585, #587, #589, #590, #591, #594, #598, #601, #606, #609, #611, #615, #616
+- PR: #583, #584, #585, #587, #589, #590, #591, #594, #598, #601, #606, #609, #611, #615, #616, #619, #620, #622, #623, #624, #625, #627, #628, #630, #634

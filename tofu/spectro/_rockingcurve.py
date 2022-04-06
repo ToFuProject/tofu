@@ -730,4 +730,3 @@ def CrystalBragg_plot_reflect_glancing(
         label='|b|',
     )
     ax.legend()
-
