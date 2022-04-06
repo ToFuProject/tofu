@@ -688,8 +688,8 @@ class Test02_SpectralLines(object):
             ne=ne, Te=Te, concentration=concentration, grid=True,
         )
 
-    def test06_plot(self):
-        ax = self.sl.plot()
+    def test06_plot_spectral_lines(self):
+        ax = self.sl.plot_spectral_lines()
         plt.close('all')
 
     def test07_plot_pec_single(self):
@@ -697,10 +697,10 @@ class Test02_SpectralLines(object):
         ne = 1.e20
         ax = self.sl.plot_pec_single(Te=Te, ne=ne)
 
-    def test08_plot_pec(self):
-        Te = np.linspace(1, 7, 7)*1e3
-        ne = np.logspace(15, 21, 7)
-        ax = self.sl.plot_pec(Te=1e3, ne=ne)
-        ax = self.sl.plot_pec(Te=Te, ne=1e19)
-        ax = self.sl.plot_pec(Te=Te, ne=ne)
-        plt.close('all')
+    # def test08_plot_pec(self):
+        # Te = np.linspace(1, 7, 7)*1e3
+        # ne = np.logspace(15, 21, 7)
+        # ax = self.sl.plot_pec(Te=1e3, ne=ne)
+        # ax = self.sl.plot_pec(Te=Te, ne=1e19)
+        # ax = self.sl.plot_pec(Te=Te, ne=ne)
+        # plt.close('all')
