@@ -1,6 +1,5 @@
 
 
-
 # #############################################################################
 # #############################################################################
 #           data of mobile based on indices
@@ -22,7 +21,7 @@ def _set_dbck(lax=None, daxes=None, dcanvas=None, dmobile=None):
 
     # set bck (= bbox copy)
     for k0 in lax:
-        #ax.draw(self.can.renderer)
+        # ax.draw(self.can.renderer)
         daxes[k0]['bck'] = dcanvas[
             daxes[k0]['canvas']
         ]['handle'].copy_from_bbox(daxes[k0]['handle'].bbox)
@@ -31,11 +30,10 @@ def _set_dbck(lax=None, daxes=None, dcanvas=None, dmobile=None):
     for k0 in lax:
         for k1 in daxes[k0]['mobile']:
             dmobile[k1]['handle'].set_visible(dmobile[k1]['visible'])
-            #ax.draw(self.can.renderer)
+            # ax.draw(self.can.renderer)
 
     for k0 in lcan:
         dcanvas[k0]['handle'].draw()
-
 
 
 # #############################################################################

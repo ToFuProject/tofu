@@ -1733,7 +1733,7 @@ def _get_attrdictfromobj(obj, dd):
 
 class ToFuObjectBase(object):
 
-    #__metaclass__ = ABCMeta
+    # __metaclass__ = ABCMeta
     _dstrip = {'strip':None, 'allowed':None}
     __object = object()
 

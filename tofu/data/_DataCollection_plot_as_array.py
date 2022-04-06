@@ -96,7 +96,6 @@ def plot_as_array(
     inplace=None,
 ):
 
-
     # ------------
     #  ceck inputs
 
@@ -1044,7 +1043,6 @@ def plot_as_array_3d(
     dleg=None,
     connect=None,
 ):
-
 
     msg = "Will be available in the next version"
     raise NotImplementedError(msg)

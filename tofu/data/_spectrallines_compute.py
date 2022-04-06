@@ -247,6 +247,7 @@ def _check_extract_dict_from_mod(mod, k0):
     else:
         return
 
+
 def from_module(pfe=None):
 
     # Check input

@@ -143,7 +143,7 @@ def _select_ind(v, ref, nRef):
 
 class DataAbstract(utils.ToFuObject):
 
-    #__metaclass__ = ABCMeta
+    # __metaclass__ = ABCMeta
 
     # Fixed (class-wise) dictionary of default properties
     _ddef = {'Id':{'include':['Mod','Cls','Exp','Diag',

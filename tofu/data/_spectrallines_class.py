@@ -468,7 +468,6 @@ class SpectralLines(ds.DataStock):
             which=self._which_lines, key=key, ind=ind, returnas=str,
         )
 
-
         # interpolate pec
         dout, dparam = self.calc_pec(
             key=key,
@@ -760,8 +759,9 @@ class SpectralLines(ds.DataStock):
     # def plot(self, **kwdargs):
         # return self._plot_timetraces(**kwdargs)
 
-    # def plot_incremental(self, key=None, ind=None,
-                         # plateaux=True, connect=True):
+    # def plot_incremental(
+        # self, key=None, ind=None,
+        # plateaux=True, connect=True):
         # return
 
     # def plot_plateau_validate(self, key=None, ind=None):

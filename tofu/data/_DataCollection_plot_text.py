@@ -25,7 +25,6 @@ def plot_text(
     bstr_dict=None,
 ):
 
-
     # ------------------
     # Get list of data
 

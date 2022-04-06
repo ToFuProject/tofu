@@ -399,7 +399,7 @@ def _remove_static(
                         param=which,
                     )
 
-        # remove 
+        # remove
         del dstatic0[which]
 
     # -------------
@@ -537,7 +537,7 @@ def _remove_obj(
 
     if key is None:
 
-        # remove 
+        # remove
         del dstatic0[which]
 
     # ------------

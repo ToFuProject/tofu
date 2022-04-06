@@ -124,7 +124,7 @@ def propagate_indices_per_ref(
             ]
             msg = (
                 "Provided ldata are not suitable:\n"
-                 + "\n".join(lstr)
+                + "\n".join(lstr)
             )
             raise Exception(msg)
 
@@ -150,7 +150,6 @@ def propagate_indices_per_ref(
                 )
                 raise Exception(msg)
             ref_data = ref_data[0]
-
 
             # For each ref in lref, get list of matching data
             drdata = {

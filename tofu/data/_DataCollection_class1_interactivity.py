@@ -147,7 +147,7 @@ class DataCollection1(DataCollection0):
         if isinstance(refy, str):
             refy = [refy]
 
-        c0 =(
+        c0 = (
             isinstance(refx, list)
             and all([rr in self._dref.keys() for rr in refx])
         )
@@ -155,7 +155,7 @@ class DataCollection1(DataCollection0):
             msg = "Arg refx must be a list of valid ref keys!"
             raise Exception(msg)
 
-        c0 =(
+        c0 = (
             isinstance(refy, list)
             and all([rr in self._dref.keys() for rr in refy])
         )
@@ -389,10 +389,10 @@ class DataCollection1(DataCollection0):
         # update mobile with groups
 
         for k0, v0 in self._dobj['mobile'].items():
-             self._dobj['mobile'][k0]['group'] = tuple([
-                 self._dref[rr]['group'] for rr in v0['ref']
-             ])
-             self._dobj['mobile'][k0]['func'] = _interactivity.get_fupdate(
+            self._dobj['mobile'][k0]['group'] = tuple([
+                self._dref[rr]['group'] for rr in v0['ref']
+            ])
+            self._dobj['mobile'][k0]['func'] = _interactivity.get_fupdate(
                 handle=v0['handle'],
                 dtype=v0['dtype'],
                 norm=None,
@@ -576,7 +576,7 @@ class DataCollection1(DataCollection0):
             # res = v0['handle'].mpl_connect('resize_event', self.resize)
             butr = v0['handle'].mpl_connect('button_release_event', self.mouserelease)
             close = v0['handle'].mpl_connect('close_event', self.on_close)
-            #if not plt.get_backend() == "agg":
+            # if not plt.get_backend() == "agg":
             # v0['handle'].manager.toolbar.release = self.mouserelease
 
             self._dobj['canvas'][k0]['cid'] = {
@@ -754,7 +754,7 @@ class DataCollection1(DataCollection0):
                 ])
             ]
 
-        self._update_mobiles(lmobiles=lmobiles) # 0.2 s
+        self._update_mobiles(lmobiles=lmobiles)     # 0.2 s
 
         if self.debug:
             self.show_debug()
@@ -849,7 +849,9 @@ class DataCollection1(DataCollection0):
         cur_datay = self._dobj['interactivity'][kinter]['cur_datay']
 
         shift = self._dobj['key']['shift']['val']
-        ctrl = any([self._dobj['key'][ss]['val'] for ss in ['control', 'ctrl']])
+        ctrl = any([
+            self._dobj['key'][ss]['val'] for ss in ['control', 'ctrl']
+        ])
 
         # Update number of indices (for visibility)
         for gg in [cur_groupx, cur_groupy]:
@@ -963,15 +965,15 @@ class DataCollection1(DataCollection0):
             if v0['handle'] == event.inaxes.figure.canvas
         ][0]
         mode = self._dobj['canvas'][can]['handle'].manager.toolbar.mode.lower()
-        c0 = 'pan' in  mode
+        c0 = 'pan' in mode
         c1 = 'zoom' in mode
 
         if c0 or c1:
             kax = self._dobj['interactivity']['curax_panzoom']
             if kax is None:
                 msg = (
-                    "Make sure you release the mouse button on an axes !"
-                    "\n Otherwise the background plot cannot be properly updated !"
+                    "Make sure you release the mouse button on an axes!"
+                    "\n Otherwise background plot cannot be properly updated!"
                 )
                 raise Exception(msg)
             ax = self._dobj['axes'][kax]['handle']
@@ -1046,7 +1048,7 @@ class DataCollection1(DataCollection0):
         ln = np.r_[ngen, nmov, ngrp, nind]
         if np.any(ln > 1) or np.sum(ln) > 2:
             return
-        if np.sum(ln) == 2 and (ngrp == 1 or nind ==1 ):
+        if np.sum(ln) == 2 and (ngrp == 1 or nind == 1):
             return
 
         # only keep relevant keys
@@ -1075,7 +1077,7 @@ class DataCollection1(DataCollection0):
             # group
             group = self._dobj['key'][event.key]['group']
             cx = any([
-                v0['groupx'] is not None and  group in v0['groupx']
+                v0['groupx'] is not None and group in v0['groupx']
                 for v0 in self._dobj['axes'].values()
             ])
             if cx:
