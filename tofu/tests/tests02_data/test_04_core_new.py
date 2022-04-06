@@ -89,7 +89,7 @@ def teardown_module(module):
 #
 #######################################################
 
-
+"""
 class Test01_DataCollection(object):
 
     @classmethod
@@ -603,7 +603,7 @@ class Test01_DataCollection(object):
                 # Just to check the loaded version works fine
                 assert oo == obj
                 os.remove(pfe)
-
+"""
 
 # #############################################################################
 # #############################################################################

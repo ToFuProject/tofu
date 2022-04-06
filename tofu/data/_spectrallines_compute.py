@@ -37,8 +37,8 @@ def from_openadas(
     dsource0=None,
     dref0=None,
     ddata0=None,
-    dlines0=None,
-    group_lines=None,
+    dobj0=None,
+    which_lines=None,
 ):
     """
     Load lines and pec from openadas, either:
@@ -107,23 +107,37 @@ def from_openadas(
         dsource0=dsource0,
         dref0=dref0,
         ddata0=ddata0,
-        dlines0=dlines0,
+        dlines0=None if dobj0 is None else dobj0.get(which_lines),
         verb=False,
     )
 
-    # # dgroup
-    # dgroup = ['Te', 'ne']
-
+    # ---------------
     # dref - Te + ne
+
     dref = dte
     dref.update(dne)
 
+    # ------------
     # ddata - pec
+
     ddata = dpec
+
+    # ------------------
+    # ions and source
+
+    # Only keep ions and sources not already stored
+    if dobj0 is not None and dobj0.get('ion') is not None:
+        lion = [k0 for k0 in lion if k0 not in dobj0['ion'].keys()]
+
+    if dobj0 is not None and dobj0.get('source') is not None:
+        dsource = {
+            k0: v0 for k0, v0 in dsource.items()
+            if k0 not in dobj0['source'].keys()
+        }
 
     # dobj (lines, ion, source)
     dobj = {
-        group_lines: dlines,
+        which_lines: dlines,
         'ion': {k0: {} for k0 in lion},
         'source': dsource,
     }
