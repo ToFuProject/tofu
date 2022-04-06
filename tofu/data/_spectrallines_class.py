@@ -117,7 +117,7 @@ class SpectralLines(ds.DataStock):
             online=online,
             update=update,
             create_custom=create_custom,
-            group_lines=cls._which_lines,
+            which_lines=cls._which_lines,
         )
         return cls(ddata=ddata, dref=dref, dobj=dobj)
 
@@ -147,8 +147,8 @@ class SpectralLines(ds.DataStock):
             dsource0=self._dobj.get('source'),
             dref0=self._dref,
             ddata0=self._ddata,
-            dlines0=self._dobj.get('lines'),
-            group_lines=cls._which_lines,
+            dobj0=self._dobj,
+            which_lines=self._which_lines,
         )
         self.update(ddata=ddata, dref=dref, dobj=dobj)
 
