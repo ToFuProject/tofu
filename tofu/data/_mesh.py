@@ -2,16 +2,18 @@
 
 
 # Built-in
+import copy
 
 
 # Common
 import numpy as np
+import datastock as ds
 
 
 # tofu
 # from tofu import __version__ as __version__
 from . import _generic_check
-from ._DataCollection_class import DataCollection
+# from ._DataCollection_class import DataCollection
 from . import _mesh_checks
 from . import _mesh_comp
 from . import _mesh_plot
@@ -21,9 +23,12 @@ from . import _inversions_comp
 from . import _inversions_plot
 
 
-_GROUP_MESH = 'mesh'
-_GROUP_R = 'R'
-_GROUP_Z = 'Z'
+__all__ = ['Plasma2D']
+
+
+_WHICH_MESH = 'mesh'
+_QUANT_R = 'R'
+_QUANT_Z = 'Z'
 
 
 # #############################################################################
@@ -32,29 +37,20 @@ _GROUP_Z = 'Z'
 # #############################################################################
 
 
-class Mesh2D(DataCollection):
+class Plasma2D(ds.DataStock):
 
-    _ddef = {
-        'Id': {'include': ['Mod', 'Cls', 'Name', 'version']},
-        'params': {
-            'lambda0': (float, 0.),
-            'source': (str, 'unknown'),
-            'transition':    (str, 'unknown'),
-            'element':  (str, 'unknown'),
-            'charge':  (int, 0),
-            'ion':  (str, 'unknown'),
-            'symbol':   (str, 'unknown'),
-        },
-    }
-    _forced_group = [_GROUP_R, _GROUP_Z]
-    _data_none = True
 
-    _show_in_summary_core = ['shape', 'ref', 'group']
+    _ddef = copy.deepcopy(ds.DataStock._ddef)
+    _ddef['params']['ddata'].update({
+        'onmesh': (bool, False),
+    })
+
+    # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
 
-    _groupmesh = _GROUP_MESH
-    _groupR = _GROUP_R
-    _groupZ = _GROUP_Z
+    _which_mesh = _WHICH_MESH
+    _quant_R = _QUANT_R
+    _quant_Z = _QUANT_Z
 
     def add_mesh(
         self,
@@ -131,7 +127,7 @@ class Mesh2D(DataCollection):
         )
 
         dobj = {
-            self._groupmesh: dmesh,
+            self._which_mesh: dmesh,
         }
 
         # update dicts
@@ -142,7 +138,11 @@ class Mesh2D(DataCollection):
             self.add_bsplines(deg=deg, key=key)
 
         # optional cropping
-        if self.dobj['mesh'][key]['type'] == 'rect' and poly is not None:
+        c0 = (
+            self.dobj[self._which_mesh][key]['type'] == 'rect'
+            and poly is not None
+        )
+        if c0:
             self.crop(
                 key=key,
                 crop=poly,
@@ -162,36 +162,41 @@ class Mesh2D(DataCollection):
 
         keym, keybs, deg = _mesh_checks._mesh2D_bsplines(
             key=key,
-            lkeys=list(self.dobj['mesh'].keys()),
+            lkeys=list(self.dobj[self._which_mesh].keys()),
             deg=deg,
         )
 
         # --------------
         # get bsplines
 
-        if self.dobj['mesh'][keym]['type'] == 'rect':
-            dref, dobj = _mesh_comp._mesh2DRect_bsplines(
+        if self.dobj[self._which_mesh][keym]['type'] == 'rect':
+            dref, ddata, dobj = _mesh_comp._mesh2DRect_bsplines(
                 coll=self, keym=keym, keybs=keybs, deg=deg,
             )
         else:
-            dref, dobj = _mesh_comp._mesh2DTri_bsplines(
+            dref, ddata, dobj = _mesh_comp._mesh2DTri_bsplines(
                 coll=self, keym=keym, keybs=keybs, deg=deg,
             )
 
         # --------------
         # update dict and crop if relevant
 
-        self.update(dobj=dobj, dref=dref)
-        if self.dobj['mesh'][keym]['type'] == 'rect':
-            _mesh_comp.add_cropbs_from_crop(coll=self, keybs=keybs, keym=keym)
+        self.update(dobj=dobj, ddata=ddata, dref=dref)
+        if self.dobj[self._which_mesh][keym]['type'] == 'rect':
+            _mesh_comp.add_cropbs_from_crop(
+                coll=self,
+                keybs=keybs,
+                keym=keym,
+            )
 
     # -----------------
     # crop
     # ------------------
 
     def crop(self, key=None, crop=None, thresh_in=None, remove_isolated=None):
-        """ Crop a mesh using
+        """ Crop a mesh / bspline
 
+        Uses:
             - a mask of bool for each mesh elements
             - a 2d (R, Z) closed polygon
 
@@ -208,21 +213,25 @@ class Mesh2D(DataCollection):
 
         # add crop data
         keycrop = f'{key}-crop'
+        ref = tuple([
+            self._ddata[k0]['ref'][0]
+            for k0 in self._dobj[self._which_mesh][key]['cents']
+        ])
         self.add_data(
             key=keycrop,
             data=crop,
-            ref=self.dobj['mesh'][key]['ref'],
+            ref=ref,
             dim='bool',
             quant='bool',
         )
 
         # update obj
-        self._dobj['mesh'][key]['crop'] = keycrop
-        self._dobj['mesh'][key]['crop-thresh'] = thresh_in
+        self._dobj[self._which_mesh][key]['crop'] = keycrop
+        self._dobj[self._which_mesh][key]['crop-thresh'] = thresh_in
 
         # also crop bsplines
         for k0 in self.dobj.get('bsplines', {}).keys():
-            if self.dobj['bsplines'][k0]['mesh'] == key:
+            if self.dobj['bsplines'][k0][self._which_mesh] == key:
                 _mesh_comp.add_cropbs_from_crop(coll=self, keybs=k0, keym=key)
 
     # -----------------

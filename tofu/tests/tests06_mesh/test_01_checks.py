@@ -97,7 +97,7 @@ class Test01_checks():
 #######################################################
 
 
-class Test02_Mesh2D():
+class Test02_Plasma2D():
 
     @classmethod
     def setup_class(cls):
@@ -105,10 +105,10 @@ class Test02_Mesh2D():
 
     def setup(self):
         self.dobj = {
-            'm0': tfd.Mesh2D(),
-            'm1': tfd.Mesh2D(),
-            'm2': tfd.Mesh2D(),
-            'm3': tfd.Mesh2D(),
+            'm0': tfd.Plasma2D(),
+            'm1': tfd.Plasma2D(),
+            'm2': tfd.Plasma2D(),
+            'm3': tfd.Plasma2D(),
         }
 
         # add mesh
@@ -149,8 +149,8 @@ class Test02_Mesh2D():
         ])
         faces = np.array([[0, 1, 2], [1, 2, 3]])
         self.dobjtri = {
-            'tri0': tf.data.Mesh2D(),
-            'tri1': tf.data.Mesh2D(),
+            'tri0': tf.data.Plasma2D(),
+            'tri1': tf.data.Plasma2D(),
         }
         self.dobjtri['tri0'].add_mesh(cents=faces, knots=knots, key='tri0')
 
@@ -175,11 +175,11 @@ class Test02_Mesh2D():
     def teardown_class(cls):
         pass
 
-    def test01_get_summary(self):
+    def test01_show(self):
         for ii, (k0, v0) in enumerate(self.dobj.items()):
-            self.dobj[k0].get_summary()
+            self.dobj[k0].show()
         for ii, (k0, v0) in enumerate(self.dobjtri.items()):
-            self.dobjtri[k0].get_summary()
+            self.dobjtri[k0].show()
 
     def test02_select_ind(self):
 
@@ -551,18 +551,18 @@ class Test02_Mesh2D():
                         pass
                     else:
                         continue
-                try:
-                    self.dobj[k0].add_bsplines_operator(
-                        key=lkey[ii],
-                        operator=comb[0],
-                        geometry=comb[1],
-                        crop=comb[2],
-                    )
-                except Exception as err:
-                    dfail[k0] = (
-                        f"key {lkey[ii]}, op '{comb[0]}', geom '{comb[1]}': "
-                        + str(err)
-                    )
+                # try:
+                self.dobj[k0].add_bsplines_operator(
+                    key=lkey[ii],
+                    operator=comb[0],
+                    geometry=comb[1],
+                    crop=comb[2],
+                )
+                # except Exception as err:
+                    # dfail[k0] = (
+                        # f"key {lkey[ii]}, op '{comb[0]}', geom '{comb[1]}': "
+                        # + str(err)
+                    # )
 
         # Raise error if any fail
         if len(dfail) > 0:

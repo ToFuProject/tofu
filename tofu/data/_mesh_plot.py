@@ -183,15 +183,15 @@ def _plot_mesh_prepare(
 
     else:
         kknots = coll.dobj['mesh'][key]['knots']
-        R = coll.ddata[f'{kknots}-R']['data']
-        Z = coll.ddata[f'{kknots}-Z']['data']
+        R = coll.ddata[kknots[0]]['data']
+        Z = coll.ddata[kknots[1]]['data']
 
-        cents = coll.ddata[coll.dobj['mesh'][key]['cents']]['data']
+        indtri = coll.ddata[coll.dobj['mesh'][key]['ind']]['data']
 
         # find unique segments from all triangles
         segs = np.unique(
             np.sort(np.concatenate(
-                (cents[:, 0:2], cents[:, 1:], cents[:, ::2]),
+                (indtri[:, 0:2], indtri[:, 1:], indtri[:, ::2]),
                 axis=0,
             )),
             axis=0,
@@ -297,7 +297,7 @@ def plot_mesh(
     axtype = 'cross'
     lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
     for kax in lkax:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
 
         if grid_bck is not None and bck is True:
             ax.plot(
@@ -362,7 +362,7 @@ def plot_mesh(
 
     if dleg is not False:
         for kax in lkax:
-            dax[kax]['ax'].legend(**dleg)
+            dax[kax]['handle'].legend(**dleg)
 
     return dax
 
@@ -382,12 +382,12 @@ def _plot_bsplines_get_dRdZ(coll=None, km=None, meshtype=None):
         dR = np.min(np.diff(Rk))
         dZ = np.min(np.diff(Zk))
     else:
-        cents = coll.ddata[coll.dobj['mesh'][km]['cents']]['data']
+        indtri = coll.ddata[coll.dobj['mesh'][km]['ind']]['data']
         kknots = coll.dobj['mesh'][km]['knots']
-        Rk = coll.ddata[f'{kknots}-R']['data']
-        Zk = coll.ddata[f'{kknots}-Z']['data']
-        R = Rk[cents]
-        Z = Zk[cents]
+        Rk = coll.ddata[kknots[0]]['data']
+        Zk = coll.ddata[kknots[1]]['data']
+        R = Rk[indtri]
+        Z = Zk[indtri]
         dist = np.mean(np.array([
             np.sqrt((R[:, 1] - R[:, 0])**2 + (Z[:, 1] - Z[:, 0])**2),
             np.sqrt((R[:, 2] - R[:, 1])**2 + (Z[:, 2] - Z[:, 1])**2),
@@ -609,7 +609,7 @@ def plot_bspline(
     axtype = 'cross'
     lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
     for kax in lkax:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
 
         ax.imshow(
             bspline,

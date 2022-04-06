@@ -3,6 +3,7 @@
 import os
 import sys
 import warnings
+import copy
 
 
 import numpy as np
@@ -24,8 +25,8 @@ __all__ = ['SpectralLines']
 
 
 _WHICH_LINES = 'lines'
-_GROUP_NE = 'ne'
-_GROUP_TE = 'Te'
+_QUANT_NE = 'ne'
+_QUANT_TE = 'Te'
 _UNITS_LAMBDA0 = 'm'
 
 
@@ -37,8 +38,9 @@ _UNITS_LAMBDA0 = 'm'
 
 class SpectralLines(ds.DataStock):
 
-    _ddef = {
-        'params': {
+    _ddef = copy.deepcopy(ds.DataStock._ddef)
+    _ddef['params']['dobj'] = {
+        'lines': {
             'lambda0': (float, 0.),
             'source': (str, 'unknown'),
             'transition':    (str, 'unknown'),
@@ -48,15 +50,13 @@ class SpectralLines(ds.DataStock):
             'symbol':   (str, 'unknown'),
         },
     }
-    _forced_group = [_GROUP_NE, _GROUP_TE]
-    _data_none = True
 
     _show_in_summary_core = ['shape', 'ref']
     _show_in_summary = 'all'
 
     _which_lines = _WHICH_LINES
-    _quant_ne = _GROUP_NE
-    _quant_Te = _GROUP_TE
+    _quant_ne = _QUANT_NE
+    _quant_Te = _QUANT_TE
 
     _units_lambda0 = _UNITS_LAMBDA0
 

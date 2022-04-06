@@ -328,14 +328,13 @@ def _mesh2D_check(
         raise Exception(msg)
 
     elif lc[0]:
-        dref, dmesh = _mesh2DRect_to_dict(
+        dref, ddata, dmesh = _mesh2DRect_to_dict(
             domain=domain,
             res=res,
             R=R,
             Z=Z,
             key=key,
         )
-        ddata = None
 
     elif lc[1]:
         dref, ddata, dmesh = _mesh2DTri_to_dict(
@@ -532,99 +531,87 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
     # -----------------
     # Format ouput dict
 
-    kcents = f"{key}-cents"
-    kcentsR = f"{kcents}-R"
-    kcentsZ = f"{kcents}-Z"
-    kcents_pts = f"{kcents}-pts"
-    kcents_ind = f"{kcents}-ind"
-    kknots = f"{key}-knots"
-    kknotsR = f"{kknots}-R"
-    kknotsZ = f"{kknots}-Z"
-    kknots_ind = f"{kknots}-ind"
+    kk = f"{key}-nk"
+    kc = f"{key}-nc"
+    ki = f"{key}-nind"
+
+    kcR = f"{key}-c-R"
+    kcZ = f"{key}-c-Z"
+    kkR = f"{key}-k-R"
+    kkZ = f"{key}-k-Z"
+    kii = f"{key}-ind"
 
     # dref
     dref = {
-        kknots_ind: {
-            'data': np.arange(0, knots.shape[0]),
-            'units': '',
-            # 'source': None,
-            'dim': '',
-            'quant': 'ind',
-            'name': 'ind',
-            'group': 'ind',
+        kk: {
+            'size': knots.shape[0],
         },
-        kcents_ind: {
-            'data': np.arange(0, cents.shape[0]),
-            'units': 'm',
-            # 'source': None,
-            'dim': 'distance',
-            'quant': 'Z',
-            'name': 'Z',
-            'group': 'Z',
+        kc: {
+            'size': cents.shape[0],
         },
-        kcents_pts: {
-            'data': np.arange(0, 3),
-            'units': '',
-            # 'source': None,
-            'dim': '',
-            'quant': 'ind',
-            'name': 'ind',
-            'group': 'ind',
+        ki: {
+            'size': 3,
         },
     }
 
     # ddata
     ddata = {
-        kknotsR: {
+        kkR: {
             'data': knots[:, 0],
-            'ref': (kknots_ind,),
             'units': 'm',
             'quant': 'R',
             'dim': 'distance',
-            'group': 'R',
+            'ref': kk,
         },
-        kknotsZ: {
+        kkZ: {
             'data': knots[:, 1],
-            'ref': (kknots_ind,),
             'units': 'm',
             'quant': 'Z',
             'dim': 'distance',
-            'group': 'Z',
+            'ref': kk,
         },
-        kcentsR: {
+        kcR: {
             'data': np.mean(knots[cents, 0], axis=1),
-            'ref': (kcents_ind,),
             'units': 'm',
             'quant': 'R',
             'dim': 'distance',
-            'group': 'R',
+            'ref': kc,
         },
-        kcentsZ: {
+        kcZ: {
             'data': np.mean(knots[cents, 1], axis=1),
-            'ref': (kcents_ind,),
             'units': 'm',
             'quant': 'Z',
             'dim': 'distance',
-            'group': 'Z',
+            'ref': kc,
         },
-        kcents: {
+        kii: {
             'data': cents,
-            'ref': (kcents_ind, kcents_pts),
-            'units': '',
-            'quant': 'ind',
-            'dim': 'ind',
-            'group': 'ind',
+            # 'units': '',
+            'quant': 'indices',
+            'dim': 'indices',
+            'ref': (kc, ki),
         },
+        # kcents: {
+            # 'data': cents,
+            # 'ref': (kcents_ind, kcents_pts),
+            # 'units': '',
+            # 'quant': 'ind',
+            # 'dim': 'ind',
+            # 'group': 'ind',
+        # },
     }
 
     # dobj
     dmesh = {
         key: {
             'type': meshtype,
-            'cents': kcents,
-            'knots': kknots,
-            'ref': (kcents,),
-            'shape': (cents.shape[0],),
+            'cents': (kcR, kcZ),
+            'knots': (kkR, kkZ),
+            'ind': kii,
+            # 'ref-k': (kk,),
+            # 'ref-c': (kc,),
+            'shape-c': (cents.shape[0],),
+            'shape-k': (knots.shape[0],),
             'trifind': trifind,
             'crop': False,
         },
@@ -851,8 +838,10 @@ def _mesh2DRect_to_dict(
     # --------------------
     # check / format input
 
-    kRknots, kZknots = f"{key}-R-knots", f"{key}-Z-knots"
-    kRcent, kZcent = f"{key}-R-cents", f"{key}-Z-cents"
+    kRk, kZk = f'{key}-R-nk', f'{key}-Z-nk'
+    kRc, kZc = f'{key}-R-nc', f'{key}-Z-nc'
+    kkR, kkZ = f"{key}-k-R", f"{key}-k-Z"
+    kcR, kcZ = f"{key}-c-R", f"{key}-c-Z"
 
     R, Z, resR, resZ, indR, indZ = _mesh2DRect_check(
         domain=domain,
@@ -868,42 +857,59 @@ def _mesh2DRect_to_dict(
     # --------------------
     # prepare dict
 
+    # dref
     dref = {
-        kRknots: {
+        kRk: {
+            'size': R.size,
+        },
+        kZk: {
+            'size': Z.size,
+        },
+        kRc: {
+            'size': Rcent.size,
+        },
+        kZc: {
+            'size': Zcent.size,
+        },
+    }
+
+    # ddata
+    ddata = {
+        kkR: {
             'data': R,
             'units': 'm',
             # 'source': None,
             'dim': 'distance',
             'quant': 'R',
             'name': 'R',
-            'group': 'R',
+            'ref': kRk,
         },
-        kZknots: {
+        kkZ: {
             'data': Z,
             'units': 'm',
             # 'source': None,
             'dim': 'distance',
             'quant': 'Z',
             'name': 'Z',
-            'group': 'Z',
+            'ref': kZk,
         },
-        kRcent: {
+        kcR: {
             'data': Rcent,
             'units': 'm',
             # 'source': None,
             'dim': 'distance',
             'quant': 'R',
             'name': 'R',
-            'group': 'R',
+            'ref': kRc,
         },
-        kZcent: {
+        kcZ: {
             'data': Zcent,
             'units': 'm',
             # 'source': None,
             'dim': 'distance',
             'quant': 'Z',
             'name': 'Z',
-            'group': 'Z',
+            'ref': kZc,
         },
     }
 
@@ -911,15 +917,17 @@ def _mesh2DRect_to_dict(
     dmesh = {
         key: {
             'type': 'rect',
-            'knots': (kRknots, kZknots),
-            'cents': (kRcent, kZcent),
-            'ref': (kRcent, kZcent),
-            'shape': (Rcent.size, Zcent.size),
+            'knots': (kkR, kkZ),
+            'cents': (kcR, kcZ),
+            # 'ref-k': (kRk, kZk),
+            # 'ref-c': (kRc, kZc),
+            'shape-c': (Rcent.size, Zcent.size),
+            'shape-k': (R.size, Z.size),
             'variable': variable,
             'crop': False,
         },
     }
-    return dref, dmesh
+    return dref, ddata, dmesh
 
 
 def _mesh2DRect_from_croppoly(crop_poly=None, domain=None):

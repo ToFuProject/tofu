@@ -41,7 +41,8 @@ def _select_ind(
     # ------------
     # check inputs
 
-    lk1 = list(coll.dobj.get('mesh', {}).keys())
+    # key = mesh or bspline ?
+    lk1 = list(coll.dobj.get(coll._which_mesh, {}).keys())
     lk2 = list(coll.dobj.get('bsplines', {}).keys())
     key = _generic_check._check_var(
         key, 'key',
@@ -49,13 +50,15 @@ def _select_ind(
         types=str,
     )
 
-    cat = 'mesh' if key in lk1 else 'bsplines'
-    if cat == 'mesh':
-        meshtype = coll.dobj['mesh'][key]['type']
+    cat = coll._which_mesh if key in lk1 else 'bsplines'
+    if cat == coll._which_mesh:
+        meshtype = coll.dobj[cat][key]['type']
     else:
-        km = coll.dobj['bsplines'][key]['mesh']
-        meshtype = coll.dobj['mesh'][km]['type']
+        km = coll.dobj[cat][key]['mesh']
+        meshtype = coll.dobj[coll._which_mesh][km]['type']
 
+    # ind, elements, ...
+    # elements = cents or knots
     ind, elements, returnas, crop = _mesh_checks._select_ind_check(
         ind=ind,
         elements=elements,
@@ -64,18 +67,20 @@ def _select_ind(
         meshtype=meshtype,
     )
 
-    elem = f'{elements}' if cat == 'mesh' else 'ref'
+    elem = f'{elements}' if cat == coll._which_mesh else 'ref'
 
     if meshtype == 'rect':
-        kR, kZ = coll.dobj[cat][key][elem]
-        nR = coll.ddata[kR]['data'].size
-        nZ = coll.ddata[kZ]['data'].size
-    else:
-        if cat == 'mesh':
-            kn = f'{coll.dobj[cat][key][elem]}-ind'
+        if cat == coll._which_mesh:
+            ke = f'shape-{elem[0]}'
+            nR, nZ = coll.dobj[cat][key][ke]
         else:
-            kn = key
-        nelem = coll.dref[kn]['size']
+            nR, nZ = coll.dobj[cat][key]['shape']
+    else:
+        if cat == coll._which_mesh:
+            ke = f'shape-{elem[0]}'
+            nelem = coll.dobj[cat][key][ke][0]
+        else:
+            nelem = coll.dobj[cat][key]['shape'][0]
 
     # ------------
     # ind to tuple
@@ -113,6 +118,7 @@ def _select_ind(
                     raise Exception(msg)
                 ind_tup = (ind % nR, ind // nR)
                 ind_bool[ind_tup[0], ind_tup[1]] = True
+
             elif np.issubdtype(ind.dtype, np.bool_):
                 if ind.shape != (nR, nZ):
                     msg = (
@@ -123,6 +129,7 @@ def _select_ind(
                 # make sure R varies first
                 ind_tup = ind.T.nonzero()[::-1]
                 ind_bool = ind
+
             else:
                 msg = f"Unknown ind dtype!\n\t- ind.dtype: {ind.dtype}"
                 raise Exception(msg)
@@ -173,7 +180,7 @@ def _select_ind(
     if crop is True:
         cropi = coll.ddata[coll.dobj[cat][key]['crop']]['data']
         if meshtype == 'rect':
-            if cat == 'mesh' and elements == 'knots':
+            if cat == coll._which_mesh and elements == 'knots':
                 cropiknots = np.zeros(ind_bool.shape, dtype=bool)
                 cropiknots[:-1, :-1] = cropi
                 cropiknots[1:, :-1] = cropiknots[1:, :-1] | cropi
@@ -261,7 +268,7 @@ def _select_mesh_rect(
     # ------------
     # prepare
 
-    kR, kZ = coll.dobj[coll._groupmesh][key][f'{elements}']
+    kR, kZ = coll.dobj[coll._which_mesh][key][elements]
     R = coll.ddata[kR]['data']
     Z = coll.ddata[kZ]['data']
     nR = R.size
@@ -281,7 +288,7 @@ def _select_mesh_rect(
     if return_neighbours is True:
 
         elneig = 'cents' if elements == 'knots' else 'knots'
-        kRneig, kZneig = coll.dobj[coll._groupmesh][key][f'{elneig}']
+        kRneig, kZneig = coll.dobj[coll._which_mesh][key][f'{elneig}']
         Rneig = coll.ddata[kRneig]['data']
         Zneig = coll.ddata[kZneig]['data']
         nRneig = Rneig.size
@@ -346,9 +353,9 @@ def _select_mesh_tri(
     key = _generic_check._check_var(
         key, 'key',
         types=str,
-        allowed=list(coll.dobj['mesh'].keys())
+        allowed=list(coll.dobj[coll._which_mesh].keys())
     )
-    meshtype = coll.dobj['mesh'][key]['type']
+    meshtype = coll.dobj[coll._which_mesh][key]['type']
 
     (
         elements, returnas,
@@ -363,9 +370,9 @@ def _select_mesh_tri(
     # ------------
     # prepare
 
-    kn = coll.dobj['mesh'][key][f'{elements}']
-    R = coll.ddata[f'{kn}-R']['data']
-    Z = coll.ddata[f'{kn}-Z']['data']
+    kn = coll.dobj[coll._which_mesh][key][elements]
+    R = coll.ddata[kn[0]]['data']
+    Z = coll.ddata[kn[1]]['data']
 
     # ------------
     # non-trivial case
@@ -381,19 +388,20 @@ def _select_mesh_tri(
     if return_neighbours is True:
 
         nind = ind.sum()
-        kcents = coll.dobj['mesh'][key]['cents']
+        kind = coll.dobj[coll._which_mesh][key]['ind']
 
         if returnas == 'data':
             elneig = 'cents' if elements == 'knots' else 'knots'
-            kneig = coll.dobj['mesh'][key][f'{elneig}']
-            Rneig = coll.ddata[f'{kneig}-R']['data']
-            Zneig = coll.ddata[f'{kneig}-Z']['data']
+            kneig = coll.dobj[coll._which_mesh][key][elneig]
+            Rneig = coll.ddata[kneig[0]]['data']
+            Zneig = coll.ddata[kneig[1]]['data']
 
         if elements == 'cents':
-            neig = coll.ddata[kcents]['data'][ind, :]
+            neig = coll.ddata[kind]['data'][ind, :]
             if returnas == 'ind':
                 if return_ind_as is bool:
-                    kknots = coll.dobj['mesh'][key]['knots']
+                    kknots = coll.dobj[coll._which_mesh][key]['knots']
+                    import pdb; pdb.set_trace()     # DB
                     nneig = coll.dref[f'{kknots}-ind']['size']
                     neig_temp = np.zeros((nind, nneig), dtype=bool)
                     for ii in range(nind):
@@ -404,7 +412,7 @@ def _select_mesh_tri(
         else:
             ind_int = ind.nonzero()[0]
             neig = np.array([
-                np.any(coll.ddata[kcents]['data'] == ii, axis=1)
+                np.any(coll.ddata[kind]['data'] == ii, axis=1)
                 for ii in ind_int
             ])
             c0 = returnas == 'ind' and return_ind_as is int
@@ -528,36 +536,43 @@ def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
     # --------------
     # create bsplines
 
-    kknots = coll.dobj['mesh'][keym]['knots']
+    kknots = coll.dobj[coll._which_mesh][keym]['knots']
     func_details, func_sum, clas = _mesh_bsplines_tri.get_bs2d_func(
         deg=deg,
-        knotsR=coll.ddata[f'{kknots}-R']['data'],
-        knotsZ=coll.ddata[f'{kknots}-Z']['data'],
-        cents=coll.ddata[coll.dobj['mesh'][keym]['cents']]['data'],
-        trifind=coll.dobj['mesh'][keym]['trifind'],
+        knotsR=coll.ddata[kknots[0]]['data'],
+        knotsZ=coll.ddata[kknots[1]]['data'],
+        cents=coll.ddata[coll.dobj[coll._which_mesh][keym]['ind']]['data'],
+        trifind=coll.dobj[coll._which_mesh][keym]['trifind'],
     )
+    keybsr = f'{keybs}-nbs'
 
     # ----------------
     # format into dict
 
     dref = {
         # bs index
-        keybs: {
-            'data': np.arange(0, clas.nbs),
-            'units': '',
-            'dim': 'index',
-            'quant': 'index',
-            'name': '',
-            'group': 'index',
+        keybsr: {
+            'size': clas.nbs,
         },
     }
+
+    ddata = None
+    # {
+        # keybs: {
+            # 'data': np.arange(0, clas.nbs),
+            # 'units': '',
+            # 'dim': 'index',
+            # 'quant': 'index',
+            # 'name': '',
+        # },
+    # }
 
     dobj = {
         'bsplines': {
             keybs: {
                 'deg': deg,
                 'mesh': keym,
-                'ref': (keybs,),
+                'ref': (keybsr,),
                 'shape': (clas.nbs,),
                 'crop': False,
                 'func_details': func_details,
@@ -567,7 +582,7 @@ def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
         },
     }
 
-    return dref, dobj
+    return dref, ddata, dobj
 
 
 # #############################################################################
@@ -581,10 +596,13 @@ def _mesh2DRect_bsplines(coll=None, keym=None, keybs=None, deg=None):
     # --------------
     # create bsplines
 
-    kR, kZ = coll.dobj['mesh'][keym]['knots']
+    kR, kZ = coll.dobj[coll._which_mesh][keym]['knots']
     Rknots = coll.ddata[kR]['data']
     Zknots = coll.ddata[kZ]['data']
 
+    keybsr = f'{keybs}-nbs'
+    kRbscr = f'{keybs}-nR'
+    kZbscr = f'{keybs}-nZ'
     kRbsc = f'{keybs}-R'
     kZbsc = f'{keybs}-Z'
 
@@ -604,35 +622,38 @@ def _mesh2DRect_bsplines(coll=None, keym=None, keybs=None, deg=None):
         knots_per_bs_R=knots_per_bs_R,
         knots_per_bs_Z=knots_per_bs_Z,
     )
-    ref = (kRbsc, kZbsc)
 
     # ----------------
     # format into dict
 
     dref = {
+        kRbscr: {
+            'size': Rbs_cent.size,
+        },
+        kZbscr: {
+            'size': Zbs_cent.size,
+        },
+        keybsr: {
+            'size': nbs,
+        },
+    }
+
+    ddata = {
         kRbsc: {
             'data': Rbs_cent,
             'units': 'm',
             'dim': 'distance',
             'quant': 'R',
             'name': 'R',
-            'group': 'R',
+            'ref': kRbscr,
         },
         kZbsc: {
             'data': Zbs_cent,
             'units': 'm',
             'dim': 'distance',
-            'quant': 'Z',
-            'name': 'Z',
-            'group': 'Z',
-        },
-        keybs: {
-            'data': np.arange(0, nbs),
-            'units': '',
-            'dim': 'index',
-            'quant': 'index',
-            'name': '',
-            'group': 'index',
+            'quant': 'R',
+            'name': 'R',
+            'ref': kZbscr,
         },
     }
 
@@ -641,7 +662,7 @@ def _mesh2DRect_bsplines(coll=None, keym=None, keybs=None, deg=None):
             keybs: {
                 'deg': deg,
                 'mesh': keym,
-                'ref': ref,
+                'ref': (kRbscr, kZbscr),
                 'shape': shapebs,
                 'crop': False,
                 'func_details': func_details,
@@ -651,7 +672,7 @@ def _mesh2DRect_bsplines(coll=None, keym=None, keybs=None, deg=None):
         },
     }
 
-    return dref, dobj
+    return dref, ddata, dobj
 
 
 def add_cropbs_from_crop(coll=None, keybs=None, keym=None):
@@ -660,15 +681,15 @@ def add_cropbs_from_crop(coll=None, keybs=None, keym=None):
     # get
 
     kcropbs = False
-    if coll.dobj['mesh'][keym]['crop'] is not False:
-        kcropm = coll.dobj['mesh'][keym]['crop']
+    if coll.dobj[coll._which_mesh][keym]['crop'] is not False:
+        kcropm = coll.dobj[coll._which_mesh][keym]['crop']
         cropbs = _get_cropbs_from_crop(
             coll=coll,
             crop=coll.ddata[kcropm]['data'],
             keybs=keybs,
         )
         kcropbs = f'{keybs}-crop'
-        kcroppedbs = f'{keybs}-cropped'
+        kcroppedbs = f'{keybs}-crop-nbs'
 
     # ----------------
     # optional crop
@@ -678,8 +699,7 @@ def add_cropbs_from_crop(coll=None, keybs=None, keym=None):
         # add cropped flat reference
         coll.add_ref(
             key=kcroppedbs,
-            data=np.arange(0, cropbs.sum()),
-            group='index',
+            size=int(cropbs.sum()),
         )
 
         coll.add_data(
@@ -865,8 +885,8 @@ def _sample_mesh_check(
             Z = Zk
     else:
         kknots = coll.dobj['mesh'][key]['knots']
-        Rk = coll.ddata[f'{kknots}-R']['data']
-        Zk = coll.ddata[f'{kknots}-Z']['data']
+        Rk = coll.ddata[kknots[0]]['data']
+        Zk = coll.ddata[kknots[1]]['data']
 
     # custom DR or DZ for mode='abs' only
     if DR is not None or DZ is not None:
@@ -979,24 +999,28 @@ def sample_mesh(
 
 
 def _crop_check(
-    coll=None, key=None, crop=None, thresh_in=None, remove_isolated=None,
+    coll=None,
+    key=None,
+    crop=None,
+    thresh_in=None,
+    remove_isolated=None,
 ):
 
     # key
-    lkm = list(coll.dobj['mesh'].keys())
+    lkm = list(coll.dobj[coll._which_mesh].keys())
     key = _generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
         allowed=lkm,
     )
-    meshtype = coll.dobj['mesh'][key]['type']
+    meshtype = coll.dobj[coll._which_mesh][key]['type']
 
     if meshtype != 'rect':
         raise NotImplementedError()
 
     # shape
-    shape = coll.dobj['mesh'][key]['shape']
+    shape = coll.dobj[coll._which_mesh][key]['shape-c']
 
     # crop
     c0 = (
@@ -1032,7 +1056,7 @@ def _crop_check(
     # thresh_in and maxth
     if thresh_in is None:
         thresh_in = 3
-    maxth = 5 if coll.dobj['mesh'][key]['type'] == 'rect' else 4
+    maxth = 5 if coll.dobj[coll._which_mesh][key]['type'] == 'rect' else 4
 
     c0 = isinstance(thresh_in, (int, np.integer)) and (1 <= thresh_in <= maxth)
     if not c0:
@@ -1052,7 +1076,38 @@ def _crop_check(
     return key, cropbool, thresh_in, remove_isolated
 
 
-def crop(coll=None, key=None, crop=None, thresh_in=None, remove_isolated=None):
+def crop(
+    coll=None,
+    key=None,
+    crop=None,
+    thresh_in=None,
+    remove_isolated=None,
+):
+    """ Crop a rect mesh
+
+    Parameters
+    ----------
+    key:        str
+        key of the rect mesh to be cropped
+    crop:      np.ndarray
+        Can be either:
+            - bool: a boolean mask array
+            - float: a closed 2d polygon used for cropping
+    threshin:   int
+        minimum nb. of corners for a mesh element to be included
+    remove_isolated: bool
+        flag indicating whether to remove isolated mesh elements
+
+    Return
+    ------
+    crop:       np.ndarray
+        bool mask
+    key:        str
+        key of the rect mesh to be cropped
+    thresh_in:  int
+        minimum nb. of corners for a mesh element to be included
+
+    """
 
     # ------------
     # check inputs
@@ -1107,12 +1162,12 @@ def _get_cropbs_from_crop(coll=None, crop=None, keybs=None):
     if isinstance(crop, str) and crop in coll.ddata.keys():
         crop = coll.ddata[crop]['data']
 
-    shaperef = coll.dobj['mesh'][coll.dobj['bsplines'][keybs]['mesh']]['shape']
-    if crop.shape != shaperef:
+    shref = coll.dobj[coll._which_mesh][coll.dobj['bsplines'][keybs]['mesh']]['shape-c']
+    if crop.shape != shref:
         msg = "Arg crop seems to have the wrong shape!"
         raise Exception(msg)
 
-    keym = coll.dobj['bsplines'][keybs]['mesh']
+    keym = coll.dobj['bsplines'][keybs][coll._which_mesh]
     kRk, kZk = coll.dobj['mesh'][keym]['knots']
     kRc, kZc = coll.dobj['mesh'][keym]['cents']
 
