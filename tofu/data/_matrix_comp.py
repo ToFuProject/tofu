@@ -201,13 +201,12 @@ def compute(
 
     if store:
 
-        # add key chan is necessary
+        # add key chan if necessary
         dref = None
         if key_chan is None:
             lrchan = [
                 k0 for k0, v0 in coll.dref.items()
-                if v0['group'] == 'chan'
-                and k0.startswith('chan') and k0[4:].isdecimal()
+                if k0.startswith('chan') and k0[4:].isdecimal()
             ]
             if len(lrchan) == 0:
                 chann = 0
@@ -218,7 +217,6 @@ def compute(
             dref = {
                 key_chan: {
                     'data': np.arange(0, nlos),
-                    'group': 'chan',
                 },
             }
 

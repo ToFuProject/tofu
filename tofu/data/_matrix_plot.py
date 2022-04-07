@@ -330,11 +330,11 @@ def plot_geometry_matrix(
 
         dax = {
             'matrix': ax01,
-            'cross1': {'ax': ax10, 'type': 'cross'},
-            'cross2': {'ax': ax12, 'type': 'cross'},
-            'crosstot': {'ax': ax11, 'type': 'cross'},
-            'misc1': {'ax': ax02, 'type': 'misc'},
-            'misc2': {'ax': ax00, 'type': 'misc'},
+            'cross1': {'handle': ax10, 'type': 'cross'},
+            'cross2': {'handle': ax12, 'type': 'cross'},
+            'crosstot': {'handle': ax11, 'type': 'cross'},
+            'vertical': {'handle': ax02, 'type': 'misc'},
+            'horizontal': {'handle': ax00, 'type': 'misc'},
         }
 
     dax = _generic_check._check_dax(dax=dax, main='matrix')
@@ -349,14 +349,14 @@ def plot_geometry_matrix(
     # --------------
     # plot matrix
 
-    dax = coll.plot_as_matrix(
+    coll2 = coll.plot_as_array(
         key=key, dax=dax, ind=[indchan, indbf],
         cmap=cmap, vmin=vmin, vmax=vmax, aspect=aspect,
     )
 
     kax = 'cross1'
     if dax.get(kax) is not None:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
 
         im = ax.imshow(
             bspline1,
@@ -380,7 +380,7 @@ def plot_geometry_matrix(
 
     kax = 'cross2'
     if dax.get(kax) is not None:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
 
         coll.plot_bsplines(
             key=keybs,
@@ -404,7 +404,7 @@ def plot_geometry_matrix(
 
     kax = 'crosstot'
     if dax.get(kax) is not None:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
 
         im = ax.imshow(
             bsplinetot,
@@ -423,4 +423,4 @@ def plot_geometry_matrix(
     # if dleg is not False:
         # dax['cross'].legend(**dleg)
 
-    return dax
+    return coll2
