@@ -42,6 +42,8 @@ class Plasma2D(ds.DataStock):
     _ddef['params']['ddata'].update({
         'onmesh': (bool, False),
     })
+    _ddef['params']['dobj'] = None
+    _ddef['params']['dref'] = None
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
