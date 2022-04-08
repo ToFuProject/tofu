@@ -557,15 +557,6 @@ def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
     }
 
     ddata = None
-    # {
-        # keybs: {
-            # 'data': np.arange(0, clas.nbs),
-            # 'units': '',
-            # 'dim': 'index',
-            # 'quant': 'index',
-            # 'name': '',
-        # },
-    # }
 
     dobj = {
         'bsplines': {

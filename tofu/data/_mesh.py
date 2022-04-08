@@ -39,7 +39,6 @@ _QUANT_Z = 'Z'
 
 class Plasma2D(ds.DataStock):
 
-
     _ddef = copy.deepcopy(ds.DataStock._ddef)
     _ddef['params']['ddata'].update({
         'onmesh': (bool, False),

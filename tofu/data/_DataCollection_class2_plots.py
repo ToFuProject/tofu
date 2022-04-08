@@ -1,11 +1,11 @@
 
 
-from ._DataCollection_class1_interactivity import DataCollection1
-from . import _DataCollection_plot_as_array
+# from ._DataCollection_class1_interactivity import DataCollection1
+# from . import _DataCollection_plot_as_array
 
 
-class DataCollection2(DataCollection1):
-    """ Provide default interactive plots """
+# class DataCollection2(DataCollection1):
+    # """ Provide default interactive plots """
 
     # -------------------
     # Generic plotting

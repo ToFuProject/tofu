@@ -591,14 +591,6 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
             'dim': 'indices',
             'ref': (kc, ki),
         },
-        # kcents: {
-            # 'data': cents,
-            # 'ref': (kcents_ind, kcents_pts),
-            # 'units': '',
-            # 'quant': 'ind',
-            # 'dim': 'ind',
-            # 'group': 'ind',
-        # },
     }
 
     # dobj

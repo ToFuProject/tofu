@@ -551,18 +551,18 @@ class Test02_Plasma2D():
                         pass
                     else:
                         continue
-                # try:
-                self.dobj[k0].add_bsplines_operator(
-                    key=lkey[ii],
-                    operator=comb[0],
-                    geometry=comb[1],
-                    crop=comb[2],
-                )
-                # except Exception as err:
-                    # dfail[k0] = (
-                        # f"key {lkey[ii]}, op '{comb[0]}', geom '{comb[1]}': "
-                        # + str(err)
-                    # )
+                try:
+                    self.dobj[k0].add_bsplines_operator(
+                        key=lkey[ii],
+                        operator=comb[0],
+                        geometry=comb[1],
+                        crop=comb[2],
+                    )
+                except Exception as err:
+                    dfail[k0] = (
+                        f"key {lkey[ii]}, op '{comb[0]}', geom '{comb[1]}': "
+                        + str(err)
+                    )
 
         # Raise error if any fail
         if len(dfail) > 0:
