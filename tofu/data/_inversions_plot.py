@@ -123,10 +123,11 @@ def plot_inversion(
     # data
     keychan = coll.ddata[keydata]['ref'][-1]
     chan = coll.ddata[keychan]['data']
-    if 'time' in coll.ddata[keyinv]['group']:
+    hastime = coll.ddata[keydata]['data'].ndim == 2
+
+    if hastime:
         data = coll.ddata[keydata]['data']
-        keyt = coll.ddata[keydata]['ref'][0]
-        time = coll.ddata[keyt]['data']
+        time = np.arange(coll.ddata[keydata]['data'].shape[0])
     else:
         data = coll.ddata[keydata]['data'][None, :]
         time = [0]
@@ -140,7 +141,7 @@ def plot_inversion(
 
     if cropbs is not None:
         cropbs_flat = cropbs.ravel(order='F')
-    if 'time' in coll.ddata[keyinv]['group']:
+    if hastime:
         nt = sol.shape[0]
         if sol.ndim == 3:
             sol_flat = sol.reshape((nt, nbs), order='F')
@@ -161,7 +162,7 @@ def plot_inversion(
             data_re = matrix.dot(sol_flat.T)[:, None]
 
     # inversion parameters
-    if 'time' in coll.ddata[keyinv]['group']:
+    if hastime:
         nchi2n = chan.size * coll.ddata[f'{keyinv}-niter']['data']
         mu = coll.ddata[f'{keyinv}-mu']['data']
         reg = coll.ddata[f'{keyinv}-reg']['data']
@@ -229,11 +230,11 @@ def plot_inversion(
         ax4.set_ylabel(f'niter')
 
         dax = {
-            'reconstruction': {'ax': ax0, 'type': 'cross'},
-            'data': {'ax': ax1, 'type': 'misc'},
-            'data-err': {'ax': ax2, 'type': 'misc'},
-            'inv-param': {'ax': ax3, 'type': 'misc'},
-            'niter': {'ax': ax4, 'type': 'misc'},
+            'reconstruction': {'handle': ax0, 'type': 'cross'},
+            'data': {'handle': ax1, 'type': 'misc'},
+            'data-err': {'handle': ax2, 'type': 'misc'},
+            'inv-param': {'handle': ax3, 'type': 'misc'},
+            'niter': {'handle': ax4, 'type': 'misc'},
         }
 
         if synthetic:
@@ -257,7 +258,7 @@ def plot_inversion(
 
     kax = 'reconstruction'
     if dax.get(kax) is not None:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
         coll.plot_profile2d(
             key=keyinv,
             indt=indt,
@@ -274,7 +275,7 @@ def plot_inversion(
 
     kax = 'data'
     if dax.get(kax) is not None:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
         ax.plot(
             chan,
             data[indt, :],
@@ -294,7 +295,7 @@ def plot_inversion(
 
     kax = 'data-err'
     if dax.get(kax) is not None:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
         ax.plot(
             chan,
             data_re[:, indt] - data[indt, :],
@@ -315,7 +316,7 @@ def plot_inversion(
 
     kax = 'inv-param'
     if dax.get(kax) is not None:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
         ax.plot(
             time,
             nchi2n + mu*reg,
@@ -347,7 +348,7 @@ def plot_inversion(
 
     kax = 'niter'
     if dax.get(kax) is not None:
-        ax = dax[kax]['ax']
+        ax = dax[kax]['handle']
         ax.plot(
             time,
             niter,
