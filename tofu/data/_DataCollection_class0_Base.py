@@ -707,6 +707,7 @@ class DataCollection0(utils.ToFuObject):
     # ---------------------
 
     # TBC
+    """
     def to_PlotCollection(self, key=None, ind=None, Name=None,
                           dnmax=None, lib='mpl'):
         dref, ddata = self.get_drefddata_as_input(key=key, ind=ind)
@@ -721,6 +722,7 @@ class DataCollection0(utils.ToFuObject):
         if dnmax is not None:
             obj.set_dnmax(dnmax)
         return obj
+    """
 
     # ---------------------
     # Methods for showing data

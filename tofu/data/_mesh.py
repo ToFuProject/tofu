@@ -13,7 +13,6 @@ import datastock as ds
 # tofu
 # from tofu import __version__ as __version__
 from . import _generic_check
-# from ._DataCollection_class import DataCollection
 from . import _mesh_checks
 from . import _mesh_comp
 from . import _mesh_plot
@@ -598,7 +597,7 @@ class Plasma2D(ds.DataStock):
         if all(lc1):
             (
                 idquant, idref1d, idref2d,
-            ) = _DataCollection_check_inputs._get_possible_ref12d(
+            ) = _mesh_comp._get_possible_ref12d(
                 dd=self._ddata,
                 key=quant, ref1d=ref1d, ref2d=ref2d,
                 group1d=group1d,
@@ -607,15 +606,15 @@ class Plasma2D(ds.DataStock):
             idq2dR, idq2dPhi, idq2dZ = None, None, None
             ani = False
         else:
-            idq2dR, msg = _DataCollection_check_inputs._get_keyingroup_ddata(
+            idq2dR, msg = _mesh_comp._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dR, group=group2d, msgstr='quant', raise_=True,
             )
-            idq2dPhi, msg = _DataCollection_check_inputs._get_keyingroup_ddata(
+            idq2dPhi, msg = _mesh_comp._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dPhi, group=group2d, msgstr='quant', raise_=True,
             )
-            idq2dZ, msg = _DataCollection_check_inputs._get_keyingroup_ddata(
+            idq2dZ, msg = _mesh_comp._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dZ, group=group2d, msgstr='quant', raise_=True,
             )
