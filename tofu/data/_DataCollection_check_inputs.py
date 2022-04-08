@@ -630,10 +630,6 @@ def _check_dstatic(
     dconflict = {}
     for k0, v0 in dstatic.items():
 
-        # lkout = ['nb. data']
-        # if k0 == 'ion':
-            # lkout += ['ION', 'charge', 'element']
-
         if k0 not in dstatic0.keys():
             continue
 

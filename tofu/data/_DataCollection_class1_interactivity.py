@@ -138,10 +138,6 @@ class DataCollection1(DataCollection0):
         # ----------------
         # check refx, refy
 
-        # if refx is None and refy is None:
-            # msg = f"Please provide at least refx or refy for axes {key}!"
-            # raise Exception(msg)
-
         if isinstance(refx, str):
             refx = [refx]
         if isinstance(refy, str):
@@ -991,23 +987,6 @@ class DataCollection1(DataCollection0):
     # Interactivity: keys
     # ----------------------
 
-    # @classmethod
-    # def _get_dmovkeys(cls, Type, inc, invert=False):
-        # assert Type in cls._ltypesref
-        # if Type[0] == 'x':
-            # dmovkeys = {'left':{False:-inc[0], True:-inc[1]},
-                        # 'right':{False:inc[0], True:inc[1]}}
-        # elif Type[0] == 'y':
-            # dmovkeys = {'down':{False:-inc[0], True:-inc[1]},
-                        # 'up':{False:inc[0], True:inc[1]}}
-        # elif Type == '2d':
-            # sig = -1 if invert else 1
-            # dmovkeys = {'left':{False:-sig*inc[0], True:-sig*inc[1]},
-                        # 'right':{False:sig*inc[0], True:sig*inc[1]},
-                        # 'down':{False:-sig*inc[0], True:-sig*inc[1]},
-                        # 'up':{False:sig*inc[0], True:sig*inc[1]}}
-        # return dmovkeys
-
     def onkeypress(self, event):
         """ Event handler in case of key press / release """
 
@@ -1131,7 +1110,7 @@ class DataCollection1(DataCollection0):
                 imax = self._dobj['group'][groupx]['nmaxcur']
                 ii = int(event.key)
                 if ii > imax:
-                    msg = "Set to current max index for group '{groupx}': {imax}"
+                    msg = "Set to current max index for '{groupx}': {imax}"
                     print(msg)
                 ii = min(ii, imax)
                 self._dobj['group'][groupx]['indcur'] = ii
@@ -1141,7 +1120,7 @@ class DataCollection1(DataCollection0):
                 imax = self._dobj['group'][groupy]['nmaxcur']
                 ii = int(event.key)
                 if ii > imax:
-                    msg = "Set to current max index for group '{groupy}': {imax}"
+                    msg = "Set to current max index for '{groupy}': {imax}"
                     print(msg)
                 ii = min(ii, imax)
                 self._dobj['group'][groupy]['indcur'] = ii
