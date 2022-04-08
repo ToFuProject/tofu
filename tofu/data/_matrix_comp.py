@@ -119,7 +119,7 @@ def compute(
     verb=None,
 ):
     """ Compute the geometry matrix using:
-            - a Mesh2DRect instance with a key to a bspline set
+            - a Plasma2DRect instance with a key to a bspline set
             - a cam instance with a resolution
     """
 

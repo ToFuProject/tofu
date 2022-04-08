@@ -78,7 +78,7 @@ class Test01_Inversions():
         )
 
         # mesh deg 1 and 2
-        mesh = tf.data.Mesh2D()
+        mesh = tf.data.Plasma2D()
         mesh.add_mesh(
             crop_poly=conf0,
             key='try1',
