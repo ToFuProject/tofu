@@ -103,7 +103,7 @@ def from_openadas(
         element=element,
         charge=charge,
         pec_as_func=False,
-        format_for_DataCollection=True,
+        format_for_DataStock=True,
         dsource0=dsource0,
         dref0=dref0,
         ddata0=ddata0,
@@ -216,7 +216,7 @@ def _from_nist(
         return_dsources=True,
         verb=verb,
         create_custom=create_custom,
-        format_for_DataCollection=True,
+        format_for_DataStock=True,
         dsource0=dsource0,
         dlines0=dlines0,
     )

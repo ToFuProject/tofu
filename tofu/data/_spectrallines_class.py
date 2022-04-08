@@ -15,10 +15,6 @@ import datastock as ds
 from . import _spectrallines_checks
 from . import _spectrallines_compute
 from . import _spectrallines_plot
-# from ._DataCollection_class import DataCollection
-# from . import _comp_spectrallines
-# from . import _DataCollection_comp
-# from . import _DataCollection_plot_as_array
 
 
 __all__ = ['SpectralLines']

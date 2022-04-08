@@ -106,7 +106,7 @@ class Test01_openadas(object):
                 return_dsources=True,
                 cache_from=comb[3],
                 cache_info=True,
-                format_for_DataCollection=comb[4],
+                format_for_DataStock=comb[4],
                 create_custom=True,
             )
 

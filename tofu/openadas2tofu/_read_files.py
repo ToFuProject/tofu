@@ -106,7 +106,7 @@ def _get_available_elements_from_path(path=None, typ1=None):
     return element
 
 
-def _format_for_DataCollection_adf15(
+def _format_for_DataStock_adf15(
     dout,
     dsource0=None,
     dref0=None,
@@ -441,7 +441,7 @@ def step03_read(
 def step03_read_all(
     element=None, charge=None, typ1=None, typ2=None,
     pec_as_func=None,
-    format_for_DataCollection=None,
+    format_for_DataStock=None,
     dsource0=None,
     dref0=None,
     ddata0=None,
@@ -576,8 +576,8 @@ def step03_read_all(
         elif isinstance(charge, tuple):
             charge = tuple(['{}.dat'.format(cc) for cc in charge])
 
-    if format_for_DataCollection is None:
-        format_for_DataCollection = False
+    if format_for_DataStock is None:
+        format_for_DataStock = False
 
     if verb is None:
         verb = True
@@ -644,8 +644,8 @@ def step03_read_all(
             print(msg)
         dout = func(pfe, dout=dout, **kwdargs)
 
-    if typ1 == 'adf15' and format_for_DataCollection is True:
-        return _format_for_DataCollection_adf15(
+    if typ1 == 'adf15' and format_for_DataStock is True:
+        return _format_for_DataStock_adf15(
             dout,
             dsource0=dsource0,
             dref0=dref0,
