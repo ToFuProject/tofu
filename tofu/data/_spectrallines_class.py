@@ -9,11 +9,7 @@ import copy
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-
-pwd = os.getcwd()
-os.chdir('/home/didier/Documents/Projects/datastock')
 import datastock as ds
-os.chdir(pwd)
 
 
 from . import _spectrallines_checks

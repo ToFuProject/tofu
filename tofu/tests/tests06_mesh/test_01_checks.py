@@ -601,6 +601,6 @@ class Test02_Plasma2D():
             )
 
             dax = self.dobj[k0].plot_geometry_matrix(
-                cam=cam, indchan=12, indbf=100,
+                cam=cam, indchan=12, indbf=10,
             )
             plt.close('all')
