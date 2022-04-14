@@ -3117,6 +3117,7 @@ cdef inline double comp_sa_tri_appx(
         + ( normA + 2*normB -   normC ) * dot_Gc
         + ( normA -   normB -   normC ) * dot_bc
         - (           normB +   normC ) * normB * normC
+    )
 
     result = 2 * c_atan2(c_abs(numerator), denominator)
 
