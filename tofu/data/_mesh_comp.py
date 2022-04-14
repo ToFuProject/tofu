@@ -1412,6 +1412,7 @@ def _interp_check(
     crop=None,
     nan0=None,
     imshow=None,
+    return_params=None,
 ):
     # key
     dk = {
@@ -1544,7 +1545,19 @@ def _interp_check(
             R = np.tile(R, Z.size)
             Z = np.repeat(Z, R.size)
 
-    return key, keybs, R, Z, coefs, indbs, indt, details, crop, nan0
+    # return_params
+    return_params = _generic_check._check_var(
+        return_arams, 'return_params',
+        types=bool,
+        default=False,
+    )
+
+    return (
+        key, keybs,
+        R, Z, coefs,
+        indbs, indt,
+        details, crop, nan0, return_params,
+    )
 
 
 def interp2d(
@@ -1562,12 +1575,18 @@ def interp2d(
     crop=None,
     nan0=None,
     imshow=None,
+    return_params=None,
 ):
 
     # ---------------
     # check inputs
 
-    key, keybs, R, Z, coefs, indbs, indt, details, crop, nan0 = _interp_check(
+    (
+        key, keybs,
+        R, Z, coefs,
+        indbs, indt,
+        details, crop, nan0, return_params,
+    ) = _interp_check(
         coll=coll,
         key=key,
         R=R,
@@ -1581,6 +1600,7 @@ def interp2d(
         crop=crop,
         nan0=nan0,
         imshow=imshow,
+        return_params=return_params,
     )
     keym = coll.dobj['bsplines'][keybs]['mesh']
     meshtype = coll.dobj['mesh'][keym]['type']
@@ -1630,7 +1650,13 @@ def interp2d(
     if nan0 is True:
         val[val == 0] = np.nan
 
-    return val
+    # ------
+    # return
+
+    if return_params is True:
+        return val, dparams
+    else:
+        return val
 
 
 # #############################################################################

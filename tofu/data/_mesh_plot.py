@@ -760,7 +760,7 @@ def _plot_profiles2d_prepare(
         coefs = coefs[indt:indt+1, ...]
 
     # compute
-    bspline = coll.interp2d(
+    bspline = coll.interpolate_profile2d(
         key=key,
         coefs=coefs,
         R=None,

@@ -40,7 +40,7 @@ class Plasma2D(ds.DataStock):
 
     _ddef = copy.deepcopy(ds.DataStock._ddef)
     _ddef['params']['ddata'].update({
-        'onmesh': (bool, False),
+        'bsplines': (str, ''),
     })
     _ddef['params']['dobj'] = None
     _ddef['params']['dref'] = None
@@ -190,6 +190,30 @@ class Plasma2D(ds.DataStock):
             )
 
     # -----------------
+    # add_data
+    # ------------------
+
+    def add_data(self, data=None, key=None, ref=None, **kwdargs):
+
+        super().add_data(data=data, key=key, ref=ref, **kwdargs)
+
+        # bsplines
+        lbs = [
+            k0 for k0, v0 in self._dobj['bsplines'].items()
+            if v0['ref'] == tuple([
+                rr for rr in self._ddata[key]['ref']
+                if rr in v0['ref']
+            ])
+        ]
+        if len(lbs) == 0:
+            pass
+        elif len(lbs) == 1:
+            self._ddata[key]['bsplines'] = lbs[0]
+        else:
+            msg = f"Mulitple nsplines:\n{lbs}"
+            raise Exception(msg)
+
+    # -----------------
     # crop
     # ------------------
 
@@ -241,19 +265,13 @@ class Plasma2D(ds.DataStock):
     def get_profiles2d(self):
         """ Return dict of profiles2d with associated bsplines as values """
 
-        # dict of bsplines shapes
-        dbs = {
-            k0: v0['ref']
-            for k0, v0 in self.dobj['bsplines'].items()
-        }
-
         # dict of profiles2d
         dk = {
-            k0: [k1 for k1, v1 in dbs.items() if v0['ref'][-2:] == v1][0]
-            for k0, v0 in self.ddata.items()
-            if len([k1 for k1, v1 in dbs.items() if v0['ref'][-2:] == v1]) == 1
+            k0: v0['bsplines']
+            for k0, v0 in self._ddata.items()
+            if v0['bsplines'] != ''
         }
-        dk.update({k0: k0 for k0 in dbs.keys()})
+        dk.update({k0: k0 for k0 in self._dobj['bsplines'].keys()})
 
         return dk
 
@@ -547,6 +565,8 @@ class Plasma2D(ds.DataStock):
             DZ=DZ,
             imshow=imshow,
         )
+
+
 
     """
     def get_sample_bspline(self, key=None, res=None, grid=None, mode=None):
@@ -890,23 +910,52 @@ class Plasma2D(ds.DataStock):
         else:
             return val
 
-    def interp2d(
+    def interpolate_profile2d(
+        # ressources
         self,
+        # interpolation base
         key=None,
+        # extrenal coefs (instead of key)
+        coefs=None,
+        # interpolation points
         R=None,
         Z=None,
         grid=None,
-        indbs=None,
         indt=None,
+        # parameters
         details=None,
+        indbs=None,
         reshape=None,
         res=None,
-        coefs=None,
         crop=None,
         nan0=None,
         imshow=None,
+        return_params=None,
     ):
-        """ Interp desired data on pts """
+        """ Interpolate desired profile2d (i.e.: data on bsplines)
+
+        Interpolate:
+            - key: a data on bsplines
+            - coefs: external-provided set of coefs
+
+        At points:
+            - R:  R coordinates (np.ndarray or scalar)
+            - Z:  Z coordinates (np.ndarray, same shape as R, or scalar)
+            - grid: bool, if True mesh R x Z
+            - indt: if provided, only interpolate at desired time indices
+
+        With options:
+            - details: bool, if True returns value for each bspline
+            - indbs:   optional, select bsplines for which to interpolate
+            - reshape: bool,
+            - res:  optional, resolution to generate R and Z if they are None
+            - crop: bool, whether to use the cropped mesh
+            - nan0: value for out-of-mesh points
+            - imshow: bool, whether to return as imshow (transpose)
+            - return_params: bool, whether to return dict of input params
+
+        """
+
         return _mesh_comp.interp2d(
             coll=self,
             key=key,
@@ -922,6 +971,7 @@ class Plasma2D(ds.DataStock):
             crop=crop,
             nan0=nan0,
             imshow=imshow,
+            return_params=return_params,
         )
 
     # -----------------
