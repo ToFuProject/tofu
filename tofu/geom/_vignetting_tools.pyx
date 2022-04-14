@@ -300,7 +300,7 @@ cdef inline int triangulate_polys(double** vignett_poly,
         ltri: 3*(nvert-2)*nvign :
             = [{tri_0_0, tri_0_1, ... tri_0_nvert0}, ..., {tri_nvign_0, ...}]
             where tri_i_j are the 3 indices of the vertex forming a sub-triangle
-            on each vertex (-2) and for each vignett
+            on each vertex (-2) and for each vignette
     """
     cdef int ivign
     cdef int nvert

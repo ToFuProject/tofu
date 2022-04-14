@@ -4980,7 +4980,7 @@ def compute_solid_angle_poly_map(list poly_coords,
     """
     Computes the 2D map of the integrated solid angles subtended by a list of
     npoly polygons of coordinates poly_coords[npoly], not necessarily flat,
-    one sided and side defined by poly_lnorms[npoly], nomal vector of polygon.
+    one sided and side defined by poly_lnorms[npoly], notmal vector of polygon.
     If you want to see the details of the computation see:
         $TOFU_DIR/Notes_Upgrades/SA_tetra/SA_tetra.tex
     Parameters
@@ -4988,12 +4988,13 @@ def compute_solid_angle_poly_map(list poly_coords,
     poly_coords: double (npoly, 3, npts) list
         coordinates of the points defining the polygons.
         not necessarily flat.
-        poly_coords[np, i] being the i-th coordinate of the np polygon
-        The coordinates should be given in anti clockwise order and the polygon
+        poly_coords[ipoly, i, ipt] being the i-th coordinate of the ipt-th
+        point of the ipoly-th polygon
+        The coordinates should be given in anti-clockwise order and the polygon
         should be open
-    poly_lnorms: double array
+    poly_lnorms: double array (npoly,)
         normal vector that defines the visible face of the polygon
-        poly_lnorms[np] defines the norm of the np-th polygon
+        poly_lnorms[ipoly] defines the norm of the ipoly-th polygon
     poly_lnvert: int array
         number of vertices for each polygon
     rstep: double
@@ -5125,7 +5126,6 @@ def compute_solid_angle_poly_map(list poly_coords,
     cdef np.ndarray[double, ndim=2] poly_lnorms_tot
     cdef np.ndarray[double, ndim=2] cross_GBGC
     cdef double[:, ::1] temp
-    print("begining.....................................")
     #
     # == Testing inputs ========================================================
     if test:
@@ -5151,15 +5151,11 @@ def compute_solid_angle_poly_map(list poly_coords,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
     # ...
-    print("after tests.................................")
     # .. Formatting polygon coordinates ........................................
     npoly = len(poly_coords)
     for ii in range(npoly):
-        print(poly_coords[ii])
         poly_coords[ii] = format_poly(poly_coords[ii], Clock=False,
                                       close=False, Test=True)
-        print(poly_coords[ii])
-    print("......................... after format")
     # .. Dividing polys in triangles ...........................................
     ltri = <long**>malloc(sizeof(long*) * npoly)
     # re writting_polygons coordinates to C type:
@@ -5174,7 +5170,6 @@ def compute_solid_angle_poly_map(list poly_coords,
         ltri,
         num_threads
     )
-    print("...............after triangulate")
     # cpumputing total number of triangles
     tot_num_tri = np.sum(poly_lnvert) - 2 * npoly
     # .. Getting centroids of triangles .......................................
@@ -5193,9 +5188,6 @@ def compute_solid_angle_poly_map(list poly_coords,
         vec_GB,
         vec_GC,
     )
-
-    print("............ got here 1")
-    print(centroids)
 
     poly_lnorms_tot = np.repeat(poly_lnorms,
                                 np.asarray(poly_lnvert) - 2,
@@ -5219,7 +5211,7 @@ def compute_solid_angle_poly_map(list poly_coords,
                                    True, 0, # discretize in absolute mode
                                    margin, &disc_r0, reso_r0, &lindex,
                                    ncells_r0)
-    free(lindex) # getting rid of things we dont need
+    free(lindex) # getting rid of things we don't need
     lindex = NULL
     # .. Now the actual R limited  .............................................
     _st.cythonize_subdomain_dl(DR, limits_dl)
@@ -5236,7 +5228,6 @@ def compute_solid_angle_poly_map(list poly_coords,
                                       ncells_z)
     # .. Preparing for phi: get the limits if any and make sure to replace them
     # .. in the proper quadrants ...............................................
-    print("got here 2...........................")
     if DPhi is None:
         min_phi = -c_pi
         max_phi = c_pi
@@ -5317,7 +5308,6 @@ def compute_solid_angle_poly_map(list poly_coords,
         for jj in range(loc_nc_rphi - nphi0, sz_phi[0]):
             indi_mv[0, jj] = jj - (loc_nc_rphi - nphi0)
         npts_disc += sz_z * sz_phi[0]
-    print("Got heeeeeeere 3...........................")
     # ... doing the others .....................................................
     npts_disc += _st.sa_disc_phi(sz_r, sz_z, ncells_rphi, phistep,
                                  disc_r, disc_r0, step_rphi,
@@ -5325,7 +5315,6 @@ def compute_solid_angle_poly_map(list poly_coords,
                                  ncells_r0[0], ncells_z[0], &max_sz_phi[0],
                                  min_phi, max_phi, sz_phi, indi_mv,
                                  margin, num_threads)
-    print("Got heeeeeeere 4...........................")
     # ... vignetting ...........................................................
     is_in_vignette = np.ones((sz_r, sz_z), dtype=int) # by default yes
     if limit_vpoly is not None:
@@ -5341,7 +5330,6 @@ def compute_solid_angle_poly_map(list poly_coords,
                                 poly_mv, npts_vpoly,
                                 disc_r, disc_z,
                                 is_in_vignette)
-    print("Got heeeeeeere 5...........................")
     # .. preparing for actual discretization ...................................
     ind_rz2pol = np.empty((sz_r, sz_z), dtype=int)
     npts_pol = _st.sa_get_index_arrays(ind_rz2pol,
@@ -5362,7 +5350,6 @@ def compute_solid_angle_poly_map(list poly_coords,
     # initializing utilitary arrays
     num_threads = _ompt.get_effective_num_threads(num_threads)
     lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
-    print("Got heeeeeeere 6...........................")
     # ..............
     _st.sa_tri_assemble(
         block,
@@ -5410,7 +5397,6 @@ def compute_solid_angle_poly_map(list poly_coords,
         ind_mv,
         num_threads
     )
-    print("Got heeeeeeere 7...........................")
     # ... freeing up memory ....................................................
     free(lindex_z)
     free(disc_r)

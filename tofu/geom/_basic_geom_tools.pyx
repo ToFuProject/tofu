@@ -196,11 +196,14 @@ cdef inline void compute_dot_cross_vec(const double[:, ::1] lvec_a,
                                        const int num_threads,
                                        ) nogil:
     cdef int ii
-    cdef double vec1[3]
-    cdef double vec2[3]
-    cdef double vec3[3]
+    cdef double* vec1 = NULL
+    cdef double* vec2 = NULL
+    cdef double* vec3 = NULL
 
     with nogil, parallel(num_threads=num_threads):
+        vec1 =  <double*> malloc(3 * sizeof(double))
+        vec2 =  <double*> malloc(3 * sizeof(double))
+        vec3 =  <double*> malloc(3 * sizeof(double))
         for ii in prange(npts):
             vec1[0] = lvec_a[0, ii]
             vec1[1] = lvec_a[1, ii]
@@ -213,6 +216,11 @@ cdef inline void compute_dot_cross_vec(const double[:, ::1] lvec_a,
             cross_p[1, ii] = vec3[1]
             cross_p[2, ii] = vec3[2]
             dot_p[ii] = compute_dot_prod(vec1, vec2)
+
+        free(vec1)
+        free(vec2)
+        free(vec3)
+
     return
 
 cdef inline double compute_norm(const double[3] vec) nogil:
@@ -388,22 +396,10 @@ cdef inline void find_centroids_GB_GC_ltri(const double** poly_coords,
         ytri = <double*>malloc(3*sizeof(double))
         ztri = <double*>malloc(3*sizeof(double))
         for ipol in prange(npoly):
-            with gil:
-                print(f"{ipol} / ({npoly})")
             for itri in range(lnvert[ipol] - 2):
-                with gil:
-                    print(f"{itri}/({lnvert[ipol]}-2)")
-                    print(ltri == NULL)
-                    print(ltri[0] == NULL)
                 wim1 = ltri[ipol][itri*3]
                 wi   = ltri[ipol][itri*3+1]
                 wip1 = ltri[ipol][itri*3+2]
-                with gil:
-                    print("xxxxxxxxxxxxx 1", wim1, wi, wip1)
-                    print(lnvert == NULL)
-                    print(lnvert[ipol])
-                    print(poly_coords == NULL)
-                    print(poly_coords[0] == NULL)
                 xtri[0] = poly_coords[ipol][0 * lnvert[ipol] + wim1]
                 ytri[0] = poly_coords[ipol][1 * lnvert[ipol] + wim1]
                 ztri[0] = poly_coords[ipol][2 * lnvert[ipol] + wim1]
@@ -414,12 +410,8 @@ cdef inline void find_centroids_GB_GC_ltri(const double** poly_coords,
                 ytri[2] = poly_coords[ipol][1 * lnvert[ipol] + wip1]
                 ztri[2] = poly_coords[ipol][2 * lnvert[ipol] + wip1]
                 iglob = ipol + itri * npoly
-                with gil:
-                    print("...........before find centroid")
                 find_centroid_tri(xtri, ytri, ztri,
                                   centroid[:, iglob])
-                with gil:
-                    print("...........after find centroid")
                 vec_GB[0, iglob] = xtri[1] - centroid[0, iglob]
                 vec_GB[1, iglob] = ytri[1] - centroid[1, iglob]
                 vec_GB[2, iglob] = ztri[1] - centroid[2, iglob]

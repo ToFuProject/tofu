@@ -2847,6 +2847,7 @@ cdef inline void tri_asmbl_block_approx(
     cdef double loc_z
     cdef double loc_phi
     cdef double loc_step_rphi
+    cdef double coeff_integ
     cdef long* is_vis
     cdef double* dot_Gb = NULL
     cdef double* dot_Gc = NULL
@@ -2917,6 +2918,11 @@ cdef inline void tri_asmbl_block_approx(
                                                1, # is toroidal
                                                forbid, 1)
 
+                    if jj == 0 or jj == loc_size_phi-1:
+                        coeff_integ = 0.5 * loc_r * loc_step_rphi
+                    else:
+                        coeff_integ = loc_r * loc_step_rphi
+
                     for ipoly in range(npoly):
                         if side_of_poly[ipoly] < 0.:
                             continue  # point is not on right side of poly
@@ -2929,23 +2935,18 @@ cdef inline void tri_asmbl_block_approx(
                                                  &dist_opts[0])
                         for itri in range(lnvert_poly[ipoly] - 2):
                             iglob = ipoly + itri * npoly
-                            if rr < 2 and zz < 2 and jj < 2:
-                                printf("r, z, p = %f, %f, %f\n", loc_r, loc_z, loc_phi)
-                                printf("x, y, z = %f, %f, %f\n", loc_x, loc_y, loc_z)
-                                printf("Poly %d at the %d itri, iglob = %d => is vis = %d\n",
-                                       ipoly, itri, iglob, is_vis[iglob])
                             if is_vis[iglob]:
-                                sa_map[ind_pol,
-                                       ipoly] += comp_sa_tri_appx(
-                                           itri,
-                                           ltri[ipoly],
-                                           numerator[iglob],
-                                           dot_Gb[iglob],
-                                           dot_Gc[iglob],
-                                           norm_G2[iglob],
-                                           dot_GBGC[iglob],
-                                           dist_opts,
-                                       )
+                                sa_map[ind_pol,ipoly] += (
+                                    coeff_integ
+                                    * comp_sa_tri_appx(itri,
+                                                       ltri[ipoly],
+                                                       numerator[iglob],
+                                                       dot_Gb[iglob],
+                                                       dot_Gc[iglob],
+                                                       norm_G2[iglob],
+                                                       dot_GBGC[iglob],
+                                                       dist_opts)
+                                    )
                         free(dist_opts)
     free(dot_Gb)
     free(dot_Gc)
@@ -2999,6 +3000,7 @@ cdef inline void tri_asmbl_unblock_approx(
     cdef double loc_z
     cdef double loc_phi
     cdef double loc_step_rphi
+    cdef double coeff_integ
     cdef double* dot_Gb = NULL
     cdef double* dot_Gc = NULL
     cdef double* norm_G2 = NULL
@@ -3041,6 +3043,11 @@ cdef inline void tri_asmbl_unblock_approx(
                                              &dot_Gb[0],
                                              &dot_Gc[0],
                                              &norm_G2[0])
+
+                    if jj == 0 or jj == loc_size_phi-1:
+                        coeff_integ = 0.5 * loc_r * loc_step_rphi
+                    else:
+                        coeff_integ = loc_r * loc_step_rphi
                     for ipoly in range(npoly):
                         if side_of_poly[ipoly] < 0.:
                             continue  # point is not on right side of poly
@@ -3053,17 +3060,17 @@ cdef inline void tri_asmbl_unblock_approx(
                                                  &dist_opts[0])
                         for itri in range(lnvert_poly[ipoly] - 2):
                             iglob = ipoly + itri * npoly
-                            sa_map[ind_pol,
-                                   ipoly] += comp_sa_tri_appx(
-                                       itri,
-                                       ltri[ipoly],
-                                       numerator[iglob],
-                                       dot_Gb[iglob],
-                                       dot_Gc[iglob],
-                                       norm_G2[iglob],
-                                       dot_GBGC[iglob],
-                                       dist_opts,
-                                   )
+                            sa_map[ind_pol,ipoly] += (
+                                coeff_integ
+                                * comp_sa_tri_appx(itri,
+                                                   ltri[ipoly],
+                                                   numerator[iglob],
+                                                   dot_Gb[iglob],
+                                                   dot_Gc[iglob],
+                                                   norm_G2[iglob],
+                                                   dot_GBGC[iglob],
+                                                   dist_opts)
+                                )
                         free(dist_opts)
     free(dot_Gb)
     free(dot_Gc)
@@ -3078,40 +3085,39 @@ cdef inline double comp_sa_tri_appx(
     double numerator,
     double dot_Gb,
     double dot_Gc,
-    double norm_G2,
+    double normG2,
     double dot_bc,
     double* dist_opts,
 ) nogil:
     """
     Given by:
     numerator = 3 G \dot (b \cross c)
-    denominator = G \dot G (norm A + norm B + norm C)
-                  + (c \dot b) (norm A - norm B - norm C)
-                  + (c \dot G) (norm A - norm C)
-                  + (G \dot b) (norm A - norm B)
+    denominator =  A B C + ( A + 2B + 2C ) G^2
+                         + ( A -  B + 2C ) G \cdot b
+                         + ( A + 2B -  C ) G \cdot c
+                         + ( A -  B -  C ) b \cdot c
+                         - ( B + C ) B C
     with G centroid of triangle
     """
     cdef double normA
     cdef double normB
     cdef double normC
-    cdef double denumerator
+    cdef double denominator
+    cdef double denominator2
+    cdef double result
 
     normA = dist_opts[ltri[itri*3]]
     normB = dist_opts[ltri[itri*3 + 1]]
     normC = dist_opts[ltri[itri*3 + 2]]
 
-    denumerator = (
-        normA * normB * normC
-        + norm_G2 * (normA + normB + normC)
-        + dot_bc * (normA - normB - normC)
-        + dot_Gb * (normA - normB)
-        + dot_Gc * (normA - normC)
-    )
+    denominator2 = (
+        normA*normB*normC
+        + ( normA + 2*normB + 2*normC ) * normG2
+        + ( normA -   normB + 2*normC ) * dot_Gb
+        + ( normA + 2*normB -   normC ) * dot_Gc
+        + ( normA -   normB -   normC ) * dot_bc
+        - (           normB +   normC ) * normB * normC
 
-    if denumerator < 0. :
-        denumerator += c_pi
+    result = 2 * c_atan2(c_abs(numerator), denominator)
 
-    if denumerator < 0. :
-        printf(">>>>>> denumerator is still negative: %f", denumerator)
-
-    return c_atan2(c_abs(numerator), denumerator)
+    return result
