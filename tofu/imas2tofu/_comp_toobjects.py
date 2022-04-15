@@ -427,6 +427,357 @@ def plasma_checkformat_dsig(dsig=None,
     return dout
 
 
+def plasma_get_drefddata(
+    dtime0=None,
+    d0d=None,
+    out0=None,
+    lids=None,
+    tlim=None,
+    indevent=None,
+    dshort=None,
+    dcomp=None,
+):
+
+    # dicts
+    dref = {}
+    dtime = {} if dtime0 is None else dtime0
+    d1d, dradius = {}, {}
+    d2d, dmesh = {}, {}
+
+    # -----------
+    # loop on ids
+
+    for ids in lids:
+        # Hotfix to avoid calling get_data a second time out0 -> out_
+        # TBF in next release (ugly, sub-optimal...)
+
+        # ------
+        # dtime
+
+        out_ = {'t': out0[ids].get('t', None)}
+        lc = (
+            out_['t'] is not None
+            and out_['t']['isempty'] is False
+        )
+
+        keyt, nt, indt = None, None, None
+        if lc is True:
+            nt = out_['t']['data'].size
+            keynt = f'{ids}.nt'
+            keyt = f'{ids}.t'
+
+            dtt = self.get_tlim(
+                out_['t']['data'],
+                tlim=tlim,
+                indevent=indevent,
+                returnas=int,
+            )
+
+            dref[keynt] = {'size': nt}
+            dtime[keyt] = {
+                'data': dtt['t'],
+                'source': ids,
+                'ref': keynt,
+                'name': 't',
+            }
+            indt = dtt['indt']
+
+        else:
+            nt = None
+
+        # ---------------
+        # d1d and dradius
+
+        lsig = [k for k in out0[ids].keys() if '1d' in k]
+        out_ = self.get_data(
+            dsig={ids: lsig},
+            indt=indt,
+            nan=nan,
+            pos=pos,
+            stack=stack,
+            isclose=isclose,
+            empty=empty,
+            strict=strict,
+            return_all=False,
+            warn=False,
+        )[ids]
+
+        if len(out_) > 0:
+            nref, kref = None, None
+            for ss in out_.keys():
+
+                # safeguard
+                if out_[ss]['data'].ndim not in [1, 2]:
+                    shape = out_[ss]['data'].shape
+                    msg = (
+                        f"Non-conform {ids}.{ss}.ndim\n"
+                        "\t- expected: 1 or 2\n"
+                        f"\t- {ids}.{ss}.shape = {shape}"
+                    )
+                    raise Exception(msg)
+                shape = out_[ss]['data'].shape
+
+                # nr and nt
+                if len(shape) == 1:
+                    nr = shape[0]
+
+                elif len(shape) == 2:
+                    if nt is None:
+                        msg = (
+                            f"{ids}.t could not be retrieved\n"
+                            "=> Assuming 't' is the first dimension of "
+                            "{ids}.{ss}"
+                        )
+                        warnings.warn(msg)
+
+                        nt = shape[0]
+                        keynt = f"{ids}.homemade"
+                        dref[keynt] = {'size': nt}
+
+                    elif nt not in shape:
+                        msg = (
+                            "Inconsistent shape with respect to 't'!\n"
+                            f"\t- {ids}.{ss}.shape = {shape}"
+                            f"\t- One dim should be nt = {nt}"
+                        )
+                        raise Exception(msg)
+
+                    # Make sure shape is (nt, nr)
+                    axist = shape.index(nt)
+                    nr = shape[1-axist]
+                    if axist == 1:
+                        out_[ss]['data'] = out_[ss]['data'].T
+                    if out_[ss]['data'].shape != (nt, nr):
+                        msg = (
+                            f"Wrong shape for {ids}.{ss}:\n"
+                            f"\t- expected: {(nt, nr)}\n"
+                            f"\t- got:  {out_[ss]['data'].shape}"
+                        )
+                        raise Exception(msg)
+
+                # Get dim / quant from dshort / dcomp + units
+                if ss in dshort[ids].keys():
+                    dim = dshort[ids][ss].get('dim', 'unknown')
+                    quant = dshort[ids][ss].get('quant', 'unknown')
+                else:
+                    dim = dcomp[ids][ss].get('dim', 'unknown')
+                    quant = dcomp[ids][ss].get('quant', 'unknown')
+                units = out_[ss]['units']
+                key = f'{ids}.{ss}'
+
+                # dradius
+                if nref is None:
+                    kref = key
+                    nref = nr
+                    dref[kref] = {'size': nref}
+                elif nr != nref:
+                    msg = (
+                        f"Inconsistent nr for {ids}.{ss}\n"
+                        f"\t- nref: {nref}\n"
+                        f"\t- nr:   {nr}"
+                    )
+                    raise Exception(msg)
+
+                d1d[key] = {
+                    'data': out_[ss]['data'],
+                    'name': ss,
+                    'source': ids,
+                    'dim': dim,
+                    'quant': quant,
+                    'units': units,
+                    'ref': (keynt, kref) if len(shape) == 2 else kref,
+                }
+
+                if plot:
+                    if ss in plot_sig:
+                        plot_sig[plot_sig.index(ss)] = key
+                    if ss in plot_X:
+                        plot_X[plot_X.index(ss)] = key
+
+        # -------------
+        # d2d and dmesh
+
+        # TBF and TBC !!!
+
+        lsig = [k for k in out0[ids].keys() if '2d' in k]
+        lsigmesh = [k for k in lsig if 'mesh' in k]
+        out_ = self.get_data(
+            dsig={ids: lsig},
+            indt=indt,
+            nan=nan,
+            pos=pos,
+            stack=stack,
+            isclose=isclose,
+            empty=empty,
+            strict=strict,
+            return_all=False,
+            warn=False,
+        )[ids]
+
+        cmesh = any([ss in out_.keys() for ss in lsigmesh])
+
+        if len(out_) > 0:
+
+            npts, datashape = None, None
+            keym = f'{ids}.mesh' if cmesh else None
+
+            for ss in set(out_.keys()).difference(lsigmesh):
+
+                # Check data shape
+                if out_[ss]['data'].ndim not in [1, 2, 3]:
+                    shape = out_[ss]['data'].shape
+                    msg = (
+                        f"Non-conform {ids}.{ss}.ndim\n"
+                        "\t- expected: 1, 2 or 3\n"
+                        f"\t- {ids}.{ss}.shape = {shape}"
+                    )
+                    raise Exception(msg)
+
+                # check per shape
+                shape = out_[ss]['data'].shape
+
+                if len(shape) == 1:
+                    pass
+
+                elif len(shape) == 2:
+                    # extract units, dim, quant
+                    axist = shape.index(nt)
+                    if npts is None:
+                        npts = shape[1-axist]
+                    if npts != shape[1-axist]:
+                        msg = (
+                            "Inconsistent {ids}.{ss}.shape\n"
+                            f"\t- expected: {(nt, npts)}\n"
+                            f"\t- observed: {shape}"
+                        )
+                        raise Exception(msg)
+
+                    if axist == 1:
+                        out_[ss]['data'] = out_[ss]['data'].T
+
+                else:
+                    if shape[0] != nt:
+                        msg = (
+                            f"Inconsistent {ids}.{ss}.shape:\n"
+                            "nt not in shape => nt=1 and ndim=2\n"
+                            f"\t- nt: {nt}\n"
+                            f"\t- shape: {shape}"
+                        )
+                        raise Exception(msg)
+
+                    datashape = (shape[1], shape[2])
+                    size = shape[1]*shape[2]
+                    if shapeRZ is None:
+                        msg = "Please provide shapeRZ (ambiguous indexing)"
+                        raise Exception(msg)
+                    if shapeRZ == ('R', 'Z'):
+                        out_[ss]['data'] = np.reshape(
+                            out_[ss]['data'],
+                            (nt, size),
+                        )
+                    elif shapeRZ == ('Z', 'R'):
+                        out_[ss]['data'] = np.reshape(
+                            out_[ss]['data'],
+                            (nt, size),
+                            order='F',
+                        )
+                shape = out_[ss]['data'].shape
+
+                if ss in self._dshort[ids].keys():
+                    dim = self._dshort[ids][ss].get('dim', 'unknown')
+                    quant = self._dshort[ids][ss].get('quant', 'unknown')
+                else:
+                    dim = self._dcomp[ids][ss].get('dim', 'unknown')
+                    quant = self._dcomp[ids][ss].get('quant', 'unknown')
+                units = out_[ss]['units']
+                key = f'{ids}.{ss}'
+
+                d2d[key] = {
+                    'data': out_[ss]['data'],
+                    'name': ss,
+                    'dim': dim,
+                    'quant': quant,
+                    'units': units,
+                    'source': ids,
+                    'ref': (keyt, keym),
+                }
+
+            if cmesh is True:
+
+                lc = [
+                    all([ss in lsig for ss in ['2dmeshNodes', '2dmeshFaces']]),
+                    all([ss in lsig for ss in ['2dmeshR', '2dmeshZ']]),
+                ]
+                if not np.sum(lc) == 1:
+                    msg = ("2d mesh shall be provided either via:\n"
+                           + "\t- '2dmeshR' and '2dmeshZ'\n"
+                           + "\t- '2dmeshNodes' and '2dmeshFaces'")
+                    raise Exception(msg)
+
+                # Nodes / Faces case
+                if lc[0]:
+                    nodes = out_['2dmeshNodes']['data']
+                    indfaces = out_['2dmeshFaces']['data']
+                    func = _comp_mesh.tri_checkformat_NodesFaces
+                    indfaces, mtype, ntri = func(nodes, indfaces, ids=ids)
+                    nnod, nfaces = int(nodes.size/2), indfaces.shape[0]
+                    if npts is not None:
+                        nft = int(nfaces/ntri)
+                        if npts not in [nnod, nft]:
+                            msg = ("Inconsistent indices:\n"
+                                   + "\t- 2d prof {} npts\n".format(npts)
+                                   + "\t- mesh {} nodes\n".format(nnod)
+                                   + "\t       {} faces".format(nft))
+                            raise Exception(msg)
+                        ftype = 1 if npts == nnod else 0
+                    else:
+                        ftype = None
+                    mpltri = mpl.tri.Triangulation(nodes[:, 0],
+                                                   nodes[:, 1], indfaces)
+                    dmesh[keym] = {'dim': 'mesh', 'quant': 'mesh',
+                                   'units': 'a.u.', 'origin': ids,
+                                   'depend': (keym,), 'name': mtype,
+                                   'nodes': nodes, 'faces': indfaces,
+                                   'type': mtype, 'ntri': ntri,
+                                   'ftype': ftype, 'nnodes': nnod,
+                                   'nfaces': nfaces, 'mpltri': mpltri}
+                    dmesh[keym] = {
+                        'key': keym,
+                        'knots': nodes,
+                        'cents': indfaces,
+                        'ntri': ntri,
+                        'deg': deg,
+                    }
+
+                # R / Z case
+                elif lc[1]:
+                    func = _comp_mesh.rect_checkformat
+                    R, Z, shapeRZ, ftype = func(out_['2dmeshR']['data'],
+                                                out_['2dmeshZ']['data'],
+                                                datashape=datashape,
+                                                shapeRZ=shapeRZ, ids=ids)
+                    dmesh[keym] = {
+                        'key': keym,
+                        'source': ids,
+                        'depend': (keym,),
+                        'name': 'rect',
+                        'R': R,
+                        'Z': Z,
+                        'deg': deg,
+                    }
+
+
+    # t0
+    if indt0 is None:
+        indt0 = 0
+    t0 = self._get_t0(t0, ind=indt0)
+    if t0 is not False:
+        for tt in dtime.keys():
+            dtime[tt]['data'] = dtime[tt]['data'] - t0
+
+    return dref, dtime, d1d, d2d, dmesh
+
+
 def plasma_plot_args(plot, plot_X, plot_sig,
                      dsig=None):
     # Set plot

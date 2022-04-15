@@ -32,8 +32,8 @@ except Exception:
     from .. import _physics as _physics
 
 __all__ = ['DataCam1D','DataCam2D',
-           'DataCam1DSpectral','DataCam2DSpectral',
-           'Plasma2D']
+           'DataCam1DSpectral','DataCam2DSpectral']
+           # 'Plasma2D']
 _INTERPT = 'zero'
 
 
