@@ -235,8 +235,6 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
 
     #.. initialization..........................................................
     lminmax[0] = 0.
-    dl_array[0] = C_NAN
-    dl_array[1] = C_NAN
     ncells[0] = <long*>malloc((np-1)*sizeof(long))
     #.. Filling arrays..........................................................
     if c_abs(din) < _VSMALL:
@@ -245,6 +243,8 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             v1 = ves_poly[1, ii+1] - ves_poly[1, ii]
             lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
             inv_norm = 1. / lminmax[1]
+            dl_array[0] = C_NAN
+            dl_array[1] = C_NAN
             discretize_line1d_core(lminmax, dstep, dl_array, True,
                                    mode, margin, &ldiscret, loc_resolu,
                                    &lindex, &ncells[0][ii])
@@ -288,6 +288,8 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             v1 = ves_poly[1, ii+1]-ves_poly[1, ii]
             lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
             inv_norm = 1. / lminmax[1]
+            dl_array[0] = C_NAN
+            dl_array[1] = C_NAN
             discretize_line1d_core(lminmax, dstep, dl_array, True,
                                    mode, margin, &ldiscret, loc_resolu,
                                    &lindex, &ncells[0][ii])
@@ -3103,14 +3105,13 @@ cdef inline double comp_sa_tri_appx(
     cdef double normB
     cdef double normC
     cdef double denominator
-    cdef double denominator2
     cdef double result
 
     normA = dist_opts[ltri[itri*3]]
     normB = dist_opts[ltri[itri*3 + 1]]
     normC = dist_opts[ltri[itri*3 + 2]]
 
-    denominator2 = (
+    denominator = (
         normA*normB*normC
         + ( normA + 2*normB + 2*normC ) * normG2
         + ( normA -   normB + 2*normC ) * dot_Gb

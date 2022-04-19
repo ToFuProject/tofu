@@ -5126,6 +5126,7 @@ def compute_solid_angle_poly_map(list poly_coords,
     cdef np.ndarray[double, ndim=2] poly_lnorms_tot
     cdef np.ndarray[double, ndim=2] cross_GBGC
     cdef double[:, ::1] temp
+    print("begining.....................................")
     #
     # == Testing inputs ========================================================
     if test:
@@ -5151,11 +5152,15 @@ def compute_solid_angle_poly_map(list poly_coords,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
     # ...
+    print("after tests.................................")
     # .. Formatting polygon coordinates ........................................
     npoly = len(poly_coords)
     for ii in range(npoly):
+        print(poly_coords[ii])
         poly_coords[ii] = format_poly(poly_coords[ii], Clock=False,
                                       close=False, Test=True)
+        print(poly_coords[ii])
+    print("......................... after format")
     # .. Dividing polys in triangles ...........................................
     ltri = <long**>malloc(sizeof(long*) * npoly)
     # re writting_polygons coordinates to C type:
@@ -5170,6 +5175,8 @@ def compute_solid_angle_poly_map(list poly_coords,
         ltri,
         num_threads
     )
+#    print(ltri[0][0], ltri[0][1], ltri[0][2], ltri[0][3], ltri[0][4], ltri[0][5])
+    print("...............after triangulate")
     # cpumputing total number of triangles
     tot_num_tri = np.sum(poly_lnvert) - 2 * npoly
     # .. Getting centroids of triangles .......................................
@@ -5189,6 +5196,8 @@ def compute_solid_angle_poly_map(list poly_coords,
         vec_GC,
     )
 
+    print("............ got here 1")
+
     poly_lnorms_tot = np.repeat(poly_lnorms,
                                 np.asarray(poly_lnvert) - 2,
                                 axis = 0)
@@ -5203,6 +5212,11 @@ def compute_solid_angle_poly_map(list poly_coords,
                                tot_num_tri,
                                num_threads,
                                )
+    print(tot_num_tri)
+    print("vec_GB", vec_GB)
+    print("vec_GC", vec_GC)
+    print("dot_GBGC", dot_GBGC)
+    print("cross_GBGC", cross_GBGC)
     # .. Check if points are visible ...........................................
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
@@ -5228,6 +5242,11 @@ def compute_solid_angle_poly_map(list poly_coords,
                                       ncells_z)
     # .. Preparing for phi: get the limits if any and make sure to replace them
     # .. in the proper quadrants ...............................................
+    print("got here 2...........................")
+#    print(ncells_r0[0], ncells_r[0], ncells_z[0])
+#    print(disc_r0[0], disc_r0[1], disc_r0[2])
+#    print(disc_r[0], disc_r[1], disc_r[2])
+#    print(disc_z[0], disc_z[1], disc_z[2])
     if DPhi is None:
         min_phi = -c_pi
         max_phi = c_pi
@@ -5248,6 +5267,7 @@ def compute_solid_angle_poly_map(list poly_coords,
     abs0 = c_abs(min_phi_pi)
     abs1 = c_abs(max_phi_pi)
     # ... doing 0 loop before ..................................................
+    print(f"branching if {min_phi} < {max_phi}")
     if min_phi < max_phi:
         # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
         ncells_rphi[0] = <int>c_ceil(twopi_over_dphi * disc_r[0])
@@ -5308,6 +5328,7 @@ def compute_solid_angle_poly_map(list poly_coords,
         for jj in range(loc_nc_rphi - nphi0, sz_phi[0]):
             indi_mv[0, jj] = jj - (loc_nc_rphi - nphi0)
         npts_disc += sz_z * sz_phi[0]
+    print("Got heeeeeeere 3...........................")
     # ... doing the others .....................................................
     npts_disc += _st.sa_disc_phi(sz_r, sz_z, ncells_rphi, phistep,
                                  disc_r, disc_r0, step_rphi,
@@ -5315,6 +5336,7 @@ def compute_solid_angle_poly_map(list poly_coords,
                                  ncells_r0[0], ncells_z[0], &max_sz_phi[0],
                                  min_phi, max_phi, sz_phi, indi_mv,
                                  margin, num_threads)
+    print("Got heeeeeeere 4...........................")
     # ... vignetting ...........................................................
     is_in_vignette = np.ones((sz_r, sz_z), dtype=int) # by default yes
     if limit_vpoly is not None:
@@ -5330,6 +5352,7 @@ def compute_solid_angle_poly_map(list poly_coords,
                                 poly_mv, npts_vpoly,
                                 disc_r, disc_z,
                                 is_in_vignette)
+    print("Got heeeeeeere 5...........................")
     # .. preparing for actual discretization ...................................
     ind_rz2pol = np.empty((sz_r, sz_z), dtype=int)
     npts_pol = _st.sa_get_index_arrays(ind_rz2pol,
@@ -5350,6 +5373,7 @@ def compute_solid_angle_poly_map(list poly_coords,
     # initializing utilitary arrays
     num_threads = _ompt.get_effective_num_threads(num_threads)
     lstruct_lims_np = flatten_lstruct_lims(lstruct_lims)
+    print("Got heeeeeeere 6...........................")
     # ..............
     _st.sa_tri_assemble(
         block,
@@ -5397,6 +5421,7 @@ def compute_solid_angle_poly_map(list poly_coords,
         ind_mv,
         num_threads
     )
+    print("Got heeeeeeere 7...........................")
     # ... freeing up memory ....................................................
     free(lindex_z)
     free(disc_r)
