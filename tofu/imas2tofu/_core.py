@@ -2131,8 +2131,13 @@ class MultiIDSLoader(object):
             cam.plot_touch(draw=True)
         return cam
 
-    def get_tlim(self, t=None, tlim=None,
-                 indevent=None, returnas=None):
+    def get_tlim(
+        self,
+        t=None,
+        tlim=None,
+        indevent=None,
+        returnas=None,
+    ):
         """ Retrun the time indices corresponding to the desired time limts
 
         Return a dict with:
