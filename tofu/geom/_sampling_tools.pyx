@@ -99,15 +99,18 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
         desired_limits[1] = lminmax[1]
     else:
         if c_isnan(dl[0]):
-            dl[0] = lminmax[0]
+            desired_limits[0] = lminmax[0]
+        else:
+            desired_limits[0] = dl[0]
         if c_isnan(dl[1]):
-            dl[1] = lminmax[1]
-        if lim and dl[0]<=lminmax[0]:
-            dl[0] = lminmax[0]
-        if lim and dl[1]>=lminmax[1]:
-            dl[1] = lminmax[1]
-        desired_limits[0] = dl[0]
-        desired_limits[1] = dl[1]
+            desired_limits[1] = lminmax[1]
+        else:
+            desired_limits[1] = dl[1]
+        if lim and desired_limits[0]<=lminmax[0]:
+            desired_limits[0] = lminmax[0]
+        if lim and desired_limits[1]>=lminmax[1]:
+            desired_limits[1] = lminmax[1]
+
     # .. Get the extreme indices of the mesh elements that really need to be
     # created within those limits...............................................
     inv_resol = 1./resolution[0]
@@ -235,6 +238,8 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
 
     #.. initialization..........................................................
     lminmax[0] = 0.
+    dl_array[0] = C_NAN
+    dl_array[1] = C_NAN
     ncells[0] = <long*>malloc((np-1)*sizeof(long))
     #.. Filling arrays..........................................................
     if c_abs(din) < _VSMALL:
@@ -243,8 +248,6 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             v1 = ves_poly[1, ii+1] - ves_poly[1, ii]
             lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
             inv_norm = 1. / lminmax[1]
-            dl_array[0] = C_NAN
-            dl_array[1] = C_NAN
             discretize_line1d_core(lminmax, dstep, dl_array, True,
                                    mode, margin, &ldiscret, loc_resolu,
                                    &lindex, &ncells[0][ii])
@@ -288,8 +291,6 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             v1 = ves_poly[1, ii+1]-ves_poly[1, ii]
             lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
             inv_norm = 1. / lminmax[1]
-            dl_array[0] = C_NAN
-            dl_array[1] = C_NAN
             discretize_line1d_core(lminmax, dstep, dl_array, True,
                                    mode, margin, &ldiscret, loc_resolu,
                                    &lindex, &ncells[0][ii])
