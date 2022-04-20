@@ -289,6 +289,35 @@ def _check_mesh_temp(data=None, key=None):
 
 # #############################################################################
 # #############################################################################
+#                          add data on mesh / bsplines
+# #############################################################################
+
+
+def add_data_meshbsplines_ref(
+    ref=None,
+    data=None,
+    dmesh=None,
+    dbsplines=None,
+):
+
+    # TBF
+    if isinstance(ref, str):
+        if ref in self.dobj[self._which_mesh].keys():
+            if len(self.dobj['bsplines']) == 1:
+                ref = list(self.dobj['bsplines'].keys())[0]
+        if ref in self.dobj['bsplines'].keys():
+            ref = self.dobj['bsplines'][ref]['ref']
+    elif isinstance(ref, (tuple, list)):
+        rm = [rr for rr in ref if rr in self.dobj[self._which_mesh].keys()]
+        if len(rm) == 1:
+            if len(self.dobj['bsplines']) == 1:
+                pass
+
+
+
+
+# #############################################################################
+# #############################################################################
 #                           mesh generic check
 # #############################################################################
 
@@ -484,12 +513,6 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
 
         # check clock-wise triangles
         cents = _mesh2DTri_clockwise(knots=knots, cents=cents, key=key)
-
-        # check trifinder
-        if trifind is None:
-            mpltri = mplTri(knots[:, 0], knots[:, 1], cents)
-            trifind = mpltri.get_trifinder()
-
         meshtype = 'tri'
 
     # Quadrangular mesh => convert to triangular
@@ -504,13 +527,12 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
         # Re-check mesh conformity
         cents, knots = _mesh2DTri_conformity(knots=knots, cents=cents, key=key)
         cents = _mesh2DTri_clockwise(knots=knots, cents=cents, key=key)
-
-        # check trifinder
-        if trifind is None:
-            mpltri = mplTri(knots[:, 0], knots[:, 1], cents)
-            trifind = mpltri.get_trifinder()
-
         meshtype = 'quadtri'
+
+    # check trifinder
+    if trifind is None:
+        mpltri = mplTri(knots[:, 0], knots[:, 1], cents)
+        trifind = mpltri.get_trifinder()
 
     # ----------------------------
     # Check on trifinder function

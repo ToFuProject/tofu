@@ -195,6 +195,15 @@ class Plasma2D(ds.DataStock):
 
     def add_data(self, data=None, key=None, ref=None, **kwdargs):
 
+        # can optionally handle mesh or bspline key in ref, TBF
+        ref = _mesh_checks.add_data_meshbsplines_ref(
+            ref=ref,
+            data=data,
+            dmesh=self._dobj[self._which_mesh],
+            dbsplines=self._dobj['bsplines'],
+        )
+
+        # add data
         super().add_data(data=data, key=key, ref=ref, **kwdargs)
 
         # bsplines
