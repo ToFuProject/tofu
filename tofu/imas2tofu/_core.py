@@ -1828,14 +1828,21 @@ class MultiIDSLoader(object):
         # data source consistency
         _, _, shot, Exp = _comp_toobjects.get_lidsidd_shotExp(
             lids, upper=True, errshot=False, errExp=False,
-            dids=self._dids, didd=self._didd)
+            dids=self._dids, didd=self._didd,
+        )
 
         # -------------
         #   get all relevant data
-        out0 = self.get_data(dsig=dsig,
-                             nan=nan, pos=pos,
-                             empty=empty, isclose=isclose, strict=True,
-                             return_all=False)
+
+        out0 = self.get_data(
+            dsig=dsig,
+            nan=nan,
+            pos=pos,
+            empty=empty,
+            isclose=isclose,
+            strict=True,
+            return_all=False,
+        )
 
         # -------------
         #   Input dicts
@@ -1861,6 +1868,23 @@ class MultiIDSLoader(object):
         (
             dref, dtime, d1d, d2d, dmesh,
         ) = _comp_toobjects.plasma_get_drefddata(
+            multi=self,
+            dtime0=dtime0,
+            d0d=d0d,
+            out0=out0,
+            lids=lids,
+            # parameters
+            tlim=tlim,
+            indevent=indevent,
+            nan=nan,
+            pos=pos,
+            stack=stack,
+            isclose=isclose,
+            empty=empty,
+            strict=strict,
+            # plotting
+            plot=plot,
+            plot_sig=plot_sig,
         )
 
         # create Plasma2D
