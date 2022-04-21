@@ -1727,13 +1727,31 @@ class MultiIDSLoader(object):
                     ids=ids, dshort=self._dshort, dcomp=self._dcomp)
             return d0d, dt0
 
-    def to_Plasma2D(self, tlim=None, dsig=None, t0=None, indt0=None,
-                    Name=None, occ=None, config=None, out=object,
-                    description_2d=None, indevent=None, stack=None,
-                    plot=None, plot_sig=None, plot_X=None,
-                    bck=True, dextra=None, isclose=None, nan=True,
-                    pos=None, empty=None, strict=None,
-                    flatocc=None, shapeRZ=None):
+    def to_Plasma2D(
+        self,
+        # dict of signals to be extracted
+        dsig=None,
+        # time parameters
+        tlim=None,
+        t0=None,
+        indt0=None,
+        indevent=None,
+        # other parameters
+        occ=None,
+        stack=None,
+        dextra=None,
+        isclose=None,
+        nan=True,
+        pos=None,
+        empty=None,
+        strict=None,
+        flatocc=None,
+        # plotting parameters
+        plot=None,
+        plot_sig=None,
+        plot_X=None,
+        bck=True,
+    ):
         """ Export the content of some ids as a tofu Plasma2D object
 
         Some ids typically contain plasma 1d (radial) or 2d (mesh) profiles
@@ -1760,10 +1778,10 @@ class MultiIDSLoader(object):
             Specify exactly which data (shortcut) should be loaded by ids
             If None, loads all available data
         t0:     None / float / str
-            Specify a time to be used as origin:
+            Specify a time to be used as source:
                 - None: absolute time vectors are untouched
                 - float : the roigin of all time vectors is set to t0
-                - str : the origin is taken from an event in ids pulse_schedule
+                - str : the source is taken from an event in ids pulse_schedule
         Name:   None / str
             Name to be given to the instance
             If None, a default Name is built
@@ -1816,14 +1834,12 @@ class MultiIDSLoader(object):
             dshort=self._dshort, dcomp=self._dcomp)
 
         # check and format plot arguments
-        plot, plot_X, plot_sig = _comp_toobjects.plasma_plot_args(
-            plot, plot_X, plot_sig,
-            dsig=dsig)
+        # plot, plot_X, plot_sig = _comp_toobjects.plasma_plot_args(
+            # plot, plot_X, plot_sig,
+            # dsig=dsig)
 
         # lids
         lids = sorted(dsig.keys())
-        if Name is None:
-            Name = 'custom'
 
         # data source consistency
         _, _, shot, Exp = _comp_toobjects.get_lidsidd_shotExp(
@@ -1848,34 +1864,36 @@ class MultiIDSLoader(object):
         #   Input dicts
 
         # config
-        if config is None:
-            try:
-                config = self.to_Config(
-                    Name=Name,
-                    occ=occ,
-                    description_2d=description_2d,
-                    plot=False)
-            except Exception as err:
-                msg = (str(err)
-                       + "\nCould not load wall from wall ids\n"
-                       + "  => No config provided to Plasma2D instance!")
-                warnings.warn(msg)
+        # if config is None:
+            # try:
+                # config = self.to_Config(
+                    # Name=Name,
+                    # occ=occ,
+                    # description_2d=description_2d,
+                    # plot=False)
+            # except Exception as err:
+                # msg = (str(err)
+                       # + "\nCould not load wall from wall ids\n"
+                       # + "  => No config provided to Plasma2D instance!")
+                # warnings.warn(msg)
 
         # dextra
         d0d, dtime0 = self._get_dextra(dextra)
 
         # get data
-        (
-            dref, dtime, d1d, d2d, dmesh,
-        ) = _comp_toobjects.plasma_get_drefddata(
+        return _comp_toobjects.get_plasma(
+            # ressources
             multi=self,
             dtime0=dtime0,
             d0d=d0d,
             out0=out0,
             lids=lids,
-            # parameters
+            # time parameters
             tlim=tlim,
+            indt0=indt0,
+            t0=t0,
             indevent=indevent,
+            # other parameters
             nan=nan,
             pos=pos,
             stack=stack,
@@ -1886,32 +1904,6 @@ class MultiIDSLoader(object):
             plot=plot,
             plot_sig=plot_sig,
         )
-
-        # create Plasma2D
-        plasma = dict(
-            dref=dref,
-            dtime=dtime,
-            dmesh=dmesh,
-            d1d=d1d,
-            d2d=d2d,
-            Exp=Exp, shot=shot, Name=Name,
-            config=config,
-        )
-
-        # Instanciate Plasma2D
-        if out is object or plot is True:
-            import tofu.data as tfd
-            plasma = tfd.Plasma2D()
-            plasma.update(dref=dref)
-            plasma.update(ddata=dtime)
-            plasma.update(ddata=d1d)
-            for k0, v0 in dmesh.keys():
-                plasma.add_mesh(**v0)
-            plasma.update(ddata=d2d)
-            if plot is True:
-                plasma.plot_as_array(plot_sig, keyX=plot_X, bck=bck)
-
-        return plasma
 
     def inspect_channels(self, ids=None, occ=None, indch=None, geom=None,
                          dsig=None, data=None, X=None, stack=None,
@@ -2275,10 +2267,10 @@ class MultiIDSLoader(object):
         dextra:     None / dict
             dict of extra signals (time traces) to be plotted, for context
         t0:     None / float / str
-            Specify a time to be used as origin:
+            Specify a time to be used as source:
                 - None: absolute time vectors are untouched
                 - float : the roigin of all time vectors is set to t0
-                - str : the origin is taken from an event in ids pulse_schedule
+                - str : the source is taken from an event in ids pulse_schedule
         datacls:    None / str
             tofu calss to be used for the data
                 - None : determined from tabulated info (self._didsdiag[ids])
@@ -2679,10 +2671,10 @@ class MultiIDSLoader(object):
                                           zeff='core_profiles.1dzeff',
                                           lamb=lamb)
             quant, _, units = out
-            origin = 'f(core_profiles, bremsstrahlung_visible)'
+            source = 'f(core_profiles, bremsstrahlung_visible)'
             depend = ('core_profiles.t','core_profiles.1dTe')
             plasma.add_quantity(key='core_profiles.1dbrem', data=quant,
-                                depend=depend, origin=origin, units=units,
+                                depend=depend, source=source, units=units,
                                 dim=None, quant=None, name=None)
             dq['quant'] = ['core_profiles.1dbrem']
 
@@ -2709,17 +2701,17 @@ class MultiIDSLoader(object):
 
             plasma.add_ref(key='tfangleRPZ', data=tfang, group='time')
 
-            origin = 'f(equilibrium, core_profiles, polarimeter)'
+            source = 'f(equilibrium, core_profiles, polarimeter)'
             depend = ('tfangleRPZ','equilibrium.mesh')
 
             plasma.add_quantity(key='2dfangleR', data=fangleRPZ[0,...],
-                                depend=depend, origin=origin, units=units,
+                                depend=depend, source=source, units=units,
                                 dim=None, quant=None, name=None)
             plasma.add_quantity(key='2dfanglePhi', data=fangleRPZ[1,...],
-                                depend=depend, origin=origin, units=units,
+                                depend=depend, source=source, units=units,
                                 dim=None, quant=None, name=None)
             plasma.add_quantity(key='2dfangleZ', data=fangleRPZ[2,...],
-                                depend=depend, origin=origin, units=units,
+                                depend=depend, source=source, units=units,
                                 dim=None, quant=None, name=None)
 
             dq['q2dR'] = ['2dfangleR']

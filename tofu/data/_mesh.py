@@ -69,6 +69,7 @@ class Plasma2D(ds.DataStock):
         remove_isolated=None,
         # direct addition of bsplines
         deg=None,
+        **kwdargs,
     ):
         """ Add a mesh by key and domain / resolution
 
@@ -126,9 +127,18 @@ class Plasma2D(ds.DataStock):
             key=key,
         )
 
+        # add kwdargs
+        for k0 in dmesh.keys():
+            dmesh[k0].update(**kwdargs)
+
+        # define dobj['mesh']
         dobj = {
             self._which_mesh: dmesh,
         }
+
+        # update data source
+        for k0, v0 in ddata.items():
+            ddata[k0]['source'] = kwdargs.get('source')
 
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
@@ -199,28 +209,30 @@ class Plasma2D(ds.DataStock):
         ref = _mesh_checks.add_data_meshbsplines_ref(
             ref=ref,
             data=data,
-            dmesh=self._dobj[self._which_mesh],
-            dbsplines=self._dobj['bsplines'],
+            dmesh=self._dobj.get(self._which_mesh),
+            dbsplines=self._dobj.get('bsplines'),
         )
 
         # add data
         super().add_data(data=data, key=key, ref=ref, **kwdargs)
 
         # bsplines
-        lbs = [
-            k0 for k0, v0 in self._dobj['bsplines'].items()
-            if v0['ref'] == tuple([
-                rr for rr in self._ddata[key]['ref']
-                if rr in v0['ref']
-            ])
-        ]
-        if len(lbs) == 0:
-            pass
-        elif len(lbs) == 1:
-            self._ddata[key]['bsplines'] = lbs[0]
-        else:
-            msg = f"Mulitple nsplines:\n{lbs}"
-            raise Exception(msg)
+        if self._dobj.get('bsplines') is not None:
+            for k0, v0 in self._ddata.items():
+                lbs = [
+                    k1 for k1, v1 in self._dobj['bsplines'].items()
+                    if v1['ref'] == tuple([
+                        rr for rr in v0['ref']
+                        if rr in v1['ref']
+                    ])
+                ]
+                if len(lbs) == 0:
+                    pass
+                elif len(lbs) == 1:
+                    self._ddata[k0]['bsplines'] = lbs[0]
+                else:
+                    msg = f"Multiple nsplines:\n{lbs}"
+                    raise Exception(msg)
 
     # -----------------
     # crop

@@ -5,6 +5,9 @@ import warnings
 import numpy as np
 
 
+from . import _def
+
+
 # tofu
 pfe = os.path.join(os.path.expanduser('~'), '.tofu', '_imas2tofu_def.py')
 if os.path.isfile(pfe):
@@ -198,12 +201,12 @@ def extra_get_fordataFalse(out, d0d, dt0,
             out[ss]['data'] = np.swapaxes(out[ss]['data'], 1, 2)
 
         d0d[key] = {'data': out[ss]['data'], 'name': ss,
-                    'origin': ids, 'dim': dim, 'quant': quant,
+                    'source': ids, 'dim': dim, 'quant': quant,
                     'units': units, 'depend': (keyt,)}
         any_ = True
     if any_ is True:
         dt0[keyt] = {'data': out['t']['data'], 'name': 't',
-                     'origin': ids, 'depend': (keyt,)}
+                     'source': ids, 'depend': (keyt,)}
 
 
 # #############################################################################
@@ -427,7 +430,7 @@ def plasma_checkformat_dsig(dsig=None,
     return dout
 
 
-def plasma_get_drefddata(
+def get_plasma(
     multi=None,
     dtime0=None,
     d0d=None,
@@ -435,6 +438,8 @@ def plasma_get_drefddata(
     lids=None,
     # parameters
     tlim=None,
+    t0=None,
+    indt0=None,
     indevent=None,
     nan=None,
     pos=None,
@@ -447,12 +452,6 @@ def plasma_get_drefddata(
     plot_sig=None,
 ):
 
-    # dicts
-    dref = {}
-    dtime = {} if dtime0 is None else dtime0
-    d1d, dradius = {}, {}
-    d2d, dmesh = {}, {}
-
     import tofu.data as tfd
     plasma = tfd.Plasma2D()
 
@@ -460,8 +459,7 @@ def plasma_get_drefddata(
     # loop on ids
 
     for ids in lids:
-        # Hotfix to avoid calling get_data a second time out0 -> out_
-        # TBF in next release (ugly, sub-optimal...)
+        idsshort = _def._dshortids.get(ids, ids)
 
         # -----
         # time
@@ -483,19 +481,20 @@ def plasma_get_drefddata(
                 returnas=int,
             )
             indt = dtt['indt']
-            keynt = f'{ids}.nt'
+            keynt = f'{idsshort}.nt'
             nt = dtt['t'].size
 
             # add ref and data
             plasma.add_ref(key=keynt, size=nt)
             plasma.add_data(
-                key=f'{ids}.t',
+                key=f'{idsshort}.t',
                 data=dtt['t'],
                 ref=keynt,
                 quant='t',
                 name='t',
                 dim='time',
                 units='s',
+                source=ids,
             )
 
         # ---------------
@@ -581,7 +580,7 @@ def plasma_get_drefddata(
 
                 # add ref
                 if nref is None:
-                    kref = f'{ids}.nr'
+                    kref = f'{idsshort}.nr'
                     nref = nr
                     plasma.add_ref(key=kref, size=nref)
 
@@ -595,18 +594,17 @@ def plasma_get_drefddata(
 
                 # add data
                 plasma.add_data(
-                    key=f'{ids}.{ss}',
+                    key=f'{idsshort}.{ss}',
                     data=out_[ss]['data'],
                     ref=kref if len(shape) == 1 else (keynt, kref),
                     dim=dim,
                     quant=quant,
                     units=out_[ss]['units'],
+                    source=ids,
                 )
 
         # -------------
         # d2d and dmesh
-
-        # TBF and TBC !!!
 
         lsig = [kk for kk in out0[ids].keys() if '2d' in kk]
         lsigmesh = [kk for kk in lsig if 'mesh' in kk]
@@ -633,7 +631,7 @@ def plasma_get_drefddata(
             # ----
             # mesh
 
-            keym = f'{ids}.mesh'
+            keym = f'{idsshort}.mesh'
             lc = [
                 all([ss in lsig for ss in ['2dmeshNodes', '2dmeshFaces']]),
                 all([ss in lsig for ss in ['2dmeshR', '2dmeshZ']]),
@@ -654,8 +652,8 @@ def plasma_get_drefddata(
                     knots=out_['2dmeshNodes']['data'],
                     cents=out_['2dmeshFaces']['data'],
                 )
-                nknots = plasma.dobj[keym]['']
-                ncents = plasma.dobj[keym]['']
+                n1 = plasma.dobj[plasma._which_mesh][keym]['shape-k'][0]
+                n2 = plasma.dobj[plasma._which_mesh][keym]['shape-c'][0]
 
             # R / Z case
             elif lc[1]:
@@ -665,12 +663,29 @@ def plasma_get_drefddata(
                     R=out_['2dmeshR']['data'],
                     Z=out_['2dmeshZ']['data'],
                 )
+                n1, n2 = plasma.dobj[plasma._which_mesh][keym]['shape']
 
             # ------------------
             # profiles2d on mesh
 
+            meshtype = plasma.dobj[plasma._which_mesh][keym]['type']
             for ss in set(out_.keys()).difference(lsigmesh):
-                add_profile2d(plasma, )
+                add_profile2d(
+                    multi=multi,
+                    ids=ids,
+                    idsshort=idsshort,
+                    plasma=plasma,
+                    out_=out_,
+                    ss=ss,
+                    # for references
+                    keynt=keynt,
+                    keym=keym,
+                    # mesh
+                    meshtype=meshtype,
+                    n1=n1,
+                    n2=n2,
+                    nt=nt,
+                )
 
 
         elif len(out_) > 0:
@@ -684,20 +699,31 @@ def plasma_get_drefddata(
         indt0 = 0
     t0 = multi._get_t0(t0, ind=indt0)
     if t0 is not False:
-        for tt in dtime.keys():
-            dtime[tt]['data'] = dtime[tt]['data'] - t0
+        lt = [
+            k0 for k0, v0 in plasma.ddata.items()
+            if v0['dim'] == 'time'
+        ]
+        for tt in lt:
+            plasma.ddata[lt]['data'] -= t0
 
-    return dref, dtime, d1d, d2d, dmesh
+    return plasma
 
 
 def add_profile2d(
+    multi=None,
+    ids=None,
+    idsshort=None,
     plasma=None,
     out_=None,
     ss=None,
+    # for references
+    keynt=None,
+    keym=None,
     # mesh
     meshtype=None,
     n1=None,
     n2=None,
+    nt=None,
 ):
     """ Add profile2d data to existing plasma2D instance (mesh already in) """
 
@@ -730,11 +756,10 @@ def add_profile2d(
             deg = 0
         else:
             msg = (
+                "Wrong size of data, no matching deg!"
             )
             raise Exception(msg)
-
-        # add / check bsplines
-        add_bsplines(plasma=plasma, deg=deg, keym=keym)
+        ref = keym
 
     elif len(shape) == 2:
         # time-dependent triangular mesh or time-independent rectangular mesh
@@ -745,6 +770,7 @@ def add_profile2d(
         else:
             compat_shapes = [(n1, n2)]
         compat_shapesT = [(sh[1], sh[0]) for sh in compat_shapes]
+
         if not shape in compat_shapes + compat_shapesT:
             msg = (
                 f"Data {ss} has incompatible shape for mesh\n"
@@ -765,11 +791,10 @@ def add_profile2d(
                 deg = 1
             else:
                 deg = 0
+            ref = (keynt, keym)
         else:
             deg = 0
-
-        # add / check bsplines
-        add_bsplines(plasma=plasma, deg=deg, keym=keym)
+            ref = keym
 
     else:
 
@@ -794,6 +819,8 @@ def add_profile2d(
         else:
             import pdb; pdb.set_trace()     # DB
             pass
+        ref = (keynt, keym)
+
 
     # get parameters
     if ss in multi._dshort[ids].keys():
@@ -805,8 +832,17 @@ def add_profile2d(
     units = out_[ss]['units']
     key = f'{ids}.{ss}'
 
+    # add / check bsplines
+    if plasma.dobj.get('bsplines') is None:
+        plasma.add_bsplines(deg=deg)
+    elif list(plasma.dobj['bsplines'].values())[0]['deg'] != deg:
+        degref = list(plasma.dobj['bsplines'].values())[0]['deg']
+        msg = "Degree not matching!\n\t{deg} vs {degref}"
+        raise Exception(msg)
+
     # add data
     plasma.add_data(
+        key=f'{idsshort}.{ss}',
         data=out_[ss]['data'],
         name=ss,
         dim=dim,
@@ -815,15 +851,6 @@ def add_profile2d(
         source=ids,
         ref=ref,
     )
-
-
-def add_bsplines(plasma=None, deg=None, keym=None):
-    if 'deg' not in plasma.dobj[keym].keys():
-        plasma.add_bsplines(deg=deg)
-    elif list(plasma.dobj['bsplines'].values())[0]['deg'] != deg:
-        degref = list(plasma.dobj['bsplines'].values())[0]['deg']
-        msg = "Degree not matching!\n\t{deg} vs {degref}"
-        raise Exception(msg)
 
 
 # def plasma_plot_args(plot, plot_X, plot_sig,
