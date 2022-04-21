@@ -17,6 +17,7 @@ from cython.parallel import prange
 from cython.parallel cimport parallel
 from cpython.array cimport array, clone
 from libc.stdlib cimport malloc, free
+from libc.stdio cimport printf
 cimport numpy as np
 import numpy as np
 from cython cimport view
@@ -498,6 +499,17 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
     cdef double tzmin, tzmax
     cdef int t0 = 1000000
     cdef bint res
+    cdef char[16] test
+
+#    printf("inter_ray_aabb_box(")
+#    printf("    %i %i %i\n", sign[0], sign[1], sign[2])
+#    printf("    %lf %lf %lf\n", inv_direction[0], inv_direction[1], inv_direction[2])
+#    printf("    %lf %lf %lf %lf %lf %lf\n", bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5])
+#    printf("    %lf %lf %lf\n", ds[0], ds[1], ds[2])
+#    printf("    %i\n", countin)
+#    printf(") (before)\n")
+
+    test[0] = 0
 
     # computing intersection
     tmin = (bounds[sign[0]*3] - ds[0]) * inv_direction[0]
@@ -518,16 +530,35 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
         tzmax = C_NAN
     if ( (tmin > tzmax) or (tzmin > tmax) ):
         return 0
+#    printf("( if tzmin{%lf} > tmin{%lf}: %i )\n", tzmin, tmin, <bint>(tzmin > tmin))
     if (tzmin > tmin):
+#        printf("( branch taken )\n")
+        printf(test)
         tmin = tzmin
+#    printf("( if tzmax{%lf} < tmax{%lf}: %i )\n", tzmax, tmax, <bint>(tzmax < tmax))
     if (tzmax < tmax):
+#        printf("( branch taken )\n")
+        printf(test)
         tmax = tzmax
+#    printf("( if countin{%i} and (tmin{%lf} < 0.) and (tmax{%lf} < 0.): %i )\n", countin, tmin, tmax, <bint>(countin and (tmin < 0.) and (tmax < 0.)))
+#    printf("( elif not countin{%i} and tmin{%lf} < 0): %i )\n", countin, tmin, <bint>(not countin and tmin < 0))
     if countin and (tmin < 0.) and (tmax < 0.):
         return 0
     elif not countin and tmin < 0:
         return 0
 
     res = (tmin < t0) and (tmax > -t0)
+
+#    printf(" ( %lf %lf %lf %lf %lf %lf %i )\n", tmin, tmax, tymin, tymax, tzmin, tzmax, t0)
+
+#    printf("inter_ray_aabb_box(")
+#    printf("    %i %i %i\n", sign[0], sign[1], sign[2])
+#    printf("    %lf %lf %lf\n", inv_direction[0], inv_direction[1], inv_direction[2])
+#    printf("    %lf %lf %lf %lf %lf %lf\n", bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5])
+#    printf("    %lf %lf %lf\n", ds[0], ds[1], ds[2])
+#    printf("    %i\n", countin)
+#    printf(") (after)\n")
+#    printf("-> %i\n", res)
     return  res
 
 
@@ -710,6 +741,7 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
     cdef int* sign_ray = NULL
 
     if num_threads == 1:
+        printf("not parallel %i\n", num_threads)
         # == Allocating loop  variables ========================================
 
         # We use local arrays for each thread
@@ -719,15 +751,102 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
         loc_org   = <double *> malloc(sizeof(double) * 3)
         loc_vp    = <double *> malloc(sizeof(double) * 3)
         ind_loc   = <int *> malloc(sizeof(int) * 1)
+        kpin_loc[0]  = 1.e99
+        kpout_loc[0] = 1.e99
+        loc_dir[0]   = 1.e99
+        loc_dir[1]   = 1.e99
+        loc_dir[2]   = 1.e99
+        loc_org[0]   = 1.e99
+        loc_org[1]   = 1.e99
+        loc_org[2]   = 1.e99
+        loc_vp[0]    = 1.e99
+        loc_vp[1]    = 1.e99
+        loc_vp[2]    = 1.e99
+        ind_loc[0]   = -999
         if is_out_struct:
             # if the structure is "out" (solid) we need more arrays
             invr_ray  = <double *> malloc(sizeof(double) * 3)
             last_pout = <double *> malloc(sizeof(double) * 3)
             lim_ves   = <double *> malloc(sizeof(double) * 2)
             sign_ray  = <int *> malloc(sizeof(int) * 3)
+            invr_ray[0]  = 1.e99
+            invr_ray[1]  = 1.e99
+            invr_ray[2]  = 1.e99
+            last_pout[0] = 1.e99
+            last_pout[1] = 1.e99
+            last_pout[2] = 1.e99
+            lim_ves[0]   = 1.e99
+            lim_ves[1]   = 1.e99
+            sign_ray[0]  = -999
+            sign_ray[1]  = -999
+            sign_ray[2]  = -999
 
         # == Iterating over the LOS ============================================
         for ind_los_range in range(num_los):
+            printf("raytracing_inout_struct_tor_inomp( \n")
+            printf("    num_los %i\n", num_los)
+            printf("    ray_vdir %lf, %lf, %lf\n", ray_vdir[0,ind_los_range], ray_vdir[1,ind_los_range], ray_vdir[2,ind_los_range])
+            printf("    ray_orig %lf, %lf, %lf\n", ray_orig[0,ind_los_range], ray_orig[1,ind_los_range], ray_orig[2,ind_los_range])
+            printf("    coeff_inter_out ..%lf..\n", coeff_inter_out[ind_los_range])
+            printf("    coeff_inter_in ..%lf..\n", coeff_inter_in[ind_los_range])
+            printf("    vperp_out ..%lf %lf %lf..\n", vperp_out[3*ind_los_range+0], vperp_out[3*ind_los_range+1], vperp_out[3*ind_los_range+2])
+            if is_out_struct and nstruct_lim>0:
+                printf("    lstruct_nlim %li..\n", lstruct_nlim[0])
+            else:
+                printf("    []\n")
+            printf("    ind_inter_out ..%i %i %i..\n", ind_inter_out[3*ind_los_range+0], ind_inter_out[3*ind_los_range+1], ind_inter_out[3*ind_los_range+2])
+            printf("    forbid0 %i\n", forbid0)
+            printf("    forbidbis_org %i\n", forbidbis_org)
+            printf("    rmin %lf\n", rmin)
+            printf("    rmin2 %lf\n", rmin2)
+            printf("    crit2_base %lf\n", crit2_base)
+            printf("    nstruct_lim %i\n", nstruct_lim)
+            if is_out_struct:
+                printf("    lbounds %lf..\n", lbounds[0])
+            else:
+                printf("    []\n")
+            printf("    langles %lf..\n", langles[0])
+            printf("    lis_limited %i..\n", lis_limited[0])
+            if is_out_struct:
+                printf("    lnvert %li..\n", lnvert[0])
+                printf("    lsz_lim %li..\n", lsz_lim[0])
+            else:
+                printf("    []\n")
+                printf("    []\n")
+            if nstruct_lim>0:
+                printf("    lstruct_polyx %lf..\n", lstruct_polyx[0])
+                printf("    lstruct_polyy %lf..\n", lstruct_polyy[0])
+                printf("    lstruct_normx %lf..\n", lstruct_normx[0])
+                printf("    lstruct_normy %lf..\n", lstruct_normy[0])
+            else:
+                printf("    []\n")
+                printf("    []\n")
+                printf("    []\n")
+                printf("    []\n")
+            printf("    eps_uz        %lf\n", eps_uz       )
+            printf("    eps_vz        %lf\n", eps_vz       )
+            printf("    eps_a         %lf\n", eps_a        )
+            printf("    eps_b         %lf\n", eps_b        )
+            printf("    eps_plane     %lf\n", eps_plane    )
+            printf("    is_out_struct %i\n" , is_out_struct)
+            printf("    ind_los_range %i\n" , ind_los_range)
+            printf("    kpin_loc %lf\n", kpin_loc[0]  )
+            printf("    kpout_loc %lf\n", kpout_loc[0] )
+            printf("    loc_dir %lf, %lf, %lf\n", loc_dir[0], loc_dir[1], loc_dir[2])
+            printf("    loc_org %lf, %lf, %lf\n", loc_org[0], loc_org[1], loc_org[2])
+            printf("    loc_vp %lf, %lf, %lf\n", loc_vp[0] , loc_vp[1] , loc_vp[2] )
+            printf("    ind_loc %i\n", ind_loc[0])
+            if is_out_struct:
+                printf("    invr_ray %lf, %lf, %lf\n", invr_ray[0], invr_ray[1], invr_ray[2])
+                printf("    last_pout %lf, %lf, %lf\n", last_pout[0], last_pout[1], last_pout[2])
+                printf("    lim_ves %lf, %lf\n", lim_ves[0], lim_ves[1])
+                printf("    sign_ray %i, %i, %i\n", sign_ray[0], sign_ray[1], sign_ray[2])
+            else:
+                printf("    NULL\n")
+                printf("    NULL\n")
+                printf("    NULL\n")
+                printf("    NULL\n")
+            printf(") (before)\n")
             raytracing_inout_struct_tor_inomp(num_los, ray_vdir, ray_orig,
                                               coeff_inter_out, 
                                               coeff_inter_in,
@@ -749,6 +868,70 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
                                               ind_loc,
                                               invr_ray, last_pout, lim_ves,
                                               sign_ray)
+            printf("raytracing_inout_struct_tor_inomp( \n")
+            printf("    num_los %i\n", num_los)
+            printf("    ray_vdir %lf, %lf, %lf\n", ray_vdir[0,ind_los_range], ray_vdir[1,ind_los_range], ray_vdir[2,ind_los_range])
+            printf("    ray_orig %lf, %lf, %lf\n", ray_orig[0,ind_los_range], ray_orig[1,ind_los_range], ray_orig[2,ind_los_range])
+            printf("    coeff_inter_out ..%lf..\n", coeff_inter_out[ind_los_range])
+            printf("    coeff_inter_in ..%lf..\n", coeff_inter_in[ind_los_range])
+            printf("    vperp_out ..%lf %lf %lf..\n", vperp_out[3*ind_los_range+0], vperp_out[3*ind_los_range+1], vperp_out[3*ind_los_range+2])
+            if is_out_struct and nstruct_lim>0:
+                printf("    lstruct_nlim %li..\n", lstruct_nlim[0])
+            else:
+                printf("    []\n")
+            printf("    ind_inter_out ..%i %i %i..\n", ind_inter_out[3*ind_los_range+0], ind_inter_out[3*ind_los_range+1], ind_inter_out[3*ind_los_range+2])
+            printf("    forbid0 %i\n", forbid0)
+            printf("    forbidbis_org %i\n", forbidbis_org)
+            printf("    rmin %lf\n", rmin)
+            printf("    rmin2 %lf\n", rmin2)
+            printf("    crit2_base %lf\n", crit2_base)
+            printf("    nstruct_lim %i\n", nstruct_lim)
+            if is_out_struct:
+                printf("    lbounds %lf..\n", lbounds[0])
+            else:
+                printf("    []\n")
+            printf("    langles %lf..\n", langles[0])
+            printf("    lis_limited %i..\n", lis_limited[0])
+            if is_out_struct:
+                printf("    lnvert %li..\n", lnvert[0])
+                printf("    lsz_lim %li..\n", lsz_lim[0])
+            else:
+                printf("    []\n")
+                printf("    []\n")
+            if nstruct_lim>0:
+                printf("    lstruct_polyx %lf..\n", lstruct_polyx[0])
+                printf("    lstruct_polyy %lf..\n", lstruct_polyy[0])
+                printf("    lstruct_normx %lf..\n", lstruct_normx[0])
+                printf("    lstruct_normy %lf..\n", lstruct_normy[0])
+            else:
+                printf("    []\n")
+                printf("    []\n")
+                printf("    []\n")
+                printf("    []\n")
+            printf("    eps_uz        %lf\n", eps_uz       )
+            printf("    eps_vz        %lf\n", eps_vz       )
+            printf("    eps_a         %lf\n", eps_a        )
+            printf("    eps_b         %lf\n", eps_b        )
+            printf("    eps_plane     %lf\n", eps_plane    )
+            printf("    is_out_struct %i\n" , is_out_struct)
+            printf("    ind_los_range %i\n" , ind_los_range)
+            printf("    kpin_loc %lf\n", kpin_loc[0]  )
+            printf("    kpout_loc %lf\n", kpout_loc[0] )
+            printf("    loc_dir %lf, %lf, %lf\n", loc_dir[0], loc_dir[1], loc_dir[2])
+            printf("    loc_org %lf, %lf, %lf\n", loc_org[0], loc_org[1], loc_org[2])
+            printf("    loc_vp %lf, %lf, %lf\n", loc_vp[0] , loc_vp[1] , loc_vp[2] )
+            printf("    ind_loc %i\n", ind_loc[0])
+            if is_out_struct:
+                printf("    invr_ray %lf, %lf, %lf\n", invr_ray[0], invr_ray[1], invr_ray[2])
+                printf("    last_pout %lf, %lf, %lf\n", last_pout[0], last_pout[1], last_pout[2])
+                printf("    lim_ves %lf, %lf\n", lim_ves[0], lim_ves[1])
+                printf("    sign_ray %i, %i, %i\n", sign_ray[0], sign_ray[1], sign_ray[2])
+            else:
+                printf("    NULL\n")
+                printf("    NULL\n")
+                printf("    NULL\n")
+                printf("    NULL\n")
+            printf(") (after)\n")
 
         free(loc_org)
         free(loc_dir)
@@ -764,6 +947,7 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
 
 
     else:
+        printf("parallel %i\n", num_threads)
         with nogil, parallel(num_threads=num_threads):
             # == Allocating loop  variables ====================================
 
@@ -883,6 +1067,7 @@ cdef inline void raytracing_inout_struct_tor_inomp(const int num_los,
     loc_vp[0] = 0.
     loc_vp[1] = 0.
     loc_vp[2] = 0.
+
     if is_out_struct:
         # if structure is of "Out" type, then we compute the last
         # point where it went out of a structure.
@@ -1145,6 +1330,40 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
     cdef double sin1, sin0
     cdef double invupar2
     cdef double cosl0, cosl1, sinl0, sinl1
+    cdef bint retval
+
+    printf("comp_inter_los_vpoly(")
+    printf("    %lf %lf %lf\n", ray_orig[0], ray_orig[1], ray_orig[2])
+    printf("    %lf %lf %lf\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
+    printf("    %lf..\n", lpolyx[0])
+    printf("    %lf..\n", lpolyy[0])
+    printf("    %lf..\n", normx[0])
+    printf("    %lf..\n", normy[0])
+    printf("    %i\n", nvert)
+    printf("    %i\n", lim_is_none)
+    printf("    %lf\n", lim_min)
+    printf("    %lf\n", lim_max)
+    printf("    %i\n", forbidbis)
+    printf("    %lf\n", upscaDp)
+    printf("    %lf\n", upar2)
+    printf("    %lf\n", dpar2)
+    printf("    %lf\n", invuz)
+    printf("    %lf\n", s1x)
+    printf("    %lf\n", s1y)
+    printf("    %lf\n", s2x)
+    printf("    %lf\n", s2y)
+    printf("    %lf\n", crit2)
+    printf("    %lf\n", eps_uz)
+    printf("    %lf\n", eps_vz)
+    printf("    %lf\n", eps_a)
+    printf("    %lf\n", eps_b)
+    printf("    %lf\n", eps_pln)
+    printf("    %i\n", is_in_struct)
+    printf("    %lf\n", kpin_loc[0])
+    printf("    %lf\n", kpout_loc[0])
+    printf("    %i\n", ind_loc[0])
+    printf("    %lf %lf %lf\n", vperpin[0], vperpin[1], vperpin[2])
+    printf(") (before)\n")
 
     # -- Computing some seful values -------------------------------------------
     cosl0 = c_cos(lim_min)
@@ -1450,6 +1669,42 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                 vperpin[1] = -c_sin(phi) * normx[indin]
                 vperpin[2] = -normy[indin]
             ind_loc[0] = indin
+
+    printf("comp_inter_los_vpoly(")
+    printf("    %lf %lf %lf\n", ray_orig[0], ray_orig[1], ray_orig[2])
+    printf("    %lf %lf %lf\n", ray_vdir[0], ray_vdir[1], ray_vdir[2])
+    printf("    %lf..\n", lpolyx[0])
+    printf("    %lf..\n", lpolyy[0])
+    printf("    %lf..\n", normx[0])
+    printf("    %lf..\n", normy[0])
+    printf("    %i\n", nvert)
+    printf("    %i\n", lim_is_none)
+    printf("    %lf\n", lim_min)
+    printf("    %lf\n", lim_max)
+    printf("    %i\n", forbidbis)
+    printf("    %lf\n", upscaDp)
+    printf("    %lf\n", upar2)
+    printf("    %lf\n", dpar2)
+    printf("    %lf\n", invuz)
+    printf("    %lf\n", s1x)
+    printf("    %lf\n", s1y)
+    printf("    %lf\n", s2x)
+    printf("    %lf\n", s2y)
+    printf("    %lf\n", crit2)
+    printf("    %lf\n", eps_uz)
+    printf("    %lf\n", eps_vz)
+    printf("    %lf\n", eps_a)
+    printf("    %lf\n", eps_b)
+    printf("    %lf\n", eps_pln)
+    printf("    %i\n", is_in_struct)
+    printf("    %lf\n", kpin_loc[0])
+    printf("    %lf\n", kpout_loc[0])
+    printf("    %i\n", ind_loc[0])
+    printf("    %lf %lf %lf\n", vperpin[0], vperpin[1], vperpin[2])
+    printf(") (after)\n")
+    retval = (res_kin != kpin_loc[0]) or (res_kout != kpout_loc[0] and is_in_struct)
+    printf("-> %i\n", retval)
+
     return (res_kin != kpin_loc[0]) or (res_kout != kpout_loc[0]
                                         and is_in_struct)
 
