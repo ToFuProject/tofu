@@ -38,5 +38,5 @@ jobs:
         pip install -e ".[dev]"
     - name: Test with pytest and coverage
       run: |
-        gcc --version
+        echo $(gcc --version)
         coverage run --source=tofu/ -m pytest tofu/tests -v -x --durations=10
