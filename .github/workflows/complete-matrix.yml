@@ -14,7 +14,6 @@ jobs:
       matrix:
         python-version: ['3.7', '3.8', '3.9']
         os: [ubuntu-latest, macOS-latest, windows-latest]
-        gcc: ['10.0']
 
     steps:
     - uses: actions/checkout@v2
@@ -39,4 +38,5 @@ jobs:
         pip install -e ".[dev]"
     - name: Test with pytest and coverage
       run: |
-        coverage run --source=tofu/ -m pytest tofu/tests -v --durations=10 -x
+        gcc --version
+        coverage run --source=tofu/ -m pytest tofu/tests -v -x --durations=10
