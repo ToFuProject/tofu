@@ -6,6 +6,8 @@ https://github.com/ToFuProject/tofu
 
 # Built-in
 import os
+os.environ["CC"] = "clang-10"
+os.environ["CXX"] = "clang-10"
 import glob
 import shutil
 import logging
