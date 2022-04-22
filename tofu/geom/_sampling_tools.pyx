@@ -296,9 +296,15 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             v1 = ves_poly[1, ii+1]-ves_poly[1, ii]
             lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
             inv_norm = 1. / lminmax[1]
+            printf("discretize_line1d_core([%lf %lf], %lf, [%lf %lf], True, %i, %lf, ldiscret=NULL, %lf, lindex=NULL, ncells[0][ii]=*)\n", 
+                   lminmax[0], lminmax[1], dstep, dl_array[0], dl_array[1], mode, margin, loc_resolu[0])
             itmp = discretize_line1d_core(lminmax, dstep, dl_array, True,
                                    mode, margin, &ldiscret, loc_resolu,
                                    &lindex, &ncells[0][ii])
+            printf("-> %i\n", itmp)
+            printf("    ldiscret = [%lf ~ %lf]\n", ldiscret[0], ldiscret[itmp-1])
+            printf("    lindex = [%li ~ %li]\n", lindex[0], lindex[itmp-1])
+            printf("    ncells[0][ii] = %li\n", ncells[0][ii])
             # .. prepaaring Poly bis array......................................
             last_sz_vbis = sz_vbis
             sz_vbis += 1 + ncells[0][ii]
@@ -323,16 +329,17 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             shifty = din*ves_vin[1, ii]
             for jj in range(ncells[0][ii]):
                 if last_sz_vbis >= sz_others:
-                    printf("ind etc about to explode\n")
+                    printf("ind etc about to explode: last_sz_vbis=%i >= %i\n", last_sz_vbis, sz_others)
                 if jj >= itmp:
-                    printf("ldiscret etc about to explode\n")
+                    printf("ldiscret etc about to explode: jj = %i >= %i\n", jj, itmp)
                 ind[0][last_sz_othr] = last_sz_othr
                 reso[0][last_sz_othr] = loc_resolu[0]
                 rref[0][last_sz_othr]   = ves_poly[0, ii] + ldiscret[jj]*v0
                 xcross[0][last_sz_othr] = ves_poly[0, ii] + ldiscret[jj]*v0 + shiftx
                 ycross[0][last_sz_othr] = ves_poly[1, ii] + ldiscret[jj]*v1 + shifty
                 if last_sz_vbis + jj >= sz_vbis:
-                    printf("xpolybis etc about to explode\n")
+                    printf("xpolybis etc about to explode: last_sz_vbis + jj = %i + %i = %i >= %i\n", 
+                           last_sz_vbis, jj, last_sz_vbis + jj, sz_vbis)
                 xpolybis[0][last_sz_vbis + jj] = ves_poly[0, ii] + jj * rv0
                 ypolybis[0][last_sz_vbis + jj] = ves_poly[1, ii] + jj * rv1
                 last_sz_othr += 1
