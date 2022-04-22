@@ -489,13 +489,16 @@ def _plot_bspline_prepare(
 
     # resolution of sampling
     if res is None:
-        res_coef = 0.05
+        if meshtype == 'rect':
+            res_coef = 0.05
+        else:
+            res_coef = 0.25
         res = [res_coef*dR, res_coef*dZ]
 
     # sample
     knotsiR, knotsiZ = knotsi
-    DR = [knotsiR.min() + dR*1.e-10, knotsiR.max() - dR*1.e-10]
-    DZ = [knotsiZ.min() + dZ*1.e-10, knotsiZ.max() - dZ*1.e-10]
+    DR = [np.nanmin(knotsiR) + dR*1.e-10, np.nanmax(knotsiR) - dR*1.e-10]
+    DZ = [np.nanmin(knotsiZ) + dZ*1.e-10, np.nanmax(knotsiZ) - dZ*1.e-10]
 
     R, Z = coll.get_sample_mesh(
         key=km,
