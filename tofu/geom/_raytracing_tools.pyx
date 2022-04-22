@@ -524,6 +524,7 @@ cdef bint inter_ray_aabb_box(const int[3] sign,
         return 0
     printf("( if tzmin{%lf} > tmin{%lf}: %i )\n", tzmin, tmin, <bint>(tzmin > tmin))
     if (tzmin > tmin):
+        printf(efwegrwe)
 #        printf(test)
         tmin = tzmin
     printf("( if tzmax{%lf} < tmax{%lf}: %i )\n", tzmax, tmax, <bint>(tzmax < tmax))
