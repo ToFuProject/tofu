@@ -14,8 +14,6 @@ on:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
-    compiler: gcc
-    gcc: 10
     strategy:
       max-parallel: 5
     steps:
@@ -27,6 +25,8 @@ jobs:
     - name: Check available compilers
       run: |
         dpkg --list | grep compiler
+        export CC=clang-10
+        export CXX=clang-10
     - name: Add conda to system path
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory

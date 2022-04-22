@@ -2265,6 +2265,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     cdef array coeff_inter_out = clone(array('d'), nlos, True)
     cdef array ind_inter_out = clone(array('i'), nlos * 3, True)
     cdef double[::1] lstruct_lims_np
+
     # == Testing inputs ========================================================
     if test:
         error_message = "ray_orig and ray_vdir must have the same shape: "\
@@ -2352,6 +2353,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                           forbid, num_threads,
                           coeff_inter_out, coeff_inter_in, vperp_out,
                           ind_inter_out)
+
     return np.asarray(coeff_inter_in), np.asarray(coeff_inter_out),\
            np.transpose(np.asarray(vperp_out).reshape(nlos,3)),\
            np.transpose(np.asarray(ind_inter_out,
@@ -5175,7 +5177,6 @@ def compute_solid_angle_poly_map(list poly_coords,
         ltri,
         num_threads
     )
-#    print(ltri[0][0], ltri[0][1], ltri[0][2], ltri[0][3], ltri[0][4], ltri[0][5])
     print("...............after triangulate")
     # cpumputing total number of triangles
     tot_num_tri = np.sum(poly_lnvert) - 2 * npoly

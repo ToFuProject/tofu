@@ -920,7 +920,8 @@ def test13_LOS_PInOut():
                                             lstruct_lims=[SL0,SL1,SL2],
                                             lstruct_normx=lsvinx,
                                             lstruct_normy=lsviny,
-                                            ves_type='Tor', test=True)
+                                            ves_type='Tor', test=True, num_threads=1)
+
     assert np.allclose(kPOut[:32], kpout,
                        equal_nan=True) and np.all((kPOut[32:]>=3.) &
                                                   (kPOut[32:]<16.))
