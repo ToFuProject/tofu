@@ -304,7 +304,7 @@ def add_data_meshbsplines_ref(
 ):
 
     if dmesh is None or dbsplines is None:
-        return ref
+        return ref, data
 
     # ref is str
     if isinstance(ref, str):
