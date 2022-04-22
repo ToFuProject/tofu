@@ -95,7 +95,9 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     resolution[0] = (lminmax[1] - lminmax[0]) / ncells[0]
     printf("(fdlc) resolution[0] = (%lf - %lf) / %li = %lf\n", lminmax[1], lminmax[0], ncells[0], resolution[0])
     # .. Computing desired limits ..............................................
-    printf("(fdlc) if c_isnan(dl[0]=%lf) and c_isnan(dl[1]=%lf): %i\n", dl[0], dl[1], <bint>(c_isnan(dl[0]) and c_isnan(dl[1])))
+    printf("(fdlc) if c_isnan(dl[0]=%lf) and c_isnan(dl[1]=%lf): %i and %i = %i\n",
+           dl[0], dl[1], <bint>(c_isnan(dl[0])), <bint>(c_isnan(dl[1])),
+           <bint>(c_isnan(dl[0]) and c_isnan(dl[1])))
     if c_isnan(dl[0]) and c_isnan(dl[1]):
         desired_limits[0] = lminmax[0]
         desired_limits[1] = lminmax[1]
