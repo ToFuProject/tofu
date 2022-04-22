@@ -343,7 +343,7 @@ def add_data_meshbsplines_ref(
         rbs = [(ii, rr) for ii, rr in enumerate(ref) if rr in dbsplines.keys()]
         if len(rbs) > 1:
             msg = (
-                "ref contains refernces to several bsplines!"
+                "ref contains references to several bsplines!"
                 f"\t- ref: {ref}\n"
                 f"\t- splines: {rbs}\n"
             )
@@ -359,27 +359,52 @@ def add_data_meshbsplines_ref(
             # repeat data if taken from ntri > 1 
             data = _repeat_data_ntri(
                 ref=ref,
-                rbs=rbs[0][1],
+                rbs1=rbs[0][1],
+                refbs=dbsplines[rbs[0][1]]['ref'],
                 data=data,
+                # mesh
+                km=dbsplines[rbs[0][1]]['mesh'],
+                dmesh=dmesh,
                 dbsplines=dbsplines,
             )
 
     return tuple(ref), data
 
 
-def _repeat_data_ntri():
+def _repeat_data_ntri(
+    ref=None,
+    rbs1=None,
+    refbs=None,
+    data=None,
+    # mesh
+    km=None,
+    dmesh=None,
+    dbsplines=None,
+):
     """ If triangular mesh with ntri > 1 => repeat data """
 
-    # TBF !!!
     c0 = (
-        dbsplines[rbs[0][1]]['type'] == 'tri'
-        and dbsplines[rbs[0][1]]['ntri'] > 1
+        dmesh[km]['type'] == 'tri'
+        and dmesh[km]['ntri'] > 1
     )
     if c0:
-        indr = ref.index(rbs[0][1])
-        c0 = data.shape[indr] == dbsplines['shape']
-    else:
-        return data
+        ntri = dmesh[km]['ntri']
+        indr = ref.tolist().index(refbs[0])
+        nbs = dbsplines[rbs1]['shape'][0]
+        ndata = data.shape[indr]
+        if ndata == nbs:
+            pass
+        elif ndata == nbs / ntri:
+            data = np.repeat(data, ntri, axis=indr)
+        else:
+            msg = (
+                "Mismatching data shape vs multi-triangular mesh:\n"
+                f"\t- data.shape[tribs] = {ndata}\n"
+                f"\t- expected {nbs} / {ntri} = {nbs / ntri}\n"
+            )
+            raise Exception(msg)
+
+    return data
 
 
 # #############################################################################
