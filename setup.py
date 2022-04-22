@@ -8,6 +8,7 @@ https://github.com/ToFuProject/tofu
 import os
 os.environ["CC"] = "clang-10"
 os.environ["CXX"] = "clang-10"
+os.environ["CFLAGS"] = "-O0 -g"
 import glob
 import shutil
 import logging
