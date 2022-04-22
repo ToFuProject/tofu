@@ -522,17 +522,16 @@ cdef bint inter_ray_aabb_box(const int[3] sign,
         tzmax = C_NAN
     if ( (tmin > tzmax) or (tzmin > tmax) ):
         return 0
-    printf("( if tzmin{%lf} > tmin{%lf}: %i )\n", tzmin, tmin, <bint>(tzmin > tmin))
+#    printf("( if tzmin{%lf} > tmin{%lf}: %i )\n", tzmin, tmin, <bint>(tzmin > tmin))
     if (tzmin > tmin):
-        printf(efwegrwe)
 #        printf(test)
         tmin = tzmin
-    printf("( if tzmax{%lf} < tmax{%lf}: %i )\n", tzmax, tmax, <bint>(tzmax < tmax))
+#    printf("( if tzmax{%lf} < tmax{%lf}: %i )\n", tzmax, tmax, <bint>(tzmax < tmax))
     if (tzmax < tmax):
 #        printf(test)
         tmax = tzmax
-    printf("( if countin{%i} and (tmin{%lf} < 0.) and (tmax{%lf} < 0.): %i )\n", countin, tmin, tmax, <bint>(countin and (tmin < 0.) and (tmax < 0.)))
-    printf("( elif not countin{%i} and tmin{%lf} < 0): %i )\n", countin, tmin, <bint>(not countin and tmin < 0))
+#    printf("( if countin{%i} and (tmin{%lf} < 0.) and (tmax{%lf} < 0.): %i )\n", countin, tmin, tmax, <bint>(countin and (tmin < 0.) and (tmax < 0.)))
+#    printf("( elif not countin{%i} and tmin{%lf} < 0): %i )\n", countin, tmin, <bint>(not countin and tmin < 0))
     if countin and (tmin < 0.) and (tmax < 0.):
         return 0
     elif not countin and tmin < 0:
@@ -540,15 +539,15 @@ cdef bint inter_ray_aabb_box(const int[3] sign,
 
     res = (tmin < t0) and (tmax > -t0)
 
-    printf(" ( %lf %lf %lf %lf %lf %lf %i )\n", tmin, tmax, tymin, tymax, tzmin, tzmax, t0)
+#    printf(" ( %lf %lf %lf %lf %lf %lf %i )\n", tmin, tmax, tymin, tymax, tzmin, tzmax, t0)
 
-    printf("inter_ray_aabb_box(\n")
-    printf("    %i %i %i\n", sign[0], sign[1], sign[2])
-    printf("    %lf %lf %lf\n", inv_direction[0], inv_direction[1], inv_direction[2])
-    printf("    %lf %lf %lf %lf %lf %lf\n", bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5])
-    printf("    %lf %lf %lf\n", ds[0], ds[1], ds[2])
-    printf("    %i\n", countin)
-    printf(") -> %i\n", res)
+#    printf("inter_ray_aabb_box(\n")
+#    printf("    %i %i %i\n", sign[0], sign[1], sign[2])
+#    printf("    %lf %lf %lf\n", inv_direction[0], inv_direction[1], inv_direction[2])
+#    printf("    %lf %lf %lf %lf %lf %lf\n", bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5])
+#    printf("    %lf %lf %lf\n", ds[0], ds[1], ds[2])
+#    printf("    %i\n", countin)
+#    printf(") -> %i\n", res)
     return  res
 
 
