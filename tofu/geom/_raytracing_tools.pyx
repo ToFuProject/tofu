@@ -499,9 +499,9 @@ cdef bint inter_ray_aabb_box(const int[3] sign,
     cdef double tzmin, tzmax
     cdef int t0 = 1000000
     cdef bint res
-    cdef char[16] test
+    cdef char[16] stest
 
-    test[0] = 0
+    stest[0] = 0
 
     # computing intersection
     tmin = (bounds[sign[0]*3] - ds[0]) * inv_direction[0]
@@ -524,11 +524,11 @@ cdef bint inter_ray_aabb_box(const int[3] sign,
         return 0
 #    printf("( if tzmin{%lf} > tmin{%lf}: %i )\n", tzmin, tmin, <bint>(tzmin > tmin))
     if (tzmin > tmin):
-#        printf(test)
+        printf(stest)
         tmin = tzmin
 #    printf("( if tzmax{%lf} < tmax{%lf}: %i )\n", tzmax, tmax, <bint>(tzmax < tmax))
     if (tzmax < tmax):
-#        printf(test)
+        printf(stest)
         tmax = tzmax
 #    printf("( if countin{%i} and (tmin{%lf} < 0.) and (tmax{%lf} < 0.): %i )\n", countin, tmin, tmax, <bint>(countin and (tmin < 0.) and (tmax < 0.)))
 #    printf("( elif not countin{%i} and tmin{%lf} < 0): %i )\n", countin, tmin, <bint>(not countin and tmin < 0))
