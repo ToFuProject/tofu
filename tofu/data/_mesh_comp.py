@@ -542,7 +542,7 @@ def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
         knotsR=coll.ddata[kknots[0]]['data'],
         knotsZ=coll.ddata[kknots[1]]['data'],
         cents=coll.ddata[coll.dobj[coll._which_mesh][keym]['ind']]['data'],
-        trifind=coll.dobj[coll._which_mesh][keym]['trifind'],
+        trifind=coll.dobj[coll._which_mesh][keym]['func_trifind'],
     )
     keybsr = f'{keybs}-nbs'
 

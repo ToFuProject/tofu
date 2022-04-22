@@ -356,7 +356,30 @@ def add_data_meshbsplines_ref(
                 ref[rbs[0][0]+1:],
             ]
 
-    return tuple(ref)
+            # repeat data if taken from ntri > 1 
+            data = _repeat_data_ntri(
+                ref=ref,
+                rbs=rbs[0][1],
+                data=data,
+                dbsplines=dbsplines,
+            )
+
+    return tuple(ref), data
+
+
+def _repeat_data_ntri():
+    """ If triangular mesh with ntri > 1 => repeat data """
+
+    # TBF !!!
+    c0 = (
+        dbsplines[rbs[0][1]]['type'] == 'tri'
+        and dbsplines[rbs[0][1]]['ntri'] > 1
+    )
+    if c0:
+        indr = ref.index(rbs[0][1])
+        c0 = data.shape[indr] == dbsplines['shape']
+    else:
+        return data
 
 
 # #############################################################################
@@ -589,25 +612,24 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
 
     # check trifinder
     if trifind is None:
-        # mpltri = mplTri(knots[:, 0], knots[:, 1], cents)
-        # trifind = mpltri.get_trifinder()
-        trifind = None
+        mpltri = mplTri(knots[:, 0], knots[:, 1], cents)
+        trifind = mpltri.get_trifinder()
 
     # ----------------------------
     # Check on trifinder function
 
-    # assert callable(trifind), "Arg trifind must be a callable!"
+    assert callable(trifind), "Arg trifind must be a callable!"
 
-    # try:
-        # out = trifind(np.r_[0.], np.r_[0])
-        # assert isinstance(out, np.ndarray)
-    # except Exception as err:
-        # msg = (
-            # "Arg trifind must return an array of indices when fed with arrays "
-            # "of (R, Z) coordinates!\n"
-            # f"\ttrifind(np.r_[0], np.r_[0.]) = {out}"
-        # )
-        # raise Exception(msg)
+    try:
+        out = trifind(np.r_[0.], np.r_[0])
+        assert isinstance(out, np.ndarray)
+    except Exception as err:
+        msg = (
+            "Arg trifind must return an array of indices when fed with arrays "
+            "of (R, Z) coordinates!\n"
+            f"\ttrifind(np.r_[0], np.r_[0.]) = {out}"
+        )
+        raise Exception(msg)
 
     # -----------------
     # Format ouput dict
