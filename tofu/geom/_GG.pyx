@@ -1462,7 +1462,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                 BC[ii][1] += _TWOPI
 
         # Get the actual R and Z resolutions and mesh elements
-        print(f"discretize_vpoly(double[:,::1] VPoly, {dL}, D1=None, D2=None, margin={margin}, DIn={DIn}, VIn={VIn})")
+        print(f"discretize_vpoly(VPoly (chk {sum([VPoly[i][j] for i in range(VPoly.shape[0]) for j in range(VPoly.shape[1])])}), {dL}, D1=None, D2=None, margin={margin}, DIn={DIn}, VIn={VIn})")
         ptsCross, dLr, indL, \
           NL, Rref, VPbis = discretize_vpoly(VPoly, dL, D1=None, D2=None,
                                              margin=margin, DIn=DIn, VIn=VIn)

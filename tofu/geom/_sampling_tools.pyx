@@ -235,6 +235,9 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
     cdef double[2] dl_array
     cdef double* ldiscret = NULL
     cdef long* lindex = NULL
+    cdef int itmp
+
+    printf("discretize_vpoly_core(...)\n")
 
     #.. initialization..........................................................
     lminmax[0] = 0.
@@ -243,6 +246,7 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
     ncells[0] = <long*>malloc((np-1)*sizeof(long))
     #.. Filling arrays..........................................................
     if c_abs(din) < _VSMALL:
+        printf("din=%lf is very small\n", din)
         for ii in range(np-1):
             v0 = ves_poly[0, ii+1] - ves_poly[0, ii]
             v1 = ves_poly[1, ii+1] - ves_poly[1, ii]
@@ -286,12 +290,13 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
         xpolybis[0][sz_vbis - 1] = ves_poly[0, 0]
         ypolybis[0][sz_vbis - 1] = ves_poly[1, 0]
     else:
+        printf("din=%lf is not very small\n", din)
         for ii in range(np-1):
             v0 = ves_poly[0, ii+1]-ves_poly[0, ii]
             v1 = ves_poly[1, ii+1]-ves_poly[1, ii]
             lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
             inv_norm = 1. / lminmax[1]
-            discretize_line1d_core(lminmax, dstep, dl_array, True,
+            itmp = discretize_line1d_core(lminmax, dstep, dl_array, True,
                                    mode, margin, &ldiscret, loc_resolu,
                                    &lindex, &ncells[0][ii])
             # .. prepaaring Poly bis array......................................
@@ -317,11 +322,17 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             shiftx = din*ves_vin[0, ii]
             shifty = din*ves_vin[1, ii]
             for jj in range(ncells[0][ii]):
+                if last_sz_vbis >= sz_others:
+                    printf("ind etc about to explode\n")
+                if jj >= itmp:
+                    printf("ldiscret etc about to explode\n")
                 ind[0][last_sz_othr] = last_sz_othr
                 reso[0][last_sz_othr] = loc_resolu[0]
                 rref[0][last_sz_othr]   = ves_poly[0, ii] + ldiscret[jj]*v0
                 xcross[0][last_sz_othr] = ves_poly[0, ii] + ldiscret[jj]*v0 + shiftx
                 ycross[0][last_sz_othr] = ves_poly[1, ii] + ldiscret[jj]*v1 + shifty
+                if last_sz_vbis + jj >= sz_vbis:
+                    printf("xpolybis etc about to explode\n")
                 xpolybis[0][last_sz_vbis + jj] = ves_poly[0, ii] + jj * rv0
                 ypolybis[0][last_sz_vbis + jj] = ves_poly[1, ii] + jj * rv1
                 last_sz_othr += 1
