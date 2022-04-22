@@ -93,7 +93,9 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     else: # relative
         ncells[0] = <int>c_ceil(1. / dstep)
     resolution[0] = (lminmax[1] - lminmax[0]) / ncells[0]
+    printf("(fdlc) resolution[0] = (%lf - %lf) / %li = %lf\n", lminmax[1], lminmax[0], ncells[0], resolution[0])
     # .. Computing desired limits ..............................................
+    printf("(fdlc) if c_isnan(dl[0]=%lf) and c_isnan(dl[1]=%lf): %i\n", dl[0], dl[1], <bint>(c_isnan(dl[0]) and c_isnan(dl[1])))
     if c_isnan(dl[0]) and c_isnan(dl[1]):
         desired_limits[0] = lminmax[0]
         desired_limits[1] = lminmax[1]
@@ -110,23 +112,31 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
             desired_limits[0] = lminmax[0]
         if lim and desired_limits[1]>=lminmax[1]:
             desired_limits[1] = lminmax[1]
+    printf("(fdlc) desired_limits = [%lf %lf]\n", desired_limits[0], desired_limits[1])
 
     # .. Get the extreme indices of the mesh elements that really need to be
     # created within those limits...............................................
     inv_resol = 1./resolution[0]
     new_margin = margin*resolution[0]
     abs0 = c_abs(desired_limits[0] - lminmax[0])
+    printf("(fdlc) inv_resol = %lf, new_margin = %lf, abs0 = %lf\n", inv_resol, new_margin, abs0)
+    printf("(fdlc) if abs0(=%lf) - resolution[0](=%lf) * c_floor(abs0(=%lf) * inv_resol(=%lf)) < new_margin(=%lf): %i\n",
+           abs0, resolution[0], abs0, inv_resol, new_margin, <bint>(abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin))
     if abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin:
         nl0[0] = int(c_round((desired_limits[0] - lminmax[0]) * inv_resol))
     else:
         nl0[0] = int(c_floor((desired_limits[0] - lminmax[0]) * inv_resol))
     abs1 = c_abs(desired_limits[1] - lminmax[0])
+    printf("(fdlc) abs1 = %lf\n", abs1)
+    printf("(fdlc) if abs1(=%lf) - resolution[0](=%lf) * c_floor(abs1(=%lf) * inv_resol(=%lf)) < new_margin(=%lf): %i\n",
+           abs1, resolution[0], abs1, inv_resol, new_margin, <bint>(abs1 - resolution[0] * c_floor(abs1 * inv_resol) < new_margin))
     if abs1 - resolution[0] * c_floor(abs1 * inv_resol) < new_margin:
         nl1 = int(c_round((desired_limits[1] - lminmax[0]) * inv_resol) - 1)
     else:
         nl1 = int(c_floor((desired_limits[1] - lminmax[0]) * inv_resol))
     # Get the total number of indices
     nind[0] = nl1 + 1 - nl0[0]
+    printf("(fdlc) nind[0] = nl1(=%i) + 1 - nl0[0](%i) = %li\n", nl1, nl0[0], nind[0])
     return
 
 
@@ -296,13 +306,14 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             v1 = ves_poly[1, ii+1]-ves_poly[1, ii]
             lminmax[1] = c_sqrt(v0 * v0 + v1 * v1)
             inv_norm = 1. / lminmax[1]
-            printf("discretize_line1d_core([%lf %lf], %lf, [%lf %lf], True, %i, %lf, ldiscret=NULL, %lf, lindex=NULL, ncells[0][ii]=*)\n", 
-                   lminmax[0], lminmax[1], dstep, dl_array[0], dl_array[1], mode, margin, loc_resolu[0])
+            printf("discretize_line1d_core(lminmax=[%lf %lf], dstep=%lf, dl_array=[%lf %lf], lim=True, mode=%i, margin=%lf, ldiscret=NULL, loc_resolu=*, lindex=NULL, ncells[0][ii]=*)\n", 
+                   lminmax[0], lminmax[1], dstep, dl_array[0], dl_array[1], mode, margin)
             itmp = discretize_line1d_core(lminmax, dstep, dl_array, True,
                                    mode, margin, &ldiscret, loc_resolu,
                                    &lindex, &ncells[0][ii])
             printf("-> %i\n", itmp)
             printf("    ldiscret = [%lf ~ %lf]\n", ldiscret[0], ldiscret[itmp-1])
+            printf("    loc_resolu[0] = %lf\n", loc_resolu[0])
             printf("    lindex = [%li ~ %li]\n", lindex[0], lindex[itmp-1])
             printf("    ncells[0][ii] = %li\n", ncells[0][ii])
             # .. prepaaring Poly bis array......................................
