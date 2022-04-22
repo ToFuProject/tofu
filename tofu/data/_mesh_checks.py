@@ -493,25 +493,40 @@ def _mesh2DTri_conformity(knots=None, cents=None, key=None):
         )
         raise Exception(msg)
 
-    # ---------------------
-    # Test for unused knots
+    # -------------------------------
+    # Test for unused / unknown knots
 
     centsu = np.unique(centsu)
     c0 = np.all(centsu >= 0) and centsu.size == nknots
+
+    # unused knots
+    ino = (~np.in1d(
+        range(0, nknots),
+        centsu,
+        assume_unique=False,
+        invert=False,
+    )).nonzero()[0]
+
+    # unknown knots
+    unknown = np.setdiff1d(centsu, range(nknots), assume_unique=True)
+
+    if ino.size > 0 or unknown.size > 0:
+        msg = "Knots non-conformity identified:\n"
+        if ino.size > 0:
+            msg += f"\t- Unused knots indices: {ino}\n"
+        if unknown.size > 0:
+            msg += f"\t- Unknown knots indices: {unknown}\n"
+        raise Exception(msg)
+
     if centsu.size < nknots:
-        ino = (~np.in1d(
-            range(0, nknots),
-            centsu,
-            assume_unique=False,
-            invert=False,
-        )).nonzero()[0]
         msg = (
             f"Unused knots in {key}:\n"
             f"\t- unused knots indices: {ino}"
         )
         warnings.warn(msg)
+
     elif centsu.size > nknots or centsu.max() != nknots - 1:
-        unknown = np.setdiff1d(centsu, range(nknots), assume_sorted=True)
+        unknown = np.setdiff1d(centsu, range(nknots), assume_unique=True)
         msg = (
             "Unknown knots refered to in cents!\n"
             f"\t- unknown knots: {unknown}"
@@ -556,7 +571,7 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
 
         # check clock-wise triangles
         cents = _mesh2DTri_clockwise(knots=knots, cents=cents, key=key)
-        meshtype = 'tri'
+        ntri = 1
 
     # Quadrangular mesh => convert to triangular
     elif cents.shape[1] == 4:
@@ -570,28 +585,29 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
         # Re-check mesh conformity
         cents, knots = _mesh2DTri_conformity(knots=knots, cents=cents, key=key)
         cents = _mesh2DTri_clockwise(knots=knots, cents=cents, key=key)
-        meshtype = 'quadtri'
+        ntri = 2
 
     # check trifinder
     if trifind is None:
-        mpltri = mplTri(knots[:, 0], knots[:, 1], cents)
-        trifind = mpltri.get_trifinder()
+        # mpltri = mplTri(knots[:, 0], knots[:, 1], cents)
+        # trifind = mpltri.get_trifinder()
+        trifind = None
 
     # ----------------------------
     # Check on trifinder function
 
-    assert callable(trifind), "Arg trifind must be a callable!"
+    # assert callable(trifind), "Arg trifind must be a callable!"
 
-    try:
-        out = trifind(np.r_[0.], np.r_[0])
-        assert isinstance(out, np.ndarray)
-    except Exception as err:
-        msg = (
-            "Arg trifind must return an array of indices when fed with arrays "
-            "of (R, Z) coordinates!\n"
-            f"\ttrifind(np.r_[0], np.r_[0.]) = {out}"
-        )
-        raise Exception(msg)
+    # try:
+        # out = trifind(np.r_[0.], np.r_[0])
+        # assert isinstance(out, np.ndarray)
+    # except Exception as err:
+        # msg = (
+            # "Arg trifind must return an array of indices when fed with arrays "
+            # "of (R, Z) coordinates!\n"
+            # f"\ttrifind(np.r_[0], np.r_[0.]) = {out}"
+        # )
+        # raise Exception(msg)
 
     # -----------------
     # Format ouput dict
@@ -661,7 +677,8 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
     # dobj
     dmesh = {
         key: {
-            'type': meshtype,
+            'type': 'tri',
+            'ntri': ntri,
             'cents': (kcR, kcZ),
             'knots': (kkR, kkZ),
             'ind': kii,
