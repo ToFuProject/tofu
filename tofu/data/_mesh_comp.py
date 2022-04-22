@@ -1547,7 +1547,7 @@ def _interp_check(
 
     # return_params
     return_params = _generic_check._check_var(
-        return_arams, 'return_params',
+        return_params, 'return_params',
         types=bool,
         default=False,
     )
