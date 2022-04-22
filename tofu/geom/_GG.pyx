@@ -1446,8 +1446,10 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                                                             c_cos(DPhi[1]))
     DDPhi = DPhi1-DPhi0 if DPhi1>DPhi0 else _TWOPI+DPhi1-DPhi0
 
+    print(f"_getBoundsinter2AngSeg({Full}, {PhiMinMax[0]}, {PhiMinMax[1]}, {DPhi0}, {DPhi1})")
     inter, Bounds, _ = _getBoundsinter2AngSeg(Full, PhiMinMax[0],
                                                   PhiMinMax[1], DPhi0, DPhi1)
+    print(f"-> inter={inter}, Bounds={Bounds}, _={_}")
 
     if inter:
 
@@ -1460,9 +1462,11 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                 BC[ii][1] += _TWOPI
 
         # Get the actual R and Z resolutions and mesh elements
+        print(f"discretize_vpoly(double[:,::1] VPoly, {dL}, D1=None, D2=None, margin={margin}, DIn={DIn}, VIn={VIn})")
         ptsCross, dLr, indL, \
           NL, Rref, VPbis = discretize_vpoly(VPoly, dL, D1=None, D2=None,
                                              margin=margin, DIn=DIn, VIn=VIn)
+        print(f"-> ptsCross={ptsCross}, dLr={dLr}, indL={indL}, NL={NL}, Rref={Rref}, VPbis={VPbis}")
         R0 = np.copy(Rref)
         NR0 = R0.size
         indin = np.ones((ptsCross.shape[1],),dtype=bool)
