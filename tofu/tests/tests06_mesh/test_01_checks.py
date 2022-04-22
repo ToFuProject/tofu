@@ -25,7 +25,15 @@ _PATH_DATA = os.path.join(_HERE, 'test_data')
 _TOFU_USER = os.path.join(os.path.expanduser("~"), '.tofu')
 _CUSTOM = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 _CUSTOM = os.path.join(_CUSTOM, 'scripts', 'tofucustom.py')
+_FNAME = 'ITER_JINTRAC_sh134000_run30_public_edgesources_quadtrimesh.npz'
 VerbHead = 'tofu.mesh.test_01_checks'
+
+
+_PFE = os.path.join(_PATH_DATA, _FNAME)
+_DTRI = {
+    k0: v0.tolist()
+    for k0, v0 in dict(np.load(_PFE, allow_pickle=True)).items()
+}
 
 
 #######################################################
@@ -52,12 +60,77 @@ def teardown_module():
 
 #######################################################
 #
+#     Basic instanciation
+#
+#######################################################
+
+
+def _add_rect_uniform(plasma):
+    # add uniform rect mesh
+    plasma.add_mesh(key='m0', domain=[[2, 3], [-1, 1]], res=0.1)
+
+
+def _add_rect_variable(plasma):
+    # add variable rect mesh
+    plasma.add_mesh(
+        key='m1',
+        domain=[[2, 2.3, 2.6, 3], [-1, 0., 1]],
+        res=[[0.2, 0.1, 0.1, 0.2], [0.2, 0.1, 0.2]],
+    )
+
+
+def _add_rect_variable_crop(plasma):
+    # add variable rect mesh
+    plasma.add_mesh(
+        key='m2',
+        domain=[[2, 2.3, 2.6, 3], [-1, 0., 1]],
+        res=[[0.2, 0.1, 0.1, 0.2], [0.2, 0.1, 0.2]],
+        crop_poly=tf.load_config('WEST'),
+    )
+
+
+def _add_tri_ntri1(plasma):
+    cents = _DTRI['cents']['data']
+    cents2 = np.zeros((cents.shape[0]*2, 3))
+    cents2[::2, :] = cents[:, :3]
+    cents2[1::2, :2] = cents[:, 2:]
+    cents2[1::2, -1] = cents[:, 0]
+
+    plasma.add_mesh(
+        key='m3',
+        knots=_DTRI['nodes']['data'],
+        cents=cents2,
+    )
+
+
+def _add_tri_ntri2(plasma):
+    plasma.add_mesh(
+        key='m4',
+        knots=_DTRI['nodes']['data'],
+        cents=_DTRI['cents']['data'],
+    )
+
+
+def _add_bsplines(plasma):
+    for k0, v0 in plasma.dobj['mesh'].items():
+        if v0['type'] == 'tri':
+            plasma.add_bsplines(key=k0, deg=0)
+            plasma.add_bsplines(key=k0, deg=1)
+        else:
+            plasma.add_bsplines(key=k0, deg=0)
+            plasma.add_bsplines(key=k0, deg=1)
+            plasma.add_bsplines(key=k0, deg=2)
+            plasma.add_bsplines(key=k0, deg=3)
+
+
+#######################################################
+#
 #     checking routines
 #
 #######################################################
 
 
-class Test01_checks():
+class Test01_checks_Instanciate():
 
     @classmethod
     def setup_class(cls):
@@ -89,6 +162,31 @@ class Test01_checks():
             if hasattr(lres, '__iter__'):
                 assert x_new.size == np.unique(x_new).size == res.size + 1
 
+    def test02_add_mesh_rect_uniform(self):
+        plasma = tfd.Plasma2D()
+        _add_rect_uniform(plasma)
+        _add_bsplines(plasma)
+
+    def test03_add_mesh_rect_variable(self):
+        plasma = tfd.Plasma2D()
+        _add_rect_variable(plasma)
+        _add_bsplines(plasma)
+
+    def test04_add_mesh_rect_variable_crop(self):
+        plasma = tfd.Plasma2D()
+        _add_rect_variable_crop(plasma)
+        _add_bsplines(plasma)
+
+    def test05_add_mesh_tri_ntri1(self):
+        plasma = tfd.Plasma2D()
+        _add_tri_ntri1(plasma)
+        _add_bsplines(plasma)
+
+    def test06_add_mesh_tri_ntri2(self):
+        plasma = tfd.Plasma2D()
+        _add_tri_ntri2(plasma)
+        _add_bsplines(plasma)
+
 
 #######################################################
 #
@@ -104,69 +202,24 @@ class Test02_Plasma2D():
         pass
 
     def setup(self):
-        self.dobj = {
-            'm0': tfd.Plasma2D(),
-            'm1': tfd.Plasma2D(),
-            'm2': tfd.Plasma2D(),
-            'm3': tfd.Plasma2D(),
-        }
+        plasma = tfd.Plasma2D()
 
-        # add mesh
-        ldomain = [
-            [[2, 3], [-1, 1]],
-            [[2, 2.3, 2.6, 3], [-1, 0., 1]],
-            [[2, 3], [-1, 0, 1]],
-        ]
-        lres = [
-            0.1,
-            [[0.2, 0.1, 0.1, 0.2], [0.2, 0.1, 0.2]],
-            [0.1, [0.2, 0.1, 0.2]],
-        ]
+        # add rect mesh
+        _add_rect_uniform(plasma)
+        _add_rect_variable(plasma)
+        _add_rect_variable_crop(plasma)
 
-        i0 = 0
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            if k0 != 'm2':
-                self.dobj[k0].add_mesh(
-                    domain=ldomain[i0],
-                    res=lres[i0],
-                    key=k0,
-                )
-                i0 += 1
-            else:
-                self.dobj[k0].add_mesh(
-                    crop_poly=tf.load_config('WEST'),
-                    res=0.1,
-                    key=k0,
-                )
+        # add tri mesh
+        _add_tri_ntri1(plasma)
+        _add_tri_ntri2(plasma)
 
-        # add splines
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            self.dobj[k0].add_bsplines(deg=ii)
+        # add bsplines
+        _add_bsplines(plasma)
 
-        # Add triangular mesh
-        knots = np.array([
-            [2, 0], [2, 1], [3, 0], [3, 1],
-        ])
-        faces = np.array([[0, 1, 2], [1, 2, 3]])
-        self.dobjtri = {
-            'tri0': tf.data.Plasma2D(),
-            'tri1': tf.data.Plasma2D(),
-        }
-        self.dobjtri['tri0'].add_mesh(cents=faces, knots=knots, key='tri0')
-
-        # Add realistic NICE mesh for WEST
-        pfe = os.path.join(_PATH_DATA, 'mesh_triangular_WEST_eq.txt')
-        out = np.loadtxt(pfe)
-        nknots, ncents = int(out[0, 0]), int(out[0, 1])
-        assert out.shape == (nknots + ncents + 1, 3)
-        knots = out[1:nknots + 1, :][:, :2]
-        cents = out[nknots + 1:, :]
-        self.dobjtri['tri1'].add_mesh(cents=cents, knots=knots, key='tri1')
-
-        # add splines
-        for ii, (k0, v0) in enumerate(self.dobjtri.items()):
-            self.dobjtri[k0].add_bsplines(deg=ii)
-
+        # store
+        self.obj = plasma
+        self.lm = list(plasma.dobj['mesh'].keys())
+        self.lbs = list(plasma.dobj['bsplines'].keys())
 
     def teardown(self):
         pass
@@ -176,59 +229,43 @@ class Test02_Plasma2D():
         pass
 
     def test01_show(self):
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            self.dobj[k0].show()
-        for ii, (k0, v0) in enumerate(self.dobjtri.items()):
-            self.dobjtri[k0].show()
+        self.obj.show()
 
     def test02_select_ind(self):
 
         # Rect mesh
-        lkey = ['m0', 'm1-bs1', 'm2', 'm3-bs3']
+        nn = 4
         lelements = ['knots', None, 'cents', None]
-        lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
+        lind = [None, ([0, 5], [0, 6]), [0, 10, 50], ([0, 5, 6], [0, 2, 3])]
         lcrop = [True, False, True, False]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            indt = self.dobj[k0].select_ind(
-                key=lkey[ii],
-                ind=lind[ii],
-                elements=lelements[ii],
-                returnas=tuple,
-                crop=lcrop[ii],
-            )
-            indf = self.dobj[k0].select_ind(
-                key=lkey[ii],
-                ind=indt,
-                elements=lelements[ii],
-                returnas=np.ndarray,
-                crop=lcrop[ii],
-            )
-            indt2 = self.dobj[k0].select_ind(
-                key=lkey[ii],
-                ind=indf,
-                elements=lelements[ii],
-                returnas=tuple,
-                crop=lcrop[ii],
-            )
-            assert all([np.allclose(indt[ii], indt2[ii]) for ii in [0, 1]])
 
-        # triangular meshes
-        lkeys = ['tri0', 'tri0', 'tri1']
-        lind = [None, [1], 1]
-        lelements = ['knots', None, 'cents']
-        for ii, k0 in enumerate(lkeys):
-            out = self.dobjtri[k0].select_ind(
+        # select fom mesh
+        for ii, k0 in enumerate(self.lm):
+            ind = ii % nn
+            indt = self.obj.select_ind(
                 key=k0,
-                ind=lind[ii],
-                elements=lelements[ii],
-                returnas=int,
-                crop=lcrop[ii],
+                ind=lind[ind],
+                elements=lelements[ind],
+                returnas=tuple,
+                crop=lcrop[ind],
             )
-            if ii == 0:
-                assert np.allclose(out, np.r_[0, 1, 2, 3])
-            elif ii >= 1:
-                assert np.allclose(out, np.r_[1])
+            indf = self.obj.select_ind(
+                key=k0,
+                ind=indt,
+                elements=lelements[ind],
+                returnas=np.ndarray,
+                crop=lcrop[ind],
+            )
+            indt2 = self.obj.select_ind(
+                key=k0,
+                ind=indf,
+                elements=lelements[ind],
+                returnas=tuple,
+                crop=lcrop[ind],
+            )
+            assert all([np.allclose(indt[jj], indt2[jj]) for jj in [0, 1]])
 
+    # To be updated, TBF
     def test03_select_mesh(self):
 
         # rectangular meshes
