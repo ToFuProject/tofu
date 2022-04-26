@@ -14,6 +14,7 @@ import matplotlib.colors as mcolors
 
 # specific
 from . import _generic_check
+from ._mesh_plot import _plot_bsplines_get_dRdZ
 
 
 # #############################################################################
@@ -28,6 +29,8 @@ def _plot_geometry_matrix_check(
     indbf=None,
     indchan=None,
     cmap=None,
+    vmin=None,
+    vmax=None,
     aspect=None,
     dcolorbar=None,
     dleg=None,
@@ -74,6 +77,12 @@ def _plot_geometry_matrix_check(
     if cmap is None:
         cmap = 'viridis'
 
+    # vmin, vmax
+    if vmax is None:
+        vmax = np.nanmax(coll.ddata[key]['data'])
+    if vmin is None:
+        vmin = 0
+
     # aspect
     aspect = _generic_check._check_var(
         aspect, 'aspect',
@@ -106,7 +115,12 @@ def _plot_geometry_matrix_check(
         types=(bool, dict),
     )
 
-    return key, keybs, keym, indbf, indchan, cmap, aspect, dcolorbar, dleg
+    return (
+        key, keybs, keym,
+        indbf, indchan,
+        cmap, vmin, vmax,
+        aspect, dcolorbar, dleg,
+    )
 
 
 def _plot_geometry_matrix_prepare(
@@ -123,27 +137,58 @@ def _plot_geometry_matrix_prepare(
     # res
     deg = coll.dobj['bsplines'][keybs]['deg']
     km = coll.dobj['bsplines'][keybs]['mesh']
+    meshtype = coll.dobj['mesh'][km]['type']
+
     kR, kZ = coll.dobj['mesh'][km]['knots']
     Rk = coll.ddata[kR]['data']
     Zk = coll.ddata[kZ]['data']
-    dR = np.min(np.diff(Rk))
-    dZ = np.min(np.diff(Zk))
+
+    # get dR, dZ
+    dR, dZ, _, _ = _plot_bsplines_get_dRdZ(
+        coll=coll, km=km, meshtype=meshtype,
+    )
     if res is None:
-        res_coef = 0.025
+        if meshtype == 'rect':
+            res_coef = 0.05
+        else:
+            res_coef = 0.25
         res = [res_coef*dR, res_coef*dZ]
 
     # crop
     crop = coll.dobj['matrix'][key]['crop']
 
     # indchan => indchan_bf
-    ich_bf_tup = coll.select_ind(key=keybs, returnas='tuple-flat', crop=crop)
-    ich_bf = coll.select_ind(key=keybs, returnas=np.ndarray, crop=crop)
-    indbf_full = coll.select_ind(
-        key=keybs, returnas='array-flat', crop=crop,
-    )[indbf]
-    indbf_tup = coll.select_ind(
-        key=keybs, ind=indbf_full, returnas=tuple, crop=crop,
-    )
+    if meshtype == 'rect':
+        ich_bf_tup = coll.select_ind(
+            key=keybs,
+            returnas='tuple-flat',
+            crop=crop,
+        )
+        nbf = ich_bf_tup[0].size
+
+        # indbf_bool
+        indbf_bool = coll.select_ind(
+            key=keybs,
+            ind=(ich_bf_tup[0][indbf], ich_bf_tup[1][indbf]),
+            returnas=bool,
+            crop=crop,
+        )
+        ic = (np.zeros((nbf,), dtype=int), ich_bf_tup[0], ich_bf_tup[1])
+    else:
+        ich_bf_tup = coll.select_ind(
+            key=keybs,
+            returnas=int,
+            crop=crop,
+        )
+        nbf = ich_bf_tup.size
+
+        indbf_bool = coll.select_ind(
+            key=keybs,
+            ind=ich_bf_tup[indbf],
+            returnas=bool,
+            crop=crop,
+        )
+        ic = (np.zeros((nbf,), dtype=int), ich_bf_tup)
 
     # mesh sampling
     km = coll.dobj['bsplines'][keybs]['mesh']
@@ -154,12 +199,9 @@ def _plot_geometry_matrix_prepare(
     # bsplinetot
     shapebs = coll.dobj['bsplines'][keybs]['shape']
     coefs = np.zeros(tuple(np.r_[1, shapebs]), dtype=float)
-    coefs[0, ich_bf_tup[0], ich_bf_tup[1]] = np.nansum(
-        coll.ddata[key]['data'],
-        axis=0,
-    )
 
-    bsplinetot = coll.interp2d(
+    coefs[ic] = np.nansum(coll.ddata[key]['data'], axis=0)
+    bsplinetot = coll.interpolate_profile2d(
         key=keybs,
         R=R,
         Z=Z,
@@ -170,10 +212,8 @@ def _plot_geometry_matrix_prepare(
     )[0, ...]
 
     # bspline1
-    coefs[0, ich_bf_tup[0], ich_bf_tup[1]] = (
-        coll.ddata[key]['data'][indchan, :]
-    )
-    bspline1 = coll.interp2d(
+    coefs[ic] = coll.ddata[key]['data'][indchan, :]
+    bspline1 = coll.interpolate_profile2d(
         key=keybs,
         R=R,
         Z=Z,
@@ -199,8 +239,8 @@ def _plot_geometry_matrix_prepare(
 
     # extent and interp
     extent = (
-        Rk[0] - 0.*dR, Rk[-1] + 0.*dR,
-        Zk[0] - 0.*dZ, Zk[-1] + 0.*dZ,
+        np.nanmin(Rk) - 0.*dR, np.nanmax(Rk) + 0.*dR,
+        np.nanmin(Zk) - 0.*dZ, np.nanmax(Zk) + 0.*dZ,
     )
 
     if deg == 0:
@@ -212,16 +252,19 @@ def _plot_geometry_matrix_prepare(
 
     return (
         bsplinetot, bspline1, extent, interp,
-        ptslos, coefslines, indlosok, indbf_tup,
+        ptslos, coefslines, indlosok, indbf_bool,
     )
 
 
 def plot_geometry_matrix(
+    # resources
     cam=None,
     coll=None,
+    # parameters
     key=None,
     indbf=None,
     indchan=None,
+    # plotting
     vmin=None,
     vmax=None,
     res=None,
@@ -240,13 +283,16 @@ def plot_geometry_matrix(
     (
         key, keybs, keym,
         indbf, indchan,
-        cmap, aspect, dcolorbar, dleg,
+        cmap, vmin, vmax,
+        aspect, dcolorbar, dleg,
     ) = _plot_geometry_matrix_check(
         coll=coll,
         key=key,
         indbf=indbf,
         indchan=indchan,
         cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
         aspect=aspect,
         dcolorbar=dcolorbar,
         dleg=dleg,
@@ -260,7 +306,7 @@ def plot_geometry_matrix(
         bsplinetot, bspline1,
         extent, interp,
         ptslos, coefslines, indlosok,
-        ich_bf_tup,
+        ich_bf,
     ) = _plot_geometry_matrix_prepare(
         cam=cam,
         coll=coll,
@@ -349,9 +395,15 @@ def plot_geometry_matrix(
     # --------------
     # plot matrix
 
-    coll2 = coll.plot_as_array(
-        key=key, dax=dax, ind=[indchan, indbf],
-        cmap=cmap, vmin=vmin, vmax=vmax, aspect=aspect,
+    coll2, dgroup = coll.plot_as_array(
+        key=key,
+        dax=dax,
+        ind=[indchan, indbf],
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
+        aspect=aspect,
+        connect=False,
     )
 
     kax = 'cross1'
@@ -384,7 +436,7 @@ def plot_geometry_matrix(
 
         coll.plot_bsplines(
             key=keybs,
-            ind=ich_bf_tup,
+            ind=ich_bf,
             knots=False,
             cents=False,
             plot_mesh=False,
@@ -422,5 +474,14 @@ def plot_geometry_matrix(
 
     # if dleg is not False:
         # dax['cross'].legend(**dleg)
+
+
+    # -------
+    # connect
+
+    coll2.setup_interactivity(kinter='inter0', dgroup=dgroup)
+    coll2.disconnect_old()
+    coll2.connect()
+    coll2.show_commands()
 
     return coll2

@@ -136,6 +136,8 @@ def compute(
 
     nlos = cam.nRays
     shapebs = coll.dobj['bsplines'][key]['shape']
+    km = coll.dobj['bsplines'][key]['mesh']
+    meshtype = coll.dobj[coll._which_mesh][km]['type']
 
     # -----------
     # compute
@@ -163,12 +165,12 @@ def compute(
         # prepare indices
         indbs = coll.select_ind(
             key=key,
-            returnas=tuple,
+            returnas=bool,
             crop=crop,
         )
 
         # prepare matrix
-        shapemat = tuple(np.r_[nlos, indbs[0].size])
+        shapemat = tuple(np.r_[nlos, indbs.sum()])
         mat = np.zeros(shapemat, dtype=float)
 
         for ii in range(nlos):
@@ -181,7 +183,7 @@ def compute(
 
             # compute
             mat[ii, :] = np.nansum(
-                coll.interp2d(
+                coll.interpolate_profile2d(
                     key=key,
                     R=lr[ii],
                     Z=lz[ii],

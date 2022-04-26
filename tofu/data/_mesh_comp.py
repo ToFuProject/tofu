@@ -1450,7 +1450,7 @@ def _interp_check(
     else:
         c0 = (
             coefs.ndim in [len(shapebs), len(shapebs) + 1]
-            and coefs.shape[-2:] == shapebs
+            and coefs.shape[-len(shapebs):] == shapebs
         )
         if not c0:
             msg = (
