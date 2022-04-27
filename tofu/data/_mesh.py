@@ -995,6 +995,35 @@ class Plasma2D(ds.DataStock):
             return_params=return_params,
         )
 
+    # TBF afetr polar meshes
+    def interpolate_2dto1d(
+        # resources
+        self,
+        # interpolation base
+        key1d=None,
+        key2d=None,
+        # interpolation pts
+        R=None,
+        Z=None,
+        grid=None,
+        # parameters
+        interp_t=None,
+        fill_value=None,
+        ani=False,
+    ):
+
+        return _mesh_comp.interp2dto1d(
+            coll=self,
+            key1d=key1d,
+            key2d=key2d,
+            R=R,
+            Z=Z,
+            grid=grid,
+            crop=crop,
+            nan0=nan0,
+            return_params=return_params,
+        )
+
     # -----------------
     # geometry matrix
     # ------------------

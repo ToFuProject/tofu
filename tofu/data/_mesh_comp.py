@@ -1400,7 +1400,7 @@ def _get_possible_ref12d(
 # #############################################################################
 
 
-def _interp_check(
+def _interp2d_check(
     coll=None,
     key=None,
     R=None,
@@ -1588,7 +1588,7 @@ def interp2d(
         R, Z, coefs,
         indbs, indt,
         details, crop, nan0, return_params,
-    ) = _interp_check(
+    ) = _interp2d_check(
         coll=coll,
         key=key,
         R=R,
@@ -1645,6 +1645,50 @@ def interp2d(
         indbs_tuple_flat=indbs_tuple_flat,
         reshape=reshape,
     )
+
+    # ---------------
+    # post-treatment
+
+    if nan0 is True:
+        val[val == 0] = np.nan
+
+    # ------
+    # return
+
+    if return_params is True:
+        return val, dparams
+    else:
+        return val
+
+
+# #############################################################################
+# #############################################################################
+#                   2d points to 1d quantity interpolation
+# #############################################################################
+
+
+def interp2dto1d(
+    coll=None,
+    key=None,
+    R=None,
+    Z=None,
+    indbs=None,
+    indt=None,
+    grid=None,
+    details=None,
+    reshape=None,
+    res=None,
+    crop=None,
+    nan0=None,
+    imshow=None,
+    return_params=None,
+):
+
+    # ---------------
+    # check inputs
+
+    # TBD
+    pass
 
     # ---------------
     # post-treatment
