@@ -564,6 +564,7 @@ def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
                 'deg': deg,
                 'mesh': keym,
                 'ref': (keybsr,),
+                'ref-bs': (keybsr,),
                 'shape': (clas.nbs,),
                 'crop': False,
                 'func_details': func_details,
@@ -654,6 +655,7 @@ def _mesh2DRect_bsplines(coll=None, keym=None, keybs=None, deg=None):
                 'deg': deg,
                 'mesh': keym,
                 'ref': (kRbscr, kZbscr),
+                'ref-bs': (keybsr,),
                 'shape': shapebs,
                 'crop': False,
                 'func_details': func_details,
@@ -680,7 +682,7 @@ def add_cropbs_from_crop(coll=None, keybs=None, keym=None):
             keybs=keybs,
         )
         kcropbs = f'{keybs}-crop'
-        kcroppedbs = f'{keybs}-crop-nbs'
+        kcroppedbs = f'{keybs}-nbs-crop'
 
     # ----------------
     # optional crop
@@ -1706,15 +1708,15 @@ def get_bsplines_operator(
     )
 
     cropbs = coll.dobj['bsplines'][key]['crop']
+    keycropped = coll.dobj['bsplines'][key]['ref-bs'][0]
     if cropbs is not False and crop is True:
         cropbs_flat = coll.ddata[cropbs]['data'].ravel(order='F')
         if coll.dobj['bsplines'][key]['deg'] == 0:
             cropbs = coll.ddata[cropbs]['data']
-        keycropped = f'{key}-cropped'
+        keycropped = f"{keycropped}-crop"
     else:
         cropbs = False
         cropbs_flat = False
-        keycropped = key
 
     # compute and return
     (

@@ -223,7 +223,10 @@ def compute(
             }
 
         # add matrix data
-        keycropped = f'{key}-cropped' if crop is True else key
+        keycropped = coll.dobj['bsplines'][key]['ref-bs'][0]
+        if crop is True:
+            keycropped = f'{keycropped}-crop'
+
         ddata = {
             name: {
                 'data': mat,
