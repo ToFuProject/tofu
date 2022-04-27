@@ -128,6 +128,84 @@ class Plasma2D(ds.DataStock):
         )
 
         # add kwdargs
+        key = list(dmesh.keys())[0]
+        dmesh[key].update(**kwdargs)
+
+        # define dobj['mesh']
+        dobj = {
+            self._which_mesh: dmesh,
+        }
+
+        # update data source
+        for k0, v0 in ddata.items():
+            ddata[k0]['source'] = kwdargs.get('source')
+
+        # update dicts
+        self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+        # optional bspline
+        if deg is not None:
+            self.add_bsplines(key=key, deg=deg)
+
+        # optional cropping
+        c0 = (
+            self.dobj[self._which_mesh][key]['type'] == 'rect'
+            and poly is not None
+        )
+        if c0:
+            self.crop(
+                key=key,
+                crop=poly,
+                thresh_in=thresh_in,
+                remove_isolated=remove_isolated,
+            )
+
+    def add_mesh_polar(
+        self,
+        # polar mesh
+        key=None,
+        radius=None,
+        angle=None,
+        # Defined on
+        radius2d=None,
+        angle2d=None,
+        # parameters
+        radius_dim=None,
+        radius_quant=None,
+        radius_name=None,
+        radius_units=None,
+        # direct addition of bsplines
+        deg=None,
+        **kwdargs,
+    ):
+        """ Add a 2d polar mesh
+
+        For now only includes radial mesh
+        radius has to be backed-up by:
+            - a radius quantity from a pre-existing rect or tri mesh
+            - a function
+
+        """
+
+        # check input data and get input dicts
+        dref, ddata, dmesh = _mesh_checks._mesh2D_polar_check(
+            coll=self,
+            # polar
+            radius=radius,
+            angle=angle,
+            radius2d=radius2d,
+            angle2d=angle2d,
+            # parameters
+            radius_dim=radius_dim,
+            radius_quant=radius_quant,
+            radius_name=radius_name,
+            radius_units=radius_units,
+            # key
+            key=key,
+        )
+
+        # add kwdargs
+        key = list(dmesh.keys())[0]
         for k0 in dmesh.keys():
             dmesh[k0].update(**kwdargs)
 
@@ -145,20 +223,7 @@ class Plasma2D(ds.DataStock):
 
         # optional bspline
         if deg is not None:
-            self.add_bsplines(deg=deg, key=key)
-
-        # optional cropping
-        c0 = (
-            self.dobj[self._which_mesh][key]['type'] == 'rect'
-            and poly is not None
-        )
-        if c0:
-            self.crop(
-                key=key,
-                crop=poly,
-                thresh_in=thresh_in,
-                remove_isolated=remove_isolated,
-            )
+            self.add_bsplines(key=key, deg=deg)
 
     # -----------------
     # bsplines
@@ -183,8 +248,12 @@ class Plasma2D(ds.DataStock):
             dref, ddata, dobj = _mesh_comp._mesh2DRect_bsplines(
                 coll=self, keym=keym, keybs=keybs, deg=deg,
             )
-        else:
+        elif self.dobj[self._which_mesh][keym]['type'] == 'tri':
             dref, ddata, dobj = _mesh_comp._mesh2DTri_bsplines(
+                coll=self, keym=keym, keybs=keybs, deg=deg,
+            )
+        else:
+            dref, ddata, dobj = _mesh_comp._mesh2Dpolar_bsplines(
                 coll=self, keym=keym, keybs=keybs, deg=deg,
             )
 

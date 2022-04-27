@@ -466,6 +466,141 @@ def _mesh2D_check(
     return dref, ddata, dmesh
 
 
+def _mesh2D_polar_check(
+    coll=None,
+    radius=None,
+    angle=None,
+    radius2d=None,
+    angle2d=None,
+    key=None,
+    # parameters
+    radius_dim=None,
+    radius_quant=None,
+    radius_name=None,
+    radius_units=None,
+):
+
+    # key
+    key = _generic_check._check_var(
+        key, 'key',
+        types=str,
+        excluded=list(coll.dobj.get('mesh', {}).keys())
+    )
+
+    # --------------------
+    # check / format input
+
+    krk, krc = f'{key}-r-nk', f'{key}-r-nc'
+    kkr, kcr = f'{key}-r-k', f'{key}-r-c'
+
+    # radius data
+    c0 = (
+        hasattr(radius, '__iter__')
+        and np.asarray(radius).ndim == 1
+        and np.unique(radius).size == np.array(radius).size
+        and np.allclose(np.unique(radius), radius)
+    )
+    if not c0:
+        msg = "Arg radius must be convertible to a 1d increasing array"
+        raise Exception(msg)
+
+    rknot = np.unique(radius)
+    rcent = 0.5*(rknot[1:] + rknot[:-1])
+
+    # radius2d
+    dradius = _check_polar_2dquant(
+        coll=coll,
+        quant2d=radius2d,
+        quant2d_name='radius2d',
+        dim=radius_dim,
+        quant=radius_quant,
+        name=radius_name,
+        units=radius_units,
+    )
+
+    # --------------------
+    # prepare dict
+
+    # dref
+    dref = {
+        krk: {
+            'size': rknot.size,
+        },
+        krc: {
+            'size': rcent.size,
+        },
+    }
+
+    # ddata
+    ddata = {
+        kkr: {
+            'data': rknot,
+            'ref': krk,
+            **dradius,
+        },
+        kcr: {
+            'data': rcent,
+            'ref': krc,
+            **dradius,
+        },
+    }
+
+    # dobj
+    dmesh = {
+        key: {
+            'type': 'polar',
+            'knots': (krk,),
+            'cents': (krc,),
+            'shape-c': rcent.shape,
+            'shape-k': rknot.shape,
+        },
+    }
+
+    return dref, ddata, dmesh
+
+
+def _check_polar_2dquant(
+    quant2d=None,
+    coll=None,
+    quant2d_name=None,
+    # parameters
+    dim=None,
+    quant=None,
+    name=None,
+    units=None,
+):
+
+    if coll.dobj.get('bsplines') is not None:
+        lok = [
+            k0 for k0, v0 in coll.ddata.items()
+            if v0['bsplines'] in coll.dobj['bsplines'].keys()
+        ]
+    else:
+        lok = []
+
+    lc = [
+        callable(quant2d),
+        isinstance(quant2d, str) and quant2d in lok
+    ]
+    if not any(lc):
+        msg = (
+            f"Arg {quant2d_name} must be either:\n"
+            f"\t- callable: {quant2d_name} = func(R, Z)\n"
+            f"\t- key to existing 2d data in {lok}\n"
+            f"Provided: {quant2d}\n"
+        )
+        raise Exception(msg)
+
+    # quantities
+    dquant = {'dim': dim, 'quant': quant, 'name': name, 'units': units}
+    if isinstance(quant2d, str):
+        for k0 in dquant.keys():
+            if dquant[k0] is None:
+                dquant[k0] = str(coll.ddata[quant2d][k0])
+
+    return dquant
+
+
 # #############################################################################
 # #############################################################################
 #                           Mesh2DTri
