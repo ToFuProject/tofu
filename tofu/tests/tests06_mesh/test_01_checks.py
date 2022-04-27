@@ -492,9 +492,12 @@ class Test02_Plasma2D():
             for comb in itt.product(lop, lgeom, lcrop):
                 deg = self.obj.dobj['bsplines'][k0]['deg']
 
+                if deg == 3 and comb[0] in ['D0N1', 'D0N2', 'D1N2', 'D2N2']:
+                    continue
+
                 # only test exact operators
                 if int(comb[0][1]) > deg:
-                    # except deg =0 D1N2
+                    # except deg = 0 D1N2
                     if deg == 0 and comb[0] == 'D1N2':
                         pass
                     else:
