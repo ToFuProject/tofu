@@ -181,7 +181,7 @@ def _plot_mesh_prepare(
             if bck is True:
                 grid_bck = np.concatenate((vert, hor), axis=1)
 
-    else:
+    elif meshtype == 'tri':
         kknots = coll.dobj['mesh'][key]['knots']
         R = coll.ddata[kknots[0]]['data']
         Z = coll.ddata[kknots[1]]['data']
@@ -228,6 +228,52 @@ def _plot_mesh_prepare(
         grid = np.array([R[lseg], Z[lseg]])
         grid[0, lseg == -1] = np.nan
 
+    else:
+        # create rectangular grid and compute radius at each point
+        if True:
+            k2d = coll.dobj[coll._which_key][key]['radius2d']
+            kb2 = coll.ddata[k2d]['bsplines']
+            km2 = coll.dobj['bsplines'][kb2]['mesh']
+            RR, ZZ = coll.get_sample_mesh(
+                key=km2,
+                res=None,
+                grid=True,
+                mode=None,
+                R=None,
+                Z=None,
+                DR=None,
+                DZ=None,
+                imshow=True,
+            )
+            import pdb; pdb.set_trace()     # DB
+            rr = coll.interpolate_profile2d(key=k2d, R=RR, Z=ZZ, grid=False)
+        else:
+            rr = coll.dobj[coll._which_key][key]['radius2d'](RR, ZZ)
+
+        # compute contours at rknots
+        # see https://github.com/matplotlib/matplotlib/blob/main/src/_contour.h
+        cont_raw = mcontour.QuadContourGenerator(
+            RR, ZZ, rr,
+            None,       # mask
+            True,       # how to mask
+            0,          # divide in sub-domains (0=not)
+        )
+        import pdb; pdb.set_trace()     # DB
+
+        cont_raw.create_contour(0.5)
+        if isinstance(cont_raw, tuple):
+            cont_raw = cont_raw[0]
+        assert all([pp.ndim == 2 and pp.shape[1] == 2 for pp in cont_raw])
+
+        cont = PatchCollection(
+            [plt.Polygon(pp) for pp in cont_raw],
+            color='k',
+            alpha=0.4,
+        )
+
+        # concatenate contours
+        grid = None
+
     return grid, grid_bck
 
 
@@ -244,6 +290,12 @@ def plot_mesh(
     fs=None,
     dleg=None,
 ):
+    """ Plot the desired mesh
+
+    rect and tri meshes are constant
+    polar meshes can vary in time
+
+    """
 
     # --------------
     # check input
@@ -258,6 +310,56 @@ def plot_mesh(
         color=color,
         dleg=dleg,
     )
+
+    # ------------------------
+    # call appropriate routine
+
+    if coll.dobj[coll._which_mesh][key]['type'] in ['rect', 'tri']:
+        # time-fixed meshes
+        return _plot_mesh_recttri(
+            coll=coll,
+            key=key,
+            ind_knot=ind_knot,
+            ind_cent=ind_cent,
+            crop=crop,
+            bck=bck,
+            color=color,
+            dax=dax,
+            fs=fs,
+            dmargin=dmargin,
+            dleg=dleg,
+        )
+
+    else:
+        # possibly time-varying mesh
+        return _plot_mesh_polar(
+            coll=coll,
+            key=key,
+            ind_knot=ind_knot,
+            ind_cent=ind_cent,
+            crop=crop,
+            bck=bck,
+            color=color,
+            dax=dax,
+            fs=fs,
+            dmargin=dmargin,
+            dleg=dleg,
+        )
+
+
+def _plot_mesh_recttri(
+    coll=None,
+    key=None,
+    ind_knot=None,
+    ind_cent=None,
+    crop=None,
+    bck=None,
+    color=None,
+    dax=None,
+    fs=None,
+    dmargin=None,
+    dleg=None,
+):
 
     # --------------
     #  Prepare data
@@ -294,9 +396,8 @@ def plot_mesh(
     # --------------
     # plot
 
-    axtype = 'cross'
-    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
-    for kax in lkax:
+    kax = 'cross'
+    for dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
         if grid_bck is not None and bck is True:
@@ -361,8 +462,35 @@ def plot_mesh(
     # dleg
 
     if dleg is not False:
-        for kax in lkax:
+        for kax in dax.keys():
             dax[kax]['handle'].legend(**dleg)
+
+    return dax
+
+
+def _plot_mesh_polar(
+    coll=None,
+    key=None,
+    ind_knot=None,
+    ind_cent=None,
+    crop=None,
+    bck=None,
+    color=None,
+    dax=None,
+    fs=None,
+    dmargin=None,
+    dleg=None,
+):
+
+    # --------------
+    #  Prepare data
+
+    grid, grid_bck = _plot_mesh_prepare(
+        coll=coll,
+        key=key,
+        crop=crop,
+        bck=bck,
+    )
 
     return dax
 
