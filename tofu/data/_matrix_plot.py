@@ -250,9 +250,12 @@ def _plot_geometry_matrix_prepare(
     elif deg >= 2:
         interp = 'bicubic'
 
+    # matrix refs
+    refs = coll.ddata[key]['ref']
+
     return (
         bsplinetot, bspline1, extent, interp,
-        ptslos, coefslines, indlosok, indbf_bool,
+        ptslos, coefslines, indlosok, indbf_bool, refs,
     )
 
 
@@ -306,7 +309,7 @@ def plot_geometry_matrix(
         bsplinetot, bspline1,
         extent, interp,
         ptslos, coefslines, indlosok,
-        ich_bf,
+        ich_bf, refs,
     ) = _plot_geometry_matrix_prepare(
         cam=cam,
         coll=coll,
@@ -331,11 +334,13 @@ def plot_geometry_matrix(
             dmargin = {
                 'left': 0.05, 'right': 0.98,
                 'bottom': 0.05, 'top': 0.95,
-                'hspace': 0.15, 'wspace': 0.15,
+                'hspace': 0.20, 'wspace': 0.25,
             }
 
         fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(ncols=3, nrows=2, **dmargin)
+        gs = gridspec.GridSpec(ncols=4, nrows=2, **dmargin)
+
+        # ax01 = matrix
         ax01 = fig.add_subplot(gs[0, 1])
         ax01.set_ylabel(f'channels')
         ax01.set_xlabel(f'basis functions')
@@ -346,15 +351,14 @@ def plot_geometry_matrix(
             labelbottom=False, labeltop=True,
         )
         ax01.xaxis.set_label_position('top')
+
+        # ax00 = horizontal
         ax00 = fig.add_subplot(gs[0, 0], sharex=ax01)
-        ax00.set_xlabel(f'basis functions (m)')
+        ax00.set_xlabel(f'basis functions')
         ax00.set_ylabel(f'data')
-        ax10 = fig.add_subplot(gs[1, 0], aspect='equal')
-        ax10.set_xlabel(f'R (m)')
-        ax10.set_ylabel(f'Z (m)')
-        ax11 = fig.add_subplot(gs[1, 1], aspect='equal')
-        ax11.set_ylabel(f'R (m)')
-        ax11.set_xlabel(f'Z (m)')
+        ax00.set_ylim(vmin, vmax)
+
+        # ax02 = vertical
         ax02 = fig.add_subplot(gs[0, 2], sharey=ax01)
         ax02.set_xlabel(f'channels')
         ax02.set_ylabel(f'data')
@@ -370,17 +374,44 @@ def plot_geometry_matrix(
             labelleft=False, labelright=True,
         )
         ax02.yaxis.set_label_position('right')
+        ax02.set_xlim(vmin, vmax)
+
+        # ax10 = cross1
+        ax10 = fig.add_subplot(gs[1, 0], aspect='equal')
+        ax10.set_xlabel(f'R (m)')
+        ax10.set_ylabel(f'Z (m)')
+
+        # ax11 = crosstot
+        ax11 = fig.add_subplot(gs[1, 1], aspect='equal')
+        ax11.set_ylabel(f'R (m)')
+        ax11.set_xlabel(f'Z (m)')
+
+        # ax12 = cross2
         ax12 = fig.add_subplot(gs[1, 2], aspect='equal')
         ax12.set_xlabel(f'R (m)')
         ax12.set_ylabel(f'Z (m)')
 
+        # text
+        axt0 = fig.add_subplot(gs[0, -1], frameon=False)
+        axt0.set_xticks([])
+        axt0.set_yticks([])
+        axt1 = fig.add_subplot(gs[1, -1], frameon=False)
+        axt1.set_xticks([])
+        axt1.set_yticks([])
+
+        # define dax
         dax = {
-            'matrix': ax01,
+            # matrix
+            'matrix': {'handle': ax01, 'inverty': True},
+            'vertical': {'handle': ax02, 'type': 'misc'},
+            'horizontal': {'handle': ax00, 'type': 'misc'},
+            # cross-section
             'cross1': {'handle': ax10, 'type': 'cross'},
             'cross2': {'handle': ax12, 'type': 'cross'},
             'crosstot': {'handle': ax11, 'type': 'cross'},
-            'vertical': {'handle': ax02, 'type': 'misc'},
-            'horizontal': {'handle': ax00, 'type': 'misc'},
+            # text
+            'text0': {'handle': axt0, 'type': 'text'},
+            'text1': {'handle': axt1, 'type': 'text'},
         }
 
     dax = _generic_check._check_dax(dax=dax, main='matrix')
@@ -397,6 +428,7 @@ def plot_geometry_matrix(
 
     coll2, dgroup = coll.plot_as_array(
         key=key,
+        keyX=refs[1],
         dax=dax,
         ind=[indchan, indbf],
         cmap=cmap,
