@@ -111,6 +111,77 @@ def _add_tri_ntri2(plasma):
     )
 
 
+def _add_polar1(plasma):
+    """ Time-independent """
+
+    kR, kZ = plasma.dobj['bsplines']['m2-bs1']['cents']
+    R = plasma.ddata[kR]['data']
+    Z = plasma.ddata[kZ]['data']
+    RR = np.repeat(R[:, None], Z.size, axis=1)
+    ZZ = np.repeat(Z[None, :], R.size, axis=0)
+    rho = (RR - 2.5)**2/0.25 + (ZZ - 0)**2/0.8
+
+    plasma.add_data(
+        key='rho1',
+        data=rho,
+        ref='m2-bs1',
+        unit='',
+        dim='',
+        quant='rho',
+        name='rho',
+    )
+
+    plasma.add_mesh_polar(
+        key='m5',
+        radius=np.linspace(0, 1.2, 13),
+        angle=None,
+        radius2d='rho1',
+    )
+
+
+def _add_polar2(plasma):
+    """ Time-dependent """
+
+    kR, kZ = plasma.dobj['bsplines']['m2-bs1']['cents']
+    R = plasma.ddata[kR]['data']
+    Z = plasma.ddata[kZ]['data']
+    RR = np.repeat(R[:, None], Z.size, axis=1)
+    ZZ = np.repeat(Z[None, :], R.size, axis=0)
+    rho = (RR - 2.5)**2/0.25 + (ZZ - 0)**2/0.8
+
+    nt = 11
+    t = np.linspace(30, 40, nt)
+    rho = rho[None, ...] + 0.1*np.cos(t)[:, None, None]**2
+
+    plasma.add_ref(
+        key='nt',
+        size=nt,
+    )
+
+    plasma.add_data(
+        key='t',
+        data=t,
+        ref=('nt',)
+    )
+    plasma.add_data(
+        key='rho2',
+        data=rho,
+        ref=('nt', 'm2-bs1'),
+        unit='',
+        dim='',
+        quant='rho',
+        name='rho',
+    )
+
+    plasma.add_mesh_polar(
+        key='m6',
+        radius=np.linspace(0, 1.2, 13),
+        angle=None,
+        radius2d='rho2',
+    )
+
+
+
 def _add_bsplines(plasma):
     for k0, v0 in plasma.dobj['mesh'].items():
         if v0['type'] == 'tri':
@@ -215,6 +286,10 @@ class Test02_Plasma2D():
 
         # add bsplines
         _add_bsplines(plasma)
+
+        # add polar mesh
+        _add_polar1(plasma)
+        _add_polar2(plasma)
 
         # store
         self.obj = plasma
