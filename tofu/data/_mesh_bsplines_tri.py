@@ -243,6 +243,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                 cents_per_bs = ind_num[:, None]
             if return_knots:
                 knots_per_bs = self.cents[ind, :]
+
         elif self.deg == 1:
             if return_cents or return_knots:
                 cents_per_bs = self.cents_per_knots[ind, :]
@@ -264,6 +265,8 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         # return
 
         if returnas == 'data':
+
+            # cents
             if return_cents:
                 nmax = np.sum(cents_per_bs >= 0, axis=1)
                 cents_per_bs_temp = np.full((2, nbs, nmax.max()), np.nan)
@@ -278,6 +281,8 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                         axis=1,
                     )
                 cents_per_bs = cents_per_bs_temp
+
+            # knots
             if return_knots:
                 nmax = np.sum(knots_per_bs >= 0, axis=1)
                 knots_per_bs_temp = np.full((2, nbs, nmax.max()), np.nan)
@@ -287,12 +292,47 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                     knots_per_bs_temp[1, ii, :nmax[ii]] = self.knotsZ[ind_temp]
                 knots_per_bs = knots_per_bs_temp
 
+        # return
         if return_cents and return_knots:
             return knots_per_bs, cents_per_bs
         elif return_cents:
             return cents_per_bs
         elif return_knots:
             return knots_per_bs
+
+    def _get_bs_cents(
+        self,
+        ind=None,
+    ):
+        """ Return (2, nbs) array of cordinates of centers per bspline
+
+        """
+
+        # ------------
+        # check inputs
+
+        if ind is None:
+            ind = np.ones((self.nbs,), dtype=bool)
+
+        # ------------
+        # added for details
+
+        if self.deg == 0:
+            bs_cents = np.array([
+                np.mean(self.knotsR[self.cents[ind, :]], axis=1),
+                np.mean(self.knotsZ[self.cents[ind, :]], axis=1),
+            ])
+
+        elif self.deg == 1:
+            bs_cents = np.array([
+                self.knotsR[ind],
+                self.knotsZ[ind],
+            ])
+
+        elif self.deg == 2:
+            raise NotImplementedError()
+
+        return bs_cents
 
     # DEPRECATED ?
     def set_coefs(
