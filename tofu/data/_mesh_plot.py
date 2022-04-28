@@ -13,7 +13,7 @@ import matplotlib.colors as mcolors
 
 # specific
 from . import _generic_check
-
+from . import _mesh_comp
 
 # #############################################################################
 # #############################################################################
@@ -229,52 +229,69 @@ def _plot_mesh_prepare(
         grid[0, lseg == -1] = np.nan
 
     else:
-        # create rectangular grid and compute radius at each point
-        if True:
-            k2d = coll.dobj[coll._which_key][key]['radius2d']
-            kb2 = coll.ddata[k2d]['bsplines']
-            km2 = coll.dobj['bsplines'][kb2]['mesh']
-            RR, ZZ = coll.get_sample_mesh(
-                key=km2,
-                res=None,
-                grid=True,
-                mode=None,
-                R=None,
-                Z=None,
-                DR=None,
-                DZ=None,
-                imshow=True,
-            )
-            import pdb; pdb.set_trace()     # DB
-            rr = coll.interpolate_profile2d(key=k2d, R=RR, Z=ZZ, grid=False)
-        else:
-            rr = coll.dobj[coll._which_key][key]['radius2d'](RR, ZZ)
-
-        # compute contours at rknots
-        # see https://github.com/matplotlib/matplotlib/blob/main/src/_contour.h
-        cont_raw = mcontour.QuadContourGenerator(
-            RR, ZZ, rr,
-            None,       # mask
-            True,       # how to mask
-            0,          # divide in sub-domains (0=not)
-        )
         import pdb; pdb.set_trace()     # DB
-
-        cont_raw.create_contour(0.5)
-        if isinstance(cont_raw, tuple):
-            cont_raw = cont_raw[0]
-        assert all([pp.ndim == 2 and pp.shape[1] == 2 for pp in cont_raw])
-
-        cont = PatchCollection(
-            [plt.Polygon(pp) for pp in cont_raw],
-            color='k',
-            alpha=0.4,
-        )
 
         # concatenate contours
         grid = None
 
     return grid, grid_bck
+
+
+def _plot_mesh_prepare_polar(
+    coll=None,
+    key=None,
+):
+
+    # --------
+    # prepare
+
+    # create rectangular grid and compute radius at each point
+    k2d = coll.dobj[coll._which_mesh][key]['radius2d']
+
+    if callable(k2d):
+        rr = coll.dobj[coll._which_key][key]['radius2d'](RR, ZZ)
+        assert rr.ndim == RR.ndim
+        rr = rr[None, ...]
+        reft = None
+        nt = 1
+
+    else:
+        kn = coll.dobj[coll._which_mesh][key]['knots'][0]
+        rad = coll.ddata[kn]['data']
+        kb2 = coll.ddata[k2d]['bsplines']
+        km2 = coll.dobj['bsplines'][kb2]['mesh']
+        RR, ZZ = coll.get_sample_mesh(
+            key=km2,
+            res=None,
+            grid=True,
+            mode=None,
+            R=None,
+            Z=None,
+            DR=None,
+            DZ=None,
+            imshow=True,
+        )
+        rr = coll.interpolate_profile2d(key=k2d, R=RR, Z=ZZ, grid=False)
+
+        refr2d = coll.ddata[k2d]['ref']
+        refbs = coll.dobj['bsplines'][kb2]['ref']
+        if refr2d == refbs:
+            reft = None
+            nt = 1
+        elif len(refr2d) == len(refbs) + 1 and refr2d[1:] == refbs:
+            reft = refr2d[0]
+            nt = coll.dref[reft]['size']
+
+    assert rr.shape[0] == nt
+
+    contR, contZ = _mesh_comp._get_contours(
+        RR=RR,
+        ZZ=ZZ,
+        val=rr,
+        levels=rad,
+    )
+
+    return contR, contZ, reft, nt
 
 
 def plot_mesh(
@@ -284,6 +301,7 @@ def plot_mesh(
     ind_cent=None,
     crop=None,
     bck=None,
+    nmax=None,
     color=None,
     dax=None,
     dmargin=None,
@@ -335,10 +353,7 @@ def plot_mesh(
         return _plot_mesh_polar(
             coll=coll,
             key=key,
-            ind_knot=ind_knot,
-            ind_cent=ind_cent,
-            crop=crop,
-            bck=bck,
+            nmax=nmax,
             color=color,
             dax=dax,
             fs=fs,
@@ -397,7 +412,7 @@ def _plot_mesh_recttri(
     # plot
 
     kax = 'cross'
-    for dax.get(kax) is not None:
+    if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
         if grid_bck is not None and bck is True:
@@ -471,10 +486,7 @@ def _plot_mesh_recttri(
 def _plot_mesh_polar(
     coll=None,
     key=None,
-    ind_knot=None,
-    ind_cent=None,
-    crop=None,
-    bck=None,
+    nmax=None,
     color=None,
     dax=None,
     fs=None,
@@ -485,14 +497,196 @@ def _plot_mesh_polar(
     # --------------
     #  Prepare data
 
-    grid, grid_bck = _plot_mesh_prepare(
+    if nmax is None:
+        nmax = 2
+
+    contR, contZ, reft, nt = _plot_mesh_prepare_polar(
         coll=coll,
         key=key,
-        crop=crop,
-        bck=bck,
     )
 
-    return dax
+    # --------------------
+    # Instanciate Plasma2D
+
+    from ._mesh import Plasma2D
+    coll2 = Plasma2D()
+    coll2.add_ref(
+        key=reft,
+        size=nt,
+    )
+    reft = list(coll2.dref.keys())[0]
+    coll2.add_ref(
+        key=refrad,
+        size=nr,
+    )
+    coll2.add_ref(
+        key=refpts,
+        size=npts,
+    )
+
+    coll2.add_data(
+        key='contR',
+        data=contR,
+        ref=(reft, refrad, refpts)
+    )
+    coll2.add_data(
+        key='contZ',
+        data=contZ,
+        ref=(reft, refrad, refpts)
+    )
+
+
+    # TBF
+    return coll2.plot_as_mobile_lines(
+        key_time='t',
+        key_chan='rho',
+    )
+
+    # --------------
+    # plot - prepare
+
+    if dax is None:
+
+        if dmargin is None:
+            dmargin = {
+                'left': 0.1, 'right': 0.9,
+                'bottom': 0.1, 'top': 0.9,
+                'hspace': 0.1, 'wspace': 0.1,
+            }
+
+        # figure
+        fig = plt.figure(figsize=fs)
+        gs = gridspec.GridSpec(ncols=2, nrows=1, **dmargin)
+
+        # ax0 => cross-section
+        ax0 = fig.add_subplot(gs[0, 1], aspect='equal')
+        ax0.set_xlabel(f'R (m)')
+        ax0.set_ylabel(f'Z (m)')
+
+        # ax1 => time trace
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax1.set_xlabel(f't (s)')
+        ax1.set_ylabel(f'surface (m2)')
+
+        dax = {'cross': ax0, 'trace': ax1}
+
+    dax = _generic_check._check_dax(dax=dax, main='cross')
+
+    # ----------------
+    # plot fixed parts
+
+    kax = 'trace'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        ax.plot(
+            range(nt),
+            range(nt),
+            color='k',
+            ls='-',
+            lw=1.,
+        )
+
+    # ----------------
+    # define and set dgroup
+
+    dgroup = {
+        'time': {
+            'ref': [reft],
+            'data': ['index'],
+            'nmax': nmax,
+        },
+    }
+
+    # ----------------
+    # plot mobile parts
+
+    kax = 'trace'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        for ii in range(nmax):
+            l0 = ax.axvline(
+                0,
+                c='k',
+                ls='-',
+                lw=1.,
+            )
+
+            k0 = f'vl-{ii}'
+            coll2.add_mobile(
+                key=k0,
+                handle=l0,
+                ref=reft,
+                data=reft,
+                dtype='xdata',
+                axes=kax,
+                ind=ii,
+            )
+
+        dax[kax].update(refx=[reft], datax=[reft])
+
+    kax = 'cross'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        for ii in range(nmax):
+            l0, = ax.plot(
+                contR[0],
+                contZ[0],
+                c='k',
+                ls='-',
+                lw=1.,
+            )
+
+            k0 = f'cont-{ii}'
+            coll2.add_mobile(
+                key=k0,
+                handle=l0,
+                ref=(reft, reft),
+                data=('contR', 'contZ'),
+                dtype=('xdata', 'ydata'),
+                axes=kax,
+                ind=ii,
+            )
+
+    # ---------
+    # add text
+
+    kax = 'text'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        _plot_text.plot_text(
+            coll=coll2,
+            kax=kax,
+            ax=ax,
+            ref=reft,
+            group='time',
+            ind=0,
+            lkeys=lkeys,
+            nmax=nmax,
+            color_dict=color_dict,
+            bstr_dict=bstr_dict,
+        )
+
+    # --------------
+    # dleg
+
+    if dleg is not False:
+        for kax in dax.keys():
+            dax[kax]['handle'].legend(**dleg)
+
+    # connect
+    if connect is True:
+        coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+        coll2.disconnect_old()
+        coll2.connect()
+
+        coll2.show_commands()
+        return coll2
+    else:
+        return coll2, dgroup
 
 
 # #############################################################################

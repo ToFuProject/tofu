@@ -549,10 +549,11 @@ def _mesh2D_polar_check(
     dmesh = {
         key: {
             'type': 'polar',
-            'knots': (krk,),
-            'cents': (krc,),
+            'knots': (kkr,),
+            'cents': (kcr,),
             'shape-c': rcent.shape,
             'shape-k': rknot.shape,
+            'radius2d': radius2d,
         },
     }
 

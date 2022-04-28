@@ -7,6 +7,7 @@ import warnings
 # Common
 import numpy as np
 from matplotlib.path import Path
+import matplotlib._contour as mcontour
 
 
 # tofu
@@ -545,6 +546,10 @@ def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
         trifind=coll.dobj[coll._which_mesh][keym]['func_trifind'],
     )
     keybsr = f'{keybs}-nbs'
+    kbscr = f'{keybs}-R'
+    kbscz = f'{keybs}-Z'
+
+    bs_cents = clas._get_bs_cents()
 
     # ----------------
     # format into dict
@@ -556,7 +561,24 @@ def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
         },
     }
 
-    ddata = None
+    ddata = {
+        kbscr: {
+            'data': bs_cents[0, :],
+            'units': 'm',
+            'dim': 'distance',
+            'quant': 'R',
+            'name': 'R',
+            'ref': (keybsr,),
+        },
+        kbscz: {
+            'data': bs_cents[1, :],
+            'units': 'm',
+            'dim': 'distance',
+            'quant': 'Z',
+            'name': 'Z',
+            'ref': (keybsr,),
+        },
+    }
 
     dobj = {
         'bsplines': {
@@ -565,6 +587,7 @@ def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
                 'mesh': keym,
                 'ref': (keybsr,),
                 'ref-bs': (keybsr,),
+                'cents': (kbscr, kbscz),
                 'shape': (clas.nbs,),
                 'crop': False,
                 'func_details': func_details,
@@ -643,8 +666,8 @@ def _mesh2DRect_bsplines(coll=None, keym=None, keybs=None, deg=None):
             'data': Zbs_cent,
             'units': 'm',
             'dim': 'distance',
-            'quant': 'R',
-            'name': 'R',
+            'quant': 'Z',
+            'name': 'Z',
             'ref': kZbscr,
         },
     }
@@ -656,6 +679,7 @@ def _mesh2DRect_bsplines(coll=None, keym=None, keybs=None, deg=None):
                 'mesh': keym,
                 'ref': (kRbscr, kZbscr),
                 'ref-bs': (keybsr,),
+                'cents': (kRbsc, kZbsc),
                 'shape': shapebs,
                 'crop': False,
                 'func_details': func_details,
@@ -1785,3 +1809,118 @@ def get_bsplines_operator(
         ref = (keycropped, keycropped)
 
     return opmat, operator, geometry, dim, ref, crop, store, returnas, key
+
+
+# #################################################################
+# #################################################################
+#               Contour computation
+# #################################################################
+
+
+def _get_contours(
+    RR=None,
+    ZZ=None,
+    val=None,
+    levels=None,
+):
+    """ Return R, Z coordinates of contours (time-dependent)
+
+    RR = (nr, nz)
+    ZZ = (nr, nz)
+    val = (nt, nR, nZ)
+    levels = (nlevels,)
+
+    cR = (nt, nlevels, nmax) array of R coordinates
+    cZ = (nt, nlevels, nmax) array of Z coordinates
+
+    The contour coordinates are uniformzied to always have the same nb of pts
+
+    """
+
+    # -------------
+    # check inputs
+
+    # val.shape = (nt, nR, nZ)
+    lc = [
+        val.shape == RR.shape,
+        val.ndim == RR.ndim + 1 and val.shape[1:] == RR.shape,
+    ]
+    if lc[0]:
+        val = val[None, ...]
+    elif lc[1]:
+        pass
+    else:
+        msg = "Incompatible val.shape!"
+        raise Exception(msg)
+
+    nt, nR, nZ = val.shape
+
+    # ------------------------
+    # Compute list of contours
+
+    # compute contours at rknots
+    # see https://github.com/matplotlib/matplotlib/blob/main/src/_contour.h
+
+    contR = [[] for ii in range(nt)]
+    contZ = [[] for ii in range(nt)]
+    for ii in range(nt):
+
+        # define map
+        cont_raw = mcontour.QuadContourGenerator(
+            RR, ZZ, val[ii, ...],
+            None,       # mask
+            True,       # how to mask
+            0,          # divide in sub-domains (0=not)
+        )
+
+        for jj in range(len(levels)):
+
+            # compute concatenated contour
+            no_cont = False
+            cj = cont_raw.create_contour(levels[jj])
+            if isinstance(cj, (tuple, list)):
+                cj = [
+                    cc[np.all(~np.isnan(cc), axis=1), :]
+                    for cc in cj
+                    if np.sum(np.all(~np.isnan(cc), axis=1)) >= 3
+                ]
+                if len(cj) == 0:
+                    no_cont = True
+                elif len(cj) == 1:
+                    cj = cj[0]
+                elif len(cj) > 1:
+                    ij = np.cumsum([cc.shape[0] for cc in cj])
+                    cj = np.concatenate(cj, axis=0)
+                    cj = np.insert(cj, ij, np.nan, axis=0)
+
+                elif np.sum(np.all(~np.isnan(cc), axis=1)) < 3:
+                    no_cont = True
+
+            if no_cont is True:
+                cj = np.full((3, 2), np.nan)
+
+            contR[ii].append(cj[:, 0])
+            contZ[ii].append(cj[:, 1])
+
+    # ------------------------------------------------
+    # Interpolate / concatenate to uniformize as array
+
+    ln = [[pp.size for pp in cc] for cc in contR]
+    nmax = np.max(ln)
+    cR = np.full((nt, len(levels), nmax), np.nan)
+    cZ = np.full((nt, len(levels), nmax), np.nan)
+
+    for ii in range(nt):
+        for jj in range(len(levels)):
+            cR[ii, jj, :] = np.interp(
+                np.linspace(0, ln[ii][jj], nmax),
+                np.arange(0, ln[ii][jj]),
+                contR[ii][jj],
+            )
+            cZ[ii, jj, :] = np.interp(
+                np.linspace(0, ln[ii][jj], nmax),
+                np.arange(0, ln[ii][jj]),
+                contZ[ii][jj],
+            )
+
+    return cR, cZ
