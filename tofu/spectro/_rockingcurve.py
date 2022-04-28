@@ -119,7 +119,7 @@ def compute_rockingcurve(
     if use_non_parallelism is None:
         use_non_parallelism = False
     if alpha_limits is None:
-        alpha_limits = np.r_[-np.pi/180, np.pi/180]
+        alpha_limits = np.r_[-(5/60)*np.pi/180, (5/60)*np.pi/180]
     if na is None:
         na = 51
     nn = (na/2.)
@@ -312,11 +312,11 @@ def compute_rockingcurve(
 
     if use_non_parallelism is False and therm_exp is False:
         (
-            alpha, bb, polar, g, y, power_ratio, max_pr, th,
+            alpha, bb, polar, g, y, power_ratio, max_pr, th, dth,
             rhg, P_per, P_mos, P_dyn, det_perp, det_para,
         ) = CrystBragg_comp_integrated_reflect(
             lamb=lamb, re=re, Volume=Volume, Zo=Zo, theta=theta, mu=mu,
-            F_re=F_re, psi_re=psi_re, _max_prpsi0_dre=psi0_dre, psi0_im=psi0_im,
+            F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
             Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
             model=['perfect', 'mosaic', 'dynamical'],
             use_non_parallelism=use_non_parallelism, alpha=alpha, bb=bb,
@@ -330,7 +330,6 @@ def compute_rockingcurve(
             P_per, P_mos, P_dyn,
             det_perp, det_para, det_perp_norm, det_para_norm,
             shift_perp, shift_para,
-            shift_thmaxpr_perp, shift_thmaxpr_para,
         ) = CrystBragg_comp_integrated_reflect(
             lamb=lamb, re=re, Volume=Volume, Zo=Zo, theta=theta, mu=mu,
             F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
@@ -357,7 +356,7 @@ def compute_rockingcurve(
             ih=ih, ik=ik, il=il, lamb=lamb,
             alpha_limits=alpha_limits,
             theta=theta, theta_deg=theta_deg,
-            th=th, power_ratio=power_ratio, y=y,
+            th=th, dth=dth, power_ratio=power_ratio,
             bb=bb, polar=polar, alpha=alpha,
             use_non_parallelism=use_non_parallelism, na=na, nn=nn,
             therm_exp=therm_exp, T0=T0, TD=TD,
@@ -391,8 +390,6 @@ def compute_rockingcurve(
             rhg_perp=rhg_perp, rhg_para=rhg_para,
             max_pr=max_pr, det_perp=det_perp, det_para=det_para,
             shift_perp=shift_perp, shift_para=shift_para,
-            shift_thmaxpr_perp=shift_thmaxpr_perp,
-            shift_thmaxpr_para=shift_thmaxpr_para,
         )
 
     # Print results
@@ -460,12 +457,13 @@ def compute_rockingcurve(
         )
         dout['RC width (perp. compo)\n'] = np.round(det_perp, decimals=8)
         dout['RC width (para. compo)\n'] = np.round(det_para, decimals=8)
-        dout['Shift from RC of reference (perp. compo)\n'] = np.round(
-            shift_perp, decimals=8,
-        )
-        dout['Shift from RC of reference (para. compo)\n'] = np.round(
-            shift_para, decimals=8,
-        )
+        if use_non_parallelism:
+            dout['Shift from RC of reference (perp. compo)\n'] = np.round(
+                shift_perp, decimals=8,
+            )
+            dout['Shift from RC of reference (para. compo)\n'] = np.round(
+                shift_para, decimals=8,
+            )
         lstr = [f'\t -{k0}: {V0}' for k0, V0 in dout.items()]
         msg = (
             " The following data was calculated:\n"
@@ -486,7 +484,7 @@ def compute_rockingcurve(
 
 
 def plot_var_temp_changes_wavelengths(
-    ih=None, ik=None, il=None, la_max_prmbdas=None,
+    ih=None, ik=None, il=None, lambdas=None,
     use_non_parallelism=None, na=None,
     alpha_limits=None,
     therm_exp=None, plot_therm_exp=None,
@@ -565,7 +563,7 @@ def plot_var_temp_changes_wavelengths(
             plot_asymmetry=False, plot_cmaps=False,
             verb=False, returnas=dict,
         )
-        din[lambdas[aa]]['Wavelength (A)'] = do, dth_max_pr,ut['Wavelength (A)\n']
+        din[lambdas[aa]]['Wavelength (A)'] = dout['Wavelength (A)\n']
         din[lambdas[aa]]['Inter-reticular distance (A)'] = (
             dout['Inter-reticular distance (A)\n']
         )
@@ -631,10 +629,10 @@ def plot_var_temp_changes_wavelengths(
     )
     ax.set_title(
         'Computed - theoretical spacing variations \n' +
-        fr'd$_{(ih,ik,il)}$ ~ 1e-5'  # d$_{({ih},{ik},{il})}$
+        fr'd$_{(ih,ik,il)}$ ~ 1e-5'
     )
     ax.set_xlabel(r'$\Delta$T ($T_{0}$=25°C)')
-    ax.set_ylabel(r'$\Delta$[$\Delta$d$_{(hkl)}$/d$_{(hkl)}$]', fs=15)
+    ax.set_ylabel(r'$\Delta$[$\Delta$d$_{(hkl)}$/d$_{(hkl)}$]')
     ax1.set_xlabel(r'$\Delta$T ($T_{0}$=25°C)')
 
     markers = ['o', '^', 'D', 's', 'X']
@@ -864,7 +862,7 @@ def CrystBragg_check_alpha_angle(
                 else:
                     alpha = np.linspace(
                         alpha_limits[0], alpha_limits[1], na
-                    ).reshape(51)
+                    ).reshape(na)
                     bb[i, ...] = np.sin(alpha + theta[i])/np.sin(
                         alpha - theta[i]
                     )
@@ -1027,8 +1025,8 @@ def CrystBragg_comp_integrated_reflect(
     polar = np.concatenate((ppval, npval), axis=0).reshape(2, theta.size)
 
     # Variables of simplification y, dy, g, L
-    g = np.full((2, theta.size, alpha.size), np.nan)
-    for h in range(2):
+    g = np.full((polar.ndim, theta.size, alpha.size), np.nan)
+    for h in range(polar.ndim):
         for i in range(theta.size):
             for j in range(alpha.size):
                 g[h, i, j] = (((1. - bb[i, j])/2.)*psi0_im[i])/(
@@ -1037,20 +1035,19 @@ def CrystBragg_comp_integrated_reflect(
     y = np.linspace(-10., 10., 201)
     dy = np.zeros(201) + 0.1
 
-    al = np.full((2, theta.size, alpha.size, y.size), 0.)
+    al = np.full((polar.ndim, theta.size, alpha.size, y.size), 0.)
     power_ratio = np.full((al.shape), np.nan)
-    max_pr = np.full((2, theta.size, alpha.size), np.nan)
-    ind_max_pr = max_pr.copy()
     power_ratiob = np.full((theta.size, alpha.size, y.size), np.nan)
+    max_pr = np.full((polar.ndim, theta.size, alpha.size), np.nan)
+    ind_max_pr = max_pr.copy()
+    th_max_pr = max_pr.copy()
     rhy = np.full((theta.size, alpha.size), np.nan)
     th = np.full((al.shape), np.nan)
     dth = th.copy()
-    th_max_pr = max_pr.copy()
-    dth_max_pr = max_pr.copy()
-    conv_ygscale = np.full((2, theta.size, alpha.size), np.nan)
-    rhg = np.full((2, theta.size, alpha.size), np.nan)
+    conv_ygscale = np.full((polar.ndim, theta.size, alpha.size), np.nan)
+    rhg = np.full((polar.ndim, theta.size, alpha.size), np.nan)
 
-    for h in range(2):
+    for h in range(polar.ndim):
         for i in range(theta.size):
             for j in range(alpha.size):
                 al[h, i, j, ...] = (y**2 + g[h, i, j]**2 + np.sqrt(
@@ -1058,7 +1055,7 @@ def CrystBragg_comp_integrated_reflect(
                         g[h, i, j]*y - rek[i]
                     )**2
                 ))/np.sqrt(((kk[i])**2 - 1.)**2 + 4.*(rek[i]**2))
-                # Reflecting power or power ratio R_dyn
+                # Reflecting power
                 power_ratio[h, i, j, ...] = (Fmod[i]/Fbmod[i])*(
                     al[h, i, j, :] - np.sqrt((al[h, i, j, :]**2) - 1.)
                 )
@@ -1071,17 +1068,18 @@ def CrystBragg_comp_integrated_reflect(
                 power_ratiob[i, j, :] = power_ratio[h, i, j, ...]
                 rhy[i, j] = np.sum(dy*power_ratiob[i, j, :])
                 # Conversion formula from y-scale to glancing angle scale
-                # and its corresponding value to max_pr
                 th[h, i, j, ...] = (
                     -y*polar[h][i]*psi_re[i]*np.sqrt(abs(bb[i, j]))
                     + psi0_dre[i]*((1. - bb[i, j])/2.)
                 )/(bb[i, j]*np.sin(2.*theta[i]))
+                # Find the glancing angle coordinate of the power ratio maximum
                 ind = int(ind_max_pr[h, i, j])
                 th_max_pr[h, i, j] = th[h, i, j, int(ind_max_pr[h, i, j])]
-                # conversion of (theta-thetaBragg(TD=!0)) to
-                # (theta-thetaBragg(TD=!0))+thetaBragg(TD=alpha=0)
+                # conversion of (theta-thetaBragg(TD=!0)) scale to
+                # theta scale by adding the value of Theta_B at
+                # alpha=TD=0 in both case
+                #import pdb; pdb.set_trace()  # DB
                 dth[h, i, j, ...] = th[h, i, j, :] + theta[i]
-                dth_max_pr[h, i, j] = dth[h, i, j, int(ind_max_pr[h, i, j])]
                 # Integrated reflecting power in the glancing angle scale
                 # r(i=0): normal component & r(i=1): parallel component
                 conv_ygscale[h, i, ...] = (polar[h][i]*psi_re[i])/(
@@ -1105,11 +1103,11 @@ def CrystBragg_comp_integrated_reflect(
 
     P_dyn = np.full((theta.size, alpha.size), np.nan)
     (
-        rhg_perp, rhg_para, pat_cent_perp, pat_cent_para, det_perp, det_para,
-        shift_perp, shift_para, shift_thmaxpr_perp, shift_thmaxpr_para,
+        rhg_perp, rhg_para, pat_cent_perp, pat_cent_para,
+        det_perp, det_para, shift_perp, shift_para,
     ) = (
         P_dyn.copy(), P_dyn.copy(), P_dyn.copy(), P_dyn.copy(), P_dyn.copy(),
-        P_dyn.copy(), P_dyn.copy(), P_dyn.copy(), P_dyn.copy(), P_dyn.copy(),
+        P_dyn.copy(), P_dyn.copy(), P_dyn.copy(),
     )
 
     for i in range(theta.size):
@@ -1128,18 +1126,18 @@ def CrystBragg_comp_integrated_reflect(
                     )
                 )
                 raise Exception(msg)
-            ## Coordinates of full width at mid high FWHM
-            hmx_perp = half_max_x(th[0, i, j, :], power_ratio[0, i, j, :])
-            hmx_para = half_max_x(th[1, i, j, :], power_ratio[1, i, j, :])
+            ## Coordinates of full width at mid high sides of FWHM
+            hmx_perp = half_max_x(dth[0, i, j, :], power_ratio[0, i, j, :])
+            hmx_para = half_max_x(dth[1, i, j, :], power_ratio[1, i, j, :])
             ## Center of FWMH
-            pat_cent_perp[i, j] = (hmx_perp[1] + hmx_perp[0])/2. + theta[i]
-            pat_cent_para[i, j] = (hmx_para[1] + hmx_para[0])/2. + theta[i]
-            ## Length of FWMH
+            pat_cent_perp[i, j] = (hmx_perp[1] + hmx_perp[0])/2.
+            pat_cent_para[i, j] = (hmx_para[1] + hmx_para[0])/2.
+            ## Width of FWMH
             det_perp[i, j] = hmx_perp[1] - hmx_perp[0]
             det_para[i, j] = hmx_para[1] - hmx_para[0]
 
     # Normalization for DeltaT=0 & alpha=0 and
-    # Computation of the shift in glancing angle corresponding to
+    # computation of the shift in glancing angle corresponding to
     # the maximum value of each power ratio computed (each rocking curve)
     lc = [use_non_parallelism is True, therm_exp is True]
     if any(lc) or all(lc):
@@ -1153,7 +1151,7 @@ def CrystBragg_comp_integrated_reflect(
                 det_para_norm = det_para[i]/det_para[i, nn]
                 rhg_perp_norm = rhg_perp[i]/rhg_perp[i, nn]
                 rhg_para_norm = rhg_para[i]/rhg_para[i, nn]
-                ## Shift between each RC's max/pattern center
+                ## Shift between each RC's max value or pattern center
                 if therm_exp:
                     shift_perp[i, j] = (
                         pat_cent_perp[nn, nn] - pat_cent_perp[i, j]
@@ -1161,14 +1159,6 @@ def CrystBragg_comp_integrated_reflect(
                     shift_para[i, j] = (
                         pat_cent_para[nn, nn] - pat_cent_para[i, j]
                     )
-                    """
-                    shift_thmaxpr_perp[i, j] = (
-                        dth_max_pr[0, nn, nn] - dth_max_pr[0, i, j]
-                    )
-                    shift_thmaxpr_para[i, j] = (
-                        dth_max_pr[1, nn, nn] - dth_max_pr[1, i, j]
-                    )
-                    """
                 else:
                     shift_perp[i, j] = (
                         pat_cent_perp[i, nn] - pat_cent_perp[i, j]
@@ -1176,19 +1166,11 @@ def CrystBragg_comp_integrated_reflect(
                     shift_para[i, j] = (
                         pat_cent_para[i, nn] - pat_cent_para[i, j]
                     )
-                    """
-                    shift_thmaxpr_perp[i, j] = (
-                        dth_max_pr[0, i, nn] - dth_max_pr[0, i, j]
-                    )
-                    shift_thmaxpr_para[i, j] = (
-                        dth_max_pr[1, i, nn] - dth_max_pr[1, i, j]
-                    )
-                    """
 
     if use_non_parallelism is False and therm_exp is False:
         return (
             alpha, bb, polar, g, y,
-            power_ratio, max_pr, th,
+            power_ratio, max_pr, th, dth,
             rhg, P_per, P_mos, P_dyn,
             det_perp, det_para,
         )
@@ -1200,7 +1182,6 @@ def CrystBragg_comp_integrated_reflect(
             P_per, P_mos, P_dyn,
             det_perp, det_para, det_perp_norm, det_para_norm,
             shift_perp, shift_para,
-            shift_thmaxpr_perp, shift_thmaxpr_para,
         )
 
 
@@ -1221,15 +1202,17 @@ def CrystalBragg_plot_thermal_expansion_vs_d(
     ax = fig.add_subplot(gs[0, 0])
     ax.set_title(
         'Hexagonal Qz, ' + f'({ih},{ik},{il})' + fr', $\lambda$={lamb} $\AA$' +
-        r', $\theta_{B}$=' + fr'{np.round(theta_deg[nn], 3)} deg'
+        r', $\theta_{B}$=' + fr'{np.round(theta[nn], 5)} rad',
+        fontsize=15,
     )
-    ax.set_xlabel(r'$\Delta$T ($T_{0}$=25°C)')
-    ax.set_ylabel(r'Inter-planar distance d [m$\AA$]')
+    ax.set_xlabel(r'$\Delta$T ($T_{0}$=25°C)', fontsize=15)
+    ax.set_ylabel(r'Inter-planar distance $d_{hkl}$ [m$\AA$]', fontsize=15)
     ax.scatter(
-        TD[nn:], d_atom[nn:]*(1e3),
+        TD, d_atom*(1e3),
         marker='o', c='k', alpha=0.5,
         label=r'd$_{(hkl)}$ computed points',
     )
+    """
     ax2 = ax.twinx()
     ax2.set_ylabel(
         r'Shift $\theta-\theta_{B}$ from Bragg angle of reference [arcsec]'
@@ -1240,28 +1223,30 @@ def CrystalBragg_plot_thermal_expansion_vs_d(
         marker='s', c='k', alpha=0.5,
         label=r'$\theta_{B}$ computed points',
     )
-    p = np.polyfit(TD[nn:], d_atom[nn:]*(1e3), 1)
-    p2 = np.polyfit(TD[nn:], db, 1)
-    y_adj = p[0]*TD[nn:] + p[1]
-    y2_adj = p2[0]*TD[nn:] + p2[1]
+    """
+    p = np.polyfit(TD, d_atom*(1e3), 1)
+    #p2 = np.polyfit(TD[nn:], db, 1)
+    y_adj = p[0]*TD + p[1]
+    #y2_adj = p2[0]*TD[nn:] + p2[1]
     ax.plot(
-        TD[nn:], y_adj,
+        TD, y_adj,
         'k-',
-        label=r'd = ' + str(np.round(p[1], 3)) +
-            r' x (1 + $\alpha_{eff}$.$\Delta$T)' + '\n' +
-            r'$\alpha_{eff}$ = ' +
+        label=r'$d_{hkl}$ = ' + str(np.round(p[1], 3)) +
+            r' x (1 + $\gamma_{eff}$.$\Delta$T)' + '\n' +
+            r'$\gamma_{eff}$ = ' +
             str(np.round(p[0]/p[1], decimals=9)) +
             r'°C$^{-1}$',
         )
+    """
     ax2.plot(
         TD[nn:], y2_adj,
         'k--',
         label=r'$\theta_{B}$ = ' + str(np.round(p2[0], 3)) + r' x $\Delta$T ' +
             str(np.round(p2[1], decimals=3))
         )
-
-    ax.legend(loc="center left")
-    ax2.legend(loc="center right")
+    """
+    ax.legend(loc="upper left", fontsize=12)
+    #ax2.legend(loc="center right")
 
 
 def CrystalBragg_plot_atomic_scattering_factor(
@@ -1295,14 +1280,51 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
     ih=None, ik=None, il=None, lamb=None,
     alpha_limits=None,
     theta=None, theta_deg=None,
-    th=None, power_ratio=None, y=None, y0=None,
+    th=None, dth=None, power_ratio=None,
     bb=None, polar=None, alpha=None,
     use_non_parallelism=None, na=None, nn=None,
     therm_exp=None, T0=None, TD=None,
 ):
+    """ All plots of rocking curve is done, not with respect to the glancing
+    angle (theta - thetaBragg) where thetaBragg may vary if the temperature
+    is also varying, but according to the angle theta.
+    The conversion is made by adding to the glancing angle range the value of
+    the Bragg angle of reference when no asymmetry or thermal expansion is
+    applied.
+    """
 
-    # Plot
-    # ----
+    # Prepare
+    # -------
+
+    if use_non_parallelism:
+        alpha_deg = alpha*(180/np.pi)
+        nalpha = alpha_deg.size
+        if (nalpha % 2) == 0:
+            nalpha = int(nalpha - 1)
+        else:
+            nalpha = int(nalpha - 0.5)
+        dd = np.r_[0, int(nalpha/2), nalpha]
+        let = {'I': dd[0], 'II': dd[1], 'III': dd[2]}
+        col = {'blue': dd[0], 'black': dd[1], 'red': dd[2]}
+    else:
+        alpha_deg = np.r_[alpha]*(180/np.pi)
+        dd = np.r_[0]
+        let = {'I': dd[0]}
+        col = {'black': dd[0]}
+
+    if therm_exp:
+        ntemp = theta.size
+        if (ntemp % 2) == 0:
+            ntemp = int(ntemp - 1)
+        else:
+            ntemp = int(ntemp - 0.5)
+        dd2 = np.r_[0, int(ntemp/2), ntemp]
+        let2 = {'I': dd2[0], 'II': dd2[1], 'III': dd2[2]}
+        col2 = {'blue': dd2[0], 'black': dd2[1], 'red': dd2[2]}
+    else:
+        dd2 = np.r_[0]
+        let2 = {'I': dd2[0]}
+        col2 = {'black': dd2[0]}
 
     lc = [
         use_non_parallelism is False and therm_exp is False,
@@ -1315,13 +1337,12 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         ax = fig1.add_subplot(gs[0, 0])
         ax.set_title(
             'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
-            fr', $\lambda$={lamb} $\AA$'# +
-            #fr', Bragg angle={np.round(theta_deg[nn], decimals=3)}$\deg$'
+            fr', $\lambda$={lamb} $\AA$', fontsize=15,
         )
-        ax.set_xlabel(r'$\theta$-$\theta_{B}$ (rad)')
-        ax.set_ylabel('Power ratio P$_H$/P$_0$')
+        ax.set_xlabel(r'$\theta$ (rad)', fontsize=15)
+        ax.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
     if use_non_parallelism and therm_exp:
-        fig1 = plt.figure(figsize=(20, 18))
+        fig1 = plt.figure(figsize=(22, 20))
         gs = gridspec.GridSpec(3, 3)
         ## 3 rows -> temperature changes -T0 < 0 < +T0
         ## 3 columns -> asymmetry angles -bragg < 0 < +bragg
@@ -1334,48 +1355,46 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         ax21 = fig1.add_subplot(gs[2, 1])
         ax20 = fig1.add_subplot(gs[2, 0])
         ax22 = fig1.add_subplot(gs[2, 2])
-        ax01.set_title(
+        #ax01.set_title(
+        fig1.suptitle(
             'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
             fr', $\lambda$={lamb} $\AA$' +
-            r', $\theta_{B}$=' + fr'{np.round(theta_deg[nn], 3)} deg'+
-            r', $\Delta$T = (-25, 0, +25) °C'+
-            r', $\alpha$ = ({}, 0, {}) deg'.format(
-                np.round(alpha_limits[0]*180/np.pi, 3),
-                np.round(alpha_limits[1]*180/np.pi, 3),
-            )
+            r', $\theta_{B}$=' + fr'{np.round(theta[nn], 5)} rad',
+            fontsize=15,
         )
-        ax20.set_xlabel(r'$\theta$-$\theta_{B}$ (x1e4 rad)')
-        ax21.set_xlabel(r'$\theta$-$\theta_{B}$ (x1e4 rad)')
-        ax22.set_xlabel(r'$\theta$-$\theta_{B}$ (x1e4 rad)')
-        ax00.set_ylabel('Power ratio P$_H$/P$_0$')
-        ax10.set_ylabel('Power ratio P$_H$/P$_0$')
-        ax20.set_ylabel('Power ratio P$_H$/P$_0$')
+        ax00.set_title(
+            r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[0]*60, 3)),
+            fontsize=15
+        )
+        ax01.set_title(
+            r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[nn]*60, 3)),
+            fontsize=15
+        )
+        ax02.set_title(
+            r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[na-1]*60, 3)),
+            fontsize=15
+        )
+        ax022 = ax02.twinx()
+        ax022.set_ylabel(
+            r'$\Delta T$=({})°C'.format(TD[0]), fontsize=15
+        )
+        ax122 = ax12.twinx()
+        ax122.set_ylabel(
+            r'$\Delta T$=({})°C'.format(TD[nn]), fontsize=15
+        )
+        ax222 = ax22.twinx()
+        ax222.set_ylabel(
+            r'$\Delta T$=({})°C'.format(TD[na-1]), fontsize=15
+        )
+        ax20.set_xlabel(r'$\theta$ (rad)', fontsize=15)
+        ax21.set_xlabel(r'$\theta$ (rad)', fontsize=15)
+        ax22.set_xlabel(r'$\theta$ (rad)', fontsize=15)
+        ax00.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
+        ax10.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
+        ax20.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
 
-    if use_non_parallelism:
-        alpha_deg = alpha*(180/np.pi)
-        nalpha = alpha_deg.size
-        if (nalpha % 2) == 0:
-            nalpha = int(nalpha - 1)
-        else:
-            nalpha = int(nalpha - 0.5)
-        dd = np.r_[0, int(nalpha/2), nalpha]
-        let = {'I': dd[0], 'II': dd[1], 'III': dd[2]}
-    else:
-        alpha_deg = np.r_[alpha]*(180/np.pi)
-        dd = np.r_[0]
-        let = {'I': dd[0]}
-
-    if therm_exp:
-        ntemp = theta.size
-        if (ntemp % 2) == 0:
-            ntemp = int(ntemp - 1)
-        else:
-            ntemp = int(ntemp - 0.5)
-        dd2 = np.r_[0, int(ntemp/2), ntemp]
-        let2 = {'I': dd2[0], 'II': dd2[1], 'III': dd2[2]}
-    else:
-        dd2 = np.r_[0]
-        let2 = {'I': dd2[0]}
+    # Plot
+    # ----
 
     lc = [use_non_parallelism is True, use_non_parallelism is False]
     if not therm_exp and any(lc):
@@ -1385,252 +1404,241 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                 ind = np.where(
                     power_ratio[0, 0, j, :] == np.amax(power_ratio[0, 0, j, :])
                 )
-                keylist = list(let.keys())
-                valuelist = list(let.values())
-                valuedd = valuelist.index(j)
-                keydd = keylist[valuedd]
+                let_keylist = list(let.keys())
+                let_valuelist = list(let.values())
+                let_valuedd = let_valuelist.index(j)
+                let_keydd = let_keylist[let_valuedd]
+                c_keylist = list(col.keys())
+                c_valuelist = list(col.values())
+                c_valuedd = c_valuelist.index(j)
+                c_keydd = c_keylist[c_valuedd]
                 ax.text(
-                    th[0, 0, j, ind],
+                    dth[0, 0, j, ind],
                     np.max(power_ratio[0, 0, j, :] + 0.005),
-                    '({})'.format(keydd),
+                    '({})'.format(let_keydd),
+                    c=c_keydd,
                 )
                 ax.plot(
-                    th[0, 0, j, :],
+                    dth[0, 0, j, :],
                     power_ratio[0, 0, j, :],
-                    'k-',
-                    label=r'normal, ({}): $\alpha$=({})deg'.format(
-                        keydd, np.round(alpha_deg[j], 3)
+                    '-',
+                    c=c_keydd,
+                    label=r'normal pola.,' + '\n' +
+                        r' ({}): $\alpha$=({}) arcmin'.format(
+                        let_keydd, np.round(alpha_deg[j]*60, 3)
                     ),
                 )
                 ax.plot(
-                    th[1, 0, j, :],
+                    dth[1, 0, j, :],
                     power_ratio[1, 0, j, :],
-                    'k:',
-                    label=r'parallel',
+                    '--',
+                    c=c_keydd,
+                    label=r'parallel pola.',
                 )
-        ax.legend()
+        ax.axvline(
+            theta, color='black', linestyle='-.',
+            label=r'$\theta_B$= {} rad'.format(
+                np.round(theta, 6)
+            ),
+        )
+        ax.legend(fontsize=12)
 
     if not use_non_parallelism and therm_exp is True:
+        colors = ['blue', 'black', 'red']
         for i in range(na):
             if any(i == dd2):
                 ind = np.where(
                     power_ratio[0, i, 0, :] == np.amax(power_ratio[0, i, 0, :])
                 )
-                keylist = list(let2.keys())
-                valuelist = list(let2.values())
-                valuedd = valuelist.index(i)
-                keydd = keylist[valuedd]
+                let_keylist = list(let2.keys())
+                let_valuelist = list(let2.values())
+                let_valuedd = let_valuelist.index(i)
+                let_keydd = let_keylist[let_valuedd]
+                c_keylist = list(col2.keys())
+                c_valuelist = list(col2.values())
+                c_valuedd = c_valuelist.index(i)
+                c_keydd = c_keylist[c_valuedd]
                 ax.text(
-                    th[0, i, 0, ind],
+                    dth[0, i, 0, ind],
                     np.max(power_ratio[0, i, 0, :] + 0.005),
-                    '({})'.format(keydd),
+                    '({})'.format(let_keydd),
+                    c=c_keydd,
                 )
                 ax.plot(
-                    th[0, i, 0, :],
+                    dth[0, i, 0, :],
                     power_ratio[0, i, 0, :],
-                    'k-',
-                    label=r'normal, ({}): $TD$=({})°C'.format(
-                        keydd, TD[i]
+                    '-',
+                    c=c_keydd,
+                    label=r'normal pola., ({}): $\Delta T$=({})°C'.format(
+                        let_keydd, TD[i]
                     ),
                 )
                 ax.plot(
-                    th[1, i, 0, :],
+                    dth[1, i, 0, :],
                     power_ratio[1, i, 0, :],
-                    'k:',
-                    label=r'parallel',
+                    '--',
+                    c=c_keydd,
+                    label=r'parallel pola.',
                 )
-        ax.legend()
+        ax.axvline(
+            theta[nn], color='black', linestyle='--',
+            label=r'Bragg angle of ref. : {} rad'.format(
+                np.round(theta[nn], 6)
+            ),
+        )
+        ax.legend(fontsize=12)
 
     if use_non_parallelism and therm_exp:
-        ## DeltaT row = -T0 = -25°C
-        ## ------------------------
-        ax01.plot(
-            th[0, dd2[0], dd[1], :]*(1e4),
-            power_ratio[0, dd2[0], dd[1], :],
-            'k-',
-            label = 'normal compo,\n' +
-                r' $\alpha$=({})deg,'.format(
-                    np.round(alpha_deg[dd[1]], 3),
-                ) + '\n' +
-                r' $\Delta$T=({})°C'.format(
-                    TD[dd2[0]],
-                ),
-        )
-        ind = np.where(
-            power_ratio[0, dd2[0], dd[1], :] == np.amax(
-                power_ratio[0, dd2[0], dd[1], :],
-            )
-        )
-        ax00.plot(
-            th[0, dd2[0], dd[0], :]*(1e4),
-            power_ratio[0, dd2[0], dd[0], :],
-            'k-',
-            label = 'normal compo,\n' +
-                r' $\alpha$=({})deg,'.format(
-                    np.round(alpha_deg[dd[0]], 3),
-                ) + '\n' +
-                r' $\Delta$T=({})°C'.format(
-                    TD[dd2[0]],
-                ),
-        )
-        ax02.plot(
-            th[0, dd2[0], dd[2], :]*(1e4),
-            power_ratio[0, dd2[0], dd[2], :],
-            'k-',
-            label = 'normal compo,\n' +
-                r' $\alpha$=({})deg,'.format(
-                    np.round(alpha_deg[dd[2]], 3),
-                ) + '\n' +
-                r' $\Delta$T=({})°C'.format(
-                    TD[dd2[0]],
-                ),
-        )
-        ax00.axvline(
-            th[0, dd2[0], dd[1], ind]*(1e4), color='blue', linestyle='--',
-        )
-        ax01.axvline(
-            th[0, dd2[0], dd[1], ind]*(1e4), color='blue', linestyle='--',
-        )
-        ax02.axvline(
-            th[0, dd2[0], dd[1], ind]*(1e4), color='blue', linestyle='--',
-        )
-        ax00.axhline(
-            power_ratio[0, dd2[0], dd[1], ind], color='blue', linestyle='--',
-        )
-        ax01.axhline(
-            power_ratio[0, dd2[0], dd[1], ind], color='blue', linestyle='--',
-        )
-        ax02.axhline(
-            power_ratio[0, dd2[0], dd[1], ind], color='blue', linestyle='--',
-        )
-
         ## DeltaT row = 0
         ## --------------
         ax11.plot(
-            th[0, dd2[1], dd[1], :]*(1e4),
+            dth[0, dd2[1], dd[1], :],
             power_ratio[0, dd2[1], dd[1], :],
-            'k-',
-            label = 'normal compo,\n' +
-                r' $\alpha$=({})deg,'.format(
-                    np.round(alpha_deg[dd[1]], 3),
-                ) + '\n' +
-                r' $\Delta$T=({})°C'.format(
-                    TD[dd2[1]],
-                ),
-        )
-        ind = np.where(
-            power_ratio[0, dd2[1], dd[1], :] == np.amax(
-                power_ratio[0, dd2[1], dd[1], :],
-            )
-        )
-        ax10.plot(
-            th[0, dd2[1], dd[0], :]*(1e4),
-            power_ratio[0, dd2[1], dd[0], :],
-            'k-',
-            label = 'normal compo,\n' +
-                r' $\alpha$=({})deg,'.format(
-                    np.round(alpha_deg[dd[0]], 3),
-                ) + '\n' +
-                r' $\Delta$T=({})°C'.format(
-                    TD[dd2[1]],
-                ),
-        )
-        ax12.plot(
-            th[0, dd2[1], dd[2], :]*(1e4),
-            power_ratio[0, dd2[1], dd[2], :],
-            'k-',
-            label = 'normal compo,\n' +
-                r' $\alpha$=({})deg,'.format(
-                    np.round(alpha_deg[dd[2]], 3),
-                ) + '\n' +
-                r' $\Delta$T=({})°C'.format(
-                    TD[dd2[1]],
-                ),
-        )
-        ax10.axvline(
-            th[0, dd2[1], dd[1], ind]*(1e4), color='green', linestyle='--',
+            'g-',
+            # TBD: delete all ref of asym & TD in labels, leave norm. & para.
+            label = 'normal pola.',
         )
         ax11.axvline(
-            th[0, dd2[1], dd[1], ind]*(1e4), color='green', linestyle='--',
+            theta[nn], color='black', linestyle='-.',
+            label=r'$\theta_B$= {} rad'.format(
+                np.round(theta[nn], 6)
+            ),
+        )
+        ax11.plot(
+            dth[1, dd2[1], dd[1], :],
+            power_ratio[1, dd2[1], dd[1], :],
+            'g--',
+            label = 'parallel pola.',
+        )
+        ax10.plot(
+            dth[0, dd2[1], dd[0], :],
+            power_ratio[0, dd2[1], dd[0], :],
+            'k-',
+        )
+        ax10.axvline(
+            theta[nn], color='black', linestyle='-.',
+        )
+        ax10.plot(
+            dth[1, dd2[1], dd[0], :],
+            power_ratio[1, dd2[1], dd[0], :],
+            'k--',
+        )
+        ax12.plot(
+            dth[0, dd2[1], dd[2], :],
+            power_ratio[0, dd2[1], dd[2], :],
+            'k-',
         )
         ax12.axvline(
-            th[0, dd2[1], dd[1], ind]*(1e4), color='green', linestyle='--',
+            theta[nn], color='black', linestyle='-.',
         )
-        ax10.axhline(
-            power_ratio[0, dd2[1], dd[1], ind], color='green', linestyle='--',
+        ax12.plot(
+            dth[1, dd2[1], dd[2], :],
+            power_ratio[1, dd2[1], dd[2], :],
+            'k--',
         )
-        ax11.axhline(
-            power_ratio[0, dd2[1], dd[1], ind], color='green', linestyle='--',
+        ## DeltaT row = -T0 = -25°C
+        ## ------------------------
+        ax01.plot(
+            dth[0, dd2[0], dd[1], :],
+            power_ratio[0, dd2[0], dd[1], :],
+            'k-',
         )
-        ax12.axhline(
-            power_ratio[0, dd2[1], dd[1], ind], color='green', linestyle='--',
+        ax01.axvline(
+            theta[nn], color='black', linestyle='-.',
         )
-
+        ax01.plot(
+            dth[1, dd2[0], dd[1], :],
+            power_ratio[1, dd2[0], dd[1], :],
+            'k--',
+        )
+        ax00.plot(
+            dth[0, dd2[0], dd[0], :],
+            power_ratio[0, dd2[0], dd[0], :],
+            'k-',
+        )
+        ax00.axvline(
+            theta[nn], color='black', linestyle='-.',
+        )
+        ax00.plot(
+            dth[1, dd2[0], dd[0], :],
+            power_ratio[1, dd2[0], dd[0], :],
+            'k--',
+        )
+        ax02.plot(
+            dth[0, dd2[0], dd[2], :],
+            power_ratio[0, dd2[0], dd[2], :],
+            'k-',
+        )
+        ax02.axvline(
+            theta[nn], color='black', linestyle='-.',
+        )
+        ax02.plot(
+            dth[1, dd2[0], dd[2], :],
+            power_ratio[1, dd2[0], dd[2], :],
+            'k--',
+        )
         ## DeltaT row = +T0 = +25°C
         ## ------------------------
         ax21.plot(
-            th[0, dd2[2], dd[1], :]*(1e4),
+            dth[0, dd2[2], dd[1], :],
             power_ratio[0, dd2[2], dd[1], :],
             'k-',
-            label = 'normal compo,\n' +
-                r' $\alpha$=({})deg,'.format(
-                    np.round(alpha_deg[dd[1]], 3),
-                ) + '\n' +
-                r' $\Delta$T=({})°C'.format(
-                    TD[dd2[2]],
-                ),
-        )
-        ind = np.where(
-            power_ratio[0, dd2[2], dd[1], :] == np.amax(
-                power_ratio[0, dd2[2], dd[1], :],
-            )
-        )
-        ax20.plot(
-            th[0, dd2[2], dd[0], :]*(1e4),
-            power_ratio[0, dd2[2], dd[0], :],
-            'k-',
-            label = 'normal compo,\n' +
-                r' $\alpha$=({})deg,'.format(
-                    np.round(alpha_deg[dd[0]], 3),
-                ) + '\n' +
-                r' $\Delta$T=({})°C'.format(
-                    TD[dd2[2]],
-                ),
-        )
-        ax22.plot(
-            th[0, dd2[2], dd[2], :]*(1e4),
-            power_ratio[0, dd2[2], dd[2], :],
-            'k-',
-            label = 'normal compo,\n' +
-                r' $\alpha$=({})deg,'.format(
-                    np.round(alpha_deg[dd[2]], 3),
-                ) + '\n' +
-                r' $\Delta$T=({})°C'.format(
-                    TD[dd2[2]],
-                ),
-        )
-        ax20.axvline(
-            th[0, dd2[2], dd[1], ind]*(1e4), color='red', linestyle='--',
         )
         ax21.axvline(
-            th[0, dd2[2], dd[1], ind]*(1e4), color='red', linestyle='--',
+            theta[nn], color='black', linestyle='-.',
+        )
+        ax21.plot(
+            dth[1, dd2[2], dd[1], :],
+            power_ratio[1, dd2[2], dd[1], :],
+            'k--',
+        )
+        ax20.plot(
+            dth[0, dd2[2], dd[0], :],
+            power_ratio[0, dd2[2], dd[0], :],
+            'k-',
+        )
+        ax20.axvline(
+            theta[nn], color='black', linestyle='-.',
+        )
+        ax20.plot(
+            dth[1, dd2[2], dd[0], :],
+            power_ratio[1, dd2[2], dd[0], :],
+            'k--',
+        )
+        ax22.plot(
+            dth[0, dd2[2], dd[2], :],
+            power_ratio[0, dd2[2], dd[2], :],
+            'k-',
         )
         ax22.axvline(
-            th[0, dd2[2], dd[1], ind]*(1e4), color='red', linestyle='--',
+            theta[nn], color='black', linestyle='-.',
         )
-        ax20.axhline(
-            power_ratio[0, dd2[2], dd[1], ind], color='red', linestyle='--',
+        ax22.plot(
+            dth[1, dd2[2], dd[2], :],
+            power_ratio[1, dd2[2], dd[2], :],
+            'k--',
         )
-        ax21.axhline(
-            power_ratio[0, dd2[2], dd[1], ind], color='red', linestyle='--',
-        )
-        ax22.axhline(
-            power_ratio[0, dd2[2], dd[1], ind], color='red', linestyle='--',
-        )
+        ## Replot everywhere in transprent the case alpha=deltaT=0
+        dax = {
+            'ax00': ax00, 'ax01': ax01, 'ax02': ax02,
+            'ax10': ax10, 'ax12': ax12,
+            'ax20': ax20, 'ax21': ax21, 'ax22': ax22,
+        }
+        for key in dax:
+            dax[key].plot(
+                dth[0, dd2[1], dd[1], :],
+                power_ratio[0, dd2[1], dd[1], :],
+                'g-', alpha=0.5,
+            )
+            dax[key].plot(
+                dth[1, dd2[1], dd[1], :],
+                power_ratio[1, dd2[1], dd[1], :],
+                'g--', alpha=0.65,
+            )
 
-        ax00.legend(); ax01.legend(); ax02.legend();
-        ax10.legend(); ax11.legend(); ax12.legend();
-        ax20.legend(); ax21.legend(); ax22.legend();
+        # ax00.legend(); ax01.legend(); ax02.legend();
+        ax11.legend(); # ax11.legend(); ax12.legend();
+        # ax20.legend(); ax21.legend(); ax22.legend();
 
 
 def CrystalBragg_plot_rc_components_vs_asymmetry(
@@ -1651,7 +1659,7 @@ def CrystalBragg_plot_rc_components_vs_asymmetry(
         'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
         fr', $\lambda$={lamb} $\AA$'
     )
-    ax.set_xlabel(r'$\alpha$ (deg)')
+    ax.set_xlabel(r'$\alpha$ (deg)', fontsize=15)
     ax.set_ylim(0., 5.)
     if therm_exp:
         ax.set_xlim(-theta_deg[nn] - 10., theta_deg[nn] + 10.)
@@ -1696,7 +1704,6 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     rhg_perp=None, rhg_para=None,
     max_pr=None, det_perp=None, det_para=None,
     shift_perp=None, shift_para=None,
-    shift_thmaxpr_perp=None, shift_thmaxpr_para=None,
 ):
 
     cmap = plt.cm.viridis
@@ -1709,34 +1716,35 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     gs = gridspec.GridSpec(3, 4, **dmargin)
 
     ax00 = fig.add_subplot(gs[0,0])
-    ax00.set_title('Integrated reflectivity')
+    ax00.set_title('Integrated reflectivity', fontsize=15)
     ax01 = fig.add_subplot(gs[0,1])
-    #ax01.set_title('Maximum reflectivity')
+    ax01.set_title('Maximum reflectivity', fontsize=15)
     ax02 = fig.add_subplot(gs[0,2])
-    #ax02.set_title('Rocking curve width [deg]')
+    ax02.set_title('Rocking curve width [rad]', fontsize=15)
     ax03 = fig.add_subplot(gs[0,3])
-    ax03.set_title('Shift from reference RC [deg]')
+    ax03.set_title('Shift from reference RC [rad]', fontsize=15)
     ax10 = fig.add_subplot(gs[1,0])
     ax11 = fig.add_subplot(gs[1,1])
     ax12 = fig.add_subplot(gs[1,2])
     ax13 = fig.add_subplot(gs[1,3])
     ax2 = fig.add_subplot(gs[2,:])
 
-    ax00.set_ylabel(r'$\Delta$T ($T_{0}$=25°C)')
-    ax10.set_ylabel(r'$\Delta$T ($T_{0}$=25°C)')
-    ax10.set_xlabel(r'$\alpha$ (deg)')
-    #ax11.set_xlabel(r'$\alpha$ (deg)')
-    #ax12.set_xlabel(r'$\alpha$ (deg)')
-    ax13.set_xlabel(r'$\alpha$ (deg)')
+    ax00.set_ylabel(r'$\Delta$T ($T_{0}$=25°C)', fontsize=15)
+    ax10.set_ylabel(r'$\Delta$T ($T_{0}$=25°C)', fontsize=15)
+    ax10.set_xlabel(r'$\alpha$ (rad) [x1e3]', fontsize=15)
+    ax11.set_xlabel(r'$\alpha$ (rad) [x1e3]', fontsize=15)
+    ax12.set_xlabel(r'$\alpha$ (rad) [x1e3]', fontsize=15)
+    ax13.set_xlabel(r'$\alpha$ (rad) [x1e3]', fontsize=15)
 
     fig.suptitle(
         'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
         fr', $\lambda$={lamb} $\AA$' +
-        r', $\theta_{B}$=' + fr'{np.round(theta[nn]*180/np.pi, 3)} deg'
+        r', $\theta_{B}$=' + fr'{np.round(theta[nn], 5)} rad',
+        fontsize=15,
     )
 
     alpha_deg = alpha*(180/np.pi)
-    extent = (alpha_deg.min(), alpha_deg.max(), TD.min(), TD.max())
+    extent = (alpha.min()*1e3, alpha.max()*1e3, TD.min(), TD.max())
 
     ## Create axis dictionary
     ## ----------------------
@@ -1789,23 +1797,18 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         ref=('nT', 'nalpha'),
     )
     st.add_data(
-        key='reflectivity_integrated_perp.T',
-        data=rhg_perp.T,
-        ref=('nalpha', 'nT'),
-    )
-    st.add_data(
         key='reflectivity_integrated_para',
         data=rhg_para,
         ref=('nT', 'nalpha'),
     )
     st.add_data(
         key='shift_perp',
-        data=shift_thmaxpr_perp,
+        data=shift_perp,
         ref=('nT', 'nalpha'),
     )
     st.add_data(
         key='shift_para',
-        data=shift_thmaxpr_para,
+        data=shift_para,
         ref=('nT', 'nalpha'),
     )
 
@@ -1835,7 +1838,6 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         orientation='vertical',
         ax=ax10,
     )
-    """
     ## Maximum values of reflectivities
     ## --------------------------------
     maxpowerratio_perp = ax01.imshow(
@@ -1865,7 +1867,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     ## Rocking curve widths
     ## --------------------
     width_perp = ax02.imshow(
-        det_perp*(180/np.pi),
+        det_perp, #*(180/np.pi),
         cmap=cmap,
         origin='lower',
         extent=extent,
@@ -1877,7 +1879,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         ax=ax02,
     )
     width_para = ax12.imshow(
-        det_para*(180/np.pi),
+        det_para, #*(180/np.pi),
         cmap=cmap,
         origin='lower',
         extent=extent,
@@ -1888,11 +1890,10 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         orientation='vertical',
         ax=ax12,
     )
-    """
     ## Shift on max. reflect. values from reference RC (TD = 0. & alpha=0.)
     ## --------------------------------------------------------------------
-    spemin = (shift_perp).min()*(180/np.pi)
-    spemax = (shift_perp).max()*(180/np.pi)
+    spemin = (shift_perp).min() #*(180/np.pi)
+    spemax = (shift_perp).max() #*(180/np.pi)
     if abs(spemin) < abs(spemax):
         vmax = spemax
         vmin = -spemax
@@ -1902,8 +1903,8 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     if abs(spemin) == abs(spemax):
         vmax = spemax
         vmin = spemin
-    shift_perp = ax03.imshow(
-        shift_perp*(180/np.pi),
+    shift_perp_cmap = ax03.imshow(
+        shift_perp, #*(180/np.pi),
         vmin=vmin,
         vmax=vmax,
         cmap=plt.cm.seismic,
@@ -1912,13 +1913,14 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         aspect='auto',
     )
     cbar = plt.colorbar(
-        shift_perp,
-        label='(normal component)',
+        shift_perp_cmap,
+        #label='(normal component)',
         orientation='vertical',
         ax=ax03,
     )
-    spamin = (shift_para).min()*(180/np.pi)
-    spamax = (shift_para).max()*(180/np.pi)
+    cbar.set_label('(perpendicular pola.)',fontsize=15)
+    spamin = (shift_para).min() #*(180/np.pi)
+    spamax = (shift_para).max() #*(180/np.pi)
     if abs(spamin) < abs(spamax):
         vmax = spamax
         vmin = -spamax
@@ -1928,8 +1930,8 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     if abs(spamin) == abs(spamax):
         vmax = spamax
         vmin = spamin
-    shift_para = ax13.imshow(
-        shift_para*(180/np.pi),
+    shift_para_cmap = ax13.imshow(
+        shift_para, #*(180/np.pi),
         vmin=vmin,
         vmax=vmax,
         cmap=plt.cm.seismic,
@@ -1938,12 +1940,13 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         aspect='auto',
     )
     cbar = plt.colorbar(
-        shift_para,
-        label='(parallel component)',
+        shift_para_cmap,
+        #label='(parallel component)',
         orientation='vertical',
         ax=ax13,
     )
-
+    cbar.set_label('(parallel pola.)',fontsize=15)
+    """
     ## Define dgroup
     ## -----------------
 
@@ -1975,7 +1978,6 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
                 c='k',
                 ls='-',
             )
-            import pdb; pdb.set_trace()     # DB
             st.add_mobile(
                 key=f'curve_perp{ii}',
                 handle=l0,
@@ -1985,7 +1987,6 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
                 dtype=['xdata', 'ydata'],
                 ind=ii,
             )
-    """
     kax = 'reflectivity_perp
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
@@ -2069,9 +2070,6 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
                 ref=('DT', 'alpha'),
                 ind=ii,
             )
-    """
-
-
 
     st.add_axes(**dax)
 
@@ -2080,3 +2078,4 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     st.connect()
 
     return st
+    """
