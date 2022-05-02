@@ -808,6 +808,79 @@ def _mesh2DRect_bsplines_knotscents(
 
 # #############################################################################
 # #############################################################################
+#                           Mesh2D - polar - bsplines
+# #############################################################################
+
+
+def _mesh2Dpolar_bsplines(coll=None, keym=None, keybs=None, deg=None):
+
+    # --------------
+    # create bsplines
+
+    kknots = coll.dobj[coll._which_mesh][keym]['knots']
+    func_details, func_sum, clas = _mesh_bsplines_polar.get_bs2d_func(
+        deg=deg,
+        knotsR=coll.ddata[kknots[0]]['data'],
+        knotsZ=coll.ddata[kknots[1]]['data'],
+        cents=coll.ddata[coll.dobj[coll._which_mesh][keym]['ind']]['data'],
+        trifind=coll.dobj[coll._which_mesh][keym]['func_trifind'],
+    )
+    keybsr = f'{keybs}-nbs'
+    kbscr = f'{keybs}-r'
+
+    bs_cents = clas._get_bs_cents()
+
+    # ----------------
+    # format into dict
+
+    dref = {
+        # bs index
+        keybsr: {
+            'size': clas.nbs,
+        },
+    }
+
+    ddata = {
+        kbscr: {
+            'data': bs_cents[0, :],
+            'units': 'm',
+            'dim': 'distance',
+            'quant': 'R',
+            'name': 'R',
+            'ref': (keybsr,),
+        },
+        kbscz: {
+            'data': bs_cents[1, :],
+            'units': 'm',
+            'dim': 'distance',
+            'quant': 'Z',
+            'name': 'Z',
+            'ref': (keybsr,),
+        },
+    }
+
+    dobj = {
+        'bsplines': {
+            keybs: {
+                'deg': deg,
+                'mesh': keym,
+                'ref': (keybsr,),
+                'ref-bs': (keybsr,),
+                'cents': (kbscr,),
+                'shape': (clas.nbs,),
+                'crop': False,
+                'func_details': func_details,
+                'func_sum': func_sum,
+                'class': clas,
+            }
+        },
+    }
+
+    return dref, ddata, dobj
+
+
+# #############################################################################
+# #############################################################################
 #                           Mesh2DRect - sample
 # #############################################################################
 
