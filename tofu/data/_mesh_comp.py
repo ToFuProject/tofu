@@ -231,11 +231,11 @@ def _select_ind(
 
 # #############################################################################
 # #############################################################################
-#                           Mesh2D - select mesh rect
+#                           Mesh2D - select mesh
 # #############################################################################
 
 
-def _select_mesh_rect(
+def _select_mesh(
     coll=None,
     key=None,
     ind=None,
@@ -269,11 +269,16 @@ def _select_mesh_rect(
     # ------------
     # prepare
 
-    kR, kZ = coll.dobj[coll._which_mesh][key][elements]
-    R = coll.ddata[kR]['data']
-    Z = coll.ddata[kZ]['data']
-    nR = R.size
-    nZ = Z.size
+    if meshtype in ['rect', 'tri']:
+        kR, kZ = coll.dobj[coll._which_mesh][key][elements]
+        R = coll.ddata[kR]['data']
+        Z = coll.ddata[kZ]['data']
+        nR = R.size
+        nZ = Z.size
+    else:
+        kr = coll.dobj[coll._which_mesh][key][elements][0]
+        rad = coll.ddata[kr]['data']
+
 
     # ------------
     # non-trivial case
@@ -281,65 +286,160 @@ def _select_mesh_rect(
     if returnas == 'ind':
         out = ind
     else:
-        out = R[ind[0]], Z[ind[1]]
+        if meshtype == 'rect':
+            out = R[ind[0]], Z[ind[0]]
+        elif meshtype == 'tri':
+            out = R[ind], Z[ind]
+        else:
+            out = rad[ind]
 
     # ------------
     # neighbours
 
     if return_neighbours is True:
-
-        elneig = 'cents' if elements == 'knots' else 'knots'
-        kRneig, kZneig = coll.dobj[coll._which_mesh][key][f'{elneig}']
-        Rneig = coll.ddata[kRneig]['data']
-        Zneig = coll.ddata[kZneig]['data']
-        nRneig = Rneig.size
-        nZneig = Zneig.size
-
-        # get tuple indices of neighbours
-        shape = tuple(np.r_[ind[0].shape, 4])
-        neig = (
-            np.zeros(shape, dtype=int),
-            np.zeros(shape, dtype=int),
-        )
-        rsh = tuple(
-            [4 if ii == len(shape)-1 else 1 for ii in range(len(shape))]
-        )
-
-        if elements == 'cents':
-            neig[0][...] = ind[0][..., None] + np.r_[0, 1, 1, 0].reshape(rsh)
-            neig[1][...] = ind[1][..., None] + np.r_[0, 0, 1, 1].reshape(rsh)
-        elif elements == 'knots':
-            neig[0][...] = ind[0][..., None] + np.r_[-1, 0, 0, -1].reshape(rsh)
-            neig[1][...] = ind[1][..., None] + np.r_[-1, -1, 0, 0].reshape(rsh)
-            neig[0][(neig[0] < 0) | (neig[0] >= nRneig)] = -1
-            neig[1][(neig[1] < 0) | (neig[1] >= nZneig)] = -1
-
-        # return neighbours in desired format
-        if returnas == 'ind':
-            neig_out = neig
+        if meshtype == 'rect':
+            neigh = _select_mesh_neighbours_rect(
+                coll=coll,
+                key=key,
+                ind=ind,
+                elements=elements,
+                returnas=returnas,
+            )
+        elif meshtype == 'tri':
+            neigh = _select_mesh_neighbours_tri(
+                coll=coll,
+                key=key,
+                ind=ind,
+                elements=elements,
+                returnas=returnas,
+                return_ind_as=return_ind_as,
+            )
         else:
-            neig_out = np.array([Rneig[neig[0]], Zneig[neig[1]]])
-            neig_out[:, (neig[0] == -1) | (neig[1] == -1)] = np.nan
+            # TBF
+            neigh = _select_mesh_neighbours_polar()
 
         return out, neig_out
     else:
         return out
 
 
-# #############################################################################
-# #############################################################################
-#                           Mesh2D - select mesh tri
-# #############################################################################
+def _select_mesh_neighbours_rect(
+    coll=None,
+    key=None,
+    ind=None,
+    elements=None,
+    returnas=None,
+):
+    """ ind is a tuple for rect """
+
+    # ------------
+    # neighbours
+
+    elneig = 'cents' if elements == 'knots' else 'knots'
+    kRneig, kZneig = coll.dobj[coll._which_mesh][key][f'{elneig}']
+    Rneig = coll.ddata[kRneig]['data']
+    Zneig = coll.ddata[kZneig]['data']
+    nRneig = Rneig.size
+    nZneig = Zneig.size
+
+    # get tuple indices of neighbours
+    shape = tuple(np.r_[ind[0].shape, 4])
+    neig = (
+        np.zeros(shape, dtype=int),
+        np.zeros(shape, dtype=int),
+    )
+    rsh = tuple(
+        [4 if ii == len(shape)-1 else 1 for ii in range(len(shape))]
+    )
+
+    if elements == 'cents':
+        neig[0][...] = ind[0][..., None] + np.r_[0, 1, 1, 0].reshape(rsh)
+        neig[1][...] = ind[1][..., None] + np.r_[0, 0, 1, 1].reshape(rsh)
+    elif elements == 'knots':
+        neig[0][...] = ind[0][..., None] + np.r_[-1, 0, 0, -1].reshape(rsh)
+        neig[1][...] = ind[1][..., None] + np.r_[-1, -1, 0, 0].reshape(rsh)
+        neig[0][(neig[0] < 0) | (neig[0] >= nRneig)] = -1
+        neig[1][(neig[1] < 0) | (neig[1] >= nZneig)] = -1
+
+    # return neighbours in desired format
+    if returnas == 'ind':
+        neig_out = neig
+    else:
+        neig_out = np.array([Rneig[neig[0]], Zneig[neig[1]]])
+        neig_out[:, (neig[0] == -1) | (neig[1] == -1)] = np.nan
+
+    return neigh_out
 
 
-def _select_mesh_tri(
+def _select_mesh_neighbours_tri(
     coll=None,
     key=None,
     ind=None,
     elements=None,
     returnas=None,
     return_ind_as=None,
-    return_neighbours=None,
+):
+    """ ind is a bool
+
+    if returnas = 'ind', ind is returned as a bool array
+    (because the nb. of neighbours is not constant on a triangular mesh)
+
+    """
+    # ------------
+    # neighbours
+
+    nind = ind.sum()
+    kind = coll.dobj[coll._which_mesh][key]['ind']
+
+    if returnas == 'data':
+        elneig = 'cents' if elements == 'knots' else 'knots'
+        kneig = coll.dobj[coll._which_mesh][key][elneig]
+        Rneig = coll.ddata[kneig[0]]['data']
+        Zneig = coll.ddata[kneig[1]]['data']
+
+    if elements == 'cents':
+        neig = coll.ddata[kind]['data'][ind, :]
+        if returnas == 'ind':
+            if return_ind_as is bool:
+                kknots = coll.dobj[coll._which_mesh][key]['knots']
+                import pdb; pdb.set_trace()     # DB
+                nneig = coll.dref[f'{kknots}-ind']['size']
+                neig_temp = np.zeros((nind, nneig), dtype=bool)
+                for ii in range(nind):
+                    neig_temp[ii, neig[ii, :]] = True
+                neig = neig_temp
+        else:
+            neig = np.array([Rneig[neig], Zneig[neig]])
+    else:
+        ind_int = ind.nonzero()[0]
+        neig = np.array([
+            np.any(coll.ddata[kind]['data'] == ii, axis=1)
+            for ii in ind_int
+        ])
+        c0 = returnas == 'ind' and return_ind_as is int
+        if c0 or returnas == 'data':
+            nmax = np.sum(neig, axis=1)
+            if returnas == 'ind':
+                neig_temp = -np.ones((nind, nmax.max()), dtype=int)
+                for ii in range(nind):
+                    neig_temp[ii, :nmax[ii]] = neig[ii, :].nonzero()[0]
+            else:
+                neig_temp = np.full((2, nind, nmax.max()), np.nan)
+                for ii in range(nind):
+                    neig_temp[0, ii, :nmax[ii]] = Rneig[neig[ii, :]]
+                    neig_temp[1, ii, :nmax[ii]] = Zneig[neig[ii, :]]
+            neig = neig_temp
+
+    return neig
+
+
+def _select_mesh_polar(
+    coll=None,
+    key=None,
+    ind=None,
+    elements=None,
+    returnas=None,
+    return_ind_as=None,
 ):
     """ ind is a bool
 
@@ -348,90 +448,48 @@ def _select_mesh_tri(
 
     """
 
-    # ------------
-    # check inputs
+    nind = ind.sum()
+    kind = coll.dobj[coll._which_mesh][key]['ind']
 
-    key = _generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=list(coll.dobj[coll._which_mesh].keys())
-    )
-    meshtype = coll.dobj[coll._which_mesh][key]['type']
+    if returnas == 'data':
+        elneig = 'cents' if elements == 'knots' else 'knots'
+        kneig = coll.dobj[coll._which_mesh][key][elneig]
+        Rneig = coll.ddata[kneig[0]]['data']
+        Zneig = coll.ddata[kneig[1]]['data']
 
-    (
-        elements, returnas,
-        return_ind_as, return_neighbours,
-    ) = _mesh_checks._select_check(
-        elements=elements,
-        returnas=returnas,
-        return_ind_as=return_ind_as,
-        return_neighbours=return_neighbours,
-    )
-
-    # ------------
-    # prepare
-
-    kn = coll.dobj[coll._which_mesh][key][elements]
-    R = coll.ddata[kn[0]]['data']
-    Z = coll.ddata[kn[1]]['data']
-
-    # ------------
-    # non-trivial case
-
-    if returnas == 'ind':
-        out = ind
-    else:
-        out = R[ind], Z[ind]
-
-    # ------------
-    # neighbours
-
-    if return_neighbours is True:
-
-        nind = ind.sum()
-        kind = coll.dobj[coll._which_mesh][key]['ind']
-
-        if returnas == 'data':
-            elneig = 'cents' if elements == 'knots' else 'knots'
-            kneig = coll.dobj[coll._which_mesh][key][elneig]
-            Rneig = coll.ddata[kneig[0]]['data']
-            Zneig = coll.ddata[kneig[1]]['data']
-
-        if elements == 'cents':
-            neig = coll.ddata[kind]['data'][ind, :]
-            if returnas == 'ind':
-                if return_ind_as is bool:
-                    kknots = coll.dobj[coll._which_mesh][key]['knots']
-                    import pdb; pdb.set_trace()     # DB
-                    nneig = coll.dref[f'{kknots}-ind']['size']
-                    neig_temp = np.zeros((nind, nneig), dtype=bool)
-                    for ii in range(nind):
-                        neig_temp[ii, neig[ii, :]] = True
-                    neig = neig_temp
-            else:
-                neig = np.array([Rneig[neig], Zneig[neig]])
-        else:
-            ind_int = ind.nonzero()[0]
-            neig = np.array([
-                np.any(coll.ddata[kind]['data'] == ii, axis=1)
-                for ii in ind_int
-            ])
-            c0 = returnas == 'ind' and return_ind_as is int
-            if c0 or returnas == 'data':
-                nmax = np.sum(neig, axis=1)
-                if returnas == 'ind':
-                    neig_temp = -np.ones((nind, nmax.max()), dtype=int)
-                    for ii in range(nind):
-                        neig_temp[ii, :nmax[ii]] = neig[ii, :].nonzero()[0]
-                else:
-                    neig_temp = np.full((2, nind, nmax.max()), np.nan)
-                    for ii in range(nind):
-                        neig_temp[0, ii, :nmax[ii]] = Rneig[neig[ii, :]]
-                        neig_temp[1, ii, :nmax[ii]] = Zneig[neig[ii, :]]
+    if elements == 'cents':
+        neig = coll.ddata[kind]['data'][ind, :]
+        if returnas == 'ind':
+            if return_ind_as is bool:
+                kknots = coll.dobj[coll._which_mesh][key]['knots']
+                import pdb; pdb.set_trace()     # DB
+                nneig = coll.dref[f'{kknots}-ind']['size']
+                neig_temp = np.zeros((nind, nneig), dtype=bool)
+                for ii in range(nind):
+                    neig_temp[ii, neig[ii, :]] = True
                 neig = neig_temp
-        return out, neig
+        else:
+            neig = np.array([Rneig[neig], Zneig[neig]])
     else:
-        return out
+        ind_int = ind.nonzero()[0]
+        neig = np.array([
+            np.any(coll.ddata[kind]['data'] == ii, axis=1)
+            for ii in ind_int
+        ])
+        c0 = returnas == 'ind' and return_ind_as is int
+        if c0 or returnas == 'data':
+            nmax = np.sum(neig, axis=1)
+            if returnas == 'ind':
+                neig_temp = -np.ones((nind, nmax.max()), dtype=int)
+                for ii in range(nind):
+                    neig_temp[ii, :nmax[ii]] = neig[ii, :].nonzero()[0]
+            else:
+                neig_temp = np.full((2, nind, nmax.max()), np.nan)
+                for ii in range(nind):
+                    neig_temp[0, ii, :nmax[ii]] = Rneig[neig[ii, :]]
+                    neig_temp[1, ii, :nmax[ii]] = Zneig[neig[ii, :]]
+            neig = neig_temp
+    return neig
 
 
 # #############################################################################

@@ -311,7 +311,7 @@ class Test02_Plasma2D():
         # Rect mesh
         nn = 4
         lelements = ['knots', None, 'cents', None]
-        lind = [None, ([0, 5], [0, 6]), [0, 10, 50], ([0, 5, 6], [0, 2, 3])]
+        lind = [None, ([0, 5], [0, 6]), [0, 5, 8], ([0, 5, 6], [0, 2, 3])]
         lcrop = [True, False, True, False]
 
         # select fom mesh

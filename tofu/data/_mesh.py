@@ -429,25 +429,14 @@ class Plasma2D(ds.DataStock):
             crop=crop,
         )
 
-        if self.dobj['mesh'][key]['type'] == 'rect':
-            return _mesh_comp._select_mesh_rect(
-                coll=self,
-                key=key,
-                ind=ind,
-                elements=elements,
-                returnas=returnas,
-                return_neighbours=return_neighbours,
-            )
-        else:
-            return _mesh_comp._select_mesh_tri(
-                coll=self,
-                key=key,
-                ind=ind,
-                elements=elements,
-                returnas=returnas,
-                return_neighbours=return_neighbours,
-            )
-
+        return _mesh_comp._select_mesh(
+            coll=self,
+            key=key,
+            ind=ind,
+            elements=elements,
+            returnas=returnas,
+            return_neighbours=return_neighbours,
+        )
 
     def select_bsplines(
         self,
