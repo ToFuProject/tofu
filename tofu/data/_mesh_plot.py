@@ -254,6 +254,7 @@ def _plot_mesh_prepare_polar(
         rr = rr[None, ...]
         reft = None
         nt = 1
+        rad = np.linspace(np.nanmin(rr), np.nanmax(rr), 50)
 
     else:
         kn = coll.dobj[coll._which_mesh][key]['knots'][0]
@@ -291,7 +292,10 @@ def _plot_mesh_prepare_polar(
         levels=rad,
     )
 
-    return contR, contZ, reft, nt
+    # refrad
+    refrad = coll.dobj[coll._which_mesh][key]['knots'][0]
+
+    return contR, contZ, rad, reft, refrad
 
 
 def plot_mesh(
@@ -307,6 +311,7 @@ def plot_mesh(
     dmargin=None,
     fs=None,
     dleg=None,
+    connect=None,
 ):
     """ Plot the desired mesh
 
@@ -359,6 +364,7 @@ def plot_mesh(
             fs=fs,
             dmargin=dmargin,
             dleg=dleg,
+            connect=connect,
         )
 
 
@@ -486,12 +492,14 @@ def _plot_mesh_recttri(
 def _plot_mesh_polar(
     coll=None,
     key=None,
+    npts=None,
     nmax=None,
     color=None,
     dax=None,
     fs=None,
     dmargin=None,
     dleg=None,
+    connect=None,
 ):
 
     # --------------
@@ -500,10 +508,12 @@ def _plot_mesh_polar(
     if nmax is None:
         nmax = 2
 
-    contR, contZ, reft, nt = _plot_mesh_prepare_polar(
+    contR, contZ, rad, reft, refrad = _plot_mesh_prepare_polar(
         coll=coll,
         key=key,
     )
+    refpts = 'pts'
+    nt, nr, npts = contR.shape
 
     # --------------------
     # Instanciate Plasma2D
@@ -525,6 +535,11 @@ def _plot_mesh_polar(
     )
 
     coll2.add_data(
+        key='radius',
+        data=rad,
+        ref=(refrad,)
+    )
+    coll2.add_data(
         key='contR',
         data=contR,
         ref=(reft, refrad, refpts)
@@ -536,157 +551,13 @@ def _plot_mesh_polar(
     )
 
 
-    # TBF
     return coll2.plot_as_mobile_lines(
-        key_time='t',
-        key_chan='rho',
+        keyX='contR',
+        keyY='contZ',
+        key_time=reft,
+        key_chan='radius',
+        connect=connect,
     )
-
-    # --------------
-    # plot - prepare
-
-    if dax is None:
-
-        if dmargin is None:
-            dmargin = {
-                'left': 0.1, 'right': 0.9,
-                'bottom': 0.1, 'top': 0.9,
-                'hspace': 0.1, 'wspace': 0.1,
-            }
-
-        # figure
-        fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(ncols=2, nrows=1, **dmargin)
-
-        # ax0 => cross-section
-        ax0 = fig.add_subplot(gs[0, 1], aspect='equal')
-        ax0.set_xlabel(f'R (m)')
-        ax0.set_ylabel(f'Z (m)')
-
-        # ax1 => time trace
-        ax1 = fig.add_subplot(gs[0, 0])
-        ax1.set_xlabel(f't (s)')
-        ax1.set_ylabel(f'surface (m2)')
-
-        dax = {'cross': ax0, 'trace': ax1}
-
-    dax = _generic_check._check_dax(dax=dax, main='cross')
-
-    # ----------------
-    # plot fixed parts
-
-    kax = 'trace'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        ax.plot(
-            range(nt),
-            range(nt),
-            color='k',
-            ls='-',
-            lw=1.,
-        )
-
-    # ----------------
-    # define and set dgroup
-
-    dgroup = {
-        'time': {
-            'ref': [reft],
-            'data': ['index'],
-            'nmax': nmax,
-        },
-    }
-
-    # ----------------
-    # plot mobile parts
-
-    kax = 'trace'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        for ii in range(nmax):
-            l0 = ax.axvline(
-                0,
-                c='k',
-                ls='-',
-                lw=1.,
-            )
-
-            k0 = f'vl-{ii}'
-            coll2.add_mobile(
-                key=k0,
-                handle=l0,
-                ref=reft,
-                data=reft,
-                dtype='xdata',
-                axes=kax,
-                ind=ii,
-            )
-
-        dax[kax].update(refx=[reft], datax=[reft])
-
-    kax = 'cross'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        for ii in range(nmax):
-            l0, = ax.plot(
-                contR[0],
-                contZ[0],
-                c='k',
-                ls='-',
-                lw=1.,
-            )
-
-            k0 = f'cont-{ii}'
-            coll2.add_mobile(
-                key=k0,
-                handle=l0,
-                ref=(reft, reft),
-                data=('contR', 'contZ'),
-                dtype=('xdata', 'ydata'),
-                axes=kax,
-                ind=ii,
-            )
-
-    # ---------
-    # add text
-
-    kax = 'text'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        _plot_text.plot_text(
-            coll=coll2,
-            kax=kax,
-            ax=ax,
-            ref=reft,
-            group='time',
-            ind=0,
-            lkeys=lkeys,
-            nmax=nmax,
-            color_dict=color_dict,
-            bstr_dict=bstr_dict,
-        )
-
-    # --------------
-    # dleg
-
-    if dleg is not False:
-        for kax in dax.keys():
-            dax[kax]['handle'].legend(**dleg)
-
-    # connect
-    if connect is True:
-        coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
-        coll2.disconnect_old()
-        coll2.connect()
-
-        coll2.show_commands()
-        return coll2
-    else:
-        return coll2, dgroup
 
 
 # #############################################################################

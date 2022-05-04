@@ -1206,6 +1206,7 @@ class Plasma2D(ds.DataStock):
         dmargin=None,
         fs=None,
         dleg=None,
+        connect=None,
     ):
 
         return _mesh_plot.plot_mesh(
@@ -1219,6 +1220,7 @@ class Plasma2D(ds.DataStock):
             dmargin=dmargin,
             fs=fs,
             dleg=dleg,
+            connect=connect,
         )
 
     def plot_bsplines(

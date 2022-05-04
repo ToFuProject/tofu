@@ -1515,16 +1515,10 @@ def _interp2d_check(
 ):
     # key
     dk = {
-        kk: [
-            k1 for k1, v1 in coll.dobj['bsplines'].items()
-            if coll.ddata[kk]['ref'][-2:] == v1['ref']
-        ][0]
-        for kk in coll.ddata.keys()
-        if any([
-            coll.ddata[kk]['ref'][-2:] == v1['ref']
-            for v1 in coll.dobj['bsplines'].values()
-        ])
-        and 'crop' not in kk
+        k0: v0['bsplines']
+        for k0, v0 in coll.ddata.items()
+        if v0.get('bsplines') is not None
+        and 'crop' not in k0
     }
     dk.update({kk: kk for kk in coll.dobj['bsplines'].keys()})
     if key is None and len(dk) == 1:
@@ -1532,7 +1526,7 @@ def _interp2d_check(
     if key not in dk.keys():
         msg = (
             "Arg key must the key to a data referenced on a bsplines set\n"
-            f"\t- available: {dk.keys()}\n"
+            f"\t- available: {list(dk.keys())}\n"
             f"\t- provided: {key}\n"
         )
         raise Exception(msg)
