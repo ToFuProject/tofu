@@ -1216,7 +1216,8 @@ def CrystalBragg_plot_thermal_expansion_vs_d(
             r'$\gamma_{eff}$ = ' +
             str(np.round(p[0]/p[1], decimals=9)) +
             r'°C$^{-1}$',
-        )
+        ),
+    )
     ax.legend(loc="upper left", fontsize=12)
 
 
