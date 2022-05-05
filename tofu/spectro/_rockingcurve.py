@@ -1397,9 +1397,9 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                     label=(
                         r'normal pola.,' + '\n' +
                         r' ({}): $\alpha$=({}) arcmin'.format(
-                        let_keydd, np.round(alpha_deg[j]*60, 3)
+                            let_keydd, np.round(alpha_deg[j]*60, 3)
                         ),
-                    )
+                    ),
                 )
                 ax.plot(
                     dth[1, 0, j, :],
