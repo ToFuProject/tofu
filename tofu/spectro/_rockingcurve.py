@@ -12,7 +12,6 @@ import scipy.interpolate
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.axes._axes import Axes
-import datastock
 
 # tofu
 from tofu.version import __version__
