@@ -147,11 +147,14 @@ def _add_polar2(plasma):
     Z = plasma.ddata[kZ]['data']
     RR = np.repeat(R[:, None], Z.size, axis=1)
     ZZ = np.repeat(Z[None, :], R.size, axis=0)
+
     rho = (RR - 2.5)**2/0.25 + (ZZ - 0)**2/0.8
+    angle = np.arctan2(ZZ/2., (RR - 2.5))
 
     nt = 11
     t = np.linspace(30, 40, nt)
     rho = rho[None, ...] + 0.1*np.cos(t)[:, None, None]**2
+    angle = angle[None, ...] + 0.01*np.sin(t)[:, None, None]**2
 
     plasma.add_ref(
         key='nt',
@@ -172,18 +175,33 @@ def _add_polar2(plasma):
         quant='rho',
         name='rho',
     )
+    plasma.add_data(
+        key='angle2',
+        data=angle,
+        ref=('nt', 'm2-bs1'),
+        unit='rad',
+        dim='',
+        quant='angle',
+        name='theta',
+    )
 
     plasma.add_mesh_polar(
         key='m6',
         radius=np.linspace(0, 1.2, 13),
-        angle=None,
+        angle=np.pi*np.r_[-3./4., -1/4, 1/4, 3/4],
         radius2d='rho2',
+        angle2d='angle2',
     )
 
 
+def _add_bsplines(plasma, kind=None):
 
-def _add_bsplines(plasma):
+    if kind is None:
+        kind = ['rect', 'tri', 'polar']
+
     for k0, v0 in plasma.dobj['mesh'].items():
+        if v0['type'] not in kind:
+            continue
         if v0['type'] == 'tri':
             plasma.add_bsplines(key=k0, deg=0)
             plasma.add_bsplines(key=k0, deg=1)
@@ -258,6 +276,20 @@ class Test01_checks_Instanciate():
         _add_tri_ntri2(plasma)
         _add_bsplines(plasma)
 
+    def test07_add_mesh_polar_fix(self):
+        plasma = tfd.Plasma2D()
+        _add_rect_variable_crop(plasma)
+        _add_bsplines(plasma)
+        _add_polar1(plasma)
+        # _add_bsplines(plasma, kind=['polar'])
+
+    def test08_add_mesh_polar_var_angle(self):
+        plasma = tfd.Plasma2D()
+        _add_rect_variable_crop(plasma)
+        _add_bsplines(plasma)
+        _add_polar2(plasma)
+        # _add_bsplines(plasma, kind=['polar'])
+
 
 #######################################################
 #
@@ -290,6 +322,9 @@ class Test02_Plasma2D():
         # add polar mesh
         _add_polar1(plasma)
         _add_polar2(plasma)
+
+        # add bsplines for polar meshes
+        # _add_bsplines(plasma, kind=['polar'])
 
         # store
         self.obj = plasma
@@ -359,8 +394,11 @@ class Test02_Plasma2D():
 
             if self.obj.dobj['mesh'][k0]['type'] == 'rect':
                 lind = lind0
-            else:
+            elif self.obj.dobj['mesh'][k0]['type'] == 'tri':
                 lind = lind1
+            else:
+                # not implemented yet
+                continue
 
             out = self.obj.select_mesh_elements(
                 key=k0,
@@ -482,13 +520,20 @@ class Test02_Plasma2D():
         lic1 = [None, [0, 2], None, [2, 3]]
         for ii, k0 in enumerate(self.lm):
 
-            lik = lik0 if self.obj.dobj['mesh'][k0]['type'] == 'rect' else lik1
-            lic = lic0 if self.obj.dobj['mesh'][k0]['type'] == 'rect' else lic1
+            if self.obj.dobj['mesh'][k0]['type'] == 'rect':
+                lik = lik0
+                lic = lic0
+            elif self.obj.dobj['mesh'][k0]['type'] == 'tri':
+                lik = lik1
+                lic = lic1
+            else:
+                lik = None
+                lic = None
 
             dax = self.obj.plot_mesh(
                 key=k0,
-                ind_knot=lik[ii%len(lik)],
-                ind_cent=lic[ii%len(lic)],
+                ind_knot=lik[ii%len(lik)] if lik is not None else None,
+                ind_cent=lic[ii%len(lic)] if lic is not None else None,
             )
         plt.close('all')
 

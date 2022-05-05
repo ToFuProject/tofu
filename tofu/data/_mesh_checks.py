@@ -478,6 +478,9 @@ def _mesh2D_polar_check(
     radius_quant=None,
     radius_name=None,
     radius_units=None,
+    angle_dim=None,
+    angle_quant=None,
+    angle_name=None,
 ):
 
     # key
@@ -493,6 +496,9 @@ def _mesh2D_polar_check(
     krk, krc = f'{key}-r-nk', f'{key}-r-nc'
     kkr, kcr = f'{key}-r-k', f'{key}-r-c'
 
+    kak, kac = f'{key}-ang-nk', f'{key}-ang-nc'
+    kka, kca = f'{key}-ang-k', f'{key}-ang-c'
+
     # radius data
     c0 = (
         hasattr(radius, '__iter__')
@@ -501,9 +507,37 @@ def _mesh2D_polar_check(
         and np.allclose(np.unique(radius), radius)
     )
     if not c0:
-        msg = "Arg radius must be convertible to a 1d increasing array"
+        msg = (
+            "Arg radius must be convertible to a 1d increasing array\n"
+            f"\t- Provided: {radius}"
+        )
         raise Exception(msg)
 
+    # angle data
+    c0 = (
+        angle is None
+        or (
+            hasattr(angle, '__iter__')
+            and np.asarray(angle).ndim == 1
+            and np.unique(angle).size == np.array(angle).size
+            and np.allclose(
+                np.unique(np.arctan2(np.sin(angle), np.cos(angle))),
+                angle,
+            )
+        )
+    )
+    if not c0:
+        msg = (
+            "Arg angle either\n:"
+            "\t- None: radial-only polar mesh"
+            "\t- convertible to a 1d increasing array\n"
+            "\t\t it must be in radians\n"
+            "\t\t it must be in the [-pi; pi] interval\n"
+            f"\t- Provided: {angle}"
+        )
+        raise Exception(msg)
+
+    # extract data
     rknot = np.unique(radius)
     rcent = 0.5*(rknot[1:] + rknot[:-1])
 
@@ -518,6 +552,56 @@ def _mesh2D_polar_check(
         units=radius_units,
     )
 
+    if callable(radius2d):
+        keysm = None
+    else:
+        keysm = coll.dobj['bsplines'][coll.ddata[radius2d]['bsplines']]['mesh']
+
+    if angle is not None:
+        aknot = np.unique(np.arctan2(np.sin(angle), np.cos(angle)))
+        acent = 0.5*(aknot[1:] + aknot[:-1])
+        amid = 0.5*(aknot[-1] + (2.*np.pi + aknot[0]))
+        amid = np.arctan2(np.sin(amid), np.cos(amid))
+        if amid < acent[0]:
+            acent = np.r_[amid, acent]
+        else:
+            acent = np.r_[acent, amid]
+
+        # angle2d
+        dangle = _check_polar_2dquant(
+            coll=coll,
+            quant2d=angle2d,
+            quant2d_name='angle2d',
+            dim=angle_dim,
+            quant=angle_quant,
+            name=angle_name,
+            units='rad',
+        )
+
+        # check angle units = rad
+        if dangle['units'] != 'rad':
+            msg = (
+                "Angle units must be rad\n"
+                f"\t Provided: {dangle['units']}"
+            )
+            raise Exception(msg)
+
+        # check angle2d is like radius2d
+        c0 = (
+            (callable(radius2d) and callable(angle2d))
+            or coll._ddata[radius2d]['ref'] == coll._ddata[angle2d]['ref']
+        )
+        if not c0:
+            msg = (
+                "radius2d and angle2d must be of the same type, either:\n"
+                "\t- both callable\n"
+                "\t- both data keys with identical ref!\n"
+                f"Provided:\n"
+                f"\t- radius2d: {radius2d}\n"
+                f"\t- angle2d: {angle2d}\n"
+            )
+            raise Exception(msg)
+
     # --------------------
     # prepare dict
 
@@ -530,6 +614,16 @@ def _mesh2D_polar_check(
             'size': rcent.size,
         },
     }
+
+    if angle is not None:
+        dref.update({
+            kak: {
+                'size': aknot.size,
+            },
+            kac: {
+                'size': acent.size,
+            },
+        })
 
     # ddata
     ddata = {
@@ -545,17 +639,46 @@ def _mesh2D_polar_check(
         },
     }
 
+    if angle is not None:
+        ddata.update({
+            kka: {
+                'data': aknot,
+                'ref': kak,
+                **dangle,
+            },
+            kca: {
+                'data': acent,
+                'ref': kac,
+                **dangle,
+            },
+        })
+
     # dobj
-    dmesh = {
-        key: {
-            'type': 'polar',
-            'knots': (kkr,),
-            'cents': (kcr,),
-            'shape-c': rcent.shape,
-            'shape-k': rknot.shape,
-            'radius2d': radius2d,
-        },
-    }
+    if angle is None:
+        dmesh = {
+            key: {
+                'type': 'polar',
+                'knots': (kkr,),
+                'cents': (kcr,),
+                'shape-c': rcent.shape,
+                'shape-k': rknot.shape,
+                'radius2d': radius2d,
+                'submesh': keysm,
+            },
+        }
+    else:
+        dmesh = {
+            key: {
+                'type': 'polar',
+                'knots': (kkr, kka),
+                'cents': (kcr, kca),
+                'shape-c': (rcent.size, acent.size),
+                'shape-k': (rknot.size, aknot.size),
+                'radius2d': radius2d,
+                'angle2d': angle2d,
+                'submesh': keysm,
+            },
+        }
 
     return dref, ddata, dmesh
 

@@ -12,9 +12,11 @@ import matplotlib._contour as mcontour
 
 # tofu
 from . import _generic_check
+from . import _bsplines_utils
 from . import _mesh_checks
 from . import _mesh_bsplines_rect
 from . import _mesh_bsplines_tri
+from . import _mesh_bsplines_polar
 
 
 # #############################################################################
@@ -316,9 +318,17 @@ def _select_mesh(
             )
         else:
             # TBF
-            neigh = _select_mesh_neighbours_polar()
+            raise NotImplementedError()
+            neigh = _select_mesh_neighbours_polar(
+                coll=coll,
+                key=key,
+                ind=ind,
+                elements=elements,
+                returnas=returnas,
+                return_ind_as=return_ind_as,
+            )
 
-        return out, neig_out
+        return out, neigh
     else:
         return out
 
@@ -368,7 +378,7 @@ def _select_mesh_neighbours_rect(
         neig_out = np.array([Rneig[neig[0]], Zneig[neig[1]]])
         neig_out[:, (neig[0] == -1) | (neig[1] == -1)] = np.nan
 
-    return neigh_out
+    return neig_out
 
 
 def _select_mesh_neighbours_tri(
@@ -433,7 +443,8 @@ def _select_mesh_neighbours_tri(
     return neig
 
 
-def _select_mesh_polar(
+# TBF
+def _select_mesh_neighbours_polar(
     coll=None,
     key=None,
     ind=None,
@@ -448,48 +459,60 @@ def _select_mesh_polar(
 
     """
 
-    nind = ind.sum()
-    kind = coll.dobj[coll._which_mesh][key]['ind']
+    elneig = 'cents' if elements == 'knots' else 'knots'
+    kneig = coll.dobj[coll._which_mesh][key][f'{elneig}']
+    rneig = coll.ddata[kneig[0]]['data']
+    nrneig = rneig.size
 
-    if returnas == 'data':
-        elneig = 'cents' if elements == 'knots' else 'knots'
-        kneig = coll.dobj[coll._which_mesh][key][elneig]
-        Rneig = coll.ddata[kneig[0]]['data']
-        Zneig = coll.ddata[kneig[1]]['data']
 
-    if elements == 'cents':
-        neig = coll.ddata[kind]['data'][ind, :]
-        if returnas == 'ind':
-            if return_ind_as is bool:
-                kknots = coll.dobj[coll._which_mesh][key]['knots']
-                import pdb; pdb.set_trace()     # DB
-                nneig = coll.dref[f'{kknots}-ind']['size']
-                neig_temp = np.zeros((nind, nneig), dtype=bool)
-                for ii in range(nind):
-                    neig_temp[ii, neig[ii, :]] = True
-                neig = neig_temp
-        else:
-            neig = np.array([Rneig[neig], Zneig[neig]])
+    # ----------------
+    # radius + angle
+
+    if len(kneig) == 2:
+        aneig = coll.ddata[kneig[1]]['data']
+        naneig = aneig.size
+
+        # prepare indices
+        shape = tuple(np.r_[ind[0].shape, 2])
+        neig = (
+            np.zeros((nrneig, 2), dtype=bool),
+            np.zeros((naneig, 2), dtype=bool),
+        )
+
+        # get indices of neighbours
+        if elements == 'cents':
+            neig[0][...] = ind[0][..., None] + np.r_[0, 1, 1, 0].reshape(rsh)
+            neig[1][...] = ind[1][..., None] + np.r_[0, 0, 1, 1].reshape(rsh)
+        elif elements == 'knots':
+            neig[0][...] = ind[0][..., None] + np.r_[-1, 0, 0, -1].reshape(rsh)
+            neig[1][...] = ind[1][..., None] + np.r_[-1, -1, 0, 0].reshape(rsh)
+            neig[0][(neig[0] < 0) | (neig[0] >= nRneig)] = -1
+            neig[1][(neig[1] < 0) | (neig[1] >= nZneig)] = -1
+
+
+    # ----------------
+    # radius only
+
     else:
-        ind_int = ind.nonzero()[0]
-        neig = np.array([
-            np.any(coll.ddata[kind]['data'] == ii, axis=1)
-            for ii in ind_int
-        ])
-        c0 = returnas == 'ind' and return_ind_as is int
-        if c0 or returnas == 'data':
-            nmax = np.sum(neig, axis=1)
-            if returnas == 'ind':
-                neig_temp = -np.ones((nind, nmax.max()), dtype=int)
-                for ii in range(nind):
-                    neig_temp[ii, :nmax[ii]] = neig[ii, :].nonzero()[0]
-            else:
-                neig_temp = np.full((2, nind, nmax.max()), np.nan)
-                for ii in range(nind):
-                    neig_temp[0, ii, :nmax[ii]] = Rneig[neig[ii, :]]
-                    neig_temp[1, ii, :nmax[ii]] = Zneig[neig[ii, :]]
-            neig = neig_temp
-    return neig
+        # prepare indices
+        neig = np.zeros((nrneig, 2), dtype=bool)
+
+        # get indices of neighbours
+        if elements == 'cents':
+            neig[0][...] = ind[0][..., None] + np.r_[0, 1, 1, 0].reshape(rsh)
+            neig[1][...] = ind[1][..., None] + np.r_[0, 0, 1, 1].reshape(rsh)
+
+    # return neighbours in desired format
+    if returnas == 'ind':
+        neig_out = neig
+    else:
+        if len(kneig) == 2:
+            neig_out = np.array([rneig[neig[0]], zneig[neig[1]]])
+            neig_out[:, (neig[0] == -1) | (neig[1] == -1)] = np.nan
+        else:
+            neig_out = rneig[neig]
+
+    return neig_out
 
 
 # #############################################################################
@@ -692,8 +715,8 @@ def _mesh2DRect_bsplines(coll=None, keym=None, keybs=None, deg=None):
         Rknots=Rknots,
         Zknots=Zknots,
         shapebs=shapebs,
-        knots_per_bs_R=knots_per_bs_R,
-        knots_per_bs_Z=knots_per_bs_Z,
+        # knots_per_bs_R=knots_per_bs_R,
+        # knots_per_bs_Z=knots_per_bs_Z,
     )
 
     # ----------------
@@ -820,10 +843,10 @@ def _mesh2DRect_bsplines_knotscents(
 
     if return_knots is True:
 
-        knots_per_bs_R = _mesh_bsplines_rect._get_bs2d_func_knots(
+        knots_per_bs_R = _bsplines_utils._get_bs2d_func_knots(
             Rknots, deg=deg, returnas=returnas,
         )
-        knots_per_bs_Z = _mesh_bsplines_rect._get_bs2d_func_knots(
+        knots_per_bs_Z = _bsplines_utils._get_bs2d_func_knots(
             Zknots, deg=deg, returnas=returnas,
         )
         if ind is not None:
@@ -836,10 +859,10 @@ def _mesh2DRect_bsplines_knotscents(
 
     if return_cents is True:
 
-        cents_per_bs_R = _mesh_bsplines_rect._get_bs2d_func_cents(
+        cents_per_bs_R = _bsplines_utils._get_bs2d_func_cents(
             Rcents, deg=deg, returnas=returnas,
         )
-        cents_per_bs_Z = _mesh_bsplines_rect._get_bs2d_func_cents(
+        cents_per_bs_Z = _bsplines_utils._get_bs2d_func_cents(
             Zcents, deg=deg, returnas=returnas,
         )
         if ind is not None:
@@ -870,18 +893,26 @@ def _mesh2DRect_bsplines_knotscents(
 # #############################################################################
 
 
-def _mesh2Dpolar_bsplines(coll=None, keym=None, keybs=None, deg=None):
+def _mesh2Dpolar_bsplines(
+    coll=None,
+    keym=None,
+    keybs=None,
+    angle=None,
+    deg=None,
+):
 
     # --------------
     # create bsplines
 
     kknots = coll.dobj[coll._which_mesh][keym]['knots']
+    knotsr = coll.ddata[kknots[0]]['data']
+    if len(kknots) == 2:
+        angle = [coll.ddata[kknots[1]]['data']]
+
     func_details, func_sum, clas = _mesh_bsplines_polar.get_bs2d_func(
         deg=deg,
-        knotsR=coll.ddata[kknots[0]]['data'],
-        knotsZ=coll.ddata[kknots[1]]['data'],
-        cents=coll.ddata[coll.dobj[coll._which_mesh][keym]['ind']]['data'],
-        trifind=coll.dobj[coll._which_mesh][keym]['func_trifind'],
+        knotsr=coll.ddata[kknots[0]]['data'],
+        angle=angle,
     )
     keybsr = f'{keybs}-nbs'
     kbscr = f'{keybs}-r'
@@ -907,15 +938,18 @@ def _mesh2Dpolar_bsplines(coll=None, keym=None, keybs=None, deg=None):
             'name': 'R',
             'ref': (keybsr,),
         },
-        kbscz: {
-            'data': bs_cents[1, :],
-            'units': 'm',
-            'dim': 'distance',
-            'quant': 'Z',
-            'name': 'Z',
-            'ref': (keybsr,),
-        },
     }
+    if angle is not None:
+        ddata.update({
+            kbscz: {
+                'data': bs_cents[1, :],
+                'units': 'm',
+                'dim': 'distance',
+                'quant': 'Z',
+                'name': 'Z',
+                'ref': (keybsr,),
+            },
+        })
 
     dobj = {
         'bsplines': {
@@ -966,6 +1000,11 @@ def _sample_mesh_check(
         types=str,
     )
     meshtype = coll.dobj['mesh'][key]['type']
+
+    # for polar mesh => sample underlying mesh
+    if meshtype == 'polar':
+        key = coll.dobj[coll._which_mesh][key]['submesh']
+        meshtype = coll.dobj['mesh'][key]['type']
 
     # res
     if res is None:

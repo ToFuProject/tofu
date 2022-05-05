@@ -174,6 +174,9 @@ class Plasma2D(ds.DataStock):
         radius_quant=None,
         radius_name=None,
         radius_units=None,
+        angle_dim=None,
+        angle_quant=None,
+        angle_name=None,
         # direct addition of bsplines
         deg=None,
         **kwdargs,
@@ -200,6 +203,9 @@ class Plasma2D(ds.DataStock):
             radius_quant=radius_quant,
             radius_name=radius_name,
             radius_units=radius_units,
+            angle_dim=angle_dim,
+            angle_quant=angle_quant,
+            angle_name=angle_name,
             # key
             key=key,
         )
@@ -229,7 +235,7 @@ class Plasma2D(ds.DataStock):
     # bsplines
     # ------------------
 
-    def add_bsplines(self, key=None, deg=None):
+    def add_bsplines(self, key=None, deg=None, angle=None):
         """ Add bspline basis functions on the chosen mesh """
 
         # --------------
@@ -254,7 +260,7 @@ class Plasma2D(ds.DataStock):
             )
         else:
             dref, ddata, dobj = _mesh_comp._mesh2Dpolar_bsplines(
-                coll=self, keym=keym, keybs=keybs, deg=deg,
+                coll=self, keym=keym, keybs=keybs, deg=deg, angle=angle,
             )
 
         # --------------
@@ -644,7 +650,6 @@ class Plasma2D(ds.DataStock):
             DZ=DZ,
             imshow=imshow,
         )
-
 
 
     """

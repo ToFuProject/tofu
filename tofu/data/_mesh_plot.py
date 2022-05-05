@@ -181,7 +181,7 @@ def _plot_mesh_prepare(
             if bck is True:
                 grid_bck = np.concatenate((vert, hor), axis=1)
 
-    elif meshtype == 'tri':
+    else:
         kknots = coll.dobj['mesh'][key]['knots']
         R = coll.ddata[kknots[0]]['data']
         Z = coll.ddata[kknots[1]]['data']
@@ -228,50 +228,65 @@ def _plot_mesh_prepare(
         grid = np.array([R[lseg], Z[lseg]])
         grid[0, lseg == -1] = np.nan
 
-    else:
-        import pdb; pdb.set_trace()     # DB
-
-        # concatenate contours
-        grid = None
-
     return grid, grid_bck
 
 
-def _plot_mesh_prepare_polar(
+def _plot_mesh_prepare_polar_cont(
     coll=None,
     key=None,
+    k2d=None,
+    RR=None,
+    ZZ=None,
+    ind=None,
+    nn=None,
 ):
 
-    # --------
-    # prepare
+    # ---------------------
+    # sample mesh if needed
 
-    # create rectangular grid and compute radius at each point
-    k2d = coll.dobj[coll._which_mesh][key]['radius2d']
+    # ---------------------
+    # get map of rr / angle
 
     if callable(k2d):
-        rr = coll.dobj[coll._which_key][key]['radius2d'](RR, ZZ)
-        assert rr.ndim == RR.ndim
-        rr = rr[None, ...]
+
+        # check RR
+        if RR is None:
+            msg = (
+                "radius2d / angle2d are callable => provide RR and ZZ!"
+            )
+            raise Exception(msg)
+
+        # compute map
+        rr = k2d(RR, ZZ)[None, ...]
+        assert rr.ndim == RR.ndim + 1
         reft = None
         nt = 1
-        rad = np.linspace(np.nanmin(rr), np.nanmax(rr), 50)
+
+        if nn is None:
+            nn = 50
+
+        # create vector
+        rad = np.linspace(np.nanmin(rr), np.nanmax(rr), nn)
 
     else:
-        kn = coll.dobj[coll._which_mesh][key]['knots'][0]
+        kn = coll.dobj[coll._which_mesh][key]['knots'][ind]
         rad = coll.ddata[kn]['data']
         kb2 = coll.ddata[k2d]['bsplines']
-        km2 = coll.dobj['bsplines'][kb2]['mesh']
-        RR, ZZ = coll.get_sample_mesh(
-            key=km2,
-            res=None,
-            grid=True,
-            mode=None,
-            R=None,
-            Z=None,
-            DR=None,
-            DZ=None,
-            imshow=True,
-        )
+
+        if RR is None:
+            km2 = coll.dobj['bsplines'][kb2]['mesh']
+            RR, ZZ = coll.get_sample_mesh(
+                key=km2,
+                res=None,
+                grid=True,
+                mode=None,
+                R=None,
+                Z=None,
+                DR=None,
+                DZ=None,
+                imshow=True,
+            )
+
         rr = coll.interpolate_profile2d(key=k2d, R=RR, Z=ZZ, grid=False)
 
         refr2d = coll.ddata[k2d]['ref']
@@ -285,6 +300,9 @@ def _plot_mesh_prepare_polar(
 
     assert rr.shape[0] == nt
 
+    # ----------------
+    # Compute contours
+
     contR, contZ = _mesh_comp._get_contours(
         RR=RR,
         ZZ=ZZ,
@@ -293,9 +311,64 @@ def _plot_mesh_prepare_polar(
     )
 
     # refrad
-    refrad = coll.dobj[coll._which_mesh][key]['knots'][0]
+    refrad = coll.dobj[coll._which_mesh][key]['knots'][ind]
 
-    return contR, contZ, rad, reft, refrad
+    return contR, contZ, rad, reft, refrad, RR, ZZ
+
+
+def _plot_mesh_prepare_polar(
+    coll=None,
+    key=None,
+    # Necessary for callable radius2d
+    RR=None,
+    ZZ=None,
+):
+
+    # --------
+    # prepare
+
+    # create rectangular grid and compute radius at each point
+    k2d = coll.dobj[coll._which_mesh][key]['radius2d']
+    (
+        contRrad, contZrad,
+        rad, reft, refrad,
+        RR, ZZ,
+    ) = _plot_mesh_prepare_polar_cont(
+        coll=coll,
+        key=key,
+        k2d=k2d,
+        RR=RR,
+        ZZ=ZZ,
+        ind=0,
+        nn=None,        # nrad if k2d callable
+    )
+
+    # -----------
+    # contour of angle if angle not None
+
+    contRang, contZang, ang, refang = None, None, None, None
+    if coll.dobj[coll._which_mesh][key]['angle2d'] is not None:
+        # create rectangular grid and compute radius at each point
+        k2d = coll.dobj[coll._which_mesh][key]['angle2d']
+        (
+            contRang, contZang,
+            ang, _, refang,
+            _, _,
+        ) = _plot_mesh_prepare_polar_cont(
+            coll=coll,
+            key=key,
+            k2d=k2d,
+            RR=RR,
+            ZZ=ZZ,
+            ind=1,
+            nn=None,        # nang if k2d callable
+        )
+
+    return (
+        contRrad, contZrad, rad, refrad,
+        contRang, contZang, ang, refang,
+        reft,
+    )
 
 
 def plot_mesh(
@@ -508,18 +581,27 @@ def _plot_mesh_polar(
     if nmax is None:
         nmax = 2
 
-    contR, contZ, rad, reft, refrad = _plot_mesh_prepare_polar(
+    (
+        contRrad, contZrad, rad, refrad,
+        contRang, contZang, ang, refang,
+        reft,
+    ) = _plot_mesh_prepare_polar(
         coll=coll,
         key=key,
     )
-    refpts = 'pts'
-    nt, nr, npts = contR.shape
+    refptsr = 'ptsr'
+    nt, nr, nptsr = contRrad.shape
+    if contRang is not None:
+        refptsa = 'ptsa'
+        _, nang, nptsa = contRang.shape
 
     # --------------------
     # Instanciate Plasma2D
 
     from ._mesh import Plasma2D
     coll2 = Plasma2D()
+
+    # ref
     coll2.add_ref(
         key=reft,
         size=nt,
@@ -530,34 +612,105 @@ def _plot_mesh_polar(
         size=nr,
     )
     coll2.add_ref(
-        key=refpts,
-        size=npts,
+        key=refptsr,
+        size=nptsr,
     )
 
+    if contRang is not None:
+        coll2.add_ref(
+            key=refang,
+            size=nang,
+        )
+        coll2.add_ref(
+            key=refptsa,
+            size=nptsa,
+        )
+
+    # data
     coll2.add_data(
         key='radius',
         data=rad,
         ref=(refrad,)
     )
     coll2.add_data(
-        key='contR',
-        data=contR,
-        ref=(reft, refrad, refpts)
+        key='contRrad',
+        data=contRrad,
+        ref=(reft, refrad, refptsr)
     )
     coll2.add_data(
-        key='contZ',
-        data=contZ,
-        ref=(reft, refrad, refpts)
+        key='contZrad',
+        data=contZrad,
+        ref=(reft, refrad, refptsr)
     )
 
+    if contRang is not None:
+        coll2.add_data(
+            key='angle',
+            data=ang,
+            ref=(refang,)
+        )
+        coll2.add_data(
+            key='contRang',
+            data=contRang,
+            ref=(reft, refang, refptsa)
+        )
+        coll2.add_data(
+            key='contZang',
+            data=contZang,
+            ref=(reft, refang, refptsa)
+        )
 
-    return coll2.plot_as_mobile_lines(
-        keyX='contR',
-        keyY='contZ',
-        key_time=reft,
-        key_chan='radius',
-        connect=connect,
-    )
+    # -----
+    # plot
+
+    if contRang is None:
+        return coll2.plot_as_mobile_lines(
+            keyX='contRrad',
+            keyY='contZrad',
+            key_time=reft,
+            key_chan='radius',
+            connect=connect,
+        )
+
+    else:
+
+        daxrad, dgrouprad = coll2.plot_as_mobile_lines(
+            keyX='contRrad',
+            keyY='contZrad',
+            key_time=reft,
+            key_chan='radius',
+            connect=False,
+            inplace=False,
+        )
+
+        daxang, dgroupang = coll2.plot_as_mobile_lines(
+            keyX='contRang',
+            keyY='contZang',
+            key_time=reft,
+            key_chan='angle',
+            connect=False,
+            inplace=False,
+        )
+
+        # connect
+        if connect is False:
+            return (daxrad, daxang), (dgrouprad, dgroupang)
+
+        else:
+            daxrad.setup_interactivity(
+                kinter='inter0', dgroup=dgrouprad, dinc=None,
+            )
+            daxrad.disconnect_old()
+            daxrad.connect()
+
+            daxang.setup_interactivity(
+                kinter='inter0', dgroup=dgroupang, dinc=None,
+            )
+            daxang.disconnect_old()
+            daxang.connect()
+
+            daxrad.show_commands()
+            return daxrad, daxang
 
 
 # #############################################################################
