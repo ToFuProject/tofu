@@ -907,7 +907,7 @@ def _mesh2Dpolar_bsplines(
     kknots = coll.dobj[coll._which_mesh][keym]['knots']
     knotsr = coll.ddata[kknots[0]]['data']
     if len(kknots) == 2:
-        angle = [coll.ddata[kknots[1]]['data']]
+        angle = coll.ddata[kknots[1]]['data']
 
     func_details, func_sum, clas = _mesh_bsplines_polar.get_bs2d_func(
         deg=deg,
@@ -917,58 +917,59 @@ def _mesh2Dpolar_bsplines(
     keybsr = f'{keybs}-nbs'
     kbscr = f'{keybs}-r'
 
-    bs_cents = clas._get_bs_cents()
+    # bs_cents = clas._get_bs_cents()
 
     # ----------------
     # format into dict
 
-    dref = {
-        # bs index
-        keybsr: {
-            'size': clas.nbs,
-        },
-    }
+    # dref = {
+        # # bs index
+        # keybsr: {
+            # 'size': clas.nbs,
+        # },
+    # }
 
-    ddata = {
-        kbscr: {
-            'data': bs_cents[0, :],
-            'units': 'm',
-            'dim': 'distance',
-            'quant': 'R',
-            'name': 'R',
-            'ref': (keybsr,),
-        },
-    }
-    if angle is not None:
-        ddata.update({
-            kbscz: {
-                'data': bs_cents[1, :],
-                'units': 'm',
-                'dim': 'distance',
-                'quant': 'Z',
-                'name': 'Z',
-                'ref': (keybsr,),
-            },
-        })
+    # ddata = {
+        # kbscr: {
+            # 'data': bs_cents[0, :],
+            # 'units': 'm',
+            # 'dim': 'distance',
+            # 'quant': 'R',
+            # 'name': 'R',
+            # 'ref': (keybsr,),
+        # },
+    # }
+    # if angle is not None:
+        # ddata.update({
+            # kbscz: {
+                # 'data': bs_cents[1, :],
+                # 'units': 'm',
+                # 'dim': 'distance',
+                # 'quant': 'Z',
+                # 'name': 'Z',
+                # 'ref': (keybsr,),
+            # },
+        # })
 
-    dobj = {
-        'bsplines': {
-            keybs: {
-                'deg': deg,
-                'mesh': keym,
-                'ref': (keybsr,),
-                'ref-bs': (keybsr,),
-                'cents': (kbscr,),
-                'shape': (clas.nbs,),
-                'crop': False,
-                'func_details': func_details,
-                'func_sum': func_sum,
-                'class': clas,
-            }
-        },
-    }
+    # dobj = {
+        # 'bsplines': {
+            # keybs: {
+                # 'deg': deg,
+                # 'mesh': keym,
+                # 'ref': (keybsr,),
+                # 'ref-bs': (keybsr,),
+                # 'cents': (kbscr,),
+                # 'shape': (clas.nbs,),
+                # 'crop': False,
+                # 'func_details': func_details,
+                # 'func_sum': func_sum,
+                # 'class': clas,
+            # }
+        # },
+    # }
 
-    return dref, ddata, dobj
+    # return dref, ddata, dobj
+    return None, None, None
 
 
 # #############################################################################

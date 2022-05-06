@@ -188,7 +188,7 @@ def _add_polar2(plasma):
     plasma.add_mesh_polar(
         key='m6',
         radius=np.linspace(0, 1.2, 13),
-        angle=np.pi*np.r_[-3./4., -1/4, 1/4, 3/4],
+        angle=np.pi*np.r_[-3./4., -1/4, 0, 1/4, 3/4],
         radius2d='rho2',
         angle2d='angle2',
     )
@@ -324,7 +324,7 @@ class Test02_Plasma2D():
         _add_polar2(plasma)
 
         # add bsplines for polar meshes
-        # _add_bsplines(plasma, kind=['polar'])
+        _add_bsplines(plasma, kind=['polar'])
 
         # store
         self.obj = plasma
