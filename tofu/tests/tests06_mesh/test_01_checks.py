@@ -227,6 +227,36 @@ def _add_bsplines(plasma, key=None, kind=None, angle=None):
                 plasma.add_bsplines(key=k0, deg=3, angle=[None]*14 + [angle])
 
 
+def _add_data_fix(plasma, key):
+
+    kdata = f'{key}-data-fix'
+    shape = plasma.dobj['bsplines'][key]['shape']
+    data = np.random.random(shape)
+
+    plasma.add_data(
+        key=kdata,
+        data=data,
+        ref=key,
+    )
+    return kdata
+
+
+def _add_data_var(plasma, key):
+
+    kdata = f'{key}-data-var'
+    shape = plasma.dobj['bsplines'][key]['shape']
+    t = plasma.ddata['t']['data']
+    tsh = tuple([t.size] + [1 for ii in shape])
+    data = np.cos(t.reshape(tsh)) * np.random.random(shape)[None, ...]
+
+    plasma.add_data(
+        key=kdata,
+        data=data,
+        ref=('nt', key),
+    )
+    return kdata
+
+
 #######################################################
 #
 #     checking routines
@@ -487,7 +517,67 @@ class Test02_Plasma2D():
             )
     """
 
-    def test07_ev_details_vs_sum(self):
+    def test07_interpolate_sum(self):
+        x = np.linspace(2.2, 2.8, 5)
+        y = np.linspace(-0.5, 0.5, 5)
+        x = np.tile(x, (y.size, 1))
+        y = np.tile(y, (x.shape[1], 1)).T
+
+        for ii, k0 in enumerate(self.lbs):
+            val = self.obj.interpolate_profile2d(
+                key=k0,
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=False,
+                reshape=True,
+                res=None,
+                crop=True,
+                nan0=ii % 2 == 0,
+                imshow=False,
+            )
+
+            # add fix data
+            kdata = _add_data_fix(self.obj, k0)
+            val = self.obj.interpolate_profile2d(
+                key=kdata,
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=False,
+                reshape=True,
+                res=None,
+                crop=True,
+                nan0=ii % 2 == 0,
+                imshow=False,
+            )
+
+            # add time-dependent data
+            kdata = _add_data_var(self.obj, k0)
+            val = self.obj.interpolate_profile2d(
+                key=kdata,
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=False,
+                reshape=True,
+                res=None,
+                crop=True,
+                nan0=ii % 2 == 0,
+                imshow=False,
+            )
+
+
+    def test07_interpolate_details_vs_sum(self):
 
         x = np.linspace(2.2, 2.8, 5)
         y = np.linspace(-0.5, 0.5, 5)

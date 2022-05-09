@@ -9,129 +9,6 @@ from . import _bsplines_utils
 
 # #############################################################################
 # #############################################################################
-#                   utility
-# #############################################################################
-
-
-def _get_bs2d_func_check(
-    # coordinates
-    R=None,
-    Z=None,
-    radius=None,
-    angle=None,
-    # parameters
-    coefs=None,
-    # resources
-    coll=None,
-    shapebs=None,
-):
-
-    # -------------------------
-    # (R, Z) vs (radius, angle)
-
-    c0 = (
-        True
-    )
-    if not c0:
-        raise Exception(msg)
-
-    # -------
-    # coefs
-
-    if coefs is None:
-        coefs = 1.
-
-    if np.isscalar(coefs):
-        coefs = np.full(tuple(np.r_[1, shapebs]), coefs)
-
-    else:
-        coefs = np.atleast_1d(coefs)
-        if coefs.shape == shapebs:
-            coefs = coefs[None, ...]
-        elif coefs.ndim == 3 and coefs.shape[1:] == shapebs:
-            pass
-        else:
-            msg = (
-                "coefs has too small / big shape!\n"
-                "It should be shapebs or (nt, shapebs)\n"
-                f"\t- coefs.shape: {coefs.shape}\n"
-                f"\t- shapebs:     {shapebs}\n"
-            )
-            raise Exception(msg)
-
-    # ------
-    # R, Z
-
-    if R is not None:
-        if not isinstance(R, np.ndarray):
-            R = np.atleast_1d(R)
-        if not isinstance(Z, np.ndarray):
-            Z = np.atleast_1d(Z)
-
-        if R.shape != Z.shape:
-            msg = (
-                "Args R and Z must be np.ndarrays of same shape!\n"
-                f"\t- R.shape: {R.shape}\n"
-                f"\t- Z.shape: {Z.shape}\n"
-            )
-            raise Exception(msg)
-
-        # compute radius / angle
-        radius = coll.interpolate_profile2d(
-            # coordinates
-            R=R,
-            Z=Z,
-            grid=False,
-            # quantities
-            key=radius2d,
-            details=False,
-        )
-
-        if angle2d is not None:
-            angle = coll.interpolate_profile2d(
-                # coordinates
-                R=R,
-                Z=Z,
-                grid=False,
-                # quantities
-                key=angle2d,
-                details=False,
-            )
-
-    # -------------
-    # radius, angle
-
-    if not isinstance(radius, np.ndarray):
-        radius = np.atleast_1d(radius)
-    if not isinstance(angle, np.ndarray):
-        angle = np.atleast_1d(angle)
-
-    if radius.shape != angle.shape:
-        msg = (
-            "Args radius and angle must be np.ndarrays of same shape!\n"
-            f"\t- radius.shape: {radius.shape}\n"
-            f"\t- angle.shape: {angle.shape}\n"
-        )
-        raise Exception(msg)
-
-    if radius.shape == R.shape:
-        radius_vs_time = False
-    elif radius.shape == tuple([coefs.shape[0], R.shape]):
-        radius_vs_time = True
-    else:
-        msg = (
-            "Arg radius must be of shape:\n"
-            f"\t- {R.shape}\n"
-            f"\t- {tuple([coefs.shape[0], R.shape])}\n"
-            f"Provided: {radius.shape}"
-        )
-        raise Exception(msg)
-
-    return coefs, radius, angle, radius_vs_time
-
-
-# #############################################################################
-# #############################################################################
 #                   class
 # #############################################################################
 
@@ -747,77 +624,22 @@ def get_bs2d_func(
 
     def func_details(
         # coordinates
-        R=None,
-        Z=None,
-        radius=None,
-        angle=None,
-        # parameters
-        coefs=None,
-        # resources
-        coll=None,
-        PolarBiv_scipy=PolarBiv_scipy,
-    ):
-        """ Return the value for each point summed on all bsplines """
-
-        # check inputs
-        coefs, radius, angle = _get_bs2d_func_check(
-            # coordinates
-            R=R,
-            Z=Z,
-            radius=radius,
-            angle=angle,
-            # parameters
-            coefs=coefs,
-            # resources
-            coll=coll,
-            shapebs=PolarBiv_scipy.shapebs,
-        )
-
-        # compute
-        return RectBiv_scipy.ev_details(
-            r,
-            z,
-            indbs_tuple_flat=indbs_tuple_flat,
-            reshape=reshape,
-        )
-
-    def func_sum(
-        # coordinates
-        R=None,
-        Z=None,
         radius=None,
         angle=None,
         # parameters
         coefs=None,
         indbs=None,
         # resources
-        coll=None,
         PolarBiv_scipy=PolarBiv_scipy,
     ):
         """ Return the value for each point summed on all bsplines """
 
-        # check inputs
-        coefs, radius, angle, radius_vs_time = _get_bs2d_func_check(
-            # coordinates
-            R=R,
-            Z=Z,
-            radius=radius,
-            angle=angle,
-            # parameters
-            coefs=coefs,
-            # resources
-            coll=coll,
-            shapebs=PolarBiv_scipy.shapebs,
-        )
-
-        import pdb; pdb.set_trace()     # DB
-
-        return PolarBiv_scipy(
+        # compute
+        return RectBiv_scipy.ev_details(
             radius=radius,
             angle=angle,
             coefs=coefs,
             radius_vs_time=radius_vs_time,
         )
 
-
-    return func_details, func_sum, PolarBiv_scipy
+    return func_details, PolarBiv_scipy.__call__, PolarBiv_scipy

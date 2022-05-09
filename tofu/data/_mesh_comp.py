@@ -913,6 +913,7 @@ def _mesh2Dpolar_bsplines(
         deg=deg,
         knotsr=coll.ddata[kknots[0]]['data'],
         angle=angle,
+        coll=coll,
     )
 
     keybsnr = f'{keybs}-nr'
@@ -1615,20 +1616,28 @@ def _get_possible_ref12d(
 def _interp2d_check(
     coll=None,
     key=None,
+    # coordinates
     R=None,
     Z=None,
+    radius=None,
+    angle=None,
+    # coefs
+    coefs=None,
+    # parameters
     grid=None,
     indbs=None,
     indt=None,
     details=None,
     res=None,
-    coefs=None,
     crop=None,
     nan0=None,
     imshow=None,
     return_params=None,
 ):
-    # key
+
+    # -------------
+    # keys
+
     dk = {
         k0: v0['bsplines']
         for k0, v0 in coll.ddata.items()
@@ -1645,31 +1654,41 @@ def _interp2d_check(
             f"\t- provided: {key}\n"
         )
         raise Exception(msg)
+
     keybs = dk[key]
     keym = coll.dobj['bsplines'][keybs]['mesh']
+    mtype = coll.dobj[coll._which_mesh][keym]['type']
 
+    # -------------
     # coefs
+
     shapebs = coll.dobj['bsplines'][keybs]['shape']
     if coefs is None:
         if key == keybs:
-            pass
+            coefs = np.ones(shapebs)
         else:
             coefs = coll.ddata[key]['data']
-    else:
-        c0 = (
-            coefs.ndim in [len(shapebs), len(shapebs) + 1]
-            and coefs.shape[-len(shapebs):] == shapebs
+
+    c0 = (
+        coefs.ndim in [len(shapebs), len(shapebs) + 1]
+        and coefs.shape[-len(shapebs):] == shapebs
+    )
+    if not c0:
+        msg = (
+            f"Arg coefs must be a {shapebs} array!\n"
+            f"Provided: {coefs.shape}"
         )
-        if not c0:
-            msg = (
-                f"Arg coefs must be a {shapebs} array!\n"
-                f"Provided: {coefs.shape}"
-            )
-            raise Exception(msg)
+        raise Exception(msg)
+
+    # Make sure coes is time dependent
+    if coefs.ndim == len(shapebs):
+        coefs = coefs[None, ...]
 
     # indbs
 
+    # -------------
     # indt
+
     c0 = (
         indt is not None
         and coefs is not None
@@ -1689,29 +1708,55 @@ def _interp2d_check(
             raise Exception(msg)
         coefs = coefs[indt:indt+1, ...]
 
+    # -------------
     # details
+
     details = _generic_check._check_var(
         details, 'details',
         types=bool,
         default=False,
     )
 
+    # -------------
     # crop
+
     crop = _generic_check._check_var(
         crop, 'crop',
         types=bool,
         default=True,
     )
 
+    # -------------
     # nan0
+
     nan0 = _generic_check._check_var(
         nan0, 'nan0',
         types=bool,
         default=True,
     )
 
+    # -----------
+    # coordinates
+
+    # (R, Z) vs (radius, angle)
+    lc = [
+        R is None and Z is None and mtype in ['rect', 'tri'],
+        R is not None and Z is not None,
+        (R is None and Z is None)
+        and (radius is not None and mtype == 'polar')
+    ]
+
+    if not any(lc):
+        msg = (
+            "Please provide either:\n"
+            "\t- R and Z: for any mesh type\n"
+            "\t- radius (and angle): for polar mesh\n"
+            "\t- None: for rect / tri mesh\n"
+        )
+        raise Exception(msg)
+
     # R, Z
-    if R is None or Z is None:
+    if lc[0]:
         R, Z = coll.get_sample_mesh(
             key=keym,
             res=res,
@@ -1721,7 +1766,8 @@ def _interp2d_check(
             Z=Z,
             imshow=imshow,
         )
-    else:
+
+    elif lc[1]:
         if not isinstance(R, np.ndarray):
             try:
                 R = np.atleast_1d(R).astype(float)
@@ -1753,7 +1799,91 @@ def _interp2d_check(
             R = np.tile(R, Z.size)
             Z = np.repeat(Z, R.size)
 
+        # special case if polar mesh
+        if mtype == 'polar':
+            # compute radius / angle
+            radius2d = coll.dobj[coll._which_mesh][keym]['radius2d']
+            radius = coll.interpolate_profile2d(
+                # coordinates
+                R=R,
+                Z=Z,
+                grid=False,
+                # quantities
+                key=radius2d,
+                details=False,
+            )
+
+            angle2d = coll.dobj[coll._which_mesh][keym]['angle2d']
+            if angle2d is not None:
+                angle = coll.interpolate_profile2d(
+                    # coordinates
+                    R=R,
+                    Z=Z,
+                    grid=False,
+                    # quantities
+                    key=angle2d,
+                    details=False,
+                )
+
+            if radius.shape[0] != coefs.shape[0]:
+                import pdb; pdb.set_trace()     # DB
+                pass
+
+    # -------------
+    # radius, angle
+
+    radius_vs_time = None
+    if mtype == 'polar':
+
+        # check same shape
+        if not isinstance(radius, np.ndarray):
+            radius = np.atleast_1d(radius)
+
+        # angle vs angle2d
+        angle2d = coll.dobj[coll._which_mesh][keym]['angle2d']
+        if angle2d is not None and angle is None:
+            msg = (
+                f"Arg angle must be provided for bsplines {keybs}"
+            )
+            raise Exception(msg)
+
+        # angle vs radius
+        if angle is not None:
+            if not isinstance(angle, np.ndarray):
+                angle = np.atleast_1d(angle)
+
+            if radius.shape != angle.shape:
+                msg = (
+                    "Args radius and angle must be np.ndarrays of same shape!\n"
+                    f"\t- radius.shape: {radius.shape}\n"
+                    f"\t- angle.shape: {angle.shape}\n"
+                )
+                raise Exception(msg)
+
+        # radius_vs_time
+        if R is not None:
+            if radius.shape == R.shape:
+                radius_vs_time = False
+            elif radius.shape == tuple(np.r_[coefs.shape[0], R.shape]):
+                radius_vs_time = True
+            elif radius.shape[0] != coefs.shape[0]:
+                import pdb; pdb.set_trace()     # DB
+                pass
+            else:
+                msg = (
+                    "Arg radius must be of shape:\n"
+                    f"\t- {R.shape}\n"
+                    f"\t- {tuple([coefs.shape[0], R.shape])}\n"
+                    f"Provided: {radius.shape}"
+                )
+                raise Exception(msg)
+        else:
+            import pdb; pdb.set_trace()     # DB
+            raise NotImplementedError()
+
+    # -------------
     # return_params
+
     return_params = _generic_check._check_var(
         return_params, 'return_params',
         types=bool,
@@ -1762,7 +1892,10 @@ def _interp2d_check(
 
     return (
         key, keybs,
-        R, Z, coefs,
+        R, Z,
+        radius, angle,
+        coefs,
+        radius_vs_time,
         indbs, indt,
         details, crop, nan0, return_params,
     )
@@ -1771,8 +1904,12 @@ def _interp2d_check(
 def interp2d(
     coll=None,
     key=None,
+    # coordinates
     R=None,
     Z=None,
+    radius=None,
+    angle=None,
+    # parameters
     coefs=None,
     indbs=None,
     indt=None,
@@ -1791,14 +1928,21 @@ def interp2d(
 
     (
         key, keybs,
-        R, Z, coefs,
+        R, Z,
+        radius, angle,
+        coefs,
+        radius_vs_time,
         indbs, indt,
         details, crop, nan0, return_params,
     ) = _interp2d_check(
         coll=coll,
         key=key,
+        # coordinates
         R=R,
         Z=Z,
+        radius=radius,
+        angle=angle,
+        # parameters
         coefs=coefs,
         indbs=indbs,
         indt=indt,
@@ -1827,7 +1971,7 @@ def interp2d(
     # interp
 
     cropbs = coll.dobj['bsplines'][keybs]['crop']
-    if cropbs is not False:
+    if cropbs not in [None, False]:
         cropbs = coll.ddata[cropbs]['data']
 
     if details is not False:
@@ -1843,14 +1987,22 @@ def interp2d(
     else:
         indbs_tuple_flat = None
 
-    val = coll.dobj['bsplines'][keybs][fname](
-        R, Z,
-        coefs=coefs,
-        crop=crop,
-        cropbs=cropbs,
-        indbs_tuple_flat=indbs_tuple_flat,
-        reshape=reshape,
-    )
+    if meshtype in ['rect', 'tri']:
+        val = coll.dobj['bsplines'][keybs][fname](
+            R, Z,
+            coefs=coefs,
+            crop=crop,
+            cropbs=cropbs,
+            indbs_tuple_flat=indbs_tuple_flat,
+            reshape=reshape,
+        )
+    else:
+        val = coll.dobj['bsplines'][keybs][fname](
+            radius=radius,
+            angle=angle,
+            coefs=coefs,
+            radius_vs_time=radius_vs_time,
+        )
 
     # ---------------
     # post-treatment
