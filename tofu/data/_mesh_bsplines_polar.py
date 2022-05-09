@@ -14,20 +14,50 @@ from . import _bsplines_utils
 
 
 def _get_bs2d_func_check(
-    coefs=None,
+    # coordinates
     R=None,
     Z=None,
     radius=None,
     angle=None,
+    # parameters
+    coefs=None,
+    # resources
+    coll=None,
+    shapebs=None,
 ):
 
     # -------------------------
     # (R, Z) vs (radius, angle)
 
     c0 = (
+        True
     )
     if not c0:
         raise Exception(msg)
+
+    # -------
+    # coefs
+
+    if coefs is None:
+        coefs = 1.
+
+    if np.isscalar(coefs):
+        coefs = np.full(tuple(np.r_[1, shapebs]), coefs)
+
+    else:
+        coefs = np.atleast_1d(coefs)
+        if coefs.shape == shapebs:
+            coefs = coefs[None, ...]
+        elif coefs.ndim == 3 and coefs.shape[1:] == shapebs:
+            pass
+        else:
+            msg = (
+                "coefs has too small / big shape!\n"
+                "It should be shapebs or (nt, shapebs)\n"
+                f"\t- coefs.shape: {coefs.shape}\n"
+                f"\t- shapebs:     {shapebs}\n"
+            )
+            raise Exception(msg)
 
     # ------
     # R, Z
@@ -37,42 +67,67 @@ def _get_bs2d_func_check(
             R = np.atleast_1d(R)
         if not isinstance(Z, np.ndarray):
             Z = np.atleast_1d(Z)
-        assert R.shape == Z.shape
+
+        if R.shape != Z.shape:
+            msg = (
+                "Args R and Z must be np.ndarrays of same shape!\n"
+                f"\t- R.shape: {R.shape}\n"
+                f"\t- Z.shape: {Z.shape}\n"
+            )
+            raise Exception(msg)
+
+        # compute radius / angle
+        radius = coll.interpolate_profile2d(
+            # coordinates
+            R=R,
+            Z=Z,
+            grid=False,
+            # quantities
+            key=radius2d,
+            details=False,
+        )
+
+        if angle2d is not None:
+            angle = coll.interpolate_profile2d(
+                # coordinates
+                R=R,
+                Z=Z,
+                grid=False,
+                # quantities
+                key=angle2d,
+                details=False,
+            )
 
     # -------------
     # radius, angle
 
-    if radius is not None:
-        if not isinstance(radius, np.ndarray):
-            radius = np.atleast_1d(radius)
+    if not isinstance(radius, np.ndarray):
+        radius = np.atleast_1d(radius)
+    if not isinstance(angle, np.ndarray):
+        angle = np.atleast_1d(angle)
 
-    # -------
-    # coefs
+    if radius.shape != angle.shape:
+        msg = (
+            "Args radius and angle must be np.ndarrays of same shape!\n"
+            f"\t- radius.shape: {radius.shape}\n"
+            f"\t- angle.shape: {angle.shape}\n"
+        )
+        raise Exception(msg)
 
-    if coefs is None:
-        coefs = 1.
-    if np.isscalar(coefs):
-        pass
+    if radius.shape == R.shape:
+        radius_vs_time = False
+    elif radius.shape == tuple([coefs.shape[0], R.shape]):
+        radius_vs_time = True
     else:
-        coefs = np.atleast_1d(coefs)
-        if coefs.ndim < len(shapebs) or coefs.ndim > len(shapebs) + 1:
-            msg = (
-                "coefs has too small / big shape!\n"
-                f"\t- coefs.shape: {coefs.shape}\n"
-                f"\t- shapebs:     {shapebs}"
-            )
-            raise Exception(msg)
-        if coefs.ndim == len(shapebs):
-            coefs = coefs.reshape(tuple(np.r_[1, coefs.shape]))
-        if coefs.shape[1:] != shapebs:
-            msg = (
-                "coefs has wrong shape!\n"
-                f"\t- coefs.shape: {coefs.shape}\n"
-                f"\t- shapebs:     {shapebs}"
-            )
-            raise Exception(msg)
+        msg = (
+            "Arg radius must be of shape:\n"
+            f"\t- {R.shape}\n"
+            f"\t- {tuple([coefs.shape[0], R.shape])}\n"
+            f"Provided: {radius.shape}"
+        )
+        raise Exception(msg)
 
-    return coefs, radius, angle
+    return coefs, radius, angle, radius_vs_time
 
 
 # #############################################################################
@@ -111,8 +166,12 @@ class BivariateSplinePolar():
         else:
             self.shapebs = (self.nbs,)
 
-        # self.tck = [knotsR, knotsZ, coefs]
-        # self.degrees = [deg, deg]
+        # func to get coef from (ii, jj)
+        if self.knotsa is not None and len(self.shapebs) == 1:
+            self.func_coef_ind = self._get_func_coef_ind()
+
+        # deg
+        self.deg = deg
 
     def _get_knots_per_bs_for_basis_elements(
         self,
@@ -124,11 +183,16 @@ class BivariateSplinePolar():
         # ------------------------------------
         # get knots per bs in radius direction
 
-        knots_per_bs_r = _bsplines_utils._get_bs2d_func_knots(
+        knots_per_bs_r = _bsplines_utils._get_knots_per_bs(
             knotsr, deg=deg, returnas='data',
         )
+        knotsr_with_mult, nbsr = _bsplines_utils._get_knots_per_bs(
+            knotsr, deg=deg, returnas='data', return_unique=True,
+        )
 
-        nbsr = knots_per_bs_r.shape[1]
+        if nbsr != knots_per_bs_r.shape[1]:
+            msg = "Inconsistent nb. of splines in r direction"
+            raise Exception(msg)
 
         # ----------------
         # check angle
@@ -187,35 +251,98 @@ class BivariateSplinePolar():
         # angle bsplines
         nbsa = np.ones((nbsr,), dtype=int)
         if knotsa is not None:
-            lba = []
+            lba = [[] for ii in range(nbsr)]
+            knots_per_bs_a = []
             for ii in range(nbsr):
 
                 if knotsa[ii] is None:
                     lba.append(None)
+                    knots_per_bs_a.append(None)
                     continue
 
-                knots_per_bsai = _bsplines_utils._get_bs_func_knots_poloidal(
-                    knotsa[ii], deg=deg, returnas='data',
+                knots_per_bsai = _bsplines_utils._get_knots_per_bs(
+                    knotsa[ii],
+                    deg=deg,
+                    returnas='data',
+                    poloidal=True,
                 )
 
                 nbsa[ii] = knots_per_bsai.shape[1]
-                lba.append([
-                    scpinterp.BSpline.basis_element(
-                        knots_per_bsai[:, jj],
+                knots_per_bs_a.append(knots_per_bsai)
+
+                for jj in range(nbsa[ii]):
+                    kj = knots_per_bsai[:, jj]
+                    if kj[0] > kj[-1]:
+                        i2pi = np.r_[False, np.diff(kj) < 0]
+                        kj = np.copy(kj)
+                        kj[i2pi] += 2.*np.pi
+                    lba[ii].append(scpinterp.BSpline.basis_element(
+                        kj,
                         extrapolate=False,
-                    )
-                    for jj in range(nbsa[ii])
-                ])
+                    ))
         else:
             lba = None
+            knots_per_bs_a = None
+
+        # ----------------
+        # bsplines centers
+
+        cents_per_bs_r = _bsplines_utils._get_cents_per_bs(
+            0.5*(knotsr[1:] + knotsr[:-1]),
+            deg=deg,
+            returnas='data',
+        )
+        if knotsa is None:
+            cents_per_bs_a = None
+        else:
+            cents_per_bs_a = [None for ii in range(nbsr)]
+            for ii in range(nbsr):
+                if knotsa[ii] is None:
+                    pass
+                else:
+                    cents_per_bs_a[ii] = _bsplines_utils._get_cents_per_bs(
+                        0.5*(knotsa[ii][1:] + knotsa[ii][:-1]),
+                        deg=deg,
+                        returnas='data',
+                        poloidal=True,
+                    )
+
+        # ----------------
+        # bsplines apex
+
+        apex_per_bs_r = _bsplines_utils._get_apex_per_bs(
+            knots=knotsr,
+            knots_per_bs=knots_per_bs_r,
+            deg=deg,
+        )
+        if knotsa is None:
+            apex_per_bs_a = None
+        else:
+            apex_per_bs_a = [None for ii in range(nbsr)]
+            for ii in range(nbsr):
+                if knotsa[ii] is None:
+                    pass
+                else:
+                    apex_per_bs_a[ii] = _bsplines_utils._get_apex_per_bs(
+            knots=knotsa[ii],
+            knots_per_bs=knots_per_bs_a[ii],
+            deg=deg,
+            poloidal=True,
+        )
 
         # ------
         # store
 
         self.knotsr = knotsr
         self.knotsa = knotsa
+        self.knotsr_with_mult = knotsr_with_mult
+        self.knotsa_with_mult = knotsa
         self.knots_per_bs_r = knots_per_bs_r
-        self.knots_per_bs_a = lba
+        self.knots_per_bs_a = knots_per_bs_a
+        self.cents_per_bs_r = cents_per_bs_r
+        self.cents_per_bs_a = cents_per_bs_a
+        self.apex_per_bs_r = apex_per_bs_r
+        self.apex_per_bs_a = apex_per_bs_a
         self.nbs_r = nbsr
         self.nbs_a_per_r = nbsa
         self.lbr = lbr
@@ -250,40 +377,10 @@ class BivariateSplinePolar():
         # self.knots_per_bs_r_pad = np.asfortranarray(knots_per_bs_r)
         # self.knots_per_bs_a_pad = np.asfortranarray(knots_per_bs_a)
 
-    def set_coefs(
-        self,
-        coefs=None,
-    ):
-
-        # ------------
-        # check inputs
-
-        if coefs is None:
-            msg = "Please provide coefs!"
-            raise Exception(msg)
-
-        shape = self.shapebs
-        if np.isscalar(coefs):
-            self.tck[2][...] = coefs
-        else:
-            if not isinstance(coefs, np.ndarray):
-                coefs = np.asarray(coefs)
-            if coefs.ndim > 1 and coefs.size == shape[0]:
-                coefs = coefs.ravel()
-            if coefs.shape != shape:
-                msg = (
-                    "Arg coefs has wrong shape!\n"
-                    f"\t- expected: {shape}\n"
-                    f"\t- provided: {coefs.shape}\n"
-                )
-                raise Exception(msg)
-            self.tck[2][...] = coefs
-
-        # ------------
-        # crop and set
-
-        if cropbs_neg_flat is not None:
-            self.tck[2][cropbs_neg_flat] = 0.
+    def _get_func_coef_ind(self):
+        def func(ii, jj):
+            return np.r_[0, np.cumsum(self.nbs_a_per_r)][ii] + jj
+        return func
 
     def _check_radiusangle_input(self, radius=None, angle=None):
 
@@ -312,11 +409,19 @@ class BivariateSplinePolar():
 
     def __call__(
         self,
-        radius,
-        angle,
+        # coordiantes
+        radius=None,
+        angle=None,
+        # coefs
         coefs=None,
-        **kwdargs,
+        # options
+        radius_vs_time=None,
     ):
+        """ Assumes
+
+        coefs.shape = (nt, shapebs)
+
+        """
 
         # ------------
         # check inputs
@@ -325,49 +430,133 @@ class BivariateSplinePolar():
             radius=radius,
             angle=angle,
         )
+        nt = coefs.shape[0]
 
-        # ------------
-        # prepare
-
-        self.set_coefs(coefs=coefs)
-        val = np.full(radius.shape, np.nan)
+        if radius_vs_time:
+            val = np.zeros(radius.shape)
+        else:
+            val = np.zeros(tuple(np.r_[nt, radius.shape]))
 
         # ------------
         # compute
 
-        # TBF
         if self.knotsa is None:
-            val = scpinterp.BSpline(
-                self.knotsr,
-                self.coefs,
-                self.deg,
-                extrapolate=False,
-            )(radius)
+            if radius_vs_time:
+                for it in range(nt):
+                    val[it, ...] = scpinterp.BSpline(
+                        self.knotsr_with_mult,
+                        coefs[it, :],
+                        self.deg,
+                        extrapolate=False,
+                    )(radius[it, ...])
+            else:
+                for it in range(nt):
+                    val[it, ...] = scpinterp.BSpline(
+                        self.knotsr_with_mult,
+                        coefs[it, :],
+                        self.deg,
+                        extrapolate=False,
+                    )(radius)
+
+        elif radius_vs_time:
+
+            for it in range(nt):
+                for ii, nbsa in enumerate(self.nbs_a_per_r):
+                    iok = (
+                        (radius[it, ...] >= self.knots_per_bs_r[0, ii])
+                        & ((radius[it, ...] < self.knots_per_bs_r[-1, ii]))
+                    )
+                    valr = self.lbr[ii](radius[iok])
+                    if nbsa == 1:
+                        ind = self.func_coef_ind(ii, 0)
+                        val[it, iok] += coefs[it, ind] * valr[None, ...]
+                    else:
+                        for jj in range(nbsa):
+                            kj = self.knots_per_bs_a[ii][:, jj]
+                            if kj[0] > kj[-1]:
+                                atemp = np.copy(angle[iok])
+                                atemp[atemp < kj[0]] += 2.*np.pi
+                                vala = self.lba[ii][jj](atemp)
+                            else:
+                                vala = self.lba[ii][jj](angle[iok])
+
+                            iokj = ~np.isnan(vala)
+                            if np.any(iokj):
+                                iok2 = np.copy(iok)
+                                iok2[iok2] = iokj
+
+                            if len(self.shapebs) == 1:
+                                ind = self.func_coef_ind(ii, jj)
+                                val[it, iok2] += (
+                                    coefs[it, ind]
+                                    * (valr[iokj]*vala[iokj])[None, ...]
+                                )
+                            else:
+                                val[it, iok2] += (
+                                    coefs[it, ii, jj]
+                                    * (valr[iokj]*vala[iokj])[None, ...]
+                                )
+
+            # pts out 
+            indout = (
+                (radius < self.knotsr.min())
+                | (radius > self.knotsr.max())
+            )
+            val[indout] = np.nan
+
 
         else:
             for ii, nbsa in enumerate(self.nbs_a_per_r):
-                valr = self.lbr[ii]()
+                iok = (
+                    (radius >= self.knots_per_bs_r[0, ii])
+                    & ((radius < self.knots_per_bs_r[-1, ii]))
+                )
+                valr = self.lbr[ii](radius[iok])
                 if nbsa == 1:
-                    val += valr
+                    ind = self.func_coef_ind(ii, 0)
+                    val[:, iok] += coefs[:, ind] * valr[None, ...]
                 else:
                     for jj in range(nbsa):
-                        vala = self.lba[ii][jj]()
-                        val += valr*vala
+                        kj = self.knots_per_bs_a[ii][:, jj]
+                        if kj[0] > kj[-1]:
+                            atemp = np.copy(angle[iok])
+                            atemp[atemp < kj[0]] += 2.*np.pi
+                            vala = self.lba[ii][jj](atemp)
+                        else:
+                            vala = self.lba[ii][jj](angle[iok])
 
-        # clean
-        indout = (
-            (x < self.tck[0][0]) | (x > self.tck[0][-1])
-            | (y < self.tck[1][0]) | (y > self.tck[1][-1])
-        )
-        val[indout] = np.nan
+                        iokj = ~np.isnan(vala)
+                        if np.any(iokj):
+                            iok2 = np.copy(iok)
+                            iok2[iok2] = iokj
+
+                        if len(self.shapebs) == 1:
+                            ind = self.func_coef_ind(ii, jj)
+                            val[:, iok2] += (
+                                coefs[:, ind]
+                                * (valr[iokj]*vala[iokj])[None, ...]
+                            )
+                        else:
+                            val[:, iok2] += (
+                                coefs[:, ii, jj]
+                                * (valr[iokj]*vala[iokj])[None, ...]
+                            )
+
+            # pts out 
+            indout = (
+                (radius < self.knotsr.min())
+                | (radius > self.knotsr.max())
+            )
+            val[:, indout] = np.nan
+
         return val
 
     def ev_details(
         self,
-        x,
-        y,
-        indbs_tuple_flat=None,
-        reshape=None,
+        radius=None,
+        angle=None,
+        coefs=None,
+        indbs=None,
     ):
 
         # -----------
@@ -563,18 +752,25 @@ def get_bs2d_func(
         radius=None,
         angle=None,
         # parameters
-        coll=None,
         coefs=None,
+        # resources
+        coll=None,
+        PolarBiv_scipy=PolarBiv_scipy,
     ):
         """ Return the value for each point summed on all bsplines """
 
         # check inputs
         coefs, radius, angle = _get_bs2d_func_check(
+            # coordinates
             R=R,
             Z=Z,
             radius=radius,
             angle=angle,
+            # parameters
             coefs=coefs,
+            # resources
+            coll=coll,
+            shapebs=PolarBiv_scipy.shapebs,
         )
 
         # compute
@@ -586,56 +782,42 @@ def get_bs2d_func(
         )
 
     def func_sum(
-        R,
-        Z,
+        # coordinates
+        R=None,
+        Z=None,
+        radius=None,
+        angle=None,
+        # parameters
         coefs=None,
-        crop=None,
-        cropbs=None,
+        indbs=None,
+        # resources
+        coll=None,
         PolarBiv_scipy=PolarBiv_scipy,
-        indbs_tuple_flat=None,
-        reshape=None,
     ):
         """ Return the value for each point summed on all bsplines """
 
         # check inputs
-        coefs, _, _, r, z, crop = _get_bs2d_func_check(
-            coefs=coefs,
+        coefs, radius, angle, radius_vs_time = _get_bs2d_func_check(
+            # coordinates
             R=R,
             Z=Z,
-            shapebs=shapebs,
-            crop=crop,
-            cropbs=cropbs,
+            radius=radius,
+            angle=angle,
+            # parameters
+            coefs=coefs,
+            # resources
+            coll=coll,
+            shapebs=PolarBiv_scipy.shapebs,
         )
 
-        # prepare
-        nt = 1 if np.isscalar(coefs) else coefs.shape[0]
-        shapepts = r.shape
+        import pdb; pdb.set_trace()     # DB
 
-        shape = tuple(np.r_[nt, shapepts])
-        val = np.zeros(shape, dtype=float)
-        cropbs_neg_flat = ~cropbs.ravel() if crop else None
-
-        # compute
-        if np.isscalar(coefs):
-            val[0, ...] = PolarBiv_scipy(
-                r,
-                z,
-                grid=False,
-                coefs=coefs,
-                cropbs_neg_flat=cropbs_neg_flat,
-            )
-
-        else:
-            for ii in range(coefs.shape[0]):
-                val[ii, ...] = PolarBiv_scipy(
-                    r,
-                    z,
-                    grid=False,
-                    coefs=coefs[ii, ...],
-                    cropbs_neg_flat=cropbs_neg_flat,
-                )
-
-        return val
+        return PolarBiv_scipy(
+            radius=radius,
+            angle=angle,
+            coefs=coefs,
+            radius_vs_time=radius_vs_time,
+        )
 
 
     return func_details, func_sum, PolarBiv_scipy

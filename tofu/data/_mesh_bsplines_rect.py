@@ -44,10 +44,10 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         )
 
         # full knots with multiplicity
-        knotsR, nbsR = _bsplines_utils._get_bs2d_func_knots(
+        knotsR, nbsR = _bsplines_utils._get_knots_per_bs(
             knotsR, deg=deg, returnas='data', return_unique=True,
         )
-        knotsZ, nbsZ = _bsplines_utils._get_bs2d_func_knots(
+        knotsZ, nbsZ = _bsplines_utils._get_knots_per_bs(
             knotsZ, deg=deg, returnas='data', return_unique=True,
         )
 
@@ -68,10 +68,10 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
     ):
 
         # added for details
-        knots_per_bs_x = _bsplines_utils._get_bs2d_func_knots(
+        knots_per_bs_x = _bsplines_utils._get_knots_per_bs(
             knotsR, deg=deg, returnas='data',
         )
-        knots_per_bs_y = _bsplines_utils._get_bs2d_func_knots(
+        knots_per_bs_y = _bsplines_utils._get_knots_per_bs(
             knotsZ, deg=deg, returnas='data',
         )
 
@@ -423,46 +423,47 @@ def _get_bs2d_func_check(
     return coefs, ii, jj, R, Z, crop
 
 
-def _get_bs2d_func_max(Rknots=None, Zknots=None, deg=None):
+# DEPRECATED
+# def _get_bs2d_func_max(Rknots=None, Zknots=None, deg=None):
 
-    knots_per_bs_R = _bsplines_utils._get_bs2d_func_knots(
-        Rknots, deg=deg,
-    )
-    knots_per_bs_Z = _bsplines_utils._get_bs2d_func_knots(
-        Zknots, deg=deg,
-    )
-    nbkbs = knots_per_bs_R.shape[0]
+    # knots_per_bs_R = _bsplines_utils._get_knots_per_bs(
+        # Rknots, deg=deg,
+    # )
+    # knots_per_bs_Z = _bsplines_utils._get_knots_per_bs(
+        # Zknots, deg=deg,
+    # )
+    # nbkbs = knots_per_bs_R.shape[0]
 
-    if nbkbs % 2 == 0:
-        ii = int(nbkbs/2)
-        Rbs_cent = np.mean(knots_per_bs_R[ii-1:ii+1, :], axis=0)
-        Zbs_cent = np.mean(knots_per_bs_Z[ii-1:ii+1, :], axis=0)
-        if deg == 2:
-            Rbs_cent[:deg] = [Rknots[0], 0.5*(Rknots[0] + Rknots[1])]
-            Rbs_cent[-deg:] = [0.5*(Rknots[-2] + Rknots[-1]), Rknots[-1]]
-            Zbs_cent[:deg] = [Zknots[0], 0.5*(Zknots[0] + Zknots[1])]
-            Zbs_cent[-deg:] = [0.5*(Zknots[-2] + Zknots[-1]), Zknots[-1]]
+    # if nbkbs % 2 == 0:
+        # ii = int(nbkbs/2)
+        # Rbs_cent = np.mean(knots_per_bs_R[ii-1:ii+1, :], axis=0)
+        # Zbs_cent = np.mean(knots_per_bs_Z[ii-1:ii+1, :], axis=0)
+        # if deg == 2:
+            # Rbs_cent[:deg] = [Rknots[0], 0.5*(Rknots[0] + Rknots[1])]
+            # Rbs_cent[-deg:] = [0.5*(Rknots[-2] + Rknots[-1]), Rknots[-1]]
+            # Zbs_cent[:deg] = [Zknots[0], 0.5*(Zknots[0] + Zknots[1])]
+            # Zbs_cent[-deg:] = [0.5*(Zknots[-2] + Zknots[-1]), Zknots[-1]]
 
-    else:
-        ii = int((nbkbs-1)/2)
-        Rbs_cent = knots_per_bs_R[ii, :]
-        Zbs_cent = knots_per_bs_Z[ii, :]
-        if deg == 1:
-            Rbs_cent[:deg] = Rknots[0]
-            Rbs_cent[-deg:] = Rknots[-1]
-            Zbs_cent[:deg] = Zknots[0]
-            Zbs_cent[-deg:] = Zknots[-1]
-        elif deg == 3:
-            Rbs_cent[:deg] = [Rknots[0], 0.5*(Rknots[0]+Rknots[1]), Rknots[1]]
-            Rbs_cent[-deg:] = [
-                Rknots[-2], 0.5*(Rknots[-2]+Rknots[-1]), Rknots[-1],
-            ]
-            Zbs_cent[:deg] = [Zknots[0], 0.5*(Zknots[0]+Zknots[1]), Zknots[1]]
-            Zbs_cent[-deg:] = [
-                Zknots[-2], 0.5*(Zknots[-2]+Zknots[-1]), Zknots[-1],
-            ]
+    # else:
+        # ii = int((nbkbs-1)/2)
+        # Rbs_cent = knots_per_bs_R[ii, :]
+        # Zbs_cent = knots_per_bs_Z[ii, :]
+        # if deg == 1:
+            # Rbs_cent[:deg] = Rknots[0]
+            # Rbs_cent[-deg:] = Rknots[-1]
+            # Zbs_cent[:deg] = Zknots[0]
+            # Zbs_cent[-deg:] = Zknots[-1]
+        # elif deg == 3:
+            # Rbs_cent[:deg] = [Rknots[0], 0.5*(Rknots[0]+Rknots[1]), Rknots[1]]
+            # Rbs_cent[-deg:] = [
+                # Rknots[-2], 0.5*(Rknots[-2]+Rknots[-1]), Rknots[-1],
+            # ]
+            # Zbs_cent[:deg] = [Zknots[0], 0.5*(Zknots[0]+Zknots[1]), Zknots[1]]
+            # Zbs_cent[-deg:] = [
+                # Zknots[-2], 0.5*(Zknots[-2]+Zknots[-1]), Zknots[-1],
+            # ]
 
-    return Rbs_cent, Zbs_cent
+    # return Rbs_cent, Zbs_cent
 
 
 def get_bs2d_RZ(deg=None, Rknots=None, Zknots=None):
@@ -470,10 +471,10 @@ def get_bs2d_RZ(deg=None, Rknots=None, Zknots=None):
     # ----------------
     # get knots per bspline, nb of bsplines...
 
-    knots_per_bs_R = _bsplines_utils._get_bs2d_func_knots(
+    knots_per_bs_R = _bsplines_utils._get_knots_per_bs(
         Rknots, deg=deg, returnas='data',
     )
-    knots_per_bs_Z = _bsplines_utils._get_bs2d_func_knots(
+    knots_per_bs_Z = _bsplines_utils._get_knots_per_bs(
         Zknots, deg=deg, returnas='data',
     )
     nbkbs = knots_per_bs_R.shape[0]
@@ -482,10 +483,17 @@ def get_bs2d_RZ(deg=None, Rknots=None, Zknots=None):
     # ----------------
     # get centers of bsplines
 
-    Rbs_cent, Zbs_cent = _get_bs2d_func_max(
-        Rknots=Rknots, Zknots=Zknots, deg=deg,
+    Rbs_apex = _bsplines_utils._get_apex_per_bs(
+        knots=Rknots,
+        knots_per_bs=knots_per_bs_R,
+        deg=deg
     )
-    return shapebs, Rbs_cent, Zbs_cent, knots_per_bs_R, knots_per_bs_Z
+    Zbs_apex = _bsplines_utils._get_apex_per_bs(
+        knots=Zknots,
+        knots_per_bs=knots_per_bs_Z,
+        deg=deg
+    )
+    return shapebs, Rbs_apex, Zbs_apex, knots_per_bs_R, knots_per_bs_Z
 
 
 def get_bs2d_func(
