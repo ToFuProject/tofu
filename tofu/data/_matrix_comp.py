@@ -159,7 +159,7 @@ def compute(
         lz = np.split(pts[2, :], ind)
 
         if verb:
-            nmax = len(f"Geometry matrix, channel {nlos} / {nlos}")
+            nmax = len(f"Geometry matrix for {key}, channel {nlos} / {nlos}")
             nn = 10**(np.log10(nlos)-1)
 
         # prepare indices
@@ -177,13 +177,26 @@ def compute(
 
             # verb
             if verb:
-                msg = f"Geom. matrix, chan {ii+1} / {nlos}".ljust(nmax)
+                msg = f"Geom. matrix for {key}, chan {ii+1} / {nlos}"
                 end = '\n' if ii == nlos-1 else '\r'
-                print(msg, end=end, flush=True)
+                print(msg.ljust(nmax), end=end, flush=True)
 
             # compute
-            mat[ii, :] = np.nansum(
-                coll.interpolate_profile2d(
+            if meshtype in ['rect', 'tri']:
+                mat[ii, :] = np.nansum(
+                    coll.interpolate_profile2d(
+                        key=key,
+                        R=lr[ii],
+                        Z=lz[ii],
+                        grid=False,
+                        indbs=indbs,
+                        details=True,
+                        reshape=False,
+                    ),
+                    axis=0,
+                )
+            else:
+                mati = coll.interpolate_profile2d(
                     key=key,
                     R=lr[ii],
                     Z=lz[ii],
@@ -191,9 +204,20 @@ def compute(
                     indbs=indbs,
                     details=True,
                     reshape=False,
-                ),
-                axis=0,
-            )
+                )
+
+                if mati.ndim == 2:
+                    mat[ii, :] = np.nansum(mati, axis=0)
+                elif mati.ndim == 3 and mati.shape[0] > 1:
+                    if ii == 0:
+                        shapemat = tuple(np.r_[mati.shape[0], shapemat])
+                        mat = np.zeros(shapemat, dtype=float)
+                    mat[:, ii, :] = np.nansum(mati, axis=1)
+                elif mati.ndim == 3 and mati.shape[0] == 1:
+                    mat[ii, :] = np.nansum(mati[0, ...], axis=0)
+                elif mati.ndim == 4:
+                    import pdb; pdb.set_trace()     # DB
+                    pass
 
         mat = mat * reseff[:, None]
         # scpintg.simps(val, x=None, axis=-1, dx=loc_eff_res[0])
@@ -227,25 +251,49 @@ def compute(
         if crop is True:
             keycropped = f'{keycropped}-crop'
 
-        ddata = {
-            name: {
-                'data': mat,
-                'ref': (key_chan, keycropped)
-            },
-        }
-
-        # add matrix obj
-        dobj = {
-            'matrix': {
+        if mat.ndim == 2:
+            ddata = {
                 name: {
-                    'bsplines': key,
-                    'cam': cam.Id.Name,
-                    'data': name,
-                    'crop': crop,
-                    'shape': mat.shape,
+                    'data': mat,
+                    'ref': (key_chan, keycropped)
                 },
-            },
-        }
+            }
+
+            # add matrix obj
+            dobj = {
+                'matrix': {
+                    name: {
+                        'bsplines': key,
+                        'cam': cam.Id.Name,
+                        'data': name,
+                        'crop': crop,
+                        'shape': mat.shape,
+                    },
+                },
+            }
+
+        else:
+
+            ddata, dobj = {}, {'matrix': {}}
+            for ii in range(mat.shape[0]):
+                namei = f'{name}-{ii}'
+                ddata.update({
+                    namei: {
+                        'data': mat[ii, ...],
+                        'ref': (key_chan, keycropped)
+                    },
+                })
+
+                # add matrix obj
+                dobj['matrix'].update({
+                    namei: {
+                        'bsplines': key,
+                        'cam': cam.Id.Name,
+                        'data': namei,
+                        'crop': crop,
+                        'shape': mat[ii, ...].shape,
+                    },
+                })
 
         coll.update(dref=dref, ddata=ddata, dobj=dobj)
 

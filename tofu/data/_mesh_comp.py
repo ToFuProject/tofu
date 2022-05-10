@@ -53,12 +53,17 @@ def _select_ind(
         types=str,
     )
 
+    shape2d = None
     cat = coll._which_mesh if key in lk1 else 'bsplines'
     if cat == coll._which_mesh:
         meshtype = coll.dobj[cat][key]['type']
+        if meshtype == 'polar':
+            shape2d = len(coll.dobj[cat][key]['knots']) == 2
     else:
         km = coll.dobj[cat][key]['mesh']
         meshtype = coll.dobj[coll._which_mesh][km]['type']
+        if meshtype == 'polar':
+            shape2d = len(coll.dobj[cat][key]['shape']) == 2
 
     # ind, elements, ...
     # elements = cents or knots
@@ -68,6 +73,7 @@ def _select_ind(
         returnas=returnas,
         crop=crop,
         meshtype=meshtype,
+        shape2d=shape2d,
     )
 
     elem = f'{elements}' if cat == coll._which_mesh else 'ref'
@@ -78,12 +84,18 @@ def _select_ind(
             nR, nZ = coll.dobj[cat][key][ke]
         else:
             nR, nZ = coll.dobj[cat][key]['shape']
-    else:
+    elif meshtype == 'tri':
         if cat == coll._which_mesh:
             ke = f'shape-{elem[0]}'
             nelem = coll.dobj[cat][key][ke][0]
         else:
             nelem = coll.dobj[cat][key]['shape'][0]
+    else:
+        if cat == coll._which_mesh:
+            ke = f'shape-{elem[0]}'
+            shape = coll.dobj[cat][key][ke]
+        else:
+            shape = coll.dobj[cat][key]['shape']
 
     # ------------
     # ind to tuple
@@ -146,7 +158,7 @@ def _select_ind(
             raise Exception(msg)
 
     # triangular case
-    else:
+    elif meshtype == 'tri':
         ind_bool = np.zeros((nelem,), dtype=bool)
         if ind is None:
             ind_bool[...] = True
@@ -163,6 +175,97 @@ def _select_ind(
                 msg = (
                     f"Arg ind, when array of bool, must have shape {(nelem,)}"
                     f"\nProvided: {ind.shape}"
+                )
+                raise Exception(msg)
+            ind_bool = ind
+        else:
+            msg = (
+                "Non-valid ind format!"
+            )
+            raise Exception(msg)
+
+    # polar case
+    elif shape2d:
+        nR, nZ = shape
+        ind_bool = np.zeros((nR, nZ), dtype=bool)
+        if ind is None:
+            # make sure R is varying in dimension 0
+            ind_tup = (
+                np.repeat(np.arange(0, nR)[:, None], nZ, axis=1),
+                np.tile(np.arange(0, nZ), (nR, 1)),
+            )
+            ind_bool[...] = True
+
+        elif isinstance(ind, tuple):
+            c0 = (
+                np.all((ind[0] >= 0) & (ind[0] < nR))
+                and np.all((ind[1] >= 0) & (ind[1] < nZ))
+            )
+            if not c0:
+                msg = (
+                    f"Non-valid values in ind (< 0 or >= size ({nR}, {nZ}))"
+                )
+                raise Exception(msg)
+            ind_tup = ind
+            ind_bool[ind_tup[0], ind_tup[1]] = True
+
+        else:
+            if np.issubdtype(ind.dtype, np.integer):
+                c0 = np.all((ind >= 0) & (ind < nR*nZ))
+                if not c0:
+                    msg = (
+                        f"Non-valid values in ind (< 0 or >= size ({nR*nZ}))"
+                    )
+                    raise Exception(msg)
+                ind_tup = (ind % nR, ind // nR)
+                ind_bool[ind_tup[0], ind_tup[1]] = True
+
+            elif np.issubdtype(ind.dtype, np.bool_):
+                if ind.shape != (nR, nZ):
+                    msg = (
+                        f"Arg ind, if bool, must have shape {(nR, nZ)}\n"
+                        f"Provided: {ind.shape}"
+                    )
+                    raise Exception(msg)
+                # make sure R varies first
+                ind_tup = ind.T.nonzero()[::-1]
+                ind_bool = ind
+
+            else:
+                msg = f"Unknown ind dtype!\n\t- ind.dtype: {ind.dtype}"
+                raise Exception(msg)
+
+        if ind_tup[0].shape != ind_tup[1].shape:
+            msg = (
+                "ind_tup components do not have the same shape!\n"
+                f"\t- ind_tup[0].shape = {ind_tup[0].shape}\n"
+                f"\t- ind_tup[1].shape = {ind_tup[1].shape}"
+            )
+            raise Exception(msg)
+
+
+    else:
+        ind_bool = np.zeros(shape, dtype=bool)
+        if ind is None:
+            ind_bool[...] = True
+        elif np.issubdtype(ind.dtype, np.integer):
+            nmax = np.prod(shape)
+            c0 = np.all((ind >= 0) & (ind < nmax))
+            if not c0:
+                msg = (
+                    f"Arg ind has non-valid values (< 0 or >= size ({nmax}))"
+                )
+                raise Exception(msg)
+            if len(shape) == 1:
+                ind_bool[ind] = True
+            else:
+                ind_tup = (ind % shape[0], ind // shape[1])
+                ind_bool[ind_tup[0], ind_tup[1]] = True
+        elif np.issubdtype(ind.dtype, np.bool_):
+            if ind.shape != shape:
+                msg = (
+                    f"Arg ind, when array of bool, must have shape {shape}\n"
+                    f"Provided: {ind.shape}"
                 )
                 raise Exception(msg)
             ind_bool = ind
@@ -578,7 +681,8 @@ def _select_bsplines(
             Rcents=coll.ddata[kRc]['data'],
             Zcents=coll.ddata[kZc]['data'],
         )
-    else:
+
+    elif meshtype == 'tri':
         clas = coll.dobj['bsplines'][key]['class']
         out = clas._get_knotscents_per_bs(
             returnas=returnas,
@@ -586,6 +690,9 @@ def _select_bsplines(
             return_cents=return_cents,
             ind=ind,
         )
+
+    else:
+        pass
 
     # ------------
     # return
@@ -934,6 +1041,16 @@ def _mesh2Dpolar_bsplines(
     else:
         ref = (keybsn,)
         apex = (keybsn,)
+
+        # check angle vs angle2d
+        mesh = coll._which_mesh
+        angle2d = coll.dobj[mesh][keym]['angle2d']
+        if angle2d is None:
+            msg = (
+                "Poloidal bsplines require mesh with angle2d!\n"
+                f"\t- self.dobj['{mesh}']['{keym}']['angle2d'] = {angle2d}"
+            )
+            raise Exception(msg)
 
     # bs_cents = clas._get_bs_cents()
 
@@ -1660,55 +1777,6 @@ def _interp2d_check(
     mtype = coll.dobj[coll._which_mesh][keym]['type']
 
     # -------------
-    # coefs
-
-    shapebs = coll.dobj['bsplines'][keybs]['shape']
-    if coefs is None:
-        if key == keybs:
-            coefs = np.ones(shapebs)
-        else:
-            coefs = coll.ddata[key]['data']
-
-    c0 = (
-        coefs.ndim in [len(shapebs), len(shapebs) + 1]
-        and coefs.shape[-len(shapebs):] == shapebs
-    )
-    if not c0:
-        msg = (
-            f"Arg coefs must be a {shapebs} array!\n"
-            f"Provided: {coefs.shape}"
-        )
-        raise Exception(msg)
-
-    # Make sure coes is time dependent
-    if coefs.ndim == len(shapebs):
-        coefs = coefs[None, ...]
-
-    # indbs
-
-    # -------------
-    # indt
-
-    c0 = (
-        indt is not None
-        and coefs is not None
-        and coefs.ndim == len(shapebs) + 1
-    )
-    if c0:
-        if coefs.shape[0] == 1:
-            indt = 0
-        try:
-            assert np.isscalar(indt) and np.isfinite(indt)
-            assert indt < coefs.shape[0]
-            indt = int(indt)
-        except Exception as err:
-            msg = (
-                f"Arg indt should be a int!\nProvided: {indt}"
-            )
-            raise Exception(msg)
-        coefs = coefs[indt:indt+1, ...]
-
-    # -------------
     # details
 
     details = _generic_check._check_var(
@@ -1756,6 +1824,7 @@ def _interp2d_check(
         raise Exception(msg)
 
     # R, Z
+    radius_vs_time = False
     if lc[0]:
         R, Z = coll.get_sample_mesh(
             key=keym,
@@ -1825,14 +1894,16 @@ def _interp2d_check(
                     details=False,
                 )
 
-            if radius.shape[0] != coefs.shape[0]:
-                import pdb; pdb.set_trace()     # DB
-                pass
+            if radius.ndim == R.ndim + 1:
+                radius_vs_time = True
+            else:
+                radius_vs_time = False
+    else:
+        radius_vs_time = False
 
     # -------------
     # radius, angle
 
-    radius_vs_time = None
     if mtype == 'polar':
 
         # check same shape
@@ -1860,26 +1931,86 @@ def _interp2d_check(
                 )
                 raise Exception(msg)
 
-        # radius_vs_time
-        if R is not None:
-            if radius.shape == R.shape:
-                radius_vs_time = False
-            elif radius.shape == tuple(np.r_[coefs.shape[0], R.shape]):
-                radius_vs_time = True
-            elif radius.shape[0] != coefs.shape[0]:
-                import pdb; pdb.set_trace()     # DB
-                pass
-            else:
-                msg = (
-                    "Arg radius must be of shape:\n"
-                    f"\t- {R.shape}\n"
-                    f"\t- {tuple([coefs.shape[0], R.shape])}\n"
-                    f"Provided: {radius.shape}"
-                )
-                raise Exception(msg)
+    # -------------
+    # coefs
+
+    shapebs = coll.dobj['bsplines'][keybs]['shape']
+    if coefs is None:
+        if key == keybs:
+            coefs = np.ones(shapebs)
         else:
-            import pdb; pdb.set_trace()     # DB
-            raise NotImplementedError()
+            coefs = coll.ddata[key]['data']
+
+    c0 = (
+        coefs.ndim in [len(shapebs), len(shapebs) + 1]
+        and coefs.shape[-len(shapebs):] == shapebs
+    )
+    if not c0:
+        msg = (
+            f"Arg coefs must be a {shapebs} array!\n"
+            f"Provided: {coefs.shape}"
+        )
+        raise Exception(msg)
+
+    # Make sure coes is time dependent
+    if coefs.ndim == len(shapebs):
+        if radius_vs_time is True:
+            sh = tuple([radius.shape[0]] + [1]*len(shapebs))
+            coefs = np.tile(coefs, sh)
+        else:
+            coefs = coefs[None, ...]
+    elif coefs.ndim == len(shapebs) + 1:
+        if coefs.shape[0] == 1 and radius_vs_time is True:
+            if radius.shape[0] != 1:
+                coefs = np.repeat(coefs, radius.shape[0], axis=0)
+    else:
+        import pdb; pdb.set_trace()     # DB
+        pass
+
+    # double-check
+    if radius_vs_time is True and radius.shape[0] == 1 and coefs.shape[0] != 1:
+        radius = radius[0, ...]
+        radius_vs_time = False
+        if angle is not None:
+            angle = angle[0, ...]
+
+    # -------------
+    # indbs
+
+    # -------------
+    # indt
+
+    c0 = (
+        indt is not None
+        and coefs is not None
+        and coefs.ndim == len(shapebs) + 1
+    )
+    if c0:
+        if coefs.shape[0] == 1:
+            indt = 0
+        try:
+            assert np.isscalar(indt) and np.isfinite(indt)
+            assert indt < coefs.shape[0]
+            indt = int(indt)
+        except Exception as err:
+            msg = (
+                f"Arg indt should be a int!\nProvided: {indt}"
+            )
+            raise Exception(msg)
+
+        # coefs
+        coefs = coefs[indt:indt+1, ...]
+
+        # radius / angle
+        if radius_vs_time is True:
+            radius = radius[indt:indt+1, ...]
+            if angle is not None:
+                angle = angle[indt:indt+1, ...]
+
+
+    if coefs.shape == (132, 5):
+        import pdb; pdb.set_trace()     # DB
+        pass
 
     # -------------
     # return_params
@@ -1895,6 +2026,7 @@ def _interp2d_check(
         R, Z,
         radius, angle,
         coefs,
+        shapebs,
         radius_vs_time,
         indbs, indt,
         details, crop, nan0, return_params,
@@ -1931,6 +2063,7 @@ def interp2d(
         R, Z,
         radius, angle,
         coefs,
+        shapebs,
         radius_vs_time,
         indbs, indt,
         details, crop, nan0, return_params,
@@ -1989,7 +2122,8 @@ def interp2d(
 
     if meshtype in ['rect', 'tri']:
         val = coll.dobj['bsplines'][keybs][fname](
-            R, Z,
+            R=R,
+            Z=Z,
             coefs=coefs,
             crop=crop,
             cropbs=cropbs,
@@ -2002,6 +2136,7 @@ def interp2d(
             angle=angle,
             coefs=coefs,
             radius_vs_time=radius_vs_time,
+            shapebs=shapebs,
         )
 
     # ---------------

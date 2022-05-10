@@ -224,7 +224,6 @@ def _check_dax(dax=None, main=None):
         msg = (
         )
         import pdb; pdb.set_trace()     # DB
-        pass
         raise Exception(msg)
 
     for k0, v0 in dax.items():

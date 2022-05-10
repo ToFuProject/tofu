@@ -134,11 +134,23 @@ def _plot_geometry_matrix_prepare(
     res=None,
 ):
 
+    # --------
+    # prepare
+
     # res
     deg = coll.dobj['bsplines'][keybs]['deg']
     km = coll.dobj['bsplines'][keybs]['mesh']
     meshtype = coll.dobj['mesh'][km]['type']
 
+    # if polar => submesh
+    km0 = km
+    meshtype0 = meshtype
+    if meshtype == 'polar':
+        km = coll.dobj[coll._which_mesh][km0]['submesh']
+        meshtype = coll.dobj[coll._which_mesh][km]['type']
+        shape2d = len(coll.dobj['bsplines'][keybs]['shape']) == 2
+
+    # R, Z
     kR, kZ = coll.dobj['mesh'][km]['knots']
     Rk = coll.ddata[kR]['data']
     Zk = coll.ddata[kZ]['data']
@@ -157,8 +169,11 @@ def _plot_geometry_matrix_prepare(
     # crop
     crop = coll.dobj['matrix'][key]['crop']
 
+    # --------
+    # indices
+
     # indchan => indchan_bf
-    if meshtype == 'rect':
+    if meshtype0 == 'rect':
         ich_bf_tup = coll.select_ind(
             key=keybs,
             returnas='tuple-flat',
@@ -174,7 +189,8 @@ def _plot_geometry_matrix_prepare(
             crop=crop,
         )
         ic = (np.zeros((nbf,), dtype=int), ich_bf_tup[0], ich_bf_tup[1])
-    else:
+
+    elif meshtype0 == 'tri':
         ich_bf_tup = coll.select_ind(
             key=keybs,
             returnas=int,
@@ -190,16 +206,56 @@ def _plot_geometry_matrix_prepare(
         )
         ic = (np.zeros((nbf,), dtype=int), ich_bf_tup)
 
+    else:
+        if shape2d:
+            ich_bf_tup = coll.select_ind(
+                key=keybs,
+                returnas='tuple-flat',
+                crop=crop,
+            )
+            nbf = ich_bf_tup[0].size
+
+            # indbf_bool
+            indbf_bool = coll.select_ind(
+                key=keybs,
+                ind=(ich_bf_tup[0][indbf], ich_bf_tup[1][indbf]),
+                returnas=bool,
+                crop=crop,
+            )
+            ic = (np.zeros((nbf,), dtype=int), ich_bf_tup[0], ich_bf_tup[1])
+        else:
+            ich_bf_tup = coll.select_ind(
+                key=keybs,
+                returnas=int,
+                crop=crop,
+            )
+            nbf = ich_bf_tup.size
+
+            indbf_bool = coll.select_ind(
+                key=keybs,
+                ind=ich_bf_tup[indbf],
+                returnas=bool,
+                crop=crop,
+            )
+            ic = (np.zeros((nbf,), dtype=int), ich_bf_tup)
+
+    # -------------
+    # mesh sampling
+
     # mesh sampling
     km = coll.dobj['bsplines'][keybs]['mesh']
     R, Z = coll.get_sample_mesh(
         key=km, res=res, mode='abs', grid=True, imshow=True,
     )
 
+    # -------------
+    # interpolation
+
     # bsplinetot
     shapebs = coll.dobj['bsplines'][keybs]['shape']
     coefs = np.zeros(tuple(np.r_[1, shapebs]), dtype=float)
 
+    import pdb; pdb.set_trace()     # DB
     coefs[ic] = np.nansum(coll.ddata[key]['data'], axis=0)
     bsplinetot = coll.interpolate_profile2d(
         key=keybs,
@@ -223,6 +279,9 @@ def _plot_geometry_matrix_prepare(
         details=False,
     )[0, ...]
 
+    # --------
+    # LOS
+
     # los
     ptslos, coefslines, indlosok = None, None, None
     if cam is not None:
@@ -236,6 +295,9 @@ def _plot_geometry_matrix_prepare(
             (3. - 0.5) * (coefslines - coefslines.min())
             / (coefslines.max() - coefslines.min()) + 0.5
         )
+
+    # ---------------
+    # extent / interp
 
     # extent and interp
     extent = (
@@ -419,7 +481,7 @@ def plot_geometry_matrix(
     # --------------
     # plot mesh
 
-    dax = coll.plot_mesh(
+    _ = coll.plot_mesh(
         key=keym, dax=dax, crop=True, dleg=False,
     )
 

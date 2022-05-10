@@ -567,7 +567,10 @@ def _mesh2D_polar_check(
         else:
             acent = np.r_[acent, amid]
 
-        # angle2d
+    # -------
+    # angle2d
+
+    if angle2d is not None:
         dangle = _check_polar_2dquant(
             coll=coll,
             quant2d=angle2d,
@@ -663,6 +666,7 @@ def _mesh2D_polar_check(
                 'shape-c': rcent.shape,
                 'shape-k': rknot.shape,
                 'radius2d': radius2d,
+                'angle2d': angle2d,
                 'submesh': keysm,
             },
         }
@@ -1401,6 +1405,7 @@ def _select_ind_check(
     returnas=None,
     crop=None,
     meshtype=None,
+    shape2d=None,
 ):
 
     # ----------------------
@@ -1429,7 +1434,8 @@ def _select_ind_check(
                 or isinstance(ind, np.ndarray)
             )
         ]
-    else:
+
+    elif meshtype == 'tri':
         lc = [
             ind is None,
             np.isscalar(ind)
@@ -1440,6 +1446,32 @@ def _select_ind_check(
             or isinstance(ind, np.ndarray)
         ]
 
+    else:
+        lc = [
+            ind is None,
+            shape2d
+            and isinstance(ind, tuple)
+            and len(ind) == 2
+            and (
+                all([np.isscalar(ss) for ss in ind])
+                or all([
+                    hasattr(ss, '__iter__')
+                    and len(ss) == len(ind[0])
+                    for ss in ind
+                ])
+                or all([isinstance(ss, np.ndarray) for ss in ind])
+            ),
+            (
+                np.isscalar(ind)
+                or (
+                    hasattr(ind, '__iter__')
+                    and all([np.isscalar(ss) for ss in ind])
+                )
+                or isinstance(ind, np.ndarray)
+            )
+        ]
+
+    # check lc
     if not any(lc):
         if meshtype == 'rect':
             msg = (
@@ -1464,7 +1496,8 @@ def _select_ind_check(
 
     if lc[0]:
         pass
-    elif lc[1] and meshtype == 'rect':
+
+    elif lc[1] and meshtype in ['rect', 'polar']:
         if any([not isinstance(ss, np.ndarray) for ss in ind]):
             ind = (
                 np.atleast_1d(ind[0]).astype(int),
@@ -1497,6 +1530,7 @@ def _select_ind_check(
                 f"\t- ind: {ind}"
             )
             raise Exception(msg)
+
     elif lc[1] and meshtype in ['tri', 'quadtri']:
         if not isinstance(ind, np.ndarray):
             ind = np.atleast_1d(ind).astype(int)
@@ -1537,9 +1571,17 @@ def _select_ind_check(
     if meshtype == 'rect':
         retdef = tuple
         retok = [tuple, np.ndarray, 'tuple-flat', 'array-flat', bool]
-    else:
+    elif meshtype == 'tri':
         retdef = bool
         retok = [int, bool]
+    else:
+        if shape2d:
+            retdef = tuple
+            retok = [tuple, np.ndarray, 'tuple-flat', 'array-flat', bool]
+        else:
+            retdef = bool
+            retok = [int, bool]
+
     returnas = _generic_check._check_var(
         returnas, 'returnas',
         types=None,

@@ -347,7 +347,7 @@ def _plot_mesh_prepare_polar(
     # contour of angle if angle not None
 
     contRang, contZang, ang, refang = None, None, None, None
-    if coll.dobj[coll._which_mesh][key]['angle2d'] is not None:
+    if len(coll.dobj[coll._which_mesh][key]['knots']) == 2:
         # create rectangular grid and compute radius at each point
         k2d = coll.dobj[coll._which_mesh][key]['angle2d']
         (
@@ -721,13 +721,15 @@ def _plot_mesh_polar(
 
 def _plot_bsplines_get_dRdZ(coll=None, km=None, meshtype=None):
     # Get minimum distances
+
     if meshtype == 'rect':
         kR, kZ = coll.dobj['mesh'][km]['knots']
         Rk = coll.ddata[kR]['data']
         Zk = coll.ddata[kZ]['data']
         dR = np.min(np.diff(Rk))
         dZ = np.min(np.diff(Zk))
-    else:
+
+    elif meshtype == 'tri':
         indtri = coll.ddata[coll.dobj['mesh'][km]['ind']]['data']
         kknots = coll.dobj['mesh'][km]['knots']
         Rk = coll.ddata[kknots[0]]['data']
@@ -740,6 +742,14 @@ def _plot_bsplines_get_dRdZ(coll=None, km=None, meshtype=None):
             np.sqrt((R[:, 2] - R[:, 0])**2 + (Z[:, 2] - Z[:, 0])**2),
         ]))
         dR, dZ = dist, dist
+
+    else:
+        km2 = coll.dobj[coll._which_mesh][km]['submesh']
+        meshtype = coll.dobj[coll._which_mesh][km2]['type']
+        return _plot_bsplines_get_dRdZ(
+            coll=coll, km=km2, meshtype=meshtype,
+        )
+
     Rminmax = [Rk.min(), Rk.max()]
     Zminmax = [Zk.min(), Zk.max()]
     return dR, dZ, Rminmax, Zminmax
