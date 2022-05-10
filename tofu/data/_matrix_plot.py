@@ -255,7 +255,6 @@ def _plot_geometry_matrix_prepare(
     shapebs = coll.dobj['bsplines'][keybs]['shape']
     coefs = np.zeros(tuple(np.r_[1, shapebs]), dtype=float)
 
-    import pdb; pdb.set_trace()     # DB
     coefs[ic] = np.nansum(coll.ddata[key]['data'], axis=0)
     bsplinetot = coll.interpolate_profile2d(
         key=keybs,

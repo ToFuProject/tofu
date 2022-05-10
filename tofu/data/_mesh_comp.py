@@ -692,7 +692,26 @@ def _select_bsplines(
         )
 
     else:
-        pass
+        clas = coll.dobj['bsplines'][key]['class']
+        shape2d = len(coll.dobj['bsplines'][key]['shape']) == 2
+        if return_cents is True and return_knots is True:
+            if shape2d:
+                out = (
+                    (clas.knots_per_bs_r, clas.knots_per_bs_a),
+                    (clas.cents_per_bs_r, clas.cents_per_bs_a),
+                )
+            else:
+                out = ((clas.knots_per_bs_r,), (clas.cents_per_bs_r,))
+        elif return_cents is True:
+            if shape2d:
+                out = (clas.cents_per_bs_r, clas.cents_per_bs_a)
+            else:
+                out = (clas.cents_per_bs_r,)
+        elif return_knots is True:
+            if shape2d:
+                out = (clas.knots_per_bs_r, clas.knots_per_bs_a)
+            else:
+                out = (clas.knots_per_bs_r,)
 
     # ------------
     # return
@@ -1105,6 +1124,85 @@ def _mesh2Dpolar_bsplines(
     }
 
     return dref, ddata, dobj
+
+
+def _mesh2DPolar_bsplines_knotscents(
+    returnas=None,
+    return_knots=None,
+    return_cents=None,
+    ind=None,
+    deg=None,
+    # resources
+    clas=None,
+    rknots=None,
+    aknots=None,
+    rcents=None,
+    acents=None,
+):
+
+    # -------------
+    # check inputs
+
+    return_knots = _generic_check._check_var(
+        return_knots, 'return_knots',
+        types=bool,
+        default=True,
+    )
+    return_cents = _generic_check._check_var(
+        return_cents, 'return_cents',
+        types=bool,
+        default=True,
+    )
+    if return_knots is False and return_cents is False:
+        return
+
+    # -------------
+    # compute
+
+    if return_knots is True:
+
+        knots_per_bs_r = _bsplines_utils._get_knots_per_bs(
+            rknots, deg=deg, returnas=returnas,
+        )
+        knots_per_bs_Z = _bsplines_utils._get_knots_per_bs(
+            Zknots, deg=deg, returnas=returnas,
+        )
+        if ind is not None:
+            knots_per_bs_R = knots_per_bs_R[:, ind[0]]
+            knots_per_bs_Z = knots_per_bs_Z[:, ind[1]]
+
+        nknots = knots_per_bs_R.shape[0]
+        knots_per_bs_R = np.tile(knots_per_bs_R, (nknots, 1))
+        knots_per_bs_Z = np.repeat(knots_per_bs_Z, nknots, axis=0)
+
+    if return_cents is True:
+
+        cents_per_bs_R = _bsplines_utils._get_cents_per_bs(
+            Rcents, deg=deg, returnas=returnas,
+        )
+        cents_per_bs_Z = _bsplines_utils._get_cents_per_bs(
+            Zcents, deg=deg, returnas=returnas,
+        )
+        if ind is not None:
+            cents_per_bs_R = cents_per_bs_R[:, ind[0]]
+            cents_per_bs_Z = cents_per_bs_Z[:, ind[1]]
+
+        ncents = cents_per_bs_R.shape[0]
+        cents_per_bs_R = np.tile(cents_per_bs_R, (ncents, 1))
+        cents_per_bs_Z = np.repeat(cents_per_bs_Z, ncents, axis=0)
+
+    # -------------
+    # return
+
+    if return_knots is True and return_cents is True:
+        out = (
+            (knots_per_bs_R, knots_per_bs_Z), (cents_per_bs_R, cents_per_bs_Z)
+        )
+    elif return_knots is True:
+        out = (knots_per_bs_R, knots_per_bs_Z)
+    else:
+        out = (cents_per_bs_R, cents_per_bs_Z)
+    return out
 
 
 # #############################################################################

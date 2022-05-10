@@ -838,6 +838,14 @@ def _plot_bspline_prepare(
     km = coll.dobj['bsplines'][key]['mesh']
     meshtype = coll.dobj['mesh'][km]['type']
 
+    # if polar => submesh
+    km0 = km
+    meshtype0 = meshtype
+    if meshtype == 'polar':
+        km = coll.dobj[coll._which_mesh][km0]['submesh']
+        meshtype = coll.dobj[coll._which_mesh][km]['type']
+        shape2d = len(coll.dobj['bsplines'][key]['shape']) == 2
+
     # get dR, dZ
     dR, dZ, _, _ = _plot_bsplines_get_dRdZ(
         coll=coll, km=km, meshtype=meshtype,
@@ -851,11 +859,16 @@ def _plot_bspline_prepare(
             res_coef = 0.25
         res = [res_coef*dR, res_coef*dZ]
 
-    # sample
-    knotsiR, knotsiZ = knotsi
-    DR = [np.nanmin(knotsiR) + dR*1.e-10, np.nanmax(knotsiR) - dR*1.e-10]
-    DZ = [np.nanmin(knotsiZ) + dZ*1.e-10, np.nanmax(knotsiZ) - dZ*1.e-10]
+    # sampling domain
+    if meshtype0 == 'polar':
+        DR = None
+        DZ = None
+    else:
+        knotsiR, knotsiZ = knotsi
+        DR = [np.nanmin(knotsiR) + dR*1.e-10, np.nanmax(knotsiR) - dR*1.e-10]
+        DZ = [np.nanmin(knotsiZ) + dZ*1.e-10, np.nanmax(knotsiZ) - dZ*1.e-10]
 
+    # sample
     R, Z = coll.get_sample_mesh(
         key=km,
         res=res,
@@ -868,20 +881,40 @@ def _plot_bspline_prepare(
     shapebs = coll.dobj['bsplines'][key]['shape']
     shapecoefs = np.r_[1, shapebs]
     coefs = np.zeros(shapecoefs, dtype=float)
-    if meshtype == 'rect':
+    if meshtype0 == 'rect':
         coefs[0, ind[0], ind[1]] = 1.
-    else:
+    elif meshtype0 == 'tri':
         coefs[0, ind] = 1.
-    bspline = coll.dobj['bsplines'][key]['func_sum'](R, Z, coefs=coefs)[0, ...]
+    else:
+        if len(shapebs) == 2:
+            coefs[0, ind[0], ind[1]] = 1.
+        else:
+            coefs[0, ind] = 1.
+        pass
+
+    bspline = coll.interpolate_profile2d(
+        key=key,
+        R=R,
+        Z=Z,
+        coefs=coefs,
+        details=False,
+        grid=False,
+    )[0]
 
     # nan if 0
     bspline[bspline == 0.] = np.nan
 
     # extent and interp
-    extent = (
-        DR[0], DR[1],
-        DZ[0], DZ[1],
-    )
+    if meshtype0 == 'polar':
+        extent = (
+            R.min(), R.max(),
+            Z.min(), Z.max(),
+        )
+    else:
+        extent = (
+            DR[0], DR[1],
+            DZ[0], DZ[1],
+        )
 
     if deg == 0:
         interp = 'nearest'
@@ -890,7 +923,7 @@ def _plot_bspline_prepare(
     elif deg >= 2:
         interp = 'bicubic'
 
-    return bspline, extent, interp
+    return bspline, extent, interp, meshtype0
 
 
 def plot_bspline(
@@ -927,7 +960,7 @@ def plot_bspline(
     # --------------
     #  Prepare data
 
-    bspline, extent, interp = _plot_bspline_prepare(
+    bspline, extent, interp, meshtype0 = _plot_bspline_prepare(
         coll=coll,
         key=key,
         ind=ind,
@@ -963,11 +996,13 @@ def plot_bspline(
 
     if plot_mesh is True:
         keym = coll.dobj['bsplines'][key]['mesh']
-        dax = coll.plot_mesh(key=keym, dax=dax, dleg=False)
+        if meshtype0 == 'polar':
+            _ = coll.plot_mesh(key=keym, dleg=False)
+        else:
+            dax = coll.plot_mesh(key=keym, dax=dax, dleg=False)
 
-    axtype = 'cross'
-    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
-    for kax in lkax:
+    kax = 'cross'
+    if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
         ax.imshow(
@@ -981,25 +1016,26 @@ def plot_bspline(
             vmax=1.,
         )
 
-        if knots is not False:
-            ax.plot(
-                knotsi[0].ravel(),
-                knotsi[1].ravel(),
-                marker='x',
-                ms=6,
-                ls='None',
-                color='k',
-            )
+        if meshtype0 != 'polar':
+            if knots is not False:
+                ax.plot(
+                    knotsi[0].ravel(),
+                    knotsi[1].ravel(),
+                    marker='x',
+                    ms=6,
+                    ls='None',
+                    color='k',
+                )
 
-        if cents is not False:
-            ax.plot(
-                centsi[0].ravel(),
-                centsi[1].ravel(),
-                marker='o',
-                ms=6,
-                ls='None',
-                color='k',
-            )
+            if cents is not False:
+                ax.plot(
+                    centsi[0].ravel(),
+                    centsi[1].ravel(),
+                    marker='o',
+                    ms=6,
+                    ls='None',
+                    color='k',
+                )
 
         ax.relim()
         ax.autoscale()

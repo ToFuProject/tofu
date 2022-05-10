@@ -201,7 +201,7 @@ def _add_polar2(plasma, key='m6'):
     # mesh
     plasma.add_mesh_polar(
         key=key,
-        radius=np.linspace(0, 1.2, 13),
+        radius=np.linspace(0, 0.8, 13),
         angle=ang,
         radius2d='rho2',
         angle2d='angle2',
