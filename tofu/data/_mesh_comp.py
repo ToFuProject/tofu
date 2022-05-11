@@ -57,13 +57,11 @@ def _select_ind(
     cat = coll._which_mesh if key in lk1 else 'bsplines'
     if cat == coll._which_mesh:
         meshtype = coll.dobj[cat][key]['type']
-        if meshtype == 'polar':
-            shape2d = len(coll.dobj[cat][key]['knots']) == 2
+        shape2d = len(coll.dobj[cat][key]['shape-c']) == 2
     else:
         km = coll.dobj[cat][key]['mesh']
         meshtype = coll.dobj[coll._which_mesh][km]['type']
-        if meshtype == 'polar':
-            shape2d = len(coll.dobj[cat][key]['shape']) == 2
+        shape2d = len(coll.dobj[cat][key]['shape']) == 2
 
     # ind, elements, ...
     # elements = cents or knots
@@ -78,29 +76,23 @@ def _select_ind(
 
     elem = f'{elements}' if cat == coll._which_mesh else 'ref'
 
-    if meshtype == 'rect':
+    if shape2d:
         if cat == coll._which_mesh:
             ke = f'shape-{elem[0]}'
             nR, nZ = coll.dobj[cat][key][ke]
         else:
             nR, nZ = coll.dobj[cat][key]['shape']
-    elif meshtype == 'tri':
+    else:
         if cat == coll._which_mesh:
             ke = f'shape-{elem[0]}'
             nelem = coll.dobj[cat][key][ke][0]
         else:
             nelem = coll.dobj[cat][key]['shape'][0]
-    else:
-        if cat == coll._which_mesh:
-            ke = f'shape-{elem[0]}'
-            shape = coll.dobj[cat][key][ke]
-        else:
-            shape = coll.dobj[cat][key]['shape']
 
     # ------------
     # ind to tuple
 
-    if meshtype == 'rect':
+    if shape2d:
         ind_bool = np.zeros((nR, nZ), dtype=bool)
         if ind is None:
             # make sure R is varying in dimension 0
@@ -157,8 +149,8 @@ def _select_ind(
             )
             raise Exception(msg)
 
-    # triangular case
-    elif meshtype == 'tri':
+    # triangular + polar1d case
+    else:
         ind_bool = np.zeros((nelem,), dtype=bool)
         if ind is None:
             ind_bool[...] = True
@@ -175,97 +167,6 @@ def _select_ind(
                 msg = (
                     f"Arg ind, when array of bool, must have shape {(nelem,)}"
                     f"\nProvided: {ind.shape}"
-                )
-                raise Exception(msg)
-            ind_bool = ind
-        else:
-            msg = (
-                "Non-valid ind format!"
-            )
-            raise Exception(msg)
-
-    # polar case
-    elif shape2d:
-        nR, nZ = shape
-        ind_bool = np.zeros((nR, nZ), dtype=bool)
-        if ind is None:
-            # make sure R is varying in dimension 0
-            ind_tup = (
-                np.repeat(np.arange(0, nR)[:, None], nZ, axis=1),
-                np.tile(np.arange(0, nZ), (nR, 1)),
-            )
-            ind_bool[...] = True
-
-        elif isinstance(ind, tuple):
-            c0 = (
-                np.all((ind[0] >= 0) & (ind[0] < nR))
-                and np.all((ind[1] >= 0) & (ind[1] < nZ))
-            )
-            if not c0:
-                msg = (
-                    f"Non-valid values in ind (< 0 or >= size ({nR}, {nZ}))"
-                )
-                raise Exception(msg)
-            ind_tup = ind
-            ind_bool[ind_tup[0], ind_tup[1]] = True
-
-        else:
-            if np.issubdtype(ind.dtype, np.integer):
-                c0 = np.all((ind >= 0) & (ind < nR*nZ))
-                if not c0:
-                    msg = (
-                        f"Non-valid values in ind (< 0 or >= size ({nR*nZ}))"
-                    )
-                    raise Exception(msg)
-                ind_tup = (ind % nR, ind // nR)
-                ind_bool[ind_tup[0], ind_tup[1]] = True
-
-            elif np.issubdtype(ind.dtype, np.bool_):
-                if ind.shape != (nR, nZ):
-                    msg = (
-                        f"Arg ind, if bool, must have shape {(nR, nZ)}\n"
-                        f"Provided: {ind.shape}"
-                    )
-                    raise Exception(msg)
-                # make sure R varies first
-                ind_tup = ind.T.nonzero()[::-1]
-                ind_bool = ind
-
-            else:
-                msg = f"Unknown ind dtype!\n\t- ind.dtype: {ind.dtype}"
-                raise Exception(msg)
-
-        if ind_tup[0].shape != ind_tup[1].shape:
-            msg = (
-                "ind_tup components do not have the same shape!\n"
-                f"\t- ind_tup[0].shape = {ind_tup[0].shape}\n"
-                f"\t- ind_tup[1].shape = {ind_tup[1].shape}"
-            )
-            raise Exception(msg)
-
-
-    else:
-        ind_bool = np.zeros(shape, dtype=bool)
-        if ind is None:
-            ind_bool[...] = True
-        elif np.issubdtype(ind.dtype, np.integer):
-            nmax = np.prod(shape)
-            c0 = np.all((ind >= 0) & (ind < nmax))
-            if not c0:
-                msg = (
-                    f"Arg ind has non-valid values (< 0 or >= size ({nmax}))"
-                )
-                raise Exception(msg)
-            if len(shape) == 1:
-                ind_bool[ind] = True
-            else:
-                ind_tup = (ind % shape[0], ind // shape[1])
-                ind_bool[ind_tup[0], ind_tup[1]] = True
-        elif np.issubdtype(ind.dtype, np.bool_):
-            if ind.shape != shape:
-                msg = (
-                    f"Arg ind, when array of bool, must have shape {shape}\n"
-                    f"Provided: {ind.shape}"
                 )
                 raise Exception(msg)
             ind_bool = ind
@@ -654,12 +555,19 @@ def _select_bsplines(
     # ----
     # ind
 
+    if meshtype == 'rect':
+        returnasind = tuple
+    elif meshtype == 'polar' and len(coll.dobj['bsplines'][key]['shape']) == 2:
+        returnasind = tuple
+    else:
+        returnasind = bool
+
     ind = _select_ind(
         coll=coll,
         key=key,
         ind=ind,
         elements=None,
-        returnas=tuple if meshtype == 'rect' else bool,
+        returnas=returnasind,
         crop=crop,
     )
 

@@ -28,6 +28,7 @@ def _plot_geometry_matrix_check(
     key=None,
     indbf=None,
     indchan=None,
+    plot_mesh=None,
     cmap=None,
     vmin=None,
     vmax=None,
@@ -72,6 +73,13 @@ def _plot_geometry_matrix_check(
             f"Arg indchan should be a int!\nProvided: {indt}"
         )
         raise Exception(msg)
+
+    # plot_mesh
+    plot_mesh = _generic_check._check_var(
+        plot_mesh, 'plot_mesh',
+        default=coll.dobj[coll._which_mesh][keym]['type'] != 'polar',
+        types=bool,
+    )
 
     # cmap
     if cmap is None:
@@ -118,6 +126,7 @@ def _plot_geometry_matrix_check(
     return (
         key, keybs, keym,
         indbf, indchan,
+        plot_mesh,
         cmap, vmin, vmax,
         aspect, dcolorbar, dleg,
     )
@@ -328,6 +337,7 @@ def plot_geometry_matrix(
     key=None,
     indbf=None,
     indchan=None,
+    plot_mesh=None,
     # plotting
     vmin=None,
     vmax=None,
@@ -347,6 +357,7 @@ def plot_geometry_matrix(
     (
         key, keybs, keym,
         indbf, indchan,
+        plot_mesh,
         cmap, vmin, vmax,
         aspect, dcolorbar, dleg,
     ) = _plot_geometry_matrix_check(
@@ -354,6 +365,7 @@ def plot_geometry_matrix(
         key=key,
         indbf=indbf,
         indchan=indchan,
+        plot_mesh=plot_mesh,
         cmap=cmap,
         vmin=vmin,
         vmax=vmax,
@@ -443,12 +455,22 @@ def plot_geometry_matrix(
         ax10.set_ylabel(f'Z (m)')
 
         # ax11 = crosstot
-        ax11 = fig.add_subplot(gs[1, 1], aspect='equal')
-        ax11.set_ylabel(f'R (m)')
-        ax11.set_xlabel(f'Z (m)')
+        ax11 = fig.add_subplot(
+            gs[1, 1],
+            aspect='equal',
+            sharex=ax10,
+            sharey=ax10,
+        )
+        ax11.set_xlabel(f'R (m)')
+        ax11.set_ylabel(f'Z (m)')
 
         # ax12 = cross2
-        ax12 = fig.add_subplot(gs[1, 2], aspect='equal')
+        ax12 = fig.add_subplot(
+            gs[1, 2],
+            aspect='equal',
+            sharex=ax10,
+            sharey=ax10,
+        )
         ax12.set_xlabel(f'R (m)')
         ax12.set_ylabel(f'Z (m)')
 
@@ -480,9 +502,10 @@ def plot_geometry_matrix(
     # --------------
     # plot mesh
 
-    _ = coll.plot_mesh(
-        key=keym, dax=dax, crop=True, dleg=False,
-    )
+    if plot_mesh is True:
+        _ = coll.plot_mesh(
+            key=keym, dax=dax, crop=True, dleg=False,
+        )
 
     # --------------
     # plot matrix
@@ -491,7 +514,7 @@ def plot_geometry_matrix(
         key=key,
         keyX=refs[1],
         dax=dax,
-        ind=[indchan, indbf],
+        ind=[indbf, indchan],
         cmap=cmap,
         vmin=vmin,
         vmax=vmax,

@@ -1411,7 +1411,7 @@ def _select_ind_check(
     # ----------------------
     # check basic conditions
 
-    if meshtype == 'rect':
+    if shape2d:
         lc = [
             ind is None,
             isinstance(ind, tuple)
@@ -1435,7 +1435,7 @@ def _select_ind_check(
             )
         ]
 
-    elif meshtype == 'tri':
+    else:
         lc = [
             ind is None,
             np.isscalar(ind)
@@ -1446,34 +1446,9 @@ def _select_ind_check(
             or isinstance(ind, np.ndarray)
         ]
 
-    else:
-        lc = [
-            ind is None,
-            shape2d
-            and isinstance(ind, tuple)
-            and len(ind) == 2
-            and (
-                all([np.isscalar(ss) for ss in ind])
-                or all([
-                    hasattr(ss, '__iter__')
-                    and len(ss) == len(ind[0])
-                    for ss in ind
-                ])
-                or all([isinstance(ss, np.ndarray) for ss in ind])
-            ),
-            (
-                np.isscalar(ind)
-                or (
-                    hasattr(ind, '__iter__')
-                    and all([np.isscalar(ss) for ss in ind])
-                )
-                or isinstance(ind, np.ndarray)
-            )
-        ]
-
     # check lc
     if not any(lc):
-        if meshtype == 'rect':
+        if shape2d:
             msg = (
                 "Arg ind must be either:\n"
                 "\t- None\n"
@@ -1497,7 +1472,7 @@ def _select_ind_check(
     if lc[0]:
         pass
 
-    elif lc[1] and meshtype in ['rect', 'polar']:
+    elif lc[1] and shape2d:
         if any([not isinstance(ss, np.ndarray) for ss in ind]):
             ind = (
                 np.atleast_1d(ind[0]).astype(int),
@@ -1531,7 +1506,7 @@ def _select_ind_check(
             )
             raise Exception(msg)
 
-    elif lc[1] and meshtype in ['tri', 'quadtri']:
+    elif lc[1] and not shape2d:
         if not isinstance(ind, np.ndarray):
             ind = np.atleast_1d(ind).astype(int)
         c0 = (
@@ -1547,15 +1522,15 @@ def _select_ind_check(
 
     else:
         if not isinstance(ind, np.ndarray):
-            ind = np.atleast_1d(ind).astype(int)
+             ind = np.atleast_1d(ind).astype(int)
         c0 = (
             np.issubdtype(ind.dtype, np.integer)
             or np.issubdtype(ind.dtype, np.bool_)
         )
         if not c0:
             msg = (
-                "Arg ind must be an array of bool or int\n"
-                f"Provided: {ind.dtype}"
+                 "Arg ind must be an array of bool or int\n"
+                 f"Provided: {ind.dtype}"
             )
             raise Exception(msg)
 
@@ -1568,19 +1543,12 @@ def _select_ind_check(
     )
 
     # returnas
-    if meshtype == 'rect':
+    if shape2d:
         retdef = tuple
         retok = [tuple, np.ndarray, 'tuple-flat', 'array-flat', bool]
-    elif meshtype == 'tri':
+    else:
         retdef = bool
         retok = [int, bool]
-    else:
-        if shape2d:
-            retdef = tuple
-            retok = [tuple, np.ndarray, 'tuple-flat', 'array-flat', bool]
-        else:
-            retdef = bool
-            retok = [int, bool]
 
     returnas = _generic_check._check_var(
         returnas, 'returnas',

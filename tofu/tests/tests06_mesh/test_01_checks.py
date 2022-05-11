@@ -119,7 +119,7 @@ def _add_polar1(plasma, key='m5'):
     Z = plasma.ddata[kZ]['data']
     RR = np.repeat(R[:, None], Z.size, axis=1)
     ZZ = np.repeat(Z[None, :], R.size, axis=0)
-    rho = (RR - 2.5)**2/0.25 + (ZZ - 0)**2/0.8
+    rho = (RR - 2.5)**2/0.08 + (ZZ - 0)**2/0.35
 
     plasma.add_data(
         key='rho1',
@@ -133,7 +133,7 @@ def _add_polar1(plasma, key='m5'):
 
     plasma.add_mesh_polar(
         key=key,
-        radius=np.linspace(0, 1.2, 13),
+        radius=np.linspace(0, 1.2, 7),
         angle=None,
         radius2d='rho1',
     )
@@ -148,7 +148,7 @@ def _add_polar2(plasma, key='m6'):
     RR = np.repeat(R[:, None], Z.size, axis=1)
     ZZ = np.repeat(Z[None, :], R.size, axis=0)
 
-    rho = (RR - 2.5)**2/0.25 + (ZZ - 0)**2/0.8
+    rho = (RR - 2.5)**2/0.08 + (ZZ - 0)**2/0.35
     angle = np.arctan2(ZZ/2., (RR - 2.5))
 
     nt = 11
@@ -201,7 +201,7 @@ def _add_polar2(plasma, key='m6'):
     # mesh
     plasma.add_mesh_polar(
         key=key,
-        radius=np.linspace(0, 0.8, 13),
+        radius=np.linspace(0, 1.2, 7),
         angle=ang,
         radius2d='rho2',
         angle2d='angle2',
@@ -235,10 +235,10 @@ def _add_bsplines(plasma, key=None, kind=None, angle=None):
                 plasma.add_bsplines(key=k0, deg=2)
                 plasma.add_bsplines(key=k0, deg=3)
             else:
-                plasma.add_bsplines(key=k0, deg=0, angle=[None]*11 + [angle])
-                plasma.add_bsplines(key=k0, deg=1, angle=[None]*12 + [angle])
-                plasma.add_bsplines(key=k0, deg=2, angle=[None]*13 + [angle])
-                plasma.add_bsplines(key=k0, deg=3, angle=[None]*14 + [angle])
+                plasma.add_bsplines(key=k0, deg=0, angle=[None]*5 + [angle])
+                plasma.add_bsplines(key=k0, deg=1, angle=[None]*6 + [angle])
+                plasma.add_bsplines(key=k0, deg=2, angle=[None]*7 + [angle])
+                plasma.add_bsplines(key=k0, deg=3, angle=[None]*8 + [angle])
 
 
 def _add_data_fix(plasma, key):
@@ -424,14 +424,15 @@ class Test02_Plasma2D():
         # Rect mesh
         nn = 4
         lelements = ['knots', None, 'cents', None]
-        lind = [None, ([0, 5], [0, 6]), [0, 5, 8], ([0, 5, 6], [0, 2, 3])]
+        lind = [None, ([0, 2], [0, 3]), [0, 5, 8], ([0, 5, 6], [0, 2, 3])]
         lcrop = [True, False, True, False]
 
         # select fom mesh
         for ii, k0 in enumerate(self.lm):
 
             ind = ii % nn
-            if self.obj.dobj['mesh'][k0]['type'] == 'rect':
+
+            if len(self.obj.dobj['mesh'][k0]['shape-c']) == 2:
                 indt = self.obj.select_ind(
                     key=k0,
                     ind=lind[ind],
@@ -465,48 +466,55 @@ class Test02_Plasma2D():
 
     def test03_select_mesh(self):
 
-        lind0 = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
+        lind0 = [None, ([0, 2], [0, 4]), [0, 2, 4], ([0, 2, 4], [0, 2, 3])]
         lind1 = [None, [1], 1, [0, 1]]
         lelem = [None, 'cents', 'knots']
         for ii, k0 in enumerate(self.lm):
 
-            if self.obj.dobj['mesh'][k0]['type'] == 'rect':
+            if len(self.obj.dobj['mesh'][k0]['shape-c']) == 2:
                 lind = lind0
-            elif self.obj.dobj['mesh'][k0]['type'] == 'tri':
-                lind = lind1
             else:
-                # not implemented yet
-                continue
+                lind = lind1
+
+            if self.obj.dobj['mesh'][k0]['type'] == 'polar':
+                return_neighbours = False
+            else:
+                return_neighbours = None if ii == 0 else bool(ii%2)
 
             out = self.obj.select_mesh_elements(
                 key=k0,
                 ind=lind[ii%len(lind)],
                 elements=lelem[ii%3],
                 returnas='ind' if ii%2 == 0 else 'data',
-                return_neighbours=None if ii == 0 else bool(ii%2),
+                return_neighbours=return_neighbours,
                 crop=ii%3 == 1,
             )
 
     def test04_select_bsplines(self):
 
-        lind0 = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
+        lind0 = [None, ([0, 2], [0, 4]), [0, 2, 4], ([0, 2, 4], [0, 2, 3])]
         lind1 = [None, [1], 1, [0, 1]]
         for ii, k0 in enumerate(self.lbs):
 
             km = self.obj.dobj['bsplines'][k0]['mesh']
-            if self.obj.dobj['mesh'][km]['type'] == 'rect':
+            if len(self.obj.dobj['bsplines'][k0]['shape']) == 2:
                 lind = lind0
-            elif self.obj.dobj['mesh'][k0]['type'] == 'tri':
-                lind = lind1
             else:
-                continue
+                lind = lind1
+
+            if self.obj.dobj['mesh'][km]['type'] == 'polar':
+                return_cents = False
+                return_knots = False
+            else:
+                return_cents = None if ii == 1 else bool(ii%3)
+                return_knots = None if ii == 2 else bool(ii%2)
 
             out = self.obj.select_bsplines(
                 key=k0,
                 ind=lind[ii%len(lind)],
                 returnas='ind' if ii%3 == 0 else 'data',
-                return_cents=None if ii == 1 else bool(ii%3),
-                return_knots=None if ii == 2 else bool(ii%2),
+                return_cents=return_cents,
+                return_knots=return_knots,
             )
 
     def test05_sample_mesh(self):
@@ -630,14 +638,12 @@ class Test02_Plasma2D():
                 imshow=False,
             )
             crop = self.obj.dobj['bsplines'][k0].get('crop', False)
-            if crop is False:
-                shap = np.prod(self.obj.dobj['bsplines'][k0]['shape'])
-            elif isinstance(crop, str):
+            shap = np.prod(self.obj.dobj['bsplines'][k0]['shape'])
+            if isinstance(crop, str):
                 shap = self.obj.ddata[crop]['data'].sum()
-            else:
-                shap = None
-            if shap is not None:
-                assert val.shape == tuple(np.r_[x.shape, shap])
+
+            ntot = x.ndim + 1
+            assert val.shape[-ntot:] == tuple(np.r_[x.shape, shap])
 
             val_sum = self.obj.interpolate_profile2d(
                 key=k0,
@@ -662,26 +668,14 @@ class Test02_Plasma2D():
             # Due to scpinterp._bspl.evaluate_spline()...
             km = self.obj.dobj['bsplines'][k0]['mesh']
             mtype = self.obj.dobj['mesh'][km]['type']
-            if mtype == 'tri':   # To be debugged
+            if mtype in ['tri', 'polar']:   # To be debugged
+                if mtype == 'polar':
+                    val = val[0]
                 assert np.allclose(
                     val_sum[0, indok],
                     np.nansum(val, axis=-1)[indok],
                     equal_nan=True,
                 )
-            elif mtype == 'polar':   # To be debugged
-                shapebs = self.obj.dobj['bsplines'][k0]['shape']
-                if len(shapebs) == 2:
-                    assert np.allclose(
-                        val_sum[0, indok],
-                        np.nansum(np.nansum(val, axis=-1), axis=-1)[0, indok],
-                        equal_nan=True,
-                    )
-                else:
-                    assert np.allclose(
-                        val_sum[0, indok],
-                        np.nansum(val, axis=-1)[0, indok],
-                        equal_nan=True,
-                    )
             # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     def test09_plot_mesh(self):
@@ -710,18 +704,27 @@ class Test02_Plasma2D():
 
     def test10_plot_bsplines(self):
 
-        li0 = [None, ([1, 2], [2, 1]), (1, 1), [1, 2, 10]]
-        li1 = [None, [1, 2], (1, 1), [1, 2, 10]]
+        li0 = [None, ([1, 2], [2, 1]), (1, 1), [1, 2, 4]]
+        li1 = [None, [1, 2], (1, 1), [1, 2, 4]]
         for ii, k0 in enumerate(self.lbs):
 
             km = self.obj.dobj['bsplines'][k0]['mesh']
-            li = li0 if self.obj.dobj['mesh'][km]['type'] == 'rect' else li1
+            if len(self.obj.dobj['mesh'][km]['shape-c']) == 2:
+                li = li0
+            else:
+                li = li1
+
+            if self.obj.dobj['mesh'][km]['type'] == 'polar':
+                plot_mesh = False
+            else:
+                plot_mesh = True
 
             dax = self.obj.plot_bsplines(
                 key=k0,
                 ind=li[ii%len(li)],
                 knots=bool(ii%3),
                 cents=bool(ii%2),
+                plot_mesh=plot_mesh,
             )
         plt.close('all')
 
@@ -845,7 +848,6 @@ class Test02_Plasma2D():
 
         # compute geometry matrices
         for ii, k0 in enumerate(lbs):
-
             self.obj.add_geometry_matrix(
                 key=k0,
                 cam=cam,
@@ -855,11 +857,18 @@ class Test02_Plasma2D():
             )
 
         # plot geometry matrices
-        # for ii, k0 in enumerate(self.obj.dobj['matrix']):
-            # dax = self.obj.plot_geometry_matrix(
-                # key=k0,
-                # cam=cam,
-                # indchan=12,
-                # indbf=10,
-            # )
-        # plt.close('all')
+        imax = 5
+        for ii, k0 in enumerate(self.obj.dobj['matrix']):
+
+            if '-' in k0 and int(k0[k0.index('-')+1:]) > 0:
+                continue
+
+            dax = self.obj.plot_geometry_matrix(
+                key=k0,
+                cam=cam,
+                indchan=40,
+                indbf=5,
+            )
+            if ii % imax == 0:
+                plt.close('all')
+        plt.close('all')
