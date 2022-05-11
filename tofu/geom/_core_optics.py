@@ -804,16 +804,41 @@ class CrystalBragg(utils.ToFuObject):
     def compute_rockingcurve(
         self, ih=None, ik=None, il=None, lamb=None,
         use_non_parallelism=None, na=None,
-        plot_asf=None, plot_power_ratio=None, plot_relation=None,
+        alpha_limits=None,
+        therm_exp=None, plot_therm_exp=None,
+        plot_asf=None, plot_power_ratio=None,
+        plot_asymmetry=None, plot_cmaps=None,
         verb=None, returnas=None,
     ):
         return _rockingcurve.compute_rockingcurve(
             ih=ih, ik=ik, il=il, lamb=lamb,
             use_non_parallelism=use_non_parallelism, na=na,
-            plot_asf=plot_asf,
-            plot_power_ratio=plot_power_ratio,
-            plot_relation=plot_relation,
+            alpha_limits=alpha_limits,
+            therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
+            plot_asf=plot_asf, plot_power_ratio=plot_power_ratio,
+            plot_asymmetry=plot_asymmetry, plot_cmaps=plot_cmaps,
             verb=None, returnas=None,
+        )
+
+    def plot_var_temp_changes_wavelengths(
+        self, ih=None, ik=None, il=None, lambdas=None,
+        use_non_parallelism=None, na=None,
+        alpha_limits=None,
+        therm_exp=None, plot_therm_exp=None,
+        plot_asf=None, plot_power_ratio=None,
+        plot_asymmetry=None, plot_cmaps=None,
+        quantity=None,
+        curv_radius=None, pixel_size=None,
+    ):
+        return _rockingcurve.plot_var_temp_changes_wavelengths(
+            ih=ih, ik=ik, il=il, lambdas=lambdas,
+            use_non_parallelism=use_non_parallelism, na=na,
+            alpha_limits=alpha_limits,
+            therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
+            plot_asf=plot_asf, plot_power_ratio=plot_power_ratio,
+            plot_asymmetry=plot_asymmetry, plot_cmaps=plot_cmaps,
+            quantity=quantity,
+            curv_radius=curv_radius, pixel_size=pixel_size,
         )
 
     # -----------------
