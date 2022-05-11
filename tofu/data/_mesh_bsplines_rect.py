@@ -271,6 +271,8 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         # specific to deg = 0
         cropbs=None,
         centered=None,
+        # to return gradR, gradZ, for D1N2 deg 0, for tomotok
+        returnas_element=None,
     ):
         """ Get desired operator """
         return _mesh_bsplines_operators_rect.get_mesh2dRect_operators(
@@ -286,6 +288,8 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             # specific to deg = 0
             cropbs=cropbs,
             centered=centered,
+            # to return gradR, gradZ, for D1N2 deg 0, for tomotok
+            returnas_element=returnas_element,
         )
 
 
