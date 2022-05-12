@@ -48,6 +48,7 @@ _IMAS_DIDD = {
     'user': _IMAS_USER_PUBLIC,
     'database': 'west',
     'version': '3',
+    'backend': 'hdf5',
 }
 
 _T0 = False
