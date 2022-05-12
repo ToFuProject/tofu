@@ -139,10 +139,10 @@ class MultiIDSLoader(object):
     ###################################
 
     _def = {
-        'isget':False,
-        'ids':None,
-        'occ':0,
-        'needidd':True,
+        'isget': False,
+        'ids': None,
+        'occ': 0,
+        'needidd': True,
     }
     _defidd = dict(_defimas2tofu._IMAS_DIDD)
 
@@ -719,7 +719,7 @@ class MultiIDSLoader(object):
         lk = self._didd.keys()
         lc = [
             idd is None, type(idd) is str and idd in lk,
-            hasattr(idd,'__iter__') and all([ii in lk for ii in idd])
+            hasattr(idd, '__iter__') and all([ii in lk for ii in idd])
         ]
         assert any(lc)
 
@@ -758,23 +758,7 @@ class MultiIDSLoader(object):
         lidd = self._checkformat_get_idd(idd)
         for k in lidd:
             if self._didd[k]['isopen'] == False:
-                # if not all([
-                    # ss in self._didd[k]['params'].keys()
-                    # for ss in ['user', 'database', 'version']
-                # ]):
-                    # msg = (
-                        # "idd cannot be opened with user, database, version !\n"
-                        # f"\t- name : {k}"
-                    # )
-                    # raise Exception(msg)
-
-                # args = (
-                    # self._didd[k]['params']['user'],
-                    # self._didd[k]['params']['database'],
-                    # self._didd[k]['params']['version'],
-                # )
                 self._didd[k]['idd'].open()
-                # self._didd[k]['idd'].open_env( *args )
                 self._didd[k]['isopen'] = True
 
     def _get(
@@ -826,7 +810,7 @@ class MultiIDSLoader(object):
 
                 docc[ii][jj]['oc'] = oc
                 docc[ii][jj]['indoc'] = np.array([
-                    (occref==oc[ll]).nonzero()[0][0]
+                    (occref == oc[ll]).nonzero()[0][0]
                     for ll in range(len(oc))
                 ])
 
@@ -1217,7 +1201,7 @@ class MultiIDSLoader(object):
 
         if occ is None:
             occ = 0
-        lc = [type(occ) in [int, np.int], hasattr(occ,'__iter__')]
+        lc = [type(occ) in [int, np.int], hasattr(occ, '__iter__')]
         assert any(lc)
 
         if lc[0]:
