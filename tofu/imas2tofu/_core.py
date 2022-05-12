@@ -861,7 +861,7 @@ class MultiIDSLoader(object):
                             or self._dids[ids]['isget'][indoc[ll]] == False
                         )
                         if c0:
-                            self._dids[ids]['ids'] = idd.get(
+                            self._dids[ids]['ids'][ll] = idd.get(
                                 ids,
                                 occurrence=oc[ll],
                             )
