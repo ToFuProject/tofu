@@ -53,14 +53,16 @@ except Exception as err:
 # imas
 try:
     import imas
+    from imas import imasdef
 except Exception as err:
     raise Exception('imas not available')
 
-__all__ = ['check_units_IMASvsDSHORT',
-           'MultiIDSLoader',
-           'load_Config', 'load_Plasma2D',
-           'load_Cam', 'load_Data',
-           '_save_to_imas']
+__all__ = [
+    'check_units_IMASvsDSHORT',
+    'MultiIDSLoader',
+    'load_Config', 'load_Plasma2D', 'load_Cam', 'load_Data',
+    '_save_to_imas',
+]
 
 
 # Root tofu path (for saving repo in IDS)
@@ -141,8 +143,9 @@ class MultiIDSLoader(object):
     _defidd = dict(_defimas2tofu._IMAS_DIDD)
 
     _lidsnames = [k for k in dir(imas) if k[0] != '_']
-    _lidsk = ['database', 'user', 'version',
-              'shot', 'run', 'refshot', 'refrun']
+    _lidsk = [
+        'database', 'user', 'version', 'shot', 'run', 'refshot', 'refrun',
+    ]
 
     # Known short version of signal str
     _dshort = _defimas2tofu._dshort
@@ -151,8 +154,10 @@ class MultiIDSLoader(object):
     _lidsdiag = _defimas2tofu._lidsdiag
     _lidslos = _defimas2tofu._lidslos
     _lidssynth = _defimas2tofu._lidssynth
-    _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
-                   'edge_profiles', 'edge_sources']
+    _lidsplasma = [
+        'equilibrium', 'core_profiles', 'core_sources',
+        'edge_profiles', 'edge_sources',
+    ]
 
     # Computed signals
     _dcomp = _defimas2tofu._dcomp
@@ -878,8 +883,15 @@ class MultiIDSLoader(object):
             for kk,vv in defidd.items():
                 if params[kk] is None:
                     params[kk] = vv
-            idd = imas.ids(params['shot'], params['run'],
-                           params['refshot'], params['refrun'])
+
+            # update TBF
+            idd = imas.DBEntry(imasdef.HDF5_BACKEND, machine, shot, run, user)
+            idd.open()
+
+            idd = imas.ids(
+                params['shot'], params['run'],
+                params['refshot'], params['refrun'],
+            )
             isopen = False
 
         elif lc[1]:
