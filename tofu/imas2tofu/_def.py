@@ -64,12 +64,14 @@ _dshort = {
         'wallR': {'str': 'description_2d[0].limiter.unit[0].outline.r',
                   'units': 'm'},
         'wallZ': {'str': 'description_2d[0].limiter.unit[0].outline.z',
-                  'units': 'm'}},
+                  'units': 'm'},
+    },
 
     'pulse_schedule': {
         'events_times': {'str': 'event[].time_stamp',
                          'units': 's'},
-        'events_names': {'str': 'event[].identifier'}},
+        'events_names': {'str': 'event[].identifier'},
+    },
 
     'summary': {
         't': {
@@ -245,7 +247,8 @@ _dshort = {
                                 + '.objects_per_dimension[2]'
                                 + '.object[].nodes')},
         '2dmeshR': {'str': 'time_slice[0].profiles_2d[0].r', 'units': 'm'},
-        '2dmeshZ': {'str': 'time_slice[0].profiles_2d[0].z', 'units': 'm'}},
+        '2dmeshZ': {'str': 'time_slice[0].profiles_2d[0].z', 'units': 'm'},
+        },
 
     'core_profiles': {
         't': {'str': 'time', 'units': 's'},
@@ -277,7 +280,8 @@ _dshort = {
     },
 
     'edge_profiles': {
-        't': {'str': 'time', 'units': 's'}},
+        't': {'str': 'time', 'units': 's'},
+    },
 
     'core_sources': {
         't': {'str': 'time', 'units': 's'},
@@ -495,7 +499,44 @@ _dshort = {
         'lamb_up': {'str': 'channel[chan].filter.wavelength_upper',
                     'units': 'm'},
         'lamb_lo': {'str': 'channel[chan].filter.wavelength_lower',
-                    'units': 'm'}}
+                    'units': 'm'},
+    },
+
+    'spectrometer_x_ray_crystal': {
+        't': {
+            'str': 'time',
+            'dim': 'time',
+            'quant': 'time',
+            'units': 's',
+        },
+        'Te': {
+            'str': 'channel[0].profiles_line_integrated.t_e.data',
+            'dim': 'temperature',
+            'quant': 'Ti',
+            'units': 'eV',
+        },
+        'Ti': {
+            'str': 'channel[0].profiles_line_integrated.t_i.data',
+            'dim': 'temperature',
+            'quant': 'Ti',
+            'units': 'eV',
+        },
+        'vi': {
+            'str': 'channel[0].profiles_line_integrated.velocity_tor.data',
+            'dim': 'velocity',
+            'quant': 'velocity',
+            'units': 'm/s',
+        },
+        'rhotn_sign': {
+            'str': (
+                'channel[0].profiles_line_integrated.'
+                'lines_of_sight_rho_tor_norm.data'
+            ),
+            'dim': 'rho',
+            'quant': 'rhotn',
+            'units': '-',
+        },
+    },
     }
 
 
