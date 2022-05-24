@@ -946,37 +946,49 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
 
 
 def CrystalBragg_plot_line_tracing_on_det(
-    lamb, xi, xj, xi_err, xj_err,
-    det=None,
+    cryst=None, dcryst=None,
+    lamb=None, xi=None, xj=None, xi_er=None, xj_er=None,
+    power_ratio=None, dth=None, ndth=None, nn=None,
+    xi_rc=None, xj_rc=None,
+    xi_atprmax=None, bragg_atprmax=None,
+    lamb_atprmax=None,
+    det=None, ax=None, dleg=None,
     johann=None, rocking=None,
-    ax=None, dleg=None,
-    fs=None, dmargin=None,
-    wintit=None, tit=None,
+    use_non_parallelism=None, therm_exp=None,
+    merge_rc_data=None,
+    alpha0=None, temp0=None, TD=None, angles=None,
+    id_temp0=None,
+    fs=None, dmargin=None, wintit=None, tit=None,
 ):
 
     # Check inputs
     # ------------
 
     if dleg is None:
-        dleg = {'loc': 'upper right', 'bbox_to_anchor': (0.93, 0.8)}
+        dleg = {
+            'loc': 'upper left',
+            'fontsize': 13,
+        }
 
     if fs is None:
-        fs = (6, 8)
+        fs = (8, 8)
     if dmargin is None:
-        dmargin = {'left': 0.05, 'right': 0.99,
-                   'bottom': 0.06, 'top': 0.92,
+        dmargin = {'left': 0.15, 'right': 0.95,
+                   'bottom': 0.08, 'top': 0.92,
                    'wspace': None, 'hspace': 0.4}
 
     if wintit is None:
         wintit = _WINTIT
     if tit is None:
-        tit = "line tracing"
+        tit = "Ray-tracing on camera surface"
         if johann is True:
             tit += " - johann error"
         if rocking is True:
             tit += " - rocking curve"
 
     plot_err = johann is True or rocking is True
+    markers = ['o', '^', 'D', 's', 'X']
+    colors = ['r', 'g', 'c', 'b', 'k']
 
     # Plot
     # ------------
@@ -989,21 +1001,69 @@ def CrystalBragg_plot_line_tracing_on_det(
             fig.canvas.manager.set_window_title(wintit)
         if tit is not False:
             fig.suptitle(tit, size=14, weight='bold')
+        ax.set_xlabel(r'Pixel coordinate $x_{i}$ [m]', fontsize=15)
+        ax.set_ylabel(r'Pixel coordinate $x_{j}$ [m]', fontsize=15)
+        ax.set_xlim(
+            det['outline'][0, :].min() - 0.01,
+            det['outline'][0, :].max() + 0.01,
+        )
+        ax.set_ylim(
+            det['outline'][1, :].min() - 0.01,
+            det['outline'][1, :].max() + 0.01,
+        )
 
     if det.get('outline') is not None:
         ax.plot(
             det['outline'][0, :], det['outline'][1, :],
             ls='-', lw=1., c='k',
         )
-    for l in range(lamb.size):
-        lab = r'$\lambda$'+' = {:6.3f} A'.format(lamb[l]*1.e10)
-        l0, = ax.plot(xi[l, :], xj[l, :], ls='-', lw=1., label=lab)
+    aa = np.r_[cryst.dmat['alpha']]
+    if therm_exp and merge_rc_data:
+        bb = TD[id_temp0]
+    elif therm_exp and not merge_rc_data:
+        bb = temp0
+    else:
+        bb = 0.
+
+    for ll in range(lamb.size):
+        lab = (
+            r'$\lambda$ = {} A'.format(np.round(lamb[ll]*1e10, 6))+ '\n'
+            + r'$\Delta$T = {} °C, $\alpha$ = {} deg'.format(
+                bb, aa[0]*(180./np.pi)
+            )
+        )
+        l0, = ax.plot(
+            xi[ll, :], xj[ll, :],
+            ls='--', lw=1.,
+            marker=markers[ll], ms=4.,
+            label=lab,
+        )
         if plot_err:
             ax.plot(
-                xi_err[l, ...], xj_err[l, ...],
+                xi_er[ll, ...], xj_er[ll, ...],
                 ls='None', lw=1., c=l0.get_color(),
                 ms=4, marker='.',
             )
+    if merge_rc_data:
+        for ll in range(lamb.size):
+            for mm in range(ndth):
+                if mm == int(ndth/2.):
+                    label = r'At $x_j$=0.: $x_i$={}, $\lambda$={}A & $\theta$={}deg'.format(
+                        np.round(xi_atprmax[ll], 6),
+                        np.round(lamb_atprmax[ll], 16),
+                        np.round(bragg_atprmax[ll]*(180./np.pi), 4),
+                    )
+                else:
+                    label = None
+                pr1 = power_ratio[ll, 0, 0, 0, mm]
+                pr2 = power_ratio[ll, 1, 0, 0, mm]
+                ax.plot(
+                    xi_rc[ll, mm, :], xj_rc[ll, mm, :],
+                    ls='-', lw=1.,
+                    c=l0.get_color(),
+                    alpha=pr1 + pr2,
+                    label=label,
+                )
 
     if dleg is not False:
         ax.legend(**dleg)

@@ -892,6 +892,28 @@ def CrystBragg_comp_lattice_spacing(
     alpha-quartz crystal have been picked from the book "Crystal Structures"
     of Wyckoff, as well as the thermal expansion coefficients in the directions
     """
+    # Check inputs
+    # ------------
+    if na is None:
+        na = 51
+    nn = (na/2.)
+    if (nn % 2) == 0:
+        nn = int(nn - 1)
+    else:
+        nn = int(nn - 0.5)
+    if therm_exp is None:
+        therm_exp = False
+    if plot_therm_exp is None and therm_exp is not False:
+        plot_therm_exp = True
+    lc = [ih is None, ik is None, il is None, lamb is None]
+    if any(lc):
+        msg = (
+            "Please make sure that the foolowing arguments are valid:\n"
+            "\t - ih, ik, il: ({},{},{})\n".format(ih, ik, il)
+            + "\t - lamb: ({})\n".format(lamb)
+        )
+        raise Exception(msg)
+
     # Lattice constants and thermal expansion coefficients for Qz
     # -----------------------------------------------------------
 
@@ -1212,12 +1234,11 @@ def CrystalBragg_plot_thermal_expansion_vs_d(
         label=(
             r'$d_{hkl}$ = ' + str(np.round(p[1], 3)) +
             r' x (1 + $\gamma_{eff}$.$\Delta$T)' + '\n' +
-            r'$\gamma_{eff}$ = ' +
-            str(np.round(p[0]/p[1], decimals=9)) +
+            r'$\gamma_{eff}$ = ' + str(np.round(p[0]/p[1], decimals=9)) +
             r'°C$^{-1}$',
         ),
     )
-    ax.legend(loc="upper left", fontsize=12)
+    ax.legend(loc="best", fontsize=12)
 
 
 def CrystalBragg_plot_atomic_scattering_factor(
