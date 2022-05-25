@@ -1564,6 +1564,7 @@ class CrystalBragg(utils.ToFuObject):
         alpha:      float
             in dmat dict., amplitude of the non-parallelism
             as an a angle defined by user, in radian.
+            By default to 3 arcmin
         use_non_parallelism:    str
             Need to be True to use new alpha angle
 
@@ -1580,17 +1581,18 @@ class CrystalBragg(utils.ToFuObject):
 
         """
         # Check inputs
+        self.update_non_parallelism(alpha=0., beta=0.)
         if rcurve is None:
             rcurve = self._dgeom['rcurve']
         if bragg is None:
             bragg = self._dbragg['braggref']
         if use_non_parallelism is True and alpha is None:
-            alpha = self._dmat['alpha']
-        elif use_non_parallelism is True and alpha is not None:
+            alpha = (3/60)*np.pi/180.
+        if use_non_parallelism is True and alpha is not None:
             alpha = alpha
-        if use_non_parallelism is None:
+        if use_non_parallelism is None or use_non_parallelism is False:
             use_non_parallelism = False
-            alpha = 0.0
+            alpha = self.dmat['alpha']
 
         # Compute
         return _comp_optics.calc_meridional_sagittal_focus(
@@ -1978,6 +1980,8 @@ class CrystalBragg(utils.ToFuObject):
                 By default to 10°C so temp0=35
         """
         # Check / format inputs
+        if merge_rc_data is None:
+            merge_rc_data = False
         if lamb is None and merge_rc_data is False:
             lamb = self._dbragg['lambref']
         elif lamb is None and merge_rc_data is True:
@@ -1988,6 +1992,8 @@ class CrystalBragg(utils.ToFuObject):
                 3.949067e-10, 3.965858e-10, 3.969356e-10,
                 3.994145e-10, 3.989810e-10,
             ]
+        if ih is None and ik is None and il is None:
+            ih = 1.; ik = 1.; il = 0.
         lamb = np.atleast_1d(lamb).ravel()
         nlamb = lamb.size
 
@@ -1999,8 +2005,6 @@ class CrystalBragg(utils.ToFuObject):
             johann = lpsi is not None or ldtheta is not None
         if rocking is None:
             rocking = False
-        if merge_rc_data is None:
-            merge_rc_data = False
         if alpha_limits is None:
             alpha_limits = np.r_[-(5/60)*np.pi/180, (5/60)*np.pi/180]
         if na is None:

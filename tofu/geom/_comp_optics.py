@@ -508,7 +508,6 @@ def calc_meridional_sagittal_focus(
         vardef=_USE_NON_PARALLELISM,
         varname='use_non_parallelism',
     )
-
     # Compute
     s_merid_ref = rcurve*np.sin(bragg)
     s_sagit_ref = -s_merid_ref/np.cos(2.*bragg)

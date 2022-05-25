@@ -750,14 +750,14 @@ def CrystBragg_check_inputs_rockingcurve(
     ih=None, ik=None, il=None, lamb=None,
 ):
 
-    # All args are None
     dd = {'ih': ih, 'ik': ik, 'il': il, 'lamb': lamb}
     lc = [v0 is None for k0, v0 in dd.items()]
+    # All args are None
     if all(lc):
         ih = 1
         ik = 1
         il = 0
-        lamb = 3.96
+        lamb = self.dbragg['lambref']
         msg = (
             "Args h, k, l and lamb were not explicitely specified\n"
             "and have been put to the following default values:\n"
@@ -767,11 +767,8 @@ def CrystBragg_check_inputs_rockingcurve(
             + "\t - lamb: wavelength of interest ({})\n".format(lamb)
         )
         warnings.warn(msg)
-
+    elif any(lc):
     # Some args are bot but not all
-    dd2 = {'ih': ih, 'ik': ik, 'il': il, 'lamb': lamb}
-    lc2 = [v0 is None for k0, v0 in dd2.items()]
-    if any(lc2):
         msg = (
             "Args h, k, l and lamb must be provided together:\n"
             + "\t - h: first Miller index ({})\n".format(ih)
@@ -891,9 +888,19 @@ def CrystBragg_comp_lattice_spacing(
     The values of the lattice parameters in the directions a and c for an
     alpha-quartz crystal have been picked from the book "Crystal Structures"
     of Wyckoff, as well as the thermal expansion coefficients in the directions
+
+    Parameters:
+    -----------
+    ih, ik, il:    int
+        Miller indices of crystal used, by default to (1,1,0)
+    lamb:    float
+        Wavelength of interest, in Angstroms (1e-10 m), by default to 3.96A
     """
     # Check inputs
     # ------------
+    ih, ik, il, lamb = CrystBragg_check_inputs_rockingcurve(
+        ih=ih, ik=ik, il=il, lamb=lamb,
+    )
     if na is None:
         na = 51
     nn = (na/2.)
