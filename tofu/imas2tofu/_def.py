@@ -569,6 +569,12 @@ _dshort = {
             'quant': '',
             'units': 'counts',
         },
+        'code_parameters': {
+            'str': 'code.parameters',
+            'dim': '',
+            'quant': '',
+            'units': '',
+        },
     },
     }
 
