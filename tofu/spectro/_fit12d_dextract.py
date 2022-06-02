@@ -812,6 +812,8 @@ def fit2d_extract(
     # check lines / bck ratio
     # a fit is usable if the lines amplitudes are >= background
     # using lambda0 for simplicity
+
+    # get background for each line
     bcki = (
         d3['bck_amp']['x']['values']
         * np.exp(
@@ -824,12 +826,17 @@ def fit2d_extract(
     )
 
     amp_on_bck = d3['amp']['lines']['values'][:, :, :] / bcki
+
+    # get indices of each line desired in lines_indphi
     iiphi = np.array([
         (dfit2d['dinput']['keys'] == ss).nonzero()[0][0]
         for ss in lines_indphi
     ])
+
+    # check validity of amp/bck ratio
     indphi = amp_on_bck[:, :, iiphi] >= amp_on_bck_thresh
     indphi = np.all(indphi, axis=-1)
+
     for ii in range(nspect):
         indphi_no = np.copy(indphi[ii, ...])
         for jj in range(len(dfit2d['dinput']['valid']['ldphi'][ii])):
@@ -843,8 +850,8 @@ def fit2d_extract(
         msg = (
             "No usable vertical profile!\n"
             "Conditions for usability include:\n"
-            "\t- lines amplitude > = 1.5 * background\n"
-            "\t- phi in a an interval of valid data"
+            f"\t- lines amplitude > = {amp_on_bck_thresh} * background\n"
+            f"\t- phi in a an interval of valid data, for lines {lines_indphi}"
         )
         warnings.warn(msg)
 
@@ -965,8 +972,10 @@ def fit2d_extract(
         'units': 'a.u.',
         'd3': d3,
         'amp_on_bck': amp_on_bck,
+        'amp_on_bck_thresh': amp_on_bck_thresh,
         'phi_prof': phi_prof,
         'indphi': indphi,
+        'lines_indphi': lines_indphi,
         'sol_lamb_phi': sol_lamb_phi,
     }
 
