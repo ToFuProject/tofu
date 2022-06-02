@@ -566,7 +566,7 @@ _dshort = {
         'data_raw': {
             'str': 'channel[0].frame[time].counts_n',
             'dim': '',
-            'quant': '',
+            'quant': 'counts',
             'units': 'counts',
         },
         'code_parameters': {
