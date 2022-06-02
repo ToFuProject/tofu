@@ -18,7 +18,9 @@ from cython.parallel cimport parallel
 from libc.math cimport fabs as c_abs
 from libc.math cimport sqrt as c_sqrt
 from libc.math cimport NAN as C_NAN
+from libc.math cimport isnan as c_isnan
 from libc.stdlib cimport malloc, free
+from libc.stdio cimport printf
 from ._basic_geom_tools cimport _VSMALL
 from . cimport _basic_geom_tools as _bgt
 from . cimport _sampling_tools as _st
@@ -1243,7 +1245,7 @@ cdef inline void which_vpoly_closer_los_vec_core(int num_poly, int nlos,
            Small value, acceptance of error
     Returns
     =======
-        ind_close_los : (nlos) int array
+        ind_close_tab : (nlos) int array
             Of the form [ind_0, ind_1, ..., ind_(nlos-1)]
             where ind_i is the coefficient for the i-th LOS (ray)
             such that the ind_i-th poly (flux surface) is closest to the LOS
@@ -1294,7 +1296,7 @@ cdef inline void which_vpoly_closer_los_vec_core(int num_poly, int nlos,
                                            eps_a, eps_b,
                                            loc_res)
                 # filling the array when nan found .............................
-                if not loc_res[1] == loc_res[1]:
+                if c_isnan(loc_res[1]):
                     #the closer poly is the one just before
                     ind_close_tab[ind_los] = ind_pol-1
                     continue

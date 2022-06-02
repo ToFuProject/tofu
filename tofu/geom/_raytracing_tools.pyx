@@ -522,16 +522,12 @@ cdef bint inter_ray_aabb_box(const int[3] sign,
         tzmax = C_NAN
     if ( (tmin > tzmax) or (tzmin > tmax) ):
         return 0
-#    printf("( if tzmin{%lf} > tmin{%lf}: %i )\n", tzmin, tmin, <bint>(tzmin > tmin))
     if (tzmin > tmin):
         printf(stest)
         tmin = tzmin
-#    printf("( if tzmax{%lf} < tmax{%lf}: %i )\n", tzmax, tmax, <bint>(tzmax < tmax))
     if (tzmax < tmax):
         printf(stest)
         tmax = tzmax
-#    printf("( if countin{%i} and (tmin{%lf} < 0.) and (tmax{%lf} < 0.): %i )\n", countin, tmin, tmax, <bint>(countin and (tmin < 0.) and (tmax < 0.)))
-#    printf("( elif not countin{%i} and tmin{%lf} < 0): %i )\n", countin, tmin, <bint>(not countin and tmin < 0))
     if countin and (tmin < 0.) and (tmax < 0.):
         return 0
     elif not countin and tmin < 0:
@@ -539,15 +535,6 @@ cdef bint inter_ray_aabb_box(const int[3] sign,
 
     res = (tmin < t0) and (tmax > -t0)
 
-#    printf(" ( %lf %lf %lf %lf %lf %lf %i )\n", tmin, tmax, tymin, tymax, tzmin, tzmax, t0)
-
-#    printf("inter_ray_aabb_box(\n")
-#    printf("    %i %i %i\n", sign[0], sign[1], sign[2])
-#    printf("    %lf %lf %lf\n", inv_direction[0], inv_direction[1], inv_direction[2])
-#    printf("    %lf %lf %lf %lf %lf %lf\n", bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5])
-#    printf("    %lf %lf %lf\n", ds[0], ds[1], ds[2])
-#    printf("    %i\n", countin)
-#    printf(") -> %i\n", res)
     return  res
 
 
@@ -730,7 +717,6 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
     cdef int* sign_ray = NULL
 
     if num_threads == 1:
-        printf("not parallel %i\n", num_threads)
         # == Allocating loop  variables ========================================
 
         # We use local arrays for each thread
@@ -785,7 +771,6 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
 
 
     else:
-        printf("parallel %i\n", num_threads)
         with nogil, parallel(num_threads=num_threads):
             # == Allocating loop  variables ====================================
 
@@ -1650,7 +1635,7 @@ cdef inline void compute_inout_tot(const int num_los,
                                    double[::1] coeff_inter_in,
                                    double[::1] vperp_out,
                                    int[::1] ind_inter_out) nogil:
-    cdef int ii, jj
+    cdef int ii, jj, kk
     cdef int ind_struct = 0
     cdef int len_lim
     cdef int ind_min
@@ -2365,9 +2350,12 @@ cdef inline void is_vis_mask(long* is_vis, double* dist,
                              int npts,
                              int num_threads) nogil:
     cdef int ii
+    cdef char[16] stest
+    stest[0] = 0
     for ii in range(npts):
         is_vis[ii] = 1
         if dist[ii] > coeff_inter_out[ii]:
+            printf(stest)
             is_vis[ii] = 0
     return
 
