@@ -278,20 +278,36 @@ class Plasma2D(ds.DataStock):
     # add_data
     # ------------------
 
-    def add_data(self, data=None, key=None, ref=None, **kwdargs):
+    def update(
+        self,
+        dobj=None,
+        ddata=None,
+        dref=None,
+        harmonize=None,
+    ):
+        """ Overload datastock update() method """
 
-        # can optionally handle mesh or bspline key in ref, TBF
-        ref, data = _mesh_checks.add_data_meshbsplines_ref(
-            ref=ref,
-            data=data,
-            dmesh=self._dobj.get(self._which_mesh),
-            dbsplines=self._dobj.get('bsplines'),
+        # if ddata => check ref for bsplines
+        if ddata is not None:
+            for k0, v0 in ddata.items():
+                (
+                    ddata[k0]['ref'], ddata[k0]['data'],
+                ) = _mesh_checks.add_data_meshbsplines_ref(
+                    ref=v0['ref'],
+                    data=v0['data'],
+                    dmesh=self._dobj.get(self._which_mesh),
+                    dbsplines=self._dobj.get('bsplines'),
+                )
+
+        # update
+        super().update(
+            dobj=dobj,
+            ddata=ddata,
+            dref=dref,
+            harmonize=harmonize,
         )
 
-        # add data
-        super().add_data(data=data, key=key, ref=ref, **kwdargs)
-
-        # bsplines
+        # assign bsplines
         if self._dobj.get('bsplines') is not None:
             for k0, v0 in self._ddata.items():
                 lbs = [

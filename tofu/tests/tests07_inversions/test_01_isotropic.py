@@ -168,7 +168,6 @@ class Test01_Inversions():
                     else:
                         raise err
 
-
         # plotting
         linv = list(self.mesh.dobj['inversions'].keys())[::7]
         for kinv in linv:
