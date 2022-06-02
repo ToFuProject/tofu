@@ -38,6 +38,9 @@ NextUpdate*
 *.ER
 *.OU
 
+# no benchmarks from air speed velocity
+.asv/
+
 # No plugins
 tofu/plugins/
 tofu/geom/build/
