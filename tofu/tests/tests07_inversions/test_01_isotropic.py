@@ -77,23 +77,46 @@ class Test01_Inversions():
             Diag='SXR',
         )
 
-        # mesh deg 1 and 2
+        # mesh rect deg 1 and 2
         mesh = tf.data.Plasma2D()
         mesh.add_mesh(
             crop_poly=conf0,
-            key='try1',
+            key='m1',
             res=0.10,
             deg=0,
         )
         mesh.add_bsplines(deg=1)
         mesh.add_bsplines(deg=2)
 
+        # add 2d radius for polar mesh
+        kR, kZ = mesh.dobj['mesh']['m1']['knots']
+        R, Z = mesh.ddata[kR]['data'], mesh.ddata[kZ]['data']
+        nR, nZ = R.size, Z.size
+        R = np.repeat(R[:, None], nZ, axis=1)
+        Z = np.repeat(Z[None, :], nR, axis=0)
+        rad2d = ((R-2.4)/0.4)**2 + (Z/0.5)**2
+        krad = 'rad2d'
+        mesh.add_data(key=krad, data=rad2d, ref='m1-bs1')
+
+        # mesh polar deg 1 and 2
+        mesh.add_mesh_polar(
+            key='m2',
+            radius=[0, 0.1, 0.2, 0.3, 0.4, 0.5, 1.],
+            radius2d=krad,
+            deg=0,
+        )
+        mesh.add_bsplines(key='m2', deg=1)
+        mesh.add_bsplines(key='m2', deg=2)
+
         # add geometry matrices
         chan = np.arange(0, 30)
         mesh.add_ref(key='chan', data=chan, group='chan')
-        mesh.add_geometry_matrix(cam=cam, key='try1-bs0', key_chan='chan')
-        mesh.add_geometry_matrix(cam=cam, key='try1-bs1', key_chan='chan')
-        mesh.add_geometry_matrix(cam=cam, key='try1-bs2', key_chan='chan')
+        mesh.add_geometry_matrix(cam=cam, key='m1-bs0', key_chan='chan')
+        mesh.add_geometry_matrix(cam=cam, key='m1-bs1', key_chan='chan')
+        mesh.add_geometry_matrix(cam=cam, key='m1-bs2', key_chan='chan')
+        mesh.add_geometry_matrix(cam=cam, key='m2-bs0', key_chan='chan')
+        mesh.add_geometry_matrix(cam=cam, key='m2-bs1', key_chan='chan')
+        mesh.add_geometry_matrix(cam=cam, key='m2-bs2', key_chan='chan')
 
         # add data
         t0 = np.array([0])
@@ -124,19 +147,30 @@ class Test01_Inversions():
         lkdata = ['data0', 'data1']
 
         # running
-        for kmat in ['matrix0', 'matrix1', 'matrix2']:
+        for kmat in self.mesh.dobj['matrix'].keys():
 
-            if kmat in ['matrix0', 'matrix1']:
+            kbs = self.mesh.dobj['matrix'][kmat]['bsplines']
+            km = self.mesh.dobj['bsplines'][kbs]['mesh']
+            mtype = self.mesh.dobj['mesh'][km]['type']
+            deg = self.mesh.dobj['bsplines'][kbs]['deg']
+
+            if deg in [0, 1]:
                 lop = ['D1N2']
             else:
                 lop = ['D1N2', 'D2N2']
 
             for comb in itt.product(dalgo.keys(), lkdata, lop, lstore):
 
-                if comb[2] == 'D2N2' and kmat != 'matrix2':
+                if comb[2] == 'D2N2' and deg != 2:
                     continue
 
-                if 'mfr' in comb[0].lower() and kmat != 'matrix0':
+                if 'mfr' in comb[0].lower() and deg != 0:
+                    continue
+
+                algofam = dalgo[comb[0]]['family']
+                if algofam == 'Non-regularized' and mtype != 'polar':
+                    continue
+                if algofam != 'Non-regularized' and mtype == 'polar':
                     continue
 
                 try:

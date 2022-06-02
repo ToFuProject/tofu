@@ -88,6 +88,17 @@ _DALGO = {
         'isotropic': True,
         'func': 'inv_linear_DisPrinc_sparse',
     },
+    'algo6': {
+        'source': 'tofu',
+        'family': 'Non-regularized',
+        'reg_operator': None,
+        'reg_param': None,
+        'decomposition': '',
+        'positive': False,
+        'sparse': True,
+        'isotropic': True,
+        'func': 'inv_linear_leastsquares_bounds',
+    },
 }
 _LREGPARAM_ALGO = [
     'augTikho',
@@ -249,6 +260,8 @@ def _compute_check(
     key_sigma=None,
     data=None,
     sigma=None,
+    # constraints
+    dconstraints=None,
     # regularity operator
     solver=None,
     operator=None,
@@ -281,7 +294,7 @@ def _compute_check(
     keybs = coll.dobj['matrix'][key_matrix]['bsplines']
     keym = coll.dobj['bsplines'][keybs]['mesh']
     matrix = coll.ddata[coll.dobj['matrix'][key_matrix]['data']]['data']
-    shapemat = matrix.shape
+    nchan, nbs = matrix.shape
     crop = coll.dobj['matrix'][key_matrix]['crop']
 
     if np.any(~np.isfinite(matrix)):
@@ -293,7 +306,7 @@ def _compute_check(
         lk = [
             kk for kk, vv in coll.ddata.items()
             if vv['data'].ndim in [1, 2]
-            and vv['data'].shape[-1] == shapemat[0]
+            and vv['data'].shape[-1] == nchan
         ]
         if key_data is None and len(lk):
             key_data = lk[0]
@@ -314,16 +327,16 @@ def _compute_check(
     )
     if not isinstance(data, np.ndarray):
         data = np.asarray(data)
-    if data.ndim not in [1, 2] or shapemat[0] not in data.shape:
+    if data.ndim not in [1, 2] or nchan not in data.shape:
         msg = (
             "Arg data must have dim in [1, 2]"
-            f" and {shapemat[0]} must be in shape\n"
+            f" and {nchan} must be in shape\n"
             f"\t- data.shape: {data.shape}"
         )
         raise Exception(msg)
     if data.ndim == 1:
         data = data[None, :]
-    if data.shape[1] != shapemat[0]:
+    if data.shape[1] != nchan:
         data = data.T
     if np.any(~np.isfinite(data)):
         msg = "Arg data should not contain NaNs or inf!"
@@ -334,7 +347,7 @@ def _compute_check(
         lk = [
             kk for kk, vv in coll.ddata.items()
             if vv['data'].ndim in [1, 2]
-            and vv['data'].shape[-1] == shapemat[0]
+            and vv['data'].shape[-1] == nchan
         ]
         key_sigma = _generic_check._check_var(
             key_sigma, 'key_sigma',
@@ -345,20 +358,20 @@ def _compute_check(
 
     # sigma
     if np.isscalar(sigma):
-        sigma = np.full((shapemat[0],), sigma*np.nanmean(np.abs(data)))
+        sigma = np.full((nchan,), sigma*np.nanmean(np.abs(data)))
 
     sigma = _generic_check._check_var(
         sigma, 'sigma',
-        default=np.full((shapemat[0],), 0.05*np.nanmean(np.abs(data))),
+        default=np.full((nchan,), 0.05*np.nanmean(np.abs(data))),
         types=(np.ndarray, list, tuple),
     )
 
     if not isinstance(sigma, np.ndarray):
         sigma = np.asarray(sigma)
-    if sigma.ndim not in [1, 2] or shapemat[0] not in sigma.shape:
+    if sigma.ndim not in [1, 2] or nchan not in sigma.shape:
         msg = (
             "Arg sigma must have dim in [1, 2]"
-            f" and {shapemat[0]} must be in shape\n"
+            f" and {nchan} must be in shape\n"
             f"\t- sigma.shape = {sigma.shape}"
         )
         raise Exception(msg)
@@ -371,49 +384,93 @@ def _compute_check(
             f"\t- sigma.shape: {sigma.shape}\n"
         )
         raise Exception(msg)
-    if sigma.shape[1] != shapemat[0]:
+    if sigma.shape[1] != nchan:
         sigma = sigma.T
 
     if np.any(~np.isfinite(sigma)):
         msg = "Arg sigma should not contain NaNs or inf!"
         raise Exception(msg)
 
-    # -------------------
-    # regularity operator
+    # -----------
+    # constraints
 
-    # get operator
-    opmat, operator, geometry, dim, ref, crop = coll.add_bsplines_operator(
-        key=keybs,
-        operator=operator,
-        geometry=geometry,
-        returnas=True,
-        store=False,
-        crop=crop,
-    )
+    err = False
+    if isinstance(dconstraints, str):
+        dconstraints = None
+    elif isinstance(dconstraints, np.ndarray):
+        dconstraints = {'coefs': dconstraints}
 
-    nchan, nbs = matrix.shape
-    if isinstance(opmat, tuple):
-        assert all([op.shape == (nbs, nbs) for op in opmat])
-    elif opmat.ndim == 1:
-        msg = "Inversion algorithm requires a quadratic operator!"
+    if isinstance(dconstraints, dict):
+        if dconstraints.get('coefs') is None:
+            dconstraints['coefs'] = np.eye(nbs, dtype=float)
+        if dconstraints.get('offset') is None:
+            dconstraints['offset'] = np.zeros((nbs,), dtype=float)
+
+        c0 = (
+            isinstance(dconstraints.get('coefs'), np.ndarray)
+            and dconstraints['coefs'].ndim == 2
+            and dconstraints['coefs'].shape[1] == nbs
+        )
+        if not c0:
+            err = True
+        else:
+            new = dconstraints['coefs'].shape[0]
+            c0 = (
+                isinstance(dconstraints.get('offset'), np.ndarray)
+                and dconstraints['offset'].shape == (new,)
+            )
+            if not c0:
+                err = True
+
+    elif dconstraints is not None:
+        err = True
+
+    # raise err if relevant
+    if err is True:
+        msg = (
+            "Arg dconstraints must be either:\n"
+            "\t- str: valid key of pre-defined constraint\n"
+            f"\t- np.ndarray: (nbs, new) constraint matrix\n"
+            "\t- dict: {\n"
+            "        'coefs':  (nbs, new) np.ndarray,\n"
+            "        'offset': (nbs,)     np.ndarray,\n"
+            "}\n"
+            "\nUsed to define a new vector of unknowns X, from x, such that:\n"
+            "    x = coefs * X + offset\n"
+            "Then:\n"
+            "    Ax = B\n"
+            "<=> A(coefs*X + offset) = B\n"
+            "<=> (A*coefs)X = (B - A*offset)\n"
+            "\nProvided:\n{dconstraints}"
+        )
         raise Exception(msg)
-    else:
-        assert opmat.shape == (nbs,) or opmat.shape == (nbs, nbs)
-        opmat = (opmat,)
-
-    if not scpsp.issparse(opmat[0]):
-        assert all([np.all(np.isfinite(op)) for op in opmat])
-
-    assert data.shape[1] == nchan
-    nt = data.shape[0]
 
     # --------------
     # choice of algo
 
-    lok = list(_DALGO.keys())
+    # regularization necessary ?
+    if nbs >= nchan:
+        lok = [
+            k0 for k0, v0 in _DALGO.items()
+            if v0.get('family') != 'Non-regularized'
+        ]
+        defalgo = lok[0]
+    elif nbs < nchan:
+        lok = list(_DALGO.keys())
+        defalgo = (
+            [
+                k0 for k0, v0 in _DALGO.items()
+                if v0.get('family') == 'Non-regularized'
+            ]
+            + [
+                k0 for k0, v0 in _DALGO.items()
+                if v0.get('family') != 'Non-regularized'
+            ]
+        )[0]
+
     algo = _generic_check._check_var(
         algo, 'algo',
-        default='algo1',
+        default=defalgo,
         types=str,
         allowed=lok,
     )
@@ -432,6 +489,52 @@ def _compute_check(
             )
             raise Exception(msg)
 
+    # --------------------
+    # algo vs dconstraints
+
+    if dalgo['family'] != 'Non-regularized' and dconstraints is not None:
+        msg = (
+            "Constraints for regularized algorithms not implemented yet!\n"
+            f"\t- algo:         {dalgo['name']}\n"
+            f"\t- dconstraints: {dconstraints}\n"
+        )
+        raise NotImplementedError(msg)
+
+    # -------------------
+    # regularity operator
+
+    # get operator
+    if dalgo['family'] != 'Non-regularized':
+        opmat, operator, geometry, dim, ref, crop = coll.add_bsplines_operator(
+            key=keybs,
+            operator=operator,
+            geometry=geometry,
+            returnas=True,
+            store=False,
+            crop=crop,
+        )
+
+        if isinstance(opmat, tuple):
+            assert all([op.shape == (nbs, nbs) for op in opmat])
+        elif opmat.ndim == 1:
+            msg = "Inversion algorithm requires a quadratic operator!"
+            raise Exception(msg)
+        else:
+            assert opmat.shape == (nbs,) or opmat.shape == (nbs, nbs)
+            opmat = (opmat,)
+
+        if not scpsp.issparse(opmat[0]):
+            assert all([np.all(np.isfinite(op)) for op in opmat])
+    else:
+        opmat = None
+        operator = None
+        geometry = None
+        dim = None
+        ref = None
+
+    assert data.shape[1] == nchan
+    nt = data.shape[0]
+
     # -------------------
     # consistent sparsity
 
@@ -439,12 +542,12 @@ def _compute_check(
     if dalgo['sparse'] is True:
         if not scpsp.issparse(matrix):
             matrix = scpsp.csc_matrix(matrix)
-        if not scpsp.issparse(opmat[0]):
+        if opmat is not None and not scpsp.issparse(opmat[0]):
             opmat = [scpsp.csc_matrix(pp) for pp in opmat]
     elif dalgo['sparse'] is False:
         if scpsp.issparse(matrix):
             matrix = matrix.toarray()
-        if scpsp.issparse(opmat[0]):
+        if opmat is not None and scpsp.issparse(opmat[0]):
             opmat = [scpsp.csc_matrix(pp).toarray() for pp in opmat]
 
     # -----------------------
@@ -501,14 +604,16 @@ def _compute_check(
         dalgo,
         kwdargs=kwdargs,
         options=options,
-        nchan=shapemat[0],
-        nbs=shapemat[1],
+        nchan=nchan,
+        nbs=nbs,
         conv_crit=conv_crit,
     )
 
     return (
         key_matrix, key_data, key_sigma, keybs, keym,
-        data, sigma, matrix, opmat, operator, geometry,
+        data, sigma, matrix,
+        dconstraints,
+        opmat, operator, geometry,
         dalgo,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,

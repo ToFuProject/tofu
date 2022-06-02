@@ -601,22 +601,11 @@ class BivariateSplinePolar():
         returnas_element=None,
     ):
         """ Get desired operator """
-        return _mesh_bsplines_operators_rect.get_mesh2dRect_operators(
-            deg=self.degrees[0],
-            operator=operator,
-            geometry=geometry,
-            knotsx_mult=self.tck[0],
-            knotsy_mult=self.tck[1],
-            knotsx_per_bs=self.knots_per_bs_x,
-            knotsy_per_bs=self.knots_per_bs_y,
-            overlap=self.get_overlap(),
-            cropbs_flat=cropbs_flat,
-            # specific to deg = 0
-            cropbs=cropbs,
-            centered=centered,
-            # to return gradR, gradZ, for D1N2 deg 0, for tomotok
-            returnas_element=returnas_element,
+
+        msg = (
+            "Operator not implemented yet for polar bsplines!"
         )
+        raise NotImplementedError(msg)
 
 
 # #############################################################################

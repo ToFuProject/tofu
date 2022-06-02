@@ -668,6 +668,7 @@ def _mesh2D_polar_check(
                 'radius2d': radius2d,
                 'angle2d': angle2d,
                 'submesh': keysm,
+                'crop': False,
             },
         }
     else:
@@ -681,6 +682,7 @@ def _mesh2D_polar_check(
                 'radius2d': radius2d,
                 'angle2d': angle2d,
                 'submesh': keysm,
+                'crop': False,
             },
         }
 

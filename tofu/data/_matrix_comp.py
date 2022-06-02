@@ -64,7 +64,7 @@ def _compute_check(
         default=True,
         types=bool,
     )
-    crop = crop and coll.dobj['bsplines'][key]['crop'] is not False
+    crop = crop and coll.dobj['bsplines'][key]['crop'] not in [None, False]
 
     # name
     if name is None:

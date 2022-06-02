@@ -34,6 +34,8 @@ def compute_inversions(
     key_sigma=None,
     data=None,
     sigma=None,
+    # constraints
+    dconstraints=None,
     # regularity operator
     operator=None,
     geometry=None,
@@ -56,7 +58,9 @@ def compute_inversions(
 
     (
         key_matrix, key_data, key_sigma, keybs, keym,
-        data, sigma, matrix, opmat, operator, geometry,
+        data, sigma, matrix,
+        dconstraints,
+        opmat, operator, geometry,
         dalgo,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
@@ -68,6 +72,8 @@ def compute_inversions(
         key_sigma=key_sigma,
         data=data,
         sigma=sigma,
+        # constraints
+        dconstraints=dconstraints,
         # choice of algo
         algo=algo,
         # regularity operator
@@ -112,17 +118,20 @@ def compute_inversions(
     mu0 = 1.
 
     # Define Regularization operator
-    if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
-        R = opmat
-    elif operator == 'D0N2':
-        R = opmat[0]
-    elif operator == 'D1N2':
-        R = opmat[0] + opmat[1]
-    elif operator == 'D2N2':
-        R = opmat[0] + opmat[1]
+    if dalgo['family'] == 'Non-regularized':
+        R = None
     else:
-        msg = 'unknown operator!'
-        raise Exception(msg)
+        if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
+            R = opmat
+        elif operator == 'D0N2':
+            R = opmat[0]
+        elif operator == 'D1N2':
+            R = opmat[0] + opmat[1]
+        elif operator == 'D2N2':
+            R = opmat[0] + opmat[1]
+        else:
+            msg = 'unknown operator!'
+            raise Exception(msg)
 
     # prepare computation intermediates
     precond = None
@@ -170,39 +179,39 @@ def compute_inversions(
 
     if dalgo['source'] == 'tofu':
         out = _compute_inv_loop(
-            dalgo=dalgo,
-            # func=func,
             sol0=sol0,
             mu0=mu0,
             matrix=matrix,
-            Tn=Tn,
-            TTn=TTn,
-            Tyn=Tyn,
-            R=R,
+            Tn=Tn,              # normalized geometry matrix (T)
+            TTn=TTn,            # normalized tTT
+            Tyn=Tyn,            # normalized 
+            R=R,                # Regularity operator
             precond=precond,
-            data_n=data_n,
+            data_n=data_n,      # normalized data
             sigma=sigma,
+            # parameters
+            dalgo=dalgo,
             isotropic=dalgo['isotropic'],
             conv_crit=conv_crit,
             sparse=dalgo['sparse'],
             positive=dalgo['positive'],
             chain=chain,
             verb=verb,
+            kwdargs=kwdargs,
+            method=method,
+            options=options,
+            dconstraints=dconstraints,
+            # output
             sol=sol,
             mu=mu,
             chi2n=chi2n,
             regularity=regularity,
             niter=niter,
             spec=spec,
-            kwdargs=kwdargs,
-            method=method,
-            options=options,
         )
 
     elif dalgo['source'] == 'tomotok':
         out = _compute_inv_loop_tomotok(
-            dalgo=dalgo,
-            # func=func,
             sol0=sol0,
             mu0=mu0,
             matrix=matrix,
@@ -213,21 +222,24 @@ def compute_inversions(
             precond=precond,
             data_n=data_n,
             sigma=sigma,
+            # parameters
+            dalgo=dalgo,
             isotropic=dalgo['isotropic'],
             conv_crit=conv_crit,
             sparse=dalgo['sparse'],
             positive=dalgo['positive'],
             chain=chain,
             verb=verb,
+            kwdargs=kwdargs,
+            method=method,
+            options=options,
+            # output
             sol=sol,
             mu=mu,
             chi2n=chi2n,
             regularity=regularity,
             niter=niter,
             spec=spec,
-            kwdargs=kwdargs,
-            method=method,
-            options=options,
         )
 
     if verb >= 1:
@@ -249,6 +261,8 @@ def compute_inversions(
         iR = np.tile(np.arange(0, shapebs[0]), shapebs[1])[cropbsflat]
         iZ = np.repeat(np.arange(0, shapebs[1]), shapebs[0])[cropbsflat]
         sol_full[:, iR, iZ] = sol
+    else:
+        sol_full = sol
 
     # store
     if store is True:
@@ -264,6 +278,7 @@ def compute_inversions(
         refmat = coll.ddata[key_matrix]['ref']
         refdata = coll.ddata[key_data]['ref']
 
+        # reshape if unique time step
         if refdata == (refmat[0],):
             refinv = coll.dobj['bsplines'][keybs]['ref']
             assert sol_full.shape[0] == 1
@@ -372,40 +387,43 @@ def compute_inversions(
 
 
 def _compute_inv_loop(
+    # inputs
     dalgo=None,
-    # func=None,
     sol0=None,
     mu0=None,
     matrix=None,
-    Tn=None,
-    TTn=None,
-    Tyn=None,
+    Tn=None,        # normalized geometry matrix (T)
+    TTn=None,       # normalized tTT
+    Tyn=None,       # normalized tTy
     R=None,
     precond=None,
     data_n=None,
     sigma=None,
+    # parameters
     conv_crit=None,
     isotropic=None,
     sparse=None,
     positive=None,
     chain=None,
     verb=None,
+    kwdargs=None,
+    method=None,
+    options=None,
+    dconstraints=None,
+    # output
     sol=None,
     mu=None,
     chi2n=None,
     regularity=None,
     niter=None,
     spec=None,
-    kwdargs=None,
-    method=None,
-    options=None,
 ):
 
     # -----------------------------------
     # Getting initial solution - step 1/2
 
     nt, nchan = data_n.shape
-    nbs = R.shape[0]
+    nbs = Tn.shape[1]
 
     if verb >= 2:
         form = "nchan * chi2n   +   mu *  R           "
@@ -416,7 +434,9 @@ def _compute_inv_loop(
     # -----------------------------------
     # Options for quadratic solvers only
 
-    if positive is True:
+    bounds = None
+    func_val, func_jac, func_hess = None, None, None
+    if dalgo['family'] != 'Non-regularized' and positive is True:
 
         bounds = tuple([(0., None) for ii in range(0, sol0.size)])
 
@@ -429,9 +449,20 @@ def _compute_inv_loop(
         def func_hess(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn):
             return 2.*(TTn + mu*R)
 
-    else:
-        bounds = None
-        func_val, func_jac, func_hess = None, None, None
+    elif dalgo['family'] == 'Non-regularized':
+
+        if dconstraints is not None:
+            datan -= Tn.dot(dconstraints['offset'])[None, :]
+            Tn = Tn.dot(dconstraints['coefs'])
+        newbs = Tn.shape[1]
+
+        if positive is True:
+            bounds = (
+                np.zeros((newbs,), dtype=float),
+                np.full((newbs,), np.inf),
+            )
+        else:
+            bounds = (-np.inf, np.inf)
 
     # ---------
     # time loop
@@ -452,9 +483,11 @@ def _compute_inv_loop(
                 Tn=Tn,
                 TTn=TTn,
                 ii=ii,
+                dconstraints=dconstraints,
             )
 
-        Tyn[:] = Tn.T.dot(data_n[ii, :])
+        if dalgo['family'] != 'Non-regularized':
+            Tyn[:] = Tn.T.dot(data_n[ii, :])
 
         # solving
         (
@@ -481,6 +514,8 @@ def _compute_inv_loop(
             bounds=bounds,
             method=method,
             options=options,
+            # non-regularized
+            dconstraints=dconstraints,
             **kwdargs,
         )
 
@@ -606,6 +641,7 @@ def _update_TTyn(
     Tn=None,
     TTn=None,
     ii=None,
+    dconstraints=None,
 ):
     # intermediates
     if sparse:
@@ -614,3 +650,6 @@ def _update_TTyn(
     else:
         Tn[...] = matrix / sigma[ii, :][:, None]
         TTn[...] = Tn.T.dot(Tn)
+
+    if dconstraints is not None:
+        Tn[...] = Tn.dot(dconstraints['coefs'])

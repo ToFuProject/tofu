@@ -1167,6 +1167,8 @@ class Plasma2D(ds.DataStock):
         kwdargs=None,
         method=None,
         options=None,
+        # for polar mesh so far
+        dconstraints=None,
     ):
         """ Compute tomographic inversion
 
@@ -1199,6 +1201,7 @@ class Plasma2D(ds.DataStock):
             kwdargs=kwdargs,
             method=method,
             options=options,
+            dconstraints=dconstraints,
         )
 
     # -----------------

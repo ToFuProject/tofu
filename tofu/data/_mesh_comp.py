@@ -1027,6 +1027,7 @@ def _mesh2Dpolar_bsplines(
                 'func_details': func_details,
                 'func_sum': func_sum,
                 'class': clas,
+                'crop': coll.dobj[coll._which_mesh][keym]['crop'],
             }
         },
     }
@@ -1814,7 +1815,7 @@ def _interp2d_check(
 
     # (R, Z) vs (radius, angle)
     lc = [
-        R is None and Z is None and mtype in ['rect', 'tri'],
+        R is None and Z is None and radius is None,
         R is not None and Z is not None,
         (R is None and Z is None)
         and (radius is not None and mtype == 'polar')
@@ -1841,8 +1842,9 @@ def _interp2d_check(
             Z=Z,
             imshow=imshow,
         )
+        lc[1] = True
 
-    elif lc[1]:
+    if lc[1]:
         if not isinstance(R, np.ndarray):
             try:
                 R = np.atleast_1d(R).astype(float)
@@ -2250,9 +2252,10 @@ def get_bsplines_operator(
         types=bool,
     )
 
+    # cropbs
     cropbs = coll.dobj['bsplines'][key]['crop']
     keycropped = coll.dobj['bsplines'][key]['ref-bs'][0]
-    if cropbs is not False and crop is True:
+    if cropbs not in [None, False] and crop is True:
         cropbs_flat = coll.ddata[cropbs]['data'].ravel(order='F')
         if coll.dobj['bsplines'][key]['deg'] == 0:
             cropbs = coll.ddata[cropbs]['data']
