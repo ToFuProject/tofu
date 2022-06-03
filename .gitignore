@@ -38,6 +38,9 @@ NextUpdate*
 *.ER
 *.OU
 
+# no benchmarks from air speed velocity
+.asv/
+
 # No plugins
 tofu/plugins/
 tofu/geom/build/
@@ -92,4 +95,3 @@ inputs_temp/*.txt
 
 # benchmark
 tofu/benchmarks/results/didier-XH310V2/*.json
-
