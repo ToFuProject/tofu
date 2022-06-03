@@ -18,6 +18,7 @@ _ExpTCV = 'TCV'
 _ExpSPARC = 'SPARC'
 _ExpNSTX = 'NSTX'
 _ExpKSTAR = 'KSTAR'
+_ExpMAST = 'MAST'
 
 
 # Default config
@@ -334,6 +335,12 @@ _DCONFIG = {
         'Exp': _ExpKSTAR,
         'Ves': ['V0'],
     },
+
+    # MAST
+    'MAST-V0': {
+        'Exp': _ExpMAST,
+        'Ves': ['V0'],
+    },
 }
 
 # Each config can be called by various names / shortcuts (for benchmark and
@@ -359,6 +366,7 @@ _DCONFIG_SHORTCUTS = {
     'SPARC': 'SPARC-V1',
     'NSTX': 'NSTX-V2',
     'KSTAR': 'KSTAR-V0',
+    'MAST': 'MAST-V0',
 }
 
 
