@@ -13,7 +13,7 @@ Main changes:
 - HDF5 IMAS backend compatibility #642
 - Better crystal bragg data treatement #644
 - Minor refactoring #645
-- New tokamaks geometries #
+- New tokamaks geometries #647, #649
 
 
 Detailed changes:
@@ -22,8 +22,8 @@ Detailed changes:
 
 Tokamak geometries:
 ~~~~~~~~~~~~~~~~~~~
-- MAST: added a simple one-polygon version #
-- KSTAR: added a simple one-polygon version #
+- MAST: added a simple one-polygon version #647
+- KSTAR: added a simple one-polygon version #649
 
 New compatibility:
 ~~~~~~~~~~~~~~~~~~
@@ -72,4 +72,4 @@ What's next (indicative):
 
 List of PR merged into this release:
 ====================================
-- PR: #636, #637, #639, #642, #644, #645
+- PR: #636, #637, #639, #642, #644, #645, #647, #649
