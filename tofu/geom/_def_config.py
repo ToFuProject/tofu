@@ -17,6 +17,7 @@ _ExpCOMPASS2 = 'COMPASS2'
 _ExpTCV = 'TCV'
 _ExpSPARC = 'SPARC'
 _ExpNSTX = 'NSTX'
+_ExpKSTAR = 'KSTAR'
 
 
 # Default config
@@ -327,6 +328,12 @@ _DCONFIG = {
             'PFCoil20', 'PFCoil21', 'PFCoil22',
         ],
     },
+
+    # KSTAR
+    'KSTAR-V0': {
+        'Exp': _ExpKSTAR,
+        'Ves': ['V0'],
+    },
 }
 
 # Each config can be called by various names / shortcuts (for benchmark and
@@ -351,6 +358,7 @@ _DCONFIG_SHORTCUTS = {
     'TCV': 'TCV-V0',
     'SPARC': 'SPARC-V1',
     'NSTX': 'NSTX-V2',
+    'KSTAR': 'KSTAR-V0',
 }
 
 
