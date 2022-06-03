@@ -17,6 +17,7 @@ _ExpCOMPASS2 = 'COMPASS2'
 _ExpTCV = 'TCV'
 _ExpSPARC = 'SPARC'
 _ExpNSTX = 'NSTX'
+_ExpKSTAR = 'KSTAR'
 _ExpMAST = 'MAST'
 
 
@@ -329,6 +330,12 @@ _DCONFIG = {
         ],
     },
 
+    # KSTAR
+    'KSTAR-V0': {
+        'Exp': _ExpKSTAR,
+        'Ves': ['V0'],
+    },
+
     # MAST
     'MAST-V0': {
         'Exp': _ExpMAST,
@@ -358,6 +365,7 @@ _DCONFIG_SHORTCUTS = {
     'TCV': 'TCV-V0',
     'SPARC': 'SPARC-V1',
     'NSTX': 'NSTX-V2',
+    'KSTAR': 'KSTAR-V0',
     'MAST': 'MAST-V0',
 }
 
