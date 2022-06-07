@@ -610,12 +610,8 @@ def _mesh2D_polar_check(
 
     # dref
     dref = {
-        krk: {
-            'size': rknot.size,
-        },
-        krc: {
-            'size': rcent.size,
-        },
+        krk: {'size': rknot.size},
+        krc: {'size': rcent.size},
     }
 
     if angle is not None:
@@ -631,7 +627,7 @@ def _mesh2D_polar_check(
     # ddata
     ddata = {
         kkr: {
-            'data': rknot,
+            'data': rknots,
             'ref': krk,
             **dradius,
         },

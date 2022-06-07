@@ -436,6 +436,8 @@ def get_plasma(
     d0d=None,
     out0=None,
     lids=None,
+    # radial base
+    radius_base=None,
     # parameters
     tlim=None,
     t0=None,
@@ -540,112 +542,6 @@ def get_plasma(
                     source=ids,
                 )
 
-        # ---------------
-        # d1d and dradius
-
-        lsig = [k for k in out0[ids].keys() if '1d' in k]
-        out_ = multi.get_data(
-            dsig={ids: lsig},
-            indt=indt,
-            nan=nan,
-            pos=pos,
-            stack=stack,
-            isclose=isclose,
-            empty=empty,
-            strict=strict,
-            return_all=False,
-            warn=False,
-        )[ids]
-
-        if len(out_) > 0:
-
-            nref, kref = None, None
-            for ss in out_.keys():
-
-                # safeguard
-                shape = out_[ss]['data'].shape
-                if out_[ss]['data'].ndim not in [1, 2]:
-                    msg = (
-                        f"Non-conform {ids}.{ss}.ndim\n"
-                        "\t- expected: 1 or 2\n"
-                        f"\t- {ids}.{ss}.shape = {shape}"
-                    )
-                    raise Exception(msg)
-
-                # nr and nt
-                if len(shape) == 1:
-                    nr = shape[0]
-
-                elif len(shape) == 2:
-                    if nt is None:
-                        msg = (
-                            f"{ids}.t could not be retrieved\n"
-                            "=> Assuming 't' is the first dimension of "
-                            "{ids}.{ss}"
-                        )
-                        warnings.warn(msg)
-
-                        nt = shape[0]
-                        keynt = f"{ids}.nt"
-
-                        # add ref
-                        plasma.add_ref(key=keynt, size=nt)
-
-                    elif nt not in shape:
-                        msg = (
-                            "Inconsistent shape with respect to 't'!\n"
-                            f"\t- {ids}.{ss}.shape = {shape}"
-                            f"\t- One dim should be nt = {nt}"
-                        )
-                        raise Exception(msg)
-
-                    # Make sure shape is (nt, nr)
-                    axist = shape.index(nt)
-                    nr = shape[1-axist]
-                    if axist == 1:
-                        out_[ss]['data'] = out_[ss]['data'].T
-
-                    if out_[ss]['data'].shape != (nt, nr):
-                        msg = (
-                            f"Wrong shape for {ids}.{ss}:\n"
-                            f"\t- expected: {(nt, nr)}\n"
-                            f"\t- got:  {out_[ss]['data'].shape}"
-                        )
-                        raise Exception(msg)
-
-                # Get dim / quant from dshort / dcomp + units
-                if ss in multi._dshort[ids].keys():
-                    dim = multi._dshort[ids][ss].get('dim', 'unknown')
-                    quant = multi._dshort[ids][ss].get('quant', 'unknown')
-                else:
-                    dim = multi._dcomp[ids][ss].get('dim', 'unknown')
-                    quant = multi._dcomp[ids][ss].get('quant', 'unknown')
-
-                # add ref
-                if nref is None:
-                    kref = f'{idsshort}.nr'
-                    nref = nr
-                    plasma.add_ref(key=kref, size=nref)
-
-                elif nr != nref:
-                    msg = (
-                        f"Inconsistent nr for {ids}.{ss}\n"
-                        f"\t- nref: {nref}\n"
-                        f"\t- nr:   {nr}"
-                    )
-                    raise Exception(msg)
-
-                # add data
-                plasma.add_data(
-                    key=f'{idsshort}.{ss}',
-                    data=out_[ss]['data'],
-                    ref=kref if len(shape) == 1 else (keynt, kref),
-                    dim=dim,
-                    quant=quant,
-                    units=out_[ss]['units'],
-                    source=ids,
-                )
-
         # -------------
         # d2d and dmesh
 
@@ -735,6 +631,202 @@ def get_plasma(
                 "No mesh to be used as reference!"
             )
             raise Exception(msg)
+
+        # ---------------
+        # d1d and dradius
+
+        lsig = [k for k in out0[ids].keys() if '1d' in k]
+        out_ = multi.get_data(
+            dsig={ids: lsig},
+            indt=indt,
+            nan=nan,
+            pos=pos,
+            stack=stack,
+            isclose=isclose,
+            empty=empty,
+            strict=strict,
+            return_all=False,
+            warn=False,
+        )[ids]
+
+        if len(out_) > 0:
+
+            # Identify radius base
+            drad = {}
+            for k0, v0 in out_.items():
+                c0 = (
+                    isinstance(v0['data'], np.ndarray)
+                    and np.all(np.isfinite(v0['data']))
+                    and v0['data'].ndim in [1, 2]
+                )
+                if c0:
+                    if v0['data'].ndim == 1:
+                        diff = v0['data'][1] - v0['data'][0]
+                        if np.all(np.diff(v0['data'])*diff > 0):
+                            drad[k0] = v0['data']
+                    else:
+                        if np.allclose(v0['data'][0:1, :], v0['data']):
+                            diff = v0['data'][0, 1] - v0['data'][0, 0]
+                            if np.all(np.diff(v0['data'][0, :])*diff > 0):
+                                drad[k0] = v0['data'][0, :]
+                        elif np.allclose(v0['data'][:, 0:1], v0['data']):
+                            diff = v0['data'][1, 0] - v0['data'][0, 0]
+                            if np.all(np.diff(v0['data'][:, 0])*diff > 0):
+                                drad[k0] = v0['data'][:, 0]
+
+            if len(drad) == 0:
+                msg = (
+                    "No valid radial base could be identified!\n"
+                    "A valid radial base should be a 1d monotonous array"
+                )
+                raise Exception(msg)
+
+            elif len(drad) == 1:
+                k0ref = list(drad.keys())[0]
+            else:
+                if not np.unique([v0.size for v0 in drad.values()]).size == 1:
+                    lstr = [f"\t- {k0}: {v0.size}" for k0, v0 in drad.items()]
+                    msg = (
+                        "Several possible radial bases identified:\n"
+                        + "\n".join(lstr)
+                    )
+                    raise Exception(msg)
+
+                if radius_base is not None and radius_base in drad.keys():
+                    k0ref = radius_base
+                else:
+                    k0ref = list(drad.keys())[0]
+
+            nr = drad[k0ref].size
+            kref = f'{idsshort}.nr'
+
+            # add ref and data for radial base
+            plasma.add_ref(key=kref, size=nr)
+
+            # Get dim / quant from dshort / dcomp + units
+            if k0ref in multi._dshort[ids].keys():
+                dim = multi._dshort[ids][k0ref].get('dim', 'unknown')
+                quant = multi._dshort[ids][k0ref].get('quant', 'unknown')
+            else:
+                dim = multi._dcomp[ids][k0ref].get('dim', 'unknown')
+                quant = multi._dcomp[ids][k0ref].get('quant', 'unknown')
+
+            plasma.add_data(
+                key=f'{idsshort}.{k0ref}',
+                data=drad[k0ref],
+                ref=kref,
+                dim=dim,
+                quant=quant,
+                units=out_[k0ref]['units'],
+            )
+
+            radius2d = [
+                k0 for k0, v0 in plasma.ddata.items()
+                if '2d' in k0
+                and v0['dim'] == dim
+                and v0['quant'] == quant
+                and v0['bsplines'] is not None
+            ]
+            if len(radius2d) == 1:
+                radius2d = radius2d[0]
+            elif len(radius2d) == 0:
+                msg = (
+                    "No 2d radius for polar mesh!\n"
+                )
+                raise Exception(msg)
+            else:
+                msg = (
+                    "Several possible 2d radius identified!\n"
+                    + str(radius2d)
+                )
+                raise Exception(msg)
+
+            kmrad = f'{idsshort}.radial'
+            plasma.add_mesh_polar(
+                key=kmrad,
+                radius=drad[k0ref],
+                radius2d=radius2d,
+                radius_dim=dim,
+                radius_quant=quant,
+                radius_units=out_[k0ref]['units'],
+                deg=1,
+            )
+
+            # Add other radial data
+            for ss in out_.keys():
+
+                if ss == k0ref:
+                    continue
+
+                # safeguard
+                shape = out_[ss]['data'].shape
+                if out_[ss]['data'].ndim not in [1, 2]:
+                    msg = (
+                        f"Non-conform {ids}.{ss}.ndim\n"
+                        "\t- expected: 1 or 2\n"
+                        f"\t- {ids}.{ss}.shape = {shape}"
+                    )
+                    raise Exception(msg)
+
+                # nr and nt
+                if len(shape) == 1:
+                    assert shape[0] == nr, shape
+
+                elif len(shape) == 2:
+                    if nt is None:
+                        msg = (
+                            f"{ids}.t could not be retrieved\n"
+                            "=> Assuming 't' is the first dimension of "
+                            "{ids}.{ss}"
+                        )
+                        warnings.warn(msg)
+
+                        nt = shape[0]
+                        keynt = f"{ids}.nt"
+
+                        # add ref
+                        plasma.add_ref(key=keynt, size=nt)
+
+                    elif nt not in shape or nr not in shape:
+                        msg = (
+                            "Inconsistent shape with respect to 't' and nr!\n"
+                            f"\t- {ids}.{ss}.shape = {shape}"
+                            f"\t- One dim should be nt = {nt}"
+                            f"\t- One dim should be nr = {nr}"
+                        )
+                        raise Exception(msg)
+
+                    # Make sure shape is (nt, nr)
+                    axist = shape.index(nt)
+                    if axist == 1:
+                        out_[ss]['data'] = out_[ss]['data'].T
+
+                    if out_[ss]['data'].shape != (nt, nr):
+                        msg = (
+                            f"Wrong shape for {ids}.{ss}:\n"
+                            f"\t- expected: {(nt, nr)}\n"
+                            f"\t- got:  {out_[ss]['data'].shape}"
+                        )
+                        raise Exception(msg)
+
+                # Get dim / quant from dshort / dcomp + units
+                if ss in multi._dshort[ids].keys():
+                    dim = multi._dshort[ids][ss].get('dim', 'unknown')
+                    quant = multi._dshort[ids][ss].get('quant', 'unknown')
+                else:
+                    dim = multi._dcomp[ids][ss].get('dim', 'unknown')
+                    quant = multi._dcomp[ids][ss].get('quant', 'unknown')
+
+                # add data
+                plasma.add_data(
+                    key=f'{idsshort}.{ss}',
+                    data=out_[ss]['data'],
+                    ref=kmrad if len(shape) == 1 else (keynt, kmrad),
+                    dim=dim,
+                    quant=quant,
+                    units=out_[ss]['units'],
+                    source=ids,
+                )
 
     # t0
     if indt0 is None:

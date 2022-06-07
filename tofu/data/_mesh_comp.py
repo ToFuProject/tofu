@@ -1738,20 +1738,29 @@ def _get_possible_ref12d(
 
 
 def _interp2d_check(
+    # ressources
     coll=None,
+    # interpolation base, 1d or 2d
     key=None,
-    # coordinates
+    # Only relevant if key points to a 1d profile
+    ref1d=None,
+    ref2d=None,
+    # external coefs (instead of key, optional)
+    coefs=None,
+    # interpolation points
     R=None,
     Z=None,
     radius=None,
     angle=None,
-    # coefs
-    coefs=None,
-    # parameters
     grid=None,
-    indbs=None,
+    # time: t or indt
+    t=None,
     indt=None,
+    # bsplines
+    indbs=None,
+    # parameters
     details=None,
+    reshape=None,
     res=None,
     crop=None,
     nan0=None,
