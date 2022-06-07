@@ -14,6 +14,7 @@ Main changes:
 - Better crystal bragg data treatement #644
 - Minor refactoring #645
 - New tokamaks geometries #647, #649
+- Minor debugging #651
 
 
 Detailed changes:
@@ -49,6 +50,7 @@ Unit tests:
 Miscellaneous:
 ~~~~~~~~~~~~~~
 - Minor refactoring #645
+- Minor debugging #651
 
 Contributors:
 =============
@@ -72,4 +74,4 @@ What's next (indicative):
 
 List of PR merged into this release:
 ====================================
-- PR: #636, #637, #639, #642, #644, #645, #647, #649
+- PR: #636, #637, #639, #642, #644, #645, #647, #649, #651
