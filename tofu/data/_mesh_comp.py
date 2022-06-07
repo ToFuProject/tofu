@@ -2042,18 +2042,27 @@ def _interp2d_check(
 
 
 def interp2d(
+    # ressources
     coll=None,
+    # interpolation base, 1d or 2d
     key=None,
-    # coordinates
+    # Only relevant if key points to a 1d profile
+    ref1d=None,
+    ref2d=None,
+    # external coefs (instead of key, optional)
+    coefs=None,
+    # interpolation points
     R=None,
     Z=None,
     radius=None,
     angle=None,
-    # parameters
-    coefs=None,
-    indbs=None,
-    indt=None,
     grid=None,
+    # time: t or indt
+    t=None,
+    indt=None,
+    # bsplines
+    indbs=None,
+    # parameters
     details=None,
     reshape=None,
     res=None,
@@ -2076,18 +2085,27 @@ def interp2d(
         indbs, indt,
         details, crop, nan0, return_params,
     ) = _interp2d_check(
+        # ressources
         coll=coll,
+        # interpolation base, 1d or 2d
         key=key,
-        # coordinates
+        # Only relevant if key points to a 1d profile
+        ref1d=ref1d,
+        ref2d=ref2d,
+        # external coefs (instead of key, optional)
+        coefs=coefs,
+        # interpolation points
         R=R,
         Z=Z,
         radius=radius,
         angle=angle,
-        # parameters
-        coefs=coefs,
-        indbs=indbs,
-        indt=indt,
         grid=grid,
+        # time: t or indt
+        t=t,
+        indt=indt,
+        # bsplines
+        indbs=indbs,
+        # parameters
         details=details,
         res=res,
         crop=crop,
@@ -2109,7 +2127,7 @@ def interp2d(
         raise Exception("Unknown details!")
 
     # ---------------
-    # interp
+    # interp 2d profile
 
     cropbs = coll.dobj['bsplines'][keybs]['crop']
     if cropbs not in [None, False]:

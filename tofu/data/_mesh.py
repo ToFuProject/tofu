@@ -1013,18 +1013,24 @@ class Plasma2D(ds.DataStock):
     def interpolate_profile2d(
         # ressources
         self,
-        # interpolation base
+        # interpolation base, 1d or 2d
         key=None,
-        # extrenal coefs (instead of key)
+        # Only relevant if key points to a 1d profile
+        ref1d=None,
+        ref2d=None,
+        # external coefs (instead of key, optional)
         coefs=None,
         # interpolation points
         R=None,
         Z=None,
         grid=None,
+        # time: t or indt
+        t=None,
         indt=None,
+        # bsplines
+        indbs=None,
         # parameters
         details=None,
-        indbs=None,
         reshape=None,
         res=None,
         crop=None,
@@ -1057,24 +1063,35 @@ class Plasma2D(ds.DataStock):
         """
 
         return _mesh_comp.interp2d(
+            # ressources
             coll=self,
+            # interpolation base, 1d or 2d
             key=key,
+            # Only relevant if key points to a 1d profile
+            ref1d=ref1d,
+            ref2d=ref2d,
+            # external coefs (instead of key, optional)
+            coefs=coefs,
+            # interpolation points
             R=R,
             Z=Z,
             grid=grid,
-            indbs=indbs,
+            # time: t or indt
+            t=t,
             indt=indt,
+            # bsplines
+            indbs=indbs,
+            # parameters
             details=details,
             reshape=reshape,
             res=res,
-            coefs=coefs,
             crop=crop,
             nan0=nan0,
             imshow=imshow,
             return_params=return_params,
         )
 
-    # TBF afetr polar meshes
+    # TBF after polar meshes
     def interpolate_2dto1d(
         # resources
         self,

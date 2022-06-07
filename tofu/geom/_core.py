@@ -6882,15 +6882,37 @@ class Rays(utils.ToFuObject):
         assert isinstance(pts, bool)
 
         # Sample LOS
-        ptsi, reseff, lind = self.get_sample(res=res, resMode=resMode, DL=None,
-                                             method=method, ind=None,
-                                             pts=True, compact=True, Test=True)
+        ptsi, reseff, lind = self.get_sample(
+            res=res, resMode=resMode, DL=None,
+            method=method, ind=None,
+            pts=True, compact=True, Test=True,
+        )
 
-        # Interpolate values
-        val, t = plasma.interp_pts2profile(
-            pts=ptsi, t=t, quant=quant, ref1d=ref1d, ref2d=ref2d,
-            interp_t=interp_t, interp_space=interp_space,
-            fill_value=fill_value)
+        # Interpolate values - TBF
+        val, t = plasma.interpolate_profile2d(
+            # interpolation base, 1d or 2d
+            key=quant,
+            # Only relevant if key points to a 1d profile
+            ref1d=ref1d,
+            ref2d=ref2d,
+            # external coefs (instead of key, optional)
+            coefs=None,
+            # interpolation points
+            R=np.hypot(ptsi[0, ...], ptsi[1, ...]),
+            Z=ptsi[2, ...],
+            grid=grid,
+            # time
+            t=t,
+            indt=indt,
+            # parameters
+            details=details,
+            reshape=reshape,
+            res=res,
+            crop=crop,
+            nan0=nan0,
+            imshow=imshow,
+            return_params=return_params,
+        )
 
         # Separate val per LOS and compute min / max
         func = np.nanmin if log == 'min' else np.nanmax
@@ -6906,16 +6928,20 @@ class Rays(utils.ToFuObject):
             for ii in range(self.nRays):
                 indok = ~np.all(np.isnan(val[:, lind[ii]:lind[ii+1]]), axis=1)
                 if np.any(indok):
-                    vals[indok, ii] = func(val[indok, lind[ii]:lind[ii+1]],
-                                           axis=1)
+                    vals[indok, ii] = func(
+                        val[indok, lind[ii]:lind[ii+1]],
+                        axis=1,
+                    )
                     ind = funcarg(val[indok, lind[ii]:lind[ii+1]], axis=1)
                     pts[:, ii, indok] = ptsi[:, lind[ii]:lind[ii+1]][:, ind]
             pts = pts.T
 
         else:
             pts = None
-            vals = np.column_stack([func(vv, axis=1)
-                                    for vv in np.split(val, lind, axis=-1)])
+            vals = np.column_stack([
+                func(vv, axis=1)
+                for vv in np.split(val, lind, axis=-1)
+            ])
         return vals, pts, t
 
     def get_inspector(self, ff):
