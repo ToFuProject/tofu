@@ -690,13 +690,13 @@ def plot_fit1d(
         ax1.set_xlabel(r'$\lambda$ (m)')
 
         ax0.plot(
-            lamb[dprepare['indok'][ispect, :]],
-            data[ispect, dprepare['indok'][ispect, :]],
+            lamb[dprepare['indok_bool'][ispect, :]],
+            data[ispect, dprepare['indok_bool'][ispect, :]],
             marker='.', c='k', ls='None', ms=8,
         )
         ax0.plot(
-            lamb[~dprepare['indok'][ispect, :]],
-            data[ispect, ~dprepare['indok'][ispect, :]],
+            lamb[~dprepare['indok_bool'][ispect, :]],
+            data[ispect, ~dprepare['indok_bool'][ispect, :]],
             marker='x', c='k', ls='None', ms=4,
         )
         if showonly is not True:
@@ -877,6 +877,7 @@ def plot_fit1d(
             fig.canvas.manager.set_window_title(wintit)
     if xlim is not False:
         ax0.set_xlim(xlim)
+
     return {'data': ax0, 'error': ax1}
 
 
