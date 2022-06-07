@@ -1742,9 +1742,6 @@ def _interp2d_check(
     coll=None,
     # interpolation base, 1d or 2d
     key=None,
-    # Only relevant if key points to a 1d profile
-    ref1d=None,
-    ref2d=None,
     # external coefs (instead of key, optional)
     coefs=None,
     # interpolation points

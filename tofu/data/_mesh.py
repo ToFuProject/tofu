@@ -1015,9 +1015,6 @@ class Plasma2D(ds.DataStock):
         self,
         # interpolation base, 1d or 2d
         key=None,
-        # Only relevant if key points to a 1d profile
-        ref1d=None,
-        ref2d=None,
         # external coefs (instead of key, optional)
         coefs=None,
         # interpolation points
@@ -1067,9 +1064,6 @@ class Plasma2D(ds.DataStock):
             coll=self,
             # interpolation base, 1d or 2d
             key=key,
-            # Only relevant if key points to a 1d profile
-            ref1d=ref1d,
-            ref2d=ref2d,
             # external coefs (instead of key, optional)
             coefs=coefs,
             # interpolation points

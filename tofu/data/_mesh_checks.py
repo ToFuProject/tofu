@@ -627,7 +627,7 @@ def _mesh2D_polar_check(
     # ddata
     ddata = {
         kkr: {
-            'data': rknots,
+            'data': rknot,
             'ref': krk,
             **dradius,
         },

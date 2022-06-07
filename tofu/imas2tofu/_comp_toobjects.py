@@ -711,15 +711,6 @@ def get_plasma(
                 dim = multi._dcomp[ids][k0ref].get('dim', 'unknown')
                 quant = multi._dcomp[ids][k0ref].get('quant', 'unknown')
 
-            plasma.add_data(
-                key=f'{idsshort}.{k0ref}',
-                data=drad[k0ref],
-                ref=kref,
-                dim=dim,
-                quant=quant,
-                units=out_[k0ref]['units'],
-            )
-
             radius2d = [
                 k0 for k0, v0 in plasma.ddata.items()
                 if '2d' in k0
@@ -754,9 +745,6 @@ def get_plasma(
 
             # Add other radial data
             for ss in out_.keys():
-
-                if ss == k0ref:
-                    continue
 
                 # safeguard
                 shape = out_[ss]['data'].shape
