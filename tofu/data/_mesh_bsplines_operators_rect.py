@@ -36,6 +36,7 @@ def _get_mesh2dRect_operators_check(
     operator=None,
     geometry=None,
     sparse_fmt=None,
+    returnas_element=None,
 ):
 
     # deg
@@ -69,6 +70,17 @@ def _get_mesh2dRect_operators_check(
         allowed=['dia', 'csr', 'csc', 'lil'],
     )
 
+    # returnas_element
+    lok = [False]
+    if operator == 'D1N2' and deg == 0:
+        lok.append(True)
+    returnas_element = _generic_check._check_var(
+        returnas_element, 'returnas_element',
+        default=False,
+        types=bool,
+        allowed=lok,
+    )
+
     # dim
     if operator == 'D1':
         dim = 'origin / m'
@@ -97,7 +109,7 @@ def _get_mesh2dRect_operators_check(
         else:
             dim = 'origin2 / (m2.rad)'
 
-    return operator, geometry, sparse_fmt, dim
+    return operator, geometry, sparse_fmt, returnas_element, dim
 
 
 def get_mesh2dRect_operators(
@@ -114,16 +126,21 @@ def get_mesh2dRect_operators(
     # specific to deg = 0
     cropbs=None,
     centered=None,
+    # for D1N2 only (to feed to tomotok / Mfr)
+    returnas_element=None,
 ):
 
     # ------------
     # check inputs
 
-    operator, geometry, sparse_fmt, dim = _get_mesh2dRect_operators_check(
+    (
+        operator, geometry, sparse_fmt, returnas_element, dim,
+    ) = _get_mesh2dRect_operators_check(
         deg=deg,
         operator=operator,
         geometry=geometry,
         sparse_fmt=sparse_fmt,
+        returnas_element=returnas_element,
     )
 
     # ------------
@@ -439,14 +456,22 @@ def get_mesh2dRect_operators(
                     ny,
                 )
 
+            dS = dR*dZ
             if cropbs_flat is not False:
-                dR = dR[cropbs_flat]
-                dZ = dZ[cropbs_flat]
+                dS = dS[cropbs_flat]
 
-            opmat = (
-                scpsp.csc_matrix(gradR.T.dot(gradR*(dR*dZ)[:, None])),
-                scpsp.csc_matrix(gradZ.T.dot(gradZ*(dR*dZ)[:, None])),
-            )
+            # Does not seem to give positive definite matrix, to be checked ?
+            if returnas_element is True:
+                opmat = (
+                    scpsp.csc_matrix(gradR*np.sqrt(dS[:, None])),
+                    scpsp.csc_matrix(gradZ*np.sqrt(dS[:, None])),
+                )
+
+            else:
+                opmat = (
+                    scpsp.csc_matrix((gradR.T.dot(gradR))*(dS[:, None])),
+                    scpsp.csc_matrix((gradZ.T.dot(gradZ))*(dS[:, None])),
+                )
 
         else:
 

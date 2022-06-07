@@ -2,6 +2,7 @@
 
 
 # Built-in
+import copy
 
 
 # Common
@@ -13,18 +14,225 @@ import scipy.sparse as scpsp
 from . import _generic_check
 
 
-_LALGO = [
-    'inv_linear_augTikho_sparse',
-    'inv_linear_augTikho_dense',
-    'inv_linear_augTikho_chol_dense',
-    'inv_linear_augTikho_chol_sparse',
-    'inv_linear_augTikho_pos_dense',
-    'inv_linear_DisPrinc_sparse',
-]
+# optional
+try:
+    from .. import tomotok2tofu
+except Exception as err:
+    tomotok2tofu = False
+
+
+_DALGO = {
+    'algo0': {
+        'source': 'tofu',
+        'family': 'Phillips-Tikhonov',
+        'reg_operator': 'any linear',
+        'reg_param': 'augTikho',
+        'decomposition': '',
+        'positive': False,
+        'sparse': True,
+        'isotropic': True,
+        'func': 'inv_linear_augTikho_sparse',
+    },
+    'algo1': {
+        'source': 'tofu',
+        'family': 'Phillips-Tikhonov',
+        'reg_operator': 'any linear',
+        'reg_param': 'augTikho',
+        'decomposition': '',
+        'positive': False,
+        'sparse': False,
+        'isotropic': True,
+        'func': 'inv_linear_augTikho_dense',
+    },
+    'algo2': {
+        'source': 'tofu',
+        'family': 'Phillips-Tikhonov',
+        'reg_operator': 'any linear',
+        'reg_param': 'augTikho',
+        'decomposition': 'cholesky',
+        'positive': False,
+        'sparse': False,
+        'isotropic': True,
+        'func': 'inv_linear_augTikho_chol_dense',
+    },
+    'algo3': {
+        'source': 'tofu',
+        'family': 'Phillips-Tikhonov',
+        'reg_operator': 'any linear',
+        'reg_param': 'augTikho',
+        'decomposition': 'cholesky',
+        'positive': False,
+        'sparse': True,
+        'isotropic': True,
+        'func': 'inv_linear_augTikho_chol_sparse',
+    },
+    'algo4': {
+        'source': 'tofu',
+        'family': 'Phillips-Tikhonov',
+        'reg_operator': 'any linear',
+        'reg_param': 'augTikho',
+        'decomposition': '',
+        'positive': True,
+        'sparse': False,
+        'isotropic': True,
+        'func': 'inv_linear_augTikho_pos_dense',
+    },
+    'algo5': {
+        'source': 'tofu',
+        'family': 'Phillips-Tikhonov',
+        'reg_operator': 'any linear',
+        'reg_param': 'DisPrinc',
+        'decomposition': '',
+        'positive': False,
+        'sparse': True,
+        'isotropic': True,
+        'func': 'inv_linear_DisPrinc_sparse',
+    },
+}
 _LREGPARAM_ALGO = [
     'augTikho',
     'DisPrinc',
 ]
+
+
+# #############################################################################
+# #############################################################################
+#                           info
+# #############################################################################
+
+
+def get_available_inversions_algo(
+    # for filtering
+    source=None,
+    family=None,
+    reg_operator=None,
+    reg_param=None,
+    decomposition=None,
+    positive=None,
+    sparse=None,
+    isotropic=None,
+    dalgo=None,
+    # parameters
+    returnas=None,
+    verb=None,
+):
+
+    # --------------
+    # check inputs
+
+    returnas = _generic_check._check_var(
+        returnas,
+        'returnas',
+        default=False,
+        allowed=[False, dict, list, str]
+    )
+
+    verb = _generic_check._check_var(
+        verb,
+        'verb',
+        default=returnas is False,
+        types=bool,
+    )
+
+    # ------------------------------------
+    # filter according to criteria, if any
+
+    dalgo = match_algo(
+        # filtering
+        source=source,
+        family=family,
+        reg_operator=reg_operator,
+        reg_param=reg_param,
+        decomposition=decomposition,
+        positive=positive,
+        sparse=sparse,
+        isotropic=isotropic,
+    )
+
+    # ------------
+    # print or str
+
+    if verb is True or returnas is str:
+
+        head = ['key'] + [
+            'source', 'family', 'reg_operator', 'reg_param', 'decomposition',
+            'positive', 'sparse',
+        ]
+        sep = ['-'*len(kk) for kk in head]
+        lstr = [head, sep] + [
+            [k0] + [v0[k1] for k1 in head[1:]]
+            for k0, v0 in dalgo.items()
+        ]
+
+        nmax = np.max(np.char.str_len(np.char.array(lstr)), axis=0)
+        lstr = [
+            '  '.join([str(ss).ljust(nmax[ii]) for ii, ss in enumerate(line)])
+            for line in lstr
+        ]
+        msg = "\n".join(lstr)
+
+        if verb:
+            print(msg)
+
+    # -------
+    # return
+
+    if returnas is dict:
+        return dalgo
+    elif returnas is list:
+        return sorted(dalgo.keys())
+    elif returnas is str:
+        return msg
+
+
+def match_algo(
+    source=None,
+    family=None,
+    reg_operator=None,
+    reg_param=None,
+    decomposition=None,
+    positive=None,
+    sparse=None,
+    isotropic=None,
+):
+
+    # ------------
+    # check inputs
+
+    dargs = {
+        k0: v0 for k0, v0 in locals().items()
+        if v0 is not None
+    }
+
+    # --------------
+    # Get tofu algo
+
+    dalgo = _DALGO
+
+    # -----------------
+    # Get tomotok algo
+
+    if tomotok2tofu is not False:
+        dalgo.update(tomotok2tofu.get_dalgo())
+
+    # ------------
+    # find matches
+
+    if len(dargs) > 0:
+        lmatch = [
+            k0 for k0, v0 in dalgo.items()
+            if all([v0[k1] == v1 for k1, v1 in dargs.items()])
+        ]
+        if len(lmatch) == 0:
+            lstr = [f'\t- {k0}: {v0}' for k0, v0 in dargs.items()]
+            msg = (
+                "No / several algorithms matching the following criteria:\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+        dalgo = {k0: v0 for k0, v0 in dalgo.items() if k0 in lmatch}
+
+    return copy.deepcopy(dalgo)
 
 
 # #############################################################################
@@ -41,17 +249,12 @@ def _compute_check(
     key_sigma=None,
     data=None,
     sigma=None,
-    # choice of algo
-    isotropic=None,
-    sparse=None,
-    positive=None,
-    cholesky=None,
-    regparam_algo=None,
-    algo=None,
     # regularity operator
     solver=None,
     operator=None,
     geometry=None,
+    # choice of algo
+    algo=None,
     # misc
     conv_crit=None,
     chain=None,
@@ -175,105 +378,6 @@ def _compute_check(
         msg = "Arg sigma should not contain NaNs or inf!"
         raise Exception(msg)
 
-    # --------------
-    # choice of algo
-
-    lc = [
-        algo is None,
-        all([kk is None for kk in [isotropic, positive, sparse, cholesky]])
-    ]
-
-    if not any(lc):
-        msg = (
-            "Please provide either (xor):\n"
-            "\t- algo: directly provide the algo name\n"
-            "\t- flags for choosing the algo:\n"
-            "\t\t- isotropic: whether to perform isotropic regularization\n"
-            "\t\t- sparse: whether to use sparse matrices\n"
-            "\t\t- positive: whether to enforce a positivity constraint\n"
-            "\t\t- cholesky: whether to use cholesky factorization\n"
-        )
-        raise Exception(msg)
-
-    if all(lc):
-        algo = 'inv_linear_augTikho_sparse'
-        lc[0] = False
-
-    if not lc[0] and lc[1]:
-        # extract keywrods from algo name
-        isotropic = True
-        positive = 'pos' in algo
-        sparse = 'sparse' in algo
-        cholesky = 'chol' in algo
-
-        for aa in _LREGPARAM_ALGO:
-            if f'_{aa}_' in algo:
-                regparam_algo = aa
-                break
-        else:
-            msg = 'Unreckognized algo for regularization parameter!'
-            raise Exception(msg)
-
-    elif lc[0] and not lc[1]:
-        # get algo name from keywords
-
-        # isotropic
-        isotropic = _generic_check._check_var(
-            isotropic, 'isotropic',
-            default=True,
-            types=bool,
-        )
-        if isotropic is False:
-            msg = "Anisotropic regularization unavailable yet"
-            raise NotImplementedError(msg)
-
-        # sparse and matrix and operator
-        sparse = _generic_check._check_var(
-            sparse, 'sparse',
-            default=True,
-            types=bool,
-        )
-
-        # positive
-        positive = _generic_check._check_var(
-            positive, 'positive',
-            default=False,
-            types=bool,
-        )
-
-        # cholesky
-        cholesky = _generic_check._check_var(
-            cholesky, 'cholesky',
-            default=False,
-            types=bool,
-        )
-        if positive and cholesky is False:
-            msg = "cholesky cannot be used for positive constraint!"
-            raise Exception(msg)
-
-        # regparam_algo
-        regparam_algo = _generic_check._check_var(
-            regparam_algo, 'regparam_algo',
-            default='augTikho',
-            types=str,
-            allowed=_LREGPARAM_ALGO,
-        )
-
-        algo = f"inv_linear_{regparam_algo}"
-        if cholesky:
-            algo += '_chol'
-        elif positive:
-            algo += '_pos'
-        algo += f"_{'sparse' if sparse else 'dense'}"
-
-    # final algo check
-    algo = _generic_check._check_var(
-        algo, 'algo',
-        default=None,
-        types=str,
-        allowed=_LALGO,
-    )
-
     # -------------------
     # regularity operator
 
@@ -303,16 +407,41 @@ def _compute_check(
     assert data.shape[1] == nchan
     nt = data.shape[0]
 
+    # --------------
+    # choice of algo
+
+    lok = list(_DALGO.keys())
+    algo = _generic_check._check_var(
+        algo, 'algo',
+        default='algo1',
+        types=str,
+        allowed=lok,
+    )
+
+    # define dalgo
+    dalgo = _DALGO[algo]
+    dalgo['name'] = algo
+
+    # check vs deg
+    deg = coll.dobj['bsplines'][keybs]['deg']
+    if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
+        if deg != 0:
+            msg = (
+                "MinFisher regularization from tomotok requires deg = 0\n"
+                f"\t- deg: {deg}"
+            )
+            raise Exception(msg)
+
     # -------------------
     # consistent sparsity
 
     # sparse
-    if sparse is True:
+    if dalgo['sparse'] is True:
         if not scpsp.issparse(matrix):
             matrix = scpsp.csc_matrix(matrix)
         if not scpsp.issparse(opmat[0]):
             opmat = [scpsp.csc_matrix(pp) for pp in opmat]
-    elif sparse is False:
+    elif dalgo['sparse'] is False:
         if scpsp.issparse(matrix):
             matrix = matrix.toarray()
         if scpsp.issparse(opmat[0]):
@@ -369,7 +498,7 @@ def _compute_check(
 
     # kwdargs, method, options
     kwdargs, method, options = _algo_check(
-        algo,
+        dalgo,
         kwdargs=kwdargs,
         options=options,
         nchan=shapemat[0],
@@ -380,7 +509,7 @@ def _compute_check(
     return (
         key_matrix, key_data, key_sigma, keybs, keym,
         data, sigma, matrix, opmat, operator, geometry,
-        isotropic, sparse, positive, cholesky, regparam_algo, algo,
+        dalgo,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
     )
@@ -393,7 +522,7 @@ def _compute_check(
 
 
 def _algo_check(
-    algo,
+    dalgo,
     kwdargs=None,
     method=None,
     options=None,
@@ -420,7 +549,7 @@ def _algo_check(
     # algo specific kwdargs
 
     # kwdargs specific to aug. tikhonov
-    if 'augTikho' in algo:
+    if dalgo['reg_param'] == 'augTikho':
         a0 = kwdargs.get('a0', 10)
         a1 = kwdargs.get('a1', 2)
 
@@ -448,7 +577,7 @@ def _algo_check(
         kwdargs['a1bis'] = kwdargs['a1'] - 1. + nchan/2.
 
     # kwdargs specific to discrepancy principle
-    elif 'DisPrinc' in algo:
+    elif dalgo['reg_param'] == 'DisPrinc':
         if kwdargs.get('chi2n_obj') is None:
             kwdargs['chi2n_obj'] = 1.
         if kwdargs.get('chi2n_tol') is None:
@@ -457,7 +586,7 @@ def _algo_check(
     # ------------------------
     # low-level solver options
 
-    if 'quad' in algo:
+    if dalgo['positive'] is True:
 
         if options is None:
             options = {}
@@ -474,3 +603,12 @@ def _algo_check(
             raise NotImplementedError
 
     return kwdargs, method, options
+
+
+# ##################################################################
+# ##################################################################
+#               _DALGO at import time
+# ##################################################################
+
+
+_DALGO = get_available_inversions_algo(returnas=dict, verb=False)

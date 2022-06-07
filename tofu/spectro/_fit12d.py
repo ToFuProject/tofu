@@ -436,6 +436,7 @@ def multigausfit1d_from_dlines(
         'errmsg': np.array(errmsg),
         'cost': cost, 'nfev': nfev, 'msg': np.array(message),
         'const': const,
+        'xtol': xtol, 'ftol': ftol, 'gtol': gtol,
     }
     return dfit
 
@@ -825,6 +826,7 @@ def multigausfit2d_from_dlines(
         'phi': phi,
         'const': const,
         'dsat': dsat,
+        'xtol': xtol, 'ftol': ftol, 'gtol': gtol,
     }
     return dfit
 
