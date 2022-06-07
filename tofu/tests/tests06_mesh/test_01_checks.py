@@ -519,14 +519,24 @@ class Test02_Plasma2D():
 
     def test05_sample_mesh(self):
 
-        lres = [None, 0.1, 0.01, [0.1, 0.05]]
+        lres = [None, 0.1, [0.1, 0.05]]
         lmode = [None, 'rel', 'abs']
         lgrid = [None, True, False]
         for ii, k0 in enumerate(self.lm):
+
+            res = lres[ii%len(lres)],
+            mode = lmode[ii%len(lmode)]
+            if self.obj.dobj['mesh'][k0]['type'] == 'tri':
+                if mode == 'rel':
+                    if res == 0.1:
+                        res = 0.5
+                    elif res == [0.1, 0.05]:
+                        res = [0.5, 0.4]
+
             out = self.obj.get_sample_mesh(
                 key=k0,
-                res=lres[ii%len(lres)],
-                mode=lmode[ii%len(lmode)],
+                res=res,
+                mode=mode,
                 grid=lgrid[ii%len(lgrid)],
             )
 
