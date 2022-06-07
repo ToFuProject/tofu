@@ -48,6 +48,7 @@ _IMAS_DIDD = {
     'user': _IMAS_USER_PUBLIC,
     'database': 'west',
     'version': '3',
+    'backend': 'hdf5',
 }
 
 _T0 = False
@@ -97,12 +98,14 @@ _dshort = {
         'wallR': {'str': 'description_2d[0].limiter.unit[0].outline.r',
                   'units': 'm'},
         'wallZ': {'str': 'description_2d[0].limiter.unit[0].outline.z',
-                  'units': 'm'}},
+                  'units': 'm'},
+    },
 
     'pulse_schedule': {
         'events_times': {'str': 'event[].time_stamp',
                          'units': 's'},
-        'events_names': {'str': 'event[].identifier'}},
+        'events_names': {'str': 'event[].identifier'},
+    },
 
     'summary': {
         't': {
@@ -278,7 +281,8 @@ _dshort = {
                                 + '.objects_per_dimension[2]'
                                 + '.object[].nodes')},
         '2dmeshR': {'str': 'time_slice[0].profiles_2d[0].r', 'units': 'm'},
-        '2dmeshZ': {'str': 'time_slice[0].profiles_2d[0].z', 'units': 'm'}},
+        '2dmeshZ': {'str': 'time_slice[0].profiles_2d[0].z', 'units': 'm'},
+        },
 
     'core_profiles': {
         't': {'str': 'time', 'units': 's'},
@@ -310,7 +314,8 @@ _dshort = {
     },
 
     'edge_profiles': {
-        't': {'str': 'time', 'units': 's'}},
+        't': {'str': 'time', 'units': 's'},
+    },
 
     'core_sources': {
         't': {'str': 'time', 'units': 's'},
@@ -528,7 +533,83 @@ _dshort = {
         'lamb_up': {'str': 'channel[chan].filter.wavelength_upper',
                     'units': 'm'},
         'lamb_lo': {'str': 'channel[chan].filter.wavelength_lower',
-                    'units': 'm'}}
+                    'units': 'm'},
+    },
+
+    'spectrometer_x_ray_crystal': {
+        't': {
+            'str': 'time',
+            'dim': 'time',
+            'quant': 'time',
+            'units': 's',
+        },
+        'Te': {
+            'str': 'channel[0].profiles_line_integrated.t_e.data',
+            'dim': 'temperature',
+            'quant': 'Ti',
+            'units': 'eV',
+        },
+        'Te_valid': {
+            'str': 'channel[0].profiles_line_integrated.t_e.validity_timed',
+            'dim': '',
+            'quant': '',
+            'units': '',
+        },
+        'Ti': {
+            'str': 'channel[0].profiles_line_integrated.t_i.data',
+            'dim': 'temperature',
+            'quant': 'Ti',
+            'units': 'eV',
+        },
+        'Ti_valid': {
+            'str': 'channel[0].profiles_line_integrated.t_i.validity_timed',
+            'dim': '',
+            'quant': '',
+            'units': '',
+        },
+        'vi': {
+            'str': 'channel[0].profiles_line_integrated.velocity_tor.data',
+            'dim': 'velocity',
+            'quant': 'velocity',
+            'units': 'm/s',
+        },
+        'vi_valid': {
+            'str': 'channel[0].profiles_line_integrated.velocity_tor.validity_timed',
+            'dim': '',
+            'quant': '',
+            'units': '',
+        },
+        'rhotn_sign': {
+            'str': (
+                'channel[0].profiles_line_integrated.'
+                'lines_of_sight_rho_tor_norm.data'
+            ),
+            'dim': 'rho',
+            'quant': 'rhotn',
+            'units': '-',
+        },
+        'rhotn_sign_valid': {
+            'str': (
+                'channel[0].profiles_line_integrated.'
+                'lines_of_sight_rho_tor_norm.validity_timed'
+            ),
+            'dim': '',
+            'quant': '',
+            'units': '',
+        },
+        'data_raw': {
+            'str': 'channel[0].frame[time].counts_n',
+            'dim': '',
+            'quant': 'counts',
+            'units': 'counts',
+        },
+        'code_parameters': {
+            'str': 'code.parameters',
+            'dim': '',
+            'quant': '',
+            'units': '',
+        },
+    },
     }
 
 
@@ -627,19 +708,34 @@ _didsdiag = {
     'bremsstrahlung_visible': {
         'datacls': 'DataCam1D',
         'geomcls': 'CamLOS1D',
-        'sig': {'t': 't',
-                'data': 'radiance'},
+        'sig': {
+            't': 't',
+            'data': 'radiance',
+        },
         'synth': {
             'dsynth': {
-                'quant': ['core_profiles.1dTe',
-                          'core_profiles.1dne',
-                          'core_profiles.1dzeff'],
+                'quant': [
+                    'core_profiles.1dTe',
+                    'core_profiles.1dne',
+                    'core_profiles.1dzeff',
+                ],
                 'ref1d': 'core_profiles.1drhotn',
-                'ref2d': 'equilibrium.2drhotn'},
-            'dsig': {'core_profiles': ['t'],
-                     'equilibrium': ['t']},
-            'Brightness': True},
-        'stack': True}
+                'ref2d': 'equilibrium.2drhotn',
+            },
+            'dsig': {
+                'core_profiles': ['t'],
+                'equilibrium': ['t'],
+            },
+            'Brightness': True,
+        },
+        'stack': True
+    },
+    'spectrometer_x_ray_crystal': {
+        'geomcls': 'CamLOS1D',
+        'sig': {
+            't': 't',
+        },
+    },
     }
 
 
@@ -648,6 +744,7 @@ _didsdiag = {
 #           Complete dshort and didsdiag
 #
 # ############################################################################
+
 
 _lidsconfig = ['wall']
 _lidsdiag = sorted([kk for kk, vv in _didsdiag.items() if 'sig' in vv.keys()])
@@ -661,24 +758,55 @@ for ids in _lidslos:
     strlos = 'line_of_sight'
     if ids == 'reflectometer_profile':
         strlos += '_detection'
-    dlos['los_pt1R'] = {
-        'str': 'channel[chan].{}.first_point.r'.format(strlos),
-        'units': 'm'}
-    dlos['los_pt1Z'] = {
-        'str': 'channel[chan].{}.first_point.z'.format(strlos),
-        'units': 'm'}
-    dlos['los_pt1Phi'] = {
-        'str': 'channel[chan].{}.first_point.phi'.format(strlos),
-        'units': 'rad'}
-    dlos['los_pt2R'] = {
-        'str': 'channel[chan].{}.second_point.r'.format(strlos),
-        'units': 'm'}
-    dlos['los_pt2Z'] = {
-        'str': 'channel[chan].{}.second_point.z'.format(strlos),
-        'units': 'm'}
-    dlos['los_pt2Phi'] = {
-        'str': 'channel[chan].{}.second_point.phi'.format(strlos),
-        'units': 'rad'}
+
+    if ids == 'spectrometer_x_ray_crystal':
+        strbase = 'channel[0].profiles_line_integrated'
+        dlos = {
+            'los_pt1R': {
+                'str': 'channel[0].crystal.centre.r',
+                'units': 'm',
+            },
+            'los_pt1Z': {
+                'str': 'channel[0].crystal.centre.z',
+                'units': 'm',
+            },
+            'los_pt1Phi': {
+                'str': 'channel[0].crystal.centre.phi',
+                'units': 'm',
+            },
+            'los_pt2R': {
+                'str': f'{strbase}.lines_of_sight_second_point.r',
+                'units': 'm',
+            },
+            'los_pt2Z': {
+                'str': f'{strbase}.lines_of_sight_second_point.z',
+                'units': 'm',
+            },
+            'los_pt2Phi': {
+                'str': f'{strbase}.lines_of_sight_second_point.phi',
+                'units': 'm',
+            },
+        }
+
+    else:
+        dlos['los_pt1R'] = {
+            'str': 'channel[chan].{}.first_point.r'.format(strlos),
+            'units': 'm'}
+        dlos['los_pt1Z'] = {
+            'str': 'channel[chan].{}.first_point.z'.format(strlos),
+            'units': 'm'}
+        dlos['los_pt1Phi'] = {
+            'str': 'channel[chan].{}.first_point.phi'.format(strlos),
+            'units': 'rad'}
+        dlos['los_pt2R'] = {
+            'str': 'channel[chan].{}.second_point.r'.format(strlos),
+            'units': 'm'}
+        dlos['los_pt2Z'] = {
+            'str': 'channel[chan].{}.second_point.z'.format(strlos),
+            'units': 'm'}
+        dlos['los_pt2Phi'] = {
+            'str': 'channel[chan].{}.second_point.phi'.format(strlos),
+            'units': 'rad'}
     _dshort[ids].update(dlos)
 
 
@@ -723,6 +851,19 @@ def _RZ2array(ptsR, ptsZ):
 
 def _losptsRZP(*pt12RZP):
     return np.swapaxes([pt12RZP[:3], pt12RZP[3:]], 0, 1).T
+
+
+def _losptsRZP2(*pt12RZP):
+    nlos = pt12RZP[3].size
+    return np.swapaxes(
+        [
+            (
+                np.full((nlos,), pt12RZP[0]),
+                np.full((nlos,), pt12RZP[1]),
+                np.full((nlos,), pt12RZP[2]),
+            ),
+            pt12RZP[3:]
+        ], 0, 1).T
 
 
 def _add(a0, a1):
@@ -877,7 +1018,10 @@ _lstr = ['los_pt1R', 'los_pt1Z', 'los_pt1Phi',
          'los_pt2R', 'los_pt2Z', 'los_pt2Phi']
 for ids in _lidslos:
     _dcomp[ids] = _dcomp.get(ids, {})
-    _dcomp[ids]['los_ptsRZPhi'] = {'lstr': _lstr, 'func': _losptsRZP}
+    if ids == 'spectrometer_x_ray_crystal':
+        _dcomp[ids]['los_ptsRZPhi'] = {'lstr': _lstr, 'func': _losptsRZP2}
+    else:
+        _dcomp[ids]['los_ptsRZPhi'] = {'lstr': _lstr, 'func': _losptsRZP}
 
 
 # Uniformize

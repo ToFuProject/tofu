@@ -774,7 +774,6 @@ def _get_exception(q, ids, qtype='quantity'):
     # -------------------
     # import imas2tofu
     try:
-        import imas
         from tofu.imas2tofu import MultiIDSLoader
     except Exception as err:
         msg = str(err)

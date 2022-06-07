@@ -1209,10 +1209,14 @@ def multigausfit2d_from_dlines_prepare(
     nbsplines=None, deg=None, subset=None,
     nxi=None, nxj=None,
     lphi=None, lphi_tol=None,
+    return_raw_data=None,
 ):
 
     # --------------
     # Check input
+
+    if return_raw_data is None:
+        return_raw_data = False
 
     pos, subset = _checkformat_possubset(pos=pos, subset=subset)
 
@@ -1316,6 +1320,8 @@ def multigausfit2d_from_dlines_prepare(
         'phi1d': phi1d, 'dataphi1d': dataphi1d,
         'lamb1d': lamb1d, 'datalamb1d': datalamb1d,
     }
+    if return_raw_data:
+        dprepare['data_raw'] = data
     return dprepare
 
 
@@ -1977,6 +1983,7 @@ def fit2d_dinput(
     nxi=None, nxj=None,
     lphi=None, lphi_tol=None,
     defconst=_DCONSTRAINTS,
+    return_raw_data=None,
 ):
     """ Check and format a dict of inputs to be fed to fit2d()
 
@@ -2006,6 +2013,7 @@ def fit2d_dinput(
             nbsplines=nbsplines, deg=deg,
             nxi=nxi, nxj=nxj,
             lphi=None, lphi_tol=None,
+            return_raw_data=return_raw_data,
         )
 
     # ------------------------
