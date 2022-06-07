@@ -1397,6 +1397,8 @@ def get_bsplines_operator(
     returnas=None,
     # specific to deg = 0
     centered=None,
+    # to return gradR, gradZ, for D1N2 deg 0, for tomotok
+    returnas_element=None,
 ):
 
     # check inputs
@@ -1446,6 +1448,8 @@ def get_bsplines_operator(
         # specific to deg=0
         cropbs=cropbs,
         centered=centered,
+        # to return gradR, gradZ, for D1N2 deg 0, for tomotok
+        returnas_element=returnas_element,
     )
 
     # cropping

@@ -4002,6 +4002,9 @@ class Plasma2D(utils.ToFuObject):
             if idref1d is not None:
                 vr1 = self._ddata[idref1d]['data']
                 vr2 = self._ddata[idref2d]['data']
+            else:
+                vr1 = None
+                vr2 = None
 
             c0 = (
                 self._ddata[idmesh]['data']['type'] == 'quadtri'
