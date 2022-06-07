@@ -1817,6 +1817,64 @@ def _interp2d_check(
     )
 
     # -----------
+    # time
+
+    lc = [
+        indt is None and t is None,
+        indt is not None and t is None,
+        indt is None and t is not None,]
+    ]
+    if not any(lc):
+        msg = (
+            "Please provide t xor indt, not both!\n"
+            f"\t- indt: {indt}\n"
+            f"\t- t: {t}\n"
+        )
+        raise Exception(msg)
+
+    # if indt or t => indt
+    if lc[2]:
+        lt = [
+            k0 for k0, v0 in coll.ddata.items()
+            if v0['monot'] == (True,)
+            and v0['ref'] == coll.ddata[key]['ref'][0]
+            and v0['dim'] == 'time'
+        ]
+        if len(lt) == 0:
+            msg = f"Arg t / indt useless because {key} doesn't depend on time!"
+            warnings.warn(msg)
+            t, indt = None, None
+        elif len(lt) == 1:
+            keyt = lt[0]
+            indt, indtu = coll.interpolate_nearest_ind(key=keyt, data=t)
+        else:
+            msg = (
+                "Several possible time vectors identified!\n"
+                + str(lt)
+            )
+            raise Exception(msg)
+
+    # indt
+    if indt is not None:
+        if isinstance(indt, (list, tuple)):
+            indt = np.array(indt)
+        c0 = (
+            isinstance(indt, np.ndarray)
+            and indt.ndim == 1
+            and indt.dtype in [np.bool_, np.int_]
+        )
+        if not c0:
+            msg = (
+            )
+            raise Exception(msg)
+
+        if indt.dtype == np.bool_:
+            indt = indt.nonzero()[0]
+
+        if indtu is None:
+            indtu = np.unique(indt)
+
+    # -----------
     # coordinates
 
     # (R, Z) vs (radius, angle)
@@ -1839,6 +1897,7 @@ def _interp2d_check(
     # R, Z
     radius_vs_time = False
     if lc[0]:
+        # no spec => sample mesh
         R, Z = coll.get_sample_mesh(
             key=keym,
             res=res,
@@ -1851,6 +1910,7 @@ def _interp2d_check(
         lc[1] = True
 
     if lc[1]:
+        # R and Z provided
         if not isinstance(R, np.ndarray):
             try:
                 R = np.atleast_1d(R).astype(float)
@@ -1882,7 +1942,7 @@ def _interp2d_check(
             R = np.tile(R, Z.size)
             Z = np.repeat(Z, R.size)
 
-        # special case if polar mesh
+        # special case if polar mesh => (radius, angle) from (R, Z)
         if mtype == 'polar':
             # compute radius / angle
             radius2d = coll.dobj[coll._which_mesh][keym]['radius2d']
@@ -1912,6 +1972,7 @@ def _interp2d_check(
                 radius_vs_time = True
             else:
                 radius_vs_time = False
+
     else:
         radius_vs_time = False
 
@@ -1945,6 +2006,8 @@ def _interp2d_check(
                 )
                 raise Exception(msg)
 
+    import pdb; pdb.set_trace()     # DB
+
     # -------------
     # coefs
 
@@ -1954,6 +2017,8 @@ def _interp2d_check(
             coefs = np.ones(shapebs)
         else:
             coefs = coll.ddata[key]['data']
+            if indt is not None:
+                coefs = coefs[indtu, ...]
 
     c0 = (
         coefs.ndim in [len(shapebs), len(shapebs) + 1]
@@ -2052,9 +2117,6 @@ def interp2d(
     coll=None,
     # interpolation base, 1d or 2d
     key=None,
-    # Only relevant if key points to a 1d profile
-    ref1d=None,
-    ref2d=None,
     # external coefs (instead of key, optional)
     coefs=None,
     # interpolation points
@@ -2095,9 +2157,6 @@ def interp2d(
         coll=coll,
         # interpolation base, 1d or 2d
         key=key,
-        # Only relevant if key points to a 1d profile
-        ref1d=ref1d,
-        ref2d=ref2d,
         # external coefs (instead of key, optional)
         coefs=coefs,
         # interpolation points
