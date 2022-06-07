@@ -497,6 +497,49 @@ def get_plasma(
                 source=ids,
             )
 
+            # -----------------
+            # time-only
+
+            lsig = [
+                k0 for k0, v0 in out0[ids].items()
+                if isinstance(v0['data'], np.ndarray)
+                and v0['data'].shape == (dtt['nt0'],)
+                and k0 != 't'
+            ]
+            out_ = multi.get_data(
+                dsig={ids: lsig},
+                indt=indt,
+                nan=nan,
+                pos=pos,
+                stack=stack,
+                isclose=isclose,
+                empty=empty,
+                strict=strict,
+                return_all=False,
+                warn=False,
+            )[ids]
+
+            # add data
+            for k0, v0 in out_.items():
+
+                # Get dim / quant from dshort / dcomp + units
+                if k0 in multi._dshort[ids].keys():
+                    dim = multi._dshort[ids][k0].get('dim', 'unknown')
+                    quant = multi._dshort[ids][k0].get('quant', 'unknown')
+                else:
+                    dim = multi._dcomp[ids][k0].get('dim', 'unknown')
+                    quant = multi._dcomp[ids][k0].get('quant', 'unknown')
+
+                plasma.add_data(
+                    key=f'{idsshort}.{k0}',
+                    data=v0['data'],
+                    ref=(keynt,),
+                    dim=dim,
+                    quant=quant,
+                    units=v0['units'],
+                    source=ids,
+                )
+
         # ---------------
         # d1d and dradius
 
@@ -686,7 +729,6 @@ def get_plasma(
                     n2=n2,
                     nt=nt,
                 )
-
 
         elif len(out_) > 0:
             msg = (
@@ -1102,7 +1144,8 @@ def data_checkformat_tlim(t, tlim=None,
         tlim = False
 
     # Compute
-    indt = np.ones((t.size,), dtype=bool)
+    nt0 = t.size
+    indt = np.ones((nt0,), dtype=bool)
     if tlim is not False:
         for ii in range(len(tlim)):
             if isinstance(tlim[ii], str):
@@ -1115,7 +1158,7 @@ def data_checkformat_tlim(t, tlim=None,
     t = t[indt]
     if returnas is int:
         indt = np.nonzero(indt)[0]
-    return {'tlim': tlim, 'nt': t.size, 't': t, 'indt': indt}
+    return {'tlim': tlim, 'nt': t.size, 't': t, 'indt': indt, 'nt0': nt0}
 
 
 def data_checkformat_dsig(ids=None, dsig=None, data=None, X=None,
