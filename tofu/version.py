@@ -1,2 +1,2 @@
 # Do not edit, pipeline versioning governed by git tags!
-__version__ = '1.5.2-119-g7a2053e6'
+__version__ = '1.5.2-120-g725ebe14'

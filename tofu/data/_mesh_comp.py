@@ -1856,6 +1856,8 @@ def _interp2d_check(
 
     # indt
     if indt is not None:
+        if np.isscalar(indt):
+            indt = np.r_[indt]
         if isinstance(indt, (list, tuple)):
             indt = np.array(indt)
         c0 = (
@@ -2020,6 +2022,13 @@ def _interp2d_check(
             if indt is not None:
                 coefs = coefs[indtu, ...]
 
+    # radius / angle
+    if indt is not None:
+        if radius_vs_time is True:
+            radius = radius[indt:indt+1, ...]
+            if angle is not None:
+                angle = angle[indt:indt+1, ...]
+
     c0 = (
         coefs.ndim in [len(shapebs), len(shapebs) + 1]
         and coefs.shape[-len(shapebs):] == shapebs
@@ -2052,44 +2061,6 @@ def _interp2d_check(
         radius_vs_time = False
         if angle is not None:
             angle = angle[0, ...]
-
-    # -------------
-    # indbs
-
-    # -------------
-    # indt
-
-    c0 = (
-        indt is not None
-        and coefs is not None
-        and coefs.ndim == len(shapebs) + 1
-    )
-    if c0:
-        if coefs.shape[0] == 1:
-            indt = 0
-        try:
-            assert np.isscalar(indt) and np.isfinite(indt)
-            assert indt < coefs.shape[0]
-            indt = int(indt)
-        except Exception as err:
-            msg = (
-                f"Arg indt should be a int!\nProvided: {indt}"
-            )
-            raise Exception(msg)
-
-        # coefs
-        coefs = coefs[indt:indt+1, ...]
-
-        # radius / angle
-        if radius_vs_time is True:
-            radius = radius[indt:indt+1, ...]
-            if angle is not None:
-                angle = angle[indt:indt+1, ...]
-
-
-    if coefs.shape == (132, 5):
-        import pdb; pdb.set_trace()     # DB
-        pass
 
     # -------------
     # return_params
