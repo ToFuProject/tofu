@@ -524,7 +524,7 @@ class Test02_Plasma2D():
         lgrid = [None, True, False]
         for ii, k0 in enumerate(self.lm):
 
-            res = lres[ii%len(lres)],
+            res = lres[ii%len(lres)]
             mode = lmode[ii%len(lmode)]
             if self.obj.dobj['mesh'][k0]['type'] == 'tri':
                 if mode == 'rel':
