@@ -1776,6 +1776,58 @@ def _interp2d_check_RZ(
     return R, Z, grid
 
 
+def _interp2d_check_rad2d_get_time(
+    coll=None,
+    hastime=None,
+    radius2d=None,
+    t=None,
+    indt=None,
+    keyt=None,
+):
+
+    # determine whether radius2d depends on time
+    (
+        rad2d_hastime, rad2d_keyt, rad2d_reft, rad2d_nt, rad2d_t,
+        rad2d_indt, rad2d_indtu, rad2d_indt_reverse,
+    ) = coll.get_time(
+        key=radius2d,
+        t=None,
+        indt=None,
+    )
+
+    # if it does, adjust, TBF / TBC
+    if rad2d_hastime:
+        if hastime:
+
+        else:
+            (
+                rad2d_hastime, rad2d_keyt, rad2d_reft, rad2d_nt, rad2d_t,
+                rad2d_indt, rad2d_indtu, rad2d_indt_reverse,
+            ) = coll.get_time(
+                key=radius2d,
+                t=t,
+                indt=indt,
+            )
+
+
+        if t is not None:
+            (
+                rad2d_hastime, rad2d_keyt, rad2d_reft, rad2d_nt, rad2d_t,
+                rad2d_indt, rad2d_indtu, rad2d_indt_reverse,
+            ) = coll.get_time(
+                key=radius2d,
+                t=t,
+                indt=None,
+            )
+        elif indt is not None:
+            pass
+
+    else:
+        pass
+
+    return rad2d_hastime, rad2d_t
+
+
 def _interp2d_check(
     # ressources
     coll=None,
@@ -1912,15 +1964,16 @@ def _interp2d_check(
         if mtype == 'polar':
             # compute radius / angle
             radius2d = coll.dobj[coll._which_mesh][keym]['radius2d']
-            (
-                rad2d_hastime, rad2d_keyt, rad2d_reft, rad2d_nt, rad2d_t,
-                rad2d_indt, rad2d_indtu, rad2d_indt_reverse,
-            ) = coll.get_time(
-                key=radius2d,
-                t=None,
+
+            # is radius2d time-dependent?
+            rad2d_hastime, rad2d_t = _interp2d_check_rad2d_get_time(
+                coll=coll,
+                radius2d=radius2d,
+                t=t,
                 indt=indt,
             )
 
+            # compute radius2d at relevant times
             radius, _ = coll.interpolate_profile2d(
                 # coordinates
                 R=R,
@@ -1932,6 +1985,7 @@ def _interp2d_check(
                 t=rad2d_t,
             )
 
+            # compute angle2d at relevant times
             angle2d = coll.dobj[coll._which_mesh][keym]['angle2d']
             if angle2d is not None:
                 angle, _ = coll.interpolate_profile2d(
@@ -1945,6 +1999,7 @@ def _interp2d_check(
                     t=rad2d_t,
                 )
 
+            # simplify if not time-dependent
             if not rad2d_hastime:
                 assert radius.shape[0] == 1
                 radius = radius[0, ...]
@@ -1952,6 +2007,7 @@ def _interp2d_check(
                     assert angle.shape[0] == 1
                     angle = angle[0, ...]
 
+            # check consistency
             assert rad2d_hastime == (radius.ndim == R.ndim + 1), radius.shape
 
     else:
@@ -2008,7 +2064,7 @@ def _interp2d_check(
         )
         raise Exception(msg)
 
-    # Make sure coes is time dependent
+    # Make sure coefs is time dependent
     if coefs.ndim == len(shapebs):
         if rad2d_hastime is True:
             sh = tuple([radius.shape[0]] + [1]*len(shapebs))
