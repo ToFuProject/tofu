@@ -358,7 +358,21 @@ def calc_solidangle_particle_integ(
 ###############################################################################
 
 
-def _check_calc_solidangle_apertures(
+def _check_pts(pts=None, pts_name=None):
+
+    if not isinstance(pts, np.ndarray):
+        try:
+            pts = np.atleast_1d(pts)
+        except Exception as err:
+            msg = (
+                f"Arg {pts_name} must be convertible to a np.ndarray\n"
+                "Provided: {pts}"
+            )
+        raise Exception(msg)
+    return pts
+
+
+def _calc_solidangle_apertures_check(
     # observation points
     pts_x=None,
     pts_y=None,
@@ -373,7 +387,58 @@ def _check_calc_solidangle_apertures(
     return_vector=None,
 ):
 
-    # TODO
+    # ---------------
+    # pts coordinates
+
+    pts_x = _check_pts(pts=pts_x)
+    pts_y = _check_pts(pts=pts_y)
+    pts_z = _check_pts(pts=pts_z)
+
+    if not (pts_x.shape == pts_y.shape == pts_z.shape):
+        msg = (
+            "Arg pts_x, pts_y and pts_z must share the same shape!\n"
+            f"\t- pts_x.shape = {pts_x.shape}\n"
+            f"\t- pts_y.shape = {pts_y.shape}\n"
+            f"\t- pts_z.shape = {ptszz.shape}\n"
+        )
+        raise Exception(msg)
+
+
+    return pts_x, pts_y, pts_z
+
+
+###############################################################################
+###############################################################################
+#           Prepare data - arbitrary points, multiple apertures
+###############################################################################
+
+
+def _calc_solidangle_apertures_prepare(
+    # observation points
+    pts_x=None,
+    pts_y=None,
+    pts_z=None,
+    # polygons
+    apertures=None,
+    detectors=None,
+    # possible obstacles
+    config=None,
+    # parameters
+    visibility=None,
+    return_vector=None,
+):
+
+    # -----------------------------
+    # pts as 1d C-contiguous arrays
+
+    ndim0 = pts_x.ndim
+    shape0 = pts_x.shape
+
+    if ndim0 > 1:
+        pts_x = pts_x.ravel()
+        pts_y = pts_y.ravel()
+        pts_z = pts_z.ravel()
+
 
     return
 
@@ -466,7 +531,7 @@ def calc_solidangle_apertures(
         # parameters
         visibility,
         return_vector,
-    ) = _check_calc_solidangle_apertures(
+    ) = _calc_solidangle_apertures_check(
             # observation points
             pts_x=pts_x,
             pts_y=pts_y,
@@ -484,13 +549,8 @@ def calc_solidangle_apertures(
     # ----------------
     # pre-format input
 
-    ndim0 = pts_x.ndim
-    shape0 = pts_x.shape
+    _calc_solidangle_apertures_prepare()
 
-    if ndim0 > 1:
-        pts_x = pts_x.ravel()
-        pts_y = pts_y.ravel()
-        pts_z = pts_z.ravel()
 
     # ------------------------------------------------
     # compute (call appropriate version for each case)
