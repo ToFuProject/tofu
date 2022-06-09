@@ -25,6 +25,8 @@ jobs:
     - name: Check available compilers
       run: |
         dpkg --list | grep compiler
+        gcc --version
+        cat tofu/setup.py | grep extra_compile_args
     - name: Add conda to system path
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
