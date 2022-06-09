@@ -19,7 +19,7 @@ _LTYPES = [int, float, np.int_, np.float_]
 
 ###############################################################################
 ###############################################################################
-#                       Check inputs
+#                       Check inputs - Particle
 ###############################################################################
 
 
@@ -349,3 +349,182 @@ def calc_solidangle_particle_integ(
         limit_vpoly=kwdargs['ves_poly'],
         **kwdargs,
     )
+
+
+
+###############################################################################
+###############################################################################
+#           Check inputs - arbitrary points, multiple apertures
+###############################################################################
+
+
+def _check_calc_solidangle_apertures(
+    # observation points
+    pts_x=None,
+    pts_y=None,
+    pts_z=None,
+    # polygons
+    apertures=None,
+    detectors=None,
+    # possible obstacles
+    config=None,
+    # parameters
+    visibility=None,
+    return_vector=None,
+):
+
+    # TODO
+
+    return
+
+
+###############################################################################
+###############################################################################
+#           Main entry - arbitrary points, multiple apertures
+###############################################################################
+
+
+def calc_solidangle_apertures(
+    # observation points
+    pts_x=None,
+    pts_y=None,
+    pts_z=None,
+    # polygons
+    apertures=None,
+    detectors=None,
+    # possible obstacles
+    config=None,
+    # parameters
+    visibility=None,
+    return_vector=None,
+):
+    """ Return the solid angle subtended by na apertures and nd detectors
+
+    See the fllowing issue for details on the implementation:
+        https://github.com/ToFuProject/tofu/issues/653
+
+    The observation points are:
+        - defined in (X, Y, Z) coordinates using arrays pts_x, pts_y, pts_z
+        - They should have the same shape (shape0)
+
+    The apertures are defined as a list of closed 3d polygons:
+        - defined in (X, Y, Z) coordinates
+
+    The detectors are defined another list of closed 3d polygon:
+        - defined in (X, Y, Z) coordinates
+
+    Alternatively, detectors can also be provided as:
+        - being planar and sharing the same 2d outline
+        - using a dict with keys:
+            - 'outline_x0': 1d array of (ncorners,) coordinates
+            - 'outline_x1': 1d array of (ncorners,) coordinates
+            - 'centers_x': detector's center position x as (nd,) array
+            - 'centers_y': detector's center position y as (nd,) array
+            - 'centers_z': detector's center position z as (nd,) array
+            - 'nn_x': normal unit vector x as (nd,) array
+            - 'nn_y': normal unit vector y as (nd,) array
+            - 'nn_z': normal unit vector z as (nd,) array
+            - 'e1_x': x0 unit vector x as (nd,) array
+            - 'e1_y': x0 unit vector y as (nd,) array
+            - 'e1_z': x0 unit vector z as (nd,) array
+            - 'e2_x': x1 unit vector x as (nd,) array
+            - 'e2_y': x1 unit vector y as (nd,) array
+            - 'e2_z': x1 unit vector z as (nd,) array
+
+    Config is needed if visibility = True to check for obstacles (ray-tracing)
+    It is a tofu Config class
+
+    Return
+    ----------
+    solid_angle:        np.ndarray of shape shape0
+        The solid angles
+            computed for each point / det pair
+            considering all apertures
+    unit_vector_x:      np.ndarray of shape shape0  (optional)
+        The local unit vectors x coordinates
+    unit_vector_y:      np.ndarray of shape shape0  (optional)
+        The local unit vectors y coordinates
+    unit_vector_z:      np.ndarray of shape shape0  (optional)
+        The local unit vectors z coordinates
+
+    """
+
+
+    # ------------
+    # check inputs
+
+    (
+        # observation points
+        pts_x=None,
+        pts_y=None,
+        pts_z=None,
+        # polygons
+        apertures=None,
+        detectors=None,
+        # possible obstacles
+        config=None,
+        # parameters
+        visibility,
+        return_vector,
+    ) = _check_calc_solidangle_apertures(
+            # observation points
+            pts_x=pts_x,
+            pts_y=pts_y,
+            pts_z=pts_z,
+            # polygons
+            apertures=apertures,
+            detectors=detectors,
+            # possible obstacles
+            config=config,
+            # parameters
+            visibility=visibility,
+            return_vector=return_vector,
+        )
+
+    # ----------------
+    # pre-format input
+
+    ndim0 = pts_x.ndim
+    shape0 = pts_x.shape
+
+    if ndim0 > 1:
+        pts_x = pts_x.ravel()
+        pts_y = pts_y.ravel()
+        pts_z = pts_z.ravel()
+
+    # ------------------------------------------------
+    # compute (call appropriate version for each case)
+
+    if visibility or return_vector:
+
+        if return_vector:
+            # call slowest / most complete version
+            # (computation + storing of unit vector)
+            (
+                solid_angle,
+                unit_vector_x, unit_vector_y, unit_vector_z,
+            ) = None, None, None, None
+        else:
+            # call intermediate version
+            # (computation but no storing of unit vector)
+            solid_angle = None
+
+    else:
+        # call fastest / simplest version
+        # (no computation / storing of unit vector)
+        solid_angle = None
+
+    # -------------
+    # format output
+
+    if ndim0 > 1:
+        solid_angle = np.reshape(solid_angle, shape0)
+        if return_vector:
+            unit_vector_x = np.reshape(unit_vector_x, shape0)
+            unit_vector_y = np.reshape(unit_vector_y, shape0)
+            unit_vector_z = np.reshape(unit_vector_z, shape0)
+
+    if return_vector:
+        return solid_angle, unit_vector_x, unit_vector_y, unit_vector_z
+    else:
+        return solid_angle
