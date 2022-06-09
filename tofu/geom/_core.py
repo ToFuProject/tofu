@@ -6848,11 +6848,21 @@ class Rays(utils.ToFuObject):
         p, theta, pts = self.dsino['p'], self.dsino['theta'], self.dsino['pts']
         return p, theta, pts
 
-    def calc_min_rho_from_Plasma2D(self, plasma, t=None, log='min',
-                                   res=None, resMode='abs', method='sum',
-                                   quant=None, ref1d=None, ref2d=None,
-                                   interp_t=None, interp_space=None,
-                                   fill_value=np.nan, pts=False, Test=True):
+    def calc_min_rho_from_Plasma2D(
+        self,
+        plasma=None,
+        t=None,
+        log='min',
+        res=None,
+        resMode='abs',
+        method='sum',
+        quant=None,
+        interp_t=None,
+        interp_space=None,
+        fill_value=np.nan,
+        pts=False,
+        Test=True,
+    ):
         """ Return the min/max value of scalar field quant for each LOS
 
         Typically used to get the minimal normalized minor radius
@@ -6888,13 +6898,10 @@ class Rays(utils.ToFuObject):
             pts=True, compact=True, Test=True,
         )
 
-        # Interpolate values - TBF
+        # Interpolate values
         val, t = plasma.interpolate_profile2d(
             # interpolation base, 1d or 2d
             key=quant,
-            # Only relevant if key points to a 1d profile
-            ref1d=ref1d,
-            ref2d=ref2d,
             # external coefs (instead of key, optional)
             coefs=None,
             # interpolation points
@@ -6920,7 +6927,7 @@ class Rays(utils.ToFuObject):
             funcarg = np.nanargmin if log == 'min' else np.nanargmax
 
         if pts:
-            nt = t.size
+            nt = val.shape[0]
             pts = np.full((3, self.nRays, nt), np.nan)
             vals = np.full((nt, self.nRays), np.nan)
             # indt = np.arange(0, nt)

@@ -1737,6 +1737,45 @@ def _get_possible_ref12d(
 # #############################################################################
 
 
+def _interp2d_check_RZ(
+    R=None,
+    Z=None,
+    grid=None,
+):
+    # R and Z provided
+    if not isinstance(R, np.ndarray):
+        try:
+            R = np.atleast_1d(R).astype(float)
+        except Exception as err:
+            msg = "R must be convertible to np.arrays of floats"
+            raise Exception(msg)
+    if not isinstance(Z, np.ndarray):
+        try:
+            Z = np.atleast_1d(Z).astype(float)
+        except Exception as err:
+            msg = "Z must be convertible to np.arrays of floats"
+            raise Exception(msg)
+
+    # grid
+    grid = _generic_check._check_var(
+        grid, 'grid',
+        default=R.shape != Z.shape,
+        types=bool,
+    )
+
+    if grid is True and (R.ndim > 1 or Z.ndim > 1):
+        msg = "If grid=True, R and Z must be 1d!"
+        raise Exception(msg)
+    elif grid is False and R.shape != Z.shape:
+        msg = "If grid=False, R and Z must have the same shape!"
+        raise Exception(msg)
+
+    if grid is True:
+        R = np.tile(R, Z.size)
+        Z = np.repeat(Z, R.size)
+    return R, Z, grid
+
+
 def _interp2d_check(
     # ressources
     coll=None,
@@ -1819,62 +1858,15 @@ def _interp2d_check(
     # -----------
     # time
 
-    lc = [
-        indt is None and t is None,
-        indt is not None and t is None,
-        indt is None and t is not None,]
-    ]
-    if not any(lc):
-        msg = (
-            "Please provide t xor indt, not both!\n"
-            f"\t- indt: {indt}\n"
-            f"\t- t: {t}\n"
-        )
-        raise Exception(msg)
+    # refbs and hastime
+    refbs = coll.dobj['bsplines'][keybs]['ref']
 
-    # if indt or t => indt
-    if lc[2]:
-        lt = [
-            k0 for k0, v0 in coll.ddata.items()
-            if v0['monot'] == (True,)
-            and v0['ref'] == coll.ddata[key]['ref'][0]
-            and v0['dim'] == 'time'
-        ]
-        if len(lt) == 0:
-            msg = f"Arg t / indt useless because {key} doesn't depend on time!"
-            warnings.warn(msg)
-            t, indt = None, None
-        elif len(lt) == 1:
-            keyt = lt[0]
-            indt, indtu = coll.interpolate_nearest_ind(key=keyt, data=t)
-        else:
-            msg = (
-                "Several possible time vectors identified!\n"
-                + str(lt)
-            )
-            raise Exception(msg)
-
-    # indt
-    if indt is not None:
-        if np.isscalar(indt):
-            indt = np.r_[indt]
-        if isinstance(indt, (list, tuple)):
-            indt = np.array(indt)
-        c0 = (
-            isinstance(indt, np.ndarray)
-            and indt.ndim == 1
-            and indt.dtype in [np.bool_, np.int_]
-        )
-        if not c0:
-            msg = (
-            )
-            raise Exception(msg)
-
-        if indt.dtype == np.bool_:
-            indt = indt.nonzero()[0]
-
-        if indtu is None:
-            indtu = np.unique(indt)
+    # hastime, t, indit
+    hastime, keyt, reft, nt, t, indt, indtu, indt_reverse = coll.get_time(
+        key=key,
+        t=t,
+        indt=indt,
+    )
 
     # -----------
     # coordinates
@@ -1897,7 +1889,7 @@ def _interp2d_check(
         raise Exception(msg)
 
     # R, Z
-    radius_vs_time = False
+    rad2d_hastime = False
     if lc[0]:
         # no spec => sample mesh
         R, Z = coll.get_sample_mesh(
@@ -1912,43 +1904,24 @@ def _interp2d_check(
         lc[1] = True
 
     if lc[1]:
-        # R and Z provided
-        if not isinstance(R, np.ndarray):
-            try:
-                R = np.atleast_1d(R).astype(float)
-            except Exception as err:
-                msg = "R must be convertible to np.arrays of floats"
-                raise Exception(msg)
-        if not isinstance(Z, np.ndarray):
-            try:
-                Z = np.atleast_1d(Z).astype(float)
-            except Exception as err:
-                msg = "Z must be convertible to np.arrays of floats"
-                raise Exception(msg)
 
-        # grid
-        grid = _generic_check._check_var(
-            grid, 'grid',
-            default=R.shape != Z.shape,
-            types=bool,
-        )
-
-        if grid is True and (R.ndim > 1 or Z.ndim > 1):
-            msg = "If grid=True, R and Z must be 1d!"
-            raise Exception(msg)
-        elif grid is False and R.shape != Z.shape:
-            msg = "If grid=False, R and Z must have the same shape!"
-            raise Exception(msg)
-
-        if grid is True:
-            R = np.tile(R, Z.size)
-            Z = np.repeat(Z, R.size)
+        # check R, Z
+        R, Z, grid = _interp2d_check_RZ(R=R, Z=Z, grid=grid)
 
         # special case if polar mesh => (radius, angle) from (R, Z)
         if mtype == 'polar':
             # compute radius / angle
             radius2d = coll.dobj[coll._which_mesh][keym]['radius2d']
-            radius = coll.interpolate_profile2d(
+            (
+                rad2d_hastime, rad2d_keyt, rad2d_reft, rad2d_nt, rad2d_t,
+                rad2d_indt, rad2d_indtu, rad2d_indt_reverse,
+            ) = coll.get_time(
+                key=radius2d,
+                t=None,
+                indt=indt,
+            )
+
+            radius, _ = coll.interpolate_profile2d(
                 # coordinates
                 R=R,
                 Z=Z,
@@ -1956,11 +1929,12 @@ def _interp2d_check(
                 # quantities
                 key=radius2d,
                 details=False,
+                t=rad2d_t,
             )
 
             angle2d = coll.dobj[coll._which_mesh][keym]['angle2d']
             if angle2d is not None:
-                angle = coll.interpolate_profile2d(
+                angle, _ = coll.interpolate_profile2d(
                     # coordinates
                     R=R,
                     Z=Z,
@@ -1968,15 +1942,20 @@ def _interp2d_check(
                     # quantities
                     key=angle2d,
                     details=False,
+                    t=rad2d_t,
                 )
 
-            if radius.ndim == R.ndim + 1:
-                radius_vs_time = True
-            else:
-                radius_vs_time = False
+            if not rad2d_hastime:
+                assert radius.shape[0] == 1
+                radius = radius[0, ...]
+                if angle2d is not None:
+                    assert angle.shape[0] == 1
+                    angle = angle[0, ...]
+
+            assert rad2d_hastime == (radius.ndim == R.ndim + 1), radius.shape
 
     else:
-        radius_vs_time = False
+        rad2d_hastime = False
 
     # -------------
     # radius, angle
@@ -2008,8 +1987,6 @@ def _interp2d_check(
                 )
                 raise Exception(msg)
 
-    import pdb; pdb.set_trace()     # DB
-
     # -------------
     # coefs
 
@@ -2019,15 +1996,6 @@ def _interp2d_check(
             coefs = np.ones(shapebs)
         else:
             coefs = coll.ddata[key]['data']
-            if indt is not None:
-                coefs = coefs[indtu, ...]
-
-    # radius / angle
-    if indt is not None:
-        if radius_vs_time is True:
-            radius = radius[indt:indt+1, ...]
-            if angle is not None:
-                angle = angle[indt:indt+1, ...]
 
     c0 = (
         coefs.ndim in [len(shapebs), len(shapebs) + 1]
@@ -2042,23 +2010,41 @@ def _interp2d_check(
 
     # Make sure coes is time dependent
     if coefs.ndim == len(shapebs):
-        if radius_vs_time is True:
+        if rad2d_hastime is True:
             sh = tuple([radius.shape[0]] + [1]*len(shapebs))
             coefs = np.tile(coefs, sh)
         else:
             coefs = coefs[None, ...]
     elif coefs.ndim == len(shapebs) + 1:
-        if coefs.shape[0] == 1 and radius_vs_time is True:
-            if radius.shape[0] != 1:
-                coefs = np.repeat(coefs, radius.shape[0], axis=0)
+        if rad2d_hastime:
+            if coefs.shape[0] != radius.shape[0]:
+                msg = (
+                    "Inconstistent coefs vs radius!\n"
+                    f"\t- coefs.shape = {coefs.shape}\n"
+                    f"\t- radius.shape = {radius.shape}\n"
+                )
+                raise Exception(msg)
+        else:
+            pass
+
+        if coefs.shape[0] == 1:
+            if rad2d_hastime is True:
+                if radius.shape[0] != 1:
+                    coefs = np.repeat(coefs, radius.shape[0], axis=0)
+                else:
+                    pass
+            else:
+                pass
     else:
+        msg = "coefs with extra dimensions (spectral?) not handled yet!"
         import pdb; pdb.set_trace()     # DB
         pass
+        raise NotImplementedError(msg)
 
     # double-check
-    if radius_vs_time is True and radius.shape[0] == 1 and coefs.shape[0] != 1:
+    if rad2d_hastime is True and radius.shape[0] == 1 and coefs.shape[0] != 1:
         radius = radius[0, ...]
-        radius_vs_time = False
+        rad2d_hastime = False
         if angle is not None:
             angle = angle[0, ...]
 
@@ -2071,14 +2057,24 @@ def _interp2d_check(
         default=False,
     )
 
+    # ----------
+    # t output
+
+    if t is None:
+        if keyt is not None:
+            t = coll.ddata[keyt]['data']
+            if indt is not None:
+                t = t[indt]
+
     return (
         key, keybs,
         R, Z,
         radius, angle,
         coefs,
+        hastime,
         shapebs,
-        radius_vs_time,
-        indbs, indt,
+        rad2d_hastime,
+        indbs, t, indt, indtu, indt_reverse,
         details, crop, nan0, return_params,
     )
 
@@ -2119,9 +2115,10 @@ def interp2d(
         R, Z,
         radius, angle,
         coefs,
+        hastime,
         shapebs,
-        radius_vs_time,
-        indbs, indt,
+        rad2d_hastime,
+        indbs, t, indt, indtu, indt_reverse,
         details, crop, nan0, return_params,
     ) = _interp2d_check(
         # ressources
@@ -2182,7 +2179,18 @@ def interp2d(
     else:
         indbs_tuple_flat = None
 
+    # -----------
+    # Interpolate
+
+    # manage time
+    if indtu is not None:
+        val0 = np.full(tuple(np.r_[indt.size, R.shape]), np.nan)
+        coefs = coefs[indtu, ...]
+    elif indt is not None:
+        coefs = coefs[indt, ...]
+
     if meshtype in ['rect', 'tri']:
+
         val = coll.dobj['bsplines'][keybs][fname](
             R=R,
             Z=Z,
@@ -2192,14 +2200,25 @@ def interp2d(
             indbs_tuple_flat=indbs_tuple_flat,
             reshape=reshape,
         )
-    else:
+
+    elif meshtype == 'polar':
+
+        if indt is not None and rad2d_hastime:
+            radius = radius[indt, ...]
+
         val = coll.dobj['bsplines'][keybs][fname](
             radius=radius,
             angle=angle,
             coefs=coefs,
-            radius_vs_time=radius_vs_time,
+            radius_vs_time=rad2d_hastime,
             shapebs=shapebs,
         )
+
+    # manage time
+    if indtu is not None:
+        for ii, iu in enumerate(indtu):
+            val0[indt_reverse[ii], ...] = val[ii, ...]
+        val = val0
 
     # ---------------
     # post-treatment
@@ -2211,9 +2230,9 @@ def interp2d(
     # return
 
     if return_params is True:
-        return val, dparams
+        return val, t, dparams
     else:
-        return val
+        return val, t
 
 
 # #############################################################################

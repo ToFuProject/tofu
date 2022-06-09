@@ -387,6 +387,54 @@ class Plasma2D(ds.DataStock):
 
         return dk
 
+    # -------------------
+    # get data time
+    # -------------------
+
+    def get_time(
+        self,
+        key=None,
+        t=None,
+        indt=None,
+        dim=None,
+    ):
+        """ Return the time vector or time macthing indices
+
+        key can be:
+            - regular array
+            - bsplines-based array
+
+        hastime, keyt, t, indt, indtu, ind_reverse = self.get_time(key=t=t)
+
+        Return
+        ------
+        hastime:        bool
+            flag, True if key has a time dimension
+        keyt:           None /  str
+            if hastime and a time vector exists, the key to that time vector
+        t:              None / np.ndarray
+            if hastime
+        indt:           None / np.ndarray
+            if indt or t was provided, and keyt exists
+            int indices of nearest matching times
+        indtu:          None / np.ndarray
+            if indt is returned, np.unique(indt)
+        indt_reverse:   None / np.ndarray
+            if indt is returned, a bool (ntu, nt) array
+
+        """
+
+        if dim is None:
+            dim = 'time'
+
+        return _mesh_checks.get_hastime_tindt(
+            self,
+            key=key,
+            t=t,
+            indt=indt,
+            dim=dim,
+        )
+
     # -----------------
     # indices
     # ------------------
