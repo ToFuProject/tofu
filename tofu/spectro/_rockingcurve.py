@@ -25,12 +25,17 @@ from tofu.version import __version__
 
 
 def compute_rockingcurve(
+    # Lattice parameters
     ih=None, ik=None, il=None, lamb=None,
+    # Lattice modifications
     use_non_parallelism=None, na=None,
     alpha_limits=None,
-    therm_exp=None, plot_therm_exp=None,
+    therm_exp=None,
+    # Plot
+    plot_therm_exp=None,
     plot_asf=None, plot_power_ratio=None,
     plot_asymmetry=None, plot_cmaps=None,
+    # Returning dictionnary
     verb=None, returnas=None,
 ):
     """ The code evaluates, for a given wavelength and Miller indices set,
@@ -486,12 +491,17 @@ def compute_rockingcurve(
 
 
 def plot_var_temp_changes_wavelengths(
+    # Lattice parameters
     ih=None, ik=None, il=None, lambdas=None,
+    # lattice modifications
     use_non_parallelism=None, na=None,
     alpha_limits=None,
-    therm_exp=None, plot_therm_exp=None,
+    therm_exp=None,
+    # Plot
+    plot_therm_exp=None,
     plot_asf=None, plot_power_ratio=None,
     plot_asymmetry=None, plot_cmaps=None,
+    # Plot arguments
     quantity=None,
     curv_radius=None, pixel_size=None,
 ):
@@ -795,8 +805,9 @@ def CrystBragg_check_inputs_rockingcurve(
 
 
 def CrystBragg_check_alpha_angle(
-    theta=None, alpha_limits=None, na=None, nn=None,
+    theta=None,
     use_non_parallelism=None, therm_exp=None,
+    alpha_limits=None, na=None, nn=None,
 ):
 
     if alpha_limits is None:
@@ -869,8 +880,11 @@ def CrystBragg_check_alpha_angle(
 
 
 def CrystBragg_comp_lattice_spacing(
-    ih=None, ik=None, il=None, lamb=None, na=None, nn=None,
-    therm_exp=None, plot_therm_exp=None,
+    ih=None, ik=None, il=None,
+    lamb=None,
+    na=None, nn=None,
+    therm_exp=None,
+    plot_therm_exp=None,
 ):
     """
     Compute the inter-atomic spacing d_hkl for a given crystal of Miller
@@ -1000,7 +1014,7 @@ def CrystBragg_comp_integrated_reflect(
 ):
     """
     This method provide a method to compute the rocking curve of the specified
-    crystal (ih, ik, il, lambda).
+    crystal (ih, ik, il, lambda) for an alpha-Quartz crystal !
     Three crystal model are then done: perfect, mosaic and dynamical.
     The 'power_ratio' element correspond to the the reflecting power at a
     specific mathematic data, which have been converted into glancing angle
@@ -1020,6 +1034,8 @@ def CrystBragg_comp_integrated_reflect(
     For the same reasons, the theta-dimension, depending on therm_exp arg,
     is present in all the arrays, even if it means having a extra dimension
     equal to 1 and therefore useless.
+
+    Made to be used within the compute_rockingcurve() method.
     """
 
     # Perfect (darwin) and ideally thick mosaic models
@@ -1276,13 +1292,16 @@ def CrystalBragg_plot_atomic_scattering_factor(
 
 
 def CrystalBragg_plot_power_ratio_vs_glancing_angle(
+    # Lattice parameters
     ih=None, ik=None, il=None, lamb=None,
+    # Lattice modifications
     alpha_limits=None,
     theta=None, theta_deg=None,
-    th=None, dth=None, power_ratio=None,
-    bb=None, polar=None, alpha=None,
     use_non_parallelism=None, na=None, nn=None,
     therm_exp=None, T0=None, TD=None,
+    # Diffraction pattern main components
+    th=None, dth=None, power_ratio=None,
+    bb=None, polar=None, alpha=None,
 ):
     """ All plots of rocking curve is done, not with respect to the glancing
     angle (theta - thetaBragg) where thetaBragg may vary if the temperature
@@ -1639,7 +1658,8 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
 
 
 def CrystalBragg_plot_rc_components_vs_asymmetry(
-    ih=None, ik=None, il=None, lamb=None, theta=None, theta_deg=None,
+    ih=None, ik=None, il=None, lamb=None,
+    theta=None, theta_deg=None,
     alpha=None, bb=None, th=None,
     rhg=None, rhg_perp_norm=None, rhg_para_norm=None,
     det_perp_norm=None, det_para_norm=None,

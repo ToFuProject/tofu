@@ -947,17 +947,21 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
 
 def CrystalBragg_plot_line_tracing_on_det(
     cryst=None, dcryst=None,
-    lamb=None, xi=None, xj=None, xi_er=None, xj_er=None,
+    lamb=None,
+    xi=None, xj=None, xi_er=None, xj_er=None,
     power_ratio=None, dth=None, ndth=None, nn=None,
     xi_rc=None, xj_rc=None,
-    xi_atprmax=None, bragg_atprmax=None,
+    xi_atprmax=None,
+    bragg_atprmax=None,
     lamb_atprmax=None,
-    det=None, ax=None, dleg=None,
+    det=None,
     johann=None, rocking=None,
-    use_non_parallelism=None, therm_exp=None,
+    use_non_parallelism=None,
+    therm_exp=None,
     merge_rc_data=None,
     alpha0=None, temp0=None, TD=None, angles=None,
     id_temp0=None,
+    ax=None, dleg=None, color=None,
     fs=None, dmargin=None, wintit=None, tit=None,
 ):
 
@@ -969,6 +973,8 @@ def CrystalBragg_plot_line_tracing_on_det(
             'loc': 'upper left',
             'fontsize': 13,
         }
+    if color is None:
+        color = 'k'
 
     if fs is None:
         fs = (8, 8)
@@ -1024,7 +1030,7 @@ def CrystalBragg_plot_line_tracing_on_det(
         bb = temp0
     else:
         bb = 0.
-
+    # TBD: arg color from ipython method call
     for ll in range(lamb.size):
         lab = (
             r'$\lambda$ = {} A'.format(np.round(lamb[ll]*1e10, 6))+ '\n'
@@ -1036,6 +1042,7 @@ def CrystalBragg_plot_line_tracing_on_det(
             xi[ll, :], xj[ll, :],
             ls='--', lw=1.,
             marker=markers[ll], ms=4.,
+            c=color,
             label=lab,
         )
         if plot_err:
@@ -1048,7 +1055,7 @@ def CrystalBragg_plot_line_tracing_on_det(
         for ll in range(lamb.size):
             for mm in range(ndth):
                 if mm == int(ndth/2.):
-                    label = r'At $x_j$=0.: $x_i$={}, $\lambda$={}A & $\theta$={}deg'.format(
+                    label = r'At $x_j$=0.: $x_i$={}, $\lambda$={}A'.format(
                         np.round(xi_atprmax[ll], 6),
                         np.round(lamb_atprmax[ll], 16),
                         np.round(bragg_atprmax[ll]*(180./np.pi), 4),
