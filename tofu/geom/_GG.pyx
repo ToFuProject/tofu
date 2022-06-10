@@ -4950,17 +4950,17 @@ def compute_solid_angle_apertures_unitvectors(
     double[::1] pts_y,
     double[::1] pts_z,
     # detectors: indices of first corner of each det polygon: nd = len(det_ind)
-    int[::1] det_ind,
+    long[::1] det_ind,
     # detectors: polygon coordinates as three 1d arrays
     double[::1] det_x,
     double[::1] det_y,
-    double[::1] det_z
+    double[::1] det_z,
     # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
     double[::1] det_norm_x,
     double[::1] det_norm_y,
     double[::1] det_norm_z,
     # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
-    int[::1] ap_ind,
+    long[::1] ap_ind,
     # apertures: polygon coordinates as three 1d arrays
     double[::1] ap_x,
     double[::1] ap_y,
@@ -4974,15 +4974,16 @@ def compute_solid_angle_apertures_unitvectors(
     # Declaration
 
     cdef int npts = pts_x.size
-    cdef int nd = det_x.size
-    cdef double[:, ::1] solid_angle = np.zeros((nd, npts), dtype=float)
-    cdef double[:, ::1] uvect_x = np.zeros((nd, npts), dtype=float)
-    cdef double[:, ::1] uvect_y = np.zeros((nd, npts), dtype=float)
-    cdef double[:, ::1] uvect_z = np.zeros((nd, npts), dtype=float)
+    cdef int nd = det_ind.size
+    cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
+    cdef np.ndarray[double, ndim=2] uvect_x = np.zeros((nd, npts), dtype=float)
+    cdef np.ndarray[double, ndim=2] uvect_y = np.zeros((nd, npts), dtype=float)
+    cdef np.ndarray[double, ndim=2] uvect_z = np.zeros((nd, npts), dtype=float)
 
     # -------
     # Compute
 
+    print("\n------\nThis is were you do your magic\n------\n")
 
     # -------
     # Return

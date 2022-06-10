@@ -496,7 +496,8 @@ def _check_convert_det_dict(detectors=None):
         detectors['centers_z'][:, None]
         + detectors['e0_z'][:, None] * detectors['outline_x0'][None, :]
         + detectors['e1_z'][:, None] * detectors['outline_x1'][None, :],
-    ]).swapaxes(0, 1).tolist()
+    ]).swapaxes(0, 1)
+    det = [dd for dd in det]
 
     # build detectors_normal
     det_norm = np.array([
@@ -680,7 +681,7 @@ def _calc_solidangle_apertures_prepare(
     det_norm_z = detectors_normal[2, :]
 
     return (
-        shape0, mask,
+        ndim0, shape0, mask,
         pts_x, pts_y, pts_z,
         ap_split, ap_ind, ap_x, ap_y, ap_z,
         det_split, det_ind, det_x, det_y, det_z,
@@ -892,7 +893,7 @@ def calc_solidangle_apertures(
     # pre-format input
 
     (
-        shape0, mask,
+        ndim0, shape0, mask,
         pts_x, pts_y, pts_z,
         ap_split, ap_ind, ap_x, ap_y, ap_z,
         det_split, det_ind, det_x, det_y, det_z,
@@ -1008,6 +1009,12 @@ def calc_solidangle_apertures(
 
     # -------------
     # format output
+
+    if return_vector:
+        i0 = solid_angle == 0
+        unit_vector_x[i0] = np.nan
+        unit_vector_y[i0] = np.nan
+        unit_vector_z[i0] = np.nan
 
     shape = tuple(np.r_[nd, shape0])
     if mask is None:

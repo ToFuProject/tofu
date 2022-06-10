@@ -90,7 +90,7 @@ def _get_cases(ang0=np.pi/4., ang1=-np.pi/4.):
     ]
 
     # dict
-    lcases = [f'case {ii}' for ii in range(4)]
+    lcases = [f'case {ii}' for ii in range(2)]  # 4
     dcases = dict.fromkeys(lcases, {})
     for ii, cc in enumerate(lcases):
         dcases[cc]['pts_x'] = pts[0, :]
@@ -178,9 +178,16 @@ class Test01_SolidAngles():
             assert all([
                 isinstance(oo, np.ndarray)
                 and oo.shape == (nd, npts)
-            ])
+                for oo in out
+            ]), f'{(nd, npts)} vs {[oo.shape for oo in out]}'
+            assert np.all(out[0] >= 0.)
+
+            # cjeck unit vectors (normalized)
             if nout > 1:
+                iok = (out[0] > 0)
                 assert all([
-                    np.all((out[0] != 0) == np.isfinite(oo))
+                    np.all(np.isfinite(oo) == iok)
                     for oo in out[1:]
                 ])
+                norm2 = out[1]**2 + out[2]**2 + out[3]**2
+                assert np.allclose(norm2[iok], 1)
