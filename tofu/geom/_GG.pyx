@@ -4934,3 +4934,58 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
     free(ncells_rphi)
 
     return pts, sa_map, ind, reso_r_z
+
+
+# ==============================================================================
+#
+#                       Solid Angle Computation
+#                   subtended by multiple apertures
+#
+# ==============================================================================
+
+
+def compute_solid_angle_apertures_unitvectors(
+    # pts: coordinates as three 1d arrays
+    double[::1] pts_x,
+    double[::1] pts_y,
+    double[::1] pts_z,
+    # detectors: indices of first corner of each det polygon: nd = len(det_ind)
+    int[::1] det_ind,
+    # detectors: polygon coordinates as three 1d arrays
+    double[::1] det_x,
+    double[::1] det_y,
+    double[::1] det_z
+    # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
+    double[::1] det_norm_x,
+    double[::1] det_norm_y,
+    double[::1] det_norm_z,
+    # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
+    int[::1] ap_ind,
+    # apertures: polygon coordinates as three 1d arrays
+    double[::1] ap_x,
+    double[::1] ap_y,
+    double[::1] ap_z,
+    # possible extra parameters ?
+    double margin=_VSMALL,
+    int num_threads=10,
+):
+
+    # -----------
+    # Declaration
+
+    cdef int npts = pts_x.size
+    cdef int nd = det_x.size
+    cdef double[:, ::1] solid_angle = np.zeros((nd, npts), dtype=float)
+    cdef double[:, ::1] uvect_x = np.zeros((nd, npts), dtype=float)
+    cdef double[:, ::1] uvect_y = np.zeros((nd, npts), dtype=float)
+    cdef double[:, ::1] uvect_z = np.zeros((nd, npts), dtype=float)
+
+    # -------
+    # Compute
+
+
+    # -------
+    # Return
+
+
+    return solid_angle, uvect_x, uvect_y, uvect_z

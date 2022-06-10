@@ -380,16 +380,17 @@ def _check_list_3dpolygons(lpoly=None, lpoly_name=None, closed=None):
 
     # check lpoly is a list of (3, npi) arrays
     c0 = (
-        isinstance(apertures, list)
+        isinstance(lpoly, list)
         and all([
-            isinstance(aa, np.ndarray)
-            and aa.ndim == 2
-            and aa.shape[0] == 3
+            isinstance(pp, np.ndarray)
+            and pp.ndim == 2
+            and pp.shape[0] == 3
+            for pp in lpoly
         ])
     )
     if not c0:
         msg = (
-            f"Arg {lpoly_name=None} must be a list of (3, npi) arrays, where\n"
+            f"Arg {lpoly_name} must be a list of (3, npi) arrays, where\n"
             "\t- dimension 0 corresponds to (X, Y, Z) coordinates\n"
             "\t- dimension 1 corresponds to the npi corners of polygon i\n"
             f"Provided:\n{lpoly}"
@@ -397,7 +398,7 @@ def _check_list_3dpolygons(lpoly=None, lpoly_name=None, closed=None):
         raise Exception(msg)
 
     # check if they are closed vs close
-    for ii, pp in lpoly:
+    for ii, pp in enumerate(lpoly):
         if not np.allclose(pp[:, 0], pp[:, -1]) and closed:
             lpoly[ii] = np.append(pp, pp[:, 0:1], axis=1)
         elif np.allclose(pp[:, 0], pp[:, -1]) and not closed:
@@ -409,8 +410,8 @@ def _check_list_3dpolygons(lpoly=None, lpoly_name=None, closed=None):
 def _check_unit_vectors(det=None):
     # check normalization
     dnorm = {
-        k0: np.sqrt(det[f'{k0}_x']**2 + det[f'{k0]_y']**2 + det[f'{k0}_z']**2)
-        for k0 in ['e0', 'e1', 'nn']
+        k0: np.sqrt(det[f'{k0}_x']**2 + det[f'{k0}_y']**2 + det[f'{k0}_z']**2)
+        for k0 in ['e0', 'e1', 'nin']
     }
     if not np.allclose(list(dnorm.values()), 1):
         lstr = [f"\t- {k0} = {v0}" for k0, v0 in dnorm.items()]
@@ -427,7 +428,7 @@ def _check_unit_vectors(det=None):
             + det[f'{v0}_y']*det[f'{v1}_y']
             + det[f'{v0}_z']*det[f'{v1}_z']
         )
-        for v0, v1 in [('e0', 'e1'), ('e0', 'nn'), ('e1', 'nn')]
+        for v0, v1 in [('e0', 'e1'), ('e0', 'nin'), ('e1', 'nin')]
     }
     if not np.allclose(list(dsca.values()), 0):
         lstr = [f"\t- {k0} = {v0}" for k0, v0 in dsca.items()]
@@ -440,7 +441,7 @@ def _check_unit_vectors(det=None):
 
 def _check_convert_det_dict(detectors=None):
 
-    lk_out = ['outline_x', 'outline_y']
+    lk_out = ['outline_x0', 'outline_x1']
     lk_shape = [
         'centers_x', 'centers_y', 'centers_z',
         'e0_x', 'e0_y', 'e0_z',
@@ -453,7 +454,7 @@ def _check_convert_det_dict(detectors=None):
             for ss in lk_out + lk_shape
         ])
         and all([
-            detectors[ss].shape == detectors['outline_x'].shape
+            detectors[ss].shape == detectors['outline_x0'].shape
             for ss in lk_out
         ])
         and all([
@@ -485,7 +486,7 @@ def _check_convert_det_dict(detectors=None):
             detectors[k0] = detectors[k0].ravel()
 
     # turn into list of detectors arrays
-    detectors = np.array([
+    det = np.array([
         detectors['centers_x'][:, None]
         + detectors['e0_x'][:, None] * detectors['outline_x0'][None, :]
         + detectors['e1_x'][:, None] * detectors['outline_x1'][None, :],
@@ -498,11 +499,11 @@ def _check_convert_det_dict(detectors=None):
     ]).swapaxes(0, 1).tolist()
 
     # build detectors_normal
-    detectors_normal = np.array([
+    det_norm = np.array([
         detectors['nin_x'], detectors['nin_y'], detectors['nin_z'],
     ])
 
-    return detectors, detectors_normal
+    return det, det_norm
 
 
 
@@ -896,8 +897,7 @@ def calc_solidangle_apertures(
         ap_split, ap_ind, ap_x, ap_y, ap_z,
         det_split, det_ind, det_x, det_y, det_z,
         det_norm_x, det_norm_y, det_norm_z,
-    )
-    = _calc_solidangle_apertures_prepare(
+    ) = _calc_solidangle_apertures_prepare(
         # observation points
         pts_x=pts_x,
         pts_y=pts_y,
@@ -923,7 +923,7 @@ def calc_solidangle_apertures(
         (
             solid_angle,
             unit_vector_x, unit_vector_y, unit_vector_z,
-        ) = _GG.compute_solid_angle_apertures_full(
+        ) = _GG.compute_solid_angle_apertures_unitvectors(
             # pts as 1d arrays
             pts_x=pts_x,
             pts_y=pts_y,
