@@ -404,7 +404,7 @@ class Plasma2D(ds.DataStock):
             - regular array
             - bsplines-based array
 
-        hastime, keyt, t, indt, indtu, ind_reverse = self.get_time(key=t=t)
+        hastime, keyt, t, indt, indtu, ind_reverse = self.get_time(key='t')
 
         Return
         ------
@@ -427,11 +427,10 @@ class Plasma2D(ds.DataStock):
         if dim is None:
             dim = 'time'
 
-        return _mesh_checks.get_hastime_tindt(
-            self,
+        return self.get_ref_vector(
             key=key,
-            t=t,
-            indt=indt,
+            values=t,
+            indices=indt,
             dim=dim,
         )
 
