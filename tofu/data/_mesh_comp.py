@@ -1788,7 +1788,7 @@ def _interp2d_check_rad2d_get_time(
     # determine whether radius2d depends on time
     (
         rad2d_hastime, rad2d_keyt, rad2d_reft, rad2d_nt, rad2d_t,
-        rad2d_indt, rad2d_indtu, rad2d_indt_reverse,
+        rad2d_indt, rad2d_indtu, rad2d_indtr, rad2d_indok,
     ) = coll.get_time(
         key=radius2d,
         t=None,
@@ -1798,11 +1798,11 @@ def _interp2d_check_rad2d_get_time(
     # if it does, adjust, TBF / TBC
     if rad2d_hastime:
         if hastime:
-
+            pass
         else:
             (
                 rad2d_hastime, rad2d_keyt, rad2d_reft, rad2d_nt, rad2d_t,
-                rad2d_indt, rad2d_indtu, rad2d_indt_reverse,
+                rad2d_indt, rad2d_indtu, rad2d_indtr, rad2d_indok,
             ) = coll.get_time(
                 key=radius2d,
                 t=t,
@@ -1813,7 +1813,7 @@ def _interp2d_check_rad2d_get_time(
         if t is not None:
             (
                 rad2d_hastime, rad2d_keyt, rad2d_reft, rad2d_nt, rad2d_t,
-                rad2d_indt, rad2d_indtu, rad2d_indt_reverse,
+                rad2d_indt, rad2d_indtu, rad2d_indtr, rad2d_indok,
             ) = coll.get_time(
                 key=radius2d,
                 t=t,
@@ -1914,7 +1914,7 @@ def _interp2d_check(
     refbs = coll.dobj['bsplines'][keybs]['ref']
 
     # hastime, t, indit
-    hastime, keyt, reft, nt, t, indt, indtu, indt_reverse = coll.get_time(
+    hastime, keyt, reft, nt, t, indt, indtu, indtr, indtok = coll.get_time(
         key=key,
         t=t,
         indt=indt,
@@ -2130,7 +2130,7 @@ def _interp2d_check(
         hastime,
         shapebs,
         rad2d_hastime,
-        indbs, t, indt, indtu, indt_reverse,
+        indbs, t, indt, indtu, indtr, indtok,
         details, crop, nan0, return_params,
     )
 
@@ -2174,7 +2174,7 @@ def interp2d(
         hastime,
         shapebs,
         rad2d_hastime,
-        indbs, t, indt, indtu, indt_reverse,
+        indbs, t, indt, indtu, indtr, indtok,
         details, crop, nan0, return_params,
     ) = _interp2d_check(
         # ressources
@@ -2273,7 +2273,7 @@ def interp2d(
     # manage time
     if indtu is not None:
         for ii, iu in enumerate(indtu):
-            val0[indt_reverse[ii], ...] = val[ii, ...]
+            val0[indtr[ii], ...] = val[ii, ...]
         val = val0
 
     # ---------------
