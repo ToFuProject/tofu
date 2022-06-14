@@ -1913,12 +1913,25 @@ def _interp2d_check(
     # refbs and hastime
     refbs = coll.dobj['bsplines'][keybs]['ref']
 
-    # hastime, t, indit
-    hastime, keyt, reft, nt, t, indt, indtu, indtr, indtok = coll.get_time(
-        key=key,
-        t=t,
-        indt=indt,
-    )
+    if mtype == 'polar':
+        radius2d = coll.dobj[coll._which_mesh][keym]['radius2d']
+        hastime, hasvect, t, dind = coll.get_time_common(
+            keys=[key, radius2d],
+            t=t,
+            indt=indt,
+            ind_strict=True,
+        )
+
+        rad2d_hastime = radius2d in dind.keys()
+
+    else:
+        # hastime, t, indit
+        hastime, hasvect, reft, keyt, t, indt, indtu, indtr = coll.get_time(
+            key=key,
+            t=t,
+            indt=indt,
+            ind_strict=True,
+        )[:-1]
 
     # -----------
     # coordinates
@@ -1962,16 +1975,8 @@ def _interp2d_check(
 
         # special case if polar mesh => (radius, angle) from (R, Z)
         if mtype == 'polar':
-            # compute radius / angle
-            radius2d = coll.dobj[coll._which_mesh][keym]['radius2d']
 
-            # is radius2d time-dependent?
-            rad2d_hastime, rad2d_t = _interp2d_check_rad2d_get_time(
-                coll=coll,
-                radius2d=radius2d,
-                t=t,
-                indt=indt,
-            )
+            rad2d_indt = dind[radius2d]['ind'] if rad2d_hastime else None
 
             # compute radius2d at relevant times
             radius, _ = coll.interpolate_profile2d(
@@ -1982,7 +1987,8 @@ def _interp2d_check(
                 # quantities
                 key=radius2d,
                 details=False,
-                t=rad2d_t,
+                # time
+                indt=rad2d_indt,
             )
 
             # compute angle2d at relevant times
@@ -1996,11 +2002,12 @@ def _interp2d_check(
                     # quantities
                     key=angle2d,
                     details=False,
-                    t=rad2d_t,
+                    # time
+                    indt=rad2d_indt,
                 )
 
             # simplify if not time-dependent
-            if not rad2d_hastime:
+            if radius2d not in dind:
                 assert radius.shape[0] == 1
                 radius = radius[0, ...]
                 if angle2d is not None:
@@ -2008,10 +2015,14 @@ def _interp2d_check(
                     angle = angle[0, ...]
 
             # check consistency
-            assert rad2d_hastime == (radius.ndim == R.ndim + 1), radius.shape
+            if rad2d_hastime != (radius.ndim == R.ndim + 1):
+                msg = f"Inconsistency! {radius.shape}"
+                raise Exception(msg)
+
+            radius_vs_time = rad2d_hastime
 
     else:
-        rad2d_hastime = False
+        radius_vs_time = False
 
     # -------------
     # radius, angle
@@ -2066,11 +2077,12 @@ def _interp2d_check(
 
     # Make sure coefs is time dependent
     if coefs.ndim == len(shapebs):
-        if rad2d_hastime is True:
+        if radius_vs_time is True:
             sh = tuple([radius.shape[0]] + [1]*len(shapebs))
             coefs = np.tile(coefs, sh)
         else:
             coefs = coefs[None, ...]
+
     elif coefs.ndim == len(shapebs) + 1:
         if rad2d_hastime:
             if coefs.shape[0] != radius.shape[0]:
@@ -2113,15 +2125,6 @@ def _interp2d_check(
         default=False,
     )
 
-    # ----------
-    # t output
-
-    if t is None:
-        if keyt is not None:
-            t = coll.ddata[keyt]['data']
-            if indt is not None:
-                t = t[indt]
-
     return (
         key, keybs,
         R, Z,
@@ -2130,6 +2133,7 @@ def _interp2d_check(
         hastime,
         shapebs,
         rad2d_hastime,
+        radius_vs_time,
         indbs, t, indt, indtu, indtr, indtok,
         details, crop, nan0, return_params,
     )
@@ -2174,6 +2178,7 @@ def interp2d(
         hastime,
         shapebs,
         rad2d_hastime,
+        radius_vs_time,
         indbs, t, indt, indtu, indtr, indtok,
         details, crop, nan0, return_params,
     ) = _interp2d_check(
@@ -2266,7 +2271,7 @@ def interp2d(
             radius=radius,
             angle=angle,
             coefs=coefs,
-            radius_vs_time=rad2d_hastime,
+            radius_vs_time=radius_vs_time,
             shapebs=shapebs,
         )
 

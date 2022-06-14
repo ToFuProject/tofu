@@ -396,15 +396,56 @@ class Plasma2D(ds.DataStock):
         key=None,
         t=None,
         indt=None,
+        ind_strict=None,
         dim=None,
     ):
         """ Return the time vector or time macthing indices
 
-        key can be:
-            - regular array
-            - bsplines-based array
+        hastime, keyt, t, indt, indtu, indtr = self.get_time(key='prof0')
 
-        hastime, keyt, t, indt, indtu, ind_reverse = self.get_time(key='t')
+        Return
+        ------
+        hastime:    bool
+            flag, True if key has a time dimension
+        keyt:       None /  str
+            if hastime and a time vector exists, the key to that time vector
+        t:          None / np.ndarray
+            if hastime
+        indt:       None / np.ndarray
+            if indt or t was provided, and keyt exists
+            int indices of nearest matching times
+        indtu:      None / np.ndarray
+            if indt is returned, np.unique(indt)
+        indtr:      None / np.ndarray
+            if indt is returned, a bool (ntu, nt) array
+
+        """
+
+        if dim is None:
+            dim = 'time'
+
+        return self.get_ref_vector(
+            key=key,
+            values=t,
+            indices=indt,
+            ind_strict=ind_strict,
+            dim=dim,
+        )
+
+    def get_time_common(
+        self,
+        keys=None,
+        t=None,
+        indt=None,
+        ind_strict=None,
+        dim=None,
+    ):
+        """ Return the time vector or time macthing indices
+
+        hastime, hasvect, t, dind = self.get_time_common(
+            keys=['prof0', 'prof1'],
+            t=np.linspace(0, 5, 10),
+        )
 
         Return
         ------
@@ -427,10 +468,11 @@ class Plasma2D(ds.DataStock):
         if dim is None:
             dim = 'time'
 
-        return self.get_ref_vector(
-            key=key,
+        return self.get_ref_vector_common(
+            keys=keys,
             values=t,
             indices=indt,
+            ind_strict=ind_strict,
             dim=dim,
         )
 
