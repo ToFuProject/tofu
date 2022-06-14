@@ -1833,8 +1833,6 @@ def _interp2d_check(
     coll=None,
     # interpolation base, 1d or 2d
     key=None,
-    # external coefs (instead of key, optional)
-    coefs=None,
     # interpolation points
     R=None,
     Z=None,
@@ -1844,6 +1842,7 @@ def _interp2d_check(
     # time: t or indt
     t=None,
     indt=None,
+    indt_strict=None,
     # bsplines
     indbs=None,
     # parameters
@@ -1919,10 +1918,17 @@ def _interp2d_check(
             keys=[key, radius2d],
             t=t,
             indt=indt,
-            ind_strict=True,
+            ind_strict=indt_strict,
         )
 
         rad2d_hastime = radius2d in dind.keys()
+        hastime = key in dind.keys()
+        if hastime:
+            indt = dind[key]['ind']
+            indtu = np.unique(indt)
+            indtr = np.array([indt == iu for iu in indtu])
+        else:
+            indt, indtu, indtr = None, None, None
 
     else:
         # hastime, t, indit
@@ -1930,7 +1936,7 @@ def _interp2d_check(
             key=key,
             t=t,
             indt=indt,
-            ind_strict=True,
+            ind_strict=indt_strict,
         )[:-1]
 
     # -----------
@@ -1954,7 +1960,6 @@ def _interp2d_check(
         raise Exception(msg)
 
     # R, Z
-    rad2d_hastime = False
     if lc[0]:
         # no spec => sample mesh
         R, Z = coll.get_sample_mesh(
@@ -2021,6 +2026,9 @@ def _interp2d_check(
 
             radius_vs_time = rad2d_hastime
 
+        else:
+            radius_vs_time = False
+
     else:
         radius_vs_time = False
 
@@ -2058,63 +2066,39 @@ def _interp2d_check(
     # coefs
 
     shapebs = coll.dobj['bsplines'][keybs]['shape']
-    if coefs is None:
-        if key == keybs:
-            coefs = np.ones(shapebs)
-        else:
-            coefs = coll.ddata[key]['data']
+    coefs = coll.ddata[key]['data']
 
     c0 = (
-        coefs.ndim in [len(shapebs), len(shapebs) + 1]
-        and coefs.shape[-len(shapebs):] == shapebs
+        coefs.shape[-len(shapebs):] == shapebs
+        and (coefs.ndim == len(shapebs) + 1) == hastime
     )
     if not c0:
         msg = (
-            f"Arg coefs must be a {shapebs} array!\n"
-            f"Provided: {coefs.shape}"
+            f"Inconsistency of '{key}' shape:\n"
+            f"\t- shape: {coefs.shape}\n"
+            f"\t- shapebs: {shapebs}\n"
+            f"\t- hastime: {hastime}\n"
         )
         raise Exception(msg)
 
     # Make sure coefs is time dependent
-    if coefs.ndim == len(shapebs):
+    if hastime:
+        if indt is not None and (mtype == 'polar' or indtu is None):
+            coefs = coefs[indt, ...]
+
+        if radius_vs_time and coefs.shape[0] != radius.shape[0]:
+            msg = (
+                "Inconstistent coefs vs radius!\n"
+                f"\t- coefs.shape = {coefs.shape}\n"
+                f"\t- radius.shape = {radius.shape}\n"
+            )
+            raise Exception(msg)
+    else:
         if radius_vs_time is True:
             sh = tuple([radius.shape[0]] + [1]*len(shapebs))
             coefs = np.tile(coefs, sh)
         else:
             coefs = coefs[None, ...]
-
-    elif coefs.ndim == len(shapebs) + 1:
-        if rad2d_hastime:
-            if coefs.shape[0] != radius.shape[0]:
-                msg = (
-                    "Inconstistent coefs vs radius!\n"
-                    f"\t- coefs.shape = {coefs.shape}\n"
-                    f"\t- radius.shape = {radius.shape}\n"
-                )
-                raise Exception(msg)
-        else:
-            pass
-
-        if coefs.shape[0] == 1:
-            if rad2d_hastime is True:
-                if radius.shape[0] != 1:
-                    coefs = np.repeat(coefs, radius.shape[0], axis=0)
-                else:
-                    pass
-            else:
-                pass
-    else:
-        msg = "coefs with extra dimensions (spectral?) not handled yet!"
-        import pdb; pdb.set_trace()     # DB
-        pass
-        raise NotImplementedError(msg)
-
-    # double-check
-    if rad2d_hastime is True and radius.shape[0] == 1 and coefs.shape[0] != 1:
-        radius = radius[0, ...]
-        rad2d_hastime = False
-        if angle is not None:
-            angle = angle[0, ...]
 
     # -------------
     # return_params
@@ -2132,9 +2116,8 @@ def _interp2d_check(
         coefs,
         hastime,
         shapebs,
-        rad2d_hastime,
         radius_vs_time,
-        indbs, t, indt, indtu, indtr, indtok,
+        indbs, t, indt, indtu, indtr,
         details, crop, nan0, return_params,
     )
 
@@ -2144,8 +2127,6 @@ def interp2d(
     coll=None,
     # interpolation base, 1d or 2d
     key=None,
-    # external coefs (instead of key, optional)
-    coefs=None,
     # interpolation points
     R=None,
     Z=None,
@@ -2155,6 +2136,7 @@ def interp2d(
     # time: t or indt
     t=None,
     indt=None,
+    indt_strict=None,
     # bsplines
     indbs=None,
     # parameters
@@ -2177,17 +2159,14 @@ def interp2d(
         coefs,
         hastime,
         shapebs,
-        rad2d_hastime,
         radius_vs_time,
-        indbs, t, indt, indtu, indtr, indtok,
+        indbs, t, indt, indtu, indtr,
         details, crop, nan0, return_params,
     ) = _interp2d_check(
         # ressources
         coll=coll,
         # interpolation base, 1d or 2d
         key=key,
-        # external coefs (instead of key, optional)
-        coefs=coefs,
         # interpolation points
         R=R,
         Z=Z,
@@ -2197,6 +2176,7 @@ def interp2d(
         # time: t or indt
         t=t,
         indt=indt,
+        indt_strict=indt_strict,
         # bsplines
         indbs=indbs,
         # parameters
@@ -2243,14 +2223,12 @@ def interp2d(
     # -----------
     # Interpolate
 
-    # manage time
-    if indtu is not None:
-        val0 = np.full(tuple(np.r_[indt.size, R.shape]), np.nan)
-        coefs = coefs[indtu, ...]
-    elif indt is not None:
-        coefs = coefs[indt, ...]
-
     if meshtype in ['rect', 'tri']:
+
+        # manage time
+        if indtu is not None:
+            val0 = np.full(tuple(np.r_[indt.size, R.shape]), np.nan)
+            coefs = coefs[indtu, ...]
 
         val = coll.dobj['bsplines'][keybs][fname](
             R=R,
@@ -2262,10 +2240,13 @@ def interp2d(
             reshape=reshape,
         )
 
-    elif meshtype == 'polar':
+        # manage time
+        if indtu is not None:
+            for ii, iu in enumerate(indtu):
+                val0[indtr[ii], ...] = val[ii, ...]
+            val = val0
 
-        if indt is not None and rad2d_hastime:
-            radius = radius[indt, ...]
+    elif meshtype == 'polar':
 
         val = coll.dobj['bsplines'][keybs][fname](
             radius=radius,
@@ -2274,12 +2255,6 @@ def interp2d(
             radius_vs_time=radius_vs_time,
             shapebs=shapebs,
         )
-
-    # manage time
-    if indtu is not None:
-        for ii, iu in enumerate(indtu):
-            val0[indtr[ii], ...] = val[ii, ...]
-        val = val0
 
     # ---------------
     # post-treatment

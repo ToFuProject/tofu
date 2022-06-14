@@ -1113,6 +1113,7 @@ class Plasma2D(ds.DataStock):
         # time: t or indt
         t=None,
         indt=None,
+        indt_strict=None,
         # bsplines
         indbs=None,
         # parameters
@@ -1153,8 +1154,6 @@ class Plasma2D(ds.DataStock):
             coll=self,
             # interpolation base, 1d or 2d
             key=key,
-            # external coefs (instead of key, optional)
-            coefs=coefs,
             # interpolation points
             R=R,
             Z=Z,
@@ -1162,6 +1161,7 @@ class Plasma2D(ds.DataStock):
             # time: t or indt
             t=t,
             indt=indt,
+            indt_strict=indt_strict,
             # bsplines
             indbs=indbs,
             # parameters

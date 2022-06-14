@@ -6852,14 +6852,12 @@ class Rays(utils.ToFuObject):
         self,
         plasma=None,
         t=None,
+        indt_strict=None,
         log='min',
         res=None,
         resMode='abs',
         method='sum',
         quant=None,
-        interp_t=None,
-        interp_space=None,
-        fill_value=np.nan,
         pts=False,
         Test=True,
     ):
@@ -6876,7 +6874,7 @@ class Rays(utils.ToFuObject):
         See self.get_sample() for details on sampling arguments:
             - res, resMode, method
         See Plasma2D.interp_pts2profile() for details on interpolation args:
-            - t, quant, q2dref, q1dref, interp_t, interp_space, fill_value
+            - t, quant, q2dref, q1dref
 
         Returns:
         --------
@@ -6907,18 +6905,19 @@ class Rays(utils.ToFuObject):
             # interpolation points
             R=np.hypot(ptsi[0, ...], ptsi[1, ...]),
             Z=ptsi[2, ...],
-            grid=grid,
+            grid=False,
             # time
             t=t,
-            indt=indt,
+            indt=None,
+            indt_strict=indt_strict,
             # parameters
-            details=details,
-            reshape=reshape,
+            details=False,
+            reshape=None,
             res=res,
-            crop=crop,
-            nan0=nan0,
-            imshow=imshow,
-            return_params=return_params,
+            crop=None,
+            nan0=None,
+            imshow=False,
+            return_params=False,
         )
 
         # Separate val per LOS and compute min / max
