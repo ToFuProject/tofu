@@ -287,7 +287,13 @@ def _plot_mesh_prepare_polar_cont(
                 imshow=True,
             )
 
-        rr = coll.interpolate_profile2d(key=k2d, R=RR, Z=ZZ, grid=False)
+        rr = coll.interpolate_profile2d(
+            key=k2d,
+            R=RR,
+            Z=ZZ,
+            grid=False,
+            return_params=False,
+        )[0]
 
         refr2d = coll.ddata[k2d]['ref']
         refbs = coll.dobj['bsplines'][kb2]['ref']
@@ -899,6 +905,7 @@ def _plot_bspline_prepare(
         coefs=coefs,
         details=False,
         grid=False,
+        return_params=False,
     )[0]
 
     # nan if 0
@@ -1164,7 +1171,8 @@ def _plot_profiles2d_prepare(
         details=False,
         nan0=True,
         imshow=True,
-    )[0, ...]
+        return_params=False,
+    )[0][0, ...]
 
     # extent and interp
     extent = (

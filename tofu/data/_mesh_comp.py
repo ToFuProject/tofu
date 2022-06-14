@@ -1914,8 +1914,11 @@ def _interp2d_check(
 
     if mtype == 'polar':
         radius2d = coll.dobj[coll._which_mesh][keym]['radius2d']
+        # take out key if bsplines
+        lk = [kk for kk in [key, radius2d] if kk != keybs]
+
         hastime, hasvect, t, dind = coll.get_time_common(
-            keys=[key, radius2d],
+            keys=lk,
             t=t,
             indt=indt,
             ind_strict=indt_strict,
@@ -1930,7 +1933,7 @@ def _interp2d_check(
         else:
             indt, indtu, indtr = None, None, None
 
-    else:
+    elif key != keybs:
         # hastime, t, indit
         hastime, hasvect, reft, keyt, t, indt, indtu, indtr = coll.get_time(
             key=key,
@@ -1938,6 +1941,9 @@ def _interp2d_check(
             indt=indt,
             ind_strict=indt_strict,
         )[:-1]
+    else:
+        hastime, hasvect = False, False
+        reft, keyt, indt, indtu = None, None, None
 
     # -----------
     # coordinates
@@ -2066,7 +2072,10 @@ def _interp2d_check(
     # coefs
 
     shapebs = coll.dobj['bsplines'][keybs]['shape']
-    coefs = coll.ddata[key]['data']
+    if key == keybs:
+        coefs = np.ones(shapebs, dtype=float)
+    else:
+        coefs = coll.ddata[key]['data']
 
     c0 = (
         coefs.shape[-len(shapebs):] == shapebs

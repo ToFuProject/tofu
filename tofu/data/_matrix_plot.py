@@ -273,7 +273,8 @@ def _plot_geometry_matrix_prepare(
         crop=crop,
         nan0=True,
         details=False,
-    )[0, ...]
+        return_params=False,
+    )[0][0, ...]
 
     # bspline1
     coefs[ic] = coll.ddata[key]['data'][indchan, :]
@@ -285,7 +286,8 @@ def _plot_geometry_matrix_prepare(
         crop=crop,
         nan0=True,
         details=False,
-    )[0, ...]
+        return_params=False,
+    )[0][0, ...]
 
     # --------
     # LOS

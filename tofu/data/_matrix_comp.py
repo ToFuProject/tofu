@@ -192,7 +192,8 @@ def compute(
                         indbs=indbs,
                         details=True,
                         reshape=False,
-                    ),
+                        return_params=False,
+                    )[0],
                     axis=0,
                 )
             else:
@@ -204,7 +205,8 @@ def compute(
                     indbs=indbs,
                     details=True,
                     reshape=False,
-                )
+                    return_params=False,
+                )[0]
 
                 if mati.ndim == 2:
                     mat[ii, :] = np.nansum(mati, axis=0)
