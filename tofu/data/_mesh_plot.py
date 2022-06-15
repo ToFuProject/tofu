@@ -764,7 +764,8 @@ def _plot_bsplines_get_dRdZ(coll=None, km=None, meshtype=None):
 def _plot_bspline_check(
     coll=None,
     key=None,
-    ind=None,
+    indbs=None,
+    indt=None,
     knots=None,
     cents=None,
     plot_mesh=None,
@@ -780,15 +781,23 @@ def _plot_bspline_check(
         types=str,
         allowed=lk,
     )
+    keym0 = coll.dobj['bsplines'][key]['mesh']
+    mtype0 = coll.dobj[coll._which_mesh][keym0]['type']
+    if mtype0 == 'polar':
+        keym = coll.dobj[coll._which_mesh][keym0]['submesh']
+        mtype = coll.dobj[coll._which_mesh][keym]['type']
+    else:
+        keym = keym0
+        mtype = mtype0
 
     # knots, cents
     knots = _generic_check._check_var(knots, 'knots', default=True, types=bool)
     cents = _generic_check._check_var(cents, 'cents', default=True, types=bool)
 
     # ind_bspline
-    ind = coll.select_bsplines(
+    indbs = coll.select_bsplines(
         key=key,
-        ind=ind,
+        ind=indbs,
         returnas='ind',
         return_knots=False,
         return_cents=False,
@@ -797,12 +806,27 @@ def _plot_bspline_check(
 
     _, knotsi, centsi = coll.select_bsplines(
         key=key,
-        ind=ind,
+        ind=indbs,
         returnas='data',
         return_knots=True,
         return_cents=True,
         crop=False,
     )
+
+    # indt
+    nt = False
+    if mtype == 'polar':
+        radius2d = coll.dobj[coll._which_mesh][keym]['radius2d']
+        r2d_reft = coll.get_time(key=radius2d)[2]
+        if r2d_reft is not None:
+            nt = coll.dref[r2d_reft]['size']
+
+    if nt is False:
+        indt = None
+    else:
+        if indt is None:
+            indt = 0
+        indt = np.atleast_1d(indt).ravel()[0]
 
     # plot_mesh
     plot_mesh = _generic_check._check_var(
@@ -827,13 +851,26 @@ def _plot_bspline_check(
         types=(bool, dict),
     )
 
-    return key, ind, knots, cents, knotsi, centsi, plot_mesh, cmap, dleg
+    return (
+        key, keym0, keym, mtype0, mtype,
+        indbs, indt,
+        knots, cents, knotsi, centsi,
+        plot_mesh, cmap, dleg,
+    )
 
 
 def _plot_bspline_prepare(
     coll=None,
+    # keys
     key=None,
-    ind=None,
+    keym0=None,
+    keym=None,
+    mtype0=None,
+    mtype=None,
+    # indices
+    indbs=None,
+    indt=None,
+    # options
     res=None,
     knotsi=None,
     centsi=None,
@@ -841,32 +878,22 @@ def _plot_bspline_prepare(
 
     # check input
     deg = coll.dobj['bsplines'][key]['deg']
-    km = coll.dobj['bsplines'][key]['mesh']
-    meshtype = coll.dobj['mesh'][km]['type']
-
-    # if polar => submesh
-    km0 = km
-    meshtype0 = meshtype
-    if meshtype == 'polar':
-        km = coll.dobj[coll._which_mesh][km0]['submesh']
-        meshtype = coll.dobj[coll._which_mesh][km]['type']
-        shape2d = len(coll.dobj['bsplines'][key]['shape']) == 2
 
     # get dR, dZ
     dR, dZ, _, _ = _plot_bsplines_get_dRdZ(
-        coll=coll, km=km, meshtype=meshtype,
+        coll=coll, km=keym, meshtype=mtype,
     )
 
     # resolution of sampling
     if res is None:
-        if meshtype == 'rect':
+        if mtype == 'rect':
             res_coef = 0.05
         else:
             res_coef = 0.25
         res = [res_coef*dR, res_coef*dZ]
 
     # sampling domain
-    if meshtype0 == 'polar':
+    if mtype0 == 'polar':
         DR = None
         DZ = None
     else:
@@ -876,26 +903,26 @@ def _plot_bspline_prepare(
 
     # sample
     R, Z = coll.get_sample_mesh(
-        key=km,
+        key=keym,
         res=res,
         DR=DR,
         DZ=DZ,
         mode='abs', grid=True, imshow=True,
     )
 
-    # bspline
+    # bspline - TBF / TBC
     shapebs = coll.dobj['bsplines'][key]['shape']
     shapecoefs = np.r_[1, shapebs]
     coefs = np.zeros(shapecoefs, dtype=float)
-    if meshtype0 == 'rect':
-        coefs[0, ind[0], ind[1]] = 1.
-    elif meshtype0 == 'tri':
-        coefs[0, ind] = 1.
+    if mtype0 == 'rect':
+        coefs[0, indbs[0], indbs[1]] = 1.
+    elif mtype0 == 'tri':
+        coefs[0, indbs] = 1.
     else:
         if len(shapebs) == 2:
-            coefs[0, ind[0], ind[1]] = 1.
+            coefs[0, indbs[0], indbs[1]] = 1.
         else:
-            coefs[0, ind] = 1.
+            coefs[0, indbs] = 1.
         pass
 
     bspline = coll.interpolate_profile2d(
@@ -903,6 +930,7 @@ def _plot_bspline_prepare(
         R=R,
         Z=Z,
         coefs=coefs,
+        indt=indt,
         details=False,
         grid=False,
         return_params=False,
@@ -911,8 +939,8 @@ def _plot_bspline_prepare(
     # nan if 0
     bspline[bspline == 0.] = np.nan
 
-    # extent and interp
-    if meshtype0 == 'polar':
+    # extent
+    if mtype0 == 'polar':
         extent = (
             R.min(), R.max(),
             Z.min(), Z.max(),
@@ -923,6 +951,7 @@ def _plot_bspline_prepare(
             DZ[0], DZ[1],
         )
 
+    # interpolation
     if deg == 0:
         interp = 'nearest'
     elif deg == 1:
@@ -930,13 +959,14 @@ def _plot_bspline_prepare(
     elif deg >= 2:
         interp = 'bicubic'
 
-    return bspline, extent, interp, meshtype0
+    return bspline, extent, interp
 
 
 def plot_bspline(
     coll=None,
     key=None,
-    ind=None,
+    indbs=None,
+    indt=None,
     knots=None,
     cents=None,
     res=None,
@@ -952,11 +982,15 @@ def plot_bspline(
     # check input
 
     (
-        key, ind, knots, cents, knotsi, centsi, plot_mesh, cmap, dleg,
+        key, keym0, keym, mtype0, mtype,
+        indbs, indt,
+        knots, cents, knotsi, centsi,
+        plot_mesh, cmap, dleg,
     ) = _plot_bspline_check(
         coll=coll,
         key=key,
-        ind=ind,
+        indbs=indbs,
+        indt=indt,
         knots=knots,
         cents=cents,
         plot_mesh=plot_mesh,
@@ -967,10 +1001,14 @@ def plot_bspline(
     # --------------
     #  Prepare data
 
-    bspline, extent, interp, meshtype0 = _plot_bspline_prepare(
+    bspline, extent, interp = _plot_bspline_prepare(
         coll=coll,
         key=key,
-        ind=ind,
+        keym=keym,
+        mtype0=mtype0,
+        mtype=mtype,
+        indbs=indbs,
+        indt=indt,
         knotsi=knotsi,
         centsi=centsi,
         res=res,

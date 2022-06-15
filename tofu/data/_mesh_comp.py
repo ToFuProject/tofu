@@ -1833,6 +1833,8 @@ def _interp2d_check(
     coll=None,
     # interpolation base, 1d or 2d
     key=None,
+    # external coefs (optional)
+    coefs=None,
     # interpolation points
     R=None,
     Z=None,
@@ -2072,10 +2074,17 @@ def _interp2d_check(
     # coefs
 
     shapebs = coll.dobj['bsplines'][keybs]['shape']
-    if key == keybs:
-        coefs = np.ones(shapebs, dtype=float)
-    else:
-        coefs = coll.ddata[key]['data']
+    # 3 possible coefs shapes:
+    #   - None (if details = True)
+    #   - scalar
+    #   - (nt, shapebs)
+    #   - shapebs
+
+    if coefs is None:
+        if key == keybs:
+            coefs = np.ones(shapebs, dtype=float)
+        else:
+            coefs = coll.ddata[key]['data']
 
     c0 = (
         coefs.shape[-len(shapebs):] == shapebs
@@ -2136,6 +2145,8 @@ def interp2d(
     coll=None,
     # interpolation base, 1d or 2d
     key=None,
+    # external coefs (instead of key, optional)
+    coefs=None,
     # interpolation points
     R=None,
     Z=None,
@@ -2176,6 +2187,8 @@ def interp2d(
         coll=coll,
         # interpolation base, 1d or 2d
         key=key,
+        # external coefs (optional)
+        coefs=coefs,
         # interpolation points
         R=R,
         Z=Z,

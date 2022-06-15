@@ -137,7 +137,30 @@ def compute(
     nlos = cam.nRays
     shapebs = coll.dobj['bsplines'][key]['shape']
     km = coll.dobj['bsplines'][key]['mesh']
-    meshtype = coll.dobj[coll._which_mesh][km]['type']
+    mtype = coll.dobj[coll._which_mesh][km]['type']
+
+    # prepare indices
+    indbs = coll.select_ind(
+        key=key,
+        returnas=bool,
+        crop=crop,
+    )
+
+    # prepare matrix
+    is3d = False
+    if mtype == 'polar':
+        radius2d = coll.dobj[coll._which_mesh][km]['radius2d']
+        r2d_reft = coll.get_time(key=radius2d)[2]
+        if r2d_reft is not None:
+            r2d_nt = coll.dref[r2d_reft]['size']
+            if r2d_nt > 1:
+                shapemat = tuple(np.r_[r2d_nt, nlos, indbs.sum()])
+                is3d = True
+
+    if not is3d:
+        shapemat = tuple(np.r_[nlos, indbs.sum()])
+
+    mat = np.zeros(shapemat, dtype=float)
 
     # -----------
     # compute
@@ -162,17 +185,6 @@ def compute(
             nmax = len(f"Geometry matrix for {key}, channel {nlos} / {nlos}")
             nn = 10**(np.log10(nlos)-1)
 
-        # prepare indices
-        indbs = coll.select_ind(
-            key=key,
-            returnas=bool,
-            crop=crop,
-        )
-
-        # prepare matrix
-        shapemat = tuple(np.r_[nlos, indbs.sum()])
-        mat = np.zeros(shapemat, dtype=float)
-
         for ii in range(nlos):
 
             # verb
@@ -182,46 +194,26 @@ def compute(
                 print(msg.ljust(nmax), end=end, flush=True)
 
             # compute
-            if meshtype in ['rect', 'tri']:
-                mat[ii, :] = np.nansum(
-                    coll.interpolate_profile2d(
-                        key=key,
-                        R=lr[ii],
-                        Z=lz[ii],
-                        grid=False,
-                        indbs=indbs,
-                        details=True,
-                        reshape=False,
-                        return_params=False,
-                    )[0],
-                    axis=0,
-                )
+            mati = coll.interpolate_profile2d(
+                key=key,
+                R=lr[ii],
+                Z=lz[ii],
+                grid=False,
+                indbs=indbs,
+                details=True,
+                reshape=False,
+                return_params=False,
+            )[0]
+            assert mati.ndim in [2, 3], mati.shape
+
+            # integrate
+            if is3d:
+                mat[:, ii, :] = np.nansum(mati, axis=1) * reseff[ii]
+            elif mati.ndim == 3 and mati.shape[0] == 1:
+                mat[ii, :] = np.nansum(mati[0, ...], axis=0) * reseff[ii]
             else:
-                mati = coll.interpolate_profile2d(
-                    key=key,
-                    R=lr[ii],
-                    Z=lz[ii],
-                    grid=False,
-                    indbs=indbs,
-                    details=True,
-                    reshape=False,
-                    return_params=False,
-                )[0]
+                mat[ii, :] = np.nansum(mati, axis=0) * reseff[ii]
 
-                if mati.ndim == 2:
-                    mat[ii, :] = np.nansum(mati, axis=0)
-                elif mati.ndim == 3 and mati.shape[0] > 1:
-                    if ii == 0:
-                        shapemat = tuple(np.r_[mati.shape[0], shapemat])
-                        mat = np.zeros(shapemat, dtype=float)
-                    mat[:, ii, :] = np.nansum(mati, axis=1)
-                elif mati.ndim == 3 and mati.shape[0] == 1:
-                    mat[ii, :] = np.nansum(mati[0, ...], axis=0)
-                elif mati.ndim == 4:
-                    import pdb; pdb.set_trace()     # DB
-                    pass
-
-        mat = mat * reseff[:, None]
         # scpintg.simps(val, x=None, axis=-1, dx=loc_eff_res[0])
 
     # -----------
@@ -253,49 +245,32 @@ def compute(
         if crop is True:
             keycropped = f'{keycropped}-crop'
 
-        if mat.ndim == 2:
-            ddata = {
-                name: {
-                    'data': mat,
-                    'ref': (key_chan, keycropped)
-                },
-            }
-
-            # add matrix obj
-            dobj = {
-                'matrix': {
-                    name: {
-                        'bsplines': key,
-                        'cam': cam.Id.Name,
-                        'data': name,
-                        'crop': crop,
-                        'shape': mat.shape,
-                    },
-                },
-            }
-
+        # ref
+        if is3d:
+            ref = (r2d_reft, key_chan, keycropped)
         else:
+            ref = (key_chan, keycropped)
 
-            ddata, dobj = {}, {'matrix': {}}
-            for ii in range(mat.shape[0]):
-                namei = f'{name}-{ii}'
-                ddata.update({
-                    namei: {
-                        'data': mat[ii, ...],
-                        'ref': (key_chan, keycropped)
-                    },
-                })
+        # add data
+        ddata = {
+            name: {
+                'data': mat,
+                'ref': ref,
+            },
+        }
 
-                # add matrix obj
-                dobj['matrix'].update({
-                    namei: {
-                        'bsplines': key,
-                        'cam': cam.Id.Name,
-                        'data': namei,
-                        'crop': crop,
-                        'shape': mat[ii, ...].shape,
-                    },
-                })
+        # add matrix obj
+        dobj = {
+            'matrix': {
+                name: {
+                    'bsplines': key,
+                    'cam': cam.Id.Name,
+                    'data': name,
+                    'crop': crop,
+                    'shape': mat.shape,
+                },
+            },
+        }
 
         coll.update(dref=dref, ddata=ddata, dobj=dobj)
 

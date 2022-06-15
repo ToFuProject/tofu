@@ -1104,7 +1104,7 @@ class Plasma2D(ds.DataStock):
         self,
         # interpolation base, 1d or 2d
         key=None,
-        # external coefs (instead of key, optional)
+        # external coefs (optional)
         coefs=None,
         # interpolation points
         R=None,
@@ -1154,6 +1154,8 @@ class Plasma2D(ds.DataStock):
             coll=self,
             # interpolation base, 1d or 2d
             key=key,
+            # external coefs (optional)
+            coefs=coefs,
             # interpolation points
             R=R,
             Z=Z,
@@ -1339,7 +1341,8 @@ class Plasma2D(ds.DataStock):
     def plot_bsplines(
         self,
         key=None,
-        ind=None,
+        indbs=None,
+        indt=None,
         knots=None,
         cents=None,
         res=None,
@@ -1354,7 +1357,8 @@ class Plasma2D(ds.DataStock):
         return _mesh_plot.plot_bspline(
             coll=self,
             key=key,
-            ind=ind,
+            indbs=indbs,
+            indt=indt,
             knots=knots,
             cents=cents,
             res=res,
