@@ -293,7 +293,6 @@ class BivariateSplinePolar():
         coefs=None,
         # options
         radius_vs_time=None,
-        shapebs=None,
     ):
         """ Assumes
 
@@ -434,12 +433,11 @@ class BivariateSplinePolar():
         # coordiantes
         radius=None,
         angle=None,
-        # coefs
-        coefs=None,
         # options
-        radius_vs_time=None,
         indbs=None,
-        shapebs=None,
+        # for compatibility (unused)
+        coefs=None,
+        radius_vs_time=None,
     ):
         """ Assumes
 
@@ -454,99 +452,64 @@ class BivariateSplinePolar():
             radius=radius,
             angle=angle,
         )
-        nt = coefs.shape[0]
+
+        if indbs is None:
+            nbs = self.nbs
+        else:
+            indbs = np.atleast_1d(indbs).ravel()
+            assert 'int' in indbs.dtype.name, indbs
+            assert np.unique(indbs).size == indbs.size
+            nbs = indbs.size
 
         # --------
         # prepare
 
-        if radius_vs_time:
-            shape = tuple(np.r_[radius.shape, self.nbs])
-        else:
-            shape = tuple(np.r_[nt, radius.shape, self.nbs])
+        shape = tuple(np.r_[radius.shape, nbs])
         val = np.zeros(shape)
 
         # ------------
         # compute
 
         if self.knotsa is None:
-            if radius_vs_time:
-                for ii in range(self.nbs_r):
-                    for it in range(nt):
-                        iok = (
-                            (radius[it, ...] >= self.knots_per_bs_r[0, ii])
-                            & ((radius[it, ...] < self.knots_per_bs_r[-1, ii]))
-                        )
-                        valr = self.lbr[ii](radius[it, iok])
-                        val[it, iok, ii] = coefs[it, ii] * valr
-            else:
-                cresh = tuple([nt] + [1 for ii in radius.shape])
-                for ii in range(self.nbs_r):
-                    iok = (
-                        (radius >= self.knots_per_bs_r[0, ii])
-                        & ((radius < self.knots_per_bs_r[-1, ii]))
-                    )
-                    valr = self.lbr[ii](radius[iok])
-                    val[iok, ii] = coefs[:, ii].reshape(cresh) * valr[None, ...]
 
-        elif radius_vs_time:
+            # radius only
+            for ii in range(self.nbs_r):
 
-            for it in range(nt):
-                for ii, nbsa in enumerate(self.nbs_a_per_r):
-                    iok = (
-                        (radius[it, ...] >= self.knots_per_bs_r[0, ii])
-                        & ((radius[it, ...] < self.knots_per_bs_r[-1, ii]))
-                    )
-                    valr = self.lbr[ii](radius[it, iok])
-                    if nbsa == 1:
-                        ind = self.func_coef_ind(ii, 0)
-                        val[it, iok, ind] = coefs[it, ind] * valr
-                    else:
-                        for jj in range(nbsa):
-                            kj = self.knots_per_bs_a[ii][:, jj]
-                            if kj[0] > kj[-1]:
-                                atemp = np.copy(angle[it, iok])
-                                atemp[atemp < kj[0]] += 2.*np.pi
-                                vala = self.lba[ii][jj](atemp)
-                            else:
-                                vala = self.lba[ii][jj](angle[it, iok])
+                if indbs is not None and ii not in indbs:
+                    continue
 
-                            iokj = ~np.isnan(vala)
-                            if np.any(iokj):
-                                iok2 = np.copy(iok)
-                                iok2[iok2] = iokj
-                            else:
-                                continue
-
-                            ind = self.func_coef_ind(ii, jj)
-                            if len(self.shapebs) == 1:
-                                val[it, iok2, ind] = (
-                                    coefs[it, ind] * (valr[iokj]*vala[iokj])
-                                )
-                            else:
-                                val[it, iok2, ind] = (
-                                    coefs[it, ii, jj] * (valr[iokj]*vala[iokj])
-                                )
-
-            # # pts out 
-            # indout = (
-                # (radius < self.knotsr.min())
-                # | (radius > self.knotsr.max())
-            # )
-            # val[indout] = np.nan
-
+                iok = (
+                    (radius >= self.knots_per_bs_r[0, ii])
+                    & ((radius < self.knots_per_bs_r[-1, ii]))
+                )
+                val[iok, ii] = self.lbr[ii](radius[iok])
 
         else:
+
+            # radius + angle
             for ii, nbsa in enumerate(self.nbs_a_per_r):
+
+                if nbsa == 1 and self.func_coef_ind(ii, 0) not in indbs:
+                    continue
+
+                # compute valr
                 iok = (
                     (radius >= self.knots_per_bs_r[0, ii])
                     & ((radius < self.knots_per_bs_r[-1, ii]))
                 )
                 valr = self.lbr[ii](radius[iok])
+
+                # compute vala
                 if nbsa == 1:
                     ind = self.func_coef_ind(ii, 0)
-                    val[:, iok, ind] = coefs[:, ind] * valr[None, ...]
+                    val[iok, ind] = valr
                 else:
                     for jj in range(nbsa):
+
+                        ind = self.func_coef_ind(ii, jj)
+                        if ind not in indbs:
+                            continue
+
                         kj = self.knots_per_bs_a[ii][:, jj]
                         if kj[0] > kj[-1]:
                             atemp = np.copy(angle[iok])
@@ -560,24 +523,7 @@ class BivariateSplinePolar():
                             iok2 = np.copy(iok)
                             iok2[iok2] = iokj
 
-                        ind = self.func_coef_ind(ii, jj)
-                        if len(self.shapebs) == 1:
-                            val[:, iok2, ind] = (
-                                coefs[:, ind]
-                                * (valr[iokj]*vala[iokj])[None, ...]
-                            )
-                        else:
-                            val[:, iok2, ind] = (
-                                coefs[:, ii, jj]
-                                * (valr[iokj]*vala[iokj])[None, ...]
-                            )
-
-            # # pts out 
-            # indout = (
-                # (radius < self.knotsr.min())
-                # | (radius > self.knotsr.max())
-            # )
-            # val[:, indout] = np.nan
+                        val[iokj, ind] = valr[iokj]*vala[iokj]
 
         return val
 
@@ -620,27 +566,7 @@ def _get_overlap(
     knotsy=None,
     shapebs=None,
 ):
-    # nb of overlapping, inc. itself in 1d
-    nbsR, nbsZ = shapebs
-    indR0 = np.tile(np.arange(0, nbsR), nbsZ)
-    indZ0 = np.repeat(np.arange(0, nbsZ), nbsR)
-
-    # complete
-    ntot = 2*deg + 1
-
-    addR = np.tile(np.arange(-deg, deg+1), ntot)
-    addZ = np.repeat(np.arange(-deg, deg+1), ntot)
-
-    interR = indR0[None, :] + addR[:, None]
-    interZ = indZ0[None, :] + addZ[:, None]
-
-    # purge
-    inter = interR + interZ*nbsR
-    indneg = (
-        (interR < 0) | (interR >= nbsR) | (interZ < 0) | (interZ >= nbsZ)
-    )
-    inter[indneg] = -1
-
+    raise NotImplementedError()
     return inter
 
 

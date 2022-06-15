@@ -101,6 +101,12 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         self.knots_per_bs_x_pad = np.asfortranarray(knots_per_bs_x)
         self.knots_per_bs_y_pad = np.asfortranarray(knots_per_bs_y)
 
+    def _check_coefs(self, coefs=None):
+        """ None for ev_details, (nt, shapebs) for sum """
+        if coefs is not None:
+            assert coefs.ndim == len(self.shapebs) + 1
+            assert coefs.shape[1:] == self.shapebs
+
     def set_coefs(
         self,
         coefs=None,
@@ -115,21 +121,14 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             raise Exception(msg)
 
         shape = (self.__nbs[0]*self.__nbs[1],)
-        if np.isscalar(coefs):
-            self.tck[2][...] = coefs
-        else:
-            if not isinstance(coefs, np.ndarray):
-                coefs = np.asarray(coefs)
-            if coefs.ndim > 1 and coefs.size == shape[0]:
-                coefs = coefs.ravel()
-            if coefs.shape != shape:
-                msg = (
-                    "Arg coefs has wrong shape!\n"
-                    f"\t- expected: {shape}\n"
-                    f"\t- provided: {coefs.shape}\n"
-                )
-                raise Exception(msg)
-            self.tck[2][...] = coefs
+        if coefs.shape != shape:
+            msg = (
+                "Arg coefs has wrong shape!\n"
+                f"\t- expected: {shape}\n"
+                f"\t- provided: {coefs.shape}\n"
+            )
+            raise Exception(msg)
+        self.tck[2][...] = coefs
 
         # ------------
         # crop and set
@@ -165,14 +164,25 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
 
     def ev_details(
         self,
-        x,
-        y,
+        R,
+        Z,
         indbs_tuple_flat=None,
-        reshape=None,
+        crop=None,
+        cropbs=None,
+        # for compatibility (unused)
+        coefs=None,
+        indbs=None,
     ):
 
         # -----------
         # check input
+
+        x, y, crop = _check_RZ_crop(
+            R=R,
+            Z=Z,
+            crop=crop,
+            cropbs=cropbs,
+        )
 
         c0 = (
             isinstance(indbs_tuple_flat, tuple)
@@ -185,12 +195,6 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
                 "Arg indbs_tuple_flat must be a tuple of indices!"
             )
             raise Exception(msg)
-
-        reshape = _generic_check._check_var(
-            reshape, 'reshape',
-            default=True,
-            types=bool,
-        )
 
         # -----------
         # prepare
@@ -255,7 +259,7 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
                 indokx[indoky] = ixok[:, 0]
                 val[indokx[:, 0], indtot[indr][ii]] = (outx[ixok]*outy[indokx])
 
-        if reshape:
+        if shape != x.shape:
             val = np.reshape(val, tuple(np.r_[shape, -1]))
 
         return val
@@ -340,43 +344,12 @@ def _get_overlap(
 # #############################################################################
 
 
-def _get_bs2d_func_check(
-    coefs=None,
-    ii=None,
-    jj=None,
-    indbs=None,
+def _check_RZ_crop(
     R=None,
     Z=None,
-    shapebs=None,
     crop=None,
     cropbs=None,
 ):
-
-    # ii, jj
-    if ii is not None:
-        c0 = (
-            isinstance(ii, (int, np.integer))
-            and ii >= 0
-            and ii < shapebs[0]
-        )
-        if not c0:
-            msg = (
-                "Arg ii must be an index in the range [0, {shapebs[0]}[\n"
-                f"Provided: {ii}"
-            )
-            raise Exception(msg)
-    if jj is not None:
-        c0 = (
-            isinstance(jj, (int, np.integer))
-            and jj >= 0
-            and jj < shapebs[1]
-        )
-        if not c0:
-            msg = (
-                "Arg jj must be an index in the range [0, {shapebs[1]}[\n"
-                f"Provided: {jj}"
-            )
-            raise Exception(msg)
 
     # R, Z
     if not isinstance(R, np.ndarray):
@@ -384,30 +357,6 @@ def _get_bs2d_func_check(
     if not isinstance(Z, np.ndarray):
         Z = np.atleast_1d(Z)
     assert R.shape == Z.shape
-
-    # coefs
-    if coefs is None:
-        coefs = 1.
-    if np.isscalar(coefs):
-        pass
-    else:
-        coefs = np.atleast_1d(coefs)
-        if coefs.ndim < len(shapebs) or coefs.ndim > len(shapebs) + 1:
-            msg = (
-                "coefs has too small / big shape!\n"
-                f"\t- coefs.shape: {coefs.shape}\n"
-                f"\t- shapebs:     {shapebs}"
-            )
-            raise Exception(msg)
-        if coefs.ndim == len(shapebs):
-            coefs = coefs.reshape(tuple(np.r_[1, coefs.shape]))
-        if coefs.shape[1:] != shapebs:
-            msg = (
-                "coefs has wrong shape!\n"
-                f"\t- coefs.shape: {coefs.shape}\n"
-                f"\t- shapebs:     {shapebs}"
-            )
-            raise Exception(msg)
 
     # crop
     if crop is None:
@@ -420,50 +369,7 @@ def _get_bs2d_func_check(
         raise Exception(msg)
     crop = crop and cropbs is not None and cropbs is not False
 
-    return coefs, ii, jj, R, Z, crop
-
-
-# DEPRECATED
-# def _get_bs2d_func_max(Rknots=None, Zknots=None, deg=None):
-
-    # knots_per_bs_R = _bsplines_utils._get_knots_per_bs(
-        # Rknots, deg=deg,
-    # )
-    # knots_per_bs_Z = _bsplines_utils._get_knots_per_bs(
-        # Zknots, deg=deg,
-    # )
-    # nbkbs = knots_per_bs_R.shape[0]
-
-    # if nbkbs % 2 == 0:
-        # ii = int(nbkbs/2)
-        # Rbs_cent = np.mean(knots_per_bs_R[ii-1:ii+1, :], axis=0)
-        # Zbs_cent = np.mean(knots_per_bs_Z[ii-1:ii+1, :], axis=0)
-        # if deg == 2:
-            # Rbs_cent[:deg] = [Rknots[0], 0.5*(Rknots[0] + Rknots[1])]
-            # Rbs_cent[-deg:] = [0.5*(Rknots[-2] + Rknots[-1]), Rknots[-1]]
-            # Zbs_cent[:deg] = [Zknots[0], 0.5*(Zknots[0] + Zknots[1])]
-            # Zbs_cent[-deg:] = [0.5*(Zknots[-2] + Zknots[-1]), Zknots[-1]]
-
-    # else:
-        # ii = int((nbkbs-1)/2)
-        # Rbs_cent = knots_per_bs_R[ii, :]
-        # Zbs_cent = knots_per_bs_Z[ii, :]
-        # if deg == 1:
-            # Rbs_cent[:deg] = Rknots[0]
-            # Rbs_cent[-deg:] = Rknots[-1]
-            # Zbs_cent[:deg] = Zknots[0]
-            # Zbs_cent[-deg:] = Zknots[-1]
-        # elif deg == 3:
-            # Rbs_cent[:deg] = [Rknots[0], 0.5*(Rknots[0]+Rknots[1]), Rknots[1]]
-            # Rbs_cent[-deg:] = [
-                # Rknots[-2], 0.5*(Rknots[-2]+Rknots[-1]), Rknots[-1],
-            # ]
-            # Zbs_cent[:deg] = [Zknots[0], 0.5*(Zknots[0]+Zknots[1]), Zknots[1]]
-            # Zbs_cent[-deg:] = [
-                # Zknots[-2], 0.5*(Zknots[-2]+Zknots[-1]), Zknots[-1],
-            # ]
-
-    # return Rbs_cent, Zbs_cent
+    return R, Z, crop
 
 
 def get_bs2d_RZ(deg=None, Rknots=None, Zknots=None):
@@ -506,38 +412,6 @@ def get_bs2d_func(
 ):
 
     # ----------------
-    # Pre-compute bsplines basis elements
-
-    # lbr = [
-        # scpinterp.BSpline.basis_element(
-            # knots_per_bs_R[:, ii],
-            # extrapolate=False,
-        # )
-        # for ii in range(shapebs[0])
-    # ]
-    # lbz = [
-        # scpinterp.BSpline.basis_element(
-            # knots_per_bs_Z[:, jj],
-            # extrapolate=False,
-        # )
-        # for jj in range(shapebs[1])
-    # ]
-
-    # RectBiv = [[None for jj in range(shapebs[1])] for ii in range(shapebs[0])]
-    # for ii in range(shapebs[0]):
-        # for jj in range(shapebs[1]):
-            # def func(rr, zz, coefs=None, br=lbr[ii], bz=lbz[jj]):
-                # if hasattr(coefs, '__iter__'):
-                    # if rr.ndim == 1:
-                        # val = coefs[:, None] * (br(rr)*bz(zz))[None, ...]
-                    # else:
-                        # val = coefs[:, None, None] * (br(rr)*bz(zz))[None, ...]
-                # else:
-                    # val = coefs * br(rr)*bz(zz)
-                # return val
-            # RectBiv[ii][jj] = func
-
-    # ----------------
     # Define functions
 
     RectBiv_scipy = BivariateSplineRect(
@@ -547,60 +421,37 @@ def get_bs2d_func(
         shapebs=shapebs,
     )
 
-    def RectBiv_details(
-        R,
-        Z,
-        shapebs=shapebs,
-        RectBiv_scipy=RectBiv_scipy,
-        indbs_tuple_flat=None,
-        crop=None,
-        cropbs=None,
-        coefs=None,
-        reshape=None,
-    ):
-        """ Return the value for each point summed on all bsplines """
-
-        # check inputs
-        _, _, _, r, z, crop = _get_bs2d_func_check(
-            R=R,
-            Z=Z,
-            shapebs=shapebs,
-        )
-
-        # compute
-        return RectBiv_scipy.ev_details(
-            r,
-            z,
-            indbs_tuple_flat=indbs_tuple_flat,
-            reshape=reshape,
-        )
-
     def RectBiv_sum(
         R,
         Z,
         coefs=None,
-        shapebs=shapebs,
-        # RectBiv=RectBiv,
+        # RectBiv=RectBiv
+        indbs=None,
         crop=None,
         cropbs=None,
-        RectBiv_scipy=RectBiv_scipy,
         indbs_tuple_flat=None,
-        reshape=None,
+        RectBiv_scipy=RectBiv_scipy,
     ):
-        """ Return the value for each point summed on all bsplines """
+        """ Return the value for each point summed on all bsplines
 
+        Assumes coefs in shape (nt, shapebs)
+        """
+
+        # --------------
         # check inputs
-        coefs, _, _, r, z, crop = _get_bs2d_func_check(
-            coefs=coefs,
+
+        # coefs
+        RectBiv_scipy._check_coefs(coefs=coefs)
+
+        # r, z
+        r, z, crop = _check_RZ_crop(
             R=R,
             Z=Z,
-            shapebs=shapebs,
             crop=crop,
             cropbs=cropbs,
         )
 
         # prepare
-        nt = 1 if np.isscalar(coefs) else coefs.shape[0]
         shapepts = r.shape
 
         shape = tuple(np.r_[nt, shapepts])
@@ -608,25 +459,15 @@ def get_bs2d_func(
         cropbs_neg_flat = ~cropbs.ravel() if crop else None
 
         # compute
-        if np.isscalar(coefs):
-            val[0, ...] = RectBiv_scipy(
+        for ii in range(coefs.shape[0]):
+            val[ii, ...] = RectBiv_scipy(
                 r,
                 z,
                 grid=False,
-                coefs=coefs,
+                coefs=coefs[ii, ...],
                 cropbs_neg_flat=cropbs_neg_flat,
             )
 
-        else:
-            for ii in range(coefs.shape[0]):
-                val[ii, ...] = RectBiv_scipy(
-                    r,
-                    z,
-                    grid=False,
-                    coefs=coefs[ii, ...],
-                    cropbs_neg_flat=cropbs_neg_flat,
-                )
-
         return val
 
-    return RectBiv_details, RectBiv_sum, RectBiv_scipy
+    return RectBiv_scipy.ev_details, RectBiv_sum, RectBiv_scipy

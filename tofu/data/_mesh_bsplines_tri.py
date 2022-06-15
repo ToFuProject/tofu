@@ -15,6 +15,7 @@ from matplotlib.tri import Triangulation as mplTri
 from . import _generic_check
 from . import _mesh_checks
 from . import _mesh_bsplines_operators_tri
+from . import _mesh_bsplines_rect._get_bs2d_func_check as _get_bs2d_func_check
 
 
 # #############################################################################
@@ -29,7 +30,6 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
     Defined from knots (unique) and deg
     coefs set to 1 by default
 
-    Used self.set_coefs() to update
     """
 
     def __init__(
@@ -334,36 +334,6 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
 
         return bs_cents
 
-    # DEPRECATED ?
-    def set_coefs(
-        self,
-        coefs=None,
-    ):
-
-        # ------------
-        # check inputs
-
-        # trivial case
-        if coefs is None:
-            return
-
-        # ------------
-        # set coefs
-
-        if np.isscalar(coefs):
-            self.coefs[...] = coefs
-        else:
-            if not isinstance(coefs, np.ndarray):
-                coefs = np.asarray(coefs)
-            if coefs.shape != (self.nbs,):
-                msg = (
-                    "Arg coefs has wrong shape!\n"
-                    f"\t- expected: {(self.nbs,)}\n"
-                    f"\t- provided: {coefs.shape}\n"
-                )
-                raise Exception(msg)
-            self.coefs = coefs
-
     # --------
     # evaluation
 
@@ -378,18 +348,25 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
 
         if indbs is None:
             indbs = np.ones((self.nbs,), dtype=bool)
+        else:
+            indbs = np.atleast_1d(indbs).ravel()
 
         c0 = (
             isinstance(indbs, np.ndarray)
-            and indbs.dtype == np.bool_
-            and indbs.size == self.nbs
+            and (
+                ('bool' in indbs.dtype.name and indbs.size == self.nbs)
+                or ('int' in indbs.dtype.name)
+            )
         )
         if not c0:
             msg = (
-                "Arg indbs must be  a (nbs,) bool array!"
+                "Arg indbs must be  a (nbs,) bool or int array!"
                 "\nProvided: {indbs}"
             )
             raise Exception(msg)
+
+        if 'bool' in indbs.dtype.name:
+            indbs = indbs.nonzero()[0]
 
         # indbs => indcent : triangles which are ok
         knots_per_bs, cents_per_bs = self._get_knotscents_per_bs(
@@ -403,7 +380,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         # -----------
         # prepare
 
-        nbs = indbs.sum()
+        nbs = indbs.size
 
         return nbs, knots_per_bs, cents_per_bs, indcent
 
@@ -412,6 +389,11 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         x,
         y,
         indbs=None,
+        # for compatibility (unused)
+        crop=None,
+        cropbs=None,
+        coefs=None,
+        indbs_tuple_flat=None,
     ):
 
         # -----------
@@ -452,8 +434,12 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         self,
         x,
         y,
-        indbs=None,
         coefs=None,
+        # for compatibility (unused)
+        indbs=None,
+        crop=None,
+        cropbs=None,
+        indbs_tuple_flat=None,
     ):
 
         # -----------
@@ -472,8 +458,8 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         val = np.full(np.r_[nt, x.shape], 0.)
         heights, ind = self.get_heights_per_centsknots_pts(x, y)
         if not np.isscalar(coefs):
-            reshape = np.r_[coefs.shape, 1]
-            coefs = coefs.reshape(reshape)
+            newshape = np.r_[coefs.shape, 1]
+            coefs = coefs.reshape(newshape)
 
         # -----------
         # compute
@@ -530,7 +516,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
             shapebs=self.shapebs,
         )
 
-    # TBC
+    # TBD / TBF
     def get_operator(
         self,
         operator=None,
@@ -557,50 +543,6 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
 
 # #############################################################################
 # #############################################################################
-#                       Mesh2Dtri - bsplines - eval
-# #############################################################################
-
-
-# DEPRECATED ???
-def _eval_bsplinestri(x, y, deg=None):
-
-    # ------------
-    # check inputs
-
-    c0 = (
-        isinstance(x, np.ndarray)
-        and isinstance(y, np.ndarray)
-        and x.shape == y.shape
-    )
-    if not c0:
-        msg = (
-            "x and y must be np.ndarrays of the same shape!\n"
-        )
-        raise Exception(msg)
-
-    # ------------
-    # prepare output
-
-    val = np.full(x.shape, np.nan)
-
-    ind = trifind(x, y)
-    if deg == 0:
-        pass
-
-    elif deg == 1:
-        pass
-
-    elif deg == 2:
-        raise NotImplementedError()
-
-    # ------
-    # return
-
-    return val
-
-
-# #############################################################################
-# #############################################################################
 #                       Mesh2Dtri - bsplines - overlap
 # #############################################################################
 
@@ -611,27 +553,7 @@ def _get_overlap(
     knotsy=None,
     shapebs=None,
 ):
-    # nb of overlapping, inc. itself in 1d
-    nbsR, nbsZ = shapebs
-    indR0 = np.tile(np.arange(0, nbsR), nbsZ)
-    indZ0 = np.repeat(np.arange(0, nbsZ), nbsR)
-
-    # complete
-    ntot = 2*deg + 1
-
-    addR = np.tile(np.arange(-deg, deg+1), ntot)
-    addZ = np.repeat(np.arange(-deg, deg+1), ntot)
-
-    interR = indR0[None, :] + addR[:, None]
-    interZ = indZ0[None, :] + addZ[:, None]
-
-    # purge
-    inter = interR + interZ*nbsR
-    indneg = (
-        (interR < 0) | (interR >= nbsR) | (interZ < 0) | (interZ >= nbsZ)
-    )
-    inter[indneg] = -1
-
+    raise NotImplementedError()
     return inter
 
 
@@ -668,61 +590,6 @@ def _ev_check_coefs(coefs=None, shapebs=None):
     return coefs
 
 
-def _get_bs2d_func_check(
-    ii=None,
-    jj=None,
-    indbs=None,
-    R=None,
-    Z=None,
-    shapebs=None,
-    crop=None,
-    cropbs=None,
-):
-
-    # ii, jj
-    if ii is not None:
-        c0 = (
-            isinstance(ii, (int, np.integer))
-            and ii >= 0
-            and ii < shapebs[0]
-        )
-        if not c0:
-            msg = (
-                "Arg ii must be an index in the range [0, {shapebs[0]}[\n"
-                f"Provided: {ii}"
-            )
-            raise Exception(msg)
-    if jj is not None:
-        c0 = (
-            isinstance(jj, (int, np.integer))
-            and jj >= 0
-            and jj < shapebs[1]
-        )
-        if not c0:
-            msg = (
-                "Arg jj must be an index in the range [0, {shapebs[1]}[\n"
-                f"Provided: {jj}"
-            )
-            raise Exception(msg)
-
-    # R, Z
-    if not isinstance(R, np.ndarray):
-        R = np.atleast_1d(R)
-    if not isinstance(Z, np.ndarray):
-        Z = np.atleast_1d(Z)
-    assert R.shape == Z.shape
-
-    # crop
-    crop = _generic_check._check_var(
-        crop, 'crop',
-        default=True,
-        types=bool,
-    )
-    crop = crop and cropbs is not None and cropbs is not False
-
-    return ii, jj, R, Z, crop
-
-
 def get_bs2d_func(
     knotsR=None,
     knotsZ=None,
@@ -747,9 +614,10 @@ def get_bs2d_func(
         R,
         Z,
         clas=clas,
+        indbs=None,
+        # for compatibility (unused)
         crop=None,
         cropbs=None,
-        # for compatibility (unused)
         coefs=None,
         indbs_tuple_flat=None,
         reshape=None,
@@ -764,7 +632,7 @@ def get_bs2d_func(
         )
 
         # compute
-        return clas.ev_details(rr, zz)
+        return clas.ev_details(rr, zz, indbs=indbs)
 
     def ev_sum(
         R,
