@@ -4975,6 +4975,10 @@ def compute_solid_angle_apertures_unitvectors(
 
     cdef int npts = pts_x.size
     cdef int nd = det_ind.size
+
+    # initialize solid angle array with zeros
+    # initialize unit vector array with nans
+
     cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
     cdef np.ndarray[double, ndim=2] uvect_x = np.zeros((nd, npts), dtype=float)
     cdef np.ndarray[double, ndim=2] uvect_y = np.zeros((nd, npts), dtype=float)
@@ -4985,8 +4989,200 @@ def compute_solid_angle_apertures_unitvectors(
 
     print("\n------\nThis is were you do your magic\n------\n")
 
+    # loop 1: on npts (observation points)
+
+        # loop 2: on n1 (detectors)
+
+            # test 1: sides
+            # check if point lies on the good side of the detector
+            # => stop if not
+
+            # loop 3: on na (apertures)
+
+                # test 2 (to be discussed): sides for apertures
+                # may be a good option to eliminiate points between apertures
+                # and to speed up the computation ?
+
+                # `computation 1`: intersection
+                # compute intersection between detector and all apertures as
+                # seen from point
+                # stop as soon as null is found (no intersection)
+
+             # `computation 2`: solid angle
+             # compute the solid angle subtended by the intersection (fill the
+             # array that was initialized if non-zero)
+
+             # computation 3: center of mass of intersection + unit vector
+             # compute the direction of photon emission
+             # the unit vector from the observation point towards the center of
+             # mass of the intersection polygon
+
     # -------
     # Return
 
 
     return solid_angle, uvect_x, uvect_y, uvect_z
+
+
+def compute_solid_angle_apertures_light(
+    # pts: coordinates as three 1d arrays
+    double[::1] pts_x,
+    double[::1] pts_y,
+    double[::1] pts_z,
+    # detectors: indices of first corner of each det polygon: nd = len(det_ind)
+    long[::1] det_ind,
+    # detectors: polygon coordinates as three 1d arrays
+    double[::1] det_x,
+    double[::1] det_y,
+    double[::1] det_z,
+    # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
+    double[::1] det_norm_x,
+    double[::1] det_norm_y,
+    double[::1] det_norm_z,
+    # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
+    long[::1] ap_ind,
+    # apertures: polygon coordinates as three 1d arrays
+    double[::1] ap_x,
+    double[::1] ap_y,
+    double[::1] ap_z,
+    # possible extra parameters ?
+    double margin=_VSMALL,
+    int num_threads=10,
+):
+
+    # -----------
+    # Declaration
+
+    cdef int npts = pts_x.size
+    cdef int nd = det_ind.size
+
+    # initialize solid angle array with zeros
+    cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
+
+    # -------
+    # Compute
+
+    print("\n------\nThis is were you do your magic\n------\n")
+
+    # loop 1: on npts (observation points)
+
+        # loop 2: on n1 (detectors)
+
+            # test 1: sides
+            # check if point lies on the good side of the detector
+            # => stop if not
+
+            # loop 3: on na (apertures)
+
+                # test 2 (to be discussed): sides for apertures
+                # may be a good option to eliminiate points between apertures
+                # and to speed up the computation ?
+
+                # `computation 1`: intersection
+                # compute intersection between detector and all apertures as
+                # seen from point
+                # stop as soon as null is found (no intersection)
+
+             # `computation 2`: solid angle
+             # compute the solid angle subtended by the intersection (fill the
+             # array that was initialized if non-zero)
+
+    # -------
+    # Return
+
+
+    return solid_angle
+
+
+def compute_solid_angle_apertures_visibility(
+    # pts: coordinates as three 1d arrays
+    double[::1] pts_x,
+    double[::1] pts_y,
+    double[::1] pts_z,
+    # detectors: indices of first corner of each det polygon: nd = len(det_ind)
+    long[::1] det_ind,
+    # detectors: polygon coordinates as three 1d arrays
+    double[::1] det_x,
+    double[::1] det_y,
+    double[::1] det_z,
+    # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
+    double[::1] det_norm_x,
+    double[::1] det_norm_y,
+    double[::1] det_norm_z,
+    # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
+    long[::1] ap_ind,
+    # apertures: polygon coordinates as three 1d arrays
+    double[::1] ap_x,
+    double[::1] ap_y,
+    double[::1] ap_z,
+    # possible extra parameters ?
+    double margin=_VSMALL,
+    int num_threads=10,
+):
+
+    # -----------
+    # Declaration
+
+    cdef int npts = pts_x.size
+    cdef int nd = det_ind.size
+
+    # initialize solid angle array with zeros
+    cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
+
+    # initialize unit vector coordinates (re-used, not stored)
+    cdef double uvect_x
+    cdef double uvect_y
+    cdef double uvect_z
+
+    # -------
+    # Compute
+
+    print("\n------\nThis is were you do your magic\n------\n")
+
+    # loop 1: on npts (observation points)
+
+        # loop 2: on n1 (detectors)
+
+            # test 1: sides
+            # check if point lies on the good side of the detector
+            # => stop if not
+
+            # loop 3: on na (apertures)
+
+                # test 2 (to be discussed): sides for apertures
+                # may be a good option to eliminiate points between apertures
+                # and to speed up the computation ?
+
+                # `computation 1`: intersection
+                # compute intersection between detector and all apertures as
+                # seen from point
+                # stop as soon as null is found (no intersection)
+
+             # `computation 2`: solid angle
+             # compute the solid angle subtended by the intersection (fill the
+             # array that was initialized if non-zero)
+
+             # computation 3: center of mass of intersection + unit vector
+             # compute the direction of photon emission
+             # the unit vector from the observation point towards the center of
+             # mass of the intersection polygon
+
+            # `test 3`: visibility
+            # check ray-tracing to make sure there is no obstacle between the
+            # observation point and the projection, on the detector surface, of
+            # the direction of photon emission (unit vector)
+            # => if no visibility, set solid angle to 0 and unit vector to nan
+
+            # for test3, you can use pre-coded inlined routine:
+            # _raytracing_tools.is_visible_pt_vec_core()
+            # if necessary, there are other higher-level routines that call this
+            # one:
+            # _raytracing_tools.is_visible_pt_vec()
+            # or even higher-level:
+            # _GG.LOS_isVis_PtFromPts_VesStruct()
+
+    # -------
+    # Return
+
+
+    return solid_angle
