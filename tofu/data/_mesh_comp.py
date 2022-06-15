@@ -1889,6 +1889,9 @@ def _interp2d_check(
         types=bool,
         default=False,
     )
+    if details is True:
+        coefs = None
+        assert key == keybs, (key, keybs)
 
     # -------------
     # crop
@@ -2080,12 +2083,19 @@ def _interp2d_check(
     #   - (nt, shapebs)
     #   - shapebs
 
-    if coefs is None:
+    if coefs is not None and key =! keybs:
+        msg = f"Arg coefs can only be provided if key = keybs!\n\t- key: {key}"
+        raise Exception(msg)
+
+    if coefs is None and details is False:
         if key == keybs:
-            coefs = np.ones(shapebs, dtype=float)
+            coefs = np.ones(tuple(np.r_[1, shapebs]), dtype=float)
         else:
             coefs = coll.ddata[key]['data']
+    elif np.isscalar(coefs):
+        coefs = np.full(tuple(np.r_[1, shapebs]), coefs)
 
+    # consistency
     c0 = (
         coefs.shape[-len(shapebs):] == shapebs
         and (coefs.ndim == len(shapebs) + 1) == hastime
