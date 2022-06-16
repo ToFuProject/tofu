@@ -759,7 +759,7 @@ class Test02_Plasma2D():
 
             dax = self.obj.plot_bsplines(
                 key=k0,
-                ind=li[ii%len(li)],
+                indbs=li[ii%len(li)],
                 knots=bool(ii%3),
                 cents=bool(ii%2),
                 plot_mesh=plot_mesh,

@@ -930,16 +930,15 @@ def _plot_bspline_prepare(
 
     if indbs is None:
         if bspline.ndim == R.ndim + 1:
-            assert mtype0 == 'polar'
             assert bspline.shape[1:] == R.shape
             bspline = bspline[0, ...]
     else:
         if bspline.ndim == R.ndim + 1:
-            assert indbs is not None
-            assert bspline.shape[-1] == 1
-            bspline = bspline[..., 0]
+            assert bspline.shape[:-1] == R.shape
+            bspline = np.nansum(bspline, axis=-1)
         elif bspline.ndim == R.ndim + 2:
-            bspline = bspline[0, ..., 0]
+            assert bspline.shape[1:-1] == R.shape
+            bspline = np.nansum(bspline[0, ...], axis=-1)
 
     if bspline.shape != R.shape:
         import pdb; pdb.set_trace() # DB
