@@ -1937,9 +1937,14 @@ def _interp2d_check(
         )
 
         rad2d_hastime = radius2d in dind.keys()
-        hastime = key in dind.keys()
+        if key == keybs:
+            kind = radius2d
+        else:
+            kind = key
+            hastime = key in dind.keys()
+
         if hastime:
-            indt = dind[key]['ind']
+            indt = dind[kind]['ind']
             indtu = np.unique(indt)
             indtr = np.array([indt == iu for iu in indtu])
         else:
@@ -2120,7 +2125,11 @@ def _interp2d_check(
     else:
         if coefs is None:
             if key == keybs:
-                coefs = np.ones(shapebs, dtype=float)
+                if mtype == 'polar' and rad2d_hastime:
+                    r2dnt = rad2d_indt.size
+                    coefs = np.ones(tuple(np.r_[r2dnt, shapebs]), dtype=float)
+                else:
+                    coefs = np.ones(shapebs, dtype=float)
             else:
                 coefs = coll.ddata[key]['data']
 
@@ -2130,7 +2139,6 @@ def _interp2d_check(
 
         elif np.isscalar(coefs):
             coefs = np.full(shapebs, coefs)
-
 
         # consistency
         nshbs = len(shapebs)
@@ -2150,7 +2158,9 @@ def _interp2d_check(
         # Make sure coefs is time dependent
         if hastime:
             if indt is not None and (mtype == 'polar' or indtu is None):
-                coefs = coefs[indt, ...]
+                if coefs.shape[0] != indt.size:
+                    # in case coefs is already provided with indt
+                    coefs = coefs[indt, ...]
 
             if radius_vs_time and coefs.shape[0] != radius.shape[0]:
                 msg = (

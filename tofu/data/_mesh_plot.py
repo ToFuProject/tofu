@@ -795,14 +795,15 @@ def _plot_bspline_check(
     cents = _generic_check._check_var(cents, 'cents', default=True, types=bool)
 
     # ind_bspline
-    indbs = coll.select_bsplines(
-        key=key,
-        ind=indbs,
-        returnas='ind',
-        return_knots=False,
-        return_cents=False,
-        crop=False,
-    )
+    if indbs is not None:
+        indbs = coll.select_bsplines(
+            key=key,
+            ind=indbs,
+            returnas='ind',
+            return_knots=False,
+            return_cents=False,
+            crop=False,
+        )
 
     _, knotsi, centsi = coll.select_bsplines(
         key=key,
@@ -815,8 +816,8 @@ def _plot_bspline_check(
 
     # indt
     nt = False
-    if mtype == 'polar':
-        radius2d = coll.dobj[coll._which_mesh][keym]['radius2d']
+    if mtype0 == 'polar':
+        radius2d = coll.dobj[coll._which_mesh][keym0]['radius2d']
         r2d_reft = coll.get_time(key=radius2d)[2]
         if r2d_reft is not None:
             nt = coll.dref[r2d_reft]['size']
@@ -874,6 +875,8 @@ def _plot_bspline_prepare(
     res=None,
     knotsi=None,
     centsi=None,
+    nan_out=None,
+    nan0=None,
 ):
 
     # check input
@@ -910,34 +913,37 @@ def _plot_bspline_prepare(
         mode='abs', grid=True, imshow=True,
     )
 
-    # bspline - TBF / TBC
-    shapebs = coll.dobj['bsplines'][key]['shape']
-    shapecoefs = np.r_[1, shapebs]
-    coefs = np.zeros(shapecoefs, dtype=float)
-    if mtype0 == 'rect':
-        coefs[0, indbs[0], indbs[1]] = 1.
-    elif mtype0 == 'tri':
-        coefs[0, indbs] = 1.
-    else:
-        if len(shapebs) == 2:
-            coefs[0, indbs[0], indbs[1]] = 1.
-        else:
-            coefs[0, indbs] = 1.
-        pass
-
+    # bspline
     bspline = coll.interpolate_profile2d(
         key=key,
         R=R,
         Z=Z,
-        coefs=coefs,
+        # coefs=coefs,
         indt=indt,
-        details=False,
+        indbs=indbs,
+        details=indbs is not None,
         grid=False,
+        nan0=nan0,
+        nan_out=nan_out,
         return_params=False,
     )[0]
 
-    # nan if 0
-    bspline[bspline == 0.] = np.nan
+    if indbs is None:
+        if bspline.ndim == R.ndim + 1:
+            assert mtype0 == 'polar'
+            assert bspline.shape[1:] == R.shape
+            bspline = bspline[0, ...]
+    else:
+        if bspline.ndim == R.ndim + 1:
+            assert indbs is not None
+            assert bspline.shape[-1] == 1
+            bspline = bspline[..., 0]
+        elif bspline.ndim == R.ndim + 2:
+            bspline = bspline[0, ..., 0]
+
+    if bspline.shape != R.shape:
+        import pdb; pdb.set_trace() # DB
+        pass
 
     # extent
     if mtype0 == 'polar':
@@ -963,14 +969,20 @@ def _plot_bspline_prepare(
 
 
 def plot_bspline(
+    # ressources
     coll=None,
+    # inputs
     key=None,
     indbs=None,
     indt=None,
+    # parameters
     knots=None,
     cents=None,
     res=None,
     plot_mesh=None,
+    nan_out=None,
+    nan0=None,
+    # plot-specific
     cmap=None,
     dax=None,
     dmargin=None,
@@ -1012,6 +1024,8 @@ def plot_bspline(
         knotsi=knotsi,
         centsi=centsi,
         res=res,
+        nan_out=nan_out,
+        nan0=nan0,
     )
 
     # --------------
@@ -1041,7 +1055,7 @@ def plot_bspline(
 
     if plot_mesh is True:
         keym = coll.dobj['bsplines'][key]['mesh']
-        if meshtype0 == 'polar':
+        if mtype0 == 'polar':
             _ = coll.plot_mesh(key=keym, dleg=False)
         else:
             dax = coll.plot_mesh(key=keym, dax=dax, dleg=False)
@@ -1061,7 +1075,7 @@ def plot_bspline(
             vmax=1.,
         )
 
-        if meshtype0 != 'polar':
+        if mtype0 != 'polar':
             if knots is not False:
                 ax.plot(
                     knotsi[0].ravel(),

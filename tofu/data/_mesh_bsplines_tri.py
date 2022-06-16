@@ -430,23 +430,47 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
 
         indu = np.unique(ind[ind >= 0])
         if self.deg == 0:
-            for ii in np.intersect1d(indu, indcent):
-                indi = ind == ii
-                val[indi, ii] = 1.
+            if indbs_tf is None:
+                for ii in np.intersect1d(indu, indcent):
+                    indi = ind == ii
+                    val[indi, ii] = 1.
+            else:
+                for ii in np.intersect1d(indu, indcent):
+                    indi = ind == ii
+                    ibs = indbs_tf == ii
+                    val[indi, ibs] = 1.
 
         elif self.deg == 1:
-            for ii in np.intersect1d(indu, indcent):
-                indi = ind == ii
-                # get bs
-                ibs = np.any(cents_per_bs == ii, axis=1).nonzero()[0]
-                sorter = np.argsort(self.cents[ii, :])
-                inum = sorter[np.searchsorted(
-                    self.cents[ii, :],
-                    knots_per_bs[ibs, 0],
-                    sorter=sorter,
-                )]
-                for jj, jbs in enumerate(ibs):
-                    val[indi, jbs] = 1. - heights[indi, inum[jj]]
+            if indbs_tf is None:
+                for ii in np.intersect1d(indu, indcent):
+                    indi = ind == ii
+                    # get bs
+                    ibs = np.any(cents_per_bs == ii, axis=1).nonzero()[0]
+                    sorter = np.argsort(self.cents[ii, :])
+                    inum = sorter[np.searchsorted(
+                        self.cents[ii, :],
+                        knots_per_bs[ibs, 0],
+                        sorter=sorter,
+                    )]
+                    for jj, jbs in enumerate(ibs):
+                        val[indi, jbs] = 1. - heights[indi, inum[jj]]
+            else:
+                for ii in np.intersect1d(indu, indcent):
+                    indi = ind == ii
+                    # get bs
+                    ibs = np.intersect1d(
+                        indbs_tf,
+                        np.any(cents_per_bs == ii, axis=1).nonzero()[0],
+                    )
+                    sorter = np.argsort(self.cents[ii, :])
+                    inum = sorter[np.searchsorted(
+                        self.cents[ii, :],
+                        knots_per_bs[ibs, 0],
+                        sorter=sorter,
+                    )]
+                    for jj, jbs in enumerate(ibs):
+                        ij = indbs_tf == jbs
+                        val[indi, ij] = 1. - heights[indi, inum[jj]]
         return val
 
     def ev_sum(

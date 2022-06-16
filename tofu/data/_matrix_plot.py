@@ -28,6 +28,7 @@ def _plot_geometry_matrix_check(
     key=None,
     indbf=None,
     indchan=None,
+    indt=None,
     plot_mesh=None,
     cmap=None,
     vmin=None,
@@ -73,6 +74,15 @@ def _plot_geometry_matrix_check(
             f"Arg indchan should be a int!\nProvided: {indt}"
         )
         raise Exception(msg)
+
+    # indt
+    hastime = coll.get_time(key=key)[0]
+    if hastime:
+        if indt is None:
+            indt = 0
+        assert np.isscalar(indt), indt
+    else:
+        indt = None
 
     # plot_mesh
     plot_mesh = _generic_check._check_var(
@@ -125,7 +135,7 @@ def _plot_geometry_matrix_check(
 
     return (
         key, keybs, keym,
-        indbf, indchan,
+        indbf, indchan, indt,
         plot_mesh,
         cmap, vmin, vmax,
         aspect, dcolorbar, dleg,
@@ -140,6 +150,7 @@ def _plot_geometry_matrix_prepare(
     keym=None,
     indbf=None,
     indchan=None,
+    indt=None,
     res=None,
 ):
 
@@ -264,12 +275,17 @@ def _plot_geometry_matrix_prepare(
     shapebs = coll.dobj['bsplines'][keybs]['shape']
     coefs = np.zeros(tuple(np.r_[1, shapebs]), dtype=float)
 
-    coefs[ic] = np.nansum(coll.ddata[key]['data'], axis=0)
+    if indt is None:
+        coefs[ic] = np.nansum(coll.ddata[key]['data'], axis=0)
+    else:
+        coefs[ic] = np.nansum(coll.ddata[key]['data'][indt, ...], axis=0)
+
     bsplinetot = coll.interpolate_profile2d(
         key=keybs,
         R=R,
         Z=Z,
         coefs=coefs,
+        indt=indt,
         crop=crop,
         nan0=True,
         details=False,
@@ -277,12 +293,17 @@ def _plot_geometry_matrix_prepare(
     )[0][0, ...]
 
     # bspline1
-    coefs[ic] = coll.ddata[key]['data'][indchan, :]
+    if indt is None:
+        coefs[ic] = coll.ddata[key]['data'][indchan, :]
+    else:
+        coefs[ic] = coll.ddata[key]['data'][indt, indchan, :]
+
     bspline1 = coll.interpolate_profile2d(
         key=keybs,
         R=R,
         Z=Z,
         coefs=coefs,
+        indt=indt,
         crop=crop,
         nan0=True,
         details=False,
@@ -339,6 +360,7 @@ def plot_geometry_matrix(
     key=None,
     indbf=None,
     indchan=None,
+    indt=None,
     plot_mesh=None,
     # plotting
     vmin=None,
@@ -358,7 +380,7 @@ def plot_geometry_matrix(
 
     (
         key, keybs, keym,
-        indbf, indchan,
+        indbf, indchan, indt,
         plot_mesh,
         cmap, vmin, vmax,
         aspect, dcolorbar, dleg,
@@ -367,6 +389,7 @@ def plot_geometry_matrix(
         key=key,
         indbf=indbf,
         indchan=indchan,
+        indt=indt,
         plot_mesh=plot_mesh,
         cmap=cmap,
         vmin=vmin,
@@ -393,9 +416,10 @@ def plot_geometry_matrix(
         keym=keym,
         indbf=indbf,
         indchan=indchan,
+        indt=indt,
         res=res,
     )
-    nchan, nbs = coll.ddata[key]['data'].shape
+    nchan, nbs = coll.ddata[key]['data'].shape[-2:]
 
     # --------------
     # plot - prepare
@@ -413,7 +437,8 @@ def plot_geometry_matrix(
             }
 
         fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(ncols=4, nrows=2, **dmargin)
+        ncols = 4 + (indt is not None)
+        gs = gridspec.GridSpec(ncols=ncols, nrows=2, **dmargin)
 
         # ax01 = matrix
         ax01 = fig.add_subplot(gs[0, 1])
@@ -450,6 +475,12 @@ def plot_geometry_matrix(
         )
         ax02.yaxis.set_label_position('right')
         ax02.set_xlim(vmin, vmax)
+
+        if indt is not None:
+            axt = fig.add_subplot(gs[0, 3], sharey=ax00)
+            axt.set_xlabel(f'time')
+            axt.set_ylabel(f'data')
+
 
         # ax10 = cross1
         ax10 = fig.add_subplot(gs[1, 0], aspect='equal')
@@ -498,6 +529,8 @@ def plot_geometry_matrix(
             'text0': {'handle': axt0, 'type': 'text'},
             'text1': {'handle': axt1, 'type': 'text'},
         }
+        if indt is not None:
+            dax['traces'] = {'handle': axt, 'type': 'misc'}
 
     dax = _generic_check._check_dax(dax=dax, main='matrix')
 
@@ -512,11 +545,24 @@ def plot_geometry_matrix(
     # --------------
     # plot matrix
 
+    if indt is None:
+        ind = [indbf, indchan]
+        keyX = refs[1]
+        keyY = refs[0]
+        keyZ = None
+    else:
+        ind = [indbf, indchan, indt]
+        keyX = refs[2]
+        keyY = refs[1]
+        keyZ = refs[0]
+
     coll2, dgroup = coll.plot_as_array(
         key=key,
-        keyX=refs[1],
+        keyX=keyX,
+        keyY=keyY,
+        keyZ=keyZ,
         dax=dax,
-        ind=[indbf, indchan],
+        ind=ind,
         cmap=cmap,
         vmin=vmin,
         vmax=vmax,
@@ -554,7 +600,8 @@ def plot_geometry_matrix(
 
         coll.plot_bsplines(
             key=keybs,
-            ind=ich_bf,
+            indbs=ich_bf,
+            indt=indt,
             knots=False,
             cents=False,
             plot_mesh=False,
@@ -592,7 +639,6 @@ def plot_geometry_matrix(
 
     # if dleg is not False:
         # dax['cross'].legend(**dleg)
-
 
     # -------
     # connect
