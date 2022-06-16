@@ -284,6 +284,12 @@ class BivariateSplinePolar():
 
         return radius, angle
 
+    def _check_coefs(self, coefs=None):
+        """ None for ev_details, (nt, shapebs) for sum """
+        if coefs is not None:
+            assert coefs.ndim == len(self.shapebs) + 1
+            assert coefs.shape[1:] == self.shapebs
+
     def __call__(
         self,
         # coordiantes
@@ -293,6 +299,9 @@ class BivariateSplinePolar():
         coefs=None,
         # options
         radius_vs_time=None,
+        nan_out=None,
+        # for compatibility (unused)
+        indbs_tf=None,
     ):
         """ Assumes
 
@@ -302,6 +311,9 @@ class BivariateSplinePolar():
 
         # ------------
         # check inputs
+
+        # coefs
+        self._check_coefs(coefs=coefs)
 
         radius, angle = self._check_radiusangle_input(
             radius=radius,
@@ -374,14 +386,6 @@ class BivariateSplinePolar():
                                     coefs[it, ii, jj] * (valr[iokj]*vala[iokj])
                                 )
 
-            # pts out 
-            indout = (
-                (radius < self.knotsr.min())
-                | (radius > self.knotsr.max())
-            )
-            val[indout] = np.nan
-
-
         else:
             for ii, nbsa in enumerate(self.nbs_a_per_r):
                 iok = (
@@ -419,12 +423,16 @@ class BivariateSplinePolar():
                                 * (valr[iokj]*vala[iokj])[None, ...]
                             )
 
+        if nan_out is True:
             # pts out 
             indout = (
                 (radius < self.knotsr.min())
                 | (radius > self.knotsr.max())
             )
-            val[:, indout] = np.nan
+            if radius_vs_time:
+                val[indout] = np.nan
+            else:
+                val[:, indout] = np.nan
 
         return val
 
@@ -434,14 +442,16 @@ class BivariateSplinePolar():
         radius=None,
         angle=None,
         # options
-        indbs=None,
+        indbs_tf=None,
         # for compatibility (unused)
         coefs=None,
         radius_vs_time=None,
+        nan_out=None,
     ):
         """ Assumes
 
         coefs.shape = (nt, shapebs)
+        indbs_tf = flat array of int indices
 
         """
 
@@ -453,13 +463,13 @@ class BivariateSplinePolar():
             angle=angle,
         )
 
-        if indbs is None:
+        if indbs_tf is None:
             nbs = self.nbs
         else:
-            indbs = np.atleast_1d(indbs).ravel()
-            assert 'int' in indbs.dtype.name, indbs
-            assert np.unique(indbs).size == indbs.size
-            nbs = indbs.size
+            indbs_tf = np.atleast_1d(indbs_tf).ravel()
+            assert 'int' in indbs_tf.dtype.name, indbs_tf
+            assert np.unique(indbs_tf).size == indbs_tf.size
+            nbs = indbs_tf.size
 
         # --------
         # prepare
@@ -475,21 +485,22 @@ class BivariateSplinePolar():
             # radius only
             for ii in range(self.nbs_r):
 
-                if indbs is not None and ii not in indbs:
+                if indbs_tf is not None and ii not in indbs_tf:
                     continue
 
                 iok = (
                     (radius >= self.knots_per_bs_r[0, ii])
                     & ((radius < self.knots_per_bs_r[-1, ii]))
                 )
-                val[iok, ii] = self.lbr[ii](radius[iok])
+                if np.any(iok):
+                    val[iok, ii] = self.lbr[ii](radius[iok])
 
         else:
 
             # radius + angle
             for ii, nbsa in enumerate(self.nbs_a_per_r):
 
-                if nbsa == 1 and self.func_coef_ind(ii, 0) not in indbs:
+                if nbsa == 1 and self.func_coef_ind(ii, 0) not in indbs_tf:
                     continue
 
                 # compute valr
@@ -497,6 +508,10 @@ class BivariateSplinePolar():
                     (radius >= self.knots_per_bs_r[0, ii])
                     & ((radius < self.knots_per_bs_r[-1, ii]))
                 )
+
+                if not np.any(iok):
+                    continue
+
                 valr = self.lbr[ii](radius[iok])
 
                 # compute vala
@@ -507,7 +522,7 @@ class BivariateSplinePolar():
                     for jj in range(nbsa):
 
                         ind = self.func_coef_ind(ii, jj)
-                        if ind not in indbs:
+                        if ind not in indbs_tf:
                             continue
 
                         kj = self.knots_per_bs_a[ii][:, jj]
@@ -518,12 +533,11 @@ class BivariateSplinePolar():
                         else:
                             vala = self.lba[ii][jj](angle[iok])
 
-                        iokj = ~np.isnan(vala)
+                        iokj = np.isfinite(vala)
                         if np.any(iokj):
                             iok2 = np.copy(iok)
                             iok2[iok2] = iokj
-
-                        val[iokj, ind] = valr[iokj]*vala[iokj]
+                            val[iok2, ind] = valr[iokj]*vala[iokj]
 
         return val
 

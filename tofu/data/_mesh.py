@@ -1122,6 +1122,7 @@ class Plasma2D(ds.DataStock):
         res=None,
         crop=None,
         nan0=None,
+        nan_out=None,
         imshow=None,
         return_params=None,
     ):
@@ -1172,6 +1173,7 @@ class Plasma2D(ds.DataStock):
             res=res,
             crop=crop,
             nan0=nan0,
+            nan_out=nan_out,
             imshow=imshow,
             return_params=return_params,
         )

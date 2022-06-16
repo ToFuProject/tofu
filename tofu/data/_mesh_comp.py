@@ -1853,6 +1853,7 @@ def _interp2d_check(
     res=None,
     crop=None,
     nan0=None,
+    nan_out=None,
     imshow=None,
     return_params=None,
 ):
@@ -1889,9 +1890,6 @@ def _interp2d_check(
         types=bool,
         default=False,
     )
-    if details is True:
-        coefs = None
-        assert key == keybs, (key, keybs)
 
     # -------------
     # crop
@@ -1907,6 +1905,15 @@ def _interp2d_check(
 
     nan0 = _generic_check._check_var(
         nan0, 'nan0',
+        types=bool,
+        default=True,
+    )
+
+    # -------------
+    # nan_out
+
+    nan_out = _generic_check._check_var(
+        nan_out, 'nan_out',
         types=bool,
         default=True,
     )
@@ -1948,7 +1955,30 @@ def _interp2d_check(
         )[:-1]
     else:
         hastime, hasvect = False, False
-        reft, keyt, indt, indtu = None, None, None
+        reft, keyt, indt, indtu, indtr = None, None, None, None, None
+
+    # -----------
+    # indbs
+
+    if details is True:
+        if mtype == 'rect':
+            returnas = 'tuple-flat'
+        elif mtype == 'tri':
+            returnas = int
+        elif mtype == 'polar':
+            if len(coll.dobj['bsplines'][keybs]['shape']) == 2:
+                returnas = 'array-flat'
+            else:
+                returnas = int
+
+        # compute validated indbs array with appropriate form
+        indbs_tf = coll.select_ind(
+            key=keybs,
+            returnas=returnas,
+            ind=indbs,
+        )
+    else:
+        indbs_tf = None
 
     # -----------
     # coordinates
@@ -2083,50 +2113,58 @@ def _interp2d_check(
     #   - (nt, shapebs)
     #   - shapebs
 
-    if coefs is not None and key =! keybs:
-        msg = f"Arg coefs can only be provided if key = keybs!\n\t- key: {key}"
-        raise Exception(msg)
+    if details is True:
+        coefs = None
+        assert key == keybs, (key, keybs)
 
-    if coefs is None and details is False:
-        if key == keybs:
-            coefs = np.ones(tuple(np.r_[1, shapebs]), dtype=float)
-        else:
-            coefs = coll.ddata[key]['data']
-    elif np.isscalar(coefs):
-        coefs = np.full(tuple(np.r_[1, shapebs]), coefs)
+    else:
+        if coefs is None:
+            if key == keybs:
+                coefs = np.ones(shapebs, dtype=float)
+            else:
+                coefs = coll.ddata[key]['data']
 
-    # consistency
-    c0 = (
-        coefs.shape[-len(shapebs):] == shapebs
-        and (coefs.ndim == len(shapebs) + 1) == hastime
-    )
-    if not c0:
-        msg = (
-            f"Inconsistency of '{key}' shape:\n"
-            f"\t- shape: {coefs.shape}\n"
-            f"\t- shapebs: {shapebs}\n"
-            f"\t- hastime: {hastime}\n"
+        elif key != keybs:
+            msg = f"Arg coefs can only be provided if key = keybs!\n\t- key: {key}"
+            raise Exception(msg)
+
+        elif np.isscalar(coefs):
+            coefs = np.full(shapebs, coefs)
+
+
+        # consistency
+        nshbs = len(shapebs)
+        c0 = (
+            coefs.shape[-nshbs:] == shapebs
+            and (coefs.ndim == nshbs + 1) == hastime
         )
-        raise Exception(msg)
-
-    # Make sure coefs is time dependent
-    if hastime:
-        if indt is not None and (mtype == 'polar' or indtu is None):
-            coefs = coefs[indt, ...]
-
-        if radius_vs_time and coefs.shape[0] != radius.shape[0]:
+        if not c0:
             msg = (
-                "Inconstistent coefs vs radius!\n"
-                f"\t- coefs.shape = {coefs.shape}\n"
-                f"\t- radius.shape = {radius.shape}\n"
+                f"Inconsistency of '{key}' shape:\n"
+                f"\t- shape: {coefs.shape}\n"
+                f"\t- shapebs: {shapebs}\n"
+                f"\t- hastime: {hastime}\n"
             )
             raise Exception(msg)
-    else:
-        if radius_vs_time is True:
-            sh = tuple([radius.shape[0]] + [1]*len(shapebs))
-            coefs = np.tile(coefs, sh)
+
+        # Make sure coefs is time dependent
+        if hastime:
+            if indt is not None and (mtype == 'polar' or indtu is None):
+                coefs = coefs[indt, ...]
+
+            if radius_vs_time and coefs.shape[0] != radius.shape[0]:
+                msg = (
+                    "Inconstistent coefs vs radius!\n"
+                    f"\t- coefs.shape = {coefs.shape}\n"
+                    f"\t- radius.shape = {radius.shape}\n"
+                )
+                raise Exception(msg)
         else:
-            coefs = coefs[None, ...]
+            if radius_vs_time is True:
+                sh = tuple([radius.shape[0]] + [1]*len(shapebs))
+                coefs = np.tile(coefs, sh)
+            else:
+                coefs = coefs[None, ...]
 
     # -------------
     # return_params
@@ -2145,8 +2183,10 @@ def _interp2d_check(
         hastime,
         shapebs,
         radius_vs_time,
-        indbs, t, indt, indtu, indtr,
-        details, crop, nan0, return_params,
+        indbs, indbs_tf,
+        t, indt, indtu, indtr,
+        details, crop,
+        nan0, nan_out, return_params,
     )
 
 
@@ -2175,6 +2215,7 @@ def interp2d(
     res=None,
     crop=None,
     nan0=None,
+    nan_out=None,
     imshow=None,
     return_params=None,
 ):
@@ -2190,8 +2231,10 @@ def interp2d(
         hastime,
         shapebs,
         radius_vs_time,
-        indbs, t, indt, indtu, indtr,
-        details, crop, nan0, return_params,
+        indbs, indbs_tf,
+        t, indt, indtu, indtr,
+        details, crop,
+        nan0, nan_out, return_params,
     ) = _interp2d_check(
         # ressources
         coll=coll,
@@ -2216,14 +2259,15 @@ def interp2d(
         res=res,
         crop=crop,
         nan0=nan0,
+        nan_out=nan_out,
         imshow=imshow,
         return_params=return_params,
     )
     keym = coll.dobj['bsplines'][keybs]['mesh']
     meshtype = coll.dobj['mesh'][keym]['type']
 
-    # ---------------
-    # prepare
+    # ----------------------
+    # which function to call
 
     if details is True:
         fname = 'func_details'
@@ -2233,24 +2277,11 @@ def interp2d(
         raise Exception("Unknown details!")
 
     # ---------------
-    # interp 2d profile
+    # cropping ?
 
     cropbs = coll.dobj['bsplines'][keybs]['crop']
     if cropbs not in [None, False]:
         cropbs = coll.ddata[cropbs]['data']
-
-    if details is not False:
-        if meshtype == 'rect':
-            returnas = 'tuple-flat'
-        else:
-            returnas = bool
-        indbs_tuple_flat = coll.select_ind(
-            key=keybs,
-            returnas=returnas,
-            ind=indbs,
-        )
-    else:
-        indbs_tuple_flat = None
 
     # -----------
     # Interpolate
@@ -2268,8 +2299,8 @@ def interp2d(
             coefs=coefs,
             crop=crop,
             cropbs=cropbs,
-            indbs_tuple_flat=indbs_tuple_flat,
-            reshape=reshape,
+            indbs_tf=indbs_tf,
+            nan_out=nan_out,
         )
 
         # manage time
@@ -2284,8 +2315,9 @@ def interp2d(
             radius=radius,
             angle=angle,
             coefs=coefs,
+            indbs_tf=indbs_tf,
             radius_vs_time=radius_vs_time,
-            shapebs=shapebs,
+            nan_out=nan_out,
         )
 
     # ---------------

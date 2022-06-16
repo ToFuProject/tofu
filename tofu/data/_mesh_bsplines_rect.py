@@ -113,22 +113,14 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         cropbs_neg_flat=None,
     ):
 
-        # ------------
-        # check inputs
-
-        if coefs is None:
-            msg = "Please provide coefs!"
+        nbs = self.__nbs[0]*self.__nbs[1]
+        if coefs.shape == self.shapebs:
+            self.tck[2][...] = coefs.ravel()
+        elif coefs.shape == (self.nbs,):
+            self.tck[2][...] = coefs
+        else:
+            msg = f"Wrong coefs shape!\nProvided: {coefs.shape}"
             raise Exception(msg)
-
-        shape = (self.__nbs[0]*self.__nbs[1],)
-        if coefs.shape != shape:
-            msg = (
-                "Arg coefs has wrong shape!\n"
-                f"\t- expected: {shape}\n"
-                f"\t- provided: {coefs.shape}\n"
-            )
-            raise Exception(msg)
-        self.tck[2][...] = coefs
 
         # ------------
         # crop and set
@@ -138,41 +130,71 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
 
     def __call__(
         self,
-        x,
-        y,
+        R=None,
+        Z=None,
         coefs=None,
-        cropbs_neg_flat=None,
-        **kwdargs,
+        crop=None,
+        cropbs=None,
+        nan_out=None,
+        # for compatibility (unused)
+        indbs_tf=None,
     ):
 
-        # prepare
-        self.set_coefs(
-            coefs=coefs,
-            cropbs_neg_flat=cropbs_neg_flat,
+        if nan_out is None:
+            nan_out = True
+
+        # coefs
+        self._check_coefs(coefs=coefs)
+
+        # r, z
+        r, z, crop = _check_RZ_crop(
+            R=R,
+            Z=Z,
+            crop=crop,
+            cropbs=cropbs,
         )
 
-        # compute
-        val = super().__call__(x, y, **kwdargs)
+        # prepare
+        nt = coefs.shape[0]
+        shape = tuple(np.r_[nt, r.shape])
+        val = np.zeros(shape, dtype=float)
+        cropbs_neg_flat = ~cropbs.ravel() if crop else None
+
+        # interpolate
+        for ii in range(nt):
+            # prepare
+            self.set_coefs(
+                coefs=coefs[ii, ...],
+                cropbs_neg_flat=cropbs_neg_flat,
+            )
+
+            # compute
+            val[ii, ...] = super().__call__(r, z, grid=False)
 
         # clean
-        indout = (
-            (x < self.tck[0][0]) | (x > self.tck[0][-1])
-            | (y < self.tck[1][0]) | (y > self.tck[1][-1])
-        )
-        val[indout] = np.nan
+        if nan_out is True:
+            indout = (
+                (r < self.tck[0][0]) | (r > self.tck[0][-1])
+                | (z < self.tck[1][0]) | (z > self.tck[1][-1])
+            )
+            val[:, indout] = np.nan
         return val
 
     def ev_details(
         self,
-        R,
-        Z,
-        indbs_tuple_flat=None,
+        R=None,
+        Z=None,
+        indbs_tf=None,
         crop=None,
         cropbs=None,
         # for compatibility (unused)
         coefs=None,
-        indbs=None,
+        nan_out=None,
     ):
+        """
+        indbs_tf = (ar0, ar1)
+            tuple of 2 flat arrays of int (for R and Z)
+        """
 
         # -----------
         # check input
@@ -184,23 +206,11 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             cropbs=cropbs,
         )
 
-        c0 = (
-            isinstance(indbs_tuple_flat, tuple)
-            and len(indbs_tuple_flat) == 2
-            and all([isinstance(ind, np.ndarray) for ind in indbs_tuple_flat])
-            and indbs_tuple_flat[0].shape == indbs_tuple_flat[1].shape
-        )
-        if not c0:
-            msg = (
-                "Arg indbs_tuple_flat must be a tuple of indices!"
-            )
-            raise Exception(msg)
-
         # -----------
         # prepare
 
         deg = self.degrees[0]
-        nbs = indbs_tuple_flat[0].size
+        nbs = indbs_tf[0].size
         shape = x.shape
         x = np.ascontiguousarray(x.ravel(), dtype=np.floating)
         y = np.ascontiguousarray(y.ravel(), dtype=np.floating)
@@ -214,7 +224,7 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         val = np.zeros(tuple(np.r_[x.size, nbs]))
         indtot = np.arange(0, nbs)
 
-        iz_u = np.unique(indbs_tuple_flat[1])
+        iz_u = np.unique(indbs_tf[1])
 
         for iz in iz_u:
 
@@ -233,8 +243,8 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
                 continue
             indokx = np.copy(indoky)
 
-            indr = indbs_tuple_flat[1] == iz
-            ir = indbs_tuple_flat[0][indr]
+            indr = indbs_tf[1] == iz
+            ir = indbs_tf[0][indr]
             for ii, iir in enumerate(ir):
 
                 if ii > 0:
@@ -414,60 +424,11 @@ def get_bs2d_func(
     # ----------------
     # Define functions
 
-    RectBiv_scipy = BivariateSplineRect(
+    clas = BivariateSplineRect(
         knotsR=Rknots,
         knotsZ=Zknots,
         deg=deg,
         shapebs=shapebs,
     )
 
-    def RectBiv_sum(
-        R,
-        Z,
-        coefs=None,
-        # RectBiv=RectBiv
-        indbs=None,
-        crop=None,
-        cropbs=None,
-        indbs_tuple_flat=None,
-        RectBiv_scipy=RectBiv_scipy,
-    ):
-        """ Return the value for each point summed on all bsplines
-
-        Assumes coefs in shape (nt, shapebs)
-        """
-
-        # --------------
-        # check inputs
-
-        # coefs
-        RectBiv_scipy._check_coefs(coefs=coefs)
-
-        # r, z
-        r, z, crop = _check_RZ_crop(
-            R=R,
-            Z=Z,
-            crop=crop,
-            cropbs=cropbs,
-        )
-
-        # prepare
-        shapepts = r.shape
-
-        shape = tuple(np.r_[nt, shapepts])
-        val = np.zeros(shape, dtype=float)
-        cropbs_neg_flat = ~cropbs.ravel() if crop else None
-
-        # compute
-        for ii in range(coefs.shape[0]):
-            val[ii, ...] = RectBiv_scipy(
-                r,
-                z,
-                grid=False,
-                coefs=coefs[ii, ...],
-                cropbs_neg_flat=cropbs_neg_flat,
-            )
-
-        return val
-
-    return RectBiv_scipy.ev_details, RectBiv_sum, RectBiv_scipy
+    return clas.ev_details, clas.__call__, clas

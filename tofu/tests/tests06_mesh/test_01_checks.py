@@ -167,7 +167,8 @@ def _add_polar2(plasma, key='m6'):
         plasma.add_data(
             key='t',
             data=t,
-            ref=('nt',)
+            ref=('nt',),
+            dim='time',
         )
 
     if 'rho2' not in plasma.ddata.keys():
@@ -560,60 +561,60 @@ class Test02_Plasma2D():
         dfail = {}
         for ii, k0 in enumerate(self.lbs):
 
-            try:
-                val = self.obj.interpolate_profile2d(
-                    key=k0,
-                    R=x,
-                    Z=y,
-                    coefs=None,
-                    indbs=None,
-                    indt=None,
-                    grid=False,
-                    details=False,
-                    reshape=True,
-                    res=None,
-                    crop=True,
-                    nan0=ii % 2 == 0,
-                    imshow=False,
-                )
+            # try:
+            val = self.obj.interpolate_profile2d(
+                key=k0,
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=False,
+                reshape=True,
+                res=None,
+                crop=True,
+                nan0=ii % 2 == 0,
+                imshow=False,
+            )
 
-                # add fix data
-                kdata = _add_data_fix(self.obj, k0)
-                val = self.obj.interpolate_profile2d(
-                    key=kdata,
-                    R=x,
-                    Z=y,
-                    coefs=None,
-                    indbs=None,
-                    indt=None,
-                    grid=False,
-                    details=False,
-                    reshape=True,
-                    res=None,
-                    crop=True,
-                    nan0=ii % 2 == 0,
-                    imshow=False,
-                )
+            # add fix data
+            kdata = _add_data_fix(self.obj, k0)
+            val = self.obj.interpolate_profile2d(
+                key=kdata,
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=False,
+                reshape=True,
+                res=None,
+                crop=True,
+                nan0=ii % 2 == 0,
+                imshow=False,
+            )
 
-                # add time-dependent data
-                kdata = _add_data_var(self.obj, k0)
-                val = self.obj.interpolate_profile2d(
-                    key=kdata,
-                    R=x,
-                    Z=y,
-                    coefs=None,
-                    indbs=None,
-                    indt=None,
-                    grid=False,
-                    details=False,
-                    reshape=True,
-                    res=None,
-                    crop=True,
-                    nan0=ii % 2 == 0,
-                    imshow=False,
-                )
-            except Exception as err:
-                dfail[k0] = str(err)
+            # add time-dependent data
+            kdata = _add_data_var(self.obj, k0)
+            val = self.obj.interpolate_profile2d(
+                key=kdata,
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=False,
+                reshape=True,
+                res=None,
+                crop=True,
+                nan0=ii % 2 == 0,
+                imshow=False,
+            )
+            # except Exception as err:
+                # dfail[k0] = str(err)
 
         # raise error if any fail
         if len(dfail) > 0:
@@ -632,7 +633,11 @@ class Test02_Plasma2D():
         y = np.tile(y, (x.shape[1], 1)).T
 
         for ii, k0 in enumerate(self.lbs):
-            val = self.obj.interpolate_profile2d(
+
+            keym = self.obj.dobj['bsplines'][k0]['mesh']
+            mtype = self.obj.dobj['mesh'][keym]['type']
+
+            val, t = self.obj.interpolate_profile2d(
                 key=k0,
                 R=x,
                 Z=y,
@@ -646,16 +651,23 @@ class Test02_Plasma2D():
                 crop=True,
                 nan0=ii % 2 == 0,
                 imshow=False,
+                return_params=False,
             )
+
             crop = self.obj.dobj['bsplines'][k0].get('crop', False)
-            shap = np.prod(self.obj.dobj['bsplines'][k0]['shape'])
+            nbs = np.prod(self.obj.dobj['bsplines'][k0]['shape'])
             if isinstance(crop, str):
-                shap = self.obj.ddata[crop]['data'].sum()
+                nbs = self.obj.ddata[crop]['data'].sum()
 
-            ntot = x.ndim + 1
-            assert val.shape[-ntot:] == tuple(np.r_[x.shape, shap])
+            vshap0 = tuple(np.r_[x.shape, nbs])
+            if mtype == 'polar':
+                # radius2d can be time-dependent => additional dimension
+                vshap = val.shape[-len(vshap0):]
+            else:
+                vshap = val.shape
+            assert vshap == vshap0, val.shape
 
-            val_sum = self.obj.interpolate_profile2d(
+            val_sum, t = self.obj.interpolate_profile2d(
                 key=k0,
                 R=x,
                 Z=y,
@@ -667,25 +679,41 @@ class Test02_Plasma2D():
                 reshape=True,
                 res=None,
                 crop=True,
-                nan0=ii % 2 == 0,
+                nan0=False,
+                nan_out=False,
                 imshow=False,
+                return_params=False,
             )
-            indok = ~np.isnan(val_sum[0, ...])
+
+            if mtype == 'polar':
+                # radius2d can be time-dependent => additional dimension
+                vshap_sum = val_sum.shape[-len(x.shape):]
+                vshap_sum0 = x.shape
+            else:
+                vshap_sum = val_sum.shape
+                vshap_sum0 = tuple(np.r_[1, x.shape])
+            assert vshap_sum == vshap_sum0, val_sum.shape
+            assert (val.ndim == x.ndim + 2) == (val_sum.shape[0] > 1), [val.shape, val_sum.shape]
+
+            indok = np.isfinite(val_sum[0, ...]) & (val_sum[0, ...] != 0)
 
             # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             # Does not work for rect mesh
             # because of knots padding used in func_details
             # Due to scpinterp._bspl.evaluate_spline()...
-            km = self.obj.dobj['bsplines'][k0]['mesh']
-            mtype = self.obj.dobj['mesh'][km]['type']
             if mtype in ['tri', 'polar']:   # To be debugged
-                if mtype == 'polar':
-                    val = val[0]
-                assert np.allclose(
-                    val_sum[0, indok],
-                    np.nansum(val, axis=-1)[indok],
-                    equal_nan=True,
-                )
+                if val.ndim == x.ndim + 2:
+                    assert np.allclose(
+                        val_sum[:, indok],
+                        np.nansum(val, axis=-1)[:, indok],
+                        equal_nan=True,
+                    )
+                else:
+                    assert np.allclose(
+                        val_sum[0, indok],
+                        np.nansum(val, axis=-1)[indok],
+                        equal_nan=True,
+                    )
             # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     def test09_plot_mesh(self):
