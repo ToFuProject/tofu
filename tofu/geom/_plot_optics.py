@@ -1017,7 +1017,6 @@ def CrystalBragg_plot_line_tracing_on_det(
             det['outline'][1, :].min() - 0.01,
             det['outline'][1, :].max() + 0.01,
         )
-
     if det.get('outline') is not None:
         ax.plot(
             det['outline'][0, :], det['outline'][1, :],
@@ -1030,7 +1029,6 @@ def CrystalBragg_plot_line_tracing_on_det(
         bb = temp0
     else:
         bb = 0.
-    # TBD: arg color from ipython method call
     for ll in range(lamb.size):
         lab = (
             r'$\lambda$ = {} A'.format(np.round(lamb[ll]*1e10, 6))+ '\n'
@@ -1058,7 +1056,7 @@ def CrystalBragg_plot_line_tracing_on_det(
                     label = r'At $x_j$=0.: $x_i$={}, $\lambda$={}A'.format(
                         np.round(xi_atprmax[ll], 6),
                         np.round(lamb_atprmax[ll], 16),
-                        np.round(bragg_atprmax[ll]*(180./np.pi), 4),
+                        #np.round(bragg_atprmax[ll]*(180./np.pi), 4),
                     )
                 else:
                     label = None
@@ -1076,6 +1074,116 @@ def CrystalBragg_plot_line_tracing_on_det(
         ax.legend(**dleg)
 
     return ax
+
+
+def CrystalBragg_plot_angular_shift_on_det_tracing(
+    cryst=None, dcryst=None,
+    lamb=None,
+    din=None,
+    na=None, nn=None,
+    det=None,
+    TD=None, angles=None,
+    ax=None, dleg=None, color=None,
+    fs=None, dmargin=None, wintit=None, tit=None,
+):
+
+    # Check inputs
+    # ------------
+
+    if dleg is None:
+        dleg = {
+            'loc': 'upper left',
+            'fontsize': 13,
+        }
+    if color is None:
+        color = 'k'
+    if fs is None:
+        fs = (12, 12)
+    """
+    if dmargin is None:
+        dmargin = {'left': 0.15, 'right': 0.95,
+                   'bottom': 0.08, 'top': 0.92,
+                   'wspace': None, 'hspace': 0.4}
+    """
+    if wintit is None:
+        wintit = _WINTIT
+    if tit is None:
+        tit = "Angular shift from the ideal line position"
+    cmap = plt.cm.seismic  # viridis
+
+    # Plot
+    # ------------
+
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(1, 3)  # , **dmargin)
+    ax0 = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
+    ax0.set_title('Shift in pixels [m]', fontsize=15)
+    ax1 = fig.add_subplot(gs[0, 1], aspect='equal', adjustable='datalim')
+    ax1.set_title('Shift in wavelength [m]', fontsize=15)
+    ax2 = fig.add_subplot(gs[0, 2], aspect='equal', adjustable='datalim')
+    ax2.set_title('Shift in radian [mrad]', fontsize=15)
+    if wintit is not False:
+        fig.canvas.manager.set_window_title(wintit)
+    if tit is not False:
+        fig.suptitle(tit, size=14, weight='bold')
+    ax0.set_ylabel(r'$\Delta$T ($T_{0}$=25°C)', fontsize=15)
+    ax0.set_xlabel(r'$\alpha$ [mrad]', fontsize=15)
+    ax1.set_xlabel(r'$\alpha$ [mrad]', fontsize=15)
+    ax2.set_xlabel(r'$\alpha$ [mrad]', fontsize=15)
+
+    extent = (angles.min()*1e3, angles.max()*1e3, TD.min(), TD.max())
+    delta_xi = din['delta_xi'].reshape(
+        din['delta_xi'].shape[0],
+        din['delta_xi'].shape[1]
+    )
+    delta_lamb = din['delta_lamb'].reshape(
+        din['delta_lamb'].shape[0],
+        din['delta_lamb'].shape[1]
+    )
+    delta_bragg = din['delta_bragg'].reshape(
+        din['delta_bragg'].shape[0],
+        din['delta_bragg'].shape[1]
+    )
+
+    # Plot imshow maps
+    cmap_xi = ax0.imshow(
+        delta_xi,
+        cmap=cmap,
+        origin='lower',
+        extent=extent,
+        aspect='auto',
+    )
+    cbar0 = plt.colorbar(
+        cmap_xi,
+        orientation='vertical',
+        ax=ax0,
+    )
+    cmap_lamb = ax1.imshow(
+        delta_lamb,
+        cmap=cmap,
+        origin='lower',
+        extent=extent,
+        aspect='auto',
+    )
+    cbar1 = plt.colorbar(
+        cmap_lamb,
+        orientation='vertical',
+        ax=ax1,
+    )
+    cmap_bragg = ax2.imshow(
+        delta_bragg*1e3,
+        cmap=cmap,
+        origin='lower',
+        extent=extent,
+        aspect='auto',
+    )
+    cbar2 = plt.colorbar(
+        cmap_bragg,
+        orientation='vertical',
+        ax=ax2,
+    )
+
+    #return ax0, ax1, ax2
 
 
 def CrystalBragg_plot_johannerror(
