@@ -58,7 +58,8 @@ def compute_inversions(
 
     (
         key_matrix, key_data, key_sigma, keybs, keym,
-        data, sigma, matrix, indok,
+        data, sigma, matrix,
+        m3d, indok,
         dconstraints,
         opmat, operator, geometry,
         dalgo,
@@ -92,7 +93,7 @@ def compute_inversions(
     )
 
     nt, nchan = data.shape
-    nbs = matrix.shape[1]
+    nbs = matrix.shape[-1]
 
     # -------------
     # get func
@@ -137,17 +138,23 @@ def compute_inversions(
     precond = None
     Tyn = np.full((nbs,), np.nan)
     if dalgo['sparse'] is True:
-        Tn = scpsp.diags(1./np.nanmean(sigma, axis=0)).dot(matrix)
-        TTn = Tn.T.dot(Tn)
-        if solver != 'spsolve':
-            # preconditioner to approx inv(TTn + reg*Rn)
-            # should improves convergence, but actually slower...
-            # precond = scpsp.linalg.inv(TTn + mu0*R)
+        if m3d:
             pass
+        else:
+            Tn = scpsp.diags(1./np.nanmean(sigma, axis=0)).dot(matrix)
+            TTn = Tn.T.dot(Tn)
+            if solver != 'spsolve':
+                # preconditioner to approx inv(TTn + reg*Rn)
+                # should improves convergence, but actually slower...
+                # precond = scpsp.linalg.inv(TTn + mu0*R)
+                pass
 
     else:
-        Tn = matrix / np.nanmean(sigma, axis=0)[:, None]
-        TTn = Tn.T.dot(Tn)
+        if m3d:
+            pass
+        else:
+            Tn = matrix / np.nanmean(sigma, axis=0)[:, None]
+            TTn = Tn.T.dot(Tn)
 
     # prepare output arrays
     sol = np.full((nt, nbs), np.nan)
@@ -160,7 +167,8 @@ def compute_inversions(
     # -------------
     # initial guess
 
-    sol0 = np.full((nbs,), np.mean(data[0, iondok[0, :]]) / matrix.mean())
+    m0 = matrix[0, ...].mean() if m3d else matrix.mean()
+    sol0 = np.full((nbs,), np.mean(data[0, indok[0, :]]) / m0)
 
     if verb >= 1:
         # t1 = time.process_time()
@@ -191,6 +199,7 @@ def compute_inversions(
             sigma=sigma,
             indok=indok,
             # parameters
+            m3d=m3d,
             dalgo=dalgo,
             isotropic=dalgo['isotropic'],
             conv_crit=conv_crit,
@@ -225,6 +234,7 @@ def compute_inversions(
             sigma=sigma,
             indok=indok,
             # parameters
+            m3d=m3d,
             dalgo=dalgo,
             isotropic=dalgo['isotropic'],
             conv_crit=conv_crit,
@@ -407,6 +417,7 @@ def _compute_inv_loop(
     sigma=None,
     indok=None,
     # parameters
+    m3d=None,
     conv_crit=None,
     isotropic=None,
     sparse=None,
@@ -482,15 +493,17 @@ def _compute_inv_loop(
             print(msg, end='', flush=True)
 
         # update intermediates if multiple sigmas
-        if sigma.shape[0] > 1:
+        if sigma.shape[0] > 1 or m3d or indok is not None:
+
+            # update terms
             Tni, TTni, yni, nchani = _update_TTyn(
                 sparse=sparse,
-                data_n=data_n[ii, :],
-                sigma=sigma[ii, :],
+                data_n=data_n,
+                sigma=sigma,
                 matrix=matrix,
                 Tn=Tn,
                 TTn=TTn,
-                indok=indok[ii, :],
+                indok=indok,
                 dconstraints=dconstraints,
             )
 
@@ -606,7 +619,7 @@ def _compute_inv_loop_tomotok(
             _update_TTyn(
                 sparse=sparse,
                 sigma=sigma,
-                matrix=matrix,
+                mati=mi,
                 Tn=Tn,
                 TTn=TTn,
                 ii=ii,
@@ -653,32 +666,54 @@ def _update_TTyn(
     TTn=None,
     indok=None,
     dconstraints=None,
+    m3d=None,
 ):
+    # update matrix
+    if indok is None:
+        if m3d:
+            mi = matrix[ii, :, :]
+        else:
+            mi = matrix
+    else:
+        if m3d:
+            mi = matrix[ii, indok[ii, :], :]
+        else:
+            mi = matrix[indok[ii, :], :]
+
+    # update sig
+    if sigma.shape[0] > 1:
+        sig = sigam[0, :]
+    else:
+        if indok is None:
+            sig = sigma[ii, :]
+        else:
+            sig = sigma[indok[ii, :], :]
+
+    # update data_n
+    if indok is None:
+        yn = data[ii, :]
+    else:
+        yn = data[indok[ii, :], :]
+
     # intermediates
     if indok is None:
         if sparse:
-            Tn.data = scpsp.diags(1./sigma).dot(matrix).data
+            Tn.data = scpsp.diags(1./sig).dot(mi).data
             TTn.data = Tn.T.dot(Tn).data
         else:
-            Tn[...] = matrix / sigma[:, None]
+            Tn[...] = mati / sig[:, None]
             TTn[...] = Tn.T.dot(Tn)
-
-        if dconstraints is not None:
-            Tn[...] = Tn.dot(dconstraints['coefs'])
-
-        yn = data_n
 
     else:
         if sparse:
-            Tn.data = scpsp.diags(1./sigma[indok]).dot(matrix[indok, :]).data
-            TTn.data = Tn.T.dot(Tn).data
+            Tn = scpsp.diags(1./sig).dot(mati)
+            TTn = Tn.T.dot(Tn)
         else:
-            Tn = matrix / sigma[indok][:, None]
+            Tn = mati / sig[:, None]
             TTn = Tn.T.dot(Tn)
 
-        if dconstraints is not None:
-            Tn[...] = Tn.dot(dconstraints['coefs'])
-
-        yn = data_n[indok]
+    # update with constraints
+    if dconstraints is not None:
+        Tn[...] = Tn.dot(dconstraints['coefs'])
 
     return Tn, TTn, yn, yn.size

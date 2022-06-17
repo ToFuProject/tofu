@@ -3,6 +3,7 @@
 
 # Built-in
 import copy
+import warnings
 
 
 # Common
@@ -294,7 +295,8 @@ def _compute_check(
     keybs = coll.dobj['matrix'][key_matrix]['bsplines']
     keym = coll.dobj['bsplines'][keybs]['mesh']
     matrix = coll.ddata[coll.dobj['matrix'][key_matrix]['data']]['data']
-    nchan, nbs = matrix.shape
+    nchan, nbs = matrix.shape[-2:]
+    m3d = matrix.ndim == 3
     crop = coll.dobj['matrix'][key_matrix]['crop']
 
     if np.any(~np.isfinite(matrix)):
@@ -412,7 +414,7 @@ def _compute_check(
             warnings.warn(msg)
             data = data[:, iok]
             sigma = sigma[:, iok]
-            matrix = matrix[iok, :]
+            matrix = matrix[:, iok, :] if m3d == 3 else matrix[iok, :]
             indok = indok[:, iok]
 
         # remove time steps
@@ -426,6 +428,8 @@ def _compute_check(
             data = data[iok, :]
             sigma = sigma[iok, :]
             indok = indok[iok, :]
+            if m3d:
+                matrix = matrix[iok, :, :]
 
     if np.all(indok):
         indok = None
@@ -578,6 +582,9 @@ def _compute_check(
     # consistent sparsity
 
     # sparse
+    if m3d:
+        dalgo['sparse'] = False
+
     if dalgo['sparse'] is True:
         if not scpsp.issparse(matrix):
             matrix = scpsp.csc_matrix(matrix)
@@ -650,7 +657,8 @@ def _compute_check(
 
     return (
         key_matrix, key_data, key_sigma, keybs, keym,
-        data, sigma, matrix, indok,
+        data, sigma, matrix,
+        m3d, indok,
         dconstraints,
         opmat, operator, geometry,
         dalgo,
