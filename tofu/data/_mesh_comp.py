@@ -2544,7 +2544,16 @@ def _get_contours(
             # compute concatenated contour
             no_cont = False
             cj = cont_raw.create_contour(levels[jj])
-            if isinstance(cj, (tuple, list)):
+
+            c0 = (
+                isinstance(cj, tuple)
+                and len(cj) == 2
+                and isinstance(cj[0], list)
+            )
+            if c0:
+                cj = cj[0]
+
+            if isinstance(cj, list):
                 try:        # DB
                     cj = [
                         cc[np.all(np.isfinite(cc), axis=1), :]

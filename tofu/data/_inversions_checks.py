@@ -427,6 +427,9 @@ def _compute_check(
             sigma = sigma[iok, :]
             indok = indok[iok, :]
 
+    if np.all(indok):
+        indok = None
+
     # -----------
     # constraints
 

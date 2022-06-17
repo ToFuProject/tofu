@@ -483,31 +483,32 @@ def _compute_inv_loop(
 
         # update intermediates if multiple sigmas
         if sigma.shape[0] > 1:
-            _update_TTyn(
+            Tni, TTni, yni, nchani = _update_TTyn(
                 sparse=sparse,
-                sigma=sigma,
+                data_n=data_n[ii, :],
+                sigma=sigma[ii, :],
                 matrix=matrix,
                 Tn=Tn,
                 TTn=TTn,
-                ii=ii,
+                indok=indok[ii, :],
                 dconstraints=dconstraints,
             )
 
         if dalgo['family'] != 'Non-regularized':
-            Tyn[:] = Tn.T.dot(data_n[ii, :])
+            Tyn[:] = Tn.T.dot(yni)
 
         # solving
         (
             sol[ii, :], mu[ii], chi2n[ii], regularity[ii],
             niter[ii], spec[ii],
         ) = dalgo['func'](
-            Tn=Tn,
-            TTn=TTn,
-            Tyn=Tyn,
+            Tn=Tni,
+            TTn=TTni,
+            Tyn=Tyni,
             R=R,
-            yn=data_n[ii, :],
+            yn=yni,
             sol0=sol0,
-            nchan=nchan,
+            nchan=nchani,
             nbs=nbs,
             mu0=mu0,
             conv_crit=conv_crit,
@@ -555,6 +556,8 @@ def _compute_inv_loop_tomotok(
     precond=None,
     data_n=None,
     sigma=None,
+    indok=None,
+    # parameters
     conv_crit=None,
     isotropic=None,
     sparse=None,
@@ -643,20 +646,39 @@ def _compute_inv_loop_tomotok(
 
 def _update_TTyn(
     sparse=None,
+    data_n=None,
     sigma=None,
     matrix=None,
     Tn=None,
     TTn=None,
-    ii=None,
+    indok=None,
     dconstraints=None,
 ):
     # intermediates
-    if sparse:
-        Tn.data = scpsp.diags(1./sigma[ii, :]).dot(matrix).data
-        TTn.data = Tn.T.dot(Tn).data
-    else:
-        Tn[...] = matrix / sigma[ii, :][:, None]
-        TTn[...] = Tn.T.dot(Tn)
+    if indok is None:
+        if sparse:
+            Tn.data = scpsp.diags(1./sigma).dot(matrix).data
+            TTn.data = Tn.T.dot(Tn).data
+        else:
+            Tn[...] = matrix / sigma[:, None]
+            TTn[...] = Tn.T.dot(Tn)
 
-    if dconstraints is not None:
-        Tn[...] = Tn.dot(dconstraints['coefs'])
+        if dconstraints is not None:
+            Tn[...] = Tn.dot(dconstraints['coefs'])
+
+        yn = data_n
+
+    else:
+        if sparse:
+            Tn.data = scpsp.diags(1./sigma[indok]).dot(matrix[indok, :]).data
+            TTn.data = Tn.T.dot(Tn).data
+        else:
+            Tn = matrix / sigma[indok][:, None]
+            TTn = Tn.T.dot(Tn)
+
+        if dconstraints is not None:
+            Tn[...] = Tn.dot(dconstraints['coefs'])
+
+        yn = data_n[indok]
+
+    return Tn, TTn, yn, yn.size
