@@ -749,7 +749,7 @@ def _mesh2DTri_conformity(knots=None, cents=None, key=None):
         and knots.shape[0] >= 3
         and cents.shape[1] in [3, 4]
         and cents.shape[0] >= 1
-        and cents.dtype == np.int
+        and cents.dtype == int
     )
     if not c0:
         msg = (

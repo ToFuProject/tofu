@@ -2144,7 +2144,11 @@ def _interp2d_check(
         nshbs = len(shapebs)
         c0 = (
             coefs.shape[-nshbs:] == shapebs
-            and (coefs.ndim == nshbs + 1) == hastime
+            and (
+                (hastime and coefs.ndim == nshbs + 1)           # pre-shaped
+                or (not hastime and coefs.ndim == nshbs + 1)    # pre-shaped
+                or (not hastime and coefs.ndim == nshbs)        # [None, ...]
+            )
         )
         if not c0:
             msg = (
@@ -2152,6 +2156,7 @@ def _interp2d_check(
                 f"\t- shape: {coefs.shape}\n"
                 f"\t- shapebs: {shapebs}\n"
                 f"\t- hastime: {hastime}\n"
+                f"\t- radius_vs_time: {radius_vs_time}\n"
             )
             raise Exception(msg)
 
@@ -2173,7 +2178,7 @@ def _interp2d_check(
             if radius_vs_time is True:
                 sh = tuple([radius.shape[0]] + [1]*len(shapebs))
                 coefs = np.tile(coefs, sh)
-            else:
+            elif coefs.ndim == nshbs:
                 coefs = coefs[None, ...]
 
     # -------------
@@ -2541,9 +2546,9 @@ def _get_contours(
             cj = cont_raw.create_contour(levels[jj])
             if isinstance(cj, (tuple, list)):
                 cj = [
-                    cc[np.all(~np.isnan(cc), axis=1), :]
+                    cc[np.all(np.isfinite(cc), axis=1), :]
                     for cc in cj
-                    if np.sum(np.all(~np.isnan(cc), axis=1)) >= 3
+                    if np.sum(np.all(np.isfinite(cc), axis=1)) >= 3
                 ]
                 if len(cj) == 0:
                     no_cont = True

@@ -314,18 +314,12 @@ def _plot_geometry_matrix_prepare(
     # LOS
 
     # los
-    ptslos, coefslines, indlosok = None, None, None
+    ptslos, indlosok = None, None
     if cam is not None:
         ptslos = cam._get_plotL(return_pts=True, proj='cross', Lplot='tot')
         indsep = np.nonzero(np.isnan(ptslos[0, :]))[0]
         ptslos = np.split(ptslos, indsep, axis=1)
-        coefslines = coll.ddata[key]['data'][:, indbf]
-        indlosok = np.nonzero(coefslines > 0)[0]
-        # normalize for line width
-        coefslines = (
-            (3. - 0.5) * (coefslines - coefslines.min())
-            / (coefslines.max() - coefslines.min()) + 0.5
-        )
+        indlosok = np.nonzero(coll.ddata[key]['data'][:, indbf] > 0)[0]
 
     # ---------------
     # extent / interp
@@ -348,7 +342,7 @@ def _plot_geometry_matrix_prepare(
 
     return (
         bsplinetot, bspline1, extent, interp,
-        ptslos, coefslines, indlosok, indbf_bool, refs,
+        ptslos, indlosok, indbf_bool, refs,
     )
 
 
@@ -406,7 +400,7 @@ def plot_geometry_matrix(
     (
         bsplinetot, bspline1,
         extent, interp,
-        ptslos, coefslines, indlosok,
+        ptslos, indlosok,
         ich_bf, refs,
     ) = _plot_geometry_matrix_prepare(
         cam=cam,
@@ -615,7 +609,7 @@ def plot_geometry_matrix(
                     ptslos[ii][0, :],
                     ptslos[ii][1, :],
                     ls='-',
-                    lw=coefslines[ii],
+                    lw=1,
                     color='k',
                 )
 

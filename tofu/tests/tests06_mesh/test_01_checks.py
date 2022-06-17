@@ -764,7 +764,7 @@ class Test02_Plasma2D():
                 cents=bool(ii%2),
                 plot_mesh=plot_mesh,
             )
-        plt.close('all')
+            plt.close('all')
 
     # def test11_plot_profile2d(self):
 

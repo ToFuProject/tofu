@@ -212,8 +212,8 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         deg = self.degrees[0]
         nbs = indbs_tf[0].size
         shape = x.shape
-        x = np.ascontiguousarray(x.ravel(), dtype=np.floating)
-        y = np.ascontiguousarray(y.ravel(), dtype=np.floating)
+        x = np.ascontiguousarray(x.ravel(), dtype=float)
+        y = np.ascontiguousarray(y.ravel(), dtype=float)
         coef = np.zeros((deg + 4, 1), dtype=float)
         coef[deg] = 1.
         outy = np.full((x.size, 1), np.nan)
