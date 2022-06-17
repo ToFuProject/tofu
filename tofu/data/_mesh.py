@@ -1249,7 +1249,6 @@ class Plasma2D(ds.DataStock):
         key_matrix=None,
         key_data=None,
         key_sigma=None,
-        data=None,
         sigma=None,
         # choice of algo
         # isotropic=None,
@@ -1284,7 +1283,6 @@ class Plasma2D(ds.DataStock):
             key_matrix=key_matrix,
             key_data=key_data,
             key_sigma=key_sigma,
-            data=data,
             sigma=sigma,
             # choice of algo
             # isotropic=isotropic,

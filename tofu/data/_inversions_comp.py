@@ -32,7 +32,6 @@ def compute_inversions(
     key_matrix=None,
     key_data=None,
     key_sigma=None,
-    data=None,
     sigma=None,
     # constraints
     dconstraints=None,
@@ -58,7 +57,7 @@ def compute_inversions(
 
     (
         key_matrix, key_data, key_sigma, keybs, keym,
-        data, sigma, matrix,
+        data, sigma, matrix, t,
         m3d, indok,
         dconstraints,
         opmat, operator, geometry,
@@ -71,7 +70,6 @@ def compute_inversions(
         key_matrix=key_matrix,
         key_data=key_data,
         key_sigma=key_sigma,
-        data=data,
         sigma=sigma,
         # constraints
         dconstraints=dconstraints,
@@ -137,24 +135,19 @@ def compute_inversions(
     # prepare computation intermediates
     precond = None
     Tyn = np.full((nbs,), np.nan)
+    mat0 = matrix[0, ...] if m3d else matrix
     if dalgo['sparse'] is True:
-        if m3d:
+        Tn = scpsp.diags(1./np.nanmean(sigma, axis=0)).dot(mat0)
+        TTn = Tn.T.dot(Tn)
+        if solver != 'spsolve':
+            # preconditioner to approx inv(TTn + reg*Rn)
+            # should improves convergence, but actually slower...
+            # precond = scpsp.linalg.inv(TTn + mu0*R)
             pass
-        else:
-            Tn = scpsp.diags(1./np.nanmean(sigma, axis=0)).dot(matrix)
-            TTn = Tn.T.dot(Tn)
-            if solver != 'spsolve':
-                # preconditioner to approx inv(TTn + reg*Rn)
-                # should improves convergence, but actually slower...
-                # precond = scpsp.linalg.inv(TTn + mu0*R)
-                pass
 
     else:
-        if m3d:
-            pass
-        else:
-            Tn = matrix / np.nanmean(sigma, axis=0)[:, None]
-            TTn = Tn.T.dot(Tn)
+        Tn = mat0 / np.nanmean(sigma, axis=0)[:, None]
+        TTn = Tn.T.dot(Tn)
 
     # prepare output arrays
     sol = np.full((nt, nbs), np.nan)
@@ -167,8 +160,10 @@ def compute_inversions(
     # -------------
     # initial guess
 
-    m0 = matrix[0, ...].mean() if m3d else matrix.mean()
-    sol0 = np.full((nbs,), np.mean(data[0, indok[0, :]]) / m0)
+    if indok is None:
+        sol0 = np.full((nbs,), np.mean(data[0, :]) / mat0.mean())
+    else:
+        sol0 = np.full((nbs,), np.mean(data[0, indok[0, :]]) / mat0.mean())
 
     if verb >= 1:
         # t1 = time.process_time()
@@ -323,6 +318,17 @@ def compute_inversions(
             },
         }
         if notime is False:
+            if isinstance(t, np.ndarray):
+                dref = {
+                    f'{keyinv}-nt': {'size': nt},
+                }
+                ddata.update({
+                    f'{keyinv}-t': {
+                        'data': t,
+                        'ref': f'{keyinv}-nt',
+                    },
+                })
+
             ddata.update({
                 f'{keyinv}-chi2n': {
                     'data': chi2n,
@@ -393,7 +399,7 @@ def compute_inversions(
         coll.update(dobj=dobj, ddata=ddata)
 
     else:
-        return sol_full, mu, chi2n, regularity, niter, spec
+        return sol_full, mu, chi2n, regularity, niter, spec, t
 
 
 # #############################################################################
@@ -496,19 +502,20 @@ def _compute_inv_loop(
         if sigma.shape[0] > 1 or m3d or indok is not None:
 
             # update terms
-            Tni, TTni, yni, nchani = _update_TTyn(
+            Tni, TTni, Tyni, yni, nchani = _update_TTyn(
                 sparse=sparse,
                 data_n=data_n,
                 sigma=sigma,
                 matrix=matrix,
                 Tn=Tn,
                 TTn=TTn,
+                Tyn=Tyn,
                 indok=indok,
+                ii=ii,
                 dconstraints=dconstraints,
+                m3d=m3d,
+                regul=dalgo['family'] != 'Non-regularized',
             )
-
-        if dalgo['family'] != 'Non-regularized':
-            Tyn[:] = Tn.T.dot(yni)
 
         # solving
         (
@@ -664,9 +671,12 @@ def _update_TTyn(
     matrix=None,
     Tn=None,
     TTn=None,
+    Tyn=None,
     indok=None,
+    ii=None,
     dconstraints=None,
     m3d=None,
+    regul=None,
 ):
     # update matrix
     if indok is None:
@@ -681,8 +691,8 @@ def _update_TTyn(
             mi = matrix[indok[ii, :], :]
 
     # update sig
-    if sigma.shape[0] > 1:
-        sig = sigam[0, :]
+    if sigma.shape[0] == 1:
+        sig = sigma[0, :]
     else:
         if indok is None:
             sig = sigma[ii, :]
@@ -691,9 +701,9 @@ def _update_TTyn(
 
     # update data_n
     if indok is None:
-        yn = data[ii, :]
+        yn = data_n[ii, :]
     else:
-        yn = data[indok[ii, :], :]
+        yn = data_n[indok[ii, :], :]
 
     # intermediates
     if indok is None:
@@ -701,19 +711,27 @@ def _update_TTyn(
             Tn.data = scpsp.diags(1./sig).dot(mi).data
             TTn.data = Tn.T.dot(Tn).data
         else:
-            Tn[...] = mati / sig[:, None]
+            Tn[...] = mi / sig[:, None]
             TTn[...] = Tn.T.dot(Tn)
 
     else:
         if sparse:
-            Tn = scpsp.diags(1./sig).dot(mati)
+            Tn = scpsp.diags(1./sig).dot(mi)
             TTn = Tn.T.dot(Tn)
         else:
-            Tn = mati / sig[:, None]
+            Tn = mi / sig[:, None]
             TTn = Tn.T.dot(Tn)
 
     # update with constraints
     if dconstraints is not None:
         Tn[...] = Tn.dot(dconstraints['coefs'])
 
-    return Tn, TTn, yn, yn.size
+
+    # Tyn (for reguarized algorithms)
+    if regul:
+        if indok is None:
+            Tyn[:] = Tni.T.dot(yni)
+        else:
+            Tyn = Tni.T.dot(yni)
+
+    return Tn, TTn, Tyn, yn, yn.size

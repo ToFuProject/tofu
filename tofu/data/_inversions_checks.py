@@ -259,7 +259,6 @@ def _compute_check(
     key_matrix=None,
     key_data=None,
     key_sigma=None,
-    data=None,
     sigma=None,
     # constraints
     dconstraints=None,
@@ -304,53 +303,26 @@ def _compute_check(
         raise Exception(msg)
 
     # key_data
-    if key_data is not None or (key_data is None and data is None):
-        lk = [
-            kk for kk, vv in coll.ddata.items()
-            if vv['data'].ndim in [1, 2]
-            and vv['data'].shape[-1] == nchan
-        ]
-        if key_data is None and len(lk):
-            key_data = lk[0]
-        key_data = _generic_check._check_var(
-            key_data, 'key_data',
-            types=str,
-            allowed=lk,
-        )
-        data = coll.ddata[key_data]['data']
-
-    # ------------
-    # data, sigma
-
-    # data
-    data = _generic_check._check_var(
-        data, 'data',
-        types=(np.ndarray, list, tuple),
+    lk = [
+        kk for kk, vv in coll.ddata.items()
+        if vv['data'].ndim in [1, 2]
+        and vv['data'].shape[-1] == nchan
+    ]
+    key_data = _generic_check._check_var(
+        key_data, 'key_data',
+        types=str,
+        allowed=lk,
     )
-    if not isinstance(data, np.ndarray):
-        data = np.asarray(data)
-    if data.ndim not in [1, 2] or nchan not in data.shape:
-        msg = (
-            "Arg data must have dim in [1, 2]"
-            f" and {nchan} must be in shape\n"
-            f"\t- data.shape: {data.shape}"
-        )
-        raise Exception(msg)
-
+    data = coll.ddata[key_data]['data']
     if data.ndim == 1:
         data = data[None, :]
-    if data.shape[1] != nchan:
-        data = data.T
-    # if np.any(~np.isfinite(data)):
-        # msg = "Arg data should not contain NaNs or inf!"
-        # raise Exception(msg)
 
     # key_sigma
     if key_sigma is not None:
         lk = [
             kk for kk, vv in coll.ddata.items()
-            if vv['data'].ndim in [1, 2]
-            and vv['data'].shape[-1] == nchan
+            if vv['data'].shape == coll.ddata[key_data]['data'].shape
+            or vv['data'].shape == (nchan,)
         ]
         key_sigma = _generic_check._check_var(
             key_sigma, 'key_sigma',
@@ -359,43 +331,48 @@ def _compute_check(
         )
         sigma = coll.ddata[key_sigma]['data']
 
-    # sigma
-    if np.isscalar(sigma):
-        sigma = np.full((nchan,), sigma*np.nanmean(np.abs(data)))
-
-    sigma = _generic_check._check_var(
-        sigma, 'sigma',
-        default=np.full((nchan,), 0.05*np.nanmean(np.abs(data))),
-        types=(np.ndarray, list, tuple),
-    )
-
-    if not isinstance(sigma, np.ndarray):
-        sigma = np.asarray(sigma)
-    if sigma.ndim not in [1, 2] or nchan not in sigma.shape:
-        msg = (
-            "Arg sigma must have dim in [1, 2]"
-            f" and {nchan} must be in shape\n"
-            f"\t- sigma.shape = {sigma.shape}"
-        )
+    elif sigma is None:
+        sigma = 0.05
+    elif not np.isscalar(sigma):
+        msg = "Provide key_sigma xor sigma (as scalar only)!"
         raise Exception(msg)
+
+    if np.isscalar(sigma):
+        sigma = np.full((1, nchan), sigma*np.nanmean(np.abs(data)))
 
     if sigma.ndim == 1:
         sigma = sigma[None, :]
-    elif sigma.ndim == 2 and data.shape != sigma.shape:
-        msg = (
-            "Arg sigma must have the same shape as data!\n"
-            f"\t- data.shape: {data.shape}\n"
-            f"\t- sigma.shape: {sigma.shape}\n"
-        )
-        raise Exception(msg)
-    if sigma.shape[1] != nchan:
-        sigma = sigma.T
 
-    # if np.any(~np.isfinite(sigma)):
-        # msg = "Arg sigma should not contain NaNs or inf!"
-        # raise Exception(msg)
+    # --------------------------------------------
+    # Time synchronisation between matrix and data
 
+    hastime, hasvect, t, dind = coll.get_time_common(
+        keys=[key_data, key_matrix],
+    )
+
+    if hastime and hasvect:
+        lt = [v0['key_vector'] for v0 in dind.values()]
+        if len(lt) == 1:
+            t = lt[0]
+        elif m3d:
+            matrix = matrix[dind[key_matrix]['ind'], ...]
+            data = data[dind[key_data]['ind'], :]
+            if sigma.shape[0] > 1:
+                sigma = sigma[dind[key_data]['ind'], :]
+
+    if m3d:
+        assert matrix.shape[0] == data.shape[0]
+
+    # --------------
+    # inversion refs
+
+    # TBF
+    if hastime:
+        ref_inv = (nt, nbs)
+
+    # --------------------------------------------
     # valid indices of data / sigma
+
     indok = np.isfinite(data) & np.isfinite(sigma)
     if not np.all(indok):
 
@@ -414,7 +391,7 @@ def _compute_check(
             warnings.warn(msg)
             data = data[:, iok]
             sigma = sigma[:, iok]
-            matrix = matrix[:, iok, :] if m3d == 3 else matrix[iok, :]
+            matrix = matrix[:, iok, :] if m3d else matrix[iok, :]
             indok = indok[:, iok]
 
         # remove time steps
@@ -426,10 +403,15 @@ def _compute_check(
             )
             warnings.warn(msg)
             data = data[iok, :]
-            sigma = sigma[iok, :]
-            indok = indok[iok, :]
+            if sigma.shape[0] == iok.size:
+                sigma = sigma[iok, :]
             if m3d:
                 matrix = matrix[iok, :, :]
+            if isinstance(t, np.ndarray):
+                t = t[iok]
+            indok = indok[iok, :]
+
+            nt, nchan = data.shape
 
     if np.all(indok):
         indok = None
@@ -657,7 +639,7 @@ def _compute_check(
 
     return (
         key_matrix, key_data, key_sigma, keybs, keym,
-        data, sigma, matrix,
+        data, sigma, matrix, t,
         m3d, indok,
         dconstraints,
         opmat, operator, geometry,
