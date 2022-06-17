@@ -2545,11 +2545,16 @@ def _get_contours(
             no_cont = False
             cj = cont_raw.create_contour(levels[jj])
             if isinstance(cj, (tuple, list)):
-                cj = [
-                    cc[np.all(np.isfinite(cc), axis=1), :]
-                    for cc in cj
-                    if np.sum(np.all(np.isfinite(cc), axis=1)) >= 3
-                ]
+                try:        # DB
+                    cj = [
+                        cc[np.all(np.isfinite(cc), axis=1), :]
+                        for cc in cj
+                        if np.sum(np.all(np.isfinite(cc), axis=1)) >= 3
+                    ]
+                except Exception as err:        # DB
+                    msg = str(err) + f"\ncj = {cj}"
+                    raise Exception(msg)
+
                 if len(cj) == 0:
                     no_cont = True
                 elif len(cj) == 1:

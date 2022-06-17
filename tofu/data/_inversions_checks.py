@@ -334,13 +334,14 @@ def _compute_check(
             f"\t- data.shape: {data.shape}"
         )
         raise Exception(msg)
+
     if data.ndim == 1:
         data = data[None, :]
     if data.shape[1] != nchan:
         data = data.T
-    if np.any(~np.isfinite(data)):
-        msg = "Arg data should not contain NaNs or inf!"
-        raise Exception(msg)
+    # if np.any(~np.isfinite(data)):
+        # msg = "Arg data should not contain NaNs or inf!"
+        # raise Exception(msg)
 
     # key_sigma
     if key_sigma is not None:
@@ -375,6 +376,7 @@ def _compute_check(
             f"\t- sigma.shape = {sigma.shape}"
         )
         raise Exception(msg)
+
     if sigma.ndim == 1:
         sigma = sigma[None, :]
     elif sigma.ndim == 2 and data.shape != sigma.shape:
@@ -387,9 +389,43 @@ def _compute_check(
     if sigma.shape[1] != nchan:
         sigma = sigma.T
 
-    if np.any(~np.isfinite(sigma)):
-        msg = "Arg sigma should not contain NaNs or inf!"
-        raise Exception(msg)
+    # if np.any(~np.isfinite(sigma)):
+        # msg = "Arg sigma should not contain NaNs or inf!"
+        # raise Exception(msg)
+
+    # valid indices of data / sigma
+    indok = np.isfinite(data) & np.isfinite(sigma)
+    if not np.all(indok):
+
+        # remove channels
+        iok = np.any(indok, axis=0)
+        if np.any(~iok):
+
+            if not np.any(iok):
+                msg = "No valid data (all non-finite)"
+                raise Exception(msg)
+
+            msg = (
+                "Removed the following channels (all times invalid):\n"
+                f"{(~iok).nonzero()[0]}"
+            )
+            warnings.warn(msg)
+            data = data[:, iok]
+            sigma = sigma[:, iok]
+            matrix = matrix[iok, :]
+            indok = indok[:, iok]
+
+        # remove time steps
+        iok = np.any(indok, axis=1)
+        if np.any(~iok):
+            msg = (
+                "Removed the following time steps (all channels invalid):\n"
+                f"{(~iok).nonzero()[0]}"
+            )
+            warnings.warn(msg)
+            data = data[iok, :]
+            sigma = sigma[iok, :]
+            indok = indok[iok, :]
 
     # -----------
     # constraints
@@ -611,7 +647,7 @@ def _compute_check(
 
     return (
         key_matrix, key_data, key_sigma, keybs, keym,
-        data, sigma, matrix,
+        data, sigma, matrix, indok,
         dconstraints,
         opmat, operator, geometry,
         dalgo,

@@ -58,7 +58,7 @@ def compute_inversions(
 
     (
         key_matrix, key_data, key_sigma, keybs, keym,
-        data, sigma, matrix,
+        data, sigma, matrix, indok,
         dconstraints,
         opmat, operator, geometry,
         dalgo,
@@ -160,7 +160,7 @@ def compute_inversions(
     # -------------
     # initial guess
 
-    sol0 = np.full((nbs,), np.nanmean(data[0, :]) / matrix.mean())
+    sol0 = np.full((nbs,), np.mean(data[0, iondok[0, :]]) / matrix.mean())
 
     if verb >= 1:
         # t1 = time.process_time()
@@ -189,6 +189,7 @@ def compute_inversions(
             precond=precond,
             data_n=data_n,      # normalized data
             sigma=sigma,
+            indok=indok,
             # parameters
             dalgo=dalgo,
             isotropic=dalgo['isotropic'],
@@ -222,6 +223,7 @@ def compute_inversions(
             precond=precond,
             data_n=data_n,
             sigma=sigma,
+            indok=indok,
             # parameters
             dalgo=dalgo,
             isotropic=dalgo['isotropic'],
@@ -264,7 +266,9 @@ def compute_inversions(
     else:
         sol_full = sol
 
+    # -------------
     # store
+
     if store is True:
 
         # key
@@ -328,6 +332,7 @@ def compute_inversions(
                 },
             })
 
+        # add sigma if user-provided
         if key_sigma is None:
             key_sigma = f'{key_data}-sigma'
             if notime:
@@ -349,6 +354,7 @@ def compute_inversions(
                 },
             })
 
+        # add inversion
         dobj = {
             'inversions': {
                 keyinv: {
@@ -399,6 +405,7 @@ def _compute_inv_loop(
     precond=None,
     data_n=None,
     sigma=None,
+    indok=None,
     # parameters
     conv_crit=None,
     isotropic=None,
