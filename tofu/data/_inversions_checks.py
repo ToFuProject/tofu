@@ -338,10 +338,18 @@ def _compute_check(
         raise Exception(msg)
 
     if np.isscalar(sigma):
+        key_sigma = sigma
         sigma = np.full((1, nchan), sigma*np.nanmean(np.abs(data)))
 
     if sigma.ndim == 1:
         sigma = sigma[None, :]
+
+    # key_inv
+    if coll.dobj.get('inversions') is None:
+        ninv = 0
+    else:
+        ninv = np.max([int(kk[3:]) for kk in coll.dobj['inversions']]) + 1
+    keyinv = f'inv{ninv}'
 
     # --------------------------------------------
     # Time synchronisation between matrix and data
@@ -366,9 +374,17 @@ def _compute_check(
     # --------------
     # inversion refs
 
-    # TBF
-    if hastime:
-        ref_inv = (nt, nbs)
+    refbs = coll.dobj['bsplines'][keybs]['ref-bs']
+    if hastime and hasvect:
+        if len(lt) == 1:
+            reft = lt[0]
+        elif m3d:
+            reft = f'{keyinv}-nt'
+        refinv = tuple(np.r_[(reft,), refbs])
+    else:
+        refinv = refbs
+
+    notime = (refinv == refbs)
 
     # --------------------------------------------
     # valid indices of data / sigma
@@ -646,6 +662,7 @@ def _compute_check(
         dalgo,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
+        keyinv, refinv, reft, notime,
     )
 
 

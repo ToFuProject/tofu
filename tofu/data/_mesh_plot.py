@@ -1240,6 +1240,8 @@ def _plot_profiles2d_prepare(
 
     # knots and cents
 
+    coll2 =
+
     return bspline, extent, interp
 
 
@@ -1273,6 +1275,8 @@ def plot_profile2d(
         dcolorbar=dcolorbar,
         dleg=dleg,
     )
+    mtype = coll.dobj[coll._which_mesh][keym]['type']
+    hastime = coll.get_time(key=key)[0]
 
     # --------------
     #  Prepare data
@@ -1287,6 +1291,14 @@ def plot_profile2d(
         res=res,
     )
 
+    # ---------------
+    # call right function
+
+    if mtype in ['rect', 'tri']:
+
+        dax = coll.plot_as_array()
+
+
     # --------------
     # plot - prepare
 
@@ -1298,6 +1310,12 @@ def plot_profile2d(
                 'bottom': 0.1, 'top': 0.9,
                 'hspace': 0.1, 'wspace': 0.1,
             }
+
+        if mtype in ['rect', 'tri']:
+            pass
+
+        else:
+            pass
 
         fig = plt.figure(figsize=fs)
         gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)

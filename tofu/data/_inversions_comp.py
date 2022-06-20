@@ -64,6 +64,7 @@ def compute_inversions(
         dalgo,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
+        keyinv, refinv, reft, notime,
     ) = _inversions_checks._compute_check(
         # input data
         coll=coll,
@@ -276,39 +277,10 @@ def compute_inversions(
 
     if store is True:
 
-        # key
-        if coll.dobj.get('inversions') is None:
-            ninv = 0
-        else:
-            ninv = np.max([int(kk[3:]) for kk in coll.dobj['inversions']]) + 1
-        keyinv = f'inv{ninv}'
-
-        # ref
-        refmat = coll.ddata[key_matrix]['ref']
-        refdata = coll.ddata[key_data]['ref']
-
         # reshape if unique time step
-        if refdata == (refmat[0],):
-            refinv = coll.dobj['bsplines'][keybs]['ref']
+        if notime:
             assert sol_full.shape[0] == 1
             sol_full = sol_full[0, ...]
-            notime = True
-
-        elif refdata[0] not in refmat:
-            refinv = tuple(
-                [refdata[0]] + list(coll.dobj['bsplines'][keybs]['ref'])
-            )
-            notime = False
-
-        else:
-            msg = (
-                "Unreckognized shape of sol_full vs refinv!\n"
-                f"\t- sol_full.shape: {sol_full.shape}\n"
-                f"\t- inv['ref']:    {refinv}\n"
-                f"\t- matrix['ref']: {refmat}\n"
-                f"\t- data['ref']:   {refdata}\n"
-            )
-            raise Exception(msg)
 
         # dict
         ddata = {
@@ -320,53 +292,31 @@ def compute_inversions(
         if notime is False:
             if isinstance(t, np.ndarray):
                 dref = {
-                    f'{keyinv}-nt': {'size': nt},
+                    reft: {'size': nt},
                 }
                 ddata.update({
                     f'{keyinv}-t': {
                         'data': t,
-                        'ref': f'{keyinv}-nt',
+                        'ref': reft,
                     },
                 })
 
             ddata.update({
                 f'{keyinv}-chi2n': {
                     'data': chi2n,
-                    'ref': refinv[0],
+                    'ref': reft,
                 },
                 f'{keyinv}-mu': {
                     'data': mu,
-                    'ref': refinv[0],
+                    'ref': reft,
                 },
                 f'{keyinv}-reg': {
                     'data': regularity,
-                    'ref': refinv[0],
+                    'ref': reft,
                 },
                 f'{keyinv}-niter': {
                     'data': niter,
-                    'ref': refinv[0],
-                },
-            })
-
-        # add sigma if user-provided
-        if key_sigma is None:
-            key_sigma = f'{key_data}-sigma'
-            if notime:
-                ref_sigma = coll.ddata[key_data]['ref']
-                sigma = sigma[0, :]
-            else:
-                if sigma.shape == data.shape:
-                    ref_sigma = coll.ddata[key_data]['ref']
-                else:
-                    ref_sigma = coll.ddata[key_data]['ref'][1:]
-                    sigma = sigma[0, :]
-
-            ddata.update({
-                key_sigma: {
-                    'data': sigma,
-                    'ref': ref_sigma,
-                    'units': coll.ddata[key_data].get('units'),
-                    'dim': coll.ddata[key_data].get('dim'),
+                    'ref': reft,
                 },
             })
 
@@ -375,6 +325,7 @@ def compute_inversions(
             'inversions': {
                 keyinv: {
                     'data_in': key_data,
+                    'sigma_in': key_sigma,
                     'matrix': key_matrix,
                     'sol': keyinv,
                     'operator': operator,
