@@ -24,6 +24,7 @@ except Exception as err:
 
 _DALGO = {
     'algo0': {
+        'name': 'algo0',
         'source': 'tofu',
         'family': 'Phillips-Tikhonov',
         'reg_operator': 'any linear',
@@ -35,6 +36,7 @@ _DALGO = {
         'func': 'inv_linear_augTikho_sparse',
     },
     'algo1': {
+        'name': 'algo1',
         'source': 'tofu',
         'family': 'Phillips-Tikhonov',
         'reg_operator': 'any linear',
@@ -46,6 +48,7 @@ _DALGO = {
         'func': 'inv_linear_augTikho_dense',
     },
     'algo2': {
+        'name': 'algo2',
         'source': 'tofu',
         'family': 'Phillips-Tikhonov',
         'reg_operator': 'any linear',
@@ -57,6 +60,7 @@ _DALGO = {
         'func': 'inv_linear_augTikho_chol_dense',
     },
     'algo3': {
+        'name': 'algo3',
         'source': 'tofu',
         'family': 'Phillips-Tikhonov',
         'reg_operator': 'any linear',
@@ -68,6 +72,7 @@ _DALGO = {
         'func': 'inv_linear_augTikho_chol_sparse',
     },
     'algo4': {
+        'name': 'algo4',
         'source': 'tofu',
         'family': 'Phillips-Tikhonov',
         'reg_operator': 'any linear',
@@ -79,6 +84,7 @@ _DALGO = {
         'func': 'inv_linear_augTikho_pos_dense',
     },
     'algo5': {
+        'name': 'algo5',
         'source': 'tofu',
         'family': 'Phillips-Tikhonov',
         'reg_operator': 'any linear',
@@ -90,12 +96,25 @@ _DALGO = {
         'func': 'inv_linear_DisPrinc_sparse',
     },
     'algo6': {
+        'name': 'algo6',
         'source': 'tofu',
         'family': 'Non-regularized',
         'reg_operator': None,
         'reg_param': None,
         'decomposition': '',
         'positive': False,
+        'sparse': True,
+        'isotropic': True,
+        'func': 'inv_linear_leastsquares_bounds',
+    },
+    'algo7': {
+        'name': 'algo7',
+        'source': 'tofu',
+        'family': 'Non-regularized',
+        'reg_operator': None,
+        'reg_param': None,
+        'decomposition': '',
+        'positive': True,
         'sparse': True,
         'isotropic': True,
         'func': 'inv_linear_leastsquares_bounds',
@@ -256,6 +275,7 @@ def match_algo(
 def _compute_check(
     # input data
     coll=None,
+    key=None,
     key_matrix=None,
     key_data=None,
     key_sigma=None,
@@ -348,8 +368,33 @@ def _compute_check(
     if coll.dobj.get('inversions') is None:
         ninv = 0
     else:
-        ninv = np.max([int(kk[3:]) for kk in coll.dobj['inversions']]) + 1
-    keyinv = f'inv{ninv}'
+        ninv = [
+            int(kk[3:]) for kk in coll.dobj['inversions']
+            if kk.startswith('inv')
+            and len(kk) > 3
+            and kk[3:].isnumeric()
+        ]
+        if len(ninv) > 0:
+            ninv = np.max(ninv) + 1
+        else:
+            ninv = 0
+
+    if key is None:
+        keyinv = f'inv{ninv}'
+    else:
+        c0 = (
+            isinstance(key, str)
+            and (ninv == 0 or key not in coll.dobj['inversions'].keys())
+        )
+        if not c0:
+            msg = (
+                "Arg key (used for inversion produced) already exists!\n"
+                f"\t- Provided: {key}\n"
+                f"\t- Existing: {coll.dobj.get('inversions', {}).keys()}"
+
+            )
+            raise Exception(msg)
+        keyinv = key
 
     # --------------------------------------------
     # Time synchronisation between matrix and data
@@ -380,11 +425,11 @@ def _compute_check(
             reft = lt[0]
         elif m3d:
             reft = f'{keyinv}-nt'
-        refinv = tuple(np.r_[(reft,), refbs])
+        refinv = (reft, keybs)
     else:
-        refinv = refbs
+        refinv = keybs
 
-    notime = (refinv == refbs)
+    notime = (refinv == keybs)
 
     # --------------------------------------------
     # valid indices of data / sigma
@@ -743,14 +788,17 @@ def _algo_check(
             options = {}
 
         if method is None:
-            method = 'L-BFGS-B'
+            if dalgo['name'] == 'algo7':
+                method = 'trf'
+            else:
+                method = 'L-BFGS-B'
 
         if method == 'L-BFGS-B':
             if options.get('ftol') is None:
                 options['ftol'] = conv_crit/100.
             if options.get('disp') is None:
                 options['disp'] = False
-        else:
+        elif dalgo['name'] != 'algo7':
             raise NotImplementedError
 
     return kwdargs, method, options

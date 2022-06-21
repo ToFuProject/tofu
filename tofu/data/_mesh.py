@@ -1256,6 +1256,8 @@ class Plasma2D(ds.DataStock):
 
     def add_inversion(
         self,
+        # name of inversion
+        key=None,
         # input data
         key_matrix=None,
         key_data=None,
@@ -1289,8 +1291,11 @@ class Plasma2D(ds.DataStock):
         """
 
         return _inversions_comp.compute_inversions(
-            # input data
+            # ressources
             coll=self,
+            # name of inversion
+            key=key,
+            # input
             key_matrix=key_matrix,
             key_data=key_data,
             key_sigma=key_sigma,

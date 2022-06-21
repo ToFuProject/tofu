@@ -1956,7 +1956,7 @@ def _interp2d_check(
             indtu = np.unique(indt)
             indtr = np.array([indt == iu for iu in indtu])
         else:
-            indt, indtu, indtr = None, None, None
+            reft, indt, indtu, indtr = None, None, None, None
 
     elif key != keybs:
         # hastime, t, indit
@@ -2420,8 +2420,8 @@ def interp2d(
         if hastime:
             if reft is False or indt is not None:
                 reft = f'{key}-nt'
-                coll.add_ref(key=reft, size=t.size)
-                coll.add_data(
+                coll2.add_ref(key=reft, size=t.size)
+                coll2.add_data(
                     key=f'{key}-t',
                     data=t,
                     ref=reft,

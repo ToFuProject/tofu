@@ -1129,6 +1129,7 @@ def _plot_profile2d_check(
     keybs = dk[key]
     refbs = coll.dobj['bsplines'][keybs]['ref']
     keym = coll.dobj['bsplines'][keybs]['mesh']
+    mtype = coll.dobj[coll._which_mesh][keym]['type']
 
     # cmap
     if cmap is None:
@@ -1158,7 +1159,19 @@ def _plot_profile2d_check(
         types=(bool, dict),
     )
 
-    return key, keybs, keym, cmap, dcolorbar, dleg
+    # polar1d
+    polar1d = False
+    if mtype  == 'polar':
+        if coll.dobj['bsplines'][keybs]['class'].knotsa is None:
+            polar1d = True
+        elif len(coll.dobj['bsplines'][keybs]['ref']) == 2:
+            polar1d = True
+        else:
+            apbs = coll.dobj['bsplines'][keybs]['class'].apex_per_bs_a
+            if np.sum([aa is not None for aa in apbs]) == 1:
+                polar1d = True
+
+    return key, keybs, keym, cmap, dcolorbar, dleg, polar1d
 
 
 def _plot_profiles2d_prepare(
@@ -1252,7 +1265,7 @@ def plot_profile2d(
     # check input
 
     (
-        key, keybs, keym, cmap, dcolorbar, dleg,
+        key, keybs, keym, cmap, dcolorbar, dleg, polar1d,
     ) = _plot_profile2d_check(
         coll=coll,
         key=key,

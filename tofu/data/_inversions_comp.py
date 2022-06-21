@@ -27,8 +27,11 @@ __all__ = ['get_available_inversions_algo']
 
 
 def compute_inversions(
-    # input data
+    # resources
     coll=None,
+    # inversion name
+    key=None,
+    # input data
     key_matrix=None,
     key_data=None,
     key_sigma=None,
@@ -66,8 +69,11 @@ def compute_inversions(
         solver, verb, store,
         keyinv, refinv, reft, notime,
     ) = _inversions_checks._compute_check(
-        # input data
+        # resources
         coll=coll,
+        # inversion name
+        key=key,
+        # input data
         key_matrix=key_matrix,
         key_data=key_data,
         key_sigma=key_sigma,
@@ -298,6 +304,7 @@ def compute_inversions(
                     f'{keyinv}-t': {
                         'data': t,
                         'ref': reft,
+                        'dim': 'time',
                     },
                 })
 
