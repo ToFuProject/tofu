@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 from matplotlib.path import Path
 import matplotlib._contour as mcontour
+import datastock as ds
 
 
 # tofu
@@ -1856,6 +1857,8 @@ def _interp2d_check(
     nan_out=None,
     imshow=None,
     return_params=None,
+    store=None,
+    inplace=None,
 ):
 
     # -------------
@@ -1944,6 +1947,11 @@ def _interp2d_check(
             hastime = key in dind.keys()
 
         if hastime:
+            lt = list(set([v0['key_vector'] for v0 in dind.values()]))
+            if len(lt) == 1:
+                reft = lt[0]
+            else:
+                reft = False
             indt = dind[kind]['ind']
             indtu = np.unique(indt)
             indtr = np.array([indt == iu for iu in indtu])
@@ -1985,15 +1993,24 @@ def _interp2d_check(
     else:
         indbs_tf = None
 
+    # -----
+    # store
+
+    store = _generic_check._check_var(
+        store, 'store',
+        types=bool,
+        default=False,
+    )
+
     # -----------
     # coordinates
 
     # (R, Z) vs (radius, angle)
     lc = [
         R is None and Z is None and radius is None,
-        R is not None and Z is not None,
+        R is not None and Z is not None and store is False,
         (R is None and Z is None)
-        and (radius is not None and mtype == 'polar')
+        and (radius is not None and mtype == 'polar') and store is False
     ]
 
     if not any(lc):
@@ -2007,6 +2024,12 @@ def _interp2d_check(
 
     # R, Z
     if lc[0]:
+
+        if store is True:
+            if imshow:
+                msg = "Storing only works if imshow = False"
+                raise Exception(msg)
+
         # no spec => sample mesh
         R, Z = coll.get_sample_mesh(
             key=keym,
@@ -2113,10 +2136,8 @@ def _interp2d_check(
 
     shapebs = coll.dobj['bsplines'][keybs]['shape']
     # 3 possible coefs shapes:
-    #   - None (if details = True)
-    #   - scalar
-    #   - (nt, shapebs)
-    #   - shapebs
+    #   - None (if details = True or key provided)
+    #   - scalar or shapebs if details = False and key = keybs
 
     if details is True:
         coefs = None
@@ -2190,18 +2211,30 @@ def _interp2d_check(
         default=False,
     )
 
+    # -------
+    # inplace
+
+    inplace = _generic_check._check_var(
+        inplace, 'inplace',
+        types=bool,
+        default=store,
+    )
+
     return (
         key, keybs,
         R, Z,
         radius, angle,
         coefs,
         hastime,
+        reft,
         shapebs,
         radius_vs_time,
         indbs, indbs_tf,
         t, indt, indtu, indtr,
         details, crop,
-        nan0, nan_out, return_params,
+        nan0, nan_out,
+        return_params,
+        store, inplace,
     )
 
 
@@ -2233,6 +2266,8 @@ def interp2d(
     nan_out=None,
     imshow=None,
     return_params=None,
+    store=None,
+    inplace=None,
 ):
 
     # ---------------
@@ -2244,12 +2279,15 @@ def interp2d(
         radius, angle,
         coefs,
         hastime,
+        reft,
         shapebs,
         radius_vs_time,
         indbs, indbs_tf,
         t, indt, indtu, indtr,
         details, crop,
-        nan0, nan_out, return_params,
+        nan0, nan_out,
+        return_params,
+        store, inplace,
     ) = _interp2d_check(
         # ressources
         coll=coll,
@@ -2277,6 +2315,8 @@ def interp2d(
         nan_out=nan_out,
         imshow=imshow,
         return_params=return_params,
+        store=store,
+        inplace=inplace,
     )
     keym = coll.dobj['bsplines'][keybs]['mesh']
     meshtype = coll.dobj['mesh'][keym]['type']
@@ -2342,12 +2382,76 @@ def interp2d(
         val[val == 0] = np.nan
 
     # ------
+    # store
+
+    if store is True:
+        Ru = np.unique(R)
+        Zu = np.unique(Z)
+        nR, nZ = Ru.size, Zu.size
+
+        knR, knZ = f'{key}-nR', f'{key}-nZ'
+        kR, kZ = f'{key}-R', f'{key}-Z'
+
+        if inplace is True:
+            coll2 = coll
+        else:
+            coll2 = ds.DataStock()
+
+        coll2.add_ref(key=knR, size=nR)
+        coll2.add_ref(key=knZ, size=nZ)
+        coll2.add_data(
+            key=kR,
+            data=Ru,
+            ref=knR,
+            dim='distance',
+            name='R',
+            units='m',
+        )
+        coll2.add_data(
+            key=kZ,
+            data=Zu,
+            ref=knZ,
+            dim='distance',
+            name='Z',
+            units='m',
+        )
+
+        # ref
+        if hastime:
+            if reft is False or indt is not None:
+                reft = f'{key}-nt'
+                coll.add_ref(key=reft, size=t.size)
+                coll.add_data(
+                    key=f'{key}-t',
+                    data=t,
+                    ref=reft,
+                    dim='time',
+                    units='s',
+                )
+            ref = (reft, knR, knZ)
+        else:
+            ref = (knR, knZ)
+
+        coll2.add_data(
+            data=val,
+            key=f'{key}-map',
+            ref=ref,
+            dim=coll.ddata[key]['dim'],
+            quant=coll.ddata[key]['quant'],
+            name=coll.ddata[key]['name'],
+            units=coll.ddata[key]['units'],
+        )
+
+    # ------
     # return
 
-    if return_params is True:
-        return val, t, dparams
+    if store and inplace is False:
+        return coll2
     else:
-        return val, t
+        if return_params is True:
+            return val, t, dparams
+        else:
+            return val, t
 
 
 # #############################################################################

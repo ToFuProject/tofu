@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
-
+import datastock as ds
 
 # specific
 from . import _generic_check
@@ -1116,8 +1116,6 @@ def plot_bspline(
 def _plot_profile2d_check(
     coll=None,
     key=None,
-    coefs=None,
-    indt=None,
     cmap=None,
     dcolorbar=None,
     dleg=None,
@@ -1131,26 +1129,6 @@ def _plot_profile2d_check(
     keybs = dk[key]
     refbs = coll.dobj['bsplines'][keybs]['ref']
     keym = coll.dobj['bsplines'][keybs]['mesh']
-
-    # coefs
-    if coefs is None:
-        if key == keybs:
-            pass
-        else:
-            coefs = coll.ddata[key]['data']
-
-    # indt
-    if coefs is not None and len(coefs.shape) > len(refbs):
-        if indt is None and coefs.shape[0] == 1:
-            indt = 0
-        try:
-            assert np.isscalar(indt)
-            indt = int(indt)
-        except Exception as err:
-            msg = (
-                f"Arg indt should be a int!\nProvided: {indt}"
-            )
-            raise Exception(msg)
 
     # cmap
     if cmap is None:
@@ -1180,7 +1158,7 @@ def _plot_profile2d_check(
         types=(bool, dict),
     )
 
-    return key, keybs, keym, coefs, indt, cmap, dcolorbar, dleg
+    return key, keybs, keym, cmap, dcolorbar, dleg
 
 
 def _plot_profiles2d_prepare(
@@ -1207,23 +1185,30 @@ def _plot_profiles2d_prepare(
         res_coef = 0.05
         res = [res_coef*dR, res_coef*dZ]
 
-    # adjust coefs for single time step selection
-    shapebs = coll.dobj['bsplines'][keybs]['shape']
-    if coefs is not None and len(coefs.shape) > len(shapebs):
-        coefs = coefs[indt:indt+1, ...]
-
     # compute
-    bspline = coll.interpolate_profile2d(
+    coll2 = coll.interpolate_profile2d(
         key=key,
-        coefs=coefs,
         R=None,
         Z=None,
+        coefs=coefs,
+        indt=indt,
         res=res,
         details=False,
         nan0=True,
-        imshow=True,
+        imshow=False,
         return_params=False,
-    )[0][0, ...]
+        store=True,
+        inplace=False,
+    )
+
+    keymap = [k0 for k0, v0 in coll2.ddata.items() if v0['data'].ndim > 1][0]
+    ndim = coll2.ddata[keymap]['data'].ndim
+    dkeys = {
+        'key': keymap,
+        'keyX': coll2.ddata[keymap]['ref'][-2],
+        'keyY': coll2.ddata[keymap]['ref'][-1],
+        'keyZ': coll2.ddata[keymap]['ref'][0] if ndim == 3 else None,
+    }
 
     # extent and interp
     extent = (
@@ -1240,17 +1225,19 @@ def _plot_profiles2d_prepare(
 
     # knots and cents
 
-    coll2 =
-
-    return bspline, extent, interp
+    return coll2, dkeys, extent, interp
 
 
 def plot_profile2d(
+    # ressources
     coll=None,
+    # inputs
     key=None,
-    indt=None,
+    # parameters
     coefs=None,
+    indt=None,
     res=None,
+    # figure
     vmin=None,
     vmax=None,
     cmap=None,
@@ -1265,12 +1252,10 @@ def plot_profile2d(
     # check input
 
     (
-        key, keybs, keym, coefs, indt, cmap, dcolorbar, dleg,
+        key, keybs, keym, cmap, dcolorbar, dleg,
     ) = _plot_profile2d_check(
         coll=coll,
         key=key,
-        coefs=coefs,
-        indt=indt,
         cmap=cmap,
         dcolorbar=dcolorbar,
         dleg=dleg,
@@ -1281,7 +1266,7 @@ def plot_profile2d(
     # --------------
     #  Prepare data
 
-    bspline, extent, interp = _plot_profiles2d_prepare(
+    coll2, dkeys, extent, interp = _plot_profiles2d_prepare(
         coll=coll,
         key=key,
         keybs=keybs,
@@ -1295,59 +1280,62 @@ def plot_profile2d(
     # call right function
 
     if mtype in ['rect', 'tri']:
+        dax = coll2.plot_as_array(**dkeys)
 
-        dax = coll.plot_as_array()
+    else:
+        dax = coll2.plot_as_array(**dkeys)
+        # add 1d polar plot
 
 
     # --------------
     # plot - prepare
 
-    if dax is None:
+    # if dax is None:
 
-        if dmargin is None:
-            dmargin = {
-                'left': 0.1, 'right': 0.9,
-                'bottom': 0.1, 'top': 0.9,
-                'hspace': 0.1, 'wspace': 0.1,
-            }
+        # if dmargin is None:
+            # dmargin = {
+                # 'left': 0.1, 'right': 0.9,
+                # 'bottom': 0.1, 'top': 0.9,
+                # 'hspace': 0.1, 'wspace': 0.1,
+            # }
 
-        if mtype in ['rect', 'tri']:
-            pass
+        # if mtype in ['rect', 'tri']:
+            # pass
 
-        else:
-            pass
+        # else:
+            # pass
 
-        fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
-        ax0 = fig.add_subplot(gs[0, 0], aspect='equal')
-        ax0.set_xlabel(f'R (m)')
-        ax0.set_ylabel(f'Z (m)')
+        # fig = plt.figure(figsize=fs)
+        # gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
+        # ax0 = fig.add_subplot(gs[0, 0], aspect='equal')
+        # ax0.set_xlabel(f'R (m)')
+        # ax0.set_ylabel(f'Z (m)')
 
-        dax = {'cross': ax0}
+        # dax = {'cross': ax0}
 
-    # --------------
-    # plot
+    # # --------------
+    # # plot
 
-    kax = 'cross'
-    if dax.get(kax) is not None:
+    # kax = 'cross'
+    # if dax.get(kax) is not None:
 
-        im = dax[kax].imshow(
-            bspline,
-            extent=extent,
-            interpolation=interp,
-            origin='lower',
-            aspect='equal',
-            cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
-        )
+        # im = dax[kax].imshow(
+            # bspline,
+            # extent=extent,
+            # interpolation=interp,
+            # origin='lower',
+            # aspect='equal',
+            # cmap=cmap,
+            # vmin=vmin,
+            # vmax=vmax,
+        # )
 
-        plt.colorbar(im, ax=dax[kax], **dcolorbar)
+        # plt.colorbar(im, ax=dax[kax], **dcolorbar)
 
-    # --------------
-    # dleg
+    # # --------------
+    # # dleg
 
-    if dleg is not False:
-        dax['cross'].legend(**dleg)
+    # if dleg is not False:
+        # dax['cross'].legend(**dleg)
 
     return dax

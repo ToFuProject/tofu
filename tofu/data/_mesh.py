@@ -1125,12 +1125,20 @@ class Plasma2D(ds.DataStock):
         nan_out=None,
         imshow=None,
         return_params=None,
+        # storing
+        store=None,
+        inplace=None,
     ):
         """ Interpolate desired profile2d (i.e.: data on bsplines)
 
         Interpolate:
             - key: a data on bsplines
             - coefs: external-provided set of coefs
+
+        coefs can only be provided if:
+            - details = False
+            - key = keybs
+            - coefs is a scalar or has shape = shapebs
 
         At points:
             - R:  R coordinates (np.ndarray or scalar)
@@ -1176,6 +1184,9 @@ class Plasma2D(ds.DataStock):
             nan_out=nan_out,
             imshow=imshow,
             return_params=return_params,
+            # storing
+            store=store,
+            inplace=inplace,
         )
 
     # TBF after polar meshes
