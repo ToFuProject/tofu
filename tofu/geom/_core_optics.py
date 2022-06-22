@@ -1998,7 +1998,9 @@ class CrystalBragg(utils.ToFuObject):
                 3.994145e-10, 3.989810e-10,
             ]
         if ih is None and ik is None and il is None:
-            ih = 1.; ik = 1.; il = 0.
+            ih = 1.
+            ik = 1.
+            il = 0.
         lamb = np.atleast_1d(lamb).ravel()
         nlamb = lamb.size
         if use_non_parallelism is None:
@@ -2044,10 +2046,12 @@ class CrystalBragg(utils.ToFuObject):
             na=na, nn=nn,
             therm_exp=therm_exp, plot_therm_exp=False,
         )
+
         def find_nearest(array, value):
             array = np.asarray(array)
             idx = (np.abs(array - value)).argmin()
             return idx
+
         id_temp0 = find_nearest(TD, temp0)
         self.dmat['d'] = d_atom[id_temp0]*1e-10
 
@@ -2143,7 +2147,7 @@ class CrystalBragg(utils.ToFuObject):
 
             # For each wavelength, get results dictionnary of the associated
             # diffraction pattern
-            for ll in range (nlamb):
+            for ll in range(nlamb):
                 dout = _rockingcurve.compute_rockingcurve(
                     ih=ih, ik=ik, il=il, lamb=lamb[ll]*1e10,
                     use_non_parallelism=use_non_parallelism,
@@ -2171,10 +2175,12 @@ class CrystalBragg(utils.ToFuObject):
                     )
                 )
                 power_ratio[ll, ...] = dout['Power ratio']
+
                 def find_nearest(array, value):
                     array = np.asarray(array)
                     idx = (np.abs(array - value)).argmin()
                     return idx
+
                 id_alpha0 = find_nearest(angles, alpha0)
 
                 # Pull the glancing angles 'dth' & the number of points 'ndth'
@@ -2369,7 +2375,9 @@ class CrystalBragg(utils.ToFuObject):
         if lamb is None:
             lamb = np.r_[self._dbragg['lambref']]
         if ih is None and ik is None and il is None:
-            ih = 1; ik = 1; il = 0
+            ih = 1
+            ik = 1
+            il = 0
         lamb = np.atleast_1d(lamb).ravel()
         nlamb = lamb.size
         if use_non_parallelism is None:

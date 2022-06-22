@@ -1031,7 +1031,7 @@ def CrystalBragg_plot_line_tracing_on_det(
         bb = 0.
     for ll in range(lamb.size):
         lab = (
-            r'$\lambda$ = {} A'.format(np.round(lamb[ll]*1e10, 6))+ '\n'
+            r'$\lambda$ = {} A'.format(np.round(lamb[ll]*1e10, 6)) + '\n'
             + r'$\Delta$T = {} °C, $\alpha$ = {} deg'.format(
                 bb, aa[0]*(180./np.pi)
             )
@@ -1056,7 +1056,7 @@ def CrystalBragg_plot_line_tracing_on_det(
                     label = r'At $x_j$=0.: $x_i$={}, $\lambda$={}A'.format(
                         np.round(xi_atprmax[ll], 6),
                         np.round(lamb_atprmax[ll], 16),
-                        #np.round(bragg_atprmax[ll]*(180./np.pi), 4),
+                        # np.round(bragg_atprmax[ll]*(180./np.pi), 4),
                     )
                 else:
                     label = None
@@ -1191,8 +1191,6 @@ def CrystalBragg_plot_angular_shift_on_det_tracing(
         ax=ax2,
     )
     cbar2.ax.tick_params(labelsize=18)
-
-    #return ax0, ax1, ax2
 
 
 def CrystalBragg_plot_johannerror(
