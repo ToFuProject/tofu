@@ -372,6 +372,8 @@ class Mesh2D(DataCollection):
         returnas=None,
         # specific to deg = 0
         centered=None,
+        # to return gradR, gradZ, for D1N2 deg 0, for tomotok
+        returnas_element=None,
     ):
         """ Get a matrix operator to compute an integral
 
@@ -400,6 +402,8 @@ class Mesh2D(DataCollection):
             returnas=returnas,
             # specific to deg = 0
             centered=centered,
+            # to return gradR, gradZ, for D1N2 deg 0, for tomotok
+            returnas_element=returnas_element,
         )
 
         # store
@@ -625,11 +629,11 @@ class Mesh2D(DataCollection):
         data=None,
         sigma=None,
         # choice of algo
-        isotropic=None,
-        sparse=None,
-        positive=None,
-        cholesky=None,
-        regparam_algo=None,
+        # isotropic=None,
+        # sparse=None,
+        # positive=None,
+        # cholesky=None,
+        # regparam_algo=None,
         algo=None,
         # regularity operator
         operator=None,
@@ -658,11 +662,11 @@ class Mesh2D(DataCollection):
             data=data,
             sigma=sigma,
             # choice of algo
-            isotropic=isotropic,
-            sparse=sparse,
-            positive=positive,
-            cholesky=cholesky,
-            regparam_algo=regparam_algo,
+            # isotropic=isotropic,
+            # sparse=sparse,
+            # positive=positive,
+            # cholesky=cholesky,
+            # regparam_algo=regparam_algo,
             algo=algo,
             # regularity operator
             operator=operator,
