@@ -1782,6 +1782,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
 
     # Integrated reflectivities
     # -------------------------
+    # Perpendicular component
     rghmap_perp = ax00.imshow(
         rhg_perp,
         cmap=cmap,
@@ -1794,6 +1795,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         orientation='vertical',
         ax=ax00,
     )
+    # Parallel component
     rghmap_para = ax10.imshow(
         rhg_para,
         cmap=cmap,
@@ -1808,6 +1810,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     )
     # Maximum values of reflectivities
     # --------------------------------
+    # Perpendicular component
     maxpowerratio_perp = ax01.imshow(
         max_pr[0],
         cmap=cmap,
@@ -1820,6 +1823,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         orientation='vertical',
         ax=ax01,
     )
+    # Parallel component
     maxpowerratio_para = ax11.imshow(
         max_pr[1],
         cmap=cmap,
@@ -1834,6 +1838,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     )
     # Rocking curve widths
     # --------------------
+    # Perpendicular component
     width_perp = ax02.imshow(
         det_perp,
         cmap=cmap,
@@ -1846,6 +1851,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         orientation='vertical',
         ax=ax02,
     )
+    # Parallel component
     width_para = ax12.imshow(
         det_para,
         cmap=cmap,
@@ -1860,6 +1866,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     )
     # Shift on max. reflect. values from reference RC (TD = 0. & alpha=0.)
     # --------------------------------------------------------------------
+    # Perpendicular component
     spemin = (shift_perp*1e3).min()
     spemax = (shift_perp*1e3).max()
     if abs(spemin) < abs(spemax):
@@ -1886,6 +1893,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         ax=ax03,
     )
     cbar.set_label('(perpendicular pola.)', fontsize=15)
+    # Parallel component
     spamin = (shift_para*1e3).min()
     spamax = (shift_para*1e3).max()
     if abs(spamin) < abs(spamax):

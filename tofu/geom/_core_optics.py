@@ -1938,12 +1938,13 @@ class CrystalBragg(utils.ToFuObject):
         self, lamb=None, n=None,
         nphi=None,
         det=None, johann=None,
-        use_non_parallelism=None,
         lpsi=None, ldtheta=None,
         ih=None, ik=None, il=None,
         dcryst=None,
         merge_rc_data=None,
-        therm_exp=None, alpha_limits=None, na=None,
+        use_non_parallelism=None,
+        therm_exp=None,
+        alpha_limits=None, na=None,
         alpha0=None, temp0=None,
         plot_rcs=None,
         strict=None,
@@ -1957,10 +1958,10 @@ class CrystalBragg(utils.ToFuObject):
         Args:
             - lamb: array of min size 1, in 1e-10 [m]
             - det: dict
-            - xi_bounds: np.min & np.max of _XI
-            - xj_bounds: np.min & np.max of _XJ
-                (from "inputs_temp/XICS_allshots_C34.py" l.649)
-            - johann: True or False
+            - johann: bool
+            - ih, ik, il: floats
+                Give the Miller indices corresponding to the material type of
+                crystal used on tofu/spectro/_rockingcurve.py
             - merge_rc_data: bool
                 use tf/spectro/_rockingucurve.py to plot in transparency ranges
                 the angular extent of each wavelength traces
@@ -2327,7 +2328,6 @@ class CrystalBragg(utils.ToFuObject):
         merge_rc_data=None,
         therm_exp=None, alpha_limits=None, na=None,
         temp=None,
-        #alpha0=None, temp0=None,
         plot=None, ax=None,
         dleg=None, color=None,
         fs=None, dmargin=None,
@@ -2337,10 +2337,10 @@ class CrystalBragg(utils.ToFuObject):
         Args:
             - lamb: array of min size 1, in 1e-10 [m]
             - det: dict
-            - xi_bounds: np.min & np.max of _XI
-            - xj_bounds: np.min & np.max of _XJ
-                (from "inputs_temp/XICS_allshots_C34.py" l.649)
-            - johann: True or False
+            - johann: bool
+            - ih, ik, il: floats
+                Give the Miller indices corresponding to the material type of
+                crystal used on tofu/spectro/_rockingcurve.py
             - merge_rc_data: bool
                 use tf/spectro/_rockingucurve.py to plot in transparency ranges
                 the angular extent of each wavelength traces
@@ -2387,10 +2387,6 @@ class CrystalBragg(utils.ToFuObject):
             nn = int(nn - 1)
         else:
             nn = int(nn - 0.5)
-        """if alpha0 is None:
-            alpha0 = (3/60)*np.pi/180.
-        if temp0 is None:
-            temp0 = 10."""
         if det is None or det.get('outline') is None:
             msg = ("Please provide det as a dict with 'outline'!")
             raise Exception(msg)
@@ -2404,10 +2400,6 @@ class CrystalBragg(utils.ToFuObject):
         # Computation of angular shifts
         # Dictionary of results
         din = {
-            #'xi': np.full((TD.size, angles.size, 1, 100), np.nan),
-            #'xj': np.full((TD.size, angles.size, 1, 100), np.nan),
-            #'xi_rc': np.full((TD.size, angles.size, 1, 201, 100), np.nan),
-            #'xj_rc': np.full((TD.size, angles.size, 1, 201, 100), np.nan),
             'xi_atprmax': np.full((TD.size, angles.size, 1, 1), np.nan),
             'lamb_atprmax': np.full((TD.size, angles.size, 1, 1), np.nan),
             'bragg_atprmax': np.full((TD.size, angles.size, 1, 1), np.nan),
@@ -2427,14 +2419,10 @@ class CrystalBragg(utils.ToFuObject):
                     temp0=TD[aa],
                     plot=False,
                 )
-                #din['xi'][aa, bb, :, :] = dout['xi']
-                #din[xj[aa, bb]] = dout['xj']
-                #din[xi_rc[aa, bb]] = dout['xi_rc']
-                #din[xj_rc[aa, bb]] = dout['xj_rc']
                 din['xi_atprmax'][aa, bb, :, :] = dout['xi_atprmax']
                 din['lamb_atprmax'][aa, bb, :, :] = dout['lamb_atprmax']
                 din['bragg_atprmax'][aa, bb, :, :] = dout['bragg_atprmax']
-        # Compute shifts in wavelengths and pixels
+        # Compute spectral, angular and pixel offsets
         din['delta_xi'] = np.full((TD.size, angles.size), np.nan)
         din['delta_lamb'] = np.full((TD.size, angles.size), np.nan)
         din['delta_bragg'] = np.full((TD.size, angles.size), np.nan)
@@ -2463,7 +2451,6 @@ class CrystalBragg(utils.ToFuObject):
             ax=ax, dleg=dleg, color=color,
             fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
         )
-
 
     def calc_johannerror(
         self,
