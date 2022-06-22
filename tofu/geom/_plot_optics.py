@@ -1117,19 +1117,25 @@ def CrystalBragg_plot_angular_shift_on_det_tracing(
     fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(1, 3)  # , **dmargin)
     ax0 = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
-    ax0.set_title('Shift in pixels [m]', fontsize=15)
+    ax0.set_title('Pixel offset [m]', fontsize=20)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
     ax1 = fig.add_subplot(gs[0, 1], aspect='equal', adjustable='datalim')
-    ax1.set_title('Shift in wavelength [m]', fontsize=15)
+    ax1.set_title(r'Spectral offset $[\AA]$', fontsize=20)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
     ax2 = fig.add_subplot(gs[0, 2], aspect='equal', adjustable='datalim')
-    ax2.set_title('Shift in radian [mrad]', fontsize=15)
+    ax2.set_title('Angular offset [mrad]', fontsize=20)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
     if wintit is not False:
         fig.canvas.manager.set_window_title(wintit)
     if tit is not False:
         fig.suptitle(tit, size=14, weight='bold')
-    ax0.set_ylabel(r'$\Delta$T ($T_{0}$=25°C)', fontsize=15)
-    ax0.set_xlabel(r'$\alpha$ [mrad]', fontsize=15)
-    ax1.set_xlabel(r'$\alpha$ [mrad]', fontsize=15)
-    ax2.set_xlabel(r'$\alpha$ [mrad]', fontsize=15)
+    ax0.set_ylabel(r'$\Delta$T ($T_{0}$=25°C)', fontsize=20)
+    ax0.set_xlabel(r'$\alpha$ [mrad]', fontsize=20)
+    ax1.set_xlabel(r'$\alpha$ [mrad]', fontsize=20)
+    ax2.set_xlabel(r'$\alpha$ [mrad]', fontsize=20)
 
     extent = (angles.min()*1e3, angles.max()*1e3, TD.min(), TD.max())
     delta_xi = din['delta_xi'].reshape(
@@ -1158,6 +1164,7 @@ def CrystalBragg_plot_angular_shift_on_det_tracing(
         orientation='vertical',
         ax=ax0,
     )
+    cbar0.ax.tick_params(labelsize=18)
     cmap_lamb = ax1.imshow(
         delta_lamb,
         cmap=cmap,
@@ -1170,6 +1177,7 @@ def CrystalBragg_plot_angular_shift_on_det_tracing(
         orientation='vertical',
         ax=ax1,
     )
+    cbar1.ax.tick_params(labelsize=18)
     cmap_bragg = ax2.imshow(
         delta_bragg*1e3,
         cmap=cmap,
@@ -1182,6 +1190,7 @@ def CrystalBragg_plot_angular_shift_on_det_tracing(
         orientation='vertical',
         ax=ax2,
     )
+    cbar2.ax.tick_params(labelsize=18)
 
     #return ax0, ax1, ax2
 
