@@ -443,6 +443,7 @@ class BivariateSplinePolar():
         angle=None,
         # options
         indbs_tf=None,
+        deriv=None,
         # for compatibility (unused)
         coefs=None,
         radius_vs_time=None,
@@ -471,6 +472,9 @@ class BivariateSplinePolar():
             assert np.unique(indbs_tf).size == indbs_tf.size
             nbs = indbs_tf.size
 
+        if deriv is None:
+            deriv = 0
+
         # --------
         # prepare
 
@@ -494,7 +498,7 @@ class BivariateSplinePolar():
                     & ((radius < self.knots_per_bs_r[-1, ii]))
                 )
                 if np.any(iok):
-                    val[iok, ni] = self.lbr[ii](radius[iok])
+                    val[iok, ni] = self.lbr[ii](radius[iok], nu=deriv)
                 ni += 1
 
         else:
@@ -515,13 +519,17 @@ class BivariateSplinePolar():
                 if not np.any(iok):
                     continue
 
-                valr = self.lbr[ii](radius[iok])
+                valr = self.lbr[ii](radius[iok], nu=deriv)
 
                 # compute vala
                 if nbsa == 1:
                     val[iok, ni] = valr
                     ni += 1
                 else:
+                    if deriv > 0:
+                        msg = "Derivative > 0 not implemented for 2d splines"
+                        raise Exception(msg)
+
                     for jj in range(nbsa):
 
                         ind = self.func_coef_ind(ii, jj)
@@ -544,6 +552,129 @@ class BivariateSplinePolar():
                             ni += 1
 
         return val
+
+    # -----------------
+    # constraints methods
+    # -----------------
+
+    def get_constraints_out_rlim(self, rlim=None, rm=None):
+        """
+        Return indices of bslines fully out of rlim (min or max)
+
+        Assumes rlim is a 1d array, one per time step
+        """
+
+
+        # ------------
+        # check inputs
+
+        if rm not in ['rmin', 'rmax']:
+            msg = f"Invalid rm!\nShould be in ['rmax', 'rmin']\nProvided: {rm}"
+            raise Exception(msg)
+
+        if not (isinstance(rlim, np.ndarray) and rlim.ndim == 1):
+            msg = "rlim must ba a 1d array!"
+            raise Exception(msg)
+
+        # ------------
+        # get index of bsplines out of limits
+
+        if rm == 'rmax':
+            ind = np.all(
+                self.knots_per_bs_ri[None, :, :] > rlim[:, None, None],
+                axis=1,
+            )
+        else:
+            ind = np.all(
+                self.knots_per_bs_ri[None, :, :] < rlim[:, None, None],
+                axis=1,
+            )
+
+        if self.knotsa is None:
+            pass
+        else:
+            pass
+
+        # ------------
+        # get coefs / offset
+
+        offset = np.zeros((self.nbs,), dtype=float)
+
+        return ind, offset
+
+    def get_indbs_per_pts(self, radius=None, angle=None):
+        """ Given points in radius / angle, return the indices of bsplines
+
+        Assumes:
+            - radius and angle are arrays of the same shape
+
+        Return:
+            - ind = (radius.shape, nbs), using flattened indexing
+
+        """
+
+
+    def get_constraints_deriv(self, deriv=None, rad=None, val=None):
+        """
+        To set constraints on a derivative
+        Retrun indices of bsplines + coefs + offset
+
+        Assumes:
+            - deriv in ['deriv0', 'deriv1']
+            - rad and val are 1d arrays of the same shape
+
+        return as flattened nbsplines indexing
+
+        """
+        # ------------
+        # check inputs
+
+        ld = ['deriv0', 'deriv1']
+        if deriv not in ld:
+            msg = f"Arg deriv must be in {ld}!\n Provided: {deriv}"
+            raise Exception(msg)
+
+        # --------
+        # prepare
+
+        deriv = int(deriv[-1])
+        indbs = self.get_bs_on_pts(radius=rad)
+        coefs, offset = None, None
+
+        # --------
+        # compute
+
+        vv = self.ev_details(radius=rad, deriv=deriv)
+        import pdb; pdb.set_trace()     # DB
+
+        if deriv == 0:
+
+            if self.deg == 0:
+                offset = np.zeros(indbs.shape)
+                offset[indbs] = val
+
+            elif self.deg in [1, 2]:
+
+                interp = None
+                coefs[] = -interp / interp
+                offset[] = val / interp
+
+        elif deriv == 1:
+
+            if self.deg == 0:
+                offset = None
+
+            elif self.deg == 1:
+                pass
+
+            elif self.deg == 2:
+                pass
+
+        return ind, coefs, offset
+
+    # -----------------
+    # operator methods
+    # -----------------
 
     def get_overlap(self):
         return _get_overlap(

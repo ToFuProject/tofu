@@ -396,25 +396,62 @@ def _compute_check(
             raise Exception(msg)
         keyinv = key
 
+    # -----------
+    # constraints
+
+    dconstraints = _check_constraints(
+        coll=coll,
+        keym=keym,
+        mtype=mtype,
+        dconst=dconstraints,
+    )
+
     # --------------------------------------------
     # Time synchronisation between matrix and data
 
-    hastime, hasvect, t, dind = coll.get_time_common(
-        keys=[key_data, key_matrix],
-    )
+    # list of keys with potential time-dependence
+    lk = [key_data, key_matrix]
+    if dconstraints is not None:
+        if isinstance(dconstraints.get('rmax'), str):
+            lk.append(dconstraints['rmax'])
+        if isinstance(dconstraints.get('rmin'), str):
+            lk.append(dconstraints['rmin'])
 
+    # check if common / different time dependence
+    hastime, hasvect, t, dind = coll.get_time_common(keys=lk)
+
+    # update all accordingly
     if hastime and hasvect:
         lt = [v0['key_vector'] for v0 in dind.values()]
+
         if len(lt) == 1:
             t = lt[0]
-        elif m3d:
+
+        else:
+            # consistency check
+            assert m3d
+
+            # matrix side
             matrix = matrix[dind[key_matrix]['ind'], ...]
+
+            # data side
             data = data[dind[key_data]['ind'], :]
             if sigma.shape[0] > 1:
                 sigma = sigma[dind[key_data]['ind'], :]
 
     if m3d:
         assert matrix.shape[0] == data.shape[0]
+
+    # ------------------
+    # constraints update
+
+    dconstraints = _update_constraints(
+        coll=coll,
+        keym=keym,
+        mtype=mtype,
+        dconst=dconstraints,
+        dind=dind,
+    )
 
     # --------------
     # inversion refs
@@ -713,7 +750,325 @@ def _compute_check(
 
 # #############################################################################
 # #############################################################################
-#                  ikwdargs / options for each algo
+#                  dconstraints
+# #############################################################################
+
+
+def _check_rminmax(
+    coll=None,
+    dconst=None,
+    rm=None,
+    mtype=None,
+):
+
+    # if exists
+    if dconst.get(rm) is None:
+        return
+
+    # check against mesh type
+    if mtype != 'polar':
+        msg = f"constraint '{rm}' cannot be used with mesh type {mtype}"
+        warnings.warn(msg)
+        return
+
+    # check format
+    err = False
+    # should be scalar or valid data key
+    if np.isscalar(dconst[rm]):
+        pass
+    elif isinstance(dconst[rm], str):
+        lok = [
+            k0 for k0, v0 in coll.ddata.keys()
+            if len(v0['ref']) == 1
+        ]
+        if dconst[rm] not in lok:
+            err = True
+    else:
+        err = True
+
+    # raise err if relevant
+    if err:
+        msg = (
+            f"dconstraints['{rm}'] must be either:\n"
+            "\t- a scalar\n"
+            "\t- a valid data key with a unique ref\n"
+            "Provided: {dconstraints['{rm}']}"
+        )
+        raise Exception(msg)
+
+
+def _check_deriv(
+    coll=None,
+    keym=None,
+    mtype=None,
+    dconst=None,
+    deriv=None,
+    deg=None,
+):
+
+    # exists ?
+    if dconst.get(deriv) is None:
+        return
+
+    # check mesh type
+    if mtype != 'polar':
+        msg = f"constraint '{rm}' cannot be used with mesh type {mtype}"
+        warnings.warn(msg)
+        return
+
+    # check format
+    err = False
+    if isinstance(dconst[deriv], dict):
+
+        # 'rad' and 'val' should be 1d finite arrays of same shape, sorted
+        lk = ['rad', 'val']
+        if all([k0 in dconst[deriv].keys() for k0 in lk]):
+            for k0 in lk:
+                dconst[deriv][k0] = np.atleast_1d(dconst[deriv][k0]).ravel()
+
+            if dconst[deriv]['rad'].shape == dconst[deriv]['val'].shape:
+
+                # keep only finite values
+                iok = (
+                    np.isfinite(dconst[deriv]['rad'])
+                    & np.isfinite(dconst[deriv]['val'])
+                )
+                if not np.all(iok):
+                    msg = (
+                        "The following constraint rad are non-finite:\n"
+                        f"{dconst[deriv]['rad'][~iok]}\n"
+                        "  => excluded"
+                    )
+                    warnings.warn
+
+                dconst[deriv]['rad'] = dconst[deriv]['rad'][iok]
+                dconst[deriv]['rad'] = dconst[deriv]['rad'][iok]
+
+                # keep only values in mesh interval
+                krad = coll.dobj[coll._which_mesh][keym]['knots'][0]
+                rad = coll.ddata[krad]['data']
+                iok = (
+                    (dconst[deriv]['rad'] >= rad[0])
+                    & (dconst[deriv]['rad'] <= rad[-1])
+                )
+                if not np.all(iok):
+                    msg = (
+                        "The following constraint rad are out of range:\n"
+                        f"{dconst[deriv]['rad'][~iok]}\n"
+                        "  => excluded"
+                    )
+                    warnings.warn
+
+                dconst[deriv]['rad'] = dconst[deriv]['rad'][iok]
+                dconst[deriv]['rad'] = dconst[deriv]['rad'][iok]
+
+                # sort vs radius
+                inds = np.sort(dconst[deriv]['rad'])
+                dconst[deriv]['rad'] = dconst[deriv]['rad'][inds]
+                dconst[deriv]['val'] = dconst[deriv]['val'][inds]
+
+            else:
+                err = True
+        else:
+            err = True
+    else:
+        err = True
+
+    # raise err
+    if err:
+        msg = (
+            f"dconstraints['{deriv}'] must be dict of 2 same shape 1d arrays\n"
+            "-\t 'rad': the radius position at which the constraints are\n"
+            "-\t 'val': the values of the derivative at these positions\n"
+            f"Provided:\n{dconst}"
+        )
+        raise Exception(msg)
+
+    # check against deg
+    if deriv[-1] > deg:
+        msg = (
+            f"A constraint on {deriv} can be used for bsplines of degree {deg}"
+        )
+        raise Exception(msg)
+
+    return dconst
+
+
+def _check_constraints(
+    coll=None,
+    keym=None,
+    mtype=None,
+    dconst=None,
+):
+
+    # ----------------
+    # check conformity
+
+    if dconst is None:
+        return
+    elif not isinstance(dconst, dict):
+        msg = f"Arg dconstraints must be a dict!\nProvided: {dconstraints}"
+        raise Exception(msg)
+
+    # ----------
+    # rmin, rmax
+
+    _check_rminmax(coll=coll, dconst=dconst, rm='rmin', mtype=mtype)
+    _check_rminmax(coll=coll, dconst=dconst, rm='rmax', mtype=mtype)
+
+    # -----------
+    # derivatives
+
+    for deriv in ['deriv0', 'deriv1']:
+        dconstraints = _check_deriv(
+            coll=coll,
+            keym=keym,
+            mtype=mtype,
+            dconst=dconstraints,
+            deriv=deriv,
+            deg=deg,
+        )
+
+    return dconstraints
+
+
+def _update_constraints(
+    coll=None,
+    dconst=None,
+    dind=None,
+    nt=None,
+):
+
+    if dconst is None:
+        return
+
+    # ---------------------------------------------
+    # initialize bool index of constrained bsplines
+
+    clas = coll.dobj['bsplines'][keybs]['class']
+    dcon = {}
+
+    # ----------
+    # rmin, rmax
+
+    for rm in ['rmin', 'rmax']:
+
+        if dconst.get(rm) is None:
+            continue
+
+        # make it a 1d vector with good shape
+        if isinstance(dconst.get(rm), str):
+            rmax = dconst[rm]
+            if dind is not None and rmax in dind.keys():
+                dconst[rm] = coll.ddata[rmax][rm][dind[rmax]['ind']]
+            else:
+                dconst[rm] = coll.ddata[rmax][rm]
+
+        else:
+            dconst[rm] = np.full((nt,), dconst[rm])
+
+        # compute indbs
+        indbs, offset = clas.get_constraints_out_rlim(rlim=dconst[rm], rm=rm)
+
+        dcon[rm] = {
+            'indbs': indbs,
+            'offset': offset,
+        }
+
+    # ------
+    # deriv
+
+    for deriv in ['deriv0', 'deriv1']:
+        if dconst.get(deriv) is None:
+            continue
+
+        # only deriv1 = 0 implemented so far
+        if deriv != 'deriv1' or np.any(dconst[deriv]['rad'] != 0):
+            msg = ("Only deriv1 = 0 at rad = 0 implemente so far")
+            raise NotImplementedError(msg)
+
+        # get coefs
+        indbs, coefs, offset = clas.get_constraints_deriv(
+            deriv=deriv,
+            rad=dconst[deriv]['rad'],
+            val=dconst[deriv]['val'],
+        )
+
+            # assemble
+        for ii in range(dconst[deriv]['rad'].size):
+            dcon[f'{deriv}-{ii}'] = {
+                'indbs': indbs[ii, :],
+                'coefs': coefs[ii, :],
+                'offset': offset[ii, :],
+            }
+
+    # ---------------
+    # check conflicts
+
+    lcont = list(dcon.keys())
+    ibs = np.array([dcon[k0]['indbs'] for k0, v0 in dconst.items()])
+    dconf = {
+        ii: [kk for kk in lcont[jj] if ibs[jj, ii]]
+        for ii in range(ibs.shape[1])
+        if np.sum(ibs[:, ii]) > 1
+    }
+    if len(dconf) > 0:
+
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dconf.items()]
+        msg = (
+            "The following bsplines are constrained multiple times:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # --------------------
+    # build coefs / offset
+
+    ibsnew = np.any(ibs, axis=0)
+    coefs = np.zeros((nbs, nbsnew), dtype=float)
+    offset = np.zeros((nbs, nbsnew), dtype=float)
+
+    for k0, v0 in dcon.items():
+        if v0.get('coefs') is not None:
+            coefs[]
+
+
+    dcon = {
+        'indbs': ,
+        'coefs': ,
+        'offset': ,
+    }
+
+    # ------
+    # indtok
+
+    lk = ['coefs', 'offset']
+    if any([]):
+        dconstraints['indtok'] = (
+            np.isfinite()
+            & np.isfinite()
+        )
+    else:
+        dconstraints['indtok'] = None
+
+    # ----
+    # coefs
+
+
+    # ----
+    # offset
+
+
+    # ----
+    # harmonize shapes
+
+
+    return dconstraints, dcon
+
+
+# #############################################################################
+# #############################################################################
+#                  kwdargs / options for each algo
 # #############################################################################
 
 
