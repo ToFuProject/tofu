@@ -312,7 +312,9 @@ def _compute_check(
         allowed=lk,
     )
     keybs = coll.dobj['matrix'][key_matrix]['bsplines']
+    deg = coll.dobj['bsplines'][keybs]['deg']
     keym = coll.dobj['bsplines'][keybs]['mesh']
+    mtype = coll.dobj[coll._which_mesh][keym]['type']
     matrix = coll.ddata[coll.dobj['matrix'][key_matrix]['data']]['data']
     nchan, nbs = matrix.shape[-2:]
     m3d = matrix.ndim == 3
@@ -403,6 +405,7 @@ def _compute_check(
         coll=coll,
         keym=keym,
         mtype=mtype,
+        deg=deg,
         dconst=dconstraints,
     )
 
@@ -447,10 +450,10 @@ def _compute_check(
 
     dconstraints = _update_constraints(
         coll=coll,
-        keym=keym,
-        mtype=mtype,
+        keybs=keybs,
         dconst=dconstraints,
         dind=dind,
+        nt=None,
     )
 
     # --------------
@@ -806,10 +809,6 @@ def _check_deriv(
     deg=None,
 ):
 
-    # exists ?
-    if dconst.get(deriv) is None:
-        return
-
     # check mesh type
     if mtype != 'polar':
         msg = f"constraint '{rm}' cannot be used with mesh type {mtype}"
@@ -863,7 +862,7 @@ def _check_deriv(
                 dconst[deriv]['rad'] = dconst[deriv]['rad'][iok]
 
                 # sort vs radius
-                inds = np.sort(dconst[deriv]['rad'])
+                inds = np.argsort(dconst[deriv]['rad'])
                 dconst[deriv]['rad'] = dconst[deriv]['rad'][inds]
                 dconst[deriv]['val'] = dconst[deriv]['val'][inds]
 
@@ -885,7 +884,7 @@ def _check_deriv(
         raise Exception(msg)
 
     # check against deg
-    if deriv[-1] > deg:
+    if int(deriv[-1]) > deg:
         msg = (
             f"A constraint on {deriv} can be used for bsplines of degree {deg}"
         )
@@ -898,6 +897,7 @@ def _check_constraints(
     coll=None,
     keym=None,
     mtype=None,
+    deg=None,
     dconst=None,
 ):
 
@@ -909,6 +909,10 @@ def _check_constraints(
     elif not isinstance(dconst, dict):
         msg = f"Arg dconstraints must be a dict!\nProvided: {dconstraints}"
         raise Exception(msg)
+    elif mtype != 'polar':
+        msg = "Arg dconstraints cannot be used with non-polar mesh!"
+        warnings.warn(msg)
+        return
 
     # ----------
     # rmin, rmax
@@ -919,21 +923,66 @@ def _check_constraints(
     # -----------
     # derivatives
 
-    for deriv in ['deriv0', 'deriv1']:
-        dconstraints = _check_deriv(
+    for deriv in set(['deriv0', 'deriv1']).intersection(dconst.keys()):
+        dconst = _check_deriv(
             coll=coll,
             keym=keym,
             mtype=mtype,
-            dconst=dconstraints,
+            dconst=dconst,
             deriv=deriv,
             deg=deg,
         )
 
-    return dconstraints
+    return dconst
+
+
+def _constraints_conflict(dcon=None):
+    """  Check whether some constrants are conflicting
+
+    Based on studying which variables are involved by each constraint
+
+    ex:
+        offset-only equations sharing any variable are in conflict
+
+        Different equations sharing the exact same variables are in conflict
+    """
+
+    lconst = list(dcon.keys())
+
+    if hastime:
+        ibs = np.array([
+            dcon[k0]['indbs']
+            if dcon[k0]['indbs'].ndim == 2
+            else np.repeat(dcon[k0]['indbs'][None, :], nt, axis=0)
+            for k0 in lconst
+        ])
+    else:
+        ibs = np.array([dcon[k0]['indbs'][None, :] for k0 in lconst])
+        nt = 1
+
+    # index of offset-only constraints
+    ioffset = np.array([dcon[k0].get('coefs') is None for k0 in lconst])
+
+    # check pure offset
+    if np.any(ioffset):
+        ibs_offset = ibs[ioffset, :, :]
+        lo = np.sum(ibs_offset, axis=0) > 1
+        if np.any(lo):
+            msg = (
+                "Multiple pure offset constraints on bsplines:\n"
+                f"{lo.nonzero()[-1]}"
+            )
+            raise Exception(msg)
+
+    # if np.unique(ibs, axis=0).shape[]
+    if np.unique(ibs, axis=0).shape[0] < ibs.shape[0]:
+        msg = "There seem to be several mutually exclusive equations!"
+        raise Exception(msg)
 
 
 def _update_constraints(
     coll=None,
+    keybs=None,
     dconst=None,
     dind=None,
     nt=None,
@@ -959,10 +1008,10 @@ def _update_constraints(
         # make it a 1d vector with good shape
         if isinstance(dconst.get(rm), str):
             rmax = dconst[rm]
-            if dind is not None and rmax in dind.keys():
-                dconst[rm] = coll.ddata[rmax][rm][dind[rmax]['ind']]
+            if dind is not None and rm in dind.keys():
+                dconst[rm] = coll.ddata[rm]['data'][dind[rm]['ind']]
             else:
-                dconst[rm] = coll.ddata[rmax][rm]
+                dconst[rm] = coll.ddata[rm]['data']
 
         else:
             dconst[rm] = np.full((nt,), dconst[rm])
@@ -982,11 +1031,6 @@ def _update_constraints(
         if dconst.get(deriv) is None:
             continue
 
-        # only deriv1 = 0 implemented so far
-        if deriv != 'deriv1' or np.any(dconst[deriv]['rad'] != 0):
-            msg = ("Only deriv1 = 0 at rad = 0 implemente so far")
-            raise NotImplementedError(msg)
-
         # get coefs
         indbs, coefs, offset = clas.get_constraints_deriv(
             deriv=deriv,
@@ -994,7 +1038,12 @@ def _update_constraints(
             val=dconst[deriv]['val'],
         )
 
-            # assemble
+        # assemble
+        if not np.any(indbs):
+            msg = f"Constraint {deriv} not used (no match)"
+            warnings.warn(msg)
+            continue
+
         for ii in range(dconst[deriv]['rad'].size):
             dcon[f'{deriv}-{ii}'] = {
                 'indbs': indbs[ii, :],
@@ -1002,66 +1051,107 @@ def _update_constraints(
                 'offset': offset[ii, :],
             }
 
+    l2d = [k0 for k0, v0 in dcon.items() if v0['indbs'].ndim == 2]
+    hastime = len(l2d) > 0
+    if hastime:
+        lnt = list(set([dcon[k0]['indbs'].shape[0] for k0 in l2d]))
+        assert len(lnt) == 1
+        nt = lnt[0]
+
     # ---------------
     # check conflicts
 
-    lcont = list(dcon.keys())
-    ibs = np.array([dcon[k0]['indbs'] for k0, v0 in dconst.items()])
-    dconf = {
-        ii: [kk for kk in lcont[jj] if ibs[jj, ii]]
-        for ii in range(ibs.shape[1])
-        if np.sum(ibs[:, ii]) > 1
+    lconst = list(dcon.keys())
+    doffset = {
+        k0: ii for ii, k0 enumerate(lconst)
+        if dcon[k0].get('coefs') is None
     }
-    if len(dconf) > 0:
+    dcoefs = {
+        k0: ii for ii, k0 enumerate(lconst)
+        if dcon[k0].get('coefs') is not None
+    }
+    _constraints_conflict(
+        dcon=dcon,
+        lconst=lconst,
+        doffset=doffset,
+        dcoefs=dcoefs,
+    )
 
-        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dconf.items()]
-        msg = (
-            "The following bsplines are constrained multiple times:\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
+    # --------------------------
+    # select bsplines to be removed as results of equations
+
+    if np.any(ioffset):
+        iout = np.array([
+            np.any(ibs_offset[:, ii, :], axis=0)
+            for ii in range(nt)
+        ])
+    else:
+        iout = np.zeros((nt, ibs.shape[-1]), dtype=bool)
+
+    ibs_coefs = ibs[~ioffset, :, :]
+    if np.any(~ioffset):
+        for ii in range(nt):
+            icom = iout[ii:ii+1, :] & ibs_coefs[:, ii, :]
+
+            icontra = np.all(icom, axis=0)
+            if np.any(icontra):
+                msg = (
+                    "Contradictory constraints on bsplines:\n"
+                    f"{icontra.nonzero()[0]}"
+                )
+                raise Exception(msg)
+
+            if np.all(np.any(icom, axis=0)):
+                # all equations already have an identified variable from offset
+                pass
+            else:
+                icom_no = ~np.any(icom, axis=1)
+                if icom_no.sum() == 1:
+                    iout[ii, ibs_coefs[icom_no, ii, :].nonzero()[0][0]] = True
+                else:
+                    msg = "Multiple equations not handled yet"
+                    raise Exception(msg)
 
     # --------------------
     # build coefs / offset
 
-    ibsnew = np.any(ibs, axis=0)
-    coefs = np.zeros((nbs, nbsnew), dtype=float)
-    offset = np.zeros((nbs, nbsnew), dtype=float)
+    nbs = ibs.shape[-1]
+    coefs, offset = [], []
+    for ii in range(nt):
+        nbsi = nbs - iout[ii, :].sum()
+        ci = np.zeros((nbs, nbsi), dtype=float)
+        oi = np.zeros((nbs,), dtype=float)
 
-    for k0, v0 in dcon.items():
-        if v0.get('coefs') is not None:
-            coefs[]
+        # offset only
+        if np.any(ioffset):
+            for jj, k0 in enumerate(ioffset.sum()):
+                k0 = lconst[ioffset.nonzero()[0][jj]]
+                ind = ibs_offset[jj, ii, :]
+                oi[ind] = dcon[k0]['offset'][ind]
 
+        # coefs + offset
+        if np.any(~ioffset):
+            import pdb; pdb.set_trace()     # DB
+            ibsi = None
+            ci[ibsi] = None
+
+    # -------------
+    # format output
+
+    if nt == 1:
+        indbs = indbs[0]
+        coefs = coefs[0]
+        offset = offset[0]
+        hastime = False
+    else:
+        hastime = True
 
     dcon = {
-        'indbs': ,
-        'coefs': ,
-        'offset': ,
+        'hastime': hastime,
+        'indbs': None,
+        'coefs': None,
+        'offset': None,
     }
-
-    # ------
-    # indtok
-
-    lk = ['coefs', 'offset']
-    if any([]):
-        dconstraints['indtok'] = (
-            np.isfinite()
-            & np.isfinite()
-        )
-    else:
-        dconstraints['indtok'] = None
-
-    # ----
-    # coefs
-
-
-    # ----
-    # offset
-
-
-    # ----
-    # harmonize shapes
-
 
     return dconstraints, dcon
 

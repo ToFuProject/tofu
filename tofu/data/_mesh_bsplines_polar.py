@@ -581,19 +581,20 @@ class BivariateSplinePolar():
 
         if rm == 'rmax':
             ind = np.all(
-                self.knots_per_bs_ri[None, :, :] > rlim[:, None, None],
+                self.knots_per_bs_r[None, :, :] > rlim[:, None, None],
                 axis=1,
             )
         else:
             ind = np.all(
-                self.knots_per_bs_ri[None, :, :] < rlim[:, None, None],
+                self.knots_per_bs_r[None, :, :] < rlim[:, None, None],
                 axis=1,
             )
 
         if self.knotsa is None:
             pass
         else:
-            pass
+            msg = "Not implemented"
+            raise NotImplementedError(msg)
 
         # ------------
         # get coefs / offset
@@ -602,7 +603,7 @@ class BivariateSplinePolar():
 
         return ind, offset
 
-    def get_indbs_per_pts(self, radius=None, angle=None):
+    def get_bs_per_pts(self, radius=None, angle=None):
         """ Given points in radius / angle, return the indices of bsplines
 
         Assumes:
@@ -635,42 +636,22 @@ class BivariateSplinePolar():
             raise Exception(msg)
 
         # --------
-        # prepare
-
-        deriv = int(deriv[-1])
-        indbs = self.get_bs_on_pts(radius=rad)
-        coefs, offset = None, None
-
-        # --------
         # compute
 
-        vv = self.ev_details(radius=rad, deriv=deriv)
-        import pdb; pdb.set_trace()     # DB
+        # coefs per radius per bs (nrad, nbs)
+        ideriv = int(deriv[-1])
+        vv = self.ev_details(radius=rad, deriv=ideriv)
 
-        if deriv == 0:
+        # check conflicts
+        indok = (vv != 0)
+        if np.unique(indok, axis=0).shape[0] < indok.shape[0]:
+            msg = f"Conflicting constraints on {deriv}:\n{indok}"
+            raise Exception(msg)
 
-            if self.deg == 0:
-                offset = np.zeros(indbs.shape)
-                offset[indbs] = val
+        coefs = vv
+        offset = val[:, None]
 
-            elif self.deg in [1, 2]:
-
-                interp = None
-                coefs[] = -interp / interp
-                offset[] = val / interp
-
-        elif deriv == 1:
-
-            if self.deg == 0:
-                offset = None
-
-            elif self.deg == 1:
-                pass
-
-            elif self.deg == 2:
-                pass
-
-        return ind, coefs, offset
+        return indok, coefs, offset
 
     # -----------------
     # operator methods
