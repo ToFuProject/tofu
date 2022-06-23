@@ -487,7 +487,7 @@ def get_det_abs_from_rel(det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
 # ###############################################
 
 
-def calc_meridional_sagital_focus(
+def calc_meridional_sagittal_focus(
     rcurve=None,
     bragg=None,
     alpha=None,
@@ -508,7 +508,6 @@ def calc_meridional_sagital_focus(
         vardef=_USE_NON_PARALLELISM,
         varname='use_non_parallelism',
     )
-
     # Compute
     s_merid_ref = rcurve*np.sin(bragg)
     s_sagit_ref = -s_merid_ref/np.cos(2.*bragg)
@@ -521,9 +520,9 @@ def calc_meridional_sagital_focus(
         mr = round(s_merid_ref, ndigits=3)
         sr = round(s_sagit_ref, ndigits=3)
         msg = (
-            "Assuming a perfect crystal:\n"
-            f"\t- meridonal focus at {mr} m\n"
-            f"\t- sagittal focus at {sr} m\n"
+            "Assuming a perfect crystal, from it are:\n"
+            f"\t-the meridonal focus at {mr} m.\n"
+            f"\t-the sagittal focus at {sr} m.\n"
         )
 
         if use_non_parallelism is True:
@@ -536,9 +535,9 @@ def calc_meridional_sagital_focus(
             mcr = round(100. * delta_merid / s_merid_ref, ndigits=3)
             scr = round(100. * delta_sagit / s_sagit_ref, ndigits=3)
             msg += (
-                f"\nConsidering non-parallelism (alpha = {alpha} rad):\n"
-                f"\t- meridonal focus at {mnp} m (delta = {mca} m / {mcr} %)\n"
-                f"\t- sagital focus at {snp} m (delta = {sca} m / {scr} %)"
+                f"\nConsidering a miscut angle (alpha = {alpha} rad):\n"
+                f"\t-the meridonal focus at {mnp}m (delta = {mca}m / {mcr}%)\n"
+                f"\t-the sagittal focus at {snp}m (delta = {sca}m / {scr}%)"
             )
         print(msg)
 
