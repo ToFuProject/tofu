@@ -126,8 +126,8 @@ def compute_rockingcurve(
     if alpha_limits is None:
         alpha_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
     if nn is None:
-        nn = 20.
-    na = 2*nn + 1.
+        nn = 20
+    na = 2*nn + 1
     if plot_asf is None:
         plot_asf = False
     if plot_power_ratio is None:
@@ -542,8 +542,8 @@ def plot_var_temp_changes_wavelengths(
     if therm_exp is None:
         therm_exp = True
     if nn is None:
-        nn = 25.
-    na = 2*nn + 1.
+        nn = 25
+    na = 2*nn + 1
     if lambdas is None:
         lambdas = np.r_[3.949066, 3.965858, 3.969356, 3.994145, 3.989810]
     nlamb = lambdas.size
@@ -909,8 +909,8 @@ def CrystBragg_comp_lattice_spacing(
         ih=ih, ik=ik, il=il, lamb=lamb,
     )
     if nn is None:
-        nn = 20.
-    na = 2*nn + 1.
+        nn = 20
+    na = 2*nn + 1
     if therm_exp is None:
         therm_exp = False
     if plot_therm_exp is None and therm_exp is not False:

@@ -2076,7 +2076,7 @@ class CrystalBragg(utils.ToFuObject):
         # Get reference ray-tracing
         bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
         if nphi2 is None:
-            nphi2 = 50.
+            nphi2 = 50
         nphi = 2*nphi2
         phi = np.linspace(phimin, phimax, nphi)
 
