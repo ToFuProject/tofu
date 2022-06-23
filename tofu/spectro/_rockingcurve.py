@@ -15,7 +15,7 @@ from matplotlib.axes._axes import Axes
 
 # tofu
 from tofu.version import __version__
-from . import _rockingcurve_def as _rockingcurve_def
+# from . import _rockingcurve_def as _rockingcurve_def
 
 
 # ##########################################################
