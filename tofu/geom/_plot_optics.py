@@ -946,37 +946,55 @@ def CrystalBragg_plot_braggangle_from_xixj(xi=None, xj=None,
 
 
 def CrystalBragg_plot_line_tracing_on_det(
-    lamb, xi, xj, xi_err, xj_err,
+    cryst=None, dcryst=None,
+    lamb=None,
+    xi=None, xj=None, xi_er=None, xj_er=None,
+    power_ratio=None, dth=None, ndth=None, nn=None,
+    xi_rc=None, xj_rc=None,
+    xi_atprmax=None,
+    bragg_atprmax=None,
+    lamb_atprmax=None,
     det=None,
     johann=None, rocking=None,
-    ax=None, dleg=None,
-    fs=None, dmargin=None,
-    wintit=None, tit=None,
+    use_non_parallelism=None,
+    therm_exp=None,
+    merge_rc_data=None,
+    alpha0=None, temp0=None, TD=None, angles=None,
+    id_temp0=None,
+    ax=None, dleg=None, color=None,
+    fs=None, dmargin=None, wintit=None, tit=None,
 ):
 
     # Check inputs
     # ------------
 
     if dleg is None:
-        dleg = {'loc': 'upper right', 'bbox_to_anchor': (0.93, 0.8)}
+        dleg = {
+            'loc': 'upper left',
+            'fontsize': 13,
+        }
+    if color is None:
+        color = 'k'
 
     if fs is None:
-        fs = (6, 8)
+        fs = (8, 8)
     if dmargin is None:
-        dmargin = {'left': 0.05, 'right': 0.99,
-                   'bottom': 0.06, 'top': 0.92,
+        dmargin = {'left': 0.15, 'right': 0.95,
+                   'bottom': 0.08, 'top': 0.92,
                    'wspace': None, 'hspace': 0.4}
 
     if wintit is None:
         wintit = _WINTIT
     if tit is None:
-        tit = "line tracing"
+        tit = "Ray-tracing on camera surface"
         if johann is True:
             tit += " - johann error"
         if rocking is True:
             tit += " - rocking curve"
 
     plot_err = johann is True or rocking is True
+    markers = ['o', '^', 'D', 's', 'X']
+    colors = ['r', 'g', 'c', 'b', 'k']
 
     # Plot
     # ------------
@@ -989,26 +1007,190 @@ def CrystalBragg_plot_line_tracing_on_det(
             fig.canvas.manager.set_window_title(wintit)
         if tit is not False:
             fig.suptitle(tit, size=14, weight='bold')
-
+        ax.set_xlabel(r'Pixel coordinate $x_{i}$ [m]', fontsize=15)
+        ax.set_ylabel(r'Pixel coordinate $x_{j}$ [m]', fontsize=15)
+        ax.set_xlim(
+            det['outline'][0, :].min() - 0.01,
+            det['outline'][0, :].max() + 0.01,
+        )
+        ax.set_ylim(
+            det['outline'][1, :].min() - 0.01,
+            det['outline'][1, :].max() + 0.01,
+        )
     if det.get('outline') is not None:
         ax.plot(
             det['outline'][0, :], det['outline'][1, :],
             ls='-', lw=1., c='k',
         )
-    for l in range(lamb.size):
-        lab = r'$\lambda$'+' = {:6.3f} A'.format(lamb[l]*1.e10)
-        l0, = ax.plot(xi[l, :], xj[l, :], ls='-', lw=1., label=lab)
+    aa = np.r_[cryst.dmat['alpha']]
+    if therm_exp and merge_rc_data:
+        bb = TD[id_temp0]
+    elif therm_exp and not merge_rc_data:
+        bb = temp0
+    else:
+        bb = 0.
+    for ll in range(lamb.size):
+        lab = (
+            r'$\lambda$ = {} A'.format(np.round(lamb[ll]*1e10, 6)) + '\n'
+            + r'$\Delta$T = {} °C, $\alpha$ = {} deg'.format(
+                bb, aa[0]*(180./np.pi)
+            )
+        )
+        l0, = ax.plot(
+            xi[ll, :], xj[ll, :],
+            ls='--', lw=1.,
+            marker=markers[ll], ms=4.,
+            c=color,
+            label=lab,
+        )
         if plot_err:
             ax.plot(
-                xi_err[l, ...], xj_err[l, ...],
+                xi_er[ll, ...], xj_er[ll, ...],
                 ls='None', lw=1., c=l0.get_color(),
                 ms=4, marker='.',
             )
+    if merge_rc_data:
+        for ll in range(lamb.size):
+            for mm in range(ndth):
+                if mm == int(ndth/2.):
+                    label = r'At $x_j$=0.: $x_i$={}, $\lambda$={}A'.format(
+                        np.round(xi_atprmax[ll], 6),
+                        np.round(lamb_atprmax[ll], 16),
+                        # np.round(bragg_atprmax[ll]*(180./np.pi), 4),
+                    )
+                else:
+                    label = None
+                pr1 = power_ratio[ll, 0, 0, 0, mm]
+                pr2 = power_ratio[ll, 1, 0, 0, mm]
+                ax.plot(
+                    xi_rc[ll, mm, :], xj_rc[ll, mm, :],
+                    ls='-', lw=1.,
+                    c=l0.get_color(),
+                    alpha=pr1 + pr2,
+                    label=label,
+                )
 
     if dleg is not False:
         ax.legend(**dleg)
 
     return ax
+
+
+def CrystalBragg_plot_angular_shift_on_det_tracing(
+    cryst=None, dcryst=None,
+    lamb=None,
+    din=None,
+    na=None, nn=None,
+    det=None,
+    TD=None, angles=None,
+    ax=None, dleg=None, color=None,
+    fs=None, dmargin=None, wintit=None, tit=None,
+):
+
+    # Check inputs
+    # ------------
+
+    if dleg is None:
+        dleg = {
+            'loc': 'upper left',
+            'fontsize': 13,
+        }
+    if color is None:
+        color = 'k'
+    if fs is None:
+        fs = (12, 12)
+    """
+    if dmargin is None:
+        dmargin = {'left': 0.15, 'right': 0.95,
+                   'bottom': 0.08, 'top': 0.92,
+                   'wspace': None, 'hspace': 0.4}
+    """
+    if wintit is None:
+        wintit = _WINTIT
+    if tit is None:
+        tit = "Angular shift from the ideal line position"
+    cmap = plt.cm.seismic  # viridis
+
+    # Plot
+    # ------------
+
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(1, 3)  # , **dmargin)
+    ax0 = fig.add_subplot(gs[0, 0], aspect='equal', adjustable='datalim')
+    ax0.set_title('Pixel offset [m]', fontsize=20)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    ax1 = fig.add_subplot(gs[0, 1], aspect='equal', adjustable='datalim')
+    ax1.set_title(r'Spectral offset $[\AA]$', fontsize=20)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    ax2 = fig.add_subplot(gs[0, 2], aspect='equal', adjustable='datalim')
+    ax2.set_title('Angular offset [mrad]', fontsize=20)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    if wintit is not False:
+        fig.canvas.manager.set_window_title(wintit)
+    if tit is not False:
+        fig.suptitle(tit, size=14, weight='bold')
+    ax0.set_ylabel(r'$\Delta$T ($T_{0}$=25°C)', fontsize=20)
+    ax0.set_xlabel(r'$\alpha$ [mrad]', fontsize=20)
+    ax1.set_xlabel(r'$\alpha$ [mrad]', fontsize=20)
+    ax2.set_xlabel(r'$\alpha$ [mrad]', fontsize=20)
+
+    extent = (angles.min()*1e3, angles.max()*1e3, TD.min(), TD.max())
+    delta_xi = din['delta_xi'].reshape(
+        din['delta_xi'].shape[0],
+        din['delta_xi'].shape[1]
+    )
+    delta_lamb = din['delta_lamb'].reshape(
+        din['delta_lamb'].shape[0],
+        din['delta_lamb'].shape[1]
+    )
+    delta_bragg = din['delta_bragg'].reshape(
+        din['delta_bragg'].shape[0],
+        din['delta_bragg'].shape[1]
+    )
+
+    # Plot imshow maps
+    cmap_xi = ax0.imshow(
+        delta_xi,
+        cmap=cmap,
+        origin='lower',
+        extent=extent,
+        aspect='auto',
+    )
+    cbar0 = plt.colorbar(
+        cmap_xi,
+        orientation='vertical',
+        ax=ax0,
+    )
+    cbar0.ax.tick_params(labelsize=18)
+    cmap_lamb = ax1.imshow(
+        delta_lamb,
+        cmap=cmap,
+        origin='lower',
+        extent=extent,
+        aspect='auto',
+    )
+    cbar1 = plt.colorbar(
+        cmap_lamb,
+        orientation='vertical',
+        ax=ax1,
+    )
+    cbar1.ax.tick_params(labelsize=18)
+    cmap_bragg = ax2.imshow(
+        delta_bragg*1e3,
+        cmap=cmap,
+        origin='lower',
+        extent=extent,
+        aspect='auto',
+    )
+    cbar2 = plt.colorbar(
+        cmap_bragg,
+        orientation='vertical',
+        ax=ax2,
+    )
+    cbar2.ax.tick_params(labelsize=18)
 
 
 def CrystalBragg_plot_johannerror(
