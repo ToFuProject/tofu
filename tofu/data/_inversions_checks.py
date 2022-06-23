@@ -1063,11 +1063,13 @@ def _update_constraints(
 
     lconst = list(dcon.keys())
     doffset = {
-        k0: ii for ii, k0 enumerate(lconst)
+        k0: ii
+        for ii, k0 in enumerate(lconst)
         if dcon[k0].get('coefs') is None
     }
     dcoefs = {
-        k0: ii for ii, k0 enumerate(lconst)
+        k0: ii
+        for ii, k0 in enumerate(lconst)
         if dcon[k0].get('coefs') is not None
     }
     _constraints_conflict(
