@@ -15,6 +15,7 @@ from matplotlib.axes._axes import Axes
 
 # tofu
 from tofu.version import __version__
+from . import _rockingcurve_def as _rockingcurve_def
 
 
 # ##########################################################
@@ -28,7 +29,7 @@ def compute_rockingcurve(
     # Lattice parameters
     ih=None, ik=None, il=None, lamb=None,
     # Lattice modifications
-    use_non_parallelism=None, na=None,
+    use_non_parallelism=None, nn=None,
     alpha_limits=None,
     therm_exp=None,
     # Plot
@@ -86,7 +87,7 @@ def compute_rockingcurve(
     alpha_limits:    array
         Asymmetry angle range. Provide only both boundary limits
         Ex: np.r_[-3, 3] in radians
-    na:    int
+    nn:    int
         Number of non-parallelism angles and thermical changes steps,
         odd number preferred in order to have a median value at 0
     therm_exp:    str
@@ -124,13 +125,9 @@ def compute_rockingcurve(
         use_non_parallelism = False
     if alpha_limits is None:
         alpha_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
-    if na is None:
-        na = 41
-    nn = (na/2.)
-    if (nn % 2) == 0:
-        nn = int(nn - 1)
-    else:
-        nn = int(nn - 0.5)
+    if nn is None:
+        nn = 20.
+    na = 2*nn + 1.
     if plot_asf is None:
         plot_asf = False
     if plot_power_ratio is None:
@@ -494,7 +491,7 @@ def plot_var_temp_changes_wavelengths(
     # Lattice parameters
     ih=None, ik=None, il=None, lambdas=None,
     # lattice modifications
-    use_non_parallelism=None, na=None,
+    use_non_parallelism=None, nn=None,
     alpha_limits=None,
     therm_exp=None,
     # Plot
@@ -544,13 +541,9 @@ def plot_var_temp_changes_wavelengths(
         use_non_parallelism = True
     if therm_exp is None:
         therm_exp = True
-    if na is None:
-        na = 51
-    nn = (na/2.)
-    if (nn % 2) == 0:
-        nn = int(nn - 1)
-    else:
-        nn = int(nn - 0.5)
+    if nn is None:
+        nn = 25.
+    na = 2*nn + 1.
     if lambdas is None:
         lambdas = np.r_[3.949066, 3.965858, 3.969356, 3.994145, 3.989810]
     nlamb = lambdas.size
@@ -915,13 +908,9 @@ def CrystBragg_comp_lattice_spacing(
     ih, ik, il, lamb = CrystBragg_check_inputs_rockingcurve(
         ih=ih, ik=ik, il=il, lamb=lamb,
     )
-    if na is None:
-        na = 41
-    nn = (na/2.)
-    if (nn % 2) == 0:
-        nn = int(nn - 1)
-    else:
-        nn = int(nn - 0.5)
+    if nn is None:
+        nn = 20.
+    na = 2*nn + 1.
     if therm_exp is None:
         therm_exp = False
     if plot_therm_exp is None and therm_exp is not False:

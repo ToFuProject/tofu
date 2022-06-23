@@ -1936,7 +1936,7 @@ class CrystalBragg(utils.ToFuObject):
 
     def plot_line_on_det_tracing(
         self, lamb=None, n=None,
-        nphi=None,
+        nphi2=None,
         det=None, johann=None,
         lpsi=None, ldtheta=None,
         ih=None, ik=None, il=None,
@@ -2075,13 +2075,9 @@ class CrystalBragg(utils.ToFuObject):
 
         # Get reference ray-tracing
         bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
-        if nphi is None:
-            nphi = 100
-        nphi2 = (nphi/2.)
-        if (nphi2 % 2) == 0.:
-            nphi2 = int(nphi2 - 1)
-        else:
-            nphi2 = int(nphi2 - 0.5)
+        if nphi2 is None:
+            nphi2 = 50.
+        nphi = 2*nphi2
         phi = np.linspace(phimin, phimax, nphi)
 
         xi = np.full((nlamb, nphi), np.nan)
