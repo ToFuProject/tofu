@@ -936,7 +936,12 @@ def _check_constraints(
     return dconst
 
 
-def _constraints_conflict(dcon=None):
+def _constraints_conflict_iout(
+    dcon=None,
+    loffset=None,
+    lcoefs=None,
+    hastime=None,
+):
     """  Check whether some constrants are conflicting
 
     Based on studying which variables are involved by each constraint
@@ -947,37 +952,112 @@ def _constraints_conflict(dcon=None):
         Different equations sharing the exact same variables are in conflict
     """
 
-    lconst = list(dcon.keys())
-
-    if hastime:
-        ibs = np.array([
-            dcon[k0]['indbs']
-            if dcon[k0]['indbs'].ndim == 2
-            else np.repeat(dcon[k0]['indbs'][None, :], nt, axis=0)
-            for k0 in lconst
-        ])
-    else:
-        ibs = np.array([dcon[k0]['indbs'][None, :] for k0 in lconst])
-        nt = 1
-
-    # index of offset-only constraints
-    ioffset = np.array([dcon[k0].get('coefs') is None for k0 in lconst])
-
+    # -----------------
     # check pure offset
-    if np.any(ioffset):
-        ibs_offset = ibs[ioffset, :, :]
-        lo = np.sum(ibs_offset, axis=0) > 1
-        if np.any(lo):
+
+    ibs_off = np.array([dcon[k0]['indbs'] for k0 in loffset])
+
+    lo = np.sum(ibs_off, axis=0) > 1
+    if np.any(lo):
+        msg = (
+            "Multiple pure offset constraints on bsplines:\n"
+            f"{lo.nonzero()[-1]}"
+        )
+        raise Exception(msg)
+
+    # (nt, nbs) array with True for offset
+    iout_offset = np.any(ibs_offset, axis=0)
+
+    # add equations
+    ibs_coef = np.array([dcon[k0]['indbs'] for k0 in lcoefs])
+
+    # check redundancy
+    if np.unique(ibs_coefs, axis=0).shape[0] < ibs_coefs.shape[0]:
+        msg = "There seem to be several redundant equations!"
+        raise Exception(msg)
+
+    # -----------------
+    # check vs offset
+
+    for ii, k0 in enumerate(lcoefs):
+        lt = np.all(iout_offset[ibs_coefs[ii, ...]], axis=-1).nonzero()[0]
+        if lt.size > 0:
             msg = (
-                "Multiple pure offset constraints on bsplines:\n"
-                f"{lo.nonzero()[-1]}"
+                f"Redundancy between equation {k0} and offsets!\n"
+                f"For the following time steps: {lt}"
             )
             raise Exception(msg)
 
-    # if np.unique(ibs, axis=0).shape[]
-    if np.unique(ibs, axis=0).shape[0] < ibs.shape[0]:
-        msg = "There seem to be several mutually exclusive equations!"
-        raise Exception(msg)
+    # -----------------
+    # sort coefs equations by nb of remaining free parameters
+    # equations with a single free parameters becomme offsets
+
+    if np.any(ibs_coefs & iout_offset[None, ...]):
+        msg = "Auto-solve mutually dependent equations not implemented yet!"
+        raise NotImplementedError(msg)
+
+
+    # TODO
+    # newoff, newval = [], []
+    # for it in range(iout_offset.shape[0]):
+        # lfree = np.array([
+            # np.sum(ibs_coefs[ii, it, :] & (~iout_offset[it, :]))
+            # for ii, k0 in enumerate(lcoefs)
+        # ])
+
+        # inds = np.argsort(lfree)
+
+        # assert lfree[inds[0]] > 0
+
+        # single free parameter => new offset
+        # while lfree[inds[0]] == 1:
+            # indbs = (
+                # (ibs_coefs[inds[0], it, :]
+                 # & (~iout_offset[it, :]))
+            # ).nonzero()[0][0]
+
+            # iout_offset[it, indbs] = True
+            # newoff.append(indbs)
+            # newval.append()
+
+            # # re-evaluate
+            # lfree = np.array([
+                # np.sum(ibs_coefs[ii, it, :] & (~iout_offset[it, :]))
+                # for ii, k0 in enumerate(lcoefs)
+            # ])
+            # inds = np.argsort(lfree)
+            # if lfree[inds[0]] == 0:
+                # msg = "Found over-constraint on {lcoefs[inds[0]]}"
+                # raise Exception(msg)
+
+    # ------------------
+    # get really free equations
+
+    # from here all equations are independent from offsets
+    iout_coefs = np.zeros(iout_offset.shape, dtype=bool)
+    iin_coefs = np.zeros(iout_offset.shape, dtype=bool)
+    for ii, k0 in enumerate(lcoefs):
+        # bs should not be identified already as output or input
+        for it in range(ibs_coefs.shape[1]):
+            ibs_coefs[ii, it, :] & (iout_offset[it, :] | iout_coefs[it, :])
+
+        lbs = ibs_coefs[ii, ...] & (~iout_offset) & (~iout_coefs) & (~iin_coefs)
+        ibt = np.any(lbs, axis=1)
+
+        if np.any(ibt):
+            for it in ibt.nonzero()[0]:
+                # conflict (both in and out)
+
+                ibs_coefs[ii, it, :] & (iout_offset | iout_coefs)
+                iout_coefs[it, lbs[it, :].nonzero()[0][0]] = True
+
+                iin_coefs[it, lbs[it, :].nonzero()[0][1:]] = True
+
+    # check all equations have a variable set
+
+
+
+    return iout_offset
 
 
 def _update_constraints(
@@ -1057,26 +1137,29 @@ def _update_constraints(
         lnt = list(set([dcon[k0]['indbs'].shape[0] for k0 in l2d]))
         assert len(lnt) == 1
         nt = lnt[0]
+    else:
+        nt = 1
+
+    # harmonize shapes to (nt, nbs)
+    if hastime:
+        for k0, v0 in dcon.items():
+            if v0['indbs'].ndim == 1:
+                dcon[k0]['indbs'] = np.repeat(v0['indbs'][None, :], nt, axis=0)
+            else:
+                assert dcon[k0]['indbs'].shape[0] == nt
+    else:
+        for k0, v0 in dcon.items():
+            dcon[k0]['indbs'] = v0['indbs'][None, :]
 
     # ---------------
     # check conflicts
 
-    lconst = list(dcon.keys())
-    doffset = {
-        k0: ii
-        for ii, k0 in enumerate(lconst)
-        if dcon[k0].get('coefs') is None
-    }
-    dcoefs = {
-        k0: ii
-        for ii, k0 in enumerate(lconst)
-        if dcon[k0].get('coefs') is not None
-    }
-    _constraints_conflict(
+    loffset = [k0 for k0 in dcon.keys() if dcon[k0].get('coefs') is None]
+    lcoefs = [k0 for k0 in dcon.keys() if dcon[k0].get('coefs') is not None]
+    iout_offset, iout_coefs, iin_coefs = _constraints_conflict_iout(
         dcon=dcon,
-        lconst=lconst,
-        doffset=doffset,
-        dcoefs=dcoefs,
+        loffset=loffset,
+        lcoefs=lcoefs,
     )
 
     # --------------------------
