@@ -59,15 +59,15 @@ def compute_inversions(
     # check inputs
 
     (
-        key_matrix, key_data, key_sigma, keybs, keym,
+        key_matrix, key_data, key_sigma, keybs, keym, mtype,
         data, sigma, matrix, t,
-        m3d, indok,
+        m3d, indok, iokt,
         dconstraints,
         opmat, operator, geometry,
         dalgo, dconstraints, dcon,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
-        keyinv, refinv, reft, notime,
+        keyinv, refinv, reft, notime, regul,
     ) = _inversions_checks._compute_check(
         # resources
         coll=coll,
@@ -213,6 +213,7 @@ def compute_inversions(
             method=method,
             options=options,
             dcon=dcon,
+            regul=regul,
             # output
             sol=sol,
             mu=mu,
@@ -262,6 +263,26 @@ def compute_inversions(
         print(f"{t3-t2} s", end='\n', flush=True)
         print("Post-formatting results...", end='\n', flush=True)
 
+    # ---------------------------------------------
+    # estimate relative regularity for polar mesh of not regul
+
+    if not regul and mtype == 'polar':
+        clas = coll.dobj['bsplines'][keybs]['class']
+
+        if clas.knotsa is None:
+            # estimate 1d squared gradient
+            kr = coll.dobj[coll._which_mesh][keym]['knots'][0]
+            rr = coll.ddata[kr]['data']
+            regularity = np.nansum(
+                clas(
+                    radius=np.linspace(rr[0], rr[-1], rr.size*10),
+                    coefs=sol,
+                    radius_vs_time=False,
+                    deriv=1,
+                )**2,
+                axis=1,
+            )
+
     # -------------
     # format output
 
@@ -287,6 +308,17 @@ def compute_inversions(
         if notime:
             assert sol_full.shape[0] == 1
             sol_full = sol_full[0, ...]
+        else:
+            # restore full size
+            sol_full, chi2n, mu, regularity, niter = _restore_fullt(
+                iokt=iokt,
+                sol_full=sol_full,
+                chi2n=chi2n,
+                mu=mu,
+                regularity=regularity,
+                niter=niter,
+            )
+            nt = t.size
 
         # dict
         ddata = {
@@ -362,6 +394,34 @@ def compute_inversions(
         return sol_full, mu, chi2n, regularity, niter, spec, t
 
 
+def _restore_fullt(
+    iokt=None,
+    sol_full=None,
+    chi2n=None,
+    mu=None,
+    regularity=None,
+    niter=None,
+):
+
+    # sol_full
+    shape = tuple(np.r_[iokt.size, sol_full.shape[1:]])
+    sol_fulli = np.full(shape, np.nan)
+    sol_fulli[iokt, :] = sol_full
+
+    # 1d
+    chi2ni = np.full((iokt.size,), np.nan)
+    mui = np.full((iokt.size,), np.nan)
+    regularityi = np.full((iokt.size,), np.nan)
+    niteri = np.full((iokt.size,), np.nan)
+
+    chi2ni[iokt] = chi2n
+    mui[iokt] = mu
+    regularityi[iokt] = regularity
+    niteri[iokt] = niter
+
+    return sol_fulli, chi2ni, mui, regularityi, niteri
+
+
 # #############################################################################
 # #############################################################################
 #                   _compute time loop
@@ -394,6 +454,7 @@ def _compute_inv_loop(
     method=None,
     options=None,
     dcon=None,
+    regul=None,
     # output
     sol=None,
     mu=None,
@@ -405,8 +466,6 @@ def _compute_inv_loop(
 
     # -----------------------------------
     # Getting initial solution - step 1/2
-
-    regul = dalgo['family'] != 'Non-regularized'
 
     nt, nchan = data_n.shape
     nbs = Tn.shape[1]
@@ -529,6 +588,7 @@ def _compute_inv_loop(
                 )
             else:
                 sol[ii, :] = sol[ii, :] + dcon['offset'][ic, :]
+
         # post
         if chain:
             sol0[:] = sol[ii, :]

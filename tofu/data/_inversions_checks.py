@@ -24,7 +24,6 @@ except Exception as err:
 
 _DALGO = {
     'algo0': {
-        'name': 'algo0',
         'source': 'tofu',
         'family': 'Phillips-Tikhonov',
         'reg_operator': 'any linear',
@@ -36,7 +35,6 @@ _DALGO = {
         'func': 'inv_linear_augTikho_sparse',
     },
     'algo1': {
-        'name': 'algo1',
         'source': 'tofu',
         'family': 'Phillips-Tikhonov',
         'reg_operator': 'any linear',
@@ -48,7 +46,6 @@ _DALGO = {
         'func': 'inv_linear_augTikho_dense',
     },
     'algo2': {
-        'name': 'algo2',
         'source': 'tofu',
         'family': 'Phillips-Tikhonov',
         'reg_operator': 'any linear',
@@ -60,7 +57,6 @@ _DALGO = {
         'func': 'inv_linear_augTikho_chol_dense',
     },
     'algo3': {
-        'name': 'algo3',
         'source': 'tofu',
         'family': 'Phillips-Tikhonov',
         'reg_operator': 'any linear',
@@ -72,7 +68,6 @@ _DALGO = {
         'func': 'inv_linear_augTikho_chol_sparse',
     },
     'algo4': {
-        'name': 'algo4',
         'source': 'tofu',
         'family': 'Phillips-Tikhonov',
         'reg_operator': 'any linear',
@@ -84,7 +79,6 @@ _DALGO = {
         'func': 'inv_linear_augTikho_pos_dense',
     },
     'algo5': {
-        'name': 'algo5',
         'source': 'tofu',
         'family': 'Phillips-Tikhonov',
         'reg_operator': 'any linear',
@@ -96,7 +90,6 @@ _DALGO = {
         'func': 'inv_linear_DisPrinc_sparse',
     },
     'algo6': {
-        'name': 'algo6',
         'source': 'tofu',
         'family': 'Non-regularized',
         'reg_operator': None,
@@ -108,7 +101,6 @@ _DALGO = {
         'func': 'inv_linear_leastsquares_bounds',
     },
     'algo7': {
-        'name': 'algo7',
         'source': 'tofu',
         'family': 'Non-regularized',
         'reg_operator': None,
@@ -179,6 +171,10 @@ def get_available_inversions_algo(
         sparse=sparse,
         isotropic=isotropic,
     )
+
+    # complemet with name
+    for k0 in dalgo.keys():
+        dalgo[k0]['name'] = k0
 
     # ------------
     # print or str
@@ -300,7 +296,7 @@ def _compute_check(
 ):
 
     # ----
-    # keys
+    # key
 
     # key_matrix
     lk = list(coll.dobj.get('matrix', {}).keys())
@@ -471,6 +467,47 @@ def _compute_check(
 
     notime = (refinv == keybs)
 
+    # --------------
+    # choice of algo
+
+    if algo is None:
+        msg = (
+            "\nPlease provide an algorithm, to be chosen from:\n"
+            + get_available_inversions_algo(verb=False, returnas=str)
+        )
+        raise Exception(msg)
+
+    # regularization necessary ?
+    if nbs >= nchan:
+        lok = [
+            k0 for k0, v0 in _DALGO.items()
+            if v0.get('family') != 'Non-regularized'
+        ]
+    else:
+        lok = list(_DALGO.keys())
+
+    algo = _generic_check._check_var(
+        algo, 'algo',
+        types=str,
+        allowed=lok,
+    )
+
+    # define dalgo
+    dalgo = _DALGO[algo]
+
+    # check vs deg
+    deg = coll.dobj['bsplines'][keybs]['deg']
+    if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
+        if deg != 0:
+            msg = (
+                "MinFisher regularization from tomotok requires deg = 0\n"
+                f"\t- deg: {deg}"
+            )
+            raise Exception(msg)
+
+    # regul
+    regul = dalgo['family'] != 'Non-regularized'
+
     # --------------------------------------------
     # valid chan / time indices of data / sigma (+ constraints)
 
@@ -499,90 +536,27 @@ def _compute_check(
             indok = indok[:, iok]
 
         # remove time steps
-        iok = np.any(indok, axis=1)
-        if np.any(~iok):
+        indok, data, sigma, matrix, t, dcon, iokt = _check_time_steps(
+            indok=indok,
+            data=data,
+            sigma=sigma,
+            matrix=matrix,
+            t=t,
+            m3d=m3d,
+            dcon=dcon,
+            regul=regul,
+        )
 
-            # raise warning
-            msg = (
-                "Removed the following time steps (all channels invalid):\n"
-                f"{(~iok).nonzero()[0]}"
-            )
-            warnings.warn(msg)
-
-            # update
-            data = data[iok, :]
-            if sigma.shape[0] == iok.size:
-                sigma = sigma[iok, :]
-            if m3d:
-                matrix = matrix[iok, :, :]
-            if isinstance(t, np.ndarray):
-                t = t[iok]
-            indok = indok[iok, :]
-
-            # update constraints too if relevant
-            if dcon is not None and dcon['hastime']:
-                dcon['indbs'] = [
-                    vv for ii, vv in enumerate(dcon['indbs']) if iok[ii]
-                ]
-                dcon['offset'] = dcon['offset'][iok, :]
-                dcon['coefs'] = [
-                    vv for ii, vv in enumerate(dcon['coefs']) if iok[ii]
-                ]
-
-            # get new nt, nchan
-            nt, nchan = data.shape
+        # get new nt, nchan
+        nt, nchan = data.shape
 
     if np.all(indok):
         indok = None
 
-    # --------------
-    # choice of algo
-
-    # regularization necessary ?
-    if nbs >= nchan:
-        lok = [
-            k0 for k0, v0 in _DALGO.items()
-            if v0.get('family') != 'Non-regularized'
-        ]
-        defalgo = lok[0]
-    elif nbs < nchan:
-        lok = list(_DALGO.keys())
-        defalgo = (
-            [
-                k0 for k0, v0 in _DALGO.items()
-                if v0.get('family') == 'Non-regularized'
-            ]
-            + [
-                k0 for k0, v0 in _DALGO.items()
-                if v0.get('family') != 'Non-regularized'
-            ]
-        )[0]
-
-    algo = _generic_check._check_var(
-        algo, 'algo',
-        default=defalgo,
-        types=str,
-        allowed=lok,
-    )
-
-    # define dalgo
-    dalgo = _DALGO[algo]
-    dalgo['name'] = algo
-
-    # check vs deg
-    deg = coll.dobj['bsplines'][keybs]['deg']
-    if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
-        if deg != 0:
-            msg = (
-                "MinFisher regularization from tomotok requires deg = 0\n"
-                f"\t- deg: {deg}"
-            )
-            raise Exception(msg)
-
     # --------------------
     # algo vs dconstraints
 
-    if dalgo['family'] != 'Non-regularized' and dconstraints is not None:
+    if regul and dconstraints is not None:
         msg = (
             "Constraints for regularized algorithms not implemented yet!\n"
             f"\t- algo:         {dalgo['name']}\n"
@@ -594,7 +568,7 @@ def _compute_check(
     # regularity operator
 
     # get operator
-    if dalgo['family'] != 'Non-regularized':
+    if regul:
         opmat, operator, geometry, dim, ref, crop = coll.add_bsplines_operator(
             key=keybs,
             operator=operator,
@@ -703,16 +677,150 @@ def _compute_check(
     )
 
     return (
-        key_matrix, key_data, key_sigma, keybs, keym,
+        key_matrix, key_data, key_sigma, keybs, keym, mtype,
         data, sigma, matrix, t,
-        m3d, indok,
+        m3d, indok, iokt,
         dconstraints,
         opmat, operator, geometry,
         dalgo, dconstraints, dcon,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
-        keyinv, refinv, reft, notime,
+        keyinv, refinv, reft, notime, regul,
     )
+
+
+# #############################################################################
+# #############################################################################
+#                  removing time steps
+# #############################################################################
+
+
+def _remove_time_steps(
+    iok=None,
+    indok=None,
+    data=None,
+    sigma=None,
+    matrix=None,
+    m3d=None,
+    dcon=None,
+):
+    # update
+    data = data[iok, :]
+    if sigma.shape[0] == iok.size:
+        sigma = sigma[iok, :]
+    if m3d:
+        matrix = matrix[iok, :, :]
+    indok = indok[iok, :]
+
+    # update constraints too if relevant
+    if dcon is not None and dcon['hastime']:
+        dcon['indbs_free'] = dcon['indbs_free'][iok, :]
+        dcon['indbs'] = [
+            vv for ii, vv in enumerate(dcon['indbs']) if iok[ii]
+        ]
+        dcon['offset'] = dcon['offset'][iok, :]
+        dcon['coefs'] = [
+            vv for ii, vv in enumerate(dcon['coefs']) if iok[ii]
+        ]
+
+    return indok, data, sigma, matrix, dcon
+
+
+def _check_time_steps(
+    indok=None,
+    data=None,
+    sigma=None,
+    matrix=None,
+    t=None,
+    m3d=None,
+    dcon=None,
+    regul=None,
+):
+
+    # ---------------------
+    # check data validity
+
+    # remove time steps
+    iok = np.any(indok, axis=1)
+    iokt = iok
+
+    if np.any(~iok):
+
+        # raise warning
+        msg = (
+            "Removed the following time steps (all channels invalid):\n"
+            f"{(~iok).nonzero()[0]}"
+        )
+        warnings.warn(msg)
+
+        # apply
+        indok, data, sigma, matrix, dcon = _remove_time_steps(
+            iok=iok,
+            indok=indok,
+            data=data,
+            sigma=sigma,
+            matrix=matrix,
+            m3d=m3d,
+            dcon=dcon,
+        )
+
+    # --------------------------------------------------
+    # check underdetermintion for non-regularized algos
+
+    if not regul:
+
+        # remove time steps with nbs > nchan or bs not contrained
+        nt = data.shape[0]
+        nbs = matrix.shape[-1]
+        if dcon is None:
+            ifree = np.ones((nt, nbs), dtype=bool)
+        else:
+            if dcon['hastime']:
+                ifree = dcon['indbs_free']
+            else:
+                ifree = np.repeat(dcon['indbs_free'], nt, axis=0)
+
+        if m3d:
+            litout = np.array([
+                np.any(np.all(
+                    matrix[it, indok[it, :], :][:, ifree[it, :]] == 0,
+                    axis=0,
+                ))
+                for it in range(nt)
+            ])
+        else:
+            litout = np.array([
+                np.any(np.all(
+                    matrix[indok[it, :], :][:, ifree[it, :]] == 0,
+                    axis=0,
+                ))
+                for it in range(nt)
+            ])
+
+        # raise warning
+        if np.any(litout):
+            msg = (
+                "The following time steps are under-determined:\n"
+                f"{litout.nonzero()[0]}\n"
+                "  => They are removed (incompatible with non-regularized)"
+            )
+            warnings.warn(msg)
+
+            # apply
+            iokt[iokt] = ~litout
+            indok, data, sigma, matrix, dcon = _remove_time_steps(
+                iok=~litout,
+                indok=indok,
+                data=data,
+                sigma=sigma,
+                matrix=matrix,
+                m3d=m3d,
+                dcon=dcon,
+            )
+
+    return indok, data, sigma, matrix, t, dcon, iokt
+
+
 
 
 # #############################################################################
@@ -1137,9 +1245,6 @@ def _update_constraints(
     # format output
 
     if nt == 1:
-        indbs = indbs[0]
-        coefs = coefs[0]
-        offset = offset[0]
         hastime = False
     else:
         hastime = True
@@ -1149,6 +1254,7 @@ def _update_constraints(
         'indbs': indbs,
         'coefs': coefs,
         'offset': offset,
+        'indbs_free': iin_coefs,        # bool indices of free variables
     }
 
     return dconst, dcon
