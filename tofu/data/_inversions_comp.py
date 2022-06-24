@@ -295,6 +295,8 @@ def compute_inversions(
                 'ref': refinv,
             },
         }
+
+        dref = None
         if notime is False:
             if isinstance(t, np.ndarray):
                 dref = {
@@ -354,7 +356,7 @@ def compute_inversions(
                 'niter': niter,
             })
 
-        coll.update(dobj=dobj, ddata=ddata)
+        coll.update(dobj=dobj, dref=dref, ddata=ddata)
 
     else:
         return sol_full, mu, chi2n, regularity, niter, spec, t

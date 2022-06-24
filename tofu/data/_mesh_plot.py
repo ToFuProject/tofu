@@ -1216,11 +1216,16 @@ def _plot_profiles2d_prepare(
 
     keymap = [k0 for k0, v0 in coll2.ddata.items() if v0['data'].ndim > 1][0]
     ndim = coll2.ddata[keymap]['data'].ndim
+
+    refmap = coll2.ddata[keymap]['ref']
     dkeys = {
         'key': keymap,
-        'keyX': coll2.ddata[keymap]['ref'][-2],
-        'keyY': coll2.ddata[keymap]['ref'][-1],
-        'keyZ': coll2.ddata[keymap]['ref'][0] if ndim == 3 else None,
+        'keyX': coll2.get_ref_vector(key=keymap, ref=refmap[-2])[3],
+        'keyY': coll2.get_ref_vector(key=keymap, ref=refmap[-1])[3],
+        'keyZ': (
+            coll2.get_ref_vector(key=keymap, ref=refmap[0])[3]
+            if ndim == 3 else None
+        ),
     }
 
     # extent and interp
@@ -1293,10 +1298,30 @@ def plot_profile2d(
     # call right function
 
     if mtype in ['rect', 'tri']:
-        dax = coll2.plot_as_array(**dkeys)
+        dax = coll2.plot_as_array(
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+            **dkeys,
+        )
 
     else:
-        dax = coll2.plot_as_array(**dkeys)
+        dax = coll2.plot_as_array(
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+            **dkeys,
+        )
         # add 1d polar plot
 
 
