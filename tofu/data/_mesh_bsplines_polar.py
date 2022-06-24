@@ -300,6 +300,8 @@ class BivariateSplinePolar():
         # options
         radius_vs_time=None,
         nan_out=None,
+        # for purely radial only
+        deriv=None,
         # for compatibility (unused)
         indbs_tf=None,
     ):
@@ -311,6 +313,12 @@ class BivariateSplinePolar():
 
         # ------------
         # check inputs
+
+        if deriv is None:
+            deriv = 0
+        if self.knotsa is not None and deriv != 0:
+            msg = "Derivatives not-implemented for non-purely radial bsplines!"
+            raise Exception(msg)
 
         # coefs
         self._check_coefs(coefs=coefs)
@@ -337,7 +345,7 @@ class BivariateSplinePolar():
                         coefs[it, :],
                         self.deg,
                         extrapolate=False,
-                    )(radius[it, ...])
+                    )(radius[it, ...], nu=deriv)
             else:
                 for it in range(nt):
                     val[it, ...] = scpinterp.BSpline(
@@ -345,7 +353,7 @@ class BivariateSplinePolar():
                         coefs[it, :],
                         self.deg,
                         extrapolate=False,
-                    )(radius)
+                    )(radius, nu=deriv)
 
         elif radius_vs_time:
 
