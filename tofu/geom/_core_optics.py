@@ -2001,10 +2001,10 @@ class CrystalBragg(utils.ToFuObject):
                 + "\t - Ge: Germanium ({})\n".format('Ge')
             )
             raise Exception(msg)
-        elif crystal is 'aQz':
+        elif crystal == 'aQz':
             din = _rockingcurve_def._DCRYST['alpha-Quartz']
         """
-        elif crystal is 'Ge':
+        elif crystal == 'Ge':
             din = _rockingcurve_def._DCRYST['Germanium']
         """
         if merge_rc_data is None:
