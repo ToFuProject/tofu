@@ -2428,6 +2428,15 @@ def interp2d(
                     dim='time',
                     units='s',
                 )
+            else:
+                coll2.add_ref(key=reft, size=coll.dref[reft]['size'])
+                kt = coll.get_time(key=key)[3]
+                coll2.add_data(
+                    key=kt,
+                    data=coll.ddata[kt]['data'],
+                    dim='time',
+                )
+
             ref = (reft, knR, knZ)
         else:
             ref = (knR, knZ)
