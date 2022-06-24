@@ -64,7 +64,7 @@ def compute_inversions(
         m3d, indok,
         dconstraints,
         opmat, operator, geometry,
-        dalgo,
+        dalgo, dconstraints, dcon,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
         keyinv, refinv, reft, notime,
@@ -194,7 +194,7 @@ def compute_inversions(
             matrix=matrix,
             Tn=Tn,              # normalized geometry matrix (T)
             TTn=TTn,            # normalized tTT
-            Tyn=Tyn,            # normalized 
+            Tyn=Tyn,            # normalized
             R=R,                # Regularity operator
             precond=precond,
             data_n=data_n,      # normalized data
@@ -212,7 +212,7 @@ def compute_inversions(
             kwdargs=kwdargs,
             method=method,
             options=options,
-            dconstraints=dconstraints,
+            dcon=dcon,
             # output
             sol=sol,
             mu=mu,
@@ -391,7 +391,7 @@ def _compute_inv_loop(
     kwdargs=None,
     method=None,
     options=None,
-    dconstraints=None,
+    dcon=None,
     # output
     sol=None,
     mu=None,
@@ -403,6 +403,8 @@ def _compute_inv_loop(
 
     # -----------------------------------
     # Getting initial solution - step 1/2
+
+    regul = dalgo['family'] != 'Non-regularized'
 
     nt, nchan = data_n.shape
     nbs = Tn.shape[1]
@@ -418,7 +420,7 @@ def _compute_inv_loop(
 
     bounds = None
     func_val, func_jac, func_hess = None, None, None
-    if dalgo['family'] != 'Non-regularized' and positive is True:
+    if regul and positive is True:
 
         bounds = tuple([(0., None) for ii in range(0, sol0.size)])
 
@@ -431,17 +433,12 @@ def _compute_inv_loop(
         def func_hess(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn):
             return 2.*(TTn + mu*R)
 
-    elif dalgo['family'] == 'Non-regularized':
-
-        if dconstraints is not None:
-            datan -= Tn.dot(dconstraints['offset'])[None, :]
-            Tn = Tn.dot(dconstraints['coefs'])
-        newbs = Tn.shape[1]
+    elif not regul:
 
         if positive is True:
             bounds = (
-                np.zeros((newbs,), dtype=float),
-                np.full((newbs,), np.inf),
+                np.zeros((nbs,), dtype=float),
+                np.full((nbs,), np.inf),
             )
         else:
             bounds = (-np.inf, np.inf)
@@ -450,6 +447,9 @@ def _compute_inv_loop(
     # time loop
 
     # Beware of element-wise operations vs matrix operations !!!!
+    nbsi = nbs
+    bi = bounds
+    indbsi = np.ones((nbsi,), dtype=bool)
     for ii in range(0, nt):
 
         if verb >= 1:
@@ -470,14 +470,27 @@ def _compute_inv_loop(
                 Tyn=Tyn,
                 indok=indok,
                 ii=ii,
-                dconstraints=dconstraints,
                 m3d=m3d,
-                regul=dalgo['family'] != 'Non-regularized',
+                regul=regul,
+            )
+
+        if dcon is not None:
+            ic = 0 if ii == 0 and not dcon['hastime'] else ii
+            nbsi, indbsi, Tni, TTni, Tyni, yni, bi = _update_ttyn_constraints(
+                sparse=sparse,
+                Tni=Tni,
+                TTni=TTni,
+                Tyni=Tyni,
+                yni=yni,
+                bounds=bounds,
+                ii=ic,
+                dcon=dcon,
+                regul=regul,
             )
 
         # solving
         (
-            sol[ii, :], mu[ii], chi2n[ii], regularity[ii],
+            sol[ii, indbsi], mu[ii], chi2n[ii], regularity[ii],
             niter[ii], spec[ii],
         ) = dalgo['func'](
             Tn=Tni,
@@ -485,10 +498,13 @@ def _compute_inv_loop(
             Tyn=Tyni,
             R=R,
             yn=yni,
-            sol0=sol0,
-            nchan=nchani,
-            nbs=nbs,
+            # initial guess
+            sol0=sol0[indbsi],
             mu0=mu0,
+            # problem size
+            nchan=nchani,
+            nbs=nbsi,
+            # parameters
             conv_crit=conv_crit,
             precond=precond,
             verb=verb,
@@ -497,14 +513,20 @@ def _compute_inv_loop(
             func_val=func_val,
             func_jac=func_jac,
             func_hess=func_hess,
-            bounds=bounds,
+            bounds=bi,
             method=method,
             options=options,
-            # non-regularized
-            dconstraints=dconstraints,
             **kwdargs,
         )
 
+        if dcon is not None:
+            if dcon['coefs'] is not None:
+                sol[ii, :] = (
+                    dcon['coefs'][ic].dot(sol[ii, indbsi])
+                    + dcon['offset'][ic, :]
+                )
+            else:
+                sol[ii, :] = sol[ii, :] + dcon['offset'][ic, :]
         # post
         if chain:
             sol0[:] = sol[ii, :]
@@ -632,7 +654,6 @@ def _update_TTyn(
     Tyn=None,
     indok=None,
     ii=None,
-    dconstraints=None,
     m3d=None,
     regul=None,
 ):
@@ -680,11 +701,6 @@ def _update_TTyn(
             Tn = mi / sig[:, None]
             TTn = Tn.T.dot(Tn)
 
-    # update with constraints
-    if dconstraints is not None:
-        Tn[...] = Tn.dot(dconstraints['coefs'])
-
-
     # Tyn (for reguarized algorithms)
     if regul:
         if indok is None:
@@ -693,3 +709,40 @@ def _update_TTyn(
             Tyn = Tni.T.dot(yni)
 
     return Tn, TTn, Tyn, yn, yn.size
+
+
+def _update_ttyn_constraints(
+    sparse=None,
+    Tni=None,
+    TTni=None,
+    Tyni=None,
+    yni=None,
+    bounds=None,
+    ii=None,
+    dcon=None,
+    regul=None,
+):
+
+    # yni
+    yni = yni - Tni.dot(dcon['offset'][ii, :])
+
+    # Tni
+    Tni = Tni.dot(dcon['coefs'][ii])
+
+    # regul => Tyni, TTni
+    if regul:
+        raise NotImplementedError()
+
+    # nbsi
+    nbsi = Tni.shape[1]
+
+    # indbsi
+    indbsi = dcon['indbs'][ii]
+
+    # bounds
+    if np.isscalar(bounds[0]):
+        pass
+    else:
+        bounds = (bounds[0][indbsi], bounds[1][indbsi])
+
+    return nbsi, indbsi, Tni, TTni, Tyni, yni, bounds

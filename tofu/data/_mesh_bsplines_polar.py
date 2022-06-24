@@ -649,7 +649,7 @@ class BivariateSplinePolar():
             raise Exception(msg)
 
         coefs = vv
-        offset = val[:, None]
+        offset = np.repeat(val[:, None], self.nbs, axis=1)
 
         return indok, coefs, offset
 

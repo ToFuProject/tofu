@@ -448,12 +448,12 @@ def _compute_check(
     # ------------------
     # constraints update
 
-    dconstraints = _update_constraints(
+    dconstraints, dcon = _update_constraints(
         coll=coll,
         keybs=keybs,
         dconst=dconstraints,
         dind=dind,
-        nt=None,
+        nbs=nbs,
     )
 
     # --------------
@@ -472,7 +472,7 @@ def _compute_check(
     notime = (refinv == keybs)
 
     # --------------------------------------------
-    # valid indices of data / sigma
+    # valid chan / time indices of data / sigma (+ constraints)
 
     indok = np.isfinite(data) & np.isfinite(sigma)
     if not np.all(indok):
@@ -485,11 +485,14 @@ def _compute_check(
                 msg = "No valid data (all non-finite)"
                 raise Exception(msg)
 
+            # raise warning
             msg = (
                 "Removed the following channels (all times invalid):\n"
                 f"{(~iok).nonzero()[0]}"
             )
             warnings.warn(msg)
+
+            # update
             data = data[:, iok]
             sigma = sigma[:, iok]
             matrix = matrix[:, iok, :] if m3d else matrix[iok, :]
@@ -498,11 +501,15 @@ def _compute_check(
         # remove time steps
         iok = np.any(indok, axis=1)
         if np.any(~iok):
+
+            # raise warning
             msg = (
                 "Removed the following time steps (all channels invalid):\n"
                 f"{(~iok).nonzero()[0]}"
             )
             warnings.warn(msg)
+
+            # update
             data = data[iok, :]
             if sigma.shape[0] == iok.size:
                 sigma = sigma[iok, :]
@@ -512,64 +519,21 @@ def _compute_check(
                 t = t[iok]
             indok = indok[iok, :]
 
+            # update constraints too if relevant
+            if dcon is not None and dcon['hastime']:
+                dcon['indbs'] = [
+                    vv for ii, vv in enumerate(dcon['indbs']) if iok[ii]
+                ]
+                dcon['offset'] = dcon['offset'][iok, :]
+                dcon['coefs'] = [
+                    vv for ii, vv in enumerate(dcon['coefs']) if iok[ii]
+                ]
+
+            # get new nt, nchan
             nt, nchan = data.shape
 
     if np.all(indok):
         indok = None
-
-    # -----------
-    # constraints
-
-    err = False
-    if isinstance(dconstraints, str):
-        dconstraints = None
-    elif isinstance(dconstraints, np.ndarray):
-        dconstraints = {'coefs': dconstraints}
-
-    if isinstance(dconstraints, dict):
-        if dconstraints.get('coefs') is None:
-            dconstraints['coefs'] = np.eye(nbs, dtype=float)
-        if dconstraints.get('offset') is None:
-            dconstraints['offset'] = np.zeros((nbs,), dtype=float)
-
-        c0 = (
-            isinstance(dconstraints.get('coefs'), np.ndarray)
-            and dconstraints['coefs'].ndim == 2
-            and dconstraints['coefs'].shape[1] == nbs
-        )
-        if not c0:
-            err = True
-        else:
-            new = dconstraints['coefs'].shape[0]
-            c0 = (
-                isinstance(dconstraints.get('offset'), np.ndarray)
-                and dconstraints['offset'].shape == (new,)
-            )
-            if not c0:
-                err = True
-
-    elif dconstraints is not None:
-        err = True
-
-    # raise err if relevant
-    if err is True:
-        msg = (
-            "Arg dconstraints must be either:\n"
-            "\t- str: valid key of pre-defined constraint\n"
-            f"\t- np.ndarray: (nbs, new) constraint matrix\n"
-            "\t- dict: {\n"
-            "        'coefs':  (nbs, new) np.ndarray,\n"
-            "        'offset': (nbs,)     np.ndarray,\n"
-            "}\n"
-            "\nUsed to define a new vector of unknowns X, from x, such that:\n"
-            "    x = coefs * X + offset\n"
-            "Then:\n"
-            "    Ax = B\n"
-            "<=> A(coefs*X + offset) = B\n"
-            "<=> (A*coefs)X = (B - A*offset)\n"
-            "\nProvided:\n{dconstraints}"
-        )
-        raise Exception(msg)
 
     # --------------
     # choice of algo
@@ -744,7 +708,7 @@ def _compute_check(
         m3d, indok,
         dconstraints,
         opmat, operator, geometry,
-        dalgo,
+        dalgo, dconstraints, dcon,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
         keyinv, refinv, reft, notime,
@@ -914,6 +878,9 @@ def _check_constraints(
         warnings.warn(msg)
         return
 
+    # copy to avoid modifying reference
+    dconst = copy.deepcopy(dconst)
+
     # ----------
     # rmin, rmax
 
@@ -940,6 +907,7 @@ def _constraints_conflict_iout(
     dcon=None,
     loffset=None,
     lcoefs=None,
+    nt=None,
 ):
     """  Check whether some constrants are conflicting
 
@@ -955,64 +923,66 @@ def _constraints_conflict_iout(
     # check pure offset
 
     # aggregated ibs for checking global consistency
-    ibs_offset = np.array([dcon[k0]['indbs'] for k0 in loffset])
-    ibs_coef = np.array([dcon[k0]['indbs'] for k0 in lcoefs])
+    if len(loffset) > 0:
+        ibs_offset = np.array([dcon[k0]['indbs'] for k0 in loffset])
 
-    # check offset consistency
-    lo = np.sum(ibs_offset, axis=0) > 1
-    if np.any(lo):
-        msg = (
-            "Multiple pure offset constraints on bsplines:\n"
-            f"{lo.nonzero()[-1]}"
-        )
-        raise Exception(msg)
+        # check offset consistency
+        lo = np.sum(ibs_offset, axis=0) > 1
+        if np.any(lo):
+            msg = (
+                "Multiple pure offset constraints on bsplines:\n"
+                f"{lo.nonzero()[-1]}"
+            )
+            raise Exception(msg)
 
-    # check redundancy of coefs equations
-    if np.unique(ibs_coefs, axis=0).shape[0] < ibs_coefs.shape[0]:
-        msg = "There seem to be several redundant equations!"
-        raise Exception(msg)
+    # aggregate coefs
+    if len(lcoefs) > 0:
+        ibs_coefs = np.array([dcon[k0]['indbs'] for k0 in lcoefs])
+
+        # check redundancy of coefs equations
+        if np.unique(ibs_coefs, axis=0).shape[0] < ibs_coefs.shape[0]:
+            msg = "There seem to be several redundant equations!"
+            raise Exception(msg)
+
+        # assuming all equations are strictly independent from each other
+        if np.any(np.sum(ibs_coefs, axis=0) > 1):
+            msg = (
+                "Current version only manages strictly independent equations!"
+            )
+            raise NotImplementedError(msg)
 
     # -----------------
     # check coefs vs offset
 
-    # (nt, nbs) array with True for offset
-    iout_offset = np.any(ibs_offset, axis=0)
-    for ii, k0 in enumerate(lcoefs):
-        lt = np.all(iout_offset[ibs_coefs[ii, ...]], axis=-1).nonzero()[0]
-        if lt.size > 0:
-            msg = (
-                f"Redundancy between equation {k0} and offsets!\n"
-                f"For the following time steps: {lt}"
-            )
-            raise Exception(msg)
+    if len(loffset) > 0 and len(lcoefs) > 0:
+        # (nt, nbs) array with True for offset
+        iout_offset = np.any(ibs_offset, axis=0)
+        for ii, k0 in enumerate(lcoefs):
+            lt = np.all(iout_offset[ibs_coefs[ii, ...]], axis=-1).nonzero()[0]
+            if lt.size > 0:
+                msg = (
+                    f"Redundancy between equation {k0} and offsets!\n"
+                    f"For the following time steps: {lt}"
+                )
+                raise Exception(msg)
 
-    # -----------------
-    # sort coefs equations by nb of remaining free parameters
-    # equations with a single free parameters becomme offsets
-
-    if np.any(ibs_coefs & iout_offset[None, ...]):
-        msg = "Auto-solve mutually dependent equations not implemented yet!"
-        raise NotImplementedError(msg)
+        if np.any(ibs_coefs & iout_offset[None, ...]):
+            msg = "Auto-solve mutually dependent equations not implemented yet!"
+            raise NotImplementedError(msg)
 
     # ------------------
     # get really free equations
 
-    # assuming all equations are strictly independent from each other
-    if np.any(np.sum(ibs_coefs, axis=0) > 1):
-        msg = (
-            "Current version only manages strictly independent equations!"
-        )
-        raise NotImplementedError(msg)
-
     # from here all equations are independent from offsets
-    iout_coefs = np.zeros(iout_offset.shape, dtype=bool)
-    iin_coefs = np.zeros(iout_offset.shape, dtype=bool)
+    nt, nbs = iout_offset.shape
+    iout_coefs = np.zeros((nt, nbs), dtype=bool)
+    iin_coefs = ~iout_offset
 
     for ii, k0 in enumerate(lcoefs):
         dcon[k0]['iout'] = np.zeros((nt,), dtype=int)
         dcon[k0]['iin'] = [
-            np.zeros(ibs_coefs[ii, :, :].sum(axis=1) - 1), dtype=int)
-            for ii in range(nt)
+            np.zeros((ibs_coefs[ii, it, :].sum() - 1,), dtype=int)
+            for it in range(nt)
         ]
 
         for it in range(ibs_coefs.shape[1]):
@@ -1021,14 +991,18 @@ def _constraints_conflict_iout(
             indin = ibs_coefs[ii, it, :].nonzero()[0][1:]
 
             iout_coefs[it, indout] = True
-            iin_coefs[it, indin] = True
+            iin_coefs[it, indout] = False
 
-            dcon[k0]['iout'][ii] = indout
-            dcon[k0]['iin'][ii][:] = indin
+            dcon[k0]['iout'][it] = indout
+            dcon[k0]['iin'][it][:] = indin
 
     # final consistency check
-    if np.any(iout_offset & iout_coefs & iin_coefs):
-        msg = ("Inconsistency!")
+    lterr = np.any(iout_offset & iout_coefs & iin_coefs, axis=1)
+    if np.any(lterr):
+        msg = (
+            "Inconsistency for the following time steps:\n"
+            f"{lterr.nonzero()[0]}"
+        )
         raise Exception(msg)
 
     return iout_offset, iout_coefs, iin_coefs
@@ -1039,11 +1013,11 @@ def _update_constraints(
     keybs=None,
     dconst=None,
     dind=None,
-    nt=None,
+    nbs=None,
 ):
 
     if dconst is None:
-        return
+        return None, None
 
     # ---------------------------------------------
     # initialize bool index of constrained bsplines
@@ -1061,14 +1035,14 @@ def _update_constraints(
 
         # make it a 1d vector with good shape
         if isinstance(dconst.get(rm), str):
-            rmax = dconst[rm]
-            if dind is not None and rm in dind.keys():
-                dconst[rm] = coll.ddata[rm]['data'][dind[rm]['ind']]
+            rmstr = dconst[rm]
+            if dind is not None and rmstr in dind.keys():
+                dconst[rm] = coll.ddata[rmstr]['data'][dind[rmstr]['ind']]
             else:
-                dconst[rm] = coll.ddata[rm]['data']
+                dconst[rm] = coll.ddata[rmstr]['data']
 
         else:
-            dconst[rm] = np.full((nt,), dconst[rm])
+            dconst[rm] = dconst[rm]
 
         # compute indbs
         indbs, offset = clas.get_constraints_out_rlim(rlim=dconst[rm], rm=rm)
@@ -1085,7 +1059,7 @@ def _update_constraints(
         if dconst.get(deriv) is None:
             continue
 
-        # get coefs
+        # get indbs, coefs and offset as 3 (nconstraints, nbs) arrays
         indbs, coefs, offset = clas.get_constraints_deriv(
             deriv=deriv,
             rad=dconst[deriv]['rad'],
@@ -1134,12 +1108,12 @@ def _update_constraints(
         dcon=dcon,
         loffset=loffset,
         lcoefs=lcoefs,
+        nt=nt,
     )
 
     # --------------------
     # build coefs / offset
 
-    nt, nbs = iout_offset.shape
     nbsnew = iin_coefs.sum(axis=1)
     indbs = [iin_coefs[ii, :].nonzero()[0] for ii in range(nt)]
     coefs = [np.zeros((nbs, nbsnew[ii]), dtype=float) for ii in range(nt)]
@@ -1147,16 +1121,17 @@ def _update_constraints(
 
     for k0 in loffset:
         ind = dcon[k0]['indbs']
-        offset[ind] = dcon[k0]['offset'][ind]
+        offset[ind] = np.repeat(dcon[k0]['offset'][None, :], nt, axis=0)[ind]
 
     for k0 in lcoefs:
-        for ii in range(nt):
-            iout = dcon[k0]['iout'][ii]
-            iin = dcon[k0]['iin'][ii]
-            ci = -dcon[k0]['coefs'][ii, iin] / dcon[k0]['coefs'][ii, iout]
-            oi = dcon[k0]['offset'][ii, iin] / dcon[k0]['coefs'][ii, iout]
-            coefs[ii][iout, iin] = ci
-            offset[ii, iout] = oi
+        for it in range(nt):
+            iout = dcon[k0]['iout'][it]
+            iin = dcon[k0]['iin'][it]
+            ci = -dcon[k0]['coefs'][iin] / dcon[k0]['coefs'][iout]
+            oi = dcon[k0]['offset'][iin] / dcon[k0]['coefs'][iout]
+            offset[it, iout] = oi
+            coefs[it][iout, indbs[it] == iin] = ci
+            coefs[it][tuple(indbs[it]), tuple(np.arange(indbs[it].size))] = 1.
 
     # -------------
     # format output
@@ -1171,12 +1146,12 @@ def _update_constraints(
 
     dcon = {
         'hastime': hastime,
-        'indbs': None,
-        'coefs': None,
-        'offset': None,
+        'indbs': indbs,
+        'coefs': coefs,
+        'offset': offset,
     }
 
-    return dconstraints, dcon
+    return dconst, dcon
 
 
 # #############################################################################
