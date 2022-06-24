@@ -16,6 +16,7 @@ import tofu.defaults as tfd
 import tofu.utils as tfu
 import tofu.geom as tfg
 
+import tofu.spectro._rockingcurve_def as _rockingcurve_def
 
 _here = os.path.abspath(os.path.dirname(__file__))
 _PATH_DATA = os.path.join(_here, 'test_data')
@@ -330,7 +331,7 @@ class Test01_Crystal(object):
                 0.1*np.r_[-1, 1, 1, -1, -1],
                 0.1*np.r_[-1, -1, 1, 1, -1],
             ])
-            dax = obj.plot_line_on_det_tracing(det=det)
+            dax = obj.plot_line_on_det_tracing(det=det, crystal='aQz')
 
     def test13_calc_meridional_sagittal_focus(self):
         derr = {}
