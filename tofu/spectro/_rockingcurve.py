@@ -15,7 +15,7 @@ from matplotlib.axes._axes import Axes
 
 # tofu
 from tofu.version import __version__
-# from . import _rockingcurve_def as _rockingcurve_def
+import tofu.spectro._rockingcurve_def as _rockingcurve_def
 
 
 # ##########################################################
@@ -26,6 +26,8 @@ from tofu.version import __version__
 
 
 def compute_rockingcurve(
+    # Type of crystal
+    crystal=None, din=None,
     # Lattice parameters
     ih=None, ik=None, il=None, lamb=None,
     # Lattice modifications
@@ -41,16 +43,18 @@ def compute_rockingcurve(
 ):
     """ The code evaluates, for a given wavelength and Miller indices set,
     the inter-plane distance d, the Bragg angle of reference and the complex
-    structure factor for alpha-Quartz crystals.
+    structure factor for a given crystal.
     Then, the power ratio and their integrated reflectivity, for 3 differents
     models (perfect, mosaic and dynamical) are computed to obtain
     rocking curves, for parallel and perpendicular photon polarizations.
 
-    The alpha-Quartz, symmetry group D(4,3), is assumed left-handed.
+    Among the type of crystals available, there is the alpha-Quartz, symmetry
+    group D(4,3), is assumed left-handed.
     It makes a difference for certain planes, for example between
     (h,k,l)=(2,0,3) and (2,0,-3).
     The alpha-Quartz structure is hexagonal with 3 molecules of SiO2 in the
     unit cell.
+    There will be soon also the Germanium crystal...
 
     The possibility to add a non-parallelism between crystal's optical surface
     and inter-atomic planes is available. Rocking curve plots are updated
@@ -78,6 +82,10 @@ def compute_rockingcurve(
 
     Parameters:
     -----------
+    crystal:    str
+        Crystal definition to use, among 'aQz' and soon 'Ge'
+    din:    str
+        Crystal definition dictionary to use, among 'aQz' and soon 'Ge'
     ih, ik, il:    int
         Miller indices of crystal used
     lamb:    float
@@ -116,7 +124,19 @@ def compute_rockingcurve(
 
     # Check inputs
     # ------------
-
+    if crystal is None:
+        msg = (
+            "You must choose a type of crystal to use among :\n"
+            + "\t - aQz: alpha-Quartz ({})\n".format('aQz')
+            + "\t - Ge: Germanium ({})\n".format('Ge')
+        )
+        raise Exception(msg)
+    elif crystal is 'aQz':
+        din = _rockingcurve_def._DCRYST['alpha-Quartz']
+    """
+    elif crystal is 'Ge':
+        din = _rockingcurve_def._DCRYST['Germanium']
+    """
     if therm_exp is None:
         therm_exp = False
     if plot_therm_exp is None and therm_exp is not False:
@@ -155,25 +175,21 @@ def compute_rockingcurve(
     re = 2.817940e-5
 
     # Atomic number of Si and O atoms
-    Zsi = 14.
-    Zo = 8.
+    Zsi = din['atomic number'][0]
+    Zo = din['atomic number'][1]
 
     # Position of the three Si atoms in the unit cell,
     # from Wyckoff "Crystal Structures"
-    u = 0.465
-    xsi = np.r_[-u, u, 0.]
-    ysi = np.r_[-u, 0., u]
-    zsi = np.r_[1./3., 0., 2./3.]
+    xsi = din['mesh positions']['Si']['x']
+    ysi = din['mesh positions']['Si']['y']
+    zsi = din['mesh positions']['Si']['z']
     Nsi = np.size(xsi)
 
     # Position of the six O atoms in the unit cell,
     # from Wyckoff "Crystal Structures"
-    x = 0.415
-    y = 0.272
-    z = 0.120
-    xo = np.r_[x, y - x, -y, x - y, y, -x]
-    yo = np.r_[y, -x, x - y, -y, x, y - x]
-    zo = np.r_[z, z + 1./3., z + 2./3., -z, 2./3. - z, 1./3. - z]
+    xo = din['mesh positions']['O']['x']
+    yo = din['mesh positions']['O']['y']
+    zo = din['mesh positions']['O']['z']
     No = np.size(xo)
 
     # Computation of the unit cell volume, inter-planar distance,
@@ -181,6 +197,7 @@ def compute_rockingcurve(
     (
         T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
     ) = CrystBragg_comp_lattice_spacing(
+        crystal=crystal, din=din,
         ih=ih, ik=ik, il=il, lamb=lamb, na=na, nn=nn,
         therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
     )
@@ -194,21 +211,10 @@ def compute_rockingcurve(
     # Atomic scattering factors ("asf") for Si(2+) and O(1-) as a function of
     # sin(theta)/lambda ("sol"), taking into account molecular bounds
     # ("si") for Silicium and ("o") for Oxygen
-    sol_si = np.r_[
-        0., 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6,
-        0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5,
-    ]
-    asf_si = np.r_[
-        12., 11., 9.5, 8.8, 8.3, 7.7, 7.27, 6.25, 5.3,
-        4.45, 3.75, 3.15, 2.7, 2.35, 2.07, 1.87, 1.71, 1.6,
-    ]
-    sol_o = np.r_[
-        0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1,
-    ]
-    asf_o = np.r_[
-        9., 7.836, 5.756, 4.068, 2.968, 2.313, 1.934, 1.710, 1.566, 1.462,
-        1.373, 1.294,
-    ]
+    sol_si = din['sin(theta)/lambda']['Si']
+    asf_si = din['atomic scattering factor']['Si']
+    sol_o = din['sin(theta)/lambda']['O']
+    asf_o = din['atomic scattering factor']['O']
 
     # Calculation of the structure factor for the alpha-quartz crystal
     # ----------------------------------------------------------------
@@ -873,8 +879,11 @@ def CrystBragg_check_alpha_angle(
 
 
 def CrystBragg_comp_lattice_spacing(
+    # Type of crystal
+    crystal=None, din=None,
     ih=None, ik=None, il=None,
     lamb=None,
+    # Plot
     na=None, nn=None,
     therm_exp=None,
     plot_therm_exp=None,
@@ -929,13 +938,13 @@ def CrystBragg_comp_lattice_spacing(
 
     # Inter-atomic distances into hexagonal cell unit and associated volume
     # at 25°C (=298K) in Angstroms, from Wyckoff "Crystal Structures"
-    a0 = 4.91304
-    c0 = 5.40463
+    a0 = din['Interatomic distances']['a0']
+    c0 = din['Interatomic distances']['c0']
 
     # Thermal expansion coefficients in the directions parallel to a0 & c0
     # Values in 1/°C <=> 1/K
-    alpha_a = 13.37e-6
-    alpha_c = 7.97e-6
+    alpha_a = din['Thermal expansion coefs']['alpha_a']
+    alpha_c = din['Thermal expansion coefs']['alpha_c']
 
     # Computation of the inter-planar spacing
     # ---------------------------------------

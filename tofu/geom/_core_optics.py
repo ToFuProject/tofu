@@ -30,6 +30,7 @@ from . import _check_optics
 from . import _comp_optics as _comp_optics
 from . import _plot_optics as _plot_optics
 import tofu.spectro._rockingcurve as _rockingcurve
+import tofu.spectro._rockingcurve_def as _rockingcurve_def
 
 
 __all__ = ['CrystalBragg']
@@ -802,8 +803,9 @@ class CrystalBragg(utils.ToFuObject):
             fs=fs, ax=ax, legend=legend)
 
     def compute_rockingcurve(
-        self, ih=None, ik=None, il=None, lamb=None,
-        use_non_parallelism=None, na=None,
+        self, crystal=None, din=None,
+        ih=None, ik=None, il=None, lamb=None,
+        use_non_parallelism=None, nn=None,
         alpha_limits=None,
         therm_exp=None, plot_therm_exp=None,
         plot_asf=None, plot_power_ratio=None,
@@ -811,8 +813,9 @@ class CrystalBragg(utils.ToFuObject):
         verb=None, returnas=None,
     ):
         return _rockingcurve.compute_rockingcurve(
+            crystal=crystal, din=din,
             ih=ih, ik=ik, il=il, lamb=lamb,
-            use_non_parallelism=use_non_parallelism, na=na,
+            use_non_parallelism=use_non_parallelism, nn=nn,
             alpha_limits=alpha_limits,
             therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
             plot_asf=plot_asf, plot_power_ratio=plot_power_ratio,
@@ -1935,17 +1938,23 @@ class CrystalBragg(utils.ToFuObject):
             return xi, xj
 
     def plot_line_on_det_tracing(
-        self, lamb=None, n=None,
-        nphi2=None,
+        self,
+        # Options of basic method
+        n=None, nphi2=None,
         det=None, johann=None,
         lpsi=None, ldtheta=None,
-        ih=None, ik=None, il=None,
+        # Type of crystal
+        crystal=None, din=None,
+        # Lattice parameters
+        ih=None, ik=None, il=None, lamb=None,
         dcryst=None,
+        # Options of crystal modifications
         merge_rc_data=None,
         use_non_parallelism=None,
         therm_exp=None,
         alpha_limits=None, na=None,
         alpha0=None, temp0=None,
+        # Plot
         plot_rcs=None,
         strict=None,
         plot=None, ax=None,
@@ -1985,6 +1994,19 @@ class CrystalBragg(utils.ToFuObject):
         """
 
         # Check / format inputs
+        if crystal is None:
+            msg = (
+                "You must choose a type of crystal to use among :\n"
+                + "\t - aQz: alpha-Quartz ({})\n".format('aQz')
+                + "\t - Ge: Germanium ({})\n".format('Ge')
+            )
+            raise Exception(msg)
+        elif crystal is 'aQz':
+            din = _rockingcurve_def._DCRYST['alpha-Quartz']
+        """
+        elif crystal is 'Ge':
+            din = _rockingcurve_def._DCRYST['Germanium']
+        """
         if merge_rc_data is None:
             merge_rc_data = False
         if lamb is None and merge_rc_data is False:
@@ -2042,6 +2064,7 @@ class CrystalBragg(utils.ToFuObject):
         (
             T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
         ) = _rockingcurve.CrystBragg_comp_lattice_spacing(
+            crystal=crystal, din=din,
             ih=ih, ik=ik, il=il, lamb=self.dbragg['lambref']*1e10,
             na=na, nn=nn,
             therm_exp=therm_exp, plot_therm_exp=False,
@@ -2145,11 +2168,12 @@ class CrystalBragg(utils.ToFuObject):
             # diffraction pattern
             for ll in range(nlamb):
                 dout = _rockingcurve.compute_rockingcurve(
+                    crystal=crystal, din=din,
                     ih=ih, ik=ik, il=il, lamb=lamb[ll]*1e10,
                     use_non_parallelism=use_non_parallelism,
                     therm_exp=therm_exp,
                     plot_therm_exp=plot_rcs,
-                    alpha_limits=alpha_limits, na=None,
+                    alpha_limits=alpha_limits, nn=None,
                     plot_asf=False, plot_power_ratio=plot_rcs,
                     plot_asymmetry=False, plot_cmaps=False,
                     verb=False, returnas=dict,
