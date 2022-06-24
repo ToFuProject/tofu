@@ -940,7 +940,6 @@ def _constraints_conflict_iout(
     dcon=None,
     loffset=None,
     lcoefs=None,
-    hastime=None,
 ):
     """  Check whether some constrants are conflicting
 
@@ -955,9 +954,12 @@ def _constraints_conflict_iout(
     # -----------------
     # check pure offset
 
-    ibs_off = np.array([dcon[k0]['indbs'] for k0 in loffset])
+    # aggregated ibs for checking global consistency
+    ibs_offset = np.array([dcon[k0]['indbs'] for k0 in loffset])
+    ibs_coef = np.array([dcon[k0]['indbs'] for k0 in lcoefs])
 
-    lo = np.sum(ibs_off, axis=0) > 1
+    # check offset consistency
+    lo = np.sum(ibs_offset, axis=0) > 1
     if np.any(lo):
         msg = (
             "Multiple pure offset constraints on bsplines:\n"
@@ -965,20 +967,16 @@ def _constraints_conflict_iout(
         )
         raise Exception(msg)
 
-    # (nt, nbs) array with True for offset
-    iout_offset = np.any(ibs_offset, axis=0)
-
-    # add equations
-    ibs_coef = np.array([dcon[k0]['indbs'] for k0 in lcoefs])
-
-    # check redundancy
+    # check redundancy of coefs equations
     if np.unique(ibs_coefs, axis=0).shape[0] < ibs_coefs.shape[0]:
         msg = "There seem to be several redundant equations!"
         raise Exception(msg)
 
     # -----------------
-    # check vs offset
+    # check coefs vs offset
 
+    # (nt, nbs) array with True for offset
+    iout_offset = np.any(ibs_offset, axis=0)
     for ii, k0 in enumerate(lcoefs):
         lt = np.all(iout_offset[ibs_coefs[ii, ...]], axis=-1).nonzero()[0]
         if lt.size > 0:
@@ -996,68 +994,44 @@ def _constraints_conflict_iout(
         msg = "Auto-solve mutually dependent equations not implemented yet!"
         raise NotImplementedError(msg)
 
-
-    # TODO
-    # newoff, newval = [], []
-    # for it in range(iout_offset.shape[0]):
-        # lfree = np.array([
-            # np.sum(ibs_coefs[ii, it, :] & (~iout_offset[it, :]))
-            # for ii, k0 in enumerate(lcoefs)
-        # ])
-
-        # inds = np.argsort(lfree)
-
-        # assert lfree[inds[0]] > 0
-
-        # single free parameter => new offset
-        # while lfree[inds[0]] == 1:
-            # indbs = (
-                # (ibs_coefs[inds[0], it, :]
-                 # & (~iout_offset[it, :]))
-            # ).nonzero()[0][0]
-
-            # iout_offset[it, indbs] = True
-            # newoff.append(indbs)
-            # newval.append()
-
-            # # re-evaluate
-            # lfree = np.array([
-                # np.sum(ibs_coefs[ii, it, :] & (~iout_offset[it, :]))
-                # for ii, k0 in enumerate(lcoefs)
-            # ])
-            # inds = np.argsort(lfree)
-            # if lfree[inds[0]] == 0:
-                # msg = "Found over-constraint on {lcoefs[inds[0]]}"
-                # raise Exception(msg)
-
     # ------------------
     # get really free equations
+
+    # assuming all equations are strictly independent from each other
+    if np.any(np.sum(ibs_coefs, axis=0) > 1):
+        msg = (
+            "Current version only manages strictly independent equations!"
+        )
+        raise NotImplementedError(msg)
 
     # from here all equations are independent from offsets
     iout_coefs = np.zeros(iout_offset.shape, dtype=bool)
     iin_coefs = np.zeros(iout_offset.shape, dtype=bool)
+
     for ii, k0 in enumerate(lcoefs):
-        # bs should not be identified already as output or input
+        dcon[k0]['iout'] = np.zeros((nt,), dtype=int)
+        dcon[k0]['iin'] = [
+            np.zeros(ibs_coefs[ii, :, :].sum(axis=1) - 1), dtype=int)
+            for ii in range(nt)
+        ]
+
         for it in range(ibs_coefs.shape[1]):
-            ibs_coefs[ii, it, :] & (iout_offset[it, :] | iout_coefs[it, :])
+            # get first variable
+            indout = ibs_coefs[ii, it, :].nonzero()[0][0]
+            indin = ibs_coefs[ii, it, :].nonzero()[0][1:]
 
-        lbs = ibs_coefs[ii, ...] & (~iout_offset) & (~iout_coefs) & (~iin_coefs)
-        ibt = np.any(lbs, axis=1)
+            iout_coefs[it, indout] = True
+            iin_coefs[it, indin] = True
 
-        if np.any(ibt):
-            for it in ibt.nonzero()[0]:
-                # conflict (both in and out)
+            dcon[k0]['iout'][ii] = indout
+            dcon[k0]['iin'][ii][:] = indin
 
-                ibs_coefs[ii, it, :] & (iout_offset | iout_coefs)
-                iout_coefs[it, lbs[it, :].nonzero()[0][0]] = True
+    # final consistency check
+    if np.any(iout_offset & iout_coefs & iin_coefs):
+        msg = ("Inconsistency!")
+        raise Exception(msg)
 
-                iin_coefs[it, lbs[it, :].nonzero()[0][1:]] = True
-
-    # check all equations have a variable set
-
-
-
-    return iout_offset
+    return iout_offset, iout_coefs, iin_coefs
 
 
 def _update_constraints(
@@ -1162,63 +1136,27 @@ def _update_constraints(
         lcoefs=lcoefs,
     )
 
-    # --------------------------
-    # select bsplines to be removed as results of equations
-
-    if np.any(ioffset):
-        iout = np.array([
-            np.any(ibs_offset[:, ii, :], axis=0)
-            for ii in range(nt)
-        ])
-    else:
-        iout = np.zeros((nt, ibs.shape[-1]), dtype=bool)
-
-    ibs_coefs = ibs[~ioffset, :, :]
-    if np.any(~ioffset):
-        for ii in range(nt):
-            icom = iout[ii:ii+1, :] & ibs_coefs[:, ii, :]
-
-            icontra = np.all(icom, axis=0)
-            if np.any(icontra):
-                msg = (
-                    "Contradictory constraints on bsplines:\n"
-                    f"{icontra.nonzero()[0]}"
-                )
-                raise Exception(msg)
-
-            if np.all(np.any(icom, axis=0)):
-                # all equations already have an identified variable from offset
-                pass
-            else:
-                icom_no = ~np.any(icom, axis=1)
-                if icom_no.sum() == 1:
-                    iout[ii, ibs_coefs[icom_no, ii, :].nonzero()[0][0]] = True
-                else:
-                    msg = "Multiple equations not handled yet"
-                    raise Exception(msg)
-
     # --------------------
     # build coefs / offset
 
-    nbs = ibs.shape[-1]
-    coefs, offset = [], []
-    for ii in range(nt):
-        nbsi = nbs - iout[ii, :].sum()
-        ci = np.zeros((nbs, nbsi), dtype=float)
-        oi = np.zeros((nbs,), dtype=float)
+    nt, nbs = iout_offset.shape
+    nbsnew = iin_coefs.sum(axis=1)
+    indbs = [iin_coefs[ii, :].nonzero()[0] for ii in range(nt)]
+    coefs = [np.zeros((nbs, nbsnew[ii]), dtype=float) for ii in range(nt)]
+    offset = np.zeros((nt, nbs), dtype=float)
 
-        # offset only
-        if np.any(ioffset):
-            for jj, k0 in enumerate(ioffset.sum()):
-                k0 = lconst[ioffset.nonzero()[0][jj]]
-                ind = ibs_offset[jj, ii, :]
-                oi[ind] = dcon[k0]['offset'][ind]
+    for k0 in loffset:
+        ind = dcon[k0]['indbs']
+        offset[ind] = dcon[k0]['offset'][ind]
 
-        # coefs + offset
-        if np.any(~ioffset):
-            import pdb; pdb.set_trace()     # DB
-            ibsi = None
-            ci[ibsi] = None
+    for k0 in lcoefs:
+        for ii in range(nt):
+            iout = dcon[k0]['iout'][ii]
+            iin = dcon[k0]['iin'][ii]
+            ci = -dcon[k0]['coefs'][ii, iin] / dcon[k0]['coefs'][ii, iout]
+            oi = dcon[k0]['offset'][ii, iin] / dcon[k0]['coefs'][ii, iout]
+            coefs[ii][iout, iin] = ci
+            offset[ii, iout] = oi
 
     # -------------
     # format output
