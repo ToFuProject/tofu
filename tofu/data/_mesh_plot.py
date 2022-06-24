@@ -1222,11 +1222,16 @@ def _plot_profiles2d_prepare(
         'key': keymap,
         'keyX': coll2.get_ref_vector(key=keymap, ref=refmap[-2])[3],
         'keyY': coll2.get_ref_vector(key=keymap, ref=refmap[-1])[3],
-        'keyZ': (
-            coll2.get_ref_vector(key=keymap, ref=refmap[0])[3]
-            if ndim == 3 else None
-        ),
+        'keyZ': None,
     }
+    if ndim == 3:
+        keyZ = coll2.get_ref_vector(key=keymap, ref=refmap[0])[3]
+        import datastock as ds
+        uniform = ds._plot_as_array._check_uniform_lin(
+            k0=keyZ, ddata=coll2.ddata,
+        )
+        if not uniform:
+            keyZ = None
 
     # extent and interp
     extent = (
@@ -1311,6 +1316,9 @@ def plot_profile2d(
         )
 
     else:
+
+
+
         dax = coll2.plot_as_array(
             vmin=vmin,
             vmax=vmax,
