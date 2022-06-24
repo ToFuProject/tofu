@@ -671,18 +671,21 @@ def _update_TTyn(
 
     # update sig
     if sigma.shape[0] == 1:
-        sig = sigma[0, :]
+        if indok is None:
+            sig = sigma[0, :]
+        else:
+            sig = sigma[0, indok[ii, :]]
     else:
         if indok is None:
             sig = sigma[ii, :]
         else:
-            sig = sigma[indok[ii, :], :]
+            sig = sigma[ii, indok[ii, :]]
 
     # update data_n
     if indok is None:
         yn = data_n[ii, :]
     else:
-        yn = data_n[indok[ii, :], :]
+        yn = data_n[ii, indok[ii, :]]
 
     # intermediates
     if indok is None:
