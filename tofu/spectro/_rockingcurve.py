@@ -907,11 +907,16 @@ def CrystBragg_comp_lattice_spacing(
 
     Parameters:
     -----------
+    crystal:    str
+        Crystal definition to use, among 'aQz' and soon 'Ge'
+    din:    str
+        Crystal definition dictionary to use, among 'aQz' and soon 'Ge'
     ih, ik, il:    int
         Miller indices of crystal used, by default to (1,1,0)
     lamb:    float
         Wavelength of interest, in Angstroms (1e-10 m), by default to 3.96A
     """
+
     # Check inputs
     # ------------
     ih, ik, il, lamb = CrystBragg_check_inputs_rockingcurve(
@@ -933,43 +938,41 @@ def CrystBragg_comp_lattice_spacing(
         )
         raise Exception(msg)
 
-    # Lattice constants and thermal expansion coefficients for Qz
-    # -----------------------------------------------------------
+    # Prepare
+    # -------
 
-    # Inter-atomic distances into hexagonal cell unit and associated volume
-    # at 25°C (=298K) in Angstroms, from Wyckoff "Crystal Structures"
-    a0 = din['Interatomic distances']['a0']
-    c0 = din['Interatomic distances']['c0']
+    # Inter-atomic distances and thermal expansion coefficients
+    if crystal == 'aQz':
+        a0 = din['Inter-atomic distances']['a0']
+        c0 = din['Inter-atomic distances']['c0']
+        alpha_a = din['Thermal expansion coefs']['alpha_a']
+        alpha_c = din['Thermal expansion coefs']['alpha_c']
 
-    # Thermal expansion coefficients in the directions parallel to a0 & c0
-    # Values in 1/°C <=> 1/K
-    alpha_a = din['Thermal expansion coefs']['alpha_a']
-    alpha_c = din['Thermal expansion coefs']['alpha_c']
-
-    # Computation of the inter-planar spacing
-    # ---------------------------------------
-
+    # Temperature changes
     T0 = 25  # Reference temperature in °C
     if therm_exp:
         TD = np.linspace(-10, 10, na)
     else:
         TD = np.r_[0.]
 
+    # Results arrays
     d_atom = np.full((TD.size), np.nan)
-    a1, c1 = d_atom.copy(), d_atom.copy()
-    d_num, d_den = d_atom.copy(), d_atom.copy()
+    if crystal == 'aQz':
+        a1, c1 = d_atom.copy(), d_atom.copy()
     Volume, sol = d_atom.copy(), d_atom.copy()
     sin_theta, theta, theta_deg = d_atom.copy(), d_atom.copy(), d_atom.copy()
 
+    # Compute
+    # -------
+
     for i in range(TD.size):
-        a1[i] = a0*(1 + alpha_a*TD[i])
-        c1[i] = c0*(1 + alpha_c*TD[i])
-        Volume[i] = (a1[i]**2.)*c1[i]*np.sqrt(3.)/2.
-        d_num[i] = np.sqrt(3.)*a1[i]*c1[i]
-        d_den[i] = np.sqrt(
-            4.*(ih**2 + ik**2 + ih*ik)*(c1[i]**2) + 3.*(il**2)*(a1[i]**2)
-        )
-        d_atom[i] = d_num[i]/d_den[i]
+        if crystal == 'aQz':
+            a1[i] = a0*(1 + alpha_a*TD[i])
+            c1[i] = c0*(1 + alpha_c*TD[i])
+            Volume[i] = _rockingcurve_def.hexa_volume(a=a1[i], c=c1[i])
+            d_atom[i] = _rockingcurve_def.hexa_spacing(
+                h=ih, k=ik, l=il, a=a1[i], c=c1[i],
+            )
         if d_atom[i] < lamb/2.:
             msg = (
                 "According to Bragg law, Bragg scattering need d > lamb/2!\n"

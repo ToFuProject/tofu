@@ -15,34 +15,39 @@ _DCRYST = {
         'atoms': ['Si', 'O'],
         'atomic number': [14., 8.],
         'number of atoms': [3., 6.],
+        'Miller indices (h,k,l)': np.r_[1., 1., 0.],
         'meshtype': 'hexagonal',
         'mesh positions': {
             'Si': {
-                'u': 0.465,
+                'u': np.r_[0.465],
                 'x': None,
                 'y': None,
                 'z': None,
             },
             'O': {
-                'u': [0.415, 0.272, 0.120],
+                'u': np.r_[0.415, 0.272, 0.120],
                 'x': None,
                 'y': None,
                 'z': None,
             },
         },
         'mesh positions sources': 'R.W.G. Wyckoff, Crystal Structures (1963)',
-        'Interatomic distances': {
+        'Inter-atomic distances': {
             'a0': 4.91304,
             'c0': 5.40463,
         },
-        'Interatomic distances comments' : 'at 25°C, unit = Angstroms',
-        'Interatomic distances sources': 'R.W.G. Wyckoff, Crystal Structures',
+        'Inter-atomic distances comments' :
+            'at 25°C, unit = Angstroms, within the unit cell',
+        'Inter-atomic distances sources': 'R.W.G. Wyckoff, Crystal Structures',
         'Thermal expansion coefs': {
             'alpha_a': 13.37e-6,
             'alpha_c': 7.97e-6,
         },
-        'Thermal expansion coefs comments': 'unit = [°C⁻1]',
+        'Thermal expansion coefs comments':
+            'unit = [°C⁻1], in parallel directions to a0 and c0',
         'Thermal expansion coefs sources': 'R.W.G. Wyckoff, Crystal Structures',
+        'Volume': None,
+        'Inter-reticular spacing': None,
         'sin(theta)/lambda': {
             'Si': np.r_[
                 0., 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7,
@@ -73,21 +78,24 @@ _DCRYST = {
         'atoms': None,
         'atomic number': None,
         'number of atoms': None,
+        'Miller indices (h,k,l)': None,
         'meshtype': None,
         'mesh positions': None,
         'mesh positions sources': None,
-        'Interatomic distances': {
+        'Inter-atomic distances': {
             'a0': None,
             'c0': None,
         },
-        'Interatomic distances comments' : None,
-        'Interatomic distances sources': None,
+        'Inter-atomic distances comments' : None,
+        'Inter-atomic distances sources': None,
         'Thermal expansion coefs': {
             'a0': None,
             'c0': None,
         },
         'Thermal expansion coefs comments': None,
         'Thermal expansion coefs sources': None,
+        'Volume': None,
+        'Inter-reticular spacing': None,
         'sin(theta)/lambda': None,
         'sin(theta)/lambda sources': None,
         'atomic scattering factor': None,
@@ -101,8 +109,8 @@ _DCRYST = {
 # #############################################################################
 # #############################################################################
 
-# Positions comments from literature
-# ---------------------------------
+# Positions from literature
+# -------------------------
 
 # Si and O positions for alpha-Quartz crystal
 # xsi = np.r_[-u, u, 0.]
@@ -113,13 +121,12 @@ _DCRYST = {
 # zo = np.r_[z, z + 1./3., z + 2./3., -z, 2./3. - z, 1./3. - z]
 
 # Atoms positions for Germanium crystal
-None
 
 # Attribution to alpha-Quartz
 # ---------------------------
 
 # Position of the 3 Si atoms in the unit cell
-uSi = _DCRYST['alpha-Quartz']['mesh positions']['Si']['u']
+uSi = _DCRYST['alpha-Quartz']['mesh positions']['Si']['u'][0]
 _DCRYST['alpha-Quartz']['mesh positions']['Si']['x'] = np.r_[
     -uSi,
     uSi,
@@ -167,4 +174,39 @@ _DCRYST['alpha-Quartz']['mesh positions']['O']['z'] = np.r_[
 
 # Attribution to Germanium
 # ------------------------
-None
+
+# #############################################################################
+# #############################################################################
+#                         Elementary box volume and
+#                       inter-reticular spacing d_hkl
+# #############################################################################
+# #############################################################################
+
+# Definition of volume and inter-reticular spacing relations, f(meshtype)
+# -----------------------------------------------------------------------
+
+def hexa_volume(a, c):
+    return (a**2)*c*(np.sqrt(3.)/2.)
+
+def hexa_spacing(h, k, l, a, c):
+    return np.sqrt(
+        (3.*(a**2)*(c**2))/(4.*(h**2 + k**2 + h*k)*(c**2) + 3.*(l**2)*(a**2))
+    )
+
+# Attribution to alpha-Quartz
+# ---------------------------
+
+a = _DCRYST['alpha-Quartz']['Inter-atomic distances']['a0']
+c = _DCRYST['alpha-Quartz']['Inter-atomic distances']['c0']
+h = _DCRYST['alpha-Quartz']['Miller indices (h,k,l)'][0]
+k = _DCRYST['alpha-Quartz']['Miller indices (h,k,l)'][1]
+l = _DCRYST['alpha-Quartz']['Miller indices (h,k,l)'][2]
+
+_DCRYST['alpha-Quartz']['Volume'] = hexa_volume(a=a, c=c)
+_DCRYST['alpha-Quartz']['Inter-reticular spacing'] = hexa_spacing(
+    h=h, k=k, l=l, a=a, c=c,
+)
+
+# Attribution to Germanium
+# ------------------------
+
