@@ -1182,16 +1182,15 @@ def _plot_profiles2d_prepare(
     coefs=None,
     indt=None,
     res=None,
+    mtype=None,
 ):
 
     # check input
     deg = coll.dobj['bsplines'][keybs]['deg']
-    km = coll.dobj['bsplines'][keybs]['mesh']
-    meshtype = coll.dobj['mesh'][km]['type']
 
     # get dR, dZ
     dR, dZ, Rminmax, Zminmax = _plot_bsplines_get_dRdZ(
-        coll=coll, km=km, meshtype=meshtype,
+        coll=coll, km=keym, meshtype=mtype,
     )
 
     if res is None:
@@ -1233,12 +1232,6 @@ def _plot_profiles2d_prepare(
         if not uniform:
             keyZ = None
 
-    # extent and interp
-    extent = (
-        Rminmax[0], Rminmax[1],
-        Zminmax[0], Zminmax[1],
-    )
-
     if deg == 0:
         interp = 'nearest'
     elif deg == 1:
@@ -1246,9 +1239,77 @@ def _plot_profiles2d_prepare(
     elif deg >= 2:
         interp = 'bicubic'
 
-    # knots and cents
+    # radial of polar
+    if mtype == 'polar':
+        # lcol
+        lcol = ['k', 'r', 'b', 'g', 'm', 'c', 'y']
 
-    return coll2, dkeys, extent, interp
+    else:
+        lcol = None
+
+    return coll2, dkeys, interp, lcol
+
+
+def _plot_profile2d_polar_add_radial(
+    coll=None,
+    key=None,
+    keym=None,
+    keybs=None,
+    dax=None,
+):
+
+    kr = coll.dobj[coll._which_mesh][keym]['knots'][0]
+    rr = coll.ddata[kr]['data']
+    rad = np.linspace(rr[0], rr[-1], rr.size*20)
+
+    clas = coll.dobj['bsplines'][keybs]['class']
+    if clas.knotsa is None:
+        angle = None
+    elif len(clas.shapebs) == 2:
+        ka = coll.dobj['bsplines'][keybs]['apex'][1]
+        angle = coll.ddata[ka]['data']
+    elif np.sum(clas.nbs_a_per_r > 1) == 1:
+        import pdb; pdb.set_trace()     # DB
+        raise NotImplementedError()
+    else:
+        pass
+
+    radial, t_radial = coll.interpolate_profile2d(
+        key=key,
+        radius=rad,
+        angle=angle,
+        grid=True,
+    )
+
+    # add to dax
+    reft = coll.get_time(key=key)[2]
+    dax.add_ref(key='nradius', size=rad.size)
+    if angle is not None:
+        dax.add_ref(key='nangle', size=angle.size)
+
+    if reft is not None:
+        assert radial.ndim > 1 and radial.shape[0] > 1
+        if angle is not None:
+            ref = (reft, 'nangle', 'nradius')
+        else:
+            ref = (reft, 'nradius')
+    else:
+        if angle is not None:
+            ref = ('nangle', 'nradius')
+        else:
+            ref = 'nradius'
+
+    kradius = 'radius'
+    dax.add_data(key=kradius, data=rad)
+    if angle is None:
+        lk = ['radial']
+        dax.add_data(key=lk[0], data=radial, ref=ref)
+    else:
+        lk = [f'radial-{ii}' for ii in range(angle.size)]
+        for ii in range(na):
+            dax.add_data(key=lk[ii], data=radial[:, ii, :], ref=ref)
+
+    return kradius, lk, reft
 
 
 def plot_profile2d(
@@ -1269,10 +1330,16 @@ def plot_profile2d(
     fs=None,
     dcolorbar=None,
     dleg=None,
+    # interactivity
+    dinc=None,
+    connect=None,
 ):
 
     # --------------
     # check input
+
+    if connect is None:
+        connect = True
 
     (
         key, keybs, keym, cmap, dcolorbar, dleg, polar1d,
@@ -1289,7 +1356,9 @@ def plot_profile2d(
     # --------------
     #  Prepare data
 
-    coll2, dkeys, extent, interp = _plot_profiles2d_prepare(
+    (
+        coll2, dkeys, interp, lcol,
+    ) = _plot_profiles2d_prepare(
         coll=coll,
         key=key,
         keybs=keybs,
@@ -1297,13 +1366,14 @@ def plot_profile2d(
         coefs=coefs,
         indt=indt,
         res=res,
+        mtype=mtype,
     )
 
     # ---------------
     # call right function
 
     if mtype in ['rect', 'tri']:
-        dax = coll2.plot_as_array(
+        return coll2.plot_as_array(
             vmin=vmin,
             vmax=vmax,
             cmap=cmap,
@@ -1312,14 +1382,20 @@ def plot_profile2d(
             fs=fs,
             dcolorbar=dcolorbar,
             dleg=dleg,
+            interp=interp,
+            connect=connect,
             **dkeys,
         )
 
     else:
 
+        if dax is None:
+            dax = _plot_profile2d_polar_create_axes(
+                fs=fs,
+                dmargin=dmargin,
+            )
 
-
-        dax = coll2.plot_as_array(
+        dax, dgroup = coll2.plot_as_array(
             vmin=vmin,
             vmax=vmax,
             cmap=cmap,
@@ -1328,60 +1404,117 @@ def plot_profile2d(
             fs=fs,
             dcolorbar=dcolorbar,
             dleg=dleg,
+            connect=False,
+            interp=interp,
+            label=True,
             **dkeys,
         )
-        # add 1d polar plot
+
+        # ------------------
+        # add radial profile to dax
+
+        kradius, lkradial, reft = _plot_profile2d_polar_add_radial(
+            coll=coll,
+            key=key,
+            keym=keym,
+            keybs=keybs,
+            dax=dax,
+        )
+
+        # ------------------
+        # add radial profile
+
+        kax = 'radial'
+        if dax.dax.get(kax) is not None:
+            ax = dax.dax[kax]['handle']
+
+            for ii in range(len(lkradial)):
+                l0, = ax.plot(
+                    dax.ddata[kradius]['data'],
+                    dax.ddata[lkradial[ii]]['data'][0, :],
+                    c=lcol[ii],
+                    ls='-',
+                    lw=1,
+                )
+
+                kl = f"radial{ii}"
+                dax.add_mobile(
+                    key=kl,
+                    handle=l0,
+                    refs=(reft,),
+                    data=[lkradial[ii]],
+                    dtype=['ydata'],
+                    axes=kax,
+                    ind=ii,
+                )
+
+            ax.set_xlim(
+                dax.ddata[kradius]['data'].min(),
+                dax.ddata[kradius]['data'].max(),
+            )
+
+        # connect
+        if connect is True:
+            dax.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+            dax.disconnect_old()
+            dax.connect()
+
+            dax.show_commands()
+            return dax
+        else:
+            return dax, dgroup
 
 
-    # --------------
-    # plot - prepare
 
-    # if dax is None:
+def _plot_profile2d_polar_create_axes(
+    fs=None,
+    dmargin=None,
+):
 
-        # if dmargin is None:
-            # dmargin = {
-                # 'left': 0.1, 'right': 0.9,
-                # 'bottom': 0.1, 'top': 0.9,
-                # 'hspace': 0.1, 'wspace': 0.1,
-            # }
+    if fs is None:
+        fs = (15, 9)
 
-        # if mtype in ['rect', 'tri']:
-            # pass
+    if dmargin is None:
+        dmargin = {
+            'left': 0.05, 'right': 0.95,
+            'bottom': 0.05, 'top': 0.95,
+            'hspace': 0.4, 'wspace': 0.3,
+        }
 
-        # else:
-            # pass
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(ncols=6, nrows=6, **dmargin)
 
-        # fig = plt.figure(figsize=fs)
-        # gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
-        # ax0 = fig.add_subplot(gs[0, 0], aspect='equal')
-        # ax0.set_xlabel(f'R (m)')
-        # ax0.set_ylabel(f'Z (m)')
+    # axes for image
+    ax0 = fig.add_subplot(gs[:4, 2:4], aspect='auto')
 
-        # dax = {'cross': ax0}
+    # axes for vertical profile
+    ax1 = fig.add_subplot(gs[:4, 4], sharey=ax0)
 
-    # # --------------
-    # # plot
+    # axes for horizontal profile
+    ax2 = fig.add_subplot(gs[4:, 2:4], sharex=ax0)
 
-    # kax = 'cross'
-    # if dax.get(kax) is not None:
+    # axes for traces
+    ax3 = fig.add_subplot(gs[2:4, :2])
 
-        # im = dax[kax].imshow(
-            # bspline,
-            # extent=extent,
-            # interpolation=interp,
-            # origin='lower',
-            # aspect='equal',
-            # cmap=cmap,
-            # vmin=vmin,
-            # vmax=vmax,
-        # )
+    # axes for traces
+    ax7 = fig.add_subplot(gs[:2, :2], sharey=ax2)
 
-        # plt.colorbar(im, ax=dax[kax], **dcolorbar)
+    # axes for text
+    ax4 = fig.add_subplot(gs[:3, 5], frameon=False)
+    ax5 = fig.add_subplot(gs[3:, 5], frameon=False)
+    ax6 = fig.add_subplot(gs[4:, :2], frameon=False)
 
-    # # --------------
-    # # dleg
-
-    # if dleg is not False:
-        # dax['cross'].legend(**dleg)
-
+    # dax
+    dax = {
+        # data
+        'matrix': {'handle': ax0, 'type': 'matrix'},
+        'vertical': {'handle': ax1, 'type': 'misc'},
+        'horizontal': {'handle': ax2, 'type': 'misc'},
+        'traces': {'handle': ax3, 'type': 'misc'},
+        'radial': {'handle': ax7, 'type': 'misc'},
+        # text
+        'textX': {'handle': ax4, 'type': 'text'},
+        'textY': {'handle': ax5, 'type': 'text'},
+        'textZ': {'handle': ax6, 'type': 'text'},
+    }
     return dax

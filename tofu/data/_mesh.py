@@ -1109,6 +1109,8 @@ class Plasma2D(ds.DataStock):
         # interpolation points
         R=None,
         Z=None,
+        radius=None,
+        angle=None,
         grid=None,
         # time: t or indt
         t=None,
@@ -1168,6 +1170,8 @@ class Plasma2D(ds.DataStock):
             # interpolation points
             R=R,
             Z=Z,
+            radius=radius,
+            angle=angle,
             grid=grid,
             # time: t or indt
             t=t,
