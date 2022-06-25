@@ -1274,6 +1274,7 @@ def _plot_profile2d_polar_add_radial(
     else:
         pass
 
+    # radial total profile
     radial, t_radial = coll.interpolate_profile2d(
         key=key,
         radius=rad,
@@ -1281,8 +1282,30 @@ def _plot_profile2d_polar_add_radial(
         grid=True,
     )
 
-    # add to dax
+    # reft
     reft = coll.get_time(key=key)[2]
+
+    # details for puerly-radial cases
+    if clas.knotsa is None:
+        radial_details, t_radial = coll.interpolate_profile2d(
+            key=keybs,
+            radius=rad,
+            angle=None,
+            grid=False,
+            details=True,
+        )
+        if reft is None:
+            radial_details = radial_details * coll.ddata[key]['data'][None, :]
+            refdet = ('nradius',)
+        else:
+            refdet = (reft, 'nradius')
+            radial_details = (
+                radial_details[None, :, :]
+                * coll.ddata[key]['data'][:, None, :]
+            )
+        nbs = radial_details.shape[-1]
+
+    # add to dax
     dax.add_ref(key='nradius', size=rad.size)
     if angle is not None:
         dax.add_ref(key='nangle', size=angle.size)
@@ -1304,12 +1327,18 @@ def _plot_profile2d_polar_add_radial(
     if angle is None:
         lk = ['radial']
         dax.add_data(key=lk[0], data=radial, ref=ref)
+        lkdet = [f'radial-detail-{ii}' for ii in range(nbs)]
+        for ii in range(nbs):
+            dax.add_data(
+                key=lkdet[ii], data=radial_details[:, :, ii], ref=refdet,
+            )
     else:
+        lkdet = None
         lk = [f'radial-{ii}' for ii in range(angle.size)]
         for ii in range(na):
             dax.add_data(key=lk[ii], data=radial[:, ii, :], ref=ref)
 
-    return kradius, lk, reft
+    return kradius, lk, lkdet, reft
 
 
 def plot_profile2d(
@@ -1413,7 +1442,7 @@ def plot_profile2d(
         # ------------------
         # add radial profile to dax
 
-        kradius, lkradial, reft = _plot_profile2d_polar_add_radial(
+        kradius, lkradial, lkdet, reft = _plot_profile2d_polar_add_radial(
             coll=coll,
             key=key,
             keym=keym,
@@ -1434,7 +1463,7 @@ def plot_profile2d(
                     dax.ddata[lkradial[ii]]['data'][0, :],
                     c=lcol[ii],
                     ls='-',
-                    lw=1,
+                    lw=2,
                 )
 
                 kl = f"radial{ii}"
@@ -1445,8 +1474,28 @@ def plot_profile2d(
                     data=[lkradial[ii]],
                     dtype=['ydata'],
                     axes=kax,
-                    ind=ii,
+                    ind=0,
                 )
+
+            if lkdet is not None:
+                for ii in range(len(lkdet)):
+                    l0, = ax.plot(
+                        dax.ddata[kradius]['data'],
+                        dax.ddata[lkdet[ii]]['data'][0, :],
+                        ls='-',
+                        lw=1,
+                    )
+
+                    kl = f"radial_det{ii}"
+                    dax.add_mobile(
+                        key=kl,
+                        handle=l0,
+                        refs=(reft,),
+                        data=[lkdet[ii]],
+                        dtype=['ydata'],
+                        axes=kax,
+                        ind=0,
+                    )
 
             ax.set_xlim(
                 dax.ddata[kradius]['data'].min(),
