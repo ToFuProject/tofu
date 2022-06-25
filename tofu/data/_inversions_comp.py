@@ -361,10 +361,14 @@ def compute_inversions(
                 },
             })
 
+        # add synthetic data
+        ksynthetic = f'{keyinv}-synthetic'
+
         # add inversion
         dobj = {
             'inversions': {
                 keyinv: {
+                    'data_out': ksynthetic,
                     'data_in': key_data,
                     'sigma_in': key_sigma,
                     'matrix': key_matrix,
@@ -389,6 +393,15 @@ def compute_inversions(
             })
 
         coll.update(dobj=dobj, dref=dref, ddata=ddata)
+
+        # add synthetic data
+        data_synth = coll.add_retrofit_data(
+            key=ksynthetic,
+            key_matrix=key_matrix,
+            key_profile2d=keyinv,
+            t=t_data,
+            store=True,
+        )
 
     else:
         return sol_full, mu, chi2n, regularity, niter, spec, t

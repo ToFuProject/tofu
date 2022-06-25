@@ -2717,3 +2717,106 @@ def _get_contours(
             )
 
     return cR, cZ
+
+
+# #############################################################################
+# #############################################################################
+#               retrofit                   
+# #############################################################################
+
+
+def _compute_retrofit_data_check(
+    # resources
+    coll=None,
+    # inputs
+    key=None,
+    key_matrix=None,
+    key_profile2d=None,
+    t=None,
+    # parameters
+    store=None,
+):
+
+    #----------
+    # keys
+
+    # key
+    lout = coll.ddata.keys()
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        excluded=lout,
+    )
+
+    # key_matrix
+    lok = coll.dobj.get('matrix', {}).keys()
+    key_matrix = ds._generic_check._check_var(
+        key_matrix, 'key_mtrix',
+        types=str,
+        allowed=lok,
+    )
+    keybs = coll.dobj['matrix'][key_matrix]['bsplines']
+    keym = coll.dobj['bsplines'][keybs]['mesh']
+    mtype = coll.dobj[coll._which_mesh][keym]['type']
+
+    # key_pofile2d
+    lok = [
+        k0 for k0, v0 in coll.ddata.items()
+        if v0['bsplines'] == keybs
+    ]
+    key_profile2d = ds._generic_check._check_var(
+        key_profile2d, 'key_profile2d',
+        types=str,
+        allowed=lok,
+    )
+
+    # t
+    hastime, t, dind = coll.get_time_common(
+        keys=[key_matrix, key_profile2d],
+    )
+
+    return key, keybs, keym, mtype, key_matrix, key_profile2d, t, ref
+
+
+def compute_retrofit_data(
+    # resources
+    coll=None,
+    # inputs
+    key=None,
+    key_matrix=None,
+    key_profile2d=None,
+    t=None,
+    # parameters
+    store=None,
+):
+
+    # ------------
+    # check inputs
+
+    (
+        key, keybs, keym,
+        mtype, key_matrix, key_profile2d, t, ref,
+    ) = _compute_retrofit_data_check(
+        # resources
+        coll=coll,
+        # inputs
+        key=key,
+        key_matrix=key_matrix,
+        key_profile2d=key_profile2d,
+        t=t,
+        # parameters
+        store=store,
+    )
+
+    # --------
+    # compute
+
+    pass
+
+    # --------
+    # store
+
+    if store:
+        pass
+    else:
+        return data

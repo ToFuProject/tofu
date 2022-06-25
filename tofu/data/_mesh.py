@@ -1327,6 +1327,34 @@ class Plasma2D(ds.DataStock):
         )
 
     # -----------------
+    # synthetic data
+    # -----------------
+
+    def add_retrofit_data(
+        key=None,
+        key_matrix=None,
+        key_profile2d=None,
+        t=None,
+        store=None,
+    ):
+        """ Compute synthetic data using matching geometry matrix and profile2d
+
+        Requires that a geometry matrix as been pre-computed
+        Only profile2d with the same bsplines as the geometry matrix can be
+        used
+
+        """
+
+        return _mesh_comp.compute_retrofit_data(
+            coll=self,
+            key=key,
+            key_matrix=key_matrix,
+            key_profile2d=key_profile2d,
+            t=t,
+            store=sort,
+        )
+
+    # -----------------
     # plotting
     # ------------------
 

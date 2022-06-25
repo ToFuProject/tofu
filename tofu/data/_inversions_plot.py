@@ -20,7 +20,7 @@ from . import _generic_check
 # #############################################################################
 
 
-def _plot_geometry_matrix_check(
+def _plot_inversion_check(
     coll=None,
     key=None,
     indbf=None,
@@ -86,39 +86,7 @@ def _plot_geometry_matrix_check(
     return keyinv, keymat, keybs, keydata, cropbs, cmap, dcolorbar, dleg
 
 
-def plot_inversion(
-    coll=None,
-    key=None,
-    indt=None,
-    res=None,
-    vmin=None,
-    vmax=None,
-    cmap=None,
-    dax=None,
-    dmargin=None,
-    fs=None,
-    dcolorbar=None,
-    dleg=None,
-):
-
-    # ------------
-    # check inputs
-
-    (
-        keyinv, keymat, keybs, keydata, cropbs, cmap, dcolorbar, dleg,
-    ) = _plot_geometry_matrix_check(
-        coll=coll,
-        key=key,
-        cmap=cmap,
-        dcolorbar=dcolorbar,
-        dleg=dleg,
-    )
-
-    # ------------
-    # prepare data
-
-    # synthetic ?
-    synthetic = keydata in coll.dobj.get('synthetic', {}).keys()
+def _plot_inversion_prepare():
 
     # data
     keychan = coll.ddata[keydata]['ref'][-1]
@@ -173,107 +141,78 @@ def plot_inversion(
         reg = coll.dobj['inversions'][keyinv]['reg']
         niter = coll.dobj['inversions'][keyinv]['niter']
 
-    # indt
-    if indt is None:
-        indt = 0
+
+def plot_inversion(
+    coll=None,
+    key=None,
+    indt=None,
+    res=None,
+    vmin=None,
+    vmax=None,
+    cmap=None,
+    dax=None,
+    dmargin=None,
+    fs=None,
+    dcolorbar=None,
+    dleg=None,
+):
+
+    # ------------
+    # check inputs
+
+    (
+        keyinv, keymat, keybs, keydata, cropbs, cmap, dcolorbar, dleg,
+    ) = _plot_inversion_check(
+        coll=coll,
+        key=key,
+        cmap=cmap,
+        dcolorbar=dcolorbar,
+        dleg=dleg,
+    )
+
+    # ------------
+    # prepare data
+
+    # _plot_inversion_prepare()
 
     # --------------
     # plot - prepare
 
     if dax is None:
 
-        if fs is None:
-            fs = (16, 9)
-
-        if dmargin is None:
-            dmargin = {
-                'left': 0.05, 'right': 0.98,
-                'bottom': 0.05, 'top': 0.95,
-                'hspace': 0.15, 'wspace': 0.15,
-            }
-
-        fig = plt.figure(figsize=fs)
-        if synthetic:
-            gs = gridspec.GridSpec(ncols=4, nrows=2, **dmargin)
-            ax0 = fig.add_subplot(gs[1, 1])
-            ax1 = fig.add_subplot(gs[:2, 2:])
-            ax2 = fig.add_subplot(gs[2, 2:], sharex=ax1)
-            ax3 = fig.add_subplot(gs[3, 2:])
-            ax4 = fig.add_subplot(gs[4, 2:], sharex=ax3)
-
-            ax5 = fig.add_subplot(gs[0, 1], sharex=ax0, sharey=ax0)
-            ax6 = fig.add_subplot(gs[1, 0], sharex=ax0, sharey=ax0)
-
-        else:
-            gs = gridspec.GridSpec(ncols=2, nrows=5, **dmargin)
-            ax0 = fig.add_subplot(gs[:, 0])
-            ax1 = fig.add_subplot(gs[:2, 1])
-            ax2 = fig.add_subplot(gs[2, 1], sharex=ax1)
-            ax3 = fig.add_subplot(gs[3, 1])
-            ax4 = fig.add_subplot(gs[4, 1], sharex=ax3)
-
-        ax0.set_xlabel(f'R (m)')
-        ax0.set_ylabel(f'Z (m)')
-        ax0.set_title('reconstruction', size=14)
-
-        ax1.set_xlabel(f'chan')
-        ax1.set_ylabel(f'data')
-        ax1.set_title('data', size=14)
-
-        ax2.set_xlabel(f'chan')
-        ax2.set_ylabel(f'error')
-
-        ax3.set_xlabel(f'time')
-        ax3.set_ylabel(f'potential')
-
-        ax4.set_xlabel(f'time')
-        ax4.set_ylabel(f'niter')
-
-        dax = {
-            'reconstruction': {'handle': ax0, 'type': 'cross'},
-            'data': {'handle': ax1, 'type': 'misc'},
-            'data-err': {'handle': ax2, 'type': 'misc'},
-            'inv-param': {'handle': ax3, 'type': 'misc'},
-            'niter': {'handle': ax4, 'type': 'misc'},
-        }
-
-        if synthetic:
-            ax5.set_xlabel(f'R (m)')
-            ax5.set_ylabel(f'Z (m)')
-            ax5.set_title('original', size=14)
-
-            ax6.set_xlabel(f'R (m)')
-            ax6.set_ylabel(f'Z (m)')
-            ax6.set_title('error', size=14)
-
-            dax.update({
-                'original': {'ax': ax5, 'type': 'cross'},
-                'error': {'ax': ax6, 'type': 'cross'},
-            })
-
-    dax = _generic_check._check_dax(dax=dax, main='cross')
-
-    # ---------
-    # plot inv
-
-    kax = 'reconstruction'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-        coll.plot_profile2d(
-            key=keyinv,
-            indt=indt,
-            res=res,
-            dax={'cross': ax},
-            cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
-            dleg=False,
+        dax = _plot_inversion_create_axes(
+            fs=fs,
+            dmargin=dmargin,
+            mtype=mtype,
         )
+
+    dax = _generic_check._check_dax(dax=dax, main='matrix')
+
+    # --------------
+    # plot profile2d
+
+    coll2 = coll.plot_profile2d(
+        key=key,
+        res=res,
+        # figure
+        vmin=vmin,
+        vmax=vmax,
+        cmap=cmap,
+        dax=dax,
+        dmargin=dmargin,
+        fs=fs,
+        dcolorbar=dcolorbar,
+        dleg=dleg,
+        # interactivity
+        dinc=dinc,
+        connect=False,
+    )
+    dax = coll2.dax
 
     # ---------
     # plot data
 
-    kax = 'data'
+    kax = 'retrofit'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
         ax.plot(
@@ -360,3 +299,89 @@ def plot_inversion(
         ax.axvline(time[indt], c='k', ls='-', lw=1.)
 
     return dax
+
+
+def _plot_inversion_create_axes(
+    fs=None,
+    dmargin=None,
+    mtype=None,
+):
+
+    if fs is None:
+        fs = (16, 10)
+
+    if dmargin is None:
+        dmargin = {
+            'left': 0.05, 'right': 0.95,
+            'bottom': 0.05, 'top': 0.95,
+            'hspace': 0.4, 'wspace': 0.3,
+        }
+
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(ncols=8, nrows=6, **dmargin)
+
+    # ------------------
+    # axes for profile2d
+
+    # axes for image
+    ax0 = fig.add_subplot(gs[:4, 2:4], aspect='auto')
+
+    # axes for vertical profile
+    ax1 = fig.add_subplot(gs[:4, 4], sharey=ax0)
+
+    # axes for horizontal profile
+    ax2 = fig.add_subplot(gs[4:, 2:4], sharex=ax0)
+
+    if mtype == 'polar':
+        # axes for traces
+        ax7 = fig.add_subplot(gs[:2, :2], sharey=ax2)
+        # axes for traces
+        ax3 = fig.add_subplot(gs[2:4, :2])
+    else:
+        ax7 = None
+        # axes for traces
+        ax3 = fig.add_subplot(gs[:3, :2])
+
+
+    # axes for text
+    ax4 = fig.add_subplot(gs[:3, 5], frameon=False)
+    ax5 = fig.add_subplot(gs[3:, 5], frameon=False)
+    ax6 = fig.add_subplot(gs[4:, :2], frameon=False)
+
+    # ------------------
+    # axes for inversion
+
+    # retrofit
+    ax8 = fig.add_subplot(gs[:2, 6:], frameon=False)
+
+    # error
+    ax9 = fig.add_subplot(gs[2:4, 6:], frameon=False)
+
+    # parameters (chi2, ...)
+    ax10 = fig.add_subplot(gs[4, 6:], frameon=False)
+
+    # nb of iterations
+    ax11 = fig.add_subplot(gs[5, 6:], frameon=False)
+
+    # dax
+    dax = {
+        # data
+        'matrix': {'handle': ax0, 'type': 'matrix'},
+        'vertical': {'handle': ax1, 'type': 'misc'},
+        'horizontal': {'handle': ax2, 'type': 'misc'},
+        'traces': {'handle': ax3, 'type': 'misc'},
+        # inversion
+        'retrofit': {'handle': ax8, 'type': 'misc'}
+        'err': {'handle': ax9, 'type': 'misc'}
+        'inv-param': {'handle': ax10, 'type': 'misc'}
+        'niter': {'handle': ax11, 'type': 'misc'}
+        # text
+        'textX': {'handle': ax4, 'type': 'text'},
+        'textY': {'handle': ax5, 'type': 'text'},
+        'textZ': {'handle': ax6, 'type': 'text'},
+    }
+
+    if ax7 is not None:
+        dax['radial'] = {'handle': ax7, 'type': 'misc'}
+    return dax
+
