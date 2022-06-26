@@ -411,10 +411,10 @@ def _compute_check(
     # list of keys with potential time-dependence
     lk = [key_data, key_matrix]
     if dconstraints is not None:
-        if isinstance(dconstraints.get('rmax'), str):
-            lk.append(dconstraints['rmax'])
-        if isinstance(dconstraints.get('rmin'), str):
-            lk.append(dconstraints['rmin'])
+        if isinstance(dconstraints.get('rmax', {}).get('val'), str):
+            lk.append(dconstraints['rmax']['val'])
+        if isinstance(dconstraints.get('rmin', {}).get('val'), str):
+            lk.append(dconstraints['rmin']['val'])
 
     # check if common / different time dependence
     hastime, reft, keyt, t, dind = coll.get_time_common(keys=lk)
@@ -439,7 +439,7 @@ def _compute_check(
     # ------------------
     # constraints update
 
-    dconstraints, dcon = _update_constraints(
+    dconstraints, dcon, iconflict = _update_constraints(
         coll=coll,
         keybs=keybs,
         dconst=dconstraints,
@@ -536,6 +536,7 @@ def _compute_check(
             m3d=m3d,
             dcon=dcon,
             regul=regul,
+            iconflict=iconflict,
         )
 
         # get new nt, nchan
@@ -727,13 +728,14 @@ def _check_time_steps(
     m3d=None,
     dcon=None,
     regul=None,
+    iconflict=None,
 ):
 
     # ---------------------
     # check data validity
 
     # remove time steps
-    iok = np.any(indok, axis=1)
+    iok = np.any(indok, axis=1) & (~iconflict)
     iokt = iok
 
     if np.any(~iok):
@@ -839,18 +841,15 @@ def _check_rminmax(
         return
 
     # check format
-    err = True
-    # should be scalar or valid data key
-    lok = [k0 for k0, v0 in coll.ddata.keys() if len(v0['ref']) == 1]
-    if np.isscalar(dconst[rm]):
-        dconst[rm] = {'val': np.r_[dconst[rm]]}
-        err = False
-    elif isinstance(dconst[rm], str) and dconst[rm] in lok:
+    lok = [k0 for k0, v0 in coll.ddata.items() if len(v0['ref']) == 1]
+    if isinstance(dconst[rm], str) and dconst[rm] in lok:
         dconst[rm] = {'val': dconst[rm]}
-        err = False
+    elif np.isscalar(dconst[rm]):
+        dconst[rm] = {'val': dconst[rm]}
 
     # dict
-    if err is False and isinstance(dconst[rm], dict):
+    err = True
+    if isinstance(dconst[rm], dict):
         c0 = (
             dconst[rm].get('val') is not None
             and np.isscalar(dconst[rm]['val'])
@@ -859,8 +858,8 @@ def _check_rminmax(
                 and dconst[rm]['val'] in lok
             )
         )
-        if not c0:
-            err = True
+        if c0:
+            err = False
 
     # raise err if relevant
     if err:
@@ -868,7 +867,7 @@ def _check_rminmax(
             f"dconstraints['{rm}'] must be either:\n"
             "\t- a scalar\n"
             "\t- a valid data key with a unique ref\n"
-            "Provided: {dconstraints['{rm}']}"
+            f"Provided: {dconst[rm]}"
         )
         raise Exception(msg)
 
@@ -876,11 +875,13 @@ def _check_rminmax(
     lok = ['inner', 'outer']
     if rm == 'rmax':
         lok.append('allout')
+        dok = 'allout'
     else:
         lok.append('allin')
+        dok = 'allin'
     dconst[rm]['lim'] = _generic_check._check_var(
         dconst[rm].get('lim'), "dconstraints['{rm}']['lim']",
-        default='outer',
+        default=dok,
         types=str,
         allowed=lok,
     )
@@ -1088,9 +1089,13 @@ def _constraints_conflict_iout(
                 )
                 raise Exception(msg)
 
-        if np.any(ibs_coefs & iout_offset[None, ...]):
-            msg = "Auto-solve mutually dependent equations not implemented yet!"
-            raise NotImplementedError(msg)
+        iconflict = np.any(
+            np.any(ibs_coefs & iout_offset[None, ...], axis=0),
+            axis=-1,
+        )
+        # if np.any(iconflict):
+            # msg = "Auto-solve mutually dependent equations not implemented yet!"
+            # raise NotImplementedError(msg)
 
     # ------------------
     # get really free equations
@@ -1119,7 +1124,10 @@ def _constraints_conflict_iout(
             dcon[k0]['iin'][it][:] = indin
 
     # final consistency check
-    lterr = np.any(iout_offset & iout_coefs & iin_coefs, axis=1)
+    lterr = np.any(
+        (iout_offset & iout_coefs & iin_coefs)[~iconflict, :],
+        axis=1,
+    )
     if np.any(lterr):
         msg = (
             "Inconsistency for the following time steps:\n"
@@ -1127,7 +1135,7 @@ def _constraints_conflict_iout(
         )
         raise Exception(msg)
 
-    return iout_offset, iout_coefs, iin_coefs
+    return iout_offset, iout_coefs, iin_coefs, iconflict
 
 
 def _update_constraints(
@@ -1166,10 +1174,11 @@ def _update_constraints(
         else:
             dconst[rm]['val'] = dconst[rm]['val']
 
+
         # compute indbs
         indbs, offset = clas.get_constraints_out_rlim(
-            rlim=dconst[rm],
             rm=rm,
+            rlim=dconst[rm]['val'],
             lim=dconst[rm]['lim'],
         )
 
@@ -1230,7 +1239,7 @@ def _update_constraints(
 
     loffset = [k0 for k0 in dcon.keys() if dcon[k0].get('coefs') is None]
     lcoefs = [k0 for k0 in dcon.keys() if dcon[k0].get('coefs') is not None]
-    iout_offset, iout_coefs, iin_coefs = _constraints_conflict_iout(
+    iout_offset, iout_coefs, iin_coefs, iconflict = _constraints_conflict_iout(
         dcon=dcon,
         loffset=loffset,
         lcoefs=lcoefs,
@@ -1275,7 +1284,7 @@ def _update_constraints(
         'indbs_free': iin_coefs,        # bool indices of free variables
     }
 
-    return dconst, dcon
+    return dconst, dcon, iconflict
 
 
 # #############################################################################
