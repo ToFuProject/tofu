@@ -103,64 +103,140 @@ def _plot_inversion_check(
 def _plot_inversion_prepare(
     coll=None,
     coll2=None,
+    mtype=None,
+    keyinv=None,
+    key_matrix=None,
+    key_data=None,
+    key_retro=None,
 ):
 
-    # TBF
+
+
+    # -----------------
+    # add nearest-neighbourg interpolated data
+
+    reft, keyt, time = coll.get_time(key=keyinv)[2:5]
+    if coll.get_time(key=key_matrix)[0]:
+        keyt_data = coll.get_time(key=key_data)[3]
+        if keyt_data != keyt:
+            dind = coll.get_time(
+                key=key_data,
+                t=keyt,
+            )[-1]
+            data = coll.ddata[key_data]['data'][dind['ind'], :]
+        else:
+            data = coll.ddata[key_data]['data']
+    else:
+        data = coll.ddata[key_data]['data']
+
+    # ----------------
+    # add data + retro
+
+    # ref
+    ref_retro = coll.ddata[key_retro]['ref']
+
+    # chan vector
+    chan = coll.get_ref_vector(key=key_data, ref=ref_retro[-1])[4]
+    if chan is None:
+        chan = np.arange(0, coll.dref[ref_retro[-1]]['size'])
+
+    # add ref
+    for rr in ref_retro:
+        if rr not in coll2.dref.keys():
+            coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
 
     # data
-    refchan = coll.ddata[keydata]['ref'][-1]
-    chan = coll.ddata[keychan]['data']
-    hastime = coll.ddata[keydata]['data'].ndim == 2
+    coll2.add_data(
+        key=key_data,
+        data=data,
+        ref=ref_retro,
+    )
 
-    if hastime:
-        data = coll.ddata[keydata]['data']
-        time = np.arange(coll.ddata[keydata]['data'].shape[0])
-    else:
-        data = coll.ddata[keydata]['data'][None, :]
-        time = [0]
-        indt = 0
+    # retro
+    if key_retro not in coll2.ddata.keys():
+        coll2.add_data(
+            key=key_retro,
+            data=coll.ddata[key_retro]['data'],
+            ref=ref_retro,
+        )
+
+    # err
+    key_err = f'{key_data}-err'
+    err = coll.ddata[key_retro]['data'] - data
+    coll2.add_data(
+        key=key_err,
+        data=err,
+        ref=ref_retro,
+    )
+
+    # chi2n, nu, reg, niter
+
+
+    # # data
+    # refchan = coll.ddata[keydata]['ref'][-1]
+    # chan = coll.ddata[keychan]['data']
+    # hastime = coll.ddata[keydata]['data'].ndim == 2
+
+    # if hastime:
+        # data = coll.ddata[keydata]['data']
+        # time = np.arange(coll.ddata[keydata]['data'].shape[0])
+    # else:
+        # data = coll.ddata[keydata]['data'][None, :]
+        # time = [0]
+        # indt = 0
 
     # reconstructed data
-    matrix = coll.ddata[keymat]['data']
-    sol = coll.ddata[keyinv]['data']
-    shapebs = coll.dobj['bsplines'][keybs]['shape']
-    nbs = int(np.prod(shapebs))
+    # matrix = coll.ddata[keymat]['data']
+    # sol = coll.ddata[keyinv]['data']
+    # shapebs = coll.dobj['bsplines'][keybs]['shape']
+    # nbs = int(np.prod(shapebs))
 
-    if cropbs is not None:
-        cropbs_flat = cropbs.ravel(order='F')
-    if hastime:
-        nt = sol.shape[0]
-        if sol.ndim == 3:
-            sol_flat = sol.reshape((nt, nbs), order='F')
-        else:
-            sol_flat = sol
-        if cropbs is not None:
-            data_re = matrix.dot(sol_flat[:, cropbs_flat].T)
-        else:
-            data_re = matrix.dot(sol_flat[:, ...].T)
-    else:
-        if sol.ndim == 2:
-            sol_flat = sol.ravel(order='F')
-        else:
-            sol_flat = sol
-        if cropbs is not None:
-            data_re = matrix.dot(sol_flat[cropbs_flat].T)[:, None]
-        else:
-            data_re = matrix.dot(sol_flat.T)[:, None]
+    # if cropbs is not None:
+        # cropbs_flat = cropbs.ravel(order='F')
+
+    # if hastime:
+        # nt = sol.shape[0]
+        # if sol.ndim == 3:
+            # sol_flat = sol.reshape((nt, nbs), order='F')
+        # else:
+            # sol_flat = sol
+        # if cropbs is not None:
+            # data_re = matrix.dot(sol_flat[:, cropbs_flat].T)
+        # else:
+            # data_re = matrix.dot(sol_flat[:, ...].T)
+    # else:
+        # if sol.ndim == 2:
+            # sol_flat = sol.ravel(order='F')
+        # else:
+            # sol_flat = sol
+        # if cropbs is not None:
+            # data_re = matrix.dot(sol_flat[cropbs_flat].T)[:, None]
+        # else:
+            # data_re = matrix.dot(sol_flat.T)[:, None]
 
     # inversion parameters
-    if hastime:
-        nchi2n = chan.size * coll.ddata[f'{keyinv}-niter']['data']
-        mu = coll.ddata[f'{keyinv}-mu']['data']
-        reg = coll.ddata[f'{keyinv}-reg']['data']
-        niter = coll.ddata[f'{keyinv}-niter']['data']
-    else:
-        nchi2n = chan.size * coll.dobj['inversions'][keyinv]['chi2n']
-        mu = coll.dobj['inversions'][keyinv]['mu']
-        reg = coll.dobj['inversions'][keyinv]['reg']
-        niter = coll.dobj['inversions'][keyinv]['niter']
+    # if hastime:
+    chi2n = coll.ddata[f'{keyinv}-chi2n']['data']
+    mu = coll.ddata[f'{keyinv}-mu']['data']
+    reg = coll.ddata[f'{keyinv}-reg']['data']
+    niter = coll.ddata[f'{keyinv}-niter']['data']
+    # else:
+        # chi2n = coll.dobj['inversions'][keyinv]['chi2n']
+        # mu = coll.dobj['inversions'][keyinv]['mu']
+        # reg = coll.dobj['inversions'][keyinv]['reg']
+        # niter = coll.dobj['inversions'][keyinv]['niter']
 
-    return chi2n, nu, reg, niter
+    datamin = min([np.nanmin(data), np.nanmin(coll2.ddata[key_retro]['data'])])
+    datamax = max([np.nanmax(data), np.nanmax(coll2.ddata[key_retro]['data'])])
+    errmin = np.nanmin(coll2.ddata[key_err]['data'])
+    errmax = np.nanmax(coll2.ddata[key_err]['data'])
+    errmax = max(np.abs(errmin), np.abs(errmax))
+
+    return (
+        chan, time, reft,
+        key_err, chi2n, mu, reg, niter,
+        datamin, datamax, errmax,
+    )
 
 
 
@@ -186,7 +262,7 @@ def plot_inversion(
     # check inputs
 
     (
-        keyinv, keymat, keybs, keydata, keyretro, mtype,
+        keyinv, keymat, keybs, key_data, key_retro, mtype,
         cropbs, cmap, dcolorbar, dleg, connect,
     ) = _plot_inversion_check(
         coll=coll,
@@ -234,10 +310,16 @@ def plot_inversion(
     # ------------
     # prepare data
 
-    _plot_inversion_prepare(
+    (
+        chan, time, reft,
+        key_err, chi2n, mu, reg, niter,
+        datamin, datamax, errmax,
+    ) = _plot_inversion_prepare(
         coll=coll,
         coll2=coll2,
         keyinv=keyinv,
+        key_matrix=keymat,
+        key_data=key_data,
         key_retro=key_retro,
     )
 
@@ -249,20 +331,20 @@ def plot_inversion(
         ax = dax[kax]['handle']
 
         # plot
-        l0, = ax.plot(
-            np.arange(0, ),
-            coll2.ddata[keydata]['data'][0, :],
-            c='k',
+        l1, = ax.plot(
+            chan,
+            coll2.ddata[key_retro]['data'][0, :],
+            c=(0.8, 0.8, 0.8),
             ls='-',
             lw=1.,
-            marker='.',
         )
-        l1, = ax.plot(
-            np.arange(0, ),
-            coll2.ddata[keyretro]['data'][0, :],
-            c=(0.8, 0.8, 0.8),
-            ls='--',
-            lw=1.,
+
+        l0, = ax.plot(
+            chan,
+            coll2.ddata[key_data]['data'][0, :],
+            c='k',
+            ls='None',
+            lw=2.,
             marker='.',
         )
 
@@ -272,7 +354,7 @@ def plot_inversion(
             key=kl0,
             handle=l0,
             refs=(reft,),
-            data=[keydata],
+            data=[key_data],
             dtype=['ydata'],
             axes=kax,
             ind=0,
@@ -282,77 +364,94 @@ def plot_inversion(
             key=kl1,
             handle=l1,
             refs=(reft,),
-            data=[keyretor],
+            data=[key_retro],
             dtype=['ydata'],
             axes=kax,
             ind=0,
         )
 
-    # kax = 'data-err'
-    # if dax.get(kax) is not None:
-        # ax = dax[kax]['handle']
-        # ax.plot(
-            # chan,
-            # data_re[:, indt] - data[indt, :],
-            # c='k',
-            # ls='-',
-            # lw=1.,
-            # marker='.',
-        # )
-        # ax.axhline(
-            # 0.,
-            # c='k',
-            # ls='-',
-            # lw=1.,
-        # )
+        ax.set_ylim(min(0, datamin), datamax)
+        ax.set_xlim(0, chan.size + 1)
+
+    kax = 'err'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        l0, = ax.plot(
+            chan,
+            coll2.ddata[key_err]['data'][0, :],
+            c='k',
+            ls='-',
+            lw=1.,
+            marker='.',
+        )
+        ax.axhline(0, color='k', ls='--')
+
+        # add mobile
+        kl0 = 'err'
+        coll2.add_mobile(
+            key=kl0,
+            handle=l0,
+            refs=(reft,),
+            data=[key_err],
+            dtype=['ydata'],
+            axes=kax,
+            ind=0,
+        )
+
+        ax.set_ylim(-errmax, errmax)
 
     # # -------------------------
     # # plot inversion parameters
 
-    # kax = 'inv-param'
-    # if dax.get(kax) is not None:
-        # ax = dax[kax]['handle']
-        # ax.plot(
+    kax = 'inv-param'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.plot(
             # time,
-            # nchi2n + mu*reg,
-            # c='k',
-            # ls='-',
-            # lw=1.,
-            # marker='.',
-            # label='n*chi2n + mu*reg',
-        # )
-        # ax.plot(
-            # time,
-            # nchi2n,
-            # c='r',
-            # ls='-',
-            # lw=1.,
-            # marker='.',
-            # label='nchi2n',
-        # )
-        # ax.plot(
-            # time,
-            # mu*reg,
-            # c='b',
-            # ls='-',
-            # lw=1.,
-            # marker='.',
-            # label='mu*reg',
-        # )
-        # ax.axvline(time[indt], c='k', ls='-', lw=1.)
+            chi2n / np.nanmax(chi2n),
+            c='k',
+            ls='-',
+            lw=1.,
+            marker='.',
+            label='nchi2n',
+        )
 
-    # kax = 'niter'
-    # if dax.get(kax) is not None:
-        # ax = dax[kax]['handle']
-        # ax.plot(
+        ax.plot(
             # time,
-            # niter,
-            # c='k',
-            # ls='-',
-            # lw=1.,
-            # marker='.',
-        # )
-        # ax.axvline(time[indt], c='k', ls='-', lw=1.)
+            reg / np.nanmax(reg),
+            c='b',
+            ls='-',
+            lw=1.,
+            marker='.',
+            label='mu*reg',
+        )
+
+        # add mobile
+        l0 = ax.axvline(time[0], c='k', ls='-', lw=1.)
+
+        # add mobile
+        kl0 = 't-par'
+        coll2.add_mobile(
+            key=kl0,
+            handle=l0,
+            refs=(reft,),
+            data=['index'],
+            dtype=['xdata'],
+            axes=kax,
+            ind=0,
+        )
+
+    kax = 'niter'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.plot(
+            # time,
+            niter,
+            c='k',
+            ls='-',
+            lw=1.,
+            marker='.',
+        )
 
     # connect
     if connect is True:
@@ -417,16 +516,16 @@ def _plot_inversion_create_axes(
     # axes for inversion
 
     # retrofit
-    ax8 = fig.add_subplot(gs[:2, 6:], frameon=False)
+    ax8 = fig.add_subplot(gs[:2, 6:])
 
     # error
-    ax9 = fig.add_subplot(gs[2:4, 6:], frameon=False)
+    ax9 = fig.add_subplot(gs[2:4, 6:], sharex=ax8)
 
     # parameters (chi2, ...)
-    ax10 = fig.add_subplot(gs[4, 6:], frameon=False)
+    ax10 = fig.add_subplot(gs[4, 6:], sharex=ax3)
 
     # nb of iterations
-    ax11 = fig.add_subplot(gs[5, 6:], frameon=False)
+    ax11 = fig.add_subplot(gs[5, 6:], sharex=ax3)
 
     # dax
     dax = {

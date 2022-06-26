@@ -417,12 +417,12 @@ def _compute_check(
             lk.append(dconstraints['rmin'])
 
     # check if common / different time dependence
-    hastime, hasvect, reft, keyt, dind, t = coll.get_time_common(keys=lk)
+    hastime, reft, keyt, t, dind = coll.get_time_common(keys=lk)
     if reft is None:
         reft = f'{keyinv}-nt'
 
     # update all accordingly
-    if hastime and hasvect and dind is not None:
+    if hastime and dind is not None:
         # matrix side
         if key_matrix in dind.keys():
             matrix = matrix[dind[key_matrix]['ind'], ...]

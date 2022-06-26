@@ -1777,58 +1777,6 @@ def _interp2d_check_RZ(
     return R, Z, grid
 
 
-def _interp2d_check_rad2d_get_time(
-    coll=None,
-    hastime=None,
-    radius2d=None,
-    t=None,
-    indt=None,
-    keyt=None,
-):
-
-    # determine whether radius2d depends on time
-    (
-        rad2d_hastime, rad2d_keyt, rad2d_reft, rad2d_nt, rad2d_t,
-        rad2d_indt, rad2d_indtu, rad2d_indtr, rad2d_indok,
-    ) = coll.get_time(
-        key=radius2d,
-        t=None,
-        indt=None,
-    )
-
-    # if it does, adjust, TBF / TBC
-    if rad2d_hastime:
-        if hastime:
-            pass
-        else:
-            (
-                rad2d_hastime, rad2d_keyt, rad2d_reft, rad2d_nt, rad2d_t,
-                rad2d_indt, rad2d_indtu, rad2d_indtr, rad2d_indok,
-            ) = coll.get_time(
-                key=radius2d,
-                t=t,
-                indt=indt,
-            )
-
-
-        if t is not None:
-            (
-                rad2d_hastime, rad2d_keyt, rad2d_reft, rad2d_nt, rad2d_t,
-                rad2d_indt, rad2d_indtu, rad2d_indtr, rad2d_indok,
-            ) = coll.get_time(
-                key=radius2d,
-                t=t,
-                indt=None,
-            )
-        elif indt is not None:
-            pass
-
-    else:
-        pass
-
-    return rad2d_hastime, rad2d_t
-
-
 def _interp2d_check(
     # ressources
     coll=None,
@@ -1932,8 +1880,8 @@ def _interp2d_check(
         # take out key if bsplines
         lk = [kk for kk in [key, radius2d] if kk != keybs]
 
-        # TBC
-        hastime, hasvect, reft, keyt, dind, t = coll.get_time_common(
+        # 
+        hastime, reft, keyt, t, dind = coll.get_time_common(
             keys=lk,
             t=t,
             indt=indt,
@@ -1948,25 +1896,27 @@ def _interp2d_check(
             hastime = key in dind.keys()
 
         if hastime:
-            # lt = list(set([v0['key_vector'] for v0 in dind.values()]))
-            # if len(lt) == 1:
-                # reft = lt[0]
-            # else:
-                # reft = False
-            indt = dind[kind]['ind']
-            indtu = np.unique(indt)
-            indtr = np.array([indt == iu for iu in indtu])
+            indt = dind[kind].get('ind')
+            if indt is not None:
+                indtu = np.unique(indt)
+                indtr = np.array([indt == iu for iu in indtu])
+            else:
+                indtu, indtr = None, None
         else:
             reft, indt, indtu, indtr = None, None, None, None
 
     elif key != keybs:
         # hastime, t, indit
-        hastime, hasvect, reft, keyt, t, indt, indtu, indtr = coll.get_time(
+        hastime, hasvect, reft, keyt, t, dind = coll.get_time(
             key=key,
             t=t,
             indt=indt,
             ind_strict=indt_strict,
-        )[:-1]
+        )
+        if dind is None:
+            indt, indtu, indtr = None, None, None
+        else:
+            indt, indtu, indtr = dind['ind'], dind['indu'], dind['indr']
     else:
         hastime, hasvect = False, False
         reft, keyt, indt, indtu, indtr = None, None, None, None, None
@@ -2051,7 +2001,7 @@ def _interp2d_check(
         # special case if polar mesh => (radius, angle) from (R, Z)
         if mtype == 'polar':
 
-            rad2d_indt = dind[radius2d]['ind'] if rad2d_hastime else None
+            rad2d_indt = dind[radius2d].get('ind') if rad2d_hastime else None
 
             # compute radius2d at relevant times
             radius, _ = coll.interpolate_profile2d(
@@ -2718,192 +2668,3 @@ def _get_contours(
             )
 
     return cR, cZ
-
-
-# #############################################################################
-# #############################################################################
-#               retrofit                   
-# #############################################################################
-
-
-def _compute_retrofit_data_check(
-    # resources
-    coll=None,
-    # inputs
-    key=None,
-    key_matrix=None,
-    key_profile2d=None,
-    t=None,
-    # parameters
-    store=None,
-):
-
-    #----------
-    # keys
-
-    # key
-    lout = coll.ddata.keys()
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        excluded=lout,
-    )
-
-    # key_matrix
-    lok = coll.dobj.get('matrix', {}).keys()
-    key_matrix = ds._generic_check._check_var(
-        key_matrix, 'key_mtrix',
-        types=str,
-        allowed=lok,
-    )
-    keybs = coll.dobj['matrix'][key_matrix]['bsplines']
-    keym = coll.dobj['bsplines'][keybs]['mesh']
-    mtype = coll.dobj[coll._which_mesh][keym]['type']
-
-    nchan, nbs = coll.ddata[key_matrix]['data'].shape[-2:]
-    refchan, refbs = coll.ddata[key_matrix]['ref'][-2:]
-
-    # key_pofile2d
-    lok = [
-        k0 for k0, v0 in coll.ddata.items()
-        if v0['bsplines'] == keybs
-    ]
-    key_profile2d = ds._generic_check._check_var(
-        key_profile2d, 'key_profile2d',
-        types=str,
-        allowed=lok,
-    )
-
-    # t
-    hastime, hasvector, reft, keyt, dind, t = coll.get_time_common(
-        keys=[key_matrix, key_profile2d],
-        t=t,
-        ind_strict=True,
-    )
-    if hastime and t is not None and reft is None:
-        reft = f'{key}-nt'
-        keyt = f'{key}-t'
-
-    ist_mat = coll.get_time(key=key_matrix)[0]
-    ist_prof = coll.get_time(key=key_profile2d)[0]
-
-    # reft, keyt and refs
-    if hastime and t is not None:
-        nt = t.size
-        refs = (reft, refchan)
-    else:
-        nt = 0
-        reft = None
-        keyt = None
-        refs = (refchan,)
-
-    return (
-        key, keybs, keym, mtype,
-        key_matrix, key_profile2d,
-        hastime, t, keyt, reft, refs,
-        nt, nchan, nbs,
-        ist_mat, ist_prof, dind,
-    )
-
-
-def compute_retrofit_data(
-    # resources
-    coll=None,
-    # inputs
-    key=None,
-    key_matrix=None,
-    key_profile2d=None,
-    t=None,
-    # parameters
-    store=None,
-):
-
-    # ------------
-    # check inputs
-
-    (
-        key, keybs, keym, mtype,
-        key_matrix, key_profile2d,
-        hastime, t, keyt, reft, refs,
-        nt, nchan, nbs,
-        ist_mat, ist_prof, dind,
-    ) = _compute_retrofit_data_check(
-        # resources
-        coll=coll,
-        # inputs
-        key=key,
-        key_matrix=key_matrix,
-        key_profile2d=key_profile2d,
-        t=t,
-        # parameters
-        store=store,
-    )
-
-    # --------
-    # compute
-
-    matrix = coll.ddata[key_matrix]['data']
-    coefs = coll.ddata[key_profile2d]['data']
-
-    if hastime:
-
-        retro = np.full((nt, nchan, nbs), np.nan)
-
-        # get time indices
-        if ist_mat:
-            if key_matrix in dind.keys():
-                imat = dind[key_matrix]['ind']
-            else:
-                imat = np.arange(nt)
-
-        if ist_prof:
-            if key_profile2d in dind.keys():
-                iprof = dind[key_profile2d]['ind']
-            else:
-                iprof = np.arange(nt)
-
-        # compute matrix product
-        if ist_mat and ist_prof:
-            retro = np.array([
-                matrix[imat[ii], :, :].dot(coefs[iprof[ii], :])
-                for ii in range(nt)
-            ])
-        elif ist_mat:
-            retro = np.array([
-                matrix[imar[ii], :, :].dot(coefs)
-                for ii in range(nt)
-            ])
-        elif ist_prof:
-            retro = np.array([
-                matrix.dot(coefs[iprof[ii], :])
-                for ii in range(nt)
-            ])
-    else:
-        retro = matrix.dot(coefs)
-
-    # --------
-    # store
-
-    if store:
-
-        # add data
-        ddata = {
-            key: {
-                'data': retro,
-                'ref': refs,
-                'dim': None,
-                'quant': None,
-                'name': None,
-            },
-        }
-
-        # add reft + t if new
-        if reft not in coll.dref.keys():
-            dref = {reft: {'size': t.size}}
-            ddata[keyt] = {'data': t, 'ref': reft, 'dim': 'time'}
-
-        # update
-        coll.update(dref=dref, ddata=ddata)
-
-    else:
-        return retro, t, keyt, reft

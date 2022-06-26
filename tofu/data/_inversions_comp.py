@@ -395,11 +395,12 @@ def compute_inversions(
         coll.update(dobj=dobj, dref=dref, ddata=ddata)
 
         # add synthetic data
+        keyt = coll.get_time(key=keyinv)[3]
         data_synth = coll.add_retrofit_data(
             key=kretro,
             key_matrix=key_matrix,
             key_profile2d=keyinv,
-            t=None,
+            t=keyt,
             store=True,
         )
 

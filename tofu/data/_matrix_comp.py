@@ -7,7 +7,7 @@ import copy
 
 # Common
 import numpy as np
-
+import datastock as ds
 
 # tofu
 from . import _generic_check
@@ -22,6 +22,8 @@ from . import _generic_check
 def _compute_check(
     coll=None,
     key=None,
+    key_chan=None,
+    nlos=None,
     method=None,
     resMode=None,
     crop=None,
@@ -32,15 +34,22 @@ def _compute_check(
 
     # key
     lk = list(coll.dobj.get('bsplines', {}).keys())
-    if key is None and len(lk) == 1:
-        key = lk[0]
-    if key not in lk:
-        msg = (
-            "Arg key must be a valid bspline identifier!\n"
-            f"\t- available: {lk}\n"
-            f"\t- provided:  {key}"
-        )
-        raise Exception(msg)
+    key = _generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lk,
+    )
+
+    # key_chan
+    lk = (
+        [k0 for k0, v0 in coll.dref.items() if v0['size'] == nlos]
+        + [None]
+    )
+    key_chan = _generic_check._check_var(
+        key_chan, 'key_chan',
+        types=str,
+        allowed=lk,
+    )
 
     # method
     method = _generic_check._check_var(
@@ -102,7 +111,7 @@ def _compute_check(
         )
         raise Exception(msg)
 
-    return key, method, resMode, crop, name, store, verb
+    return key, key_chan, method, resMode, crop, name, store, verb
 
 
 def compute(
@@ -126,15 +135,23 @@ def compute(
     # -----------
     # check input
 
-    key, method, resMode, crop, name, store, verb = _compute_check(
-        coll=coll, key=key, method=method, resMode=resMode,
-        crop=crop, name=name, store=store, verb=verb,
+    nlos = cam.nRays
+    key, key_chan, method, resMode, crop, name, store, verb = _compute_check(
+        coll=coll,
+        key=key,
+        key_chan=key_chan,
+        nlos=nlos,
+        method=method,
+        resMode=resMode,
+        crop=crop,
+        name=name,
+        store=store,
+        verb=verb,
     )
 
     # -----------
     # prepare
 
-    nlos = cam.nRays
     shapebs = coll.dobj['bsplines'][key]['shape']
     km = coll.dobj['bsplines'][key]['mesh']
     mtype = coll.dobj[coll._which_mesh][km]['type']
@@ -277,3 +294,195 @@ def compute(
 
     else:
         return mat
+
+
+# #############################################################################
+# #############################################################################
+#               retrofit                   
+# #############################################################################
+
+
+def _compute_retrofit_data_check(
+    # resources
+    coll=None,
+    # inputs
+    key=None,
+    key_matrix=None,
+    key_profile2d=None,
+    t=None,
+    # parameters
+    store=None,
+):
+
+    #----------
+    # keys
+
+    # key
+    lout = coll.ddata.keys()
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        excluded=lout,
+    )
+
+    # key_matrix
+    lok = coll.dobj.get('matrix', {}).keys()
+    key_matrix = ds._generic_check._check_var(
+        key_matrix, 'key_mtrix',
+        types=str,
+        allowed=lok,
+    )
+    keybs = coll.dobj['matrix'][key_matrix]['bsplines']
+    keym = coll.dobj['bsplines'][keybs]['mesh']
+    mtype = coll.dobj[coll._which_mesh][keym]['type']
+
+    nchan, nbs = coll.ddata[key_matrix]['data'].shape[-2:]
+    refchan, refbs = coll.ddata[key_matrix]['ref'][-2:]
+
+    # key_pofile2d
+    lok = [
+        k0 for k0, v0 in coll.ddata.items()
+        if v0['bsplines'] == keybs
+    ]
+    key_profile2d = ds._generic_check._check_var(
+        key_profile2d, 'key_profile2d',
+        types=str,
+        allowed=lok,
+    )
+
+    # time management
+    hastime, reft, keyt, t, dind = coll.get_time_common(
+        keys=[key_matrix, key_profile2d],
+        t=t,
+        ind_strict=False,
+    )
+    if hastime and t is not None and reft is None:
+        reft = f'{key}-nt'
+        keyt = f'{key}-t'
+
+    ist_mat = coll.get_time(key=key_matrix)[0]
+    ist_prof = coll.get_time(key=key_profile2d)[0]
+
+    # reft, keyt and refs
+    if hastime and t is not None:
+        nt = t.size
+        refs = (reft, refchan)
+    else:
+        nt = 0
+        reft = None
+        keyt = None
+        refs = (refchan,)
+
+    return (
+        key, keybs, keym, mtype,
+        key_matrix, key_profile2d,
+        hastime, t, keyt, reft, refs,
+        nt, nchan, nbs,
+        ist_mat, ist_prof, dind,
+    )
+
+
+def compute_retrofit_data(
+    # resources
+    coll=None,
+    # inputs
+    key=None,
+    key_matrix=None,
+    key_profile2d=None,
+    t=None,
+    # parameters
+    store=None,
+):
+
+    # ------------
+    # check inputs
+
+    (
+        key, keybs, keym, mtype,
+        key_matrix, key_profile2d,
+        hastime, t, keyt, reft, refs,
+        nt, nchan, nbs,
+        ist_mat, ist_prof, dind,
+    ) = _compute_retrofit_data_check(
+        # resources
+        coll=coll,
+        # inputs
+        key=key,
+        key_matrix=key_matrix,
+        key_profile2d=key_profile2d,
+        t=t,
+        # parameters
+        store=store,
+    )
+
+    # --------
+    # compute
+
+    matrix = coll.ddata[key_matrix]['data']
+    coefs = coll.ddata[key_profile2d]['data']
+
+    if hastime:
+
+        retro = np.full((nt, nchan, nbs), np.nan)
+
+        # get time indices
+        if ist_mat:
+            if key_matrix in dind.keys():
+                imat = dind[key_matrix]['ind']
+            else:
+                imat = np.arange(nt)
+
+        if ist_prof:
+            if key_profile2d in dind.keys():
+                iprof = dind[key_profile2d]['ind']
+            else:
+                iprof = np.arange(nt)
+
+        # compute matrix product
+        if ist_mat and ist_prof:
+            retro = np.array([
+                matrix[imat[ii], :, :].dot(coefs[iprof[ii], :])
+                for ii in range(nt)
+            ])
+        elif ist_mat:
+            retro = np.array([
+                matrix[imar[ii], :, :].dot(coefs)
+                for ii in range(nt)
+            ])
+        elif ist_prof:
+            retro = np.array([
+                matrix.dot(coefs[iprof[ii], :])
+                for ii in range(nt)
+            ])
+    else:
+        retro = matrix.dot(coefs)
+
+    # --------
+    # store
+
+    if store:
+
+        # add data
+        ddata = {
+            key: {
+                'data': retro,
+                'ref': refs,
+                'dim': None,
+                'quant': None,
+                'name': None,
+            },
+        }
+
+        # add reft + t if new
+        if keyt not in coll.ddata.keys():
+            ddata[keyt] = {'data': t, 'ref': reft, 'dim': 'time'}
+        if reft not in coll.dref.keys():
+            dref = {reft: {'size': t.size}}
+        else:
+            dref = None
+
+        # update
+        coll.update(dref=dref, ddata=ddata)
+
+    else:
+        return retro, t, keyt, reft

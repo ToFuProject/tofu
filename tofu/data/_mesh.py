@@ -401,7 +401,7 @@ class Plasma2D(ds.DataStock):
     ):
         """ Return the time vector or time macthing indices
 
-        hastime, keyt, t, indt, indtu, indtr = self.get_time(key='prof0')
+        hastime, keyt, reft, keyt, val, dind = self.get_time(key='prof0')
 
         Return
         ------
@@ -411,13 +411,16 @@ class Plasma2D(ds.DataStock):
             if hastime and a time vector exists, the key to that time vector
         t:          None / np.ndarray
             if hastime
-        indt:       None / np.ndarray
-            if indt or t was provided, and keyt exists
-            int indices of nearest matching times
-        indtu:      None / np.ndarray
-            if indt is returned, np.unique(indt)
-        indtr:      None / np.ndarray
-            if indt is returned, a bool (ntu, nt) array
+        dind:       dict, with:
+            - indt:  None / np.ndarray
+                if indt or t was provided, and keyt exists
+                int indices of nearest matching times
+            - indtu: None / np.ndarray
+                if indt is returned, np.unique(indt)
+            - indtr: None / np.ndarray
+                if indt is returned, a bool (ntu, nt) array
+            - indok: None / np.ndarray
+                if indt is returned, a bool (nt,) array
 
         """
 
@@ -1346,7 +1349,7 @@ class Plasma2D(ds.DataStock):
 
         """
 
-        return _mesh_comp.compute_retrofit_data(
+        return _matrix_comp.compute_retrofit_data(
             coll=self,
             key=key,
             key_matrix=key_matrix,
