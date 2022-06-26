@@ -1450,6 +1450,10 @@ def plot_profile2d(
             dax=dax,
         )
 
+        if reft not in dgroup['Z']['ref']:
+            dgroup['Z']['ref'].append(reft)
+            dgroup['Z']['data'].append('index')
+
         # ------------------
         # add radial profile
 

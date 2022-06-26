@@ -565,7 +565,12 @@ class BivariateSplinePolar():
     # constraints methods
     # -----------------
 
-    def get_constraints_out_rlim(self, rlim=None, rm=None):
+    def get_constraints_out_rlim(
+        self,
+        rlim=None,
+        rm=None,
+        lim=None,
+    ):
         """
         Return indices of bslines fully out of rlim (min or max)
 
@@ -587,16 +592,40 @@ class BivariateSplinePolar():
         # ------------
         # get index of bsplines out of limits
 
+        kpbsr = self.knots_per_bs_r
         if rm == 'rmax':
-            ind = np.all(
-                self.knots_per_bs_r[None, :, :] > rlim[:, None, None],
-                axis=1,
-            )
+            if lim == 'allout':
+                ind = np.all(
+                    kpbsr[None, :, :] > rlim[:, None, None],
+                    axis=1,
+                )
+            elif lim == 'outer':
+                ind = np.sum(
+                    kpbsr[None, :, :] > rlim[:, None, None],
+                    axis=1,
+                ) > 1
+            elif lim == 'inner':
+                ind = np.any(
+                    kpbsr[None, :, :] > rlim[:, None, None],
+                    axis=1,
+                )
+
         else:
-            ind = np.all(
-                self.knots_per_bs_r[None, :, :] < rlim[:, None, None],
-                axis=1,
-            )
+            if lim == 'allin':
+                ind = np.all(
+                    kpbsr[None, :, :] < rlim[:, None, None],
+                    axis=1,
+                )
+            elif lim == 'inner':
+                ind = np.sum(
+                    kpbsr[None, :, :] < rlim[:, None, None],
+                    axis=1,
+                ) > 1
+            elif lim == 'outer':
+                ind = np.any(
+                    kpbsr[None, :, :] < rlim[:, None, None],
+                    axis=1,
+                )
 
         if self.knotsa is None:
             pass
@@ -623,7 +652,12 @@ class BivariateSplinePolar():
         """
 
 
-    def get_constraints_deriv(self, deriv=None, rad=None, val=None):
+    def get_constraints_deriv(
+        self,
+        deriv=None,
+        rad=None,
+        val=None,
+    ):
         """
         To set constraints on a derivative
         Retrun indices of bsplines + coefs + offset

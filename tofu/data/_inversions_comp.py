@@ -60,14 +60,15 @@ def compute_inversions(
 
     (
         key_matrix, key_data, key_sigma, keybs, keym, mtype,
-        data, sigma, matrix, t,
+        data, sigma, matrix,
+        keyt, t, reft, notime,
         m3d, indok, iokt,
         dconstraints,
         opmat, operator, geometry,
         dalgo, dconstraints, dcon,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
-        keyinv, refinv, reft, notime, regul,
+        keyinv, refinv, regul,
     ) = _inversions_checks._compute_check(
         # resources
         coll=coll,
@@ -330,7 +331,7 @@ def compute_inversions(
 
         dref = None
         if notime is False:
-            if isinstance(t, np.ndarray):
+            if keyt is None:
                 dref = {
                     reft: {'size': nt},
                 }

@@ -669,14 +669,15 @@ def _compute_check(
 
     return (
         key_matrix, key_data, key_sigma, keybs, keym, mtype,
-        data, sigma, matrix, t,
+        data, sigma, matrix,
+        keyt, t, reft, notime,
         m3d, indok, iokt,
         dconstraints,
         opmat, operator, geometry,
         dalgo, dconstraints, dcon,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
-        keyinv, refinv, reft, notime, regul,
+        keyinv, refinv, regul,
     )
 
 
@@ -838,19 +839,28 @@ def _check_rminmax(
         return
 
     # check format
-    err = False
+    err = True
     # should be scalar or valid data key
+    lok = [k0 for k0, v0 in coll.ddata.keys() if len(v0['ref']) == 1]
     if np.isscalar(dconst[rm]):
-        pass
-    elif isinstance(dconst[rm], str):
-        lok = [
-            k0 for k0, v0 in coll.ddata.keys()
-            if len(v0['ref']) == 1
-        ]
-        if dconst[rm] not in lok:
+        dconst[rm] = {'val': np.r_[dconst[rm]]}
+        err = False
+    elif isinstance(dconst[rm], str) and dconst[rm] in lok:
+        dconst[rm] = {'val': dconst[rm]}
+        err = False
+
+    # dict
+    if err is False and isinstance(dconst[rm], dict):
+        c0 = (
+            dconst[rm].get('val') is not None
+            and np.isscalar(dconst[rm]['val'])
+            or (
+                isinstance(dconst[rm]['val'], str)
+                and dconst[rm]['val'] in lok
+            )
+        )
+        if not c0:
             err = True
-    else:
-        err = True
 
     # raise err if relevant
     if err:
@@ -861,6 +871,19 @@ def _check_rminmax(
             "Provided: {dconstraints['{rm}']}"
         )
         raise Exception(msg)
+
+    # lim
+    lok = ['inner', 'outer']
+    if rm == 'rmax':
+        lok.append('allout')
+    else:
+        lok.append('allin')
+    dconst[rm]['lim'] = _generic_check._check_var(
+        dconst[rm].get('lim'), "dconstraints['{rm}']['lim']",
+        default='outer',
+        types=str,
+        allowed=lok,
+    )
 
 
 def _check_deriv(
@@ -1133,18 +1156,22 @@ def _update_constraints(
             continue
 
         # make it a 1d vector with good shape
-        if isinstance(dconst.get(rm), str):
-            rmstr = dconst[rm]
+        if isinstance(dconst[rm]['val'], str):
+            rmstr = dconst[rm]['val']
             if dind is not None and rmstr in dind.keys():
-                dconst[rm] = coll.ddata[rmstr]['data'][dind[rmstr]['ind']]
+                dconst[rm]['val'] = coll.ddata[rmstr]['data'][dind[rmstr]['ind']]
             else:
-                dconst[rm] = coll.ddata[rmstr]['data']
+                dconst[rm]['val'] = coll.ddata[rmstr]['data']
 
         else:
-            dconst[rm] = dconst[rm]
+            dconst[rm]['val'] = dconst[rm]['val']
 
         # compute indbs
-        indbs, offset = clas.get_constraints_out_rlim(rlim=dconst[rm], rm=rm)
+        indbs, offset = clas.get_constraints_out_rlim(
+            rlim=dconst[rm],
+            rm=rm,
+            lim=dconst[rm]['lim'],
+        )
 
         dcon[rm] = {
             'indbs': indbs,
