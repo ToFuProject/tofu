@@ -47,7 +47,6 @@ def _compute_check(
     )
     key_chan = _generic_check._check_var(
         key_chan, 'key_chan',
-        types=str,
         allowed=lk,
     )
 
