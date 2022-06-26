@@ -29,6 +29,7 @@ def _plot_inversion_check(
     dcolorbar=None,
     dleg=None,
     dax=None,
+    connect=None,
 ):
 
     # key
@@ -45,7 +46,10 @@ def _plot_inversion_check(
     )
     keymat = coll.dobj['inversions'][keyinv]['matrix']
     keydata = coll.dobj['inversions'][keyinv]['data_in']
+    keyretro = coll.dobj['inversions'][keyinv]['retrofit']
     keybs = coll.dobj['matrix'][keymat]['bsplines']
+    keym = coll.dobj['bsplines'][keybs]['mesh']
+    mtype = coll.dobj[coll._which_mesh][keym]['type']
     # refbs = coll.dobj['bsplines'][keybs]['ref']
 
     crop = coll.dobj['matrix'][keymat]['crop']
@@ -83,13 +87,28 @@ def _plot_inversion_check(
         types=(bool, dict),
     )
 
-    return keyinv, keymat, keybs, keydata, cropbs, cmap, dcolorbar, dleg
+    # connect
+    connect = _generic_check._check_var(
+        connect, 'connect',
+        default=True,
+        types=bool,
+    )
+
+    return (
+        keyinv, keymat, keybs, keydata, keyretro, mtype,
+        cropbs, cmap, dcolorbar, dleg, connect,
+    )
 
 
-def _plot_inversion_prepare():
+def _plot_inversion_prepare(
+    coll=None,
+    coll2=None,
+):
+
+    # TBF
 
     # data
-    keychan = coll.ddata[keydata]['ref'][-1]
+    refchan = coll.ddata[keydata]['ref'][-1]
     chan = coll.ddata[keychan]['data']
     hastime = coll.ddata[keydata]['data'].ndim == 2
 
@@ -141,6 +160,9 @@ def _plot_inversion_prepare():
         reg = coll.dobj['inversions'][keyinv]['reg']
         niter = coll.dobj['inversions'][keyinv]['niter']
 
+    return chi2n, nu, reg, niter
+
+
 
 def plot_inversion(
     coll=None,
@@ -155,25 +177,25 @@ def plot_inversion(
     fs=None,
     dcolorbar=None,
     dleg=None,
+    # interactivity
+    dinc=None,
+    connect=None,
 ):
 
     # ------------
     # check inputs
 
     (
-        keyinv, keymat, keybs, keydata, cropbs, cmap, dcolorbar, dleg,
+        keyinv, keymat, keybs, keydata, keyretro, mtype,
+        cropbs, cmap, dcolorbar, dleg, connect,
     ) = _plot_inversion_check(
         coll=coll,
         key=key,
         cmap=cmap,
         dcolorbar=dcolorbar,
         dleg=dleg,
+        connect=connect,
     )
-
-    # ------------
-    # prepare data
-
-    # _plot_inversion_prepare()
 
     # --------------
     # plot - prepare
@@ -191,7 +213,7 @@ def plot_inversion(
     # --------------
     # plot profile2d
 
-    coll2 = coll.plot_profile2d(
+    coll2, dgroup = coll.plot_profile2d(
         key=key,
         res=res,
         # figure
@@ -209,96 +231,139 @@ def plot_inversion(
     )
     dax = coll2.dax
 
+    # ------------
+    # prepare data
+
+    _plot_inversion_prepare(
+        coll=coll,
+        coll2=coll2,
+        keyinv=keyinv,
+        key_retro=key_retro,
+    )
+
     # ---------
     # plot data
 
     kax = 'retrofit'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
-        ax.plot(
-            chan,
-            data[indt, :],
+
+        # plot
+        l0, = ax.plot(
+            np.arange(0, ),
+            coll2.ddata[keydata]['data'][0, :],
             c='k',
             ls='-',
             lw=1.,
             marker='.',
         )
-        ax.plot(
-            chan,
-            data_re[:, indt],
-            c='k',
+        l1, = ax.plot(
+            np.arange(0, ),
+            coll2.ddata[keyretro]['data'][0, :],
+            c=(0.8, 0.8, 0.8),
             ls='--',
             lw=1.,
             marker='.',
         )
 
-    kax = 'data-err'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-        ax.plot(
-            chan,
-            data_re[:, indt] - data[indt, :],
-            c='k',
-            ls='-',
-            lw=1.,
-            marker='.',
+        # add mobiles
+        kl0 = 'data'
+        coll2.add_mobile(
+            key=kl0,
+            handle=l0,
+            refs=(reft,),
+            data=[keydata],
+            dtype=['ydata'],
+            axes=kax,
+            ind=0,
         )
-        ax.axhline(
-            0.,
-            c='k',
-            ls='-',
-            lw=1.,
+        kl1 = 'retrofit'
+        coll2.add_mobile(
+            key=kl1,
+            handle=l1,
+            refs=(reft,),
+            data=[keyretor],
+            dtype=['ydata'],
+            axes=kax,
+            ind=0,
         )
 
-    # -------------------------
-    # plot inversion parameters
+    # kax = 'data-err'
+    # if dax.get(kax) is not None:
+        # ax = dax[kax]['handle']
+        # ax.plot(
+            # chan,
+            # data_re[:, indt] - data[indt, :],
+            # c='k',
+            # ls='-',
+            # lw=1.,
+            # marker='.',
+        # )
+        # ax.axhline(
+            # 0.,
+            # c='k',
+            # ls='-',
+            # lw=1.,
+        # )
 
-    kax = 'inv-param'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-        ax.plot(
-            time,
-            nchi2n + mu*reg,
-            c='k',
-            ls='-',
-            lw=1.,
-            marker='.',
-            label='n*chi2n + mu*reg',
-        )
-        ax.plot(
-            time,
-            nchi2n,
-            c='r',
-            ls='-',
-            lw=1.,
-            marker='.',
-            label='nchi2n',
-        )
-        ax.plot(
-            time,
-            mu*reg,
-            c='b',
-            ls='-',
-            lw=1.,
-            marker='.',
-            label='mu*reg',
-        )
-        ax.axvline(time[indt], c='k', ls='-', lw=1.)
+    # # -------------------------
+    # # plot inversion parameters
 
-    kax = 'niter'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-        ax.plot(
-            time,
-            niter,
-            c='k',
-            ls='-',
-            lw=1.,
-            marker='.',
-        )
-        ax.axvline(time[indt], c='k', ls='-', lw=1.)
+    # kax = 'inv-param'
+    # if dax.get(kax) is not None:
+        # ax = dax[kax]['handle']
+        # ax.plot(
+            # time,
+            # nchi2n + mu*reg,
+            # c='k',
+            # ls='-',
+            # lw=1.,
+            # marker='.',
+            # label='n*chi2n + mu*reg',
+        # )
+        # ax.plot(
+            # time,
+            # nchi2n,
+            # c='r',
+            # ls='-',
+            # lw=1.,
+            # marker='.',
+            # label='nchi2n',
+        # )
+        # ax.plot(
+            # time,
+            # mu*reg,
+            # c='b',
+            # ls='-',
+            # lw=1.,
+            # marker='.',
+            # label='mu*reg',
+        # )
+        # ax.axvline(time[indt], c='k', ls='-', lw=1.)
 
-    return dax
+    # kax = 'niter'
+    # if dax.get(kax) is not None:
+        # ax = dax[kax]['handle']
+        # ax.plot(
+            # time,
+            # niter,
+            # c='k',
+            # ls='-',
+            # lw=1.,
+            # marker='.',
+        # )
+        # ax.axvline(time[indt], c='k', ls='-', lw=1.)
+
+    # connect
+    if connect is True:
+        coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+        coll2.disconnect_old()
+        coll2.connect()
+
+        coll2.show_commands()
+        return coll2
+    else:
+        return coll2, dgroup
 
 
 def _plot_inversion_create_axes(
@@ -371,10 +436,10 @@ def _plot_inversion_create_axes(
         'horizontal': {'handle': ax2, 'type': 'misc'},
         'traces': {'handle': ax3, 'type': 'misc'},
         # inversion
-        'retrofit': {'handle': ax8, 'type': 'misc'}
-        'err': {'handle': ax9, 'type': 'misc'}
-        'inv-param': {'handle': ax10, 'type': 'misc'}
-        'niter': {'handle': ax11, 'type': 'misc'}
+        'retrofit': {'handle': ax8, 'type': 'misc'},
+        'err': {'handle': ax9, 'type': 'misc'},
+        'inv-param': {'handle': ax10, 'type': 'misc'},
+        'niter': {'handle': ax11, 'type': 'misc'},
         # text
         'textX': {'handle': ax4, 'type': 'text'},
         'textY': {'handle': ax5, 'type': 'text'},

@@ -1331,6 +1331,7 @@ class Plasma2D(ds.DataStock):
     # -----------------
 
     def add_retrofit_data(
+        self,
         key=None,
         key_matrix=None,
         key_profile2d=None,
@@ -1351,7 +1352,7 @@ class Plasma2D(ds.DataStock):
             key_matrix=key_matrix,
             key_profile2d=key_profile2d,
             t=t,
-            store=sort,
+            store=store,
         )
 
     # -----------------
@@ -1424,10 +1425,12 @@ class Plasma2D(ds.DataStock):
 
     def plot_profile2d(
         self,
+        # inputs
         key=None,
         coefs=None,
         indt=None,
         res=None,
+        # plot options
         vmin=None,
         vmax=None,
         cmap=None,
@@ -1436,13 +1439,18 @@ class Plasma2D(ds.DataStock):
         fs=None,
         dcolorbar=None,
         dleg=None,
+        # interactivity
+        dinc=None,
+        connect=None,
     ):
         return _mesh_plot.plot_profile2d(
             coll=self,
+            # inputs
             key=key,
             coefs=coefs,
             indt=indt,
             res=res,
+            # plot options
             vmin=vmin,
             vmax=vmax,
             cmap=cmap,
@@ -1451,6 +1459,9 @@ class Plasma2D(ds.DataStock):
             fs=fs,
             dcolorbar=dcolorbar,
             dleg=dleg,
+            # interactivity
+            dinc=dinc,
+            connect=connect,
         )
 
     def plot_geometry_matrix(

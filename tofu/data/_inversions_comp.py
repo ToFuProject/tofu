@@ -362,13 +362,13 @@ def compute_inversions(
             })
 
         # add synthetic data
-        ksynthetic = f'{keyinv}-synthetic'
+        kretro = f'{keyinv}-retro'
 
         # add inversion
         dobj = {
             'inversions': {
                 keyinv: {
-                    'data_out': ksynthetic,
+                    'retrofit': kretro,
                     'data_in': key_data,
                     'sigma_in': key_sigma,
                     'matrix': key_matrix,
@@ -396,10 +396,10 @@ def compute_inversions(
 
         # add synthetic data
         data_synth = coll.add_retrofit_data(
-            key=ksynthetic,
+            key=kretro,
             key_matrix=key_matrix,
             key_profile2d=keyinv,
-            t=t_data,
+            t=None,
             store=True,
         )
 

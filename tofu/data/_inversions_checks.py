@@ -417,23 +417,18 @@ def _compute_check(
             lk.append(dconstraints['rmin'])
 
     # check if common / different time dependence
-    hastime, hasvect, t, dind = coll.get_time_common(keys=lk)
+    hastime, hasvect, reft, keyt, dind, t = coll.get_time_common(keys=lk)
+    if reft is None:
+        reft = f'{keyinv}-nt'
 
     # update all accordingly
-    if hastime and hasvect:
-        lt = [v0['key_vector'] for v0 in dind.values()]
-
-        if len(lt) == 1:
-            t = lt[0]
-
-        else:
-            # consistency check
-            assert m3d
-
-            # matrix side
+    if hastime and hasvect and dind is not None:
+        # matrix side
+        if key_matrix in dind.keys():
             matrix = matrix[dind[key_matrix]['ind'], ...]
 
-            # data side
+        # data side
+        if key_data in dind.keys():
             data = data[dind[key_data]['ind'], :]
             if sigma.shape[0] > 1:
                 sigma = sigma[dind[key_data]['ind'], :]
@@ -456,11 +451,7 @@ def _compute_check(
     # inversion refs
 
     refbs = coll.dobj['bsplines'][keybs]['ref-bs']
-    if hastime and hasvect:
-        if len(lt) == 1:
-            reft = lt[0]
-        elif m3d:
-            reft = f'{keyinv}-nt'
+    if hastime:
         refinv = (reft, keybs)
     else:
         refinv = keybs
