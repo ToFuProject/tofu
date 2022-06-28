@@ -350,12 +350,12 @@ def _compute_retrofit_data_check(
     )
 
     # time management
-    hastime, reft, keyt, t, dind = coll.get_time_common(
+    hastime, reft, keyt, t_out, dind = coll.get_time_common(
         keys=[key_matrix, key_profile2d],
         t=t,
         ind_strict=False,
     )
-    if hastime and t is not None and reft is None:
+    if hastime and t_out is not None and reft is None:
         reft = f'{key}-nt'
         keyt = f'{key}-t'
 
@@ -363,8 +363,8 @@ def _compute_retrofit_data_check(
     ist_prof = coll.get_time(key=key_profile2d)[0]
 
     # reft, keyt and refs
-    if hastime and t is not None:
-        nt = t.size
+    if hastime and t_out is not None:
+        nt = t_out.size
         refs = (reft, refchan)
     else:
         nt = 0
@@ -375,7 +375,7 @@ def _compute_retrofit_data_check(
     return (
         key, keybs, keym, mtype,
         key_matrix, key_profile2d,
-        hastime, t, keyt, reft, refs,
+        hastime, t_out, keyt, reft, refs,
         nt, nchan, nbs,
         ist_mat, ist_prof, dind,
     )
