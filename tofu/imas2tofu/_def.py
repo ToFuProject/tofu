@@ -184,6 +184,14 @@ _dshort = {
             'str': 'global_quantities.li.value',
             'units': '-',
         },
+        'r0': {
+            'str': 'global_quantities.r0.value',
+            'units': 'm',
+        },
+        'b0': {
+            'str': 'global_quantities.b0.value',
+            'units': 'T',
+        },
         'fusion_power': {
             'str': 'fusion.power.value',
             'units': 'W',
