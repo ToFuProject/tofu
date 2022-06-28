@@ -1115,6 +1115,7 @@ class Plasma2D(ds.DataStock):
         radius=None,
         angle=None,
         grid=None,
+        radius_vs_time=None,
         # time: t or indt
         t=None,
         indt=None,
@@ -1176,6 +1177,7 @@ class Plasma2D(ds.DataStock):
             radius=radius,
             angle=angle,
             grid=grid,
+            radius_vs_time=radius_vs_time,
             # time: t or indt
             t=t,
             indt=indt,

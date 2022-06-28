@@ -1790,6 +1790,7 @@ def _interp2d_check(
     radius=None,
     angle=None,
     grid=None,
+    radius_vs_time=None,
     # time: t or indt
     t=None,
     indt=None,
@@ -1815,7 +1816,7 @@ def _interp2d_check(
     dk = {
         k0: v0['bsplines']
         for k0, v0 in coll.ddata.items()
-        if v0.get('bsplines') is not None
+        if v0.get('bsplines') not in ['', None]
         and 'crop' not in k0
     }
     dk.update({kk: kk for kk in coll.dobj['bsplines'].keys()})
@@ -2050,7 +2051,11 @@ def _interp2d_check(
             radius_vs_time = False
 
     else:
-        radius_vs_time = False
+        radius_vs_time = _generic_check._check_var(
+            radius_vs_time, 'radius_vs_time',
+            types=bool,
+            default=False,
+        )
 
     # -------------
     # radius, angle
@@ -2202,6 +2207,7 @@ def interp2d(
     radius=None,
     angle=None,
     grid=None,
+    radius_vs_time=None,
     # time: t or indt
     t=None,
     indt=None,
@@ -2252,6 +2258,7 @@ def interp2d(
         radius=radius,
         angle=angle,
         grid=grid,
+        radius_vs_time=radius_vs_time,
         # time: t or indt
         t=t,
         indt=indt,
