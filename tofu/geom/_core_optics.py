@@ -803,8 +803,9 @@ class CrystalBragg(utils.ToFuObject):
             fs=fs, ax=ax, legend=legend)
 
     def compute_rockingcurve(
-        self, crystal=None, din=None,
-        ih=None, ik=None, il=None, lamb=None,
+        self,
+        crystal=None, din=None,
+        lamb=None,
         use_non_parallelism=None, nn=None,
         alpha_limits=None,
         therm_exp=None, plot_therm_exp=None,
@@ -814,7 +815,7 @@ class CrystalBragg(utils.ToFuObject):
     ):
         return _rockingcurve.compute_rockingcurve(
             crystal=crystal, din=din,
-            ih=ih, ik=ik, il=il, lamb=lamb,
+            lamb=lamb,
             use_non_parallelism=use_non_parallelism, nn=nn,
             alpha_limits=alpha_limits,
             therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
@@ -1940,14 +1941,14 @@ class CrystalBragg(utils.ToFuObject):
     def plot_line_on_det_tracing(
         self,
         # Options of basic method
+        dcryst=None,
         n=None, nphi2=None,
         det=None, johann=None,
         lpsi=None, ldtheta=None,
         # Type of crystal
         crystal=None, din=None,
-        # Lattice parameters
-        ih=None, ik=None, il=None, lamb=None,
-        dcryst=None,
+        # Wavelength
+        lamb=None,
         # Options of crystal modifications
         merge_rc_data=None,
         use_non_parallelism=None,
@@ -1968,9 +1969,6 @@ class CrystalBragg(utils.ToFuObject):
             - lamb: array of min size 1, in 1e-10 [m]
             - det: dict
             - johann: bool
-            - ih, ik, il: floats
-                Give the Miller indices corresponding to the material type of
-                crystal used on tofu/spectro/_rockingcurve.py
             - merge_rc_data: bool
                 use tf/spectro/_rockingucurve.py to plot in transparency ranges
                 the angular extent of each wavelength traces
@@ -2019,10 +2017,6 @@ class CrystalBragg(utils.ToFuObject):
                 3.949067e-10, 3.965858e-10, 3.969356e-10,
                 3.994145e-10, 3.989810e-10,
             ]
-        if ih is None and ik is None and il is None:
-            ih = 1.
-            ik = 1.
-            il = 0.
         lamb = np.atleast_1d(lamb).ravel()
         nlamb = lamb.size
         if use_non_parallelism is None:
@@ -2065,7 +2059,7 @@ class CrystalBragg(utils.ToFuObject):
             T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
         ) = _rockingcurve.CrystBragg_comp_lattice_spacing(
             crystal=crystal, din=din,
-            ih=ih, ik=ik, il=il, lamb=self.dbragg['lambref']*1e10,
+            lamb=self.dbragg['lambref']*1e10,
             na=na, nn=nn,
             therm_exp=therm_exp, plot_therm_exp=False,
         )
@@ -2169,7 +2163,7 @@ class CrystalBragg(utils.ToFuObject):
             for ll in range(nlamb):
                 dout = _rockingcurve.compute_rockingcurve(
                     crystal=crystal, din=din,
-                    ih=ih, ik=ik, il=il, lamb=lamb[ll]*1e10,
+                    lamb=lamb[ll]*1e10,
                     use_non_parallelism=use_non_parallelism,
                     therm_exp=therm_exp,
                     plot_therm_exp=plot_rcs,

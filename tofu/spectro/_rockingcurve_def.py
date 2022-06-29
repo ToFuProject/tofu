@@ -1,5 +1,6 @@
 
 import numpy as np
+import scipy.interpolate
 
 
 # #############################################################################
@@ -15,7 +16,7 @@ _DCRYST = {
         'atoms': ['Si', 'O'],
         'atomic number': [14., 8.],
         'number of atoms': [3., 6.],
-        'Miller indices (h,k,l)': np.r_[1., 1., 0.],
+        'Miller indices': np.r_[1., 1., 0.],
         'meshtype': 'hexagonal',
         'mesh positions': {
             'Si': {
@@ -23,15 +24,21 @@ _DCRYST = {
                 'x': None,
                 'y': None,
                 'z': None,
+                'N': None,
             },
             'O': {
                 'u': np.r_[0.415, 0.272, 0.120],
                 'x': None,
                 'y': None,
                 'z': None,
+                'N': None,
             },
         },
         'mesh positions sources': 'R.W.G. Wyckoff, Crystal Structures (1963)',
+        'phases': {
+            'Si': None,
+            'O': None,
+        },
         'Inter-atomic distances': {
             'a0': 4.91304,
             'c0': 5.40463,
@@ -78,10 +85,11 @@ _DCRYST = {
         'atoms': None,
         'atomic number': None,
         'number of atoms': None,
-        'Miller indices (h,k,l)': None,
+        'Miller indices': None,
         'meshtype': None,
         'mesh positions': None,
         'mesh positions sources': None,
+        'phases': None,
         'Inter-atomic distances': {
             'a0': None,
             'c0': None,
@@ -142,6 +150,9 @@ _DCRYST['alpha-Quartz']['mesh positions']['Si']['z'] = np.r_[
     0.,
     2./3.
 ]
+_DCRYST['alpha-Quartz']['mesh positions']['Si']['N'] = np.size(
+    _DCRYST['alpha-Quartz']['mesh positions']['Si']['x']
+)
 
 # Position of the 6 O atoms in the unit cell
 uOx = _DCRYST['alpha-Quartz']['mesh positions']['O']['u'][0]
@@ -171,6 +182,9 @@ _DCRYST['alpha-Quartz']['mesh positions']['O']['z'] = np.r_[
     2./3. - uOz,
     1./3. - uOz
 ]
+_DCRYST['alpha-Quartz']['mesh positions']['O']['N'] = np.size(
+    _DCRYST['alpha-Quartz']['mesh positions']['O']['x']
+)
 
 # Attribution to Germanium
 # ------------------------
@@ -198,9 +212,9 @@ def hexa_spacing(h, k, l, a, c):
 
 a = _DCRYST['alpha-Quartz']['Inter-atomic distances']['a0']
 c = _DCRYST['alpha-Quartz']['Inter-atomic distances']['c0']
-h = _DCRYST['alpha-Quartz']['Miller indices (h,k,l)'][0]
-k = _DCRYST['alpha-Quartz']['Miller indices (h,k,l)'][1]
-l = _DCRYST['alpha-Quartz']['Miller indices (h,k,l)'][2]
+h = _DCRYST['alpha-Quartz']['Miller indices'][0]
+k = _DCRYST['alpha-Quartz']['Miller indices'][1]
+l = _DCRYST['alpha-Quartz']['Miller indices'][2]
 
 _DCRYST['alpha-Quartz']['Volume'] = hexa_volume(a=a, c=c)
 _DCRYST['alpha-Quartz']['Inter-reticular spacing'] = hexa_spacing(
@@ -210,3 +224,77 @@ _DCRYST['alpha-Quartz']['Inter-reticular spacing'] = hexa_spacing(
 # Attribution to Germanium
 # ------------------------
 
+# #############################################################################
+# #############################################################################
+#                               Structure factor
+# #############################################################################
+# #############################################################################
+
+# Alpha-Quartz crystal
+# --------------------
+
+# Atomic absorption coefficient
+Zsi = _DCRYST['alpha-Quartz']['atomic number'][0]
+Zo = _DCRYST['alpha-Quartz']['atomic number'][1]
+
+def mu_si(lamb):
+    return 1.38e-2*(lamb**2.79)*(Zsi**2.73)
+def mu_si1(lamb):
+    return 5.33e-4*(lamb**2.74)*(Zsi**3.03)
+def mu_o(lamb):
+    return 5.4e-3*(lamb**2.92)*(Zo**3.07)
+def mu(lamb, mu_si, mu_o):
+    return 2.65e-8*(7.*mu_si + 8.*mu_o)/15.
+
+# Atomic scattering factor, real and imaginary parts
+sol_si = _DCRYST['alpha-Quartz']['sin(theta)/lambda']['Si']
+sol_o = _DCRYST['alpha-Quartz']['sin(theta)/lambda']['O']
+asf_si = _DCRYST['alpha-Quartz']['atomic scattering factor']['Si']
+asf_o = _DCRYST['alpha-Quartz']['atomic scattering factor']['O']
+interp_si = scipy.interpolate.interp1d(sol_si, asf_si)
+interp_o = scipy.interpolate.interp1d(sol_o, asf_o)
+
+def dfsi_re(lamb):
+    return 0.1335*lamb - 6e-3
+
+def fsi_re(lamb, sol):
+    return interp_si(sol) + dfsi_re(lamb)
+
+def fsi_im(lamb, mu_si):
+    return 5.936e-4*Zsi*(mu_si/lamb)
+
+def dfo_re(lamb):
+    return 0.1335*lamb - 0.206
+
+def fo_re(lamb, sol):
+    return interp_o(sol) + dfo_re(lamb)
+
+def fo_im(lamb, mu_o):
+    return 5.936e-4*Zo*(mu_o/lamb)
+
+# Phases
+h = _DCRYST['alpha-Quartz']['Miller indices'][0]
+k = _DCRYST['alpha-Quartz']['Miller indices'][1]
+l = _DCRYST['alpha-Quartz']['Miller indices'][2]
+xsi = _DCRYST['alpha-Quartz']['mesh positions']['Si']['x']
+ysi = _DCRYST['alpha-Quartz']['mesh positions']['Si']['y']
+zsi = _DCRYST['alpha-Quartz']['mesh positions']['Si']['z']
+xo = _DCRYST['alpha-Quartz']['mesh positions']['O']['x']
+yo = _DCRYST['alpha-Quartz']['mesh positions']['O']['y']
+zo = _DCRYST['alpha-Quartz']['mesh positions']['O']['z']
+
+def phasesi(h, k, l, xsi, ysi, zsi):
+    return h*xsi + k*ysi + l*zsi
+
+def phaseo(h, k, l, xo, yo, zo):
+    return h*xo + k*yo + l*zo
+
+for i in range(xsi.size):
+    _DCRYST['alpha-Quartz']['phases']['Si'] = phasesi(
+        h, k, l, xsi[i], ysi[i], zsi[i],
+    )
+
+for j in range(xo.size):
+    _DCRYST['alpha-Quartz']['phases']['O'] = phaseo(
+        h, k, l, xo[j], yo[j], zo[j],
+    )

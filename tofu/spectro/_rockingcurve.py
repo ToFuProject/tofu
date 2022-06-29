@@ -28,8 +28,8 @@ import tofu.spectro._rockingcurve_def as _rockingcurve_def
 def compute_rockingcurve(
     # Type of crystal
     crystal=None, din=None,
-    # Lattice parameters
-    ih=None, ik=None, il=None, lamb=None,
+    # Wavelength
+    lamb=None,
     # Lattice modifications
     use_non_parallelism=None, nn=None,
     alpha_limits=None,
@@ -86,8 +86,6 @@ def compute_rockingcurve(
         Crystal definition to use, among 'aQz' and soon 'Ge'
     din:    str
         Crystal definition dictionary to use, among 'aQz' and soon 'Ge'
-    ih, ik, il:    int
-        Miller indices of crystal used
     lamb:    float
         Wavelength of interest, in Angstroms (1e-10 m)
     use_non_parallelism:    str
@@ -163,42 +161,24 @@ def compute_rockingcurve(
         returnas = None
 
     ih, ik, il, lamb = CrystBragg_check_inputs_rockingcurve(
-        ih=ih, ik=ik, il=il, lamb=lamb,
+        ih=din['Miller indices'][0],
+        ik=din['Miller indices'][1],
+        il=din['Miller indices'][2],
+        lamb=lamb,
     )
-
-    # Main crystal parameters
-    # -----------------------
 
     # Classical electronical radius, in Angstroms,
     # from the NIST Reference on Constants, Units and Uncertainty,
     # CODATA 2018 recommended values
     re = 2.817940e-5
 
-    # Atomic number of Si and O atoms
-    Zsi = din['atomic number'][0]
-    Zo = din['atomic number'][1]
-
-    # Position of the three Si atoms in the unit cell,
-    # from Wyckoff "Crystal Structures"
-    xsi = din['mesh positions']['Si']['x']
-    ysi = din['mesh positions']['Si']['y']
-    zsi = din['mesh positions']['Si']['z']
-    Nsi = np.size(xsi)
-
-    # Position of the six O atoms in the unit cell,
-    # from Wyckoff "Crystal Structures"
-    xo = din['mesh positions']['O']['x']
-    yo = din['mesh positions']['O']['y']
-    zo = din['mesh positions']['O']['z']
-    No = np.size(xo)
-
     # Computation of the unit cell volume, inter-planar distance,
-    # sin(theta)/lambda parameter and Bragg angle (rad, deg) associated to lamb
+    # sin(theta)/lambda parameter and Bragg angle associated to the wavelength
     (
         T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
     ) = CrystBragg_comp_lattice_spacing(
         crystal=crystal, din=din,
-        ih=ih, ik=ik, il=il, lamb=lamb, na=na, nn=nn,
+        lamb=lamb, na=na, nn=nn,
         therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
     )
 
@@ -208,111 +188,112 @@ def compute_rockingcurve(
         use_non_parallelism=use_non_parallelism, therm_exp=therm_exp,
     )
 
-    # Atomic scattering factors ("asf") for Si(2+) and O(1-) as a function of
-    # sin(theta)/lambda ("sol"), taking into account molecular bounds
-    # ("si") for Silicium and ("o") for Oxygen
-    sol_si = din['sin(theta)/lambda']['Si']
-    asf_si = din['atomic scattering factor']['Si']
-    sol_o = din['sin(theta)/lambda']['O']
-    asf_o = din['atomic scattering factor']['O']
+    if crystal == 'aQz':
 
-    # Calculation of the structure factor for the alpha-quartz crystal
-    # ----------------------------------------------------------------
+        # Calculation of the structure factor
+        # -----------------------------------
 
-    # Atomic absorption coefficient for Si and O as a function of lamb
-    mu_si = 1.38e-2*(lamb**2.79)*(Zsi**2.73)
-    mu_si1 = 5.33e-4*(lamb**2.74)*(Zsi**3.03)
-    if lamb > 6.74:
-        mu_si = mu_si1
-    mu_o = 5.4e-3*(lamb**2.92)*(Zo**3.07)
-    mu = 2.65e-8*(7.*mu_si + 8.*mu_o)/15.
+        # Atomic absorption coefficient
+        if lamb > 6.74:
+            mu_si = _rockingcurve_def.mu_si1(lamb=lamb)
+        else:
+            mu_si = _rockingcurve_def.mu_si(lamb=lamb)
+        mu_o = _rockingcurve_def.mu_o(lamb=lamb)
+        mu = _rockingcurve_def.mu(lamb=lamb, mu_si=mu_si, mu_o=mu_o)
 
-    # Interpolation of atomic scattering factor ("f") in function of sol
-    # ("_re") for the real part and ("_im") for the imaginary part
-    fsi_re = scipy.interpolate.interp1d(sol_si, asf_si)
-    dfsi_re = 0.1335*lamb - 0.006
-    fsi_re = fsi_re(sol) + dfsi_re
-    fsi_im = 5.936e-4*Zsi*(mu_si/lamb)
+        # Atomic scattering factor ("f") in function of sol
+        # ("_re") for the real part and ("_im") for the imaginary part
+        fsi_re = np.full((sol.size), np.nan)
+        fo_re = np.full((sol.size), np.nan)
 
-    fo_re = scipy.interpolate.interp1d(sol_o, asf_o)
-    dfo_re = 0.1335*lamb - 0.206
-    fo_re = fo_re(sol) + dfo_re
-    fo_im = 5.936e-4*Zo*(mu_o/lamb)
+        dfsi_re = _rockingcurve_def.dfsi_re(lamb=lamb)
+        dfo_re = _rockingcurve_def.dfo_re(lamb=lamb)
+        for i in range(sol.size):
+            fsi_re[i] = _rockingcurve_def.fsi_re(lamb=lamb, sol=sol[i])
+            fo_re[i] = _rockingcurve_def.fo_re(lamb=lamb, sol=sol[i])
+        fsi_im = _rockingcurve_def.fsi_im(lamb=lamb, mu_si=mu_si)
+        fo_im = _rockingcurve_def.fo_im(lamb=lamb, mu_o=mu_o)
 
-    # Structure factor ("F") for (hkl) reflection
-    phasesi = np.full((xsi.size), np.nan)
-    phaseo = np.full((xo.size), np.nan)
-    for i in range(xsi.size):
-        phasesi[i] = ih*xsi[i] + ik*ysi[i] + il*zsi[i]
-    for j in range(xo.size):
-        phaseo[j] = ih*xo[j] + ik*yo[j] + il*zo[j]
+        # Structure factor ("F") for (hkl) reflection
+        # xsi and ih have already been defined with din
+        phasesi = din['phases']['Si']
+        phaseo = din['phases']['O']
 
-    Fsi_re1 = np.full((sol.size), np.nan)
-    Fsi_re2 = Fsi_re1.copy()
-    Fo_re1 = Fsi_re1.copy()
-    Fo_re2 = Fsi_re1.copy()
-    for i in range(sol.size):
-        Fsi_re1[i] = np.sum(fsi_re[i]*np.cos(2*np.pi*phasesi))
-        Fsi_re2[i] = np.sum(fsi_re[i]*np.sin(2*np.pi*phasesi))
-        Fo_re1[i] = np.sum(fo_re[i]*np.cos(2*np.pi*phaseo))
-        Fo_re2[i] = np.sum(fo_re[i]*np.sin(2*np.pi*phaseo))
-    Fsi_im1 = np.sum(fsi_im*np.cos(2*np.pi*phasesi))
-    Fsi_im2 = np.sum(fsi_im*np.sin(2*np.pi*phasesi))
-    Fo_im1 = np.sum(fo_im*np.cos(2*np.pi*phaseo))
-    Fo_im2 = np.sum(fo_im*np.sin(2*np.pi*phaseo))
+        Fsi_re1 = np.full((sol.size), np.nan)
+        Fsi_re2 = Fsi_re1.copy()
+        Fo_re1 = Fsi_re1.copy()
+        Fo_re2 = Fsi_re1.copy()
 
-    F_re_cos = np.full((sol.size), np.nan)
-    F_re_sin = F_re_cos.copy()
-    for i in range(sol.size):
-        F_re_cos[i] = Fsi_re1[i] + Fo_re1[i]
-        F_re_sin[i] = Fsi_re2[i] + Fo_re2[i]
-    F_im_cos = Fsi_im1 + Fo_im1
-    F_im_sin = Fsi_im2 + Fo_im2
+        for i in range(sol.size):
+            Fsi_re1[i] = np.sum(fsi_re[i]*np.cos(2*np.pi*phasesi))
+            Fsi_re2[i] = np.sum(fsi_re[i]*np.sin(2*np.pi*phasesi))
+            Fo_re1[i] = np.sum(fo_re[i]*np.cos(2*np.pi*phaseo))
+            Fo_re2[i] = np.sum(fo_re[i]*np.sin(2*np.pi*phaseo))
+        Fsi_im1 = np.sum(fsi_im*np.cos(2*np.pi*phasesi))
+        Fsi_im2 = np.sum(fsi_im*np.sin(2*np.pi*phasesi))
+        Fo_im1 = np.sum(fo_im*np.cos(2*np.pi*phaseo))
+        Fo_im2 = np.sum(fo_im*np.sin(2*np.pi*phaseo))
 
-    F_re = np.full((sol.size), np.nan)
-    for i in range(sol.size):
-        F_re[i] = np.sqrt(F_re_cos[i]**2 + F_re_sin[i]**2)
-    F_im = np.sqrt(F_im_cos**2 + F_im_sin**2)
+        F_re_cos = np.full((sol.size), np.nan)
+        F_re_sin = F_re_cos.copy()
 
-    # Calculation of Fourier coefficients of polarization
-    # ---------------------------------------------------
+        for i in range(sol.size):
+            F_re_cos[i] = Fsi_re1[i] + Fo_re1[i]
+            F_re_sin[i] = Fsi_re2[i] + Fo_re2[i]
+        F_im_cos = Fsi_im1 + Fo_im1
+        F_im_sin = Fsi_im2 + Fo_im2
 
-    Fmod = np.full((sol.size), np.nan)
-    Fbmod = Fmod.copy()
-    kk = Fmod.copy()
-    rek = Fmod.copy()
-    psi_re = Fmod.copy()
-    psi0_dre = Fmod.copy()
-    psi0_im = Fmod.copy()
-    for i in range(sol.size):
-        # Expression of the Fourier coef. psi_H
-        Fmod[i] = np.sqrt(
-            F_re[i]**2 + F_im**2 - 2.*(
-                F_re_cos[i]*F_im_sin - F_im_cos*F_re_sin[i]
+        F_re = np.full((sol.size), np.nan)
+
+        for i in range(sol.size):
+            F_re[i] = np.sqrt(F_re_cos[i]**2 + F_re_sin[i]**2)
+        F_im = np.sqrt(F_im_cos**2 + F_im_sin**2)
+
+        # Calculation of Fourier coefficients of polarization
+        # ---------------------------------------------------
+
+        Nsi = din['mesh positions']['Si']['N']
+        No = din['mesh positions']['O']['N']
+        Zsi = din['atomic number'][0]
+        Zo = din['atomic number'][1]
+
+        Fmod = np.full((sol.size), np.nan)
+        Fbmod = Fmod.copy()
+        kk = Fmod.copy()
+        rek = Fmod.copy()
+        psi_re = Fmod.copy()
+        psi0_dre = Fmod.copy()
+        psi0_im = Fmod.copy()
+
+        for i in range(sol.size):
+            # Expression of the Fourier coef. psi_H
+            Fmod[i] = np.sqrt(
+                F_re[i]**2 + F_im**2 - 2.*(
+                    F_re_cos[i]*F_im_sin - F_im_cos*F_re_sin[i]
+                )
             )
-        )
-        # psi_-H equivalent to (-ih, -ik, -il)
-        Fbmod[i] = np.sqrt(
-            F_re[i]**2 + F_im**2 - 2.*(
-                F_re_sin[i]*F_im_cos - F_re_cos[i]*F_im_sin
+            # psi_-H equivalent to (-ih, -ik, -il)
+            Fbmod[i] = np.sqrt(
+                F_re[i]**2 + F_im**2 - 2.*(
+                    F_re_sin[i]*F_im_cos - F_re_cos[i]*F_im_sin
+                )
             )
-        )
-        if Fmod[i] == 0.:
-            Fmod[i] == 1e-30
-        if Fbmod[i] == 0.:
-            Fbmod[i] == 1e-30
-        # Ratio imaginary part and real part of the structure factor
-        kk[i] = F_im/F_re[i]
-        # Real part of kk
-        rek[i] = (F_re_cos[i]*F_im_cos + F_re_sin[i]*F_im_sin)/(F_re[i]**2.)
-        # Real part of psi_H
-        psi_re[i] = (re*(lamb**2)*F_re[i])/(np.pi*Volume[i])
-        # Zero-order real part (averaged)
-        psi0_dre[i] = -re*(lamb**2)*(
-            No*(Zo + dfo_re) + Nsi*(Zsi + dfsi_re)
-        )/(np.pi*Volume[i])
-        # Zero-order imaginary part (averaged)
-        psi0_im[i] = -re*(lamb**2)*(No*fo_im + Nsi*fsi_im)/(np.pi*Volume[i])
+            if Fmod[i] == 0.:
+                Fmod[i] == 1e-30
+            if Fbmod[i] == 0.:
+                Fbmod[i] == 1e-30
+            # Ratio imaginary part and real part of the structure factor
+            kk[i] = F_im/F_re[i]
+            # Real part of kk
+            rek[i] = (F_re_cos[i]*F_im_cos + F_re_sin[i]*F_im_sin)/(F_re[i]**2.)
+            # Real part of psi_H
+            psi_re[i] = (re*(lamb**2)*F_re[i])/(np.pi*Volume[i])
+            # Zero-order real part (averaged)
+            psi0_dre[i] = -re*(lamb**2)*(
+                No*(Zo + dfo_re) + Nsi*(Zsi + dfsi_re)
+            )/(np.pi*Volume[i])
+            # Zero-order imaginary part (averaged)
+            psi0_im[i] = -re*(lamb**2)*(No*fo_im + Nsi*fsi_im)/(np.pi*Volume[i])
 
     # Power ratio and their integrated reflectivity for 3 crystals models:
     # perfect (Darwin model), ideally mosaic thick and dynamical
@@ -881,7 +862,6 @@ def CrystBragg_check_alpha_angle(
 def CrystBragg_comp_lattice_spacing(
     # Type of crystal
     crystal=None, din=None,
-    ih=None, ik=None, il=None,
     lamb=None,
     # Plot
     na=None, nn=None,
@@ -920,7 +900,10 @@ def CrystBragg_comp_lattice_spacing(
     # Check inputs
     # ------------
     ih, ik, il, lamb = CrystBragg_check_inputs_rockingcurve(
-        ih=ih, ik=ik, il=il, lamb=lamb,
+        ih=din['Miller indices'][0],
+        ik=din['Miller indices'][1],
+        il=din['Miller indices'][2],
+        lamb=lamb,
     )
     if nn is None:
         nn = 20
