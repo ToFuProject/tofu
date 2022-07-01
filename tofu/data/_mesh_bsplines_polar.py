@@ -149,14 +149,13 @@ class BivariateSplinePolar():
 
                 for jj in range(nbsa[ii]):
                     kj = knots_per_bsai[:, jj]
-                    if kj[0] > kj[-1]:
-                        i2pi = np.r_[False, np.diff(kj) < 0]
-                        kj = np.copy(kj)
-                        kj[i2pi] += 2.*np.pi
                     lba[ii].append(scpinterp.BSpline.basis_element(
                         kj,
                         extrapolate=False,
                     ))
+                    if kj[0] >= kj[-1]:
+                        i2pi = np.r_[False, np.diff(kj) < 0].nonzero()[0][0]
+                        lba[ii][-1].t[deg + i2pi:] += 2.*np.pi
         else:
             lba = None
             knots_per_bs_a = None
@@ -545,7 +544,7 @@ class BivariateSplinePolar():
                             continue
 
                         kj = self.knots_per_bs_a[ii][:, jj]
-                        if kj[0] > kj[-1]:
+                        if kj[0] >= kj[-1]:
                             atemp = np.copy(angle[iok])
                             atemp[atemp < kj[0]] += 2.*np.pi
                             vala = self.lba[ii][jj](atemp)

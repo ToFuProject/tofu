@@ -48,14 +48,17 @@ def _get_knots_per_bs(
     size = knots.size
 
     if poloidal is True:
-        if size < nkpbs:
+        if size < nkpbs - 1:
             msg = (
                 f"For the desired degree ({deg}), "
-                f"a minimum of {nkpbs} poloidal knots is necessary\n"
+                f"a minimum of {nkpbs - 1} poloidal knots is necessary\n"
                 f"Provided: {knots}"
             )
             raise Exception(msg)
         nbs = size
+        if deg == 0 and size == nkpbs - 1:
+            msg = "Using 2 pts for a deg = 0 bsplines leads to bspline!"
+            raise Exception(msg)
 
     else:
         if size < 1 - deg:
@@ -99,11 +102,18 @@ def _get_knots_per_bs(
 
         elif deg == 1:
             if poloidal is True:
-                knots_per_bs[:, :] = np.array([
-                    np.arange(0, size),
-                    np.r_[np.arange(1, size), 0],
-                    np.r_[np.arange(2, size), 0, 1],
-                ])
+                if size == nkpbs - 1:
+                    knots_per_bs[:, :] = np.array([
+                        np.r_[0, 1],
+                        np.r_[1, 0],
+                        np.r_[0, 1],
+                    ])
+                else:
+                    knots_per_bs[:, :] = np.array([
+                        np.arange(0, size),
+                        np.r_[np.arange(1, size), 0],
+                        np.r_[np.arange(2, size), 0, 1],
+                    ])
             else:
                 knots_per_bs[:, 1:-1] = np.array([
                     np.arange(0, size-2),
@@ -115,12 +125,20 @@ def _get_knots_per_bs(
 
         elif deg == 2:
             if poloidal is True:
-                knots_per_bs[:, :] = np.array([
-                    np.arange(0, size),
-                    np.r_[np.arange(1, size), 0],
-                    np.r_[np.arange(2, size), 0, 1],
-                    np.r_[np.arange(3, size), 0, 1, 2],
-                ])
+                if size == nkpbs - 1:
+                    knots_per_bs[:, :] = np.array([
+                        np.arange(0, size),
+                        np.r_[np.arange(1, size), 0],
+                        np.r_[np.arange(2, size), 0, 1],
+                        np.arange(0, size),
+                    ])
+                else:
+                    knots_per_bs[:, :] = np.array([
+                        np.arange(0, size),
+                        np.r_[np.arange(1, size), 0],
+                        np.r_[np.arange(2, size), 0, 1],
+                        np.r_[np.arange(3, size), 0, 1, 2],
+                    ])
             else:
                 knots_per_bs[:, 2:-2] = np.array([
                     np.arange(0, size-3),
@@ -135,13 +153,22 @@ def _get_knots_per_bs(
 
         elif deg == 3:
             if poloidal is True:
-                knots_per_bs[:, :] = np.array([
-                    np.arange(0, size),
-                    np.r_[np.arange(1, size), 0],
-                    np.r_[np.arange(2, size), 0, 1],
-                    np.r_[np.arange(3, size), 0, 1, 2],
-                    np.r_[np.arange(4, size), 0, 1, 2, 3],
-                ])
+                if size == nkpsb - 1:
+                    knots_per_bs[:, :] = np.array([
+                        np.arange(0, size),
+                        np.r_[np.arange(1, size), 0],
+                        np.r_[np.arange(2, size), 0, 1],
+                        np.r_[np.arange(3, size), 0, 1, 2],
+                        np.arange(0, size),
+                    ])
+                else:
+                    knots_per_bs[:, :] = np.array([
+                        np.arange(0, size),
+                        np.r_[np.arange(1, size), 0],
+                        np.r_[np.arange(2, size), 0, 1],
+                        np.r_[np.arange(3, size), 0, 1, 2],
+                        np.r_[np.arange(4, size), 0, 1, 2, 3],
+                    ])
             else:
                 knots_per_bs[:, 3:-3] = np.array([
                     np.arange(0, size-4),

@@ -310,6 +310,9 @@ def _plot_geometry_matrix_prepare(
         return_params=False,
     )[0][0, ...]
 
+
+    
+
     # --------
     # LOS
 

@@ -1281,6 +1281,8 @@ def _update_constraints(
     for it in range(nt):
         coefs[it][tuple(indbs[it]), tuple(np.arange(indbs[it].size))] = 1.
 
+    # import pdb; pdb.set_trace()     # DB
+
     # -------------
     # format output
 
@@ -1288,6 +1290,8 @@ def _update_constraints(
         hastime = False
     else:
         hastime = True
+
+    import pdb; pdb.set_trace()     # DB
 
     dcon = {
         'hastime': hastime,
