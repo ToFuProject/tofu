@@ -322,7 +322,7 @@ setup(
         "requests",
         "cython>=0.26",
         "svg.path",
-        "datastock>=0.0.14",
+        "datastock>=0.0.16",
     ],
     python_requires=">=3.6",
 

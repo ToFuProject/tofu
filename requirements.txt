@@ -9,4 +9,4 @@ svg.path
 
 ######## Requirements with Version Specifier ########
 Cython>=0.26
-datastock>=0.0.14
+datastock>=0.0.16
