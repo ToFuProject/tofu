@@ -419,6 +419,15 @@ def compute_retrofit_data(
 
     matrix = coll.ddata[key_matrix]['data']
     coefs = coll.ddata[key_profile2d]['data']
+    if mtype == 'rect':
+        indbs_tf = coll.select_bsplines(
+            key=keybs,
+            returnas='ind',
+        )
+        if hastime and ist_prof:
+            coefs = coefs[:, indbs_tf[0], indbs_tf[1]]
+        else:
+            coefs = coefs[indbs_tf[0], indbs_tf[1]]
 
     if hastime:
 
@@ -426,13 +435,13 @@ def compute_retrofit_data(
 
         # get time indices
         if ist_mat:
-            if key_matrix in dind.keys():
+            if dind.get(key_matrix, {}).get('ind') is not None:
                 imat = dind[key_matrix]['ind']
             else:
                 imat = np.arange(nt)
 
         if ist_prof:
-            if key_profile2d in dind.keys():
+            if dind.get(key_profile2d, {}).get('ind') is not None:
                 iprof = dind[key_profile2d]['ind']
             else:
                 iprof = np.arange(nt)

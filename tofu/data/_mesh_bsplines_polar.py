@@ -585,6 +585,9 @@ class BivariateSplinePolar():
             msg = f"Invalid rm!\nShould be in ['rmax', 'rmin']\nProvided: {rm}"
             raise Exception(msg)
 
+        if np.isscalar(rlim):
+            rlim = np.r_[rlim]
+
         if not (isinstance(rlim, np.ndarray) and rlim.ndim == 1):
             msg = "rlim must ba a 1d array!"
             raise Exception(msg)

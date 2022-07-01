@@ -424,11 +424,11 @@ def _compute_check(
     # update all accordingly
     if hastime and dind is not None:
         # matrix side
-        if key_matrix in dind.keys():
+        if dind.get(key_matrix, {}).get('ind') is not None:
             matrix = matrix[dind[key_matrix]['ind'], ...]
 
         # data side
-        if key_data in dind.keys():
+        if dind.get(key_data, {}).get('ind') is not None:
             data = data[dind[key_data]['ind'], :]
             if sigma.shape[0] > 1:
                 sigma = sigma[dind[key_data]['ind'], :]
@@ -541,6 +541,8 @@ def _compute_check(
 
         # get new nt, nchan
         nt, nchan = data.shape
+    else:
+        iokt = np.ones((data.shape[0],), dtype=bool)
 
     if np.all(indok):
         indok = None
@@ -735,7 +737,10 @@ def _check_time_steps(
     # check data validity
 
     # remove time steps
-    iok = np.any(indok, axis=1) & (~iconflict)
+    iok = np.any(indok, axis=1)
+    if iconflict is not None:
+        iok &= (~iconflict)
+
     iokt = iok
 
     if np.any(~iok):
@@ -1096,12 +1101,18 @@ def _constraints_conflict_iout(
         # if np.any(iconflict):
             # msg = "Auto-solve mutually dependent equations not implemented yet!"
             # raise NotImplementedError(msg)
+    elif len(loffset) > 0:
+        iout_offset = np.any(ibs_offset, axis=0)
+        iconflict = np.zeros((iout_offset.shape[0],), dtype=bool)
+    else:
+        iout_offset = np.zeros((ibs_offset.shape[1],), dtype=bool)
+        iconflict = np.zeros((iout_offset.shape[0],), dtype=bool)
 
     # ------------------
     # get really free equations
 
     # from here all equations are independent from offsets
-    nt, nbs = iout_offset.shape
+    nt, nbs = ibs_offset.shape[1:]
     iout_coefs = np.zeros((nt, nbs), dtype=bool)
     iin_coefs = ~iout_offset
 
@@ -1147,7 +1158,7 @@ def _update_constraints(
 ):
 
     if dconst is None:
-        return None, None
+        return None, None, None
 
     # ---------------------------------------------
     # initialize bool index of constrained bsplines
@@ -1266,7 +1277,9 @@ def _update_constraints(
             oi = dcon[k0]['offset'][iin] / dcon[k0]['coefs'][iout]
             offset[it, iout] = oi
             coefs[it][iout, indbs[it] == iin] = ci
-            coefs[it][tuple(indbs[it]), tuple(np.arange(indbs[it].size))] = 1.
+
+    for it in range(nt):
+        coefs[it][tuple(indbs[it]), tuple(np.arange(indbs[it].size))] = 1.
 
     # -------------
     # format output

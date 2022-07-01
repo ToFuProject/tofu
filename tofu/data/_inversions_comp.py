@@ -533,22 +533,25 @@ def _compute_inv_loop(
             print(msg, end='', flush=True)
 
         # update intermediates if multiple sigmas
-        if sigma.shape[0] > 1 or m3d or indok is not None:
+        # if sigma.shape[0] > 1 or m3d or indok is not None:
 
-            # update terms
-            Tni, TTni, Tyni, yni, nchani = _update_TTyn(
-                sparse=sparse,
-                data_n=data_n,
-                sigma=sigma,
-                matrix=matrix,
-                Tn=Tn,
-                TTn=TTn,
-                Tyn=Tyn,
-                indok=indok,
-                ii=ii,
-                m3d=m3d,
-                regul=regul,
-            )
+        # update terms
+        Tni, TTni, Tyni, yni, nchani = _update_TTyn(
+            sparse=sparse,
+            data_n=data_n,
+            sigma=sigma,
+            matrix=matrix,
+            Tn=Tn,
+            TTn=TTn,
+            Tyn=Tyn,
+            indok=indok,
+            ii=ii,
+            m3d=m3d,
+            regul=regul,
+        )
+        # else:
+            # Tni, TTni, Tyni, yni = Tn, TTn, Tyn, data_n[ii, :]
+            # nchani = data_n.shape[-1]
 
         if dcon is not None:
             ic = 0 if ii == 0 and not dcon['hastime'] else ii
@@ -784,9 +787,9 @@ def _update_TTyn(
     # Tyn (for reguarized algorithms)
     if regul:
         if indok is None:
-            Tyn[:] = Tni.T.dot(yni)
+            Tyn[:] = Tn.T.dot(yn)
         else:
-            Tyn = Tni.T.dot(yni)
+            Tyn = Tn.T.dot(yn)
 
     return Tn, TTn, Tyn, yn, yn.size
 

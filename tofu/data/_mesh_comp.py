@@ -2103,7 +2103,10 @@ def _interp2d_check(
         if coefs is None:
             if key == keybs:
                 if mtype == 'polar' and rad2d_hastime:
-                    r2dnt = rad2d_indt.size
+                    if rad2d_indt is None:
+                        r2dnt = coll.dref[dind[radius2d]['ref']]['size']
+                    else:
+                        r2dnt = rad2d_indt.size
                     coefs = np.ones(tuple(np.r_[r2dnt, shapebs]), dtype=float)
                 else:
                     coefs = np.ones(shapebs, dtype=float)
