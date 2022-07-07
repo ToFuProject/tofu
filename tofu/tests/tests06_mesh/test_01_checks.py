@@ -906,6 +906,7 @@ class Test02_Plasma2D():
                 cam=cam,
                 indchan=40,
                 indbf=5,
+                res=0.05,
             )
             if ii % imax == 0:
                 plt.close('all')
