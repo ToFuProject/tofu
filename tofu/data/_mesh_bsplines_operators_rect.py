@@ -564,6 +564,9 @@ def get_mesh2dRect_operators(
     elif operator == 'D2N2':
 
         # pre-compute integrals
+        if deg in [0, 1]:
+            msg = f"degree {deg} too low for operator {operator}"
+            raise Exception(msg)
         if deg == 2:
             id2R = _D2N2_Deg2(knotsx_mult, geometry=geometry)
             id2Z = _D2N2_Deg2(knotsy_mult, geometry='linear')

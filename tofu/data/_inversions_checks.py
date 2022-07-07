@@ -22,7 +22,7 @@ except Exception as err:
     tomotok2tofu = False
 
 
-_DALGO = {
+_DALGO0 = {
     'algo0': {
         'source': 'tofu',
         'family': 'Phillips-Tikhonov',
@@ -234,7 +234,7 @@ def match_algo(
     # --------------
     # Get tofu algo
 
-    dalgo = _DALGO
+    dalgo = _DALGO0
 
     # -----------------
     # Get tomotok algo

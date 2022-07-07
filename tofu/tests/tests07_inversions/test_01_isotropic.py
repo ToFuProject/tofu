@@ -127,7 +127,7 @@ class Test01_Inversions():
             + 0.1*np.cos(t1)[:, None]*np.exp(-(chan - 15)**2/2**2)
         )
         # mesh.add_ref(key='t0', data=t0, units='s', group='time')
-        mesh.add_ref(key='t1', data=t1, units='s', group='time')
+        mesh.add_ref(key='t1', data=t1, units='s', dim='time')
         mesh.add_data(key='data0', data=data0, ref=('chan',))
         mesh.add_data(key='data1', data=data1, ref=('t1', 'chan'))
 
@@ -205,6 +205,10 @@ class Test01_Inversions():
         # plotting
         linv = list(self.mesh.dobj['inversions'].keys())[::7]
         for kinv in linv:
-            dax = self.mesh.plot_inversion(key=kinv)
+            try:
+                dax = self.mesh.plot_inversion(key=kinv)
+            except Exception as err:
+                import pdb; pdb.set_trace()     # DB
+                pass
 
         plt.close('all')

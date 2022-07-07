@@ -229,12 +229,12 @@ def compute_inversions(
             sol0=sol0,
             mu0=mu0,
             matrix=matrix,
-            Tn=Tn,
-            TTn=TTn,
-            Tyn=Tyn,
-            R=R,
+            Tn=Tn,              # normalized geometry matrix (T)
+            TTn=TTn,            # normalized tTT
+            Tyn=Tyn,            # normalized
+            R=R,                # Regularity operator
             precond=precond,
-            data_n=data_n,
+            data_n=data_n,      # normalized data
             sigma=sigma,
             indok=indok,
             # parameters
@@ -249,6 +249,8 @@ def compute_inversions(
             kwdargs=kwdargs,
             method=method,
             options=options,
+            dcon=dcon,
+            regul=regul,
             # output
             sol=sol,
             mu=mu,
@@ -532,9 +534,6 @@ def _compute_inv_loop(
             msg = f"\ttime step {ii+1} / {nt} "
             print(msg, end='', flush=True)
 
-        # update intermediates if multiple sigmas
-        # if sigma.shape[0] > 1 or m3d or indok is not None:
-
         # update terms
         Tni, TTni, Tyni, yni, nchani = _update_TTyn(
             sparse=sparse,
@@ -549,9 +548,6 @@ def _compute_inv_loop(
             m3d=m3d,
             regul=regul,
         )
-        # else:
-            # Tni, TTni, Tyni, yni = Tn, TTn, Tyn, data_n[ii, :]
-            # nchani = data_n.shape[-1]
 
         if dcon is not None:
             ic = 0 if ii == 0 or not dcon['hastime'] else ii
@@ -624,35 +620,39 @@ def _compute_inv_loop(
 
 
 def _compute_inv_loop_tomotok(
+    # inputs
     dalgo=None,
-    # func=None,
     sol0=None,
     mu0=None,
     matrix=None,
-    Tn=None,
-    TTn=None,
-    Tyn=None,
+    Tn=None,        # normalized geometry matrix (T)
+    TTn=None,       # normalized tTT
+    Tyn=None,       # normalized tTy
     R=None,
     precond=None,
     data_n=None,
     sigma=None,
     indok=None,
     # parameters
+    m3d=None,
     conv_crit=None,
     isotropic=None,
     sparse=None,
     positive=None,
     chain=None,
     verb=None,
+    kwdargs=None,
+    method=None,
+    options=None,
+    dcon=None,
+    regul=None,
+    # output
     sol=None,
     mu=None,
     chi2n=None,
     regularity=None,
     niter=None,
     spec=None,
-    kwdargs=None,
-    method=None,
-    options=None,
 ):
 
     # -----------------------------------
@@ -664,6 +664,10 @@ def _compute_inv_loop_tomotok(
         R = (R,)
     else:
         nbs = R.shape[0]
+
+    if dcon is not None:
+        msg = "constraints not handled by tomotok algorithms"
+        raise Exception(msg)
 
     if verb >= 2:
         form = "nchan * chi2n   +   mu *  R           "
@@ -694,12 +698,27 @@ def _compute_inv_loop_tomotok(
 
         Tyn[:] = Tn.T.dot(data_n[ii, :])
 
+        # update terms
+        Tni, TTni, Tyni, yni, nchani = _update_TTyn(
+            sparse=sparse,
+            data_n=data_n,
+            sigma=sigma,
+            matrix=matrix,
+            Tn=Tn,
+            TTn=TTn,
+            Tyn=Tyn,
+            indok=indok,
+            ii=ii,
+            m3d=m3d,
+            regul=regul,
+        )
+
         # solving
         (
             sol[ii, :], chi2n[ii], regularity[ii],
         ) = dalgo['func'](
-            sig_norm=data_n[ii, :],
-            gmat_norm=Tn,
+            sig_norm=yni,
+            gmat_norm=Tni,
             deriv=R,
             method=None,
             num=None,

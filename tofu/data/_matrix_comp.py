@@ -482,9 +482,9 @@ def compute_retrofit_data(
         }
 
         # add reft + t if new
-        if keyt not in coll.ddata.keys():
+        if hastime and keyt not in coll.ddata.keys():
             ddata[keyt] = {'data': t, 'ref': reft, 'dim': 'time'}
-        if reft not in coll.dref.keys():
+        if hastime and reft not in coll.dref.keys():
             dref = {reft: {'size': t.size}}
         else:
             dref = None
