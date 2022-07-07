@@ -187,6 +187,7 @@ def _plot_geometry_matrix_prepare(
         res = [res_coef*dR, res_coef*dZ]
 
     # crop
+    nchan, nbs = coll.dobj['matrix'][key]['shape'][-2:]
     crop = coll.dobj['matrix'][key]['crop']
 
     # --------
@@ -259,6 +260,12 @@ def _plot_geometry_matrix_prepare(
             )
             ic = (np.zeros((nbf,), dtype=int), ich_bf_tup)
 
+    assert nbs == nbf
+
+    hastime, hasref, reft, keyt, t, dind = coll.get_time(key=key)
+    if hastime:
+        nt = coll.dref[reft]['size']
+
     # -------------
     # mesh sampling
 
@@ -273,45 +280,36 @@ def _plot_geometry_matrix_prepare(
 
     # bsplinetot
     shapebs = coll.dobj['bsplines'][keybs]['shape']
-    coefs = np.zeros(tuple(np.r_[1, shapebs]), dtype=float)
 
-    if indt is None:
-        coefs[ic] = np.nansum(coll.ddata[key]['data'], axis=0)
-    else:
-        coefs[ic] = np.nansum(coll.ddata[key]['data'][indt, ...], axis=0)
-
-    bsplinetot = coll.interpolate_profile2d(
+    bsplinebase = coll.interpolate_profile2d(
         key=keybs,
         R=R,
         Z=Z,
-        coefs=coefs,
-        indt=indt,
         crop=crop,
         nan0=True,
-        details=False,
+        details=True,
         return_params=False,
-    )[0][0, ...]
+    )[0]
 
-    # bspline1
-    if indt is None:
-        coefs[ic] = coll.ddata[key]['data'][indchan, :]
+    # bsplinetot
+    coefstot = np.nansum(coll.ddata[key]['data'], axis=-2)
+    if hastime:
+        bsplinetot = np.nansum(
+            bsplinebase[0, ...] * coefstot[0, None, None, :],
+            axis=-1,
+        )
     else:
-        coefs[ic] = coll.ddata[key]['data'][indt, indchan, :]
+        bsplinetot = np.nansum(bsplinebase * coefstot[None, None, :], axis=-1)
 
-    bspline1 = coll.interpolate_profile2d(
-        key=keybs,
-        R=R,
-        Z=Z,
-        coefs=coefs,
-        indt=indt,
-        crop=crop,
-        nan0=True,
-        details=False,
-        return_params=False,
-    )[0][0, ...]
-
-
-    
+    # bsplinedet
+    if hastime:
+        bsplinedet = np.zeros(tuple(np.r_[bsplinebase.shape[1:-1]]))#, nchan]))
+        for ii in range(0):
+            bsplinedet[...] = bsplinebase[0, ...].dot(
+                coll.ddata[key]['data'][0, 0:1, :].T
+            )[..., 0]
+    else:
+        bsplinedet = bsplinebase.dot(coll.ddata[key]['data'][0:1, :].T)[..., 0]
 
     # --------
     # LOS
@@ -344,7 +342,7 @@ def _plot_geometry_matrix_prepare(
     refs = coll.ddata[key]['ref']
 
     return (
-        bsplinetot, bspline1, extent, interp,
+        bsplinetot, bsplinedet, extent, interp,
         ptslos, indlosok, indbf_bool, refs,
     )
 

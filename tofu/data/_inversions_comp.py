@@ -554,7 +554,7 @@ def _compute_inv_loop(
             # nchani = data_n.shape[-1]
 
         if dcon is not None:
-            ic = 0 if ii == 0 and not dcon['hastime'] else ii
+            ic = 0 if ii == 0 or not dcon['hastime'] else ii
             nbsi, indbsi, Tni, TTni, Tyni, yni, bi = _update_ttyn_constraints(
                 sparse=sparse,
                 Tni=Tni,
@@ -806,21 +806,21 @@ def _update_ttyn_constraints(
     regul=None,
 ):
 
+    # regul => Tyni, TTni
+    if regul:
+        raise NotImplementedError()
+
     # yni
     yni = yni - Tni.dot(dcon['offset'][ii, :])
 
     # Tni
     Tni = Tni.dot(dcon['coefs'][ii])
 
-    # regul => Tyni, TTni
-    if regul:
-        raise NotImplementedError()
+    # indbsi
+    indbsi = dcon['indbs'][ii]
 
     # nbsi
     nbsi = Tni.shape[1]
-
-    # indbsi
-    indbsi = dcon['indbs'][ii]
 
     # bounds
     if np.isscalar(bounds[0]):

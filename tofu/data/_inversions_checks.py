@@ -1062,6 +1062,7 @@ def _constraints_conflict_iout(
                 f"{lo.nonzero()[-1]}"
             )
             raise Exception(msg)
+        nt, nbs = ibs_offset.shape[1:]
 
     # aggregate coefs
     if len(lcoefs) > 0:
@@ -1078,6 +1079,11 @@ def _constraints_conflict_iout(
                 "Current version only manages strictly independent equations!"
             )
             raise NotImplementedError(msg)
+
+        if len(loffset) > 0:
+            assert (nt, nbs) == ibs_coefs.shape[1:], ibs_coefs.shape
+        else:
+            nt, nbs = ibs_coefs.shape[1:]
 
     # -----------------
     # check coefs vs offset
@@ -1103,16 +1109,18 @@ def _constraints_conflict_iout(
             # raise NotImplementedError(msg)
     elif len(loffset) > 0:
         iout_offset = np.any(ibs_offset, axis=0)
-        iconflict = np.zeros((iout_offset.shape[0],), dtype=bool)
+        iconflict = np.zeros((nt,), dtype=bool)
+    elif len(lcoefs) > 0:
+        iout_offset = np.zeros((nt, nbs), dtype=bool)
+        iconflict = np.zeros((nt,), dtype=bool)
     else:
-        iout_offset = np.zeros((ibs_offset.shape[1],), dtype=bool)
-        iconflict = np.zeros((iout_offset.shape[0],), dtype=bool)
+        msg = "No detected constraints => should have stopped earlier!"
+        raise Exception(msg)
 
     # ------------------
     # get really free equations
 
     # from here all equations are independent from offsets
-    nt, nbs = ibs_offset.shape[1:]
     iout_coefs = np.zeros((nt, nbs), dtype=bool)
     iin_coefs = ~iout_offset
 
@@ -1274,14 +1282,13 @@ def _update_constraints(
             iout = dcon[k0]['iout'][it]
             iin = dcon[k0]['iin'][it]
             ci = -dcon[k0]['coefs'][iin] / dcon[k0]['coefs'][iout]
-            oi = dcon[k0]['offset'][iin] / dcon[k0]['coefs'][iout]
+            oi = dcon[k0]['offset'][iout] / dcon[k0]['coefs'][iout]
             offset[it, iout] = oi
-            coefs[it][iout, indbs[it] == iin] = ci
+            ibsin = np.array([(indbs[it] == i0).nonzero()[0][0] for i0 in iin])
+            coefs[it][iout, ibsin] = ci
 
     for it in range(nt):
         coefs[it][tuple(indbs[it]), tuple(np.arange(indbs[it].size))] = 1.
-
-    # import pdb; pdb.set_trace()     # DB
 
     # -------------
     # format output
@@ -1290,8 +1297,6 @@ def _update_constraints(
         hastime = False
     else:
         hastime = True
-
-    import pdb; pdb.set_trace()     # DB
 
     dcon = {
         'hastime': hastime,
