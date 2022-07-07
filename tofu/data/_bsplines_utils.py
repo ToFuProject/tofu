@@ -153,7 +153,7 @@ def _get_knots_per_bs(
 
         elif deg == 3:
             if poloidal is True:
-                if size == nkpsb - 1:
+                if size == nkpbs - 1:
                     knots_per_bs[:, :] = np.array([
                         np.arange(0, size),
                         np.r_[np.arange(1, size), 0],
