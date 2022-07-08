@@ -952,23 +952,23 @@ def _mesh2Dpolar_bsplines(
     )
 
     keybsnr = f'{keybs}-nr'
-    keybsr = f'{keybs}-r'
     keybsn = f'{keybs}-nbs'
+    keybsapr = f'{keybs}-apr'
 
     # ------------
     # refs
 
     if clas.knotsa is None:
         ref = (keybsnr,)
-        apex = (keybsnr,)
+        apex = (keybsapr,)
     elif len(clas.shapebs) == 2:
         keybsna = f'{keybs}-na'
-        keybsa = f'{keybs}-a'
+        keybsapa = f'{keybs}-apa'
         ref = (keybsnr, keybsna)
-        apex = (keybsnr, keybsna)
+        apex = (keybsapr, keybsapa)
     else:
         ref = (keybsn,)
-        apex = (keybsn,)
+        apex = (keybsapr,)
 
         # check angle vs angle2d
         mesh = coll._which_mesh
@@ -996,7 +996,7 @@ def _mesh2Dpolar_bsplines(
 
     # ddata
     ddata = {
-        keybsr: {
+        keybsapr: {
             'data': clas.apex_per_bs_r,
             'units': '',
             'dim': '',
@@ -1006,7 +1006,7 @@ def _mesh2Dpolar_bsplines(
         },
     }
     if len(clas.shapebs) == 2:
-        ddata[keybsa] = {
+        ddata[keybsapa] = {
             'data': clas.apex_per_bs_a[0],
             'units': 'rad',
             'dim': 'angle',
@@ -1904,7 +1904,7 @@ def _interp2d_check(
             else:
                 indtu, indtr = None, None
         else:
-            reft, indt, indtu, indtr = None, None, None, None
+            indt, indtu, indtr = None, None, None
 
     elif key != keybs:
         # hastime, t, indit
@@ -1952,6 +1952,7 @@ def _interp2d_check(
         store, 'store',
         types=bool,
         default=False,
+        allowed=[False] if details else [True, False],
     )
 
     # -----------
@@ -2034,11 +2035,9 @@ def _interp2d_check(
 
             # simplify if not time-dependent
             if radius2d not in dind:
-                assert radius.shape[0] == 1
-                radius = radius[0, ...]
+                assert radius.ndim == R.ndim
                 if angle2d is not None:
-                    assert angle.shape[0] == 1
-                    angle = angle[0, ...]
+                    assert angle.ndim == R.ndim
 
             # check consistency
             if rad2d_hastime != (radius.ndim == R.ndim + 1):
@@ -2185,7 +2184,7 @@ def _interp2d_check(
         radius, angle,
         coefs,
         hastime,
-        reft,
+        reft, keyt,
         shapebs,
         radius_vs_time,
         indbs, indbs_tf,
@@ -2239,7 +2238,7 @@ def interp2d(
         radius, angle,
         coefs,
         hastime,
-        reft,
+        reft, keyt,
         shapebs,
         radius_vs_time,
         indbs, indbs_tf,
@@ -2298,6 +2297,15 @@ def interp2d(
     cropbs = coll.dobj['bsplines'][keybs]['crop']
     if cropbs not in [None, False]:
         cropbs = coll.ddata[cropbs]['data']
+        nbs = cropbs.sum()
+    else:
+        nbs = np.prod(coll.dobj['bsplines'][keybs]['shape'])
+
+    if indbs_tf is not None:
+        if isinstance(indbs_tf, tuple):
+            nbs = indbs_tf[0].size
+        else:
+            nbs = indbs_tf.size
 
     # -----------
     # Interpolate
@@ -2325,6 +2333,8 @@ def interp2d(
                 val0[indtr[ii], ...] = val[ii, ...]
             val = val0
 
+        shape_pts = R.shape
+
     elif meshtype == 'polar':
 
         val = coll.dobj['bsplines'][keybs][fname](
@@ -2336,11 +2346,30 @@ def interp2d(
             nan_out=nan_out,
         )
 
+        shape_pts = radius.shape
+
     # ---------------
     # post-treatment
 
     if nan0 is True:
         val[val == 0] = np.nan
+
+    if not hastime and not radius_vs_time:
+        c0 = (
+            (
+                details is False
+                and val.shape == tuple(np.r_[1, shape_pts])
+            )
+            or (
+                details is True
+                and val.shape == tuple(np.r_[shape_pts, nbs])
+            )
+        )
+        if not c0:
+            import pdb; pdb.set_trace()     # DB
+            pass
+        if details is False:
+            val = val[0, ...]
 
     # ------
     # store
@@ -2378,8 +2407,8 @@ def interp2d(
         )
 
         # ref
-        if hastime:
-            if reft is False or indt is not None:
+        if hastime or radius_vs_time:
+            if reft in [None, False] or indt is not None:
                 reft = f'{key}-nt'
                 coll2.add_ref(key=reft, size=t.size)
                 coll2.add_data(
@@ -2390,13 +2419,14 @@ def interp2d(
                     units='s',
                 )
             else:
-                coll2.add_ref(key=reft, size=coll.dref[reft]['size'])
-                kt = coll.get_time(key=key)[3]
-                coll2.add_data(
-                    key=kt,
-                    data=coll.ddata[kt]['data'],
-                    dim='time',
-                )
+                if reft not in coll2.dref.keys():
+                    coll2.add_ref(key=reft, size=coll.dref[reft]['size'])
+                if keyt is not None and keyt not in coll2.ddata.keys():
+                    coll2.add_data(
+                        key=keyt,
+                        data=coll.ddata[keyt]['data'],
+                        dim='time',
+                    )
 
             ref = (reft, knR, knZ)
         else:

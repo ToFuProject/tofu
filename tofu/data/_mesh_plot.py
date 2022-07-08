@@ -300,6 +300,7 @@ def _plot_mesh_prepare_polar_cont(
         if refr2d == refbs:
             reft = None
             nt = 1
+            rr = rr[None, ...]
         elif len(refr2d) == len(refbs) + 1 and refr2d[1:] == refbs:
             reft = refr2d[0]
             nt = coll.dref[reft]['size']
@@ -1258,10 +1259,13 @@ def _plot_profile2d_polar_add_radial(
     dax=None,
 ):
 
+    # key to radius
+    kr2d = coll.dobj[coll._which_mesh][keym]['radius2d']
     kr = coll.dobj[coll._which_mesh][keym]['knots'][0]
     rr = coll.ddata[kr]['data']
     rad = np.linspace(rr[0], rr[-1], rr.size*20)
 
+    # get angle if any
     clas = coll.dobj['bsplines'][keybs]['class']
     if clas.knotsa is None:
         angle = None
@@ -1274,18 +1278,29 @@ def _plot_profile2d_polar_add_radial(
     else:
         pass
 
+    if angle is None:
+        radmap = rad
+        anglemap = angle
+    else:
+        radmap = np.repeat(rad[:, None], angle.size, axis=1)
+        anglemap = np.repeat(angle[None, :], rad.size, axis=0)
+
+    # reft
+    reft, keyt = coll.get_time_common(keys=[key, kr2d])[1:3]
+
     # radial total profile
     radial, t_radial = coll.interpolate_profile2d(
         key=key,
-        radius=rad,
-        angle=angle,
-        grid=True,
+        radius=radmap,
+        angle=anglemap,
+        grid=False,
+        t=keyt,
     )
 
-    # reft
-    reft = coll.get_time(key=key)[2]
+    if reft is not None and radial.ndim == radmap.ndim:
+        radial = np.repeat(radial[None, ...], t_radial.size, axis=0)
 
-    # details for puerly-radial cases
+    # details for purely-radial cases
     if clas.knotsa is None:
         radial_details, t_radial = coll.interpolate_profile2d(
             key=keybs,
@@ -1312,31 +1327,39 @@ def _plot_profile2d_polar_add_radial(
 
     if reft is not None:
         assert radial.ndim > 1 and radial.shape[0] > 1
-        if angle is not None:
-            ref = (reft, 'nangle', 'nradius')
-        else:
-            ref = (reft, 'nradius')
+        # if angle is not None:
+            # ref = (reft, 'nangle', 'nradius')
+        # else:
+        ref = (reft, 'nradius')
     else:
-        if angle is not None:
-            ref = ('nangle', 'nradius')
-        else:
-            ref = 'nradius'
+        # if angle is not None:
+            # ref = ('nangle', 'nradius')
+        # else:
+        ref = 'nradius'
 
+    # add to ddata
     kradius = 'radius'
-    dax.add_data(key=kradius, data=rad)
+    dax.add_data(key=kradius, data=rad, ref='nradius')
     if angle is None:
         lk = ['radial']
         dax.add_data(key=lk[0], data=radial, ref=ref)
         lkdet = [f'radial-detail-{ii}' for ii in range(nbs)]
         for ii in range(nbs):
             dax.add_data(
-                key=lkdet[ii], data=radial_details[:, :, ii], ref=refdet,
+                key=lkdet[ii], data=radial_details[..., ii], ref=refdet,
             )
+
     else:
+        kangle = 'angle'
+        dax.add_data(key=kangle, data=angle, ref='nangle')
         lkdet = None
         lk = [f'radial-{ii}' for ii in range(angle.size)]
-        for ii in range(na):
-            dax.add_data(key=lk[ii], data=radial[:, ii, :], ref=ref)
+        if reft is None:
+            for ii in range(angle.size):
+                dax.add_data(key=lk[ii], data=radial[:, ii], ref=ref)
+        else:
+            for ii in range(angle.size):
+                dax.add_data(key=lk[ii], data=radial[:, :, ii], ref=ref)
 
     return kradius, lk, lkdet, reft
 
@@ -1450,7 +1473,9 @@ def plot_profile2d(
             dax=dax,
         )
 
-        if reft not in dgroup['Z']['ref']:
+
+        assert (reft is not None) == ('Z' in dgroup.keys())
+        if reft is not None and reft not in dgroup['Z']['ref']:
             dgroup['Z']['ref'].append(reft)
             dgroup['Z']['data'].append('index')
 
@@ -1460,46 +1485,63 @@ def plot_profile2d(
         kax = 'radial'
         if dax.dax.get(kax) is not None:
             ax = dax.dax[kax]['handle']
-
             for ii in range(len(lkradial)):
-                l0, = ax.plot(
-                    dax.ddata[kradius]['data'],
-                    dax.ddata[lkradial[ii]]['data'][0, :],
-                    c=lcol[ii],
-                    ls='-',
-                    lw=2,
-                )
 
-                kl = f"radial{ii}"
-                dax.add_mobile(
-                    key=kl,
-                    handle=l0,
-                    refs=(reft,),
-                    data=[lkradial[ii]],
-                    dtype=['ydata'],
-                    axes=kax,
-                    ind=0,
-                )
-
-            if lkdet is not None:
-                for ii in range(len(lkdet)):
+                if reft is None:
                     l0, = ax.plot(
                         dax.ddata[kradius]['data'],
-                        dax.ddata[lkdet[ii]]['data'][0, :],
+                        dax.ddata[lkradial[ii]]['data'],
+                        c=lcol[ii],
                         ls='-',
-                        lw=1,
+                        lw=2,
+                    )
+                else:
+                    l0, = ax.plot(
+                        dax.ddata[kradius]['data'],
+                        dax.ddata[lkradial[ii]]['data'][0, :],
+                        c=lcol[ii],
+                        ls='-',
+                        lw=2,
                     )
 
-                    kl = f"radial_det{ii}"
+                    kl = f"radial{ii}"
                     dax.add_mobile(
                         key=kl,
                         handle=l0,
                         refs=(reft,),
-                        data=[lkdet[ii]],
+                        data=[lkradial[ii]],
                         dtype=['ydata'],
                         axes=kax,
                         ind=0,
                     )
+
+            if lkdet is not None:
+                for ii in range(len(lkdet)):
+                    if reft is None:
+                        l0, = ax.plot(
+                            dax.ddata[kradius]['data'],
+                            dax.ddata[lkdet[ii]]['data'],
+                            ls='-',
+                            lw=1,
+                        )
+                    else:
+                        l0, = ax.plot(
+                            dax.ddata[kradius]['data'],
+                            dax.ddata[lkdet[ii]]['data'][0, :],
+                            ls='-',
+                            lw=1,
+                        )
+
+                        kl = f"radial_det{ii}"
+                        dax.add_mobile(
+                            key=kl,
+                            handle=l0,
+                            refs=(reft,),
+                            data=[lkdet[ii]],
+                            dtype=['ydata'],
+                            axes=kax,
+                            ind=0,
+                        )
 
             ax.set_xlim(
                 dax.ddata[kradius]['data'].min(),

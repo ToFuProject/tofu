@@ -552,7 +552,7 @@ class Test02_Plasma2D():
             )
     """
 
-    def test07_interpolate_sum(self):
+    def test07_interpolate_profile2d_sum(self):
         x = np.linspace(2.2, 2.8, 5)
         y = np.linspace(-0.5, 0.5, 5)
         x = np.tile(x, (y.size, 1))
@@ -625,7 +625,7 @@ class Test02_Plasma2D():
             )
             raise Exception(msg)
 
-    def test08_interpolate_details_vs_sum(self):
+    def test08_interpolate_profile2d_details_vs_sum(self):
 
         x = np.linspace(2.2, 2.8, 5)
         y = np.linspace(-0.5, 0.5, 5)
@@ -688,32 +688,24 @@ class Test02_Plasma2D():
             if mtype == 'polar':
                 # radius2d can be time-dependent => additional dimension
                 vshap_sum = val_sum.shape[-len(x.shape):]
-                vshap_sum0 = x.shape
             else:
                 vshap_sum = val_sum.shape
-                vshap_sum0 = tuple(np.r_[1, x.shape])
-            assert vshap_sum == vshap_sum0, val_sum.shape
-            assert (val.ndim == x.ndim + 2) == (val_sum.shape[0] > 1), [val.shape, val_sum.shape]
+            assert vshap_sum == x.shape, val_sum.shape
+            assert (val.ndim == x.ndim + 2) == (val_sum.ndim == x.ndim + 1), [val.shape, val_sum.shape]
 
-            indok = np.isfinite(val_sum[0, ...]) & (val_sum[0, ...] != 0)
+            indok = np.isfinite(val_sum)
+            indok[indok] = val_sum[indok] != 0
 
             # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             # Does not work for rect mesh
             # because of knots padding used in func_details
             # Due to scpinterp._bspl.evaluate_spline()...
             if mtype in ['tri', 'polar']:   # To be debugged
-                if val.ndim == x.ndim + 2:
-                    assert np.allclose(
-                        val_sum[:, indok],
-                        np.nansum(val, axis=-1)[:, indok],
-                        equal_nan=True,
-                    )
-                else:
-                    assert np.allclose(
-                        val_sum[0, indok],
-                        np.nansum(val, axis=-1)[indok],
-                        equal_nan=True,
-                    )
+                assert np.allclose(
+                    val_sum[indok],
+                    np.nansum(val, axis=-1)[indok],
+                    equal_nan=True,
+                )
             # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     def test09_plot_mesh(self):
@@ -766,47 +758,20 @@ class Test02_Plasma2D():
             )
             plt.close('all')
 
-    # def test11_plot_profile2d(self):
+    def test11_plot_profile2d(self):
 
-        # # rectangular meshes
-        # lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
-        # for ii, (k0, v0) in enumerate(self.dobj.items()):
-            # key = str(ii)
-            # kbs = lkey[ii]
-            # ref = self.dobj[k0].dobj['bsplines'][kbs]['ref']
-            # shapebs = self.dobj[k0].dobj['bsplines'][kbs]['shape']
+        # plotting
+        for k0 in self.lbs:
 
-            # self.dobj[k0].add_data(
-                # key=key,
-                # data=np.random.random(shapebs),
-                # ref=ref,
-            # )
+            # fix
+            k1 = _add_data_fix(self.obj, k0)
+            dax = self.obj.plot_profile2d(key=k1, res=0.05)
 
-            # dax = self.dobj[k0].plot_profile2d(
-                # key=key,
-            # )
-        # plt.close('all')
+            # time-variable
+            k1 = _add_data_var(self.obj, k0)
+            dax = self.obj.plot_profile2d(key=k1, res=0.05)
 
-        # # triangular meshes
-        # # DEACTIVATED BECAUSE TOO SLOW IN CURRENT VERSION !!!
-        # if False:
-            # lkey = ['tri0-bs0', 'tri1-bs1']
-            # for ii, (k0, v0) in enumerate(self.dobjtri.items()):
-                # key = str(ii)
-                # kbs = lkey[ii]
-                # ref = self.dobjtri[k0].dobj['bsplines'][kbs]['ref']
-                # shapebs = self.dobjtri[k0].dobj['bsplines'][kbs]['shape']
-
-                # self.dobjtri[k0].add_data(
-                    # key=key,
-                    # data=np.random.random(shapebs),
-                    # ref=ref,
-                # )
-
-                # dax = self.dobjtri[k0].plot_profile2d(
-                    # key=key,
-                # )
-            # plt.close('all')
+            plt.close('all')
 
     def test12_add_bsplines_operator(self):
         lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2']

@@ -413,10 +413,12 @@ class BivariateSplinePolar():
                         else:
                             vala = self.lba[ii][jj](angle[iok])
 
-                        iokj = ~np.isnan(vala)
+                        iokj = np.isfinite(vala)
                         if np.any(iokj):
                             iok2 = np.copy(iok)
                             iok2[iok2] = iokj
+                        else:
+                            continue
 
                         if len(self.shapebs) == 1:
                             ind = self.func_coef_ind(ii, jj)
@@ -426,7 +428,7 @@ class BivariateSplinePolar():
                             )
                         else:
                             val[:, iok2] += (
-                                coefs[:, ii, jj]
+                                coefs[:, ii, jj][:, None]
                                 * (valr[iokj]*vala[iokj])[None, ...]
                             )
 
