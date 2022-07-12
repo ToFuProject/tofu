@@ -808,20 +808,24 @@ class CrystalBragg(utils.ToFuObject):
         lamb=None,
         use_non_parallelism=None, nn=None,
         alpha_limits=None,
-        therm_exp=None, plot_therm_exp=None,
+        therm_exp=None,
+        temp_limits=None,
+        plot_therm_exp=None,
         plot_asf=None, plot_power_ratio=None,
         plot_asymmetry=None, plot_cmaps=None,
-        verb=None, returnas=None,
+        returnas=None,
     ):
         return _rockingcurve.compute_rockingcurve(
             crystal=crystal, din=din,
             lamb=lamb,
             use_non_parallelism=use_non_parallelism, nn=nn,
             alpha_limits=alpha_limits,
-            therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
+            therm_exp=therm_exp,
+            temp_limits=temp_limits,
+            plot_therm_exp=plot_therm_exp,
             plot_asf=plot_asf, plot_power_ratio=plot_power_ratio,
             plot_asymmetry=plot_asymmetry, plot_cmaps=plot_cmaps,
-            verb=None, returnas=None,
+            returnas=None,
         )
 
     def plot_var_temp_changes_wavelengths(
@@ -1955,6 +1959,7 @@ class CrystalBragg(utils.ToFuObject):
         therm_exp=None,
         alpha_limits=None, na=None,
         alpha0=None, temp0=None,
+        temp_limits=None,
         # Plot
         plot_rcs=None,
         strict=None,
@@ -2029,6 +2034,8 @@ class CrystalBragg(utils.ToFuObject):
             rocking = False
         if alpha_limits is None:
             alpha_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
+        if temp_limits is None:
+            temp_limits = np.r_[-10, 10, 25]
         if na is None:
             na = 41
         nn = (na/2.)
@@ -2061,7 +2068,9 @@ class CrystalBragg(utils.ToFuObject):
             crystal=crystal, din=din,
             lamb=self.dbragg['lambref']*1e10,
             na=na, nn=nn,
-            therm_exp=therm_exp, plot_therm_exp=False,
+            therm_exp=therm_exp,
+            temp_limits=temp_limits,
+            plot_therm_exp=False,
         )
 
         def find_nearest(array, value):
@@ -2166,11 +2175,12 @@ class CrystalBragg(utils.ToFuObject):
                     lamb=lamb[ll]*1e10,
                     use_non_parallelism=use_non_parallelism,
                     therm_exp=therm_exp,
+                    temp_limits=temp_limits,
                     plot_therm_exp=plot_rcs,
                     alpha_limits=alpha_limits, nn=None,
                     plot_asf=False, plot_power_ratio=plot_rcs,
                     plot_asymmetry=False, plot_cmaps=False,
-                    verb=False, returnas=dict,
+                    returnas=dict,
                 )
                 TD = np.zeros((na,), dtype=float)
                 if therm_exp:

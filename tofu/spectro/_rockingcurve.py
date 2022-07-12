@@ -34,12 +34,13 @@ def compute_rockingcurve(
     use_non_parallelism=None, nn=None,
     alpha_limits=None,
     therm_exp=None,
+    temp_limits=None,
     # Plot
     plot_therm_exp=None,
     plot_asf=None, plot_power_ratio=None,
     plot_asymmetry=None, plot_cmaps=None,
     # Returning dictionnary
-    verb=None, returnas=None,
+    returnas=None,
 ):
     """ The code evaluates, for a given wavelength and Miller indices set,
     the inter-plane distance d, the Bragg angle of reference and the complex
@@ -83,9 +84,11 @@ def compute_rockingcurve(
     Parameters:
     -----------
     crystal:    str
-        Crystal definition to use, among 'aQz' and soon 'Ge'
+        Crystal definition to use, among '110-Quartz', '102-Quartz'
+        and soon 'Ge'
     din:    str
-        Crystal definition dictionary to use, among 'aQz' and soon 'Ge'
+        Crystal definition dictionary to use, among '110-Quartz', '102-Quartz'
+        and soon 'Ge'
     lamb:    float
         Wavelength of interest, in Angstroms (1e-10 m)
     use_non_parallelism:    str
@@ -99,6 +102,9 @@ def compute_rockingcurve(
     therm_exp:    str
         Compute relative changes of the crystal inter-planar distance by
         thermal expansion
+    temp_limits:    array
+        Limits of temperature variation around an average value
+        Ex: np.r_[-10, 10, 25] for between 15 and 35°C
     plot_therm_exp:    str
         Plot the variation of the crystal inter-planar distance with respect to
         the temperature variation
@@ -114,8 +120,6 @@ def compute_rockingcurve(
         Build colormaps of the main properties of the rocking curves wanted
         (integrated and maxmimum values, FWMD and shift from reference curve)
         with respect to the asymmetry angle alpha and the temperature changes
-    verb:    str
-        True or False to print the content of the results dictionnary 'dout'
     returnas:    str
         Entry 'dict' to allow optionnal returning of 'dout' dictionnary
     """
@@ -124,17 +128,23 @@ def compute_rockingcurve(
     # ------------
     if crystal is None:
         msg = (
-            "You must choose a type of crystal to use among :\n"
-            + "\t - aQz: alpha-Quartz ({})\n".format('aQz')
-            + "\t - Ge: Germanium ({})\n".format('Ge')
+            "You must choose a type of crystal from "
+            +"tofu/spectro/_rockingcurve_def.py to use among :\n"
+            + "\t - 110-Quartz:\n"
+            + "\t\t - target: ArXVII"
+            + "\t\t - Miller indices (h,k,l): (1,1,0)"
+            + "\t\t - Material: Quartz\n"
+            + "\t - 102-Quartz:\n"
+            + "\t\t - target: ArXVIII"
+            + "\t\t - Miller indices (h,k,l): (1,0,2)"
+            + "\t\t - Material: Quartz\n"
         )
         raise Exception(msg)
-    elif crystal == 'aQz':
-        din = _rockingcurve_def._DCRYST['alpha-Quartz']
-    """
-    elif crystal == 'Ge':
-        din = _rockingcurve_def._DCRYST['Germanium']
-    """
+    elif crystal == '110-Quartz':
+        din = _rockingcurve_def._DCRYST['110-Quartz']
+    elif crystal == '102-Quartz':
+        din = _rockingcurve_def._DCRYST['102-Quartz']
+
     if therm_exp is None:
         therm_exp = False
     if plot_therm_exp is None and therm_exp is not False:
@@ -143,6 +153,8 @@ def compute_rockingcurve(
         use_non_parallelism = False
     if alpha_limits is None:
         alpha_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
+    if temp_limits is None:
+        temp_limits = np.r_[-10, 10, 25]
     if nn is None:
         nn = 20
     na = 2*nn + 1
@@ -155,10 +167,8 @@ def compute_rockingcurve(
     lc = [therm_exp, use_non_parallelism]
     if plot_cmaps is None and all(lc) is True:
         plot_cmaps = True
-    if verb is None:
-        verb = True
     if returnas is None:
-        returnas = None
+        returnas = dict
 
     ih, ik, il, lamb = CrystBragg_check_inputs_rockingcurve(
         ih=din['Miller indices'][0],
@@ -167,28 +177,39 @@ def compute_rockingcurve(
         lamb=lamb,
     )
 
-    # Classical electronical radius, in Angstroms,
-    # from the NIST Reference on Constants, Units and Uncertainty,
-    # CODATA 2018 recommended values
+    # Classical electronical radius, in Angstroms, from the NIST Reference on
+    # Constants, Units and Uncertainty, CODATA 2018 recommended values
     re = 2.817940e-5
 
     # Computation of the unit cell volume, inter-planar distance,
     # sin(theta)/lambda parameter and Bragg angle associated to the wavelength
-    (
-        T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
-    ) = CrystBragg_comp_lattice_spacing(
+    # exits: T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg
+    dout = CrystBragg_comp_lattice_spacing(
         crystal=crystal, din=din,
         lamb=lamb, na=na, nn=nn,
-        therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
+        therm_exp=therm_exp,
+        temp_limits=temp_limits,
+        plot_therm_exp=plot_therm_exp,
     )
+    T0 = dout['Temperature of reference (°C)']
+    TD = dout['Temperature variations (°C)']
+    Volume = dout['Volume (m-3)']
+    d_atom = dout['Inter-reticular spacing (A)']
+    sol = dout['Sinus over lambda']
+    theta = dout['theta_Bragg (rad)']
+    theta_deg = dout['theta_Bragg (degree)']
 
     # Check validity of asymmetry angle alpha limits in arguments
     alpha, bb = CrystBragg_check_alpha_angle(
-        theta=theta, alpha_limits=alpha_limits, na=na, nn=nn,
-        use_non_parallelism=use_non_parallelism, therm_exp=therm_exp,
+        theta=theta,
+        alpha_limits=alpha_limits, na=na, nn=nn,
+        use_non_parallelism=use_non_parallelism,
+        therm_exp=therm_exp,
     )
 
-    if crystal == 'aQz':
+    l0 = ['110-Quartz', '102-Quartz']
+    cond0 = any([crystal == l00 for l00 in l0])
+    if cond0:
 
         # Calculation of the structure factor
         # -----------------------------------
@@ -342,7 +363,7 @@ def compute_rockingcurve(
 
     if plot_power_ratio:
         CrystalBragg_plot_power_ratio_vs_glancing_angle(
-            ih=ih, ik=ik, il=il, lamb=lamb,
+            din=din, lamb=lamb,
             alpha_limits=alpha_limits,
             theta=theta, theta_deg=theta_deg,
             th=th, dth=dth, power_ratio=power_ratio,
@@ -356,7 +377,7 @@ def compute_rockingcurve(
 
     if plot_asymmetry:
         CrystalBragg_plot_rc_components_vs_asymmetry(
-            ih=ih, ik=ik, il=il, lamb=lamb,
+            din=din, lamb=lamb,
             theta=theta, theta_deg=theta_deg,
             alpha=alpha, bb=bb, th=th, rhg=rhg,
             rhg_perp_norm=rhg_perp_norm,
@@ -372,7 +393,7 @@ def compute_rockingcurve(
 
     if plot_cmaps:
         CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
-            ih=ih, ik=ik, il=il, lamb=lamb, theta=theta,
+            din=din, lamb=lamb, theta=theta,
             therm_exp=therm_exp, T0=T0, TD=TD, na=na, nn=nn,
             alpha=alpha, power_ratio=power_ratio,
             th=th, dth=dth,
@@ -394,73 +415,30 @@ def compute_rockingcurve(
         det_perp = det_perp[0, 0]
 
     dout = {
-        'Wavelength (A)\n': lamb,
-        'Miller indices\n': (ih, ik, il),
-        'Inter-reticular distance (A)\n': d_atom,
-        'Volume of the unit cell (A^3)\n': Volume,
-        'Bragg angle of reference (rad)\n': theta,
+        'Wavelength (A)': lamb,
+        'Miller indices': (ih, ik, il),
+        'Inter-reticular distance (A)': d_atom,
+        'Volume of the unit cell (A^3)': Volume,
+        'Bragg angle of reference (rad)': theta,
         'Glancing angles': dth,
         'Power ratio': power_ratio,
-        'Integrated reflectivity\n': {
+        'Integrated reflectivity': {
             'perfect model': P_per,
             'mosaic model': P_mos,
             'dynamical model': P_dyn,
         },
-        'P_{dyn,para}/P_{dyn,perp} (integrated values)\n': rhg_para/rhg_perp,
-        'Maximum reflectivity (perp. compo)\n': max_pr[0],
-        'Maximum reflectivity (para. compo)\n': max_pr[1],
-        'RC width (perp. compo)\n': det_perp,
-        'RC width (para. compo)\n': det_para,
+        'P_{dyn,para}/P_{dyn,perp} (integrated values)': rhg_para/rhg_perp,
+        'Maximum reflectivity (perp. compo)': max_pr[0],
+        'Maximum reflectivity (para. compo)': max_pr[1],
+        'RC width (perp. compo)': det_perp,
+        'RC width (para. compo)': det_para,
     }
     if use_non_parallelism:
-        dout['Non-parallelism angles (deg)\n'] = alpha*(180/np.pi)
-        dout['Shift from RC of reference (perp. compo)\n'] = shift_perp
-        dout['Shift from RC of reference (para. compo)\n'] = shift_para
+        dout['Non-parallelism angles (deg)'] = alpha*(180/np.pi)
+        dout['Shift from RC of reference (perp. compo)'] = shift_perp
+        dout['Shift from RC of reference (para. compo)'] = shift_para
     if therm_exp:
-        dout['Temperature changes (°C)\n'] = TD
-
-    if verb is True:
-        dout['Inter-reticular distance (A)\n'] = np.round(d_atom, decimals=3)
-        dout['Volume of the unit cell (A^3)\n'] = np.round(Volume, decimals=3)
-        dout['Bragg angle of reference (rad, deg)\n'] = (
-            np.round(theta, decimals=3), np.round(theta_deg, decimals=3),
-        )
-        dout['Ratio imag & real part of structure factor\n'] = (
-            np.round(kk, decimals=3,)
-        )
-        dout['Integrated reflectivity\n']['perfect model'] = (
-            np.round(P_per, decimals=9),
-        )
-        dout['Integrated reflectivity\n']['mosaic model'] = (
-            np.round(P_mos, decimals=9),
-        )
-        dout['Integrated reflectivity\n']['dynamical model'] = (
-            np.round(P_dyn, decimals=9),
-        )
-        dout['P_{dyn,para}/P_{dyn,perp} (integrated values)\n'] = np.round(
-            rhg_para/rhg_perp, decimals=9,
-        )
-        dout['Maximum reflectivity (perp. compo)\n'] = np.round(
-            max_pr[0], decimals=3,
-        )
-        dout['Maximum reflectivity (para. compo)\n'] = np.round(
-            max_pr[1], decimals=3,
-        )
-        dout['RC width (perp. compo)\n'] = np.round(det_perp, decimals=8)
-        dout['RC width (para. compo)\n'] = np.round(det_para, decimals=8)
-        if use_non_parallelism:
-            dout['Shift from RC of reference (perp. compo)\n'] = np.round(
-                shift_perp, decimals=8,
-            )
-            dout['Shift from RC of reference (para. compo)\n'] = np.round(
-                shift_para, decimals=8,
-            )
-        lstr = [f'\t -{k0}: {V0}' for k0, V0 in dout.items()]
-        msg = (
-            " The following data was calculated:\n"
-            + "\n".join(lstr)
-        )
-        print(msg)
+        dout['Temperature changes (°C)'] = TD
 
     if returnas is dict:
         return dout
@@ -866,6 +844,7 @@ def CrystBragg_comp_lattice_spacing(
     # Plot
     na=None, nn=None,
     therm_exp=None,
+    temp_limits=None,
     plot_therm_exp=None,
 ):
     """
@@ -888,9 +867,11 @@ def CrystBragg_comp_lattice_spacing(
     Parameters:
     -----------
     crystal:    str
-        Crystal definition to use, among 'aQz' and soon 'Ge'
+        Crystal definition to use, among '110-Quartz', '102-Quartz'
+        and soon 'Ge'
     din:    str
-        Crystal definition dictionary to use, among 'aQz' and soon 'Ge'
+        Crystal definition dictionary to use, among '110-Quartz', '102-Quartz'
+        and soon 'Ge'
     ih, ik, il:    int
         Miller indices of crystal used, by default to (1,1,0)
     lamb:    float
@@ -923,24 +904,26 @@ def CrystBragg_comp_lattice_spacing(
 
     # Prepare
     # -------
+    l0 = ['110-Quartz', '102-Quartz']
+    cond0 = any([crystal == l00 for l00 in l0])
 
     # Inter-atomic distances and thermal expansion coefficients
-    if crystal == 'aQz':
+    if cond0:
         a0 = din['Inter-atomic distances']['a0']
         c0 = din['Inter-atomic distances']['c0']
         alpha_a = din['Thermal expansion coefs']['alpha_a']
         alpha_c = din['Thermal expansion coefs']['alpha_c']
 
     # Temperature changes
-    T0 = 25  # Reference temperature in °C
+    T0 = temp_limits[2]  # Reference temperature in °C
     if therm_exp:
-        TD = np.linspace(-10, 10, na)
+        TD = np.linspace(temp_limits[0], temp_limits[1], na)
     else:
         TD = np.r_[0.]
 
     # Results arrays
     d_atom = np.full((TD.size), np.nan)
-    if crystal == 'aQz':
+    if cond0:
         a1, c1 = d_atom.copy(), d_atom.copy()
     Volume, sol = d_atom.copy(), d_atom.copy()
     sin_theta, theta, theta_deg = d_atom.copy(), d_atom.copy(), d_atom.copy()
@@ -949,7 +932,7 @@ def CrystBragg_comp_lattice_spacing(
     # -------
 
     for i in range(TD.size):
-        if crystal == 'aQz':
+        if cond0:
             a1[i] = a0*(1 + alpha_a*TD[i])
             c1[i] = c0*(1 + alpha_c*TD[i])
             Volume[i] = _rockingcurve_def.hexa_volume(a=a1[i], c=c1[i])
@@ -981,11 +964,24 @@ def CrystBragg_comp_lattice_spacing(
 
     if plot_therm_exp:
         CrystalBragg_plot_thermal_expansion_vs_d(
-            ih=ih, ik=ik, il=il, lamb=lamb, theta=theta, theta_deg=theta_deg,
+            din=din, lamb=lamb, theta=theta, theta_deg=theta_deg,
             T0=T0, TD=TD, d_atom=d_atom, nn=nn,
         )
 
-    return T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg
+    dout = {
+        'Temperature of reference (°C)': T0,
+        'Temperature variations (°C)': TD,
+        'Inter-atomic distance a1 (A)': a1,
+        'Inter-atomic distance c1 (A)': c1,
+        'Volume (m-3)': Volume,
+        'Inter-reticular spacing (A)': d_atom,
+        'Sinus over lambda': sol,
+        'sinus theta_Bragg': sin_theta,
+        'theta_Bragg (rad)': theta,
+        'theta_Bragg (degree)': theta_deg,
+    }
+
+    return dout
 
 
 def CrystBragg_comp_integrated_reflect(
@@ -1214,19 +1210,26 @@ def CrystBragg_comp_integrated_reflect(
 
 
 def CrystalBragg_plot_thermal_expansion_vs_d(
-    ih=None, ik=None, il=None, lamb=None, theta=None, theta_deg=None,
+    din=None, lamb=None, theta=None, theta_deg=None,
     T0=None, TD=None, d_atom=None, nn=None,
 ):
 
     fig = plt.figure(figsize=(9, 6))
     gs = gridspec.GridSpec(1, 1)
     ax = fig.add_subplot(gs[0, 0])
+    name = din['name']
+    miller = np.r_[
+        int(din['Miller indices'][0]),
+        int(din['Miller indices'][1]),
+        int(din['Miller indices'][2]),
+    ]
     ax.set_title(
-        'Hexagonal Qz, ' + f'({ih},{ik},{il})' + fr', $\lambda$={lamb} $\AA$' +
+        f'{name}' + f', ({miller[0]},{miller[1]},{miller[2]})' +
+        fr', $\lambda$={lamb} $\AA$' +
         r', $\theta_{B}$=' + fr'{np.round(theta[nn], 5)} rad',
         fontsize=15,
     )
-    ax.set_xlabel(r'$\Delta$T ($T_{0}$=25°C)', fontsize=15)
+    ax.set_xlabel(r'$\Delta$T ($T_{0}$'+fr'={T0}°C)', fontsize=15)
     ax.set_ylabel(r'Inter-planar distance $d_{hkl}$ [m$\AA$]', fontsize=15)
     ax.scatter(
         TD, d_atom*(1e3),
@@ -1277,7 +1280,7 @@ def CrystalBragg_plot_atomic_scattering_factor(
 
 def CrystalBragg_plot_power_ratio_vs_glancing_angle(
     # Lattice parameters
-    ih=None, ik=None, il=None, lamb=None,
+    din=None, lamb=None,
     # Lattice modifications
     alpha_limits=None,
     theta=None, theta_deg=None,
@@ -1328,6 +1331,13 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         let2 = {'I': dd2[0]}
         col2 = {'black': dd2[0]}
 
+    name = din['name']
+    miller = np.r_[
+        int(din['Miller indices'][0]),
+        int(din['Miller indices'][1]),
+        int(din['Miller indices'][2]),
+    ]
+
     lc = [
         use_non_parallelism is False and therm_exp is False,
         use_non_parallelism is False and therm_exp is True,
@@ -1338,7 +1348,7 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         gs = gridspec.GridSpec(1, 1)
         ax = fig1.add_subplot(gs[0, 0])
         ax.set_title(
-            'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
+            f'{name}, ' + f'({miller[0]},{miller[1]},{miller[2]})' +
             fr', $\lambda$={lamb} $\AA$', fontsize=15,
         )
         ax.set_xlabel(r'Diffracting angle $\theta$ (rad)', fontsize=15)
@@ -1358,7 +1368,7 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         ax20 = fig1.add_subplot(gs[2, 0])
         ax22 = fig1.add_subplot(gs[2, 2])
         fig1.suptitle(
-            'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
+            f'{name}, ' + f'({miller[0]},{miller[1]},{miller[2]})' +
             fr', $\lambda$={lamb} $\AA$' +
             r', $\theta_{B}$=' + fr'{np.round(theta[nn], 5)} rad',
             fontsize=15,
@@ -1448,7 +1458,6 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
     # Plot the sum of both polarizations
     lc = [use_non_parallelism is True, use_non_parallelism is False]
     if not therm_exp and any(lc):
-        import pdb; pdb.set_trace()  # DB
         ax.plot(
             dth[0, 0, 0, :],
             power_ratio[0, 0, 0] + power_ratio[1, 0, 0],
@@ -1659,7 +1668,7 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
 
 
 def CrystalBragg_plot_rc_components_vs_asymmetry(
-    ih=None, ik=None, il=None, lamb=None,
+    din=None, lamb=None,
     theta=None, theta_deg=None,
     alpha=None, bb=None, th=None,
     rhg=None, rhg_perp_norm=None, rhg_para_norm=None,
@@ -1673,8 +1682,14 @@ def CrystalBragg_plot_rc_components_vs_asymmetry(
     fig2 = plt.figure(figsize=(8, 6))
     gs = gridspec.GridSpec(1, 1)
     ax = fig2.add_subplot(gs[0, 0])
+    name = din['name']
+    miller = np.r_[
+        int(din['Miller indices'][0]),
+        int(din['Miller indices'][1]),
+        int(din['Miller indices'][2]),
+    ]
     ax.set_title(
-        'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
+        f'{name}' + f', ({miller[0]},{miller[1]},{miller[2]})' +
         fr', $\lambda$={lamb} $\AA$'
     )
     ax.set_xlabel(r'$\alpha$ (deg)', fontsize=15)
@@ -1716,7 +1731,7 @@ def CrystalBragg_plot_rc_components_vs_asymmetry(
 
 
 def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
-    ih=None, ik=None, il=None, lamb=None, theta=None,
+    din=None, lamb=None, theta=None,
     therm_exp=None, T0=None, TD=None, na=None, nn=None,
     alpha=None, power_ratio=None, th=None, dth=None,
     rhg_perp=None, rhg_para=None,
@@ -1747,15 +1762,21 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     ax13 = fig.add_subplot(gs[1, 3])
     # ax2 = fig.add_subplot(gs[2, :])
 
-    ax00.set_ylabel(r'$\Delta$T ($T_{0}$=25°C)', fontsize=15)
-    ax10.set_ylabel(r'$\Delta$T ($T_{0}$=25°C)', fontsize=15)
+    ax00.set_ylabel(r'$\Delta$T ($T_{0}$' + f'={T0}°C)', fontsize=15)
+    ax10.set_ylabel(r'$\Delta$T ($T_{0}$' + f'={T0}°C)', fontsize=15)
     ax10.set_xlabel(r'$\alpha$ (mrad)', fontsize=15)
     ax11.set_xlabel(r'$\alpha$ (mrad)', fontsize=15)
     ax12.set_xlabel(r'$\alpha$ (mrad)', fontsize=15)
     ax13.set_xlabel(r'$\alpha$ (mrad)', fontsize=15)
 
+    name = din['name']
+    miller = np.r_[
+        int(din['Miller indices'][0]),
+        int(din['Miller indices'][1]),
+        int(din['Miller indices'][2]),
+    ]
     fig.suptitle(
-        'Hexagonal Qz, ' + f'({ih},{ik},{il})' +
+        f'{name}' + f', ({miller[0]},{miller[1]},{miller[2]})' +
         fr', $\lambda$={lamb} $\AA$' +
         r', $\theta_{B}$=' + fr'{np.round(theta[nn], 5)} rad',
         fontsize=15,
