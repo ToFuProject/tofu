@@ -336,6 +336,8 @@ class BivariateSplinePolar():
         # ------------
         # compute
 
+        import pdb; pdb.set_trace()     # DB
+
         if self.knotsa is None:
             if radius_vs_time:
                 for it in range(nt):
@@ -558,6 +560,44 @@ class BivariateSplinePolar():
                             iok2 = np.copy(iok)
                             iok2[iok2] = iokj
                             val[iok2, ni] = valr[iokj]*vala[iokj]
+                            import matplotlib.pyplot as plt # DB
+                            plt.ion()
+                            plt.figure()
+                            plt.plot(angle[iok])
+                            plt.figure()
+                            plt.plot(angle[iok], atemp, '.')
+                            plt.figure()
+                            plt.plot(angle[iok], vala, '.')
+                            plt.figure()
+                            plt.plot(atemp, vala, '.')
+                            plt.figure()
+                            plt.plot(radius[iok], valr, '.')
+                            plt.figure()
+                            plt.plot(angle[iok], vala*valr, '.')
+                            plt.figure()
+                            plt.imshow(val[0, ..., ni])
+                            plt.figure()
+                            plt.plot(
+                                angle[0, ...].ravel(),
+                                val[0, ..., ni].ravel(),
+                                '.',
+                            )
+                            plt.figure()
+                            plt.plot(
+                                radius[0, ...].ravel(),
+                                val[0, ..., ni].ravel(),
+                                '.',
+                            )
+                            plt.figure()
+                            plt.imshow(angle[0, ...], interpolation='nearest')
+                            plt.colorbar()
+                            plt.figure()
+                            plt.imshow(radius[0, ...])
+
+                            print(val[0, 302, 196, ni])
+                            print(radius[0, 302, 196], angle[0, 302, 196])
+
+                            import pdb; pdb.set_trace()     # DB
                             ni += 1
 
         return val
