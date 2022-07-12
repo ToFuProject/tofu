@@ -1273,8 +1273,8 @@ def _plot_profile2d_polar_add_radial(
         ka = coll.dobj['bsplines'][keybs]['apex'][1]
         angle = coll.ddata[ka]['data']
     elif np.sum(clas.nbs_a_per_r > 1) == 1:
-        import pdb; pdb.set_trace()     # DB
-        raise NotImplementedError()
+        i0 = (clas.nbs_a_per_r > 1).nonzero()[0][0]
+        angle = coll.dobj['bsplines'][keybs]['class'].apex_per_bs_a[i0]
     else:
         pass
 

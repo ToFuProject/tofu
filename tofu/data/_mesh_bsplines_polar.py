@@ -402,7 +402,7 @@ class BivariateSplinePolar():
                 valr = self.lbr[ii](radius[iok])
                 if nbsa == 1:
                     ind = self.func_coef_ind(ii, 0)
-                    val[:, iok] += coefs[:, ind] * valr[None, ...]
+                    val[:, iok] += coefs[:, ind][:, None] * valr[None, ...]
                 else:
                     for jj in range(nbsa):
                         kj = self.knots_per_bs_a[ii][:, jj]
@@ -423,7 +423,7 @@ class BivariateSplinePolar():
                         if len(self.shapebs) == 1:
                             ind = self.func_coef_ind(ii, jj)
                             val[:, iok2] += (
-                                coefs[:, ind]
+                                coefs[:, ind][:, None]
                                 * (valr[iokj]*vala[iokj])[None, ...]
                             )
                         else:
