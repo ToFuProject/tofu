@@ -1121,6 +1121,28 @@ def _mesh2DPolar_bsplines_knotscents(
 # #############################################################################
 
 
+def _get_sample_mesh_res(
+    coll=None,
+    keym=None,
+    mtype=None,
+):
+    if mtype == 'rect':
+        kR, kZ = coll.dobj[coll._which_mesh][keym]['knots']
+        res = min(
+            np.min(np.diff(coll.ddata[kR]['data'])),
+            np.min(np.diff(coll.ddata[kZ]['data'])),
+        )
+    elif mtype == 'tri':
+        res = 0.02
+    else:
+        keyr2d = coll.dobj[coll._which_mesh][keym]['radius2d']
+        keybs0 = coll.ddata[keyr2d]['bsplines']
+        keym0 = coll.dobj['bsplines'][keybs0]['mesh']
+        mtype0 = coll.dobj[coll._which_mesh][keym0]['type']
+        res = _get_sample_mesh_res(coll=coll, keym=keym0, mtype=mtype0)
+    return res
+
+
 def _sample_mesh_check(
     coll=None,
     key=None,
@@ -1152,7 +1174,8 @@ def _sample_mesh_check(
 
     # res
     if res is None:
-        res = 0.1
+        res = _get_sample_mesh_res(coll=coll, keym=key, mtype=meshtype)
+
     if np.isscalar(res):
         res = [res, res]
     c0 = (
@@ -2349,6 +2372,23 @@ def interp2d(
         shape_pts = radius.shape
 
     # ---------------
+    # post-treatment for angle2d only (discontinuity)
+
+    c0 = any([
+        key == v0.get('angle2d')
+        for k0, v0 in coll.dobj[coll._which_mesh].items()
+    ])
+    if c0:
+        # ind = _angle2d_interp2d(
+            # keym=keym,
+            # val=val,
+            # R=R,
+            # Z=Z,
+        # )
+        # val[ind] = -np.pi
+        pass
+
+    # ---------------
     # post-treatment
 
     if nan0 is True:
@@ -2592,6 +2632,7 @@ def _get_contours(
     ZZ=None,
     val=None,
     levels=None,
+    uniform=None,
 ):
     """ Return R, Z coordinates of contours (time-dependent)
 
@@ -2609,6 +2650,9 @@ def _get_contours(
 
     # -------------
     # check inputs
+
+    if uniform is None:
+        uniform = True
 
     # val.shape = (nt, nR, nZ)
     lc = [
@@ -2689,22 +2733,264 @@ def _get_contours(
     # ------------------------------------------------
     # Interpolate / concatenate to uniformize as array
 
-    ln = [[pp.size for pp in cc] for cc in contR]
-    nmax = np.max(ln)
-    cR = np.full((nt, len(levels), nmax), np.nan)
-    cZ = np.full((nt, len(levels), nmax), np.nan)
+    if uniform:
+        ln = [[pp.size for pp in cc] for cc in contR]
+        nmax = np.max(ln)
+        cR = np.full((nt, len(levels), nmax), np.nan)
+        cZ = np.full((nt, len(levels), nmax), np.nan)
 
-    for ii in range(nt):
-        for jj in range(len(levels)):
-            cR[ii, jj, :] = np.interp(
-                np.linspace(0, ln[ii][jj], nmax),
-                np.arange(0, ln[ii][jj]),
-                contR[ii][jj],
-            )
-            cZ[ii, jj, :] = np.interp(
-                np.linspace(0, ln[ii][jj], nmax),
-                np.arange(0, ln[ii][jj]),
-                contZ[ii][jj],
-            )
+        for ii in range(nt):
+            for jj in range(len(levels)):
+                cR[ii, jj, :] = np.interp(
+                    np.linspace(0, ln[ii][jj], nmax),
+                    np.arange(0, ln[ii][jj]),
+                    contR[ii][jj],
+                )
+                cZ[ii, jj, :] = np.interp(
+                    np.linspace(0, ln[ii][jj], nmax),
+                    np.arange(0, ln[ii][jj]),
+                    contZ[ii][jj],
+                )
 
-    return cR, cZ
+        return cR, cZ
+    else:
+        return contR, contZ
+
+
+# #############################################################################
+# #############################################################################
+#                   radius2d special points handling
+# #############################################################################
+
+
+def radius2d_special_points(
+    coll=None,
+    key=None,
+    res=None,
+):
+
+    keybs = coll.ddata[key]['bsplines']
+    keym = coll.dobj['bsplines'][keybs]['mesh']
+    mtype = coll.dobj[coll._which_mesh][keym]['type']
+    assert mtype in ['rect', 'tri']
+
+    # get map sampling
+    RR, ZZ = coll.get_sample_mesh(
+        key=keym,
+        res=res,
+        grid=True,
+    )
+
+    # get map
+    val, t = coll.interpolate_profile2d(
+        key=key,
+        R=RR,
+        Z=ZZ,
+        grid=False,
+    )
+
+    # get min max values
+    rmin = np.nanmin(val)
+    rmax = np.nanmax(val)
+
+    # get contour of 0
+    cR, cZ = _get_contours(
+        RR=RR,
+        ZZ=ZZ,
+        val=val,
+        levels=[rmin + 0.05*(rmax-rmin)],
+    )
+
+    # dref
+    ref_O = 'npts_O'
+    dref = {
+        ref_O: {'size': 1},
+    }
+
+    # get barycenter 
+    if val.ndim == 3:
+        assert cR.shape[1] == 1
+        ax_R = np.nanmean(cR[:, 0, :], axis=-1)[:, None]
+        ax_Z = np.nanmean(cZ[:, 0, :], axis=-1)[:, None]
+        reft = coll.ddata[key]['ref'][0]
+        ref = (reft, ref_O)
+    else:
+        ax_R = np.r_[np.nanmean(cR)]
+        ax_Z = np.r_[np.nanmean(cZ)]
+        ref = (ref_O,)
+
+    ddata = {
+        'pts_O_R': {
+            'ref': ref,
+            'data': ax_R,
+            'dim': 'distance',
+            'quant': 'R',
+            'name': 'O-points_R',
+            'units': 'm',
+        },
+        'pts_O_Z': {
+            'ref': ref,
+            'data': ax_Z,
+            'dim': 'distance',
+            'quant': 'Z',
+            'name': 'O-points_Z',
+            'units': 'm',
+        },
+    }
+
+    return dref, ddata
+
+
+# #############################################################################
+# #############################################################################
+#                   angle2d discontinuity handling
+# #############################################################################
+
+
+def angle2d_area(
+    coll=None,
+    key=None,
+    keyrad2d=None,
+    res=None,
+):
+
+    keybs = coll.ddata[key]['bsplines']
+    keym = coll.dobj['bsplines'][keybs]['mesh']
+    mtype = coll.dobj[coll._which_mesh][keym]['type']
+    assert mtype in ['rect', 'tri']
+
+    if res is None:
+        res = 0.5 * _get_sample_mesh_res(
+            coll=coll,
+            keym=keym,
+            mtype=mtype,
+        )
+
+    # get map sampling
+    RR, ZZ = coll.get_sample_mesh(
+        key=keym,
+        res=res,
+        grid=True,
+    )
+
+    # get map
+    val, t = coll.interpolate_profile2d(
+        key=key,
+        R=RR,
+        Z=ZZ,
+        grid=False,
+    )
+    val[np.isnan(val)] = 0.
+    amin = np.nanmin(val)
+    amax = np.nanmax(val)
+
+    # get contours of absolute value
+    cRmin, cZmin = _get_contours(
+        RR=RR,
+        ZZ=ZZ,
+        val=val,
+        levels=[amin + 0.10*(amax - amin)],
+        uniform=False,
+    )
+    cRmax, cZmax = _get_contours(
+        RR=RR,
+        ZZ=ZZ,
+        val=val,
+        levels=[amax - 0.10*(amax - amin)],
+        uniform=False,
+    )
+
+    assert cRmin.shape[1] == cRmax.shape[1] == 1
+    cRmin, cZmin = cRmin[:, 0, :], cZmin[:, 0, :]
+    cRmax, cZmax = cRmax[:, 0, :], cZmax[:, 0, :]
+
+    # keep only largest polygon
+    iout = np.isnan(cRmin)
+    for ii in range(cRmin.shape[0]):
+        pass
+        lnpoly = [
+
+        ]
+
+    import pdb; pdb.set_trace()     # DB
+
+
+    rmin = np.full(cRmin.shape, np.nan)
+    rmax = np.full(cRmax.shape, np.nan)
+
+    # get points inside contour 
+    for ii in range(rmin.shape[0]):
+        rmin[ii, :], _ = coll.interpolate_profile2d(
+            key=keyrad2d,
+            R=cRmin[ii, :],
+            Z=cZmin[ii, :],
+            grid=False,
+            indt=ii,
+        )
+        rmax[ii, :], _ = coll.interpolate_profile2d(
+            key=keyrad2d,
+            R=cRmax[ii, :],
+            Z=cZmax[ii, :],
+            grid=False,
+            indt=ii,
+        )
+
+    start_min = np.nanargmin(rmin, axis=-1)
+    start_max = np.nanargmin(rmax, axis=-1)
+
+    # re-order from start_min, start_max
+    for ii in range(rmin.shape[0]):
+        imin = np.r_[
+            np.arange(start_min[ii], rmin.shape[1]),
+            np.arange(0, start_min[ii]),
+        ]
+
+        cRmin[ii] = cRmin[ii, imin]
+        cZmin[ii] = cZmin[ii, imin]
+        rmin[ii] = rmin[ii, imin]
+        # check it is counter-clockwise
+        clock = np.nansum(
+            (cRmin[ii, 1:] - cRmin[ii, :-1])
+            *(cZmin[ii, 1:] - cZmin[ii, :-1])
+        )
+        if clock > 0:
+            cRmin[ii, :] = cRmin[ii, ::-1]
+            cZmin[ii, :] = cZmin[ii, ::-1]
+            rmin[ii, :] = rmin[ii, ::-1]
+
+        imax = np.r_[
+            np.arange(start_max[ii], rmax.shape[1]),
+            np.arange(0, start_max[ii])
+        ]
+        cRmax[ii] = cRmax[ii, imax]
+        cZmax[ii] = cZmax[ii, imax]
+        rmax[ii] = rmax[ii, imax]
+        # check it is clockwise
+        clock = np.nansum(
+            (cRmax[ii, 1:] - cRmax[ii, :-1])
+            *(cZmax[ii, 1:] - cZmax[ii, :-1])
+        )
+        if clock < 0:
+            cRmax[ii, :] = cRmax[ii, ::-1]
+            cZmax[ii, :] = cZmax[ii, ::-1]
+            rmax[ii, :] = rmax[ii, ::-1]
+
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.plot(rmin[2], '.b', rmax[2], '.r')
+    plt.figure()
+    plt.imshow(
+        val[2].T,
+        origin='lower',
+        extent=(RR.min(), RR.max(), ZZ.min(), ZZ.max())
+    )
+    plt.plot(cRmin[2], cZmin[2], '.b')
+    plt.plot(cRmax[2], cZmax[2], '.r')
+    import pdb; pdb.set_trace()     # DB
+
+    return None, None
+
+
+
+
+

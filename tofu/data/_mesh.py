@@ -169,6 +169,12 @@ class Plasma2D(ds.DataStock):
         # Defined on
         radius2d=None,
         angle2d=None,
+        # optional special points coordinates vs time
+        O_pts=None,         # computed if not provided
+        X_pts=None,         # unused
+        strike_pts=None,    # unused
+        # res for contour discontinuity of angle2d
+        res=None,
         # parameters
         radius_dim=None,
         radius_quant=None,
@@ -212,17 +218,36 @@ class Plasma2D(ds.DataStock):
 
         # add kwdargs
         key = list(dmesh.keys())[0]
-        for k0 in dmesh.keys():
-            dmesh[k0].update(**kwdargs)
+        dmesh[key].update(**kwdargs)
+
+        # update data source
+        for k0, v0 in ddata.items():
+            ddata[k0]['source'] = kwdargs.get('source')
+
+        # special treatment of radius2d
+        assert O_pts is None
+        drefO, ddataO = _mesh_comp.radius2d_special_points(
+            coll=self,
+            key=dmesh[key]['radius2d'],
+            res=res,
+        )
+        dref.update(drefO)
+        ddata.update(ddataO)
+        dmesh[key]['pts_O'] = ('pts_O_R', 'pts_O_Z')
+
+        # special treatment of angle2d
+        if dmesh[key]['angle2d'] is not None:
+            drefa, ddataa = _mesh_comp.angle2d_area(
+                coll=self,
+                key=dmesh[key]['angle2d'],
+                keyrad2d=dmesh[key]['radius2d'],
+                res=res,
+            )
 
         # define dobj['mesh']
         dobj = {
             self._which_mesh: dmesh,
         }
-
-        # update data source
-        for k0, v0 in ddata.items():
-            ddata[k0]['source'] = kwdargs.get('source')
 
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
