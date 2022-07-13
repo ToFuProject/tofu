@@ -1999,17 +1999,23 @@ class CrystalBragg(utils.ToFuObject):
         # Check / format inputs
         if crystal is None:
             msg = (
-                "You must choose a type of crystal to use among :\n"
-                + "\t - aQz: alpha-Quartz ({})\n".format('aQz')
-                + "\t - Ge: Germanium ({})\n".format('Ge')
+                "You must choose a type of crystal from "
+                +"tofu/spectro/_rockingcurve_def.py to use among :\n"
+                + "\t - 110-Quartz:\n"
+                + "\t\t - target: ArXVII"
+                + "\t\t - Miller indices (h,k,l): (1,1,0)"
+                + "\t\t - Material: Quartz\n"
+                + "\t - 102-Quartz:\n"
+                + "\t\t - target: ArXVIII"
+                + "\t\t - Miller indices (h,k,l): (1,0,2)"
+                + "\t\t - Material: Quartz\n"
             )
             raise Exception(msg)
-        elif crystal == 'aQz':
-            din = _rockingcurve_def._DCRYST['alpha-Quartz']
-        """
-        elif crystal == 'Ge':
-            din = _rockingcurve_def._DCRYST['Germanium']
-        """
+        elif crystal == '110-Quartz':
+            din = _rockingcurve_def._DCRYST['110-Quartz']
+        elif crystal == '102-Quartz':
+            din = _rockingcurve_def._DCRYST['102-Quartz']
+
         if merge_rc_data is None:
             merge_rc_data = False
         if lamb is None and merge_rc_data is False:
@@ -2062,9 +2068,8 @@ class CrystalBragg(utils.ToFuObject):
         self.update_non_parallelism(alpha=0., beta=0.)
         if use_non_parallelism:
             self.update_non_parallelism(alpha=alpha0, beta=0.)
-        (
-            T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
-        ) = _rockingcurve.CrystBragg_comp_lattice_spacing(
+        #T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
+        dout = _rockingcurve.CrystBragg_comp_lattice_spacing(
             crystal=crystal, din=din,
             lamb=self.dbragg['lambref']*1e10,
             na=na, nn=nn,
@@ -2072,6 +2077,13 @@ class CrystalBragg(utils.ToFuObject):
             temp_limits=temp_limits,
             plot_therm_exp=False,
         )
+        T0 = dout['Temperature of reference (°C)']
+        TD = dout['Temperature variations (°C)']
+        Volume = dout['Volume (m-3)']
+        d_atom = dout['Inter-reticular spacing (A)']
+        sol = dout['Sinus over lambda']
+        theta = dout['theta_Bragg (rad)']
+        theta_deg = dout['theta_Bragg (degree)']
 
         def find_nearest(array, value):
             array = np.asarray(array)
@@ -2120,6 +2132,7 @@ class CrystalBragg(utils.ToFuObject):
                 strict=strict,
                 plot=False,
             )
+
         # Get johann-error raytracing (multiple positions on crystal)
         xi_er, xj_er = None, None
         if johann and not rocking:

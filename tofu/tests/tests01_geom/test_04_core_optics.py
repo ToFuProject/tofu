@@ -331,7 +331,14 @@ class Test01_Crystal(object):
                 0.1*np.r_[-1, 1, 1, -1, -1],
                 0.1*np.r_[-1, -1, 1, 1, -1],
             ])
-            dax = obj.plot_line_on_det_tracing(det=det, crystal='aQz')
+            dax = obj.plot_line_on_det_tracing(
+                det=det,
+                crystal='110-Quartz',
+                merge_rc_data=True,
+                use_non_parallelism=False,
+                therm_exp=False,
+                plot=False,
+            )
 
     def test13_calc_meridional_sagittal_focus(self):
         derr = {}

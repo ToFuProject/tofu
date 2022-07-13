@@ -273,8 +273,8 @@ def compute_rockingcurve(
         # Calculation of Fourier coefficients of polarization
         # ---------------------------------------------------
 
-        Nsi = din['mesh positions']['Si']['N']
-        No = din['mesh positions']['O']['N']
+        Nsi = din['mesh']['positions']['Si']['N']
+        No = din['mesh']['positions']['O']['N']
         Zsi = din['atomic number'][0]
         Zo = din['atomic number'][1]
 
@@ -909,10 +909,10 @@ def CrystBragg_comp_lattice_spacing(
 
     # Inter-atomic distances and thermal expansion coefficients
     if cond0:
-        a0 = din['Inter-atomic distances']['a0']
-        c0 = din['Inter-atomic distances']['c0']
-        alpha_a = din['Thermal expansion coefs']['alpha_a']
-        alpha_c = din['Thermal expansion coefs']['alpha_c']
+        a0 = din['Inter-atomic']['distances']['a0']
+        c0 = din['Inter-atomic']['distances']['c0']
+        alpha_a = din['Thermal expansion']['coefs']['alpha_a']
+        alpha_c = din['Thermal expansion']['coefs']['alpha_c']
 
     # Temperature changes
     T0 = temp_limits[2]  # Reference temperature in °C

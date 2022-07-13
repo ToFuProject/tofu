@@ -19,43 +19,53 @@ _DCRYST = {
         'number of atoms': [3., 6.],
         'Miller indices': np.r_[1., 1., 0.],
         'Volume': None,
-        'Inter-reticular spacing': None,
-        'meshtype': 'hexagonal',
-        'mesh positions': {
-            'Si': {
-                'u': np.r_[0.465],
-                'x': None,
-                'y': None,
-                'z': None,
-                'N': None,
+        'd_hkl': None,
+        'mesh': {
+            'type': 'hexagonal',
+            'positions': {
+                'Si': {
+                    'u': np.r_[0.465],
+                    'x': None,
+                    'y': None,
+                    'z': None,
+                    'N': None,
+                },
+                'O': {
+                    'u': np.r_[0.415, 0.272, 0.120],
+                    'x': None,
+                    'y': None,
+                    'z': None,
+                    'N': None,
+                },
             },
-            'O': {
-                'u': np.r_[0.415, 0.272, 0.120],
-                'x': None,
-                'y': None,
-                'z': None,
-                'N': None,
-            },
+            'sources': 'R.W.G. Wyckoff, Crystal Structures (1963)',
         },
-        'mesh positions sources': 'R.W.G. Wyckoff, Crystal Structures (1963)',
         'phases': {
             'Si': None,
             'O': None,
         },
-        'Inter-atomic distances': {
-            'a0': 4.91304,
-            'c0': 5.40463,
+        'Inter-atomic': {
+            'distances': {
+                'a0': 4.91304,
+                'c0': 5.40463,
+            },
+            'unit': 'A',
+            'comments': 'within the unit cell',
+            'Tref': {
+                'data': 25.,
+                'unit': 'C',
+            },
+            'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
-        'Inter-atomic distances comments' :
-            'at 25°C, unit = Angstroms, within the unit cell',
-        'Inter-atomic distances sources': 'R.W.G. Wyckoff, Crystal Structures',
-        'Thermal expansion coefs': {
-            'alpha_a': 1.337e-5,
-            'alpha_c': 7.97e-6,
+        'Thermal expansion': {
+            'coefs': {
+                'alpha_a': 1.337e-5,
+                'alpha_c': 7.97e-6,
+            },
+            'unit': '1/C',
+            'comments': 'in parallel directions to a0 and c0',
+            'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
-        'Thermal expansion coefs comments':
-            'unit = [°C⁻1], in parallel directions to a0 and c0',
-        'Thermal expansion coefs sources': 'R.W.G. Wyckoff, Crystal Structures',
         'sin(theta)/lambda': {
             'Si': np.r_[
                 0., 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7,
@@ -64,21 +74,23 @@ _DCRYST = {
             'O': np.r_[
                 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1,
             ],
+            'sources':
+                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
-        'sin(theta)/lambda sources':
-            'Intern. Tables for X-Ray Crystallography, Vol.I,II,III,IV (1985)',
-        'atomic scattering factor': {
-            'Si': np.r_[
-                12., 11., 9.5, 8.8, 8.3, 7.7, 7.27, 6.25, 5.3,
-                4.45, 3.75, 3.15, 2.7, 2.35, 2.07, 1.87, 1.71, 1.6,
-            ],
-            'O': np.r_[
-                9., 7.836, 5.756, 4.068, 2.968, 2.313, 1.934, 1.710, 1.566,
-                1.462, 1.373, 1.294,
-            ],
+        'atomic scattering': {
+            'factors': {
+                'Si': np.r_[
+                    12., 11., 9.5, 8.8, 8.3, 7.7, 7.27, 6.25, 5.3,
+                    4.45, 3.75, 3.15, 2.7, 2.35, 2.07, 1.87, 1.71, 1.6,
+                ],
+                'O': np.r_[
+                    9., 7.836, 5.756, 4.068, 2.968, 2.313, 1.934, 1.710, 1.566,
+                    1.462, 1.373, 1.294,
+                ],
+            },
+            'sources':
+                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
-        'atomic scattering factor sources':
-            'Intern. Tables for X-Ray Crystallography, Vol.I,II,III,IV (1985)',
     },
     '102-Quartz': {
         'name': '102-Qz',
@@ -89,66 +101,80 @@ _DCRYST = {
         'number of atoms': [3., 6.],
         'Miller indices': np.r_[1., 0., 2.],
         'Volume': None,
-        'Inter-reticular spacing': None,
-        'meshtype': 'hexagonal',
-        'mesh positions': {
-            'Si': {
-                'u': np.r_[0.465],
-                'x': None,
-                'y': None,
-                'z': None,
-                'N': None,
+        'd_hkl': None,
+        'mesh': {
+            'type': 'hexagonal',
+            'positions': {
+                'Si': {
+                    'u': np.r_[0.465],
+                    'x': None,
+                    'y': None,
+                    'z': None,
+                    'N': None,
+                },
+                'O': {
+                    'u': np.r_[0.415, 0.272, 0.120],
+                    'x': None,
+                    'y': None,
+                    'z': None,
+                    'N': None,
+                },
             },
-            'O': {
-                'u': np.r_[0.415, 0.272, 0.120],
-                'x': None,
-                'y': None,
-                'z': None,
-                'N': None,
-            },
+            'sources': 'R.W.G. Wyckoff, Crystal Structures (1963)',
         },
-        'mesh positions sources': 'R.W.G. Wyckoff, Crystal Structures (1963)',
         'phases': {
             'Si': None,
             'O': None,
         },
-        'Inter-atomic distances': {
-            'a0': 4.91304,
-            'c0': 5.40463,
+        'Inter-atomic': {
+            'distances': {
+                'a0': 4.91304,
+                'c0': 5.40463,
+            },
+            'unit': 'A',
+            'comments': 'within the unit cell',
+            'Tref': {
+                'data': 25.,
+                'unit': 'C',
+            },
+            'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
-        'Inter-atomic distances comments' :
-            'at 25°C, unit = Angstroms, within the unit cell',
-        'Inter-atomic distances sources': 'R.W.G. Wyckoff, Crystal Structures',
-        'Thermal expansion coefs': {
-            'alpha_a': 1.337e-5,
-            'alpha_c': 7.97e-6,
+        'Thermal expansion': {
+            'coefs': {
+                'alpha_a': 1.337e-5,
+                'alpha_c': 7.97e-6,
+            },
+            'unit': '1/C',
+            'comments': 'in parallel directions to a0 and c0',
+            'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
-        'Thermal expansion coefs comments':
-            'unit = [°C⁻1], in parallel directions to a0 and c0',
-        'Thermal expansion coefs sources': 'R.W.G. Wyckoff, Crystal Structures',
         'sin(theta)/lambda': {
-            'Si': np.r_[
-                0., 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7,
-                0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5,
-            ],
-            'O': np.r_[
-                0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1,
-            ],
+            'values': {
+                'Si': np.r_[
+                    0., 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7,
+                    0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5,
+                ],
+                'O': np.r_[
+                    0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1,
+                ],
+            },
+            'sources':
+                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
-        'sin(theta)/lambda sources':
-            'Intern. Tables for X-Ray Crystallography, Vol.I,II,III,IV (1985)',
-        'atomic scattering factor': {
-            'Si': np.r_[
-                12., 11., 9.5, 8.8, 8.3, 7.7, 7.27, 6.25, 5.3,
-                4.45, 3.75, 3.15, 2.7, 2.35, 2.07, 1.87, 1.71, 1.6,
-            ],
-            'O': np.r_[
-                9., 7.836, 5.756, 4.068, 2.968, 2.313, 1.934, 1.710, 1.566,
-                1.462, 1.373, 1.294,
-            ],
+        'atomic scattering': {
+            'factors': {
+                'Si': np.r_[
+                    12., 11., 9.5, 8.8, 8.3, 7.7, 7.27, 6.25, 5.3,
+                    4.45, 3.75, 3.15, 2.7, 2.35, 2.07, 1.87, 1.71, 1.6,
+                ],
+                'O': np.r_[
+                    9., 7.836, 5.756, 4.068, 2.968, 2.313, 1.934, 1.710, 1.566,
+                    1.462, 1.373, 1.294,
+                ],
+            },
+            'sources':
+                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
-        'atomic scattering factor sources':
-            'Intern. Tables for X-Ray Crystallography, Vol.I,II,III,IV (1985)',
     },
     'XXX-Germanium': {
         'name': None,
@@ -159,27 +185,34 @@ _DCRYST = {
         'number of atoms': None,
         'Miller indices': None,
         'Volume': None,
-        'Inter-reticular spacing': None,
-        'meshtype': None,
-        'mesh positions': None,
-        'mesh positions sources': None,
+        'd_hkl': None,
+        'mesh': {
+            'type': None,
+            'positions': None,
+            'sources': None,
+        },
         'phases': None,
-        'Inter-atomic distances': {
-            'a0': None,
-            'c0': None,
+        'Inter-atomic': {
+            'distances': None,
+            'unit': None,
+            'comments': None,
+            'Tref': None,
+            'sources': None,
         },
-        'Inter-atomic distances comments' : None,
-        'Inter-atomic distances sources': None,
-        'Thermal expansion coefs': {
-            'a0': None,
-            'c0': None,
+        'Thermal expansion': {
+            'coefs': None,
+            'unit': None,
+            'comments': None,
+            'sources': None,
         },
-        'Thermal expansion coefs comments': None,
-        'Thermal expansion coefs sources': None,
-        'sin(theta)/lambda': None,
-        'sin(theta)/lambda sources': None,
-        'atomic scattering factor': None,
-        'atomic scattering factor sources': None,
+        'sin(theta)/lambda': {
+            'values': None,
+            'sources': None,
+        },
+        'atomic scattering': {
+            'factors': None,
+            'sources': None,
+        },
     },
 }
 
@@ -212,48 +245,48 @@ _DCRYST = {
 # -------------------------------------------
 
 # 110-Quartz
-uSi = _DCRYST['110-Quartz']['mesh positions']['Si']['u'][0]
-_DCRYST['110-Quartz']['mesh positions']['Si']['x'] = np.r_[
+uSi = _DCRYST['110-Quartz']['mesh']['positions']['Si']['u'][0]
+_DCRYST['110-Quartz']['mesh']['positions']['Si']['x'] = np.r_[
     -uSi,
     uSi,
     0.
 ]
-_DCRYST['110-Quartz']['mesh positions']['Si']['y'] = np.r_[
+_DCRYST['110-Quartz']['mesh']['positions']['Si']['y'] = np.r_[
     -uSi,
     0.,
     uSi
 ]
-_DCRYST['110-Quartz']['mesh positions']['Si']['z'] = np.r_[
+_DCRYST['110-Quartz']['mesh']['positions']['Si']['z'] = np.r_[
     1./3.,
     0.,
     2./3.
 ]
-_DCRYST['110-Quartz']['mesh positions']['Si']['N'] = np.size(
-    _DCRYST['110-Quartz']['mesh positions']['Si']['x']
+_DCRYST['110-Quartz']['mesh']['positions']['Si']['N'] = np.size(
+    _DCRYST['110-Quartz']['mesh']['positions']['Si']['x']
 )
 
 # 102-Quartz
-_DCRYST['102-Quartz']['mesh positions']['Si']['x'] = (
-    _DCRYST['110-Quartz']['mesh positions']['Si']['x']
+_DCRYST['102-Quartz']['mesh']['positions']['Si']['x'] = (
+    _DCRYST['110-Quartz']['mesh']['positions']['Si']['x']
 )
-_DCRYST['102-Quartz']['mesh positions']['Si']['y'] = (
-    _DCRYST['110-Quartz']['mesh positions']['Si']['y']
+_DCRYST['102-Quartz']['mesh']['positions']['Si']['y'] = (
+    _DCRYST['110-Quartz']['mesh']['positions']['Si']['y']
 )
-_DCRYST['102-Quartz']['mesh positions']['Si']['z'] = (
-    _DCRYST['110-Quartz']['mesh positions']['Si']['z']
+_DCRYST['102-Quartz']['mesh']['positions']['Si']['z'] = (
+    _DCRYST['110-Quartz']['mesh']['positions']['Si']['z']
 )
-_DCRYST['102-Quartz']['mesh positions']['Si']['N'] = (
-    _DCRYST['110-Quartz']['mesh positions']['Si']['N']
+_DCRYST['102-Quartz']['mesh']['positions']['Si']['N'] = (
+    _DCRYST['110-Quartz']['mesh']['positions']['Si']['N']
 )
 
 # Position of the 6 O atoms in the unit cell
 # ------------------------------------------
 
 # 110-Quartz
-uOx = _DCRYST['110-Quartz']['mesh positions']['O']['u'][0]
-uOy = _DCRYST['110-Quartz']['mesh positions']['O']['u'][1]
-uOz = _DCRYST['110-Quartz']['mesh positions']['O']['u'][2]
-_DCRYST['110-Quartz']['mesh positions']['O']['x'] = np.r_[
+uOx = _DCRYST['110-Quartz']['mesh']['positions']['O']['u'][0]
+uOy = _DCRYST['110-Quartz']['mesh']['positions']['O']['u'][1]
+uOz = _DCRYST['110-Quartz']['mesh']['positions']['O']['u'][2]
+_DCRYST['110-Quartz']['mesh']['positions']['O']['x'] = np.r_[
     uOx,
     uOy - uOx,
     -uOy,
@@ -261,7 +294,7 @@ _DCRYST['110-Quartz']['mesh positions']['O']['x'] = np.r_[
     uOy,
     -uOx
 ]
-_DCRYST['110-Quartz']['mesh positions']['O']['y'] = np.r_[
+_DCRYST['110-Quartz']['mesh']['positions']['O']['y'] = np.r_[
     uOy,
     -uOx,
     uOx - uOy,
@@ -269,7 +302,7 @@ _DCRYST['110-Quartz']['mesh positions']['O']['y'] = np.r_[
     uOx,
     uOy - uOx
 ]
-_DCRYST['110-Quartz']['mesh positions']['O']['z'] = np.r_[
+_DCRYST['110-Quartz']['mesh']['positions']['O']['z'] = np.r_[
     uOz,
     uOz + 1./3.,
     uOz + 2./3.,
@@ -277,22 +310,22 @@ _DCRYST['110-Quartz']['mesh positions']['O']['z'] = np.r_[
     2./3. - uOz,
     1./3. - uOz
 ]
-_DCRYST['110-Quartz']['mesh positions']['O']['N'] = np.size(
-    _DCRYST['110-Quartz']['mesh positions']['O']['x']
+_DCRYST['110-Quartz']['mesh']['positions']['O']['N'] = np.size(
+    _DCRYST['110-Quartz']['mesh']['positions']['O']['x']
 )
 
 # 102-Quartz
-_DCRYST['102-Quartz']['mesh positions']['O']['x'] = (
-    _DCRYST['110-Quartz']['mesh positions']['O']['x']
+_DCRYST['102-Quartz']['mesh']['positions']['O']['x'] = (
+    _DCRYST['110-Quartz']['mesh']['positions']['O']['x']
 )
-_DCRYST['102-Quartz']['mesh positions']['O']['y'] = (
-    _DCRYST['110-Quartz']['mesh positions']['O']['y']
+_DCRYST['102-Quartz']['mesh']['positions']['O']['y'] = (
+    _DCRYST['110-Quartz']['mesh']['positions']['O']['y']
 )
-_DCRYST['102-Quartz']['mesh positions']['O']['z'] = (
-    _DCRYST['110-Quartz']['mesh positions']['O']['z']
+_DCRYST['102-Quartz']['mesh']['positions']['O']['z'] = (
+    _DCRYST['110-Quartz']['mesh']['positions']['O']['z']
 )
-_DCRYST['102-Quartz']['mesh positions']['O']['N'] = (
-    _DCRYST['110-Quartz']['mesh positions']['O']['N']
+_DCRYST['102-Quartz']['mesh']['positions']['O']['N'] = (
+    _DCRYST['110-Quartz']['mesh']['positions']['O']['N']
 )
 
 # ---------------------------------
@@ -323,8 +356,8 @@ def hexa_spacing(h, k, l, a, c):
 # ---------------------------------------------------------------
 
 # Same values for 110- and 102-Quartz
-a = _DCRYST['110-Quartz']['Inter-atomic distances']['a0']
-c = _DCRYST['110-Quartz']['Inter-atomic distances']['c0']
+a = _DCRYST['110-Quartz']['Inter-atomic']['distances']['a0']
+c = _DCRYST['110-Quartz']['Inter-atomic']['distances']['c0']
 
 h110 = _DCRYST['110-Quartz']['Miller indices'][0]
 k110 = _DCRYST['110-Quartz']['Miller indices'][1]
@@ -334,11 +367,11 @@ k102 = _DCRYST['102-Quartz']['Miller indices'][1]
 l102 = _DCRYST['102-Quartz']['Miller indices'][2]
 
 _DCRYST['110-Quartz']['Volume'] = hexa_volume(a=a, c=c)
-_DCRYST['110-Quartz']['Inter-reticular spacing'] = hexa_spacing(
+_DCRYST['110-Quartz']['d_hkl'] = hexa_spacing(
     h=h110, k=k110, l=l110, a=a, c=c,
 )
 _DCRYST['102-Quartz']['Volume'] = hexa_volume(a=a, c=c)
-_DCRYST['102-Quartz']['Inter-reticular spacing'] = hexa_spacing(
+_DCRYST['102-Quartz']['d_hkl'] = hexa_spacing(
     h=h102, k=k102, l=l102, a=a, c=c,
 )
 
@@ -380,8 +413,8 @@ def mu(lamb, mu_si, mu_o):
 # Same values for 110- and 102-Quartz
 sol_si = _DCRYST['110-Quartz']['sin(theta)/lambda']['Si']
 sol_o = _DCRYST['110-Quartz']['sin(theta)/lambda']['O']
-asf_si = _DCRYST['110-Quartz']['atomic scattering factor']['Si']
-asf_o = _DCRYST['110-Quartz']['atomic scattering factor']['O']
+asf_si = _DCRYST['110-Quartz']['atomic scattering']['factors']['Si']
+asf_o = _DCRYST['110-Quartz']['atomic scattering']['factors']['O']
 interp_si = scipy.interpolate.interp1d(sol_si, asf_si)
 interp_o = scipy.interpolate.interp1d(sol_o, asf_o)
 
@@ -414,12 +447,12 @@ k102 = _DCRYST['102-Quartz']['Miller indices'][1]
 l102 = _DCRYST['102-Quartz']['Miller indices'][2]
 
 # Same values for 110- and 102-Quartz
-xsi = _DCRYST['110-Quartz']['mesh positions']['Si']['x']
-ysi = _DCRYST['110-Quartz']['mesh positions']['Si']['y']
-zsi = _DCRYST['110-Quartz']['mesh positions']['Si']['z']
-xo = _DCRYST['110-Quartz']['mesh positions']['O']['x']
-yo = _DCRYST['110-Quartz']['mesh positions']['O']['y']
-zo = _DCRYST['110-Quartz']['mesh positions']['O']['z']
+xsi = _DCRYST['110-Quartz']['mesh']['positions']['Si']['x']
+ysi = _DCRYST['110-Quartz']['mesh']['positions']['Si']['y']
+zsi = _DCRYST['110-Quartz']['mesh']['positions']['Si']['z']
+xo = _DCRYST['110-Quartz']['mesh']['positions']['O']['x']
+yo = _DCRYST['110-Quartz']['mesh']['positions']['O']['y']
+zo = _DCRYST['110-Quartz']['mesh']['positions']['O']['z']
 
 def phasesi(h, k, l, xsi, ysi, zsi):
     return h*xsi + k*ysi + l*zsi
