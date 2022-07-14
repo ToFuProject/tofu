@@ -271,7 +271,21 @@ class BivariateSplinePolar():
                 if angle.shape != radius.shape:
                     err = True
             else:
-                err = True
+                if len(self.shapebs) == 2:
+                    err = True
+                else:
+                    shape = np.r_[np.ones((radius.ndim,), dtype=int), -1]
+                    kpbrmin = self.knots_per_bs_r[0, :].reshape(shape)
+                    kpbrmax = self.knots_per_bs_r[-1, :].reshape(shape)
+                    indr = (
+                        (radius[..., None] >= kpbrmin)
+                        & (radius[..., None] <= kpbrmax)
+                    )
+                    for ii in range(radius.ndim):
+                        indr = np.any(indr, axis=0)
+
+                    if np.any((self.nbs_a_per_r > 1) & indr):
+                        err = True
             if err:
                 msg = (
                     "Arg angle must be a np.ndarray same shape as radius!\n"
@@ -335,8 +349,6 @@ class BivariateSplinePolar():
 
         # ------------
         # compute
-
-        import pdb; pdb.set_trace()     # DB
 
         if self.knotsa is None:
             if radius_vs_time:
@@ -518,7 +530,12 @@ class BivariateSplinePolar():
             ni = 0
             for ii, nbsa in enumerate(self.nbs_a_per_r):
 
-                if nbsa == 1 and self.func_coef_ind(ii, 0) not in indbs_tf:
+                c0 = (
+                    nbsa == 1
+                    and indbs_tf is not None
+                    and self.func_coef_ind(ii, 0) not in indbs_tf
+                )
+                if c0:
                     continue
 
                 # compute valr
@@ -528,6 +545,7 @@ class BivariateSplinePolar():
                 )
 
                 if not np.any(iok):
+                    ni += 1
                     continue
 
                 valr = self.lbr[ii](radius[iok], nu=deriv)
@@ -544,7 +562,7 @@ class BivariateSplinePolar():
                     for jj in range(nbsa):
 
                         ind = self.func_coef_ind(ii, jj)
-                        if ind not in indbs_tf:
+                        if indbs_tf is not None and ind not in indbs_tf:
                             continue
 
                         kj = self.knots_per_bs_a[ii][:, jj]
@@ -560,45 +578,7 @@ class BivariateSplinePolar():
                             iok2 = np.copy(iok)
                             iok2[iok2] = iokj
                             val[iok2, ni] = valr[iokj]*vala[iokj]
-                            import matplotlib.pyplot as plt # DB
-                            plt.ion()
-                            plt.figure()
-                            plt.plot(angle[iok])
-                            plt.figure()
-                            plt.plot(angle[iok], atemp, '.')
-                            plt.figure()
-                            plt.plot(angle[iok], vala, '.')
-                            plt.figure()
-                            plt.plot(atemp, vala, '.')
-                            plt.figure()
-                            plt.plot(radius[iok], valr, '.')
-                            plt.figure()
-                            plt.plot(angle[iok], vala*valr, '.')
-                            plt.figure()
-                            plt.imshow(val[0, ..., ni])
-                            plt.figure()
-                            plt.plot(
-                                angle[0, ...].ravel(),
-                                val[0, ..., ni].ravel(),
-                                '.',
-                            )
-                            plt.figure()
-                            plt.plot(
-                                radius[0, ...].ravel(),
-                                val[0, ..., ni].ravel(),
-                                '.',
-                            )
-                            plt.figure()
-                            plt.imshow(angle[0, ...], interpolation='nearest')
-                            plt.colorbar()
-                            plt.figure()
-                            plt.imshow(radius[0, ...])
-
-                            print(val[0, 302, 196, ni])
-                            print(radius[0, 302, 196], angle[0, 302, 196])
-
-                            import pdb; pdb.set_trace()     # DB
-                            ni += 1
+                        ni += 1
 
         return val
 
@@ -674,8 +654,7 @@ class BivariateSplinePolar():
         if self.knotsa is None:
             pass
         else:
-            msg = "Not implemented"
-            raise NotImplementedError(msg)
+            ind = np.repeat(ind, self.nbs_a_per_r, axis=1)
 
         # ------------
         # get coefs / offset

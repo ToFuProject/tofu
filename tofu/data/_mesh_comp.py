@@ -6,6 +6,7 @@ import warnings
 
 # Common
 import numpy as np
+from scipy.spatial import ConvexHull
 from matplotlib.path import Path
 import matplotlib._contour as mcontour
 import datastock as ds
@@ -1814,6 +1815,7 @@ def _interp2d_check(
     angle=None,
     grid=None,
     radius_vs_time=None,
+    azone=None,
     # time: t or indt
     t=None,
     indt=None,
@@ -2184,6 +2186,15 @@ def _interp2d_check(
                 coefs = coefs[None, ...]
 
     # -------------
+    # azone
+
+    azone = _generic_check._check_var(
+        azone, 'azone',
+        types=bool,
+        default=True,
+    )
+
+    # -------------
     # return_params
 
     return_params = _generic_check._check_var(
@@ -2210,6 +2221,7 @@ def _interp2d_check(
         reft, keyt,
         shapebs,
         radius_vs_time,
+        azone,
         indbs, indbs_tf,
         t, indt, indtu, indtr,
         details, crop,
@@ -2232,7 +2244,8 @@ def interp2d(
     radius=None,
     angle=None,
     grid=None,
-    radius_vs_time=None,
+    radius_vs_time=None,        # if radius is provided, in case radius vs time 
+    azone=None,                 # if angle2d is interpolated, exclusion zone
     # time: t or indt
     t=None,
     indt=None,
@@ -2264,6 +2277,7 @@ def interp2d(
         reft, keyt,
         shapebs,
         radius_vs_time,
+        azone,
         indbs, indbs_tf,
         t, indt, indtu, indtr,
         details, crop,
@@ -2284,6 +2298,7 @@ def interp2d(
         angle=angle,
         grid=grid,
         radius_vs_time=radius_vs_time,
+        azone=azone,
         # time: t or indt
         t=t,
         indt=indt,
@@ -2374,19 +2389,23 @@ def interp2d(
     # ---------------
     # post-treatment for angle2d only (discontinuity)
 
-    c0 = any([
-        key == v0.get('angle2d')
-        for k0, v0 in coll.dobj[coll._which_mesh].items()
-    ])
-    if c0:
-        # ind = _angle2d_interp2d(
-            # keym=keym,
-            # val=val,
-            # R=R,
-            # Z=Z,
-        # )
-        # val[ind] = -np.pi
-        pass
+    if azone is True:
+        lkm0 = [
+            k0 for k0, v0 in coll.dobj[coll._which_mesh].items()
+            if key == v0.get('angle2d')
+        ]
+        if len(lkm0) > 0:
+            ind = angle2d_inzone(
+                coll=coll,
+                keym0=lkm0[0],
+                keya2d=key,
+                R=R,
+                Z=Z,
+                t=t,
+                indt=indt,
+            )
+            assert val.shape == ind.shape
+            val[ind] = np.pi
 
     # ---------------
     # post-treatment
@@ -2632,6 +2651,7 @@ def _get_contours(
     ZZ=None,
     val=None,
     levels=None,
+    largest=None,
     uniform=None,
 ):
     """ Return R, Z coordinates of contours (time-dependent)
@@ -2650,6 +2670,9 @@ def _get_contours(
 
     # -------------
     # check inputs
+
+    if largest is None:
+        largest = False
 
     if uniform is None:
         uniform = True
@@ -2717,9 +2740,19 @@ def _get_contours(
                 elif len(cj) == 1:
                     cj = cj[0]
                 elif len(cj) > 1:
-                    ij = np.cumsum([cc.shape[0] for cc in cj])
-                    cj = np.concatenate(cj, axis=0)
-                    cj = np.insert(cj, ij, np.nan, axis=0)
+                    if largest:
+                        nj = [
+                            0.5*np.abs(np.sum(
+                                (cc[1:, 0] + cc[:-1, 0])
+                                *(cc[1:, 1] - cc[:-1, 1])
+                            ))
+                            for cc in cj
+                        ]
+                        cj = cj[np.argmax(nj)]
+                    else:
+                        ij = np.cumsum([cc.shape[0] for cc in cj])
+                        cj = np.concatenate(cj, axis=0)
+                        cj = np.insert(cj, ij, np.nan, axis=0)
 
                 elif np.sum(np.all(~np.isnan(cc), axis=1)) < 3:
                     no_cont = True
@@ -2755,6 +2788,109 @@ def _get_contours(
         return cR, cZ
     else:
         return contR, contZ
+
+
+# #############################################################################
+# #############################################################################
+#                   Polygon simplification
+# #############################################################################
+
+
+def _simplify_polygon(pR=None, pZ=None, res=None):
+    """ Use convex hull with a constraint on the maximum discrepancy """
+
+    # ----------
+    # preliminary 1: check there is non redundant point
+
+    dp = np.sqrt((pR[1:] - pR[:-1])**2 + (pZ[1:] - pZ[:-1])**2)
+    ind = (dp > 1.e-6).nonzero()[0]
+    pR = pR[ind]
+    pZ = pZ[ind]
+
+    # check new poly is closed
+    if (pR[0] != pR[-1]) or (pZ[0] != pZ[-1]):
+        pR = np.append(pR, pR[0])
+        pZ = np.append(pZ, pZ[0])
+
+    # check it is counter-clockwise
+    clock = np.nansum((pR[1:] - pR[:-1]) * (pZ[1:] + pZ[:-1]))
+    if clock > 0:
+        pR = pR[::-1]
+        pZ = pZ[::-1]
+
+    # threshold = diagonal of resolution + 10%
+    thresh = res * np.sqrt(2) * 1.1
+
+    # ----------
+    # preliminary 2: get convex hull and copy
+
+    poly = np.array([pR, pZ]).T
+    iconv = ConvexHull(poly, incremental=False).vertices
+
+    # close convex hull to iterate on edges
+    pR_conv = np.append(pR[iconv], pR[iconv[0]])
+    pZ_conv = np.append(pZ[iconv], pZ[iconv[0]])
+
+    # copy to create new polygon that will serve as buffer
+    pR_bis, pZ_bis = np.copy(pR), np.copy(pZ)
+
+    # -------------------------
+    # loop on convex hull edges
+
+    for ii in range(pR_conv.size - 1):
+
+        pR1, pR2 = pR_conv[ii], pR_conv[ii+1]
+        pZ1, pZ2 = pZ_conv[ii], pZ_conv[ii+1]
+        i0 = np.argmin(np.hypot(pR_bis - pR1, pZ_bis - pZ1))
+
+        # make sure it starts from p1
+        pR_bis = np.append(pR_bis[i0:], pR_bis[:i0])
+        pZ_bis = np.append(pZ_bis[i0:], pZ_bis[:i0])
+
+        # get indices of closest points to p1, p2
+        i1 = np.argmin(np.hypot(pR_bis - pR1, pZ_bis - pZ1))
+        i2 = np.argmin(np.hypot(pR_bis - pR2, pZ_bis - pZ2))
+
+        # get corresponding indices of poly points to be included
+        if i2 == i1 + 1:
+            itemp = [i1, i2]
+
+        else:
+            # several points in-between
+            # => check they are all within distance before exclusing them
+
+            # get unit vector of segment
+            norm12 = np.hypot(pR2 - pR1, pZ2 - pZ1)
+            u12R = (pR2 - pR1) / norm12
+            u12Z = (pZ2 - pZ1) / norm12
+
+            # get points standing between p1 nd p2
+            lpR = pR_bis[i1 + 1:i2]
+            lpZ = pZ_bis[i1 + 1:i2]
+
+            # indices of points standing too far from edge (use cross-product)
+            iout = np.abs(u12R*(lpZ - pZ1) - u12Z*(lpR - pR1)) > thresh
+
+            # if any pts too far => include all pts
+            if np.any(iout):
+                itemp = np.arange(i1, i2 + 1)
+            else:
+                itemp = [i1, i2]
+
+        # build pts_in
+        pR_in = pR_bis[itemp]
+        pZ_in = pZ_bis[itemp]
+
+        # concatenate to add to new polygon
+        pR_bis = np.append(pR_in, pR_bis[i2 + 1:])
+        pZ_bis = np.append(pZ_in, pZ_bis[i2 + 1:])
+
+    # check new poly is closed
+    if (pR_bis[0] != pR_bis[-1]) or (pZ_bis[0] != pZ_bis[-1]):
+        pR_bis = np.append(pR_bis, pR_bis[0])
+        pZ_bis = np.append(pZ_bis, pZ_bis[0])
+
+    return pR_bis, pZ_bis
 
 
 # #############################################################################
@@ -2847,11 +2983,13 @@ def radius2d_special_points(
 # #############################################################################
 
 
-def angle2d_area(
+def angle2d_zone(
     coll=None,
     key=None,
     keyrad2d=None,
+    key_ptsO=None,
     res=None,
+    keym0=None,
 ):
 
     keybs = coll.ddata[key]['bsplines']
@@ -2859,8 +2997,21 @@ def angle2d_area(
     mtype = coll.dobj[coll._which_mesh][keym]['type']
     assert mtype in ['rect', 'tri']
 
+    # --------------
+    # prepare
+
+    hastime, hasvect, reft, keyt = coll.get_time(key=key)[:4]
+    if hastime:
+        nt = coll.dref[reft]['size']
+    else:
+        msg = (
+            "Non time-dependent angle2d not implemented yet\n"
+            "=> ping @Didou09 on Github to open an issue"
+        )
+        raise NotImplementedError(msg)
+
     if res is None:
-        res = 0.5 * _get_sample_mesh_res(
+        res = _get_sample_mesh_res(
             coll=coll,
             keym=keym,
             mtype=mtype,
@@ -2869,7 +3020,7 @@ def angle2d_area(
     # get map sampling
     RR, ZZ = coll.get_sample_mesh(
         key=keym,
-        res=res,
+        res=res/2.,
         grid=True,
     )
 
@@ -2879,6 +3030,7 @@ def angle2d_area(
         R=RR,
         Z=ZZ,
         grid=False,
+        azone=False,
     )
     val[np.isnan(val)] = 0.
     amin = np.nanmin(val)
@@ -2890,36 +3042,26 @@ def angle2d_area(
         ZZ=ZZ,
         val=val,
         levels=[amin + 0.10*(amax - amin)],
-        uniform=False,
+        largest=True,
+        uniform=True,
     )
     cRmax, cZmax = _get_contours(
         RR=RR,
         ZZ=ZZ,
         val=val,
         levels=[amax - 0.10*(amax - amin)],
-        uniform=False,
+        largest=True,
+        uniform=True,
     )
 
-    assert cRmin.shape[1] == cRmax.shape[1] == 1
     cRmin, cZmin = cRmin[:, 0, :], cZmin[:, 0, :]
     cRmax, cZmax = cRmax[:, 0, :], cZmax[:, 0, :]
-
-    # keep only largest polygon
-    iout = np.isnan(cRmin)
-    for ii in range(cRmin.shape[0]):
-        pass
-        lnpoly = [
-
-        ]
-
-    import pdb; pdb.set_trace()     # DB
-
 
     rmin = np.full(cRmin.shape, np.nan)
     rmax = np.full(cRmax.shape, np.nan)
 
     # get points inside contour 
-    for ii in range(rmin.shape[0]):
+    for ii in range(nt):
         rmin[ii, :], _ = coll.interpolate_profile2d(
             key=keyrad2d,
             R=cRmin[ii, :],
@@ -2935,10 +3077,17 @@ def angle2d_area(
             indt=ii,
         )
 
+    # get magnetic axis
+    kR, kZ = key_ptsO
+    axR = coll.ddata[kR]['data']
+    axZ = coll.ddata[kZ]['data']
+    assert coll.ddata[kR]['ref'][0] == coll.ddata[key]['ref'][0]
+
     start_min = np.nanargmin(rmin, axis=-1)
     start_max = np.nanargmin(rmax, axis=-1)
 
     # re-order from start_min, start_max
+    lpR, lpZ = [], []
     for ii in range(rmin.shape[0]):
         imin = np.r_[
             np.arange(start_min[ii], rmin.shape[1]),
@@ -2951,7 +3100,7 @@ def angle2d_area(
         # check it is counter-clockwise
         clock = np.nansum(
             (cRmin[ii, 1:] - cRmin[ii, :-1])
-            *(cZmin[ii, 1:] - cZmin[ii, :-1])
+            *(cZmin[ii, 1:] + cZmin[ii, :-1])
         )
         if clock > 0:
             cRmin[ii, :] = cRmin[ii, ::-1]
@@ -2968,29 +3117,149 @@ def angle2d_area(
         # check it is clockwise
         clock = np.nansum(
             (cRmax[ii, 1:] - cRmax[ii, :-1])
-            *(cZmax[ii, 1:] - cZmax[ii, :-1])
+            *(cZmax[ii, 1:] + cZmax[ii, :-1])
         )
         if clock < 0:
             cRmax[ii, :] = cRmax[ii, ::-1]
             cZmax[ii, :] = cZmax[ii, ::-1]
             rmax[ii, :] = rmax[ii, ::-1]
 
-    import matplotlib.pyplot as plt
-    plt.figure()
-    plt.plot(rmin[2], '.b', rmax[2], '.r')
-    plt.figure()
-    plt.imshow(
-        val[2].T,
-        origin='lower',
-        extent=(RR.min(), RR.max(), ZZ.min(), ZZ.max())
+        # i0
+        dr = np.diff(rmin[ii, :])
+        i0 = (np.isnan(dr) | (dr < 0)).nonzero()[0][0]
+        # rmin[ii, i0-1:] = np.nan
+        dr = np.diff(rmax[ii, :])
+        i1 = (np.isnan(dr) | (dr < 0)).nonzero()[0][0]
+        # rmax[ii, i1-1:] = np.nan
+
+        # polygon
+        pR = np.r_[axR[ii], cRmin[ii, :i0-1], cRmax[ii, :i1-1][::-1]]
+        pZ = np.r_[axZ[ii], cZmin[ii, :i0-1], cZmax[ii, :i1-1][::-1]]
+
+        pR, pZ = _simplify_polygon(pR=pR, pZ=pZ, res=res)
+
+        lpR.append(pR)
+        lpZ.append(pZ)
+
+    # Ajust sizes
+    nb = np.array([pR.size for pR in lpR])
+
+    # 
+    nmax = np.max(nb)
+    pR = np.full((nt, nmax), np.nan)
+    pZ = np.full((nt, nmax), np.nan)
+
+    for ii in range(nt):
+        pR[ii, :] = np.interp(
+            np.linspace(0, nb[ii], nmax),
+            np.arange(0, nb[ii]),
+            lpR[ii],
+        )
+        pZ[ii, :] = np.interp(
+            np.linspace(0, nb[ii], nmax),
+            np.arange(0, nb[ii]),
+            lpZ[ii],
+        )
+
+    # ----------------
+    # prepare output dict
+
+    # ref
+    kref = f'{keym0}-azone-npt'
+    dref = {
+        kref: {'size': nmax}
+    }
+
+    # data
+    kR = f'{keym0}-azone-R'
+    kZ = f'{keym0}-azone-Z'
+    ddata = {
+        kR: {
+            'data': pR,
+            'ref': (reft, kref),
+            'units': 'm',
+            'dim': 'distance',
+            'quant': 'R',
+            'name': None,
+        },
+        kZ: {
+            'data': pZ,
+            'ref': (reft, kref),
+            'units': 'm',
+            'dim': 'distance',
+            'quant': 'R',
+            'name': None,
+        },
+    }
+
+    return dref, ddata, kR, kZ
+
+
+def angle2d_inzone(
+    coll=None,
+    keym0=None,
+    keya2d=None,
+    R=None,
+    Z=None,
+    t=None,
+    indt=None,
+):
+
+
+    # ------------
+    # prepare points
+
+    if R.ndim == 1:
+        shape0 = None
+        pts = np.array([R, Z]).T
+    else:
+        shape0 = R.shape
+        pts = np.array([R.ravel(), Z.ravel()]).T
+
+    # ------------
+    # prepare path
+
+    kazR, kazZ = coll.dobj[coll._which_mesh][keym0]['azone']
+    pR = coll.ddata[kazR]['data']
+    pZ = coll.ddata[kazZ]['data']
+
+    hastime, hasvect, reft, keyt, tnew, dind = coll.get_time(
+        key=kazR,
+        t=t,
+        indt=indt,
     )
-    plt.plot(cRmin[2], cZmin[2], '.b')
-    plt.plot(cRmax[2], cZmax[2], '.r')
-    import pdb; pdb.set_trace()     # DB
 
-    return None, None
+    # ------------
+    # test points
 
+    if hastime:
+        if dind is None:
+            nt = coll.dref[reft]['size']
+            ind = np.zeros((nt, R.size), dtype=bool)
+            for ii in range(nt):
+                path = Path(np.array([pR[ii, :], pZ[ii, :]]).T)
+                ind[ii, :] = path.contains_points(pts)
+        else:
+            import pdb; pdb.set_trace()     # DB
+            raise NotImplementedError()
+            # TBC / TBF
+            nt = None
+            ind = np.zeros((nt, R.size), dtype=bool)
+            for ii in range(nt):
+                path = Path(np.array([pR[ii, :], pZ[ii, :]]).T)
+                ind[ii, :] = path.contains_points(pts)
 
+    else:
+        path = Path(np.array([pR, pZ]).T)
+        ind = path.contains_points(pts)
 
+    # -------------------------
+    # fromat output and return
 
+    if shape0 is not None:
+        if hastime:
+            ind = ind.reshape(tuple(np.r_[nt, shape0]))
+        else:
+            ind = ind.reshape(shape0)
 
+    return ind

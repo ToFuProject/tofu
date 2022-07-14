@@ -235,15 +235,6 @@ class Plasma2D(ds.DataStock):
         ddata.update(ddataO)
         dmesh[key]['pts_O'] = ('pts_O_R', 'pts_O_Z')
 
-        # special treatment of angle2d
-        if dmesh[key]['angle2d'] is not None:
-            drefa, ddataa = _mesh_comp.angle2d_area(
-                coll=self,
-                key=dmesh[key]['angle2d'],
-                keyrad2d=dmesh[key]['radius2d'],
-                res=res,
-            )
-
         # define dobj['mesh']
         dobj = {
             self._which_mesh: dmesh,
@@ -251,6 +242,21 @@ class Plasma2D(ds.DataStock):
 
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+        # special treatment of angle2d
+        if dmesh[key]['angle2d'] is not None:
+            drefa, ddataa, kR, kZ = _mesh_comp.angle2d_zone(
+                coll=self,
+                key=dmesh[key]['angle2d'],
+                keyrad2d=dmesh[key]['radius2d'],
+                key_ptsO=dmesh[key]['pts_O'],
+                res=res,
+                keym0=key,
+            )
+
+            # update dicts
+            self.update(dref=drefa, ddata=ddataa)
+            self.add_param('azone', value={key: (kR, kZ)}, which=self._which_mesh)
 
         # optional bspline
         if deg is not None:
@@ -1141,6 +1147,7 @@ class Plasma2D(ds.DataStock):
         angle=None,
         grid=None,
         radius_vs_time=None,
+        azone=None,
         # time: t or indt
         t=None,
         indt=None,
@@ -1203,6 +1210,7 @@ class Plasma2D(ds.DataStock):
             angle=angle,
             grid=grid,
             radius_vs_time=radius_vs_time,
+            azone=azone,
             # time: t or indt
             t=t,
             indt=indt,
