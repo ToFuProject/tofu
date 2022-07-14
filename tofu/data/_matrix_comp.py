@@ -231,9 +231,6 @@ def compute(
             else:
                 mat[ii, :] = np.nansum(mati, axis=0) * reseff[ii]
 
-            # import pdb; pdb.set_trace()     # DB
-
-
         # scpintg.simps(val, x=None, axis=-1, dx=loc_eff_res[0])
 
     # -----------

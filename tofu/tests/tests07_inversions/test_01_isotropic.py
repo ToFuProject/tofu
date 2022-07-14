@@ -205,10 +205,6 @@ class Test01_Inversions():
         # plotting
         linv = list(self.mesh.dobj['inversions'].keys())[::7]
         for kinv in linv:
-            try:
-                dax = self.mesh.plot_inversion(key=kinv)
-            except Exception as err:
-                import pdb; pdb.set_trace()     # DB
-                pass
+            dax = self.mesh.plot_inversion(key=kinv)
 
         plt.close('all')

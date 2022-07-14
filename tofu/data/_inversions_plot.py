@@ -215,16 +215,16 @@ def _plot_inversion_prepare(
             # data_re = matrix.dot(sol_flat.T)[:, None]
 
     # inversion parameters
-    # if hastime:
-    chi2n = coll.ddata[f'{keyinv}-chi2n']['data']
-    mu = coll.ddata[f'{keyinv}-mu']['data']
-    reg = coll.ddata[f'{keyinv}-reg']['data']
-    niter = coll.ddata[f'{keyinv}-niter']['data']
-    # else:
-        # chi2n = coll.dobj['inversions'][keyinv]['chi2n']
-        # mu = coll.dobj['inversions'][keyinv]['mu']
-        # reg = coll.dobj['inversions'][keyinv]['reg']
-        # niter = coll.dobj['inversions'][keyinv]['niter']
+    if reft is not None:
+        chi2n = coll.ddata[f'{keyinv}-chi2n']['data']
+        mu = coll.ddata[f'{keyinv}-mu']['data']
+        reg = coll.ddata[f'{keyinv}-reg']['data']
+        niter = coll.ddata[f'{keyinv}-niter']['data']
+    else:
+        chi2n = None    # coll.dobj['inversions'][keyinv]['chi2n']
+        mu = None       # coll.dobj['inversions'][keyinv]['mu']
+        reg = None      # coll.dobj['inversions'][keyinv]['reg']
+        niter = None    # coll.dobj['inversions'][keyinv]['niter']
 
     datamin = min([np.nanmin(data), np.nanmin(coll2.ddata[key_retro]['data'])])
     datamax = max([np.nanmax(data), np.nanmax(coll2.ddata[key_retro]['data'])])
@@ -330,10 +330,17 @@ def plot_inversion(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
+        if reft is None:
+            retro = coll2.ddata[key_retro]['data']
+            data = coll2.ddata[key_data]['data']
+        else:
+            retro = coll2.ddata[key_retro]['data'][0, :]
+            data = coll2.ddata[key_data]['data'][0, :]
+
         # plot
         l1, = ax.plot(
             chan,
-            coll2.ddata[key_retro]['data'][0, :],
+            retro,
             c=(0.8, 0.8, 0.8),
             ls='-',
             lw=1.,
@@ -341,7 +348,7 @@ def plot_inversion(
 
         l0, = ax.plot(
             chan,
-            coll2.ddata[key_data]['data'][0, :],
+            data,
             c='k',
             ls='None',
             lw=2.,
@@ -349,26 +356,27 @@ def plot_inversion(
         )
 
         # add mobiles
-        kl0 = 'data'
-        coll2.add_mobile(
-            key=kl0,
-            handle=l0,
-            refs=(reft,),
-            data=[key_data],
-            dtype=['ydata'],
-            axes=kax,
-            ind=0,
-        )
-        kl1 = 'retrofit'
-        coll2.add_mobile(
-            key=kl1,
-            handle=l1,
-            refs=(reft,),
-            data=[key_retro],
-            dtype=['ydata'],
-            axes=kax,
-            ind=0,
-        )
+        if reft is not None:
+            kl0 = 'data'
+            coll2.add_mobile(
+                key=kl0,
+                handle=l0,
+                refs=(reft,),
+                data=[key_data],
+                dtype=['ydata'],
+                axes=kax,
+                ind=0,
+            )
+            kl1 = 'retrofit'
+            coll2.add_mobile(
+                key=kl1,
+                handle=l1,
+                refs=(reft,),
+                data=[key_retro],
+                dtype=['ydata'],
+                axes=kax,
+                ind=0,
+            )
 
         ax.set_ylim(min(0, datamin), datamax)
         ax.set_xlim(0, chan.size + 1)
@@ -376,9 +384,15 @@ def plot_inversion(
     kax = 'err'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
+
+        if reft is None:
+            err = coll2.ddata[key_err]['data']
+        else:
+            err = coll2.ddata[key_err]['data'][0, :]
+
         l0, = ax.plot(
             chan,
-            coll2.ddata[key_err]['data'][0, :],
+            err,
             c='k',
             ls='-',
             lw=1.,
@@ -387,71 +401,74 @@ def plot_inversion(
         ax.axhline(0, color='k', ls='--')
 
         # add mobile
-        kl0 = 'err'
-        coll2.add_mobile(
-            key=kl0,
-            handle=l0,
-            refs=(reft,),
-            data=[key_err],
-            dtype=['ydata'],
-            axes=kax,
-            ind=0,
-        )
+        if reft is not None:
+            kl0 = 'err'
+            coll2.add_mobile(
+                key=kl0,
+                handle=l0,
+                refs=(reft,),
+                data=[key_err],
+                dtype=['ydata'],
+                axes=kax,
+                ind=0,
+            )
 
-        ax.set_ylim(-errmax, errmax)
+        if np.isfinite(errmax):
+            ax.set_ylim(-errmax, errmax)
 
     # # -------------------------
     # # plot inversion parameters
 
-    kax = 'inv-param'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-        ax.plot(
-            # time,
-            chi2n / np.nanmax(chi2n),
-            c='k',
-            ls='-',
-            lw=1.,
-            marker='.',
-            label='nchi2n',
-        )
+    if reft is not None:
+        kax = 'inv-param'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+            ax.plot(
+                # time,
+                chi2n / np.nanmax(chi2n),
+                c='k',
+                ls='-',
+                lw=1.,
+                marker='.',
+                label='nchi2n',
+            )
 
-        ax.plot(
-            # time,
-            reg / np.nanmax(reg),
-            c='b',
-            ls='-',
-            lw=1.,
-            marker='.',
-            label='mu*reg',
-        )
+            ax.plot(
+                # time,
+                reg / np.nanmax(reg),
+                c='b',
+                ls='-',
+                lw=1.,
+                marker='.',
+                label='mu*reg',
+            )
 
-        # add mobile
-        l0 = ax.axvline(time[0], c='k', ls='-', lw=1.)
+            # add mobile
+            l0 = ax.axvline(time[0], c='k', ls='-', lw=1.)
 
-        # add mobile
-        kl0 = 't-par'
-        coll2.add_mobile(
-            key=kl0,
-            handle=l0,
-            refs=(reft,),
-            data=['index'],
-            dtype=['xdata'],
-            axes=kax,
-            ind=0,
-        )
+            # add mobile
+            kl0 = 't-par'
+            coll2.add_mobile(
+                key=kl0,
+                handle=l0,
+                refs=(reft,),
+                data=['index'],
+                dtype=['xdata'],
+                axes=kax,
+                ind=0,
+            )
 
-    kax = 'niter'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-        ax.plot(
-            # time,
-            niter,
-            c='k',
-            ls='-',
-            lw=1.,
-            marker='.',
-        )
+        kax = 'niter'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+            ax.plot(
+                # time,
+                niter,
+                c='k',
+                ls='-',
+                lw=1.,
+                marker='.',
+            )
 
     # connect
     if connect is True:

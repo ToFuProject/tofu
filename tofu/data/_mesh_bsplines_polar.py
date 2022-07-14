@@ -526,6 +526,9 @@ class BivariateSplinePolar():
 
         else:
 
+            # if np.abs(np.nanmin(radius) - 0.1800309517775584) < 0.0001:
+                # import pdb.set_trace()      # DB  # chan = 27
+
             # radius + angle
             ni = 0
             for ii, nbsa in enumerate(self.nbs_a_per_r):
@@ -545,7 +548,7 @@ class BivariateSplinePolar():
                 )
 
                 if not np.any(iok):
-                    ni += 1
+                    ni += nbsa
                     continue
 
                 valr = self.lbr[ii](radius[iok], nu=deriv)
@@ -560,8 +563,8 @@ class BivariateSplinePolar():
                         raise Exception(msg)
 
                     for jj in range(nbsa):
-
                         ind = self.func_coef_ind(ii, jj)
+
                         if indbs_tf is not None and ind not in indbs_tf:
                             continue
 
@@ -578,6 +581,9 @@ class BivariateSplinePolar():
                             iok2 = np.copy(iok)
                             iok2[iok2] = iokj
                             val[iok2, ni] = valr[iokj]*vala[iokj]
+
+                        # if ii == 4 and jj == 3:
+                            # import pdb; pdb.set_trace()         # DB
                         ni += 1
 
         return val
