@@ -226,14 +226,15 @@ class Plasma2D(ds.DataStock):
 
         # special treatment of radius2d
         assert O_pts is None
-        drefO, ddataO = _mesh_comp.radius2d_special_points(
+        drefO, ddataO, kR, kZ = _mesh_comp.radius2d_special_points(
             coll=self,
             key=dmesh[key]['radius2d'],
+            keym0=key,
             res=res,
         )
         dref.update(drefO)
         ddata.update(ddataO)
-        dmesh[key]['pts_O'] = ('pts_O_R', 'pts_O_Z')
+        dmesh[key]['pts_O'] = (kR, kZ)
 
         # define dobj['mesh']
         dobj = {
@@ -256,7 +257,17 @@ class Plasma2D(ds.DataStock):
 
             # update dicts
             self.update(dref=drefa, ddata=ddataa)
-            self.add_param('azone', value={key: (kR, kZ)}, which=self._which_mesh)
+            if 'azone' in self.get_lparam(self._which_mesh):
+                self.set_param(
+                    key=key,
+                    param='azone',
+                    value=(kR, kZ),
+                    which=self._which_mesh,
+                )
+            else:
+                self.add_param(
+                    'azone', value={key: (kR, kZ)}, which=self._which_mesh,
+                )
 
         # optional bspline
         if deg is not None:

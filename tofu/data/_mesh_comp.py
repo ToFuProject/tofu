@@ -2902,6 +2902,7 @@ def _simplify_polygon(pR=None, pZ=None, res=None):
 def radius2d_special_points(
     coll=None,
     key=None,
+    keym0=None,
     res=None,
 ):
 
@@ -2938,7 +2939,7 @@ def radius2d_special_points(
     )
 
     # dref
-    ref_O = 'npts_O'
+    ref_O = f'{keym0}-pts-O-n'
     dref = {
         ref_O: {'size': 1},
     }
@@ -2955,8 +2956,10 @@ def radius2d_special_points(
         ax_Z = np.r_[np.nanmean(cZ)]
         ref = (ref_O,)
 
+    kR = f'{keym0}-pts-O-R'
+    kZ = f'{keym0}-pts-O-Z'
     ddata = {
-        'pts_O_R': {
+        kR: {
             'ref': ref,
             'data': ax_R,
             'dim': 'distance',
@@ -2964,7 +2967,7 @@ def radius2d_special_points(
             'name': 'O-points_R',
             'units': 'm',
         },
-        'pts_O_Z': {
+        kZ: {
             'ref': ref,
             'data': ax_Z,
             'dim': 'distance',
@@ -2974,7 +2977,7 @@ def radius2d_special_points(
         },
     }
 
-    return dref, ddata
+    return dref, ddata, kR, kZ
 
 
 # #############################################################################
