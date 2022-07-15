@@ -355,7 +355,7 @@ setup(
             "*.py", "*.txt", ".svg", ".npz"
         ],
         "tofu.tests.tests04_spectro.test_data": ["*.npz"],
-        "tofu.tests.tests06_mesh.test_data": ['*.txt'],
+        "tofu.tests.tests06_mesh.test_data": ['*.txt', '*.npz'],
         "tofu.geom.inputs": ["*.txt"],
         "tofu.mag.mag_ripple": ['*.sh', '*.f']
     },
