@@ -645,3 +645,91 @@ def inv_linear_DisPrinc_sparse(
 
     reg = sol.dot(R.dot(sol))           # regularity term
     return sol, lmu[-1], lchi2n[-1], reg, niter, None
+
+
+# #############################################################################
+# #############################################################################
+#               Non-regularized - least squares
+# #############################################################################
+
+
+def inv_linear_leastsquares_bounds(
+    Tn=None,
+    TTn=None,
+    Tyn=None,
+    R=None,
+    yn=None,
+    sol0=None,
+    nchan=None,
+    mu0=None,       # useless
+    precond=None,
+    verb=None,
+    verb2head=None,
+    # specific
+    A=None,
+    b=None,
+    maxiter=None,
+    tol=None,
+    lsmr_tol=None,
+    lsq_solver=None,
+    method=None,
+    bounds=None,
+    dconstraints=None,
+    **kwdargs,
+):
+    """
+    Discrepancy principle: find mu such that chi2n = 1 +/- tol
+    """
+
+    # ---------
+    # check inputs
+
+    verbscp = verb
+    if method is None:
+        method = 'trf'
+    if lsq_solver is None:
+        if scpsp.issparse(Tn):
+            lsq_solver = 'lsmr'
+        else:
+            lsq_solver = 'exact'
+
+    # ------------
+    # optimization
+
+    # verb
+    if verb >= 2:
+        chi2n0 = np.sum((Tn.dot(sol0) - yn)**2) / nchan
+        print(
+            f"{verb2head}\n\t\t\t {nchan} * {chi2n0:.3e} = {nchan*chi2n0:.3e}",
+            end='\n',
+        )
+
+    # optimize
+    res = scpop.lsq_linear(
+        Tn,
+        yn,
+        bounds=bounds,
+        method=method,
+        tol=tol,
+        lsq_solver=lsq_solver,
+        lsmr_tol=lsmr_tol,
+        max_iter=maxiter,
+        verbose=verb,
+    )
+
+    # --------
+    # return
+
+    chi2n = np.sum((Tn.dot(res.x) - yn)**2) / nchan
+
+    # verb
+    if verb >= 2:
+        temp = f"{nchan} * {chi2n:.3e} = {nchan * chi2n:.3e}"
+        print(f"\t\t{res.nfev} \t {temp}")
+
+    if dconstraints is None:
+        return res.x, None, chi2n, None, res.nit, None
+    else:
+        return (
+            dconstraints['coefs'].dot(res.x) + dconstraints['offset']
+        )

@@ -19,6 +19,396 @@ _ELEMENTS = 'knots'
 
 # #############################################################################
 # #############################################################################
+#               DEPRECATED ?
+# #############################################################################
+
+
+# def _get_RZ(arr, name=None, shapeRZ=None):
+    # if arr.ndim == 1:
+        # if np.any(np.diff(arr) <= 0.):
+            # msg = "Non-increasing {}".format(name)
+            # raise Exception(msg)
+    # else:
+        # lc = [np.all(np.diff(arr[0, :])) > 0.,
+              # np.all(np.diff(arr[:, 0])) > 0.]
+        # if np.sum(lc) != 1:
+            # msg = "Impossible to know {} dimension!".format(name)
+            # raise Exception(msg)
+        # if lc[0]:
+            # arr = arr[0, :]
+            # if shapeRZ[1] is None:
+                # shapeRZ[1] = name
+            # if shapeRZ[1] != name:
+                # msg = "Inconsistent shapeRZ"
+                # raise Exception(msg)
+        # else:
+            # arr = arr[:, 0]
+            # if shapeRZ[0] is None:
+                # shapeRZ[0] = name
+            # if shapeRZ[0] != name:
+                # msg = "Inconsistent shapeRZ"
+                # raise Exception(msg)
+    # return arr, shapeRZ
+
+
+# def _duplicates(arr, arru, nn, name=None, msg=None):
+    # msg += (
+        # "  Duplicate {}: {}\n".format(name, nn - arru.shape[0])
+        # + "\t- {}.shape: {}\n".format(name, arr.shape)
+        # + "\t- unique shape: {}".format(arru.shape)
+    # )
+    # return msg
+
+
+# def _check_trimesh_conformity(nodes, faces, key=None):
+    # nnodes = nodes.shape[0]
+    # nfaces = faces.shape[0]
+
+    # # Test for duplicates
+    # nodesu = np.unique(nodes, axis=0)
+    # facesu = np.unique(faces, axis=0)
+    # lc = [nodesu.shape[0] != nnodes,
+          # facesu.shape[0] != nfaces]
+    # if any(lc):
+        # msg = "Non-valid mesh ddata[{0}]: \n".format(key)
+        # if lc[0]:
+            # msg = _duplicates(nodes, nodesu, nnodes, name='nodes', msg=msg)
+        # if lc[1]:
+            # msg = _duplicates(faces, facesu, nfaces, name='faces', msg=msg)
+        # raise Exception(msg)
+
+    # # Test for unused nodes
+    # facesu = np.unique(facesu)
+    # c0 = np.all(facesu >= 0) and facesu.size == nnodes
+    # if not c0:
+        # ino = str([ii for ii in range(0, nnodes) if ii not in facesu])
+        # msg = "Unused nodes in ddata[{0}]:\n".format(key)
+        # msg += "    - unused nodes indices: {}".format(ino)
+        # warnings.warn(msg)
+
+    # # Check counter-clockwise orientation
+    # x, y = nodes[faces, 0], nodes[faces, 1]
+    # orient = ((y[:, 1] - y[:, 0])*(x[:, 2] - x[:, 1])
+              # - (y[:, 2] - y[:, 1])*(x[:, 1] - x[:, 0]))
+
+    # clock = orient > 0.
+    # if np.any(clock):
+        # msg = ("Some triangles not counter-clockwise\n"
+               # + "  (necessary for matplotlib.tri.Triangulation)\n"
+               # + "    => {}/{} triangles reshaped".format(clock.sum(), nfaces))
+        # warnings.warn(msg)
+        # faces[clock, 1], faces[clock, 2] = faces[clock, 2], faces[clock, 1]
+    # return faces
+
+# DEPRECATED ?
+# def _check_mesh_temp(data=None, key=None):
+    # # Check if provided data is mesh (as a dict)
+
+    # # ------------
+    # # Check basics
+    # lmok = ['rect', 'tri', 'quadtri']
+    # c0 = (
+        # isinstance(data, dict)
+        # and all([ss in data.keys() for ss in ['type']])
+        # and data['type'] in lmok
+        # and (
+            # (
+                # data['type'] == 'rect'
+                # and all([ss in data.keys() for ss in ['R', 'Z']])
+                # and isinstance(data['R'], np.ndarray)
+                # and isinstance(data['Z'], np.ndarray)
+                # and data['R'].ndim in [1, 2]
+                # and data['Z'].ndim in [1, 2]
+            # )
+            # or (
+                # data['type'] in ['tri', 'quadtri', 'quad']
+                # and all([ss in data.keys() for ss in ['nodes', 'faces']])
+                # and isinstance(data['nodes'], np.ndarray)
+                # and isinstance(data['faces'], np.ndarray)
+                # and data['nodes'].ndim == 2
+                # and data['faces'].ndim == 2
+                # and data['faces'].dtype == np.int
+                # and data['nodes'].shape[1] == 2
+                # and (
+                    # (
+                        # data['type'] in ['tri', 'quadtri']
+                        # and data['faces'].shape[1] == 3
+                    # )
+                    # or (
+                        # data['type'] == 'quad'
+                        # and data['faces'].shape[1] == 4
+                    # )
+                # )
+                # and np.max(data['faces']) <= data['nodes'].shape[0]
+            # )
+        # )
+    # )
+    # if not c0:
+        # msg = (
+            # """
+            # A mesh should be a dict of one of the following form:
+
+                # dict(
+                 # 'type': 'rect',
+                 # 'R': np.ndarray (with ndim in [1, 2]),
+                 # 'Z': np.ndarray (with ndim in [1, 2]),
+                 # 'shapeRZ': ('R', 'Z') or ('Z', 'R')
+                # )
+
+                 # dict(
+                 # 'type': 'tri' or 'quadtri',
+                 # 'nodes': np.ndarray of shape (N, 2),
+                 # 'faces': np.ndarray of int of shape (N, 3)
+                # )
+
+                # dict(
+                 # 'type': 'quad',
+                 # 'nodes': np.ndarray of shape (N, 2),
+                 # 'faces': np.ndarray of int of shape (N, 4)
+                # )
+
+            # Provided:
+            # {}
+            # """.format(data)
+        # )
+        # raise Exception(msg)
+
+    # # ------------
+    # # Check per type
+    # if data['type'] == 'rect':
+
+        # shapeRZ = data.get('shapeRZ', [None, None])
+        # if shapeRZ is None:
+            # shapeRZ = [None, None]
+        # else:
+            # shapeRZ = list(shapeRZ)
+
+        # R, shapeRZ = _get_RZ(data['R'], name='R', shapeRZ=shapeRZ)
+        # Z, shapeRZ = _get_RZ(data['Z'], name='Z', shapeRZ=shapeRZ)
+        # shapeRZ = tuple(shapeRZ)
+
+        # if shapeRZ not in [('R', 'Z'), ('Z', 'R')]:
+            # msg = "Inconsistent shapeRZ"
+            # raise Exception(msg)
+
+        # def trifind(
+            # r, z,
+            # Rbin=0.5*(R[1:] + R[:-1]),
+            # Zbin=0.5*(Z[1:] + Z[:-1]),
+            # nR=R.size, nZ=Z.size,
+            # shapeRZ=shapeRZ
+        # ):
+            # indR = np.searchsorted(Rbin, r)
+            # indZ = np.searchsorted(Zbin, z)
+            # indR[(r < R[0]) | (r > R[-1])] = -1
+            # indZ[(z < Z[0]) | (z > Z[-1])] = -1
+            # return indR, indZ
+            # # if shapeRZ == ('R', 'Z'):
+            # #     indpts = indR*nZ + indZ
+            # # else:
+            # #     indpts = indZ*nR + indR
+            # # indout = ((r < R[0]) | (r > R[-1])
+            # #           | (z < Z[0]) | (z > Z[-1]))
+            # # indpts[indout] = -1
+            # # return indpts
+
+        # data['R'] = R
+        # data['Z'] = Z
+        # data['shapeRZ'] = shapeRZ
+        # data['nR'] = R.size
+        # data['nZ'] = Z.size
+        # data['shape'] = (R.size, Z.size)
+        # data['trifind'] = trifind
+        # data['ftype'] = data.get('ftype', 0)
+
+        # if data['ftype'] != 0:
+            # msg = "Linear interpolation not handled yet !"
+            # raise Exception(msg)
+
+    # else:
+        # # Check mesh conformity for triangulation
+        # data['faces'] = _check_trimesh_conformity(
+            # nodes=data['nodes'], faces=data['faces'], key=key
+        # )
+
+        # data['nnodes'] = data['nodes'].shape[0]
+        # data['nfaces'] = data['faces'].shape[0]
+        # data['ftype'] = data.get('ftype', 0)
+
+        # # Convert 'quad' to 'quadtri' if relevant
+        # if data['type'] == 'quad':
+            # # Convert to tri mesh (solution for unstructured meshes)
+            # faces = np.empty((data['nfaces']*2, 3), dtype=int)
+            # faces[::2, :] = data['faces'][:, :3]
+            # faces[1::2, :-1] = data['faces'][:, 2:]
+            # faces[1::2, -1] = data['faces'][:, 0]
+            # data['faces'] = faces
+            # data['type'] = 'quadtri'
+            # data['ntri'] = 2
+
+            # # Re-check mesh conformity
+            # data['faces'] = _check_trimesh_conformity(
+                # nodes=data['nodes'], faces=data['faces'], key=key
+            # )
+
+        # # Check ntri
+        # if data['type'] == 'tri':
+            # data['ntri'] = 1
+        # elif 'ntri' not in data.keys():
+            # msg = (
+                # """
+                # For ddata[{}] of type 'quadtri', 'ntri' must be provided
+                # """.format(key)
+            # )
+            # raise Exception(msg)
+
+        # # Only triangular meshes so far
+        # if 'tri' in data['type']:
+            # if data.get('mpltri', None) is None:
+                # data['mpltri'] = mplTri(
+                    # data['nodes'][:, 0],
+                    # data['nodes'][:, 1],
+                    # data['faces']
+                # )
+            # if not isinstance(data['mpltri'], mplTri):
+                # msg = (
+                    # """
+                    # ddata[{}]['mpltri'] must be a matplotlib Triangulation
+                    # Provided:
+                    # {}
+                    # """.format(key, data['mpltri'])
+                # )
+            # assert data['ftype'] in [0, 1]
+            # if data['ftype'] == 1:
+                # data['shape'] = (data['nnodes'],)
+            # else:
+                # data['shape'] = (int(data['nfaces'] / data['ntri']),)
+
+    # return data, data['shape']
+
+
+# ALL USEFUL FROM HERE
+
+# #############################################################################
+# #############################################################################
+#                          add data on mesh / bsplines
+# #############################################################################
+
+
+def add_data_meshbsplines_ref(
+    ref=None,
+    data=None,
+    # ressources
+    dmesh=None,
+    dbsplines=None,
+):
+
+    if dmesh is None or dbsplines is None:
+        return ref, data
+
+    # ref is str
+    if isinstance(ref, str):
+        ref = [ref]
+
+    # ref is tuple
+    if isinstance(ref, (tuple, list)):
+
+        # ref contains mesh
+        rm = [(ii, rr) for ii, rr in enumerate(ref) if rr in dmesh.keys()]
+        if len(rm) > 1:
+            msg = (
+                "ref contains references to several meshes!\n"
+                f"\t- ref: {ref}\n"
+                f"\t- meshes: {rm}\n"
+            )
+            raise Exception(msg)
+
+        elif len(rm) == 1:
+            ref = list(ref)
+            kbs = [
+                k0 for k0, v0 in dbsplines.items()
+                if v0['mesh'] == rm[0][1]
+            ]
+            if len(kbs) == 1:
+                ref[rm[0][0]] = kbs[0]
+            elif len(kbs) > 1:
+                msg = (
+                    "ref contains reference to mesh with several bsplines!\n"
+                    f"\t- ref: {ref}\n"
+                    f"\t- mesh bsplines: {kbs}\n"
+                )
+                raise Exception(msg)
+
+        # ref contains bsplines
+        rbs = [(ii, rr) for ii, rr in enumerate(ref) if rr in dbsplines.keys()]
+        if len(rbs) > 1:
+            msg = (
+                "ref contains references to several bsplines!"
+                f"\t- ref: {ref}\n"
+                f"\t- splines: {rbs}\n"
+            )
+            raise Exception(msg)
+
+        elif len(rbs) == 1:
+            ref = np.r_[
+                ref[:rbs[0][0]],
+                dbsplines[rbs[0][1]]['ref'],
+                ref[rbs[0][0]+1:],
+            ]
+
+            # repeat data if taken from ntri > 1 
+            data = _repeat_data_ntri(
+                ref=ref,
+                rbs1=rbs[0][1],
+                refbs=dbsplines[rbs[0][1]]['ref'],
+                data=data,
+                # mesh
+                km=dbsplines[rbs[0][1]]['mesh'],
+                dmesh=dmesh,
+                dbsplines=dbsplines,
+            )
+
+    return tuple(ref), data
+
+
+def _repeat_data_ntri(
+    ref=None,
+    rbs1=None,
+    refbs=None,
+    data=None,
+    # mesh
+    km=None,
+    dmesh=None,
+    dbsplines=None,
+):
+    """ If triangular mesh with ntri > 1 => repeat data """
+
+    c0 = (
+        dmesh[km]['type'] == 'tri'
+        and dmesh[km]['ntri'] > 1
+    )
+    if c0:
+        ntri = dmesh[km]['ntri']
+        indr = ref.tolist().index(refbs[0])
+        nbs = dbsplines[rbs1]['shape'][0]
+        ndata = data.shape[indr]
+        if ndata == nbs:
+            pass
+        elif ndata == nbs / ntri:
+            data = np.repeat(data, ntri, axis=indr)
+        else:
+            msg = (
+                "Mismatching data shape vs multi-triangular mesh:\n"
+                f"\t- data.shape[tribs] = {ndata}\n"
+                f"\t- expected {nbs} / {ntri} = {nbs / ntri}\n"
+            )
+            raise Exception(msg)
+
+    return data
+
+
+# #############################################################################
+# #############################################################################
 #                           mesh generic check
 # #############################################################################
 
@@ -58,14 +448,13 @@ def _mesh2D_check(
         raise Exception(msg)
 
     elif lc[0]:
-        dref, dmesh = _mesh2DRect_to_dict(
+        dref, ddata, dmesh = _mesh2DRect_to_dict(
             domain=domain,
             res=res,
             R=R,
             Z=Z,
             key=key,
         )
-        ddata = None
 
     elif lc[1]:
         dref, ddata, dmesh = _mesh2DTri_to_dict(
@@ -74,7 +463,269 @@ def _mesh2D_check(
             trifind=trifind,
             key=key,
         )
+
     return dref, ddata, dmesh
+
+
+def _mesh2D_polar_check(
+    coll=None,
+    radius=None,
+    angle=None,
+    radius2d=None,
+    angle2d=None,
+    key=None,
+    # parameters
+    radius_dim=None,
+    radius_quant=None,
+    radius_name=None,
+    radius_units=None,
+    angle_dim=None,
+    angle_quant=None,
+    angle_name=None,
+):
+
+    # key
+    key = _generic_check._check_var(
+        key, 'key',
+        types=str,
+        excluded=list(coll.dobj.get('mesh', {}).keys())
+    )
+
+    # --------------------
+    # check / format input
+
+    krk, krc = f'{key}-r-nk', f'{key}-r-nc'
+    kkr, kcr = f'{key}-r-k', f'{key}-r-c'
+
+    kak, kac = f'{key}-ang-nk', f'{key}-ang-nc'
+    kka, kca = f'{key}-ang-k', f'{key}-ang-c'
+
+    # radius data
+    c0 = (
+        hasattr(radius, '__iter__')
+        and np.asarray(radius).ndim == 1
+        and np.unique(radius).size == np.array(radius).size
+        and np.allclose(np.unique(radius), radius)
+    )
+    if not c0:
+        msg = (
+            "Arg radius must be convertible to a 1d increasing array\n"
+            f"\t- Provided: {radius}"
+        )
+        raise Exception(msg)
+
+    # angle data
+    c0 = (
+        angle is None
+        or (
+            hasattr(angle, '__iter__')
+            and np.asarray(angle).ndim == 1
+            and np.unique(angle).size == np.array(angle).size
+            and np.allclose(
+                np.unique(np.arctan2(np.sin(angle), np.cos(angle))),
+                angle,
+            )
+        )
+    )
+    if not c0:
+        msg = (
+            "Arg angle either\n:"
+            "\t- None: radial-only polar mesh"
+            "\t- convertible to a 1d increasing array\n"
+            "\t\t it must be in radians\n"
+            "\t\t it must be in the [-pi; pi] interval\n"
+            f"\t- Provided: {angle}"
+        )
+        raise Exception(msg)
+
+    # extract data
+    rknot = np.unique(radius)
+    rcent = 0.5*(rknot[1:] + rknot[:-1])
+
+    # radius2d
+    dradius = _check_polar_2dquant(
+        coll=coll,
+        quant2d=radius2d,
+        quant2d_name='radius2d',
+        dim=radius_dim,
+        quant=radius_quant,
+        name=radius_name,
+        units=radius_units,
+    )
+
+    if callable(radius2d):
+        keysm = None
+    else:
+        keysm = coll.dobj['bsplines'][coll.ddata[radius2d]['bsplines']]['mesh']
+
+    if angle is not None:
+        aknot = np.unique(np.arctan2(np.sin(angle), np.cos(angle)))
+        acent = 0.5*(aknot[1:] + aknot[:-1])
+        amid = 0.5*(aknot[-1] + (2.*np.pi + aknot[0]))
+        amid = np.arctan2(np.sin(amid), np.cos(amid))
+        if amid < acent[0]:
+            acent = np.r_[amid, acent]
+        else:
+            acent = np.r_[acent, amid]
+
+    # -------
+    # angle2d
+
+    if angle2d is not None:
+        dangle = _check_polar_2dquant(
+            coll=coll,
+            quant2d=angle2d,
+            quant2d_name='angle2d',
+            dim=angle_dim,
+            quant=angle_quant,
+            name=angle_name,
+            units='rad',
+        )
+
+        # check angle units = rad
+        if dangle['units'] != 'rad':
+            msg = (
+                "Angle units must be rad\n"
+                f"\t Provided: {dangle['units']}"
+            )
+            raise Exception(msg)
+
+        # check angle2d is like radius2d
+        c0 = (
+            (callable(radius2d) and callable(angle2d))
+            or coll._ddata[radius2d]['ref'] == coll._ddata[angle2d]['ref']
+        )
+        if not c0:
+            msg = (
+                "radius2d and angle2d must be of the same type, either:\n"
+                "\t- both callable\n"
+                "\t- both data keys with identical ref!\n"
+                f"Provided:\n"
+                f"\t- radius2d: {radius2d}\n"
+                f"\t- angle2d: {angle2d}\n"
+            )
+            raise Exception(msg)
+
+    # --------------------
+    # prepare dict
+
+    # dref
+    dref = {
+        krk: {'size': rknot.size},
+        krc: {'size': rcent.size},
+    }
+
+    if angle is not None:
+        dref.update({
+            kak: {
+                'size': aknot.size,
+            },
+            kac: {
+                'size': acent.size,
+            },
+        })
+
+    # ddata
+    ddata = {
+        kkr: {
+            'data': rknot,
+            'ref': krk,
+            **dradius,
+        },
+        kcr: {
+            'data': rcent,
+            'ref': krc,
+            **dradius,
+        },
+    }
+
+    if angle is not None:
+        ddata.update({
+            kka: {
+                'data': aknot,
+                'ref': kak,
+                **dangle,
+            },
+            kca: {
+                'data': acent,
+                'ref': kac,
+                **dangle,
+            },
+        })
+
+    # dobj
+    if angle is None:
+        dmesh = {
+            key: {
+                'type': 'polar',
+                'knots': (kkr,),
+                'cents': (kcr,),
+                'shape-c': rcent.shape,
+                'shape-k': rknot.shape,
+                'radius2d': radius2d,
+                'angle2d': angle2d,
+                'submesh': keysm,
+                'crop': False,
+            },
+        }
+    else:
+        dmesh = {
+            key: {
+                'type': 'polar',
+                'knots': (kkr, kka),
+                'cents': (kcr, kca),
+                'shape-c': (rcent.size, acent.size),
+                'shape-k': (rknot.size, aknot.size),
+                'radius2d': radius2d,
+                'angle2d': angle2d,
+                'submesh': keysm,
+                'crop': False,
+            },
+        }
+
+    return dref, ddata, dmesh
+
+
+def _check_polar_2dquant(
+    quant2d=None,
+    coll=None,
+    quant2d_name=None,
+    # parameters
+    dim=None,
+    quant=None,
+    name=None,
+    units=None,
+):
+
+    if coll.dobj.get('bsplines') is not None:
+        lok = [
+            k0 for k0, v0 in coll.ddata.items()
+            if v0['bsplines'] in coll.dobj['bsplines'].keys()
+        ]
+    else:
+        lok = []
+
+    lc = [
+        callable(quant2d),
+        isinstance(quant2d, str) and quant2d in lok
+    ]
+    if not any(lc):
+        msg = (
+            f"Arg {quant2d_name} must be either:\n"
+            f"\t- callable: {quant2d_name} = func(R, Z)\n"
+            f"\t- key to existing 2d data in {lok}\n"
+            f"Provided: {quant2d}\n"
+        )
+        raise Exception(msg)
+
+    # quantities
+    dquant = {'dim': dim, 'quant': quant, 'name': name, 'units': units}
+    if isinstance(quant2d, str):
+        for k0 in dquant.keys():
+            if dquant[k0] is None:
+                dquant[k0] = str(coll.ddata[quant2d][k0])
+
+    return dquant
 
 
 # #############################################################################
@@ -99,7 +750,7 @@ def _mesh2DTri_conformity(knots=None, cents=None, key=None):
         and knots.shape[0] >= 3
         and cents.shape[1] in [3, 4]
         and cents.shape[0] >= 1
-        and cents.dtype == np.int
+        and cents.dtype == int
     )
     if not c0:
         msg = (
@@ -152,25 +803,40 @@ def _mesh2DTri_conformity(knots=None, cents=None, key=None):
         )
         raise Exception(msg)
 
-    # ---------------------
-    # Test for unused knots
+    # -------------------------------
+    # Test for unused / unknown knots
 
     centsu = np.unique(centsu)
     c0 = np.all(centsu >= 0) and centsu.size == nknots
+
+    # unused knots
+    ino = (~np.in1d(
+        range(0, nknots),
+        centsu,
+        assume_unique=False,
+        invert=False,
+    )).nonzero()[0]
+
+    # unknown knots
+    unknown = np.setdiff1d(centsu, range(nknots), assume_unique=True)
+
+    if ino.size > 0 or unknown.size > 0:
+        msg = "Knots non-conformity identified:\n"
+        if ino.size > 0:
+            msg += f"\t- Unused knots indices: {ino}\n"
+        if unknown.size > 0:
+            msg += f"\t- Unknown knots indices: {unknown}\n"
+        raise Exception(msg)
+
     if centsu.size < nknots:
-        ino = (~np.in1d(
-            range(0, nknots),
-            centsu,
-            assume_unique=False,
-            invert=False,
-        )).nonzero()[0]
         msg = (
             f"Unused knots in {key}:\n"
             f"\t- unused knots indices: {ino}"
         )
         warnings.warn(msg)
+
     elif centsu.size > nknots or centsu.max() != nknots - 1:
-        unknown = np.setdiff1d(centsu, range(nknots), assume_sorted=True)
+        unknown = np.setdiff1d(centsu, range(nknots), assume_unique=True)
         msg = (
             "Unknown knots refered to in cents!\n"
             f"\t- unknown knots: {unknown}"
@@ -215,13 +881,7 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
 
         # check clock-wise triangles
         cents = _mesh2DTri_clockwise(knots=knots, cents=cents, key=key)
-
-        # check trifinder
-        if trifind is None:
-            mpltri = mplTri(knots[:, 0], knots[:, 1], cents)
-            trifind = mpltri.get_trifinder()
-
-        meshtype = 'tri'
+        ntri = 1
 
     # Quadrangular mesh => convert to triangular
     elif cents.shape[1] == 4:
@@ -235,13 +895,12 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
         # Re-check mesh conformity
         cents, knots = _mesh2DTri_conformity(knots=knots, cents=cents, key=key)
         cents = _mesh2DTri_clockwise(knots=knots, cents=cents, key=key)
+        ntri = 2
 
-        # check trifinder
-        if trifind is None:
-            mpltri = mplTri(knots[:, 0], knots[:, 1], cents)
-            trifind = mpltri.get_trifinder()
-
-        meshtype = 'quadtri'
+    # check trifinder
+    if trifind is None:
+        mpltri = mplTri(knots[:, 0], knots[:, 1], cents)
+        trifind = mpltri.get_trifinder()
 
     # ----------------------------
     # Check on trifinder function
@@ -262,100 +921,81 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
     # -----------------
     # Format ouput dict
 
-    kcents = f"{key}-cents"
-    kcentsR = f"{kcents}-R"
-    kcentsZ = f"{kcents}-Z"
-    kcents_pts = f"{kcents}-pts"
-    kcents_ind = f"{kcents}-ind"
-    kknots = f"{key}-knots"
-    kknotsR = f"{kknots}-R"
-    kknotsZ = f"{kknots}-Z"
-    kknots_ind = f"{kknots}-ind"
+    kk = f"{key}-nk"
+    kc = f"{key}-nc"
+    ki = f"{key}-nind"
+
+    kcR = f"{key}-c-R"
+    kcZ = f"{key}-c-Z"
+    kkR = f"{key}-k-R"
+    kkZ = f"{key}-k-Z"
+    kii = f"{key}-ind"
 
     # dref
     dref = {
-        kknots_ind: {
-            'data': np.arange(0, knots.shape[0]),
-            'units': '',
-            # 'source': None,
-            'dim': '',
-            'quant': 'ind',
-            'name': 'ind',
-            'group': 'ind',
+        kk: {
+            'size': knots.shape[0],
         },
-        kcents_ind: {
-            'data': np.arange(0, cents.shape[0]),
-            'units': 'm',
-            # 'source': None,
-            'dim': 'distance',
-            'quant': 'Z',
-            'name': 'Z',
-            'group': 'Z',
+        kc: {
+            'size': cents.shape[0],
         },
-        kcents_pts: {
-            'data': np.arange(0, 3),
-            'units': '',
-            # 'source': None,
-            'dim': '',
-            'quant': 'ind',
-            'name': 'ind',
-            'group': 'ind',
+        ki: {
+            'size': 3,
         },
     }
 
     # ddata
     ddata = {
-        kknotsR: {
+        kkR: {
             'data': knots[:, 0],
-            'ref': (kknots_ind,),
             'units': 'm',
             'quant': 'R',
             'dim': 'distance',
-            'group': 'R',
+            'ref': kk,
         },
-        kknotsZ: {
+        kkZ: {
             'data': knots[:, 1],
-            'ref': (kknots_ind,),
             'units': 'm',
             'quant': 'Z',
             'dim': 'distance',
-            'group': 'Z',
+            'ref': kk,
         },
-        kcentsR: {
+        kcR: {
             'data': np.mean(knots[cents, 0], axis=1),
-            'ref': (kcents_ind,),
             'units': 'm',
             'quant': 'R',
             'dim': 'distance',
-            'group': 'R',
+            'ref': kc,
         },
-        kcentsZ: {
+        kcZ: {
             'data': np.mean(knots[cents, 1], axis=1),
-            'ref': (kcents_ind,),
             'units': 'm',
             'quant': 'Z',
             'dim': 'distance',
-            'group': 'Z',
+            'ref': kc,
         },
-        kcents: {
+        kii: {
             'data': cents,
-            'ref': (kcents_ind, kcents_pts),
-            'units': '',
-            'quant': 'ind',
-            'dim': 'ind',
-            'group': 'ind',
+            # 'units': '',
+            'quant': 'indices',
+            'dim': 'indices',
+            'ref': (kc, ki),
         },
     }
 
     # dobj
     dmesh = {
         key: {
-            'type': meshtype,
-            'cents': kcents,
-            'knots': kknots,
-            'ref': (kcents,),
-            'shape': (cents.shape[0],),
-            'trifind': trifind,
+            'type': 'tri',
+            'ntri': ntri,
+            'cents': (kcR, kcZ),
+            'knots': (kkR, kkZ),
+            'ind': kii,
+            # 'ref-k': (kk,),
+            # 'ref-c': (kc,),
+            'shape-c': (cents.shape[0],),
+            'shape-k': (knots.shape[0],),
+            'func_trifind': trifind,
             'crop': False,
         },
     }
@@ -581,8 +1221,10 @@ def _mesh2DRect_to_dict(
     # --------------------
     # check / format input
 
-    kRknots, kZknots = f"{key}-R-knots", f"{key}-Z-knots"
-    kRcent, kZcent = f"{key}-R-cents", f"{key}-Z-cents"
+    kRk, kZk = f'{key}-R-nk', f'{key}-Z-nk'
+    kRc, kZc = f'{key}-R-nc', f'{key}-Z-nc'
+    kkR, kkZ = f"{key}-k-R", f"{key}-k-Z"
+    kcR, kcZ = f"{key}-c-R", f"{key}-c-Z"
 
     R, Z, resR, resZ, indR, indZ = _mesh2DRect_check(
         domain=domain,
@@ -598,42 +1240,59 @@ def _mesh2DRect_to_dict(
     # --------------------
     # prepare dict
 
+    # dref
     dref = {
-        kRknots: {
+        kRk: {
+            'size': R.size,
+        },
+        kZk: {
+            'size': Z.size,
+        },
+        kRc: {
+            'size': Rcent.size,
+        },
+        kZc: {
+            'size': Zcent.size,
+        },
+    }
+
+    # ddata
+    ddata = {
+        kkR: {
             'data': R,
             'units': 'm',
             # 'source': None,
             'dim': 'distance',
             'quant': 'R',
             'name': 'R',
-            'group': 'R',
+            'ref': kRk,
         },
-        kZknots: {
+        kkZ: {
             'data': Z,
             'units': 'm',
             # 'source': None,
             'dim': 'distance',
             'quant': 'Z',
             'name': 'Z',
-            'group': 'Z',
+            'ref': kZk,
         },
-        kRcent: {
+        kcR: {
             'data': Rcent,
             'units': 'm',
             # 'source': None,
             'dim': 'distance',
             'quant': 'R',
             'name': 'R',
-            'group': 'R',
+            'ref': kRc,
         },
-        kZcent: {
+        kcZ: {
             'data': Zcent,
             'units': 'm',
             # 'source': None,
             'dim': 'distance',
             'quant': 'Z',
             'name': 'Z',
-            'group': 'Z',
+            'ref': kZc,
         },
     }
 
@@ -641,15 +1300,17 @@ def _mesh2DRect_to_dict(
     dmesh = {
         key: {
             'type': 'rect',
-            'knots': (kRknots, kZknots),
-            'cents': (kRcent, kZcent),
-            'ref': (kRcent, kZcent),
-            'shape': (Rcent.size, Zcent.size),
+            'knots': (kkR, kkZ),
+            'cents': (kcR, kcZ),
+            # 'ref-k': (kRk, kZk),
+            # 'ref-c': (kRc, kZc),
+            'shape-c': (Rcent.size, Zcent.size),
+            'shape-k': (R.size, Z.size),
             'variable': variable,
             'crop': False,
         },
     }
-    return dref, dmesh
+    return dref, ddata, dmesh
 
 
 def _mesh2DRect_from_croppoly(crop_poly=None, domain=None):
@@ -743,12 +1404,13 @@ def _select_ind_check(
     returnas=None,
     crop=None,
     meshtype=None,
+    shape2d=None,
 ):
 
     # ----------------------
     # check basic conditions
 
-    if meshtype == 'rect':
+    if shape2d:
         lc = [
             ind is None,
             isinstance(ind, tuple)
@@ -771,6 +1433,7 @@ def _select_ind_check(
                 or isinstance(ind, np.ndarray)
             )
         ]
+
     else:
         lc = [
             ind is None,
@@ -782,8 +1445,9 @@ def _select_ind_check(
             or isinstance(ind, np.ndarray)
         ]
 
+    # check lc
     if not any(lc):
-        if meshtype == 'rect':
+        if shape2d:
             msg = (
                 "Arg ind must be either:\n"
                 "\t- None\n"
@@ -806,7 +1470,8 @@ def _select_ind_check(
 
     if lc[0]:
         pass
-    elif lc[1] and meshtype == 'rect':
+
+    elif lc[1] and shape2d:
         if any([not isinstance(ss, np.ndarray) for ss in ind]):
             ind = (
                 np.atleast_1d(ind[0]).astype(int),
@@ -839,7 +1504,8 @@ def _select_ind_check(
                 f"\t- ind: {ind}"
             )
             raise Exception(msg)
-    elif lc[1] and meshtype in ['tri', 'quadtri']:
+
+    elif lc[1] and not shape2d:
         if not isinstance(ind, np.ndarray):
             ind = np.atleast_1d(ind).astype(int)
         c0 = (
@@ -855,15 +1521,15 @@ def _select_ind_check(
 
     else:
         if not isinstance(ind, np.ndarray):
-            ind = np.atleast_1d(ind).astype(int)
+             ind = np.atleast_1d(ind).astype(int)
         c0 = (
             np.issubdtype(ind.dtype, np.integer)
             or np.issubdtype(ind.dtype, np.bool_)
         )
         if not c0:
             msg = (
-                "Arg ind must be an array of bool or int\n"
-                f"Provided: {ind.dtype}"
+                 "Arg ind must be an array of bool or int\n"
+                 f"Provided: {ind.dtype}"
             )
             raise Exception(msg)
 
@@ -876,12 +1542,13 @@ def _select_ind_check(
     )
 
     # returnas
-    if meshtype == 'rect':
+    if shape2d:
         retdef = tuple
         retok = [tuple, np.ndarray, 'tuple-flat', 'array-flat', bool]
     else:
         retdef = bool
         retok = [int, bool]
+
     returnas = _generic_check._check_var(
         returnas, 'returnas',
         types=None,

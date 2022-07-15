@@ -15,6 +15,7 @@ from matplotlib.tri import Triangulation as mplTri
 from . import _generic_check
 from . import _mesh_checks
 from . import _mesh_bsplines_operators_tri
+from . import _mesh_bsplines_rect as _mbr
 
 
 # #############################################################################
@@ -29,7 +30,6 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
     Defined from knots (unique) and deg
     coefs set to 1 by default
 
-    Used self.set_coefs() to update
     """
 
     def __init__(
@@ -99,6 +99,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
             raise NotImplementedError()
 
         self.nbs = nbs
+        self.shapebs = (nbs,)
         self.coefs = np.ones((nbs,), dtype=float)
 
     def _get_cents_per_knots(self):
@@ -243,6 +244,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                 cents_per_bs = ind_num[:, None]
             if return_knots:
                 knots_per_bs = self.cents[ind, :]
+
         elif self.deg == 1:
             if return_cents or return_knots:
                 cents_per_bs = self.cents_per_knots[ind, :]
@@ -264,6 +266,8 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         # return
 
         if returnas == 'data':
+
+            # cents
             if return_cents:
                 nmax = np.sum(cents_per_bs >= 0, axis=1)
                 cents_per_bs_temp = np.full((2, nbs, nmax.max()), np.nan)
@@ -278,6 +282,8 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                         axis=1,
                     )
                 cents_per_bs = cents_per_bs_temp
+
+            # knots
             if return_knots:
                 nmax = np.sum(knots_per_bs >= 0, axis=1)
                 knots_per_bs_temp = np.full((2, nbs, nmax.max()), np.nan)
@@ -287,6 +293,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                     knots_per_bs_temp[1, ii, :nmax[ii]] = self.knotsZ[ind_temp]
                 knots_per_bs = knots_per_bs_temp
 
+        # return
         if return_cents and return_knots:
             return knots_per_bs, cents_per_bs
         elif return_cents:
@@ -294,38 +301,48 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         elif return_knots:
             return knots_per_bs
 
-    # DEPRECATED ?
-    def set_coefs(
+    def _get_bs_cents(
         self,
-        coefs=None,
+        ind=None,
     ):
+        """ Return (2, nbs) array of cordinates of centers per bspline
+
+        """
 
         # ------------
         # check inputs
 
-        # trivial case
-        if coefs is None:
-            return
+        if ind is None:
+            ind = np.ones((self.nbs,), dtype=bool)
 
         # ------------
-        # set coefs
+        # added for details
 
-        if np.isscalar(coefs):
-            self.coefs[...] = coefs
-        else:
-            if not isinstance(coefs, np.ndarray):
-                coefs = np.asarray(coefs)
-            if coefs.shape != (self.nbs,):
-                msg = (
-                    "Arg coefs has wrong shape!\n"
-                    f"\t- expected: {(self.nbs,)}\n"
-                    f"\t- provided: {coefs.shape}\n"
-                )
-                raise Exception(msg)
-            self.coefs = coefs
+        if self.deg == 0:
+            bs_cents = np.array([
+                np.mean(self.knotsR[self.cents[ind, :]], axis=1),
+                np.mean(self.knotsZ[self.cents[ind, :]], axis=1),
+            ])
+
+        elif self.deg == 1:
+            bs_cents = np.array([
+                self.knotsR[ind],
+                self.knotsZ[ind],
+            ])
+
+        elif self.deg == 2:
+            raise NotImplementedError()
+
+        return bs_cents
 
     # --------
-    # evaluation
+    # evaluation checks
+
+    def _check_coefs(self, coefs=None):
+        """ None for ev_details, (nt, shapebs) for sum """
+        if coefs is not None:
+            assert coefs.ndim == len(self.shapebs) + 1
+            assert coefs.shape[1:] == self.shapebs
 
     def _ev_generic(
         self,
@@ -338,18 +355,25 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
 
         if indbs is None:
             indbs = np.ones((self.nbs,), dtype=bool)
+        else:
+            indbs = np.atleast_1d(indbs).ravel()
 
         c0 = (
             isinstance(indbs, np.ndarray)
-            and indbs.dtype == np.bool_
-            and indbs.size == self.nbs
+            and (
+                ('bool' in indbs.dtype.name and indbs.size == self.nbs)
+                or ('int' in indbs.dtype.name)
+            )
         )
         if not c0:
             msg = (
-                "Arg indbs must be  a (nbs,) bool array!"
+                "Arg indbs must be  a (nbs,) bool or int array!"
                 "\nProvided: {indbs}"
             )
             raise Exception(msg)
+
+        if 'bool' in indbs.dtype.name:
+            indbs = indbs.nonzero()[0]
 
         # indbs => indcent : triangles which are ok
         knots_per_bs, cents_per_bs = self._get_knotscents_per_bs(
@@ -363,37 +387,147 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         # -----------
         # prepare
 
-        nbs = indbs.sum()
+        nbs = indbs.size
 
         return nbs, knots_per_bs, cents_per_bs, indcent
 
+    # --------
+    # evaluation
+
     def ev_details(
         self,
-        x,
-        y,
-        indbs=None,
+        R=None,
+        Z=None,
+        # for compatibility (unused)
+        indbs_tf=None,
+        crop=None,
+        cropbs=None,
+        coefs=None,
+        nan_out=None,
     ):
 
         # -----------
         # generic
 
+        # points
+        x, y, crop = _mbr._check_RZ_crop(
+            R=R,
+            Z=Z,
+            crop=crop,
+            cropbs=cropbs,
+        )
+
+        # parameters
         nbs, knots_per_bs, cents_per_bs, indcent = self._ev_generic(
-            x, y, indbs=indbs,
+            x, y, indbs=indbs_tf,
         )
 
         # -----------
         # compute
 
-        val = np.full(tuple(np.r_[x.shape, nbs]), np.nan)
+        val = np.zeros(tuple(np.r_[x.shape, nbs]))
         heights, ind = self.get_heights_per_centsknots_pts(x, y)
 
+        indu = np.unique(ind[ind >= 0])
         if self.deg == 0:
-            for ii in np.intersect1d(np.unique(ind), indcent):
-                indi = ind == ii
-                val[indi, ii] = self.coefs[ii]
+            if indbs_tf is None:
+                for ii in np.intersect1d(indu, indcent):
+                    indi = ind == ii
+                    val[indi, ii] = 1.
+            else:
+                for ii in np.intersect1d(indu, indcent):
+                    indi = ind == ii
+                    ibs = indbs_tf == ii
+                    val[indi, ibs] = 1.
 
         elif self.deg == 1:
-            for ii in np.intersect1d(np.unique(ind), indcent):
+            if indbs_tf is None:
+                for ii in np.intersect1d(indu, indcent):
+                    indi = ind == ii
+                    # get bs
+                    ibs = np.any(cents_per_bs == ii, axis=1).nonzero()[0]
+                    sorter = np.argsort(self.cents[ii, :])
+                    inum = sorter[np.searchsorted(
+                        self.cents[ii, :],
+                        knots_per_bs[ibs, 0],
+                        sorter=sorter,
+                    )]
+                    for jj, jbs in enumerate(ibs):
+                        val[indi, jbs] = 1. - heights[indi, inum[jj]]
+            else:
+                for ii in np.intersect1d(indu, indcent):
+                    indi = ind == ii
+                    # get bs
+                    ibs = np.intersect1d(
+                        indbs_tf,
+                        np.any(cents_per_bs == ii, axis=1).nonzero()[0],
+                    )
+                    sorter = np.argsort(self.cents[ii, :])
+                    inum = sorter[np.searchsorted(
+                        self.cents[ii, :],
+                        knots_per_bs[ibs, 0],
+                        sorter=sorter,
+                    )]
+                    for jj, jbs in enumerate(ibs):
+                        ij = indbs_tf == jbs
+                        val[indi, ij] = 1. - heights[indi, inum[jj]]
+        return val
+
+    def ev_sum(
+        self,
+        R=None,
+        Z=None,
+        coefs=None,
+        nan_out=None,
+        # for compatibility (unused)
+        crop=None,
+        cropbs=None,
+        indbs_tf=None,
+    ):
+
+        # -----------
+        # generic
+
+        if nan_out is None:
+            nan_out = True
+
+        # coefs
+        self._check_coefs(coefs=coefs)
+
+        # points
+        x, y, crop = _mbr._check_RZ_crop(
+            R=R,
+            Z=Z,
+            crop=crop,
+            cropbs=cropbs,
+        )
+        nt = coefs.shape[0]
+
+        # parameters
+        nbs, knots_per_bs, cents_per_bs, indcent = self._ev_generic(
+            x, y, indbs=None,
+        )
+
+        # -----------
+        # prepare
+
+        val = np.zeros(np.r_[nt, x.shape])
+        heights, ind = self.get_heights_per_centsknots_pts(x, y)
+        if not np.isscalar(coefs):
+            newshape = np.r_[coefs.shape, 1]
+            coefs = coefs.reshape(newshape)
+
+        # -----------
+        # compute
+
+        indu = np.unique(ind[ind >= 0])
+        if self.deg == 0:
+            for ii in np.intersect1d(indu, indcent):
+                indi = ind == ii
+                val[:, indi] += coefs[:, ii, ...]
+
+        elif self.deg == 1:
+            for ii in np.intersect1d(indu, indcent):
                 indi = ind == ii
                 # get bs
                 ibs = np.any(cents_per_bs == ii, axis=1).nonzero()[0]
@@ -404,80 +538,12 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                     sorter=sorter,
                 )]
                 for jj, jbs in enumerate(ibs):
-                    val[indi, jbs] = 1. - heights[indi, inum[jj]]
+                    val[:, indi] += (
+                        1. - heights[indi, inum[jj]]
+                    ) * coefs[:, jbs, ...]
 
-        return val
-
-    def ev_sum(
-        self,
-        x,
-        y,
-        indbs=None,
-        coefs=None,
-    ):
-
-        # -----------
-        # generic
-
-        nbs, knots_per_bs, cents_per_bs, indcent = self._ev_generic(
-            x, y, indbs=indbs,
-        )
-
-        coefs = _ev_check_coefs(coefs=coefs, shapebs=(self.nbs,))
-        nt = 1 if np.isscalar(coefs) else coefs.shape[0]
-
-        # -----------
-        # prepare
-
-        val = np.full(np.r_[nt, x.shape], 0.)
-        heights, ind = self.get_heights_per_centsknots_pts(x, y)
-        if not np.isscalar(coefs):
-            reshape = np.r_[coefs.shape, 1]
-            coefs = coefs.reshape(reshape)
-
-        # -----------
-        # compute
-
-        if self.deg == 0:
-            if np.isscalar(coefs):
-                for ii in np.intersect1d(np.unique(ind), indcent):
-                    indi = ind == ii
-                    val[0, indi] += coefs
-            else:
-                for ii in np.intersect1d(np.unique(ind), indcent):
-                    indi = ind == ii
-                    val[:, indi] += coefs[:, ii, ...]
-
-        elif self.deg == 1:
-            if np.isscalar(coefs):
-                for ii in np.intersect1d(np.unique(ind), indcent):
-                    indi = ind == ii
-                    # get bs
-                    ibs = np.any(cents_per_bs == ii, axis=1).nonzero()[0]
-                    sorter = np.argsort(self.cents[ii, :])
-                    inum = sorter[np.searchsorted(
-                        self.cents[ii, :],
-                        knots_per_bs[ibs, 0],
-                        sorter=sorter,
-                    )]
-                    for jj, jbs in enumerate(ibs):
-                        val[0, indi] += (1. - heights[indi, inum[jj]])*coefs
-            else:
-                for ii in np.intersect1d(np.unique(ind), indcent):
-                    indi = ind == ii
-                    # get bs
-                    ibs = np.any(cents_per_bs == ii, axis=1).nonzero()[0]
-                    sorter = np.argsort(self.cents[ii, :])
-                    inum = sorter[np.searchsorted(
-                        self.cents[ii, :],
-                        knots_per_bs[ibs, 0],
-                        sorter=sorter,
-                    )]
-                    for jj, jbs in enumerate(ibs):
-                        val[:, indi] += (
-                            1. - heights[indi, inum[jj]]
-                        ) * coefs[:, jbs, ...]
-
+        if nan_out is True:
+            val[:, ind == -1] = np.nan
         return val
 
     # TBC
@@ -490,7 +556,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
             shapebs=self.shapebs,
         )
 
-    # TBC
+    # TBD / TBF
     def get_operator(
         self,
         operator=None,
@@ -517,50 +583,6 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
 
 # #############################################################################
 # #############################################################################
-#                       Mesh2Dtri - bsplines - eval
-# #############################################################################
-
-
-# DEPRECATED ???
-def _eval_bsplinestri(x, y, deg=None):
-
-    # ------------
-    # check inputs
-
-    c0 = (
-        isinstance(x, np.ndarray)
-        and isinstance(y, np.ndarray)
-        and x.shape == y.shape
-    )
-    if not c0:
-        msg = (
-            "x and y must be np.ndarrays of the same shape!\n"
-        )
-        raise Exception(msg)
-
-    # ------------
-    # prepare output
-
-    val = np.full(x.shape, np.nan)
-
-    ind = trifind(x, y)
-    if deg == 0:
-        pass
-
-    elif deg == 1:
-        pass
-
-    elif deg == 2:
-        raise NotImplementedError()
-
-    # ------
-    # return
-
-    return val
-
-
-# #############################################################################
-# #############################################################################
 #                       Mesh2Dtri - bsplines - overlap
 # #############################################################################
 
@@ -571,27 +593,7 @@ def _get_overlap(
     knotsy=None,
     shapebs=None,
 ):
-    # nb of overlapping, inc. itself in 1d
-    nbsR, nbsZ = shapebs
-    indR0 = np.tile(np.arange(0, nbsR), nbsZ)
-    indZ0 = np.repeat(np.arange(0, nbsZ), nbsR)
-
-    # complete
-    ntot = 2*deg + 1
-
-    addR = np.tile(np.arange(-deg, deg+1), ntot)
-    addZ = np.repeat(np.arange(-deg, deg+1), ntot)
-
-    interR = indR0[None, :] + addR[:, None]
-    interZ = indZ0[None, :] + addZ[:, None]
-
-    # purge
-    inter = interR + interZ*nbsR
-    indneg = (
-        (interR < 0) | (interR >= nbsR) | (interZ < 0) | (interZ >= nbsZ)
-    )
-    inter[indneg] = -1
-
+    raise NotImplementedError()
     return inter
 
 
@@ -599,294 +601,6 @@ def _get_overlap(
 # #############################################################################
 #                           Mesh2DRect - bsplines
 # #############################################################################
-
-
-def _ev_check_coefs(coefs=None, shapebs=None):
-    # coefs
-    if coefs is None:
-        coefs = 1.
-    if np.isscalar(coefs):
-        pass
-    else:
-        coefs = np.atleast_1d(coefs)
-        if coefs.ndim < len(shapebs) or coefs.ndim > len(shapebs) + 1:
-            msg = (
-                "coefs has too small / big shape!\n"
-                f"\t- coefs.shape: {coefs.shape}\n"
-                f"\t- shapebs:     {shapebs}"
-            )
-            raise Exception(msg)
-        if coefs.ndim == len(shapebs):
-            coefs = coefs[None, ...]
-        if coefs.shape[1:] != shapebs:
-            msg = (
-                "coefs has wrong shape!\n"
-                f"\t- coefs.shape: {coefs.shape}\n"
-                f"\t- shapebs:     {shapebs}"
-            )
-            raise Exception(msg)
-    return coefs
-
-
-def _get_bs2d_func_check(
-    ii=None,
-    jj=None,
-    indbs=None,
-    R=None,
-    Z=None,
-    shapebs=None,
-    crop=None,
-    cropbs=None,
-):
-
-    # ii, jj
-    if ii is not None:
-        c0 = (
-            isinstance(ii, (int, np.integer))
-            and ii >= 0
-            and ii < shapebs[0]
-        )
-        if not c0:
-            msg = (
-                "Arg ii must be an index in the range [0, {shapebs[0]}[\n"
-                f"Provided: {ii}"
-            )
-            raise Exception(msg)
-    if jj is not None:
-        c0 = (
-            isinstance(jj, (int, np.integer))
-            and jj >= 0
-            and jj < shapebs[1]
-        )
-        if not c0:
-            msg = (
-                "Arg jj must be an index in the range [0, {shapebs[1]}[\n"
-                f"Provided: {jj}"
-            )
-            raise Exception(msg)
-
-    # R, Z
-    if not isinstance(R, np.ndarray):
-        R = np.atleast_1d(R)
-    if not isinstance(Z, np.ndarray):
-        Z = np.atleast_1d(Z)
-    assert R.shape == Z.shape
-
-    # crop
-    crop = _generic_check._check_var(
-        crop, 'crop',
-        default=True,
-        types=bool,
-    )
-    crop = crop and cropbs is not None and cropbs is not False
-
-    return ii, jj, R, Z, crop
-
-
-def _get_bs2d_func_knots(knots, deg=None, returnas=None, return_unique=None):
-
-    # ----------
-    # check input
-
-    returnas = _generic_check._check_var(
-        returnas, 'returnas',
-        types=str,
-        default='data',
-        allowed=['ind', 'data'],
-    )
-    return_unique = _generic_check._check_var(
-        return_unique, 'return_unique',
-        types=bool,
-        default=False,
-    )
-
-    # ----------
-    # compute
-
-    nkpbs = 2 + deg
-    size = knots.size
-    nbs = size - 1 + deg
-
-    if return_unique:
-        if deg == 0:
-            knots_per_bs = np.arange(0, size)
-        elif deg == 1:
-            knots_per_bs = np.r_[0, np.arange(0, size), size-1]
-        elif deg == 2:
-            knots_per_bs = np.r_[0, 0, np.arange(0, size), size-1, size-1]
-        elif deg == 3:
-            knots_per_bs = np.r_[
-                0, 0, 0, np.arange(0, size), size-1, size-1, size-1,
-            ]
-
-    else:
-        knots_per_bs = np.zeros((nkpbs, nbs), dtype=int)
-
-        if deg == 0:
-            knots_per_bs[:, :] = np.array([
-                np.arange(0, size-1),
-                np.arange(1, size),
-            ])
-
-        elif deg == 1:
-            knots_per_bs[:, 1:-1] = np.array([
-                np.arange(0, size-2),
-                np.arange(1, size-1),
-                np.arange(2, size),
-            ])
-            knots_per_bs[:, 0] = [0, 0, 1]
-            knots_per_bs[:, -1] = [-2, -1, -1]
-
-        elif deg == 2:
-            knots_per_bs[:, 2:-2] = np.array([
-                np.arange(0, size-3),
-                np.arange(1, size-2),
-                np.arange(2, size-1),
-                np.arange(3, size),
-            ])
-            knots_per_bs[:, 0] = [0, 0, 0, 1]
-            knots_per_bs[:, 1] = [0, 0, 1, 2]
-            knots_per_bs[:, -2] = [-3, -2, -1, -1]
-            knots_per_bs[:, -1] = [-2, -1, -1, -1]
-
-        elif deg == 3:
-            knots_per_bs[:, 3:-3] = np.array([
-                np.arange(0, size-4),
-                np.arange(1, size-3),
-                np.arange(2, size-2),
-                np.arange(3, size-1),
-                np.arange(4, size),
-            ])
-            knots_per_bs[:, 0] = [0, 0, 0, 0, 1]
-            knots_per_bs[:, 1] = [0, 0, 0, 1, 2]
-            knots_per_bs[:, 2] = [0, 0, 1, 2, 3]
-            knots_per_bs[:, -3] = [-4, -3, -2, -1, -1]
-            knots_per_bs[:, -2] = [-3, -2, -1, -1, -1]
-            knots_per_bs[:, -1] = [-2, -1, -1, -1, -1]
-
-    # ----------
-    # return
-
-    if returnas == 'data':
-        knots_per_bs = knots[knots_per_bs]
-
-    if return_unique:
-        return knots_per_bs, nbs
-    else:
-        return knots_per_bs
-
-
-def _get_bs2d_func_cents(cents, deg=None, returnas=None):
-
-    returnas = _generic_check._check_var(
-        returnas, 'returnas',
-        types=str,
-        default='data',
-        allowed=['ind', 'data'],
-    )
-
-    nkpbs = 1 + deg
-    size = cents.size
-    nbs = size + deg
-    cents_per_bs = np.zeros((nkpbs, nbs), dtype=int)
-
-    if deg == 0:
-        cents_per_bs[0, :] = np.arange(0, size)
-
-    elif deg == 1:
-        cents_per_bs[:, 1:-1] = np.array([
-            np.arange(0, size-1),
-            np.arange(1, size),
-        ])
-        cents_per_bs[:, 0] = [0, 0]
-        cents_per_bs[:, -1] = [-1, -1]
-
-    elif deg == 2:
-        cents_per_bs[:, 2:-2] = np.array([
-            np.arange(0, size-2),
-            np.arange(1, size-1),
-            np.arange(2, size),
-        ])
-        cents_per_bs[:, 0] = [0, 0, 0]
-        cents_per_bs[:, 1] = [0, 0, 1]
-        cents_per_bs[:, -2] = [-2, -1, -1]
-        cents_per_bs[:, -1] = [-1, -1, -1]
-
-    elif deg == 3:
-        cents_per_bs[:, 3:-3] = np.array([
-            np.arange(0, size-3),
-            np.arange(1, size-2),
-            np.arange(2, size-1),
-            np.arange(3, size),
-        ])
-        cents_per_bs[:, 0] = [0, 0, 0, 0]
-        cents_per_bs[:, 1] = [0, 0, 0, 1]
-        cents_per_bs[:, 2] = [0, 0, 1, 2]
-        cents_per_bs[:, -3] = [-3, -2, -1, -1]
-        cents_per_bs[:, -2] = [-2, -1, -1, -1]
-        cents_per_bs[:, -1] = [-1, -1, -1, -1]
-
-    if returnas == 'data':
-        cents_per_bs = cents[cents_per_bs]
-
-    return cents_per_bs
-
-
-def _get_bs2d_func_max(Rknots=None, Zknots=None, deg=None):
-
-    knots_per_bs_R = _get_bs2d_func_knots(Rknots, deg=deg)
-    knots_per_bs_Z = _get_bs2d_func_knots(Zknots, deg=deg)
-    nbkbs = knots_per_bs_R.shape[0]
-
-    if nbkbs % 2 == 0:
-        ii = int(nbkbs/2)
-        Rbs_cent = np.mean(knots_per_bs_R[ii-1:ii+1, :], axis=0)
-        Zbs_cent = np.mean(knots_per_bs_Z[ii-1:ii+1, :], axis=0)
-        if deg == 2:
-            Rbs_cent[:deg] = [Rknots[0], 0.5*(Rknots[0] + Rknots[1])]
-            Rbs_cent[-deg:] = [0.5*(Rknots[-2] + Rknots[-1]), Rknots[-1]]
-            Zbs_cent[:deg] = [Zknots[0], 0.5*(Zknots[0] + Zknots[1])]
-            Zbs_cent[-deg:] = [0.5*(Zknots[-2] + Zknots[-1]), Zknots[-1]]
-
-    else:
-        ii = int((nbkbs-1)/2)
-        Rbs_cent = knots_per_bs_R[ii, :]
-        Zbs_cent = knots_per_bs_Z[ii, :]
-        if deg == 1:
-            Rbs_cent[:deg] = Rknots[0]
-            Rbs_cent[-deg:] = Rknots[-1]
-            Zbs_cent[:deg] = Zknots[0]
-            Zbs_cent[-deg:] = Zknots[-1]
-        elif deg == 3:
-            Rbs_cent[:deg] = [Rknots[0], 0.5*(Rknots[0]+Rknots[1]), Rknots[1]]
-            Rbs_cent[-deg:] = [
-                Rknots[-2], 0.5*(Rknots[-2]+Rknots[-1]), Rknots[-1],
-            ]
-            Zbs_cent[:deg] = [Zknots[0], 0.5*(Zknots[0]+Zknots[1]), Zknots[1]]
-            Zbs_cent[-deg:] = [
-                Zknots[-2], 0.5*(Zknots[-2]+Zknots[-1]), Zknots[-1],
-            ]
-
-    return Rbs_cent, Zbs_cent
-
-
-def get_bs2d_RZ(deg=None, Rknots=None, Zknots=None):
-
-    # ----------------
-    # get knots per bspline, nb of bsplines...
-
-    knots_per_bs_R = _get_bs2d_func_knots(Rknots, deg=deg, returnas='data')
-    knots_per_bs_Z = _get_bs2d_func_knots(Zknots, deg=deg, returnas='data')
-    nbkbs = knots_per_bs_R.shape[0]
-    shapebs = (knots_per_bs_R.shape[1], knots_per_bs_Z.shape[1])
-
-    # ----------------
-    # get centers of bsplines
-
-    Rbs_cent, Zbs_cent = _get_bs2d_func_max(
-        Rknots=Rknots, Zknots=Zknots, deg=deg,
-    )
-    return shapebs, Rbs_cent, Zbs_cent, knots_per_bs_R, knots_per_bs_Z
 
 
 def get_bs2d_func(
@@ -907,52 +621,5 @@ def get_bs2d_func(
         trifind=trifind,
         deg=deg,
     )
-    shapebs = (clas.nbs,)
 
-    def ev_details(
-        R,
-        Z,
-        clas=clas,
-        crop=None,
-        cropbs=None,
-        # for compatibility (unused)
-        coefs=None,
-        indbs_tuple_flat=None,
-        reshape=None,
-    ):
-        """ Return the value for each point summed on all bsplines """
-
-        # check inputs
-        _, _, rr, zz, crop = _get_bs2d_func_check(
-            R=R,
-            Z=Z,
-            shapebs=shapebs,
-        )
-
-        # compute
-        return clas.ev_details(rr, zz)
-
-    def ev_sum(
-        R,
-        Z,
-        coefs=None,
-        clas=clas,
-        crop=None,
-        cropbs=None,
-        indbs_tuple_flat=None,
-        reshape=None,
-    ):
-        """ Return the value for each point summed on all bsplines """
-
-        # check inputs
-        _, _, rr, zz, crop = _get_bs2d_func_check(
-            R=R,
-            Z=Z,
-            shapebs=shapebs,
-            crop=crop,
-            cropbs=cropbs,
-        )
-
-        return clas.ev_sum(rr, zz, coefs=coefs)
-
-    return ev_details, ev_sum, clas
+    return clas.ev_details, clas.ev_sum, clas

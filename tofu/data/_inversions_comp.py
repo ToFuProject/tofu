@@ -27,13 +27,17 @@ __all__ = ['get_available_inversions_algo']
 
 
 def compute_inversions(
-    # input data
+    # resources
     coll=None,
+    # inversion name
+    key=None,
+    # input data
     key_matrix=None,
     key_data=None,
     key_sigma=None,
-    data=None,
     sigma=None,
+    # constraints
+    dconstraints=None,
     # regularity operator
     operator=None,
     geometry=None,
@@ -55,19 +59,28 @@ def compute_inversions(
     # check inputs
 
     (
-        key_matrix, key_data, key_sigma, keybs, keym,
-        data, sigma, matrix, opmat, operator, geometry,
-        dalgo,
+        key_matrix, key_data, key_sigma, keybs, keym, mtype,
+        data, sigma, matrix,
+        keyt, t, reft, notime,
+        m3d, indok, iokt,
+        dconstraints,
+        opmat, operator, geometry,
+        dalgo, dconstraints, dcon,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
+        keyinv, refinv, regul,
     ) = _inversions_checks._compute_check(
-        # input data
+        # resources
         coll=coll,
+        # inversion name
+        key=key,
+        # input data
         key_matrix=key_matrix,
         key_data=key_data,
         key_sigma=key_sigma,
-        data=data,
         sigma=sigma,
+        # constraints
+        dconstraints=dconstraints,
         # choice of algo
         algo=algo,
         # regularity operator
@@ -86,7 +99,7 @@ def compute_inversions(
     )
 
     nt, nchan = data.shape
-    nbs = matrix.shape[1]
+    nbs = matrix.shape[-1]
 
     # -------------
     # get func
@@ -112,23 +125,27 @@ def compute_inversions(
     mu0 = 1.
 
     # Define Regularization operator
-    if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
-        R = opmat
-    elif operator == 'D0N2':
-        R = opmat[0]
-    elif operator == 'D1N2':
-        R = opmat[0] + opmat[1]
-    elif operator == 'D2N2':
-        R = opmat[0] + opmat[1]
+    if dalgo['family'] == 'Non-regularized':
+        R = None
     else:
-        msg = 'unknown operator!'
-        raise Exception(msg)
+        if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
+            R = opmat
+        elif operator == 'D0N2':
+            R = opmat[0]
+        elif operator == 'D1N2':
+            R = opmat[0] + opmat[1]
+        elif operator == 'D2N2':
+            R = opmat[0] + opmat[1]
+        else:
+            msg = 'unknown operator!'
+            raise Exception(msg)
 
     # prepare computation intermediates
     precond = None
     Tyn = np.full((nbs,), np.nan)
+    mat0 = matrix[0, ...] if m3d else matrix
     if dalgo['sparse'] is True:
-        Tn = scpsp.diags(1./np.nanmean(sigma, axis=0)).dot(matrix)
+        Tn = scpsp.diags(1./np.nanmean(sigma, axis=0)).dot(mat0)
         TTn = Tn.T.dot(Tn)
         if solver != 'spsolve':
             # preconditioner to approx inv(TTn + reg*Rn)
@@ -137,7 +154,7 @@ def compute_inversions(
             pass
 
     else:
-        Tn = matrix / np.nanmean(sigma, axis=0)[:, None]
+        Tn = mat0 / np.nanmean(sigma, axis=0)[:, None]
         TTn = Tn.T.dot(Tn)
 
     # prepare output arrays
@@ -151,7 +168,10 @@ def compute_inversions(
     # -------------
     # initial guess
 
-    sol0 = np.full((nbs,), np.nanmean(data[0, :]) / matrix.mean())
+    if indok is None:
+        sol0 = np.full((nbs,), np.mean(data[0, :]) / mat0.mean())
+    else:
+        sol0 = np.full((nbs,), np.mean(data[0, indok[0, :]]) / mat0.mean())
 
     if verb >= 1:
         # t1 = time.process_time()
@@ -170,64 +190,74 @@ def compute_inversions(
 
     if dalgo['source'] == 'tofu':
         out = _compute_inv_loop(
-            dalgo=dalgo,
-            # func=func,
             sol0=sol0,
             mu0=mu0,
             matrix=matrix,
-            Tn=Tn,
-            TTn=TTn,
-            Tyn=Tyn,
-            R=R,
+            Tn=Tn,              # normalized geometry matrix (T)
+            TTn=TTn,            # normalized tTT
+            Tyn=Tyn,            # normalized
+            R=R,                # Regularity operator
             precond=precond,
-            data_n=data_n,
+            data_n=data_n,      # normalized data
             sigma=sigma,
+            indok=indok,
+            # parameters
+            m3d=m3d,
+            dalgo=dalgo,
             isotropic=dalgo['isotropic'],
             conv_crit=conv_crit,
             sparse=dalgo['sparse'],
             positive=dalgo['positive'],
             chain=chain,
             verb=verb,
+            kwdargs=kwdargs,
+            method=method,
+            options=options,
+            dcon=dcon,
+            regul=regul,
+            # output
             sol=sol,
             mu=mu,
             chi2n=chi2n,
             regularity=regularity,
             niter=niter,
             spec=spec,
-            kwdargs=kwdargs,
-            method=method,
-            options=options,
         )
 
     elif dalgo['source'] == 'tomotok':
         out = _compute_inv_loop_tomotok(
-            dalgo=dalgo,
-            # func=func,
             sol0=sol0,
             mu0=mu0,
             matrix=matrix,
-            Tn=Tn,
-            TTn=TTn,
-            Tyn=Tyn,
-            R=R,
+            Tn=Tn,              # normalized geometry matrix (T)
+            TTn=TTn,            # normalized tTT
+            Tyn=Tyn,            # normalized
+            R=R,                # Regularity operator
             precond=precond,
-            data_n=data_n,
+            data_n=data_n,      # normalized data
             sigma=sigma,
+            indok=indok,
+            # parameters
+            m3d=m3d,
+            dalgo=dalgo,
             isotropic=dalgo['isotropic'],
             conv_crit=conv_crit,
             sparse=dalgo['sparse'],
             positive=dalgo['positive'],
             chain=chain,
             verb=verb,
+            kwdargs=kwdargs,
+            method=method,
+            options=options,
+            dcon=dcon,
+            regul=regul,
+            # output
             sol=sol,
             mu=mu,
             chi2n=chi2n,
             regularity=regularity,
             niter=niter,
             spec=spec,
-            kwdargs=kwdargs,
-            method=method,
-            options=options,
         )
 
     if verb >= 1:
@@ -235,6 +265,26 @@ def compute_inversions(
         t3 = time.perf_counter()
         print(f"{t3-t2} s", end='\n', flush=True)
         print("Post-formatting results...", end='\n', flush=True)
+
+    # ---------------------------------------------
+    # estimate relative regularity for polar mesh of not regul
+
+    if not regul and mtype == 'polar':
+        clas = coll.dobj['bsplines'][keybs]['class']
+
+        if clas.knotsa is None:
+            # estimate 1d squared gradient
+            kr = coll.dobj[coll._which_mesh][keym]['knots'][0]
+            rr = coll.ddata[kr]['data']
+            regularity = np.nansum(
+                clas(
+                    radius=np.linspace(rr[0], rr[-1], rr.size*10),
+                    coefs=sol,
+                    radius_vs_time=False,
+                    deriv=1,
+                )**2,
+                axis=1,
+            )
 
     # -------------
     # format output
@@ -249,42 +299,29 @@ def compute_inversions(
         iR = np.tile(np.arange(0, shapebs[0]), shapebs[1])[cropbsflat]
         iZ = np.repeat(np.arange(0, shapebs[1]), shapebs[0])[cropbsflat]
         sol_full[:, iR, iZ] = sol
+    else:
+        sol_full = sol
 
+    # -------------
     # store
+
     if store is True:
 
-        # key
-        if coll.dobj.get('inversions') is None:
-            ninv = 0
-        else:
-            ninv = np.max([int(kk[3:]) for kk in coll.dobj['inversions']]) + 1
-        keyinv = f'inv{ninv}'
-
-        # ref
-        refmat = coll.ddata[key_matrix]['ref']
-        refdata = coll.ddata[key_data]['ref']
-
-        if refdata == (refmat[0],):
-            refinv = coll.dobj['bsplines'][keybs]['ref']
+        # reshape if unique time step
+        if notime:
             assert sol_full.shape[0] == 1
             sol_full = sol_full[0, ...]
-            notime = True
-
-        elif refdata[0] not in refmat:
-            refinv = tuple(
-                [refdata[0]] + list(coll.dobj['bsplines'][keybs]['ref'])
-            )
-            notime = False
-
         else:
-            msg = (
-                "Unreckognized shape of sol_full vs refinv!\n"
-                f"\t- sol_full.shape: {sol_full.shape}\n"
-                f"\t- inv['ref']:    {refinv}\n"
-                f"\t- matrix['ref']: {refmat}\n"
-                f"\t- data['ref']:   {refdata}\n"
+            # restore full size
+            sol_full, chi2n, mu, regularity, niter = _restore_fullt(
+                iokt=iokt,
+                sol_full=sol_full,
+                chi2n=chi2n,
+                mu=mu,
+                regularity=regularity,
+                niter=niter,
             )
-            raise Exception(msg)
+            nt = t.size
 
         # dict
         ddata = {
@@ -293,51 +330,50 @@ def compute_inversions(
                 'ref': refinv,
             },
         }
+
+        dref = None
         if notime is False:
+            if keyt is None:
+                dref = {
+                    reft: {'size': nt},
+                }
+                ddata.update({
+                    f'{keyinv}-t': {
+                        'data': t,
+                        'ref': reft,
+                        'dim': 'time',
+                    },
+                })
+
             ddata.update({
                 f'{keyinv}-chi2n': {
                     'data': chi2n,
-                    'ref': refinv[0],
+                    'ref': reft,
                 },
                 f'{keyinv}-mu': {
                     'data': mu,
-                    'ref': refinv[0],
+                    'ref': reft,
                 },
                 f'{keyinv}-reg': {
                     'data': regularity,
-                    'ref': refinv[0],
+                    'ref': reft,
                 },
                 f'{keyinv}-niter': {
                     'data': niter,
-                    'ref': refinv[0],
+                    'ref': reft,
                 },
             })
 
-        if key_sigma is None:
-            key_sigma = f'{key_data}-sigma'
-            if notime:
-                ref_sigma = coll.ddata[key_data]['ref']
-                sigma = sigma[0, :]
-            else:
-                if sigma.shape == data.shape:
-                    ref_sigma = coll.ddata[key_data]['ref']
-                else:
-                    ref_sigma = coll.ddata[key_data]['ref'][1:]
-                    sigma = sigma[0, :]
+        # add synthetic data
+        kretro = f'{keyinv}-retro'
 
-            ddata.update({
-                key_sigma: {
-                    'data': sigma,
-                    'ref': ref_sigma,
-                    'units': coll.ddata[key_data].get('units'),
-                    'dim': coll.ddata[key_data].get('dim'),
-                },
-            })
-
+        # add inversion
         dobj = {
             'inversions': {
                 keyinv: {
+                    'retrofit': kretro,
                     'data_in': key_data,
+                    'sigma_in': key_sigma,
                     'matrix': key_matrix,
                     'sol': keyinv,
                     'operator': operator,
@@ -359,10 +395,48 @@ def compute_inversions(
                 'niter': niter,
             })
 
-        coll.update(dobj=dobj, ddata=ddata)
+        coll.update(dobj=dobj, dref=dref, ddata=ddata)
+
+        # add synthetic data
+        keyt = coll.get_time(key=keyinv)[3]
+        data_synth = coll.add_retrofit_data(
+            key=kretro,
+            key_matrix=key_matrix,
+            key_profile2d=keyinv,
+            t=keyt,
+            store=True,
+        )
 
     else:
-        return sol_full, mu, chi2n, regularity, niter, spec
+        return sol_full, mu, chi2n, regularity, niter, spec, t
+
+
+def _restore_fullt(
+    iokt=None,
+    sol_full=None,
+    chi2n=None,
+    mu=None,
+    regularity=None,
+    niter=None,
+):
+
+    # sol_full
+    shape = tuple(np.r_[iokt.size, sol_full.shape[1:]])
+    sol_fulli = np.full(shape, np.nan)
+    sol_fulli[iokt, :] = sol_full
+
+    # 1d
+    chi2ni = np.full((iokt.size,), np.nan)
+    mui = np.full((iokt.size,), np.nan)
+    regularityi = np.full((iokt.size,), np.nan)
+    niteri = np.full((iokt.size,), np.nan)
+
+    chi2ni[iokt] = chi2n
+    mui[iokt] = mu
+    regularityi[iokt] = regularity
+    niteri[iokt] = niter
+
+    return sol_fulli, chi2ni, mui, regularityi, niteri
 
 
 # #############################################################################
@@ -372,40 +446,46 @@ def compute_inversions(
 
 
 def _compute_inv_loop(
+    # inputs
     dalgo=None,
-    # func=None,
     sol0=None,
     mu0=None,
     matrix=None,
-    Tn=None,
-    TTn=None,
-    Tyn=None,
+    Tn=None,        # normalized geometry matrix (T)
+    TTn=None,       # normalized tTT
+    Tyn=None,       # normalized tTy
     R=None,
     precond=None,
     data_n=None,
     sigma=None,
+    indok=None,
+    # parameters
+    m3d=None,
     conv_crit=None,
     isotropic=None,
     sparse=None,
     positive=None,
     chain=None,
     verb=None,
+    kwdargs=None,
+    method=None,
+    options=None,
+    dcon=None,
+    regul=None,
+    # output
     sol=None,
     mu=None,
     chi2n=None,
     regularity=None,
     niter=None,
     spec=None,
-    kwdargs=None,
-    method=None,
-    options=None,
 ):
 
     # -----------------------------------
     # Getting initial solution - step 1/2
 
     nt, nchan = data_n.shape
-    nbs = R.shape[0]
+    nbs = Tn.shape[1]
 
     if verb >= 2:
         form = "nchan * chi2n   +   mu *  R           "
@@ -416,7 +496,9 @@ def _compute_inv_loop(
     # -----------------------------------
     # Options for quadratic solvers only
 
-    if positive is True:
+    bounds = None
+    func_val, func_jac, func_hess = None, None, None
+    if regul and positive is True:
 
         bounds = tuple([(0., None) for ii in range(0, sol0.size)])
 
@@ -429,47 +511,75 @@ def _compute_inv_loop(
         def func_hess(x, mu=mu0, Tn=None, yn=None, TTn=TTn, Tyn=Tyn):
             return 2.*(TTn + mu*R)
 
-    else:
-        bounds = None
-        func_val, func_jac, func_hess = None, None, None
+    elif not regul:
+
+        if positive is True:
+            bounds = (
+                np.zeros((nbs,), dtype=float),
+                np.full((nbs,), np.inf),
+            )
+        else:
+            bounds = (-np.inf, np.inf)
 
     # ---------
     # time loop
 
     # Beware of element-wise operations vs matrix operations !!!!
+    nbsi = nbs
+    bi = bounds
+    indbsi = np.ones((nbsi,), dtype=bool)
     for ii in range(0, nt):
 
         if verb >= 1:
             msg = f"\ttime step {ii+1} / {nt} "
             print(msg, end='', flush=True)
 
-        # update intermediates if multiple sigmas
-        if sigma.shape[0] > 1:
-            _update_TTyn(
-                sparse=sparse,
-                sigma=sigma,
-                matrix=matrix,
-                Tn=Tn,
-                TTn=TTn,
-                ii=ii,
-            )
-
-        Tyn[:] = Tn.T.dot(data_n[ii, :])
-
-        # solving
-        (
-            sol[ii, :], mu[ii], chi2n[ii], regularity[ii],
-            niter[ii], spec[ii],
-        ) = dalgo['func'](
+        # update terms
+        Tni, TTni, Tyni, yni, nchani = _update_TTyn(
+            sparse=sparse,
+            data_n=data_n,
+            sigma=sigma,
+            matrix=matrix,
             Tn=Tn,
             TTn=TTn,
             Tyn=Tyn,
+            indok=indok,
+            ii=ii,
+            m3d=m3d,
+            regul=regul,
+        )
+
+        if dcon is not None:
+            ic = 0 if ii == 0 or not dcon['hastime'] else ii
+            nbsi, indbsi, Tni, TTni, Tyni, yni, bi = _update_ttyn_constraints(
+                sparse=sparse,
+                Tni=Tni,
+                TTni=TTni,
+                Tyni=Tyni,
+                yni=yni,
+                bounds=bounds,
+                ii=ic,
+                dcon=dcon,
+                regul=regul,
+            )
+
+        # solving
+        (
+            sol[ii, indbsi], mu[ii], chi2n[ii], regularity[ii],
+            niter[ii], spec[ii],
+        ) = dalgo['func'](
+            Tn=Tni,
+            TTn=TTni,
+            Tyn=Tyni,
             R=R,
-            yn=data_n[ii, :],
-            sol0=sol0,
-            nchan=nchan,
-            nbs=nbs,
+            yn=yni,
+            # initial guess
+            sol0=sol0[indbsi],
             mu0=mu0,
+            # problem size
+            nchan=nchani,
+            nbs=nbsi,
+            # parameters
             conv_crit=conv_crit,
             precond=precond,
             verb=verb,
@@ -478,11 +588,20 @@ def _compute_inv_loop(
             func_val=func_val,
             func_jac=func_jac,
             func_hess=func_hess,
-            bounds=bounds,
+            bounds=bi,
             method=method,
             options=options,
             **kwdargs,
         )
+
+        if dcon is not None:
+            if dcon['coefs'] is not None:
+                sol[ii, :] = (
+                    dcon['coefs'][ic].dot(sol[ii, indbsi])
+                    + dcon['offset'][ic, :]
+                )
+            else:
+                sol[ii, :] = sol[ii, :] + dcon['offset'][ic, :]
 
         # post
         if chain:
@@ -501,33 +620,39 @@ def _compute_inv_loop(
 
 
 def _compute_inv_loop_tomotok(
+    # inputs
     dalgo=None,
-    # func=None,
     sol0=None,
     mu0=None,
     matrix=None,
-    Tn=None,
-    TTn=None,
-    Tyn=None,
+    Tn=None,        # normalized geometry matrix (T)
+    TTn=None,       # normalized tTT
+    Tyn=None,       # normalized tTy
     R=None,
     precond=None,
     data_n=None,
     sigma=None,
+    indok=None,
+    # parameters
+    m3d=None,
     conv_crit=None,
     isotropic=None,
     sparse=None,
     positive=None,
     chain=None,
     verb=None,
+    kwdargs=None,
+    method=None,
+    options=None,
+    dcon=None,
+    regul=None,
+    # output
     sol=None,
     mu=None,
     chi2n=None,
     regularity=None,
     niter=None,
     spec=None,
-    kwdargs=None,
-    method=None,
-    options=None,
 ):
 
     # -----------------------------------
@@ -539,6 +664,10 @@ def _compute_inv_loop_tomotok(
         R = (R,)
     else:
         nbs = R.shape[0]
+
+    if dcon is not None:
+        msg = "constraints not handled by tomotok algorithms"
+        raise Exception(msg)
 
     if verb >= 2:
         form = "nchan * chi2n   +   mu *  R           "
@@ -561,7 +690,7 @@ def _compute_inv_loop_tomotok(
             _update_TTyn(
                 sparse=sparse,
                 sigma=sigma,
-                matrix=matrix,
+                mati=mi,
                 Tn=Tn,
                 TTn=TTn,
                 ii=ii,
@@ -569,12 +698,27 @@ def _compute_inv_loop_tomotok(
 
         Tyn[:] = Tn.T.dot(data_n[ii, :])
 
+        # update terms
+        Tni, TTni, Tyni, yni, nchani = _update_TTyn(
+            sparse=sparse,
+            data_n=data_n,
+            sigma=sigma,
+            matrix=matrix,
+            Tn=Tn,
+            TTn=TTn,
+            Tyn=Tyn,
+            indok=indok,
+            ii=ii,
+            m3d=m3d,
+            regul=regul,
+        )
+
         # solving
         (
             sol[ii, :], chi2n[ii], regularity[ii],
         ) = dalgo['func'](
-            sig_norm=data_n[ii, :],
-            gmat_norm=Tn,
+            sig_norm=yni,
+            gmat_norm=Tni,
             deriv=R,
             method=None,
             num=None,
@@ -601,16 +745,106 @@ def _compute_inv_loop_tomotok(
 
 def _update_TTyn(
     sparse=None,
+    data_n=None,
     sigma=None,
     matrix=None,
     Tn=None,
     TTn=None,
+    Tyn=None,
+    indok=None,
     ii=None,
+    m3d=None,
+    regul=None,
 ):
-    # intermediates
-    if sparse:
-        Tn.data = scpsp.diags(1./sigma[ii, :]).dot(matrix).data
-        TTn.data = Tn.T.dot(Tn).data
+    # update matrix
+    if indok is None:
+        if m3d:
+            mi = matrix[ii, :, :]
+        else:
+            mi = matrix
     else:
-        Tn[...] = matrix / sigma[ii, :][:, None]
-        TTn[...] = Tn.T.dot(Tn)
+        if m3d:
+            mi = matrix[ii, indok[ii, :], :]
+        else:
+            mi = matrix[indok[ii, :], :]
+
+    # update sig
+    if sigma.shape[0] == 1:
+        if indok is None:
+            sig = sigma[0, :]
+        else:
+            sig = sigma[0, indok[ii, :]]
+    else:
+        if indok is None:
+            sig = sigma[ii, :]
+        else:
+            sig = sigma[ii, indok[ii, :]]
+
+    # update data_n
+    if indok is None:
+        yn = data_n[ii, :]
+    else:
+        yn = data_n[ii, indok[ii, :]]
+
+    # intermediates
+    if indok is None:
+        if sparse:
+            Tn.data = scpsp.diags(1./sig).dot(mi).data
+            TTn.data = Tn.T.dot(Tn).data
+        else:
+            Tn[...] = mi / sig[:, None]
+            TTn[...] = Tn.T.dot(Tn)
+
+    else:
+        if sparse:
+            Tn = scpsp.diags(1./sig).dot(mi)
+            TTn = Tn.T.dot(Tn)
+        else:
+            Tn = mi / sig[:, None]
+            TTn = Tn.T.dot(Tn)
+
+    # Tyn (for reguarized algorithms)
+    if regul:
+        if indok is None:
+            Tyn[:] = Tn.T.dot(yn)
+        else:
+            Tyn = Tn.T.dot(yn)
+
+    return Tn, TTn, Tyn, yn, yn.size
+
+
+def _update_ttyn_constraints(
+    sparse=None,
+    Tni=None,
+    TTni=None,
+    Tyni=None,
+    yni=None,
+    bounds=None,
+    ii=None,
+    dcon=None,
+    regul=None,
+):
+
+    # regul => Tyni, TTni
+    if regul:
+        raise NotImplementedError()
+
+    # yni
+    yni = yni - Tni.dot(dcon['offset'][ii, :])
+
+    # Tni
+    Tni = Tni.dot(dcon['coefs'][ii])
+
+    # indbsi
+    indbsi = dcon['indbs'][ii]
+
+    # nbsi
+    nbsi = Tni.shape[1]
+
+    # bounds
+    if np.isscalar(bounds[0]):
+        pass
+    else:
+        bounds = (bounds[0][indbsi], bounds[1][indbsi])
+
+    return nbsi, indbsi, Tni, TTni, Tyni, yni, bounds
