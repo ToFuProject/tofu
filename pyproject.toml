@@ -3,5 +3,5 @@ requires = ["setuptools>=40.8.0",
 	    "wheel",
 	    "cython>0.26",
 	    "numpy",
-	    "datastock>=0.0.16",
+	    "datastock>=0.0.17",
 	    ]
