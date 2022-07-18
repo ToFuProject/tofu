@@ -2079,11 +2079,11 @@ class CrystalBragg(utils.ToFuObject):
         )
         T0 = dout['Temperature of reference (°C)']
         TD = dout['Temperature variations (°C)']
-        Volume = dout['Volume (m-3)']
+        Volume = dout['Volume (1/m3)']
         d_atom = dout['Inter-reticular spacing (A)']
-        sol = dout['Sinus over lambda']
+        sol = dout['sinus over lambda']
         theta = dout['theta_Bragg (rad)']
-        theta_deg = dout['theta_Bragg (degree)']
+        theta_deg = dout['theta_Bragg (deg)']
 
         def find_nearest(array, value):
             array = np.asarray(array)
@@ -2197,11 +2197,11 @@ class CrystalBragg(utils.ToFuObject):
                 )
                 TD = np.zeros((na,), dtype=float)
                 if therm_exp:
-                    TD = dout['Temperature changes (°C)\n']
+                    TD = dout['Temperature changes (°C)']
                 nT = TD.size
                 angles = np.zeros((na,), dtype=float)
                 if use_non_parallelism:
-                    angles = dout['Non-parallelism angles (deg)\n']
+                    angles = dout['Miscut angles (deg)']
                 nangles = angles.size
                 power_ratio = np.resize(power_ratio, (
                     nlamb,

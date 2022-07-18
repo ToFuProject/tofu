@@ -193,11 +193,11 @@ def compute_rockingcurve(
     )
     T0 = dout['Temperature of reference (°C)']
     TD = dout['Temperature variations (°C)']
-    Volume = dout['Volume (m-3)']
+    Volume = dout['Volume (1/m3)']
     d_atom = dout['Inter-reticular spacing (A)']
-    sol = dout['Sinus over lambda']
+    sol = dout['sinus over lambda']
     theta = dout['theta_Bragg (rad)']
-    theta_deg = dout['theta_Bragg (degree)']
+    theta_deg = dout['theta_Bragg (deg)']
 
     # Check validity of asymmetry angle alpha limits in arguments
     alpha, bb = CrystBragg_check_alpha_angle(
@@ -418,7 +418,7 @@ def compute_rockingcurve(
         'Wavelength (A)': lamb,
         'Miller indices': (ih, ik, il),
         'Inter-reticular distance (A)': d_atom,
-        'Volume of the unit cell (A^3)': Volume,
+        'Volume (A^3)': Volume,
         'Bragg angle of reference (rad)': theta,
         'Glancing angles': dth,
         'Power ratio': power_ratio,
@@ -434,7 +434,7 @@ def compute_rockingcurve(
         'RC width (para. compo)': det_para,
     }
     if use_non_parallelism:
-        dout['Non-parallelism angles (deg)'] = alpha*(180/np.pi)
+        dout['Miscut angles (deg)'] = alpha*(180/np.pi)
         dout['Shift from RC of reference (perp. compo)'] = shift_perp
         dout['Shift from RC of reference (para. compo)'] = shift_para
     if therm_exp:
@@ -973,12 +973,12 @@ def CrystBragg_comp_lattice_spacing(
         'Temperature variations (°C)': TD,
         'Inter-atomic distance a1 (A)': a1,
         'Inter-atomic distance c1 (A)': c1,
-        'Volume (m-3)': Volume,
+        'Volume (1/m3)': Volume,
         'Inter-reticular spacing (A)': d_atom,
-        'Sinus over lambda': sol,
+        'sinus over lambda': sol,
         'sinus theta_Bragg': sin_theta,
         'theta_Bragg (rad)': theta,
-        'theta_Bragg (degree)': theta_deg,
+        'theta_Bragg (deg)': theta_deg,
     }
 
     return dout
