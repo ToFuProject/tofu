@@ -450,9 +450,11 @@ l102 = _DCRYST['102-Quartz']['Miller indices'][2]
 xsi = _DCRYST['110-Quartz']['mesh']['positions']['Si']['x']
 ysi = _DCRYST['110-Quartz']['mesh']['positions']['Si']['y']
 zsi = _DCRYST['110-Quartz']['mesh']['positions']['Si']['z']
+Nsi = _DCRYST['110-Quartz']['mesh']['positions']['Si']['N']
 xo = _DCRYST['110-Quartz']['mesh']['positions']['O']['x']
 yo = _DCRYST['110-Quartz']['mesh']['positions']['O']['y']
 zo = _DCRYST['110-Quartz']['mesh']['positions']['O']['z']
+No = _DCRYST['110-Quartz']['mesh']['positions']['O']['N']
 
 def phasesi(h, k, l, xsi, ysi, zsi):
     return h*xsi + k*ysi + l*zsi
@@ -460,18 +462,19 @@ def phasesi(h, k, l, xsi, ysi, zsi):
 def phaseo(h, k, l, xo, yo, zo):
     return h*xo + k*yo + l*zo
 
-for i in range(xsi.size):
-    _DCRYST['110-Quartz']['phases']['Si'] = phasesi(
-        h110, k110, l110, xsi[i], ysi[i], zsi[i],
-    )
-    _DCRYST['102-Quartz']['phases']['Si'] = phasesi(
-        h102, k102, l102, xsi[i], ysi[i], zsi[i],
-    )
+phaseSi_110 = np.full((Nsi), np.nan)
+phaseO_110 = np.full((No), np.nan)
+phaseSi_102 = np.full((Nsi), np.nan)
+phaseO_102 = np.full((No), np.nan)
 
-for j in range(xo.size):
-    _DCRYST['110-Quartz']['phases']['O'] = phaseo(
-        h110, k110, l110, xo[j], yo[j], zo[j],
-    )
-    _DCRYST['102-Quartz']['phases']['O'] = phaseo(
-        h102, k102, l102, xo[j], yo[j], zo[j],
-    )
+for i in range(Nsi):
+    phaseSi_110[i] = phasesi(h110, k110, l110, xsi[i], ysi[i], zsi[i])
+    phaseSi_102[i] = phasesi(h102, k102, l102, xsi[i], ysi[i], zsi[i])
+_DCRYST['110-Quartz']['phases']['Si'] = phaseSi_110
+_DCRYST['102-Quartz']['phases']['Si'] = phaseSi_102
+
+for i in range(No):
+    phaseO_110[i] = phaseo(h110, k110, l110, xo[i], yo[i], zo[i])
+    phaseO_102[i] = phaseo(h102, k102, l102, xo[i], yo[i], zo[i])
+_DCRYST['110-Quartz']['phases']['O'] = phaseO_110
+_DCRYST['102-Quartz']['phases']['O'] = phaseO_102
