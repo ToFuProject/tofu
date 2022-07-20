@@ -372,7 +372,16 @@ def _check_pts(pts=None, pts_name=None):
     return pts
 
 
-def _check_list_3dpolygons(lpoly=None, lpoly_name=None, closed=None):
+def _check_list_3dpolygons(
+    lpoly=None,
+    lpoly_name=None,
+    closed=None,
+    can_be_None=None,
+):
+
+    # trivial case
+    if can_be_None and lpoly is None:
+        return
 
     # check inpiut
     if closed is None:
@@ -551,6 +560,7 @@ def _calc_solidangle_apertures_check(
         lpoly=apertures,
         lpoly_name='apertures',
         closed=True,
+        can_be_None=True,
     )
 
     # ---------
@@ -564,6 +574,7 @@ def _calc_solidangle_apertures_check(
         lpoly=detectors,
         lpoly_name='detectors',
         closed=True,
+        can_be_None=False,
     )
 
     # ----------------
@@ -615,6 +626,17 @@ def _calc_solidangle_apertures_check(
             )
             raise Exception(msg)
 
+    # ----------
+    # check aperture vs visibility
+
+    if aperture is None and (visibility is True or return_vector is True):
+        msg = (
+            "No apertures provided!\n"
+            "=> visibility must be False\n"
+            "=> return_vector must be False\n"
+        )
+        raise Exception(msg)
+
     return (
         pts_x, pts_y, pts_z, mask,
         apertures, detectors, detectors_normal,
@@ -659,13 +681,16 @@ def _calc_solidangle_apertures_prepare(
         pts_z = pts_z.ravel()
 
     # ---------
-    # detectors
+    # apertures
 
-    ap_split = np.array([aa.shape[1] for aa in apertures])
-    ap_ind = np.array([0] + [aa.shape[1] for aa in apertures[:-1]])
-    ap_x = np.concatenate([aa[0, :] for aa in apertures])
-    ap_y = np.concatenate([aa[1, :] for aa in apertures])
-    ap_z = np.concatenate([aa[2, :] for aa in apertures])
+    if apertures is None:
+        ap_split, ap_ind, ap_x, ap_y, ap_z = None, None, None, None, None
+    else:
+        ap_split = np.array([aa.shape[1] for aa in apertures])
+        ap_ind = np.array([0] + [aa.shape[1] for aa in apertures[:-1]])
+        ap_x = np.concatenate([aa[0, :] for aa in apertures])
+        ap_y = np.concatenate([aa[1, :] for aa in apertures])
+        ap_z = np.concatenate([aa[2, :] for aa in apertures])
 
     # ---------
     # detectors
@@ -787,7 +812,8 @@ def _visibility_unit_vectors(
 
 ###############################################################################
 ###############################################################################
-#           Main entry - arbitrary points, multiple apertures
+#                           Main entry
+#       arbitrary points, multiple detectors, multiple apertures
 ###############################################################################
 
 
@@ -918,7 +944,23 @@ def calc_solidangle_apertures(
     # ------------------------------------------------
     # compute (call appropriate version for each case)
 
-    if return_vector:
+
+    if apertures is None:
+        # call fastest / simplest version without apertures
+        # (no computation / storing of unit vector)
+        solid_angle = _GG.compute_solid_angle_noaperture(
+            # pts as 1d arrays
+            pts_x=pts_x,
+            pts_y=pts_y,
+            pts_z=pts_z,
+            # detector polygons as 1d arrays
+            det_ind=det_ind,
+            det_x=det_x,
+            det_y=det_y,
+            det_z=det_z,
+        )
+
+    elif return_vector:
         # call most complete version
         # (computation + storing of unit vector)
         (

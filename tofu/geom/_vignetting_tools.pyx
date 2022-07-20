@@ -173,6 +173,7 @@ cdef inline int get_one_ear(double* polygon,
         assert False, "Got here but shouldnt have "
     return -1
 
+
 cdef inline void earclipping_poly(double* vignett,
                                   long* ltri,
                                   double* diff,
@@ -191,6 +192,14 @@ cdef inline void earclipping_poly(double* vignett,
     cdef int wi, wim1, wip1
     cdef int iear
     cdef _cl.ChainedList* working_index
+
+    # trivial case: triangle
+    if nvert == 3:
+        ltri[0] = 0
+        ltri[1] = 1
+        ltri[2] = 2
+        return
+
     # .. First computing the edges coodinates .................................
     # .. and checking if the angles defined by the edges are reflex or not.....
     # initialization of working index tab:
@@ -227,6 +236,7 @@ cdef inline void earclipping_poly(double* vignett,
         # last but not least update on number of vertices and working indices
         loc_nv = loc_nv - 1
         _cl.pop_at_pos(&working_index, iear)
+
     # we only have three points left, so that is the last triangle:
     ltri[(itri+1)*3]   = <int>_cl.get_at_pos(working_index, 0)
     ltri[(itri+1)*3+1] = <int>_cl.get_at_pos(working_index, 1)
@@ -234,14 +244,59 @@ cdef inline void earclipping_poly(double* vignett,
     _cl.free_cl(&working_index)
     return
 
+
 # ==============================================================================
 # =  Polygons triangulation and Intersection Ray-Poly
 # ==============================================================================
-cdef inline int triangulate_polys(double** vignett_poly,
-                                   long* lnvert,
-                                   int nvign,
-                                   long** ltri,
-                                   int num_threads) nogil except -1:
+
+
+cdef inline void triangulate_poly(
+    double* vignett_poly,
+    long nvert,
+    long** ltri,
+) nogil:
+    """
+    Triangulates a single 3d polygon using the earclipping technique
+    https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
+    Returns
+        ltri: 3*(nvert-2) :
+            {tri_0_0, tri_0_1, ... tri_0_nvert0}
+            where tri_i_j are the 3 indices of the vertex forming a sub-triangle
+            on each vertex (-2) and for each vignett
+    """
+
+    cdef double* diff = NULL
+    cdef bint* lref = NULL
+
+    # ...
+    # -- Defining parallel part ------------------------------------------------
+
+    diff = <double*>malloc(3*nvert*sizeof(double))
+    lref = <bint*>malloc(nvert*sizeof(bint))
+    ltri[0] = <long*>malloc((nvert-2)*3*sizeof(long))
+
+    # diff + reflex
+    compute_diff3d(vignett_poly, nvert, &diff[0])
+    are_points_reflex(nvert, diff, &lref[0])
+
+    # earclipping
+    earclipping_poly(
+        vignett_poly,
+        &ltri[0][0],
+        &diff[0],
+        &lref[0],
+        nvert,
+    )
+    return
+
+
+cdef inline int triangulate_polys(
+    double** vignett_poly,
+    long* lnvert,
+    int nvign,
+    long** ltri,
+    int num_threads,
+) nogil except -1:
     """
     Triangulates a list 3d polygon using the earclipping techinque
     https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
@@ -251,7 +306,7 @@ cdef inline int triangulate_polys(double** vignett_poly,
             where tri_i_j are the 3 indices of the vertex forming a sub-triangle
             on each vertex (-2) and for each vignett
     """
-    cdef int ivign, ii
+    cdef int ivign
     cdef int nvert
     cdef double* diff = NULL
     cdef bint* lref = NULL
@@ -276,6 +331,7 @@ cdef inline int triangulate_polys(double** vignett_poly,
                 free(lref)
 
     return 0
+
 
 cdef inline bint inter_ray_poly(const double[3] ray_orig,
                                 const double[3] ray_vdir,

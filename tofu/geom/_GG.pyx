@@ -5024,76 +5024,6 @@ def compute_solid_angle_apertures_unitvectors(
     return solid_angle, uvect_x, uvect_y, uvect_z
 
 
-def compute_solid_angle_apertures_light(
-    # pts: coordinates as three 1d arrays
-    double[::1] pts_x,
-    double[::1] pts_y,
-    double[::1] pts_z,
-    # detectors: indices of first corner of each det polygon: nd = len(det_ind)
-    long[::1] det_ind,
-    # detectors: polygon coordinates as three 1d arrays
-    double[::1] det_x,
-    double[::1] det_y,
-    double[::1] det_z,
-    # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
-    double[::1] det_norm_x,
-    double[::1] det_norm_y,
-    double[::1] det_norm_z,
-    # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
-    long[::1] ap_ind,
-    # apertures: polygon coordinates as three 1d arrays
-    double[::1] ap_x,
-    double[::1] ap_y,
-    double[::1] ap_z,
-    # possible extra parameters ?
-    double margin=_VSMALL,
-    int num_threads=10,
-):
-
-    # -----------
-    # Declaration
-
-    cdef int npts = pts_x.size
-    cdef int nd = det_ind.size
-
-    # initialize solid angle array with zeros
-    cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
-
-    # -------
-    # Compute
-
-    print("\n------\nThis is were you do your magic\n------\n")
-
-    # loop 1: on npts (observation points)
-
-        # loop 2: on n1 (detectors)
-
-            # test 1: sides
-            # check if point lies on the good side of the detector
-            # => stop if not
-
-            # loop 3: on na (apertures)
-
-                # test 2 (to be discussed): sides for apertures
-                # may be a good option to eliminiate points between apertures
-                # and to speed up the computation ?
-
-                # `computation 1`: intersection
-                # compute intersection between detector and all apertures as
-                # seen from point
-                # stop as soon as null is found (no intersection)
-
-             # `computation 2`: solid angle
-             # compute the solid angle subtended by the intersection (fill the
-             # array that was initialized if non-zero)
-
-    # -------
-    # Return
-
-
-    return solid_angle
-
-
 def compute_solid_angle_apertures_visibility(
     # pts: coordinates as three 1d arrays
     double[::1] pts_x,
@@ -5184,5 +5114,220 @@ def compute_solid_angle_apertures_visibility(
     # -------
     # Return
 
+
+    return solid_angle
+
+
+def compute_solid_angle_apertures_light(
+    # pts: coordinates as three 1d arrays
+    double[::1] pts_x,
+    double[::1] pts_y,
+    double[::1] pts_z,
+    # detectors: indices of first corner of each det polygon: nd = len(det_ind)
+    long[::1] det_ind,
+    # detectors: polygon coordinates as three 1d arrays
+    double[::1] det_x,
+    double[::1] det_y,
+    double[::1] det_z,
+    # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
+    double[::1] det_norm_x,
+    double[::1] det_norm_y,
+    double[::1] det_norm_z,
+    # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
+    long[::1] ap_ind,
+    # apertures: polygon coordinates as three 1d arrays
+    double[::1] ap_x,
+    double[::1] ap_y,
+    double[::1] ap_z,
+    # possible extra parameters ?
+    double margin=_VSMALL,
+    int num_threads=10,
+):
+
+    # -----------
+    # Declaration
+
+    cdef int npts = pts_x.size
+    cdef int nd = det_ind.size
+
+    # initialize solid angle array with zeros
+    cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
+
+    # -------
+    # Compute
+
+    print("\n------\nThis is were you do your magic\n------\n")
+
+    # loop 1: on npts (observation points)
+
+        # loop 2: on n1 (detectors)
+
+            # test 1: sides
+            # check if point lies on the good side of the detector
+            # => stop if not
+
+            # loop 3: on na (apertures)
+
+                # test 2 (to be discussed): sides for apertures
+                # may be a good option to eliminiate points between apertures
+                # and to speed up the computation ?
+
+                # `computation 1`: intersection
+                # compute intersection between detector and all apertures as
+                # seen from point
+                # stop as soon as null is found (no intersection)
+
+             # `computation 2`: solid angle
+             # compute the solid angle subtended by the intersection (fill the
+             # array that was initialized if non-zero)
+
+    # -------
+    # Return
+
+
+    return solid_angle
+
+
+def compute_solid_angle_noapertures(
+    # pts: coordinates as three 1d arrays
+    double[::1] pts_x,
+    double[::1] pts_y,
+    double[::1] pts_z,
+    # detectors: indices of first corner of each det polygon: nd = len(det_ind)
+    long[::1] det_ind,
+    # detectors: polygon coordinates as three 1d arrays
+    double[::1] det_x,
+    double[::1] det_y,
+    double[::1] det_z,
+    # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
+    double[::1] det_norm_x,
+    double[::1] det_norm_y,
+    double[::1] det_norm_z,
+    # possible extra parameters ?
+    double margin=_VSMALL,
+    int num_threads=10,
+):
+    """ Typically used to compute the etendue of a single-aperture set of
+    detectors, where the points are taken in the aperture plane to get rid of
+    it
+
+    Only valid on a plane perpendicular to the LOS
+
+    => use for simple cases
+    => used as a testing ground before more complex routines
+
+    """
+
+    # -----------
+    # Declaration
+
+    cdef int npts = pts_x.size
+    cdef int nd = det_ind.size
+    cdef float sca = 0.
+
+    # initialize solid angle array with zeros
+    cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
+
+    # initialize computation intermediates
+    cdef double** data = NULL
+    cdef long** ltri = NULL
+    cdef double[:, ::1] temp
+
+    data = <double **> malloc(nd * sizeof(double *))
+    ltri = <long**>malloc(sizeof(long*) * nd)
+
+    # -------
+    # Compute
+
+    print("\n------\nThis is were you do your magic\n------\n")
+
+    # loop 1: on nd (observation points)
+    for ii in range(nd):
+
+        # get polygon
+        pix = det_x[det_ind[ii:ii+1]]
+        piy = det_y[det_ind[ii:ii+1]]
+        piz = det_z[det_ind[ii:ii+1]]
+
+        temp = np.ascontiguousarray([pix, piy, piz])
+        data[ii] = &temp[0, 0]
+
+        # triangulate det by ear-clipping
+
+        _vt.triangulate_poly(
+            &data[0],       # double*
+            nd,             # long
+            ltri,           # long**
+        )
+
+        # loop on triangles
+        for tt in range(ntri):
+
+            # get triangle
+            tri_x = pix[ltri[tt]]
+            tri_y = piy[ltri[tt]]
+            tri_z = piz[ltri[tt]]
+
+            # get centroid
+            G_x = (tri_x[0] + tri_x[1] + tri_x[2]) / 3.
+            G_y = (tri_y[0] + tri_y[1] + tri_y[2]) / 3.
+            G_z = (tri_z[0] + tri_z[1] + tri_z[2]) / 3.
+
+            # get 3 * (b cross c)
+            cross_bc_x = 3.*(
+                (tri_y[1] - G_y)*(tri_z[2] - G_z)
+                - (tri_z[1] - G_z)*(tri_y[2] - G_y)
+            )
+            cross_bc_y = 3.*(
+                (tri_y[1] - G_y)*(tri_z[2] - G_z)
+                - (tri_z[1] - G_z)*(tri_y[2] - G_y)
+            )
+            cross_bc_z = 3.*(
+                (tri_y[1] - G_y)*(tri_z[2] - G_z)
+                - (tri_z[1] - G_z)*(tri_y[2] - G_y)
+            )
+
+            # loop 2: on npts (observation pts)
+            for jj in range(npts):
+
+                # test 1: sides
+                # check if point lies on the good side of the detector
+                # => stop if not
+                sca = (
+                    (pts_x - G_x) * det_norm_x
+                    + (pts_y - G_y) * det_norm_y
+                    + (pts_z - G_z) * det_norm_z
+                )
+
+                if sca <= 0:
+                    continue
+
+                # numerator
+                numerator = c_abs(
+                    (G_x - pts_x[jj]) * cross_bc_x
+                    + (G_y - pts_y[jj]) * cross_bc_y
+                    + (G_z - pts_z[jj]) * cross_bc_z
+                )
+
+                # computation 2: solid angle of triangle from pts
+                solid_angle[ii, jj] += _st.comp_sa_tri_appx(
+                    itri,
+                    ltri,
+                    numerator,
+                    dot_Gb,
+                    dot_Gc,
+                    norm_G2,
+                    dot_bc,
+                    dist_opts,
+                )
+
+    # -----------
+    # free memory
+
+    free(data)
+    free(ltri)
+
+    # -------
+    # Return
 
     return solid_angle
