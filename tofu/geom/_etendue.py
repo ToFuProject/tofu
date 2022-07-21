@@ -5,6 +5,12 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 
 
+from . import _comp_solidangles
+
+
+__all__ = ['compute_etendue']
+
+
 # #############################################################################
 # #############################################################################
 #                    Main routines
@@ -65,26 +71,26 @@ def compute_etendue(
 
     etend1 = np.full(tuple(np.r_[3, shape]), np.nan)
 
-    # poor resolution
-    etend1[0, ...] = _compute_etendue_numerical(
-        det=det,
-        aperture=aperture,
-        res=res[0],
-    )
+    # # poor resolution
+    # etend1[0, ...] = _compute_etendue_numerical(
+        # det=det,
+        # aperture=aperture,
+        # res=res[0],
+    # )
 
-    # medium resolution
-    etend1[1, ...] = _compute_etendue_numerical(
-        det=det,
-        aperture=aperture,
-        res=res[1],
-    )
+    # # medium resolution
+    # etend1[1, ...] = _compute_etendue_numerical(
+        # det=det,
+        # aperture=aperture,
+        # res=res[1],
+    # )
 
-    # good resolution
-    etend1[2, ...] = _compute_etendue_numerical(
-        det=det,
-        aperture=aperture,
-        res=res[2],
-    )
+    # # good resolution
+    # etend1[2, ...] = _compute_etendue_numerical(
+        # det=det,
+        # aperture=aperture,
+        # res=res[2],
+    # )
 
     # --------------------
     # optional plotting
@@ -119,9 +125,9 @@ def _compute_etendue_check(
     # check keys
     lk = [
         'cents_x', 'cents_y', 'cents_z',
-        'nout_x', 'nout_y', 'nout_z',
-        'ei_x', 'ei_y', 'ei_z',
-        'ej_x', 'ej_y', 'ej_z',
+        'nin_x', 'nin_y', 'nin_z',
+        'e0_x', 'e0_y', 'e0_z',
+        'e1_x', 'e1_y', 'e1_z',
         'outline_x0', 'outline_x1',
     ]
 
@@ -155,9 +161,9 @@ def _compute_etendue_check(
     dshape = {
         0: ['outline_x0', 'outline_x1'],
         1: [
-            'nout_x', 'nout_y', 'nout_z',
-            'ei_x', 'ei_y', 'ei_z',
-            'ej_x', 'ej_y', 'ej_z',
+            'nin_x', 'nin_y', 'nin_z',
+            'e0_x', 'e0_y', 'e0_z',
+            'e1_x', 'e1_y', 'e1_z',
         ],
         2: ['cents_x', 'cents_y', 'cents_z'],
     }
@@ -170,38 +176,39 @@ def _compute_etendue_check(
             )
             raise Exception(msg)
 
-    if det['cents_x'].shape != det['nout_x'].shape:
-        if det['nout_x'].shape == (1,):
-            det['nout_x'] = np.full(det['cents_x'].shape, det['nout_x'][0])
-            det['nout_y'] = np.full(det['cents_y'].shape, det['nout_y'][0])
-            det['nout_z'] = np.full(det['cents_z'].shape, det['nout_z'][0])
-            det['ei_x'] = np.full(det['cents_x'].shape, det['ei_x'][0])
-            det['ei_y'] = np.full(det['cents_y'].shape, det['ei_y'][0])
-            det['ei_z'] = np.full(det['cents_z'].shape, det['ei_z'][0])
-            det['ej_x'] = np.full(det['cents_x'].shape, det['ej_x'][0])
-            det['ej_y'] = np.full(det['cents_y'].shape, det['ej_y'][0])
-            det['ej_z'] = np.full(det['cents_z'].shape, det['ej_z'][0])
+    shaped = det['cents_x'].shape
+    if det['cents_x'].shape != det['nin_x'].shape:
+        if det['nin_x'].shape == (1,):
+            det['nin_x'] = np.full(shaped, det['nin_x'][0])
+            det['nin_y'] = np.full(shaped, det['nin_y'][0])
+            det['nin_z'] = np.full(shaped, det['nin_z'][0])
+            det['e0_x'] = np.full(shaped, det['e0_x'][0])
+            det['e0_y'] = np.full(shaped, det['e0_y'][0])
+            det['e0_z'] = np.full(shaped, det['e0_z'][0])
+            det['e1_x'] = np.full(shaped, det['e1_x'][0])
+            det['e1_y'] = np.full(shaped, det['e1_y'][0])
+            det['e1_z'] = np.full(shaped, det['e1_z'][0])
         else:
             msg = (
-                "Arg det['nout_x'], det['nout_y'], det['nout_z'] must have "
+                "Arg det['nin_x'], det['nin_y'], det['nin_z'] must have "
                 "the same shape as det['cents_z']"
             )
             raise Exception(msg)
 
     # normalization
-    norms = np.sqrt(det['nout_x']**2 + det['nout_y']**2 + det['nout_z']**2)
-    det['nout_x'] = det['nout_x'] / norms
-    det['nout_y'] = det['nout_y'] / norms
-    det['nout_z'] = det['nout_z'] / norms
+    norms = np.sqrt(det['nin_x']**2 + det['nin_y']**2 + det['nin_z']**2)
+    det['nin_x'] = det['nin_x'] / norms
+    det['nin_y'] = det['nin_y'] / norms
+    det['nin_z'] = det['nin_z'] / norms
 
     # -----------
     # aperture 
 
     lk = [
         'cent_x', 'cent_y', 'cent_z',
-        'nout_x', 'nout_y', 'nout_z',
-        'ei_x', 'ei_y', 'ei_z',
-        'ej_x', 'ej_y', 'ej_z',
+        'nin_x', 'nin_y', 'nin_z',
+        'e0_x', 'e0_y', 'e0_z',
+        'e1_x', 'e1_y', 'e1_z',
         'outline_x0', 'outline_x1',
     ]
 
@@ -239,9 +246,9 @@ def _compute_etendue_check(
     dshape = {
         0: ['outline_x0', 'outline_x1'],
         1: [
-            'nout_x', 'nout_y', 'nout_z',
-            'ei_x', 'ei_y', 'ei_z',
-            'ej_x', 'ej_y', 'ej_z',
+            'nin_x', 'nin_y', 'nin_z',
+            'e0_x', 'e0_y', 'e0_z',
+            'e1_x', 'e1_y', 'e1_z',
             'cent_x', 'cent_y', 'cent_z',
         ],
     }
@@ -256,13 +263,13 @@ def _compute_etendue_check(
 
     # normalization
     norm = np.sqrt(
-        aperture['nout_x']**2
-        + aperture['nout_y']**2
-        + aperture['nout_z']**2
+        aperture['nin_x']**2
+        + aperture['nin_y']**2
+        + aperture['nin_z']**2
     )
-    aperture['nout_x'] = aperture['nout_x'] / norm
-    aperture['nout_y'] = aperture['nout_y'] / norm
-    aperture['nout_z'] = aperture['nout_z'] / norm
+    aperture['nin_x'] = aperture['nin_x'] / norm
+    aperture['nin_y'] = aperture['nin_y'] / norm
+    aperture['nin_z'] = aperture['nin_z'] / norm
 
     # -----------
     # plot
@@ -309,9 +316,9 @@ def _compute_etendue_prepare(
     # check outline is counter-clockwise
 
     sca_abs = np.abs((
-        det['nout_x'] * aperture['nout_x']
-        + det['nout_y'] * aperture['nout_y']
-        + det['nout_z'] * aperture['nout_z']
+        det['nin_x'] * aperture['nin_x']
+        + det['nin_y'] * aperture['nin_y']
+        + det['nin_z'] * aperture['nin_z']
     ))
 
 
@@ -337,16 +344,23 @@ def _compute_etendue_prepare(
     # ------------
     # solid angles
 
-    solid_angles = np.nan
+    solid_angles = _comp_solidangles.calc_solidangle_apertures(
+        # observation points
+        pts_x=aperture['cent_x'],
+        pts_y=aperture['cent_y'],
+        pts_z=aperture['cent_z'],
+        # polygons
+        apertures=None,
+        detectors=det,
+        detectors_normal=None,
+        # possible obstacles
+        config=None,
+        # parameters
+        visibility=False,
+        return_vector=False,
+    )
 
-    # -------------------------------------------
-    # scalar product bettween normal unit vectors
-
-    sca_abs = np.abs((
-        det['nout_x'] * aperture['nout_x']
-        + det['nout_y'] * aperture['nout_y']
-        + det['nout_z'] * aperture['nout_z']
-    ))
+    import pdb; pdb.set_trace()     # DB
 
     # -------------------------------------
     # det outline discretization resolution

@@ -3,18 +3,22 @@
 # cython: wraparound=False
 # cython: initializedcheck=False
 # cython: cdivision=True
-#
+
+
 # -- Python libraries imports --------------------------------------------------
 from warnings import warn
 import numpy as np
 import scipy.integrate as scpintg
 from matplotlib.path import Path
 
+
 # -- cython libraries imports --------------------------------------------------
 from cpython cimport bool
 from cpython.array cimport array, clone
 from cython.parallel import prange
 from cython.parallel cimport parallel
+
+
 # -- C libraries imports -------------------------------------------------------
 cimport cython
 cimport numpy as np
@@ -25,6 +29,11 @@ from libc.math cimport atan2 as c_atan2, pi as c_pi
 from libc.math cimport NAN as C_NAN
 from libc.math cimport INFINITY as C_INF
 from libc.stdlib cimport malloc, free
+
+# -- extra libraries imports --------------------------------------------------
+import Polygon as plg
+
+
 # -- ToFu library imports ------------------------------------------------------
 from ._basic_geom_tools cimport _VSMALL, _SMALL
 from ._basic_geom_tools cimport _TWOPI
@@ -35,50 +44,55 @@ from . cimport _sampling_tools as _st
 from . cimport _vignetting_tools as _vt
 from . import _openmp_tools as _ompt
 
+
 # == Exports ===================================================================
-__all__ = ['coord_shift',
-           "comp_dist_los_circle",
-           "comp_dist_los_circle_vec",
-           "comp_dist_los_vpoly",
-           "comp_dist_los_vpoly_vec",
-           "is_close_los_vpoly_vec",
-           "is_close_los_circle",
-           "is_close_los_circle_vec",
-           "which_los_closer_vpoly_vec",
-           "which_vpoly_closer_los_vec",
-           "LOS_sino_findRootkPMin_Tor",
-           'Poly_isClockwise', 'Poly_VolAngTor',
-           'poly_area', "poly_area_and_barycenter",
-           'Sino_ImpactEnv', 'ConvertImpact_Theta2Xi',
-           '_Ves_isInside',
-           'discretize_line1d',
-           'discretize_segment2d', '_Ves_meshCross_FromInd',
-           'discretize_vpoly',
-           '_Ves_Vmesh_Tor_SubFromD_cython',
-           '_Ves_Vmesh_Tor_SubFromInd_cython',
-           '_Ves_Vmesh_Tor_SubFromD_cython_old',
-           '_Ves_Vmesh_Tor_SubFromInd_cython_old',
-           '_Ves_Vmesh_Lin_SubFromD_cython', '_Ves_Vmesh_Lin_SubFromInd_cython',
-           '_Ves_Smesh_Tor_SubFromD_cython', '_Ves_Smesh_Tor_SubFromInd_cython',
-           '_Ves_Smesh_TorStruct_SubFromD_cython',
-           '_Ves_Smesh_TorStruct_SubFromInd_cython',
-           '_Ves_Smesh_Lin_SubFromD_cython',
-           '_Ves_Smesh_Lin_SubFromInd_cython',
-           'LOS_Calc_PInOut_VesStruct',
-           "LOS_Calc_kMinkMax_VesStruct",
-           "LOS_isVis_PtFromPts_VesStruct",
-           "LOS_areVis_PtsFromPts_VesStruct",
-           'LOS_get_sample', 'LOS_calc_signal',
-           'LOS_sino', 'integrate1d',
-           "triangulate_by_earclipping",
-           "vignetting",
-           "Dust_calc_SolidAngle"]
+
+__all__ = [
+    'coord_shift',
+    "comp_dist_los_circle",
+    "comp_dist_los_circle_vec",
+    "comp_dist_los_vpoly",
+    "comp_dist_los_vpoly_vec",
+    "is_close_los_vpoly_vec",
+    "is_close_los_circle",
+    "is_close_los_circle_vec",
+    "which_los_closer_vpoly_vec",
+    "which_vpoly_closer_los_vec",
+    "LOS_sino_findRootkPMin_Tor",
+    'Poly_isClockwise', 'Poly_VolAngTor',
+    'poly_area', "poly_area_and_barycenter",
+    'Sino_ImpactEnv', 'ConvertImpact_Theta2Xi',
+    '_Ves_isInside',
+    'discretize_line1d',
+    'discretize_segment2d', '_Ves_meshCross_FromInd',
+    'discretize_vpoly',
+    '_Ves_Vmesh_Tor_SubFromD_cython',
+    '_Ves_Vmesh_Tor_SubFromInd_cython',
+    '_Ves_Vmesh_Tor_SubFromD_cython_old',
+    '_Ves_Vmesh_Tor_SubFromInd_cython_old',
+    '_Ves_Vmesh_Lin_SubFromD_cython', '_Ves_Vmesh_Lin_SubFromInd_cython',
+    '_Ves_Smesh_Tor_SubFromD_cython', '_Ves_Smesh_Tor_SubFromInd_cython',
+    '_Ves_Smesh_TorStruct_SubFromD_cython',
+    '_Ves_Smesh_TorStruct_SubFromInd_cython',
+    '_Ves_Smesh_Lin_SubFromD_cython',
+    '_Ves_Smesh_Lin_SubFromInd_cython',
+    'LOS_Calc_PInOut_VesStruct',
+    "LOS_Calc_kMinkMax_VesStruct",
+    "LOS_isVis_PtFromPts_VesStruct",
+    "LOS_areVis_PtsFromPts_VesStruct",
+    'LOS_get_sample', 'LOS_calc_signal',
+    'LOS_sino', 'integrate1d',
+    "triangulate_by_earclipping",
+    "vignetting",
+    "Dust_calc_SolidAngle",
+]
 
 
 ########################################################
 ########################################################
 #       Coordinates handling
 ########################################################
+
 
 def coord_shift(points, in_format='(X,Y,Z)',
                 out_format='(R,Z)',
@@ -351,12 +365,14 @@ def poly_area_and_barycenter(double[:,::1] poly, int npts):
     cg[1] = cg[1] * inva6
     return cg, area
 
+
 """
 ###############################################################################
 ###############################################################################
                     Sinogram specific
 ###############################################################################
 """
+
 
 def Sino_ImpactEnv(np.ndarray[double,ndim=1] RZ,
                    np.ndarray[double,ndim=2] Poly, int NP=50, Test=True):
@@ -431,6 +447,7 @@ def ConvertImpact_Theta2Xi(theta, pP, pN, sort=True):
 ########################################################
 #       isInside
 ########################################################
+
 
 def _Ves_isInside(double[:, ::1] pts, double[:, ::1] ves_poly,
                   double[:, ::1] ves_lims=None, int nlim=0,
@@ -2739,23 +2756,49 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     return is_seen
 
 
-# ==============================================================================
+# ==============================================================
 #
 #                                 VIGNETTING
 #
-# ==============================================================================
-def triangulate_by_earclipping(np.ndarray[double,ndim=2] poly):
+# ===============================================================
+
+
+def triangulate_by_earclipping(
+    np.ndarray[double, ndim=2] poly,
+    double[3] vect_cc,
+):
+    """
+    Triangulates a single 3d polygon by the earclipping method.
+    Converts 3d polygon into 2d counter-clockwise projection
+
+    Params
+    =====
+    poly : (3, nvert) double array
+        Contains 3D coordinates of open polygon in counter clockwise order
+    Returns
+    =======
+    ltri : (3*(nvert-2)) int array
+        Indices of triangles
+    """
     cdef int nvert = poly.shape[1]
-    cdef np.ndarray[long,ndim=1] ltri = np.empty((nvert-2)*3, dtype=int)
+    cdef np.ndarray[long, ndim=1] ltri = np.empty((nvert-2)*3, dtype=int)
     cdef double* diff = NULL
     cdef bint* lref = NULL
-    # Initialization ...........................................................
-    diff = <double*>malloc(3*nvert*sizeof(double))
+
+    # Project to 2d.........................
+
+
+    # Initialization ..........................................
+    diff = <double*>malloc(2*nvert*sizeof(double))
     lref = <bint*>malloc(nvert*sizeof(bint))
-    _vt.compute_diff3d(&poly[0,0], nvert, diff)
-    _vt.are_points_reflex(nvert, diff, lref)
-    # Calling core function.....................................................
-    _vt.earclipping_poly(&poly[0,0], &ltri[0], diff, lref, nvert)
+
+    _vt.compute_diff3d(&poly[0, 0], nvert, &diff[0])
+    _vt.are_points_reflex(nvert, &diff[0], &lref[0], vect_cc)
+
+    # Calling core function......................................
+    _vt.earclipping_poly(&poly[0, 0], &ltri[0], &diff[0], &lref[0], nvert)
+
+    # free memory................
     free(diff)
     free(lref)
     return ltri
@@ -5125,20 +5168,35 @@ def compute_solid_angle_apertures_light(
     double[::1] pts_z,
     # detectors: indices of first corner of each det polygon: nd = len(det_ind)
     long[::1] det_ind,
-    # detectors: polygon coordinates as three 1d arrays
-    double[::1] det_x,
-    double[::1] det_y,
-    double[::1] det_z,
+    # detectors: polygon coordinates in 2d (common to all detectors)
+    double[::1] det_outline_x0
+    double[::1] det_outline_x1
+    # detectors: centers coordinates as three 1d arrays
+    double[::1] det_cents_x,
+    double[::1] det_cents_y,
+    double[::1] det_cents_z,
     # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
     double[::1] det_norm_x,
     double[::1] det_norm_y,
     double[::1] det_norm_z,
+    double[::1] det_e0_x,
+    double[::1] det_e0_y,
+    double[::1] det_e0_z,
+    double[::1] det_e1_x,
+    double[::1] det_e1_y,
+    double[::1] det_e1_z,
     # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
     long[::1] ap_ind,
     # apertures: polygon coordinates as three 1d arrays
+    double[::1] ap_cents_x,
+    double[::1] ap_cents_y,
+    double[::1] ap_cents_z,
     double[::1] ap_x,
     double[::1] ap_y,
     double[::1] ap_z,
+    double[::1] ap_norm_x,
+    double[::1] ap_norm_y,
+    double[::1] ap_norm_z,
     # possible extra parameters ?
     double margin=_VSMALL,
     int num_threads=10,
@@ -5149,6 +5207,15 @@ def compute_solid_angle_apertures_light(
 
     cdef int npts = pts_x.size
     cdef int nd = det_ind.size
+    cdef float sca, sca0, sca1
+    cdef float k
+    cdef [::1] ap_x0
+    cdef [::1] ap_x1
+    cdef [::1] p_a_pts_x0
+    cdef [::1] p_a_pts_x1
+    cdef [::1] poly_x
+    cdef [::1] poly_y
+    cdef [::1] poly_z
 
     # initialize solid angle array with zeros
     cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
@@ -5158,32 +5225,164 @@ def compute_solid_angle_apertures_light(
 
     print("\n------\nThis is were you do your magic\n------\n")
 
-    # loop 1: on npts (observation points)
+    # -------------------
+    # loop 1: on nd (detectors)
 
-        # loop 2: on n1 (detectors)
+    for dd in range(nd):
 
-            # test 1: sides
-            # check if point lies on the good side of the detector
-            # => stop if not
+        # loop 2: on npts (observation points)
+        for pp in range(npts):
+
+            # test if on good side of detector
+            sca0 = (
+                (pts_x[pp] - det_cents_x[dd]) * det_norm_x[dd]
+                + (pts_y[pp] - det_cents_y[dd]) * det_norm_y[dd]
+                + (pts_z[pp] - det_cents_z[dd]) * det_norm_z[dd]
+            )
+
+            if sca0 <= 0:
+                continue
+
+            # flag
+            isok = True
 
             # loop 3: on na (apertures)
+            for aa in range(na):
 
-                # test 2 (to be discussed): sides for apertures
-                # may be a good option to eliminiate points between apertures
-                # and to speed up the computation ?
+                # test if on good side of aperture
+                sca = (
+                    (pts_x[pp] - ap_cents_x[aa]) * ap_norm_x[aa]
+                    + (pts_y[pp] - ap_cents_y[aa]) * ap_norm_y[aa]
+                    + (pts_z[pp] - ap_cents_z[aa]) * ap_norm_z[aa]
+                )
 
-                # `computation 1`: intersection
-                # compute intersection between detector and all apertures as
-                # seen from point
-                # stop as soon as null is found (no intersection)
+                if sca <= 0:
+                    isok = False
+                    break
 
-             # `computation 2`: solid angle
-             # compute the solid angle subtended by the intersection (fill the
-             # array that was initialized if non-zero)
+                # test if all aperture points can be projected on detector plane from pts
+                for ll in range(ap_ind[aa], ap_ind[aa+1]):
+                    sca1 = (
+                        (ap_x[ll] - pts_x[pp]) * det_norm_x[dd]
+                        + (ap_y[ll] - pts_y[pp]) * det_norm_y[dd]
+                        + (ap_z[ll] - pts_z[pp]) * det_norm_z[dd]
+                    )
+
+                    if sca1 >= 0:
+                        isok = False
+                        break
+
+                    # project in 2d
+                    k = - sca0 / sca1
+                    P_x = pts_x[pp] + k * (ap_x[ll] - pts_x[pp])
+                    P_y = pts_y[pp] + k * (ap_y[ll] - pts_y[pp])
+                    P_z = pts_z[pp] + k * (ap_z[ll] - pts_z[pp])
+
+                    # project in 2d
+                    ap_x0[ap_ind[aa]] = (
+                        (P_x - det_cents_x[dd]) * det_e0_x
+                        + (P_y - det_cents_y[dd]) * det_e0_y
+                        + (P_z - det_cents_z[dd]) * det_e0_z
+                    )
+                    ap_x1[ap_ind[aa]] = (
+                        (P_x - det_cents_x[dd]) * det_e1_x
+                        + (P_y - det_cents_y[dd]) * det_e1_y
+                        + (P_z - det_cents_z[dd]) * det_e1_z
+                    )
+
+                if not isok:
+                    break
+
+            # go to next point
+            if not isok:
+                continue
+
+            # ----------------------------
+            # compute polygon intersection
+
+            # compute intersection
+            p_a = plg.Polygon(np.array([det_outline_x0, det-outline_x1]).T)
+            for aa in range(na):
+                p_a = p_a & plg.Polygon(np.array([ap_x0[ap_ind[aa]:ap_ind[aa]+1], ap_x1[ap_ind[aa]:ap_ind[aa]+1]]).T)
+
+                # stop if no intersection
+                if p_a.nPoints() < 3:
+                    isok = False
+                    break
+
+            # stop if no intersection
+            if not isok:
+                continue
+
+            # -------------------
+            # rebuild 3d polygon
+
+            p_a_pts_x0 = np.array(p_a.contour(0))[:, 0]
+            p_a_pts_x1 = np.array(p_a.contour(0))[:, 1]
+            poly_x = det_cents_x[dd] + p_a_pts_x0 * det_e0_x + p_a_pts_x1 * det_e1_x
+            poly_y = det_cents_y[dd] + p_a_pts_x0 * det_e0_y + p_a_pts_x1 * det_e1_y
+            poly_z = det_cents_z[dd] + p_a_pts_x0 * det_e0_z + p_a_pts_x1 * det_e1_z
+
+            # -------------------
+            # compute solid angle
+
+            # triangulate det by ear-clipping
+            ltri = triangulate_by_earclipping(p_a_pts_x0, p_a_pts_x1)
+            ntri = len(ltri) / 3
+
+            # loop on triangles
+            for tt in range(ntri):
+
+                # get triangle
+                tri_x = poly_x[ltri[tt]]
+                tri_y = poly_y[ltri[tt]]
+                tri_z = poly_z[ltri[tt]]
+
+                # get centroid
+                G_x = (tri_x[0] + tri_x[1] + tri_x[2]) / 3.
+                G_y = (tri_y[0] + tri_y[1] + tri_y[2]) / 3.
+                G_z = (tri_z[0] + tri_z[1] + tri_z[2]) / 3.
+
+                # get 3 * (b cross c)
+                cross_bc_x = 3.*(
+                    (tri_y[1] - G_y)*(tri_z[2] - G_z)
+                    - (tri_z[1] - G_z)*(tri_y[2] - G_y)
+                )
+                cross_bc_y = 3.*(
+                    (tri_y[1] - G_y)*(tri_z[2] - G_z)
+                    - (tri_z[1] - G_z)*(tri_y[2] - G_y)
+                )
+                cross_bc_z = 3.*(
+                    (tri_y[1] - G_y)*(tri_z[2] - G_z)
+                    - (tri_z[1] - G_z)*(tri_y[2] - G_y)
+                )
+
+                # numerator
+                numerator = (
+                    (G_x - pts_x[jj]) * cross_bc_x
+                    + (G_y - pts_y[jj]) * cross_bc_y
+                    + (G_z - pts_z[jj]) * cross_bc_z
+                )
+
+                # computation 2: solid angle of triangle from pts
+                solid_angle[dd, pp] += _st.comp_sa_tri(
+                    numerator,
+                    tri_x[0],
+                    tri_y[0],
+                    tri_z[0],
+                    tri_x[1],
+                    tri_y[1],
+                    tri_z[1],
+                    tri_x[2],
+                    tri_y[2],
+                    tri_z[2],
+                    pts_x[jj],
+                    pts_y[jj],
+                    pts_z[jj],
+                )
 
     # -------
     # Return
-
 
     return solid_angle
 
@@ -5194,11 +5393,14 @@ def compute_solid_angle_noapertures(
     double[::1] pts_y,
     double[::1] pts_z,
     # detectors: indices of first corner of each det polygon: nd = len(det_ind)
-    long[::1] det_ind,
+    np.ndarray[long, ndim=1, mode='c'] det_ind,
     # detectors: polygon coordinates as three 1d arrays
-    double[::1] det_x,
-    double[::1] det_y,
-    double[::1] det_z,
+    np.ndarray[double, ndim=1] det_x,
+    np.ndarray[double, ndim=1] det_y,
+    np.ndarray[double, ndim=1] det_z,
+    # double[::1] det_x,
+    # double[::1] det_y,
+    # double[::1] det_z,
     # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
     double[::1] det_norm_x,
     double[::1] det_norm_y,
@@ -5222,19 +5424,28 @@ def compute_solid_angle_noapertures(
     # Declaration
 
     cdef int npts = pts_x.size
-    cdef int nd = det_ind.size
-    cdef float sca = 0.
+    cdef int nd = det_ind.size - 1
+    cdef int ntri
+    cdef np.ndarray[double, ndim=1] pix
+    cdef np.ndarray[double, ndim=1] piy
+    cdef np.ndarray[double, ndim=1] piz
+    cdef np.ndarray[double, ndim=1] tri_x
+    cdef np.ndarray[double, ndim=1] tri_y
+    cdef np.ndarray[double, ndim=1] tri_z
+    cdef double G_x
+    cdef double G_y
+    cdef double G_z
+    cdef double cross_bc_x
+    cdef double cross_bc_y
+    cdef double cross_bc_z
+    cdef double sca
+    cdef double numerator
+
+    # initialize computation intermediates
+    cdef np.ndarray[long, ndim=1] ltri
 
     # initialize solid angle array with zeros
     cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
-
-    # initialize computation intermediates
-    cdef double** data = NULL
-    cdef long** ltri = NULL
-    cdef double[:, ::1] temp
-
-    data = <double **> malloc(nd * sizeof(double *))
-    ltri = <long**>malloc(sizeof(long*) * nd)
 
     # -------
     # Compute
@@ -5245,20 +5456,15 @@ def compute_solid_angle_noapertures(
     for ii in range(nd):
 
         # get polygon
-        pix = det_x[det_ind[ii:ii+1]]
-        piy = det_y[det_ind[ii:ii+1]]
-        piz = det_z[det_ind[ii:ii+1]]
-
-        temp = np.ascontiguousarray([pix, piy, piz])
-        data[ii] = &temp[0, 0]
+        pix = det_x[det_ind[ii]:det_ind[ii+1]]
+        piy = det_y[det_ind[ii]:det_ind[ii+1]]
+        piz = det_z[det_ind[ii]:det_ind[ii+1]]
 
         # triangulate det by ear-clipping
+        ltri = triangulate_by_earclipping(np.ascontiguousarray([pix, piy, piz]))
+        ntri = len(ltri)
 
-        _vt.triangulate_poly(
-            &data[0],       # double*
-            nd,             # long
-            ltri,           # long**
-        )
+        print(ltri)     # DB
 
         # loop on triangles
         for tt in range(ntri):
@@ -5294,38 +5500,41 @@ def compute_solid_angle_noapertures(
                 # check if point lies on the good side of the detector
                 # => stop if not
                 sca = (
-                    (pts_x - G_x) * det_norm_x
-                    + (pts_y - G_y) * det_norm_y
-                    + (pts_z - G_z) * det_norm_z
+                    (pts_x[jj] - G_x) * det_norm_x[ii]
+                    + (pts_y[jj] - G_y) * det_norm_y[ii]
+                    + (pts_z[jj] - G_z) * det_norm_z[ii]
                 )
 
                 if sca <= 0:
                     continue
 
                 # numerator
-                numerator = c_abs(
+                numerator = (
                     (G_x - pts_x[jj]) * cross_bc_x
                     + (G_y - pts_y[jj]) * cross_bc_y
                     + (G_z - pts_z[jj]) * cross_bc_z
                 )
 
                 # computation 2: solid angle of triangle from pts
-                solid_angle[ii, jj] += _st.comp_sa_tri_appx(
-                    itri,
-                    ltri,
+                solid_angle[ii, jj] += _st.comp_sa_tri(
                     numerator,
-                    dot_Gb,
-                    dot_Gc,
-                    norm_G2,
-                    dot_bc,
-                    dist_opts,
+                    tri_x[0],
+                    tri_y[0],
+                    tri_z[0],
+                    tri_x[1],
+                    tri_y[1],
+                    tri_z[1],
+                    tri_x[2],
+                    tri_y[2],
+                    tri_z[2],
+                    pts_x[jj],
+                    pts_y[jj],
+                    pts_z[jj],
                 )
 
     # -----------
     # free memory
 
-    free(data)
-    free(ltri)
 
     # -------
     # Return

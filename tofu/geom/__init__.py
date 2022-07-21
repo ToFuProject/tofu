@@ -14,5 +14,6 @@ from tofu.geom._core import Rays, CamLOS1D, CamLOS2D
 from tofu.geom._core_optics import *
 import tofu.geom._comp_solidangles
 from . import utils
+from tofu.geom._etendue import *
 
 __all__ = ['_GG', '_comp', '_plot', '_def', 'utils']

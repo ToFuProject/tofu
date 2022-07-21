@@ -365,11 +365,11 @@ def _check_pts(pts=None, pts_name=None):
             pts = np.atleast_1d(pts)
         except Exception as err:
             msg = (
-                f"Arg {pts_name} must be convertible to a np.ndarray\n"
+                f"Arg {pts_name} must be convertible to a np.ndarray float\n"
                 "Provided: {pts}"
             )
         raise Exception(msg)
-    return pts
+    return pts.astype(float)
 
 
 def _check_list_3dpolygons(
@@ -377,6 +377,7 @@ def _check_list_3dpolygons(
     lpoly_name=None,
     closed=None,
     can_be_None=None,
+    detectors_normal=None,
 ):
 
     # trivial case
@@ -412,6 +413,13 @@ def _check_list_3dpolygons(
             lpoly[ii] = np.append(pp, pp[:, 0:1], axis=1)
         elif np.allclose(pp[:, 0], pp[:, -1]) and not closed:
             lpoly[ii] = pp[:, :-1]
+
+        # make sure float
+        lpoly[ii] = lpoly[ii].astype(float)
+
+    # check counter-clockwise ass seen from normal vector
+    for ii, pp in enumerate(lpoly):
+        pass
 
     return lpoly
 
@@ -452,7 +460,7 @@ def _check_convert_det_dict(detectors=None):
 
     lk_out = ['outline_x0', 'outline_x1']
     lk_shape = [
-        'centers_x', 'centers_y', 'centers_z',
+        'cents_x', 'cents_y', 'cents_z',
         'e0_x', 'e0_y', 'e0_z',
         'e1_x', 'e1_y', 'e1_z',
         'nin_x', 'nin_y', 'nin_z',
@@ -467,7 +475,7 @@ def _check_convert_det_dict(detectors=None):
             for ss in lk_out
         ])
         and all([
-            detectors[ss].shape == detectors['centers_x'].shape
+            detectors[ss].shape == detectors['cents_x'].shape
             for ss in lk_shape
         ])
     )
@@ -488,7 +496,7 @@ def _check_convert_det_dict(detectors=None):
     _check_unit_vectors(detectors)
 
     # copy dict and flatten (if not 1d)
-    if detectors['centers_x'].ndim > 1:
+    if detectors['cents_x'].ndim > 1:
         detectors = dict(detectors)
         lk = [k0 for k0 in detectors.keys() if 'outline' not in k0]
         for k0 in lk:
@@ -496,13 +504,13 @@ def _check_convert_det_dict(detectors=None):
 
     # turn into list of detectors arrays
     det = np.array([
-        detectors['centers_x'][:, None]
+        detectors['cents_x'][:, None]
         + detectors['e0_x'][:, None] * detectors['outline_x0'][None, :]
         + detectors['e1_x'][:, None] * detectors['outline_x1'][None, :],
-        detectors['centers_y'][:, None]
+        detectors['cents_y'][:, None]
         + detectors['e0_y'][:, None] * detectors['outline_x0'][None, :]
         + detectors['e1_y'][:, None] * detectors['outline_x1'][None, :],
-        detectors['centers_z'][:, None]
+        detectors['cents_z'][:, None]
         + detectors['e0_z'][:, None] * detectors['outline_x0'][None, :]
         + detectors['e1_z'][:, None] * detectors['outline_x1'][None, :],
     ]).swapaxes(0, 1)
@@ -514,7 +522,6 @@ def _check_convert_det_dict(detectors=None):
     ])
 
     return det, det_norm
-
 
 
 def _calc_solidangle_apertures_check(
@@ -554,16 +561,6 @@ def _calc_solidangle_apertures_check(
         mask = None
 
     # ---------
-    # apertures
-
-    apertures = _check_list_3dpolygons(
-        lpoly=apertures,
-        lpoly_name='apertures',
-        closed=True,
-        can_be_None=True,
-    )
-
-    # ---------
     # detectors
 
     if isinstance(detectors, dict):
@@ -573,8 +570,20 @@ def _calc_solidangle_apertures_check(
     detectors = _check_list_3dpolygons(
         lpoly=detectors,
         lpoly_name='detectors',
-        closed=True,
+        closed=False,
         can_be_None=False,
+        detectors_normal=detectors_normal,
+    )
+
+    # ---------
+    # apertures
+
+    apertures = _check_list_3dpolygons(
+        lpoly=apertures,
+        lpoly_name='apertures',
+        closed=False,
+        can_be_None=True,
+        detectors_normal=detectors_normal,
     )
 
     # ----------------
@@ -629,7 +638,7 @@ def _calc_solidangle_apertures_check(
     # ----------
     # check aperture vs visibility
 
-    if aperture is None and (visibility is True or return_vector is True):
+    if apertures is None and (visibility is True or return_vector is True):
         msg = (
             "No apertures provided!\n"
             "=> visibility must be False\n"
@@ -696,7 +705,7 @@ def _calc_solidangle_apertures_prepare(
     # detectors
 
     det_split = np.array([dd.shape[1] for dd in detectors])
-    det_ind = np.array([0] + [dd.shape[1] for dd in detectors[:-1]])
+    det_ind = np.r_[0, np.cumsum([dd.shape[1] for dd in detectors])]
     det_x = np.concatenate([dd[0, :] for dd in detectors])
     det_y = np.concatenate([dd[1, :] for dd in detectors])
     det_z = np.concatenate([dd[2, :] for dd in detectors])
@@ -948,13 +957,27 @@ def calc_solidangle_apertures(
     if apertures is None:
         # call fastest / simplest version without apertures
         # (no computation / storing of unit vector)
-        solid_angle = _GG.compute_solid_angle_noaperture(
+
+        import pdb; pdb.set_trace()     # DB
+
+        # get 2d det for triangulation
+        det_x_2d, det_y_2d, det_z_2d = _get_2d(
+        )
+
+        solid_angle = _GG.compute_solid_angle_noapertures(
             # pts as 1d arrays
             pts_x=pts_x,
             pts_y=pts_y,
             pts_z=pts_z,
             # detector polygons as 1d arrays
             det_ind=det_ind,
+            det_x=det_x,
+            det_y=det_y,
+            det_z=det_z,
+            det_norm_x=det_norm_x,
+            det_norm_y=det_norm_y,
+            det_norm_z=det_norm_z,
+            # for triangulation (assumes counter_clockwise)
             det_x=det_x,
             det_y=det_y,
             det_z=det_z,

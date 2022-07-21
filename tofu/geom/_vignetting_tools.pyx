@@ -20,57 +20,118 @@ from . cimport _basic_geom_tools as _bgt
 from . cimport _chained_list as _cl
 from . cimport _sorted_set as _ss
 
-# ==============================================================================
-# =  Basic utilities: is angle reflex, vector np.diff, is point in triangle,...
-# ==============================================================================
-cdef inline bint is_reflex(const double[3] u,
-                           const double[3] v) nogil:
-    """
-    Determines if the angle between U and -V is reflex (angle > pi) or not.
-    Warning: note the MINUS in front of V, this was done as this is the only
-             form how we will need this function. but it is NOT general.
-    """
-    cdef int ii
-    cdef double sumc
-    cdef double[3] ucrossv
-    # ...
-    _bgt.compute_cross_prod(u, v, ucrossv)
-    sumc = 0.0
-    for ii in range(3):
-        # normally it should be a sum, but it is a minus cause is we have (U,-V)
-        sumc = ucrossv[ii]
-    return sumc >= 0.
 
-cdef inline void compute_diff3d(double* orig,
-                                int nvert,
-                                double* diff) nogil:
+# ===============================================================
+#                   Basic utilities:
+#       reflex angle, vector diff, point in triangle,...
+# ===============================================================
+
+
+def inline bint is_reflex(
+    const double[3] u,
+    const double[3] v,
+    double[3] vect_cc
+) nogil:
+    """ test if a point is reflex
+
+    - reflex = angle > pi between vectors
+
+    Assumes:
+        - polygon is 3d
+        - vect_cc is a normal vector to the polygon quasi-plane P
+        - in P, the polygon is counter-clockwise
+
+    Depends on the orientation of vect_cc
+
+    """
+    return (
+        (u[1]*v[2] - u[2]*v[1]) * vect_cc[0]
+        + (u[2]*v[0] - u[0]*v[2]) * vect_cc[1]
+        + (u[0]*v[1] - u[1]*v[0]) * vect_cc[2]
+    ) > 0.
+
+
+# cdef inline bint is_reflex(const double[3] u,
+                           # const double[3] v) nogil:
+    # """
+    # Determines if the angle between U and -V is reflex (angle > pi) or not.
+    # Warning: note the MINUS in front of V, this was done as this is the only
+             # form how we will need this function. but it is NOT general.
+    # """
+    # cdef int ii
+    # cdef double sumc
+    # cdef double[3] ucrossv
+    # # ...
+    # _bgt.compute_cross_prod(u, v, ucrossv)
+    # sumc = 0.0
+    # for ii in range(3):
+        # # normally it should be a sum, but it is a minus cause is we have (U,-V)
+        # sumc = ucrossv[ii]
+    # return sumc >= 0.
+
+
+cdef inline void compute_diff3d(
+    double* orig,
+    int nvert,
+    double* diff,
+) nogil:
+
     cdef int ivert
+
     for ivert in range(nvert-1):
         diff[ivert*3 + 0] = orig[0*nvert+(ivert+1)] - orig[0*nvert+ivert]
         diff[ivert*3 + 1] = orig[1*nvert+(ivert+1)] - orig[1*nvert+ivert]
         diff[ivert*3 + 2] = orig[2*nvert+(ivert+1)] - orig[2*nvert+ivert]
+
     # doing the last point:
     diff[3*(nvert-1) + 0] = orig[0*nvert] - orig[0*nvert+(nvert-1)]
     diff[3*(nvert-1) + 1] = orig[1*nvert] - orig[1*nvert+(nvert-1)]
     diff[3*(nvert-1) + 2] = orig[2*nvert] - orig[2*nvert+(nvert-1)]
     return
 
-cdef inline void are_points_reflex(int nvert,
-                                   double* diff,
-                                   bint* are_reflex) nogil:
+
+cdef inline void are_points_reflex(
+    int nvert,
+    double* diff,
+    bint* are_reflex,
+    double[3] vect_cc,
+) nogil:
     """
     Determines if the interior angles of a polygons are reflex
     (angle > pi) or not.
     """
     cdef int ivert
-    cdef int icoord
-    cdef double[3] u1, v1, un, vn
-    # .. Computing if reflex or not ...........................................
-    for ivert in range(1,nvert):
-        are_reflex[ivert] = is_reflex(&diff[ivert*3], &diff[(ivert-1)*3])
-    # doing first point:
-    are_reflex[0] = is_reflex(&diff[0], &diff[(nvert-1)*3])
+
+    # .. Computing if reflex or not ..........................
+    for ivert in range(1, nvert):
+        are_reflex[ivert] = is_reflex(
+            &diff[ivert*2],
+            &diff[(ivert-1)*2],
+            vect_cc,
+        )
+
+    # do first point:
+    are_reflex[0] = is_reflex(&diff[0], &diff[(nvert-1)*2])
     return
+
+
+# cdef inline void are_points_reflex(int nvert,
+                                   # double* diff,
+                                   # bint* are_reflex) nogil:
+    # """
+    # Determines if the interior angles of a polygons are reflex
+    # (angle > pi) or not.
+    # """
+    # cdef int ivert
+    # cdef int icoord
+    # cdef double[3] u1, v1, un, vn
+    # # .. Computing if reflex or not ...........................................
+    # for ivert in range(1,nvert):
+        # are_reflex[ivert] = is_reflex(&diff[ivert*3], &diff[(ivert-1)*3])
+    # # doing first point:
+    # are_reflex[0] = is_reflex(&diff[0], &diff[(nvert-1)*3])
+    # return
+
 
 cdef inline bint is_pt_in_tri(double[3] v0, double[3] v1,
                               double Ax, double Ay, double Az,
@@ -106,9 +167,12 @@ cdef inline bint is_pt_in_tri(double[3] v0, double[3] v1,
     return (u >= 0) and (v >= 0) and (u + v <= 1)
 
 
-# ==============================================================================
-# =  Earclipping method: getting one ear of a poly, triangulate poly, ...
-# ==============================================================================
+# ===============================================================
+#                   Earclipping method:
+#       getting one ear of a poly, triangulate poly, ...
+# ===============================================================
+
+
 cdef inline int get_one_ear(double* polygon,
                             double* diff,
                             bint* lref,
@@ -136,12 +200,24 @@ cdef inline int get_one_ear(double* polygon,
                 lref = [ .. is_reflex(Pii-1), X, is_reflex(Pii+1),..]
                 where X represents values that will never be used !
     """
+
+    # declarations
     cdef int i, j
     cdef int wi, wj
     cdef int wip1, wim1
     cdef bint a_pt_in_tri
+
+    with gil:
+        print("A", nvert)       # DB
+        print('Ax', polygon[0], polygon[1], polygon[2], polygon[3])
+        print('Ay', polygon[4], polygon[5], polygon[6], polygon[7])
+        print('Az', polygon[8], polygon[9], polygon[10], polygon[11])
+
+    # loop on points to identify an ear
     for i in range(1, nvert-1):
         wi = <int>_cl.get_at_pos(working_index, i)
+        with gil:
+            print('B', wi, lref[wi])        # DB
         if not lref[wi]:
             # angle is not reflex
             a_pt_in_tri = False
@@ -149,6 +225,8 @@ cdef inline int get_one_ear(double* polygon,
             wip1 = <int>_cl.get_at_pos(working_index, i+1)
             wim1 = <int>_cl.get_at_pos(working_index, i-1)
             # We can test if there is another vertex in the 'ear'
+            with gil:
+                print('C', wi, wim1, wip1, a_pt_in_tri)        # DB
             for j in range(nvert):
                 wj = <int>_cl.get_at_pos(working_index, j)
                 # We only test reflex angles, and points that are not
@@ -164,13 +242,22 @@ cdef inline int get_one_ear(double* polygon,
                         # We found a point in the triangle, thus is not ear
                         # no need to keep testing....
                         a_pt_in_tri = True
+                        with gil:
+                            print('iD', wi, wim1, wip1, wj, a_pt_in_tri)        # DB
                         break
             # Let's check if there was a point in the triangle....
             if not a_pt_in_tri:
                 return i # if not, we found an ear
+
     # if we havent returned, either, there was an error somerwhere
     with gil:
-        assert False, "Got here but shouldnt have "
+        msg = (
+            "Got here but shouldnt have\n"
+            f"\t- i: {i} / {nvert-1}\n"
+            f"\t- j: {j} / {nvert}\n"
+        )
+        raise Exception(msg)
+
     return -1
 
 
@@ -245,9 +332,11 @@ cdef inline void earclipping_poly(double* vignett,
     return
 
 
-# ==============================================================================
-# =  Polygons triangulation and Intersection Ray-Poly
-# ==============================================================================
+# ===============================================================
+#
+#       Polygons triangulation and Intersection Ray-Poly
+#
+# ===============================================================
 
 
 cdef inline void triangulate_poly(
@@ -333,6 +422,11 @@ cdef inline int triangulate_polys(
     return 0
 
 
+# ===============================================================
+#               Vignetting
+# ===============================================================
+
+
 cdef inline bint inter_ray_poly(const double[3] ray_orig,
                                 const double[3] ray_vdir,
                                 double* vignett,
@@ -352,9 +446,7 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
             return True
     return False
 
-# ==============================================================================
-# =  Vignetting
-# ==============================================================================
+
 cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                  double[:, ::1] ray_vdir,
                                  double** vignett,
@@ -373,7 +465,9 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
     cdef double* loc_dir = NULL
     cdef double* invr_ray = NULL
     cdef int* sign_ray = NULL
-    # == Defining parallel part ================================================
+
+    # == Defining parallel part ================================
+
     with nogil, parallel(num_threads=num_threads):
         # We use local arrays for each thread so
         loc_org   = <double*>malloc(sizeof(double) * 3)
@@ -413,9 +507,11 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
     return
 
 
-# ==============================================================================
-# =  Vignetting Vmesh with VPoly
-# ==============================================================================
+# ===============================================================
+#               Vignetting Vmesh with VPoly
+# ===============================================================
+
+
 cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
                                        bint is_cart,
                                        double[:, ::1] vpoly,
@@ -528,9 +624,11 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     return nb_in_poly
 
 
-# ==============================================================================
-# =  Vignetting Vmesh with VPoly
-# ==============================================================================
+# ===============================================================
+#           Vignetting Vmesh with VPoly
+# ===============================================================
+
+
 cdef inline int are_in_vignette(int sz_r, int sz_z,
                                 double[:, ::1] vpoly,
                                 int npts_vpoly,

@@ -10,7 +10,7 @@
 from libc.math cimport ceil as c_ceil, fabs as c_abs
 from libc.math cimport floor as c_floor, round as c_round
 from libc.math cimport sqrt as c_sqrt
-from libc.math cimport pi as c_pi, cos as c_cos, sin as c_sin
+from libc.math cimport pi as c_pi, cos as c_cos, sin as c_sin, atan2 as c_atan2
 from libc.math cimport isnan as c_isnan
 from libc.math cimport NAN as C_NAN
 from libc.math cimport log2 as c_log2
@@ -2635,3 +2635,59 @@ cdef inline double sa_exact_formula(double radius,
     cdef double r_over_d = radius / distance
 
     return 2 * volpi * (1. - c_sqrt(1. - r_over_d**2))
+
+
+# ##################################################################################
+# ##################################################################################
+#               Solid angle of a polygon
+# ##################################################################################
+
+
+cdef inline double comp_sa_tri(
+    double numerator,
+    double A_x,
+    double A_y,
+    double A_z,
+    double B_x,
+    double B_y,
+    double B_z,
+    double C_x,
+    double C_y,
+    double C_z,
+    double pt_x,
+    double pt_y,
+    double pt_z,
+) nogil:
+    """
+    Given by:
+    numerator = 3 G \dot (b \cross c)
+    denominator =  A B C + (A.B)C + (A.C)B + (B.C)A
+    with G centroid of triangle
+    """
+    cdef double An
+    cdef double Bn
+    cdef double Cn
+    cdef double sca_AB
+    cdef double sca_AC
+    cdef double sca_BC
+
+    cdef double denominator
+    cdef double result
+
+    An = c_sqrt((A_x - pt_x)**2 + (A_y - pt_y)**2 + (A_z - pt_z)**2)
+    Bn = c_sqrt((B_x - pt_x)**2 + (B_y - pt_y)**2 + (B_z - pt_z)**2)
+    Cn = c_sqrt((C_x - pt_x)**2 + (C_y - pt_y)**2 + (C_z - pt_z)**2)
+
+    sca_AB = (A_x - pt_x)*(B_x - pt_x) + (A_y - pt_y)*(B_y - pt_y) + (A_z - pt_z)*(B_z - pt_z)
+    sca_AC = (A_x - pt_x)*(C_x - pt_x) + (A_y - pt_y)*(C_y - pt_y) + (A_z - pt_z)*(C_z - pt_z)
+    sca_BC = (B_x - pt_x)*(C_x - pt_x) + (B_y - pt_y)*(C_y - pt_y) + (B_z - pt_z)*(C_z - pt_z)
+
+    denominator = (
+        An*Bn*Cn
+        + sca_AB * Cn
+        + sca_AC * Bn
+        + sca_BC * An
+    )
+
+    result = 2 * c_atan2(c_abs(numerator), denominator)
+    return result
