@@ -74,7 +74,7 @@ def _plot_shotoverview_init(ns=1, sharet=True, sharey=True, shareRZ=True,
     # Make figure and axes
     fig = plt.figure(figsize=fs)
     if wintit is not None:
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
     axarr = GridSpec(ns, 3, **dmargin)
 
     laxt = [None for ii in range(0,ns)]
@@ -238,12 +238,13 @@ def _plot_shotoverview(db, ntMax=_ntMax, indt=0, config=None, inct=[1,5],
                               ls='-', lw=1., c=c, label=lab)
         kk = 'Ax'
         if kk in dd.keys():
+            # db[ls[ii]][kk]['data2D'] = db[ls[ii]][kk]['data2D'][:, 0, :]
             if 'c' in dd[kk].keys():
                 c = dd[kk]['c']
             else:
                 c = dcol[kk]
-            x = db[ls[ii]][kk]['data2D'][:,0]
-            y = db[ls[ii]][kk]['data2D'][:,1]
+            x = db[ls[ii]][kk]['data2D'][:, 0]
+            y = db[ls[ii]][kk]['data2D'][:, 1]
             dax['t'][ii].plot(lt[ii], x,
                               lw=1., ls='-', label=r'$R_{Ax}$ (m)')
             dax['t'][ii].plot(lt[ii], y,

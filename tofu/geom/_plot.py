@@ -1409,7 +1409,7 @@ def _Cam12D_plot_touch_init(fs=None, dmargin=None, fontsize=8,
         fs = (8.27,11.69)
     fig = plt.figure(facecolor=axCol,figsize=fs)
     if wintit != False:
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
     if dmargin is None:
         dmargin = {'left':0.03, 'right':0.99,
                    'bottom':0.05, 'top':0.92,

@@ -265,7 +265,7 @@ def _init_DataCam12D(fs=None, dmargin=None,
         dmargin = _def.dmargin1D
     fig = plt.figure(facecolor=axCol,figsize=fs)
     if wintit != False:
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
 
     # Axes
     gs1 = gridspec.GridSpec(6, 5, **dmargin)
@@ -926,7 +926,7 @@ def _init_DataCam12D_spectral(fs=None, dmargin=None,
                        wspace=0.4, hspace=2.)
     fig = plt.figure(facecolor=axCol,figsize=fs)
     if wintit != False:
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
 
     # -------------
     # Axes grid
@@ -1773,7 +1773,7 @@ def _init_DataCam12D_combine(fs=None, dmargin=None,
         dmargin = _def.dmargin_combine
     fig = plt.figure(facecolor=axCol,figsize=fs)
     if wintit != False:
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
 
     # Axes
     gs1 = gridspec.GridSpec(nDat+1, 5, **dmargin)
@@ -2434,7 +2434,7 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None, nD=1,
         dmargin = _def.dmargin1D
     fig = plt.figure(facecolor=axCol,figsize=fs)
     if wintit != False:
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
 
     gs1 = gridspec.GridSpec(6, 5, **dmargin)
     laxt = [fig.add_subplot(gs1[:2,:2], fc='w')]
@@ -3089,7 +3089,7 @@ def _init_Data_svd(fs=None, dmargin=None, nD=1,
         dmargin = _def.dmargin1D
     fig = plt.figure(facecolor=axCol,figsize=fs)
     if wintit != False:
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
 
     # Axes array
     gs1 = gridspec.GridSpec(4, 5, **dmargin)

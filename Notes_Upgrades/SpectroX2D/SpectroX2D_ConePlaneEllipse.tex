@@ -48,7 +48,7 @@
 
 Let's consider a half-cone $C_1$ (defined only for $z > 0$), with summit on the cartesian frame's origin $(O, \ex, \ey, \ez)$.
 The cone's axis is the $(O,\ez)$ axis.
-It's angular opening is $\theta$.
+It's angular half-opening is $\theta$.
 
 Let's consider plane $P_1$, of normal $\n$, intersection axis $(O,\ez)$ at point $P$ of coordinates $(0,0,Z_P)$.
 Vector $\n$ is oriented by angles $\phi$ and $\psi$ such that one can define the local frame $(P, \ei, \et, \n)$:
@@ -143,7 +143,7 @@ $$
 Or, in a reduced conic form:
 
 $$
-\frac{x_1^2}{ a^2 } + \frac{\lt(x_2-x_2(C)\rt)^2}{b^2} = 1
+\frac{x_1^2}{ A } + \frac{\lt(x_2-x_2(C)\rt)^2}{b^2} = 1
 $$
 
 
@@ -152,9 +152,9 @@ $$
 \lt\{
 	\begin{array}{lll}
 		x_2(C) & = Z_P\frac{\sin(\psi)\sin(\theta)^2}{\DD} & \text{    $x_2$ coordinate of the center} \\
-		a^2 & = Z_P^2\frac{\sin(\theta)^2\cos(\psi)^2}{\DD} & \text{    squared minor radius} \\
+		A & = Z_P^2\frac{\sin(\theta)^2\cos(\psi)^2}{\DD} & \text{  $\pm$ squared minor radius} \\
 		b^2 & = Z_P^2\frac{\sin(\theta)^2\cos(\psi)^2\cos(\theta)^2}{\lt(\DD\rt)^2} & \text{    squared major radius} \\
-		b^2 & = a^2\frac{\cos(\theta)^2}{\DD} \Leftrightarrow a^2 = b^2\lt(1-\frac{\sin(\psi)^2}{\cos(\theta)^2}\rt)
+		b^2 & = A\frac{\cos(\theta)^2}{\DD} \Leftrightarrow A = b^2\lt(1-\frac{\sin(\psi)^2}{\cos(\theta)^2}\rt)
 	\end{array}
 \rt.
 $$
@@ -162,7 +162,7 @@ $$
 The distance $d_{CF}$ between the center $C$ and the focal point $F$ can be deduced from:
 $$
 \begin{array}{lll}
-	d_{CF}^2 & = b^2-a^2\\
+	d_{CF}^2 & = b^2-A\\
 		& = b^2\frac{\sin(\psi)^2}{\cos(\theta)^2}\\
 		& = Z_P^2\frac{\sin(\theta)^2\cos(\psi)^2\sin(\psi)^2}{\lt(\DD\rt)^2}
 \end{array}
@@ -180,6 +180,122 @@ $$
 
 It is worth noticing that the neither the focal point nor the center correspond to the intersection between the axes and the plane $P$.
 
+
+\section{Nature of the Conic}
+
+We have found the following general form of the intersection:
+$$
+\frac{x_1^2}{ A } + \frac{\lt(x_2-x_2(C)\rt)^2}{b^2} = 1
+$$
+
+
+With:
+$$
+\lt\{
+	\begin{array}{lll}
+		x_2(C) & = Z_P\frac{\sin(\psi)\sin(\theta)^2}{\DD}\\
+		b^2 & = Z_P^2\frac{\sin(\theta)^2\cos(\psi)^2\cos(\theta)^2}{\lt(\DD\rt)^2}\\
+		A = b^2\lt(1-\frac{\sin(\psi)^2}{\cos(\theta)^2}\rt)
+	\end{array}
+\rt.
+$$
+
+The conic can an hyperbola, a parabola, an ellipse or a circle depending on the
+sign and value of the ratio $A/b^2$:
+$$
+\begin{array}{lll}
+    & \frac{A}{b^2} \geq 0\\
+    \Leftrightarrow & 1-\frac{\sin(\psi)^2}{\cos(\theta)^2} \geq 0\\
+    \Leftrightarrow & \sin(\psi)^2 \leq \cos(\theta)^2\\
+\end{array}
+$$
+
+Now, if we consider that the plane is not arbitrary, but corresponds to a
+detector placed tangentially to the Rowland radius for a wavelength whose bragg
+angle is the cone opening $\theta$.
+
+In such conditions, it can be shown that the distance between the cone summit
+$O$ and the detector center is $R_C\sin(\theta_{bragg})$, where $R_C$ is the curvature
+radius of the crystal, and that the unit vector perpendicular to the plane
+representing the detector surface is:
+$$
+\begin{array}{lll}
+    \underline{n}
+    & = -\cos(2\theta_{bragg})\underline{n_{cr}} - \sin(2\theta_{bragg})\underline{e_{1,cr}}\\
+\end{array}
+$$
+
+Where $\underline{n_{cr}} = -\underline{e_{z}}$ is the normal to the crystal and
+$\underline{e_{1,cr}}$ is the unit vector parallel to $(O, \underline{e_{x}},
+\underline{e_{y}})$.
+
+Also, the bragg angle $\theta_{bragg}$ is defined from the tangential
+direction, while we defined the cone half-opening angle $\theta$ from the
+cone's axis, so they are complementary:
+$$
+\theta_{bragg} = \frac{\pi}{2} - \theta
+$$
+
+In these conditions we have:
+$$
+\begin{array}{lll}
+    & \underline{n}\cdot\underline{e_{z}} = \cos(\psi)\\
+    \Leftrightarrow & \cos(2\theta_{bragg}) = \cos(\psi)\\
+    \Leftrightarrow & \cos(\pi - 2\theta) = \cos(\psi)\\
+\end{array}
+$$
+
+If the cosines are equal, the cosines squared too, so the sines squared too:
+$$
+\sin^2(\pi - 2\theta) = \sin^2(\psi)
+$$
+
+Hence the condition on the nature of the conic can now be rewritten:
+$$
+\begin{array}{lll}
+    & \frac{A}{b^2} \geq 0\\
+    \Leftrightarrow & \sin(\psi)^2 \leq \cos(\theta)^2\\
+    \Leftrightarrow & \sin^2(\pi - 2\theta) \leq \cos(\theta)^2\\
+    \Leftrightarrow & \sin^2(2\theta_{bragg}) \leq \cos(\frac{\pi}{2} -
+    \theta_{bragg})^2\\
+    \Leftrightarrow & \sin^2(2\theta_{bragg}) \leq \sin(\theta_{bragg})^2\\
+\end{array}
+$$
+
+There is only one intersection to this inequality, for $\theta_{bragg} \approx
+60$ degrees.
+
+\begin{figure}
+\begin{center}
+    \includegraphics[width=0.6\linewidth]{Criterion_EllipseHyperbola.png}
+    \caption{Criterion for the nature of the conic, for a tangential detector}
+    \label{fig:boat1}
+\end{center}
+\end{figure}
+
+Hence, for a tangential detector:
+$$
+\lt\{
+	\begin{array}{lll}
+        \theta_{bragg} < 60 \text{ degrees} \Rightarrow \text{ Hyperbola}\\
+        \theta_{bragg} = 60 \text{ degrees} \Rightarrow \text{ Parabola}\\
+        \theta_{bragg} > 60 \text{ degrees} \Rightarrow \text{ Ellipse}\\
+	\end{array}
+\rt.
+$$
+
+A similar computation can be done for a detector also on the rowland circle but
+oriented in a direction perpendicular to the direction of the crystal, in this
+case the results are:
+$$
+\lt\{
+	\begin{array}{lll}
+        \theta_{bragg} < 45 \text{ degrees} \Rightarrow \text{ Hyperbola}\\
+        \theta_{bragg} = 45 \text{ degrees} \Rightarrow \text{ Parabola}\\
+        \theta_{bragg} > 45 \text{ degrees} \Rightarrow \text{ Ellipse}\\
+	\end{array}
+\rt.
+$$
 
 \section{Parametric equation}
 

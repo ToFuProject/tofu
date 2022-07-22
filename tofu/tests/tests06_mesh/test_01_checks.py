@@ -20,11 +20,20 @@ import tofu as tf
 import tofu.data as tfd
 
 
-_here = os.path.abspath(os.path.dirname(__file__))
-VerbHead = 'tofu.mesh.test_01_checks'
+_HERE = os.path.abspath(os.path.dirname(__file__))
+_PATH_DATA = os.path.join(_HERE, 'test_data')
 _TOFU_USER = os.path.join(os.path.expanduser("~"), '.tofu')
-_CUSTOM = os.path.dirname(os.path.dirname(os.path.dirname(_here)))
+_CUSTOM = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 _CUSTOM = os.path.join(_CUSTOM, 'scripts', 'tofucustom.py')
+_FNAME = 'ITER_JINTRAC_sh134000_run30_public_edgesources_quadtrimesh.npz'
+VerbHead = 'tofu.mesh.test_01_checks'
+
+
+_PFE = os.path.join(_PATH_DATA, _FNAME)
+_DTRI = {
+    k0: v0.tolist()
+    for k0, v0 in dict(np.load(_PFE, allow_pickle=True)).items()
+}
 
 
 #######################################################
@@ -51,12 +60,226 @@ def teardown_module():
 
 #######################################################
 #
+#     Basic instanciation
+#
+#######################################################
+
+
+def _add_rect_uniform(plasma):
+    # add uniform rect mesh
+    plasma.add_mesh(key='m0', domain=[[2, 3], [-1, 1]], res=0.1)
+
+
+def _add_rect_variable(plasma):
+    # add variable rect mesh
+    plasma.add_mesh(
+        key='m1',
+        domain=[[2, 2.3, 2.6, 3], [-1, 0., 1]],
+        res=[[0.2, 0.1, 0.1, 0.2], [0.2, 0.1, 0.2]],
+    )
+
+
+def _add_rect_variable_crop(plasma):
+    # add variable rect mesh
+    plasma.add_mesh(
+        key='m2',
+        domain=[[2, 2.3, 2.6, 3], [-1, 0., 1]],
+        res=[[0.2, 0.1, 0.1, 0.2], [0.2, 0.1, 0.2]],
+        crop_poly=tf.load_config('WEST'),
+    )
+
+
+def _add_tri_ntri1(plasma):
+    cents = _DTRI['cents']['data']
+    cents2 = np.zeros((cents.shape[0]*2, 3))
+    cents2[::2, :] = cents[:, :3]
+    cents2[1::2, :2] = cents[:, 2:]
+    cents2[1::2, -1] = cents[:, 0]
+
+    plasma.add_mesh(
+        key='m3',
+        knots=_DTRI['nodes']['data'],
+        cents=cents2,
+    )
+
+
+def _add_tri_ntri2(plasma):
+    plasma.add_mesh(
+        key='m4',
+        knots=_DTRI['nodes']['data'],
+        cents=_DTRI['cents']['data'],
+    )
+
+
+def _add_polar1(plasma, key='m5'):
+    """ Time-independent """
+
+    kR, kZ = plasma.dobj['bsplines']['m2-bs1']['apex']
+    R = plasma.ddata[kR]['data']
+    Z = plasma.ddata[kZ]['data']
+    RR = np.repeat(R[:, None], Z.size, axis=1)
+    ZZ = np.repeat(Z[None, :], R.size, axis=0)
+    rho = (RR - 2.5)**2/0.08 + (ZZ - 0)**2/0.35
+
+    plasma.add_data(
+        key='rho1',
+        data=rho,
+        ref='m2-bs1',
+        unit='',
+        dim='',
+        quant='rho',
+        name='rho',
+    )
+
+    plasma.add_mesh_polar(
+        key=key,
+        radius=np.linspace(0, 1.2, 7),
+        angle=None,
+        radius2d='rho1',
+    )
+
+
+def _add_polar2(plasma, key='m6'):
+    """ Time-dependent """
+
+    kR, kZ = plasma.dobj['bsplines']['m2-bs1']['apex']
+    R = plasma.ddata[kR]['data']
+    Z = plasma.ddata[kZ]['data']
+    RR = np.repeat(R[:, None], Z.size, axis=1)
+    ZZ = np.repeat(Z[None, :], R.size, axis=0)
+
+    rho = (RR - 2.5)**2/0.08 + (ZZ - 0)**2/0.35
+    angle = np.arctan2(ZZ/2., (RR - 2.5))
+
+    nt = 11
+    t = np.linspace(30, 40, nt)
+    rho = rho[None, ...] + 0.1*np.cos(t)[:, None, None]**2
+    angle = angle[None, ...] + 0.01*np.sin(t)[:, None, None]**2
+
+
+    if 'nt' not in plasma.dref.keys():
+        plasma.add_ref(
+            key='nt',
+            size=nt,
+        )
+
+    if 't' not in plasma.ddata.keys():
+        plasma.add_data(
+            key='t',
+            data=t,
+            ref=('nt',),
+            dim='time',
+        )
+
+    if 'rho2' not in plasma.ddata.keys():
+        plasma.add_data(
+            key='rho2',
+            data=rho,
+            ref=('nt', 'm2-bs1'),
+            unit='',
+            dim='',
+            quant='rho',
+            name='rho',
+        )
+
+    if 'angle2' not in plasma.ddata.keys():
+        plasma.add_data(
+            key='angle2',
+            data=angle,
+            ref=('nt', 'm2-bs1'),
+            unit='rad',
+            dim='',
+            quant='angle',
+            name='theta',
+        )
+
+    # ang
+    if key == 'm6':
+        ang = np.pi*np.r_[-3./4., -1/4, 0, 1/4, 3/4]
+    else:
+        ang = None
+
+    # mesh
+    plasma.add_mesh_polar(
+        key=key,
+        radius=np.linspace(0, 1.2, 7),
+        angle=ang,
+        radius2d='rho2',
+        angle2d='angle2',
+    )
+
+
+def _add_bsplines(plasma, key=None, kind=None, angle=None):
+
+    if kind is None:
+        kind = ['rect', 'tri', 'polar']
+    if key is None:
+        key = list(plasma.dobj['mesh'].keys())
+
+    for k0, v0 in plasma.dobj['mesh'].items():
+        if v0['type'] not in kind:
+            continue
+        if k0 not in key:
+            continue
+        if v0['type'] == 'tri':
+            plasma.add_bsplines(key=k0, deg=0)
+            plasma.add_bsplines(key=k0, deg=1)
+        elif v0['type'] == 'rect':
+            plasma.add_bsplines(key=k0, deg=0)
+            plasma.add_bsplines(key=k0, deg=1)
+            plasma.add_bsplines(key=k0, deg=2)
+            plasma.add_bsplines(key=k0, deg=3)
+        elif v0['type'] == 'polar':
+            if angle is None:
+                plasma.add_bsplines(key=k0, deg=0)
+                plasma.add_bsplines(key=k0, deg=1)
+                plasma.add_bsplines(key=k0, deg=2)
+                plasma.add_bsplines(key=k0, deg=3)
+            else:
+                plasma.add_bsplines(key=k0, deg=0, angle=[None]*5 + [angle])
+                plasma.add_bsplines(key=k0, deg=1, angle=[None]*6 + [angle])
+                plasma.add_bsplines(key=k0, deg=2, angle=[None]*7 + [angle])
+                plasma.add_bsplines(key=k0, deg=3, angle=[None]*8 + [angle])
+
+
+def _add_data_fix(plasma, key):
+
+    kdata = f'{key}-data-fix'
+    shape = plasma.dobj['bsplines'][key]['shape']
+    data = np.random.random(shape)
+
+    plasma.add_data(
+        key=kdata,
+        data=data,
+        ref=key,
+    )
+    return kdata
+
+
+def _add_data_var(plasma, key):
+
+    kdata = f'{key}-data-var'
+    shape = plasma.dobj['bsplines'][key]['shape']
+    t = plasma.ddata['t']['data']
+    tsh = tuple([t.size] + [1 for ii in shape])
+    data = np.cos(t.reshape(tsh)) * np.random.random(shape)[None, ...]
+
+    plasma.add_data(
+        key=kdata,
+        data=data,
+        ref=('nt', key),
+    )
+    return kdata
+
+
+#######################################################
+#
 #     checking routines
 #
 #######################################################
 
 
-class Test01_checks():
+class Test01_checks_Instanciate():
 
     @classmethod
     def setup_class(cls):
@@ -88,6 +311,56 @@ class Test01_checks():
             if hasattr(lres, '__iter__'):
                 assert x_new.size == np.unique(x_new).size == res.size + 1
 
+    def test02_add_mesh_rect_uniform(self):
+        plasma = tfd.Plasma2D()
+        _add_rect_uniform(plasma)
+        _add_bsplines(plasma)
+
+    def test03_add_mesh_rect_variable(self):
+        plasma = tfd.Plasma2D()
+        _add_rect_variable(plasma)
+        _add_bsplines(plasma)
+
+    def test04_add_mesh_rect_variable_crop(self):
+        plasma = tfd.Plasma2D()
+        _add_rect_variable_crop(plasma)
+        _add_bsplines(plasma)
+
+    def test05_add_mesh_tri_ntri1(self):
+        plasma = tfd.Plasma2D()
+        _add_tri_ntri1(plasma)
+        _add_bsplines(plasma)
+
+    def test06_add_mesh_tri_ntri2(self):
+        plasma = tfd.Plasma2D()
+        _add_tri_ntri2(plasma)
+        _add_bsplines(plasma)
+
+    def test07_add_mesh_polar_radial(self):
+        plasma = tfd.Plasma2D()
+        _add_rect_variable_crop(plasma)
+        _add_bsplines(plasma)
+        _add_polar1(plasma)
+        _add_bsplines(plasma, kind=['polar'])
+
+    def test08_add_mesh_polar_angle_regular(self):
+        plasma = tfd.Plasma2D()
+        _add_rect_variable_crop(plasma)
+        _add_bsplines(plasma)
+        _add_polar2(plasma)
+        _add_bsplines(plasma, kind=['polar'])
+
+    def test09_add_mesh_polar_angle_variable(self):
+        plasma = tfd.Plasma2D()
+        _add_rect_variable_crop(plasma)
+        _add_bsplines(plasma)
+        _add_polar2(plasma, key='m7')
+        _add_bsplines(
+            plasma,
+            kind=['polar'],
+            angle=np.pi*np.r_[-3./4., -1/4, 0, 1/4, 3/4],
+        )
+
 
 #######################################################
 #
@@ -96,49 +369,46 @@ class Test01_checks():
 #######################################################
 
 
-class Test02_Mesh2DRect():
+class Test02_Plasma2D():
 
     @classmethod
     def setup_class(cls):
         pass
 
     def setup(self):
-        self.dobj = {
-            'm0': tfd.Mesh2DRect(),
-            'm1': tfd.Mesh2DRect(),
-            'm2': tfd.Mesh2DRect(),
-            'm3': None,
-        }
+        plasma = tfd.Plasma2D()
 
-        # add mesh
-        ldomain = [
-            [[2, 3], [-1, 1]],
-            [[2, 2.3, 2.6, 3], [-1, 0., 1]],
-            [[2, 3], [-1, 0, 1]],
-        ]
-        lres = [
-            0.1,
-            [[0.2, 0.1, 0.1, 0.2], [0.2, 0.1, 0.2]],
-            [0.1, [0.2, 0.1, 0.2]],
-        ]
+        # add rect mesh
+        _add_rect_uniform(plasma)
+        _add_rect_variable(plasma)
+        _add_rect_variable_crop(plasma)
 
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            if k0 != 'm3':
-                self.dobj[k0].add_mesh(
-                    domain=ldomain[ii],
-                    res=lres[ii],
-                    key=k0,
-                )
-            else:
-                self.dobj[k0] = tfd.Mesh2DRect.from_Config(
-                    tf.load_config('WEST'),
-                    res=0.1,
-                    key=k0,
-                )
+        # add tri mesh
+        _add_tri_ntri1(plasma)
+        _add_tri_ntri2(plasma)
 
-        # add splines
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            self.dobj[k0].add_bsplines(deg=ii)
+        # add bsplines
+        _add_bsplines(plasma)
+
+        # add polar mesh
+        _add_polar1(plasma)
+        _add_polar2(plasma)
+
+        # add bsplines for polar meshes
+        _add_bsplines(plasma, kind=['polar'])
+
+        # Add polar with variable poloidal discretization
+        _add_polar2(plasma, key='m7')
+        _add_bsplines(
+            plasma,
+            key=['m7'],
+            angle=np.pi*np.r_[-3./4., -1/4, 0, 1/4, 3/4],
+        )
+
+        # store
+        self.obj = plasma
+        self.lm = list(plasma.dobj['mesh'].keys())
+        self.lbs = list(plasma.dobj['bsplines'].keys())
 
     def teardown(self):
         pass
@@ -147,78 +417,128 @@ class Test02_Mesh2DRect():
     def teardown_class(cls):
         pass
 
-    def test01_get_summary(self):
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            self.dobj[k0].get_summary()
+    def test01_show(self):
+        self.obj.show()
 
     def test02_select_ind(self):
-        lkey = ['m0', 'm1-bs1', 'm2', 'm3-bs3']
-        lelements = ['cents', None, 'knots', None]
-        lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
+
+        # Rect mesh
+        nn = 4
+        lelements = ['knots', None, 'cents', None]
+        lind = [None, ([0, 2], [0, 3]), [0, 5, 8], ([0, 5, 6], [0, 2, 3])]
         lcrop = [True, False, True, False]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            indt = self.dobj[k0].select_ind(
-                key=lkey[ii],
-                ind=lind[ii],
-                elements=lelements[ii],
-                returnas=tuple,
-                crop=lcrop[ii],
-            )
-            indf = self.dobj[k0].select_ind(
-                key=lkey[ii],
-                ind=indt,
-                elements=lelements[ii],
-                returnas=np.ndarray,
-                crop=lcrop[ii],
-            )
-            indt2 = self.dobj[k0].select_ind(
-                key=lkey[ii],
-                ind=indf,
-                elements=lelements[ii],
-                returnas=tuple,
-                crop=lcrop[ii],
-            )
-            assert all([np.allclose(indt[ii], indt2[ii]) for ii in [0, 1]])
+
+        # select fom mesh
+        for ii, k0 in enumerate(self.lm):
+
+            ind = ii % nn
+
+            if len(self.obj.dobj['mesh'][k0]['shape-c']) == 2:
+                indt = self.obj.select_ind(
+                    key=k0,
+                    ind=lind[ind],
+                    elements=lelements[ind],
+                    returnas=tuple,
+                    crop=lcrop[ind],
+                )
+                indf = self.obj.select_ind(
+                    key=k0,
+                    ind=indt,
+                    elements=lelements[ind],
+                    returnas=np.ndarray,
+                    crop=lcrop[ind],
+                )
+                indt2 = self.obj.select_ind(
+                    key=k0,
+                    ind=indf,
+                    elements=lelements[ind],
+                    returnas=tuple,
+                    crop=lcrop[ind],
+                )
+                assert all([np.allclose(indt[jj], indt2[jj]) for jj in [0, 1]])
+
+            elif ind not in [1, 3]:
+                indt = self.obj.select_ind(
+                    key=k0,
+                    ind=lind[ind],
+                    elements=lelements[ind],
+                    returnas=int,
+                )
 
     def test03_select_mesh(self):
-        lkey = ['m0', 'm1', 'm2', 'm3']
-        lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
-        lelements = ['cents', 'cents', 'knots', None]
-        lreturnas = ['ind', 'data', 'data', 'ind']
-        lreturn_neig = [None, True, False, True]
-        lcrop = [False, True, False, False]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            indf = self.dobj[k0].select_mesh_elements(
-                key=lkey[ii],
-                ind=lind[ii],
-                elements=lelements[ii],
-                returnas=lreturnas[ii],
-                return_neighbours=lreturn_neig[ii],
-                crop=lcrop[ii],
+
+        lind0 = [None, ([0, 2], [0, 4]), [0, 2, 4], ([0, 2, 4], [0, 2, 3])]
+        lind1 = [None, [1], 1, [0, 1]]
+        lelem = [None, 'cents', 'knots']
+        for ii, k0 in enumerate(self.lm):
+
+            if len(self.obj.dobj['mesh'][k0]['shape-c']) == 2:
+                lind = lind0
+            else:
+                lind = lind1
+
+            if self.obj.dobj['mesh'][k0]['type'] == 'polar':
+                return_neighbours = False
+            else:
+                return_neighbours = None if ii == 0 else bool(ii%2)
+
+            out = self.obj.select_mesh_elements(
+                key=k0,
+                ind=lind[ii%len(lind)],
+                elements=lelem[ii%3],
+                returnas='ind' if ii%2 == 0 else 'data',
+                return_neighbours=return_neighbours,
+                crop=ii%3 == 1,
             )
 
     def test04_select_bsplines(self):
-        lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
-        lind = [None, ([0, 5], [0, 6]), [0, 10, 100], ([0, 5, 6], [0, 2, 3])]
-        lreturnas = [None, 'data', 'data', 'ind']
-        lreturn_cents = [None, True, False, True]
-        lreturn_knots = [None, False, True, True]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            indf = self.dobj[k0].select_bsplines(
-                key=lkey[ii],
-                ind=lind[ii],
-                returnas=lreturnas[ii],
-                return_cents=lreturn_cents[ii],
-                return_knots=lreturn_knots[ii],
+
+        lind0 = [None, ([0, 2], [0, 4]), [0, 2, 4], ([0, 2, 4], [0, 2, 3])]
+        lind1 = [None, [1], 1, [0, 1]]
+        for ii, k0 in enumerate(self.lbs):
+
+            km = self.obj.dobj['bsplines'][k0]['mesh']
+            if len(self.obj.dobj['bsplines'][k0]['shape']) == 2:
+                lind = lind0
+            else:
+                lind = lind1
+
+            if self.obj.dobj['mesh'][km]['type'] == 'polar':
+                return_cents = False
+                return_knots = False
+            else:
+                return_cents = None if ii == 1 else bool(ii%3)
+                return_knots = None if ii == 2 else bool(ii%2)
+
+            out = self.obj.select_bsplines(
+                key=k0,
+                ind=lind[ii%len(lind)],
+                returnas='ind' if ii%3 == 0 else 'data',
+                return_cents=return_cents,
+                return_knots=return_knots,
             )
 
     def test05_sample_mesh(self):
-        lres = [None, 0.1, 0.01, [0.1, 0.05]]
-        lmode = [None, 'rel', 'abs', 'abs']
-        lgrid = [None, True, False, False]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            out = v0.get_sample_mesh(
-                res=lres[ii], grid=lgrid[ii], mode=lmode[ii],
+
+        lres = [None, 0.1, [0.1, 0.05]]
+        lmode = [None, 'rel', 'abs']
+        lgrid = [None, True, False]
+        for ii, k0 in enumerate(self.lm):
+
+            res = lres[ii%len(lres)]
+            mode = lmode[ii%len(lmode)]
+            if self.obj.dobj['mesh'][k0]['type'] == 'tri':
+                if mode == 'rel':
+                    if res == 0.1:
+                        res = 0.5
+                    elif res == [0.1, 0.05]:
+                        res = [0.5, 0.4]
+
+            out = self.obj.get_sample_mesh(
+                key=k0,
+                res=res,
+                mode=mode,
+                grid=lgrid[ii%len(lgrid)],
             )
 
     """
@@ -232,70 +552,279 @@ class Test02_Mesh2DRect():
             )
     """
 
-    def test07_plot_mesh(self):
-        lik = [None, ([0, 2], [0, 3]), [2, 3], None]
-        lic = [None, ([0, 2], [0, 3]), None, [2, 3]]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            dax = self.dobj[k0].plot_mesh(
-                ind_knot=lik[ii],
-                ind_cent=lic[ii],
+    def test07_interpolate_profile2d_sum(self):
+        x = np.linspace(2.2, 2.8, 5)
+        y = np.linspace(-0.5, 0.5, 5)
+        x = np.tile(x, (y.size, 1))
+        y = np.tile(y, (x.shape[1], 1)).T
+
+        dfail = {}
+        for ii, k0 in enumerate(self.lbs):
+
+            # try:
+            val = self.obj.interpolate_profile2d(
+                key=k0,
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=False,
+                reshape=True,
+                res=None,
+                crop=True,
+                nan0=ii % 2 == 0,
+                imshow=False,
+            )
+
+            # add fix data
+            kdata = _add_data_fix(self.obj, k0)
+            val = self.obj.interpolate_profile2d(
+                key=kdata,
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=False,
+                reshape=True,
+                res=None,
+                crop=True,
+                nan0=ii % 2 == 0,
+                imshow=False,
+            )
+
+            # add time-dependent data
+            kdata = _add_data_var(self.obj, k0)
+            val = self.obj.interpolate_profile2d(
+                key=kdata,
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=False,
+                reshape=True,
+                res=None,
+                crop=True,
+                nan0=ii % 2 == 0,
+                imshow=False,
+            )
+            # except Exception as err:
+                # dfail[k0] = str(err)
+
+        # raise error if any fail
+        if len(dfail) > 0:
+            lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+            msg = (
+                "The following bsplines could not be interpolated:\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+
+    def test08_interpolate_profile2d_details_vs_sum(self):
+
+        x = np.linspace(2.2, 2.8, 5)
+        y = np.linspace(-0.5, 0.5, 5)
+        x = np.tile(x, (y.size, 1))
+        y = np.tile(y, (x.shape[1], 1)).T
+
+        for ii, k0 in enumerate(self.lbs):
+
+            keym = self.obj.dobj['bsplines'][k0]['mesh']
+            mtype = self.obj.dobj['mesh'][keym]['type']
+
+            val, t = self.obj.interpolate_profile2d(
+                key=k0,
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=True,
+                reshape=True,
+                res=None,
+                crop=True,
+                nan0=ii % 2 == 0,
+                imshow=False,
+                return_params=False,
+            )
+
+            crop = self.obj.dobj['bsplines'][k0].get('crop', False)
+            nbs = np.prod(self.obj.dobj['bsplines'][k0]['shape'])
+            if isinstance(crop, str):
+                nbs = self.obj.ddata[crop]['data'].sum()
+
+            vshap0 = tuple(np.r_[x.shape, nbs])
+            if mtype == 'polar':
+                # radius2d can be time-dependent => additional dimension
+                vshap = val.shape[-len(vshap0):]
+            else:
+                vshap = val.shape
+            assert vshap == vshap0, val.shape
+
+            val_sum, t = self.obj.interpolate_profile2d(
+                key=k0,
+                R=x,
+                Z=y,
+                coefs=None,
+                indbs=None,
+                indt=None,
+                grid=False,
+                details=False,
+                reshape=True,
+                res=None,
+                crop=True,
+                nan0=False,
+                nan_out=False,
+                imshow=False,
+                return_params=False,
+            )
+
+            if mtype == 'polar':
+                # radius2d can be time-dependent => additional dimension
+                vshap_sum = val_sum.shape[-len(x.shape):]
+            else:
+                vshap_sum = val_sum.shape
+            assert vshap_sum == x.shape, val_sum.shape
+            assert (val.ndim == x.ndim + 2) == (val_sum.ndim == x.ndim + 1), [val.shape, val_sum.shape]
+
+            indok = np.isfinite(val_sum)
+            indok[indok] = val_sum[indok] != 0
+
+            # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            # Does not work for rect mesh
+            # because of knots padding used in func_details
+            # Due to scpinterp._bspl.evaluate_spline()...
+            if mtype in ['tri', 'polar']:   # To be debugged
+                assert np.allclose(
+                    val_sum[indok],
+                    np.nansum(val, axis=-1)[indok],
+                    equal_nan=True,
+                )
+            # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    def test09_plot_mesh(self):
+        lik0 = [None, ([0, 2], [0, 3]), [2, 3], None]
+        lic0 = [None, ([0, 2], [0, 3]), None, [2, 3]]
+        lik1 = [None, [0, 2], [2, 3], None]
+        lic1 = [None, [0, 2], None, [2, 3]]
+        for ii, k0 in enumerate(self.lm):
+
+            if self.obj.dobj['mesh'][k0]['type'] == 'rect':
+                lik = lik0
+                lic = lic0
+            elif self.obj.dobj['mesh'][k0]['type'] == 'tri':
+                lik = lik1
+                lic = lic1
+            else:
+                lik = None
+                lic = None
+
+            dax = self.obj.plot_mesh(
+                key=k0,
+                ind_knot=lik[ii%len(lik)] if lik is not None else None,
+                ind_cent=lic[ii%len(lic)] if lic is not None else None,
             )
         plt.close('all')
 
-    def test08_plot_bsplines(self):
-        lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
-        lind = [None, ([1, 2], [2, 1]), (1, 1), [1, 2, 10]]
-        lknots = [None, True, False, True]
-        lcents = [False, False, True, True]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            dax = self.dobj[k0].plot_bsplines(
-                key=lkey[ii],
-                ind=lind[ii],
-                knots=lknots[ii],
-                cents=lcents[ii],
+    def test10_plot_bsplines(self):
+
+        li0 = [None, ([1, 2], [2, 1]), (1, 1), [1, 2, 4]]
+        li1 = [None, [1, 2], (1, 1), [1, 2, 4]]
+        for ii, k0 in enumerate(self.lbs):
+
+            km = self.obj.dobj['bsplines'][k0]['mesh']
+            if len(self.obj.dobj['mesh'][km]['shape-c']) == 2:
+                li = li0
+            else:
+                li = li1
+
+            if self.obj.dobj['mesh'][km]['type'] == 'polar':
+                plot_mesh = False
+            else:
+                plot_mesh = True
+
+            dax = self.obj.plot_bsplines(
+                key=k0,
+                indbs=li[ii%len(li)],
+                knots=bool(ii%3),
+                cents=bool(ii%2),
+                plot_mesh=plot_mesh,
             )
-        plt.close('all')
+            plt.close('all')
 
-    def test09_plot_profile2d(self):
-        lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2', 'm3-bs3']
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            key = str(ii)
-            kbs = lkey[ii]
-            ref = self.dobj[k0].dobj['bsplines'][kbs]['ref']
-            shapebs = self.dobj[k0].dobj['bsplines'][kbs]['shape']
+    def test11_plot_profile2d(self):
 
-            self.dobj[k0].add_data(
-                key=key,
-                data=np.random.random(shapebs),
-                ref=ref,
-            )
+        # plotting
+        for k0 in self.lbs:
 
-            dax = self.dobj[k0].plot_profile2d(
-                key=key,
-            )
-        plt.close('all')
+            # fix
+            k1 = _add_data_fix(self.obj, k0)
+            dax = self.obj.plot_profile2d(key=k1, res=0.05)
 
-    def test10_add_bsplines_operator(self):
+            # time-variable
+            k1 = _add_data_var(self.obj, k0)
+            dax = self.obj.plot_profile2d(key=k1, res=0.05)
+
+            plt.close('all')
+
+    def test12_add_bsplines_operator(self):
         lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2']
-        lop = ['D0', 'D0N2', 'D1N2', 'D2N2']
+        lop = ['D0N1', 'D0N2', 'D1N2', 'D2N2']
         lgeom = ['linear', 'toroidal']
         lcrop = [False, True]
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
-            if ii == 3:
+
+        dfail = {}
+        for ii, k0 in enumerate(self.lbs):
+
+            km = self.obj.dobj['bsplines'][k0]['mesh']
+            if self.obj.dobj['mesh'][km]['type'] == 'tri':
+                continue
+            elif self.obj.dobj['mesh'][km]['type'] == 'polar':
                 continue
 
             for comb in itt.product(lop, lgeom, lcrop):
-                deg = self.dobj[k0].dobj['bsplines'][lkey[ii]]['deg']
-                if int(comb[0][1]) > deg:
-                    continue
-                self.dobj[k0].add_bsplines_operator(
-                    key=lkey[ii],
-                    operator=comb[0],
-                    geometry=comb[1],
-                    crop=comb[2],
-                )
+                deg = self.obj.dobj['bsplines'][k0]['deg']
 
-    def test11_compute_plot_geometry_matrix(self):
+                if deg == 3 and comb[0] in ['D0N1', 'D0N2', 'D1N2', 'D2N2']:
+                    continue
+
+                # only test exact operators
+                if int(comb[0][1]) > deg:
+                    # except deg = 0 D1N2
+                    if deg == 0 and comb[0] == 'D1N2':
+                        pass
+                    else:
+                        continue
+                try:
+                    self.obj.add_bsplines_operator(
+                        key=k0,
+                        operator=comb[0],
+                        geometry=comb[1],
+                        crop=comb[2],
+                    )
+                except Exception as err:
+                    dfail[k0] = (
+                        f"key {k0}, op '{comb[0]}', geom '{comb[1]}': "
+                        + str(err)
+                    )
+
+        # Raise error if any fail
+        if len(dfail) > 0:
+            lstr = [f'\t- {k0}: {v0}' for k0, v0 in dfail.items()]
+            msg = (
+                "The following operators failed:\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+
+    # TBF for triangular
+    def test13_compute_plot_geometry_matrix(self, kind=None):
 
         # get config and cam
         conf = tf.load_config('WEST-V0')
@@ -311,12 +840,39 @@ class Test02_Mesh2DRect():
             Name='cam1',
         )
 
-        # compute geometry matrices
-        for ii, (k0, v0) in enumerate(self.dobj.items()):
+        lbs = list(self.lbs)
+        if kind is not None:
+            lbs = [
+                kbs for kbs in lbs
+                if self.obj.dobj['mesh'][
+                    self.obj.dobj['bsplines'][kbs]['mesh']
+                ]['type'] == kind
+            ]
 
-            mat = self.dobj[k0].compute_geometry_matrix(
-                cam=cam, res=0.01, crop=True,
+        # compute geometry matrices
+        for ii, k0 in enumerate(lbs):
+            self.obj.add_geometry_matrix(
+                key=k0,
+                cam=cam,
+                res=0.01,
+                crop=True,
+                store=True,
             )
 
-            dax = mat.plot_geometry_matrix(cam=cam, indchan=12, indbf=100)
-            plt.close('all')
+        # plot geometry matrices
+        imax = 5
+        for ii, k0 in enumerate(self.obj.dobj['matrix']):
+
+            if '-' in k0 and int(k0[k0.index('-')+1:]) > 0:
+                continue
+
+            dax = self.obj.plot_geometry_matrix(
+                key=k0,
+                cam=cam,
+                indchan=40,
+                indbf=5,
+                res=0.05,
+            )
+            if ii % imax == 0:
+                plt.close('all')
+        plt.close('all')

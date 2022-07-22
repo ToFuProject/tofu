@@ -87,7 +87,7 @@ def teardown_module(module):
 #######################################################
 
 
-class Test01_DataCollection(object):
+class Test01_LocalExtrema(object):
 
     @classmethod
     def setup_class(cls):
