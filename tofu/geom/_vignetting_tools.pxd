@@ -29,6 +29,10 @@ cdef  void earclipping_poly(double* vignett,
                             bint* lref,
                             int nvert) nogil
 
+cdef void triangulate_poly(double* vignett_poly,
+                           long nvert,
+                           long** ltri) nogil
+
 cdef int triangulate_polys(double** vignett_poly,
                             long* lnvert,
                             int nvign,

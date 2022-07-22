@@ -1970,7 +1970,8 @@ class Struct(utils.ToFuObject):
                    + "\t- 'object': return {} instance\n".format(cls.__name__)
                    + "\t- 'dict' : return a dict with polygon, pos and extent")
             raise Exception(msg)
-        if pfe[-4:] not in ['.txt', '.csv']:
+
+        if not (pfe.endswith('.txt') or pfe.endswith('.csv')):
             msg = ("Only accepts .txt and .csv files (fed to np.loadtxt) !\n"
                    + "\t file: {}".format(pfe))
             raise Exception(msg)
