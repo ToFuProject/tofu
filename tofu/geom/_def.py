@@ -124,7 +124,7 @@ def Plot_LOSProj_DefAxes(Mode, Type='Tor',
         fs = (11.69,8.27) if Mode.lower()=='all' else (8.27,11.69)
     f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     if wintit is not None:
-        f.canvas.set_window_title(wintit)
+        f.canvas.manager.set_window_title(wintit)
     if Mode.lower() == 'all':
         if dmargin is None:
             dmargin = {'left': 0.06, 'right': 0.95,
@@ -168,7 +168,7 @@ def Plot_3D_plt_Tor_DefAxes(dmargin=None, fs=None, wintit='tofu'):
         dmargin = {'left': 0.05, 'right': 0.75, 'bottom': 0.05, 'top': 0.85}
     f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     if wintit is not None:
-        f.canvas.set_window_title(wintit)
+        f.canvas.manager.set_window_title(wintit)
     gs = gridspec.GridSpec(1, 1, **dmargin)
     ax = f.add_subplot(gs[0, 0], facecolor=axCol, projection='3d')
     ax.set_xlabel(r"X (m)")
@@ -189,7 +189,7 @@ def Plot_CrystIm(fs=None, dmargin=None, wintit=None):
 
     f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     if wintit is not None:
-        f.canvas.set_window_title(wintit)
+        f.canvas.manager.set_window_title(wintit)
 
     if dmargin is None:
         dmargin = {
@@ -219,7 +219,7 @@ def Plot_AllCryst(fs=None, dmargin=None, wintit=None):
 
     f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     if wintit is not None:
-        f.canvas.set_window_title(wintit)
+        f.canvas.manager.set_window_title(wintit)
 
     if dmargin is None:
         dmargin = {
@@ -276,7 +276,7 @@ def Plot_Impact_DefAxes(Proj, Ang='theta', AngUnit='rad', fs=None, wintit='tofu'
         fs = (11.69,8.27)
     f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     if wintit is not None:
-        f.canvas.set_window_title(wintit)
+        f.canvas.manager.set_window_title(wintit)
     if Proj == 'Cross':
         axPos = [0.12, 0.12, 0.60, 0.8]
         ax, axSketch = f.add_axes(axPos,frameon=True,facecolor=axCol), []
@@ -338,7 +338,7 @@ def _Config_phithetaproj_default(fs=None, dmargin=None,
                        wspace=0.8, hspace=0.3)
     fig = plt.figure(facecolor=axCol,figsize=fs)
     if wintit is not None:
-        fig.canvas.set_window_title(wintit)
+        fig.canvas.manager.set_window_title(wintit)
 
     # -------------
     # Axes grid

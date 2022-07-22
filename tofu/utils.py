@@ -3,7 +3,7 @@
 import os
 import sys
 import collections
-from abc import ABCMeta, abstractmethod
+# from abc import ABCMeta, abstractmethod
 import importlib
 import getpass
 import subprocess
@@ -36,18 +36,20 @@ _LIDS_CUSTOM = ['magfieldlines', 'events', 'shortcuts', 'config']
 #           File searching
 ###############################################
 
-def FileNotFoundMsg(pattern,path,lF, nocc=1, ntab=0):
-    assert type(pattern) in [str,list]
+
+def FileNotFoundMsg(pattern, path, lF, nocc=1, ntab=0):
+    assert type(pattern) in [str, list]
     assert type(path) is str
     assert type(lF) is list
     pat = pattern if type(pattern) is str else str(pattern)
     tab = "    "*ntab
-    msg = ["Wrong number of matches (%i) !"%nocc]
-    msg += ["    for : %s"%pat]
-    msg += ["    in  : %s"%path]
-    msg += ["    =>    %s"%str(lF)]
-    msg = "\n".join([tab+ss for ss in msg])
-    return msg
+    msg = [
+        f"Wrong number of matches ({nocc} vs {len(lF)})!",
+        f"\tfor: {pat}",
+        f"\tin : {path}",
+        f"\t=>    {lF}",
+    ]
+    return "\n".join([tab + ss for ss in msg])
 
 
 def FindFilePattern(pattern, path, nocc=1, ntab=0):
@@ -57,7 +59,7 @@ def FindFilePattern(pattern, path, nocc=1, ntab=0):
     assert all([type(ss) is str for ss in pat])
     lF = os.listdir(path)
     lF = [ff for ff in lF if all([ss in ff for ss in pat])]
-    assert len(lF)==nocc, FileNotFoundMsg(pat,path,lF, nocc, ntab=ntab)
+    assert len(lF) == nocc, FileNotFoundMsg(pat, path, lF, nocc, ntab=ntab)
     return lF
 
 
@@ -772,7 +774,6 @@ def _get_exception(q, ids, qtype='quantity'):
     # -------------------
     # import imas2tofu
     try:
-        import imas
         from tofu.imas2tofu import MultiIDSLoader
     except Exception as err:
         msg = str(err)
@@ -1731,8 +1732,9 @@ def _get_attrdictfromobj(obj, dd):
 
 class ToFuObjectBase(object):
 
-    __metaclass__ = ABCMeta
+    # __metaclass__ = ABCMeta
     _dstrip = {'strip':None, 'allowed':None}
+    __object = object()
 
     # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, *args, **kwdargs):
@@ -1754,8 +1756,7 @@ class ToFuObjectBase(object):
             self._init(**kwdargs)
         self._Done = True
 
-
-    @abstractmethod
+    # @abstractmethod
     def _reset(self):
         """ To be overloaded """
         pass
@@ -1764,7 +1765,7 @@ class ToFuObjectBase(object):
         """ To be overloaded """
         pass
 
-    @abstractmethod
+    # @abstractmethod
     def _init(self, **kwdargs):
         """ To be overloaded """
         pass
@@ -2093,7 +2094,6 @@ class ToFuObjectBase(object):
     #  operator overloading
     #############################
 
-
     def __eq__(self, obj, lexcept=[], detail=True, verb=True):
         msg = "The 2 objects have different "
         # Check class
@@ -2215,6 +2215,8 @@ class ToFuObjectBase(object):
     def __ne__(self, obj, detail=True, verb=True):
         return not self.__eq__(obj, detail=detail, verb=verb)
 
+    def __hash__(self):
+        return self.__object.__hash__()
 
 
 class ToFuObject(ToFuObjectBase):
@@ -4012,8 +4014,8 @@ class KeyHandler_mpl(object):
 
         # Check axes is relevant and toolbar not active
         c_activeax = 'fix' not in self.dax[event.inaxes].keys()
-        c_toolbar = self.can.manager.toolbar._active in [None,False]
-        if not all([c_activeax,c_toolbar]):
+        c_toolbar = not self.can.manager.toolbar.mode
+        if not all([c_activeax, c_toolbar]):
             return
 
         # Set self.dcur
@@ -4072,8 +4074,8 @@ class KeyHandler_mpl(object):
     def mouserelease(self, event):
         msg = "Make sure you release the mouse button on an axes !"
         msg += "\n Otherwise the background plot cannot be properly updated !"
-        c0 = self.can.manager.toolbar._active == 'PAN'
-        c1 = self.can.manager.toolbar._active == 'ZOOM'
+        c0 = 'pan' in self.can.manager.toolbar.mode.lower()
+        c1 = 'zoom' in self.can.manager.toolbar.mode.lower()
 
         if c0 or c1:
             ax = self.curax_panzoom
@@ -4088,7 +4090,7 @@ class KeyHandler_mpl(object):
 
         lkey = event.key.split('+')
 
-        c0 = self.can.manager.toolbar._active is not None
+        c0 = self.can.manager.toolbar.mode != ''
         c1 = len(lkey) not in [1,2]
         c2 = [ss not in self.dkeys.keys() for ss in lkey]
         if c0 or c1 or any(c2):

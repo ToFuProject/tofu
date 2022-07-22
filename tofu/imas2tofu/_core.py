@@ -53,14 +53,16 @@ except Exception as err:
 # imas
 try:
     import imas
+    from imas import imasdef
 except Exception as err:
     raise Exception('imas not available')
 
-__all__ = ['check_units_IMASvsDSHORT',
-           'MultiIDSLoader',
-           'load_Config', 'load_Plasma2D',
-           'load_Cam', 'load_Data',
-           '_save_to_imas']
+__all__ = [
+    'check_units_IMASvsDSHORT',
+    'MultiIDSLoader',
+    'load_Config', 'load_Plasma2D', 'load_Cam', 'load_Data',
+    '_save_to_imas',
+]
 
 
 # Root tofu path (for saving repo in IDS)
@@ -136,13 +138,18 @@ class MultiIDSLoader(object):
     #       Default class attributes
     ###################################
 
-    _def = {'isget':False,
-            'ids':None, 'occ':0, 'needidd':True}
+    _def = {
+        'isget': False,
+        'ids': None,
+        'occ': 0,
+        'needidd': True,
+    }
     _defidd = dict(_defimas2tofu._IMAS_DIDD)
 
     _lidsnames = [k for k in dir(imas) if k[0] != '_']
-    _lidsk = ['database', 'user', 'version',
-              'shot', 'run', 'refshot', 'refrun']
+    _lidsk = [
+        'database', 'user', 'version', 'shot', 'run', 'refshot', 'refrun',
+    ]
 
     # Known short version of signal str
     _dshort = _defimas2tofu._dshort
@@ -151,8 +158,10 @@ class MultiIDSLoader(object):
     _lidsdiag = _defimas2tofu._lidsdiag
     _lidslos = _defimas2tofu._lidslos
     _lidssynth = _defimas2tofu._lidssynth
-    _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
-                   'edge_profiles', 'edge_sources']
+    _lidsplasma = [
+        'equilibrium', 'core_profiles', 'core_sources',
+        'edge_profiles', 'edge_sources',
+    ]
 
     # Computed signals
     _dcomp = _defimas2tofu._dcomp
@@ -176,7 +185,7 @@ class MultiIDSLoader(object):
 
     def __init__(self, preset=None, dids=None, ids=None, occ=None, idd=None,
                  shot=None, run=None, refshot=None, refrun=None,
-                 user=None, database=None, version=None,
+                 user=None, database=None, version=None, backend=None,
                  ids_base=None, synthdiag=None, get=None, ref=True):
         """ A class for handling multiple ids loading from IMAS
 
@@ -263,11 +272,19 @@ class MultiIDSLoader(object):
                 idd=idd,
                 shot=shot, run=run, refshot=refshot, refrun=refrun,
                 user=user, database=database, version=version, ref=ref,
+                backend=backend,
             )
             lidd = list(self._didd.keys())
             assert len(lidd) <= 1
             idd = lidd[0] if len(lidd) > 0 else None
-            self.add_ids(preset=preset, ids=ids, occ=occ, idd=idd, get=False)
+            self.add_ids(
+                preset=preset,
+                ids=ids,
+                occ=occ,
+                idd=idd,
+                get=False,
+                backend=backend,
+            )
             if ids_base is None:
                 if not all([iids in self._IDS_BASE
                             for iids in self._dids.keys()]):
@@ -323,12 +340,17 @@ class MultiIDSLoader(object):
         # Check ids
         for k, v in dids.items():
 
-            lc0 = [v is None or v == {}, type(v) is dict, hasattr(v, 'ids_properties')]
+            lc0 = [
+                v is None or v == {},
+                type(v) is dict,
+                hasattr(v, 'ids_properties'),
+            ]
             assert any(lc0)
+
             if lc0[0]:
-                dids[k] = {'ids':None}
+                dids[k] = {'ids': None}
             elif lc0[-1]:
-                dids[k] = {'ids':v}
+                dids[k] = {'ids': v}
             dids[k]['ids'] = dids[k].get('ids', None)
             v = dids[k]
 
@@ -353,9 +375,13 @@ class MultiIDSLoader(object):
             v = dids[k]
 
             # Check / format ids
-            lc = [v['ids'] is None, hasattr(v['ids'], 'ids_properties'),
-                  type(v['ids']) is list]
+            lc = [
+                v['ids'] is None,
+                hasattr(v['ids'], 'ids_properties'),
+                type(v['ids']) is list,
+            ]
             assert any(lc)
+
             if lc[0]:
                 dids[k]['needidd'] = True
             elif lc[1]:
@@ -383,7 +409,6 @@ class MultiIDSLoader(object):
             name = list(diddi.keys())[0]
             didd[name] = diddi[name]
             dids[k]['idd'] = name
-
 
         # --------------
         #   Now use idd for ids without idd needing one
@@ -687,17 +712,17 @@ class MultiIDSLoader(object):
             assert all([ss in self._dshort[ids].keys() for ss in lshort])
         self._dpreset[key][ids] = lshort
 
-
-
-
     #############
     # ids getting
 
     def _checkformat_get_idd(self, idd=None):
         lk = self._didd.keys()
-        lc = [idd is None, type(idd) is str and idd in lk,
-              hasattr(idd,'__iter__') and all([ii in lk for ii in idd])]
+        lc = [
+            idd is None, type(idd) is str and idd in lk,
+            hasattr(idd, '__iter__') and all([ii in lk for ii in idd])
+        ]
         assert any(lc)
+
         if lc[0]:
             lidd = lk
         elif lc[1]:
@@ -712,6 +737,7 @@ class MultiIDSLoader(object):
         lc = [ids is None, type(ids) is str and ids in lk,
               hasattr(ids,'__iter__') and all([ii in lk for ii in ids])]
         assert any(lc)
+
         if lc[0]:
             lids = lk
         elif lc[1]:
@@ -719,32 +745,36 @@ class MultiIDSLoader(object):
         else:
             lids = ids
         lidd = sorted(set([self._dids[ids]['idd'] for ids in lids]))
-        llids = [(idd, sorted([ids for ids in lids
-                               if self._dids[ids]['idd'] == idd]))
-                for idd in lidd]
+        llids = [
+            (
+                idd,
+                sorted([ids for ids in lids if self._dids[ids]['idd'] == idd]),
+            )
+            for idd in lidd
+        ]
         return llids
 
     def _open(self, idd=None):
         lidd = self._checkformat_get_idd(idd)
         for k in lidd:
             if self._didd[k]['isopen'] == False:
-                if not all([
-                    ss in self._didd[k]['params'].keys()
-                    for ss in ['user', 'database', 'version']
-                ]):
-                    msg = (
-                        "idd cannot be opened with user, database, version !\n"
-                        + "    - name : {}".format(k)
-                    )
-                    raise Exception(msg)
-                args = (self._didd[k]['params']['user'],
-                        self._didd[k]['params']['database'],
-                        self._didd[k]['params']['version'])
-                self._didd[k]['idd'].open_env( *args )
+                self._didd[k]['idd'].open()
                 self._didd[k]['isopen'] = True
 
-    def _get(self, idsname=None, occ=None, llids=None, verb=True,
-             sep='  ', line='-', just='l'):
+    def _get(
+        self,
+        idsname=None,
+        occ=None,
+        llids=None,
+        verb=True,
+        sep='  ',
+        line='-',
+        just='l',
+    ):
+        """ get ids """
+
+        # ------------
+        # check input
 
         lerr = []
         if llids is None:
@@ -756,11 +786,20 @@ class MultiIDSLoader(object):
             msg0 = ['Getting ids', '[occ]'] + self._lidsk
             lmsg = []
 
+        # ------------
+        # check input
+
         docc = {}
         for ii in range(0,len(llids)):
-            docc[ii] = {jj:{'oc':None, 'indok':None}
-                        for jj in range(0,len(llids[ii][1]))}
-            for jj in range(0,len(llids[ii][1])):
+
+            # initialise dict of occurrences
+            docc[ii] = {
+                jj: {'oc': None, 'indok': None}
+                for jj in range(len(llids[ii][1]))
+            }
+
+            # fill dict of occurrences
+            for jj in range(len(llids[ii][1])):
                 ids = llids[ii][1][jj]
                 occref = self._dids[ids]['occ']
                 if occ is None:
@@ -768,43 +807,64 @@ class MultiIDSLoader(object):
                 else:
                     oc = np.unique(np.r_[occ].astype(int))
                     oc = np.intersect1(oc, occref)
+
                 docc[ii][jj]['oc'] = oc
-                docc[ii][jj]['indoc'] = np.array([(occref==oc[ll]).nonzero()[0][0]
-                                                  for ll in range(0,len(oc))])
+                docc[ii][jj]['indoc'] = np.array([
+                    (occref == oc[ll]).nonzero()[0][0]
+                    for ll in range(len(oc))
+                ])
+
+                # verb
                 if verb:
                     msg = [ids, str(oc)]
                     if jj == 0:
-                        msg += [str(self._didd[llids[ii][0]]['params'][kk])
-                                for kk in self._lidsk]
+                        msg += [
+                            str(self._didd[llids[ii][0]]['params'][kk])
+                            for kk in self._lidsk
+                        ]
                     else:
                         msg += ['"' for _ in self._lidsk]
                     lmsg.append(msg)
 
+        # verb
         if verb:
-            msgar = self._getcharray(lmsg, col=msg0,
-                                     sep=sep, line=line, just=just, msg=False)
+            msgar = self._getcharray(
+                lmsg, col=msg0,
+                sep=sep, line=line, just=just, msg=False,
+            )
             print('\n'.join(msgar[:2]))
 
+        # ------------
+        # check input
+
         nline = 0
-        for ii in range(0,len(llids)):
-            for jj in range(0,len(llids[ii][1])):
+        for ii in range(len(llids)):
+            for jj in range(len(llids[ii][1])):
                 ids = llids[ii][1][jj]
                 oc = docc[ii][jj]['oc']
                 indoc = docc[ii][jj]['indoc']
 
                 # if ids not provided
                 if self._dids[ids]['ids'] is None:
-                    idd = self._didd[self._dids[ids]['idd']]['idd']
-                    self._dids[ids]['ids'] = [getattr(idd, ids) for ii in oc]
-                    self._dids[ids]['needidd'] = False
+                    self._dids[ids]['ids'] = [None for ii in range(len(oc))]
+                    self._dids[ids]['needidd'] = True
 
                 if verb:
                     print(msgar[2+nline])
 
+                # get ids
+                idd = self._didd[self._dids[ids]['idd']]['idd']
                 try:
-                    for ll in range(0,len(oc)):
-                        if self._dids[ids]['isget'][indoc[ll]] == False:
-                            self._dids[ids]['ids'][indoc[ll]].get( oc[ll] )
+                    for ll in range(len(oc)):
+                        c0 = (
+                            self._dids[ids]['ids'][ll] is None
+                            or self._dids[ids]['isget'][indoc[ll]] == False
+                        )
+                        if c0:
+                            self._dids[ids]['ids'][ll] = idd.get(
+                                ids,
+                                occurrence=oc[ll],
+                            )
                             self._dids[ids]['isget'][indoc[ll]] = True
                     done = 'ok'
                 except Exception as err:
@@ -816,7 +876,6 @@ class MultiIDSLoader(object):
                 nline += 1
 
         return lerr
-
 
     def _close(self, idd=None):
         lidd = self._checkformat_get_idd(idd)
@@ -850,16 +909,20 @@ class MultiIDSLoader(object):
             for err in lerr:
                 warnings.warn(str(err))
 
-
     #---------------------
     # Methods for adding / removing idd / ids
     #---------------------
 
     @classmethod
-    def _checkformat_idd(cls, idd=None,
-                         shot=None, run=None, refshot=None, refrun=None,
-                         user=None, database=None, version=None,
-                         isopen=None, ref=None, defidd=None):
+    def _checkformat_idd(
+        cls, idd=None,
+        shot=None, run=None, refshot=None, refrun=None,
+        user=None, database=None, version=None,
+        isopen=None, ref=None, defidd=None, backend=None,
+    ):
+        """ Check imas entry parameters
+        """
+
         lc = [idd is None, shot is None]
         if not any(lc):
             msg = "You cannot provide both idd and shot !"
@@ -873,31 +936,60 @@ class MultiIDSLoader(object):
 
         if lc[0]:
             assert type(shot) in [int,np.int_]
-            params = dict(shot=int(shot), run=run, refshot=refshot, refrun=refrun,
-                          user=user, database=database, version=version)
+            params = dict(
+                shot=int(shot), run=run, refshot=refshot, refrun=refrun,
+                user=user, database=database, version=version,
+                backend=backend,
+            )
             for kk,vv in defidd.items():
                 if params[kk] is None:
                     params[kk] = vv
-            idd = imas.ids(params['shot'], params['run'],
-                           params['refshot'], params['refrun'])
+
+            # convert backend str => pointer
+            params['backend'] = getattr(
+                imasdef,
+                f"{params['backend']}_BACKEND".upper(),
+            )
+
+            # create entry
+            idd = imas.DBEntry(
+                params['backend'], params['database'], params['shot'],
+                params['run'],
+                user_name=params['user'],
+                data_version=params['version'],
+            )
             isopen = False
 
         elif lc[1]:
-            assert hasattr(idd,'close'), "idd does not seem to be data entry !"
-            params = {'shot':idd.shot, 'run':idd.run,
-                      'refshot':idd.getRefShot(), 'refrun':idd.getRefRun()}
+            if not hasattr(idd, 'close'):
+                msg = "idd does not seem to be data entry!"
+                raise Exception(msg)
+
+            params = {
+                'shot': idd.shot,
+                'run': idd.run,
+                'refshot': idd.getRefShot(),
+                'refrun': idd.getRefRun(),
+            }
+
             expIdx = idd.expIdx
             if not (expIdx == -1 or expIdx > 0):
-                msg = "Status of the provided idd could not be determined:\n"
-                msg += "    - idd.expIdx : %s   (should be -1 or >0)\n"%str(expIdx)
-                msg += "    - (shot, run): %s\n"%str((idd.shot, idd.run))
+                msg = (
+                    "Status of the provided idd could not be determined:\n"
+                    f"\t- idd.expIdx : {expIdx}   (should be -1 or >0)\n"
+                    f"\t- (shot, run): {idd.shot}, {idd.run}\n"
+                )
                 raise Exception(msg)
+
             if isopen is not None:
                 if isopen != (expIdx > 0):
-                    msg = "Provided isopen does not match observed value:\n"
-                    msg += "    - isopen: %s\n"%str(isopen)
-                    msg += "    - expIdx: %s"%str(expIdx)
+                    msg = (
+                        "Provided isopen does not match observed value:\n"
+                        f"\t- isopen: {isopen}\n"
+                        f"\t- expIdx: {expIdx}"
+                    )
                     raise Exception(msg)
+
             isopen = expIdx > 0
 
         if 'user' in params.keys():
@@ -907,9 +999,8 @@ class MultiIDSLoader(object):
         name += ['{:06.0f}'.format(params['shot']),
                  '{:05.0f}'.format(params['run'])]
         name = '_'.join(name)
-        didd = {name:{'idd':idd, 'params':params, 'isopen':isopen}}
+        didd = {name: {'idd': idd, 'params': params, 'isopen': isopen}}
         return didd
-
 
     def set_refidd(self, idd=None):
         if len(self._didd.keys()) == 0:
@@ -920,7 +1011,7 @@ class MultiIDSLoader(object):
 
     def add_idd(self, idd=None,
                 shot=None, run=None, refshot=None, refrun=None,
-                user=None, database=None, version=None,
+                user=None, database=None, version=None, backend=None,
                 ref=None, return_name=False):
         assert ref in [None, True]
         # didd
@@ -930,6 +1021,7 @@ class MultiIDSLoader(object):
             refshot=refshot, refrun=refrun,
             user=user, database=database,
             version=version,
+            backend=backend,
         )
         self._didd.update(didd)
         name = list(didd.keys())[0]
@@ -1040,27 +1132,38 @@ class MultiIDSLoader(object):
         elif returnas is list:
             return lids
 
-    def _checkformat_ids(self, ids, occ=None, idd=None, isget=None,
-                         synthdiag=False):
+    def _checkformat_ids(
+        self,
+        ids,
+        occ=None,
+        idd=None,
+        isget=None,
+        synthdiag=False,
+    ):
 
         # Check value and make dict if necessary
-        lc = [type(ids) is str,
-              type(ids) is list,
-              hasattr(ids, 'ids_properties'),
-              ids is None and synthdiag is True]
+        lc = [
+            isinstance(ids, str),
+            isinstance(ids, list),
+            hasattr(ids, 'ids_properties'),
+            ids is None and synthdiag is True
+        ]
         if not any(lc):
-            msg = "Arg ids must be either:\n"
-            msg += "    - str : valid ids name\n"
-            msg += "    - a list of such\n"
-            msg += "    - an ids itself\n"
-            msg += "  Provided: %s\n"%str(ids)
-            msg += "  Conditions: %s"%str(lc)
+            msg = (
+                "Arg ids must be either:\n"
+                "\t- str : valid ids name\n"
+                "\t- a list of such\n"
+                "\t- an ids itself\n"
+                f"  Provided: {ids}"
+                f"  Conditions: {lc}"
+            )
             raise Exception(msg)
 
         # Synthdiag-specific
         if synthdiag is True:
-            ids = self.get_inputs_for_synthsignal(ids=ids, verb=False,
-                                                  returnas=list)
+            ids = self.get_inputs_for_synthsignal(
+                ids=ids, verb=False, returnas=list,
+            )
             lc[1] = True
 
         # Prepare dids[name] = {'ids':None/ids, 'needidd':bool}
@@ -1068,45 +1171,65 @@ class MultiIDSLoader(object):
         if lc[0] or lc[1]:
             if lc[0]:
                 ids = [ids]
+
+            # check ids is allowed
             for ids_ in ids:
                 if not ids_ in self._lidsnames:
-                    msg = "ids %s matched no known imas ids !"%ids_
-                    msg += "  => Available ids are:\n"
-                    msg += repr(self._lidsnames)
+                    msg = (
+                        "ids {ids_} matched no known imas ids !"
+                        f"  => Available ids are:\n{repr(self._lidsnames)}"
+                    )
                     raise Exception(msg)
+
+            # initialise dict
             for k in ids:
                 dids[k] = {'ids':None, 'needidd':True, 'idd':idd}
             lids = ids
+
         elif lc[2]:
-            dids[ids.__class__.__name__] = {'ids':ids,
-                                            'needidd':False, 'idd':idd}
+            dids[ids.__class__.__name__] = {
+                'ids': ids,
+                'needidd': False,
+                'idd': idd,
+            }
             lids = [ids.__class__.__name__]
+
         nids = len(lids)
 
+        # ----------------------------------
         # Check / format occ and deduce nocc
+
         if occ is None:
             occ = 0
-        lc = [type(occ) in [int,np.int], hasattr(occ,'__iter__')]
+        lc = [type(occ) in [int, np.int], hasattr(occ, '__iter__')]
         assert any(lc)
+
         if lc[0]:
-            occ = [np.r_[occ].astype(int) for _ in range(0,nids)]
+            occ = [np.r_[occ].astype(int) for _ in range(nids)]
         else:
             if len(occ) == nids:
                 occ = [np.r_[oc].astype(int) for oc in occ]
             else:
                 occ = [np.r_[occ].astype(int) for _ in range(0,nids)]
-        for ii in range(0,nids):
+
+        for ii in range(nids):
             nocc = occ[ii].size
             dids[lids[ii]]['occ'] = occ[ii]
             dids[lids[ii]]['nocc'] = nocc
             if dids[lids[ii]]['ids'] is not None:
                 dids[lids[ii]]['ids'] = [dids[lids[ii]]['ids']]*nocc
 
+        # ----------------------------------
         # Format isget / get
+
         for ii in range(0,nids):
             nocc = dids[lids[ii]]['nocc']
+
+            # initialize get
             if dids[lids[ii]]['ids'] is None:
                 isgeti = np.zeros((nocc,), dtype=bool)
+
+            # set get
             if dids[lids[ii]]['ids'] is not None:
                 if isget is None:
                     isgeti = np.r_[False]
@@ -1118,7 +1241,7 @@ class MultiIDSLoader(object):
                     else:
                         isgeti = np.r_[isget]
 
-            assert isgeti.size in [1,nocc]
+            assert isgeti.size in [1, nocc]
             if isgeti.size < nocc:
                 isgeti = np.repeat(isgeti,nocc)
             dids[lids[ii]]['isget'] = isgeti
@@ -1127,7 +1250,7 @@ class MultiIDSLoader(object):
 
     def add_ids(self, ids=None, occ=None, idd=None, preset=None,
                 shot=None, run=None, refshot=None, refrun=None,
-                user=None, database=None, version=None,
+                user=None, database=None, version=None, backend=None,
                 ref=None, isget=None, get=None):
         """ Add an ids (or a list of ids)
 
@@ -1141,30 +1264,41 @@ class MultiIDSLoader(object):
 
         # preset
         if preset is not None:
+
             if preset not in self._dpreset.keys():
-                msg = "Available preset values are:\n"
-                msg += "    - %s\n"%str(sorted(self._dpreset.keys()))
-                msg += "    - Provided: %s"%str(preset)
+                msg = (
+                    "Available preset values are:\n"
+                    f"\t- {sorted(self._dpreset.keys())}\n"
+                    f"\t- Provided: {preset}"
+                )
                 raise Exception(msg)
+
             ids = sorted(self._dpreset[preset].keys())
         self._preset = preset
 
         # Add idd if relevant
         if hasattr(idd, 'close') or shot is not None:
-            name = self.add_idd(idd=idd,
-                                shot=shot, run=run,
-                                refshot=refshot, refrun=refrun,
-                                user=user, database=database,
-                                version=version, ref=ref, return_name=True)
+            name = self.add_idd(
+                idd=idd,
+                shot=shot, run=run,
+                refshot=refshot, refrun=refrun,
+                user=user, database=database,
+                version=version,
+                backend=backend,
+                ref=ref,
+                return_name=True,
+            )
             idd = name
 
         if idd is None and ids is not None:
             if self._refidd is None:
-                msg = "No idd was provided (and ref idd is not clear) !\n"
-                msg += "Please provide an idd either directly or via \n"
-                msg += "args (shot, user, database...)!\n"
-                msg += "    - %s"%str([(k,v.get('ref',None))
-                                       for k,v in self._didd.items()])
+                lstr = [(k, v.get('ref', None)) for k, v in self._didd.items()]
+                msg = (
+                    "No idd was provided (and ref idd is not clear)!\n"
+                    "Please provide an idd either directly or via \n"
+                    "args (shot, user, database...)!\n"
+                    "\t- {lstr}"
+                )
                 raise Exception(msg)
             idd = self._refidd
         elif idd is not None:
@@ -1173,29 +1307,34 @@ class MultiIDSLoader(object):
         # Add ids
         if ids is not None:
             dids = self._checkformat_ids(ids, occ=occ, idd=idd, isget=isget)
-
             self._dids.update(dids)
             if get:
                 self.open_get_close()
 
-    def add_ids_base(self, occ=None, idd=None,
-                     shot=None, run=None, refshot=None, refrun=None,
-                     user=None, database=None, version=None,
-                     ref=None, isget=None, get=None):
+    def add_ids_base(
+        self, occ=None, idd=None,
+        shot=None, run=None, refshot=None, refrun=None,
+        user=None, database=None, version=None, backend=None,
+        ref=None, isget=None, get=None,
+    ):
         """ Add th list of ids stored in self._IDS_BASE
 
         Typically used to add a list of common ids without having to re-type
         them every time
         """
-        self.add_ids(ids=self._IDS_BASE, occ=occ, idd=idd,
-                     shot=shot, run=run, refshot=refshot, refrun=refrun,
-                     user=user, database=database, version=version,
-                     ref=ref, isget=isget, get=get)
+        self.add_ids(
+            ids=self._IDS_BASE, occ=occ, idd=idd,
+            shot=shot, run=run, refshot=refshot, refrun=refrun,
+            user=user, database=database, version=version, backend=backend,
+            ref=ref, isget=isget, get=get,
+        )
 
-    def add_ids_synthdiag(self, ids=None, occ=None, idd=None,
-                          shot=None, run=None, refshot=None, refrun=None,
-                          user=None, database=None, version=None,
-                          ref=None, isget=None, get=None):
+    def add_ids_synthdiag(
+        self, ids=None, occ=None, idd=None,
+        shot=None, run=None, refshot=None, refrun=None,
+        user=None, database=None, version=None, backend=None,
+        ref=None, isget=None, get=None,
+    ):
         """ Add pre-tabulated input ids necessary for calculating synth. signal
 
         The necessary input ids are given by self.get_inputs_for_synthsignal()
@@ -1205,10 +1344,13 @@ class MultiIDSLoader(object):
             get = True
         ids = self.get_inputs_for_synthsignal(ids=ids, verb=False,
                                               returnas=list)
-        self.add_ids(ids=ids, occ=occ, idd=idd, preset=None,
-                     shot=shot, run=run, refshot=refshot, refrun=refrun,
-                     user=user, database=database, version=version,
-                     ref=ref, isget=isget, get=get)
+        self.add_ids(
+            ids=ids, occ=occ, idd=idd, preset=None,
+            shot=shot, run=run, refshot=refshot, refrun=refrun,
+            user=user, database=database,
+            version=version, backend=backend,
+            ref=ref, isget=isget, get=get,
+        )
 
     def remove_ids(self, ids=None, occ=None):
         """ Remove an ids (optionally remove only an occurence)
@@ -1699,34 +1841,59 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(dsig={ids: vs}, nan=nan,
-                                    pos=pos, stack=stack,
-                                    return_all=False)[ids]
+                out = self.get_data(
+                    dsig={ids: vs}, nan=nan,
+                    pos=pos, stack=stack,
+                    return_all=False,
+                )[ids]
+
                 inds = [ii for ii in range(0, len(vs)) if vs[ii] in out.keys()]
                 _comp_toobjects.extra_get_fordataTrue(
                     inds, vs, vc, out, dout,
                     ids=ids, dshort=self._dshort, dcomp=self._dcomp)
             return dout
+
         else:
             d0d, dt0 = {}, {}
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(dsig={ids: vs}, nan=nan,
-                                    pos=pos, stack=stack,
-                                    return_all=False)[ids]
+                out = self.get_data(
+                    dsig={ids: vs}, nan=nan,
+                    pos=pos, stack=stack,
+                    return_all=False,
+                )[ids]
+
                 _comp_toobjects.extra_get_fordataFalse(
                     out, d0d, dt0,
                     ids=ids, dshort=self._dshort, dcomp=self._dcomp)
             return d0d, dt0
 
-    def to_Plasma2D(self, tlim=None, dsig=None, t0=None, indt0=None,
-                    Name=None, occ=None, config=None, out=object,
-                    description_2d=None, indevent=None, stack=None,
-                    plot=None, plot_sig=None, plot_X=None,
-                    bck=True, dextra=None, isclose=None, nan=True,
-                    pos=None, empty=None, strict=None,
-                    flatocc=None, shapeRZ=None):
+    def to_Plasma2D(
+        self,
+        # dict of signals to be extracted
+        dsig=None,
+        # time parameters
+        tlim=None,
+        t0=None,
+        indt0=None,
+        indevent=None,
+        # other parameters
+        occ=None,
+        stack=None,
+        dextra=None,
+        isclose=None,
+        nan=True,
+        pos=None,
+        empty=None,
+        strict=None,
+        flatocc=None,
+        # plotting parameters
+        plot=None,
+        plot_sig=None,
+        plot_X=None,
+        bck=True,
+    ):
         """ Export the content of some ids as a tofu Plasma2D object
 
         Some ids typically contain plasma 1d (radial) or 2d (mesh) profiles
@@ -1753,10 +1920,10 @@ class MultiIDSLoader(object):
             Specify exactly which data (shortcut) should be loaded by ids
             If None, loads all available data
         t0:     None / float / str
-            Specify a time to be used as origin:
+            Specify a time to be used as source:
                 - None: absolute time vectors are untouched
                 - float : the roigin of all time vectors is set to t0
-                - str : the origin is taken from an event in ids pulse_schedule
+                - str : the source is taken from an event in ids pulse_schedule
         Name:   None / str
             Name to be given to the instance
             If None, a default Name is built
@@ -1809,307 +1976,83 @@ class MultiIDSLoader(object):
             dshort=self._dshort, dcomp=self._dcomp)
 
         # check and format plot arguments
-        plot, plot_X, plot_sig = _comp_toobjects.plasma_plot_args(
-            plot, plot_X, plot_sig,
-            dsig=dsig)
+        # plot, plot_X, plot_sig = _comp_toobjects.plasma_plot_args(
+            # plot, plot_X, plot_sig,
+            # dsig=dsig)
 
         # lids
         lids = sorted(dsig.keys())
-        if Name is None:
-            Name = 'custom'
 
         # data source consistency
         _, _, shot, Exp = _comp_toobjects.get_lidsidd_shotExp(
             lids, upper=True, errshot=False, errExp=False,
-            dids=self._dids, didd=self._didd)
+            dids=self._dids, didd=self._didd,
+        )
 
         # -------------
         #   get all relevant data
-        out0 = self.get_data(dsig=dsig,
-                             nan=nan, pos=pos,
-                             empty=empty, isclose=isclose, strict=True,
-                             return_all=False)
+
+        out0 = self.get_data(
+            dsig=dsig,
+            nan=nan,
+            pos=pos,
+            empty=empty,
+            isclose=isclose,
+            strict=True,
+            return_all=False,
+        )
 
         # -------------
         #   Input dicts
 
         # config
-        if config is None:
-            try:
-                config = self.to_Config(
-                    Name=Name,
-                    occ=occ,
-                    description_2d=description_2d,
-                    plot=False)
-            except Exception as err:
-                msg = (str(err)
-                       + "\nCould not load waal from wall ids\n"
-                       + "  => No config provided to Plasma2D instance!")
-                warnings.warn(msg)
+        # if config is None:
+            # try:
+                # config = self.to_Config(
+                    # Name=Name,
+                    # occ=occ,
+                    # description_2d=description_2d,
+                    # plot=False)
+            # except Exception as err:
+                # msg = (str(err)
+                       # + "\nCould not load wall from wall ids\n"
+                       # + "  => No config provided to Plasma2D instance!")
+                # warnings.warn(msg)
 
         # dextra
         d0d, dtime0 = self._get_dextra(dextra)
 
-        # dicts
-        dtime = {} if dtime0 is None else dtime0
-        d1d, dradius = {}, {}
-        d2d, dmesh = {}, {}
-        for ids in lids:
-            # Hotfix to avoid calling get_data a second time out0 -> out_
-            # TBF in next release (ugly, sub-optimal...)
-
-            # -------------
-            # dtime
-            out_ = {'t': out0[ids].get('t', None)}
-            lc = (out_['t'] is not None
-                  and out_['t']['isempty'] is False)
-            keyt, nt, indt = None, None, None
-            if lc is True:
-                nt = out_['t']['data'].size
-                keyt = '{}.t'.format(ids)
-
-                dtt = self.get_tlim(out_['t']['data'], tlim=tlim,
-                                    indevent=indevent, returnas=int)
-                dtime[keyt] = {'data': dtt['t'],
-                               'origin': ids, 'name': 't'}
-                indt = dtt['indt']
-            else:
-                nt = None
-
-            # -------------
-            # d1d and dradius
-            lsig = [k for k in out0[ids].keys() if '1d' in k]
-            out_ = self.get_data(dsig={ids: lsig}, indt=indt,
-                                 nan=nan, pos=pos, stack=stack,
-                                 isclose=isclose, empty=empty,
-                                 strict=strict, return_all=False,
-                                 warn=False)[ids]
-            if len(out_) > 0:
-                nref, kref = None, None
-                for ss in out_.keys():
-                    if out_[ss]['data'].ndim not in [1, 2]:
-                        shape = out_[ss]['data'].shape
-                        msg = ("Non-conform {}.{}.ndim\n".format(ids, ss)
-                               + "\t- expected: 1 or 2\n"
-                               + "\t- {}.{}.shape = {}".format(ids, ss, shape))
-                        raise Exception(msg)
-                    if out_[ss]['data'].ndim == 1:
-                        out_[ss]['data'] = np.atleast_2d(out_[ss]['data'])
-                    shape = out_[ss]['data'].shape
-                    # if 0 in shape or len(shape) == 0:
-                    # continue
-
-                    if nt is None:
-                        msg = ("{}.t could not be retrieved\n".format(ids)
-                               + "=> Assuming 't' is the first dimension of "
-                               + "{}.{}".format(ids, ss))
-                        warnings.warn(msg)
-                        nt = shape[0]
-                        keyt = '{}.homemade'.format(ids)
-                        dtime[keyt] = {'data': np.arange(0, nt),
-                                       'origin': ids, 'name': 'homemade'}
-                    elif nt not in shape:
-                        msg = ("Inconsistent shape with respect to 't'!\n"
-                               + "\t- {}.{}.shape = {}".format(ids, ss, shape)
-                               + "\t- One dim should be nt = {}".format(nt))
-                        raise Exception(msg)
-                    axist = shape.index(nt)
-                    nr = shape[1-axist]
-                    if axist == 1:
-                        out_[ss]['data'] = out_[ss]['data'].T
-                    if out_[ss]['data'].shape != (nt, nr):
-                        msg = ("Wrong shape for {}.{}:\n"
-                               + "\t- expected: {}\n".format((nt, nr))
-                               + "\t- got:  {}".format(out_[ss]['data'].shape))
-                        raise Exception(msg)
-
-                    if ss in self._dshort[ids].keys():
-                        dim = self._dshort[ids][ss].get('dim', 'unknown')
-                        quant = self._dshort[ids][ss].get('quant', 'unknown')
-                    else:
-                        dim = self._dcomp[ids][ss].get('dim', 'unknown')
-                        quant = self._dcomp[ids][ss].get('quant', 'unknown')
-                    units = out_[ss]['units']
-                    key = '{}.{}'.format(ids, ss)
-
-                    if nref is None:
-                        dradius[key] = {'data': out_[ss]['data'], 'name': ss,
-                                        'origin': ids, 'dim': dim,
-                                        'quant': quant, 'units': units,
-                                        'depend': (keyt, key)}
-                        nref, kref = nr, key
-                    elif nr != nref:
-                        msg = ("Inconsistent nr for {}.{}\n".format(ids, ss)
-                               + "\t- nref: {}\n".format(nref)
-                               + "\t- nr:   {}".format(nr))
-                        raise Exception(msg)
-                    else:
-                        d1d[key] = {'data': out_[ss]['data'], 'name': ss,
-                                    'origin': ids, 'dim': dim, 'quant': quant,
-                                    'units': units, 'depend': (keyt, kref)}
-
-                    if plot:
-                        if ss in plot_sig:
-                            plot_sig[plot_sig.index(ss)] = key
-                        if ss in plot_X:
-                            plot_X[plot_X.index(ss)] = key
-
-            # -------------
-            # d2d and dmesh
-            lsig = [k for k in out0[ids].keys() if '2d' in k]
-            lsigmesh = [k for k in lsig if 'mesh' in k]
-            out_ = self.get_data(dsig={ids: lsig}, indt=indt,
-                                 nan=nan, pos=pos, stack=stack,
-                                 isclose=isclose, empty=empty,
-                                 strict=strict, return_all=False,
-                                 warn=False)[ids]
-
-            cmesh = any([ss in out_.keys() for ss in lsigmesh])
-            if len(out_) > 0:
-                npts, datashape = None, None
-                keym = '{}.mesh'.format(ids) if cmesh else None
-                for ss in set(out_.keys()).difference(lsigmesh):
-
-                    # Check data shape
-                    if out_[ss]['data'].ndim not in [1, 2, 3]:
-                        shape = out_[ss]['data'].shape
-                        msg = ("Non-conform {}.{}.ndim\n".format(ids, ss)
-                               + "\t- expected: 1, 2 or 3\n"
-                               + "\t- {}.{}.shape = {}".format(ids, ss, shape))
-                        raise Exception(msg)
-                    if out_[ss]['data'].ndim == 1:
-                        out_[ss]['data'] = np.atleast_2d(out_[ss]['data'])
-                    shape = out_[ss]['data'].shape
-                    assert len(shape) in [2, 3] and np.prod(shape) > 0
-                    if nt not in shape and (nt != 1 or len(shape) != 2):
-                        msg = ("Inconsistent {}.{}.shape:\n".format(ids, ss)
-                               + "nt not in shape => nt=1 and ndim=2\n"
-                               + "\t- nt: {}\n".format(nt)
-                               + "\t- shape: {}".format(shape))
-                        raise Exception(msg)
-                    elif nt not in shape:
-                        out_[ss]['data'] = out_[ss]['data'][None, :, :]
-                        shape = out_[ss]['data'].shape
-                    if shape[0] != nt:
-                        msg = ("Inconsistent {}.{}.shape:\n".format(ids, ss)
-                               + "\t- expected: ({}, ...)\n".format(nt)
-                               + "\t- observed: {}".format(shape))
-                        raise Exception(msg)
-                    if len(shape) == 3:
-                        datashape = (shape[1], shape[2])
-                        size = shape[1]*shape[2]
-                        if shapeRZ is None:
-                            msg = "Please provide shapeRZ (ambiguous indexing)"
-                            raise Exception(msg)
-                        if shapeRZ == ('R', 'Z'):
-                            out_[ss]['data'] = np.reshape(out_[ss]['data'],
-                                                          (nt, size))
-                        elif shapeRZ == ('Z', 'R'):
-                            out_[ss]['data'] = np.reshape(out_[ss]['data'],
-                                                          (nt, size),
-                                                          order='F')
-                    shape = out_[ss]['data'].shape
-
-                    # extract units, dim, quant
-                    axist = shape.index(nt)
-                    if npts is None:
-                        npts = shape[1-axist]
-                    if npts != shape[1-axist]:
-                        msg = ("Inconsistent {}.{}.shape\n".format(ids, ss)
-                               + "\t- expected: {}\n".format((nt, npts))
-                               + "\t- observed: {}".format(shape))
-                        raise Exception(msg)
-                    if axist == 1:
-                        out_[ss]['data'] = out_[ss]['data'].T
-
-                    if ss in self._dshort[ids].keys():
-                        dim = self._dshort[ids][ss].get('dim', 'unknown')
-                        quant = self._dshort[ids][ss].get('quant', 'unknown')
-                    else:
-                        dim = self._dcomp[ids][ss].get('dim', 'unknown')
-                        quant = self._dcomp[ids][ss].get('quant', 'unknown')
-                    units = out_[ss]['units']
-                    key = '{}.{}'.format(ids, ss)
-
-                    d2d[key] = {'data': out_[ss]['data'], 'name': ss,
-                                'dim': dim, 'quant': quant, 'units': units,
-                                'origin': ids, 'depend': (keyt, keym)}
-
-                if cmesh is True:
-                    lc = [all([ss in lsig for ss in ['2dmeshNodes',
-                                                     '2dmeshFaces']]),
-                          all([ss in lsig for ss in ['2dmeshR', '2dmeshZ']])]
-                    if not np.sum(lc) == 1:
-                        msg = ("2d mesh shall be provided either via:\n"
-                               + "\t- '2dmeshR' and '2dmeshZ'\n"
-                               + "\t- '2dmeshNodes' and '2dmeshFaces'")
-                        raise Exception(msg)
-
-                    # Nodes / Faces case
-                    if lc[0]:
-                        nodes = out_['2dmeshNodes']['data']
-                        indfaces = out_['2dmeshFaces']['data']
-                        func = _comp_mesh.tri_checkformat_NodesFaces
-                        indfaces, mtype, ntri = func(nodes, indfaces, ids=ids)
-                        nnod, nfaces = int(nodes.size/2), indfaces.shape[0]
-                        if npts is not None:
-                            nft = int(nfaces/ntri)
-                            if npts not in [nnod, nft]:
-                                msg = ("Inconsistent indices:\n"
-                                       + "\t- 2d prof {} npts\n".format(npts)
-                                       + "\t- mesh {} nodes\n".format(nnod)
-                                       + "\t       {} faces".format(nft))
-                                raise Exception(msg)
-                            ftype = 1 if npts == nnod else 0
-                        else:
-                            ftype = None
-                        mpltri = mpl.tri.Triangulation(nodes[:, 0],
-                                                       nodes[:, 1], indfaces)
-                        dmesh[keym] = {'dim': 'mesh', 'quant': 'mesh',
-                                       'units': 'a.u.', 'origin': ids,
-                                       'depend': (keym,), 'name': mtype,
-                                       'nodes': nodes, 'faces': indfaces,
-                                       'type': mtype, 'ntri': ntri,
-                                       'ftype': ftype, 'nnodes': nnod,
-                                       'nfaces': nfaces, 'mpltri': mpltri}
-                    # R / Z case
-                    elif lc[1]:
-                        func = _comp_mesh.rect_checkformat
-                        R, Z, shapeRZ, ftype = func(out_['2dmeshR']['data'],
-                                                    out_['2dmeshZ']['data'],
-                                                    datashape=datashape,
-                                                    shapeRZ=shapeRZ, ids=ids)
-                        dmesh[keym] = {'dim': 'mesh', 'quant': 'mesh',
-                                       'units': 'a.u.', 'origin': ids,
-                                       'depend': (keym,), 'name': 'rect',
-                                       'R': R, 'Z': Z, 'shapeRZ': shapeRZ,
-                                       'type': 'rect', 'ftype': ftype}
-
-        # t0
-        if indt0 is None:
-            indt0 = 0
-        t0 = self._get_t0(t0, ind=indt0)
-        if t0 is not False:
-            for tt in dtime.keys():
-                dtime[tt]['data'] = dtime[tt]['data'] - t0
-
-        plasma = dict(dtime=dtime, dradius=dradius, dmesh=dmesh,
-                      d0d=d0d, d1d=d1d, d2d=d2d,
-                      Exp=Exp, shot=shot, Name=Name, config=config)
-
-        # Instanciate Plasma2D
-        if out is object or plot is True:
-            import tofu.data as tfd
-            plasma = tfd.Plasma2D( **plasma )
-            if plot is True:
-                plasma.plot(plot_sig, X=plot_X, bck=bck)
-        return plasma
+        # get data
+        return _comp_toobjects.get_plasma(
+            # ressources
+            multi=self,
+            dtime0=dtime0,
+            d0d=d0d,
+            out0=out0,
+            lids=lids,
+            # time parameters
+            tlim=tlim,
+            indt0=indt0,
+            t0=t0,
+            indevent=indevent,
+            # other parameters
+            nan=nan,
+            pos=pos,
+            stack=stack,
+            isclose=isclose,
+            empty=empty,
+            strict=strict,
+            # plotting
+            plot=plot,
+            plot_sig=plot_sig,
+        )
 
     def inspect_channels(self, ids=None, occ=None, indch=None, geom=None,
                          dsig=None, data=None, X=None, stack=None,
                          datacls=None, geomcls=None,
                          return_dict=None, return_ind=None,
                          return_msg=None, verb=None):
+
         # ------------------
         # Preliminary checks
         if return_dict is None:
@@ -2346,8 +2289,13 @@ class MultiIDSLoader(object):
             cam.plot_touch(draw=True)
         return cam
 
-    def get_tlim(self, t=None, tlim=None,
-                 indevent=None, returnas=None):
+    def get_tlim(
+        self,
+        t=None,
+        tlim=None,
+        indevent=None,
+        returnas=None,
+    ):
         """ Retrun the time indices corresponding to the desired time limts
 
         Return a dict with:
@@ -2461,10 +2409,10 @@ class MultiIDSLoader(object):
         dextra:     None / dict
             dict of extra signals (time traces) to be plotted, for context
         t0:     None / float / str
-            Specify a time to be used as origin:
+            Specify a time to be used as source:
                 - None: absolute time vectors are untouched
                 - float : the roigin of all time vectors is set to t0
-                - str : the origin is taken from an event in ids pulse_schedule
+                - str : the source is taken from an event in ids pulse_schedule
         datacls:    None / str
             tofu calss to be used for the data
                 - None : determined from tabulated info (self._didsdiag[ids])
@@ -2865,10 +2813,10 @@ class MultiIDSLoader(object):
                                           zeff='core_profiles.1dzeff',
                                           lamb=lamb)
             quant, _, units = out
-            origin = 'f(core_profiles, bremsstrahlung_visible)'
+            source = 'f(core_profiles, bremsstrahlung_visible)'
             depend = ('core_profiles.t','core_profiles.1dTe')
             plasma.add_quantity(key='core_profiles.1dbrem', data=quant,
-                                depend=depend, origin=origin, units=units,
+                                depend=depend, source=source, units=units,
                                 dim=None, quant=None, name=None)
             dq['quant'] = ['core_profiles.1dbrem']
 
@@ -2895,17 +2843,17 @@ class MultiIDSLoader(object):
 
             plasma.add_ref(key='tfangleRPZ', data=tfang, group='time')
 
-            origin = 'f(equilibrium, core_profiles, polarimeter)'
+            source = 'f(equilibrium, core_profiles, polarimeter)'
             depend = ('tfangleRPZ','equilibrium.mesh')
 
             plasma.add_quantity(key='2dfangleR', data=fangleRPZ[0,...],
-                                depend=depend, origin=origin, units=units,
+                                depend=depend, source=source, units=units,
                                 dim=None, quant=None, name=None)
             plasma.add_quantity(key='2dfanglePhi', data=fangleRPZ[1,...],
-                                depend=depend, origin=origin, units=units,
+                                depend=depend, source=source, units=units,
                                 dim=None, quant=None, name=None)
             plasma.add_quantity(key='2dfangleZ', data=fangleRPZ[2,...],
-                                depend=depend, origin=origin, units=units,
+                                depend=depend, source=source, units=units,
                                 dim=None, quant=None, name=None)
 
             dq['q2dR'] = ['2dfangleR']
@@ -3001,12 +2949,17 @@ class MultiIDSLoader(object):
 #############################################################
 
 
-def load_Config(shot=None, run=None, user=None, database=None, version=None,
-                Name=None, occ=0, description_2d=None, plot=True):
+def load_Config(
+    shot=None, run=None, user=None, database=None, version=None, backend=None,
+    Name=None, occ=0, description_2d=None, plot=True,
+):
 
     didd = MultiIDSLoader()
-    didd.add_idd(shot=shot, run=run,
-                 user=user, database=database, version=version)
+    didd.add_idd(
+        shot=shot, run=run,
+        user=user, database=database,
+        version=version, backend=backend,
+    )
     didd.add_ids('wall', get=True)
 
     return didd.to_Config(Name=Name, occ=occ,
@@ -3014,15 +2967,19 @@ def load_Config(shot=None, run=None, user=None, database=None, version=None,
 
 
 # occ ?
-def load_Plasma2D(shot=None, run=None, user=None, database=None, version=None,
+def load_Plasma2D(shot=None, run=None, user=None, database=None,
+                  version=None, backend=None,
                   tlim=None, occ=None, dsig=None, ids=None,
                   config=None, description_2d=None,
                   Name=None, t0=None, out=object, dextra=None,
                   plot=None, plot_sig=None, plot_X=None, bck=True):
 
     didd = MultiIDSLoader()
-    didd.add_idd(shot=shot, run=run,
-                 user=user, database=database, version=version)
+    didd.add_idd(
+        shot=shot, run=run,
+        user=user, database=database,
+        version=version, backend=backend,
+    )
 
     if dsig is dict:
         lids = sorted(dsig.keys())
@@ -3048,13 +3005,17 @@ def load_Plasma2D(shot=None, run=None, user=None, database=None, version=None,
                             bck=bck, dextra=dextra)
 
 
-def load_Cam(shot=None, run=None, user=None, database=None, version=None,
+def load_Cam(shot=None, run=None, user=None, database=None,
+             version=None, backend=None,
              ids=None, indch=None, config=None, description_2d=None,
              occ=None, Name=None, plot=True):
 
     didd = MultiIDSLoader()
-    didd.add_idd(shot=shot, run=run,
-                 user=user, database=database, version=version)
+    didd.add_idd(
+        shot=shot, run=run,
+        user=user, database=database,
+        version=version, backend=backend,
+    )
 
     if type(ids) is not str:
         msg = "Please provide ids to load Cam !\n"
@@ -3069,7 +3030,8 @@ def load_Cam(shot=None, run=None, user=None, database=None, version=None,
                        occ=occ, plot=plot)
 
 
-def load_Data(shot=None, run=None, user=None, database=None, version=None,
+def load_Data(shot=None, run=None, user=None, database=None,
+              version=None, backend=None,
               ids=None, datacls=None, geomcls=None, indch_auto=True,
               tlim=None, dsig=None, data=None, X=None, indch=None,
               config=None, description_2d=None,
@@ -3077,8 +3039,11 @@ def load_Data(shot=None, run=None, user=None, database=None, version=None,
               t0=None, plot=True, bck=True):
 
     didd = MultiIDSLoader()
-    didd.add_idd(shot=shot, run=run,
-                 user=user, database=database, version=version)
+    didd.add_idd(
+        shot=shot, run=run,
+        user=user, database=database,
+        version=version, backend=backend,
+    )
 
     if type(ids) is not str:
         msg = "Please provide ids to load Data !\n"

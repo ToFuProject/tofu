@@ -54,6 +54,7 @@ import sys
 import warnings
 from .version import __version__
 
+
 import tofu.pathfile as pathfile
 import tofu.utils as utils
 
@@ -63,6 +64,10 @@ import tofu.geom as geom
 from tofu.geom.utils import create_config as load_config
 import tofu.data as data
 import tofu.spectro as spectro
+import tofu.tests as tests
+
+
+
 
 
 # -------------------------------------
@@ -70,7 +75,9 @@ import tofu.spectro as spectro
 # -------------------------------------
 
 msg = None
-dsub = dict.fromkeys(['imas2tofu', 'openadas2tofu', 'nist2tofu', 'mag'])
+dsub = dict.fromkeys([
+    'imas2tofu', 'openadas2tofu', 'nist2tofu', 'mag', 'tomotok2tofu',
+])
 for sub in dsub.keys():
     try:
         exec('import tofu.{0} as {0}'.format(sub))

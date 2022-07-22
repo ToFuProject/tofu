@@ -512,7 +512,7 @@ def step01_search_online_by_wavelengthA(
     return_url=None,
     verb=None,
     create_custom=None,
-    format_for_DataCollection=None,
+    format_for_DataStock=None,
     dsource0=None,
     dlines0=None,
 ):
@@ -549,8 +549,8 @@ def step01_search_online_by_wavelengthA(
         verb = True
     if create_custom is None:
         create_custom = _CREATE_CUSTOM
-    if format_for_DataCollection is None:
-        format_for_DataCollection = False
+    if format_for_DataStock is None:
+        format_for_DataStock = False
 
     # ----------
     # get search url
@@ -596,7 +596,7 @@ def step01_search_online_by_wavelengthA(
     # Trivial case
     lcol = list(list(dout.values())[0].keys())
     if '<!DOCTYPE html' in lcol:
-        if format_for_DataCollection is True:
+        if format_for_DataStock is True:
             return None, None
         else:
             lv = [
@@ -647,8 +647,8 @@ def step01_search_online_by_wavelengthA(
 
     # ----------
     # return
-    if format_for_DataCollection is True:
-        return _format_for_DataCollection(
+    if format_for_DataStock is True:
+        return _format_for_DataStock(
             dout=dout, dsources=dsources, dlines0=dlines0,
         )
     else:
@@ -759,7 +759,7 @@ def _get_dsources(lsources):
 
 # #############################################################################
 # #############################################################################
-#                          format for DataCollection
+#                          format for DataStock
 # #############################################################################
 
 
@@ -811,7 +811,7 @@ def _extract_one_line(
     return dlines, dsources
 
 
-def _format_for_DataCollection(
+def _format_for_DataStock(
     dout=None,
     dsources=None,
     dsource0=None,

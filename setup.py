@@ -3,25 +3,32 @@
 See:
 https://github.com/ToFuProject/tofu
 """
+
+# Built-in
 import os
 import glob
 import shutil
 import logging
 import platform
 import subprocess
-import numpy as np
 from codecs import open
 # ... setup tools
 from setuptools import setup, find_packages
-# ... packages that need to be in pyproject.toml
-from Cython.Distutils import Extension
-from Cython.Distutils import build_ext
-# ... local script
-import _updateversion as up
 # ... for `clean` command
 from distutils.command.clean import clean as Clean
+
+
+# ... packages that need to be in pyproject.toml
+import numpy as np
+from Cython.Distutils import Extension
+from Cython.Distutils import build_ext
+
+
+# ... local script
+import _updateversion as up
 # ... openmp utilities
 from tofu_helpers.openmp_helpers import is_openmp_installed
+
 
 # == Checking platform ========================================================
 is_platform_windows = platform.system() == "Windows"
@@ -74,9 +81,6 @@ class CleanCommand(Clean):
         cython_files = self.find(["*.pyx"])
         cythonized_files = [
             path.replace(".pyx", ".c") for path in cython_files
-        ]
-        cythonized_files += [
-            path.replace(".pyx", ".cpp") for path in cython_files
         ]
         so_files = self.find(["*.so"])
         # really remove the directories
@@ -209,7 +213,18 @@ extensions = [
     Extension(
         name="tofu.geom._vignetting_tools",
         sources=["tofu/geom/_vignetting_tools.pyx"],
-        language="c++",
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+    ),
+    Extension(
+        name="tofu.geom._chained_list",
+        sources=["tofu/geom/_chained_list.pyx"],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+    ),
+    Extension(
+        name="tofu.geom._sorted_set",
+        sources=["tofu/geom/_sorted_set.pyx"],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
     ),
@@ -301,9 +316,13 @@ setup(
     install_requires=[
         "numpy",
         "scipy",
+        # "scikit-sparse",
+        # "scikit-umfpack",
         "matplotlib",
         "requests",
         "cython>=0.26",
+        "svg.path",
+        "datastock>=0.0.17",
     ],
     python_requires=">=3.6",
 
@@ -313,7 +332,6 @@ setup(
     # $ pip install -e .[dev,test]
     extras_require={
         "dev": [
-            "svg.path",
             "check-manifest",
             "coverage",
             "pytest",
@@ -333,10 +351,11 @@ setup(
     #    'ITER': ['*.csv'],
     # },
     package_data={
-        "tofu.tests.tests01_geom.test_03_core_data": [
+        "tofu.tests.tests01_geom.test_data": [
             "*.py", "*.txt", ".svg", ".npz"
         ],
         "tofu.tests.tests04_spectro.test_data": ["*.npz"],
+        "tofu.tests.tests06_mesh.test_data": ['*.txt', '*.npz'],
         "tofu.geom.inputs": ["*.txt"],
         "tofu.mag.mag_ripple": ['*.sh', '*.f']
     },

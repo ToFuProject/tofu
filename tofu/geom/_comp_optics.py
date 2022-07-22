@@ -98,6 +98,19 @@ def _check_dthetapsi(
     ntheta=None, npsi=None,
     include_summit=None,
 ):
+    """ Return formatted dtheta and psi
+
+    They are returned with the same shape (at least 1d arrays)
+
+    They can be:
+        - 'envelop': if psi of dtheta = 'envelop', psi and dtheta are computed
+            to describe the contour of the crystal as 2 (nenvelop,) arrays
+            The nvelop is computed from (npsi, ntheta)
+        - np.ndarrays or scalar: the routine just converts to np.ndarrays
+            (using np.atleast_1d()) and checks they have the same shape
+
+    """
+
     # Check inputs
     if dtheta is None:
         dtheta = 0.
@@ -135,6 +148,19 @@ def CrystBragg_sample_outline_sphrect(
     npsi=None, ntheta=None,
     include_summit=None,
 ):
+    """ Return psi, dtheta describing the envelop of a crystal
+
+    They are computed from
+        - extent_psi, extent_dtheta: np.ndarrays for size 2
+        - npsi, ntheta: integers
+
+    They are returned with the same shape:
+        (nenvelop,) arrays describing the contour of the crystal
+
+    Optionally, the crystal summit can be appended at the end
+
+    """
+
     # check inputs
     if include_summit is None:
         include_summit = True
@@ -167,6 +193,33 @@ def CrystBragg_get_noute1e2_from_psitheta(
     ntheta=None, npsi=None,
     include_summit=None,
 ):
+    """ Return local unit vectors at chosen points on the crystal surface
+
+    The points are defined by (psi, dtheta), which have to be the same shape
+    and can be:
+        - arbitrary: must be the same shape, can have up to 4 dimensions
+        - defined from the envelop using (nspi, ntheta) fed to
+            CrystBragg_sample_outline_sphrect()
+            In this case psi and theta are 1d
+
+    Local unit vectors (vout, ve1, ve2) at each point are defined the global
+    unit vectors (taken at the crystal summit) passed as input (nout, e1, e2)
+
+    Return
+    ------
+    vout:   np.ndarray
+        (X, Y, Z) coordinates of nout normal outwards local vectors
+    ve1:    np.ndarray
+        (X, Y, Z) coordinates of e1 local tangential vectors
+        Only returned if e1e2 is True
+    ve2:    np.ndarray
+        (X, Y, Z) coordinates of e2 local tangential vectors
+        Only returned if e1e2 is True
+
+    In all cases, the shape of the unit vectors is (3, psi.shape)
+
+    """
+
     # check inputs
     if e1e2 is None:
         e1e2 = True
@@ -434,7 +487,7 @@ def get_det_abs_from_rel(det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
 # ###############################################
 
 
-def calc_meridional_sagital_focus(
+def calc_meridional_sagittal_focus(
     rcurve=None,
     bragg=None,
     alpha=None,
@@ -455,7 +508,6 @@ def calc_meridional_sagital_focus(
         vardef=_USE_NON_PARALLELISM,
         varname='use_non_parallelism',
     )
-
     # Compute
     s_merid_ref = rcurve*np.sin(bragg)
     s_sagit_ref = -s_merid_ref/np.cos(2.*bragg)
@@ -468,9 +520,9 @@ def calc_meridional_sagital_focus(
         mr = round(s_merid_ref, ndigits=3)
         sr = round(s_sagit_ref, ndigits=3)
         msg = (
-            "Assuming a perfect crystal:\n"
-            f"\t- meridonal focus at {mr} m\n"
-            f"\t- sagittal focus at {sr} m\n"
+            "Assuming a perfect crystal, from it are:\n"
+            f"\t-the meridonal focus at {mr} m.\n"
+            f"\t-the sagittal focus at {sr} m.\n"
         )
 
         if use_non_parallelism is True:
@@ -483,9 +535,9 @@ def calc_meridional_sagital_focus(
             mcr = round(100. * delta_merid / s_merid_ref, ndigits=3)
             scr = round(100. * delta_sagit / s_sagit_ref, ndigits=3)
             msg += (
-                f"\nConsidering non-parallelism (alpha = {alpha} rad):\n"
-                f"\t- meridonal focus at {mnp} m (delta = {mca} m / {mcr} %)\n"
-                f"\t- sagital focus at {snp} m (delta = {sca} m / {scr} %)"
+                f"\nConsidering a miscut angle (alpha = {alpha} rad):\n"
+                f"\t-the meridonal focus at {mnp}m (delta = {mca}m / {mcr}%)\n"
+                f"\t-the sagittal focus at {snp}m (delta = {sca}m / {scr}%)"
             )
         print(msg)
 
@@ -833,6 +885,98 @@ def calc_braggphi_from_xixjpts(
 
 
 # ###############################################
+#           lamb available from pts
+# ###############################################
+
+
+def _get_lamb_avail_from_pts_phidtheta_xixj(
+    cryst=None,
+    lamb=None,
+    n=None,
+    ndtheta=None,
+    pts=None,
+    use_non_parallelism=None,
+    return_phidtheta=None,
+    return_xixj=None,
+    strict=None,
+    det=None,
+):
+    """
+
+    Inputs
+    ------
+        pts = (3, npts) array
+        lamb = (npts, nlamb) array
+
+    Return
+    ------
+        lamb    (npts, nlamb)
+        xi      (npts, nlamb, ndtheta, 2)   There can be 2 solutions
+        xj      (npts, nlamb, ndtheta, 2)
+        phi     (npts, nlamb, ndtheta, 2)
+        dtheta  (npts, nlamb, ndtheta, 2)
+
+    """
+
+    keepon = return_phidtheta or return_xixj or strict
+
+    if keepon:
+        # Continue to get phi, dtheta...
+        bragg = cryst._checkformat_bragglamb(lamb=lamb, n=n)
+
+        # Compute dtheta / psi for each pts and lamb
+        npts, nlamb = lamb.shape
+        dtheta = np.full((npts, nlamb, ndtheta, 2), np.nan)
+        psi = np.full((npts, nlamb, ndtheta, 2), np.nan)
+        phi = np.full((npts, nlamb, ndtheta, 2), np.nan)
+        for ii in range(nlamb):
+            (
+                dtheta[:, ii, :, :], psi[:, ii, :, :],
+                phi[:, ii, :, :],
+            ) = cryst._calc_dthetapsiphi_from_lambpts(
+                pts=pts, bragg=bragg[:, ii], lamb=None,
+                n=n, ndtheta=ndtheta,
+                use_non_parallelism=use_non_parallelism,
+                grid=False,
+            )[:3]
+
+        if return_xixj is True or strict is True:
+            xi, xj, strict = cryst.calc_xixj_from_braggphi(
+                phi=phi + np.pi,    # from plasma to det
+                bragg=bragg[..., None, None],
+                n=n,
+                dtheta=dtheta,
+                psi=psi,
+                det=det,
+                data=None,
+                use_non_parallelism=use_non_parallelism,
+                strict=strict,
+                return_strict=True,
+                plot=False,
+                dax=None,
+            )
+            if strict is True and np.any(np.isnan(xi)):
+                indnan = np.isnan(xi)
+                lamb[np.all(np.all(indnan, axis=-1), axis=-1)] = np.nan
+                if return_phidtheta:
+                    phi[indnan] = np.nan
+                    dtheta[indnan] = np.nan
+                    psi[indnan] = np.nan
+
+    # -----------
+    # return
+
+    if return_phidtheta and return_xixj:
+        return lamb, phi, dtheta, psi, xi, xj
+    elif return_phidtheta:
+        return lamb, phi, dtheta, psi
+    elif return_xixj:
+        return lamb, xi, xj
+    else:
+        return lamb
+
+
+# ###############################################
 #           2D spectra to 1D
 # ###############################################
 
@@ -1121,8 +1265,25 @@ def calc_dthetapsiphi_from_lambpts(
         (scaPCem[ind] - Z*np.sin(dtheta[ind])) / (XYnorm*np.cos(dtheta[ind]))
     )
     ind[ind] = np.abs(num[ind]) <= 1.
-    psi[ind] = np.arcsin(num[ind]) - angextra[ind]
-    ind[ind] = np.abs(psi[ind]) <= extenthalf[0]
+    # minus psi ref ?
+    # value of psi + angextra with cos > 0
+    psiang_pos = np.arcsin(num[ind])
+    psi1 = np.full(psi.shape, np.nan)
+    psi2 = np.full(psi.shape, np.nan)
+    psi1[ind] = (np.arctan2(num[ind], np.cos(psiang_pos)) - angextra[ind])
+    psi2[ind] = (np.arctan2(num[ind], -np.cos(psiang_pos)) - angextra[ind])
+
+    # Make sure only one of the 2 psi is correct
+    ind1 = np.copy(ind)
+    ind2 = np.copy(ind)
+    ind1[ind] = np.abs(psi1[ind]) <= extenthalf[0]
+    ind2[ind] = np.abs(psi2[ind]) <= extenthalf[0]
+    assert not np.any(ind1 & ind2), "Multiple solutions for psi!"
+    ind = ind1 | ind2
+
+    # Finally store into psi
+    psi[ind1] = psi1[ind1]
+    psi[ind2] = psi2[ind2]
     psi[~ind] = np.nan
     dtheta[~ind] = np.nan
     if np.any(np.sum(ind, axis=-1) == 2):
