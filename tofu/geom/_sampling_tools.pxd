@@ -300,7 +300,6 @@ cdef void sa_assemble_arrays(int block,
 
 
 cdef double comp_sa_tri(
-    double numerator,
     double A_x,
     double A_y,
     double A_z,

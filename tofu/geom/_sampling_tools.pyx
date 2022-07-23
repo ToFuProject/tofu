@@ -2644,7 +2644,6 @@ cdef inline double sa_exact_formula(double radius,
 
 
 cdef inline double comp_sa_tri(
-    double numerator,
     double A_x,
     double A_y,
     double A_z,
@@ -2664,6 +2663,12 @@ cdef inline double comp_sa_tri(
     denominator =  A B C + (A.B)C + (A.C)B + (B.C)A
     with G centroid of triangle
     """
+    cdef double G_x
+    cdef double G_y
+    cdef double G_z
+    cdef double cross_bc_x
+    cdef double cross_bc_y
+    cdef double cross_bc_z
     cdef double An
     cdef double Bn
     cdef double Cn
@@ -2671,9 +2676,28 @@ cdef inline double comp_sa_tri(
     cdef double sca_AC
     cdef double sca_BC
 
+    cdef double numerator
     cdef double denominator
     cdef double result
 
+    # get centroid
+    G_x = (A_x + B_x + C_x) / 3.
+    G_y = (A_y + B_y + C_y) / 3.
+    G_z = (A_z + B_z + C_z) / 3.
+
+    # get (b cross c)
+    cross_bc_x = (B_y - G_y)*(C_z - G_z) - (B_z - G_z)*(C_y - G_y)
+    cross_bc_y = (B_y - G_y)*(C_z - G_z) - (B_z - G_z)*(C_y - G_y)
+    cross_bc_z = (C_y - G_y)*(C_z - G_z) - (B_z - G_z)*(C_y - G_y)
+
+    # numerator
+    numerator = 3.*c_abs(
+        (G_x - pt_x) * cross_bc_x
+        + (G_y - pt_y) * cross_bc_y
+        + (G_z - pt_z) * cross_bc_z
+    )
+
+    # norms
     An = c_sqrt((A_x - pt_x)**2 + (A_y - pt_y)**2 + (A_z - pt_z)**2)
     Bn = c_sqrt((B_x - pt_x)**2 + (B_y - pt_y)**2 + (B_z - pt_z)**2)
     Cn = c_sqrt((C_x - pt_x)**2 + (C_y - pt_y)**2 + (C_z - pt_z)**2)
@@ -2682,12 +2706,7 @@ cdef inline double comp_sa_tri(
     sca_AC = (A_x - pt_x)*(C_x - pt_x) + (A_y - pt_y)*(C_y - pt_y) + (A_z - pt_z)*(C_z - pt_z)
     sca_BC = (B_x - pt_x)*(C_x - pt_x) + (B_y - pt_y)*(C_y - pt_y) + (B_z - pt_z)*(C_z - pt_z)
 
-    denominator = (
-        An*Bn*Cn
-        + sca_AB * Cn
-        + sca_AC * Bn
-        + sca_BC * An
-    )
+    denominator = An*Bn*Cn + sca_AB * Cn + sca_AC * Bn + sca_BC * An
 
     result = 2 * c_atan2(c_abs(numerator), denominator)
     return result

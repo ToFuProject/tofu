@@ -11,23 +11,76 @@
 # discretized in triangles and then we check if the ray intersected each
 # triangle.
 ################################################################################
-cdef  void compute_diff3d(double* orig,
-                          int nvert,
-                          double* diff) nogil
+cdef void compute_diff2d(
+    double* orig,
+    int nvert,
+    double* diff,
+) nogil
 
-cdef  void are_points_reflex(int nvert,
-                             double* diff,
-                             bint* are_reflex) nogil
+# DEPRECATED ?
+cdef void compute_diff3d(double* orig,
+                         int nvert,
+                         double* diff) nogil
 
-cdef  bint is_pt_in_tri(double[3] v0, double[3] v1,
-                        double ax, double ay, double az,
-                        double px, double py, double pz) nogil
+cdef bint is_reflex_2d(
+    const double[1] u0,
+    const double[1] u1,
+    const double[1] v0,
+    const double[1] v1,
+) nogil
 
-cdef  void earclipping_poly(double* vignett,
-                            long* ltri,
-                            double* diff,
-                            bint* lref,
-                            int nvert) nogil
+# DEPRECATED
+cdef bint is_reflex_3d(
+    const double[3] u,
+    const double[3] v,
+    double[3] vect_cc
+) nogil
+
+cdef void are_points_reflex_2d(
+    int nvert,
+    double* diff,
+    bint* are_reflex,
+) nogil
+
+# DEPRECATED ?
+cdef  void are_points_reflex_3d(int nvert,
+                                double* diff,
+                                bint* are_reflex,
+                                double[3] vect_cc) nogil
+
+cdef bint is_pt_in_tri_2d(
+    double Ax,
+    double Ay,
+    double Bx,
+    double By,
+    double Cx,
+    double Cy,
+    double px,
+    double py,
+) nogil
+
+# DEPRECATED
+cdef bint is_pt_in_tri_3d(
+    double[3] v0, double[3] v1,
+    double Ax, double Ay, double Az,
+    double px, double py, double pz,
+) nogil
+
+# cdef int get_one_ear(
+    # double* polygon,
+    # bint* lref,
+    # _cl.ChainedList* working_index,
+    # int nv,
+    # int nvert,
+# ) nogil
+
+cdef void earclipping_poly_2d(
+    double* vignett,
+    long* ltri,
+    double* diff,
+    bint* lref,
+    int nvert,
+) nogil
 
 cdef void triangulate_poly(double* vignett_poly,
                           long nvert,
@@ -38,6 +91,20 @@ cdef int triangulate_polys(double** vignett_poly,
                             int nvign,
                             long** ltri,
                             int num_threads) nogil except -1
+
+
+# ===============================================================
+#               Vignetting
+# ===============================================================
+
+
+cdef bint inter_ray_poly(
+    const double[3] ray_orig,
+    const double[3] ray_vdir,
+    double* vignett,
+    int nvert,
+    long* ltri,
+) nogil
 
 cdef void vignetting_core(double[:, ::1] ray_orig,
                           double[:, ::1] ray_vdir,

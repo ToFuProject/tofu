@@ -354,6 +354,60 @@ def calc_solidangle_particle_integ(
 
 ###############################################################################
 ###############################################################################
+#           Triangulation
+###############################################################################
+
+
+def triangulate_polygon_2d(
+    poly_x=None,
+    poly_y=None,
+):
+
+    # ----------
+    # check
+
+    if not (isinstance(poly_x, np.ndarray) and isinstance(poly_x, np.ndarray)):
+        msg = "both poly_x and poly_y must be nd.ndarray"
+        raise Exception(msg)
+
+    if not (poly_x.shape == poly_y.shape and poly_x.ndim == 1):
+        msg = "poly_x and poly_y must be 1d arrays of the same shape"
+        raise Exception(msg)
+
+    poly_x = poly_x.astype(float)
+    poly_y = poly_y.astype(float)
+
+    # ----------
+    # un-close
+
+    if poly_x[-1] == poly_x[0] and poly_y[-1] == poly_y[0]:
+        poly_x = poly_x[:-1]
+        poly_y = poly_y[:-1]
+
+    # ------------------
+    # couter-clockwise
+
+    clock = np.sum((poly_x[1:] - poly_x[:-1]) * (poly_y[:1] + poly_y[:-1]))
+    if clock > 0:
+        poly_x = poly_x[::-1]
+        poly_y = poly_y[::-1]
+
+    # ----------------
+    # triangulate
+
+    tri = _GG.triangulate_by_earclipping_2d(np.array([poly_x, poly_y]))
+
+    # -------
+    # format 
+
+    if clock > 0:
+        tri = poly_x.size - 1 - tri
+
+    return tri
+
+
+###############################################################################
+###############################################################################
 #           Check inputs - arbitrary points, multiple apertures
 ###############################################################################
 
@@ -961,8 +1015,7 @@ def calc_solidangle_apertures(
         import pdb; pdb.set_trace()     # DB
 
         # get 2d det for triangulation
-        det_x_2d, det_y_2d, det_z_2d = _get_2d(
-        )
+        tri = triangulate_polygon_2d(det_outline_x, det_outline_y)
 
         solid_angle = _GG.compute_solid_angle_noapertures(
             # pts as 1d arrays
@@ -978,9 +1031,6 @@ def calc_solidangle_apertures(
             det_norm_y=det_norm_y,
             det_norm_z=det_norm_z,
             # for triangulation (assumes counter_clockwise)
-            det_x=det_x,
-            det_y=det_y,
-            det_z=det_z,
         )
 
     elif return_vector:

@@ -82,9 +82,10 @@ __all__ = [
     "LOS_areVis_PtsFromPts_VesStruct",
     'LOS_get_sample', 'LOS_calc_signal',
     'LOS_sino', 'integrate1d',
-    "triangulate_by_earclipping",
+    "triangulate_by_earclipping_2d",
     "vignetting",
     "Dust_calc_SolidAngle",
+    "compute_solid_angle_apertures_light",
 ]
 
 
@@ -2763,9 +2764,8 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 # ===============================================================
 
 
-def triangulate_by_earclipping(
+def triangulate_by_earclipping_2d(
     np.ndarray[double, ndim=2] poly,
-    double[3] vect_cc,
 ):
     """
     Triangulates a single 3d polygon by the earclipping method.
@@ -2787,21 +2787,20 @@ def triangulate_by_earclipping(
 
     # Project to 2d.........................
 
-
     # Initialization ..........................................
     diff = <double*>malloc(2*nvert*sizeof(double))
     lref = <bint*>malloc(nvert*sizeof(bint))
 
-    _vt.compute_diff3d(&poly[0, 0], nvert, &diff[0])
-    _vt.are_points_reflex(nvert, &diff[0], &lref[0], vect_cc)
+    _vt.compute_diff2d(&poly[0, 0], nvert, &diff[0])
+    _vt.are_points_reflex_2d(nvert, &diff[0], &lref[0])
 
     # Calling core function......................................
-    _vt.earclipping_poly(&poly[0, 0], &ltri[0], &diff[0], &lref[0], nvert)
+    _vt.earclipping_poly_2d(&poly[0, 0], &ltri[0], &diff[0], &lref[0], nvert)
 
     # free memory................
     free(diff)
     free(lref)
-    return ltri
+    return ltri.reshape((nvert-2, 3))
 
 
 def vignetting(double[:, ::1] ray_orig, double[:, ::1] ray_vdir,
@@ -5169,8 +5168,8 @@ def compute_solid_angle_apertures_light(
     # detectors: indices of first corner of each det polygon: nd = len(det_ind)
     long[::1] det_ind,
     # detectors: polygon coordinates in 2d (common to all detectors)
-    double[::1] det_outline_x0
-    double[::1] det_outline_x1
+    double[::1] det_outline_x0,
+    double[::1] det_outline_x1,
     # detectors: centers coordinates as three 1d arrays
     double[::1] det_cents_x,
     double[::1] det_cents_y,
@@ -5179,12 +5178,12 @@ def compute_solid_angle_apertures_light(
     double[::1] det_norm_x,
     double[::1] det_norm_y,
     double[::1] det_norm_z,
-    double[::1] det_e0_x,
-    double[::1] det_e0_y,
-    double[::1] det_e0_z,
-    double[::1] det_e1_x,
-    double[::1] det_e1_y,
-    double[::1] det_e1_z,
+    np.ndarray[double, ndim=1] det_e0_x,
+    np.ndarray[double, ndim=1] det_e0_y,
+    np.ndarray[double, ndim=1] det_e0_z,
+    np.ndarray[double, ndim=1] det_e1_x,
+    np.ndarray[double, ndim=1] det_e1_y,
+    np.ndarray[double, ndim=1] det_e1_z,
     # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
     long[::1] ap_ind,
     # apertures: polygon coordinates as three 1d arrays
@@ -5206,16 +5205,16 @@ def compute_solid_angle_apertures_light(
     # Declaration
 
     cdef int npts = pts_x.size
-    cdef int nd = det_ind.size
+    cdef int nd = det_ind.size - 1
+    cdef int na = ap_ind.size - 1
     cdef float sca, sca0, sca1
     cdef float k
-    cdef [::1] ap_x0
-    cdef [::1] ap_x1
-    cdef [::1] p_a_pts_x0
-    cdef [::1] p_a_pts_x1
-    cdef [::1] poly_x
-    cdef [::1] poly_y
-    cdef [::1] poly_z
+    cdef double[::1] ap_x0 = np.empty(ap_x.shape)
+    cdef double[::1] ap_x1 = np.empty(ap_x.shape)
+    cdef np.ndarray[double, ndim=2] p_a_x01
+    cdef double[::1] poly_x
+    cdef double[::1] poly_y
+    cdef double[::1] poly_z
 
     # initialize solid angle array with zeros
     cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
@@ -5301,7 +5300,7 @@ def compute_solid_angle_apertures_light(
             # compute polygon intersection
 
             # compute intersection
-            p_a = plg.Polygon(np.array([det_outline_x0, det-outline_x1]).T)
+            p_a = plg.Polygon(np.array([det_outline_x0, det_outline_x1]).T)
             for aa in range(na):
                 p_a = p_a & plg.Polygon(np.array([ap_x0[ap_ind[aa]:ap_ind[aa]+1], ap_x1[ap_ind[aa]:ap_ind[aa]+1]]).T)
 
@@ -5317,56 +5316,27 @@ def compute_solid_angle_apertures_light(
             # -------------------
             # rebuild 3d polygon
 
-            p_a_pts_x0 = np.array(p_a.contour(0))[:, 0]
-            p_a_pts_x1 = np.array(p_a.contour(0))[:, 1]
-            poly_x = det_cents_x[dd] + p_a_pts_x0 * det_e0_x + p_a_pts_x1 * det_e1_x
-            poly_y = det_cents_y[dd] + p_a_pts_x0 * det_e0_y + p_a_pts_x1 * det_e1_y
-            poly_z = det_cents_z[dd] + p_a_pts_x0 * det_e0_z + p_a_pts_x1 * det_e1_z
+            p_a_x01 = np.array(p_a.contour(0)).T
+            poly_x = det_cents_x[dd] + p_a_x01[0] * det_e0_x + p_a_x01[1] * det_e1_x
+            poly_y = det_cents_y[dd] + p_a_x01[0] * det_e0_y + p_a_x01[1] * det_e1_y
+            poly_z = det_cents_z[dd] + p_a_x01[0] * det_e0_z + p_a_x01[1] * det_e1_z
 
             # -------------------
             # compute solid angle
 
             # triangulate det by ear-clipping
-            ltri = triangulate_by_earclipping(p_a_pts_x0, p_a_pts_x1)
-            ntri = len(ltri) / 3
+            tri = triangulate_by_earclipping_2d(p_a_x01)
 
             # loop on triangles
-            for tt in range(ntri):
+            for tt in range(tri.shape[0]):
 
                 # get triangle
-                tri_x = poly_x[ltri[tt]]
-                tri_y = poly_y[ltri[tt]]
-                tri_z = poly_z[ltri[tt]]
-
-                # get centroid
-                G_x = (tri_x[0] + tri_x[1] + tri_x[2]) / 3.
-                G_y = (tri_y[0] + tri_y[1] + tri_y[2]) / 3.
-                G_z = (tri_z[0] + tri_z[1] + tri_z[2]) / 3.
-
-                # get 3 * (b cross c)
-                cross_bc_x = 3.*(
-                    (tri_y[1] - G_y)*(tri_z[2] - G_z)
-                    - (tri_z[1] - G_z)*(tri_y[2] - G_y)
-                )
-                cross_bc_y = 3.*(
-                    (tri_y[1] - G_y)*(tri_z[2] - G_z)
-                    - (tri_z[1] - G_z)*(tri_y[2] - G_y)
-                )
-                cross_bc_z = 3.*(
-                    (tri_y[1] - G_y)*(tri_z[2] - G_z)
-                    - (tri_z[1] - G_z)*(tri_y[2] - G_y)
-                )
-
-                # numerator
-                numerator = (
-                    (G_x - pts_x[jj]) * cross_bc_x
-                    + (G_y - pts_y[jj]) * cross_bc_y
-                    + (G_z - pts_z[jj]) * cross_bc_z
-                )
+                tri_x = poly_x[tri[tt, :]]
+                tri_y = poly_y[tri[tt, :]]
+                tri_z = poly_z[tri[tt, :]]
 
                 # computation 2: solid angle of triangle from pts
                 solid_angle[dd, pp] += _st.comp_sa_tri(
-                    numerator,
                     tri_x[0],
                     tri_y[0],
                     tri_z[0],
@@ -5376,9 +5346,9 @@ def compute_solid_angle_apertures_light(
                     tri_x[2],
                     tri_y[2],
                     tri_z[2],
-                    pts_x[jj],
-                    pts_y[jj],
-                    pts_z[jj],
+                    pts_x[pp],
+                    pts_y[pp],
+                    pts_z[pp],
                 )
 
     # -------
@@ -5387,156 +5357,156 @@ def compute_solid_angle_apertures_light(
     return solid_angle
 
 
-def compute_solid_angle_noapertures(
-    # pts: coordinates as three 1d arrays
-    double[::1] pts_x,
-    double[::1] pts_y,
-    double[::1] pts_z,
-    # detectors: indices of first corner of each det polygon: nd = len(det_ind)
-    np.ndarray[long, ndim=1, mode='c'] det_ind,
-    # detectors: polygon coordinates as three 1d arrays
-    np.ndarray[double, ndim=1] det_x,
-    np.ndarray[double, ndim=1] det_y,
-    np.ndarray[double, ndim=1] det_z,
-    # double[::1] det_x,
-    # double[::1] det_y,
-    # double[::1] det_z,
-    # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
-    double[::1] det_norm_x,
-    double[::1] det_norm_y,
-    double[::1] det_norm_z,
-    # possible extra parameters ?
-    double margin=_VSMALL,
-    int num_threads=10,
-):
-    """ Typically used to compute the etendue of a single-aperture set of
-    detectors, where the points are taken in the aperture plane to get rid of
-    it
+# def compute_solid_angle_noapertures(
+    # # pts: coordinates as three 1d arrays
+    # double[::1] pts_x,
+    # double[::1] pts_y,
+    # double[::1] pts_z,
+    # # detectors: indices of first corner of each det polygon: nd = len(det_ind)
+    # np.ndarray[long, ndim=1, mode='c'] det_ind,
+    # # detectors: polygon coordinates as three 1d arrays
+    # np.ndarray[double, ndim=1] det_x,
+    # np.ndarray[double, ndim=1] det_y,
+    # np.ndarray[double, ndim=1] det_z,
+    # # double[::1] det_x,
+    # # double[::1] det_y,
+    # # double[::1] det_z,
+    # # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
+    # double[::1] det_norm_x,
+    # double[::1] det_norm_y,
+    # double[::1] det_norm_z,
+    # # possible extra parameters ?
+    # double margin=_VSMALL,
+    # int num_threads=10,
+# ):
+    # """ Typically used to compute the etendue of a single-aperture set of
+    # detectors, where the points are taken in the aperture plane to get rid of
+    # it
 
-    Only valid on a plane perpendicular to the LOS
+    # Only valid on a plane perpendicular to the LOS
 
-    => use for simple cases
-    => used as a testing ground before more complex routines
+    # => use for simple cases
+    # => used as a testing ground before more complex routines
 
-    """
+    # """
 
-    # -----------
-    # Declaration
+    # # -----------
+    # # Declaration
 
-    cdef int npts = pts_x.size
-    cdef int nd = det_ind.size - 1
-    cdef int ntri
-    cdef np.ndarray[double, ndim=1] pix
-    cdef np.ndarray[double, ndim=1] piy
-    cdef np.ndarray[double, ndim=1] piz
-    cdef np.ndarray[double, ndim=1] tri_x
-    cdef np.ndarray[double, ndim=1] tri_y
-    cdef np.ndarray[double, ndim=1] tri_z
-    cdef double G_x
-    cdef double G_y
-    cdef double G_z
-    cdef double cross_bc_x
-    cdef double cross_bc_y
-    cdef double cross_bc_z
-    cdef double sca
-    cdef double numerator
+    # cdef int npts = pts_x.size
+    # cdef int nd = det_ind.size - 1
+    # cdef int ntri
+    # cdef np.ndarray[double, ndim=1] pix
+    # cdef np.ndarray[double, ndim=1] piy
+    # cdef np.ndarray[double, ndim=1] piz
+    # cdef np.ndarray[double, ndim=1] tri_x
+    # cdef np.ndarray[double, ndim=1] tri_y
+    # cdef np.ndarray[double, ndim=1] tri_z
+    # cdef double G_x
+    # cdef double G_y
+    # cdef double G_z
+    # cdef double cross_bc_x
+    # cdef double cross_bc_y
+    # cdef double cross_bc_z
+    # cdef double sca
+    # cdef double numerator
 
-    # initialize computation intermediates
-    cdef np.ndarray[long, ndim=1] ltri
+    # # initialize computation intermediates
+    # cdef np.ndarray[long, ndim=1] ltri
 
-    # initialize solid angle array with zeros
-    cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
+    # # initialize solid angle array with zeros
+    # cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
 
-    # -------
-    # Compute
+    # # -------
+    # # Compute
 
-    print("\n------\nThis is were you do your magic\n------\n")
+    # print("\n------\nThis is were you do your magic\n------\n")
 
-    # loop 1: on nd (observation points)
-    for ii in range(nd):
+    # # loop 1: on nd (observation points)
+    # for ii in range(nd):
 
-        # get polygon
-        pix = det_x[det_ind[ii]:det_ind[ii+1]]
-        piy = det_y[det_ind[ii]:det_ind[ii+1]]
-        piz = det_z[det_ind[ii]:det_ind[ii+1]]
+        # # get polygon
+        # pix = det_x[det_ind[ii]:det_ind[ii+1]]
+        # piy = det_y[det_ind[ii]:det_ind[ii+1]]
+        # piz = det_z[det_ind[ii]:det_ind[ii+1]]
 
-        # triangulate det by ear-clipping
-        ltri = triangulate_by_earclipping(np.ascontiguousarray([pix, piy, piz]))
-        ntri = len(ltri)
+        # # triangulate det by ear-clipping
+        # ltri = triangulate_by_earclipping(np.ascontiguousarray([pix, piy, piz]))
+        # ntri = len(ltri)
 
-        print(ltri)     # DB
+        # print(ltri)     # DB
 
-        # loop on triangles
-        for tt in range(ntri):
+        # # loop on triangles
+        # for tt in range(ntri):
 
-            # get triangle
-            tri_x = pix[ltri[tt]]
-            tri_y = piy[ltri[tt]]
-            tri_z = piz[ltri[tt]]
+            # # get triangle
+            # tri_x = pix[ltri[tt]]
+            # tri_y = piy[ltri[tt]]
+            # tri_z = piz[ltri[tt]]
 
-            # get centroid
-            G_x = (tri_x[0] + tri_x[1] + tri_x[2]) / 3.
-            G_y = (tri_y[0] + tri_y[1] + tri_y[2]) / 3.
-            G_z = (tri_z[0] + tri_z[1] + tri_z[2]) / 3.
+            # # get centroid
+            # G_x = (tri_x[0] + tri_x[1] + tri_x[2]) / 3.
+            # G_y = (tri_y[0] + tri_y[1] + tri_y[2]) / 3.
+            # G_z = (tri_z[0] + tri_z[1] + tri_z[2]) / 3.
 
-            # get 3 * (b cross c)
-            cross_bc_x = 3.*(
-                (tri_y[1] - G_y)*(tri_z[2] - G_z)
-                - (tri_z[1] - G_z)*(tri_y[2] - G_y)
-            )
-            cross_bc_y = 3.*(
-                (tri_y[1] - G_y)*(tri_z[2] - G_z)
-                - (tri_z[1] - G_z)*(tri_y[2] - G_y)
-            )
-            cross_bc_z = 3.*(
-                (tri_y[1] - G_y)*(tri_z[2] - G_z)
-                - (tri_z[1] - G_z)*(tri_y[2] - G_y)
-            )
+            # # get 3 * (b cross c)
+            # cross_bc_x = 3.*(
+                # (tri_y[1] - G_y)*(tri_z[2] - G_z)
+                # - (tri_z[1] - G_z)*(tri_y[2] - G_y)
+            # )
+            # cross_bc_y = 3.*(
+                # (tri_y[1] - G_y)*(tri_z[2] - G_z)
+                # - (tri_z[1] - G_z)*(tri_y[2] - G_y)
+            # )
+            # cross_bc_z = 3.*(
+                # (tri_y[1] - G_y)*(tri_z[2] - G_z)
+                # - (tri_z[1] - G_z)*(tri_y[2] - G_y)
+            # )
 
-            # loop 2: on npts (observation pts)
-            for jj in range(npts):
+            # # loop 2: on npts (observation pts)
+            # for jj in range(npts):
 
-                # test 1: sides
-                # check if point lies on the good side of the detector
-                # => stop if not
-                sca = (
-                    (pts_x[jj] - G_x) * det_norm_x[ii]
-                    + (pts_y[jj] - G_y) * det_norm_y[ii]
-                    + (pts_z[jj] - G_z) * det_norm_z[ii]
-                )
+                # # test 1: sides
+                # # check if point lies on the good side of the detector
+                # # => stop if not
+                # sca = (
+                    # (pts_x[jj] - G_x) * det_norm_x[ii]
+                    # + (pts_y[jj] - G_y) * det_norm_y[ii]
+                    # + (pts_z[jj] - G_z) * det_norm_z[ii]
+                # )
 
-                if sca <= 0:
-                    continue
+                # if sca <= 0:
+                    # continue
 
-                # numerator
-                numerator = (
-                    (G_x - pts_x[jj]) * cross_bc_x
-                    + (G_y - pts_y[jj]) * cross_bc_y
-                    + (G_z - pts_z[jj]) * cross_bc_z
-                )
+                # # numerator
+                # numerator = (
+                    # (G_x - pts_x[jj]) * cross_bc_x
+                    # + (G_y - pts_y[jj]) * cross_bc_y
+                    # + (G_z - pts_z[jj]) * cross_bc_z
+                # )
 
-                # computation 2: solid angle of triangle from pts
-                solid_angle[ii, jj] += _st.comp_sa_tri(
-                    numerator,
-                    tri_x[0],
-                    tri_y[0],
-                    tri_z[0],
-                    tri_x[1],
-                    tri_y[1],
-                    tri_z[1],
-                    tri_x[2],
-                    tri_y[2],
-                    tri_z[2],
-                    pts_x[jj],
-                    pts_y[jj],
-                    pts_z[jj],
-                )
+                # # computation 2: solid angle of triangle from pts
+                # solid_angle[ii, jj] += _st.comp_sa_tri(
+                    # numerator,
+                    # tri_x[0],
+                    # tri_y[0],
+                    # tri_z[0],
+                    # tri_x[1],
+                    # tri_y[1],
+                    # tri_z[1],
+                    # tri_x[2],
+                    # tri_y[2],
+                    # tri_z[2],
+                    # pts_x[jj],
+                    # pts_y[jj],
+                    # pts_z[jj],
+                # )
 
-    # -----------
-    # free memory
+    # # -----------
+    # # free memory
 
 
-    # -------
-    # Return
+    # # -------
+    # # Return
 
-    return solid_angle
+    # return solid_angle

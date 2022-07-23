@@ -23,51 +23,8 @@ from . cimport _sorted_set as _ss
 
 # ===============================================================
 #                   Basic utilities:
-#       reflex angle, vector diff, point in triangle,...
+#                   vector diff
 # ===============================================================
-
-
-def inline bint is_reflex(
-    const double[3] u,
-    const double[3] v,
-    double[3] vect_cc
-) nogil:
-    """ test if a point is reflex
-
-    - reflex = angle > pi between vectors
-
-    Assumes:
-        - polygon is 3d
-        - vect_cc is a normal vector to the polygon quasi-plane P
-        - in P, the polygon is counter-clockwise
-
-    Depends on the orientation of vect_cc
-
-    """
-    return (
-        (u[1]*v[2] - u[2]*v[1]) * vect_cc[0]
-        + (u[2]*v[0] - u[0]*v[2]) * vect_cc[1]
-        + (u[0]*v[1] - u[1]*v[0]) * vect_cc[2]
-    ) > 0.
-
-
-# cdef inline bint is_reflex(const double[3] u,
-                           # const double[3] v) nogil:
-    # """
-    # Determines if the angle between U and -V is reflex (angle > pi) or not.
-    # Warning: note the MINUS in front of V, this was done as this is the only
-             # form how we will need this function. but it is NOT general.
-    # """
-    # cdef int ii
-    # cdef double sumc
-    # cdef double[3] ucrossv
-    # # ...
-    # _bgt.compute_cross_prod(u, v, ucrossv)
-    # sumc = 0.0
-    # for ii in range(3):
-        # # normally it should be a sum, but it is a minus cause is we have (U,-V)
-        # sumc = ucrossv[ii]
-    # return sumc >= 0.
 
 
 cdef inline void compute_diff3d(
@@ -90,7 +47,106 @@ cdef inline void compute_diff3d(
     return
 
 
-cdef inline void are_points_reflex(
+cdef inline void compute_diff2d(
+    double* orig,
+    int nvert,
+    double* diff,
+) nogil:
+
+    cdef int ivert
+
+    for ivert in range(nvert-1):
+        diff[0*nvert + ivert] = orig[0*nvert + (ivert+1)] - orig[0*nvert + ivert]
+        diff[1*nvert + ivert] = orig[1*nvert+(ivert+1)] - orig[1*nvert+ivert]
+
+    # doing the last point:
+    diff[0*nvert + (nvert-1)] = orig[0*nvert] - orig[0*nvert+(nvert-1)]
+    diff[1*nvert + (nvert-1)] = orig[1*nvert] - orig[1*nvert+(nvert-1)]
+    return
+
+
+# ===============================================================
+#                   Basic utilities:
+#           reflex angle, point in triangle,...
+# ===============================================================
+
+
+cdef inline bint is_reflex_2d(
+    const double[1] u0,
+    const double[1] u1,
+    const double[1] v0,
+    const double[1] v1,
+) nogil:
+    """ test if a point is reflex
+
+    - reflex = angle > pi between vectors
+
+    Assumes:
+        - polygon is 3d
+        - vect_cc is a normal vector to the polygon quasi-plane P
+        - in P, the polygon is counter-clockwise
+
+    Depends on the orientation of vect_cc
+
+    """
+    return (u0[0]*v1[0] - u1[0]*v0[0]) < 0.
+
+
+cdef inline bint is_reflex_3d(
+    const double[3] u,
+    const double[3] v,
+    double[3] vect_cc
+) nogil:
+    """ test if a point is reflex
+
+    - reflex = angle > pi between vectors
+
+    Assumes:
+        - polygon is 3d
+        - vect_cc is a normal vector to the polygon quasi-plane P
+        - in P, the polygon is counter-clockwise
+
+    Depends on the orientation of vect_cc
+
+    """
+    return (
+        (u[1]*v[2] - u[2]*v[1]) * vect_cc[0]
+        + (u[2]*v[0] - u[0]*v[2]) * vect_cc[1]
+        + (u[0]*v[1] - u[1]*v[0]) * vect_cc[2]
+    ) < 0.
+
+
+cdef inline void are_points_reflex_2d(
+    int nvert,
+    double* diff,
+    bint* are_reflex,
+) nogil:
+    """
+    Determines if the interior angles of a polygons are reflex
+    (angle > pi) or not.
+    """
+    cdef int ivert
+
+    # .. Computing if reflex or not ..........................
+    for ivert in range(1, nvert):
+        are_reflex[ivert] = is_reflex_2d(
+            &diff[0*nvert + ivert - 1],         # u0
+            &diff[1*nvert + ivert - 1],         # u1
+            &diff[0*nvert + ivert],     # v0
+            &diff[1*nvert + ivert],     # v1
+        )
+
+    # do first point:
+    are_reflex[0] = is_reflex_2d(
+        &diff[0*nvert + 9],         # u0
+        &diff[1*nvert + 9],         # u1
+        &diff[0*nvert + 0],     # v0
+        &diff[1*nvert + 0],     # v1
+    )
+    return
+
+
+cdef inline void are_points_reflex_3d(
     int nvert,
     double* diff,
     bint* are_reflex,
@@ -104,36 +160,55 @@ cdef inline void are_points_reflex(
 
     # .. Computing if reflex or not ..........................
     for ivert in range(1, nvert):
-        are_reflex[ivert] = is_reflex(
+        are_reflex[ivert] = is_reflex_3d(
             &diff[ivert*2],
             &diff[(ivert-1)*2],
             vect_cc,
         )
 
     # do first point:
-    are_reflex[0] = is_reflex(&diff[0], &diff[(nvert-1)*2])
+    are_reflex[0] = is_reflex_3d(
+        &diff[0],
+        &diff[(nvert-1)*2],
+        vect_cc,
+    )
     return
 
 
-# cdef inline void are_points_reflex(int nvert,
-                                   # double* diff,
-                                   # bint* are_reflex) nogil:
-    # """
-    # Determines if the interior angles of a polygons are reflex
-    # (angle > pi) or not.
-    # """
-    # cdef int ivert
-    # cdef int icoord
-    # cdef double[3] u1, v1, un, vn
-    # # .. Computing if reflex or not ...........................................
-    # for ivert in range(1,nvert):
-        # are_reflex[ivert] = is_reflex(&diff[ivert*3], &diff[(ivert-1)*3])
-    # # doing first point:
-    # are_reflex[0] = is_reflex(&diff[0], &diff[(nvert-1)*3])
-    # return
+# ===============================================================
+#                   Basic utilities:
+#                   point in triangle,...
+# ===============================================================
 
 
-cdef inline bint is_pt_in_tri(double[3] v0, double[3] v1,
+cdef inline bint is_pt_in_tri_2d(
+    double Ax,
+    double Ay,
+    double Bx,
+    double By,
+    double Cx,
+    double Cy,
+    double Px,
+    double Py,
+) nogil:
+    """
+    Tests if point P is on the triangle A, B, C such that
+        v0 = C - A
+        v1 = -B + A
+    and A = (Ax, Ay, Az) and P = (px, py, pz)
+    """
+    cdef bint bA, bB, bC
+
+    # if inside => sign of vector products are all the same
+    bA = (Px - Ax)*(By - Ay) - (Py - Ay)*(Bx - Ax) > 0.
+    bB = (Px - Bx)*(Cy - By) - (Py - By)*(Cx - Bx) > 0.
+    bC = (Px - Cx)*(Ay - Cy) - (Py - Cy)*(Ax - Cx) > 0.
+
+    return (bA == bB and bA == bC)
+
+
+# Wrong ?
+cdef inline bint is_pt_in_tri_3d(double[3] v0, double[3] v1,
                               double Ax, double Ay, double Az,
                               double px, double py, double pz) nogil:
     """
@@ -173,11 +248,13 @@ cdef inline bint is_pt_in_tri(double[3] v0, double[3] v1,
 # ===============================================================
 
 
-cdef inline int get_one_ear(double* polygon,
-                            double* diff,
-                            bint* lref,
-                            _cl.ChainedList* working_index,
-                            int nvert, int orig_nvert) nogil:
+cdef inline int get_one_ear(
+    double* polygon,
+    bint* lref,
+    _cl.ChainedList* working_index,
+    int nv,
+    int nvert,
+) nogil:
     """
     A polygon's "ear" is defined as a triangle of vert_i-1, vert_i, vert_i+1,
     points on the polygon, where the point vert_i has the following properties:
@@ -185,18 +262,16 @@ cdef inline int get_one_ear(double* polygon,
         - None of the other vertices of the polygon are in the triangle formed
           by its two annexing points
           Note: only reflex edges can be on the triangle
-    polygon : (3*nvert) [x0, x1, x2..., x_nvert, y0, y1, ... y_nvert, z0...]
-    diff : (3*nvert) [P1 - P0, P2-P1, ...]
-    lref : (nvert) [is_reflex(P0), is_reflex(P1), ...]
+    polygon : (2*nv) [x0, x1, x2..., x_nv, y0, y1, ... y_nv]
+    lref : (nv) [is_reflex(P0), is_reflex(P1), ...]
     working_index : to avoid memory allocation and deallocation, we work with
         with only ONE vector, that allow us to know which of the orignal
-        orig_nvert vertices is still being used.
-        At the beginning working_index = range(orig_nvert)
+        nvert vertices is still being used.
+        At the beginning working_index = range(nvert)
         if we took out ONE ear (vertex), for example vertex ii, then:
-             nvert = orig_nvert - 1
-             working_index = [0,..., ii-1,ii+1,ii+2,...orig_nvert]
+             nv = nvert - 1
+             working_index = [0, ..., ii-1, ii+1, ii+2, ..., nvert]
              and the other tabs are also updated:
-                diff = [P1-P0,...., Pii+1 - Pii-1, X, ....]
                 lref = [ .. is_reflex(Pii-1), X, is_reflex(Pii+1),..]
                 where X represents values that will never be used !
     """
@@ -207,17 +282,9 @@ cdef inline int get_one_ear(double* polygon,
     cdef int wip1, wim1
     cdef bint a_pt_in_tri
 
-    with gil:
-        print("A", nvert)       # DB
-        print('Ax', polygon[0], polygon[1], polygon[2], polygon[3])
-        print('Ay', polygon[4], polygon[5], polygon[6], polygon[7])
-        print('Az', polygon[8], polygon[9], polygon[10], polygon[11])
-
     # loop on points to identify an ear
-    for i in range(1, nvert-1):
+    for i in range(1, nv - 1):
         wi = <int>_cl.get_at_pos(working_index, i)
-        with gil:
-            print('B', wi, lref[wi])        # DB
         if not lref[wi]:
             # angle is not reflex
             a_pt_in_tri = False
@@ -225,26 +292,27 @@ cdef inline int get_one_ear(double* polygon,
             wip1 = <int>_cl.get_at_pos(working_index, i+1)
             wim1 = <int>_cl.get_at_pos(working_index, i-1)
             # We can test if there is another vertex in the 'ear'
-            with gil:
-                print('C', wi, wim1, wip1, a_pt_in_tri)        # DB
-            for j in range(nvert):
+            for j in range(nv):
                 wj = <int>_cl.get_at_pos(working_index, j)
                 # We only test reflex angles, and points that are not
                 # edges of the triangle
                 if (lref[wj] and wj != wim1 and wj != wip1 and wj != wi):
-                    if is_pt_in_tri(&diff[wi*3], &diff[wim1*3],
-                                    polygon[0*orig_nvert+wi],
-                                    polygon[1*orig_nvert+wi],
-                                    polygon[2*orig_nvert+wi],
-                                    polygon[0*orig_nvert+wj],
-                                    polygon[1*orig_nvert+wj],
-                                    polygon[2*orig_nvert+wj]):
-                        # We found a point in the triangle, thus is not ear
-                        # no need to keep testing....
-                        a_pt_in_tri = True
-                        with gil:
-                            print('iD', wi, wim1, wip1, wj, a_pt_in_tri)        # DB
+                    a_pt_in_tri = is_pt_in_tri_2d(
+                        # triangle
+                        polygon[0*nvert + wim1],
+                        polygon[1*nvert + wim1],
+                        polygon[0*nvert + wi],
+                        polygon[1*nvert + wi],
+                        polygon[0*nvert + wip1],
+                        polygon[1*nvert + wip1],
+                        # point tested
+                        polygon[0*nvert + wj],
+                        polygon[1*nvert + wj],
+                    )
+                    if a_pt_in_tri:
+                        # point in triangle => not ear, stop test
                         break
+
             # Let's check if there was a point in the triangle....
             if not a_pt_in_tri:
                 return i # if not, we found an ear
@@ -252,31 +320,34 @@ cdef inline int get_one_ear(double* polygon,
     # if we havent returned, either, there was an error somerwhere
     with gil:
         msg = (
-            "Got here but shouldnt have\n"
-            f"\t- i: {i} / {nvert-1}\n"
-            f"\t- j: {j} / {nvert}\n"
+            "Got here but shouldn't have\n"
+            f"\t- i: {i} / {nv-1}\n"
+            f"\t- j: {j} / {nv}\n"
         )
         raise Exception(msg)
 
     return -1
 
 
-cdef inline void earclipping_poly(double* vignett,
-                                  long* ltri,
-                                  double* diff,
-                                  bint* lref,
-                                  int nvert) nogil:
+cdef inline void earclipping_poly_2d(
+    double* vignett,        # 2d polygon coordinates
+    long* ltri,             # pre-allocated array of bool (bint)
+    double* diff,           # 2d vectors of poolygon edges
+    bint* lref,             # array of bool indicating which points are reflex
+    int nvert,             # nb of vertices
+) nogil:
     """
     Triangulates a polygon by earclipping an edge at a time.
-        vignett : (3*nvert) coordinates of poly
+        vignett : (2*nvert) coordinates of 2d poly
         nvert : number of vertices
     Result
         ltri : (3*(nvert-2)) int array, indices of triangles
     """
+
     # init...
-    cdef int loc_nv = nvert
+    cdef int nv = nvert
     cdef int itri = 0
-    cdef int wi, wim1, wip1
+    cdef int wi, wim1, wip1, itemp
     cdef int iear
     cdef _cl.ChainedList* working_index
 
@@ -293,35 +364,53 @@ cdef inline void earclipping_poly(double* vignett,
     working_index = _cl.create_ordered(nvert)
     # .. Loop ..................................................................
     for itri in range(nvert-3):
-        iear =  get_one_ear(vignett, &diff[0], &lref[0],
-                            working_index, loc_nv, nvert)
+
+        # get first ear
+        iear =  get_one_ear(
+            vignett,
+            &lref[0],
+            working_index,
+            nv,
+            nvert,
+        )
+
         wim1 = <int>_cl.get_at_pos(working_index, iear-1)
         wi   = <int>_cl.get_at_pos(working_index, iear)
         wip1 = <int>_cl.get_at_pos(working_index, iear+1)
+
         ltri[itri*3]   = wim1
-        ltri[itri*3+1] = wi
-        ltri[itri*3+2] = wip1
+        ltri[itri*3 + 1] = wi
+        ltri[itri*3 + 2] = wip1
+
         # updates on the "information" arrays:
-        diff[wim1*3]   = vignett[0*nvert+wip1] - vignett[0*nvert+wim1]
-        diff[wim1*3+1] = vignett[1*nvert+wip1] - vignett[1*nvert+wim1]
-        diff[wim1*3+2] = vignett[2*nvert+wip1] - vignett[2*nvert+wim1]
+        diff[0*nvert + wim1] = vignett[0*nvert + wip1] - vignett[0*nvert + wim1]
+        diff[1*nvert + wim1] = vignett[1*nvert + wip1] - vignett[1*nvert + wim1]
+
         #... theoritically we should get rid of off diff[wip1] as well but
         # we'll just not use it, however we have to update lref
         # if an angle is not reflex, then it will stay so, only chage if reflex
         if lref[wim1]:
-            if iear >= 2:
-                lref[wim1] = is_reflex(&diff[wim1 * 3],
-                                       &diff[<int>_cl.get_at_pos(working_index,
-                                                                 iear-2) * 3])
+            if iear == 1:
+                itemp = <int>_cl.get_at_pos(working_index, nv - 1)
             else:
-                lref[wim1] = is_reflex(&diff[wim1 * 3],
-                                       &diff[<int>_cl.get_at_pos(working_index,
-                                                                 loc_nv-1) * 3])
+                itemp = <int>_cl.get_at_pos(working_index, iear - 2)
+            lref[wim1] = is_reflex_2d(
+                &diff[0*nvert + itemp],
+                &diff[1*nvert + itemp],
+                &diff[0*nvert + wim1],
+                &diff[1*nvert + wim1],
+            )
+
         if lref[wip1]:
-            lref[wip1] = is_reflex(&diff[wip1*3],
-                                   &diff[wim1*3])
+            lref[wip1] = is_reflex_2d(
+                &diff[0*nvert + wim1],
+                &diff[1*nvert + wim1],
+                &diff[0*nvert + wip1],
+                &diff[1*nvert + wip1],
+            )
+
         # last but not least update on number of vertices and working indices
-        loc_nv = loc_nv - 1
+        nv -= 1
         _cl.pop_at_pos(&working_index, iear)
 
     # we only have three points left, so that is the last triangle:
@@ -366,10 +455,10 @@ cdef inline void triangulate_poly(
 
     # diff + reflex
     compute_diff3d(vignett_poly, nvert, &diff[0])
-    are_points_reflex(nvert, diff, &lref[0])
+    are_points_reflex_2d(nvert, diff, &lref[0])
 
     # earclipping
-    earclipping_poly(
+    earclipping_poly_2d(
         vignett_poly,
         &ltri[0][0],
         &diff[0],
@@ -412,8 +501,8 @@ cdef inline int triangulate_polys(
                     raise MemoryError()
             try:
                 compute_diff3d(vignett_poly[ivign], nvert, &diff[0])
-                are_points_reflex(nvert, diff, &lref[0])
-                earclipping_poly(vignett_poly[ivign], &ltri[ivign][0],
+                are_points_reflex_2d(nvert, diff, &lref[0])
+                earclipping_poly_2d(vignett_poly[ivign], &ltri[ivign][0],
                                  &diff[0], &lref[0], nvert)
             finally:
                 free(diff)
