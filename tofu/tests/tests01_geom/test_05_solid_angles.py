@@ -1,0 +1,428 @@
+"""
+This module contains tests for tofu.geom solid angle routines
+"""
+
+
+# Built-in
+import os
+import warnings
+
+
+# Standard
+import numpy as np
+import matplotlib.pyplot as plt
+
+# tofu-specific
+from ... import geom as tfg
+
+
+_PATH_HERE = os.path.dirname(__file__)
+_PATH_OUTPUT = os.path.join(_PATH_HERE, 'output')
+
+
+#######################################################
+#
+#     Setup and Teardown
+#
+#######################################################
+
+
+def clean(path=_PATH_OUTPUT):
+    """ Remove all temporary output files that may have been forgotten """
+    lf = [ff for ff in os.listdir(path) if ff.endswith('.npz')]
+    if len(lf) > 0:
+        for ff in lf:
+            os.remove(os.path.join(path, ff))
+
+
+def setup_module(module):
+    clean()
+
+
+def teardown_module(module):
+    clean()
+
+
+#######################################################
+#
+#     Utilities
+#
+#######################################################
+
+
+def _create_poly_2d_ccw():
+    """ Reference case, example taken from:
+
+    https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
+    """
+    # add references (i.e.: store size of each dimension under a unique key)
+    outline_x0 = np.r_[0, 10, 20, 30, 40, 28, 22, 15, 4, 6]
+    outline_x1 = np.r_[0, -20, 5, -10, 20, 15, 40, 0, 10, 30]
+
+    reflex0 = np.r_[2, 5, 7, 8]
+    ears0 = np.r_[3, 4, 6, 9]
+
+    tri = np.array([
+        [2, 3, 4],
+        [2, 4, 5],
+        [2, 5, 6],
+        [2, 6, 7],
+        [1, 2, 7],
+        [0, 1, 7],
+        [0, 7, 8],
+        [0, 8, 9],
+    ])
+
+    cents = np.r_[10, 0, 0]
+
+    nin = np.r_[-1, 0, 0]
+    e0 = np.r_[0, -1, 0]
+    e1 = np.r_[0, 0, 1]
+
+    return {
+        'outline_x0': outline_x0,
+        'outline_x1': outline_x1,
+        'reflex0': reflex0,
+        'ears0': ears0,
+        'tri': tri,
+        'cents_x': cents[0],
+        'cents_y': cents[1],
+        'cents_z': cents[2],
+        'nin_x': nin[0],
+        'nin_y': nin[1],
+        'nin_z': nin[2],
+        'e0_x': e0[0],
+        'e0_y': e0[1],
+        'e0_z': e0[2],
+        'e1_x': e1[0],
+        'e1_y': e1[1],
+        'e1_z': e1[2],
+    }
+
+
+def _create_single_triangle():
+
+    poly_x = np.r_[1, 0, 0]
+    poly_y = np.r_[0, 1, 0]
+    poly_z = np.r_[0, 0, 1]
+
+    cents_x = 1/3.
+    cents_y = 1/3.
+    cents_z = 1/3.
+
+    u = np.r_[1, 1, 1]
+    nin = -u / np.sqrt(3)
+    e0 = np.r_[nin[1], -nin[0], 0.]
+    e0 = e0 / np.linalg.norm(e0)
+    e1 = np.cross(nin, e0)
+
+    outx0 = (
+        (poly_x - cents_x)*e0[0]
+        + (poly_y - cents_y)*e0[1]
+        + (poly_z - cents_z)*e0[2]
+    )
+    outx1 = (
+        (poly_x - cents_x)*e1[0]
+        + (poly_y - cents_y)*e1[1]
+        + (poly_z - cents_z)*e1[2]
+    )
+
+    pts_x = np.r_[0, 1] * u[0]
+    pts_y = np.r_[0, 1] * u[1]
+    pts_z = np.r_[0, 1] * u[2]
+
+    sa = (4*np.pi / 8.) * np.r_[1, 0]
+
+    return {
+        'poly_x': poly_x,
+        'poly_y': poly_y,
+        'poly_z': poly_z,
+        'outline_x0': outx0,
+        'outline_x1': outx1,
+        'cents_x': cents_x,
+        'cents_y': cents_y,
+        'cents_z': cents_z,
+        'nin_x': nin[0],
+        'nin_y': nin[1],
+        'nin_z': nin[2],
+        'e0_x': e0[0],
+        'e0_y': e0[1],
+        'e0_z': e0[2],
+        'e1_x': e1[0],
+        'e1_y': e1[1],
+        'e1_z': e1[2],
+        'pts_x': pts_x,
+        'pts_y': pts_y,
+        'pts_z': pts_z,
+        'sa': sa,
+    }
+
+
+def _create_single_rectangle():
+
+    a, b = 2, 1
+    outline_x0 = a*np.r_[-1, 1, 1, -1]
+    outline_x1 = b*np.r_[-1, -1, 1, 1]
+
+    cents = np.r_[0, 0, 0]
+
+    nin = np.r_[0, 0, 1]
+    e0 = np.r_[1, 0, 0]
+    e1 = np.r_[0, 1, 0]
+
+    pts_z = np.r_[-1, 0.001, 0.1, 0.5, 1, 10, 50]
+    pts_x = np.zeros((pts_z.size,))
+    pts_y = np.zeros((pts_z.size,))
+
+    # For a rectangle of dimensions (a, b) seen from height h
+    # https://www.planetmath.org/solidangleofrectangularpyramid
+    # sa = 4 arcsin( ab / sqrt( (a^2 + h^2)*(b^2 + h^2) ) )
+    sa = 4*np.arcsin(
+        a*b / np.sqrt((a**2 + pts_z[1:]**2) * (b**2 + pts_z[1:]**2))
+    )
+    sa = np.r_[0, sa]
+
+    return {
+        'outline_x0': outline_x0,
+        'outline_x1': outline_x1,
+        'cents_x': cents[0],
+        'cents_y': cents[1],
+        'cents_z': cents[2],
+        'nin_x': nin[0],
+        'nin_y': nin[1],
+        'nin_z': nin[2],
+        'e0_x': e0[0],
+        'e0_y': e0[1],
+        'e0_z': e0[2],
+        'e1_x': e1[0],
+        'e1_y': e1[1],
+        'e1_z': e1[2],
+        'pts_x': pts_x,
+        'pts_y': pts_y,
+        'pts_z': pts_z,
+        'sa': sa,
+    }
+
+
+
+def _create_light():
+
+    a, b = 2, 1
+    outline_x0 = a*np.r_[-1, 1, 1, -1]
+    outline_x1 = b*np.r_[-1, -1, 1, 1]
+
+    cents = np.r_[0, 0, 0]
+
+    nin = np.r_[0, 0, 1]
+    e0 = np.r_[1, 0, 0]
+    e1 = np.r_[0, 1, 0]
+
+    det = {
+        'outline_x0': outline_x0,
+        'outline_x1': outline_x1,
+        'cents_x': cents[0],
+        'cents_y': cents[1],
+        'cents_z': cents[2],
+        'nin_x': nin[0],
+        'nin_y': nin[1],
+        'nin_z': nin[2],
+        'e0_x': e0[0],
+        'e0_y': e0[1],
+        'e0_z': e0[2],
+        'e1_x': e1[0],
+        'e1_y': e1[1],
+        'e1_z': e1[2],
+    }
+
+    ap = {
+        'ap0': {
+            'poly_x': 10*a*np.r_[-1, 1, 1, -1],
+            'poly_y': 10*b*np.r_[-1, -1, 1, 1],
+            'poly_z': 0.1*np.ones((4,)),
+            'nin_x': nin[0],
+            'nin_y': nin[1],
+            'nin_z': nin[2],
+        },
+        'ap1': {
+            'poly_x': 0.1*a*np.r_[-1, 1, 1, -1],
+            'poly_y': 0.1*b*np.r_[-1, -1, 1, 1],
+            'poly_z': 0.2*np.ones((4,)),
+            'nin_x': nin[0],
+            'nin_y': nin[1],
+            'nin_z': nin[2],
+        },
+    }
+    ap['ap2'] = dict(ap)
+
+    pts_z = np.r_[-1, 0.1, 0.5, 1, 10, 50]
+    pts_x = np.zeros((pts_z.size,))
+    pts_y = np.zeros((pts_z.size,))
+
+    # For a rectangle of dimensions (a, b) seen from height h
+    # https://www.planetmath.org/solidangleofrectangularpyramid
+    # sa = 4 arcsin( ab / sqrt( (a^2 + h^2)*(b^2 + h^2) ) )
+    h = pts_z[2:] - 0.1
+    sa0 = 4*np.arcsin(a*b / np.sqrt((a**2 + h**2) * (b**2 + h**2)))
+
+    h = pts_z[2:] - 0.2
+    sa1 = 4*np.arcsin(a*b / np.sqrt((0.01*a**2 + h**2) * (0.01*b**2 + h**2)))
+
+    h = pts_z[2:] - 0.2
+    sa2 = 4*np.arcsin(a*b / np.sqrt((0.01*a**2 + h**2) * (0.01*b**2 + h**2)))
+    sa0 = np.r_[0, 0, sa0]
+    sa1 = np.r_[0, 0, sa1]
+    sa2 = np.r_[0, 0, sa2]
+
+    return {
+        'pts_x': pts_x,
+        'pts_y': pts_y,
+        'pts_z': pts_z,
+        'det': det,
+        'ap': ap,
+        'sa0': sa0,
+        'sa1': sa1,
+        'sa2': sa2,
+    }
+
+
+#######################################################
+#
+#     Instanciate
+#
+#######################################################
+
+
+class Test01_triangulation():
+
+    def setup(self):
+        self.poly_2d_ccw = _create_poly_2d_ccw()
+        self.single_triangle = _create_single_triangle()
+        self.single_rectangle = _create_single_rectangle()
+        self.light = _create_light()
+
+    # ------------------------
+    #   Populating
+    # ------------------------
+
+    def test01_triangulation_2d_rectangle(self):
+        tri = tfg._comp_solidangles.triangulate_polygon_2d(
+            np.r_[-1., 1, 1, -1],
+            np.r_[-1., -1, 1, 1],
+        )
+
+        triref = np.array([[0, 1, 2], [1, 2 ,3]])
+        if np.allclose(tri, triref):
+            msg = (
+                "Wrong rectangle triangulation:\n"
+                f"\t- expected: {triref}\n"
+                f"\t- obtained: {tri}\n"
+            )
+
+    def test02_triangulation_2d_ccw(self):
+        tri = tfg._comp_solidangles.triangulate_polygon_2d(
+            self.poly_2d_ccw['outline_x0'],
+            self.poly_2d_ccw['outline_x1'],
+        )
+
+        if not tri.shape == self.poly_2d_ccw['tri'].shape:
+            msg = (
+                "Wrong shape of triangulation:\n"
+                f"\t- Expected: {self.poly_2d_ccw['tri'].shape}\n"
+                f"\t- obtained: {tri.shape}\n"
+            )
+            raise Exception(msg)
+
+        if not np.allclose(tri, self.poly_2d_ccw['tri']):
+            msg = (
+                "Wrong tringulation of reference test case!\n"
+                f"\t- expected: {self.poly_2d_ccw['tri']}\n"
+                f"\t- obtained: {tri}\n"
+            )
+            raise Exception(msg)
+
+    def test03_solid_angle_triangle(self):
+        # single triangle
+        sa = tfg.calc_solidangle_apertures(
+            pts_x=self.single_triangle['pts_x'],
+            pts_y=self.single_triangle['pts_y'],
+            pts_z=self.single_triangle['pts_z'],
+            apertures=None,
+            detectors=self.single_triangle,
+            visibility=False,
+            return_vector=False,
+        ).ravel()
+
+        # check solid angle value
+        if np.any(sa < 0.):
+            msg = (
+                "Solid angle of triangle is negative!\n"
+                f"\t- obtained: {sa}"
+            )
+            raise Exception(msg)
+
+        saref = self.single_triangle['sa']
+        if np.any(np.abs(sa - saref) > 1.e-10 * saref):
+            msg = (
+                "Solid angle of triangle is wrong!\n"
+                f"\t- Expected: {saref}\n"
+                f"\t- Obtained: {sa}\n"
+            )
+            raise Exception(msg)
+
+    def test04_solid_angle_rectangle(self):
+        # rectangle
+        sa = tfg.calc_solidangle_apertures(
+            pts_x=self.single_rectangle['pts_x'],
+            pts_y=self.single_rectangle['pts_y'],
+            pts_z=self.single_rectangle['pts_z'],
+            apertures=None,
+            detectors=self.single_rectangle,
+            visibility=False,
+            return_vector=False,
+        ).ravel()
+
+        # check solid angle value
+        if np.any(sa < 0.):
+            msg = (
+                "Solid angle of triangle is negative!\n"
+                f"\t- obtained: {sa}"
+            )
+            raise Exception(msg)
+
+        saref = self.single_rectangle['sa']
+        if np.any(np.abs(sa - saref) > 1.e-10 * saref):
+            msg = (
+                "Solid angle of triangle is wrong!\n"
+                f"\t- Expected: {saref}\n"
+                f"\t- Obtained: {sa}\n"
+            )
+            raise Exception(msg)
+
+    def test05_solid_angle_light(self):
+
+        for ii in range(3):
+            sa = tfg.calc_solidangle_apertures(
+                pts_x=self.light['pts_x'],
+                pts_y=self.light['pts_y'],
+                pts_z=self.light['pts_z'],
+                apertures=self.light['ap'][f'ap{ii}'],
+                detectors=self.light['det'],
+                visibility=False,
+                return_vector=False,
+            ).ravel()
+
+            # check solid angle value
+            saref = self.light[f'sa{ii}']
+            if np.any(np.abs(sa - saref) > 1.e-10 * saref):
+                msg = (
+                    f"Solid angle of light (case{ii}) is wrong!\n"
+                    f"\t- Expected: {saref}\n"
+                    f"\t- Obtained: {sa}\n"
+                )
+                raise Exception(msg)
+
+    def test06_solid_angle_vector(self):
+        pass
+
+    def test07_solid_angle_visible(self):
+        pass
