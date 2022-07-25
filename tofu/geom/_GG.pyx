@@ -539,10 +539,10 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     # .. Testing ...............................................................
     err_mess = "Mode has to be 'abs' (absolute) or 'rel' (relative)"
     assert mode_num >= 0, err_mess
-    print("discretize_line1d", LMinMax, dstep, DL, Lim, mode, margin)
+    print(f"discretize_line1d(LMinMax={list(LMinMax)}, dstep={dstep}, DL={DL}, Lim={Lim}, mode={mode}, margin={margin})")
     # .. preparing inputs.......................................................
     _st.cythonize_subdomain_dl(DL, dl_array) # dl_array is initialized
-    print("cythonize_subdomain_dl ->", dl_array)
+    print(f"cythonize_subdomain_dl(DL={DL}, ..) -> dl_array={dl_array}")
 
     #.. calling cython function.................................................
     sz_ld = _st.discretize_line1d_core(&LMinMax[0], dstep, dl_array, Lim,
