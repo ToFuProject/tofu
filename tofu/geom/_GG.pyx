@@ -1986,20 +1986,24 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
           indY0, NY0 = discretize_line1d(np.array([np.min(VPoly[0,:]),
                                                     np.max(VPoly[0,:])]),
                                           dL, DL=DY, Lim=True, margin=margin)
+        print("dbg 1", Y0, dY0r, indY0, NY0)
         Z0, dZ0r,\
           indZ0, NZ0 = discretize_line1d(np.array([np.min(VPoly[1,:]),
                                                     np.max(VPoly[1,:])]),
                                           dL, DL=DZ, Lim=True, margin=margin)
+        print("dbg 2", Z0, dZ0r, indZ0, NZ0)
         Y0n, Z0n = len(Y0), len(Z0)
 
         # Get the actual R and Z resolutions and mesh elements
         X, dXr, indX, NX = discretize_line1d(XMinMax, dX,
                                               DL=DX,
                                               Lim=True, margin=margin)
+        print("dbg 3", X, dXr, indX, NX)
         Xn = len(X)
         PtsCross, dLr, indL,\
           NL, Rref, VPbis = discretize_vpoly(VPoly, dL, D1=None, D2=None,
                                              margin=margin, DIn=DIn, VIn=VIn)
+        print("dbg 4", PtsCross, dLr, indL, NL, Rref, VPbis)
         NR0 = Rref.size
         indin = np.ones((PtsCross.shape[1],),dtype=bool)
         if DY is not None:
@@ -2022,6 +2026,7 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
         ind = NY0*NZ0 + np.repeat(indX*NR0,Ln) + np.tile(indL,Xn)
         dS = np.tile(dLr*dXr,Xn)
         if DX is None or DX[0] is None:
+            print("if DX is None or DX[0] is None")
             pts = np.array([(XMinMax[0]+DIn)*np.ones((Y0n*Z0n,)),
                             np.tile(Y0,Z0n),
                             np.repeat(Z0,Y0n)])
@@ -2029,12 +2034,14 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
             indin = Path(VPoly.T).contains_points(pts[1:,:].T, transform=None,
                                                   radius=0.0)
             if np.any(indin):
+                print("  if np.any(", indin, ")")
                 pts = pts[:,indin].reshape((3,1)) if indin.sum()==1\
                   else pts[:,indin]
                 Pts = np.concatenate((pts,Pts),axis=1)
                 ind = np.concatenate((iind[indin], ind))
                 dS = np.concatenate((dY0r*dZ0r*np.ones((indin.sum(),)),dS))
         if DX is None or DX[1] is None:
+            print("if DX is None or DX[1] is None")
             pts = np.array([(XMinMax[1]-DIn)*np.ones((Y0n*Z0n,)),
                             np.tile(Y0,Z0n),
                             np.repeat(Z0,Y0n)])
@@ -2044,6 +2051,7 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
                                                   transform=None,
                                                   radius=0.0)
             if np.any(indin):
+                print("  if np.any(", indin, ")")
                 pts = pts[:,indin].reshape((3,1)) if indin.sum()==1\
                   else pts[:,indin]
                 Pts = np.concatenate((Pts,pts),axis=1)

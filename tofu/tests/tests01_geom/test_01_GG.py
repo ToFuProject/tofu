@@ -525,6 +525,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
             np.all(Pts[1, :] >= 1.-np.abs(DIn))
             and np.all(Pts[1, :] <= 3.+np.abs(DIn))
         )
+        print(egewgwrgwr)
         assert (
             np.all(Pts[2, :] >= -np.abs(DIn))
             and np.all(Pts[2, :] <= 1.+np.abs(DIn))
