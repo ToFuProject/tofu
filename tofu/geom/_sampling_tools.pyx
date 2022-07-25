@@ -87,6 +87,13 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     cdef double inv_resol, new_margin
     cdef double[2] desired_limits
 
+    printf("  first_discretize_line1d_core(\n")
+    printf("    lminmax=[%lf, %lf],\n", lminmax[0], lminmax[1])
+    printf("    dstep=%lf,\n", dstep)
+    printf("    resolution=*, ncells=*, nind=*, nl0=*\n")
+    printf("    dl=[%lf, %lf],\n", dl[0], dl[1])
+    printf("    lim=%i, mode=%i, margin=%lf)\n", lim, mode, margin)
+
     # .. Computing "real" discretization step, depending on `mode`..............
     if mode == 0: # absolute
         ncells[0] = <int>c_ceil((lminmax[1] - lminmax[0]) / dstep)
@@ -127,6 +134,8 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
         nl1 = int(c_floor((desired_limits[1] - lminmax[0]) * inv_resol))
     # Get the total number of indices
     nind[0] = nl1 + 1 - nl0[0]
+    printf("  -> resolution=%lf, ncells=%li, nind=%li, nl0=%i\n",
+           resolution[0], ncells[0], nind[0], nl0[0])
     return
 
 

@@ -175,8 +175,7 @@ else:
 #  Compiling files
 openmp_installed, openmp_flag = is_openmp_installed()
 
-# extra_compile_args = ["-O3", "-Wall", "-fno-wrapv", "-ffast-math", "-fsignaling-nans"] + openmp_flag
-extra_compile_args = ["-O0", "-Wall", "-fno-wrapv", "-fsignaling-nans"] + openmp_flag
+extra_compile_args = ["-O3", "-Wall", "-fno-wrapv", "-ffast-math", "-fsignaling-nans"] + openmp_flag
 extra_link_args = [] + openmp_flag
 
 extensions = [
