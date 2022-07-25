@@ -525,7 +525,6 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
             np.all(Pts[1, :] >= 1.-np.abs(DIn))
             and np.all(Pts[1, :] <= 3.+np.abs(DIn))
         )
-        np.set_printoptions(threshold=99999999)
         assert (
             np.all(Pts[2, :] >= -np.abs(DIn))
             and np.all(Pts[2, :] <= 1.+np.abs(DIn))
@@ -1727,7 +1726,7 @@ def test24_is_visible(debug=0):
                                               lstruct_lims=[SL0, SL1, SL2],
                                               lstruct_normx=lsvinx,
                                               lstruct_normy=lsviny,
-                                              ves_type='Tor', test=True)
+                                              ves_type='Tor', test=True, num_threads=1)
     assert np.allclose(is_vis, [False, True, True, False])
     distance = np.sqrt(np.sum((others - np.tile(point,
                                                 (npts, 1)).T)**2,
