@@ -514,7 +514,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
             VPbis = GG._Ves_Smesh_Lin_SubFromD_cython(XMinMax, dL, dX, VPoly,
                                                       DX=LDX[ii], DY=DY, DZ=DZ,
                                                       DIn=DIn, VIn=VIn,
-                                                      margin=1.e-4)
+                                                      margin=1.e-9)
 
         assert Pts.ndim == 2 and Pts.shape[0] == 3
         assert (
