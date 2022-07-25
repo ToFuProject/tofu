@@ -2687,8 +2687,8 @@ cdef inline double comp_sa_tri(
 
     # get (b cross c)
     cross_bc_x = (B_y - G_y)*(C_z - G_z) - (B_z - G_z)*(C_y - G_y)
-    cross_bc_y = (B_y - G_y)*(C_z - G_z) - (B_z - G_z)*(C_y - G_y)
-    cross_bc_z = (C_y - G_y)*(C_z - G_z) - (B_z - G_z)*(C_y - G_y)
+    cross_bc_y = (B_z - G_z)*(C_x - G_x) - (B_x - G_x)*(C_z - G_z)
+    cross_bc_z = (B_x - G_x)*(C_y - G_y) - (B_y - G_y)*(C_x - G_x)
 
     # numerator
     numerator = 3.*c_abs(
@@ -2708,5 +2708,5 @@ cdef inline double comp_sa_tri(
 
     denominator = An*Bn*Cn + sca_AB * Cn + sca_AC * Bn + sca_BC * An
 
-    result = 2 * c_atan2(c_abs(numerator), denominator)
-    return result
+    # handfle negative denominator
+    return 2 * c_atan2(numerator, denominator)

@@ -6,6 +6,9 @@ import numpy as np
 # import scipy.interpolate as scpinterp
 # import scipy.integrate as scpintg
 # from inspect import signature as insp
+import matplotlib.pyplot as plt
+import datastock as ds
+
 
 # local
 from . import _GG
@@ -15,6 +18,12 @@ _APPROX = True
 _ANISO = False
 _BLOCK = True
 _LTYPES = [int, float, np.int_, np.float_]
+
+
+__all__ = [
+    'calc_solidangle_particle',
+    'calc_solidangle_apertures',
+]
 
 
 ###############################################################################
@@ -426,56 +435,259 @@ def _check_pts(pts=None, pts_name=None):
     return pts.astype(float)
 
 
-def _check_list_3dpolygons(
-    lpoly=None,
-    lpoly_name=None,
-    closed=None,
+def _check_polygon_2d_counter_clockwise(
+    poly_x0=None,
+    poly_x1=None,
+):
+    """ Assumes non-closed polygon """
+
+    assert not (poly_x0[0] == poly_x0[-1] and poly_x1[0] == poly_x1[-1])
+    i0 = np.arange(0, poly_x0.size)
+    i1 = np.r_[np.arange(1, poly_x0.size), 0]
+    return np.sum((poly_x0[i1] - poly_x0[i0]) * (poly_x1[i1] + poly_x1[i0])) < 0
+
+
+def _check_polygon_3d_counter_clockwise(
+    poly_x=None,
+    poly_y=None,
+    poly_z=None,
+    normal=None,
+):
+    """ Assumes non-closed polygon """
+
+    cent = np.r_[np.mean(poly_x), np.mean(poly_y), np.mean(poly_z)]
+    normal = normal / np.linalg.norm(normal)
+    if np.abs(normal[2]) < 0.99:
+        e0 = np.r_[-normal[1], normal[0], 0.]
+    else:
+        e0 = np.r_[-normal[2], 0., normal[0]]
+    e0 = e0 / np.linalg.norm(e0)
+    e1 = np.cross(normal, e0)
+
+    # project in 2d
+    px0 = (
+        (poly_x - cent[0]) * e0[0]
+        + (poly_y - cent[1]) * e0[1]
+        + (poly_z - cent[2]) * e0[2]
+    )
+
+    px1 = (
+        (poly_x - cent[0]) * e1[0]
+        + (poly_y - cent[1]) * e1[1]
+        + (poly_z - cent[2]) * e1[2]
+    )
+
+    # counter-clockwise?
+    return _check_polygon_2d_counter_clockwise(
+        poly_x0=px0,
+        poly_x1=px1,
+    )
+
+
+def _check_polygon_2d(
+    poly_x=None,
+    poly_y=None,
+    poly_name=None,
     can_be_None=None,
-    detectors_normal=None,
+    closed=None,
+    counter_clockwise=None,
+    normal=None,
 ):
 
-    # trivial case
-    if can_be_None and lpoly is None:
-        return
+    # -------------
+    # check inputs
 
-    # check inpiut
-    if closed is None:
-        closed = True
+    # closed
+    closed = ds._generic_check._check_var(
+        closed, 'closed',
+        types=bool,
+        default=True,
+    )
 
-    # check lpoly is a list of (3, npi) arrays
+    # counter_clockwise
+    counter_clockwise = ds._generic_check._check_var(
+        counter_clockwise, 'counter_clockwise',
+        types=bool,
+        default=True,
+    )
+
+    # can_be_None
+    can_be_None = ds._generic_check._check_var(
+        can_be_None, 'can_be_None',
+        types=bool,
+        default=False,
+    )
+
+    # -------------
+    # Trivial case
+
+    if can_be_None and poly_x is None:
+        return None, None
+
+    # ------------------------
+    # check each is a 1d array
+
+    if isinstance(poly_x, (list, tuple)):
+        poly_x = np.atleast_1d(poly_x)
+        poly_y = np.atleast_1d(poly_y)
+
     c0 = (
-        isinstance(lpoly, list)
-        and all([
-            isinstance(pp, np.ndarray)
-            and pp.ndim == 2
-            and pp.shape[0] == 3
-            for pp in lpoly
+        all([
+            isinstance(pp, np.ndarray) for pp in [poly_x, poly_y]
         ])
+        and poly_x.ndim == poly_y.ndim == 1
+        and poly_x.shape == poly_y.shape
     )
     if not c0:
         msg = (
-            f"Arg {lpoly_name} must be a list of (3, npi) arrays, where\n"
-            "\t- dimension 0 corresponds to (X, Y, Z) coordinates\n"
-            "\t- dimension 1 corresponds to the npi corners of polygon i\n"
-            f"Provided:\n{lpoly}"
+            f"Arg {poly_name} must be 2 (npts,) arrays, where\n"
+            "\t- poly_x, poly_y are (X, Y) coordinates\n"
+            "\t- npts is the number of vertices\n"
+            f"Provided:\n{poly_x, poly_y}"
         )
         raise Exception(msg)
 
-    # check if they are closed vs close
-    for ii, pp in enumerate(lpoly):
-        if not np.allclose(pp[:, 0], pp[:, -1]) and closed:
-            lpoly[ii] = np.append(pp, pp[:, 0:1], axis=1)
-        elif np.allclose(pp[:, 0], pp[:, -1]) and not closed:
-            lpoly[ii] = pp[:, :-1]
+    # ------------------------
+    # make sure not closed for ccw test
 
-        # make sure float
-        lpoly[ii] = lpoly[ii].astype(float)
+    pt0 = np.r_[poly_x[0], poly_y[0]]
+    pt1 = np.r_[poly_x[-1], poly_y[-1]]
+    if np.allclose(pt0, pt1):
+        poly_x = poly_x[:-1]
+        poly_y = poly_y[:-1]
 
+    # ------------------------
+    # make sure float
+
+    poly_x = poly_x.astype(float)
+    poly_y = poly_y.astype(float)
+
+    # ------------------------
     # check counter-clockwise ass seen from normal vector
-    for ii, pp in enumerate(lpoly):
-        pass
 
-    return lpoly
+    ccw = _check_polygon_2d_counter_clockwise(
+        poly_x0=poly_x,
+        poly_x1=poly_y,
+    )
+    if counter_clockwise != ccw:
+        poly_x = np.ascontiguousarray(poly_x[::-1])
+        poly_y = np.ascontiguousarray(poly_y[::-1])
+
+    # ------------------------
+    # check if closed vs close
+
+    if closed:
+        poly_x = np.r_[poly_x, poly_x[0]]
+        poly_y = np.r_[poly_y, poly_y[0]]
+
+    return poly_x, poly_y
+
+
+def _check_polygon_3d(
+    poly_x=None,
+    poly_y=None,
+    poly_z=None,
+    poly_name=None,
+    can_be_None=None,
+    closed=None,
+    counter_clockwise=None,
+    normal=None,
+):
+
+    # -------------
+    # check inputs
+
+    # closed
+    closed = ds._generic_check._check_var(
+        closed, 'closed',
+        types=bool,
+        default=True,
+    )
+
+    # counter_clockwise
+    counter_clockwise = ds._generic_check._check_var(
+        counter_clockwise, 'counter_clockwise',
+        types=bool,
+        default=True,
+    )
+
+    # can_be_None
+    can_be_None = ds._generic_check._check_var(
+        can_be_None, 'can_be_None',
+        types=bool,
+        default=False,
+    )
+
+    # -------------
+    # Trivial case
+
+    if can_be_None and poly_x is None:
+        return None, None, None
+
+    # ------------------------
+    # check each is a 1d array
+
+    if isinstance(poly_x, (list, tuple)):
+        poly_x = np.atleast_1d(poly_x)
+        poly_y = np.atleast_1d(poly_y)
+        poly_z = np.atleast_1d(poly_z)
+
+    c0 = (
+        all([
+            isinstance(pp, np.ndarray) for pp in [poly_x, poly_y, poly_z]
+        ])
+        and poly_x.ndim == poly_y.ndim == poly_z.ndim == 1
+        and poly_x.shape == poly_y.shape == poly_z.shape
+    )
+    if not c0:
+        msg = (
+            f"Arg {poly_name} must be 3 (npts,) arrays, where\n"
+            "\t- poly_x, poly_y, poly_z are (X, Y, Z) coordinates\n"
+            "\t- npts is the number of vertices\n"
+            f"Provided:\n{poly_x, poly_y, poly_z}"
+        )
+        raise Exception(msg)
+
+    # ------------------------
+    # make sure not closed for ccw test
+
+    pt0 = np.r_[poly_x[0], poly_y[0], poly_z[0]]
+    pt1 = np.r_[poly_x[-1], poly_y[-1], poly_z[-1]]
+    if np.allclose(pt0, pt1):
+        poly_x = poly_x[:-1]
+        poly_y = poly_y[:-1]
+        poly_z = poly_z[:-1]
+
+    # ------------------------
+    # make sure float
+
+    poly_x = poly_x.astype(float)
+    poly_y = poly_y.astype(float)
+    poly_z = poly_z.astype(float)
+
+    # ------------------------
+    # check counter-clockwise ass seen from normal vector
+
+    ccw = _check_polygon_3d_counter_clockwise(
+        poly_x=poly_x,
+        poly_y=poly_y,
+        poly_z=poly_z,
+        normal=normal,
+    )
+    if counter_clockwise != ccw:
+        poly_x = poly_x[::-1]
+        poly_y = poly_y[::-1]
+        poly_z = poly_z[::-1]
+
+    # ------------------------
+    # check if closed vs close
+
+    if closed:
+        poly_x = np.r_[poly_x, poly_x[0]]
+        poly_y = np.r_[poly_y, poly_y[0]]
+        poly_z = np.r_[poly_z, poly_z[0]]
+
+    return poly_x, poly_y, poly_z
 
 
 def _check_unit_vectors(det=None):
@@ -510,7 +722,7 @@ def _check_unit_vectors(det=None):
         raise Exception(msg)
 
 
-def _check_convert_det_dict(detectors=None):
+def _check_det_dict(detectors=None):
 
     lk_out = ['outline_x0', 'outline_x1']
     lk_shape = [
@@ -519,6 +731,13 @@ def _check_convert_det_dict(detectors=None):
         'e1_x', 'e1_y', 'e1_z',
         'nin_x', 'nin_y', 'nin_z',
     ]
+
+
+    # make sure array + float
+    for k0 in set(lk_shape).intersection(detectors.keys()):
+        detectors[k0] = np.atleast_1d(detectors[k0]).astype(float)
+
+    # check shapes
     c0 = (
         all([
             isinstance(detectors.get(ss), np.ndarray)
@@ -546,6 +765,16 @@ def _check_convert_det_dict(detectors=None):
         )
         raise Exception(msg)
 
+    # check outline
+    detectors['outline_x0'], detectors['outline_x1'] = _check_polygon_2d(
+        poly_x=detectors['outline_x0'],
+        poly_y=detectors['outline_x1'],
+        poly_name='det',
+        can_be_None=False,
+        closed=False,
+        counter_clockwise=True,
+    )
+
     # check unit vectors (normalize + perpendicular)
     _check_unit_vectors(detectors)
 
@@ -556,26 +785,70 @@ def _check_convert_det_dict(detectors=None):
         for k0 in lk:
             detectors[k0] = detectors[k0].ravel()
 
-    # turn into list of detectors arrays
-    det = np.array([
-        detectors['cents_x'][:, None]
-        + detectors['e0_x'][:, None] * detectors['outline_x0'][None, :]
-        + detectors['e1_x'][:, None] * detectors['outline_x1'][None, :],
-        detectors['cents_y'][:, None]
-        + detectors['e0_y'][:, None] * detectors['outline_x0'][None, :]
-        + detectors['e1_y'][:, None] * detectors['outline_x1'][None, :],
-        detectors['cents_z'][:, None]
-        + detectors['e0_z'][:, None] * detectors['outline_x0'][None, :]
-        + detectors['e1_z'][:, None] * detectors['outline_x1'][None, :],
-    ]).swapaxes(0, 1)
-    det = [dd for dd in det]
+    return detectors
 
-    # build detectors_normal
-    det_norm = np.array([
-        detectors['nin_x'], detectors['nin_y'], detectors['nin_z'],
-    ])
 
-    return det, det_norm
+def _check_ap_dict(apertures=None):
+
+    lk0 = ['poly_x', 'poly_y', 'poly_z']
+    lk1 = ['nin_x', 'nin_y', 'nin_z']
+
+    err = False
+    if not isinstance(apertures, dict):
+        err = True
+    else:
+        if all([k0 in apertures.keys() for k0 in lk0 + lk1]):
+            apertures = {'ap0': apertures}
+
+        lkout = [
+            k0 for k0, v0 in apertures.items()
+            if not (
+                all([k1 in v0.keys() for k1 in lk0 + lk1])
+                and all([
+                    isinstance(v0[k1], np.ndarray)
+                    and v0['poly_x'].shape == v0[k1].shape
+                    for k1 in lk0
+                ])
+                and all([np.isscalar(v0[k1]) for k1 in lk1])
+                and np.sqrt(np.sum([v0[k1]**2 for k1 in lk1])) == 1.
+            )
+        ]
+        if len(lkout) > 1:
+            err = True
+
+    if err:
+        msg = (
+            "Arg apertures must be a dict with keys:\n"
+            "\t- nin_x, nin_y, nin_z: components of the normal vector"
+            "\t      oriented towards the plasma\n"
+            "\t- poly_x, poly_y, poly_z: the 3d (x, y, z) polygon\n"
+            "        must be counter-clockwise from nin"
+        )
+        raise Exception(msg)
+
+    # make sure float
+    for k0, v0 in apertures.items():
+        for k1 in lk1:
+            apertures[k0][k1] = float(v0[k1])
+
+    # check polygons
+    for k0, v0 in apertures.items():
+         (
+             apertures[k0]['poly_x'],
+             apertures[k0]['poly_y'],
+             apertures[k0]['poly_z'],
+         ) = _check_polygon_3d(
+            poly_x=v0['poly_x'],
+            poly_y=v0['poly_y'],
+            poly_z=v0['poly_z'],
+            poly_name=k0,
+            can_be_None=False,
+            closed=False,
+            counter_clockwise=True,
+            normal=np.r_[v0['nin_x'], v0['nin_y'], v0['nin_z']],
+        )
+
+    return apertures
 
 
 def _calc_solidangle_apertures_check(
@@ -586,12 +859,14 @@ def _calc_solidangle_apertures_check(
     # polygons
     apertures=None,
     detectors=None,
-    detectors_normal=None,
     # possible obstacles
     config=None,
     # parameters
     visibility=None,
     return_vector=None,
+    # output formatting
+    return_flat_pts=None,
+    return_flat_det=None,
 ):
 
     # ---------------
@@ -617,48 +892,13 @@ def _calc_solidangle_apertures_check(
     # ---------
     # detectors
 
-    if isinstance(detectors, dict):
-        # convert from dict to list of arrays
-        detectors, detectors_normal = _check_convert_det_dict(detectors)
-
-    detectors = _check_list_3dpolygons(
-        lpoly=detectors,
-        lpoly_name='detectors',
-        closed=False,
-        can_be_None=False,
-        detectors_normal=detectors_normal,
-    )
+    detectors = _check_det_dict(detectors)
 
     # ---------
     # apertures
 
-    apertures = _check_list_3dpolygons(
-        lpoly=apertures,
-        lpoly_name='apertures',
-        closed=False,
-        can_be_None=True,
-        detectors_normal=detectors_normal,
-    )
-
-    # ----------------
-    # detectors_normal
-
-    c0 = (
-        isinstance(detectors_normal, np.ndarray)
-        and detectors_normal.ndim == 2
-        and detectors_normal.shape == (3, len(detectors))
-    )
-    if not c0:
-        msg = (
-            "Arg detectors_normal must be a (3, nd) array, where\n"
-            "\t- dimension 0 corresponds to (X, Y, Z) coordinates\n"
-            "\t- nd = number of detectors (nd = len(detectors))\n"
-            f"Provided:\n{detectors_normal}"
-        )
-        raise Exception(msg)
-
-    # normalize
-    detectors_normal /= np.sqrt(np.sum(detectors_normal**2, axis=0))
+    if apertures is not None:
+        apertures = _check_ap_dict(apertures)
 
     # ----------
     # visibility
@@ -702,7 +942,7 @@ def _calc_solidangle_apertures_check(
 
     return (
         pts_x, pts_y, pts_z, mask,
-        apertures, detectors, detectors_normal,
+        apertures, detectors,
         visibility, return_vector,
     )
 
@@ -722,7 +962,6 @@ def _calc_solidangle_apertures_prepare(
     # polygons
     apertures=None,
     detectors=None,
-    detectors_normal=None,
     # possible obstacles
     config=None,
 ):
@@ -747,33 +986,51 @@ def _calc_solidangle_apertures_prepare(
     # apertures
 
     if apertures is None:
-        ap_split, ap_ind, ap_x, ap_y, ap_z = None, None, None, None, None
+        ap_ind, ap_x, ap_y, ap_z = None, None, None, None
+        ap_nin_x, ap_nin_y, ap_nin_z = None, None, None
     else:
-        ap_split = np.array([aa.shape[1] for aa in apertures])
-        ap_ind = np.array([0] + [aa.shape[1] for aa in apertures[:-1]])
-        ap_x = np.concatenate([aa[0, :] for aa in apertures])
-        ap_y = np.concatenate([aa[1, :] for aa in apertures])
-        ap_z = np.concatenate([aa[2, :] for aa in apertures])
+        lka = list(apertures.keys())
+        ap_ind = np.array(
+            [0] + [apertures[k0]['poly_x'].size for k0 in lka]
+        )
+        ap_x = np.concatenate([apertures[k0]['poly_x'] for k0 in lka])
+        ap_y = np.concatenate([apertures[k0]['poly_y'] for k0 in lka])
+        ap_z = np.concatenate([apertures[k0]['poly_z'] for k0 in lka])
+        ap_nin_x = np.array([apertures[k0]['nin_x'] for k0 in lka])
+        ap_nin_y = np.array([apertures[k0]['nin_y'] for k0 in lka])
+        ap_nin_z = np.array([apertures[k0]['nin_z'] for k0 in lka])
 
     # ---------
     # detectors
 
-    det_split = np.array([dd.shape[1] for dd in detectors])
-    det_ind = np.r_[0, np.cumsum([dd.shape[1] for dd in detectors])]
-    det_x = np.concatenate([dd[0, :] for dd in detectors])
-    det_y = np.concatenate([dd[1, :] for dd in detectors])
-    det_z = np.concatenate([dd[2, :] for dd in detectors])
+    det_shape0 = detectors['cents_x'].shape
 
-    det_norm_x = detectors_normal[0, :]
-    det_norm_y = detectors_normal[1, :]
-    det_norm_z = detectors_normal[2, :]
+    det_outline_x0 = detectors['outline_x0']
+    det_outline_x1 = detectors['outline_x1']
+    det_cents_x = detectors['cents_x'].ravel()
+    det_cents_y = detectors['cents_y'].ravel()
+    det_cents_z = detectors['cents_z'].ravel()
+    det_nin_x = detectors['nin_x'].ravel()
+    det_nin_y = detectors['nin_y'].ravel()
+    det_nin_z = detectors['nin_z'].ravel()
+    det_e0_x = detectors['e0_x'].ravel()
+    det_e0_y = detectors['e0_y'].ravel()
+    det_e0_z = detectors['e0_z'].ravel()
+    det_e1_x = detectors['e1_x'].ravel()
+    det_e1_y = detectors['e1_y'].ravel()
+    det_e1_z = detectors['e1_z'].ravel()
+
 
     return (
         ndim0, shape0, mask,
         pts_x, pts_y, pts_z,
-        ap_split, ap_ind, ap_x, ap_y, ap_z,
-        det_split, det_ind, det_x, det_y, det_z,
-        det_norm_x, det_norm_y, det_norm_z,
+        ap_ind, ap_x, ap_y, ap_z,
+        ap_nin_x, ap_nin_y, ap_nin_z,
+        det_shape0, det_outline_x0, det_outline_x1,
+        det_cents_x, det_cents_y, det_cents_z,
+        det_nin_x, det_nin_y, det_nin_z,
+        det_e0_x, det_e0_y, det_e0_z,
+        det_e1_x, det_e1_y, det_e1_z,
     )
 
 
@@ -888,12 +1145,13 @@ def calc_solidangle_apertures(
     # polygons
     apertures=None,
     detectors=None,
-    detectors_normal=None,
     # possible obstacles
     config=None,
     # parameters
     visibility=None,
     return_vector=None,
+    return_flat_pts=None,
+    return_flat_det=None,
 ):
     """ Return the solid angle subtended by na apertures and nd detectors
 
@@ -959,7 +1217,6 @@ def calc_solidangle_apertures(
         # polygons
         apertures,
         detectors,
-        detectors_normal,
         # parameters
         visibility,
         return_vector,
@@ -976,6 +1233,9 @@ def calc_solidangle_apertures(
         # parameters
         visibility=visibility,
         return_vector=return_vector,
+        # output formatting
+        return_flat_pts=return_flat_pts,
+        return_flat_det=return_flat_det,
     )
 
     # ----------------
@@ -984,9 +1244,13 @@ def calc_solidangle_apertures(
     (
         ndim0, shape0, mask,
         pts_x, pts_y, pts_z,
-        ap_split, ap_ind, ap_x, ap_y, ap_z,
-        det_split, det_ind, det_x, det_y, det_z,
-        det_norm_x, det_norm_y, det_norm_z,
+        ap_ind, ap_x, ap_y, ap_z,
+        ap_nin_x, ap_nin_y, ap_nin_z,
+        det_shape0, det_outline_x0, det_outline_x1,
+        det_cents_x, det_cents_y, det_cents_z,
+        det_nin_x, det_nin_y, det_nin_z,
+        det_e0_x, det_e0_y, det_e0_z,
+        det_e1_x, det_e1_y, det_e1_z,
     ) = _calc_solidangle_apertures_prepare(
         # observation points
         pts_x=pts_x,
@@ -996,9 +1260,9 @@ def calc_solidangle_apertures(
         # polygons
         apertures=apertures,
         detectors=detectors,
-        detectors_normal=detectors_normal,
     )
-    nd = len(detectors)
+
+    nd = det_cents_x.size
 
     # Get kwdargs for LOS blocking
     if config is not None:
@@ -1007,15 +1271,9 @@ def calc_solidangle_apertures(
     # ------------------------------------------------
     # compute (call appropriate version for each case)
 
-
     if apertures is None:
         # call fastest / simplest version without apertures
         # (no computation / storing of unit vector)
-
-        import pdb; pdb.set_trace()     # DB
-
-        # get 2d det for triangulation
-        tri = triangulate_polygon_2d(det_outline_x, det_outline_y)
 
         solid_angle = _GG.compute_solid_angle_noapertures(
             # pts as 1d arrays
@@ -1023,14 +1281,20 @@ def calc_solidangle_apertures(
             pts_y=pts_y,
             pts_z=pts_z,
             # detector polygons as 1d arrays
-            det_ind=det_ind,
-            det_x=det_x,
-            det_y=det_y,
-            det_z=det_z,
-            det_norm_x=det_norm_x,
-            det_norm_y=det_norm_y,
-            det_norm_z=det_norm_z,
-            # for triangulation (assumes counter_clockwise)
+            det_outline_x0=det_outline_x0,
+            det_outline_x1=det_outline_x1,
+            det_cents_x=det_cents_x,
+            det_cents_y=det_cents_y,
+            det_cents_z=det_cents_z,
+            det_norm_x=det_nin_x,
+            det_norm_y=det_nin_y,
+            det_norm_z=det_nin_z,
+            det_e0_x=det_e0_x,
+            det_e0_y=det_e0_y,
+            det_e0_z=det_e0_z,
+            det_e1_x=det_e1_x,
+            det_e1_y=det_e1_y,
+            det_e1_z=det_e1_z,
         )
 
     elif return_vector:
@@ -1066,7 +1330,6 @@ def calc_solidangle_apertures(
                 pts_y=pts_y,
                 pts_z=pts_z,
                 # det
-                det_split=det_split,
                 det_x=det_x,
                 det_y=det_y,
                 det_z=det_z,
@@ -1089,7 +1352,6 @@ def calc_solidangle_apertures(
             pts_y=pts_y,
             pts_z=pts_z,
             # detector polygons as 1d arrays
-            det_ind=det_ind,
             det_x=det_x,
             det_y=det_y,
             det_z=det_z,
@@ -1105,21 +1367,35 @@ def calc_solidangle_apertures(
     else:
         # call fastest / simplest version
         # (no computation / storing of unit vector)
+
         solid_angle = _GG.compute_solid_angle_apertures_light(
             # pts as 1d arrays
             pts_x=pts_x,
             pts_y=pts_y,
             pts_z=pts_z,
             # detector polygons as 1d arrays
-            det_ind=det_ind,
-            det_x=det_x,
-            det_y=det_y,
-            det_z=det_z,
-            # aperture polygons as 1d arrays
+            det_outline_x0=det_outline_x0,
+            det_outline_x1=det_outline_x1,
+            det_cents_x=det_cents_x,
+            det_cents_y=det_cents_y,
+            det_cents_z=det_cents_z,
+            det_norm_x=det_nin_x,
+            det_norm_y=det_nin_y,
+            det_norm_z=det_nin_z,
+            det_e0_x=det_e0_x,
+            det_e0_y=det_e0_y,
+            det_e0_z=det_e0_z,
+            det_e1_x=det_e1_x,
+            det_e1_y=det_e1_y,
+            det_e1_z=det_e1_z,
+            # apertures
             ap_ind=ap_ind,
             ap_x=ap_x,
             ap_y=ap_y,
             ap_z=ap_z,
+            ap_norm_x=ap_nin_x,
+            ap_norm_y=ap_nin_y,
+            ap_norm_z=ap_nin_z,
         )
 
     # -------------
@@ -1131,7 +1407,7 @@ def calc_solidangle_apertures(
         unit_vector_y[i0] = np.nan
         unit_vector_z[i0] = np.nan
 
-    shape = tuple(np.r_[nd, shape0])
+    shape = tuple(np.r_[det_shape0, shape0])
     if mask is None:
         if ndim0 > 1:
             solid_angle = np.reshape(solid_angle, shape)
