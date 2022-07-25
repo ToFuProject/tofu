@@ -9,6 +9,7 @@ from warnings import warn
 import numpy as np
 import scipy.integrate as scpintg
 from matplotlib.path import Path
+import time
 
 # -- cython libraries imports --------------------------------------------------
 from cpython cimport bool
@@ -543,12 +544,12 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     # .. preparing inputs.......................................................
     _st.cythonize_subdomain_dl(DL, dl_array) # dl_array is initialized
     print(f"cythonize_subdomain_dl(DL={DL}, ..) -> dl_array={dl_array}")
-
     #.. calling cython function.................................................
     sz_ld = _st.discretize_line1d_core(&LMinMax[0], dstep, dl_array, Lim,
                                        mode_num, margin, &ldiscret, resolution,
                                        &lindex, N)
     #.. converting and returning................................................
+    
     ld_arr = np.copy(np.asarray(<double[:sz_ld]> ldiscret))
     li_arr = np.copy(np.asarray(<long[:sz_ld]>lindex)).astype(int)
     free(ldiscret)
@@ -1994,6 +1995,7 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
           indZ0, NZ0 = discretize_line1d(np.array([np.min(VPoly[1,:]),
                                                     np.max(VPoly[1,:])]),
                                           dL, DL=DZ, Lim=True, margin=margin)
+        time.sleep(1)
         print("dbg 2", Z0, dZ0r, indZ0, NZ0)
         Y0n, Z0n = len(Y0), len(Z0)
 

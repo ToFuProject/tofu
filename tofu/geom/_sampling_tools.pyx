@@ -40,7 +40,7 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
                                         double** ldiscret_arr,
                                         double[1] resolution,
                                         long** lindex_arr, long[1] n) nogil:
-    """Discretizes a 1D line defined over `[liminmax[0], lminmax[1]]` with
+    """Discretizes a 1D line defined over `[lminmax[0], lminmax[1]]` with
     a discretization step resolution (out value) computed from `dstep` which
     can be given in absolute or relative mode. It is possible to only get a
     subdomain `[dl[0], dl[1]]` of the line. `lindex_arr` indicates the indices
@@ -123,6 +123,9 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     inv_resol = 1./resolution[0]
     new_margin = margin*resolution[0]
     abs0 = c_abs(desired_limits[0] - lminmax[0])
+    printf("  abs0(%lf) - resolution(%lf) * c_floor(abs0(%lf) * inv_resol(%lf))(%lf) < new_margin(%le): %i\n", 
+           abs0, resolution[0], abs0, inv_resol, abs0*inv_resol, new_margin,
+           abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin)
     if abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin:
         nl0[0] = int(c_round((desired_limits[0] - lminmax[0]) * inv_resol))
     else:
