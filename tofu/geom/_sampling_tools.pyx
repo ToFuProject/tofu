@@ -126,8 +126,9 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     inv_resol = 1./resolution[0]
     new_margin = margin*resolution[0]
     abs0 = c_abs(desired_limits[0] - lminmax[0])
-    printf("  abs0(%lf) - resolution(%lf) * c_floor(abs0(%lf) * inv_resol(%lf))(%lf) < new_margin(%le): %i\n", 
-           abs0, resolution[0], abs0, inv_resol, abs0*inv_resol, new_margin,
+    printf("  [abs0(%.12lf) - resolution(%.12lf) * c_floor(abs0(%.12lf) * inv_resol(%.12lf))(%.12lf)](%.12lf) < new_margin(%le): %i\n", 
+           abs0, resolution[0], abs0, inv_resol, abs0*inv_resol,
+           abs0 - resolution[0] * c_floor(abs0 * inv_resol), new_margin,
            abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin)
     if abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin:
         printf(stest)
