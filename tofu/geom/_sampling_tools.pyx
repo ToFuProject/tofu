@@ -86,9 +86,6 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     cdef double abs0, abs1
     cdef double inv_resol, new_margin
     cdef double[2] desired_limits
-    cdef char[16] stest
-
-    stest[0] = 0
 
     printf("  first_discretize_line1d_core(\n")
     printf("    lminmax=[%lf, %lf],\n", lminmax[0], lminmax[1])
@@ -128,19 +125,17 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     abs0 = c_abs(desired_limits[0] - lminmax[0])
     printf("  [abs0(%.12lf) - resolution(%.12lf) * c_floor(abs0(%.12lf) * inv_resol(%.12lf))(%.12lf)](%.12lf) < new_margin(%le): %i\n", 
            abs0, resolution[0], abs0, inv_resol, abs0*inv_resol,
-           abs0 - resolution[0] * c_floor(abs0 * inv_resol), new_margin,
-           abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin)
-    if abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin:
-        printf(stest)
+           abs0 - resolution[0] * c_floor(1e-15+abs0 * inv_resol), new_margin,
+           abs0 - resolution[0] * c_floor(1e-15+abs0 * inv_resol) < new_margin)
+    if abs0 - resolution[0] * c_floor(1e-15+abs0 * inv_resol) < new_margin:
         nl0[0] = int(c_round((desired_limits[0] - lminmax[0]) * inv_resol))
     else:
-        nl0[0] = int(c_floor((desired_limits[0] - lminmax[0]) * inv_resol))
+        nl0[0] = int(c_floor(1e-15+(desired_limits[0] - lminmax[0]) * inv_resol))
     abs1 = c_abs(desired_limits[1] - lminmax[0])
-    if abs1 - resolution[0] * c_floor(abs1 * inv_resol) < new_margin:
-        printf(stest)
+    if abs1 - resolution[0] * c_floor(1e-15+abs1 * inv_resol) < new_margin:
         nl1 = int(c_round((desired_limits[1] - lminmax[0]) * inv_resol) - 1)
     else:
-        nl1 = int(c_floor((desired_limits[1] - lminmax[0]) * inv_resol))
+        nl1 = int(c_floor(1e-15+(desired_limits[1] - lminmax[0]) * inv_resol))
     # Get the total number of indices
     nind[0] = nl1 + 1 - nl0[0]
     printf("  -> resolution=%lf, ncells=%li, nind=%li, nl0=%i\n",
