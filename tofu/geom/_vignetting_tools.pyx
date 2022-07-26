@@ -57,11 +57,11 @@ cdef inline void compute_diff2d(
 
     for ivert in range(nvert-1):
         diff[0*nvert + ivert] = orig[0*nvert + (ivert+1)] - orig[0*nvert + ivert]
-        diff[1*nvert + ivert] = orig[1*nvert+(ivert+1)] - orig[1*nvert+ivert]
+        diff[1*nvert + ivert] = orig[1*nvert + (ivert+1)] - orig[1*nvert + ivert]
 
     # doing the last point:
-    diff[0*nvert + (nvert-1)] = orig[0*nvert] - orig[0*nvert+(nvert-1)]
-    diff[1*nvert + (nvert-1)] = orig[1*nvert] - orig[1*nvert+(nvert-1)]
+    diff[0*nvert + (nvert-1)] = orig[0*nvert] - orig[0*nvert + (nvert-1)]
+    diff[1*nvert + (nvert-1)] = orig[1*nvert] - orig[1*nvert + (nvert-1)]
     return
 
 

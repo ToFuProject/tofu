@@ -990,9 +990,9 @@ def _calc_solidangle_apertures_prepare(
         ap_nin_x, ap_nin_y, ap_nin_z = None, None, None
     else:
         lka = list(apertures.keys())
-        ap_ind = np.array(
-            [0] + [apertures[k0]['poly_x'].size for k0 in lka]
-        )
+        ap_ind = np.r_[
+            0, np.cumsum([apertures[k0]['poly_x'].size for k0 in lka])
+        ]
         ap_x = np.concatenate([apertures[k0]['poly_x'] for k0 in lka])
         ap_y = np.concatenate([apertures[k0]['poly_y'] for k0 in lka])
         ap_z = np.concatenate([apertures[k0]['poly_z'] for k0 in lka])
@@ -1052,6 +1052,7 @@ def _visibility_unit_vectors(
     unit_vector_x=None,
     unit_vector_y=None,
     unit_vector_z=None,
+    **kwdargs,
 ):
     """
 
@@ -1266,7 +1267,11 @@ def calc_solidangle_apertures(
 
     # Get kwdargs for LOS blocking
     if config is not None:
-        kwdargs = config.get_kwdargs_LOS_isVis()
+        kwdargs = {
+            k0: v0 for k0, v0 in config.get_kwdargs_LOS_isVis().items()
+            if 'eps' not in k0
+            and k0 not in ['ves_type', 'test', 'forbid', 'k']
+        }
 
     # ------------------------------------------------
     # compute (call appropriate version for each case)
@@ -1309,18 +1314,28 @@ def calc_solidangle_apertures(
             pts_y=pts_y,
             pts_z=pts_z,
             # detector polygons as 1d arrays
-            det_ind=det_ind,
-            det_x=det_x,
-            det_y=det_y,
-            det_z=det_z,
-            det_norm_x=det_norm_x,
-            det_norm_y=det_norm_y,
-            det_norm_z=det_norm_z,
-            # aperture polygons as 1d arrays
+            det_outline_x0=det_outline_x0,
+            det_outline_x1=det_outline_x1,
+            det_cents_x=det_cents_x,
+            det_cents_y=det_cents_y,
+            det_cents_z=det_cents_z,
+            det_norm_x=det_nin_x,
+            det_norm_y=det_nin_y,
+            det_norm_z=det_nin_z,
+            det_e0_x=det_e0_x,
+            det_e0_y=det_e0_y,
+            det_e0_z=det_e0_z,
+            det_e1_x=det_e1_x,
+            det_e1_y=det_e1_y,
+            det_e1_z=det_e1_z,
+            # apertures
             ap_ind=ap_ind,
             ap_x=ap_x,
             ap_y=ap_y,
             ap_z=ap_z,
+            ap_norm_x=ap_nin_x,
+            ap_norm_y=ap_nin_y,
+            ap_norm_z=ap_nin_z,
         )
 
         if visibility:
@@ -1341,6 +1356,7 @@ def calc_solidangle_apertures(
                 unit_vector_x=unit_vector_x,
                 unit_vector_y=unit_vector_y,
                 unit_vector_z=unit_vector_z,
+                **kwdargs,
             )
 
     elif visibility:
@@ -1352,14 +1368,28 @@ def calc_solidangle_apertures(
             pts_y=pts_y,
             pts_z=pts_z,
             # detector polygons as 1d arrays
-            det_x=det_x,
-            det_y=det_y,
-            det_z=det_z,
-            # aperture polygons as 1d arrays
+            det_outline_x0=det_outline_x0,
+            det_outline_x1=det_outline_x1,
+            det_cents_x=det_cents_x,
+            det_cents_y=det_cents_y,
+            det_cents_z=det_cents_z,
+            det_norm_x=det_nin_x,
+            det_norm_y=det_nin_y,
+            det_norm_z=det_nin_z,
+            det_e0_x=det_e0_x,
+            det_e0_y=det_e0_y,
+            det_e0_z=det_e0_z,
+            det_e1_x=det_e1_x,
+            det_e1_y=det_e1_y,
+            det_e1_z=det_e1_z,
+            # apertures
             ap_ind=ap_ind,
             ap_x=ap_x,
             ap_y=ap_y,
             ap_z=ap_z,
+            ap_norm_x=ap_nin_x,
+            ap_norm_y=ap_nin_y,
+            ap_norm_z=ap_nin_z,
             # possible obstacles
             **kwdargs,
         )

@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 
 
+import datastock as ds
+
+
 from . import _comp_solidangles
 
 
@@ -20,6 +23,9 @@ __all__ = ['compute_etendue']
 def compute_etendue(
     det=None,
     aperture=None,
+    analytical=None,
+    numerical=None,
+    res=None,
     plot=None,
 ):
     """ Only works for a set of detectors associated to a single aperture
@@ -35,6 +41,9 @@ def compute_etendue(
     det, aperture, plot = _compute_etendue_check(
         det=det,
         aperture=aperture,
+        analytical=analytical,
+        numerical=numerical,
+        res=res,
         plot=plot,
     )
 
@@ -43,11 +52,12 @@ def compute_etendue(
 
     (
         det_surface, ap_surface,
-        distances, sca,
+        distances, cos_det, cos_ap,
         solid_angles, res,
     ) = _compute_etendue_prepare(
         det=det,
         aperture=aperture,
+        res=res,
     )
 
     shape = distances.shape
@@ -55,42 +65,53 @@ def compute_etendue(
     # --------------------
     # compute analytically
 
-    etend0 = np.full(tuple(np.r_[3, shape]), np.nan)
+    if analytical is True:
+        etend0 = np.full(tuple(np.r_[3, shape]), np.nan)
 
-    # 0th order
-    etend0[0, ...] = det_surface * ap_surface / distances**2
+        # 0th order
+        etend0[0, ...] = ap_surface * det_surface / distances**2
 
-    # 1st order
-    etend0[1, ...] = sca * det_surface * ap_surface / distances**2
+        # 1st order
+        etend0[1, ...] = (
+            cos_los_ap * ap_surface
+            * cos_los_det * det_surface / distances**2
+        )
 
-    # 2nd order
-    etend0[2, ...] = det_surface * solid_angles
+        # 2nd order
+        etend0[2, ...] = cos_los_ap * ap_surface * solid_angles
+
+    else:
+        etend0 = None
 
     # --------------------
     # compute numerically
 
-    etend1 = np.full(tuple(np.r_[3, shape]), np.nan)
+    if numerical is True:
+        etend1 = np.full(tuple(np.r_[3, shape]), np.nan)
 
-    # # poor resolution
-    # etend1[0, ...] = _compute_etendue_numerical(
-        # det=det,
-        # aperture=aperture,
-        # res=res[0],
-    # )
+        # # poor resolution
+        # etend1[0, ...] = _compute_etendue_numerical(
+            # det=det,
+            # aperture=aperture,
+            # res=res[0],
+        # )
 
-    # # medium resolution
-    # etend1[1, ...] = _compute_etendue_numerical(
-        # det=det,
-        # aperture=aperture,
-        # res=res[1],
-    # )
+        # # medium resolution
+        # etend1[1, ...] = _compute_etendue_numerical(
+            # det=det,
+            # aperture=aperture,
+            # res=res[1],
+        # )
 
-    # # good resolution
-    # etend1[2, ...] = _compute_etendue_numerical(
-        # det=det,
-        # aperture=aperture,
-        # res=res[2],
-    # )
+        # # good resolution
+        # etend1[2, ...] = _compute_etendue_numerical(
+            # det=det,
+            # aperture=aperture,
+            # res=res[2],
+        # )
+
+    else:
+        etend1 = None
 
     # --------------------
     # optional plotting
@@ -113,6 +134,9 @@ def compute_etendue(
 def _compute_etendue_check(
     det=None,
     aperture=None,
+    analytical=None,
+    numerical=None,
+    res=None,
     plot=None,
 ):
     """ Check conformity of inputs
@@ -205,11 +229,10 @@ def _compute_etendue_check(
     # aperture 
 
     lk = [
-        'cent_x', 'cent_y', 'cent_z',
+        'poly_x', 'poly_y', 'poly_z',
         'nin_x', 'nin_y', 'nin_z',
         'e0_x', 'e0_y', 'e0_z',
         'e1_x', 'e1_y', 'e1_z',
-        'outline_x0', 'outline_x1',
     ]
 
     c0 = (
@@ -238,18 +261,17 @@ def _compute_etendue_check(
             msg = f"Arg aperture['{k0}'] must be 1d"
             raise Exception(msg)
 
-        if k0 not in ['outline_x0', 'outline_x1'] and aperture[k0].size > 1:
+        if 'poly_' not in k0 and aperture[k0].size > 1:
             msg = f"Arg aperture['{k0}'] must have size 1"
             raise Exception(msg)
 
     # check shapes
     dshape = {
-        0: ['outline_x0', 'outline_x1'],
+        0: ['poly_x', 'poly_y', 'poly_z'],
         1: [
             'nin_x', 'nin_y', 'nin_z',
             'e0_x', 'e0_y', 'e0_z',
             'e1_x', 'e1_y', 'e1_z',
-            'cent_x', 'cent_y', 'cent_z',
         ],
     }
     for k0, v0 in dshape.items():
@@ -271,6 +293,47 @@ def _compute_etendue_check(
     aperture['nin_y'] = aperture['nin_y'] / norm
     aperture['nin_z'] = aperture['nin_z'] / norm
 
+    # derive cents
+    aperture['cent_x'] = np.mean(aperture['poly_x'])
+    aperture['cent_y'] = np.mean(aperture['poly_y'])
+    aperture['cent_z'] = np.mean(aperture['poly_z'])
+
+    # derive outline
+    aperture['outline_x0'] = (
+        (aperture['poly_x'] - aperture['cent_x'])*aperture['e0_x']
+        + (aperture['poly_y'] - aperture['cent_y'])*aperture['e0_y']
+        + (aperture['poly_z'] - aperture['cent_z'])*aperture['e0_z']
+    )
+    aperture['outline_x1'] = (
+        (aperture['poly_x'] - aperture['cent_x'])*aperture['e1_x']
+        + (aperture['poly_y'] - aperture['cent_y'])*aperture['e1_y']
+        + (aperture['poly_z'] - aperture['cent_z'])*aperture['e1_z']
+    )
+
+    # -----------
+    # analytical
+
+    analytical = ds._generic_check._check_var(
+        'analytical', analytical,
+        types=bool,
+        default=True,
+    )
+
+    # -----------
+    # numerical
+
+    numerical = ds._generic_check._check_var(
+        'numerical', nmumerical,
+        types=bool,
+        default=True,
+    )
+
+    # -----------
+    # res
+
+    if res is not None:
+        res = np.atleast_1d(res).ravel()
+
     # -----------
     # plot
 
@@ -280,7 +343,7 @@ def _compute_etendue_check(
         msg = "Arg plot must be a bool"
         raise Exception(msg)
 
-    return det, aperture, plot
+    return det, aperture, analytical, numerical, res, plot
 
 
 # #############################################################################
@@ -313,14 +376,29 @@ def _compute_etendue_prepare(
 
 
     # ----------------------------------
-    # check outline is counter-clockwise
+    # los, distances, cosines
 
-    sca_abs = np.abs((
-        det['nin_x'] * aperture['nin_x']
-        + det['nin_y'] * aperture['nin_y']
-        + det['nin_z'] * aperture['nin_z']
-    ))
+    los_x = aperture['cent_x'] - det['cents_x']
+    los_y = aperture['cent_y'] - det['cents_y']
+    los_z = aperture['cent_z'] - det['cents_z']
 
+    distances = np.sqrt(los_x**2 + los_y**2 + los_z**2)
+
+    los_x = los_x / distances
+    los_y = los_y / distances
+    los_z = los_z / distances
+
+    cos_los_det = (
+        los_x * det['nin_x']
+        + los_y * det['nin_y']
+        + los_z * det['nin_z']
+    )
+
+    cos_los_ap = (
+        los_x * ap['nin_x']
+        + los_y * ap['nin_y']
+        + los_z * ap['nin_z']
+    )
 
     # -----------
     # surfaces
@@ -330,15 +408,6 @@ def _compute_etendue_prepare(
     )
     ap_surface = 0.5*np.sum(
         (ap_out_x0[1:] + ap_out_x0[:-1]) * (ap_out_x1[1:] - ap_out_x1[:-1])
-    )
-
-    # ------------
-    # distances
-
-    distances = (
-        (det['cents_x'] - aperture['cent_x'])**2
-        + (det['cents_y'] - aperture['cent_y'])**2
-        + (det['cents_z'] - aperture['cent_z'])**2
     )
 
     # ------------
@@ -365,12 +434,16 @@ def _compute_etendue_prepare(
     # -------------------------------------
     # det outline discretization resolution
 
-    res = min(
-        np.sqrt(det_surface),
-        np.sqrt(np.min(np.diff(ap_out_x0)**2 + np.diff(ap_out_x1)**2))
-    ) * np.r_[0.1, 0.01, 0.001]
+    if res is None:
+        res = min(
+            np.sqrt(det_surface),
+            np.sqrt(np.min(np.diff(ap_out_x0)**2 + np.diff(ap_out_x1)**2))
+        ) * np.r_[0.1, 0.05, 0.02, 0.01]
 
-    return det_surface, ap_surface, distances, sca_abs, solid_angles, res
+    return (
+        det_surface, ap_surface, distances,
+        cos_det, cos_ap, solid_angles, res,
+    )
 
 
 # #############################################################################

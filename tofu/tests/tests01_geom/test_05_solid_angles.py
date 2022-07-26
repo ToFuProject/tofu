@@ -177,9 +177,8 @@ def _create_single_rectangle():
     # For a rectangle of dimensions (a, b) seen from height h
     # https://www.planetmath.org/solidangleofrectangularpyramid
     # sa = 4 arcsin( ab / sqrt( (a^2 + h^2)*(b^2 + h^2) ) )
-    sa = 4*np.arcsin(
-        a*b / np.sqrt((a**2 + pts_z[1:]**2) * (b**2 + pts_z[1:]**2))
-    )
+    h = pts_z[1:]
+    sa = 4*np.arcsin(a*b / np.sqrt((a**2 + h**2) * (b**2 + h**2)))
     sa = np.r_[0, sa]
 
     return {
@@ -251,8 +250,17 @@ def _create_light():
             'nin_y': nin[1],
             'nin_z': nin[2],
         },
+        'ap3': {
+            'poly_x': 10*a*np.r_[-1, 0, 0, -1],
+            'poly_y': 10*b*np.r_[-1, -1, 1, 1],
+            'poly_z': 0.25*np.ones((4,)),
+            'nin_x': nin[0],
+            'nin_y': nin[1],
+            'nin_z': nin[2],
+        },
     }
-    ap['ap2'] = dict(ap)
+    ap['ap2'] = {k0: dict(ap[k0]) for k0 in ['ap0', 'ap1']}
+    ap['ap3'] = {k0: dict(ap[k0]) for k0 in ['ap0', 'ap1', 'ap3']}
 
     pts_z = np.r_[-1, 0.1, 0.5, 1, 10, 50]
     pts_x = np.zeros((pts_z.size,))
@@ -261,17 +269,22 @@ def _create_light():
     # For a rectangle of dimensions (a, b) seen from height h
     # https://www.planetmath.org/solidangleofrectangularpyramid
     # sa = 4 arcsin( ab / sqrt( (a^2 + h^2)*(b^2 + h^2) ) )
-    h = pts_z[2:] - 0.1
+    h = pts_z[2:]
     sa0 = 4*np.arcsin(a*b / np.sqrt((a**2 + h**2) * (b**2 + h**2)))
 
     h = pts_z[2:] - 0.2
-    sa1 = 4*np.arcsin(a*b / np.sqrt((0.01*a**2 + h**2) * (0.01*b**2 + h**2)))
+    sa1 = 4*np.arcsin(0.01*a*b / np.sqrt((0.01*a**2 + h**2) * (0.01*b**2 + h**2)))
 
     h = pts_z[2:] - 0.2
-    sa2 = 4*np.arcsin(a*b / np.sqrt((0.01*a**2 + h**2) * (0.01*b**2 + h**2)))
+    sa2 = 4*np.arcsin(0.01*a*b / np.sqrt((0.01*a**2 + h**2) * (0.01*b**2 + h**2)))
     sa0 = np.r_[0, 0, sa0]
     sa1 = np.r_[0, 0, sa1]
     sa2 = np.r_[0, 0, sa2]
+    sa3 = np.r_[0, 0, sa2/2.]
+
+    uvx = np.r_[np.nan, np.nan, np.zeros((sa0.size-2,))]
+    uvy = np.r_[np.nan, np.nan, np.zeros((sa0.size-2,))]
+    uvz = np.r_[np.nan, np.nan, -np.ones((sa0.size-2,))]
 
     return {
         'pts_x': pts_x,
@@ -282,7 +295,91 @@ def _create_light():
         'sa0': sa0,
         'sa1': sa1,
         'sa2': sa2,
+        'sa3': sa3,
+        'uvx': uvx,
+        'uvy': uvy,
+        'uvz': uvz,
     }
+
+
+def _create_visibility():
+
+    conf = tfg.utils.create_config('ITER-V0')
+
+    a, b = 2, 1
+    outline_x0 = a*np.r_[-1, 1, 1, -1]
+    outline_x1 = b*np.r_[-1, -1, 1, 1]
+
+    cents = np.r_[5.6, 0, -3.8]
+
+    nin = np.r_[-1, 0, 0]
+    e0 = np.r_[0, 1, 0]
+    e1 = np.cross(nin, e0)
+
+    det = {
+        'outline_x0': outline_x0,
+        'outline_x1': outline_x1,
+        'cents_x': cents[0],
+        'cents_y': cents[1],
+        'cents_z': cents[2],
+        'nin_x': nin[0],
+        'nin_y': nin[1],
+        'nin_z': nin[2],
+        'e0_x': e0[0],
+        'e0_y': e0[1],
+        'e0_z': e0[2],
+        'e1_x': e1[0],
+        'e1_y': e1[1],
+        'e1_z': e1[2],
+    }
+
+    ap = {
+        'ap0': {
+            'poly_x': (cents[0] - 0.05)*np.ones((4,)),
+            'poly_y': cents[1] + 10*a*np.r_[-1, 1, 1, -1],
+            'poly_z': cents[2] + 10*b*np.r_[-1, -1, 1, 1],
+            'nin_x': nin[0],
+            'nin_y': nin[1],
+            'nin_z': nin[2],
+        },
+        'ap1': {
+            'poly_x': (cents[0] - 0.1)*np.ones((4,)),
+            'poly_y': cents[1] + 0.1*a*np.r_[-1, 1, 1, -1],
+            'poly_z': cents[2] + 0.1*b*np.r_[-1, -1, 1, 1],
+            'nin_x': nin[0],
+            'nin_y': nin[1],
+            'nin_z': nin[2],
+        },
+        'ap3': {
+            'poly_x': (cents[0] - 0.15)*np.ones((4,)),
+            'poly_y': cents[1] + 10*a*np.r_[-1, 0, 0, -1],
+            'poly_z': cents[2] + 10*b*np.r_[-1, -1, 1, 1],
+            'nin_x': nin[0],
+            'nin_y': nin[1],
+            'nin_z': nin[2],
+        },
+    }
+
+    # pts
+    pts_x = np.r_[5.4, 5.2, 4.8, 4.4]
+    pts_y = np.zeros((pts_x.size,))
+    pts_z = cents[2] * np.ones((pts_x.size,))
+
+    # sa
+    h = cents[0] - pts_x - 0.1
+    sa = 4*np.arcsin(0.01*a*b / np.sqrt((0.01*a**2 + h**2) * (0.01*b**2 + h**2)))
+    sa = np.r_[sa[:2]*0.5, 0., 0.]
+
+    return {
+        'pts_x': pts_x,
+        'pts_y': pts_y,
+        'pts_z': pts_z,
+        'det': det,
+        'ap': ap,
+        'sa': sa,
+        'config': conf,
+    }
+
 
 
 #######################################################
@@ -299,6 +396,7 @@ class Test01_triangulation():
         self.single_triangle = _create_single_triangle()
         self.single_rectangle = _create_single_rectangle()
         self.light = _create_light()
+        self.visibility = _create_visibility()
 
     # ------------------------
     #   Populating
@@ -306,7 +404,7 @@ class Test01_triangulation():
 
     def test01_triangulation_2d_rectangle(self):
         tri = tfg._comp_solidangles.triangulate_polygon_2d(
-            np.r_[-1., 1, 1, -1],
+            2*np.r_[-1., 1, 1, -1],
             np.r_[-1., -1, 1, 1],
         )
 
@@ -400,7 +498,7 @@ class Test01_triangulation():
 
     def test05_solid_angle_light(self):
 
-        for ii in range(3):
+        for ii in range(4):
             sa = tfg.calc_solidangle_apertures(
                 pts_x=self.light['pts_x'],
                 pts_y=self.light['pts_y'],
@@ -413,7 +511,7 @@ class Test01_triangulation():
 
             # check solid angle value
             saref = self.light[f'sa{ii}']
-            if np.any(np.abs(sa - saref) > 1.e-10 * saref):
+            if np.any(np.abs(sa - saref) > 1.e-6 * saref):
                 msg = (
                     f"Solid angle of light (case{ii}) is wrong!\n"
                     f"\t- Expected: {saref}\n"
@@ -422,7 +520,73 @@ class Test01_triangulation():
                 raise Exception(msg)
 
     def test06_solid_angle_vector(self):
-        pass
+        for ii in range(3):
+            sa, uvx, uvy, uvz = tfg.calc_solidangle_apertures(
+                pts_x=self.light['pts_x'],
+                pts_y=self.light['pts_y'],
+                pts_z=self.light['pts_z'],
+                apertures=self.light['ap'][f'ap{ii}'],
+                detectors=self.light['det'],
+                visibility=False,
+                return_vector=True,
+            )
+            sa = sa.ravel()
+            uvx = uvx.ravel()
+            uvy = uvy.ravel()
+            uvz = uvz.ravel()
+
+            # check solid angle value
+            saref = self.light[f'sa{ii}']
+            if np.any(np.abs(sa - saref) > 1.e-6 * saref):
+                msg = (
+                    f"Solid angle of light (case{ii}) is wrong!\n"
+                    f"\t- Expected: {saref}\n"
+                    f"\t- Obtained: {sa}\n"
+                )
+                raise Exception(msg)
+
+            # check unit vectors
+            uvxr = self.light['uvx']
+            uvyr = self.light['uvy']
+            uvzr = self.light['uvz']
+            c0 = (
+                np.allclose(uvx, uvxr, equal_nan=True)
+                and np.allclose(uvx, uvxr, equal_nan=True)
+                and np.allclose(uvx, uvxr, equal_nan=True)
+            )
+            if not c0:
+                msg = (
+                    f"Unit vectors of light (case{ii}) are wrong!\n"
+                    "\t- uvx:\n"
+                    f"\t\t- expected {uvxr}\n"
+                    f"\t\t- obtained {uvx}\n"
+                    "\t- uvy:\n"
+                    f"\t\t- expected {uvyr}\n"
+                    f"\t\t- obtained {uvy}\n"
+                    "\t- uvz:\n"
+                    f"\t\t- expected {uvzr}\n"
+                    f"\t\t- obtained {uvz}\n"
+                )
+                raise Exception(msg)
 
     def test07_solid_angle_visible(self):
-        pass
+        sa = tfg.calc_solidangle_apertures(
+            pts_x=self.visibility['pts_x'],
+            pts_y=self.visibility['pts_y'],
+            pts_z=self.visibility['pts_z'],
+            apertures=self.visibility['ap'],
+            detectors=self.visibility['det'],
+            config=self.visibility['config'],
+            visibility=True,
+            return_vector=False,
+        ).ravel()
+
+        # check solid angle value
+        saref = self.visibility['sa']
+        if np.any(np.abs(sa - saref) > 1.e-6 * saref):
+            msg = (
+                f"Solid angle of visibility is wrong!\n"
+                f"\t- Expected: {saref}\n"
+                f"\t- Obtained: {sa}\n"
+            )
+            raise Exception(msg)
