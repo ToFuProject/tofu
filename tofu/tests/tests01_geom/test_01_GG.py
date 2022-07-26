@@ -571,6 +571,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
         # assert np.allclose(dLr, dLri)
         # assert np.allclose(Rref,Rrefi)
         assert all([dXr == dXri, dY0r == dY0ri, dZ0r == dZ0ri])
+
     print(egewgwrgwr)
 
 
