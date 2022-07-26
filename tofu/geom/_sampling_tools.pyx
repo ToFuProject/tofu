@@ -20,7 +20,7 @@ from cython.parallel import prange
 from cython.parallel cimport parallel
 from cython.parallel cimport threadid
 from cpython.array cimport array, clone
-from libc.stdio cimport printf
+from libc.stdio cimport printf, fflush, stdout
 # for utility functions:
 import numpy as np
 cimport numpy as cnp
@@ -145,6 +145,7 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     nind[0] = nl1 + 1 - nl0[0]
     printf("  -> resolution=%lf, ncells=%li, nind=%li, nl0=%i\n",
            resolution[0], ncells[0], nind[0], nl0[0])
+    fflush(stdout)
     return
 
 
