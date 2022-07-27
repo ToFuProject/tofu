@@ -26,6 +26,7 @@ def compute_etendue(
     analytical=None,
     numerical=None,
     res=None,
+    verb=None,
     plot=None,
 ):
     """ Only works for a set of detectors associated to a single aperture
@@ -38,12 +39,17 @@ def compute_etendue(
     # -------------
     # check inputs
 
-    det, aperture, plot = _compute_etendue_check(
+    (
+        det, aperture,
+        analytical, numerical,
+        res, verb, plot,
+    ) = _compute_etendue_check(
         det=det,
         aperture=aperture,
         analytical=analytical,
         numerical=numerical,
         res=res,
+        verb=verb,
         plot=plot,
     )
 
@@ -51,8 +57,9 @@ def compute_etendue(
     # prepare
 
     (
-        det_surface, ap_surface,
-        distances, cos_det, cos_ap,
+        det_surface, ap_surface, distances,
+        los_x, los_y, los_z,
+        cos_los_det, cos_los_ap,
         solid_angles, res,
     ) = _compute_etendue_prepare(
         det=det,
@@ -87,28 +94,15 @@ def compute_etendue(
     # compute numerically
 
     if numerical is True:
-        etend1 = np.full(tuple(np.r_[3, shape]), np.nan)
-
-        # # poor resolution
-        # etend1[0, ...] = _compute_etendue_numerical(
-            # det=det,
-            # aperture=aperture,
-            # res=res[0],
-        # )
-
-        # # medium resolution
-        # etend1[1, ...] = _compute_etendue_numerical(
-            # det=det,
-            # aperture=aperture,
-            # res=res[1],
-        # )
-
-        # # good resolution
-        # etend1[2, ...] = _compute_etendue_numerical(
-            # det=det,
-            # aperture=aperture,
-            # res=res[2],
-        # )
+        etend1 = _compute_etendue_numerical(
+            det=det,
+            aperture=aperture,
+            res=res,
+            los_x=los_x,
+            los_y=los_y,
+            los_z=los_z,
+            verb=verb,
+        )
 
     else:
         etend1 = None
@@ -122,7 +116,17 @@ def compute_etendue(
             etend1=etend1,
         )
 
-    return etend0, etend1
+    # --------------------
+    # return
+
+    dout = {
+        'analytical': etend0,
+        'numerical': etend1,
+        'res': res,
+    }
+
+    return dout
+
 
 
 # #############################################################################
@@ -137,6 +141,7 @@ def _compute_etendue_check(
     analytical=None,
     numerical=None,
     res=None,
+    verb=None,
     plot=None,
 ):
     """ Check conformity of inputs
@@ -219,6 +224,14 @@ def _compute_etendue_check(
             )
             raise Exception(msg)
 
+    # check outline not closed
+    if (
+        det['outline_x0'][0] == det['outline_x0'][-1]
+        and det['outline_x1'][0] == det['outline_x1'][-1]
+    ):
+        det['outline_x0'] = det['outline_x0'][:-1]
+        det['outline_x1'] = det['outline_x1'][:-1]
+
     # normalization
     norms = np.sqrt(det['nin_x']**2 + det['nin_y']**2 + det['nin_z']**2)
     det['nin_x'] = det['nin_x'] / norms
@@ -283,6 +296,16 @@ def _compute_etendue_check(
             )
             raise Exception(msg)
 
+    # check not closed poly
+    if (
+        aperture['poly_x'][0] == aperture['poly_x'][-1]
+        and aperture['poly_y'][0] == aperture['poly_y'][-1]
+        and aperture['poly_z'][0] == aperture['poly_z'][-1]
+    ):
+        aperture['poly_x'] = aperture['poly_x'][:-1]
+        aperture['poly_y'] = aperture['poly_y'][:-1]
+        aperture['poly_z'] = aperture['poly_z'][:-1]
+
     # normalization
     norm = np.sqrt(
         aperture['nin_x']**2
@@ -314,7 +337,7 @@ def _compute_etendue_check(
     # analytical
 
     analytical = ds._generic_check._check_var(
-        'analytical', analytical,
+        analytical, 'analytical',
         types=bool,
         default=True,
     )
@@ -323,7 +346,7 @@ def _compute_etendue_check(
     # numerical
 
     numerical = ds._generic_check._check_var(
-        'numerical', nmumerical,
+        numerical, 'numerical',
         types=bool,
         default=True,
     )
@@ -335,6 +358,15 @@ def _compute_etendue_check(
         res = np.atleast_1d(res).ravel()
 
     # -----------
+    # verb
+
+    verb = ds._generic_check._check_var(
+        verb, 'verb',
+        types=bool,
+        default=True,
+    )
+
+    # -----------
     # plot
 
     if plot is None:
@@ -343,7 +375,7 @@ def _compute_etendue_check(
         msg = "Arg plot must be a bool"
         raise Exception(msg)
 
-    return det, aperture, analytical, numerical, res, plot
+    return det, aperture, analytical, numerical, res, verb, plot
 
 
 # #############################################################################
@@ -355,6 +387,7 @@ def _compute_etendue_check(
 def _compute_etendue_prepare(
     det=None,
     aperture=None,
+    res=None,
 ):
 
     # -----------------------
@@ -395,19 +428,27 @@ def _compute_etendue_prepare(
     )
 
     cos_los_ap = (
-        los_x * ap['nin_x']
-        + los_y * ap['nin_y']
-        + los_z * ap['nin_z']
+        los_x * aperture['nin_x']
+        + los_y * aperture['nin_y']
+        + los_z * aperture['nin_z']
     )
 
     # -----------
     # surfaces
 
-    det_surface = 0.5*np.sum(
-        (det_out_x0[1:] + det_out_x0[:-1]) * (det_out_x1[1:] - det_out_x1[:-1])
+    det_surface = 0.5*np.abs(
+        np.sum(
+            (det_out_x0[1:] + det_out_x0[:-1])
+            * (det_out_x1[1:] - det_out_x1[:-1])
+        )
+        + (det_out_x0[0] + det_out_x0[-1])*(det_out_x1[0] - det_out_x1[-1])
     )
-    ap_surface = 0.5*np.sum(
-        (ap_out_x0[1:] + ap_out_x0[:-1]) * (ap_out_x1[1:] - ap_out_x1[:-1])
+
+    ap_surface = 0.5*np.abs(
+        np.sum(
+            (ap_out_x0[1:] + ap_out_x0[:-1]) * (ap_out_x1[1:] - ap_out_x1[:-1])
+        )
+        + (ap_out_x0[0] + ap_out_x0[-1]) * (ap_out_x1[0] - ap_out_x1[-1])
     )
 
     # ------------
@@ -421,15 +462,12 @@ def _compute_etendue_prepare(
         # polygons
         apertures=None,
         detectors=det,
-        detectors_normal=None,
         # possible obstacles
         config=None,
         # parameters
         visibility=False,
         return_vector=False,
-    )
-
-    import pdb; pdb.set_trace()     # DB
+    ).ravel()
 
     # -------------------------------------
     # det outline discretization resolution
@@ -438,11 +476,12 @@ def _compute_etendue_prepare(
         res = min(
             np.sqrt(det_surface),
             np.sqrt(np.min(np.diff(ap_out_x0)**2 + np.diff(ap_out_x1)**2))
-        ) * np.r_[0.1, 0.05, 0.02, 0.01]
+        ) * np.r_[0.25, 0.1, 0.05, 0.025]
 
     return (
         det_surface, ap_surface, distances,
-        cos_det, cos_ap, solid_angles, res,
+        los_x, los_y, los_z,
+        cos_los_det, cos_los_ap, solid_angles, res,
     )
 
 
@@ -456,59 +495,178 @@ def _compute_etendue_numerical(
     det=None,
     aperture=None,
     res=None,
+    k_los=None,
+    los_x=None,
+    los_y=None,
+    los_z=None,
+    verb=None,
 ):
 
-    # -------------------
-    # Discretize aperture
+    if k_los is None:
+        k_los = 1.2
 
-    cx, cy, cz = [aperture[k0] for k0 in ['cent_x', 'cent_y', 'cent_z']]
-    out0, out1 = aperture['outline_x0'], aperture['outline_x1']
+    shape0 = det['cents_x'].shape
+    cents_x = det['cents_x'].ravel()
+    cents_y = det['cents_y'].ravel()
+    cents_z = det['cents_z'].ravel()
+    nin_x = det['nin_x'].ravel()
+    nin_y = det['nin_y'].ravel()
+    nin_z = det['nin_z'].ravel()
+    e0_x = det['e0_x'].ravel()
+    e0_y = det['e0_y'].ravel()
+    e0_z = det['e0_z'].ravel()
+    e1_x = det['e1_x'].ravel()
+    e1_y = det['e1_y'].ravel()
+    e1_z = det['e1_z'].ravel()
+    nd = cents_x.size
 
-    min0, max0 = np.min(out0), np.max(out0)
-    min1, max1 = np.min(out1), np.max(out1)
+    # ------------------------------
+    # Get plane perpendicular to los
 
-    n0 = int(np.ceil((max0 - min0) / res))
-    n1 = int(np.ceil((max1 - min1) / res))
+    etendue = np.full((res.size, cents_x.size), np.nan)
+    for ii in range(nd):
 
-    d0 = (max0 - min0) / n0
-    d1 = (max1 - min1) / n1
+        if verb is True:
+            msg = f"Numerical etendue for det {ii+1} / {nd}"
+            print(msg)
 
-    ds = d0 * d1
+        # get individual det dict
+        deti = dict(det)
+        deti['cents_x'] = np.r_[cents_x[ii]]
+        deti['cents_y'] = np.r_[cents_y[ii]]
+        deti['cents_z'] = np.r_[cents_z[ii]]
+        deti['nin_x'] = np.r_[nin_x[ii]]
+        deti['nin_y'] = np.r_[nin_y[ii]]
+        deti['nin_z'] = np.r_[nin_z[ii]]
+        deti['e0_x'] = np.r_[e0_x[ii]]
+        deti['e0_y'] = np.r_[e0_y[ii]]
+        deti['e0_z'] = np.r_[e0_z[ii]]
+        deti['e1_x'] = np.r_[e1_x[ii]]
+        deti['e1_y'] = np.r_[e1_y[ii]]
+        deti['e1_z'] = np.r_[e1_z[ii]]
 
-    pts_0 = np.linspace(np.min(out0), np.max(out0), n0 + 1)
-    pts_1 = np.linspace(np.min(out1), np.max(out1), n1 + 1)
-    pts_0 = 0.5 * (pts_0[1:] + pts_0[:-1])
-    pts_1 = 0.5 * (pts_1[1:] + pts_1[:-1])
+        # get det centers to aperture corners vectors
+        PA_x = aperture['poly_x'] - cents_x[ii]
+        PA_y = aperture['poly_y'] - cents_y[ii]
+        PA_z = aperture['poly_z'] - cents_z[ii]
 
-    pts_x = (
-        cx
-        + pts_0[:, None] * aperture['ei_x']
-        + pts_1[None, :] * aperture['ej_x']
-    ).ravel()
-    pts_y = (
-        cy
-        + pts_0[:, None] * aperture['ei_y']
-        + pts_1[None, :] * aperture['ej_y']
-    ).ravel()
-    pts_z = (
-        cz
-        + pts_0[:, None] * aperture['ei_z']
-        + pts_1[None, :] * aperture['ej_z']
-    ).ravel()
+        # get length along los
+        k_losi = (
+            k_los
+            * np.max(PA_x * los_x[ii] + PA_y * los_y[ii] + PA_z * los_z[ii])
+        )
 
-    # ----------------------------------
-    # compute solid angle for each pixel
+        # get center of plane perpendicular to los
+        c_los_x = cents_x[ii] + k_losi * los_x[ii]
+        c_los_y = cents_y[ii] + k_losi * los_y[ii]
+        c_los_z = cents_z[ii] + k_losi * los_z[ii]
 
-    etendue = np.full(det['cents_x'].size, np.nan)
-    for ii in range(det['cents_x'].size):
-        solid_angle = np.nan
-        etendue[ii] = np.sum(solid_angle) * ds
+        # get projections of corners on plane perp. to los
+        sca0 = (
+            (c_los_x - cents_x[ii]) * los_x[ii]
+            + (c_los_y - cents_y[ii]) * los_y[ii]
+            + (c_los_z - cents_z[ii]) * los_z[ii]
+        )
+        sca1 = PA_x * los_x[ii] + PA_y * los_y[ii] + PA_z * los_z[ii]
+
+        k_plane = sca0 / sca1
+
+        # get projections on det_e0 and det_e1 in plane
+
+        e0_xi = los_y[ii] * e1_z[ii] - los_z[ii] * e1_y[ii]
+        e0_yi = los_z[ii] * e1_x[ii] - los_x[ii] * e1_z[ii]
+        e0_zi = los_x[ii] * e1_y[ii] - los_y[ii] * e1_x[ii]
+        e0_normi = np.sqrt(e0_xi**2 + e0_yi**2 + e0_zi**2)
+        e0_xi = e0_xi / e0_normi
+        e0_yi = e0_yi / e0_normi
+        e0_zi = e0_zi / e0_normi
+
+        e1_xi = los_y[ii] * e0_zi - los_z[ii] * e0_yi
+        e1_yi = los_z[ii] * e0_xi - los_x[ii] * e0_zi
+        e1_zi = los_x[ii] * e0_yi - los_y[ii] * e0_xi
+
+        x0 = (
+            ((cents_x[ii] + k_plane * PA_x) - c_los_x)*e0_xi
+            + ((cents_y[ii] + k_plane * PA_y) - c_los_y)*e0_yi
+            + ((cents_z[ii] + k_plane * PA_z) - c_los_z)*e0_zi
+        )
+        x1 = (
+            ((cents_x[ii] + k_plane * PA_x) - c_los_x)*e1_xi
+            + ((cents_y[ii] + k_plane * PA_y) - c_los_y)*e1_yi
+            + ((cents_z[ii] + k_plane * PA_z) - c_los_z)*e1_zi
+        )
+
+        x0_min, x0_max = np.min(x0), np.max(x0)
+        x1_min, x1_max = np.min(x1), np.max(x1)
+        w0 = x0_max - x0_min
+        w1 = x1_max - x1_min
+
+        # -------------------
+        # Discretize aperture
+
+        for jj in range(res.size):
+
+            if verb is True:
+                msg = f"\tres = {res[jj]} ({jj+1} / {res.size})"
+                print(msg)
+
+            n0 = int(np.ceil(w0 / res[jj]))
+            n1 = int(np.ceil(w1 / res[jj]))
+
+            d0 = w0 / n0
+            d1 = w1 / n1
+
+            ds = d0 * d1
+
+            pts_0 = np.linspace(x0_min, x0_max, n0 + 1)
+            pts_1 = np.linspace(x1_min, x1_max, n1 + 1)
+            pts_0 = 0.5 * (pts_0[1:] + pts_0[:-1])
+            pts_1 = 0.5 * (pts_1[1:] + pts_1[:-1])
+
+            pts_x = (
+                c_los_x + pts_0[:, None] * e0_x + pts_1[None, :] * e1_x
+            ).ravel()
+            pts_y = (
+                c_los_y + pts_0[:, None] * e0_y + pts_1[None, :] * e1_y
+            ).ravel()
+            pts_z = (
+                c_los_z + pts_0[:, None] * e0_z + pts_1[None, :] * e1_z
+            ).ravel()
+
+            # debug
+            # pts_x = np.r_[c_los_x]
+            # pts_y = np.r_[c_los_y]
+            # pts_z = np.r_[c_los_z]
+
+            # ----------------------------------
+            # compute solid angle for each pixel
+
+            solid_angle = _comp_solidangles.calc_solidangle_apertures(
+                # observation points
+                pts_x=pts_x,
+                pts_y=pts_y,
+                pts_z=pts_z,
+                # polygons
+                apertures=aperture,
+                detectors=deti,
+                # possible obstacles
+                config=None,
+                # parameters
+                visibility=False,
+                return_vector=False,
+                return_flat_pts=True,
+                return_flat_det=True,
+            )
+
+            etendue[jj, ii] = np.sum(solid_angle) * ds
+
+            import pdb; pdb.set_trace()     # DB
 
     # --------------
     # reshape output
 
-    # if shape0 is not False:
-        # etendue = etendue.reshape(shape0)
+    if cents_x.shape != shape0:
+        etendue = etendue.reshape(tuple(np.r_[res.size, shape0]))
 
     return etendue
 

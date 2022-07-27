@@ -5130,14 +5130,14 @@ def compute_solid_angle_apertures_unitvectors(
 
                     # project in 2d
                     ap_x0[ll] = (
-                        (P_x - det_cents_x[dd]) * det_e0_x
-                        + (P_y - det_cents_y[dd]) * det_e0_y
-                        + (P_z - det_cents_z[dd]) * det_e0_z
+                        (P_x - det_cents_x[dd]) * det_e0_x[dd]
+                        + (P_y - det_cents_y[dd]) * det_e0_y[dd]
+                        + (P_z - det_cents_z[dd]) * det_e0_z[dd]
                     )
                     ap_x1[ll] = (
-                        (P_x - det_cents_x[dd]) * det_e1_x
-                        + (P_y - det_cents_y[dd]) * det_e1_y
-                        + (P_z - det_cents_z[dd]) * det_e1_z
+                        (P_x - det_cents_x[dd]) * det_e1_x[dd]
+                        + (P_y - det_cents_y[dd]) * det_e1_y[dd]
+                        + (P_z - det_cents_z[dd]) * det_e1_z[dd]
                     )
 
                 if not isok:
@@ -5171,9 +5171,9 @@ def compute_solid_angle_apertures_unitvectors(
             # Get unit vectors
 
             cx0, cx1 = p_a.center(0)
-            ux = det_cents_x[dd] + cx0*det_e0_x + cx1*det_e1_x - pts_x[pp]
-            uy = det_cents_y[dd] + cx0*det_e0_y + cx1*det_e1_y - pts_y[pp]
-            uz = det_cents_z[dd] + cx0*det_e0_z + cx1*det_e1_z - pts_z[pp]
+            ux = det_cents_x[dd] + cx0*det_e0_x[dd] + cx1*det_e1_x[dd] - pts_x[pp]
+            uy = det_cents_y[dd] + cx0*det_e0_y[dd] + cx1*det_e1_y[dd] - pts_y[pp]
+            uz = det_cents_z[dd] + cx0*det_e0_z[dd] + cx1*det_e1_z[dd] - pts_z[pp]
             inv_norm = 1./c_sqrt(ux**2 + uy**2 + uz**2)
             uvect_x[dd, pp] = ux*inv_norm
             uvect_y[dd, pp] = uy*inv_norm
@@ -5203,18 +5203,18 @@ def compute_solid_angle_apertures_unitvectors(
                 # get triangle
                 tri_x = (
                     det_cents_x[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_x
-                    + p_a_x1[tri[tt, :]] * det_e1_x
+                    + p_a_x0[tri[tt, :]] * det_e0_x[dd]
+                    + p_a_x1[tri[tt, :]] * det_e1_x[dd]
                 )
                 tri_y = (
                     det_cents_y[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_y
-                    + p_a_x1[tri[tt, :]] * det_e1_y
+                    + p_a_x0[tri[tt, :]] * det_e0_y[dd]
+                    + p_a_x1[tri[tt, :]] * det_e1_y[dd]
                 )
                 tri_z = (
                     det_cents_z[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_z
-                    + p_a_x1[tri[tt, :]] * det_e1_z
+                    + p_a_x0[tri[tt, :]] * det_e0_z[dd]
+                    + p_a_x1[tri[tt, :]] * det_e1_z[dd]
                 )
 
                 # computation 2: solid angle of triangle from pts
@@ -5370,14 +5370,14 @@ def compute_solid_angle_apertures_visibility(
 
                     # project in 2d
                     ap_x0[ll] = (
-                        (P_x - det_cents_x[dd]) * det_e0_x
-                        + (P_y - det_cents_y[dd]) * det_e0_y
-                        + (P_z - det_cents_z[dd]) * det_e0_z
+                        (P_x - det_cents_x[dd]) * det_e0_x[dd]
+                        + (P_y - det_cents_y[dd]) * det_e0_y[dd]
+                        + (P_z - det_cents_z[dd]) * det_e0_z[dd]
                     )
                     ap_x1[ll] = (
-                        (P_x - det_cents_x[dd]) * det_e1_x
-                        + (P_y - det_cents_y[dd]) * det_e1_y
-                        + (P_z - det_cents_z[dd]) * det_e1_z
+                        (P_x - det_cents_x[dd]) * det_e1_x[dd]
+                        + (P_y - det_cents_y[dd]) * det_e1_y[dd]
+                        + (P_z - det_cents_z[dd]) * det_e1_z[dd]
                     )
 
                 if not isok:
@@ -5411,9 +5411,9 @@ def compute_solid_angle_apertures_visibility(
             # Get unit vector
 
             cx0, cx1 = p_a.center(0)
-            cx = (det_cents_x[dd] + cx0*det_e0_x + cx1*det_e1_x)[0]
-            cy = (det_cents_y[dd] + cx0*det_e0_y + cx1*det_e1_y)[0]
-            cz = (det_cents_z[dd] + cx0*det_e0_z + cx1*det_e1_z)[0]
+            cx = det_cents_x[dd] + cx0*det_e0_x[dd] + cx1*det_e1_x[dd]
+            cy = det_cents_y[dd] + cx0*det_e0_y[dd] + cx1*det_e1_y[dd]
+            cz = det_cents_z[dd] + cx0*det_e0_z[dd] + cx1*det_e1_z[dd]
 
             # check visibility
             vis = LOS_isVis_PtFromPts_VesStruct(
@@ -5467,18 +5467,18 @@ def compute_solid_angle_apertures_visibility(
                 # get triangle
                 tri_x = (
                     det_cents_x[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_x
-                    + p_a_x1[tri[tt, :]] * det_e1_x
+                    + p_a_x0[tri[tt, :]] * det_e0_x[dd]
+                    + p_a_x1[tri[tt, :]] * det_e1_x[dd]
                 )
                 tri_y = (
                     det_cents_y[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_y
-                    + p_a_x1[tri[tt, :]] * det_e1_y
+                    + p_a_x0[tri[tt, :]] * det_e0_y[dd]
+                    + p_a_x1[tri[tt, :]] * det_e1_y[dd]
                 )
                 tri_z = (
                     det_cents_z[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_z
-                    + p_a_x1[tri[tt, :]] * det_e1_z
+                    + p_a_x0[tri[tt, :]] * det_e0_z[dd]
+                    + p_a_x1[tri[tt, :]] * det_e1_z[dd]
                 )
 
                 # computation 2: solid angle of triangle from pts
@@ -5571,6 +5571,8 @@ def compute_solid_angle_apertures_light(
         # loop 2: on npts (observation points)
         for pp in range(npts):
 
+            # print('pts', pp)        # DB
+
             # test if on good side of detector
             sca0 = (
                 (pts_x[pp] - det_cents_x[dd]) * det_norm_x[dd]
@@ -5579,6 +5581,7 @@ def compute_solid_angle_apertures_light(
             )
 
             if sca0 <= 0:
+                # print('skip', sca0)        # DB
                 continue
 
             # flag
@@ -5618,21 +5621,39 @@ def compute_solid_angle_apertures_light(
 
                     # project in 2d
                     ap_x0[ll] = (
-                        (P_x - det_cents_x[dd]) * det_e0_x
-                        + (P_y - det_cents_y[dd]) * det_e0_y
-                        + (P_z - det_cents_z[dd]) * det_e0_z
+                        (P_x - det_cents_x[dd]) * det_e0_x[dd]
+                        + (P_y - det_cents_y[dd]) * det_e0_y[dd]
+                        + (P_z - det_cents_z[dd]) * det_e0_z[dd]
                     )
                     ap_x1[ll] = (
-                        (P_x - det_cents_x[dd]) * det_e1_x
-                        + (P_y - det_cents_y[dd]) * det_e1_y
-                        + (P_z - det_cents_z[dd]) * det_e1_z
+                        (P_x - det_cents_x[dd]) * det_e1_x[dd]
+                        + (P_y - det_cents_y[dd]) * det_e1_y[dd]
+                        + (P_z - det_cents_z[dd]) * det_e1_z[dd]
                     )
 
                 if not isok:
                     break
 
+                # print(
+                    # 'ap: ',
+                    # ap_x[ap_ind[aa]:ap_ind[aa+1]],
+                    # ap_y[ap_ind[aa]:ap_ind[aa+1]],
+                    # ap_z[ap_ind[aa]:ap_ind[aa+1]],
+                # )
+                # print('sca0, sca1, k  ', sca0, sca1, k)
+                # print('Px, Py, Pz:  ', P_x, P_y, P_z)
+                # print('det_cent:  ',  det_cents_x[dd], det_cents_y[dd], det_cents_z[dd])
+                # print('det_e0:  ', det_e0_x, det_e0_y, det_e0_z)
+                # print(
+                    # 'ap01: ',
+                    # ap_x0[ap_ind[aa]:ap_ind[aa+1]],
+                    # ap_x1[ap_ind[aa]:ap_ind[aa+1]],
+                # )
+
+
             # go to next point
             if not isok:
+                # print('skip 2', sca, aa)        # DB
                 continue
 
             # ----------------------------
@@ -5641,6 +5662,8 @@ def compute_solid_angle_apertures_light(
             # compute intersection
             p_a = plg.Polygon(np.array([det_outline_x0, det_outline_x1]).T)
             for aa in range(na):
+                # print('p_a: ', np.array(p_a.contour(0)).T)
+                # print('with: ', ap_x0[ap_ind[aa]:ap_ind[aa+1]], ap_x1[ap_ind[aa]:ap_ind[aa+1]])
                 p_a = p_a & plg.Polygon(np.array([
                     ap_x0[ap_ind[aa]:ap_ind[aa+1]],
                     ap_x1[ap_ind[aa]:ap_ind[aa+1]],
@@ -5653,6 +5676,7 @@ def compute_solid_angle_apertures_light(
 
             # stop if no intersection
             if not isok:
+                # print('skip 3', np.array(p_a.contour(0)).T)        # DB
                 continue
 
             # -------------------
@@ -5679,18 +5703,18 @@ def compute_solid_angle_apertures_light(
                 # get triangle
                 tri_x = (
                     det_cents_x[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_x
-                    + p_a_x1[tri[tt, :]] * det_e1_x
+                    + p_a_x0[tri[tt, :]] * det_e0_x[dd]
+                    + p_a_x1[tri[tt, :]] * det_e1_x[dd]
                 )
                 tri_y = (
                     det_cents_y[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_y
-                    + p_a_x1[tri[tt, :]] * det_e1_y
+                    + p_a_x0[tri[tt, :]] * det_e0_y[dd]
+                    + p_a_x1[tri[tt, :]] * det_e1_y[dd]
                 )
                 tri_z = (
                     det_cents_z[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_z
-                    + p_a_x1[tri[tt, :]] * det_e1_z
+                    + p_a_x0[tri[tt, :]] * det_e0_z[dd]
+                    + p_a_x1[tri[tt, :]] * det_e1_z[dd]
                 )
 
                 # computation 2: solid angle of triangle from pts
@@ -5708,6 +5732,7 @@ def compute_solid_angle_apertures_light(
                     pts_y[pp],
                     pts_z[pp],
                 )
+                # print('tri', tt, solid_angle[dd, pp])        # DB
 
     # -------
     # Return

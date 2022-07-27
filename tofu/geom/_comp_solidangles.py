@@ -431,7 +431,7 @@ def _check_pts(pts=None, pts_name=None):
                 f"Arg {pts_name} must be convertible to a np.ndarray float\n"
                 "Provided: {pts}"
             )
-        raise Exception(msg)
+            raise Exception(msg)
     return pts.astype(float)
 
 
@@ -1020,7 +1020,6 @@ def _calc_solidangle_apertures_prepare(
     det_e1_y = detectors['e1_y'].ravel()
     det_e1_z = detectors['e1_z'].ravel()
 
-
     return (
         ndim0, shape0, mask,
         pts_x, pts_y, pts_z,
@@ -1155,6 +1154,8 @@ def calc_solidangle_apertures(
     return_flat_det=None,
 ):
     """ Return the solid angle subtended by na apertures and nd detectors
+
+    Uses non-closed polygons
 
     See the following issue for details on the implementation:
         https://github.com/ToFuProject/tofu/issues/653
