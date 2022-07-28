@@ -29,7 +29,9 @@ jobs:
     - name: Install dependencies
       run: |
         conda config --append channels conda-forge
-        pip install -r requirements # temporary fix for Polygon3
+        pip install --upgrade pip
+        pip install pytest coverage wheel
+        pip install -r requirements.txt # fix
         # conda env update --file requirements.txt --name base
     - name: Lint with flake8
       run: |
