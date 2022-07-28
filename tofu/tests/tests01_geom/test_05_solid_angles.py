@@ -30,6 +30,7 @@ _PATH_OUTPUT = os.path.join(_PATH_HERE, 'output')
 def clean(path=_PATH_OUTPUT):
     pass
 
+
 def setup_module(module):
     clean()
 
@@ -198,7 +199,6 @@ def _create_single_rectangle():
     }
 
 
-
 def _create_light():
 
     a, b = 2, 1
@@ -268,10 +268,14 @@ def _create_light():
     sa0 = 4*np.arcsin(a*b / np.sqrt((a**2 + h**2) * (b**2 + h**2)))
 
     h = pts_z[2:] - 0.2
-    sa1 = 4*np.arcsin(0.01*a*b / np.sqrt((0.01*a**2 + h**2) * (0.01*b**2 + h**2)))
+    sa1 = 4*np.arcsin(
+        0.01*a*b / np.sqrt((0.01*a**2 + h**2) * (0.01*b**2 + h**2))
+    )
 
     h = pts_z[2:] - 0.2
-    sa2 = 4*np.arcsin(0.01*a*b / np.sqrt((0.01*a**2 + h**2) * (0.01*b**2 + h**2)))
+    sa2 = 4*np.arcsin(
+        0.01*a*b / np.sqrt((0.01*a**2 + h**2) * (0.01*b**2 + h**2))
+    )
     sa0 = np.r_[0, 0, sa0]
     sa1 = np.r_[0, 0, sa1]
     sa2 = np.r_[0, 0, sa2]
@@ -362,7 +366,9 @@ def _create_visibility():
 
     # sa
     h = cents[0] - pts_x - 0.1
-    sa = 4*np.arcsin(0.01*a*b / np.sqrt((0.01*a**2 + h**2) * (0.01*b**2 + h**2)))
+    sa = 4*np.arcsin(
+        0.01*a*b / np.sqrt((0.01*a**2 + h**2) * (0.01*b**2 + h**2))
+    )
     sa = np.r_[sa[:2]*0.5, 0., 0.]
 
     return {
@@ -469,7 +475,7 @@ class Test01_SolidAngles():
             np.r_[-1., -1, 1, 1],
         )
 
-        triref = np.array([[0, 1, 2], [1, 2 ,3]])
+        triref = np.array([[0, 1, 2], [1, 2, 3]])
         if np.allclose(tri, triref):
             msg = (
                 "Wrong rectangle triangulation:\n"

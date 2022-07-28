@@ -360,7 +360,6 @@ def calc_solidangle_particle_integ(
     )
 
 
-
 ###############################################################################
 ###############################################################################
 #           Triangulation
@@ -407,7 +406,7 @@ def triangulate_polygon_2d(
     tri = _GG.triangulate_by_earclipping_2d(np.array([poly_x, poly_y]))
 
     # -------
-    # format 
+    # format
 
     if clock > 0:
         tri = poly_x.size - 1 - tri
@@ -444,7 +443,9 @@ def _check_polygon_2d_counter_clockwise(
     assert not (poly_x0[0] == poly_x0[-1] and poly_x1[0] == poly_x1[-1])
     i0 = np.arange(0, poly_x0.size)
     i1 = np.r_[np.arange(1, poly_x0.size), 0]
-    return np.sum((poly_x0[i1] - poly_x0[i0]) * (poly_x1[i1] + poly_x1[i0])) < 0
+    return np.sum(
+        (poly_x0[i1] - poly_x0[i0]) * (poly_x1[i1] + poly_x1[i0])
+    ) < 0
 
 
 def _check_polygon_3d_counter_clockwise(
@@ -732,7 +733,6 @@ def _check_det_dict(detectors=None):
         'nin_x', 'nin_y', 'nin_z',
     ]
 
-
     # make sure array + float
     for k0 in set(lk_shape).intersection(detectors.keys()):
         detectors[k0] = np.atleast_1d(detectors[k0]).astype(float)
@@ -833,11 +833,11 @@ def _check_ap_dict(apertures=None):
 
     # check polygons
     for k0, v0 in apertures.items():
-         (
-             apertures[k0]['poly_x'],
-             apertures[k0]['poly_y'],
-             apertures[k0]['poly_z'],
-         ) = _check_polygon_3d(
+        (
+            apertures[k0]['poly_x'],
+            apertures[k0]['poly_y'],
+            apertures[k0]['poly_z'],
+        ) = _check_polygon_3d(
             poly_x=v0['poly_x'],
             poly_y=v0['poly_y'],
             poly_z=v0['poly_z'],
@@ -1187,7 +1187,6 @@ def calc_solidangle_apertures(
         The local unit vectors z coordinates
 
     """
-
 
     # --------------------------------------
     # check inputs (robust vs user mistakes)

@@ -45,7 +45,6 @@ def teardown_module(module):
 
 def _get_cases(ang0=np.pi/4., ang1=-np.pi/4.):
 
-
     # load and sample config
     conf = tf.load_config('WEST-V0')
     pts, dV, ind, reseff = conf.Ves.V1.get_sampleV(
@@ -181,7 +180,7 @@ class Test01_SolidAngles():
 
             # prepare checks
             if not v0['return_vector']:
-                out= (out,)
+                out = (out,)
                 nout = 1
             else:
                 nout = 4

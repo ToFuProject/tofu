@@ -139,7 +139,6 @@ def compute_etendue(
     return dout
 
 
-
 # #############################################################################
 # #############################################################################
 #                   input checking routine
@@ -163,7 +162,7 @@ def _compute_etendue_check(
     """
 
     # -----------
-    # det 
+    # det
 
     # check keys
     lk = [
@@ -253,7 +252,7 @@ def _compute_etendue_check(
     det['nin_z'] = det['nin_z'] / norms
 
     # -----------
-    # aperture 
+    # aperture
 
     lk = [
         'poly_x', 'poly_y', 'poly_z',
@@ -450,7 +449,6 @@ def _compute_etendue_prepare(
     if (ap_out_x0[0] != ap_out_x0[-1]) or (ap_out_x1[0] != ap_out_x1[-1]):
         ap_out_x0 = np.append(ap_out_x0, ap_out_x0[0])
         ap_out_x1 = np.append(ap_out_x1, ap_out_x1[0])
-
 
     # ----------------------------------
     # los, distances, cosines
@@ -752,12 +750,12 @@ def _compute_etendue_numerical(
                         c='k', marker='.', ls='None',
                     )
                     plt.plot(
-                       np.mean(pts_0)*np.ones((n1,)), pts_1,
+                        np.mean(pts_0)*np.ones((n1,)), pts_1,
                         c='k', marker='.', ls='None',
                     )
                     plt.gca().set_xlabel('x0')
                     plt.gca().set_xlabel('x1')
-                    import pdb; pdb.set_trace()
+                    # import pdb; pdb.set_trace()
                     msg = "Something is wrong with solid_angle or sampling"
                     raise Exception(msg)
                 else:
@@ -782,7 +780,6 @@ def _compute_etendue_numerical(
                         return_flat_det=True,
                     )
                 ) * ds
-
 
     # --------------
     # reshape output
@@ -830,14 +827,13 @@ def _plot_etendues(
         else:
             x0 = [f'{x0[ii]}\n{x1[ii]}' for ii in range(nmax)]
 
-
     # -------------
     # prepare axes
 
     fig = plt.figure(figsize=(11, 6))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
 
-    ax.set_ylabel('Etendue '+ r'($m^2.sr$)', size=12, fontweight='bold')
+    ax.set_ylabel('Etendue ' + r'($m^2.sr$)', size=12, fontweight='bold')
     ax.set_xlabel('order of approximation', size=12, fontweight='bold')
 
     ax.set_xticks(range(0, nmax))
