@@ -48,6 +48,7 @@ class SolidAngle:
         """ run before each benchmark method, out from setup_cache  """
         self.light = tftests._create_light(npts=10000)
         self.visibility = tftests._create_visibility(npts=1000)
+        self.etendue = tftests._create_etendue(res=np.r_[0.001])
 
     def teardown(self, out):
         pass
@@ -88,4 +89,26 @@ class SolidAngle:
             config=self.visibility['config'],
             visibility=True,
             return_vector=False,
+        )
+
+    def time_03_etendue_check(self, out):
+        detend1 = tfg.compute_etendue(
+            det=self.etendue['det'],
+            aperture=self.etendue['aperture'],
+            res=self.etendue['res'],
+            check=True,
+            verb=False,
+            analytical=False,
+            plot=False,
+        )
+
+    def time_03_etendue_summed(self, out):
+        detend1 = tfg.compute_etendue(
+            det=self.etendue['det'],
+            aperture=self.etendue['aperture'],
+            res=self.etendue['res'],
+            check=False,
+            verb=False,
+            analytical=False,
+            plot=False,
         )

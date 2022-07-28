@@ -385,7 +385,7 @@ def _create_visibility(npts=4):
     }
 
 
-def _create_etendue():
+def _create_etendue(res=None):
 
     # unit vectors
     nout, ei, ej = np.r_[-1, 0, 0], np.r_[0, -1, 0], np.r_[0, 0, 1]
@@ -448,6 +448,7 @@ def _create_etendue():
         'aperture': aperture,
         'det': det,
         'etendue': np.r_[1.10852804e-08],
+        'res': res,
     }
 
 
@@ -666,6 +667,7 @@ class Test01_SolidAngles():
         detend = tfg.compute_etendue(
             det=self.etendue['det'],
             aperture=self.etendue['aperture'],
+            res=self.etendue['res'],
             check=True,
             verb=True,
         )
@@ -701,6 +703,7 @@ class Test01_SolidAngles():
         detend1 = tfg.compute_etendue(
             det=self.etendue['det'],
             aperture=self.etendue['aperture'],
+            res=self.etendue['res'],
             check=False,
             verb=False,
             analytical=False,
