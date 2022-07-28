@@ -519,8 +519,9 @@ def _compute_etendue_prepare(
     if res is None:
         res = min(
             np.sqrt(det_surface),
+            np.sqrt(ap_surface),
             np.sqrt(np.min(np.diff(ap_out_x0)**2 + np.diff(ap_out_x1)**2))
-        ) * np.r_[2., 1., 0.5, 0.2]
+        ) * np.r_[1., 0.5, 0.1]
 
     return (
         det_surface, ap_surface, distances,
@@ -725,10 +726,10 @@ def _compute_etendue_numerical(
 
                 sar = solid_angle.reshape((n0, n1))
                 c0 = (
-                    np.allclose(sar[0, :], 0)
-                    and np.allclose(sar[-1, :], 0)
-                    and np.allclose(sar[:, 0], 0)
-                    and np.allclose(sar[:, -1], 0)
+                    ((pts_0[0] < x0_min) == np.all(sar[0, :] == 0))
+                    and ((pts_0[-1] > x0_max) == np.all(sar[-1, :] == 0))
+                    and ((pts_1[0] < x1_min) == np.all(sar[:, 0] == 0))
+                    and ((pts_1[-1] > x1_max) == np.all(sar[:, -1] == 0))
                 )
                 if not c0:
                     # debug

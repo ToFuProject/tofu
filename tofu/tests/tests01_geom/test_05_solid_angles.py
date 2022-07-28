@@ -381,6 +381,71 @@ def _create_visibility():
     }
 
 
+def _create_etendue():
+
+    # unit vectors
+    nout, ei, ej = np.r_[-1, 0, 0], np.r_[0, -1, 0], np.r_[0, 0, 1]
+    nout2 = nout*np.cos(np.pi/6) + ei*np.sin(np.pi/6.)
+    ei2 = nout*np.sin(np.pi/6) - ei*np.cos(np.pi/6.)
+    nout3 = nout*np.cos(-2.*np.pi/6) + ei*np.sin(-2.*np.pi/6.)
+    ei3 = nout*np.sin(-2.*np.pi/6) - ei*np.cos(-2.*np.pi/6.)
+
+    # outlines
+    out0, out1 = np.r_[-1, 1, 1, -1, -1], np.r_[-1, -1, 1, 1, -1]
+    outa0, outa1 = 2e-2*out0, 5e-3*out1
+    outd0, outd1 = 0.04*out0, 0.04*out1
+
+    # centers
+    ca, cd = np.r_[10, 0, 0], np.r_[20, 0, 0]
+
+    # aperture polygon
+    poly_x = ca[0] + outa0*ei2[0] + outa1*ej[0]
+    poly_y = ca[1] + outa0*ei2[1] + outa1*ej[1]
+    poly_z = ca[2] + outa0*ei2[2] + outa1*ej[2]
+
+    # aperture dict
+    aperture = {
+        'poly_x': poly_x,
+        'poly_y': poly_y,
+        'poly_z': poly_z,
+        'cent_x': ca[0],
+        'cent_y': ca[1],
+        'cent_z': ca[2],
+        'nin_x': nout2[0],
+        'nin_y': nout2[1],
+        'nin_z': nout2[2],
+        'e0_x': ei2[0],
+        'e0_y': ei2[1],
+        'e0_z': ei2[2],
+        'e1_x': ej[0],
+        'e1_y': ej[1],
+        'e1_z': ej[2],
+    }
+
+    # detector dict
+    det = {
+        'outline_x0': outd0,
+        'outline_x1': outd1,
+        'cents_x': cd[0],
+        'cents_y': cd[1],
+        'cents_z': cd[2],
+        'nin_x': nout3[0],
+        'nin_y': nout3[1],
+        'nin_z': nout3[2],
+        'e0_x': ei3[0],
+        'e0_y': ei3[1],
+        'e0_z': ei3[2],
+        'e1_x': ej[0],
+        'e1_y': ej[1],
+        'e1_z': ej[2],
+    }
+
+    return {
+        'aperture': aperture,
+        'det': det,
+        'etendue': np.r_[1.10852804e-08],
+    }
+
 
 #######################################################
 #
@@ -389,7 +454,7 @@ def _create_visibility():
 #######################################################
 
 
-class Test01_triangulation():
+class Test01_SolidAngles():
 
     def setup(self):
         self.poly_2d_ccw = _create_poly_2d_ccw()
@@ -397,6 +462,7 @@ class Test01_triangulation():
         self.single_rectangle = _create_single_rectangle()
         self.light = _create_light()
         self.visibility = _create_visibility()
+        self.etendue = _create_etendue()
 
     # ------------------------
     #   Populating
@@ -590,3 +656,40 @@ class Test01_triangulation():
                 f"\t- Obtained: {sa}\n"
             )
             raise Exception(msg)
+
+    def test08_etendue(self):
+
+        detend = tfg.compute_etendue(
+            det=self.etendue['det'],
+            aperture=self.etendue['aperture'],
+            check=True,
+            verb=True,
+        )
+
+        # non-regression
+        c0 = np.allclose(
+            detend['numerical'][-1, 0],
+            self.etendue['etendue'],
+            atol=1e-11,
+            rtol=1e-2,
+        )
+        if not c0:
+            msg = "Regression detected!"
+            raise Exception(msg)
+
+        # check match
+        c0 = np.allclose(
+            detend['analytical'][-1, :],
+            detend['numerical'][-1, :],
+            atol=1e-11,
+            rtol=1e-2,
+        )
+
+        if not c0:
+            msg = (
+                "Mismatching analytical vs numerical etendue!\n"
+                f"\t- analytical: {detend['analytical'][-1, :]}\n"
+                f"\t- numerical: {detend['numerical'][-1, :]}\n"
+            )
+            raise Exception(msg)
+        plt.close('all')
