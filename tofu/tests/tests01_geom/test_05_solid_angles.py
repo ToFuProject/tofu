@@ -199,7 +199,7 @@ def _create_single_rectangle():
     }
 
 
-def _create_light():
+def _create_light(npts=5):
 
     a, b = 2, 1
     outline_x0 = a*np.r_[-1, 1, 1, -1]
@@ -257,7 +257,7 @@ def _create_light():
     ap['ap2'] = {k0: dict(ap[k0]) for k0 in ['ap0', 'ap1']}
     ap['ap3'] = {k0: dict(ap[k0]) for k0 in ['ap0', 'ap1', 'ap3']}
 
-    pts_z = np.r_[-1, 0.1, 0.5, 1, 10, 50]
+    pts_z = np.r_[-1, -0.5, np.linspace(1, 50, npts)]
     pts_x = np.zeros((pts_z.size,))
     pts_y = np.zeros((pts_z.size,))
 
@@ -301,7 +301,7 @@ def _create_light():
     }
 
 
-def _create_visibility():
+def _create_visibility(npts=4):
 
     conf = tfg.utils.create_config('ITER-V0')
 
@@ -360,7 +360,10 @@ def _create_visibility():
     }
 
     # pts
-    pts_x = np.r_[5.4, 5.2, 4.8, 4.4]
+    if npts ==4:
+        pts_x = np.r_[5.4, 5.2, 4.8, 4.4]
+    else:
+        pts_x = np.linspace(5.4, 4.4, npts)
     pts_y = np.zeros((pts_x.size,))
     pts_z = cents[2] * np.ones((pts_x.size,))
 
