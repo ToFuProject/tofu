@@ -939,7 +939,7 @@ def _calc_solidangle_apertures_check(
                 "\t- return_vector = False\n"
                 "\t- aperture != None"
             )
-        raise NotImplementedError(msg)
+            raise NotImplementedError(msg)
 
     # ------
     # config
@@ -966,7 +966,7 @@ def _calc_solidangle_apertures_check(
     return (
         pts_x, pts_y, pts_z, mask,
         apertures, detectors,
-        visibility, return_vector,
+        summed, visibility, return_vector,
     )
 
 

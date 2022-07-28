@@ -696,4 +696,28 @@ class Test01_SolidAngles():
                 f"\t- numerical: {detend['numerical'][-1, :]}\n"
             )
             raise Exception(msg)
+
+        # without check
+        detend1 = tfg.compute_etendue(
+            det=self.etendue['det'],
+            aperture=self.etendue['aperture'],
+            check=False,
+            verb=False,
+            analytical=False,
+            plot=False,
+        )
+
+        # check match
+        c0 = np.allclose(
+            detend['numerical'],
+            detend1['numerical'],
+        )
+        if not c0:
+            msg = (
+                "Mismatching numerical check vs no_check etendue!\n"
+                f"\t- with check: {detend['numerical']}\n"
+                f"\t- w/o check:  {detend1['numerical']}\n"
+            )
+            raise Exception(msg)
+
         plt.close('all')
