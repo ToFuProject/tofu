@@ -29,8 +29,8 @@ jobs:
     - name: Install dependencies
       run: |
         conda config --append channels conda-forge
-        conda config --append channels ToFuProject
-        conda env update --file requirements.txt --name base
+        pip install -r requirements # temporary fix for Polygon3
+        # conda env update --file requirements.txt --name base
     - name: Lint with flake8
       run: |
         conda install flake8
