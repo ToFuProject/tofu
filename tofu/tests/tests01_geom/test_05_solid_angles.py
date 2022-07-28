@@ -360,7 +360,7 @@ def _create_visibility(npts=4):
     }
 
     # pts
-    if npts ==4:
+    if npts == 4:
         pts_x = np.r_[5.4, 5.2, 4.8, 4.4]
     else:
         pts_x = np.linspace(5.4, 4.4, npts)

@@ -12,7 +12,9 @@ import matplotlib.pyplot as plt
 _PATH_HERE = os.path.dirname(__file__)
 _PATH_TOFU = os.path.dirname(os.path.dirname(_PATH_HERE))
 
+
 import tofu as tf
+import tofu.geom as tfg
 import tofu.tests.tests01_geom.test_05_solid_angles as tftests
 
 
@@ -47,7 +49,7 @@ class SolidAngle:
     def setup(self, out):
         """ run before each benchmark method, out from setup_cache  """
         self.light = tftests._create_light(npts=10000)
-        self.visibility = tftests._create_visibility(npts=1000)
+        self.visibility = tftests._create_visibility(npts=100)
         self.etendue = tftests._create_etendue(res=np.r_[0.001])
 
     def teardown(self, out):
@@ -56,7 +58,6 @@ class SolidAngle:
     # -------------------------------------
     # benchmarks methods for solid angle
 
-    # 
     def time_00_light(self, out):
         sa = tfg.calc_solidangle_apertures(
             pts_x=self.light['pts_x'],
