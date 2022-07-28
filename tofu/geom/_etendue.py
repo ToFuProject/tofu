@@ -27,7 +27,8 @@ def compute_etendue(
     numerical=None,
     check=None,
     res=None,
-    margin=None,
+    margin_par=None,
+    margin_perp=None,
     verb=None,
     plot=None,
 ):
@@ -44,7 +45,7 @@ def compute_etendue(
     (
         det, aperture,
         analytical, numerical,
-        res, margin,
+        res, margin_par, margin_perp,
         check, verb, plot,
     ) = _compute_etendue_check(
         det=det,
@@ -52,7 +53,8 @@ def compute_etendue(
         analytical=analytical,
         numerical=numerical,
         res=res,
-        margin=margin,
+        margin_par=margin_par,
+        margin_perp=margin_perp,
         check=check,
         verb=verb,
         plot=plot,
@@ -106,7 +108,8 @@ def compute_etendue(
             los_x=los_x,
             los_y=los_y,
             los_z=los_z,
-            margin=margin,
+            margin_par=margin_par,
+            margin_perp=margin_perp,
             check=check,
             verb=verb,
         )
@@ -149,7 +152,8 @@ def _compute_etendue_check(
     analytical=None,
     numerical=None,
     res=None,
-    margin=None,
+    margin_par=None,
+    margin_perp=None,
     check=None,
     verb=None,
     plot=None,
@@ -368,10 +372,19 @@ def _compute_etendue_check(
         res = np.atleast_1d(res).ravel()
 
     # -----------
-    # margin
+    # margin_par
 
-    margin = ds._generic_check._check_var(
-        margin, 'margin',
+    margin_par = ds._generic_check._check_var(
+        margin_par, 'margin_par',
+        types=float,
+        default=0.05,
+    )
+
+    # -----------
+    # margin_perp
+
+    margin_perp = ds._generic_check._check_var(
+        margin_perp, 'margin_perp',
         types=float,
         default=0.05,
     )
@@ -403,7 +416,10 @@ def _compute_etendue_check(
         msg = "Arg plot must be a bool"
         raise Exception(msg)
 
-    return det, aperture, analytical, numerical, res, margin, check, verb, plot
+    return (
+        det, aperture, analytical, numerical,
+        res, margin_par, margin_perp, check, verb, plot,
+    )
 
 
 # #############################################################################
@@ -523,7 +539,8 @@ def _compute_etendue_numerical(
     det=None,
     aperture=None,
     res=None,
-    margin=None,
+    margin_par=None,
+    margin_perp=None,
     los_x=None,
     los_y=None,
     los_z=None,
@@ -585,7 +602,7 @@ def _compute_etendue_numerical(
 
         # get length along los
         k_los = (
-            (1. + margin)
+            (1. + margin_par)
             * np.max(PA_x * los_x[ii] + PA_y * los_y[ii] + PA_z * los_z[ii])
         )
 
@@ -641,27 +658,41 @@ def _compute_etendue_numerical(
 
         for jj in range(res.size):
 
-            n0 = int(np.ceil((1. + 2.*margin)*w0 / res[jj]))
-            n1 = int(np.ceil((1. + 2.*margin)*w1 / res[jj]))
+            coef = 1. + 2.*margin_perp
+            n0 = int(np.ceil(coef*w0 / res[jj]))
+            n1 = int(np.ceil(coef*w1 / res[jj]))
 
-            d0 = (1. + 2.*margin)*w0 / n0
-            d1 = (1. + 2.*margin)*w1 / n1
+            d0 = coef*w0 / n0
+            d1 = coef*w1 / n1
 
             ds = d0 * d1
 
-            pts_0 = np.linspace(x0_min - margin*w0, x0_max + margin*w0, n0 + 1)
-            pts_1 = np.linspace(x1_min - margin*w1, x1_max + margin*w1, n1 + 1)
+            pts_0 = np.linspace(
+                x0_min - margin_perp*w0,
+                x0_max + margin_perp*w0,
+                n0 + 1,
+            )
+            pts_1 = np.linspace(
+                x1_min - margin_perp*w1,
+                x1_max + margin_perp*w1,
+                n1 + 1,
+            )
             pts_0 = 0.5 * (pts_0[1:] + pts_0[:-1])
             pts_1 = 0.5 * (pts_1[1:] + pts_1[:-1])
 
+            # debug
+            # n0, n1 = 2, 2
+            # pts_0 = np.r_[pts_0[0], pts_0[0]]
+            # pts_1 = np.r_[0, 0]
+
             pts_x = (
-                c_los_x + pts_0[:, None] * e0_x + pts_1[None, :] * e1_x
+                c_los_x + pts_0[:, None] * e0_xi + pts_1[None, :] * e1_xi
             ).ravel()
             pts_y = (
-                c_los_y + pts_0[:, None] * e0_y + pts_1[None, :] * e1_y
+                c_los_y + pts_0[:, None] * e0_yi + pts_1[None, :] * e1_yi
             ).ravel()
             pts_z = (
-                c_los_z + pts_0[:, None] * e0_z + pts_1[None, :] * e1_z
+                c_los_z + pts_0[:, None] * e0_zi + pts_1[None, :] * e1_zi
             ).ravel()
 
             if verb is True:
@@ -705,8 +736,8 @@ def _compute_etendue_numerical(
                     plt.imshow(
                         sar.T,
                         extent=(
-                            x0_min - margin*w0, x0_max + margin*w0,
-                            x1_min - margin*w1, x1_max + margin*w1,
+                            x0_min - margin_perp*w0, x0_max + margin_perp*w0,
+                            x1_min - margin_perp*w1, x1_max + margin_perp*w1,
                         ),
                         interpolation='nearest',
                         origin='lower',

@@ -5568,10 +5568,15 @@ def compute_solid_angle_apertures_light(
 
     for dd in range(nd):
 
+        # print('det_cent', det_cents_x[dd], det_cents_y[dd], det_cents_z[dd])
+        # print('det_nin', det_norm_x[dd], det_norm_y[dd], det_norm_z[dd])        # DB
+        # print('det_e0', det_e0_x[dd], det_e0_y[dd], det_e0_z[dd])        # DB
+        # print('det_e1', det_e1_x[dd], det_e1_y[dd], det_e1_z[dd])        # DB
+
         # loop 2: on npts (observation points)
         for pp in range(npts):
 
-            # print('pts', pp)        # DB
+            # print('pts', pp, pts_x[pp], pts_y[pp], pts_z[pp])        # DB
 
             # test if on good side of detector
             sca0 = (
@@ -5589,6 +5594,13 @@ def compute_solid_angle_apertures_light(
 
             # loop 3: on na (apertures)
             for aa in range(na):
+
+                # print('ap', aa)
+                # print('ap ind', ap_ind[aa], ap_ind[aa+1])
+                # print('ap nin', ap_norm_x[aa], ap_norm_y[aa], ap_norm_z[aa])
+                # print('ap_x', ap_x[ap_ind[aa]:ap_ind[aa+1]])
+                # print('ap_y', ap_y[ap_ind[aa]:ap_ind[aa+1]])
+                # print('ap_z', ap_z[ap_ind[aa]:ap_ind[aa+1]])
 
                 # test if on good side of aperture
                 sca = (
@@ -5634,16 +5646,8 @@ def compute_solid_angle_apertures_light(
                 if not isok:
                     break
 
-                # print(
-                    # 'ap: ',
-                    # ap_x[ap_ind[aa]:ap_ind[aa+1]],
-                    # ap_y[ap_ind[aa]:ap_ind[aa+1]],
-                    # ap_z[ap_ind[aa]:ap_ind[aa+1]],
-                # )
                 # print('sca0, sca1, k  ', sca0, sca1, k)
                 # print('Px, Py, Pz:  ', P_x, P_y, P_z)
-                # print('det_cent:  ',  det_cents_x[dd], det_cents_y[dd], det_cents_z[dd])
-                # print('det_e0:  ', det_e0_x, det_e0_y, det_e0_z)
                 # print(
                     # 'ap01: ',
                     # ap_x0[ap_ind[aa]:ap_ind[aa+1]],
@@ -5676,7 +5680,7 @@ def compute_solid_angle_apertures_light(
 
             # stop if no intersection
             if not isok:
-                # print('skip 3', np.array(p_a.contour(0)).T)        # DB
+                # print('skip 3')        # DB
                 continue
 
             # -------------------
