@@ -762,23 +762,22 @@ def _compute_etendue_numerical(
                     etendue[jj, ii] = np.sum(solid_angle) * ds
 
             else:
-                etendue[jj, ii] = np.sum(
-                    _comp_solidangles.calc_solidangle_apertures(
-                        # observation points
-                        pts_x=pts_x,
-                        pts_y=pts_y,
-                        pts_z=pts_z,
-                        # polygons
-                        apertures=aperture,
-                        detectors=deti,
-                        # possible obstacles
-                        config=None,
-                        # parameters
-                        visibility=False,
-                        return_vector=False,
-                        return_flat_pts=True,
-                        return_flat_det=True,
-                    )
+                etendue[jj, ii] = _comp_solidangles.calc_solidangle_apertures(
+                    # observation points
+                    pts_x=pts_x,
+                    pts_y=pts_y,
+                    pts_z=pts_z,
+                    # polygons
+                    apertures=aperture,
+                    detectors=deti,
+                    # possible obstacles
+                    config=None,
+                    # parameters
+                    summed=True,
+                    visibility=False,
+                    return_vector=False,
+                    return_flat_pts=True,
+                    return_flat_det=True,
                 ) * ds
 
     # --------------

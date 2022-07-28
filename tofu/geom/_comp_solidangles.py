@@ -862,6 +862,7 @@ def _calc_solidangle_apertures_check(
     # possible obstacles
     config=None,
     # parameters
+    summed=None,
     visibility=None,
     return_vector=None,
     # output formatting
@@ -901,22 +902,44 @@ def _calc_solidangle_apertures_check(
         apertures = _check_ap_dict(apertures)
 
     # ----------
+    # summed
+
+    summed = ds._generic_check._check_var(
+        summed, 'summed',
+        types=bool,
+        default=False,
+    )
+
+    # ----------
     # visibility
 
-    if visibility is None:
-        visibility = True
-    if not isinstance(visibility, bool):
-        msg = f"Arg visibility must be a bool!\nProvided: {visibility}"
-        raise Exception(msg)
+    visibility = ds._generic_check._check_var(
+        visibility, 'visibility',
+        types=bool,
+        default=False,
+    )
 
     # -------------
     # return_vector
 
-    if return_vector is None:
-        return_vector = False
-    if not isinstance(return_vector, bool):
-        msg = f"Arg return_vector must be a bool!\nProvided: {return_vector}"
-        raise Exception(msg)
+    return_vector = ds._generic_check._check_var(
+        return_vector, 'return_vector',
+        types=bool,
+        default=False,
+    )
+
+    # -------------
+    # compatibility
+
+    if summed is True:
+        if (visibility or return_vector or apertures is None):
+            msg = (
+                "Arg summed = True only usable with (so far):\n"
+                "\t- visibility = False\n"
+                "\t- return_vector = False\n"
+                "\t- aperture != None"
+            )
+        raise NotImplementedError(msg)
 
     # ------
     # config
@@ -1130,6 +1153,7 @@ def calc_solidangle_apertures(
     # possible obstacles
     config=None,
     # parameters
+    summed=None,
     visibility=None,
     return_vector=None,
     return_flat_pts=None,
@@ -1201,6 +1225,7 @@ def calc_solidangle_apertures(
         apertures,
         detectors,
         # parameters
+        summed,
         visibility,
         return_vector,
     ) = _calc_solidangle_apertures_check(
@@ -1214,6 +1239,7 @@ def calc_solidangle_apertures(
         # possible obstacles
         config=config,
         # parameters
+        summed=summed,
         visibility=visibility,
         return_vector=return_vector,
         # output formatting
@@ -1380,67 +1406,102 @@ def calc_solidangle_apertures(
         # call fastest / simplest version
         # (no computation / storing of unit vector)
 
-        solid_angle = _GG.compute_solid_angle_apertures_light(
-            # pts as 1d arrays
-            pts_x=pts_x,
-            pts_y=pts_y,
-            pts_z=pts_z,
-            # detector polygons as 1d arrays
-            det_outline_x0=det_outline_x0,
-            det_outline_x1=det_outline_x1,
-            det_cents_x=det_cents_x,
-            det_cents_y=det_cents_y,
-            det_cents_z=det_cents_z,
-            det_norm_x=det_nin_x,
-            det_norm_y=det_nin_y,
-            det_norm_z=det_nin_z,
-            det_e0_x=det_e0_x,
-            det_e0_y=det_e0_y,
-            det_e0_z=det_e0_z,
-            det_e1_x=det_e1_x,
-            det_e1_y=det_e1_y,
-            det_e1_z=det_e1_z,
-            # apertures
-            ap_ind=ap_ind,
-            ap_x=ap_x,
-            ap_y=ap_y,
-            ap_z=ap_z,
-            ap_norm_x=ap_nin_x,
-            ap_norm_y=ap_nin_y,
-            ap_norm_z=ap_nin_z,
-        )
+        if summed is True:
+            solid_angle = _GG.compute_solid_angle_apertures_light_summed(
+                # pts as 1d arrays
+                pts_x=pts_x,
+                pts_y=pts_y,
+                pts_z=pts_z,
+                # detector polygons as 1d arrays
+                det_outline_x0=det_outline_x0,
+                det_outline_x1=det_outline_x1,
+                det_cents_x=det_cents_x,
+                det_cents_y=det_cents_y,
+                det_cents_z=det_cents_z,
+                det_norm_x=det_nin_x,
+                det_norm_y=det_nin_y,
+                det_norm_z=det_nin_z,
+                det_e0_x=det_e0_x,
+                det_e0_y=det_e0_y,
+                det_e0_z=det_e0_z,
+                det_e1_x=det_e1_x,
+                det_e1_y=det_e1_y,
+                det_e1_z=det_e1_z,
+                # apertures
+                ap_ind=ap_ind,
+                ap_x=ap_x,
+                ap_y=ap_y,
+                ap_z=ap_z,
+                ap_norm_x=ap_nin_x,
+                ap_norm_y=ap_nin_y,
+                ap_norm_z=ap_nin_z,
+            )
+
+        else:
+            solid_angle = _GG.compute_solid_angle_apertures_light(
+                # pts as 1d arrays
+                pts_x=pts_x,
+                pts_y=pts_y,
+                pts_z=pts_z,
+                # detector polygons as 1d arrays
+                det_outline_x0=det_outline_x0,
+                det_outline_x1=det_outline_x1,
+                det_cents_x=det_cents_x,
+                det_cents_y=det_cents_y,
+                det_cents_z=det_cents_z,
+                det_norm_x=det_nin_x,
+                det_norm_y=det_nin_y,
+                det_norm_z=det_nin_z,
+                det_e0_x=det_e0_x,
+                det_e0_y=det_e0_y,
+                det_e0_z=det_e0_z,
+                det_e1_x=det_e1_x,
+                det_e1_y=det_e1_y,
+                det_e1_z=det_e1_z,
+                # apertures
+                ap_ind=ap_ind,
+                ap_x=ap_x,
+                ap_y=ap_y,
+                ap_z=ap_z,
+                ap_norm_x=ap_nin_x,
+                ap_norm_y=ap_nin_y,
+                ap_norm_z=ap_nin_z,
+            )
 
     # -------------
     # format output
 
+    # solid_angle = 0 => nan for unit vectors
     if return_vector:
         i0 = solid_angle == 0
         unit_vector_x[i0] = np.nan
         unit_vector_y[i0] = np.nan
         unit_vector_z[i0] = np.nan
 
-    shape = tuple(np.r_[det_shape0, shape0])
-    if mask is None:
-        if ndim0 > 1:
-            solid_angle = np.reshape(solid_angle, shape)
+    # reshape if necessary
+    if summed is False:
+        shape = tuple(np.r_[det_shape0, shape0])
+        if mask is None:
+            if ndim0 > 1:
+                solid_angle = np.reshape(solid_angle, shape)
+                if return_vector:
+                    unit_vector_x = np.reshape(unit_vector_x, shape)
+                    unit_vector_y = np.reshape(unit_vector_y, shape)
+                    unit_vector_z = np.reshape(unit_vector_z, shape)
+        else:
+            sa = np.zeros(shape, dtype=float)
+            sa[:, mask] = solid_angle
             if return_vector:
-                unit_vector_x = np.reshape(unit_vector_x, shape)
-                unit_vector_y = np.reshape(unit_vector_y, shape)
-                unit_vector_z = np.reshape(unit_vector_z, shape)
-    else:
-        sa = np.zeros(shape, dtype=float)
-        sa[:, mask] = solid_angle
-        if return_vector:
-            ux = np.fill(shape0, np.nan)
-            uy = np.fill(shape0, np.nan)
-            uz = np.fill(shape0, np.nan)
-            ux[:, mask] = unit_vector_x
-            uy[:, mask] = unit_vector_y
-            uz[:, mask] = unit_vector_z
+                ux = np.fill(shape0, np.nan)
+                uy = np.fill(shape0, np.nan)
+                uz = np.fill(shape0, np.nan)
+                ux[:, mask] = unit_vector_x
+                uy[:, mask] = unit_vector_y
+                uz[:, mask] = unit_vector_z
 
-        # replace
-        solid_angle = sa
-        unit_vector_x, unit_vector_y, unit_vector_z = ux, uy, uz
+            # replace
+            solid_angle = sa
+            unit_vector_x, unit_vector_y, unit_vector_z = ux, uy, uz
 
     # ------
     # return
