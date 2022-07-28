@@ -13,7 +13,7 @@ _PATH_HERE = os.path.dirname(__file__)
 _PATH_TOFU = os.path.dirname(os.path.dirname(_PATH_HERE))
 
 import tofu as tf
-import tf.tests.tests01_geom.test_05_solid_angles as tftests
+import tofu.tests.tests01_geom.test_05_solid_angles as tftests
 
 
 # #############################################################################
