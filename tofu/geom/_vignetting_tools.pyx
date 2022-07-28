@@ -500,7 +500,7 @@ cdef inline int triangulate_polys(
                 with gil:
                     raise MemoryError()
             try:
-                compute_diff3d(vignett_poly[ivign], nvert, &diff[0])
+                compute_diff2d(vignett_poly[ivign], nvert, &diff[0])
                 are_points_reflex_2d(nvert, diff, &lref[0])
                 earclipping_poly_2d(vignett_poly[ivign], &ltri[ivign][0],
                                  &diff[0], &lref[0], nvert)

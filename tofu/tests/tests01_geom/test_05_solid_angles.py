@@ -28,12 +28,7 @@ _PATH_OUTPUT = os.path.join(_PATH_HERE, 'output')
 
 
 def clean(path=_PATH_OUTPUT):
-    """ Remove all temporary output files that may have been forgotten """
-    lf = [ff for ff in os.listdir(path) if ff.endswith('.npz')]
-    if len(lf) > 0:
-        for ff in lf:
-            os.remove(os.path.join(path, ff))
-
+    pass
 
 def setup_module(module):
     clean()
@@ -280,7 +275,7 @@ def _create_light():
     sa0 = np.r_[0, 0, sa0]
     sa1 = np.r_[0, 0, sa1]
     sa2 = np.r_[0, 0, sa2]
-    sa3 = np.r_[0, 0, sa2/2.]
+    sa3 = sa2/2.
 
     uvx = np.r_[np.nan, np.nan, np.zeros((sa0.size-2,))]
     uvy = np.r_[np.nan, np.nan, np.zeros((sa0.size-2,))]

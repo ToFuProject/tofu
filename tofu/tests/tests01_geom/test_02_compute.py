@@ -81,14 +81,6 @@ def _get_cases(ang0=np.pi/4., ang1=-np.pi/4.):
         theta = np.linspace(-np.pi, np.pi, nn+1)
         lout.append(radius * np.array([np.cos(theta), np.sin(theta)]))
 
-    # aperture polygons
-    ap = [
-        cents[:, ii:ii+1]
-        + e0[:, None] * oo[0:1, :]
-        + e1[:, None] * oo[1:2, :]
-        for oo in lout[:3]
-    ]
-
     # dict
     lcases = [f'case {ii}' for ii in range(2)]  # 4
     dcases = dict.fromkeys(lcases, {})
@@ -98,13 +90,35 @@ def _get_cases(ang0=np.pi/4., ang1=-np.pi/4.):
         dcases[cc]['pts_z'] = pts[2, :]
         dcases[cc]['visibility'] = ii % 2 == 1
         dcases[cc]['return_vector'] = ii % 4 < 2
-        dcases[cc]['apertures'] = ap
+        dcases[cc]['apertures'] = {
+            'ap{jj}': {
+                'poly_x': (
+                    cents[0, ii]
+                    + e0[0] * lout[jj][0, :]
+                    + e1[0] * lout[jj][1, :]
+                ),
+                'poly_y': (
+                    cents[1, ii]
+                    + e0[1] * lout[jj][0, :]
+                    + e1[1] * lout[jj][1, :]
+                ),
+                'poly_z': (
+                    cents[2, ii]
+                    + e0[2] * lout[jj][0, :]
+                    + e1[2] * lout[jj][1, :]
+                ),
+                'nin_x': vect[0],
+                'nin_y': vect[1],
+                'nin_z': vect[2],
+            }
+            for jj in range(3)
+        }
         dcases[cc]['detectors'] = {
             'outline_x0': lout[-1][0, :],
             'outline_x1': lout[-1][1, :],
-            'centers_x': cents[0, -2:],
-            'centers_y': cents[1, -2:],
-            'centers_z': cents[2, -2:],
+            'cents_x': cents[0, -2:],
+            'cents_y': cents[1, -2:],
+            'cents_z': cents[2, -2:],
             'nin_x': -vect[0]*np.r_[1, 1],
             'nin_y': -vect[1]*np.r_[1, 1],
             'nin_z': -vect[2]*np.r_[1, 1],
@@ -145,7 +159,7 @@ class Test01_SolidAngles():
 
         for k0, v0 in self.dcases.items():
 
-            nd = v0['detectors']['centers_x'].size
+            nd = v0['detectors']['cents_x'].size
             na = len(v0['apertures'])
             npts = v0['pts_x'].size
 
@@ -158,7 +172,6 @@ class Test01_SolidAngles():
                 # polygons
                 apertures=v0['apertures'],
                 detectors=v0['detectors'],
-                detectors_normal=v0.get('detectors_normal'),
                 # possible obstacles
                 config=v0.get('config'),
                 # parameters
@@ -182,7 +195,7 @@ class Test01_SolidAngles():
             ]), f'{(nd, npts)} vs {[oo.shape for oo in out]}'
             assert np.all(out[0] >= 0.)
 
-            # cjeck unit vectors (normalized)
+            # check unit vectors (normalized)
             if nout > 1:
                 iok = (out[0] > 0)
                 assert all([

@@ -1039,13 +1039,12 @@ def _visibility_unit_vectors(
     pts_y=None,
     pts_z=None,
     # det
-    det_split=None,
-    det_x=None,
-    det_y=None,
-    det_z=None,
-    det_norm_x=None,
-    det_norm_y=None,
-    det_norm_z=None,
+    det_cents_x=None,
+    det_cents_y=None,
+    det_cents_z=None,
+    det_nin_x=None,
+    det_nin_y=None,
+    det_nin_z=None,
     # results
     solid_angle=None,
     unit_vector_x=None,
@@ -1072,38 +1071,21 @@ def _visibility_unit_vectors(
 
         # un = unit_vect.norm
         un = (
-            unit_vector_x[iok, ii]*det_norm_x[iok]
-            + unit_vector_y[iok, ii]*det_norm_y[iok]
-            + unit_vector_z[iok, ii]*det_norm_z[iok]
+            unit_vector_x[iok, ii]*det_nin_x[iok]
+            + unit_vector_y[iok, ii]*det_nin_y[iok]
+            + unit_vector_z[iok, ii]*det_nin_z[iok]
         )
 
-        # detector centers
-        dcent_x = np.array([
-            np.mean(dd[:-1])
-            for ii, dd in det_x.split(det_split)
-            if iok[ii]
-        ])
-        dcent_y = np.array([
-            np.mean(dd[:-1])
-            for ii, dd in det_y.split(det_split)
-            if iok[ii]
-        ])
-        dcent_z = np.array([
-            np.mean(dd[:-1])
-            for ii, dd in det_z.split(det_split)
-            if iok[ii]
-        ])
-
         # MC = point to centers
-        MCx = dcent_x - pts_x[ii]
-        MCy = dcent_y - pts_y[ii]
-        MCz = dcent_z - pts_z[ii]
+        MCx = det_cent_x[iok] - pts_x[ii]
+        MCy = det_cent_y[iok] - pts_y[ii]
+        MCz = det_cent_z[iok] - pts_z[ii]
 
         # MCn = MC.norm
         MCn = (
-            MCx*det_norm_x[iok]
-            + MCy*det_norm_y[iok]
-            + MCz*det_norm_z[iok]
+            MCx*det_nin_x[iok]
+            + MCy*det_nin_y[iok]
+            + MCz*det_nin_z[iok]
         )
 
         # kk = (MC.norm) / (unit_vect.norm)
@@ -1117,7 +1099,7 @@ def _visibility_unit_vectors(
         # Estimate visibility
         vis = _GG.LOS_areVis_PtsFromPts_VesStruct(
             np.array([pts_x[ii], pts_y[ii], pts_z[ii]]),
-            np.array([Mx, My, Mz]),
+            np.array([Px, Py, Pz]),
             dist=kk[ii, iok],
             **kwdargs,
         )
@@ -1346,12 +1328,12 @@ def calc_solidangle_apertures(
                 pts_y=pts_y,
                 pts_z=pts_z,
                 # det
-                det_x=det_x,
-                det_y=det_y,
-                det_z=det_z,
-                det_norm_x=det_norm_x,
-                det_norm_y=det_norm_y,
-                det_norm_z=det_norm_z,
+                det_cents_x=det_cents_x,
+                det_cents_y=det_cents_y,
+                det_cents_z=det_cents_z,
+                det_nin_x=det_nin_x,
+                det_nin_y=det_nin_y,
+                det_nin_z=det_nin_z,
                 # results
                 solid_angle=solid_angle,
                 unit_vector_x=unit_vector_x,

@@ -2816,8 +2816,13 @@ def triangulate_by_earclipping_2d(
     return ltri.reshape((nvert-2, 3))
 
 
-def vignetting(double[:, ::1] ray_orig, double[:, ::1] ray_vdir,
-               list vignett_poly, long[::1] lnvert, int num_threads=16):
+def vignetting(
+    double[:, ::1] ray_orig,
+    double[:, ::1] ray_vdir,
+    list vignett_poly,
+    long[::1] lnvert,
+    int num_threads=16,
+):
     """
     ray_orig : (3, nlos) double array
        LOS origin points coordinates
