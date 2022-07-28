@@ -1609,42 +1609,46 @@ def test21_which_los_closer_vpoly_vec():
 #                              VIGNETTING
 #
 # ==============================================================================
+
+
 def test22_earclipping():
+
     # .. First test ............................................................
-    ves_poly0 = np.zeros((3, 4))
-    ves_poly00 = [4, 5, 5, 4]
-    ves_poly01 = [4, 4, 5, 5]
-    ves_poly0[0] = np.asarray(ves_poly00)
-    ves_poly0[1] = np.asarray(ves_poly01)
-    # ...computing
-    out = GG.triangulate_by_earclipping(ves_poly0)
+    ves_poly0 = np.array([[4., 5, 5, 4], [4, 4, 5, 5]])
+    out = GG.triangulate_by_earclipping_2d(ves_poly0).ravel()
+
     assert np.allclose(out, [0, 1, 2, 0, 2, 3])
+
     # .. Second test ...........................................................
-    ves_poly1 = np.zeros((3, 9))
-    x1 = np.r_[2, 4, 6, 6, 4, 3, 4, 3, 2.0]
-    y1 = np.r_[2, 0, 2, 5, 2, 2, 3, 4, 3.0]
-    ves_poly1[0] = x1
-    ves_poly1[1] = y1
+    ves_poly1 = np.array([
+        [2, 4, 6, 6, 4, 3, 4, 3, 2.0],
+        [2, 0, 2, 5, 2, 2, 3, 4, 3.0],
+    ])
     # ...computing
-    out = GG.triangulate_by_earclipping(ves_poly1)
+    out = GG.triangulate_by_earclipping_2d(ves_poly1).ravel()
     # out = out.reshape((7, 3))
     # print(out)
-    assert np.allclose(out, [1, 2, 3, 1, 3, 4, 1, 4, 5,
-                             0, 1, 5, 0, 5, 6, 0, 6, 7,
-                             0, 7, 8])
+
+    assert np.allclose(
+        out,
+        [1, 2, 3, 1, 3, 4, 1, 4, 5, 0, 1, 5, 0, 5, 6, 0, 6, 7, 0, 7, 8],
+    )
+
     # .. Third test ............................................................
-    x2 = np.r_[0, 3.5, 5.5, 7, 8, 7,  6, 5, 3, 4]
-    y2 = np.r_[2.5, 0, 1.5, 1, 5, 4.5,  6, 3, 4, 8]
-    z2 = np.array([0 if xi < 5. else 1. for xi in x2])
-    npts = np.size(x2)
-    ves_poly2 = np.zeros((3, npts))
-    ves_poly2[0] = x2
-    ves_poly2[1] = y2
-    ves_poly2[2] = z2
+    ves_poly2 = np.array([
+        [0, 3.5, 5.5, 7, 8, 7,  6, 5, 3, 4],
+        [2.5, 0, 1.5, 1, 5, 4.5,  6, 3, 4, 8],
+    ])
     # ...computing
-    out = GG.triangulate_by_earclipping(ves_poly2)
-    assert np.allclose(out, [0, 1, 2, 2, 3, 4, 2, 4, 5, 2, 5, 6, 2, 6, 7,
-                             0, 2, 7, 0, 7, 8, 0, 8, 9])
+    out = GG.triangulate_by_earclipping_2d(ves_poly2).ravel()
+
+    assert np.allclose(
+        out,
+        [
+            0, 1, 2, 2, 3, 4, 2, 4, 5, 2, 5, 6, 2,
+            6, 7, 0, 2, 7, 0, 7, 8, 0, 8, 9,
+        ],
+    )
     # out = out.reshape((npts-2, 3))
     # print(out)
 
@@ -1700,9 +1704,10 @@ def test23_vignetting():
 
     out = GG.vignetting(rays_origin, rays_direct,
                         vignetts, lnvert)
-
-    assert np.allclose(out, [False, True, False, False,  True,
-                             True, False, True, False, False])
+    assert np.allclose(
+        out,
+        [False, True, False, False,  True, True, False, True, False, False],
+    )
 
 
 def test24_is_visible(debug=0):
