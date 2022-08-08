@@ -6,6 +6,7 @@ import datastock as ds
 
 
 from ..geom._comp_solidangles import _check_polygon_2d, _check_polygon_3d
+from ..geom import _etendue
 
 
 # #############################################################################
@@ -1285,44 +1286,6 @@ def _diagnostics(
         optics=optics,
     )
 
-    # ----------------------------
-    # compute los + etendue if relevant
-
-    if compute:
-
-        # los
-
-        # etendues
-
-        if is2d:
-            ref = None
-        else:
-            ref = None
-
-    # ----------------------------
-    # compute vos if relevant
-
-    # ------
-    # ddata
-
-    if compute:
-        ketendue = f'{key}-etend'
-
-        ddata = {
-            ketendue: {
-                'data': etendue,
-                'ref': ref,
-                'dim': 'etendue',
-                'quant': 'etendue',
-                'name': 'etendue',
-                'units': 'm2.sr'
-            },
-        }
-
-    else:
-        ketendue = None
-        los = None
-
     # --------
     # dobj
 
@@ -1330,10 +1293,11 @@ def _diagnostics(
         'diagnostic': {
             key: {
                 'optics': optics,
-                'etendue': ketendue,
-                'los': los,
+                'etendue': None,
+                'los': None,
+                'vos': None,
             },
         },
     }
 
-    return None, ddata, dobj
+    return None, None, dobj

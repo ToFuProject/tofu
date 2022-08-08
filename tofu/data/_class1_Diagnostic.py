@@ -219,3 +219,38 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         )
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+    def get_as_dict(self, which=None, key=None):
+        """ Return the desired object as a dict (input to some routines) """
+
+        return _class1_check._return_as_dict(
+            coll=self,
+            which=which,
+            key=key,
+        )
+
+    def compute_diagnostic_etendue(
+        self,
+        key=None,
+        analytical=None,
+        numerical=None,
+        res=None,
+        plot=None,
+        store=None,
+    ):
+        """ Compute the etendue of the diagnostic (per pixel)
+
+        Etendue (m2.sr) can be computed analytically or numerically
+        If plot, plot the comparison between all computations
+        If store = 'analytical' or 'numerical', overwrites the diag etendue
+
+        """
+        _class1_compute._diag_compute_etendue(
+            coll=self,
+            key=key,
+            analytical=analytical,
+            numerical=numerical,
+            res=res,
+            plot=plot,
+            store=store,
+        )
