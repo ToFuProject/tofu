@@ -1,6 +1,8 @@
 
 
 import numpy as np
+import datastock as ds
+
 
 
 from ..geom._comp_solidangles import _check_polygon_2d, _check_polygon_3d
@@ -27,7 +29,7 @@ def _check_unitvector(uv=None, uv_name=None):
     return uv / np.linalg.norm(uv)
 
 
-def _check_nine0e1(nin=None, e0=None, e1=None):
+def _check_nine0e1(nin=None, e0=None, e1=None, key=None):
 
     # e0 or e0 provided => compute missing one
     if e0 is None and e1 is not None:
@@ -47,7 +49,7 @@ def _check_nine0e1(nin=None, e0=None, e1=None):
         if len(dv) > 0:
             lstr = [f'\t- {k0}: {v0}' for k0, v0 in dv.items()]
             msg = (
-                "Args (e0, e1, nin) muist form a direct orthonormal basis!\n"
+                f"Args (e0, e1, nin) for '{key}' are non-direct orthonormal!\n"
                 + "\n".join(lstr)
             )
             raise Exception(msg)
@@ -87,7 +89,7 @@ def _aperture_check(
             nb = min([ii for ii in range(max(lnb)+2) if ii not in lnb])
         key = f'ap{nb}'
 
-    key = ds_generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         excluded=lout,
@@ -117,7 +119,7 @@ def _aperture_check(
         e1 = _check_unitvector(uv=e1, uv_name='e1')
 
     if e0 is not None or e1 is not None:
-        nin, e0, e1 _check_nine0e1(nin=nin, e0=e0, e1=e1)
+        nin, e0, e1 = _check_nine0e1(nin=nin, e0=e0, e1=e1, key=key)
 
     # ---------------
     # outline vs poly
@@ -228,7 +230,7 @@ def _aperture_check(
             planar = False
             area = np.nan
 
-    assert planar == outline_x0 is not None
+    assert planar == (outline_x0 is not None)
 
     return (
         key, cent,
@@ -245,6 +247,7 @@ def _aperture(
     # 2d outline
     outline_x0=None,
     outline_x1=None,
+    cent=None,
     # 3d outline
     poly_x=None,
     poly_y=None,
@@ -268,12 +271,18 @@ def _aperture(
     ) = _aperture_check(
         coll=coll,
         key=key,
+        # 2d outline
+        outline_x0=outline_x0,
+        outline_x1=outline_x1,
+        cent=cent,
         # 3d outline
         poly_x=poly_x,
         poly_y=poly_y,
         poly_z=poly_z,
         # normal vector
         nin=nin,
+        e0=e0,
+        e1=e1,
     )
 
     # ----------
@@ -286,7 +295,7 @@ def _aperture(
     kpz = f'{key}-z'
     if planar:
         kp0 = f'{key}-x0'
-        kp0 = f'{key}-x1'
+        kp1 = f'{key}-x1'
         outline = (kp0, kp1)
     else:
         outline = None

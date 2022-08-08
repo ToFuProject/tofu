@@ -74,7 +74,7 @@ def _nine0e1_from_orientations(
     )
 
     e0 = (
-        vect * np.sin(theta)
+        - vect * np.sin(theta)
         + np.cos(theta) * (np.cos(phi) * v0 + np.sin(phi) * v1)
     )
 
