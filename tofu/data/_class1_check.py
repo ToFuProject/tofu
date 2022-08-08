@@ -1318,7 +1318,7 @@ def _diagnostics(
         ddata = {
             ketendue: {
                 'data': etendue,
-                'ref': ,
+                'ref': ref,
                 'dim': 'etendue',
                 'quant': 'etendue',
                 'name': 'etendue',
