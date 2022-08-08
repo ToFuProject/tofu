@@ -35,6 +35,20 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
+    _dshow = {
+        'aperture': [
+            'planar', 'area',
+            'outline', 'poly',
+            'cent',
+        ],
+        'camera': [
+            'parallel', '2d',
+            'area', 'outline',
+            'cent', 'cents',
+            'qeff',
+        ],
+    }
+
 
     def add_aperture(
         self,
