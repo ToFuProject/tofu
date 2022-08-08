@@ -188,7 +188,6 @@ def _aperture_check(
         normal=nin,
     )
 
-
     if outline_x0 is None:
 
         # ----------
@@ -198,7 +197,7 @@ def _aperture_check(
             cent = np.r_[np.mean(poly_x), np.mean(poly_y), np.mean(poly_z)]
 
         # ----------
-        # planar 
+        # planar
 
         diff_x = poly_x[1:] - poly_x[0]
         diff_y = poly_y[1:] - poly_y[0]
@@ -720,7 +719,6 @@ def _camera_1d(
         qeff=qeff,
     )
 
-
     # ----------
     # dref
 
@@ -1058,7 +1056,6 @@ def _camera_2d_check(
     )
 
 
-
 def _camera_2d(
     coll=None,
     key=None,
@@ -1110,7 +1107,6 @@ def _camera_2d(
         energy=energy,
         qeff=qeff,
     )
-
 
     # ----------
     # dref
@@ -1296,7 +1292,6 @@ def _diagnostics(
 
         # los
 
-
         # etendues
 
         if is2d:
@@ -1304,10 +1299,8 @@ def _diagnostics(
         else:
             ref = None
 
-
     # ----------------------------
     # compute vos if relevant
-
 
     # ------
     # ddata

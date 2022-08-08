@@ -194,7 +194,7 @@ def _cameras():
         'e1_x': e1[0],
         'e1_y': e1[1],
         'e1_z': e1[2],
-        'lamb': np.linspace(3,4,100)*1e-10,
+        'lamb': np.linspace(3, 4, 100)*1e-10,
         'qeff': 0.99*np.ones((100,))
     }
 

@@ -28,7 +28,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
-        # 'bsplines': (str, ''),
+    #       'bsplines': (str, ''),
     # })
     # _ddef['params']['dobj'] = None
     # _ddef['params']['dref'] = None
@@ -57,7 +57,6 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
             'time res.',
         ],
     }
-
 
     def add_aperture(
         self,
