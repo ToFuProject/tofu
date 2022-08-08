@@ -39,13 +39,22 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         'aperture': [
             'planar', 'area',
             'outline', 'poly',
-            'cent',
+            'cent', 'dgeom.area2'
         ],
         'camera': [
-            'parallel', '2d',
-            'area', 'outline',
+            'type', 'parallel',
+            'pix. area', 'pix .nb.',
+            'outline',
             'cent', 'cents',
+            'qeff_energy',
             'qeff',
+            'model',
+        ],
+        'diagnostic': [
+            'type',
+            'optics',
+            'spectrum',
+            'time res.',
         ],
     }
 
@@ -99,7 +108,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
 
-    def add_camera(
+    def add_camera_1d(
         self,
         key=None,
         # common 2d outline
@@ -126,7 +135,8 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         qeff=None,
     ):
         # check / format input
-        dref, ddata, dobj = _class1_check._camera(
+        dref, ddata, dobj = _class1_check._camera_1d(
+            coll=self,
             key=key,
             # common 2d outline
             outline_x0=outline_x0,
@@ -154,20 +164,58 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
 
+    def add_camera_2d(
+        self,
+        key=None,
+        # common 2d outline
+        outline_x0=None,
+        outline_x1=None,
+        # centers of all pixels
+        cent=None,
+        cents_x0=None,
+        cents_x1=None,
+        # inwards normal vectors
+        nin=None,
+        e0=None,
+        e1=None,
+        # quantum efficiency
+        lamb=None,
+        energy=None,
+        qeff=None,
+    ):
+        # check / format input
+        dref, ddata, dobj = _class1_check._camera_2d(
+            coll=self,
+            key=key,
+            # common 2d outline
+            outline_x0=outline_x0,
+            outline_x1=outline_x1,
+            # centers of all pixels
+            cent=cent,
+            cents_x0=cents_x0,
+            cents_x1=cents_x1,
+            # inwards normal vectors
+            nin=nin,
+            e0=e0,
+            e1=e1,
+            # quantum efficiency
+            lamb=lamb,
+            energy=energy,
+            qeff=qeff,
+        )
+        # update dicts
+        self.update(dref=dref, ddata=ddata, dobj=dobj)
+
     def add_diagnostic(
         self,
         key=None,
-        cameras=None,
-        apertures=None,
-        crystals=None,
+        optics=None,
         **kwdargs,
     ):
         # check / format input
         dref, ddata, dobj = _class1_check._camera(
             key=key,
-            cameras=cameras,
-            apertures=apertures,
-            crystals=crystals,
+            optics=optics,
             **kwdargs,
         )
         # update dicts

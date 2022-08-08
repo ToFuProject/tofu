@@ -166,32 +166,60 @@ def _cameras():
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
     cent = start + 0.01 * vect
 
-    cents = None
+    nin, e0, e1 = _nine0e1_from_orientations(
+        vect=vect,
+        v0=v0,
+        v1=v1,
+        theta=np.pi/20.,
+        phi=0.,
+    )
+
+    kl = 0.1*np.linspace(-1, 1, 50)
+    cents_x = cent[0] + kl * e0[0]
+    cents_y = cent[1] + kl * e0[1]
+    cents_z = cent[2] + kl * e0[2]
 
     c0 = {
         'outline_x0': out0,
         'outline_x1': out1,
-        'cents': cents,
-        'nin': nin,
-        'e0': e0,
-        'e1': e1,
+        'cents_x': cents_x,
+        'cents_y': cents_y,
+        'cents_z': cents_z,
+        'nin_x': nin[0],
+        'nin_y': nin[1],
+        'nin_z': nin[2],
+        'e0_x': e0[0],
+        'e0_y': e0[1],
+        'e0_z': e0[2],
+        'e1_x': e1[0],
+        'e1_y': e1[1],
+        'e1_z': e1[2],
+        'lamb': np.linspace(3,4,100)*1e-10,
+        'qeff': 0.99*np.ones((100,))
     }
 
     # c1: 2d
     out0 = 0.001 * np.r_[-1, 1, 1, -1]
     out1 = 0.001 * np.r_[-1, -1, 1, 1]
-    cent = start + 0.01 * vect
+    cent = start + 0.005 * vect
 
-    c0 = np.linspace(-1, 1, 200)
-    c1 = np.linspace(-1, 1, 100)
+    cent0 = 0.1*np.linspace(-1, 1, 200)
+    cent1 = 0.1*np.linspace(-1, 1, 100)
 
-    cents = (c0, c1)
+    nin, e0, e1 = _nine0e1_from_orientations(
+        vect=vect,
+        v0=v0,
+        v1=v1,
+        theta=-np.pi/20.,
+        phi=np.pi/10.,
+    )
 
     c1 = {
         'outline_x0': out0,
         'outline_x1': out1,
         'cent': cent,
-        'cents': cents,
+        'cents_x0': cent0,
+        'cents_x1': cent1,
         'nin': nin,
         'e0': e0,
         'e1': e1,
@@ -203,23 +231,31 @@ def _cameras():
 def _diagnostics():
 
     # d0: single 1d camera
-
+    d0 = {'optics': 'c0'}
 
     # d1: single 2d camera
-
+    d1 = {'optics': 'c1'}
 
     # d2: 1d + 1 aperture
-
+    d2 = {'optics': ['c0', 'ap0']}
 
     # d3: 2d + 1 aperture
-
+    d3 = {'optics': ['c1', 'ap0']}
 
     # d4: 1d + multiple apertures
-
+    d4 = {'optics': ['c0', 'ap0', 'ap1', 'ap2']}
 
     # d5: 2d + multiple apertures
+    d5 = {'optics': ['c1', 'ap0', 'ap1', 'ap2']}
 
-    return {}
+    return {
+        'd0': d0,
+        'd1': d1,
+        'd2': d2,
+        'd3': d3,
+        'd4': d4,
+        'd5': d5,
+    }
 
 
 #######################################################
@@ -235,7 +271,7 @@ class Test01_Diagnostic():
 
         # get dict
         dapertures = _apertures()
-        # dcameras = _cameras()
+        dcameras = _cameras()
         # ddiag = _diagnostics()
 
         # instanciate
@@ -244,11 +280,14 @@ class Test01_Diagnostic():
         for k0, v0 in dapertures.items():
             self.obj.add_aperture(key=k0, **v0)
 
-        # for k0, v0 in dcameras.items():
-            # self.obj.add_camera(key=k0, **v0)
+        for k0, v0 in dcameras.items():
+            if k0 == 'c0':
+                self.obj.add_camera_1d(key=k0, **v0)
+            else:
+                self.obj.add_camera_2d(key=k0, **v0)
 
-        # for k0, v0 in ddiag.items():
-            # self.obj.add_diagnostic(key=k0, **v0)
+        for k0, v0 in ddiag.items():
+            self.obj.add_diagnostic(key=k0, **v0)
 
     # ----------
     # tests
