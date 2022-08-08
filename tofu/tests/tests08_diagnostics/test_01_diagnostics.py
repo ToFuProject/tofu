@@ -3,6 +3,7 @@ This module contains tests for tofu.geom in its structured version
 """
 
 # Built-in
+import sys
 import os
 import warnings
 
@@ -92,8 +93,8 @@ def _apertures():
     cent = start + 0.1 * vect
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
-        e0=v0,
-        e1=v1,
+        v0=v0,
+        v1=v1,
         theta=np.pi/10.,
         phi=0.,
     )
@@ -112,8 +113,8 @@ def _apertures():
     cent = start + 0.2 * vect
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
-        e0=v0,
-        e1=v1,
+        v0=v0,
+        v1=v1,
         theta=-np.pi/10.,
         phi=np.pi/20.,
     )
@@ -135,8 +136,8 @@ def _apertures():
     cent = start + 0.3 * vect
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
-        e0=v0,
-        e1=v1,
+        v0=v0,
+        v1=v1,
         theta=0.,
         phi=-np.pi/20.,
     )
@@ -146,7 +147,7 @@ def _apertures():
     py = cent[1] + out0 * e0[1] + out1 * e1[1] + scatter * nin[1]
     pz = cent[2] + out0 * e0[2] + out1 * e1[2] + scatter * nin[2]
 
-    ap1 = {
+    ap2 = {
         'poly_x': px,
         'poly_y': py,
         'poly_z': pz,
@@ -158,7 +159,7 @@ def _apertures():
 
 def _cameras():
 
-    start, vect = _ref_line()
+    start, vect, v0, v1 = _ref_line()
 
     # c0: 1d
     out0 = 0.01 * np.r_[-1, 1, 1, -1]
@@ -234,8 +235,8 @@ class Test01_Diagnostic():
 
         # get dict
         dapertures = _apertures()
-        dcameras = _cameras()
-        ddiag = _diagnostics()
+        # dcameras = _cameras()
+        # ddiag = _diagnostics()
 
         # instanciate
         self.obj = tf.data.Diagnostic()

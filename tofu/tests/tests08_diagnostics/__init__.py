@@ -1,3 +1,3 @@
 
 
-from . import test_01_cameras
+from . import test_01_diagnostics
