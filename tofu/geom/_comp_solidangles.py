@@ -523,7 +523,7 @@ def _check_polygon_2d(
     return_area = ds._generic_check._check_var(
         return_area, 'return_area',
         types=bool,
-        default=True,
+        default=False,
     )
 
     # -------------
