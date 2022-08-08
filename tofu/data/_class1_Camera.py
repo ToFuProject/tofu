@@ -117,6 +117,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         key=None,
         cameras=None.
         apertures=None,
+        crystals=None,
         **kwdargs,
     ):
         # check / format input
@@ -124,6 +125,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
             key=key,
             cameras=cameras,
             apertures=apertures,
+            crystals=crystals,
             **kwdargs,
         )
         # update dicts

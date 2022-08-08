@@ -2,6 +2,7 @@
 
 import numpy as np
 
+
 from ..geom._comp_solidangles import _check_polygon_2d, _check_polygon_3d
 
 
@@ -24,6 +25,7 @@ def _check_unitvector(uv=None, uv_name=None):
 
     # enforce normalization
     return uv / np.linalg.norm(uv)
+
 
 def _check_nine0e1(nin=None, e0=None, e1=None):
 
@@ -92,9 +94,23 @@ def _aperture_check(
     )
 
     # -----------
+    # cent
+
+    if cent is not None:
+        cent = np.atleast_1d(cent).ravel().astype(float)
+        assert cent.shape == (3,)
+
+    # -----------
     # unit vectors
 
     nin = _check_unitvector(uv=nin, uv_name='nin')
+
+    if e0 is None and e1 is None:
+        if np.abs(nin[2]) < 0.99:
+            e0 = np.r_[-nin[1], nin[0], 0.]
+        else:
+            e0 = np.r_[np.sign(nin[2]), 0., 0.]
+
     if e0 is not None:
         e0 = _check_unitvector(uv=e0, uv_name='e0')
     if e1 is not None:
@@ -108,7 +124,7 @@ def _aperture_check(
 
     lc = [
         all([pp is not None for pp in [outline_x0, outline_x1]])
-        and e0 is not None,
+        and e0 is not None and cent is not None,
         all([pp is not None for pp in [poly_x, poly_y, poly_z]])
     ]
     if np.sum(lc) != 1:
@@ -123,17 +139,32 @@ def _aperture_check(
     # --------------
     # outline
 
+    planar = None
     if outline_x0 is not None:
-        _check_outline2d(
-            outline_x0=outline_x0
+
+        # planar
+        planar = True
+
+        # check outline
+        outline_x0, outline_x1, area = _check_polygon_2d(
+            poly_x=outline_x0,
+            poly_y=outline_x1,
+            poly_name=f'{key}-outline',
+            can_be_None=False,
+            closed=False,
+            counter_clockwise=True,
+            return_area=True,
         )
 
-        poly_x = 
+        # derive poly 3d
+        poly_x = cent[0] + outline_x0 * e0[0] + outline_x1 * e1[0]
+        poly_y = cent[1] + outline_x0 * e0[1] + outline_x1 * e1[1]
+        poly_z = cent[2] + outline_x0 * e0[2] + outline_x1 * e1[2]
 
     # -----------
     # poly3d
 
-    _check_polygon_3d(
+    poly_x, poly_y, poly_z = _check_polygon_3d(
         poly_x=poly_x,
         poly_y=poly_y,
         poly_z=poly_z,
@@ -144,7 +175,68 @@ def _aperture_check(
         normal=nin,
     )
 
-    return key, poly_x, poly_y, poly_z, nin
+
+    if outline_x0 is None:
+
+        # ----------
+        # cent
+
+        if cent is None:
+            cent = np.r_[np.mean(poly_x), np.mean(poly_y), np.mean(poly_z)]
+
+        # ----------
+        # planar 
+
+        diff_x = poly_x[1:] - poly_x[0]
+        diff_y = poly_y[1:] - poly_y[0]
+        diff_z = poly_z[1:] - poly_z[0]
+        norm = np.sqrt(diff_x**2 + diff_y**2 + diff_x**2)
+        diff_x = diff_x / norm
+        diff_y = diff_y / norm
+        diff_z = diff_z / norm
+
+        sca = np.abs(nin[0]*diff_x + nin[1]*diff_y + nin[2]*diff_z)
+
+        if np.all(sca < 2.e-12):
+            # all deviation smaller than 1.e-10 degree
+            planar = True
+
+            # derive outline
+            outline_x0 = (
+                (poly_x - cent[0]) * e0[0]
+                + (poly_y - cent[1]) * e0[1]
+                + (poly_z - cent[2]) * e0[2]
+            )
+            outline_x1 = (
+                (poly_x - cent[0]) * e1[0]
+                + (poly_y - cent[1]) * e1[1]
+                + (poly_z - cent[2]) * e1[2]
+            )
+
+            # check outline
+            outline_x0, outline_x1, area = _check_polygon_2d(
+                poly_x=outline_x0,
+                poly_y=outline_x1,
+                poly_name=f'{key}-outline',
+                can_be_None=False,
+                closed=False,
+                counter_clockwise=True,
+                return_area=True,
+            )
+
+        else:
+            planar = False
+            area = np.nan
+
+    assert planar == outline_x0 is not None
+
+    return (
+        key, cent,
+        outline_x0, outline_x1,
+        poly_x, poly_y, poly_z,
+        nin, e0, e1,
+        area, planar,
+    )
 
 
 def _aperture(
@@ -172,6 +264,7 @@ def _aperture(
         outline_x0, outline_x1,
         poly_x, poly_y, poly_z,
         nin, e0, e1,
+        area, planar,
     ) = _aperture_check(
         coll=coll,
         key=key,
@@ -182,41 +275,6 @@ def _aperture(
         # normal vector
         nin=nin,
     )
-
-    # ----------
-    # derive extra properties
-
-    # planar
-    if outline_x0 is not None:
-        planar = True
-    else:
-        diff_x = poly_x[1:] - poly_x[0]
-        diff_y = poly_y[1:] - poly_y[0]
-        diff_z = poly_z[1:] - poly_z[0]
-        norm = np.sqrt(diff_x**2 + diff_y**2 + diff_x**2)
-        diff_x = diff_x / norm
-        diff_y = diff_y / norm
-        diff_z = diff_z / norm
-
-        sca = np.abs(nin[0]*diff_x + nin[1]*diff_y + nin[2]*diff_z)
-
-        if np.all(sca < 0.001):
-            # all deviation smaller than 0.05 degree
-            planar = True
-        else:
-            planar = False
-
-    assert planar == outline_x0 is not None
-
-    # area & centroid
-    if isplanar:
-        area = 0.5*np.sum()
-        if cent is None:
-            cent = np.sum() / (6.*area)
-    else:
-        area = np.nan
-        if cent is None:
-            cent = np.r_[np.mean(poly_x), np.mean(poly_y), np.mean(poly_z)]
 
     # ----------
     # create dict
