@@ -237,16 +237,16 @@ def _diagnostics():
     d1 = {'optics': 'c1'}
 
     # d2: 1d + 1 aperture
-    d2 = {'optics': ['c0', 'ap0']}
+    d2 = {'optics': ('c0', 'ap0')}
 
     # d3: 2d + 1 aperture
-    d3 = {'optics': ['c1', 'ap0']}
+    d3 = {'optics': ('c1', 'ap0')}
 
     # d4: 1d + multiple apertures
-    d4 = {'optics': ['c0', 'ap0', 'ap1', 'ap2']}
+    d4 = {'optics': ('c0', 'ap0', 'ap1', 'ap2')}
 
     # d5: 2d + multiple apertures
-    d5 = {'optics': ['c1', 'ap0', 'ap1', 'ap2']}
+    d5 = {'optics': ('c1', 'ap0', 'ap1', 'ap2')}
 
     return {
         'd0': d0,
@@ -272,7 +272,7 @@ class Test01_Diagnostic():
         # get dict
         dapertures = _apertures()
         dcameras = _cameras()
-        # ddiag = _diagnostics()
+        ddiag = _diagnostics()
 
         # instanciate
         self.obj = tf.data.Diagnostic()

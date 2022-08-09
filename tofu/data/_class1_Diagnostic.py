@@ -212,13 +212,25 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         **kwdargs,
     ):
         # check / format input
-        dref, ddata, dobj = _class1_check._camera(
+        dref, ddata, dobj = _class1_check._diagnostics(
+            coll=self,
             key=key,
             optics=optics,
             **kwdargs,
         )
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+    # ---------------
+    # utilities
+    # ---------------
+
+    def get_camera_unit_vectors(self, key=None):
+        """ Return untit vectors components as dict """
+        return _class1_check.get_camera_unitvectors(
+            coll=self,
+            key=key,
+        )
 
     def get_as_dict(self, which=None, key=None):
         """ Return the desired object as a dict (input to some routines) """

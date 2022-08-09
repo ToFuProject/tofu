@@ -1280,7 +1280,7 @@ def _diagnostics(
     # ------------
     # check inputs
 
-    key, optics, is2d, compute = _diagnostics_checks(
+    key, optics, is2d, compute = _diagnostics_check(
         coll=coll,
         key=key,
         optics=optics,
@@ -1301,3 +1301,87 @@ def _diagnostics(
     }
 
     return None, None, dobj
+
+
+# #############################################################################
+# #############################################################################
+#                           Utilities
+# #############################################################################
+
+
+def get_camera_unitvectors(
+    coll=None,
+    key=None,
+):
+
+        # ---------
+        # check key
+
+        lok = list(coll.dobj.get('camera', {}).keys())
+        key = ds._generic_check._check_var(
+            key, 'key',
+            types=str,
+            allowed=lok,
+        )
+
+        # ---------------------------
+        # get unit vector components
+
+        if self.dobj['camera'][key]['parallel']:
+            dout = {
+                'nin_x': coll.dobj['camera'][key]['nin'][0],
+                'nin_y': coll.dobj['camera'][key]['nin'][1],
+                'nin_z': coll.dobj['camera'][key]['nin'][2],
+                'e0_x': coll.dobj['camera'][key]['e0'][0],
+                'e0_y': coll.dobj['camera'][key]['e0'][1],
+                'e0_z': coll.dobj['camera'][key]['e0'][2],
+                'e1_x': coll.dobj['camera'][key]['e1'][0],
+                'e1_y': coll.dobj['camera'][key]['e1'][1],
+                'e1_z': coll.dobj['camera'][key]['e1'][2],
+            }
+        else:
+            cam = coll.dobj['camera'][key]
+            dout = {
+                'nin_x': coll.data[cam['nin'][0]]['data'],
+                'nin_y': coll.data[cam['nin'][1]]['data'],
+                'nin_z': coll.data[cam['nin'][2]]['data'],
+                'e0_x': coll.data[cam['e0'][0]]['data'],
+                'e0_y': coll.data[cam['e0'][1]]['data'],
+                'e0_z': coll.data[cam['e0'][2]]['data'],
+                'e1_x': coll.data[cam['e1'][0]]['data'],
+                'e1_y': coll.data[cam['e1'][1]]['data'],
+                'e1_z': coll.data[cam['e1'][2]]['data'],
+            }
+
+        return dout
+
+def _return_as_dict(
+    coll=None,
+    which=None,
+    key=None,
+):
+
+
+    if which == 'camera':
+
+        dout = coll.get_camera_unit_vectors(key=key)
+        cam = coll.dobj['camera'][key]
+        dout.update({
+            'outline_x0': coll.ddata[cam['outline'][0]]['data'],
+            'outline_x1': coll.ddata[cam['outline'][1]]['data'],
+            'cents_x': coll.ddata[cam['cents'][0]]['data'],
+            'cents_y': coll.ddata[cam['cents'][1]]['data'],
+            'cents_z': coll.ddata[cam['cents'][2]]['data'],
+        })
+
+    elif which == 'aperture':
+
+        dout = {
+
+        }
+
+    else:
+        msg = f"Un-handled category '{which}'"
+        raise Exception(msg)
+
+    return dout
