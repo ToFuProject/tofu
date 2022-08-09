@@ -13,6 +13,7 @@ import datastock as ds
 # tofu
 from . import _class0_Plasma2D
 from . import _class1_check
+from . import _class1_compute
 
 
 __all__ = ['Diagnostic']
@@ -43,7 +44,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         ],
         'camera': [
             'type', 'parallel',
-            'pix. area', 'pix .nb.',
+            'pix area', 'pix nb',
             'outline',
             'cent', 'cents',
             'qeff_energy',

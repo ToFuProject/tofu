@@ -836,8 +836,8 @@ def _camera_1d(
             key: {
                 'type': '1d',
                 'parallel': parallel,
-                'pix. area': area,
-                'pix nb.': npix,
+                'pix area': area,
+                'pix nb': npix,
                 'outline': (kout0, kout1),
                 'cent': None,
                 'cents': (kcx, kcy, kcz),
@@ -1327,7 +1327,7 @@ def get_camera_unitvectors(
         # ---------------------------
         # get unit vector components
 
-        if self.dobj['camera'][key]['parallel']:
+        if coll.dobj['camera'][key]['parallel']:
             dout = {
                 'nin_x': coll.dobj['camera'][key]['nin'][0],
                 'nin_y': coll.dobj['camera'][key]['nin'][1],
@@ -1373,18 +1373,18 @@ def _return_as_dict(
             'cents_x': coll.ddata[cam['cents'][0]]['data'],
             'cents_y': coll.ddata[cam['cents'][1]]['data'],
             'cents_z': coll.ddata[cam['cents'][2]]['data'],
-            'area': cam['area'],
+            'area': cam['pix area'],
         })
 
     elif which == 'aperture':
 
         if isinstance(key, str):
             key = [key]
-        key = ds._generic_check._check_var(
+        key = ds._generic_check._check_var_iter(
             key, 'key',
             types=(list, tuple),
             types_iter=str,
-            allowed=lok,
+            allowed=list(coll.dobj.get('aperture', {}).keys()),
         )
 
         dout = {}

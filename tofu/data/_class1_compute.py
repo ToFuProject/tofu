@@ -1,5 +1,10 @@
 
 
+import datastock as ds
+
+
+from ..geom import _etendue
+
 
 # #############################################################################
 # #############################################################################
@@ -68,14 +73,14 @@ def _diag_compute_etendue(
     )
 
     # prepare optics
-    optics = coll.dobj['diagnostic']['optics']
+    optics = coll.dobj['diagnostic'][key]['optics']
 
     # --------
     # etendues
 
-    detend = _etendue._compute_etendue(
+    detend = _etendue.compute_etendue(
         det=coll.get_as_dict(which='camera', key=optics[0]),
-        aperture=coll.get_as_dict(which='apertures', key=optics[1:]),
+        aperture=coll.get_as_dict(which='aperture', key=optics[1:]),
         analytical=analytical,
         numerical=numerical,
         check=None,
