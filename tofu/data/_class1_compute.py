@@ -94,7 +94,7 @@ def _diag_compute_etendue(
         # data
         etendue = detend[store][-1, :]
 
-        # dict
+        # dict for etendue
         ketendue = f'{key}-etend'
 
         ddata = {

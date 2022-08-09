@@ -64,7 +64,7 @@ def compute_etendue(
     # prepare
 
     (
-        det_surface, ap_surface, distances,
+        det_area, ap_area, distances,
         los_x, los_y, los_z,
         cos_los_det, cos_los_ap,
         solid_angles, res,
@@ -83,16 +83,16 @@ def compute_etendue(
         etend0 = np.full(tuple(np.r_[3, shape]), np.nan)
 
         # 0th order
-        etend0[0, ...] = ap_surface * det_surface / distances**2
+        etend0[0, ...] = ap_area * det_area / distances**2
 
         # 1st order
         etend0[1, ...] = (
-            cos_los_ap * ap_surface
-            * cos_los_det * det_surface / distances**2
+            cos_los_ap * ap_area
+            * cos_los_det * det_area / distances**2
         )
 
         # 2nd order
-        etend0[2, ...] = cos_los_ap * ap_surface * solid_angles
+        etend0[2, ...] = cos_los_ap * ap_area * solid_angles
 
     else:
         etend0 = None
@@ -134,6 +134,9 @@ def compute_etendue(
         'analytical': etend0,
         'numerical': etend1,
         'res': res,
+        'los_x': los_x,
+        'los_y': los_y,
+        'los_z': los_z,
     }
 
     return dout
@@ -256,95 +259,84 @@ def _compute_etendue_check(
 
     lk = [
         'poly_x', 'poly_y', 'poly_z',
-        'nin_x', 'nin_y', 'nin_z',
-        'e0_x', 'e0_y', 'e0_z',
-        'e1_x', 'e1_y', 'e1_z',
+        'nin', 'e0', 'e1',
     ]
 
     c0 = (
         isinstance(aperture, dict)
-        and all([kk in aperture.keys() for kk in lk])
+        and all([
+            isinstance(k0, str)
+            and isinstance(v0, dict)
+            and all([kk in v0.keys() for kk in lk])
+            for k0, v0 in aperture.items()
+        ])
     )
     if not c0:
         lstr = [f"\t- {k0}" for k0 in lk]
         msg = (
-            "Arg aperture must be a dict with the following keys:\n"
+            "Arg aperture must be a dict of sub-dict with keys:\n"
             + "\n".join(lstr)
+            + f"\nProvided:\n{aperture}"
         )
         raise Exception(msg)
 
-    # check values
-    for k0 in lk:
-        tok = (list, tuple, int, float, np.integer, np.float)
-        if isinstance(aperture[k0], tok):
-            aperture[k0] = np.atleast_1d(aperture[k0]).ravel()
+    # check each case 
+    for k0, v0 in aperture.items():
 
-        if not isinstance(aperture[k0], np.ndarray):
-            msg = f"Arg aperture['{k0}'] must ba a np.ndarray"
-            raise Exception(msg)
+        # check values
+        for k1 in lk:
+            if isinstance(v0[k1], (list, tuple)):
+                aperture[k0][k1] = np.atleast_1d(v0[k1]).ravel().astype(float)
 
-        if aperture[k0].ndim > 1:
-            msg = f"Arg aperture['{k0}'] must be 1d"
-            raise Exception(msg)
+            if not isinstance(aperture[k0][k1], np.ndarray):
+                msg = f"Arg aperture['{k0}']['{k1}'] must ba a np.ndarray"
+                raise Exception(msg)
 
-        if 'poly_' not in k0 and aperture[k0].size > 1:
-            msg = f"Arg aperture['{k0}'] must have size 1"
-            raise Exception(msg)
+            if aperture[k0][k1].ndim > 1:
+                msg = f"Arg aperture['{k0}']['{k1}'] must be 1d"
+                raise Exception(msg)
 
-    # check shapes
-    dshape = {
-        0: ['poly_x', 'poly_y', 'poly_z'],
-        1: [
-            'nin_x', 'nin_y', 'nin_z',
-            'e0_x', 'e0_y', 'e0_z',
-            'e1_x', 'e1_y', 'e1_z',
-        ],
-    }
-    for k0, v0 in dshape.items():
-        if len(set([aperture[v1].shape for v1 in v0])) > 1:
-            lstr = [f"\t- {v1}" for v1 in v0]
-            msg = (
-                "The following args must share the same shape:\n"
-                + "\n".join(lstr)
-            )
-            raise Exception(msg)
+            if 'poly_' not in k0 and aperture[k0][k1].shape != (3,):
+                msg = f"Arg aperture['{k0}']['{k1}']must have shape (3,)"
+                raise Exception(msg)
 
-    # check not closed poly
-    if (
-        aperture['poly_x'][0] == aperture['poly_x'][-1]
-        and aperture['poly_y'][0] == aperture['poly_y'][-1]
-        and aperture['poly_z'][0] == aperture['poly_z'][-1]
-    ):
-        aperture['poly_x'] = aperture['poly_x'][:-1]
-        aperture['poly_y'] = aperture['poly_y'][:-1]
-        aperture['poly_z'] = aperture['poly_z'][:-1]
+        v0 = aperture[k0]
 
-    # normalization
-    norm = np.sqrt(
-        aperture['nin_x']**2
-        + aperture['nin_y']**2
-        + aperture['nin_z']**2
-    )
-    aperture['nin_x'] = aperture['nin_x'] / norm
-    aperture['nin_y'] = aperture['nin_y'] / norm
-    aperture['nin_z'] = aperture['nin_z'] / norm
+        # check shapes
+        dshape = {
+            0: ['poly_x', 'poly_y', 'poly_z'],
+            1: ['nin', 'e0', 'e1'],
+        }
+        for k1, v1 in dshape.items():
+            if len(set([v0[v2].shape for v2 in v1])) > 1:
+                lstr = [f"\t- {v2}" for v2 in v1]
+                msg = (
+                    "The following args must share the same shape:\n"
+                    + "\n".join(lstr)
+                )
+                raise Exception(msg)
 
-    # derive cents
-    aperture['cent_x'] = np.mean(aperture['poly_x'])
-    aperture['cent_y'] = np.mean(aperture['poly_y'])
-    aperture['cent_z'] = np.mean(aperture['poly_z'])
+        # check not closed poly
+        if (
+            v0['poly_x'][0] == v0['poly_x'][-1]
+            and v0['poly_y'][0] == v0['poly_y'][-1]
+            and v0['poly_z'][0] == v0['poly_z'][-1]
+        ):
+            v0['poly_x'] = v0['poly_x'][:-1]
+            v0['poly_y'] = v0['poly_y'][:-1]
+            v0['poly_z'] = v0['poly_z'][:-1]
 
-    # derive outline
-    aperture['outline_x0'] = (
-        (aperture['poly_x'] - aperture['cent_x'])*aperture['e0_x']
-        + (aperture['poly_y'] - aperture['cent_y'])*aperture['e0_y']
-        + (aperture['poly_z'] - aperture['cent_z'])*aperture['e0_z']
-    )
-    aperture['outline_x1'] = (
-        (aperture['poly_x'] - aperture['cent_x'])*aperture['e1_x']
-        + (aperture['poly_y'] - aperture['cent_y'])*aperture['e1_y']
-        + (aperture['poly_z'] - aperture['cent_z'])*aperture['e1_z']
-    )
+        # normalization
+        norm = np.linalg.norm(v0['nin'])
+        v0['nin'] = v0['nin'] / norm
+
+        # derive cents
+        if 'cent' not in v0.keys():
+            v0['cent'] = np.r_[
+                np.mean(v0['poly_x']),
+                np.mean(v0['poly_y']),
+                np.mean(v0['poly_z']),
+            ]
 
     # -----------
     # analytical
@@ -427,6 +419,72 @@ def _compute_etendue_check(
 # #############################################################################
 
 
+def _project_poly_on_plane_from_pt(
+    pt=None,
+    lpoly_x=None,
+    lpoly_y=None,
+    lpoly_z=None,
+    plane_pt=None,
+    plane_nin=None,
+    plane_e0=None,
+    plane_e1=None,
+):
+
+    isok = True
+    for ii in range(len(lpoly_x)):
+
+        sca0 = (
+            (plane_pt[0] - pt[0])*plane_nin[0]
+            + (plane_pt[1] - pt[1])*plane_nin[1]
+            + (plane_pt[2] - pt[2])*plane_nin[2]
+        )
+
+        vx = lpoly_x[ii] - pt[0]
+        vy = lpoly_y[ii] - pt[1]
+        vz = lpoly_z[ii] - pt[2]
+
+        sca1 = vx*plane_nin[0] + vy*plane_nin[1] + vz*plane_nin[2]
+
+        k = sca0 / sca1
+
+        px = pt[0] + k * vx
+        py = pt[1] + k * vy
+        pz = pt[2] + k * vz
+
+        p0 = (
+            (px - plane_pt[0])*plane_e0[0]
+            + (py - plane_pt[1])*plane_e0[1]
+            + (pz - plane_pt[2])*plane_e0[2]
+        )
+        p1 = (
+            (px - plane_pt[0])*plane_e1[0]
+            + (py - plane_pt[1])*plane_e1[1]
+            + (pz - plane_pt[2])*plane_e1[2]
+        )
+
+        if ii == 0:
+            p_a = plg.Polygon(np.array([p0, p1]).T)
+        else:
+            p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
+
+        if p_a.nPoints() < 3:
+            isok = False
+            break
+
+    if isok is False:
+        msg = "Non intersecting apertures"
+        raise Exception(msg)
+
+    p0, p1 = p_a.contour().T
+    px = plane_pt[0] + p0*plane_e0[0] + p1*plane_e1[0]
+    py = plane_pt[1] + p0*plane_e0[1] + p1*plane_e1[1]
+    pz = plane_pt[2] + p0*plane_e0[2] + p1*plane_e1[2]
+
+    return p_a, p0, p1, px, py, pz
+
+
+
+
 def _compute_etendue_prepare(
     det=None,
     aperture=None,
@@ -443,25 +501,80 @@ def _compute_etendue_prepare(
         det_out_x0 = np.append(det_out_x0, det_out_x0[0])
         det_out_x1 = np.append(det_out_x1, det_out_x1[0])
 
-    # ap
-    ap_out_x0 = aperture['outline_x0']
-    ap_out_x1 = aperture['outline_x1']
-    if (ap_out_x0[0] != ap_out_x0[-1]) or (ap_out_x1[0] != ap_out_x1[-1]):
-        ap_out_x0 = np.append(ap_out_x0, ap_out_x0[0])
-        ap_out_x1 = np.append(ap_out_x1, ap_out_x1[0])
+    # -------------------------
+    # intersection of apertures
 
-    # ----------------------------------
-    # los, distances, cosines
+    kap_ref = list(aperture.keys())[0]
+    lpoly_x = [v0['poly_x'] for v0 in aperture.values()]
+    lpoly_x = [v0['poly_y'] for v0 in aperture.values()]
+    lpoly_x = [v0['poly_z'] for v0 in aperture.values()]
 
-    los_x = aperture['cent_x'] - det['cents_x']
-    los_y = aperture['cent_y'] - det['cents_y']
-    los_z = aperture['cent_z'] - det['cents_z']
+    ap_area = np.full((det['cents_x'].size,), np.nan)
+    los_x = np.full((det['cents_x'].size,), np.nan)
+    los_y = np.full((det['cents_x'].size,), np.nan)
+    los_z = np.full((det['cents_x'].size,), np.nan)
+    solid_angles = np.full((det['cents_x'].size,), np.nan)
+    mindiff = np.full((det['cents_x'].size,), np.nan)
+
+    for ii in range(det['cents_x'].size):
+
+        # ap
+
+        p_a, p0, p1, px, py, pz = _project_poly_on_plane_from_pt(
+            pt=np.r_[
+                det['cents_x'][ii],
+                det['cents_y'][ii],
+                det['cents_z'][ii],
+            ],
+            lpoly_x=lpoly_x,
+            lpoly_y=lpoly_y,
+            lpoly_z=lpoly_z,
+            plane_pt=aperture[kap_ref]['cent'],
+            plane_nin=aperture[kap_ref]['nin'],
+            plane_e0=aperture[kap_ref]['e0'],
+            plane_e1=aperture[kap_ref]['e1'],
+        )
+
+        ap_area[ii] = p_a.area()
+        ap_cent = p_a.centroid()
+        mindiff[ii] = np.sqrt(np.min(np.diff(p0)**2 + np.diff(p1)**2))
+
+        # ----------------------------------
+        # los, distances, cosines
+
+        los_x[ii] = ap_cent[0] - det['cents_x'][ii]
+        los_y[ii] = ap_cent[1] - det['cents_y'][ii]
+        los_z[ii] = ap_cent[2] - det['cents_z'][ii]
+
+        # ------------
+        # solid angles
+
+        solid_angles[ii] = _comp_solidangles.calc_solidangle_apertures(
+            # observation points
+            pts_x=ap_cent[0],
+            pts_y=ap_cent[1],
+            pts_z=ap_cent[2],
+            # polygons
+            apertures=None,
+            detectors=det,
+            # possible obstacles
+            config=None,
+            # parameters
+            visibility=False,
+            return_vector=False,
+        ).ravel()
+
+    # -------------
+    # normalize los
 
     distances = np.sqrt(los_x**2 + los_y**2 + los_z**2)
 
     los_x = los_x / distances
     los_y = los_y / distances
     los_z = los_z / distances
+
+    # ------
+    # angles
 
     cos_los_det = (
         los_x * det['nin_x']
@@ -470,59 +583,38 @@ def _compute_etendue_prepare(
     )
 
     cos_los_ap = (
-        los_x * aperture['nin_x']
-        + los_y * aperture['nin_y']
-        + los_z * aperture['nin_z']
+        los_x * aperture[kap_ref]['nin'][0]
+        + los_y * aperture[kap_ref]['nin'][1]
+        + los_z * aperture[kap_ref]['nin'][2]
     )
 
     # -----------
     # surfaces
 
-    det_surface = 0.5*np.abs(
-        np.sum(
-            (det_out_x0[1:] + det_out_x0[:-1])
-            * (det_out_x1[1:] - det_out_x1[:-1])
+    # det
+    if area not in det.keys():
+        det_area = 0.5*np.abs(
+            np.sum(
+                (det_out_x0[1:] + det_out_x0[:-1])
+                * (det_out_x1[1:] - det_out_x1[:-1])
+            )
+            + (det_out_x0[0] + det_out_x0[-1])*(det_out_x1[0] - det_out_x1[-1])
         )
-        + (det_out_x0[0] + det_out_x0[-1])*(det_out_x1[0] - det_out_x1[-1])
-    )
-
-    ap_surface = 0.5*np.abs(
-        np.sum(
-            (ap_out_x0[1:] + ap_out_x0[:-1]) * (ap_out_x1[1:] - ap_out_x1[:-1])
-        )
-        + (ap_out_x0[0] + ap_out_x0[-1]) * (ap_out_x1[0] - ap_out_x1[-1])
-    )
-
-    # ------------
-    # solid angles
-
-    solid_angles = _comp_solidangles.calc_solidangle_apertures(
-        # observation points
-        pts_x=aperture['cent_x'],
-        pts_y=aperture['cent_y'],
-        pts_z=aperture['cent_z'],
-        # polygons
-        apertures=None,
-        detectors=det,
-        # possible obstacles
-        config=None,
-        # parameters
-        visibility=False,
-        return_vector=False,
-    ).ravel()
+    else:
+        det_area = det['area']
 
     # -------------------------------------
     # det outline discretization resolution
 
     if res is None:
         res = min(
-            np.sqrt(det_surface),
-            np.sqrt(ap_surface),
-            np.sqrt(np.min(np.diff(ap_out_x0)**2 + np.diff(ap_out_x1)**2))
+            np.sqrt(det_area),
+            np.sqrt(np.min(ap_area)),
+            np.min(mindiff),
         ) * np.r_[1., 0.5, 0.1]
 
     return (
-        det_surface, ap_surface, distances,
+        det_area, ap_area, distances,
         los_x, los_y, los_z,
         cos_los_det, cos_los_ap, solid_angles, res,
     )

@@ -804,7 +804,7 @@ def _check_det_dict(detectors=None):
 def _check_ap_dict(apertures=None):
 
     lk0 = ['poly_x', 'poly_y', 'poly_z']
-    lk1 = ['nin_x', 'nin_y', 'nin_z']
+    lk1 = ['nin']
 
     err = False
     if not isinstance(apertures, dict):
@@ -822,7 +822,7 @@ def _check_ap_dict(apertures=None):
                     and v0['poly_x'].shape == v0[k1].shape
                     for k1 in lk0
                 ])
-                and all([np.isscalar(v0[k1]) for k1 in lk1])
+                and all([v0[k1].shape == (3,) for k1 in lk1])
                 and np.sqrt(np.sum([v0[k1]**2 for k1 in lk1])) == 1.
             )
         ]
@@ -832,17 +832,16 @@ def _check_ap_dict(apertures=None):
     if err:
         msg = (
             "Arg apertures must be a dict with keys:\n"
-            "\t- nin_x, nin_y, nin_z: components of the normal vector"
-            "\t      oriented towards the plasma\n"
-            "\t- poly_x, poly_y, poly_z: the 3d (x, y, z) polygon\n"
-            "        must be counter-clockwise from nin"
+            "\t- 'nin': normal vector oriented towards the plasma\n"
+            "\t- 'poly_x', 'poly_y', 'poly_z': 3d (x, y, z) polygon\n"
+            "        must be counter-clockwise from 'nin'"
         )
         raise Exception(msg)
 
     # make sure float
     for k0, v0 in apertures.items():
-        for k1 in lk1:
-            apertures[k0][k1] = float(v0[k1])
+        for k1 in lk0 + lk1:
+            apertures[k0][k1] = np.atleast_1d(v0[k1]).ravel().astype(float)
 
     # check polygons
     for k0, v0 in apertures.items():
@@ -858,7 +857,7 @@ def _check_ap_dict(apertures=None):
             can_be_None=False,
             closed=False,
             counter_clockwise=True,
-            normal=np.r_[v0['nin_x'], v0['nin_y'], v0['nin_z']],
+            normal=v0['nin'],
         )
 
     return apertures
@@ -1032,9 +1031,9 @@ def _calc_solidangle_apertures_prepare(
         ap_x = np.concatenate([apertures[k0]['poly_x'] for k0 in lka])
         ap_y = np.concatenate([apertures[k0]['poly_y'] for k0 in lka])
         ap_z = np.concatenate([apertures[k0]['poly_z'] for k0 in lka])
-        ap_nin_x = np.array([apertures[k0]['nin_x'] for k0 in lka])
-        ap_nin_y = np.array([apertures[k0]['nin_y'] for k0 in lka])
-        ap_nin_z = np.array([apertures[k0]['nin_z'] for k0 in lka])
+        ap_nin_x = np.array([apertures[k0]['nin'][0] for k0 in lka])
+        ap_nin_y = np.array([apertures[k0]['nin'][1] for k0 in lka])
+        ap_nin_z = np.array([apertures[k0]['nin'][2] for k0 in lka])
 
     # ---------
     # detectors

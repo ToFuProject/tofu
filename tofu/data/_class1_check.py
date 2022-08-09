@@ -1355,12 +1355,13 @@ def get_camera_unitvectors(
 
         return dout
 
+
 def _return_as_dict(
     coll=None,
     which=None,
     key=None,
 ):
-
+    """ Return camera or apertres as dict (input for low-level routines) """
 
     if which == 'camera':
 
@@ -1372,13 +1373,32 @@ def _return_as_dict(
             'cents_x': coll.ddata[cam['cents'][0]]['data'],
             'cents_y': coll.ddata[cam['cents'][1]]['data'],
             'cents_z': coll.ddata[cam['cents'][2]]['data'],
+            'area': cam['area'],
         })
 
     elif which == 'aperture':
 
-        dout = {
+        if isinstance(key, str):
+            key = [key]
+        key = ds._generic_check._check_var(
+            key, 'key',
+            types=(list, tuple),
+            types_iter=str,
+            allowed=lok,
+        )
 
-        }
+        dout = {}
+        for k0 in key:
+            ap = coll.dobj['aperture'][k0]
+            dout[k0] = {
+                'cent': ap['cent'],
+                'poly_x': coll.ddata[ap['poly'][0]]['data'],
+                'poly_y': coll.ddata[ap['poly'][1]]['data'],
+                'poly_z': coll.ddata[ap['poly'][2]]['data'],
+                'nin': ap['nin'],
+                'e0': ap.get('e0'),
+                'e1': ap.get('e1'),
+            }
 
     else:
         msg = f"Un-handled category '{which}'"

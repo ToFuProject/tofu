@@ -106,9 +106,7 @@ def _get_cases(ang0=np.pi/4., ang1=-np.pi/4.):
                     + e0[2] * lout[jj][0, :]
                     + e1[2] * lout[jj][1, :]
                 ),
-                'nin_x': vect[0],
-                'nin_y': vect[1],
-                'nin_z': vect[2],
+                'nin': vect,
             }
             for jj in range(3)
         }
