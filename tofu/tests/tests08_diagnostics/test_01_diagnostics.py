@@ -292,5 +292,11 @@ class Test01_Diagnostic():
     # ----------
     # tests
 
-    def test01_apertures(self):
-        pass
+    def test01_etendues(self):
+        for k0, v0 in self.obj.dobj['diagnostic'].items():
+            if k0 in ['d0', 'd1']:
+                continue
+            self.obj.compute_diagnostic_etendue(
+                key=k0,
+                res=np.r_[0.002],
+            )
