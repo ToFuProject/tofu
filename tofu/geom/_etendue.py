@@ -1,6 +1,7 @@
 
 
 import copy
+import warnings
 
 
 import numpy as np
@@ -87,16 +88,16 @@ def compute_etendue(
         etend0 = np.full(tuple(np.r_[3, shape]), np.nan)
 
         # 0th order
-        etend0[0, ...] = ap_area * det_area / distances**2
+        etend0[0, :] = ap_area * det_area / distances**2
 
         # 1st order
-        etend0[1, ...] = (
+        etend0[1, :] = (
             cos_los_ap * ap_area
             * cos_los_det * det_area / distances**2
         )
 
         # 2nd order
-        etend0[2, ...] = cos_los_ap * ap_area * solid_angles
+        etend0[2, :] = cos_los_ap * ap_area * solid_angles
 
     else:
         etend0 = None
@@ -118,11 +119,6 @@ def compute_etendue(
             verb=verb,
         )
 
-        # reshape if necessary
-        sh0 = det['cents_x'].shape
-        if etend1.shape[1:] != sh0:
-            etendue = etendue.reshape(tuple(np.r_[res.size, sh0]))
-
     else:
         etend1 = None
 
@@ -135,6 +131,24 @@ def compute_etendue(
             etend1=etend1,
             res=res,
         )
+
+    # --------
+    # reshape
+
+    sh0 = det['cents_x'].shape
+    # etend0
+    if etend0.shape[1:] != sh0:
+        etend0 = etend0.reshape(tuple(np.r_[etend0.shape[0], sh0]))
+
+    # etend1
+    if etend1.shape[1:] != sh0:
+        etend1 = etend1.reshape(tuple(np.r_[res.size, sh0]))
+
+    # los
+    if los_x.shape != sh0:
+        los_x = los_x.reshape(sh0)
+        los_y = los_y.reshape(sh0)
+        los_z = los_z.reshape(sh0)
 
     # --------------------
     # return
@@ -199,12 +213,12 @@ def _compute_etendue_check(
 
     # check values
     for k0 in lk:
-        tok = (list, tuple, int, float, np.integer, np.float)
-        if isinstance(det[k0], tok):
+        if isinstance(det[k0], (list, tuple)):
             det[k0] = np.atleast_1d(det[k0]).ravel()
 
-        if not isinstance(det[k0], np.ndarray):
-            msg = f"Arg det['{k0}'] must ba a np.ndarray"
+        c0 = isinstance(det[k0], np.ndarray) or np.isscalar(det[k0])
+        if not c0:
+            msg = f"Arg det['{k0}'] must be a np.ndarray or scalar"
             raise Exception(msg)
 
         if k0 in ['outline_x0', 'outline_x1'] and det[k0].ndim > 1:
@@ -232,16 +246,8 @@ def _compute_etendue_check(
 
     shaped = det['cents_x'].shape
     if det['cents_x'].shape != det['nin_x'].shape:
-        if det['nin_x'].shape == (1,):
-            det['nin_x'] = np.full(shaped, det['nin_x'][0])
-            det['nin_y'] = np.full(shaped, det['nin_y'][0])
-            det['nin_z'] = np.full(shaped, det['nin_z'][0])
-            det['e0_x'] = np.full(shaped, det['e0_x'][0])
-            det['e0_y'] = np.full(shaped, det['e0_y'][0])
-            det['e0_z'] = np.full(shaped, det['e0_z'][0])
-            det['e1_x'] = np.full(shaped, det['e1_x'][0])
-            det['e1_y'] = np.full(shaped, det['e1_y'][0])
-            det['e1_z'] = np.full(shaped, det['e1_z'][0])
+        if np.isscalar(det['nin_x']):
+            assert det.get('parallel', True) is True
         else:
             msg = (
                 "Arg det['nin_x'], det['nin_y'], det['nin_z'] must have "
@@ -269,15 +275,18 @@ def _compute_etendue_check(
     lk = [
         k0 for k0 in det.keys()
         if any([k0.endswith(ss) for ss in ['_x', '_y', '_z']])
+        and not np.isscalar(det[k0])
     ]
-    deti = copy.deepcopy({k0: v0 for k0, v0 in det.items() if k0 not in lk})
+    deti = {k0: det[k0].ravel() for k0 in lk}
 
-    for k0 in lk:
-        deti[k0] = det[k0].ravel()
-
-    ldeti = [copy.deepcopy(deti) for ii in range(deti['cents_x'].size)]
-    for ii in range(deti['cents_x'].size):
-        ldeti[ii].update({k0: deti[k0][ii] for k0 in lk})
+    ldeti = [
+        {
+            k0: deti[k0][ii]
+            if k0 in lk else v0
+            for k0, v0 in det.items()
+        }
+        for ii in range(det['cents_x'].size)
+    ]
 
     # -----------
     # aperture
@@ -497,8 +506,7 @@ def _project_poly_on_plane_from_pt(
             break
 
     if isok is False:
-        msg = "Non intersecting apertures"
-        raise Exception(msg)
+        return None, None, None, None, None, None
 
     p0, p1 = np.array(p_a.contour(0)).T
     px = plane_pt[0] + p0*plane_e0[0] + p1*plane_e1[0]
@@ -524,11 +532,11 @@ def _compute_etendue_prepare(
 
     # prepare data
     nd = len(ldeti)
-    ap_area = np.full((nd,), np.nan)
+    ap_area = np.zeros((nd,), dtype=float)
     los_x = np.full((nd,), np.nan)
     los_y = np.full((nd,), np.nan)
     los_z = np.full((nd,), np.nan)
-    solid_angles = np.full((nd,), np.nan)
+    solid_angles = np.zeros((nd,), dtype=float)
     mindiff = np.full((nd,), np.nan)
 
     for ii in range(nd):
@@ -549,38 +557,42 @@ def _compute_etendue_prepare(
             plane_e1=aperture[kap_ref]['e1'],
         )
 
-        ap_area[ii] = p_a.area()
-        ap_cent = (
-            aperture[kap_ref]['cent']
-            + p_a.center()[0] * aperture[kap_ref]['e0']
-            + p_a.center()[1] * aperture[kap_ref]['e1']
-        )
-        mindiff[ii] = np.sqrt(np.min(np.diff(p0)**2 + np.diff(p1)**2))
+        if p_a is None:
+            continue
 
-        # ----------------------------------
-        # los, distances, cosines
+        else:
+            ap_area[ii] = p_a.area()
+            ap_cent = (
+                aperture[kap_ref]['cent']
+                + p_a.center()[0] * aperture[kap_ref]['e0']
+                + p_a.center()[1] * aperture[kap_ref]['e1']
+            )
+            mindiff[ii] = np.sqrt(np.min(np.diff(p0)**2 + np.diff(p1)**2))
 
-        los_x[ii] = ap_cent[0] - ldeti[ii]['cents_x']
-        los_y[ii] = ap_cent[1] - ldeti[ii]['cents_y']
-        los_z[ii] = ap_cent[2] - ldeti[ii]['cents_z']
+            # ----------------------------------
+            # los, distances, cosines
 
-        # ------------
-        # solid angles
+            los_x[ii] = ap_cent[0] - ldeti[ii]['cents_x']
+            los_y[ii] = ap_cent[1] - ldeti[ii]['cents_y']
+            los_z[ii] = ap_cent[2] - ldeti[ii]['cents_z']
 
-        solid_angles[ii] = _comp_solidangles.calc_solidangle_apertures(
-            # observation points
-            pts_x=ap_cent[0],
-            pts_y=ap_cent[1],
-            pts_z=ap_cent[2],
-            # polygons
-            apertures=None,
-            detectors=ldeti[ii],
-            # possible obstacles
-            config=None,
-            # parameters
-            visibility=False,
-            return_vector=False,
-        ).ravel()[0]
+            # ------------
+            # solid angles
+
+            solid_angles[ii] = _comp_solidangles.calc_solidangle_apertures(
+                # observation points
+                pts_x=ap_cent[0],
+                pts_y=ap_cent[1],
+                pts_z=ap_cent[2],
+                # polygons
+                apertures=None,
+                detectors=ldeti[ii],
+                # possible obstacles
+                config=None,
+                # parameters
+                visibility=False,
+                return_vector=False,
+            ).ravel()[0]
 
     # -------------
     # normalize los
@@ -610,7 +622,7 @@ def _compute_etendue_prepare(
     # surfaces
 
     # det
-    if 'pix area' not in ldeti[ii].keys():
+    if ldeti[ii].get('pix area') is None:
         det_area = plg.Polygon(np.array([
             ldeti[ii]['outline_x0'],
             ldeti[ii]['outline_x1'],
@@ -622,11 +634,19 @@ def _compute_etendue_prepare(
     # det outline discretization resolution
 
     if res is None:
+
         res = min(
             np.sqrt(det_area),
-            np.sqrt(np.min(ap_area)),
-            np.min(mindiff),
+            np.sqrt(np.min(ap_area[ap_area > 0.])),
+            np.nanmin(mindiff),
         ) * np.r_[1., 0.5, 0.1]
+
+    iok = np.isfinite(res)
+    iok[iok] = res[iok] > 0
+    if not np.any(iok):
+        res = np.r_[0.001]
+    else:
+        res = res[iok]
 
     return (
         det_area, ap_area, distances,
@@ -676,6 +696,9 @@ def _compute_etendue_numerical(
         if verb is True:
             msg = f"Numerical etendue for det {ii+1} / {nd}"
             print(msg)
+
+        if np.isnan(los_x[ii]):
+            continue
 
         # get det corners to aperture corners vectors
         out_c_x0 = np.r_[0, ldeti[ii]['outline_x0']]
@@ -759,6 +782,17 @@ def _compute_etendue_numerical(
         w0 = x0_max - x0_min
         w1 = x1_max - x1_min
 
+        min_res = min(2*margin_perp*w0, 2*margin_perp*w1)
+        too_large = res >= min_res
+        if np.any(too_large):
+            msg = (
+                f"Minimum etendue resolution for det {ii} / {nd}: {min_res}\n"
+                "The following res values may lead to errors:\n"
+                f"\t- res values = {res}\n"
+                f"\t- too large  = {too_large}\n"
+            )
+            warnings.warn(msg)
+
         # -------------------
         # Discretize aperture
 
@@ -836,7 +870,7 @@ def _compute_etendue_numerical(
                     and ((pts_1[0] < x1_min) == np.all(sar[:, 0] == 0))
                     and ((pts_1[-1] > x1_max) == np.all(sar[:, -1] == 0))
                 )
-                if not c0:
+                if not c0 and not too_large[jj]:
                     # debug
                     plt.figure()
                     plt.imshow(
@@ -864,6 +898,7 @@ def _compute_etendue_numerical(
                     plt.gca().set_xlabel('x1')
                     # import pdb; pdb.set_trace()
                     msg = "Something is wrong with solid_angle or sampling"
+                    import pdb; pdb.set_trace()     # DB
                     raise Exception(msg)
                 else:
                     etendue[jj, ii] = np.sum(solid_angle) * ds

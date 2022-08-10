@@ -174,7 +174,7 @@ def _cameras():
         phi=0.,
     )
 
-    kl = 0.1*np.linspace(-1, 1, 50)
+    kl = 0.1*np.linspace(-1, 1, 10)
     cents_x = cent[0] + kl * e0[0]
     cents_y = cent[1] + kl * e0[1]
     cents_z = cent[2] + kl * e0[2]
@@ -203,8 +203,8 @@ def _cameras():
     out1 = 0.001 * np.r_[-1, -1, 1, 1]
     cent = start + 0.005 * vect
 
-    cent0 = 0.1*np.linspace(-1, 1, 200)
-    cent1 = 0.1*np.linspace(-1, 1, 100)
+    cent0 = 0.1*np.linspace(-1, 1, 5)
+    cent1 = 0.1*np.linspace(-1, 1, 4)
 
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,

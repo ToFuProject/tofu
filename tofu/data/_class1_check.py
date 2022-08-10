@@ -836,6 +836,8 @@ def _camera_1d(
             key: {
                 'type': '1d',
                 'parallel': parallel,
+                'shape': (npix,),
+                'ref': (knpix,),
                 'pix area': area,
                 'pix nb': npix,
                 'outline': (kout0, kout1),
@@ -1200,8 +1202,10 @@ def _camera_2d(
             key: {
                 'type': '2d',
                 'parallel': True,
-                'pix. area': area,
-                'pix nb.': npix0 * npix1,
+                'shape': (npix0, npix1),
+                'ref': (knpix0, knpix1),
+                'pix area': area,
+                'pix nb': npix0 * npix1,
                 'outline': (kout0, kout1),
                 'cent': cent,
                 'cents': (kc0, kc1),
@@ -1314,46 +1318,89 @@ def get_camera_unitvectors(
     key=None,
 ):
 
-        # ---------
-        # check key
+    # ---------
+    # check key
 
-        lok = list(coll.dobj.get('camera', {}).keys())
-        key = ds._generic_check._check_var(
-            key, 'key',
-            types=str,
-            allowed=lok,
+    lok = list(coll.dobj.get('camera', {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    # ---------------------------
+    # get unit vector components
+
+    if coll.dobj['camera'][key]['parallel']:
+        dout = {
+            'nin_x': coll.dobj['camera'][key]['nin'][0],
+            'nin_y': coll.dobj['camera'][key]['nin'][1],
+            'nin_z': coll.dobj['camera'][key]['nin'][2],
+            'e0_x': coll.dobj['camera'][key]['e0'][0],
+            'e0_y': coll.dobj['camera'][key]['e0'][1],
+            'e0_z': coll.dobj['camera'][key]['e0'][2],
+            'e1_x': coll.dobj['camera'][key]['e1'][0],
+            'e1_y': coll.dobj['camera'][key]['e1'][1],
+            'e1_z': coll.dobj['camera'][key]['e1'][2],
+        }
+    else:
+        cam = coll.dobj['camera'][key]
+        dout = {
+            'nin_x': coll.data[cam['nin'][0]]['data'],
+            'nin_y': coll.data[cam['nin'][1]]['data'],
+            'nin_z': coll.data[cam['nin'][2]]['data'],
+            'e0_x': coll.data[cam['e0'][0]]['data'],
+            'e0_y': coll.data[cam['e0'][1]]['data'],
+            'e0_z': coll.data[cam['e0'][2]]['data'],
+            'e1_x': coll.data[cam['e1'][0]]['data'],
+            'e1_y': coll.data[cam['e1'][1]]['data'],
+            'e1_z': coll.data[cam['e1'][2]]['data'],
+        }
+
+    return dout
+
+
+def get_camera_cents_xyz(coll=None, key=None):
+
+    # ---------
+    # check key
+
+    lok = list(coll.dobj.get('camera', {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    # ---------------------------
+    # get unit vector components
+
+    cam = coll.dobj['camera'][key]
+    if cam['type'] == '1d':
+        cx = coll.ddata[cam['cents'][0]]['data']
+        cy = coll.ddata[cam['cents'][1]]['data']
+        cz = coll.ddata[cam['cents'][2]]['data']
+    else:
+        c0 = coll.ddata[cam['cents'][0]]['data']
+        c1 = coll.ddata[cam['cents'][1]]['data']
+
+        cx = (
+            cam['cent'][0]
+            + np.repeat(c0[:, None], c1.size, axis=1) * cam['e0'][0]
+            + np.repeat(c1[None, :], c0.size, axis=0) * cam['e1'][0]
+        )
+        cy = (
+            cam['cent'][1]
+            + np.repeat(c0[:, None], c1.size, axis=1) * cam['e0'][1]
+            + np.repeat(c1[None, :], c0.size, axis=0) * cam['e1'][1]
+        )
+        cz = (
+            cam['cent'][2]
+            + np.repeat(c0[:, None], c1.size, axis=1) * cam['e0'][2]
+            + np.repeat(c1[None, :], c0.size, axis=0) * cam['e1'][2]
         )
 
-        # ---------------------------
-        # get unit vector components
-
-        if coll.dobj['camera'][key]['parallel']:
-            dout = {
-                'nin_x': coll.dobj['camera'][key]['nin'][0],
-                'nin_y': coll.dobj['camera'][key]['nin'][1],
-                'nin_z': coll.dobj['camera'][key]['nin'][2],
-                'e0_x': coll.dobj['camera'][key]['e0'][0],
-                'e0_y': coll.dobj['camera'][key]['e0'][1],
-                'e0_z': coll.dobj['camera'][key]['e0'][2],
-                'e1_x': coll.dobj['camera'][key]['e1'][0],
-                'e1_y': coll.dobj['camera'][key]['e1'][1],
-                'e1_z': coll.dobj['camera'][key]['e1'][2],
-            }
-        else:
-            cam = coll.dobj['camera'][key]
-            dout = {
-                'nin_x': coll.data[cam['nin'][0]]['data'],
-                'nin_y': coll.data[cam['nin'][1]]['data'],
-                'nin_z': coll.data[cam['nin'][2]]['data'],
-                'e0_x': coll.data[cam['e0'][0]]['data'],
-                'e0_y': coll.data[cam['e0'][1]]['data'],
-                'e0_z': coll.data[cam['e0'][2]]['data'],
-                'e1_x': coll.data[cam['e1'][0]]['data'],
-                'e1_y': coll.data[cam['e1'][1]]['data'],
-                'e1_z': coll.data[cam['e1'][2]]['data'],
-            }
-
-        return dout
+    return cx, cy, cz
 
 
 def _return_as_dict(
@@ -1367,13 +1414,16 @@ def _return_as_dict(
 
         dout = coll.get_camera_unit_vectors(key=key)
         cam = coll.dobj['camera'][key]
+        cx, cy, cz = coll.get_camera_cents_xyz(key=key)
+
         dout.update({
             'outline_x0': coll.ddata[cam['outline'][0]]['data'],
             'outline_x1': coll.ddata[cam['outline'][1]]['data'],
-            'cents_x': coll.ddata[cam['cents'][0]]['data'],
-            'cents_y': coll.ddata[cam['cents'][1]]['data'],
-            'cents_z': coll.ddata[cam['cents'][2]]['data'],
-            'area': cam['pix area'],
+            'cents_x': cx,
+            'cents_y': cy,
+            'cents_z': cz,
+            'pix area': cam['pix area'],
+            'parallel': cam['parallel'],
         })
 
     elif which == 'aperture':

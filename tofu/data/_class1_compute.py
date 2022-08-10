@@ -34,6 +34,24 @@ def _diag_compute_etendue_check(
     )
 
     # -----------
+    # analytical
+
+    analytical = ds._generic_check._check_var(
+        analytical, 'analytical',
+        types=bool,
+        default=True,
+    )
+
+    # -----------
+    # numerical
+
+    numerical = ds._generic_check._check_var(
+        numerical, 'numerical',
+        types=bool,
+        default=True,
+    )
+
+    # -----------
     # store
 
     lok = [False]
@@ -74,6 +92,7 @@ def _diag_compute_etendue(
 
     # prepare optics
     optics = coll.dobj['diagnostic'][key]['optics']
+    key_cam = optics[0]
 
     # --------
     # etendues
@@ -105,7 +124,7 @@ def _diag_compute_etendue(
         ddata = {
             ketendue: {
                 'data': etendue,
-                'ref': ref,
+                'ref': coll.dobj['camera'][key_cam]['ref'],
                 'dim': 'etendue',
                 'quant': 'etendue',
                 'name': 'etendue',
@@ -118,7 +137,7 @@ def _diag_compute_etendue(
             which='diagnostic',
             key=key,
             param='etendue',
-            val=ketendue,
+            value=ketendue,
         )
 
     return detend

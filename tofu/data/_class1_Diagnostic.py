@@ -44,6 +44,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         ],
         'camera': [
             'type', 'parallel',
+            'shape', 'ref',
             'pix area', 'pix nb',
             'outline',
             'cent', 'cents',
@@ -54,6 +55,8 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         'diagnostic': [
             'type',
             'optics',
+            'etendue',
+            'los',
             'spectrum',
             'time res.',
         ],
@@ -227,8 +230,15 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
     # ---------------
 
     def get_camera_unit_vectors(self, key=None):
-        """ Return untit vectors components as dict """
+        """ Return unit vectors components as dict """
         return _class1_check.get_camera_unitvectors(
+            coll=self,
+            key=key,
+        )
+
+    def get_camera_cents_xyz(self, key=None):
+        """ Return cents_x, cents_y, cents_z """
+        return _class1_check.get_camera_cents_xyz(
             coll=self,
             key=key,
         )
@@ -248,6 +258,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         analytical=None,
         numerical=None,
         res=None,
+        verb=None,
         plot=None,
         store=None,
     ):
@@ -264,6 +275,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
             analytical=analytical,
             numerical=numerical,
             res=res,
+            verb=verb,
             plot=plot,
             store=store,
         )
