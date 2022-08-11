@@ -183,6 +183,92 @@ def CrystBragg_sample_outline_sphrect(
         dtheta = np.r_[dtheta, 0.]
     return psi, dtheta
 
+def CrystBragg_sample_outline_cylrect(
+    extent_de1, extent_dtheta,
+    ndtheta=None, nde1=None,
+    include_summit=None,
+):
+    """ Return dtheta, de1 describing the envelop of a cylindrical crystal
+
+    They are computed from
+        - extent_dtheta, extent_de1: np.ndarrays for size 2
+        - ndtheta, nde1a: integers
+
+    They are returned with the same shape:
+        (nenvelop,) arrays describing the contour of the crystal
+
+    Optionally, the crystal summit can be appended at the end
+
+    """
+
+    # check inputs
+    if include_summit is None:
+        include_summit = True
+    if ndtheta is None:
+        ndtheta = 10
+    if nde1 is None:
+        nde1 = 9
+
+    # compute
+    de1 = extent_de1*np.linspace(-1, 1., nde1)
+    dtheta = extent_dtheta*np.linspace(-1, 1., ndtheta)
+    de1min = np.full((ndtheta,), de1[0])
+    de1max = np.full((ndtheta,), de1[-1])
+    dthetamin = np.full((nde1,), dtheta[0])
+    dthetamax = np.full((nde1,), dtheta[-1])
+    de1 = np.concatenate((de1, de1max, de1[::-1], de1min))
+    dtheta = np.concatenate((dthetamin, dtheta, dthetamax, dtheta[::-1]))
+    if include_summit is True:
+        de1 = np.r_[de1, 0.]
+        dtheta = np.r_[dtheta, 0.]
+    cry_dpts = {}
+    cry_dpts['de1'] = de1.reshape(de1.size,1,1)
+    cry_dpts['dtheta'] = dtheta.reshape(dtheta.size,1,1)
+    return cry_dpts
+
+def CrystBragg_sample_outline_flatrect(
+    extent_de1, extent_de2,
+    nde1=None, nde2=None,
+    include_summit=None,
+):
+    """ Return de1, de2 describing the envelop of a flat crystal
+
+    They are computed from
+        - extent_de1, extent_de2: np.ndarrays for size 2
+        - nde1, nde2: integers
+
+    They are returned with the same shape:
+        (nenvelop,) arrays describing the contour of the crystal
+
+    Optionally, the crystal summit can be appended at the end
+
+    """
+
+    # check inputs
+    if include_summit is None:
+        include_summit = True
+    if nde1 is None:
+        nde1 = 5
+    if nde2 is None:
+        nde2 = 3
+
+    # compute
+    de1 = extent_de1*np.linspace(-1, 1., nde1)
+    de2 = extent_de2*np.linspace(-1, 1., nde2)
+    de1min = np.full((nde2,), de1[0])
+    de1max = np.full((nde2,), de1[-1])
+    de2min = np.full((nde1,), de2[0])
+    de2max = np.full((nde1,), de2[-1])
+    de1 = np.concatenate((de1, de1max, de1[::-1], de1min))
+    de2 = np.concatenate((de2min, de2, de2max, de2[::-1]))
+    if include_summit is True:
+        de1 = np.r_[de1, 0.]
+        de2 = np.r_[de2, 0.]
+    cry_dpts = {}
+    cry_dpts['de1'] = de1.reshape(de1.size,1,1)
+    cry_dpts['de2'] = de2.reshape(de2.size,1,1)
+    return cry_dpts
+
 
 def CrystBragg_get_noute1e2_from_psitheta(
     nout, e1, e2,
@@ -273,12 +359,144 @@ def CrystBragg_get_noute1e2_from_psitheta(
     else:
         return vout
 
+def CrystalBragg_get_noute1e2_from_dthetade1(
+    nout,e1,e2,
+    cry_dpts=None,
+    e1e2=True
+):
+    '''
+    #### CYLINDRICAL CRYSTAL
+
+    CrystalBragg_get_noute1e2_from_dthetade1 is a function that calculates
+    the crystal local basis vector for points sampled to have a valid Bragg reflection
+
+    INPUTS:
+        nout -      vector, dim (3,1), summit outward normal axis
+        e1 -        vector, dim (3,1), summit horizontal axis (along cylinder)
+        e2 -        vector, dim (3,1), summit vertical axis
+        cry_dpts -  dictionary, contains variables defining displacement on a cylinder
+                    from the summit; dtheta -> dim (nlamb, npts, ndtheta), rotational
+                    displacement; de1 -> dim (nlamb, npts, ndtheta), translational displacement
+        e1e2 -      ## OPTIONAL, flag, if user wants the e1,e2 local vector
+
+    OUTPUTS:
+        vout -      matrix, dim (3,nlamb,npts,ndtheta), local outward normal axis
+        ve1 -       matrix, dim (3,nlamb,npts,ndtheta), local horizontal axis (along cylinder)
+        ve2 -       matrix, dim (3,nlamb,npts,ndtheta), local vertical axis
+    '''
+
+    # check inputs
+    if e1e2 is None:
+        e1e2 = True
+
+    # Initializes matrices to store crystal local unit vectors
+    vout = np.full(np.append(3, cry_dpts['dtheta'].shape), np.nan) # dim (3, nlamb,npts, ndtheta), horizontal points on the crystal surface
+    ve1 = np.full(np.append(3, cry_dpts['dtheta'].shape), np.nan) # dim (3, nlamb,npts, ndtheta), horizontal points on the crystal surface
+    ve2 = np.full(np.append(3, cry_dpts['dtheta'].shape), np.nan) # dim (3,nlamb,npts, ndtheta), horizontal points on the crystal surface
+
+    # Projection matrix to crystal summit basis
+    nout = nout.reshape(1,3) # dim (1,3)
+    e1 = e1.reshape(1,3) # dim (1,3)
+    e2 = e2.reshape(1,3) # dim (1,3)
+    RR = np.concatenate((nout, e2, e1), axis = 0) # dim (3,3)
+
+    # Projects summit normal vector onto the crystal summit basis (not the origin)
+    nout_summit = np.matmul(RR, np.transpose(nout)) # dum (3,1)
+    e1_summit = np.matmul(RR, np.transpose(e1)) # dum (3,1)
+    e2_summit = np.matmul(RR, np.transpose(e2)) # dum (3,1)
+
+    # Loop over Bragg angles
+    for i in np.arange(cry_dpts['dtheta'].shape[0]):
+        # Loop over pts
+        for j in np.arange(cry_dpts['dtheta'].shape[1]):
+            # Loop over vertical locations
+            for k in np.arange(cry_dpts['dtheta'].shape[2]):
+                # Cosine and sine for this rotation
+                c, s = np.cos(cry_dpts['dtheta'][i,j,k]), np.sin(cry_dpts['dtheta'][i,j,k]) # scalars
+
+                # Rotation matrix from crystal summit to local position
+                Rot = np.array([[c,-s,0], [s,c,0], [0,0,1]]).reshape(3,3) # dim (3,3)
+
+                # Rotates crystal summit normal vector to the local normal vector
+                nout_local = np.matmul(Rot, nout_summit) # dim (3,1)
+                e1_local = np.matmul(Rot, e1_summit) # dim (3,1)
+                e2_local = np.matmul(Rot, e2_summit) # dim (3,1)
+
+                # Projects local crystal normal vector onto origin base
+                nout_mod = np.matmul(np.linalg.inv(RR), nout_local) # dim (3,1)
+                e1_mod = np.matmul(np.linalg.inv(RR), e1_local) # dim (3,1)
+                e2_mod = np.matmul(np.linalg.inv(RR), e2_local) # dim (3,1)
+
+                # Stores the local basis results
+                vout[:,i,j,k] = nout_mod.reshape(3)
+                ve1[:,i,j,k] = e1_mod.reshape(3)
+                ve2[:,i,j,k] = e2_mod.reshape(3)
+
+    # Returns local basis vectors
+    if e1e2:
+        return vout, ve1, ve2
+    else:
+        return vout
+
+
+def CrystalBragg_get_noute1e2_from_de1de2(
+    nout,e1,e2,
+    cry_dpts=None,
+    e1e2=True
+):
+    '''
+    #### FLAT CRYSTAL
+
+    CrystalBragg_get_noute1e2_from_de1de2 is a function that calculates
+    the crystal local basis vector for points sampled to have a valid Bragg reflection
+
+    INPUTS:
+        nout -      vector, dim (3,1), summit outward normal axis
+        e1 -        vector, dim (3,1), summit horizontal axis (along cylinder)
+        e2 -        vector, dim (3,1), summit vertical axis
+        cry_dpts -  dictionary, contains variables defining displacement on a cylinder
+                    from the summit; dtheta -> dim (nlamb, npts, ndtheta), rotational
+                    displacement; de1 -> dim (nlamb, npts, ndtheta), translational displacement
+        e1e2 -      ## OPTIONAL, flag, if user wants the e1,e2 local vector
+
+    OUTPUTS:
+        vout -      matrix, dim (3,nlamb,npts,ndtheta), local outward normal axis
+        ve1 -       matrix, dim (3,nlamb,npts,ndtheta), local horizontal axis (along cylinder)
+        ve2 -       matrix, dim (3,nlamb,npts,ndtheta), local vertical axis
+    '''
+    # check inputs
+    if e1e2 is None:
+        e1e2 = True
+
+    # Initializes matrices to store crystal local unit vectors
+    vout = np.full(np.append(3, cry_dpts['de1'].shape), np.nan) # dim (3, nlamb,npts, ndtheta), horizontal points on the crystal surface
+    ve1 = np.full(np.append(3, cry_dpts['de1'].shape), np.nan) # dim (3, nlamb,npts, ndtheta), horizontal points on the crystal surface
+    ve2 = np.full(np.append(3, cry_dpts['de1'].shape), np.nan) # dim (3,nlamb,npts, ndtheta), horizontal points on the crystal surface
+
+    # Loop over Bragg angles
+    for i in np.arange(cry_dpts['de1'].shape[0]):
+        # Loop over pts
+        for j in np.arange(cry_dpts['de1'].shape[1]):
+            # Loop over vertical locations
+            for k in np.arange(cry_dpts['de1'].shape[2]):
+
+                # Stores the local basis results
+                vout[:,i,j,k] = nout
+                ve1[:,i,j,k] = e1
+                ve2[:,i,j,k] = e2
+
+    # Returns local basis vectors
+    if e1e2:
+        return vout, ve1, ve2
+    else:
+        return vout
+
 
 def CrystBragg_sample_outline_plot_sphrect(
     center, nout, e1, e2,
     rcurve, extenthalf, res=None,
 ):
-    """ Get the set of points in (x, y, z) coordinates sampling the crystal
+    """ Get the set of points in (x, y, z) coordinates sampling the spherical crystal
     outline
     """
 
@@ -301,6 +519,74 @@ def CrystBragg_sample_outline_plot_sphrect(
         e1e2=False, sameshape=False,
     )
     return center[:, None] + rcurve*vout
+
+
+def CrystBragg_sample_outline_plot_cylrect(
+    center, nout, e1, e2,
+    rcurve, extenthalf, res=None,
+):
+    """ Get the set of points in (x, y, z) coordinates sampling the cylindrical crystal
+    outline
+    """
+
+    # check inputs
+    if res is None:
+        res = np.min(extenthalf)/5.
+
+    # Resolution to calculate the outline
+    nde1 = 2*int(np.ceil(extenthalf[0] / res)) + 1
+    ndtheta = 2*int(np.ceil(extenthalf[1] / res)) + 1
+
+    # Calculates the displacement variables for the outline
+    cry_dpts = CrystBragg_sample_outline_cylrect(
+        extenthalf[0], extenthalf[1],
+        ndtheta=ndtheta, nde1=nde1,
+        include_summit=False,
+    )
+
+    # Calculates the crystal local basis vectors at the outline
+    vout, ve1, ve2 = CrystalBragg_get_noute1e2_from_dthetade1(
+        nout,e1,e2,
+        cry_dpts=cry_dpts,
+        e1e2=True
+    )
+
+    # Returns (X,Y,Z) coordinates of the outline
+    return center[:,None] + rcurve*vout[:,:,0,0] + cry_dpts['de1'][:,0,0]*ve1[:,:,0,0]
+
+
+def CrystBragg_sample_outline_plot_flatrect(
+    summit, nout, e1, e2,
+    extenthalf, res=None,
+):
+    """ Get the set of points in (x, y, z) coordinates sampling the flat crystal
+    outline
+    """
+
+    # check inputs
+    if res is None:
+        res = np.min(extenthalf)/5.
+
+    # Resolution to calculate the outline
+    nde1 = 2*int(np.ceil(extenthalf[0] / res)) + 1
+    nde2 = 2*int(np.ceil(extenthalf[1] / res)) + 1
+
+    # Calculates the displacement variables for the outline
+    cry_dpts = CrystBragg_sample_outline_flatrect(
+        extenthalf[0], extenthalf[1],
+        nde1=nde1, nde2=nde2,
+        include_summit=False,
+    )
+
+    # Calculates the crystal local basis vectors at the outline
+    vout, ve1, ve2 = CrystalBragg_get_noute1e2_from_de1de2(
+        nout,e1,e2,
+        cry_dpts=cry_dpts,
+        e1e2=True
+    )
+
+    # Returns (X,Y,Z) coordinates of the outline
+    return summit[:,None] + cry_dpts['de1'][:,0,0]*ve1[:,:,0,0] + cry_dpts['de2'][:,0,0]*ve2[:,:,0,0]
 
 
 # ###############################################
@@ -701,6 +987,104 @@ def calc_xixj_from_braggphi(
         xj[ind] = np.nan
     return xi, xj, strict
 
+def calc_xixj_from_bragge2(
+    det_cent=None,
+    det_nout=None, det_ei=None, det_ej=None,
+    det_outline=None,
+    summit=None, nout=None, e1=None, e2=None,
+    bragg=None,
+    option=None, strict=None,
+):
+    '''
+    ##### FLAT or CYLINDRICAL CRYSTAL
+
+    calc_xixj_from_bragge2 is a function to calculate the points on a detector
+    surface from Bragg reflection given local points and basis vectors on the 
+    crystal surface when this reflrection can be parameterized as a np.pi/2
+    rotation in the local vertical (e2) basis
+
+    INPUTS:
+        det_cent -      vector, dim (3,), detector summit coordinate
+        det_nout -      vector, dim (3,), detector outward vector
+        det_ei -        vector, dim (3,), detector horizontal vector
+        det_ej -        vector, dim (3,), detector vertical vector
+        det_outline -   OPTIONAL, matrix, dim (2,5), locations of detector corners
+        summit -        matrix, dim (3, nlamb, npts, ndtheta), local points on crystal surface with vvalid Bragg reflections
+        nout -          matrix, dim (3, nlamb, npts, ndtheta), outward vector on crystal surface
+        e1 -            matrix, dim (3, nlamb, npts, ndtheta), horizontal vector on crystal surface
+        e2 -            matrix, dim (3, nlamb, npts, ndtheta), vertical vector on crystal surface
+        bragg -         array, dim (nlamb,), Bragg angles
+        option -        OPTIONAL,
+        strict -        OPTIONAL,
+    
+    OUTPUTS:
+        xi -        matrix, dim (nlamb, npts, ndtheta), horizontal displacement from detector summit
+        xj -        matrix, dim (nlamb, npts, ndtheta), vertical displacement from detector summit
+
+    '''
+    # Initializes output matrices
+    xi = np.full(summit.shape[1:], np.nan) # dim (nlmab, npts, ndtheta)
+    xj = np.full(summit.shape[1:], np.nan) # dim (nlamb, npts, ndtheta)
+
+    # Loop over nlamb
+    for i in np.arange(summit.shape[1]):
+        # Calculates rotation matrix for Bragg reflection about the crystal local vertical axis (e2)
+        ang_rot = np.pi - 2*bragg[i]
+        c_rot, s_rot = np.cos(-ang_rot), np.sin(-ang_rot)
+        Rot = np.array([[c_rot,0,-s_rot], [0,1,0], [s_rot,0,c_rot]]).reshape(3,3) # dim (3,3)
+
+        # Calculates sine and cosine of Bragg angle
+        c, s = np.cos(bragg[i]), np.sin(bragg[i]) 
+
+        # Calculates the vector from a point on the crystal (d), towards a point with a valid Bragg reflrection (p), in the crystal local basis
+        v_dp_loc = np.r_[-s, 0, -c] # dim (3,), basis (nout, e2, e1)
+
+        # Loop over npts
+        for j in np.arange(summit.shape[2]):
+            # Loop over ndtheta
+            for k in np.arange(summit.shape[3]):
+                # Obtains the local basis vector
+                nout_loc = nout[:,i,j,k].reshape(1,3) # dim (1,3)
+                e2_loc = e2[:,i,j,k].reshape(1,3) # dim (1,3)
+                e1_loc = e1[:,i,j,k].reshape(1,3) # dim (1,3)
+
+                # Projection matrix from the origin basis to the crystal local basis
+                RR = np.concatenate((nout_loc, e2_loc, e1_loc), axis = 0) # dim (3,3)
+
+                # Bragg reflection towards a point on the detector (x)
+                v_dx_loc = np.matmul(Rot, v_dp_loc) # dim (3,), basis (nout, e2, e1)
+                # Obviously, np.r_[-s, 0, c]
+
+                # Projects reflection vector onto origin base
+                v_dx = np.matmul(np.linalg.inv(RR), v_dx_loc) # dim (3,)
+                v_dx = v_dx/np.linalg.norm(v_dx) # ensures normalized
+
+                # Calculates the distance from the crystal local position to the detector plane
+                dx = np.sum(
+                    (det_cent-summit[:,i,j,k])*det_nout, axis=0
+                    ) / np.sum(v_dx*det_nout, axis=0)
+
+
+                # Calculates the reflection position on the detector plane
+                det_pt = summit[:,i,j,k] + dx*v_dx
+
+                # Calculates the horizontal, vertical displacement, in the detector basis, from the center center
+                xi[i,j,k] = np.sum((det_pt - det_cent)*det_ei, axis=0)
+                xj[i,j,k] = np.sum((det_pt - det_cent)*det_ej, axis=0)
+
+    # Optional: eliminate points outside the det outline
+    if det_outline is not None and strict is True:
+        ind = (
+            (xi < np.min(det_outline[0, :]))
+            | (xi > np.max(det_outline[0, :]))
+            | (xj < np.min(det_outline[1, :]))
+            | (xj > np.max(det_outline[1, :]))
+        )
+        xi[ind] = np.nan
+        xj[ind] = np.nan
+    # Returns points on the detector
+    return xi, xj, strict
+
 
 def _calc_braggphi_from_pts_summits(
     pts=None,
@@ -1088,7 +1472,10 @@ def calc_dthetapsiphi_from_lambpts(
     ndtheta=None,
     grid=None,
 ):
-    """ Return (dtheta, psi) of pts on crystal where bragg diffraction happens
+    """ 
+    ###### SPHERICAL CRYSTAL
+    
+    Return (dtheta, psi) of pts on spherical crystal where bragg diffraction happens
 
     For given pts and lamb/bragg
 
@@ -1296,3 +1683,259 @@ def calc_dthetapsiphi_from_lambpts(
         warnings.warn(msg)
 
     return dtheta, psi, ind, grid
+
+def calc_dthetade1_from_lambpts(
+    pts,
+    bragg,
+    summit=None, rcurve=None,
+    nout=None, e1=None, e2=None,
+    extenthalf=None,
+    ndtheta=None,
+    grid=None,
+    ):
+
+    '''
+    ##### CYLINDRICAL CRYSTAL
+
+    Return (dtheta, de1) of pts on cylindrical crystal, relative to the summit, 
+    where bragg diffraction happens for given pts and lamb/bragg
+
+    de1 is the horizontal direction (e1), dtheta is the vertical direction (e2)
+
+    For each pts/lamb, there is 1 sol'n for a valid triangle at the Bragg angle
+    Only returns valid solution (inside extenthalf), with nan elsewhere
+
+    de1 and dtheta returned as (nlamb, npts, ndtheta) arrays
+
+    Here nout, e1, e2 are at the unique crystal summit!
+
+    INPUTS:
+        pts -       vector, dim (3, npts), Cartesian coordinate of point source
+        bragg -     vector, dim (1, nlamb), wavelengths to map onto crystal
+        summit -    vector, dim (3,1), mid-point of crystal
+        rcurve -    scalar, radius of curvature
+        nout -      vector, dim (1,3), normal vector out of crystal summit
+        e1 -        vector, dim (1,3), horizontal vector of crystal summit
+        e2 -        vector, dim (1,3), vertical vector of crystal summit
+        extenthalf- array, dim (2,), half-extent from crystal summit in the (horizontal, vertical) direction
+        ndtheta -   OPTIONAL, scalar, number of vertical points on the crystal surface to uniformly scan
+        grid -      ############
+
+    OUTPUTS:
+        dtheta -    matrix, dim (nlamb, npts, ndtheta), e2-angle on crystal surface scanned over
+        de1 -       matrix, dim (nlamb, npts, ndtheta), unique e1-location on crystal surface where Bragg diffraction happens
+        ind -       OPTIONAL, matrix, dim (nlamb, npts), indices where Bragg reflection happened outside crystal extent
+        grid -      ###########
+
+    '''
+
+    # Check input for number of vertical points to scan
+    if ndtheta is None:
+        # Defaults is 10
+        ndtheta = 10
+
+    # Number of points to scan over
+    npts = pts.shape[1]
+
+    # Number of wavelength to scan over
+    nlamb = bragg.size
+
+    ########
+    if grid is None:
+        grid = True
+    if grid is False:
+        if nlamb != npts:
+            msg = "If grid = False, lamb.shape should be (pts.shape[1],)"
+            raise Exception(msg)
+
+    # Prepare output
+    if grid is True:
+        de1 = np.full((nlamb,npts, ndtheta), np.nan) # dim (nlamb,npts, ndtheta), horizontal points on the crystal surface
+        dtheta = np.full((nlamb,npts, ndtheta), np.nan) # dim (nlamb,npts, ndtheta), vertical points on the crystal surface
+
+    else:
+        de1 = np.full((npts, ndtheta), np.nan) # dim (npts, ndtheta), horizontal points on the crystal surface
+        dtheta = np.full((npts, ndtheta), np.nan) # dim (npts,ndtheta), vertical points on the crystal surface
+
+
+    # Makes sure the shape is correct for vectors
+    nout = nout.reshape(1,3) # dim (1,3)
+    e1 = e1.reshape(1,3) # dim (1,3)
+    e2 = e2.reshape(1,3) # dim (1,3)
+    summit = summit.reshape(3,1) # dim (3,1)
+    center = summit - rcurve*np.transpose(nout) # dim (3,1)
+
+    # Note that the cylinder axis is parameterized as center + de1*\hat{e1}
+    # detheta is an angle measured between the e2 and nout directions (in plane)
+
+    # Calculates inverse tangent of bragg angle
+    tb = 1/np.tan(bragg.reshape(1,nlamb)) # dim (1,nlamb)
+
+    # Array of vertical locations to scan over
+    dtheta_1 = extenthalf[1]*np.linspace(-1,1,ndtheta) # [rad], dim (ndtheta,)
+
+    # Calculates the distance from each point to the summit
+    PC = np.transpose(pts-center) # dim (npts, 3)
+
+    # Projection matrix to crystal summit basis
+    RR = np.concatenate((nout, e2, e1), axis = 0) # dim (3,3)
+
+    # Projects summit normal vector onto the crystal summit basis (not the origin)
+    nout_summit = np.matmul(RR, np.transpose(nout)) # dum (3,1)
+
+    # Loop over vertical locations
+    for i in np.arange(ndtheta):
+        # Cosine and sine for this rotation
+        c, s = np.cos(dtheta_1[i]), np.sin(dtheta_1[i]) # scalars
+
+        # Rotation matrix from crystal summit to local position
+        Rot = np.array([[c,-s,0], [s,c,0], [0,0,1]]).reshape(3,3) # dim (3,3)
+
+        # Rotates crystal summit normal vector to the local normal vector
+        nout_local = np.matmul(Rot, nout_summit) # dim (3,1)
+
+        # Projects local crystal normal vector onto origin base
+        nout_mod = np.matmul(np.linalg.inv(RR), nout_local) # dim (3,1)
+
+        # Calculates the Bragg angle vector in crystal local basis
+        vect = np.dot(nout_mod,tb)- np.transpose(e1) # dim (3, nlamb)
+
+        # Calculates the horizontal displacement
+        d1 = np.transpose(-1*np.dot(PC, vect) + rcurve*tb) # dim (nlamb, npts)
+
+        # Finds indices where reflection is not on the cystal's horizontal axis
+        ind = np.where(np.abs(d1)>=extenthalf[0])
+        d1[ind] = np.nan
+
+        # Matrix to handle vertical displacement
+        mat = np.ones(d1.shape)
+        mat[ind] = np.nan
+
+        # Populates de1 at each vertical location
+        de1[:,:,i] = d1
+
+        # Populates de2 at each vertical location
+        dtheta[:,:,i] = dtheta_1[i]*mat
+
+    # Returns variables defining location of Bragg reflection
+    return dtheta, de1, ind, grid
+
+
+
+def calc_de1de2_from_lambpts(
+    pts,
+    bragg,
+    summit=None,
+    nout=None, e1=None, e2=None,
+    extenthalf=None,
+    ndz=None,
+    grid=None,
+    ):
+
+    '''
+    ##### FLAT CRYSTAL
+
+    Return (de1, de2) of pts on flat crystal, relative to the summit, 
+    where bragg diffraction happens for given pts and lamb/bragg
+
+    de1 is the horizontal direction (e1), de2 is the vertical direction (e2)
+
+    For each pts/lamb, there is 1 sol'n for a valid triangle at the Bragg angle
+    Only returns valid solution (inside extenthalf), with nan elsewhere
+
+    de1 and de2 returned as (npts, nlamb, ndz) arrays
+
+    Here nout, e1, e2 are at the unique crystal summit!
+
+    INPUTS:
+        pts -       vector, dim (3, npts), Cartesian coordinate of point source
+        bragg -     vector, dim (nlamb,1), wavelengths to map onto crystal
+        summit -    vector, dim (3,1), mid-point of crystal
+        nout -      vector, dim (3,1), normal vector out of crystal summit
+        e1 -        vector, dim (3,1), horizontal vector of crystal summit
+        e2 -        vector, dim (3,1), vertical vector of crystal summit
+        extenthalf- array, dim (2,), half-extent from crystal summit in the (horizontal, vertical) direction
+        ndz -       OPTIONAL, scalar, number of vertical points on the crystal surface to uniformly scan
+        grid -      ############
+
+    OUTPUTS:
+        de1 -       matrix, dim (nlamb, npts, ndz), unique e1-location on crystal surface where Bragg diffraction happens
+        de2 -       matrix, dim (nlamb, npts, ndz), e2-location on crystal surface scanned over
+        ind -       OPTIONAL, matrix, dim (nlamb, npts), indices where Bragg reflection happened outside crystal extent
+        grid -      ###########
+
+    '''
+
+    # Check input for number of vertical points to scan
+    if ndz is None:
+        # Defaults is 10
+        ndz = 10
+
+    # Number of points to scan over
+    npts = pts.shape[1]
+
+    # Number of wavelength to scan over
+    nlamb = bragg.size
+
+    ########
+    if grid is None:
+        grid = True
+    if grid is False:
+        if nlamb != npts:
+            msg = "If grid = False, lamb.shape should be (pts.shape[1],)"
+            raise Exception(msg)
+
+    # Prepare output
+    if grid is True:
+        de1 = np.full((nlamb,npts, ndz), np.nan) # dim (nlamb,npts, ndz), horizontal points on the crystal surface
+        de2 = np.full((nlamb,npts, ndz), np.nan) # dim (nlamb,npts, ndz), vertical points on the crystal surface
+
+    else:
+        de1 = np.full((npts, ndz), np.nan) # dim (npts, ndz), horizontal points on the crystal surface
+        de2 = np.full((npts, ndz), np.nan) # dim (npts,ndz), vertical points on the crystal surface
+
+    # Makes sure the shape is correct for vectors
+    nout = nout.reshape(1,3) # dim (1,3)
+    e1 = e1.reshape(1,3) # dim (1,3)
+    e2 = e2.reshape(1,3) # dim (1,3)
+    summit = summit.reshape(3,1) # dim (3,1)
+
+    # Calculates a modified vector from the crystal basis
+    tb = 1/np.tan(bragg.reshape(1,nlamb)) # dim (1,nlamb)
+    vect = np.dot(np.transpose(nout),tb)- np.transpose(e1) # dim (3, nlamb)
+
+    # Calculates the distance from each point to the summit
+    PS = np.transpose(pts-summit) # dim (npts, 3)
+
+    # Solves for the valid Bragg reflection along the crystal e1 axis
+    d1 = -1*np.transpose(np.dot(PS, vect)) # dim (nlamb, npts)
+
+    # Finds indices where reflection is not on the cystal's horizontal axis
+    ind = np.where(np.abs(d1)>=extenthalf[0])
+
+    # Checks to make sure reflection is on the crystal's horizontal axis
+    d1[ind] = np.nan
+
+    # Calculates the displacement from the crsytal summit in the global basis
+    #dx = d1*np.dot(np.transpose(e1),xhat) # dim (npts, nlamb)
+    #dy = d1*np.dot(np.transpose(e1),yhat) # dim (npts, nlamb)
+    #d_x = summit[0]-dx
+    #d_y = summit[1]-dy
+
+    # Array of vertical locations to scan over
+    d2 = extenthalf[1]*np.linspace(-1,1,ndz) # [m], dim (ndz,)
+
+    # Matrix to handle vertical displacement
+    mat = np.ones(d1.shape)
+    mat[ind] = np.nan
+
+    # Loop over the scanned vertical distance
+    for i in np.arange(ndz):
+        # Populates de1 at each vertical location
+        de1[:,:,i] = d1
+
+        # Populates de2 at each vertical location
+        de2[:,:,i] = d2[i]*mat
+
+    # Returns variables defining location of Bragg reflection
+    return de1, de2, ind, grid

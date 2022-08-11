@@ -284,17 +284,28 @@ def _CrystalBragg_plot_check(
             + k[1:]*(pts2-pts_summit)[..., None],
             np.full(shape, np.nan),
         ), axis=-1)
+        print(rays)
+        print(rays.shape)
+        print(rays.size)
 
-        nlamb, npts, ndtheta, _, nk = rays.shape[1:]
+        if cryst._dgeom['Type'] == 'sph':
+            nlamb, npts, ndtheta, _, nk = rays.shape[1:]
+            nsols = 2
+        else:
+            nlamb, npts, ndtheta, nk = rays.shape[1:]
+            nsols = 1
         if rays_color in ['pts', 'lamb']:
             if rays_color == 'lamb':
-                rays = rays.reshape(3, nlamb, npts*ndtheta*nk*2).swapaxes(1, 2)
+                rays = rays.reshape(3, nlamb, npts*ndtheta*nk*nsols).swapaxes(1, 2)
             elif rays_color == 'pts':
                 rays = rays.swapaxes(1, 2).reshape(
-                    3, npts, nlamb*ndtheta*nk*2,
+                    3, npts, nlamb*ndtheta*nk*nsols,
                 ).swapaxes(1, 2)
         else:
-            rays = rays.reshape(3, nlamb*npts*ndtheta*nk*2, order='C')
+            rays = rays.reshape(3, nlamb*npts*ndtheta*nk*nsols, order='C')
+        print(rays)
+        print(rays.shape)
+        print(rays.size)
 
     # xi, xj
     lc = [xi is not None, xj is not None]
@@ -314,11 +325,11 @@ def _CrystalBragg_plot_check(
     if lc[0]:
         if rays_color in ['pts', 'lamb']:
             if rays_color == 'lamb':
-                xi = xi.reshape(nlamb, npts*ndtheta*2).T
-                xj = xj.reshape(nlamb, npts*ndtheta*2).T
+                xi = xi.reshape(nlamb, npts*ndtheta*nsols).T
+                xj = xj.reshape(nlamb, npts*ndtheta*nsols).T
             elif rays_color == 'pts':
-                xi = xi.swapaxes(0, 1).reshape(npts, nlamb*ndtheta*2).T
-                xj = xj.swapaxes(0, 1).reshape(npts, nlamb*ndtheta*2).T
+                xi = xi.swapaxes(0, 1).reshape(npts, nlamb*ndtheta*nsols).T
+                xj = xj.swapaxes(0, 1).reshape(npts, nlamb*ndtheta*nsols).T
         else:
             xi = xi.ravel()
             xj = xj.ravel()

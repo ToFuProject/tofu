@@ -846,6 +846,7 @@ class CrystalBragg(utils.ToFuObject):
     # -----------------
 
     def sample_outline_plot(self, use_non_parallelism=None, res=None):
+        # If user is plotting a spherical crystal
         if self._dgeom['Type'] == 'sph':
             if self._dgeom['Typeoutline'] == 'rect':
                 nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
@@ -862,6 +863,54 @@ class CrystalBragg(utils.ToFuObject):
                 )
             else:
                 raise NotImplementedError
+
+        # If user is plotting a cylindrical crystal
+        elif self._dgeom['Type'] == 'cyl':
+            # If outlining the shape is rectangular coordinates
+            if self._dgeom['Typeoutline'] == 'rect':
+                # Obtains the crystal summit local basis vectors
+                nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
+                    use_non_parallelism=use_non_parallelism,
+                )
+
+                # Calculates points defining the outline of the crystal
+                outline = _comp_optics.CrystBragg_sample_outline_plot_cylrect(
+                    self._dgeom['summit'] - nout*self._dgeom['rcurve'],
+                    nout,
+                    e1,
+                    e2,
+                    self._dgeom['rcurve'],
+                    self._dgeom['extenthalf'],
+                    res,
+                )
+
+            # Error check
+            else:
+                raise NotImplementedError
+
+        # If user is plotting a flat crystal
+        elif self._dgeom['Type'] == 'flat':
+            # If outlining the shape is rectangular coordinates
+            if self._dgeom['Typeoutline'] == 'rect':
+                # Obtains the crystal summit local basis vectors
+                nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
+                    use_non_parallelism=use_non_parallelism,
+                )
+
+                # Calculates points defining the outline of the crystal
+                outline = _comp_optics.CrystBragg_sample_outline_plot_flatrect(
+                    self._dgeom['summit'],
+                    nout,
+                    e1,
+                    e2,
+                    self._dgeom['extenthalf'],
+                    res,
+                    )
+
+            # Error check
+            else:
+                raise NotImplementedError
+            
         else:
             raise NotImplementedError
         return outline
@@ -904,50 +953,100 @@ class CrystalBragg(utils.ToFuObject):
 
     def _get_rays_from_cryst(
         self,
-        phi=None, bragg=None,
+        bragg=None,
         lamb=None, n=None,
-        dtheta=None, psi=None,
-        ntheta=None, npsi=None,
+        cry_dpts=None,
+        ndpts=None,
         use_non_parallelism=None,
         include_summit=None,
         grid=None,
     ):
 
-        # Get phi, bragg
-        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb)
-        phi, bragg = self._checkformat_get_Rays_from(phi=phi, bragg=bragg)
-        # assert phi.ndim == 1
-
         # Get local summits, nout, e1, e2
         pts_start, nout, e1, e2 = self.get_local_noute1e2(
-            dtheta=dtheta, psi=psi,
+            cry_dpts=cry_dpts,
             use_non_parallelism=use_non_parallelism,
-            ntheta=ntheta, npsi=npsi,
+            ndpts=ndpts,
             include_summit=include_summit,
         )
-        nin = -nout
-        # reshape for broadcast
-        if grid is True:
-            nin = nin[..., None]
-            e1 = e1[..., None]
-            e2 = e2[..., None]
-        else:
-            assert bragg.shape == nin.shape[1:]
 
-        # Compute start point (D) and unit vectors (us)
-        vect = (
-            np.sin(bragg)*nin
-            + np.cos(bragg)*(np.cos(phi)*e1 + np.sin(phi)*e2)
-        )
+        # If using a spherical crystal
+        if self._dgeom['Type'] == 'sph':
+            # Get phi, bragg
+            bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb)
+            phi, bragg = self._checkformat_get_Rays_from(phi=cry_dpts['phi']+np.pi, bragg=bragg)
+            # assert phi.ndim == 1
+
+            nin = -nout
+            # reshape for broadcast
+            if grid is True:
+                #nin = nin[..., None]
+                #e1 = e1[..., None]
+                #e2 = e2[..., None]
+                dum = 0
+            else:
+                assert bragg.shape == nin.shape[1:]
+
+            # Compute start point (D) and unit vectors (us)
+            vect = (
+                np.sin(bragg)*nin
+                + np.cos(bragg)*(np.cos(phi)*e1 + np.sin(phi)*e2)
+            )
+
+        # If using a flat or cylindrical crystal
+        else:
+            # Dummy check
+            if bragg.ndim > 1:
+                bragg = bragg[:,0,0,0]
+
+            # Initializes matrix to store vectors
+            vect = np.full(pts_start.shape, np.nan) # dim (3, nlmab, npts, ndtheta)
+
+            # Loop over nlamb
+            for i in np.arange(pts_start.shape[1]):
+                # Calculates rotation matrix for Bragg reflection about the crystal local vertical axis (e2)
+                if bragg[i] < 0:
+                    ang_rot = np.abs(2*bragg[i])
+                else:
+                    ang_rot = np.pi - 2*bragg[i]
+                c_rot, s_rot = np.cos(-ang_rot), np.sin(-ang_rot)
+                Rot = np.array([[c_rot,0,-s_rot], [0,1,0], [s_rot,0,c_rot]]).reshape(3,3) # dim (3,3)
+
+                # Calculates sine and cosine of Bragg angle
+                c, s = np.cos(bragg[i]), np.sin(bragg[i]) 
+
+                # Calculates the vector from a point on the crystal (d), towards a point with a valid Bragg reflrection (p), in the crystal local basis
+                v_dp_loc = np.r_[-s, 0, -c] # dim (3,), basis (nout, e2, e1)
+
+                # Loop over npts
+                for j in np.arange(pts_start.shape[2]):
+                    # Loop over ndtheta
+                    for k in np.arange(pts_start.shape[3]):
+                        # Obtains the local basis vector
+                        nout_loc = nout[:,i,j,k].reshape(1,3) # dim (1,3)
+                        e2_loc = e2[:,i,j,k].reshape(1,3) # dim (1,3)
+                        e1_loc = e1[:,i,j,k].reshape(1,3) # dim (1,3)
+
+                        # Projection matrix from the origin basis to the crystal local basis
+                        RR = np.concatenate((nout_loc, e2_loc, e1_loc), axis = 0) # dim (3,3)
+
+                        # Bragg reflection towards a point on the detector (x)
+                        v_dx_loc = np.matmul(Rot, v_dp_loc) # dim (3,), basis (nout, e2, e1)
+                        # Obviously, np.r_[-s, 0, c]
+
+                        # Projects reflection vector onto origin base
+                        v_dx = np.matmul(np.linalg.inv(RR), v_dx_loc) # dim (3,)
+                        vect[:,i,j,k] = v_dx/np.linalg.norm(v_dx) # ensures normalized
+
         return pts_start, vect
 
     def get_rays_from_cryst(
         self,
-        phi=None, bragg=None,
+        bragg=None,
         lamb=None, n=None,
-        dtheta=None, psi=None,
+        cry_dpts=None,
         use_non_parallelism=None,
-        ntheta=None, npsi=None,
+        ndpts=None,
         include_summit=None,
         det=None, config=None, length=None,
         returnas=None,
@@ -996,6 +1095,8 @@ class CrystalBragg(utils.ToFuObject):
 
         """
 
+        print('Hello World!')
+
         # -----------
         # Check input
         if returnas is None:
@@ -1027,11 +1128,11 @@ class CrystalBragg(utils.ToFuObject):
         # -----------
         # Get starting point and vectors
         pts_start, vect = self._get_rays_from_cryst(
-            phi=phi, bragg=bragg,
+            bragg=bragg,
             lamb=lamb, n=n,
-            dtheta=dtheta, psi=psi,
+            cry_dpts=cry_dpts,
             use_non_parallelism=use_non_parallelism,
-            ntheta=ntheta, npsi=npsi,
+            ndpts=ndpts,
             include_summit=include_summit,
             grid=grid,
         )
@@ -1089,7 +1190,7 @@ class CrystalBragg(utils.ToFuObject):
             shape = tuple([3] + [1 for ii in range(vect.ndim-1)])
             cent = det['cent'].reshape(shape)
             nout = det['nout'].reshape(shape)
-            if grid is True:
+            if grid is True and self._dgeom['Type'] == 'sph' and 0 ==1:
                 k = (
                     np.sum((cent-pts_start[..., None])*nout, axis=0)
                     / np.sum(vect*nout, axis=0)
@@ -1101,7 +1202,7 @@ class CrystalBragg(utils.ToFuObject):
                 )
             dk['det'][k >= 0.] = k[k >= 0.]
             if return_xixj is True:
-                if grid:
+                if grid and self._dgeom['Type'] == 'sph' and 0 ==1:
                     pts_end = pts_start[..., None] + dk['det'][None, ...]*vect
                 else:
                     pts_end = pts_start + dk['det'][None, ...]*vect
@@ -1118,7 +1219,7 @@ class CrystalBragg(utils.ToFuObject):
         # -----------
         # return
         if returnas == 'pts':
-            if grid:
+            if grid and self._dgeom['Type'] == 'sph' and 0 == 1:
                 pts_end = pts_start[..., None] + k[None, ...]*vect
                 if return_xixj:
                     return pts_start, pts_end, xi, xj
@@ -1237,10 +1338,10 @@ class CrystalBragg(utils.ToFuObject):
 
     def plot(
         self, dcryst=None,
-        phi=None, bragg=None, lamb=None, pts=None,
+        bragg=None, lamb=None, pts=None,
         n=None, config=None, det=None, length=None,
-        dtheta=None, psi=None,
-        ntheta=None, npsi=None,
+        cry_dpts=None,#dtheta=None, psi=None, phi=None,
+        ndpts=None,#ntheta=None, npsi=None,
         include_summit=None,
         dax=None, proj=None, res=None, element=None,
         color=None, ddet=None,
@@ -1255,7 +1356,7 @@ class CrystalBragg(utils.ToFuObject):
         Optionaly add rays reflected on cryst at:
             - lamb / phi: desired wavelength and incidence angle
         and either:
-            - psi, dtheta : desired pts on the crystal surface
+            - cry_dpts : desired pts on the crystal surface
             - pts: emitted from desired pts (e.g.: in the plasma)
                    (need to be refresh with get_rays_from_cryst method
                     if new pts are wanted)
@@ -1321,42 +1422,61 @@ class CrystalBragg(utils.ToFuObject):
         det = self._checkformat_det(det)
 
         lc = [
-            dtheta is not None or psi is not None or phi is not None,
+            cry_dpts is not None,
             pts is not None
         ]
         if np.sum(lc) == 2:
             msg = (
                 "For ray tracing, please provide either:\n"
-                + "\t- dtheta, psi, phi, lamb/bragg\n"
+                + "\t- cry_dpts, lamb/bragg\n"
                 + "\t- pts, lamb/bragg\n"
             )
             raise Exception(msg)
 
         # Add rays?
         if lc[0]:
-            # Get one way
+            # Calculates the position on the crystal, position of the detector, horizontal displacement on detector, and vertical displacement on detector
             # pts.shape = (3, nlamb, npts, ndtheta)
-            pts_summit, pts1 = self.get_rays_from_cryst(
-                phi=phi, lamb=lamb, bragg=bragg,
+            pts_summit, pts2, xi, xj= self.get_rays_from_cryst(
+                lamb=None, bragg=bragg,
                 n=n, use_non_parallelism=use_non_parallelism,
-                dtheta=dtheta, psi=psi,
-                ntheta=ntheta, npsi=npsi,
-                include_summit=include_summit,
-                config=config, det=det,
-                returnas='pts', return_xixj=False,
-                grid=grid,
-            )
-            # Get the other way
-            pts2, xi, xj = self.get_rays_from_cryst(
-                phi=phi+np.pi, lamb=lamb, bragg=bragg,
-                n=n, use_non_parallelism=use_non_parallelism,
-                dtheta=dtheta, psi=psi,
-                ntheta=ntheta, npsi=npsi,
+                cry_dpts=cry_dpts,
+                ndpts=ndpts,
                 include_summit=include_summit,
                 config=config, det=det,
                 returnas='pts', return_xixj=True,
                 grid=grid,
-            )[1:]
+            )
+
+            if self._dgeom['Tpye'] == 'sph':
+                cry_dpts1 = cry_dpts
+                cry_dpts1['phi'] += np.pi
+
+                # Gets the point source emitter location
+                pts1 = self.get_rays_from_cryst(
+                    lamb=lamb, bragg=bragg,
+                    n=n, use_non_parallelism=use_non_parallelism,
+                    cry_dpts=cry_dpts1,#dtheta=dtheta, psi=psi,phi=phi+np.pi, 
+                    ndpts=ndpts,#ntheta=ntheta, npsi=npsi,
+                    include_summit=include_summit,
+                    config=config, det=det,
+                    returnas='pts', return_xixj=False,
+                    grid=grid,
+                )[1:][0]
+
+            else:
+                # Gets the point source emitter location
+                pts1 = self.get_rays_from_cryst(
+                    lamb=lamb, bragg=-1*bragg,
+                    n=n, use_non_parallelism=use_non_parallelism,
+                    cry_dpts=cry_dpts,#dtheta=dtheta, psi=psi,phi=phi+np.pi, 
+                    ndpts=ndpts,#ntheta=ntheta, npsi=npsi,
+                    include_summit=include_summit,
+                    config=config, det=det,
+                    returnas='pts', return_xixj=False,
+                    grid=grid,
+                )[1:][0]
+            
         elif lc[1]:
             c0 = (
                 isinstance(pts, np.ndarray)
@@ -1367,33 +1487,48 @@ class CrystalBragg(utils.ToFuObject):
                 msg = ("Arg pts must be a (3, npts) np.array!")
                 raise Exception(msg)
 
+            # Calculates points on the crystal where Bragg diffraction occurs for the given point source
             # pts.shape = (nlamb, npts, ndtheta)
-            dtheta, psi, phi, bragg, _, _ = self.calc_raytracing_from_lambpts(
+            cry_dpts, bragg, _, _ = self.calc_raytracing_from_lambpts(
                 pts=pts,
                 lamb=lamb,
-                ndtheta=ntheta,
+                ndpts = ndpts,
             )
+
+            # Calculates the position on the crystal, position of the detector, horizontal displacement on detector, and vertical displacement on detector
             pts_summit, pts2, xi, xj = self.get_rays_from_cryst(
-                phi=phi+np.pi, lamb=None, bragg=bragg,
+                lamb=None, bragg=bragg,
                 n=n, use_non_parallelism=use_non_parallelism,
-                dtheta=dtheta, psi=psi,
-                ntheta=ntheta, npsi=npsi,
+                cry_dpts=cry_dpts,
+                ndpts=ndpts,
                 include_summit=include_summit,
                 config=config, det=det,
                 returnas='pts', return_xixj=True,
                 grid=grid,
             )
-            pts1 = np.repeat(
-                np.repeat(
+
+            #Reshapes the input points source
+            if self._dgeom['Type'] == 'sph':
+                pts1 = np.repeat(
                     np.repeat(
-                        pts[:, None, :], dtheta.shape[0], axis=1,
+                        np.repeat(
+                            pts[:, None, :], cry_dpts['dtheta'].shape[0], axis=1,
+                        )[..., None],
+                        cry_dpts['dtheta'].shape[2],
+                        axis=-1,
                     )[..., None],
-                    dtheta.shape[2],
+                    2,
                     axis=-1,
-                )[..., None],
-                2,
-                axis=-1,
-            )
+                )
+            else:
+                pts1 = np.repeat(
+                    np.repeat(
+                        pts[:, None, :], pts2.shape[1], axis=1,
+                    )[..., None],
+                    pts2.shape[3],
+                    axis=-1,
+                )
+
         else:
             pts_summit, pts1, pts2, xi, xj = None, None, None, None, None
         return _plot_optics.CrystalBragg_plot(
@@ -1787,8 +1922,8 @@ class CrystalBragg(utils.ToFuObject):
 
     def get_local_noute1e2(
         self,
-        dtheta=None, psi=None,
-        ntheta=None, npsi=None,
+        cry_dpts=None,
+        ndpts=None,
         use_non_parallelism=None,
         include_summit=None,
     ):
@@ -1806,6 +1941,16 @@ class CrystalBragg(utils.ToFuObject):
             - arbitrary: same shape and dimension up to 4
             - 'envelop': will be computed to represent the crystal contour
                 will be returned as 2 1d arrays
+
+        All points on the cylindrical crystal's surface are identified
+            by (dtheta, de1) coordinates with cylinder axis parameterized as \vec{center} + de1*\hat{e1} , where:
+                - theta = dtheta (dtheta = 0 for summit) for rotation in (nout,e2)-plane
+                - de1 (de1 = 0 for summit) is displacement from the center of cylinder axis (e1)
+
+        All points on the flat crystal's surface are identified
+            by (de1, de2) coordinates, where:
+                - de1 (de1 = 0 for summit) is displacement along the summit e1 vector
+                - de2 (de2 = 0 for summit) is displacement along the summit e2 vector
 
         Return the pts themselves and the 3 perpendicular local unit vectors
             (nout, e1, e2), where nout is towards the outside of the sphere and
@@ -1833,41 +1978,84 @@ class CrystalBragg(utils.ToFuObject):
         )
         nin = -nout
 
-        # Get vectors at any points from psi & dtheta
-        vout, ve1, ve2 = _comp_optics.CrystBragg_get_noute1e2_from_psitheta(
-            nout, e1, e2,
-            psi=psi, dtheta=dtheta,
-            e1e2=True, sameshape=False,
-            extenthalf_psi=self._dgeom['extenthalf'][0],
-            extenthalf_dtheta=self._dgeom['extenthalf'][1],
-            ntheta=ntheta, npsi=npsi,
-            include_summit=include_summit,
-        )
-        vin = -vout
-        # cent no longer dgeom['center'] because no longer a fixed point
-        cent = self._dgeom['summit'] + self._dgeom['rcurve']*nin
-        reshape = np.r_[3, [1 for ii in range(vout.ndim - 1)]]
-        cent = cent.reshape(reshape)
+        # Conditional based on crystal type
+        # If using a shperical crystal
+        if self._dgeom['Type'] == 'sph':
+            print('Sphere!')
 
-        # Redefining summit according to nout at each point at crystal
-        summ = cent + self._dgeom['rcurve']*vout
+            # Get vectors at any points from psi & dtheta
+            vout, ve1, ve2 = _comp_optics.CrystBragg_get_noute1e2_from_psitheta(
+                nout, e1, e2,
+                psi=cry_dpts['psi'], dtheta=cry_dpts['dtheta'],
+                e1e2=True, sameshape=False,
+                extenthalf_psi=self._dgeom['extenthalf'][0],
+                extenthalf_dtheta=self._dgeom['extenthalf'][1],
+                ntheta=None, npsi=None,
+                include_summit=include_summit,
+            )
+            vin = -vout
+            # cent no longer dgeom['center'] because no longer a fixed point
+            cent = self._dgeom['summit'] + self._dgeom['rcurve']*nin
+            reshape = np.r_[3, [1 for ii in range(vout.ndim - 1)]]
+            cent = cent.reshape(reshape)
+
+            # Redefining summit according to nout at each point at crystal
+            summ = cent + self._dgeom['rcurve']*vout
+
+        # If using a cylindrical crystal
+        elif self._dgeom['Type'] == 'cyl':
+            print('Cylinder!')
+
+            # Get local unit vectors at any points from dtheta, de1
+            vout, ve1, ve2 = _comp_optics.CrystalBragg_get_noute1e2_from_dthetade1(
+                nout,e1,e2,
+                cry_dpts = cry_dpts,
+                e1e2=True,
+            )
+            # vout, ve1, ve2 -> dim (3, nlamb, npts, ndtheta)
+
+            # cent no longer dgeom['center'] because no longer a fixed point
+            cent = self._dgeom['summit'] + self._dgeom['rcurve']*nin
+            reshape = np.r_[3, [1 for ii in range(vout.ndim - 1)]]
+            cent = cent.reshape(reshape) # dim (3, 1, 1, 1)
+
+            # Crystal local summit
+            summ = cent + self._dgeom['rcurve']*vout + cry_dpts['de1']*ve1 # dim (3, nlamb, npts, ndtheta)
+
+        # If using a flat crystal
+        elif self._dgeom['Type'] == 'flat':
+            print('Flat!')
+
+            # Get local unit vectors at any points from dtheta, de1
+            vout, ve1, ve2 = _comp_optics.CrystalBragg_get_noute1e2_from_de1de2(
+                nout,e1,e2,
+                cry_dpts = cry_dpts,
+                e1e2=True
+            )
+            # vout, ve1, ve2 -> dim (3, nlamb, npts, ndtheta)
+
+            #cent = cent.reshape(reshape) # dim (3, 1, 1, 1)
+            # Crystal local summit
+            reshape = np.r_[3, [1 for ii in range(vout.ndim - 1)]]
+            summ = self._dgeom['summit'].reshape(reshape) + cry_dpts['de1']*ve1 + cry_dpts['de2']*ve2# dim (3, nlamb, npts, ndtheta)
+
+
+        # Returns crystal local points and local basis where Bragg reflection happens
         return summ, vout, ve1, ve2
 
     def calc_xixj_from_braggphi(
         self,
-        phi=None,
         bragg=None,
         lamb=None,
         n=None,
-        dtheta=None,
-        psi=None,
+        cry_dpts=None,
         det=None,
         use_non_parallelism=None,
         strict=None,
         return_strict=None,
         data=None,
         plot=True,
-        dax=None,
+        dax=None,    
     ):
         """ Assuming crystal's summit as frame origin
 
@@ -1895,35 +2083,60 @@ class CrystalBragg(utils.ToFuObject):
 
         # Check / format inputs
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
-        phi = np.atleast_1d(phi)
 
         # Check / get det
         det = self._checkformat_det(det)
-
-        # Get local summit nout, e1, e2 if non-centered
-        if dtheta is None:
-            dtheta = 0.
-        if psi is None:
-            psi = 0.
 
         # Probably to update with use_non_parallelism?
         # Get back summit & vectors at any point at the crystal surface,
         #  according to parallelism properties
         summit, nout, e1, e2 = self.get_local_noute1e2(
-            dtheta=dtheta, psi=psi,
+            cry_dpts = cry_dpts,
             use_non_parallelism=use_non_parallelism,
-            ntheta=None, npsi=None,
+            ndpts=None,
             include_summit=False,
         )
 
-        # Compute
-        xi, xj, strict = _comp_optics.calc_xixj_from_braggphi(
-            det_cent=det['cent'],
-            det_nout=det['nout'], det_ei=det['ei'], det_ej=det['ej'],
-            det_outline=det.get('outline'),
-            summit=summit, nout=nout, e1=e1, e2=e2,
-            bragg=bragg, phi=phi, strict=strict,
-        )
+        # If using a spherical crystal            
+        if self._dgeom['Type'] == 'sph':
+            # Get local summit nout, e1, e2 if non-centered
+            if cry_dpts is None:
+                phi = 0.
+            else:
+                phi = cry_dpts['phi'] + np.pi
+                phi = np.atleast_1d(phi)
+
+
+            # Compute
+            xi, xj, strict = _comp_optics.calc_xixj_from_braggphi(
+                det_cent=det['cent'],
+                det_nout=det['nout'], det_ei=det['ei'], det_ej=det['ej'],
+                det_outline=det.get('outline'),
+                summit=summit, nout=nout, e1=e1, e2=e2,
+                bragg=bragg, phi=phi, strict=strict,
+            )
+
+        # If using a cylindrical crystal
+        elif self._dgeom['Type'] == 'cyl':
+            # Compute
+            xi, xj, strict = _comp_optics.calc_xixj_from_bragge2(
+                det_cent=det['cent'],
+                det_nout=det['nout'], det_ei=det['ei'], det_ej=det['ej'],
+                det_outline=det.get('outline'),
+                summit=summit, nout=nout, e1=e1, e2=e2,
+                bragg=bragg[:,0,0,0], strict=strict,
+            )
+
+        # If using a flat crystal
+        elif self._dgeom['Type'] == 'flat':
+            # Compute
+            xi, xj, strict = _comp_optics.calc_xixj_from_bragge2(
+                det_cent=det['cent'],
+                det_nout=det['nout'], det_ei=det['ei'], det_ej=det['ej'],
+                det_outline=det.get('outline'),
+                summit=summit, nout=nout, e1=e1, e2=e2,
+                bragg=bragg[:,0,0,0], strict=strict,
+            )
 
         if plot:
             dax = _plot_optics.CrystalBragg_plot_approx_detector_params(
@@ -2085,9 +2298,7 @@ class CrystalBragg(utils.ToFuObject):
         for ll in range(nlamb):
             xi[ll, :], xj[ll, :] = self.calc_xixj_from_braggphi(
                 bragg=np.full(phi.shape, bragg[ll]),
-                phi=phi,
-                dtheta=0.,
-                psi=0.,
+                cry_dpts = None,
                 n=n,
                 det=det,
                 use_non_parallelism=use_non_parallelism,
@@ -2116,8 +2327,8 @@ class CrystalBragg(utils.ToFuObject):
                 for ii in range(npsi):
                     i0 = np.arange(ii*nphi, (ii+1)*nphi)
                     xi_er[l, i0], xj_er[l, i0] = self.calc_xixj_from_braggphi(
-                        phi=phi, bragg=bragg[l], lamb=None, n=n,
-                        dtheta=ldtheta[ii], psi=lpsi[ii],
+                        bragg=bragg[l], lamb=None, n=n,
+                        cry_dpts = None,
                         det=det, plot=False,
                         use_non_parallelism=use_non_parallelism,
                         strict=strict,
@@ -2234,9 +2445,7 @@ class CrystalBragg(utils.ToFuObject):
                         xi_rc[ll, mm, :], xj_rc[ll, mm, :],
                     ) = self.calc_xixj_from_braggphi(
                         bragg=np.full(phi.shape, dth[mm]),
-                        phi=phi,
-                        dtheta=0.,
-                        psi=0.,
+                        cry_dpts = cry_dpts,
                         n=n,
                         det=det,
                         use_non_parallelism=use_non_parallelism,
@@ -2863,7 +3072,9 @@ class CrystalBragg(utils.ToFuObject):
         pts=None,
         xi=None, xj=None, det=None,
         dtheta=None, psi=None,
+        cry_dpts=None,
         ntheta=None, npsi=None,
+        ndpts=None,
         n=None,
         use_non_parallelism=None,
         grid=None,
@@ -2888,11 +3099,13 @@ class CrystalBragg(utils.ToFuObject):
 
         # Get local basis
         summ, vout, ve1, ve2 = self.get_local_noute1e2(
-            dtheta=dtheta, psi=psi,
-            ntheta=ntheta, npsi=npsi,
+            cry_dpts=cry_dpts,
+            ndpts=ndpts,
             use_non_parallelism=use_non_parallelism,
             include_summit=True,
         )
+            #dtheta=dtheta, psi=psi,
+            #ntheta=ntheta, npsi=npsi,
 
         # Derive bragg, phi
         bragg, phi = _comp_optics.calc_braggphi_from_xixjpts(
@@ -2995,10 +3208,10 @@ class CrystalBragg(utils.ToFuObject):
             det=det,
         )
 
-    def _calc_dthetapsiphi_from_lambpts(
+    def _calc_dpts_from_lambpts(
         self,
         pts=None, bragg=None, lamb=None,
-        n=None, ndtheta=None,
+        n=None, ndpts=None,#ndtheta=None,
         use_non_parallelism=None,
         grid=None,
     ):
@@ -3014,77 +3227,152 @@ class CrystalBragg(utils.ToFuObject):
             use_non_parallelism=use_non_parallelism
             )
 
-        # Compute dtheta, psi, indnan (nlamb, npts, ndtheta)
-        # In general there are 2 solutions! (only close to rowland in practice)
-        dtheta, psi, indok, grid = _comp_optics.calc_dthetapsiphi_from_lambpts(
-            pts,
-            bragg,
-            summit=self._dgeom['summit'],   # To be updated (non-paralellism)?
-            rcurve=self._dgeom['rcurve'],
-            nout=nout, e1=e1, e2=e2,
-            extenthalf=self._dgeom['extenthalf'],
-            ndtheta=ndtheta,
-            grid=grid,
-        )
+        # Displacement variables are defined differently for different crystal shapes
+        # If using a spherical crystal
+        if self._dgeom['Type'] == 'sph':
+
+            # Error check
+            if ndpts is None:
+                ndpts = {}
+                ndpts['ndtheta'] =None
+                ndpts['npsi'] = None
+
+            # Compute dtheta, psi, indnan (nlamb, npts, ndtheta)
+            # In general there are 2 solutions! (only close to rowland in practice)
+            dtheta, psi, indok, grid = _comp_optics.calc_dthetapsiphi_from_lambpts(
+                pts,
+                bragg,
+                summit=self._dgeom['summit'],   # To be updated (non-paralellism)?
+                rcurve=self._dgeom['rcurve'],
+                nout=nout, e1=e1, e2=e2,
+                extenthalf=self._dgeom['extenthalf'],
+                ndtheta=ndpts['ndtheta'],
+                grid=grid,
+            )
+
+            # Stores the displacement variables in a common dictionary
+            cry_dpts = {}
+            cry_dpts['dtheta'] = dtheta
+            cry_dpts['psi'] = psi
+            dummy = dtheta
+            nsols = 2
+
+        # If using a cylindircal crystal
+        elif self._dgeom['Type'] == 'cyl':
+            # Error check
+            if ndpts is None:
+                ndpts = {}
+                ndpts['ndtheta'] = None
+
+            # Compute dtheta, de1, indnan (nlamb, npts, ndtheta)
+            dtheta, de1, indok, grid = _comp_optics.calc_dthetade1_from_lambpts(
+                pts,
+                bragg,
+                summit=self._dgeom['summit'],   # To be updated (non-paralellism)?
+                rcurve=self._dgeom['rcurve'],
+                nout=nout, e1=e1, e2=e2,
+                extenthalf=self._dgeom['extenthalf'],
+                ndtheta=ndpts['ndtheta'],
+                grid=grid,
+            )
+
+            # Stores the displacement variables in a common dictionary
+            cry_dpts = {}
+            cry_dpts['dtheta'] = dtheta
+            cry_dpts['de1'] = de1
+            dummy = dtheta
+            nsols = 1
+
+        # If using a flat crystal
+        elif self._dgeom['Type'] == 'flat':
+
+            # Error check
+            if ndpts is None:
+                ndpts = {}
+                ndpts['ndz'] = None
+
+            # Compute de1, de2, indnan (nlamb, npts, ndtheta)
+            de1, de2, indok, grid = _comp_optics.calc_de1de2_from_lambpts(
+                pts,
+                bragg,
+                summit=self._dgeom['summit'],   # To be updated (non-paralellism)?
+                nout=nout, e1=e1, e2=e2,
+                extenthalf=self._dgeom['extenthalf'],
+                ndz=ndpts['ndz'],
+                grid=grid,
+            )
+
+            # Stores the displacement variables in a common dictionary
+            cry_dpts = {}
+            cry_dpts['de1'] = de1
+            cry_dpts['de2'] = de2
+            dummy = de1
+            nsols = 1
 
         # reshape bragg for matching dtheta.shape
         if grid is True:
             bragg = np.repeat(
                 np.repeat(
                     np.repeat(bragg[:, None], npts, axis=-1)[..., None],
-                    dtheta.shape[2],
+                    dummy.shape[2],
                     axis=-1,
                 )[..., None],
-                2,
+                nsols,
                 axis=-1,
             )
             pts = pts[:, None, :, None, None]
         else:
             bragg = np.repeat(
-                np.repeat(bragg[:, None], dtheta.shape[1], axis=1)[..., None],
-                2,
+                np.repeat(bragg[:, None], dummy.shape[1], axis=1)[..., None],
+                nsols,
                 axis=-1,
             )
             pts = pts[..., None, None]
-        bragg[~indok] = np.nan
 
-        # Get corresponding phi and re-check bragg, for safety
-        bragg2, phi = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
-            pts=pts,
-            dtheta=dtheta, psi=psi,
-            grid=False,
-            use_non_parallelism=use_non_parallelism,
-            return_lamb=False,
-        )
-
-        c0 = (
-            bragg2.shape == bragg.shape
-            and np.allclose(bragg, bragg2, equal_nan=True)
-        )
-        if not c0:
-            try:
-                plt.figure()
-                plt.plot(bragg, bragg2, '.')
-            except Exception as err:
-                pass
-            msg = (
-                "Inconsistency detected in bragg angle computations:\n"
-                + "\t- from the points and lamb\n"
-                + "\t- from the points and (dtheta, psi)\n"
-                + "\nContext:\n"
-                + "\t- use_non_parallelism: {}\n".format(use_non_parallelism)
-                + "\t- bragg.shape = {}\n".format(bragg.shape)
-                + "\t- bragg2.shape = {}\n".format(bragg2.shape)
+        # Some error check for the spherical crystal
+        if self._dgeom['Type'] == 'sph':
+            bragg[~indok] = np.nan
+            # Get corresponding phi and re-check bragg, for safety
+            bragg2, phi = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
+                pts=pts,
+                dtheta=dtheta, psi=psi,
+                grid=False,
+                use_non_parallelism=use_non_parallelism,
+                return_lamb=False,
+                cry_dpts=cry_dpts,
+                ndpts=ndpts
             )
-            raise Exception(msg)
 
-        return dtheta, psi, phi, bragg
+            cry_dpts['phi'] = phi
+
+            c0 = (
+                bragg2.shape == bragg.shape
+                and np.allclose(bragg, bragg2, equal_nan=True)
+            )
+            if not c0:
+                try:
+                    plt.figure()
+                    plt.plot(bragg, bragg2, '.')
+                except Exception as err:
+                    pass
+                msg = (
+                    "Inconsistency detected in bragg angle computations:\n"
+                    + "\t- from the points and lamb\n"
+                    + "\t- from the points and (dtheta, psi)\n"
+                    + "\nContext:\n"
+                    + "\t- use_non_parallelism: {}\n".format(use_non_parallelism)
+                    + "\t- bragg.shape = {}\n".format(bragg.shape)
+                    + "\t- bragg2.shape = {}\n".format(bragg2.shape)
+                )
+                raise Exception(msg)
+
+        return cry_dpts, bragg
 
     def calc_raytracing_from_lambpts(
         self,
         lamb=None, bragg=None, pts=None,
         xi_bounds=None, xj_bounds=None, nphi=None,
-        det=None, n=None, ndtheta=None,
+        det=None, n=None, ndpts=None,#ndtheta=None,
         johann=False, lpsi=None, ldtheta=None,
         rocking=False, strict=None, plot=None, fs=None,
         dmargin=None, wintit=None,
@@ -3112,11 +3400,11 @@ class CrystalBragg(utils.ToFuObject):
         pts = _comp_optics._checkformat_pts(pts)
         npts = pts.shape[1]
 
-        # Get dtheta, psi and phi from pts/lamb
-        dtheta, psi, phi, bragg = self._calc_dthetapsiphi_from_lambpts(
-            pts=pts, lamb=lamb, bragg=bragg, n=n, ndtheta=ndtheta,
+        # Get displacement points from pts/lamb
+        cry_dpts, bragg = self._calc_dpts_from_lambpts(
+            pts=pts, lamb=lamb, bragg=bragg, n=n, ndpts=ndpts,
         )
-        ndtheta = dtheta.shape[-1]
+        #ndtheta = dtheta.shape[-1]
         # assert dtheta.shape == (nlamb, npts, ndtheta)
 
         # Check / get det
@@ -3124,17 +3412,18 @@ class CrystalBragg(utils.ToFuObject):
 
         # Compute xi, xj of reflexion (phi -> phi + np.pi)
         xi, xj = self.calc_xixj_from_braggphi(
-            bragg=bragg, phi=phi+np.pi, n=n,
-            dtheta=dtheta, psi=psi,
+            bragg=bragg, n=n,
+            cry_dpts = cry_dpts,
             det=det, strict=strict, plot=False,
         )
 
-        # Plot to be checked - unnecessary ?
+        # Plot to be checked - unnecessary ? (Spherical Only)
         plot = False
         if plot is not False:
             ptscryst, ptsdet = None, None
             if '2d' in plot or '3d' in plot:
-                ptscryst = self.get_local_noute1e2(dtheta, psi)[0]
+                #ptscryst = self.get_local_noute1e2(dtheta, psi)[0]
+                ptscryst = self.get_local_noute1e2(cry_dpts)[0]
                 ptsdet = (det['cent'][:, None, None, None]
                           + xi[None, ...]*det['ei'][:, None, None, None]
                           + xj[None, ...]*det['ej'][:, None, None, None])
@@ -3149,7 +3438,7 @@ class CrystalBragg(utils.ToFuObject):
                 wintit=wintit, tit=tit, legend=legend, draw=draw)
             if returnas == 'ax':
                 return ax
-        return dtheta, psi, phi, bragg, xi, xj
+        return cry_dpts, bragg, xi, xj
 
     def _calc_spect1d_from_data2d(self, data, lamb, phi,
                                   nlambfit=None, nphifit=None,
