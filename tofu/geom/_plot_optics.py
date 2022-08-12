@@ -284,9 +284,6 @@ def _CrystalBragg_plot_check(
             + k[1:]*(pts2-pts_summit)[..., None],
             np.full(shape, np.nan),
         ), axis=-1)
-        print(rays)
-        print(rays.shape)
-        print(rays.size)
 
         if cryst._dgeom['Type'] == 'sph':
             nlamb, npts, ndtheta, _, nk = rays.shape[1:]
@@ -303,9 +300,6 @@ def _CrystalBragg_plot_check(
                 ).swapaxes(1, 2)
         else:
             rays = rays.reshape(3, nlamb*npts*ndtheta*nk*nsols, order='C')
-        print(rays)
-        print(rays.shape)
-        print(rays.size)
 
     # xi, xj
     lc = [xi is not None, xj is not None]

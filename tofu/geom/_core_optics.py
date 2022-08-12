@@ -3292,7 +3292,7 @@ class CrystalBragg(utils.ToFuObject):
                 ndpts['ndz'] = None
 
             # Compute de1, de2, indnan (nlamb, npts, ndtheta)
-            de1, de2, indok, grid = _comp_optics.calc_de1de2_from_lambpts(
+            de1, de2, dang, indok, grid = _comp_optics.calc_de1de2_from_lambpts(
                 pts,
                 bragg,
                 summit=self._dgeom['summit'],   # To be updated (non-paralellism)?
@@ -3306,6 +3306,7 @@ class CrystalBragg(utils.ToFuObject):
             cry_dpts = {}
             cry_dpts['de1'] = de1
             cry_dpts['de2'] = de2
+            cry_dpts['dang'] = dang
             dummy = de1
             nsols = 1
 
