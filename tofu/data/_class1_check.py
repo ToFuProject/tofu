@@ -1267,6 +1267,61 @@ def _diagnostics_check(
 
     is2d = coll.dobj['camera'][optics[0]]['type'] == '2d'
 
+    # -------------------------------------------
+    # check all optics are on good side of camera
+
+    cam = optics[0]
+    for oo in optics[1:]:
+
+        px, py, pz = coll.dobj['aperture'][oo]['poly']
+        px = coll.ddata[px]['data']
+        py = coll.ddata[py]['data']
+        pz = coll.ddata[pz]['data']
+
+        if is2d:
+            cent = coll.dobj['camera'][cam]['cent']
+            nin = coll.dobj['camera'][cam]['nin']
+
+            iout = (
+                (px - cent[0])*nin[0]
+                + (py - cent[1])*nin[1]
+                + (pz - cent[2])*nin[2]
+            ) <= 0
+            if np.any(iout):
+                msg = (
+                    f"The following points of aperture '{oo}' are on the wrong"
+                    f"side of camera '{cam}':\n"
+                    f"{iout.nonzero()[0]}"
+                )
+                raise Exception(msg)
+
+        else:
+            cx, cy, cz = coll.dobj['camera'][cam]['cents']
+            cx = coll.ddata[cx]['data'][None, :]
+            cy = coll.ddata[cy]['data'][None, :]
+            cz = coll.ddata[cz]['data'][None, :]
+
+            if coll.dobj['camera'][cam]['parallel']:
+                ninx, niny, ninz = coll.dobj['camera'][cam]['nin']
+            else:
+                ninx, niny, ninz = coll.dobj['camera'][cam]['nin']
+                ninx = coll.ddata[ninx]['data'][None, :]
+                niny = coll.ddata[niny]['data'][None, :]
+                ninz = coll.ddata[ninz]['data'][None, :]
+
+            iout = (
+                (px[:, None] - cx)*ninx
+                + (py[:, None] - cy)*niny
+                + (pz[:, None] - cz)*ninz
+            ) <= 0
+            if np.any(iout):
+                msg = (
+                    f"The following points of aperture '{oo}' are on the wrong"
+                    f"side of camera '{cam}':\n"
+                    f"{np.unique(iout.nonzero()[0])}"
+                )
+                raise Exception(msg)
+
     # -----------------
     # compute los
 

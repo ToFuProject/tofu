@@ -72,7 +72,7 @@ def compute_etendue(
         det_area, ap_area, distances,
         los_x, los_y, los_z,
         cos_los_det, cos_los_ap,
-        solid_angles, res,
+        solid_angles, res, pix_ap,
     ) = _compute_etendue_prepare(
         ldeti=ldeti,
         aperture=aperture,
@@ -109,6 +109,7 @@ def compute_etendue(
         etend1 = _compute_etendue_numerical(
             ldeti=ldeti,
             aperture=aperture,
+            pix_ap=pix_ap,
             res=res,
             los_x=los_x,
             los_y=los_y,
@@ -542,6 +543,10 @@ def _compute_etendue_prepare(
     solid_angles = np.zeros((nd,), dtype=float)
     mindiff = np.full((nd,), np.nan)
 
+    # store projected intersection of apertures (3d), per pix
+    # useful later for estimating the plane to be sample (numerical)
+    pix_ap = []
+
     for ii in range(nd):
 
         # ap
@@ -561,6 +566,7 @@ def _compute_etendue_prepare(
         )
 
         if p_a is None:
+            pix_ap.append(None)
             continue
 
         else:
@@ -596,6 +602,8 @@ def _compute_etendue_prepare(
                 visibility=False,
                 return_vector=False,
             ).ravel()[0]
+
+            pix_ap.append((px, py, pz))
 
     # -------------
     # normalize los
@@ -654,7 +662,7 @@ def _compute_etendue_prepare(
     return (
         det_area, ap_area, distances,
         los_x, los_y, los_z,
-        cos_los_det, cos_los_ap, solid_angles, res,
+        cos_los_det, cos_los_ap, solid_angles, res, pix_ap,
     )
 
 
@@ -667,6 +675,7 @@ def _compute_etendue_prepare(
 def _compute_etendue_numerical(
     ldeti=None,
     aperture=None,
+    pix_ap=None,
     res=None,
     margin_par=None,
     margin_perp=None,
@@ -679,6 +688,8 @@ def _compute_etendue_numerical(
 
     # shape0 = det['cents_x'].shape
     nd = len(ldeti)
+
+    ap_ind = np.cumsum([v0['poly_x'].size for v0 in aperture.values()][:-1])
 
     ap_tot_px = np.concatenate(tuple(
         [v0['poly_x'] for v0 in aperture.values()]
@@ -769,19 +780,26 @@ def _compute_etendue_numerical(
 
         # get projections on det_e0 and det_e1 in plane
 
-        x0 = (
+        x0 = np.split(
             ((det_Px[None, :] + k_plane * PA_x) - c_los_x)*e0_xi
             + ((det_Py[None, :] + k_plane * PA_y) - c_los_y)*e0_yi
-            + ((det_Pz[None, :] + k_plane * PA_z) - c_los_z)*e0_zi
+            + ((det_Pz[None, :] + k_plane * PA_z) - c_los_z)*e0_zi,
+            ap_ind,
+            axis=0,
         )
-        x1 = (
+        x1 = np.split(
             ((det_Px[None, :] + k_plane * PA_x) - c_los_x)*e1_xi
             + ((det_Py[None, :] + k_plane * PA_y) - c_los_y)*e1_yi
-            + ((det_Pz[None, :] + k_plane * PA_z) - c_los_z)*e1_zi
+            + ((det_Pz[None, :] + k_plane * PA_z) - c_los_z)*e1_zi,
+            ap_ind,
+            axis=0,
         )
 
-        x0_min, x0_max = np.min(x0), np.max(x0)
-        x1_min, x1_max = np.min(x1), np.max(x1)
+        x0_min = np.max([np.min(x0s) for x0s in x0])
+        x0_max = np.min([np.max(x0s) for x0s in x0])
+        x1_min = np.max([np.min(x1s) for x1s in x1])
+        x1_max = np.min([np.max(x1s) for x1s in x1])
+
         w0 = x0_max - x0_min
         w1 = x1_max - x1_min
 
@@ -873,7 +891,7 @@ def _compute_etendue_numerical(
                     and ((pts_1[0] < x1_min) == np.all(sar[:, 0] == 0))
                     and ((pts_1[-1] > x1_max) == np.all(sar[:, -1] == 0))
                 )
-                if not c0 and not too_large[jj]:
+                if True:    # not c0 and not too_large[jj]:
                     # debug
                     plt.figure()
                     plt.imshow(
@@ -886,9 +904,18 @@ def _compute_etendue_numerical(
                         origin='lower',
                         aspect='equal',
                     )
-                    plt.plot(
-                        x0.ravel(), x1.ravel(), c='r', marker='o', ls='None',
-                    )
+
+                    lc = ['r', 'm', 'c', 'y']
+                    for ss in range(len(x0)):
+                        iss = np.r_[np.arange(0, x0[ss].shape[0]), 0]
+                        plt.plot(
+                            x0[ss][iss, :],
+                            x1[ss][iss, :],
+                            c=lc[ss%len(lc)],
+                            marker='o',
+                            ls='-',
+                        )
+
                     plt.plot(
                         pts_0, np.mean(pts_1)*np.ones((n0,)),
                         c='k', marker='.', ls='None',
@@ -901,7 +928,6 @@ def _compute_etendue_numerical(
                     plt.gca().set_xlabel('x1')
                     # import pdb; pdb.set_trace()
                     msg = "Something is wrong with solid_angle or sampling"
-                    import pdb; pdb.set_trace()     # DB
                     raise Exception(msg)
                 else:
                     etendue[jj, ii] = np.sum(solid_angle) * ds

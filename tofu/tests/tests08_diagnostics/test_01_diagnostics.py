@@ -142,7 +142,7 @@ def _apertures():
         phi=-np.pi/20.,
     )
 
-    scatter = 2.*(np.random.random(5) - 0.5)
+    scatter = 0.001 * np.r_[-1, 1, 1, -1, -1]
     px = cent[0] + out0 * e0[0] + out1 * e1[0] + scatter * nin[0]
     py = cent[1] + out0 * e0[1] + out1 * e1[1] + scatter * nin[1]
     pz = cent[2] + out0 * e0[2] + out1 * e1[2] + scatter * nin[2]
@@ -294,9 +294,10 @@ class Test01_Diagnostic():
 
     def test01_etendues(self):
         for k0, v0 in self.obj.dobj['diagnostic'].items():
-            if k0 in ['d0', 'd1']:
+            if k0 in ['d0', 'd1', 'd2', 'd3']:
                 continue
             self.obj.compute_diagnostic_etendue(
                 key=k0,
-                res=np.r_[0.002],
+                res=np.r_[0.001],
+                check=True,
             )
