@@ -891,7 +891,7 @@ def _compute_etendue_numerical(
                     and ((pts_1[0] < x1_min) == np.all(sar[:, 0] == 0))
                     and ((pts_1[-1] > x1_max) == np.all(sar[:, -1] == 0))
                 )
-                if True:    # not c0 and not too_large[jj]:
+                if not c0 and not too_large[jj]:
                     # debug
                     plt.figure()
                     plt.imshow(

@@ -90,7 +90,7 @@ def _apertures():
     # ap0 : planar from outline
     out0 = 0.01 * np.r_[-1, 1, 1, -1]
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
-    cent = start + 0.1 * vect
+    cent = start + 0.15 * vect
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
         v0=v0,
@@ -162,7 +162,7 @@ def _cameras():
     start, vect, v0, v1 = _ref_line()
 
     # c0: 1d
-    out0 = 0.01 * np.r_[-1, 1, 1, -1]
+    out0 = 0.005 * np.r_[-1, 1, 1, -1]
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
     cent = start + 0.01 * vect
 
@@ -174,7 +174,7 @@ def _cameras():
         phi=0.,
     )
 
-    kl = 0.1*np.linspace(-1, 1, 10)
+    kl = 0.02*np.linspace(-1, 1, 10)
     cents_x = cent[0] + kl * e0[0]
     cents_y = cent[1] + kl * e0[1]
     cents_z = cent[2] + kl * e0[2]
@@ -199,19 +199,19 @@ def _cameras():
     }
 
     # c1: 2d
-    out0 = 0.001 * np.r_[-1, 1, 1, -1]
-    out1 = 0.001 * np.r_[-1, -1, 1, 1]
-    cent = start + 0.005 * vect
+    out0 = 0.005 * np.r_[-1, 1, 1, -1]
+    out1 = 0.005 * np.r_[-1, -1, 1, 1]
+    cent = start + 0.01 * vect
 
-    cent0 = 0.1*np.linspace(-1, 1, 5)
-    cent1 = 0.1*np.linspace(-1, 1, 4)
+    cent0 = 0.02*np.linspace(-1, 1, 5)
+    cent1 = 0.02*np.linspace(-1, 1, 5)
 
     nin, e0, e1 = _nine0e1_from_orientations(
         vect=vect,
         v0=v0,
         v1=v1,
-        theta=-np.pi/20.,
-        phi=np.pi/10.,
+        theta=np.pi/20.,
+        phi=0.,
     )
 
     c1 = {
@@ -292,12 +292,12 @@ class Test01_Diagnostic():
     # ----------
     # tests
 
-    def test01_etendues(self):
+    def test01_etendues(self, res=np.r_[0.005, 0.003, 0.001]):
         for k0, v0 in self.obj.dobj['diagnostic'].items():
             if k0 in ['d0', 'd1', 'd2', 'd3']:
                 continue
             self.obj.compute_diagnostic_etendue(
                 key=k0,
-                res=np.r_[0.001],
+                res=res,
                 check=True,
             )
