@@ -136,12 +136,15 @@ def compute_etendue(
     # reshape
 
     sh0 = det['cents_x'].shape
+    if sh0 == ():
+        sh0 = (1,)
+
     # etend0
-    if etend0.shape[1:] != sh0:
+    if etend0 is not None and etend0.shape[1:] != sh0:
         etend0 = etend0.reshape(tuple(np.r_[etend0.shape[0], sh0]))
 
     # etend1
-    if etend1.shape[1:] != sh0:
+    if etend1 is not None and etend1.shape[1:] != sh0:
         etend1 = etend1.reshape(tuple(np.r_[res.size, sh0]))
 
     # los

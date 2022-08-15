@@ -397,15 +397,15 @@ def _create_etendue(res=None):
 
     # aperture dict
     aperture = {
-        'poly_x': poly_x,
-        'poly_y': poly_y,
-        'poly_z': poly_z,
-        'cent_x': ca[0],
-        'cent_y': ca[1],
-        'cent_z': ca[2],
-        'nin': nout2,
-        'e0': ei2,
-        'e1': ej,
+        'a0': {
+            'poly_x': poly_x,
+            'poly_y': poly_y,
+            'poly_z': poly_z,
+            'cent': ca,
+            'nin': nout2,
+            'e0': ei2,
+            'e1': ej,
+        },
     }
 
     # detector dict
