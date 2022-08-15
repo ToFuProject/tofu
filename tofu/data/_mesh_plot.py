@@ -605,7 +605,7 @@ def _plot_mesh_polar(
     # --------------------
     # Instanciate Plasma2D
 
-    from ._mesh import Plasma2D
+    from ._class0_Plasma2D import Plasma2D
     coll2 = Plasma2D()
 
     # ref
