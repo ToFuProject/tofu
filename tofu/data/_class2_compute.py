@@ -8,6 +8,42 @@ from ..geom import _etendue
 
 # #############################################################################
 # #############################################################################
+#                       outlines
+# #############################################################################
+
+
+def get_optics_outline(
+    coll=None,
+    key=None,
+    add_points=None,
+    closed=None,
+):
+
+    # ------------
+    # check inputs
+
+    key, cls, add_points, closed = _get_optics_outline_check(
+        coll=coll,
+        key=key,
+        add-points=add_points,
+        closed=closed,
+    )
+
+    # --------
+    # compute
+
+    if cls == 'aperture':
+        px = coll.dobj['aperture'][key]['poly_x']
+        py = coll.dobj['aperture'][key]['poly_y']
+        pz = coll.dobj['aperture'][key]['poly_z']
+
+    elif cls == 'camera':
+        if coll.dobj['']
+
+
+
+# #############################################################################
+# #############################################################################
 #                       dplot
 # #############################################################################
 
@@ -46,7 +82,7 @@ def _dplot_check(
     if isinstance(element, str):
         element = [element]
 
-    lok = ['o', 'v', 's', 'c', 'r']
+    lok = ['o', 'v', 'c', 'r']
     optics = ds._generic_check._check_var_iter(
         element, 'element',
         default=lok,
@@ -136,7 +172,6 @@ def _dplot(
         # label
 
     return dplot
-
 
 
 # #############################################################################
