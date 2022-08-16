@@ -1003,29 +1003,29 @@ class CrystalBragg(utils.ToFuObject):
             vect = np.full(pts_start.shape, np.nan) # dim (3, nlmab, npts, ndtheta)
 
             # Loop over nlamb
-            for i in np.arange(pts_start.shape[1]):
+            for ii in np.arange(pts_start.shape[1]):
                 # Calculates rotation matrix for Bragg reflection about the crystal local vertical axis (e2)
-                if bragg[i] < 0:
-                    ang_rot = np.abs(2*bragg[i])
+                if bragg[ii] < 0:
+                    ang_rot = np.abs(2*bragg[ii])
                 else:
-                    ang_rot = np.pi - 2*bragg[i]
+                    ang_rot = np.pi - 2*bragg[ii]
                 c_rot, s_rot = np.cos(-ang_rot), np.sin(-ang_rot)
                 Rot = np.array([[c_rot,0,-s_rot], [0,1,0], [s_rot,0,c_rot]]).reshape(3,3) # dim (3,3)
 
                 # Calculates sine and cosine of Bragg angle
-                c, s = np.cos(bragg[i]), np.sin(bragg[i]) 
+                cc, ss = np.cos(bragg[ii]), np.sin(bragg[ii]) 
 
                 # Calculates the vector from a point on the crystal (d), towards a point with a valid Bragg reflrection (p), in the crystal local basis
-                v_dp_loc = np.r_[-s, 0, -c] # dim (3,), basis (nout, e2, e1)
+                v_dp_loc = np.r_[-ss, 0, -cc] # dim (3,), basis (nout, e2, e1)
 
                 # Loop over npts
-                for j in np.arange(pts_start.shape[2]):
+                for jj in np.arange(pts_start.shape[2]):
                     # Loop over ndtheta
-                    for k in np.arange(pts_start.shape[3]):
+                    for kk in np.arange(pts_start.shape[3]):
                         # Obtains the local basis vector
-                        nout_loc = nout[:,i,j,k].reshape(1,3) # dim (1,3)
-                        e2_loc = e2[:,i,j,k].reshape(1,3) # dim (1,3)
-                        e1_loc = e1[:,i,j,k].reshape(1,3) # dim (1,3)
+                        nout_loc = nout[:,ii,jj,kk].reshape(1,3) # dim (1,3)
+                        e2_loc = e2[:,ii,jj,kj].reshape(1,3) # dim (1,3)
+                        e1_loc = e1[:,ii,jj,kk].reshape(1,3) # dim (1,3)
 
                         # Projection matrix from the origin basis to the crystal local basis
                         RR = np.concatenate((nout_loc, e2_loc, e1_loc), axis = 0) # dim (3,3)
@@ -1036,7 +1036,7 @@ class CrystalBragg(utils.ToFuObject):
 
                         # Projects reflection vector onto origin base
                         v_dx = np.matmul(np.linalg.inv(RR), v_dx_loc) # dim (3,)
-                        vect[:,i,j,k] = v_dx/np.linalg.norm(v_dx) # ensures normalized
+                        vect[:,ii,jj,kk] = v_dx/np.linalg.norm(v_dx) # ensures normalized
 
         return pts_start, vect
 
@@ -1448,7 +1448,7 @@ class CrystalBragg(utils.ToFuObject):
                 grid=grid,
             )
 
-            if self._dgeom['Tpye'] == 'sph':
+            if self._dgeom['Type'] == 'sph':
                 cry_dpts1 = cry_dpts
                 cry_dpts1['phi'] += np.pi
 
