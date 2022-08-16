@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from . import _class0_Plasma2D
+from . import _class1_Rays
 from . import _class2_check
 from . import _class2_compute
 
@@ -21,11 +21,11 @@ __all__ = ['Diagnostic']
 
 # #############################################################################
 # #############################################################################
-#                           Tokamak
+#                           Diagnostic
 # #############################################################################
 
 
-class Diagnostic(_class0_Plasma2D.Plasma2D):
+class Diagnostic(_class1_Rays.Rays):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
@@ -243,6 +243,15 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
             key=key,
         )
 
+    def get_optics_outline(self, key=None, add_points=None, closed=None):
+        """ Return the optics outline """
+        return _class2_check.get_optics_outline(
+            coll=self,
+            key=key,
+            add_points=None,
+            closed=None,
+        )
+
     def get_as_dict(self, which=None, key=None):
         """ Return the desired object as a dict (input to some routines) """
 
@@ -251,6 +260,10 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
             which=which,
             key=key,
         )
+
+    # -----------------
+    # etendue computing
+    # -----------------
 
     def compute_diagnostic_etendue(
         self,
@@ -280,4 +293,79 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
             verb=verb,
             plot=plot,
             store=store,
+        )
+
+    # -----------------
+    # plotting
+    # -----------------
+
+    def get_diagnostic_dplot(
+        self,
+        key=None,
+        optics=None,
+        elements=None,
+    ):
+        """ Return a dict with all that's necessary for plotting
+
+        If no optics is provided, all are returned
+
+        elements indicate, for each optics, what should be represented:
+            - 'o': outline
+            - 'v': unit vectors
+            - 's': summit ( = center for non-curved)
+            - 'c': center (of curvature)
+            - 'r': rowland circle / axis of cylinder
+
+        returned as a dict:
+
+        dplot = {
+            'optics0': {
+                'o': {
+                    'x': ...,
+                    'y': ...,
+                    'z': ...,
+                    'r': ...,
+                },
+                'v': {
+                    'x': ...,
+                    'y': ...,
+                    'z': ...,
+                    'r': ...,
+                },
+            },
+        }
+
+        """
+
+        return _class2_compute._dplot(
+            coll=self,
+            key=key,
+            optics=optics,
+            element=element,
+        )
+
+    def plot_diagnostic(
+        self,
+        key=None,
+        optics=None,
+        element=None,
+        # figure
+        dax=None,
+        dmargin=None,
+        fs=None,
+        # interactivity
+        connect=None,
+    ):
+
+        return _class2_plot._plot_diagnostic(
+            coll=self,
+            key=key,
+            optics=optics,
+            element=element,
+            # figure
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            # interactivity
+            connect=connect,
         )

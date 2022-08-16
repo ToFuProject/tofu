@@ -8,6 +8,139 @@ from ..geom import _etendue
 
 # #############################################################################
 # #############################################################################
+#                       dplot
+# #############################################################################
+
+
+def _dplot_check(
+    coll=None,
+    key=None,
+    optics=None,
+    elements=None,
+):
+    # -----
+    # key
+
+    lok = list(coll.dobj.get('diagnostic', {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        allowed=lok,
+    )
+
+    # ------
+    # optics
+
+    if isinstance(optics, str):
+        optics = [optics]
+
+    lok = coll.dobj['diagnostic'][key]['optics']
+    optics = ds._generic_check._check_var_iter(
+        optics, 'optics',
+        default=lok,
+        allowed=lok,
+    )
+
+    # -------
+    # element
+
+    if isinstance(element, str):
+        element = [element]
+
+    lok = ['o', 'v', 's', 'c', 'r']
+    optics = ds._generic_check._check_var_iter(
+        element, 'element',
+        default=lok,
+        allowed=lok,
+    )
+
+    return key, optics, element
+
+
+def _dplot(
+    coll=None,
+    key=None,
+    optics=None,
+    elements=None,
+    vect_length=None,
+):
+
+    # ------------
+    # check inputs
+
+    key, optics, element = _dplot_check(
+        coll=coll,
+        key=key,
+        optics=optics,
+        element=element,
+    )
+
+    # ------------
+    # build dict
+
+    dplot = dict.fromkeys(k0, {})
+    for k0 in optics:
+
+        if k0 in coll.dobj.get('camera', []):
+            v0 = coll.dobj['camera'][k0]
+        elif k0 in coll.dobj.get('aperture', []):
+            v0 = coll.dobj['aperture'][k0]
+        elif k0 in coll.dobj.get('crystal', []):
+            v0 = coll.dobj['crystal'][k0]
+        else:
+            msg = f"Unknown optics '{k0}'"
+            raise Exception(msg)
+
+        # outline
+        if 'o' in element:
+
+            px, py, pz = coll.get_optics_outline(
+                key=k0,
+                add_points=3,
+                closed=True,
+            )
+
+            dplot[k0]['o'] = {
+                'x': px,
+                'y': py,
+                'z': pz,
+                'r': np.hypot(px, py),
+                'label': f'{k0}-o',
+            }
+
+        # unit vectors
+        if 'v' in element:
+
+            pass
+
+        # summit
+        if 'c' in element:
+
+            if 'cent' in v0.keys():
+                cx, cy, cz = v0['cent']
+            elif 'cents' in v0.keys():
+                cx, cy, cz = v0['cents']
+                cx = coll.ddata[cx]['data']
+                cy = coll.ddata[cy]['data']
+                cz = coll.ddata[cz]['data']
+
+            dplot[k0]['c'] = {
+                'x': cx,
+                'y': yy,
+                'z': cz,
+                'r': np.hypot(cx, cy),
+                'label': f'{k0}-o',
+            }
+
+        # rowland / axis for curved optics
+
+        # label
+
+    return dplot
+
+
+
+# #############################################################################
+# #############################################################################
 #                       Etendue
 # #############################################################################
 
