@@ -12,8 +12,8 @@ import datastock as ds
 
 # tofu
 from . import _class0_Plasma2D
-from . import _class1_check
-from . import _class1_compute
+from . import _class2_check
+from . import _class2_compute
 
 
 __all__ = ['Diagnostic']
@@ -91,7 +91,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         """
 
         # check / format input
-        dref, ddata, dobj = _class1_check._aperture(
+        dref, ddata, dobj = _class2_check._aperture(
             coll=self,
             key=key,
             # 2d outline
@@ -138,7 +138,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         qeff=None,
     ):
         # check / format input
-        dref, ddata, dobj = _class1_check._camera_1d(
+        dref, ddata, dobj = _class2_check._camera_1d(
             coll=self,
             key=key,
             # common 2d outline
@@ -187,7 +187,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         qeff=None,
     ):
         # check / format input
-        dref, ddata, dobj = _class1_check._camera_2d(
+        dref, ddata, dobj = _class2_check._camera_2d(
             coll=self,
             key=key,
             # common 2d outline
@@ -216,7 +216,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         **kwdargs,
     ):
         # check / format input
-        dref, ddata, dobj = _class1_check._diagnostics(
+        dref, ddata, dobj = _class2_check._diagnostics(
             coll=self,
             key=key,
             optics=optics,
@@ -231,14 +231,14 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
 
     def get_camera_unit_vectors(self, key=None):
         """ Return unit vectors components as dict """
-        return _class1_check.get_camera_unitvectors(
+        return _class2_check.get_camera_unitvectors(
             coll=self,
             key=key,
         )
 
     def get_camera_cents_xyz(self, key=None):
         """ Return cents_x, cents_y, cents_z """
-        return _class1_check.get_camera_cents_xyz(
+        return _class2_check.get_camera_cents_xyz(
             coll=self,
             key=key,
         )
@@ -246,7 +246,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
     def get_as_dict(self, which=None, key=None):
         """ Return the desired object as a dict (input to some routines) """
 
-        return _class1_check._return_as_dict(
+        return _class2_check._return_as_dict(
             coll=self,
             which=which,
             key=key,
@@ -270,7 +270,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         If store = 'analytical' or 'numerical', overwrites the diag etendue
 
         """
-        _class1_compute._diag_compute_etendue(
+        _class2_compute._diag_compute_etendue(
             coll=self,
             key=key,
             analytical=analytical,
