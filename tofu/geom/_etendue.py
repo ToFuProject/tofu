@@ -1006,21 +1006,26 @@ def _plot_etendues(
     # -------------
     # plot
 
-    lines = ax.plot(
-        etend0,
-        ls='-',
-        marker='o',
-        ms=6,
-    )
-
-    for ii in range(len(lines)):
-        ax.plot(
-            etend1[:, ii],
-            ls='--',
-            marker='*',
+    if etend0 is not None:
+        lines = ax.plot(
+            etend0,
+            ls='-',
+            marker='o',
             ms=6,
-            color=lines[ii].get_color(),
         )
+        lcol = [ll.get_color() for ll in lines]
+    else:
+        lcol = [None for ii in range(etend1.shape[1])]
+
+    if etend1 is not None:
+        for ii in range(etend1.shape[1]):
+            ax.plot(
+                etend1[:, ii],
+                ls='--',
+                marker='*',
+                ms=6,
+                color=lcol[ii],
+            )
 
     # -------------
     # legend

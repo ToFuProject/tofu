@@ -2,6 +2,7 @@
 This module contains tests for tofu.geom in its structured version
 """
 
+
 # Built-in
 import sys
 import os
@@ -161,7 +162,7 @@ def _cameras():
 
     start, vect, v0, v1 = _ref_line()
 
-    # c0: 1d parallel
+    # c0: 1d non-parallel
     out0 = 0.002 * np.r_[-1, 1, 1, -1]
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
     cent = start + 0.01 * vect
@@ -174,10 +175,24 @@ def _cameras():
         phi=0.,
     )
 
-    kl = 0.02*np.linspace(-1, 1, 10)
-    cents_x = cent[0] + kl * e0[0]
-    cents_y = cent[1] + kl * e0[1]
-    cents_z = cent[2] + kl * e0[2]
+    npix = 10
+    nins = np.full((npix, 3), np.nan)
+    e0s = np.full((npix, 3), np.nan)
+    e1s = np.full((npix, 3), np.nan)
+    for ii, tt in enumerate(np.pi/20 * np.linspace(-1, 1, 10)):
+        nins[ii, :], e0s[ii, :], e1s[ii, :] = _nine0e1_from_orientations(
+            vect=vect,
+            v0=v0,
+            v1=v1,
+            theta=tt,
+            phi=0.,
+        )
+
+    kl0 = 0.02*np.linspace(-1, 1, 10)
+    klin = 0.01 * np.linspace(-1, 1, 10)**2
+    cents_x = cent[0] + kl0 * e0[0] + klin * nins[:, 0]
+    cents_y = cent[1] + kl0 * e0[1] + klin * nins[:, 1]
+    cents_z = cent[2] + kl0 * e0[2] + klin * nins[:, 2]
 
     c0 = {
         'outline_x0': out0,
@@ -185,20 +200,44 @@ def _cameras():
         'cents_x': cents_x,
         'cents_y': cents_y,
         'cents_z': cents_z,
-        'nin_x': nin[0],
-        'nin_y': nin[1],
-        'nin_z': nin[2],
-        'e0_x': e0[0],
-        'e0_y': e0[1],
-        'e0_z': e0[2],
-        'e1_x': e1[0],
-        'e1_y': e1[1],
-        'e1_z': e1[2],
+        'nin_x': nins[:, 0],
+        'nin_y': nins[:, 1],
+        'nin_z': nins[:, 2],
+        'e0_x': e0s[:, 0],
+        'e0_y': e0s[:, 1],
+        'e0_z': e0s[:, 2],
+        'e1_x': e1s[:, 0],
+        'e1_y': e1s[:, 1],
+        'e1_z': e1s[:, 2],
+    }
+
+    # c1: 1d parallel coplanar
+
+    kl = 0.02*np.linspace(-1, 1, 10)
+    cents_x = cent[0] + kl * e0[0]
+    cents_y = cent[1] + kl * e0[1]
+    cents_z = cent[2] + kl * e0[2]
+
+    c1 = {
+        'outline_x0': out0,
+        'outline_x1': out1,
+        'cents_x': cents_x,
+        'cents_y': cents_y,
+        'cents_z': cents_z,
+        'nin_x': nins[0, 0],
+        'nin_y': nins[0, 1],
+        'nin_z': nins[0, 2],
+        'e0_x': e0s[0, 0],
+        'e0_y': e0s[0, 1],
+        'e0_z': e0s[0, 2],
+        'e1_x': e1s[0, 0],
+        'e1_y': e1s[0, 1],
+        'e1_z': e1s[0, 2],
         'lamb': np.linspace(3, 4, 100)*1e-10,
         'qeff': 0.99*np.ones((100,))
     }
 
-    # c1: 2d
+    # c2: 2d
     out0 = 0.005 * np.r_[-1, 1, 1, -1]
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
     cent = start + 0.01 * vect
@@ -214,7 +253,7 @@ def _cameras():
         phi=0.,
     )
 
-    c1 = {
+    c2 = {
         'outline_x0': out0,
         'outline_x1': out1,
         'cent': cent,
@@ -225,7 +264,7 @@ def _cameras():
         'e1': e1,
     }
 
-    return {'c0': c0, 'c1': c1}
+    return {'c0': c0, 'c1': c1, 'c2': c2}
 
 
 def _diagnostics():
@@ -236,17 +275,26 @@ def _diagnostics():
     # d1: single 2d camera
     d1 = {'optics': 'c1'}
 
-    # d2: 1d + 1 aperture
-    d2 = {'optics': ('c0', 'ap0')}
+    # d2: single 2d camera
+    d2 = {'optics': 'c2'}
 
-    # d3: 2d + 1 aperture
-    d3 = {'optics': ('c1', 'ap0')}
+    # d3: 1d + 1 aperture
+    d3 = {'optics': ('c0', 'ap0')}
 
-    # d4: 1d + multiple apertures
-    d4 = {'optics': ('c0', 'ap0', 'ap1', 'ap2')}
+    # d4: 2d + 1 aperture
+    d4 = {'optics': ('c1', 'ap0')}
 
-    # d5: 2d + multiple apertures
-    d5 = {'optics': ('c1', 'ap0', 'ap1', 'ap2')}
+    # d5: 2d + 1 aperture
+    d5 = {'optics': ('c2', 'ap0')}
+
+    # d6: 1d + multiple apertures
+    d6 = {'optics': ('c0', 'ap0', 'ap1', 'ap2')}
+
+    # d7: 1d parallel coplanar + multiple apertures
+    d7 = {'optics': ('c1', 'ap0', 'ap1', 'ap2')}
+
+    # d8: 2d + multiple apertures
+    d8 = {'optics': ('c2', 'ap0', 'ap1', 'ap2')}
 
     return {
         'd0': d0,
@@ -255,6 +303,9 @@ def _diagnostics():
         'd3': d3,
         'd4': d4,
         'd5': d5,
+        'd6': d6,
+        'd7': d7,
+        'd8': d8,
     }
 
 
@@ -281,7 +332,7 @@ class Test01_Diagnostic():
             self.obj.add_aperture(key=k0, **v0)
 
         for k0, v0 in dcameras.items():
-            if k0 == 'c0':
+            if k0 in ['c0', 'c1']:
                 self.obj.add_camera_1d(key=k0, **v0)
             else:
                 self.obj.add_camera_2d(key=k0, **v0)
@@ -294,13 +345,14 @@ class Test01_Diagnostic():
 
     def test01_etendues(self, res=np.r_[0.005, 0.003, 0.001]):
         for k0, v0 in self.obj.dobj['diagnostic'].items():
-            if k0 in ['d0', 'd1']:
+            if k0 in ['d0', 'd1', 'd2']:
                 continue
             self.obj.compute_diagnostic_etendue(
                 key=k0,
                 res=res,
                 check=True,
             )
+            plt.close('all')
 
     def test02_get_outline(self):
 
