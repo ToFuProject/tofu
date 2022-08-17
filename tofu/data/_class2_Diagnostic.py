@@ -245,11 +245,11 @@ class Diagnostic(_class1_Rays.Rays):
 
     def get_optics_outline(self, key=None, add_points=None, closed=None):
         """ Return the optics outline """
-        return _class2_check.get_optics_outline(
+        return _class2_compute.get_optics_outline(
             coll=self,
             key=key,
-            add_points=None,
-            closed=None,
+            add_points=add_points,
+            closed=closed,
         )
 
     def get_as_dict(self, which=None, key=None):
