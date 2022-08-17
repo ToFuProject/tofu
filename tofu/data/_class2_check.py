@@ -537,9 +537,9 @@ def _camera_1d_check(
     # unit vectors
 
     lv = [
-        ('nin_x', nin_x), ('nin_y', nin_y), ('nin_z', nin_z),
-        ('e0_x', e0_x), ('e0_y', e0_y), ('e0_z', e0_z),
-        ('e1_x', e1_x), ('e1_y', e1_y), ('e1_z', e1_z),
+        ['nin_x', nin_x], ['nin_y', nin_y], ['nin_z', nin_z],
+        ['e0_x', e0_x], ['e0_y', e0_y], ['e0_z', e0_z],
+        ['e1_x', e1_x], ['e1_y', e1_y], ['e1_z', e1_z],
     ]
 
     # check they are all provided
@@ -613,9 +613,9 @@ def _camera_1d_check(
 
         # check right-handedness
         sca = (
-            e2_x * (nin_y * e1_z - nin_z * e1_y)
-            + e2_y * (nin_z * e1_x - nin_x * e1_z)
-            + e2_z * (nin_x * e1_y - nin_y * e1_x)
+            e1_x * (nin_y * e0_z - nin_z * e0_y)
+            + e1_y * (nin_z * e0_x - nin_x * e0_z)
+            + e1_z * (nin_x * e0_y - nin_y * e0_x)
         )
         if np.any(sca <= 0.):
             msg = (
@@ -736,6 +736,9 @@ def _camera_1d(
         kqeff = f'{key}-qeff'
         nenergy = energy.size
         dref[kenergy] = {'size': nenergy}
+    else:
+        kenergy = None
+        kqeff = None
 
     # -------------
     # ddata
@@ -1334,6 +1337,7 @@ def _diagnostics(
     coll=None,
     key=None,
     optics=None,
+    **kwdargs,
 ):
 
     # ------------
@@ -1345,6 +1349,15 @@ def _diagnostics(
         optics=optics,
     )
 
+    # ----------
+    # is spectro
+
+    spectro = any([
+        k0 in coll.dobj.get('crystal', {}).keys()
+        or k0 in coll.dobj.get('grating', {}).keys()
+        for k0 in optics
+    ])
+
     # --------
     # dobj
 
@@ -1352,12 +1365,26 @@ def _diagnostics(
         'diagnostic': {
             key: {
                 'optics': optics,
+                'spectro': spectro,
                 'etendue': None,
+                'etend_type': None,
                 'los': None,
                 'vos': None,
             },
         },
     }
+
+    # -----------
+    # kwdargs
+
+    if len(kwdargs) > 0:
+        for k0, v0 in kwdargs.items():
+            if not isinstance(k0, str):
+                continue
+            elif k0 in dobj['diagnostic'][key].keys():
+                continue
+            else:
+                dobj['diagnostic'][key][k0] = v0
 
     return None, None, dobj
 
@@ -1401,15 +1428,15 @@ def get_camera_unitvectors(
     else:
         cam = coll.dobj['camera'][key]
         dout = {
-            'nin_x': coll.data[cam['nin'][0]]['data'],
-            'nin_y': coll.data[cam['nin'][1]]['data'],
-            'nin_z': coll.data[cam['nin'][2]]['data'],
-            'e0_x': coll.data[cam['e0'][0]]['data'],
-            'e0_y': coll.data[cam['e0'][1]]['data'],
-            'e0_z': coll.data[cam['e0'][2]]['data'],
-            'e1_x': coll.data[cam['e1'][0]]['data'],
-            'e1_y': coll.data[cam['e1'][1]]['data'],
-            'e1_z': coll.data[cam['e1'][2]]['data'],
+            'nin_x': coll.ddata[cam['nin'][0]]['data'],
+            'nin_y': coll.ddata[cam['nin'][1]]['data'],
+            'nin_z': coll.ddata[cam['nin'][2]]['data'],
+            'e0_x': coll.ddata[cam['e0'][0]]['data'],
+            'e0_y': coll.ddata[cam['e0'][1]]['data'],
+            'e0_z': coll.ddata[cam['e0'][2]]['data'],
+            'e1_x': coll.ddata[cam['e1'][0]]['data'],
+            'e1_y': coll.ddata[cam['e1'][1]]['data'],
+            'e1_z': coll.ddata[cam['e1'][2]]['data'],
         }
 
     return dout

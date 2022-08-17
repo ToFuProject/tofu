@@ -11,9 +11,10 @@ import datastock as ds
 
 
 # tofu
-from . import _class0_Plasma2D
-from . import _class1_check
-from . import _class1_compute
+from . import _class1_Rays
+from . import _class2_check
+from . import _class2_compute
+from . import _class2_plot
 
 
 __all__ = ['Diagnostic']
@@ -21,11 +22,11 @@ __all__ = ['Diagnostic']
 
 # #############################################################################
 # #############################################################################
-#                           Tokamak
+#                           Diagnostic
 # #############################################################################
 
 
-class Diagnostic(_class0_Plasma2D.Plasma2D):
+class Diagnostic(_class1_Rays.Rays):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
@@ -55,7 +56,9 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         'diagnostic': [
             'type',
             'optics',
+            'spectro',
             'etendue',
+            'etend_type',
             'los',
             'spectrum',
             'time res.',
@@ -91,7 +94,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         """
 
         # check / format input
-        dref, ddata, dobj = _class1_check._aperture(
+        dref, ddata, dobj = _class2_check._aperture(
             coll=self,
             key=key,
             # 2d outline
@@ -138,7 +141,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         qeff=None,
     ):
         # check / format input
-        dref, ddata, dobj = _class1_check._camera_1d(
+        dref, ddata, dobj = _class2_check._camera_1d(
             coll=self,
             key=key,
             # common 2d outline
@@ -187,7 +190,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         qeff=None,
     ):
         # check / format input
-        dref, ddata, dobj = _class1_check._camera_2d(
+        dref, ddata, dobj = _class2_check._camera_2d(
             coll=self,
             key=key,
             # common 2d outline
@@ -213,10 +216,16 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         self,
         key=None,
         optics=None,
+        # etendue
+        etendue=None,
         **kwdargs,
     ):
+
+        # -----------
+        # adding diag
+
         # check / format input
-        dref, ddata, dobj = _class1_check._diagnostics(
+        dref, ddata, dobj = _class2_check._diagnostics(
             coll=self,
             key=key,
             optics=optics,
@@ -225,32 +234,71 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
 
+        # --------------
+        # adding etendue
+
+        key = list(dobj['diagnostic'].keys())[0]
+        if len(self.dobj['diagnostic'][key]['optics']) > 1:
+            self.compute_diagnostic_etendue(
+                key=key,
+                analytical=True,
+                numerical=False,
+                res=None,
+                check=False,
+                verb=False,
+                plot=False,
+                store='analytical',
+            )
+
+        # --------------
+        # adding los
+
     # ---------------
     # utilities
     # ---------------
 
     def get_camera_unit_vectors(self, key=None):
         """ Return unit vectors components as dict """
-        return _class1_check.get_camera_unitvectors(
+        return _class2_check.get_camera_unitvectors(
             coll=self,
             key=key,
         )
 
     def get_camera_cents_xyz(self, key=None):
         """ Return cents_x, cents_y, cents_z """
-        return _class1_check.get_camera_cents_xyz(
+        return _class2_check.get_camera_cents_xyz(
             coll=self,
             key=key,
+        )
+
+    def get_optics_outline(
+        self,
+        key=None,
+        add_points=None,
+        closed=None,
+        ravel=None,
+    ):
+        """ Return the optics outline """
+        return _class2_compute.get_optics_outline(
+            coll=self,
+            key=key,
+            add_points=add_points,
+            closed=closed,
+            ravel=ravel,
         )
 
     def get_as_dict(self, which=None, key=None):
         """ Return the desired object as a dict (input to some routines) """
 
-        return _class1_check._return_as_dict(
+        return _class2_check._return_as_dict(
             coll=self,
             which=which,
             key=key,
         )
+
+    # -----------------
+    # etendue computing
+    # -----------------
 
     def compute_diagnostic_etendue(
         self,
@@ -270,7 +318,7 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
         If store = 'analytical' or 'numerical', overwrites the diag etendue
 
         """
-        _class1_compute._diag_compute_etendue(
+        _class2_compute._diag_compute_etendue(
             coll=self,
             key=key,
             analytical=analytical,
@@ -280,4 +328,87 @@ class Diagnostic(_class0_Plasma2D.Plasma2D):
             verb=verb,
             plot=plot,
             store=store,
+        )
+
+    # -----------------
+    # plotting
+    # -----------------
+
+    def get_diagnostic_dplot(
+        self,
+        key=None,
+        optics=None,
+        elements=None,
+        vect_length=None,
+    ):
+        """ Return a dict with all that's necessary for plotting
+
+        If no optics is provided, all are returned
+
+        elements indicate, for each optics, what should be represented:
+            - 'o': outline
+            - 'v': unit vectors
+            - 's': summit ( = center for non-curved)
+            - 'c': center (of curvature)
+            - 'r': rowland circle / axis of cylinder
+
+        returned as a dict:
+
+        dplot = {
+            'optics0': {
+                'o': {
+                    'x0': ...,
+                    'x1': ...,
+                    'x': ...,
+                    'y': ...,
+                    'z': ...,
+                    'r': ...,
+                },
+                'v': {
+                    'x': ...,
+                    'y': ...,
+                    'z': ...,
+                    'r': ...,
+                },
+            },
+        }
+
+        """
+
+        return _class2_compute._dplot(
+            coll=self,
+            key=key,
+            optics=optics,
+            elements=elements,
+            vect_length=vect_length,
+        )
+
+    def plot_diagnostic(
+        self,
+        key=None,
+        optics=None,
+        elements=None,
+        proj=None,
+        # figure
+        dax=None,
+        dmargin=None,
+        fs=None,
+        wintit=None,
+        # interactivity
+        connect=None,
+    ):
+
+        return _class2_plot._plot_diagnostic(
+            coll=self,
+            key=key,
+            optics=optics,
+            elements=elements,
+            proj=proj,
+            # figure
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            wintit=wintit,
+            # interactivity
+            connect=connect,
         )

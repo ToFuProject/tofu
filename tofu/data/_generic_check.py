@@ -7,7 +7,10 @@ import matplotlib.pyplot as plt
 
 _LALLOWED_AXESTYPES = [
     None,
-    'cross', 'hor',
+    'cross',
+    'hor',
+    '3d',
+    'camera',
     'matrix',
     'timetrace',
     'profile1d',
