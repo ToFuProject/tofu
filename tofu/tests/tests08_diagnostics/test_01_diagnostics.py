@@ -294,10 +294,27 @@ class Test01_Diagnostic():
 
     def test01_etendues(self, res=np.r_[0.005, 0.003, 0.001]):
         for k0, v0 in self.obj.dobj['diagnostic'].items():
-            if k0 in ['d0', 'd1', 'd2', 'd3']:
+            if k0 in ['d0', 'd1']:
                 continue
             self.obj.compute_diagnostic_etendue(
                 key=k0,
                 res=res,
                 check=True,
             )
+
+    def test02_get_outline(self):
+
+        # apertures
+        for k0, v0 in self.obj.dobj['aperture'].items():
+            dout = self.obj.get_optics_outline(k0)
+
+        # camera
+        for k0, v0 in self.obj.dobj['camera'].items():
+            dout = self.obj.get_optics_outline(k0)
+
+
+    def test03_plot(self):
+        for k0, v0 in self.obj.dobj['diagnostic'].items():
+            for pp in [None, 'cross', ['cross', 'hor']]:
+                dax = self.obj.plot_diagnostic(k0, proj=pp)
+            plt.close('all')
