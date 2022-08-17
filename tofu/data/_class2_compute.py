@@ -21,6 +21,7 @@ def _get_optics_outline_check(
     key=None,
     add_points=None,
     closed=None,
+    ravel=None,
 ):
 
     # -------
@@ -65,7 +66,16 @@ def _get_optics_outline_check(
         types=bool,
     )
 
-    return key, cls, add_points, closed
+    # -------
+    # ravel
+
+    ravel = ds._generic_check._check_var(
+        ravel, 'ravel',
+        default=False,
+        types=bool,
+    )
+
+    return key, cls, add_points, closed, ravel
 
 
 def get_optics_outline(
@@ -73,25 +83,28 @@ def get_optics_outline(
     key=None,
     add_points=None,
     closed=None,
+    ravel=None,
 ):
 
     # ------------
     # check inputs
 
-    key, cls, add_points, closed = _get_optics_outline_check(
+    key, cls, add_points, closed, ravel = _get_optics_outline_check(
         coll=coll,
         key=key,
         add_points=add_points,
         closed=closed,
+        ravel=ravel,
     )
 
     # --------
     # compute
 
     if cls == 'aperture':
-        px = coll.dobj['aperture'][key]['poly_x']
-        py = coll.dobj['aperture'][key]['poly_y']
-        pz = coll.dobj['aperture'][key]['poly_z']
+        px, py, pz = coll.dobj['aperture'][key]['poly']
+        px = coll.ddata[px]['data']
+        py = coll.ddata[py]['data']
+        pz = coll.ddata[pz]['data']
 
         if coll.dobj['aperture'][key]['planar'] is True:
             p0, p1 = coll.dobj['aperture'][key]['outline']
@@ -188,9 +201,9 @@ def get_optics_outline(
             p1 = np.append(p1, p1[0])
 
         if px.ndim == 2:
-            px = np.concatenate((px, px[:, 0]), axis=1)
-            py = np.concatenate((py, py[:, 0]), axis=1)
-            pz = np.concatenate((pz, pz[:, 0]), axis=1)
+            px = np.concatenate((px, px[:, 0:1]), axis=1)
+            py = np.concatenate((py, py[:, 0:1]), axis=1)
+            pz = np.concatenate((pz, pz[:, 0:1]), axis=1)
         else:
             px = np.append(px, px[0])
             py = np.append(py, py[0])
@@ -213,12 +226,21 @@ def get_optics_outline(
         py = scpinterp.interp1d(ind0, py, kind='linear', axis=-1)(ind)
         pz = scpinterp.interp1d(ind0, pz, kind='linear', axis=-1)(ind)
 
+    # ------------------
+    # ravel
+
+    if ravel and px.ndim == 2:
+        nan = np.full((px.shape[0], 1), np.nan)
+        px = np.concatenate((px, nan), axis=1).ravel()
+        py = np.concatenate((py, nan), axis=1).ravel()
+        pz = np.concatenate((pz, nan), axis=1).ravel()
+
     return {
-        'p0': p0,
-        'p1': p1,
-        'px': px,
-        'py': py,
-        'pz': pz,
+        'x0': p0,
+        'x1': p1,
+        'x': px,
+        'y': py,
+        'z': pz,
     }
 
 
@@ -257,20 +279,20 @@ def _dplot_check(
     )
 
     # -------
-    # element
+    # elements
 
-    if isinstance(element, str):
-        element = [element]
+    if isinstance(elements, str):
+        elements = [elements]
 
     lok = ''.join(['o', 'v', 'c', 'r'])
-    optics = ds._generic_check._check_var_iter(
-        element, 'element',
+    elements = ds._generic_check._check_var_iter(
+        elements, 'elements',
         types=str,
         default=lok,
         allowed=lok,
     )
 
-    return key, optics, element
+    return key, optics, elements
 
 
 def _dplot(
@@ -284,56 +306,51 @@ def _dplot(
     # ------------
     # check inputs
 
-    key, optics, element = _dplot_check(
+    key, optics, elements = _dplot_check(
         coll=coll,
         key=key,
         optics=optics,
-        element=element,
+        elements=elements,
     )
 
     # ------------
     # build dict
 
-    dplot = dict.fromkeys(k0, {})
+    dplot = {k0: {} for k0 in optics}
     for k0 in optics:
 
         if k0 in coll.dobj.get('camera', []):
-            v0 = coll.dobj['camera'][k0]
+            cls = 'camera'
         elif k0 in coll.dobj.get('aperture', []):
-            v0 = coll.dobj['aperture'][k0]
+            cls = 'aperture'
         elif k0 in coll.dobj.get('crystal', []):
-            v0 = coll.dobj['crystal'][k0]
+            cls = 'crystal'
         else:
             msg = f"Unknown optics '{k0}'"
             raise Exception(msg)
 
-        # outline
-        if 'o' in element:
+        v0 = coll.dobj[cls][k0]
 
-            px, py, pz = coll.get_optics_outline(
+        # outline
+        if 'o' in elements:
+
+            dplot[k0]['o'] = coll.get_optics_outline(
                 key=k0,
                 add_points=3,
                 closed=True,
+                ravel=True,
             )
 
-            dplot[k0]['o'] = {
-                'x': px,
-                'y': py,
-                'z': pz,
-                'r': np.hypot(px, py),
+            dplot[k0]['o'].update({
+                'r': np.hypot(dplot[k0]['o']['x'], dplot[k0]['o']['y']),
                 'label': f'{k0}-o',
-            }
+            })
 
-        # unit vectors
-        if 'v' in element:
+        # center
+        if 'c' in elements:
 
-            pass
-
-        # summit
-        if 'c' in element:
-
-            if 'cent' in v0.keys():
-                cx, cy, cz = v0['cent']
+            if v0.get('cent') is not None:
+                cx, cy, cz = v0['cent'][:, None]
             elif 'cents' in v0.keys():
                 cx, cy, cz = v0['cents']
                 cx = coll.ddata[cx]['data']
@@ -342,16 +359,20 @@ def _dplot(
 
             dplot[k0]['c'] = {
                 'x': cx,
-                'y': yy,
+                'y': cy,
                 'z': cz,
                 'r': np.hypot(cx, cy),
                 'label': f'{k0}-o',
             }
 
-        # rowland / axis for curved optics
-        if 'r' in element and k0 in coll.dobj.get('crystal', []):
+        # unit vectors
+        if 'v' in elements:
+
             pass
 
+        # rowland / axis for curved optics
+        if 'r' in elements and cls in ['crystal', 'grating']:
+            pass
 
     return dplot
 

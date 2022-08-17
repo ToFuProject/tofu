@@ -12,6 +12,8 @@ import datastock as ds
 
 # specific
 from . import _mesh_comp
+from . import _generic_check
+from . import _generic_plot
 
 
 # ##################################################################
@@ -30,7 +32,7 @@ def _plot_diagnostic_check(
     # -----
     # proj
 
-    proj = _proj(
+    proj = _generic_plot._proj(
         proj=proj,
         pall=['cross', 'hor', '3d', 'camera'],
     )
@@ -60,11 +62,13 @@ def _plot_diagnostic(
     coll=None,
     key=None,
     optics=None,
-    element=None,
+    elements=None,
+    proj=None,
     # figure
     dax=None,
     dmargin=None,
     fs=None,
+    wintit=None,
     # interactivity
     connect=None,
 ):
@@ -155,7 +159,14 @@ def _plot_diagnostic(
                     label=v1['label'],
                 )
 
-            if k0 == cam:
+            # plotting of 2d camera contour
+            c0 = (
+                k0 == cam
+                and k1 == 'o'
+                and coll.dobj['camera'][k0]['type']== '2d'
+            )
+
+            if c0:
                 kax = 'camera'
                 if dax.get(kax) is not None:
                     ax = dax[kax]['handle']

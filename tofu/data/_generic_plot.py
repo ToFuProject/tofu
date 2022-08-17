@@ -1,5 +1,6 @@
 
 
+import numpy as np
 import datastock as ds
 
 
@@ -19,7 +20,7 @@ _DFS = {
     1: (8, 5),
     2: (10, 5),
     3: (12, 5),
-    4: (12, 8),
+    4: (15, 9),
 }
 
 
@@ -44,7 +45,7 @@ def _proj(
     if isinstance(proj, str):
         proj = [proj]
 
-    proj = ds._generic_check._check_var(
+    proj = ds._generic_check._check_var_iter(
         proj, 'proj',
         default=pall,
         allowed=pall,
@@ -89,7 +90,7 @@ def get_dax_diag(
     # Create figure
 
     fig = plt.figure(figsize=fs)
-    fig.suptitle(wintit)
+    fig.canvas.set_window_title(wintit)
 
     # ------------
     # Populate dax
@@ -99,32 +100,28 @@ def get_dax_diag(
     # Populate with default axes if necessary
     if len(proj) == 1:
         lax = _ax_single(
-            fs=fs,
+            fig=fig,
             dmargin=dmargin,
-            wintit=wintit,
             proj=proj,
         )
 
     elif len(proj) == 2:
         lax = _ax_double(
-            fs=fs,
+            fig=fig,
             dmargin=dmargin,
-            wintit=wintit,
             proj=proj,
         )
 
     elif len(proj) == 3:
         lax = _ax_3(
-            fs=fs,
+            fig=fig,
             dmargin=dmargin,
-            wintit=wintit,
             proj=proj,
         )
     else:
         lax = _ax_4(
-            fs=fs,
+            fig=fig,
             dmargin=dmargin,
-            wintit=wintit,
             proj=proj,
         )
 
@@ -142,9 +139,8 @@ def get_dax_diag(
 
 
 def _ax_single(
-    fs=None,
+    fig=None,
     dmargin=None,
-    wintit=None,
     proj=None,
 ):
 
@@ -164,10 +160,6 @@ def _ax_single(
 
     # ----------------------
     # create figure and axes
-
-    # fig
-    fig = plt.figure(figsize=fs)
-    fig.suptitle(wintit)
 
     gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
 
@@ -180,9 +172,8 @@ def _ax_single(
 
 
 def _ax_double(
-    fs=None,
+    fig=None,
     dmargin=None,
-    wintit=None,
     proj=None,
 ):
 
@@ -202,10 +193,6 @@ def _ax_double(
 
     # ----------------------
     # create figure and axes
-
-    # fig
-    fig = plt.figure(figsize=fs)
-    fig.suptitle(wintit)
 
     gs = gridspec.GridSpec(ncols=2, nrows=1, **dmargin)
 
@@ -214,15 +201,14 @@ def _ax_double(
         if pp == '3d':
             lax.append(fig.add_subplot(gs[0, ii], projection='3d'))
         else:
-            lax.append(fig.add_subplot(gs[0, ii])
+            lax.append(fig.add_subplot(gs[0, ii]))
 
     return lax
 
 
 def _ax_3(
-    fs=None,
+    fig=None,
     dmargin=None,
-    wintit=None,
     proj=None,
 ):
 
@@ -242,10 +228,6 @@ def _ax_3(
 
     # ----------------------
     # create figure and axes
-
-    # fig
-    fig = plt.figure(figsize=fs)
-    fig.suptitle(wintit)
 
     gs = gridspec.GridSpec(ncols=3, nrows=1, **dmargin)
 
@@ -254,15 +236,14 @@ def _ax_3(
         if pp == '3d':
             lax.append(fig.add_subplot(gs[0, ii], projection='3d'))
         else:
-            lax.append(fig.add_subplot(gs[0, ii])
+            lax.append(fig.add_subplot(gs[0, ii]))
 
     return lax
 
 
 def _ax_4(
-    fs=None,
+    fig=None,
     dmargin=None,
-    wintit=None,
     proj=None,
 ):
 
@@ -274,34 +255,37 @@ def _ax_4(
         dmargin, 'dmargin',
         types=dict,
         default={
-            'bottom': 0.05, 'top': 0.9,
-            'left': 0.1, 'right': 0.95,
-            'wspace': 0.05, 'hspace': 0.05,
+            'bottom': 0.08, 'top': 0.90,
+            'left': 0.06, 'right': 0.96,
+            'wspace': 0.20, 'hspace': 0.20,
+            'width_ratios': [0.6, 0.4],
+            'height_ratios': [0.4, 0.6],
         },
     )
 
     # ----------------------
     # create figure and axes
 
-    # fig
-    fig = plt.figure(figsize=fs)
-    fig.suptitle(wintit)
-
-    gs = gridspec.GridSpec(ncols=3, nrows=3, **dmargin)
+    gs = gridspec.GridSpec(ncols=2, nrows=2, **dmargin)
     dgs = {
-        'cross': (0, np.r_[0, 1]),
-        'hor': (0, 2),
-        '3d': (np.r_[1, 2], np.r_[0, 1]),
-        'camera': (np.r_[1, 2], 2),
+        'cross': (0, 0),
+        'hor': (0, 1),
+        '3d': (1, 0),
+        'camera': (1, 1),
     }
 
 
     lax = []
     for ii, pp in enumerate(proj):
         if pp == '3d':
-            lax.append(fig.add_subplot(gs[*dgs[pp]], projection='3d'))
+            lax.append(fig.add_subplot(
+                gs[dgs[pp][0], dgs[pp][1]],
+                projection='3d',
+            ))
         else:
-            lax.append(fig.add_subplot(gs[dgs[pp]])
+            lax.append(fig.add_subplot(
+                gs[dgs[pp][0], dgs[pp][1]],
+            ))
 
     return lax
 
@@ -312,13 +296,13 @@ def _ax_set(ax=None, proj=None):
 
         ax.set_xlabel('R (m)')
         ax.set_ylabel('Z (m)')
-        ax.set_aspect('equal')
+        ax.set_aspect('equal', adjustable='datalim')
 
     elif proj == 'hor':
 
         ax.set_xlabel('X (m)')
         ax.set_ylabel('Y (m)')
-        ax.set_aspect('equal')
+        ax.set_aspect('equal', adjustable='datalim')
 
     elif proj == '3d':
 
@@ -331,6 +315,6 @@ def _ax_set(ax=None, proj=None):
 
         ax.set_xlabel('x0 (m)')
         ax.set_ylabel('x1 (m)')
-        ax.set_aspect('equal')
+        ax.set_aspect('equal', adjustable='datalim')
 
     return

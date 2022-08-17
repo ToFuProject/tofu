@@ -14,6 +14,7 @@ import datastock as ds
 from . import _class1_Rays
 from . import _class2_check
 from . import _class2_compute
+from . import _class2_plot
 
 
 __all__ = ['Diagnostic']
@@ -243,13 +244,20 @@ class Diagnostic(_class1_Rays.Rays):
             key=key,
         )
 
-    def get_optics_outline(self, key=None, add_points=None, closed=None):
+    def get_optics_outline(
+        self,
+        key=None,
+        add_points=None,
+        closed=None,
+        ravel=None,
+    ):
         """ Return the optics outline """
         return _class2_compute.get_optics_outline(
             coll=self,
             key=key,
             add_points=add_points,
             closed=closed,
+            ravel=ravel,
         )
 
     def get_as_dict(self, which=None, key=None):
@@ -304,6 +312,7 @@ class Diagnostic(_class1_Rays.Rays):
         key=None,
         optics=None,
         elements=None,
+        vect_length=None,
     ):
         """ Return a dict with all that's necessary for plotting
 
@@ -321,6 +330,8 @@ class Diagnostic(_class1_Rays.Rays):
         dplot = {
             'optics0': {
                 'o': {
+                    'x0': ...,
+                    'x1': ...,
                     'x': ...,
                     'y': ...,
                     'z': ...,
@@ -341,18 +352,20 @@ class Diagnostic(_class1_Rays.Rays):
             coll=self,
             key=key,
             optics=optics,
-            element=element,
+            elements=elements,
+            vect_length=vect_length,
         )
 
     def plot_diagnostic(
         self,
         key=None,
         optics=None,
-        element=None,
+        elements=None,
         # figure
         dax=None,
         dmargin=None,
         fs=None,
+        wintit=None,
         # interactivity
         connect=None,
     ):
@@ -361,11 +374,12 @@ class Diagnostic(_class1_Rays.Rays):
             coll=self,
             key=key,
             optics=optics,
-            element=element,
+            elements=elements,
             # figure
             dax=dax,
             dmargin=dmargin,
             fs=fs,
+            wintit=wintit,
             # interactivity
             connect=connect,
         )
