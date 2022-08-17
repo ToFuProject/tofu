@@ -364,7 +364,6 @@ class Test01_Diagnostic():
         for k0, v0 in self.obj.dobj['camera'].items():
             dout = self.obj.get_optics_outline(k0)
 
-
     def test03_plot(self):
         for k0, v0 in self.obj.dobj['diagnostic'].items():
             for pp in [None, 'cross', ['cross', 'hor']]:

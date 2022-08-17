@@ -139,7 +139,6 @@ def _plot_diagnostic(
                     **v1.get('props', {}),
                 )
 
-
             kax = '3d'
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
@@ -155,7 +154,7 @@ def _plot_diagnostic(
             c0 = (
                 k0 == cam
                 and k1 == 'o'
-                and coll.dobj['camera'][k0]['type']== '2d'
+                and coll.dobj['camera'][k0]['type'] == '2d'
             )
 
             if c0:

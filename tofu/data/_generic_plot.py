@@ -282,7 +282,6 @@ def _ax_4(
         'camera': (1, 1),
     }
 
-
     lax = []
     for ii, pp in enumerate(proj):
         if pp == '3d':

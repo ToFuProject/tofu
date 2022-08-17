@@ -121,7 +121,6 @@ def get_optics_outline(
             e0 = coll.dobj['camera'][key]['e0']
             e1 = coll.dobj['camera'][key]['e1']
 
-
             if is2d:
                 # get centers
                 cx0, cx1 = coll.dobj['camera'][key]['cents']
@@ -193,7 +192,7 @@ def get_optics_outline(
             pz = cz[:, None] + p0[None, :] * e0z + p1[None, :] * e1z
 
     # ------------
-    # closed 
+    # closed
 
     if closed is True:
         if p0 is not None:
