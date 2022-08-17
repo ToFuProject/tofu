@@ -267,7 +267,7 @@ def CrystBragg_sample_outline_flatrect(
     cry_dpts = {}
     cry_dpts['de1'] = de1.reshape(de1.size,1,1)
     cry_dpts['de2'] = de2.reshape(de2.size,1,1)
-    cry_dpts['dang'] = np.zeros(cry_dpts['de2'].shape)
+    cry_dpts['phi'] = np.zeros(cry_dpts['de2'].shape)
     return cry_dpts
 
 
@@ -480,16 +480,10 @@ def CrystalBragg_get_noute1e2_from_de1de2(
         for jj in np.arange(cry_dpts['de1'].shape[1]):
             # Loop over vertical locations
             for kk in np.arange(cry_dpts['de1'].shape[2]):
-                # Rotates the local basis vectors
-                cc = np.cos(cry_dpts['dang'][ii,jj,kk])
-                ss = np.sin(cry_dpts['dang'][ii,jj,kk])
-                e1_mod = e1*cc+e2*ss
-                e2_mod = -e1*ss+e2*cc
-
                 # Stores the local basis results
                 vout[:,ii,jj,kk] = nout
-                ve1[:,ii,jj,kk] = e1_mod
-                ve2[:,ii,jj,kk] = e2_mod
+                ve1[:,ii,jj,kk] = e1
+                ve2[:,ii,jj,kk] = e2
 
     # Returns local basis vectors
     if e1e2:
@@ -1841,7 +1835,7 @@ def calc_de1de2_from_lambpts(
     '''
     ##### FLAT CRYSTAL
 
-    Return (de1, de2, dang) of pts on flat crystal, relative to the summit, 
+    Return (de1, de2, dphi) of pts on flat crystal, relative to the summit, 
     where bragg diffraction happens for given pts and lamb/bragg
 
     de1 is the horizontal direction (e1), de2 is the vertical direction (e2)
@@ -1849,7 +1843,7 @@ def calc_de1de2_from_lambpts(
     For each pts/lamb, there is 1 sol'n for a valid triangle at the Bragg angle
     Only returns valid solution (inside extenthalf), with nan elsewhere
 
-    de1, de2, and dang returned as (npts, nlamb, ndz) arrays
+    de1, de2, and dphi returned as (npts, nlamb, ndz) arrays
 
     Here nout, e1, e2 are at the unique crystal summit!
 
@@ -1867,7 +1861,7 @@ def calc_de1de2_from_lambpts(
     OUTPUTS:
         de1 -       matrix, dim (nlamb, npts, ndz), unique e1-location on crystal surface where Bragg diffraction happens
         de2 -       matrix, dim (nlamb, npts, ndz), e2-location on crystal surface scanned over
-        dang -      matrix, dim (nlamb, npts, ndz), angle made between the local and summit horizontal axis
+        dphi -      matrix, dim (nlamb, npts, ndz), angle made between the local and summit horizontal axis
         ind -       OPTIONAL, matrix, dim (nlamb, npts), indices where Bragg reflection happened outside crystal extent
         grid -      ###########
 
@@ -1896,21 +1890,18 @@ def calc_de1de2_from_lambpts(
     if grid is True:
         de1 = np.full((nlamb,npts, ndz), np.nan) # dim (nlamb,npts, ndz), horizontal points on the crystal surface
         de2 = np.full((nlamb,npts, ndz), np.nan) # dim (nlamb,npts, ndz), vertical points on the crystal surface
-        dang = np.full((nlamb,npts, ndz), np.nan) # dim (nlamb,npts, ndz), angle made between the local and summit horizontal axis
+        dphi = np.full((nlamb,npts, ndz), np.nan) # dim (nlamb,npts, ndz), angle made between the local and summit horizontal axis
 
     else:
         de1 = np.full((npts, ndz), np.nan) # dim (npts, ndz), horizontal points on the crystal surface
         de2 = np.full((npts, ndz), np.nan) # dim (npts,ndz), vertical points on the crystal surface
-        dang = np.full((npts, ndz), np.nan) # dim (nlamb,npts, ndz), angle made between the local and summit horizontal axis
+        dphi = np.full((npts, ndz), np.nan) # dim (nlamb,npts, ndz), angle made between the local and summit horizontal axis
 
     # Makes sure the shape is correct for vectors
     nout = nout.reshape(1,3) # dim (1,3)
     e1 = e1.reshape(1,3) # dim (1,3)
     e2 = e2.reshape(1,3) # dim (1,3)
     summit = summit.reshape(3,1) # dim (3,1)
-
-    # Array of vertical locations to scan over
-    d2 = extenthalf[1]*np.linspace(-1,1,ndz) # [m], dim (ndz,)
 
     # Calculates inverse tan of the Bragg angle
     tb = 1/np.tan(bragg.reshape(1,nlamb)) # dim (1,nlamb)
@@ -1927,38 +1918,39 @@ def calc_de1de2_from_lambpts(
         e2 = args[3][0] # dim (3,)
         d2 = args[4] # dim (1,)
         tb = args[5] # dim (1,)
-        print(PS)
-        print(nout)
-        print(e1)
-        print(e2)
-        print(d2)
-        print(tb)
         return np.dot(PS, np.transpose(1/(tb*np.cos(x))*nout-e2*(np.tan(x)+1/np.tan(x)))) + d2*(np.tan(x)+1/np.tan(x))
-        #return np.dot(PS, np.transpose(e1))*np.tan(x) + d2*(np.sin(x)*np.tan(x)+np.cos(x))-np.dot(PS,np.transpose(e2))
 
     # Loop over Bragg angles
     for ii in np.arange(nlamb):
         # Loop over number of points
         for jj in np.arange(npts):
-            # Loop over the scanned vertical distance
-            for kk in np.arange(ndz)
-                # Angles between ray and summit basis
-                ############## FIX
-                ang = scipy.optimize.fsolve(func, 0.1, args=(PS[jj,:],nout, e1,e2, d2[kk], tb[ii])) # dim(1,), [rad]
+            # Calculates the d2 bounds
+            d2_pi2 = -1*np.dot(PS[jj,:], np.transpose(1/tb[ii]*nout-e2))
+            d2_npi2 = np.dot(PS[jj,:], np.transpose(1/tb[ii]*nout+e2))
+            d2_top = np.min([extenthalf[1], d2_pi2[0]])
+            d2_bot = np.max([-extenthalf[1], d2_npi2[0]])
 
-                # Calculates the horizontal vector in the perspective of the ray
-                e1_mod = e1*np.cos(ang) + e2*np.sin(ang) # dim (1,3)
+            # Array of vertical locations to scan over
+            d2 = np.linspace(d2_bot,d2_top,ndz) # [m], dim (ndz,)
+
+            # Dummy check to avoid problems with zeros
+            ind_d2 = np.where(np.abs(d2- np.dot(e2, pts[:,jj])[0]) < 1e-3)
+            d2[ind_d2] = d2[ind_d2]*1.01
+
+            # Loop over the scanned vertical distance
+            for kk in np.arange(ndz):
+                # Angles between ray and summit basis
+                phi_sgn = np.sign(np.dot(-1*PS[jj,:], np.transpose(e2))+ d2[kk])
+                phi = scipy.optimize.fsolve(func, phi_sgn[0]*0.1, args=(PS[jj,:],nout, e1,e2, d2[kk], tb[ii])) # dim(1,), [rad]
 
                 # Calculates a modified vector from the crystal basis
-                ################## FIX
-                vect = np.dot(np.transpose(nout),tb)- np.transpose(e1_mod) # dim (3,1)
-  
+                vect = (1/np.tan(phi))*e2 - e1 # dim (3,1)
+
                 # Solves for the valid Bragg reflection along the crystal e1 axis
-                ################# FiX
-                d1 = -1*np.transpose(np.dot(PS[jj,:], vect)) # dim (1,)
+                d1 = np.dot(PS[jj,:], np.transpose(vect)) - d2[kk]*1/np.tan(phi) # dim (1,)
 
                 # Finds indices where reflection is not on the cystal's horizontal axis
-                ind = np.where(np.abs(d1)>=extenthalf[0])
+                ind = np.where(np.abs(d1)>=1.01*extenthalf[0])
 
                 # Checks to make sure reflection is on the crystal's horizontal axis
                 d1[ind] = np.nan
@@ -1971,10 +1963,10 @@ def calc_de1de2_from_lambpts(
                 de1[ii,jj,kk] = d1
 
                 # Populates de2 at each vertical location
-                de2[ii,jj,kk] = d2[ii]*mat
+                de2[ii,jj,kk] = d2[kk]*mat
 
-                # Populates the dang at each vertical location
-                dang[ii,jj,kk] = ang*mat
+                # Populates the dphi at each vertical location
+                dphi[ii,jj,kk] = phi*mat
 
     # Returns variables defining location of Bragg reflection
-    return de1, de2, dang, ind, grid
+    return de1, de2, dphi, ind, grid

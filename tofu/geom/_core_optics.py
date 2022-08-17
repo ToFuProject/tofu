@@ -1004,39 +1004,16 @@ class CrystalBragg(utils.ToFuObject):
 
             # Loop over nlamb
             for ii in np.arange(pts_start.shape[1]):
-                # Calculates rotation matrix for Bragg reflection about the crystal local vertical axis (e2)
-                if bragg[ii] < 0:
-                    ang_rot = np.abs(2*bragg[ii])
-                else:
-                    ang_rot = np.pi - 2*bragg[ii]
-                c_rot, s_rot = np.cos(-ang_rot), np.sin(-ang_rot)
-                Rot = np.array([[c_rot,0,-s_rot], [0,1,0], [s_rot,0,c_rot]]).reshape(3,3) # dim (3,3)
-
-                # Calculates sine and cosine of Bragg angle
-                cc, ss = np.cos(bragg[ii]), np.sin(bragg[ii]) 
-
-                # Calculates the vector from a point on the crystal (d), towards a point with a valid Bragg reflrection (p), in the crystal local basis
-                v_dp_loc = np.r_[-ss, 0, -cc] # dim (3,), basis (nout, e2, e1)
-
                 # Loop over npts
                 for jj in np.arange(pts_start.shape[2]):
                     # Loop over ndtheta
                     for kk in np.arange(pts_start.shape[3]):
-                        # Obtains the local basis vector
-                        nout_loc = nout[:,ii,jj,kk].reshape(1,3) # dim (1,3)
-                        e2_loc = e2[:,ii,jj,kj].reshape(1,3) # dim (1,3)
-                        e1_loc = e1[:,ii,jj,kk].reshape(1,3) # dim (1,3)
-
-                        # Projection matrix from the origin basis to the crystal local basis
-                        RR = np.concatenate((nout_loc, e2_loc, e1_loc), axis = 0) # dim (3,3)
-
-                        # Bragg reflection towards a point on the detector (x)
-                        v_dx_loc = np.matmul(Rot, v_dp_loc) # dim (3,), basis (nout, e2, e1)
-                        # Obviously, np.r_[-s, 0, c]
-
-                        # Projects reflection vector onto origin base
-                        v_dx = np.matmul(np.linalg.inv(RR), v_dx_loc) # dim (3,)
-                        vect[:,ii,jj,kk] = v_dx/np.linalg.norm(v_dx) # ensures normalized
+                        vect[:,ii,jj,kk] = (
+                            -1*np.sin(bragg[ii])*nout[:,ii,jj,kk]
+                            + np.cos(bragg[ii])
+                            *(np.cos(cry_dpts['phi'][ii,jj,kk])*e1[:,ii,jj,kk] 
+                            + np.sin(cry_dpts['phi'][ii,jj,kk])*e2[:,ii,jj,kk])
+                            ) 
 
         return pts_start, vect
 
@@ -2037,7 +2014,7 @@ class CrystalBragg(utils.ToFuObject):
             #cent = cent.reshape(reshape) # dim (3, 1, 1, 1)
             # Crystal local summit
             reshape = np.r_[3, [1 for ii in range(vout.ndim - 1)]]
-            summ = self._dgeom['summit'].reshape(reshape) + cry_dpts['de1']*ve1 + cry_dpts['de2']*ve2# dim (3, nlamb, npts, ndtheta)
+            summ = self._dgeom['summit'].reshape(reshape) - cry_dpts['de1']*ve1 + cry_dpts['de2']*ve2# dim (3, nlamb, npts, ndtheta)
 
 
         # Returns crystal local points and local basis where Bragg reflection happens
@@ -2130,12 +2107,12 @@ class CrystalBragg(utils.ToFuObject):
         # If using a flat crystal
         elif self._dgeom['Type'] == 'flat':
             # Compute
-            xi, xj, strict = _comp_optics.calc_xixj_from_bragge2(
+            xi, xj, strict = _comp_optics.calc_xixj_from_braggphi(
                 det_cent=det['cent'],
                 det_nout=det['nout'], det_ei=det['ei'], det_ej=det['ej'],
                 det_outline=det.get('outline'),
                 summit=summit, nout=nout, e1=e1, e2=e2,
-                bragg=bragg[:,0,0,0], strict=strict,
+                bragg=bragg, phi=cry_dpts['phi'], strict=strict,
             )
 
         if plot:
@@ -3292,7 +3269,7 @@ class CrystalBragg(utils.ToFuObject):
                 ndpts['ndz'] = None
 
             # Compute de1, de2, indnan (nlamb, npts, ndtheta)
-            de1, de2, dang, indok, grid = _comp_optics.calc_de1de2_from_lambpts(
+            de1, de2, phi, indok, grid = _comp_optics.calc_de1de2_from_lambpts(
                 pts,
                 bragg,
                 summit=self._dgeom['summit'],   # To be updated (non-paralellism)?
@@ -3306,7 +3283,7 @@ class CrystalBragg(utils.ToFuObject):
             cry_dpts = {}
             cry_dpts['de1'] = de1
             cry_dpts['de2'] = de2
-            cry_dpts['dang'] = dang
+            cry_dpts['phi'] = phi
             dummy = de1
             nsols = 1
 
