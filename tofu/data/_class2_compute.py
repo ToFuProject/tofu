@@ -430,7 +430,7 @@ def _diag_compute_etendue_check(
     numerical = ds._generic_check._check_var(
         numerical, 'numerical',
         types=bool,
-        default=True,
+        default=False,
     )
 
     # -----------
@@ -501,6 +501,11 @@ def _diag_compute_etendue(
         # data
         etendue = detend[store][-1, :]
 
+        if store == 'analytical':
+            etend_type = store
+        else:
+            etend_type = res[-1]
+
         # dict for etendue
         ketendue = f'{key}-etend'
 
@@ -521,6 +526,12 @@ def _diag_compute_etendue(
             key=key,
             param='etendue',
             value=ketendue,
+        )
+        coll.set_param(
+            which='diagnostic',
+            key=key,
+            param='etend_type',
+            value=etend_type,
         )
 
     return detend

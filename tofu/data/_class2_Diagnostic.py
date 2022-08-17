@@ -56,7 +56,9 @@ class Diagnostic(_class1_Rays.Rays):
         'diagnostic': [
             'type',
             'optics',
+            'spectro',
             'etendue',
+            'etend_type',
             'los',
             'spectrum',
             'time res.',
@@ -214,8 +216,14 @@ class Diagnostic(_class1_Rays.Rays):
         self,
         key=None,
         optics=None,
+        # etendue
+        etendue=None,
         **kwdargs,
     ):
+
+        # -----------
+        # adding diag
+
         # check / format input
         dref, ddata, dobj = _class2_check._diagnostics(
             coll=self,
@@ -225,6 +233,25 @@ class Diagnostic(_class1_Rays.Rays):
         )
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+        # --------------
+        # adding etendue
+
+        key = list(dobj['diagnostic'].keys())[0]
+        if len(self.dobj['diagnostic'][key]['optics']) > 1:
+            self.compute_diagnostic_etendue(
+                key=key,
+                analytical=True,
+                numerical=False,
+                res=None,
+                check=False,
+                verb=False,
+                plot=False,
+                store='analytical',
+            )
+
+        # --------------
+        # adding los
 
     # ---------------
     # utilities

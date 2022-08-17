@@ -1337,6 +1337,7 @@ def _diagnostics(
     coll=None,
     key=None,
     optics=None,
+    **kwdargs,
 ):
 
     # ------------
@@ -1348,6 +1349,15 @@ def _diagnostics(
         optics=optics,
     )
 
+    # ----------
+    # is spectro
+
+    spectro = any([
+        k0 in coll.dobj.get('crystal', {}).keys()
+        or k0 in coll.dobj.get('grating', {}).keys()
+        for k0 in optics
+    ])
+
     # --------
     # dobj
 
@@ -1355,12 +1365,26 @@ def _diagnostics(
         'diagnostic': {
             key: {
                 'optics': optics,
+                'spectro': spectro,
                 'etendue': None,
+                'etend_type': None,
                 'los': None,
                 'vos': None,
             },
         },
     }
+
+    # -----------
+    # kwdargs
+
+    if len(kwdargs) > 0:
+        for k0, v0 in kwdargs.items():
+            if not isinstance(k0, str):
+                continue
+            elif k0 in dobj['diagnostic'][key].keys():
+                continue
+            else:
+                dobj['diagnostic'][key][k0] = v0
 
     return None, None, dobj
 

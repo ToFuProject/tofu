@@ -273,7 +273,7 @@ def _diagnostics():
     d0 = {'optics': 'c0'}
 
     # d1: single 2d camera
-    d1 = {'optics': 'c1'}
+    d1 = {'optics': 'c1', 'resolution': 0.2}
 
     # d2: single 2d camera
     d2 = {'optics': 'c2'}
