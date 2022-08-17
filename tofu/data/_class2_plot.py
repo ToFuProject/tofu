@@ -107,6 +107,7 @@ def _plot_diagnostic(
             dmargin=dmargin,
             fs=fs,
             wintit=wintit,
+            tit=key,
         )
 
     dax = _generic_check._check_dax(dax=dax, main=proj[0])
@@ -125,10 +126,7 @@ def _plot_diagnostic(
                 ax.plot(
                     v1['r'],
                     v1['z'],
-                    c='k',
-                    ls='-',
-                    lw=1.,
-                    label=v1['label'],
+                    **v1.get('props', {}),
                 )
 
             kax = 'hor'
@@ -138,10 +136,7 @@ def _plot_diagnostic(
                 ax.plot(
                     v1['x'],
                     v1['y'],
-                    c='k',
-                    ls='-',
-                    lw=1.,
-                    label=v1['label'],
+                    **v1.get('props', {}),
                 )
 
 
@@ -153,10 +148,7 @@ def _plot_diagnostic(
                     v1['x'],
                     v1['y'],
                     v1['z'],
-                    c='k',
-                    ls='-',
-                    lw=1.,
-                    label=v1['label'],
+                    **v1.get('props', {}),
                 )
 
             # plotting of 2d camera contour
@@ -174,10 +166,7 @@ def _plot_diagnostic(
                     ax.plot(
                         v1['x0'],
                         v1['x1'],
-                        c='k',
-                        ls='-',
-                        lw=1.,
-                        label=v1['label'],
+                        **v1.get('props', {}),
                     )
 
     return dax

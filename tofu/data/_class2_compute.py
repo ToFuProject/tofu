@@ -316,6 +316,7 @@ def _dplot(
     # ------------
     # build dict
 
+    dlw = {'camera': 2, 'aperture': 1.}
     dplot = {k0: {} for k0 in optics}
     for k0 in optics:
 
@@ -343,7 +344,11 @@ def _dplot(
 
             dplot[k0]['o'].update({
                 'r': np.hypot(dplot[k0]['o']['x'], dplot[k0]['o']['y']),
-                'label': f'{k0}-o',
+                'props': {
+                    'label': f'{k0}-o',
+                    'lw': dlw[cls],
+                    'c': 'k',
+                },
             })
 
         # center
@@ -362,7 +367,13 @@ def _dplot(
                 'y': cy,
                 'z': cz,
                 'r': np.hypot(cx, cy),
-                'label': f'{k0}-o',
+                'props': {
+                    'label': f'{k0}-o',
+                    'ls': 'None',
+                    'marker': 'o',
+                    'ms': 4,
+                    'c': 'k',
+                },
             }
 
         # unit vectors

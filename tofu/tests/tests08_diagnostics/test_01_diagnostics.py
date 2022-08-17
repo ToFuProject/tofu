@@ -161,8 +161,8 @@ def _cameras():
 
     start, vect, v0, v1 = _ref_line()
 
-    # c0: 1d
-    out0 = 0.005 * np.r_[-1, 1, 1, -1]
+    # c0: 1d parallel
+    out0 = 0.002 * np.r_[-1, 1, 1, -1]
     out1 = 0.005 * np.r_[-1, -1, 1, 1]
     cent = start + 0.01 * vect
 

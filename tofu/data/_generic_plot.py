@@ -18,8 +18,8 @@ _WINDEF = f"tofu {version.__version__} - report issues at {_GITHUB}"
 
 _DFS = {
     1: (8, 5),
-    2: (10, 5),
-    3: (12, 5),
+    2: (11, 5),
+    3: (13, 5),
     4: (15, 9),
 }
 
@@ -66,6 +66,7 @@ def get_dax_diag(
     proj=None,
     dmargin=None,
     fs=None,
+    tit=None,
     wintit=None,
 ):
 
@@ -77,6 +78,13 @@ def get_dax_diag(
         fs, 'fs',
         types=tuple,
         default=_DFS[len(proj)],
+    )
+
+    # tit
+    tit = ds._generic_check._check_var(
+        tit, 'tit',
+        types=str,
+        default='',
     )
 
     # wintit
@@ -91,6 +99,7 @@ def get_dax_diag(
 
     fig = plt.figure(figsize=fs)
     fig.canvas.set_window_title(wintit)
+    fig.suptitle(tit, size=12, fontweight='bold')
 
     # ------------
     # Populate dax
@@ -152,9 +161,8 @@ def _ax_single(
         dmargin, 'dmargin',
         types=dict,
         default={
-            'bottom': 0.05, 'top': 0.9,
-            'left': 0.1, 'right': 0.95,
-            'wspace': 0.05, 'hspace': 0.05,
+            'bottom': 0.12, 'top': 0.9,
+            'left': 0.10, 'right': 0.95,
         },
     )
 
@@ -168,7 +176,7 @@ def _ax_single(
     else:
         ax = fig.add_subplot(gs[0, 0])
 
-    return ax
+    return [ax]
 
 
 def _ax_double(
@@ -185,9 +193,9 @@ def _ax_double(
         dmargin, 'dmargin',
         types=dict,
         default={
-            'bottom': 0.05, 'top': 0.9,
-            'left': 0.1, 'right': 0.95,
-            'wspace': 0.05, 'hspace': 0.05,
+            'bottom': 0.12, 'top': 0.9,
+            'left': 0.08, 'right': 0.98,
+            'wspace': 0.20, 'hspace': 0.05,
         },
     )
 
@@ -220,9 +228,9 @@ def _ax_3(
         dmargin, 'dmargin',
         types=dict,
         default={
-            'bottom': 0.05, 'top': 0.9,
-            'left': 0.1, 'right': 0.95,
-            'wspace': 0.05, 'hspace': 0.05,
+            'bottom': 0.12, 'top': 0.9,
+            'left': 0.06, 'right': 0.98,
+            'wspace': 0.10, 'hspace': 0.05,
         },
     )
 

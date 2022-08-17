@@ -361,6 +361,7 @@ class Diagnostic(_class1_Rays.Rays):
         key=None,
         optics=None,
         elements=None,
+        proj=None,
         # figure
         dax=None,
         dmargin=None,
@@ -375,6 +376,7 @@ class Diagnostic(_class1_Rays.Rays):
             key=key,
             optics=optics,
             elements=elements,
+            proj=proj,
             # figure
             dax=dax,
             dmargin=dmargin,
