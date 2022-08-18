@@ -1008,6 +1008,7 @@ class CrystalBragg(utils.ToFuObject):
                 for jj in np.arange(pts_start.shape[2]):
                     # Loop over ndtheta
                     for kk in np.arange(pts_start.shape[3]):
+                        # Calculates vector from crystal local position to dtector
                         vect[:,ii,jj,kk] = (
                             -1*np.sin(bragg[ii])*nout[:,ii,jj,kk]
                             + np.cos(bragg[ii])
@@ -1997,7 +1998,7 @@ class CrystalBragg(utils.ToFuObject):
             cent = cent.reshape(reshape) # dim (3, 1, 1, 1)
 
             # Crystal local summit
-            summ = cent + self._dgeom['rcurve']*vout + cry_dpts['de1']*ve1 # dim (3, nlamb, npts, ndtheta)
+            summ = cent + self._dgeom['rcurve']*vout - cry_dpts['de1']*ve1 # dim (3, nlamb, npts, ndtheta)
 
         # If using a flat crystal
         elif self._dgeom['Type'] == 'flat':
@@ -2096,13 +2097,22 @@ class CrystalBragg(utils.ToFuObject):
         # If using a cylindrical crystal
         elif self._dgeom['Type'] == 'cyl':
             # Compute
-            xi, xj, strict = _comp_optics.calc_xixj_from_bragge2(
+            #xi, xj, strict = _comp_optics.calc_xixj_from_bragge2(
+            #    det_cent=det['cent'],
+            #    det_nout=det['nout'], det_ei=det['ei'], det_ej=det['ej'],
+            #    det_outline=det.get('outline'),
+            #    summit=summit, nout=nout, e1=e1, e2=e2,
+            #    bragg=bragg[:,0,0,0], strict=strict,
+            #)
+
+            xi, xj, strict = _comp_optics.calc_xixj_from_braggphi(
                 det_cent=det['cent'],
                 det_nout=det['nout'], det_ei=det['ei'], det_ej=det['ej'],
                 det_outline=det.get('outline'),
                 summit=summit, nout=nout, e1=e1, e2=e2,
-                bragg=bragg[:,0,0,0], strict=strict,
+                bragg=bragg, phi=cry_dpts['phi'], strict=strict,
             )
+
 
         # If using a flat crystal
         elif self._dgeom['Type'] == 'flat':
@@ -3242,7 +3252,7 @@ class CrystalBragg(utils.ToFuObject):
                 ndpts['ndtheta'] = None
 
             # Compute dtheta, de1, indnan (nlamb, npts, ndtheta)
-            dtheta, de1, indok, grid = _comp_optics.calc_dthetade1_from_lambpts(
+            dtheta, de1, phi, indok, grid = _comp_optics.calc_dthetade1_from_lambpts(
                 pts,
                 bragg,
                 summit=self._dgeom['summit'],   # To be updated (non-paralellism)?
@@ -3257,6 +3267,7 @@ class CrystalBragg(utils.ToFuObject):
             cry_dpts = {}
             cry_dpts['dtheta'] = dtheta
             cry_dpts['de1'] = de1
+            cry_dpts['phi'] = phi
             dummy = dtheta
             nsols = 1
 
