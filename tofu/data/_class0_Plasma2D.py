@@ -12,7 +12,6 @@ import datastock as ds
 
 # tofu
 # from tofu import __version__ as __version__
-from . import _generic_check
 from . import _mesh_checks
 from . import _mesh_comp
 from . import _mesh_plot
@@ -565,7 +564,7 @@ class Plasma2D(ds.DataStock):
 
         """
         # check key
-        key = _generic_check._check_var(
+        key = ds._generic_check._check_var(
             key, 'key',
             allowed=list(self.dobj.get('mesh', {}).keys()),
             types=str,

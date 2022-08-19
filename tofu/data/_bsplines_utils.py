@@ -1,9 +1,7 @@
 
 
 import numpy as np
-
-
-from . import _generic_check
+import datastock as ds
 
 
 # #################################################################
@@ -23,19 +21,19 @@ def _get_knots_per_bs(
     # ----------
     # check input
 
-    returnas = _generic_check._check_var(
+    returnas = ds._generic_check._check_var(
         returnas, 'returnas',
         types=str,
         default='data',
         allowed=['ind', 'data'],
     )
-    return_unique = _generic_check._check_var(
+    return_unique = ds._generic_check._check_var(
         return_unique, 'return_unique',
         types=bool,
         default=False,
     )
 
-    poloidal = _generic_check._check_var(
+    poloidal = ds._generic_check._check_var(
         poloidal, 'poloidal',
         default=False,
         types=bool,
@@ -212,14 +210,14 @@ def _get_cents_per_bs(
     # ------------
     # check inputs
 
-    returnas = _generic_check._check_var(
+    returnas = ds._generic_check._check_var(
         returnas, 'returnas',
         types=str,
         default='data',
         allowed=['ind', 'data'],
     )
 
-    poloidal = _generic_check._check_var(
+    poloidal = ds._generic_check._check_var(
         poloidal, 'poloidal',
         default=False,
         types=bool,
@@ -297,7 +295,7 @@ def _get_apex_per_bs(
     # -------
     # prepare
 
-    poloidal = _generic_check._check_var(
+    poloidal = ds._generic_check._check_var(
         poloidal, 'poloidal',
         default=False,
         types=bool,

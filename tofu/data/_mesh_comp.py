@@ -13,7 +13,6 @@ import datastock as ds
 
 
 # tofu
-from . import _generic_check
 from . import _bsplines_utils
 from . import _mesh_checks
 from . import _mesh_bsplines_rect
@@ -49,7 +48,7 @@ def _select_ind(
     # key = mesh or bspline ?
     lk1 = list(coll.dobj.get(coll._which_mesh, {}).keys())
     lk2 = list(coll.dobj.get('bsplines', {}).keys())
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         allowed=lk1 + lk2,
         types=str,
@@ -257,7 +256,7 @@ def _select_mesh(
     # ------------
     # check inputs
 
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         allowed=list(coll.dobj['mesh'].keys())
@@ -545,7 +544,7 @@ def _select_bsplines(
         returnas=returnas,
     )
 
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         allowed=list(coll.dobj.get('bsplines', {}).keys()),
@@ -861,12 +860,12 @@ def _mesh2DRect_bsplines_knotscents(
     # -------------
     # check inputs
 
-    return_knots = _generic_check._check_var(
+    return_knots = ds._generic_check._check_var(
         return_knots, 'return_knots',
         types=bool,
         default=True,
     )
-    return_cents = _generic_check._check_var(
+    return_cents = ds._generic_check._check_var(
         return_cents, 'return_cents',
         types=bool,
         default=True,
@@ -1054,12 +1053,12 @@ def _mesh2DPolar_bsplines_knotscents(
     # -------------
     # check inputs
 
-    return_knots = _generic_check._check_var(
+    return_knots = ds._generic_check._check_var(
         return_knots, 'return_knots',
         types=bool,
         default=True,
     )
-    return_cents = _generic_check._check_var(
+    return_cents = ds._generic_check._check_var(
         return_cents, 'return_cents',
         types=bool,
         default=True,
@@ -1161,7 +1160,7 @@ def _sample_mesh_check(
     # Parameters
 
     # key
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         allowed=list(coll.dobj.get('mesh', {}).keys()),
         types=str,
@@ -1189,21 +1188,21 @@ def _sample_mesh_check(
         raise Exception(msg)
 
     # mode
-    mode = _generic_check._check_var(
+    mode = ds._generic_check._check_var(
         mode, 'mode',
         types=str,
         default='abs',
     )
 
     # grid
-    grid = _generic_check._check_var(
+    grid = ds._generic_check._check_var(
         grid, 'grid',
         types=bool,
         default=False,
     )
 
     # imshow
-    imshow = _generic_check._check_var(
+    imshow = ds._generic_check._check_var(
         imshow, 'imshow',
         types=bool,
         default=False,
@@ -1363,7 +1362,7 @@ def _crop_check(
 
     # key
     lkm = list(coll.dobj[coll._which_mesh].keys())
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
@@ -1422,7 +1421,7 @@ def _crop_check(
         raise Exception(msg)
 
     # remove_isolated
-    remove_isolated = _generic_check._check_var(
+    remove_isolated = ds._generic_check._check_var(
         remove_isolated, 'remove_isolated',
         default=True,
         types=bool,
@@ -1782,7 +1781,7 @@ def _interp2d_check_RZ(
             raise Exception(msg)
 
     # grid
-    grid = _generic_check._check_var(
+    grid = ds._generic_check._check_var(
         grid, 'grid',
         default=R.shape != Z.shape,
         types=bool,
@@ -1862,7 +1861,7 @@ def _interp2d_check(
     # -------------
     # details
 
-    details = _generic_check._check_var(
+    details = ds._generic_check._check_var(
         details, 'details',
         types=bool,
         default=False,
@@ -1871,7 +1870,7 @@ def _interp2d_check(
     # -------------
     # crop
 
-    crop = _generic_check._check_var(
+    crop = ds._generic_check._check_var(
         crop, 'crop',
         types=bool,
         default=True,
@@ -1880,7 +1879,7 @@ def _interp2d_check(
     # -------------
     # nan0
 
-    nan0 = _generic_check._check_var(
+    nan0 = ds._generic_check._check_var(
         nan0, 'nan0',
         types=bool,
         default=True,
@@ -1889,7 +1888,7 @@ def _interp2d_check(
     # -------------
     # nan_out
 
-    nan_out = _generic_check._check_var(
+    nan_out = ds._generic_check._check_var(
         nan_out, 'nan_out',
         types=bool,
         default=True,
@@ -1973,7 +1972,7 @@ def _interp2d_check(
     # -----
     # store
 
-    store = _generic_check._check_var(
+    store = ds._generic_check._check_var(
         store, 'store',
         types=bool,
         default=False,
@@ -2075,7 +2074,7 @@ def _interp2d_check(
             radius_vs_time = False
 
     else:
-        radius_vs_time = _generic_check._check_var(
+        radius_vs_time = ds._generic_check._check_var(
             radius_vs_time, 'radius_vs_time',
             types=bool,
             default=False,
@@ -2188,7 +2187,7 @@ def _interp2d_check(
     # -------------
     # azone
 
-    azone = _generic_check._check_var(
+    azone = ds._generic_check._check_var(
         azone, 'azone',
         types=bool,
         default=True,
@@ -2197,7 +2196,7 @@ def _interp2d_check(
     # -------------
     # return_params
 
-    return_params = _generic_check._check_var(
+    return_params = ds._generic_check._check_var(
         return_params, 'return_params',
         types=bool,
         default=False,
@@ -2206,7 +2205,7 @@ def _interp2d_check(
     # -------
     # inplace
 
-    inplace = _generic_check._check_var(
+    inplace = ds._generic_check._check_var(
         inplace, 'inplace',
         types=bool,
         default=store,
@@ -2579,25 +2578,25 @@ def get_bsplines_operator(
 
     # check inputs
     lk = list(coll.dobj.get('bsplines', {}).keys())
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         allowed=lk,
     )
 
-    store = _generic_check._check_var(
+    store = ds._generic_check._check_var(
         store, 'store',
         default=True,
         types=bool,
     )
 
-    returnas = _generic_check._check_var(
+    returnas = ds._generic_check._check_var(
         returnas, 'returnas',
         default=store is False,
         types=bool,
     )
 
-    crop = _generic_check._check_var(
+    crop = ds._generic_check._check_var(
         crop, 'crop',
         default=True,
         types=bool,

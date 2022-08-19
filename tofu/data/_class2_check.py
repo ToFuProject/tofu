@@ -18,26 +18,6 @@ from ..geom._comp_solidangles import _check_polygon_2d, _check_polygon_3d
 # #############################################################################
 
 
-def _obj_key(coll=None, which=None, short=None, key=None):
-    lout = list(coll._dobj.get(which, {}).keys())
-    if key is None:
-        if len(lout) == 0:
-            nb = 0
-        else:
-            lnb = [
-                int(k0[2:]) for k0 in lout if k0.startswith(short)
-                and k0[2:].isnumeric()
-            ]
-            nb = min([ii for ii in range(max(lnb)+2) if ii not in lnb])
-        key = f'{short}{nb}'
-
-    return ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        excluded=lout,
-    )
-
-
 # #############################################################################
 # #############################################################################
 #                       Generic for 3d surfaces

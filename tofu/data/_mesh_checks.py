@@ -8,10 +8,7 @@ import warnings
 # Common
 import numpy as np
 from matplotlib.tri import Triangulation as mplTri
-
-
-# specific
-from . import _generic_check
+import datastock as ds
 
 
 _ELEMENTS = 'knots'
@@ -426,7 +423,7 @@ def _mesh2D_check(
 ):
 
     # key
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         excluded=list(coll.dobj.get('mesh', {}).keys())
@@ -485,7 +482,7 @@ def _mesh2D_polar_check(
 ):
 
     # key
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         excluded=list(coll.dobj.get('mesh', {}).keys())
@@ -1534,7 +1531,7 @@ def _select_ind_check(
             raise Exception(msg)
 
     # elements
-    elements = _generic_check._check_var(
+    elements = ds._generic_check._check_var(
         elements, 'elements',
         types=str,
         default=_ELEMENTS,
@@ -1549,7 +1546,7 @@ def _select_ind_check(
         retdef = bool
         retok = [int, bool]
 
-    returnas = _generic_check._check_var(
+    returnas = ds._generic_check._check_var(
         returnas, 'returnas',
         types=None,
         default=retdef,
@@ -1557,7 +1554,7 @@ def _select_ind_check(
     )
 
     # crop
-    crop = _generic_check._check_var(
+    crop = ds._generic_check._check_var(
         crop, 'crop',
         types=bool,
         default=True,
@@ -1574,7 +1571,7 @@ def _select_check(
 ):
 
     # elements
-    elements = _generic_check._check_var(
+    elements = ds._generic_check._check_var(
         elements, 'elements',
         types=str,
         default=_ELEMENTS,
@@ -1582,7 +1579,7 @@ def _select_check(
     )
 
     # returnas
-    returnas = _generic_check._check_var(
+    returnas = ds._generic_check._check_var(
         returnas, 'returnas',
         types=None,
         default='ind',
@@ -1590,7 +1587,7 @@ def _select_check(
     )
 
     # return_ind_as
-    return_ind_as = _generic_check._check_var(
+    return_ind_as = ds._generic_check._check_var(
         return_ind_as, 'return_ind_as',
         types=None,
         default=int,
@@ -1598,7 +1595,7 @@ def _select_check(
     )
 
     # return_neighbours
-    return_neighbours = _generic_check._check_var(
+    return_neighbours = ds._generic_check._check_var(
         return_neighbours, 'return_neighbours',
         types=bool,
         default=True,
@@ -1616,14 +1613,14 @@ def _select_check(
 def _mesh2D_bsplines(key=None, lkeys=None, deg=None):
 
     # key
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         allowed=lkeys,
     )
 
     # deg
-    deg = _generic_check._check_var(
+    deg = ds._generic_check._check_var(
         deg, 'deg',
         types=int,
         default=2,

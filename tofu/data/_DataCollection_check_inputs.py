@@ -8,9 +8,7 @@ import warnings
 # Common
 import numpy as np
 import scipy.sparse as scpsp
-
-
-from . import _generic_check
+import datastock as ds
 
 
 _DRESERVED_KEYS = {
@@ -69,7 +67,7 @@ def _check_which(
     # --------------
     # Check inputs
 
-    return_dict = _generic_check._check_var(
+    return_dict = ds._generic_check._check_var(
         return_dict,
         'return_dict',
         types=bool,
@@ -79,7 +77,7 @@ def _check_which(
     lkobj = list(dobj.keys())
     lkstatic = list(dstatic.keys())
     lkok = ['ref', 'data'] + lkobj + lkstatic
-    which = _generic_check._check_var(
+    which = ds._generic_check._check_var(
         which,
         'which',
         types=str,
@@ -254,7 +252,7 @@ def _get_whichorkey(key=None, which=None, din=None, dname=None):
     # which only
 
     if lc[1]:
-        which = _generic_check._check_var(
+        which = ds._generic_check._check_var(
             which, 'which',
             allowed=sorted(din.keys()),
         )
@@ -286,7 +284,7 @@ def _get_whichorkey(key=None, which=None, din=None, dname=None):
             raise Exception(msg)
 
     if key is not None:
-        key = _generic_check._check_var_iter(
+        key = ds._generic_check._check_var_iter(
             key, 'key',
             types=list,
             allowed=sorted(din[which]),
@@ -770,17 +768,7 @@ def _check_dref(
     for k0, v0 in dref.items():
 
         # key
-        nmax = _generic_check._name_key(
-            dd=dref0, dd_name='dref0', keyroot=_IREF,
-        )[1]
-        key = f'{_IREF}{nmax:02.0f}'
-
-        key = _generic_check._check_var(
-            k0,
-            'k0',
-            types=str,
-            default=key,
-        )
+        key = ds._generic_check._obj_key(d0=dref0, short=_IREF)
 
         # v0
         if isinstance(v0, (np.ndarray, list, tuple)):
@@ -943,13 +931,11 @@ def _get_suitable_ref(
 
     # no match => create new ref
     else:
-        nmax0 = _generic_check._name_key(
-            dd=dref0, dd_name='dref', keyroot=_IREF,
-        )[1]
-        nmax1 = _generic_check._name_key(
-            dd=dref_add, dd_name='dref_add', keyroot=_IREF,
-        )[1]
-        lref = f'{_IREF}{max(nmax0, nmax1):02.0f}'
+        lref0 = ds._generic_check._obj_key(d0=dref0, short=_IREF)
+        lref1 = ds._generic_check._obj_key(d0=dref_add, short=_IREF)
+        n0 = int(lref0[lref0[len(_IREF):]])
+        n1 = int(lref1[lref1[len(_IREF):]])
+        lref = lref0 if n0 > n1 else lref1
 
     return lref, size
 
@@ -1102,18 +1088,7 @@ def _check_ddata(
     dref_add = {}
     for k0, v0 in ddata.items():
 
-        # key
-        nmax = _generic_check._name_key(
-            dd=ddata0, dd_name='ddata0', keyroot=_IDATA,
-        )[1]
-        key = f'{_IDATA}{nmax:02.0f}'
-
-        key = _generic_check._check_var(
-            k0,
-            'k0',
-            types=str,
-            default=key,
-        )
+        key = ds._generic_check._obj_key(d0=ddata, short=_IDATA)
 
         # convert to dict if needed
         if not isinstance(v0, dict):
@@ -1226,18 +1201,7 @@ def _check_dobj(
         # set None to default keys if any None
         dobj2[k0] = {}
         for k1 in v0.keys():
-            nmax = _generic_check._name_key(
-                dd=dobj0.get(k0, {}), dd_name=f"dobj0['{k0}']", keyroot=k0[:3],
-            )[1]
-            key = f'{k0[:3]}{nmax:02.0f}'
-
-            key = _generic_check._check_var(
-                k1,
-                'k1',
-                types=str,
-                default=key,
-            )
-
+            key = ds._generic_check._obj_key(d0=dobj0.get(k0, {}), k0[:4])
             dobj2[k0][key] = dict(dobj[k0][k1])
 
     # Raise Exception
@@ -1612,7 +1576,7 @@ def _get_param(
 
     # param
     lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
-    param = _generic_check._check_var_iter(
+    param = ds._generic_check._check_var_iter(
         param,
         'param',
         types=list,
@@ -1621,7 +1585,7 @@ def _get_param(
     )
 
     # returnas
-    returnas = _generic_check._check_var(
+    returnas = ds._generic_check._check_var(
         returnas,
         'returnas',
         allowed=[np.ndarray, dict],
@@ -1666,7 +1630,7 @@ def _set_param(
 
     # param
     lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
-    param = _generic_check._check_var(
+    param = ds._generic_check._check_var(
         param,
         'param',
         types=str,
@@ -1678,7 +1642,7 @@ def _set_param(
         defdist = len(key) == len(value)
     else:
         defdist = False
-    distribute = _generic_check._check_var(
+    distribute = ds._generic_check._check_var(
         distribute,
         'distribute',
         types=bool,
@@ -1743,7 +1707,7 @@ def _add_param(
 
     # param
     lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
-    param = _generic_check._check_var(
+    param = ds._generic_check._check_var(
         param,
         'param',
         types=str,
@@ -1765,7 +1729,7 @@ def _remove_param(dd=None, dd_name=None, param=None):
         param = lp
     if isinstance(param, str):
         param = [param]
-    param = _generic_check._check_var_iter(
+    param = ds._generic_check._check_var_iter(
         param,
         'param',
         types=list,
@@ -1798,7 +1762,7 @@ def _ind_tofrom_key(
         msg = ("Args ind and key cannot be prescribed simultaneously!")
         raise Exception(msg)
 
-    returnas = _generic_check._check_var(
+    returnas = ds._generic_check._check_var(
         returnas,
         'returnas',
         allowed=[int, bool, str, 'key'],
@@ -1848,7 +1812,7 @@ def _ind_tofrom_key(
         # Check key
         if isinstance(key, str):
             key = [key]
-        key = _generic_check._check_var_iter(
+        key = ds._generic_check._check_var_iter(
             key,
             'key',
             types_iter=str,

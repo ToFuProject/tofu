@@ -9,10 +9,10 @@ import numpy as np
 import scipy.interpolate as scpinterp
 import scipy.spatial as scpspace
 from matplotlib.tri import Triangulation as mplTri
+import datastock as ds
 
 
 # specific
-from . import _generic_check
 from . import _mesh_checks
 from . import _mesh_bsplines_operators_tri
 from . import _mesh_bsplines_rect as _mbr
@@ -59,7 +59,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
             trifind = mpltri.get_trifinder()
 
         # deg
-        deg = _generic_check._check_var(
+        deg = ds._generic_check._check_var(
             deg, 'deg',
             types=int,
             default=2,
@@ -212,19 +212,19 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         # ------------
         # check inputs
 
-        return_cents = _generic_check._check_var(
+        return_cents = ds._generic_check._check_var(
             return_cents, 'return_cents',
             types=bool,
             default=True,
         )
 
-        return_knots = _generic_check._check_var(
+        return_knots = ds._generic_check._check_var(
             return_knots, 'return_knots',
             types=bool,
             default=True,
         )
 
-        returnas = _generic_check._check_var(
+        returnas = ds._generic_check._check_var(
             returnas, 'returnas',
             types=str,
             allowed=['ind', 'data'],
