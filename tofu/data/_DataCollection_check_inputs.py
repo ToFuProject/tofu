@@ -1201,7 +1201,9 @@ def _check_dobj(
         # set None to default keys if any None
         dobj2[k0] = {}
         for k1 in v0.keys():
-            key = ds._generic_check._obj_key(d0=dobj0.get(k0, {}), k0[:4])
+            key = ds._generic_check._obj_key(
+                d0=dobj0.get(k0, {}), short=k0[:4],
+            )
             dobj2[k0][key] = dict(dobj[k0][k1])
 
     # Raise Exception
