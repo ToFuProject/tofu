@@ -28,15 +28,21 @@ def _get_optics_outline_check(
     # key
 
     lap = list(coll.dobj.get('aperture', {}).keys())
+    lcryst = list(coll.dobj.get('crystal', {}).keys())
+    lgrat = list(coll.dobj.get('grating', {}).keys())
     lcam = list(coll.dobj.get('camera', {}).keys())
     key = ds._generic_check._check_var(
         key, 'key',
         types=str,
-        allowed=lap + lcam,
+        allowed=lap + lcryst + lgrat + lcam,
     )
 
     if key in lap:
         cls = 'aperture'
+    elif key in lcryst:
+        cls = 'crystal'
+    elif key in lgrat:
+        cls = 'grating'
     elif key in lcam:
         cls = 'camera'
 
@@ -101,13 +107,13 @@ def get_optics_outline(
     # compute
 
     if cls in ['aperture', 'crystal', 'grating']:
-        px, py, pz = coll.dobj[cls][key]['poly']
+        px, py, pz = coll.dobj[cls][key]['dgeom']['poly']
         px = coll.ddata[px]['data']
         py = coll.ddata[py]['data']
         pz = coll.ddata[pz]['data']
 
-        if coll.dobj[cls][key]['type'] == 'planar':
-            p0, p1 = coll.dobj['aperture'][key]['outline']
+        if coll.dobj[cls][key]['dgeom']['type'] == 'planar':
+            p0, p1 = coll.dobj[cls][key]['dgeom']['outline']
             p0 = coll.ddata[p0]['data']
             p1 = coll.ddata[p1]['data']
         else:
