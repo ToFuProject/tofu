@@ -37,8 +37,10 @@ def compute_rockingcurve(
     temp_limits=None,
     # Plot
     plot_therm_exp=None,
-    plot_asf=None, plot_power_ratio=None,
-    plot_asymmetry=None, plot_cmaps=None,
+    plot_asf=None,
+    plot_power_ratio=None,
+    plot_asymmetry=None,
+    plot_cmaps=None,
     # Returning dictionnary
     returnas=None,
 ):
