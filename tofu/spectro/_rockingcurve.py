@@ -131,7 +131,7 @@ def compute_rockingcurve(
     if crystal is None:
         msg = (
             "You must choose a type of crystal from "
-            +"tofu/spectro/_rockingcurve_def.py to use among :\n"
+            + "tofu/spectro/_rockingcurve_def.py to use among:\n"
             + "\t - Quartz_110:\n"
             + "\t\t - target: ArXVII"
             + "\t\t - Miller indices (h,k,l): (1,1,0)"
@@ -308,7 +308,10 @@ def compute_rockingcurve(
             # Ratio imaginary part and real part of the structure factor
             kk[i] = F_im/F_re[i]
             # Real part of kk
-            rek[i] = (F_re_cos[i]*F_im_cos + F_re_sin[i]*F_im_sin)/(F_re[i]**2.)
+            rek[i] = (
+                (F_re_cos[i]*F_im_cos + F_re_sin[i]*F_im_sin)
+                / (F_re[i]**2.)
+            )
             # Real part of psi_H
             psi_re[i] = (re*(lamb**2)*F_re[i])/(np.pi*Volume[i])
             # Zero-order real part (averaged)
@@ -316,7 +319,11 @@ def compute_rockingcurve(
                 No*(Zo + dfo_re) + Nsi*(Zsi + dfsi_re)
             )/(np.pi*Volume[i])
             # Zero-order imaginary part (averaged)
-            psi0_im[i] = -re*(lamb**2)*(No*fo_im + Nsi*fsi_im)/(np.pi*Volume[i])
+            psi0_im[i] = (
+                -re*(lamb**2)
+                * (No*fo_im + Nsi*fsi_im)
+                / (np.pi*Volume[i])
+            )
 
     # Power ratio and their integrated reflectivity for 3 crystals models:
     # perfect (Darwin model), ideally mosaic thick and dynamical

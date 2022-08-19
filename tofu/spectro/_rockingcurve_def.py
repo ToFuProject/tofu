@@ -343,17 +343,22 @@ _DCRYST['Quartz_102']['mesh']['positions']['O']['N'] = (
 # Definition of volume and inter-reticular spacing relations, func(meshtype)
 # -----------------------------------------------------------------------
 
-def hexa_volume(a, c):
-    return (a**2)*c*(np.sqrt(3.)/2.)
 
-def hexa_spacing(h, k, l, a, c):
+def hexa_volume(aa, cc):
+    return (aa**2) * cc * (np.sqrt(3.)/2.)
+
+
+def hexa_spacing(hh, kk, ll, aa, cc):
     return np.sqrt(
-        (3.*(a**2)*(c**2))/(4.*(h**2 + k**2 + h*k)*(c**2) + 3.*(l**2)*(a**2))
+        (3.*(aa**2)*(cc**2))
+        / (4.*(hh**2 + kk**2 + hh*kk)*(cc**2) + 3.*(ll**2)*(aa**2))
     )
+
 
 # ---------------------------------------------------------------
 # Attribution to alpha-Quartz crystals: Quartz_110 and Quartz_102
 # ---------------------------------------------------------------
+
 
 # Same values for 110- and Quartz_102
 a = _DCRYST['Quartz_110']['inter_atomic']['distances']['a0']
@@ -398,17 +403,26 @@ _DCRYST['Quartz_102']['d_hkl'] = hexa_spacing(
 Zsi = _DCRYST['Quartz_110']['atoms_Z'][0]
 Zo = _DCRYST['Quartz_110']['atoms_Z'][1]
 
+
 def mu_si(lamb):
     return 1.38e-2*(lamb**2.79)*(Zsi**2.73)
+
+
 def mu_si1(lamb):
     return 5.33e-4*(lamb**2.74)*(Zsi**3.03)
+
+
 def mu_o(lamb):
     return 5.4e-3*(lamb**2.92)*(Zo**3.07)
+
+
 def mu(lamb, mu_si, mu_o):
     return 2.65e-8*(7.*mu_si + 8.*mu_o)/15.
 
+
 # Atomic scattering factor, real and imaginary parts
 # --------------------------------------------------
+
 
 # Same values for 110- and Quartz_102
 sol_si = _DCRYST['Quartz_110']['sin_theta_lambda']['Si']
@@ -418,26 +432,34 @@ asf_o = _DCRYST['Quartz_110']['atomic_scattering']['factors']['O']
 interp_si = scipy.interpolate.interp1d(sol_si, asf_si)
 interp_o = scipy.interpolate.interp1d(sol_o, asf_o)
 
+
 def dfsi_re(lamb):
     return 0.1335*lamb - 6e-3
+
 
 def fsi_re(lamb, sol):
     return interp_si(sol) + dfsi_re(lamb)
 
+
 def fsi_im(lamb, mu_si):
     return 5.936e-4*Zsi*(mu_si/lamb)
+
 
 def dfo_re(lamb):
     return 0.1335*lamb - 0.206
 
+
 def fo_re(lamb, sol):
     return interp_o(sol) + dfo_re(lamb)
+
 
 def fo_im(lamb, mu_o):
     return 5.936e-4*Zo*(mu_o/lamb)
 
+
 # Phases
 # ------
+
 
 h110 = _DCRYST['Quartz_110']['miller'][0]
 k110 = _DCRYST['Quartz_110']['miller'][1]
@@ -445,6 +467,7 @@ l110 = _DCRYST['Quartz_110']['miller'][2]
 h102 = _DCRYST['Quartz_102']['miller'][0]
 k102 = _DCRYST['Quartz_102']['miller'][1]
 l102 = _DCRYST['Quartz_102']['miller'][2]
+
 
 # Same values for 110- and Quartz_102
 xsi = _DCRYST['Quartz_110']['mesh']['positions']['Si']['x']
@@ -456,11 +479,14 @@ yo = _DCRYST['Quartz_110']['mesh']['positions']['O']['y']
 zo = _DCRYST['Quartz_110']['mesh']['positions']['O']['z']
 No = _DCRYST['Quartz_110']['mesh']['positions']['O']['N']
 
-def phasesi(h, k, l, xsi, ysi, zsi):
-    return h*xsi + k*ysi + l*zsi
 
-def phaseo(h, k, l, xo, yo, zo):
-    return h*xo + k*yo + l*zo
+def phasesi(hh, kk, ll, xsi, ysi, zsi):
+    return hh*xsi + kk*ysi + ll*zsi
+
+
+def phaseo(hh, kk, ll, xo, yo, zo):
+    return hh*xo + kk*yo + ll*zo
+
 
 phaseSi_110 = np.full((Nsi), np.nan)
 phaseO_110 = np.full((No), np.nan)
