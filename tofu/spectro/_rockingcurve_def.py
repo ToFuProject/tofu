@@ -10,15 +10,15 @@ import scipy.interpolate
 # #############################################################################
 
 _DCRYST = {
-    '110-Quartz': {
+    'Quartz_110': {
         'name': '110-Qz',
         'symbol': 'Qz',
         'target': 'ArXVII ion (3.96 A)',
         'atoms': ['Si', 'O'],
-        'atomic number': [14., 8.],
-        'number of atoms': [3., 6.],
-        'Miller indices': np.r_[1., 1., 0.],
-        'Volume': None,
+        'atoms_Z': [14., 8.],
+        'atoms_nb': [3., 6.],
+        'miller': np.r_[1., 1., 0.],
+        'volume': None,
         'd_hkl': None,
         'mesh': {
             'type': 'hexagonal',
@@ -44,7 +44,7 @@ _DCRYST = {
             'Si': None,
             'O': None,
         },
-        'Inter-atomic': {
+        'inter_atomic': {
             'distances': {
                 'a0': 4.91304,
                 'c0': 5.40463,
@@ -57,7 +57,7 @@ _DCRYST = {
             },
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
-        'Thermal expansion': {
+        'thermal_expansion': {
             'coefs': {
                 'alpha_a': 1.337e-5,
                 'alpha_c': 7.97e-6,
@@ -66,7 +66,7 @@ _DCRYST = {
             'comments': 'in parallel directions to a0 and c0',
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
-        'sin(theta)/lambda': {
+        'sin_theta_lambda': {
             'Si': np.r_[
                 0., 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7,
                 0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5,
@@ -77,7 +77,7 @@ _DCRYST = {
             'sources':
                 'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
-        'atomic scattering': {
+        'atomic_scattering': {
             'factors': {
                 'Si': np.r_[
                     12., 11., 9.5, 8.8, 8.3, 7.7, 7.27, 6.25, 5.3,
@@ -92,15 +92,15 @@ _DCRYST = {
                 'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
     },
-    '102-Quartz': {
+    'Quartz_102': {
         'name': '102-Qz',
         'symbol': 'Qz',
         'target': 'ArXVIII ion (3.75 A)',
         'atoms': ['Si', 'O'],
-        'atomic number': [14., 8.],
-        'number of atoms': [3., 6.],
-        'Miller indices': np.r_[1., 0., 2.],
-        'Volume': None,
+        'atoms_Z': [14., 8.],
+        'atoms_nb': [3., 6.],
+        'miller': np.r_[1., 0., 2.],
+        'volume': None,
         'd_hkl': None,
         'mesh': {
             'type': 'hexagonal',
@@ -126,7 +126,7 @@ _DCRYST = {
             'Si': None,
             'O': None,
         },
-        'Inter-atomic': {
+        'inter_atomic': {
             'distances': {
                 'a0': 4.91304,
                 'c0': 5.40463,
@@ -139,7 +139,7 @@ _DCRYST = {
             },
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
-        'Thermal expansion': {
+        'thermal_expansion': {
             'coefs': {
                 'alpha_a': 1.337e-5,
                 'alpha_c': 7.97e-6,
@@ -148,7 +148,7 @@ _DCRYST = {
             'comments': 'in parallel directions to a0 and c0',
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
-        'sin(theta)/lambda': {
+        'sin_theta_lambda': {
             'values': {
                 'Si': np.r_[
                     0., 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7,
@@ -161,7 +161,7 @@ _DCRYST = {
             'sources':
                 'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
-        'atomic scattering': {
+        'atomic_scattering': {
             'factors': {
                 'Si': np.r_[
                     12., 11., 9.5, 8.8, 8.3, 7.7, 7.27, 6.25, 5.3,
@@ -176,15 +176,15 @@ _DCRYST = {
                 'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
     },
-    'XXX-Germanium': {
+    'Germanium_XXX': {
         'name': None,
         'symbol': None,
         'target': None,
         'atoms': None,
-        'atomic number': None,
-        'number of atoms': None,
-        'Miller indices': None,
-        'Volume': None,
+        'atoms_Z': None,
+        'atoms_nb': None,
+        'miller': None,
+        'volume': None,
         'd_hkl': None,
         'mesh': {
             'type': None,
@@ -192,24 +192,24 @@ _DCRYST = {
             'sources': None,
         },
         'phases': None,
-        'Inter-atomic': {
+        'inter_atomic': {
             'distances': None,
             'unit': None,
             'comments': None,
             'Tref': None,
             'sources': None,
         },
-        'Thermal expansion': {
+        'thermal_expansion': {
             'coefs': None,
             'unit': None,
             'comments': None,
             'sources': None,
         },
-        'sin(theta)/lambda': {
+        'sin_theta_lambda': {
             'values': None,
             'sources': None,
         },
-        'atomic scattering': {
+        'atomic_scattering': {
             'factors': None,
             'sources': None,
         },
@@ -238,55 +238,55 @@ _DCRYST = {
 # Atoms positions for Germanium crystal
 
 # ---------------------------------------------------------------
-# Attribution to alpha-Quartz crystals: 110-Quartz and 102-Quartz
+# Attribution to alpha-Quartz crystals: Quartz_110 and Quartz_102
 # ---------------------------------------------------------------
 
 # Position of the 3 Si atoms in the unit cell
 # -------------------------------------------
 
-# 110-Quartz
-uSi = _DCRYST['110-Quartz']['mesh']['positions']['Si']['u'][0]
-_DCRYST['110-Quartz']['mesh']['positions']['Si']['x'] = np.r_[
+# Quartz_110
+uSi = _DCRYST['Quartz_110']['mesh']['positions']['Si']['u'][0]
+_DCRYST['Quartz_110']['mesh']['positions']['Si']['x'] = np.r_[
     -uSi,
     uSi,
     0.
 ]
-_DCRYST['110-Quartz']['mesh']['positions']['Si']['y'] = np.r_[
+_DCRYST['Quartz_110']['mesh']['positions']['Si']['y'] = np.r_[
     -uSi,
     0.,
     uSi
 ]
-_DCRYST['110-Quartz']['mesh']['positions']['Si']['z'] = np.r_[
+_DCRYST['Quartz_110']['mesh']['positions']['Si']['z'] = np.r_[
     1./3.,
     0.,
     2./3.
 ]
-_DCRYST['110-Quartz']['mesh']['positions']['Si']['N'] = np.size(
-    _DCRYST['110-Quartz']['mesh']['positions']['Si']['x']
+_DCRYST['Quartz_110']['mesh']['positions']['Si']['N'] = np.size(
+    _DCRYST['Quartz_110']['mesh']['positions']['Si']['x']
 )
 
-# 102-Quartz
-_DCRYST['102-Quartz']['mesh']['positions']['Si']['x'] = (
-    _DCRYST['110-Quartz']['mesh']['positions']['Si']['x']
+# Quartz_102
+_DCRYST['Quartz_102']['mesh']['positions']['Si']['x'] = (
+    _DCRYST['Quartz_110']['mesh']['positions']['Si']['x']
 )
-_DCRYST['102-Quartz']['mesh']['positions']['Si']['y'] = (
-    _DCRYST['110-Quartz']['mesh']['positions']['Si']['y']
+_DCRYST['Quartz_102']['mesh']['positions']['Si']['y'] = (
+    _DCRYST['Quartz_110']['mesh']['positions']['Si']['y']
 )
-_DCRYST['102-Quartz']['mesh']['positions']['Si']['z'] = (
-    _DCRYST['110-Quartz']['mesh']['positions']['Si']['z']
+_DCRYST['Quartz_102']['mesh']['positions']['Si']['z'] = (
+    _DCRYST['Quartz_110']['mesh']['positions']['Si']['z']
 )
-_DCRYST['102-Quartz']['mesh']['positions']['Si']['N'] = (
-    _DCRYST['110-Quartz']['mesh']['positions']['Si']['N']
+_DCRYST['Quartz_102']['mesh']['positions']['Si']['N'] = (
+    _DCRYST['Quartz_110']['mesh']['positions']['Si']['N']
 )
 
 # Position of the 6 O atoms in the unit cell
 # ------------------------------------------
 
-# 110-Quartz
-uOx = _DCRYST['110-Quartz']['mesh']['positions']['O']['u'][0]
-uOy = _DCRYST['110-Quartz']['mesh']['positions']['O']['u'][1]
-uOz = _DCRYST['110-Quartz']['mesh']['positions']['O']['u'][2]
-_DCRYST['110-Quartz']['mesh']['positions']['O']['x'] = np.r_[
+# Quartz_110
+uOx = _DCRYST['Quartz_110']['mesh']['positions']['O']['u'][0]
+uOy = _DCRYST['Quartz_110']['mesh']['positions']['O']['u'][1]
+uOz = _DCRYST['Quartz_110']['mesh']['positions']['O']['u'][2]
+_DCRYST['Quartz_110']['mesh']['positions']['O']['x'] = np.r_[
     uOx,
     uOy - uOx,
     -uOy,
@@ -294,7 +294,7 @@ _DCRYST['110-Quartz']['mesh']['positions']['O']['x'] = np.r_[
     uOy,
     -uOx
 ]
-_DCRYST['110-Quartz']['mesh']['positions']['O']['y'] = np.r_[
+_DCRYST['Quartz_110']['mesh']['positions']['O']['y'] = np.r_[
     uOy,
     -uOx,
     uOx - uOy,
@@ -302,7 +302,7 @@ _DCRYST['110-Quartz']['mesh']['positions']['O']['y'] = np.r_[
     uOx,
     uOy - uOx
 ]
-_DCRYST['110-Quartz']['mesh']['positions']['O']['z'] = np.r_[
+_DCRYST['Quartz_110']['mesh']['positions']['O']['z'] = np.r_[
     uOz,
     uOz + 1./3.,
     uOz + 2./3.,
@@ -310,22 +310,22 @@ _DCRYST['110-Quartz']['mesh']['positions']['O']['z'] = np.r_[
     2./3. - uOz,
     1./3. - uOz
 ]
-_DCRYST['110-Quartz']['mesh']['positions']['O']['N'] = np.size(
-    _DCRYST['110-Quartz']['mesh']['positions']['O']['x']
+_DCRYST['Quartz_110']['mesh']['positions']['O']['N'] = np.size(
+    _DCRYST['Quartz_110']['mesh']['positions']['O']['x']
 )
 
-# 102-Quartz
-_DCRYST['102-Quartz']['mesh']['positions']['O']['x'] = (
-    _DCRYST['110-Quartz']['mesh']['positions']['O']['x']
+# Quartz_102
+_DCRYST['Quartz_102']['mesh']['positions']['O']['x'] = (
+    _DCRYST['Quartz_110']['mesh']['positions']['O']['x']
 )
-_DCRYST['102-Quartz']['mesh']['positions']['O']['y'] = (
-    _DCRYST['110-Quartz']['mesh']['positions']['O']['y']
+_DCRYST['Quartz_102']['mesh']['positions']['O']['y'] = (
+    _DCRYST['Quartz_110']['mesh']['positions']['O']['y']
 )
-_DCRYST['102-Quartz']['mesh']['positions']['O']['z'] = (
-    _DCRYST['110-Quartz']['mesh']['positions']['O']['z']
+_DCRYST['Quartz_102']['mesh']['positions']['O']['z'] = (
+    _DCRYST['Quartz_110']['mesh']['positions']['O']['z']
 )
-_DCRYST['102-Quartz']['mesh']['positions']['O']['N'] = (
-    _DCRYST['110-Quartz']['mesh']['positions']['O']['N']
+_DCRYST['Quartz_102']['mesh']['positions']['O']['N'] = (
+    _DCRYST['Quartz_110']['mesh']['positions']['O']['N']
 )
 
 # ---------------------------------
@@ -352,26 +352,26 @@ def hexa_spacing(h, k, l, a, c):
     )
 
 # ---------------------------------------------------------------
-# Attribution to alpha-Quartz crystals: 110-Quartz and 102-Quartz
+# Attribution to alpha-Quartz crystals: Quartz_110 and Quartz_102
 # ---------------------------------------------------------------
 
-# Same values for 110- and 102-Quartz
-a = _DCRYST['110-Quartz']['Inter-atomic']['distances']['a0']
-c = _DCRYST['110-Quartz']['Inter-atomic']['distances']['c0']
+# Same values for 110- and Quartz_102
+a = _DCRYST['Quartz_110']['inter_atomic']['distances']['a0']
+c = _DCRYST['Quartz_110']['inter_atomic']['distances']['c0']
 
-h110 = _DCRYST['110-Quartz']['Miller indices'][0]
-k110 = _DCRYST['110-Quartz']['Miller indices'][1]
-l110 = _DCRYST['110-Quartz']['Miller indices'][2]
-h102 = _DCRYST['102-Quartz']['Miller indices'][0]
-k102 = _DCRYST['102-Quartz']['Miller indices'][1]
-l102 = _DCRYST['102-Quartz']['Miller indices'][2]
+h110 = _DCRYST['Quartz_110']['miller'][0]
+k110 = _DCRYST['Quartz_110']['miller'][1]
+l110 = _DCRYST['Quartz_110']['miller'][2]
+h102 = _DCRYST['Quartz_102']['miller'][0]
+k102 = _DCRYST['Quartz_102']['miller'][1]
+l102 = _DCRYST['Quartz_102']['miller'][2]
 
-_DCRYST['110-Quartz']['Volume'] = hexa_volume(a=a, c=c)
-_DCRYST['110-Quartz']['d_hkl'] = hexa_spacing(
+_DCRYST['Quartz_110']['volume'] = hexa_volume(a=a, c=c)
+_DCRYST['Quartz_110']['d_hkl'] = hexa_spacing(
     h=h110, k=k110, l=l110, a=a, c=c,
 )
-_DCRYST['102-Quartz']['Volume'] = hexa_volume(a=a, c=c)
-_DCRYST['102-Quartz']['d_hkl'] = hexa_spacing(
+_DCRYST['Quartz_102']['volume'] = hexa_volume(a=a, c=c)
+_DCRYST['Quartz_102']['d_hkl'] = hexa_spacing(
     h=h102, k=k102, l=l102, a=a, c=c,
 )
 
@@ -386,7 +386,7 @@ _DCRYST['102-Quartz']['d_hkl'] = hexa_spacing(
 # #############################################################################
 
 # ---------------------------------------------------------------
-# Attribution to alpha-Quartz crystals: 110-Quartz and 102-Quartz
+# Attribution to alpha-Quartz crystals: Quartz_110 and Quartz_102
 # ---------------------------------------------------------------
 # From W. Zachariasen, Theory of X-ray Diffraction in Crystals
 # (Wiley, New York, 1945)
@@ -394,9 +394,9 @@ _DCRYST['102-Quartz']['d_hkl'] = hexa_spacing(
 # Linear absorption coefficient
 # -----------------------------
 
-# Same values for 110- and 102-Quartz
-Zsi = _DCRYST['110-Quartz']['atomic number'][0]
-Zo = _DCRYST['110-Quartz']['atomic number'][1]
+# Same values for 110- and Quartz_102
+Zsi = _DCRYST['Quartz_110']['atoms_Z'][0]
+Zo = _DCRYST['Quartz_110']['atoms_Z'][1]
 
 def mu_si(lamb):
     return 1.38e-2*(lamb**2.79)*(Zsi**2.73)
@@ -410,11 +410,11 @@ def mu(lamb, mu_si, mu_o):
 # Atomic scattering factor, real and imaginary parts
 # --------------------------------------------------
 
-# Same values for 110- and 102-Quartz
-sol_si = _DCRYST['110-Quartz']['sin(theta)/lambda']['Si']
-sol_o = _DCRYST['110-Quartz']['sin(theta)/lambda']['O']
-asf_si = _DCRYST['110-Quartz']['atomic scattering']['factors']['Si']
-asf_o = _DCRYST['110-Quartz']['atomic scattering']['factors']['O']
+# Same values for 110- and Quartz_102
+sol_si = _DCRYST['Quartz_110']['sin_theta_lambda']['Si']
+sol_o = _DCRYST['Quartz_110']['sin_theta_lambda']['O']
+asf_si = _DCRYST['Quartz_110']['atomic_scattering']['factors']['Si']
+asf_o = _DCRYST['Quartz_110']['atomic_scattering']['factors']['O']
 interp_si = scipy.interpolate.interp1d(sol_si, asf_si)
 interp_o = scipy.interpolate.interp1d(sol_o, asf_o)
 
@@ -439,22 +439,22 @@ def fo_im(lamb, mu_o):
 # Phases
 # ------
 
-h110 = _DCRYST['110-Quartz']['Miller indices'][0]
-k110 = _DCRYST['110-Quartz']['Miller indices'][1]
-l110 = _DCRYST['110-Quartz']['Miller indices'][2]
-h102 = _DCRYST['102-Quartz']['Miller indices'][0]
-k102 = _DCRYST['102-Quartz']['Miller indices'][1]
-l102 = _DCRYST['102-Quartz']['Miller indices'][2]
+h110 = _DCRYST['Quartz_110']['miller'][0]
+k110 = _DCRYST['Quartz_110']['miller'][1]
+l110 = _DCRYST['Quartz_110']['miller'][2]
+h102 = _DCRYST['Quartz_102']['miller'][0]
+k102 = _DCRYST['Quartz_102']['miller'][1]
+l102 = _DCRYST['Quartz_102']['miller'][2]
 
-# Same values for 110- and 102-Quartz
-xsi = _DCRYST['110-Quartz']['mesh']['positions']['Si']['x']
-ysi = _DCRYST['110-Quartz']['mesh']['positions']['Si']['y']
-zsi = _DCRYST['110-Quartz']['mesh']['positions']['Si']['z']
-Nsi = _DCRYST['110-Quartz']['mesh']['positions']['Si']['N']
-xo = _DCRYST['110-Quartz']['mesh']['positions']['O']['x']
-yo = _DCRYST['110-Quartz']['mesh']['positions']['O']['y']
-zo = _DCRYST['110-Quartz']['mesh']['positions']['O']['z']
-No = _DCRYST['110-Quartz']['mesh']['positions']['O']['N']
+# Same values for 110- and Quartz_102
+xsi = _DCRYST['Quartz_110']['mesh']['positions']['Si']['x']
+ysi = _DCRYST['Quartz_110']['mesh']['positions']['Si']['y']
+zsi = _DCRYST['Quartz_110']['mesh']['positions']['Si']['z']
+Nsi = _DCRYST['Quartz_110']['mesh']['positions']['Si']['N']
+xo = _DCRYST['Quartz_110']['mesh']['positions']['O']['x']
+yo = _DCRYST['Quartz_110']['mesh']['positions']['O']['y']
+zo = _DCRYST['Quartz_110']['mesh']['positions']['O']['z']
+No = _DCRYST['Quartz_110']['mesh']['positions']['O']['N']
 
 def phasesi(h, k, l, xsi, ysi, zsi):
     return h*xsi + k*ysi + l*zsi
@@ -470,11 +470,11 @@ phaseO_102 = np.full((No), np.nan)
 for i in range(Nsi):
     phaseSi_110[i] = phasesi(h110, k110, l110, xsi[i], ysi[i], zsi[i])
     phaseSi_102[i] = phasesi(h102, k102, l102, xsi[i], ysi[i], zsi[i])
-_DCRYST['110-Quartz']['phases']['Si'] = phaseSi_110
-_DCRYST['102-Quartz']['phases']['Si'] = phaseSi_102
+_DCRYST['Quartz_110']['phases']['Si'] = phaseSi_110
+_DCRYST['Quartz_102']['phases']['Si'] = phaseSi_102
 
 for i in range(No):
     phaseO_110[i] = phaseo(h110, k110, l110, xo[i], yo[i], zo[i])
     phaseO_102[i] = phaseo(h102, k102, l102, xo[i], yo[i], zo[i])
-_DCRYST['110-Quartz']['phases']['O'] = phaseO_110
-_DCRYST['102-Quartz']['phases']['O'] = phaseO_102
+_DCRYST['Quartz_110']['phases']['O'] = phaseO_110
+_DCRYST['Quartz_102']['phases']['O'] = phaseO_102

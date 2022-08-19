@@ -84,10 +84,10 @@ def compute_rockingcurve(
     Parameters:
     -----------
     crystal:    str
-        Crystal definition to use, among '110-Quartz', '102-Quartz'
+        Crystal definition to use, among 'Quartz_110', 'Quartz_102'
         and soon 'Ge'
     din:    str
-        Crystal definition dictionary to use, among '110-Quartz', '102-Quartz'
+        Crystal definition dictionary to use, among 'Quartz_110', 'Quartz_102'
         and soon 'Ge'
     lamb:    float
         Wavelength of interest, in Angstroms (1e-10 m)
@@ -130,20 +130,20 @@ def compute_rockingcurve(
         msg = (
             "You must choose a type of crystal from "
             +"tofu/spectro/_rockingcurve_def.py to use among :\n"
-            + "\t - 110-Quartz:\n"
+            + "\t - Quartz_110:\n"
             + "\t\t - target: ArXVII"
             + "\t\t - Miller indices (h,k,l): (1,1,0)"
             + "\t\t - Material: Quartz\n"
-            + "\t - 102-Quartz:\n"
+            + "\t - Quartz_102:\n"
             + "\t\t - target: ArXVIII"
             + "\t\t - Miller indices (h,k,l): (1,0,2)"
             + "\t\t - Material: Quartz\n"
         )
         raise Exception(msg)
-    elif crystal == '110-Quartz':
-        din = _rockingcurve_def._DCRYST['110-Quartz']
-    elif crystal == '102-Quartz':
-        din = _rockingcurve_def._DCRYST['102-Quartz']
+    elif crystal == 'Quartz_110':
+        din = _rockingcurve_def._DCRYST['Quartz_110']
+    elif crystal == 'Quartz_102':
+        din = _rockingcurve_def._DCRYST['Quartz_102']
 
     if therm_exp is None:
         therm_exp = False
@@ -171,9 +171,9 @@ def compute_rockingcurve(
         returnas = dict
 
     ih, ik, il, lamb = CrystBragg_check_inputs_rockingcurve(
-        ih=din['Miller indices'][0],
-        ik=din['Miller indices'][1],
-        il=din['Miller indices'][2],
+        ih=din['miller'][0],
+        ik=din['miller'][1],
+        il=din['miller'][2],
         lamb=lamb,
     )
 
@@ -207,7 +207,7 @@ def compute_rockingcurve(
         therm_exp=therm_exp,
     )
 
-    l0 = ['110-Quartz', '102-Quartz']
+    l0 = ['Quartz_110', 'Quartz_102']
     cond0 = any([crystal == l00 for l00 in l0])
     if cond0:
 
@@ -275,8 +275,8 @@ def compute_rockingcurve(
 
         Nsi = din['mesh']['positions']['Si']['N']
         No = din['mesh']['positions']['O']['N']
-        Zsi = din['atomic number'][0]
-        Zo = din['atomic number'][1]
+        Zsi = din['atoms_Z'][0]
+        Zo = din['atoms_Z'][1]
 
         Fmod = np.full((sol.size), np.nan)
         Fbmod = Fmod.copy()
@@ -867,10 +867,10 @@ def CrystBragg_comp_lattice_spacing(
     Parameters:
     -----------
     crystal:    str
-        Crystal definition to use, among '110-Quartz', '102-Quartz'
+        Crystal definition to use, among 'Quartz_110', 'Quartz_102'
         and soon 'Ge'
     din:    str
-        Crystal definition dictionary to use, among '110-Quartz', '102-Quartz'
+        Crystal definition dictionary to use, among 'Quartz_110', 'Quartz_102'
         and soon 'Ge'
     ih, ik, il:    int
         Miller indices of crystal used, by default to (1,1,0)
@@ -881,9 +881,9 @@ def CrystBragg_comp_lattice_spacing(
     # Check inputs
     # ------------
     ih, ik, il, lamb = CrystBragg_check_inputs_rockingcurve(
-        ih=din['Miller indices'][0],
-        ik=din['Miller indices'][1],
-        il=din['Miller indices'][2],
+        ih=din['miller'][0],
+        ik=din['miller'][1],
+        il=din['miller'][2],
         lamb=lamb,
     )
     if nn is None:
@@ -904,15 +904,15 @@ def CrystBragg_comp_lattice_spacing(
 
     # Prepare
     # -------
-    l0 = ['110-Quartz', '102-Quartz']
+    l0 = ['Quartz_110', 'Quartz_102']
     cond0 = any([crystal == l00 for l00 in l0])
 
     # Inter-atomic distances and thermal expansion coefficients
     if cond0:
-        a0 = din['Inter-atomic']['distances']['a0']
-        c0 = din['Inter-atomic']['distances']['c0']
-        alpha_a = din['Thermal expansion']['coefs']['alpha_a']
-        alpha_c = din['Thermal expansion']['coefs']['alpha_c']
+        a0 = din['inter_atomic']['distances']['a0']
+        c0 = din['inter_atomic']['distances']['c0']
+        alpha_a = din['thermal_expansion']['coefs']['alpha_a']
+        alpha_c = din['thermal_expansion']['coefs']['alpha_c']
 
     # Temperature changes
     T0 = temp_limits[2]  # Reference temperature in °C
@@ -971,8 +971,8 @@ def CrystBragg_comp_lattice_spacing(
     dout = {
         'Temperature of reference (°C)': T0,
         'Temperature variations (°C)': TD,
-        'Inter-atomic distance a1 (A)': a1,
-        'Inter-atomic distance c1 (A)': c1,
+        'Inter_atomic distance a1 (A)': a1,
+        'Inter_atomic distance c1 (A)': c1,
         'Volume (1/m3)': Volume,
         'Inter-reticular spacing (A)': d_atom,
         'sinus over lambda': sol,
@@ -1219,9 +1219,9 @@ def CrystalBragg_plot_thermal_expansion_vs_d(
     ax = fig.add_subplot(gs[0, 0])
     name = din['name']
     miller = np.r_[
-        int(din['Miller indices'][0]),
-        int(din['Miller indices'][1]),
-        int(din['Miller indices'][2]),
+        int(din['miller'][0]),
+        int(din['miller'][1]),
+        int(din['miller'][2]),
     ]
     ax.set_title(
         f'{name}' + f', ({miller[0]},{miller[1]},{miller[2]})' +
@@ -1272,7 +1272,7 @@ def CrystalBragg_plot_atomic_scattering_factor(
     gs = gridspec.GridSpec(1, 1)
     ax = fig.add_subplot(gs[0, 0])
     ax.set_xlabel(r'sin($\theta$)/$\lambda$')
-    ax.set_ylabel("atomic scattering factor")
+    ax.set_ylabel("atomic_scattering factor")
     ax.plot(sol_si, asf_si, label="Si")
     ax.plot(sol_o, asf_o, label="O")
     ax.legend()
@@ -1333,9 +1333,9 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
 
     name = din['name']
     miller = np.r_[
-        int(din['Miller indices'][0]),
-        int(din['Miller indices'][1]),
-        int(din['Miller indices'][2]),
+        int(din['miller'][0]),
+        int(din['miller'][1]),
+        int(din['miller'][2]),
     ]
 
     lc = [
@@ -1684,9 +1684,9 @@ def CrystalBragg_plot_rc_components_vs_asymmetry(
     ax = fig2.add_subplot(gs[0, 0])
     name = din['name']
     miller = np.r_[
-        int(din['Miller indices'][0]),
-        int(din['Miller indices'][1]),
-        int(din['Miller indices'][2]),
+        int(din['miller'][0]),
+        int(din['miller'][1]),
+        int(din['miller'][2]),
     ]
     ax.set_title(
         f'{name}' + f', ({miller[0]},{miller[1]},{miller[2]})' +
@@ -1771,9 +1771,9 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
 
     name = din['name']
     miller = np.r_[
-        int(din['Miller indices'][0]),
-        int(din['Miller indices'][1]),
-        int(din['Miller indices'][2]),
+        int(din['miller'][0]),
+        int(din['miller'][1]),
+        int(din['miller'][2]),
     ]
     fig.suptitle(
         f'{name}' + f', ({miller[0]},{miller[1]},{miller[2]})' +
