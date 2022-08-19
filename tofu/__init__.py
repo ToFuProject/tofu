@@ -54,6 +54,7 @@ import sys
 import warnings
 from .version import __version__
 
+
 import tofu.pathfile as pathfile
 import tofu.utils as utils
 
@@ -64,6 +65,7 @@ from tofu.geom.utils import create_config as load_config
 import tofu.data as data
 import tofu.spectro as spectro
 import tofu.tests as tests
+import tofu.benchmarks as benchmarks
 
 
 # -------------------------------------

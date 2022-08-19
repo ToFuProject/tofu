@@ -55,9 +55,43 @@ _T0 = False
 
 # ############################################################################
 #
+#           short versions of ids names
+#
+# ############################################################################
+
+
+_dshortids = {
+    'wall': 'wall',
+    'pulse_schedule': 'sched',
+    'summary': 'sum',
+    'equilibrium': 'eq',
+    'core_profiles': 'corprof',
+    'edge_profiles': 'edgprof',
+    'core_sources': 'corsour',
+    'edge_sources': 'edgsour',
+    'lh_antennas': 'lh',
+    'ic_antennas': 'ic',
+    'magnetics': 'mag',
+    'barometry': 'baro',
+    'calorimetry': 'calo',
+    'neutron_diagnostic': 'neutrons',
+    'ece': 'ece',
+    'reflectometer_profile': 'reflecto',
+    'interferometer': 'interf',
+    'polarimeter': 'pola',
+    'bolometer': 'bolo',
+    'soft_x_rays': 'sxr',
+    'spectrometer_visible': 'spectrovis',
+    'bremsstrahlung_visible': 'brem',
+}
+
+
+# ############################################################################
+#
 #           shortcuts for imas2tofu interface (MultiIDSLoader class)
 #
 # ############################################################################
+
 
 _dshort = {
     'wall': {
@@ -149,6 +183,14 @@ _dshort = {
         'li': {
             'str': 'global_quantities.li.value',
             'units': '-',
+        },
+        'r0': {
+            'str': 'global_quantities.r0.value',
+            'units': 'm',
+        },
+        'b0': {
+            'str': 'global_quantities.b0.value',
+            'units': 'T',
         },
         'fusion_power': {
             'str': 'fusion.power.value',

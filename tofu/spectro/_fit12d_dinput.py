@@ -97,24 +97,40 @@ def get_symmetry_axis_1dprofile(phi, data, cent_fraction=None):
     indphi = np.abs(phi-phic) <= dphi/2.
     phiok = phi[indphi]
 
+    # double the number of phiok
+    phiok = np.linspace(phiok.min(), phiok.max(), phiok.size*2 + 1)
+
     # Compute new phi and associated costs
     phi2 = phi[:, None] - phiok[None, :]
-    phi2min = np.min([np.nanmax(np.abs(phi2 * (phi2 < 0)), axis=0),
-                      np.nanmax(np.abs(phi2 * (phi2 > 0)), axis=0)], axis=0)
+    phi2min = np.min([
+        np.nanmax(np.abs(phi2 * (phi2 < 0)), axis=0),
+        np.nanmax(np.abs(phi2 * (phi2 > 0)), axis=0)],
+        axis=0,
+    )
+
+    # prepare phi2 positive and negative
     indout = np.abs(phi2) > phi2min[None, :]
     phi2p = np.abs(phi2)
     phi2n = np.abs(phi2)
     phi2p[(phi2 < 0) | indout] = np.nan
     phi2n[(phi2 > 0) | indout] = np.nan
-    nok = np.min([np.sum((~np.isnan(phi2p)), axis=0),
-                  np.sum((~np.isnan(phi2n)), axis=0)], axis=0)
+    nok = np.min(
+        [
+            np.sum((~np.isnan(phi2p)), axis=0),
+            np.sum((~np.isnan(phi2n)), axis=0)
+        ],
+        axis=0,
+    )
+
+    # find phiok of minimum cost
     cost = np.full((data.shape[0], phiok.size), np.nan)
     for ii in range(phiok.size):
         indp = np.argsort(np.abs(phi2p[:, ii]))
         indn = np.argsort(np.abs(phi2n[:, ii]))
         cost[:, ii] = np.nansum(
             (data[:, indp] - data[:, indn])[:, :nok[ii]]**2,
-            axis=1)
+            axis=1,
+        )
     return phiok[np.nanargmin(cost, axis=1)]
 
 

@@ -5,6 +5,9 @@ import warnings
 import numpy as np
 
 
+from . import _def
+
+
 # tofu
 pfe = os.path.join(os.path.expanduser('~'), '.tofu', '_imas2tofu_def.py')
 if os.path.isfile(pfe):
@@ -198,12 +201,12 @@ def extra_get_fordataFalse(out, d0d, dt0,
             out[ss]['data'] = np.swapaxes(out[ss]['data'], 1, 2)
 
         d0d[key] = {'data': out[ss]['data'], 'name': ss,
-                    'origin': ids, 'dim': dim, 'quant': quant,
+                    'source': ids, 'dim': dim, 'quant': quant,
                     'units': units, 'depend': (keyt,)}
         any_ = True
     if any_ is True:
         dt0[keyt] = {'data': out['t']['data'], 'name': 't',
-                     'origin': ids, 'depend': (keyt,)}
+                     'source': ids, 'depend': (keyt,)}
 
 
 # #############################################################################
@@ -427,45 +430,590 @@ def plasma_checkformat_dsig(dsig=None,
     return dout
 
 
-def plasma_plot_args(plot, plot_X, plot_sig,
-                     dsig=None):
-    # Set plot
-    if plot is None:
-        plot = not (plot_sig is None and plot_X is None)
+def get_plasma(
+    multi=None,
+    dtime0=None,
+    d0d=None,
+    out0=None,
+    lids=None,
+    # radial base
+    radius_base=None,
+    # parameters
+    tlim=None,
+    t0=None,
+    indt0=None,
+    indevent=None,
+    nan=None,
+    pos=None,
+    stack=None,
+    isclose=None,
+    empty=None,
+    strict=None,
+    # plotting
+    plot=None,
+    plot_sig=None,
+):
 
-    if plot is True:
-        # set plot_sig
-        if plot_sig is None:
-            lsplot = [ss for ss in list(dsig.values())[0]
-                      if ('1d' in ss and ss != 't'
-                          and all([sub not in ss
-                                   for sub in ['rho', 'psi', 'phi']]))]
-            if not (len(dsig) == 1 and len(lsplot) == 1):
-                msg = ("Direct plotting only possible if\n"
-                       + "sig_plot is provided, or can be derived from:\n"
-                       + "\t- unique ids: {}\n\t".format(dsig.keys())
-                       + "- unique non-(t, radius) 1d sig: {}".format(lsplot))
-                raise Exception(msg)
-            plot_sig = lsplot
-        if type(plot_sig) is str:
-            plot_sig = [plot_sig]
+    import tofu.data as tfd
+    plasma = tfd.Plasma2D()
 
-        # set plot_X
-        if plot_X is None:
-            lsplot = [ss for ss in list(dsig.values())[0]
-                      if ('1d' in ss and ss != 't'
-                          and any([sub in ss
-                                   for sub in ['rho', 'psi', 'phi']]))]
-            if not (len(dsig) == 1 and len(lsplot) == 1):
-                msg = ("Direct plotting only possible if\n"
-                       + "X_plot is provided, or can be derived from:\n"
-                       + "\t- unique ids: {}\n".format(dsig.keys())
-                       + "\t- unique non-t, 1d radius: {}".format(lsplot))
+    # -----------
+    # loop on ids
+
+    for ids in lids:
+        idsshort = _def._dshortids.get(ids, ids)
+
+        # -----
+        # time
+
+        out_ = {'t': out0[ids].get('t', None)}
+        lc = (
+            out_['t'] is not None
+            and out_['t']['isempty'] is False
+        )
+
+        keynt, nt, indt = None, None, None
+        if lc is True:
+
+            # get tlim
+            dtt = multi.get_tlim(
+                out_['t']['data'],
+                tlim=tlim,
+                indevent=indevent,
+                returnas=int,
+            )
+            indt = dtt['indt']
+            keynt = f'{idsshort}.nt'
+            nt = dtt['t'].size
+
+            # add ref and data
+            plasma.add_ref(key=keynt, size=nt)
+            plasma.add_data(
+                key=f'{idsshort}.t',
+                data=dtt['t'],
+                ref=keynt,
+                quant='t',
+                name='t',
+                dim='time',
+                units='s',
+                source=ids,
+            )
+
+            # -----------------
+            # time-only
+
+            lsig = [
+                k0 for k0, v0 in out0[ids].items()
+                if isinstance(v0['data'], np.ndarray)
+                and v0['data'].shape == (dtt['nt0'],)
+                and k0 != 't'
+            ]
+            out_ = multi.get_data(
+                dsig={ids: lsig},
+                indt=indt,
+                nan=nan,
+                pos=pos,
+                stack=stack,
+                isclose=isclose,
+                empty=empty,
+                strict=strict,
+                return_all=False,
+                warn=False,
+            )[ids]
+
+            # add data
+            for k0, v0 in out_.items():
+
+                # Get dim / quant from dshort / dcomp + units
+                if k0 in multi._dshort[ids].keys():
+                    dim = multi._dshort[ids][k0].get('dim', 'unknown')
+                    quant = multi._dshort[ids][k0].get('quant', 'unknown')
+                else:
+                    dim = multi._dcomp[ids][k0].get('dim', 'unknown')
+                    quant = multi._dcomp[ids][k0].get('quant', 'unknown')
+
+                plasma.add_data(
+                    key=f'{idsshort}.{k0}',
+                    data=v0['data'],
+                    ref=(keynt,),
+                    dim=dim,
+                    quant=quant,
+                    units=v0['units'],
+                    source=ids,
+                )
+
+        # -------------
+        # d2d and dmesh
+
+        lsig = [kk for kk in out0[ids].keys() if '2d' in kk]
+        lsigmesh = [kk for kk in lsig if 'mesh' in kk]
+        out_ = multi.get_data(
+            dsig={ids: lsig},
+            indt=indt,
+            nan=nan,
+            pos=pos,
+            stack=stack,
+            isclose=isclose,
+            empty=empty,
+            strict=strict,
+            return_all=False,
+            warn=False,
+        )[ids]
+
+        cmesh = any([ss in out_.keys() for ss in lsigmesh])
+
+        if len(out_) > 0 and cmesh is True:
+
+            npts, datashape = None, None
+            keym = None
+
+            # ----
+            # mesh
+
+            keym = f'{idsshort}.mesh'
+            lc = [
+                all([ss in lsig for ss in ['2dmeshNodes', '2dmeshFaces']]),
+                all([ss in lsig for ss in ['2dmeshR', '2dmeshZ']]),
+            ]
+            if not np.sum(lc) == 1:
+                msg = (
+                    "2d mesh shall be provided either via:\n"
+                    "\t- '2dmeshR' and '2dmeshZ'\n"
+                    "\t- '2dmeshNodes' and '2dmeshFaces'"
+                )
                 raise Exception(msg)
-            plot_X = lsplot
-        if type(plot_X) is str:
-            plot_X = [plot_X]
-    return plot, plot_X, plot_sig
+
+            # Nodes / Faces case
+            if lc[0]:
+                plasma.add_mesh(
+                    key=keym,
+                    source=ids,
+                    knots=out_['2dmeshNodes']['data'],
+                    cents=out_['2dmeshFaces']['data'],
+                )
+                n1 = plasma.dobj[plasma._which_mesh][keym]['shape-k'][0]
+                n2 = plasma.dobj[plasma._which_mesh][keym]['shape-c'][0]
+
+            # R / Z case
+            elif lc[1]:
+                plasma.add_mesh(
+                    key=keym,
+                    source=ids,
+                    R=out_['2dmeshR']['data'],
+                    Z=out_['2dmeshZ']['data'],
+                )
+                n1, n2 = plasma.dobj[plasma._which_mesh][keym]['shape']
+
+            # ------------------
+            # profiles2d on mesh
+
+            meshtype = plasma.dobj[plasma._which_mesh][keym]['type']
+            for ss in set(out_.keys()).difference(lsigmesh):
+                add_profile2d(
+                    multi=multi,
+                    ids=ids,
+                    idsshort=idsshort,
+                    plasma=plasma,
+                    out_=out_,
+                    ss=ss,
+                    # for references
+                    keynt=keynt,
+                    keym=keym,
+                    # mesh
+                    meshtype=meshtype,
+                    n1=n1,
+                    n2=n2,
+                    nt=nt,
+                )
+
+        elif len(out_) > 0:
+            msg = (
+                "No mesh to be used as reference!"
+            )
+            raise Exception(msg)
+
+        # ---------------
+        # d1d and dradius
+
+        lsig = [k for k in out0[ids].keys() if '1d' in k]
+        out_ = multi.get_data(
+            dsig={ids: lsig},
+            indt=indt,
+            nan=nan,
+            pos=pos,
+            stack=stack,
+            isclose=isclose,
+            empty=empty,
+            strict=strict,
+            return_all=False,
+            warn=False,
+        )[ids]
+
+        if len(out_) > 0:
+
+            # Identify radius base
+            drad = {}
+            for k0, v0 in out_.items():
+                c0 = (
+                    isinstance(v0['data'], np.ndarray)
+                    and np.all(np.isfinite(v0['data']))
+                    and v0['data'].ndim in [1, 2]
+                )
+                if c0:
+                    if v0['data'].ndim == 1:
+                        diff = v0['data'][1] - v0['data'][0]
+                        if np.all(np.diff(v0['data'])*diff > 0):
+                            drad[k0] = v0['data']
+                    else:
+                        if np.allclose(v0['data'][0:1, :], v0['data']):
+                            diff = v0['data'][0, 1] - v0['data'][0, 0]
+                            if np.all(np.diff(v0['data'][0, :])*diff > 0):
+                                drad[k0] = v0['data'][0, :]
+                        elif np.allclose(v0['data'][:, 0:1], v0['data']):
+                            diff = v0['data'][1, 0] - v0['data'][0, 0]
+                            if np.all(np.diff(v0['data'][:, 0])*diff > 0):
+                                drad[k0] = v0['data'][:, 0]
+
+            if len(drad) == 0:
+                msg = (
+                    "No valid radial base could be identified!\n"
+                    "A valid radial base should be a 1d monotonous array"
+                )
+                raise Exception(msg)
+
+            elif len(drad) == 1:
+                k0ref = list(drad.keys())[0]
+            else:
+                if not np.unique([v0.size for v0 in drad.values()]).size == 1:
+                    lstr = [f"\t- {k0}: {v0.size}" for k0, v0 in drad.items()]
+                    msg = (
+                        "Several possible radial bases identified:\n"
+                        + "\n".join(lstr)
+                    )
+                    raise Exception(msg)
+
+                if radius_base is not None and radius_base in drad.keys():
+                    k0ref = radius_base
+                else:
+                    k0ref = list(drad.keys())[0]
+
+            nr = drad[k0ref].size
+            kref = f'{idsshort}.nr'
+
+            # add ref and data for radial base
+            plasma.add_ref(key=kref, size=nr)
+
+            # Get dim / quant from dshort / dcomp + units
+            if k0ref in multi._dshort[ids].keys():
+                dim = multi._dshort[ids][k0ref].get('dim', 'unknown')
+                quant = multi._dshort[ids][k0ref].get('quant', 'unknown')
+            else:
+                dim = multi._dcomp[ids][k0ref].get('dim', 'unknown')
+                quant = multi._dcomp[ids][k0ref].get('quant', 'unknown')
+
+            radius2d = [
+                k0 for k0, v0 in plasma.ddata.items()
+                if '2d' in k0
+                and v0['dim'] == dim
+                and v0['quant'] == quant
+                and v0['bsplines'] is not None
+            ]
+            if len(radius2d) == 1:
+                radius2d = radius2d[0]
+            elif len(radius2d) == 0:
+                msg = (
+                    "No 2d radius for polar mesh!\n"
+                )
+                raise Exception(msg)
+            else:
+                msg = (
+                    "Several possible 2d radius identified!\n"
+                    + str(radius2d)
+                )
+                raise Exception(msg)
+
+            kmrad = f'{idsshort}.radial'
+            plasma.add_mesh_polar(
+                key=kmrad,
+                radius=drad[k0ref],
+                radius2d=radius2d,
+                radius_dim=dim,
+                radius_quant=quant,
+                radius_units=out_[k0ref]['units'],
+                deg=1,
+            )
+
+            # Add other radial data
+            for ss in out_.keys():
+
+                # safeguard
+                shape = out_[ss]['data'].shape
+                if out_[ss]['data'].ndim not in [1, 2]:
+                    msg = (
+                        f"Non-conform {ids}.{ss}.ndim\n"
+                        "\t- expected: 1 or 2\n"
+                        f"\t- {ids}.{ss}.shape = {shape}"
+                    )
+                    raise Exception(msg)
+
+                # nr and nt
+                if len(shape) == 1:
+                    assert shape[0] == nr, shape
+
+                elif len(shape) == 2:
+                    if nt is None:
+                        msg = (
+                            f"{ids}.t could not be retrieved\n"
+                            "=> Assuming 't' is the first dimension of "
+                            "{ids}.{ss}"
+                        )
+                        warnings.warn(msg)
+
+                        nt = shape[0]
+                        keynt = f"{ids}.nt"
+
+                        # add ref
+                        plasma.add_ref(key=keynt, size=nt)
+
+                    elif nt not in shape or nr not in shape:
+                        msg = (
+                            "Inconsistent shape with respect to 't' and nr!\n"
+                            f"\t- {ids}.{ss}.shape = {shape}"
+                            f"\t- One dim should be nt = {nt}"
+                            f"\t- One dim should be nr = {nr}"
+                        )
+                        raise Exception(msg)
+
+                    # Make sure shape is (nt, nr)
+                    axist = shape.index(nt)
+                    if axist == 1:
+                        out_[ss]['data'] = out_[ss]['data'].T
+
+                    if out_[ss]['data'].shape != (nt, nr):
+                        msg = (
+                            f"Wrong shape for {ids}.{ss}:\n"
+                            f"\t- expected: {(nt, nr)}\n"
+                            f"\t- got:  {out_[ss]['data'].shape}"
+                        )
+                        raise Exception(msg)
+
+                # Get dim / quant from dshort / dcomp + units
+                if ss in multi._dshort[ids].keys():
+                    dim = multi._dshort[ids][ss].get('dim', 'unknown')
+                    quant = multi._dshort[ids][ss].get('quant', 'unknown')
+                else:
+                    dim = multi._dcomp[ids][ss].get('dim', 'unknown')
+                    quant = multi._dcomp[ids][ss].get('quant', 'unknown')
+
+                # add data
+                plasma.add_data(
+                    key=f'{idsshort}.{ss}',
+                    data=out_[ss]['data'],
+                    ref=kmrad if len(shape) == 1 else (keynt, kmrad),
+                    dim=dim,
+                    quant=quant,
+                    units=out_[ss]['units'],
+                    source=ids,
+                )
+
+    # t0
+    if indt0 is None:
+        indt0 = 0
+    t0 = multi._get_t0(t0, ind=indt0)
+    if t0 is not False:
+        lt = [
+            k0 for k0, v0 in plasma.ddata.items()
+            if v0['dim'] == 'time'
+        ]
+        for tt in lt:
+            plasma.ddata[lt]['data'] -= t0
+
+    return plasma
+
+
+def add_profile2d(
+    multi=None,
+    ids=None,
+    idsshort=None,
+    plasma=None,
+    out_=None,
+    ss=None,
+    # for references
+    keynt=None,
+    keym=None,
+    # mesh
+    meshtype=None,
+    n1=None,
+    n2=None,
+    nt=None,
+):
+    """ Add profile2d data to existing plasma2D instance (mesh already in) """
+
+    # -----------------
+    # Check data dimension
+
+    shape = out_[ss]['data'].shape
+    if out_[ss]['data'].ndim not in [1, 2, 3]:
+        msg = (
+            f"Non-conform {ids}.{ss}.ndim\n"
+            "\t- expected: 1, 2 or 3\n"
+            f"\t- {ids}.{ss}.shape = {shape}"
+        )
+        raise Exception(msg)
+
+    # -----------------
+    # check per shape
+
+    shape = out_[ss]['data'].shape
+
+    if len(shape) == 1:
+        # time-independent triangular mesh profile
+        if meshtype != 'tri':
+            msg = "1d profile2d should refer to a triangular mesh!"
+            raise Exception(msg)
+
+        if shape[0] == n1:
+            deg = 1
+        elif shape[0] == n2:
+            deg = 0
+        else:
+            msg = (
+                "Wrong size of data, no matching deg!"
+            )
+            raise Exception(msg)
+        ref = keym
+
+    elif len(shape) == 2:
+        # time-dependent triangular mesh or time-independent rectangular mesh
+
+        # check shape compatibility
+        if meshtype == 'tri':
+            compat_shapes = [(nt, n1), (nt, n2)]
+        else:
+            compat_shapes = [(n1, n2)]
+        compat_shapesT = [(sh[1], sh[0]) for sh in compat_shapes]
+
+        if not shape in compat_shapes + compat_shapesT:
+            msg = (
+                f"Data {ss} has incompatible shape for mesh\n"
+                f"\t- Data shape: {shape}\n"
+                f"\t- nt: {nt}\n"
+                f"\t- n1, n2: {n1}, {n2}"
+            )
+            raise Exception(msg)
+
+        # Make sure time is the first dimension
+        if shape not in compat_shapes:
+            out_[ss]['data'] = out_[ss]['data'].T
+            shape = out_[ss]['data'].shape
+
+        # choose degree
+        if meshtype == 'tri':
+            if shape == (nt, n1):
+                deg = 1
+            else:
+                deg = 0
+            ref = (keynt, keym)
+        else:
+            deg = 0
+            ref = keym
+
+    else:
+
+        # check shape
+        c0 = (
+            meshtype == 'rect'
+            and sorted(shape) == sorted((nt, n1, n2))
+        )
+        if not c0:
+            msg = ("Data should be time-varying rect mesh!")
+            raise Exception(msg)
+
+        # re-order shape if necessary
+        if shape == (nt, n1, n2):
+            pass
+        elif shape == (nt, n2, n1):
+            out_[ss]['data'] = np.swapaxes(out_[ss]['data'], 1, 2)
+        elif shape == (n1, n2, nt):
+            out_[ss]['data'] = out_[ss]['data']
+        elif shape == (n2, n1, nt):
+            out_[ss]['data'] = out_[ss]['data'].T
+        else:
+            import pdb; pdb.set_trace()     # DB
+            pass
+        ref = (keynt, keym)
+
+
+    # get parameters
+    if ss in multi._dshort[ids].keys():
+        dim = multi._dshort[ids][ss].get('dim', 'unknown')
+        quant = multi._dshort[ids][ss].get('quant', 'unknown')
+    else:
+        dim = multi._dcomp[ids][ss].get('dim', 'unknown')
+        quant = multi._dcomp[ids][ss].get('quant', 'unknown')
+    units = out_[ss]['units']
+    key = f'{ids}.{ss}'
+
+    # add / check bsplines
+    if plasma.dobj.get('bsplines') is None:
+        plasma.add_bsplines(deg=deg)
+    elif list(plasma.dobj['bsplines'].values())[0]['deg'] != deg:
+        degref = list(plasma.dobj['bsplines'].values())[0]['deg']
+        msg = "Degree not matching!\n\t{deg} vs {degref}"
+        raise Exception(msg)
+
+    # add data
+    plasma.add_data(
+        key=f'{idsshort}.{ss}',
+        data=out_[ss]['data'],
+        name=ss,
+        dim=dim,
+        quant=quant,
+        units=units,
+        source=ids,
+        ref=ref,
+    )
+
+
+# def plasma_plot_args(plot, plot_X, plot_sig,
+                     # dsig=None):
+    # # Set plot
+    # if plot is None:
+        # plot = not (plot_sig is None and plot_X is None)
+
+    # if plot is True:
+        # # set plot_sig
+        # if plot_sig is None:
+            # lsplot = [ss for ss in list(dsig.values())[0]
+                      # if ('1d' in ss and ss != 't'
+                          # and all([sub not in ss
+                                   # for sub in ['rho', 'psi', 'phi']]))]
+            # if not (len(dsig) == 1 and len(lsplot) == 1):
+                # msg = ("Direct plotting only possible if\n"
+                       # + "sig_plot is provided, or can be derived from:\n"
+                       # + "\t- unique ids: {}\n\t".format(dsig.keys())
+                       # + "- unique non-(t, radius) 1d sig: {}".format(lsplot))
+                # raise Exception(msg)
+            # plot_sig = lsplot
+        # if type(plot_sig) is str:
+            # plot_sig = [plot_sig]
+
+        # # set plot_X
+        # if plot_X is None:
+            # lsplot = [ss for ss in list(dsig.values())[0]
+                      # if ('1d' in ss and ss != 't'
+                          # and any([sub in ss
+                                   # for sub in ['rho', 'psi', 'phi']]))]
+            # if not (len(dsig) == 1 and len(lsplot) == 1):
+                # msg = ("Direct plotting only possible if\n"
+                       # + "X_plot is provided, or can be derived from:\n"
+                       # + "\t- unique ids: {}\n".format(dsig.keys())
+                       # + "\t- unique non-t, 1d radius: {}".format(lsplot))
+                # raise Exception(msg)
+            # plot_X = lsplot
+        # if type(plot_X) is str:
+            # plot_X = [plot_X]
+    # return plot, plot_X, plot_sig
 
 
 # #############################################################################
@@ -676,7 +1224,8 @@ def data_checkformat_tlim(t, tlim=None,
         tlim = False
 
     # Compute
-    indt = np.ones((t.size,), dtype=bool)
+    nt0 = t.size
+    indt = np.ones((nt0,), dtype=bool)
     if tlim is not False:
         for ii in range(len(tlim)):
             if isinstance(tlim[ii], str):
@@ -689,7 +1238,7 @@ def data_checkformat_tlim(t, tlim=None,
     t = t[indt]
     if returnas is int:
         indt = np.nonzero(indt)[0]
-    return {'tlim': tlim, 'nt': t.size, 't': t, 'indt': indt}
+    return {'tlim': tlim, 'nt': t.size, 't': t, 'indt': indt, 'nt0': nt0}
 
 
 def data_checkformat_dsig(ids=None, dsig=None, data=None, X=None,

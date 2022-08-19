@@ -322,6 +322,8 @@ setup(
         "requests",
         "cython>=0.26",
         "svg.path",
+        "Polygon3",
+        "datastock>=0.0.17",
     ],
     python_requires=">=3.6",
 
@@ -354,7 +356,7 @@ setup(
             "*.py", "*.txt", ".svg", ".npz"
         ],
         "tofu.tests.tests04_spectro.test_data": ["*.npz"],
-        "tofu.tests.tests06_mesh.test_data": ['*.txt'],
+        "tofu.tests.tests06_mesh.test_data": ['*.txt', '*.npz'],
         "tofu.geom.inputs": ["*.txt"],
         "tofu.mag.mag_ripple": ['*.sh', '*.f']
     },
