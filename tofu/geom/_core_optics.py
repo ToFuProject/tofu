@@ -2062,7 +2062,7 @@ class CrystalBragg(utils.ToFuObject):
         self.update_non_parallelism(alpha=0., beta=0.)
         if use_non_parallelism:
             self.update_non_parallelism(alpha=alpha0, beta=0.)
-        #T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
+        # T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
         dout = _rockingcurve.CrystBragg_comp_lattice_spacing(
             crystal=crystal, din=din,
             lamb=self.dbragg['lambref']*1e10,
