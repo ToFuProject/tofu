@@ -12,6 +12,7 @@ import datastock as ds
 
 # tofu
 from . import _class2_Camera
+from . import _class2_check
 from . import _class3_check
 from . import _class3_compute
 
@@ -36,13 +37,19 @@ class Crystal(_class2_Camera.Camera):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
-    _dshow = {
+    _dshow = dict(_class2_Camera.Camera._dshow)
+    _dshow.update({
         'crystal': [
-            'type', 'material',
-            'rcurve', 'miller',
-            'cent',
+            'dgeom.type',
+            'dgeom.curve_r',
+            'dgeom.area',
+            'dmat.name',
+            'dmat.miller',
+            'dgeom.outline',
+            'dgeom.poly',
+            'dgeom.cent',
         ],
-    }
+    })
 
     def add_crystal(
         self,
@@ -81,7 +88,7 @@ class Crystal(_class2_Camera.Camera):
         key = list(dobj['crystal'].keys())[0]
 
         # material
-        dmat = _class3_check._dmat(
+        dobj['crystal'][key]['dmat'] = _class3_check._dmat(
             dgeom=dobj['crystal'][key]['dgeom'],
             dmat=dmat,
             alpha=alpha,
@@ -89,17 +96,17 @@ class Crystal(_class2_Camera.Camera):
         )
 
         # spectro
-        dspectro = _class3_check._dspectro(
-            dobj=dobj,
-            dspectro=dspectro,
-        )
+        # dspectro = _class3_check._dspectro(
+            # dobj=dobj,
+            # dspectro=dspectro,
+        # )
 
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
 
         # compute rocking curve
-        if dmat['ready_to_compute'] is True:
-            self.set_crystal_rocking_curve()
+        # if dmat['ready_to_compute'] is True:
+            # self.set_crystal_rocking_curve()
 
     def set_crystal_rocking_curve(
         self,

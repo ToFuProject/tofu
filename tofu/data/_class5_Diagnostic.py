@@ -37,7 +37,8 @@ class Diagnostic(_class4_Grating.Grating):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
-    _dshow = {
+    _dshow = dict(_class4_Grating.Grating._dshow)
+    _dshow.update({
         'diagnostic': [
             'type',
             'optics',
@@ -48,7 +49,7 @@ class Diagnostic(_class4_Grating.Grating):
             'spectrum',
             'time res.',
         ],
-    }
+    })
 
     def add_diagnostic(
         self,
@@ -63,7 +64,7 @@ class Diagnostic(_class4_Grating.Grating):
         # adding diag
 
         # check / format input
-        dref, ddata, dobj = _class2_check._diagnostics(
+        dref, ddata, dobj = _class5_check._diagnostics(
             coll=self,
             key=key,
             optics=optics,
@@ -113,7 +114,7 @@ class Diagnostic(_class4_Grating.Grating):
         If store = 'analytical' or 'numerical', overwrites the diag etendue
 
         """
-        _class2_compute._diag_compute_etendue(
+        _class5_compute._diag_compute_etendue(
             coll=self,
             key=key,
             analytical=analytical,
@@ -170,7 +171,7 @@ class Diagnostic(_class4_Grating.Grating):
 
         """
 
-        return _class2_compute._dplot(
+        return _class5_compute._dplot(
             coll=self,
             key=key,
             optics=optics,
@@ -193,7 +194,7 @@ class Diagnostic(_class4_Grating.Grating):
         connect=None,
     ):
 
-        return _class2_plot._plot_diagnostic(
+        return _class5_plot._plot_diagnostic(
             coll=self,
             key=key,
             optics=optics,

@@ -11,8 +11,8 @@ import scipy.interpolate
 
 _DCRYST = {
     'Quartz_110': {
-        'name': '110-Qz',
-        'symbol': 'Qz',
+        'name': 'Quartz_110',
+        'symbol': 'Qz110',
         'target_ion': 'Ar16+',
         'target_lamb': 3.96e-10,
         'atoms': ['Si', 'O'],
@@ -94,8 +94,8 @@ _DCRYST = {
         },
     },
     'Quartz_102': {
-        'name': '102-Qz',
-        'symbol': 'Qz',
+        'name': 'Quartz_102',
+        'symbol': 'Qz102',
         'target_ion': 'Ar17+',
         'target_lamb': 3.75e-10,
         'atoms': ['Si', 'O'],

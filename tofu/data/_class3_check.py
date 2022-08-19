@@ -7,7 +7,7 @@ import datastock as ds
 
 
 from . import _generic_check
-from ..geom import _rockingcurve_def
+from ..spectro import _rockingcurve_def
 
 
 _DMAT_KEYS = {
@@ -16,9 +16,9 @@ _DMAT_KEYS = {
     'target_ion': {'types': str},
     'target_lamb': {'types': float, 'sign': '> 0.'},
     'atoms': {'types': (list, np.ndarray), 'types_iter': str},
-    'atoms_Z': {'type': int, 'size': 2, 'sign': '> 0'},
-    'atoms_nb': {'type': int, 'size': 2, 'sign': '> 0'},
-    'miller': {'type': int, 'size': 3, 'sign': '> 0'},
+    'atoms_Z': {'dtype': int, 'size': 2, 'sign': '> 0'},
+    'atoms_nb': {'dtype': int, 'size': 2, 'sign': '> 0'},
+    'miller': {'dtype': int, 'size': 3, 'sign': '>= 0'},
     'alpha': {'types': float, 'default': 0., 'sign': '>= 0'},
     'beta': {'types': float, 'default': 0.},
     'mesh': {'types': dict},
@@ -49,7 +49,7 @@ def _dmat(
 
     # not mat
     if dmat is None:
-        return dobj
+        return dmat
 
     # known crystal
     ready_to_compute = False
@@ -67,13 +67,13 @@ def _dmat(
     # ---------------------
 
     # Check dict typeand content (each key is a valid string)
-    dmat = ds._check_dict_valid_keys(
+    dmat = ds._generic_check._check_dict_valid_keys(
         var=dmat,
         varname='dmat',
         has_all_keys=False,
         has_only_keys=False,
         keys_can_be_None=True,
-        dkey_types=dkey_types,
+        dkeys=_DMAT_KEYS,
     )
 
     dmat['ready_to_compute'] = ready_to_compute
@@ -131,7 +131,7 @@ def _dmat(
     # check sub-dict
     # -------------------------------
 
-    ldict = [k0 for k0, v0 in __DMAT_KEYS.items() if v0.get('types') is dict]
+    ldict = [k0 for k0, v0 in _DMAT_KEYS.items() if v0.get('types') is dict]
     for k0 in ldict:
         pass
     # TODO: implement further checks of sub-dict ?

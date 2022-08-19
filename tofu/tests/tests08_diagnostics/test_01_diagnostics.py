@@ -264,48 +264,137 @@ def _cameras():
         'e1': e1,
     }
 
-    return {'c0': c0, 'c1': c1, 'c2': c2}
+    return {'cam0': c0, 'cam1': c1, 'cam2': c2}
+
+
+def _crystals():
+
+    start, vect, v0, v1 = _ref_line()
+
+    # cryst0: planar
+    cent = start + 0.01 * vect
+
+    nin, e0, e1 = _nine0e1_from_orientations(
+        vect=vect,
+        v0=v0,
+        v1=v1,
+        theta=50*np.pi/180,
+        phi=0.,
+    )
+
+    c0 = {
+        'dgeom': {
+            'cent': cent,
+            'nin': nin,
+            'e0': e0,
+            'e1': e1,
+            'extenthalf': [5e-2, 10e-2],
+            'curve_r': np.inf,
+        },
+        'dmat': None,
+    }
+
+    # c1: cylindrical
+    rc = 2.
+    c1 = {
+        'dgeom': {
+            'cent': cent,
+            'nin': nin,
+            'e0': e0,
+            'e1': e1,
+            'extenthalf': [10e-2, 10e-2 / rc],
+            'curve_r': [np.inf, rc],
+        },
+        'dmat': 'Quartz_110',
+    }
+
+    # c2: spherical
+    rc = 2.
+    c2 = {
+        'dgeom': {
+            'cent': cent,
+            'nin': nin,
+            'e0': e0,
+            'e1': e1,
+            'extenthalf': [10e-2, 10e-2 / rc],
+            'curve_r': rc,
+        },
+        'dmat': 'Quartz_110',
+    }
+
+    # c3: toroidall
+    rc = 2.
+    c3 = {
+        'dgeom': {
+            'cent': cent,
+            'nin': nin,
+            'e0': e0,
+            'e1': e1,
+            'extenthalf': [10e-2, 10e-2 / rc],
+            'curve_r': [rc, rc/4.],
+        },
+        'dmat': 'Quartz_110',
+    }
+
+    return {
+        'cryst0': c0,
+        'cryst1': c1,
+        'cryst2': c2,
+        # 'cryst3': c3,
+    }
 
 
 def _diagnostics():
 
     # d0: single 1d camera
-    d0 = {'optics': 'c0'}
+    d0 = {'optics': 'cam0'}
 
     # d1: single 2d camera
-    d1 = {'optics': 'c1', 'resolution': 0.2}
+    d1 = {'optics': 'cam1', 'resolution': 0.2}
 
     # d2: single 2d camera
-    d2 = {'optics': 'c2'}
+    d2 = {'optics': 'cam2'}
 
     # d3: 1d + 1 aperture
-    d3 = {'optics': ('c0', 'ap0')}
+    d3 = {'optics': ('cam0', 'ap0')}
 
     # d4: 2d + 1 aperture
-    d4 = {'optics': ('c1', 'ap0')}
+    d4 = {'optics': ('cam1', 'ap0')}
 
     # d5: 2d + 1 aperture
-    d5 = {'optics': ('c2', 'ap0')}
+    d5 = {'optics': ('cam2', 'ap0')}
 
     # d6: 1d + multiple apertures
-    d6 = {'optics': ('c0', 'ap0', 'ap1', 'ap2')}
+    d6 = {'optics': ('cam0', 'ap0', 'ap1', 'ap2')}
 
     # d7: 1d parallel coplanar + multiple apertures
-    d7 = {'optics': ('c1', 'ap0', 'ap1', 'ap2')}
+    d7 = {'optics': ('cam1', 'ap0', 'ap1', 'ap2')}
 
     # d8: 2d + multiple apertures
-    d8 = {'optics': ('c2', 'ap0', 'ap1', 'ap2')}
+    d8 = {'optics': ('cam2', 'ap0', 'ap1', 'ap2')}
+
+    # # d9: 2d + spherical crystal
+    # d9 = {'optics': ('c3','cryst0')}
+
+    # # d10: 2d + cylindrical crystal + slit
+    # d10 = {'optics': ('c3','cryst1', 'slit0')}
+
+    # # d11: 2d + toroidal crystal + slit
+    # d11 = {'optics': ('c3','cryst2', 'slit1')}
 
     return {
-        'd0': d0,
-        'd1': d1,
-        'd2': d2,
-        'd3': d3,
-        'd4': d4,
-        'd5': d5,
-        'd6': d6,
-        'd7': d7,
-        'd8': d8,
+        'diag0': d0,
+        'diag1': d1,
+        'diag2': d2,
+        'diag3': d3,
+        'diag4': d4,
+        'diag5': d5,
+        'diag6': d6,
+        'diag7': d7,
+        'diag8': d8,
+        # 'd9': d9,
+        # 'd10': d10,
+        # 'd11': d11,
     }
 
 
@@ -323,20 +412,28 @@ class Test01_Diagnostic():
         # get dict
         dapertures = _apertures()
         dcameras = _cameras()
+        dcrystals = _crystals()
         ddiag = _diagnostics()
 
         # instanciate
         self.obj = tf.data.Diagnostic()
 
+        # add apertures
         for k0, v0 in dapertures.items():
             self.obj.add_aperture(key=k0, **v0)
 
+        # add cameras
         for k0, v0 in dcameras.items():
-            if k0 in ['c0', 'c1']:
+            if k0 in ['cam0', 'cam1']:
                 self.obj.add_camera_1d(key=k0, **v0)
             else:
                 self.obj.add_camera_2d(key=k0, **v0)
 
+        # add crystals
+        for k0, v0 in dcrystals.items():
+            self.obj.add_crystal(key=k0, **v0)
+
+        # add diagnostics
         for k0, v0 in ddiag.items():
             self.obj.add_diagnostic(key=k0, **v0)
 
@@ -345,7 +442,7 @@ class Test01_Diagnostic():
 
     def test01_etendues(self, res=np.r_[0.005, 0.003, 0.001]):
         for k0, v0 in self.obj.dobj['diagnostic'].items():
-            if k0 in ['d0', 'd1', 'd2']:
+            if int(k0[1:]) < 3 or v0['spectro'] is not False:
                 continue
             self.obj.compute_diagnostic_etendue(
                 key=k0,
@@ -362,6 +459,10 @@ class Test01_Diagnostic():
 
         # camera
         for k0, v0 in self.obj.dobj['camera'].items():
+            dout = self.obj.get_optics_outline(k0)
+
+        # crystals
+        for k0, v0 in self.obj.dobj['crystal'].items():
             dout = self.obj.get_optics_outline(k0)
 
     def test03_plot(self):

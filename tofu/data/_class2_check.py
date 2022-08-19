@@ -40,6 +40,8 @@ def _add_surface3d(
     nin=None,
     e0=None,
     e1=None,
+    # extenthalf
+    extenthalf=None,
     # curvature
     curve_r=None,
     curve_npts=None,
@@ -49,7 +51,9 @@ def _add_surface3d(
     # check inputs
 
     # key
-    key = _obj_key(coll=coll, which=which, short=which_short, key=key)
+    key = ds._generic_check._obj_key(
+        d0=coll.dobj.get(which, {}), short=which_short, key=key,
+    )
 
     # geometry
     (
@@ -59,6 +63,7 @@ def _add_surface3d(
         nin, e0, e1,
         area, curve_r, gtype,
     ) = _utils_surface3d._surface3d(
+        key=key,
         # 2d outline
         outline_x0=outline_x0,
         outline_x1=outline_x1,
@@ -67,12 +72,12 @@ def _add_surface3d(
         poly_x=poly_x,
         poly_y=poly_y,
         poly_z=poly_z,
-        # extenthalf
-        extenthalf=extenthalf,
         # normal vector at cent
         nin=nin,
         e0=e0,
         e1=e1,
+        # extenthalf
+        extenthalf=extenthalf,
         # curvature
         curve_r=curve_r,
         curve_npts=curve_npts,
@@ -127,7 +132,7 @@ def _add_surface3d(
             'units': 'm',
         },
     }
-    if planar:
+    if gtype == 'planar':
         ddata.update({
             kp0: {
                 'data': outline_x0,
@@ -253,7 +258,9 @@ def _camera_1d_check(
     # ----
     # key
 
-    key = _obj_key(coll=coll, which='camera', short='cam', key=key)
+    key = ds._generic_check._obj_key(
+        d0=coll.dobj.get('camera', {}), short='cam', key=key,
+    )
 
     # ---------
     # outline
@@ -341,9 +348,9 @@ def _camera_1d_check(
     if c0:
         parallel = True
         nin, e0, e1 = ds._generic_check._check_vectbasis(
-            e0=nin,
-            e1=e0,
-            e2=e1,
+            e0=np.r_[nin_x, nin_y, nin_z],
+            e1=np.r_[e0_x, e0_y, e0_z],
+            e2=np.r_[e1_x, e1_y, e1_z],
             dim=3,
         )
 
@@ -752,7 +759,9 @@ def _camera_2d_check(
     # ----
     # key
 
-    key = _obj_key(coll=coll, which='camera', short='cam', key=key)
+    key = ds._generic_check._obj_key(
+        d0=coll.dobj.get('camera', {}), short='cam', key=key,
+    )
 
     # ---------
     # outline
@@ -1143,7 +1152,7 @@ def _return_as_dict(
 
         dout = {}
         for k0 in key:
-            ap = coll.dobj['aperture'][k0]
+            ap = coll.dobj['aperture'][k0]['dgeom']
             dout[k0] = {
                 'cent': ap['cent'],
                 'poly_x': coll.ddata[ap['poly'][0]]['data'],

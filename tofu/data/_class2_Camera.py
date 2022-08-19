@@ -36,11 +36,16 @@ class Camera(_class1_Rays.Rays):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
-    _dshow = {
+
+    _dshow = dict(_class1_Rays.Rays._dshow)
+    _dshow.update({
         'aperture': [
-            'type', 'curve_r', 'area',
-            'outline', 'poly',
-            'cent',
+            'dgeom.type',
+            'dgeom.curve_r',
+            'dgeom.area',
+            'dgeom.outline',
+            'dgeom.poly',
+            'dgeom.cent',
         ],
         'camera': [
             'type', 'parallel',
@@ -52,7 +57,7 @@ class Camera(_class1_Rays.Rays):
             'qeff',
             'model',
         ],
-    }
+    })
 
     def add_aperture(
         self,

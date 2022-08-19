@@ -35,13 +35,14 @@ class Grating(_class3_Crystal.Crystal):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
-    _dshow = {
+    _dshow = dict(_class3_Crystal.Crystal._dshow)
+    _dshow.update({
         'grating': [
             'type', 'material',
             'rcurve', 'miller',
             'cent',
         ],
-    }
+    })
 
     def add_grating(
         self,

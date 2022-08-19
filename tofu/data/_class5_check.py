@@ -20,7 +20,9 @@ def _diagnostics_check(
     # ----
     # key
 
-    key = _obj_key(coll=coll, which='diagnostic', short='diag', key=key)
+    key = ds._generic_check._obj_key(
+        d0=coll.dobj.get('diagnostic', {}), short='diag', key=key,
+    )
 
     # ------
     # optics
@@ -30,11 +32,13 @@ def _diagnostics_check(
 
     lcam = list(coll.dobj.get('camera', {}).keys())
     lap = list(coll.dobj.get('aperture', {}).keys())
+    lcryst = list(coll.dobj.get('crystal', {}).keys())
+    lgrat = list(coll.dobj.get('grating', {}).keys())
     optics = ds._generic_check._check_var_iter(
         optics, 'optics',
         types_iter=str,
         types=tuple,
-        allowed=lcam + lap,
+        allowed=lcam + lap + lcryst + lgrat,
     )
 
     # check starts with camera
@@ -57,7 +61,14 @@ def _diagnostics_check(
     cam = optics[0]
     for oo in optics[1:]:
 
-        px, py, pz = coll.dobj['aperture'][oo]['poly']
+        if oo in lap:
+            cls = 'aperture'
+        elif oo in lcryst:
+            cls = 'crystal'
+        else:
+            cls = 'grating'
+
+        px, py, pz = coll.dobj[cls][oo]['dgeom']['poly']
         px = coll.ddata[px]['data']
         py = coll.ddata[py]['data']
         pz = coll.ddata[pz]['data']
@@ -100,7 +111,7 @@ def _diagnostics_check(
             ) <= 0
             if np.any(iout):
                 msg = (
-                    f"The following points of aperture '{oo}' are on the wrong"
+                    f"The following points of {cls} '{oo}' are on the wrong"
                     f"side of camera '{cam}':\n"
                     f"{np.unique(iout.nonzero()[0])}"
                 )

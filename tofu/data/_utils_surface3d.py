@@ -15,6 +15,7 @@ from ..geom._comp_solidangles import _check_polygon_2d, _check_polygon_3d
 
 
 def _surface3d(
+    key=None,
     # 2d outline
     outline_x0=None,
     outline_x1=None,
@@ -46,8 +47,8 @@ def _surface3d(
     # unit vectors
 
     # nin has to be provided
-    nin = ds._generic_chec._check_flat1darray(
-        var=nin, var_name='nin', dtype=float, size=3, norm=True,
+    nin = ds._generic_check._check_flat1darray(
+        var=nin, varname='nin', dtype=float, size=3, norm=True,
     )
 
     nin, e0, e1 = ds._generic_check._check_vectbasis(
@@ -100,29 +101,28 @@ def _surface3d(
         poly_y = cent[1] + outline_x0 * e0[1] + outline_x1 * e1[1]
         poly_z = cent[2] + outline_x0 * e0[2] + outline_x1 * e1[2]
 
+        gtype = 'planar'
+
     # ----------
     # curvature
 
     if lc[1]:
 
-        curve_r = np.atleast_1d(curve_r).ravel().astype(float)
-
-        c0 = (
-            np.any(isnan(curve_r))
-            or curve_r.size > 2
+        curve_r = ds._generic_check._check_flat1darray(
+            curve_r, 'curve_r', size=[1, 2], dtype=float,
         )
-        if c0:
+
+        if np.any(np.isnan(curve_r)):
             msg = (
-                "Arg curve_r for 3d surface '{key}' must:\n"
+                f"Arg curve_r for 3d surface '{key}' must:\n"
                 "\t- be array-like of floats\n"
                 "\t- be of size <= 2\n"
-                "Provided: {curve_r}"
+                f"Provided: {curve_r}"
             )
             raise Exception(msg)
 
         if curve_r.size == 1:
-            gtype = 'cylindrical'
-            curve_r = np.r_[curve_r[0], np.inf]
+            curve_r = np.r_[curve_r, curve_r]
 
         ninf = np.isinf(curve_r).sum()
         if ninf == 1:
@@ -143,12 +143,18 @@ def _surface3d(
             extenthalf=extenthalf,
         )
 
+        # outline if planar
+        if gtype == 'planar':
+            outline_x0 = extenthalf[0]*np.r_[-1, 1, 1, -1]
+            outline_x1 = extenthalf[1]*np.r_[-1, -1, 1, 1]
+
         # poly
-        poly_x, poly_y, poly_z = get_curved_poly(
+        poly_x, poly_y, poly_z = _get_curved_poly(
             gtype=gtype,
             curve_r=curve_r,
             curve_npts=curve_npts,
             extenthalf=extenthalf,
+            cent=cent,
             nin=nin,
             e0=e0,
             e1=e1,
@@ -175,6 +181,7 @@ def _surface3d(
     if lc[2]:
 
         gtype, outline_x0, outline_x1, area = _get_outline_from_poly(
+            key=key,
             cent=cent,
             poly_x=poly_x,
             poly_y=poly_y,
@@ -214,17 +221,19 @@ def _get_curved_area(
     if gtype == 'cylindrical':
         iplan = np.isinf(curve_r).nonzero()[0][0]
         icurv = 1 - iplan
+        rc = curve_r[icurv]
 
-        area = (
-            2. * extenthalf[iplan]
-            * curve_r[icurv] * 2.* extenthalf[icurv]
-        )
+        area = 2. * extenthalf[iplan] * rc * 2.* extenthalf[icurv]
 
     elif gtype == 'spherical':
-        pass
+        rc = curve_r[0]
+        ind = np.argmax(extenthalf)
+        dphi = extenthalf[ind]
+        sindtheta = np.sin(extenthalf[ind-1])
+        area = 4.* rc** 2 * dphi * sindtheta
 
     elif gtype == 'toroidal':
-        pass
+        raise NotImplementedError
 
     return area
 
@@ -270,7 +279,9 @@ def _get_curved_poly(
     if gtype == 'cylindrical':
         iplan = np.isinf(curve_r).nonzero()[0][0]
         icurv = 1 - iplan
-        centbis = cent + curve_r * nin
+        rc = curve_r[icurv]
+
+        centbis = cent + rc * nin
         ee = [e0, e1]
 
         if iplan == 0:
@@ -285,20 +296,21 @@ def _get_curved_poly(
         vy = np.cos(ang) * (-nin[1]) + np.sin(ang) * ee[icurv][1]
         vz = np.cos(ang) * (-nin[2]) + np.sin(ang) * ee[icurv][2]
 
-        poly_x = centbis[0] + bplan * ee[itrans][0] + curve_r * vx
-        poly_y = centbis[1] + bplan * ee[itrans][1] + curve_r * vy
-        poly_z = centbis[2] + bplan * ee[itrans][2] + curve_r * vz
+        poly_x = centbis[0] + bplan * ee[iplan][0] + rc * vx
+        poly_y = centbis[1] + bplan * ee[iplan][1] + rc * vy
+        poly_z = centbis[2] + bplan * ee[iplan][2] + rc * vz
 
     # spherical
     elif gtype == 'spherical':
 
-        centbis = cent + curve_r * nin
+        rc = curve_r[0]
+        centbis = cent + rc * nin
         dtheta = (
-            extenhalf[0]
+            extenthalf[0]
             * np.r_[-1, ang_add, 1, add, 1, -ang_add, -1, -add]
         )
         psi = (
-            extenhalf[1]
+            extenthalf[1]
             * np.r_[-1, -add, -1, ang_add, 1, add, 1, -ang_add]
         )[None, :]
 
@@ -307,9 +319,9 @@ def _get_curved_poly(
         vy = np.cos(dtheta) * vpsi[1, :] + np.sin(dtheta) * e1[1]
         vz = np.cos(dtheta) * vpsi[2, :] + np.sin(dtheta) * e1[2]
 
-        poly_x = centbis[0] + curve_r * vx
-        poly_y = centbis[1] + curve_r * vy
-        poly_z = centbis[2] + curve_r * vz
+        poly_x = centbis[0] + rc * vx
+        poly_y = centbis[1] + rc * vy
+        poly_z = centbis[2] + rc * vz
 
     # toroidal
     elif gtype == 'toroidal':
@@ -351,6 +363,7 @@ def _get_curved_poly(
 
 
 def _get_outline_from_poly(
+    key=None,
     cent=None,
     poly_x=None,
     poly_y=None,
@@ -408,6 +421,7 @@ def _get_outline_from_poly(
 
     else:
         gtype = '3d'
+        outline_x0, outline_x1 = None, None
         area = np.nan
 
     return gtype, outline_x0, outline_x1, area

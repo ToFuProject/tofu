@@ -46,6 +46,7 @@ class Plasma2D(ds.DataStock):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
+    _dshow = {}
 
     _which_mesh = _WHICH_MESH
     _quant_R = _QUANT_R
