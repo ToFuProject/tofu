@@ -18,6 +18,8 @@ import scipy.stats as scpstats
 import datetime as dtm
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import datastock as ds
+
 
 # ToFu-specific
 from tofu import __version__ as __version__
@@ -30,6 +32,7 @@ from . import _check_optics
 from . import _comp_optics as _comp_optics
 from . import _plot_optics as _plot_optics
 import tofu.spectro._rockingcurve as _rockingcurve
+import tofu.spectro._rockingcurve_def as _rockingcurve_def
 
 
 __all__ = ['CrystalBragg']
@@ -802,22 +805,29 @@ class CrystalBragg(utils.ToFuObject):
             fs=fs, ax=ax, legend=legend)
 
     def compute_rockingcurve(
-        self, ih=None, ik=None, il=None, lamb=None,
-        use_non_parallelism=None, na=None,
+        self,
+        crystal=None, din=None,
+        lamb=None,
+        use_non_parallelism=None, nn=None,
         alpha_limits=None,
-        therm_exp=None, plot_therm_exp=None,
+        therm_exp=None,
+        temp_limits=None,
+        plot_therm_exp=None,
         plot_asf=None, plot_power_ratio=None,
         plot_asymmetry=None, plot_cmaps=None,
-        verb=None, returnas=None,
+        returnas=None,
     ):
         return _rockingcurve.compute_rockingcurve(
-            ih=ih, ik=ik, il=il, lamb=lamb,
-            use_non_parallelism=use_non_parallelism, na=na,
+            crystal=crystal, din=din,
+            lamb=lamb,
+            use_non_parallelism=use_non_parallelism, nn=nn,
             alpha_limits=alpha_limits,
-            therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
+            therm_exp=therm_exp,
+            temp_limits=temp_limits,
+            plot_therm_exp=plot_therm_exp,
             plot_asf=plot_asf, plot_power_ratio=plot_power_ratio,
             plot_asymmetry=plot_asymmetry, plot_cmaps=plot_cmaps,
-            verb=None, returnas=None,
+            returnas=None,
         )
 
     def plot_var_temp_changes_wavelengths(
@@ -1935,17 +1945,24 @@ class CrystalBragg(utils.ToFuObject):
             return xi, xj
 
     def plot_line_on_det_tracing(
-        self, lamb=None, n=None,
-        nphi2=None,
+        self,
+        # Options of basic method
+        dcryst=None,
+        n=None, nphi2=None,
         det=None, johann=None,
         lpsi=None, ldtheta=None,
-        ih=None, ik=None, il=None,
-        dcryst=None,
+        # Type of crystal
+        crystal=None, din=None,
+        # Wavelength
+        lamb=None,
+        # Options of crystal modifications
         merge_rc_data=None,
         use_non_parallelism=None,
         therm_exp=None,
         alpha_limits=None, na=None,
         alpha0=None, temp0=None,
+        temp_limits=None,
+        # Plot
         plot_rcs=None,
         strict=None,
         plot=None, ax=None,
@@ -1959,9 +1976,6 @@ class CrystalBragg(utils.ToFuObject):
             - lamb: array of min size 1, in 1e-10 [m]
             - det: dict
             - johann: bool
-            - ih, ik, il: floats
-                Give the Miller indices corresponding to the material type of
-                crystal used on tofu/spectro/_rockingcurve.py
             - merge_rc_data: bool
                 use tf/spectro/_rockingucurve.py to plot in transparency ranges
                 the angular extent of each wavelength traces
@@ -1985,6 +1999,17 @@ class CrystalBragg(utils.ToFuObject):
         """
 
         # Check / format inputs
+        lok = [
+            k0 for k0 in _rockingcurve_def._DCRYST.keys()
+            if 'xxx' not in k0.lower()
+        ]
+        crystal = ds._generic_check._check_var(
+            crystal, 'crystal',
+            types=str,
+            allowed=lok,
+        )
+        din = _rockingcurve_def._DCRYST[crystal]
+
         if merge_rc_data is None:
             merge_rc_data = False
         if lamb is None and merge_rc_data is False:
@@ -1997,10 +2022,6 @@ class CrystalBragg(utils.ToFuObject):
                 3.949067e-10, 3.965858e-10, 3.969356e-10,
                 3.994145e-10, 3.989810e-10,
             ]
-        if ih is None and ik is None and il is None:
-            ih = 1.
-            ik = 1.
-            il = 0.
         lamb = np.atleast_1d(lamb).ravel()
         nlamb = lamb.size
         if use_non_parallelism is None:
@@ -2013,6 +2034,8 @@ class CrystalBragg(utils.ToFuObject):
             rocking = False
         if alpha_limits is None:
             alpha_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
+        if temp_limits is None:
+            temp_limits = np.r_[-10, 10, 25]
         if na is None:
             na = 41
         nn = (na/2.)
@@ -2039,13 +2062,22 @@ class CrystalBragg(utils.ToFuObject):
         self.update_non_parallelism(alpha=0., beta=0.)
         if use_non_parallelism:
             self.update_non_parallelism(alpha=alpha0, beta=0.)
-        (
-            T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
-        ) = _rockingcurve.CrystBragg_comp_lattice_spacing(
-            ih=ih, ik=ik, il=il, lamb=self.dbragg['lambref']*1e10,
+        # T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
+        dout = _rockingcurve.CrystBragg_comp_lattice_spacing(
+            crystal=crystal, din=din,
+            lamb=self.dbragg['lambref']*1e10,
             na=na, nn=nn,
-            therm_exp=therm_exp, plot_therm_exp=False,
+            therm_exp=therm_exp,
+            temp_limits=temp_limits,
+            plot_therm_exp=False,
         )
+        T0 = dout['Temperature of reference (°C)']
+        TD = dout['Temperature variations (°C)']
+        Volume = dout['Volume (1/m3)']
+        d_atom = dout['Inter-reticular spacing (A)']
+        sol = dout['sinus over lambda']
+        theta = dout['theta_Bragg (rad)']
+        theta_deg = dout['theta_Bragg (deg)']
 
         def find_nearest(array, value):
             array = np.asarray(array)
@@ -2094,6 +2126,7 @@ class CrystalBragg(utils.ToFuObject):
                 strict=strict,
                 plot=False,
             )
+
         # Get johann-error raytracing (multiple positions on crystal)
         xi_er, xj_er = None, None
         if johann and not rocking:
@@ -2145,22 +2178,24 @@ class CrystalBragg(utils.ToFuObject):
             # diffraction pattern
             for ll in range(nlamb):
                 dout = _rockingcurve.compute_rockingcurve(
-                    ih=ih, ik=ik, il=il, lamb=lamb[ll]*1e10,
+                    crystal=crystal, din=din,
+                    lamb=lamb[ll]*1e10,
                     use_non_parallelism=use_non_parallelism,
                     therm_exp=therm_exp,
+                    temp_limits=temp_limits,
                     plot_therm_exp=plot_rcs,
-                    alpha_limits=alpha_limits, na=None,
+                    alpha_limits=alpha_limits, nn=None,
                     plot_asf=False, plot_power_ratio=plot_rcs,
                     plot_asymmetry=False, plot_cmaps=False,
-                    verb=False, returnas=dict,
+                    returnas=dict,
                 )
                 TD = np.zeros((na,), dtype=float)
                 if therm_exp:
-                    TD = dout['Temperature changes (°C)\n']
+                    TD = dout['Temperature changes (°C)']
                 nT = TD.size
                 angles = np.zeros((na,), dtype=float)
                 if use_non_parallelism:
-                    angles = dout['Non-parallelism angles (deg)\n']
+                    angles = dout['Miscut angles (deg)']
                 nangles = angles.size
                 power_ratio = np.resize(power_ratio, (
                     nlamb,
