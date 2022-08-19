@@ -13,6 +13,7 @@ import datastock as ds
 # tofu
 from . import _class2_Camera
 from . import _class3_check
+from . import _class3_compute
 
 
 __all__ = ['Crystal']
@@ -50,6 +51,8 @@ class Crystal(_class2_Camera.Camera):
         dgeom=None,
         # material
         dmat=None,
+        alpha=None,
+        beta=None,
         # spectro
         dspectro=None,
     ):
@@ -75,20 +78,39 @@ class Crystal(_class2_Camera.Camera):
             **dgeom,
         )
 
+        key = list(dobj['crystal'].keys())[0]
+
         # material
-        _class3_check._dmat(
-            dobj=dobj,
-            **dmat,
+        dmat = _class3_check._dmat(
+            dgeom=dobj['crystal'][key]['dgeom'],
+            dmat=dmat,
+            alpha=alpha,
+            beta=beta,
         )
 
         # spectro
-        _class3_check._dspectro(
+        dspectro = _class3_check._dspectro(
             dobj=dobj,
             dspectro=dspectro,
         )
 
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+        # compute rocking curve
+        if dmat['ready_to_compute'] is True:
+            self.set_crystal_rocking_curve()
+
+    def set_crystal_rocking_curve(
+        self,
+        key=None,
+        dbragg=None,
+        intensity=None,
+    ):
+        return _class3_compute.rocking_curve(
+            coll=self,
+            key=key,
+        )
 
     def get_crystal_ideal_configuration(
         self,

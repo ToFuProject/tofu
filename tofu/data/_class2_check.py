@@ -6,7 +6,6 @@ import scipy.constants as scpct
 import datastock as ds
 
 
-from ._utils_vectors import _check_unitvector, _check_nine0e1
 from . import _utils_surface3d
 from ..geom._comp_solidangles import _check_polygon_2d, _check_polygon_3d
 
@@ -152,15 +151,17 @@ def _add_surface3d(
     dobj = {
         which: {
             key: {
-                'type': gtype,
-                'curve_r': curve_r,
-                'outline': outline,
-                'poly': (kpx, kpy, kpz),
-                'area': area,
-                'cent': cent,
-                'nin': nin,
-                'e0': e0,
-                'e1': e1,
+                'dgeom': {
+                    'type': gtype,
+                    'curve_r': curve_r,
+                    'outline': outline,
+                    'poly': (kpx, kpy, kpz),
+                    'area': area,
+                    'cent': cent,
+                    'nin': nin,
+                    'e0': e0,
+                    'e1': e1,
+                },
             },
         },
     }
@@ -339,11 +340,12 @@ def _camera_1d_check(
     c0 = all([np.isscalar(vv[1]) for vv in lv])
     if c0:
         parallel = True
-        nin = _check_unitvector(uv=np.r_[nin_x, nin_y, nin_z], uv_name='nin')
-        e0 = _check_unitvector(uv=np.r_[e0_x, e0_y, e0_z], uv_name='e0')
-        e1 = _check_unitvector(uv=np.r_[e1_x, e1_y, e1_z], uv_name='e1')
-
-        nin, e0, e1 = _check_nine0e1(nin=nin, e0=e0, e1=e1, key=key)
+        nin, e0, e1 = ds._generic_check._check_vectbasis(
+            e0=nin,
+            e1=e0,
+            e2=e1,
+            dim=3,
+        )
 
     else:
 
@@ -818,11 +820,12 @@ def _camera_2d_check(
         raise Exception(msg)
 
     # particular case: scalar because common to all
-    nin = _check_unitvector(uv=nin, uv_name='nin')
-    e0 = _check_unitvector(uv=e0, uv_name='e0')
-    e1 = _check_unitvector(uv=e1, uv_name='e1')
-
-    nin, e0, e1 = _check_nine0e1(nin=nin, e0=e0, e1=e1, key=key)
+    nin, e0, e1 = ds._generic_check._check_vectbasis(
+        e0=nin,
+        e1=e0,
+        e2=e1,
+        dim=3,
+    )
 
     # ------------------
     # quantum efficiency

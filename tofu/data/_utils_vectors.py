@@ -10,21 +10,6 @@ import numpy as np
 # #################################################################
 
 
-def _check_unitvector(uv=None, uv_name=None):
-    try:
-        uv = np.atleast_1d(uv).ravel().astype(float)
-        assert uv.shape == (3,)
-    except Exception as err:
-        msg = str(err) + (
-            f"\nArg {uv_name} not convertible to (3,) float np.ndarray!"
-            "Provided: {uv}"
-        )
-        raise Exception(msg)
-
-    # enforce normalization
-    return uv / np.linalg.norm(uv)
-
-
 def _check_nine0e1(nin=None, e0=None, e1=None, key=None):
 
     # e0 or e0 provided => compute missing one

@@ -13,7 +13,8 @@ _DCRYST = {
     'Quartz_110': {
         'name': '110-Qz',
         'symbol': 'Qz',
-        'target': 'ArXVII ion (3.96 A)',
+        'target_ion': 'Ar16+',
+        'target_lamb': 3.96e-10,
         'atoms': ['Si', 'O'],
         'atoms_Z': [14., 8.],
         'atoms_nb': [3., 6.],
@@ -95,7 +96,8 @@ _DCRYST = {
     'Quartz_102': {
         'name': '102-Qz',
         'symbol': 'Qz',
-        'target': 'ArXVIII ion (3.75 A)',
+        'target_ion': 'Ar17+',
+        'target_lamb': 3.75e-10,
         'atoms': ['Si', 'O'],
         'atoms_Z': [14., 8.],
         'atoms_nb': [3., 6.],

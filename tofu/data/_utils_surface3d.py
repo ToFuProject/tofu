@@ -2,6 +2,7 @@
 
 
 import numpy as np
+import datastock as ds
 
 
 from ..geom._comp_solidangles import _check_polygon_2d, _check_polygon_3d
@@ -44,21 +45,17 @@ def _surface3d(
     # -----------
     # unit vectors
 
-    nin = _check_unitvector(uv=nin, uv_name='nin')
+    # nin has to be provided
+    nin = ds._generic_chec._check_flat1darray(
+        var=nin, var_name='nin', dtype=float, size=3, norm=True,
+    )
 
-    if e0 is None and e1 is None:
-        if np.abs(nin[2]) < 0.99:
-            e0 = np.r_[-nin[1], nin[0], 0.]
-        else:
-            e0 = np.r_[np.sign(nin[2]), 0., 0.]
-
-    if e0 is not None:
-        e0 = _check_unitvector(uv=e0, uv_name='e0')
-    if e1 is not None:
-        e1 = _check_unitvector(uv=e1, uv_name='e1')
-
-    if e0 is not None or e1 is not None:
-        nin, e0, e1 = _check_nine0e1(nin=nin, e0=e0, e1=e1, key=key)
+    nin, e0, e1 = ds._generic_check._check_vectbasis(
+        e0=nin,
+        e1=e0,
+        e2=e1,
+        dim=3,
+    )
 
     # -----------------------------
     # outline vs poly vs extenthalf
@@ -112,13 +109,12 @@ def _surface3d(
 
         c0 = (
             np.any(isnan(curve_r))
-            or np.any(curve_r <= 0.)
             or curve_r.size > 2
         )
         if c0:
             msg = (
                 "Arg curve_r for 3d surface '{key}' must:\n"
-                "\t- be array-like of strictly positive floats\n"
+                "\t- be array-like of floats\n"
                 "\t- be of size <= 2\n"
                 "Provided: {curve_r}"
             )
@@ -143,7 +139,7 @@ def _surface3d(
         # area
         area = _get_curved_area(
             gtype=gtype,
-            curve_r=curve_r,
+            curve_r=np.abs(curve_r),
             extenthalf=extenthalf,
         )
 
@@ -246,7 +242,7 @@ def _get_curved_poly(
 
     # ------------
     # check inputs
- 
+
     curve_npts = ds._generic_check._check_var(
         curve_npts, 'curve_npts',
         types=int,
