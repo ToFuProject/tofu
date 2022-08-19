@@ -100,13 +100,13 @@ def get_optics_outline(
     # --------
     # compute
 
-    if cls == 'aperture':
-        px, py, pz = coll.dobj['aperture'][key]['poly']
+    if cls in ['aperture', 'crystal', 'grating']:
+        px, py, pz = coll.dobj[cls][key]['poly']
         px = coll.ddata[px]['data']
         py = coll.ddata[py]['data']
         pz = coll.ddata[pz]['data']
 
-        if coll.dobj['aperture'][key]['planar'] is True:
+        if coll.dobj[cls][key]['type'] == 'planar':
             p0, p1 = coll.dobj['aperture'][key]['outline']
             p0 = coll.ddata[p0]['data']
             p1 = coll.ddata[p1]['data']

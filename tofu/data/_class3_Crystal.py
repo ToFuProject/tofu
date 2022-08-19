@@ -46,18 +46,12 @@ class Crystal(_class2_Camera.Camera):
     def add_crystal(
         self,
         key=None,
-        # 2d outline
-        outline_x0=None,
-        outline_x1=None,
-        cent=None,
-        # 3d outline
-        poly_x=None,
-        poly_y=None,
-        poly_z=None,
-        # normal vector
-        nin=None,
-        e0=None,
-        e1=None,
+        # geometry
+        dgeom=None,
+        # material
+        dmat=None,
+        # spectro
+        dspectro=None,
     ):
         """ Add a crystal
 
@@ -72,23 +66,61 @@ class Crystal(_class2_Camera.Camera):
         """
 
         # check / format input
-        dref, ddata, dobj = _class3_check._crystal(
+        dref, ddata, dobj = _class2_check._add_surface3d(
             coll=self,
             key=key,
+            which='crystal',
+            which_short='cryst',
             # 2d outline
-            outline_x0=outline_x0,
-            outline_x1=outline_x1,
-            cent=cent,
-            # 3d outline
-            poly_x=poly_x,
-            poly_y=poly_y,
-            poly_z=poly_z,
-            # normal vector
-            nin=nin,
-            e0=e0,
-            e1=e1,
+            **dgeom,
+        )
+
+        # material
+        _class3_check._dmat(
+            dobj=dobj,
+            **dmat,
+        )
+
+        # spectro
+        _class3_check._dspectro(
+            dobj=dobj,
+            dspectro=dspectro,
         )
 
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
 
+    def get_crystal_ideal_configuration(
+        self,
+        key=None,
+        configuration=None,
+        lamb=None,
+        bragg=None,
+    ):
+        """ Return the ideal positions of other elements for a configuration
+
+        'ideal' means:
+            - maximizing focalization
+            - for the chosen wavelength / bragg angle
+
+        'johann': for spherical crystals only
+            build the rowland circle and return the ideal detector position
+
+        'von hamos': for cylindrical only
+            build the axis and return
+             - slit position
+             - detector position given its height
+
+        'pinhole': for cylindrical only
+            buids the axis and return
+             - pinhole position
+             - detector position given its height
+        """
+
+        return _class3_compute._ideal_configuration(
+            coll=self,
+            key=key,
+            configuration=configuration,
+            lamb=lamb,
+            bragg=bragg,
+        )

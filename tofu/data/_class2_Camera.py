@@ -38,9 +38,9 @@ class Camera(_class1_Rays.Rays):
     _show_in_summary = 'all'
     _dshow = {
         'aperture': [
-            'planar', 'area',
+            'type', 'curve_r', 'area',
             'outline', 'poly',
-            'cent', 'dgeom.area2'
+            'cent',
         ],
         'camera': [
             'type', 'parallel',
@@ -69,6 +69,9 @@ class Camera(_class1_Rays.Rays):
         nin=None,
         e0=None,
         e1=None,
+        # curvature
+        curve_r=None,
+        curve_npts=None,
     ):
         """ Add an aperture
 
@@ -83,9 +86,11 @@ class Camera(_class1_Rays.Rays):
         """
 
         # check / format input
-        dref, ddata, dobj = _class2_check._aperture(
+        dref, ddata, dobj = _class2_check._add_surface3d(
             coll=self,
             key=key,
+            which='aperture',
+            which_short='ap',
             # 2d outline
             outline_x0=outline_x0,
             outline_x1=outline_x1,
@@ -98,6 +103,9 @@ class Camera(_class1_Rays.Rays):
             nin=nin,
             e0=e0,
             e1=e1,
+            # curvature
+            curve_r=curve_r,
+            curve_npts=curve_npts,
         )
 
         # update dicts
