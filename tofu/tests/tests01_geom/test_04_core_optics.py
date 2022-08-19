@@ -333,7 +333,7 @@ class Test01_Crystal(object):
             ])
             dax = obj.plot_line_on_det_tracing(
                 det=det,
-                crystal='110-Quartz',
+                crystal='Quartz_110',
                 merge_rc_data=True,
                 use_non_parallelism=False,
                 therm_exp=False,

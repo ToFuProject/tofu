@@ -18,6 +18,8 @@ import scipy.stats as scpstats
 import datetime as dtm
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import datastock as ds
+
 
 # ToFu-specific
 from tofu import __version__ as __version__
@@ -1997,24 +1999,16 @@ class CrystalBragg(utils.ToFuObject):
         """
 
         # Check / format inputs
-        if crystal is None:
-            msg = (
-                "You must choose a type of crystal from "
-                +"tofu/spectro/_rockingcurve_def.py to use among :\n"
-                + "\t - 110-Quartz:\n"
-                + "\t\t - target: ArXVII"
-                + "\t\t - Miller indices (h,k,l): (1,1,0)"
-                + "\t\t - Material: Quartz\n"
-                + "\t - 102-Quartz:\n"
-                + "\t\t - target: ArXVIII"
-                + "\t\t - Miller indices (h,k,l): (1,0,2)"
-                + "\t\t - Material: Quartz\n"
-            )
-            raise Exception(msg)
-        elif crystal == '110-Quartz':
-            din = _rockingcurve_def._DCRYST['110-Quartz']
-        elif crystal == '102-Quartz':
-            din = _rockingcurve_def._DCRYST['102-Quartz']
+        lok = [
+            k0 for k0 in _rockingcurve_def._DCRYST.keys()
+            if 'xxx' not in k0.lower()
+        ]
+        crystal = ds._generic_check._check_var(
+            crystal, 'crystal',
+            types=str,
+            allowed=lok,
+        )
+        din = _rockingcurve_def._DCRYST[crystal]
 
         if merge_rc_data is None:
             merge_rc_data = False

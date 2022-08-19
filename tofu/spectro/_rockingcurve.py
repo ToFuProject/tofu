@@ -944,9 +944,9 @@ def CrystBragg_comp_lattice_spacing(
         if cond0:
             a1[i] = a0*(1 + alpha_a*TD[i])
             c1[i] = c0*(1 + alpha_c*TD[i])
-            Volume[i] = _rockingcurve_def.hexa_volume(a=a1[i], c=c1[i])
+            Volume[i] = _rockingcurve_def.hexa_volume(a1[i], c1[i])
             d_atom[i] = _rockingcurve_def.hexa_spacing(
-                h=ih, k=ik, l=il, a=a1[i], c=c1[i],
+                ih, ik, il, a1[i], c1[i],
             )
         if d_atom[i] < lamb/2.:
             msg = (
