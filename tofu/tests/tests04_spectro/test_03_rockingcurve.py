@@ -113,7 +113,7 @@ class Test01_RockingCurve(object):
             dout = tfs.compute_rockingcurve(
                 crystal=k0,
                 lamb=np.r_[3.969067],
-                use_non_parallelism=False,
+                miscut=False,
                 alpha_limits=None,
                 therm_exp=False,
                 temp_limits=None,
