@@ -278,23 +278,25 @@ def _crystals():
         vect=vect,
         v0=v0,
         v1=v1,
-        theta=50*np.pi/180,
+        theta=-50*np.pi/180,
         phi=0.,
     )
 
+    size = 2.e-2
     c0 = {
         'dgeom': {
             'cent': cent,
             'nin': nin,
             'e0': e0,
             'e1': e1,
-            'extenthalf': [5e-2, 10e-2],
+            'extenthalf': size,
             'curve_r': np.inf,
         },
-        'dmat': None,
+        'dmat': 'Quartz_110',
     }
 
     # c1: cylindrical
+    size = 6.e-2
     rc = 2.
     c1 = {
         'dgeom': {
@@ -302,7 +304,7 @@ def _crystals():
             'nin': nin,
             'e0': e0,
             'e1': e1,
-            'extenthalf': [10e-2, 10e-2 / rc],
+            'extenthalf': size * np.r_[1, 1/rc],
             'curve_r': [np.inf, rc],
         },
         'dmat': 'Quartz_110',
@@ -316,7 +318,7 @@ def _crystals():
             'nin': nin,
             'e0': e0,
             'e1': e1,
-            'extenthalf': [10e-2, 10e-2 / rc],
+            'extenthalf': size * np.r_[1 / rc, 1 / rc],
             'curve_r': rc,
         },
         'dmat': 'Quartz_110',
@@ -330,8 +332,8 @@ def _crystals():
             'nin': nin,
             'e0': e0,
             'e1': e1,
-            'extenthalf': [10e-2, 10e-2 / rc],
-            'curve_r': [rc, rc/4.],
+            'extenthalf': size * np.r_[1 / (3.*rc/2.), 1 / (rc/2.)],
+            'curve_r': [rc, rc/2.],
         },
         'dmat': 'Quartz_110',
     }
@@ -340,7 +342,16 @@ def _crystals():
         'cryst0': c0,
         'cryst1': c1,
         'cryst2': c2,
-        # 'cryst3': c3,
+        'cryst3': c3,
+    }
+
+
+def _configurations():
+    return {
+        'cryst0': ['pinhole'],
+        'cryst1': ['pinhole', 'von hamos'],
+        'cryst2': ['pinhole', 'johann'],
+        'cryst3': [],
     }
 
 
@@ -413,6 +424,7 @@ class Test01_Diagnostic():
         dapertures = _apertures()
         dcameras = _cameras()
         dcrystals = _crystals()
+        dconfig = _configurations()
         ddiag = _diagnostics()
 
         # instanciate
@@ -429,25 +441,53 @@ class Test01_Diagnostic():
             else:
                 self.obj.add_camera_2d(key=k0, **v0)
 
+        # add diagnostics
+        for k0, v0 in ddiag.items():
+            self.obj.add_diagnostic(key=k0, **v0)
+
         # add crystals
         for k0, v0 in dcrystals.items():
             self.obj.add_crystal(key=k0, **v0)
 
-        # add diagnostics
-        for k0, v0 in ddiag.items():
-            self.obj.add_diagnostic(key=k0, **v0)
+        # add crystal optics
+        for k0, v0 in dcrystals.items():
+
+            for ii, cc in enumerate(dconfig[k0]):
+                loptics = self.obj.get_crystal_ideal_configuration(
+                    key=k0,
+                    configuration=cc,
+                    # parameters
+                    cam_on_e0=False,
+                    cam_tangential=True,
+                    cam_dimensions=[8e-2, 4e-2],
+                    pinhole_distance=2.,
+                    # store
+                    store=True,
+                    key_cam=f'{k0}-cam{ii}',
+                    aperture_dimensions=[8e-2, 100e-6],
+                    pinhole_radius=500e-6,
+                    cam_pixels_nb=[487, 195],
+                    # returnas
+                    returnas=list,
+                )
+
+                # add diag
+                self.obj.add_diagnostic(optics=loptics)
 
     # ----------
     # tests
 
     def test01_etendues(self, res=np.r_[0.005, 0.003, 0.001]):
         for k0, v0 in self.obj.dobj['diagnostic'].items():
-            if int(k0[1:]) < 3 or v0['spectro'] is not False:
+            if len(v0['optics']) == 1 or v0['spectro'] is not False:
                 continue
             self.obj.compute_diagnostic_etendue(
                 key=k0,
                 res=res,
+                numerical=True,
+                analytical=True,
                 check=True,
+                store=False,
             )
             plt.close('all')
 

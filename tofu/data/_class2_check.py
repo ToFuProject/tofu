@@ -61,7 +61,7 @@ def _add_surface3d(
         outline_x0, outline_x1,
         poly_x, poly_y, poly_z,
         nin, e0, e1,
-        area, curve_r, gtype,
+        extenthalf, area, curve_r, gtype,
     ) = _utils_surface3d._surface3d(
         key=key,
         # 2d outline
@@ -160,6 +160,7 @@ def _add_surface3d(
                     'type': gtype,
                     'curve_r': curve_r,
                     'outline': outline,
+                    'extenthalf': extenthalf,
                     'poly': (kpx, kpy, kpz),
                     'area': area,
                     'cent': cent,

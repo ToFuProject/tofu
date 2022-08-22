@@ -374,9 +374,9 @@ k102 = _DCRYST['Quartz_102']['miller'][1]
 l102 = _DCRYST['Quartz_102']['miller'][2]
 
 _DCRYST['Quartz_110']['volume'] = hexa_volume(a, c)
-_DCRYST['Quartz_110']['d_hkl'] = hexa_spacing(h110, k110, l110, a, c)
+_DCRYST['Quartz_110']['d_hkl'] = hexa_spacing(h110, k110, l110, a, c) * 1.e-10
 _DCRYST['Quartz_102']['volume'] = hexa_volume(a, c)
-_DCRYST['Quartz_102']['d_hkl'] = hexa_spacing(h102, k102, l102, a, c)
+_DCRYST['Quartz_102']['d_hkl'] = hexa_spacing(h102, k102, l102, a, c) * 1e-10
 
 
 # ---------------------------------

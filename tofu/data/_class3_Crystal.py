@@ -119,12 +119,52 @@ class Crystal(_class2_Camera.Camera):
             key=key,
         )
 
+    def get_crystal_bragglamb(
+        self,
+        key=None,
+        lamb=None,
+        bragg=None,
+        norder=None,
+    ):
+        """ Return bragg angle
+
+        If bragg provided, simply return bragg as np.ndarray
+
+        If lamb is provided return corresponding:
+            - bragg angle (simple bragg's law)
+            - bragg angle + reflectivity, interpolated on rocking_curve
+
+        """
+
+        return _class3_compute._bragglamb(
+            coll=self,
+            key=key,
+            lamb=lamb,
+            bragg=bragg,
+        )
+
     def get_crystal_ideal_configuration(
         self,
         key=None,
         configuration=None,
         lamb=None,
         bragg=None,
+        # parameters
+        cam_on_e0=None,
+        # johann-specific
+        cam_tangential=None,
+        # pinhole-specific
+        cam_dimensions=None,
+        pinhole_distance=None,
+        # store
+        store=None,
+        key_cam=None,
+        key_aperture=None,
+        aperture_dimensions=None,
+        pinhole_radius=None,
+        cam_pixels_nb=None,
+        # returnas
+        returnas=None,
     ):
         """ Return the ideal positions of other elements for a configuration
 
@@ -152,4 +192,20 @@ class Crystal(_class2_Camera.Camera):
             configuration=configuration,
             lamb=lamb,
             bragg=bragg,
+            # parameters
+            cam_on_e0=cam_on_e0,
+            # johann-specific
+            cam_tangential=cam_tangential,
+            # pinhole-specific
+            cam_dimensions=cam_dimensions,
+            pinhole_distance=pinhole_distance,
+            # store
+            store=store,
+            key_cam=key_cam,
+            key_aperture=key_aperture,
+            aperture_dimensions=aperture_dimensions,
+            pinhole_radius=pinhole_radius,
+            cam_pixels_nb=cam_pixels_nb,
+            # returnas
+            returnas=returnas,
         )

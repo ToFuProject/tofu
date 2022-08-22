@@ -77,7 +77,11 @@ class Diagnostic(_class4_Grating.Grating):
         # adding etendue
 
         key = list(dobj['diagnostic'].keys())[0]
-        if len(self.dobj['diagnostic'][key]['optics']) > 1:
+        c0 = (
+            len(self.dobj['diagnostic'][key]['optics']) > 1
+            and self.dobj['diagnostic'][key]['spectro'] is False
+        )
+        if c0:
             self.compute_diagnostic_etendue(
                 key=key,
                 analytical=True,

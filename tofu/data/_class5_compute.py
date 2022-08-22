@@ -83,7 +83,13 @@ def _dplot(
     # ------------
     # build dict
 
-    dlw = {'camera': 2, 'aperture': 1.}
+    dlw = {
+        'camera': 2,
+        'aperture': 1.,
+        'filter': 1.,
+        'crystal': 1.,
+        'grating': 1.,
+    }
     dplot = {k0: {} for k0 in optics}
     for k0 in optics:
 

@@ -37,9 +37,11 @@ def _diagnostics_check(
     optics = ds._generic_check._check_var_iter(
         optics, 'optics',
         types_iter=str,
-        types=tuple,
+        types=(tuple, list),
         allowed=lcam + lap + lcryst + lgrat,
     )
+    if isinstance(optics, list):
+        optics = tuple(optics)
 
     # check starts with camera
     if optics[0] not in lcam:
@@ -59,6 +61,7 @@ def _diagnostics_check(
     # check all optics are on good side of camera
 
     cam = optics[0]
+    last_ref = cam
     for oo in optics[1:]:
 
         if oo in lap:
@@ -73,7 +76,7 @@ def _diagnostics_check(
         py = coll.ddata[py]['data']
         pz = coll.ddata[pz]['data']
 
-        if is2d:
+        if last_ref == cam and is2d:
             cent = coll.dobj['camera'][cam]['cent']
             nin = coll.dobj['camera'][cam]['nin']
 
@@ -90,7 +93,7 @@ def _diagnostics_check(
                 )
                 raise Exception(msg)
 
-        else:
+        elif last_ref == cam:
             cx, cy, cz = coll.dobj['camera'][cam]['cents']
             cx = coll.ddata[cx]['data'][None, :]
             cy = coll.ddata[cy]['data'][None, :]
@@ -116,6 +119,29 @@ def _diagnostics_check(
                     f"{np.unique(iout.nonzero()[0])}"
                 )
                 raise Exception(msg)
+
+        else:
+            cent = coll.dobj[last_ref_cls][last_ref]['dgeom']['cent']
+            nin = coll.dobj[last_ref_cls][last_ref]['dgeom']['nin']
+
+            iout = (
+                (px - cent[0])*nin[0]
+                + (py - cent[1])*nin[1]
+                + (pz - cent[2])*nin[2]
+            ) <= 0
+            if np.any(iout):
+                msg = (
+                    f"The following points of optics '{oo}' are on the wrong"
+                    f"side of {last_ref_cls} '{last_ref}':\n"
+                    f"{iout.nonzero()[0]}"
+                )
+                raise Exception(msg)
+
+
+        # update last_ref ?
+        if cls in ['crystal', 'grating']:
+            last_ref = oo
+            last_ref_cls = cls
 
     # -----------------
     # compute los

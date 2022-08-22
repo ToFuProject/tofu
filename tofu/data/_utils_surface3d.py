@@ -111,6 +111,11 @@ def _surface3d(
         curve_r = ds._generic_check._check_flat1darray(
             curve_r, 'curve_r', size=[1, 2], dtype=float,
         )
+        extenthalf = ds._generic_check._check_flat1darray(
+            extenthalf, 'extenthalf', size=[1, 2], dtype=float,
+        )
+        if extenthalf.size == 1:
+            extenthalf = np.r_[extenthalf, extenthalf]
 
         if np.any(np.isnan(curve_r)):
             msg = (
@@ -199,7 +204,7 @@ def _surface3d(
         outline_x0, outline_x1,
         poly_x, poly_y, poly_z,
         nin, e0, e1,
-        area, curve_r, gtype,
+        extenthalf, area, curve_r, gtype,
     )
 
 
@@ -215,9 +220,11 @@ def _get_curved_area(
     extenthalf=None,
 ):
 
+    # planar
     if gtype == 'planar':
         area = 4. * extenthalf[0] * extenthalf[1]
 
+    # cylindrical
     if gtype == 'cylindrical':
         iplan = np.isinf(curve_r).nonzero()[0][0]
         icurv = 1 - iplan
@@ -225,15 +232,25 @@ def _get_curved_area(
 
         area = 2. * extenthalf[iplan] * rc * 2.* extenthalf[icurv]
 
+    # spherical
     elif gtype == 'spherical':
         rc = curve_r[0]
         ind = np.argmax(extenthalf)
         dphi = extenthalf[ind]
         sindtheta = np.sin(extenthalf[ind-1])
+
         area = 4.* rc** 2 * dphi * sindtheta
 
+    # toroidal
     elif gtype == 'toroidal':
-        raise NotImplementedError
+        imax = np.argmax(curve_r)
+        imin = 1 - imax
+        rmax = curve_r[imax]
+        rmin = curve_r[imin]
+        phi2 = extenthalf[imax]
+        theta2 = extenthalf[imin]
+
+        area = rmin * 2.*phi2 * (rmax*2*theta2 + 2*rmin*np.sin(theta2))
 
     return area
 
@@ -314,7 +331,7 @@ def _get_curved_poly(
             * np.r_[-1, -add, -1, ang_add, 1, add, 1, -ang_add]
         )[None, :]
 
-        vpsi = np.cos(psi) * nin[:, None] + np.sin(psi) * e0[:, None]
+        vpsi = np.cos(psi) * (-nin)[:, None] + np.sin(psi) * e0[:, None]
         vx = np.cos(dtheta) * vpsi[0, :] + np.sin(dtheta) * e1[0]
         vy = np.cos(dtheta) * vpsi[1, :] + np.sin(dtheta) * e1[1]
         vz = np.cos(dtheta) * vpsi[2, :] + np.sin(dtheta) * e1[2]
@@ -331,7 +348,6 @@ def _get_curved_poly(
         rmin = np.min(curve_r)
 
         cmax = cent + nin * (rmax + rmin)
-        ee = [e0, e1]
 
         if imax == 0:
             bmax = np.r_[-1, ang_add, 1, add, 1, -ang_add, -1, -add]
@@ -346,7 +362,7 @@ def _get_curved_poly(
         bmin *= extenthalf[imin]
 
         vmax = np.cos(bmax) * (-nin)[:, None] + np.sin(bmax) * emax[:, None]
-        cmin = centbis[:, None] + rmax * emax
+        cmin = cmax[:, None] + rmax * vmax
         vmin = np.cos(bmin) * vmax + np.sin(bmin) * emin[:, None]
 
         poly_x = cmin[0, :] + rmin * vmin[0, :]
