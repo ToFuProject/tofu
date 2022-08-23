@@ -297,11 +297,15 @@ class Test01_Crystal(object):
     def test10_get_lamb_avail_from_pts(self):
         for k0, obj in self.dobj.items():
             det = obj.get_detector_ideal()
+            cry_dpts = {}
+            cry_dpts['psi'] = 0
+            cry_dpts['dtheta'] = 0 
+            cry_dpts['phi'] = -9*np.pi/10.
             pts, vect = obj.get_rays_from_cryst(
-                phi=-9*np.pi/10., returnas='(pts, vect)',
+                cry_dpts = cry_dpts, returnas='(pts, vect)',
             )
             dist = obj.get_rowland_dist_from_lambbragg()
-            pts = pts + dist*np.r_[0.5, 1., 2][None, :]*vect[:, :, 0]
+            pts = pts + dist*np.r_[0.5, 1., 2][None, :]*vect[:, :]
             lamb, phi, dtheta, psi, xi, xj = obj.get_lamb_avail_from_pts(
                 pts=pts, det=det,
             )
