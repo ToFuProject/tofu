@@ -1774,8 +1774,8 @@ def calc_dthetade1_from_lambpts(
     # Calculates inverse tangent of bragg angle
     tb = np.tan(bragg.reshape(1,nlamb)) # dim (1,nlamb)
 
-    # Array of vertical locations to scan over
-    dtheta_1 = extenthalf[1]*np.linspace(-1,1,ndtheta) # [rad], dim (ndtheta,)
+    # Vertical extent to scan over
+    dtheta_1 = extenthalf[1]*np.linspace(-1,1,ndtheta) # dim (ndtheta,)
 
     # Calculates the distance from each point to the summit
     PC = np.transpose(pts-center) # dim (npts, 3)
@@ -1783,7 +1783,7 @@ def calc_dthetade1_from_lambpts(
     # Function for the angle between the source ray and crystal summit
     import scipy.optimize
     def func(x, *args):
-        PS = args[0] # dim (3,), need floats
+        PC = args[0] # dim (3,), need floats
         nout = args[1][0] # dim (3,)
         e1 = args[2][0] # dim (3,)
         e2 = args[3][0] # dim (3,)

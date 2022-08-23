@@ -1415,7 +1415,7 @@ class CrystalBragg(utils.ToFuObject):
         if lc[0]:
             # Calculates the position on the crystal, position of the detector, horizontal displacement on detector, and vertical displacement on detector
             # pts.shape = (3, nlamb, npts, ndtheta)
-            pts_summit, pts2, xi, xj= self.get_rays_from_cryst(
+            pts_summit, pts2, xi, xj = self.get_rays_from_cryst(
                 lamb=None, bragg=bragg,
                 n=n, use_non_parallelism=use_non_parallelism,
                 cry_dpts=cry_dpts,
@@ -1426,34 +1426,20 @@ class CrystalBragg(utils.ToFuObject):
                 grid=grid,
             )
 
-            if self._dgeom['Type'] == 'sph':
-                cry_dpts1 = cry_dpts
-                cry_dpts1['phi'] += np.pi
+            cry_dpts1 = cry_dpts
+            cry_dpts1['phi'] += np.pi
 
-                # Gets the point source emitter location
-                pts1 = self.get_rays_from_cryst(
-                    lamb=lamb, bragg=bragg,
-                    n=n, use_non_parallelism=use_non_parallelism,
-                    cry_dpts=cry_dpts1,#dtheta=dtheta, psi=psi,phi=phi+np.pi, 
-                    ndpts=ndpts,#ntheta=ntheta, npsi=npsi,
-                    include_summit=include_summit,
-                    config=config, det=det,
-                    returnas='pts', return_xixj=False,
-                    grid=grid,
-                )[1:][0]
-
-            else:
-                # Gets the point source emitter location
-                pts1 = self.get_rays_from_cryst(
-                    lamb=lamb, bragg=-1*bragg,
-                    n=n, use_non_parallelism=use_non_parallelism,
-                    cry_dpts=cry_dpts,#dtheta=dtheta, psi=psi,phi=phi+np.pi, 
-                    ndpts=ndpts,#ntheta=ntheta, npsi=npsi,
-                    include_summit=include_summit,
-                    config=config, det=det,
-                    returnas='pts', return_xixj=False,
-                    grid=grid,
-                )[1:][0]
+            # Gets the point source emitter location
+            pts1 = self.get_rays_from_cryst(
+                lamb=lamb, bragg=bragg,
+                n=n, use_non_parallelism=use_non_parallelism,
+                cry_dpts=cry_dpts1,#dtheta=dtheta, psi=psi,phi=phi+np.pi, 
+                ndpts=ndpts,#ntheta=ntheta, npsi=npsi,
+                include_summit=include_summit,
+                config=config, det=det,
+                returnas='pts', return_xixj=False,
+                grid=grid,
+            )[1:][0]
             
         elif lc[1]:
             c0 = (
