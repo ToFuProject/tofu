@@ -174,7 +174,10 @@ def _CrystalBragg_plot_check(
     # elements
     lelement = ['s', 'c', 'r', 'o', 'v']
     if element is None:
-        element = 'oscrv'
+        if cryst._dgeom['Type'] == 'sph':
+            element = 'oscrv'
+        else:
+            element = 'oscv'
     c0 = (
         isinstance(element, str)
         and all([ss in lelement for ss in element.lower()])
