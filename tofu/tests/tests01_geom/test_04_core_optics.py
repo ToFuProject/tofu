@@ -275,11 +275,15 @@ class Test01_Crystal(object):
                 0.1*np.r_[-1, 1, 1, -1, -1],
                 0.1*np.r_[-1, -1, 1, 1, -1],
             ])
+            cry_dpts = {}
+            cry_dpts['psi'] = 0
+            cry_dpts['dtheta'] = 0 
+            cry_dpts['phi'] = np.pi
             pts, vect = obj.get_rays_from_cryst(
-                phi=np.pi, returnas='(pts, vect)',
+                cry_dpts=cry_dpts, returnas='(pts, vect)',
             )
             dist = obj.get_rowland_dist_from_lambbragg()
-            pts = pts + dist*np.r_[0.5, 1., 2][None, :]*vect[:, 0:1, 0]
+            pts = pts + dist*np.r_[0.5, 1., 2][None, :]*vect[:, 0:1]
             lamb = obj.dbragg['lambref'] + np.r_[-1, 0, 1, 2]*1-12
             dax = obj.plot(
                 pts=pts,
