@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 
 _LTYPES = [int, float, np.int_, np.float_]
-_USE_NON_PARALLELISM = True
+_MISCUT = True
 
 
 # ###############################################
@@ -342,7 +342,7 @@ def get_lamb_from_bragg(bragg, d, n=None):
 
 def get_vectors_from_angles(alpha, beta, nout, e1, e2):
     """Return new unit vectors according to alpha and beta entries from user
-    caused by the non parallelism assumed on the crystal.
+    caused by the miscut assumed on the crystal.
     """
 
     e1_bis = (
@@ -377,11 +377,11 @@ def get_approx_detector_rel(rcurve, bragg,
     relatively to the Bragg crystal.
     Possibility to define tangential position of the detector to the Rowland
     circle or not.
-    On WEST, the maximum non-parallelism between two halves can be up to few
+    On WEST, the maximum miscut between two halves can be up to few
     arcmin so here, doesn't need to define the precise location of the detector
     The bragg angle is provided and naturally defined as the angle between the
     emissed photon vector and the crystal mesh.
-    So, if non parallelism approuved, bragg is relative
+    So, if miscut approuved, bragg is relative
     to the vector basis dmat(nout,e1,e2).
     The position of the detector, relatively to the crystal, will be so in
     another Rowland circle with its center shifted from the original one.
@@ -433,7 +433,7 @@ def get_det_abs_from_rel(det_dist, n_crystdet_rel, det_nout_rel, det_ei_rel,
                          dtheta=None, dpsi=None, tilt=None):
     """ Return the absolute detector position, according to tokamak's frame,
     on the Rowland circle from its relative position to the Bragg crystal.
-    If non parallelism approuved, bragg is relative to the vector basis
+    If miscut approuved, bragg is relative to the vector basis
     dmat(nout,e1,e2).
     The position of the detector, relatively to the crystal, will be so in
     another Rowland circle with its center shifted from the original one.
@@ -491,7 +491,7 @@ def calc_meridional_sagittal_focus(
     rcurve=None,
     bragg=None,
     alpha=None,
-    use_non_parallelism=None,
+    miscut=None,
     verb=None,
 ):
 
@@ -503,10 +503,10 @@ def calc_meridional_sagittal_focus(
         raise Exception(msg)
 
     verb = _check_bool(verb, vardef=True, varname='verb')
-    use_non_parallelism = _check_bool(
-        use_non_parallelism,
-        vardef=_USE_NON_PARALLELISM,
-        varname='use_non_parallelism',
+    miscut = _check_bool(
+        miscut,
+        vardef=_MISCUT,
+        varname='miscut',
     )
     # Compute
     s_merid_ref = rcurve*np.sin(bragg)
@@ -525,7 +525,7 @@ def calc_meridional_sagittal_focus(
             f"\t-the sagittal focus at {sr} m.\n"
         )
 
-        if use_non_parallelism is True:
+        if miscut is True:
             delta_merid = abs(s_merid_unp - s_merid_ref)
             delta_sagit = abs(s_sagit_unp - s_sagit_ref)
             mnp = round(s_merid_unp, ndigits=3)
@@ -895,7 +895,7 @@ def _get_lamb_avail_from_pts_phidtheta_xixj(
     n=None,
     ndtheta=None,
     pts=None,
-    use_non_parallelism=None,
+    miscut=None,
     return_phidtheta=None,
     return_xixj=None,
     strict=None,
@@ -936,7 +936,7 @@ def _get_lamb_avail_from_pts_phidtheta_xixj(
             ) = cryst._calc_dthetapsiphi_from_lambpts(
                 pts=pts, bragg=bragg[:, ii], lamb=None,
                 n=n, ndtheta=ndtheta,
-                use_non_parallelism=use_non_parallelism,
+                miscut=miscut,
                 grid=False,
             )[:3]
 
@@ -949,7 +949,7 @@ def _get_lamb_avail_from_pts_phidtheta_xixj(
                 psi=psi,
                 det=det,
                 data=None,
-                use_non_parallelism=use_non_parallelism,
+                miscut=miscut,
                 strict=strict,
                 return_strict=True,
                 plot=False,
@@ -1137,7 +1137,7 @@ def calc_dthetapsiphi_from_lambpts(
         sol2 = np.full((npts,), np.nan)
 
     # Get to scalar product scaPCem
-    # Already ok for non-parallelism (via nout)
+    # Already ok for miscut (via nout)
     center = summit - rcurve*nout
     PC = center[:, None] - pts
     PCnorm2 = np.sum(PC**2, axis=0)

@@ -12,8 +12,8 @@ import astropy.units as u
 
 _DCRYST = {
     'Quartz_110': {
-        'name': '110-Qz',
-        'symbol': 'Qz',
+        'name': 'Quartz_110',
+        'symbol': 'Qz110',
         'target': {
             'ion': 'ArXVII',
             'wavelength': 3.96e-10,
@@ -107,8 +107,8 @@ _DCRYST = {
         },
     },
     'Quartz_102': {
-        'name': '102-Qz',
-        'symbol': 'Qz',
+        'name': 'Quartz_102',
+        'symbol': 'Qz102',
         'target': {
             'ion': 'ArXVIII',
             'wavelength': 3.75e-10,
@@ -370,6 +370,33 @@ for ii in _DCRYST.keys():
         _DCRYST[ii]['d_hkl']['value'] = hexa_spacing(h, k, l, a, c)
     elif "Ge" in ii:
         None
+
+# ---------------------------------------------------------------
+# Attribution to alpha-Quartz crystals: Quartz_110 and Quartz_102
+# ---------------------------------------------------------------
+
+
+# Same values for 110- and Quartz_102
+a = _DCRYST['Quartz_110']['inter_atomic']['distances']['a0']
+c = _DCRYST['Quartz_110']['inter_atomic']['distances']['c0']
+
+h110 = _DCRYST['Quartz_110']['miller'][0]
+k110 = _DCRYST['Quartz_110']['miller'][1]
+l110 = _DCRYST['Quartz_110']['miller'][2]
+h102 = _DCRYST['Quartz_102']['miller'][0]
+k102 = _DCRYST['Quartz_102']['miller'][1]
+l102 = _DCRYST['Quartz_102']['miller'][2]
+
+_DCRYST['Quartz_110']['volume'] = hexa_volume(a, c)
+_DCRYST['Quartz_110']['d_hkl'] = hexa_spacing(h110, k110, l110, a, c) * 1.e-10
+_DCRYST['Quartz_102']['volume'] = hexa_volume(a, c)
+_DCRYST['Quartz_102']['d_hkl'] = hexa_spacing(h102, k102, l102, a, c) * 1e-10
+
+
+# ---------------------------------
+# Attribution to Germanium crystals
+# ---------------------------------
+>>>>>>> devel
 
 # #############################################################################
 # #############################################################################

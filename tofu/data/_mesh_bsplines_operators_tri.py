@@ -7,10 +7,7 @@
 # Common
 import numpy as np
 import scipy.sparse as scpsp
-
-
-# specific
-from . import _generic_check
+import datastock as ds
 
 
 _LOPERATORS_INT = [
@@ -39,14 +36,14 @@ def _get_mesh2dRect_operators_check(
 ):
 
     # deg
-    deg = _generic_check._check_var(
+    deg = ds._generic_check._check_var(
         deg, 'deg',
         types=int,
         allowed=[0, 1, 2, 3],
     )
 
     # operator
-    operator = _generic_check._check_var(
+    operator = ds._generic_check._check_var(
         operator, 'operator',
         default='D0N1',
         types=str,
@@ -54,7 +51,7 @@ def _get_mesh2dRect_operators_check(
     )
 
     # geometry
-    geometry = _generic_check._check_var(
+    geometry = ds._generic_check._check_var(
         geometry, 'geometry',
         default='toroidal',
         types=str,
@@ -62,7 +59,7 @@ def _get_mesh2dRect_operators_check(
     )
 
     # sparse_fmt
-    sparse_fmt = _generic_check._check_var(
+    sparse_fmt = ds._generic_check._check_var(
         sparse_fmt, 'sparse_fmt',
         default='csc',
         types=str,

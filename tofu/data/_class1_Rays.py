@@ -37,13 +37,15 @@ class Rays(_class0_Plasma2D.Plasma2D):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
-    _dshow = {
+
+    _dshow = dict(_class0_Plasma2D.Plasma2D._dshow)
+    _dshow.update({
         'rays': [
             'shape',
             'pts', 'segments', 'lamb',
             'touch', 'angles',
         ],
-    }
+    })
 
     def add_rays(
         self,
