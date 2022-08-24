@@ -11,6 +11,7 @@ import itertools as itt
 # Standard
 import numpy as np
 import scipy.constants as scpct
+import astropy.units as u
 import matplotlib.pyplot as plt
 
 # tofu-specific
@@ -112,7 +113,7 @@ class Test01_RockingCurve(object):
         for k0 in self.lc:
             dout = tfs.compute_rockingcurve(
                 crystal=k0,
-                lamb=np.r_[3.969067],
+                lamb=np.r_[3.969067e-10],
                 use_non_parallelism=False,
                 alpha_limits=None,
                 therm_exp=False,
