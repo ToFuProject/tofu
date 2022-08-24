@@ -35,7 +35,6 @@ def _surface3d(
     curve_npts=None,
 ):
 
-
     # -----------
     # cent
 
@@ -165,7 +164,6 @@ def _surface3d(
             e1=e1,
         )
 
-
     # --------------------
     # poly 3d sanity check
 
@@ -230,7 +228,7 @@ def _get_curved_area(
         icurv = 1 - iplan
         rc = curve_r[icurv]
 
-        area = 2. * extenthalf[iplan] * rc * 2.* extenthalf[icurv]
+        area = 2. * extenthalf[iplan] * rc * 2. * extenthalf[icurv]
 
     # spherical
     elif gtype == 'spherical':
@@ -239,7 +237,7 @@ def _get_curved_area(
         dphi = extenthalf[ind]
         sindtheta = np.sin(extenthalf[ind-1])
 
-        area = 4.* rc** 2 * dphi * sindtheta
+        area = 4. * rc**2 * dphi * sindtheta
 
     # toroidal
     elif gtype == 'toroidal':

@@ -99,7 +99,6 @@ def _dmat(
     if dmat['beta'] is not None:
         dmat['beta'] = np.arctan2(np.sin(dmat['beta']), np.cos(dmat['beta']))
 
-
     # vector basis with non-paralellism
     if all([dmat[k0] is not None for k0 in ['alpha', 'beta']]):
         nin = (
@@ -116,7 +115,7 @@ def _dmat(
                 + np.sin(dmat['beta'])*dgeom['e1']
             )
         )
-        nin, e0, e1 = ds._generic_check,_check_vectbasis(
+        nin, e0, e1 = ds._generic_check._check_vectbasis(
             e0=nin,
             e1=e0,
             e2=e1,

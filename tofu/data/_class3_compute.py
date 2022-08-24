@@ -1,12 +1,10 @@
 
 
-
 import numpy as np
 import datastock as ds
 
 
 from ..spectro import _rockingcurve
-
 
 
 # #################################################################
@@ -34,10 +32,8 @@ def rocking_curve(coll=None, key=None):
     _rockingcurve.compute_rockingcurve(
     )
 
-
     # -------
     # store
-
 
     return
 
@@ -284,7 +280,7 @@ def _ideal_configuration_check(
             )
 
             if aperture_dimensions.size == 1:
-                aperture_dimensions = aperture_dimensions* np.r_[1., 1.]
+                aperture_dimensions = aperture_dimensions * np.r_[1., 1.]
 
     # returnas
     returnas = ds._generic_check._check_var(
@@ -387,8 +383,8 @@ def _ideal_configuration(
     e0 = dgeom['e0']
     e1 = dgeom['e1']
 
-    vect_cam = np.cos(bragg) * e0  + np.sin(bragg) * nin
-    vect_los = -np.cos(bragg) * e0  + np.sin(bragg) * nin
+    vect_cam = np.cos(bragg) * e0 + np.sin(bragg) * nin
+    vect_los = -np.cos(bragg) * e0 + np.sin(bragg) * nin
     if cam_on_e0 is False:
         vect_cam, vect_los = vect_los, vect_cam
 
@@ -564,11 +560,6 @@ def _ideal_configuration_store(
     aperture_dimensions=None,
     pinhole_radius=None,
 ):
-
-    # ------------
-    # check inputs
-
-
 
     # -------
     # camera

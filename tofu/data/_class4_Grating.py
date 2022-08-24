@@ -92,4 +92,3 @@ class Grating(_class3_Crystal.Crystal):
 
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
-

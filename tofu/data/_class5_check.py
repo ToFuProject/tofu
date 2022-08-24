@@ -137,7 +137,6 @@ def _diagnostics_check(
                 )
                 raise Exception(msg)
 
-
         # update last_ref ?
         if cls in ['crystal', 'grating']:
             last_ref = oo

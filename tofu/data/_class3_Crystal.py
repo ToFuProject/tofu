@@ -97,8 +97,8 @@ class Crystal(_class2_Camera.Camera):
 
         # spectro
         # dspectro = _class3_check._dspectro(
-            # dobj=dobj,
-            # dspectro=dspectro,
+        # dobj=dobj,
+        # dspectro=dspectro,
         # )
 
         # update dicts
@@ -106,7 +106,7 @@ class Crystal(_class2_Camera.Camera):
 
         # compute rocking curve
         # if dmat['ready_to_compute'] is True:
-            # self.set_crystal_rocking_curve()
+        # self.set_crystal_rocking_curve()
 
     def set_crystal_rocking_curve(
         self,
