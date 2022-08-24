@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
+import datastock as ds
 
 
 # specific
@@ -41,7 +42,7 @@ def _plot_geometry_matrix_check(
 
     # key
     lk = list(coll.dobj['matrix'].keys())
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
@@ -85,7 +86,7 @@ def _plot_geometry_matrix_check(
         indt = None
 
     # plot_mesh
-    plot_mesh = _generic_check._check_var(
+    plot_mesh = ds._generic_check._check_var(
         plot_mesh, 'plot_mesh',
         default=coll.dobj[coll._which_mesh][keym]['type'] != 'polar',
         types=bool,
@@ -102,7 +103,7 @@ def _plot_geometry_matrix_check(
         vmin = 0
 
     # aspect
-    aspect = _generic_check._check_var(
+    aspect = ds._generic_check._check_var(
         aspect, 'aspect',
         default='auto',
         types=str,
@@ -115,7 +116,7 @@ def _plot_geometry_matrix_check(
         'fraction': 0.15,
         'orientation': 'vertical',
     }
-    dcolorbar = _generic_check._check_var(
+    dcolorbar = ds._generic_check._check_var(
         dcolorbar, 'dcolorbar',
         default=defdcolorbar,
         types=dict,
@@ -127,7 +128,7 @@ def _plot_geometry_matrix_check(
         'loc': 'upper left',
         'frameon': True,
     }
-    dleg = _generic_check._check_var(
+    dleg = ds._generic_check._check_var(
         dleg, 'dleg',
         default=defdleg,
         types=(bool, dict),

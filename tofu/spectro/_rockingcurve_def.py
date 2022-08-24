@@ -11,9 +11,10 @@ import scipy.interpolate
 
 _DCRYST = {
     'Quartz_110': {
-        'name': '110-Qz',
-        'symbol': 'Qz',
-        'target': 'ArXVII ion (3.96 A)',
+        'name': 'Quartz_110',
+        'symbol': 'Qz110',
+        'target_ion': 'Ar16+',
+        'target_lamb': 3.96e-10,
         'atoms': ['Si', 'O'],
         'atoms_Z': [14., 8.],
         'atoms_nb': [3., 6.],
@@ -93,9 +94,10 @@ _DCRYST = {
         },
     },
     'Quartz_102': {
-        'name': '102-Qz',
-        'symbol': 'Qz',
-        'target': 'ArXVIII ion (3.75 A)',
+        'name': 'Quartz_102',
+        'symbol': 'Qz102',
+        'target_ion': 'Ar17+',
+        'target_lamb': 3.75e-10,
         'atoms': ['Si', 'O'],
         'atoms_Z': [14., 8.],
         'atoms_nb': [3., 6.],
@@ -372,9 +374,9 @@ k102 = _DCRYST['Quartz_102']['miller'][1]
 l102 = _DCRYST['Quartz_102']['miller'][2]
 
 _DCRYST['Quartz_110']['volume'] = hexa_volume(a, c)
-_DCRYST['Quartz_110']['d_hkl'] = hexa_spacing(h110, k110, l110, a, c)
+_DCRYST['Quartz_110']['d_hkl'] = hexa_spacing(h110, k110, l110, a, c) * 1.e-10
 _DCRYST['Quartz_102']['volume'] = hexa_volume(a, c)
-_DCRYST['Quartz_102']['d_hkl'] = hexa_spacing(h102, k102, l102, a, c)
+_DCRYST['Quartz_102']['d_hkl'] = hexa_spacing(h102, k102, l102, a, c) * 1e-10
 
 
 # ---------------------------------

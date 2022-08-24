@@ -231,14 +231,14 @@ def _format_for_DataStock_adf15(
                 normal = True
             elif len(lk0) == 1:
                 keyte = lk0[0]
-                dte[keyte] = {
-                    'data': ddata0[lk0[0]]['data'],
-                    'units': v0['te_units'],
-                    'source': sour,
-                    'dim': 'temperature',
-                    'quant': 'Te',
-                    'name': 'Te',
-                }
+                # dte[keyte] = {
+                    # 'data': ddata0[lk0[0]]['data'],
+                    # 'units': v0['te_units'],
+                    # 'source': sour,
+                    # 'dim': 'temperature',
+                    # 'quant': 'Te',
+                    # 'name': 'Te',
+                # }
             elif len(lk0) > 1:
                 msg = (
                     "Multiple matches for dout[{}] in dref0:\n".format(k0)
@@ -266,6 +266,7 @@ def _format_for_DataStock_adf15(
                     + "\t- kte = {}\n".format(kte)
                 )
                 raise Exception(msg)
+
         dout[k0]['keyte'] = keyte
 
         # fill dne
@@ -288,14 +289,14 @@ def _format_for_DataStock_adf15(
                 normal = True
             elif len(lk0) == 1:
                 keyne = lk0[0]
-                dne[keyne] = {
-                    'data': ddata0[lk0[0]]['data'],
-                    'units': v0['ne_units'],
-                    'source': sour,
-                    'dim': 'density',
-                    'quant': 'ne',
-                    'name': 'ne',
-                }
+                # dne[keyne] = {
+                    # 'data': ddata0[lk0[0]]['data'],
+                    # 'units': v0['ne_units'],
+                    # 'source': sour,
+                    # 'dim': 'density',
+                    # 'quant': 'ne',
+                    # 'name': 'ne',
+                # }
             elif len(lk0) > 1:
                 msg = (
                     "Multiple matches for dout[{}] in dref0:\n".format(k0)

@@ -14,10 +14,9 @@ import datastock as ds
 from . import _class1_Rays
 from . import _class2_check
 from . import _class2_compute
-from . import _class2_plot
 
 
-__all__ = ['Diagnostic']
+__all__ = ['Camera']
 
 
 # #############################################################################
@@ -26,7 +25,7 @@ __all__ = ['Diagnostic']
 # #############################################################################
 
 
-class Diagnostic(_class1_Rays.Rays):
+class Camera(_class1_Rays.Rays):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
@@ -37,11 +36,16 @@ class Diagnostic(_class1_Rays.Rays):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
-    _dshow = {
+
+    _dshow = dict(_class1_Rays.Rays._dshow)
+    _dshow.update({
         'aperture': [
-            'planar', 'area',
-            'outline', 'poly',
-            'cent', 'dgeom.area2'
+            'dgeom.type',
+            'dgeom.curve_r',
+            'dgeom.area',
+            'dgeom.outline',
+            'dgeom.poly',
+            'dgeom.cent',
         ],
         'camera': [
             'type', 'parallel',
@@ -53,17 +57,7 @@ class Diagnostic(_class1_Rays.Rays):
             'qeff',
             'model',
         ],
-        'diagnostic': [
-            'type',
-            'optics',
-            'spectro',
-            'etendue',
-            'etend_type',
-            'los',
-            'spectrum',
-            'time res.',
-        ],
-    }
+    })
 
     def add_aperture(
         self,
@@ -80,6 +74,9 @@ class Diagnostic(_class1_Rays.Rays):
         nin=None,
         e0=None,
         e1=None,
+        # curvature
+        curve_r=None,
+        curve_npts=None,
     ):
         """ Add an aperture
 
@@ -94,9 +91,11 @@ class Diagnostic(_class1_Rays.Rays):
         """
 
         # check / format input
-        dref, ddata, dobj = _class2_check._aperture(
+        dref, ddata, dobj = _class2_check._add_surface3d(
             coll=self,
             key=key,
+            which='aperture',
+            which_short='ap',
             # 2d outline
             outline_x0=outline_x0,
             outline_x1=outline_x1,
@@ -109,6 +108,9 @@ class Diagnostic(_class1_Rays.Rays):
             nin=nin,
             e0=e0,
             e1=e1,
+            # curvature
+            curve_r=curve_r,
+            curve_npts=curve_npts,
         )
 
         # update dicts
@@ -212,47 +214,6 @@ class Diagnostic(_class1_Rays.Rays):
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
 
-    def add_diagnostic(
-        self,
-        key=None,
-        optics=None,
-        # etendue
-        etendue=None,
-        **kwdargs,
-    ):
-
-        # -----------
-        # adding diag
-
-        # check / format input
-        dref, ddata, dobj = _class2_check._diagnostics(
-            coll=self,
-            key=key,
-            optics=optics,
-            **kwdargs,
-        )
-        # update dicts
-        self.update(dref=dref, ddata=ddata, dobj=dobj)
-
-        # --------------
-        # adding etendue
-
-        key = list(dobj['diagnostic'].keys())[0]
-        if len(self.dobj['diagnostic'][key]['optics']) > 1:
-            self.compute_diagnostic_etendue(
-                key=key,
-                analytical=True,
-                numerical=False,
-                res=None,
-                check=False,
-                verb=False,
-                plot=False,
-                store='analytical',
-            )
-
-        # --------------
-        # adding los
-
     # ---------------
     # utilities
     # ---------------
@@ -294,121 +255,4 @@ class Diagnostic(_class1_Rays.Rays):
             coll=self,
             which=which,
             key=key,
-        )
-
-    # -----------------
-    # etendue computing
-    # -----------------
-
-    def compute_diagnostic_etendue(
-        self,
-        key=None,
-        analytical=None,
-        numerical=None,
-        res=None,
-        check=None,
-        verb=None,
-        plot=None,
-        store=None,
-    ):
-        """ Compute the etendue of the diagnostic (per pixel)
-
-        Etendue (m2.sr) can be computed analytically or numerically
-        If plot, plot the comparison between all computations
-        If store = 'analytical' or 'numerical', overwrites the diag etendue
-
-        """
-        _class2_compute._diag_compute_etendue(
-            coll=self,
-            key=key,
-            analytical=analytical,
-            numerical=numerical,
-            res=res,
-            check=check,
-            verb=verb,
-            plot=plot,
-            store=store,
-        )
-
-    # -----------------
-    # plotting
-    # -----------------
-
-    def get_diagnostic_dplot(
-        self,
-        key=None,
-        optics=None,
-        elements=None,
-        vect_length=None,
-    ):
-        """ Return a dict with all that's necessary for plotting
-
-        If no optics is provided, all are returned
-
-        elements indicate, for each optics, what should be represented:
-            - 'o': outline
-            - 'v': unit vectors
-            - 's': summit ( = center for non-curved)
-            - 'c': center (of curvature)
-            - 'r': rowland circle / axis of cylinder
-
-        returned as a dict:
-
-        dplot = {
-            'optics0': {
-                'o': {
-                    'x0': ...,
-                    'x1': ...,
-                    'x': ...,
-                    'y': ...,
-                    'z': ...,
-                    'r': ...,
-                },
-                'v': {
-                    'x': ...,
-                    'y': ...,
-                    'z': ...,
-                    'r': ...,
-                },
-            },
-        }
-
-        """
-
-        return _class2_compute._dplot(
-            coll=self,
-            key=key,
-            optics=optics,
-            elements=elements,
-            vect_length=vect_length,
-        )
-
-    def plot_diagnostic(
-        self,
-        key=None,
-        optics=None,
-        elements=None,
-        proj=None,
-        # figure
-        dax=None,
-        dmargin=None,
-        fs=None,
-        wintit=None,
-        # interactivity
-        connect=None,
-    ):
-
-        return _class2_plot._plot_diagnostic(
-            coll=self,
-            key=key,
-            optics=optics,
-            elements=elements,
-            proj=proj,
-            # figure
-            dax=dax,
-            dmargin=dmargin,
-            fs=fs,
-            wintit=wintit,
-            # interactivity
-            connect=connect,
         )

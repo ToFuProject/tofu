@@ -14,6 +14,8 @@ import matplotlib.transforms as transforms
 import matplotlib.lines as mlines
 import matplotlib.colors as mcolors
 # from mpl_toolkits.axes_grid1 import make_axes_locatable
+import datastock as ds
+
 
 # tofu
 from tofu.version import __version__
@@ -100,7 +102,7 @@ def plot_as_array(
     #  ceck inputs
 
     # key
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
@@ -108,7 +110,7 @@ def plot_as_array(
     )
     ndim = coll._ddata[key]['data'].ndim
 
-    inplace = _generic_check._check_var(
+    inplace = ds._generic_check._check_var(
         inplace, 'inplace',
         types=bool,
         default=False,
@@ -233,7 +235,7 @@ def _plot_as_array_check(
 ):
 
     # ind
-    ind = _generic_check._check_var(
+    ind = ds._generic_check._check_var(
         ind, 'ind',
         default=[0 for ii in range(ndim)],
         types=(list, tuple, np.ndarray),
@@ -281,7 +283,7 @@ def _plot_as_array_check(
         ymax = vmax
 
     # aspect
-    aspect = _generic_check._check_var(
+    aspect = ds._generic_check._check_var(
         aspect, 'aspect',
         default='equal',
         types=str,
@@ -289,7 +291,7 @@ def _plot_as_array_check(
     )
 
     # nmax
-    nmax = _generic_check._check_var(
+    nmax = ds._generic_check._check_var(
         nmax, 'nmax',
         default=3,
         types=int,
@@ -299,7 +301,7 @@ def _plot_as_array_check(
     cdef = {
         k0: _LCOLOR_DICT[0] for ii, k0 in enumerate(groups)
     }
-    color_dict = _generic_check._check_var(
+    color_dict = ds._generic_check._check_var(
         color_dict, 'color_dict',
         default=cdef,
         types=dict,
@@ -326,7 +328,7 @@ def _plot_as_array_check(
         'fraction': 0.15,
         'orientation': 'vertical',
     }
-    dcolorbar = _generic_check._check_var(
+    dcolorbar = ds._generic_check._check_var(
         dcolorbar, 'dcolorbar',
         default=defdcolorbar,
         types=dict,
@@ -338,14 +340,14 @@ def _plot_as_array_check(
         'loc': 'upper left',
         'frameon': True,
     }
-    dleg = _generic_check._check_var(
+    dleg = ds._generic_check._check_var(
         dleg, 'dleg',
         default=defdleg,
         types=(bool, dict),
     )
 
     # connect
-    connect = _generic_check._check_var(
+    connect = ds._generic_check._check_var(
         connect, 'connect',
         default=True,
         types=bool,

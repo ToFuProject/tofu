@@ -10,8 +10,7 @@ import numpy as np
 # import scipy.interpolate as scpinterp
 # import scipy.linalg as scplin
 # import scipy.stats as scpstats
-
-from . import _generic_check
+import datastock as ds
 
 
 #############################################
@@ -71,7 +70,7 @@ def propagate_indices_per_ref(
     # check inputs
 
     # ref
-    ref = _generic_check._check_var(
+    ref = ds._generic_check._check_var(
         ref, 'ref',
         types=str,
         allowed=sorted(dref.keys())
@@ -84,7 +83,7 @@ def propagate_indices_per_ref(
     # lref
     if isinstance(lref, str):
         lref = [lref]
-    lref = _generic_check._check_var_iter(
+    lref = ds._generic_check._check_var_iter(
         lref, 'lref',
         types_iter=str,
         allowed=sorted(dref.keys()),
@@ -92,7 +91,7 @@ def propagate_indices_per_ref(
 
     # param vs ldata
     if ldata is None:
-        param = _generic_check._check_var(
+        param = ds._generic_check._check_var(
             param, 'param',
             default='index',
             allowed=['index'] + lparam_data,

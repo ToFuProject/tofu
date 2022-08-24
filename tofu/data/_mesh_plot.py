@@ -34,7 +34,7 @@ def _plot_mesh_check(
 ):
 
     # key
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
@@ -42,8 +42,8 @@ def _plot_mesh_check(
     )
 
     # crop, bck
-    crop = _generic_check._check_var(crop, 'crop', default=True, types=bool)
-    bck = _generic_check._check_var(bck, 'bck', default=True, types=bool)
+    crop = ds._generic_check._check_var(crop, 'crop', default=True, types=bool)
+    bck = ds._generic_check._check_var(bck, 'bck', default=True, types=bool)
 
     # ind_knot
     if ind_knot is not None:
@@ -75,7 +75,7 @@ def _plot_mesh_check(
         'loc': 'upper left',
         'frameon': True,
     }
-    dleg = _generic_check._check_var(
+    dleg = ds._generic_check._check_var(
         dleg, 'dleg',
         default=defdleg,
         types=(bool, dict),
@@ -777,7 +777,7 @@ def _plot_bspline_check(
 
     # key
     lk = list(coll.dobj.get('bsplines', {}).keys())
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
@@ -793,8 +793,12 @@ def _plot_bspline_check(
         mtype = mtype0
 
     # knots, cents
-    knots = _generic_check._check_var(knots, 'knots', default=True, types=bool)
-    cents = _generic_check._check_var(cents, 'cents', default=True, types=bool)
+    knots = ds._generic_check._check_var(
+        knots, 'knots', default=True, types=bool,
+    )
+    cents = ds._generic_check._check_var(
+        cents, 'cents', default=True, types=bool,
+    )
 
     # ind_bspline
     if indbs is not None:
@@ -832,7 +836,7 @@ def _plot_bspline_check(
         indt = np.atleast_1d(indt).ravel()[0]
 
     # plot_mesh
-    plot_mesh = _generic_check._check_var(
+    plot_mesh = ds._generic_check._check_var(
         plot_mesh, 'plot_mesh',
         default=True,
         types=bool,
@@ -848,7 +852,7 @@ def _plot_bspline_check(
         'loc': 'upper left',
         'frameon': True,
     }
-    dleg = _generic_check._check_var(
+    dleg = ds._generic_check._check_var(
         dleg, 'dleg',
         default=defdleg,
         types=(bool, dict),
@@ -1125,7 +1129,7 @@ def _plot_profile2d_check(
 
     # key
     dk = coll.get_profiles2d()
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key', types=str, allowed=list(dk.keys())
     )
     keybs = dk[key]
@@ -1143,7 +1147,7 @@ def _plot_profile2d_check(
         'fraction': 0.15,
         'orientation': 'vertical',
     }
-    dcolorbar = _generic_check._check_var(
+    dcolorbar = ds._generic_check._check_var(
         dcolorbar, 'dcolorbar',
         default=defdcolorbar,
         types=dict,
@@ -1155,7 +1159,7 @@ def _plot_profile2d_check(
         'loc': 'upper left',
         'frameon': True,
     }
-    dleg = _generic_check._check_var(
+    dleg = ds._generic_check._check_var(
         dleg, 'dleg',
         default=defdleg,
         types=(bool, dict),

@@ -9,10 +9,7 @@ import warnings
 # Common
 import numpy as np
 import scipy.sparse as scpsp
-
-
-# specific
-from . import _generic_check
+import datastock as ds
 
 
 # optional
@@ -143,14 +140,14 @@ def get_available_inversions_algo(
     # --------------
     # check inputs
 
-    returnas = _generic_check._check_var(
+    returnas = ds._generic_check._check_var(
         returnas,
         'returnas',
         default=False,
         allowed=[False, dict, list, str]
     )
 
-    verb = _generic_check._check_var(
+    verb = ds._generic_check._check_var(
         verb,
         'verb',
         default=returnas is False,
@@ -302,7 +299,7 @@ def _compute_check(
     lk = list(coll.dobj.get('matrix', {}).keys())
     if key_matrix is None and len(lk):
         key_matrix = lk[0]
-    key_matrix = _generic_check._check_var(
+    key_matrix = ds._generic_check._check_var(
         key_matrix, 'key_matrix',
         types=str,
         allowed=lk,
@@ -326,7 +323,7 @@ def _compute_check(
         if vv['data'].ndim in [1, 2]
         and vv['data'].shape[-1] == nchan
     ]
-    key_data = _generic_check._check_var(
+    key_data = ds._generic_check._check_var(
         key_data, 'key_data',
         types=str,
         allowed=lk,
@@ -342,7 +339,7 @@ def _compute_check(
             if vv['data'].shape == coll.ddata[key_data]['data'].shape
             or vv['data'].shape == (nchan,)
         ]
-        key_sigma = _generic_check._check_var(
+        key_sigma = ds._generic_check._check_var(
             key_sigma, 'key_sigma',
             types=str,
             allowed=lk,
@@ -477,7 +474,7 @@ def _compute_check(
     else:
         lok = list(_DALGO.keys())
 
-    algo = _generic_check._check_var(
+    algo = ds._generic_check._check_var(
         algo, 'algo',
         types=str,
         allowed=lok,
@@ -615,21 +612,21 @@ def _compute_check(
     # miscellaneous parameter
 
     # conv_crit
-    conv_crit = _generic_check._check_var(
+    conv_crit = ds._generic_check._check_var(
         conv_crit, 'conv_crit',
         default=1e-4,
         types=float,
     )
 
     # chain
-    chain = _generic_check._check_var(
+    chain = ds._generic_check._check_var(
         chain, 'chain',
         default=True,
         types=bool,
     )
 
     # verb
-    verb = _generic_check._check_var(
+    verb = ds._generic_check._check_var(
         verb, 'verb',
         default=True,
         types=(bool, int),
@@ -641,7 +638,7 @@ def _compute_check(
         verb = 1
 
     # store
-    store = _generic_check._check_var(
+    store = ds._generic_check._check_var(
         store, 'store',
         default=True,
         types=bool,
@@ -650,7 +647,7 @@ def _compute_check(
         store = False
 
     # solver
-    solver = _generic_check._check_var(
+    solver = ds._generic_check._check_var(
         solver, 'solver',
         default='spsolve',
         types=str,
@@ -884,7 +881,7 @@ def _check_rminmax(
     else:
         lok.append('allin')
         dok = 'allin'
-    dconst[rm]['lim'] = _generic_check._check_var(
+    dconst[rm]['lim'] = ds._generic_check._check_var(
         dconst[rm].get('lim'), "dconstraints['{rm}']['lim']",
         default=dok,
         types=str,
