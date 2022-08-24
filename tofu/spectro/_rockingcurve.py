@@ -31,7 +31,7 @@ def compute_rockingcurve(
     # Wavelength
     lamb=None,
     # Lattice modifications
-    use_non_parallelism=None, nn=None,
+    miscut=None, nn=None,
     alpha_limits=None,
     therm_exp=None,
     temp_limits=None,
@@ -59,11 +59,11 @@ def compute_rockingcurve(
     unit cell.
     There will be soon also the Germanium crystal...
 
-    The possibility to add a non-parallelism between crystal's optical surface
+    The possibility to add a miscut between crystal's optical surface
     and inter-atomic planes is available. Rocking curve plots are updated
-    in order to show 3 cases: non-parallelism equal to zero and both limit
+    in order to show 3 cases: miscut equal to zero and both limit
     cases close to +/- the reference Bragg angle.
-    The relation between the value of this non-parallelism and 3 physical
+    The relation between the value of this miscut and 3 physical
     quantities can also be plotted: the integrated reflectivity for both
     components of polarization, the rocking curve widths and the asymmetry
     parameter b.
@@ -93,13 +93,14 @@ def compute_rockingcurve(
         and soon 'Ge'
     lamb:    float
         Wavelength of interest, in Angstroms (1e-10 m)
-    use_non_parallelism:    str
-        Introduce non-parallelism between dioptre and reflecting planes
+        ex: lamb=np.r_[3.96]
+    miscut:    str
+        Introduce miscut between dioptre and reflecting planes
     alpha_limits:    array
         Asymmetry angle range. Provide only both boundary limits
         Ex: np.r_[-3, 3] in radians
     nn:    int
-        Number of non-parallelism angles and thermical changes steps,
+        Number of miscut angles and thermical changes steps,
         odd number preferred in order to have a median value at 0
     therm_exp:    str
         Compute relative changes of the crystal inter-planar distance by
@@ -151,8 +152,8 @@ def compute_rockingcurve(
         therm_exp = False
     if plot_therm_exp is None and therm_exp is not False:
         plot_therm_exp = True
-    if use_non_parallelism is None:
-        use_non_parallelism = False
+    if miscut is None:
+        miscut = False
     if alpha_limits is None:
         alpha_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
     if temp_limits is None:
@@ -164,9 +165,9 @@ def compute_rockingcurve(
         plot_asf = False
     if plot_power_ratio is None:
         plot_power_ratio = True
-    if plot_asymmetry is None and use_non_parallelism is not False:
+    if plot_asymmetry is None and miscut is not False:
         plot_asymmetry = True
-    lc = [therm_exp, use_non_parallelism]
+    lc = [therm_exp, miscut]
     if plot_cmaps is None and all(lc) is True:
         plot_cmaps = True
     if returnas is None:
@@ -205,7 +206,7 @@ def compute_rockingcurve(
     alpha, bb = CrystBragg_check_alpha_angle(
         theta=theta,
         alpha_limits=alpha_limits, na=na, nn=nn,
-        use_non_parallelism=use_non_parallelism,
+        miscut=miscut,
         therm_exp=therm_exp,
     )
 
@@ -329,7 +330,7 @@ def compute_rockingcurve(
     # perfect (Darwin model), ideally mosaic thick and dynamical
     # --------------------------------------------------------------------
 
-    if use_non_parallelism is False and therm_exp is False:
+    if miscut is False and therm_exp is False:
         (
             alpha, bb, polar, g, y, power_ratio, max_pr, th, dth,
             rhg, P_per, P_mos, P_dyn, det_perp, det_para,
@@ -338,7 +339,7 @@ def compute_rockingcurve(
             F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
             Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
             model=['perfect', 'mosaic', 'dynamical'],
-            use_non_parallelism=use_non_parallelism, alpha=alpha, bb=bb,
+            miscut=miscut, alpha=alpha, bb=bb,
             na=na, nn=nn,
             therm_exp=therm_exp,
         )
@@ -354,7 +355,7 @@ def compute_rockingcurve(
             F_re=F_re, psi_re=psi_re, psi0_dre=psi0_dre, psi0_im=psi0_im,
             Fmod=Fmod, Fbmod=Fbmod, kk=kk, rek=rek,
             model=['perfect', 'mosaic', 'dynamical'],
-            use_non_parallelism=use_non_parallelism, alpha=alpha, bb=bb,
+            miscut=miscut, alpha=alpha, bb=bb,
             na=na, nn=nn,
             therm_exp=therm_exp,
         )
@@ -377,7 +378,7 @@ def compute_rockingcurve(
             theta=theta, theta_deg=theta_deg,
             th=th, dth=dth, power_ratio=power_ratio,
             bb=bb, polar=polar, alpha=alpha,
-            use_non_parallelism=use_non_parallelism, na=na, nn=nn,
+            miscut=miscut, na=na, nn=nn,
             therm_exp=therm_exp, T0=T0, TD=TD,
         )
 
@@ -417,7 +418,7 @@ def compute_rockingcurve(
     rhg_perp = rhg[0]
     rhg_para = rhg[1]
 
-    if not use_non_parallelism and not therm_exp:
+    if not miscut and not therm_exp:
         P_dyn = P_dyn[0, 0]
         rhg_perp = rhg[0, 0, 0]
         rhg_para = rhg[1, 0, 0]
@@ -442,7 +443,7 @@ def compute_rockingcurve(
         'RC width (perp. compo)': det_perp,
         'RC width (para. compo)': det_para,
     }
-    if use_non_parallelism:
+    if miscut:
         dout['Miscut angles (deg)'] = alpha*(180/np.pi)
         dout['Shift from RC of reference (perp. compo)'] = shift_perp
         dout['Shift from RC of reference (para. compo)'] = shift_para
@@ -465,7 +466,7 @@ def plot_var_temp_changes_wavelengths(
     # Lattice parameters
     ih=None, ik=None, il=None, lambdas=None,
     # lattice modifications
-    use_non_parallelism=None, nn=None,
+    miscut=None, nn=None,
     alpha_limits=None,
     therm_exp=None,
     # Plot
@@ -511,8 +512,8 @@ def plot_var_temp_changes_wavelengths(
     # Check inputs
     # ------------
 
-    if use_non_parallelism is None:
-        use_non_parallelism = True
+    if miscut is None:
+        miscut = True
     if therm_exp is None:
         therm_exp = True
     if nn is None:
@@ -536,7 +537,7 @@ def plot_var_temp_changes_wavelengths(
         din[lambdas[aa]] = {}
         dout = compute_rockingcurve(
             ih=ih, ik=ik, il=il, lamb=lambdas[aa],
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             alpha_limits=alpha_limits, na=na,
             therm_exp=therm_exp, plot_therm_exp=False,
             plot_asf=False, plot_power_ratio=False,
@@ -550,8 +551,8 @@ def plot_var_temp_changes_wavelengths(
         din[lambdas[aa]]['Bragg angle of reference (rad)'] = (
             dout['Bragg angle of reference (rad)\n']
         )
-        din[lambdas[aa]]['Non-parallelism angles (deg)'] = (
-            dout['Non-parallelism angles (deg)\n']
+        din[lambdas[aa]]['miscut angles (deg)'] = (
+            dout['miscut angles (deg)\n']
         )
         din[lambdas[aa]]['Temperature changes (°C)'] = (
             dout['Temperature changes (°C)\n']
@@ -672,7 +673,7 @@ def plot_var_temp_changes_wavelengths(
         r', inferred pixel shift $\Delta$p',
         fontsize=15,
     )
-    alpha = din[lambdas[aa]]['Non-parallelism angles (deg)']*(np.pi/180)
+    alpha = din[lambdas[aa]]['miscut angles (deg)']*(np.pi/180)
     TD = din[lambdas[aa]]['Temperature changes (°C)']
     extent = (alpha.min(), alpha.max(), TD.min(), TD.max())
 
@@ -773,12 +774,12 @@ def CrystBragg_check_inputs_rockingcurve(
 
 def CrystBragg_check_alpha_angle(
     theta=None,
-    use_non_parallelism=None, therm_exp=None,
+    miscut=None, therm_exp=None,
     alpha_limits=None, na=None, nn=None,
 ):
 
     if alpha_limits is None:
-        if not use_non_parallelism:
+        if not miscut:
             alpha = np.full((na), 0.)
             bb = np.full((theta.size, alpha.size), -1.)
         else:
@@ -800,7 +801,7 @@ def CrystBragg_check_alpha_angle(
                         alpha - theta[i]
                     )
     else:
-        if not use_non_parallelism:
+        if not miscut:
             alpha = np.full((na), 0.)
             bb = np.full((theta.size, alpha.size), -1.)
         else:
@@ -998,7 +999,7 @@ def CrystBragg_comp_integrated_reflect(
     F_re=None, psi_re=None, psi0_dre=None, psi0_im=None,
     Fmod=None, Fbmod=None, kk=None, rek=None,
     model=[None, None, None],
-    use_non_parallelism=None, alpha=None, bb=None, na=None, nn=None,
+    miscut=None, alpha=None, bb=None, na=None, nn=None,
     therm_exp=None,
 ):
     """
@@ -1018,7 +1019,7 @@ def CrystBragg_comp_integrated_reflect(
     through all computations of rocking curves, whether the application of
     temperature changes or asymetry angle is set.
 
-    For simplification and line savings reasons, whether use_non_parallelism
+    For simplification and line savings reasons, whether miscut
     is True or False, alpha and bb arrays have the same shape.
     For the same reasons, the theta-dimension, depending on therm_exp arg,
     is present in all the arrays, even if it means having a extra dimension
@@ -1165,7 +1166,7 @@ def CrystBragg_comp_integrated_reflect(
     # Normalization for DeltaT=0 & alpha=0 and
     # computation of the shift in glancing angle corresponding to
     # the maximum value of each power ratio computed (each rocking curve)
-    lc = [use_non_parallelism is True, therm_exp is True]
+    lc = [miscut is True, therm_exp is True]
     if any(lc) or all(lc):
         rhg_perp_norm = np.full((rhg_perp.shape), np.nan)
         rhg_para_norm = np.full((rhg_para.shape), np.nan)
@@ -1193,7 +1194,7 @@ def CrystBragg_comp_integrated_reflect(
                         pat_cent_para[i, nn] - pat_cent_para[i, j]
                     )
 
-    if use_non_parallelism is False and therm_exp is False:
+    if miscut is False and therm_exp is False:
         return (
             alpha, bb, polar, g, y,
             power_ratio, max_pr, th, dth,
@@ -1293,7 +1294,7 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
     # Lattice modifications
     alpha_limits=None,
     theta=None, theta_deg=None,
-    use_non_parallelism=None, na=None, nn=None,
+    miscut=None, na=None, nn=None,
     therm_exp=None, T0=None, TD=None,
     # Diffraction pattern main components
     th=None, dth=None, power_ratio=None,
@@ -1310,7 +1311,7 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
     # Prepare
     # -------
 
-    if use_non_parallelism:
+    if miscut:
         alpha_deg = alpha*(180/np.pi)
         nalpha = alpha_deg.size
         if (nalpha % 2) == 0:
@@ -1348,9 +1349,9 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
     ]
 
     lc = [
-        use_non_parallelism is False and therm_exp is False,
-        use_non_parallelism is False and therm_exp is True,
-        use_non_parallelism is True and therm_exp is False,
+        miscut is False and therm_exp is False,
+        miscut is False and therm_exp is True,
+        miscut is True and therm_exp is False,
     ]
     if any(lc):
         fig1 = plt.figure(figsize=(8, 6))
@@ -1362,7 +1363,7 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         )
         ax.set_xlabel(r'Diffracting angle $\theta$ (rad)', fontsize=15)
         ax.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
-    if use_non_parallelism and therm_exp:
+    if miscut and therm_exp:
         gs = gridspec.GridSpec(3, 3)
         fig1 = plt.figure(figsize=(22, 20))
         # 3 rows -> temperature changes -T0 < 0 < +T0
@@ -1415,7 +1416,7 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
 
     # Plot
     # ----
-    lc = [use_non_parallelism is True, use_non_parallelism is False]
+    lc = [miscut is True, miscut is False]
     if not therm_exp and any(lc):
         for j in range(na):
             if any(j == dd):
@@ -1465,7 +1466,7 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         ax.legend(fontsize=12)
     """
     # Plot the sum of both polarizations
-    lc = [use_non_parallelism is True, use_non_parallelism is False]
+    lc = [miscut is True, miscut is False]
     if not therm_exp and any(lc):
         ax.plot(
             dth[0, 0, 0, :],
@@ -1481,7 +1482,7 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         )
     """
 
-    if not use_non_parallelism and therm_exp is True:
+    if not miscut and therm_exp is True:
         colors = ['blue', 'black', 'red']
         for i in range(na):
             if any(i == dd2):
@@ -1526,7 +1527,7 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         )
         ax.legend(fontsize=12)
 
-    if use_non_parallelism and therm_exp:
+    if miscut and therm_exp:
         # DeltaT row = 0
         # --------------
         ax11.plot(
