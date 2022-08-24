@@ -2276,6 +2276,7 @@ class CrystalBragg(utils.ToFuObject):
         xi = np.full((nlamb, nphi), np.nan)
         xj = np.full((nlamb, nphi), np.nan)
         for ll in range(nlamb):
+            cry_dpts = {}
             cry_dpts['dtheta'] = 0
             cry_dpts['psi'] = 0
             cry_dpts['phi'] = phi
