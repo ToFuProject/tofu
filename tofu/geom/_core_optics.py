@@ -2276,9 +2276,12 @@ class CrystalBragg(utils.ToFuObject):
         xi = np.full((nlamb, nphi), np.nan)
         xj = np.full((nlamb, nphi), np.nan)
         for ll in range(nlamb):
+            cry_dpts['dtheta'] = 0
+            cry_dpts['psi'] = 0
+            cry_dpts['phi'] = phi
             xi[ll, :], xj[ll, :] = self.calc_xixj_from_braggphi(
                 bragg=np.full(phi.shape, bragg[ll]),
-                cry_dpts = None,
+                cry_dpts = cry_dpts,
                 n=n,
                 det=det,
                 use_non_parallelism=use_non_parallelism,
@@ -2308,7 +2311,7 @@ class CrystalBragg(utils.ToFuObject):
                     i0 = np.arange(ii*nphi, (ii+1)*nphi)
                     xi_er[l, i0], xj_er[l, i0] = self.calc_xixj_from_braggphi(
                         bragg=bragg[l], lamb=None, n=n,
-                        cry_dpts = None,
+                        cry_dpts = cry_dpts,
                         det=det, plot=False,
                         use_non_parallelism=use_non_parallelism,
                         strict=strict,

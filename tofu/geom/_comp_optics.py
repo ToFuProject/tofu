@@ -1337,8 +1337,6 @@ def _get_lamb_avail_from_pts_phidtheta_xixj(
                 grid=False,
             )
 
-            print(cry_dpts)
-
             dtheta[:, ii, :, :] = cry_dpts['dtheta']
             psi[:, ii, :, :] = cry_dpts['psi']
             phi[:, ii, :, :] = cry_dpts['phi']
