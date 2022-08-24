@@ -1313,24 +1313,45 @@ def _get_lamb_avail_from_pts_phidtheta_xixj(
         dtheta = np.full((npts, nlamb, ndtheta, 2), np.nan)
         psi = np.full((npts, nlamb, ndtheta, 2), np.nan)
         phi = np.full((npts, nlamb, ndtheta, 2), np.nan)
+
+        if ndtheta is not None:
+            ndpts = {}
+            ndpts['ndtheta'] = ndtheta
+        else:
+            ndpts = None
+
         for ii in range(nlamb):
-            (
-                dtheta[:, ii, :, :], psi[:, ii, :, :],
-                phi[:, ii, :, :],
-            ) = cryst._calc_dthetapsiphi_from_lambpts(
+            #(
+            #    dtheta[:, ii, :, :], psi[:, ii, :, :],
+            #    phi[:, ii, :, :],
+            #) = cryst._calc_dpts_from_lambpts(
+            #    pts=pts, bragg=bragg[:, ii], lamb=None,
+            #    n=n, ndpts=ndpts,#ndtheta=ndtheta,
+            #    use_non_parallelism=use_non_parallelism,
+            #    grid=False,
+            #)[:3]
+            cry_dpts = cryst._calc_dpts_from_lambpts(
                 pts=pts, bragg=bragg[:, ii], lamb=None,
-                n=n, ndtheta=ndtheta,
+                n=n, ndpts=ndpts,#ndtheta=ndtheta,
                 use_non_parallelism=use_non_parallelism,
                 grid=False,
-            )[:3]
+            )
+
+            dtheta[:, ii, :, :] = cry_dpts['dtheta']
+            psi[:, ii, :, :] = cry_dpts['psi']
+            phi[:, ii, :, :] = cry_dpts['phi']
 
         if return_xixj is True or strict is True:
+            cry_dpts['dtheta'] = dtheta
+            cry_dpts['psi'] = psi
+            cry_dpts['phi'] = phi
             xi, xj, strict = cryst.calc_xixj_from_braggphi(
-                phi=phi + np.pi,    # from plasma to det
+                #phi=phi + np.pi,    # from plasma to det
                 bragg=bragg[..., None, None],
                 n=n,
-                dtheta=dtheta,
-                psi=psi,
+                #dtheta=dtheta,
+                #psi=psi,
+                cry_dpts=cry_dpts,
                 det=det,
                 data=None,
                 use_non_parallelism=use_non_parallelism,

@@ -309,7 +309,7 @@ class Test01_Crystal(object):
             lamb, phi, dtheta, psi, xi, xj = obj.get_lamb_avail_from_pts(
                 pts=pts, det=det,
             )
-            pts = pts + np.r_[7.5][None, :]*vect[:, :, 0]
+            pts = pts + np.r_[7.5][None, :]*vect[:, :]
             lamb, phi, dtheta, psi, xi, xj = obj.get_lamb_avail_from_pts(
                 pts=pts, det=det,
             )

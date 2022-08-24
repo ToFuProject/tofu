@@ -1947,10 +1947,17 @@ class CrystalBragg(utils.ToFuObject):
         if self._dgeom['Type'] == 'sph':
             print('Sphere!')
 
+            if cry_dpts == None:
+                psi = None
+                dtheta = None
+            else:
+                psi = cry_dpts['psi']
+                dtheta = cry_dpts['dtheta']
+
             # Get vectors at any points from psi & dtheta
             vout, ve1, ve2 = _comp_optics.CrystBragg_get_noute1e2_from_psitheta(
                 nout, e1, e2,
-                psi=cry_dpts['psi'], dtheta=cry_dpts['dtheta'],
+                psi=psi, dtheta=dtheta,
                 e1e2=True, sameshape=False,
                 extenthalf_psi=self._dgeom['extenthalf'][0],
                 extenthalf_dtheta=self._dgeom['extenthalf'][1],
@@ -3069,6 +3076,11 @@ class CrystalBragg(utils.ToFuObject):
         if return_lamb is None:
             return_lamb = True
         det = self._checkformat_det(det)
+
+        if cry_dpts is None:
+            cry_dpts = {}
+            cry_dpts['dtheta'] = dtheta
+            cry_dpts['psi'] = psi
 
         # Get local basis
         summ, vout, ve1, ve2 = self.get_local_noute1e2(
