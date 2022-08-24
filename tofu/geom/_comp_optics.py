@@ -1330,12 +1330,14 @@ def _get_lamb_avail_from_pts_phidtheta_xixj(
             #    use_non_parallelism=use_non_parallelism,
             #    grid=False,
             #)[:3]
-            cry_dpts = cryst._calc_dpts_from_lambpts(
+            cry_dpts, _ = cryst._calc_dpts_from_lambpts(
                 pts=pts, bragg=bragg[:, ii], lamb=None,
                 n=n, ndpts=ndpts,#ndtheta=ndtheta,
                 use_non_parallelism=use_non_parallelism,
                 grid=False,
             )
+
+            print(cry_dpts)
 
             dtheta[:, ii, :, :] = cry_dpts['dtheta']
             psi[:, ii, :, :] = cry_dpts['psi']
