@@ -493,8 +493,8 @@ def _diag_compute_etendue(
     # etendues
 
     detend = _etendue.compute_etendue(
-        det=coll.get_as_dict(which='camera', key=optics[0]),
-        aperture=coll.get_as_dict(which='aperture', key=optics[1:]),
+        det=coll.get_as_dict(key=key_cam)[key_cam],
+        aperture=coll.get_as_dict(key=optics[1:]),
         analytical=analytical,
         numerical=numerical,
         res=res,

@@ -12,8 +12,8 @@ import datastock as ds
 
 # tofu
 from . import _class6_Grating
+from . import _class3_check
 from . import _class7_check as _check
-from . import _class7_compute as _compute
 
 
 __all__ = ['Camera']
@@ -25,7 +25,7 @@ __all__ = ['Camera']
 # #############################################################################
 
 
-class Camera(_class7_Grating.Grating):
+class Camera(_class6_Grating.Grating):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
@@ -37,7 +37,7 @@ class Camera(_class7_Grating.Grating):
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
 
-    _dshow = dict(_class7_Grating.Grating._dshow)
+    _dshow = dict(_class6_Grating.Grating._dshow)
     _dshow.update({
         'camera': [
             'type', 'parallel',
@@ -167,11 +167,10 @@ class Camera(_class7_Grating.Grating):
             key=key,
         )
 
-    def get_as_dict(self, which=None, key=None):
+    def get_as_dict(self, key=None):
         """ Return the desired object as a dict (input to some routines) """
 
-        return _class2_check._return_as_dict(
+        return _class3_check._return_as_dict(
             coll=self,
-            which=which,
             key=key,
         )

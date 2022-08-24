@@ -13,7 +13,6 @@ import datastock as ds
 # tofu
 from . import _class2_Rays
 from . import _class3_check as _check
-from . import _class3_compute as _compute
 
 
 __all__ = ['Aperture']
@@ -109,22 +108,6 @@ class Aperture(_class2_Rays.Rays):
     # ---------------
     # utilities
     # ---------------
-
-    def get_optics_outline(
-        self,
-        key=None,
-        add_points=None,
-        closed=None,
-        ravel=None,
-    ):
-        """ Return the optics outline """
-        return _compute.get_optics_outline(
-            coll=self,
-            key=key,
-            add_points=add_points,
-            closed=closed,
-            ravel=ravel,
-        )
 
     def get_as_dict(self, which=None, key=None):
         """ Return the desired object as a dict (input to some routines) """

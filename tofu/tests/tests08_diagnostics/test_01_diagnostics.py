@@ -157,6 +157,31 @@ def _apertures():
 
     return {'ap0': ap0, 'ap1': ap1, 'ap2': ap2}
 
+def _filters():
+
+    dap = _apertures()
+
+    # energy
+    energ = np.linspace(1000, 5000, 100)
+    trans = np.r_[
+        np.zeros((10,)),
+        np.linspace(0, 1, 80),
+        np.ones((10,)),
+    ]
+
+    return {
+        'filt0': {
+            'dgeom': dict(dap['ap1']),
+            'dmat': {
+                'name': 'blabla',
+                'symbol': 'bla',
+                'thickness': 500e-6,
+                'energy': energ,
+                'transmission': trans,
+            },
+        },
+    }
+
 
 def _cameras():
 
@@ -376,13 +401,13 @@ def _diagnostics():
     d5 = {'optics': ('cam2', 'ap0')}
 
     # d6: 1d + multiple apertures
-    d6 = {'optics': ('cam0', 'ap0', 'ap1', 'ap2')}
+    d6 = {'optics': ('cam0', 'ap0', 'filt0', 'ap2')}
 
     # d7: 1d parallel coplanar + multiple apertures
-    d7 = {'optics': ('cam1', 'ap0', 'ap1', 'ap2')}
+    d7 = {'optics': ('cam1', 'ap0', 'filt0', 'ap2')}
 
     # d8: 2d + multiple apertures
-    d8 = {'optics': ('cam2', 'ap0', 'ap1', 'ap2')}
+    d8 = {'optics': ('cam2', 'ap0', 'filt0', 'ap2')}
 
     # # d9: 2d + spherical crystal
     # d9 = {'optics': ('c3','cryst0')}
@@ -422,6 +447,7 @@ class Test01_Diagnostic():
 
         # get dict
         dapertures = _apertures()
+        dfilters = _filters()
         dcameras = _cameras()
         dcrystals = _crystals()
         dconfig = _configurations()
@@ -433,6 +459,10 @@ class Test01_Diagnostic():
         # add apertures
         for k0, v0 in dapertures.items():
             self.obj.add_aperture(key=k0, **v0)
+
+        # add filters
+        for k0, v0 in dfilters.items():
+            self.obj.add_filter(key=k0, **v0)
 
         # add cameras
         for k0, v0 in dcameras.items():

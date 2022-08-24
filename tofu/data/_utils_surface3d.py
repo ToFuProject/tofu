@@ -61,11 +61,8 @@ def _surface3d(
     # outline vs poly vs extenthalf
 
     lc = [
-        all([pp is not None for pp in [outline_x0, outline_x1]])
-        and e0 is not None and cent is not None,
-        extenthalf is not None
-        and curve_r is not None
-        and e0 is not None and cent is not None,
+        all([pp is not None for pp in [outline_x0, outline_x1, cent, e0]]),
+        all([pp is not None for pp in [extenthalf, curve_r, cent, e0]]),
         all([pp is not None for pp in [poly_x, poly_y, poly_z]])
     ]
     if np.sum(lc) != 1:
@@ -183,7 +180,7 @@ def _surface3d(
 
     if lc[2]:
 
-        gtype, outline_x0, outline_x1, area = _get_outline_from_poly(
+        gtype, cent, outline_x0, outline_x1, area = _get_outline_from_poly(
             key=key,
             cent=cent,
             poly_x=poly_x,
@@ -438,4 +435,4 @@ def _get_outline_from_poly(
         outline_x0, outline_x1 = None, None
         area = np.nan
 
-    return gtype, outline_x0, outline_x1, area
+    return gtype, cent, outline_x0, outline_x1, area

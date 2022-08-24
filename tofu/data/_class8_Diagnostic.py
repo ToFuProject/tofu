@@ -130,6 +130,25 @@ class Diagnostic(_class7_Camera.Camera):
             store=store,
         )
 
+    # ---------------
+    # utilities
+    # ---------------
+
+    def get_optics_outline(
+        self,
+        key=None,
+        add_points=None,
+        closed=None,
+        ravel=None,
+    ):
+        """ Return the optics outline """
+        return _compute.get_optics_outline(
+            coll=self,
+            key=key,
+            add_points=add_points,
+            closed=closed,
+            ravel=ravel,
+        )
     # -----------------
     # plotting
     # -----------------

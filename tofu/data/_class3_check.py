@@ -176,41 +176,62 @@ def _add_surface3d(
 
 def _return_as_dict(
     coll=None,
-    which=None,
     key=None,
 ):
-    """ Return camera or apertres as dict (input for low-level routines) """
+    """ Return as dict the following objects
 
-    if which == 'camera':
+    - camera
+    - aperture
+    - filter (treated as aperture)
 
-        dout = coll.get_camera_unit_vectors(key=key)
-        cam = coll.dobj['camera'][key]
-        cx, cy, cz = coll.get_camera_cents_xyz(key=key)
+    useful input for low-level routines
 
-        dout.update({
-            'outline_x0': coll.ddata[cam['outline'][0]]['data'],
-            'outline_x1': coll.ddata[cam['outline'][1]]['data'],
-            'cents_x': cx,
-            'cents_y': cy,
-            'cents_z': cz,
-            'pix area': cam['pix area'],
-            'parallel': cam['parallel'],
-        })
+    """
 
-    elif which == 'aperture':
+    if isinstance(key, str):
+        key = [key]
 
-        if isinstance(key, str):
-            key = [key]
-        key = ds._generic_check._check_var_iter(
-            key, 'key',
-            types=(list, tuple),
-            types_iter=str,
-            allowed=list(coll.dobj.get('aperture', {}).keys()),
-        )
+    lcam = list(coll.dobj.get('camera', {}).keys())
+    lap = list(coll.dobj.get('aperture', {}).keys())
+    lfilt = list(coll.dobj.get('filter', {}).keys())
+    key = ds._generic_check._check_var_iter(
+        key, 'key',
+        types=(list, tuple),
+        types_iter=str,
+        allowed=lcam + lap + lfilt,
+    )
 
-        dout = {}
-        for k0 in key:
-            ap = coll.dobj['aperture'][k0]['dgeom']
+
+    dout = {}
+    for k0 in key:
+
+        if k0 in lcam:
+            cls = 'camera'
+        elif k0 in lap:
+            cls = 'aperture'
+        elif k0 in lfilt:
+            cls = 'filter'
+
+        # compute
+        if cls == 'camera':
+
+            dout[k0] = coll.get_camera_unit_vectors(key=k0)
+            cam = coll.dobj['camera'][k0]
+            cx, cy, cz = coll.get_camera_cents_xyz(key=k0)
+
+            dout[k0].update({
+                'outline_x0': coll.ddata[cam['outline'][0]]['data'],
+                'outline_x1': coll.ddata[cam['outline'][1]]['data'],
+                'cents_x': cx,
+                'cents_y': cy,
+                'cents_z': cz,
+                'pix area': cam['pix area'],
+                'parallel': cam['parallel'],
+            })
+
+        elif cls in ['aperture', 'filter']:
+
+            ap = coll.dobj[cls][k0]['dgeom']
             dout[k0] = {
                 'cent': ap['cent'],
                 'poly_x': coll.ddata[ap['poly'][0]]['data'],
@@ -220,9 +241,5 @@ def _return_as_dict(
                 'e0': ap.get('e0'),
                 'e1': ap.get('e1'),
             }
-
-    else:
-        msg = f"Un-handled category '{which}'"
-        raise Exception(msg)
 
     return dout

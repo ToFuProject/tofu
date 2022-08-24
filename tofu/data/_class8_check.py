@@ -32,13 +32,14 @@ def _diagnostics_check(
 
     lcam = list(coll.dobj.get('camera', {}).keys())
     lap = list(coll.dobj.get('aperture', {}).keys())
+    lfilt = list(coll.dobj.get('filter', {}).keys())
     lcryst = list(coll.dobj.get('crystal', {}).keys())
     lgrat = list(coll.dobj.get('grating', {}).keys())
     optics = ds._generic_check._check_var_iter(
         optics, 'optics',
         types_iter=str,
         types=(tuple, list),
-        allowed=lcam + lap + lcryst + lgrat,
+        allowed=lcam + lap + lfilt + lcryst + lgrat,
     )
     if isinstance(optics, list):
         optics = tuple(optics)
@@ -66,6 +67,8 @@ def _diagnostics_check(
 
         if oo in lap:
             cls = 'aperture'
+        elif oo in lfilt:
+            cls = 'filter'
         elif oo in lcryst:
             cls = 'crystal'
         else:

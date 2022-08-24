@@ -26,7 +26,7 @@ __all__ = ['Crystal']
 # #############################################################################
 
 
-class Crystal(_class4_Flter.Filter):
+class Crystal(_class4_Filter.Filter):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
