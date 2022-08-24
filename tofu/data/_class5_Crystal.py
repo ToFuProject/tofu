@@ -11,10 +11,10 @@ import datastock as ds
 
 
 # tofu
-from . import _class2_Camera
-from . import _class2_check
+from . import _class4_Filter
 from . import _class3_check
-from . import _class3_compute
+from . import _class5_check as _check
+from . import _class5_compute as _compute
 
 
 __all__ = ['Crystal']
@@ -26,7 +26,7 @@ __all__ = ['Crystal']
 # #############################################################################
 
 
-class Crystal(_class2_Camera.Camera):
+class Crystal(_class4_Flter.Filter):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
@@ -37,7 +37,7 @@ class Crystal(_class2_Camera.Camera):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
-    _dshow = dict(_class2_Camera.Camera._dshow)
+    _dshow = dict(_class4_Filter.Filter._dshow)
     _dshow.update({
         'crystal': [
             'dgeom.type',
@@ -76,7 +76,7 @@ class Crystal(_class2_Camera.Camera):
         """
 
         # check / format input
-        dref, ddata, dobj = _class2_check._add_surface3d(
+        dref, ddata, dobj = _class3_check._add_surface3d(
             coll=self,
             key=key,
             which='crystal',
@@ -88,7 +88,7 @@ class Crystal(_class2_Camera.Camera):
         key = list(dobj['crystal'].keys())[0]
 
         # material
-        dobj['crystal'][key]['dmat'] = _class3_check._dmat(
+        dobj['crystal'][key]['dmat'] = _check._dmat(
             dgeom=dobj['crystal'][key]['dgeom'],
             dmat=dmat,
             alpha=alpha,
@@ -96,7 +96,7 @@ class Crystal(_class2_Camera.Camera):
         )
 
         # spectro
-        # dspectro = _class3_check._dspectro(
+        # dspectro = _check._dspectro(
         # dobj=dobj,
         # dspectro=dspectro,
         # )
@@ -114,7 +114,7 @@ class Crystal(_class2_Camera.Camera):
         dbragg=None,
         intensity=None,
     ):
-        return _class3_compute.rocking_curve(
+        return _compute.rocking_curve(
             coll=self,
             key=key,
         )
@@ -136,7 +136,7 @@ class Crystal(_class2_Camera.Camera):
 
         """
 
-        return _class3_compute._bragglamb(
+        return _compute._bragglamb(
             coll=self,
             key=key,
             lamb=lamb,
@@ -186,7 +186,7 @@ class Crystal(_class2_Camera.Camera):
              - detector position given its height
         """
 
-        return _class3_compute._ideal_configuration(
+        return _compute._ideal_configuration(
             coll=self,
             key=key,
             configuration=configuration,

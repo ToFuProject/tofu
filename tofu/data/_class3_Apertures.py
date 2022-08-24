@@ -11,11 +11,12 @@ import datastock as ds
 
 
 # tofu
-from . import _class5_Crystal
-# from . import _class6_check as _check
+from . import _class2_Rays
+from . import _class3_check as _check
+from . import _class3_compute as _compute
 
 
-__all__ = ['Grating']
+__all__ = ['Aperture']
 
 
 # #############################################################################
@@ -24,7 +25,7 @@ __all__ = ['Grating']
 # #############################################################################
 
 
-class Grating(_class5_Crystal.Crystal):
+class Aperture(_class2_Rays.Rays):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
@@ -35,16 +36,20 @@ class Grating(_class5_Crystal.Crystal):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
-    _dshow = dict(_class5_Crystal.Crystal._dshow)
+
+    _dshow = dict(_class2_Rays.Rays._dshow)
     _dshow.update({
-        'grating': [
-            'type', 'material',
-            'rcurve', 'miller',
-            'cent',
+        'aperture': [
+            'dgeom.type',
+            'dgeom.curve_r',
+            'dgeom.area',
+            'dgeom.outline',
+            'dgeom.poly',
+            'dgeom.cent',
         ],
     })
 
-    def add_grating(
+    def add_aperture(
         self,
         key=None,
         # 2d outline
@@ -59,8 +64,11 @@ class Grating(_class5_Crystal.Crystal):
         nin=None,
         e0=None,
         e1=None,
+        # curvature
+        curve_r=None,
+        curve_npts=None,
     ):
-        """ Add a grating
+        """ Add an aperture
 
         Can be defined from:
             - 2d outline + 3d center + unit vectors (nin, e0, e1)
@@ -73,9 +81,11 @@ class Grating(_class5_Crystal.Crystal):
         """
 
         # check / format input
-        dref, ddata, dobj = _check._grating(
+        dref, ddata, dobj = _check._add_surface3d(
             coll=self,
             key=key,
+            which='aperture',
+            which_short='ap',
             # 2d outline
             outline_x0=outline_x0,
             outline_x1=outline_x1,
@@ -88,7 +98,39 @@ class Grating(_class5_Crystal.Crystal):
             nin=nin,
             e0=e0,
             e1=e1,
+            # curvature
+            curve_r=curve_r,
+            curve_npts=curve_npts,
         )
 
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+    # ---------------
+    # utilities
+    # ---------------
+
+    def get_optics_outline(
+        self,
+        key=None,
+        add_points=None,
+        closed=None,
+        ravel=None,
+    ):
+        """ Return the optics outline """
+        return _compute.get_optics_outline(
+            coll=self,
+            key=key,
+            add_points=add_points,
+            closed=closed,
+            ravel=ravel,
+        )
+
+    def get_as_dict(self, which=None, key=None):
+        """ Return the desired object as a dict (input to some routines) """
+
+        return _check._return_as_dict(
+            coll=self,
+            which=which,
+            key=key,
+        )

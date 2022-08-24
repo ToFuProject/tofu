@@ -11,11 +11,12 @@ import datastock as ds
 
 
 # tofu
-from . import _class5_Crystal
-# from . import _class6_check as _check
+from . import _class3_Aperture
+from . import _class3_check as _check
+from . import _class3_compute as _compute
 
 
-__all__ = ['Grating']
+__all__ = ['Filter']
 
 
 # #############################################################################
@@ -24,7 +25,7 @@ __all__ = ['Grating']
 # #############################################################################
 
 
-class Grating(_class5_Crystal.Crystal):
+class Filter(_class3_Aperture.Aperture):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
@@ -35,32 +36,29 @@ class Grating(_class5_Crystal.Crystal):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
-    _dshow = dict(_class5_Crystal.Crystal._dshow)
+    _dshow = dict(_class3_Aperture.Aperture._dshow)
     _dshow.update({
-        'grating': [
-            'type', 'material',
-            'rcurve', 'miller',
-            'cent',
+        'crystal': [
+            'dgeom.type',
+            'dgeom.curve_r',
+            'dgeom.area',
+            'dmat.name',
+            'dmat.miller',
+            'dgeom.outline',
+            'dgeom.poly',
+            'dgeom.cent',
         ],
     })
 
-    def add_grating(
+    def add_filter(
         self,
         key=None,
-        # 2d outline
-        outline_x0=None,
-        outline_x1=None,
-        cent=None,
-        # 3d outline
-        poly_x=None,
-        poly_y=None,
-        poly_z=None,
-        # normal vector
-        nin=None,
-        e0=None,
-        e1=None,
+        # geometry
+        dgeom=None,
+        # material
+        dmat=None,
     ):
-        """ Add a grating
+        """ Add a crystal
 
         Can be defined from:
             - 2d outline + 3d center + unit vectors (nin, e0, e1)
@@ -73,22 +71,34 @@ class Grating(_class5_Crystal.Crystal):
         """
 
         # check / format input
-        dref, ddata, dobj = _check._grating(
+        dref, ddata, dobj = _check._add_surface3d(
             coll=self,
             key=key,
+            which='crystal',
+            which_short='cryst',
             # 2d outline
-            outline_x0=outline_x0,
-            outline_x1=outline_x1,
-            cent=cent,
-            # 3d outline
-            poly_x=poly_x,
-            poly_y=poly_y,
-            poly_z=poly_z,
-            # normal vector
-            nin=nin,
-            e0=e0,
-            e1=e1,
+            **dgeom,
         )
+
+        key = list(dobj['crystal'].keys())[0]
+
+        # material
+        dobj['crystal'][key]['dmat'] = _check._dmat(
+            dgeom=dobj['crystal'][key]['dgeom'],
+            dmat=dmat,
+            alpha=alpha,
+            beta=beta,
+        )
+
+        # spectro
+        # dspectro = _check._dspectro(
+        # dobj=dobj,
+        # dspectro=dspectro,
+        # )
 
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+        # compute rocking curve
+        # if dmat['ready_to_compute'] is True:
+        # self.set_crystal_rocking_curve()

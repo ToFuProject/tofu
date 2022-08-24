@@ -11,9 +11,9 @@ import datastock as ds
 
 
 # tofu
-from . import _class1_Rays
-from . import _class2_check
-from . import _class2_compute
+from . import _class6_Grating
+from . import _class7_check as _check
+from . import _class7_compute as _compute
 
 
 __all__ = ['Camera']
@@ -25,7 +25,7 @@ __all__ = ['Camera']
 # #############################################################################
 
 
-class Camera(_class1_Rays.Rays):
+class Camera(_class7_Grating.Grating):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
@@ -37,16 +37,8 @@ class Camera(_class1_Rays.Rays):
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
 
-    _dshow = dict(_class1_Rays.Rays._dshow)
+    _dshow = dict(_class7_Grating.Grating._dshow)
     _dshow.update({
-        'aperture': [
-            'dgeom.type',
-            'dgeom.curve_r',
-            'dgeom.area',
-            'dgeom.outline',
-            'dgeom.poly',
-            'dgeom.cent',
-        ],
         'camera': [
             'type', 'parallel',
             'shape', 'ref',
@@ -58,63 +50,6 @@ class Camera(_class1_Rays.Rays):
             'model',
         ],
     })
-
-    def add_aperture(
-        self,
-        key=None,
-        # 2d outline
-        outline_x0=None,
-        outline_x1=None,
-        cent=None,
-        # 3d outline
-        poly_x=None,
-        poly_y=None,
-        poly_z=None,
-        # normal vector
-        nin=None,
-        e0=None,
-        e1=None,
-        # curvature
-        curve_r=None,
-        curve_npts=None,
-    ):
-        """ Add an aperture
-
-        Can be defined from:
-            - 2d outline + 3d center + unit vectors (nin, e0, e1)
-            - 3d polygon + nin
-
-        Unit vectors will be checked and normalized
-        If planar, area will be computed
-        Outline will be made counter-clockwise
-
-        """
-
-        # check / format input
-        dref, ddata, dobj = _class2_check._add_surface3d(
-            coll=self,
-            key=key,
-            which='aperture',
-            which_short='ap',
-            # 2d outline
-            outline_x0=outline_x0,
-            outline_x1=outline_x1,
-            cent=cent,
-            # 3d outline
-            poly_x=poly_x,
-            poly_y=poly_y,
-            poly_z=poly_z,
-            # normal vector
-            nin=nin,
-            e0=e0,
-            e1=e1,
-            # curvature
-            curve_r=curve_r,
-            curve_npts=curve_npts,
-        )
-
-        # update dicts
-        self.update(dref=dref, ddata=ddata, dobj=dobj)
 
     def add_camera_1d(
         self,
@@ -143,7 +78,7 @@ class Camera(_class1_Rays.Rays):
         qeff=None,
     ):
         # check / format input
-        dref, ddata, dobj = _class2_check._camera_1d(
+        dref, ddata, dobj = _check._camera_1d(
             coll=self,
             key=key,
             # common 2d outline
@@ -192,7 +127,7 @@ class Camera(_class1_Rays.Rays):
         qeff=None,
     ):
         # check / format input
-        dref, ddata, dobj = _class2_check._camera_2d(
+        dref, ddata, dobj = _check._camera_2d(
             coll=self,
             key=key,
             # common 2d outline
@@ -220,32 +155,16 @@ class Camera(_class1_Rays.Rays):
 
     def get_camera_unit_vectors(self, key=None):
         """ Return unit vectors components as dict """
-        return _class2_check.get_camera_unitvectors(
+        return _check.get_camera_unitvectors(
             coll=self,
             key=key,
         )
 
     def get_camera_cents_xyz(self, key=None):
         """ Return cents_x, cents_y, cents_z """
-        return _class2_check.get_camera_cents_xyz(
+        return _check.get_camera_cents_xyz(
             coll=self,
             key=key,
-        )
-
-    def get_optics_outline(
-        self,
-        key=None,
-        add_points=None,
-        closed=None,
-        ravel=None,
-    ):
-        """ Return the optics outline """
-        return _class2_compute.get_optics_outline(
-            coll=self,
-            key=key,
-            add_points=add_points,
-            closed=closed,
-            ravel=ravel,
         )
 
     def get_as_dict(self, which=None, key=None):
