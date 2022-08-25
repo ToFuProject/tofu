@@ -40,114 +40,151 @@ class Camera(_class6_Grating.Grating):
     _dshow = dict(_class6_Grating.Grating._dshow)
     _dshow.update({
         'camera': [
-            'type', 'parallel',
-            'shape', 'ref',
-            'pix area', 'pix nb',
-            'outline',
-            'cent', 'cents',
-            'qeff_energy',
-            'qeff',
-            'model',
+            'dgeom.type',
+            'dgeom.parallel',
+            'dgeom.shape',
+            'dgeom.ref',
+            'dgeom.pix_area',
+            'dgeom.pix_nb',
+            'dgeom.outline',
+            'dgeom.cent',
+            'dgeom.cents',
+            'dmat.qeff_energy',
+            'dmat.qeff',
+            'dmisc.color',
         ],
     })
+
+    def _add_camera(
+        self,
+        dref=None,
+        ddata=None,
+        dobj=None,
+        dmat=None,
+        color=None,
+    ):
+        key = list(dobj['camera'].keys())[0]
+
+        # material
+        dref2, ddata2, dmat = _check._dmat(
+            key=key,
+            dmat=dmat,
+        )
+
+        if dmat is not None:
+            dref.update(dref2)
+            ddata.update(ddata2)
+            dobj['camera'][key]['dmat'] = dmat
+
+        # dmisc
+        dobj['camera'][key]['dmisc'] = _class3_check._dmisc(
+            key=key,
+            color=color,
+        )
+
+        # update dicts
+        self.update(dref=dref, ddata=ddata, dobj=dobj)
 
     def add_camera_1d(
         self,
         key=None,
-        # common 2d outline
-        outline_x0=None,
-        outline_x1=None,
-        # centers of all pixels
-        cents_x=None,
-        cents_y=None,
-        cents_z=None,
-        # inwards normal vectors
-        nin_x=None,
-        nin_y=None,
-        nin_z=None,
-        # orthonormal direct base
-        e0_x=None,
-        e0_y=None,
-        e0_z=None,
-        e1_x=None,
-        e1_y=None,
-        e1_z=None,
+        # geometry
+        dgeom=None,
         # quantum efficiency
-        lamb=None,
-        energy=None,
-        qeff=None,
+        dmat=None,
+        # dmisc
+        color=None,
     ):
+        """ add a 1d camera
+
+        A 1d camera is an unordered set of pixels of indentical outline
+        Its geometry os defined by dgeom
+        Its material properties (i.e: quantum efficiency) in dmat
+
+        The geometry in dgeom must contain:
+            - 'outline_x0': 1st coordinate of planar outline of a single pixel
+            - 'outline_x1': 1st coordinate of planar outline of a single pixel
+            - 'cents_x': x coordinate of the centers of ll pixels
+            - 'cents_y': y coordinate of the centers of ll pixels
+            - 'cents_z': z coordinate of the centers of ll pixels
+            - 'nin_x': x coordinate of inward normal unit vector of all pixels
+            - 'nin_y': y coordinate of inward normal unit vector of all pixels
+            - 'nin_z': z coordinate of inward normal unit vector of all pixels
+            - 'e0_x': x coordinate of e0 unit vector of all pixels
+            - 'e0_y': y coordinate of e0 unit vector of all pixels
+            - 'e0_z': z coordinate of e0 unit vector of all pixels
+            - 'e1_x': x coordinate of e1 unit vector of all pixels
+            - 'e1_y': y coordinate of e1 unit vector of all pixels
+            - 'e1_z': z coordinate of e1 unit vector of all pixels
+
+        The material dict, dmat can contain:
+            - 'energy': a 1d energy vector , in eV
+            - 'qeff': a 1d vector, same size as energy, with values in [0; 1]
+
+        """
         # check / format input
         dref, ddata, dobj = _check._camera_1d(
             coll=self,
             key=key,
-            # common 2d outline
-            outline_x0=outline_x0,
-            outline_x1=outline_x1,
-            # centers of all pixels
-            cents_x=cents_x,
-            cents_y=cents_y,
-            cents_z=cents_z,
-            # inwards normal vectors
-            nin_x=nin_x,
-            nin_y=nin_y,
-            nin_z=nin_z,
-            # orthonormal direct base
-            e0_x=e0_x,
-            e0_y=e0_y,
-            e0_z=e0_z,
-            e1_x=e1_x,
-            e1_y=e1_y,
-            e1_z=e1_z,
-            # quantum efficiency
-            lamb=lamb,
-            energy=energy,
-            qeff=qeff,
+            **dgeom,
         )
-        # update dicts
-        self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+        # add generic parts
+        self._add_camera(
+            dref=dref,
+            ddata=ddata,
+            dobj=dobj,
+            dmat=dmat,
+            color=color,
+        )
+
 
     def add_camera_2d(
         self,
         key=None,
-        # common 2d outline
-        outline_x0=None,
-        outline_x1=None,
-        # centers of all pixels
-        cent=None,
-        cents_x0=None,
-        cents_x1=None,
-        # inwards normal vectors
-        nin=None,
-        e0=None,
-        e1=None,
-        # quantum efficiency
-        lamb=None,
-        energy=None,
-        qeff=None,
+        # geometry
+        dgeom=None,
+        # material
+        dmat=None,
+        # dmisc
+        color=None,
     ):
+        """ add a 2d camera
+
+        A 2d camera is an ordered 2d grid of pixels of indentical outline
+        Its geometry os defined by dgeom
+        Its material properties (i.e: quantum efficiency) in dmat
+
+        The geometry in dgeom must contain:
+            - 'outline_x0': 1st coordinate of planar outline of a single pixel
+            - 'outline_x1': 1st coordinate of planar outline of a single pixel
+            - 'cent': (x, y, z) coordinate of the center of the camera
+            - 'cents_x0': x0 coordinate of the centers of all pixels
+            - 'cents_x1': x1 coordinate of the centers of all pixels
+            - 'nin': x coordinate of inward normal unit vector of all pixels
+            - 'e0': x coordinate of e0 unit vector of all pixels
+            - 'e1': x coordinate of e1 unit vector of all pixels
+
+        The material dict, dmat can contain:
+            - 'energy': a 1d energy vector , in eV
+            - 'qeff': a 1d vector, same size as energy, with values in [0; 1]
+
+        """
         # check / format input
         dref, ddata, dobj = _check._camera_2d(
             coll=self,
             key=key,
-            # common 2d outline
-            outline_x0=outline_x0,
-            outline_x1=outline_x1,
-            # centers of all pixels
-            cent=cent,
-            cents_x0=cents_x0,
-            cents_x1=cents_x1,
-            # inwards normal vectors
-            nin=nin,
-            e0=e0,
-            e1=e1,
-            # quantum efficiency
-            lamb=lamb,
-            energy=energy,
-            qeff=qeff,
+            **dgeom,
         )
-        # update dicts
-        self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+        # add generic parts
+        self._add_camera(
+            dref=dref,
+            ddata=ddata,
+            dobj=dobj,
+            dmat=dmat,
+            color=color,
+        )
 
     # ---------------
     # utilities

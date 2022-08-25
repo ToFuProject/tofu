@@ -12,7 +12,9 @@ import datastock as ds
 
 # tofu
 from . import _class5_Crystal
+from . import _class3_check
 # from . import _class6_check as _check
+# from . import _class6_compute as _compute
 
 
 __all__ = ['Grating']
@@ -26,41 +28,32 @@ __all__ = ['Grating']
 
 class Grating(_class5_Crystal.Crystal):
 
-    # _ddef = copy.deepcopy(ds.DataStock._ddef)
-    # _ddef['params']['ddata'].update({
-    #       'bsplines': (str, ''),
-    # })
-    # _ddef['params']['dobj'] = None
-    # _ddef['params']['dref'] = None
-
-    # _show_in_summary_core = ['shape', 'ref', 'group']
-    _show_in_summary = 'all'
     _dshow = dict(_class5_Crystal.Crystal._dshow)
     _dshow.update({
-        'grating': [
-            'type', 'material',
-            'rcurve', 'miller',
-            'cent',
+        'crystal': [
+            'dgeom.type',
+            'dgeom.curve_r',
+            'dgeom.area',
+            'dmat.name',
+            'dmat.miller',
+            'dgeom.outline',
+            'dgeom.poly',
+            'dgeom.cent',
+            'dmisc.color',
         ],
     })
 
     def add_grating(
         self,
         key=None,
-        # 2d outline
-        outline_x0=None,
-        outline_x1=None,
-        cent=None,
-        # 3d outline
-        poly_x=None,
-        poly_y=None,
-        poly_z=None,
-        # normal vector
-        nin=None,
-        e0=None,
-        e1=None,
+        # geometry
+        dgeom=None,
+        # material
+        dmat=None,
+        # dmisc
+        color=None,
     ):
-        """ Add a grating
+        """ Add a crystal
 
         Can be defined from:
             - 2d outline + 3d center + unit vectors (nin, e0, e1)
@@ -73,21 +66,29 @@ class Grating(_class5_Crystal.Crystal):
         """
 
         # check / format input
-        dref, ddata, dobj = _check._grating(
+        dref, ddata, dobj = _class3_check._add_surface3d(
             coll=self,
             key=key,
+            which='grating',
+            which_short='grat',
             # 2d outline
-            outline_x0=outline_x0,
-            outline_x1=outline_x1,
-            cent=cent,
-            # 3d outline
-            poly_x=poly_x,
-            poly_y=poly_y,
-            poly_z=poly_z,
-            # normal vector
-            nin=nin,
-            e0=e0,
-            e1=e1,
+            **dgeom,
+        )
+
+        key = list(dobj['grating'].keys())[0]
+
+        # material
+        dobj['grating'][key]['dmat'] = _check._dmat(
+            dgeom=dobj['grating'][key]['dgeom'],
+            dmat=dmat,
+            alpha=alpha,
+            beta=beta,
+        )
+
+        # dmisc
+        dobj['grating'][key]['dmisc'] = _class3_check._dmisc(
+            key=key,
+            color=color,
         )
 
         # update dicts

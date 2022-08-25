@@ -45,6 +45,7 @@ class Aperture(_class2_Rays.Rays):
             'dgeom.outline',
             'dgeom.poly',
             'dgeom.cent',
+            'dmisc.color',
         ],
     })
 
@@ -66,6 +67,8 @@ class Aperture(_class2_Rays.Rays):
         # curvature
         curve_r=None,
         curve_npts=None,
+        # dmisc
+        color=None,
     ):
         """ Add an aperture
 
@@ -100,6 +103,13 @@ class Aperture(_class2_Rays.Rays):
             # curvature
             curve_r=curve_r,
             curve_npts=curve_npts,
+        )
+
+        # dmisc
+        key = list(dobj['aperture'].keys())[0]
+        dobj['aperture'][key]['dmisc'] = _check._dmisc(
+            key=key,
+            color=color,
         )
 
         # update dicts

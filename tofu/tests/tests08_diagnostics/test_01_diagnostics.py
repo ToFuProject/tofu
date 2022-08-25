@@ -220,20 +220,22 @@ def _cameras():
     cents_z = cent[2] + kl0 * e0[2] + klin * nins[:, 2]
 
     c0 = {
-        'outline_x0': out0,
-        'outline_x1': out1,
-        'cents_x': cents_x,
-        'cents_y': cents_y,
-        'cents_z': cents_z,
-        'nin_x': nins[:, 0],
-        'nin_y': nins[:, 1],
-        'nin_z': nins[:, 2],
-        'e0_x': e0s[:, 0],
-        'e0_y': e0s[:, 1],
-        'e0_z': e0s[:, 2],
-        'e1_x': e1s[:, 0],
-        'e1_y': e1s[:, 1],
-        'e1_z': e1s[:, 2],
+        'dgeom': {
+            'outline_x0': out0,
+            'outline_x1': out1,
+            'cents_x': cents_x,
+            'cents_y': cents_y,
+            'cents_z': cents_z,
+            'nin_x': nins[:, 0],
+            'nin_y': nins[:, 1],
+            'nin_z': nins[:, 2],
+            'e0_x': e0s[:, 0],
+            'e0_y': e0s[:, 1],
+            'e0_z': e0s[:, 2],
+            'e1_x': e1s[:, 0],
+            'e1_y': e1s[:, 1],
+            'e1_z': e1s[:, 2],
+        },
     }
 
     # c1: 1d parallel coplanar
@@ -244,22 +246,26 @@ def _cameras():
     cents_z = cent[2] + kl * e0[2]
 
     c1 = {
-        'outline_x0': out0,
-        'outline_x1': out1,
-        'cents_x': cents_x,
-        'cents_y': cents_y,
-        'cents_z': cents_z,
-        'nin_x': nins[0, 0],
-        'nin_y': nins[0, 1],
-        'nin_z': nins[0, 2],
-        'e0_x': e0s[0, 0],
-        'e0_y': e0s[0, 1],
-        'e0_z': e0s[0, 2],
-        'e1_x': e1s[0, 0],
-        'e1_y': e1s[0, 1],
-        'e1_z': e1s[0, 2],
-        'lamb': np.linspace(3, 4, 100)*1e-10,
-        'qeff': 0.99*np.ones((100,))
+        'dgeom': {
+            'outline_x0': out0,
+            'outline_x1': out1,
+            'cents_x': cents_x,
+            'cents_y': cents_y,
+            'cents_z': cents_z,
+            'nin_x': nins[0, 0],
+            'nin_y': nins[0, 1],
+            'nin_z': nins[0, 2],
+            'e0_x': e0s[0, 0],
+            'e0_y': e0s[0, 1],
+            'e0_z': e0s[0, 2],
+            'e1_x': e1s[0, 0],
+            'e1_y': e1s[0, 1],
+            'e1_z': e1s[0, 2],
+        },
+        'dmat': {
+            'energy': np.linspace(1, 10, 100)*1e3,
+            'qeff': 0.99*np.ones((100,)),
+        },
     }
 
     # c2: 2d
@@ -279,14 +285,16 @@ def _cameras():
     )
 
     c2 = {
-        'outline_x0': out0,
-        'outline_x1': out1,
-        'cent': cent,
-        'cents_x0': cent0,
-        'cents_x1': cent1,
-        'nin': nin,
-        'e0': e0,
-        'e1': e1,
+        'dgeom': {
+            'outline_x0': out0,
+            'outline_x1': out1,
+            'cent': cent,
+            'cents_x0': cent0,
+            'cents_x1': cent1,
+            'nin': nin,
+            'e0': e0,
+            'e1': e1,
+        },
     }
 
     return {'cam0': c0, 'cam1': c1, 'cam2': c2}

@@ -590,7 +590,7 @@ def _ideal_configuration_store(
     # add camera
     coll.add_camera_2d(
         key=key_cam,
-        **dout['camera']
+        dgeom=dout['camera'],
     )
 
     # -------

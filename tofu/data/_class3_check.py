@@ -3,6 +3,7 @@
 
 import numpy as np
 import scipy.constants as scpct
+import matplotlib.colors as mcolors
 import datastock as ds
 
 
@@ -170,6 +171,31 @@ def _add_surface3d(
 
 # #############################################################################
 # #############################################################################
+#                       Generic dmisc for 3d surfaces
+# #############################################################################
+
+
+def _dmisc(key=None, color=None):
+
+    # --------
+    # color
+
+    if color is None:
+        color = 'k'
+        if not mcolors.is_color_like(color):
+            msg = (
+                f"Arg color for '{key}' must be a matplotlib color!\n"
+                f"Provided: {color}\n"
+            )
+            raise Exception(msg)
+
+    color = mcolors.to_rgba(color)
+
+    return {'color': color}
+
+
+# #############################################################################
+# #############################################################################
 #                       Utilities
 # #############################################################################
 
@@ -216,17 +242,17 @@ def _return_as_dict(
         if cls == 'camera':
 
             dout[k0] = coll.get_camera_unit_vectors(key=k0)
-            cam = coll.dobj['camera'][k0]
+            dgeom = coll.dobj['camera'][k0]['dgeom']
             cx, cy, cz = coll.get_camera_cents_xyz(key=k0)
 
             dout[k0].update({
-                'outline_x0': coll.ddata[cam['outline'][0]]['data'],
-                'outline_x1': coll.ddata[cam['outline'][1]]['data'],
+                'outline_x0': coll.ddata[dgeom['outline'][0]]['data'],
+                'outline_x1': coll.ddata[dgeom['outline'][1]]['data'],
                 'cents_x': cx,
                 'cents_y': cy,
                 'cents_z': cz,
-                'pix area': cam['pix area'],
-                'parallel': cam['parallel'],
+                'pix_area': dgeom['pix_area'],
+                'parallel': dgeom['parallel'],
             })
 
         elif cls in ['aperture', 'filter']:

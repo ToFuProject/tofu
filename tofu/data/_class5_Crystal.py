@@ -28,15 +28,6 @@ __all__ = ['Crystal']
 
 class Crystal(_class4_Filter.Filter):
 
-    # _ddef = copy.deepcopy(ds.DataStock._ddef)
-    # _ddef['params']['ddata'].update({
-    #       'bsplines': (str, ''),
-    # })
-    # _ddef['params']['dobj'] = None
-    # _ddef['params']['dref'] = None
-
-    # _show_in_summary_core = ['shape', 'ref', 'group']
-    _show_in_summary = 'all'
     _dshow = dict(_class4_Filter.Filter._dshow)
     _dshow.update({
         'crystal': [
@@ -48,6 +39,7 @@ class Crystal(_class4_Filter.Filter):
             'dgeom.outline',
             'dgeom.poly',
             'dgeom.cent',
+            'dmisc.color',
         ],
     })
 
@@ -60,8 +52,8 @@ class Crystal(_class4_Filter.Filter):
         dmat=None,
         alpha=None,
         beta=None,
-        # spectro
-        dspectro=None,
+        # dmisc
+        color=None,
     ):
         """ Add a crystal
 
@@ -95,11 +87,11 @@ class Crystal(_class4_Filter.Filter):
             beta=beta,
         )
 
-        # spectro
-        # dspectro = _check._dspectro(
-        # dobj=dobj,
-        # dspectro=dspectro,
-        # )
+        # dmisc
+        dobj['crystal'][key]['dmisc'] = _class3_check._dmisc(
+            key=key,
+            color=color,
+        )
 
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)

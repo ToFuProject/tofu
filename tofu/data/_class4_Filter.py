@@ -39,6 +39,7 @@ class Filter(_class3_Aperture.Aperture):
             'dgeom.cent',
             'dmat.energy',
             'dmat.transmission',
+            'dmisc.color',
         ],
     })
 
@@ -49,6 +50,8 @@ class Filter(_class3_Aperture.Aperture):
         dgeom=None,
         # material
         dmat=None,
+        # dmisc
+        color=None,
     ):
         """ Add a filter
 
@@ -87,6 +90,12 @@ class Filter(_class3_Aperture.Aperture):
             dref.update(dref2)
             ddata.update(ddata2)
             dobj['filter'][key]['dmat'] = dmat
+
+        # dmisc
+        dobj['filter'][key]['dmisc'] = _class3_check._dmisc(
+            key=key,
+            color=color,
+        )
 
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)

@@ -7,61 +7,16 @@ import datastock as ds
 
 
 from . import _utils_surface3d
-from ..geom._comp_solidangles import _check_polygon_2d, _check_polygon_3d
+from . import _class4_check
+
+from ..geom._comp_solidangles import _check_polygon_2d
 
 
-# #############################################################################
-# #############################################################################
-#                   Camera quantum efficiency
-# #############################################################################
+_DMAT_KEYS = {
+    'energy': {'dtype': float, 'sign': '> 0.'},
+    'qeff': {'dtype': float, 'sign': ['>= 0.', '<= 1.']},
+}
 
-
-def _camera_qeff(
-    key=None,
-    lamb=None,
-    energy=None,
-    qeff=None,
-):
-    """ Check qeff is provided as a 1d vector vs lamb or energy
-
-    lamb is assumed to be in m and converted to energy
-    energy is assumed to be in eV
-
-    """
-
-    # trivial case
-    if qeff is None or (energy is None and lamb is None):
-        return None, None
-
-    # non-trivial
-    if energy is not None and lamb is not None:
-        msg = "Please provide either energy vector xor lamb vector!"
-        raise Exception(msg)
-
-    if lamb is not None:
-        lamb = np.atleast_1d(lamb).ravel().astype(float)
-        energy = (scpct.h * scpct.c / lamb) / scpct.e
-
-    energy = np.atleast_1d(energy).ravel().astype(float)
-    qeff = np.atleast_1d(qeff).ravel().astype(float)
-
-    # basic checks
-    if energy.shape != qeff.shape:
-        msg = "Args energy (or lamb) and qeff must have the same shape!"
-        raise Exception(msg)
-
-    iout = (~np.isfinite(energy)) | (energy <= 0.)
-    if np.any(iout):
-        msg = "Arg energy/lamb must contain only finite positive values!"
-        raise Exception(msg)
-
-    iok = np.isfinite(qeff)
-    iout = (qeff[iok] < 0.) | (qeff[iok] > 1.)
-    if np.any(iout):
-        msg = "Arg qeff must contains values in [0, 1] only"
-        raise Exception(msg)
-
-    return energy, qeff
 
 
 # #############################################################################
@@ -91,10 +46,6 @@ def _camera_1d_check(
     e1_x=None,
     e1_y=None,
     e1_z=None,
-    # quantum efficiency
-    lamb=None,
-    energy=None,
-    qeff=None,
 ):
 
     # ----
@@ -263,16 +214,6 @@ def _camera_1d_check(
         e0 = (e0_x, e0_y, e0_z)
         e1 = (e1_x, e1_y, e1_z)
 
-    # ------------------
-    # quantum efficiency
-
-    energy, qeff = _camera_qeff(
-        key=key,
-        lamb=lamb,
-        energy=energy,
-        qeff=qeff,
-    )
-
     return (
         key,
         outline_x0, outline_x1,
@@ -283,7 +224,6 @@ def _camera_1d_check(
         npix,
         parallel,
         nin, e0, e1,
-        energy, qeff,
     )
 
 
@@ -308,10 +248,6 @@ def _camera_1d(
     e1_x=None,
     e1_y=None,
     e1_z=None,
-    # quantum efficiency
-    lamb=None,
-    energy=None,
-    qeff=None,
 ):
 
     # ------------
@@ -327,7 +263,6 @@ def _camera_1d(
         npix,
         parallel,
         nin, e0, e1,
-        energy, qeff,
     ) = _camera_1d_check(
         coll=coll,
         key=key,
@@ -349,10 +284,6 @@ def _camera_1d(
         e1_x=e1_x,
         e1_y=e1_y,
         e1_z=e1_z,
-        # quantum efficiency
-        lamb=lamb,
-        energy=energy,
-        qeff=qeff,
     )
 
     # ----------
@@ -365,15 +296,6 @@ def _camera_1d(
         knpts: {'size': npts},
         knpix: {'size': npix},
     }
-
-    if qeff is not None:
-        kenergy = f'{key}-energy'
-        kqeff = f'{key}-qeff'
-        nenergy = energy.size
-        dref[kenergy] = {'size': nenergy}
-    else:
-        kenergy = None
-        kqeff = None
 
     # -------------
     # ddata
@@ -427,24 +349,6 @@ def _camera_1d(
         },
     }
 
-    if qeff is not None:
-        ddata[kenergy] = {
-            'data': energy,
-            'ref': kenergy,
-            'dim': 'energy',
-            'quant': 'energy',
-            'name': 'energy',
-            'units': 'eV',
-        }
-        ddata[kqeff] = {
-            'data': qeff,
-            'ref': kenergy,
-            'dim': '',
-            'quant': '',
-            'name': 'quantum efficiency',
-            'units': '',
-        }
-
     # -----
     # dobj
 
@@ -472,20 +376,20 @@ def _camera_1d(
     dobj = {
         'camera': {
             key: {
-                'type': '1d',
-                'parallel': parallel,
-                'shape': (npix,),
-                'ref': (knpix,),
-                'pix area': area,
-                'pix nb': npix,
-                'outline': (kout0, kout1),
-                'cent': None,
-                'cents': (kcx, kcy, kcz),
-                'nin': o_nin,
-                'e0': o_e0,
-                'e1': o_e1,
-                'qeff_energy': kenergy,
-                'qeff': kqeff,
+                'dgeom': {
+                    'type': '1d',
+                    'parallel': parallel,
+                    'shape': (npix,),
+                    'ref': (knpix,),
+                    'pix_area': area,
+                    'pix_nb': npix,
+                    'outline': (kout0, kout1),
+                    'cent': None,
+                    'cents': (kcx, kcy, kcz),
+                    'nin': o_nin,
+                    'e0': o_e0,
+                    'e1': o_e1,
+                },
             },
         },
     }
@@ -592,10 +496,6 @@ def _camera_2d_check(
     nin=None,
     e0=None,
     e1=None,
-    # quantum efficiency
-    lamb=None,
-    energy=None,
-    qeff=None,
 ):
 
     # ----
@@ -678,16 +578,6 @@ def _camera_2d_check(
         dim=3,
     )
 
-    # ------------------
-    # quantum efficiency
-
-    energy, qeff = _camera_qeff(
-        key=key,
-        lamb=lamb,
-        energy=energy,
-        qeff=qeff,
-    )
-
     return (
         key,
         outline_x0, outline_x1,
@@ -696,7 +586,6 @@ def _camera_2d_check(
         cents_x0, cents_x1,
         npix0, npix1,
         nin, e0, e1,
-        energy, qeff,
     )
 
 
@@ -714,10 +603,6 @@ def _camera_2d(
     nin=None,
     e0=None,
     e1=None,
-    # quantum efficiency
-    lamb=None,
-    energy=None,
-    qeff=None,
 ):
 
     # ------------
@@ -731,7 +616,6 @@ def _camera_2d(
         cents_x0, cents_x1,
         npix0, npix1,
         nin, e0, e1,
-        energy, qeff,
     ) = _camera_2d_check(
         coll=coll,
         key=key,
@@ -746,10 +630,6 @@ def _camera_2d(
         nin=nin,
         e0=e0,
         e1=e1,
-        # quantum efficiency
-        lamb=lamb,
-        energy=energy,
-        qeff=qeff,
     )
 
     # ----------
@@ -764,15 +644,6 @@ def _camera_2d(
         knpix0: {'size': npix0},
         knpix1: {'size': npix1},
     }
-
-    if qeff is not None:
-        kenergy = f'{key}-energy'
-        kqeff = f'{key}-qeff'
-        nenergy = energy.size
-        dref[kenergy] = {'size': nenergy}
-    else:
-        kenergy = None
-        kqeff = None
 
     # -------------
     # ddata
@@ -817,44 +688,26 @@ def _camera_2d(
         },
     }
 
-    if qeff is not None:
-        ddata[kenergy] = {
-            'data': energy,
-            'ref': kenergy,
-            'dim': 'energy',
-            'quant': 'energy',
-            'name': 'energy',
-            'units': 'eV',
-        }
-        ddata[kqeff] = {
-            'data': qeff,
-            'ref': kenergy,
-            'dim': '',
-            'quant': '',
-            'name': 'quantum efficiency',
-            'units': '',
-        }
-
     # -----
     # dobj
 
     dobj = {
         'camera': {
             key: {
-                'type': '2d',
-                'parallel': True,
-                'shape': (npix0, npix1),
-                'ref': (knpix0, knpix1),
-                'pix area': area,
-                'pix nb': npix0 * npix1,
-                'outline': (kout0, kout1),
-                'cent': cent,
-                'cents': (kc0, kc1),
-                'nin': nin,
-                'e0': e0,
-                'e1': e1,
-                'qeff_energy': kenergy,
-                'qeff': kqeff,
+                'dgeom': {
+                    'type': '2d',
+                    'parallel': True,
+                    'shape': (npix0, npix1),
+                    'ref': (knpix0, knpix1),
+                    'pix_area': area,
+                    'pix_nb': npix0 * npix1,
+                    'outline': (kout0, kout1),
+                    'cent': cent,
+                    'cents': (kc0, kc1),
+                    'nin': nin,
+                    'e0': e0,
+                    'e1': e1,
+                },
             },
         },
     }
@@ -862,10 +715,97 @@ def _camera_2d(
     return dref, ddata, dobj
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
+#                       Camera dmat
+# ##################################################################
+
+
+def _dmat(
+    key=None,
+    dmat=None,
+):
+    """ Check qeff is provided as a 1d vector vs lamb or energy
+
+    lamb is assumed to be in m and converted to energy
+    energy is assumed to be in eV
+
+    """
+
+    # ------------
+    # trivial case
+
+    if dmat is None:
+        return None, None, None
+
+    # ------
+    # Check
+
+    # Check dict type and content (each key is a valid string)
+    dmat = ds._generic_check._check_dict_valid_keys(
+        var=dmat,
+        varname='dmat',
+        has_all_keys=True,
+        has_only_keys=False,
+        keys_can_be_None=False,
+        dkeys=_DMAT_KEYS,
+    )
+
+    # -----------------------------------
+    # check energy / qeff values
+
+    dmat['energy'], dmat['qeff'] = _class4_check._dmat_energy_trans(
+        energ=dmat['energy'],
+        trans=dmat['qeff'],
+    )
+
+    # ----------
+    # dref
+
+    kne = f'{key}-nE'
+    ne = dmat['energy'].size
+    dref = {
+        kne: {'size': ne},
+    }
+
+    # ----------
+    # ddata
+
+    kE = f'{key}-E'
+    kqeff = f'{key}-qeff'
+
+    ddata = {
+        kE: {
+            'data': dmat['energy'],
+            'ref': kne,
+            'dim': 'energy',
+            'quant': 'energy',
+            'name': 'E',
+            'units': 'eV',
+        },
+        kqeff: {
+            'data': dmat['qeff'],
+            'ref': kne,
+            'dim': None,
+            'quant': 'quantum eff.',
+            'name': '',
+            'units': '',
+        },
+    }
+
+    # -----------
+    # dmat
+
+    dmat['energy'] = kE
+    dmat['qeff'] = kqeff
+
+    return dref, ddata, dmat
+
+
+# ##################################################################
+# ##################################################################
 #                           Utilities
-# #############################################################################
+# ##################################################################
 
 
 def get_camera_unitvectors(
@@ -886,30 +826,30 @@ def get_camera_unitvectors(
     # ---------------------------
     # get unit vector components
 
-    if coll.dobj['camera'][key]['parallel']:
+    dgeom = coll.dobj['camera'][key]['dgeom']
+    if dgeom['parallel']:
         dout = {
-            'nin_x': coll.dobj['camera'][key]['nin'][0],
-            'nin_y': coll.dobj['camera'][key]['nin'][1],
-            'nin_z': coll.dobj['camera'][key]['nin'][2],
-            'e0_x': coll.dobj['camera'][key]['e0'][0],
-            'e0_y': coll.dobj['camera'][key]['e0'][1],
-            'e0_z': coll.dobj['camera'][key]['e0'][2],
-            'e1_x': coll.dobj['camera'][key]['e1'][0],
-            'e1_y': coll.dobj['camera'][key]['e1'][1],
-            'e1_z': coll.dobj['camera'][key]['e1'][2],
+            'nin_x': dgeom['nin'][0],
+            'nin_y': dgeom['nin'][1],
+            'nin_z': dgeom['nin'][2],
+            'e0_x':  dgeom['e0'][0],
+            'e0_y':  dgeom['e0'][1],
+            'e0_z':  dgeom['e0'][2],
+            'e1_x':  dgeom['e1'][0],
+            'e1_y':  dgeom['e1'][1],
+            'e1_z':  dgeom['e1'][2],
         }
     else:
-        cam = coll.dobj['camera'][key]
         dout = {
-            'nin_x': coll.ddata[cam['nin'][0]]['data'],
-            'nin_y': coll.ddata[cam['nin'][1]]['data'],
-            'nin_z': coll.ddata[cam['nin'][2]]['data'],
-            'e0_x': coll.ddata[cam['e0'][0]]['data'],
-            'e0_y': coll.ddata[cam['e0'][1]]['data'],
-            'e0_z': coll.ddata[cam['e0'][2]]['data'],
-            'e1_x': coll.ddata[cam['e1'][0]]['data'],
-            'e1_y': coll.ddata[cam['e1'][1]]['data'],
-            'e1_z': coll.ddata[cam['e1'][2]]['data'],
+            'nin_x': coll.ddata[dgeom['nin'][0]]['data'],
+            'nin_y': coll.ddata[dgeom['nin'][1]]['data'],
+            'nin_z': coll.ddata[dgeom['nin'][2]]['data'],
+            'e0_x':  coll.ddata[dgeom['e0'][0]]['data'],
+            'e0_y':  coll.ddata[dgeom['e0'][1]]['data'],
+            'e0_z':  coll.ddata[dgeom['e0'][2]]['data'],
+            'e1_x':  coll.ddata[dgeom['e1'][0]]['data'],
+            'e1_y':  coll.ddata[dgeom['e1'][1]]['data'],
+            'e1_z':  coll.ddata[dgeom['e1'][2]]['data'],
         }
 
     return dout
@@ -930,29 +870,29 @@ def get_camera_cents_xyz(coll=None, key=None):
     # ---------------------------
     # get unit vector components
 
-    cam = coll.dobj['camera'][key]
-    if cam['type'] == '1d':
-        cx = coll.ddata[cam['cents'][0]]['data']
-        cy = coll.ddata[cam['cents'][1]]['data']
-        cz = coll.ddata[cam['cents'][2]]['data']
+    dgeom = coll.dobj['camera'][key]['dgeom']
+    if dgeom['type'] == '1d':
+        cx = coll.ddata[dgeom['cents'][0]]['data']
+        cy = coll.ddata[dgeom['cents'][1]]['data']
+        cz = coll.ddata[dgeom['cents'][2]]['data']
     else:
-        c0 = coll.ddata[cam['cents'][0]]['data']
-        c1 = coll.ddata[cam['cents'][1]]['data']
+        c0 = coll.ddata[dgeom['cents'][0]]['data']
+        c1 = coll.ddata[dgeom['cents'][1]]['data']
 
         cx = (
-            cam['cent'][0]
-            + np.repeat(c0[:, None], c1.size, axis=1) * cam['e0'][0]
-            + np.repeat(c1[None, :], c0.size, axis=0) * cam['e1'][0]
+            dgeom['cent'][0]
+            + np.repeat(c0[:, None], c1.size, axis=1) * dgeom['e0'][0]
+            + np.repeat(c1[None, :], c0.size, axis=0) * dgeom['e1'][0]
         )
         cy = (
-            cam['cent'][1]
-            + np.repeat(c0[:, None], c1.size, axis=1) * cam['e0'][1]
-            + np.repeat(c1[None, :], c0.size, axis=0) * cam['e1'][1]
+            dgeom['cent'][1]
+            + np.repeat(c0[:, None], c1.size, axis=1) * dgeom['e0'][1]
+            + np.repeat(c1[None, :], c0.size, axis=0) * dgeom['e1'][1]
         )
         cz = (
-            cam['cent'][2]
-            + np.repeat(c0[:, None], c1.size, axis=1) * cam['e0'][2]
-            + np.repeat(c1[None, :], c0.size, axis=0) * cam['e1'][2]
+            dgeom['cent'][2]
+            + np.repeat(c0[:, None], c1.size, axis=1) * dgeom['e0'][2]
+            + np.repeat(c1[None, :], c0.size, axis=0) * dgeom['e1'][2]
         )
 
     return cx, cy, cz

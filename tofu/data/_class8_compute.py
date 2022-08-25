@@ -107,30 +107,29 @@ def get_optics_outline(
     # --------
     # compute
 
+    dgeom = coll.dobj[cls][key]['dgeom']
     if cls in ['aperture', 'crystal', 'grating']:
-        px, py, pz = coll.dobj[cls][key]['dgeom']['poly']
+        px, py, pz = dgeom['poly']
         px = coll.ddata[px]['data']
         py = coll.ddata[py]['data']
         pz = coll.ddata[pz]['data']
 
-        if coll.dobj[cls][key]['dgeom']['type'] == 'planar':
-            p0, p1 = coll.dobj[cls][key]['dgeom']['outline']
+        if dgeom['type'] == 'planar':
+            p0, p1 = dgeom['outline']
             p0 = coll.ddata[p0]['data']
             p1 = coll.ddata[p1]['data']
         else:
             p0, p1 = None, None
 
     elif cls == 'camera':
-        is2d = coll.dobj['camera'][key]['type'] == '2d'
-        parallel = coll.dobj['camera'][key]['parallel'] is True
 
-        if parallel:
-            e0 = coll.dobj['camera'][key]['e0']
-            e1 = coll.dobj['camera'][key]['e1']
+        if dgeom['parallel'] is True:
+            e0 = dgeom['e0']
+            e1 = dgeom['e1']
 
-            if is2d:
+            if dgeom['type'] == '2d':
                 # get centers
-                cx0, cx1 = coll.dobj['camera'][key]['cents']
+                cx0, cx1 = dgeom['cents']
                 cx0 = coll.ddata[cx0]['data']
                 cx1 = coll.ddata[cx1]['data']
 
@@ -149,20 +148,20 @@ def get_optics_outline(
                 ]
 
                 # convert to 3d
-                cx, cy, cz = coll.dobj['camera'][key]['cent']
+                cx, cy, cz = dgeom['cent']
                 px = cx + p0 * e0[0] + p1 * e1[0]
                 py = cy + p0 * e0[1] + p1 * e1[1]
                 pz = cz + p0 * e0[2] + p1 * e1[2]
 
             else:
                 # get centers
-                cx, cy, cz = coll.dobj['camera'][key]['cents']
+                cx, cy, cz = dgeom['cents']
                 cx = coll.ddata[cx]['data']
                 cy = coll.ddata[cy]['data']
                 cz = coll.ddata[cz]['data']
 
                 # get outline 2d
-                p0, p1 = coll.dobj['camera'][key]['outline']
+                p0, p1 = dgeom['outline']
                 p0 = coll.ddata[p0]['data']
                 p1 = coll.ddata[p1]['data']
 
@@ -173,8 +172,8 @@ def get_optics_outline(
 
         else:
             # unit vectors
-            e0x, e0y, e0z = coll.dobj['camera'][key]['e0']
-            e1x, e1y, e1z = coll.dobj['camera'][key]['e1']
+            e0x, e0y, e0z = dgeom['e0']
+            e1x, e1y, e1z = dgeom['e1']
             e0x = coll.ddata[e0x]['data'][:, None]
             e0y = coll.ddata[e0y]['data'][:, None]
             e0z = coll.ddata[e0z]['data'][:, None]
@@ -183,13 +182,13 @@ def get_optics_outline(
             e1z = coll.ddata[e1z]['data'][:, None]
 
             # get centers
-            cx, cy, cz = coll.dobj['camera'][key]['cents']
+            cx, cy, cz = dgeom['cents']
             cx = coll.ddata[cx]['data']
             cy = coll.ddata[cy]['data']
             cz = coll.ddata[cz]['data']
 
             # get outline 2d
-            out0, out1 = coll.dobj['camera'][key]['outline']
+            out0, out1 = dgeom['outline']
             p0 = coll.ddata[out0]['data']
             p1 = coll.ddata[out1]['data']
 
@@ -342,7 +341,8 @@ def _dplot(
             msg = f"Unknown optics '{k0}'"
             raise Exception(msg)
 
-        v0 = coll.dobj[cls][k0]
+        v0 = coll.dobj[cls][k0]['dgeom']
+        color = coll.dobj[cls][k0]['dmisc']['color']
 
         # outline
         if 'o' in elements:
@@ -359,7 +359,7 @@ def _dplot(
                 'props': {
                     'label': f'{k0}-o',
                     'lw': dlw[cls],
-                    'c': 'k',
+                    'c': color,
                 },
             })
 
@@ -384,7 +384,7 @@ def _dplot(
                     'ls': 'None',
                     'marker': 'o',
                     'ms': 4,
-                    'c': 'k',
+                    'c': color,
                 },
             }
 
@@ -524,7 +524,7 @@ def _diag_compute_etendue(
         ddata = {
             ketendue: {
                 'data': etendue,
-                'ref': coll.dobj['camera'][key_cam]['ref'],
+                'ref': coll.dobj['camera'][key_cam]['dgeom']['ref'],
                 'dim': 'etendue',
                 'quant': 'etendue',
                 'name': 'etendue',

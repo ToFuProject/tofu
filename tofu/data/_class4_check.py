@@ -11,7 +11,7 @@ _DMAT_KEYS = {
     'symbol': {'types': str},
     'thickness': {'types': float, 'sign': '> 0.'},
     'energy': {'dtype': float, 'sign': '> 0.'},
-    'transmission': {'dtype': float, 'sign': '>= 0.'},
+    'transmission': {'dtype': float, 'sign': ['>= 0.', '<= 1.']},
 }
 
 
@@ -19,6 +19,83 @@ _DMAT_KEYS = {
 # #############################################################################
 #                       dmat for filter
 # #############################################################################
+
+
+def _trim_1d(y=None, val=None, trim=None):
+
+    # check input
+    if trim is None:
+        trim = 'fb'
+
+    if 'f' not in trim and 'b' not in trim:
+        return
+
+    # compute
+    iv = (y == val).nonzero()[0]
+
+    ind = None
+    if iv.size > 0:
+
+        if 'f' in trim:
+            i0 = np.array([
+                ii for ii in range(iv[-1])
+                if ii in iv and ii + 1 in iv
+            ])
+            if i0.size > 0:
+                ind = i0
+
+        if 'b' in trim:
+            i1 = np.sort([
+                ii for ii in range(y.size - 1, iv[0] - 1, -1)
+                if ii in iv and ii - 1 in iv
+            ])
+
+            if i1.size > 0:
+                if ind is None:
+                    ind = i1
+                else:
+                    ind = np.unique(np.r_[ind, i1])
+
+    return ind
+
+
+def _dmat_energy_trans(energ=None, trans=None):
+
+    if energ.size != trans.size:
+        msg = (
+            f"The following should be 1d arrays of the same size:\n"
+            f"\t- dmat['energy'].shape = {dmat['energy'].shape}\n"
+            f"\t- dmat['transmission'].shape = {dmat['transmission'].shape}\n"
+        )
+        raise Exception(msg)
+
+    # make sure all values are finite
+    iok = np.isfinite(energ) & np.isfinite(trans)
+    energ = energ[iok]
+    trans = trans[iok]
+
+    # make sure energy os sorted and unique
+    energ, inds = np.unique(energ, return_index=True)
+    trans = trans[inds]
+
+    # remove trailing 0 and 1 in trans
+    ind0 = _trim_1d(y=trans, val=0, trim='fb')
+    ind1 = _trim_1d(y=trans, val=1, trim='fb')
+
+    ind = None
+    if ind0 is not None:
+        ind = ind0
+    if ind1 is not None:
+        if ind0 is None:
+            ind = ind1
+        else:
+            ind = np.r_[ind0, ind1]
+
+    if ind is not None:
+        energ = np.delete(energ, np.r_[ind0, ind1])
+        trans = np.delete(trans, np.r_[ind0, ind1])
+
+    return energ, trans
 
 
 def _dmat(
@@ -50,56 +127,17 @@ def _dmat(
 
     # -----------------------------------
     # check energy / transmission values
-    # -----------------------------------
 
-    energ = dmat['energy']
-    trans = dmat['transmission']
-    if energ.size != trans.size:
-        msg = (
-            f"The following should be 1d arrays of the same size:\n"
-            f"\t- dmat['energy'].shape = {dmat['energy'].shape}\n"
-            f"\t- dmat['transmission'].shape = {dmat['transmission'].shape}\n"
-        )
-        raise Exception(msg)
-
-    # make sure all values are finite
-    iok = np.isfinite(energ) & np.isfinite(trans)
-    energ = energ[iok]
-    trans = trans[iok]
-
-    # make sure energy os sorted and unique
-    energ, inds = np.unique(energ, return_index=True)
-    trans = trans[inds]
-
-    # make sure trans <= 1.
-    if np.any(trans > 1.):
-        msg = "Arg dmat['transmission'] should be < 1!\nProvided: {trans}"
-        raise Exception(msg)
-
-    # remove trailing 0 and 1 in trans
-    nE = energ.size
-    ind = np.ones((nE,), dtype=bool)
-
-    i0 = (trans == 0.).nonzero()[0]
-    i0 = np.array([ii for ii in range(i0[-1]) if ii in i0 and ii + 1 in i0])
-
-    i1 = (trans == 1.).nonzero()[0]
-    i1 = np.array([
-        ii for ii in range(trans.size-1, i1[0]-1, -1)
-        if ii in i1 and ii - 1 in i1
-    ])
-
-    ind[i0] = False
-    ind[i1] = False
-
-    energ = energ[ind]
-    trans = trans[ind]
+    dmat['energy'], dmat['transmission'] = _dmat_energy_trans(
+        energ=dmat['energy'],
+        trans=dmat['transmission'],
+    )
 
     # ----------
     # dref
 
     kne = f'{key}-nE'
-    ne = energ.size
+    ne = dmat['energy'].size
     dref = {
         kne: {'size': ne},
     }
@@ -112,7 +150,7 @@ def _dmat(
 
     ddata = {
         kE: {
-            'data': energ,
+            'data': dmat['energy'],
             'ref': kne,
             'dim': 'energy',
             'quant': 'energy',
@@ -120,7 +158,7 @@ def _dmat(
             'units': 'eV',
         },
         ktrans: {
-            'data': trans,
+            'data': dmat['transmission'],
             'ref': kne,
             'dim': None,
             'quant': 'trans. coef.',
