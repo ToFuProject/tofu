@@ -29,17 +29,20 @@ def _get_optics_outline_check(
     # key
 
     lap = list(coll.dobj.get('aperture', {}).keys())
+    lfilt = list(coll.dobj.get('filter', {}).keys())
     lcryst = list(coll.dobj.get('crystal', {}).keys())
     lgrat = list(coll.dobj.get('grating', {}).keys())
     lcam = list(coll.dobj.get('camera', {}).keys())
     key = ds._generic_check._check_var(
         key, 'key',
         types=str,
-        allowed=lap + lcryst + lgrat + lcam,
+        allowed=lap + lfilt + lcryst + lgrat + lcam,
     )
 
     if key in lap:
         cls = 'aperture'
+    elif key in lfilt:
+        cls = 'filter'
     elif key in lcryst:
         cls = 'crystal'
     elif key in lgrat:
@@ -108,7 +111,7 @@ def get_optics_outline(
     # compute
 
     dgeom = coll.dobj[cls][key]['dgeom']
-    if cls in ['aperture', 'crystal', 'grating']:
+    if cls in ['aperture', 'filter', 'crystal', 'grating']:
         px, py, pz = dgeom['poly']
         px = coll.ddata[px]['data']
         py = coll.ddata[py]['data']
@@ -335,8 +338,12 @@ def _dplot(
             cls = 'camera'
         elif k0 in coll.dobj.get('aperture', []):
             cls = 'aperture'
+        elif k0 in coll.dobj.get('filter', []):
+            cls = 'filter'
         elif k0 in coll.dobj.get('crystal', []):
             cls = 'crystal'
+        elif k0 in coll.dobj.get('grating', []):
+            cls = 'grating'
         else:
             msg = f"Unknown optics '{k0}'"
             raise Exception(msg)
