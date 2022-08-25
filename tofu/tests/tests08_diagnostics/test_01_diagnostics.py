@@ -157,6 +157,7 @@ def _apertures():
 
     return {'ap0': ap0, 'ap1': ap1, 'ap2': ap2}
 
+
 def _filters():
 
     dap = _apertures()

@@ -227,7 +227,6 @@ def _return_as_dict(
         allowed=lcam + lap + lfilt,
     )
 
-
     dout = {}
     for k0 in key:
 

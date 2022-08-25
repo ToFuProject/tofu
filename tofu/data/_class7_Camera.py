@@ -138,7 +138,6 @@ class Camera(_class6_Grating.Grating):
             color=color,
         )
 
-
     def add_camera_2d(
         self,
         key=None,
