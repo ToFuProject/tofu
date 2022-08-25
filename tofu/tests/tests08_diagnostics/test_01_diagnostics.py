@@ -512,6 +512,9 @@ class Test01_Diagnostic():
                 # add diag
                 self.obj.add_diagnostic(optics=loptics)
 
+        # add toroidal
+        self.obj.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
+
     # ----------
     # tests
 

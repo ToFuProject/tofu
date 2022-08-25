@@ -575,7 +575,7 @@ def _dplot(
                     + rmax * np.cos(theta) * (-niny)
                     + rmax * np.sin(theta) * emax[1]
                 )
-                px = (
+                pz = (
                     c2z
                     + rmax * np.cos(theta) * (-ninz)
                     + rmax * np.sin(theta) * emax[2]
