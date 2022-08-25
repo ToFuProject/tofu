@@ -253,7 +253,7 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
 
     Crystal parameters : d, formula, density, lengths, angles, cut
 
-    New basis of unit vectors due to non-parallelism (e1, e2, nout)
+    New basis of unit vectors due to miscut (e1, e2, nout)
     + nin + alpha, beta
     """
 
@@ -334,13 +334,13 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
         dpar = {
             'alpha': {
                 # 'alpha': alpha,
-                'com': 'non-parallelism amplitude',
+                'com': 'miscut amplitude',
                 'default': 0.,
                 'type': float,
             },
             'beta': {
                 # 'beta': beta,
-                'com': 'non-parallelism orientation',
+                'com': 'miscut orientation',
                 'default': 0.,
                 'type': float,
             },
@@ -396,7 +396,7 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
         dvec = {
             'e1': {
                 # 'e1': e1,
-                'com': 'unit vector (non-parallelism)',
+                'com': 'unit vector (miscut)',
                 'default': (
                     np.cos(dmat['alpha'])*(
                         np.cos(dmat['beta'])*dgeom['e1']
@@ -408,7 +408,7 @@ def _checkformat_dmat(dmat=None, dgeom=None, ddef=None, valid_keys=None):
             },
             'e2': {
                 # 'e2': e2,
-                'com': 'unit vector (non-parallelism)',
+                'com': 'unit vector (miscut)',
                 'default': (
                     np.cos(dmat['beta'])*dgeom['e2']
                     - np.sin(dmat['beta'])*dgeom['e1']

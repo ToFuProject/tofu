@@ -321,6 +321,8 @@ cdef inline int get_one_ear(
     with gil:
         msg = (
             "Got here but shouldn't have\n"
+            f"\t- polygon x: {[polygon[0*nvert + ii] for ii in range(nv)]}\n"
+            f"\t- polygon y: {[polygon[1*nvert + ii] for ii in range(nv)]}\n"
             f"\t- i: {i} / {nv-1}\n"
             f"\t- j: {j} / {nv}\n"
         )
