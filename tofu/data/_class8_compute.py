@@ -392,17 +392,10 @@ def _dplot(
 
         # vectors
         if 'v' in elements or 'r' in elements:
-            if v0.get('cent') is not None:
-                ninx, niny, ninz = v0['nin']
-                e0x, e0y, e0z = v0['e0']
-                e1x, e1y, e1z = v0['e1']
-                vinx, viny, vinz = np.r_[ninx, niny, ninz] * vect_length
-                v0x, v0y, v0z = np.r_[e0x, e0y, e0z] * vect_length
-                v1x, v1y, v1z = np.r_[e1x, e1y, e1z] * vect_length
-            else:
-                ninx, niny, ninz = v0['nin']
-                e0x, e0y, e0z = v0['e0']
-                e1x, e1y, e1z = v0['e1']
+            ninx, niny, ninz = v0['nin']
+            e0x, e0y, e0z = v0['e0']
+            e1x, e1y, e1z = v0['e1']
+            if isinstance(ninx, str):
                 vinx = coll.ddata[ninx]['data'] * vect_length
                 viny = coll.ddata[niny]['data'] * vect_length
                 vinz = coll.ddata[ninz]['data'] * vect_length
@@ -412,6 +405,10 @@ def _dplot(
                 v1x = coll.ddata[e1x]['data'] * vect_length
                 v1y = coll.ddata[e1y]['data'] * vect_length
                 v1z = coll.ddata[e1z]['data'] * vect_length
+            else:
+                vinx, viny, vinz = np.r_[ninx, niny, ninz] * vect_length
+                v0x, v0y, v0z = np.r_[e0x, e0y, e0z] * vect_length
+                v1x, v1y, v1z = np.r_[e1x, e1y, e1z] * vect_length
 
         # radius
         if 'r' in elements and v0['type'] not in ['planar', '1d', '2d', '3d']:
@@ -527,6 +524,9 @@ def _dplot(
 
         # rowland / axis for curved optics
         if 'r' in elements and cls in ['crystal', 'grating']:
+
+            if v0['type'] not in ['cylindrical', 'spherical', 'toroidal']:
+                continue
 
             theta = np.linspace(-1, 1, 50) * np.pi
             if v0['type'] == 'cylindrical':
