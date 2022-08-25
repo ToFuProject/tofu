@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 
 
+import itertools as itt
+
+
 import numpy as np
+import matplotlib.colors as mcolors
 import datastock as ds
 
 
@@ -56,13 +60,15 @@ def _diagnostics_check(
     # -----------------
     # type of camera
 
-    is2d = coll.dobj['camera'][optics[0]]['type'] == '2d'
+    is2d = coll.dobj['camera'][optics[0]]['dgeom']['type'] == '2d'
 
     # -------------------------------------------
     # check all optics are on good side of camera
 
     cam = optics[0]
+    dgeom_cam = coll.dobj['camera'][cam]['dgeom']
     last_ref = cam
+    last_ref_cls = 'camera'
     for oo in optics[1:]:
 
         if oo in lap:
@@ -74,14 +80,18 @@ def _diagnostics_check(
         else:
             cls = 'grating'
 
-        px, py, pz = coll.dobj[cls][oo]['dgeom']['poly']
+        dgeom = coll.dobj[cls][oo]['dgeom']
+
+        px, py, pz = dgeom['poly']
         px = coll.ddata[px]['data']
         py = coll.ddata[py]['data']
         pz = coll.ddata[pz]['data']
 
-        if last_ref == cam and is2d:
-            cent = coll.dobj['camera'][cam]['cent']
-            nin = coll.dobj['camera'][cam]['nin']
+        dgeom_lastref = coll.dobj[last_ref_cls][last_ref]['dgeom']
+
+        if (last_ref == cam and is2d) or last_ref != cam:
+            cent = dgeom_lastref['cent']
+            nin = dgeom_lastref['nin']
 
             iout = (
                 (px - cent[0])*nin[0]
@@ -91,21 +101,23 @@ def _diagnostics_check(
             if np.any(iout):
                 msg = (
                     f"The following points of aperture '{oo}' are on the wrong"
-                    f"side of camera '{cam}':\n"
+                    f"side of lastref '{cam}':\n"
                     f"{iout.nonzero()[0]}"
                 )
                 raise Exception(msg)
 
-        elif last_ref == cam:
-            cx, cy, cz = coll.dobj['camera'][cam]['cents']
+        else:
+            assert last_ref == cam and not is2d
+
+            cx, cy, cz = dgeom_cam['cents']
             cx = coll.ddata[cx]['data'][None, :]
             cy = coll.ddata[cy]['data'][None, :]
             cz = coll.ddata[cz]['data'][None, :]
 
-            if coll.dobj['camera'][cam]['parallel']:
-                ninx, niny, ninz = coll.dobj['camera'][cam]['nin']
+            if dgeom_cam['parallel']:
+                ninx, niny, ninz = dgeom_cam['nin']
             else:
-                ninx, niny, ninz = coll.dobj['camera'][cam]['nin']
+                ninx, niny, ninz = dgeom_cam['nin']
                 ninx = coll.ddata[ninx]['data'][None, :]
                 niny = coll.ddata[niny]['data'][None, :]
                 ninz = coll.ddata[ninz]['data'][None, :]
@@ -120,23 +132,6 @@ def _diagnostics_check(
                     f"The following points of {cls} '{oo}' are on the wrong"
                     f"side of camera '{cam}':\n"
                     f"{np.unique(iout.nonzero()[0])}"
-                )
-                raise Exception(msg)
-
-        else:
-            cent = coll.dobj[last_ref_cls][last_ref]['dgeom']['cent']
-            nin = coll.dobj[last_ref_cls][last_ref]['dgeom']['nin']
-
-            iout = (
-                (px - cent[0])*nin[0]
-                + (py - cent[1])*nin[1]
-                + (pz - cent[2])*nin[2]
-            ) <= 0
-            if np.any(iout):
-                msg = (
-                    f"The following points of optics '{oo}' are on the wrong"
-                    f"side of {last_ref_cls} '{last_ref}':\n"
-                    f"{iout.nonzero()[0]}"
                 )
                 raise Exception(msg)
 
@@ -207,3 +202,64 @@ def _diagnostics(
                 dobj['diagnostic'][key][k0] = v0
 
     return None, None, dobj
+
+
+# #############################################################################
+# #############################################################################
+#                           set color
+# #############################################################################
+
+
+def _set_optics_color(
+    coll=None,
+    key=None,
+    color=None,
+):
+
+    # ------------
+    # check inputs
+
+    # key
+    lk = ['aperture', 'filter', 'crystal', 'grating', 'camera', 'diagnostic']
+    dk = {
+        k0: list(coll.dobj.get(k0, {}).keys())
+        for k0 in lk
+    }
+    lok = itt.chain.from_iterable([vv for vv in dk.values()])
+
+    if isinstance(key, str):
+        key = [key]
+
+    key = ds._generic_check._check_var_iter(
+        key, 'key',
+        types=(list, tuple),
+        types_iter=str,
+        allowed=lok,
+    )
+
+    # color
+    if color is None:
+        color = 'k'
+
+    if not mcolors.is_color_like(color):
+        msg = (
+            f"Arg color for '{key}' must be a matplotlib color!\n"
+            f"Provided: {color}\n"
+        )
+        raise Exception(msg)
+
+    color = mcolors.to_rgba(color)
+
+    # ------------
+    # set color
+
+    for k0 in key:
+        cls = [k1 for k1, v1 in dk.items() if k0 in v1][0]
+        if cls == 'diagnostic':
+            for k2 in coll._dobj[cls][k0]['optics']:
+                cls2 = [k1 for k1, v1 in dk.items() if k2 in v1][0]
+                coll._dobj[cls2][k2]['dmisc']['color'] = color
+        else:
+            coll._dobj[cls][k0]['dmisc']['color'] = color
+
+    return

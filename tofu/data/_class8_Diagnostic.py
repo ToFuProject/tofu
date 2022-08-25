@@ -149,6 +149,14 @@ class Diagnostic(_class7_Camera.Camera):
             closed=closed,
             ravel=ravel,
         )
+
+    def set_optics_color(self, key=None, color=None):
+        return _check._set_optics_color(
+            coll=self,
+            key=key,
+            color=color,
+        )
+
     # -----------------
     # plotting
     # -----------------
