@@ -350,10 +350,9 @@ def hexa_volume(aa, cc):
     return (aa**2) * cc * (np.sqrt(3.)/2.)
 
 def hexa_spacing(hh, kk, ll, aa, cc):
-    return np.sqrt(
-        (3.*(aa**2)*(cc**2))
-        / (4.*(hh**2 + kk**2 + hh*kk)*(cc**2) + 3.*(ll**2)*(aa**2))
-    )
+    return (3.*aa**2*cc**2)**(1/2) / (
+        4.*cc**2*(hh**2 + kk**2 + hh*kk) + 3.*ll**2*aa**2
+    )**(1/2)
 
 # -----------
 # Attribution
@@ -371,32 +370,6 @@ for ii in _DCRYST.keys():
     elif "Ge" in ii:
         None
 
-# ---------------------------------------------------------------
-# Attribution to alpha-Quartz crystals: Quartz_110 and Quartz_102
-# ---------------------------------------------------------------
-
-
-# Same values for 110- and Quartz_102
-a = _DCRYST['Quartz_110']['inter_atomic']['distances']['a0']
-c = _DCRYST['Quartz_110']['inter_atomic']['distances']['c0']
-
-h110 = _DCRYST['Quartz_110']['miller'][0]
-k110 = _DCRYST['Quartz_110']['miller'][1]
-l110 = _DCRYST['Quartz_110']['miller'][2]
-h102 = _DCRYST['Quartz_102']['miller'][0]
-k102 = _DCRYST['Quartz_102']['miller'][1]
-l102 = _DCRYST['Quartz_102']['miller'][2]
-
-_DCRYST['Quartz_110']['volume'] = hexa_volume(a, c)
-_DCRYST['Quartz_110']['d_hkl'] = hexa_spacing(h110, k110, l110, a, c) * 1.e-10
-_DCRYST['Quartz_102']['volume'] = hexa_volume(a, c)
-_DCRYST['Quartz_102']['d_hkl'] = hexa_spacing(h102, k102, l102, a, c) * 1e-10
-
-
-# ---------------------------------
-# Attribution to Germanium crystals
-# ---------------------------------
->>>>>>> devel
 
 # #############################################################################
 # #############################################################################
