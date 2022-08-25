@@ -263,6 +263,7 @@ def _dplot_check(
     key=None,
     optics=None,
     elements=None,
+    vect_length=None,
 ):
     # -----
     # key
@@ -292,7 +293,7 @@ def _dplot_check(
     if isinstance(elements, str):
         elements = [elements]
 
-    lok = ''.join(['o', 'v', 'c', 'r'])
+    lok = ''.join(['o', 'c', 'v', 'r'])
     elements = ds._generic_check._check_var_iter(
         elements, 'elements',
         types=str,
@@ -300,7 +301,17 @@ def _dplot_check(
         allowed=lok,
     )
 
-    return key, optics, elements
+    # ------
+    # optics
+
+    vect_length = ds._generic_check._check_var(
+        vect_length, 'vect_length',
+        default=0.2,
+        types=(float, int),
+        sign='>= 0.'
+    )
+
+    return key, optics, elements, vect_length
 
 
 def _dplot(
@@ -314,11 +325,12 @@ def _dplot(
     # ------------
     # check inputs
 
-    key, optics, elements = _dplot_check(
+    key, optics, elements, vect_length = _dplot_check(
         coll=coll,
         key=key,
         optics=optics,
         elements=elements,
+        vect_length=vect_length,
     )
 
     # ------------
@@ -351,6 +363,16 @@ def _dplot(
         v0 = coll.dobj[cls][k0]['dgeom']
         color = coll.dobj[cls][k0]['dmisc']['color']
 
+        if 'c' in elements or 'v' in elements:
+            if v0.get('cent') is not None:
+                cx, cy, cz = v0['cent'][:, None]
+            elif 'cents' in v0.keys():
+                cx, cy, cz = v0['cents']
+                cx = coll.ddata[cx]['data']
+                cy = coll.ddata[cy]['data']
+                cz = coll.ddata[cz]['data']
+            cr = np.hypot(cx, cy)
+
         # outline
         if 'o' in elements:
 
@@ -373,19 +395,11 @@ def _dplot(
         # center
         if 'c' in elements:
 
-            if v0.get('cent') is not None:
-                cx, cy, cz = v0['cent'][:, None]
-            elif 'cents' in v0.keys():
-                cx, cy, cz = v0['cents']
-                cx = coll.ddata[cx]['data']
-                cy = coll.ddata[cy]['data']
-                cz = coll.ddata[cz]['data']
-
             dplot[k0]['c'] = {
                 'x': cx,
                 'y': cy,
                 'z': cz,
-                'r': np.hypot(cx, cy),
+                'r': cr,
                 'props': {
                     'label': f'{k0}-o',
                     'ls': 'None',
@@ -398,11 +412,88 @@ def _dplot(
         # unit vectors
         if 'v' in elements:
 
-            pass
+            # get vectors
+            if v0.get('cent') is not None:
+                ninx, niny, ninz = v0['nin'] * vect_length
+                e0x, e0y, e0z = v0['e0'] * vect_length
+                e1x, e1y, e1z = v0['e1'] * vect_length
+            else:
+                ninx, niny, ninz = v0['nin']
+                e0x, e0y, e0z = v0['e0']
+                e1x, e1y, e1z = v0['e1']
+                ninx = coll.ddata[ninx]['data'] * vect_length
+                niny = coll.ddata[niny]['data'] * vect_length
+                ninz = coll.ddata[ninz]['data'] * vect_length
+                e0x = coll.ddata[e0x]['data'] * vect_length
+                e0y = coll.ddata[e0y]['data'] * vect_length
+                e0z = coll.ddata[e0z]['data'] * vect_length
+                e1x = coll.ddata[e1x]['data'] * vect_length
+                e1y = coll.ddata[e1y]['data'] * vect_length
+                e1z = coll.ddata[e1z]['data'] * vect_length
+            ninr = np.hypot(cx + ninx, cy + niny) - cr
+            e0r = np.hypot(cx + e0x, cy + e0y) - cr
+            e1r = np.hypot(cx + e1x, cy + e1y) - cr
+
+            # dict
+
+            dplot[k0]['v-nin'] = {
+                'x': cx,
+                'y': cy,
+                'z': cz,
+                'r': cr,
+                'ux': ninx,
+                'uy': niny,
+                'uz': ninz,
+                'ur': ninr,
+                'props': {
+                    'label': f'{k0}-nin',
+                    'fc': 'r',
+                    'color': 'r',
+                },
+            }
+
+            dplot[k0]['v-e0'] = {
+                'x': cx,
+                'y': cy,
+                'z': cz,
+                'r': cr,
+                'ux': e0x,
+                'uy': e0y,
+                'uz': e0z,
+                'ur': e0r,
+                'props': {
+                    'label': f'{k0}-e0',
+                    'fc': 'g',
+                    'color': 'g',
+                },
+            }
+
+            dplot[k0]['v-e1'] = {
+                'x': cx,
+                'y': cy,
+                'z': cz,
+                'r': cr,
+                'ux': e1x,
+                'uy': e1y,
+                'uz': e1z,
+                'ur': e1r,
+                'props': {
+                    'label': f'{k0}-e1',
+                    'fc': 'b',
+                    'color': 'b',
+                },
+            }
 
         # rowland / axis for curved optics
         if 'r' in elements and cls in ['crystal', 'grating']:
-            pass
+            if v0['type'] == 'cylindrical':
+                pass
+
+            elif v0['type'] == 'spherical':
+                pass
+
+            elif v0['type'] == 'toroidal':
+                pass
 
     return dplot
 
