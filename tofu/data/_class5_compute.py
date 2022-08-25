@@ -1,310 +1,623 @@
-# -*- coding: utf-8 -*-
 
 
 import numpy as np
-import scipy.interpolate as scpinterp
-
-
 import datastock as ds
 
 
-from ..geom import _etendue
+from ..spectro import _rockingcurve
 
 
-# #############################################################################
-# #############################################################################
-#                       dplot
-# #############################################################################
+# #################################################################
+# #################################################################
+#                   Rocking curve
+# #################################################################
 
 
-def _dplot_check(
-    coll=None,
-    key=None,
-    optics=None,
-    elements=None,
-):
-    # -----
-    # key
-
-    lok = list(coll.dobj.get('diagnostic', {}).keys())
-    key = ds._generic_check._check_var(
-        key, 'key',
-        allowed=lok,
-    )
-
-    # ------
-    # optics
-
-    if isinstance(optics, str):
-        optics = [optics]
-
-    lok = coll.dobj['diagnostic'][key]['optics']
-    optics = ds._generic_check._check_var_iter(
-        optics, 'optics',
-        default=lok,
-        allowed=lok,
-    )
-
-    # -------
-    # elements
-
-    if isinstance(elements, str):
-        elements = [elements]
-
-    lok = ''.join(['o', 'v', 'c', 'r'])
-    elements = ds._generic_check._check_var_iter(
-        elements, 'elements',
-        types=str,
-        default=lok,
-        allowed=lok,
-    )
-
-    return key, optics, elements
-
-
-def _dplot(
-    coll=None,
-    key=None,
-    optics=None,
-    elements=None,
-    vect_length=None,
-):
+def rocking_curve(coll=None, key=None):
 
     # ------------
     # check inputs
 
-    key, optics, elements = _dplot_check(
-        coll=coll,
-        key=key,
-        optics=optics,
-        elements=elements,
-    )
-
-    # ------------
-    # build dict
-
-    dlw = {
-        'camera': 2,
-        'aperture': 1.,
-        'filter': 1.,
-        'crystal': 1.,
-        'grating': 1.,
-    }
-    dplot = {k0: {} for k0 in optics}
-    for k0 in optics:
-
-        if k0 in coll.dobj.get('camera', []):
-            cls = 'camera'
-        elif k0 in coll.dobj.get('aperture', []):
-            cls = 'aperture'
-        elif k0 in coll.dobj.get('crystal', []):
-            cls = 'crystal'
-        else:
-            msg = f"Unknown optics '{k0}'"
-            raise Exception(msg)
-
-        v0 = coll.dobj[cls][k0]
-
-        # outline
-        if 'o' in elements:
-
-            dplot[k0]['o'] = coll.get_optics_outline(
-                key=k0,
-                add_points=3,
-                closed=True,
-                ravel=True,
-            )
-
-            dplot[k0]['o'].update({
-                'r': np.hypot(dplot[k0]['o']['x'], dplot[k0]['o']['y']),
-                'props': {
-                    'label': f'{k0}-o',
-                    'lw': dlw[cls],
-                    'c': 'k',
-                },
-            })
-
-        # center
-        if 'c' in elements:
-
-            if v0.get('cent') is not None:
-                cx, cy, cz = v0['cent'][:, None]
-            elif 'cents' in v0.keys():
-                cx, cy, cz = v0['cents']
-                cx = coll.ddata[cx]['data']
-                cy = coll.ddata[cy]['data']
-                cz = coll.ddata[cz]['data']
-
-            dplot[k0]['c'] = {
-                'x': cx,
-                'y': cy,
-                'z': cz,
-                'r': np.hypot(cx, cy),
-                'props': {
-                    'label': f'{k0}-o',
-                    'ls': 'None',
-                    'marker': 'o',
-                    'ms': 4,
-                    'c': 'k',
-                },
-            }
-
-        # unit vectors
-        if 'v' in elements:
-
-            pass
-
-        # rowland / axis for curved optics
-        if 'r' in elements and cls in ['crystal', 'grating']:
-            pass
-
-    return dplot
-
-
-# #############################################################################
-# #############################################################################
-#                       Etendue
-# #############################################################################
-
-
-def _diag_compute_etendue_check(
-    coll=None,
-    key=None,
-    analytical=None,
-    numerical=None,
-    store=None,
-):
-
-    # --------
-    # key
-
-    lok = [
-        k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
-        if len(v0['optics']) > 1
-    ]
+    lok = list(coll.dobj.get('crystal', {}).keys())
     key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         allowed=lok,
     )
 
-    # -----------
-    # analytical
+    # --------
+    # compute
 
-    analytical = ds._generic_check._check_var(
-        analytical, 'analytical',
-        types=bool,
-        default=True,
+    raise NotImplementedError
+    _rockingcurve.compute_rockingcurve(
     )
 
-    # -----------
-    # numerical
+    # -------
+    # store
 
-    numerical = ds._generic_check._check_var(
-        numerical, 'numerical',
+    return
+
+
+# #################################################################
+# #################################################################
+#                   get bragg lambda
+# #################################################################
+
+
+def _bragglamb(
+    coll=None,
+    key=None,
+    lamb=None,
+    bragg=None,
+    norder=None,
+    rocking_curve=None,
+):
+    """ Return bragg angle
+
+    If bragg provided, simply return bragg as np.ndarray
+
+    If lamb is provided return corresponding:
+        - bragg angle (simple bragg's law)
+        - bragg angle + reflectivity, interpolated on rocking_curve
+
+    """
+
+    # ------------
+    # check inputs
+
+    # key
+    lok = list(coll.dobj.get('crystal', {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    # norder
+    norder = ds._generic_check._check_var(
+        norder, 'norder',
+        types=int,
+        default=1,
+    )
+
+    # rocking_curve
+    rocking_curve = ds._generic_check._check_var(
+        rocking_curve, 'rocking_curve',
         types=bool,
         default=False,
     )
 
-    # -----------
-    # store
+    # -------------------
+    # no input => default
 
-    lok = [False]
-    if analytical is True:
-        lok.append('analytical')
-    if numerical is True:
-        lok.append('numerical')
-    store = ds._generic_check._check_var(
-        store, 'store',
-        default=lok[-1],
+    if bragg is None and lamb is None:
+        lamb = np.r_[coll.dobj['crystal'][key]['dmat']['target_lamb']]
+
+    elif bragg is not None and lamb is not None:
+        msg = "Please provide bragg xor lamb!"
+        raise Exception(msg)
+
+    # -------------
+    # bragg vs lamb
+
+    if bragg is not None:
+        return np.atleast_1d(bragg).astype(float)
+
+    else:
+
+        lamb = np.atleast_1d(lamb).astype(float)
+
+        if rocking_curve is True:
+            raise NotImplementedError
+
+        else:
+            dist = coll.dobj['crystal'][key]['dmat']['d_hkl']
+            bragg = np.arcsin(norder * lamb / (2.*dist))
+
+    return bragg
+
+
+# #################################################################
+# #################################################################
+#                   Ideal configurations
+# #################################################################
+
+
+def _ideal_configuration_check(
+    coll=None,
+    key=None,
+    configuration=None,
+    # parameters
+    cam_on_e0=None,
+    # johann-specific
+    cam_tangential=None,
+    # pinhole-specific
+    cam_dimensions=None,
+    pinhole_distance=None,
+    # store
+    store=None,
+    key_cam=None,
+    key_aperture=None,
+    aperture_dimensions=None,
+    pinhole_radius=None,
+    cam_pixels_nb=None,
+    # returnas
+    returnas=None,
+):
+    # --------------
+    # geometry
+
+    # key
+    lok = list(coll.dobj.get('crystal', {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
         allowed=lok,
     )
 
-    return key, analytical, numerical, store
+    # gtype
+    gtype = coll.dobj['crystal'][key]['dgeom']['type']
+
+    # configuration
+    if gtype == 'planar':
+        conf = ['pinhole']
+    elif gtype == 'cylindrical':
+        conf = ['pinhole', 'von hamos']
+    elif gtype == 'spherical':
+        conf = ['pinhole', 'johann']
+    elif gtype == 'toroidal':
+        conf = []
+
+    if isinstance(configuration, str):
+        configuration = configuration.lower()
+
+    configuration = ds._generic_check._check_var(
+        configuration, 'configuration',
+        types=str,
+        allowed=conf,
+    )
+
+    # cam_on_e0
+    cam_on_e0 = ds._generic_check._check_var(
+        cam_on_e0, 'cam_on_e0',
+        types=bool,
+        default=True,
+    )
+
+    # cam_tangential
+    cam_tangential = ds._generic_check._check_var(
+        cam_tangential, 'cam_tangential',
+        types=bool,
+        default=True,
+    )
+
+    # cam_dimensions
+    cam_dimensions = ds._generic_check._check_flat1darray(
+        cam_dimensions, 'cam_dimensions',
+        dtype=float,
+        size=[1, 2],
+        sign='> 0.',
+    )
+
+    if cam_dimensions.size == 1:
+        cam_dimensions = cam_dimensions * np.r_[1., 1.]
+
+    # --------------
+    # special cases
+
+    # pinhole_distance
+    if configuration == 'pinhole' and gtype == 'planar':
+        pinhole_distance = ds._generic_check._check_var(
+            pinhole_distance, 'pinhole_distance',
+            types=float,
+            sign='> 0.',
+        )
+
+    # --------------
+    # store-specific
+
+    # store
+    store = ds._generic_check._check_var(
+        store, 'store',
+        types=bool,
+        default=False,
+    )
+
+    if store is True:
+
+        # key_cam
+        lout = list(coll.dobj.get('camera', {}).keys())
+        key_cam = ds._generic_check._check_var(
+            key_cam, 'key_cam',
+            types=str,
+            default=f'{key}-cam',
+            excluded=lout,
+        )
+
+        # key_aperture
+        if configuration != 'johann':
+
+            if configuration == 'pinhole':
+                ap = 'pinhole'
+            else:
+                ap = 'slit'
+
+            lout = list(coll.dobj.get('aperture', {}).keys())
+            key_aperture = ds._generic_check._check_var(
+                key_aperture, 'key_aperture',
+                types=str,
+                default=f'{key}-{ap}',
+                excluded=lout,
+            )
+        else:
+            key_aperture = None
+
+        # cam_pixels_nb
+        cam_pixels_nb = ds._generic_check._check_flat1darray(
+            cam_pixels_nb, 'cam_pixels_nb',
+            dtype=int,
+            size=[1, 2],
+            sign='> 0.',
+        )
+
+        if cam_pixels_nb.size == 1:
+            cam_pixels_nb = cam_pixels_nb * np.r_[1, 1]
+
+        # aperture_dimensions
+        if configuration == 'pinhole':
+            pinhole_radius = ds._generic_check._check_var(
+                pinhole_radius, 'pinhole_radius',
+                types=float,
+                sign='> 0.',
+            )
+
+        elif configuration == 'von hamos':
+            aperture_dimensions = ds._generic_check._check_flat1darray(
+                aperture_dimensions, 'aperture_dimensions',
+                dtype=float,
+                size=[1, 2],
+                sign='> 0.',
+            )
+
+            if aperture_dimensions.size == 1:
+                aperture_dimensions = aperture_dimensions * np.r_[1., 1.]
+
+    # returnas
+    returnas = ds._generic_check._check_var(
+        returnas, 'returnas',
+        default=False if store else dict,
+        allowed=[False, dict, list],
+    )
+
+    if store is False and returnas is list:
+        msg = "returnas = list only of store = True"
+        raise Exception(msg)
+
+    return (
+        key, gtype, configuration,
+        cam_on_e0, cam_tangential,
+        store, key_cam, key_aperture,
+        cam_pixels_nb, aperture_dimensions, pinhole_radius,
+        returnas,
+    )
 
 
-def _diag_compute_etendue(
+def _ideal_configuration(
     coll=None,
     key=None,
-    analytical=None,
-    numerical=None,
-    res=None,
-    check=None,
-    verb=None,
-    plot=None,
+    configuration=None,
+    lamb=None,
+    bragg=None,
+    norder=None,
+    # parameters
+    cam_on_e0=None,
+    # johann-specific
+    cam_tangential=None,
+    # pinhole-specific
+    cam_dimensions=None,
+    pinhole_distance=None,
+    # store
     store=None,
+    key_cam=None,
+    key_aperture=None,
+    aperture_dimensions=None,
+    pinhole_radius=None,
+    cam_pixels_nb=None,
+    # returnas
+    returnas=None,
 ):
 
-    # ------------
+    # --------------
     # check inputs
 
-    key, analytical, numerical, store = _diag_compute_etendue_check(
+    (
+        key, gtype, configuration,
+        cam_on_e0, cam_tangential,
+        store, key_cam, key_aperture,
+        cam_pixels_nb, aperture_dimensions, pinhole_radius,
+        returnas,
+    ) = _ideal_configuration_check(
         coll=coll,
         key=key,
-        analytical=analytical,
-        numerical=numerical,
+        configuration=configuration,
+        # parameters
+        cam_on_e0=cam_on_e0,
+        # johann-specific
+        cam_tangential=cam_tangential,
+        # pinhole-specific
+        cam_dimensions=cam_dimensions,
+        pinhole_distance=pinhole_distance,
+        # store
         store=store,
+        key_cam=key_cam,
+        key_aperture=key_aperture,
+        aperture_dimensions=aperture_dimensions,
+        pinhole_radius=pinhole_radius,
+        cam_pixels_nb=cam_pixels_nb,
+        # returnas
+        returnas=returnas,
     )
 
-    # prepare optics
-    optics = coll.dobj['diagnostic'][key]['optics']
-    key_cam = optics[0]
-
-    # --------
-    # etendues
-
-    detend = _etendue.compute_etendue(
-        det=coll.get_as_dict(which='camera', key=optics[0]),
-        aperture=coll.get_as_dict(which='aperture', key=optics[1:]),
-        analytical=analytical,
-        numerical=numerical,
-        res=res,
-        margin_par=None,
-        margin_perp=None,
-        check=check,
-        verb=verb,
-        plot=plot,
+    # bragg / lamb
+    bragg = coll.get_crystal_bragglamb(
+        key=key,
+        lamb=lamb,
+        bragg=bragg,
+        norder=norder,
     )
+    if bragg.size != 1:
+        msg = (
+            "Please only provide a single lamb or bragg value!\n"
+            f"Provided: {bragg}"
+        )
+        raise Exception(msg)
 
-    # ----------
-    # store
+    # --------------
+    # prepare data
 
-    if store is not False:
+    dgeom = coll.dobj['crystal'][key]['dgeom']
+    extenthalf = dgeom['extenthalf']
+    curve_r = dgeom['curve_r']
+    cent = dgeom['cent']
+    nin = dgeom['nin']
+    e0 = dgeom['e0']
+    e1 = dgeom['e1']
 
-        # data
-        etendue = detend[store][-1, :]
+    vect_cam = np.cos(bragg) * e0 + np.sin(bragg) * nin
+    vect_los = -np.cos(bragg) * e0 + np.sin(bragg) * nin
+    if cam_on_e0 is False:
+        vect_cam, vect_los = vect_los, vect_cam
 
-        if store == 'analytical':
-            etend_type = store
+    # ---------
+    # compute
+
+    # johann
+    if configuration == 'johann':
+        rc = curve_r[0]
+
+        med = rc * np.sin(bragg)
+        sag = -med / np.cos(2.*bragg)
+
+        meridional = cent + med * vect_los
+        sagittal = cent + sag * vect_los
+
+        cam_cent = cent + med * vect_cam
+
+        if cam_tangential is True:
+            cam_nin = (cent + nin*rc/2. - cam_cent)
+            cam_nin = cam_nin / np.linalg.norm(cam_nin)
         else:
-            etend_type = res[-1]
+            cam_nin = -vect_los
 
-        # dict for etendue
-        ketendue = f'{key}-etend'
-
-        ddata = {
-            ketendue: {
-                'data': etendue,
-                'ref': coll.dobj['camera'][key_cam]['ref'],
-                'dim': 'etendue',
-                'quant': 'etendue',
-                'name': 'etendue',
-                'units': 'm2.sr'
+        dout = {
+            'meridional': {
+                'cent': meridional,
+                'dist': med,
+            },
+            'sagittal': {
+                'cent': sagittal,
+                'dist': sag,
             },
         }
-        coll.update(ddata=ddata)
 
-        coll.set_param(
-            which='diagnostic',
-            key=key,
-            param='etendue',
-            value=ketendue,
-        )
-        coll.set_param(
-            which='diagnostic',
-            key=key,
-            param='etend_type',
-            value=etend_type,
+    # von hamos
+    elif configuration == 'von hamos':
+
+        rc = curve_r[(~np.isinf(curve_r)).nonzero()[0][0]]
+        dist = rc / np.sin(bragg)
+        slit_cent = cent + dist * vect_los
+        slit_nin = vect_los
+
+        cam_cent = cent + dist * vect_cam
+        if cam_tangential is True:
+            cam_nin = -nin
+        else:
+            cam_nin = -vect_cam
+
+        dout = {
+            'aperture': {
+                'cent': slit_cent,
+                'nin': slit_nin,
+            },
+        }
+
+    # pinhole
+    elif configuration == 'pinhole':
+
+        cam_height = cam_dimensions[1]
+
+        if gtype == 'planar':
+            cryst_height = extenthalf[1]
+            pin_cent = cent + pinhole_distance * vect_los
+
+            if cam_height <= cryst_height:
+                msg = (
+                    f"Desired height for ideal camera of '{key}' too small:\n"
+                    f"\t- crystal height (flat): {cryst_height}\n"
+                    f"\t- camera height: {cam_height}\n"
+                )
+                raise Exception(msg)
+
+            dist = pinhole_distance * (cam_height / cryst_height - 1.)
+
+        else:
+            if gtype == 'cylindrical':
+                icurv = (~np.isinf(curve_r)).nonzero()[0][0]
+                rc = curve_r[icurv]
+                cryst_height = extenthalf[icurv] * curve_r[icurv]
+
+            elif gtype == 'spherical':
+                rc = curve_r[0]
+                cryst_height = extenthalf[1] * curve_r[0]
+
+            if cam_height >= cryst_height:
+                msg = (
+                    f"Desired height for ideal camera of '{key}' too large:\n"
+                    f"\t- crystal height (gtype): {cryst_height}\n"
+                    f"\t- camera height: {cam_height}\n"
+                )
+                raise Exception(msg)
+
+            pin_cent = cent + rc * vect_los
+            dist = rc * (1. - cam_height / cryst_height)
+
+        pin_nin = vect_los
+        cam_nin = -vect_cam
+        cam_cent = cent + dist * vect_cam
+
+        dout = {
+            'aperture': {
+                'cent': pin_cent,
+                'nin': pin_nin,
+            },
+        }
+
+    # ----------------------------------
+    # complete with missing unit vectors
+
+    if 'aperture' in dout.keys():
+        ap_e0 = np.cross(e1, dout['aperture']['nin'])
+        ap_e0 = ap_e0 / np.linalg.norm(ap_e0)
+        ap_e1 = np.cross(dout['aperture']['nin'], ap_e0)
+        dout['aperture']['e0'] = ap_e0
+        dout['aperture']['e1'] = ap_e1
+
+    cam_e0 = np.cross(e1, cam_nin)
+    cam_e0 = cam_e0 / np.linalg.norm(cam_e0)
+    cam_e1 = np.cross(cam_nin, cam_e0)
+
+    # ---------
+    # return
+
+    dout.update({
+        'camera': {
+            'cent': cam_cent,
+            'nin': cam_nin,
+            'e0': cam_e0,
+            'e1': cam_e1,
+        },
+    })
+
+    # ---------
+    # store
+
+    if store is True:
+
+        dout = _ideal_configuration_store(
+            coll=coll,
+            configuration=configuration,
+            dout=dout,
+            key_cam=key_cam,
+            key_aperture=key_aperture,
+            cam_dimensions=cam_dimensions,
+            cam_pixels_nb=cam_pixels_nb,
+            aperture_dimensions=aperture_dimensions,
+            pinhole_radius=pinhole_radius,
         )
 
-    return detend
+    # ---------
+    # return
+
+    if returnas is dict:
+        return dout
+
+    elif returnas is list:
+        loptics = [key_cam, key]
+        if key_aperture is not None:
+            loptics.append(key_aperture)
+        return loptics
+
+
+def _ideal_configuration_store(
+    coll=None,
+    configuration=None,
+    dout=None,
+    # store
+    key_cam=None,
+    key_aperture=None,
+    cam_dimensions=None,
+    cam_pixels_nb=None,
+    aperture_dimensions=None,
+    pinhole_radius=None,
+):
+
+    # -------
+    # camera
+
+    # pixels dimensions, outline and cents
+    dim0, dim1 = cam_dimensions
+    nx0, nx1 = cam_pixels_nb
+
+    dx0 = dim0 / nx0
+    dx1 = dim1 / nx1
+
+    outline_x0 = dx0 * np.r_[-1., 1., 1., -1.]
+    outline_x1 = dx1 * np.r_[-1., -1., 1., 1.]
+
+    cents_x0 = 0.5 * dim0 * np.linspace(-1., 1., nx0 + 1)
+    cents_x1 = 0.5 * dim1 * np.linspace(-1., 1., nx1 + 1)
+    cents_x0 = 0.5 * (cents_x0[:-1] + cents_x0[1:])
+    cents_x1 = 0.5 * (cents_x1[:-1] + cents_x1[1:])
+
+    # complement camera
+    dout['camera'].update({
+        'outline_x0': outline_x0,
+        'outline_x1': outline_x1,
+        'cents_x0': cents_x0,
+        'cents_x1': cents_x1,
+    })
+
+    # add camera
+    coll.add_camera_2d(
+        key=key_cam,
+        dgeom=dout['camera'],
+    )
+
+    # -------
+    # aperture
+
+    if 'aperture' in dout.keys():
+
+        if configuration == 'pinhole':
+            theta = np.pi * np.linspace(-1, 1, 50)[:-1]
+            outline_x0 = pinhole_radius * np.cos(theta)
+            outline_x1 = pinhole_radius * np.sin(theta)
+        else:
+            # outline
+            lx0, lx1 = aperture_dimensions
+            outline_x0 = 0.5 * lx0 * np.r_[-1., 1., 1., -1.]
+            outline_x1 = 0.5 * lx1 * np.r_[-1., -1., 1., 1.]
+
+        # complement dict
+        dout['aperture'].update({
+            'outline_x0': outline_x0,
+            'outline_x1': outline_x1,
+        })
+
+        # add aperture
+        coll.add_aperture(
+            key=key_aperture,
+            **dout['aperture'],
+        )
+
+    return dout

@@ -3,136 +3,268 @@
 
 import numpy as np
 import scipy.constants as scpct
+import matplotlib.colors as mcolors
 import datastock as ds
 
 
-from . import _generic_check
-from ..spectro import _rockingcurve_def
-
-
-_DMAT_KEYS = {
-    'name': {'types': str},
-    'symbol': {'types': str},
-    'target_ion': {'types': str},
-    'target_lamb': {'types': float, 'sign': '> 0.'},
-    'atoms': {'types': (list, np.ndarray), 'types_iter': str},
-    'atoms_Z': {'dtype': int, 'size': 2, 'sign': '> 0'},
-    'atoms_nb': {'dtype': int, 'size': 2, 'sign': '> 0'},
-    'miller': {'dtype': int, 'size': 3, 'sign': '>= 0'},
-    'alpha': {'types': float, 'default': 0., 'sign': '>= 0'},
-    'beta': {'types': float, 'default': 0.},
-    'mesh': {'types': dict},
-    'phases': {'types': dict},
-    'inter_atomic': {'types': dict},
-    'thermal_expansion': {'types': dict},
-    'atomic_scattering': {'types': dict},
-    'sin_theta_lambda': {'types': dict},
-}
+from . import _utils_surface3d
+from ..geom._comp_solidangles import _check_polygon_2d, _check_polygon_3d
 
 
 # #############################################################################
 # #############################################################################
-#                           Crystal
+#                       Generic for 3d surfaces
 # #############################################################################
 
 
-def _dmat(
-    dmat=None,
-    alpha=None,
-    beta=None,
-    dgeom=None,
+def _add_surface3d(
+    coll=None,
+    key=None,
+    which=None,
+    which_short=None,
+    # 2d outline
+    outline_x0=None,
+    outline_x1=None,
+    cent=None,
+    # 3d outline
+    poly_x=None,
+    poly_y=None,
+    poly_z=None,
+    # normal vector
+    nin=None,
+    e0=None,
+    e1=None,
+    # extenthalf
+    extenthalf=None,
+    # curvature
+    curve_r=None,
+    curve_npts=None,
 ):
 
-    # ---------------------
-    # Easy cases
-    # ---------------------
+    # ------------
+    # check inputs
 
-    # not mat
-    if dmat is None:
-        return dmat
-
-    # known crystal
-    ready_to_compute = False
-    if isinstance(dmat, str):
-        if dmat not in _rockingcurve_def._DCRYST.keys():
-            msg = (
-                f"Arg dmat points to an unknown crystal: '{dmat}'"
-            )
-            raise Exception(msg)
-        dmat = _rockingcurve_def._DCRYST[dmat]
-        ready_to_compute = True
-
-    # ---------------------
-    # check dict integrity
-    # ---------------------
-
-    # Check dict typeand content (each key is a valid string)
-    dmat = ds._generic_check._check_dict_valid_keys(
-        var=dmat,
-        varname='dmat',
-        has_all_keys=False,
-        has_only_keys=False,
-        keys_can_be_None=True,
-        dkeys=_DMAT_KEYS,
+    # key
+    key = ds._generic_check._obj_key(
+        d0=coll.dobj.get(which, {}), short=which_short, key=key,
     )
 
-    dmat['ready_to_compute'] = ready_to_compute
+    # geometry
+    (
+        cent,
+        outline_x0, outline_x1,
+        poly_x, poly_y, poly_z,
+        nin, e0, e1,
+        extenthalf, area, curve_r, gtype,
+    ) = _utils_surface3d._surface3d(
+        key=key,
+        # 2d outline
+        outline_x0=outline_x0,
+        outline_x1=outline_x1,
+        cent=cent,
+        # 3d outline
+        poly_x=poly_x,
+        poly_y=poly_y,
+        poly_z=poly_z,
+        # normal vector at cent
+        nin=nin,
+        e0=e0,
+        e1=e1,
+        # extenthalf
+        extenthalf=extenthalf,
+        # curvature
+        curve_r=curve_r,
+        curve_npts=curve_npts,
+    )
 
-    # -------------------------------
-    # check each value independently
-    # -------------------------------
+    # ----------
+    # create dict
 
-    # target ion
+    # keys
+    knpts = f'{key}-npts'
+    kpx = f'{key}-x'
+    kpy = f'{key}-y'
+    kpz = f'{key}-z'
+    if gtype == 'planar':
+        kp0 = f'{key}-x0'
+        kp1 = f'{key}-x1'
+        outline = (kp0, kp1)
+    else:
+        outline = None
 
-    # alpha
-    if alpha is not None:
-        dmat['alpha'] = alpha
-    if dmat['alpha'] is not None:
-        dmat['alpha'] = np.abs(np.arctan(
-            np.sin(dmat['alpha']),
-            np.cos(dmat['alpha']),
-        ))
+    # refs
+    npts = poly_x.size
 
-    # beta
-    if beta is not None:
-        dmat['beta'] = beta
-    if dmat['beta'] is not None:
-        dmat['beta'] = np.arctan2(np.sin(dmat['beta']), np.cos(dmat['beta']))
+    dref = {
+        knpts: {'size': npts},
+    }
 
-    # vector basis with non-paralellism
-    if all([dmat[k0] is not None for k0 in ['alpha', 'beta']]):
-        nin = (
-            np.cos(dmat['alpha'])*(dgeom['nin'])
-            + np.sin(dmat['alpha']) * (
-                np.cos(dmat['beta'])*dgeom['e0']
-                + np.sin(dmat['beta'])*dgeom['e1']
+    # data
+    ddata = {
+        kpx: {
+            'data': poly_x,
+            'ref': knpts,
+            'dim': 'distance',
+            'name': 'x',
+            'quant': 'x',
+            'units': 'm',
+        },
+        kpy: {
+            'data': poly_y,
+            'ref': knpts,
+            'dim': 'distance',
+            'name': 'y',
+            'quant': 'y',
+            'units': 'm',
+        },
+        kpz: {
+            'data': poly_z,
+            'ref': knpts,
+            'dim': 'distance',
+            'name': 'z',
+            'quant': 'z',
+            'units': 'm',
+        },
+    }
+    if gtype == 'planar':
+        ddata.update({
+            kp0: {
+                'data': outline_x0,
+                'ref': knpts,
+                'dim': 'distance',
+                'name': 'x0',
+                'quant': 'x0',
+                'units': 'm',
+            },
+            kp1: {
+                'data': outline_x1,
+                'ref': knpts,
+                'dim': 'distance',
+                'name': 'x1',
+                'quant': 'x1',
+                'units': 'm',
+            },
+        })
+
+    # dobj
+    dobj = {
+        which: {
+            key: {
+                'dgeom': {
+                    'type': gtype,
+                    'curve_r': curve_r,
+                    'outline': outline,
+                    'extenthalf': extenthalf,
+                    'poly': (kpx, kpy, kpz),
+                    'area': area,
+                    'cent': cent,
+                    'nin': nin,
+                    'e0': e0,
+                    'e1': e1,
+                },
+            },
+        },
+    }
+
+    return dref, ddata, dobj
+
+
+# #############################################################################
+# #############################################################################
+#                       Generic dmisc for 3d surfaces
+# #############################################################################
+
+
+def _dmisc(key=None, color=None):
+
+    # --------
+    # color
+
+    if color is None:
+        color = 'k'
+        if not mcolors.is_color_like(color):
+            msg = (
+                f"Arg color for '{key}' must be a matplotlib color!\n"
+                f"Provided: {color}\n"
             )
-        )
-        e0 = (
-            - np.sin(dmat['alpha'])*(dgeom['nin'])
-            + np.cos(dmat['alpha']) * (
-                np.cos(dmat['beta'])*dgeom['e0']
-                + np.sin(dmat['beta'])*dgeom['e1']
-            )
-        )
-        nin, e0, e1 = ds._generic_check._check_vectbasis(
-            e0=nin,
-            e1=e0,
-            e2=e1,
-            ndim=3,
-        )
+            raise Exception(msg)
 
-        dmat['nin'] = nin
-        dmat['e0'] = e0
-        dmat['e1'] = e1
+    color = mcolors.to_rgba(color)
 
-    # -------------------------------
-    # check sub-dict
-    # -------------------------------
+    return {'color': color}
 
-    ldict = [k0 for k0, v0 in _DMAT_KEYS.items() if v0.get('types') is dict]
-    for k0 in ldict:
-        pass
-    # TODO: implement further checks of sub-dict ?
 
-    return dmat
+# #############################################################################
+# #############################################################################
+#                       Utilities
+# #############################################################################
+
+
+def _return_as_dict(
+    coll=None,
+    key=None,
+):
+    """ Return as dict the following objects
+
+    - camera
+    - aperture
+    - filter (treated as aperture)
+
+    useful input for low-level routines
+
+    """
+
+    if isinstance(key, str):
+        key = [key]
+
+    lcam = list(coll.dobj.get('camera', {}).keys())
+    lap = list(coll.dobj.get('aperture', {}).keys())
+    lfilt = list(coll.dobj.get('filter', {}).keys())
+    key = ds._generic_check._check_var_iter(
+        key, 'key',
+        types=(list, tuple),
+        types_iter=str,
+        allowed=lcam + lap + lfilt,
+    )
+
+    dout = {}
+    for k0 in key:
+
+        if k0 in lcam:
+            cls = 'camera'
+        elif k0 in lap:
+            cls = 'aperture'
+        elif k0 in lfilt:
+            cls = 'filter'
+
+        # compute
+        if cls == 'camera':
+
+            dout[k0] = coll.get_camera_unit_vectors(key=k0)
+            dgeom = coll.dobj['camera'][k0]['dgeom']
+            cx, cy, cz = coll.get_camera_cents_xyz(key=k0)
+
+            dout[k0].update({
+                'outline_x0': coll.ddata[dgeom['outline'][0]]['data'],
+                'outline_x1': coll.ddata[dgeom['outline'][1]]['data'],
+                'cents_x': cx,
+                'cents_y': cy,
+                'cents_z': cz,
+                'pix_area': dgeom['pix_area'],
+                'parallel': dgeom['parallel'],
+            })
+
+        elif cls in ['aperture', 'filter']:
+
+            ap = coll.dobj[cls][k0]['dgeom']
+            dout[k0] = {
+                'cent': ap['cent'],
+                'poly_x': coll.ddata[ap['poly'][0]]['data'],
+                'poly_y': coll.ddata[ap['poly'][1]]['data'],
+                'poly_z': coll.ddata[ap['poly'][2]]['data'],
+                'nin': ap['nin'],
+                'e0': ap.get('e0'),
+                'e1': ap.get('e1'),
+            }
+
+    return dout
