@@ -10,4 +10,4 @@ Polygon3
 
 ######## Requirements with Version Specifier ########
 Cython>=0.26
-datastock>=0.0.19
+datastock>=0.0.20

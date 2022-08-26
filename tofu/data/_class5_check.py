@@ -2,205 +2,137 @@
 
 
 import numpy as np
+import scipy.constants as scpct
 import datastock as ds
 
 
+from . import _generic_check
+from ..spectro import _rockingcurve_def
+
+
+_DMAT_KEYS = {
+    'name': {'types': str},
+    'symbol': {'types': str},
+    'target_ion': {'types': str},
+    'target_lamb': {'types': float, 'sign': '> 0.'},
+    'atoms': {'types': (list, np.ndarray), 'types_iter': str},
+    'atoms_Z': {'dtype': int, 'size': 2, 'sign': '> 0'},
+    'atoms_nb': {'dtype': int, 'size': 2, 'sign': '> 0'},
+    'miller': {'dtype': int, 'size': 3, 'sign': '>= 0'},
+    'alpha': {'types': float, 'default': 0., 'sign': '>= 0'},
+    'beta': {'types': float, 'default': 0.},
+    'mesh': {'types': dict},
+    'phases': {'types': dict},
+    'inter_atomic': {'types': dict},
+    'thermal_expansion': {'types': dict},
+    'atomic_scattering': {'types': dict},
+    'sin_theta_lambda': {'types': dict},
+}
+
+
 # #############################################################################
 # #############################################################################
-#                           Diagnostics
+#                           Crystal
 # #############################################################################
 
 
-def _diagnostics_check(
-    coll=None,
-    key=None,
-    optics=None,
+def _dmat(
+    dmat=None,
+    alpha=None,
+    beta=None,
+    dgeom=None,
 ):
 
-    # ----
-    # key
+    # ---------------------
+    # Easy cases
+    # ---------------------
 
-    key = ds._generic_check._obj_key(
-        d0=coll.dobj.get('diagnostic', {}), short='diag', key=key,
+    # not mat
+    if dmat is None:
+        return dmat
+
+    # known crystal
+    ready_to_compute = False
+    if isinstance(dmat, str):
+        if dmat not in _rockingcurve_def._DCRYST.keys():
+            msg = (
+                f"Arg dmat points to an unknown crystal: '{dmat}'"
+            )
+            raise Exception(msg)
+        dmat = _rockingcurve_def._DCRYST[dmat]
+        ready_to_compute = True
+
+    # ---------------------
+    # check dict integrity
+    # ---------------------
+
+    # Check dict typeand content (each key is a valid string)
+    dmat = ds._generic_check._check_dict_valid_keys(
+        var=dmat,
+        varname='dmat',
+        has_all_keys=False,
+        has_only_keys=False,
+        keys_can_be_None=True,
+        dkeys=_DMAT_KEYS,
     )
 
-    # ------
-    # optics
+    dmat['ready_to_compute'] = ready_to_compute
 
-    if isinstance(optics, str):
-        optics = (optics,)
+    # -------------------------------
+    # check each value independently
+    # -------------------------------
 
-    lcam = list(coll.dobj.get('camera', {}).keys())
-    lap = list(coll.dobj.get('aperture', {}).keys())
-    lcryst = list(coll.dobj.get('crystal', {}).keys())
-    lgrat = list(coll.dobj.get('grating', {}).keys())
-    optics = ds._generic_check._check_var_iter(
-        optics, 'optics',
-        types_iter=str,
-        types=(tuple, list),
-        allowed=lcam + lap + lcryst + lgrat,
-    )
-    if isinstance(optics, list):
-        optics = tuple(optics)
+    # target ion
 
-    # check starts with camera
-    if optics[0] not in lcam:
-        msg = f"Arg optics must start with a camera!\nProvided: {optics}"
-        raise Exception(msg)
+    # alpha
+    if alpha is not None:
+        dmat['alpha'] = alpha
+    if dmat['alpha'] is not None:
+        dmat['alpha'] = np.abs(np.arctan(
+            np.sin(dmat['alpha']),
+            np.cos(dmat['alpha']),
+        ))
 
-    if len(optics) > 1 and any([oo in lcam for oo in optics[1:]]):
-        msg = f"Arg optics can only have one camera!\nProvided: {optics}"
-        raise Exception(msg)
+    # beta
+    if beta is not None:
+        dmat['beta'] = beta
+    if dmat['beta'] is not None:
+        dmat['beta'] = np.arctan2(np.sin(dmat['beta']), np.cos(dmat['beta']))
 
-    # -----------------
-    # type of camera
+    # vector basis with non-paralellism
+    if all([dmat[k0] is not None for k0 in ['alpha', 'beta']]):
+        nin = (
+            np.cos(dmat['alpha'])*(dgeom['nin'])
+            + np.sin(dmat['alpha']) * (
+                np.cos(dmat['beta'])*dgeom['e0']
+                + np.sin(dmat['beta'])*dgeom['e1']
+            )
+        )
+        e0 = (
+            - np.sin(dmat['alpha'])*(dgeom['nin'])
+            + np.cos(dmat['alpha']) * (
+                np.cos(dmat['beta'])*dgeom['e0']
+                + np.sin(dmat['beta'])*dgeom['e1']
+            )
+        )
+        nin, e0, e1 = ds._generic_check._check_vectbasis(
+            e0=nin,
+            e1=e0,
+            e2=e1,
+            ndim=3,
+        )
 
-    is2d = coll.dobj['camera'][optics[0]]['type'] == '2d'
+        dmat['nin'] = nin
+        dmat['e0'] = e0
+        dmat['e1'] = e1
 
-    # -------------------------------------------
-    # check all optics are on good side of camera
+    # -------------------------------
+    # check sub-dict
+    # -------------------------------
 
-    cam = optics[0]
-    last_ref = cam
-    for oo in optics[1:]:
+    ldict = [k0 for k0, v0 in _DMAT_KEYS.items() if v0.get('types') is dict]
+    for k0 in ldict:
+        pass
+    # TODO: implement further checks of sub-dict ?
 
-        if oo in lap:
-            cls = 'aperture'
-        elif oo in lcryst:
-            cls = 'crystal'
-        else:
-            cls = 'grating'
-
-        px, py, pz = coll.dobj[cls][oo]['dgeom']['poly']
-        px = coll.ddata[px]['data']
-        py = coll.ddata[py]['data']
-        pz = coll.ddata[pz]['data']
-
-        if last_ref == cam and is2d:
-            cent = coll.dobj['camera'][cam]['cent']
-            nin = coll.dobj['camera'][cam]['nin']
-
-            iout = (
-                (px - cent[0])*nin[0]
-                + (py - cent[1])*nin[1]
-                + (pz - cent[2])*nin[2]
-            ) <= 0
-            if np.any(iout):
-                msg = (
-                    f"The following points of aperture '{oo}' are on the wrong"
-                    f"side of camera '{cam}':\n"
-                    f"{iout.nonzero()[0]}"
-                )
-                raise Exception(msg)
-
-        elif last_ref == cam:
-            cx, cy, cz = coll.dobj['camera'][cam]['cents']
-            cx = coll.ddata[cx]['data'][None, :]
-            cy = coll.ddata[cy]['data'][None, :]
-            cz = coll.ddata[cz]['data'][None, :]
-
-            if coll.dobj['camera'][cam]['parallel']:
-                ninx, niny, ninz = coll.dobj['camera'][cam]['nin']
-            else:
-                ninx, niny, ninz = coll.dobj['camera'][cam]['nin']
-                ninx = coll.ddata[ninx]['data'][None, :]
-                niny = coll.ddata[niny]['data'][None, :]
-                ninz = coll.ddata[ninz]['data'][None, :]
-
-            iout = (
-                (px[:, None] - cx)*ninx
-                + (py[:, None] - cy)*niny
-                + (pz[:, None] - cz)*ninz
-            ) <= 0
-            if np.any(iout):
-                msg = (
-                    f"The following points of {cls} '{oo}' are on the wrong"
-                    f"side of camera '{cam}':\n"
-                    f"{np.unique(iout.nonzero()[0])}"
-                )
-                raise Exception(msg)
-
-        else:
-            cent = coll.dobj[last_ref_cls][last_ref]['dgeom']['cent']
-            nin = coll.dobj[last_ref_cls][last_ref]['dgeom']['nin']
-
-            iout = (
-                (px - cent[0])*nin[0]
-                + (py - cent[1])*nin[1]
-                + (pz - cent[2])*nin[2]
-            ) <= 0
-            if np.any(iout):
-                msg = (
-                    f"The following points of optics '{oo}' are on the wrong"
-                    f"side of {last_ref_cls} '{last_ref}':\n"
-                    f"{iout.nonzero()[0]}"
-                )
-                raise Exception(msg)
-
-        # update last_ref ?
-        if cls in ['crystal', 'grating']:
-            last_ref = oo
-            last_ref_cls = cls
-
-    # -----------------
-    # compute los
-
-    compute = len(optics) > 1
-
-    return key, optics, is2d, compute
-
-
-def _diagnostics(
-    coll=None,
-    key=None,
-    optics=None,
-    **kwdargs,
-):
-
-    # ------------
-    # check inputs
-
-    key, optics, is2d, compute = _diagnostics_check(
-        coll=coll,
-        key=key,
-        optics=optics,
-    )
-
-    # ----------
-    # is spectro
-
-    spectro = any([
-        k0 in coll.dobj.get('crystal', {}).keys()
-        or k0 in coll.dobj.get('grating', {}).keys()
-        for k0 in optics
-    ])
-
-    # --------
-    # dobj
-
-    dobj = {
-        'diagnostic': {
-            key: {
-                'optics': optics,
-                'spectro': spectro,
-                'etendue': None,
-                'etend_type': None,
-                'los': None,
-                'vos': None,
-            },
-        },
-    }
-
-    # -----------
-    # kwdargs
-
-    if len(kwdargs) > 0:
-        for k0, v0 in kwdargs.items():
-            if not isinstance(k0, str):
-                continue
-            elif k0 in dobj['diagnostic'][key].keys():
-                continue
-            else:
-                dobj['diagnostic'][key][k0] = v0
-
-    return None, None, dobj
+    return dmat

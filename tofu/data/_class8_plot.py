@@ -120,42 +120,77 @@ def _plot_diagnostic(
 
         for k1, v1 in v0.items():
 
+            # cross
             kax = 'cross'
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
 
-                ax.plot(
-                    v1['r'],
-                    v1['z'],
-                    **v1.get('props', {}),
-                )
+                if k1.startswith('v-'):
+                    ax.quiver(
+                        v1['r'],
+                        v1['z'],
+                        v1['ur'],
+                        v1['uz'],
+                        **v1.get('props', {}),
+                    )
 
+                else:
+                    ax.plot(
+                        v1['r'],
+                        v1['z'],
+                        **v1.get('props', {}),
+                    )
+
+            # hor
             kax = 'hor'
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
 
-                ax.plot(
-                    v1['x'],
-                    v1['y'],
-                    **v1.get('props', {}),
-                )
+                if k1.startswith('v-'):
+                    ax.quiver(
+                        v1['x'],
+                        v1['y'],
+                        v1['ux'],
+                        v1['uy'],
+                        **v1.get('props', {}),
+                    )
 
+                else:
+                    ax.plot(
+                        v1['x'],
+                        v1['y'],
+                        **v1.get('props', {}),
+                    )
+
+            # 3d
             kax = '3d'
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
 
-                ax.plot(
-                    v1['x'],
-                    v1['y'],
-                    v1['z'],
-                    **v1.get('props', {}),
-                )
+                if k1.startswith('v-'):
+                    ax.quiver(
+                        v1['x'],
+                        v1['y'],
+                        v1['z'],
+                        v1['ux'],
+                        v1['uy'],
+                        v1['uz'],
+                        **v1.get('props', {}),
+                    )
+
+                else:
+                    ax.plot(
+                        v1['x'],
+                        v1['y'],
+                        v1['z'],
+                        **v1.get('props', {}),
+                    )
 
             # plotting of 2d camera contour
             c0 = (
                 k0 == cam
                 and k1 == 'o'
-                and coll.dobj['camera'][k0]['type'] == '2d'
+                and coll.dobj['camera'][k0]['dgeom']['type'] == '2d'
             )
 
             if c0:

@@ -11,10 +11,10 @@ import datastock as ds
 
 
 # tofu
-from . import _class4_Grating
-from . import _class5_check
-from . import _class5_compute
-from . import _class5_plot
+from . import _class7_Camera
+from . import _class8_check as _check
+from . import _class8_compute as _compute
+from . import _class8_plot as _plot
 
 
 __all__ = ['Diagnostic']
@@ -26,7 +26,7 @@ __all__ = ['Diagnostic']
 # #############################################################################
 
 
-class Diagnostic(_class4_Grating.Grating):
+class Diagnostic(_class7_Camera.Camera):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
@@ -37,7 +37,7 @@ class Diagnostic(_class4_Grating.Grating):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
-    _dshow = dict(_class4_Grating.Grating._dshow)
+    _dshow = dict(_class7_Camera.Camera._dshow)
     _dshow.update({
         'diagnostic': [
             'type',
@@ -64,7 +64,7 @@ class Diagnostic(_class4_Grating.Grating):
         # adding diag
 
         # check / format input
-        dref, ddata, dobj = _class5_check._diagnostics(
+        dref, ddata, dobj = _check._diagnostics(
             coll=self,
             key=key,
             optics=optics,
@@ -118,7 +118,7 @@ class Diagnostic(_class4_Grating.Grating):
         If store = 'analytical' or 'numerical', overwrites the diag etendue
 
         """
-        _class5_compute._diag_compute_etendue(
+        _compute._diag_compute_etendue(
             coll=self,
             key=key,
             analytical=analytical,
@@ -128,6 +128,33 @@ class Diagnostic(_class4_Grating.Grating):
             verb=verb,
             plot=plot,
             store=store,
+        )
+
+    # ---------------
+    # utilities
+    # ---------------
+
+    def get_optics_outline(
+        self,
+        key=None,
+        add_points=None,
+        closed=None,
+        ravel=None,
+    ):
+        """ Return the optics outline """
+        return _compute.get_optics_outline(
+            coll=self,
+            key=key,
+            add_points=add_points,
+            closed=closed,
+            ravel=ravel,
+        )
+
+    def set_optics_color(self, key=None, color=None):
+        return _check._set_optics_color(
+            coll=self,
+            key=key,
+            color=color,
         )
 
     # -----------------
@@ -175,7 +202,7 @@ class Diagnostic(_class4_Grating.Grating):
 
         """
 
-        return _class5_compute._dplot(
+        return _compute._dplot(
             coll=self,
             key=key,
             optics=optics,
@@ -198,7 +225,7 @@ class Diagnostic(_class4_Grating.Grating):
         connect=None,
     ):
 
-        return _class5_plot._plot_diagnostic(
+        return _plot._plot_diagnostic(
             coll=self,
             key=key,
             optics=optics,

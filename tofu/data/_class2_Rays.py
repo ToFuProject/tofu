@@ -12,7 +12,7 @@ import datastock as ds
 
 
 # tofu
-from . import _class0_Plasma2D
+from . import _class1_Plasma2D
 # from . import _class1_check
 # from . import _class1_compute
 
@@ -26,7 +26,7 @@ __all__ = ['Rays']
 # #############################################################################
 
 
-class Rays(_class0_Plasma2D.Plasma2D):
+class Rays(_class1_Plasma2D.Plasma2D):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
@@ -38,7 +38,7 @@ class Rays(_class0_Plasma2D.Plasma2D):
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
 
-    _dshow = dict(_class0_Plasma2D.Plasma2D._dshow)
+    _dshow = dict(_class1_Plasma2D.Plasma2D._dshow)
     _dshow.update({
         'rays': [
             'shape',
