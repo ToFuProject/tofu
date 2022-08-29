@@ -28,15 +28,8 @@ __all__ = ['Diagnostic']
 
 class Diagnostic(_class7_Camera.Camera):
 
-    # _ddef = copy.deepcopy(ds.DataStock._ddef)
-    # _ddef['params']['ddata'].update({
-    #       'bsplines': (str, ''),
-    # })
-    # _ddef['params']['dobj'] = None
-    # _ddef['params']['dref'] = None
-
-    # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
+
     _dshow = dict(_class7_Camera.Camera._dshow)
     _dshow.update({
         'diagnostic': [
@@ -57,6 +50,12 @@ class Diagnostic(_class7_Camera.Camera):
         optics=None,
         # etendue
         etendue=None,
+        # config for los
+        config=None,
+        length=None,
+        reflections_nb=None,
+        reflections_type=None,
+        # others
         **kwdargs,
     ):
 
@@ -82,12 +81,18 @@ class Diagnostic(_class7_Camera.Camera):
             and self.dobj['diagnostic'][key]['spectro'] is False
         )
         if c0:
-            self.compute_diagnostic_etendue(
+            self.compute_diagnostic_etendue_los(
                 key=key,
                 analytical=True,
                 numerical=False,
                 res=None,
                 check=False,
+                # los
+                config=config,
+                length=length,
+                reflections_nb=reflections_nb,
+                reflections_type=reflections_type,
+                # bool
                 verb=False,
                 plot=False,
                 store='analytical',
@@ -100,13 +105,20 @@ class Diagnostic(_class7_Camera.Camera):
     # etendue computing
     # -----------------
 
-    def compute_diagnostic_etendue(
+    def compute_diagnostic_etendue_los(
         self,
         key=None,
+        # parameters
         analytical=None,
         numerical=None,
         res=None,
         check=None,
+        # for storing los
+        config=None,
+        length=None,
+        reflections_nb=None,
+        reflections_type=None,
+        # bool
         verb=None,
         plot=None,
         store=None,
@@ -118,13 +130,19 @@ class Diagnostic(_class7_Camera.Camera):
         If store = 'analytical' or 'numerical', overwrites the diag etendue
 
         """
-        _compute._diag_compute_etendue(
+        _compute._diag_compute_etendue_los(
             coll=self,
             key=key,
             analytical=analytical,
             numerical=numerical,
             res=res,
             check=check,
+            # los
+            config=config,
+            length=length,
+            reflections_nb=reflections_nb,
+            reflections_type=reflections_type,
+            # bool
             verb=verb,
             plot=plot,
             store=store,
