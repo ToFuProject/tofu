@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 
 
@@ -14,7 +13,7 @@ import datastock as ds
 # tofu
 from . import _class1_Plasma2D
 from . import _class2_check as _check
-# from . import _class1_compute
+from . import _class2_compute as _compute
 
 
 __all__ = ['Rays']
@@ -105,6 +104,48 @@ class Rays(_class1_Plasma2D.Plasma2D):
 
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+    # --------------
+    #  utilities
+    # --------------
+
+    def get_rays_start(
+        self,
+        key=None,
+    ):
+        return _check._get_start(coll=self, key=key)
+
+    def get_rays_pts(
+        self,
+        key=None,
+    ):
+        return _check._get_pts(coll=self, key=key)
+
+    def get_rays_vect(
+        self,
+        key=None,
+        norm=None,
+    ):
+        return _check._get_vect(coll=self, key=key, norm=norm)
+
+    # --------------
+    # discretizing
+    # --------------
+
+    def sample_rays(
+        self,
+        key=None,
+        res=None,
+        mode=None,
+    ):
+        """ Return the sampled rays """
+
+        return _compute._sample(
+            coll=self,
+            key=key,
+            res=res,
+            mode=mode,
+        )
 
     # --------------
     # plotting

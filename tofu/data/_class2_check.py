@@ -447,7 +447,7 @@ def _rays(
 
         elif length is not None:
 
-            shape = tuple(np.r_[1. shaperef])
+            shape = tuple(np.r_[1., shaperef])
             pts_x = (start_x + length * vect_x).reshape(shape)
             pts_y = (start_y + length * vect_y).reshape(shape)
             pts_z = (start_z + length * vect_z).reshape(shape)
@@ -631,3 +631,113 @@ def _rays(
     }
 
     return dref, ddata, dobj
+
+
+# ##################################################################
+# ##################################################################
+#                   Rays - get start and vect 
+# ##################################################################
+
+
+def _get_start(
+    coll=None,
+    key=None,
+):
+
+    # ---------
+    # check key
+
+    lok = list(coll.dobj.get('rays', {}))
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    # ---------------
+    # get start
+
+    stx, sty, stz = coll.dobj['rays'][key]['start']
+    if isinstance(stx, str):
+        stx = coll.ddata[stx]['data']
+        sty = coll.ddata[sty]['data']
+        stz = coll.ddata[stz]['data']
+
+    return stx, sty, stz
+
+
+def _get_pts(
+    coll=None,
+    key=None,
+):
+
+    # ---------
+    # get start
+
+    stx, sty, stz = _get_start(coll=coll, key=key)
+
+    # ---------------
+    # get other pts
+
+    ptsx, ptsy, ptsz = coll.dobj['rays'][key]['pts']
+    ptsx = coll.ddata[ptsx]['data']
+    ptsy = coll.ddata[ptsy]['data']
+    ptsz = coll.ddata[ptsz]['data']
+
+    # concatenate
+    ptsx = np.insert(ptsx, 0, stx, axis=0)
+    ptsy = np.insert(ptsy, 0, sty, axis=0)
+    ptsz = np.insert(ptsz, 0, stz, axis=0)
+
+    return ptsx, ptsy, ptsz
+
+
+def _get_vect(
+    coll=None,
+    key=None,
+    norm=None,
+):
+
+    # ---------
+    # check key
+
+    lok = list(coll.dobj.get('rays', {}))
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    # norm
+    norm = ds._generic_check._check_var(
+        norm, 'norm',
+        types=bool,
+        default=True,
+    )
+
+    # ---------------
+    # get start
+
+    stx, sty, syz = _get_start(coll=coll, key=key)
+
+    ptsx, ptsy, ptsz = coll.dobj['rays']['pts']
+    ptsx = coll.ddata[ptsx]['data']
+    ptsy = coll.ddata[ptsy]['data']
+    ptsz = coll.ddata[ptsz]['data']
+
+    vx = (ptsx[0,...] - stx)[None, ...]
+    vy = (ptsy[0,...] - sty)[None, ...]
+    vz = (ptsz[0,...] - stz)[None, ...]
+    if ptsx.shape[0] > 1:
+        vx = np.concatenate((vx, np.diff(ptsx, axis=0)), axis=0)
+        vy = np.concatenate((vy, np.diff(ptsy, axis=0)), axis=0)
+        vz = np.concatenate((vz, np.diff(ptsz, axis=0)), axis=0)
+
+    # normalize
+    if norm is True:
+        norm = np.sqrt(vx**2 + vy**2 + vz**2)
+        vx = vx / norm
+        vy = vy / norm
+        vz = vz / norm
+
+    return vx, vy, vz
