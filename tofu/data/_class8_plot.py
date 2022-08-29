@@ -24,11 +24,24 @@ from . import _generic_plot
 
 
 def _plot_diagnostic_check(
+    coll=None,
+    key=None,
     # figure
     proj=None,
+    data=None,
     # interactivity
     connect=None,
 ):
+
+    # -------
+    # key
+
+    lok = list(coll.dobj.get('diagnostic', {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
 
     # -----
     # proj
@@ -36,6 +49,28 @@ def _plot_diagnostic_check(
     proj = _generic_plot._proj(
         proj=proj,
         pall=['cross', 'hor', '3d', 'camera'],
+    )
+
+    # -------
+    # data
+
+    lok = [
+        k0 for k0, v0 in coll.ddata.items()
+        if v0['diag'] == key
+    ]
+    data = ds._generic_check._check_var(
+        data, 'data',
+        types=str,
+        default=lok,
+    )
+
+    # -------
+    # nlos
+
+    nlos = ds._generic_check._check_var(
+        nlos, 'nlos',
+        types=int,
+        default=4,
     )
 
     # -------
@@ -48,7 +83,10 @@ def _plot_diagnostic_check(
     )
 
     return (
+        key,
         proj,
+        data,
+        nlos,
         connect,
     )
 
@@ -65,12 +103,15 @@ def _plot_diagnostic(
     optics=None,
     elements=None,
     proj=None,
+    data=None,
     # figure
     dax=None,
     dmargin=None,
     fs=None,
     wintit=None,
     # interactivity
+    nlos=None,
+    dinc=None,
     connect=None,
 ):
 
@@ -78,12 +119,19 @@ def _plot_diagnostic(
     # check inputs
 
     (
+        key,
         proj,
+        data,
+        nlos,
         connect,
     ) = _plot_diagnostic_check(
+        coll=coll,
+        key=key,
         # figure
         proj=proj,
+        data=data,
         # interactivity
+        nlos=nlos,
         connect=connect,
     )
 
@@ -97,6 +145,43 @@ def _plot_diagnostic(
     )
 
     cam = coll.dobj['diagnostic'][key]['optics'][0]
+    is2d = coll.dobj['camera'][cam]['type'] == '2d'
+
+    # -------------------------
+    # prepare los interactivity
+
+    los = coll.dobj['diagnostic'][key]['los']
+    if los is not None:
+        los_x, los_y, los_z = coll.sample_rays(
+            key=los,
+            res=los_res,
+            mode='rel',
+        )
+        los_r = np.hypot(los_x, los_y)
+        reflos = coll.dobj['rays'][los]['ref'][1:]
+
+        if is2d:
+            refx, refy = reflos
+        else:
+            refx = reflos[0]
+
+        coll2 = Diagnostic()
+        coll2.add_ref(size=los_x.shape[0])
+        coll2.add_ref(key=refx, size=los_x.shape[1])
+        if is2d:
+            col2.add_ref(key=refy, size=los.shape[2])
+
+        coll2.add_data(key='los_x', data=los_x, ref=reflos)
+        coll2.add_data(key='los_y', data=los_y, ref=reflos)
+        coll2.add_data(key='los_z', data=los_z, ref=reflos)
+
+    # -------------------------
+    # prepare data interactivity
+
+    has3d = False
+
+    if has3d is True:
+        reft = None
 
     # -----------------
     # prepare figure
@@ -204,4 +289,139 @@ def _plot_diagnostic(
                         **v1.get('props', {}),
                     )
 
-    return dax
+    # ----------------
+    # define and set dgroup
+
+
+    dgroup = {
+        'x': {
+            'ref': [refx],
+            'data': ['index'],
+            'nmax': nlos,
+        },
+    }
+
+    if is2d:
+        dgroup.update({
+            'y': {
+                'ref': [refx],
+                'data': ['index'],
+                'nmax': nlos,
+            },
+        })
+
+    if has3d:
+        dgroup.update({
+            't': {
+                'ref': [reft],
+                'data': ['index'],
+                'nmax': 1,
+            },
+        })
+
+    # ------------------
+    # plot mobile parts
+
+    if los is not None:
+
+        nan = np.full((los_x.shape[0],), np.nan)
+
+        # cross
+        kax = 'cross'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+
+            for ii in range(nlos):
+                l0, = ax.plot(
+                    nan,
+                    nan,
+                    c='k',
+                    ls='-',
+                    lw=1.,
+                )
+
+                # add mobile
+                kl0 = f'los-cross-{ii}'
+                coll2.add_mobile(
+                    key=kl0,
+                    handle=l0,
+                    refs=reflos,
+                    data=['index', 'index'],
+                    dtype=['xdata', 'ydata'],
+                    axes=kax,
+                    ind=ii,
+                )
+
+        # hor
+        kax = 'hor'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+
+            for ii in range(nlos):
+                l0, = ax.plot(
+                    nan,
+                    nan,
+                    c='k',
+                    ls='-',
+                    lw=1.,
+                )
+
+                # add mobile
+                kl0 = f'los-hor-{ii}'
+                coll2.add_mobile(
+                    key=kl0,
+                    handle=l0,
+                    refs=reflos,
+                    data=['index', 'index'],
+                    dtype=['xdata', 'ydata'],
+                    axes=kax,
+                    ind=ii,
+                )
+
+        # 3d
+        kax = '3d'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+
+            for ii in range(nlos):
+                l0, = ax.plot(
+                    nan,
+                    nan,
+                    nan,
+                    c='k',
+                    ls='-',
+                    lw=1.,
+                )
+
+                # add mobile
+                kl0 = f'los-3d-{ii}'
+                coll2.add_mobile(
+                    key=kl0,
+                    handle=l0,
+                    refs=reflos,
+                    data=['index', 'index', 'index'],
+                    dtype=['xdata', 'ydata', 'zdata'],
+                    axes=kax,
+                    ind=ii,
+                )
+
+        # camera
+        if is2d:
+            pass
+
+        else:
+            pass
+
+
+    # -------
+    # connect
+
+    if connect is True:
+        coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+        coll2.disconnect_old()
+        coll2.connect()
+
+        coll2.show_commands()
+        return coll2
+    else:
+        return coll2, dgroup
