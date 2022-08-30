@@ -30,6 +30,8 @@ def _plot_diagnostic_check(
     proj=None,
     data=None,
     # interactivity
+    color_dict=None,
+    nlos=None,
     connect=None,
 ):
 
@@ -54,15 +56,27 @@ def _plot_diagnostic_check(
     # -------
     # data
 
-    lok = [
-        k0 for k0, v0 in coll.ddata.items()
-        if v0['diag'] == key
-    ]
-    data = ds._generic_check._check_var(
-        data, 'data',
-        types=str,
-        default=lok,
-    )
+    # lok = [
+        # k0 for k0, v0 in coll.ddata.items()
+        # if v0['diag'] == key
+    # ]
+    # data = ds._generic_check._check_var(
+        # data, 'data',
+        # types=str,
+        # default=lok,
+    # )
+
+
+
+    # -------
+    # color_dict
+
+    if color_dict is None:
+        lc = ['r', 'g', 'b', 'm', 'c', 'y']
+        color_dict = {
+            'x': lc,
+            'y': lc,
+        }
 
     # -------
     # nlos
@@ -70,7 +84,7 @@ def _plot_diagnostic_check(
     nlos = ds._generic_check._check_var(
         nlos, 'nlos',
         types=int,
-        default=4,
+        default=5,
     )
 
     # -------
@@ -86,6 +100,7 @@ def _plot_diagnostic_check(
         key,
         proj,
         data,
+        color_dict,
         nlos,
         connect,
     )
@@ -104,12 +119,14 @@ def _plot_diagnostic(
     elements=None,
     proj=None,
     data=None,
+    los_res=None,
     # figure
     dax=None,
     dmargin=None,
     fs=None,
     wintit=None,
     # interactivity
+    color_dict=None,
     nlos=None,
     dinc=None,
     connect=None,
@@ -122,6 +139,7 @@ def _plot_diagnostic(
         key,
         proj,
         data,
+        color_dict,
         nlos,
         connect,
     ) = _plot_diagnostic_check(
@@ -131,6 +149,7 @@ def _plot_diagnostic(
         proj=proj,
         data=data,
         # interactivity
+        color_dict=color_dict,
         nlos=nlos,
         connect=connect,
     )
@@ -145,7 +164,7 @@ def _plot_diagnostic(
     )
 
     cam = coll.dobj['diagnostic'][key]['optics'][0]
-    is2d = coll.dobj['camera'][cam]['type'] == '2d'
+    is2d = coll.dobj['camera'][cam]['dgeom']['type'] == '2d'
 
     # -------------------------
     # prepare los interactivity
@@ -158,22 +177,37 @@ def _plot_diagnostic(
             mode='rel',
         )
         los_r = np.hypot(los_x, los_y)
-        reflos = coll.dobj['rays'][los]['ref'][1:]
+        reflos = coll.dobj['rays'][los]['ref']
 
+        coll2 = coll.__class__()
+        coll2.add_ref(key=reflos[0], size=los_x.shape[0])
         if is2d:
-            refx, refy = reflos
+            refx, refy = reflos[1:]
+            keyx, keyy = coll.dobj['camera'][cam]['dgeom']['cents']
+
+            datax = coll.ddata[keyx]['data']
+            datay = coll.ddata[keyy]['data']
+
+            coll2.add_ref(key=refx, size=los_x.shape[1])
+            coll2.add_ref(key=refy, size=los_x.shape[2])
+
+            coll2.add_data(key=keyx, data=datax, ref=refx)
+            coll2.add_data(key=keyy, data=datay, ref=refy)
+
+            ref_los = ((refx, refy), (refx, refy))
         else:
-            refx = reflos[0]
+            refx = reflos[1]
+            keyx = 'i0'
+            datax = np.arange(0, coll.dref[refx]['size'])
+            coll2.add_ref(key=refx, size=los_x.shape[1])
+            coll2.add_data(key=keyx, data=datax, ref=refx)
 
-        coll2 = Diagnostic()
-        coll2.add_ref(size=los_x.shape[0])
-        coll2.add_ref(key=refx, size=los_x.shape[1])
-        if is2d:
-            col2.add_ref(key=refy, size=los.shape[2])
+            ref_los = ((refx,), (refx,))
 
         coll2.add_data(key='los_x', data=los_x, ref=reflos)
         coll2.add_data(key='los_y', data=los_y, ref=reflos)
         coll2.add_data(key='los_z', data=los_z, ref=reflos)
+        coll2.add_data(key='los_r', data=los_r, ref=reflos)
 
     # -------------------------
     # prepare data interactivity
@@ -194,6 +228,7 @@ def _plot_diagnostic(
             fs=fs,
             wintit=wintit,
             tit=key,
+            is2d=is2d,
         )
 
     dax = _generic_check._check_dax(dax=dax, main=proj[0])
@@ -272,22 +307,19 @@ def _plot_diagnostic(
                     )
 
             # plotting of 2d camera contour
-            c0 = (
-                k0 == cam
-                and k1 == 'o'
-                and coll.dobj['camera'][k0]['dgeom']['type'] == '2d'
-            )
+            kax = 'camera'
+            if dax.get(kax) is not None:
+                ax = dax[kax]['handle']
 
-            if c0:
-                kax = 'camera'
-                if dax.get(kax) is not None:
-                    ax = dax[kax]['handle']
-
+                if k0 == cam and is2d and k1 == 'o':
                     ax.plot(
                         v1['x0'],
                         v1['x1'],
                         **v1.get('props', {}),
                     )
+
+                if not is2d:
+                    ax.set_xlim(-1, datax[-1] + 1)
 
     # ----------------
     # define and set dgroup
@@ -304,7 +336,7 @@ def _plot_diagnostic(
     if is2d:
         dgroup.update({
             'y': {
-                'ref': [refx],
+                'ref': [refy],
                 'data': ['index'],
                 'nmax': nlos,
             },
@@ -335,7 +367,7 @@ def _plot_diagnostic(
                 l0, = ax.plot(
                     nan,
                     nan,
-                    c='k',
+                    c=color_dict['x'][ii],
                     ls='-',
                     lw=1.,
                 )
@@ -345,8 +377,8 @@ def _plot_diagnostic(
                 coll2.add_mobile(
                     key=kl0,
                     handle=l0,
-                    refs=reflos,
-                    data=['index', 'index'],
+                    refs=ref_los,
+                    data=['los_r', 'los_z'],
                     dtype=['xdata', 'ydata'],
                     axes=kax,
                     ind=ii,
@@ -361,7 +393,7 @@ def _plot_diagnostic(
                 l0, = ax.plot(
                     nan,
                     nan,
-                    c='k',
+                    c=color_dict['x'][ii],
                     ls='-',
                     lw=1.,
                 )
@@ -371,8 +403,8 @@ def _plot_diagnostic(
                 coll2.add_mobile(
                     key=kl0,
                     handle=l0,
-                    refs=reflos,
-                    data=['index', 'index'],
+                    refs=ref_los,
+                    data=['los_x', 'los_y'],
                     dtype=['xdata', 'ydata'],
                     axes=kax,
                     ind=ii,
@@ -388,34 +420,84 @@ def _plot_diagnostic(
                     nan,
                     nan,
                     nan,
-                    c='k',
+                    c=color_dict['x'][ii],
                     ls='-',
                     lw=1.,
                 )
 
                 # add mobile
                 kl0 = f'los-3d-{ii}'
-                coll2.add_mobile(
-                    key=kl0,
-                    handle=l0,
-                    refs=reflos,
-                    data=['index', 'index', 'index'],
-                    dtype=['xdata', 'ydata', 'zdata'],
-                    axes=kax,
-                    ind=ii,
-                )
+                # coll2.add_mobile(
+                    # key=kl0,
+                    # handle=l0,
+                    # refs=reflos,
+                    # data=['index', 'index', 'index'],
+                    # dtype=['xdata', 'ydata', 'zdata'],
+                    # axes=kax,
+                    # ind=ii,
+                # )
 
         # camera
-        if is2d:
-            pass
+        kax = 'camera'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
 
-        else:
-            pass
+            if is2d:
+                for ii in range(nlos):
+                    mi, = ax.plot(
+                        datax[0:1],
+                        datay[0:1],
+                        marker='s',
+                        ms=6,
+                        markeredgecolor=color_dict['x'][ii],
+                        markerfacecolor='None',
+                    )
 
+                    km = f'm{ii:02.0f}'
+                    coll2.add_mobile(
+                        key=km,
+                        handle=mi,
+                        refs=[refx, refy],
+                        data=[keyx, keyy],
+                        dtype=['xdata', 'ydata'],
+                        axes=kax,
+                        ind=ii,
+                    )
+
+                dax[kax].update(
+                    refx=[refx],
+                    refy=[refy],
+                    datax=keyx,
+                    datay=keyy,
+                )
+
+            else:
+                for ii in range(nlos):
+                    lv = ax.axvline(
+                        datax[0], c=color_dict['y'][ii], lw=1., ls='-',
+                    )
+                    kv = f'v{ii:02.0f}'
+                    coll2.add_mobile(
+                        key=kv,
+                        handle=lv,
+                        refs=refx,
+                        data=keyx,
+                        dtype='xdata',
+                        axes=kax,
+                        ind=ii,
+                    )
+
+                dax[kax].update(refx=[refx], datax=keyx)
 
     # -------
     # connect
 
+    # add axes
+    for ii, kax in enumerate(dax.keys()):
+        harmonize = ii == len(dax.keys()) - 1
+        coll2.add_axes(key=kax, harmonize=harmonize, **dax[kax])
+
+    # connect
     if connect is True:
         coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
         coll2.disconnect_old()

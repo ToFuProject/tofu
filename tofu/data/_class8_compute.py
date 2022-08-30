@@ -291,14 +291,12 @@ def _dplot_check(
     # -------
     # elements
 
-    if isinstance(elements, str):
-        elements = [elements]
-
-    lok = ''.join(['o', 'c', 'v', 'r'])
+    lok = ['o', 'c', 'v', 'r']
     elements = ds._generic_check._check_var_iter(
         elements, 'elements',
         types=str,
-        default=lok,
+        types_iter=str,
+        default=''.join(lok),
         allowed=lok,
     )
 
