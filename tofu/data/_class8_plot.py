@@ -551,7 +551,11 @@ def _plot_diagnostic(
 
         # connect
         if connect is True:
-            coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+            coll2.setup_interactivity(
+                kinter='inter0',
+                dgroup=dgroup,
+                dinc=dinc,
+            )
             coll2.disconnect_old()
             coll2.connect()
 
