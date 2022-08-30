@@ -11,10 +11,10 @@ import datastock as ds
 from ..geom import _etendue
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
 #                   optics outline
-# #############################################################################
+# ##################################################################
 
 
 def _get_optics_outline_check(
@@ -252,10 +252,10 @@ def get_optics_outline(
     }
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
 #                       dplot
-# #############################################################################
+# ##################################################################
 
 
 def _dplot_check(
@@ -291,14 +291,12 @@ def _dplot_check(
     # -------
     # elements
 
-    if isinstance(elements, str):
-        elements = [elements]
-
-    lok = ''.join(['o', 'c', 'v', 'r'])
+    lok = ['o', 'c', 'v', 'r']
     elements = ds._generic_check._check_var_iter(
         elements, 'elements',
         types=str,
-        default=lok,
+        types_iter=str,
+        default=''.join(lok),
         allowed=lok,
     )
 
@@ -599,10 +597,10 @@ def _dplot(
     return dplot
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
 #                       Etendue
-# #############################################################################
+# ##################################################################
 
 
 def _diag_compute_etendue_check(
@@ -661,13 +659,20 @@ def _diag_compute_etendue_check(
     return key, analytical, numerical, store
 
 
-def _diag_compute_etendue(
+def _diag_compute_etendue_los(
     coll=None,
     key=None,
+    # parameters
     analytical=None,
     numerical=None,
     res=None,
     check=None,
+    # for storing los
+    config=None,
+    length=None,
+    reflections_nb=None,
+    reflections_type=None,
+    # bool
     verb=None,
     plot=None,
     store=None,
@@ -709,6 +714,9 @@ def _diag_compute_etendue(
 
     if store is not False:
 
+        # ref
+        ref = coll.dobj['camera'][key_cam]['dgeom']['ref']
+
         # data
         etendue = detend[store][-1, :]
 
@@ -717,13 +725,14 @@ def _diag_compute_etendue(
         else:
             etend_type = res[-1]
 
-        # dict for etendue
+        # keys
         ketendue = f'{key}-etend'
+        klos = f'{key}-los'
 
         ddata = {
             ketendue: {
                 'data': etendue,
-                'ref': coll.dobj['camera'][key_cam]['dgeom']['ref'],
+                'ref': ref,
                 'dim': 'etendue',
                 'quant': 'etendue',
                 'name': 'etendue',
@@ -743,6 +752,30 @@ def _diag_compute_etendue(
             key=key,
             param='etend_type',
             value=etend_type,
+        )
+        coll.set_param(
+            which='diagnostic',
+            key=key,
+            param='los',
+            value=klos,
+        )
+
+        # add los
+        cx, cy, cz = coll.get_camera_cents_xyz(key=key_cam)
+
+        coll.add_rays(
+            key=klos,
+            start_x=cx,
+            start_y=cy,
+            start_z=cz,
+            vect_x=detend['los_x'],
+            vect_y=detend['los_y'],
+            vect_z=detend['los_z'],
+            ref=ref,
+            config=config,
+            length=length,
+            reflections_nb=reflections_nb,
+            reflections_type=reflections_type,
         )
 
     return detend
