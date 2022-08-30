@@ -56,16 +56,19 @@ def _plot_diagnostic_check(
     # -------
     # data
 
-    lok = [
-        k0 for k0, v0 in coll.ddata.items()
-        if v0['camera'] == coll.dobj['diagnostic'][key]['optics'][0]
-    ]
-    data = ds._generic_check._check_var(
-        data, 'data',
-        types=str,
-        allowed=lok,
-        default=coll.dobj['diagnostic'][key]['etendue'],
-    )
+    defdata = coll.dobj['diagnostic'][key]['etendue']
+    c0 = data is None and defdata is None
+    if not c0:
+        lok = [
+            k0 for k0, v0 in coll.ddata.items()
+            if v0['camera'] == coll.dobj['diagnostic'][key]['optics'][0]
+        ]
+        data = ds._generic_check._check_var(
+            data, 'data',
+            types=str,
+            allowed=lok,
+            default=coll.dobj['diagnostic'][key]['etendue'],
+        )
 
     # -------
     # color_dict
@@ -173,6 +176,7 @@ def _plot_diagnostic(
     # -------------------------
     # prepare los interactivity
 
+    coll2 = None
     los = coll.dobj['diagnostic'][key]['los']
     if los is not None:
         los_x, los_y, los_z = coll.sample_rays(
@@ -216,26 +220,27 @@ def _plot_diagnostic(
     # -------------------------
     # prepare data interactivity
 
-    reft = None
-    dataref = coll.ddata[data]['ref']
-    if dataref == camref:
-        pass
-    elif len(dataref) == len(camref) + 1:
-        reft = [rr for rr in dataref if rr not in camref][0]
+    if data is not None:
+        reft = None
+        dataref = coll.ddata[data]['ref']
+        if dataref == camref:
+            pass
+        elif len(dataref) == len(camref) + 1:
+            reft = [rr for rr in dataref if rr not in camref][0]
 
-    else:
-        raise NotImplementedError()
+        else:
+            raise NotImplementedError()
 
-    datamap = coll.ddata[data]['data'].T
-    if is2d:
-        extent = (
-            datax[0] - 0.5*(datax[1] - datax[0]),
-            datax[-1] + 0.5*(datax[-1] - datax[-2]),
-            datay[0] - 0.5*(datay[1] - datay[0]),
-            datay[-1] + 0.5*(datay[-1] - datay[-2]),
-        )
-    else:
-        ylab = f"{coll.ddata[data]['quant']} ({coll.ddata[data]['units']})"
+        datamap = coll.ddata[data]['data'].T
+        if is2d:
+            extent = (
+                datax[0] - 0.5*(datax[1] - datax[0]),
+                datax[-1] + 0.5*(datax[-1] - datax[-2]),
+                datay[0] - 0.5*(datay[1] - datay[0]),
+                datay[-1] + 0.5*(datay[-1] - datay[-2]),
+            )
+        else:
+            ylab = f"{coll.ddata[data]['quant']} ({coll.ddata[data]['units']})"
 
     # -----------------
     # prepare figure
@@ -340,7 +345,7 @@ def _plot_diagnostic(
 
     # plot data
     kax = 'camera'
-    if dax.get(kax) is not None:
+    if dax.get(kax) is not None and data is not None:
         ax = dax[kax]['handle']
 
         if is2d and reft is None:
@@ -370,31 +375,32 @@ def _plot_diagnostic(
     # ----------------
     # define and set dgroup
 
-    dgroup = {
-        'x': {
-            'ref': [refx],
-            'data': ['index'],
-            'nmax': nlos,
-        },
-    }
-
-    if is2d:
-        dgroup.update({
-            'y': {
-                'ref': [refy],
+    if coll2 is not None:
+        dgroup = {
+            'x': {
+                'ref': [refx],
                 'data': ['index'],
                 'nmax': nlos,
             },
-        })
+        }
 
-    if reft is not None:
-        dgroup.update({
-            't': {
-                'ref': [reft],
-                'data': ['index'],
-                'nmax': 1,
-            },
-        })
+        if is2d:
+            dgroup.update({
+                'y': {
+                    'ref': [refy],
+                    'data': ['index'],
+                    'nmax': nlos,
+                },
+            })
+
+        if reft is not None:
+            dgroup.update({
+                't': {
+                    'ref': [reft],
+                    'data': ['index'],
+                    'nmax': 1,
+                },
+            })
 
     # ------------------
     # plot mobile parts
@@ -537,18 +543,21 @@ def _plot_diagnostic(
     # -------
     # connect
 
-    # add axes
-    for ii, kax in enumerate(dax.keys()):
-        harmonize = ii == len(dax.keys()) - 1
-        coll2.add_axes(key=kax, harmonize=harmonize, **dax[kax])
+    if coll2 is not None:
+        # add axes
+        for ii, kax in enumerate(dax.keys()):
+            harmonize = ii == len(dax.keys()) - 1
+            coll2.add_axes(key=kax, harmonize=harmonize, **dax[kax])
 
-    # connect
-    if connect is True:
-        coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
-        coll2.disconnect_old()
-        coll2.connect()
+        # connect
+        if connect is True:
+            coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+            coll2.disconnect_old()
+            coll2.connect()
 
-        coll2.show_commands()
-        return coll2
+            coll2.show_commands()
+            return coll2
+        else:
+            return coll2, dgroup
     else:
-        return coll2, dgroup
+        return dax

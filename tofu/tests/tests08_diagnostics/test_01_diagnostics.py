@@ -486,7 +486,6 @@ class Test01_Diagnostic():
 
         # add diagnostics
         for k0, v0 in ddiag.items():
-            print(f'diag {k0}')
             self.obj.add_diagnostic(
                 key=k0,
                 config=conf,
@@ -522,7 +521,6 @@ class Test01_Diagnostic():
                 )
 
                 # add diag
-                print(f'diag {ii}')
                 self.obj.add_diagnostic(
                     optics=loptics,
                     config=conf,
@@ -538,7 +536,7 @@ class Test01_Diagnostic():
         for k0, v0 in self.obj.dobj['diagnostic'].items():
             if len(v0['optics']) == 1 or v0['spectro'] is not False:
                 continue
-            self.obj.compute_diagnostic_etendue(
+            self.obj.compute_diagnostic_etendue_los(
                 key=k0,
                 res=res,
                 numerical=True,
