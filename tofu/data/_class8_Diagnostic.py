@@ -239,12 +239,21 @@ class Diagnostic(_class7_Camera.Camera):
         optics=None,
         elements=None,
         proj=None,
+        los_res=None,
+        # data plot
+        data=None,
+        cmap=None,
+        vmin=None,
+        vmax=None,
         # figure
         dax=None,
         dmargin=None,
         fs=None,
         wintit=None,
         # interactivity
+        color_dict=None,
+        nlos=None,
+        dinc=None,
         connect=None,
     ):
 
@@ -254,11 +263,20 @@ class Diagnostic(_class7_Camera.Camera):
             optics=optics,
             elements=elements,
             proj=proj,
+            los_res=los_res,
+            # data plot
+            data=data,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
             # figure
             dax=dax,
             dmargin=dmargin,
             fs=fs,
             wintit=wintit,
             # interactivity
+            color_dict=color_dict,
+            nlos=nlos,
+            dinc=dinc,
             connect=connect,
         )
