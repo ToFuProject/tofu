@@ -11,7 +11,6 @@ import itertools as itt
 # Standard
 import numpy as np
 import scipy.constants as scpct
-import astropy.units as u
 import matplotlib.pyplot as plt
 
 # tofu-specific

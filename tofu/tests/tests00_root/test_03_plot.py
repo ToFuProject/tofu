@@ -9,7 +9,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings as warn
-import astropy.units as u
 
 # Importing package tofu.geom
 import tofu as tf

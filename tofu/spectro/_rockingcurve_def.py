@@ -2,7 +2,6 @@
 import numpy as np
 import scipy.interpolate
 import scipy.constants as scpct
-import astropy.units as u
 
 # #############################################################################
 # #############################################################################
@@ -17,7 +16,7 @@ _DCRYST = {
         'target': {
             'ion': 'ArXVII',
             'wavelength': 3.96e-10,
-            'unit': u.m,
+            'unit': scpct.unit('classical electron radius'),
         },
         'atoms': ['Si', 'O'],
         'atoms_Z': [14., 8.],
@@ -25,11 +24,11 @@ _DCRYST = {
         'miller': np.r_[1., 1., 0.],
         'volume': {
             'value': None,
-            'unit': 1/u.m**3,
+            'unit': scpct.unit('classical electron radius')**-3,
         },
         'd_hkl': {
             'value': None,
-            'unit': u.m,
+            'unit': scpct.unit('classical electron radius'),
         },
         'mesh': {
             'type': 'hexagonal',
@@ -60,11 +59,11 @@ _DCRYST = {
                 'a0': 4.91304e-10,
                 'c0': 5.40463e-10,
             },
-            'unit': u.m,
+            'unit': scpct.unit('classical electron radius'),
             'comments': 'within the unit cell',
             'Tref': {
-                'data': 25.,
-                'unit': u.deg_C,
+                'data': 25. + 273.15,
+                'unit': scpct.unit('Boltzmann constant')[2],
             },
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
@@ -73,7 +72,7 @@ _DCRYST = {
                 'alpha_a': 1.337e-5,
                 'alpha_c': 7.97e-6,
             },
-            'unit': 1/u.deg_C,
+            'unit': scpct.unit('Boltzmann constant')[2]**-1,
             'comments': 'in parallel directions to a0 and c0',
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
@@ -87,7 +86,7 @@ _DCRYST = {
                     0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1,
                 ]*1e10,
             },
-            'unit': 1/u.m,
+            'unit': scpct.unit('classical electron radius')**-1,
             'sources':
                 'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
@@ -112,7 +111,7 @@ _DCRYST = {
         'target': {
             'ion': 'ArXVIII',
             'wavelength': 3.75e-10,
-            'unit': u.m,
+            'unit': scpct.unit('classical electron radius'),
         },
         'atoms': ['Si', 'O'],
         'atoms_Z': [14., 8.],
@@ -120,11 +119,11 @@ _DCRYST = {
         'miller': np.r_[1., 0., 2.],
         'volume': {
             'value': None,
-            'unit': 1/u.m**3,
+            'unit': scpct.unit('classical electron radius')**-3,
         },
         'd_hkl': {
             'value': None,
-            'unit': u.m,
+            'unit': scpct.unit('classical electron radius'),
         },
         'mesh': {
             'type': 'hexagonal',
@@ -155,11 +154,11 @@ _DCRYST = {
                 'a0': 4.91304e-10,
                 'c0': 5.40463e-10,
             },
-            'unit': u.m,
+            'unit': scpct.unit('classical electron radius'),
             'comments': 'within the unit cell',
             'Tref': {
-                'data': 25.,
-                'unit': u.deg_C,
+                'data': 25. + 273.15,
+                'unit': scpct.unit('Boltzmann constant')[2],
             },
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
@@ -168,7 +167,7 @@ _DCRYST = {
                 'alpha_a': 1.337e-5,
                 'alpha_c': 7.97e-6,
             },
-            'unit': 1/u.deg_C,
+            'unit': scpct.unit('Boltzmann constant')[2]**-1,
             'comments': 'in parallel directions to a0 and c0',
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
@@ -182,7 +181,7 @@ _DCRYST = {
                     0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1,
                 ]*1e10,
             },
-            'unit': 1/u.m,
+            'unit': scpct.unit('classical electron radius')**-1,
             'sources':
                 'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
@@ -208,7 +207,7 @@ _DCRYST = {
         'target': {
             'ion': None,
             'wavelength': None,
-            'unit': u.m,
+            'unit': scpct.unit('classical electron radius'),
         },
         'atoms': None,
         'atoms_Z': None,
@@ -216,11 +215,11 @@ _DCRYST = {
         'miller': None,
         'volume': {
             'value': None,
-            'unit': 1/u.m**3,
+            'unit': scpct.unit('classical electron radius')**-3,
         },
         'd_hkl': {
             'value': None,
-            'unit': u.m,
+            'unit': scpct.unit('classical electron radius'),
         },
         'mesh': {
             'type': None,
@@ -230,23 +229,23 @@ _DCRYST = {
         'phases': None,
         'inter_atomic': {
             'distances': None,
-            'unit': u.m,
+            'unit': scpct.unit('classical electron radius'),
             'comments': None,
             'Tref': {
                 'data': None,
-                'unit': u.deg_C,
+                'unit': scpct.unit('Boltzmann constant')[2],
             },
             'sources': None,
         },
         'thermal_expansion': {
             'coefs': None,
-            'unit': 1/u.deg_C,
+            'unit': scpct.unit('Boltzmann constant')[2]**-1,
             'comments': None,
             'sources': None,
         },
         'sin_theta_lambda': {
             'values': None,
-            'unit': 1/u.m,
+            'unit': scpct.unit('classical electron radius')**-1,
             'sources': None,
         },
         'atomic_scattering': {
