@@ -305,6 +305,7 @@ def _compute_etendue_check(
         and all([
             isinstance(k0, str)
             and isinstance(v0, dict)
+            and isinstance(v0.get('reflector', False), bool)
             and all([kk in v0.keys() for kk in lk])
             for k0, v0 in aperture.items()
         ])

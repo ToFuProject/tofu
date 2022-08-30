@@ -624,6 +624,13 @@ def _diag_compute_etendue_check(
         allowed=lok,
     )
 
+    optics = coll.dobj['diagnostics'][key]['optics']
+    lspectro = [
+        oo for oo in optics
+        if oo in coll.dobj.get('cryst', {})
+        or oo in in coll.dobj.get('grating', {})
+    ]
+
     # -----------
     # analytical
 
@@ -656,7 +663,14 @@ def _diag_compute_etendue_check(
         allowed=lok,
     )
 
-    return key, analytical, numerical, store
+    return (
+        key,
+        optics,
+        lspectro,
+        analytical,
+        numerical,
+        store,
+    )
 
 
 def _diag_compute_etendue_los(
@@ -681,7 +695,14 @@ def _diag_compute_etendue_los(
     # ------------
     # check inputs
 
-    key, analytical, numerical, store = _diag_compute_etendue_check(
+    (
+        key,
+        optics,
+        lspectro,
+        analytical,
+        numerical,
+        store,
+    ) = _diag_compute_etendue_check(
         coll=coll,
         key=key,
         analytical=analytical,
@@ -690,8 +711,17 @@ def _diag_compute_etendue_los(
     )
 
     # prepare optics
-    optics = coll.dobj['diagnostic'][key]['optics']
     key_cam = optics[0]
+
+    # ------------------------------------
+    # compute equivalent optics if spectro
+
+    if len(lspectro) == 1:
+        _diag_spectro_equivalent_apertures(
+        )
+
+    elif len(lspectro) > 1:
+        raise NotImplementedError()
 
     # --------
     # etendues

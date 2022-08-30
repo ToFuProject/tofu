@@ -77,11 +77,9 @@ class Diagnostic(_class7_Camera.Camera):
         # adding etendue
 
         key = list(dobj['diagnostic'].keys())[0]
-        c0 = (
-            len(self.dobj['diagnostic'][key]['optics']) > 1
-            and self.dobj['diagnostic'][key]['spectro'] is False
-        )
-        if c0:
+        optics = self.dobj['diagnostic'][key]['optics']
+
+        if len(optics) > 1:
             self.compute_diagnostic_etendue_los(
                 key=key,
                 analytical=True,
