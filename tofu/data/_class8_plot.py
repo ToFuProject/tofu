@@ -370,7 +370,6 @@ def _plot_diagnostic(
     # ----------------
     # define and set dgroup
 
-
     dgroup = {
         'x': {
             'ref': [refx],
@@ -474,13 +473,13 @@ def _plot_diagnostic(
                 # add mobile
                 kl0 = f'los-3d-{ii}'
                 # coll2.add_mobile(
-                    # key=kl0,
-                    # handle=l0,
-                    # refs=reflos,
-                    # data=['index', 'index', 'index'],
-                    # dtype=['xdata', 'ydata', 'zdata'],
-                    # axes=kax,
-                    # ind=ii,
+                # key=kl0,
+                # handle=l0,
+                # refs=reflos,
+                # data=['index', 'index', 'index'],
+                # dtype=['xdata', 'ydata', 'zdata'],
+                # axes=kax,
+                # ind=ii,
                 # )
 
         # camera

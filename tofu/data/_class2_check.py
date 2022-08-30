@@ -10,7 +10,7 @@ from ..geom import CamLOS1D
 
 # ##################################################################
 # ##################################################################
-#                   Rays 
+#                   Rays
 # ##################################################################
 
 
@@ -61,7 +61,6 @@ def _check_inputs(
     reflections_type=None,
     diag=None,
 ):
-
 
     # -------------
     # key
@@ -174,7 +173,9 @@ def _check_inputs(
                 pts_z = np.full(shref, pts_z[0])
             else:
                 msg = (
-                    f"Arg pts_x has inconsistent shape {pts_x.shape} vs {shref}"
+                    f"Arg pts_x has inconsistent shape:\n"
+                    f"\t- pts_x.shape = {pts_x.shape}\n"
+                    f"\t- shref: {shref}"
                 )
                 raise Exception(msg)
 
@@ -203,7 +204,6 @@ def _check_inputs(
 
     # ----------
     # config
-
 
     # ---------
     # reflections
@@ -635,7 +635,7 @@ def _rays(
 
 # ##################################################################
 # ##################################################################
-#                   Rays - get start and vect 
+#                   Rays - get start and vect
 # ##################################################################
 
 
@@ -725,9 +725,9 @@ def _get_vect(
     ptsy = coll.ddata[ptsy]['data']
     ptsz = coll.ddata[ptsz]['data']
 
-    vx = (ptsx[0,...] - stx)[None, ...]
-    vy = (ptsy[0,...] - sty)[None, ...]
-    vz = (ptsz[0,...] - stz)[None, ...]
+    vx = (ptsx[0, ...] - stx)[None, ...]
+    vy = (ptsy[0, ...] - sty)[None, ...]
+    vz = (ptsz[0, ...] - stz)[None, ...]
     if ptsx.shape[0] > 1:
         vx = np.concatenate((vx, np.diff(ptsx, axis=0)), axis=0)
         vy = np.concatenate((vy, np.diff(ptsy, axis=0)), axis=0)
