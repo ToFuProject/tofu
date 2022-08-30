@@ -24,7 +24,7 @@ _DCRYST = {
         'miller': np.r_[1., 1., 0.],
         'volume': {
             'value': None,
-            'unit': scpct.unit('classical electron radius')**-3,
+            'unit': scpct.unit('classical electron radius')+'**-3',
         },
         'd_hkl': {
             'value': None,
@@ -72,7 +72,7 @@ _DCRYST = {
                 'alpha_a': 1.337e-5,
                 'alpha_c': 7.97e-6,
             },
-            'unit': scpct.unit('Boltzmann constant')[2]**-1,
+            'unit': '1/'+scpct.unit('Boltzmann constant')[2],
             'comments': 'in parallel directions to a0 and c0',
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
@@ -86,7 +86,7 @@ _DCRYST = {
                     0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1,
                 ]*1e10,
             },
-            'unit': scpct.unit('classical electron radius')**-1,
+            'unit': '1/'+scpct.unit('classical electron radius'),
             'sources':
                 'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
@@ -119,7 +119,7 @@ _DCRYST = {
         'miller': np.r_[1., 0., 2.],
         'volume': {
             'value': None,
-            'unit': scpct.unit('classical electron radius')**-3,
+            'unit': scpct.unit('classical electron radius')+'**-3',
         },
         'd_hkl': {
             'value': None,
@@ -167,7 +167,7 @@ _DCRYST = {
                 'alpha_a': 1.337e-5,
                 'alpha_c': 7.97e-6,
             },
-            'unit': scpct.unit('Boltzmann constant')[2]**-1,
+            'unit': '1/'+scpct.unit('Boltzmann constant')[2],
             'comments': 'in parallel directions to a0 and c0',
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
@@ -181,7 +181,7 @@ _DCRYST = {
                     0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1,
                 ]*1e10,
             },
-            'unit': scpct.unit('classical electron radius')**-1,
+            'unit': '1/'+scpct.unit('classical electron radius'),
             'sources':
                 'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
@@ -215,7 +215,7 @@ _DCRYST = {
         'miller': None,
         'volume': {
             'value': None,
-            'unit': scpct.unit('classical electron radius')**-3,
+            'unit': scpct.unit('classical electron radius')+'**-3',
         },
         'd_hkl': {
             'value': None,
@@ -239,13 +239,13 @@ _DCRYST = {
         },
         'thermal_expansion': {
             'coefs': None,
-            'unit': scpct.unit('Boltzmann constant')[2]**-1,
+            'unit': '1/'+scpct.unit('Boltzmann constant')[2],
             'comments': None,
             'sources': None,
         },
         'sin_theta_lambda': {
             'values': None,
-            'unit': scpct.unit('classical electron radius')**-1,
+            'unit': '1/'+scpct.unit('classical electron radius'),
             'sources': None,
         },
         'atomic_scattering': {
