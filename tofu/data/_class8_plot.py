@@ -56,17 +56,16 @@ def _plot_diagnostic_check(
     # -------
     # data
 
-    # lok = [
-        # k0 for k0, v0 in coll.ddata.items()
-        # if v0['diag'] == key
-    # ]
-    # data = ds._generic_check._check_var(
-        # data, 'data',
-        # types=str,
-        # default=lok,
-    # )
-
-
+    lok = [
+        k0 for k0, v0 in coll.ddata.items()
+        if v0['camera'] == coll.dobj['diagnostic'][key]['optics'][0]
+    ]
+    data = ds._generic_check._check_var(
+        data, 'data',
+        types=str,
+        allowed=lok,
+        default=coll.dobj['diagnostic'][key]['etendue'],
+    )
 
     # -------
     # color_dict
@@ -118,8 +117,12 @@ def _plot_diagnostic(
     optics=None,
     elements=None,
     proj=None,
-    data=None,
     los_res=None,
+    # data plot
+    data=None,
+    cmap=None,
+    vmin=None,
+    vmax=None,
     # figure
     dax=None,
     dmargin=None,
@@ -164,6 +167,7 @@ def _plot_diagnostic(
     )
 
     cam = coll.dobj['diagnostic'][key]['optics'][0]
+    camref = coll.dobj['camera'][cam]['dgeom']['ref']
     is2d = coll.dobj['camera'][cam]['dgeom']['type'] == '2d'
 
     # -------------------------
@@ -212,10 +216,26 @@ def _plot_diagnostic(
     # -------------------------
     # prepare data interactivity
 
-    has3d = False
+    reft = None
+    dataref = coll.ddata[data]['ref']
+    if dataref == camref:
+        pass
+    elif len(dataref) == len(camref) + 1:
+        reft = [rr for rr in dataref if rr not in camref][0]
 
-    if has3d is True:
-        reft = None
+    else:
+        raise NotImplementedError()
+
+    datamap = coll.ddata[data]['data'].T
+    if is2d:
+        extent = (
+            datax[0] - 0.5*(datax[1] - datax[0]),
+            datax[-1] + 0.5*(datax[-1] - datax[-2]),
+            datay[0] - 0.5*(datay[1] - datay[0]),
+            datay[-1] + 0.5*(datay[-1] - datay[-2]),
+        )
+    else:
+        ylab = f"{coll.ddata[data]['quant']} ({coll.ddata[data]['units']})"
 
     # -----------------
     # prepare figure
@@ -318,8 +338,34 @@ def _plot_diagnostic(
                         **v1.get('props', {}),
                     )
 
-                if not is2d:
-                    ax.set_xlim(-1, datax[-1] + 1)
+    # plot data
+    kax = 'camera'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        if is2d and reft is None:
+            im = ax.imshow(
+                datamap,
+                extent=extent,
+                cmap=cmap,
+                vmin=vmin,
+                vmax=vmax,
+                origin='lower',
+                interpolation='nearest',
+            )
+            plt.colorbar(im, ax=ax)
+
+        elif reft is None:
+            ax.plot(
+                datamap,
+                c='k',
+                ls='-',
+                lw=1.,
+                marker='.',
+                ms=6,
+            )
+            ax.set_xlim(-1, datax[-1] + 1)
+            ax.set_ylabel(ylab)
 
     # ----------------
     # define and set dgroup
@@ -342,7 +388,7 @@ def _plot_diagnostic(
             },
         })
 
-    if has3d:
+    if reft is not None:
         dgroup.update({
             't': {
                 'ref': [reft],

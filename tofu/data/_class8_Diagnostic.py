@@ -36,6 +36,7 @@ class Diagnostic(_class7_Camera.Camera):
             'type',
             'optics',
             'spectro',
+            'ref',
             'etendue',
             'etend_type',
             'los',
@@ -98,8 +99,12 @@ class Diagnostic(_class7_Camera.Camera):
                 store='analytical',
             )
 
-        # --------------
-        # adding los
+    # -----------------
+    # utilities
+    # -----------------
+
+    def get_diagnostic_ref(self, key=None):
+        return _check.get_ref(coll=self, key=key)
 
     # -----------------
     # etendue computing
