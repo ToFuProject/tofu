@@ -68,6 +68,7 @@ def get_dax_diag(
     fs=None,
     tit=None,
     wintit=None,
+    is2d=None,
 ):
 
     # ----------------------
@@ -92,6 +93,13 @@ def get_dax_diag(
         wintit, 'wintit',
         types=str,
         default=_WINDEF,
+    )
+
+    # is2d
+    is2d = ds._generic_check._check_var(
+        is2d, 'is2d',
+        types=bool,
+        default=False,
     )
 
     # -------------
@@ -135,7 +143,7 @@ def get_dax_diag(
         )
 
     for ii, ax in enumerate(lax):
-        _ax_set(ax=ax, proj=proj[ii])
+        _ax_set(ax=ax, proj=proj[ii], is2d=is2d)
         dax[proj[ii]] = ax
 
     return dax
@@ -297,7 +305,7 @@ def _ax_4(
     return lax
 
 
-def _ax_set(ax=None, proj=None):
+def _ax_set(ax=None, proj=None, is2d=None):
 
     if proj == 'cross':
 
@@ -320,8 +328,11 @@ def _ax_set(ax=None, proj=None):
 
     elif proj == 'camera':
 
-        ax.set_xlabel('x0 (m)')
-        ax.set_ylabel('x1 (m)')
-        ax.set_aspect('equal', adjustable='datalim')
+        if is2d:
+            ax.set_xlabel('x0 (m)')
+            ax.set_ylabel('x1 (m)')
+            ax.set_aspect('equal', adjustable='datalim')
+        else:
+            ax.set_xlabel('ind')
 
     return

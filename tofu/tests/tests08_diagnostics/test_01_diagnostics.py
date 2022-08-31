@@ -454,6 +454,10 @@ class Test01_Diagnostic():
 
     def setup(self):
 
+        # get config
+        conf = tf.load_config('SPARC')
+        conf.remove_Struct(Cls='PFC', Name='ICRH0')
+
         # get dict
         dapertures = _apertures()
         dfilters = _filters()
@@ -482,7 +486,13 @@ class Test01_Diagnostic():
 
         # add diagnostics
         for k0, v0 in ddiag.items():
-            self.obj.add_diagnostic(key=k0, **v0)
+            self.obj.add_diagnostic(
+                key=k0,
+                config=conf,
+                reflections_nb=2,
+                reflections_type='specular',
+                **v0,
+            )
 
         # add crystals
         for k0, v0 in dcrystals.items():
@@ -511,7 +521,10 @@ class Test01_Diagnostic():
                 )
 
                 # add diag
-                self.obj.add_diagnostic(optics=loptics)
+                self.obj.add_diagnostic(
+                    optics=loptics,
+                    config=conf,
+                )
 
         # add toroidal
         self.obj.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
@@ -523,7 +536,7 @@ class Test01_Diagnostic():
         for k0, v0 in self.obj.dobj['diagnostic'].items():
             if len(v0['optics']) == 1 or v0['spectro'] is not False:
                 continue
-            self.obj.compute_diagnostic_etendue(
+            self.obj.compute_diagnostic_etendue_los(
                 key=k0,
                 res=res,
                 numerical=True,
