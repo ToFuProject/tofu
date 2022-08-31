@@ -1690,9 +1690,20 @@ class CrystalBragg(utils.ToFuObject):
             rcurve = self._dgeom['rcurve']
 
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+        lamb = self.get_lamb_from_bragg(bragg=bragg, n=n)
+
         if np.all(np.isnan(bragg)):
-            msg = ("There is no available bragg angle!\n"
-                   + "  => Check the vlue of self.dmat['d'] vs lamb")
+            msg = (
+                "There is no available bragg angle!\n"
+                + "It is probably because you gave a too large Bragg angle\n"
+                + "or wavelength than permitted by the crystal loaded.\n"
+                + "Provided:\n"
+                + "\t - bragg : {} rad\n".format(bragg)
+                + "\t - lamb : {} m\n".format(lamb)
+                + "Crystal loaded:\n"
+                + "\t - bragg_ref : {} rad\n".format(self._dbragg['braggref'])
+                + "\t - lamb_ref : {} m\n".format(self._dbragg['lambref'])
+            )
             raise Exception(msg)
 
         lc = [lamb0 is not None, lamb1 is not None, dist01 is not None]
@@ -2085,7 +2096,7 @@ class CrystalBragg(utils.ToFuObject):
 
         dout = _rockingcurve.CrystBragg_comp_lattice_spacing(
             crystal=crystal, din=din,
-            lamb=self.dbragg['lambref'],
+            lamb=self._dbragg['lambref'],
             na=na, nn=nn,
             therm_exp=therm_exp,
             temp_limits=temp_limits,
@@ -2723,6 +2734,10 @@ class CrystalBragg(utils.ToFuObject):
             ndist = 21
         if ndi is None:
             ndi = 21
+        if lamb is None:
+            lamb = self._dbragg['lambref']
+        if bragg is None:
+            bragg = self._dbragg['braggref']
         if err is None:
             err = 'rel'
         if plot is None:
@@ -2897,9 +2912,11 @@ class CrystalBragg(utils.ToFuObject):
         # Checkformat det
         det_ref = self._checkformat_det(det=det_ref)
 
+        # Checkformat lamb
+        lamb = self.get_lamb_from_bragg(bragg=self._dbragg['braggref'])
+
         # ------------
         # get approx detect
-
         det_approx = self.get_detector_ideal(
             bragg=bragg, lamb=lamb,
             tangent_to_rowland=False,
@@ -2948,8 +2965,8 @@ class CrystalBragg(utils.ToFuObject):
         dtheta=None, psi=None,
         ntheta=None, npsi=None,
         n=None,
-        miscut=None,
         grid=None,
+        miscut=None,
         return_lamb=None,
     ):
         """ Return the lamb, bragg and phi for provided pts and dtheta/psi
@@ -2995,9 +3012,11 @@ class CrystalBragg(utils.ToFuObject):
     def get_lamb_avail_from_pts(
         self,
         pts=None,
-        n=None, ndtheta=None,
-        det=None, nlamb=None, klamb=None,
+        lamb=None, nlamb=None,
         miscut=None,
+        n=None, ndtheta=None,
+        det=None,
+        klamb=None,
         strict=None,
         return_phidtheta=None,
         return_xixj=None,
@@ -3437,6 +3456,7 @@ class CrystalBragg(utils.ToFuObject):
 
         lamb_access = self.get_lamb_avail_from_pts(
             pts=ptsXYZ,
+            lamb=lamb,
             nlamb=2,
             miscut=miscut,
             return_phidtheta=False,
