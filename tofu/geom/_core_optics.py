@@ -1690,7 +1690,6 @@ class CrystalBragg(utils.ToFuObject):
             rcurve = self._dgeom['rcurve']
 
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
-        lamb = self.get_lamb_from_bragg(bragg=bragg, n=n)
 
         if np.all(np.isnan(bragg)):
             msg = (
@@ -2734,10 +2733,6 @@ class CrystalBragg(utils.ToFuObject):
             ndist = 21
         if ndi is None:
             ndi = 21
-        if lamb is None:
-            lamb = self._dbragg['lambref']
-        if bragg is None:
-            bragg = self._dbragg['braggref']
         if err is None:
             err = 'rel'
         if plot is None:
@@ -2752,6 +2747,8 @@ class CrystalBragg(utils.ToFuObject):
             lambda_interval_min = 3.93e-10
         if lambda_interval_max is None:
             lambda_interval_max = 4.00e-10
+
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb)
 
         l0 = [dist_min, dist_max, ndist, di_min, di_max, ndi]
         c0 = any([l00 is not None for l00 in l0])
@@ -2911,9 +2908,6 @@ class CrystalBragg(utils.ToFuObject):
 
         # Checkformat det
         det_ref = self._checkformat_det(det=det_ref)
-
-        # Checkformat lamb
-        lamb = self.get_lamb_from_bragg(bragg=self._dbragg['braggref'])
 
         # ------------
         # get approx detect

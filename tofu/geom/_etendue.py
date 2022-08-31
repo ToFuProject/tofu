@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 
 
-import polygon as plg
+import Polygon as plg
 import datastock as ds
 
 
