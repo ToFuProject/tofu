@@ -38,6 +38,8 @@
 \DeclareMathOperator{\n}{\ud{n}}
 \DeclareMathOperator{\en}{\ud{e}\cdot\ud{n}}
 \DeclareMathOperator{\OEz}{\|\ud{OE} \cross \z\|}
+\DeclareMathOperator{\OEn}{\|\ud{OE}\|}
+\DeclareMathOperator{\c1}{(l^2 + 2l\OA\cdot\e)}
 
 
 % \DeclareMathOperator{\cn}{\mathbf{c}}
@@ -48,6 +50,9 @@
 
 \maketitle
 
+
+\tableofcontents
+\newpage
 
 % \includegraphics[scale=0.4]{tetra.png} 
 
@@ -78,6 +83,7 @@ Hence both $\n(\D)$ and $d_E = \|\ED\|$ are parametrized by $k$:
 $\n(k)$ and $d_E(k)$.
 
 
+\newpage
 \section{General equations}
 
 \subsection{co-planarity}
@@ -210,6 +216,7 @@ $$
 (2) \Leftrightarrow (2k - 1)d_E(k) + 2k(1-k)l\en(k) = 0\\
 $$
 
+\newpage
 \section{Planar}
 
 If the 3d surface is a plane, then $\n$ is constant and does not depend on $k$.
@@ -248,6 +255,7 @@ $$
 (2) \Leftrightarrow k = \frac{\CA \cdot \n}{2\CA \cdot \n + l\en}
 $$
 
+\newpage
 \section{Cylinder}
 
 Consider a cylinder of axes $(O, \z)$, with $\z$  unit vector and radius $r$.
@@ -314,8 +322,169 @@ $$
 = (\OA\cross\z)^2 + 2kl(\OA\cross\z)\cdot(\e\cross\z) + k^2l^2(\e\cross\z)^2
 $$
 
+So 
+$$
+\begin{array}{llll}
+    (2)
+    & \Leftrightarrow &
+    (2k-1)r\OEz
+    - (2k-1)(\OA\cross\z)^2
+    - (2k-1)2kl(\OA\cross\z)\cdot(\e\cross\z)
+    - (2k-1)k^2l^2(\e\cross\z)^2\\
+    &&- 2k(1-k)l(\ud{OA}\cross\z) \cdot (\z \cross \e) 
+    - 2k^2(1-k)l^2(\e\cross\z) \cdot (\z \cross \e) & = 0\\
+    & \Leftrightarrow &
+    (2k-1)r\OEz
+    - (2k-1)(\OA\cross\z)^2
+    + 2kl(\OA\cross\z)\cdot(\e\cross\z)(1 - k - 2k + 1)
+    + k^2l^2(\e\cross\z)^2(2 - 2k - 2k + 1) & = 0\\
+    & \Leftrightarrow &
+    (2k-1)r\OEz
+    - (2k-1)(\OA\cross\z)^2
+    + 2kl(\OA\cross\z)\cdot(\e\cross\z)(2 - 3k)
+    + k^2l^2(\e\cross\z)^2(3 - 4k) & = 0\\
+\end{array}
+$$
 
 
+\newpage
+\section{Sphere}
+
+Consider a sphere of center $O$ and radius $r$.
+The normal vector associated to any point $E$ (not on $O$) is:
+
+$$
+\n(E) = - \frac{\ud{OE}}{\OEn}
+$$
+
+Given that $E$ in on the $(A, B)$ line:
+
+$$
+\left\{
+\begin{array}{ll}
+    \ud{OE} = \OA + kl\e\\
+    \|\ud{OE}\|^2 = \|\OA\|^2 + k^2l^2 + 2kl\OA\cdot\e
+\end{array}
+\right.
+$$
+
+Which entails:
+$$
+\begin{array}{ll}
+    \en(k)
+    & = - \frac{1}{\OEn}\left[ \OA \cdot \e  + kl \right]\\
+\end{array}
+$$
+
+And:
+
+$$
+d_E = r - \|\ud{OE}\|
+$$
+
+So the equation becomes:
+$$
+\begin{array}{llll}
+    (2)
+    & \Leftrightarrow &
+    (2k-1)(r - \OEn) + 2k(1-k)l\en = 0\\
+    & \Leftrightarrow &
+    (2k-1)(r - \OEn)\OEn
+    - 2k(1-k)l\left[ \OA \cdot \e  + kl \right] = 0\\
+    & \Leftrightarrow &
+    (2k-1)r\OEn - (2k-1)\OEn^2
+    - 2k(1-k)l\OA\cdot\e  - 2k^2l^2(1-k) = 0\\
+    & \Leftrightarrow &
+    (2k-1)r\OEn - (2k-1)\|\OA\|^2 - (2k-1)k^2l^2 - 2(2k-1)kl\OA\cdot\e
+    - 2k(1-k)l\OA\cdot\e  - 2k^2l^2(1-k) = 0\\
+    & \Leftrightarrow &
+    (2k-1)r\OEn - (2k-1)\|\OA\|^2 - k^2l^2(2k-1 + 2 - 2k)
+    - 2kl\OA\cdot\e(2k-1 + 1 - k) = 0\\
+    & \Leftrightarrow &
+    (2k-1)r\OEn - (2k-1)\|\OA\|^2 - k^2l^2 - 2k^2l\OA\cdot\e = 0\\
+    & \Leftrightarrow &
+    (2k-1)^2r^2\OEn^2 = \left[ (2k-1)\|\OA\|^2 + k^2\c1 \right]^2\\
+    & \Leftrightarrow &
+    (2k-1)^2r^2\|\OA\|^2 + (2k-1)^2r^2k^2l^2 + (2k-1)^2r^2 2kl\OA\cdot\e\\
+    & &= (2k-1)^2\|\OA\|^4 + 2(2k-1)\|\OA\|^2k^2\c1 + k^4\c1^2\\
+    & \Leftrightarrow &
+    (2k-1)^2(r^2 - \|\OA\|^2)\|\OA\|^2 + (2k-1)^2r^2k^2l^2 + (2k-1)^2r^2 2kl\OA\cdot\e\\
+    & &= 2(2k-1)l\|\OA\|^2k^2(l + 2\OA\cdot\e)
+    + k^4l^2(l^2 + 4l\OA\cdot\e + 4(\OA\cdot\e)^2 )\\
+    & \Leftrightarrow &
+    (4k^2 - 2k + 1)C_0
+    + (4k^2 - 2k + 1)k^2C_1
+    + (4k^2 - 2k + 1)kC_2
+    = (2k-1)k^2C_3 + k^4C_4\\ 
+    & \Leftrightarrow &
+    k^4\left[ 4C_1 - C_4 \right]
+    + k^3\left[ -2C_1 + 4C_2 - 2C_3  \right]
+    + k^2\left[ 4C_0 + C_1 - 2C_2  + C_3 \right]
+    + k\left[ -2C_0 + C_2 \right]
+    + C_0 = 0
+\end{array}
+$$
+
+Where:
+$$
+\left\{
+\begin{array}{llll}
+    C_0 = (r^2 - \|\OA\|^2)\|\OA\|^2\\
+    C_1 = r^2l^2\\
+    C_2 = 2lr^2\OA\cdot\e\\
+    C_3 = 2l\|\OA\|^2(l + 2\OA\cdot\e)\\
+    C_4 = l^2(l^2 + 4l\OA\cdot\e + 4(\OA\cdot\e)^2 )
+\end{array}
+\right.
+$$
+
+
+Looking for simplifications:    
+$$
+\left\{
+\begin{array}{llll}
+    4C_1 - C_4
+    & = 4r^2l^2 - l^4 - 4l^3\OA\cdot\e - 4l^2(\OA\cdot\e)^2\\
+    & = l^2\left(4r^2 - (l + 2\OA\cdot\e)^2\right)\\
+
+    -2C_1 + 4C_2 - 2C_3
+    & = -2r^2l^2 + 8lr^2\OA\cdot\e - 4l\|\OA\|^2(l + 2\OA\cdot\e)\\
+    & =  2l\left( -r^2l + 4r^2\OA\cdot\e - 2\|\OA\|^2(l + 2\OA\cdot\e)  \right)\\
+    
+    4C_0 + C_1 - 2C_2  + C_3
+    & = 4(r^2 - \|\OA\|^2)\|\OA\|^2 + r^2l^2
+     - 4lr^2\OA\cdot\e + 2l\|\OA\|^2(l + 2\OA\cdot\e)\\
+    & = r^2l^2 + 4(r^2 - \|\OA\|^2)\|\OA\|^2
+    + 4(\|\OA\|^2 - r^2)l\OA\cdot\e + 2l^2\|\OA\|^2\\
+    & = r^2l^2 + 4(r^2 - \|\OA\|^2)(\|\OA\|^2 - l\OA\cdot\e) + 2l^2\|\OA\|^2\\
+    & = l^2(r^2+ 2\|\OA\|^2) + 4(r^2 - \|\OA\|^2)(\|\OA\|^2 - l\OA\cdot\e)\\
+
+    -2C_0 + C_2
+    & = -2(r^2 - \|\OA\|^2)\|\OA\|^2 + 2lr^2\OA\cdot\e\\
+    %(4k^2 - 2k + 1)(r^2 - \|\OA\|^2)\|\OA\|^2
+    %+ (4k^2 - 2k + 1)r^2k^2l^2
+    %+ (4k^2 - 2k + 1)r^2 2kl\OA\cdot\e\\
+    %& &= 2(2k-1)l\|\OA\|^2k^2(l + 2\OA\cdot\e)
+    %+ k^4l^2(l^2 + 4l\OA\cdot\e + 4(\OA\cdot\e)^2 )\\
+    %& \Leftrightarrow &
+    %k^4(4r^2l^2 - l^4 - 4l^3\OA\cdot\e - 4l^2(\OA\cdot\e)^2)\\
+    %&& + k^3(-2r^2l^2 + 8r^2l\OA\cdot\e - 4l\|\OA\|^2(l + 2\OA\cdot\e))\\
+    %&& + k^2(4r^2\|\OA\|^2 - 4\|\OA\|^4 + r^2l^2 - 2r^2l\OA\cdot\e + 2l\|\OA\|^2(l + 2\OA\cdot\e))\\
+    %&& + k(-2r^2\|\OA\|^2 + 2\|\OA\|^4 + 2r^2l\OA\cdot\e)\\
+    %&& + (r^2 - \|\OA\|^2)\|\OA\|^2 = 0\\
+    %& \Leftrightarrow &
+    %k^4l^2(4r^2 - l^2 - 4l\OA\cdot\e - 4(\OA\cdot\e)^2)\\
+    %&& + k^3l(-2r^2l + 8r^2\OA\cdot\e - 4\|\OA\|^2(l + 2\OA\cdot\e))\\
+    %&& + k^2(2(2r^2 + l^2)\|\OA\|^2 - 4\|\OA\|^4 + r^2l^2 - 2r^2l\OA\cdot\e + 4l\|\OA\|^2\OA\cdot\e)\\
+    %&& + k2(-r^2\|\OA\|^2 + \|\OA\|^4 + r^2l\OA\cdot\e)\\
+    %&& + (r^2 - \|\OA\|^2)\|\OA\|^2 = 0
+\end{array}
+\right.
+$$
+
+
+\newpage
+\section{Toroidal}
 
 \end{document}
 

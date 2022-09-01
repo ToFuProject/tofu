@@ -14,6 +14,7 @@ import datastock as ds
 from . import _class7_Camera
 from . import _class8_check as _check
 from . import _class8_compute as _compute
+from . import _class8_etendue_los as _etendue_los
 from . import _class8_plot as _plot
 
 
@@ -133,7 +134,7 @@ class Diagnostic(_class7_Camera.Camera):
         If store = 'analytical' or 'numerical', overwrites the diag etendue
 
         """
-        _compute._diag_compute_etendue_los(
+        _etendue_los._diag_compute_etendue_los(
             coll=self,
             key=key,
             analytical=analytical,
