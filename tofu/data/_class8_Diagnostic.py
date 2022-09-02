@@ -134,7 +134,7 @@ class Diagnostic(_class7_Camera.Camera):
         If store = 'analytical' or 'numerical', overwrites the diag etendue
 
         """
-        _etendue_los._diag_compute_etendue_los(
+        _etendue_los.compute_etendue_los(
             coll=self,
             key=key,
             analytical=analytical,
@@ -155,6 +155,10 @@ class Diagnostic(_class7_Camera.Camera):
     # ---------------
     # utilities
     # ---------------
+
+    def get_diagnostic_optics(self, key=None):
+        """ Get list of optics and list of corresponding classes """
+        return _check._get_optics(coll=self, key=key)
 
     def get_optics_outline(
         self,

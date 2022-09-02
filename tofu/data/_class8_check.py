@@ -229,6 +229,49 @@ def get_ref(coll=None, key=None):
     return coll.dobj['camera'][cam]['dgeom']['ref']
 
 
+
+# ##################################################################
+# ##################################################################
+#                       get optics
+# ##################################################################
+
+
+def _get_optics(coll=None, key=None):
+
+    # ---------
+    # check key
+
+    lok = list(coll.dobj.get('diagnostic', {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    # -----------
+    # return
+
+    optics = coll.dobj['diagnostic']['key']['optics']
+
+    lcls = ['camera', 'aperture', 'filter', 'crystal', 'grating']
+    loptics_cls = []
+    for ii, oo in enumerate(optics):
+
+        lc = [cc for cc in lcls if oo in coll.dobj.get(cc, {}).keys()]
+        if len(lc) == 1:
+            loptics_cls.append(lc[0])
+
+        else:
+            msg = f"Diagnostic {key}:"
+            if len(lc) == 0:
+                msg = f"{msg} no matching class for optics {oo}"
+            else:
+                msg = f"{msg} multiple matching classes for optics {oo}: {lc}"
+            raise Exception(msg)
+
+    return optics, optics_cls
+
+
 # ##################################################################
 # ##################################################################
 #                           set color

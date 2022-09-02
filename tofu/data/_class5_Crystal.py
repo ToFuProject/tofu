@@ -111,6 +111,10 @@ class Crystal(_class4_Filter.Filter):
             key=key,
         )
 
+    # --------------------
+    # Utilities
+    # ---------------------
+
     def get_crystal_bragglamb(
         self,
         key=None,
@@ -134,6 +138,18 @@ class Crystal(_class4_Filter.Filter):
             lamb=lamb,
             bragg=bragg,
         )
+
+    # --------------------
+    # Reflections
+    # ---------------------
+
+    def get_optics_reflect_pts2pt(self, key=None):
+        """ Return a dict of formatted """
+        return _reflections._get_pts2pt(coll=self, key=key)
+
+    # --------------------
+    # ideal configurations
+    # ---------------------
 
     def get_crystal_ideal_configuration(
         self,
