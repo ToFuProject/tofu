@@ -251,15 +251,14 @@ def _get_optics(coll=None, key=None):
     # -----------
     # return
 
-    optics = coll.dobj['diagnostic']['key']['optics']
-
+    optics = coll.dobj['diagnostic'][key]['optics']
     lcls = ['camera', 'aperture', 'filter', 'crystal', 'grating']
-    loptics_cls = []
+    optics_cls = []
     for ii, oo in enumerate(optics):
 
         lc = [cc for cc in lcls if oo in coll.dobj.get(cc, {}).keys()]
         if len(lc) == 1:
-            loptics_cls.append(lc[0])
+            optics_cls.append(lc[0])
 
         else:
             msg = f"Diagnostic {key}:"

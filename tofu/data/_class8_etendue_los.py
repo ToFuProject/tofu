@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 
 import copy
@@ -83,32 +84,48 @@ def compute_etendue_los(
 
     # prepare optics
     key_cam = optics[0]
+    nd = len(ldet)
 
     # ------------------------------------
     # compute equivalent optics if spectro
 
-    if len(ispectro) > 0:
+    if len(ispectro) > 0 and len(optics[ispectro[0]+1:]) > 0:
+
+        c0 = (
+            len(ispectro) == 1
+            or (
+                len(ispectro) == 2
+                and len(optics[ispectro[1]+1:]) == 0
+            )
+
+        )
 
         # apertures afetr crystal => reflection
-        if len(ispectro) == 1 and len(optics[ispectro[0]+1:]) > 0:
+        if c0:
 
             lop_pre = optics[1:ispectro[0]+1]
+            lop_pre_cls = optics_cls[1:ispectro[0]+1]
             lop_post = optics[ispectro[0]+1:]
+            lop_post_cls = optics_cls[ispectro[0]+1:]
             iop_ref = ispectro[0]
 
-            spectro_key = optics[ispectro[0]]
-            spectro_cls = optics_cls[ispectro[0]]
-            dg = coll.dobj[spectro_cls][spectro_key]['dgeom']
+            spec_key = optics[ispectro[0]]
+            spec_cls = optics_cls[ispectro[0]]
+            dg = coll.dobj[spec_cls][spec_key]['dgeom']
             spectro_planar = dg['type'] == 'planar'
-            reflect_func = coll.get_optics_reflect_pts2pt
+            reflect_func = coll.get_optics_reflect_pts2pt(spec_key)
 
-        elif len(lspectro) > 1:
+        else:
             raise NotImplementedError()
 
     else:
         lop_pre = optics[1:]
-        lpp_post = []
+        lop_pre_cls = optics_cls[1:]
+        lop_post = []
+        lop_post_cls = []
         iop_ref = 1
+
+        spectro_planar, reflect_func = None, None
 
     cref = optics_cls[iop_ref]
     kref = optics[iop_ref]
@@ -117,8 +134,6 @@ def compute_etendue_los(
     plane_nin = coll.dobj[cref][kref]['dgeom']['nin']
     plane_e0 = coll.dobj[cref][kref]['dgeom']['e0']
     plane_e1 = coll.dobj[cref][kref]['dgeom']['e1']
-
-    # spectro
 
     # ------------------------
     # loop on pixels to get:
@@ -131,13 +146,16 @@ def compute_etendue_los(
         los_x, los_y, los_z,
         cos_los_det, cos_los_ap, solid_angles, res, pix_ap,
     ) = _loop_on_pix(
+        coll=coll,
         ldet=ldet,
         lop_pre=lop_pre,
+        lop_pre_cls=lop_pre_cls,
         spectro_planar=spectro_planar,
         reflect_func=reflect_func,
         lop_post=lop_post,
+        lop_post_cls=lop_post_cls,
         plane_pt=plane_pt,
-        plane_nin=plane_ni,
+        plane_nin=plane_nin,
         plane_e0=plane_e0,
         plane_e1=plane_e1,
     )
@@ -206,7 +224,7 @@ def compute_etendue_los(
         etend1 = etend1.reshape(tuple(np.r_[res.size, shape0]))
 
     # los
-    if los_x.shape != sh0:
+    if los_x.shape != shape0:
         los_x = los_x.reshape(shape0)
         los_y = los_y.reshape(shape0)
         los_z = los_z.reshape(shape0)
@@ -232,7 +250,7 @@ def compute_etendue_los(
         ref = coll.dobj['camera'][key_cam]['dgeom']['ref']
 
         # data
-        etendue = detend[store][-1, :]
+        etendue = dout[store][-1, :]
 
         if store == 'analytical':
             etend_type = store
@@ -267,31 +285,31 @@ def compute_etendue_los(
             param='etend_type',
             value=etend_type,
         )
-        coll.set_param(
-            which='diagnostic',
-            key=key,
-            param='los',
-            value=klos,
-        )
+        # coll.set_param(
+            # which='diagnostic',
+            # key=key,
+            # param='los',
+            # value=klos,
+        # )
 
         # add los
         cx, cy, cz = coll.get_camera_cents_xyz(key=key_cam)
 
-        coll.add_rays(
-            key=klos,
-            start_x=cx,
-            start_y=cy,
-            start_z=cz,
-            vect_x=detend['los_x'],
-            vect_y=detend['los_y'],
-            vect_z=detend['los_z'],
-            ref=ref,
-            diag=key,
-            config=config,
-            length=length,
-            reflections_nb=reflections_nb,
-            reflections_type=reflections_type,
-        )
+        # coll.add_rays(
+            # key=klos,
+            # start_x=cx,
+            # start_y=cy,
+            # start_z=cz,
+            # vect_x=dout['los_x'],
+            # vect_y=dout['los_y'],
+            # vect_z=dout['los_z'],
+            # ref=ref,
+            # diag=None,
+            # config=config,
+            # length=length,
+            # reflections_nb=reflections_nb,
+            # reflections_type=reflections_type,
+        # )
 
     return dout
 
@@ -340,10 +358,16 @@ def _diag_compute_etendue_check(
 
     dgeom = coll.dobj['camera'][optics[0]]['dgeom']
     cx, cy, cz = coll.get_camera_cents_xyz(key=optics[0])
-    dvects = coll.get_camera_unit_vectors(key=optics[0])
-    shape0 = c0.shape
+    dvect = coll.get_camera_unit_vectors(key=optics[0])
+    outline = dgeom['outline']
+    out0 = coll.ddata[outline[0]]['data']
+    out1 = coll.ddata[outline[1]]['data']
+    is2d = dgeom['type'] == '2d'
+    par = dgeom['parallel']
+    shape0 = cx.shape
 
-    if dgeom['type'] == '2d':
+
+    if is2d:
         cx = cx.ravel()
         cy = cy.ravel()
         cz = cz.ravel()
@@ -354,17 +378,17 @@ def _diag_compute_etendue_check(
             'cents_x': cx[ii],
             'cents_y': cy[ii],
             'cents_z': cz[ii],
-            'outline_x0': dgeom['outline_x0'],
-            'outline_x1': dgeom['outline_x1'],
-            'nin_x': dvect['nin_x'] if is2d else dvect['nin_x'][ii],
-            'nin_y': dvect['nin_y'] if is2d else dvect['nin_y'][ii],
-            'nin_z': dvect['nin_z'] if is2d else dvect['nin_z'][ii],
-            'e0_x': dvect['e0_x'] if is2d else dvect['e0_x'][ii],
-            'e0_y': dvect['e0_y'] if is2d else dvect['e0_y'][ii],
-            'e0_z': dvect['e0_z'] if is2d else dvect['e0_z'][ii],
-            'e1_x': dvect['e1_x'] if is2d else dvect['e1_x'][ii],
-            'e1_y': dvect['e1_y'] if is2d else dvect['e1_y'][ii],
-            'e1_z': dvect['e1_z'] if is2d else dvect['e1_z'][ii],
+            'outline_x0': out0,
+            'outline_x1': out1,
+            'nin_x': dvect['nin_x'] if par else dvect['nin_x'][ii],
+            'nin_y': dvect['nin_y'] if par else dvect['nin_y'][ii],
+            'nin_z': dvect['nin_z'] if par else dvect['nin_z'][ii],
+            'e0_x': dvect['e0_x'] if par else dvect['e0_x'][ii],
+            'e0_y': dvect['e0_y'] if par else dvect['e0_y'][ii],
+            'e0_z': dvect['e0_z'] if par else dvect['e0_z'][ii],
+            'e1_x': dvect['e1_x'] if par else dvect['e1_x'][ii],
+            'e1_y': dvect['e1_y'] if par else dvect['e1_y'][ii],
+            'e1_z': dvect['e1_z'] if par else dvect['e1_z'][ii],
         }
         for ii in range(nd)
     ]
@@ -501,25 +525,30 @@ def _diag_spectro_equivalent_apertures(
 
 
 def _loop_on_pix(
+    coll=None,
     # detectors
     ldet=None,
     # optics before spectro
     lop_pre=None,
+    lop_pre_cls=None,
     # spectro optics
     spectro_planar=None,
     reflect_func=None,
     # optics after spectro
     lop_post=None,
+    lop_post_cls=None,
     # projection plane
     plane_pt=None,
     plane_nin=None,
     plane_e0= None,
     plane_e1=None,
+    # extra
+    res=None,
 ):
 
     # apertures before a cryst / grating
-    nap_pre = len(lpoly_pre)
-    nap_post = len(lpoly_post)
+    nap_pre = len(lop_pre)
+    nap_post = len(lop_post)
     nd = len(ldet)
 
     ap01 = np.r_[np.nan, np.nan]
@@ -528,12 +557,18 @@ def _loop_on_pix(
     # -------------------------
     # intersection of apertures
 
-    lpoly_pre = [coll.dobj[k0[0]][k0[1]]['dgeom']['poly'] for k0 in lop_pre]
+    lpoly_pre = [
+        coll.dobj[c0][k0]['dgeom']['poly']
+        for c0, k0 in zip(lop_pre_cls, lop_pre)
+    ]
     lpoly_pre_x = [coll.ddata[pp[0]]['data'] for pp in lpoly_pre]
     lpoly_pre_y = [coll.ddata[pp[1]]['data'] for pp in lpoly_pre]
     lpoly_pre_z = [coll.ddata[pp[2]]['data'] for pp in lpoly_pre]
 
-    lpoly_post = [coll.dobj[k0[0]][k0[1]]['dgeom']['poly'] for k0 in lop_post]
+    lpoly_post = [
+        coll.dobj[c0][k0]['dgeom']['poly']
+        for c0, k0 in zip(lop_post_cls, lop_post)
+    ]
     lpoly_post_x = [coll.ddata[pp[0]]['data'] for pp in lpoly_post]
     lpoly_post_y = [coll.ddata[pp[1]]['data'] for pp in lpoly_post]
     lpoly_post_z = [coll.ddata[pp[2]]['data'] for pp in lpoly_post]
@@ -563,9 +598,9 @@ def _loop_on_pix(
 
             # ap
             p0, p1 = _project_poly_on_plane_from_pt(
-                pt_x=ldeti[ii]['cents_x'],
-                pt_y=ldeti[ii]['cents_y'],
-                pt_z=ldeti[ii]['cents_z'],
+                pt_x=ldet[ii]['cents_x'],
+                pt_y=ldet[ii]['cents_y'],
+                pt_z=ldet[ii]['cents_z'],
                 poly_x=lpoly_pre_x[jj],
                 poly_y=lpoly_pre_y[jj],
                 poly_z=lpoly_pre_z[jj],
@@ -576,9 +611,9 @@ def _loop_on_pix(
             )
 
             if p_a is None:
-                p_a = plg.Polygon((p0, p1))
+                p_a = plg.Polygon(np.array([p0, p1]).T)
             else:
-                p_a = p_a & plg.Polygon((p0, p1))
+                p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
                 if p_a.nPoints() < 3:
                     p_a = None
                     isok = False
@@ -591,9 +626,9 @@ def _loop_on_pix(
                 # get reflected aperture
                 if spectro_planar is True:
                     p0, p1 = reflect_func(
-                        pt_x=ldeti[ii]['cents_x'],
-                        pt_y=ldeti[ii]['cents_y'],
-                        pt_z=ldeti[ii]['cents_z'],
+                        pt_x=ldet[ii]['cents_x'],
+                        pt_y=ldet[ii]['cents_y'],
+                        pt_z=ldet[ii]['cents_z'],
                         # poly
                         pts_x=lpoly_post_x[jj],
                         pts_y=lpoly_post_y[jj],
@@ -603,10 +638,10 @@ def _loop_on_pix(
                     )
 
                 else:
-                    px, py, px = reflect_func(
-                        pt_x=ldeti[ii]['cents_x'],
-                        pt_y=ldeti[ii]['cents_y'],
-                        pt_z=ldeti[ii]['cents_z'],
+                    px, py, pz = reflect_func(
+                        pt_x=ldet[ii]['cents_x'],
+                        pt_y=ldet[ii]['cents_y'],
+                        pt_z=ldet[ii]['cents_z'],
                         # poly
                         pts_x=lpoly_post_x[jj],
                         pts_y=lpoly_post_y[jj],
@@ -617,9 +652,9 @@ def _loop_on_pix(
 
                     # ap
                     p0, p1 = _project_poly_on_plane_from_pt(
-                        pt_x=ldeti[ii]['cents_x'],
-                        pt_y=ldeti[ii]['cents_y'],
-                        pt_z=ldeti[ii]['cents_z'],
+                        pt_x=ldet[ii]['cents_x'],
+                        pt_y=ldet[ii]['cents_y'],
+                        pt_z=ldet[ii]['cents_z'],
                         poly_x=px,
                         poly_y=py,
                         poly_z=pz,
@@ -629,10 +664,14 @@ def _loop_on_pix(
                         plane_e1=plane_e1,
                     )
 
+                    if lop_post[0] == 'cryst2-pinhole':
+                        import pdb; pdb.set_trace()     # DB
+                        pass
+
                 if p_a is None:
-                    p_a = plg.Polygon((p0, p1))
+                    p_a = plg.Polygon(np.array([p0, p1]).T)
                 else:
-                    p_a = p_a & plg.Polygon((p0, p1))
+                    p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
                     if p_a.nPoints() < 3:
                         p_a = None
                         isok = False
@@ -652,16 +691,16 @@ def _loop_on_pix(
 
             # ap_cent
             ap01[:] = p_a.center()
-            ap_cent[:] = plane_cent + ap01[0] * plane_e0 + ap01[1] * plane_e1
+            ap_cent[:] = plane_pt + ap01[0] * plane_e0 + ap01[1] * plane_e1
 
             mindiff[ii] = np.sqrt(np.min(np.diff(p0)**2 + np.diff(p1)**2))
 
             # ----------------------------------
             # los, distances, cosines
 
-            los_x[ii] = ap_cent[0] - ldeti[ii]['cents_x']
-            los_y[ii] = ap_cent[1] - ldeti[ii]['cents_y']
-            los_z[ii] = ap_cent[2] - ldeti[ii]['cents_z']
+            los_x[ii] = ap_cent[0] - ldet[ii]['cents_x']
+            los_y[ii] = ap_cent[1] - ldet[ii]['cents_y']
+            los_z[ii] = ap_cent[2] - ldet[ii]['cents_z']
 
             # ------------
             # solid angles
@@ -679,12 +718,17 @@ def _loop_on_pix(
                 # parameters
                 visibility=False,
                 return_vector=False,
-            )[0]
+            )[0, 0]
 
-            import pdb; pdb.set_trace()     # DB
+            # 2d polygon
+            p0, p1 = np.array(p_a.contour(0)).T
 
             # equivalent ap as seen from pixel
-            pix_ap.append((px, py, pz))
+            pix_ap.append((
+                plane_pt[0] + p0*plane_e0[0] + p1*plane_e1[0],
+                plane_pt[1] + p0*plane_e0[1] + p1*plane_e1[1],
+                plane_pt[2] + p0*plane_e0[2] + p1*plane_e1[2],
+            ))
 
     # -------------
     # normalize los
@@ -700,12 +744,13 @@ def _loop_on_pix(
 
     for ii in range(nd):
         cos_los_det[ii] = (
-            los_x[ii] * ldeti[ii]['nin_x']
-            + los_y[ii] * ldeti[ii]['nin_y']
-            + los_z[ii] * ldeti[ii]['nin_z']
+            los_x[ii] * ldet[ii]['nin_x']
+            + los_y[ii] * ldet[ii]['nin_y']
+            + los_z[ii] * ldet[ii]['nin_z']
         )
 
-    cos_los_ap = (
+    # abs() because for spectro nin is the other way around
+    cos_los_ap = np.abs(
         los_x * plane_nin[0]
         + los_y * plane_nin[1]
         + los_z * plane_nin[2]
@@ -715,24 +760,24 @@ def _loop_on_pix(
     # surfaces
 
     # det
-    if ldeti[0].get('pix_area') is None:
+    if ldet[0].get('pix_area') is None:
         det_area = plg.Polygon(np.array([
-            ldeti[0]['outline_x0'],
-            ldeti[0]['outline_x1'],
+            ldet[0]['outline_x0'],
+            ldet[0]['outline_x1'],
         ]).T).area()
     else:
-        det_area = ldeti[0]['pix_area']
+        det_area = ldet[0]['pix_area']
 
     # -------------------------------------
     # det outline discretization resolution
 
     if res is None:
 
-        res = min(
-            np.sqrt(det_area),
-            np.sqrt(np.min(ap_area[ap_area > 0.])),
-            np.nanmin(mindiff),
-        ) * np.r_[1., 0.5, 0.1]
+        res = min(np.sqrt(det_area), np.nanmin(mindiff))
+        if np.any(ap_area > 0.):
+            res = min(res, np.sqrt(np.min(ap_area[ap_area > 0.])))
+
+        res = res * np.r_[1., 0.5, 0.1]
 
     iok = np.isfinite(res)
     iok[iok] = res[iok] > 0

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 This module contains tests for tofu.geom in its structured version
 """
@@ -486,6 +487,7 @@ class Test01_Diagnostic():
 
         # add diagnostics
         for k0, v0 in ddiag.items():
+            print(k0)
             self.obj.add_diagnostic(
                 key=k0,
                 config=conf,
@@ -515,19 +517,22 @@ class Test01_Diagnostic():
                     key_cam=f'{k0}-cam{ii}',
                     aperture_dimensions=[8e-2, 100e-6],
                     pinhole_radius=500e-6,
-                    cam_pixels_nb=[487, 195],
+                    cam_pixels_nb=[5, 3],
                     # returnas
                     returnas=list,
                 )
 
                 # add diag
-                self.obj.add_diagnostic(
-                    optics=loptics,
-                    config=conf,
-                )
+                gtype = self.obj.dobj['crystal'][k0]['dgeom']['type']
+                if gtype in ['planar', 'spherical']:
+                    print(k0, 'spectro')
+                    self.obj.add_diagnostic(
+                        optics=loptics,
+                        config=conf,
+                    )
 
         # add toroidal
-        self.obj.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
+        # self.obj.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
 
     # ----------
     # tests

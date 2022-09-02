@@ -232,7 +232,7 @@ def _check_inputs(
     # diag
 
     if diag is not None:
-        lok = list(coll.dobj.get('diag', {}))
+        lok = list(coll.dobj.get('diag', {}).keys())
         diag = ds._generic_check._check_var(
             diag, 'diag',
             types=str,

@@ -15,6 +15,7 @@ from . import _class4_Filter
 from . import _class3_check
 from . import _class5_check as _check
 from . import _class5_compute as _compute
+from . import _class5_reflections_pts2pt as _reflections_pts2pt
 
 
 __all__ = ['Crystal']
@@ -145,7 +146,7 @@ class Crystal(_class4_Filter.Filter):
 
     def get_optics_reflect_pts2pt(self, key=None):
         """ Return a dict of formatted """
-        return _reflections._get_pts2pt(coll=self, key=key)
+        return _reflections_pts2pt._get_pts2pt(coll=self, key=key)
 
     # --------------------
     # ideal configurations

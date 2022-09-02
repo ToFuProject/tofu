@@ -172,12 +172,20 @@ def _plot_diagnostic(
     cam = coll.dobj['diagnostic'][key]['optics'][0]
     camref = coll.dobj['camera'][cam]['dgeom']['ref']
     is2d = coll.dobj['camera'][cam]['dgeom']['type'] == '2d'
+    if is2d:
+        refx, refy = camref
+    else:
+        refx = camref[0]
 
     # -------------------------
     # prepare los interactivity
 
-    coll2 = None
     los = coll.dobj['diagnostic'][key]['los']
+
+    coll2 = coll.__class__()
+    for rr in camref:
+        coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
+
     if los is not None:
         los_x, los_y, los_z = coll.sample_rays(
             key=los,
@@ -186,36 +194,27 @@ def _plot_diagnostic(
         )
         los_r = np.hypot(los_x, los_y)
         reflos = coll.dobj['rays'][los]['ref']
+        ref_los = (reflos[1:], reflos[1:])
 
-        coll2 = coll.__class__()
         coll2.add_ref(key=reflos[0], size=los_x.shape[0])
+        coll2.add_data(key='los_x', data=los_x, ref=reflos)
+        coll2.add_data(key='los_y', data=los_y, ref=reflos)
+        coll2.add_data(key='los_z', data=los_z, ref=reflos)
+        coll2.add_data(key='los_r', data=los_r, ref=reflos)
+
+    if data is not None:
         if is2d:
-            refx, refy = reflos[1:]
             keyx, keyy = coll.dobj['camera'][cam]['dgeom']['cents']
 
             datax = coll.ddata[keyx]['data']
             datay = coll.ddata[keyy]['data']
 
-            coll2.add_ref(key=refx, size=los_x.shape[1])
-            coll2.add_ref(key=refy, size=los_x.shape[2])
-
             coll2.add_data(key=keyx, data=datax, ref=refx)
             coll2.add_data(key=keyy, data=datay, ref=refy)
-
-            ref_los = ((refx, refy), (refx, refy))
         else:
-            refx = reflos[1]
             keyx = 'i0'
             datax = np.arange(0, coll.dref[refx]['size'])
-            coll2.add_ref(key=refx, size=los_x.shape[1])
             coll2.add_data(key=keyx, data=datax, ref=refx)
-
-            ref_los = ((refx,), (refx,))
-
-        coll2.add_data(key='los_x', data=los_x, ref=reflos)
-        coll2.add_data(key='los_y', data=los_y, ref=reflos)
-        coll2.add_data(key='los_z', data=los_z, ref=reflos)
-        coll2.add_data(key='los_r', data=los_r, ref=reflos)
 
     # -------------------------
     # prepare data interactivity
@@ -543,7 +542,7 @@ def _plot_diagnostic(
     # -------
     # connect
 
-    if coll2 is not None:
+    if coll2.dobj.get('mobile') is not None:
         # add axes
         for ii, kax in enumerate(dax.keys()):
             harmonize = ii == len(dax.keys()) - 1
