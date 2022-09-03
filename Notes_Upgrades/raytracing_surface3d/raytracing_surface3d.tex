@@ -40,6 +40,7 @@
 \DeclareMathOperator{\OEz}{\|\ud{OE} \cross \z\|}
 \DeclareMathOperator{\OEn}{\|\ud{OE}\|}
 \DeclareMathOperator{\c1}{(l^2 + 2l\OA\cdot\e)}
+\DeclareMathOperator{\ez}{\e \cross \z}
 
 
 % \DeclareMathOperator{\cn}{\mathbf{c}}
@@ -382,7 +383,7 @@ $$
 \begin{array}{ll}
     \en(k)
     & = - \frac{1}{\OEz}\left[ \e \cdot ((\ud{OE}\cross\z) \cross \z)\right]\\
-    & = - \frac{1}{\OEz}\left[ \z \cdot (\e \cross (\ud{OE}\cross\z))\right]\\
+    & = \frac{1}{\OEz}\left[ (\ud{OE}\cross\z) \cdot (\ez)\right]\\
 \end{array}
 $$
 
@@ -400,22 +401,22 @@ $$
     (2k-1)(r - \OEz) + 2k(1-k)l\en = 0\\
     & \Leftrightarrow
     (2k-1)(r - \OEz)\OEz
-    - 2k(1-k)l\left[ \z \cdot (\e \cross (\ud{OE}\cross\z))\right] = 0\\
+    + 2k(1-k)l\left[ (\ud{OE}\cross\z) \cdot (\ez))\right] = 0\\
     & \Leftrightarrow
     (2k-1)r\OEz - (2k-1)\OEz^2
-    - 2k(1-k)l\left[ (\ud{OE}\cross\z) \cdot (\z \cross \e)\right] = 0\\
+    + 2k(1-k)l\left[ (\ud{OE}\cross\z) \cdot (\ez)\right] = 0\\
 \end{array}
 $$
 
 Observing that:
 $$
-\ud{OE}\cross\z = \OA \cross \z + kl \e \cross \z
+\ud{OE}\cross\z = \OA \cross \z + kl \ez
 $$
 
 And:
 $$
-\OEz^2 = \|\OA\cross\z + kl\e\cross\z\|^2
-= (\OA\cross\z)^2 + 2kl(\OA\cross\z)\cdot(\e\cross\z) + k^2l^2(\e\cross\z)^2
+\OEz^2 = \|\OA\cross\z + kl\ez\|^2
+= (\OA\cross\z)^2 + 2kl(\OA\cross\z)\cdot(\ez) + k^2l^2(\ez)^2
 $$
 
 So 
@@ -425,23 +426,75 @@ $$
     & \Leftrightarrow &
     (2k-1)r\OEz
     - (2k-1)(\OA\cross\z)^2
-    - (2k-1)2kl(\OA\cross\z)\cdot(\e\cross\z)
-    - (2k-1)k^2l^2(\e\cross\z)^2\\
-    &&- 2k(1-k)l(\ud{OA}\cross\z) \cdot (\z \cross \e) 
-    - 2k^2(1-k)l^2(\e\cross\z) \cdot (\z \cross \e) & = 0\\
+    - (2k-1)2kl(\OA\cross\z)\cdot(\ez)
+    - (2k-1)k^2l^2(\ez)^2\\
+    && + 2k(1-k)l(\ud{OA}\cross\z) \cdot (\ez) 
+    + 2k^2(1-k)l^2(\ez) \cdot (\ez) & = 0\\
+    
     & \Leftrightarrow &
     (2k-1)r\OEz
     - (2k-1)(\OA\cross\z)^2
-    + 2kl(\OA\cross\z)\cdot(\e\cross\z)(1 - k - 2k + 1)
-    + k^2l^2(\e\cross\z)^2(2 - 2k - 2k + 1) & = 0\\
+    + 2kl(\OA\cross\z)\cdot(\ez)(1 - k - 2k + 1)
+    + k^2l^2(\ez)^2(2 - 2k - 2k + 1) & = 0\\
+    
     & \Leftrightarrow &
     (2k-1)r\OEz
     - (2k-1)(\OA\cross\z)^2
-    + 2kl(\OA\cross\z)\cdot(\e\cross\z)(2 - 3k)
-    + k^2l^2(\e\cross\z)^2(3 - 4k) & = 0\\
+    + 2kl(\OA\cross\z)\cdot(\ez)(2 - 3k)
+    + k^2l^2(\ez)^2(3 - 4k) & = 0\\
+    
+    & \Leftrightarrow &
+    (2k-1)r\OEz = (2k-1)(\OA\cross\z)^2
+    - 2kl(\OA\cross\z)\cdot(\ez)(2 - 3k)
+    - k^2l^2(\ez)^2(3 - 4k)\\
+    
+    & \Leftrightarrow &
+    (2k-1)^2r^2(\OA\cross\z)^2 + (2k-1)^2r^22kl(\OA\cross\z)\cdot(\ez)
+    + (2k-1)^2r^2k^2l^2(\ez)^2\\
+    && = \left[
+        (2k-1)(\OA\cross\z)^2
+        - 2kl(\OA\cross\z)\cdot(\ez)(2 - 3k)
+        - k^2l^2(\ez)^2(3 - 4k)
+        \right]^2\\
+    
+    & \Leftrightarrow &
+    (2k-1)^2r^2(\OA\cross\z)^2 + (2k-1)^2r^22kl(\OA\cross\z)\cdot(\ez)
+    + (2k-1)^2r^2k^2l^2(\ez)^2\\
+    && = (2k-1)^2(\OA\cross\z)^4
+    - 2(2k-1)(\OA\cross\z)^22kl(\OA\cross\z)\cdot(\ez)(2 - 3k)
+    - 2(2k-1)(\OA\cross\z)^2k^2l^2(\ez)^2(3 - 4k)\\
+    && + 4k^2l^2\left((\OA\cross\z)\cdot(\ez)\right)^2(2 - 3k)^2
+    + k^4l^4(\ez)^4(3 - 4k)^2
+    + 4kl(\OA\cross\z)\cdot(\ez)(2 - 3k)k^2l^2(\ez)^2(3 - 4k)\\
+    
+    & \Leftrightarrow &
+    (2k-1)^2A + k(2k-1)^2B + k^2(2k-1)^2\\
+    && = - k(2k-1)(2 - 3k)D - k^2(2k-1)(3 - 4k)E + k^2(2 - 3k)^2F
+    + k^4(3 - 4k)^2G + k^3(2 - 3k)(3 - 4k)H\\
+
+    & \Leftrightarrow &
+    (2k-1)^2A + k(2k-1)^2B + k^2(2k-1)^2C\\
+    && = - k(2k-1)(2 - 3k)D - k^2(2k-1)(3 - 4k)E + k^2(2 - 3k)^2F
+    + k^4(3 - 4k)^2G + k^3(2 - 3k)(3 - 4k)H\\
 \end{array}
 $$
 
+Where:
+
+$$
+\left\{
+\begin{array}{llll}
+    A = (r^2 - (\OA\cross\z)^2)(\OA\cross\z)^2\\
+    B = 2r^2l(\OA\cross\z)\cdot(\ez)\\
+    C = r^2l^2(\ez)^2\\
+    D = 4l(\OA\cross\z)^2(\OA\cross\z)\cdot(\ez)\\
+    E = 2l^2(\OA\cross\z)^2(\ez)^2\\
+    F = 4l^2\left((\OA\cross\z)\cdot(\ez)\right)^2\\
+    G = l^4(\ez)^4\\
+    H = 4l^3(\OA\cross\z)\cdot(\ez)(\ez)^2
+\end{array}
+\right.
+$$
 
 \newpage
 \section{Sphere}
