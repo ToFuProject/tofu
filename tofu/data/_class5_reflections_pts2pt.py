@@ -10,6 +10,7 @@ import datastock as ds
 #           Finding reflection points
 # ##############################################################
 
+
 def _get_pts2pt(
     coll=None,
     key=None,
@@ -246,10 +247,10 @@ def _get_pts2pt(
             C3 = 2 * ll * OA2 * (ll + 2*OAe)
             C4 = ll**2 * (ll + 2.*OAe)**2
 
-            A = 4*C1 - C4
-            B = -2*C1 + 4*C2 - 2*C3
-            C = 4*C0 + C1 - 2*C2 + C3
-            D = -2*C0 + C2
+            A = 4.*C1 - C4
+            B = -4.*C1 + 4*C2 - 2*C3
+            C = 4.*C0 + C1 - 4.*C2 + C3
+            D = -4.*C0 + C2
             E = C0
 
             # nout dtheta, phi
@@ -297,24 +298,6 @@ def _get_pts2pt(
                         (nox*e0[0] + noy*e0[1] + noz*e0[2]) / np.cos(dthi)
                     )
 
-                    _debug_spherical(
-                        pt_x=pt_x,
-                        pt_y=pt_y,
-                        pt_z=pt_z,
-                        pts_x=pts_x[ii],
-                        pts_y=pts_y[ii],
-                        pts_z=pts_z[ii],
-                        rr=kk,
-                        O=O,
-                        rc=rc,
-                        ABx=ABx[ii],
-                        ABy=ABy[ii],
-                        ABz=ABz[ii],
-                        nin=nin,
-                        e0=e0,
-                        e1=e1,
-                    )
-                    import pdb; pdb.set_trace()     # DB
                     ind = (
                         (np.abs(dthi) <= dthetamax)
                         & (np.abs(phii) <= phimax)

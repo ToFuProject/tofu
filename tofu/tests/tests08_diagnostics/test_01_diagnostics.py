@@ -517,7 +517,7 @@ class Test01_Diagnostic():
                     key_cam=f'{k0}-cam{ii}',
                     aperture_dimensions=[8e-2, 100e-6],
                     pinhole_radius=500e-6,
-                    cam_pixels_nb=[5, 3],
+                    cam_pixels_nb=[30, 3],
                     # returnas
                     returnas=list,
                 )
