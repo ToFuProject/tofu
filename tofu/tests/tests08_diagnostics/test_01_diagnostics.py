@@ -517,14 +517,14 @@ class Test01_Diagnostic():
                     key_cam=f'{k0}-cam{ii}',
                     aperture_dimensions=[8e-2, 100e-6],
                     pinhole_radius=500e-6,
-                    cam_pixels_nb=[30, 3],
+                    cam_pixels_nb=[3, 5],
                     # returnas
                     returnas=list,
                 )
 
                 # add diag
                 gtype = self.obj.dobj['crystal'][k0]['dgeom']['type']
-                if gtype in ['planar', 'spherical']:
+                if gtype not in ['toroidal']:
                     print(k0, 'spectro')
                     self.obj.add_diagnostic(
                         optics=loptics,

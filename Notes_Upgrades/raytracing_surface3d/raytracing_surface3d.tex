@@ -41,6 +41,10 @@
 \DeclareMathOperator{\OEn}{\|\ud{OE}\|}
 \DeclareMathOperator{\c1}{(l^2 + 2l\OA\cdot\e)}
 \DeclareMathOperator{\ez}{\e \cross \z}
+\DeclareMathOperator{\ra}{r_{a}}
+\DeclareMathOperator{\ea}{\ud{e}_{a}}
+\DeclareMathOperator{\rb}{r_{b}}
+\DeclareMathOperator{\OEa}{\|\ud{OE} \cross \ra\ea\|}
 
 
 % \DeclareMathOperator{\cn}{\mathbf{c}}
@@ -468,14 +472,27 @@ $$
     + 4kl(\OA\cross\z)\cdot(\ez)(2 - 3k)k^2l^2(\ez)^2(3 - 4k)\\
     
     & \Leftrightarrow &
-    (2k-1)^2A + k(2k-1)^2B + k^2(2k-1)^2\\
-    && = - k(2k-1)(2 - 3k)D - k^2(2k-1)(3 - 4k)E + k^2(2 - 3k)^2F
-    + k^4(3 - 4k)^2G + k^3(2 - 3k)(3 - 4k)H\\
-
-    & \Leftrightarrow &
     (2k-1)^2A + k(2k-1)^2B + k^2(2k-1)^2C\\
     && = - k(2k-1)(2 - 3k)D - k^2(2k-1)(3 - 4k)E + k^2(2 - 3k)^2F
     + k^4(3 - 4k)^2G + k^3(2 - 3k)(3 - 4k)H\\
+    
+    & \Leftrightarrow &
+    k^6(-16G)\\
+    && + k^5(-12H + 24G)\\
+    && + k^4(8H + 9H - 9G - 9F - 8E + 4C)\\
+    && + k^3(-6H + 12F + 6E + 4E - 6D - 4C + 4B)\\
+    && + k^2(-4F - 3E + 4D + 3D + C - 4B + 4A)\\
+    && + k(-2D + B -4A)\\
+    && + A = 0\\
+
+    & \Leftrightarrow &
+    k^6(-16G)\\
+    && + k^5(-12H + 24G)\\
+    && + k^4(17H - 9G - 9F - 8E + 4C)\\
+    && + k^3(-6H + 12F + 10E - 6D - 4C + 4B)\\
+    && + k^2(-4F - 3E + 7D + C - 4B + 4A)\\
+    && + k(-2D + B -4A)\\
+    && + A = 0
 \end{array}
 $$
 
@@ -570,7 +587,7 @@ $$
     + k^3\left[ -4C_1 + 4C_2 - 2C_3  \right]
     + k^2\left[ 4C_0 + C_1 - 4C_2  + C_3 \right]
     + k\left[ -4C_0 + C_2 \right]
-    + C_0 = 0
+    + C_0 = 0\\
 \end{array}
 $$
 
@@ -588,8 +605,68 @@ $$
 $$
 
 \newpage
-\section{Toroidal}
+\section{Torus}
+
+Consider a torus of axes $(O, \z)$, with $\z$  unit vector.
+It has major radius $\ra$ and minor radius $\rb$.
+
+For any point $E$ in space, we have:
+
+$$
+    \ea(E) = - \frac{(\ud{OE} \cross  \z) \cross \z}{
+    \|(\ud{OE} \cross  \z) \cross \z\|
+}
+    = - \frac{(\ud{OE} \cross  \z) \cross \z}{\OEz}
+$$
+
+Hence, the  normal vector associated to any point $E$ is:
+
+$$
+\n(E) = - \frac{\ud{OE} - \ra\ea}{\|\ud{OE} - \ra\ea\|}
+$$
+
+Given that $E$ in on the $(A, B)$ line:
+
+$$
+\ud{OE} = \ud{OA} + kl\e
+$$
+
+So:
+
+$$
+(\ud{OE} \cross \z) \cross \z
+= (\ud{OA} \cross \z) \cross \z + kl( \e \cross \z )\cross \z
+$$
+
+Which entails:
+$$
+\begin{array}{ll}
+    \en(k)
+    & = - \frac{1}{\OEa}\left[ \e \cdot \ud{OE} - \ra \e \cdot \ea)\right]\\
+    & = - \frac{1}{\OEa}\left[ \e \cdot \OA + kl - \ra \e \cdot \ea)\right]\\
+    & = - \frac{1}{\OEa}\left[ 
+    \e \cdot \OA + kl
+    + \frac{\ra}{\OEz} \e \cdot \left((\ud{OE} \cross \z) \cross \z\right))
+    \right]\\
+\end{array}
+$$
+
+And:
+
+$$
+d_E = \rb - \|\ud{OE} - \ra\ea\|
+$$
+
+Where:
+$$
+\begin{array}{ll}
+    \|\ud{OE} - \ra\ea\|^2
+    & = \OEn^2 + \ra^2 - 2\ra\ud{OE}\cdot\ea\\
+    & = \|\OA\|^2 + k^2l^2 + 2kl\OA\cdot\e + \ra^2 - 2\ra\ud{OE}\cdot\ea\\
+    & = \|\OA\|^2 + k^2l^2 + 2kl\OA\cdot\e + \ra^2
+    - 2\ra\ud{OA}\cdot\ea - 2kl\ra\e\cdot\ea\\
+\end{array}
+$$
+
 
 \end{document}
-
-
