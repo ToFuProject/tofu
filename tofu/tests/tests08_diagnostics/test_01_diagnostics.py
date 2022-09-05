@@ -524,7 +524,7 @@ class Test01_Diagnostic():
 
                 # add diag
                 gtype = self.obj.dobj['crystal'][k0]['dgeom']['type']
-                if gtype not in ['toroidal']:
+                if gtype not in ['spherical', 'toroidal']:
                     print(k0, 'spectro')
                     self.obj.add_diagnostic(
                         optics=loptics,

@@ -15,6 +15,7 @@ from . import _class7_Camera
 from . import _class8_check as _check
 from . import _class8_compute as _compute
 from . import _class8_etendue_los as _etendue_los
+from . import _class8_los_angles as _los_angles
 from . import _class8_plot as _plot
 
 
@@ -134,23 +135,30 @@ class Diagnostic(_class7_Camera.Camera):
         If store = 'analytical' or 'numerical', overwrites the diag etendue
 
         """
-        _etendue_los.compute_etendue_los(
+        dlos, store = _etendue_los.compute_etendue_los(
             coll=self,
             key=key,
             analytical=analytical,
             numerical=numerical,
             res=res,
             check=check,
-            # los
-            config=config,
-            length=length,
-            reflections_nb=reflections_nb,
-            reflections_type=reflections_type,
             # bool
             verb=verb,
             plot=plot,
             store=store,
         )
+
+        if store is not False and np.any(np.isfinite(dlos['los_x'])):
+            _los_angles.compute_los_angles(
+                coll=self,
+                key=key,
+                # los
+                config=config,
+                length=length,
+                reflections_nb=reflections_nb,
+                reflections_type=reflections_type,
+                **dlos,
+            )
 
     # ---------------
     # utilities

@@ -16,6 +16,7 @@ from . import _class3_check
 from . import _class5_check as _check
 from . import _class5_compute as _compute
 from . import _class5_reflections_pts2pt as _reflections_pts2pt
+from . import _class5_reflections_ptsvect as _reflections_ptsvect
 
 
 __all__ = ['Crystal']

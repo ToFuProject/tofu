@@ -36,7 +36,7 @@ def _get_ptsvect(
 
     if dgeom['type'] == 'planar':
 
-        def pts2pt(
+        def ptsvect(
             pts_x=None,
             pts_y=None,
             pts_z=None,
@@ -49,89 +49,11 @@ def _get_ptsvect(
             nin=dgeom['nin'],
             e0=dgeom['e0'],
             e1=dgeom['e1'],
-            # return
-            return_xyz=None,
-        ):
-            """
-
-            cf. Notes_Upgrades/raytracing_surface3draytracing_surface3d.pdf
-
-            """
-
-            # ------------------------------------------
-            # Get local coordinates of reflection points
-
-            # get parameters for k
-            CA = np.r_[
-                pt_x - cent[0], pt_y - cent[1], pt_z - cent[2],
-            ]
-            CAdotn = np.sum(CA * nin)
-
-            ABx = pts_x - pt_x
-            ABy = pts_y - pt_y
-            ABz = pts_z - pt_z
-
-            length = np.sqrt(ABx**2 + ABy**2 + ABz**2)
-
-            # get k
-            kk = CAdotn / (
-                2*CAdotn + (nin[0] * ABx + nin[1]*ABy + nin[2]*ABz)
-            )
-
-            # get E
-            Ex = pt_x + kk * ABx
-            Ey = pt_y + kk * ABy
-            Ez = pt_z + kk * ABz
-
-            # x0, x1
-            x0 = (
-                (Ex - cent[0])*e0[0]
-                + (Ey - cent[1])*e0[1]
-                + (Ez - cent[2])*e0[2]
-            )
-            x1 = (
-                (Ex - cent[0])*e1[0]
-                + (Ey - cent[1])*e1[1]
-                + (Ez - cent[2])*e1[2]
-            )
-
-            if return_xyz:
-                # get D
-                Dx = cent[0] + x0 * e0[0] + x1*e1[0]
-                Dy = cent[1] + x0 * e0[1] + x1*e1[1]
-                Dz = cent[2] + x0 * e0[2] + x1*e1[2]
-
-                return x0, x1, Dx, Dy, Dz
-            else:
-                return x0, x1
-
-    # ----------------
-    #   Cylindrical
-    # ----------------
-
-    elif dgeom['type'] == 'cylindrical':
-
-        iplan = np.isinf(dgeom['curve_r']).nonzero()[0][0]
-        eax = ['e0', 'e1'][iplan]
-
-        def pts2pt(
-            pt_x=None,
-            pt_y=None,
-            pt_z=None,
-            # pts
-            pts_x=None,
-            pts_y=None,
-            pts_z=None,
-            # surface
-            O=dgeom['cent'] + dgeom['nin'] * dgeom['curve_r'][1 - iplan],
-            rc=dgeom['curve_r'][1 - iplan],
-            eax=dgeom[eax],
             # limits
-            thetamax=dgeom['extenthalf'][1-iplan],
-            xmax=dgeom['extenthalf'][iplan],
-            # local coordinates
-            nin=dgeom['nin'],
+            x0max=dgeom['extenthalf'][0],
+            x1max=dgeom['extenthalf'][1],
             # return
+            strict=None,
             return_x01=None,
         ):
             """
@@ -144,117 +66,201 @@ def _get_ptsvect(
             # Get local coordinates of reflection points
 
             # get parameters for k
-            OA = np.r_[pt_x - O[0], pt_y - O[1], pt_z - O[2]]
-            OAz = np.cross(OA, eax)
-            OAz2 = np.sum(OAz**2)
+            scavn = vect_x*nin[0] + vect_y*nin[1] + vect_z*nin[2]
 
-            ABx = pts_x - pt_x
-            ABy = pts_y - pt_y
-            ABz = pts_z - pt_z
-            ll = np.sqrt(ABx**2 + ABy**2 + ABz**2)
-            ezx = (ABy*eax[2] - ABz*eax[1]) / ll
-            ezy = (ABz*eax[0] - ABx*eax[2]) / ll
-            ezz = (ABx*eax[1] - ABy*eax[0]) / ll
-            ez2 = ezx**2 + ezy**2 + ezz**2
-            OAzez = OAz[0] * ezx + OAz[1] * ezy + OAz[2] * ezz
+            kk = (
+                (
+                    (cent[0] - pts_x)*nin[0]
+                    + (cent[1] - pts_y)*nin[1]
+                    + (cent[2] - pts_z)*nin[2]
+                )
+                / scavn
+            )
 
-            C0, C1, C2, C3, A = _common_coefs(
+            # get D
+            Dx = pts_x + kk * vect_x
+            Dy = pts_y + kk * vect_y
+            Dz = pts_z + kk * vect_z
+
+            # get vect_reflect
+            vrx = vect_x - 2.*scavn * nin[0]
+            vry = vect_y - 2.*scavn * nin[1]
+            vrz = vect_z - 2.*scavn * nin[2]
+
+            # angles
+            angle = -np.arcsin(scavn)
+
+            # x0, x1
+            if strict is True or return_x01 is True:
+                x0 = (
+                    (Dx - cent[0])*e0[0]
+                    + (Dy - cent[1])*e0[1]
+                    + (Dz - cent[2])*e0[2]
+                )
+                x1 = (
+                    (Dx - cent[0])*e1[0]
+                    + (Dy - cent[1])*e1[1]
+                    + (Dz - cent[2])*e1[2]
+                )
+
+                if strict is True:
+                    iout = (np.abs(x0) > x0max) | (np.abs(x1) > x1max)
+
+                    if np.any(iout):
+                        Dx[iout] = np.nan
+                        Dy[iout] = np.nan
+                        Dz[iout] = np.nan
+                        v_ref_x[iout] = np.nan
+                        v_ref_y[iout] = np.nan
+                        v_ref_z[iout] = np.nan
+                        angle[iout] = np.nan
+
+            if return_x01:
+                return Dx, Dy, Dz, vrX, vry, vrz, angle, x0, x1
+            else:
+                return Dx, Dy, Dz, vrx, vry, vrz, angle
+
+    # ----------------
+    #   Cylindrical
+    # ----------------
+
+    elif dgeom['type'] == 'cylindrical':
+
+        iplan = np.isinf(dgeom['curve_r']).nonzero()[0][0]
+        eax = ['e0', 'e1'][iplan]
+
+        def ptsvect(
+            # pts
+            pts_x=None,
+            pts_y=None,
+            pts_z=None,
+            # vect
+            vect_x=None,
+            vect_y=None,
+            vect_z=None,
+            # surface
+            O=dgeom['cent'] + dgeom['nin'] * dgeom['curve_r'][1 - iplan],
+            rc=dgeom['curve_r'][1 - iplan],
+            eax=dgeom[eax],
+            # limits
+            thetamax=dgeom['extenthalf'][1-iplan],
+            xmax=dgeom['extenthalf'][iplan],
+            # local coordinates
+            nin=dgeom['nin'],
+            # return
+            strict=None,
+            return_x01=None,
+        ):
+            """
+
+            cf. Notes_Upgrades/raytracing_surface3draytracing_surface3d.pdf
+
+            """
+
+            # ------------------------------------------
+            # Get local coordinates of reflection points
+
+            # get parameters for k
+            OAzx = (pts_y - O[1])*eax[2] - (pts_z - O[2])*eax[1]
+            OAzy = (pts_z - O[2])*eax[0] - (pts_x - O[0])*eax[2]
+            OAzz = (pts_x - O[0])*eax[1] - (pts_y - O[1])*eax[0]
+            OAz2 = OAzx**2 + OAzy**2 + OAzz**2
+
+            eazx = vect_y*eax[2] - vect_z*eax[1]
+            eazy = vect_z*eax[0] - vect_x*eax[2]
+            eazz = vect_x*eax[1] - vect_y*eax[0]
+            ez2 = eazx**2 + eazy**2 + eazz**2
+
+            OAzez = OAzx*eazx + OAzy*eazy + OAzz*eazz
+
+            C0, C1, C2 = _common_coefs(
                 rc=rc,
-                ll=ll,
-                OA2=OAz2,
-                OAe=OAzez,
+                OAz2=OAz2,
+                OAzez=OAzez,
                 ez2=ez2,
             )
 
             # Prepare D, theta, xx
-            Dx, Dy, Dz, theta, xx = _common_prepare(nb=pts_x.size)
+            ndim = OAzez.ndim
+            shape = OAzez.shape
+            (
+                Dx, Dy, Dz, vrx, vry, vrz,
+                angle, theta, xx,
+            ) = _common_prepare(shape)
 
             # get k
-            for ii in range(pts_x.size):
-                kk, Ex, Ey, Ez = _common_kE(
-                    C0[ii], C1[ii], C2[ii], C3[ii], A,
-                    pt_x, pt_y, pt_z,
-                    ABx[ii], ABy[ii], ABz[ii],
-                )
+            kk = np.full(shape, np.nan)
+            if ndim == 2:
+                for ii in range(shape[0]):
+                    for jj in range(shape[1]):
+                        kk[ii, jj] = _common_kE(
+                            C0[ii, jj], C1[ii, jj], C2[ii, jj])
+            else:
+                for ii in range(shape[0]):
+                    kk[ii] = _common_kE(C0[ii], C1[ii], C2[ii])
 
-                OEzx = (Ey - O[1])*eax[2] - (Ez - O[2])*eax[1]
-                OEzy = (Ez - O[2])*eax[0] - (Ex - O[0])*eax[2]
-                OEzz = (Ex - O[0])*eax[1] - (Ey - O[1])*eax[0]
-                OEzn = np.sqrt(OEzx**2 + OEzy**2 + OEzz**2)
 
-                nox = -(OEzy * eax[2] - OEzz * eax[1]) / OEzn
-                noy = -(OEzz * eax[0] - OEzx * eax[2]) / OEzn
-                noz = -(OEzx * eax[1] - OEzy * eax[0]) / OEzn
+            iok = np.isfinite(kk)
+            if np.any(iok):
+                Dx = pts_x + kk*vect_x
+                Dy = pts_y + kk*vect_y
+                Dz = pts_z + kk*vect_z
 
-                # check
-                ind = _common_check(
-                    ABx[ii], ABy[ii], ABz[ii], ll[ii],
-                    nox, noy, noz, OEzn, kk, rc,
-                )
+                ODzx = (Dx[iok] - O[1])*eax[2] - (Dz[iok] - O[2])*eax[1]
+                ODzy = (Dz[iok] - O[2])*eax[0] - (Dx[iok] - O[0])*eax[2]
+                ODzz = (Dx[iok] - O[0])*eax[1] - (Dy[iok] - O[1])*eax[0]
+                ODzn = np.sqrt(ODzx**2 + ODzy**2 + ODzz**2)
 
-                if np.sum(ind) == 0:
-                    import pdb; pdb.set_trace()     # DB
-                    pass
+                nox = -(ODzy * eax[2] - ODzz * eax[1]) / ODzn
+                noy = -(ODzz * eax[0] - ODzx * eax[2]) / ODzn
+                noz = -(ODzx * eax[1] - ODzy * eax[0]) / ODzn
 
-                # local coordinates
-                thetai = np.arccos(
-                    -nox*nin[0] - noy*nin[1] - noz*nin[2]
-                )
-                xxi = (
-                    (Ex - O[0])*eax[0]
-                    + (Ey - O[1])*eax[1]
-                    + (Ez - O[2])*eax[2]
-                )
+                # scalar product (for angle + reflection)
+                if np.isscalar(vect_x):
+                    scavn = -(vect_x*nox + vect_y*noy + vect_z*noz)
 
-                # handle multiple solutions
-                if np.sum(ind) > 1:
+                    # get vect_reflect
+                    vrx = vect_x + 2.*scavn * nox
+                    vry = vect_y + 2.*scavn * noy
+                    vrz = vect_z + 2.*scavn * noz
 
-                    ind = (
-                        (np.abs(thetai) <= thetamax)
-                        & (np.abs(xxi) <= xmax)
+                else:
+                    scavn = -(vect_x[iok]*nox + vect_y[iok]*noy + vect_z[iok]*noz)
+                    # get vect_reflect
+                    vrx = vect_x[iok] + 2.*scavn * nox
+                    vry = vect_y[iok] + 2.*scavn * noy
+                    vrz = vect_z[iok] + 2.*scavn * noz
+
+                angle[iok] = np.arcsin(scavn)
+
+                # x0, x1
+                if strict is True or return_x01 is True:
+                    theta[iok] = np.arccos(
+                        -nox*nin[0] - noy*nin[1] - noz*nin[2]
+                    )
+                    xx[iok] = (
+                        (Dx[iok] - O[0])*eax[0]
+                        + (Dy[iok] - O[1])*eax[1]
+                        + (Dz[iok] - O[2])*eax[2]
                     )
 
-                    if np.sum(ind) == 0:
-                        ind = np.argmin(np.abs(thetai)**2 + np.abs(xxi)**2)
-                    elif np.sum(ind) > 1:
-                        msg = f"No / several solutions found: {ind.sum()}"
-                        _debug_cylindrical(
-                            pt_x=pt_x,
-                            pt_y=pt_y,
-                            pt_z=pt_z,
-                            pts_x=pts_x[ii],
-                            pts_y=pts_y[ii],
-                            pts_z=pts_z[ii],
-                            kk=kk,
-                            O=O,
-                            rc=rc,
-                            ABx=ABx[ii],
-                            ABy=ABy[ii],
-                            ABz=ABz[ii],
-                            nox=nox,
-                            noy=noy,
-                            noz=noz,
-                            nin=nin,
-                            eax=eax,
-                            xx=xxi,
-                            theta=thetai,
-                            xmax=xmax,
-                            thetamax=thetamax,
-                            check=check,
-                        )
-                        raise Exception(msg)
+                    if strict is True:
+                        iout = (np.abs(theta) > thetamax) | (np.abs(xx) > xmax)
 
-                theta[ii] = thetai[ind]
-                xx[ii] = xxi[ind]
-                Dx[ii] = O[0] + xx[ii]*eax[0] + rc*nox[ind]
-                Dy[ii] = O[1] + xx[ii]*eax[1] + rc*noy[ind]
-                Dz[ii] = O[2] + xx[ii]*eax[2] + rc*noz[ind]
+                        if np.any(iout):
+                            Dx[iout] = np.nan
+                            Dy[iout] = np.nan
+                            Dz[iout] = np.nan
+                            vrx[iout] = np.nan
+                            vry[iout] = np.nan
+                            vrz[iout] = np.nan
+                            angle[iout] = np.nan
 
             # return
             if return_x01:
-                return Dx, Dy, Dz, xx, theta
+                return Dx, Dy, Dz, vrx, vry, vrz, angle, xx, theta
             else:
-                return Dx, Dy, Dz
+                return Dx, Dy, Dz, vrx, vry, vrz, angle
 
     # ----------------
     #   Spherical
@@ -262,7 +268,7 @@ def _get_ptsvect(
 
     elif dgeom['type'] == 'spherical':
 
-        def pts2pt(
+        def ptsvect(
             pt_x=None,
             pt_y=None,
             pt_z=None,
@@ -315,12 +321,12 @@ def _get_ptsvect(
             Dx, Dy, Dz, dtheta, phi = _common_prepare(nb=pts_x.size)
 
             # get k
+            kk = np.full()
             for ii in range(pts_x.size):
-                kk, Ex, Ey, Ez = _common_kE(
-                    C0[ii], C1[ii], C2[ii], C3[ii], A,
-                    pt_x, pt_y, pt_z,
-                    ABx[ii], ABy[ii], ABz[ii],
-                )
+                kk = _common_kE(C0[ii], C1[ii], C2)
+
+                if kk.size == 0:
+                    continue
 
                 nox = Ex - O[0]
                 noy = Ey - O[1]
@@ -329,12 +335,6 @@ def _get_ptsvect(
                 nox /= norm
                 noy /= norm
                 noz /= norm
-
-                # check
-                ind = _common_check(
-                    ABx[ii], ABy[ii], ABz[ii], ll[ii],
-                    nox, noy, noz, norm, kk, rc,
-                )
 
                 if np.sum(ind) == 0:
                     import pdb; pdb.set_trace()     # DB
@@ -399,7 +399,7 @@ def _get_ptsvect(
 
         raise NotImplementedError()
 
-    return pts2pt
+    return ptsvect
 
 
 # #################################################################
@@ -408,63 +408,33 @@ def _get_ptsvect(
 # #################################################################
 
 
-def _common_coefs(rc=None, ll=None, OA2=None, OAe=None, ez2=None):
-    A = (rc**2 - OA2) * OA2
-    B = 2* ll * rc**2 * OAe
-    C = rc**2 * ll**2 * ez2
-    D = ll**2 * (ll*ez2 + 2.*OAe)**2
-    E = 2 * ll * OA2 * (ll*ez2 + 2*OAe)
-
-    # coefficients
-    C0 = 4.*C - D
-    C1 = 4.*B - 4.*C - 2.*E
-    C2 = 4.*A - 4.*B + C + E
-    C3 = -4.*A + B
-
-    return C0, C1, C2, C3, A
+def _common_coefs(rc=None, OAz2=None, OAzez=None, ez2=None):
+    return ez2, 2.*OAzez, OAz2 - rc**2
 
 
-def _common_prepare(nb=None):
+def _common_prepare(shape):
     return (
-        np.full((nb,), np.nan),
-        np.full((nb,), np.nan),
-        np.full((nb,), np.nan),
-        np.full((nb,), np.nan),
-        np.full((nb,), np.nan),
+        np.full(shape, np.nan),
+        np.full(shape, np.nan),
+        np.full(shape, np.nan),
+        np.full(shape, np.nan),
+        np.full(shape, np.nan),
+        np.full(shape, np.nan),
+        np.full(shape, np.nan),
+        np.full(shape, np.nan),
+        np.full(shape, np.nan),
     )
 
 
-def _common_kE(
-    C0=None, C1=None, C2=None, C3=None, A=None,
-    pt_x=None, pt_y=None, pt_z=None,
-    ABx=None, ABy=None, ABz=None,
-):
-    kk = np.roots(np.r_[C0, C1, C2, C3, A])
+def _common_kE(C0=None, C1=None, C2=None):
+    kk = np.roots(np.r_[C0, C1, C2])
     kk = np.real(kk[np.isreal(kk)])
-    kk = kk[(kk > 0.) & (kk < 1.)]
 
-    Ex = pt_x + kk*ABx
-    Ey = pt_y + kk*ABy
-    Ez = pt_z + kk*ABz
-    return kk, Ex, Ey, Ez
-
-
-def _common_check(
-    ABx=None,
-    ABy=None,
-    ABz=None,
-    ll=None,
-    nox=None,
-    noy=None,
-    noz=None,
-    norm=None,
-    kk=None,
-    rc=None,
-):
-    en = - (ABx * nox + ABy * noy + ABz * noz) / ll
-    check = (2*kk - 1)*(rc - norm) + 2*kk*(1-kk)*ll*en
-    return np.abs(check) < 1e-12
-
+    # outgoing is necessarily the maxium k
+    if np.any( kk > 0.):
+        return np.max(kk[kk > 0.])
+    else:
+        return np.nan
 
 
 # #################################################################
