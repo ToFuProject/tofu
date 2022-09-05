@@ -206,6 +206,31 @@ def _get_pts2pt(
                     + (Ez - O[2])*eax[2]
                 )
 
+                _debug_cylindrical(
+                    pt_x=pt_x,
+                    pt_y=pt_y,
+                    pt_z=pt_z,
+                    pts_x=pts_x[ii],
+                    pts_y=pts_y[ii],
+                    pts_z=pts_z[ii],
+                    kk=kk,
+                    O=O,
+                    rc=rc,
+                    ABx=ABx[ii],
+                    ABy=ABy[ii],
+                    ABz=ABz[ii],
+                    nox=nox,
+                    noy=noy,
+                    noz=noz,
+                    nin=nin,
+                    eax=eax,
+                    xx=xxi,
+                    theta=thetai,
+                    xmax=xmax,
+                    thetamax=thetamax,
+                    ind=ind,
+                )
+
                 # handle multiple solutions
                 if np.sum(ind) > 1:
 
@@ -496,6 +521,7 @@ def _debug_cylindrical(
     xmax=None,
     thetamax=None,
     check=None,
+    ind=None,
     **kwdargs,
 ):
 

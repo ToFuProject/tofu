@@ -492,8 +492,6 @@ def _rays(
 
             alpha[i0, maskre] = np.arcsin(-u_perp)
 
-            import pdb; pdb.set_trace()     # DB
-
             if cam.dgeom['dreflect'] is not None:
                 us = dref['us'][..., 0]
 
