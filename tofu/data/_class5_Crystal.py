@@ -148,6 +148,10 @@ class Crystal(_class4_Filter.Filter):
         """ Return a dict of formatted """
         return _reflections_pts2pt._get_pts2pt(coll=self, key=key)
 
+    def get_optics_reflect_ptsvect(self, key=None):
+        """ Return a dict of formatted """
+        return _reflections_ptsvect._get_ptsvect(coll=self, key=key)
+
     # --------------------
     # ideal configurations
     # ---------------------

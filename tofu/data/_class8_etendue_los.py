@@ -698,6 +698,12 @@ def _loop_on_pix(
             los_y[ii] = ap_cent[1] - ldet[ii]['cents_y']
             los_z[ii] = ap_cent[2] - ldet[ii]['cents_z']
 
+            # -------------------
+            # angles of incidence
+
+            angle = None
+            angles = None
+
             # ------------
             # solid angles
 
