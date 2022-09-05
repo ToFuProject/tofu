@@ -63,11 +63,19 @@ def _plot_diagnostic_check(
             k0 for k0, v0 in coll.ddata.items()
             if v0['camera'] == coll.dobj['diagnostic'][key]['optics'][0]
         ]
+
+        if data == 'etendue':
+            data = coll.dobj['diagnostic'][key]['etendue']
+
+        klos = coll.dobj['diagnostic'][key].get('los')
+        if data == 'alpha' and klos is not None:
+            data = coll.dobj['rays'][klos]['alpha']
+
         data = ds._generic_check._check_var(
             data, 'data',
             types=str,
             allowed=lok,
-            default=coll.dobj['diagnostic'][key]['etendue'],
+            default=defdata,
         )
 
     # -------
@@ -126,6 +134,8 @@ def _plot_diagnostic(
     cmap=None,
     vmin=None,
     vmax=None,
+    # config
+    plot_config=None,
     # figure
     dax=None,
     dmargin=None,
@@ -223,14 +233,15 @@ def _plot_diagnostic(
         reft = None
         dataref = coll.ddata[data]['ref']
         if dataref == camref:
-            pass
+            datamap = coll.ddata[data]['data'].T
         elif len(dataref) == len(camref) + 1:
-            reft = [rr for rr in dataref if rr not in camref][0]
+            dataref == camref
+            datamap = coll.ddata[data]['data'][0, ...].T
+            # reft = [rr for rr in dataref if rr not in camref][0]
 
         else:
             raise NotImplementedError()
 
-        datamap = coll.ddata[data]['data'].T
         if is2d:
             extent = (
                 datax[0] - 0.5*(datax[1] - datax[0]),
@@ -538,6 +549,21 @@ def _plot_diagnostic(
                     )
 
                 dax[kax].update(refx=[refx], datax=keyx)
+
+    # -------
+    # config
+
+    if plot_config.__class__.__name__ == 'Config':
+
+        kax = 'cross'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+            plot_config.plot(lax=ax, proj=kax)
+
+        kax = 'hor'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+            plot_config.plot(lax=ax, proj=kax)
 
     # -------
     # connect

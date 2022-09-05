@@ -231,7 +231,7 @@ def _get_ptsvect(
                     vry = vect_y[iok] + 2.*scavn * noy
                     vrz = vect_z[iok] + 2.*scavn * noz
 
-                angle[iok] = np.arcsin(scavn)
+                angle[iok] = -np.arcsin(scavn)
 
                 # x0, x1
                 if strict is True or return_x01 is True:

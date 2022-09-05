@@ -458,6 +458,7 @@ class Test01_Diagnostic():
         # get config
         conf = tf.load_config('SPARC')
         conf.remove_Struct(Cls='PFC', Name='ICRH0')
+        self.conf = conf
 
         # get dict
         dapertures = _apertures()
@@ -517,7 +518,7 @@ class Test01_Diagnostic():
                     key_cam=f'{k0}-cam{ii}',
                     aperture_dimensions=[100e-6, 8e-2],
                     pinhole_radius=500e-6,
-                    cam_pixels_nb=[3, 5],
+                    cam_pixels_nb=[5, 10],
                     # returnas
                     returnas=list,
                 )

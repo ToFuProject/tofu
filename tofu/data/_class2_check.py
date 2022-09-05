@@ -467,8 +467,6 @@ def _rays(
                 py = np.append(py, dref['Ds'][1, ...].T, axis=0)
                 pz = np.append(pz, dref['Ds'][2, ...].T, axis=0)
 
-            import pdb; pdb.set_trace()     # DB
-
             pts_x[i0:, maskre] = px
             pts_y[i0:, maskre] = py
             pts_z[i0:, maskre] = pz
