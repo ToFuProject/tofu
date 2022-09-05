@@ -664,10 +664,6 @@ def _loop_on_pix(
                         plane_e1=plane_e1,
                     )
 
-                    if lop_post[0] == 'cryst1-pinhole':
-                        import pdb; pdb.set_trace()     # DB
-                        pass
-
                 if p_a is None:
                     p_a = plg.Polygon(np.array([p0, p1]).T)
                 else:
