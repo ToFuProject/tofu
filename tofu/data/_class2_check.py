@@ -263,6 +263,12 @@ def _check_inputs(
     )
 
 
+# ##################################################################
+# ##################################################################
+#                   Main
+# ##################################################################
+
+
 def _rays(
     coll=None,
     key=None,
@@ -387,6 +393,10 @@ def _rays(
         pts_y = np.full(shape, np.nan)
         pts_z = np.full(shape, np.nan)
 
+        pts_x[0, ...] = start_x
+        pts_y[0, ...] = start_y
+        pts_z[0, ...] = start_z
+
         if reflections_nb > 0 or diag is not None:
             alpha = np.full(shape, np.nan)
             dalpha = np.full(shape, np.nan)
@@ -405,8 +415,11 @@ def _rays(
 
                 reflect_ptsvect = coll.get_optics_reflect_ptsvect(oo)
                 (
-                    pts_x[ii, ...], pts_y[ii, ...], pts_z[ii, ...],
-                    vect_x, vect_y, vect_z, alpha[ii, ...],
+                    pts_x[ii, ...],
+                    pts_y[ii, ...],
+                    pts_z[ii, ...],
+                    vect_x, vect_y, vect_z,
+                    alpha[ii, ...],
                 ) = reflect_ptsvect(
                     pts_x=stx,
                     pts_y=sty,
@@ -418,9 +431,9 @@ def _rays(
                 )
 
                 # update start
-                stx = pts_x[ii, ...]
-                sty = pts_y[ii, ...]
-                stz = pts_z[ii, ...]
+                stx[...] = pts_x[ii, ...]
+                sty[...] = pts_y[ii, ...]
+                stz[...] = pts_z[ii, ...]
 
         # ----------
         # config
@@ -457,24 +470,29 @@ def _rays(
             if reflections_nb > 0:
                 cam.add_reflections(nb=reflections_nb)
 
-            px = cam.dgeom['PkOut'][0:1, :]
-            py = cam.dgeom['PkOut'][1:2, :]
-            pz = cam.dgeom['PkOut'][2:3, :]
-
             if cam.dgeom['dreflect'] is not None:
                 dref = cam.dgeom['dreflect']
-                px = np.append(px, dref['Ds'][0, ...].T, axis=0)
-                py = np.append(py, dref['Ds'][1, ...].T, axis=0)
-                pz = np.append(pz, dref['Ds'][2, ...].T, axis=0)
+                pts_x[i0:-1, maskre] = dref['Ds'][0, ...].T
+                pts_y[i0:-1, maskre] = dref['Ds'][1, ...].T
+                pts_z[i0:-1, maskre] = dref['Ds'][2, ...].T
 
-            pts_x[i0:, maskre] = px
-            pts_y[i0:, maskre] = py
-            pts_z[i0:, maskre] = pz
+                pout = (
+                    dref['Ds'][:, :, -1]
+                    + dref['kouts'][None, :, -1] * dref['us'][:, :, -1]
+                )
+            else:
+                pout = cam.dgeom['PkOut']
+
+            pts_x[-1, maskre] = pout[0, :]
+            pts_y[-1, maskre] = pout[1, :]
+            pts_z[-1, maskre] = pout[2, :]
 
             vperp = cam.dgeom['vperp']
             u_perp = np.sum(cam.u*vperp, axis=0)
 
             alpha[i0, maskre] = np.arcsin(-u_perp)
+
+            import pdb; pdb.set_trace()     # DB
 
             if cam.dgeom['dreflect'] is not None:
                 us = dref['us'][..., 0]
