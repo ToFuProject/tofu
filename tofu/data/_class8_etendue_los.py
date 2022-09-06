@@ -513,13 +513,14 @@ def _loop_on_pix(
     lpoly_pre_y = [coll.ddata[pp[1]]['data'] for pp in lpoly_pre]
     lpoly_pre_z = [coll.ddata[pp[2]]['data'] for pp in lpoly_pre]
 
-    lpoly_post = [
-        coll.dobj[c0][k0]['dgeom']['poly']
-        for c0, k0 in zip(lop_post_cls, lop_post)
-    ]
-    lpoly_post_x = [coll.ddata[pp[0]]['data'] for pp in lpoly_post]
-    lpoly_post_y = [coll.ddata[pp[1]]['data'] for pp in lpoly_post]
-    lpoly_post_z = [coll.ddata[pp[2]]['data'] for pp in lpoly_post]
+    if len(lop_post) > 0:
+        lpoly_post_x, lpoly_post_y, lpoly_post_z = inter_poly(
+            coll=coll,
+            lop_post=lop_post,
+            add_points=10,
+        )
+    else:
+        lpoly_post_x, lpoly_post_y, lpoly_post_z = None, None, None
 
     # prepare data
     nd = len(ldet)
@@ -771,6 +772,29 @@ def _loop_on_pix(
         dlos_x, dlos_y, dlos_z,
         cos_los_det, cos_los_ap, solid_angles, res, pix_ap,
     )
+
+
+# ##################################################################
+# ##################################################################
+#                   op_post interpolation
+# ##################################################################
+
+
+def inter_poly(coll=None, lop_post=None, lop_post_cls=None, add_points=10):
+
+    lpx, lpy, lpz = [], [], []
+    for oo in lop_post:
+        dout = coll.get_optics_outline(
+            key=oo,
+            mode='min',
+            add_points=None,
+            closed=False,
+        )
+        lpx.append(dout['x'])
+        lpy.append(dout['y'])
+        lpz.append(dout['z'])
+
+    return lpx, lpy, lpz
 
 
 # ##################################################################

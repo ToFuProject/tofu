@@ -172,6 +172,7 @@ class Diagnostic(_class7_Camera.Camera):
         self,
         key=None,
         add_points=None,
+        mode=None,
         closed=None,
         ravel=None,
     ):
@@ -180,6 +181,7 @@ class Diagnostic(_class7_Camera.Camera):
             coll=self,
             key=key,
             add_points=add_points,
+            mode=mode,
             closed=closed,
             ravel=ravel,
         )

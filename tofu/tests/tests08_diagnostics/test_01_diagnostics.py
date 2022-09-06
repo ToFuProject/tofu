@@ -516,9 +516,9 @@ class Test01_Diagnostic():
                     # store
                     store=True,
                     key_cam=f'{k0}-cam{ii}',
-                    aperture_dimensions=[100e-6, 8e-2],
+                    aperture_dimensions=[100e-6, 1e-3],
                     pinhole_radius=500e-6,
-                    cam_pixels_nb=[5, 10],
+                    cam_pixels_nb=[3, 3],
                     # returnas
                     returnas=list,
                 )

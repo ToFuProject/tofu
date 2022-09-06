@@ -194,7 +194,7 @@ def _get_pts2pt(
 
                 if np.sum(ind) == 0:
                     import pdb; pdb.set_trace()     # DB
-                    pass
+                    continue
 
                 # local coordinates
                 thetai = np.arccos(
@@ -206,30 +206,30 @@ def _get_pts2pt(
                     + (Ez - O[2])*eax[2]
                 )
 
-                _debug_cylindrical(
-                    pt_x=pt_x,
-                    pt_y=pt_y,
-                    pt_z=pt_z,
-                    pts_x=pts_x[ii],
-                    pts_y=pts_y[ii],
-                    pts_z=pts_z[ii],
-                    kk=kk,
-                    O=O,
-                    rc=rc,
-                    ABx=ABx[ii],
-                    ABy=ABy[ii],
-                    ABz=ABz[ii],
-                    nox=nox,
-                    noy=noy,
-                    noz=noz,
-                    nin=nin,
-                    eax=eax,
-                    xx=xxi,
-                    theta=thetai,
-                    xmax=xmax,
-                    thetamax=thetamax,
-                    ind=ind,
-                )
+                # _debug_cylindrical(
+                    # pt_x=pt_x,
+                    # pt_y=pt_y,
+                    # pt_z=pt_z,
+                    # pts_x=pts_x[ii],
+                    # pts_y=pts_y[ii],
+                    # pts_z=pts_z[ii],
+                    # kk=kk,
+                    # O=O,
+                    # rc=rc,
+                    # ABx=ABx[ii],
+                    # ABy=ABy[ii],
+                    # ABz=ABz[ii],
+                    # nox=nox,
+                    # noy=noy,
+                    # noz=noz,
+                    # nin=nin,
+                    # eax=eax,
+                    # xx=xxi,
+                    # theta=thetai,
+                    # xmax=xmax,
+                    # thetamax=thetamax,
+                    # ind=ind,
+                # )
 
                 # handle multiple solutions
                 if np.sum(ind) > 1:
@@ -266,8 +266,12 @@ def _get_pts2pt(
                             xmax=xmax,
                             thetamax=thetamax,
                             check=check,
+                            ind=ind,
                         )
                         raise Exception(msg)
+
+                if thetai[ind].size > 1 or thetai[ind].size == 0:
+                    import pdb; pdb.set_trace()     # DB
 
                 theta[ii] = thetai[ind]
                 xx[ii] = xxi[ind]
@@ -363,7 +367,7 @@ def _get_pts2pt(
 
                 if np.sum(ind) == 0:
                     import pdb; pdb.set_trace()     # DB
-                    pass
+                    continue
 
                 # local coordinates
                 dthi = np.arcsin(
@@ -488,7 +492,11 @@ def _common_check(
 ):
     en = - (ABx * nox + ABy * noy + ABz * noz) / ll
     check = (2*kk - 1)*(rc - norm) + 2*kk*(1-kk)*ll*en
-    return np.abs(check) < 1e-12
+
+    if np.sum(np.abs(check) < 1e-9) == 0:
+        import pdb; pdb.set_trace()     # DB
+
+    return np.abs(check) < 1e-9
 
 
 

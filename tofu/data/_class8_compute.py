@@ -18,6 +18,7 @@ def _get_optics_outline_check(
     coll=None,
     key=None,
     add_points=None,
+    mode=None,
     closed=None,
     ravel=None,
 ):
@@ -65,6 +66,15 @@ def _get_optics_outline_check(
         raise Exception(msg)
 
     # -------
+    # mode
+
+    mode = ds._generic_check._check_var(
+        mode, 'mode',
+        default=None,
+        allowed=[None, 'min'],
+    )
+
+    # -------
     # closed
 
     closed = ds._generic_check._check_var(
@@ -82,13 +92,14 @@ def _get_optics_outline_check(
         types=bool,
     )
 
-    return key, cls, add_points, closed, ravel
+    return key, cls, add_points, mode, closed, ravel
 
 
 def get_optics_outline(
     coll=None,
     key=None,
     add_points=None,
+    mode=None,
     closed=None,
     ravel=None,
 ):
@@ -96,10 +107,13 @@ def get_optics_outline(
     # ------------
     # check inputs
 
-    key, cls, add_points, closed, ravel = _get_optics_outline_check(
+    (
+        key, cls, add_points, mode, closed, ravel,
+    ) = _get_optics_outline_check(
         coll=coll,
         key=key,
         add_points=add_points,
+        mode=mode,
         closed=closed,
         ravel=ravel,
     )
@@ -197,22 +211,37 @@ def get_optics_outline(
             py = cy[:, None] + p0[None, :] * e0y + p1[None, :] * e1y
             pz = cz[:, None] + p0[None, :] * e0z + p1[None, :] * e1z
 
-    # ------------
-    # closed
+    # -----------------------
+    # close for interpolation
 
-    if closed is True:
-        if p0 is not None:
-            p0 = np.append(p0, p0[0])
-            p1 = np.append(p1, p1[0])
+    if p0 is not None:
+        p0 = np.append(p0, p0[0])
+        p1 = np.append(p1, p1[0])
 
-        if px.ndim == 2:
-            px = np.concatenate((px, px[:, 0:1]), axis=1)
-            py = np.concatenate((py, py[:, 0:1]), axis=1)
-            pz = np.concatenate((pz, pz[:, 0:1]), axis=1)
-        else:
-            px = np.append(px, px[0])
-            py = np.append(py, py[0])
-            pz = np.append(pz, pz[0])
+    if px.ndim == 2:
+        px = np.concatenate((px, px[:, 0:1]), axis=1)
+        py = np.concatenate((py, py[:, 0:1]), axis=1)
+        pz = np.concatenate((pz, pz[:, 0:1]), axis=1)
+    else:
+        px = np.append(px, px[0])
+        py = np.append(py, py[0])
+        pz = np.append(pz, pz[0])
+
+    # -----------
+    # mode
+
+    if mode == 'min':
+        dist = np.sqrt(
+            np.diff(px, axis=-1)**2
+            + np.diff(py, axis=-1)**2
+            + np.diff(pz, axis=-1)**2
+        )
+
+        if dist.ndim == 2:
+            import pdb; pdb.set_trace()     # DB
+
+        mindist = np.min(dist)
+        add_points = np.ceil(dist / mindist).astype(int) - 1
 
     # -----------
     # add_points
@@ -220,8 +249,20 @@ def get_optics_outline(
     if add_points is not False:
 
         nb = px.shape[-1]
+        if np.isscalar(add_points):
+            import pdb; pdb.set_trace()     # DB
+            add_point = np.full((nb,), add_points, dtype=int)
+
         ind0 = np.arange(0, nb)
-        ind = np.linspace(0, nb-1, (nb - 1)*(1 + add_points) + 1)
+        ind = np.concatenate(tuple([
+            np.linspace(
+                ind0[ii],
+                ind0[ii+1],
+                2 + add_points[ii],
+                endpoint=True,
+            )[:-1]
+            for ii in range(nb-1)
+        ] + [[ind0[-1]]]))
 
         if p0 is not None:
             p0 = scpinterp.interp1d(ind0, p0, kind='linear')(ind)
@@ -230,6 +271,23 @@ def get_optics_outline(
         px = scpinterp.interp1d(ind0, px, kind='linear', axis=-1)(ind)
         py = scpinterp.interp1d(ind0, py, kind='linear', axis=-1)(ind)
         pz = scpinterp.interp1d(ind0, pz, kind='linear', axis=-1)(ind)
+
+    # ------------
+    # closed
+
+    if closed is False:
+        if p0 is not None:
+            p0 = p0[:-1]
+            p1 = p1[:-1]
+
+        if px.ndim == 2:
+            px = px[:, :-1]
+            py = py[:, :-1]
+            pz = pz[:, :-1]
+        else:
+            px = px[:-1]
+            py = py[:-1]
+            pz = pz[:-1]
 
     # ------------------
     # ravel
