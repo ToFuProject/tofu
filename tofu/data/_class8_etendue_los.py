@@ -5,6 +5,7 @@ import warnings
 
 
 import numpy as np
+import scipy.spatial as scpspat
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 
@@ -14,6 +15,7 @@ import datastock as ds
 
 
 from ..geom import _comp_solidangles
+from . import _class8_compute as _compute
 
 
 __all__ = ['compute_etendue_los']
@@ -106,7 +108,8 @@ def compute_etendue_los(
             spec_cls = optics_cls[ispectro[0]]
             dg = coll.dobj[spec_cls][spec_key]['dgeom']
             spectro_planar = dg['type'] == 'planar'
-            reflect_func = coll.get_optics_reflect_pts2pt(spec_key)
+            reflect_pts2pt = coll.get_optics_reflect_pts2pt(spec_key)
+            reflect_ptsvect = coll.get_optics_reflect_ptsvect(spec_key)
 
         else:
             raise NotImplementedError()
@@ -118,15 +121,28 @@ def compute_etendue_los(
         lop_post_cls = []
         iop_ref = 1
 
-        spectro_planar, reflect_func = None, None
+        spectro_planar, reflect_pts2pt, reflect_ptsvect = None, None, None
 
     cref = optics_cls[iop_ref]
     kref = optics[iop_ref]
 
-    plane_pt = coll.dobj[cref][kref]['dgeom']['cent']
-    plane_nin = coll.dobj[cref][kref]['dgeom']['nin']
-    plane_e0 = coll.dobj[cref][kref]['dgeom']['e0']
-    plane_e1 = coll.dobj[cref][kref]['dgeom']['e1']
+    # get plane-projection functions
+    func_to_plane_pre, func_to_3d_pre = _get_project_plane(
+        plane_pt=coll.dobj[cref][kref]['dgeom']['cent'],
+        plane_nin=coll.dobj[cref][kref]['dgeom']['nin'],
+        plane_e0=coll.dobj[cref][kref]['dgeom']['e0'],
+        plane_e1=coll.dobj[cref][kref]['dgeom']['e1'],
+    )
+
+    lfunc_post = [
+        _get_project_plane(
+            plane_pt=coll.dobj[cc][oo]['dgeom']['cent'],
+            plane_nin=coll.dobj[cc][oo]['dgeom']['nin'],
+            plane_e0=coll.dobj[cc][oo]['dgeom']['e0'],
+            plane_e1=coll.dobj[cc][oo]['dgeom']['e1'],
+        )
+        for cc, oo in zip(lop_post_cls, lop_post)
+    ]
 
     # ------------------------
     # loop on pixels to get:
@@ -142,17 +158,22 @@ def compute_etendue_los(
     ) = _loop_on_pix(
         coll=coll,
         ldet=ldet,
+        # optics
         lop_pre=lop_pre,
         lop_pre_cls=lop_pre_cls,
         spectro_planar=spectro_planar,
-        reflect_func=reflect_func,
+        reflect_pts2pt=reflect_pts2pt,
+        reflect_ptsvect=reflect_ptsvect,
         lop_post=lop_post,
         lop_post_cls=lop_post_cls,
-        plane_pt=plane_pt,
-        plane_nin=plane_nin,
-        plane_e0=plane_e0,
-        plane_e1=plane_e1,
+        # projections
+        plane_nin=coll.dobj[cref][kref]['dgeom']['nin'],
+        func_to_plane_pre=func_to_plane_pre,
+        func_to_3d_pre=func_to_3d_pre,
+        lfunc_post=lfunc_post,
     )
+
+    import pdb; pdb.set_trace() # DB
 
     # --------------------
     # compute analytically
@@ -481,15 +502,16 @@ def _loop_on_pix(
     lop_pre_cls=None,
     # spectro optics
     spectro_planar=None,
-    reflect_func=None,
+    reflect_pts2pt=None,
+    reflect_ptsvect=None,
     # optics after spectro
     lop_post=None,
     lop_post_cls=None,
     # projection plane
-    plane_pt=None,
     plane_nin=None,
-    plane_e0= None,
-    plane_e1=None,
+    func_to_plane_pre=None,
+    func_to_3d_pre=None,
+    lfunc_post=None,
     # extra
     res=None,
 ):
@@ -513,14 +535,11 @@ def _loop_on_pix(
     lpoly_pre_y = [coll.ddata[pp[1]]['data'] for pp in lpoly_pre]
     lpoly_pre_z = [coll.ddata[pp[2]]['data'] for pp in lpoly_pre]
 
-    if len(lop_post) > 0:
-        lpoly_post_x, lpoly_post_y, lpoly_post_z = inter_poly(
-            coll=coll,
-            lop_post=lop_post,
-            add_points=10,
-        )
-    else:
-        lpoly_post_x, lpoly_post_y, lpoly_post_z = None, None, None
+    lpoly_post = _get_lpoly_post(
+        coll=coll,
+        lop_post_cls=lop_post_cls,
+        lop_post=lop_post,
+    )
 
     # prepare data
     nd = len(ldet)
@@ -556,17 +575,13 @@ def _loop_on_pix(
         for jj in range(nap_pre):
 
             # ap
-            p0, p1 = _project_poly_on_plane_from_pt(
+            p0, p1 = func_to_plane_pre(
                 pt_x=ldet[ii]['cents_x'],
                 pt_y=ldet[ii]['cents_y'],
                 pt_z=ldet[ii]['cents_z'],
                 poly_x=lpoly_pre_x[jj],
                 poly_y=lpoly_pre_y[jj],
                 poly_z=lpoly_pre_z[jj],
-                plane_pt=plane_pt,
-                plane_nin=plane_nin,
-                plane_e0=plane_e0,
-                plane_e1=plane_e1,
             )
 
             if p_a is None:
@@ -579,61 +594,145 @@ def _loop_on_pix(
                     break
 
         # loop on post-crystal apertures
-        if isok is True:
+        if isok is True and nap_post > 0:
+
+            # det cent to contour of intersection
+            p0, p1 = np.array(p_a.contour(0)).T
+            p0, p1 = _compute._interp_poly(
+                p0=p0,
+                p1=p1,
+                add_points=2,
+                mode='min',
+                isclosed=False,
+                closed=False,
+                ravel=False,
+            )[:2]
+            px, py, pz = func_to_3d_pre(p0, p1)
+
+            vx = px - ldet[ii]['cents_x']
+            vy = py - ldet[ii]['cents_y']
+            vz = pz - ldet[ii]['cents_z']
+            vnorm = np.sqrt(vx**2 + vy**2 + vz**2)
+            vx = vx / vnorm
+            vy = vy / vnorm
+            vz = vz / vnorm
+
+            # project contours of crystal onto post-crytal plane
+            Dx, Dy, Dz, vx, vy, vz = reflect_ptsvect(
+                pts_x=ldet[ii]['cents_x'],
+                pts_y=ldet[ii]['cents_y'],
+                pts_z=ldet[ii]['cents_z'],
+                vect_x=vx,
+                vect_y=vy,
+                vect_z=vz,
+            )[:6]
+
             for jj in range(nap_post):
+
+                # project convex hull on post plane
+                p0, p1 = lfunc_post[jj][0](
+                    pt_x=Dx,
+                    pt_y=Dy,
+                    pt_z=Dz,
+                    vx=vx,
+                    vy=vy,
+                    vz=vz,
+                )
+
+                qhull = scpspat.ConvexHull(np.array([p0, p1]).T)
+                p_a2 = plg.Polygon(np.array(
+                    [p0[qhull.vertices], p1[qhull.vertices]]
+                ).T)
+
+                # ap
+                if len(lpoly_post[jj]) == 2:
+                    p0 = lpoly_post[jj][0]
+                    p1 = lpoly_post[jj][1]
+                else:
+                    centroid = None
+                    p0, p1 = lfunc_post[jj][0](
+                        pt_x=centroid[0],
+                        pt_y=centroid[1],
+                        pt_z=centroid[2],
+                        poly_x=lpoly_post[jj][0],
+                        poly_y=lpoly_post[jj][1],
+                        poly_z=lpoly_post[jj][2],
+                    )
+
+                p_a2 = p_a2 & plg.Polygon(np.array([p0, p1]).T)
+                if p_a2.nPoints() < 3:
+                    p_a2 = None
+                    isok = False
+                    break
+
+                p0, p1 = np.array(p_a2.contour(0)).T
+                p0, p1 = _compute._interp_poly(
+                    p0=p0,
+                    p1=p1,
+                    add_points=2,
+                    mode='min',
+                    isclosed=False,
+                    closed=False,
+                    ravel=False,
+                )[:2]
+
+                px, py, pz = lfunc_post[jj][1](x0=p0, x1=p1)
 
                 # get reflected aperture
                 if spectro_planar is True:
-                    p0, p1 = reflect_func(
+                    px, py, pz = reflect_pts2pt(
                         pt_x=ldet[ii]['cents_x'],
                         pt_y=ldet[ii]['cents_y'],
                         pt_z=ldet[ii]['cents_z'],
                         # poly
-                        pts_x=lpoly_post_x[jj],
-                        pts_y=lpoly_post_y[jj],
-                        pts_z=lpoly_post_z[jj],
+                        pts_x=px,
+                        pts_y=py,
+                        pts_z=pz,
                         # surface
-                        return_xyz=False,
-                    )
+                        return_xyz=True,
+                    )[2:]
 
                 else:
-                    px, py, pz = reflect_func(
+                    px, py, pz = reflect_pts2pt(
                         pt_x=ldet[ii]['cents_x'],
                         pt_y=ldet[ii]['cents_y'],
                         pt_z=ldet[ii]['cents_z'],
                         # poly
-                        pts_x=lpoly_post_x[jj],
-                        pts_y=lpoly_post_y[jj],
-                        pts_z=lpoly_post_z[jj],
+                        pts_x=px,
+                        pts_y=py,
+                        pts_z=pz,
                         # surface
                         return_x01=False,
                     )
 
-                    # ap
-                    p0, p1 = _project_poly_on_plane_from_pt(
+                if jj < nap_post - 1:
+                    # update
+                    Dx, Dy, Dz, vx, vy, vz = reflect_ptsvect(
+                        pts_x=ldet[ii]['cents_x'],
+                        pts_y=ldet[ii]['cents_y'],
+                        pts_z=ldet[ii]['cents_z'],
+                        vect_x=px - ldet[ii]['cents_x'],
+                        vect_y=py - ldet[ii]['cents_y'],
+                        vect_z=pz - ldet[ii]['cents_z'],
+                    )[:6]
+
+                else:
+                    # project on plane
+                    p0, p1 = func_to_plane_pre(
                         pt_x=ldet[ii]['cents_x'],
                         pt_y=ldet[ii]['cents_y'],
                         pt_z=ldet[ii]['cents_z'],
                         poly_x=px,
                         poly_y=py,
                         poly_z=pz,
-                        plane_pt=plane_pt,
-                        plane_nin=plane_nin,
-                        plane_e0=plane_e0,
-                        plane_e1=plane_e1,
                     )
+                    import pdb; pdb.set_trace()     # DB
+                    p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
 
                 if lop_post[0] == 'cryst1-slit':
                     import pdb; pdb.set_trace()     # DB
-
-                if p_a is None:
-                    p_a = plg.Polygon(np.array([p0, p1]).T)
-                else:
-                    p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
-                    if p_a.nPoints() < 3:
-                        p_a = None
-                        isok = False
-                        break
+                    a = 0
+                    pass
 
         # -------------------------
         # compute solid angle + los
@@ -649,8 +748,7 @@ def _loop_on_pix(
 
             # ap_cent
             ap01[:] = p_a.center()
-            ap_cent[:] = plane_pt + ap01[0] * plane_e0 + ap01[1] * plane_e1
-
+            ap_cent[:] = func_to_3d_pre(x0=ap01[0], x1=ap01[1])
             mindiff[ii] = np.sqrt(np.min(np.diff(p0)**2 + np.diff(p1)**2))
 
             # ----------------------------------
@@ -662,16 +760,7 @@ def _loop_on_pix(
 
             if dlos_x is not None:
                 pa01 = np.array(p_a.contour(0)).T
-                i0 = np.arange(0, pa01.shape[1]+  1)
-                i1 = np.r_[np.arange(0, pa01.shape[1]), 0]
-                i2 = np.linspace(0, pa01.shape[1] +  1, npmax)[:-1]
-                pax = scpinterp(
-                    i0,
-                    plane_pt[0] + pa01[0, i1] * plane_e0[0] + pa01[1, i1] *
-                    plane_e1[0],
-                    kind='linear',
-                )(i2)
-
+                import pdb; pdb.set_trace()     # DB
                 dlos_x[ii, ...] = pax - ldet[ii]['cents_x']
                 dlos_y[ii, ...] = pay - ldet[ii]['cents_y']
                 dlos_z[ii, ...] = paz - ldet[ii]['cents_z']
@@ -698,11 +787,7 @@ def _loop_on_pix(
             p0, p1 = np.array(p_a.contour(0)).T
 
             # equivalent ap as seen from pixel
-            pix_ap.append((
-                plane_pt[0] + p0*plane_e0[0] + p1*plane_e1[0],
-                plane_pt[1] + p0*plane_e0[1] + p1*plane_e1[1],
-                plane_pt[2] + p0*plane_e0[2] + p1*plane_e1[2],
-            ))
+            pix_ap.append(func_to_3d_pre(x0=p0, x1=p1))
 
     # -------------
     # normalize los
@@ -780,21 +865,28 @@ def _loop_on_pix(
 # ##################################################################
 
 
-def inter_poly(coll=None, lop_post=None, lop_post_cls=None, add_points=10):
+def _get_lpoly_post(coll=None, lop_post_cls=None, lop_post=None):
 
-    lpx, lpy, lpz = [], [], []
-    for oo in lop_post:
-        dout = coll.get_optics_outline(
-            key=oo,
-            mode='min',
-            add_points=None,
-            closed=False,
-        )
-        lpx.append(dout['x'])
-        lpy.append(dout['y'])
-        lpz.append(dout['z'])
+    if len(lop_post) == 0:
+        return
 
-    return lpx, lpy, lpz
+    lpoly_post = []
+    for cc, oo in zip(lop_post_cls, lop_post):
+        dgeom = coll.dobj[cc][oo]['dgeom']
+        if dgeom['type'] == 'planar':
+            p0, p1 = dgeom['outline']
+            lpoly_post.append((
+                coll.ddata[p0]['data'],
+                coll.ddata[p1]['data'],
+            ))
+        else:
+            px, py, pz = dgeom['poly']
+            lpoly_post.append((
+                coll.ddata[px]['data'],
+                coll.ddata[py]['data'],
+                coll.ddata[pz]['data'],
+            ))
+    return lpoly_post
 
 
 # ##################################################################
@@ -803,54 +895,76 @@ def inter_poly(coll=None, lop_post=None, lop_post_cls=None, add_points=10):
 # ##################################################################
 
 
-def _project_poly_on_plane_from_pt(
-    pt_x=None,
-    pt_y=None,
-    pt_z=None,
-    poly_x=None,
-    poly_y=None,
-    poly_z=None,
+def _get_project_plane(
     plane_pt=None,
     plane_nin=None,
     plane_e0=None,
     plane_e1=None,
 ):
 
-    sca0 = (
-        (plane_pt[0] - pt_x)*plane_nin[0]
-        + (plane_pt[1] - pt_y)*plane_nin[1]
-        + (plane_pt[2] - pt_z)*plane_nin[2]
-    )
+    def _project_poly_on_plane_from_pt(
+        pt_x=None,
+        pt_y=None,
+        pt_z=None,
+        poly_x=None,
+        poly_y=None,
+        poly_z=None,
+        vx=None,
+        vy=None,
+        vz=None,
+        plane_pt=plane_pt,
+        plane_nin=plane_nin,
+        plane_e0=plane_e0,
+        plane_e1=plane_e1,
+    ):
 
-    vx = poly_x - pt_x
-    vy = poly_y - pt_y
-    vz = poly_z - pt_z
+        sca0 = (
+            (plane_pt[0] - pt_x)*plane_nin[0]
+            + (plane_pt[1] - pt_y)*plane_nin[1]
+            + (plane_pt[2] - pt_z)*plane_nin[2]
+        )
 
-    sca1 = vx*plane_nin[0] + vy*plane_nin[1] + vz*plane_nin[2]
+        if vx is None:
+            vx = poly_x - pt_x
+            vy = poly_y - pt_y
+            vz = poly_z - pt_z
 
-    k = sca0 / sca1
+        sca1 = vx*plane_nin[0] + vy*plane_nin[1] + vz*plane_nin[2]
 
-    px = pt_x + k * vx
-    py = pt_y + k * vy
-    pz = pt_z + k * vz
+        k = sca0 / sca1
 
-    p0 = (
-        (px - plane_pt[0])*plane_e0[0]
-        + (py - plane_pt[1])*plane_e0[1]
-        + (pz - plane_pt[2])*plane_e0[2]
-    )
-    p1 = (
-        (px - plane_pt[0])*plane_e1[0]
-        + (py - plane_pt[1])*plane_e1[1]
-        + (pz - plane_pt[2])*plane_e1[2]
-    )
+        px = pt_x + k * vx
+        py = pt_y + k * vy
+        pz = pt_z + k * vz
 
-    # px = plane_pt[0] + p0*plane_e0[0] + p1*plane_e1[0]
-    # py = plane_pt[1] + p0*plane_e0[1] + p1*plane_e1[1]
-    # pz = plane_pt[2] + p0*plane_e0[2] + p1*plane_e1[2]
+        p0 = (
+            (px - plane_pt[0])*plane_e0[0]
+            + (py - plane_pt[1])*plane_e0[1]
+            + (pz - plane_pt[2])*plane_e0[2]
+        )
+        p1 = (
+            (px - plane_pt[0])*plane_e1[0]
+            + (py - plane_pt[1])*plane_e1[1]
+            + (pz - plane_pt[2])*plane_e1[2]
+        )
 
-    return p0, p1
+        return p0, p1
 
+    def _back_to_3d(
+        x0=None,
+        x1=None,
+        plane_pt=plane_pt,
+        plane_e0=plane_e0,
+        plane_e1=plane_e1,
+    ):
+
+        return (
+            plane_pt[0] + x0*plane_e0[0] + x1*plane_e1[0],
+            plane_pt[1] + x0*plane_e0[1] + x1*plane_e1[1],
+            plane_pt[2] + x0*plane_e0[2] + x1*plane_e1[2],
+        )
+
+    return _project_poly_on_plane_from_pt, _back_to_3d
 
 # ##################################################################
 # ##################################################################

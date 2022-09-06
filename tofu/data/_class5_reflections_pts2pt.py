@@ -493,11 +493,10 @@ def _common_check(
     en = - (ABx * nox + ABy * noy + ABz * noz) / ll
     check = (2*kk - 1)*(rc - norm) + 2*kk*(1-kk)*ll*en
 
-    if np.sum(np.abs(check) < 1e-9) == 0:
-        import pdb; pdb.set_trace()     # DB
+    if np.sum(np.abs(check) < 1e-6) == 0:
+        raise Exception(f"Unaccurate reflection, check = {check}")
 
-    return np.abs(check) < 1e-9
-
+    return np.abs(check) < 1e-6
 
 
 # #################################################################

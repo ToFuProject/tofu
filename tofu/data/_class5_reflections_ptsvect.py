@@ -194,10 +194,11 @@ def _get_ptsvect(
                 for ii in range(shape[0]):
                     for jj in range(shape[1]):
                         kk[ii, jj] = _common_kE(
-                            C0[ii, jj], C1[ii, jj], C2[ii, jj])
+                            C0[ii, jj], C1[ii, jj], C2[ii, jj],
+                        )
             else:
                 for ii in range(shape[0]):
-                    kk[ii] = _common_kE(C0[ii], C1[ii], C2[ii])
+                    kk[ii] = _common_kE(C0[ii], C1[ii], C2)
 
 
             iok = np.isfinite(kk)
@@ -255,6 +256,15 @@ def _get_ptsvect(
                             vry[iout] = np.nan
                             vrz[iout] = np.nan
                             angle[iout] = np.nan
+
+            # enforce normalization
+            iok = np.isfinite(vrx)
+            vnorm = np.sqrt(vrx[iok]**2 + vry[iok]**2 + vrz[iok]**2)
+            vrx[iok] = vrx[iok] / vnorm
+            vry[iok] = vry[iok] / vnorm
+            vrz[iok] = vrz[iok] / vnorm
+
+            import pdb; pdb.set_trace()     # DB
 
             # return
             if return_x01:
