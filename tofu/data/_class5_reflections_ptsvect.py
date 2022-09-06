@@ -264,8 +264,6 @@ def _get_ptsvect(
             vry[iok] = vry[iok] / vnorm
             vrz[iok] = vrz[iok] / vnorm
 
-            import pdb; pdb.set_trace()     # DB
-
             # return
             if return_x01:
                 return Dx, Dy, Dz, vrx, vry, vrz, angle, xx, theta

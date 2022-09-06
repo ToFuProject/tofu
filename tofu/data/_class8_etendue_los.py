@@ -601,7 +601,7 @@ def _loop_on_pix(
             p0, p1 = _compute._interp_poly(
                 p0=p0,
                 p1=p1,
-                add_points=2,
+                add_points=5,
                 mode='min',
                 isclosed=False,
                 closed=False,
@@ -638,11 +638,7 @@ def _loop_on_pix(
                     vy=vy,
                     vz=vz,
                 )
-
-                qhull = scpspat.ConvexHull(np.array([p0, p1]).T)
-                p_a2 = plg.Polygon(np.array(
-                    [p0[qhull.vertices], p1[qhull.vertices]]
-                ).T)
+                p_a2 = plg.Polygon(np.array([p0, p1]).T)
 
                 # ap
                 if len(lpoly_post[jj]) == 2:
@@ -669,13 +665,17 @@ def _loop_on_pix(
                 p0, p1 = _compute._interp_poly(
                     p0=p0,
                     p1=p1,
-                    add_points=2,
+                    add_points=5,
                     mode='min',
                     isclosed=False,
                     closed=False,
                     ravel=False,
                 )[:2]
 
+                # shrink and back to 3d
+                patemp = plg.Polygon(np.array([p0, p1]).T)
+                patemp.scale(1.-1e-6, 1-1e-6)
+                p0, p1 = np.array(patemp.contour(0)).T
                 px, py, pz = lfunc_post[jj][1](x0=p0, x1=p1)
 
                 # get reflected aperture
@@ -693,7 +693,7 @@ def _loop_on_pix(
                     )[2:]
 
                 else:
-                    px, py, pz = reflect_pts2pt(
+                    px2, py2, pz2 = reflect_pts2pt(
                         pt_x=ldet[ii]['cents_x'],
                         pt_y=ldet[ii]['cents_y'],
                         pt_z=ldet[ii]['cents_z'],
@@ -718,16 +718,15 @@ def _loop_on_pix(
 
                 else:
                     # project on plane
-                    p0, p1 = func_to_plane_pre(
+                    p02, p12 = func_to_plane_pre(
                         pt_x=ldet[ii]['cents_x'],
                         pt_y=ldet[ii]['cents_y'],
                         pt_z=ldet[ii]['cents_z'],
-                        poly_x=px,
-                        poly_y=py,
-                        poly_z=pz,
+                        poly_x=px2,
+                        poly_y=py2,
+                        poly_z=pz2,
                     )
-                    import pdb; pdb.set_trace()     # DB
-                    p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
+                    p_a = p_a & plg.Polygon(np.array([p02, p12]).T)
 
                 if lop_post[0] == 'cryst1-slit':
                     import pdb; pdb.set_trace()     # DB

@@ -113,6 +113,7 @@ def _get_pts2pt(
 
         iplan = np.isinf(dgeom['curve_r']).nonzero()[0][0]
         eax = ['e0', 'e1'][iplan]
+        erot = ['e0', 'e1'][1-iplan]
 
         def pts2pt(
             pt_x=None,
@@ -126,6 +127,7 @@ def _get_pts2pt(
             O=dgeom['cent'] + dgeom['nin'] * dgeom['curve_r'][1 - iplan],
             rc=dgeom['curve_r'][1 - iplan],
             eax=dgeom[eax],
+            erot=dgeom[erot],
             # limits
             thetamax=dgeom['extenthalf'][1-iplan],
             xmax=dgeom['extenthalf'][iplan],
@@ -133,6 +135,8 @@ def _get_pts2pt(
             nin=dgeom['nin'],
             # return
             return_x01=None,
+            # number of k for interpolation
+            nk=1000,
         ):
             """
 
@@ -142,6 +146,8 @@ def _get_pts2pt(
 
             # ------------------------------------------
             # Get local coordinates of reflection points
+
+            costhetamax = np.cos(thetamax)
 
             # get parameters for k
             OA = np.r_[pt_x - O[0], pt_y - O[1], pt_z - O[2]]
@@ -170,8 +176,41 @@ def _get_pts2pt(
             Dx, Dy, Dz, theta, xx = _common_prepare(nb=pts_x.size)
 
             # get k
+            AOeax = -np.sum(OA*eax)
+            ABeax = ABx * eax[0] + ABy * eax[1] + ABz * eax[2]
+
+            em = costhetamax*(-nin) - np.sin(thetamax)*erot
+            eM = costhetamax*(-nin) + np.sin(thetamax)*erot
+
+            kmin, kmax = 0, 1
+            leks = [
+                (O - xmax*eax, eax, True),
+                (O + xmax*eax, eax, False),
+                (O, em, True),
+                (O, eM, False),
+            ]
+            for oo, ep, ss in leks:
+                sca = ep[0] * ABx + ep[1] * ABy + ep[2] * ABz
+                AO = oo - np.r_[pt_x, pt_y, pt_z]
+                AOe = np.sum(AO*ep)
+                ABe = ABx * ep[0] + ABy * ep[1] + ABz * ep[2]
+                kk = AOe / ABe
+
+                if ss is True and np.any(sca > 0):
+                    kmin = max(kmin, np.min(kk[sca > 0]))
+                elif ss is False and np.any(sca < 0):
+                    kmax = min(kmax, np.max(kk[sca < 0]))
+
+            import pdb; pdb.set_trace()     # DB
+
+            k0 = max(0, k0t, k0x)
+            k1 = min(1, k1t, k1x)
+            kk = np.linspace(k0, k1, nk)
             for ii in range(pts_x.size):
-                kk, Ex, Ey, Ez = _common_kE(
+                # ki, Ex, Ey, Ez = _common_kE_bs()
+
+
+                ki, Ex, Ey, Ez = _common_kE(
                     C0[ii], C1[ii], C2[ii], C3[ii], A,
                     pt_x, pt_y, pt_z,
                     ABx[ii], ABy[ii], ABz[ii],
@@ -186,16 +225,6 @@ def _get_pts2pt(
                 noy = -(OEzz * eax[0] - OEzx * eax[2]) / OEzn
                 noz = -(OEzx * eax[1] - OEzy * eax[0]) / OEzn
 
-                # check
-                ind = _common_check(
-                    ABx[ii], ABy[ii], ABz[ii], ll[ii],
-                    nox, noy, noz, OEzn, kk, rc,
-                )
-
-                if np.sum(ind) == 0:
-                    import pdb; pdb.set_trace()     # DB
-                    continue
-
                 # local coordinates
                 thetai = np.arccos(
                     -nox*nin[0] - noy*nin[1] - noz*nin[2]
@@ -206,42 +235,66 @@ def _get_pts2pt(
                     + (Ez - O[2])*eax[2]
                 )
 
-                # _debug_cylindrical(
-                    # pt_x=pt_x,
-                    # pt_y=pt_y,
-                    # pt_z=pt_z,
-                    # pts_x=pts_x[ii],
-                    # pts_y=pts_y[ii],
-                    # pts_z=pts_z[ii],
-                    # kk=kk,
-                    # O=O,
-                    # rc=rc,
-                    # ABx=ABx[ii],
-                    # ABy=ABy[ii],
-                    # ABz=ABz[ii],
-                    # nox=nox,
-                    # noy=noy,
-                    # noz=noz,
-                    # nin=nin,
-                    # eax=eax,
-                    # xx=xxi,
-                    # theta=thetai,
-                    # xmax=xmax,
-                    # thetamax=thetamax,
-                    # ind=ind,
-                # )
+                iin = (
+                    (np.abs(thetai) <= thetamax)
+                    & (np.abs(xxi) <= xmax)
+                )
+
+                # check
+                check = _common_check(
+                    ABx[ii], ABy[ii], ABz[ii], ll[ii],
+                    nox, noy, noz, OEzn, ki, rc,
+                )
+
+                if not np.any(iin & (check < 1e-3)):
+                    _common_kE2(
+                        Ax=pt_x,
+                        Ay=pt_y,
+                        Az=pt_z,
+                        Bx=pts_x[ii],
+                        By=pts_y[ii],
+                        Bz=pts_z[ii],
+                        kk=kk,
+                        rc=rc,
+                        O=O,
+                        eax=eax,
+                        iin=iin,
+                        check=check,
+                        ki=ki,
+                        # polynom
+                        C0=C0[ii],
+                        C1=C1[ii],
+                        C2=C2[ii],
+                        C3=C3[ii],
+                        A=A,
+                        # limit
+                        nin=nin,
+                        thetai=thetai,
+                        xxi=xxi,
+                        thetamax=thetamax,
+                        xmax=xmax,
+                    )
+
+                icheck = check < 1.e-3
+                if not np.any(check < 1.e-3):
+                    msg = "No satisfactory solution"
+                    raise Exception(msg)
+
+                # ind
+                ind = iin & icheck
+
+                if np.sum(ind) == 0:
+                    dist = np.abs(thetai)**2 + np.abs(xxi)**2
+                    import pdb; pdb.set_trace()     # DB
+                    ind = icheck & (dist == np.min(dist[icheck]))
 
                 # handle multiple solutions
                 if np.sum(ind) > 1:
 
-                    ind = (
-                        (np.abs(thetai) <= thetamax)
-                        & (np.abs(xxi) <= xmax)
-                    )
+                    ind = ind & (check == np.min(check[iin]))
 
-                    if np.sum(ind) == 0:
-                        ind = np.argmin(np.abs(thetai)**2 + np.abs(xxi)**2)
-                    elif np.sum(ind) > 1:
+                    if np.sum(ind) > 1:
+
                         msg = f"No / several solutions found: {ind.sum()}"
                         _debug_cylindrical(
                             pt_x=pt_x,
@@ -250,7 +303,7 @@ def _get_pts2pt(
                             pts_x=pts_x[ii],
                             pts_y=pts_y[ii],
                             pts_z=pts_z[ii],
-                            kk=kk,
+                            kk=ki,
                             O=O,
                             rc=rc,
                             ABx=ABx[ii],
@@ -265,8 +318,8 @@ def _get_pts2pt(
                             theta=thetai,
                             xmax=xmax,
                             thetamax=thetamax,
-                            check=check,
                             ind=ind,
+                            check=check,
                         )
                         raise Exception(msg)
 
@@ -345,6 +398,7 @@ def _get_pts2pt(
 
             # get k
             for ii in range(pts_x.size):
+
                 kk, Ex, Ey, Ez = _common_kE(
                     C0[ii], C1[ii], C2[ii], C3[ii], A,
                     pt_x, pt_y, pt_z,
@@ -437,6 +491,17 @@ def _get_pts2pt(
 # #################################################################
 
 
+def _kminmax_plane(
+    kk=None,
+    sca=None,
+    sign=None,
+    kmin=None,
+    kmax=None,
+):
+
+    return kmin, kmax
+
+
 def _common_coefs(rc=None, ll=None, OA2=None, OAe=None, ez2=None):
     A = (rc**2 - OA2) * OA2
     B = 2* ll * rc**2 * OAe
@@ -469,6 +534,7 @@ def _common_kE(
     ABx=None, ABy=None, ABz=None,
 ):
     kk = np.roots(np.r_[C0, C1, C2, C3, A])
+
     kk = np.real(kk[np.isreal(kk)])
     kk = kk[(kk > 0.) & (kk < 1.)]
 
@@ -476,6 +542,163 @@ def _common_kE(
     Ey = pt_y + kk*ABy
     Ez = pt_z + kk*ABz
     return kk, Ex, Ey, Ez
+
+
+def _common_kE2(
+    Ax=None,
+    Ay=None,
+    Az=None,
+    Bx=None,
+    By=None,
+    Bz=None,
+    kk=None,
+    rc=None,
+    O=None,
+    eax=None,
+    iin=None,
+    check=None,
+    ki=None,
+    C0=None,
+    C1=None,
+    C2=None,
+    C3=None,
+    A=None,
+    # limits
+    nin=None,
+    thetai=None,
+    xxi=None,
+    thetamax=None,
+    xmax=None,
+):
+
+    Ex = Ax + kk*(Bx - Ax)
+    Ey = Ay + kk*(By - Ay)
+    Ez = Az + kk*(Bz - Az)
+
+    OEzx = (Ey - O[1])*eax[2] - (Ez - O[2])*eax[1]
+    OEzy = (Ez - O[2])*eax[0] - (Ex - O[0])*eax[2]
+    OEzz = (Ex - O[0])*eax[1] - (Ey - O[1])*eax[0]
+    OEzn = np.sqrt(OEzx**2 + OEzy**2 + OEzz**2)
+
+    nix = (OEzy * eax[2] - OEzz * eax[1]) / OEzn
+    niy = (OEzz * eax[0] - OEzx * eax[2]) / OEzn
+    niz = (OEzx * eax[1] - OEzy * eax[0]) / OEzn
+
+    xx = (
+        (Ex - O[0])*eax[0]
+        + (Ey - O[1])*eax[1]
+        + (Ez - O[2])*eax[2]
+    )
+    Dx = O[0] + xx*eax[0] - rc*nix
+    Dy = O[1] + xx*eax[1] - rc*niy
+    Dz = O[2] + xx*eax[2] - rc*niz
+
+    DAn = (Ax - Dx)*nix + (Ay - Dy)*niy + (Az - Dz)*niz
+    DBn = (Bx - Dx)*nix + (By - Dy)*niy + (Bz - Dz)*niz
+    DA = np.sqrt((Ax - Dx)**2 + (Ay - Dy)**2 + (Az - Dz)**2)
+    DB = np.sqrt((Bx - Dx)**2 + (By - Dy)**2 + (Bz - Dz)**2)
+
+    ex = (Bx - Ax)
+    ey = (By - Ay)
+    ez = (Bz - Az)
+    enorm = np.sqrt(ex**2 + ey**2 + ez**2)
+    ex = ex / enorm
+    ey = ey / enorm
+    ez = ez / enorm
+
+    dE = np.sqrt((Dx - Ex)**2 + (Dy - Ey)**2 + (Dz - Ez)**2)
+    ll = np.sqrt((Ax - Bx)**2 + (Ay - By)**2 + (Az - Bz)**2)
+    en = ex*nix + ey*niy + ez*niz
+
+    eq2 = (2*kk - 1)*dE + 2.*kk*(1-kk)*ll*en
+
+    eq4 = C0*kk**4 + C1*kk**3 + C2*kk**2 + C3*kk + A
+
+    c0 = 4*ll**2*en**2
+    c1 = -8*ll**2*en**2
+    c2 = 4*(ll**2*en**2 - dE**2)
+    c3 = 4*dE**2
+    aa = -dE**2
+    eq4bis = c0*kk**4 + c1*kk**3 + c2*kk**2 + c3*kk + aa
+
+    # limits
+    theta = np.arctan2(
+        (nin[1]*niz - nin[2]*niy)*eax[0]
+        + (nin[2]*nix - nin[0]*niz)*eax[1]
+        + (nin[0]*niy - nin[1]*nix)*eax[2],
+        nix*nin[0] + niy*nin[1] + niz*nin[2],
+    )
+    xx = (
+        (Ex - O[0])*eax[0]
+        + (Ey - O[1])*eax[1]
+        + (Ez - O[2])*eax[2]
+    )
+
+    dist = np.abs(thetai)**2 + np.abs(xxi)**2
+
+    import scipy.interpolate as scpinterp
+
+    bs = scpinterp.InterpolatedUnivariateSpline(
+        kk, DAn*DB - DBn*DA, k=3,
+    )
+
+    roots = bs.roots()
+    Exr = Ax + roots*(Bx - Ax)
+    Eyr = Ay + roots*(By - Ay)
+    Ezr = Az + roots*(Bz - Az)
+    OEzxr = (Eyr - O[1])*eax[2] - (Ezr - O[2])*eax[1]
+    OEzyr = (Ezr - O[2])*eax[0] - (Exr - O[0])*eax[2]
+    OEzzr = (Exr - O[0])*eax[1] - (Eyr - O[1])*eax[0]
+    OEznr = np.sqrt(OEzxr**2 + OEzyr**2 + OEzzr**2)
+
+    nixr = (OEzyr * eax[2] - OEzzr * eax[1]) / OEznr
+    niyr = (OEzzr * eax[0] - OEzxr * eax[2]) / OEznr
+    nizr = (OEzxr * eax[1] - OEzyr * eax[0]) / OEznr
+    thetar = np.arctan2(
+        (nin[1]*nizr - nin[2]*niyr)*eax[0]
+        + (nin[2]*nixr - nin[0]*nizr)*eax[1]
+        + (nin[0]*niyr - nin[1]*nixr)*eax[2],
+        nixr*nin[0] + niyr*nin[1] + nizr*nin[2],
+    )
+
+    import matplotlib.pyplot as plt
+    # plt.figure()
+    # plt.plot(
+        # kk, c0/C0,
+        # kk, c1/C1,
+        # kk, c2/C2,
+        # kk, c3/C3,
+        # kk, aa/A,
+    # )
+    plt.figure()
+    plt.plot(
+        kk, xx, '-b',
+        kk, theta, '-r',
+        ki, xxi, 'ob',
+        ki, thetai, 'or',
+        roots, thetar, 'xr',
+    )
+    plt.gca().axhspan(-thetamax, thetamax, fc='r', ls='--', alpha=0.2)
+    plt.gca().axhspan(-xmax, xmax, fc='b', ls='--', alpha=0.2)
+
+    plt.figure()
+    plt.plot(
+        kk, DAn*DB, '-r',
+        kk, DBn*DA, '-b',
+        kk, DAn*DB - DBn*DA, '.-k',
+    )
+    plt.plot(kk, eq2, '.-m', label='eq2')
+    plt.plot(kk, eq2**2, '.-c', label='eq22')
+    plt.plot(kk, eq4, '.-g', label='eq4')
+    plt.gca().axhline(0, ls='--', c='k')
+    for kii in ki:
+        plt.gca().axvline(kii, c='k', ls='--')
+    for rr in roots:
+        plt.gca().axvline(rr, c='r', ls='--')
+
+    print(iin)
+    print(check)
+    import pdb; pdb.set_trace()     # DB
 
 
 def _common_check(
@@ -490,13 +713,9 @@ def _common_check(
     kk=None,
     rc=None,
 ):
+    # degree 2
     en = - (ABx * nox + ABy * noy + ABz * noz) / ll
-    check = (2*kk - 1)*(rc - norm) + 2*kk*(1-kk)*ll*en
-
-    if np.sum(np.abs(check) < 1e-6) == 0:
-        raise Exception(f"Unaccurate reflection, check = {check}")
-
-    return np.abs(check) < 1e-6
+    return np.abs( (2*kk - 1)*(rc - norm) + 2*kk*(1-kk)*ll*en )
 
 
 # #################################################################
