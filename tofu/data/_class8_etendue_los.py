@@ -629,7 +629,7 @@ def _loop_on_pix(
 
             for jj in range(nap_post):
 
-                # project convex hull on post plane
+                # project on post plane
                 p0, p1 = lfunc_post[jj][0](
                     pt_x=Dx,
                     pt_y=Dy,
@@ -655,27 +655,29 @@ def _loop_on_pix(
                         poly_z=lpoly_post[jj][2],
                     )
 
+                # intersection
                 p_a2 = p_a2 & plg.Polygon(np.array([p0, p1]).T)
                 if p_a2.nPoints() < 3:
                     p_a2 = None
                     isok = False
                     break
 
+                # shrink for safety
+                p_a2.scale(1.-1e-6, 1-1e-6)
+
+                # add points
                 p0, p1 = np.array(p_a2.contour(0)).T
                 p0, p1 = _compute._interp_poly(
                     p0=p0,
                     p1=p1,
-                    add_points=5,
+                    add_points=10,
                     mode='min',
                     isclosed=False,
                     closed=False,
                     ravel=False,
                 )[:2]
 
-                # shrink and back to 3d
-                patemp = plg.Polygon(np.array([p0, p1]).T)
-                patemp.scale(1.-1e-6, 1-1e-6)
-                p0, p1 = np.array(patemp.contour(0)).T
+                # back to 3d
                 px, py, pz = lfunc_post[jj][1](x0=p0, x1=p1)
 
                 # get reflected aperture
@@ -693,7 +695,7 @@ def _loop_on_pix(
                     )[2:]
 
                 else:
-                    px2, py2, pz2 = reflect_pts2pt(
+                    px, py, pz = reflect_pts2pt(
                         pt_x=ldet[ii]['cents_x'],
                         pt_y=ldet[ii]['cents_y'],
                         pt_z=ldet[ii]['cents_z'],
@@ -704,6 +706,7 @@ def _loop_on_pix(
                         # surface
                         return_x01=False,
                     )
+                iok = np.isfinite(px)
 
                 if jj < nap_post - 1:
                     # update
@@ -718,20 +721,31 @@ def _loop_on_pix(
 
                 else:
                     # project on plane
-                    p02, p12 = func_to_plane_pre(
+                    p0, p1 = func_to_plane_pre(
                         pt_x=ldet[ii]['cents_x'],
                         pt_y=ldet[ii]['cents_y'],
                         pt_z=ldet[ii]['cents_z'],
-                        poly_x=px2,
-                        poly_y=py2,
-                        poly_z=pz2,
+                        poly_x=px[iok],
+                        poly_y=py[iok],
+                        poly_z=pz[iok],
                     )
-                    p_a = p_a & plg.Polygon(np.array([p02, p12]).T)
 
-                if lop_post[0] == 'cryst1-slit':
-                    import pdb; pdb.set_trace()     # DB
-                    a = 0
-                    pass
+                    if lop_post[0] == 'cryst1-slit':
+                        import matplotlib.pyplot as plt
+                        plt.figure()
+                        plt.plot(
+                            np.array(p_a.contour(0))[:, 0],
+                            np.array(p_a.contour(0))[:, 1],
+                            '.-k',
+                            p0,
+                            p1,
+                            '.-r',
+                        )
+                        import pdb; pdb.set_trace()     # DB
+
+                    p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
+                    if p_a.nPoints() < 3:
+                        isok = False
 
         # -------------------------
         # compute solid angle + los

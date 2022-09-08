@@ -490,6 +490,55 @@ $$
 \right.
 $$
 
+\subsection{Particular case: E on axis}
+
+If we know $E$ is on the axis, then $n$ is not defined and $d_E = r$.
+The equation becomes an equation on $n$ only:
+
+$$
+    (\DA\cdot\n)^2 \|DB\|^2 = (\DB\cdot\n)^2 \|DA\|^2
+$$
+
+With:
+$$
+\left\{
+\begin{array}{ll}
+    \DA\cdot\n = r - kl\en\\
+    \DB\cdot\n = r + (1-k)l\en\\
+    \|\DA\|^2 = r^2 + k^2l^2 - 2rkl\en\\
+    \|\DB\|^2 = r^2 + (1-k)^2l^2 + 2r(1-k)l\en\\
+\end{array}
+\right.
+$$
+
+Which translates into:
+$$
+\begin{array}{ll}
+    & (\DA\cdot\n)^2 \|DB\|^2 = (\DB\cdot\n)^2 \|DA\|^2\\
+    \Leftrightarrow &
+    (2k - 1)r + 2k(1 - k)l\en(k) = 0\\
+    \Leftrightarrow &
+    \en(k) = \frac{(1 - 2k)r}{2k(1 - k)l}\\
+\end{array}
+$$
+
+
+Since:
+$$
+\ud{n} = -(\cos(\theta)\ud{n}_{out} + \sin(\theta)\ud{e}_1)
+$$
+
+We can write:
+$$
+\cos(\theta)\ud{n}_{out}\cdot\e + \sin(\theta)\ud{e}_1\cdot\e = -\frac{(1 - 2k)r}{2k(1 - k)l}
+$$
+
+or:
+$$
+\cos(\theta - \beta) = -\frac{(1 - 2k)r}{2k(1 - k)l}
+$$
+
+
 \newpage
 \section{Sphere}
 

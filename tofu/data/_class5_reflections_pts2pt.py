@@ -151,6 +151,7 @@ def _get_pts2pt(
             # ------------------------------------------
             # Get local coordinates of reflection points
 
+            A = np.r_[pt_x, pt_y, pt_z]
             Dx, Dy, Dz, xx, theta = _common_prepare(nb=pts_x.size)
 
             em = np.cos(thetamax)*(erot) + np.sin(thetamax)*(-nin)
@@ -162,34 +163,31 @@ def _get_pts2pt(
                     (O + xmax*eax, -eax),
                     (O, em),
                     (O, -eM),
-                    # (O, -nin)
                 ),
                 (
                     (O - xmax*eax, eax),
                     (O + xmax*eax, -eax),
                     (O, -em),
                     (O, eM),
-                    # (O, nin)
                 ),
             ]
             for ii in range(pts_x.size):
+                B = np.r_[pts_x[ii], pts_y[ii], pts_z[ii]],
+                AB = B - A
+                eAB = AB / np.linalg.norm(AB)
 
-                # mindist and associciated k
+                # mindist and associated k
                 mdist_k, mdist = _mindist_2lines(
-                    A=np.r_[pt_x, pt_y, pt_z],
-                    B=np.r_[pts_x[ii], pts_y[ii], pts_z[ii]],
+                    A=A,
+                    B=B,
                     O=O,
                     eax=eax,
                 )
 
                 # compute kmin, kmax
-                kk = _kminmax_plane(
-                    pt_x=pt_x,
-                    pt_y=pt_y,
-                    pt_z=pt_z,
-                    ABx=pts_x[ii] - pt_x,
-                    ABy=pts_y[ii] - pt_y,
-                    ABz=pts_z[ii] - pt_z,
+                onaxis, kaxis, kk = _kminmax_plane(
+                    A=A,
+                    B=B,
                     lzones=lzones,
                     ii=ii,
                     nin=nin,
@@ -198,100 +196,131 @@ def _get_pts2pt(
                     mdist_k=mdist_k,
                 )
 
-                if np.isscalar(kk):
+                if onaxis is True:
+                    continue
+                    # ll = np.linalg.norm(B-A)
+                    # en = (1 - 2.*mdist_k)*rc / (2.*mdist_k*(1 - mdist_k) * ll)
+                    # if np.abs(en) < 1:
+                        # beta = np.arctan2(
+                            # -np.sum(erot*eAB),
+                            # np.sum(-nin*eAB),
+                        # )
+                        # if np.abs(np.arccos(-en) + beta) < thetamax:
+                            # theta[ii] = np.arccos(-en) + beta
+                        # elif np.abs(-np.arccos(-en) + beta) < thetamax:
+                            # theta[ii] = -np.arccos(-en) + beta
+                        # else:
+                            # onaxis = False
+                    # else:
+                        # onaxis = False
 
-                    (
-                        nix, niy, niz,
-                        D0x, D0y, D0z,
-                        xxi,
-                    ) = _get_Dnin_from_k(
-                        O=O, eax=eax,
-                        Ax=pt_x, Ay=pt_y, Az=pt_z,
-                        Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                        kk=kk,
-                        rc=rc,
-                        nin=nin,
-                    )
+                    # if onaxis is True:
+                        # E = np.r_[pt_x, pt_y, pt_z] + mdist_k*AB
+                        # xx[ii] = np.sum((E - O) * eax)
+                        # no = np.cos(theta[ii])*(-nin) + np.sin(theta[ii])*erot
+                        # Dx[ii] = O[0] + xx[ii]*eax[0] + rc*no[0]
+                        # Dy[ii] = O[1] + xx[ii]*eax[1] + rc*no[1]
+                        # Dz[ii] = O[2] + xx[ii]*eax[2] + rc*no[2]
 
-                    # derive DAn, DB, DBn, DA
-                    eq = _get_DADB(
-                        Ax=pt_x, Ay=pt_y, Az=pt_z,
-                        Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                        Dx=D0x, Dy=D0y, Dz=D0z,
-                        nix=nix, niy=niy, niz=niz,
-                    )
+                if onaxis is False and kk is not None:
 
-                    if np.abs(eq) < 1.e-2:
-                        Dx[ii] = D0x
-                        Dy[ii] = D0y
-                        Dz[ii] = D0z
-                        xx[ii] = xxi
-                    else:
+                    if kk is None:
                         import pdb; pdb.set_trace()     # DB
-                        pass
 
-                else:
+                    if np.isscalar(kk):
 
-                    # nin
-                    (
-                        nix, niy, niz,
-                        Dxi, Dyi, Dzi,
-                        # D1x, D1y, D1z,
-                        xxi,
-                    ) = _get_Dnin_from_k(
-                        O=O, eax=eax,
-                        Ax=pt_x, Ay=pt_y, Az=pt_z,
-                        Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                        kk=kk, rc=rc,
-                        nin=nin,
+                        (
+                            nix, niy, niz,
+                            D0x, D0y, D0z,
+                            xxi,
+                        ) = _get_Dnin_from_k(
+                            O=O, eax=eax,
+                            Ax=pt_x, Ay=pt_y, Az=pt_z,
+                            Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
+                            kk=kk,
+                            rc=rc,
+                            nin=nin,
+                        )
+
+                        # derive DAn, DB, DBn, DA
+                        eq = _get_DADB(
+                            Ax=pt_x, Ay=pt_y, Az=pt_z,
+                            Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
+                            Dx=D0x, Dy=D0y, Dz=D0z,
+                            nix=nix, niy=niy, niz=niz,
+                        )
+
+                        if np.abs(eq) < 1.e-2:
+                            Dx[ii] = D0x
+                            Dy[ii] = D0y
+                            Dz[ii] = D0z
+                            xx[ii] = xxi
+                        else:
+                            import pdb; pdb.set_trace()     # DB
+                            pass
+
+                    else:
+
+                        # nin
+                        (
+                            nix, niy, niz,
+                            Dxi, Dyi, Dzi,
+                            # D1x, D1y, D1z,
+                            xxi,
+                        ) = _get_Dnin_from_k(
+                            O=O, eax=eax,
+                            Ax=pt_x, Ay=pt_y, Az=pt_z,
+                            Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
+                            kk=kk, rc=rc,
+                            nin=nin,
+                        )
+
+                        # derive DAn, DB, DBn, DA
+                        eq = _get_DADB(
+                            Ax=pt_x, Ay=pt_y, Az=pt_z,
+                            Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
+                            Dx=Dxi, Dy=Dyi, Dz=Dzi,
+                            nix=nix, niy=niy, niz=niz,
+                        )
+
+                        # derive roots
+                        roots = scpinterp.InterpolatedUnivariateSpline(
+                            kk,
+                            eq,
+                            k=3,
+                        ).roots()
+
+                        if roots.size != 1 or np.abs(theta[ii]) > thetamax:
+                            if roots.size > 1:
+                                ra, rb = np.polyfit(kk, eq, 1)
+                                roots = np.r_[-rb/ra]
+
+                            _debug_cylindrical(**locals())
+                            msg = f"{roots.size} solutions for {ii} / {pts_x.size}"
+                            print(msg)
+                            continue
+                            # raise Exception(msg)
+
+                        # nin, xx, D
+                        (
+                            nix, niy, niz,
+                            Dx[ii], Dy[ii], Dz[ii], xx[ii],
+                        ) = _get_Dnin_from_k(
+                            O=O, eax=eax,
+                            Ax=pt_x, Ay=pt_y, Az=pt_z,
+                            Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
+                            kk=roots[0],
+                            rc=rc,
+                            nin=nin,
+                        )
+
+                    # theta, xx
+                    theta[ii] = np.arctan2(
+                        (nin[1]*niz - nin[2]*niy)*eax[0]
+                        + (nin[2]*nix - nin[0]*niz)*eax[1]
+                        + (nin[0]*niy - nin[1]*nix)*eax[2],
+                        nix*nin[0] + niy*nin[1] + niz*nin[2],
                     )
-
-                    # derive DAn, DB, DBn, DA
-                    eq = _get_DADB(
-                        Ax=pt_x, Ay=pt_y, Az=pt_z,
-                        Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                        Dx=Dxi, Dy=Dyi, Dz=Dzi,
-                        nix=nix, niy=niy, niz=niz,
-                    )
-
-                    # derive roots
-                    roots = scpinterp.InterpolatedUnivariateSpline(
-                        kk,
-                        eq,
-                        k=3,
-                    ).roots()
-
-                    if roots.size != 1 or np.abs(theta[ii]) > thetamax:
-                        if roots.size > 1:
-                            ra, rb = np.polyfit(kk, eq, 1)
-                            roots = np.r_[-rb/ra]
-
-                        _debug_cylindrical(**locals())
-                        msg = f"{roots.size} solutions for {ii} / {pts_x.size}"
-                        print(msg)
-                        continue
-                        # raise Exception(msg)
-
-                    # nin, xx, D
-                    (
-                        nix, niy, niz,
-                        Dx[ii], Dy[ii], Dz[ii], xx[ii],
-                    ) = _get_Dnin_from_k(
-                        O=O, eax=eax,
-                        Ax=pt_x, Ay=pt_y, Az=pt_z,
-                        Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                        kk=roots[0],
-                        rc=rc,
-                        nin=nin,
-                    )
-
-                # theta, xx
-                theta[ii] = np.arctan2(
-                    (nin[1]*niz - nin[2]*niy)*eax[0]
-                    + (nin[2]*nix - nin[0]*niz)*eax[1]
-                    + (nin[0]*niy - nin[1]*nix)*eax[2],
-                    nix*nin[0] + niy*nin[1] + niz*nin[2],
-                )
 
             # return
             if return_x01:
@@ -458,8 +487,8 @@ def _mindist_2lines(A=None, B=None, O=None, eax=None):
     OAe2= np.sum(OAe**2)
     ABe2= np.sum(ABe**2)
     OAeABe = np.sum(OAe * ABe)
-    xx = -OAeABe/ABe2
-    return xx, OAe2 - OAeABe**2/ABe2
+    kk = -OAeABe/ABe2
+    return kk, OAe2 - OAeABe**2/ABe2
 
 
 def _kminmax_ptinz(pt=None, lp=None):
@@ -469,12 +498,8 @@ def _kminmax_ptinz(pt=None, lp=None):
 
 
 def _kminmax_plane(
-    pt_x=None,
-    pt_y=None,
-    pt_z=None,
-    ABx=None,
-    ABy=None,
-    ABz=None,
+    A=None,
+    B=None,
     lzones=None,
     kmin=0,
     kmax=1,
@@ -492,9 +517,7 @@ def _kminmax_plane(
     if nk is None:
         nk = 100
 
-    A = np.r_[pt_x, pt_y, pt_z]
-    AB = np.r_[ABx, ABy, ABz]
-    B = A + AB
+    AB = B - A
 
     # ---------------
     # get lkin, lkout
@@ -514,9 +537,9 @@ def _kminmax_plane(
 
         # check transitions
         for jj, (oo, ep) in enumerate(lp):
-            AO = oo - np.r_[pt_x, pt_y, pt_z]
+            AO = oo - A
             AOe = np.sum(AO*ep)
-            ABe = ABx * ep[0] + ABy * ep[1] + ABz * ep[2]
+            ABe = np.sum(AB * ep)
             if np.abs(ABe) < 1e-14:
                 continue
             kk = AOe / ABe
@@ -539,30 +562,37 @@ def _kminmax_plane(
     # ---------------
     # derive kmin, kmax
 
+    if mdist < 1.e-14:
+        onaxis = True
+        kaxis = mdist_k
+    else:
+        onaxis = False
+        kaxis = None
+        kk = None
+
     if np.sum(inzone) == 0:
-        if np.abs(mdist) < 1.e-12:
-            kk = mdist_k + 100e-6 * np.linspace(-1, 1, 6)
-            import pdb; pdb.set_trace()     # DB
-        else:
-            import pdb; pdb.set_trace()     # DB
-            return None
+        kk = None
 
     else:
         kin= kin[inzone]
         kout= kout[inzone]
 
-        if np.sum(inzone) > 1:
-            inds = np.argsort(kin)
-            kk = []
-            for ss in inds:
+        inds = np.argsort(kin)
+        kk = []
+        for ss in inds:
+            if kout[ss] - kin[ss] > 1.e-12:
                 kk.append(np.linspace(kin[ss], kout[ss], nk))
-            kk = np.concatenate(tuple(kk))
-            import pdb; pdb.set_trace()     # DB
-            print(np.sum(inzone))
-        else:
-            kk = np.linspace(kin[0], kout[0], nk)
+            elif onaxis is True:
+                pass
+            else:
+                kk.append([0.5*(kout[ss] + kin[ss])])
 
-    return kk
+        if len(kk) > 0:
+            kk = np.concatenate(tuple(kk))
+        else:
+            kk = None
+
+    return onaxis, kaxis, kk
 
 
 def _get_Dnin_from_k(
