@@ -107,9 +107,9 @@ def compute_etendue_los(
             spec_key = optics[ispectro[0]]
             spec_cls = optics_cls[ispectro[0]]
             dg = coll.dobj[spec_cls][spec_key]['dgeom']
-            spectro_planar = dg['type'] == 'planar'
-            reflect_pts2pt = coll.get_optics_reflect_pts2pt(spec_key)
-            reflect_ptsvect = coll.get_optics_reflect_ptsvect(spec_key)
+            spectro_pts2pt = coll.get_optics_spectro_pts2pt(spec_key)
+            spectro_ptsvect = coll.get_optics_spectro_ptsvect(spec_key)
+            spectro_x01toxyz = coll.get_optics_x01toxyz(spec_key)
 
         else:
             raise NotImplementedError()
@@ -121,7 +121,9 @@ def compute_etendue_los(
         lop_post_cls = []
         iop_ref = 1
 
-        spectro_planar, reflect_pts2pt, reflect_ptsvect = None, None, None
+        spectro_pts2pt = None
+        spectro_ptsvect = None
+        spectro_x01toxyz = None
 
     cref = optics_cls[iop_ref]
     kref = optics[iop_ref]
@@ -161,9 +163,9 @@ def compute_etendue_los(
         # optics
         lop_pre=lop_pre,
         lop_pre_cls=lop_pre_cls,
-        spectro_planar=spectro_planar,
-        reflect_pts2pt=reflect_pts2pt,
-        reflect_ptsvect=reflect_ptsvect,
+        spectro_pts2pt=spectro_pts2pt,
+        spectro_ptsvect=spectro_ptsvect,
+        spectro_x01toxyz=spectro_x01toxyz,
         lop_post=lop_post,
         lop_post_cls=lop_post_cls,
         # projections
@@ -502,8 +504,9 @@ def _loop_on_pix(
     lop_pre_cls=None,
     # spectro optics
     spectro_planar=None,
-    reflect_pts2pt=None,
-    reflect_ptsvect=None,
+    spectro_pts2pt=None,
+    spectro_ptsvect=None,
+    spectro_x01toxyz=None,
     # optics after spectro
     lop_post=None,
     lop_post_cls=None,
@@ -618,7 +621,7 @@ def _loop_on_pix(
             vz = vz / vnorm
 
             # project contours of crystal onto post-crytal plane
-            Dx, Dy, Dz, vx, vy, vz = reflect_ptsvect(
+            Dx, Dy, Dz, vx, vy, vz = spectro_ptsvect(
                 pts_x=ldet[ii]['cents_x'],
                 pts_y=ldet[ii]['cents_y'],
                 pts_z=ldet[ii]['cents_z'],
@@ -663,10 +666,11 @@ def _loop_on_pix(
                     break
 
                 # shrink for safety
-                p_a2.scale(1.-1e-6, 1-1e-6)
+                p_a2.scale(1.-1e-5, 1-1e-5)
 
                 # add points
                 p0, p1 = np.array(p_a2.contour(0)).T
+                cent01 = p_a2.center()
                 p0, p1 = _compute._interp_poly(
                     p0=p0,
                     p1=p1,
@@ -681,36 +685,22 @@ def _loop_on_pix(
                 px, py, pz = lfunc_post[jj][1](x0=p0, x1=p1)
 
                 # get reflected aperture
-                if spectro_planar is True:
-                    px, py, pz = reflect_pts2pt(
-                        pt_x=ldet[ii]['cents_x'],
-                        pt_y=ldet[ii]['cents_y'],
-                        pt_z=ldet[ii]['cents_z'],
-                        # poly
-                        pts_x=px,
-                        pts_y=py,
-                        pts_z=pz,
-                        # surface
-                        return_xyz=True,
-                    )[2:]
-
-                else:
-                    px, py, pz = reflect_pts2pt(
-                        pt_x=ldet[ii]['cents_x'],
-                        pt_y=ldet[ii]['cents_y'],
-                        pt_z=ldet[ii]['cents_z'],
-                        # poly
-                        pts_x=px,
-                        pts_y=py,
-                        pts_z=pz,
-                        # surface
-                        return_x01=False,
-                    )
-                iok = np.isfinite(px)
+                px, py, pz, x0, x1 = spectro_pts2pt(
+                    pt_x=ldet[ii]['cents_x'],
+                    pt_y=ldet[ii]['cents_y'],
+                    pt_z=ldet[ii]['cents_z'],
+                    # poly
+                    pts_x=px,
+                    pts_y=py,
+                    pts_z=pz,
+                    # surface
+                    return_xyz=True,
+                    returnx01=True,
+                )
 
                 if jj < nap_post - 1:
                     # update
-                    Dx, Dy, Dz, vx, vy, vz = reflect_ptsvect(
+                    Dx, Dy, Dz, vx, vy, vz = spectro_ptsvect(
                         pts_x=ldet[ii]['cents_x'],
                         pts_y=ldet[ii]['cents_y'],
                         pts_z=ldet[ii]['cents_z'],
@@ -725,10 +715,25 @@ def _loop_on_pix(
                         pt_x=ldet[ii]['cents_x'],
                         pt_y=ldet[ii]['cents_y'],
                         pt_z=ldet[ii]['cents_z'],
-                        poly_x=px[iok],
-                        poly_y=py[iok],
-                        poly_z=pz[iok],
+                        poly_x=px,
+                        poly_y=py,
+                        poly_z=pz,
                     )
+                    centroid = plg.Polygon(np.array([x0, x1])).center()
+                    centroid = spectro_x01toxyz(centroid)
+                    centroid = func_to_plane_pre(
+                        pt_x=ldet[ii]['cents_x'],
+                        pt_y=ldet[ii]['cents_y'],
+                        pt_z=ldet[ii]['cents_z'],
+                        poly_x=centroid[0],
+                        poly_y=centtoid[1],
+                        poly_z=centroid[2],
+                    )
+
+
+                    p_a = p_a & plg.Polygon(np.array([p02, p12]).T)
+                    if p_a.nPoints() < 3:
+                        isok = False
 
                     if lop_post[0] == 'cryst1-slit':
                         import matplotlib.pyplot as plt
@@ -737,15 +742,12 @@ def _loop_on_pix(
                             np.array(p_a.contour(0))[:, 0],
                             np.array(p_a.contour(0))[:, 1],
                             '.-k',
-                            p0,
-                            p1,
-                            '.-r',
+                            p_a.center()[0:1],
+                            p_a.center()[1:2],
+                            'or',
                         )
                         import pdb; pdb.set_trace()     # DB
 
-                    p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
-                    if p_a.nPoints() < 3:
-                        isok = False
 
         # -------------------------
         # compute solid angle + los

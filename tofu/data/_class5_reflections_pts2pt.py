@@ -6,7 +6,12 @@ import warnings
 
 import numpy as np
 import scipy.interpolate as scpinterp
+import matplotlib.pyplot as plt
+
+
+import Polygon as plg
 import datastock as ds
+
 
 
 # ##############################################################
@@ -55,6 +60,7 @@ def _get_pts2pt(
             e1=dgeom['e1'],
             # return
             return_xyz=None,
+            return_x01=None,
         ):
             """
 
@@ -105,8 +111,11 @@ def _get_pts2pt(
                 Dy = cent[1] + x0 * e0[1] + x1*e1[1]
                 Dz = cent[2] + x0 * e0[2] + x1*e1[2]
 
-                return x0, x1, Dx, Dy, Dz
-            else:
+            if returnxzy and returnx01:
+                return Dx, Dy, Dz, x0, x1
+            elif returnxzy:
+                return Dx, Dy, Dz
+            elif returnx01:
                 return x0, x1
 
     # ----------------
@@ -138,6 +147,7 @@ def _get_pts2pt(
             # local coordinates
             nin=dgeom['nin'],
             # return
+            return_xyz=None,
             return_x01=None,
             # number of k for interpolation
             nk=None,
@@ -176,157 +186,102 @@ def _get_pts2pt(
                 AB = B - A
                 eAB = AB / np.linalg.norm(AB)
 
-                # mindist and associated k
-                mdist_k, mdist = _mindist_2lines(
-                    A=A,
-                    B=B,
-                    O=O,
-                    eax=eax,
-                )
-
                 # compute kmin, kmax
-                onaxis, kaxis, kk = _kminmax_plane(
+                kk = _kminmax_plane(
                     A=A,
                     B=B,
                     lzones=lzones,
                     ii=ii,
                     nin=nin,
                     nk=nk,
-                    mdist=mdist,
-                    mdist_k=mdist_k,
                 )
 
-                if onaxis is True:
+                if kk is None:
                     continue
-                    # ll = np.linalg.norm(B-A)
-                    # en = (1 - 2.*mdist_k)*rc / (2.*mdist_k*(1 - mdist_k) * ll)
-                    # if np.abs(en) < 1:
-                        # beta = np.arctan2(
-                            # -np.sum(erot*eAB),
-                            # np.sum(-nin*eAB),
-                        # )
-                        # if np.abs(np.arccos(-en) + beta) < thetamax:
-                            # theta[ii] = np.arccos(-en) + beta
-                        # elif np.abs(-np.arccos(-en) + beta) < thetamax:
-                            # theta[ii] = -np.arccos(-en) + beta
-                        # else:
-                            # onaxis = False
-                    # else:
-                        # onaxis = False
 
-                    # if onaxis is True:
-                        # E = np.r_[pt_x, pt_y, pt_z] + mdist_k*AB
-                        # xx[ii] = np.sum((E - O) * eax)
-                        # no = np.cos(theta[ii])*(-nin) + np.sin(theta[ii])*erot
-                        # Dx[ii] = O[0] + xx[ii]*eax[0] + rc*no[0]
-                        # Dy[ii] = O[1] + xx[ii]*eax[1] + rc*no[1]
-                        # Dz[ii] = O[2] + xx[ii]*eax[2] + rc*no[2]
+                # nin
+                (
+                    nix, niy, niz,
+                    Dxi, Dyi, Dzi,
+                    # D1x, D1y, D1z,
+                    xxi,
+                ) = _get_Dnin_from_k(
+                    O=O, eax=eax,
+                    Ax=pt_x, Ay=pt_y, Az=pt_z,
+                    Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
+                    kk=kk, rc=rc,
+                    nin=nin,
+                )
 
-                if onaxis is False and kk is not None:
+                # derive DAn, DB, DBn, DA
+                eq = _get_DADB(
+                    Ax=pt_x, Ay=pt_y, Az=pt_z,
+                    Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
+                    Dx=Dxi, Dy=Dyi, Dz=Dzi,
+                    nix=nix, niy=niy, niz=niz,
+                )
 
-                    if kk is None:
-                        import pdb; pdb.set_trace()     # DB
+                # derive roots
+                roots = scpinterp.InterpolatedUnivariateSpline(
+                    kk,
+                    eq,
+                    k=3,
+                ).roots()
 
-                    if np.isscalar(kk):
+                if roots.size != 1 or np.abs(theta[ii]) > thetamax:
+                    msg = f"{roots.size} solutions for {ii} / {pts_x.size}"
+                    if roots.size > 1:
+                        ra, rb = np.polyfit(kk, eq, 1)
+                        roots = np.r_[-rb/ra]
+                    _debug_cylindrical(**locals())
+                    print(msg)
+                    continue
+                    # raise Exception(msg)
 
-                        (
-                            nix, niy, niz,
-                            D0x, D0y, D0z,
-                            xxi,
-                        ) = _get_Dnin_from_k(
-                            O=O, eax=eax,
-                            Ax=pt_x, Ay=pt_y, Az=pt_z,
-                            Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                            kk=kk,
-                            rc=rc,
-                            nin=nin,
-                        )
+                # nin, xx, D
+                (
+                    nix, niy, niz,
+                    Dx[ii], Dy[ii], Dz[ii], xx[ii],
+                ) = _get_Dnin_from_k(
+                    O=O, eax=eax,
+                    Ax=pt_x, Ay=pt_y, Az=pt_z,
+                    Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
+                    kk=roots[0],
+                    rc=rc,
+                    nin=nin,
+                )
 
-                        # derive DAn, DB, DBn, DA
-                        eq = _get_DADB(
-                            Ax=pt_x, Ay=pt_y, Az=pt_z,
-                            Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                            Dx=D0x, Dy=D0y, Dz=D0z,
-                            nix=nix, niy=niy, niz=niz,
-                        )
+                # theta, xx
+                theta[ii] = np.arctan2(
+                    (nin[1]*niz - nin[2]*niy)*eax[0]
+                    + (nin[2]*nix - nin[0]*niz)*eax[1]
+                    + (nin[0]*niy - nin[1]*nix)*eax[2],
+                    nix*nin[0] + niy*nin[1] + niz*nin[2],
+                )
 
-                        if np.abs(eq) < 1.e-2:
-                            Dx[ii] = D0x
-                            Dy[ii] = D0y
-                            Dz[ii] = D0z
-                            xx[ii] = xxi
-                        else:
-                            import pdb; pdb.set_trace()     # DB
-                            pass
 
-                    else:
+            if ii > 0 and np.abs(theta[ii] - theta[ii-1]) > 0.3*thetamax:
+                import pdb; pdb.set_trace()       # DB
+                a = 10
 
-                        # nin
-                        (
-                            nix, niy, niz,
-                            Dxi, Dyi, Dzi,
-                            # D1x, D1y, D1z,
-                            xxi,
-                        ) = _get_Dnin_from_k(
-                            O=O, eax=eax,
-                            Ax=pt_x, Ay=pt_y, Az=pt_z,
-                            Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                            kk=kk, rc=rc,
-                            nin=nin,
-                        )
+            # safety check
+            iok = np.isfinite(Dx)
+            Dx = Dx[iok]
+            Dy = Dy[iok]
+            Dz = Dz[iok]
+            theta = theta[iok]
+            xx = xx[iok]
 
-                        # derive DAn, DB, DBn, DA
-                        eq = _get_DADB(
-                            Ax=pt_x, Ay=pt_y, Az=pt_z,
-                            Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                            Dx=Dxi, Dy=Dyi, Dz=Dzi,
-                            nix=nix, niy=niy, niz=niz,
-                        )
-
-                        # derive roots
-                        roots = scpinterp.InterpolatedUnivariateSpline(
-                            kk,
-                            eq,
-                            k=3,
-                        ).roots()
-
-                        if roots.size != 1 or np.abs(theta[ii]) > thetamax:
-                            if roots.size > 1:
-                                ra, rb = np.polyfit(kk, eq, 1)
-                                roots = np.r_[-rb/ra]
-
-                            _debug_cylindrical(**locals())
-                            msg = f"{roots.size} solutions for {ii} / {pts_x.size}"
-                            print(msg)
-                            continue
-                            # raise Exception(msg)
-
-                        # nin, xx, D
-                        (
-                            nix, niy, niz,
-                            Dx[ii], Dy[ii], Dz[ii], xx[ii],
-                        ) = _get_Dnin_from_k(
-                            O=O, eax=eax,
-                            Ax=pt_x, Ay=pt_y, Az=pt_z,
-                            Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                            kk=roots[0],
-                            rc=rc,
-                            nin=nin,
-                        )
-
-                    # theta, xx
-                    theta[ii] = np.arctan2(
-                        (nin[1]*niz - nin[2]*niy)*eax[0]
-                        + (nin[2]*nix - nin[0]*niz)*eax[1]
-                        + (nin[0]*niy - nin[1]*nix)*eax[2],
-                        nix*nin[0] + niy*nin[1] + niz*nin[2],
-                    )
+            # TODO : find a way to hanbdle complex (self-intersection polygons)
+            # Exceptionally a polygon (xx, theta) can self-intersect
 
             # return
-            if return_x01:
+            if returnxzy and returnx01:
                 return Dx, Dy, Dz, xx, theta
-            else:
+            elif returnxzy:
                 return Dx, Dy, Dz
+            elif returnx01:
+                return xx, theta
 
     # ----------------
     #   Spherical
@@ -481,6 +436,7 @@ def _get_pts2pt(
 # #################################################################
 
 
+# Not used
 def _mindist_2lines(A=None, B=None, O=None, eax=None):
     OAe = np.cross(A - O, eax)
     ABe = np.cross(B - A, eax)
@@ -506,8 +462,6 @@ def _kminmax_plane(
     nin=None,
     ii=None,
     nk=None,
-    mdist=None,
-    mdist_k=None,
 ):
 
 
@@ -562,18 +516,8 @@ def _kminmax_plane(
     # ---------------
     # derive kmin, kmax
 
-    if mdist < 1.e-14:
-        onaxis = True
-        kaxis = mdist_k
-    else:
-        onaxis = False
-        kaxis = None
-        kk = None
-
-    if np.sum(inzone) == 0:
-        kk = None
-
-    else:
+    kk = None
+    if np.sum(inzone) > 0:
         kin= kin[inzone]
         kout= kout[inzone]
 
@@ -582,17 +526,13 @@ def _kminmax_plane(
         for ss in inds:
             if kout[ss] - kin[ss] > 1.e-12:
                 kk.append(np.linspace(kin[ss], kout[ss], nk))
-            elif onaxis is True:
-                pass
-            else:
-                kk.append([0.5*(kout[ss] + kin[ss])])
 
         if len(kk) > 0:
             kk = np.concatenate(tuple(kk))
         else:
             kk = None
 
-    return onaxis, kaxis, kk
+    return kk
 
 
 def _get_Dnin_from_k(
@@ -694,8 +634,6 @@ def _debug_cylindrical(
         + (nin[0]*niy - nin[1]*nix)*eax[2],
         nix*nin[0] + niy*nin[1] + niz*nin[2],
     )
-
-    import matplotlib.pyplot as plt
 
     #----------------
     #  plot xx, theta
