@@ -18,6 +18,7 @@ from . import _class5_compute as _compute
 from . import _class5_coordinates as _coordinates
 from . import _class5_reflections_pts2pt as _reflections_pts2pt
 from . import _class5_reflections_ptsvect as _reflections_ptsvect
+from . import _class5_projections as _projections
 
 
 __all__ = ['Crystal']

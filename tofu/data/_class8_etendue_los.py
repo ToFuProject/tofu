@@ -81,6 +81,21 @@ def compute_etendue_los(
     key_cam = optics[0]
     nd = len(ldet)
 
+    # ------------------------
+    # get equivalent apertures for all pixels
+
+    x0, x1 = coll.get_diagnostic_equivalent_aperture(
+        key=key,
+        # inital contour
+        add_points=5,
+        # options
+        convex=True,
+        harmonize=True,
+        reshape=False,
+        # plot
+        plot=False,
+    )
+
     # ------------------------------------
     # compute equivalent optics if spectro
 
@@ -145,6 +160,22 @@ def compute_etendue_los(
         )
         for cc, oo in zip(lop_post_cls, lop_post)
     ]
+
+
+    # ------------------------
+    # get equivalent apertures for all pixels
+
+    x0, x1 = coll.get_diagnostic_equivalent_aperture(
+        key=key,
+        # inital contour
+        add_points=5,
+        # options
+        convex=True,
+        harmonize=True,
+        reshape=False,
+        # plot
+        plot=False,
+    )
 
     # ------------------------
     # loop on pixels to get:
@@ -502,8 +533,9 @@ def _loop_on_pix(
     # optics before spectro
     lop_pre=None,
     lop_pre_cls=None,
+    # projection
+    project_func=None,
     # spectro optics
-    spectro_planar=None,
     spectro_pts2pt=None,
     spectro_ptsvect=None,
     spectro_x01toxyz=None,
@@ -569,240 +601,61 @@ def _loop_on_pix(
     # useful later for estimating the plane to be sample (numerical)
     pix_ap = []
 
-    for ii in range(nd):
 
-        isok = True
-        p_a = None
+    # -------------------------
+    # compute area, solid angle, los
 
-        # loop on pre-crystal apertures
-        for jj in range(nap_pre):
+    if isok is False:
+        pix_ap.append(None)
+        #continue
 
-            # ap
-            p0, p1 = func_to_plane_pre(
-                pt_x=ldet[ii]['cents_x'],
-                pt_y=ldet[ii]['cents_y'],
-                pt_z=ldet[ii]['cents_z'],
-                poly_x=lpoly_pre_x[jj],
-                poly_y=lpoly_pre_y[jj],
-                poly_z=lpoly_pre_z[jj],
-            )
+    else:
 
-            if p_a is None:
-                p_a = plg.Polygon(np.array([p0, p1]).T)
-            else:
-                p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
-                if p_a.nPoints() < 3:
-                    p_a = None
-                    isok = False
-                    break
+        # area
+        ap_area[ii] = p_a.area()
 
-        # loop on post-crystal apertures
-        if isok is True and nap_post > 0:
+        # ap_cent
+        ap01[:] = p_a.center()
+        ap_cent[:] = func_to_3d_pre(x0=ap01[0], x1=ap01[1])
+        mindiff[ii] = np.sqrt(np.min(np.diff(p0)**2 + np.diff(p1)**2))
 
-            # det cent to contour of intersection
-            p0, p1 = np.array(p_a.contour(0)).T
-            p0, p1 = _compute._interp_poly(
-                p0=p0,
-                p1=p1,
-                add_points=5,
-                mode='min',
-                isclosed=False,
-                closed=False,
-                ravel=False,
-            )[:2]
-            px, py, pz = func_to_3d_pre(p0, p1)
+        # ----------------------------------
+        # los, distances, cosines
 
-            vx = px - ldet[ii]['cents_x']
-            vy = py - ldet[ii]['cents_y']
-            vz = pz - ldet[ii]['cents_z']
-            vnorm = np.sqrt(vx**2 + vy**2 + vz**2)
-            vx = vx / vnorm
-            vy = vy / vnorm
-            vz = vz / vnorm
+        los_x[ii] = ap_cent[0] - ldet[ii]['cents_x']
+        los_y[ii] = ap_cent[1] - ldet[ii]['cents_y']
+        los_z[ii] = ap_cent[2] - ldet[ii]['cents_z']
 
-            # project contours of crystal onto post-crytal plane
-            Dx, Dy, Dz, vx, vy, vz = spectro_ptsvect(
-                pts_x=ldet[ii]['cents_x'],
-                pts_y=ldet[ii]['cents_y'],
-                pts_z=ldet[ii]['cents_z'],
-                vect_x=vx,
-                vect_y=vy,
-                vect_z=vz,
-            )[:6]
+        if dlos_x is not None:
+            pa01 = np.array(p_a.contour(0)).T
+            import pdb; pdb.set_trace()     # DB
+            dlos_x[ii, ...] = pax - ldet[ii]['cents_x']
+            dlos_y[ii, ...] = pay - ldet[ii]['cents_y']
+            dlos_z[ii, ...] = paz - ldet[ii]['cents_z']
 
-            for jj in range(nap_post):
+        # ------------
+        # solid angles
 
-                # project on post plane
-                p0, p1 = lfunc_post[jj][0](
-                    pt_x=Dx,
-                    pt_y=Dy,
-                    pt_z=Dz,
-                    vx=vx,
-                    vy=vy,
-                    vz=vz,
-                )
-                p_a2 = plg.Polygon(np.array([p0, p1]).T)
+        solid_angles[ii] = _comp_solidangles.calc_solidangle_apertures(
+            # observation points
+            pts_x=ap_cent[0],
+            pts_y=ap_cent[1],
+            pts_z=ap_cent[2],
+            # polygons
+            apertures=None,
+            detectors=ldet[ii],
+            # possible obstacles
+            config=None,
+            # parameters
+            visibility=False,
+            return_vector=False,
+        )[0, 0]
 
-                # ap
-                if len(lpoly_post[jj]) == 2:
-                    p0 = lpoly_post[jj][0]
-                    p1 = lpoly_post[jj][1]
-                else:
-                    centroid = None
-                    p0, p1 = lfunc_post[jj][0](
-                        pt_x=centroid[0],
-                        pt_y=centroid[1],
-                        pt_z=centroid[2],
-                        poly_x=lpoly_post[jj][0],
-                        poly_y=lpoly_post[jj][1],
-                        poly_z=lpoly_post[jj][2],
-                    )
+        # 2d polygon
+        p0, p1 = np.array(p_a.contour(0)).T
 
-                # intersection
-                p_a2 = p_a2 & plg.Polygon(np.array([p0, p1]).T)
-                if p_a2.nPoints() < 3:
-                    p_a2 = None
-                    isok = False
-                    break
-
-                # shrink for safety
-                p_a2.scale(1.-1e-5, 1-1e-5)
-
-                # add points
-                p0, p1 = np.array(p_a2.contour(0)).T
-                cent01 = p_a2.center()
-                p0, p1 = _compute._interp_poly(
-                    p0=p0,
-                    p1=p1,
-                    add_points=10,
-                    mode='min',
-                    isclosed=False,
-                    closed=False,
-                    ravel=False,
-                )[:2]
-
-                # back to 3d
-                px, py, pz = lfunc_post[jj][1](x0=p0, x1=p1)
-
-                # get reflected aperture
-                px, py, pz, x0, x1 = spectro_pts2pt(
-                    pt_x=ldet[ii]['cents_x'],
-                    pt_y=ldet[ii]['cents_y'],
-                    pt_z=ldet[ii]['cents_z'],
-                    # poly
-                    pts_x=px,
-                    pts_y=py,
-                    pts_z=pz,
-                    # surface
-                    return_xyz=True,
-                    returnx01=True,
-                )
-
-                if jj < nap_post - 1:
-                    # update
-                    Dx, Dy, Dz, vx, vy, vz = spectro_ptsvect(
-                        pts_x=ldet[ii]['cents_x'],
-                        pts_y=ldet[ii]['cents_y'],
-                        pts_z=ldet[ii]['cents_z'],
-                        vect_x=px - ldet[ii]['cents_x'],
-                        vect_y=py - ldet[ii]['cents_y'],
-                        vect_z=pz - ldet[ii]['cents_z'],
-                    )[:6]
-
-                else:
-                    # project on plane
-                    p0, p1 = func_to_plane_pre(
-                        pt_x=ldet[ii]['cents_x'],
-                        pt_y=ldet[ii]['cents_y'],
-                        pt_z=ldet[ii]['cents_z'],
-                        poly_x=px,
-                        poly_y=py,
-                        poly_z=pz,
-                    )
-                    centroid = plg.Polygon(np.array([x0, x1])).center()
-                    centroid = spectro_x01toxyz(centroid)
-                    centroid = func_to_plane_pre(
-                        pt_x=ldet[ii]['cents_x'],
-                        pt_y=ldet[ii]['cents_y'],
-                        pt_z=ldet[ii]['cents_z'],
-                        poly_x=centroid[0],
-                        poly_y=centtoid[1],
-                        poly_z=centroid[2],
-                    )
-
-
-                    p_a = p_a & plg.Polygon(np.array([p02, p12]).T)
-                    if p_a.nPoints() < 3:
-                        isok = False
-
-                    if lop_post[0] == 'cryst1-slit':
-                        import matplotlib.pyplot as plt
-                        plt.figure()
-                        plt.plot(
-                            np.array(p_a.contour(0))[:, 0],
-                            np.array(p_a.contour(0))[:, 1],
-                            '.-k',
-                            p_a.center()[0:1],
-                            p_a.center()[1:2],
-                            'or',
-                        )
-                        import pdb; pdb.set_trace()     # DB
-
-
-        # -------------------------
-        # compute solid angle + los
-
-        if isok is False:
-            pix_ap.append(None)
-            continue
-
-        else:
-
-            # area
-            ap_area[ii] = p_a.area()
-
-            # ap_cent
-            ap01[:] = p_a.center()
-            ap_cent[:] = func_to_3d_pre(x0=ap01[0], x1=ap01[1])
-            mindiff[ii] = np.sqrt(np.min(np.diff(p0)**2 + np.diff(p1)**2))
-
-            # ----------------------------------
-            # los, distances, cosines
-
-            los_x[ii] = ap_cent[0] - ldet[ii]['cents_x']
-            los_y[ii] = ap_cent[1] - ldet[ii]['cents_y']
-            los_z[ii] = ap_cent[2] - ldet[ii]['cents_z']
-
-            if dlos_x is not None:
-                pa01 = np.array(p_a.contour(0)).T
-                import pdb; pdb.set_trace()     # DB
-                dlos_x[ii, ...] = pax - ldet[ii]['cents_x']
-                dlos_y[ii, ...] = pay - ldet[ii]['cents_y']
-                dlos_z[ii, ...] = paz - ldet[ii]['cents_z']
-
-            # ------------
-            # solid angles
-
-            solid_angles[ii] = _comp_solidangles.calc_solidangle_apertures(
-                # observation points
-                pts_x=ap_cent[0],
-                pts_y=ap_cent[1],
-                pts_z=ap_cent[2],
-                # polygons
-                apertures=None,
-                detectors=ldet[ii],
-                # possible obstacles
-                config=None,
-                # parameters
-                visibility=False,
-                return_vector=False,
-            )[0, 0]
-
-            # 2d polygon
-            p0, p1 = np.array(p_a.contour(0)).T
-
-            # equivalent ap as seen from pixel
-            pix_ap.append(func_to_3d_pre(x0=p0, x1=p1))
+        # equivalent ap as seen from pixel
+        pix_ap.append(func_to_3d_pre(x0=p0, x1=p1))
 
     # -------------
     # normalize los
@@ -903,83 +756,6 @@ def _get_lpoly_post(coll=None, lop_post_cls=None, lop_post=None):
             ))
     return lpoly_post
 
-
-# ##################################################################
-# ##################################################################
-#                   preparation routine
-# ##################################################################
-
-
-def _get_project_plane(
-    plane_pt=None,
-    plane_nin=None,
-    plane_e0=None,
-    plane_e1=None,
-):
-
-    def _project_poly_on_plane_from_pt(
-        pt_x=None,
-        pt_y=None,
-        pt_z=None,
-        poly_x=None,
-        poly_y=None,
-        poly_z=None,
-        vx=None,
-        vy=None,
-        vz=None,
-        plane_pt=plane_pt,
-        plane_nin=plane_nin,
-        plane_e0=plane_e0,
-        plane_e1=plane_e1,
-    ):
-
-        sca0 = (
-            (plane_pt[0] - pt_x)*plane_nin[0]
-            + (plane_pt[1] - pt_y)*plane_nin[1]
-            + (plane_pt[2] - pt_z)*plane_nin[2]
-        )
-
-        if vx is None:
-            vx = poly_x - pt_x
-            vy = poly_y - pt_y
-            vz = poly_z - pt_z
-
-        sca1 = vx*plane_nin[0] + vy*plane_nin[1] + vz*plane_nin[2]
-
-        k = sca0 / sca1
-
-        px = pt_x + k * vx
-        py = pt_y + k * vy
-        pz = pt_z + k * vz
-
-        p0 = (
-            (px - plane_pt[0])*plane_e0[0]
-            + (py - plane_pt[1])*plane_e0[1]
-            + (pz - plane_pt[2])*plane_e0[2]
-        )
-        p1 = (
-            (px - plane_pt[0])*plane_e1[0]
-            + (py - plane_pt[1])*plane_e1[1]
-            + (pz - plane_pt[2])*plane_e1[2]
-        )
-
-        return p0, p1
-
-    def _back_to_3d(
-        x0=None,
-        x1=None,
-        plane_pt=plane_pt,
-        plane_e0=plane_e0,
-        plane_e1=plane_e1,
-    ):
-
-        return (
-            plane_pt[0] + x0*plane_e0[0] + x1*plane_e1[0],
-            plane_pt[1] + x0*plane_e0[1] + x1*plane_e1[1],
-            plane_pt[2] + x0*plane_e0[2] + x1*plane_e1[2],
-        )
-
-    return _project_poly_on_plane_from_pt, _back_to_3d
 
 # ##################################################################
 # ##################################################################

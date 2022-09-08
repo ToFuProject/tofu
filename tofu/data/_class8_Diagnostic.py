@@ -14,6 +14,7 @@ import datastock as ds
 from . import _class7_Camera
 from . import _class8_check as _check
 from . import _class8_compute as _compute
+from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_etendue_los as _etendue_los
 from . import _class8_los_angles as _los_angles
 from . import _class8_plot as _plot
@@ -81,23 +82,23 @@ class Diagnostic(_class7_Camera.Camera):
         key = list(dobj['diagnostic'].keys())[0]
         optics = self.dobj['diagnostic'][key]['optics']
 
-        if len(optics) > 1:
-            self.compute_diagnostic_etendue_los(
-                key=key,
-                analytical=True,
-                numerical=False,
-                res=None,
-                check=False,
-                # los
-                config=config,
-                length=length,
-                reflections_nb=reflections_nb,
-                reflections_type=reflections_type,
-                # bool
-                verb=False,
-                plot=False,
-                store='analytical',
-            )
+        # if len(optics) > 1:
+            # self.compute_diagnostic_etendue_los(
+                # key=key,
+                # analytical=True,
+                # numerical=False,
+                # res=None,
+                # check=False,
+                # # los
+                # config=config,
+                # length=length,
+                # reflections_nb=reflections_nb,
+                # reflections_type=reflections_type,
+                # # bool
+                # verb=False,
+                # plot=False,
+                # store='analytical',
+            # )
 
     # -----------------
     # utilities
@@ -159,6 +160,38 @@ class Diagnostic(_class7_Camera.Camera):
                 reflections_type=reflections_type,
                 **dlos,
             )
+
+    # ---------------
+    # utilities
+    # ---------------
+
+    def get_diagnostic_equivalent_aperture(
+        self,
+        key=None,
+        pixel=None,
+        # inital contour
+        add_points=None,
+        # options
+        convex=None,
+        harmonize=None,
+        reshape=None,
+        # plot
+        plot=None,
+    ):
+        """"""
+        return _equivalent_apertures.equivalent_apertures(
+            coll=self,
+            key=key,
+            pixel=pixel,
+            # inital contour
+            add_points=add_points,
+            # options
+            convex=convex,
+            harmonize=harmonize,
+            reshape=reshape,
+            # plot
+            plot=plot,
+        )
 
     # ---------------
     # utilities
