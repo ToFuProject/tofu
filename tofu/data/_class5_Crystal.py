@@ -147,9 +147,17 @@ class Crystal(_class4_Filter.Filter):
     # Local vs xyz coordinates
     # ---------------------
 
-    def get_optics_x01toxyz(self, key=None):
+    def get_optics_x01toxyz(
+        self,
+        key=None,
+        asplane=None,
+    ):
         """ Return a dict of formatted """
-        return _coordinates._get_x01toxyz(coll=self, key=key)
+        return _coordinates._get_x01toxyz(
+            coll=self,
+            key=key,
+            asplane=asplane,
+        )
 
     # --------------------
     # Reflections
@@ -157,11 +165,22 @@ class Crystal(_class4_Filter.Filter):
 
     def get_optics_reflect_pts2pt(self, key=None):
         """ Return a dict of formatted """
-        return _reflections_pts2pt._get_pts2pt(coll=self, key=key)
+        return _reflections_pts2pt._get_pts2pt(
+            coll=self,
+            key=key,
+        )
 
-    def get_optics_reflect_ptsvect(self, key=None):
+    def get_optics_reflect_ptsvect(
+        self,
+        key=None,
+        asplane=None,
+    ):
         """ Return a dict of formatted """
-        return _reflections_ptsvect._get_ptsvect(coll=self, key=key)
+        return _reflections_ptsvect._get_ptsvect(
+            coll=self,
+            key=key,
+            asplane=asplane,
+        )
 
     # -------------------------------------------
     # Projections from point in local coordinates

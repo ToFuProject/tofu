@@ -182,6 +182,8 @@ def _diagnostics(
                 'etend_type': None,
                 'los': None,
                 'vos': None,
+                'amin': None,
+                'amax': None,
             },
         },
     }

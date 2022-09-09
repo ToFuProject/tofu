@@ -14,6 +14,7 @@ from Polygon import Utils as plgUtils
 import datastock as ds
 
 
+from . import _class5_reflections_ptsvect
 from . import _class5_projections
 from . import _class8_compute as _compute
 
@@ -35,6 +36,7 @@ def equivalent_apertures(
     convex=None,
     harmonize=None,
     reshape=None,
+    return_for_etendue=None,
     # plot
     verb=None,
     plot=None,
@@ -47,6 +49,7 @@ def equivalent_apertures(
     (
         key,
         kref,
+        cref,
         ispectro,
         lop_pre,
         lop_pre_cls,
@@ -58,6 +61,7 @@ def equivalent_apertures(
         cy,
         cz,
         pixel,
+        add_points,
         convex,
         harmonize,
         reshape,
@@ -68,6 +72,7 @@ def equivalent_apertures(
         coll=coll,
         key=key,
         pixel=pixel,
+        add_points=add_points,
         convex=convex,
         harmonize=harmonize,
         reshape=reshape,
@@ -79,13 +84,16 @@ def equivalent_apertures(
     if pixel is None:
         pixel = np.arange(0, cx.size)
 
+    if return_for_etendue is None:
+        return_for_etendue = False
+
     # ---------------
     # Prepare optics 
 
     lpoly_pre = [
         coll.get_optics_poly(
             key=k0,
-            add_points=5,
+            add_points=add_points,
             return_outline=False,
         )
         for k0 in lop_pre
@@ -109,7 +117,10 @@ def equivalent_apertures(
         for oo in lop_post
     ]
 
-    pts2pt = coll.get_optics_reflect_pts2pt(key=kref)
+    if len(ispectro) > 0:
+        pts2pt = coll.get_optics_reflect_pts2pt(key=kref)
+    else:
+        pts2pt = None
     ptsvect = coll.get_optics_reflect_ptsvect(key=kref)
     lptsvect_poly = [
         coll.get_optics_reflect_ptsvect(key=oo)
@@ -134,6 +145,7 @@ def equivalent_apertures(
     p_a = coll.get_optics_outline(key=kref, add_points=False)
     p_a = plg.Polygon(np.array([p_a[0], p_a[1]]).T)
 
+    iok = np.ones((pixel.size,), dtype=bool)
     for ii in pixel:
         p0, p1 = func(
             p_a=p_a,
@@ -150,6 +162,7 @@ def equivalent_apertures(
             ptsvect=ptsvect,
             lptsvect_poly=lptsvect_poly,
             # options
+            add_points=add_points,
             convex=convex,
         )
 
@@ -158,6 +171,8 @@ def equivalent_apertures(
             p0, p1 = np.array(plgUtils.convexHull(
                 plg.Polygon(np.array([p0, p1]).T)
             ).contour(0)).T
+        elif p0 is None:
+            iok[ii] = False
 
         # append
         x0.append(p0)
@@ -174,7 +189,12 @@ def equivalent_apertures(
         for ii in range(pixel.size):
             if x0[ii] is None:
                 x0[ii] = nan
+                x1[ii] = nan
             elif ln[ii] < nmax:
+                ndif = nmax - ln[ii]
+                irand = np.random.random(ndif)
+                irand = irand + np.random.randint(0, ln[ii]-1, ndif)
+                imax = np.sort(np.r_[np.arange(0, ln[ii]), irand])
                 imax = np.linspace(0, ln[ii]-1, nmax)
                 x0[ii] = scpinterp.interp1d(
                     np.arange(0, ln[ii]),
@@ -190,11 +210,70 @@ def equivalent_apertures(
         x0 = np.array(x0)
         x1 = np.array(x1)
 
+    # -------------
+    # xyz
+    # -------------
+
+    if return_for_etendue is True:
+
+        pts2plane = coll.get_optics_reflect_ptsvect(
+            key=kref,
+            asplane=True,
+        )
+        x01toxyz = coll.get_optics_x01toxyz(
+            key=kref,
+            asplane=True,
+        )
+
+        px = np.full(x0.shape, np.nan)
+        py = np.full(x0.shape, np.nan)
+        pz = np.full(x0.shape, np.nan)
+        cents0 = np.full((x0.shape[0],), np.nan)
+        cents1 = np.full((x0.shape[0],), np.nan)
+        area = np.full((x0.shape[0],), np.nan)
+
+        for ii, ip in enumerate(pixel):
+
+            if not iok[ii]:
+                continue
+
+            pxi, pyi, pzi = coord_x01toxyz(x0=x0[ii, :], x1=x1[ii, :])
+
+            (
+                px[ii, :], py[ii, :], pz[ii, :],
+                _, _, _, _, p0, p1,
+            ) = pts2plane(
+                pts_x=cx[ii],
+                pts_y=cy[ii],
+                pts_z=cz[ii],
+                vect_x=pxi - cx[ii],
+                vect_y=pyi - cy[ii],
+                vect_z=pzi - cz[ii],
+                strict=False,
+                return_x01=True,
+            )
+
+            # area
+            area[ii] = plg.Polygon(np.array([p0, p1]).T).area()
+
+            # centroid in 3d
+            cents0[ii], cents1[ii] = plg.Polygon(
+                np.array([x0[ii, :], x1[ii, :]]).T
+            ).center()
+
+        centsx, centsy, centsz = x01toxyz(
+            x0=cents0,
+            x1=cents1,
+        )
+
+        plane_nin = coll.dobj[cref][kref]['dgeom']['nin']
+        spectro = len(ispectro) > 0
+
     # --------------------
     # reshape if necessary
     # --------------------
 
-    ntot = shape0[0] * shape0[1]
+    ntot = np.prod(shape0)
     if is2d and harmonize and reshape and x0.shape[0] == ntot:
         shape = tuple(np.r_[shape0, x0.shape[-1]])
         x0 = x0.reshape(shape)
@@ -217,7 +296,16 @@ def equivalent_apertures(
             ylab=None,
         )
 
-    return x0, x1
+    if return_for_etendue:
+        return (
+            x0, x1, kref, iok,
+            px, py, pz,
+            cx, cy, cz,
+            centsx, centsy, centsz,
+            area, plane_nin, spectro,
+        )
+    else:
+        return x0, x1, kref, iok
 
 
 # ##############################################################
@@ -230,6 +318,7 @@ def _check(
     coll=None,
     key=None,
     pixel=None,
+    add_points=None,
     convex=None,
     harmonize=None,
     reshape=None,
@@ -300,6 +389,7 @@ def _check(
         # apertures after crystal => reflection
         if c0:
             kref = optics[ispectro[0]]
+            cref = optics_cls[ispectro[0]]
             lop_pre = optics[1:ispectro[0]]
             lop_pre_cls = optics_cls[1:ispectro[0]]
             lop_post = optics[ispectro[0]+1:]
@@ -310,10 +400,21 @@ def _check(
 
     else:
         kref = optics[-1]
+        cref = optics_cls[-1]
         lop_pre = optics[1:-1]
         lop_pre_cls = optics_cls[1:-1]
         lop_post = []
         lop_post_cls = []
+
+    # -----------
+    # add_points
+
+    add_points = ds._generic_check._check_var(
+        add_points, 'add_points',
+        types=int,
+        default=5,
+        sign='>0',
+    )
 
     # -----------
     # convex
@@ -374,6 +475,7 @@ def _check(
     return (
         key,
         kref,
+        cref,
         ispectro,
         lop_pre,
         lop_pre_cls,
@@ -385,6 +487,7 @@ def _check(
         cy,
         cz,
         pixel,
+        add_points,
         convex,
         harmonize,
         reshape,
@@ -454,6 +557,8 @@ def _get_equivalent_aperture_spectro(
     pts2pt=None,
     ptsvect=None,
     lptsvect_poly=None,
+    # options
+    add_points=None,
     convex=None,
 ):
 
@@ -487,7 +592,7 @@ def _get_equivalent_aperture_spectro(
         # interpolate
         p0, p1 = _compute._interp_poly(
             lp=[p0, p1],
-            add_points=5,
+            add_points=add_points,
             mode='min',
             isclosed=False,
             closed=False,
@@ -503,7 +608,7 @@ def _get_equivalent_aperture_spectro(
             poly_x1=lx1_post[jj],
             # observation point
             pt=pt,
-            add_points=5,
+            add_points=add_points,
             # functions
             coord_x01toxyz=coord_x01toxyz,
             coord_x01toxyz_poly=lcoord_x01toxyz_poly[jj],

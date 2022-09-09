@@ -20,6 +20,7 @@ import datastock as ds
 def _get_x01toxyz(
     coll=None,
     key=None,
+    asplane=None,
 ):
 
     # ---------
@@ -29,11 +30,17 @@ def _get_x01toxyz(
     key, cls = key[0], cls[0]
     dgeom = coll.dobj[cls][key]['dgeom']
 
+    asplane = ds._generic_check._check_var(
+        asplane, 'asplane',
+        types=bool,
+        default=False,
+    )
+
     # -------------------
     #     Planar
     # -------------------
 
-    if dgeom['type'] == 'planar':
+    if dgeom['type'] == 'planar' or asplane is True:
 
         def x01toxyz(
             x0=None,

@@ -392,6 +392,7 @@ def _rays(
         pts_x = np.full(shape, np.nan)
         pts_y = np.full(shape, np.nan)
         pts_z = np.full(shape, np.nan)
+        Rmin = np.full((np.prod(shaperef),), np.nan)
 
         pts_x[0, ...] = start_x
         pts_y[0, ...] = start_y
@@ -486,6 +487,7 @@ def _rays(
             pts_x[-1, maskre] = pout[0, :]
             pts_y[-1, maskre] = pout[1, :]
             pts_z[-1, maskre] = pout[2, :]
+            Rmin[maskre.ravel()] = cam.dgeom['RMin']
 
             vperp = cam.dgeom['vperp']
             u_perp = np.sum(cam.u*vperp, axis=0)
@@ -509,6 +511,9 @@ def _rays(
                 v0 = np.sum(us * e0, axis=0)
                 v1 = np.sum(us * e1, axis=0)
                 dbeta[i0, maskre] = np.arctan2(v1, v0)
+
+            if len(shaperef) == 2:
+                Rmin = Rmin.reshape(shaperef)
 
         # ----------
         # length
@@ -557,6 +562,7 @@ def _rays(
     kpx = f'{key}-ptx'
     kpy = f'{key}-pty'
     kpz = f'{key}-ptz'
+    kRmin = f'{key}-Rmin'
 
     ddata = {
         kpx: {
@@ -578,6 +584,14 @@ def _rays(
         kpz: {
             'data': pts_z,
             'ref': refpts,
+            'dim': 'distance',
+            'quant': 'distance',
+            'name': 'z',
+            'units': 'm',
+        },
+        kRmin: {
+            'data': Rmin,
+            'ref': refpts[1:],
             'dim': 'distance',
             'quant': 'distance',
             'name': 'z',
@@ -692,6 +706,7 @@ def _rays(
                 'lamb': ll,
                 'shape': shape,
                 'ref': refpts,
+                'Rmin': kRmin,
                 'alpha': kalpha,
                 'reflect_dalpha': kdalpha,
                 'reflect_dbeta': kdbeta,

@@ -39,11 +39,10 @@ def get_optics_outline(
     total = ds._generic_check._check_var(
         total, 'total',
         types=bool,
-        default=cls=='camera',
+        default=(cls=='camera' and dgeom['type'] == '2d'),
     )
-    if cls == 'camera' and total and dgeom['type'] != '2d':
-        msg = "Total outline only available for 2d camera!"
-        raise Exception(msg)
+    if cls=='camera' and dgeom['type'] != '2d':
+        total = False
 
     # --------
     # compute
@@ -172,6 +171,13 @@ def get_optics_poly(
         dv = coll.get_camera_unit_vectors(key)
         lv = ['e0_x', 'e0_y', 'e0_z', 'e1_x', 'e1_y', 'e1_z']
         e0x, e0y, e0z, e1x, e1y, e1z = [dv[k0] for k0 in lv]
+        if not np.isscalar(e0x):
+            e0x = e0x[:, None]
+            e0y = e0y[:, None]
+            e0z = e0z[:, None]
+            e1x = e1x[:, None]
+            e1y = e1y[:, None]
+            e1z = e1z[:, None]
 
         if dgeom['type'] == '2d' and total:
             cx, cy, cz = dgeom['cent']

@@ -36,7 +36,10 @@ def compute_etendue_los(
     res=None,
     margin_par=None,
     margin_perp=None,
+    # options
+    add_points=None,
     # bool
+    convex=None,
     check=None,
     verb=None,
     plot=None,
@@ -84,129 +87,55 @@ def compute_etendue_los(
     # ------------------------
     # get equivalent apertures for all pixels
 
-    x0, x1 = coll.get_diagnostic_equivalent_aperture(
+    (
+        x0, x1, kref, iok,
+        px, py, pz,
+        cx, cy, cz,
+        centsx, centsy, centsz,
+        ap_area, plane_nin,
+        spectro,
+    ) = coll.get_diagnostic_equivalent_aperture(
         key=key,
         # inital contour
-        add_points=5,
+        add_points=add_points,
         # options
-        convex=True,
+        convex=convex,
         harmonize=True,
         reshape=False,
         # plot
         plot=False,
+        verb=verb,
+        store=False,
+        return_for_etendue=True,
     )
 
-    # ------------------------------------
-    # compute equivalent optics if spectro
-
-    if len(ispectro) > 0 and len(optics[ispectro[0]+1:]) > 0:
-
-        c0 = (
-            len(ispectro) == 1
-            or (
-                len(ispectro) == 2
-                and len(optics[ispectro[1]+1:]) == 0
-            )
-
-        )
-
-        # apertures after crystal => reflection
-        if c0:
-
-            lop_pre = optics[1:ispectro[0]+1]
-            lop_pre_cls = optics_cls[1:ispectro[0]+1]
-            lop_post = optics[ispectro[0]+1:]
-            lop_post_cls = optics_cls[ispectro[0]+1:]
-            iop_ref = ispectro[0]
-
-            spec_key = optics[ispectro[0]]
-            spec_cls = optics_cls[ispectro[0]]
-            dg = coll.dobj[spec_cls][spec_key]['dgeom']
-            spectro_pts2pt = coll.get_optics_spectro_pts2pt(spec_key)
-            spectro_ptsvect = coll.get_optics_spectro_ptsvect(spec_key)
-            spectro_x01toxyz = coll.get_optics_x01toxyz(spec_key)
-
-        else:
-            raise NotImplementedError()
-
-    else:
-        lop_pre = optics[1:]
-        lop_pre_cls = optics_cls[1:]
-        lop_post = []
-        lop_post_cls = []
-        iop_ref = 1
-
-        spectro_pts2pt = None
-        spectro_ptsvect = None
-        spectro_x01toxyz = None
-
-    cref = optics_cls[iop_ref]
-    kref = optics[iop_ref]
-
-    # get plane-projection functions
-    func_to_plane_pre, func_to_3d_pre = _get_project_plane(
-        plane_pt=coll.dobj[cref][kref]['dgeom']['cent'],
-        plane_nin=coll.dobj[cref][kref]['dgeom']['nin'],
-        plane_e0=coll.dobj[cref][kref]['dgeom']['e0'],
-        plane_e1=coll.dobj[cref][kref]['dgeom']['e1'],
-    )
-
-    lfunc_post = [
-        _get_project_plane(
-            plane_pt=coll.dobj[cc][oo]['dgeom']['cent'],
-            plane_nin=coll.dobj[cc][oo]['dgeom']['nin'],
-            plane_e0=coll.dobj[cc][oo]['dgeom']['e0'],
-            plane_e1=coll.dobj[cc][oo]['dgeom']['e1'],
-        )
-        for cc, oo in zip(lop_post_cls, lop_post)
-    ]
-
-
-    # ------------------------
-    # get equivalent apertures for all pixels
-
-    x0, x1 = coll.get_diagnostic_equivalent_aperture(
-        key=key,
-        # inital contour
-        add_points=5,
-        # options
-        convex=True,
-        harmonize=True,
-        reshape=False,
-        # plot
-        plot=False,
-    )
-
-    # ------------------------
-    # loop on pixels to get:
-    # analytical etendue
-    # equivalent unique aperture
-    # los
+    # ------------------------------------------
+    # get distance, area, solid_angle, los, dlos
 
     (
-        det_area, ap_area, distances,
+        det_area, distances,
         los_x, los_y, los_z,
         dlos_x, dlos_y, dlos_z,
-        cos_los_det, cos_los_ap, solid_angles, res, pix_ap,
+        cos_los_det, cos_los_ap, solid_angles, res,
     ) = _loop_on_pix(
         coll=coll,
         ldet=ldet,
+        spectro=spectro,
         # optics
-        lop_pre=lop_pre,
-        lop_pre_cls=lop_pre_cls,
-        spectro_pts2pt=spectro_pts2pt,
-        spectro_ptsvect=spectro_ptsvect,
-        spectro_x01toxyz=spectro_x01toxyz,
-        lop_post=lop_post,
-        lop_post_cls=lop_post_cls,
-        # projections
-        plane_nin=coll.dobj[cref][kref]['dgeom']['nin'],
-        func_to_plane_pre=func_to_plane_pre,
-        func_to_3d_pre=func_to_3d_pre,
-        lfunc_post=lfunc_post,
+        x0=x0,
+        x1=x1,
+        px=px,
+        py=py,
+        pz=pz,
+        iok=iok,
+        cx=cx,
+        cy=cy,
+        cz=cz,
+        centsx=centsx,
+        centsy=centsy,
+        centsz=centsz,
+        plane_nin=plane_nin,
     )
-
-    import pdb; pdb.set_trace() # DB
 
     # --------------------
     # compute analytically
@@ -284,12 +213,18 @@ def compute_etendue_los(
         'analytical': etend0,
         'numerical': etend1,
         'res': res,
+        'kref': kref,
         'los_x': los_x,
         'los_y': los_y,
         'los_z': los_z,
         'dlos_x': dlos_x,
         'dlos_y': dlos_y,
         'dlos_z': dlos_z,
+        'iok': iok,
+        'is2d': is2d,
+        'cx': cx,
+        'cy': cy,
+        'cz': cz,
     }
 
     # ----------
@@ -530,51 +465,24 @@ def _loop_on_pix(
     coll=None,
     # detectors
     ldet=None,
-    # optics before spectro
-    lop_pre=None,
-    lop_pre_cls=None,
-    # projection
-    project_func=None,
-    # spectro optics
-    spectro_pts2pt=None,
-    spectro_ptsvect=None,
-    spectro_x01toxyz=None,
-    # optics after spectro
-    lop_post=None,
-    lop_post_cls=None,
-    # projection plane
+    spectro=None,
+    # equivalent aperture
+    x0=None,
+    x1=None,
+    px=None,
+    py=None,
+    pz=None,
+    iok=None,
+    cx=None,
+    cy=None,
+    cz=None,
+    centsx=None,
+    centsy=None,
+    centsz=None,
     plane_nin=None,
-    func_to_plane_pre=None,
-    func_to_3d_pre=None,
-    lfunc_post=None,
     # extra
     res=None,
 ):
-
-    # apertures before a cryst / grating
-    nap_pre = len(lop_pre)
-    nap_post = len(lop_post)
-    nd = len(ldet)
-
-    ap01 = np.r_[np.nan, np.nan]
-    ap_cent = np.r_[np.nan, np.nan, np.nan]
-
-    # -------------------------
-    # intersection of apertures
-
-    lpoly_pre = [
-        coll.dobj[c0][k0]['dgeom']['poly']
-        for c0, k0 in zip(lop_pre_cls, lop_pre)
-    ]
-    lpoly_pre_x = [coll.ddata[pp[0]]['data'] for pp in lpoly_pre]
-    lpoly_pre_y = [coll.ddata[pp[1]]['data'] for pp in lpoly_pre]
-    lpoly_pre_z = [coll.ddata[pp[2]]['data'] for pp in lpoly_pre]
-
-    lpoly_post = _get_lpoly_post(
-        coll=coll,
-        lop_post_cls=lop_post_cls,
-        lop_post=lop_post,
-    )
 
     # prepare data
     nd = len(ldet)
@@ -587,60 +495,23 @@ def _loop_on_pix(
     distances = np.full((nd,), np.nan)
     mindiff = np.full((nd,), np.nan)
 
-    # extra los for spectro only
-    # if len(nap_post) > 0:
-        # dlos_x = np.full((nd), np.nan)
-        # dlos_y = np.full((nd), np.nan)
-        # dlos_z = np.full((nd), np.nan)
-    # else:
-    dlos_x = None
-    dlos_y = None
-    dlos_z = None
-
-    # store projected intersection of apertures (3d), per pix
-    # useful later for estimating the plane to be sample (numerical)
-    pix_ap = []
-
-
     # -------------------------
     # compute area, solid angle, los
 
-    if isok is False:
-        pix_ap.append(None)
-        #continue
+    nd = x0.shape[0]
+    for ii in range(nd):
 
-    else:
-
-        # area
-        ap_area[ii] = p_a.area()
-
-        # ap_cent
-        ap01[:] = p_a.center()
-        ap_cent[:] = func_to_3d_pre(x0=ap01[0], x1=ap01[1])
-        mindiff[ii] = np.sqrt(np.min(np.diff(p0)**2 + np.diff(p1)**2))
-
-        # ----------------------------------
-        # los, distances, cosines
-
-        los_x[ii] = ap_cent[0] - ldet[ii]['cents_x']
-        los_y[ii] = ap_cent[1] - ldet[ii]['cents_y']
-        los_z[ii] = ap_cent[2] - ldet[ii]['cents_z']
-
-        if dlos_x is not None:
-            pa01 = np.array(p_a.contour(0)).T
-            import pdb; pdb.set_trace()     # DB
-            dlos_x[ii, ...] = pax - ldet[ii]['cents_x']
-            dlos_y[ii, ...] = pay - ldet[ii]['cents_y']
-            dlos_z[ii, ...] = paz - ldet[ii]['cents_z']
+        if not iok[ii]:
+            continue
 
         # ------------
         # solid angles
 
         solid_angles[ii] = _comp_solidangles.calc_solidangle_apertures(
             # observation points
-            pts_x=ap_cent[0],
-            pts_y=ap_cent[1],
-            pts_z=ap_cent[2],
+            pts_x=centsx[ii],
+            pts_y=centsy[ii],
+            pts_z=centsz[ii],
             # polygons
             apertures=None,
             detectors=ldet[ii],
@@ -651,14 +522,12 @@ def _loop_on_pix(
             return_vector=False,
         )[0, 0]
 
-        # 2d polygon
-        p0, p1 = np.array(p_a.contour(0)).T
-
-        # equivalent ap as seen from pixel
-        pix_ap.append(func_to_3d_pre(x0=p0, x1=p1))
-
     # -------------
     # normalize los
+
+    los_x = centsx - cx
+    los_y = centsy - cy
+    los_z = centsz - cz
 
     distances = np.sqrt(los_x**2 + los_y**2 + los_z**2)
 
@@ -666,11 +535,18 @@ def _loop_on_pix(
     los_y = los_y / distances
     los_z = los_z / distances
 
-    if dlos_x is not None:
+    if spectro:
+        dlos_x = px - cx[:, None]
+        dlos_y = py - cy[:, None]
+        dlos_z = pz - cz[:, None]
         ddist = np.sqrt(dlos_x**2 + dlos_y**2 + dlos_z**2)
         dlos_x = dlos_x / ddist
         dlos_y = dlos_y / ddist
         dlos_z = dlos_z / ddist
+    else:
+        dlos_x = None
+        dlos_y = None
+        dlos_z = None
 
     # ------
     # angles
@@ -720,10 +596,10 @@ def _loop_on_pix(
         res = res[iok]
 
     return (
-        det_area, ap_area, distances,
+        det_area, distances,
         los_x, los_y, los_z,
         dlos_x, dlos_y, dlos_z,
-        cos_los_det, cos_los_ap, solid_angles, res, pix_ap,
+        cos_los_det, cos_los_ap, solid_angles, res,
     )
 
 

@@ -487,15 +487,15 @@ class Test01_Diagnostic():
                 self.obj.add_camera_2d(key=k0, **v0)
 
         # add diagnostics
-        # for k0, v0 in ddiag.items():
-            # print(k0)
-            # self.obj.add_diagnostic(
-                # key=k0,
-                # config=conf,
-                # reflections_nb=2,
-                # reflections_type='specular',
-                # **v0,
-            # )
+        for k0, v0 in ddiag.items():
+            print(k0)
+            self.obj.add_diagnostic(
+                key=k0,
+                config=conf,
+                reflections_nb=2,
+                reflections_type='specular',
+                **v0,
+            )
 
         # add crystals
         for k0, v0 in dcrystals.items():
@@ -518,7 +518,7 @@ class Test01_Diagnostic():
                     key_cam=f'{k0}-cam{ii}',
                     aperture_dimensions=[100e-6, 8e-2],
                     pinhole_radius=500e-6,
-                    cam_pixels_nb=[3, 3],
+                    cam_pixels_nb=[5, 3],
                     # returnas
                     returnas=list,
                 )

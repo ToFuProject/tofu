@@ -43,6 +43,8 @@ class Diagnostic(_class7_Camera.Camera):
             'etendue',
             'etend_type',
             'los',
+            'amin',
+            'amax',
             'spectrum',
             'time res.',
         ],
@@ -82,23 +84,23 @@ class Diagnostic(_class7_Camera.Camera):
         key = list(dobj['diagnostic'].keys())[0]
         optics = self.dobj['diagnostic'][key]['optics']
 
-        # if len(optics) > 1:
-            # self.compute_diagnostic_etendue_los(
-                # key=key,
-                # analytical=True,
-                # numerical=False,
-                # res=None,
-                # check=False,
-                # # los
-                # config=config,
-                # length=length,
-                # reflections_nb=reflections_nb,
-                # reflections_type=reflections_type,
-                # # bool
-                # verb=False,
-                # plot=False,
-                # store='analytical',
-            # )
+        if len(optics) > 1:
+            self.compute_diagnostic_etendue_los(
+                key=key,
+                analytical=True,
+                numerical=False,
+                res=None,
+                check=False,
+                # los
+                config=config,
+                length=length,
+                reflections_nb=reflections_nb,
+                reflections_type=reflections_type,
+                # bool
+                verb=False,
+                plot=False,
+                store='analytical',
+            )
 
     # -----------------
     # utilities
@@ -175,6 +177,7 @@ class Diagnostic(_class7_Camera.Camera):
         convex=None,
         harmonize=None,
         reshape=None,
+        return_for_etendue=None,
         # plot
         plot=None,
         verb=None,
@@ -191,6 +194,7 @@ class Diagnostic(_class7_Camera.Camera):
             convex=convex,
             harmonize=harmonize,
             reshape=reshape,
+            return_for_etendue=return_for_etendue,
             # plot
             plot=plot,
             verb=verb,

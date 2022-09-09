@@ -36,6 +36,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
             'ref',
             'pts',
             'lamb',
+            'Rmin',
             'alpha',
             'dalpha',
             'dbeta',

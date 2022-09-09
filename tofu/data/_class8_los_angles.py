@@ -23,6 +23,8 @@ __all__ = ['compute_los_angles']
 def compute_los_angles(
     coll=None,
     key=None,
+    kref=None,
+    is2d=None,
     # los
     los_x=None,
     los_y=None,
@@ -30,6 +32,10 @@ def compute_los_angles(
     dlos_x=None,
     dlos_y=None,
     dlos_z=None,
+    iok=None,
+    cx=None,
+    cy=None,
+    cz=None,
     # for storing los
     config=None,
     length=None,
@@ -59,13 +65,13 @@ def compute_los_angles(
     # ------------
     # add los
 
-    cx, cy, cz = coll.get_camera_cents_xyz(key=optics[0])
+    cx2, cy2, cz2 = coll.get_camera_cents_xyz(key=optics[0])
 
     coll.add_rays(
         key=klos,
-        start_x=cx,
-        start_y=cy,
-        start_z=cz,
+        start_x=cx2,
+        start_y=cy2,
+        start_z=cz2,
         vect_x=los_x,
         vect_y=los_y,
         vect_z=los_z,
@@ -89,25 +95,35 @@ def compute_los_angles(
 
     if dlos_x is not None:
 
-        angmin = np.full(los_x.shape, np.nan)
-        angmax = np.full(los_x.shape, np.nan)
+        angmin = np.full(cx.size, np.nan)
+        angmax = np.full(cx.size, np.nan)
 
-        angles = reflect_ptsvect(
-            pts_x=start_x,
-            pts_y=start_y,
-            pts_z=start_z,
-            vect_x=dlos_x,
-            vect_y=dlos_y,
-            vect_z=dlos_z,
-            strict=True,
-        )[6]
+        ptsvect = coll.get_optics_reflect_ptsvect(key=kref)
 
-        angmin = np.min(angles, axis=0)
-        angmax = np.min(angles, axis=0)
+        for ii in range(cx.size):
+            if not iok[ii]:
+                continue
+            angles = ptsvect(
+                pts_x=cx[ii],
+                pts_y=cy[ii],
+                pts_z=cz[ii],
+                vect_x=dlos_x[ii, ...],
+                vect_y=dlos_y[ii, ...],
+                vect_z=dlos_z[ii, ...],
+                strict=True,
+                return_x01=False,
+            )[6]
+
+            angmin[ii] = np.min(angles)
+            angmax[ii] = np.max(angles)
+
+        if is2d:
+            angmin = angmin.reshape(los_x.shape)
+            angmax = angmax.reshape(los_x.shape)
 
         # ddata
-        kamin = None
-        kamax = None
+        kamin = f'{key}_amin'
+        kamax = f'{key}_amax'
         ddata = {
             kamin: {
                 'data': angmin,
@@ -126,16 +142,18 @@ def compute_los_angles(
                 'units': 'rad',
             },
         }
+        coll.update(ddata=ddata)
+
 
         coll.set_param(
             which='diagnostic',
             key=key,
-            param='alphamin',
+            param='amin',
             value=kamin,
         )
         coll.set_param(
             which='diagnostic',
             key=key,
-            param='alphamax',
+            param='amax',
             value=kamax,
         )

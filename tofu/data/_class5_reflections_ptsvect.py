@@ -14,6 +14,7 @@ import datastock as ds
 def _get_ptsvect(
     coll=None,
     key=None,
+    asplane=None,
 ):
 
     # ---------
@@ -23,106 +24,32 @@ def _get_ptsvect(
     key, cls = key[0], cls[0]
     dgeom = coll.dobj[cls][key]['dgeom']
 
+    asplane = ds._generic_check._check_var(
+        asplane, 'asplane',
+        types=bool,
+        default=False,
+    )
+
     # -------------------
     #     Planar
     # -------------------
 
-    if dgeom['type'] == 'planar':
+    if dgeom['type'] == 'planar' or asplane is True:
 
         if dgeom['extenthalf'] is None:
             x0max, x1max = None, None
         else:
             x0max, x1max = dgeom['extenthalf']
 
-        def ptsvect(
-            pts_x=None,
-            pts_y=None,
-            pts_z=None,
-            # pts
-            vect_x=None,
-            vect_y=None,
-            vect_z=None,
-            # surface
-            cent=dgeom['cent'],
-            nin=dgeom['nin'],
-            e0=dgeom['e0'],
-            e1=dgeom['e1'],
+        ptsvect = _get_ptsvect_plane(
+            plane_cent=dgeom['cent'],
+            plane_nin=dgeom['nin'],
+            plane_e0=dgeom['e0'],
+            plane_e1=dgeom['e1'],
             # limits
             x0max=x0max,
             x1max=x1max,
-            # return
-            strict=None,
-            return_x01=None,
-        ):
-            """
-
-            cf. Notes_Upgrades/raytracing_surface3draytracing_surface3d.pdf
-
-            """
-
-            # ------------------------------------------
-            # Get local coordinates of reflection points
-
-            # normalize vect
-            vn = np.sqrt(vect_x**2 + vect_y**2 + vect_z**2)
-            vect_x = vect_x / vn
-            vect_y = vect_y / vn
-            vect_z = vect_z / vn
-
-            # get parameters for k
-            scavn = vect_x*nin[0] + vect_y*nin[1] + vect_z*nin[2]
-
-            kk = (
-                (
-                    (cent[0] - pts_x)*nin[0]
-                    + (cent[1] - pts_y)*nin[1]
-                    + (cent[2] - pts_z)*nin[2]
-                )
-                / scavn
-            )
-
-            # get D
-            Dx = pts_x + kk * vect_x
-            Dy = pts_y + kk * vect_y
-            Dz = pts_z + kk * vect_z
-
-            # get vect_reflect
-            vrx = vect_x - 2.*scavn * nin[0]
-            vry = vect_y - 2.*scavn * nin[1]
-            vrz = vect_z - 2.*scavn * nin[2]
-
-            # angles
-            angle = -np.arcsin(scavn)
-
-            # x0, x1
-            if strict is True or return_x01 is True:
-                x0 = (
-                    (Dx - cent[0])*e0[0]
-                    + (Dy - cent[1])*e0[1]
-                    + (Dz - cent[2])*e0[2]
-                )
-                x1 = (
-                    (Dx - cent[0])*e1[0]
-                    + (Dy - cent[1])*e1[1]
-                    + (Dz - cent[2])*e1[2]
-                )
-
-                if strict is True:
-                    iout = (np.abs(x0) > x0max) | (np.abs(x1) > x1max)
-
-                    if np.any(iout):
-                        Dx[iout] = np.nan
-                        Dy[iout] = np.nan
-                        Dz[iout] = np.nan
-                        v_ref_x[iout] = np.nan
-                        v_ref_y[iout] = np.nan
-                        v_ref_z[iout] = np.nan
-                        angle[iout] = np.nan
-
-            if return_x01:
-                return Dx, Dy, Dz, vrx, vry, vrz, angle, x0, x1
-            else:
-                return Dx, Dy, Dz, vrx, vry, vrz, angle
+        )
 
     # ----------------
     #   Cylindrical
@@ -435,76 +362,104 @@ def _get_ptsvect(
 # ##################################################################
 
 
-def _get_project_plane(
-    plane_pt=None,
+def _get_ptsvect_plane(
+    plane_cent=None,
     plane_nin=None,
     plane_e0=None,
     plane_e1=None,
+    # limits
+    x0max=None,
+    x1max=None,
 ):
 
-    def _project_poly_on_plane_from_pt(
-        pt_x=None,
-        pt_y=None,
-        pt_z=None,
-        poly_x=None,
-        poly_y=None,
-        poly_z=None,
-        vx=None,
-        vy=None,
-        vz=None,
-        plane_pt=plane_pt,
-        plane_nin=plane_nin,
-        plane_e0=plane_e0,
-        plane_e1=plane_e1,
+    def ptsvect(
+        pts_x=None,
+        pts_y=None,
+        pts_z=None,
+        # pts
+        vect_x=None,
+        vect_y=None,
+        vect_z=None,
+        # surface
+        cent=plane_cent,
+        nin=plane_nin,
+        e0=plane_e0,
+        e1=plane_e1,
+        # limits
+        x0max=x0max,
+        x1max=x1max,
+        # return
+        strict=None,
+        return_x01=None,
     ):
+        """
+        """
 
-        sca0 = (
-            (plane_pt[0] - pt_x)*plane_nin[0]
-            + (plane_pt[1] - pt_y)*plane_nin[1]
-            + (plane_pt[2] - pt_z)*plane_nin[2]
+        # ------------------------------------------
+        # Get local coordinates of reflection points
+
+        # normalize vect
+        vn = np.sqrt(vect_x**2 + vect_y**2 + vect_z**2)
+        vect_x = vect_x / vn
+        vect_y = vect_y / vn
+        vect_z = vect_z / vn
+
+        # get parameters for k
+        scavn = vect_x*nin[0] + vect_y*nin[1] + vect_z*nin[2]
+
+        kk = (
+            (
+                (cent[0] - pts_x)*nin[0]
+                + (cent[1] - pts_y)*nin[1]
+                + (cent[2] - pts_z)*nin[2]
+            )
+            / scavn
         )
 
-        if vx is None:
-            vx = poly_x - pt_x
-            vy = poly_y - pt_y
-            vz = poly_z - pt_z
+        # get D
+        Dx = pts_x + kk * vect_x
+        Dy = pts_y + kk * vect_y
+        Dz = pts_z + kk * vect_z
 
-        sca1 = vx*plane_nin[0] + vy*plane_nin[1] + vz*plane_nin[2]
+        # get vect_reflect
+        vrx = vect_x - 2.*scavn * nin[0]
+        vry = vect_y - 2.*scavn * nin[1]
+        vrz = vect_z - 2.*scavn * nin[2]
 
-        k = sca0 / sca1
+        # angles
+        angle = -np.arcsin(scavn)
 
-        px = pt_x + k * vx
-        py = pt_y + k * vy
-        pz = pt_z + k * vz
+        # x0, x1
+        if strict is True or return_x01 is True:
+            x0 = (
+                (Dx - cent[0])*e0[0]
+                + (Dy - cent[1])*e0[1]
+                + (Dz - cent[2])*e0[2]
+            )
+            x1 = (
+                (Dx - cent[0])*e1[0]
+                + (Dy - cent[1])*e1[1]
+                + (Dz - cent[2])*e1[2]
+            )
 
-        p0 = (
-            (px - plane_pt[0])*plane_e0[0]
-            + (py - plane_pt[1])*plane_e0[1]
-            + (pz - plane_pt[2])*plane_e0[2]
-        )
-        p1 = (
-            (px - plane_pt[0])*plane_e1[0]
-            + (py - plane_pt[1])*plane_e1[1]
-            + (pz - plane_pt[2])*plane_e1[2]
-        )
+            if strict is True:
+                iout = (np.abs(x0) > x0max) | (np.abs(x1) > x1max)
 
-        return p0, p1
+                if np.any(iout):
+                    Dx[iout] = np.nan
+                    Dy[iout] = np.nan
+                    Dz[iout] = np.nan
+                    v_ref_x[iout] = np.nan
+                    v_ref_y[iout] = np.nan
+                    v_ref_z[iout] = np.nan
+                    angle[iout] = np.nan
 
-    def _back_to_3d(
-        x0=None,
-        x1=None,
-        plane_pt=plane_pt,
-        plane_e0=plane_e0,
-        plane_e1=plane_e1,
-    ):
+        if return_x01:
+            return Dx, Dy, Dz, vrx, vry, vrz, angle, x0, x1
+        else:
+            return Dx, Dy, Dz, vrx, vry, vrz, angle
 
-        return (
-            plane_pt[0] + x0*plane_e0[0] + x1*plane_e1[0],
-            plane_pt[1] + x0*plane_e0[1] + x1*plane_e1[1],
-            plane_pt[2] + x0*plane_e0[2] + x1*plane_e1[2],
-        )
-
-    return _project_poly_on_plane_from_pt, _back_to_3d
+    return ptsvect
 
 
 # #################################################################

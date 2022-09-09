@@ -56,27 +56,37 @@ def _plot_diagnostic_check(
     # -------
     # data
 
-    defdata = coll.dobj['diagnostic'][key]['etendue']
-    c0 = data is None and defdata is None
+    defdata = 'etendue'
+    c0 = data is None and coll.dobj['diagnostic'][key].get(defdata) is None
     if not c0:
         lok = [
             k0 for k0, v0 in coll.ddata.items()
             if v0['camera'] == coll.dobj['diagnostic'][key]['optics'][0]
         ]
-
-        if data == 'etendue':
-            data = coll.dobj['diagnostic'][key]['etendue']
-
+        ldiag = [
+            k0 for k0, v0 in coll.dobj['diagnostic'][key].items()
+            if isinstance(v0, str) and v0 in lok
+        ]
         klos = coll.dobj['diagnostic'][key].get('los')
-        if data == 'alpha' and klos is not None:
-            data = coll.dobj['rays'][klos]['alpha']
+        if klos is None:
+            lrays = []
+        else:
+            lrays = [
+                k0 for k0, v0 in coll.dobj['rays'][klos].items()
+                if isinstance(v0, str) and v0 in lok
+            ]
 
         data = ds._generic_check._check_var(
             data, 'data',
             types=str,
-            allowed=lok,
+            allowed=lok + ldiag + lrays,
             default=defdata,
         )
+
+        if data in ldiag:
+            data = coll.dobj['diagnostic'][key][data]
+        elif data in lrays:
+            data = coll.dobj['rays'][klos][data]
 
     # -------
     # color_dict
@@ -229,8 +239,8 @@ def _plot_diagnostic(
     # -------------------------
     # prepare data interactivity
 
+    reft = None
     if data is not None:
-        reft = None
         dataref = coll.ddata[data]['ref']
         if dataref == camref:
             datamap = coll.ddata[data]['data'].T
