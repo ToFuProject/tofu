@@ -177,6 +177,8 @@ class Diagnostic(_class7_Camera.Camera):
         reshape=None,
         # plot
         plot=None,
+        verb=None,
+        store=None,
     ):
         """"""
         return _equivalent_apertures.equivalent_apertures(
@@ -191,15 +193,17 @@ class Diagnostic(_class7_Camera.Camera):
             reshape=reshape,
             # plot
             plot=plot,
+            verb=verb,
+            store=store,
         )
 
     # ---------------
     # utilities
     # ---------------
 
-    def get_diagnostic_optics(self, key=None):
+    def get_diagnostic_optics(self, key=None, optics=None):
         """ Get list of optics and list of corresponding classes """
-        return _check._get_optics(coll=self, key=key)
+        return _check._get_optics(coll=self, key=key, optics=optics)
 
     def get_optics_outline(
         self,
@@ -208,6 +212,7 @@ class Diagnostic(_class7_Camera.Camera):
         mode=None,
         closed=None,
         ravel=None,
+        total=None,
     ):
         """ Return the optics outline """
         return _compute.get_optics_outline(
@@ -217,6 +222,29 @@ class Diagnostic(_class7_Camera.Camera):
             mode=mode,
             closed=closed,
             ravel=ravel,
+            total=total,
+        )
+
+    def get_optics_poly(
+        self,
+        key=None,
+        add_points=None,
+        mode=None,
+        closed=None,
+        ravel=None,
+        total=None,
+        return_outline=None,
+    ):
+        """ Return the optics outline """
+        return _compute.get_optics_poly(
+            coll=self,
+            key=key,
+            add_points=add_points,
+            mode=mode,
+            closed=closed,
+            ravel=ravel,
+            total=total,
+            return_outline=return_outline,
         )
 
     def set_optics_color(self, key=None, color=None):

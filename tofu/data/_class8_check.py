@@ -82,10 +82,7 @@ def _diagnostics_check(
 
         dgeom = coll.dobj[cls][oo]['dgeom']
 
-        px, py, pz = dgeom['poly']
-        px = coll.ddata[px]['data']
-        py = coll.ddata[py]['data']
-        pz = coll.ddata[pz]['data']
+        px, py, pz = coll.get_optics_poly(key=oo)
 
         dgeom_lastref = coll.dobj[last_ref_cls][last_ref]['dgeom']
 
@@ -236,23 +233,38 @@ def get_ref(coll=None, key=None):
 # ##################################################################
 
 
-def _get_optics(coll=None, key=None):
+def _get_optics(coll=None, key=None, optics=None):
 
     # ---------
     # check key
 
-    lok = list(coll.dobj.get('diagnostic', {}).keys())
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lok,
-    )
+    lcls = ['camera', 'aperture', 'filter', 'crystal', 'grating']
+    if optics is None:
+        lok = list(coll.dobj.get('diagnostic', {}).keys())
+        key = ds._generic_check._check_var(
+            key, 'key',
+            types=str,
+            allowed=lok,
+        )
+        optics = coll.dobj['diagnostic'][key]['optics']
+
+    else:
+        if isinstance(optics, str):
+            optics = [optics]
+        lok = itt.chain.from_iterable([
+            list(coll.dobj.get(cc, {}).keys())
+            for cc in lcls
+        ])
+        optics = ds._generic_check._check_var_iter(
+            optics, 'optics',
+            types=list,
+            types_iter=str,
+            allowed=lok,
+        )
 
     # -----------
     # return
 
-    optics = coll.dobj['diagnostic'][key]['optics']
-    lcls = ['camera', 'aperture', 'filter', 'crystal', 'grating']
     optics_cls = []
     for ii, oo in enumerate(optics):
 

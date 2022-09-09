@@ -38,7 +38,7 @@ def _add_surface3d(
     extenthalf=None,
     # curvature
     curve_r=None,
-    curve_npts=None,
+    make_planar=None,
 ):
 
     # ------------
@@ -74,7 +74,7 @@ def _add_surface3d(
         extenthalf=extenthalf,
         # curvature
         curve_r=curve_r,
-        curve_npts=curve_npts,
+        make_planar=make_planar,
     )
 
     # ----------
@@ -82,52 +82,28 @@ def _add_surface3d(
 
     # keys
     knpts = f'{key}-npts'
-    kpx = f'{key}-x'
-    kpy = f'{key}-y'
-    kpz = f'{key}-z'
-    if gtype == 'planar':
+    if gtype != '3d':
         kp0 = f'{key}-x0'
         kp1 = f'{key}-x1'
         outline = (kp0, kp1)
+        poly = None
+        npts = outline_x0.size
     else:
+        kpx = f'{key}-x'
+        kpy = f'{key}-y'
+        kpz = f'{key}-z'
+        poly = (kpx, kpy, kpz)
         outline = None
+        npts = poly_x.size
 
     # refs
-    npts = poly_x.size
-
     dref = {
         knpts: {'size': npts},
     }
 
     # data
-    ddata = {
-        kpx: {
-            'data': poly_x,
-            'ref': knpts,
-            'dim': 'distance',
-            'name': 'x',
-            'quant': 'x',
-            'units': 'm',
-        },
-        kpy: {
-            'data': poly_y,
-            'ref': knpts,
-            'dim': 'distance',
-            'name': 'y',
-            'quant': 'y',
-            'units': 'm',
-        },
-        kpz: {
-            'data': poly_z,
-            'ref': knpts,
-            'dim': 'distance',
-            'name': 'z',
-            'quant': 'z',
-            'units': 'm',
-        },
-    }
-    if gtype == 'planar':
-        ddata.update({
+    if gtype != '3d':
+        ddata = {
             kp0: {
                 'data': outline_x0,
                 'ref': knpts,
@@ -144,7 +120,34 @@ def _add_surface3d(
                 'quant': 'x1',
                 'units': 'm',
             },
-        })
+        }
+    else:
+        ddata = {
+            kpx: {
+                'data': poly_x,
+                'ref': knpts,
+                'dim': 'distance',
+                'name': 'x',
+                'quant': 'x',
+                'units': 'm',
+            },
+            kpy: {
+                'data': poly_y,
+                'ref': knpts,
+                'dim': 'distance',
+                'name': 'y',
+                'quant': 'y',
+                'units': 'm',
+            },
+            kpz: {
+                'data': poly_z,
+                'ref': knpts,
+                'dim': 'distance',
+                'name': 'z',
+                'quant': 'z',
+                'units': 'm',
+            },
+        }
 
     # dobj
     dobj = {
@@ -155,7 +158,7 @@ def _add_surface3d(
                     'curve_r': curve_r,
                     'outline': outline,
                     'extenthalf': extenthalf,
-                    'poly': (kpx, kpy, kpz),
+                    'poly': poly,
                     'area': area,
                     'cent': cent,
                     'nin': nin,

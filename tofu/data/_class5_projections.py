@@ -11,6 +11,9 @@ import Polygon as plg
 import datastock as ds
 
 
+from . import _class8_compute
+
+
 # ##############################################################
 # ##############################################################
 #           Local to global coordinates
@@ -26,6 +29,7 @@ def _get_reflection(
     poly_x1=None,
     # observation point
     pt=None,
+    add_points=None,
     # functions
     coord_x01toxyz=None,
     coord_x01toxyz_poly=None,
@@ -50,17 +54,21 @@ def _get_reflection(
         vect_x=px - pt[0],
         vect_y=py - pt[1],
         vect_z=pz - pt[2],
+        strict=False,
+        return_x01=False,
     )[3:6]
 
     # project on target plane
     p0, p1 = ptsvect_poly(
-        pt_x=px,
-        pt_y=py,
-        pt_z=pz,
-        vx=vx,
-        vy=vy,
-        vz=vz,
-    )
+        pts_x=px,
+        pts_y=py,
+        pts_z=pz,
+        vect_x=vx,
+        vect_y=vy,
+        vect_z=vz,
+        strict=False,
+        return_x01=True,
+    )[-2:]
 
     # intersection
     p_a = (
@@ -71,6 +79,18 @@ def _get_reflection(
         return None, None
 
     p0, p1 = np.array(p_a.contour(0)).T
+
+    # interpolate to add points
+    p0, p1 = _class8_compute._interp_poly(
+        lp=[p0, p1],
+        add_points=add_points,
+        mode='min',
+        isclosed=False,
+        closed=False,
+        ravel=True,
+    )
+
+    # back to 3d
     px, py, pz = coord_x01toxyz_poly(x0=p0, x1=p1)
 
     # back projection on crystal
@@ -84,7 +104,8 @@ def _get_reflection(
         pts_z=pz,
         # surface
         return_xyz=False,
-        returnx01=True,
+        return_x01=True,
+        debug=False,
     )
 
 

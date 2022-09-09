@@ -25,15 +25,8 @@ def _get_x01toxyz(
     # ---------
     # key
 
-    lcryst = list(coll.dobj.get('crystal', {}).keys())
-    lgrat = list(coll.dobj.get('grating', {}).keys())
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lcryst + lgrat,
-    )
-
-    cls = 'crystal' if key in lcryst else 'grating'
+    key, cls = coll.get_diagnostic_optics(optics=key)
+    key, cls = key[0], cls[0]
     dgeom = coll.dobj[cls][key]['dgeom']
 
     # -------------------
@@ -69,8 +62,8 @@ def _get_x01toxyz(
         erot = ['e0', 'e1'][1-iplan]
 
         def x01toxyz(
-            theta=None,
-            xx=None,
+            x0=None,
+            x1=None,
             # surface
             O=dgeom['cent'] + dgeom['nin'] * dgeom['curve_r'][1 - iplan],
             rc=dgeom['curve_r'][1 - iplan],
@@ -78,8 +71,14 @@ def _get_x01toxyz(
             erot=dgeom[erot],
             # local coordinates
             nin=dgeom['nin'],
+            iplan=iplan,
         ):
             """ Coordinate transform """
+
+            if iplan == 0:
+                xx, theta = x0, x1
+            else:
+                xx, theta = x1, x0
 
             nox = np.cos(theta)*(-nin[0]) + np.sin(theta)*erot[0]
             noy = np.cos(theta)*(-nin[1]) + np.sin(theta)*erot[1]
@@ -98,8 +97,8 @@ def _get_x01toxyz(
     elif dgeom['type'] == 'spherical':
 
         def x01toxyz(
-            dtheta=None,
-            phi=None,
+            x0=None,
+            x1=None,
             # surface
             O=dgeom['cent'] + dgeom['curve_r'][0]*dgeom['nin'],
             rc=dgeom['curve_r'][0],
@@ -108,6 +107,8 @@ def _get_x01toxyz(
             e0=dgeom['e0'],
             e1=dgeom['e1'],
         ):
+
+            theta, phi = x1, x0
 
             ephix = np.cos(phi)*(-nin[0]) + np.sin(phi)*e0[0]
             ephiy = np.cos(phi)*(-nin[1]) + np.sin(phi)*e0[1]
@@ -131,7 +132,7 @@ def _get_x01toxyz(
 
         raise NotImplementedError()
 
-    return pts2pt
+    return x01toxyz
 
 
 # ##############################################################

@@ -28,16 +28,18 @@ def _get_pts2pt(
     # ---------
     # key
 
-    lcryst = list(coll.dobj.get('crystal', {}).keys())
-    lgrat = list(coll.dobj.get('grating', {}).keys())
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lcryst + lgrat,
-    )
-
-    cls = 'crystal' if key in lcryst else 'grating'
+    key, cls = coll.get_diagnostic_optics(optics=key)
+    key, cls = key[0], cls[0]
     dgeom = coll.dobj[cls][key]['dgeom']
+
+    lcls = ['crystal', 'grating']
+    if cls not in lcls:
+        msg = (
+            "Wrong class for reflections:\n"
+            f"\t -allowed: {lcls}\n"
+            f"\t -cls: {cls}\n"
+        )
+        raise Exception(msg)
 
     # -------------------
     #     Planar
@@ -61,6 +63,7 @@ def _get_pts2pt(
             # return
             return_xyz=None,
             return_x01=None,
+            debug=None,
         ):
             """
 
@@ -111,11 +114,11 @@ def _get_pts2pt(
                 Dy = cent[1] + x0 * e0[1] + x1*e1[1]
                 Dz = cent[2] + x0 * e0[2] + x1*e1[2]
 
-            if returnxzy and returnx01:
+            if return_xyz and return_x01:
                 return Dx, Dy, Dz, x0, x1
-            elif returnxzy:
+            elif return_xyz:
                 return Dx, Dy, Dz
-            elif returnx01:
+            elif return_x01:
                 return x0, x1
 
     # ----------------
@@ -151,6 +154,7 @@ def _get_pts2pt(
             return_x01=None,
             # number of k for interpolation
             nk=None,
+            debug=True,
         ):
             """
 
@@ -222,26 +226,33 @@ def _get_pts2pt(
                 )
 
                 # derive roots
+                iok = np.isfinite(eq)
                 roots = scpinterp.InterpolatedUnivariateSpline(
-                    kk,
-                    eq,
+                    kk[iok],
+                    eq[iok],
                     k=3,
                 ).roots()
 
-                if roots.size != 1 or np.abs(theta[ii]) > thetamax:
-                    msg = f"{roots.size} solutions for {ii} / {pts_x.size}"
-                    if roots.size > 1:
-                        ra, rb = np.polyfit(kk, eq, 1)
-                        roots = np.r_[-rb/ra]
-                    _debug_cylindrical(**locals())
-                    print(msg)
+                if roots.size != 1:
                     continue
-                    # raise Exception(msg)
+
+                # if roots.size != 1 or np.abs(theta[ii]) > thetamax:
+                    # # design robust linear fit
+                    # mean = np.mean(eq[iok])
+                    # std = np.std(eq[iok])
+                    # iok[iok] = np.abs(eq[iok] - mean) < 5.*std
+                    # ra, rb = np.polyfit(kk[iok], eq[iok], 1)
+                    # roots = np.r_[-rb/ra]
+
+                    # if debug is True:
+                        # msg = f"{roots.size} solutions for {ii} / {pts_x.size}"
+                        # print(msg)
+                        # _debug_cylindrical(**locals())
 
                 # nin, xx, D
                 (
                     nix, niy, niz,
-                    Dx[ii], Dy[ii], Dz[ii], xx[ii],
+                    Dxi, Dyi, Dzi, xxi,
                 ) = _get_Dnin_from_k(
                     O=O, eax=eax,
                     Ax=pt_x, Ay=pt_y, Az=pt_z,
@@ -252,17 +263,18 @@ def _get_pts2pt(
                 )
 
                 # theta, xx
-                theta[ii] = np.arctan2(
+                thetai = np.arctan2(
                     (nin[1]*niz - nin[2]*niy)*eax[0]
                     + (nin[2]*nix - nin[0]*niz)*eax[1]
                     + (nin[0]*niy - nin[1]*nix)*eax[2],
                     nix*nin[0] + niy*nin[1] + niz*nin[2],
                 )
 
+                if np.abs(xxi) > xmax or np.abs(thetai) > thetamax:
+                    continue
 
-            if ii > 0 and np.abs(theta[ii] - theta[ii-1]) > 0.3*thetamax:
-                import pdb; pdb.set_trace()       # DB
-                a = 10
+                Dx[ii], Dy[ii], Dz[ii] = Dxi, Dyi, Dzi
+                xx[ii], theta[ii] = xxi, thetai
 
             # safety check
             iok = np.isfinite(Dx)
@@ -276,11 +288,11 @@ def _get_pts2pt(
             # Exceptionally a polygon (xx, theta) can self-intersect
 
             # return
-            if returnxzy and returnx01:
+            if return_xyz and return_x01:
                 return Dx, Dy, Dz, xx, theta
-            elif returnxzy:
+            elif return_xyz:
                 return Dx, Dy, Dz
-            elif returnx01:
+            elif return_x01:
                 return xx, theta
 
     # ----------------
@@ -308,7 +320,9 @@ def _get_pts2pt(
             e0=dgeom['e0'],
             e1=dgeom['e1'],
             # return
+            return_xyz=None,
             return_x01=None,
+            debug=None,
         ):
             """
 
@@ -625,6 +639,8 @@ def _debug_cylindrical(
     Dzi=None,
     rc=None,
     ii=None,
+    ra=None,
+    rb=None,
     **kwdargs,
 ):
 
@@ -657,7 +673,7 @@ def _debug_cylindrical(
     ax1 = fig.add_subplot(132)
     ax1.plot(
         kk, eq, '.-k',
-        kk, np.polyval(np.polyfit(kk, eq, 1), kk), '-b',
+        kk, ra*kk + rb, '-b',
     )
     ax1.axhline(0, ls='--', c='k')
     for rr in roots:
@@ -731,11 +747,8 @@ def _debug_cylindrical(
         + ((Ey - O[1]) - OEax*eax[1])**2
         + ((Ez - O[2]) - OEax*eax[2])**2
     )
-    if roots.size == 1:
-        warnings.warn(f"Er: {Er}")
-    else:
-        print(Er)
-        import pdb; pdb.set_trace()     # DB
+    print(Er)
+    import pdb; pdb.set_trace()     # DB
 
 
 def _debug_spherical(

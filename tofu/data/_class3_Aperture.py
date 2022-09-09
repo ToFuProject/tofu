@@ -66,7 +66,7 @@ class Aperture(_class2_Rays.Rays):
         e1=None,
         # curvature
         curve_r=None,
-        curve_npts=None,
+        make_planar=None,
         # dmisc
         color=None,
     ):
@@ -102,7 +102,7 @@ class Aperture(_class2_Rays.Rays):
             e1=e1,
             # curvature
             curve_r=curve_r,
-            curve_npts=curve_npts,
+            make_planar=make_planar,
         )
 
         # dmisc
@@ -127,17 +127,3 @@ class Aperture(_class2_Rays.Rays):
             which=which,
             key=key,
         )
-
-    def get_optics_cls(self, key=None):
-        lk = ['aperture', 'filter', 'crystal', 'grating']
-        dk = {k0: list(cls.dobj.get(k0, {}).keys()) for k0 in lk}
-
-        lok = itt.chain.from_iterable([vv for vv in dk.values()])
-        key = ds._generic_check._check_var(
-            key, 'key',
-            types=str,
-            allowed=lok,
-        )
-
-        cls = [cc for cc, lk in dk.items() if key in lk][0]
-        return key, cls

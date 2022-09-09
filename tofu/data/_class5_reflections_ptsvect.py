@@ -19,15 +19,8 @@ def _get_ptsvect(
     # ---------
     # key
 
-    lcryst = list(coll.dobj.get('crystal', {}).keys())
-    lgrat = list(coll.dobj.get('grating', {}).keys())
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lcryst + lgrat,
-    )
-
-    cls = 'crystal' if key in lcryst else 'grating'
+    key, cls = coll.get_diagnostic_optics(optics=key)
+    key, cls = key[0], cls[0]
     dgeom = coll.dobj[cls][key]['dgeom']
 
     # -------------------
@@ -35,6 +28,11 @@ def _get_ptsvect(
     # -------------------
 
     if dgeom['type'] == 'planar':
+
+        if dgeom['extenthalf'] is None:
+            x0max, x1max = None, None
+        else:
+            x0max, x1max = dgeom['extenthalf']
 
         def ptsvect(
             pts_x=None,
@@ -50,8 +48,8 @@ def _get_ptsvect(
             e0=dgeom['e0'],
             e1=dgeom['e1'],
             # limits
-            x0max=dgeom['extenthalf'][0],
-            x1max=dgeom['extenthalf'][1],
+            x0max=x0max,
+            x1max=x1max,
             # return
             strict=None,
             return_x01=None,
@@ -64,6 +62,12 @@ def _get_ptsvect(
 
             # ------------------------------------------
             # Get local coordinates of reflection points
+
+            # normalize vect
+            vn = np.sqrt(vect_x**2 + vect_y**2 + vect_z**2)
+            vect_x = vect_x / vn
+            vect_y = vect_y / vn
+            vect_z = vect_z / vn
 
             # get parameters for k
             scavn = vect_x*nin[0] + vect_y*nin[1] + vect_z*nin[2]
@@ -116,7 +120,7 @@ def _get_ptsvect(
                         angle[iout] = np.nan
 
             if return_x01:
-                return Dx, Dy, Dz, vrX, vry, vrz, angle, x0, x1
+                return Dx, Dy, Dz, vrx, vry, vrz, angle, x0, x1
             else:
                 return Dx, Dy, Dz, vrx, vry, vrz, angle
 
@@ -127,7 +131,9 @@ def _get_ptsvect(
     elif dgeom['type'] == 'cylindrical':
 
         iplan = np.isinf(dgeom['curve_r']).nonzero()[0][0]
+        icurv = 1 - iplan
         eax = ['e0', 'e1'][iplan]
+        rc = dgeom['curve_r'][icurv]
 
         def ptsvect(
             # pts
@@ -139,11 +145,11 @@ def _get_ptsvect(
             vect_y=None,
             vect_z=None,
             # surface
-            O=dgeom['cent'] + dgeom['nin'] * dgeom['curve_r'][1 - iplan],
-            rc=dgeom['curve_r'][1 - iplan],
+            O=dgeom['cent'] + dgeom['nin'] * rc,
+            rc=rc,
             eax=dgeom[eax],
             # limits
-            thetamax=dgeom['extenthalf'][1-iplan],
+            thetamax=dgeom['extenthalf'][icurv],
             xmax=dgeom['extenthalf'][iplan],
             # local coordinates
             nin=dgeom['nin'],
@@ -156,6 +162,11 @@ def _get_ptsvect(
             cf. Notes_Upgrades/raytracing_surface3draytracing_surface3d.pdf
 
             """
+            # normalize vect
+            vn = np.sqrt(vect_x**2 + vect_y**2 + vect_z**2)
+            vect_x = vect_x / vn
+            vect_y = vect_y / vn
+            vect_z = vect_z / vn
 
             # ------------------------------------------
             # Get local coordinates of reflection points
@@ -200,7 +211,6 @@ def _get_ptsvect(
                 for ii in range(shape[0]):
                     kk[ii] = _common_kE(C0[ii], C1[ii], C2)
 
-
             iok = np.isfinite(kk)
             if np.any(iok):
                 Dx = pts_x + kk*vect_x
@@ -236,9 +246,13 @@ def _get_ptsvect(
 
                 # x0, x1
                 if strict is True or return_x01 is True:
-                    theta[iok] = np.arccos(
-                        -nox*nin[0] - noy*nin[1] - noz*nin[2]
+                    theta[iok] = np.arctan2(
+                        -((nin[1]*noz - nin[2]*noy)*eax[0]
+                        + (nin[2]*nox - nin[0]*noz)*eax[1]
+                        + (nin[0]*noy - nin[1]*nox)*eax[2]),
+                        -nox*nin[0] - noy*nin[1] - noz*nin[2],
                     )
+
                     xx[iok] = (
                         (Dx[iok] - O[0])*eax[0]
                         + (Dy[iok] - O[1])*eax[1]
@@ -302,6 +316,11 @@ def _get_ptsvect(
             cf. Notes_Upgrades/raytracing_surface3draytracing_surface3d.pdf
 
             """
+            # normalize vect
+            vn = np.sqrt(vect_x**2 + vect_y**2 + vect_z**2)
+            vect_x = vect_x / vn
+            vect_y = vect_y / vn
+            vect_z = vect_z / vn
 
             # ------------------------------------------
             # Get local coordinates of reflection points
