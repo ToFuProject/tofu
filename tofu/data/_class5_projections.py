@@ -43,11 +43,12 @@ def _get_reflection(
     #     compute
     # -------------------
 
+    print(f'\t\tA    x0.size = {x0.size}')  # DB
     # outline to 3d
     px, py, pz = coord_x01toxyz(x0=x0, x1=x1)
 
     # Compute poly reflections
-    vx, vy, vz = ptsvect(
+    vx, vy, vz, _, iok = ptsvect(
         pts_x=pt[0],
         pts_y=pt[1],
         pts_z=pt[2],
@@ -56,30 +57,35 @@ def _get_reflection(
         vect_z=pz - pt[2],
         strict=False,
         return_x01=False,
-    )[3:6]
+    )[3:]
 
+    print(f'\t\tA2  px.size = {px.size},  vx.size={vx.size}')  # DB
     # project on target plane
     p0, p1 = ptsvect_poly(
-        pts_x=px,
-        pts_y=py,
-        pts_z=pz,
-        vect_x=vx,
-        vect_y=vy,
-        vect_z=vz,
+        pts_x=px[iok],
+        pts_y=py[iok],
+        pts_z=pz[iok],
+        vect_x=vx[iok],
+        vect_y=vy[iok],
+        vect_z=vz[iok],
         strict=False,
         return_x01=True,
     )[-2:]
 
+    pa = plg.Polygon(np.array([poly_x0, poly_x1]).T)
+
+    # isinside
+    if np.all([pa.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
+        return x0, x1
+
     # intersection
-    p_a = (
-        plg.Polygon(np.array([poly_x0, poly_x1]).T)
-        & plg.Polygon(np.array([p0, p1]).T)
-    )
+    p_a = pa & plg.Polygon(np.array([p0, p1]).T)
     if p_a.nPoints() < 3:
         return None, None
 
     p0, p1 = np.array(p_a.contour(0)).T
 
+    print(f'\t\tB    poly_x0.size = {poly_x0.size}')  # DB
     # interpolate to add points
     p0, p1 = _class8_compute._interp_poly(
         lp=[p0, p1],
@@ -93,6 +99,7 @@ def _get_reflection(
     # back to 3d
     px, py, pz = coord_x01toxyz_poly(x0=p0, x1=p1)
 
+    print(f'\t\tC    p0.size = {p0.size}')  # DB
     # back projection on crystal
     return pts2pt(
         pt_x=pt[0],

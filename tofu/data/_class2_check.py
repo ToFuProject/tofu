@@ -421,6 +421,7 @@ def _rays(
                     pts_z[ii, ...],
                     vect_x, vect_y, vect_z,
                     alpha[ii, ...],
+                    iok,
                 ) = reflect_ptsvect(
                     pts_x=stx,
                     pts_y=sty,

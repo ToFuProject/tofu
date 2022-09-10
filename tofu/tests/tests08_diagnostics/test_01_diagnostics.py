@@ -103,7 +103,7 @@ def _apertures():
     ap0 = {
         'outline_x0': out0,
         'outline_x1': out1,
-        'cent': cent,
+        'cent': cent + np.r_[0., 0.02, 0.],
         'nin': nin,
         'e0': e0,
         'e1': e1,
@@ -527,8 +527,8 @@ class Test01_Diagnostic():
                 gtype = self.obj.dobj['crystal'][k0]['dgeom']['type']
                 if gtype not in ['spherical', 'toroidal']:
                     print(k0, 'spectro')
-                    if 'cryst1-slit' not in loptics:
-                        continue
+                    # if 'cryst1-slit' in loptics:
+                        # loptics.append('ap0')
                     self.obj.add_diagnostic(
                         optics=loptics,
                         config=conf,

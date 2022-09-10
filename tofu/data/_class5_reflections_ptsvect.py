@@ -110,12 +110,10 @@ def _get_ptsvect(
             ez2 = eazx**2 + eazy**2 + eazz**2
 
             OAzez = OAzx*eazx + OAzy*eazy + OAzz*eazz
-
-            C0, C1, C2 = _common_coefs(
-                rc=rc,
-                OAz2=OAz2,
-                OAzez=OAzez,
-                ez2=ez2,
+            iok = (
+                np.isfinite(ez2)
+                & np.isfinite(OAz2)
+                & np.isfinite(OAzez)
             )
 
             # Prepare D, theta, xx
@@ -123,22 +121,17 @@ def _get_ptsvect(
             shape = OAzez.shape
             (
                 Dx, Dy, Dz, vrx, vry, vrz,
-                angle, theta, xx,
+                angle, theta, xx, kk,
             ) = _common_prepare(shape)
 
             # get k
-            kk = np.full(shape, np.nan)
-            if ndim == 2:
-                for ii in range(shape[0]):
-                    for jj in range(shape[1]):
-                        kk[ii, jj] = _common_kE(
-                            C0[ii, jj], C1[ii, jj], C2[ii, jj],
-                        )
-            else:
-                for ii in range(shape[0]):
-                    kk[ii] = _common_kE(C0[ii], C1[ii], C2)
+            delta = (OAzez - OAz2*ez2)[iok]
+            ipos = delta >= 0
+            iok[iok] = ipos
+            sol0 = (-OAzez[iok] - np.sqrt(delta[ipos])) / ez2[iok]
+            sol1 = (-OAzez[iok] + np.sqrt(delta[ipos])) / ez2[iok]
+            kk[iok] = np.maximum(sol0, sol1)
 
-            iok = np.isfinite(kk)
             if np.any(iok):
                 Dx = pts_x + kk*vect_x
                 Dy = pts_y + kk*vect_y
@@ -158,16 +151,16 @@ def _get_ptsvect(
                     scavn = -(vect_x*nox + vect_y*noy + vect_z*noz)
 
                     # get vect_reflect
-                    vrx = vect_x + 2.*scavn * nox
-                    vry = vect_y + 2.*scavn * noy
-                    vrz = vect_z + 2.*scavn * noz
+                    vrx[iok] = vect_x + 2.*scavn * nox
+                    vry[iok] = vect_y + 2.*scavn * noy
+                    vrz[iok] = vect_z + 2.*scavn * noz
 
                 else:
                     scavn = -(vect_x[iok]*nox + vect_y[iok]*noy + vect_z[iok]*noz)
                     # get vect_reflect
-                    vrx = vect_x[iok] + 2.*scavn * nox
-                    vry = vect_y[iok] + 2.*scavn * noy
-                    vrz = vect_z[iok] + 2.*scavn * noz
+                    vrx[iok] = vect_x[iok] + 2.*scavn * nox
+                    vry[iok] = vect_y[iok] + 2.*scavn * noy
+                    vrz[iok] = vect_z[iok] + 2.*scavn * noz
 
                 angle[iok] = -np.arcsin(scavn)
 
@@ -197,9 +190,9 @@ def _get_ptsvect(
                             vry[iout] = np.nan
                             vrz[iout] = np.nan
                             angle[iout] = np.nan
+                            iok[iout] = False
 
             # enforce normalization
-            iok = np.isfinite(vrx)
             vnorm = np.sqrt(vrx[iok]**2 + vry[iok]**2 + vrz[iok]**2)
             vrx[iok] = vrx[iok] / vnorm
             vry[iok] = vry[iok] / vnorm
@@ -207,9 +200,9 @@ def _get_ptsvect(
 
             # return
             if return_x01:
-                return Dx, Dy, Dz, vrx, vry, vrz, angle, xx, theta
+                return Dx, Dy, Dz, vrx, vry, vrz, angle, iok, xx, theta
             else:
-                return Dx, Dy, Dz, vrx, vry, vrz, angle
+                return Dx, Dy, Dz, vrx, vry, vrz, angle, iok
 
     # ----------------
     #   Spherical
@@ -449,16 +442,16 @@ def _get_ptsvect_plane(
                     Dx[iout] = np.nan
                     Dy[iout] = np.nan
                     Dz[iout] = np.nan
-                    v_ref_x[iout] = np.nan
-                    v_ref_y[iout] = np.nan
-                    v_ref_z[iout] = np.nan
+                    vrx[iout] = np.nan
+                    vry[iout] = np.nan
+                    vrz[iout] = np.nan
                     angle[iout] = np.nan
 
+        iok = np.isfinite(Dx)
         if return_x01:
-            return Dx, Dy, Dz, vrx, vry, vrz, angle, x0, x1
+            return Dx, Dy, Dz, vrx, vry, vrz, angle, iok, x0, x1
         else:
-            return Dx, Dy, Dz, vrx, vry, vrz, angle
-
+            return Dx, Dy, Dz, vrx, vry, vrz, angle, iok
     return ptsvect
 
 
@@ -474,6 +467,7 @@ def _common_coefs(rc=None, OAz2=None, OAzez=None, ez2=None):
 
 def _common_prepare(shape):
     return (
+        np.full(shape, np.nan),
         np.full(shape, np.nan),
         np.full(shape, np.nan),
         np.full(shape, np.nan),

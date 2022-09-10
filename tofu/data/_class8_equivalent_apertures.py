@@ -147,6 +147,7 @@ def equivalent_apertures(
 
     iok = np.ones((pixel.size,), dtype=bool)
     for ii in pixel:
+        print(f'pix {ii} / {pixel.size}')   # DB
         p0, p1 = func(
             p_a=p_a,
             pt=np.r_[cx[ii], cy[ii], cz[ii]],
@@ -166,13 +167,13 @@ def equivalent_apertures(
             convex=convex,
         )
 
-        # convex hull
-        if p0 is not None and convex:
+        # convex hulli
+        if p0 is None or p0.size == 0:
+            iok[ii] = False
+        elif convex:
             p0, p1 = np.array(plgUtils.convexHull(
                 plg.Polygon(np.array([p0, p1]).T)
             ).contour(0)).T
-        elif p0 is None:
-            iok[ii] = False
 
         # append
         x0.append(p0)
@@ -241,7 +242,7 @@ def equivalent_apertures(
 
             (
                 px[ii, :], py[ii, :], pz[ii, :],
-                _, _, _, _, p0, p1,
+                _, _, _, _, _, p0, p1,
             ) = pts2plane(
                 pts_x=cx[ii],
                 pts_y=cy[ii],
@@ -528,10 +529,14 @@ def _get_equivalent_aperture(
             return_x01=True,
         )[-2:]
 
-        # intersection
-        p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
-        if p_a.nPoints() < 3:
-            return None, None
+        # inside
+        if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
+            p_a = plg.Polygon(np.array([p0, p1]).T)
+        else:
+            # intersection
+            p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
+            if p_a.nPoints() < 3:
+                return None, None
 
     # return
     return np.array(p_a.contour(0)).T
@@ -577,11 +582,14 @@ def _get_equivalent_aperture_spectro(
             return_x01=True,
         )[-2:]
 
-        import pdb; pdb.set_trace() # DB
-        # intersection
-        p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
-        if p_a.nPoints() < 3:
-            return None, None
+        # inside
+        if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
+            p_a = plg.Polygon(np.array([p0, p1]).T)
+        else:
+            # intersection
+            p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
+            if p_a.nPoints() < 3:
+                return None, None
 
     # extract p0, p1
     p0, p1 = np.array(p_a.contour(0)).T
@@ -589,16 +597,19 @@ def _get_equivalent_aperture_spectro(
     # loop on optics after crystal
     for jj in range(nop_post):
 
-        # interpolate
-        p0, p1 = _compute._interp_poly(
-            lp=[p0, p1],
-            add_points=add_points,
-            mode='min',
-            isclosed=False,
-            closed=False,
-            ravel=True,
-        )
+        print(f'\top_post {jj} / {nop_post}')   # DB
 
+        # interpolate
+        # p0, p1 = _compute._interp_poly(
+            # lp=[p0, p1],
+            # add_points=add_points,
+            # mode='min',
+            # isclosed=False,
+            # closed=False,
+            # ravel=True,
+        # )
+
+        # reflection
         p0, p1 = _class5_projections._get_reflection(
             # inital contour
             x0=p0,
@@ -620,19 +631,23 @@ def _get_equivalent_aperture_spectro(
         if p0 is None:
             return p0, p1
 
-        # convex hull
-        if convex:
-            p0, p1 = np.array(plgUtils.convexHull(
-                plg.Polygon(np.array([p0, p1]).T)
-            ).contour(0)).T
+        print(f'\t\tD    p0.size = {p0.size}')
+        if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
+            pass
+        else:
+            # convex hull
+            if convex:
+                p0, p1 = np.array(plgUtils.convexHull(
+                    plg.Polygon(np.array([p0, p1]).T)
+                ).contour(0)).T
 
-        # intersection
-        p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
-        if p_a.nPoints() < 3:
-            return None, None
+            # intersection
+            p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
+            if p_a.nPoints() < 3:
+                return None, None
 
-        # update
-        p0, p1 = np.array(p_a.contour(0)).T
+            # update
+            p0, p1 = np.array(p_a.contour(0)).T
 
     return p0, p1
 
