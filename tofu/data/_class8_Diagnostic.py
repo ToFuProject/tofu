@@ -62,6 +62,7 @@ class Diagnostic(_class7_Camera.Camera):
         reflections_nb=None,
         reflections_type=None,
         # others
+        verb=None,
         **kwdargs,
     ):
 
@@ -97,7 +98,7 @@ class Diagnostic(_class7_Camera.Camera):
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
                 # bool
-                verb=False,
+                verb=verb,
                 plot=False,
                 store='analytical',
             )

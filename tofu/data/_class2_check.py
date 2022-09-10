@@ -430,6 +430,7 @@ def _rays(
                     vect_y=vect_y,
                     vect_z=vect_z,
                     strict=True,
+                    return_x01=False,
                 )
 
                 # update start

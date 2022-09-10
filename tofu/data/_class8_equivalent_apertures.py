@@ -147,7 +147,11 @@ def equivalent_apertures(
 
     iok = np.ones((pixel.size,), dtype=bool)
     for ii in pixel:
-        print(f'pix {ii} / {pixel.size}')   # DB
+
+        if verb is True:
+            msg = f"\tpixel {ii} / {pixel.size}"
+            print(msg, flush=True, end='\r')
+
         p0, p1 = func(
             p_a=p_a,
             pt=np.r_[cx[ii], cy[ii], cz[ii]],
@@ -413,7 +417,7 @@ def _check(
     add_points = ds._generic_check._check_var(
         add_points, 'add_points',
         types=int,
-        default=5,
+        default=3,
         sign='>0',
     )
 
@@ -597,18 +601,6 @@ def _get_equivalent_aperture_spectro(
     # loop on optics after crystal
     for jj in range(nop_post):
 
-        print(f'\top_post {jj} / {nop_post}')   # DB
-
-        # interpolate
-        # p0, p1 = _compute._interp_poly(
-            # lp=[p0, p1],
-            # add_points=add_points,
-            # mode='min',
-            # isclosed=False,
-            # closed=False,
-            # ravel=True,
-        # )
-
         # reflection
         p0, p1 = _class5_projections._get_reflection(
             # inital contour
@@ -631,7 +623,6 @@ def _get_equivalent_aperture_spectro(
         if p0 is None:
             return p0, p1
 
-        print(f'\t\tD    p0.size = {p0.size}')
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
             pass
         else:

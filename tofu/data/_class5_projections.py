@@ -43,7 +43,6 @@ def _get_reflection(
     #     compute
     # -------------------
 
-    print(f'\t\tA    x0.size = {x0.size}')  # DB
     # outline to 3d
     px, py, pz = coord_x01toxyz(x0=x0, x1=x1)
 
@@ -59,7 +58,9 @@ def _get_reflection(
         return_x01=False,
     )[3:]
 
-    print(f'\t\tA2  px.size = {px.size},  vx.size={vx.size}')  # DB
+    if not np.any(iok):
+        return None, None
+
     # project on target plane
     p0, p1 = ptsvect_poly(
         pts_x=px[iok],
@@ -85,21 +86,20 @@ def _get_reflection(
 
     p0, p1 = np.array(p_a.contour(0)).T
 
-    print(f'\t\tB    poly_x0.size = {poly_x0.size}')  # DB
     # interpolate to add points
-    p0, p1 = _class8_compute._interp_poly(
-        lp=[p0, p1],
-        add_points=add_points,
-        mode='min',
-        isclosed=False,
-        closed=False,
-        ravel=True,
-    )
+    if p0.size < 300:
+        p0, p1 = _class8_compute._interp_poly(
+            lp=[p0, p1],
+            add_points=add_points,
+            mode='min',
+            isclosed=False,
+            closed=False,
+            ravel=True,
+        )
 
     # back to 3d
     px, py, pz = coord_x01toxyz_poly(x0=p0, x1=p1)
 
-    print(f'\t\tC    p0.size = {p0.size}')  # DB
     # back projection on crystal
     return pts2pt(
         pt_x=pt[0],

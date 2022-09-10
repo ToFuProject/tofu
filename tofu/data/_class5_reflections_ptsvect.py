@@ -125,7 +125,7 @@ def _get_ptsvect(
             ) = _common_prepare(shape)
 
             # get k
-            delta = (OAzez - OAz2*ez2)[iok]
+            delta = (OAzez**2 - ez2*(OAz2-rc**2))[iok]
             ipos = delta >= 0
             iok[iok] = ipos
             sol0 = (-OAzez[iok] - np.sqrt(delta[ipos])) / ez2[iok]
@@ -192,11 +192,11 @@ def _get_ptsvect(
                             angle[iout] = np.nan
                             iok[iout] = False
 
-            # enforce normalization
-            vnorm = np.sqrt(vrx[iok]**2 + vry[iok]**2 + vrz[iok]**2)
-            vrx[iok] = vrx[iok] / vnorm
-            vry[iok] = vry[iok] / vnorm
-            vrz[iok] = vrz[iok] / vnorm
+                # enforce normalization
+                vnorm = np.sqrt(vrx[iok]**2 + vry[iok]**2 + vrz[iok]**2)
+                vrx[iok] = vrx[iok] / vnorm
+                vry[iok] = vry[iok] / vnorm
+                vrz[iok] = vrz[iok] / vnorm
 
             # return
             if return_x01:

@@ -518,7 +518,7 @@ class Test01_Diagnostic():
                     key_cam=f'{k0}-cam{ii}',
                     aperture_dimensions=[100e-6, 8e-2],
                     pinhole_radius=500e-6,
-                    cam_pixels_nb=[5, 3],
+                    cam_pixels_nb=[20, 5],
                     # returnas
                     returnas=list,
                 )
@@ -527,8 +527,8 @@ class Test01_Diagnostic():
                 gtype = self.obj.dobj['crystal'][k0]['dgeom']['type']
                 if gtype not in ['spherical', 'toroidal']:
                     print(k0, 'spectro')
-                    # if 'cryst1-slit' in loptics:
-                        # loptics.append('ap0')
+                    if 'cryst1-slit' in loptics:
+                        loptics.append('ap0')
                     self.obj.add_diagnostic(
                         optics=loptics,
                         config=conf,
