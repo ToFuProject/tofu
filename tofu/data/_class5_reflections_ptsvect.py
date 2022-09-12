@@ -210,17 +210,20 @@ def _get_ptsvect(
 
     elif dgeom['type'] == 'spherical':
 
+        rc = dgeom['curve_r'][0]
+
         def ptsvect(
-            pt_x=None,
-            pt_y=None,
-            pt_z=None,
             # pts
             pts_x=None,
             pts_y=None,
             pts_z=None,
+            # vect
+            vect_x=None,
+            vect_y=None,
+            vect_z=None,
             # surface
-            O=dgeom['cent'] + dgeom['curve_r'][0]*dgeom['nin'],
-            rc=dgeom['curve_r'][0],
+            O=dgeom['cent'] + dgeom['nin'] * rc,
+            rc=rc,
             # limits
             dthetamax=dgeom['extenthalf'][0],
             phimax=dgeom['extenthalf'][1],
@@ -229,7 +232,10 @@ def _get_ptsvect(
             e0=dgeom['e0'],
             e1=dgeom['e1'],
             # return
+            strict=None,
             return_x01=None,
+            # timing
+            dt=None,
         ):
             """
 
@@ -246,97 +252,95 @@ def _get_ptsvect(
             # Get local coordinates of reflection points
 
             # get parameters for k
-            OA = np.r_[pt_x - O[0], pt_y - O[1], pt_z - O[2]]
-            OA2 = np.sum(OA**2)
+            OAx = pts_x - O[0]
+            OAy = pts_y - O[1]
+            OAz = pts_z - O[2]
+            OA2 = OAx**2 + OAy**2 + OAz**2
+            OAe = OAx * vect_x + OAy * vect_y + OAz * vect_z
 
-            ABx = pts_x - pt_x
-            ABy = pts_y - pt_y
-            ABz = pts_z - pt_z
-            ll = np.sqrt(ABx**2 + ABy**2 + ABz**2)
-
-            OAe = ((OA[0] * ABx) + (OA[1] * ABy) + (OA[2] * ABz)) / ll
-
-            C0, C1, C2, C3, A = _common_coefs(
-                rc=rc,
-                ll=ll,
-                OA2=OA2,
-                OAe=OAe,
-                ez2=1.,
-            )
+            iok = np.isfinite(OA2) & np.isfinite(OAe)
 
             # Prepare D, theta, xx
-            Dx, Dy, Dz, dtheta, phi = _common_prepare(nb=pts_x.size)
+            ndim = OAe.ndim
+            shape = OAe.shape
+            (
+                Dx, Dy, Dz, vrx, vry, vrz,
+                angle, phi, dtheta, kk,
+            ) = _common_prepare(shape)
 
             # get k
-            kk = np.full()
-            for ii in range(pts_x.size):
-                kk = _common_kE(C0[ii], C1[ii], C2)
+            delta = (OAe**2 - (OA2-rc**2))[iok]
+            ipos = delta >= 0
+            iok[iok] = ipos
+            sol0 = -OAe[iok] - np.sqrt(delta[ipos])
+            sol1 = -OAe[iok] + np.sqrt(delta[ipos])
+            kk[iok] = np.maximum(sol0, sol1)
 
-                if kk.size == 0:
-                    continue
+            if np.any(iok):
+                Dx = pts_x + kk*vect_x
+                Dy = pts_y + kk*vect_y
+                Dz = pts_z + kk*vect_z
 
-                nox = Ex - O[0]
-                noy = Ey - O[1]
-                noz = Ez - O[2]
-                norm = np.sqrt(nox**2 + noy**2 + noz**2)
-                nox /= norm
-                noy /= norm
-                noz /= norm
+                ODn = np.sqrt((Dx - O[0])**2 + (Dy - O[1])**2 + (Dz - O[2])**2)
+                nox = (Dx[iok] - O[0]) / ODn[iok]
+                noy = (Dy[iok] - O[1]) / ODn[iok]
+                noz = (Dz[iok] - O[2]) / ODn[iok]
 
-                if np.sum(ind) == 0:
-                    import pdb; pdb.set_trace()     # DB
-                    pass
+                # scalar product (for angle + reflection)
+                if np.isscalar(vect_x):
+                    scavn = -(vect_x*nox + vect_y*noy + vect_z*noz)
 
-                # local coordinates
-                dthi = np.arcsin(
-                    nox*e1[0] + noy*e1[1] + noz*e1[2]
-                )
-                phii = np.arcsin(
-                    (nox*e0[0] + noy*e0[1] + noz*e0[2]) / np.cos(dthi)
-                )
+                    # get vect_reflect
+                    vrx[iok] = vect_x + 2.*scavn * nox
+                    vry[iok] = vect_y + 2.*scavn * noy
+                    vrz[iok] = vect_z + 2.*scavn * noz
 
-                # handle multiple solutions
-                if np.sum(ind) > 1:
+                else:
+                    scavn = -(vect_x[iok]*nox + vect_y[iok]*noy + vect_z[iok]*noz)
+                    # get vect_reflect
+                    vrx[iok] = vect_x[iok] + 2.*scavn * nox
+                    vry[iok] = vect_y[iok] + 2.*scavn * noy
+                    vrz[iok] = vect_z[iok] + 2.*scavn * noz
 
-                    ind = (
-                        (np.abs(dthi) <= dthetamax)
-                        & (np.abs(phii) <= phimax)
+                angle[iok] = -np.arcsin(scavn)
+
+                # x0, x1
+                if strict is True or return_x01 is True:
+                    dtheta[iok] = np.arcsin(
+                        nox*e1[0] + noy*e1[1] + noz*e1[2]
+                    )
+                    phi[iok] = np.arcsin(
+                        (nox*e0[0] + noy*e0[1] + noz*e0[2])
+                        / np.cos(dtheta[iok])
                     )
 
-                    if np.sum(ind) == 0:
-                        ind = np.argmin(np.abs(dthi)**2 + np.abs(phii)**2)
-                    elif np.sum(ind) > 1:
-                        msg = f"No / several solutions found: {ind.sum()}"
-                        _debug_spherical(
-                            pt_x=pt_x,
-                            pt_y=pt_y,
-                            pt_z=pt_z,
-                            pts_x=pts_x[ii],
-                            pts_y=pts_y[ii],
-                            pts_z=pts_z[ii],
-                            rr=rr,
-                            O=O,
-                            rc=rc,
-                            ABx=ABx[ii],
-                            ABy=ABy[ii],
-                            ABz=ABz[ii],
-                            nin=nin,
-                            e0=e0,
-                            e1=e1,
+                    if strict is True:
+                        iout = (
+                            (np.abs(dtheta) > dthetamax)
+                            | (np.abs(phi) > phimax)
                         )
-                        raise Exception(msg)
 
-                Dx[ii] = O[0] + rc*nox[ind]
-                Dy[ii] = O[1] + rc*noy[ind]
-                Dz[ii] = O[2] + rc*noz[ind]
-                dtheta[ii] = dthi[ind]
-                phi[ii] = phii[ind]
+                        if np.any(iout):
+                            Dx[iout] = np.nan
+                            Dy[iout] = np.nan
+                            Dz[iout] = np.nan
+                            vrx[iout] = np.nan
+                            vry[iout] = np.nan
+                            vrz[iout] = np.nan
+                            angle[iout] = np.nan
+                            iok[iout] = False
+
+                # enforce normalization
+                vnorm = np.sqrt(vrx[iok]**2 + vry[iok]**2 + vrz[iok]**2)
+                vrx[iok] = vrx[iok] / vnorm
+                vry[iok] = vry[iok] / vnorm
+                vrz[iok] = vrz[iok] / vnorm
 
             # return
             if return_x01:
-                return Dx, Dy, Dz, dtheta, phi
+                return Dx, Dy, Dz, vrx, vry, vrz, angle, iok, xx, theta
             else:
-                return Dx, Dy, Dz
+                return Dx, Dy, Dz, vrx, vry, vrz, angle, iok
 
     # ----------------
     #   Toroidal

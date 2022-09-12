@@ -529,7 +529,7 @@ class Test01_Diagnostic():
 
                 # add diag
                 gtype = self.obj.dobj['crystal'][k0]['dgeom']['type']
-                if gtype not in ['spherical', 'toroidal']:
+                if gtype not in ['toroidal']:
                     self.doptics.update({
                         f'{k0}-{ii}': loptics,
                     })
@@ -545,11 +545,10 @@ class Test01_Diagnostic():
         # add crystal optics
         for k0, v0 in self.doptics.items():
             print(k0, 'spectro')
-            if k0 == 'cryst1-1':
-                self.obj.add_diagnostic(
-                    optics=v0,
-                    config=self.conf,
-                )
+            self.obj.add_diagnostic(
+                optics=v0,
+                config=self.conf,
+            )
 
     # ----------
     # tests

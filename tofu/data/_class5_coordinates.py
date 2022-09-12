@@ -108,15 +108,15 @@ def _get_x01toxyz(
             e1=dgeom['e1'],
         ):
 
-            theta, phi = x1, x0
+            dtheta, phi = x1, x0
 
             ephix = np.cos(phi)*(-nin[0]) + np.sin(phi)*e0[0]
             ephiy = np.cos(phi)*(-nin[1]) + np.sin(phi)*e0[1]
             ephiz = np.cos(phi)*(-nin[2]) + np.sin(phi)*e0[2]
 
-            nox = np.cos(dtheta)*ephix + np.sin(theta)*e1[0]
-            noy = np.cos(dtheta)*ephiy + np.sin(theta)*e1[1]
-            noz = np.cos(dtheta)*ephiz + np.sin(theta)*e1[2]
+            nox = np.cos(dtheta)*ephix + np.sin(dtheta)*e1[0]
+            noy = np.cos(dtheta)*ephiy + np.sin(dtheta)*e1[1]
+            noz = np.cos(dtheta)*ephiz + np.sin(dtheta)*e1[2]
 
             return (
                 O[0] + rc * nox,

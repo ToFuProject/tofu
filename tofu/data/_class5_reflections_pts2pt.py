@@ -132,6 +132,7 @@ def _get_pts2pt(
         iplan = np.isinf(dgeom['curve_r']).nonzero()[0][0]
         eax = ['e0', 'e1'][iplan]
         erot = ['e0', 'e1'][1-iplan]
+        rc = dgeom['curve_r'][1 - iplan]
 
         def pts2pt(
             pt_x=None,
@@ -142,8 +143,8 @@ def _get_pts2pt(
             pts_y=None,
             pts_z=None,
             # surface
-            O=dgeom['cent'] + dgeom['nin'] * dgeom['curve_r'][1 - iplan],
-            rc=dgeom['curve_r'][1 - iplan],
+            O=dgeom['cent'] + dgeom['nin'] * rc,
+            rc=rc,
             eax=dgeom[eax],
             erot=dgeom[erot],
             # limits
@@ -216,7 +217,7 @@ def _get_pts2pt(
                     Dxi, Dyi, Dzi,
                     # D1x, D1y, D1z,
                     xxi,
-                ) = _get_Dnin_from_k(
+                ) = _get_Dnin_from_k_cyl(
                     O=O, eax=eax,
                     Ax=pt_x, Ay=pt_y, Az=pt_z,
                     Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
@@ -256,7 +257,7 @@ def _get_pts2pt(
                 (
                     nix, niy, niz,
                     Dxi, Dyi, Dzi, xxi,
-                ) = _get_Dnin_from_k(
+                ) = _get_Dnin_from_k_cyl(
                     O=O, eax=eax,
                     Ax=pt_x, Ay=pt_y, Az=pt_z,
                     Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
@@ -304,6 +305,8 @@ def _get_pts2pt(
 
     elif dgeom['type'] == 'spherical':
 
+        rc = dgeom['curve_r'][0]
+
         def pts2pt(
             pt_x=None,
             pt_y=None,
@@ -313,8 +316,8 @@ def _get_pts2pt(
             pts_y=None,
             pts_z=None,
             # surface
-            O=dgeom['cent'] + dgeom['curve_r'][0]*dgeom['nin'],
-            rc=dgeom['curve_r'][0],
+            O=dgeom['cent'] + rc*dgeom['nin'],
+            rc=rc,
             # limits
             dthetamax=dgeom['extenthalf'][0],
             phimax=dgeom['extenthalf'][1],
@@ -325,7 +328,10 @@ def _get_pts2pt(
             # return
             return_xyz=None,
             return_x01=None,
+            nk=None,
             debug=None,
+            # timing
+            dt=None,
         ):
             """
 
@@ -337,104 +343,137 @@ def _get_pts2pt(
             # Get local coordinates of reflection points
 
             # get parameters for k
-            OA = np.r_[pt_x - O[0], pt_y - O[1], pt_z - O[2]]
-            OA2 = np.sum(OA**2)
+            A = np.r_[pt_x, pt_y, pt_z]
+            Dx, Dy, Dz, phi, dtheta = _common_prepare(nb=pts_x.size)
 
-            ABx = pts_x - pt_x
-            ABy = pts_y - pt_y
-            ABz = pts_z - pt_z
-            ll = np.sqrt(ABx**2 + ABy**2 + ABz**2)
+            epm = np.cos(phimax)*e0 + np.sin(phimax)*(-nin)
+            epM = np.cos(phimax)*e0 - np.sin(phimax)*(-nin)
 
-            OAe = ((OA[0] * ABx) + (OA[1] * ABy) + (OA[2] * ABz)) / ll
+            etm = np.cos(dthetamax)*e1 + np.sin(dthetamax)*(-nin)
+            etM = np.cos(dthetamax)*e1 - np.sin(dthetamax)*(-nin)
 
-            C0, C1, C2, C3, A = _common_coefs(
-                rc=rc,
-                ll=ll,
-                OA2=OA2,
-                OAe=OAe,
-                ez2=1.,
-            )
+            lzones = [
+                (
+                    (O, epm),
+                    (O, -epM),
+                    (O, etm),
+                    (O, -etM),
+                ),
+                (
+                    (O, -epm),
+                    (O, epM),
+                    (O, -etm),
+                    (O, etM),
+                ),
+            ]
 
-            # Prepare D, theta, xx
-            Dx, Dy, Dz, dtheta, phi = _common_prepare(nb=pts_x.size)
-
-            # get k
             for ii in range(pts_x.size):
+                B = np.r_[pts_x[ii], pts_y[ii], pts_z[ii]]
+                AB = B - A
+                eAB = AB / np.linalg.norm(AB)
 
-                kk, Ex, Ey, Ez = _common_kE(
-                    C0[ii], C1[ii], C2[ii], C3[ii], A,
-                    pt_x, pt_y, pt_z,
-                    ABx[ii], ABy[ii], ABz[ii],
+                # compute kmin, kmax
+                kk = _kminmax_plane(
+                    A=A,
+                    B=B,
+                    lzones=lzones,
+                    ii=ii,
+                    nin=nin,
+                    nk=nk,
+                    # timing
+                    dt=dt,
                 )
 
-                nox = Ex - O[0]
-                noy = Ey - O[1]
-                noz = Ez - O[2]
-                norm = np.sqrt(nox**2 + noy**2 + noz**2)
-                nox /= norm
-                noy /= norm
-                noz /= norm
-
-                # check
-                ind = _common_check(
-                    ABx[ii], ABy[ii], ABz[ii], ll[ii],
-                    nox, noy, noz, norm, kk, rc,
-                )
-
-                if np.sum(ind) == 0:
-                    import pdb; pdb.set_trace()     # DB
+                if kk is None:
                     continue
 
+                # nin, xx, D
+                (
+                    nix, niy, niz,
+                    Dxi, Dyi, Dzi,
+                ) = _get_Dnin_from_k_sph(
+                    O=O,
+                    Ax=pt_x, Ay=pt_y, Az=pt_z,
+                    Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
+                    kk=kk,
+                    rc=rc,
+                    nin=nin,
+                )
+
+                # derive DAn, DB, DBn, DA
+                eq = _get_DADB(
+                    Ax=pt_x, Ay=pt_y, Az=pt_z,
+                    Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
+                    Dx=Dxi, Dy=Dyi, Dz=Dzi,
+                    nix=nix, niy=niy, niz=niz,
+                )
+                iok = np.isfinite(eq)
+                kk = kk[iok]
+                eq = eq[iok]
+
+                # find indices of sign changes
+                i0 = (eq[:-1] * eq[1:] < 0).nonzero()[0]
+                if len(i0) == 1:
+                    roots = np.r_[
+                        kk[i0]
+                        - eq[i0]*(kk[i0+1] - kk[i0])
+                        /(eq[i0+1] - eq[i0])
+                    ]
+
+                    # roots = scpinterp.InterpolatedUnivariateSpline(
+                        # kk,
+                        # eq,
+                        # k=3,
+                    # ).roots()
+                else:
+                    continue
+
+                # nin, xx, D
+                (
+                    nix, niy, niz,
+                    Dxi, Dyi, Dzi,
+                ) = _get_Dnin_from_k_sph(
+                    O=O,
+                    Ax=pt_x, Ay=pt_y, Az=pt_z,
+                    Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
+                    kk=roots[0],
+                    rc=rc,
+                    nin=nin,
+                )
+
                 # local coordinates
-                dthi = np.arcsin(
-                    nox*e1[0] + noy*e1[1] + noz*e1[2]
-                )
-                phii = np.arcsin(
-                    (nox*e0[0] + noy*e0[1] + noz*e0[2]) / np.cos(dthi)
+                dthetai = -np.arcsin(nix*e1[0] + niy*e1[1] + niz*e1[2])
+                phii = -np.arcsin(
+                    (nix*e0[0] + niy*e0[1] + niz*e0[2]) / np.cos(dthetai)
                 )
 
-                # handle multiple solutions
-                if np.sum(ind) > 1:
+                # ----------
 
-                    ind = (
-                        (np.abs(dthi) <= dthetamax)
-                        & (np.abs(phii) <= phimax)
-                    )
+                if np.abs(phii) > phimax or np.abs(dthetai) > dthetamax:
+                    continue
 
-                    if np.sum(ind) == 0:
-                        ind = np.argmin(np.abs(dthi)**2 + np.abs(phii)**2)
-                    elif np.sum(ind) > 1:
-                        msg = f"No / several solutions found: {ind.sum()}"
-                        _debug_spherical(
-                            pt_x=pt_x,
-                            pt_y=pt_y,
-                            pt_z=pt_z,
-                            pts_x=pts_x[ii],
-                            pts_y=pts_y[ii],
-                            pts_z=pts_z[ii],
-                            rr=rr,
-                            O=O,
-                            rc=rc,
-                            ABx=ABx[ii],
-                            ABy=ABy[ii],
-                            ABz=ABz[ii],
-                            nin=nin,
-                            e0=e0,
-                            e1=e1,
-                        )
-                        raise Exception(msg)
+                Dx[ii], Dy[ii], Dz[ii] = Dxi, Dyi, Dzi
+                phi[ii], dtheta[ii] = phii, dthetai
 
-                Dx[ii] = O[0] + rc*nox[ind]
-                Dy[ii] = O[1] + rc*noy[ind]
-                Dz[ii] = O[2] + rc*noz[ind]
-                dtheta[ii] = dthi[ind]
-                phi[ii] = phii[ind]
+
+            # safety check
+            iok = np.isfinite(Dx)
+            Dx = Dx[iok]
+            Dy = Dy[iok]
+            Dz = Dz[iok]
+            dtheta = dtheta[iok]
+            phi = phi[iok]
+
+            # TODO : find a way to hanbdle complex (self-intersection polygons)
+            # Exceptionally a polygon (xx, theta) can self-intersect
 
             # return
-            if return_x01:
-                return Dx, Dy, Dz, dtheta, phi
-            else:
+            if return_xyz and return_x01:
+                return Dx, Dy, Dz, phi, dtheta
+            elif return_xyz:
                 return Dx, Dy, Dz
+            elif return_x01:
+                return phi, dtheta
 
     # ----------------
     #   Toroidal
@@ -566,7 +605,7 @@ def _kminmax_plane(
         )
 
 
-def _get_Dnin_from_k(
+def _get_Dnin_from_k_cyl(
     O=None, eax=None,
     Ax=None, Ay=None, Az=None,
     Bx=None, By=None, Bz=None,
@@ -598,6 +637,34 @@ def _get_Dnin_from_k(
     Dy = O[1] + xx*eax[1] - rc*niy
     Dz = O[2] + xx*eax[2] - rc*niz
     return nix, niy, niz, Dx, Dy, Dz, xx
+
+
+def _get_Dnin_from_k_sph(
+    O=None,
+    Ax=None, Ay=None, Az=None,
+    Bx=None, By=None, Bz=None,
+    kk=None, rc=None,
+    nin=None,
+):
+    Ex = Ax + kk*(Bx - Ax)
+    Ey = Ay + kk*(By - Ay)
+    Ez = Az + kk*(Bz - Az)
+
+    ninorm = np.sqrt((Ex - O[0])**2 + (Ey - O[1])**2 + (Ez - O[2])**2)
+    nix = (Ex - O[0]) / ninorm
+    niy = (Ey - O[1]) / ninorm
+    niz = (Ez - O[2]) / ninorm
+
+    sign = nix*nin[0] + niy*nin[1] + niz*nin[2]
+
+    nix = sign*nix
+    niy = sign*niy
+    niz = sign*niz
+
+    Dx = O[0] - rc*nix
+    Dy = O[1] - rc*niy
+    Dz = O[2] - rc*niz
+    return nix, niy, niz, Dx, Dy, Dz
 
 
 def _get_DADB(
