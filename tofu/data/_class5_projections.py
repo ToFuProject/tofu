@@ -194,4 +194,3 @@ def _get_project_plane(
         )
 
     return _project_poly_on_plane_from_pt, _back_to_3d
-

@@ -13,7 +13,6 @@ import Polygon as plg
 import datastock as ds
 
 
-
 # ##############################################################
 # ##############################################################
 #           Finding reflection points
@@ -242,13 +241,13 @@ def _get_pts2pt(
                     roots = np.r_[
                         kk[i0]
                         - eq[i0]*(kk[i0+1] - kk[i0])
-                        /(eq[i0+1] - eq[i0])
+                        / (eq[i0+1] - eq[i0])
                     ]
 
                     # roots = scpinterp.InterpolatedUnivariateSpline(
-                        # kk,
-                        # eq,
-                        # k=3,
+                    # kk,
+                    # eq,
+                    # k=3,
                     # ).roots()
                 else:
                     continue
@@ -417,13 +416,13 @@ def _get_pts2pt(
                     roots = np.r_[
                         kk[i0]
                         - eq[i0]*(kk[i0+1] - kk[i0])
-                        /(eq[i0+1] - eq[i0])
+                        / (eq[i0+1] - eq[i0])
                     ]
 
                     # roots = scpinterp.InterpolatedUnivariateSpline(
-                        # kk,
-                        # eq,
-                        # k=3,
+                    # kk,
+                    # eq,
+                    # k=3,
                     # ).roots()
                 else:
                     continue
@@ -454,7 +453,6 @@ def _get_pts2pt(
 
                 Dx[ii], Dy[ii], Dz[ii] = Dxi, Dyi, Dzi
                 phi[ii], dtheta[ii] = phii, dthetai
-
 
             # safety check
             iok = np.isfinite(Dx)
@@ -496,8 +494,8 @@ def _get_pts2pt(
 def _mindist_2lines(A=None, B=None, O=None, eax=None):
     OAe = np.cross(A - O, eax)
     ABe = np.cross(B - A, eax)
-    OAe2= np.sum(OAe**2)
-    ABe2= np.sum(ABe**2)
+    OAe2 = np.sum(OAe**2)
+    ABe2 = np.sum(ABe**2)
     OAeABe = np.sum(OAe * ABe)
     kk = -OAeABe/ABe2
     return kk, OAe2 - OAeABe**2/ABe2
@@ -515,7 +513,7 @@ def _kminmax_ptinz2(pts=None, lp=None):
             np.sum((pts - oo[:, None])*ep[:, None], axis=0) > 0
             for oo, ep in lp
         ],
-    axis=0,
+        axis=0,
     )
 
 
@@ -735,7 +733,7 @@ def _debug_cylindrical(
         nix*nin[0] + niy*nin[1] + niz*nin[2],
     )
 
-    #----------------
+    # ----------------
     #  plot xx, theta
 
     fig = plt.figure(figsize=(15, 8))
@@ -751,7 +749,7 @@ def _debug_cylindrical(
     for rr in roots:
         ax0.axvline(rr, c='r', ls='--')
 
-    #----------------
+    # ----------------
     #  plot equation
 
     ax1 = fig.add_subplot(132)
@@ -763,7 +761,7 @@ def _debug_cylindrical(
     for rr in roots:
         ax1.axvline(rr, c='r', ls='--')
 
-    #----------------
+    # ----------------
     #  plot geometry
 
     ax2 = fig.add_subplot(133, projection='3d')
@@ -773,22 +771,6 @@ def _debug_cylindrical(
         np.r_[pt_z, pts_z[ii]],
         '.-k',
     )
-
-    # for rr in roots:
-        # l0, = ax.plot(
-            # np.r_[pt_x, Dxi, pts_x[ii]],
-            # np.r_[pt_y, Dyi, pts_y[ii]],
-            # np.r_[pt_z, Dzi, pts_z[ii]],
-            # '.-',
-        # )
-        # ax.plot(
-            # np.r_[O[0] + xxi*eax[0], Dxi],
-            # np.r_[O[1] + xxi*eax[1], Dyi],
-            # np.r_[O[2] + xxi*eax[2], Dzi],
-            # ls='--',
-            # marker='.',
-            # c=l0.get_color(),
-        # )
 
     # cents
     ax2.plot(
@@ -936,7 +918,7 @@ def _debug_spherical(
     nA = np.linalg.norm(DA)
     nB = np.linalg.norm(DB)
     nE = np.linalg.norm(DE)
-    print(np.sum(DA*DE) / (nA*nE) )
-    print(np.sum(DB*DE) / (nB*nE) )
+    print(np.sum(DA*DE) / (nA*nE))
+    print(np.sum(DB*DE) / (nB*nE))
 
     import pdb; pdb.set_trace()     # DB

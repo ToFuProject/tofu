@@ -162,8 +162,9 @@ def compute_etendue_los(
     # compute numerically
 
     if numerical is True:
+
         etend1 = _compute_etendue_numerical(
-            ldeti=ldeti,
+            ldeti=ldet,
             aperture=aperture,
             pix_ap=pix_ap,
             res=res,
@@ -324,7 +325,6 @@ def _diag_compute_etendue_check(
     is2d = dgeom['type'] == '2d'
     par = dgeom['parallel']
     shape0 = cx.shape
-
 
     if is2d:
         cx = cx.ravel()
@@ -878,7 +878,7 @@ def _compute_etendue_numerical(
                         plt.plot(
                             x0[ss][iss, :],
                             x1[ss][iss, :],
-                            c=lc[ss%len(lc)],
+                            c=lc[ss % len(lc)],
                             marker='o',
                             ls='-',
                         )

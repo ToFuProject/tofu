@@ -148,18 +148,6 @@ def _surface3d(
         outline_x0 = extenthalf[0]*np.r_[-1, 1, 1, -1]
         outline_x1 = extenthalf[1]*np.r_[-1, -1, 1, 1]
 
-        # poly
-        # poly_x, poly_y, poly_z = _get_curved_poly(
-            # gtype=gtype,
-            # curve_r=curve_r,
-            # curve_npts=curve_npts,
-            # extenthalf=extenthalf,
-            # cent=cent,
-            # nin=nin,
-            # e0=e0,
-            # e1=e1,
-        # )
-
     # --------------------------------------------
     # try to get 2d outline from 3d poly if planar
 

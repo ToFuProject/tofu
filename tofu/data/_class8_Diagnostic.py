@@ -348,7 +348,7 @@ class Diagnostic(_class7_Camera.Camera):
         cmap=None,
         vmin=None,
         vmax=None,
-        #config
+        # config
         plot_config=None,
         # figure
         dax=None,
@@ -374,7 +374,7 @@ class Diagnostic(_class7_Camera.Camera):
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,
-            #config
+            # config
             plot_config=plot_config,
             # figure
             dax=dax,

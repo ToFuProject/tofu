@@ -110,7 +110,7 @@ def _bragglamb(
             raise NotImplementedError()
 
         else:
-            return 2.* dist * np.sin(bragg) / norder
+            return 2. * dist * np.sin(bragg) / norder
 
     elif lamb is not None and bragg is None:
 

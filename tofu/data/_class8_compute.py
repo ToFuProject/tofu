@@ -39,9 +39,9 @@ def get_optics_outline(
     total = ds._generic_check._check_var(
         total, 'total',
         types=bool,
-        default=(cls=='camera' and dgeom['type'] == '2d'),
+        default=(cls == 'camera' and dgeom['type'] == '2d'),
     )
-    if cls=='camera' and dgeom['type'] != '2d':
+    if cls == 'camera' and dgeom['type'] != '2d':
         total = False
 
     # --------

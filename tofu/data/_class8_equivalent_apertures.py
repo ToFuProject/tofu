@@ -89,7 +89,7 @@ def equivalent_apertures(
         return_for_etendue = False
 
     # ---------------
-    # Prepare optics 
+    # Prepare optics
 
     lpoly_pre = [
         coll.get_optics_poly(
@@ -163,7 +163,7 @@ def equivalent_apertures(
             nop_post=nop_post,
             lx0_post=lx0_post,
             lx1_post=lx1_post,
-            # functions 
+            # functions
             coord_x01toxyz=coord_x01toxyz,
             lcoord_x01toxyz_poly=lcoord_x01toxyz_poly,
             pts2pt=pts2pt,
@@ -510,7 +510,6 @@ def _check(
     )
 
 
-
 # ##############################################################
 # ##############################################################
 #           Equivalent aperture non-spectro
@@ -568,7 +567,7 @@ def _get_equivalent_aperture_spectro(
     nop_post=None,
     lx0_post=None,
     lx1_post=None,
-    # functions 
+    # functions
     coord_x01toxyz=None,
     lcoord_x01toxyz_poly=None,
     pts2pt=None,
@@ -688,5 +687,3 @@ def _plot(
     if cents0 is not None:
         ax.plot(cents0, cents1, 'xr')
     return
-
-

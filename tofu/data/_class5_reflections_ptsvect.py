@@ -156,7 +156,9 @@ def _get_ptsvect(
                     vrz[iok] = vect_z + 2.*scavn * noz
 
                 else:
-                    scavn = -(vect_x[iok]*nox + vect_y[iok]*noy + vect_z[iok]*noz)
+                    scavn = -(
+                        vect_x[iok]*nox + vect_y[iok]*noy + vect_z[iok]*noz
+                    )
                     # get vect_reflect
                     vrx[iok] = vect_x[iok] + 2.*scavn * nox
                     vry[iok] = vect_y[iok] + 2.*scavn * noy
@@ -168,8 +170,8 @@ def _get_ptsvect(
                 if strict is True or return_x01 is True:
                     theta[iok] = np.arctan2(
                         -((nin[1]*noz - nin[2]*noy)*eax[0]
-                        + (nin[2]*nox - nin[0]*noz)*eax[1]
-                        + (nin[0]*noy - nin[1]*nox)*eax[2]),
+                          + (nin[2]*nox - nin[0]*noz)*eax[1]
+                          + (nin[0]*noy - nin[1]*nox)*eax[2]),
                         -nox*nin[0] - noy*nin[1] - noz*nin[2],
                     )
 
@@ -296,7 +298,9 @@ def _get_ptsvect(
                     vrz[iok] = vect_z + 2.*scavn * noz
 
                 else:
-                    scavn = -(vect_x[iok]*nox + vect_y[iok]*noy + vect_z[iok]*noz)
+                    scavn = -(
+                        vect_x[iok]*nox + vect_y[iok]*noy + vect_z[iok]*noz
+                    )
                     # get vect_reflect
                     vrx[iok] = vect_x[iok] + 2.*scavn * nox
                     vry[iok] = vect_y[iok] + 2.*scavn * noy
@@ -489,7 +493,7 @@ def _common_kE(C0=None, C1=None, C2=None):
     kk = np.real(kk[np.isreal(kk)])
 
     # outgoing is necessarily the maxium k
-    if np.any( kk > 0.):
+    if np.any(kk > 0.):
         return np.max(kk[kk > 0.])
     else:
         return np.nan
@@ -599,8 +603,8 @@ def _debug_cylindrical(
     nA = np.linalg.norm(DA)
     nB = np.linalg.norm(DB)
     nE = np.linalg.norm(DE)
-    print(np.sum(DA*DE) / (nA*nE) )
-    print(np.sum(DB*DE) / (nB*nE) )
+    print(np.sum(DA*DE) / (nA*nE))
+    print(np.sum(DB*DE) / (nB*nE))
 
     import pdb; pdb.set_trace()     # DB
 
@@ -706,7 +710,7 @@ def _debug_spherical(
     nA = np.linalg.norm(DA)
     nB = np.linalg.norm(DB)
     nE = np.linalg.norm(DE)
-    print(np.sum(DA*DE) / (nA*nE) )
-    print(np.sum(DB*DE) / (nB*nE) )
+    print(np.sum(DA*DE) / (nA*nE))
+    print(np.sum(DB*DE) / (nB*nE))
 
     import pdb; pdb.set_trace()     # DB

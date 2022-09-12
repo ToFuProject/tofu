@@ -10,7 +10,6 @@ import numpy as np
 import datastock as ds
 
 
-
 __all__ = ['compute_los_angles']
 
 
@@ -142,7 +141,6 @@ def compute_los_angles(
             },
         }
         coll.update(ddata=ddata)
-
 
         coll.set_param(
             which='diagnostic',
