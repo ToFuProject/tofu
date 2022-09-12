@@ -15,6 +15,10 @@ from . import _class4_Filter
 from . import _class3_check
 from . import _class5_check as _check
 from . import _class5_compute as _compute
+from . import _class5_coordinates as _coordinates
+from . import _class5_reflections_pts2pt as _reflections_pts2pt
+from . import _class5_reflections_ptsvect as _reflections_ptsvect
+from . import _class5_projections as _projections
 
 
 __all__ = ['Crystal']
@@ -111,12 +115,17 @@ class Crystal(_class4_Filter.Filter):
             key=key,
         )
 
+    # --------------------
+    # Utilities
+    # ---------------------
+
     def get_crystal_bragglamb(
         self,
         key=None,
         lamb=None,
         bragg=None,
         norder=None,
+        rocking_curve=None,
     ):
         """ Return bragg angle
 
@@ -133,7 +142,57 @@ class Crystal(_class4_Filter.Filter):
             key=key,
             lamb=lamb,
             bragg=bragg,
+            rocking_curve=rocking_curve,
         )
+
+    # --------------------
+    # Local vs xyz coordinates
+    # ---------------------
+
+    def get_optics_x01toxyz(
+        self,
+        key=None,
+    ):
+        """ Return a dict of formatted """
+        return _coordinates._get_x01toxyz(
+            coll=self,
+            key=key,
+        )
+
+    # --------------------
+    # Reflections
+    # ---------------------
+
+    def get_optics_reflect_pts2pt(self, key=None):
+        """ Return a dict of formatted """
+        return _reflections_pts2pt._get_pts2pt(
+            coll=self,
+            key=key,
+        )
+
+    def get_optics_reflect_ptsvect(
+        self,
+        key=None,
+        asplane=None,
+    ):
+        """ Return a dict of formatted """
+        return _reflections_ptsvect._get_ptsvect(
+            coll=self,
+            key=key,
+            asplane=asplane,
+        )
+
+    # -------------------------------------------
+    # Projections from point in local coordinates
+    # -------------------------------------------
+
+    def get_optics_project_poly_from_pt(self, key=None):
+        """ Return a dict of formatted """
+        return _projections._get_pts_from_pt(coll=self, key=key)
+
+    # --------------------
+    # ideal configurations
+    # ---------------------
 
     def get_crystal_ideal_configuration(
         self,

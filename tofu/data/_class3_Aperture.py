@@ -66,7 +66,7 @@ class Aperture(_class2_Rays.Rays):
         e1=None,
         # curvature
         curve_r=None,
-        curve_npts=None,
+        make_planar=None,
         # dmisc
         color=None,
     ):
@@ -102,7 +102,7 @@ class Aperture(_class2_Rays.Rays):
             e1=e1,
             # curvature
             curve_r=curve_r,
-            curve_npts=curve_npts,
+            make_planar=make_planar,
         )
 
         # dmisc

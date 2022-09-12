@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 This module contains tests for tofu.geom in its structured version
 """
@@ -102,7 +103,7 @@ def _apertures():
     ap0 = {
         'outline_x0': out0,
         'outline_x1': out1,
-        'cent': cent,
+        'cent': cent + np.r_[0., 0.02, 0.],
         'nin': nin,
         'e0': e0,
         'e1': e1,
@@ -457,6 +458,7 @@ class Test01_Diagnostic():
         # get config
         conf = tf.load_config('SPARC')
         conf.remove_Struct(Cls='PFC', Name='ICRH0')
+        self.conf = conf
 
         # get dict
         dapertures = _apertures()
@@ -486,6 +488,7 @@ class Test01_Diagnostic():
 
         # add diagnostics
         for k0, v0 in ddiag.items():
+            print(k0)
             self.obj.add_diagnostic(
                 key=k0,
                 config=conf,
@@ -499,6 +502,7 @@ class Test01_Diagnostic():
             self.obj.add_crystal(key=k0, **v0)
 
         # add crystal optics
+        self.doptics = {}
         for k0, v0 in dcrystals.items():
 
             for ii, cc in enumerate(dconfig[k0]):
@@ -513,38 +517,49 @@ class Test01_Diagnostic():
                     # store
                     store=True,
                     key_cam=f'{k0}-cam{ii}',
-                    aperture_dimensions=[8e-2, 100e-6],
+                    aperture_dimensions=[100e-6, 8e-2],
                     pinhole_radius=500e-6,
-                    cam_pixels_nb=[487, 195],
+                    cam_pixels_nb=[5, 3],
                     # returnas
                     returnas=list,
                 )
 
-                # add diag
-                self.obj.add_diagnostic(
-                    optics=loptics,
-                    config=conf,
-                )
+                if 'cryst1-slit' in loptics:
+                    loptics.append('ap0')
 
+                # add diag
+                gtype = self.obj.dobj['crystal'][k0]['dgeom']['type']
+                if gtype not in ['toroidal']:
+                    self.doptics.update({
+                        f'{k0}-{ii}': loptics,
+                    })
+
+        # add crystal optics
+        for k0, v0 in self.doptics.items():
+            print(k0, 'spectro')
+            self.obj.add_diagnostic(
+                optics=v0,
+                config=self.conf,
+            )
         # add toroidal
-        self.obj.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
+        # self.obj.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
 
     # ----------
     # tests
 
-    def test01_etendues(self, res=np.r_[0.005, 0.003, 0.001]):
-        for k0, v0 in self.obj.dobj['diagnostic'].items():
-            if len(v0['optics']) == 1 or v0['spectro'] is not False:
-                continue
-            self.obj.compute_diagnostic_etendue_los(
-                key=k0,
-                res=res,
-                numerical=True,
-                analytical=True,
-                check=True,
-                store=False,
-            )
-            plt.close('all')
+    # def test01_etendues(self, res=np.r_[0.005, 0.003, 0.001]):
+        # for k0, v0 in self.obj.dobj['diagnostic'].items():
+            # if len(v0['optics']) == 1 or v0['spectro'] is not False:
+                # continue
+            # self.obj.compute_diagnostic_etendue_los(
+                # key=k0,
+                # res=res,
+                # numerical=True,
+                # analytical=True,
+                # check=True,
+                # store=False,
+            # )
+            # plt.close('all')
 
     def test02_get_outline(self):
 

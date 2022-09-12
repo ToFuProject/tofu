@@ -443,8 +443,8 @@ def _check_polygon_2d_area_ccw(
     assert not (poly_x0[0] == poly_x0[-1] and poly_x1[0] == poly_x1[-1])
     i0 = np.arange(0, poly_x0.size)
     i1 = np.r_[np.arange(1, poly_x0.size), 0]
-    return -np.sum(
-        (poly_x0[i1] - poly_x0[i0]) * (poly_x1[i1] + poly_x1[i0])
+    return 0.5*np.sum(
+        (poly_x0[i1] + poly_x0[i0]) * (poly_x1[i1] - poly_x1[i0])
     )
 
 

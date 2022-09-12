@@ -231,15 +231,25 @@ def _check_inputs(
     # ------
     # diag
 
+    lspectro = None
     if diag is not None:
-        lok = list(coll.dobj.get('diag', {}))
+        lok = list(coll.dobj.get('diagnostic', {}).keys())
         diag = ds._generic_check._check_var(
             diag, 'diag',
             types=str,
             allowed=lok,
         )
 
-    # ref
+        # lspectro
+        lspectro = [
+            oo for oo in coll.dobj['diagnostic'][diag]['optics']
+            if oo in coll.dobj.get('crystal', {}).keys()
+            or oo in coll.dobj.get('grating', {}).keys()
+        ]
+
+        if len(lspectro) == 0:
+            diag = None
+            lspectro = None
 
     return (
         key,
@@ -249,8 +259,14 @@ def _check_inputs(
         vect_x, vect_y, vect_z,
         shref,
         config, reflections_nb, reflections_type,
-        diag,
+        diag, lspectro,
     )
+
+
+# ##################################################################
+# ##################################################################
+#                   Main
+# ##################################################################
 
 
 def _rays(
@@ -290,7 +306,7 @@ def _rays(
         vect_x, vect_y, vect_z,
         shaperef,
         config, reflections_nb, reflections_type,
-        diag,
+        diag, lspectro,
     ) = _check_inputs(
         coll=coll,
         key=key,
@@ -362,16 +378,76 @@ def _rays(
 
     else:
 
+        kk = None
+
+        # final shape
+        i0 = 0
+        nbref = reflections_nb + 1
         if diag is not None:
-            pass
+            i0 = len(lspectro)
+            nbref += i0
+        shape = tuple(np.r_[nbref, shaperef])
+
+        # extract angles and pts
+        pts_x = np.full(shape, np.nan)
+        pts_y = np.full(shape, np.nan)
+        pts_z = np.full(shape, np.nan)
+        Rmin = np.full((np.prod(shaperef),), np.nan)
+
+        pts_x[0, ...] = start_x
+        pts_y[0, ...] = start_y
+        pts_z[0, ...] = start_z
+
+        if reflections_nb > 0 or diag is not None:
+            alpha = np.full(shape, np.nan)
+            dalpha = np.full(shape, np.nan)
+            dbeta = np.full(shape, np.nan)
+
+        stx = np.copy(start_x)
+        sty = np.copy(start_y)
+        stz = np.copy(start_z)
+
+        # ----------
+        # diag
+
+        if diag is not None:
+
+            for ii, oo in enumerate(lspectro):
+
+                reflect_ptsvect = coll.get_optics_reflect_ptsvect(oo)
+                (
+                    pts_x[ii, ...],
+                    pts_y[ii, ...],
+                    pts_z[ii, ...],
+                    vect_x, vect_y, vect_z,
+                    alpha[ii, ...],
+                    iok,
+                ) = reflect_ptsvect(
+                    pts_x=stx,
+                    pts_y=sty,
+                    pts_z=stz,
+                    vect_x=vect_x,
+                    vect_y=vect_y,
+                    vect_z=vect_z,
+                    strict=True,
+                    return_x01=False,
+                )
+
+                # update start
+                stx[...] = pts_x[ii, ...]
+                sty[...] = pts_y[ii, ...]
+                stz[...] = pts_z[ii, ...]
+
+        # ----------
+        # config
 
         if config is not None:
 
             # prepare D
             D = np.array([
-                start_x.ravel(),
-                start_y.ravel(),
-                start_z.ravel(),
+                stx.ravel(),
+                sty.ravel(),
+                stz.ravel(),
             ])
 
             # prepare u
@@ -397,41 +473,34 @@ def _rays(
             if reflections_nb > 0:
                 cam.add_reflections(nb=reflections_nb)
 
-            px = cam.dgeom['PkOut'][0:1, :]
-            py = cam.dgeom['PkOut'][1:2, :]
-            pz = cam.dgeom['PkOut'][2:3, :]
-
             if cam.dgeom['dreflect'] is not None:
                 dref = cam.dgeom['dreflect']
-                px = np.append(px, dref['Ds'][0, ...].T, axis=0)
-                py = np.append(py, dref['Ds'][1, ...].T, axis=0)
-                pz = np.append(pz, dref['Ds'][2, ...].T, axis=0)
+                pts_x[i0:-1, maskre] = dref['Ds'][0, ...].T
+                pts_y[i0:-1, maskre] = dref['Ds'][1, ...].T
+                pts_z[i0:-1, maskre] = dref['Ds'][2, ...].T
 
-            shape = tuple(np.r_[px.shape[0], shaperef])
+                pout = (
+                    dref['Ds'][:, :, -1]
+                    + dref['kouts'][None, :, -1] * dref['us'][:, :, -1]
+                )
+            else:
+                pout = cam.dgeom['PkOut']
 
-            # extract angles and pts
-            pts_x = np.full(shape, np.nan)
-            pts_y = np.full(shape, np.nan)
-            pts_z = np.full(shape, np.nan)
-
-            pts_x[:, maskre] = px
-            pts_y[:, maskre] = py
-            pts_z[:, maskre] = pz
+            pts_x[-1, maskre] = pout[0, :]
+            pts_y[-1, maskre] = pout[1, :]
+            pts_z[-1, maskre] = pout[2, :]
+            Rmin[maskre.ravel()] = cam.dgeom['RMin']
 
             vperp = cam.dgeom['vperp']
             u_perp = np.sum(cam.u*vperp, axis=0)
 
-            alpha = np.full(shape, np.nan)
-            alpha[0, maskre] = np.arcsin(-u_perp)
+            alpha[i0, maskre] = np.arcsin(-u_perp)
 
             if cam.dgeom['dreflect'] is not None:
                 us = dref['us'][..., 0]
 
-                dalpha = np.full(shape, np.nan)
-                dbeta = np.full(shape, np.nan)
-
                 u_perp = np.sum(us * vperp, axis=0)
-                dalpha[0, maskre] = np.arcsin(u_perp) - alpha[0, maskre]
+                dalpha[i0, maskre] = np.arcsin(u_perp) - alpha[0, maskre]
 
                 # beta
                 u0 = us - u_perp[None, ...] * vperp
@@ -443,7 +512,13 @@ def _rays(
                 ])
                 v0 = np.sum(us * e0, axis=0)
                 v1 = np.sum(us * e1, axis=0)
-                dbeta[0, maskre] = np.arctan2(v1, v0)
+                dbeta[i0, maskre] = np.arctan2(v1, v0)
+
+            if len(shaperef) == 2:
+                Rmin = Rmin.reshape(shaperef)
+
+        # ----------
+        # length
 
         elif length is not None:
 
@@ -462,7 +537,8 @@ def _rays(
 
     shape = pts_x.shape
     nseg = shape[0]
-    assert nseg == reflections_nb + 1
+    nextra = len(lspectro) if diag is not None else 0
+    assert nseg == reflections_nb + 1 + nextra
     knseg = f'{key}-nseg'
 
     dref = {
@@ -488,6 +564,7 @@ def _rays(
     kpx = f'{key}-ptx'
     kpy = f'{key}-pty'
     kpz = f'{key}-ptz'
+    kRmin = f'{key}-Rmin'
 
     ddata = {
         kpx: {
@@ -509,6 +586,14 @@ def _rays(
         kpz: {
             'data': pts_z,
             'ref': refpts,
+            'dim': 'distance',
+            'quant': 'distance',
+            'name': 'z',
+            'units': 'm',
+        },
+        kRmin: {
+            'data': Rmin,
+            'ref': refpts[1:],
             'dim': 'distance',
             'quant': 'distance',
             'name': 'z',
@@ -623,6 +708,7 @@ def _rays(
                 'lamb': ll,
                 'shape': shape,
                 'ref': refpts,
+                'Rmin': kRmin,
                 'alpha': kalpha,
                 'reflect_dalpha': kdalpha,
                 'reflect_dbeta': kdbeta,

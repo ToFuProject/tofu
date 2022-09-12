@@ -32,7 +32,7 @@ def _surface3d(
     e1=None,
     # curvature
     curve_r=None,
-    curve_npts=None,
+    make_planar=None,
 ):
 
     # -----------
@@ -93,9 +93,9 @@ def _surface3d(
         )
 
         # derive poly 3d
-        poly_x = cent[0] + outline_x0 * e0[0] + outline_x1 * e1[0]
-        poly_y = cent[1] + outline_x0 * e0[1] + outline_x1 * e1[1]
-        poly_z = cent[2] + outline_x0 * e0[2] + outline_x1 * e1[2]
+        # poly_x = cent[0] + outline_x0 * e0[0] + outline_x1 * e1[0]
+        # poly_y = cent[1] + outline_x0 * e0[1] + outline_x1 * e1[1]
+        # poly_z = cent[2] + outline_x0 * e0[2] + outline_x1 * e1[2]
 
         gtype = 'planar'
 
@@ -144,41 +144,26 @@ def _surface3d(
             extenthalf=extenthalf,
         )
 
-        # outline if planar
-        if gtype == 'planar':
-            outline_x0 = extenthalf[0]*np.r_[-1, 1, 1, -1]
-            outline_x1 = extenthalf[1]*np.r_[-1, -1, 1, 1]
-
-        # poly
-        poly_x, poly_y, poly_z = _get_curved_poly(
-            gtype=gtype,
-            curve_r=curve_r,
-            curve_npts=curve_npts,
-            extenthalf=extenthalf,
-            cent=cent,
-            nin=nin,
-            e0=e0,
-            e1=e1,
-        )
-
-    # --------------------
-    # poly 3d sanity check
-
-    poly_x, poly_y, poly_z = _check_polygon_3d(
-        poly_x=poly_x,
-        poly_y=poly_y,
-        poly_z=poly_z,
-        poly_name=f'{key}-polygon',
-        can_be_None=False,
-        closed=False,
-        counter_clockwise=True,
-        normal=nin,
-    )
+        # outline in local coordinates
+        outline_x0 = extenthalf[0]*np.r_[-1, 1, 1, -1]
+        outline_x1 = extenthalf[1]*np.r_[-1, -1, 1, 1]
 
     # --------------------------------------------
     # try to get 2d outline from 3d poly if planar
 
     if lc[2]:
+
+        # poly 3d sanity check
+        poly_x, poly_y, poly_z = _check_polygon_3d(
+            poly_x=poly_x,
+            poly_y=poly_y,
+            poly_z=poly_z,
+            poly_name=f'{key}-polygon',
+            can_be_None=False,
+            closed=False,
+            counter_clockwise=True,
+            normal=nin,
+        )
 
         gtype, cent, outline_x0, outline_x1, area = _get_outline_from_poly(
             key=key,
@@ -189,7 +174,11 @@ def _surface3d(
             nin=nin,
             e0=e0,
             e1=e1,
+            make_planar=make_planar,
         )
+
+        if outline_x0 is not None:
+            poly_x, poly_y, poly_z = None, None, None
 
     # ----------
     # return
@@ -253,8 +242,8 @@ def _get_curved_area(
 def _get_curved_poly(
     gtype=None,
     curve_r=None,
-    curve_npts=None,
-    extenthalf=None,
+    outline_x0=None,
+    outline_x1=None,
     cent=None,
     nin=None,
     e0=None,
@@ -262,30 +251,14 @@ def _get_curved_poly(
 ):
 
     # ------------
-    # check inputs
-
-    curve_npts = ds._generic_check._check_var(
-        curve_npts, 'curve_npts',
-        types=int,
-        default=5,
-    )
-    assert curve_npts >= 0, curve_npts
-
-    # ------------
     # compute
-
-    add = np.ones((curve_npts,))
-    ang_add = np.linspace(-1, 1, curve_npts + 2)[1:-1]
 
     # planar
     if gtype == 'planar':
 
-        b0 = extenthalf[0] * np.r_[-1, 1, 1, -1]
-        b1 = extenthalf[1] * np.r_[-1, -1, 1, 1]
-
-        poly_x = cent[0] + b0 * e0[0] + b1 * e1[0]
-        poly_y = cent[1] + b0 * e0[1] + b1 * e1[1]
-        poly_z = cent[2] + b0 * e0[2] + b1 * e1[2]
+        poly_x = cent[0] + outline_x0 * e0[0] + outline_x1 * e1[0]
+        poly_y = cent[1] + outline_x0 * e0[1] + outline_x1 * e1[1]
+        poly_z = cent[2] + outline_x0 * e0[2] + outline_x1 * e1[2]
 
     # cylindrical
     if gtype == 'cylindrical':
@@ -295,41 +268,33 @@ def _get_curved_poly(
 
         centbis = cent + rc * nin
         ee = [e0, e1]
+        outline = [outline_x0, outline_x1]
 
-        if iplan == 0:
-            bplan = extenthalf[iplan] * np.r_[-1, 1, add, 1, -1, -add]
-            ang = extenthalf[icurv] * np.r_[-1, -1, ang_add, 1, 1, -ang_add]
-
-        else:
-            bplan = extenthalf[iplan] * np.r_[-1, -add, -1, 1, add, 1]
-            ang = extenthalf[icurv] * np.r_[-1, ang_add, 1, 1, -ang_add, -1]
+        ang = outline[icurv]
+        xx = outline[iplan]
 
         vx = np.cos(ang) * (-nin[0]) + np.sin(ang) * ee[icurv][0]
         vy = np.cos(ang) * (-nin[1]) + np.sin(ang) * ee[icurv][1]
         vz = np.cos(ang) * (-nin[2]) + np.sin(ang) * ee[icurv][2]
 
-        poly_x = centbis[0] + bplan * ee[iplan][0] + rc * vx
-        poly_y = centbis[1] + bplan * ee[iplan][1] + rc * vy
-        poly_z = centbis[2] + bplan * ee[iplan][2] + rc * vz
+        poly_x = centbis[0] + xx * ee[iplan][0] + rc * vx
+        poly_y = centbis[1] + xx * ee[iplan][1] + rc * vy
+        poly_z = centbis[2] + xx * ee[iplan][2] + rc * vz
 
     # spherical
     elif gtype == 'spherical':
 
         rc = curve_r[0]
         centbis = cent + rc * nin
-        dtheta = (
-            extenthalf[0]
-            * np.r_[-1, ang_add, 1, add, 1, -ang_add, -1, -add]
-        )
-        psi = (
-            extenthalf[1]
-            * np.r_[-1, -add, -1, ang_add, 1, add, 1, -ang_add]
-        )[None, :]
+        dtheta, psi = outline_x0, outline_x1
 
-        vpsi = np.cos(psi) * (-nin)[:, None] + np.sin(psi) * e0[:, None]
-        vx = np.cos(dtheta) * vpsi[0, :] + np.sin(dtheta) * e1[0]
-        vy = np.cos(dtheta) * vpsi[1, :] + np.sin(dtheta) * e1[1]
-        vz = np.cos(dtheta) * vpsi[2, :] + np.sin(dtheta) * e1[2]
+        vpsix = np.cos(psi) * (-nin[0]) + np.sin(psi) * e0[0]
+        vpsiy = np.cos(psi) * (-nin[1]) + np.sin(psi) * e0[1]
+        vpsiz = np.cos(psi) * (-nin[2]) + np.sin(psi) * e0[2]
+
+        vx = np.cos(dtheta) * vpsix + np.sin(dtheta) * e1[0]
+        vy = np.cos(dtheta) * vpsiy + np.sin(dtheta) * e1[1]
+        vz = np.cos(dtheta) * vpsiz + np.sin(dtheta) * e1[2]
 
         poly_x = centbis[0] + rc * vx
         poly_y = centbis[1] + rc * vy
@@ -343,26 +308,27 @@ def _get_curved_poly(
         rmin = np.min(curve_r)
 
         cmax = cent + nin * (rmax + rmin)
+        outline = [outline_x0, outline_x1]
+        amax = outline[imax]
+        amin = outline[imin]
 
-        if imax == 0:
-            bmax = np.r_[-1, ang_add, 1, add, 1, -ang_add, -1, -add]
-            bmin = np.r_[-1, -add, -1, ang_add, 1, add, 1, -ang_add]
-            emax, emin = e0, e1
-        else:
-            bmin = np.r_[-1, ang_add, 1, add, 1, -ang_add, -1, -add]
-            bmax = np.r_[-1, -add, -1, ang_add, 1, add, 1, -ang_add]
-            emax, emin = e1, e0
+        ee = [e0, e1]
 
-        bmax *= extenthalf[imax]
-        bmin *= extenthalf[imin]
+        vmaxx = np.cos(amax) * (-nin)[0] + np.sin(amax) * ee[imax][0]
+        vmaxy = np.cos(amax) * (-nin)[1] + np.sin(amax) * ee[imax][1]
+        vmaxz = np.cos(amax) * (-nin)[2] + np.sin(amax) * ee[imax][2]
 
-        vmax = np.cos(bmax) * (-nin)[:, None] + np.sin(bmax) * emax[:, None]
-        cmin = cmax[:, None] + rmax * vmax
-        vmin = np.cos(bmin) * vmax + np.sin(bmin) * emin[:, None]
+        cminx = cmax[0] + rmax * vmaxx
+        cminy = cmax[1] + rmax * vmaxy
+        cminz = cmax[2] + rmax * vmaxz
 
-        poly_x = cmin[0, :] + rmin * vmin[0, :]
-        poly_y = cmin[1, :] + rmin * vmin[1, :]
-        poly_z = cmin[2, :] + rmin * vmin[2, :]
+        vminx = np.cos(amin) * vmaxx + np.sin(amin) * ee[imin][0]
+        vminy = np.cos(amin) * vmaxy + np.sin(amin) * ee[imin][1]
+        vminz = np.cos(amin) * vmaxz + np.sin(amin) * ee[imin][2]
+
+        poly_x = cminx + rmin * vminx
+        poly_y = cminy + rmin * vminy
+        poly_z = cminz + rmin * vminz
 
     return poly_x, poly_y, poly_z
 
@@ -382,7 +348,21 @@ def _get_outline_from_poly(
     nin=None,
     e0=None,
     e1=None,
+    make_planar=None,
 ):
+
+    # --------
+    # check input
+
+    make_planar = ds._generic_check._check_var(
+        make_planar, 'make_planar',
+        types=bool,
+        default=True,
+    )
+
+    if make_planar is True and e0 is None:
+        msg = "Provide e0 to make planar!"
+        raise Exception(msg)
 
     # ----------
     # cent
@@ -393,17 +373,7 @@ def _get_outline_from_poly(
     # ----------
     # planar
 
-    diff_x = poly_x[1:] - poly_x[0]
-    diff_y = poly_y[1:] - poly_y[0]
-    diff_z = poly_z[1:] - poly_z[0]
-    norm = np.sqrt(diff_x**2 + diff_y**2 + diff_x**2)
-    diff_x = diff_x / norm
-    diff_y = diff_y / norm
-    diff_z = diff_z / norm
-
-    sca = np.abs(nin[0]*diff_x + nin[1]*diff_y + nin[2]*diff_z)
-
-    if np.all(sca < 2.e-12) and e0 is not None:
+    if make_planar:
         # all deviation smaller than 1.e-10 degree
         gtype = 'planar'
 

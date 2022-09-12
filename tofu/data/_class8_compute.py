@@ -8,7 +8,7 @@ import scipy.interpolate as scpinterp
 import datastock as ds
 
 
-from ..geom import _etendue
+from. import _utils_surface3d
 
 
 # ##################################################################
@@ -17,55 +17,231 @@ from ..geom import _etendue
 # ##################################################################
 
 
-def _get_optics_outline_check(
+def get_optics_outline(
     coll=None,
     key=None,
     add_points=None,
+    mode=None,
+    closed=None,
+    ravel=None,
+    total=None,
+):
+
+    # ------------
+    # check inputs
+
+    # key, cls
+    key, cls = coll.get_diagnostic_optics(optics=key)
+    key, cls = key[0], cls[0]
+    dgeom = coll.dobj[cls][key]['dgeom']
+
+    # total
+    total = ds._generic_check._check_var(
+        total, 'total',
+        types=bool,
+        default=(cls == 'camera' and dgeom['type'] == '2d'),
+    )
+    if cls == 'camera' and dgeom['type'] != '2d':
+        total = False
+
+    # --------
+    # compute
+
+    if dgeom['type'] == '3d':
+        return None, None
+
+    if cls == 'camera' and total:
+        # get centers
+        cx0, cx1 = dgeom['cents']
+        cx0 = coll.ddata[cx0]['data']
+        cx1 = coll.ddata[cx1]['data']
+
+        # derive half-spacing
+        dx0 = np.mean(np.diff(cx0)) / 2.
+        dx1 = np.mean(np.diff(cx1)) / 2.
+
+        # derive global outline (not pixel outline)
+        p0 = np.r_[
+            cx0[0] - dx0, cx0[-1] + dx0,
+            cx0[-1] + dx0, cx0[0] - dx0,
+        ]
+        p1 = np.r_[
+            cx1[0] - dx1, cx1[0] - dx1,
+            cx1[-1] + dx1, cx1[-1] + dx1,
+        ]
+
+    else:
+        out = dgeom['outline']
+        p0 = coll.ddata[out[0]]['data']
+        p1 = coll.ddata[out[1]]['data']
+
+    # -----------
+    # add_points
+
+    return _interp_poly(
+        lp=[p0, p1],
+        add_points=add_points,
+        mode=mode,
+        isclosed=False,
+        closed=closed,
+        ravel=ravel,
+    )
+
+
+# ##################################################################
+# ##################################################################
+#                   optics poly
+# ##################################################################
+
+
+def get_optics_poly(
+    coll=None,
+    key=None,
+    add_points=None,
+    mode=None,
+    closed=None,
+    ravel=None,
+    total=None,
+    return_outline=None,
+):
+
+    # ------------
+    # check inputs
+
+    key, cls = coll.get_diagnostic_optics(optics=key)
+    key, cls = key[0], cls[0]
+
+    return_outline = ds._generic_check._check_var(
+        return_outline, 'return_outline',
+        types=bool,
+        default=False,
+    )
+
+    ravel = ds._generic_check._check_var(
+        ravel, 'ravel',
+        default=False,
+        types=bool,
+    )
+
+    # --------
+    # compute
+
+    dgeom = coll.dobj[cls][key]['dgeom']
+    if cls in ['aperture', 'filter', 'crystal', 'grating']:
+
+        if dgeom['type'] != '3d':
+            p0, p1 = coll.get_optics_outline(
+                key=key,
+                add_points=add_points,
+                mode=mode,
+                closed=closed,
+                ravel=ravel,
+                total=total,
+            )
+
+            px, py, pz = _utils_surface3d._get_curved_poly(
+                gtype=dgeom['type'],
+                outline_x0=p0,
+                outline_x1=p1,
+                curve_r=dgeom['curve_r'],
+                cent=dgeom['cent'],
+                nin=dgeom['nin'],
+                e0=dgeom['e0'],
+                e1=dgeom['e1'],
+            )
+
+        else:
+            px, py, pz = dgeom['poly']
+            px = coll.ddata[px]['data']
+            py = coll.ddata[py]['data']
+            pz = coll.ddata[pz]['data']
+
+    elif cls == 'camera':
+
+        p0, p1 = coll.get_optics_outline(
+            key=key,
+            add_points=add_points,
+            mode=mode,
+            closed=closed,
+            ravel=ravel,
+            total=total,
+        )
+
+        # vectors
+        dv = coll.get_camera_unit_vectors(key)
+        lv = ['e0_x', 'e0_y', 'e0_z', 'e1_x', 'e1_y', 'e1_z']
+        e0x, e0y, e0z, e1x, e1y, e1z = [dv[k0] for k0 in lv]
+        if not np.isscalar(e0x):
+            e0x = e0x[:, None]
+            e0y = e0y[:, None]
+            e0z = e0z[:, None]
+            e1x = e1x[:, None]
+            e1y = e1y[:, None]
+            e1z = e1z[:, None]
+
+        if dgeom['type'] == '2d' and total:
+            cx, cy, cz = dgeom['cent']
+            p02, p12 = p0, p1
+        else:
+            cx, cy, cz = coll.get_camera_cents_xyz(key)
+            shape = [1 for ii in range(cx.ndim)] + [p0.size]
+            cx, cy, cz = cx[..., None], cy[..., None], cz[..., None]
+            p02 = p0.reshape(shape)
+            p12 = p1.reshape(shape)
+
+        # make 3d
+        px = cx + p02 * e0x + p12 * e1x
+        py = cy + p02 * e0y + p12 * e1y
+        pz = cz + p02 * e0z + p12 * e1z
+
+    # ----------
+    # ravel
+
+    if ravel is True and px.ndim > 1:
+        nan = np.full(tuple(np.r_[px.shape[:-1], 1]), np.nan)
+        px = np.concatenate((px, nan), axis=-1).ravel()
+        py = np.concatenate((py, nan), axis=-1).ravel()
+        pz = np.concatenate((pz, nan), axis=-1).ravel()
+
+    # return
+    if return_outline is True:
+        return p0, p1, px, py, pz
+    else:
+        return px, py, pz
+
+
+# ##################################################################
+# ##################################################################
+#                   Poly interpolation utilities
+# ##################################################################
+
+
+def _interp_poly_check(
+    add_points=None,
+    mode=None,
     closed=None,
     ravel=None,
 ):
 
     # -------
-    # key
+    # mode
 
-    lap = list(coll.dobj.get('aperture', {}).keys())
-    lfilt = list(coll.dobj.get('filter', {}).keys())
-    lcryst = list(coll.dobj.get('crystal', {}).keys())
-    lgrat = list(coll.dobj.get('grating', {}).keys())
-    lcam = list(coll.dobj.get('camera', {}).keys())
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lap + lfilt + lcryst + lgrat + lcam,
+    mode = ds._generic_check._check_var(
+        mode, 'mode',
+        default=None,
+        allowed=[None, 'min'],
     )
-
-    if key in lap:
-        cls = 'aperture'
-    elif key in lfilt:
-        cls = 'filter'
-    elif key in lcryst:
-        cls = 'crystal'
-    elif key in lgrat:
-        cls = 'grating'
-    elif key in lcam:
-        cls = 'camera'
 
     # ----------
     # add_points
 
-    if add_points is None:
-        add_points = False
-    if add_points is False:
-        add_points = 0
-
+    defadd = 1 if mode == 'min' else 0
     add_points = ds._generic_check._check_var(
         add_points, 'add_points',
         types=int,
+        default=defadd,
+        sign='>= 0',
     )
-
-    if add_points < 0:
-        msg = f"Arg add_points must be positive!\nProvided: {add_points}"
-        raise Exception(msg)
 
     # -------
     # closed
@@ -84,14 +260,14 @@ def _get_optics_outline_check(
         default=False,
         types=bool,
     )
+    return add_points, mode, closed, ravel
 
-    return key, cls, add_points, closed, ravel
 
-
-def get_optics_outline(
-    coll=None,
-    key=None,
+def _interp_poly(
+    lp=None,
     add_points=None,
+    mode=None,
+    isclosed=None,
     closed=None,
     ravel=None,
 ):
@@ -99,157 +275,112 @@ def get_optics_outline(
     # ------------
     # check inputs
 
-    key, cls, add_points, closed, ravel = _get_optics_outline_check(
-        coll=coll,
-        key=key,
+    add_points, mode, closed, ravel = _interp_poly_check(
         add_points=add_points,
+        mode=mode,
         closed=closed,
         ravel=ravel,
     )
 
-    # --------
-    # compute
+    # ------------
+    # trivial case
 
-    dgeom = coll.dobj[cls][key]['dgeom']
-    if cls in ['aperture', 'filter', 'crystal', 'grating']:
-        px, py, pz = dgeom['poly']
-        px = coll.ddata[px]['data']
-        py = coll.ddata[py]['data']
-        pz = coll.ddata[pz]['data']
-
-        if dgeom['type'] == 'planar':
-            p0, p1 = dgeom['outline']
-            p0 = coll.ddata[p0]['data']
-            p1 = coll.ddata[p1]['data']
-        else:
-            p0, p1 = None, None
-
-    elif cls == 'camera':
-
-        if dgeom['parallel'] is True:
-            e0 = dgeom['e0']
-            e1 = dgeom['e1']
-
-            if dgeom['type'] == '2d':
-                # get centers
-                cx0, cx1 = dgeom['cents']
-                cx0 = coll.ddata[cx0]['data']
-                cx1 = coll.ddata[cx1]['data']
-
-                # derive half-spacing
-                dx0 = np.mean(np.diff(cx0)) / 2.
-                dx1 = np.mean(np.diff(cx1)) / 2.
-
-                # derive global outline (not pixel outline)
-                p0 = np.r_[
-                    cx0[0] - dx0, cx0[-1] + dx0,
-                    cx0[-1] + dx0, cx0[0] - dx0,
-                ]
-                p1 = np.r_[
-                    cx1[0] - dx1, cx1[0] - dx1,
-                    cx1[-1] + dx1, cx1[-1] + dx1,
-                ]
-
-                # convert to 3d
-                cx, cy, cz = dgeom['cent']
-                px = cx + p0 * e0[0] + p1 * e1[0]
-                py = cy + p0 * e0[1] + p1 * e1[1]
-                pz = cz + p0 * e0[2] + p1 * e1[2]
-
-            else:
-                # get centers
-                cx, cy, cz = dgeom['cents']
-                cx = coll.ddata[cx]['data']
-                cy = coll.ddata[cy]['data']
-                cz = coll.ddata[cz]['data']
-
-                # get outline 2d
-                p0, p1 = dgeom['outline']
-                p0 = coll.ddata[p0]['data']
-                p1 = coll.ddata[p1]['data']
-
-                # make 3d
-                px = cx[:, None] + p0[None, :] * e0[0] + p1[None, :] * e1[0]
-                py = cy[:, None] + p0[None, :] * e0[1] + p1[None, :] * e1[1]
-                pz = cz[:, None] + p0[None, :] * e0[2] + p1[None, :] * e1[2]
-
-        else:
-            # unit vectors
-            e0x, e0y, e0z = dgeom['e0']
-            e1x, e1y, e1z = dgeom['e1']
-            e0x = coll.ddata[e0x]['data'][:, None]
-            e0y = coll.ddata[e0y]['data'][:, None]
-            e0z = coll.ddata[e0z]['data'][:, None]
-            e1x = coll.ddata[e1x]['data'][:, None]
-            e1y = coll.ddata[e1y]['data'][:, None]
-            e1z = coll.ddata[e1z]['data'][:, None]
-
-            # get centers
-            cx, cy, cz = dgeom['cents']
-            cx = coll.ddata[cx]['data']
-            cy = coll.ddata[cy]['data']
-            cz = coll.ddata[cz]['data']
-
-            # get outline 2d
-            out0, out1 = dgeom['outline']
-            p0 = coll.ddata[out0]['data']
-            p1 = coll.ddata[out1]['data']
-
-            # make 3d
-            px = cx[:, None] + p0[None, :] * e0x + p1[None, :] * e1x
-            py = cy[:, None] + p0[None, :] * e0y + p1[None, :] * e1y
-            pz = cz[:, None] + p0[None, :] * e0z + p1[None, :] * e1z
+    if add_points == 0:
+        return lp
 
     # ------------
-    # closed
+    # compute
 
-    if closed is True:
-        if p0 is not None:
-            p0 = np.append(p0, p0[0])
-            p1 = np.append(p1, p1[0])
+    # close for interpolation
+    if isclosed is not True:
+        for ii, pp in enumerate(lp):
 
-        if px.ndim == 2:
-            px = np.concatenate((px, px[:, 0:1]), axis=1)
-            py = np.concatenate((py, py[:, 0:1]), axis=1)
-            pz = np.concatenate((pz, pz[:, 0:1]), axis=1)
-        else:
-            px = np.append(px, px[0])
-            py = np.append(py, py[0])
-            pz = np.append(pz, pz[0])
+            if pp is None:
+                continue
+
+            if pp.ndim == 2:
+                lp[ii] = np.concatenate((pp, pp[:, 0:1]), axis=1)
+            else:
+                lp[ii] = np.append(pp, pp[0])
+
+    # -----------
+    # mode
+
+    if mode == 'min':
+        if len(lp) == 3:
+            dist = np.sqrt(
+                np.diff(lp[0], axis=-1)**2
+                + np.diff(lp[1], axis=-1)**2
+                + np.diff(lp[2], axis=-1)**2
+            )
+        elif len(lp) == 2:
+            dist = np.sqrt(
+                np.diff(lp[0], axis=-1)**2
+                + np.diff(lp[1], axis=-1)**2
+            )
+
+        if dist.ndim == 2:
+            import pdb; pdb.set_trace()     # DB
+
+        mindist = np.min(dist[dist > 1.e-10])
+        add_points = add_points * np.ceil(dist / mindist).astype(int) - 1
 
     # -----------
     # add_points
 
-    if add_points is not False:
+    shape = [pp for pp in lp if pp is not None][0].shape
+    nb = shape[-1]
+    if np.isscalar(add_points):
+        add_points = np.full((nb-1,), add_points, dtype=int)
 
-        nb = px.shape[-1]
-        ind0 = np.arange(0, nb)
-        ind = np.linspace(0, nb-1, (nb - 1)*(1 + add_points) + 1)
+    # -----------
+    # indices
 
-        if p0 is not None:
-            p0 = scpinterp.interp1d(ind0, p0, kind='linear')(ind)
-            p1 = scpinterp.interp1d(ind0, p1, kind='linear')(ind)
+    ind0 = np.arange(0, nb)
+    ind = np.concatenate(tuple([
+        np.linspace(
+            ind0[ii],
+            ind0[ii+1],
+            2 + add_points[ii],
+            endpoint=True,
+        )[:-1]
+        for ii in range(nb-1)
+    ] + [[ind0[-1]]]))
 
-        px = scpinterp.interp1d(ind0, px, kind='linear', axis=-1)(ind)
-        py = scpinterp.interp1d(ind0, py, kind='linear', axis=-1)(ind)
-        pz = scpinterp.interp1d(ind0, pz, kind='linear', axis=-1)(ind)
+    # -----------
+    # interpolate
 
-    # ------------------
+    for ii, pp in enumerate(lp):
+
+        if pp is None:
+            continue
+
+        lp[ii] = scpinterp.interp1d(
+            ind0, pp, kind='linear', axis=-1,
+        )(ind)
+
+    # ------------
+    # closed
+
+    if closed is False:
+
+        for ii, pp in enumerate(lp):
+            if pp is None:
+                continue
+
+            if pp.ndim == 2:
+                lp[ii] = pp[:, :-1]
+            else:
+                lp[ii] = pp[:-1]
+
+    # ------------
     # ravel
 
-    if ravel and px.ndim == 2:
+    if ravel and len(shape) == 2:
         nan = np.full((px.shape[0], 1), np.nan)
-        px = np.concatenate((px, nan), axis=1).ravel()
-        py = np.concatenate((py, nan), axis=1).ravel()
-        pz = np.concatenate((pz, nan), axis=1).ravel()
-
-    return {
-        'x0': p0,
-        'x1': p1,
-        'x': px,
-        'y': py,
-        'z': pz,
-    }
+        for ii, pp in enumerate(lp[2:]):
+            lp[ii+2] = np.concatenate((pp, nan), axis=1).ravel()
+    return lp
 
 
 # ##################################################################
@@ -430,21 +561,28 @@ def _dplot(
         # outline
         if 'o' in elements:
 
-            dplot[k0]['o'] = coll.get_optics_outline(
+            p0, p1, px, py, pz = coll.get_optics_poly(
                 key=k0,
                 add_points=3,
                 closed=True,
                 ravel=True,
+                return_outline=True,
+                total=True,
             )
 
-            dplot[k0]['o'].update({
-                'r': np.hypot(dplot[k0]['o']['x'], dplot[k0]['o']['y']),
+            dplot[k0]['o'] = {
+                'x0': p0,
+                'x1': p1,
+                'x': px,
+                'y': py,
+                'z': pz,
+                'r': np.hypot(px, py),
                 'props': {
                     'label': f'{k0}-o',
                     'lw': dlw[cls],
                     'c': color,
                 },
-            })
+            }
 
         # center
         if 'c' in elements:
@@ -599,183 +737,73 @@ def _dplot(
 
 # ##################################################################
 # ##################################################################
-#                       Etendue
+#                   Wavelength from angle
 # ##################################################################
 
 
-def _diag_compute_etendue_check(
+def get_lamb_from_angle(
     coll=None,
     key=None,
-    analytical=None,
-    numerical=None,
-    store=None,
+    lamb=None,
+    rocking_curve=None,
 ):
+    """"""
 
-    # --------
-    # key
+    # ----------
+    # check
 
-    lok = [
-        k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
-        if len(v0['optics']) > 1
-    ]
+    lok = list(coll.dobj.get('diagnostic', {}).keys())
     key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         allowed=lok,
     )
+    optics, optics_cls = coll.get_diagnostic_optics(key)
+    if 'crystal' not in optics_cls:
+        raise Exception(f"Diag '{key}' is not a spectro!")
 
-    # -----------
-    # analytical
+    kcryst = optics[optics_cls.index('crystal')]
 
-    analytical = ds._generic_check._check_var(
-        analytical, 'analytical',
-        types=bool,
-        default=True,
-    )
-
-    # -----------
-    # numerical
-
-    numerical = ds._generic_check._check_var(
-        numerical, 'numerical',
-        types=bool,
-        default=False,
-    )
-
-    # -----------
-    # store
-
-    lok = [False]
-    if analytical is True:
-        lok.append('analytical')
-    if numerical is True:
-        lok.append('numerical')
-    store = ds._generic_check._check_var(
-        store, 'store',
-        default=lok[-1],
+    dok = {
+        'lamb': 'alpha',
+        'lambmin': 'amin',
+        'lambmax': 'amax',
+        'res': 'res',
+    }
+    lok = list(dok.keys())
+    lamb = ds._generic_check._check_var(
+        lamb, 'lamb',
+        types=str,
         allowed=lok,
     )
 
-    return key, analytical, numerical, store
-
-
-def _diag_compute_etendue_los(
-    coll=None,
-    key=None,
-    # parameters
-    analytical=None,
-    numerical=None,
-    res=None,
-    check=None,
-    # for storing los
-    config=None,
-    length=None,
-    reflections_nb=None,
-    reflections_type=None,
-    # bool
-    verb=None,
-    plot=None,
-    store=None,
-):
-
-    # ------------
-    # check inputs
-
-    key, analytical, numerical, store = _diag_compute_etendue_check(
-        coll=coll,
-        key=key,
-        analytical=analytical,
-        numerical=numerical,
-        store=store,
-    )
-
-    # prepare optics
-    optics = coll.dobj['diagnostic'][key]['optics']
-    key_cam = optics[0]
-
-    # --------
-    # etendues
-
-    detend = _etendue.compute_etendue(
-        det=coll.get_as_dict(key=key_cam)[key_cam],
-        aperture=coll.get_as_dict(key=optics[1:]),
-        analytical=analytical,
-        numerical=numerical,
-        res=res,
-        margin_par=None,
-        margin_perp=None,
-        check=check,
-        verb=verb,
-        plot=plot,
-    )
-
     # ----------
-    # store
+    # compute
 
-    if store is not False:
+    lv = []
+    lk = ['lamb', 'lambmin', 'lambmax']
+    for kk in lk:
+        if lamb in [kk, 'res']:
+            if kk == 'lamb':
+                klos = coll.dobj['diagnostic'][key]['los']
+                ka = coll.dobj['rays'][klos][dok[kk]]
+                ang = coll.ddata[ka]['data'][0, ...]
+                ref = coll.ddata[ka]['ref'][1:]
+            else:
+                ka = coll.dobj['diagnostic'][key][dok[kk]]
+                ang = coll.ddata[ka]['data']
+                ref = coll.ddata[ka]['ref']
+            dd = coll.get_crystal_bragglamb(
+                key=kcryst,
+                bragg=ang,
+                rocking_curve=rocking_curve,
+            )
+            if lamb == kk:
+                data = dd
+            else:
+                lv.append(dd)
 
-        # ref
-        ref = coll.dobj['camera'][key_cam]['dgeom']['ref']
+    if lamb == 'res':
+        data = lv[0] / (lv[2] - lv[1])
 
-        # data
-        etendue = detend[store][-1, :]
-
-        if store == 'analytical':
-            etend_type = store
-        else:
-            etend_type = res[-1]
-
-        # keys
-        ketendue = f'{key}-etend'
-        klos = f'{key}-los'
-
-        ddata = {
-            ketendue: {
-                'data': etendue,
-                'ref': ref,
-                'dim': 'etendue',
-                'quant': 'etendue',
-                'name': 'etendue',
-                'units': 'm2.sr'
-            },
-        }
-        coll.update(ddata=ddata)
-
-        coll.set_param(
-            which='diagnostic',
-            key=key,
-            param='etendue',
-            value=ketendue,
-        )
-        coll.set_param(
-            which='diagnostic',
-            key=key,
-            param='etend_type',
-            value=etend_type,
-        )
-        coll.set_param(
-            which='diagnostic',
-            key=key,
-            param='los',
-            value=klos,
-        )
-
-        # add los
-        cx, cy, cz = coll.get_camera_cents_xyz(key=key_cam)
-
-        coll.add_rays(
-            key=klos,
-            start_x=cx,
-            start_y=cy,
-            start_z=cz,
-            vect_x=detend['los_x'],
-            vect_y=detend['los_y'],
-            vect_z=detend['los_z'],
-            ref=ref,
-            config=config,
-            length=length,
-            reflections_nb=reflections_nb,
-            reflections_type=reflections_type,
-        )
-
-    return detend
+    return data, ref
