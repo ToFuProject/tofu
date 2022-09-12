@@ -54,7 +54,8 @@ def _bragglamb(
 ):
     """ Return bragg angle
 
-    If bragg provided, simply return bragg as np.ndarray
+    If bragg provided, return lamb
+    If lamb provided, return bragg
 
     If lamb is provided return corresponding:
         - bragg angle (simple bragg's law)
@@ -92,29 +93,36 @@ def _bragglamb(
 
     if bragg is None and lamb is None:
         lamb = np.r_[coll.dobj['crystal'][key]['dmat']['target_lamb']]
+    if bragg is not None:
+        bragg = np.atleast_1d(bragg).astype(float)
+    if lamb is not None:
+        lamb = np.atleast_1d(lamb).astype(float)
 
-    elif bragg is not None and lamb is not None:
-        msg = "Please provide bragg xor lamb!"
-        raise Exception(msg)
+    if rocking_curve is False:
+        dist = coll.dobj['crystal'][key]['dmat']['d_hkl']
 
     # -------------
     # bragg vs lamb
 
-    if bragg is not None:
-        return np.atleast_1d(bragg).astype(float)
+    if bragg is not None and lamb is None:
 
-    else:
+        if rocking_curve is True:
+            raise NotImplementedError()
 
-        lamb = np.atleast_1d(lamb).astype(float)
+        else:
+            return 2.* dist * np.sin(bragg) / norder
+
+    elif lamb is not None and bragg is None:
 
         if rocking_curve is True:
             raise NotImplementedError
 
         else:
-            dist = coll.dobj['crystal'][key]['dmat']['d_hkl']
-            bragg = np.arcsin(norder * lamb / (2.*dist))
+            return np.arcsin(norder * lamb / (2.*dist))
 
-    return bragg
+    else:
+        msg = "Interpolate on rocking curve"
+        raise NotImplementedError(msg)
 
 
 # #################################################################

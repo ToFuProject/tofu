@@ -125,6 +125,7 @@ class Crystal(_class4_Filter.Filter):
         lamb=None,
         bragg=None,
         norder=None,
+        rocking_curve=None,
     ):
         """ Return bragg angle
 
@@ -141,6 +142,7 @@ class Crystal(_class4_Filter.Filter):
             key=key,
             lamb=lamb,
             bragg=bragg,
+            rocking_curve=rocking_curve,
         )
 
     # --------------------

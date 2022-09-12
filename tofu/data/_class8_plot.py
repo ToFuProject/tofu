@@ -29,6 +29,7 @@ def _plot_diagnostic_check(
     # figure
     proj=None,
     data=None,
+    rocking_curve=None,
     # interactivity
     color_dict=None,
     nlos=None,
@@ -44,6 +45,11 @@ def _plot_diagnostic_check(
         types=str,
         allowed=lok,
     )
+    optics, optics_cls = coll.get_diagnostic_optics(key)
+    if 'crystal' in optics_cls:
+        kcryst = optics[optics_cls.index('crystal')]
+    else:
+        kcryst = None
 
     # -----
     # proj
@@ -58,6 +64,8 @@ def _plot_diagnostic_check(
 
     defdata = 'etendue'
     c0 = data is None and coll.dobj['diagnostic'][key].get(defdata) is None
+
+    ref = None
     if not c0:
         lok = [
             k0 for k0, v0 in coll.ddata.items()
@@ -76,10 +84,15 @@ def _plot_diagnostic_check(
                 if isinstance(v0, str) and v0 in lok
             ]
 
+        if kcryst is None:
+            llamb = []
+        else:
+            llamb = ['lamb', 'lambmin', 'lambmax', 'res']
+
         data = ds._generic_check._check_var(
             data, 'data',
             types=str,
-            allowed=lok + ldiag + lrays,
+            allowed=lok + ldiag + lrays + llamb,
             default=defdata,
         )
 
@@ -87,6 +100,12 @@ def _plot_diagnostic_check(
             data = coll.dobj['diagnostic'][key][data]
         elif data in lrays:
             data = coll.dobj['rays'][klos][data]
+        elif data in llamb:
+            data, ref = coll.get_diagnostic_lamb(
+                key=key,
+                rocking_curve=rocking_curve,
+                lamb=data,
+            )
 
     # -------
     # color_dict
@@ -120,6 +139,7 @@ def _plot_diagnostic_check(
         key,
         proj,
         data,
+        ref,
         color_dict,
         nlos,
         connect,
@@ -165,6 +185,7 @@ def _plot_diagnostic(
         key,
         proj,
         data,
+        dataref,
         color_dict,
         nlos,
         connect,
@@ -241,9 +262,13 @@ def _plot_diagnostic(
 
     reft = None
     if data is not None:
-        dataref = coll.ddata[data]['ref']
+        if dataref is None:
+            dataref = coll.ddata[data]['ref']
         if dataref == camref:
-            datamap = coll.ddata[data]['data'].T
+            if isinstance(data, str):
+                datamap = coll.ddata[data]['data'].T
+            else:
+                datamap = data.T
         elif len(dataref) == len(camref) + 1:
             dataref == camref
             datamap = coll.ddata[data]['data'][0, ...].T

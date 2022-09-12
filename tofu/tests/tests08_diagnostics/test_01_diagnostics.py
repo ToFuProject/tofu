@@ -487,15 +487,15 @@ class Test01_Diagnostic():
                 self.obj.add_camera_2d(key=k0, **v0)
 
         # add diagnostics
-        # for k0, v0 in ddiag.items():
-            # print(k0)
-            # self.obj.add_diagnostic(
-                # key=k0,
-                # config=conf,
-                # reflections_nb=2,
-                # reflections_type='specular',
-                # **v0,
-            # )
+        for k0, v0 in ddiag.items():
+            print(k0)
+            self.obj.add_diagnostic(
+                key=k0,
+                config=conf,
+                reflections_nb=2,
+                reflections_type='specular',
+                **v0,
+            )
 
         # add crystals
         for k0, v0 in dcrystals.items():
@@ -534,14 +534,6 @@ class Test01_Diagnostic():
                         f'{k0}-{ii}': loptics,
                     })
 
-        # add toroidal
-        # self.obj.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
-
-    # ----------
-    # timing
-
-    def timeit(self):
-
         # add crystal optics
         for k0, v0 in self.doptics.items():
             print(k0, 'spectro')
@@ -549,6 +541,8 @@ class Test01_Diagnostic():
                 optics=v0,
                 config=self.conf,
             )
+        # add toroidal
+        # self.obj.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
 
     # ----------
     # tests

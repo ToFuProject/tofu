@@ -92,7 +92,6 @@ def compute_los_angles(
 
     # ------------
     # for spectro => estimate angle variations
-
     if dlos_x is not None:
 
         angmin = np.full(cx.size, np.nan)
@@ -114,8 +113,8 @@ def compute_los_angles(
                 return_x01=False,
             )[6]
 
-            angmin[ii] = np.min(angles)
-            angmax[ii] = np.max(angles)
+            angmin[ii] = np.nanmin(angles)
+            angmax[ii] = np.nanmax(angles)
 
         if is2d:
             angmin = angmin.reshape(los_x.shape)

@@ -203,6 +203,30 @@ class Diagnostic(_class7_Camera.Camera):
         )
 
     # ---------------
+    # wavelneght from angle
+    # ---------------
+
+    def get_diagnostic_lamb(
+        self,
+        key=None,
+        lamb=None,
+        rocking_curve=None,
+    ):
+        """ Return the wavelength associated to
+        - 'lamb'
+        - 'lambmin'
+        - 'lambmax'
+        - 'res' = lamb / (lambmax - lambmin)
+
+        """
+        return _compute.get_lamb_from_angle(
+            coll=self,
+            key=key,
+            lamb=lamb,
+            rocking_curve=rocking_curve,
+        )
+
+    # ---------------
     # utilities
     # ---------------
 

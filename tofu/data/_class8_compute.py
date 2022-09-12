@@ -733,3 +733,77 @@ def _dplot(
             }
 
     return dplot
+
+
+# ##################################################################
+# ##################################################################
+#                   Wavelength from angle
+# ##################################################################
+
+
+def get_lamb_from_angle(
+    coll=None,
+    key=None,
+    lamb=None,
+    rocking_curve=None,
+):
+    """"""
+
+    # ----------
+    # check
+
+    lok = list(coll.dobj.get('diagnostic', {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+    optics, optics_cls = coll.get_diagnostic_optics(key)
+    if 'crystal' not in optics_cls:
+        raise Exception(f"Diag '{key}' is not a spectro!")
+
+    kcryst = optics[optics_cls.index('crystal')]
+
+    dok = {
+        'lamb': 'alpha',
+        'lambmin': 'amin',
+        'lambmax': 'amax',
+        'res': 'res',
+    }
+    lok = list(dok.keys())
+    lamb = ds._generic_check._check_var(
+        lamb, 'lamb',
+        types=str,
+        allowed=lok,
+    )
+
+    # ----------
+    # compute
+
+    lv = []
+    lk = ['lamb', 'lambmin', 'lambmax']
+    for kk in lk:
+        if lamb in [kk, 'res']:
+            if kk == 'lamb':
+                klos = coll.dobj['diagnostic'][key]['los']
+                ka = coll.dobj['rays'][klos][dok[kk]]
+                ang = coll.ddata[ka]['data'][0, ...]
+                ref = coll.ddata[ka]['ref'][1:]
+            else:
+                ka = coll.dobj['diagnostic'][key][dok[kk]]
+                ang = coll.ddata[ka]['data']
+                ref = coll.ddata[ka]['ref']
+            dd = coll.get_crystal_bragglamb(
+                key=kcryst,
+                bragg=ang,
+                rocking_curve=rocking_curve,
+            )
+            if lamb == kk:
+                data = dd
+            else:
+                lv.append(dd)
+
+    if lamb == 'res':
+        data = lv[0] / (lv[2] - lv[1])
+
+    return data, ref
