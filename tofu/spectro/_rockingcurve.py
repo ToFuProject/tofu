@@ -36,6 +36,7 @@ def compute_rockingcurve(
     therm_exp=None,
     temp_limits=None,
     # Plot
+    ax=None,
     plot_therm_exp=None,
     plot_asf=None,
     plot_power_ratio=None,
@@ -376,7 +377,7 @@ def compute_rockingcurve(
     # ----------------
 
     if plot_power_ratio:
-        CrystalBragg_plot_power_ratio_vs_glancing_angle(
+        ax = CrystalBragg_plot_power_ratio_vs_glancing_angle(
             din=din, lamb=lamb,
             miscut_limits=miscut_limits,
             theta=theta, theta_deg=theta_deg,
@@ -384,6 +385,7 @@ def compute_rockingcurve(
             bb=bb, polar=polar, alpha=alpha,
             miscut=miscut, na=na, nn=nn,
             therm_exp=therm_exp, T0=T0, TD=TD,
+            ax=ax,
         )
 
     # Plot integrated reflect., asymmetry angle & RC width vs glancing angle
@@ -455,7 +457,7 @@ def compute_rockingcurve(
         dout['Temperature changes (°C)'] = TD
 
     if returnas is dict:
-        return dout
+        return dout, ax
 
 
 # #############################################################################
@@ -1244,15 +1246,15 @@ def CrystalBragg_plot_thermal_expansion_vs_d(
     T0=None, TD=None, d_atom=None, nn=None,
 ):
 
-    fig = plt.figure(figsize=(9, 6))
-    gs = gridspec.GridSpec(1, 1)
-    ax = fig.add_subplot(gs[0, 0])
     name = din['name']
     miller = np.r_[
         int(din['miller'][0]),
         int(din['miller'][1]),
         int(din['miller'][2]),
     ]
+    fig = plt.figure(figsize=(9, 6))
+    gs = gridspec.GridSpec(1, 1)
+    ax = fig.add_subplot(gs[0, 0])
     ax.set_title(
         f'{name}' + f', ({miller[0]},{miller[1]},{miller[2]})' +
         fr', $\lambda$={lamb} $\AA$' +
@@ -1260,25 +1262,26 @@ def CrystalBragg_plot_thermal_expansion_vs_d(
         fontsize=15,
     )
     ax.set_xlabel(r'$\Delta$T ($T_{0}$'+fr'={T0}°C)', fontsize=15)
-    ax.set_ylabel(r'Inter-planar distance $d_{hkl}$ [m$\AA$]', fontsize=15)
+    ax.set_ylabel(r'Inter-planar distance $d_{hkl}$ [$\AA$]', fontsize=15)
     ax.scatter(
-        TD, d_atom*(1e3),
+        TD, d_atom,
         marker='o', c='k', alpha=0.5,
         label=r'd$_{(hkl)}$ computed points',
     )
-    p = np.polyfit(TD, d_atom*(1e3), 1)
-    y_adj = p[0]*TD + p[1]
+    interp_d = np.polyfit(TD, d_atom, 1)
+    y_adj = interp_d[0]*TD + interp_d[1]
     ax.plot(
         TD, y_adj,
         'k-',
         label=(
-            r'$d_{hkl}$ = ' + str(np.round(p[1], 3)) +
-            r' x (1 + $\gamma_{eff}$.$\Delta$T)' + '\n' +
-            r'$\gamma_{eff}$ = ' + str(np.round(p[0]/p[1], decimals=9)) +
-            r'°C$^{-1}$',
+            '$d_{hkl}$ = ' + str(np.round(interp_d[1], 13)) +
+            ' x (1 + ' + r'$\gamma_{eff}.\Delta$T)' + '\n' +
+            r'$\gamma_{eff}$ = ' +
+            str(np.round(interp_d[0]/interp_d[1], decimals=9)) +
+            r'°C$^{-1}$'
         ),
     )
-    ax.legend(loc="best", fontsize=12)
+    ax.legend(fontsize=12)
 
 
 def CrystalBragg_plot_atomic_scattering_factor(
@@ -1319,6 +1322,7 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
     # Diffraction pattern main components
     th=None, dth=None, power_ratio=None,
     bb=None, polar=None, alpha=None,
+    ax=None,
 ):
     """ All plots of rocking curve is done, not with respect to the glancing
     angle (theta - thetaBragg) where thetaBragg may vary if the temperature
@@ -1373,66 +1377,70 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         miscut is False and therm_exp is True,
         miscut is True and therm_exp is False,
     ]
-    if any(lc):
-        fig1 = plt.figure(figsize=(8, 6))
-        gs = gridspec.GridSpec(1, 1)
-        ax = fig1.add_subplot(gs[0, 0])
-        ax.set_title(
-            f'{name}, ' + f'({miller[0]},{miller[1]},{miller[2]})' +
-            fr', $\lambda$={lamb}m', fontsize=15,
-        )
-        ax.set_xlabel(r'Diffracting angle $\theta$ (rad)', fontsize=15)
-        ax.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
-    if miscut and therm_exp:
-        gs = gridspec.GridSpec(3, 3)
-        fig1 = plt.figure(figsize=(22, 20))
-        # 3 rows -> temperature changes -T0 < 0 < +T0
-        # 3 columns -> asymmetry angles -bragg < 0 < +bragg
-        ax01 = fig1.add_subplot(gs[0, 1])
-        ax00 = fig1.add_subplot(gs[0, 0])
-        ax02 = fig1.add_subplot(gs[0, 2])
-        ax11 = fig1.add_subplot(gs[1, 1])
-        ax10 = fig1.add_subplot(gs[1, 0])
-        ax12 = fig1.add_subplot(gs[1, 2])
-        ax21 = fig1.add_subplot(gs[2, 1])
-        ax20 = fig1.add_subplot(gs[2, 0])
-        ax22 = fig1.add_subplot(gs[2, 2])
-        fig1.suptitle(
-            f'{name}, ' + f'({miller[0]},{miller[1]},{miller[2]})' +
-            fr', $\lambda$={lamb}m' +
-            r', $\theta_{B}$=' + fr'{np.round(theta[nn], 5)} rad',
-            fontsize=15,
-        )
-        ax00.set_title(
-            r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[0]*60, 3)),
-            fontsize=15
-        )
-        ax01.set_title(
-            r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[nn]*60, 3)),
-            fontsize=15
-        )
-        ax02.set_title(
-            r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[na-1]*60, 3)),
-            fontsize=15
-        )
-        ax022 = ax02.twinx()
-        ax022.set_ylabel(
-            r'$\Delta T$=({})°C'.format(TD[0]), fontsize=15
-        )
-        ax122 = ax12.twinx()
-        ax122.set_ylabel(
-            r'$\Delta T$=({})°C'.format(TD[nn]), fontsize=15
-        )
-        ax222 = ax22.twinx()
-        ax222.set_ylabel(
-            r'$\Delta T$=({})°C'.format(TD[na-1]), fontsize=15
-        )
-        ax20.set_xlabel(r'$\theta$ (rad)', fontsize=15)
-        ax21.set_xlabel(r'$\theta$ (rad)', fontsize=15)
-        ax22.set_xlabel(r'$\theta$ (rad)', fontsize=15)
-        ax00.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
-        ax10.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
-        ax20.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
+    if ax is None:
+        if any(lc):
+            fig1 = plt.figure(figsize=(8, 6))
+            gs = gridspec.GridSpec(1, 1)
+            ax = fig1.add_subplot(gs[0, 0])
+            """
+            ax.set_title(
+                f'{name}, ' + f'({miller[0]},{miller[1]},{miller[2]})' +
+                fr', $\lambda$={lamb}m', fontsize=15,
+            )
+            """
+            ax.set_title(f'{name}')
+            ax.set_xlabel(r'Diffracting angle $\theta$ (rad)', fontsize=15)
+            ax.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
+        elif miscut and therm_exp:
+            gs = gridspec.GridSpec(3, 3)
+            fig1 = plt.figure(figsize=(22, 20))
+            # 3 rows -> temperature changes -T0 < 0 < +T0
+            # 3 columns -> asymmetry angles -bragg < 0 < +bragg
+            ax01 = fig1.add_subplot(gs[0, 1])
+            ax00 = fig1.add_subplot(gs[0, 0])
+            ax02 = fig1.add_subplot(gs[0, 2])
+            ax11 = fig1.add_subplot(gs[1, 1])
+            ax10 = fig1.add_subplot(gs[1, 0])
+            ax12 = fig1.add_subplot(gs[1, 2])
+            ax21 = fig1.add_subplot(gs[2, 1])
+            ax20 = fig1.add_subplot(gs[2, 0])
+            ax22 = fig1.add_subplot(gs[2, 2])
+            fig1.suptitle(
+                f'{name}, ' + f'({miller[0]},{miller[1]},{miller[2]})' +
+                fr', $\lambda$={lamb}m' +
+                r', $\theta_{B}$=' + fr'{np.round(theta[nn], 5)} rad',
+                fontsize=15,
+            )
+            ax00.set_title(
+                r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[0]*60, 3)),
+                fontsize=15
+            )
+            ax01.set_title(
+                r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[nn]*60, 3)),
+                fontsize=15
+            )
+            ax02.set_title(
+                r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[na-1]*60, 3)),
+                fontsize=15
+            )
+            ax022 = ax02.twinx()
+            ax022.set_ylabel(
+                r'$\Delta T$=({})°C'.format(TD[0]), fontsize=15
+            )
+            ax122 = ax12.twinx()
+            ax122.set_ylabel(
+                r'$\Delta T$=({})°C'.format(TD[nn]), fontsize=15
+            )
+            ax222 = ax22.twinx()
+            ax222.set_ylabel(
+                r'$\Delta T$=({})°C'.format(TD[na-1]), fontsize=15
+            )
+            ax20.set_xlabel(r'$\theta$ (rad)', fontsize=15)
+            ax21.set_xlabel(r'$\theta$ (rad)', fontsize=15)
+            ax22.set_xlabel(r'$\theta$ (rad)', fontsize=15)
+            ax00.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
+            ax10.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
+            ax20.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
 
     # Plot
     # ----
@@ -1454,18 +1462,19 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                 c_keydd = c_keylist[c_valuedd]
                 ax.text(
                     dth[0, 0, j, ind],
-                    np.max(power_ratio[0, 0, j, :] + 0.005),
+                    np.max(power_ratio[0, 0, j] + power_ratio[1, 0, j] + 0.005),
                     '({})'.format(let_keydd),
                     c=c_keydd,
                 )
+                # Plot each polarization
+                """
                 ax.plot(
                     dth[0, 0, j, :],
                     power_ratio[0, 0, j, :],
-                    '-',
+                    linestyle='-',
                     c=c_keydd,
                     label=(
-                        r'normal pola.,' + '\n' +
-                        r' ({}): $\alpha$=({}) arcmin'.format(
+                        r'normal pola., ({}): $\alpha$=({})arcmin'.format(
                             let_keydd, np.round(alpha_deg[j]*60, 3)
                         ),
                     ),
@@ -1473,34 +1482,34 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                 ax.plot(
                     dth[1, 0, j, :],
                     power_ratio[1, 0, j, :],
-                    '--',
+                    linestyle='--',
                     c=c_keydd,
-                    label=r'parallel pola.',
+                    label=(
+                        r'parallel pola., ({}): $\lambda$=({})m'.format(
+                            let_keydd, lamb,
+                        ),
+                    ),
+                )
+                """
+                # Plot the sum of both polarizations
+                ax.plot(
+                    dth[0, 0, j, :],
+                    power_ratio[0, 0, j] + power_ratio[1, 0, j],
+                    '-',
+                    c=c_keydd,
+                    label=(
+                        '(' + str(let_keydd) + r'): $\alpha$=' +
+                        str(np.round(alpha_deg[j]*60, 3)) + ' arcmin' + '\n'
+                        r'$\lambda$=' + str(lamb) + ' m'
+                    ),
                 )
         ax.axvline(
-            theta, color='black', linestyle='-.',
-            label=r'$\theta_B$= {} rad'.format(
-                np.round(theta, 6)
-            ),
+            theta,
+            color='black',
+            linestyle='-.',
+            label=r'$\theta_B$={}rad'.format(np.round(theta, 6)),
         )
         ax.legend(fontsize=12)
-    """
-    # Plot the sum of both polarizations
-    lc = [miscut is True, miscut is False]
-    if not therm_exp and any(lc):
-        ax.plot(
-            dth[0, 0, 0, :],
-            power_ratio[0, 0, 0] + power_ratio[1, 0, 0],
-            '-',
-            c='black',
-        )
-        ax.axvline(
-            theta, color='black', linestyle='-.',
-            label=r'$\theta_B$= {} rad'.format(
-                np.round(theta, 6)
-            ),
-        )
-    """
 
     if not miscut and therm_exp is True:
         colors = ['blue', 'black', 'red']
@@ -1519,14 +1528,16 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                 c_keydd = c_keylist[c_valuedd]
                 ax.text(
                     dth[0, i, 0, ind],
-                    np.max(power_ratio[0, i, 0, :] + 0.005),
+                    np.max(power_ratio[0, i, 0] + power_ratio[1, i, 0] + 0.005),
                     '({})'.format(let_keydd),
                     c=c_keydd,
                 )
+                # Plot each polarization
+                """
                 ax.plot(
                     dth[0, i, 0, :],
                     power_ratio[0, i, 0, :],
-                    '-',
+                    linestyle='-',
                     c=c_keydd,
                     label=r'normal pola., ({}): $\Delta T$=({})°C'.format(
                         let_keydd, TD[i]
@@ -1535,15 +1546,32 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                 ax.plot(
                     dth[1, i, 0, :],
                     power_ratio[1, i, 0, :],
-                    '--',
+                    linestyle='--',
                     c=c_keydd,
-                    label=r'parallel pola.',
+                    label=(
+                        r'parallel pola., ({}): $\lambda$=({})m'.format(
+                            let_keydd, lamb,
+                        ),
+                    ),
+                )
+                """
+                # Plot the sum of both polarizations
+                ax.plot(
+                    dth[0, i, 0, :],
+                    power_ratio[0, i, 0] + power_ratio[1, i, 0],
+                    '-',
+                    c=c_keydd,
+                    label=(
+                        '(' + str(let_keydd) + r'): $\Delta$T=' +
+                        str(TD[i]) + ' °C' + '\n'
+                        r'$\lambda$=' + str(lamb) + ' m'
+                    ),
                 )
         ax.axvline(
-            theta[nn], color='black', linestyle='--',
-            label=r'Bragg angle of ref. : {} rad'.format(
-                np.round(theta[nn], 6)
-            ),
+            theta[nn],
+            color='black',
+            linestyle='--',
+            label=r'$\theta_B$={}rad'.format(np.round(theta[nn], 6)),
         )
         ax.legend(fontsize=12)
 
@@ -1695,6 +1723,8 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
             )
 
         ax11.legend()
+
+    return ax
 
 
 def CrystalBragg_plot_rc_components_vs_asymmetry(

@@ -812,7 +812,7 @@ class CrystalBragg(utils.ToFuObject):
         miscut_limits=None,
         therm_exp=None,
         temp_limits=None,
-        plot_therm_exp=None,
+        ax=None, plot_therm_exp=None,
         plot_asf=None, plot_power_ratio=None,
         plot_asymmetry=None, plot_cmaps=None,
         returnas=None,
@@ -824,7 +824,7 @@ class CrystalBragg(utils.ToFuObject):
             miscut_limits=miscut_limits,
             therm_exp=therm_exp,
             temp_limits=temp_limits,
-            plot_therm_exp=plot_therm_exp,
+            ax=ax, plot_therm_exp=plot_therm_exp,
             plot_asf=plot_asf, plot_power_ratio=plot_power_ratio,
             plot_asymmetry=plot_asymmetry, plot_cmaps=plot_cmaps,
             returnas=None,
@@ -1602,7 +1602,7 @@ class CrystalBragg(utils.ToFuObject):
             alpha = alpha
         if miscut is None or miscut is False:
             miscut = False
-            alpha = self.dmat['alpha']
+            alpha = self._dmat['alpha']
 
         # Compute
         return _comp_optics.calc_meridional_sagittal_focus(
@@ -1618,7 +1618,7 @@ class CrystalBragg(utils.ToFuObject):
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
         if np.all(np.isnan(bragg)):
             msg = ("There is no available bragg angle!\n"
-                   + "  => Check the vlue of self.dmat['d'] vs lamb")
+                   + "  => Check the value of self._dmat['d'] vs lamb")
             raise Exception(msg)
         return _comp_optics.get_rowland_dist_from_bragg(
             bragg=bragg, rcurve=self._dgeom['rcurve'],
@@ -1688,9 +1688,10 @@ class CrystalBragg(utils.ToFuObject):
 
         if rcurve is None:
             rcurve = self._dgeom['rcurve']
+        if lamb is None:
+            lamb = self._dbragg['lambref']
 
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
-
         if np.all(np.isnan(bragg)):
             msg = (
                 "There is no available bragg angle!\n"
@@ -2115,7 +2116,7 @@ class CrystalBragg(utils.ToFuObject):
             return idx
 
         id_temp0 = find_nearest(TD, temp0)
-        self.dmat['d'] = d_atom[id_temp0]
+        self._dmat['d'] = d_atom[id_temp0]
 
         # Get local basis
         nout, e1, e2, miscut = self.get_unit_vectors(
@@ -2226,7 +2227,7 @@ class CrystalBragg(utils.ToFuObject):
             # For each wavelength, get results dictionnary of the associated
             # diffraction pattern
             for ll in range(nlamb):
-                dout = _rockingcurve.compute_rockingcurve(
+                dout, _ = _rockingcurve.compute_rockingcurve(
                     crystal=crystal, din=din,
                     lamb=lamb[ll],
                     miscut=miscut,
@@ -2340,9 +2341,9 @@ class CrystalBragg(utils.ToFuObject):
                 self.update_miscut(alpha=0., beta=0.)
 
                 if therm_exp:
-                    self.dmat['d'] = d_atom[nn]*1e-10
+                    self._dmat['d'] = d_atom[nn]*1e-10
                 else:
-                    self.dmat['d'] = d_atom[0]*1e-10
+                    self._dmat['d'] = d_atom[0]*1e-10
                 (
                     bragg_atprmax[ll], _, lamb_atprmax[ll],
                 ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
@@ -2360,9 +2361,9 @@ class CrystalBragg(utils.ToFuObject):
         else:
             self.update_miscut(alpha=0., beta=0.)
         if therm_exp:
-            self.dmat['d'] = d_atom[id_temp0]*1e-10
+            self._dmat['d'] = d_atom[id_temp0]*1e-10
         else:
-            self.dmat['d'] = d_atom[0]*1e-10
+            self._dmat['d'] = d_atom[0]*1e-10
 
         # Plot
         if plot:
@@ -2748,6 +2749,8 @@ class CrystalBragg(utils.ToFuObject):
         if lambda_interval_max is None:
             lambda_interval_max = 4.00e-10
 
+        # If lamb & bragg are None, the following routine returns
+        # bragg=self._dbragg['braggref']
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb)
 
         l0 = [dist_min, dist_max, ndist, di_min, di_max, ndi]
@@ -2908,6 +2911,9 @@ class CrystalBragg(utils.ToFuObject):
 
         # Checkformat det
         det_ref = self._checkformat_det(det=det_ref)
+
+        # Checkformat bragg & lamb
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb)
 
         # ------------
         # get approx detect
