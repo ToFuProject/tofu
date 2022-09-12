@@ -64,6 +64,8 @@ def _get_pts2pt(
             return_xyz=None,
             return_x01=None,
             debug=None,
+            # timing
+            dt=None,
         ):
             """
 
@@ -155,6 +157,8 @@ def _get_pts2pt(
             # number of k for interpolation
             nk=None,
             debug=True,
+            # timing
+            dt=None,
         ):
             """
 
@@ -185,8 +189,9 @@ def _get_pts2pt(
                     (O, eM),
                 ),
             ]
+
             for ii in range(pts_x.size):
-                B = np.r_[pts_x[ii], pts_y[ii], pts_z[ii]],
+                B = np.r_[pts_x[ii], pts_y[ii], pts_z[ii]]
                 AB = B - A
                 eAB = AB / np.linalg.norm(AB)
 
@@ -198,6 +203,8 @@ def _get_pts2pt(
                     ii=ii,
                     nin=nin,
                     nk=nk,
+                    # timing
+                    dt=dt,
                 )
 
                 if kk is None:
@@ -224,30 +231,26 @@ def _get_pts2pt(
                     Dx=Dxi, Dy=Dyi, Dz=Dzi,
                     nix=nix, niy=niy, niz=niz,
                 )
-
-                # derive roots
                 iok = np.isfinite(eq)
-                roots = scpinterp.InterpolatedUnivariateSpline(
-                    kk[iok],
-                    eq[iok],
-                    k=3,
-                ).roots()
+                kk = kk[iok]
+                eq = eq[iok]
 
-                if roots.size != 1:
+                # find indices of sign changes
+                i0 = (eq[:-1] * eq[1:] < 0).nonzero()[0]
+                if len(i0) == 1:
+                    roots = np.r_[
+                        kk[i0]
+                        - eq[i0]*(kk[i0+1] - kk[i0])
+                        /(eq[i0+1] - eq[i0])
+                    ]
+
+                    # roots = scpinterp.InterpolatedUnivariateSpline(
+                        # kk,
+                        # eq,
+                        # k=3,
+                    # ).roots()
+                else:
                     continue
-
-                # if roots.size != 1 or np.abs(theta[ii]) > thetamax:
-                    # # design robust linear fit
-                    # mean = np.mean(eq[iok])
-                    # std = np.std(eq[iok])
-                    # iok[iok] = np.abs(eq[iok] - mean) < 5.*std
-                    # ra, rb = np.polyfit(kk[iok], eq[iok], 1)
-                    # roots = np.r_[-rb/ra]
-
-                    # if debug is True:
-                        # msg = f"{roots.size} solutions for {ii} / {pts_x.size}"
-                        # print(msg)
-                        # _debug_cylindrical(**locals())
 
                 # nin, xx, D
                 (
@@ -464,7 +467,17 @@ def _mindist_2lines(A=None, B=None, O=None, eax=None):
 def _kminmax_ptinz(pt=None, lp=None):
     return np.all([
         np.sum((pt - oo)*ep) > 0 for oo, ep in lp
-    ]) > 0
+    ])
+
+
+def _kminmax_ptinz2(pts=None, lp=None):
+    return np.all(
+        [
+            np.sum((pts - oo[:, None])*ep[:, None], axis=0) > 0
+            for oo, ep in lp
+        ],
+    axis=0,
+    )
 
 
 def _kminmax_plane(
@@ -476,8 +489,9 @@ def _kminmax_plane(
     nin=None,
     ii=None,
     nk=None,
+    # timing
+    dt=None,
 ):
-
 
     # ---------------
     # check inputs
@@ -490,63 +504,66 @@ def _kminmax_plane(
     # ---------------
     # get lkin, lkout
 
-    nz = len(lzones)
-    inzone = np.zeros((nz,), dtype=bool)
-    kin = np.zeros((nz,))
-    kout = np.ones((nz,))
-    for ip, lp in enumerate(lzones):
+    # Intrsection with planes (same planes for all zones)
+    lk = []
+    for jj, (oo, ep) in enumerate(lzones[0]):
+        AO = oo - A
+        AOe = np.sum(AO*ep)
+        ABe = np.sum(AB * ep)
 
-        # check if start / end in zone
-        if _kminmax_ptinz(pt=A, lp=lp):
-            inzone[ip] = True
+        if np.abs(ABe) < 1e-14:
+            continue
+        kk = AOe / ABe
+        if kk <= 0 or kk >= 1:
+            continue
+        lk.append(kk)
 
-        if _kminmax_ptinz(pt=B, lp=lp):
-            inzone[ip] = True
+    kk = np.r_[0., np.sort(lk) + 1.e-12, 1.]
 
-        # check transitions
-        for jj, (oo, ep) in enumerate(lp):
-            AO = oo - A
-            AOe = np.sum(AO*ep)
-            ABe = np.sum(AB * ep)
-            if np.abs(ABe) < 1e-14:
-                continue
-            kk = AOe / ABe
-            if kk < 0 or kk > 1:
-                continue
+    kin = np.array([
+        _kminmax_ptinz2(
+            pts=A[:, None] + kk[None, :]*AB[:, None],
+            lp=lp,
+        )
+        for lp in lzones
+    ])
 
-            allinkm = _kminmax_ptinz(pt=A + (kk - 1.e-6)*AB, lp=lp)
-            allinkp = _kminmax_ptinz(pt=A + (kk + 1.e-6)*AB, lp=lp)
-            if allinkp:
-                kin[ip] = max(kin[ip], kk)
-                inzone[ip] = True
-            elif allinkm:
-                kout[ip] = min(kout[ip], kk)
+    iok = np.any(kin, axis=1)
 
-            # safeguard
-            if kout[ip] < kin[ip]:
-                import pdb; pdb.set_trace()     # DB
-                a = 1
+    # trivial case 1
+    if not np.any(iok):
+        return None
 
-    # ---------------
-    # derive kmin, kmax
+    kin = kin[iok, :]
 
-    kk = None
-    if np.sum(inzone) > 0:
-        kin= kin[inzone]
-        kout= kout[inzone]
+    # trivial case 2
+    if np.any(np.all(kin, axis=1)):
+        return np.linspace(0, 1, nk)
 
-        inds = np.argsort(kin)
-        kk = []
-        for ss in inds:
-            if kout[ss] - kin[ss] > 1.e-12:
-                kk.append(np.linspace(kin[ss], kout[ss], nk))
+    # non-trivial cases
+    iin = kin.nonzero()[1]
+    iout = kin.shape[1] - kin[:, ::-1].nonzero()[1]
 
-        if len(kk) > 0:
-            kk = np.concatenate(tuple(kk))
-        else:
-            kk = None
+    if iin.shape[0] > 1:
+        import pdb; pdb.set_trace()     # DB
 
-    return kk
+    idel = [ii for ii in range(iin.size) if iin[ii] in iout]
+    if len(idel) > 0:
+        import pdb; pdb.set_trace()     # DB
+        np.delete(kin, idel)
+        np.delete(kin, idel)
+
+    if iin.size == 0:
+        return np.linspace(0, 1, nk)
+    elif iin.size == 1:
+        return np.linspace(kk[iin[0]], kk[iout[0]], nk)
+    else:
+        return np.concatenate(
+            tuple([
+                np.linspace(kk[iin[ii]], kk[iout[ii]], nk)
+                for ii in range(iin.size)
+            ])
+        )
 
 
 def _get_Dnin_from_k(

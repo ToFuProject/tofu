@@ -150,13 +150,11 @@ class Crystal(_class4_Filter.Filter):
     def get_optics_x01toxyz(
         self,
         key=None,
-        asplane=None,
     ):
         """ Return a dict of formatted """
         return _coordinates._get_x01toxyz(
             coll=self,
             key=key,
-            asplane=asplane,
         )
 
     # --------------------

@@ -2,6 +2,7 @@
 
 
 import warnings
+import datetime as dtm
 
 
 import numpy as np
@@ -141,6 +142,8 @@ def equivalent_apertures(
     # ---------------
     # loop on pixels
 
+    # dt = np.zeros((14,), dtype=float)
+
     # intial polygon
     p_a = coll.get_optics_outline(key=kref, add_points=False)
     p_a = plg.Polygon(np.array([p_a[0], p_a[1]]).T)
@@ -169,6 +172,8 @@ def equivalent_apertures(
             # options
             add_points=add_points,
             convex=convex,
+            # timing
+            # dt=dt,
         )
 
         # convex hulli
@@ -225,10 +230,6 @@ def equivalent_apertures(
             key=kref,
             asplane=True,
         )
-        x01toxyz = coll.get_optics_x01toxyz(
-            key=kref,
-            asplane=True,
-        )
 
         px = np.full(x0.shape, np.nan)
         py = np.full(x0.shape, np.nan)
@@ -266,13 +267,16 @@ def equivalent_apertures(
                 np.array([x0[ii, :], x1[ii, :]]).T
             ).center()
 
-        centsx, centsy, centsz = x01toxyz(
+        centsx, centsy, centsz = coord_x01toxyz(
             x0=cents0,
             x1=cents1,
         )
 
         plane_nin = coll.dobj[cref][kref]['dgeom']['nin']
         spectro = len(ispectro) > 0
+
+    else:
+        cents0, cents1 = None, None
 
     # --------------------
     # reshape if necessary
@@ -295,11 +299,17 @@ def equivalent_apertures(
             poly_x1=out1,
             p0=x0,
             p1=x1,
+            cents0=cents0,
+            cents1=cents1,
             # options
             tit=f"Reflections on {key}",
             xlab=None,
             ylab=None,
         )
+
+    # timing
+    # lt = [f"\t- dt{ii}: {dt[ii]}" for ii in range(len(dt))]
+    # print(f"\nTiming for {key}:\n" + "\n".join(lt))
 
     if return_for_etendue:
         return (
@@ -465,8 +475,6 @@ def _check(
         default=False,
         types=bool,
     )
-    if pixel is None:
-        plot = False
 
     # -----------
     # store
@@ -569,6 +577,8 @@ def _get_equivalent_aperture_spectro(
     # options
     add_points=None,
     convex=None,
+    # timing
+    dt=None,
 ):
 
     # loop on optics before crystal
@@ -618,6 +628,8 @@ def _get_equivalent_aperture_spectro(
             pts2pt=pts2pt,
             ptsvect=ptsvect,
             ptsvect_poly=lptsvect_poly[jj],
+            # timing
+            # dt=dt,
         )
 
         if p0 is None:
@@ -654,6 +666,8 @@ def _plot(
     poly_x1=None,
     p0=None,
     p1=None,
+    cents0=None,
+    cents1=None,
     # graph options
     fs=None,
     tit=None,
@@ -669,7 +683,10 @@ def _plot(
     ax.set_ylabel(ylab)
 
     ax.plot(poly_x0, poly_x1, '.-k')
-    ax.plot(p0.ravel(), p1.ravel(), '.-r')
+    ax.plot(p0.T, p1.T, '.-r')
+
+    if cents0 is not None:
+        ax.plot(cents0, cents1, 'xr')
     return
 
 

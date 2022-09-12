@@ -2,6 +2,7 @@
 
 
 import warnings
+import datetime as dtm
 
 
 import numpy as np
@@ -36,8 +37,9 @@ def _get_reflection(
     pts2pt=None,
     ptsvect=None,
     ptsvect_poly=None,
+    # timing
+    dt=None,
 ):
-
 
     # -------------------
     #     compute
@@ -87,7 +89,7 @@ def _get_reflection(
     p0, p1 = np.array(p_a.contour(0)).T
 
     # interpolate to add points
-    if p0.size < 300:
+    if p0.size < 50:
         p0, p1 = _class8_compute._interp_poly(
             lp=[p0, p1],
             add_points=add_points,
@@ -100,7 +102,7 @@ def _get_reflection(
     # back to 3d
     px, py, pz = coord_x01toxyz_poly(x0=p0, x1=p1)
 
-    # back projection on crystal
+    # back projection on crystal (slowest part)
     return pts2pt(
         pt_x=pt[0],
         pt_y=pt[1],
@@ -113,6 +115,8 @@ def _get_reflection(
         return_xyz=False,
         return_x01=True,
         debug=False,
+        # timing
+        dt=dt,
     )
 
 

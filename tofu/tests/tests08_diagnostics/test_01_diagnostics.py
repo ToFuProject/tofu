@@ -487,21 +487,22 @@ class Test01_Diagnostic():
                 self.obj.add_camera_2d(key=k0, **v0)
 
         # add diagnostics
-        for k0, v0 in ddiag.items():
-            print(k0)
-            self.obj.add_diagnostic(
-                key=k0,
-                config=conf,
-                reflections_nb=2,
-                reflections_type='specular',
-                **v0,
-            )
+        # for k0, v0 in ddiag.items():
+            # print(k0)
+            # self.obj.add_diagnostic(
+                # key=k0,
+                # config=conf,
+                # reflections_nb=2,
+                # reflections_type='specular',
+                # **v0,
+            # )
 
         # add crystals
         for k0, v0 in dcrystals.items():
             self.obj.add_crystal(key=k0, **v0)
 
         # add crystal optics
+        self.doptics= {}
         for k0, v0 in dcrystals.items():
 
             for ii, cc in enumerate(dconfig[k0]):
@@ -518,24 +519,37 @@ class Test01_Diagnostic():
                     key_cam=f'{k0}-cam{ii}',
                     aperture_dimensions=[100e-6, 8e-2],
                     pinhole_radius=500e-6,
-                    cam_pixels_nb=[20, 5],
+                    cam_pixels_nb=[5, 3],
                     # returnas
                     returnas=list,
                 )
 
+                if 'cryst1-slit' in loptics:
+                    loptics.append('ap0')
+
                 # add diag
                 gtype = self.obj.dobj['crystal'][k0]['dgeom']['type']
                 if gtype not in ['spherical', 'toroidal']:
-                    print(k0, 'spectro')
-                    if 'cryst1-slit' in loptics:
-                        loptics.append('ap0')
-                    self.obj.add_diagnostic(
-                        optics=loptics,
-                        config=conf,
-                    )
+                    self.doptics.update({
+                        f'{k0}-{ii}': loptics,
+                    })
 
         # add toroidal
         # self.obj.add_diagnostic(optics=['cryst2-cam0', 'cryst3'])
+
+    # ----------
+    # timing
+
+    def timeit(self):
+
+        # add crystal optics
+        for k0, v0 in self.doptics.items():
+            print(k0, 'spectro')
+            if k0 == 'cryst1-1':
+                self.obj.add_diagnostic(
+                    optics=v0,
+                    config=self.conf,
+                )
 
     # ----------
     # tests
