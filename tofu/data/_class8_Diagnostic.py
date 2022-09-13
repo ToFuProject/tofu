@@ -14,6 +14,9 @@ import datastock as ds
 from . import _class7_Camera
 from . import _class8_check as _check
 from . import _class8_compute as _compute
+from . import _class8_equivalent_apertures as _equivalent_apertures
+from . import _class8_etendue_los as _etendue_los
+from . import _class8_los_angles as _los_angles
 from . import _class8_plot as _plot
 
 
@@ -40,6 +43,8 @@ class Diagnostic(_class7_Camera.Camera):
             'etendue',
             'etend_type',
             'los',
+            'amin',
+            'amax',
             'spectrum',
             'time res.',
         ],
@@ -57,6 +62,7 @@ class Diagnostic(_class7_Camera.Camera):
         reflections_nb=None,
         reflections_type=None,
         # others
+        verb=None,
         **kwdargs,
     ):
 
@@ -77,11 +83,9 @@ class Diagnostic(_class7_Camera.Camera):
         # adding etendue
 
         key = list(dobj['diagnostic'].keys())[0]
-        c0 = (
-            len(self.dobj['diagnostic'][key]['optics']) > 1
-            and self.dobj['diagnostic'][key]['spectro'] is False
-        )
-        if c0:
+        optics = self.dobj['diagnostic'][key]['optics']
+
+        if len(optics) > 1:
             self.compute_diagnostic_etendue_los(
                 key=key,
                 analytical=True,
@@ -94,7 +98,7 @@ class Diagnostic(_class7_Camera.Camera):
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
                 # bool
-                verb=False,
+                verb=verb,
                 plot=False,
                 store='analytical',
             )
@@ -135,42 +139,141 @@ class Diagnostic(_class7_Camera.Camera):
         If store = 'analytical' or 'numerical', overwrites the diag etendue
 
         """
-        _compute._diag_compute_etendue_los(
+        dlos, store = _etendue_los.compute_etendue_los(
             coll=self,
             key=key,
             analytical=analytical,
             numerical=numerical,
             res=res,
             check=check,
-            # los
-            config=config,
-            length=length,
-            reflections_nb=reflections_nb,
-            reflections_type=reflections_type,
             # bool
             verb=verb,
             plot=plot,
             store=store,
         )
 
+        if store is not False and np.any(np.isfinite(dlos['los_x'])):
+            _los_angles.compute_los_angles(
+                coll=self,
+                key=key,
+                # los
+                config=config,
+                length=length,
+                reflections_nb=reflections_nb,
+                reflections_type=reflections_type,
+                **dlos,
+            )
+
     # ---------------
     # utilities
     # ---------------
+
+    def get_diagnostic_equivalent_aperture(
+        self,
+        key=None,
+        pixel=None,
+        # inital contour
+        add_points=None,
+        # options
+        convex=None,
+        harmonize=None,
+        reshape=None,
+        return_for_etendue=None,
+        # plot
+        plot=None,
+        verb=None,
+        store=None,
+    ):
+        """"""
+        return _equivalent_apertures.equivalent_apertures(
+            coll=self,
+            key=key,
+            pixel=pixel,
+            # inital contour
+            add_points=add_points,
+            # options
+            convex=convex,
+            harmonize=harmonize,
+            reshape=reshape,
+            return_for_etendue=return_for_etendue,
+            # plot
+            plot=plot,
+            verb=verb,
+            store=store,
+        )
+
+    # ---------------
+    # wavelneght from angle
+    # ---------------
+
+    def get_diagnostic_lamb(
+        self,
+        key=None,
+        lamb=None,
+        rocking_curve=None,
+    ):
+        """ Return the wavelength associated to
+        - 'lamb'
+        - 'lambmin'
+        - 'lambmax'
+        - 'res' = lamb / (lambmax - lambmin)
+
+        """
+        return _compute.get_lamb_from_angle(
+            coll=self,
+            key=key,
+            lamb=lamb,
+            rocking_curve=rocking_curve,
+        )
+
+    # ---------------
+    # utilities
+    # ---------------
+
+    def get_diagnostic_optics(self, key=None, optics=None):
+        """ Get list of optics and list of corresponding classes """
+        return _check._get_optics(coll=self, key=key, optics=optics)
 
     def get_optics_outline(
         self,
         key=None,
         add_points=None,
+        mode=None,
         closed=None,
         ravel=None,
+        total=None,
     ):
         """ Return the optics outline """
         return _compute.get_optics_outline(
             coll=self,
             key=key,
             add_points=add_points,
+            mode=mode,
             closed=closed,
             ravel=ravel,
+            total=total,
+        )
+
+    def get_optics_poly(
+        self,
+        key=None,
+        add_points=None,
+        mode=None,
+        closed=None,
+        ravel=None,
+        total=None,
+        return_outline=None,
+    ):
+        """ Return the optics outline """
+        return _compute.get_optics_poly(
+            coll=self,
+            key=key,
+            add_points=add_points,
+            mode=mode,
+            closed=closed,
+            ravel=ravel,
+            total=total,
+            return_outline=return_outline,
         )
 
     def set_optics_color(self, key=None, color=None):
@@ -245,6 +348,8 @@ class Diagnostic(_class7_Camera.Camera):
         cmap=None,
         vmin=None,
         vmax=None,
+        # config
+        plot_config=None,
         # figure
         dax=None,
         dmargin=None,
@@ -269,6 +374,8 @@ class Diagnostic(_class7_Camera.Camera):
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,
+            # config
+            plot_config=plot_config,
             # figure
             dax=dax,
             dmargin=dmargin,

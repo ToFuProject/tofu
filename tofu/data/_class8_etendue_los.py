@@ -1,10 +1,11 @@
+# -*- coding: utf-8 -*-
 
 
-import copy
 import warnings
 
 
 import numpy as np
+import scipy.spatial as scpspat
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 
@@ -13,48 +14,61 @@ import Polygon as plg
 import datastock as ds
 
 
-from . import _comp_solidangles
+from ..geom import _comp_solidangles
+from . import _class8_compute as _compute
 
 
-__all__ = ['compute_etendue']
+__all__ = ['compute_etendue_los']
 
 
-# #############################################################################
-# #############################################################################
-#                    Main routines
-# #############################################################################
+# ##################################################################
+# ##################################################################
+#                       Main
+# ##################################################################
 
 
-def compute_etendue(
-    det=None,
-    aperture=None,
+def compute_etendue_los(
+    coll=None,
+    key=None,
+    # parameters
     analytical=None,
     numerical=None,
-    check=None,
     res=None,
     margin_par=None,
     margin_perp=None,
+    # options
+    add_points=None,
+    # bool
+    convex=None,
+    check=None,
     verb=None,
     plot=None,
+    store=None,
 ):
-    """ Only works for a set of detectors associated to a single aperture
 
-    Typical use:
-        - pinhole cameras
-
-    """
-
-    # -------------
+    # ------------
     # check inputs
 
     (
-        det, ldeti, aperture,
-        analytical, numerical,
-        res, margin_par, margin_perp,
-        check, verb, plot,
-    ) = _compute_etendue_check(
-        det=det,
-        aperture=aperture,
+        key,
+        optics,
+        optics_cls,
+        ispectro,
+        ldet,
+        is2d,
+        shape0,
+        analytical,
+        numerical,
+        res,
+        margin_par,
+        margin_perp,
+        check,
+        verb,
+        plot,
+        store,
+    ) = _diag_compute_etendue_check(
+        coll=coll,
+        key=key,
         analytical=analytical,
         numerical=numerical,
         res=res,
@@ -63,29 +77,71 @@ def compute_etendue(
         check=check,
         verb=verb,
         plot=plot,
+        store=store,
     )
 
-    # ----------
-    # prepare
+    # prepare optics
+    key_cam = optics[0]
+    nd = len(ldet)
+
+    # ------------------------
+    # get equivalent apertures for all pixels
 
     (
-        det_area, ap_area, distances,
-        los_x, los_y, los_z,
-        cos_los_det, cos_los_ap,
-        solid_angles, res, pix_ap,
-    ) = _compute_etendue_prepare(
-        ldeti=ldeti,
-        aperture=aperture,
-        res=res,
+        x0, x1, kref, iok,
+        px, py, pz,
+        cx, cy, cz,
+        centsx, centsy, centsz,
+        ap_area, plane_nin,
+        spectro,
+    ) = coll.get_diagnostic_equivalent_aperture(
+        key=key,
+        # inital contour
+        add_points=add_points,
+        # options
+        convex=convex,
+        harmonize=True,
+        reshape=False,
+        # plot
+        plot=False,
+        verb=verb,
+        store=False,
+        return_for_etendue=True,
     )
 
-    shape = distances.shape
+    # ------------------------------------------
+    # get distance, area, solid_angle, los, dlos
+
+    (
+        det_area, distances,
+        los_x, los_y, los_z,
+        dlos_x, dlos_y, dlos_z,
+        cos_los_det, cos_los_ap, solid_angles, res,
+    ) = _loop_on_pix(
+        coll=coll,
+        ldet=ldet,
+        spectro=spectro,
+        # optics
+        x0=x0,
+        x1=x1,
+        px=px,
+        py=py,
+        pz=pz,
+        iok=iok,
+        cx=cx,
+        cy=cy,
+        cz=cz,
+        centsx=centsx,
+        centsy=centsy,
+        centsz=centsz,
+        plane_nin=plane_nin,
+    )
 
     # --------------------
     # compute analytically
 
     if analytical is True:
-        etend0 = np.full(tuple(np.r_[3, shape]), np.nan)
+        etend0 = np.full(tuple(np.r_[3, nd]), np.nan)
 
         # 0th order
         etend0[0, :] = ap_area * det_area / distances**2
@@ -106,8 +162,9 @@ def compute_etendue(
     # compute numerically
 
     if numerical is True:
+
         etend1 = _compute_etendue_numerical(
-            ldeti=ldeti,
+            ldeti=ldet,
             aperture=aperture,
             pix_ap=pix_ap,
             res=res,
@@ -136,48 +193,96 @@ def compute_etendue(
     # --------
     # reshape
 
-    sh0 = det['cents_x'].shape
-    if sh0 == ():
-        sh0 = (1,)
-
     # etend0
-    if etend0 is not None and etend0.shape[1:] != sh0:
-        etend0 = etend0.reshape(tuple(np.r_[etend0.shape[0], sh0]))
+    if etend0 is not None and is2d:
+        etend0 = etend0.reshape(tuple(np.r_[3, shape0]))
 
     # etend1
-    if etend1 is not None and etend1.shape[1:] != sh0:
-        etend1 = etend1.reshape(tuple(np.r_[res.size, sh0]))
+    if etend1 is not None and is2d:
+        etend1 = etend1.reshape(tuple(np.r_[res.size, shape0]))
 
     # los
-    if los_x.shape != sh0:
-        los_x = los_x.reshape(sh0)
-        los_y = los_y.reshape(sh0)
-        los_z = los_z.reshape(sh0)
+    if los_x.shape != shape0:
+        los_x = los_x.reshape(shape0)
+        los_y = los_y.reshape(shape0)
+        los_z = los_z.reshape(shape0)
 
     # --------------------
-    # return
+    # return dict
 
     dout = {
         'analytical': etend0,
         'numerical': etend1,
         'res': res,
+        'kref': kref,
         'los_x': los_x,
         'los_y': los_y,
         'los_z': los_z,
+        'dlos_x': dlos_x,
+        'dlos_y': dlos_y,
+        'dlos_z': dlos_z,
+        'iok': iok,
+        'is2d': is2d,
+        'cx': cx,
+        'cy': cy,
+        'cz': cz,
     }
 
-    return dout
+    # ----------
+    # store
+
+    if store is not False:
+
+        # ref
+        ref = coll.dobj['camera'][key_cam]['dgeom']['ref']
+
+        # data
+        etendue = dout[store][-1, :]
+
+        if store == 'analytical':
+            etend_type = store
+        else:
+            etend_type = res[-1]
+
+        # keys
+        ketendue = f'{key}-etend'
+        ddata = {
+            ketendue: {
+                'data': etendue,
+                'ref': ref,
+                'dim': 'etendue',
+                'quant': 'etendue',
+                'name': 'etendue',
+                'units': 'm2.sr'
+            },
+        }
+        coll.update(ddata=ddata)
+
+        coll.set_param(
+            which='diagnostic',
+            key=key,
+            param='etendue',
+            value=ketendue,
+        )
+        coll.set_param(
+            which='diagnostic',
+            key=key,
+            param='etend_type',
+            value=etend_type,
+        )
+
+    return dout, store
 
 
-# #############################################################################
-# #############################################################################
-#                   input checking routine
-# #############################################################################
+# ##################################################################
+# ##################################################################
+#                       Check
+# ##################################################################
 
 
-def _compute_etendue_check(
-    det=None,
-    aperture=None,
+def _diag_compute_etendue_check(
+    coll=None,
+    key=None,
     analytical=None,
     numerical=None,
     res=None,
@@ -186,196 +291,66 @@ def _compute_etendue_check(
     check=None,
     verb=None,
     plot=None,
+    store=None,
 ):
-    """ Check conformity of inputs
 
-    """
+    # --------
+    # key
 
-    # -----------
-    # det
-
-    # check keys
-    lk = [
-        'cents_x', 'cents_y', 'cents_z',
-        'nin_x', 'nin_y', 'nin_z',
-        'e0_x', 'e0_y', 'e0_z',
-        'e1_x', 'e1_y', 'e1_z',
-        'outline_x0', 'outline_x1',
+    lok = [
+        k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
+        if len(v0['optics']) > 1
     ]
-
-    c0 = (
-        isinstance(det, dict)
-        and all([kk in det.keys() for kk in lk])
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
     )
-    if not c0:
-        lstr = [f"\t- {k0}" for k0 in lk]
-        msg = (
-            "Arg det must be a dict with the following keys:\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
 
-    # check values
-    for k0 in lk:
-        if isinstance(det[k0], (list, tuple)):
-            det[k0] = np.atleast_1d(det[k0]).ravel()
-
-        c0 = isinstance(det[k0], np.ndarray) or np.isscalar(det[k0])
-        if not c0:
-            msg = f"Arg det['{k0}'] must be a np.ndarray or scalar"
-            raise Exception(msg)
-
-        if k0 in ['outline_x0', 'outline_x1'] and det[k0].ndim > 1:
-            msg = "Arg det['outline_x0'] and det['outline_x1'] must be 1d"
-            raise Exception(msg)
-
-    # check shapes
-    dshape = {
-        0: ['outline_x0', 'outline_x1'],
-        1: [
-            'nin_x', 'nin_y', 'nin_z',
-            'e0_x', 'e0_y', 'e0_z',
-            'e1_x', 'e1_y', 'e1_z',
-        ],
-        2: ['cents_x', 'cents_y', 'cents_z'],
-    }
-    for k0, v0 in dshape.items():
-        if len(set([det[v1].shape for v1 in v0])) > 1:
-            lstr = [f"\t- {v1}" for v1 in v0]
-            msg = (
-                "The following args must share the same shape:\n"
-                + "\n".join(lstr)
-            )
-            raise Exception(msg)
-
-    shaped = det['cents_x'].shape
-    if det['cents_x'].shape != det['nin_x'].shape:
-        if np.isscalar(det['nin_x']):
-            assert det.get('parallel', True) is True
-        else:
-            msg = (
-                "Arg det['nin_x'], det['nin_y'], det['nin_z'] must have "
-                "the same shape as det['cents_z']"
-            )
-            raise Exception(msg)
-
-    # check outline not closed
-    if (
-        det['outline_x0'][0] == det['outline_x0'][-1]
-        and det['outline_x1'][0] == det['outline_x1'][-1]
-    ):
-        det['outline_x0'] = det['outline_x0'][:-1]
-        det['outline_x1'] = det['outline_x1'][:-1]
-
-    # normalization
-    norms = np.sqrt(det['nin_x']**2 + det['nin_y']**2 + det['nin_z']**2)
-    det['nin_x'] = det['nin_x'] / norms
-    det['nin_y'] = det['nin_y'] / norms
-    det['nin_z'] = det['nin_z'] / norms
-
-    # -----------
-    # ldeti
-
-    lk = [
-        k0 for k0 in det.keys()
-        if any([k0.endswith(ss) for ss in ['_x', '_y', '_z']])
-        and not np.isscalar(det[k0])
+    optics, optics_cls = coll.get_diagnostic_optics(key=key)
+    ispectro = [
+        ii for ii, cc in enumerate(optics_cls)
+        if cc in ['grating', 'crystal']
     ]
-    deti = {k0: det[k0].ravel() for k0 in lk}
 
-    ldeti = [
+    # -------------------------------------------------
+    # ldeti: list of individual camera dict (per pixel)
+
+    dgeom = coll.dobj['camera'][optics[0]]['dgeom']
+    cx, cy, cz = coll.get_camera_cents_xyz(key=optics[0])
+    dvect = coll.get_camera_unit_vectors(key=optics[0])
+    outline = dgeom['outline']
+    out0 = coll.ddata[outline[0]]['data']
+    out1 = coll.ddata[outline[1]]['data']
+    is2d = dgeom['type'] == '2d'
+    par = dgeom['parallel']
+    shape0 = cx.shape
+
+    if is2d:
+        cx = cx.ravel()
+        cy = cy.ravel()
+        cz = cz.ravel()
+    nd = cx.size
+
+    ldet = [
         {
-            k0: deti[k0][ii]
-            if k0 in lk else v0
-            for k0, v0 in det.items()
+            'cents_x': cx[ii],
+            'cents_y': cy[ii],
+            'cents_z': cz[ii],
+            'outline_x0': out0,
+            'outline_x1': out1,
+            'nin_x': dvect['nin_x'] if par else dvect['nin_x'][ii],
+            'nin_y': dvect['nin_y'] if par else dvect['nin_y'][ii],
+            'nin_z': dvect['nin_z'] if par else dvect['nin_z'][ii],
+            'e0_x': dvect['e0_x'] if par else dvect['e0_x'][ii],
+            'e0_y': dvect['e0_y'] if par else dvect['e0_y'][ii],
+            'e0_z': dvect['e0_z'] if par else dvect['e0_z'][ii],
+            'e1_x': dvect['e1_x'] if par else dvect['e1_x'][ii],
+            'e1_y': dvect['e1_y'] if par else dvect['e1_y'][ii],
+            'e1_z': dvect['e1_z'] if par else dvect['e1_z'][ii],
         }
-        for ii in range(det['cents_x'].size)
+        for ii in range(nd)
     ]
-
-    # -----------
-    # aperture
-
-    lk = [
-        'poly_x', 'poly_y', 'poly_z',
-        'nin', 'e0', 'e1',
-    ]
-
-    c0 = (
-        isinstance(aperture, dict)
-        and all([
-            isinstance(k0, str)
-            and isinstance(v0, dict)
-            and isinstance(v0.get('reflector', False), bool)
-            and all([kk in v0.keys() for kk in lk])
-            for k0, v0 in aperture.items()
-        ])
-    )
-    if not c0:
-        lstr = [f"\t- {k0}" for k0 in lk]
-        msg = (
-            "Arg aperture must be a dict of sub-dict with keys:\n"
-            + "\n".join(lstr)
-            + f"\nProvided:\n{aperture}"
-        )
-        raise Exception(msg)
-
-    # check each case 
-    for k0, v0 in aperture.items():
-
-        # check values
-        for k1 in lk:
-            if isinstance(v0[k1], (list, tuple)):
-                aperture[k0][k1] = np.atleast_1d(v0[k1]).ravel().astype(float)
-
-            if not isinstance(aperture[k0][k1], np.ndarray):
-                msg = f"Arg aperture['{k0}']['{k1}'] must ba a np.ndarray"
-                raise Exception(msg)
-
-            if aperture[k0][k1].ndim > 1:
-                msg = f"Arg aperture['{k0}']['{k1}'] must be 1d"
-                raise Exception(msg)
-
-            if 'poly_' not in k1 and aperture[k0][k1].shape != (3,):
-                msg = f"Arg aperture['{k0}']['{k1}'] must have shape (3,)"
-                raise Exception(msg)
-
-        v0 = aperture[k0]
-
-        # check shapes
-        dshape = {
-            0: ['poly_x', 'poly_y', 'poly_z'],
-            1: ['nin', 'e0', 'e1'],
-        }
-        for k1, v1 in dshape.items():
-            if len(set([v0[v2].shape for v2 in v1])) > 1:
-                lstr = [f"\t- {v2}" for v2 in v1]
-                msg = (
-                    "The following args must share the same shape:\n"
-                    + "\n".join(lstr)
-                )
-                raise Exception(msg)
-
-        # check not closed poly
-        if (
-            v0['poly_x'][0] == v0['poly_x'][-1]
-            and v0['poly_y'][0] == v0['poly_y'][-1]
-            and v0['poly_z'][0] == v0['poly_z'][-1]
-        ):
-            v0['poly_x'] = v0['poly_x'][:-1]
-            v0['poly_y'] = v0['poly_y'][:-1]
-            v0['poly_z'] = v0['poly_z'][:-1]
-
-        # normalization
-        norm = np.linalg.norm(v0['nin'])
-        v0['nin'] = v0['nin'] / norm
-
-        # derive cents
-        if 'cent' not in v0.keys():
-            v0['cent'] = np.r_[
-                np.mean(v0['poly_x']),
-                np.mean(v0['poly_y']),
-                np.mean(v0['poly_z']),
-            ]
 
     # -----------
     # analytical
@@ -392,7 +367,7 @@ def _compute_etendue_check(
     numerical = ds._generic_check._check_var(
         numerical, 'numerical',
         types=bool,
-        default=True,
+        default=False,
     )
 
     # -----------
@@ -446,168 +421,113 @@ def _compute_etendue_check(
         msg = "Arg plot must be a bool"
         raise Exception(msg)
 
+    # -----------
+    # store
+
+    lok = [False]
+    if analytical is True:
+        lok.append('analytical')
+    if numerical is True:
+        lok.append('numerical')
+    store = ds._generic_check._check_var(
+        store, 'store',
+        default=lok[-1],
+        allowed=lok,
+    )
+
     return (
-        det, ldeti, aperture, analytical, numerical,
-        res, margin_par, margin_perp, check, verb, plot,
+        key,
+        optics,
+        optics_cls,
+        ispectro,
+        ldet,
+        is2d,
+        shape0,
+        analytical,
+        numerical,
+        res,
+        margin_par,
+        margin_perp,
+        check,
+        verb,
+        plot,
+        store,
     )
 
 
-# #############################################################################
-# #############################################################################
-#                   preparation routine
-# #############################################################################
+# ##################################################################
+# ##################################################################
+#                    Loop on camera pixels
+# ##################################################################
 
 
-def _project_poly_on_plane_from_pt(
-    pt=None,
-    lpoly_x=None,
-    lpoly_y=None,
-    lpoly_z=None,
-    plane_pt=None,
+def _loop_on_pix(
+    coll=None,
+    # detectors
+    ldet=None,
+    spectro=None,
+    # equivalent aperture
+    x0=None,
+    x1=None,
+    px=None,
+    py=None,
+    pz=None,
+    iok=None,
+    cx=None,
+    cy=None,
+    cz=None,
+    centsx=None,
+    centsy=None,
+    centsz=None,
     plane_nin=None,
-    plane_e0=None,
-    plane_e1=None,
-):
-
-    isok = True
-    for ii in range(len(lpoly_x)):
-
-        sca0 = (
-            (plane_pt[0] - pt[0])*plane_nin[0]
-            + (plane_pt[1] - pt[1])*plane_nin[1]
-            + (plane_pt[2] - pt[2])*plane_nin[2]
-        )
-
-        vx = lpoly_x[ii] - pt[0]
-        vy = lpoly_y[ii] - pt[1]
-        vz = lpoly_z[ii] - pt[2]
-
-        sca1 = vx*plane_nin[0] + vy*plane_nin[1] + vz*plane_nin[2]
-
-        k = sca0 / sca1
-
-        px = pt[0] + k * vx
-        py = pt[1] + k * vy
-        pz = pt[2] + k * vz
-
-        p0 = (
-            (px - plane_pt[0])*plane_e0[0]
-            + (py - plane_pt[1])*plane_e0[1]
-            + (pz - plane_pt[2])*plane_e0[2]
-        )
-        p1 = (
-            (px - plane_pt[0])*plane_e1[0]
-            + (py - plane_pt[1])*plane_e1[1]
-            + (pz - plane_pt[2])*plane_e1[2]
-        )
-
-        if ii == 0:
-            p_a = plg.Polygon(np.array([p0, p1]).T)
-        else:
-            p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
-
-        if p_a.nPoints() < 3:
-            isok = False
-            break
-
-    if isok is False:
-        return None, None, None, None, None, None
-
-    p0, p1 = np.array(p_a.contour(0)).T
-    px = plane_pt[0] + p0*plane_e0[0] + p1*plane_e1[0]
-    py = plane_pt[1] + p0*plane_e0[1] + p1*plane_e1[1]
-    pz = plane_pt[2] + p0*plane_e0[2] + p1*plane_e1[2]
-
-    return p_a, p0, p1, px, py, pz
-
-
-def _compute_etendue_prepare(
-    ldeti=None,
-    aperture=None,
+    # extra
     res=None,
 ):
 
-    # -------------------------
-    # intersection of apertures
-
-    kap_ref = list(aperture.keys())[0]
-    lpoly_x = [v0['poly_x'] for v0 in aperture.values()]
-    lpoly_y = [v0['poly_y'] for v0 in aperture.values()]
-    lpoly_z = [v0['poly_z'] for v0 in aperture.values()]
-
     # prepare data
-    nd = len(ldeti)
+    nd = len(ldet)
     ap_area = np.zeros((nd,), dtype=float)
     los_x = np.full((nd,), np.nan)
     los_y = np.full((nd,), np.nan)
     los_z = np.full((nd,), np.nan)
     solid_angles = np.zeros((nd,), dtype=float)
+    cos_los_det = np.full((nd,), np.nan)
+    distances = np.full((nd,), np.nan)
     mindiff = np.full((nd,), np.nan)
 
-    # store projected intersection of apertures (3d), per pix
-    # useful later for estimating the plane to be sample (numerical)
-    pix_ap = []
+    # -------------------------
+    # compute area, solid angle, los
 
+    nd = x0.shape[0]
     for ii in range(nd):
 
-        # ap
-        p_a, p0, p1, px, py, pz = _project_poly_on_plane_from_pt(
-            pt=np.r_[
-                ldeti[ii]['cents_x'],
-                ldeti[ii]['cents_y'],
-                ldeti[ii]['cents_z'],
-            ],
-            lpoly_x=lpoly_x,
-            lpoly_y=lpoly_y,
-            lpoly_z=lpoly_z,
-            plane_pt=aperture[kap_ref]['cent'],
-            plane_nin=aperture[kap_ref]['nin'],
-            plane_e0=aperture[kap_ref]['e0'],
-            plane_e1=aperture[kap_ref]['e1'],
-        )
-
-        if p_a is None:
-            pix_ap.append(None)
+        if not iok[ii]:
             continue
 
-        else:
-            ap_area[ii] = p_a.area()
-            ap_cent = (
-                aperture[kap_ref]['cent']
-                + p_a.center()[0] * aperture[kap_ref]['e0']
-                + p_a.center()[1] * aperture[kap_ref]['e1']
-            )
-            mindiff[ii] = np.sqrt(np.min(np.diff(p0)**2 + np.diff(p1)**2))
+        # ------------
+        # solid angles
 
-            # ----------------------------------
-            # los, distances, cosines
-
-            los_x[ii] = ap_cent[0] - ldeti[ii]['cents_x']
-            los_y[ii] = ap_cent[1] - ldeti[ii]['cents_y']
-            los_z[ii] = ap_cent[2] - ldeti[ii]['cents_z']
-
-            # ------------
-            # solid angles
-
-            solid_angles[ii] = _comp_solidangles.calc_solidangle_apertures(
-                # observation points
-                pts_x=ap_cent[0],
-                pts_y=ap_cent[1],
-                pts_z=ap_cent[2],
-                # polygons
-                apertures=None,
-                detectors=ldeti[ii],
-                # possible obstacles
-                config=None,
-                # parameters
-                visibility=False,
-                return_vector=False,
-            ).ravel()[0]
-
-            pix_ap.append((px, py, pz))
+        solid_angles[ii] = _comp_solidangles.calc_solidangle_apertures(
+            # observation points
+            pts_x=centsx[ii],
+            pts_y=centsy[ii],
+            pts_z=centsz[ii],
+            # polygons
+            apertures=None,
+            detectors=ldet[ii],
+            # possible obstacles
+            config=None,
+            # parameters
+            visibility=False,
+            return_vector=False,
+        )[0, 0]
 
     # -------------
     # normalize los
+
+    los_x = centsx - cx
+    los_y = centsy - cy
+    los_z = centsz - cz
 
     distances = np.sqrt(los_x**2 + los_y**2 + los_z**2)
 
@@ -615,43 +535,58 @@ def _compute_etendue_prepare(
     los_y = los_y / distances
     los_z = los_z / distances
 
+    if spectro:
+        dlos_x = px - cx[:, None]
+        dlos_y = py - cy[:, None]
+        dlos_z = pz - cz[:, None]
+        ddist = np.sqrt(dlos_x**2 + dlos_y**2 + dlos_z**2)
+        dlos_x = dlos_x / ddist
+        dlos_y = dlos_y / ddist
+        dlos_z = dlos_z / ddist
+    else:
+        dlos_x = None
+        dlos_y = None
+        dlos_z = None
+
     # ------
     # angles
 
-    cos_los_det = (
-        los_x * ldeti[ii]['nin_x']
-        + los_y * ldeti[ii]['nin_y']
-        + los_z * ldeti[ii]['nin_z']
-    )
+    for ii in range(nd):
+        cos_los_det[ii] = (
+            los_x[ii] * ldet[ii]['nin_x']
+            + los_y[ii] * ldet[ii]['nin_y']
+            + los_z[ii] * ldet[ii]['nin_z']
+        )
 
-    cos_los_ap = (
-        los_x * aperture[kap_ref]['nin'][0]
-        + los_y * aperture[kap_ref]['nin'][1]
-        + los_z * aperture[kap_ref]['nin'][2]
+    # abs() because for spectro nin is the other way around
+    cos_los_ap = np.abs(
+        los_x * plane_nin[0]
+        + los_y * plane_nin[1]
+        + los_z * plane_nin[2]
     )
 
     # -----------
     # surfaces
 
     # det
-    if ldeti[ii].get('pix area') is None:
+    if ldet[0].get('pix_area') is None:
         det_area = plg.Polygon(np.array([
-            ldeti[ii]['outline_x0'],
-            ldeti[ii]['outline_x1'],
+            ldet[0]['outline_x0'],
+            ldet[0]['outline_x1'],
         ]).T).area()
     else:
-        det_area = ldeti[ii]['pix area']
+        det_area = ldet[0]['pix_area']
 
     # -------------------------------------
     # det outline discretization resolution
 
     if res is None:
 
-        res = min(
-            np.sqrt(det_area),
-            np.sqrt(np.min(ap_area[ap_area > 0.])),
-            np.nanmin(mindiff),
-        ) * np.r_[1., 0.5, 0.1]
+        res = min(np.sqrt(det_area), np.nanmin(mindiff))
+        if np.any(ap_area > 0.):
+            res = min(res, np.sqrt(np.min(ap_area[ap_area > 0.])))
+
+        res = res * np.r_[1., 0.5, 0.1]
 
     iok = np.isfinite(res)
     iok[iok] = res[iok] > 0
@@ -661,16 +596,47 @@ def _compute_etendue_prepare(
         res = res[iok]
 
     return (
-        det_area, ap_area, distances,
+        det_area, distances,
         los_x, los_y, los_z,
-        cos_los_det, cos_los_ap, solid_angles, res, pix_ap,
+        dlos_x, dlos_y, dlos_z,
+        cos_los_det, cos_los_ap, solid_angles, res,
     )
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
+#                   op_post interpolation
+# ##################################################################
+
+
+def _get_lpoly_post(coll=None, lop_post_cls=None, lop_post=None):
+
+    if len(lop_post) == 0:
+        return
+
+    lpoly_post = []
+    for cc, oo in zip(lop_post_cls, lop_post):
+        dgeom = coll.dobj[cc][oo]['dgeom']
+        if dgeom['type'] == 'planar':
+            p0, p1 = dgeom['outline']
+            lpoly_post.append((
+                coll.ddata[p0]['data'],
+                coll.ddata[p1]['data'],
+            ))
+        else:
+            px, py, pz = dgeom['poly']
+            lpoly_post.append((
+                coll.ddata[px]['data'],
+                coll.ddata[py]['data'],
+                coll.ddata[pz]['data'],
+            ))
+    return lpoly_post
+
+
+# ##################################################################
+# ##################################################################
 #           Numerical etendue estimation routine
-# #############################################################################
+# ##################################################################
 
 
 def _compute_etendue_numerical(
@@ -912,7 +878,7 @@ def _compute_etendue_numerical(
                         plt.plot(
                             x0[ss][iss, :],
                             x1[ss][iss, :],
-                            c=lc[ss%len(lc)],
+                            c=lc[ss % len(lc)],
                             marker='o',
                             ls='-',
                         )
@@ -955,10 +921,10 @@ def _compute_etendue_numerical(
     return etendue
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
 #                   Plotting routine
-# #############################################################################
+# ##################################################################
 
 
 def _plot_etendues(

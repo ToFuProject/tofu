@@ -29,6 +29,7 @@ def _plot_diagnostic_check(
     # figure
     proj=None,
     data=None,
+    rocking_curve=None,
     # interactivity
     color_dict=None,
     nlos=None,
@@ -44,6 +45,11 @@ def _plot_diagnostic_check(
         types=str,
         allowed=lok,
     )
+    optics, optics_cls = coll.get_diagnostic_optics(key)
+    if 'crystal' in optics_cls:
+        kcryst = optics[optics_cls.index('crystal')]
+    else:
+        kcryst = None
 
     # -----
     # proj
@@ -56,19 +62,50 @@ def _plot_diagnostic_check(
     # -------
     # data
 
-    defdata = coll.dobj['diagnostic'][key]['etendue']
-    c0 = data is None and defdata is None
+    defdata = 'etendue'
+    c0 = data is None and coll.dobj['diagnostic'][key].get(defdata) is None
+
+    ref = None
     if not c0:
         lok = [
             k0 for k0, v0 in coll.ddata.items()
             if v0['camera'] == coll.dobj['diagnostic'][key]['optics'][0]
         ]
+        ldiag = [
+            k0 for k0, v0 in coll.dobj['diagnostic'][key].items()
+            if isinstance(v0, str) and v0 in lok
+        ]
+        klos = coll.dobj['diagnostic'][key].get('los')
+        if klos is None:
+            lrays = []
+        else:
+            lrays = [
+                k0 for k0, v0 in coll.dobj['rays'][klos].items()
+                if isinstance(v0, str) and v0 in lok
+            ]
+
+        if kcryst is None:
+            llamb = []
+        else:
+            llamb = ['lamb', 'lambmin', 'lambmax', 'res']
+
         data = ds._generic_check._check_var(
             data, 'data',
             types=str,
-            allowed=lok,
-            default=coll.dobj['diagnostic'][key]['etendue'],
+            allowed=lok + ldiag + lrays + llamb,
+            default=defdata,
         )
+
+        if data in ldiag:
+            data = coll.dobj['diagnostic'][key][data]
+        elif data in lrays:
+            data = coll.dobj['rays'][klos][data]
+        elif data in llamb:
+            data, ref = coll.get_diagnostic_lamb(
+                key=key,
+                rocking_curve=rocking_curve,
+                lamb=data,
+            )
 
     # -------
     # color_dict
@@ -102,6 +139,7 @@ def _plot_diagnostic_check(
         key,
         proj,
         data,
+        ref,
         color_dict,
         nlos,
         connect,
@@ -126,6 +164,8 @@ def _plot_diagnostic(
     cmap=None,
     vmin=None,
     vmax=None,
+    # config
+    plot_config=None,
     # figure
     dax=None,
     dmargin=None,
@@ -145,6 +185,7 @@ def _plot_diagnostic(
         key,
         proj,
         data,
+        dataref,
         color_dict,
         nlos,
         connect,
@@ -172,12 +213,20 @@ def _plot_diagnostic(
     cam = coll.dobj['diagnostic'][key]['optics'][0]
     camref = coll.dobj['camera'][cam]['dgeom']['ref']
     is2d = coll.dobj['camera'][cam]['dgeom']['type'] == '2d'
+    if is2d:
+        refx, refy = camref
+    else:
+        refx = camref[0]
 
     # -------------------------
     # prepare los interactivity
 
-    coll2 = None
     los = coll.dobj['diagnostic'][key]['los']
+
+    coll2 = coll.__class__()
+    for rr in camref:
+        coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
+
     if los is not None:
         los_x, los_y, los_z = coll.sample_rays(
             key=los,
@@ -186,52 +235,48 @@ def _plot_diagnostic(
         )
         los_r = np.hypot(los_x, los_y)
         reflos = coll.dobj['rays'][los]['ref']
+        ref_los = (reflos[1:], reflos[1:])
 
-        coll2 = coll.__class__()
         coll2.add_ref(key=reflos[0], size=los_x.shape[0])
-        if is2d:
-            refx, refy = reflos[1:]
-            keyx, keyy = coll.dobj['camera'][cam]['dgeom']['cents']
-
-            datax = coll.ddata[keyx]['data']
-            datay = coll.ddata[keyy]['data']
-
-            coll2.add_ref(key=refx, size=los_x.shape[1])
-            coll2.add_ref(key=refy, size=los_x.shape[2])
-
-            coll2.add_data(key=keyx, data=datax, ref=refx)
-            coll2.add_data(key=keyy, data=datay, ref=refy)
-
-            ref_los = ((refx, refy), (refx, refy))
-        else:
-            refx = reflos[1]
-            keyx = 'i0'
-            datax = np.arange(0, coll.dref[refx]['size'])
-            coll2.add_ref(key=refx, size=los_x.shape[1])
-            coll2.add_data(key=keyx, data=datax, ref=refx)
-
-            ref_los = ((refx,), (refx,))
-
         coll2.add_data(key='los_x', data=los_x, ref=reflos)
         coll2.add_data(key='los_y', data=los_y, ref=reflos)
         coll2.add_data(key='los_z', data=los_z, ref=reflos)
         coll2.add_data(key='los_r', data=los_r, ref=reflos)
 
+    if data is not None:
+        if is2d:
+            keyx, keyy = coll.dobj['camera'][cam]['dgeom']['cents']
+
+            datax = coll.ddata[keyx]['data']
+            datay = coll.ddata[keyy]['data']
+
+            coll2.add_data(key=keyx, data=datax, ref=refx)
+            coll2.add_data(key=keyy, data=datay, ref=refy)
+        else:
+            keyx = 'i0'
+            datax = np.arange(0, coll.dref[refx]['size'])
+            coll2.add_data(key=keyx, data=datax, ref=refx)
+
     # -------------------------
     # prepare data interactivity
 
+    reft = None
     if data is not None:
-        reft = None
-        dataref = coll.ddata[data]['ref']
+        if dataref is None:
+            dataref = coll.ddata[data]['ref']
         if dataref == camref:
-            pass
+            if isinstance(data, str):
+                datamap = coll.ddata[data]['data'].T
+            else:
+                datamap = data.T
         elif len(dataref) == len(camref) + 1:
-            reft = [rr for rr in dataref if rr not in camref][0]
+            dataref == camref
+            datamap = coll.ddata[data]['data'][0, ...].T
+            # reft = [rr for rr in dataref if rr not in camref][0]
 
         else:
             raise NotImplementedError()
 
-        datamap = coll.ddata[data]['data'].T
         if is2d:
             extent = (
                 datax[0] - 0.5*(datax[1] - datax[0]),
@@ -541,9 +586,24 @@ def _plot_diagnostic(
                 dax[kax].update(refx=[refx], datax=keyx)
 
     # -------
+    # config
+
+    if plot_config.__class__.__name__ == 'Config':
+
+        kax = 'cross'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+            plot_config.plot(lax=ax, proj=kax)
+
+        kax = 'hor'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+            plot_config.plot(lax=ax, proj=kax)
+
+    # -------
     # connect
 
-    if coll2 is not None:
+    if coll2.dobj.get('mobile') is not None:
         # add axes
         for ii, kax in enumerate(dax.keys()):
             harmonize = ii == len(dax.keys()) - 1
