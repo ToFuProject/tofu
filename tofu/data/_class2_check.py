@@ -208,25 +208,27 @@ def _check_inputs(
     # ---------
     # reflections
 
-    if config is not None:
+    # reflections_nb
+    if reflections_nb is None:
+        reflections_nb = 0
 
-        # reflections_nb
-        if reflections_nb is None:
-            reflections_nb = 0
+    reflections_nb = ds._generic_check._check_var(
+        reflections_nb, 'reflections_nb',
+        types=int,
+        sign='>= 0',
+    )
 
-        reflections_nb = ds._generic_check._check_var(
-            reflections_nb, 'reflections_nb',
-            types=int,
-            sign='>= 0',
-        )
+    # reflections_type
+    reflections_type = ds._generic_check._check_var(
+        reflections_type, 'reflections_type',
+        types=str,
+        default='specular',
+        allowed=['specular', 'diffusive'],
+    )
 
-        # reflections_type
-        reflections_type = ds._generic_check._check_var(
-            reflections_type, 'reflections_type',
-            types=str,
-            default='specular',
-            allowed=['specular', 'diffusive'],
-        )
+    if reflections_nb > 0 and config is None:
+        msg = "reflections can only be handled if config is provided"
+        raise Exception(msg)
 
     # ------
     # diag
@@ -398,7 +400,7 @@ def _rays(
         pts_y[0, ...] = start_y
         pts_z[0, ...] = start_z
 
-        if reflections_nb > 0 or diag is not None:
+        if reflections_nb >= 0 or diag is not None:
             alpha = np.full(shape, np.nan)
             dalpha = np.full(shape, np.nan)
             dbeta = np.full(shape, np.nan)
@@ -451,11 +453,19 @@ def _rays(
             ])
 
             # prepare u
-            uu = np.array([
-                vect_x.ravel(),
-                vect_y.ravel(),
-                vect_z.ravel(),
-            ])
+            if vect_x.size == 1 and stx.size > 1:
+                uu = np.array([
+                    np.full(stx.shape, vect_x[0]),
+                    np.full(stx.shape, vect_y[0]),
+                    np.full(stx.shape, vect_z[0]),
+                ])
+                
+            else:
+                uu = np.array([
+                    vect_x.ravel(),
+                    vect_y.ravel(),
+                    vect_z.ravel(),
+                ])
 
             mask = np.all(np.isfinite(uu), axis=0)
             maskre = np.reshape(mask, shaperef)
