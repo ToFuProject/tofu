@@ -252,7 +252,7 @@ def _ax_3(
         if pp == '3d':
             lax.append(fig.add_subplot(gs[0, ii], projection='3d'))
         else:
-            lax.append(fig.add_subplot(gs[ii%2, ii//2]))
+            lax.append(fig.add_subplot(gs[ii % 2, ii // 2]))
 
     return lax
 

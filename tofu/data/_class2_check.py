@@ -460,7 +460,7 @@ def _rays(
                     np.full(stx.shape, vect_y[0]),
                     np.full(stx.shape, vect_z[0]),
                 ])
-                
+
             else:
                 uu = np.array([
                     vect_x.ravel(),
