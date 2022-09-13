@@ -773,6 +773,16 @@ def _get_pts(
 ):
 
     # ---------
+    # check key
+
+    lok = list(coll.dobj.get('rays', {}))
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+    
+    # ---------
     # get start
 
     stx, sty, stz = _get_start(coll=coll, key=key)
@@ -819,9 +829,9 @@ def _get_vect(
     # ---------------
     # get start
 
-    stx, sty, syz = _get_start(coll=coll, key=key)
+    stx, sty, stz = _get_start(coll=coll, key=key)
 
-    ptsx, ptsy, ptsz = coll.dobj['rays']['pts']
+    ptsx, ptsy, ptsz = coll.dobj['rays'][key]['pts']
     ptsx = coll.ddata[ptsx]['data']
     ptsy = coll.ddata[ptsy]['data']
     ptsz = coll.ddata[ptsz]['data']
