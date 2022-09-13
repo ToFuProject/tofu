@@ -6,6 +6,7 @@ import datastock as ds
 
 
 from ..geom import CamLOS1D
+from ..geom import _comp
 
 
 # ##################################################################
@@ -499,7 +500,11 @@ def _rays(
             pts_x[-1, maskre] = pout[0, :]
             pts_y[-1, maskre] = pout[1, :]
             pts_z[-1, maskre] = pout[2, :]
-            Rmin[maskre.ravel()] = cam.dgeom['RMin']
+            
+            # RMin
+            kRMin = _comp.LOS_PRMin(cam.D, cam.u, kOut=None)
+            PRMin = cam.D + kRMin[None, :]*cam.u
+            Rmin[maskre.ravel()] = np.hypot(PRMin[0, :], PRMin[1, :])
 
             vperp = cam.dgeom['vperp']
             u_perp = np.sum(cam.u*vperp, axis=0)
