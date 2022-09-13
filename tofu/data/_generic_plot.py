@@ -19,7 +19,7 @@ _WINDEF = f"tofu {version.__version__} - report issues at {_GITHUB}"
 _DFS = {
     1: (8, 5),
     2: (11, 5),
-    3: (13, 5),
+    3: (13, 9),
     4: (15, 9),
 }
 
@@ -245,14 +245,14 @@ def _ax_3(
     # ----------------------
     # create figure and axes
 
-    gs = gridspec.GridSpec(ncols=3, nrows=1, **dmargin)
+    gs = gridspec.GridSpec(ncols=2, nrows=2, **dmargin)
 
     lax = []
     for ii, pp in enumerate(proj):
         if pp == '3d':
             lax.append(fig.add_subplot(gs[0, ii], projection='3d'))
         else:
-            lax.append(fig.add_subplot(gs[0, ii]))
+            lax.append(fig.add_subplot(gs[ii%2, ii//2]))
 
     return lax
 
