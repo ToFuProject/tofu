@@ -217,9 +217,10 @@ def _ideal_configuration_check(
     if configuration == 'pinhole' and gtype == 'planar':
         pinhole_distance = ds._generic_check._check_var(
             pinhole_distance, 'pinhole_distance',
-            types=float,
+            types=(float, int),
             sign='> 0.',
         )
+        pinhole_distance = float(pinhole_distance)
 
     # --------------
     # store-specific
@@ -455,7 +456,7 @@ def _ideal_configuration(
         cam_height = cam_dimensions[1]
 
         if gtype == 'planar':
-            cryst_height = extenthalf[1]
+            cryst_height = 2. * extenthalf[1]
             pin_cent = cent + pinhole_distance * vect_los
 
             if cam_height <= cryst_height:
@@ -472,11 +473,11 @@ def _ideal_configuration(
             if gtype == 'cylindrical':
                 icurv = (~np.isinf(curve_r)).nonzero()[0][0]
                 rc = curve_r[icurv]
-                cryst_height = extenthalf[icurv] * curve_r[icurv]
+                cryst_height = 2. * extenthalf[icurv] * curve_r[icurv]
 
             elif gtype == 'spherical':
                 rc = curve_r[0]
-                cryst_height = extenthalf[1] * curve_r[0]
+                cryst_height = 2. * extenthalf[1] * curve_r[0]
 
             if cam_height >= cryst_height:
                 msg = (
