@@ -6,6 +6,7 @@ import datetime as dtm
 
 
 import numpy as np
+import matplotlib.pyplot as plt    # DB
 
 
 import Polygon as plg
@@ -103,7 +104,7 @@ def _get_reflection(
     px, py, pz = coord_x01toxyz_poly(x0=p0, x1=p1)
 
     # back projection on crystal (slowest part)
-    return pts2pt(
+    p0, p1 = pts2pt(
         pt_x=pt[0],
         pt_y=pt[1],
         pt_z=pt[2],
@@ -112,12 +113,15 @@ def _get_reflection(
         pts_y=py,
         pts_z=pz,
         # surface
+        strict=False,
         return_xyz=False,
         return_x01=True,
         debug=False,
         # timing
         dt=dt,
     )
+    
+    return p0, p1
 
 
 # ##############################################################
