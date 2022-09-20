@@ -154,7 +154,8 @@ def equivalent_apertures(
 
         if verb is True:
             msg = f"\tpixel {ii} / {pixel.size}"
-            print(msg, flush=True, end='\r')
+            end = '\n' if ii == len(pixel) - 1 else '\r'
+            print(msg, flush=True, end=end)
 
         p0, p1 = func(
             p_a=p_a,
@@ -620,6 +621,7 @@ def _get_equivalent_aperture_spectro(
 
     # loop on optics after crystal
     for jj in range(nop_post):
+        # print(f'\t {jj} / {nop_post}')      # DB
 
         # reflection
         p0, p1 = _class5_projections._get_reflection(
@@ -643,6 +645,7 @@ def _get_equivalent_aperture_spectro(
         )
 
         if p0 is None:
+            # print('\t \t None 0')
             return p0, p1
 
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
@@ -654,9 +657,18 @@ def _get_equivalent_aperture_spectro(
                     plg.Polygon(np.array([p0, p1]).T)
                 ).contour(0)).T
 
+            # plt.figure()
+            # plt.plot(
+            #     np.array(p_a.contour(0))[:, 0],
+            #     np.array(p_a.contour(0))[:, 1], 
+            #     '.-k',
+            #     p0, p1, '.-r'
+            #     )
+
             # intersection
             p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
             if p_a.nPoints() < 3:
+                # print('\t \t None 1')       # DB
                 return None, None
 
             # update
@@ -664,6 +676,7 @@ def _get_equivalent_aperture_spectro(
             
             # interpolate
             if jj < nop_post - 1:
+                # print('interp')       # DB
                 p0, p1 = _compute._interp_poly(
                     lp=[p0, p1],
                     add_points=add_points,
@@ -704,10 +717,12 @@ def _plot(
     ax.set_ylabel(ylab)
 
     i0 = np.r_[np.arange(0, poly_x0.size), 0]
-    i1 = np.r_[np.arange(0, p0.shape[1]), 0]
     ax.plot(poly_x0[i0], poly_x1[i0], '.-k')
-    for ii in range(p0.shape[0]):
-        ax.plot(p0[ii, i1], p1[ii, i1], '.-', label=f'pix {ii}')
+    
+    if p0.shape[1] > 0:
+        i1 = np.r_[np.arange(0, p0.shape[1]), 0]
+        for ii in range(p0.shape[0]):
+            ax.plot(p0[ii, i1], p1[ii, i1], '.-', label=f'pix {ii}')
 
     if cents0 is not None:
         ax.plot(cents0, cents1, 'xr')

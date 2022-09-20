@@ -395,7 +395,7 @@ def _rays(
         pts_x = np.full(shape, np.nan)
         pts_y = np.full(shape, np.nan)
         pts_z = np.full(shape, np.nan)
-        Rmin = np.full((np.prod(shaperef),), np.nan)
+        Rmin = np.full(shaperef, np.nan)
 
         pts_x[0, ...] = start_x
         pts_y[0, ...] = start_y
@@ -416,7 +416,7 @@ def _rays(
         if diag is not None:
 
             for ii, oo in enumerate(lspectro):
-
+              
                 reflect_ptsvect = coll.get_optics_reflect_ptsvect(oo)
                 (
                     pts_x[ii, ...],
@@ -435,7 +435,7 @@ def _rays(
                     strict=True,
                     return_x01=False,
                 )
-
+                    
                 # update start
                 stx[...] = pts_x[ii, ...]
                 sty[...] = pts_y[ii, ...]
@@ -504,7 +504,7 @@ def _rays(
             # RMin
             kRMin = _comp.LOS_PRMin(cam.D, cam.u, kOut=None)
             PRMin = cam.D + kRMin[None, :]*cam.u
-            Rmin[maskre.ravel()] = np.hypot(PRMin[0, :], PRMin[1, :])
+            Rmin[maskre] = np.hypot(PRMin[0, :], PRMin[1, :])
 
             vperp = cam.dgeom['vperp']
             u_perp = np.sum(cam.u*vperp, axis=0)
@@ -528,9 +528,6 @@ def _rays(
                 v0 = np.sum(us * e0, axis=0)
                 v1 = np.sum(us * e1, axis=0)
                 dbeta[i0, maskre] = np.arctan2(v1, v0)
-
-            if len(shaperef) == 2:
-                Rmin = Rmin.reshape(shaperef)
 
         # ----------
         # length
