@@ -14,6 +14,7 @@ import datastock as ds
 from . import _class1_Plasma2D
 from . import _class2_check as _check
 from . import _class2_compute as _compute
+from . import _class2_plot as _plot
 
 
 __all__ = ['Rays']
@@ -155,5 +156,38 @@ class Rays(_class1_Plasma2D.Plasma2D):
     def plot_rays(
         self,
         key=None,
+        proj=None,
+        concatenate=None,
+        res=None,
+        # config
+        plot_config=None,
+        # figure
+        dax=None,
+        dmargin=None,
+        fs=None,
+        wintit=None,
+        # interactivity
+        color_dict=None,
+        nlos=None,
+        dinc=None,
+        connect=None,
     ):
-        pass
+        return _plot._plot_rays(
+            coll=self,
+            key=key,
+            proj=proj,
+            concatenate=concatenate,
+            res=res,
+            # config
+            plot_config=plot_config,
+            # figure
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            wintit=wintit,
+            # interactivity
+            color_dict=color_dict,
+            nlos=nlos,
+            dinc=dinc,
+            connect=connect,
+        )

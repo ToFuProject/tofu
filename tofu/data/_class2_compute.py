@@ -17,6 +17,7 @@ def _sample(
     key=None,
     res=None,
     mode=None,
+    concatenate=None,
 ):
 
     # ------------
@@ -37,6 +38,16 @@ def _sample(
         default='rel',
         allowed=['rel', 'abs'],
     )
+
+    # concatenate
+    concatenate = ds._generic_check._check_var(
+        concatenate, 'concatenate',
+        types=bool,
+        default=False,
+    )
+    
+    if mode == 'abs':
+        concatenate = False
 
     # --------
     # compute
@@ -75,5 +86,15 @@ def _sample(
 
     else:
         raise NotImplementedError()
+        
+    # -------------------------------------
+    # optional concatenation (for plotting)
+    
+    if concatenate is True:
+        shape = tuple(np.r_[1], shape[1:])
+        nan = np.full(shape, np.nan)
+        pts_x = np.conatenate((pts_x, nan), axis=0).T.ravel()
+        pts_y = np.conatenate((pts_y, nan), axis=0).T.ravel()
+        pts_z = np.conatenate((pts_z, nan), axis=0).T.ravel()
 
     return pts_x, pts_y, pts_z
