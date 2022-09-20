@@ -319,6 +319,7 @@ setup(
         # "scikit-sparse",
         # "scikit-umfpack",
         "matplotlib",
+        "contourpy",
         "requests",
         "cython>=0.26",
         "svg.path",
