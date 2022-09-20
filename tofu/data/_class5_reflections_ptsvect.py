@@ -137,7 +137,7 @@ def _get_ptsvect(
                 Dy = pts_y + kk*vect_y
                 Dz = pts_z + kk*vect_z
 
-                ODzx = (Dx[iok] - O[1])*eax[2] - (Dz[iok] - O[2])*eax[1]
+                ODzx = (Dy[iok] - O[1])*eax[2] - (Dz[iok] - O[2])*eax[1]
                 ODzy = (Dz[iok] - O[2])*eax[0] - (Dx[iok] - O[0])*eax[2]
                 ODzz = (Dx[iok] - O[0])*eax[1] - (Dy[iok] - O[1])*eax[0]
                 ODzn = np.sqrt(ODzx**2 + ODzy**2 + ODzz**2)

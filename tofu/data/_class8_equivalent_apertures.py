@@ -676,7 +676,6 @@ def _get_equivalent_aperture_spectro(
             
             # interpolate
             if jj < nop_post - 1:
-                # print('interp')       # DB
                 p0, p1 = _compute._interp_poly(
                     lp=[p0, p1],
                     add_points=add_points,
@@ -685,6 +684,7 @@ def _get_equivalent_aperture_spectro(
                     closed=False,
                     ravel=True,
                 )
+                # print(f'\t\t interp => {p0.size} pts')       # DB
 
     return p0, p1
 

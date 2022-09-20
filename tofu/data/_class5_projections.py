@@ -62,6 +62,7 @@ def _get_reflection(
     )[3:]
 
     if not np.any(iok):
+        # print('iok')
         return None, None
 
     # project on target plane
@@ -82,9 +83,16 @@ def _get_reflection(
     if np.all([pa.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
         return x0, x1
 
+    # plt.figure()
+    # plt.plot(
+    #     poly_x0, poly_x1, '.-k',
+    #     p0, p1, '.-r',
+    #     )
+
     # intersection
     p_a = pa & plg.Polygon(np.array([p0, p1]).T)
     if p_a.nPoints() < 3:
+        # print('pts < 3')
         return None, None
 
     p0, p1 = np.array(p_a.contour(0)).T
