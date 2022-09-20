@@ -8,7 +8,8 @@ import warnings
 import numpy as np
 from scipy.spatial import ConvexHull
 from matplotlib.path import Path
-import matplotlib._contour as mcontour
+# import matplotlib._contour as mcontour
+from contourpy import contour_generator
 import datastock as ds
 
 
@@ -2655,9 +2656,11 @@ def _get_contours(
 ):
     """ Return R, Z coordinates of contours (time-dependent)
 
-    RR = (nr, nz)
-    ZZ = (nr, nz)
-    val = (nt, nR, nZ)
+    For contourpy algorithm, the dimensions shoud be (ny, nx), from meshgrid
+
+    RR = (nz, nr)
+    ZZ = (nz, nr)
+    val = (nt, nz, nr)
     levels = (nlevels,)
 
     cR = (nt, nlevels, nmax) array of R coordinates
@@ -2702,28 +2705,50 @@ def _get_contours(
     for ii in range(nt):
 
         # define map
-        cont_raw = mcontour.QuadContourGenerator(
-            RR, ZZ, val[ii, ...],
-            None,       # mask
-            True,       # how to mask
-            0,          # divide in sub-domains (0=not)
+        contgen = contour_generator(
+            x=RR,
+            y=ZZ,
+            z=val[ii, ...],
+            name='serial',
+            corner_mask=None,
+            line_type='Separate',
+            fill_type=None,
+            chunk_size=None,
+            chunk_count=None,
+            total_chunk_count=None,
+            quad_as_tri=True,       # for sub-mesh precision
+            # z_interp=<ZInterp.Linear: 1>,
+            thread_count=0,
         )
+
+        import pdb; pdb.set_trace()     # DB
+        # cont_raw = mcontour.QuadContourGenerator(
+            # RR, ZZ, val[ii, ...],
+            # None,       # mask
+            # True,       # how to mask
+            # 0,          # divide in sub-domains (0=not)
+        # )
 
         for jj in range(len(levels)):
 
             # compute concatenated contour
             no_cont = False
-            cj = cont_raw.create_contour(levels[jj])
+            cj = contgen.lines(levels[jj])
 
             c0 = (
-                isinstance(cj, tuple)
-                and len(cj) == 2
-                and isinstance(cj[0], list)
+                isinstance(cj, list)
+                and all([
+                    isinstance(cjj, np.ndarray)
+                    and cjj.ndim == 2
+                    and cjj.shape[1] == 2
+                    for cjj in cj
+                ])
             )
-            if c0:
-                cj = cj[0]
+            if not c0:
+                msg = f"Wrong output from contourpy!\n{cj}"
+                raise Exception(msg)
 
-            if isinstance(cj, list):
+            if len(cj) > 0:
                 try:        # DB
                     cj = [
                         cc[np.all(np.isfinite(cc), axis=1), :]
@@ -2755,6 +2780,8 @@ def _get_contours(
 
                 elif np.sum(np.all(~np.isnan(cc), axis=1)) < 3:
                     no_cont = True
+            else:
+                no_cont = True
 
             if no_cont is True:
                 cj = np.full((3, 2), np.nan)
@@ -2931,8 +2958,8 @@ def radius2d_special_points(
 
     # get contour of 0
     cR, cZ = _get_contours(
-        RR=RR,
-        ZZ=ZZ,
+        RR=RR.T,
+        ZZ=ZZ.T,
         val=val,
         levels=[rmin + 0.05*(rmax-rmin)],
     )
@@ -3026,6 +3053,9 @@ def angle2d_zone(
         grid=True,
     )
 
+    # TBF
+    RRT, ZZT = RR.T, ZZ.T
+
     # get map
     val, t = coll.interpolate_profile2d(
         key=key,
@@ -3040,16 +3070,16 @@ def angle2d_zone(
 
     # get contours of absolute value
     cRmin, cZmin = _get_contours(
-        RR=RR,
-        ZZ=ZZ,
+        RR=RRT,
+        ZZ=ZZT,
         val=val,
         levels=[amin + 0.10*(amax - amin)],
         largest=True,
         uniform=True,
     )
     cRmax, cZmax = _get_contours(
-        RR=RR,
-        ZZ=ZZ,
+        RR=RRT,
+        ZZ=ZZT,
         val=val,
         levels=[amax - 0.10*(amax - amin)],
         largest=True,
