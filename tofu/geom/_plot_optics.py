@@ -13,9 +13,9 @@ import matplotlib.colors as mplcol
 import matplotlib.gridspec as gridspec
 from matplotlib.axes._axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
-import matplotlib._contour as mcontour
 from matplotlib.collections import PatchCollection
 import matplotlib as mpl
+from contourpy import contour_generator
 
 # tofu
 from tofu.version import __version__
@@ -1693,14 +1693,21 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
         cont_cross = [None for ll in lamb]
         for kk, ll in enumerate(lamb):
             z[1:-1, 1:-1] = cross[kk, ...].T
-            cont_raw = mcontour.QuadContourGenerator(
-                x, y, z,
-                None,       # mask
-                True,       # how to mask
-                0,          # divide in sub-domains (0=not)
-            ).create_contour(0.5)
-            if isinstance(cont_raw, tuple):
-                cont_raw = cont_raw[0]
+            cont_raw = contour_generator(
+                x=x,
+                y=y,
+                z=z,
+                name='serial',
+                corner_mask=None,
+                line_type='Separate',
+                fill_type=None,
+                chunk_size=None,
+                chunk_count=None,
+                total_chunk_count=None,
+                quad_as_tri=True,       # for sub-mesh precision
+                # z_interp=<ZInterp.Linear: 1>,
+                thread_count=0,
+            ).lines(0.5)
             assert all([pp.ndim == 2  and pp.shape[1] == 2 for pp in cont_raw])
             cont_cross[kk] = PatchCollection(
                 [plt.Polygon(pp) for pp in cont_raw],
@@ -1872,14 +1879,21 @@ def CrystalBragg_plot_signal_from_emissivity(
 
     # see https://github.com/matplotlib/matplotlib/blob/main/src/_contour.h
     z[1:-1, 1:-1] = cross.T
-    cont_raw = mcontour.QuadContourGenerator(
-        x, y, z,
-        None,       # mask
-        True,       # how to mask
-        0,          # divide in sub-domains (0=not)
-    ).create_contour(0.5)
-    if isinstance(cont_raw, tuple):
-        cont_raw = cont_raw[0]
+    cont_raw = contour_generator(
+        x=x,
+        y=y,
+        z=z,
+        name='serial',
+        corner_mask=None,
+        line_type='Separate',
+        fill_type=None,
+        chunk_size=None,
+        chunk_count=None,
+        total_chunk_count=None,
+        quad_as_tri=True,       # for sub-mesh precision
+        # z_interp=<ZInterp.Linear: 1>,
+        thread_count=0,
+    ).lines(0.5)
     assert all([pp.ndim == 2 and pp.shape[1] == 2 for pp in cont_raw])
     cont_cross = PatchCollection(
         [plt.Polygon(pp) for pp in cont_raw],

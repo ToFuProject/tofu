@@ -860,7 +860,7 @@ class Test02_Plasma2D():
             )
 
         # plot geometry matrices
-        imax = 5
+        imax = 3
         for ii, k0 in enumerate(self.obj.dobj['matrix']):
 
             if '-' in k0 and int(k0[k0.index('-')+1:]) > 0:
