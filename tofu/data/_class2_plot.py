@@ -141,7 +141,7 @@ def _plot_rays(
         color_dict,
         nlos,
         connect,
-    ) = _plot_diagnostic_check(
+    ) = _plot_rays_check(
         coll=coll,
         key=key,
         concatenate=concatenate,
