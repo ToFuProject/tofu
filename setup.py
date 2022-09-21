@@ -318,7 +318,7 @@ setup(
         "scipy",
         # "scikit-sparse",
         # "scikit-umfpack",
-        "matplotlib",
+        "matplotlib<=3.5.2",
         "contourpy",
         "requests",
         "cython>=0.26",
