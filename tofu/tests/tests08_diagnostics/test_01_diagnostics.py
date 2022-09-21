@@ -547,19 +547,21 @@ class Test01_Diagnostic():
     # ----------
     # tests
 
-    # def test01_etendues(self, res=np.r_[0.005, 0.003, 0.001]):
-        # for k0, v0 in self.obj.dobj['diagnostic'].items():
-            # if len(v0['optics']) == 1 or v0['spectro'] is not False:
-                # continue
-            # self.obj.compute_diagnostic_etendue_los(
-                # key=k0,
-                # res=res,
-                # numerical=True,
-                # analytical=True,
-                # check=True,
-                # store=False,
-            # )
-            # plt.close('all')
+    """
+    def test01_etendues(self, res=np.r_[0.005, 0.003, 0.001]):
+        for k0, v0 in self.obj.dobj['diagnostic'].items():
+            if len(v0['optics']) == 1 or v0['spectro'] is not False:
+                continue
+            self.obj.compute_diagnostic_etendue_los(
+                key=k0,
+                res=res,
+                numerical=True,
+                analytical=True,
+                check=True,
+                store=False,
+            )
+            plt.close('all')
+    """
 
     def test02_get_outline(self):
 
