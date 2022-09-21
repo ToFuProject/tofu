@@ -8,7 +8,6 @@ import warnings
 import numpy as np
 from scipy.spatial import ConvexHull
 from matplotlib.path import Path
-# import matplotlib._contour as mcontour
 from contourpy import contour_generator
 import datastock as ds
 
@@ -2721,14 +2720,6 @@ def _get_contours(
             thread_count=0,
         )
 
-        import pdb; pdb.set_trace()     # DB
-        # cont_raw = mcontour.QuadContourGenerator(
-            # RR, ZZ, val[ii, ...],
-            # None,       # mask
-            # True,       # how to mask
-            # 0,          # divide in sub-domains (0=not)
-        # )
-
         for jj in range(len(levels)):
 
             # compute concatenated contour
@@ -2749,15 +2740,11 @@ def _get_contours(
                 raise Exception(msg)
 
             if len(cj) > 0:
-                try:        # DB
-                    cj = [
-                        cc[np.all(np.isfinite(cc), axis=1), :]
-                        for cc in cj
-                        if np.sum(np.all(np.isfinite(cc), axis=1)) >= 3
-                    ]
-                except Exception as err:        # DB
-                    msg = str(err) + f"\ncj = {cj}"
-                    raise Exception(msg)
+                cj = [
+                    cc[np.all(np.isfinite(cc), axis=1), :]
+                    for cc in cj
+                    if np.sum(np.all(np.isfinite(cc), axis=1)) >= 3
+                ]
 
                 if len(cj) == 0:
                     no_cont = True
@@ -2950,6 +2937,7 @@ def radius2d_special_points(
         R=RR,
         Z=ZZ,
         grid=False,
+        imshow=True,        # for contour
     )
 
     # get min max values
@@ -2958,8 +2946,8 @@ def radius2d_special_points(
 
     # get contour of 0
     cR, cZ = _get_contours(
-        RR=RR.T,
-        ZZ=ZZ.T,
+        RR=RR,
+        ZZ=ZZ,
         val=val,
         levels=[rmin + 0.05*(rmax-rmin)],
     )
@@ -3051,10 +3039,8 @@ def angle2d_zone(
         key=keym,
         res=res/2.,
         grid=True,
+        imshow=True,    # for contour
     )
-
-    # TBF
-    RRT, ZZT = RR.T, ZZ.T
 
     # get map
     val, t = coll.interpolate_profile2d(
@@ -3070,16 +3056,16 @@ def angle2d_zone(
 
     # get contours of absolute value
     cRmin, cZmin = _get_contours(
-        RR=RRT,
-        ZZ=ZZT,
+        RR=RR,
+        ZZ=ZZ,
         val=val,
         levels=[amin + 0.10*(amax - amin)],
         largest=True,
         uniform=True,
     )
     cRmax, cZmax = _get_contours(
-        RR=RRT,
-        ZZ=ZZT,
+        RR=RR,
+        ZZ=ZZ,
         val=val,
         levels=[amax - 0.10*(amax - amin)],
         largest=True,
