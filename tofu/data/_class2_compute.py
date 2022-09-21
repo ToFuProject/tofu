@@ -91,10 +91,10 @@ def _sample(
     # optional concatenation (for plotting)
     
     if concatenate is True:
-        shape = tuple(np.r_[1], shape[1:])
+        shape = tuple(np.r_[np.r_[1], pts_x.shape[1:]])
         nan = np.full(shape, np.nan)
-        pts_x = np.conatenate((pts_x, nan), axis=0).T.ravel()
-        pts_y = np.conatenate((pts_y, nan), axis=0).T.ravel()
-        pts_z = np.conatenate((pts_z, nan), axis=0).T.ravel()
+        pts_x = np.concatenate((pts_x, nan), axis=0).T.ravel()
+        pts_y = np.concatenate((pts_y, nan), axis=0).T.ravel()
+        pts_z = np.concatenate((pts_z, nan), axis=0).T.ravel()
 
     return pts_x, pts_y, pts_z
