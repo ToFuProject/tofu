@@ -114,7 +114,7 @@ class Test01_RockingCurve(object):
                 crystal=k0,
                 lamb=np.r_[3.969067e-10],
                 miscut=False,
-                alpha_limits=None,
+                miscut_limits=None,
                 therm_exp=False,
                 temp_limits=None,
                 # Plot
