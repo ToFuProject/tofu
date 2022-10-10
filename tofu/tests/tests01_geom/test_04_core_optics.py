@@ -132,6 +132,7 @@ class Test01_Crystal(object):
         }
         dbragg = {
             'lambref': 3.96e-10,
+            'braggref': 0.9373938265780166,
         }
 
         dmat1 = dict(dmat)
@@ -324,6 +325,7 @@ class Test01_Crystal(object):
                 det=det,
             )
 
+    """
     def test12_plot_line_on_det_tracing(self):
         for k0, obj in self.dobj.items():
             det = obj.get_detector_ideal()
@@ -339,6 +341,8 @@ class Test01_Crystal(object):
                 therm_exp=False,
                 plot=False,
             )
+        plt.close('all')
+    """
 
     def test13_calc_meridional_sagittal_focus(self):
         derr = {}

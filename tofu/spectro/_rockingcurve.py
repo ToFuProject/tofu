@@ -434,7 +434,7 @@ def compute_rockingcurve(
         'Wavelength (m)': lamb,
         'Miller indices': (ih, ik, il),
         'Inter-reticular distance (m)': d_atom,
-        'Volume (A^3)': Volume,
+        'Volume (m^3)': Volume,
         'Bragg angle of reference (rad)': theta,
         'Glancing angles': dth,
         'Power ratio': power_ratio,
