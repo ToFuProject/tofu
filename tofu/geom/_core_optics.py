@@ -1688,8 +1688,6 @@ class CrystalBragg(utils.ToFuObject):
 
         if rcurve is None:
             rcurve = self._dgeom['rcurve']
-        if lamb is None:
-            lamb = self._dbragg['lambref']
 
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
         if np.all(np.isnan(bragg)):
@@ -1705,6 +1703,8 @@ class CrystalBragg(utils.ToFuObject):
                 + "\t - lamb_ref : {} m\n".format(self._dbragg['lambref'])
             )
             raise Exception(msg)
+        if lamb is None:
+            lamb = self._dbragg['lambref']
 
         lc = [lamb0 is not None, lamb1 is not None, dist01 is not None]
         if any(lc) and not all(lc):
