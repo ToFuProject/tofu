@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
+import warnings
 import itertools as itt
 
 
@@ -130,7 +131,7 @@ def _diagnostics_check(
                     f"side of camera '{cam}':\n"
                     f"{np.unique(iout.nonzero()[0])}"
                 )
-                raise Exception(msg)
+                warnings.warn(msg)
 
         # update last_ref ?
         if cls in ['crystal', 'grating']:
