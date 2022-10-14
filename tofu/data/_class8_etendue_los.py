@@ -108,7 +108,7 @@ def compute_etendue_los(
         store=False,
         return_for_etendue=True,
     )
-
+        
     # ------------------------------------------
     # get distance, area, solid_angle, los, dlos
 
