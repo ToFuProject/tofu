@@ -799,7 +799,7 @@ def get_lamb_from_angle(
                 key=kcryst,
                 bragg=ang,
                 rocking_curve=rocking_curve,
-            )
+            )[1]
             if lamb == kk:
                 data = dd
             else:
