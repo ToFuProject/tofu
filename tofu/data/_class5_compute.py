@@ -110,7 +110,7 @@ def _bragglamb(
             raise NotImplementedError()
 
         else:
-            return 2. * dist * np.sin(bragg) / norder
+            lamb = 2. * dist * np.sin(bragg) / norder
 
     elif lamb is not None and bragg is None:
 
@@ -118,12 +118,14 @@ def _bragglamb(
             raise NotImplementedError
 
         else:
-            return np.arcsin(norder * lamb / (2.*dist))
+            bragg = np.arcsin(norder * lamb / (2.*dist))
 
     else:
         msg = "Interpolate on rocking curve"
         raise NotImplementedError(msg)
 
+    return bragg, lamb
+    
 
 # #################################################################
 # #################################################################
@@ -239,7 +241,7 @@ def _ideal_configuration_check(
         key_cam = ds._generic_check._check_var(
             key_cam, 'key_cam',
             types=str,
-            default=f'{key}-cam',
+            default=f'{key}_cam',
             excluded=lout,
         )
 
@@ -255,9 +257,12 @@ def _ideal_configuration_check(
             key_aperture = ds._generic_check._check_var(
                 key_aperture, 'key_aperture',
                 types=str,
-                default=f'{key}-{ap}',
-                excluded=lout,
+                default=f'{key}_{ap}',
+                excluded=None,
             )
+            
+            key_aperture_in = key_aperture in lout
+                
         else:
             key_aperture = None
 
@@ -273,23 +278,24 @@ def _ideal_configuration_check(
             cam_pixels_nb = cam_pixels_nb * np.r_[1, 1]
 
         # aperture_dimensions
-        if configuration == 'pinhole':
-            pinhole_radius = ds._generic_check._check_var(
-                pinhole_radius, 'pinhole_radius',
-                types=float,
-                sign='> 0.',
-            )
-
-        elif configuration == 'von hamos':
-            aperture_dimensions = ds._generic_check._check_flat1darray(
-                aperture_dimensions, 'aperture_dimensions',
-                dtype=float,
-                size=[1, 2],
-                sign='> 0.',
-            )
-
-            if aperture_dimensions.size == 1:
-                aperture_dimensions = aperture_dimensions * np.r_[1., 1.]
+        if key_aperture_in is False:
+            if configuration == 'pinhole':
+                pinhole_radius = ds._generic_check._check_var(
+                    pinhole_radius, 'pinhole_radius',
+                    types=float,
+                    sign='> 0.',
+                )
+    
+            elif configuration == 'von hamos':
+                aperture_dimensions = ds._generic_check._check_flat1darray(
+                    aperture_dimensions, 'aperture_dimensions',
+                    dtype=float,
+                    size=[1, 2],
+                    sign='> 0.',
+                )
+    
+                if aperture_dimensions.size == 1:
+                    aperture_dimensions = aperture_dimensions * np.r_[1., 1.]
 
     # returnas
     returnas = ds._generic_check._check_var(
@@ -305,7 +311,7 @@ def _ideal_configuration_check(
     return (
         key, gtype, configuration,
         cam_on_e0, cam_tangential,
-        store, key_cam, key_aperture,
+        store, key_cam, key_aperture, key_aperture_in,
         cam_pixels_nb, aperture_dimensions, pinhole_radius,
         returnas,
     )
@@ -324,6 +330,7 @@ def _ideal_configuration(
     cam_tangential=None,
     # pinhole-specific
     cam_dimensions=None,
+    cam_distance=None,
     pinhole_distance=None,
     # store
     store=None,
@@ -342,7 +349,7 @@ def _ideal_configuration(
     (
         key, gtype, configuration,
         cam_on_e0, cam_tangential,
-        store, key_cam, key_aperture,
+        store, key_cam, key_aperture, key_aperture_in,
         cam_pixels_nb, aperture_dimensions, pinhole_radius,
         returnas,
     ) = _ideal_configuration_check(
@@ -373,7 +380,7 @@ def _ideal_configuration(
         lamb=lamb,
         bragg=bragg,
         norder=norder,
-    )
+    )[0]
     if bragg.size != 1:
         msg = (
             "Please only provide a single lamb or bragg value!\n"
@@ -392,17 +399,28 @@ def _ideal_configuration(
     e0 = dgeom['e0']
     e1 = dgeom['e1']
 
+    # radius of curvature
+    rc = None
+    if gtype == 'spherical':
+        rc = curve_r[0]
+    elif gtype == 'cylindrical':
+        icurv = (~np.isinf(curve_r)).nonzero()[0][0]
+        rc = curve_r[icurv]
+
+    # unit vectors
     vect_cam = np.cos(bragg) * e0 + np.sin(bragg) * nin
     vect_los = -np.cos(bragg) * e0 + np.sin(bragg) * nin
     if cam_on_e0 is False:
         vect_cam, vect_los = vect_los, vect_cam
 
-    # ---------
-    # compute
+    # ----------------------
+    # compute configuration
+    # ----------------------
 
+    # --------
     # johann
+    
     if configuration == 'johann':
-        rc = curve_r[0]
 
         med = rc * np.sin(bragg)
         sag = -med / np.cos(2.*bragg)
@@ -429,15 +447,16 @@ def _ideal_configuration(
             },
         }
 
+    # --------
     # von hamos
+    
     elif configuration == 'von hamos':
 
-        rc = curve_r[(~np.isinf(curve_r)).nonzero()[0][0]]
-        dist = rc / np.sin(bragg)
-        slit_cent = cent + dist * vect_los
-        slit_nin = vect_los
+        dist_pin = rc / np.sin(bragg)
+        pin_cent = cent + dist_pin * vect_los
+        pin_nin = vect_los
 
-        cam_cent = cent + dist * vect_cam
+        cam_cent = cent + dist_pin * vect_cam
         if cam_tangential is True:
             cam_nin = -nin
         else:
@@ -445,54 +464,71 @@ def _ideal_configuration(
 
         dout = {
             'aperture': {
-                'cent': slit_cent,
-                'nin': slit_nin,
+                'cent': pin_cent,
+                'nin': pin_nin,
             },
         }
 
+    # --------
     # pinhole
+    
     elif configuration == 'pinhole':
 
-        cam_height = cam_dimensions[1]
-
-        if gtype == 'planar':
-            cryst_height = 2. * extenthalf[1]
-            pin_cent = cent + pinhole_distance * vect_los
-
-            if cam_height <= cryst_height:
-                msg = (
-                    f"Desired height for ideal camera of '{key}' too small:\n"
-                    f"\t- crystal height (flat): {cryst_height}\n"
-                    f"\t- camera height: {cam_height}\n"
-                )
-                raise Exception(msg)
-
-            dist = pinhole_distance * (cam_height / cryst_height - 1.)
-
-        else:
-            if gtype == 'cylindrical':
-                icurv = (~np.isinf(curve_r)).nonzero()[0][0]
-                rc = curve_r[icurv]
-                cryst_height = 2. * extenthalf[icurv] * curve_r[icurv]
-
+        # pinhole
+        if pinhole_distance is None:
+            if gtype == 'cylindrical': 
+                pin_dist = rc / np.sin(bragg)
             elif gtype == 'spherical':
-                rc = curve_r[0]
-                cryst_height = 2. * extenthalf[1] * curve_r[0]
-
-            if cam_height >= cryst_height:
-                msg = (
-                    f"Desired height for ideal camera of '{key}' too large:\n"
-                    f"\t- crystal height (gtype): {cryst_height}\n"
-                    f"\t- camera height: {cam_height}\n"
-                )
+                pin_dist = rc * np.sin(bragg)
+            else:
+                msg = "Please provide pinhole_distance!"
                 raise Exception(msg)
-
-            pin_cent = cent + rc * vect_los
-            dist = rc * (1. - cam_height / cryst_height)
-
-        pin_nin = vect_los
+        
+        else:
+            pin_dist = pinhole_distance
+            
+        pin_cent = cent + pin_dist * vect_los
+        pin_nin = vect_los    
+        
+        # camera
+        if cam_distance is None:
+            cam_height = cam_dimensions[1]
+    
+            if gtype == 'planar' or (gtype == 'cylindrical' and icurv == 0):
+                cryst_height = 2. * extenthalf[1]
+    
+                if cam_height <= cryst_height:
+                    msg = (
+                        f"Height for ideal camera of '{key}' too small:\n"
+                        f"\t- crystal height (flat): {cryst_height}\n"
+                        f"\t- camera height: {cam_height}\n"
+                    )
+                    raise Exception(msg)
+    
+                cam_dist = pinhole_distance * (cam_height / cryst_height - 1.)
+    
+            else:
+                if gtype == 'cylindrical':
+                    cryst_height = 2. * extenthalf[icurv] * curve_r[icurv]
+    
+                elif gtype == 'spherical':
+                    cryst_height = 2. * extenthalf[1] * curve_r[0]
+    
+                if cam_height >= cryst_height:
+                    msg = (
+                        f"Height for ideal camera of '{key}' too large:\n"
+                        f"\t- crystal height (gtype): {cryst_height}\n"
+                        f"\t- camera height: {cam_height}\n"
+                    )
+                    raise Exception(msg)
+    
+                cam_dist = rc * (1. - cam_height / cryst_height)
+                
+        else:
+            cam_dist = cam_distance
+                
         cam_nin = -vect_cam
-        cam_cent = cent + dist * vect_cam
+        cam_cent = cent + cam_dist * vect_cam
 
         dout = {
             'aperture': {
@@ -505,11 +541,39 @@ def _ideal_configuration(
     # complete with missing unit vectors
 
     if 'aperture' in dout.keys():
-        ap_e0 = np.cross(e1, dout['aperture']['nin'])
-        ap_e0 = ap_e0 / np.linalg.norm(ap_e0)
-        ap_e1 = np.cross(dout['aperture']['nin'], ap_e0)
-        dout['aperture']['e0'] = ap_e0
-        dout['aperture']['e1'] = ap_e1
+
+        # check against existing aperture is any
+        if key_aperture_in is True:
+            
+            dd = coll.dobj['aperture'][key_aperture]['dgeom']
+            temp_dist = np.linalg.norm(dd['cent'] - pin_cent)
+            temp_ang = np.arctan2(
+                np.linalg.norm(np.cross(dd['nin'], pin_nin)),
+                np.sum(dd['nin'] * pin_nin),
+                )
+
+            if not (temp_dist < 1e-6 and np.abs(temp_ang) < 0.01*np.pi/180.):
+                dist = np.linalg.norm(dd['cent'] - pin_cent)
+                msg = (
+                    f"Ideal configuration '{configuration}' for crystal '{key}':\n"
+                    f"Predefined aperture {key_aperture} does not seem fit:\n"
+                    f"\t- cent: {temp_dist} m\n"
+                    f"\t\t- {key_aperture}: {dd['cent']}\n"
+                    f"\t\t- ideal: {pin_cent}\n"
+                    f"\t- nin: {temp_ang} deg.\n"
+                    f"\t\t- {key_aperture}: {dd['nin']}\n"
+                    f"\t\t- ideal: {pin_nin}\n"
+                    )
+                raise Exception(msg)
+            del dout['aperture']
+            
+        # new aperture
+        else:
+            ap_e0 = np.cross(e1, dout['aperture']['nin'])
+            ap_e0 = ap_e0 / np.linalg.norm(ap_e0)
+            ap_e1 = np.cross(dout['aperture']['nin'], ap_e0)
+            dout['aperture']['e0'] = ap_e0
+            dout['aperture']['e1'] = ap_e1
 
     cam_e0 = np.cross(e1, cam_nin)
     cam_e0 = cam_e0 / np.linalg.norm(cam_e0)
