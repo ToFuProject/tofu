@@ -206,6 +206,7 @@ class Crystal(_class4_Filter.Filter):
         cam_tangential=None,
         # pinhole-specific
         cam_dimensions=None,
+        cam_distance=None,
         pinhole_distance=None,
         # store
         store=None,
@@ -249,6 +250,7 @@ class Crystal(_class4_Filter.Filter):
             cam_tangential=cam_tangential,
             # pinhole-specific
             cam_dimensions=cam_dimensions,
+            cam_distance=cam_distance,
             pinhole_distance=pinhole_distance,
             # store
             store=store,
