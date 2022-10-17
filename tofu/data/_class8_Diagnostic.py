@@ -61,6 +61,8 @@ class Diagnostic(_class7_Camera.Camera):
         length=None,
         reflections_nb=None,
         reflections_type=None,
+        # compute
+        compute=True,
         # others
         verb=None,
         **kwdargs,
@@ -85,7 +87,7 @@ class Diagnostic(_class7_Camera.Camera):
         key = list(dobj['diagnostic'].keys())[0]
         optics = self.dobj['diagnostic'][key]['optics']
 
-        if len(optics) > 1:
+        if len(optics) > 1 and compute is True:
             self.compute_diagnostic_etendue_los(
                 key=key,
                 analytical=True,
