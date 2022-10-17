@@ -9,9 +9,6 @@ import copy
 import numpy as np
 import datastock as ds
 
-# tofu
-from . import _generic_check
-
 
 # #############################################################################
 # #############################################################################
@@ -34,7 +31,7 @@ def _compute_check(
 
     # key
     lk = list(coll.dobj.get('bsplines', {}).keys())
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         allowed=lk,
@@ -45,13 +42,13 @@ def _compute_check(
         [k0 for k0, v0 in coll.dref.items() if v0['size'] == nlos]
         + [None]
     )
-    key_chan = _generic_check._check_var(
+    key_chan = ds._generic_check._check_var(
         key_chan, 'key_chan',
         allowed=lk,
     )
 
     # method
-    method = _generic_check._check_var(
+    method = ds._generic_check._check_var(
         method, 'method',
         default='los',
         types=str,
@@ -59,7 +56,7 @@ def _compute_check(
     )
 
     # resMode
-    resMode = _generic_check._check_var(
+    resMode = ds._generic_check._check_var(
         resMode, 'resMode',
         default='abs',
         types=str,
@@ -67,7 +64,7 @@ def _compute_check(
     )
 
     # crop
-    crop = _generic_check._check_var(
+    crop = ds._generic_check._check_var(
         crop, 'crop',
         default=True,
         types=bool,
@@ -94,7 +91,7 @@ def _compute_check(
         raise Exception(msg)
 
     # store
-    store = _generic_check._check_var(
+    store = ds._generic_check._check_var(
         store, 'store',
         default=True,
         types=bool,

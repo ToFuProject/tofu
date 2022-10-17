@@ -1,9 +1,7 @@
 
 
 import numpy as np
-
-
-from . import _generic_check
+import datastock as ds
 
 
 # ##################################################################
@@ -35,7 +33,7 @@ def plot_text(
 
     if isinstance(lkeys, str):
         lkeys = [lkeys]
-    lk0 = _generic_check._check_var_iter(
+    lk0 = ds._generic_check._check_var_iter(
         lkeys, 'lkeys',
         default=lk0,
         types=list,

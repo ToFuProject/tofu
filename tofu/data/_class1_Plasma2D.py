@@ -12,7 +12,7 @@ import datastock as ds
 
 # tofu
 # from tofu import __version__ as __version__
-from . import _generic_check
+from . import _class0_Config
 from . import _mesh_checks
 from . import _mesh_comp
 from . import _mesh_plot
@@ -36,7 +36,7 @@ _QUANT_Z = 'Z'
 # #############################################################################
 
 
-class Plasma2D(ds.DataStock):
+class Plasma2D(_class0_Config.Config):
 
     _ddef = copy.deepcopy(ds.DataStock._ddef)
     _ddef['params']['ddata'].update({
@@ -47,6 +47,7 @@ class Plasma2D(ds.DataStock):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
+    _dshow = dict(_class0_Config.Config._dshow)
 
     _which_mesh = _WHICH_MESH
     _quant_R = _QUANT_R
@@ -367,6 +368,25 @@ class Plasma2D(ds.DataStock):
                     msg = f"Multiple nsplines:\n{lbs}"
                     raise Exception(msg)
 
+        # assign diagnostic
+        if self._dobj.get('camera') is not None:
+            for k0, v0 in self._ddata.items():
+                lcam = [
+                    k1 for k1, v1 in self._dobj['camera'].items()
+                    if v1['dgeom']['ref'] == tuple([
+                        rr for rr in v0['ref']
+                        if rr in v1['dgeom']['ref']
+                    ])
+                ]
+
+                if len(lcam) == 0:
+                    pass
+                elif len(lcam) == 1:
+                    self._ddata[k0]['camera'] = lcam[0]
+                else:
+                    msg = f"Multiple cameras:\n{lcam}"
+                    raise Exception(msg)
+
     # -----------------
     # crop
     # ------------------
@@ -565,7 +585,7 @@ class Plasma2D(ds.DataStock):
 
         """
         # check key
-        key = _generic_check._check_var(
+        key = ds._generic_check._check_var(
             key, 'key',
             allowed=list(self.dobj.get('mesh', {}).keys()),
             types=str,

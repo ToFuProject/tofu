@@ -7,10 +7,7 @@
 # Common
 import numpy as np
 import scipy.sparse as scpsp
-
-
-# specific
-from . import _generic_check
+import datastock as ds
 
 
 _LOPERATORS_INT = [
@@ -40,14 +37,14 @@ def _get_mesh2dRect_operators_check(
 ):
 
     # deg
-    deg = _generic_check._check_var(
+    deg = ds._generic_check._check_var(
         deg, 'deg',
         types=int,
         allowed=[0, 1, 2, 3],
     )
 
     # operator
-    operator = _generic_check._check_var(
+    operator = ds._generic_check._check_var(
         operator, 'operator',
         default='D0N1',
         types=str,
@@ -55,7 +52,7 @@ def _get_mesh2dRect_operators_check(
     )
 
     # geometry
-    geometry = _generic_check._check_var(
+    geometry = ds._generic_check._check_var(
         geometry, 'geometry',
         default='toroidal',
         types=str,
@@ -63,7 +60,7 @@ def _get_mesh2dRect_operators_check(
     )
 
     # sparse_fmt
-    sparse_fmt = _generic_check._check_var(
+    sparse_fmt = ds._generic_check._check_var(
         sparse_fmt, 'sparse_fmt',
         default='csc',
         types=str,
@@ -74,7 +71,7 @@ def _get_mesh2dRect_operators_check(
     lok = [False]
     if operator == 'D1N2' and deg == 0:
         lok.append(True)
-    returnas_element = _generic_check._check_var(
+    returnas_element = ds._generic_check._check_var(
         returnas_element, 'returnas_element',
         default=False,
         types=bool,
@@ -895,7 +892,7 @@ def _D1_Deg0(
     """
 
     # check input
-    centered = _generic_check._check_var(
+    centered = ds._generic_check._check_var(
         centered, 'centered',
         types=bool,
         default=False,

@@ -13,9 +13,9 @@ import matplotlib.colors as mplcol
 import matplotlib.gridspec as gridspec
 from matplotlib.axes._axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
-import matplotlib._contour as mcontour
 from matplotlib.collections import PatchCollection
 import matplotlib as mpl
+from contourpy import contour_generator
 
 # tofu
 from tofu.version import __version__
@@ -131,7 +131,7 @@ def _CrystalBragg_plot_check(
     xi=None, xj=None,
     rays_color=None, rays_npts=None,
     dleg=None, draw=True,
-    use_non_parallelism=None,
+    miscut=None,
     wintit=None, tit=None,
 ):
 
@@ -201,13 +201,13 @@ def _CrystalBragg_plot_check(
 
     # vectors and outline
     if cryst is not None:
-        nout, e1, e2, use_non_parallelism = cryst.get_unit_vectors(
-            use_non_parallelism=use_non_parallelism,
+        nout, e1, e2, miscut = cryst.get_unit_vectors(
+            miscut=miscut,
         )
         nin = -nout
         outline = cryst.sample_outline_plot(
             res=res,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
         )
 
     # det
@@ -371,7 +371,7 @@ def CrystalBragg_plot(
     xi=None, xj=None,
     rays_color=None, rays_npts=None,
     dleg=None, draw=True, fs=None, dmargin=None,
-    use_non_parallelism=None,
+    miscut=None,
     wintit=None, tit=None,
 ):
 
@@ -392,7 +392,7 @@ def CrystalBragg_plot(
         xi=xi, xj=xj,
         rays_color=rays_color, rays_npts=rays_npts,
         dleg=dleg, draw=draw,
-        use_non_parallelism=use_non_parallelism,
+        miscut=miscut,
         wintit=wintit, tit=tit,
     )
 
@@ -956,7 +956,7 @@ def CrystalBragg_plot_line_tracing_on_det(
     lamb_atprmax=None,
     det=None,
     johann=None, rocking=None,
-    use_non_parallelism=None,
+    miscut=None,
     therm_exp=None,
     merge_rc_data=None,
     alpha0=None, temp0=None, TD=None, angles=None,
@@ -1287,7 +1287,7 @@ def CrystalBragg_plot_focal_error_summed(
     units=None,
     plot_dets=None, nsort=None,
     tangent_to_rowland=None,
-    use_non_parallelism=None,
+    miscut=None,
     pts=None,
     test_lamb_interv=None,
     contour=None,
@@ -1366,7 +1366,7 @@ def CrystalBragg_plot_focal_error_summed(
             dpsi=dpsi0bis,
             tilt=tilt0,
             lamb=lamb,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             tangent_to_rowland=False,
         )
         detector_comp['outline'] = det_ref['outline']
@@ -1693,14 +1693,21 @@ def CrystalBragg_plot_plasma_domain_at_lamb(
         cont_cross = [None for ll in lamb]
         for kk, ll in enumerate(lamb):
             z[1:-1, 1:-1] = cross[kk, ...].T
-            cont_raw = mcontour.QuadContourGenerator(
-                x, y, z,
-                None,       # mask
-                True,       # how to mask
-                0,          # divide in sub-domains (0=not)
-            ).create_contour(0.5)
-            if isinstance(cont_raw, tuple):
-                cont_raw = cont_raw[0]
+            cont_raw = contour_generator(
+                x=x,
+                y=y,
+                z=z,
+                name='serial',
+                corner_mask=None,
+                line_type='Separate',
+                fill_type=None,
+                chunk_size=None,
+                chunk_count=None,
+                total_chunk_count=None,
+                quad_as_tri=True,       # for sub-mesh precision
+                # z_interp=<ZInterp.Linear: 1>,
+                thread_count=0,
+            ).lines(0.5)
             assert all([pp.ndim == 2  and pp.shape[1] == 2 for pp in cont_raw])
             cont_cross[kk] = PatchCollection(
                 [plt.Polygon(pp) for pp in cont_raw],
@@ -1872,14 +1879,21 @@ def CrystalBragg_plot_signal_from_emissivity(
 
     # see https://github.com/matplotlib/matplotlib/blob/main/src/_contour.h
     z[1:-1, 1:-1] = cross.T
-    cont_raw = mcontour.QuadContourGenerator(
-        x, y, z,
-        None,       # mask
-        True,       # how to mask
-        0,          # divide in sub-domains (0=not)
-    ).create_contour(0.5)
-    if isinstance(cont_raw, tuple):
-        cont_raw = cont_raw[0]
+    cont_raw = contour_generator(
+        x=x,
+        y=y,
+        z=z,
+        name='serial',
+        corner_mask=None,
+        line_type='Separate',
+        fill_type=None,
+        chunk_size=None,
+        chunk_count=None,
+        total_chunk_count=None,
+        quad_as_tri=True,       # for sub-mesh precision
+        # z_interp=<ZInterp.Linear: 1>,
+        thread_count=0,
+    ).lines(0.5)
     assert all([pp.ndim == 2 and pp.shape[1] == 2 for pp in cont_raw])
     cont_cross = PatchCollection(
         [plt.Polygon(pp) for pp in cont_raw],

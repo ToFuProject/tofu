@@ -5,9 +5,9 @@ import warnings
 
 import numpy as np
 import matplotlib.pyplot as plt
+import datastock as ds
 
 
-from . import _generic_check
 from ._DataCollection_class0_Base import DataCollection0
 from . import _DataCollection_interactivity as _interactivity
 from . import _DataCollection_comp
@@ -76,7 +76,7 @@ class DataCollection1(DataCollection0):
         # ----------
         # check dtype
 
-        dtype = _generic_check._check_var(
+        dtype = ds._generic_check._check_var(
             dtype,
             'dtype',
             types=str,
@@ -226,7 +226,7 @@ class DataCollection1(DataCollection0):
 
     def set_debug(self, debug=None):
         """ Set debug mode to True / False """
-        debug = _generic_check._check_var(
+        debug = ds._generic_check._check_var(
             debug,
             'debug',
             default=False,
@@ -672,7 +672,7 @@ class DataCollection1(DataCollection0):
             k0 for k0, v0 in self._dobj['axes'].items()
             if v0['handle'] == event.inaxes
         ]
-        kax = _generic_check._check_var(
+        kax = ds._generic_check._check_var(
             None, 'kax',
             types=str,
             allowed=lkax,
