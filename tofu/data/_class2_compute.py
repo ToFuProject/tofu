@@ -17,6 +17,7 @@ def _sample(
     key=None,
     res=None,
     mode=None,
+    segment=None,
     concatenate=None,
 ):
 
@@ -49,52 +50,99 @@ def _sample(
     if mode == 'abs':
         concatenate = False
 
-    # --------
+    # segment
+    if segment is not None:
+        segment = np.atleast_1d(segment).astype(int).ravel()
+
+    # -----------
     # compute
+    # -----------
 
+    # ------------------------
+    # get pooints of interest
+    
     pts_x, pts_y, pts_z = coll.get_rays_pts(key=key)
+    npts = pts_x.shape[0]
+    
+    if segment is not None:
+        segment[segment < 0] = npts - 1 + segment[segment < 0]
+        
+        iseg = np.r_[segment, segment[-1] + 1]
+        pts_x = pts_x[iseg, :]
+        pts_y = pts_y[iseg, :]
+        pts_z = pts_z[iseg, :]
+        
+        npts = pts_x.shape[0]
 
+   # -------------------------
+   # prepare sampling indices
+
+    # rel
     if mode == 'rel':
 
         # make sure npts allow to describe all integer indices
-        i0 = np.arange(0, pts_x.shape[0])
+        i0 = np.arange(0, npts)
         npts = i0[-1] * int(np.ceil(1./res))
 
         N = int(np.ceil((npts - 1) / (i0[-1] - i0[0])))
         npts = N * (i0[-1] - i0[0]) + 1
         i1 = np.linspace(i0[0], i0[-1], npts)
 
-        # interpolate
-        pts_x = scpinterp.interp1d(
-            i0,
-            pts_x,
-            kind='linear',
-            axis=0,
-        )(i1)
-        pts_y = scpinterp.interp1d(
-            i0,
-            pts_y,
-            kind='linear',
-            axis=0,
-        )(i1)
-        pts_z = scpinterp.interp1d(
-            i0,
-            pts_z,
-            kind='linear',
-            axis=0,
-        )(i1)
-
+    # abs
     else:
-        raise NotImplementedError()
+        norm = np.sqrt(
+            np.diff(pts_x, axis=0)**2
+            + np.diff(pts_y, axis=0)**2
+            + np.diff(pts_z, axis=0)**2
+            )
+        
+        nn = np.ceil(norm / res)
+        ni = nn - 1
+        
+        nti = np.cumsum(ni, axis=0)
+        
+        i0 = np.arange(0, npts)
+        i1 = i1 = np.linspace(i0[0], i0[-1], nti)
+        
+        # TBF !!!!!!!!!!!!!!!!!
+        
+        
+        
+        
+    # ------------
+    # interpolate
+    
+    # interpolate
+    pts_x = scpinterp.interp1d(
+        i0,
+        pts_x,
+        kind='linear',
+        axis=0,
+    )(i1)
+    pts_y = scpinterp.interp1d(
+        i0,
+        pts_y,
+        kind='linear',
+        axis=0,
+    )(i1)
+    pts_z = scpinterp.interp1d(
+        i0,
+        pts_z,
+        kind='linear',
+        axis=0,
+    )(i1)
         
     # -------------------------------------
     # optional concatenation (for plotting)
     
     if concatenate is True:
-        shape = tuple(np.r_[np.r_[1], pts_x.shape[1:]])
-        nan = np.full(shape, np.nan)
-        pts_x = np.concatenate((pts_x, nan), axis=0).T.ravel()
-        pts_y = np.concatenate((pts_y, nan), axis=0).T.ravel()
-        pts_z = np.concatenate((pts_z, nan), axis=0).T.ravel()
+        if mode == 'rel':
+            shape = tuple(np.r_[np.r_[1], pts_x.shape[1:]])
+            nan = np.full(shape, np.nan)
+            pts_x = np.concatenate((pts_x, nan), axis=0).T.ravel()
+            pts_y = np.concatenate((pts_y, nan), axis=0).T.ravel()
+            pts_z = np.concatenate((pts_z, nan), axis=0).T.ravel()
+        else:
+            pass
 
     return pts_x, pts_y, pts_z

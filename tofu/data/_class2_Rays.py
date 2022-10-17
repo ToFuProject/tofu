@@ -139,6 +139,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
         key=None,
         res=None,
         mode=None,
+        segment=None,
         concatenate=None,
     ):
         """ Return the sampled rays """
@@ -148,6 +149,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
             key=key,
             res=res,
             mode=mode,
+            segment=segment,
             concatenate=concatenate,
         )
 
