@@ -6,6 +6,7 @@ import datastock as ds
 
 
 from ..geom import CamLOS1D
+from ..geom import _comp
 
 
 # ##################################################################
@@ -208,25 +209,27 @@ def _check_inputs(
     # ---------
     # reflections
 
-    if config is not None:
+    # reflections_nb
+    if reflections_nb is None:
+        reflections_nb = 0
 
-        # reflections_nb
-        if reflections_nb is None:
-            reflections_nb = 0
+    reflections_nb = ds._generic_check._check_var(
+        reflections_nb, 'reflections_nb',
+        types=int,
+        sign='>= 0',
+    )
 
-        reflections_nb = ds._generic_check._check_var(
-            reflections_nb, 'reflections_nb',
-            types=int,
-            sign='>= 0',
-        )
+    # reflections_type
+    reflections_type = ds._generic_check._check_var(
+        reflections_type, 'reflections_type',
+        types=str,
+        default='specular',
+        allowed=['specular', 'diffusive'],
+    )
 
-        # reflections_type
-        reflections_type = ds._generic_check._check_var(
-            reflections_type, 'reflections_type',
-            types=str,
-            default='specular',
-            allowed=['specular', 'diffusive'],
-        )
+    if reflections_nb > 0 and config is None:
+        msg = "reflections can only be handled if config is provided"
+        raise Exception(msg)
 
     # ------
     # diag
@@ -392,13 +395,13 @@ def _rays(
         pts_x = np.full(shape, np.nan)
         pts_y = np.full(shape, np.nan)
         pts_z = np.full(shape, np.nan)
-        Rmin = np.full((np.prod(shaperef),), np.nan)
+        Rmin = np.full(shaperef, np.nan)
 
         pts_x[0, ...] = start_x
         pts_y[0, ...] = start_y
         pts_z[0, ...] = start_z
 
-        if reflections_nb > 0 or diag is not None:
+        if reflections_nb >= 0 or diag is not None:
             alpha = np.full(shape, np.nan)
             dalpha = np.full(shape, np.nan)
             dbeta = np.full(shape, np.nan)
@@ -413,7 +416,7 @@ def _rays(
         if diag is not None:
 
             for ii, oo in enumerate(lspectro):
-
+              
                 reflect_ptsvect = coll.get_optics_reflect_ptsvect(oo)
                 (
                     pts_x[ii, ...],
@@ -432,7 +435,7 @@ def _rays(
                     strict=True,
                     return_x01=False,
                 )
-
+                    
                 # update start
                 stx[...] = pts_x[ii, ...]
                 sty[...] = pts_y[ii, ...]
@@ -451,11 +454,19 @@ def _rays(
             ])
 
             # prepare u
-            uu = np.array([
-                vect_x.ravel(),
-                vect_y.ravel(),
-                vect_z.ravel(),
-            ])
+            if vect_x.size == 1 and stx.size > 1:
+                uu = np.array([
+                    np.full(stx.shape, vect_x[0]),
+                    np.full(stx.shape, vect_y[0]),
+                    np.full(stx.shape, vect_z[0]),
+                ])
+
+            else:
+                uu = np.array([
+                    vect_x.ravel(),
+                    vect_y.ravel(),
+                    vect_z.ravel(),
+                ])
 
             mask = np.all(np.isfinite(uu), axis=0)
             maskre = np.reshape(mask, shaperef)
@@ -489,7 +500,11 @@ def _rays(
             pts_x[-1, maskre] = pout[0, :]
             pts_y[-1, maskre] = pout[1, :]
             pts_z[-1, maskre] = pout[2, :]
-            Rmin[maskre.ravel()] = cam.dgeom['RMin']
+            
+            # RMin
+            kRMin = _comp.LOS_PRMin(cam.D, cam.u, kOut=None)
+            PRMin = cam.D + kRMin[None, :]*cam.u
+            Rmin[maskre] = np.hypot(PRMin[0, :], PRMin[1, :])
 
             vperp = cam.dgeom['vperp']
             u_perp = np.sum(cam.u*vperp, axis=0)
@@ -513,9 +528,6 @@ def _rays(
                 v0 = np.sum(us * e0, axis=0)
                 v1 = np.sum(us * e1, axis=0)
                 dbeta[i0, maskre] = np.arctan2(v1, v0)
-
-            if len(shaperef) == 2:
-                Rmin = Rmin.reshape(shaperef)
 
         # ----------
         # length
@@ -758,6 +770,16 @@ def _get_pts(
 ):
 
     # ---------
+    # check key
+
+    lok = list(coll.dobj.get('rays', {}))
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+    
+    # ---------
     # get start
 
     stx, sty, stz = _get_start(coll=coll, key=key)
@@ -804,9 +826,9 @@ def _get_vect(
     # ---------------
     # get start
 
-    stx, sty, syz = _get_start(coll=coll, key=key)
+    stx, sty, stz = _get_start(coll=coll, key=key)
 
-    ptsx, ptsy, ptsz = coll.dobj['rays']['pts']
+    ptsx, ptsy, ptsz = coll.dobj['rays'][key]['pts']
     ptsx = coll.ddata[ptsx]['data']
     ptsy = coll.ddata[ptsy]['data']
     ptsz = coll.ddata[ptsz]['data']

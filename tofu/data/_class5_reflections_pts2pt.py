@@ -60,6 +60,7 @@ def _get_pts2pt(
             e0=dgeom['e0'],
             e1=dgeom['e1'],
             # return
+            strict=None,
             return_xyz=None,
             return_x01=None,
             debug=None,
@@ -152,6 +153,7 @@ def _get_pts2pt(
             # local coordinates
             nin=dgeom['nin'],
             # return
+            strict=True,
             return_xyz=None,
             return_x01=None,
             # number of k for interpolation
@@ -172,19 +174,26 @@ def _get_pts2pt(
             A = np.r_[pt_x, pt_y, pt_z]
             Dx, Dy, Dz, xx, theta = _common_prepare(nb=pts_x.size)
 
-            em = np.cos(thetamax)*(erot) + np.sin(thetamax)*(-nin)
-            eM = np.cos(thetamax)*(erot) - np.sin(thetamax)*(-nin)
+            if strict:
+                xmargin = 1.
+                thetatot = thetamax
+            else:
+                xmargin = 1. + 0.01
+                thetatot = thetamax*(1. + 0.01)
+                    
+            em = np.cos(thetatot)*(erot) + np.sin(thetatot)*(-nin)
+            eM = np.cos(thetatot)*(erot) - np.sin(thetatot)*(-nin) 
 
             lzones = [
                 (
-                    (O - xmax*eax, eax),
-                    (O + xmax*eax, -eax),
+                    (O - (xmax*xmargin)*eax, eax),
+                    (O + (xmax*xmargin)*eax, -eax),
                     (O, em),
                     (O, -eM),
                 ),
                 (
-                    (O - xmax*eax, eax),
-                    (O + xmax*eax, -eax),
+                    (O - (xmax*xmargin)*eax, eax),
+                    (O + (xmax*xmargin)*eax, -eax),
                     (O, -em),
                     (O, eM),
                 ),
@@ -273,8 +282,9 @@ def _get_pts2pt(
                     nix*nin[0] + niy*nin[1] + niz*nin[2],
                 )
 
-                if np.abs(xxi) > xmax or np.abs(thetai) > thetamax:
-                    continue
+                if strict is True:
+                    if np.abs(xxi) > xmax or np.abs(thetai) > thetamax:
+                        continue
 
                 Dx[ii], Dy[ii], Dz[ii] = Dxi, Dyi, Dzi
                 xx[ii], theta[ii] = xxi, thetai
@@ -325,6 +335,7 @@ def _get_pts2pt(
             e0=dgeom['e0'],
             e1=dgeom['e1'],
             # return
+            strict=None,
             return_xyz=None,
             return_x01=None,
             nk=None,
@@ -448,8 +459,9 @@ def _get_pts2pt(
 
                 # ----------
 
-                if np.abs(phii) > phimax or np.abs(dthetai) > dthetamax:
-                    continue
+                if strict is True:
+                    if np.abs(phii) > phimax or np.abs(dthetai) > dthetamax:
+                        continue
 
                 Dx[ii], Dy[ii], Dz[ii] = Dxi, Dyi, Dzi
                 phi[ii], dtheta[ii] = phii, dthetai
@@ -548,14 +560,14 @@ def _kminmax_plane(
         AOe = np.sum(AO*ep)
         ABe = np.sum(AB * ep)
 
-        if np.abs(ABe) < 1e-14:
+        if np.abs(ABe) < 1e-16:
             continue
         kk = AOe / ABe
-        if kk <= 0 or kk >= 1:
+        if kk < 0 or kk > 1:
             continue
         lk.append(kk)
 
-    kk = np.r_[0., np.sort(lk) + 1.e-12, 1.]
+    kk = np.r_[0., np.sort(lk) + 1.e-13, 1.]
 
     kin = np.array([
         _kminmax_ptinz2(

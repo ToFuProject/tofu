@@ -72,8 +72,9 @@ class Camera(_class6_Grating.Grating):
         )
 
         if dmat is not None:
-            dref.update(dref2)
-            ddata.update(ddata2)
+            if dref2 is not None:
+                dref.update(dref2)
+                ddata.update(ddata2)
             dobj['camera'][key]['dmat'] = dmat
 
         # dmisc

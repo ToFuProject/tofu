@@ -270,6 +270,7 @@ def _interp_poly(
     isclosed=None,
     closed=None,
     ravel=None,
+    min_threshold=1.e-6,
 ):
 
     # ------------
@@ -322,7 +323,8 @@ def _interp_poly(
         if dist.ndim == 2:
             import pdb; pdb.set_trace()     # DB
 
-        mindist = np.min(dist[dist > 1.e-10])
+        min_threshold = min(min_threshold, np.max(dist)/3.)
+        mindist = np.min(dist[dist > min_threshold])
         add_points = add_points * np.ceil(dist / mindist).astype(int) - 1
 
     # -----------
@@ -797,7 +799,7 @@ def get_lamb_from_angle(
                 key=kcryst,
                 bragg=ang,
                 rocking_curve=rocking_curve,
-            )
+            )[1]
             if lamb == kk:
                 data = dd
             else:

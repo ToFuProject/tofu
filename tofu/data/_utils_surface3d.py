@@ -66,13 +66,24 @@ def _surface3d(
         all([pp is not None for pp in [poly_x, poly_y, poly_z]])
     ]
     if np.sum(lc) != 1:
+        kwd = locals()
+        lstr = [
+            f"\t- {ss}: {kwd[ss]}"
+            for ss in [
+                    'outline_x0', 'outline_x1', 'cent', 'e0',
+                    'extenthalf', 'curve_r', 'cent', 'e0',
+                     'poly_x', 'poly_y', 'poly_z',
+                    ]
+            ]
         msg = (
             "Please provide either (xor):\n"
             "\t- planar: outline_x0, outline_x1 and cent, e0, e1\n"
             "xor\n"
             "\t- curved: extenthalf and cent, e0, e1\n"
             "xor\n"
-            "\t- arbitrary 3d: poly_x, poly_y, poly_z"
+            "\t- arbitrary 3d: poly_x, poly_y, poly_z\nn"
+            "Provided:\n"
+            + "\n".join(lstr)
         )
         raise Exception(msg)
 
