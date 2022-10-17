@@ -512,7 +512,7 @@ class Test01_Diagnostic():
                     # parameters
                     cam_on_e0=False,
                     cam_tangential=True,
-                    cam_dimensions=[8e-2, 4e-2],
+                    cam_dimensions=[8e-2, 5e-2],
                     pinhole_distance=2.,
                     # store
                     store=True,

@@ -125,7 +125,7 @@ def _bragglamb(
         raise NotImplementedError(msg)
 
     return bragg, lamb
-    
+
 
 # #################################################################
 # #################################################################
@@ -260,11 +260,12 @@ def _ideal_configuration_check(
                 default=f'{key}_{ap}',
                 excluded=None,
             )
-            
+
             key_aperture_in = key_aperture in lout
-                
+
         else:
             key_aperture = None
+            key_aperture_in = False
 
         # cam_pixels_nb
         cam_pixels_nb = ds._generic_check._check_flat1darray(
@@ -285,7 +286,7 @@ def _ideal_configuration_check(
                     types=float,
                     sign='> 0.',
                 )
-    
+
             elif configuration == 'von hamos':
                 aperture_dimensions = ds._generic_check._check_flat1darray(
                     aperture_dimensions, 'aperture_dimensions',
@@ -293,7 +294,7 @@ def _ideal_configuration_check(
                     size=[1, 2],
                     sign='> 0.',
                 )
-    
+
                 if aperture_dimensions.size == 1:
                     aperture_dimensions = aperture_dimensions * np.r_[1., 1.]
 
