@@ -46,9 +46,6 @@ def _sample(
         types=bool,
         default=False,
     )
-    
-    if mode == 'abs':
-        concatenate = False
 
     # segment
     if segment is not None:
@@ -166,8 +163,14 @@ def _sample(
             pts_y = np.concatenate((pts_y, nan), axis=0).T.ravel()
             pts_z = np.concatenate((pts_z, nan), axis=0).T.ravel()
         else:
-            pts_x = np.concatenate([np.append(pp, np.nan) for pp in pts_x])
-            pts_y = np.concatenate([np.append(pp, np.nan) for pp in pts_y])
-            pts_z = np.concatenate([np.append(pp, np.nan) for pp in pts_z])
+            pts_x = np.concatenate(
+                tuple([np.append(pp, np.nan) for pp in pts_x])
+                )
+            pts_y = np.concatenate(
+                tuple([np.append(pp, np.nan) for pp in pts_y])
+                )
+            pts_z = np.concatenate(
+                tuple([np.append(pp, np.nan) for pp in pts_z])
+                )
 
     return pts_x, pts_y, pts_z
