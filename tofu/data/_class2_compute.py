@@ -87,6 +87,27 @@ def _sample(
         N = int(np.ceil((npts - 1) / (i0[-1] - i0[0])))
         npts = N * (i0[-1] - i0[0]) + 1
         i1 = np.linspace(i0[0], i0[-1], npts)
+       
+        # interpolate
+        pts_x = scpinterp.interp1d(
+            i0,
+            pts_x,
+            kind='linear',
+            axis=0,
+        )(i1)
+        pts_y = scpinterp.interp1d(
+            i0,
+            pts_y,
+            kind='linear',
+            axis=0,
+        )(i1)
+        pts_z = scpinterp.interp1d(
+            i0,
+            pts_z,
+            kind='linear',
+            axis=0,
+        )(i1)
+
 
     # abs
     else:
@@ -96,42 +117,44 @@ def _sample(
             + np.diff(pts_z, axis=0)**2
             )
         
-        nn = np.ceil(norm / res)
-        ni = nn - 1
-        
-        nti = np.cumsum(ni, axis=0)
-        
+        nn = np.ceil(norm / res).astype(int)
         i0 = np.arange(0, npts)
-        i1 = i1 = np.linspace(i0[0], i0[-1], nti)
         
-        # TBF !!!!!!!!!!!!!!!!!
+        lpx, lpy, lpz = [], [], []
+        for ii in range(pts_x.shape[1]):
+            
+            i1 = np.concatenate(tuple(
+                [
+                    np.linspace(i0[jj], i0[jj+1], nn[jj, ii] + 1)[:-1]
+                    for jj in range(npts - 1)
+                ]
+                + [[i0[-1]]]
+                ))
         
+            # interpolate
+            lpx.append(scpinterp.interp1d(
+                i0,
+                pts_x[:, ii],
+                kind='linear',
+                axis=0,
+            )(i1))
+            
+            lpy.append(scpinterp.interp1d(
+                i0,
+                pts_y[:, ii],
+                kind='linear',
+                axis=0,
+            )(i1))
+            
+            lpz.append(scpinterp.interp1d(
+                i0,
+                pts_z[:, ii],
+                kind='linear',
+                axis=0,
+            )(i1))
         
-        
-        
-    # ------------
-    # interpolate
-    
-    # interpolate
-    pts_x = scpinterp.interp1d(
-        i0,
-        pts_x,
-        kind='linear',
-        axis=0,
-    )(i1)
-    pts_y = scpinterp.interp1d(
-        i0,
-        pts_y,
-        kind='linear',
-        axis=0,
-    )(i1)
-    pts_z = scpinterp.interp1d(
-        i0,
-        pts_z,
-        kind='linear',
-        axis=0,
-    )(i1)
-        
+        pts_x, pts_y, pts_z = lpx, lpy, lpz
+
     # -------------------------------------
     # optional concatenation (for plotting)
     
@@ -143,6 +166,8 @@ def _sample(
             pts_y = np.concatenate((pts_y, nan), axis=0).T.ravel()
             pts_z = np.concatenate((pts_z, nan), axis=0).T.ravel()
         else:
-            pass
+            pts_x = np.concatenate([np.append(pp, np.nan) for pp in pts_x])
+            pts_y = np.concatenate([np.append(pp, np.nan) for pp in pts_y])
+            pts_z = np.concatenate([np.append(pp, np.nan) for pp in pts_z])
 
     return pts_x, pts_y, pts_z
