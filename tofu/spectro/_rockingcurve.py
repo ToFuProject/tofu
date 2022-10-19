@@ -336,7 +336,7 @@ def compute_rockingcurve(
 
     if miscut is False and therm_exp is False:
         (
-            alpha, bb, polar, g, y, power_ratio, max_pr, th, dth,
+            alpha, bb, polar, g, y, power_ratio, max_pr, th, dth, th_max_pr,
             rhg, P_per, P_mos, P_dyn, det_perp, det_para,
         ) = CrystBragg_comp_integrated_reflect(
             lamb=lamb, re=re, Volume=Volume, Zo=Zo, theta=theta, mu=mu,
@@ -349,7 +349,8 @@ def compute_rockingcurve(
         )
     else:
         (
-            alpha, bb, polar, g, y, power_ratio, max_pr, th, dth,
+            alpha, bb, polar, g, y, power_ratio,
+            max_pr, th, dth, th_max_pr_tot, th_max_pr_tot_norm,
             rhg, rhg_perp, rhg_para, rhg_perp_norm, rhg_para_norm,
             P_per, P_mos, P_dyn,
             det_perp, det_para, det_perp_norm, det_para_norm,
@@ -395,6 +396,7 @@ def compute_rockingcurve(
             din=din, lamb=lamb,
             theta=theta, theta_deg=theta_deg,
             alpha=alpha, bb=bb, th=th, rhg=rhg,
+            th_max_pr_tot_norm=th_max_pr_tot_norm,
             rhg_perp_norm=rhg_perp_norm,
             rhg_para_norm=rhg_para_norm,
             det_perp_norm=det_perp_norm,
@@ -1230,16 +1232,37 @@ def CrystBragg_comp_integrated_reflect(
     # the maximum value of each power ratio computed (each rocking curve)
     lc = [miscut is True, therm_exp is True]
     if any(lc) or all(lc):
+
         rhg_perp_norm = np.full((rhg_perp.shape), np.nan)
         rhg_para_norm = np.full((rhg_para.shape), np.nan)
         det_perp_norm = np.full((det_perp.shape), np.nan)
         det_para_norm = np.full((det_para.shape), np.nan)
+        power_ratio_tot = np.full((theta.size, alpha.size, y.size), np.nan)
+        max_pr_tot = np.full((theta.size, alpha.size), np.nan)
+        ind_th_max_pr = np.full((theta.size, alpha.size), np.nan)
+        th_max_pr_tot = np.full((theta.size, alpha.size), np.nan)
+        th_max_pr_tot_norm = np.full((theta.size, alpha.size), np.nan)
+
         for i in range(theta.size):
             for j in range(alpha.size):
+                # Total power ratio
+                power_ratio_tot[i, j, :] = (
+                    power_ratio[0, i, j, ...] + power_ratio[1, i, j, ...]
+                )
+                max_pr_tot[i, j] = (power_ratio_tot[i, j, :]).max()
+                ind_th_max_pr[i, j] = np.where(
+                    power_ratio_tot[i, j] == max_pr_tot[i, j]
+                )[0][0]
+                th_max_pr_tot[i, j] = th[0, i, j, int(ind_th_max_pr[i, j])]
+
+        for i in range(theta.size):
+            for j in range(alpha.size):
+                # Normalized
                 det_perp_norm = det_perp[i]/det_perp[i, nn]
                 det_para_norm = det_para[i]/det_para[i, nn]
                 rhg_perp_norm = rhg_perp[i]/rhg_perp[i, nn]
                 rhg_para_norm = rhg_para[i]/rhg_para[i, nn]
+                th_max_pr_tot_norm = th_max_pr_tot[i]/th_max_pr_tot[i, nn]
                 # Shift between each RC's max value or pattern center
                 if therm_exp:
                     shift_perp[i, j] = (
@@ -1259,14 +1282,16 @@ def CrystBragg_comp_integrated_reflect(
     if miscut is False and therm_exp is False:
         return (
             alpha, bb, polar, g, y,
-            power_ratio, max_pr, th, dth,
+            power_ratio,
+            max_pr, th, dth, th_max_pr,
             rhg, P_per, P_mos, P_dyn,
             det_perp, det_para,
         )
     else:
         return (
             alpha, bb, polar, g, y,
-            power_ratio, max_pr, th, dth,
+            power_ratio,
+            max_pr, th, dth, th_max_pr_tot, th_max_pr_tot_norm,
             rhg, rhg_perp, rhg_para, rhg_perp_norm, rhg_para_norm,
             P_per, P_mos, P_dyn,
             det_perp, det_para, det_perp_norm, det_para_norm,
@@ -1774,6 +1799,7 @@ def CrystalBragg_plot_rc_components_vs_asymmetry(
     din=None, lamb=None,
     theta=None, theta_deg=None,
     alpha=None, bb=None, th=None,
+    th_max_pr_tot_norm=None,
     rhg=None, rhg_perp_norm=None, rhg_para_norm=None,
     det_perp_norm=None, det_para_norm=None,
     therm_exp=None, nn=None, T0=None, TD=None,
@@ -1796,44 +1822,44 @@ def CrystalBragg_plot_rc_components_vs_asymmetry(
         f'{target}, {name}, ' + fr'$\lambda$={np.round((lamb), 14)}m',
         fontsize=15,
     )
-    ax.set_xlabel(r'$\alpha$ (deg)', fontsize=15)
+    ax.set_xlabel(r'Miscut $\alpha$ (rad)', fontsize=15)
     ax.set_ylim(0., 5.)
     if therm_exp:
-        ax.set_xlim(-theta_deg[nn] - 10., theta_deg[nn] + 10.)
+        ax.set_xlim(-theta[nn] - 1., theta[nn] + 1.)
     else:
-        ax.set_xlim(-theta_deg - 10., theta_deg + 10.)
+        ax.set_xlim(-theta - 1., theta + 1.)
+    ax.tick_params(labelsize=15)
 
     alpha_deg = alpha*(180/np.pi)
-    f = scipy.interpolate.interp1d(alpha_deg, abs(bb), kind='cubic')
-    alpha_deg_bis = np.linspace(-alpha_deg, alpha_deg, 21)
-    bb_bis = f(alpha_deg_bis)
+    f = scipy.interpolate.interp1d(alpha, abs(bb), kind='cubic')
+    alpha_bis = np.linspace(-alpha, alpha, 21)
+    bb_bis = f(alpha_bis)
+
     ax.plot(
-        alpha_deg,
+        alpha,
         det_perp_norm,
         'r--',
         label=r'Angular FWMH (normalized)',
     )
     ax.plot(
-        alpha_deg,
+        alpha,
         rhg_perp_norm, # + rhg_para_norm,
         'k-',
         label='Integrated reflectivity R$_{H}$ (normalized)',
     )
-    """
     ax.plot(
-        alpha_deg,
-        rhg_para_norm,
-        'k--',
-        label='P$_{dyn}$ (parallel comp.) (normalized)',
-    )
-    """
-    ax.plot(
-        alpha_deg_bis[:, 0],
+        alpha_bis[:, 0],
         bb_bis[0, :, 0],
         'b-.',
-        label='direction parameter |b|',
+        label='Asymmetry parameter |b|',
     )
-    ax.legend()
+    ax.plot(
+        alpha,
+        th_max_pr_tot_norm,
+        'g-.',
+        label=r'$\theta^{max}$-$\theta_{B}$ (normalized)',
+    )
+    ax.legend(fontsize=15)
 
 
 def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
