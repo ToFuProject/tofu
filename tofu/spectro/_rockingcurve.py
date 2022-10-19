@@ -181,7 +181,6 @@ def compute_rockingcurve(
         lamb=lamb,
         din=din,
     )
-
     # Classical electronical radius, in Angstroms, from the NIST Reference on
     # Constants, Units and Uncertainty, CODATA 2018 recommended values
     re = 2.817940e-5
@@ -469,12 +468,15 @@ def compute_rockingcurve(
 
 
 def plot_var_temp_changes_wavelengths(
-    # Lattice parameters
-    ih=None, ik=None, il=None, lambdas=None,
+    # Type of crystal
+    crystal=None, din=None,
+    # Wavelength
+    lambdas=None,
     # lattice modifications
     miscut=None, nn=None,
     miscut_limits=None,
     therm_exp=None,
+    temp_limits=None,
     # Plot
     plot_therm_exp=None,
     plot_asf=None, plot_power_ratio=None,
@@ -484,7 +486,7 @@ def plot_var_temp_changes_wavelengths(
     curv_radius=None, pixel_size=None,
 ):
     """ Using results from compute_rockingcurve() method, the aim is to study
-    the variations of few physical quantities accoridng to the temperature
+    the variations of few physical quantities according to the temperature
     changes for multiple wavelengths.
     It is a complementary method to get a global view, for a specific
     crystal, of the spectral shift impinging very specific wavelengths, due to
@@ -518,6 +520,28 @@ def plot_var_temp_changes_wavelengths(
     # Check inputs
     # ------------
 
+    if crystal is None:
+        msg = (
+            "You must choose a type of crystal from "
+            + "tofu/spectro/_rockingcurve_def.py to use among:\n"
+            + "\t - Quartz_110:\n"
+            + "\t\t - target: ArXVII"
+            + "\t\t - Miller indices (h,k,l): (1,1,0)"
+            + "\t\t - Material: Quartz\n"
+            + "\t - Quartz_102:\n"
+            + "\t\t - target: ArXVIII"
+            + "\t\t - Miller indices (h,k,l): (1,0,2)"
+            + "\t\t - Material: Quartz\n"
+        )
+        raise Exception(msg)
+    elif crystal == 'Quartz_110':
+        din = _rockingcurve_def._DCRYST['Quartz_110']
+    elif crystal == 'Quartz_102':
+        din = _rockingcurve_def._DCRYST['Quartz_102']
+
+    name = din['name']
+    target=din['target']['ion']
+
     if miscut is None:
         miscut = True
     if therm_exp is None:
@@ -526,7 +550,10 @@ def plot_var_temp_changes_wavelengths(
         nn = 25
     na = 2*nn + 1
     if lambdas is None:
-        lambdas = np.r_[3.949066, 3.965858, 3.969356, 3.994145, 3.989810]
+        lambdas = np.r_[
+            3.949066e-10, 3.965858e-10, 3.969356e-10,
+            3.994145e-10, 3.989810e-10,
+        ]
     nlamb = lambdas.size
     if quantity is None:
         quantity = 'integrated reflectivity'
@@ -538,67 +565,75 @@ def plot_var_temp_changes_wavelengths(
     # Creating new dict with needed data
     # ----------------------------------
 
-    din = {}
+    dlamb = {}
+    dout = {}
     for aa in range(nlamb):
-        din[lambdas[aa]] = {}
-        dout = compute_rockingcurve(
-            ih=ih, ik=ik, il=il, lamb=lambdas[aa],
+        dlamb[lambdas[aa]] = {}
+        dout, _ = compute_rockingcurve(
+            crystal=crystal,
+            lamb=lambdas[aa],
             miscut=miscut,
-            miscut_limits=miscut_limits, na=na,
-            therm_exp=therm_exp, plot_therm_exp=False,
-            plot_asf=False, plot_power_ratio=False,
-            plot_asymmetry=False, plot_cmaps=False,
-            verb=False, returnas=dict,
+            miscut_limits=miscut_limits, nn=nn,
+            therm_exp=therm_exp,
+            temp_limits=temp_limits,
+            plot_therm_exp=False,
+            plot_asf=False,
+            plot_power_ratio=False,
+            plot_asymmetry=False,
+            plot_cmaps=False,
+            returnas=dict,
         )
-        din[lambdas[aa]]['Wavelength (m)'] = dout['Wavelength (m)\n']
-        din[lambdas[aa]]['Inter-reticular distance (m)'] = (
-            dout['Inter-reticular distance (m)\n']
+
+        dlamb[lambdas[aa]]['Wavelength (m)'] = dout['Wavelength (m)']
+        dlamb[lambdas[aa]]['Inter-reticular distance (m)'] = (
+            dout['Inter-reticular distance (m)']
         )
-        din[lambdas[aa]]['Bragg angle of reference (rad)'] = (
-            dout['Bragg angle of reference (rad)\n']
+        dlamb[lambdas[aa]]['Bragg angle of reference (rad)'] = (
+            dout['Bragg angle of reference (rad)']
         )
-        din[lambdas[aa]]['miscut angles (deg)'] = (
-            dout['miscut angles (deg)\n']
+        dlamb[lambdas[aa]]['Miscut angles (deg)'] = (
+            dout['Miscut angles (deg)']
         )
-        din[lambdas[aa]]['Temperature changes (°C)'] = (
-            dout['Temperature changes (°C)\n']
+        dlamb[lambdas[aa]]['Temperature changes (°C)'] = (
+            dout['Temperature changes (°C)']
         )
-        din[lambdas[aa]]['Integrated reflectivity'] = (
-            dout['Integrated reflectivity\n']['perfect model']
+        dlamb[lambdas[aa]]['Integrated reflectivity'] = (
+            dout['Integrated reflectivity']['perfect model']
         )
-        din[lambdas[aa]]['Maximum reflectivity (perp. compo)'] = (
-            dout['Maximum reflectivity (perp. compo)\n']
+        dlamb[lambdas[aa]]['Maximum reflectivity (perp. compo)'] = (
+            dout['Maximum reflectivity (perp. compo)']
         )
-        din[lambdas[aa]]['Maximum reflectivity (para. compo)'] = (
-            dout['Maximum reflectivity (para. compo)\n']
+        dlamb[lambdas[aa]]['Maximum reflectivity (para. compo)'] = (
+            dout['Maximum reflectivity (para. compo)']
         )
-        din[lambdas[aa]]['RC width (perp. compo)'] = (
-            dout['RC width (perp. compo)\n']
+        dlamb[lambdas[aa]]['RC width (perp. compo)'] = (
+            dout['RC width (perp. compo)']
         )
-        din[lambdas[aa]]['RC width (para. compo)'] = (
-            dout['RC width (para. compo)\n']
+        dlamb[lambdas[aa]]['RC width (para. compo)'] = (
+            dout['RC width (para. compo)']
         )
-        din[lambdas[aa]]['Shift from RC of reference (perp. compo)'] = (
-            dout['Shift from RC of reference (perp. compo)\n']
+        dlamb[lambdas[aa]]['Shift from RC of reference (perp. compo)'] = (
+            dout['Shift from RC of reference (perp. compo)']
         )
-        din[lambdas[aa]]['Shift from RC of reference (para. compo)'] = (
-            dout['Shift from RC of reference (para. compo)\n']
-        )
-    for aa in range(nlamb):
-        din[lambdas[aa]]['Inter-planar spacing variations (perp. compo)'] = (
-            din[lambdas[aa]]['Shift from RC of reference (perp. compo)'] /
-            np.tan(din[lambdas[aa]]['Bragg angle of reference (rad)'][nn])
-        )
-        din[lambdas[aa]]['Inter-planar spacing variations (para. compo)'] = (
-            din[lambdas[aa]]['Shift from RC of reference (para. compo)'] /
-            np.tan(din[lambdas[aa]]['Bragg angle of reference (rad)'][nn])
+        dlamb[lambdas[aa]]['Shift from RC of reference (para. compo)'] = (
+            dout['Shift from RC of reference (para. compo)']
         )
 
     for aa in range(nlamb):
-        din[lambdas[aa]]['shift in pixel'] = (
-            din[lambdas[aa]]['Shift from RC of reference (perp. compo)']
+        dlamb[lambdas[aa]]['Inter-planar spacing variations (perp. compo)'] = (
+            dlamb[lambdas[aa]]['Shift from RC of reference (perp. compo)'] /
+            np.tan(dlamb[lambdas[aa]]['Bragg angle of reference (rad)'][nn])
+        )
+        dlamb[lambdas[aa]]['Inter-planar spacing variations (para. compo)'] = (
+            dlamb[lambdas[aa]]['Shift from RC of reference (para. compo)'] /
+            np.tan(dlamb[lambdas[aa]]['Bragg angle of reference (rad)'][nn])
+        )
+
+    for aa in range(nlamb):
+        dlamb[lambdas[aa]]['shift in pixel'] = (
+            dlamb[lambdas[aa]]['Shift from RC of reference (perp. compo)']
             )*curv_radius*np.sin(
-                din[lambdas[aa]]['Bragg angle of reference (rad)'][nn]
+                dlamb[lambdas[aa]]['Bragg angle of reference (rad)'][nn]
             )/pixel_size
 
     # Plots
@@ -607,11 +642,13 @@ def plot_var_temp_changes_wavelengths(
     # 1st: comparisons between spacing variations from theoretical (d_hkl)
     # and those induced from RC shifts computations; study of the impact of
     # asymetry and thermal expansion on few wavelengths of interest
+
     fig = plt.figure(figsize=(15, 9))
     gs = gridspec.GridSpec(1, 2)
     ax = fig.add_subplot(gs[0, 0])
     ax1 = fig.add_subplot(gs[0, 1])
-    fig.suptitle('Hexagonal Qz, ' + f'({ih},{ik},{il})', fontsize=15)
+
+    fig.suptitle(fr'{name}' + ', {target}', fontsize=15)
     ax.set_title('Computed spacing variations', fontsize=15)
     ax.set_xlabel(r'$\Delta$T ($T_{0}$=25°C)', fontsize=15)
     ax.set_ylabel(r'$\Delta$d$_{(hkl)}$', fontsize=15)
@@ -621,40 +658,40 @@ def plot_var_temp_changes_wavelengths(
 
     for aa in range(nlamb):
         diff = (
-            din[lambdas[aa]][
+            dlamb[lambdas[aa]][
                 'Inter-planar spacing variations (perp. compo)'
             ][:, nn] - (
-                din[lambdas[aa]]['Inter-reticular distance (m)']
-                - din[lambdas[aa]]['Inter-reticular distance (m)'][nn]
-            )/din[lambdas[aa]]['Inter-reticular distance (m)'][nn]
+                dlamb[lambdas[aa]]['Inter-reticular distance (m)']
+                - dlamb[lambdas[aa]]['Inter-reticular distance (m)'][nn]
+            )/dlamb[lambdas[aa]]['Inter-reticular distance (m)'][nn]
         )
         ax.scatter(
-            din[lambdas[aa]]['Temperature changes (°C)'],
-            din[lambdas[aa]]['Inter-reticular distance (m)'],
+            dlamb[lambdas[aa]]['Temperature changes (°C)'],
+            dlamb[lambdas[aa]]['Inter-reticular distance (m)'],
             marker=markers[aa], c='k', alpha=0.5,
             label=r'$\lambda$ = ({})$\AA$'.format(lambdas[aa]),
         )
         if quantity == 'integrated reflectivity':
             ax1.set_ylabel(r'Integrated reflectivity', fontsize=15)
             ax1.scatter(
-                din[lambdas[aa]]['Temperature changes (°C)'],
-                din[lambdas[aa]]['Integrated reflectivity'],
+                dlamb[lambdas[aa]]['Temperature changes (°C)'],
+                dlamb[lambdas[aa]]['Integrated reflectivity'],
                 marker=markers[aa], c='k', alpha=0.5,
                 label=r'$\lambda$ = ({})$\AA$'.format(lambdas[aa]),
             )
         if quantity == 'maximum reflectivity':
             ax1.set_ylabel(r'Maximum reflectivity', fontsize=15)
             ax1.scatter(
-                din[lambdas[aa]]['Temperature changes (°C)'],
-                din[lambdas[aa]]['Maximum reflectivity (perp. compo)'][:, nn],
+                dlamb[lambdas[aa]]['Temperature changes (°C)'],
+                dlamb[lambdas[aa]]['Maximum reflectivity (perp. compo)'][:, nn],
                 marker=markers[aa], c='k', alpha=0.5,
                 label=r'$\lambda$ = ({})$\AA$'.format(lambdas[aa]),
             )
         if quantity == 'rocking curve width':
             ax1.set_ylabel(r'Rocking curve width', fontsize=15)
             ax1.scatter(
-                din[lambdas[aa]]['Temperature changes (°C)'],
-                din[lambdas[aa]]['RC width (perp. compo)'][:, nn],
+                dlamb[lambdas[aa]]['Temperature changes (°C)'],
+                dlamb[lambdas[aa]]['RC width (perp. compo)'][:, nn],
                 marker=markers[aa], c='k', alpha=0.5,
                 label=r'$\lambda$ = ({})$\AA$'.format(lambdas[aa]),
             )
@@ -675,12 +712,12 @@ def plot_var_temp_changes_wavelengths(
     ncols = nlamb
     gs2 = gridspec.GridSpec(nrows, ncols, **dmargin)
     fig2.suptitle(
-        r'Hexagonal $\alpha$-Qz, ' + f'({ih},{ik},{il})' +
+        fr'{name}' + ', {target}' +
         r', inferred pixel shift $\Delta$p',
         fontsize=15,
     )
-    alpha = din[lambdas[aa]]['miscut angles (deg)']*(np.pi/180)
-    TD = din[lambdas[aa]]['Temperature changes (°C)']
+    alpha = dlamb[lambdas[aa]]['Miscut angles (deg)']*(np.pi/180)
+    TD = dlamb[lambdas[aa]]['Temperature changes (°C)']
     extent = (alpha.min(), alpha.max(), TD.min(), TD.max())
 
     for aa in range(ncols):
@@ -690,8 +727,8 @@ def plot_var_temp_changes_wavelengths(
         ax2.set_xlabel(r'$\alpha$ (rad)', fontsize=15)
         ax2.set_title(r'$\lambda$=({}) $\AA$'.format(lambdas[aa]), fontsize=15)
 
-        shiftmin = (din[lambdas[aa]]['shift in pixel']).min()
-        shiftmax = (din[lambdas[aa]]['shift in pixel']).max()
+        shiftmin = (dlamb[lambdas[aa]]['shift in pixel']).min()
+        shiftmax = (dlamb[lambdas[aa]]['shift in pixel']).max()
         if abs(shiftmin) < abs(shiftmax):
             vmax = shiftmax
             vmin = -shiftmax
@@ -702,7 +739,7 @@ def plot_var_temp_changes_wavelengths(
             vmax = shiftmax
             vmin = shiftmin
         cmaps = ax2.imshow(
-            din[lambdas[aa]]['shift in pixel'],
+            dlamb[lambdas[aa]]['shift in pixel'],
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,
@@ -1007,6 +1044,7 @@ def CrystBragg_comp_lattice_spacing(
         'Inter_atomic distance c1 (m)': c1,
         'Volume (1/m3)': Volume,
         'Inter-reticular spacing (m)': d_atom,
+        'Wavelength (m)': lamb,
         'sinus_theta_lambda': sol,
         'sinus theta_Bragg': sin_theta,
         'theta_Bragg (rad)': theta,
@@ -1056,7 +1094,9 @@ def CrystBragg_comp_integrated_reflect(
     P_per = np.full((theta.size), np.nan)
     P_mos = P_per.copy()
     for i in range(theta.size):
-        P_per[i] = Zo*F_re[i]*re*((lamb*1e10)**2)*(1. + abs(np.cos(2.*theta[i])))/(
+        P_per[i] = Zo*F_re[i]*re*((lamb*1e10)**2)*(
+            1. + abs(np.cos(2.*theta[i]))
+        )/(
             6.*np.pi*Volume[i]*np.sin(2.*theta[i])
         )
 
@@ -1366,6 +1406,7 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         col2 = {'black': dd2[0]}
 
     name = din['name']
+    target = din['target']['ion']
     miller = np.r_[
         int(din['miller'][0]),
         int(din['miller'][1]),
@@ -1382,15 +1423,15 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
             fig1 = plt.figure(figsize=(8, 6))
             gs = gridspec.GridSpec(1, 1)
             ax = fig1.add_subplot(gs[0, 0])
-            """
             ax.set_title(
-                f'{name}, ' + f'({miller[0]},{miller[1]},{miller[2]})' +
-                fr', $\lambda$={lamb}m', fontsize=15,
+                f'{target}, {name}, ' + fr'$\lambda$={np.round((lamb), 14)}m' +
+                r', $\theta_{B}$=' + fr'{np.round((theta), 5)}rad',
+                fontsize=15,
             )
-            """
-            ax.set_title(f'{name}')
+            # ax.set_title(f'{name}')
             ax.set_xlabel(r'Diffracting angle $\theta$ (rad)', fontsize=15)
             ax.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
+            ax.tick_params(labelsize=15)
         elif miscut and therm_exp:
             gs = gridspec.GridSpec(3, 3)
             fig1 = plt.figure(figsize=(22, 20))
@@ -1441,6 +1482,8 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
             ax00.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
             ax10.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
             ax20.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
+            #ax20.tick_params(labelsize=15)
+            #ax21.tick_params(labelsize=15)
 
     # Plot
     # ----
@@ -1509,7 +1552,7 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
             linestyle='-.',
             label=r'$\theta_B$={}rad'.format(np.round(theta, 6)),
         )
-        ax.legend(fontsize=12)
+        # ax.legend(fontsize=12)
 
     if not miscut and therm_exp is True:
         colors = ['blue', 'black', 'red']
@@ -1743,14 +1786,15 @@ def CrystalBragg_plot_rc_components_vs_asymmetry(
     gs = gridspec.GridSpec(1, 1)
     ax = fig2.add_subplot(gs[0, 0])
     name = din['name']
+    target=din['target']['ion']
     miller = np.r_[
         int(din['miller'][0]),
         int(din['miller'][1]),
         int(din['miller'][2]),
     ]
     ax.set_title(
-        f'{name}' + f', ({miller[0]},{miller[1]},{miller[2]})' +
-        fr', $\lambda$={lamb}m'
+        f'{target}, {name}, ' + fr'$\lambda$={np.round((lamb), 14)}m',
+        fontsize=15,
     )
     ax.set_xlabel(r'$\alpha$ (deg)', fontsize=15)
     ax.set_ylim(0., 5.)
@@ -1767,25 +1811,27 @@ def CrystalBragg_plot_rc_components_vs_asymmetry(
         alpha_deg,
         det_perp_norm,
         'r--',
-        label=r'RC width $\Delta\theta$ (normalized)',
+        label=r'Angular FWMH (normalized)',
     )
     ax.plot(
         alpha_deg,
-        rhg_perp_norm,
+        rhg_perp_norm, # + rhg_para_norm,
         'k-',
-        label='P$_{dyn}$ (normal comp.) (normalized)',
+        label='Integrated reflectivity R$_{H}$ (normalized)',
     )
+    """
     ax.plot(
         alpha_deg,
         rhg_para_norm,
         'k--',
         label='P$_{dyn}$ (parallel comp.) (normalized)',
     )
+    """
     ax.plot(
         alpha_deg_bis[:, 0],
         bb_bis[0, :, 0],
         'b-.',
-        label='|b|',
+        label='direction parameter |b|',
     )
     ax.legend()
 

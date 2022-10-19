@@ -831,24 +831,37 @@ class CrystalBragg(utils.ToFuObject):
         )
 
     def plot_var_temp_changes_wavelengths(
-        self, ih=None, ik=None, il=None, lambdas=None,
-        miscut=None, na=None,
+        self,
+        crystal=None, din=None,
+        lambdas=None,
+        miscut=None, nn=None,
         miscut_limits=None,
-        therm_exp=None, plot_therm_exp=None,
-        plot_asf=None, plot_power_ratio=None,
-        plot_asymmetry=None, plot_cmaps=None,
+        therm_exp=None,
+        temp_limits=None,
+        plot_therm_exp=None,
+        plot_asf=None,
+        plot_power_ratio=None,
+        plot_asymmetry=None,
+        plot_cmaps=None,
         quantity=None,
-        curv_radius=None, pixel_size=None,
+        curv_radius=None,
+        pixel_size=None,
     ):
         return _rockingcurve.plot_var_temp_changes_wavelengths(
-            ih=ih, ik=ik, il=il, lambdas=lambdas,
-            miscut=miscut, na=na,
+            crystal=crystal, din=din,
+            lambdas=lambdas,
+            miscut=miscut, nn=nn,
             miscut_limits=miscut_limits,
-            therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
-            plot_asf=plot_asf, plot_power_ratio=plot_power_ratio,
-            plot_asymmetry=plot_asymmetry, plot_cmaps=plot_cmaps,
+            therm_exp=therm_exp,
+            temp_limits=temp_limits,
+            plot_therm_exp=plot_therm_exp,
+            plot_asf=plot_asf,
+            plot_power_ratio=plot_power_ratio,
+            plot_asymmetry=plot_asymmetry,
+            plot_cmaps=plot_cmaps,
             quantity=quantity,
-            curv_radius=curv_radius, pixel_size=pixel_size,
+            curv_radius=curv_radius,
+            pixel_size=pixel_size,
         )
 
     # -----------------
@@ -1974,6 +1987,142 @@ class CrystalBragg(utils.ToFuObject):
                 + "\t - det: {}\n".format(det)
             )
             raise Exception(msg)
+
+    def dshift_analytic_variation(
+        self,
+        crystal=None,
+        din=None,
+        split=None,
+        rcurve=None,
+        len_cryst=None,
+        lamb=None,
+        bragg=None,
+        braggref=None,
+        miscut=None,
+        alpha=None,
+        therm_exp=None,
+        temp_limits=None,
+    ):
+
+        """ Compute a theoretical dshift value for a specified value of
+        wavelength (or angle or xi) on the detector from the XICS geometry
+        Operationnal for single or splitted crystal, witth or w/o miscut
+        Possibility to compute it for a spectral range, i.e. specific detector
+        length.
+
+        Parameters:
+        -----------
+        crystal:    str
+            Crystal definition to use, among 'Quartz_110', 'Quartz_102'
+            and soon 'Ge'
+        din:    str
+            Crystal definition dictionary to use, among 'Quartz_110',
+            'Quartz_102' and soon 'Ge'
+        len_cryst:    float
+            Define the length of the crystal in the meridional plane [m]
+        split:    bool
+            Define if the crystal is splitted or not, for now cut parallel to
+            the sagittal direction
+        rcurve:    float
+            Define the curvature radius of the crystal [m]
+        lamb:    float
+            array of min size 1, in 1e-10 [m]
+        miscut:    bool
+            Introduce miscut between dioptre and reflecting planes
+        alpha:    float
+            Miscut angle value, single or array accepted, in rad.
+        therm_exp:    bool
+            Compute relative changes of the crystal inter-planar distance by
+            thermal expansion
+        temp_limits:    array
+            Limits of temperature variation around an average value
+            Ex: np.r_[-10, 10, 25] for between 15 and 35°C
+        """
+
+        # Check inputs
+        if crystal is None:
+            msg = (
+                "You must choose a type of crystal from "
+                + "tofu/spectro/_rockingcurve_def.py to use among:\n"
+                + "\t - Quartz_110:\n"
+                + "\t\t - target: ArXVII"
+                + "\t\t - Miller indices (h,k,l): (1,1,0)"
+                + "\t\t - Material: Quartz\n"
+                + "\t - Quartz_102:\n"
+                + "\t\t - target: ArXVIII"
+                + "\t\t - Miller indices (h,k,l): (1,0,2)"
+                + "\t\t - Material: Quartz\n"
+            )
+            raise Exception(msg)
+        elif crystal == 'Quartz_110':
+            din = _rockingcurve_def._DCRYST['Quartz_110']
+        elif crystal == 'Quartz_102':
+            din = _rockingcurve_def._DCRYST['Quartz_102']
+
+        if len_cryst is None and crystal == 'Quartz_110':
+            len_cryst = 0.083592
+        if split is None:
+            split = False
+        if rcurve is None:
+            msg = "Please provide a curvature radius for your crystal geometry!"
+            raise Exception(msg)
+
+        lambref = din['target']['wavelength']
+        braggref = self.get_bragg_from_lamb(
+            lamb=lambref,
+        )
+        if lamb is None:
+            msg = (
+                "Please choose 1 or more targetted wavelength(s).\n"
+                "\t Provided:\n"
+                "\t\t- wavelength = ({}) A\n".format(lamb)
+                + "\t\t- wavelength of reference = ({}) A\n".format(lambref),
+            )
+            raise Exception(msg)
+        bragg = np.full((lamb.size), np.nan)
+        for i in range(lamb.size):
+            bragg[i] = self.get_bragg_from_lamb(
+                lamb=lamb[i],
+            )
+
+        if miscut is None:
+            miscut = False
+        if alpha is None:
+            alpha = np.r_[(1.5/60)*np.pi/180]
+
+        if therm_exp is None:
+            therm_exp = False
+        if temp_limits is None:
+            temp_limits = np.r_[5., 5., 25.]
+
+        # compute new braggref corresponding to the value of deltaT wanted
+        if therm_exp:
+            dout = {}
+            dout = _rockingcurve.CrystBragg_comp_lattice_spacing(
+                crystal=crystal, din=din,
+                lamb=lambref, # nn=nn,
+                therm_exp=therm_exp,
+                temp_limits=temp_limits,
+                plot_therm_exp=False,
+            )
+            dT = dout['Temperature variations (°C)'][0]
+            braggref = dout['theta_Bragg (rad)'][0]
+
+        # Call
+        return _comp_optics.dshift_analytic_variation(
+            crystal=crystal,
+            din=din,
+            split=split,
+            rcurve=rcurve,
+            len_cryst=len_cryst,
+            lamb=lamb,
+            bragg=bragg,
+            braggref=braggref,
+            miscut=miscut,
+            alpha=alpha,
+            therm_exp=therm_exp,
+            temp_limits=temp_limits,
+        )
 
     def plot_line_on_det_tracing(
         self,

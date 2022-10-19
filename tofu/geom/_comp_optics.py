@@ -6,6 +6,7 @@ import numpy as np
 import scipy.interpolate as scpinterp
 import scipy.stats as scpstats
 import matplotlib.pyplot as plt
+import tofu.spectro._rockingcurve as _rockingcurve
 
 
 _LTYPES = [int, float, np.int_, np.float_]
@@ -542,6 +543,118 @@ def calc_meridional_sagittal_focus(
         print(msg)
 
     return s_merid_ref, s_sagit_ref, s_merid_unp, s_sagit_unp
+
+
+# ###############################################
+#           dshift parameter relations
+# ###############################################
+
+
+def dshift_analytic_variation(
+    crystal=None,
+    din=None,
+    split=None,
+    rcurve=None,
+    len_cryst=None,
+    lamb=None,
+    bragg=None,
+    braggref=None,
+    miscut=None,
+    alpha=None,
+    therm_exp=None,
+    temp_limits=None,
+):
+
+    # Computations of dshift per pixel xi
+    # -----------------------------------
+
+    # distance crystal summit S to camera center C
+    k0 = rcurve*np.sin(braggref)
+
+    # distances half-crystals summit S1 & S2 to camera center C
+    # half-crystal C1 at left side of the crystal normal vector n_in
+    # (pointing to the center of curvature), the farthest from the camera
+    c0 = ['Quartz_110', 'Quartz_102']
+    if crystal in c0 and split:
+        phi = len_cryst/(8.*rcurve)
+        K1 = np.sqrt( ((rcurve**2)/4)*(
+            6 - 4.*np.cos(2.*braggref + 2.*phi) + 2.*np.cos(2.*braggref) - 4.*np.cos(2.*phi)
+        ) )
+        K2 = np.sqrt( ((rcurve**2)/4)*(
+            6 - 4.*np.cos(2.*braggref - 2.*phi) + 2.*np.cos(2.*braggref) - 4.*np.cos(2.*phi)
+        ) )
+
+    # angular difference from the Bragg angle of reference of the crystal
+    dbragg = np.full((bragg.size), np.nan)
+    for i in range(bragg.size):
+        dbragg[i] = bragg[i] - braggref
+
+    # Single crystal, w/o miscut
+    if not split and not miscut:
+        xi = k0*(
+            np.cos(braggref) - np.sin(braggref)/np.tan(braggref - dbragg)
+        )
+
+    # Single crystal, with miscut
+    elif not split and miscut:
+        xim = k0*(
+            np.cos(braggref) - np.sin(braggref)/np.tan(braggref - dbragg - alpha)
+        )
+
+    # Splitted crystal, w/o miscut
+    elif split and not miscut:
+        A1 = (
+            np.sin(braggref)*np.cos(2.*braggref + 2.*phi) - np.cos(braggref)*np.sin(2.*braggref + phi)
+        )/(
+            np.sin(bragg)*np.cos(2.*braggref + 2.*phi) - np.cos(bragg)*np.sin(2.*braggref + phi)
+        )
+        A2 = (
+            np.sin(braggref)*np.cos(2.*braggref - 2.*phi) - np.cos(braggref)*np.sin(2.*braggref - phi)
+        )/(
+            np.sin(bragg)*np.cos(2.*braggref - 2.*phi) - np.cos(bragg)*np.sin(2.*braggref - phi)
+        )
+        xi1 = K1*(
+            -A1*(
+                np.sin(bragg)*np.sin(2.*braggref + 2.*phi) + np.cos(bragg)*np.cos(2.*braggref + phi)
+            ) + np.sin(braggref)*np.sin(2.*braggref + 2.*phi) + np.cos(braggref)*np.cos(2.*braggref + phi)
+        )
+        xi2 = K2*(
+            -A2*(
+                np.sin(bragg)*np.sin(2.*braggref - 2.*phi) + np.cos(bragg)*np.cos(2.*braggref - phi)
+            ) + np.sin(braggref)*np.sin(2.*braggref - 2.*phi) + np.cos(braggref)*np.cos(2.*braggref - phi)
+        )
+
+    # Splitted crystal, with miscut
+    elif split and miscut:
+        A1m = (
+            np.sin(braggref)*np.cos(2.*braggref + 2.*phi) - np.cos(braggref)*np.sin(2.*braggref + phi)
+        )/(
+            np.sin(bragg)*np.cos(2.*braggref + 2.*phi - alpha) - np.cos(bragg)*np.sin(2.*braggref + phi - alpha)
+        )
+        A2m = (
+            np.sin(braggref)*np.cos(2.*braggref - 2.*phi) - np.cos(braggref)*np.sin(2.*braggref - phi)
+        )/(
+            np.sin(bragg)*np.cos(2.*braggref - 2.*phi + alpha) - np.cos(bragg)*np.sin(2.*braggref - phi + alpha)
+        )
+        xi1m = K1*(
+            -A1m*(
+                np.sin(bragg)*np.sin(2.*braggref + 2.*phi - alpha) + np.cos(bragg)*np.cos(2.*braggref + phi - alpha)
+            ) + np.sin(braggref)*np.sin(2.*braggref + 2.*phi) + np.cos(braggref)*np.cos(2.*braggref + phi)
+        )
+        xi2m = K2*(
+            -A2m*(
+                np.sin(bragg)*np.sin(2.*braggref - 2.*phi + alpha) + np.cos(bragg)*np.cos(2.*braggref - phi + alpha)
+            ) + np.sin(braggref)*np.sin(2.*braggref - 2.*phi) + np.cos(braggref)*np.cos(2.*braggref - phi)
+        )
+
+    if not split and not miscut:
+        return xi
+    elif not split and miscut:
+        return xim
+    elif split and not miscut:
+        return np.vstack((xi1, xi2))
+    elif split and miscut:
+        return np.vstack((xi1m, xi2m))
 
 
 # ###############################################

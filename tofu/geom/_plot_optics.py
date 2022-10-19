@@ -1031,10 +1031,10 @@ def CrystalBragg_plot_line_tracing_on_det(
         bb = 0.
     for ll in range(lamb.size):
         lab = (
-            r'$\lambda$ = {} A'.format(np.round(lamb[ll]*1e10, 6)) + '\n'
-            + r'$\Delta$T = {} °C, $\alpha$ = {} deg'.format(
-                bb, aa[0]*(180./np.pi)
-            )
+            r'$\lambda$ = {} A'.format(np.round(lamb[ll]*1e10, 6))# + '\n'
+            #+ r'$\Delta$T = {} °C, $\alpha$ = {} deg'.format(
+                #bb, aa[0]*(180./np.pi)
+            #)
         )
         l0, = ax.plot(
             xi[ll, :], xj[ll, :],
@@ -1052,6 +1052,7 @@ def CrystalBragg_plot_line_tracing_on_det(
     if merge_rc_data:
         for ll in range(lamb.size):
             for mm in range(ndth):
+                """
                 if mm == int(ndth/2.):
                     label = r'At $x_j$=0.: $x_i$={}, $\lambda$={}A'.format(
                         np.round(xi_atprmax[ll], 6),
@@ -1060,6 +1061,7 @@ def CrystalBragg_plot_line_tracing_on_det(
                     )
                 else:
                     label = None
+                """
                 pr1 = power_ratio[ll, 0, 0, 0, mm]
                 pr2 = power_ratio[ll, 1, 0, 0, mm]
                 ax.plot(
@@ -1067,7 +1069,7 @@ def CrystalBragg_plot_line_tracing_on_det(
                     ls='-', lw=1.,
                     c=l0.get_color(),
                     alpha=pr1 + pr2,
-                    label=label,
+                    #label=label,
                 )
 
     if dleg is not False:
