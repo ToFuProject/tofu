@@ -13,6 +13,9 @@ from ..geom._comp_solidangles import _check_polygon_2d
 
 
 _DMAT_KEYS = {
+    'name': {'types': str},
+    'symbol': {'types': str},
+    'thickness': {'types': float, 'sign': '> 0.'},
     'energy': {'dtype': float, 'sign': '> 0.'},
     'qeff': {'dtype': float, 'sign': ['>= 0.', '<= 1.']},
 }
@@ -94,7 +97,11 @@ def _camera_1d_check(
     )
     if np.any(iout):
         msg = (
-            "Non-finite cents detected:\n{iout.nonzero()[0]}"
+            f"Non-finite cents detected for cam1d '{key}':\n"
+            f"\t- indices: {iout.nonzero()[0]}\n"
+            f"\t- cents_x: {cents_x[iout]}\n"
+            f"\t- cents_y: {cents_y[iout]}\n"
+            f"\t- cents_z: {cents_z[iout]}\n"
         )
         raise Exception(msg)
 
@@ -745,59 +752,62 @@ def _dmat(
     dmat = ds._generic_check._check_dict_valid_keys(
         var=dmat,
         varname='dmat',
-        has_all_keys=True,
-        has_only_keys=False,
-        keys_can_be_None=False,
+        has_all_keys=False,
+        has_only_keys=True,
+        keys_can_be_None=True,
         dkeys=_DMAT_KEYS,
     )
 
     # -----------------------------------
     # check energy / qeff values
 
-    dmat['energy'], dmat['qeff'] = _class4_check._dmat_energy_trans(
-        energ=dmat['energy'],
-        trans=dmat['qeff'],
-    )
+    dref, ddata = None, None
+    if all([dmat.get(kk) is not None for kk in ['energy', 'qeff']]):
+        
+        dmat['energy'], dmat['qeff'] = _class4_check._dmat_energy_trans(
+            energ=dmat['energy'],
+            trans=dmat['qeff'],
+        )
 
-    # ----------
-    # dref
-
-    kne = f'{key}-nE'
-    ne = dmat['energy'].size
-    dref = {
-        kne: {'size': ne},
-    }
-
-    # ----------
-    # ddata
-
-    kE = f'{key}-E'
-    kqeff = f'{key}-qeff'
-
-    ddata = {
-        kE: {
-            'data': dmat['energy'],
-            'ref': kne,
-            'dim': 'energy',
-            'quant': 'energy',
-            'name': 'E',
-            'units': 'eV',
-        },
-        kqeff: {
-            'data': dmat['qeff'],
-            'ref': kne,
-            'dim': None,
-            'quant': 'quantum eff.',
-            'name': '',
-            'units': '',
-        },
-    }
-
-    # -----------
-    # dmat
-
-    dmat['energy'] = kE
-    dmat['qeff'] = kqeff
+        # ----------
+        # dref
+    
+        kne = f'{key}-nE'
+        ne = dmat['energy'].size
+        dref = {
+            kne: {'size': ne},
+        }
+    
+        # ----------
+        # ddata
+    
+        kE = f'{key}-E'
+        kqeff = f'{key}-qeff'
+    
+        ddata = {
+            kE: {
+                'data': dmat['energy'],
+                'ref': kne,
+                'dim': 'energy',
+                'quant': 'energy',
+                'name': 'E',
+                'units': 'eV',
+            },
+            kqeff: {
+                'data': dmat['qeff'],
+                'ref': kne,
+                'dim': None,
+                'quant': 'quantum eff.',
+                'name': '',
+                'units': '',
+            },
+        }
+    
+        # -----------
+        # dmat
+    
+        dmat['energy'] = kE
+        dmat['qeff'] = kqeff
 
     return dref, ddata, dmat
 

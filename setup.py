@@ -1,4 +1,4 @@
-""" A tomography library for fusion devices
+""" A tomography library for fusion devices (tokamaks)
 
 See:
 https://github.com/ToFuProject/tofu

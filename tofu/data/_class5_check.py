@@ -13,6 +13,7 @@ from ..spectro import _rockingcurve_def
 _DMAT_KEYS = {
     'name': {'types': str},
     'symbol': {'types': str},
+    'd_hkl': {'types': float, 'sign': '> 0.'},
     'target_ion': {'types': str},
     'target_lamb': {'types': float, 'sign': '> 0.'},
     'atoms': {'types': (list, np.ndarray), 'types_iter': str},
@@ -118,7 +119,7 @@ def _dmat(
         nin, e0, e1 = ds._generic_check._check_vectbasis(
             e0=nin,
             e1=e0,
-            e2=e1,
+            e2=None,
             ndim=3,
         )
 

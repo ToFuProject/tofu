@@ -69,7 +69,7 @@ def _plot_diagnostic_check(
     if not c0:
         lok = [
             k0 for k0, v0 in coll.ddata.items()
-            if v0['camera'] == coll.dobj['diagnostic'][key]['optics'][0]
+            if v0.get('camera') == coll.dobj['diagnostic'][key]['optics'][0]
         ]
         ldiag = [
             k0 for k0, v0 in coll.dobj['diagnostic'][key].items()

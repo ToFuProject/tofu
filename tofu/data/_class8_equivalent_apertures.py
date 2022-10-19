@@ -149,15 +149,17 @@ def equivalent_apertures(
     p_a = plg.Polygon(np.array([p_a[0], p_a[1]]).T)
 
     iok = np.ones((pixel.size,), dtype=bool)
-    for ii in pixel:
+
+    for ii, ij in enumerate(pixel):
 
         if verb is True:
             msg = f"\tpixel {ii} / {pixel.size}"
-            print(msg, flush=True, end='\r')
+            end = '\n' if ii == len(pixel) - 1 else '\r'
+            print(msg, flush=True, end=end)
 
         p0, p1 = func(
             p_a=p_a,
-            pt=np.r_[cx[ii], cy[ii], cz[ii]],
+            pt=np.r_[cx[ij], cy[ij], cz[ij]],
             nop_pre=nop_pre,
             lpoly_pre=lpoly_pre,
             nop_post=nop_post,
@@ -183,6 +185,16 @@ def equivalent_apertures(
             p0, p1 = np.array(plgUtils.convexHull(
                 plg.Polygon(np.array([p0, p1]).T)
             ).contour(0)).T
+
+            p0, p1 = _compute._interp_poly(
+                lp=[p0, p1],
+                add_points=add_points,
+                mode='min',
+                isclosed=False,
+                closed=False,
+                ravel=True,
+                min_threshold=1.e-5,
+            )
 
         # append
         x0.append(p0)
@@ -378,10 +390,10 @@ def _check(
     # pixel
 
     if pixel is not None:
-        pixel = np.atleast_1d(pixel).ravel().astype(int)
+        pixel = np.atleast_1d(pixel).astype(int)
 
-        if pixel.ndim == 2 and pixel.shape[1] == 1 and is2d:
-            pixel = pixel[:, 0] + pixel[:, 1]
+        if pixel.ndim == 2 and pixel.shape[1] == 2 and is2d:
+            pixel = pixel[:, 0] * shape0[1]  + pixel[:, 1]
 
         if pixel.ndim != 1:
             msg = "pixel can only have ndim = 2 for 2d cameras!"
@@ -609,6 +621,7 @@ def _get_equivalent_aperture_spectro(
 
     # loop on optics after crystal
     for jj in range(nop_post):
+        # print(f'\t {jj} / {nop_post}')      # DB
 
         # reflection
         p0, p1 = _class5_projections._get_reflection(
@@ -632,6 +645,7 @@ def _get_equivalent_aperture_spectro(
         )
 
         if p0 is None:
+            # print('\t \t None 0')
             return p0, p1
 
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
@@ -643,13 +657,34 @@ def _get_equivalent_aperture_spectro(
                     plg.Polygon(np.array([p0, p1]).T)
                 ).contour(0)).T
 
+            # plt.figure()
+            # plt.plot(
+            #     np.array(p_a.contour(0))[:, 0],
+            #     np.array(p_a.contour(0))[:, 1], 
+            #     '.-k',
+            #     p0, p1, '.-r'
+            #     )
+
             # intersection
             p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
             if p_a.nPoints() < 3:
+                # print('\t \t None 1')       # DB
                 return None, None
 
             # update
             p0, p1 = np.array(p_a.contour(0)).T
+            
+            # interpolate
+            if jj < nop_post - 1:
+                p0, p1 = _compute._interp_poly(
+                    lp=[p0, p1],
+                    add_points=add_points,
+                    mode='min',
+                    isclosed=False,
+                    closed=False,
+                    ravel=True,
+                )
+                # print(f'\t\t interp => {p0.size} pts')       # DB
 
     return p0, p1
 
@@ -681,9 +716,16 @@ def _plot(
     ax.set_xlabel(xlab)
     ax.set_ylabel(ylab)
 
-    ax.plot(poly_x0, poly_x1, '.-k')
-    ax.plot(p0.T, p1.T, '.-r')
+    i0 = np.r_[np.arange(0, poly_x0.size), 0]
+    ax.plot(poly_x0[i0], poly_x1[i0], '.-k')
+    
+    if p0.shape[1] > 0:
+        i1 = np.r_[np.arange(0, p0.shape[1]), 0]
+        for ii in range(p0.shape[0]):
+            ax.plot(p0[ii, i1], p1[ii, i1], '.-', label=f'pix {ii}')
 
     if cents0 is not None:
         ax.plot(cents0, cents1, 'xr')
+        
+    ax.legend()
     return

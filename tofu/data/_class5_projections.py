@@ -6,6 +6,7 @@ import datetime as dtm
 
 
 import numpy as np
+import matplotlib.pyplot as plt    # DB
 
 
 import Polygon as plg
@@ -61,6 +62,7 @@ def _get_reflection(
     )[3:]
 
     if not np.any(iok):
+        # print('iok')
         return None, None
 
     # project on target plane
@@ -81,9 +83,16 @@ def _get_reflection(
     if np.all([pa.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
         return x0, x1
 
+    # plt.figure()
+    # plt.plot(
+    #     poly_x0, poly_x1, '.-k',
+    #     p0, p1, '.-r',
+    #     )
+
     # intersection
     p_a = pa & plg.Polygon(np.array([p0, p1]).T)
     if p_a.nPoints() < 3:
+        # print('pts < 3')
         return None, None
 
     p0, p1 = np.array(p_a.contour(0)).T
@@ -103,7 +112,7 @@ def _get_reflection(
     px, py, pz = coord_x01toxyz_poly(x0=p0, x1=p1)
 
     # back projection on crystal (slowest part)
-    return pts2pt(
+    p0, p1 = pts2pt(
         pt_x=pt[0],
         pt_y=pt[1],
         pt_z=pt[2],
@@ -112,12 +121,15 @@ def _get_reflection(
         pts_y=py,
         pts_z=pz,
         # surface
+        strict=False,
         return_xyz=False,
         return_x01=True,
         debug=False,
         # timing
         dt=dt,
     )
+    
+    return p0, p1
 
 
 # ##############################################################
