@@ -147,6 +147,7 @@ def _get_pts2pt(
             rc=rc,
             eax=dgeom[eax],
             erot=dgeom[erot],
+            iplan=iplan,
             # limits
             thetamax=dgeom['extenthalf'][1-iplan],
             xmax=dgeom['extenthalf'][iplan],
@@ -302,11 +303,17 @@ def _get_pts2pt(
 
             # return
             if return_xyz and return_x01:
-                return Dx, Dy, Dz, xx, theta
+                if iplan == 0:
+                    return Dx, Dy, Dz, xx, theta
+                else:
+                    return Dx, Dy, Dz, theta, xx
             elif return_xyz:
                 return Dx, Dy, Dz
             elif return_x01:
-                return xx, theta
+                if iplan == 0:
+                    return xx, theta
+                else:
+                    return theta, xx
 
     # ----------------
     #   Spherical

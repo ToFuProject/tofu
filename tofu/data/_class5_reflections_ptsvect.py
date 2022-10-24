@@ -75,6 +75,7 @@ def _get_ptsvect(
             O=dgeom['cent'] + dgeom['nin'] * rc,
             rc=rc,
             eax=dgeom[eax],
+            iplan=iplan,
             # limits
             thetamax=dgeom['extenthalf'][icurv],
             xmax=dgeom['extenthalf'][iplan],
@@ -202,7 +203,10 @@ def _get_ptsvect(
 
             # return
             if return_x01:
-                return Dx, Dy, Dz, vrx, vry, vrz, angle, iok, xx, theta
+                if iplan == 0:
+                    return Dx, Dy, Dz, vrx, vry, vrz, angle, iok, xx, theta
+                else:
+                    return Dx, Dy, Dz, vrx, vry, vrz, angle, iok, theta, xx
             else:
                 return Dx, Dy, Dz, vrx, vry, vrz, angle, iok
 
