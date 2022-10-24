@@ -649,7 +649,15 @@ def _get_equivalent_aperture_spectro(
             return p0, p1
 
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
-            pass
+            # print('inside: ', p1)
+            # plt.figure()
+            # plt.plot(
+            #     np.array(p_a.contour(0))[:, 0],
+            #     np.array(p_a.contour(0))[:, 1], 
+            #     '.-k',
+            #     p0, p1, '.-r'
+            #     )
+            p_a = plg.Polygon(np.array([p0, p1]).T)
         else:
             # convex hull
             if convex:
@@ -685,6 +693,7 @@ def _get_equivalent_aperture_spectro(
                     ravel=True,
                 )
                 # print(f'\t\t interp => {p0.size} pts')       # DB
+            # print('inter: ', p1)
 
     return p0, p1
 
