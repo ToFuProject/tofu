@@ -693,7 +693,7 @@ def _get_equivalent_aperture_spectro(
                     ravel=True,
                 )
                 # print(f'\t\t interp => {p0.size} pts')       # DB
-            # print('inter: ', p1)
+            # print('inter: ', p0)
 
     return p0, p1
 
