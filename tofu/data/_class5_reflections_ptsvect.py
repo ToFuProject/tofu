@@ -60,6 +60,7 @@ def _get_ptsvect(
         iplan = np.isinf(dgeom['curve_r']).nonzero()[0][0]
         icurv = 1 - iplan
         eax = ['e0', 'e1'][iplan]
+        erot = ['e0', 'e1'][icurv]
         rc = dgeom['curve_r'][icurv]
 
         def ptsvect(
@@ -75,6 +76,7 @@ def _get_ptsvect(
             O=dgeom['cent'] + dgeom['nin'] * rc,
             rc=rc,
             eax=dgeom[eax],
+            erot=dgeom[erot],
             iplan=iplan,
             # limits
             thetamax=dgeom['extenthalf'][icurv],
@@ -118,7 +120,6 @@ def _get_ptsvect(
             )
 
             # Prepare D, theta, xx
-            ndim = OAzez.ndim
             shape = OAzez.shape
             (
                 Dx, Dy, Dz, vrx, vry, vrz,
@@ -169,10 +170,8 @@ def _get_ptsvect(
 
                 # x0, x1
                 if strict is True or return_x01 is True:
-                    theta[iok] = np.arctan2(
-                        -((nin[1]*noz - nin[2]*noy)*eax[0]
-                          + (nin[2]*nox - nin[0]*noz)*eax[1]
-                          + (nin[0]*noy - nin[1]*nox)*eax[2]),
+                    theta[iok] =  np.arctan2(
+                        nox*erot[0] + noy*erot[1] + noz*erot[2],
                         -nox*nin[0] - noy*nin[1] - noz*nin[2],
                     )
 
@@ -267,7 +266,6 @@ def _get_ptsvect(
             iok = np.isfinite(OA2) & np.isfinite(OAe)
 
             # Prepare D, theta, xx
-            ndim = OAe.ndim
             shape = OAe.shape
             (
                 Dx, Dy, Dz, vrx, vry, vrz,
@@ -346,7 +344,7 @@ def _get_ptsvect(
 
             # return
             if return_x01:
-                return Dx, Dy, Dz, vrx, vry, vrz, angle, iok, xx, theta
+                return Dx, Dy, Dz, vrx, vry, vrz, angle, iok, phi, dtheta
             else:
                 return Dx, Dy, Dz, vrx, vry, vrz, angle, iok
 
