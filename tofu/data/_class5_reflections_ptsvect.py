@@ -193,7 +193,7 @@ def _get_ptsvect(
                 # x0, x1
                 if strict is True or return_x01 is True:
                     
-                    theta[iok] =  np.arctan2(
+                    theta[iok] =  rcs * np.arctan2(
                         nox*erot[0] + noy*erot[1] + noz*erot[2],
                         -nox*nin[0] - noy*nin[1] - noz*nin[2],
                     )
@@ -334,10 +334,10 @@ def _get_ptsvect(
 
                 # x0, x1
                 if strict is True or return_x01 is True:
-                    dtheta[iok] = np.arcsin(
+                    dtheta[iok] = rcs * np.arcsin(
                         nox*e1[0] + noy*e1[1] + noz*e1[2]
                     )
-                    phi[iok] = np.arcsin(
+                    phi[iok] = rcs * np.arcsin(
                         (nox*e0[0] + noy*e0[1] + noz*e0[2])
                         / np.cos(dtheta[iok])
                     )
