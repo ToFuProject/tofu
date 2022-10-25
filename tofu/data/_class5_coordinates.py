@@ -57,6 +57,7 @@ def _get_x01toxyz(
     elif dgeom['type'] == 'cylindrical':
 
         iplan = np.isinf(dgeom['curve_r']).nonzero()[0][0]
+        rc = dgeom['curve_r'][1 - iplan]
         eax = ['e0', 'e1'][iplan]
         erot = ['e0', 'e1'][1-iplan]
 
@@ -64,8 +65,8 @@ def _get_x01toxyz(
             x0=None,
             x1=None,
             # surface
-            O=dgeom['cent'] + dgeom['nin'] * dgeom['curve_r'][1 - iplan],
-            rc=dgeom['curve_r'][1 - iplan],
+            O=dgeom['cent'] + dgeom['nin'] * rc,
+            rc=rc,
             eax=dgeom[eax],
             erot=dgeom[erot],
             # local coordinates
