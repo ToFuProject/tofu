@@ -135,6 +135,7 @@ def compute_etendue_los(
         centsy=centsy,
         centsz=centsz,
         plane_nin=plane_nin,
+        ap_area=ap_area,
     )
 
     # --------------------
@@ -480,13 +481,13 @@ def _loop_on_pix(
     centsy=None,
     centsz=None,
     plane_nin=None,
+    ap_area=None,
     # extra
     res=None,
 ):
 
     # prepare data
     nd = len(ldet)
-    ap_area = np.zeros((nd,), dtype=float)
     los_x = np.full((nd,), np.nan)
     los_y = np.full((nd,), np.nan)
     los_z = np.full((nd,), np.nan)

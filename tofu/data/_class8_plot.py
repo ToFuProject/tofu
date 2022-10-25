@@ -278,11 +278,22 @@ def _plot_diagnostic(
             raise NotImplementedError()
 
         if is2d:
+            if datax.size == 1:
+                ddx = coll.ddata[coll.dobj['camera'][cam]['dgeom']['outline'][0]]['data']
+                ddx = np.max(ddx) - np.min(ddx)
+            else:
+                ddx = datax[1] - datax[0]
+            if datay.size == 1:
+                ddy = coll.ddata[coll.dobj['camera'][cam]['dgeom']['outline'][1]]['data']
+                ddy = np.max(ddy) - np.min(ddy)
+            else:
+                ddy = datay[1] - datay[0]
+            
             extent = (
-                datax[0] - 0.5*(datax[1] - datax[0]),
-                datax[-1] + 0.5*(datax[-1] - datax[-2]),
-                datay[0] - 0.5*(datay[1] - datay[0]),
-                datay[-1] + 0.5*(datay[-1] - datay[-2]),
+                datax[0] - 0.5*ddx,
+                datax[-1] + 0.5*ddx,
+                datay[0] - 0.5*ddy,
+                datay[-1] + 0.5*ddy,
             )
         else:
             ylab = f"{coll.ddata[data]['quant']} ({coll.ddata[data]['units']})"

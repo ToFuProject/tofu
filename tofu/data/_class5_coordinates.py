@@ -59,13 +59,18 @@ def _get_x01toxyz(
         iplan = np.isinf(dgeom['curve_r']).nonzero()[0][0]
         eax = ['e0', 'e1'][iplan]
         erot = ['e0', 'e1'][1-iplan]
+        
+        rc = dgeom['curve_r'][1 - iplan]
+        rcs = np.sign(rc)
+        rca = np.abs(rc)
 
         def x01toxyz(
             x0=None,
             x1=None,
             # surface
-            O=dgeom['cent'] + dgeom['nin'] * dgeom['curve_r'][1 - iplan],
-            rc=dgeom['curve_r'][1 - iplan],
+            O=dgeom['cent'] + dgeom['nin'] * rc,
+            rcs=rcs,
+            rca=rca,
             eax=dgeom[eax],
             erot=dgeom[erot],
             # local coordinates
@@ -79,14 +84,14 @@ def _get_x01toxyz(
             else:
                 xx, theta = x1, x0
 
-            nox = np.cos(theta)*(-nin[0]) + np.sin(theta)*erot[0]
-            noy = np.cos(theta)*(-nin[1]) + np.sin(theta)*erot[1]
-            noz = np.cos(theta)*(-nin[2]) + np.sin(theta)*erot[2]
+            nox = np.cos(theta)*(-rcs*nin[0]) + np.sin(theta)*erot[0]
+            noy = np.cos(theta)*(-rcs*nin[1]) + np.sin(theta)*erot[1]
+            noz = np.cos(theta)*(-rcs*nin[2]) + np.sin(theta)*erot[2]
 
             return (
-                O[0] + xx*eax[0] + rc*nox,
-                O[1] + xx*eax[1] + rc*noy,
-                O[2] + xx*eax[2] + rc*noz,
+                O[0] + xx*eax[0] + rca*nox,
+                O[1] + xx*eax[1] + rca*noy,
+                O[2] + xx*eax[2] + rca*noz,
             )
 
     # ----------------
@@ -95,12 +100,17 @@ def _get_x01toxyz(
 
     elif dgeom['type'] == 'spherical':
 
+        rc = dgeom['curve_r'][0]
+        rcs = np.sign(rc)
+        rca = np.abs(rc)        
+
         def x01toxyz(
             x0=None,
             x1=None,
             # surface
-            O=dgeom['cent'] + dgeom['curve_r'][0]*dgeom['nin'],
-            rc=dgeom['curve_r'][0],
+            O=dgeom['cent'] + dgeom['nin'] * rc,
+            rcs=rcs,
+            rca=rca,
             # local coordinates
             nin=dgeom['nin'],
             e0=dgeom['e0'],
@@ -109,18 +119,18 @@ def _get_x01toxyz(
 
             dtheta, phi = x1, x0
 
-            ephix = np.cos(phi)*(-nin[0]) + np.sin(phi)*e0[0]
-            ephiy = np.cos(phi)*(-nin[1]) + np.sin(phi)*e0[1]
-            ephiz = np.cos(phi)*(-nin[2]) + np.sin(phi)*e0[2]
+            ephix = np.cos(phi)*(-rcs*nin[0]) + np.sin(phi)*e0[0]
+            ephiy = np.cos(phi)*(-rcs*nin[1]) + np.sin(phi)*e0[1]
+            ephiz = np.cos(phi)*(-rcs*nin[2]) + np.sin(phi)*e0[2]
 
             nox = np.cos(dtheta)*ephix + np.sin(dtheta)*e1[0]
             noy = np.cos(dtheta)*ephiy + np.sin(dtheta)*e1[1]
             noz = np.cos(dtheta)*ephiz + np.sin(dtheta)*e1[2]
 
             return (
-                O[0] + rc * nox,
-                O[1] + rc * noy,
-                O[2] + rc * noz,
+                O[0] + rca * nox,
+                O[1] + rca * noy,
+                O[2] + rca * noz,
             )
 
     # ----------------

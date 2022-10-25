@@ -1193,16 +1193,29 @@ def _mesh2DRect_check(
         resR = np.diff(R)
         resZ = np.diff(Z)
 
-        if np.unique(resR).size == 1:
+        if np.allclose(resR, np.mean(resR), atol=1e-12, rtol=0):
             resR = resR[0]
             indR = None
         else:
-            raise NotImplementedError()
-        if np.unique(resZ).size == 1:
+            msg = (
+                "Non-uniform resolution for user-provided rectangular mesh\n"
+                f"\t- unique resR: {np.unique(resR)}\n"
+                f"\t- diff resR: {np.diff(np.unique(resR))}\n"
+                f"\t- resR: {resR}\n"
+                )
+            raise NotImplementedError(msg)
+            
+        if np.allclose(resZ, np.mean(resZ), atol=1e-12, rtol=0):
             resZ = resZ[0]
             indZ = None
         else:
-            raise NotImplementedError()
+            msg = (
+                "Non-uniform resolution for user-provided rectangular mesh\n"
+                f"\t- unique resZ: {np.unique(resZ)}\n"
+                f"\t- diff resZ: {np.diff(np.unique(resZ))}\n"
+                f"\t- resZ: {resZ}\n"
+                )
+            raise NotImplementedError(msg)
 
     return R, Z, resR, resZ, indR, indZ
 
