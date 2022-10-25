@@ -277,9 +277,7 @@ def _get_pts2pt(
 
                 # theta, xx
                 thetai = np.arctan2(
-                    (nin[1]*niz - nin[2]*niy)*eax[0]
-                    + (nin[2]*nix - nin[0]*niz)*eax[1]
-                    + (nin[0]*niy - nin[1]*nix)*eax[2],
+                    -(nix*erot[0] + niy*erot[1] + niz*erot[2]),
                     nix*nin[0] + niy*nin[1] + niz*nin[2],
                 )
 
@@ -633,18 +631,16 @@ def _get_Dnin_from_k_cyl(
     Ey = Ay + kk*(By - Ay)
     Ez = Az + kk*(Bz - Az)
 
-    sca = (Ex - O[0])*eax[0] + (Ey - O[1])*eax[1] + (Ez - O[2])*eax[2]
-    nix = (Ex - O[0]) - sca*eax[0]
-    niy = (Ey - O[1]) - sca*eax[1]
-    niz = (Ez - O[2]) - sca*eax[2]
+    xx = (Ex - O[0])*eax[0] + (Ey - O[1])*eax[1] + (Ez - O[2])*eax[2]
+    nix = (Ex - O[0]) - xx*eax[0]
+    niy = (Ey - O[1]) - xx*eax[1]
+    niz = (Ez - O[2]) - xx*eax[2]
     ninorm = np.sqrt(nix**2 + niy**2 + niz**2)
     nix = -nix / ninorm
     niy = -niy / ninorm
     niz = -niz / ninorm
 
-    xx = (Ex - O[0])*eax[0] + (Ey - O[1])*eax[1] + (Ez - O[2])*eax[2]
-
-    sign = nix*nin[0] + niy*nin[1] + niz*nin[2]
+    sign = np.sign(nix*nin[0] + niy*nin[1] + niz*nin[2])
 
     nix = sign*nix
     niy = sign*niy
