@@ -132,7 +132,10 @@ def _get_pts2pt(
         iplan = np.isinf(dgeom['curve_r']).nonzero()[0][0]
         eax = ['e0', 'e1'][iplan]
         erot = ['e0', 'e1'][1-iplan]
+        
         rc = dgeom['curve_r'][1 - iplan]
+        rcs = np.sign(rc)
+        rca = np.abs(rc)
 
         def pts2pt(
             pt_x=None,
@@ -144,7 +147,8 @@ def _get_pts2pt(
             pts_z=None,
             # surface
             O=dgeom['cent'] + dgeom['nin'] * rc,
-            rc=rc,
+            rcs=rcs,
+            rca=rca,
             eax=dgeom[eax],
             erot=dgeom[erot],
             iplan=iplan,
@@ -181,9 +185,10 @@ def _get_pts2pt(
             else:
                 xmargin = 1. + 0.01
                 thetatot = thetamax*(1. + 0.01)
-                    
-            em = np.cos(thetatot)*(erot) + np.sin(thetatot)*(-nin)
-            eM = np.cos(thetatot)*(erot) - np.sin(thetatot)*(-nin) 
+                 
+            # defining zones for kk (point , plane unit vector)
+            em = np.cos(thetatot)*(erot) + rcs * np.sin(thetatot)*(-nin)
+            eM = np.cos(thetatot)*(erot) - rcs * np.sin(thetatot)*(-nin) 
 
             lzones = [
                 (
@@ -192,14 +197,18 @@ def _get_pts2pt(
                     (O, em),
                     (O, -eM),
                 ),
-                (
+                
+            ]
+            
+            if rcs > 0:
+                lzones.append((
                     (O - (xmax*xmargin)*eax, eax),
                     (O + (xmax*xmargin)*eax, -eax),
                     (O, -em),
                     (O, eM),
-                ),
-            ]
+                ))
 
+            # loop on pts 
             for ii in range(pts_x.size):
                 B = np.r_[pts_x[ii], pts_y[ii], pts_z[ii]]
                 AB = B - A
@@ -230,7 +239,9 @@ def _get_pts2pt(
                     O=O, eax=eax,
                     Ax=pt_x, Ay=pt_y, Az=pt_z,
                     Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
-                    kk=kk, rc=rc,
+                    kk=kk,
+                    rcs=rcs,
+                    rca=rca,
                     nin=nin,
                 )
 
@@ -271,12 +282,13 @@ def _get_pts2pt(
                     Ax=pt_x, Ay=pt_y, Az=pt_z,
                     Bx=pts_x[ii], By=pts_y[ii], Bz=pts_z[ii],
                     kk=roots[0],
-                    rc=rc,
+                    rcs=rcs,
+                    rca=rca,
                     nin=nin,
                 )
 
                 # theta, xx
-                thetai = np.arctan2(
+                thetai = rcs * np.arctan2(
                     -(nix*erot[0] + niy*erot[1] + niz*erot[2]),
                     nix*nin[0] + niy*nin[1] + niz*nin[2],
                 )
@@ -624,7 +636,9 @@ def _get_Dnin_from_k_cyl(
     O=None, eax=None,
     Ax=None, Ay=None, Az=None,
     Bx=None, By=None, Bz=None,
-    kk=None, rc=None,
+    kk=None,
+    rcs=None,
+    rca=None,
     nin=None,
 ):
     Ex = Ax + kk*(Bx - Ax)
@@ -636,19 +650,22 @@ def _get_Dnin_from_k_cyl(
     niy = (Ey - O[1]) - xx*eax[1]
     niz = (Ez - O[2]) - xx*eax[2]
     ninorm = np.sqrt(nix**2 + niy**2 + niz**2)
-    nix = -nix / ninorm
-    niy = -niy / ninorm
-    niz = -niz / ninorm
+    nix = - rcs * nix / ninorm
+    niy = - rcs * niy / ninorm
+    niz = - rcs * niz / ninorm
 
+    # handle 2 zones
     sign = np.sign(nix*nin[0] + niy*nin[1] + niz*nin[2])
+    if rcs > 0:   
+        nix = sign*nix
+        niy = sign*niy
+        niz = sign*niz
+    else:
+        assert np.all(sign > 0.)
 
-    nix = sign*nix
-    niy = sign*niy
-    niz = sign*niz
-
-    Dx = O[0] + xx*eax[0] - rc*nix
-    Dy = O[1] + xx*eax[1] - rc*niy
-    Dz = O[2] + xx*eax[2] - rc*niz
+    Dx = O[0] + xx*eax[0] - rcs * rca*nix
+    Dy = O[1] + xx*eax[1] - rcs * rca*niy
+    Dz = O[2] + xx*eax[2] - rcs * rca*niz
     return nix, niy, niz, Dx, Dy, Dz, xx
 
 

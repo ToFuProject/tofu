@@ -61,7 +61,12 @@ def _get_ptsvect(
         icurv = 1 - iplan
         eax = ['e0', 'e1'][iplan]
         erot = ['e0', 'e1'][icurv]
+        
         rc = dgeom['curve_r'][icurv]
+        rcs = np.sign(rc)
+        rca = np.abs(rc)
+        
+        minmax = np.maximum if rcs > 0 else np.minimum
 
         def ptsvect(
             # pts
@@ -74,7 +79,9 @@ def _get_ptsvect(
             vect_z=None,
             # surface
             O=dgeom['cent'] + dgeom['nin'] * rc,
-            rc=rc,
+            rcs=rcs,
+            rca=rca,
+            minmax=minmax,
             eax=dgeom[eax],
             erot=dgeom[erot],
             iplan=iplan,
@@ -127,26 +134,41 @@ def _get_ptsvect(
             ) = _common_prepare(shape)
 
             # get k
-            delta = (OAzez**2 - ez2*(OAz2-rc**2))[iok]
+            delta = (OAzez**2 - ez2*(OAz2-rca**2))[iok]
             ipos = delta >= 0
             iok[iok] = ipos
             sol0 = (-OAzez[iok] - np.sqrt(delta[ipos])) / ez2[iok]
             sol1 = (-OAzez[iok] + np.sqrt(delta[ipos])) / ez2[iok]
-            kk[iok] = np.maximum(sol0, sol1)
+            kk[iok] = minmax(sol0, sol1)
 
             if np.any(iok):
                 Dx = pts_x + kk*vect_x
                 Dy = pts_y + kk*vect_y
                 Dz = pts_z + kk*vect_z
 
-                ODzx = (Dy[iok] - O[1])*eax[2] - (Dz[iok] - O[2])*eax[1]
-                ODzy = (Dz[iok] - O[2])*eax[0] - (Dx[iok] - O[0])*eax[2]
-                ODzz = (Dx[iok] - O[0])*eax[1] - (Dy[iok] - O[1])*eax[0]
-                ODzn = np.sqrt(ODzx**2 + ODzy**2 + ODzz**2)
+                ODx = Dx[iok] - O[0]
+                ODy = Dy[iok] - O[1]
+                ODz = Dz[iok] - O[2]
 
-                nox = -(ODzy * eax[2] - ODzz * eax[1]) / ODzn
-                noy = -(ODzz * eax[0] - ODzx * eax[2]) / ODzn
-                noz = -(ODzx * eax[1] - ODzy * eax[0]) / ODzn
+                xxi = ODx * eax[0] + ODy * eax[1] + ODz * eax[2]
+                
+                nox = ODx - xxi * eax[0]
+                noy = ODy - xxi * eax[1]
+                noz = ODz - xxi * eax[2]
+                nn = np.sqrt(nox**2 + noy**2 + noz**2)
+                nox = rcs * nox / nn
+                noy = rcs * noy / nn
+                noz = rcs * noz / nn
+                
+
+                # ODzx = (Dy[iok] - O[1])*eax[2] - (Dz[iok] - O[2])*eax[1]
+                # ODzy = (Dz[iok] - O[2])*eax[0] - (Dx[iok] - O[0])*eax[2]
+                # ODzz = (Dx[iok] - O[0])*eax[1] - (Dy[iok] - O[1])*eax[0]
+                # ODzn = np.sqrt(ODzx**2 + ODzy**2 + ODzz**2)
+
+                # nox = -rcs*(ODzy * eax[2] - ODzz * eax[1]) / ODzn
+                # noy = -rcs*(ODzz * eax[0] - ODzx * eax[2]) / ODzn
+                # noz = -rcs*(ODzx * eax[1] - ODzy * eax[0]) / ODzn
 
                 # scalar product (for angle + reflection)
                 if np.isscalar(vect_x):
@@ -170,16 +192,13 @@ def _get_ptsvect(
 
                 # x0, x1
                 if strict is True or return_x01 is True:
+                    
                     theta[iok] =  np.arctan2(
                         nox*erot[0] + noy*erot[1] + noz*erot[2],
                         -nox*nin[0] - noy*nin[1] - noz*nin[2],
                     )
 
-                    xx[iok] = (
-                        (Dx[iok] - O[0])*eax[0]
-                        + (Dy[iok] - O[1])*eax[1]
-                        + (Dz[iok] - O[2])*eax[2]
-                    )
+                    xx[iok] = xxi
 
                     if strict is True:
                         iout = (np.abs(theta) > thetamax) | (np.abs(xx) > xmax)
@@ -216,6 +235,8 @@ def _get_ptsvect(
     elif dgeom['type'] == 'spherical':
 
         rc = dgeom['curve_r'][0]
+        rcs = np.sign(rc)
+        rca = np.abs(rc)
 
         def ptsvect(
             # pts
@@ -228,7 +249,8 @@ def _get_ptsvect(
             vect_z=None,
             # surface
             O=dgeom['cent'] + dgeom['nin'] * rc,
-            rc=rc,
+            rcs=rcs,
+            rca=rca,
             # limits
             dthetamax=dgeom['extenthalf'][0],
             phimax=dgeom['extenthalf'][1],
@@ -273,7 +295,7 @@ def _get_ptsvect(
             ) = _common_prepare(shape)
 
             # get k
-            delta = (OAe**2 - (OA2-rc**2))[iok]
+            delta = (OAe**2 - (OA2-rca**2))[iok]
             ipos = delta >= 0
             iok[iok] = ipos
             sol0 = -OAe[iok] - np.sqrt(delta[ipos])
@@ -286,9 +308,9 @@ def _get_ptsvect(
                 Dz = pts_z + kk*vect_z
 
                 ODn = np.sqrt((Dx - O[0])**2 + (Dy - O[1])**2 + (Dz - O[2])**2)
-                nox = (Dx[iok] - O[0]) / ODn[iok]
-                noy = (Dy[iok] - O[1]) / ODn[iok]
-                noz = (Dz[iok] - O[2]) / ODn[iok]
+                nox = rcs * (Dx[iok] - O[0]) / ODn[iok]
+                noy = rcs * (Dy[iok] - O[1]) / ODn[iok]
+                noz = rcs * (Dz[iok] - O[2]) / ODn[iok]
 
                 # scalar product (for angle + reflection)
                 if np.isscalar(vect_x):

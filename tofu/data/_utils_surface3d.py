@@ -276,6 +276,8 @@ def _get_curved_poly(
         iplan = np.isinf(curve_r).nonzero()[0][0]
         icurv = 1 - iplan
         rc = curve_r[icurv]
+        rcs = np.sign(rc)
+        rca = np.abs(rc)
 
         centbis = cent + rc * nin
         ee = [e0, e1]
@@ -284,39 +286,48 @@ def _get_curved_poly(
         ang = outline[icurv]
         xx = outline[iplan]
 
-        vx = np.cos(ang) * (-nin[0]) + np.sin(ang) * ee[icurv][0]
-        vy = np.cos(ang) * (-nin[1]) + np.sin(ang) * ee[icurv][1]
-        vz = np.cos(ang) * (-nin[2]) + np.sin(ang) * ee[icurv][2]
+        vx = np.cos(ang) * (-rcs*nin[0]) + np.sin(ang) * ee[icurv][0]
+        vy = np.cos(ang) * (-rcs*nin[1]) + np.sin(ang) * ee[icurv][1]
+        vz = np.cos(ang) * (-rcs*nin[2]) + np.sin(ang) * ee[icurv][2]
 
-        poly_x = centbis[0] + xx * ee[iplan][0] + rc * vx
-        poly_y = centbis[1] + xx * ee[iplan][1] + rc * vy
-        poly_z = centbis[2] + xx * ee[iplan][2] + rc * vz
+        poly_x = centbis[0] + xx * ee[iplan][0] + rca * vx
+        poly_y = centbis[1] + xx * ee[iplan][1] + rca * vy
+        poly_z = centbis[2] + xx * ee[iplan][2] + rca * vz
 
     # spherical
     elif gtype == 'spherical':
 
         rc = curve_r[0]
+        rcs = np.sign(rc)
+        rca = np.abs(rc)
+        
         centbis = cent + rc * nin
         dtheta, psi = outline_x0, outline_x1
 
-        vpsix = np.cos(psi) * (-nin[0]) + np.sin(psi) * e0[0]
-        vpsiy = np.cos(psi) * (-nin[1]) + np.sin(psi) * e0[1]
-        vpsiz = np.cos(psi) * (-nin[2]) + np.sin(psi) * e0[2]
+        vpsix = np.cos(psi) * (-rcs*nin[0]) + np.sin(psi) * e0[0]
+        vpsiy = np.cos(psi) * (-rcs*nin[1]) + np.sin(psi) * e0[1]
+        vpsiz = np.cos(psi) * (-rcs*nin[2]) + np.sin(psi) * e0[2]
 
         vx = np.cos(dtheta) * vpsix + np.sin(dtheta) * e1[0]
         vy = np.cos(dtheta) * vpsiy + np.sin(dtheta) * e1[1]
         vz = np.cos(dtheta) * vpsiz + np.sin(dtheta) * e1[2]
 
-        poly_x = centbis[0] + rc * vx
-        poly_y = centbis[1] + rc * vy
-        poly_z = centbis[2] + rc * vz
+        poly_x = centbis[0] + rca * vx
+        poly_y = centbis[1] + rca * vy
+        poly_z = centbis[2] + rca * vz
 
     # toroidal
     elif gtype == 'toroidal':
-        imax = np.argmax(curve_r)
+        
+        imax = np.argmax(np.abs(curve_r))
         imin = 1 - imax
-        rmax = np.max(curve_r)
-        rmin = np.min(curve_r)
+        rmax = curve_r[imax]
+        rmin = curve_r[imin]
+        rmaxs = np.sign(rmax)
+        rmins = np.sign(rmin)
+        rmaxa = np.abs(rmax)
+        rmina = np.abs(rmin)
+        crosss = rmaxs*rmins
 
         cmax = cent + nin * (rmax + rmin)
         outline = [outline_x0, outline_x1]
@@ -325,21 +336,21 @@ def _get_curved_poly(
 
         ee = [e0, e1]
 
-        vmaxx = np.cos(amax) * (-nin)[0] + np.sin(amax) * ee[imax][0]
-        vmaxy = np.cos(amax) * (-nin)[1] + np.sin(amax) * ee[imax][1]
-        vmaxz = np.cos(amax) * (-nin)[2] + np.sin(amax) * ee[imax][2]
+        vmaxx = np.cos(amax) * (-rmaxs*nin)[0] + np.sin(amax) * ee[imax][0]
+        vmaxy = np.cos(amax) * (-rmaxs*nin)[1] + np.sin(amax) * ee[imax][1]
+        vmaxz = np.cos(amax) * (-rmaxs*nin)[2] + np.sin(amax) * ee[imax][2]
 
-        cminx = cmax[0] + rmax * vmaxx
-        cminy = cmax[1] + rmax * vmaxy
-        cminz = cmax[2] + rmax * vmaxz
+        cminx = cmax[0] + rmaxa * vmaxx
+        cminy = cmax[1] + rmaxa * vmaxy
+        cminz = cmax[2] + rmaxa * vmaxz
 
-        vminx = np.cos(amin) * vmaxx + np.sin(amin) * ee[imin][0]
-        vminy = np.cos(amin) * vmaxy + np.sin(amin) * ee[imin][1]
-        vminz = np.cos(amin) * vmaxz + np.sin(amin) * ee[imin][2]
+        vminx = np.cos(amin) * crosss * vmaxx + np.sin(amin) * ee[imin][0]
+        vminy = np.cos(amin) * crosss * vmaxy + np.sin(amin) * ee[imin][1]
+        vminz = np.cos(amin) * crosss * vmaxz + np.sin(amin) * ee[imin][2]
 
-        poly_x = cminx + rmin * vminx
-        poly_y = cminy + rmin * vminy
-        poly_z = cminz + rmin * vminz
+        poly_x = cminx + rmina * vminx
+        poly_y = cminy + rmina * vminy
+        poly_z = cminz + rmina * vminz
 
     return poly_x, poly_y, poly_z
 
