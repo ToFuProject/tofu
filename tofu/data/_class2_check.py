@@ -730,6 +730,34 @@ def _rays(
 
     return dref, ddata, dobj
 
+# ##################################################################
+# ##################################################################
+#                   Rays - check key
+# ##################################################################
+
+
+def _check_key(coll=None, key=None):
+
+    lrays = list(coll.dobj.get('rays', {}).keys())
+    ldiag = [
+        k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
+        if v0.get('los') is not None
+        and v0['los'] in lrays
+        ]
+    
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lrays + ldiag,
+    )    
+    
+    if key in lrays:
+        kray = key
+    else:
+        kray = coll.dobj['diagnostic'][key]['los']
+    
+    return kray
+
 
 # ##################################################################
 # ##################################################################
@@ -745,12 +773,7 @@ def _get_start(
     # ---------
     # check key
 
-    lok = list(coll.dobj.get('rays', {}))
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lok,
-    )
+    key = _check_key(coll=coll, key=key)
 
     # ---------------
     # get start
@@ -772,12 +795,7 @@ def _get_pts(
     # ---------
     # check key
 
-    lok = list(coll.dobj.get('rays', {}))
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lok,
-    )
+    key = _check_key(coll=coll, key=key)
     
     # ---------
     # get start
@@ -809,12 +827,7 @@ def _get_vect(
     # ---------
     # check key
 
-    lok = list(coll.dobj.get('rays', {}))
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lok,
-    )
+    key = _check_key(coll=coll, key=key)
 
     # norm
     norm = ds._generic_check._check_var(
