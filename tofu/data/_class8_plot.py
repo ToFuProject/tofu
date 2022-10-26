@@ -67,14 +67,20 @@ def _plot_diagnostic_check(
 
     ref = None
     if not c0:
+        
+        # list all available data
         lok = [
             k0 for k0, v0 in coll.ddata.items()
             if v0.get('camera') == coll.dobj['diagnostic'][key]['optics'][0]
         ]
+        
+        # those that are diag attributes
         ldiag = [
             k0 for k0, v0 in coll.dobj['diagnostic'][key].items()
             if isinstance(v0, str) and v0 in lok
         ]
+        
+        # those that are rays attributes
         klos = coll.dobj['diagnostic'][key].get('los')
         if klos is None:
             lrays = []
@@ -83,16 +89,21 @@ def _plot_diagnostic_check(
                 k0 for k0, v0 in coll.dobj['rays'][klos].items()
                 if isinstance(v0, str) and v0 in lok
             ]
+            
+        # tangency radius
+        lrad = ['tangency radius']
 
+        # wavelength
         if kcryst is None:
             llamb = []
         else:
             llamb = ['lamb', 'lambmin', 'lambmax', 'res']
 
+        # check data
         data = ds._generic_check._check_var(
             data, 'data',
             types=str,
-            allowed=lok + ldiag + lrays + llamb,
+            allowed=lok + ldiag + lrays + llamb + lrad,
             default=defdata,
         )
 
@@ -106,6 +117,12 @@ def _plot_diagnostic_check(
                 rocking_curve=rocking_curve,
                 lamb=data,
             )
+        elif data in lrad:
+            data, _, ref = coll.get_rays_tangency_radius(
+                key=key,
+                segment=-1,
+                lim_to_segments=False,
+                )
 
     # -------
     # color_dict
