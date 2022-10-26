@@ -154,6 +154,47 @@ class Rays(_class1_Plasma2D.Plasma2D):
         )
 
     # --------------
+    # tangency radius
+    # --------------
+
+    def get_rays_tangency_radius(
+        self,
+        key=None,
+        axis_pt=None,
+        axis_vect=None,
+        segment=None,
+        lim_to_segments=None,
+    ):
+        """ Return the tangancy radius to an axis of each ray segment
+        
+        parameters
+        ----------
+        axis_pt:    len=3 iterable
+            (x, y, z) coordinates of a pt on the axis, default to [0, 0, 0]
+        axis_vect:  len=3 iterable
+            (x, y, z) coordinates of the axis vector, default to [0, 0, 1]
+        lim_to_segments: bool
+            flag indicating whether to limit solutions to the segments
+                
+        Return
+        -------
+        radius:     np.ndarray of floats
+            the tangency radii
+        kk:         np.ndarray of floats
+            the normalized longitudinal coordinate of the tangency points 
+
+        """
+
+        return _compute._tangency_radius(
+            coll=self,
+            key=key,
+            axis_pt=axis_pt,
+            axis_vect=axis_vect,
+            segment=segment,
+            lim_to_segments=lim_to_segments,
+        )
+
+    # --------------
     # plotting
     # --------------
 
