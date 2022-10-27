@@ -65,6 +65,10 @@ def _sample(
             types=(float, int),
             sign='> 0',
         )
+        
+        if mode == 'rel':
+            msg = "radius_max can only be used with mode='abs'!"
+            raise Exception(msg)
 
     # -----------
     # compute
@@ -75,13 +79,13 @@ def _sample(
     
     # changes to pts
     if radius_max is not None:
-        iok, pts_x, pts_y, pts_z = coll.get_ray_intersect_radius(
+        pts_x, pts_y, pts_z = coll.get_rays_intersect_radius(
             key=key,
             segment=segment,
             axis_radius=radius_max,
             lim_to_segments=True,
             return_pts=True,
-            )[-7:]
+            )[3:]
         
     else:
         pts_x, pts_y, pts_z = coll.get_rays_pts(key=key)
@@ -94,11 +98,7 @@ def _sample(
             pts_y = pts_y[iseg, :]
             pts_z = pts_z[iseg, :]
             
-            npts = pts_x.shape[0]
-        
-        iok = True
-        
-        
+    npts = pts_x.shape[0]
 
    # -------------------------
    # prepare sampling indices
@@ -138,7 +138,7 @@ def _sample(
     # abs => for pts.ndim >= 3 (2d cameras and above), flattened list
     else:
         
-        iok = np.all(np.isfinite(pts_x), axis=0)
+        iok = np.isfinite(pts_x)
         
         norm = np.sqrt(
             np.diff(pts_x, axis=0)**2
@@ -152,37 +152,39 @@ def _sample(
         lpx, lpy, lpz = [], [], []  
         for ind in itt.product(*[range(ss) for ss in pts_x.shape[1:]]):
             
-            if not iok[ind]:
+            sli = tuple([slice(None)] + list(ind))
+            if not np.any(iok[sli]):
                 continue
+            
+            i0i = i0[iok[sli]]
             
             i1 = np.concatenate(tuple(
                 [
                     np.linspace(
-                        i0[jj], i0[jj+1], nn[tuple(np.r_[jj, ind])] + 1,
+                        i0i[jj], i0i[jj+1], nn[tuple(np.r_[i0i[jj], ind])] + 1,
                         )[:-1]
-                    for jj in range(npts - 1)
+                    for jj in range(i0i.size - 1)
                 ]
-                + [[i0[-1]]]
+                + [[i0i[-1]]]
                 ))
         
-            sli = tuple([slice(None)] + list(ind))
             # interpolate
             lpx.append(scpinterp.interp1d(
-                i0,
+                i0i,
                 pts_x[sli],
                 kind='linear',
                 axis=0,
             )(i1))
             
             lpy.append(scpinterp.interp1d(
-                i0,
+                i0i,
                 pts_y[sli],
                 kind='linear',
                 axis=0,
             )(i1))
             
             lpz.append(scpinterp.interp1d(
-                i0,
+                i0i,
                 pts_z[sli],
                 kind='linear',
                 axis=0,
