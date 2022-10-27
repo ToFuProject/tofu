@@ -140,9 +140,33 @@ class Rays(_class1_Plasma2D.Plasma2D):
         res=None,
         mode=None,
         segment=None,
+        radius_max=None,
         concatenate=None,
     ):
-        """ Return the sampled rays """
+        """ Return the sampled rays
+        
+        Parameters
+        ----------
+        key:        str
+            key of the rays / diag los to sample
+        res:        float
+            sampling resolution
+        mode:       str
+            sampling mode
+                - 'rel': relative, res is in [0, 1], 0.1 = 10 samples / segment
+                - 'abs': absolute, res is a distance in m
+        segment:    None / int / iterable of ints
+            indices of te segments to be sampled
+                - None: all
+                - int: a single segment
+                - iterable of ints: several segments
+            Typical usage: None or -1 (last segment)
+        radius_max:     None / float
+            If provided, only sample the portion of segments that are inside
+            the provided ;ajor radius
+        conctenate:     bool
+            flag indicating whether to concatenate the sampled points per ray
+        """
 
         return _compute._sample(
             coll=self,
@@ -150,6 +174,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
             res=res,
             mode=mode,
             segment=segment,
+            radius_max=radius_max,
             concatenate=concatenate,
         )
 
@@ -193,6 +218,59 @@ class Rays(_class1_Plasma2D.Plasma2D):
             segment=segment,
             lim_to_segments=lim_to_segments,
         )
+
+    def get_rays_intersect_radius(
+        self,
+        key=None,
+        axis_pt=None,
+        axis_vect=None,
+        axis_radius=None,
+        segment=None,
+        lim_to_segments=None,
+        return_pts=None,
+    ):
+        """ Return the tangancy radius to an axis of each ray segment
+        
+        parameters
+        ----------
+        axis_pt:    len=3 iterable
+            (x, y, z) coordinates of a pt on the axis, default to [0, 0, 0]
+        axis_vect:  len=3 iterable
+            (x, y, z) coordinates of the axis vector, default to [0, 0, 1]
+        axis_radius:    float
+            The radius around the axis defining the cylinder to intersect
+        lim_to_segments: bool
+            flag indicating whether to limit solutions to the segments
+        return_pts:
+            flag indicating whether to return the pts (x, y, z) coordinates 
+                
+        Return
+        -------
+        k0:         np.ndarray of floats
+            First solution, per segment
+        k1:         np.ndarray of floats
+            Second solution, per segment
+        iok:        np.ndarray of bool
+            Flag indicating which segments have at least an intersection
+        pts_x:      np.ndarray of floats
+            The x coordinates of the points inside the cylinder
+        pts_y:      np.ndarray of floats
+            The y coordinates of the points inside the cylinder
+        pts_z:      np.ndarray of floats
+            The z coordinates of the points inside the cylinder
+
+        """
+        
+        return _compute.intersect_radius(
+            coll=self,
+            key=key,
+            axis_pt=axis_pt,
+            axis_vect=axis_vect,
+            axis_radius=axis_radius,
+            segment=segment,
+            lim_to_segments=lim_to_segments,
+            return_pts=return_pts,
+            )
 
     # --------------
     # plotting

@@ -24,6 +24,7 @@ def _sample(
     res=None,
     mode=None,
     segment=None,
+    radius_max=None,
     concatenate=None,
 ):
 
@@ -57,6 +58,14 @@ def _sample(
     if segment is not None:
         segment = np.atleast_1d(segment).astype(int).ravel()
 
+    # tangency_radius_max
+    if radius_max is not None:
+        radius_max = ds._generic_check._check_var(
+            radius_max, 'radius_max',
+            types=(float, int),
+            sign='> 0',
+        )
+
     # -----------
     # compute
     # -----------
@@ -64,18 +73,32 @@ def _sample(
     # ------------------------
     # get points of interest
     
-    pts_x, pts_y, pts_z = coll.get_rays_pts(key=key)
-    npts = pts_x.shape[0]
-    
-    if segment is not None:
-        segment[segment < 0] = npts - 1 + segment[segment < 0]
+    # changes to pts
+    if radius_max is not None:
+        iok, pts_x, pts_y, pts_z = coll.get_ray_intersect_radius(
+            key=key,
+            segment=segment,
+            axis_radius=radius_max,
+            lim_to_segments=True,
+            return_pts=True,
+            )[-7:]
         
-        iseg = np.r_[segment, segment[-1] + 1]
-        pts_x = pts_x[iseg, :]
-        pts_y = pts_y[iseg, :]
-        pts_z = pts_z[iseg, :]
-        
+    else:
+        pts_x, pts_y, pts_z = coll.get_rays_pts(key=key)
         npts = pts_x.shape[0]
+        if segment is not None:
+            segment[segment < 0] = npts - 1 + segment[segment < 0]
+            
+            iseg = np.r_[segment, segment[-1] + 1]
+            pts_x = pts_x[iseg, :]
+            pts_y = pts_y[iseg, :]
+            pts_z = pts_z[iseg, :]
+            
+            npts = pts_x.shape[0]
+        
+        iok = True
+        
+        
 
    # -------------------------
    # prepare sampling indices
@@ -197,7 +220,7 @@ def _sample(
 # ###############################################################
 
 
-def _tangency_radius(
+def _tangency_radius_check(
     coll=None,
     key=None,
     axis_pt=None,
@@ -205,10 +228,6 @@ def _tangency_radius(
     segment=None,
     lim_to_segments=None,
     ):
-
-    # --------------
-    # check inputs
-    # --------------
     
     # key
     key = _check._check_key(coll=coll, key=key)
@@ -246,13 +265,17 @@ def _tangency_radius(
     # segment
     if segment is not None:
         segment = np.atleast_1d(segment).astype(int).ravel()
-    
-    # -----------
-    # compute
-    # -----------
 
-    # --------
-    # prepare
+    return key, axis_pt, axis_vect, segment, lim_to_segments
+
+
+def _tangency_radius_prepare(
+        coll=None,
+        key=None,
+        segment=None,
+        axis_pt=None,
+        axis_vect=None,
+        ):
     
     pts_x, pts_y, pts_z = coll.get_rays_pts(key=key)
     
@@ -298,10 +321,63 @@ def _tangency_radius(
     ABv = ABx*axis_vect[0] + ABy*axis_vect[1] + ABz*axis_vect[2]
     AOv = AOx*axis_vect[0] + AOy*axis_vect[1] + AOz*axis_vect[2]
     ABAO = ABx*AOx + ABy*AOy + ABz*AOz
+    B = ABv*AOv - ABAO
+
+    return (
+        pts_x, pts_y, pts_z,
+        ABx, ABy, ABz,
+        AOx, AOy, AOz,
+        ABvn2, AOvn2, B,
+        )
+        
+
+def _tangency_radius(
+    coll=None,
+    key=None,
+    axis_pt=None,
+    axis_vect=None,
+    segment=None,
+    lim_to_segments=None,
+    ):
+
+    # --------------
+    # check inputs
+    # --------------
+    
+    (
+     key, axis_pt, axis_vect, segment, lim_to_segments,
+     ) = _tangency_radius_check(
+         coll=coll,
+         key=key,
+         axis_pt=axis_pt,
+         axis_vect=axis_vect,
+         segment=segment,
+         lim_to_segments=lim_to_segments,
+         )
+    
+    # -----------
+    # compute
+    # -----------
+
+    # --------
+    # prepare
+    
+    (
+     pts_x, pts_y, pts_z,
+     ABx, ABy, ABz,
+     AOx, AOy, AOz,
+     ABvn2, AOvn2, B,
+     ) = _tangency_radius_prepare(
+         coll=coll,
+         key=key,
+         segment=segment,
+         axis_pt=axis_pt,
+         axis_vect=axis_vect,
+         )
     
     kk = np.zeros(ABx.shape, dtype=float)
     iok = ABvn2 > 0.
-    kk[iok] = (ABAO[iok] - ABv[iok]*AOv[iok]) / ABvn2[iok]
+    kk[iok] = -B[iok] / ABvn2[iok]
     
     # ------------------------
     # lim_to_segments
@@ -316,7 +392,7 @@ def _tangency_radius(
     # --------
     # radius
         
-    radius = np.sqrt(kk**2 * ABvn2 + 2*kk*(ABv*AOv - ABAO) + AOvn2)
+    radius = np.sqrt(kk**2 * ABvn2 + 2*kk*B + AOvn2)
     
     # -------
     # ref
@@ -331,3 +407,157 @@ def _tangency_radius(
         ref = None
     
     return radius, kk, ref
+
+
+def intersect_radius(
+    coll=None,
+    key=None,
+    axis_pt=None,
+    axis_vect=None,
+    axis_radius=None,
+    segment=None,
+    lim_to_segments=None,
+    return_pts=None,
+    ):
+    
+    # --------------
+    # check inputs
+    # --------------
+    
+    (
+     key, axis_pt, axis_vect, segment, lim_to_segments,
+     ) = _tangency_radius_check(
+         coll=coll,
+         key=key,
+         axis_pt=axis_pt,
+         axis_vect=axis_vect,
+         segment=segment,
+         lim_to_segments=lim_to_segments,
+         )
+    
+    # axis_radius
+    axis_radius = ds._generic_check._check_var(
+        axis_radius, 'axis_radius',
+        types=(float, int),
+        sign='> 0.',
+    )
+    
+    # return_pts
+    return_pts = ds._generic_check._check_var(
+        return_pts, 'return_pts',
+        types=bool,
+        default=False,
+    )
+    
+    if return_pts is True and lim_to_segments is False:
+        msg = (
+            "return_pts requires lim_to_segments = True"
+            )
+        raise Exception(msg)
+    
+    # -----------
+    # compute
+    # -----------
+
+    # --------
+    # prepare
+    
+    (
+     pts_x, pts_y, pts_z,
+     ABx, ABy, ABz,
+     AOx, AOy, AOz,
+     ABvn2, AOvn2, B,
+     ) = _tangency_radius_prepare(
+         coll=coll,
+         key=key,
+         segment=segment,
+         axis_pt=axis_pt,
+         axis_vect=axis_vect,
+         )
+    
+    # pre-select according to rad_min
+    kmin = np.zeros(ABx.shape, dtype=float)
+    
+    iok = ABvn2 > 0.
+    kmin[iok] = -B[iok] / ABvn2[iok]
+    rad_min = np.sqrt(kmin**2 * ABvn2 + 2*kmin*B + AOvn2)
+    
+    # prepare solutions
+    iin = (rad_min < axis_radius) & iok
+    
+    # there can be up to 2 solutions
+    k0 = np.full(ABx.shape, np.nan)
+    k1 = np.full(ABx.shape, np.nan)
+    
+    if np.any(iin):
+        delta = B[iin]**2 - ABvn2[iin]*(AOvn2[iin] - axis_radius**2)
+        
+        k0[iin] = (-B[iin] - np.sqrt(delta)) / ABvn2[iin]
+        k1[iin] = (-B[iin] + np.sqrt(delta)) / ABvn2[iin]
+    
+    # ----------------
+    # lim_to_segments
+    
+    if lim_to_segments is True:
+        
+        ind = np.copy(iin)
+        ind[ind] = (k0[ind] < 0) & (k1[ind] > 0)
+        k0[ind] = 0.
+        
+        ind = np.copy(iin)
+        ind[ind] = (k0[ind] < 1) & (k1[ind] > 1)
+        k1[ind] = 1.
+        
+        ind = np.copy(iin)
+        ind[ind] = (k0[ind] >= 0.) & (k0[ind] <= 1.)
+        k0[~ind] = np.nan
+        
+        ind = np.copy(iin)
+        ind[ind] = (k1[ind] >= 0.) & (k1[ind] <= 1.)
+        k1[~ind] = np.nan
+    
+    # ------
+    # return
+    
+    iok = np.isfinite(k0) & np.isfinite(k1)
+    iok2 = np.copy(iok)
+    iok2[iok] = k1[iok] < 1.
+    
+    false = np.zeros(tuple(np.r_[1, iok.shape[1:]]), dtype=bool)
+    iok0 = np.concatenate((iok, false), axis=0)
+    iok1 = np.concatenate((false, iok), axis=0)
+    iok02 = np.concatenate((iok2, false), axis=0)
+    iok12 = np.concatenate((false, iok2), axis=0)
+
+    if return_pts is True:
+        shape = tuple(np.r_[iok.shape[0], np.ones((k0.ndim-1,), dtype=int)])
+        
+        # Make sure there a single continued sequence per ray 
+        # build index and check continuity
+        # ind = np.arange(0, k0.shape[0]).reshape(shape)
+        # ind = np.zeros(k0.shape) + ind
+
+        # ii = np.full(pts_x.shape, np.nan)
+        # ii[iok0] = k0[iok] + ind[iok]
+        # ii[iok12] = k1[iok2] + ind[iok2]
+        # ii[-1, ...] = k1[-1, ...] + ind[-1, ...]
+
+        px = np.full(pts_x.shape, np.nan)
+        py = np.full(pts_x.shape, np.nan)
+        pz = np.full(pts_x.shape, np.nan)
+        
+        px[iok0] = pts_x[iok0] + k0[iok] * ABx[iok]
+        py[iok0] = pts_y[iok0] + k0[iok] * ABy[iok]
+        pz[iok0] = pts_z[iok0] + k0[iok] * ABz[iok]
+        
+        px[iok12] = pts_x[iok02] + k1[iok2] * ABx[iok2]
+        py[iok12] = pts_y[iok02] + k1[iok2] * ABy[iok2]
+        pz[iok12] = pts_z[iok02] + k1[iok2] * ABz[iok2]
+        px[-1, ...] = pts_x[-2, ...] + k1[-1, ...] * ABx[-1, ...]
+        py[-1, ...] = pts_y[-2, ...] + k1[-1, ...] * ABy[-1, ...]
+        pz[-1, ...] = pts_z[-2, ...] + k1[-1, ...] * ABz[-1, ...]
+        
+        return k0, k1, iok, px, py, pz
+    
+    else:
+        return k0, k1, iok
