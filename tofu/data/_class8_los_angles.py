@@ -22,19 +22,9 @@ __all__ = ['compute_los_angles']
 def compute_los_angles(
     coll=None,
     key=None,
-    kref=None,
     is2d=None,
     # los
-    los_x=None,
-    los_y=None,
-    los_z=None,
-    dlos_x=None,
-    dlos_y=None,
-    dlos_z=None,
-    iok=None,
-    cx=None,
-    cy=None,
-    cz=None,
+    dcompute=None,
     # for storing los
     config=None,
     length=None,
@@ -54,103 +44,96 @@ def compute_los_angles(
         allowed=lok,
     )
 
-    # klos
-    klos = f'{key}-los'
-
-    # ref
-    optics = coll.dobj['diagnostic'][key]['optics']
-    ref = coll.dobj['camera'][optics[0]]['dgeom']['ref']
-
-    # ------------
-    # add los
-
-    cx2, cy2, cz2 = coll.get_camera_cents_xyz(key=optics[0])
-
-    coll.add_rays(
-        key=klos,
-        start_x=cx2,
-        start_y=cy2,
-        start_z=cz2,
-        vect_x=los_x,
-        vect_y=los_y,
-        vect_z=los_z,
-        ref=ref,
-        diag=key,
-        config=config,
-        length=length,
-        reflections_nb=reflections_nb,
-        reflections_type=reflections_type,
-    )
-
-    coll.set_param(
-        which='diagnostic',
-        key=key,
-        param='los',
-        value=klos,
-    )
-
-    # ------------
-    # for spectro => estimate angle variations
-    if dlos_x is not None:
-
-        angmin = np.full(cx.size, np.nan)
-        angmax = np.full(cx.size, np.nan)
-
-        ptsvect = coll.get_optics_reflect_ptsvect(key=kref)
-
-        for ii in range(cx.size):
-            if not iok[ii]:
-                continue
-            angles = ptsvect(
-                pts_x=cx[ii],
-                pts_y=cy[ii],
-                pts_z=cz[ii],
-                vect_x=dlos_x[ii, ...],
-                vect_y=dlos_y[ii, ...],
-                vect_z=dlos_z[ii, ...],
-                strict=True,
-                return_x01=False,
-            )[6]
-
-            angmin[ii] = np.nanmin(angles)
-            angmax[ii] = np.nanmax(angles)
-
-        if is2d:
-            angmin = angmin.reshape(los_x.shape)
-            angmax = angmax.reshape(los_x.shape)
-
-        # ddata
-        kamin = f'{key}_amin'
-        kamax = f'{key}_amax'
-        ddata = {
-            kamin: {
-                'data': angmin,
-                'ref': ref,
-                'dim': 'angle',
-                'quant': 'angle',
-                'name': 'alpha',
-                'units': 'rad',
-            },
-            kamax: {
-                'data': angmax,
-                'ref': ref,
-                'dim': 'angle',
-                'quant': 'angle',
-                'name': 'alpha',
-                'units': 'rad',
-            },
-        }
-        coll.update(ddata=ddata)
-
-        coll.set_param(
-            which='diagnostic',
-            key=key,
-            param='amin',
-            value=kamin,
+    for key_cam, v0 in dcompute.items():
+        
+        if v0['los_x'] is None or not np.any(np.isfinite(v0['los_x'])):
+            continue
+        
+        # klos
+        klos = f'{key}_{key_cam}_los'
+    
+        # ref
+        ref = coll.dobj['camera'][key_cam]['dgeom']['ref']
+    
+        # ------------
+        # add los
+    
+        cx2, cy2, cz2 = coll.get_camera_cents_xyz(key=key_cam)
+    
+        coll.add_rays(
+            key=klos,
+            start_x=cx2,
+            start_y=cy2,
+            start_z=cz2,
+            vect_x=v0['los_x'],
+            vect_y=v0['los_y'],
+            vect_z=v0['los_z'],
+            ref=ref,
+            diag=key,
+            key_cam=key_cam,
+            config=config,
+            length=length,
+            reflections_nb=reflections_nb,
+            reflections_type=reflections_type,
         )
-        coll.set_param(
-            which='diagnostic',
-            key=key,
-            param='amax',
-            value=kamax,
-        )
+    
+        coll._dobj['diagnostic'][key]['doptics'][key_cam]['los'] = klos
+
+        # ------------
+        # for spectro => estimate angle variations
+
+        if v0.get('dlos_x') is not None:
+
+            angmin = np.full(v0['cx'].size, np.nan)
+            angmax = np.full(v0['cx'].size, np.nan)
+    
+            ptsvect = coll.get_optics_reflect_ptsvect(key=v0['kref'])
+    
+            for ii in range(v0['cx'].size):
+                
+                if not v0['iok'][ii]:
+                    continue
+                
+                angles = ptsvect(
+                    pts_x=v0['cx'][ii],
+                    pts_y=v0['cy'][ii],
+                    pts_z=v0['cz'][ii],
+                    vect_x=v0['dlos_x'][ii, ...],
+                    vect_y=v0['dlos_y'][ii, ...],
+                    vect_z=v0['dlos_z'][ii, ...],
+                    strict=True,
+                    return_x01=False,
+                )[6]
+    
+                angmin[ii] = np.nanmin(angles)
+                angmax[ii] = np.nanmax(angles)
+    
+            if is2d:
+                angmin = angmin.reshape(v0['los_x'].shape)
+                angmax = angmax.reshape(v0['los_x'].shape)
+    
+            # ddata
+            kamin = f'{key}_{key_cam}_amin'
+            kamax = f'{key}_{key_cam}_amax'
+            ddata = {
+                kamin: {
+                    'data': angmin,
+                    'ref': ref,
+                    'dim': 'angle',
+                    'quant': 'angle',
+                    'name': 'alpha',
+                    'units': 'rad',
+                },
+                kamax: {
+                    'data': angmax,
+                    'ref': ref,
+                    'dim': 'angle',
+                    'quant': 'angle',
+                    'name': 'alpha',
+                    'units': 'rad',
+                },
+            }
+            coll.update(ddata=ddata)
+    
+            coll._dobj['diagnostic'][key]['doptics'][key_cam]['amin'] = kamin
+            coll._dobj['diagnostic'][key]['doptics'][key_cam]['amax'] = kamax

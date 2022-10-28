@@ -20,7 +20,7 @@ def _get_ptsvect(
     # ---------
     # key
 
-    key, cls = coll.get_diagnostic_optics(optics=key)
+    key, cls = coll.get_optics_cls(optics=key)
     key, cls = key[0], cls[0]
     dgeom = coll.dobj[cls][key]['dgeom']
 

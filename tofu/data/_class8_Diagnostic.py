@@ -36,24 +36,16 @@ class Diagnostic(_class7_Camera.Camera):
     _dshow = dict(_class7_Camera.Camera._dshow)
     _dshow.update({
         'diagnostic': [
-            'type',
-            'optics',
+            'is2d',
             'spectro',
-            'ref',
-            'etendue',
-            'etend_type',
-            'los',
-            'amin',
-            'amax',
-            'spectrum',
-            'time res.',
+            'camera',
         ],
     })
 
     def add_diagnostic(
         self,
         key=None,
-        optics=None,
+        doptics=None,
         # etendue
         etendue=None,
         # config for los
@@ -75,19 +67,17 @@ class Diagnostic(_class7_Camera.Camera):
         dref, ddata, dobj = _check._diagnostics(
             coll=self,
             key=key,
-            optics=optics,
+            doptics=doptics,
             **kwdargs,
         )
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
 
-        # --------------
-        # adding etendue
+        # ---------------------
+        # adding etendue / los
 
         key = list(dobj['diagnostic'].keys())[0]
-        optics = self.dobj['diagnostic'][key]['optics']
-
-        if len(optics) > 1 and compute is True:
+        if compute is True:
             self.compute_diagnostic_etendue_los(
                 key=key,
                 analytical=True,
@@ -111,6 +101,27 @@ class Diagnostic(_class7_Camera.Camera):
 
     def get_diagnostic_ref(self, key=None):
         return _check.get_ref(coll=self, key=key)
+    
+    
+    def get_diagnostic_cam(self, key=None, key_cam=None):
+        return _check._get_default_cam(coll=self, key=key, key_cam=key_cam)
+
+    def get_diagnostic_concatenate_data(
+        self,
+        key=None,
+        key_cam=None,
+        data=None,
+        rocking_curve=None,
+        **kwdargs,
+        ):
+        return _compute._concatenate_cam(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            data=data,
+            rocking_curve=rocking_curve,
+            **kwdargs,
+        )
 
     # -----------------
     # etendue computing
@@ -141,7 +152,7 @@ class Diagnostic(_class7_Camera.Camera):
         If store = 'analytical' or 'numerical', overwrites the diag etendue
 
         """
-        dlos, store = _etendue_los.compute_etendue_los(
+        dcompute, store = _etendue_los.compute_etendue_los(
             coll=self,
             key=key,
             analytical=analytical,
@@ -154,7 +165,12 @@ class Diagnostic(_class7_Camera.Camera):
             store=store,
         )
 
-        if store is not False and np.any(np.isfinite(dlos['los_x'])):
+        # compute los angles
+        c0 = (
+            any([np.any(np.isfinite(v0['los_x'])) for v0 in dcompute.values()])
+            and store
+            )
+        if c0:
             _los_angles.compute_los_angles(
                 coll=self,
                 key=key,
@@ -163,7 +179,7 @@ class Diagnostic(_class7_Camera.Camera):
                 length=length,
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
-                **dlos,
+                dcompute=dcompute,
             )
 
     # ---------------
@@ -173,6 +189,7 @@ class Diagnostic(_class7_Camera.Camera):
     def get_diagnostic_equivalent_aperture(
         self,
         key=None,
+        key_cam=None,
         pixel=None,
         # inital contour
         add_points=None,
@@ -190,6 +207,7 @@ class Diagnostic(_class7_Camera.Camera):
         return _equivalent_apertures.equivalent_apertures(
             coll=self,
             key=key,
+            key_cam=key_cam,
             pixel=pixel,
             # inital contour
             add_points=add_points,
@@ -232,9 +250,18 @@ class Diagnostic(_class7_Camera.Camera):
     # utilities
     # ---------------
 
-    def get_diagnostic_optics(self, key=None, optics=None):
-        """ Get list of optics and list of corresponding classes """
-        return _check._get_optics(coll=self, key=key, optics=optics)
+    def get_optics_cls(self, optics=None):
+        """ Return list of optics and list of their classes
+        
+        """
+        return _check._get_optics_cls(coll=self, optics=optics)
+
+    def get_diagnostic_doptics(self, key=None):
+        """ 
+        Get dict of optics and corresponding classes 
+        
+        """
+        return _check._get_diagnostic_doptics(coll=self, key=key)
 
     def get_optics_outline(
         self,

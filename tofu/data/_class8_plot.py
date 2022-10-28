@@ -26,6 +26,7 @@ from . import _generic_plot
 def _plot_diagnostic_check(
     coll=None,
     key=None,
+    key_cam=None,
     # figure
     proj=None,
     data=None,
@@ -39,15 +40,15 @@ def _plot_diagnostic_check(
     # -------
     # key
 
-    lok = list(coll.dobj.get('diagnostic', {}).keys())
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lok,
-    )
-    optics, optics_cls = coll.get_diagnostic_optics(key)
-    if 'crystal' in optics_cls:
-        kcryst = optics[optics_cls.index('crystal')]
+    # key
+    key, key_cam = coll.get_diagnostic_cam(key, key_cam)
+    is2d = coll.dobj['diagnostic'][key]['is2d']
+    spectro = coll.dobj['diagnostic'][key]['spectro']
+    
+    if spectro:
+        assert len(key_cam) == 1
+        doptics = coll.get_diagnostic_doptics(key)[key_cam[0]]
+        kcryst = doptics['optics'][doptics['ispectro'][0]]
     else:
         kcryst = None
 

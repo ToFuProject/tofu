@@ -68,6 +68,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
         reflections_nb=None,
         reflections_type=None,
         diag=None,
+        key_cam=None,
     ):
         """ Add a set of rays
 
@@ -102,6 +103,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
             reflections_nb=reflections_nb,
             reflections_type=reflections_type,
             diag=diag,
+            key_cam=key_cam,
         )
 
         # update dicts

@@ -61,6 +61,7 @@ def _check_inputs(
     reflections_nb=None,
     reflections_type=None,
     diag=None,
+    key_cam=None,
 ):
 
     # -------------
@@ -243,9 +244,17 @@ def _check_inputs(
             allowed=lok,
         )
 
+        # key_cam
+        lok = coll.dobj['diagnostic'][diag]['camera']
+        key_cam = ds._generic_check._check_var(
+            key_cam, 'key_cam',
+            types=str,
+            allowed=lok,
+        )
+
         # lspectro
         lspectro = [
-            oo for oo in coll.dobj['diagnostic'][diag]['optics']
+            oo for oo in coll.dobj['diagnostic'][diag]['doptics'][key_cam]
             if oo in coll.dobj.get('crystal', {}).keys()
             or oo in coll.dobj.get('grating', {}).keys()
         ]
@@ -262,7 +271,7 @@ def _check_inputs(
         vect_x, vect_y, vect_z,
         shref,
         config, reflections_nb, reflections_type,
-        diag, lspectro,
+        diag, key_cam, lspectro,
     )
 
 
@@ -296,6 +305,7 @@ def _rays(
     reflections_nb=None,
     reflections_type=None,
     diag=None,
+    key_cam=None,
 ):
 
     # -------------
@@ -309,7 +319,7 @@ def _rays(
         vect_x, vect_y, vect_z,
         shaperef,
         config, reflections_nb, reflections_type,
-        diag, lspectro,
+        diag, key_cam, lspectro,
     ) = _check_inputs(
         coll=coll,
         key=key,
@@ -334,6 +344,7 @@ def _rays(
         reflections_nb=reflections_nb,
         reflections_type=reflections_type,
         diag=diag,
+        key_cam=key_cam,
     )
 
     # ----------------
@@ -502,9 +513,9 @@ def _rays(
             pts_z[-1, maskre] = pout[2, :]
             
             # RMin
-            kRMin = _comp.LOS_PRMin(cam.D, cam.u, kOut=None)
-            PRMin = cam.D + kRMin[None, :]*cam.u
-            Rmin[maskre] = np.hypot(PRMin[0, :], PRMin[1, :])
+            # kRMin = _comp.LOS_PRMin(cam.D, cam.u, kOut=None)
+            # PRMin = cam.D + kRMin[None, :]*cam.u
+            # Rmin[maskre] = np.hypot(PRMin[0, :], PRMin[1, :])
 
             vperp = cam.dgeom['vperp']
             u_perp = np.sum(cam.u*vperp, axis=0)
@@ -573,10 +584,10 @@ def _rays(
     # ddata
 
     # pts
-    kpx = f'{key}-ptx'
-    kpy = f'{key}-pty'
-    kpz = f'{key}-ptz'
-    kRmin = f'{key}-Rmin'
+    kpx = f'{key}_ptx'
+    kpy = f'{key}_pty'
+    kpz = f'{key}_ptz'
+    # kRmin = f'{key}-Rmin'
 
     ddata = {
         kpx: {
@@ -603,21 +614,21 @@ def _rays(
             'name': 'z',
             'units': 'm',
         },
-        kRmin: {
-            'data': Rmin,
-            'ref': refpts[1:],
-            'dim': 'distance',
-            'quant': 'distance',
-            'name': 'z',
-            'units': 'm',
-        },
+        # kRmin: {
+        #     'data': Rmin,
+        #     'ref': refpts[1:],
+        #     'dim': 'distance',
+        #     'quant': 'distance',
+        #     'name': 'R',
+        #     'units': 'm',
+        # },
     }
 
     # start
     if start_x.shape != (1,):
-        ksx = f'{key}-startx'
-        ksy = f'{key}-starty'
-        ksz = f'{key}-startz'
+        ksx = f'{key}_startx'
+        ksy = f'{key}_starty'
+        ksz = f'{key}_startz'
         if ref is None:
             ref = None
 
@@ -650,7 +661,7 @@ def _rays(
 
     # alpha
     if alpha is not None:
-        kalpha = f'{key}-alpha'
+        kalpha = f'{key}_alpha'
         ddata.update({
             kalpha: {
                 'data': alpha,
@@ -664,7 +675,7 @@ def _rays(
 
     # dalpha
     if dalpha is not None:
-        kdalpha = f'{key}-dalpha'
+        kdalpha = f'{key}_dalpha'
         ddata.update({
             kdalpha: {
                 'data': dalpha,
@@ -678,7 +689,7 @@ def _rays(
 
     # dbeta
     if dbeta is not None:
-        kdbeta = f'{key}-dbeta'
+        kdbeta = f'{key}_dbeta'
         ddata.update({
             kdbeta: {
                 'data': dbeta,
@@ -704,7 +715,7 @@ def _rays(
         if lamb.shape == (1,):
             ll = lamb
         else:
-            ll = klamb
+            ll = lamb
     else:
         ll = lamb
 
@@ -720,7 +731,7 @@ def _rays(
                 'lamb': ll,
                 'shape': shape,
                 'ref': refpts,
-                'Rmin': kRmin,
+                # 'Rmin': kRmin,
                 'alpha': kalpha,
                 'reflect_dalpha': kdalpha,
                 'reflect_dbeta': kdbeta,

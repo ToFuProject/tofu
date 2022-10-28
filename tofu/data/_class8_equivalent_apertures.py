@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import warnings
-import datetime as dtm
-
-
 import numpy as np
 import scipy.interpolate as scpinterp
 import matplotlib.pyplot as plt
@@ -15,7 +11,6 @@ from Polygon import Utils as plgUtils
 import datastock as ds
 
 
-from . import _class5_reflections_ptsvect
 from . import _class5_projections
 from . import _class8_compute as _compute
 
@@ -30,6 +25,7 @@ def equivalent_apertures(
     # resources
     coll=None,
     key=None,
+    key_cam=None,
     pixel=None,
     # inital contour
     add_points=None,
@@ -49,8 +45,10 @@ def equivalent_apertures(
 
     (
         key,
+        key_cam,
         kref,
         cref,
+        spectro,
         ispectro,
         lop_pre,
         lop_pre_cls,
@@ -72,6 +70,7 @@ def equivalent_apertures(
     ) = _check(
         coll=coll,
         key=key,
+        key_cam=key_cam,
         pixel=pixel,
         add_points=add_points,
         convex=convex,
@@ -118,7 +117,7 @@ def equivalent_apertures(
         for oo in lop_post
     ]
 
-    if len(ispectro) > 0:
+    if spectro:
         pts2pt = coll.get_optics_reflect_pts2pt(key=kref)
     else:
         pts2pt = None
@@ -128,7 +127,7 @@ def equivalent_apertures(
         for oo in lop_post
     ]
 
-    if len(ispectro) == 0:
+    if spectro:
         func = _get_equivalent_aperture
     else:
         func = _get_equivalent_aperture_spectro
@@ -285,7 +284,6 @@ def equivalent_apertures(
         )
 
         plane_nin = coll.dobj[cref][kref]['dgeom']['nin']
-        spectro = len(ispectro) > 0
 
     else:
         cents0, cents1 = None, None
@@ -344,6 +342,7 @@ def equivalent_apertures(
 def _check(
     coll=None,
     key=None,
+    key_cam=None,
     pixel=None,
     add_points=None,
     convex=None,
@@ -359,25 +358,38 @@ def _check(
 
     lok = [
         k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
-        if len(v0['optics']) > 1
+        if any([len(v1['optics']) > 1 for v1 in v0['doptics'].values()])
     ]
     key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         allowed=lok,
     )
+    spectro = coll.dobj['diagnostic'][key]['spectro']
 
-    optics, optics_cls = coll.get_diagnostic_optics(key=key)
-    ispectro = [
-        ii for ii, cc in enumerate(optics_cls)
-        if cc in ['grating', 'crystal']
-    ]
+    # -----------
+    # key_cam
+    
+    lok =coll.dobj['diagnostic'][key]['camera']
+    key_cam = ds._generic_check._check_var(
+        key_cam, 'key_cam',
+        types=str,
+        allowed=lok,
+    )
+
+    # --------
+    # doptics
+    
+    doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam]
+    optics = doptics['optics']
+    optics_cls = doptics['cls']
+    ispectro = doptics.get('ispectro')
 
     # -------------------------------------------------
     # ldeti: list of individual camera dict (per pixel)
 
-    dgeom = coll.dobj['camera'][optics[0]]['dgeom']
-    cx, cy, cz = coll.get_camera_cents_xyz(key=optics[0])
+    dgeom = coll.dobj['camera'][key_cam]['dgeom']
+    cx, cy, cz = coll.get_camera_cents_xyz(key=key_cam)
     is2d = dgeom['type'] == '2d'
     shape0 = cx.shape
 
@@ -402,7 +414,7 @@ def _check(
     # ------------------------------------
     # compute equivalent optics if spectro
 
-    if len(ispectro) > 0 and len(optics[ispectro[0]+1:]) > 0:
+    if spectro and len(optics[ispectro[0]+1:]) > 0:
 
         c0 = (
             len(ispectro) == 1
@@ -499,8 +511,10 @@ def _check(
 
     return (
         key,
+        key_cam,
         kref,
         cref,
+        spectro,
         ispectro,
         lop_pre,
         lop_pre_cls,
