@@ -21,6 +21,7 @@ from . import _class2_check as _check
 def _sample(
     coll=None,
     key=None,
+    key_cam=None,
     res=None,
     mode=None,
     segment=None,
@@ -81,6 +82,7 @@ def _sample(
     if radius_max is not None:
         pts_x, pts_y, pts_z = coll.get_rays_intersect_radius(
             key=key,
+            key_cam=key_cam,
             segment=segment,
             axis_radius=radius_max,
             lim_to_segments=True,
@@ -88,7 +90,7 @@ def _sample(
             )[3:]
         
     else:
-        pts_x, pts_y, pts_z = coll.get_rays_pts(key=key)
+        pts_x, pts_y, pts_z = coll.get_rays_pts(key=key, key_cam=key_cam)
         npts = pts_x.shape[0]
         if segment is not None:
             segment[segment < 0] = npts - 1 + segment[segment < 0]
@@ -225,6 +227,7 @@ def _sample(
 def _tangency_radius_check(
     coll=None,
     key=None,
+    key_cam=None,
     axis_pt=None,
     axis_vect=None,
     segment=None,
@@ -232,7 +235,7 @@ def _tangency_radius_check(
     ):
     
     # key
-    key = _check._check_key(coll=coll, key=key)
+    key = _check._check_key(coll=coll, key=key, key_cam=key_cam)
     
     # axis_pt
     if axis_pt is None:
@@ -336,6 +339,7 @@ def _tangency_radius_prepare(
 def _tangency_radius(
     coll=None,
     key=None,
+    key_cam=None,
     axis_pt=None,
     axis_vect=None,
     segment=None,
@@ -351,6 +355,7 @@ def _tangency_radius(
      ) = _tangency_radius_check(
          coll=coll,
          key=key,
+         key_cam=key_cam,
          axis_pt=axis_pt,
          axis_vect=axis_vect,
          segment=segment,
@@ -414,6 +419,7 @@ def _tangency_radius(
 def intersect_radius(
     coll=None,
     key=None,
+    key_cam=None,
     axis_pt=None,
     axis_vect=None,
     axis_radius=None,
@@ -431,6 +437,7 @@ def intersect_radius(
      ) = _tangency_radius_check(
          coll=coll,
          key=key,
+         key_cam=key_cam,
          axis_pt=axis_pt,
          axis_vect=axis_vect,
          segment=segment,

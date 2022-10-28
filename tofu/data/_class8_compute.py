@@ -766,14 +766,14 @@ def get_lamb_from_angle(
     # key_cam
     lok = list(coll.dobj['diagnostic'][key]['doptics'].keys())
     key_cam = ds._generic_check._check_var(
-        key, 'key',
+        key_cam, 'key_cam',
         types=str,
         allowed=lok,
     )
     
     # doptics
-    doptics = coll.get_diagnostic_doptics(key)[key_cam]
-    if 'crystal' not in doptics[['cls']]:
+    doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam]
+    if 'crystal' not in doptics['cls']:
         raise Exception(f"Diag '{key}' is not a spectro!")
 
     kcryst = doptics['optics'][doptics['cls'].index('crystal')]
@@ -830,7 +830,7 @@ def get_lamb_from_angle(
 #                   concatenate data
 # ##################################################################
 
-
+# TBF
 def _concatenate_cam(
     coll=None,
     key=None,

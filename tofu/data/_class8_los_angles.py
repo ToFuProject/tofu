@@ -22,7 +22,6 @@ __all__ = ['compute_los_angles']
 def compute_los_angles(
     coll=None,
     key=None,
-    is2d=None,
     # los
     dcompute=None,
     # for storing los
@@ -43,6 +42,7 @@ def compute_los_angles(
         types=str,
         allowed=lok,
     )
+    is2d = coll.dobj['diagnostic'][key]['is2d']
 
     for key_cam, v0 in dcompute.items():
         
@@ -109,8 +109,8 @@ def compute_los_angles(
                 angmax[ii] = np.nanmax(angles)
     
             if is2d:
-                angmin = angmin.reshape(v0['los_x'].shape)
-                angmax = angmax.reshape(v0['los_x'].shape)
+                angmin = angmin.reshape(v0['shape0'])
+                angmax = angmax.reshape(v0['shape0'])
     
             # ddata
             kamin = f'{key}_{key_cam}_amin'

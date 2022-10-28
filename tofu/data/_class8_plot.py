@@ -47,7 +47,7 @@ def _plot_diagnostic_check(
     
     if spectro:
         assert len(key_cam) == 1
-        doptics = coll.get_diagnostic_doptics(key)[key_cam[0]]
+        doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam[0]]
         kcryst = doptics['optics'][doptics['ispectro'][0]]
     else:
         kcryst = None

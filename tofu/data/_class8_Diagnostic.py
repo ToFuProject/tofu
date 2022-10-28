@@ -99,8 +99,8 @@ class Diagnostic(_class7_Camera.Camera):
     # utilities
     # -----------------
 
-    def get_diagnostic_ref(self, key=None):
-        return _check.get_ref(coll=self, key=key)
+    def get_diagnostic_ref(self, key=None, key_cam=None):
+        return _check.get_ref(coll=self, key=key, key_cam=key_cam)
     
     
     def get_diagnostic_cam(self, key=None, key_cam=None):
@@ -229,6 +229,7 @@ class Diagnostic(_class7_Camera.Camera):
     def get_diagnostic_lamb(
         self,
         key=None,
+        key_cam=None,
         lamb=None,
         rocking_curve=None,
     ):
@@ -242,6 +243,7 @@ class Diagnostic(_class7_Camera.Camera):
         return _compute.get_lamb_from_angle(
             coll=self,
             key=key,
+            key_cam=key_cam,
             lamb=lamb,
             rocking_curve=rocking_curve,
         )
@@ -256,12 +258,12 @@ class Diagnostic(_class7_Camera.Camera):
         """
         return _check._get_optics_cls(coll=self, optics=optics)
 
-    def get_diagnostic_doptics(self, key=None):
-        """ 
-        Get dict of optics and corresponding classes 
+    # def get_diagnostic_doptics(self, key=None):
+    #     """ 
+    #     Get dict of optics and corresponding classes 
         
-        """
-        return _check._get_diagnostic_doptics(coll=self, key=key)
+    #     """
+    #     return _check._get_diagnostic_doptics(coll=self, key=key)
 
     def get_optics_outline(
         self,

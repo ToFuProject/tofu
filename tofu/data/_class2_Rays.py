@@ -116,21 +116,24 @@ class Rays(_class1_Plasma2D.Plasma2D):
     def get_rays_start(
         self,
         key=None,
+        key_cam=None,
     ):
-        return _check._get_start(coll=self, key=key)
+        return _check._get_start(coll=self, key=key, key_cam=key_cam)
 
     def get_rays_pts(
         self,
         key=None,
+        key_cam=None,
     ):
-        return _check._get_pts(coll=self, key=key)
+        return _check._get_pts(coll=self, key=key, key_cam=key_cam)
 
     def get_rays_vect(
         self,
         key=None,
+        key_cam=None,
         norm=None,
     ):
-        return _check._get_vect(coll=self, key=key, norm=norm)
+        return _check._get_vect(coll=self, key=key, key_cam=key_cam, norm=norm)
 
     # --------------
     # discretizing
@@ -139,6 +142,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
     def sample_rays(
         self,
         key=None,
+        key_cam=None,
         res=None,
         mode=None,
         segment=None,
@@ -173,6 +177,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
         return _compute._sample(
             coll=self,
             key=key,
+            key_cam=key_cam,
             res=res,
             mode=mode,
             segment=segment,
@@ -187,6 +192,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
     def get_rays_tangency_radius(
         self,
         key=None,
+        key_cam=None,
         axis_pt=None,
         axis_vect=None,
         segment=None,
@@ -215,6 +221,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
         return _compute._tangency_radius(
             coll=self,
             key=key,
+            key_cam=key_cam,
             axis_pt=axis_pt,
             axis_vect=axis_vect,
             segment=segment,
@@ -224,6 +231,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
     def get_rays_intersect_radius(
         self,
         key=None,
+        key_cam=None,
         axis_pt=None,
         axis_vect=None,
         axis_radius=None,
@@ -266,6 +274,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
         return _compute.intersect_radius(
             coll=self,
             key=key,
+            key_cam=key_cam,
             axis_pt=axis_pt,
             axis_vect=axis_vect,
             axis_radius=axis_radius,

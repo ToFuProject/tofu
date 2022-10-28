@@ -254,7 +254,7 @@ def _check_inputs(
 
         # lspectro
         lspectro = [
-            oo for oo in coll.dobj['diagnostic'][diag]['doptics'][key_cam]
+            oo for oo in coll.dobj['diagnostic'][diag]['doptics'][key_cam]['optics']
             if oo in coll.dobj.get('crystal', {}).keys()
             or oo in coll.dobj.get('grating', {}).keys()
         ]
@@ -747,8 +747,9 @@ def _rays(
 # ##################################################################
 
 
-def _check_key(coll=None, key=None):
+def _check_key(coll=None, key=None, key_cam=None):
 
+    # check key
     lrays = list(coll.dobj.get('rays', {}).keys())
     ldiag = [
         k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
@@ -760,12 +761,22 @@ def _check_key(coll=None, key=None):
         key, 'key',
         types=str,
         allowed=lrays + ldiag,
-    )    
+    )
     
+    # Derive kray
     if key in lrays:
         kray = key
     else:
-        kray = coll.dobj['diagnostic'][key]['los']
+        
+        # key_cam
+        lok = list(coll.dobj['diagnostic'][key]['doptics'].keys())
+        key_cam = ds._generic_check._check_var(
+            key_cam, 'key_cam',
+            types=str,
+            allowed=lok,
+        )    
+        
+        kray = coll.dobj['diagnostic'][key]['doptics'][key_cam]['los']
     
     return kray
 
@@ -779,12 +790,13 @@ def _check_key(coll=None, key=None):
 def _get_start(
     coll=None,
     key=None,
+    key_cam=None,
 ):
 
     # ---------
     # check key
 
-    key = _check_key(coll=coll, key=key)
+    key = _check_key(coll=coll, key=key, key_cam=key_cam)
 
     # ---------------
     # get start
@@ -801,12 +813,13 @@ def _get_start(
 def _get_pts(
     coll=None,
     key=None,
+    key_cam=None,
 ):
 
     # ---------
     # check key
 
-    key = _check_key(coll=coll, key=key)
+    key = _check_key(coll=coll, key=key, key_cam=key_cam)
     
     # ---------
     # get start
@@ -832,13 +845,14 @@ def _get_pts(
 def _get_vect(
     coll=None,
     key=None,
+    key_cam=None,
     norm=None,
 ):
 
     # ---------
     # check key
 
-    key = _check_key(coll=coll, key=key)
+    key = _check_key(coll=coll, key=key, key_cam=key_cam)
 
     # norm
     norm = ds._generic_check._check_var(
