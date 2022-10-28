@@ -111,26 +111,32 @@ def equivalent_apertures(
     # -------------------
     # prepare functions
 
+    # coordinate func
     coord_x01toxyz = coll.get_optics_x01toxyz(key=kref)
     lcoord_x01toxyz_poly = [
         coll.get_optics_x01toxyz(key=oo)
         for oo in lop_post
     ]
 
+    # pts2pts func
     if spectro:
         pts2pt = coll.get_optics_reflect_pts2pt(key=kref)
     else:
         pts2pt = None
+        
+    # ptsvect func
     ptsvect = coll.get_optics_reflect_ptsvect(key=kref)
     lptsvect_poly = [
         coll.get_optics_reflect_ptsvect(key=oo)
         for oo in lop_post
     ]
 
+    # equivalent aperture func
+    print(spectro)       # DB
     if spectro:
-        func = _get_equivalent_aperture
-    else:
         func = _get_equivalent_aperture_spectro
+    else:
+        func = _get_equivalent_aperture
 
     # -------------------
     # prepare output
@@ -177,7 +183,7 @@ def equivalent_apertures(
             # dt=dt,
         )
 
-        # convex hulli
+        # convex hull
         if p0 is None or p0.size == 0:
             iok[ii] = False
         elif convex:
@@ -429,8 +435,8 @@ def _check(
         if c0:
             kref = optics[ispectro[0]]
             cref = optics_cls[ispectro[0]]
-            lop_pre = optics[1:ispectro[0]]
-            lop_pre_cls = optics_cls[1:ispectro[0]]
+            lop_pre = optics[:ispectro[0]]
+            lop_pre_cls = optics_cls[:ispectro[0]]
             lop_post = optics[ispectro[0]+1:]
             lop_post_cls = optics_cls[ispectro[0]+1:]
 
@@ -440,8 +446,8 @@ def _check(
     else:
         kref = optics[-1]
         cref = optics_cls[-1]
-        lop_pre = optics[1:-1]
-        lop_pre_cls = optics_cls[1:-1]
+        lop_pre = optics[:-1]
+        lop_pre_cls = optics_cls[:-1]
         lop_post = []
         lop_post_cls = []
 
@@ -550,7 +556,7 @@ def _get_equivalent_aperture(
     ptsvect=None,
     **kwdargs,
 ):
-
+    
     # loop on optics
     for jj in range(nop_pre):
 
