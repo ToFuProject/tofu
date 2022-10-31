@@ -418,3 +418,31 @@ class Diagnostic(_class7_Camera.Camera):
             dinc=dinc,
             connect=connect,
         )
+
+    def plot_diagnostic_interpolated_along_los(
+        self,
+        key=None,
+        key_cam=None,
+        key_data_x=None,
+        key_data_y=None,
+        res=None,
+        mode=None,
+        plot=None,
+        dcolor=None,
+        dax=None,
+    ):
+        """ Compute and plot interpolated data along the los of the diagnostic
+        
+        """
+        return _compute._interpolated_along_los(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            key_data_x=key_data_x,
+            key_data_y=key_data_y,
+            res=res,
+            mode=mode,
+            plot=plot,
+            dcolor=dcolor,
+            dax=dax,
+            )
