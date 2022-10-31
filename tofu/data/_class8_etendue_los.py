@@ -76,6 +76,10 @@ def compute_etendue_los(
         store=store,
     )
 
+    if verb is True:
+        msg = f"\nComputing etendue / los for diag '{key}':"
+        print(msg)
+        
     # prepare optics
     for key_cam, v0 in dcompute.items():
 

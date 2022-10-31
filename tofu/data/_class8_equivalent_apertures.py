@@ -132,7 +132,6 @@ def equivalent_apertures(
     ]
 
     # equivalent aperture func
-    print(spectro)       # DB
     if spectro:
         func = _get_equivalent_aperture_spectro
     else:
@@ -158,9 +157,9 @@ def equivalent_apertures(
     for ii, ij in enumerate(pixel):
 
         if verb is True:
-            msg = f"\tpixel {ii} / {pixel.size}"
+            msg = f"\t- camera '{key_cam}': pixel {ii + 1} / {pixel.size}"
             end = '\n' if ii == len(pixel) - 1 else '\r'
-            print(msg, flush=True, end=end)
+            print(msg, end=end , flush=True)
 
         p0, p1 = func(
             p_a=p_a,
