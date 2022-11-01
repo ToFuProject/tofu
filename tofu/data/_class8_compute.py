@@ -1037,14 +1037,14 @@ def _interpolated_along_los(
     dax=None,
     ):
     
-    # -------------
+    # ------------
     # check inputs
     
     # key_cam
     key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
     
     # key_data
-    lok_coords = ['x', 'y', 'z', 'R', 'phi', 'k', 'kabs']
+    lok_coords = ['x', 'y', 'z', 'R', 'phi', 'k', 'l', 'ltot', 'itot']
     lok_2d = [
         k0 for k0, v0 in coll.ddata.items()
         if v0.get('bsplines') is not None
@@ -1118,15 +1118,35 @@ def _interpolated_along_los(
                 concatenate=True,
                 return_coords=[key_data_x, key_data_y],
                 )    
+            
+            if key_data_x in ['x', 'y', 'z', 'R', 'l', 'ltot']:
+                xlab = f"{key_data_x} (m)"
+            else:
+                xlab = key_data_x
+                
+            if key_data_y in ['x', 'y', 'z', 'R', 'l', 'ltot']:
+                ylab = f"{key_data_y} (m)"
+            else:
+                ylab = key_data_y
     
     elif key_data_x in lok_coords or key_data_y in lok_coords:
     
         if key_data_x in lok_coords:
             cll = key_data_x
             c2d = key_data_y
+            if key_data_x in ['x', 'y', 'z', 'R', 'l', 'ltot']:
+                xlab = f"{key_data_x} (m)"
+            else:
+                xlab = key_data_x
+            ylab = f"{key_data_y} ({coll.ddata[key_data_y]['units']})"
         else:
             cll = key_data_y
             c2d = key_data_x
+            if key_data_y in ['x', 'y', 'z', 'R', 'l', 'ltot']:
+                ylab = f"{key_data_y} (m)"
+            else:
+                ylab = key_data_y
+            xlab = f"{key_data_x} ({coll.ddata[key_data_x]['units']})"
 
         for ii, kk in enumerate(key_cam): 
             
@@ -1218,6 +1238,9 @@ def _interpolated_along_los(
             isok = ~((np.isnan(q2dx) | np.isnan(q2dy)) & (~np.isnan(Ri)))
             xx[ii] = q2dx[isok]
             yy[ii] = q2dy[isok]
+            
+            xlab = f"{key_data_x} ({coll.ddata[key_data_x]['units']})"
+            ylab = f"{key_data_y} ({coll.ddata[key_data_y]['units']})"
    
     # ------------
     # plot
@@ -1231,8 +1254,8 @@ def _interpolated_along_los(
             
             tit = f"{key} LOS\nminor radius vs major radius"
             ax.set_title(tit, size=12, fontweight='bold')
-            ax.set_xlabel('R (m)')
-            ax.set_ylabel(r'$\rho_{p,norm}$')
+            ax.set_xlabel(xlab)
+            ax.set_ylabel(ylab)
             
             dax = {'main': ax}
             
@@ -1254,4 +1277,6 @@ def _interpolated_along_los(
      
             ax.legend()
     
-    return xx, yy, dax
+        return xx, yy, dax
+    else:
+        return xx, yy
