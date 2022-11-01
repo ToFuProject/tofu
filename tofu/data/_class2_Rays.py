@@ -148,6 +148,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
         segment=None,
         radius_max=None,
         concatenate=None,
+        return_coords=None,
     ):
         """ Return the sampled rays
         
@@ -183,6 +184,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
             segment=segment,
             radius_max=radius_max,
             concatenate=concatenate,
+            return_coords=return_coords,
         )
 
     # --------------
@@ -238,6 +240,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
         segment=None,
         lim_to_segments=None,
         return_pts=None,
+        return_itot=None,
     ):
         """ Return the tangancy radius to an axis of each ray segment
         
@@ -281,6 +284,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
             segment=segment,
             lim_to_segments=lim_to_segments,
             return_pts=return_pts,
+            return_itot=return_itot,
             )
 
     # --------------
@@ -292,6 +296,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
         key=None,
         proj=None,
         concatenate=None,
+        mode=None,
         res=None,
         # config
         plot_config=None,
@@ -311,6 +316,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
             key=key,
             proj=proj,
             concatenate=concatenate,
+            mode=mode,
             res=res,
             # config
             plot_config=plot_config,
