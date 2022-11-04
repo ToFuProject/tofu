@@ -337,8 +337,8 @@ def _sample(
                     for kki, ll in zip(kk, length)
                 ])
 
-    print(return_coords)
-    print([oo.shape for oo in lout])
+    # print(return_coords)
+    # print([oo.shape for oo in lout])
 
     return lout
 

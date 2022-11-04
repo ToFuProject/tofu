@@ -67,6 +67,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
         config=None,
         reflections_nb=None,
         reflections_type=None,
+        key_nseg=None,
         diag=None,
         key_cam=None,
     ):
@@ -102,6 +103,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
             config=config,
             reflections_nb=reflections_nb,
             reflections_type=reflections_type,
+            key_nseg=key_nseg,
             diag=diag,
             key_cam=key_cam,
         )

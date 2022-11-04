@@ -60,6 +60,7 @@ def _check_inputs(
     config=None,
     reflections_nb=None,
     reflections_type=None,
+    key_nseg=None,
     diag=None,
     key_cam=None,
 ):
@@ -232,6 +233,15 @@ def _check_inputs(
         msg = "reflections can only be handled if config is provided"
         raise Exception(msg)
 
+    # key_nseg
+    if key_nseg is not None:
+        lok = list(coll.dref.keys())
+        key_nseg = ds._generic_check._check_var(
+            key_nseg, 'key_nseg',
+            types=str,
+            allowed=lok,
+        )
+
     # ------
     # diag
 
@@ -271,6 +281,7 @@ def _check_inputs(
         vect_x, vect_y, vect_z,
         shref,
         config, reflections_nb, reflections_type,
+        key_nseg,
         diag, key_cam, lspectro,
     )
 
@@ -304,6 +315,7 @@ def _rays(
     config=None,
     reflections_nb=None,
     reflections_type=None,
+    key_nseg=None,
     diag=None,
     key_cam=None,
 ):
@@ -319,6 +331,7 @@ def _rays(
         vect_x, vect_y, vect_z,
         shaperef,
         config, reflections_nb, reflections_type,
+        key_nseg,
         diag, key_cam, lspectro,
     ) = _check_inputs(
         coll=coll,
@@ -343,6 +356,7 @@ def _rays(
         config=config,
         reflections_nb=reflections_nb,
         reflections_type=reflections_type,
+        key_nseg=key_nseg,
         diag=diag,
         key_cam=key_cam,
     )
@@ -562,12 +576,26 @@ def _rays(
     nseg = shape[0]
     nextra = len(lspectro) if diag is not None else 0
     assert nseg == reflections_nb + 1 + nextra
-    knseg = f'{key}-nseg'
+    
+    # key_nseg
+    if key_nseg is None:
+        knseg = f'{key}-nseg'
+        dref = {
+            knseg: {'size': nseg},
+        }
+    else:       
+        if coll.dref[key_nseg]['size'] != nseg:
+            msg = (
+                "Wrong size of key_nseg:\n"
+                f"\t- dref['key_nseg']['size] = coll.dref[key_nseg]['size']\n"
+                f"\t- nseg = {nseg}"
+            )
+            raise Exception(msg)
+            
+        knseg = key_nseg
+        dref = {}
 
-    dref = {
-        knseg: {'size': nseg},
-    }
-
+    # if ref is None  
     if ref is None:
         ref = []
         for ii, ss in enumerate(shaperef):
@@ -753,9 +781,12 @@ def _check_key(coll=None, key=None, key_cam=None):
     lrays = list(coll.dobj.get('rays', {}).keys())
     ldiag = [
         k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
-        if v0.get('los') is not None
-        and v0['los'] in lrays
-        ]
+        if any([
+                v1.get('los') is not None
+                and v1['los'] in lrays
+                for k1, v1 in v0['doptics'].items()
+            ])
+    ]
     
     key = ds._generic_check._check_var(
         key, 'key',
