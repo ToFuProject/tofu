@@ -53,6 +53,7 @@ class Diagnostic(_class7_Camera.Camera):
         length=None,
         reflections_nb=None,
         reflections_type=None,
+        key_nseg=None,
         # compute
         compute=True,
         # others
@@ -89,6 +90,7 @@ class Diagnostic(_class7_Camera.Camera):
                 length=length,
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
+                key_nseg=key_nseg,
                 # bool
                 verb=verb,
                 plot=False,
@@ -106,6 +108,36 @@ class Diagnostic(_class7_Camera.Camera):
     def get_diagnostic_cam(self, key=None, key_cam=None):
         return _check._get_default_cam(coll=self, key=key, key_cam=key_cam)
 
+    def get_diagnostic_data(
+        self,
+        key=None,
+        key_cam=None,
+        data=None,
+        rocking_curve=None,
+        **kwdargs,
+        ):
+        """ Return dict of data for chosen cameras
+        
+        data can be:
+            'etendue'
+            'amin'
+            'amax'
+            'tangency radius'
+            'lamb'
+            'lambmin'
+            'lambmax'
+            'res'
+
+        """
+        return _compute._get_data(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            data=data,
+            rocking_curve=rocking_curve,
+            **kwdargs,
+        )
+
     def get_diagnostic_concatenate_data(
         self,
         key=None,
@@ -114,7 +146,11 @@ class Diagnostic(_class7_Camera.Camera):
         rocking_curve=None,
         **kwdargs,
         ):
-        return _compute._concatenate_cam(
+        """ Return concatenated data for chosen cameras
+        
+        
+        """
+        return _compute._concatenate_data(
             coll=self,
             key=key,
             key_cam=key_cam,
@@ -140,6 +176,7 @@ class Diagnostic(_class7_Camera.Camera):
         length=None,
         reflections_nb=None,
         reflections_type=None,
+        key_nseg=None,
         # bool
         verb=None,
         plot=None,
@@ -179,6 +216,7 @@ class Diagnostic(_class7_Camera.Camera):
                 length=length,
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
+                key_nseg=key_nseg,
                 dcompute=dcompute,
             )
 
@@ -321,6 +359,7 @@ class Diagnostic(_class7_Camera.Camera):
     def get_diagnostic_dplot(
         self,
         key=None,
+        key_cam=None,
         optics=None,
         elements=None,
         vect_length=None,
@@ -362,6 +401,7 @@ class Diagnostic(_class7_Camera.Camera):
         return _compute._dplot(
             coll=self,
             key=key,
+            key_cam=key_cam,
             optics=optics,
             elements=elements,
             vect_length=vect_length,
@@ -370,6 +410,7 @@ class Diagnostic(_class7_Camera.Camera):
     def plot_diagnostic(
         self,
         key=None,
+        key_cam=None,
         optics=None,
         elements=None,
         proj=None,
@@ -396,6 +437,7 @@ class Diagnostic(_class7_Camera.Camera):
         return _plot._plot_diagnostic(
             coll=self,
             key=key,
+            key_cam=key_cam,
             optics=optics,
             elements=elements,
             proj=proj,

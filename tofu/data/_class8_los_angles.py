@@ -29,6 +29,7 @@ def compute_los_angles(
     length=None,
     reflections_nb=None,
     reflections_type=None,
+    key_nseg=None,
     **kwdargs,
 ):
 
@@ -75,6 +76,7 @@ def compute_los_angles(
             length=length,
             reflections_nb=reflections_nb,
             reflections_type=reflections_type,
+            key_nseg=key_nseg,
         )
     
         coll._dobj['diagnostic'][key]['doptics'][key_cam]['los'] = klos
