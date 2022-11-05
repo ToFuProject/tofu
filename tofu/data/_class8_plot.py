@@ -201,10 +201,6 @@ def _plot_diagnostic(
         elements=elements,
     )
 
-    print(ddata)
-    print(dref)
-    print(dplot.keys())
-
     dcamref = {
         k0: coll.dobj['camera'][k0]['dgeom']['ref']
         for k0 in dref.keys()
@@ -225,6 +221,8 @@ def _plot_diagnostic(
 
     # instanciate new Datastock
     coll2 = coll.__class__()
+    ddatax = {}
+    dkeyx = {}
     for k0, v0 in dcamref.items():
         for rr in v0:
             coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
@@ -263,11 +261,9 @@ def _plot_diagnostic(
                 coll2.add_data(key=keyx, data=datax, ref=drefx[k0])
                 coll2.add_data(key=keyy, data=datay, ref=drefy[k0])
             else:
-                keyx = f'{k0}_i0'
-                datax = np.arange(0, coll.dref[drefx[k0]]['size'])
-                coll2.add_data(key=keyx, data=datax, ref=drefx[k0])
-
-    print(coll2)
+                dkeyx[k0] = f'{k0}_i0'
+                ddatax[k0] = np.arange(0, coll.dref[drefx[k0]]['size'])
+                coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
 
     # -------------------------
     # prepare data interactivity
@@ -323,7 +319,7 @@ def _plot_diagnostic(
             wintit=wintit,
             tit=key,
             is2d=is2d,
-            #key_cam=key_cam,
+            key_cam=key_cam,
         )
 
     dax = _generic_check._check_dax(dax=dax, main=proj[0])
@@ -439,19 +435,25 @@ def _plot_diagnostic(
                     marker='.',
                     ms=6,
                 )
-                ax.set_xlim(-1, ddata[k0][-1] + 1)
+                ax.set_xlim(-1, ddata[k0].size)
                 ax.set_ylabel(ylab)
+                
+                if vmin is not None:
+                    ax.set_ylim(bottom=vmin)
+                if vmax is not None:
+                    ax.set_ylim(top=vmax)
 
     # ----------------
     # define and set dgroup
 
     if coll2 is not None:
         dgroup = {
-            'x': {
-                'ref': list(drefx.values()),
+            f'{k0}_x': {
+                'ref': [drefx[k0]],
                 'data': ['index'],
                 'nmax': nlos,
-            },
+            }
+            for k0 in key_cam
         }
 
         if is2d:
@@ -597,20 +599,20 @@ def _plot_diagnostic(
                 else:
                     for ii in range(nlos):
                         lv = ax.axvline(
-                            datax[0], c=color_dict['y'][ii], lw=1., ls='-',
+                            ddatax[k0][0], c=color_dict['y'][ii], lw=1., ls='-',
                         )
                         kv = f'{k0}_v{ii:02.0f}'
                         coll2.add_mobile(
                             key=kv,
                             handle=lv,
-                            refs=refx,
-                            data=keyx,
+                            refs=drefx[k0],
+                            data=dkeyx[k0],
                             dtype='xdata',
                             axes=kax,
                             ind=ii,
                         )
     
-                    dax[kax].update(refx=[refx], datax=keyx)
+                    dax[kax].update(refx=[drefx[k0]], datax=dkeyx[k0])
 
     # -------
     # config
