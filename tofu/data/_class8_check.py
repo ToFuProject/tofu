@@ -323,23 +323,20 @@ def _get_default_cam(coll=None, key=None, key_cam=None):
     lok = list(coll.dobj['diagnostic'][key]['doptics'].keys())
     if is2d:
         # 2d: can only select one camera at a time
-        key_cam_def = coll.dobj['diagnostic'][key]['camera'][0]
-        key_cam = ds._generic_check._check_var(
-            key_cam, 'key_cam',
-            types=str,
-            allowed=lok,
-            default=key_cam_def,
-        )
-        key_cam = [key_cam]
+        key_cam_def = [coll.dobj['diagnostic'][key]['camera'][0]]
     else:
         key_cam_def = None
-        key_cam = ds._generic_check._check_var_iter(
-            key_cam, 'key_cam',
-            types=list,
-            types_iter=str,
-            allowed=lok,
-            default=key_cam_def,
-        )
+        
+    if isinstance(key_cam, str):
+        key_cam = [key_cam]
+    
+    key_cam = ds._generic_check._check_var_iter(
+        key_cam, 'key_cam',
+        types=list,
+        types_iter=str,
+        allowed=lok,
+        default=key_cam_def,
+    )
          
     return key, key_cam
 

@@ -848,7 +848,6 @@ def _get_data(
     ):
     
     # key, key_cam
-    
     key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
     spectro = coll.dobj['diagnostic'][key]['spectro']
     # is2d = coll.dobj['diagnostic'][key]['is2d']

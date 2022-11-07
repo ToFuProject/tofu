@@ -61,11 +61,13 @@ def _plot_diagnostic_check(
     if c0:
         data = defdata
 
+    print(key, key_cam)     # DB
     ddata, dref = coll.get_diagnostic_data(
         key=key,
         key_cam=key_cam,
         data=data,
     )
+    print(key, key_cam)     # DB
     
     ylab = None # f"{ddata[key_cam[0]]['quant']} ({ddata[key_cam[0]]['units']})"
 
@@ -221,12 +223,20 @@ def _plot_diagnostic(
 
     # instanciate new Datastock
     coll2 = coll.__class__()
-    ddatax = {}
-    dkeyx = {}
+    
+    # prepare dict
+    dkeyx, ddatax = {}, {}
+    if is2d:
+        dkeyy, ddatay, dextent = {}, {}, {}
+        
+    # -------------
+    # loop
+    
     for k0, v0 in dcamref.items():
         for rr in v0:
             coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
 
+        # los
         if dlos[k0] is not None:
             los_x, los_y, los_z = coll.sample_rays(
                 key=dlos[k0]['rays'],
@@ -251,61 +261,43 @@ def _plot_diagnostic(
             dlos[k0]['y'] = los_y
             dlos[k0]['z'] = los_z
 
+        # datax, datay
         if ddata is not None:
             if is2d:
-                keyx, keyy = coll.dobj['camera'][k0]['dgeom']['cents']
+                dkeyx[k0], dkeyy[k0] = coll.dobj['camera'][k0]['dgeom']['cents']
     
-                datax = coll.ddata[keyx]['data']
-                datay = coll.ddata[keyy]['data']
+                ddatax[k0] = coll.ddata[dkeyx[k0]]['data']
+                ddatay[k0] = coll.ddata[dkeyy[k0]]['data']
     
-                coll2.add_data(key=keyx, data=datax, ref=drefx[k0])
-                coll2.add_data(key=keyy, data=datay, ref=drefy[k0])
+                coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
+                coll2.add_data(key=dkeyy[k0], data=ddatay[k0], ref=drefy[k0])
             else:
                 dkeyx[k0] = f'{k0}_i0'
                 ddatax[k0] = np.arange(0, coll.dref[drefx[k0]]['size'])
                 coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
 
-    # -------------------------
-    # prepare data interactivity
-
-    reft = None
-    # if ddata is not None:
-    #     for k0 in key_cam:      
-    #         if dataref is None:
-    #             dataref = coll.ddata[data]['ref']
-    #         if dref[k0] == dcamref[k0]:
-    #             if isinstance(data, str):
-    #                 datamap = coll.ddata[data]['data'].T
-    #             else:
-    #                 datamap = data.T
-    #         elif len(dataref) == len(camref) + 1:
-    #             dataref == camref
-    #             datamap = coll.ddata[data]['data'][0, ...].T
-    #             # reft = [rr for rr in dataref if rr not in camref][0]
-    
-    #         else:
-    #             raise NotImplementedError()
-    
-    #         if is2d:
-    #             if datax.size == 1:
-    #                 ddx = coll.ddata[coll.dobj['camera'][cam]['dgeom']['outline'][0]]['data']
-    #                 ddx = np.max(ddx) - np.min(ddx)
-    #             else:
-    #                 ddx = datax[1] - datax[0]
-    #             if datay.size == 1:
-    #                 ddy = coll.ddata[coll.dobj['camera'][cam]['dgeom']['outline'][1]]['data']
-    #                 ddy = np.max(ddy) - np.min(ddy)
-    #             else:
-    #                 ddy = datay[1] - datay[0]
+            # -------------------------
+            # extent
+        
+            reft = None  
+            if is2d:
+                if ddatax[k0].size == 1:
+                    ddx = coll.ddata[coll.dobj['camera'][k0]['dgeom']['outline'][0]]['data']
+                    ddx = np.max(ddx) - np.min(ddx)
+                else:
+                    ddx = ddatax[k0][1] - ddatax[k0][0]
+                if ddatay[k0].size == 1:
+                    ddy = coll.ddata[coll.dobj['camera'][k0]['dgeom']['outline'][1]]['data']
+                    ddy = np.max(ddy) - np.min(ddy)
+                else:
+                    ddy = ddatay[k0][1] - ddatay[k0][0]
                 
-    #             extent = (
-    #                 datax[0] - 0.5*ddx,
-    #                 datax[-1] + 0.5*ddx,
-    #                 datay[0] - 0.5*ddy,
-    #                 datay[-1] + 0.5*ddy,
-    #             )
-    #         else:
-    #             ylab = f"{coll.ddata[data]['quant']} ({coll.ddata[data]['units']})"
+                dextent[k0] = (
+                    ddatax[k0][0] - 0.5*ddx,
+                    ddatax[k0][-1] + 0.5*ddx,
+                    ddatay[k0][0] - 0.5*ddy,
+                    ddatay[k0][-1] + 0.5*ddy,
+                )
 
     # -----------------
     # prepare figure
@@ -570,8 +562,8 @@ def _plot_diagnostic(
                 if is2d:
                     for ii in range(nlos):
                         mi, = ax.plot(
-                            datax[0:1],
-                            datay[0:1],
+                            ddatax[k0][0:1],
+                            ddatay[k0][0:1],
                             marker='s',
                             ms=6,
                             markeredgecolor=color_dict['x'][ii],
@@ -582,18 +574,18 @@ def _plot_diagnostic(
                         coll2.add_mobile(
                             key=km,
                             handle=mi,
-                            refs=[refx, refy],
-                            data=[keyx, keyy],
+                            refs=[drefx[k0], drefy[k0]],
+                            data=[dkeyx[k0], dkeyy[k0]],
                             dtype=['xdata', 'ydata'],
                             axes=kax,
                             ind=ii,
                         )
     
                     dax[kax].update(
-                        refx=[refx],
-                        refy=[refy],
-                        datax=keyx,
-                        datay=keyy,
+                        refx=[drefx[k0]],
+                        refy=[drefy[k0]],
+                        datax=dkeyx[k0],
+                        datay=dkeyy[k0],
                     )
     
                 else:
