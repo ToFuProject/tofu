@@ -293,7 +293,7 @@ def _diag_compute_etendue_check(
 
     lok = [
         k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
-        if any([len(v1) > 1 for v1 in v0['doptics']])
+        if any([len(v1['optics']) > 0 for v1 in v0['doptics'].values()])
     ]
     key = ds._generic_check._check_var(
         key, 'key',
@@ -310,7 +310,7 @@ def _diag_compute_etendue_check(
     dcompute = {
         k0: {'compute': len(v0['optics']) > 0}
         for k0, v0 in doptics.items()
-        }
+    }
 
     # -------------------------------------------------
     # ldeti: list of individual camera dict (per pixel)

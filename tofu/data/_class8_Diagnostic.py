@@ -78,7 +78,9 @@ class Diagnostic(_class7_Camera.Camera):
         # adding etendue / los
 
         key = list(dobj['diagnostic'].keys())[0]
-        if compute is True:
+        dopt = dobj['diagnostic'][key]['doptics']
+        computable = any([len(v0['optics']) > 0 for v0 in dopt.values()])
+        if compute is True and computable:
             self.compute_diagnostic_etendue_los(
                 key=key,
                 analytical=True,

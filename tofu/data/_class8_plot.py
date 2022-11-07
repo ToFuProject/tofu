@@ -61,13 +61,11 @@ def _plot_diagnostic_check(
     if c0:
         data = defdata
 
-    print(key, key_cam)     # DB
     ddata, dref = coll.get_diagnostic_data(
         key=key,
         key_cam=key_cam,
         data=data,
     )
-    print(key, key_cam)     # DB
     
     ylab = None # f"{ddata[key_cam[0]]['quant']} ({ddata[key_cam[0]]['units']})"
 
@@ -237,7 +235,7 @@ def _plot_diagnostic(
             coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
 
         # los
-        if dlos[k0] is not None:
+        if dlos[k0]['rays'] is not None:
             los_x, los_y, los_z = coll.sample_rays(
                 key=dlos[k0]['rays'],
                 res=los_res,

@@ -194,18 +194,6 @@ def _ax_single(
     )
 
     # ----------------------
-    # create figure and axes
-
-    gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
-
-    if proj[0] == '3d':
-        ax = fig.add_subplot(gs[0, 0], projection='3d')
-    else:
-        ax = fig.add_subplot(gs[0, 0])
-
-    return [ax]
-
-    # ----------------------
     # prepare
     
     nrows = 1

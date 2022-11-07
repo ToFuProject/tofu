@@ -363,7 +363,7 @@ def _check(
 
     lok = [
         k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
-        if any([len(v1['optics']) > 1 for v1 in v0['doptics'].values()])
+        if any([len(v1['optics']) > 0 for v1 in v0['doptics'].values()])
     ]
     key = ds._generic_check._check_var(
         key, 'key',

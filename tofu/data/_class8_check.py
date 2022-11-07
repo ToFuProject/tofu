@@ -36,8 +36,8 @@ def _diagnostics_check(
     # preliminary checks
     if isinstance(doptics, str):
         doptics = {doptics: []}
-    if isinstance(doptics, list):
-        doptics = {doptics[0]: doptics[1:]}
+    if isinstance(doptics, (list, tuple)):
+        doptics = {doptics[0]: list(doptics[1:])}
         
     err = False
     if not isinstance(doptics, dict):
