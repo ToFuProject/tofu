@@ -45,7 +45,7 @@ class Aperture(_class2_Rays.Rays):
             'dgeom.outline',
             'dgeom.poly',
             'dgeom.cent',
-            'dmisc.color',
+            # 'dmisc.color',
         ],
     })
 
