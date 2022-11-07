@@ -2628,7 +2628,7 @@ def fit12d_dscales(dscales=None, dinput=None):
             if dinput['double'].get('dratio') is not None:
                 dratio = dinput['double']['dratio']
             if dinput['double'].get('dshift') is not None:
-                dratio = dinput['double']['dshift']
+                dshift = dinput['double']['dshift']
         din = {'dratio': dratio, 'dshift': dshift}
         for k0 in din.keys():
             dscales = _fit12d_filldef_dscalesx0_float(
