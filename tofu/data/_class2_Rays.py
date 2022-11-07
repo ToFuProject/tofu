@@ -67,7 +67,9 @@ class Rays(_class1_Plasma2D.Plasma2D):
         config=None,
         reflections_nb=None,
         reflections_type=None,
+        key_nseg=None,
         diag=None,
+        key_cam=None,
     ):
         """ Add a set of rays
 
@@ -101,7 +103,9 @@ class Rays(_class1_Plasma2D.Plasma2D):
             config=config,
             reflections_nb=reflections_nb,
             reflections_type=reflections_type,
+            key_nseg=key_nseg,
             diag=diag,
+            key_cam=key_cam,
         )
 
         # update dicts
@@ -114,21 +118,24 @@ class Rays(_class1_Plasma2D.Plasma2D):
     def get_rays_start(
         self,
         key=None,
+        key_cam=None,
     ):
-        return _check._get_start(coll=self, key=key)
+        return _check._get_start(coll=self, key=key, key_cam=key_cam)
 
     def get_rays_pts(
         self,
         key=None,
+        key_cam=None,
     ):
-        return _check._get_pts(coll=self, key=key)
+        return _check._get_pts(coll=self, key=key, key_cam=key_cam)
 
     def get_rays_vect(
         self,
         key=None,
+        key_cam=None,
         norm=None,
     ):
-        return _check._get_vect(coll=self, key=key, norm=norm)
+        return _check._get_vect(coll=self, key=key, key_cam=key_cam, norm=norm)
 
     # --------------
     # discretizing
@@ -137,21 +144,150 @@ class Rays(_class1_Plasma2D.Plasma2D):
     def sample_rays(
         self,
         key=None,
+        key_cam=None,
         res=None,
         mode=None,
         segment=None,
+        radius_max=None,
         concatenate=None,
+        return_coords=None,
     ):
-        """ Return the sampled rays """
+        """ Return the sampled rays
+        
+        Parameters
+        ----------
+        key:        str
+            key of the rays / diag los to sample
+        res:        float
+            sampling resolution
+        mode:       str
+            sampling mode
+                - 'rel': relative, res is in [0, 1], 0.1 = 10 samples / segment
+                - 'abs': absolute, res is a distance in m
+        segment:    None / int / iterable of ints
+            indices of te segments to be sampled
+                - None: all
+                - int: a single segment
+                - iterable of ints: several segments
+            Typical usage: None or -1 (last segment)
+        radius_max:     None / float
+            If provided, only sample the portion of segments that are inside
+            the provided ;ajor radius
+        conctenate:     bool
+            flag indicating whether to concatenate the sampled points per ray
+        """
 
         return _compute._sample(
             coll=self,
             key=key,
+            key_cam=key_cam,
             res=res,
             mode=mode,
             segment=segment,
+            radius_max=radius_max,
             concatenate=concatenate,
+            return_coords=return_coords,
         )
+
+    # --------------
+    # tangency radius
+    # --------------
+
+    def get_rays_tangency_radius(
+        self,
+        key=None,
+        key_cam=None,
+        axis_pt=None,
+        axis_vect=None,
+        segment=None,
+        lim_to_segments=None,
+    ):
+        """ Return the tangancy radius to an axis of each ray segment
+        
+        parameters
+        ----------
+        axis_pt:    len=3 iterable
+            (x, y, z) coordinates of a pt on the axis, default to [0, 0, 0]
+        axis_vect:  len=3 iterable
+            (x, y, z) coordinates of the axis vector, default to [0, 0, 1]
+        lim_to_segments: bool
+            flag indicating whether to limit solutions to the segments
+                
+        Return
+        -------
+        radius:     np.ndarray of floats
+            the tangency radii
+        kk:         np.ndarray of floats
+            the normalized longitudinal coordinate of the tangency points 
+
+        """
+
+        return _compute._tangency_radius(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            axis_pt=axis_pt,
+            axis_vect=axis_vect,
+            segment=segment,
+            lim_to_segments=lim_to_segments,
+        )
+
+    def get_rays_intersect_radius(
+        self,
+        key=None,
+        key_cam=None,
+        axis_pt=None,
+        axis_vect=None,
+        axis_radius=None,
+        segment=None,
+        lim_to_segments=None,
+        return_pts=None,
+        return_itot=None,
+    ):
+        """ Return the tangancy radius to an axis of each ray segment
+        
+        parameters
+        ----------
+        axis_pt:    len=3 iterable
+            (x, y, z) coordinates of a pt on the axis, default to [0, 0, 0]
+        axis_vect:  len=3 iterable
+            (x, y, z) coordinates of the axis vector, default to [0, 0, 1]
+        axis_radius:    float
+            The radius around the axis defining the cylinder to intersect
+        lim_to_segments: bool
+            flag indicating whether to limit solutions to the segments
+        return_pts:
+            flag indicating whether to return the pts (x, y, z) coordinates 
+                
+        Return
+        -------
+        k0:         np.ndarray of floats
+            First solution, per segment
+        k1:         np.ndarray of floats
+            Second solution, per segment
+        iok:        np.ndarray of bool
+            Flag indicating which segments have at least an intersection
+        pts_x:      np.ndarray of floats
+            The x coordinates of the points inside the cylinder
+        pts_y:      np.ndarray of floats
+            The y coordinates of the points inside the cylinder
+        pts_z:      np.ndarray of floats
+            The z coordinates of the points inside the cylinder
+
+        """
+        
+        return _compute.intersect_radius(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            axis_pt=axis_pt,
+            axis_vect=axis_vect,
+            axis_radius=axis_radius,
+            segment=segment,
+            lim_to_segments=lim_to_segments,
+            return_pts=return_pts,
+            return_itot=return_itot,
+            )
 
     # --------------
     # plotting
@@ -162,6 +298,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
         key=None,
         proj=None,
         concatenate=None,
+        mode=None,
         res=None,
         # config
         plot_config=None,
@@ -181,6 +318,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
             key=key,
             proj=proj,
             concatenate=concatenate,
+            mode=mode,
             res=res,
             # config
             plot_config=plot_config,

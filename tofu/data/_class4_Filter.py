@@ -39,7 +39,7 @@ class Filter(_class3_Aperture.Aperture):
             'dgeom.cent',
             'dmat.energy',
             'dmat.transmission',
-            'dmisc.color',
+            # 'dmisc.color',
         ],
     })
 

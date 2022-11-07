@@ -393,31 +393,31 @@ def _configurations():
 def _diagnostics():
 
     # d0: single 1d camera
-    d0 = {'optics': 'cam0'}
+    d0 = {'doptics': 'cam0'}
 
     # d1: single 2d camera
-    d1 = {'optics': 'cam1', 'resolution': 0.2}
+    d1 = {'doptics': 'cam1', 'resolution': 0.2}
 
     # d2: single 2d camera
-    d2 = {'optics': 'cam2'}
+    d2 = {'doptics': 'cam2'}
 
     # d3: 1d + 1 aperture
-    d3 = {'optics': ('cam0', 'ap0')}
+    d3 = {'doptics': ('cam0', 'ap0')}
 
     # d4: 2d + 1 aperture
-    d4 = {'optics': ('cam1', 'ap0')}
+    d4 = {'doptics': ('cam1', 'ap0')}
 
     # d5: 2d + 1 aperture
-    d5 = {'optics': ('cam2', 'ap0')}
+    d5 = {'doptics': ('cam2', 'ap0')}
 
     # d6: 1d + multiple apertures
-    d6 = {'optics': ('cam0', 'ap0', 'filt0', 'ap2')}
+    d6 = {'doptics': ('cam0', 'ap0', 'filt0', 'ap2')}
 
     # d7: 1d parallel coplanar + multiple apertures
-    d7 = {'optics': ('cam1', 'ap0', 'filt0', 'ap2')}
+    d7 = {'doptics': ('cam1', 'ap0', 'filt0', 'ap2')}
 
     # d8: 2d + multiple apertures
-    d8 = {'optics': ('cam2', 'ap0', 'filt0', 'ap2')}
+    d8 = {'doptics': ('cam2', 'ap0', 'filt0', 'ap2')}
 
     # # d9: 2d + spherical crystal
     # d9 = {'optics': ('c3','cryst0')}
@@ -538,7 +538,7 @@ class Test01_Diagnostic():
         for k0, v0 in self.doptics.items():
             print(k0, 'spectro')
             self.obj.add_diagnostic(
-                optics=v0,
+                doptics=v0,
                 config=self.conf,
             )
         # add toroidal

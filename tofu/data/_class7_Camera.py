@@ -51,7 +51,7 @@ class Camera(_class6_Grating.Grating):
             'dgeom.cents',
             'dmat.qeff_energy',
             'dmat.qeff',
-            'dmisc.color',
+            # 'dmisc.color',
         ],
     })
 

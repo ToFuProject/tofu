@@ -39,7 +39,7 @@ class Grating(_class5_Crystal.Crystal):
             'dgeom.outline',
             'dgeom.poly',
             'dgeom.cent',
-            'dmisc.color',
+            # 'dmisc.color',
         ],
     })
 
