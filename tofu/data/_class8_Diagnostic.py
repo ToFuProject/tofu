@@ -355,6 +355,66 @@ class Diagnostic(_class7_Camera.Camera):
         )
 
     # -----------------
+    # Moving
+    # -----------------
+
+    def move_diagnostic_to(
+        self,
+        key=None,
+        key_cam=None,
+        x=None,
+        y=None,
+        R=None,
+        z=None,
+        phi=None,
+        theta=None,
+        dphi=None,
+        # computing
+        compute=None,
+        config=None,
+        length=None,
+        reflections_nb=None,
+        reflections_type=None,
+        key_nseg=None,
+        verb=None,
+    ):
+        
+        if compute is None:
+            compute = True
+        
+        _compute.move_to(
+            self,
+            key=key,
+            key_cam=key_cam,
+            x=x,
+            y=y,
+            R=R,
+            z=z,
+            phi=phi,
+            theta=theta,
+            dphi=dphi,
+        )
+        
+        if compute:
+            self.compute_diagnostic_etendue_los(
+                key=key,
+                analytical=True,
+                numerical=False,
+                res=None,
+                check=False,
+                # los
+                config=config,
+                length=length,
+                reflections_nb=reflections_nb,
+                reflections_type=reflections_type,
+                key_nseg=key_nseg,
+                # bool
+                verb=verb,
+                plot=False,
+                store='analytical',
+            ) 
+
+    # -----------------
     # plotting
     # -----------------
 

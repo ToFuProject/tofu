@@ -260,6 +260,7 @@ def compute_etendue_los(
                     'units': 'm2.sr',
                 },
             }
+            
             coll.update(ddata=ddata)
     
             coll._dobj['diagnostic'][key]['doptics'][key_cam]['etendue'] = ketendue
