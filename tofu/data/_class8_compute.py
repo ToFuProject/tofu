@@ -1675,6 +1675,7 @@ def move_to(
     key=None,
     key_cam=None,
     optics=None,
+    # location
     x=None,
     y=None,
     R=None,
@@ -1687,6 +1688,9 @@ def move_to(
 
     # ------------
     # check inputs
+    
+    # trivial case
+    nochange = all([ss is None for ss in [x, y, z, R, phi, theta, dphi, tilt]])
     
     # key, key_cam
     key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
@@ -1742,6 +1746,16 @@ def move_to(
         e1 = coll.dobj[cls_ref][op_ref]['dgeom']['e1']
         
     # ----------------------------------
+    # get initial local coordinates in this frame
+        
+    dinit = _get_initial_parameters(
+        cc=cc,
+        nin=nin,
+        e0=e0,
+        e1=e1,
+    )
+        
+    # ----------------------------------
     # get all local coordinates in this frame
     
     dcoords = {}
@@ -1779,65 +1793,56 @@ def move_to(
     # get new default values
     
     if not any(lc):
-        x, y = cc[0], cc[1]
+        x, y = dinit['x'], dinit['y']
         R = np.hypot(x, y)
         phi = np.arctan2(y, x)
     elif lc[0]:
         if x is None:
-            x = cc[0]
+            x = dinit['x']
         if y is None:
-            y = cc[1]
+            y = dinit['y']
         R = np.hypot(x, y)
         phi = np.arctan2(y, x)
     else:
         if R is None:
-            R = np.hypot(cc[0], cc[1])
+            R = dinit['R']
         if phi is None:
-            phi = np.arctan2(cc[1], cc[0])
+            phi = dinit['phi']
         x = R * np.cos(phi)
         y = R * np.sin(phi)
 
     if z is None:
-        z = cc[2]
-    
-    # orientation
-    eR = np.r_[np.cos(phi), np.sin(phi), 0.]
-    ephi = np.r_[-np.sin(phi), np.cos(phi), 0.]
-    
-    print(R, phi)
-    print(x, y)
-    print(eR)
-    print(ephi)
-    print(nin)
-    
-    
+        z = dinit['z']
+
     if dphi is None:
-        dphi = np.pi/2. - np.arccos(np.sum(nin * ephi))
+        dphi = dinit['dphi']
         
     if theta is None:
-        ni = nin - np.sum(nin*ephi)*ephi
-        ni = ni / np.linalg.norm(ni)
-        theta = np.arctan2(ni[2], np.sum(ni * eR))
-        print(theta)
+        theta = dinit['theta']
         
     if tilt is None:
-        tilt = 0.
+        tilt = dinit['tilt']
 
     # ----------------------------------
     # get new coordinates of reference
     
-    # translation
-    cc_new = np.r_[x, y, z]
-    
-    # rotation
-    er = np.cos(theta) * eR + np.sin(theta) * np.r_[0, 0, 1] 
-    etheta = -np.sin(theta) * eR + np.cos(theta) * np.r_[0, 0, 1] 
-    
-    # new unit vectors
-    nin_new = np.cos(dphi) * er + np.sin(dphi) * ephi
-    e0_new = np.cos(dphi) * etheta - np.sin(dphi) * ephi
-    
-    e1_new = np.cross(nin_new, e0_new)
+    cc_new, nin_new, e0_new, e1_new = get_new_frame(
+        key_cam=key_cam,
+        dinit=dinit,
+        x=x,
+        y=y,
+        z=z,
+        phi=phi,
+        dphi=dphi,
+        theta=theta,
+        tilt=tilt,
+        # safety check
+        nochange=nochange,
+        cc=cc,
+        nin=nin,
+        e0=e0,
+        e1=e1,
+    )
 
     # ----------------------------------
     # Update all coordinates
@@ -1880,6 +1885,113 @@ def move_to(
         )
 
     return
+
+
+
+def _get_initial_parameters(
+    cc=None,
+    nin=None,
+    e0=None,
+    e1=None,
+):
+    
+    # cordinates
+    x, y, z = cc
+    R = np.hypot(x, y)
+    
+    # angles
+    phi = np.arctan2(y, x)
+    
+    # unit vectors
+    eR = np.r_[np.cos(phi), np.sin(phi), 0.]
+    ephi = np.r_[-np.sin(phi), np.cos(phi), 0.]
+
+    # orientation angles: dphi
+    dphi = np.pi/2. - np.arccos(np.sum(nin * ephi))
+        
+    # orientation angles: theta
+    ni = nin - np.sum(nin*ephi)*ephi
+    ni = ni / np.linalg.norm(ni)
+    theta = np.arctan2(ni[2], np.sum(ni * eR))
+    
+    # orientation: tilt
+    er = np.cos(theta) * eR + np.sin(theta) * np.r_[0, 0, 1]
+    etheta = -np.sin(theta) * eR + np.cos(theta) * np.r_[0, 0, 1]
+    e0bis = -np.cos(dphi) * ephi + np.sin(dphi) * er
+    
+    tilt = np.arctan2(np.sum(e0*etheta), np.sum(e0*e0bis))
+    
+    return {
+        'x': x,
+        'y': y,
+        'z': z,
+        'R': R,
+        'phi': phi,
+        'dphi': dphi,
+        'theta': theta,
+        'tilt': tilt,
+    }
+
+
+def get_new_frame(
+    key_cam=None,
+    dinit=None,
+    x=None,
+    y=None,
+    z=None,
+    phi=None,
+    dphi=None,
+    theta=None,
+    tilt=None,
+    # safety check
+    nochange=None,
+    cc=None,
+    nin=None,
+    e0=None,
+    e1=None,
+):
+    
+    # orientation
+    eR = np.r_[np.cos(phi), np.sin(phi), 0.]
+    ephi = np.r_[-np.sin(phi), np.cos(phi), 0.]
+    er = np.cos(theta) * eR + np.sin(theta) * np.r_[0, 0, 1] 
+    etheta = -np.sin(theta) * eR + np.cos(theta) * np.r_[0, 0, 1] 
+    e0bis = -np.cos(dphi) * ephi + np.sin(dphi) * er
+    
+    # translation
+    cc_new = np.r_[x, y, z]
+    
+    # new unit vectors
+    nin_new = np.cos(dphi) * er + np.sin(dphi) * ephi
+    e0_new = np.cos(tilt) * e0bis + np.sin(tilt) * etheta
+    e1_new = np.cross(nin_new, e0_new)
+    
+    # safety check
+    nin_new, e0_new, e1_new = ds._generic_check._check_vectbasis(
+        e0=nin_new,
+        e1=e0_new,
+        e2=e1_new,
+        dim=3,
+        tol=1e-12,
+    )
+    
+    # safety check
+    if nochange:
+        dout = {}
+        for ss in ['cc', 'nin', 'e0', 'e1']:
+            if not np.allclose(eval(ss), eval(f'{ss}_new')):
+                dout[ss] = (eval(ss), eval(f'{ss}_new'))
+        
+        if len(dout) > 0:
+            lstr = [f"\t- '{k0}': {v0[0]} vs {v0[1]}" for k0, v0 in dout.items()]
+            msg = (
+                f"Immobile diagnostic camera '{key_cam}' has moved:\n"
+                + "\n".join(lstr)
+                + f"\n\ndinit = {dinit}"
+            )
+            raise Exception(msg)
+    
+    return cc_new, nin_new, e0_new, e1_new
 
 
 def _extract_coords(
@@ -1928,9 +2040,10 @@ def _extract_coords_cam1d(
     parallel = coll.dobj['camera'][key_cam]['dgeom']['parallel']
     
     # cents 
+    shape = tuple(np.r_[3, coll.ddata[kc[0]]['data'].shape])
+    dout['cents'] = np.zeros(shape)
     for ss, ii in [('x', 0), ('y', 1), ('z', 2)]:
-        key = f'cents_{ss}'
-        dout[key] = np.array([
+        dout['cents'] += np.array([
             (coll.ddata[kc[ii]]['data'] - cc[ii]) * nin[ii],
             (coll.ddata[kc[ii]]['data'] - cc[ii]) * e0[ii],
             (coll.ddata[kc[ii]]['data'] - cc[ii]) * e1[ii],
@@ -1939,19 +2052,17 @@ def _extract_coords_cam1d(
     # unit vectors
     if parallel:
         for kk in ['nin', 'e0', 'e1']:
-            for ss, ii in [('x', 0), ('y', 1), ('z', 2)]:
-                key = f'{kk}_{ss}'
-                dout[key] = np.array([
-                    coll.dobj['camera'][key_cam]['dgeom'][kk][ii] * nin[ii],
-                    coll.dobj['camera'][key_cam]['dgeom'][kk][ii] * e0[ii],
-                    coll.dobj['camera'][key_cam]['dgeom'][kk][ii] * e1[ii],
-                ])
+            dout[f'{kk}_n01'] = np.array([
+                np.sum(coll.dobj['camera'][key_cam]['dgeom'][kk] * nin),
+                np.sum(coll.dobj['camera'][key_cam]['dgeom'][kk] * e0),
+                np.sum(coll.dobj['camera'][key_cam]['dgeom'][kk] * e1),
+            ])
     else:
         for kk in ['nin', 'e0', 'e1']:
+            dout[kk] = np.zeros(shape)
             kv = coll.dobj['camera'][key_cam]['dgeom'][kk]
             for ss, ii in [('x', 0), ('y', 1), ('z', 2)]:
-                key = f'{kk}_{ss}'
-                dout[key] = np.array([
+                dout[kk] += np.array([
                     coll.ddata[kv[ii]]['data'] * nin[ii],
                     coll.ddata[kv[ii]]['data'] * e0[ii],
                     coll.ddata[kv[ii]]['data'] * e1[ii],
@@ -1982,21 +2093,37 @@ def reset_coords(
     )
 
     # rotate
-    coll._dobj[opc][op]['dgeom']['nin'] = (
+    nin = (
         dcoords[op]['n_n01'][0] * nin_new
         + dcoords[op]['n_n01'][1] * e0_new
         + dcoords[op]['n_n01'][2] * e1_new
     )
-    coll._dobj[opc][op]['dgeom']['e0'] = (
+    e0 = (
         dcoords[op]['e0_n01'][0] * nin_new
         + dcoords[op]['e0_n01'][1] * e0_new
         + dcoords[op]['e0_n01'][2] * e1_new
     )
-    coll._dobj[opc][op]['dgeom']['e1'] = (
+    e1 = (
         dcoords[op]['e1_n01'][0] * nin_new
         + dcoords[op]['e1_n01'][1] * e0_new
         + dcoords[op]['e1_n01'][2] * e1_new
     )
+    
+    # --------------
+    # safety check
+
+    nin, e0, e1 = ds._generic_check._check_vectbasis(
+        e0=nin,
+        e1=e0,
+        e2=e1,
+        dim=3,
+        tol=1e-12,
+    )
+
+    # store
+    coll._dobj[opc][op]['dgeom']['nin'] = nin
+    coll._dobj[opc][op]['dgeom']['e0'] = e0
+    coll._dobj[opc][op]['dgeom']['e1'] = e1
     
     
 def reset_coords_cam1d(
@@ -2015,31 +2142,50 @@ def reset_coords_cam1d(
 
     # cents 
     for ss, ii in [('x', 0), ('y', 1), ('z', 2)]:
-        key = f'cents_{ss}'
-        coll.ddata[kc[ii]]['data'] = (
+        coll._ddata[kc[ii]]['data'] = (
             cc_new[ii]
-            + dcoords[op][key][0, :] * nin_new[ii]
-            + dcoords[op][key][1, :] * e0_new[ii]
-            + dcoords[op][key][2, :] * e1_new[ii]
+            + dcoords[op]['cents'][0] * nin_new[ii]
+            + dcoords[op]['cents'][1] * e0_new[ii]
+            + dcoords[op]['cents'][2] * e1_new[ii]
         )
 
     # rotate
     if parallel:
-        for kk in ['nin', 'e0', 'e1']:
-            for ss, ii in [('x', 0), ('y', 1), ('z', 2)]:
-                key = f'{kk}_{ss}'
-                coll._dobj[opc][op]['dgeom'][key] = (
-                    dcoords[op][key][0] * nin_new[ii]
-                    + dcoords[op][key][1] * e0_new[ii]
-                    + dcoords[op][key][2] * e1_new[ii]
-                )
+        nin = (
+            dcoords[op]['nin_n01'][0] * nin_new
+            + dcoords[op]['nin_n01'][1] * e0_new
+            + dcoords[op]['nin_n01'][2] * e1_new
+        )
+        e0 = (
+            dcoords[op]['e0_n01'][0] * nin_new
+            + dcoords[op]['e0_n01'][1] * e0_new
+            + dcoords[op]['e0_n01'][2] * e1_new
+        )
+        e1 = (
+            dcoords[op]['e1_n01'][0] * nin_new
+            + dcoords[op]['e1_n01'][1] * e0_new
+            + dcoords[op]['e1_n01'][2] * e1_new
+        )
+        
+        # safety check
+        nin, e0, e1 = ds._generic_check._check_vectbasis(
+            e0=nin,
+            e1=e0,
+            e2=e1,
+            dim=3,
+            tol=1e-12,
+        )
+
+        coll._dobj[opc][op]['dgeom']['nin'] = nin
+        coll._dobj[opc][op]['dgeom']['e0'] = e0
+        coll._dobj[opc][op]['dgeom']['e1'] = e1
+
     else:
         for kk in ['nin', 'e0', 'e1']:
             kv = coll.dobj[opc][op]['dgeom'][kk]
             for ss, ii in [('x', 0), ('y', 1), ('z', 2)]:
-                key = f'{kk}_{ss}'
-                coll.ddata[key]['data'] = (
-                    dcoords[op][key][0] * nin_new[ii]
-                    + dcoords[op][key][1] * e0_new[ii]
-                    + dcoords[op][key][2] * e1_new[ii]
+                coll.ddata[kv[ii]]['data'] = (
+                    dcoords[op][kk][0] * nin_new[ii]
+                    + dcoords[op][kk][1] * e0_new[ii]
+                    + dcoords[op][kk][2] * e1_new[ii]
                 )
