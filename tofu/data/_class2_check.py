@@ -269,10 +269,6 @@ def _check_inputs(
             or oo in coll.dobj.get('grating', {}).keys()
         ]
 
-        if len(lspectro) == 0:
-            diag = None
-            lspectro = None
-
     return (
         key,
         start_x, start_y, start_z,
@@ -322,7 +318,7 @@ def _rays(
 
     # -------------
     # check inputs
-
+    
     (
         key,
         start_x, start_y, start_z,
@@ -360,7 +356,7 @@ def _rays(
         diag=diag,
         key_cam=key_cam,
     )
-
+        
     # ----------------
     # prepare
 
@@ -405,13 +401,13 @@ def _rays(
     # -----------------------------
 
     else:
-
+        
         kk = None
 
         # final shape
         i0 = 0
         nbref = reflections_nb + 1
-        if diag is not None:
+        if lspectro is not None and len(lspectro) > 0:
             i0 = len(lspectro)
             nbref += i0
         shape = tuple(np.r_[nbref, shaperef])
