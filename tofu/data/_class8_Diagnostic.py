@@ -173,6 +173,11 @@ class Diagnostic(_class7_Camera.Camera):
         numerical=None,
         res=None,
         check=None,
+        margin_par=None,
+        margin_perp=None,
+        # equivalent aperture
+        add_points=None,
+        convex=None,
         # for storing los
         config=None,
         length=None,
@@ -191,13 +196,20 @@ class Diagnostic(_class7_Camera.Camera):
         If store = 'analytical' or 'numerical', overwrites the diag etendue
 
         """
+        
         dcompute, store = _etendue_los.compute_etendue_los(
             coll=self,
             key=key,
+            # etendue
             analytical=analytical,
             numerical=numerical,
             res=res,
             check=check,
+            margin_par=margin_par,
+            margin_perp=margin_perp,
+            # equivalent aperture
+            add_points=add_points,
+            convex=convex,
             # bool
             verb=verb,
             plot=plot,
@@ -371,11 +383,18 @@ class Diagnostic(_class7_Camera.Camera):
         dphi=None,
         # computing
         compute=None,
+        # los
         config=None,
         length=None,
         reflections_nb=None,
         reflections_type=None,
         key_nseg=None,
+        # equivalent aperture
+        add_points=None,
+        convex=None,
+        # etendue
+        margin_par=None,
+        margin_perp=None,
         verb=None,
     ):
         
@@ -398,10 +417,16 @@ class Diagnostic(_class7_Camera.Camera):
         if compute:
             self.compute_diagnostic_etendue_los(
                 key=key,
+                #e etendue
                 analytical=True,
                 numerical=False,
                 res=None,
                 check=False,
+                margin_par=margin_par,
+                margin_perp=margin_perp,
+                # equivalent aperture
+                add_points=add_points,
+                convex=convex,
                 # los
                 config=config,
                 length=length,
