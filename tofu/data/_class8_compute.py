@@ -13,7 +13,8 @@ import matplotlib.colors as mcolors
 import datastock as ds
 
 
-from. import _utils_surface3d
+from . import _utils_surface3d
+from . import _class7_compute
 
 
 # ##################################################################
@@ -1684,24 +1685,24 @@ def move_to(
     theta=None,
     dphi=None,
     tilt=None,
-    ):
+):
 
     # ------------
     # check inputs
-    
+
     # trivial case
     nochange = all([ss is None for ss in [x, y, z, R, phi, theta, dphi, tilt]])
-    
+
     # key, key_cam
     key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
     is2d = coll.dobj['diagnostic'][key]['is2d']
-    
+
     if len(key_cam) != 1:
         msg = "move_diagnostic_to() can only be used on one camera"
         raise Exception(msg)
     key_cam = key_cam[0]
     doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam]
-    
+
     # optics
     lok = [key_cam] + doptics['optics']
     op_ref = ds._generic_check._check_var(
@@ -1710,23 +1711,14 @@ def move_to(
         default=doptics['optics'][0],
         allowed=lok,
     )
-    
+
     # get optics, op_cls
     optics = doptics['optics']
     op_cls = doptics['cls']
-    
-    # x, y vs R, phi
-    lc = [
-        x is not None or y is not None,
-        R is not None or phi is not None,
-    ]
-    if np.sum(lc) > 1:
-        msg = "Please provide (x, y) xor (R, phi) !"
-        raise Exception(msg)
-    
+
     # ----------------------------------
     # use the chosen optics center as reference
-    
+
     if op_ref == key_cam:
         if is2d:
             cls_ref = 'camera'
@@ -1734,32 +1726,32 @@ def move_to(
             nin = coll.dobj[cls_ref][op_ref]['dgeom']['nin']
             e0 = coll.dobj[cls_ref][op_ref]['dgeom']['e0']
             e1 = coll.dobj[cls_ref][op_ref]['dgeom']['e1']
-            
+
         else:
             raise NotImplementedError()
-    
+
     else:
         cls_ref = op_cls[optics.index(op_ref)]
         cc = coll.dobj[cls_ref][op_ref]['dgeom']['cent']
         nin = coll.dobj[cls_ref][op_ref]['dgeom']['nin']
         e0 = coll.dobj[cls_ref][op_ref]['dgeom']['e0']
         e1 = coll.dobj[cls_ref][op_ref]['dgeom']['e1']
-        
+
     # ----------------------------------
     # get initial local coordinates in this frame
-        
+
     dinit = _get_initial_parameters(
         cc=cc,
         nin=nin,
         e0=e0,
         e1=e1,
     )
-        
+
     # ----------------------------------
     # get all local coordinates in this frame
-    
+
     dcoords = {}
-    
+
     # camera
     if is2d:
         dcoords[key_cam] = _extract_coords(
@@ -1780,7 +1772,7 @@ def move_to(
         )
 
     # optics
-    for op, opc in zip(optics, op_cls):  
+    for op, opc in zip(optics, op_cls):
         dcoords[op] = _extract_coords(
             dg=coll.dobj[opc][op]['dgeom'],
             cc=cc,
@@ -1791,57 +1783,20 @@ def move_to(
 
     # ----------------------------------
     # get new default values
-    
-    if not any(lc):
-        x, y = dinit['x'], dinit['y']
-        R = np.hypot(x, y)
-        phi = np.arctan2(y, x)
-    elif lc[0]:
-        if x is None:
-            x = dinit['x']
-        if y is None:
-            y = dinit['y']
-        R = np.hypot(x, y)
-        phi = np.arctan2(y, x)
-    else:
-        if R is None:
-            R = dinit['R']
-        if phi is None:
-            phi = dinit['phi']
-        x = R * np.cos(phi)
-        y = R * np.sin(phi)
 
-    if z is None:
-        z = dinit['z']
-
-    if dphi is None:
-        dphi = dinit['dphi']
-        
-    if theta is None:
-        theta = dinit['theta']
-        
-    if tilt is None:
-        tilt = dinit['tilt']
-
-    # ----------------------------------
-    # get new coordinates of reference
-    
-    cc_new, nin_new, e0_new, e1_new = get_new_frame(
-        key_cam=key_cam,
-        dinit=dinit,
+    cc_new, nin_new, e0_new, e1_new = _class7_compute._pinhole_position(
+        # center
         x=x,
         y=y,
+        R=R,
         z=z,
         phi=phi,
-        dphi=dphi,
+        # angles
         theta=theta,
+        dphi=dphi,
         tilt=tilt,
-        # safety check
-        nochange=nochange,
-        cc=cc,
-        nin=nin,
-        e0=e0,
-        e1=e1,
+        # default
+        ddef=dinit,
     )
 
     # ----------------------------------
@@ -1894,33 +1849,33 @@ def _get_initial_parameters(
     e0=None,
     e1=None,
 ):
-    
+
     # cordinates
     x, y, z = cc
     R = np.hypot(x, y)
-    
+
     # angles
     phi = np.arctan2(y, x)
-    
+
     # unit vectors
     eR = np.r_[np.cos(phi), np.sin(phi), 0.]
     ephi = np.r_[-np.sin(phi), np.cos(phi), 0.]
 
     # orientation angles: dphi
     dphi = np.pi/2. - np.arccos(np.sum(nin * ephi))
-        
+
     # orientation angles: theta
     ni = nin - np.sum(nin*ephi)*ephi
     ni = ni / np.linalg.norm(ni)
     theta = np.arctan2(ni[2], np.sum(ni * eR))
-    
+
     # orientation: tilt
     er = np.cos(theta) * eR + np.sin(theta) * np.r_[0, 0, 1]
     etheta = -np.sin(theta) * eR + np.cos(theta) * np.r_[0, 0, 1]
     e0bis = -np.cos(dphi) * ephi + np.sin(dphi) * er
-    
+
     tilt = np.arctan2(np.sum(e0*etheta), np.sum(e0*e0bis))
-    
+
     return {
         'x': x,
         'y': y,
@@ -1950,22 +1905,22 @@ def get_new_frame(
     e0=None,
     e1=None,
 ):
-    
+
     # orientation
     eR = np.r_[np.cos(phi), np.sin(phi), 0.]
     ephi = np.r_[-np.sin(phi), np.cos(phi), 0.]
-    er = np.cos(theta) * eR + np.sin(theta) * np.r_[0, 0, 1] 
-    etheta = -np.sin(theta) * eR + np.cos(theta) * np.r_[0, 0, 1] 
+    er = np.cos(theta) * eR + np.sin(theta) * np.r_[0, 0, 1]
+    etheta = -np.sin(theta) * eR + np.cos(theta) * np.r_[0, 0, 1]
     e0bis = -np.cos(dphi) * ephi + np.sin(dphi) * er
-    
+
     # translation
     cc_new = np.r_[x, y, z]
-    
+
     # new unit vectors
     nin_new = np.cos(dphi) * er + np.sin(dphi) * ephi
     e0_new = np.cos(tilt) * e0bis + np.sin(tilt) * etheta
     e1_new = np.cross(nin_new, e0_new)
-    
+
     # safety check
     nin_new, e0_new, e1_new = ds._generic_check._check_vectbasis(
         e0=nin_new,
@@ -1974,14 +1929,14 @@ def get_new_frame(
         dim=3,
         tol=1e-12,
     )
-    
+
     # safety check
     if nochange:
         dout = {}
         for ss in ['cc', 'nin', 'e0', 'e1']:
             if not np.allclose(eval(ss), eval(f'{ss}_new')):
                 dout[ss] = (eval(ss), eval(f'{ss}_new'))
-        
+
         if len(dout) > 0:
             lstr = [f"\t- '{k0}': {v0[0]} vs {v0[1]}" for k0, v0 in dout.items()]
             msg = (
@@ -1990,7 +1945,7 @@ def get_new_frame(
                 + f"\n\ndinit = {dinit}"
             )
             raise Exception(msg)
-    
+
     return cc_new, nin_new, e0_new, e1_new
 
 
@@ -2001,7 +1956,7 @@ def _extract_coords(
     e0=None,
     e1=None,
     ):
-    
+
     return {
         'c_n01': np.r_[
             np.sum((dg['cent'] - cc) * nin),
@@ -2034,11 +1989,11 @@ def _extract_coords_cam1d(
     e0=None,
     e1=None,
     ):
-    
+
     dout = {}
     kc = coll.dobj['camera'][key_cam]['dgeom']['cents']
     parallel = coll.dobj['camera'][key_cam]['dgeom']['parallel']
-    
+
     # cents 
     shape = tuple(np.r_[3, coll.ddata[kc[0]]['data'].shape])
     dout['cents'] = np.zeros(shape)
@@ -2048,7 +2003,7 @@ def _extract_coords_cam1d(
             (coll.ddata[kc[ii]]['data'] - cc[ii]) * e0[ii],
             (coll.ddata[kc[ii]]['data'] - cc[ii]) * e1[ii],
         ])
-    
+
     # unit vectors
     if parallel:
         for kk in ['nin', 'e0', 'e1']:
@@ -2083,7 +2038,7 @@ def reset_coords(
 
     if coll._dobj[opc][op]['dgeom']['type'] == '3d':
         raise NotImplementedError()
-    
+
     # translate
     coll._dobj[opc][op]['dgeom']['cent'] = (
         cc_new
@@ -2108,7 +2063,7 @@ def reset_coords(
         + dcoords[op]['e1_n01'][1] * e0_new
         + dcoords[op]['e1_n01'][2] * e1_new
     )
-    
+
     # --------------
     # safety check
 
@@ -2124,8 +2079,8 @@ def reset_coords(
     coll._dobj[opc][op]['dgeom']['nin'] = nin
     coll._dobj[opc][op]['dgeom']['e0'] = e0
     coll._dobj[opc][op]['dgeom']['e1'] = e1
-    
-    
+
+
 def reset_coords_cam1d(
     coll=None,
     op=None,
@@ -2135,8 +2090,8 @@ def reset_coords_cam1d(
     nin_new=None,
     e0_new=None,
     e1_new=None,
-    ):
-    
+):
+
     kc = coll.dobj[opc][op]['dgeom']['cents']
     parallel = coll.dobj[opc][op]['dgeom']['parallel']
 
@@ -2166,7 +2121,7 @@ def reset_coords_cam1d(
             + dcoords[op]['e1_n01'][1] * e0_new
             + dcoords[op]['e1_n01'][2] * e1_new
         )
-        
+
         # safety check
         nin, e0, e1 = ds._generic_check._check_vectbasis(
             e0=nin,
