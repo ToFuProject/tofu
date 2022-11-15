@@ -194,43 +194,60 @@ class Camera(_class6_Grating.Grating):
     def add_camera_pinhole(
         self,
         key=None,
+        key_pinhole=None,
         key_diag=None,
+        cam_type=None,
         # position
+        x=None,
+        y=None,
         R=None,
-        Z=None,
+        z=None,
         phi=None,
         # orientation
         theta=None,
         dphi=None,
         tilt=None,
         # camera
-        cam_size=None,
+        focal=None,
         pix_nb=None,
         pix_size=None,
+        pix_spacing=None,
         # pinhole
         pinhole_radius=None,
         pinhole_size=None,
+        # diagnostic
+        compute=None,
+        config=None,
+        length=None,
     ):
 
         return _compute.add_camera_pinhole(
             coll=self,
             key=key,
+            key_pinhole=key_pinhole,
             key_diag=key_diag,
+            cam_type=cam_type,
             # position
+            x=x,
+            y=y,
             R=R,
-            Z=Z,
+            z=z,
             phi=phi,
             # orientation
             theta=theta,
             dphi=dphi,
             tilt=tilt,
             # camera
-            cam_size=cam_size,
+            focal=focal,
             pix_nb=pix_nb,
             pix_size=pix_size,
             # pinhole
             pinhole_radius=pinhole_radius,
             pinhole_size=pinhole_size,
+            # diagnostic
+            compute=compute,
+            config=config,
+            length=length,
         )
 
 
