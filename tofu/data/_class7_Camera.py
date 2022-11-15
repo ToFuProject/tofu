@@ -14,6 +14,7 @@ import datastock as ds
 from . import _class6_Grating
 from . import _class3_check
 from . import _class7_check as _check
+from . import _class7_compute as _compute
 
 
 __all__ = ['Camera']
@@ -185,6 +186,53 @@ class Camera(_class6_Grating.Grating):
             dmat=dmat,
             color=color,
         )
+
+    # ---------------
+    # add pinhole cameras
+    # ---------------
+
+    def add_camera_pinhole(
+        self,
+        key=None,
+        key_diag=None,
+        # position
+        R=None,
+        Z=None,
+        phi=None,
+        # orientation
+        theta=None,
+        dphi=None,
+        tilt=None,
+        # camera
+        cam_size=None,
+        pix_nb=None,
+        pix_size=None,
+        # pinhole
+        pinhole_radius=None,
+        pinhole_size=None,
+    ):
+
+        return _compute.add_camera_pinhole(
+            coll=self,
+            key=key,
+            key_diag=key_diag,
+            # position
+            R=R,
+            Z=Z,
+            phi=phi,
+            # orientation
+            theta=theta,
+            dphi=dphi,
+            tilt=tilt,
+            # camera
+            cam_size=cam_size,
+            pix_nb=pix_nb,
+            pix_size=pix_size,
+            # pinhole
+            pinhole_radius=pinhole_radius,
+            pinhole_size=pinhole_size,
+        )
+
 
     # ---------------
     # utilities
