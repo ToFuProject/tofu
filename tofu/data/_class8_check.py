@@ -38,34 +38,34 @@ def _diagnostics_check(
         doptics = {doptics: []}
     if isinstance(doptics, (list, tuple)):
         doptics = {doptics[0]: list(doptics[1:])}
-        
+
     err = False
     if not isinstance(doptics, dict):
         err = True
-        
+
     c0 = any([
         not isinstance(k0, str) or not isinstance(v0, (str, list))
         for k0, v0 in doptics.items()
         ])
     if c0:
         err = True
-        
+
     # detailed checks 
     dkout = None
     if err is False:
-        
+
         for k0, v0 in doptics.items():
             if isinstance(v0, str):
                 doptics[k0] = [v0]
-        
+
         lcam = list(coll.dobj.get('camera', {}).keys())
         lap = list(coll.dobj.get('aperture', {}).keys())
         lfilt = list(coll.dobj.get('filter', {}).keys())
         lcryst = list(coll.dobj.get('crystal', {}).keys())
         lgrat = list(coll.dobj.get('grating', {}).keys())
-        
+
         lop = lap + lfilt + lcryst + lgrat
-        
+
         dkout = {
             k0: [k1 for k1 in v0 if k1 not in lop]
             for k0, v0 in doptics.items()
@@ -74,7 +74,7 @@ def _diagnostics_check(
             }
         if len(dkout) > 0:
             err = True
-        
+
     if err:
         msg = (
             f"diag '{key}': arg doptics must be a dict with:\n"
@@ -84,8 +84,10 @@ def _diagnostics_check(
         if dkout is not None and len(dkout) > 0:
             lstr = [f"\t- {k0}: {v0}" for k0, v0 in dkout.items()]
             msg += "Wrong key / value pairs:\n" + "\n".join(lstr)
-            raise Exception(msg)
-        
+        else:
+            msg += f"\nProvided:\n{doptics}"
+        raise Exception(msg)
+
     # -----------------
     # types of camera
 
@@ -218,15 +220,15 @@ def _diagnostics_check(
             'amin': None,
             'amax': None,
             }
-        
+
         doptics2[k0]['optics'], doptics2[k0]['cls'] = _get_optics_cls(
             coll=coll,
             optics=v0,
         )
-        
+
     # -----------
     # ispectro
-    
+
     if spectro:
         for k0, v0 in doptics2.items():
             doptics2[k0]['ispectro'] = [
@@ -236,7 +238,7 @@ def _diagnostics_check(
 
     # -----------------
     # stack
-    
+
     stack = ds._generic_check._check_var(
         stack, 'stack',
         types=str,
@@ -510,3 +512,66 @@ def _set_optics_color(
             coll._dobj[cls][k0]['dmisc']['color'] = color
 
     return
+
+
+# ##################################################################
+# ##################################################################
+#                           remove
+# ##################################################################
+
+def _remove(
+    coll=None,
+    key=None,
+    key_cam=None,
+):
+
+    # ------------
+    # check inputs
+
+    lok = list(coll.dobj.get('diagnostic', {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+    doptics = coll.dobj['diagnostic'][key]['doptics']
+
+    if key_cam is None:
+        key_cam = coll.dobj['diagnostic'][key]['camera']
+
+    else:
+        if isinstance(key_cam, str):
+            key_cam = [key_cam]
+
+        key_cam = ds._generic_check._check_var_iter(
+            key_cam, 'key_cam',
+            types=list,
+            types_iter=str,
+            allowed=coll.dobj['diagnostic'][key]['camera'],
+        )
+
+    # ------------
+    # list data
+
+    lkd = ['etendue']
+    ld = []
+    for k0 in lkd:
+        for k1 in key_cam:
+            ld.append(doptics[k1][k0])
+
+    # -----------
+    # remove data
+
+    coll.remove_data(ld, propagate=True)
+
+    # ----------
+    # remove los
+
+    for k1 in key_cam:
+        coll.remove_rays(key=doptics[k1]['los'])
+
+    # -----------
+    # remove diag
+
+    if len(key_cam) == len(doptics):
+        del coll._dobj['diagnostic'][key]

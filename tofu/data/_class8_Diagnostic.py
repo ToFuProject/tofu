@@ -100,13 +100,23 @@ class Diagnostic(_class7_Camera.Camera):
             )
 
     # -----------------
+    # remove
+    # -----------------
+
+    def remove_diagnostic(self, key=None, key_cam=None):
+        return _check._remove(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+        )
+
+    # -----------------
     # utilities
     # -----------------
 
     def get_diagnostic_ref(self, key=None, key_cam=None):
         return _check.get_ref(coll=self, key=key, key_cam=key_cam)
-    
-    
+
     def get_diagnostic_cam(self, key=None, key_cam=None):
         return _check._get_default_cam(coll=self, key=key, key_cam=key_cam)
 
@@ -119,7 +129,7 @@ class Diagnostic(_class7_Camera.Camera):
         **kwdargs,
         ):
         """ Return dict of data for chosen cameras
-        
+
         data can be:
             'etendue'
             'amin'
@@ -149,8 +159,8 @@ class Diagnostic(_class7_Camera.Camera):
         **kwdargs,
         ):
         """ Return concatenated data for chosen cameras
-        
-        
+
+
         """
         return _compute._concatenate_data(
             coll=self,
@@ -196,7 +206,7 @@ class Diagnostic(_class7_Camera.Camera):
         If store = 'analytical' or 'numerical', overwrites the diag etendue
 
         """
-        
+
         dcompute, store = _etendue_los.compute_etendue_los(
             coll=self,
             key=key,
@@ -306,14 +316,14 @@ class Diagnostic(_class7_Camera.Camera):
 
     def get_optics_cls(self, optics=None):
         """ Return list of optics and list of their classes
-        
+
         """
         return _check._get_optics_cls(coll=self, optics=optics)
 
     # def get_diagnostic_doptics(self, key=None):
     #     """ 
     #     Get dict of optics and corresponding classes 
-        
+
     #     """
     #     return _check._get_diagnostic_doptics(coll=self, key=key)
 
