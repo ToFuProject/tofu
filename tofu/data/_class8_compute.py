@@ -14,7 +14,6 @@ import datastock as ds
 
 
 from . import _utils_surface3d
-from . import _class7_compute
 
 
 # ##################################################################
@@ -770,7 +769,7 @@ def get_lamb_from_angle(
         types=str,
         allowed=lok,
     )
-    
+
     # key_cam
     lok = list(coll.dobj['diagnostic'][key]['doptics'].keys())
     key_cam = ds._generic_check._check_var(
@@ -778,7 +777,7 @@ def get_lamb_from_angle(
         types=str,
         allowed=lok,
     )
-    
+
     # doptics
     doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam]
     if 'crystal' not in doptics['cls']:
@@ -806,7 +805,7 @@ def get_lamb_from_angle(
     lk = ['lamb', 'lambmin', 'lambmax']
     for kk in lk:
         if lamb in [kk, 'res']:
-            
+
             if kk == 'lamb':
                 klos = coll.dobj['diagnostic'][key]['doptics'][key_cam]['los']
                 ka = coll.dobj['rays'][klos][dok[kk]]
@@ -816,7 +815,7 @@ def get_lamb_from_angle(
                 ka = coll.dobj['diagnostic'][key]['doptics'][key_cam][dok[kk]]
                 ang = coll.ddata[ka]['data']
                 ref = coll.ddata[ka]['ref']
-                
+
             dd = coll.get_crystal_bragglamb(
                 key=kcryst,
                 bragg=ang,
@@ -847,19 +846,19 @@ def _get_data(
     rocking_curve=None,
     **kwdargs,
     ):
-    
+
     # key, key_cam
     key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
     spectro = coll.dobj['diagnostic'][key]['spectro']
     # is2d = coll.dobj['diagnostic'][key]['is2d']
-    
+
     # basic check on data
     if data is not None:
         lquant = ['etendue', 'amin', 'amax']  # 'los'
         lcomp = ['tangency radius']
         if spectro:
             lcomp += ['lamb', 'lambmin', 'lambmax', 'res']
-    
+
         data = ds._generic_check._check_var(
             data, 'data',
             types=str,
@@ -870,41 +869,41 @@ def _get_data(
     ddata = {}
     # comp = False
     if data is None or data in lquant:
-    
+
         # --------------------------
         # data is None => kwdargs
-    
+
         if data is None:
             # check kwdargs
             dparam = coll.get_param(which='data', returnas=dict)
             lkout = [k0 for k0 in kwdargs.keys() if k0 not in dparam.keys()]
-            
+
             if len(lkout) > 0:
                 msg= (
                     "The following args correspond to no data parameter:\n"
                     + "\n".join([f"\t- {k0}" for k0 in lkout])
                 )
                 raise Exception(msg)
-            
+
             # list all available data
             lok = [
                 k0 for k0, v0 in coll.ddata.items()
                 if v0.get('camera') in key_cam
             ]
-            
+
             # Adjust with kwdargs
             if len(kwdargs) > 0:
                 lok2 = coll.select(
                     which='data', log='all', returnas=str, **kwdargs,
                 )
                 lok = [k0 for k0 in lok2 if k0 in lok]
-                
+
             # check there is 1 data per cam
             lcam = [
                 coll.ddata[k0]['camera'] for k0 in lok
                 if coll.ddata[k0]['camera'] in key_cam
             ]
-            
+
             if len(set(lcam)) > len(key_cam):
                 msg = (
                     "There are more / less data identified than cameras:\n"
@@ -915,16 +914,16 @@ def _get_data(
                 raise Exception(msg)
             elif len(set(lcam)) < len(key_cam):
                 pass
-            
+
             # reorder
             ddata = {
                 cc: lok[lcam.index(cc)]
                 for cc in key_cam if cc in lcam
             }
-                
+
         # -----------------
         # data in lquant
-        
+
         elif data in lquant:
             for cc in key_cam:
                 # if data == 'los':
@@ -947,39 +946,39 @@ def _get_data(
                 else:
                     msg = f"Unknown data: '{data}'"
                     raise Exception(msg)
-        
+
         # dref
         dref = {
             k0: coll.ddata[v0]['ref']
             for k0, v0 in ddata.items()
-        } 
-        
+        }
+
         # get actual data
         ddata = {
             k0 : coll.ddata[v0]['data']
             for k0, v0 in ddata.items()
         }
- 
+
     # --------------------
     # data to be computed 
-       
+
     elif data in lcomp:
-        
+
         # comp = True
         ddata = {}
         dref = {}
-        
+
         if data in ['lamb', 'lambmin', 'lambmax', 'res']:
-            for cc in key_cam: 
+            for cc in key_cam:
                ddata[cc], dref[cc] = coll.get_diagnostic_lamb(
                    key=key,
                    key_cam=cc,
                    rocking_curve=rocking_curve,
                    lamb=data,
                )
-           
+
         elif data == 'tangency radius':
-            for cc in key_cam: 
+            for cc in key_cam:
                 ddata[cc], _, dref[cc] = coll.get_rays_tangency_radius(
                     key=key,
                     key_cam=cc,
@@ -996,1151 +995,404 @@ def _get_data(
 # ##################################################################
 
 
-def _concatenate_check(
-    coll=None,
-    key=None,
-    key_cam=None,
-    data=None,
-    rocking_curve=None,
-    returnas=None,
-    # naming
-    key_data=None,
-    key_ref=None,
-    **kwdargs,
-    ):
+# def _concatenate_check(
+    # coll=None,
+    # key=None,
+    # key_cam=None,
+    # data=None,
+    # rocking_curve=None,
+    # returnas=None,
+    # # naming
+    # key_data=None,
+    # key_ref=None,
+    # **kwdargs,
+    # ):
     
-    # -------------
-    # key, key_cam
-    # -------------
+    # # -------------
+    # # key, key_cam
+    # # -------------
     
-    key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
-    spectro = coll.dobj['diagnostic'][key]['spectro']
-    is2d = coll.dobj['diagnostic'][key]['is2d']
-    # stack = coll.dobj['diagnostic'][key]['stack']
+    # key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
+    # spectro = coll.dobj['diagnostic'][key]['spectro']
+    # is2d = coll.dobj['diagnostic'][key]['is2d']
+    # # stack = coll.dobj['diagnostic'][key]['stack']
     
-    if is2d and len(key_cam) > 1:
-        msg = (
-            "Cannot yet concatenate several 2d cameras\n"
-            "\t- key: '{key}'\n"
-            "\t- is2d: {is2d}\n"
-            "\t- key_cam: {key_cam}\n"
-        )
-        raise NotImplementedError(msg)
+    # if is2d and len(key_cam) > 1:
+        # msg = (
+            # "Cannot yet concatenate several 2d cameras\n"
+            # "\t- key: '{key}'\n"
+            # "\t- is2d: {is2d}\n"
+            # "\t- key_cam: {key_cam}\n"
+        # )
+        # raise NotImplementedError(msg)
     
-    # ---------------
-    # build ddata
-    # -------------
+    # # ---------------
+    # # build ddata
+    # # -------------
     
-    # basic check on data
-    if data is not None:
-        lquant = ['los', 'etendue', 'amin', 'amax']
-        lcomp = ['tangency radius']
-        if spectro:
-            lcomp += ['lamb', 'lambmin', 'lambmax', 'res']
+    # # basic check on data
+    # if data is not None:
+        # lquant = ['los', 'etendue', 'amin', 'amax']
+        # lcomp = ['tangency radius']
+        # if spectro:
+            # lcomp += ['lamb', 'lambmin', 'lambmax', 'res']
     
-        data = ds._generic_check._check_var(
-            data, 'data',
-            types=str,
-            allowed=lquant + lcomp,
-        )
+        # data = ds._generic_check._check_var(
+            # data, 'data',
+            # types=str,
+            # allowed=lquant + lcomp,
+        # )
 
-    # build ddata
-    ddata = {}
-    comp = False
-    if data is None or data in lquant:
+    # # build ddata
+    # ddata = {}
+    # comp = False
+    # if data is None or data in lquant:
     
-        # --------------------------
-        # data is None => kwdargs
+        # # --------------------------
+        # # data is None => kwdargs
     
-        if data is None:
-            # check kwdargs
-            dparam = coll.get_param(which='data', returnas=dict)
-            lkout = [k0 for k0 in kwdargs.keys() if k0 not in dparam.keys()]
+        # if data is None:
+            # # check kwdargs
+            # dparam = coll.get_param(which='data', returnas=dict)
+            # lkout = [k0 for k0 in kwdargs.keys() if k0 not in dparam.keys()]
             
-            if len(lkout) > 0:
-                msg= (
-                    "The following args correspond to no data parameter:\n"
-                    + "\n".join([f"\t- {k0}" for k0 in lkout])
-                )
-                raise Exception(msg)
+            # if len(lkout) > 0:
+                # msg= (
+                    # "The following args correspond to no data parameter:\n"
+                    # + "\n".join([f"\t- {k0}" for k0 in lkout])
+                # )
+                # raise Exception(msg)
             
-            # list all available data
-            lok = [
-                k0 for k0, v0 in coll.ddata.items()
-                if v0.get('camera') in key_cam
-            ]
+            # # list all available data
+            # lok = [
+                # k0 for k0, v0 in coll.ddata.items()
+                # if v0.get('camera') in key_cam
+            # ]
             
-            # Adjust with kwdargs
-            if len(kwdargs) > 0:
-                lok2 = coll.select(
-                    which='data', log='all', returnas=str, **kwdargs,
-                )
-                lok = [k0 for k0 in lok2 if k0 in lok]
+            # # Adjust with kwdargs
+            # if len(kwdargs) > 0:
+                # lok2 = coll.select(
+                    # which='data', log='all', returnas=str, **kwdargs,
+                # )
+                # lok = [k0 for k0 in lok2 if k0 in lok]
                 
-            # check there is 1 data per cam
-            lcam = [
-                coll.ddata[k0]['camera'] for k0 in lok
-                if coll.ddata[k0]['camera'] in key_cam
-            ]
+            # # check there is 1 data per cam
+            # lcam = [
+                # coll.ddata[k0]['camera'] for k0 in lok
+                # if coll.ddata[k0]['camera'] in key_cam
+            # ]
             
-            if len(set(lcam)) > len(key_cam):
-                msg = (
-                    "There are more / less data identified than cameras:\n"
-                    f"\t- key_cam:  {key_cam}\n"
-                    f"\t- data cam: {lcam}\n"
-                    f"\t- data: {data}"
-                )
-                raise Exception(msg)
-            elif len(set(lcam)) < len(key_cam):
-                pass
+            # if len(set(lcam)) > len(key_cam):
+                # msg = (
+                    # "There are more / less data identified than cameras:\n"
+                    # f"\t- key_cam:  {key_cam}\n"
+                    # f"\t- data cam: {lcam}\n"
+                    # f"\t- data: {data}"
+                # )
+                # raise Exception(msg)
+            # elif len(set(lcam)) < len(key_cam):
+                # pass
             
-            # reorder
-            ddata = {
-                cc: [lok[lcam.index(cc)]]
-                for cc in key_cam if cc in lcam
-            }
+            # # reorder
+            # ddata = {
+                # cc: [lok[lcam.index(cc)]]
+                # for cc in key_cam if cc in lcam
+            # }
                 
-        # -----------------
-        # data in lquant
+        # # -----------------
+        # # data in lquant
         
-        elif data in lquant:
-            for cc in key_cam:
-                if data == 'los':
-                    kr = coll.dobj['diagnostic'][key]['doptics'][cc][data]
-                    dd = coll.dobj['rays'][kr]['pts']
-                else:
-                    dd = coll.dobj['diagnostic'][key]['doptics'][cc][data]
-                lc = [
-                    isinstance(dd, str) and dd in coll.ddata.keys(),
-                    isinstance(dd, tuple)
-                    and all([isinstance(di, str) for di in dd])
-                    and all([di in coll.ddata.keys() for di in dd])
-                ]
-                if lc[0]:
-                    ddata[cc] = [dd]
-                elif lc[1]:
-                    ddata[cc] = list(dd)
-                elif dd is None:
-                    pass
-                else:
-                    msg = f"Unknown data: '{data}'"
-                    raise Exception(msg)         
+        # elif data in lquant:
+            # for cc in key_cam:
+                # if data == 'los':
+                    # kr = coll.dobj['diagnostic'][key]['doptics'][cc][data]
+                    # dd = coll.dobj['rays'][kr]['pts']
+                # else:
+                    # dd = coll.dobj['diagnostic'][key]['doptics'][cc][data]
+                # lc = [
+                    # isinstance(dd, str) and dd in coll.ddata.keys(),
+                    # isinstance(dd, tuple)
+                    # and all([isinstance(di, str) for di in dd])
+                    # and all([di in coll.ddata.keys() for di in dd])
+                # ]
+                # if lc[0]:
+                    # ddata[cc] = [dd]
+                # elif lc[1]:
+                    # ddata[cc] = list(dd)
+                # elif dd is None:
+                    # pass
+                # else:
+                    # msg = f"Unknown data: '{data}'"
+                    # raise Exception(msg)         
        
-        # dref
-        dref = {
-            k0: [coll.ddata[k1]['ref'] for k1 in v0]
-            for k0, v0 in ddata.items()
-        }
+        # # dref
+        # dref = {
+            # k0: [coll.ddata[k1]['ref'] for k1 in v0]
+            # for k0, v0 in ddata.items()
+        # }
         
-    # --------------------
-    # data to be computed 
+    # # --------------------
+    # # data to be computed 
        
-    # TBF
-    elif data in lcomp:
+    # # TBF
+    # elif data in lcomp:
         
-        comp = True
-        ddata = {[None] for cc in key_cam}
-        dref = {[None] for cc in key_cam}
+        # comp = True
+        # ddata = {[None] for cc in key_cam}
+        # dref = {[None] for cc in key_cam}
         
-        if data in ['lamb', 'lambmin', 'lambmax', 'res']:
-            for cc in key_cam: 
-               ddata[cc][0], dref[cc][0] = coll.get_diagnostic_lamb(
-                   key=key,
-                   key_cam=cc,
-                   rocking_curve=rocking_curve,
-                   lamb=data,
-               )
+        # if data in ['lamb', 'lambmin', 'lambmax', 'res']:
+            # for cc in key_cam: 
+               # ddata[cc][0], dref[cc][0] = coll.get_diagnostic_lamb(
+                   # key=key,
+                   # key_cam=cc,
+                   # rocking_curve=rocking_curve,
+                   # lamb=data,
+               # )
            
-        elif data == 'tangency radius':
-            ddata[cc][0], _, dref[cc][0] = coll.get_rays_tangency_radius(
-                key=key,
-                key_cam=key_cam,
-                segment=-1,
-                lim_to_segments=False,
-            )
+        # elif data == 'tangency radius':
+            # ddata[cc][0], _, dref[cc][0] = coll.get_rays_tangency_radius(
+                # key=key,
+                # key_cam=key_cam,
+                # segment=-1,
+                # lim_to_segments=False,
+            # )
 
-    # -----------------------------------
-    # Final safety checks and adjustments
-    # -----------------------------------
+    # # -----------------------------------
+    # # Final safety checks and adjustments
+    # # -----------------------------------
     
-    # adjust key_cam
-    key_cam = [cc for cc in key_cam if cc in ddata.keys()]
+    # # adjust key_cam
+    # key_cam = [cc for cc in key_cam if cc in ddata.keys()]
 
-    # ddata vs dref vs key_cam
-    lcd = sorted(list(ddata.keys()))
-    lcr = sorted(list(dref.keys()))
-    if not (sorted(key_cam) == lcd == lcr):
-        msg = (
-            "Wrong keys!\n"
-            f"\t- key_cam: {key_cam}\n"
-            f"\t- ddata.keys(): {lcd}\n"
-            f"\t- dref.keys(): {lcr}\n"
-        )
-        raise Exception(msg)
+    # # ddata vs dref vs key_cam
+    # lcd = sorted(list(ddata.keys()))
+    # lcr = sorted(list(dref.keys()))
+    # if not (sorted(key_cam) == lcd == lcr):
+        # msg = (
+            # "Wrong keys!\n"
+            # f"\t- key_cam: {key_cam}\n"
+            # f"\t- ddata.keys(): {lcd}\n"
+            # f"\t- dref.keys(): {lcr}\n"
+        # )
+        # raise Exception(msg)
 
-    # nb of data per cam
-    ln = [len(v0) for v0 in ddata.values()]
-    if len(set(ln)) != 1:
-        msg = (
-            "Not the same number of data per cameras!\n"
-            + str(ddata)
-        )
-        raise Exception(msg)
+    # # nb of data per cam
+    # ln = [len(v0) for v0 in ddata.values()]
+    # if len(set(ln)) != 1:
+        # msg = (
+            # "Not the same number of data per cameras!\n"
+            # + str(ddata)
+        # )
+        # raise Exception(msg)
 
-    # check shapes and ndim
-    dshapes = {
-        k0: [tuple([coll.dref[k2]['size'] for k2 in k1]) for k1 in v0]
-        for k0, v0 in dref.items()
-    }
+    # # check shapes and ndim
+    # dshapes = {
+        # k0: [tuple([coll.dref[k2]['size'] for k2 in k1]) for k1 in v0]
+        # for k0, v0 in dref.items()
+    # }
     
-    # all same ndim
-    ndimref = None
-    for k0, v0 in dshapes.items():
-        lndim = [len(v1) for v1 in v0]
-        if len(set(lndim)) > 1:
-            msg = "All data must have same number of dimensions!\n{dshapes}"
-            raise Exception(msg)
-        if ndimref is None:
-            ndimref = lndim[0]
-        elif lndim[0] != ndimref:
-            msg = "All data must have same number of dimensions!\n{dshapes}"
-            raise Exception(msg)
+    # # all same ndim
+    # ndimref = None
+    # for k0, v0 in dshapes.items():
+        # lndim = [len(v1) for v1 in v0]
+        # if len(set(lndim)) > 1:
+            # msg = "All data must have same number of dimensions!\n{dshapes}"
+            # raise Exception(msg)
+        # if ndimref is None:
+            # ndimref = lndim[0]
+        # elif lndim[0] != ndimref:
+            # msg = "All data must have same number of dimensions!\n{dshapes}"
+            # raise Exception(msg)
  
-    # check indices of camera ref in data ref
-    indref = None
-    for k0, v0 in dref.items():
-        for v1 in v0:
-            ind = [v1.index(rr) for rr in coll.dobj['camera'][k0]['dgeom']['ref']]
-            if indref is None:
-                indref = ind
-            elif ind != indref:
-                msg = "All data must have same index of cam ref!\n{drf}"
-                raise Exception(msg)
+    # # check indices of camera ref in data ref
+    # indref = None
+    # for k0, v0 in dref.items():
+        # for v1 in v0:
+            # ind = [v1.index(rr) for rr in coll.dobj['camera'][k0]['dgeom']['ref']]
+            # if indref is None:
+                # indref = ind
+            # elif ind != indref:
+                # msg = "All data must have same index of cam ref!\n{drf}"
+                # raise Exception(msg)
                 
-    if len(indref) > 1:
-        msg = "Cannot conatenate 2d cameras so far"
-        raise Exception(msg)
+    # if len(indref) > 1:
+        # msg = "Cannot conatenate 2d cameras so far"
+        # raise Exception(msg)
 
-    # check all shapes other than camera shapes are identical
-    if ndimref > len(indref):
-        ind = np.delete(np.arange(0, ndimref), indref)
-        shape0 = tuple(np.r_[dshapes[key_cam[0]][0]][ind])
-        lcout = [
-            cc for cc in key_cam
-            if any([tuple(np.r_[vv][ind]) != shape0 for vv in dshapes[cc]])
-        ]
-        if len(lcout) > 0:
-            msg = (
-                "The cameras data shall all have same shape (except pixels)\n"
-                + str(dshapes)
-            )
-            raise Exception(msg)
+    # # check all shapes other than camera shapes are identical
+    # if ndimref > len(indref):
+        # ind = np.delete(np.arange(0, ndimref), indref)
+        # shape0 = tuple(np.r_[dshapes[key_cam[0]][0]][ind])
+        # lcout = [
+            # cc for cc in key_cam
+            # if any([tuple(np.r_[vv][ind]) != shape0 for vv in dshapes[cc]])
+        # ]
+        # if len(lcout) > 0:
+            # msg = (
+                # "The cameras data shall all have same shape (except pixels)\n"
+                # + str(dshapes)
+            # )
+            # raise Exception(msg)
             
-    # check indices of camera ref in data ref
-    ref = None
-    for k0, v0 in dref.items():
-        for v1 in v0:
-            if ref is None:
-                ref = [
-                    None if ii == indref[0] else rr
-                    for ii, rr in enumerate(v1)
-                ]
-            else:
-                lc = [
-                    v1[ii] == ref[ii] for ii in range(ndimref)
-                    if ii not in indref
-                ]
-                if not all(lc):
-                    msg = (
-                        "All ref axcept the camera ref must be the same!\n"
-                        f"\t- ref: {ref}\n"
-                        f"\t- indref: {indref}\n"
-                        f"\t- ndimref: {ndimref}\n"
-                        f"\t- v1: {v1}\n"
-                        f"\t- lc: {lc}\n"
-                        + str(dref)
-                    )
-                    raise Exception(msg)
+    # # check indices of camera ref in data ref
+    # ref = None
+    # for k0, v0 in dref.items():
+        # for v1 in v0:
+            # if ref is None:
+                # ref = [
+                    # None if ii == indref[0] else rr
+                    # for ii, rr in enumerate(v1)
+                # ]
+            # else:
+                # lc = [
+                    # v1[ii] == ref[ii] for ii in range(ndimref)
+                    # if ii not in indref
+                # ]
+                # if not all(lc):
+                    # msg = (
+                        # "All ref axcept the camera ref must be the same!\n"
+                        # f"\t- ref: {ref}\n"
+                        # f"\t- indref: {indref}\n"
+                        # f"\t- ndimref: {ndimref}\n"
+                        # f"\t- v1: {v1}\n"
+                        # f"\t- lc: {lc}\n"
+                        # + str(dref)
+                    # )
+                    # raise Exception(msg)
 
-    # -----------------------------------
-    # keys for new data and ref
-    # -----------------------------------
+    # # -----------------------------------
+    # # keys for new data and ref
+    # # -----------------------------------
 
-    if key_data is None:
-        if data in lquant + lcomp:
-            if data == 'los':
-                key_data = [
-                    f'{key}_los_ptsx',
-                    f'{key}_los_ptsy',
-                    f'{key}_los_ptsz',
-                ]
-            else:
-                key_data = [f'{key}_{data}']
-        else:
-            key_data = [f'{key}_data']
-    elif isinstance(key_data, str):
-        key_data = [key_data]
+    # if key_data is None:
+        # if data in lquant + lcomp:
+            # if data == 'los':
+                # key_data = [
+                    # f'{key}_los_ptsx',
+                    # f'{key}_los_ptsy',
+                    # f'{key}_los_ptsz',
+                # ]
+            # else:
+                # key_data = [f'{key}_{data}']
+        # else:
+            # key_data = [f'{key}_data']
+    # elif isinstance(key_data, str):
+        # key_data = [key_data]
             
-    if key_ref is None:
-        key_ref = f'{key}_npix'
+    # if key_ref is None:
+        # key_ref = f'{key}_npix'
 
-    ref = tuple([key_ref if rr is None else rr for rr in ref])
+    # ref = tuple([key_ref if rr is None else rr for rr in ref])
 
-    # -----------------------------------
-    # Other variables
-    # -----------------------------------
+    # # -----------------------------------
+    # # Other variables
+    # # -----------------------------------
 
-    # returnas
-    returnas = ds._generic_check._check_var(
-        returnas, 'returnas',
-        default='Datastock',
-        allowed=[dict, 'Datastock'],
-    )
+    # # returnas
+    # returnas = ds._generic_check._check_var(
+        # returnas, 'returnas',
+        # default='Datastock',
+        # allowed=[dict, 'Datastock'],
+    # )
 
-    return (
-        key, key_cam, is2d,
-        ddata, ref, comp,
-        dshapes, ndimref, indref,
-        key_data, key_ref,
-        returnas,
-    )
+    # return (
+        # key, key_cam, is2d,
+        # ddata, ref, comp,
+        # dshapes, ndimref, indref,
+        # key_data, key_ref,
+        # returnas,
+    # )
 
 
-# TBF
-def _concatenate_data(
-    coll=None,
-    key=None,
-    key_cam=None,
-    data=None,
-    rocking_curve=None,
-    returnas=None,
-    # naming
-    key_data=None,
-    key_ref=None,
-    **kwdargs,
-    ):
+# # TBF
+# def _concatenate_data(
+    # coll=None,
+    # key=None,
+    # key_cam=None,
+    # data=None,
+    # rocking_curve=None,
+    # returnas=None,
+    # # naming
+    # key_data=None,
+    # key_ref=None,
+    # **kwdargs,
+    # ):
     
-    # --------------------
-    # check inputs
-    # --------------------
+    # # --------------------
+    # # check inputs
+    # # --------------------
     
-    (
-     key, key_cam, is2d, 
-     ddata0, ref0, comp,
-     dshapes, ndimref, indref,
-     key_data, key_ref,
-     returnas,
-     ) = _concatenate_check(
-        coll=coll,
-        key=key,
-        key_cam=key_cam,
-        data=data,
-        # naming
-        key_data=key_data,
-        key_ref=key_ref,
-    )
+    # (
+     # key, key_cam, is2d, 
+     # ddata0, ref0, comp,
+     # dshapes, ndimref, indref,
+     # key_data, key_ref,
+     # returnas,
+     # ) = _concatenate_check(
+        # coll=coll,
+        # key=key,
+        # key_cam=key_cam,
+        # data=data,
+        # # naming
+        # key_data=key_data,
+        # key_ref=key_ref,
+    # )
     
-    print(ddata0)
-    print(ref0)
-    print(dshapes)
-    print(indref)
-    print(comp)
+    # print(ddata0)
+    # print(ref0)
+    # print(dshapes)
+    # print(indref)
+    # print(comp)
     
-    # -----------------------------------
-    # ddata => check shapes, define dref
-    # -----------------------------------
+    # # -----------------------------------
+    # # ddata => check shapes, define dref
+    # # -----------------------------------
 
-    # ------------
-    # check shapes
+    # # ------------
+    # # check shapes
     
     
     
-    # ------------
-    # concatenate
+    # # ------------
+    # # concatenate
     
-    ndata = len(ddata0[key_cam[0]])
-    print(ndata)
-    ddata, dref = {}, {}
-    for ii in range(ndata):
+    # ndata = len(ddata0[key_cam[0]])
+    # print(ndata)
+    # ddata, dref = {}, {}
+    # for ii in range(ndata):
         
-        if comp is True:
+        # if comp is True:
             
-            datai = np.concatenate(
-                tuple([ddata0[k0][ii] for k0 in key_cam]),
-                axis=indref[0],
-            )
-            ref = None
+            # datai = np.concatenate(
+                # tuple([ddata0[k0][ii] for k0 in key_cam]),
+                # axis=indref[0],
+            # )
+            # ref = None
             
-        else:
-            datai = np.concatenate(
-                tuple([coll.ddata[ddata0[k0][ii]]['data'] for k0 in key_cam]),
-                axis=indref[0],
-            )
+        # else:
+            # datai = np.concatenate(
+                # tuple([coll.ddata[ddata0[k0][ii]]['data'] for k0 in key_cam]),
+                # axis=indref[0],
+            # )
 
-        # ----------
-        # build dict
+        # # ----------
+        # # build dict
 
-        ddata[key_data[ii]] = {
-            'data': datai,
-            'ref': ref0,
-            'units': None,
-            'dim': None,
-        }
+        # ddata[key_data[ii]] = {
+            # 'data': datai,
+            # 'ref': ref0,
+            # 'units': None,
+            # 'dim': None,
+        # }
         
-    dref = {
-        k0: {'size': coll.dref[k0]['size']} for k0 in ref0 if k0 != key_ref
-    }
-    dref[key_ref] = {'size': datai.shape[indref[0]]}
+    # dref = {
+        # k0: {'size': coll.dref[k0]['size']} for k0 in ref0 if k0 != key_ref
+    # }
+    # dref[key_ref] = {'size': datai.shape[indref[0]]}
         
-    # -------------------------
-    # build dict
-    # -------------------------
+    # # -------------------------
+    # # build dict
+    # # -------------------------
     
-    return key, key_cam, ddata, dref
-    
-
-# ##################################################################
-# ##################################################################
-#             interpolated along los
-# ##################################################################
-
-
-def _interpolated_along_los(
-    coll=None,
-    key=None,
-    key_cam=None,
-    key_data_x=None,
-    key_data_y=None,
-    res=None,
-    mode=None,
-    segment=None,
-    radius_max=None,
-    plot=None,
-    dcolor=None,
-    dax=None,
-    ):
-    
-    # ------------
-    # check inputs
-    
-    # key_cam
-    key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
-    
-    # key_data
-    lok_coords = ['x', 'y', 'z', 'R', 'phi', 'k', 'l', 'ltot', 'itot']
-    lok_2d = [
-        k0 for k0, v0 in coll.ddata.items()
-        if v0.get('bsplines') is not None
-    ]
-    
-    key_data_x = ds._generic_check._check_var(
-        key_data_x, 'key_data_x',
-        types=str,
-        default='k',
-        allowed=lok_coords + lok_2d,
-    )
-    
-    key_data_y = ds._generic_check._check_var(
-        key_data_y, 'key_data_y',
-        types=str,
-        default='k',
-        allowed=lok_coords + lok_2d,
-    )
-    
-    # segment
-    segment = ds._generic_check._check_var(
-        segment, 'segment',
-        types=int,
-        default=-1,
-    )
-    
-    # plot
-    plot = ds._generic_check._check_var(
-        plot, 'plot',
-        types=bool,
-        default=True,
-    )
-    
-    # dcolor
-    if not isinstance(dcolor, dict):
-        if dcolor is None:
-            lc = ['k', 'r', 'g', 'b', 'm', 'c']
-        elif mcolors.is_color_like(dcolor):
-            lc = [dcolor]
-            
-        dcolor = {
-            kk: lc[ii%len(lc)]
-            for ii, kk in enumerate(key_cam)
-            }
-    
-    # --------------
-    # prepare output
-    
-    ncam = len(key_cam)
-    
-    xx = [None for ii in range(ncam)]
-    yy = [None for ii in range(ncam)]
-    
-    # ---------------
-    # loop on cameras
-    
-    if key_data_x in lok_coords and key_data_y in lok_coords:
-        
-        for ii, kk in enumerate(key_cam):
-            
-            klos = coll.dobj['diagnostic'][key]['doptics'][kk]['los']
-            if klos is None:
-                continue
-            
-            xx[ii], yy[ii] = coll.sample_rays(
-                key=klos,
-                res=res,
-                mode=mode,
-                segment=segment,
-                radius_max=radius_max,
-                concatenate=True,
-                return_coords=[key_data_x, key_data_y],
-                )    
-            
-            if key_data_x in ['x', 'y', 'z', 'R', 'l', 'ltot']:
-                xlab = f"{key_data_x} (m)"
-            else:
-                xlab = key_data_x
-                
-            if key_data_y in ['x', 'y', 'z', 'R', 'l', 'ltot']:
-                ylab = f"{key_data_y} (m)"
-            else:
-                ylab = key_data_y
-    
-    elif key_data_x in lok_coords or key_data_y in lok_coords:
-    
-        if key_data_x in lok_coords:
-            cll = key_data_x
-            c2d = key_data_y
-            if key_data_x in ['x', 'y', 'z', 'R', 'l', 'ltot']:
-                xlab = f"{key_data_x} (m)"
-            else:
-                xlab = key_data_x
-            ylab = f"{key_data_y} ({coll.ddata[key_data_y]['units']})"
-        else:
-            cll = key_data_y
-            c2d = key_data_x
-            if key_data_y in ['x', 'y', 'z', 'R', 'l', 'ltot']:
-                ylab = f"{key_data_y} (m)"
-            else:
-                ylab = key_data_y
-            xlab = f"{key_data_x} ({coll.ddata[key_data_x]['units']})"
-
-        for ii, kk in enumerate(key_cam): 
-            
-            klos = coll.dobj['diagnostic'][key]['doptics'][kk]['los']
-            if klos is None:
-                continue
-            
-            pts_x, pts_y, pts_z, pts_ll = coll.sample_rays(
-                key=klos,
-                res=res,
-                mode=mode,
-                segment=segment,
-                radius_max=radius_max,
-                concatenate=True,
-                return_coords=['x', 'y', 'z', cll],
-                )      
-            
-            Ri = np.hypot(pts_x, pts_y)
-            
-            q2d, _ = coll.interpolate_profile2d(
-                key=c2d,
-                R=Ri,
-                Z=pts_z,
-                grid=False,
-                crop=True,
-                nan0=True,
-                nan_out=True,
-                imshow=False,
-                return_params=None,
-                store=False,
-                inplace=False,
-            )  
-                
-            isok = ~(np.isnan(q2d) & (~np.isnan(Ri)))
-            if key_data_x in lok_coords:
-                xx[ii] = pts_ll[isok]
-                yy[ii] = q2d[isok]
-            else:
-                xx[ii] = q2d[isok]
-                yy[ii] = pts_ll[isok]
-    
-    else:
-        for ii, kk in enumerate(key_cam):   
-            
-            klos = coll.dobj['diagnostic'][key]['doptics'][kk]['los']
-            if klos is None:
-                continue
-            
-            pts_x, pts_y, pts_z = coll.sample_rays(
-                key=klos,
-                res=res,
-                mode=mode,
-                segment=segment,
-                radius_max=radius_max,
-                concatenate=True,
-                return_coords=['x', 'y', 'z'],
-                )      
-    
-            Ri = np.hypot(pts_x, pts_y)
-            
-            q2dx, _ = coll.interpolate_profile2d(
-                key=key_data_x,
-                R=Ri,
-                Z=pts_z,
-                grid=False,
-                crop=True,
-                nan0=True,
-                nan_out=True,
-                imshow=False,
-                return_params=None,
-                store=False,
-                inplace=False,
-            )  
-    
-            q2dy, _ = coll.interpolate_profile2d(
-                key=key_data_y,
-                R=Ri,
-                Z=pts_z,
-                grid=False,
-                crop=True,
-                nan0=True,
-                nan_out=True,
-                imshow=False,
-                return_params=None,
-                store=False,
-                inplace=False,
-            )  
-    
-            isok = ~((np.isnan(q2dx) | np.isnan(q2dy)) & (~np.isnan(Ri)))
-            xx[ii] = q2dx[isok]
-            yy[ii] = q2dy[isok]
-            
-            xlab = f"{key_data_x} ({coll.ddata[key_data_x]['units']})"
-            ylab = f"{key_data_y} ({coll.ddata[key_data_y]['units']})"
-   
-    # ------------
-    # plot
-    
-    if plot is True:
-        if dax is None:
-            
-            fig = plt.figure()
-            
-            ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-            
-            tit = f"{key} LOS\nminor radius vs major radius"
-            ax.set_title(tit, size=12, fontweight='bold')
-            ax.set_xlabel(xlab)
-            ax.set_ylabel(ylab)
-            
-            dax = {'main': ax}
-            
-        # main
-        kax = 'main'
-        if dax.get(kax) is not None:
-            ax = dax[kax]
-            
-            for ii, kk in enumerate(key_cam):
-                ax.plot(
-                    xx[ii],
-                    yy[ii],
-                    c=dcolor[kk],
-                    marker='.',
-                    ls='-',
-                    ms=8,
-                    label=kk,
-                )
-     
-            ax.legend()
-    
-        return xx, yy, dax
-    else:
-        return xx, yy
-    
-    
-# ##################################################################
-# ##################################################################
-#             MOVE
-# ##################################################################
-
-
-def move_to(
-    coll=None,
-    key=None,
-    key_cam=None,
-    optics=None,
-    # location
-    x=None,
-    y=None,
-    R=None,
-    z=None,
-    phi=None,
-    theta=None,
-    dphi=None,
-    tilt=None,
-):
-
-    # ------------
-    # check inputs
-
-    # trivial case
-    nochange = all([ss is None for ss in [x, y, z, R, phi, theta, dphi, tilt]])
-
-    # key, key_cam
-    key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
-    is2d = coll.dobj['diagnostic'][key]['is2d']
-
-    if len(key_cam) != 1:
-        msg = "move_diagnostic_to() can only be used on one camera"
-        raise Exception(msg)
-    key_cam = key_cam[0]
-    doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam]
-
-    # optics
-    lok = [key_cam] + doptics['optics']
-    op_ref = ds._generic_check._check_var(
-        optics, 'optics',
-        types=str,
-        default=doptics['optics'][0],
-        allowed=lok,
-    )
-
-    # get optics, op_cls
-    optics = doptics['optics']
-    op_cls = doptics['cls']
-
-    # ----------------------------------
-    # use the chosen optics center as reference
-
-    if op_ref == key_cam:
-        if is2d:
-            cls_ref = 'camera'
-            cc = coll.dobj[cls_ref][op_ref]['dgeom']['cent']
-            nin = coll.dobj[cls_ref][op_ref]['dgeom']['nin']
-            e0 = coll.dobj[cls_ref][op_ref]['dgeom']['e0']
-            e1 = coll.dobj[cls_ref][op_ref]['dgeom']['e1']
-
-        else:
-            raise NotImplementedError()
-
-    else:
-        cls_ref = op_cls[optics.index(op_ref)]
-        cc = coll.dobj[cls_ref][op_ref]['dgeom']['cent']
-        nin = coll.dobj[cls_ref][op_ref]['dgeom']['nin']
-        e0 = coll.dobj[cls_ref][op_ref]['dgeom']['e0']
-        e1 = coll.dobj[cls_ref][op_ref]['dgeom']['e1']
-
-    # ----------------------------------
-    # get initial local coordinates in this frame
-
-    dinit = _get_initial_parameters(
-        cc=cc,
-        nin=nin,
-        e0=e0,
-        e1=e1,
-    )
-
-    # ----------------------------------
-    # get all local coordinates in this frame
-
-    dcoords = {}
-
-    # camera
-    if is2d:
-        dcoords[key_cam] = _extract_coords(
-            dg=coll.dobj['camera'][key_cam]['dgeom'],
-            cc=cc,
-            nin=nin,
-            e0=e0,
-            e1=e1,
-        )
-    else:
-        dcoords[key_cam] = _extract_coords_cam1d(
-            coll=coll,
-            key_cam=key_cam,
-            cc=cc,
-            nin=nin,
-            e0=e0,
-            e1=e1,
-        )
-
-    # optics
-    for op, opc in zip(optics, op_cls):
-        dcoords[op] = _extract_coords(
-            dg=coll.dobj[opc][op]['dgeom'],
-            cc=cc,
-            nin=nin,
-            e0=e0,
-            e1=e1,
-        )
-
-    # ----------------------------------
-    # get new default values
-
-    cc_new, nin_new, e0_new, e1_new = _class7_compute._pinhole_position(
-        # center
-        x=x,
-        y=y,
-        R=R,
-        z=z,
-        phi=phi,
-        # angles
-        theta=theta,
-        dphi=dphi,
-        tilt=tilt,
-        # default
-        ddef=dinit,
-    )
-
-    # ----------------------------------
-    # Update all coordinates
-
-    # camera
-    if is2d:
-        reset_coords(
-            coll=coll,
-            op=key_cam,
-            opc='camera',
-            dcoords=dcoords,
-            cc_new=cc_new,
-            nin_new=nin_new,
-            e0_new=e0_new,
-            e1_new=e1_new,
-        )
-    else:
-        reset_coords_cam1d(
-            coll=coll,
-            op=key_cam,
-            opc='camera',
-            dcoords=dcoords,
-            cc_new=cc_new,
-            nin_new=nin_new,
-            e0_new=e0_new,
-            e1_new=e1_new,
-        )
-
-    # optics
-    for op, opc in zip(optics, op_cls):
-        reset_coords(
-            coll=coll,
-            op=op,
-            opc=opc,
-            dcoords=dcoords,
-            cc_new=cc_new,
-            nin_new=nin_new,
-            e0_new=e0_new,
-            e1_new=e1_new,
-        )
-
-    return
-
-
-
-def _get_initial_parameters(
-    cc=None,
-    nin=None,
-    e0=None,
-    e1=None,
-):
-
-    # cordinates
-    x, y, z = cc
-    R = np.hypot(x, y)
-
-    # angles
-    phi = np.arctan2(y, x)
-
-    # unit vectors
-    eR = np.r_[np.cos(phi), np.sin(phi), 0.]
-    ephi = np.r_[-np.sin(phi), np.cos(phi), 0.]
-
-    # orientation angles: dphi
-    dphi = np.pi/2. - np.arccos(np.sum(nin * ephi))
-
-    # orientation angles: theta
-    ni = nin - np.sum(nin*ephi)*ephi
-    ni = ni / np.linalg.norm(ni)
-    theta = np.arctan2(ni[2], np.sum(ni * eR))
-
-    # orientation: tilt
-    er = np.cos(theta) * eR + np.sin(theta) * np.r_[0, 0, 1]
-    etheta = -np.sin(theta) * eR + np.cos(theta) * np.r_[0, 0, 1]
-    e0bis = -np.cos(dphi) * ephi + np.sin(dphi) * er
-
-    tilt = np.arctan2(np.sum(e0*etheta), np.sum(e0*e0bis))
-
-    return {
-        'x': x,
-        'y': y,
-        'z': z,
-        'R': R,
-        'phi': phi,
-        'dphi': dphi,
-        'theta': theta,
-        'tilt': tilt,
-    }
-
-
-def get_new_frame(
-    key_cam=None,
-    dinit=None,
-    x=None,
-    y=None,
-    z=None,
-    phi=None,
-    dphi=None,
-    theta=None,
-    tilt=None,
-    # safety check
-    nochange=None,
-    cc=None,
-    nin=None,
-    e0=None,
-    e1=None,
-):
-
-    # orientation
-    eR = np.r_[np.cos(phi), np.sin(phi), 0.]
-    ephi = np.r_[-np.sin(phi), np.cos(phi), 0.]
-    er = np.cos(theta) * eR + np.sin(theta) * np.r_[0, 0, 1]
-    etheta = -np.sin(theta) * eR + np.cos(theta) * np.r_[0, 0, 1]
-    e0bis = -np.cos(dphi) * ephi + np.sin(dphi) * er
-
-    # translation
-    cc_new = np.r_[x, y, z]
-
-    # new unit vectors
-    nin_new = np.cos(dphi) * er + np.sin(dphi) * ephi
-    e0_new = np.cos(tilt) * e0bis + np.sin(tilt) * etheta
-    e1_new = np.cross(nin_new, e0_new)
-
-    # safety check
-    nin_new, e0_new, e1_new = ds._generic_check._check_vectbasis(
-        e0=nin_new,
-        e1=e0_new,
-        e2=e1_new,
-        dim=3,
-        tol=1e-12,
-    )
-
-    # safety check
-    if nochange:
-        dout = {}
-        for ss in ['cc', 'nin', 'e0', 'e1']:
-            if not np.allclose(eval(ss), eval(f'{ss}_new')):
-                dout[ss] = (eval(ss), eval(f'{ss}_new'))
-
-        if len(dout) > 0:
-            lstr = [f"\t- '{k0}': {v0[0]} vs {v0[1]}" for k0, v0 in dout.items()]
-            msg = (
-                f"Immobile diagnostic camera '{key_cam}' has moved:\n"
-                + "\n".join(lstr)
-                + f"\n\ndinit = {dinit}"
-            )
-            raise Exception(msg)
-
-    return cc_new, nin_new, e0_new, e1_new
-
-
-def _extract_coords(
-    dg=None,
-    cc=None,
-    nin=None,
-    e0=None,
-    e1=None,
-    ):
-
-    return {
-        'c_n01': np.r_[
-            np.sum((dg['cent'] - cc) * nin),
-            np.sum((dg['cent'] - cc) * e0),
-            np.sum((dg['cent'] - cc) * e1),
-        ],
-        'n_n01': np.r_[
-            np.sum(dg['nin'] * nin),
-            np.sum(dg['nin'] * e0),
-            np.sum(dg['nin'] * e1),
-        ],
-        'e0_n01': np.r_[
-            np.sum(dg['e0'] * nin),
-            np.sum(dg['e0'] * e0),
-            np.sum(dg['e0'] * e1),
-        ],
-        'e1_n01': np.r_[
-            np.sum(dg['e1'] * nin),
-            np.sum(dg['e1'] * e0),
-            np.sum(dg['e1'] * e1),
-        ],
-    }
-
-
-def _extract_coords_cam1d(
-    coll=None,
-    key_cam=None,
-    cc=None,
-    nin=None,
-    e0=None,
-    e1=None,
-    ):
-
-    dout = {}
-    kc = coll.dobj['camera'][key_cam]['dgeom']['cents']
-    parallel = coll.dobj['camera'][key_cam]['dgeom']['parallel']
-
-    # cents 
-    shape = tuple(np.r_[3, coll.ddata[kc[0]]['data'].shape])
-    dout['cents'] = np.zeros(shape)
-    for ss, ii in [('x', 0), ('y', 1), ('z', 2)]:
-        dout['cents'] += np.array([
-            (coll.ddata[kc[ii]]['data'] - cc[ii]) * nin[ii],
-            (coll.ddata[kc[ii]]['data'] - cc[ii]) * e0[ii],
-            (coll.ddata[kc[ii]]['data'] - cc[ii]) * e1[ii],
-        ])
-
-    # unit vectors
-    if parallel:
-        for kk in ['nin', 'e0', 'e1']:
-            dout[f'{kk}_n01'] = np.array([
-                np.sum(coll.dobj['camera'][key_cam]['dgeom'][kk] * nin),
-                np.sum(coll.dobj['camera'][key_cam]['dgeom'][kk] * e0),
-                np.sum(coll.dobj['camera'][key_cam]['dgeom'][kk] * e1),
-            ])
-    else:
-        for kk in ['nin', 'e0', 'e1']:
-            dout[kk] = np.zeros(shape)
-            kv = coll.dobj['camera'][key_cam]['dgeom'][kk]
-            for ss, ii in [('x', 0), ('y', 1), ('z', 2)]:
-                dout[kk] += np.array([
-                    coll.ddata[kv[ii]]['data'] * nin[ii],
-                    coll.ddata[kv[ii]]['data'] * e0[ii],
-                    coll.ddata[kv[ii]]['data'] * e1[ii],
-                ])
-    return dout
-
-
-def reset_coords(
-    coll=None,
-    op=None,
-    opc=None,
-    dcoords=None,
-    cc_new=None,
-    nin_new=None,
-    e0_new=None,
-    e1_new=None,
-    ):
-
-    if coll._dobj[opc][op]['dgeom']['type'] == '3d':
-        raise NotImplementedError()
-
-    # translate
-    coll._dobj[opc][op]['dgeom']['cent'] = (
-        cc_new
-        + dcoords[op]['c_n01'][0] * nin_new
-        + dcoords[op]['c_n01'][1] * e0_new
-        + dcoords[op]['c_n01'][2] * e1_new
-    )
-
-    # rotate
-    nin = (
-        dcoords[op]['n_n01'][0] * nin_new
-        + dcoords[op]['n_n01'][1] * e0_new
-        + dcoords[op]['n_n01'][2] * e1_new
-    )
-    e0 = (
-        dcoords[op]['e0_n01'][0] * nin_new
-        + dcoords[op]['e0_n01'][1] * e0_new
-        + dcoords[op]['e0_n01'][2] * e1_new
-    )
-    e1 = (
-        dcoords[op]['e1_n01'][0] * nin_new
-        + dcoords[op]['e1_n01'][1] * e0_new
-        + dcoords[op]['e1_n01'][2] * e1_new
-    )
-
-    # --------------
-    # safety check
-
-    nin, e0, e1 = ds._generic_check._check_vectbasis(
-        e0=nin,
-        e1=e0,
-        e2=e1,
-        dim=3,
-        tol=1e-12,
-    )
-
-    # store
-    coll._dobj[opc][op]['dgeom']['nin'] = nin
-    coll._dobj[opc][op]['dgeom']['e0'] = e0
-    coll._dobj[opc][op]['dgeom']['e1'] = e1
-
-
-def reset_coords_cam1d(
-    coll=None,
-    op=None,
-    opc=None,
-    dcoords=None,
-    cc_new=None,
-    nin_new=None,
-    e0_new=None,
-    e1_new=None,
-):
-
-    kc = coll.dobj[opc][op]['dgeom']['cents']
-    parallel = coll.dobj[opc][op]['dgeom']['parallel']
-
-    # cents 
-    for ss, ii in [('x', 0), ('y', 1), ('z', 2)]:
-        coll._ddata[kc[ii]]['data'] = (
-            cc_new[ii]
-            + dcoords[op]['cents'][0] * nin_new[ii]
-            + dcoords[op]['cents'][1] * e0_new[ii]
-            + dcoords[op]['cents'][2] * e1_new[ii]
-        )
-
-    # rotate
-    if parallel:
-        nin = (
-            dcoords[op]['nin_n01'][0] * nin_new
-            + dcoords[op]['nin_n01'][1] * e0_new
-            + dcoords[op]['nin_n01'][2] * e1_new
-        )
-        e0 = (
-            dcoords[op]['e0_n01'][0] * nin_new
-            + dcoords[op]['e0_n01'][1] * e0_new
-            + dcoords[op]['e0_n01'][2] * e1_new
-        )
-        e1 = (
-            dcoords[op]['e1_n01'][0] * nin_new
-            + dcoords[op]['e1_n01'][1] * e0_new
-            + dcoords[op]['e1_n01'][2] * e1_new
-        )
-
-        # safety check
-        nin, e0, e1 = ds._generic_check._check_vectbasis(
-            e0=nin,
-            e1=e0,
-            e2=e1,
-            dim=3,
-            tol=1e-12,
-        )
-
-        coll._dobj[opc][op]['dgeom']['nin'] = nin
-        coll._dobj[opc][op]['dgeom']['e0'] = e0
-        coll._dobj[opc][op]['dgeom']['e1'] = e1
-
-    else:
-        for kk in ['nin', 'e0', 'e1']:
-            kv = coll.dobj[opc][op]['dgeom'][kk]
-            for ss, ii in [('x', 0), ('y', 1), ('z', 2)]:
-                coll.ddata[kv[ii]]['data'] = (
-                    dcoords[op][kk][0] * nin_new[ii]
-                    + dcoords[op][kk][1] * e0_new[ii]
-                    + dcoords[op][kk][2] * e1_new[ii]
-                )
+    # return key, key_cam, ddata, dref
