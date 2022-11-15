@@ -269,10 +269,6 @@ def _check_inputs(
             or oo in coll.dobj.get('grating', {}).keys()
         ]
 
-        if len(lspectro) == 0:
-            diag = None
-            lspectro = None
-
     return (
         key,
         start_x, start_y, start_z,
@@ -411,7 +407,7 @@ def _rays(
         # final shape
         i0 = 0
         nbref = reflections_nb + 1
-        if diag is not None:
+        if lspectro is not None and len(lspectro) > 0:
             i0 = len(lspectro)
             nbref += i0
         shape = tuple(np.r_[nbref, shaperef])
@@ -441,7 +437,7 @@ def _rays(
         if diag is not None:
 
             for ii, oo in enumerate(lspectro):
-              
+
                 reflect_ptsvect = coll.get_optics_reflect_ptsvect(oo)
                 (
                     pts_x[ii, ...],
@@ -460,7 +456,7 @@ def _rays(
                     strict=True,
                     return_x01=False,
                 )
-                    
+
                 # update start
                 stx[...] = pts_x[ii, ...]
                 sty[...] = pts_y[ii, ...]
@@ -918,3 +914,55 @@ def _get_vect(
         vz = vz / norm
 
     return vx, vy, vz
+
+
+# ##################################################################
+# ##################################################################
+#                   Rays - remove
+# ##################################################################
+
+
+def _remove(
+    coll=None,
+    key=None,
+):
+
+    # ----------
+    # check
+
+    lok = list(coll.dobj.get('rays', {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    # ------------
+    # list data
+
+    lkd = [
+        'start', 'pts', 'lamb',
+        'alpha', 'reflect_dalpha', 'reflect_dbeta',
+    ]
+    ld = []
+    for k0 in lkd:
+        v0 = coll._dobj['rays'][key][k0]
+        if isinstance(v0, str):
+            ld.append(v0)
+        elif isinstance(v0, (tuple, list)):
+            ld += list(v0)
+        elif v0 is None:
+            pass
+        else:
+            msg = "How to handle rays['{key}']['{k0}'] = {v0}"
+            raise Exception(msg)
+
+    # -----------
+    # remove data
+
+    coll.remove_data(ld, propagate=True)
+
+    # -----------
+    # remove rays
+
+    del coll._dobj['rays'][key]

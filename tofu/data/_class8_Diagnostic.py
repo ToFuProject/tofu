@@ -100,13 +100,23 @@ class Diagnostic(_class7_Camera.Camera):
             )
 
     # -----------------
+    # remove
+    # -----------------
+
+    def remove_diagnostic(self, key=None, key_cam=None):
+        return _check._remove(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+        )
+
+    # -----------------
     # utilities
     # -----------------
 
     def get_diagnostic_ref(self, key=None, key_cam=None):
         return _check.get_ref(coll=self, key=key, key_cam=key_cam)
-    
-    
+
     def get_diagnostic_cam(self, key=None, key_cam=None):
         return _check._get_default_cam(coll=self, key=key, key_cam=key_cam)
 
@@ -119,7 +129,7 @@ class Diagnostic(_class7_Camera.Camera):
         **kwdargs,
         ):
         """ Return dict of data for chosen cameras
-        
+
         data can be:
             'etendue'
             'amin'
@@ -149,8 +159,8 @@ class Diagnostic(_class7_Camera.Camera):
         **kwdargs,
         ):
         """ Return concatenated data for chosen cameras
-        
-        
+
+
         """
         return _compute._concatenate_data(
             coll=self,
@@ -173,6 +183,11 @@ class Diagnostic(_class7_Camera.Camera):
         numerical=None,
         res=None,
         check=None,
+        margin_par=None,
+        margin_perp=None,
+        # equivalent aperture
+        add_points=None,
+        convex=None,
         # for storing los
         config=None,
         length=None,
@@ -191,13 +206,20 @@ class Diagnostic(_class7_Camera.Camera):
         If store = 'analytical' or 'numerical', overwrites the diag etendue
 
         """
+
         dcompute, store = _etendue_los.compute_etendue_los(
             coll=self,
             key=key,
+            # etendue
             analytical=analytical,
             numerical=numerical,
             res=res,
             check=check,
+            margin_par=margin_par,
+            margin_perp=margin_perp,
+            # equivalent aperture
+            add_points=add_points,
+            convex=convex,
             # bool
             verb=verb,
             plot=plot,
@@ -294,14 +316,14 @@ class Diagnostic(_class7_Camera.Camera):
 
     def get_optics_cls(self, optics=None):
         """ Return list of optics and list of their classes
-        
+
         """
         return _check._get_optics_cls(coll=self, optics=optics)
 
     # def get_diagnostic_doptics(self, key=None):
     #     """ 
     #     Get dict of optics and corresponding classes 
-        
+
     #     """
     #     return _check._get_diagnostic_doptics(coll=self, key=key)
 
@@ -353,6 +375,79 @@ class Diagnostic(_class7_Camera.Camera):
             key=key,
             color=color,
         )
+
+    # -----------------
+    # Moving
+    # -----------------
+
+    def move_diagnostic_to(
+        self,
+        key=None,
+        key_cam=None,
+        x=None,
+        y=None,
+        R=None,
+        z=None,
+        phi=None,
+        theta=None,
+        dphi=None,
+        # computing
+        compute=None,
+        # los
+        config=None,
+        length=None,
+        reflections_nb=None,
+        reflections_type=None,
+        key_nseg=None,
+        # equivalent aperture
+        add_points=None,
+        convex=None,
+        # etendue
+        margin_par=None,
+        margin_perp=None,
+        verb=None,
+    ):
+        
+        if compute is None:
+            compute = True
+        
+        _compute.move_to(
+            self,
+            key=key,
+            key_cam=key_cam,
+            x=x,
+            y=y,
+            R=R,
+            z=z,
+            phi=phi,
+            theta=theta,
+            dphi=dphi,
+        )
+        
+        if compute:
+            self.compute_diagnostic_etendue_los(
+                key=key,
+                #e etendue
+                analytical=True,
+                numerical=False,
+                res=None,
+                check=False,
+                margin_par=margin_par,
+                margin_perp=margin_perp,
+                # equivalent aperture
+                add_points=add_points,
+                convex=convex,
+                # los
+                config=config,
+                length=length,
+                reflections_nb=reflections_nb,
+                reflections_type=reflections_type,
+                key_nseg=key_nseg,
+                # bool
+                verb=verb,
+                plot=False,
+                store='analytical',
+            ) 
 
     # -----------------
     # plotting
