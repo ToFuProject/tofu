@@ -111,6 +111,16 @@ class Rays(_class1_Plasma2D.Plasma2D):
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
 
+    # -----------------
+    # remove
+    # -----------------
+
+    def remove_rays(self, key=None):
+        return _check._remove(
+            coll=self,
+            key=key,
+        )
+
     # --------------
     #  utilities
     # --------------
