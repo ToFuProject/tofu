@@ -463,8 +463,28 @@ class Diagnostic(_class7_Camera.Camera):
         ptsx=None,
         ptsy=None,
         ptsz=None,
+        # options
+        config=None,
+        visibility=None,
+        # return
+        return_vect=None,
+        return_alpha=None,
     ):
-        return _compute
+        return _los_data.compute_solid_angles(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            # pts
+            ptsx=ptsx,
+            ptsy=ptsy,
+            ptsz=ptsz,
+            # options
+            config=config,
+            visibility=visibility,
+            # return
+            return_vect=return_vect,
+            return_alpha=return_alpha,
+        )
 
 
     # -----------------
