@@ -557,18 +557,21 @@ def _remove(
     ld = []
     for k0 in lkd:
         for k1 in key_cam:
-            ld.append(doptics[k1][k0])
+            if doptics[k1][k0] is not None:
+                ld.append(doptics[k1][k0])
 
     # -----------
     # remove data
 
-    coll.remove_data(ld, propagate=True)
+    if len(ld) > 0:
+        coll.remove_data(ld, propagate=True)
 
     # ----------
     # remove los
 
     for k1 in key_cam:
-        coll.remove_rays(key=doptics[k1]['los'])
+        if doptics[k1]['los'] is not None:
+            coll.remove_rays(key=doptics[k1]['los'])
 
     # -----------
     # remove diag

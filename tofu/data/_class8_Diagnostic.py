@@ -14,6 +14,8 @@ import datastock as ds
 from . import _class7_Camera
 from . import _class8_check as _check
 from . import _class8_compute as _compute
+from . import _class8_move as _move
+from . import _class8_los_data as _los_data
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_etendue_los as _etendue_los
 from . import _class8_los_angles as _los_angles
@@ -150,26 +152,26 @@ class Diagnostic(_class7_Camera.Camera):
             **kwdargs,
         )
 
-    def get_diagnostic_concatenate_data(
-        self,
-        key=None,
-        key_cam=None,
-        data=None,
-        rocking_curve=None,
-        **kwdargs,
-        ):
-        """ Return concatenated data for chosen cameras
+    # def get_diagnostic_concatenate_data(
+        # self,
+        # key=None,
+        # key_cam=None,
+        # data=None,
+        # rocking_curve=None,
+        # **kwdargs,
+        # ):
+        # """ Return concatenated data for chosen cameras
 
 
-        """
-        return _compute._concatenate_data(
-            coll=self,
-            key=key,
-            key_cam=key_cam,
-            data=data,
-            rocking_curve=rocking_curve,
-            **kwdargs,
-        )
+        # """
+        # return _compute._concatenate_data(
+            # coll=self,
+            # key=key,
+            # key_cam=key_cam,
+            # data=data,
+            # rocking_curve=rocking_curve,
+            # **kwdargs,
+        # )
 
     # -----------------
     # etendue computing
@@ -407,11 +409,11 @@ class Diagnostic(_class7_Camera.Camera):
         margin_perp=None,
         verb=None,
     ):
-        
+
         if compute is None:
             compute = True
-        
-        _compute.move_to(
+
+        _move.move_to(
             self,
             key=key,
             key_cam=key_cam,
@@ -423,7 +425,7 @@ class Diagnostic(_class7_Camera.Camera):
             theta=theta,
             dphi=dphi,
         )
-        
+
         if compute:
             self.compute_diagnostic_etendue_los(
                 key=key,
@@ -447,7 +449,43 @@ class Diagnostic(_class7_Camera.Camera):
                 verb=verb,
                 plot=False,
                 store='analytical',
-            ) 
+            )
+
+    # -----------------
+    # computing
+    # -----------------
+
+    def compute_diagnostic_solid_angle(
+        self,
+        key=None,
+        key_cam=None,
+        # pts
+        ptsx=None,
+        ptsy=None,
+        ptsz=None,
+        # options
+        config=None,
+        visibility=None,
+        # return
+        return_vect=None,
+        return_alpha=None,
+    ):
+        return _los_data.compute_solid_angles(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            # pts
+            ptsx=ptsx,
+            ptsy=ptsy,
+            ptsz=ptsz,
+            # options
+            config=config,
+            visibility=visibility,
+            # return
+            return_vect=return_vect,
+            return_alpha=return_alpha,
+        )
+
 
     # -----------------
     # plotting
@@ -573,9 +611,9 @@ class Diagnostic(_class7_Camera.Camera):
         dax=None,
     ):
         """ Compute and plot interpolated data along the los of the diagnostic
-        
+
         """
-        return _compute._interpolated_along_los(
+        return _los_data._interpolated_along_los(
             coll=self,
             key=key,
             key_cam=key_cam,
