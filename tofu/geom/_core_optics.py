@@ -1990,18 +1990,25 @@ class CrystalBragg(utils.ToFuObject):
 
     def dshift_analytic_variation(
         self,
+        # Crystal specificities
         crystal=None,
         din=None,
         split=None,
         rcurve=None,
         len_cryst=None,
+        # Detector
+        det=None,
+        # Spectral range
         lamb=None,
         bragg=None,
         braggref=None,
+        # Angular offset sources
         miscut=None,
         alpha=None,
         therm_exp=None,
         temp_limits=None,
+        # Return
+        return_ds=None,
     ):
 
         """ Compute a theoretical dshift value for a specified value of
@@ -2037,6 +2044,14 @@ class CrystalBragg(utils.ToFuObject):
         temp_limits:    array
             Limits of temperature variation around an average value
             Ex: np.r_[-10, 10, 25] for between 15 and 35°C
+        return_ds:    bool
+            To only return the value of dshift
+
+        Return:
+        -------
+        xi:    Positions of lines selected for each half-crystal
+        dl:    Spectral gap between each line position
+        ds:    dshift
         """
 
         # Check inputs
@@ -2058,13 +2073,24 @@ class CrystalBragg(utils.ToFuObject):
             din = _rockingcurve_def._DCRYST['Quartz_110']
         elif crystal == 'Quartz_102':
             din = _rockingcurve_def._DCRYST['Quartz_102']
-
         if len_cryst is None and crystal == 'Quartz_110':
             len_cryst = 0.083592
         if split is None:
-            split = False
+            split = True
+        elif not split:
+            msg = (
+                "This method is computing the gap between rays diffracted by\n"
+                +"each half-crystal splitted !\n"
+                +"The arg 'split' have to be True or only a single position\n"
+                +"of ray on the camera is returned by the method\n"
+                +"tofu/geom/_comp_optics.line_position_on_det_analytic()"
+            )
+            raise Exception(msg)
+
         if rcurve is None:
-            msg = "Please provide a curvature radius for your crystal geometry!"
+            msg = (
+                "Please provide a curvature radius for your crystal geometry!"
+            )
             raise Exception(msg)
 
         lambref = din['target']['wavelength']
@@ -2074,8 +2100,8 @@ class CrystalBragg(utils.ToFuObject):
         if lamb is None:
             msg = (
                 "Please choose 1 or more targetted wavelength(s).\n"
-                "\t Provided:\n"
-                "\t\t- wavelength = ({}) A\n".format(lamb)
+                + "\t Provided:\n"
+                + "\t\t- wavelength = ({}) A\n".format(lamb)
                 + "\t\t- wavelength of reference = ({}) A\n".format(lambref),
             )
             raise Exception(msg)
@@ -2085,17 +2111,22 @@ class CrystalBragg(utils.ToFuObject):
                 lamb=lamb[i],
             )
 
+        if det is None:
+            msg = "A detector must be provided !"
+            raise Exception(msg)
         if miscut is None:
             miscut = False
         if alpha is None:
             alpha = np.r_[(1.5/60)*np.pi/180]
-
         if therm_exp is None:
             therm_exp = False
         if temp_limits is None:
             temp_limits = np.r_[5., 5., 25.]
 
-        # compute new braggref corresponding to the value of deltaT wanted
+        if return_ds is None:
+            return_ds = True
+
+        # Compute new braggref corresponding to the value of deltaT wanted
         if therm_exp:
             dout = {}
             dout = _rockingcurve.CrystBragg_comp_lattice_spacing(
@@ -2108,8 +2139,8 @@ class CrystalBragg(utils.ToFuObject):
             dT = dout['Temperature variations (°C)'][0]
             braggref = dout['theta_Bragg (rad)'][0]
 
-        # Call
-        return _comp_optics.dshift_analytic_variation(
+        # Call routine to compute lines positions
+        xi = _comp_optics.line_position_on_det_analytic(
             crystal=crystal,
             din=din,
             split=split,
@@ -2123,6 +2154,33 @@ class CrystalBragg(utils.ToFuObject):
             therm_exp=therm_exp,
             temp_limits=temp_limits,
         )
+
+        # Compute the wavelength at the origin
+        l0 = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
+            xi=0.,
+            xj=0.,
+            det=det,
+        )[2].ravel()
+        assert np.all(l0/lamb[0]) < 10.
+
+        # Compute the gap in pixel dimension between lines diffracted from
+        # each half-crystal
+        dp = xi[1] - xi[0]
+
+        # Compute the spectral gap between each lines from each crystals
+        dl = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
+            xi=0. + dp,
+            xj=0.,
+            det=det,
+        )[2].ravel()
+
+        # Compute dshift from previous gap with respect to the origin l0
+        ds = abs(l0 - dl)
+
+        if return_ds:
+            return ds
+        else:
+            return (xi, dp, l0, dl, ds)
 
     def plot_line_on_det_tracing(
         self,

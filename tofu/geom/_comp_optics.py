@@ -550,7 +550,7 @@ def calc_meridional_sagittal_focus(
 # ###############################################
 
 
-def dshift_analytic_variation(
+def line_position_on_det_analytic(
     crystal=None,
     din=None,
     split=None,
@@ -592,13 +592,17 @@ def dshift_analytic_variation(
     # Single crystal, w/o miscut
     if not split and not miscut:
         xi = k0*(
-            np.cos(braggref) - np.sin(braggref)/np.tan(braggref - dbragg)
+            np.cos(braggref) - (
+                np.sin(braggref)/np.tan(braggref - dbragg)
+            )
         )
 
     # Single crystal, with miscut
     elif not split and miscut:
         xim = k0*(
-            np.cos(braggref) - np.sin(braggref)/np.tan(braggref - dbragg - alpha)
+            np.cos(braggref) - (
+                np.sin(braggref)/np.tan(braggref - dbragg - alpha)
+            )
         )
 
     # Splitted crystal, w/o miscut
