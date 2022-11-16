@@ -26,6 +26,7 @@ from . import _generic_plot
 def _plot_rays_check(
     coll=None,
     key=None,
+    mode=None,
     concatenate=None,
     # figure
     proj=None,
@@ -48,13 +49,26 @@ def _plot_rays_check(
     ref = coll.dobj['rays'][key]['ref']
     nrays = np.prod(coll.dobj['rays'][key]['shape'])
     
-    # -------
-    # compact
+    # ------------
+    # concatenate
 
     concatenate = ds._generic_check._check_var(
         concatenate, 'concatenate',
         types=bool,
         default=True,
+    )
+
+    # -----
+    # mode
+    
+    lok = ['rel']
+    if concatenate is True:
+        lok += ['abs']
+    mode = ds._generic_check._check_var(
+        mode, 'mode',
+        types=str,
+        default='rel',
+        allowed=lok,
     )
 
     # -----
@@ -96,6 +110,7 @@ def _plot_rays_check(
     return (
         key,
         ref,
+        mode,
         concatenate,
         proj,
         color_dict,
@@ -115,6 +130,7 @@ def _plot_rays(
     key=None,
     proj=None,
     res=None,
+    mode=None,
     concatenate=None,
     # config
     plot_config=None,
@@ -136,6 +152,7 @@ def _plot_rays(
     (
         key,
         ref,
+        mode,
         concatenate,
         proj,
         color_dict,
@@ -144,6 +161,7 @@ def _plot_rays(
     ) = _plot_rays_check(
         coll=coll,
         key=key,
+        mode=mode,
         concatenate=concatenate,
         # figure
         proj=proj,
@@ -159,7 +177,7 @@ def _plot_rays(
     rays_x, rays_y, rays_z = coll.sample_rays(
         key=key,
         res=res,
-        mode='rel',
+        mode=mode,
         concatenate=concatenate,
     )
     if concatenate is False and rays_x.ndim > 2:
@@ -245,13 +263,14 @@ def _plot_rays(
                 ls='-',
                 )
         else:
-            ax.plot(
-                rays_x,
-                rays_y,
-                rays_z,
-                lw=1.,
-                ls='-',
-                )
+            for ii in range(rays_x.shape[1]):
+                ax.plot(
+                    rays_x[:, ii],
+                    rays_y[:, ii],
+                    rays_z[:, ii],
+                    lw=1.,
+                    ls='-',
+                    )
 
     # -------
     # config

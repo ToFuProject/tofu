@@ -5,7 +5,6 @@ import warnings
 
 
 import numpy as np
-import scipy.spatial as scpspat
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 
@@ -15,7 +14,6 @@ import datastock as ds
 
 
 from ..geom import _comp_solidangles
-from . import _class8_compute as _compute
 
 
 __all__ = ['compute_etendue_los']
@@ -51,12 +49,10 @@ def compute_etendue_los(
 
     (
         key,
-        optics,
-        optics_cls,
-        ispectro,
-        ldet,
+        spectro,
         is2d,
-        shape0,
+        doptics,
+        dcompute,
         analytical,
         numerical,
         res,
@@ -80,198 +76,197 @@ def compute_etendue_los(
         store=store,
     )
 
-    # prepare optics
-    key_cam = optics[0]
-    nd = len(ldet)
-
-    # ------------------------
-    # get equivalent apertures for all pixels
-
-    (
-        x0, x1, kref, iok,
-        px, py, pz,
-        cx, cy, cz,
-        centsx, centsy, centsz,
-        ap_area, plane_nin,
-        spectro,
-    ) = coll.get_diagnostic_equivalent_aperture(
-        key=key,
-        # inital contour
-        add_points=add_points,
-        # options
-        convex=convex,
-        harmonize=True,
-        reshape=False,
-        # plot
-        plot=False,
-        verb=verb,
-        store=False,
-        return_for_etendue=True,
-    )
+    if verb is True:
+        msg = f"\nComputing etendue / los for diag '{key}':"
+        print(msg)
         
-    # ------------------------------------------
-    # get distance, area, solid_angle, los, dlos
+    # prepare optics
+    for key_cam, v0 in dcompute.items():
 
-    (
-        det_area, distances,
-        los_x, los_y, los_z,
-        dlos_x, dlos_y, dlos_z,
-        cos_los_det, cos_los_ap, solid_angles, res,
-    ) = _loop_on_pix(
-        coll=coll,
-        ldet=ldet,
-        spectro=spectro,
-        # optics
-        x0=x0,
-        x1=x1,
-        px=px,
-        py=py,
-        pz=pz,
-        iok=iok,
-        cx=cx,
-        cy=cy,
-        cz=cz,
-        centsx=centsx,
-        centsy=centsy,
-        centsz=centsz,
-        plane_nin=plane_nin,
-    )
-
-    # --------------------
-    # compute analytically
-
-    if analytical is True:
-        etend0 = np.full(tuple(np.r_[3, nd]), np.nan)
-
-        # 0th order
-        etend0[0, :] = ap_area * det_area / distances**2
-
-        # 1st order
-        etend0[1, :] = (
-            cos_los_ap * ap_area
-            * cos_los_det * det_area / distances**2
-        )
-
-        # 2nd order
-        etend0[2, :] = cos_los_ap * ap_area * solid_angles
-
-    else:
-        etend0 = None
-
-    # --------------------
-    # compute numerically
-
-    if numerical is True:
-
-        etend1 = _compute_etendue_numerical(
-            ldeti=ldet,
-            aperture=aperture,
-            pix_ap=pix_ap,
-            res=res,
-            los_x=los_x,
-            los_y=los_y,
-            los_z=los_z,
-            margin_par=margin_par,
-            margin_perp=margin_perp,
-            check=check,
+        # ------------------------
+        # get equivalent apertures for all pixels
+    
+        (
+            x0, x1, kref, iok,
+            px, py, pz,
+            cx, cy, cz,
+            centsx, centsy, centsz,
+            ap_area, plane_nin,
+            spectro,
+        ) = coll.get_diagnostic_equivalent_aperture(
+            key=key,
+            key_cam=key_cam,
+            # inital contour
+            add_points=add_points,
+            # options
+            convex=convex,
+            harmonize=True,
+            reshape=False,
+            # plot
+            plot=False,
             verb=verb,
+            store=False,
+            return_for_etendue=True,
         )
-
-    else:
-        etend1 = None
-
-    # --------------------
-    # optional plotting
-
-    if plot is True:
-        dax = _plot_etendues(
-            etend0=etend0,
-            etend1=etend1,
-            res=res,
+            
+        # ------------------------------------------
+        # get distance, area, solid_angle, los, dlos
+    
+        (
+            det_area, distances,
+            los_x, los_y, los_z,
+            dlos_x, dlos_y, dlos_z,
+            cos_los_det, cos_los_ap, solid_angles, res,
+        ) = _loop_on_pix(
+            coll=coll,
+            ldet=v0['ldet'],
+            spectro=spectro,
+            # optics
+            x0=x0,
+            x1=x1,
+            px=px,
+            py=py,
+            pz=pz,
+            iok=iok,
+            cx=cx,
+            cy=cy,
+            cz=cz,
+            centsx=centsx,
+            centsy=centsy,
+            centsz=centsz,
+            plane_nin=plane_nin,
+            ap_area=ap_area,
         )
+    
+        # --------------------
+        # compute analytically
+    
+        nd = len(v0['ldet'])
+        if analytical is True:
+            etend0 = np.full(tuple(np.r_[3, nd]), np.nan)
+    
+            # 0th order
+            etend0[0, :] = ap_area * det_area / distances**2
+    
+            # 1st order
+            etend0[1, :] = (
+                cos_los_ap * ap_area
+                * cos_los_det * det_area / distances**2
+            )
+    
+            # 2nd order
+            etend0[2, :] = cos_los_ap * ap_area * solid_angles
+    
+        else:
+            etend0 = None
+    
+        # --------------------
+        # compute numerically
+    
+        if numerical is True:
+    
+            etend1 = _compute_etendue_numerical(
+                ldeti=v0['ldet'],
+                aperture=aperture,
+                pix_ap=pix_ap,
+                res=res,
+                los_x=los_x,
+                los_y=los_y,
+                los_z=los_z,
+                margin_par=margin_par,
+                margin_perp=margin_perp,
+                check=check,
+                verb=verb,
+            )
+    
+        else:
+            etend1 = None
+        
+        # --------------------
+        # optional plotting
+    
+        if plot is True:
+            dax = _plot_etendues(
+                etend0=etend0,
+                etend1=etend1,
+                res=res,
+            )
+    
+        # --------
+        # reshape
+    
+        # etend0
+        if etend0 is not None and is2d:
+            etend0 = etend0.reshape(tuple(np.r_[3, v0['shape0']]))
+    
+        # etend1
+        if etend1 is not None and is2d:
+            etend1 = etend1.reshape(tuple(np.r_[res.size, v0['shape0']]))
+    
+        # los
+        if los_x.shape != v0['shape0']:
+            los_x = los_x.reshape(v0['shape0'])
+            los_y = los_y.reshape(v0['shape0'])
+            los_z = los_z.reshape(v0['shape0'])
 
-    # --------
-    # reshape
-
-    # etend0
-    if etend0 is not None and is2d:
-        etend0 = etend0.reshape(tuple(np.r_[3, shape0]))
-
-    # etend1
-    if etend1 is not None and is2d:
-        etend1 = etend1.reshape(tuple(np.r_[res.size, shape0]))
-
-    # los
-    if los_x.shape != shape0:
-        los_x = los_x.reshape(shape0)
-        los_y = los_y.reshape(shape0)
-        los_z = los_z.reshape(shape0)
-
-    # --------------------
-    # return dict
-
-    dout = {
-        'analytical': etend0,
-        'numerical': etend1,
-        'res': res,
-        'kref': kref,
-        'los_x': los_x,
-        'los_y': los_y,
-        'los_z': los_z,
-        'dlos_x': dlos_x,
-        'dlos_y': dlos_y,
-        'dlos_z': dlos_z,
-        'iok': iok,
-        'is2d': is2d,
-        'cx': cx,
-        'cy': cy,
-        'cz': cz,
-    }
+        # --------------------
+        # return dict
+    
+        dcompute[key_cam].update({
+            'analytical': etend0,
+            'numerical': etend1,
+            'res': res,
+            'kref': kref,
+            'los_x': los_x,
+            'los_y': los_y,
+            'los_z': los_z,
+            'dlos_x': dlos_x,
+            'dlos_y': dlos_y,
+            'dlos_z': dlos_z,
+            'iok': iok,
+            'is2d': is2d,
+            'cx': cx,
+            'cy': cy,
+            'cz': cz,
+        })
 
     # ----------
     # store
 
     if store is not False:
 
-        # ref
-        ref = coll.dobj['camera'][key_cam]['dgeom']['ref']
+        for key_cam, v0 in dcompute.items():
+        
+            # ref
+            ref = coll.dobj['camera'][key_cam]['dgeom']['ref']
+    
+            # data
+            etendue = v0[store][-1, ...]
+    
+            if store == 'analytical':
+                etend_type = store
+            else:
+                etend_type = v0['res'][-1]
+    
+            # keys
+            ketendue = f'{key}_{key_cam}_etend'
+            ddata = {
+                ketendue: {
+                    'data': etendue,
+                    'ref': ref,
+                    'dim': 'etendue',
+                    'quant': 'etendue',
+                    'name': 'etendue',
+                    'units': 'm2.sr',
+                },
+            }
+            
+            coll.update(ddata=ddata)
+    
+            coll._dobj['diagnostic'][key]['doptics'][key_cam]['etendue'] = ketendue
+            coll._dobj['diagnostic'][key]['doptics'][key_cam]['etend_type'] = etend_type
 
-        # data
-        etendue = dout[store][-1, :]
-
-        if store == 'analytical':
-            etend_type = store
-        else:
-            etend_type = res[-1]
-
-        # keys
-        ketendue = f'{key}-etend'
-        ddata = {
-            ketendue: {
-                'data': etendue,
-                'ref': ref,
-                'dim': 'etendue',
-                'quant': 'etendue',
-                'name': 'etendue',
-                'units': 'm2.sr'
-            },
-        }
-        coll.update(ddata=ddata)
-
-        coll.set_param(
-            which='diagnostic',
-            key=key,
-            param='etendue',
-            value=ketendue,
-        )
-        coll.set_param(
-            which='diagnostic',
-            key=key,
-            param='etend_type',
-            value=etend_type,
-        )
-
-    return dout, store
+    return dcompute, store
 
 
 # ##################################################################
@@ -299,7 +294,7 @@ def _diag_compute_etendue_check(
 
     lok = [
         k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
-        if len(v0['optics']) > 1
+        if any([len(v1['optics']) > 0 for v1 in v0['doptics'].values()])
     ]
     key = ds._generic_check._check_var(
         key, 'key',
@@ -307,50 +302,57 @@ def _diag_compute_etendue_check(
         allowed=lok,
     )
 
-    optics, optics_cls = coll.get_diagnostic_optics(key=key)
-    ispectro = [
-        ii for ii, cc in enumerate(optics_cls)
-        if cc in ['grating', 'crystal']
-    ]
+    # spectro, is2d
+    spectro = coll.dobj['diagnostic'][key]['spectro']
+    is2d = coll.dobj['diagnostic'][key]['is2d']
+
+    # doptics
+    doptics = coll.dobj['diagnostic'][key]['doptics']
+    dcompute = {
+        k0: {'compute': len(v0['optics']) > 0}
+        for k0, v0 in doptics.items()
+    }
 
     # -------------------------------------------------
     # ldeti: list of individual camera dict (per pixel)
 
-    dgeom = coll.dobj['camera'][optics[0]]['dgeom']
-    cx, cy, cz = coll.get_camera_cents_xyz(key=optics[0])
-    dvect = coll.get_camera_unit_vectors(key=optics[0])
-    outline = dgeom['outline']
-    out0 = coll.ddata[outline[0]]['data']
-    out1 = coll.ddata[outline[1]]['data']
-    is2d = dgeom['type'] == '2d'
-    par = dgeom['parallel']
-    shape0 = cx.shape
+    for k0, v0 in doptics.items():
 
-    if is2d:
-        cx = cx.ravel()
-        cy = cy.ravel()
-        cz = cz.ravel()
-    nd = cx.size
-
-    ldet = [
-        {
-            'cents_x': cx[ii],
-            'cents_y': cy[ii],
-            'cents_z': cz[ii],
-            'outline_x0': out0,
-            'outline_x1': out1,
-            'nin_x': dvect['nin_x'] if par else dvect['nin_x'][ii],
-            'nin_y': dvect['nin_y'] if par else dvect['nin_y'][ii],
-            'nin_z': dvect['nin_z'] if par else dvect['nin_z'][ii],
-            'e0_x': dvect['e0_x'] if par else dvect['e0_x'][ii],
-            'e0_y': dvect['e0_y'] if par else dvect['e0_y'][ii],
-            'e0_z': dvect['e0_z'] if par else dvect['e0_z'][ii],
-            'e1_x': dvect['e1_x'] if par else dvect['e1_x'][ii],
-            'e1_y': dvect['e1_y'] if par else dvect['e1_y'][ii],
-            'e1_z': dvect['e1_z'] if par else dvect['e1_z'][ii],
-        }
-        for ii in range(nd)
-    ]
+        dgeom = coll.dobj['camera'][k0]['dgeom']
+        cx, cy, cz = coll.get_camera_cents_xyz(key=k0)
+        dvect = coll.get_camera_unit_vectors(key=k0)
+        outline = dgeom['outline']
+        out0 = coll.ddata[outline[0]]['data']
+        out1 = coll.ddata[outline[1]]['data']
+        is2d = dgeom['type'] == '2d'
+        par = dgeom['parallel']
+        dcompute[k0]['shape0'] = cx.shape
+    
+        if is2d:
+            cx = cx.ravel()
+            cy = cy.ravel()
+            cz = cz.ravel()
+        nd = cx.size
+    
+        dcompute[k0]['ldet'] = [
+            {
+                'cents_x': cx[ii],
+                'cents_y': cy[ii],
+                'cents_z': cz[ii],
+                'outline_x0': out0,
+                'outline_x1': out1,
+                'nin_x': dvect['nin_x'] if par else dvect['nin_x'][ii],
+                'nin_y': dvect['nin_y'] if par else dvect['nin_y'][ii],
+                'nin_z': dvect['nin_z'] if par else dvect['nin_z'][ii],
+                'e0_x': dvect['e0_x'] if par else dvect['e0_x'][ii],
+                'e0_y': dvect['e0_y'] if par else dvect['e0_y'][ii],
+                'e0_z': dvect['e0_z'] if par else dvect['e0_z'][ii],
+                'e1_x': dvect['e1_x'] if par else dvect['e1_x'][ii],
+                'e1_y': dvect['e1_y'] if par else dvect['e1_y'][ii],
+                'e1_z': dvect['e1_z'] if par else dvect['e1_z'][ii],
+            }
+            for ii in range(nd)
+        ]
 
     # -----------
     # analytical
@@ -437,12 +439,10 @@ def _diag_compute_etendue_check(
 
     return (
         key,
-        optics,
-        optics_cls,
-        ispectro,
-        ldet,
+        spectro,
         is2d,
-        shape0,
+        doptics,
+        dcompute,
         analytical,
         numerical,
         res,
@@ -480,13 +480,13 @@ def _loop_on_pix(
     centsy=None,
     centsz=None,
     plane_nin=None,
+    ap_area=None,
     # extra
     res=None,
 ):
 
     # prepare data
     nd = len(ldet)
-    ap_area = np.zeros((nd,), dtype=float)
     los_x = np.full((nd,), np.nan)
     los_y = np.full((nd,), np.nan)
     los_z = np.full((nd,), np.nan)

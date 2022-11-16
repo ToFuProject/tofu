@@ -60,7 +60,9 @@ def _check_inputs(
     config=None,
     reflections_nb=None,
     reflections_type=None,
+    key_nseg=None,
     diag=None,
+    key_cam=None,
 ):
 
     # -------------
@@ -231,6 +233,15 @@ def _check_inputs(
         msg = "reflections can only be handled if config is provided"
         raise Exception(msg)
 
+    # key_nseg
+    if key_nseg is not None:
+        lok = list(coll.dref.keys())
+        key_nseg = ds._generic_check._check_var(
+            key_nseg, 'key_nseg',
+            types=str,
+            allowed=lok,
+        )
+
     # ------
     # diag
 
@@ -243,16 +254,20 @@ def _check_inputs(
             allowed=lok,
         )
 
+        # key_cam
+        lok = coll.dobj['diagnostic'][diag]['camera']
+        key_cam = ds._generic_check._check_var(
+            key_cam, 'key_cam',
+            types=str,
+            allowed=lok,
+        )
+
         # lspectro
         lspectro = [
-            oo for oo in coll.dobj['diagnostic'][diag]['optics']
+            oo for oo in coll.dobj['diagnostic'][diag]['doptics'][key_cam]['optics']
             if oo in coll.dobj.get('crystal', {}).keys()
             or oo in coll.dobj.get('grating', {}).keys()
         ]
-
-        if len(lspectro) == 0:
-            diag = None
-            lspectro = None
 
     return (
         key,
@@ -262,7 +277,8 @@ def _check_inputs(
         vect_x, vect_y, vect_z,
         shref,
         config, reflections_nb, reflections_type,
-        diag, lspectro,
+        key_nseg,
+        diag, key_cam, lspectro,
     )
 
 
@@ -295,7 +311,9 @@ def _rays(
     config=None,
     reflections_nb=None,
     reflections_type=None,
+    key_nseg=None,
     diag=None,
+    key_cam=None,
 ):
 
     # -------------
@@ -309,7 +327,8 @@ def _rays(
         vect_x, vect_y, vect_z,
         shaperef,
         config, reflections_nb, reflections_type,
-        diag, lspectro,
+        key_nseg,
+        diag, key_cam, lspectro,
     ) = _check_inputs(
         coll=coll,
         key=key,
@@ -333,7 +352,9 @@ def _rays(
         config=config,
         reflections_nb=reflections_nb,
         reflections_type=reflections_type,
+        key_nseg=key_nseg,
         diag=diag,
+        key_cam=key_cam,
     )
 
     # ----------------
@@ -386,7 +407,7 @@ def _rays(
         # final shape
         i0 = 0
         nbref = reflections_nb + 1
-        if diag is not None:
+        if lspectro is not None and len(lspectro) > 0:
             i0 = len(lspectro)
             nbref += i0
         shape = tuple(np.r_[nbref, shaperef])
@@ -416,7 +437,7 @@ def _rays(
         if diag is not None:
 
             for ii, oo in enumerate(lspectro):
-              
+
                 reflect_ptsvect = coll.get_optics_reflect_ptsvect(oo)
                 (
                     pts_x[ii, ...],
@@ -435,7 +456,7 @@ def _rays(
                     strict=True,
                     return_x01=False,
                 )
-                    
+
                 # update start
                 stx[...] = pts_x[ii, ...]
                 sty[...] = pts_y[ii, ...]
@@ -502,9 +523,9 @@ def _rays(
             pts_z[-1, maskre] = pout[2, :]
             
             # RMin
-            kRMin = _comp.LOS_PRMin(cam.D, cam.u, kOut=None)
-            PRMin = cam.D + kRMin[None, :]*cam.u
-            Rmin[maskre] = np.hypot(PRMin[0, :], PRMin[1, :])
+            # kRMin = _comp.LOS_PRMin(cam.D, cam.u, kOut=None)
+            # PRMin = cam.D + kRMin[None, :]*cam.u
+            # Rmin[maskre] = np.hypot(PRMin[0, :], PRMin[1, :])
 
             vperp = cam.dgeom['vperp']
             u_perp = np.sum(cam.u*vperp, axis=0)
@@ -551,12 +572,26 @@ def _rays(
     nseg = shape[0]
     nextra = len(lspectro) if diag is not None else 0
     assert nseg == reflections_nb + 1 + nextra
-    knseg = f'{key}-nseg'
+    
+    # key_nseg
+    if key_nseg is None:
+        knseg = f'{key}-nseg'
+        dref = {
+            knseg: {'size': nseg},
+        }
+    else:       
+        if coll.dref[key_nseg]['size'] != nseg:
+            msg = (
+                "Wrong size of key_nseg:\n"
+                f"\t- dref['key_nseg']['size] = coll.dref[key_nseg]['size']\n"
+                f"\t- nseg = {nseg}"
+            )
+            raise Exception(msg)
+            
+        knseg = key_nseg
+        dref = {}
 
-    dref = {
-        knseg: {'size': nseg},
-    }
-
+    # if ref is None  
     if ref is None:
         ref = []
         for ii, ss in enumerate(shaperef):
@@ -573,10 +608,10 @@ def _rays(
     # ddata
 
     # pts
-    kpx = f'{key}-ptx'
-    kpy = f'{key}-pty'
-    kpz = f'{key}-ptz'
-    kRmin = f'{key}-Rmin'
+    kpx = f'{key}_ptx'
+    kpy = f'{key}_pty'
+    kpz = f'{key}_ptz'
+    # kRmin = f'{key}-Rmin'
 
     ddata = {
         kpx: {
@@ -603,21 +638,21 @@ def _rays(
             'name': 'z',
             'units': 'm',
         },
-        kRmin: {
-            'data': Rmin,
-            'ref': refpts[1:],
-            'dim': 'distance',
-            'quant': 'distance',
-            'name': 'z',
-            'units': 'm',
-        },
+        # kRmin: {
+        #     'data': Rmin,
+        #     'ref': refpts[1:],
+        #     'dim': 'distance',
+        #     'quant': 'distance',
+        #     'name': 'R',
+        #     'units': 'm',
+        # },
     }
 
     # start
     if start_x.shape != (1,):
-        ksx = f'{key}-startx'
-        ksy = f'{key}-starty'
-        ksz = f'{key}-startz'
+        ksx = f'{key}_startx'
+        ksy = f'{key}_starty'
+        ksz = f'{key}_startz'
         if ref is None:
             ref = None
 
@@ -650,7 +685,7 @@ def _rays(
 
     # alpha
     if alpha is not None:
-        kalpha = f'{key}-alpha'
+        kalpha = f'{key}_alpha'
         ddata.update({
             kalpha: {
                 'data': alpha,
@@ -664,7 +699,7 @@ def _rays(
 
     # dalpha
     if dalpha is not None:
-        kdalpha = f'{key}-dalpha'
+        kdalpha = f'{key}_dalpha'
         ddata.update({
             kdalpha: {
                 'data': dalpha,
@@ -678,7 +713,7 @@ def _rays(
 
     # dbeta
     if dbeta is not None:
-        kdbeta = f'{key}-dbeta'
+        kdbeta = f'{key}_dbeta'
         ddata.update({
             kdbeta: {
                 'data': dbeta,
@@ -704,7 +739,7 @@ def _rays(
         if lamb.shape == (1,):
             ll = lamb
         else:
-            ll = klamb
+            ll = lamb
     else:
         ll = lamb
 
@@ -720,7 +755,7 @@ def _rays(
                 'lamb': ll,
                 'shape': shape,
                 'ref': refpts,
-                'Rmin': kRmin,
+                # 'Rmin': kRmin,
                 'alpha': kalpha,
                 'reflect_dalpha': kdalpha,
                 'reflect_dbeta': kdbeta,
@@ -729,6 +764,48 @@ def _rays(
     }
 
     return dref, ddata, dobj
+
+# ##################################################################
+# ##################################################################
+#                   Rays - check key
+# ##################################################################
+
+
+def _check_key(coll=None, key=None, key_cam=None):
+
+    # check key
+    lrays = list(coll.dobj.get('rays', {}).keys())
+    ldiag = [
+        k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
+        if any([
+                v1.get('los') is not None
+                and v1['los'] in lrays
+                for k1, v1 in v0['doptics'].items()
+            ])
+    ]
+    
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lrays + ldiag,
+    )
+    
+    # Derive kray
+    if key in lrays:
+        kray = key
+    else:
+        
+        # key_cam
+        lok = list(coll.dobj['diagnostic'][key]['doptics'].keys())
+        key_cam = ds._generic_check._check_var(
+            key_cam, 'key_cam',
+            types=str,
+            allowed=lok,
+        )    
+        
+        kray = coll.dobj['diagnostic'][key]['doptics'][key_cam]['los']
+    
+    return kray
 
 
 # ##################################################################
@@ -740,17 +817,13 @@ def _rays(
 def _get_start(
     coll=None,
     key=None,
+    key_cam=None,
 ):
 
     # ---------
     # check key
 
-    lok = list(coll.dobj.get('rays', {}))
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lok,
-    )
+    key = _check_key(coll=coll, key=key, key_cam=key_cam)
 
     # ---------------
     # get start
@@ -767,17 +840,13 @@ def _get_start(
 def _get_pts(
     coll=None,
     key=None,
+    key_cam=None,
 ):
 
     # ---------
     # check key
 
-    lok = list(coll.dobj.get('rays', {}))
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lok,
-    )
+    key = _check_key(coll=coll, key=key, key_cam=key_cam)
     
     # ---------
     # get start
@@ -803,18 +872,14 @@ def _get_pts(
 def _get_vect(
     coll=None,
     key=None,
+    key_cam=None,
     norm=None,
 ):
 
     # ---------
     # check key
 
-    lok = list(coll.dobj.get('rays', {}))
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lok,
-    )
+    key = _check_key(coll=coll, key=key, key_cam=key_cam)
 
     # norm
     norm = ds._generic_check._check_var(
@@ -849,3 +914,55 @@ def _get_vect(
         vz = vz / norm
 
     return vx, vy, vz
+
+
+# ##################################################################
+# ##################################################################
+#                   Rays - remove
+# ##################################################################
+
+
+def _remove(
+    coll=None,
+    key=None,
+):
+
+    # ----------
+    # check
+
+    lok = list(coll.dobj.get('rays', {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    # ------------
+    # list data
+
+    lkd = [
+        'start', 'pts', 'lamb',
+        'alpha', 'reflect_dalpha', 'reflect_dbeta',
+    ]
+    ld = []
+    for k0 in lkd:
+        v0 = coll._dobj['rays'][key][k0]
+        if isinstance(v0, str):
+            ld.append(v0)
+        elif isinstance(v0, (tuple, list)):
+            ld += list(v0)
+        elif v0 is None:
+            pass
+        else:
+            msg = "How to handle rays['{key}']['{k0}'] = {v0}"
+            raise Exception(msg)
+
+    # -----------
+    # remove data
+
+    coll.remove_data(ld, propagate=True)
+
+    # -----------
+    # remove rays
+
+    del coll._dobj['rays'][key]
