@@ -453,7 +453,7 @@ def _diagnostics():
 
 class Test01_Diagnostic():
 
-    def setup(self):
+    def setup_method(self):
 
         # get config
         conf = tf.load_config('SPARC')
