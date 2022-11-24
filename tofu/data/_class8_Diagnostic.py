@@ -19,6 +19,7 @@ from . import _class8_los_data as _los_data
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_etendue_los as _etendue_los
 from . import _class8_los_angles as _los_angles
+from . import _class8_compute_signal as _compute_signal
 from . import _class8_plot as _plot
 
 
@@ -489,19 +490,21 @@ class Diagnostic(_class7_Camera.Camera):
 
     def compute_diagnostic_signal(
         self,
-        key=None,
+        key_diag=None,
         key_cam=None,
+        # integrand
+        key_emiss=None,
         # sampling
         method=None,
         res=None,
         mode=None,
         # signal
         brightness=None,
-        # to be integrated
-        key_emis=None,
         # store
         store=None,
         key_signal=None,
+        # return
+        returnas=None,
     ):
         """ Compute synthetic signal for a diagnostic and an emissivity field
 
@@ -509,19 +512,21 @@ class Diagnostic(_class7_Camera.Camera):
 
         return _compute_signal.compute_signal(
             coll=self,
-            key=key,
+            key_diag=key_diag,
             key_cam=key_cam,
+            # integrand
+            key_emiss=key_emiss,
             # sampling
             method=method,
             res=res,
             mode=mode,
             # signal
             brightness=brightness,
-            # to be integrated
-            key_emis=key_emis,
             # store
             store=store,
             key_signal=key_signal,
+            # return
+            returnas=returnas,
         )
 
 
