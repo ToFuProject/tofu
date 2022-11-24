@@ -393,7 +393,7 @@ def _tangency_radius_check(
         quantity, 'quantity',
         types=str,
         default='tangency radius',
-        allowed=['tangency radius', 'length'],
+        allowed=['alpha', 'tangency radius', 'length'],
     )
 
     # lim_to_segments
@@ -582,8 +582,13 @@ def _tangency_radius(
 
         out = np.sqrt(kk**2 * ABvn2 + 2*kk*B + AOvn2)
 
-    else:
+    elif quantity == 'length':
         out = np.sqrt(ABx**2 + ABy**2 + ABz**2)
+        kk = None
+
+    else:
+        kdata = coll.dobj['rays'][key]['alpha']
+        out = coll.ddata[kdata]['data']
         kk = None
 
     # -------
