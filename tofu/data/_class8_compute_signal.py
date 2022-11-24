@@ -1,6 +1,7 @@
 
 
 import numpy as np
+import scipy.integrate as scpinteg
 
 
 import datastock as ds
@@ -216,7 +217,9 @@ def _compute_los(
     groupby=None,
 ):
 
+    # ----------------
     # loop on cameras
+
     dout = {}
     doptics = coll.dobj['diagnostic'][key_diag]['doptics']
     for k0 in key_cam:
@@ -227,6 +230,9 @@ def _compute_los(
         ngroups = npix // groupby
         if npix % groupby > 0:
             groupby += 1
+
+        # -----------------------
+        # loop on group of pixels (to limit memory footprint)
 
         for ii in range(ngroup):
 
@@ -245,10 +251,13 @@ def _compute_los(
                 return_coords=['R', 'z', 'l'],
             )
 
-            inan = np.r_[0, np.isnan(R).nonzero()[0]]
+            inan = np.r_[-1, np.isnan(R).nonzero()[0]]
             nnan = inan.size - 1
             assert nnan == ni, f"{nnan} vs {ni}"
             iok = ~inan
+
+            # -------------
+            # interpolate
 
             datai, units, refi = coll.interpolate_profile2d(
                 key=key_emiss,
@@ -266,20 +275,33 @@ def _compute_los(
                 reshape=None,
                 res=None,
                 crop=None,
-                nan0=None,
-                nan_out=None,
+                nan0=True,
+                nan_out=True,
                 imshow=None,
                 return_params=None,
                 store=False,
-                inplace=None,
             )
 
+            # ------------
+            # integrate
+
+            iok = np.isfinite(datai)
+            axis = refi.index(None)
             for jj in range(nnan):
+
                 ind = i0 + jj
-                sli = ()
-                slii = ()
+                sli = tuple([
+                    ind if aa == axis else slice(None)
+                    for aa in range(len(refi))
+                ])
+
+                indi = np.arange(inan[jj]+1, inan[jj+1])
+                slii = tuple([
+                    indi if aa == axis else slice(None)
+                    for aa in range(len(refi))
+                ])
                 data[sli] = scpinteg.simpson(
-                    ll[inan[jj]:inan[jj+1]],
+                    ll[indi],
                     datai[slii],
                     axis=axis,
                 )
