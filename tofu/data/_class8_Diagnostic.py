@@ -487,6 +487,44 @@ class Diagnostic(_class7_Camera.Camera):
         )
 
 
+    def compute_diagnostic_signal(
+        self,
+        key=None,
+        key_cam=None,
+        # sampling
+        method=None,
+        res=None,
+        mode=None,
+        # signal
+        brightness=None,
+        # to be integrated
+        key_emis=None,
+        # store
+        store=None,
+        key_signal=None,
+    ):
+        """ Compute synthetic signal for a diagnostic and an emissivity field
+
+        """
+
+        return _compute_signal.compute_signal(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            # sampling
+            method=method,
+            res=res,
+            mode=mode,
+            # signal
+            brightness=brightness,
+            # to be integrated
+            key_emis=key_emis,
+            # store
+            store=store,
+            key_signal=key_signal,
+        )
+
+
     # -----------------
     # plotting
     # -----------------
