@@ -241,6 +241,7 @@ class Camera(_class6_Grating.Grating):
             focal=focal,
             pix_nb=pix_nb,
             pix_size=pix_size,
+            pix_spacing=pix_spacing,
             # pinhole
             pinhole_radius=pinhole_radius,
             pinhole_size=pinhole_size,
