@@ -45,7 +45,7 @@ def _plot_diagnostic_check(
     key, key_cam = coll.get_diagnostic_cam(key, key_cam)
     is2d = coll.dobj['diagnostic'][key]['is2d']
     spectro = coll.dobj['diagnostic'][key]['spectro']
-    
+
     if spectro:
         assert len(key_cam) == 1
         doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam[0]]
@@ -66,7 +66,7 @@ def _plot_diagnostic_check(
         key_cam=key_cam,
         data=data,
     )
-    
+
     ylab = None # f"{ddata[key_cam[0]]['quant']} ({ddata[key_cam[0]]['units']})"
 
     # -----
@@ -79,7 +79,7 @@ def _plot_diagnostic_check(
 
     # ----------
     # los_res
-    
+
     los_res = ds._generic_check._check_var(
         los_res, 'los_res',
         types=float,
@@ -206,9 +206,9 @@ def _plot_diagnostic(
         for k0 in dref.keys()
     }
     drefx = {k0: v0[0] for k0, v0 in dcamref.items()}
-    
+
     if is2d:
-        drefy = {k0: v0[1] for k0, v0 in dcamref.items()}  
+        drefy = {k0: v0[1] for k0, v0 in dcamref.items()}
 
     # -------------------------
     # prepare los interactivity
@@ -221,15 +221,15 @@ def _plot_diagnostic(
 
     # instanciate new Datastock
     coll2 = coll.__class__()
-    
+
     # prepare dict
     dkeyx, ddatax = {}, {}
     if is2d:
         dkeyy, ddatay, dextent = {}, {}, {}
-        
+
     # -------------
     # loop
-    
+
     for k0, v0 in dcamref.items():
         for rr in v0:
             coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
@@ -245,15 +245,15 @@ def _plot_diagnostic(
             los_r = np.hypot(los_x, los_y)
             reflos = coll.dobj['rays'][dlos[k0]['rays']]['ref']
             dref_los[k0] = (reflos[1:], reflos[1:])
-    
+
             if reflos[0] not in coll2.dref.keys():
                 coll2.add_ref(key=reflos[0], size=los_x.shape[0])
-            
+
             coll2.add_data(key=f'{k0}_los_x', data=los_x, ref=reflos)
             coll2.add_data(key=f'{k0}_los_y', data=los_y, ref=reflos)
             coll2.add_data(key=f'{k0}_los_z', data=los_z, ref=reflos)
             coll2.add_data(key=f'{k0}_los_r', data=los_r, ref=reflos)
-            
+
             # store x, y, z
             dlos[k0]['x'] = los_x
             dlos[k0]['y'] = los_y
@@ -263,10 +263,10 @@ def _plot_diagnostic(
         if ddata is not None:
             if is2d:
                 dkeyx[k0], dkeyy[k0] = coll.dobj['camera'][k0]['dgeom']['cents']
-    
+
                 ddatax[k0] = coll.ddata[dkeyx[k0]]['data']
                 ddatay[k0] = coll.ddata[dkeyy[k0]]['data']
-    
+
                 coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
                 coll2.add_data(key=dkeyy[k0], data=ddatay[k0], ref=drefy[k0])
             else:
@@ -276,8 +276,8 @@ def _plot_diagnostic(
 
             # -------------------------
             # extent
-        
-            reft = None  
+
+            reft = None
             if is2d:
                 if ddatax[k0].size == 1:
                     ddx = coll.ddata[coll.dobj['camera'][k0]['dgeom']['outline'][0]]['data']
@@ -289,7 +289,7 @@ def _plot_diagnostic(
                     ddy = np.max(ddy) - np.min(ddy)
                 else:
                     ddy = ddatay[k0][1] - ddatay[k0][0]
-                
+
                 dextent[k0] = (
                     ddatax[k0][0] - 0.5*ddx,
                     ddatax[k0][-1] + 0.5*ddx,
@@ -403,7 +403,7 @@ def _plot_diagnostic(
         kax = k0
         if dax.get(kax) is not None and ddata is not None:
             ax = dax[kax]['handle']
-    
+
             if is2d and reft is None:
                 im = ax.imshow(
                     ddata[k0].T,
@@ -415,7 +415,7 @@ def _plot_diagnostic(
                     interpolation='nearest',
                 )
                 plt.colorbar(im, ax=ax)
-    
+
             elif reft is None:
                 ax.plot(
                     ddata[k0],
@@ -427,7 +427,7 @@ def _plot_diagnostic(
                 )
                 ax.set_xlim(-1, ddata[k0].size)
                 ax.set_ylabel(ylab)
-                
+
                 if vmin is not None:
                     ax.set_ylim(bottom=vmin)
                 if vmax is not None:
@@ -470,14 +470,14 @@ def _plot_diagnostic(
     for k0 in key_cam:
 
         if dlos[k0]['rays'] is not None:
-    
+
             nan = np.full((dlos[k0]['x'].shape[0],), np.nan)
-    
+
             # cross
             kax = 'cross'
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
-    
+
                 for ii in range(nlos):
                     l0, = ax.plot(
                         nan,
@@ -524,12 +524,12 @@ def _plot_diagnostic(
                         axes=kax,
                         ind=ii,
                     )
-    
+
             # 3d
             kax = '3d'
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
-    
+
                 for ii in range(nlos):
                     l0, = ax.plot(
                         nan,
@@ -539,7 +539,7 @@ def _plot_diagnostic(
                         ls='-',
                         lw=1.,
                     )
-    
+
                     # add mobile
                     kl0 = f'{k0}_los-3d-{ii}'
                     # coll2.add_mobile(
@@ -551,12 +551,12 @@ def _plot_diagnostic(
                     # axes=kax,
                     # ind=ii,
                     # )
-    
+
             # camera
             kax = k0
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
-    
+
                 if is2d:
                     for ii in range(nlos):
                         mi, = ax.plot(
