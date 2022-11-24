@@ -22,6 +22,7 @@ def compute_signal(
     method=None,
     res=None,
     mode=None,
+    groupby=None,
     # signal
     brightness=None,
     # store
@@ -37,7 +38,7 @@ def compute_signal(
 
     (
         key_diag, key_cam, spectro, is2d,
-        method, brightness,
+        method, groupby, brightness,
         key_emiss, key_mesh0,
         store, key_signal,
         returnas,
@@ -83,6 +84,7 @@ def compute_signal(
             mode=mode,
             key_emiss=key_emiss,
             radius_max=radius_max,
+            groupby=groupby,
         )
 
     else:
@@ -106,6 +108,7 @@ def _compute_signal_check(
     method=None,
     res=None,
     mode=None,
+    groupby=None,
     # signal
     brightness=None,
     # to be integrated
@@ -128,6 +131,13 @@ def _compute_signal_check(
         types=str,
         default='los',
         allowed=['los', 'vos'],
+    )
+
+    # groupby
+    groupby = ds._generic_check._check_var(
+        groupby, 'groupby',
+        types=int,
+        default=200,
     )
 
     # brightness
@@ -181,7 +191,7 @@ def _compute_signal_check(
 
     return (
         key_diag, key_cam, spectro, is2d,
-        method, brightness,
+        method, groupby, brightness,
         key_emiss, key_mesh0,
         store, key_signal,
         returnas,
@@ -203,6 +213,7 @@ def _compute_los(
     mode=None,
     key_emiss=None,
     radius_max=None,
+    groupby=None,
 ):
 
     # loop on cameras
@@ -213,28 +224,37 @@ def _compute_los(
         npix = coll.dobj['camera'][k0]['dgeom']['pix_nb']
         key_los = doptics[k0]['los']
 
-        if is2d:
-            pass
-        else:
-            ptsx, ptsy, ptsz = coll.sample_rays(
+        ngroups = npix // groupby
+        if npix % groupby > 0:
+            groupby += 1
+
+        for ii in range(ngroup):
+
+            i0 = ii*groupby
+            i1 = min((ii + 1)*groupby, npix)
+            ni = i1 - i0
+
+            R, Z, ll = coll.sample_rays(
                 key=key_los,
                 res=res,
                 mode=mode,
                 segment=None,
+                ind_flat=np.arange(i0, i1),
                 radius_max=radius_max,
                 concatenate=True,
-                return_coords=None,
+                return_coords=['R', 'z', 'l'],
             )
 
-            inan = np.isnan(ptsx)
+            inan = np.r_[0, np.isnan(R).nonzero()[0]]
+            nnan = inan.size - 1
+            assert nnan == ni, f"{nnan} vs {ni}"
             iok = ~inan
-            R = np.hypot(ptsx, ptsy)
 
-            data, units = coll.interpolate_profile2d(
+            datai, units, refi = coll.interpolate_profile2d(
                 key=key_emiss,
                 coefs=None,
                 R=R[iok],
-                Z=ptsz[iok],
+                Z=Z[iok],
                 grid=False,
                 radius_vs_time=None,
                 azone=None,
@@ -253,6 +273,16 @@ def _compute_los(
                 store=False,
                 inplace=None,
             )
+
+            for jj in range(nnan):
+                ind = i0 + jj
+                sli = ()
+                slii = ()
+                data[sli] = scpinteg.simpson(
+                    ll[inan[jj]:inan[jj+1]],
+                    datai[slii],
+                    axis=axis,
+                )
 
             import pdb; pdb.set_trace()     # DB
 
