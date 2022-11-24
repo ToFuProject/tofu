@@ -33,61 +33,18 @@ def _sample(
     # ------------
     # check inputs
 
-    # res
-    res = ds._generic_check._check_var(
-        res, 'res',
-        types=float,
-        default=0.1,
-        sign='> 0',
+    (
+        res, mode, concatenate,
+        segment, radius_max,
+        return_coords, out_xyz, out_k,
+    ) = _sample_check(
+        res=res,
+        mode=mode,
+        concatenate=concatenate,
+        segment=segment,
+        radius_max=radius_max,
+        return_coords=return_coords,
     )
-
-    # mode
-    mode = ds._generic_check._check_var(
-        mode, 'mode',
-        types=str,
-        default='rel',
-        allowed=['rel', 'abs'],
-    )
-
-    # concatenate
-    concatenate = ds._generic_check._check_var(
-        concatenate, 'concatenate',
-        types=bool,
-        default=False,
-    )
-
-    # segment
-    if segment is not None:
-        segment = np.atleast_1d(segment).astype(int).ravel()
-
-    # tangency_radius_max
-    if radius_max is not None:
-        radius_max = ds._generic_check._check_var(
-            radius_max, 'radius_max',
-            types=(float, int),
-            sign='> 0',
-        )
-
-        if mode == 'rel':
-            msg = "radius_max can only be used with mode='abs'!"
-            raise Exception(msg)
-
-    # return_coords
-    if isinstance(return_coords, str):
-        return_coords = [return_coords]
-
-    lok_k = ['k', 'l', 'itot']
-    lok_xyz = ['x', 'y', 'z', 'R', 'phi', 'ang_vs_ephi']
-    return_coords = ds._generic_check._check_var_iter(
-        return_coords, 'return_coords',
-        types=list,
-        types_iter=str,
-        default=['x', 'y', 'z'],
-        allowed=lok_k + lok_xyz,
-    )
-
-    out_xyz = any([ss in return_coords for ss in lok_xyz])
-    out_k = any([ss in return_coords for ss in lok_k])
 
     # -----------
     # compute
@@ -368,6 +325,78 @@ def _sample(
     return lout
 
 
+def _sample_check(
+    res=None,
+    mode=None,
+    segment=None,
+    radius_max=None,
+    concatenate=None,
+    return_coords=None,
+):
+
+    # res
+    res = ds._generic_check._check_var(
+        res, 'res',
+        types=float,
+        default=0.1,
+        sign='> 0',
+    )
+
+    # mode
+    mode = ds._generic_check._check_var(
+        mode, 'mode',
+        types=str,
+        default='rel',
+        allowed=['rel', 'abs'],
+    )
+
+    # concatenate
+    concatenate = ds._generic_check._check_var(
+        concatenate, 'concatenate',
+        types=bool,
+        default=False,
+    )
+
+    # segment
+    if segment is not None:
+        segment = np.atleast_1d(segment).astype(int).ravel()
+
+    # tangency_radius_max
+    if radius_max is not None:
+        radius_max = ds._generic_check._check_var(
+            radius_max, 'radius_max',
+            types=(float, int),
+            sign='> 0',
+        )
+
+        if mode == 'rel':
+            msg = "radius_max can only be used with mode='abs'!"
+            raise Exception(msg)
+
+    # return_coords
+    if isinstance(return_coords, str):
+        return_coords = [return_coords]
+
+    lok_k = ['k', 'l', 'itot']
+    lok_xyz = ['x', 'y', 'z', 'R', 'phi', 'ang_vs_ephi']
+    return_coords = ds._generic_check._check_var_iter(
+        return_coords, 'return_coords',
+        types=list,
+        types_iter=str,
+        default=['x', 'y', 'z'],
+        allowed=lok_k + lok_xyz,
+    )
+
+    out_xyz = any([ss in return_coords for ss in lok_xyz])
+    out_k = any([ss in return_coords for ss in lok_k])
+
+    return (
+        res, mode, concatenate,
+        segment, radius_max,
+        return_coords, out_xyz, out_k,
+    )
+
+
 # ###############################################################
 # ###############################################################
 #                  tangency radius
@@ -452,7 +481,6 @@ def _tangency_radius_prepare(
     # select segment
     if segment is not None:
         npts = pts_x.shape[0]
-        import pdb; pdb.set_trace()     # DB
         segment[segment < 0] = npts - 1 + segment[segment < 0]
 
         iseg = np.r_[segment, segment[-1] + 1]
@@ -695,7 +723,9 @@ def intersect_radius(
 
     iok = ABvn2 > 0.
     kmin[iok] = -B[iok] / ABvn2[iok]
-    rad_min = np.sqrt(kmin**2 * ABvn2 + 2*kmin*B + AOvn2)
+    rad_min2 = kmin**2 * ABvn2 + 2*kmin*B + AOvn2
+    rad_min2[np.abs(rad_min2) < 1e-9] = 0.
+    rad_min = np.sqrt(rad_min2)
 
     # prepare solutions
     iin = (rad_min < axis_radius) & iok
