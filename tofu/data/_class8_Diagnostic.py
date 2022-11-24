@@ -602,10 +602,14 @@ class Diagnostic(_class7_Camera.Camera):
         key_cam=None,
         key_data_x=None,
         key_data_y=None,
+        # sampling
         res=None,
         mode=None,
         segment=None,
         radius_max=None,
+        # plotting
+        vmin=None,
+        vmax=None,
         plot=None,
         dcolor=None,
         dax=None,
@@ -619,10 +623,14 @@ class Diagnostic(_class7_Camera.Camera):
             key_cam=key_cam,
             key_data_x=key_data_x,
             key_data_y=key_data_y,
+            # sampling
             res=res,
             mode=mode,
             segment=segment,
             radius_max=radius_max,
+            # plotting
+            vmin=vmin,
+            vmax=vmax,
             plot=plot,
             dcolor=dcolor,
             dax=dax,

@@ -144,7 +144,7 @@ class Test01_SolidAngles():
     #   setup
     # ------------------------
 
-    def setup(self):
+    def setup_method(self):
 
         self.dcases = _get_cases()
 

@@ -77,7 +77,7 @@ def _sample(
         return_coords = [return_coords]
         
     lok_k = ['k', 'l', 'itot']
-    lok_xyz = ['x', 'y', 'z', 'R', 'phi']
+    lok_xyz = ['x', 'y', 'z', 'R', 'phi', 'ang_vs_ephi']
     return_coords = ds._generic_check._check_var_iter(
         return_coords, 'return_coords',
         types=list,
@@ -131,6 +131,7 @@ def _sample(
             + np.diff(pts_y, axis=0)**2
             + np.diff(pts_z, axis=0)**2
         )
+        
         if segment is not None:
             length0 = length0[iseg, ...]
         
@@ -321,6 +322,30 @@ def _sample(
                     np.arctan2(py, px)
                     for px, py in zip(pts_x, pts_y)
                 ])
+                
+        elif cc == 'ang_vs_ephi':
+            if concatenate is True or mode == 'rel':
+                phi = np.arctan2(pts_y, pts_x)
+                ux = np.diff(pts_x, axis=0)
+                uy = np.diff(pts_y, axis=0)
+                ux = np.concatenate((ux[0:1, ...], ux), axis=0)
+                uy = np.concatenate((uy[0:1, ...], uy), axis=0)
+                vn = np.sqrt(ux**2 + uy**2)
+                ux = ux / vn
+                uy = uy / vn
+                lout.append(np.arccos(-np.sin(phi)*ux + np.cos(phi)*uy))
+            else:
+                lout.append([])
+                for px, py in zip(pts_x, pts_y):
+                    phi = np.arctan2(py, px)
+                    ux = np.diff(px, axis=0)
+                    uy = np.diff(py, axis=0)
+                    ux = np.concatenate((ux[0:1, ...], ux), axis=0)
+                    uy = np.concatenate((uy[0:1, ...], uy), axis=0)
+                    vn = np.sqrt(ux**2 + uy**2)
+                    ux = ux / vn
+                    uy = uy / vn
+                    lout[-1].append(np.arccos(-np.sin(phi)*ux + np.cos(phi)*uy))
             
         elif cc == 'itot':
             lout.append(itot)
