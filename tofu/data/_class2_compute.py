@@ -67,7 +67,7 @@ def _sample(
             types=(float, int),
             sign='> 0',
         )
-        
+
         if mode == 'rel':
             msg = "radius_max can only be used with mode='abs'!"
             raise Exception(msg)
@@ -75,7 +75,7 @@ def _sample(
     # return_coords
     if isinstance(return_coords, str):
         return_coords = [return_coords]
-        
+
     lok_k = ['k', 'l', 'itot']
     lok_xyz = ['x', 'y', 'z', 'R', 'phi', 'ang_vs_ephi']
     return_coords = ds._generic_check._check_var_iter(
@@ -85,7 +85,7 @@ def _sample(
         default=['x', 'y', 'z'],
         allowed=lok_k + lok_xyz,
     )
-    
+
     out_xyz = any([ss in return_coords for ss in lok_xyz])
     out_k = any([ss in return_coords for ss in lok_k])
 
@@ -95,16 +95,16 @@ def _sample(
 
     # ------------------------
     # get points of interest
-    
+
     pts_x, pts_y, pts_z = coll.get_rays_pts(key=key, key_cam=key_cam)
     npts = pts_x.shape[0]
     i0 = np.arange(0, npts)
-        
+
     # segment
     if segment is not None:
         segment[segment < 0] = npts - 1 + segment[segment < 0]
         iseg = np.r_[segment, segment[-1] + 1]
-    
+
     # length
     length0 = np.sqrt(
         np.diff(pts_x, axis=0)**2
@@ -113,7 +113,7 @@ def _sample(
     )
     zeros = np.zeros(tuple(np.r_[1, length0.shape[1:]]), dtype=float)
     length0 = np.concatenate((zeros, length0), axis=0)
-    
+
     # changes to pts
     if radius_max is not None:
         pts_x, pts_y, pts_z, i0 = coll.get_rays_intersect_radius(
@@ -125,16 +125,16 @@ def _sample(
             return_pts=True,
             return_itot=True,
         )[3:]
-        
+
         length_rad = np.sqrt(
             np.diff(pts_x, axis=0)**2
             + np.diff(pts_y, axis=0)**2
             + np.diff(pts_z, axis=0)**2
         )
-        
+
         if segment is not None:
             length0 = length0[iseg, ...]
-        
+
     else:
         if segment is not None:
             i0 = i0[iseg]
@@ -142,7 +142,7 @@ def _sample(
             pts_y = pts_y[i0, ...]
             pts_z = pts_z[i0, ...]
             length0 = length0[iseg, ...]
-            
+
         length_rad = length0[1:, ...]
 
    # -------------------------
@@ -156,7 +156,7 @@ def _sample(
         N = int(np.ceil((nptsi - 1) / (i0[-1] - i0[0])))
         nptsi = N * (i0[-1] - i0[0]) + 1
         itot = np.linspace(i0[0], i0[-1], nptsi)
-       
+
         # interpolate
         if out_xyz:
             pts_x = scpinterp.interp1d(
@@ -177,7 +177,7 @@ def _sample(
                 kind='linear',
                 axis=0,
             )(itot)
-            
+
         if 'l' in return_coords:
             i1 = np.floor(itot).astype(int)
             i1[i1 == length0.shape[0]] -= 1
@@ -185,17 +185,17 @@ def _sample(
 
     # abs => for pts.ndim >= 3 (2d cameras and above), flattened list
     else:
-        
+
         iok = np.isfinite(pts_x)
         nn = np.ceil(length_rad / res).astype(int)
-        
+
         lpx, lpy, lpz, itot, llen = [], [], [], [], []
         for ind in itt.product(*[range(ss) for ss in pts_x.shape[1:]]):
-            
+
             sli = tuple([slice(None)] + list(ind))
             if not np.any(iok[sli]):
                 continue
-            
+
             if radius_max is None:
                 i0i = i0[iok[sli]]
             else:
@@ -211,7 +211,7 @@ def _sample(
                 + [[i0i[-1]]]
                 ))
             itot.append(itoti)
-        
+
             # interpolate
             if out_xyz:
                 lpx.append(scpinterp.interp1d(
@@ -220,26 +220,26 @@ def _sample(
                     kind='linear',
                     axis=0,
                 )(itoti))
-                
+
                 lpy.append(scpinterp.interp1d(
                     i0i,
                     pts_y[sli],
                     kind='linear',
                     axis=0,
                 )(itoti))
-                
+
                 lpz.append(scpinterp.interp1d(
                     i0i,
                     pts_z[sli],
                     kind='linear',
                     axis=0,
                 )(itoti))
-            
+
             if 'l' in return_coords:
                 i1 = np.floor(itoti).astype(int)
                 i1[i1 == length0.shape[0]] -= 1
                 llen.append(length0[sli][i1])
-            
+
         if out_xyz:
             pts_x, pts_y, pts_z = lpx, lpy, lpz
         if 'l' in return_coords:
@@ -247,7 +247,7 @@ def _sample(
 
     # -------------------------------------
     # optional concatenation (for plotting)
-    
+
     if concatenate is True:
         if mode == 'rel':
             shape = tuple(np.r_[np.r_[1], pts_x.shape[1:]])
@@ -263,7 +263,7 @@ def _sample(
                 pts_z = np.concatenate((pts_z, nan), axis=0).T.ravel()
             if 'l' in return_coords:
                 length = np.concatenate((length, nan), axis=0).T.ravel()
-                
+
         else:
             if out_k:
                 itot = np.concatenate(
@@ -286,25 +286,25 @@ def _sample(
 
     # -------------
     # return
-    
+
     if out_k:
         if concatenate is True or mode == 'rel':
             kk = itot - np.floor(itot)
             kk[itot == np.nanmax(itot)] = 1.
         else:
             kk = [ii - np.floor(ii) for ii in itot]
-    
+
     lout = []
     for cc in return_coords:
         if cc == 'x':
             lout.append(pts_x)
-            
+
         elif cc == 'y':
             lout.append(pts_y)
-            
+
         elif cc == 'z':
             lout.append(pts_z)
-            
+
         elif cc == 'R':
             if concatenate is True or mode == 'rel':
                 lout.append(np.hypot(pts_x, pts_y))
@@ -313,7 +313,7 @@ def _sample(
                     np.hypot(px, py)
                     for px, py in zip(pts_x, pts_y)
                 ])
-                
+
         elif cc == 'phi':
             if concatenate is True or mode == 'rel':
                 lout.append(np.arctan2(pts_y, pts_x))
@@ -322,7 +322,7 @@ def _sample(
                     np.arctan2(py, px)
                     for px, py in zip(pts_x, pts_y)
                 ])
-                
+
         elif cc == 'ang_vs_ephi':
             if concatenate is True or mode == 'rel':
                 phi = np.arctan2(pts_y, pts_x)
@@ -346,13 +346,13 @@ def _sample(
                     ux = ux / vn
                     uy = uy / vn
                     lout[-1].append(np.arccos(-np.sin(phi)*ux + np.cos(phi)*uy))
-            
+
         elif cc == 'itot':
             lout.append(itot)
-            
+
         elif cc == 'k':
             lout.append(kk)
-            
+
         elif cc == 'l':
             if concatenate is True or mode == 'rel':
                 lout.append(kk*length)
@@ -452,6 +452,7 @@ def _tangency_radius_prepare(
     # select segment
     if segment is not None:
         npts = pts_x.shape[0]
+        import pdb; pdb.set_trace()     # DB
         segment[segment < 0] = npts - 1 + segment[segment < 0]
 
         iseg = np.r_[segment, segment[-1] + 1]
@@ -628,16 +629,17 @@ def intersect_radius(
     # --------------
 
     (
-     key, axis_pt, axis_vect, segment, lim_to_segments,
+     key, quantity, segment, lim_to_segments, axis_pt, axis_vect,
      ) = _tangency_radius_check(
          coll=coll,
          key=key,
          key_cam=key_cam,
+         quantity='tangency radius',
          axis_pt=axis_pt,
          axis_vect=axis_vect,
          segment=segment,
          lim_to_segments=lim_to_segments,
-         )
+    )
 
     # axis_radius
     axis_radius = ds._generic_check._check_var(
@@ -682,6 +684,7 @@ def intersect_radius(
      ) = _tangency_radius_prepare(
          coll=coll,
          key=key,
+         quantity=quantity,
          segment=segment,
          axis_pt=axis_pt,
          axis_vect=axis_vect,
