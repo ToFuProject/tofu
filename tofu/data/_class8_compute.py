@@ -855,7 +855,7 @@ def _get_data(
     # basic check on data
     if data is not None:
         lquant = ['etendue', 'amin', 'amax']  # 'los'
-        lcomp = ['tangency radius']
+        lcomp = ['length', 'tangency radius']
         if spectro:
             lcomp += ['lamb', 'lambmin', 'lambmax', 'res']
 
@@ -977,11 +977,12 @@ def _get_data(
                    lamb=data,
                )
 
-        elif data == 'tangency radius':
+        elif data in ['length', 'tangency radius']:
             for cc in key_cam:
-                ddata[cc], _, dref[cc] = coll.get_rays_tangency_radius(
+                ddata[cc], _, dref[cc] = coll.get_rays_quantity(
                     key=key,
                     key_cam=cc,
+                    quantity=data,
                     segment=-1,
                     lim_to_segments=False,
                 )
