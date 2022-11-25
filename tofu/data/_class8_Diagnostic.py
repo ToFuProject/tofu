@@ -54,6 +54,7 @@ class Diagnostic(_class7_Camera.Camera):
         # config for los
         config=None,
         length=None,
+        # reflections
         reflections_nb=None,
         reflections_type=None,
         key_nseg=None,
@@ -493,11 +494,13 @@ class Diagnostic(_class7_Camera.Camera):
         key_diag=None,
         key_cam=None,
         # integrand
-        key_emiss=None,
+        key_integrand=None,
         # sampling
         method=None,
         res=None,
         mode=None,
+        groupby=None,
+        val_init=None,
         # signal
         brightness=None,
         # store
@@ -515,11 +518,13 @@ class Diagnostic(_class7_Camera.Camera):
             key_diag=key_diag,
             key_cam=key_cam,
             # integrand
-            key_emiss=key_emiss,
+            key_integrand=key_integrand,
             # sampling
             method=method,
             res=res,
             mode=mode,
+            groupby=groupby,
+            val_init=val_init,
             # signal
             brightness=brightness,
             # store
