@@ -215,7 +215,7 @@ def compute(
                 indbs=indbs,
                 details=True,
                 nan0=False,
-                nan_out=False,
+                val_out=False,
                 return_params=False,
             )[0]
             assert mati.ndim in [2, 3], mati.shape
