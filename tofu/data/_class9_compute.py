@@ -7,6 +7,9 @@ import copy
 
 # Common
 import numpy as np
+import scipy.integrate as scpinteg
+
+
 import datastock as ds
 
 
@@ -18,14 +21,18 @@ import datastock as ds
 
 def compute(
     coll=None,
+    key=None,
     key_bsplines=None,
     key_diag=None,
     key_cam=None,
     # sampling
     res=None,
-    resMode=None,
+    mode=None,
     method=None,
     crop=None,
+    # options
+    brightness=None,
+    # output
     store=None,
     verb=None,
 ):
@@ -38,17 +45,27 @@ def compute(
     # check input
     # -----------
 
-    # nlos = cam.nRays
-    key, key_bsplines, key_diag, key_cam, method, resMode, crop, store, verb = _compute_check(
+    (
+        key,
+        key_bsplines, key_mesh, key_mesh0, mtype,
+        key_diag, key_cam,
+        method, res, mode, crop,
+        brightness,
+        store, verb,
+    ) = _compute_check(
         coll=coll,
+        key=key,
         key_bsplines=key_bsplines,
         key_diag=key_diag,
         key_cam=key_cam,
         # sampling
-        nlos=nlos,
         method=method,
-        resMode=resMode,
+        res=res,
+        mode=mode,
         crop=crop,
+        # options
+        brightness=brightness,
+        # output
         store=store,
         verb=verb,
     )
@@ -57,9 +74,10 @@ def compute(
     # prepare
     # -----------
 
+    key_kR = coll.dobj['mesh'][key_mesh0]['knots'][0]
+    radius_max = np.max(coll.ddata[key_kR]['data'])
+
     shapebs = coll.dobj['bsplines'][key_bsplines]['shape']
-    km = coll.dobj['bsplines'][key_bsplines]['mesh']
-    mtype = coll.dobj[coll._which_mesh][km]['type']
 
     # prepare indices
     indbs = coll.select_ind(
@@ -71,18 +89,16 @@ def compute(
     # prepare matrix
     is3d = False
     if mtype == 'polar':
-        radius2d = coll.dobj[coll._which_mesh][km]['radius2d']
+        radius2d = coll.dobj[coll._which_mesh][key_mesh]['radius2d']
         r2d_reft = coll.get_time(key=radius2d)[2]
         if r2d_reft is not None:
             r2d_nt = coll.dref[r2d_reft]['size']
             if r2d_nt > 1:
-                shapemat = tuple(np.r_[r2d_nt, nlos, indbs.sum()])
+                shapemat = tuple(np.r_[r2d_nt, None, indbs.sum()])
                 is3d = True
 
     if not is3d:
-        shapemat = tuple(np.r_[nlos, indbs.sum()])
-
-    mat = np.zeros(shapemat, dtype=float)
+        shapemat = tuple(np.r_[None, indbs.sum()])
 
     # -----------
     # compute
@@ -91,7 +107,6 @@ def compute(
     if method == 'los':
         dout, units = _compute_los(
             coll=coll,
-            is2d=is2d,
             key_bsplines=key_bsplines,
             key_diag=key_diag,
             key_cam=key_cam,
@@ -99,18 +114,16 @@ def compute(
             indbs=indbs,
             res=res,
             mode=mode,
-            key_integrand=key_integrand,
             radius_max=radius_max,
-            groupby=groupby,
-            val_init=val_init,
+            # groupby=groupby,
+            is3d=is3d,
+            # other
+            shapemat=shapemat,
             brightness=brightness,
         )
 
     else:
-        pass
-
-
-    if method == 'los':
+        raise NotImplementedError()
 
     # ---------------
     # store / return
@@ -137,10 +150,13 @@ def _compute_check(
     key_diag=None,
     key_cam=None,
     # sampling
-    nlos=None,
     method=None,
-    resMode=None,
+    res=None,
+    mode=None,
     crop=None,
+    # options
+    brightness=None,
+    # output
     store=None,
     verb=None,
 ):
@@ -160,8 +176,16 @@ def _compute_check(
         allowed=lk,
     )
 
+    # key_mesh0
+    key_mesh = coll.dobj['bsplines'][key_bsplines]['mesh']
+    mtype = coll.dobj['mesh'][key_mesh]['type']
+    if mtype == 'polar':
+        key_mesh0 = coll.dobj['mesh'][key_mesh]['submesh']
+    else:
+        key_mesh0 = key_mesh
+
     # key_diag, key_cam
-    key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
+    key, key_cam = coll.get_diagnostic_cam(key=key_diag, key_cam=key_cam)
 
     # method
     method = ds._generic_check._check_var(
@@ -171,9 +195,17 @@ def _compute_check(
         allowed=['los'],
     )
 
-    # resMode
-    resMode = ds._generic_check._check_var(
-        resMode, 'resMode',
+    # res
+    res = ds._generic_check._check_var(
+        res, 'res',
+        default=0.01,
+        types=float,
+        sign='> 0.',
+    )
+
+    # mode
+    mode = ds._generic_check._check_var(
+        mode, 'mode',
         default='abs',
         types=str,
         allowed=['abs', 'rel'],
@@ -185,7 +217,17 @@ def _compute_check(
         default=True,
         types=bool,
     )
-    crop = crop and coll.dobj['bsplines'][key]['crop'] not in [None, False]
+    crop = (
+        crop
+        and coll.dobj['bsplines'][key_bsplines]['crop'] not in [None, False]
+    )
+
+    # brightness
+    brightness = ds._generic_check._check_var(
+        brightness, 'brightness',
+        types=bool,
+        default=False,
+    )
 
     # store
     store = ds._generic_check._check_var(
@@ -204,7 +246,14 @@ def _compute_check(
         )
         raise Exception(msg)
 
-    return key, key_bsplines, key_diag, key_cam, method, resMode, crop, store, verb
+    return (
+        key,
+        key_bsplines, key_mesh, key_mesh0, mtype,
+        key_diag, key_cam,
+        method, res, mode, crop,
+        brightness,
+        store, verb,
+    )
 
 
 # ###################
@@ -214,7 +263,6 @@ def _compute_check(
 
 def _compute_los(
     coll=None,
-    is2d=None,
     key_bsplines=None,
     key_diag=None,
     key_cam=None,
@@ -224,7 +272,9 @@ def _compute_los(
     mode=None,
     key_integrand=None,
     radius_max=None,
-    val_init=None,
+    is3d=None,
+    # other
+    shapemat=None,
     brightness=None,
 ):
 
@@ -237,6 +287,9 @@ def _compute_los(
 
         npix = coll.dobj['camera'][k0]['dgeom']['pix_nb']
         key_los = doptics[k0]['los']
+
+        sh = tuple([npix if ss is None else ss for ss in shapemat])
+        mat = np.zeros(sh, dtype=float)
 
         # -----------------------
         # loop on group of pixels (to limit memory footprint)
@@ -259,8 +312,8 @@ def _compute_los(
 
             datai, units, refi = coll.interpolate_profile2d(
                 key=key_bsplines,
-                R=R,
-                Z=Z,
+                R=R[0],
+                Z=Z[0],
                 grid=False,
                 azone=None,
                 indbs=indbs,
@@ -273,52 +326,37 @@ def _compute_los(
                 store=False,
             )
 
-
-
-
-
             axis = refi.index(None)
-            if ii == 0:
-                shape = list(datai.shape)
-                shape[axis] = npix
-                data = np.full(shape, val_init)
-                ref = list(refi)
+            iok = np.isfinite(datai)
+
+            if not np.any(iok):
+                continue
+
+            datai[~iok] = 0.
 
             # ------------
             # integrate
 
-            iok2 = np.isfinite(datai)
-            sli0 = [slice(None) for aa in range(len(refi))]
-            for jj in range(nnan):
+            assert datai.ndim in [2, 3], datai.shape
 
-                # slice datai
-                indi = np.arange(inannb[jj]+1, inannb[jj+1])
-                sli0[axis] = indi
-                slii = tuple(sli0)
-                if not np.any(iok2[slii]):
-                    continue
-
-                # set nan to 0 for integration
-                dataii = datai[slii]
-                dataii[~iok2[slii]] = 0.
-
-                # slice data
-                ind = i0 + jj
-                sli0[axis] = ind
-                sli = tuple(sli0)
-
-                # if jj in [50, 51]:
-                    # plt.figure();
-                    # plt.subplot(1,2,1)
-                    # plt.plot(dataii)
-                    # plt.subplot(1,2,2)
-                    # plt.plot(dataii.T)
-                    # plt.gcf().suptitle(f"jj = {jj}", size=12)
-
-                # integrate
-                data[sli] = scpinteg.simpson(
-                    dataii,
-                    x=length[indi],
+            # integrate
+            if is3d:
+                mat[:, ii, :] = scpinteg.simpson(
+                    datai,
+                    x=length[0],
+                    axis=axis,
+                )
+            elif datai.ndim == 3 and datai.shape[0] == 1:
+                mat[ii, :] = scpinteg.simpson(
+                    datai[0, ...],
+                    x=length,
+                    axis=axis,
+                )
+                # mat[ii, :] = np.nansum(mati[0, ...], axis=0) * reseff[ii]
+            else:
+                mat[ii, :] = scpinteg.simpson(
+                    datai,
+                    x=length,
                     axis=axis,
                 )
 
@@ -330,94 +368,25 @@ def _compute_los(
             ketend = doptics[k0]['etendue']
             etend = coll.ddata[ketend]['data']
             sh_etend = [-1 if aa == axis else 1 for aa in range(len(refi))]
-            data *= etend.reshape(sh_etend)
-
-        # reshape if 2d
-        if is2d:
-            sh_data = list(data.shape)
-            sh_data[axis] = coll.dobj['camera'][k0]['dgeom']['shape']
-            sh_data = tuple(np.r_[
-                sh_data[:axis], sh_data[axis], sh_data[axis+1:]
-            ].astype(int))
-            data = data.reshape(sh_data)
+            mat *= etend.reshape(sh_etend)
 
         # set ref
-        ref[axis] = coll.dobj['camera'][k0]['dgeom']['ref']
-        ref = tuple(np.r_[ref[:axis], ref[axis], ref[axis+1:]])
+        refi[axis] = coll.dobj['camera'][k0]['dgeom']['ref_flat']
+        refi = tuple(np.r_[refi[:axis], refi[axis], refi[axis+1:]])
 
         # fill dout
         dout[k0] = {
             'data': data,
-            'ref': ref,
+            'ref': refi,
         }
+    import pdb; pdb.set_trace()     # DB
 
     # -----
     # units
 
-    units0 = coll.ddata[key_integrand]['units']
-    units = units0 * asunits.m
+    units = asunits.m
     if brightness is False:
         units = units * coll.ddata[ketend]['units']
-
-
-
-
-
-
-
-
-
-
-    # discretize lines once, then evaluated at points
-    pts, reseff, ind = cam.get_sample(
-        res=res,
-        resMode=resMode,
-        DL=None,
-        method='sum',
-        ind=None,
-        pts=True,
-        compact=True,
-        num_threads=10,
-        Test=True,
-    )
-    lr = np.split(np.hypot(pts[0, :], pts[1, :]), ind)
-    lz = np.split(pts[2, :], ind)
-
-    if verb:
-        nmax = len(f"Geometry matrix for {key}, channel {nlos} / {nlos}")
-        nn = 10**(np.log10(nlos)-1)
-
-    for ii in range(nlos):
-
-        # verb
-        if verb:
-            msg = f"Geom. matrix for {key}, chan {ii+1} / {nlos}"
-            end = '\n' if ii == nlos-1 else '\r'
-            print(msg.ljust(nmax), end=end, flush=True)
-
-        # compute
-        mati = coll.interpolate_profile2d(
-            key=key,
-            R=lr[ii],
-            Z=lz[ii],
-            grid=False,
-            indbs=indbs,
-            details=True,
-            nan0=False,
-            val_out=False,
-            return_params=False,
-        )[0]
-        assert mati.ndim in [2, 3], mati.shape
-
-        # integrate
-        if is3d:
-            mat[:, ii, :] = np.nansum(mati, axis=1) * reseff[ii]
-        elif mati.ndim == 3 and mati.shape[0] == 1:
-            mat[ii, :] = np.nansum(mati[0, ...], axis=0) * reseff[ii]
-        else:
-            mat[ii, :] = np.nansum(mati, axis=0) * reseff[ii]
-
-    # scpintg.simps(val, x=None, axis=-1, dx=loc_eff_res[0])
 
     return dout, units
 

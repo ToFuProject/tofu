@@ -47,7 +47,7 @@ class GeometryMatrix(_class8_Diagnostic.Diagnostic):
         key_cam=None,
         # sampling
         res=None,
-        resMode=None,
+        mode=None,
         method=None,
         crop=None,
         verb=None,
@@ -62,7 +62,7 @@ class GeometryMatrix(_class8_Diagnostic.Diagnostic):
             key_cam=key_cam,
             # sampling
             res=res,
-            resMode=resMode,
+            mode=mode,
             method=method,
             crop=crop,
             verb=verb,
