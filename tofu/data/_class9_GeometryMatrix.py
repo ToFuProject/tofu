@@ -12,8 +12,8 @@ import datastock as ds
 
 # tofu
 from . import _class8_Diagnostic
-from . import _matrix_comp
-from . import _matrix_plot
+from . import _class9_compute as _compute
+from . import _class9_plot as _plot
 
 
 __all__ = ['GeometryMatrix']
@@ -55,7 +55,7 @@ class GeometryMatrix(_class8_Diagnostic.Diagnostic):
         store=None,
     ):
 
-        return _matrix_comp.compute(
+        return _compute.compute(
             coll=self,
             key=key,
             key_chan=key_chan,
@@ -90,7 +90,7 @@ class GeometryMatrix(_class8_Diagnostic.Diagnostic):
         dcolorbar=None,
         dleg=None,
     ):
-        return _matrix_plot.plot_geometry_matrix(
+        return _plot.plot_geometry_matrix(
             cam=cam,
             coll=self,
             key=key,
