@@ -25,6 +25,7 @@ def _sample(
     res=None,
     mode=None,
     segment=None,
+    ind_flat=None,
     radius_max=None,
     concatenate=None,
     return_coords=None,
@@ -35,19 +36,20 @@ def _sample(
 
     (
         res, mode, concatenate,
-        segment, radius_max,
+        segment, ind_flat, radius_max,
         return_coords, out_xyz, out_k,
     ) = _sample_check(
         res=res,
         mode=mode,
         concatenate=concatenate,
         segment=segment,
+        ind_flat=ind_flat,
         radius_max=radius_max,
         return_coords=return_coords,
     )
 
     # -----------
-    # compute
+    # prepare
     # -----------
 
     # ------------------------
@@ -55,6 +57,7 @@ def _sample(
 
     pts_x, pts_y, pts_z = coll.get_rays_pts(key=key, key_cam=key_cam)
     npts = pts_x.shape[0]
+    npix = np.prod(pts_x.shape[1:])
     i0 = np.arange(0, npts)
 
     # segment
@@ -62,14 +65,23 @@ def _sample(
         segment[segment < 0] = npts - 1 + segment[segment < 0]
         iseg = np.r_[segment, segment[-1] + 1]
 
+    # ind_flat
+    if ind_flat is not None:
+        ind_flat[ind_flat < 0] = npix - 1 + ind_flat[ind_flat < 0]
+
+        pts_x = np.reshape(pts_x, (npts, -1))[:, ind_flat]
+        pts_y = np.reshape(pts_y, (npts, -1))[:, ind_flat]
+        pts_z = np.reshape(pts_z, (npts, -1))[:, ind_flat]
+
     # length
-    length0 = np.sqrt(
+    length_orig = np.sqrt(
         np.diff(pts_x, axis=0)**2
         + np.diff(pts_y, axis=0)**2
         + np.diff(pts_z, axis=0)**2
     )
-    zeros = np.zeros(tuple(np.r_[1, length0.shape[1:]]), dtype=float)
-    length0 = np.concatenate((zeros, length0), axis=0)
+    zeros = np.zeros(tuple(np.r_[1, length_orig.shape[1:]]), dtype=float)
+    length0 = np.cumsum(np.concatenate((zeros, length_orig), axis=0), axis=0)
+    length1 = np.concatenate((length_orig, length_orig[-1:, ...]), axis=0)
 
     # changes to pts
     if radius_max is not None:
@@ -83,6 +95,13 @@ def _sample(
             return_itot=True,
         )[3:]
 
+        # ind_flat
+        if ind_flat is not None:
+            pts_x = np.reshape(pts_x, (pts_x.shape[0], -1))[:, ind_flat]
+            pts_y = np.reshape(pts_y, (pts_x.shape[0], -1))[:, ind_flat]
+            pts_z = np.reshape(pts_z, (pts_x.shape[0], -1))[:, ind_flat]
+            i0 = np.reshape(i0, (pts_x.shape[0], -1))[:, ind_flat]
+
         length_rad = np.sqrt(
             np.diff(pts_x, axis=0)**2
             + np.diff(pts_y, axis=0)**2
@@ -91,6 +110,7 @@ def _sample(
 
         if segment is not None:
             length0 = length0[iseg, ...]
+            length1 = length1[iseg, ...]
 
     else:
         if segment is not None:
@@ -99,11 +119,16 @@ def _sample(
             pts_y = pts_y[i0, ...]
             pts_z = pts_z[i0, ...]
             length0 = length0[iseg, ...]
+            length1 = length1[iseg, ...]
 
         length_rad = length0[1:, ...]
 
-   # -------------------------
-   # prepare sampling indices
+    # -----------
+    # compute
+    # -----------
+
+    # -------------------------
+    # prepare sampling indices
 
     # rel
     if mode == 'rel':
@@ -135,10 +160,11 @@ def _sample(
                 axis=0,
             )(itot)
 
-        if 'l' in return_coords:
+        if 'l' in return_coords or 'ltot' in return_coords:
             i1 = np.floor(itot).astype(int)
-            i1[i1 == length0.shape[0]] -= 1
-            length = length0[i1, ...]
+            i1[i1 == length1.shape[0] - 1] -= 1
+            length = length1[i1, ...]
+            lengthtot = length0[i1, ...]
 
     # abs => for pts.ndim >= 3 (2d cameras and above), flattened list
     else:
@@ -146,7 +172,7 @@ def _sample(
         iok = np.isfinite(pts_x)
         nn = np.ceil(length_rad / res).astype(int)
 
-        lpx, lpy, lpz, itot, llen = [], [], [], [], []
+        lpx, lpy, lpz, itot, llen, lentot = [], [], [], [], [], []
         for ind in itt.product(*[range(ss) for ss in pts_x.shape[1:]]):
 
             sli = tuple([slice(None)] + list(ind))
@@ -192,15 +218,17 @@ def _sample(
                     axis=0,
                 )(itoti))
 
-            if 'l' in return_coords:
+            if 'l' in return_coords or 'ltot' in return_coords:
                 i1 = np.floor(itoti).astype(int)
-                i1[i1 == length0.shape[0]] -= 1
-                llen.append(length0[sli][i1])
+                i1[i1 == length0.shape[0] - 1] -= 1
+                llen.append(length1[sli][i1])
+                lentot.append(length0[sli][i1])
 
         if out_xyz:
             pts_x, pts_y, pts_z = lpx, lpy, lpz
-        if 'l' in return_coords:
+        if 'l' in return_coords or 'ltot' in return_coords:
             length = llen
+            lengthtot = lentot
 
     # -------------------------------------
     # optional concatenation (for plotting)
@@ -218,8 +246,10 @@ def _sample(
                 pts_x = np.concatenate((pts_x, nan), axis=0).T.ravel()
                 pts_y = np.concatenate((pts_y, nan), axis=0).T.ravel()
                 pts_z = np.concatenate((pts_z, nan), axis=0).T.ravel()
-            if 'l' in return_coords:
+            if 'l' in return_coordsi or 'ltot' in return_coords:
                 length = np.concatenate((length, nan), axis=0).T.ravel()
+                lengthtot = np.concatenate((lengthtot, nan), axis=0).T.ravel()
+
 
         else:
             if out_k:
@@ -236,9 +266,12 @@ def _sample(
                 pts_z = np.concatenate(
                     tuple([np.append(pp, np.nan) for pp in pts_z])
                     )
-            if 'l' in return_coords:
+            if 'l' in return_coords or 'ltot' in return_coords:
                 length = np.concatenate(
                     tuple([np.append(pp, np.nan) for pp in length])
+                    )
+                lengthtot = np.concatenate(
+                    tuple([np.append(pp, np.nan) for pp in lengthtot])
                     )
 
     # -------------
@@ -319,8 +352,26 @@ def _sample(
                     for kki, ll in zip(kk, length)
                 ])
 
-    # print(return_coords)
-    # print([oo.shape for oo in lout])
+        elif cc == 'ltot':
+            if concatenate is True or mode == 'rel':
+                # import matplotlib.pyplot as plt
+                # plt.figure()
+                # plt.subplot(1,4,1)
+                # plt.plot(kk)
+                # plt.subplot(1,4,2)
+                # plt.plot(length)
+                # plt.subplot(1,4,3)
+                # plt.plot(lengthtot)
+                # plt.subplot(1,4,4)
+                # plt.plot(kk*length + lengthtot)
+                # import pdb; pdb.set_trace()     # DB
+
+                lout.append(kk*length + lengthtot)
+            else:
+                lout.append([
+                    kki * ll1 + ll0
+                    for kki, ll1, ll0 in zip(kk, length, lengthtot)
+                ])
 
     return lout
 
@@ -329,6 +380,7 @@ def _sample_check(
     res=None,
     mode=None,
     segment=None,
+    ind_flat=None,
     radius_max=None,
     concatenate=None,
     return_coords=None,
@@ -361,6 +413,10 @@ def _sample_check(
     if segment is not None:
         segment = np.atleast_1d(segment).astype(int).ravel()
 
+    # ind_flat
+    if ind_flat is not None:
+        ind_flat = np.atleast_1d(ind_flat).astype(int).ravel()
+
     # tangency_radius_max
     if radius_max is not None:
         radius_max = ds._generic_check._check_var(
@@ -377,7 +433,7 @@ def _sample_check(
     if isinstance(return_coords, str):
         return_coords = [return_coords]
 
-    lok_k = ['k', 'l', 'itot']
+    lok_k = ['k', 'l', 'ltot', 'itot']
     lok_xyz = ['x', 'y', 'z', 'R', 'phi', 'ang_vs_ephi']
     return_coords = ds._generic_check._check_var_iter(
         return_coords, 'return_coords',
@@ -392,7 +448,7 @@ def _sample_check(
 
     return (
         res, mode, concatenate,
-        segment, radius_max,
+        segment, ind_flat, radius_max,
         return_coords, out_xyz, out_k,
     )
 

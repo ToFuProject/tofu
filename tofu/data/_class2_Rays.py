@@ -158,12 +158,13 @@ class Rays(_class1_Plasma2D.Plasma2D):
         res=None,
         mode=None,
         segment=None,
+        ind_flat=None,
         radius_max=None,
         concatenate=None,
         return_coords=None,
     ):
         """ Return the sampled rays
-        
+
         Parameters
         ----------
         key:        str
@@ -194,6 +195,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
             res=res,
             mode=mode,
             segment=segment,
+            ind_flat=ind_flat,
             radius_max=radius_max,
             concatenate=concatenate,
             return_coords=return_coords,
