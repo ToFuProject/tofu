@@ -881,7 +881,7 @@ def _plot_bspline_prepare(
     res=None,
     knotsi=None,
     centsi=None,
-    nan_out=None,
+    val_out=None,
     nan0=None,
 ):
 
@@ -930,7 +930,7 @@ def _plot_bspline_prepare(
         details=indbs is not None,
         grid=False,
         nan0=nan0,
-        nan_out=nan_out,
+        val_out=val_out,
         return_params=False,
     )[0]
 
@@ -985,7 +985,7 @@ def plot_bspline(
     cents=None,
     res=None,
     plot_mesh=None,
-    nan_out=None,
+    val_out=None,
     nan0=None,
     # plot-specific
     cmap=None,
@@ -1029,7 +1029,7 @@ def plot_bspline(
         knotsi=knotsi,
         centsi=centsi,
         res=res,
-        nan_out=nan_out,
+        val_out=val_out,
         nan0=nan0,
     )
 

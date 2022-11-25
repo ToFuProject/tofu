@@ -403,7 +403,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         crop=None,
         cropbs=None,
         coefs=None,
-        nan_out=None,
+        val_out=None,
     ):
 
         # -----------
@@ -478,7 +478,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         R=None,
         Z=None,
         coefs=None,
-        nan_out=None,
+        val_out=None,
         # for compatibility (unused)
         crop=None,
         cropbs=None,
@@ -488,8 +488,8 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         # -----------
         # generic
 
-        if nan_out is None:
-            nan_out = True
+        if val_out is None:
+            val_out = np.nan
 
         # coefs
         self._check_coefs(coefs=coefs)
@@ -542,8 +542,8 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                         1. - heights[indi, inum[jj]]
                     ) * coefs[:, jbs, ...]
 
-        if nan_out is True:
-            val[:, ind == -1] = np.nan
+        if val_out is not False:
+            val[:, ind == -1] = val_out
         return val
 
     # TBC

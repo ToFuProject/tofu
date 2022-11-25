@@ -312,7 +312,7 @@ class BivariateSplinePolar():
         coefs=None,
         # options
         radius_vs_time=None,
-        nan_out=None,
+        val_out=None,
         # for purely radial only
         deriv=None,
         # for compatibility (unused)
@@ -446,16 +446,17 @@ class BivariateSplinePolar():
                                 * (valr[iokj]*vala[iokj])[None, ...]
                             )
 
-        if nan_out is True:
+        # clean out-of-mesh
+        if val_out is not False:
             # pts out 
             indout = (
                 (radius < self.knotsr.min())
                 | (radius > self.knotsr.max())
             )
             if radius_vs_time:
-                val[indout] = np.nan
+                val[indout] = val_out
             else:
-                val[:, indout] = np.nan
+                val[:, indout] = val_out
 
         return val
 
@@ -470,7 +471,7 @@ class BivariateSplinePolar():
         # for compatibility (unused)
         coefs=None,
         radius_vs_time=None,
-        nan_out=None,
+        val_out=None,
     ):
         """ Assumes
 

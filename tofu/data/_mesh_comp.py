@@ -1827,7 +1827,7 @@ def _interp2d_check(
     res=None,
     crop=None,
     nan0=None,
-    nan_out=None,
+    val_out=None,
     imshow=None,
     return_params=None,
     store=None,
@@ -1886,12 +1886,12 @@ def _interp2d_check(
     )
 
     # -------------
-    # nan_out
+    # val_out
 
-    nan_out = ds._generic_check._check_var(
-        nan_out, 'nan_out',
-        types=bool,
-        default=True,
+    val_out = ds._generic_check._check_var(
+        val_out, 'val_out',
+        default=np.nan,
+        allowed=[False, np.nan, 0.]
     )
 
     # -----------
@@ -2030,7 +2030,7 @@ def _interp2d_check(
             rad2d_indt = dind[radius2d].get('ind') if rad2d_hastime else None
 
             # compute radius2d at relevant times
-            radius, _ = coll.interpolate_profile2d(
+            radius, _, _ = coll.interpolate_profile2d(
                 # coordinates
                 R=R,
                 Z=Z,
@@ -2045,7 +2045,7 @@ def _interp2d_check(
             # compute angle2d at relevant times
             angle2d = coll.dobj[coll._which_mesh][keym]['angle2d']
             if angle2d is not None:
-                angle, _ = coll.interpolate_profile2d(
+                angle, _, _ = coll.interpolate_profile2d(
                     # coordinates
                     R=R,
                     Z=Z,
@@ -2224,7 +2224,7 @@ def _interp2d_check(
         indbs, indbs_tf,
         t, indt, indtu, indtr,
         details, crop,
-        nan0, nan_out,
+        nan0, val_out,
         return_params,
         store, inplace,
     )
@@ -2257,7 +2257,7 @@ def interp2d(
     res=None,
     crop=None,
     nan0=None,
-    nan_out=None,
+    val_out=None,
     imshow=None,
     return_params=None,
     store=None,
@@ -2280,7 +2280,7 @@ def interp2d(
         indbs, indbs_tf,
         t, indt, indtu, indtr,
         details, crop,
-        nan0, nan_out,
+        nan0, val_out,
         return_params,
         store, inplace,
     ) = _interp2d_check(
@@ -2309,7 +2309,7 @@ def interp2d(
         res=res,
         crop=crop,
         nan0=nan0,
-        nan_out=nan_out,
+        val_out=val_out,
         imshow=imshow,
         return_params=return_params,
         store=store,
@@ -2361,7 +2361,7 @@ def interp2d(
             crop=crop,
             cropbs=cropbs,
             indbs_tf=indbs_tf,
-            nan_out=nan_out,
+            val_out=val_out,
         )
 
         # manage time
@@ -2380,7 +2380,7 @@ def interp2d(
             coefs=coefs,
             indbs_tf=indbs_tf,
             radius_vs_time=radius_vs_time,
-            nan_out=nan_out,
+            val_out=val_out,
         )
 
         shape_pts = radius.shape
@@ -2445,8 +2445,11 @@ def interp2d(
         else:
             coll2 = ds.DataStock()
 
+        # add ref nR, nZ
         coll2.add_ref(key=knR, size=nR)
         coll2.add_ref(key=knZ, size=nZ)
+
+        # add data Ru, Zu
         coll2.add_data(
             key=kR,
             data=Ru,
@@ -2500,6 +2503,19 @@ def interp2d(
             units=coll.ddata[key]['units'],
         )
 
+    else:
+
+        if grid is True:
+            if reft in [None, False]:
+                ref = (None, None)
+            else:
+                ref = (reft, None, None)
+        else:
+            if reft in [None, False]:
+                ref = (None,)
+            else:
+                ref = (reft, None)
+
     # ------
     # return
 
@@ -2507,9 +2523,9 @@ def interp2d(
         return coll2
     else:
         if return_params is True:
-            return val, t, dparams
+            return val, t, ref, dparams
         else:
-            return val, t
+            return val, t, ref
 
 
 # #############################################################################
@@ -2932,7 +2948,7 @@ def radius2d_special_points(
     )
 
     # get map
-    val, t = coll.interpolate_profile2d(
+    val, t, _ = coll.interpolate_profile2d(
         key=key,
         R=RR,
         Z=ZZ,
@@ -3043,7 +3059,7 @@ def angle2d_zone(
     )
 
     # get map
-    val, t = coll.interpolate_profile2d(
+    val, t, _ = coll.interpolate_profile2d(
         key=key,
         R=RR,
         Z=ZZ,
@@ -3080,14 +3096,14 @@ def angle2d_zone(
 
     # get points inside contour 
     for ii in range(nt):
-        rmin[ii, :], _ = coll.interpolate_profile2d(
+        rmin[ii, :], _, _ = coll.interpolate_profile2d(
             key=keyrad2d,
             R=cRmin[ii, :],
             Z=cZmin[ii, :],
             grid=False,
             indt=ii,
         )
-        rmax[ii, :], _ = coll.interpolate_profile2d(
+        rmax[ii, :], _, _ = coll.interpolate_profile2d(
             key=keyrad2d,
             R=cRmax[ii, :],
             Z=cZmax[ii, :],

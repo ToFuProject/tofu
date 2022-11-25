@@ -135,13 +135,13 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         coefs=None,
         crop=None,
         cropbs=None,
-        nan_out=None,
+        val_out=None,
         # for compatibility (unused)
         indbs_tf=None,
     ):
 
-        if nan_out is None:
-            nan_out = True
+        if val_out is None:
+            val_out = np.nan
 
         # coefs
         self._check_coefs(coefs=coefs)
@@ -172,12 +172,12 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             val[ii, ...] = super().__call__(r, z, grid=False)
 
         # clean
-        if nan_out is True:
+        if val_out is not False:
             indout = (
                 (r < self.tck[0][0]) | (r > self.tck[0][-1])
                 | (z < self.tck[1][0]) | (z > self.tck[1][-1])
             )
-            val[:, indout] = np.nan
+            val[:, indout] = val_out
         return val
 
     def ev_details(
@@ -189,7 +189,7 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         cropbs=None,
         # for compatibility (unused)
         coefs=None,
-        nan_out=None,
+        val_out=None,
     ):
         """
         indbs_tf = (ar0, ar1)
