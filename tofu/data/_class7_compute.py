@@ -54,6 +54,9 @@ def add_camera_pinhole(
     # pinhole
     pinhole_radius=None,
     pinhole_size=None,
+    # reflections
+    reflections_nb=None,
+    reflections_type=None,
     # diagnostic
     compute=None,
     config=None,
@@ -127,6 +130,9 @@ def add_camera_pinhole(
         dgeom_pin=dgeom_pin,
         dgeom_cam=dgeom_cam,
         newdiag=newdiag,
+        # reflections
+        reflections_nb=reflections_nb,
+        reflections_type=reflections_type,
         compute=compute,
         config=config,
         length=length,
@@ -441,6 +447,9 @@ def _add_camera_pinhole_store(
     dgeom_pin=None,
     dgeom_cam=None,
     newdiag=None,
+    # reflections
+    reflections_nb=None,
+    reflections_type=None,
     compute=None,
     config=None,
     length=None,
@@ -492,6 +501,8 @@ def _add_camera_pinhole_store(
     coll.add_diagnostic(
         key=key_diag,
         doptics=doptics,
+        reflections_nb=reflections_nb,
+        reflections_type=reflections_type,
         compute=compute,
         config=config,
         length=length,

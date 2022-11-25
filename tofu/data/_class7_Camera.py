@@ -215,6 +215,9 @@ class Camera(_class6_Grating.Grating):
         # pinhole
         pinhole_radius=None,
         pinhole_size=None,
+        # reflections
+        reflections_nb=None,
+        reflections_type=None,
         # diagnostic
         compute=None,
         config=None,
@@ -245,12 +248,14 @@ class Camera(_class6_Grating.Grating):
             # pinhole
             pinhole_radius=pinhole_radius,
             pinhole_size=pinhole_size,
+            # reflections
+            reflections_nb=reflections_nb,
+            reflections_type=reflections_type,
             # diagnostic
             compute=compute,
             config=config,
             length=length,
         )
-
 
     # ---------------
     # utilities
