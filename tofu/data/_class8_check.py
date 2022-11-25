@@ -50,7 +50,7 @@ def _diagnostics_check(
     if c0:
         err = True
 
-    # detailed checks 
+    # detailed checks
     dkout = None
     if err is False:
 
@@ -113,7 +113,7 @@ def _diagnostics_check(
         last_ref = cam
         last_ref_cls = 'camera'
         for oo in doptics[cam]:
-    
+
             if oo in lap:
                 cls = 'aperture'
             elif oo in lfilt:
@@ -122,17 +122,17 @@ def _diagnostics_check(
                 cls = 'crystal'
             else:
                 cls = 'grating'
-    
+
             dgeom = coll.dobj[cls][oo]['dgeom']
-    
+
             px, py, pz = coll.get_optics_poly(key=oo)
-    
+
             dgeom_lastref = coll.dobj[last_ref_cls][last_ref]['dgeom']
-    
+
             if (last_ref == cam and is2d) or last_ref != cam:
                 cent = dgeom_lastref['cent']
                 nin = dgeom_lastref['nin']
-    
+
                 iout = (
                     (px - cent[0])*nin[0]
                     + (py - cent[1])*nin[1]
@@ -146,15 +146,15 @@ def _diagnostics_check(
                         f"{iout.nonzero()[0]}"
                     )
                     raise Exception(msg)
-    
+
             else:
                 assert last_ref == cam and not is2d
-    
+
                 cx, cy, cz = dgeom_cam['cents']
                 cx = coll.ddata[cx]['data'][None, :]
                 cy = coll.ddata[cy]['data'][None, :]
                 cz = coll.ddata[cz]['data'][None, :]
-    
+
                 if dgeom_cam['parallel']:
                     ninx, niny, ninz = dgeom_cam['nin']
                 else:
@@ -162,7 +162,7 @@ def _diagnostics_check(
                     ninx = coll.ddata[ninx]['data'][None, :]
                     niny = coll.ddata[niny]['data'][None, :]
                     ninz = coll.ddata[ninz]['data'][None, :]
-    
+
                 iout = (
                     (px[:, None] - cx)*ninx
                     + (py[:, None] - cy)*niny
@@ -175,7 +175,7 @@ def _diagnostics_check(
                         f"{np.unique(iout.nonzero()[0])}"
                     )
                     warnings.warn(msg)
-    
+
             # update last_ref ?
             if cls in ['crystal', 'grating']:
                 last_ref = oo
@@ -192,7 +192,7 @@ def _diagnostics_check(
             ])
         for k0, v0 in doptics.items()
     }
-    
+
     lc = [
         all([v0 for v0 in dspectro.values()]),
         all([not v0 for v0 in dspectro.values()]),
@@ -306,10 +306,10 @@ def _diagnostics(
 
 
 def _get_default_cam(coll=None, key=None, key_cam=None):
-    
+
     # ----------
-    # key 
-    
+    # key
+
     lok = list(coll.dobj.get('diagnostic', {}).keys())
     key = ds._generic_check._check_var(
         key, 'key',
@@ -318,20 +318,20 @@ def _get_default_cam(coll=None, key=None, key_cam=None):
     )
     is2d = coll.dobj['diagnostic'][key]['is2d']
     # spectro = coll.dobj['diagnostic'][key]['spectro']
-    
+
     # -----------------------
     # key_cam (only 1 if is2d)
-    
+
     lok = list(coll.dobj['diagnostic'][key]['doptics'].keys())
     if is2d:
         # 2d: can only select one camera at a time
         key_cam_def = [coll.dobj['diagnostic'][key]['camera'][0]]
     else:
         key_cam_def = None
-        
+
     if isinstance(key_cam, str):
         key_cam = [key_cam]
-    
+
     key_cam = ds._generic_check._check_var_iter(
         key_cam, 'key_cam',
         types=list,
@@ -339,7 +339,7 @@ def _get_default_cam(coll=None, key=None, key_cam=None):
         allowed=lok,
         default=key_cam_def,
     )
-         
+
     return key, key_cam
 
 
@@ -380,7 +380,7 @@ def _get_optics_cls(coll=None, optics=None):
 
     if isinstance(optics, str):
         optics = [optics]
-        
+
     lok = list(itt.chain.from_iterable([
         list(coll.dobj.get(cc, {}).keys())
         for cc in lcls
@@ -403,10 +403,10 @@ def _get_optics_cls(coll=None, optics=None):
             optics_cls.append(lc[0])
         else:
             derr[oo] = lc
-            
+
     # --------
     # error
-    
+
     if len(derr) > 0:
         msg = (
             f"The following have no / several classes:\n"
@@ -428,10 +428,10 @@ def _get_optics_cls(coll=None, optics=None):
 #         types=str,
 #         allowed=lok,
 #     )
-    
+
 #     # ------------------
 #     # optics and classes
-    
+
 #     doptics = {}
 #     for k0, v0 in coll.dobj['diagnostic'][key]['doptics']:
 #         doptics[k0]['camera'] = k0
@@ -439,10 +439,10 @@ def _get_optics_cls(coll=None, optics=None):
 #             coll=coll,
 #             optics=v0,
 #         )
-        
+
 #     # -----------
 #     # ispectro
-    
+
 #     if coll.dobj['diagnostic'][key]['spectro']:
 #         for k0, v0 in doptics.items():
 #             doptics[k0]['ispectro'] = [

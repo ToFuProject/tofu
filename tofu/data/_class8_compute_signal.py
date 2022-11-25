@@ -325,7 +325,6 @@ def _compute_los(
 
             datai, units, refi = coll.interpolate_profile2d(
                 key=key_integrand,
-                coefs=None,
                 R=R,
                 Z=Z,
                 grid=False,
@@ -337,12 +336,10 @@ def _compute_los(
                 indbs=None,
                 details=False,
                 reshape=None,
-                res=None,
                 crop=None,
                 nan0=True,
                 val_out=np.nan,
-                imshow=None,
-                return_params=None,
+                return_params=False,
                 store=False,
             )
 
