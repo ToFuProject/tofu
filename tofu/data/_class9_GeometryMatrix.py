@@ -31,7 +31,7 @@ class GeometryMatrix(_class8_Diagnostic.Diagnostic):
 
     _dshow = dict(_class8_Diagnostic.Diagnostic._dshow)
     _dshow.update({
-        'geom. matrix': [
+        'geom matrix': [
         ],
     })
 
@@ -42,7 +42,7 @@ class GeometryMatrix(_class8_Diagnostic.Diagnostic):
     def add_geometry_matrix(
         self,
         key=None,
-        key_chan=None,
+        key_bsplines=None,
         key_diag=None,
         key_cam=None,
         # sampling
@@ -50,7 +50,6 @@ class GeometryMatrix(_class8_Diagnostic.Diagnostic):
         resMode=None,
         method=None,
         crop=None,
-        name=None,
         verb=None,
         store=None,
     ):
@@ -58,13 +57,14 @@ class GeometryMatrix(_class8_Diagnostic.Diagnostic):
         return _compute.compute(
             coll=self,
             key=key,
-            key_chan=key_chan,
-            cam=cam,
+            key_bsplines=key_bsplines,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            # sampling
             res=res,
             resMode=resMode,
             method=method,
             crop=crop,
-            name=name,
             verb=verb,
             store=store,
         )
