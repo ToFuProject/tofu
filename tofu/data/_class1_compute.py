@@ -2433,6 +2433,12 @@ def interp2d(
     # ------
     # store
 
+    # ref
+    if hastime or radius_vs_time:
+        if reft in [None, False] or indt is not None:
+            reft = f'{key}-nt'
+
+    # store
     if store is True:
         Ru = np.unique(R)
         Zu = np.unique(Z)
@@ -2471,7 +2477,6 @@ def interp2d(
         # ref
         if hastime or radius_vs_time:
             if reft in [None, False] or indt is not None:
-                reft = f'{key}-nt'
                 coll2.add_ref(key=reft, size=t.size)
                 coll2.add_data(
                     key=f'{key}-t',
@@ -2527,6 +2532,8 @@ def interp2d(
                 f"\t- ref = {ref}\n"
                 f"\t- reft = {reft}\n"
                 f"\t- details = {details}\n"
+                f"\t- key = {key}\n"
+                f"\t- radius_vs_time = {radius_vs_time}\n"
                 f"\t- grid = {grid}\n"
                 f"\t- R.shape = {R.shape}\n"
                 f"\t- Z.shape = {Z.shape}\n"

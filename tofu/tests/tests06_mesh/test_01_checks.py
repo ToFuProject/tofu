@@ -312,46 +312,46 @@ class Test01_checks_Instanciate():
                 assert x_new.size == np.unique(x_new).size == res.size + 1
 
     def test02_add_mesh_rect_uniform(self):
-        plasma = tfd.Plasma2D()
+        plasma = tfd.Collection()
         _add_rect_uniform(plasma)
         _add_bsplines(plasma)
 
     def test03_add_mesh_rect_variable(self):
-        plasma = tfd.Plasma2D()
+        plasma = tfd.Collection()
         _add_rect_variable(plasma)
         _add_bsplines(plasma)
 
     def test04_add_mesh_rect_variable_crop(self):
-        plasma = tfd.Plasma2D()
+        plasma = tfd.Collection()
         _add_rect_variable_crop(plasma)
         _add_bsplines(plasma)
 
     def test05_add_mesh_tri_ntri1(self):
-        plasma = tfd.Plasma2D()
+        plasma = tfd.Collection()
         _add_tri_ntri1(plasma)
         _add_bsplines(plasma)
 
     def test06_add_mesh_tri_ntri2(self):
-        plasma = tfd.Plasma2D()
+        plasma = tfd.Collection()
         _add_tri_ntri2(plasma)
         _add_bsplines(plasma)
 
     def test07_add_mesh_polar_radial(self):
-        plasma = tfd.Plasma2D()
+        plasma = tfd.Collection()
         _add_rect_variable_crop(plasma)
         _add_bsplines(plasma)
         _add_polar1(plasma)
         _add_bsplines(plasma, kind=['polar'])
 
     def test08_add_mesh_polar_angle_regular(self):
-        plasma = tfd.Plasma2D()
+        plasma = tfd.Collection()
         _add_rect_variable_crop(plasma)
         _add_bsplines(plasma)
         _add_polar2(plasma)
         _add_bsplines(plasma, kind=['polar'])
 
     def test09_add_mesh_polar_angle_variable(self):
-        plasma = tfd.Plasma2D()
+        plasma = tfd.Collection()
         _add_rect_variable_crop(plasma)
         _add_bsplines(plasma)
         _add_polar2(plasma, key='m7')
@@ -369,14 +369,14 @@ class Test01_checks_Instanciate():
 #######################################################
 
 
-class Test02_Plasma2D():
+class Test02_Collection():
 
     @classmethod
     def setup_class(cls):
         pass
 
     def setup_method(self):
-        plasma = tfd.Plasma2D()
+        plasma = tfd.Collection()
 
         # add rect mesh
         _add_rect_uniform(plasma)
@@ -573,7 +573,7 @@ class Test02_Plasma2D():
                 details=False,
                 reshape=True,
                 res=None,
-                crop=True,
+                crop=None,
                 nan0=ii % 2 == 0,
                 imshow=False,
             )
@@ -591,7 +591,7 @@ class Test02_Plasma2D():
                 details=False,
                 reshape=True,
                 res=None,
-                crop=True,
+                crop=None,
                 nan0=ii % 2 == 0,
                 imshow=False,
             )
@@ -609,7 +609,7 @@ class Test02_Plasma2D():
                 details=False,
                 reshape=True,
                 res=None,
-                crop=True,
+                crop=None,
                 nan0=ii % 2 == 0,
                 imshow=False,
             )
@@ -637,7 +637,7 @@ class Test02_Plasma2D():
             keym = self.obj.dobj['bsplines'][k0]['mesh']
             mtype = self.obj.dobj['mesh'][keym]['type']
 
-            val, t = self.obj.interpolate_profile2d(
+            val, t, ref = self.obj.interpolate_profile2d(
                 key=k0,
                 R=x,
                 Z=y,
@@ -648,7 +648,7 @@ class Test02_Plasma2D():
                 details=True,
                 reshape=True,
                 res=None,
-                crop=True,
+                crop=None,
                 nan0=ii % 2 == 0,
                 imshow=False,
                 return_params=False,
@@ -667,7 +667,7 @@ class Test02_Plasma2D():
                 vshap = val.shape
             assert vshap == vshap0, val.shape
 
-            val_sum, t = self.obj.interpolate_profile2d(
+            val_sum, t, ref = self.obj.interpolate_profile2d(
                 key=k0,
                 R=x,
                 Z=y,
@@ -678,9 +678,9 @@ class Test02_Plasma2D():
                 details=False,
                 reshape=True,
                 res=None,
-                crop=True,
+                crop=None,
                 nan0=False,
-                nan_out=False,
+                val_out=0.,
                 imshow=False,
                 return_params=False,
             )
@@ -855,7 +855,7 @@ class Test02_Plasma2D():
                 key=k0,
                 cam=cam,
                 res=0.01,
-                crop=True,
+                crop=None,
                 store=True,
             )
 

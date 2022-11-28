@@ -41,16 +41,23 @@ def _plot_geometry_matrix_check(
 ):
 
     # key
-    lk = list(coll.dobj['matrix'].keys())
+    lk = list(coll.dobj['geom matrix'].keys())
     key = ds._generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
         allowed=lk,
     )
-    keybs = coll.dobj['matrix'][key]['bsplines']
+
+    keybs = coll.dobj['geom matrix'][key]['bsplines']
     refbs = coll.dobj['bsplines'][keybs]['ref']
     keym = coll.dobj['bsplines'][keybs]['mesh']
+
+    key_diag = coll.dobj['geom matrix'][key]['diagnostic']
+    key_cam = coll.dobj['geom matrix'][key]['camera']
+    key_data = coll.dobj['geom matrix'][key]['data']
+    shape = coll.dobj['geom matrix'][key]['shape']
+    axis = coll.dobj['geom matrix'][key]['axis_chan']
 
     # indbf
     if indbf is None:
@@ -64,20 +71,20 @@ def _plot_geometry_matrix_check(
         )
         raise Exception(msg)
 
-    # indchan
-    if indchan is None:
-        indchan = 0
-    try:
-        assert np.isscalar(indchan)
-        indchan = int(indchan)
-    except Exception as err:
-        msg = (
-            f"Arg indchan should be a int!\nProvided: {indt}"
-        )
-        raise Exception(msg)
+    # # indchan
+    # if indchan is None:
+        # indchan = 0
+    # try:
+        # assert np.isscalar(indchan)
+        # indchan = int(indchan)
+    # except Exception as err:
+        # msg = (
+            # f"Arg indchan should be a int!\nProvided: {indt}"
+        # )
+        # raise Exception(msg)
 
     # indt
-    hastime = coll.get_time(key=key)[0]
+    hastime = coll.get_time(key=key_data[0])[0]
     if hastime:
         if indt is None:
             indt = 0
@@ -98,7 +105,8 @@ def _plot_geometry_matrix_check(
 
     # vmin, vmax
     if vmax is None:
-        vmax = np.nanmax(coll.ddata[key]['data'])
+        lmax = [np.nanmax(coll.ddata[kk]['data']) for kk in key_data]
+        vmax = max(lmax)
     if vmin is None:
         vmin = 0
 
@@ -135,7 +143,10 @@ def _plot_geometry_matrix_check(
     )
 
     return (
-        key, keybs, keym,
+        key,
+        keybs, keym,
+        key_diag, key_cam, key_data,
+        shape, axis,
         indbf, indchan, indt,
         plot_mesh,
         cmap, vmin, vmax,
@@ -144,9 +155,9 @@ def _plot_geometry_matrix_check(
 
 
 def _plot_geometry_matrix_prepare(
-    cam=None,
     coll=None,
     key=None,
+    key_data=None,
     keybs=None,
     keym=None,
     indbf=None,
@@ -188,8 +199,8 @@ def _plot_geometry_matrix_prepare(
         res = [res_coef*dR, res_coef*dZ]
 
     # crop
-    nchan, nbs = coll.dobj['matrix'][key]['shape'][-2:]
-    crop = coll.dobj['matrix'][key]['crop']
+    nchan, nbs = coll.dobj['geom matrix'][key]['shape'][-2:]
+    crop = coll.dobj['geom matrix'][key]['crop']
 
     # --------
     # indices
@@ -263,7 +274,7 @@ def _plot_geometry_matrix_prepare(
 
     assert nbs == nbf
 
-    hastime, hasref, reft, keyt, t, dind = coll.get_time(key=key)
+    hastime, hasref, reft, keyt, t, dind = coll.get_time(key=key_data[0])
     if hastime:
         nt = coll.dref[reft]['size']
 
@@ -279,7 +290,7 @@ def _plot_geometry_matrix_prepare(
     # -------------
     # interpolation
 
-    # bsplinetot
+    # bspline details
     shapebs = coll.dobj['bsplines'][keybs]['shape']
 
     bsplinebase = coll.interpolate_profile2d(
@@ -342,15 +353,38 @@ def _plot_geometry_matrix_prepare(
     # matrix refs
     refs = coll.ddata[key]['ref']
 
+
+    # -------------
+    # coll2
+
+    coll2 = coll.__class__()
+
+    gmat, ref = coll.get_geometry_matrix_concatenate(key=key)
+    npix = gmat.shape[axis]
+
+    for ii, rr in enumerate(ref):
+        if rr is None:
+            coll2.add_ref(key='npix', size=npix)
+        else:
+            coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
+            ref[ii] = 'npix'
+
+    coll2.add_data(
+        key='gmat',
+        data=gmat,
+        ref=ref,
+        units=coll.dobj['geom matrix'][key]['units'],
+    )
+
     return (
         bsplinetot, bsplinedet, extent, interp,
         ptslos, indlosok, indbf_bool, refs,
+        coll2,
     )
 
 
 def plot_geometry_matrix(
     # resources
-    cam=None,
     coll=None,
     # parameters
     key=None,
@@ -375,7 +409,10 @@ def plot_geometry_matrix(
     # check input
 
     (
-        key, keybs, keym,
+        key,
+        keybs, keym,
+        key_diag, key_cam, key_data,
+        shape, axis,
         indbf, indchan, indt,
         plot_mesh,
         cmap, vmin, vmax,
@@ -405,9 +442,9 @@ def plot_geometry_matrix(
         ptslos, indlosok,
         ich_bf, refs,
     ) = _plot_geometry_matrix_prepare(
-        cam=cam,
         coll=coll,
         key=key,
+        key_data=key_data,
         keybs=keybs,
         keym=keym,
         indbf=indbf,
@@ -415,7 +452,7 @@ def plot_geometry_matrix(
         indt=indt,
         res=res,
     )
-    nchan, nbs = coll.ddata[key]['data'].shape[-2:]
+    nchan, nbs = shape[-2:]
 
     # --------------
     # plot - prepare
