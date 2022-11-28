@@ -422,6 +422,13 @@ def _ideal_configuration(
     # johann
     
     if configuration == 'johann':
+        
+        if rc < 0:
+            msg = (
+                f"crystal {key} is convex: Johann not possible!\n"
+                f" \t- curve_r = {curve_r}"
+                )
+            raise Exception(msg)
 
         med = rc * np.sin(bragg)
         sag = -med / np.cos(2.*bragg)
@@ -453,6 +460,13 @@ def _ideal_configuration(
     
     elif configuration == 'von hamos':
 
+        if rc < 0:
+            msg = (
+                f"crystal {key} is convex: von hamos not possible!\n"
+                f" \t- curve_r = {curve_r}"
+                )
+            raise Exception(msg)        
+
         dist_pin = rc / np.sin(bragg)
         pin_cent = cent + dist_pin * vect_los
         pin_nin = vect_los
@@ -478,9 +492,9 @@ def _ideal_configuration(
         # pinhole
         if pinhole_distance is None:
             if gtype == 'cylindrical': 
-                pin_dist = rc / np.sin(bragg)
+                pin_dist = np.abs(rc) / np.sin(bragg)
             elif gtype == 'spherical':
-                pin_dist = rc * np.sin(bragg)
+                pin_dist = np.abs(rc) * np.sin(bragg)
             else:
                 msg = "Please provide pinhole_distance!"
                 raise Exception(msg)
@@ -510,10 +524,10 @@ def _ideal_configuration(
     
             else:
                 if gtype == 'cylindrical':
-                    cryst_height = 2. * extenthalf[icurv] * curve_r[icurv]
+                    cryst_height = 2. * extenthalf[icurv] * np.abs(rc)
     
                 elif gtype == 'spherical':
-                    cryst_height = 2. * extenthalf[1] * curve_r[0]
+                    cryst_height = 2. * extenthalf[1] * np.abs(rc)
     
                 if cam_height >= cryst_height:
                     msg = (
@@ -523,7 +537,7 @@ def _ideal_configuration(
                     )
                     raise Exception(msg)
     
-                cam_dist = rc * (1. - cam_height / cryst_height)
+                cam_dist = np.abs(rc) * (1. - cam_height / cryst_height)
                 
         else:
             cam_dist = cam_distance
@@ -554,7 +568,7 @@ def _ideal_configuration(
                 )
 
             if not (temp_dist < 1e-6 and np.abs(temp_ang) < 0.01*np.pi/180.):
-                dist = np.linalg.norm(dd['cent'] - pin_cent)
+                # dist = np.linalg.norm(dd['cent'] - pin_cent)
                 msg = (
                     f"Ideal configuration '{configuration}' for crystal '{key}':\n"
                     f"Predefined aperture {key_aperture} does not seem fit:\n"

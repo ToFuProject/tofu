@@ -128,12 +128,12 @@ class Test01_plot_shotovervew(object):
         #print("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
+    def setup_method(self):
         #print("TestUM:setup() before each test method")
         pass
 
-    def teardown(self):
-        #print("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print("TestUM:teardown_method() after each test method")
         pass
 
     def test01_plot_shotoverview(self):

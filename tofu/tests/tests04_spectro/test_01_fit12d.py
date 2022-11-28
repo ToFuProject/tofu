@@ -303,10 +303,10 @@ class Test01_ProofOfPrinciple(object):
         cls.ldex2d = []
 
     @classmethod
-    def setup(self):
+    def setup_method(self):
         pass
 
-    def teardown(self):
+    def teardown_method(self):
         pass
 
     @classmethod

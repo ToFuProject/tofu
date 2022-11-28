@@ -1513,7 +1513,8 @@ def calc_solidangle_apertures(
 
             # replace
             solid_angle = sa
-            unit_vector_x, unit_vector_y, unit_vector_z = ux, uy, uz
+            if return_vector:
+                unit_vector_x, unit_vector_y, unit_vector_z = ux, uy, uz
 
     # ------
     # return

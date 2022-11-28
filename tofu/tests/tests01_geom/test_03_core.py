@@ -164,12 +164,12 @@ class Test01_Struct(object):
         #print("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        #print("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print("TestUM:teardown_method() after each test method")
         pass
 
     def test00_set_move(self):
@@ -901,12 +901,12 @@ class Test03_Rays(object):
                         # msg += '\n\n'+str(f)
                         # raise Exception(msg)
 
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print ("TestUM:teardown_method() after each test method")
         pass
 
     def test00_set_move(self):
@@ -1272,12 +1272,12 @@ class Test09_LensTor:
         #print ("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print ("TestUM:teardown_method() after each test method")
         pass
 
     def test01_plot_alone(self):
@@ -1314,12 +1314,12 @@ class Test10_LensLin:
         #print ("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print ("TestUM:teardown_method() after each test method")
         pass
 
     def test01_plot_alone(self):
@@ -1357,12 +1357,12 @@ class Test11_ApertTor:
         #print ("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print ("TestUM:teardown_method() after each test method")
         pass
 
     def test01_plot(self):
@@ -1393,12 +1393,12 @@ class Test12_ApertLin:
         #print ("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print ("TestUM:teardown_method() after each test method")
         pass
 
     def test01_plot(self):
@@ -1441,12 +1441,12 @@ class Test13_DetectApertTor:
         #print ("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print ("TestUM:teardown_method() after each test method")
         pass
 
 
@@ -1585,12 +1585,12 @@ class Test14_DetectApertLin:
         #print ("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print ("TestUM:teardown_method() after each test method")
         pass
 
 
@@ -1722,12 +1722,12 @@ class Test15_DetectLensTor:
         #print ("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print ("TestUM:teardown_method() after each test method")
         pass
 
 
@@ -1860,12 +1860,12 @@ class Test16_DetectLensLin:
         #print ("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print ("TestUM:teardown_method() after each test method")
         pass
 
 
@@ -2027,12 +2027,12 @@ class Test17_GDetectApertTor:
         #print ("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print ("TestUM:teardown_method() after each test method")
         pass
 
     def test01_select(self):
@@ -2177,12 +2177,12 @@ class Test18_GDetectApertLin:
         #print ("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print ("TestUM:teardown_method() after each test method")
         pass
 
     def test01_select(self):
@@ -2313,12 +2313,12 @@ class Test19_GDetectLensTor:
         #print ("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print ("TestUM:teardown_method() after each test method")
         pass
 
     def test01_select(self):
@@ -2448,12 +2448,12 @@ class Test20_GDetectLensLin:
         #print ("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        #print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        #print ("TestUM:teardown_method() after each test method")
         pass
 
     def test01_select(self):

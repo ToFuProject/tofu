@@ -443,7 +443,7 @@ def _create_etendue(res=None):
 
 class Test01_SolidAngles():
 
-    def setup(self):
+    def setup_method(self):
         self.poly_2d_ccw = _create_poly_2d_ccw()
         self.single_triangle = _create_single_triangle()
         self.single_rectangle = _create_single_rectangle()

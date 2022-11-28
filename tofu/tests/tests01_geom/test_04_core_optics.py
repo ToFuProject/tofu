@@ -199,12 +199,12 @@ class Test01_Crystal(object):
     def teardown_class(cls):
         pass
 
-    def setup(self):
-        # print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        # print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        # print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        # print ("TestUM:teardown_method() after each test method")
         pass
 
     # def test00_todo(self):

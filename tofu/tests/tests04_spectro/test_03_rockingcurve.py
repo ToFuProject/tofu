@@ -69,12 +69,12 @@ def teardown_module(module):
 # def my_teardown_function():
 #    print ("my_teardown_function")
 
-# @with_setup(my_setup_function, my_teardown_function)
+# @with_setup_method(my_setup_function, my_teardown_function)
 # def test_numbers_3_4():
 #    print 'test_numbers_3_4  <============================ actual test code'
 #    assert multiply(3,4) == 12
 
-# @with_setup(my_setup_function, my_teardown_function)
+# @with_setup_method(my_setup_function, my_teardown_function)
 # def test_strings_a_3():
 #    print 'test_strings_a_3  <============================ actual test code'
 #    assert multiply('a',3) == 'aaa'
@@ -97,10 +97,10 @@ class Test01_RockingCurve(object):
             if 'xxx' not in k0.lower()
         ]
 
-    def setup(self):
+    def setup_method(self):
         pass
 
-    def teardown(self):
+    def teardown_method(self):
         pass
 
     @classmethod
