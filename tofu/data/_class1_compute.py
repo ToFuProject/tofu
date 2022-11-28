@@ -13,7 +13,7 @@ import datastock as ds
 
 
 # tofu
-from . import _bsplines_utils
+from . import _utils_bsplines
 from . import _class1_checks as _checks
 from . import _class1_bsplines_rect
 from . import _class1_bsplines_tri
@@ -878,10 +878,10 @@ def _mesh2DRect_bsplines_knotscents(
 
     if return_knots is True:
 
-        knots_per_bs_R = _bsplines_utils._get_knots_per_bs(
+        knots_per_bs_R = _utils_bsplines._get_knots_per_bs(
             Rknots, deg=deg, returnas=returnas,
         )
-        knots_per_bs_Z = _bsplines_utils._get_knots_per_bs(
+        knots_per_bs_Z = _utils_bsplines._get_knots_per_bs(
             Zknots, deg=deg, returnas=returnas,
         )
         if ind is not None:
@@ -894,10 +894,10 @@ def _mesh2DRect_bsplines_knotscents(
 
     if return_cents is True:
 
-        cents_per_bs_R = _bsplines_utils._get_cents_per_bs(
+        cents_per_bs_R = _utils_bsplines._get_cents_per_bs(
             Rcents, deg=deg, returnas=returnas,
         )
-        cents_per_bs_Z = _bsplines_utils._get_cents_per_bs(
+        cents_per_bs_Z = _utils_bsplines._get_cents_per_bs(
             Zcents, deg=deg, returnas=returnas,
         )
         if ind is not None:
@@ -1071,10 +1071,10 @@ def _mesh2DPolar_bsplines_knotscents(
 
     if return_knots is True:
 
-        knots_per_bs_r = _bsplines_utils._get_knots_per_bs(
+        knots_per_bs_r = _utils_bsplines._get_knots_per_bs(
             rknots, deg=deg, returnas=returnas,
         )
-        knots_per_bs_Z = _bsplines_utils._get_knots_per_bs(
+        knots_per_bs_Z = _utils_bsplines._get_knots_per_bs(
             Zknots, deg=deg, returnas=returnas,
         )
         if ind is not None:
@@ -1087,10 +1087,10 @@ def _mesh2DPolar_bsplines_knotscents(
 
     if return_cents is True:
 
-        cents_per_bs_R = _bsplines_utils._get_cents_per_bs(
+        cents_per_bs_R = _utils_bsplines._get_cents_per_bs(
             Rcents, deg=deg, returnas=returnas,
         )
-        cents_per_bs_Z = _bsplines_utils._get_cents_per_bs(
+        cents_per_bs_Z = _utils_bsplines._get_cents_per_bs(
             Zcents, deg=deg, returnas=returnas,
         )
         if ind is not None:

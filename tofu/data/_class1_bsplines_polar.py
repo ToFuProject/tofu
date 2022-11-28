@@ -4,7 +4,7 @@ import numpy as np
 import scipy.interpolate as scpinterp
 
 
-from . import _bsplines_utils
+from . import _utils_bsplines
 
 
 # #############################################################################
@@ -60,10 +60,10 @@ class BivariateSplinePolar():
         # ------------------------------------
         # get knots per bs in radius direction
 
-        knots_per_bs_r = _bsplines_utils._get_knots_per_bs(
+        knots_per_bs_r = _utils_bsplines._get_knots_per_bs(
             knotsr, deg=deg, returnas='data',
         )
-        knotsr_with_mult, nbsr = _bsplines_utils._get_knots_per_bs(
+        knotsr_with_mult, nbsr = _utils_bsplines._get_knots_per_bs(
             knotsr, deg=deg, returnas='data', return_unique=True,
         )
 
@@ -137,7 +137,7 @@ class BivariateSplinePolar():
                     knots_per_bs_a.append(None)
                     continue
 
-                knots_per_bsai = _bsplines_utils._get_knots_per_bs(
+                knots_per_bsai = _utils_bsplines._get_knots_per_bs(
                     knotsa[ii],
                     deg=deg,
                     returnas='data',
@@ -163,7 +163,7 @@ class BivariateSplinePolar():
         # ----------------
         # bsplines centers
 
-        cents_per_bs_r = _bsplines_utils._get_cents_per_bs(
+        cents_per_bs_r = _utils_bsplines._get_cents_per_bs(
             0.5*(knotsr[1:] + knotsr[:-1]),
             deg=deg,
             returnas='data',
@@ -176,7 +176,7 @@ class BivariateSplinePolar():
                 if knotsa[ii] is None:
                     pass
                 else:
-                    cents_per_bs_a[ii] = _bsplines_utils._get_cents_per_bs(
+                    cents_per_bs_a[ii] = _utils_bsplines._get_cents_per_bs(
                         0.5*(knotsa[ii][1:] + knotsa[ii][:-1]),
                         deg=deg,
                         returnas='data',
@@ -186,7 +186,7 @@ class BivariateSplinePolar():
         # ----------------
         # bsplines apex
 
-        apex_per_bs_r = _bsplines_utils._get_apex_per_bs(
+        apex_per_bs_r = _utils_bsplines._get_apex_per_bs(
             knots=knotsr,
             knots_per_bs=knots_per_bs_r,
             deg=deg,
@@ -199,7 +199,7 @@ class BivariateSplinePolar():
                 if knotsa[ii] is None:
                     pass
                 else:
-                    apex_per_bs_a[ii] = _bsplines_utils._get_apex_per_bs(
+                    apex_per_bs_a[ii] = _utils_bsplines._get_apex_per_bs(
             knots=knotsa[ii],
             knots_per_bs=knots_per_bs_a[ii],
             deg=deg,

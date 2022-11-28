@@ -11,7 +11,7 @@ import scipy.interpolate as scpinterp
 
 # specific
 from . import _generic_check
-from . import _bsplines_utils
+from . import _utils_bsplines
 from . import _class1_bsplines_operators_rect
 
 
@@ -44,10 +44,10 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         )
 
         # full knots with multiplicity
-        knotsR, nbsR = _bsplines_utils._get_knots_per_bs(
+        knotsR, nbsR = _utils_bsplines._get_knots_per_bs(
             knotsR, deg=deg, returnas='data', return_unique=True,
         )
-        knotsZ, nbsZ = _bsplines_utils._get_knots_per_bs(
+        knotsZ, nbsZ = _utils_bsplines._get_knots_per_bs(
             knotsZ, deg=deg, returnas='data', return_unique=True,
         )
 
@@ -68,10 +68,10 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
     ):
 
         # added for details
-        knots_per_bs_x = _bsplines_utils._get_knots_per_bs(
+        knots_per_bs_x = _utils_bsplines._get_knots_per_bs(
             knotsR, deg=deg, returnas='data',
         )
-        knots_per_bs_y = _bsplines_utils._get_knots_per_bs(
+        knots_per_bs_y = _utils_bsplines._get_knots_per_bs(
             knotsZ, deg=deg, returnas='data',
         )
 
@@ -387,10 +387,10 @@ def get_bs2d_RZ(deg=None, Rknots=None, Zknots=None):
     # ----------------
     # get knots per bspline, nb of bsplines...
 
-    knots_per_bs_R = _bsplines_utils._get_knots_per_bs(
+    knots_per_bs_R = _utils_bsplines._get_knots_per_bs(
         Rknots, deg=deg, returnas='data',
     )
-    knots_per_bs_Z = _bsplines_utils._get_knots_per_bs(
+    knots_per_bs_Z = _utils_bsplines._get_knots_per_bs(
         Zknots, deg=deg, returnas='data',
     )
     nbkbs = knots_per_bs_R.shape[0]
@@ -399,12 +399,12 @@ def get_bs2d_RZ(deg=None, Rknots=None, Zknots=None):
     # ----------------
     # get centers of bsplines
 
-    Rbs_apex = _bsplines_utils._get_apex_per_bs(
+    Rbs_apex = _utils_bsplines._get_apex_per_bs(
         knots=Rknots,
         knots_per_bs=knots_per_bs_R,
         deg=deg
     )
-    Zbs_apex = _bsplines_utils._get_apex_per_bs(
+    Zbs_apex = _utils_bsplines._get_apex_per_bs(
         knots=Zknots,
         knots_per_bs=knots_per_bs_Z,
         deg=deg
