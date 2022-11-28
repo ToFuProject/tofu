@@ -1873,7 +1873,8 @@ def _interp2d_check(
     crop = ds._generic_check._check_var(
         crop, 'crop',
         types=bool,
-        default=True,
+        default=mtype == 'rect',
+        allowed=[False, True] if mtype == 'rect' else [False],
     )
 
     # -------------
@@ -2505,16 +2506,34 @@ def interp2d(
 
     else:
 
+        ref = []
+        if reft not in [None, False]:
+            ref.append(reft)
+        for ii in range(R.ndim):
+            ref.append(None)
         if grid is True:
-            if reft in [None, False]:
-                ref = (None, None)
-            else:
-                ref = (reft, None, None)
-        else:
-            if reft in [None, False]:
-                ref = (None,)
-            else:
-                ref = (reft, None)
+            for ii in range(Z.ndim):
+                ref.append(None)
+        if details is True:
+            refbs = coll.dobj['bsplines'][keybs]['ref-bs'][0]
+            if crop is True:
+                refbs = f"{refbs}-crop"
+            ref.append(refbs)
+        ref = tuple(ref)
+        if len(ref) != val.ndim:
+            msg = (
+                "Mismatching ref vs val.shape:\n"
+                f"\t- val.shape = {val.shape}\n"
+                f"\t- ref = {ref}\n"
+                f"\t- reft = {reft}\n"
+                f"\t- details = {details}\n"
+                f"\t- grid = {grid}\n"
+                f"\t- R.shape = {R.shape}\n"
+                f"\t- Z.shape = {Z.shape}\n"
+                f"\t- coefs.shape = {coefs.shape}\n"
+                f"\t- indbs_tf = {indbs_tf}\n"
+            )
+            raise Exception(msg)
 
     # ------
     # return
