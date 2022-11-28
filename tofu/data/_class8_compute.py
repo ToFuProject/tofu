@@ -1306,101 +1306,11 @@ def _get_data(
     # )
 
 
-# # TBF
-# def _concatenate_data(
-    # coll=None,
-    # key=None,
-    # key_cam=None,
-    # data=None,
-    # rocking_curve=None,
-    # returnas=None,
-    # # naming
-    # key_data=None,
-    # key_ref=None,
-    # **kwdargs,
-    # ):
-
-    # # --------------------
-    # # check inputs
-    # # --------------------
-
-    # (
-     # key, key_cam, is2d,
-     # ddata0, ref0, comp,
-     # dshapes, ndimref, indref,
-     # key_data, key_ref,
-     # returnas,
-     # ) = _concatenate_check(
-        # coll=coll,
-        # key=key,
-        # key_cam=key_cam,
-        # data=data,
-        # # naming
-        # key_data=key_data,
-        # key_ref=key_ref,
-    # )
-
-    # print(ddata0)
-    # print(ref0)
-    # print(dshapes)
-    # print(indref)
-    # print(comp)
-
-    # # -----------------------------------
-    # # ddata => check shapes, define dref
-    # # -----------------------------------
-
-    # # ------------
-    # # check shapes
-
-
-
-    # # ------------
-    # # concatenate
-
-    # ndata = len(ddata0[key_cam[0]])
-    # print(ndata)
-    # ddata, dref = {}, {}
-    # for ii in range(ndata):
-
-        # if comp is True:
-
-            # datai = np.concatenate(
-                # tuple([ddata0[k0][ii] for k0 in key_cam]),
-                # axis=indref[0],
-            # )
-            # ref = None
-
-        # else:
-            # datai = np.concatenate(
-                # tuple([coll.ddata[ddata0[k0][ii]]['data'] for k0 in key_cam]),
-                # axis=indref[0],
-            # )
-
-        # # ----------
-        # # build dict
-
-        # ddata[key_data[ii]] = {
-            # 'data': datai,
-            # 'ref': ref0,
-            # 'units': None,
-            # 'dim': None,
-        # }
-
-    # dref = {
-        # k0: {'size': coll.dref[k0]['size']} for k0 in ref0 if k0 != key_ref
-    # }
-    # dref[key_ref] = {'size': datai.shape[indref[0]]}
-
-    # # -------------------------
-    # # build dict
-    # # -------------------------
-
-
 def _concatenate_data_check(
     coll=None,
     key=None,
     key_data=None,
+    flat=None,
 ):
 
     # ------------
@@ -1409,7 +1319,7 @@ def _concatenate_data_check(
     key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=None)
     spectro = coll.dobj['diagnostic'][key]['spectro']
     is2d = coll.dobj['diagnostic'][key]['is2d']
-    # stack = coll.dobj['diagnostic'][key]['stack']
+    stack = coll.dobj['diagnostic'][key]['stack']
 
     # ------------
     # key_data
@@ -1442,18 +1352,80 @@ def _concatenate_data_check(
     if len(dout) > 0:
         lstr = [f"\t- {k0}: {v0}" for k0, v0 in dout.items()]
         msg = (
+            f"The following data refers to no known camera in diag '{key}:\n"
+            + "\n".join(lstr)
         )
         raise Exception(msg)
 
     # check unicity of cameras
-    ncam = len(set([coll.ddata[k0]['camera'] for k0 in key_data]))
-    if ncam > len(key_data):
-        msg = ""
+    lcam = [coll.ddata[k0]['camera'] for k0 in key_data]
+    if len(set(lcam)) > len(lcam):
+        msg = (
+            f"Non-unique camera references for diag '{key}'\n:"
+            f"\t- key_data = {key_data}\n"
+            f"\t- lcam     = {lcam}\n"
+        )
         raise Exception(msg)
 
+    # re-order
+    lk = []
+    for k0 in coll.dobj['diagnostic'][key]['camera']:
+        if k0 in lcam:
+            lk.append(key_data[lcam.index(k0)])
 
+    key_data = lk
+    lcam = [coll.ddata[k0]['camera'] for k0 in key_data]
 
+    # ref uniformity
+    lref = [coll.ddata[k0]['ref'] for k0 in key_data]
+    if any([len(ref) != len(lref[0]) for ref in lref[1:]]):
+        msg = (
+            f"Non uniform refs for data in diag '{key}':\n"
+            f"\t- key_data = {key_data}\n"
+            f"\t- lref = {lref}\n"
+        )
+        raise Exception(msg)
 
+    # ref axis
+    laxcam = [
+        [ref.index(rr) for rr in coll.dobj['camera'][lcam[ii]]]
+        for ii, ref in enumerate(lref)
+    ]
+    if any([len(ax) != len(laxcam) for ax in laxcam[1:]]):
+        msg = (
+            f"Non-uniform camera concatenation axis for diag '{key}':\n"
+            f"\t- key_data: {key_data}\n"
+            f"\t- laxcam:   {laxcam}"
+        )
+        raise Exception(msg)
+
+    laxcam = np.array(laxcam)
+    if not np.allclose():
+        msg = (
+            ""
+        )
+        raise Exception(msg)
+
+    if len(laxcam[0]) != 1 + is2d:
+        msg = (
+            f"ref not consistent with is2d for diag '{key}':\n"
+            f"\t- is2d: {is2d}\n"
+            f"\t- axcam: {axcam}\n"
+        )
+        raise Exception(msg)
+
+    ref = [lref[0][ii] for ii in enumerate(laxcam)]
+
+    # ------
+    # flat
+
+    flat = ds._generic_check._check_var(
+        flat, 'flat',
+        types=bool,
+        default=is2d,
+    )
+
+    return key, key_data, is2d, stack, ref, flat
 
 
 def _concatenate_data(
@@ -1467,7 +1439,7 @@ def _concatenate_data(
     # ------------
     # check inputs
 
-    key, key_data = _concatenate_data_check(
+    key, key_datai, is2d, stack, ref, flat = _concatenate_data_check(
         coll=coll,
         key=key,
         key_data=key_data,
@@ -1475,19 +1447,39 @@ def _concatenate_data(
     )
 
     # ------------
+    # prepare
+
+    if is2d:
+        if flat:
+            axis = None
+        else:
+            if stack:
+                axis = ref.index(None)
+            else:
+                axis = len(ref) - ref[::-1].index(None)
+    else:
+        ldata = [coll.ddata[k0]['data'] for dd in key_data]
+        axis = ref.index(None)
+
+    # ------------
     # concatenate
 
-    data = None
-    ref = None
+    data = np.concatenate(tuple(ldata), axis=axis)
     units = None
-    axis = None
 
-    dind = None
+    # dind
+    i0 = 0
+    dind = {}
+    for ii, k0 in enumerate(key_data):
+        ind = i0 + np.arange()
+        dind[k0] = ind
+        i0 += ind.size
 
     return {
         'data': data,
         'units': units,
         'ref': ref,
+        'axis': axis,
         'flat': flat,
         'dind': dind,
     }
