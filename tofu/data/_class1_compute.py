@@ -15,9 +15,9 @@ import datastock as ds
 # tofu
 from . import _bsplines_utils
 from . import _class1_checks as _checks
-from . import _mesh_bsplines_rect
-from . import _mesh_bsplines_tri
-from . import _mesh_bsplines_polar
+from . import _class1_bsplines_rect
+from . import _class1_bsplines_tri
+from . import _class1_bsplines_polar
 
 
 # #############################################################################
@@ -654,7 +654,7 @@ def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
     # create bsplines
 
     kknots = coll.dobj[coll._which_mesh][keym]['knots']
-    func_details, func_sum, clas = _mesh_bsplines_tri.get_bs2d_func(
+    func_details, func_sum, clas = _class1_bsplines_tri.get_bs2d_func(
         deg=deg,
         knotsR=coll.ddata[kknots[0]]['data'],
         knotsZ=coll.ddata[kknots[1]]['data'],
@@ -740,12 +740,12 @@ def _mesh2DRect_bsplines(coll=None, keym=None, keybs=None, deg=None):
     (
         shapebs, Rbs_apex, Zbs_apex,
         knots_per_bs_R, knots_per_bs_Z,
-    ) = _mesh_bsplines_rect.get_bs2d_RZ(
+    ) = _class1_bsplines_rect.get_bs2d_RZ(
         deg=deg, Rknots=Rknots, Zknots=Zknots,
     )
     nbs = int(np.prod(shapebs))
 
-    func_details, func_sum, clas = _mesh_bsplines_rect.get_bs2d_func(
+    func_details, func_sum, clas = _class1_bsplines_rect.get_bs2d_func(
         deg=deg,
         Rknots=Rknots,
         Zknots=Zknots,
@@ -944,7 +944,7 @@ def _mesh2Dpolar_bsplines(
     if len(kknots) == 2:
         angle = coll.ddata[kknots[1]]['data']
 
-    func_details, func_sum, clas = _mesh_bsplines_polar.get_bs2d_func(
+    func_details, func_sum, clas = _class1_bsplines_polar.get_bs2d_func(
         deg=deg,
         knotsr=coll.ddata[kknots[0]]['data'],
         angle=angle,

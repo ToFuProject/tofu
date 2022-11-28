@@ -14,8 +14,8 @@ import datastock as ds
 
 # specific
 from . import _class1_checks as _checks
-from . import _mesh_bsplines_operators_tri
-from . import _mesh_bsplines_rect as _mbr
+from . import _class1_bsplines_operators_tri
+from . import _class1_bsplines_rect as _mbr
 
 
 # #############################################################################
@@ -567,7 +567,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
     ):
         """ Get desired operator """
         raise NotImplementedError()
-        return _mesh_bsplines_operators_tri.get_mesh2dRect_operators(
+        return _class1_bsplines_operators_tri.get_mesh2dRect_operators(
             deg=self.degrees[0],
             operator=operator,
             geometry=geometry,
