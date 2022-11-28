@@ -77,12 +77,26 @@ class GeometryMatrix(Previous):
         )
 
     # -----------------
+    # get concatenated geometry matrix
+    # ------------------
+
+    def get_geometry_matrix_concatenated(
+        self,
+        key=None,
+    ):
+        """ Assemble the geometry matrix """
+
+        return _compute._concatenate(
+            coll=self,
+            key=key,
+        )
+
+    # -----------------
     # plotting
     # ------------------
 
     def plot_geometry_matrix(
         self,
-        cam=None,
         key=None,
         indbf=None,
         indchan=None,
@@ -98,7 +112,6 @@ class GeometryMatrix(Previous):
         dleg=None,
     ):
         return _plot.plot_geometry_matrix(
-            cam=cam,
             coll=self,
             key=key,
             indbf=indbf,

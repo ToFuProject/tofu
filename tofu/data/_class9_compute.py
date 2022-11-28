@@ -495,6 +495,51 @@ def _store(
     coll.update(ddata=ddata, dobj=dobj)
 
 
+# ##################################################################
+# ##################################################################
+#               retrofit                   
+# ##################################################################
+
+
+def _concatenate(
+    coll=None,
+    key=None,
+):
+
+    # ------------
+    # check inputs
+
+    lok = list(coll.dobj.get('geom matrix', {}).keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    # -----------
+    # concatenate
+
+    key_data = coll.dobj['geom matrix'][key]['data']
+    key_cam = coll.dobj['geom matrix'][key]['camera']
+    axis = coll.dobj['geom matrix'][key]['axis_chan']
+
+    ref = list(coll.ddata[key_data[0]]['ref'])
+    ref[axis] = None
+
+    ind = 0
+    dind = {}
+    ldata = []
+    for ii, k0 in enumerate(key_cam):
+        datai = coll.ddata[key_data[ii]]['data']
+        dind[k0] = ind + np.arange(0, datai.shape[axis])
+        ldata.append(datai)
+        ind += datai.shape[axis]
+
+    data = np.concatenate(ldata, axis=axis)
+
+    return data, ref, dind
+
+
 # #############################################################################
 # #############################################################################
 #               retrofit                   
