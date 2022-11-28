@@ -2513,7 +2513,7 @@ def interp2d(
     else:
 
         ref = []
-        if reft not in [None, False] and not radius_vs_time:
+        if reft not in [None, False]:
             ref.append(reft)
 
         if meshtype in ['rect', 'tri']:
@@ -2524,6 +2524,8 @@ def interp2d(
                     ref.append(None)
         else:
             for ii in range(radius.ndim):
+                if radius_vs_time and ii == 0:
+                    continue
                 ref.append(None)
             if grid is True and angle is not None:
                 for ii in range(angle.ndim):

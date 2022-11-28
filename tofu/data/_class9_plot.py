@@ -71,17 +71,17 @@ def _plot_geometry_matrix_check(
         )
         raise Exception(msg)
 
-    # # indchan
-    # if indchan is None:
-        # indchan = 0
-    # try:
-        # assert np.isscalar(indchan)
-        # indchan = int(indchan)
-    # except Exception as err:
-        # msg = (
-            # f"Arg indchan should be a int!\nProvided: {indt}"
-        # )
-        # raise Exception(msg)
+    # indchan
+    if indchan is None:
+        indchan = 0
+    try:
+        assert np.isscalar(indchan)
+        indchan = int(indchan)
+    except Exception as err:
+        msg = (
+            f"Arg indchan should be a int!\nProvided: {indt}"
+        )
+        raise Exception(msg)
 
     # indt
     hastime = coll.get_time(key=key_data[0])[0]
@@ -304,7 +304,13 @@ def _plot_geometry_matrix_prepare(
     )[0]
 
     # bsplinetot
-    coefstot = np.nansum(coll.ddata[key]['data'], axis=-2)
+    coefstot = np.nansum(
+        [
+            np.nansum(coll.ddata[kk]['data'], axis=-2)
+            for kk in key_data
+        ],
+        axis=0,
+    )
     if hastime:
         bsplinetot = np.nansum(
             bsplinebase[0, ...] * coefstot[0, None, None, :],
@@ -318,21 +324,21 @@ def _plot_geometry_matrix_prepare(
         bsplinedet = np.zeros(tuple(np.r_[bsplinebase.shape[1:-1]]))#, nchan]))
         for ii in range(0):
             bsplinedet[...] = bsplinebase[0, ...].dot(
-                coll.ddata[key]['data'][0, 0:1, :].T
+                coll.ddata[key_data[0]]['data'][0, 0:1, :].T
             )[..., 0]
     else:
-        bsplinedet = bsplinebase.dot(coll.ddata[key]['data'][0:1, :].T)[..., 0]
+        bsplinedet = bsplinebase.dot(coll.ddata[key_data[0]]['data'][0:1, :].T)[..., 0]
 
     # --------
     # LOS
 
     # los
-    ptslos, indlosok = None, None
-    if cam is not None:
-        ptslos = cam._get_plotL(return_pts=True, proj='cross', Lplot='tot')
-        indsep = np.nonzero(np.isnan(ptslos[0, :]))[0]
-        ptslos = np.split(ptslos, indsep, axis=1)
-        indlosok = np.nonzero(coll.ddata[key]['data'][:, indbf] > 0)[0]
+    ptslos = None
+    indlosok = None
+    # ptslos = cam._get_plotL(return_pts=True, proj='cross', Lplot='tot')
+    # indsep = np.nonzero(np.isnan(ptslos[0, :]))[0]
+    # ptslos = np.split(ptslos, indsep, axis=1)
+    # indlosok = np.nonzero(coll.ddata[key]['data'][:, indbf] > 0)[0]
 
     # ---------------
     # extent / interp
@@ -350,36 +356,33 @@ def _plot_geometry_matrix_prepare(
     elif deg >= 2:
         interp = 'bicubic'
 
-    # matrix refs
-    refs = coll.ddata[key]['ref']
-
-
     # -------------
     # coll2
 
     coll2 = coll.__class__()
 
-    gmat, ref = coll.get_geometry_matrix_concatenate(key=key)
-    npix = gmat.shape[axis]
+    gmat, ref, dind = coll.get_geometry_matrix_concatenated(key=key)
+    npix = gmat.shape[ref.index(None)]
 
     for ii, rr in enumerate(ref):
         if rr is None:
             coll2.add_ref(key='npix', size=npix)
+            ref[ii] = 'npix'
         else:
             coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
-            ref[ii] = 'npix'
+    ref = tuple(ref)
 
     coll2.add_data(
-        key='gmat',
+        key=key,
         data=gmat,
         ref=ref,
-        units=coll.dobj['geom matrix'][key]['units'],
+        units=coll.ddata[key_data[0]]['units'],
     )
 
     return (
         bsplinetot, bsplinedet, extent, interp,
-        ptslos, indlosok, indbf_bool, refs,
-        coll2,
+        ptslos, indlosok, indbf_bool,
+        coll2, ref,
     )
 
 
@@ -439,8 +442,9 @@ def plot_geometry_matrix(
     (
         bsplinetot, bspline1,
         extent, interp,
-        ptslos, indlosok,
-        ich_bf, refs,
+        ptslos, indlosoki,
+        ich_bf,
+        coll1, refs,
     ) = _plot_geometry_matrix_prepare(
         coll=coll,
         key=key,
@@ -589,7 +593,7 @@ def plot_geometry_matrix(
         keyY = refs[1]
         keyZ = refs[0]
 
-    coll2, dgroup = coll.plot_as_array(
+    coll2, dgroup = coll1.plot_as_array(
         key=key,
         keyX=keyX,
         keyY=keyY,
