@@ -15,7 +15,7 @@ import datastock as ds
 
 # specific
 from . import _generic_check
-from ._mesh_plot import _plot_bsplines_get_dRdZ
+from ._class1_plot import _plot_bsplines_get_dRdZ
 
 
 # #############################################################################

@@ -12,7 +12,6 @@ import datastock as ds
 
 
 # specific
-from . import _mesh_comp
 from . import _generic_check
 from . import _generic_plot
 

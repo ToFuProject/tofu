@@ -13,7 +13,7 @@ import datastock as ds
 
 # specific
 from . import _generic_check
-from . import _mesh_comp
+from . import _class1_compute as _compute
 
 
 # #############################################################################
@@ -311,7 +311,7 @@ def _plot_mesh_prepare_polar_cont(
     # ----------------
     # Compute contours
 
-    contR, contZ = _mesh_comp._get_contours(
+    contR, contZ = _compute._get_contours(
         RR=RR,
         ZZ=ZZ,
         val=rr,

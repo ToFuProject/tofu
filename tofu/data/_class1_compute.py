@@ -14,7 +14,7 @@ import datastock as ds
 
 # tofu
 from . import _bsplines_utils
-from . import _mesh_checks
+from . import _class1_checks as _checks
 from . import _mesh_bsplines_rect
 from . import _mesh_bsplines_tri
 from . import _mesh_bsplines_polar
@@ -66,7 +66,7 @@ def _select_ind(
 
     # ind, elements, ...
     # elements = cents or knots
-    ind, elements, returnas, crop = _mesh_checks._select_ind_check(
+    ind, elements, returnas, crop = _checks._select_ind_check(
         ind=ind,
         elements=elements,
         returnas=returnas,
@@ -266,7 +266,7 @@ def _select_mesh(
     (
         elements, returnas,
         return_ind_as, return_neighbours,
-    ) = _mesh_checks._select_check(
+    ) = _checks._select_check(
         elements=elements,
         returnas=returnas,
         return_ind_as=return_ind_as,
@@ -540,7 +540,7 @@ def _select_bsplines(
     # ------------
     # check inputs
 
-    _, returnas, _, _ = _mesh_checks._select_check(
+    _, returnas, _, _ = _checks._select_check(
         returnas=returnas,
     )
 

@@ -13,9 +13,9 @@ import datastock as ds
 # tofu
 # from tofu import __version__ as __version__
 from . import _class0_Config
-from . import _mesh_checks
-from . import _mesh_comp
-from . import _mesh_plot
+from . import _class1_checks as _checks
+from . import _class1_compute as _compute
+from . import _class1_plot as _plot
 
 
 __all__ = ['Plasma2D']
@@ -101,7 +101,7 @@ class Plasma2D(_class0_Config.Config):
 
         # get domain, poly from crop_poly
         if crop_poly is not None:
-            domain, poly = _mesh_checks._mesh2DRect_from_croppoly(
+            domain, poly = _checks._mesh2DRect_from_croppoly(
                 crop_poly=crop_poly,
                 domain=domain,
             )
@@ -109,7 +109,7 @@ class Plasma2D(_class0_Config.Config):
             poly = None
 
         # check input data and get input dicts
-        dref, ddata, dmesh = _mesh_checks._mesh2D_check(
+        dref, ddata, dmesh = _checks._mesh2D_check(
             coll=self,
             # rectangular
             domain=domain,
@@ -194,7 +194,7 @@ class Plasma2D(_class0_Config.Config):
         """
 
         # check input data and get input dicts
-        dref, ddata, dmesh = _mesh_checks._mesh2D_polar_check(
+        dref, ddata, dmesh = _checks._mesh2D_polar_check(
             coll=self,
             # polar
             radius=radius,
@@ -223,7 +223,7 @@ class Plasma2D(_class0_Config.Config):
 
         # special treatment of radius2d
         assert O_pts is None
-        drefO, ddataO, kR, kZ = _mesh_comp.radius2d_special_points(
+        drefO, ddataO, kR, kZ = _compute.radius2d_special_points(
             coll=self,
             key=dmesh[key]['radius2d'],
             keym0=key,
@@ -243,7 +243,7 @@ class Plasma2D(_class0_Config.Config):
 
         # special treatment of angle2d
         if dmesh[key]['angle2d'] is not None:
-            drefa, ddataa, kR, kZ = _mesh_comp.angle2d_zone(
+            drefa, ddataa, kR, kZ = _compute.angle2d_zone(
                 coll=self,
                 key=dmesh[key]['angle2d'],
                 keyrad2d=dmesh[key]['radius2d'],
@@ -280,7 +280,7 @@ class Plasma2D(_class0_Config.Config):
         # --------------
         # check inputs
 
-        keym, keybs, deg = _mesh_checks._mesh2D_bsplines(
+        keym, keybs, deg = _checks._mesh2D_bsplines(
             key=key,
             lkeys=list(self.dobj[self._which_mesh].keys()),
             deg=deg,
@@ -290,15 +290,15 @@ class Plasma2D(_class0_Config.Config):
         # get bsplines
 
         if self.dobj[self._which_mesh][keym]['type'] == 'rect':
-            dref, ddata, dobj = _mesh_comp._mesh2DRect_bsplines(
+            dref, ddata, dobj = _compute._mesh2DRect_bsplines(
                 coll=self, keym=keym, keybs=keybs, deg=deg,
             )
         elif self.dobj[self._which_mesh][keym]['type'] == 'tri':
-            dref, ddata, dobj = _mesh_comp._mesh2DTri_bsplines(
+            dref, ddata, dobj = _compute._mesh2DTri_bsplines(
                 coll=self, keym=keym, keybs=keybs, deg=deg,
             )
         else:
-            dref, ddata, dobj = _mesh_comp._mesh2Dpolar_bsplines(
+            dref, ddata, dobj = _compute._mesh2Dpolar_bsplines(
                 coll=self, keym=keym, keybs=keybs, deg=deg, angle=angle,
             )
 
@@ -307,7 +307,7 @@ class Plasma2D(_class0_Config.Config):
 
         self.update(dobj=dobj, ddata=ddata, dref=dref)
         if self.dobj[self._which_mesh][keym]['type'] == 'rect':
-            _mesh_comp.add_cropbs_from_crop(
+            _compute.add_cropbs_from_crop(
                 coll=self,
                 keybs=keybs,
                 keym=keym,
@@ -331,7 +331,7 @@ class Plasma2D(_class0_Config.Config):
             for k0, v0 in ddata.items():
                 (
                     ddata[k0]['ref'], ddata[k0]['data'],
-                ) = _mesh_checks.add_data_meshbsplines_ref(
+                ) = _checks.add_data_meshbsplines_ref(
                     ref=v0['ref'],
                     data=v0['data'],
                     dmesh=self._dobj.get(self._which_mesh),
@@ -397,7 +397,7 @@ class Plasma2D(_class0_Config.Config):
         If applied on a bspline, cropping is double-checked to make sure
         all remaining bsplines have full support domain
         """
-        crop, key, thresh_in = _mesh_comp.crop(
+        crop, key, thresh_in = _compute.crop(
             coll=self,
             key=key,
             crop=crop,
@@ -426,7 +426,7 @@ class Plasma2D(_class0_Config.Config):
         # also crop bsplines
         for k0 in self.dobj.get('bsplines', {}).keys():
             if self.dobj['bsplines'][k0][self._which_mesh] == key:
-                _mesh_comp.add_cropbs_from_crop(coll=self, keybs=k0, keym=key)
+                _compute.add_cropbs_from_crop(coll=self, keybs=k0, keym=key)
 
     # -----------------
     # get data subset
@@ -555,7 +555,7 @@ class Plasma2D(_class0_Config.Config):
 
         Can covert one into the other
         """
-        return _mesh_comp._select_ind(
+        return _compute._select_ind(
             coll=self,
             key=key,
             ind=ind,
@@ -601,7 +601,7 @@ class Plasma2D(_class0_Config.Config):
             crop=crop,
         )
 
-        return _mesh_comp._select_mesh(
+        return _compute._select_mesh(
             coll=self,
             key=key,
             ind=ind,
@@ -626,7 +626,7 @@ class Plasma2D(_class0_Config.Config):
         Can return indices / values of neighbourgs
 
         """
-        return _mesh_comp._select_bsplines(
+        return _compute._select_bsplines(
             coll=self,
             key=key,
             ind=ind,
@@ -670,7 +670,7 @@ class Plasma2D(_class0_Config.Config):
         (
             opmat, operator, geometry, dim, ref, crop,
             store, returnas, key,
-        ) = _mesh_comp.get_bsplines_operator(
+        ) = _compute.get_bsplines_operator(
             self,
             key=key,
             operator=operator,
@@ -804,7 +804,7 @@ class Plasma2D(_class0_Config.Config):
         imshow=None,
     ):
         """ Return a sampled version of the chosen mesh """
-        return _mesh_comp.sample_mesh(
+        return _compute.sample_mesh(
             coll=self,
             key=key,
             res=res,
@@ -820,7 +820,7 @@ class Plasma2D(_class0_Config.Config):
 
     """
     def get_sample_bspline(self, key=None, res=None, grid=None, mode=None):
-        return _mesh_comp.sample_bsplines(
+        return _compute.sample_bsplines(
             coll=self,
             key=key,
             res=res,
@@ -869,7 +869,7 @@ class Plasma2D(_class0_Config.Config):
         if all(lc1):
             (
                 idquant, idref1d, idref2d,
-            ) = _mesh_comp._get_possible_ref12d(
+            ) = _compute._get_possible_ref12d(
                 dd=self._ddata,
                 key=quant, ref1d=ref1d, ref2d=ref2d,
                 group1d=group1d,
@@ -878,15 +878,15 @@ class Plasma2D(_class0_Config.Config):
             idq2dR, idq2dPhi, idq2dZ = None, None, None
             ani = False
         else:
-            idq2dR, msg = _mesh_comp._get_keyingroup_ddata(
+            idq2dR, msg = _compute._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dR, group=group2d, msgstr='quant', raise_=True,
             )
-            idq2dPhi, msg = _mesh_comp._get_keyingroup_ddata(
+            idq2dPhi, msg = _compute._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dPhi, group=group2d, msgstr='quant', raise_=True,
             )
-            idq2dZ, msg = _mesh_comp._get_keyingroup_ddata(
+            idq2dZ, msg = _compute._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dZ, group=group2d, msgstr='quant', raise_=True,
             )
@@ -1223,7 +1223,7 @@ class Plasma2D(_class0_Config.Config):
 
         """
 
-        return _mesh_comp.interp2d(
+        return _compute.interp2d(
             # ressources
             coll=self,
             # interpolation base, 1d or 2d
@@ -1275,7 +1275,7 @@ class Plasma2D(_class0_Config.Config):
         ani=False,
     ):
 
-        return _mesh_comp.interp2dto1d(
+        return _compute.interp2dto1d(
             coll=self,
             key1d=key1d,
             key2d=key2d,
@@ -1305,7 +1305,7 @@ class Plasma2D(_class0_Config.Config):
         connect=None,
     ):
 
-        return _mesh_plot.plot_mesh(
+        return _plot.plot_mesh(
             coll=self,
             key=key,
             ind_knot=ind_knot,
@@ -1337,7 +1337,7 @@ class Plasma2D(_class0_Config.Config):
         dleg=None,
     ):
 
-        return _mesh_plot.plot_bspline(
+        return _plot.plot_bspline(
             coll=self,
             key=key,
             indbs=indbs,
@@ -1375,7 +1375,7 @@ class Plasma2D(_class0_Config.Config):
         dinc=None,
         connect=None,
     ):
-        return _mesh_plot.plot_profile2d(
+        return _plot.plot_profile2d(
             coll=self,
             # inputs
             key=key,

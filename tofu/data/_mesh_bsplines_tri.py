@@ -13,7 +13,7 @@ import datastock as ds
 
 
 # specific
-from . import _mesh_checks
+from . import _class1_checks as _checks
 from . import _mesh_bsplines_operators_tri
 from . import _mesh_bsplines_rect as _mbr
 
@@ -46,10 +46,10 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         # check inputs
 
         knots = np.array([knotsR, knotsZ]).T
-        cents, knots = _mesh_checks._mesh2DTri_conformity(
+        cents, knots = _checks._mesh2DTri_conformity(
             knots=knots, cents=cents, key='class',
         )
-        cents = _mesh_checks._mesh2DTri_clockwise(
+        cents = _checks._mesh2DTri_clockwise(
             knots=knots, cents=cents, key='class',
         )
 
