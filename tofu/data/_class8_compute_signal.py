@@ -120,6 +120,7 @@ def compute_signal(
                 'signal': [],
                 'method': method,
                 'res': res,
+                'axis_chan': None,
             },
         })
 

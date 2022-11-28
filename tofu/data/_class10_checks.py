@@ -259,10 +259,10 @@ def match_algo(
     return copy.deepcopy(dalgo)
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
 #                           main
-# #############################################################################
+# ##################################################################
 
 
 def _compute_check(
@@ -296,28 +296,50 @@ def _compute_check(
     # key
 
     # key_matrix
-    lk = list(coll.dobj.get('matrix', {}).keys())
-    if key_matrix is None and len(lk):
-        key_matrix = lk[0]
+    lk = list(coll.dobj.get('geom matrix', {}).keys())
     key_matrix = ds._generic_check._check_var(
         key_matrix, 'key_matrix',
         types=str,
         allowed=lk,
     )
-    keybs = coll.dobj['matrix'][key_matrix]['bsplines']
+
+    key_diag = coll.dobj['geom matrix'][key_matrix]['diagnostic']
+    key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
+
+    keybs = coll.dobj['geom matrix'][key_matrix]['bsplines']
     deg = coll.dobj['bsplines'][keybs]['deg']
     keym = coll.dobj['bsplines'][keybs]['mesh']
     mtype = coll.dobj[coll._which_mesh][keym]['type']
-    matrix = coll.ddata[coll.dobj['matrix'][key_matrix]['data']]['data']
+
+    # matrix itself
+    matrix, ref, dind = coll.get_geometry_matrix_concatenated(key)
+
     nchan, nbs = matrix.shape[-2:]
     m3d = matrix.ndim == 3
-    crop = coll.dobj['matrix'][key_matrix]['crop']
+    crop = coll.dobj['geom matrix'][key_matrix]['crop']
 
     if np.any(~np.isfinite(matrix)):
         msg = "Geometry matrix should not contain NaNs or infs!"
         raise Exception(msg)
 
-    # key_data
+    # data
+    ddata = _check_data(
+        coll=coll,
+        key_data=key_data,
+        key_cam=key_cam,
+    )
+
+    # sigma
+    dsigma = _check_sigma(
+        coll=coll,
+        key_sigma=key_sigma,
+        sigma=sigma,
+    )
+
+
+
+
+
     lk = [
         kk for kk, vv in coll.ddata.items()
         if vv['data'].ndim in [1, 2]
@@ -668,7 +690,7 @@ def _compute_check(
     )
 
     return (
-        key_matrix, key_data, key_sigma, keybs, keym, mtype,
+        key_matrix, dkey_data, dkey_sigma, keybs, keym, mtype,
         data, sigma, matrix,
         keyt, t, reft, notime,
         m3d, indok, iokt,
@@ -681,10 +703,84 @@ def _compute_check(
     )
 
 
-# #############################################################################
-# #############################################################################
+# #############
+#  input data
+# #############
+
+def _check_data(
+    coll=None,
+    key_data=None,
+    key_matrix=None,
+):
+
+    if isinstance(key_data, str):
+        lok = list(coll.dobj['diagnostic'][key_diag].get('dsignal').keys())
+        key_data = ds._generic_checks._check_var(
+            key_data, 'key_data',
+            types=str,
+            allowed=lok,
+        )
+
+        ddata = {
+            'camera':
+        }
+
+
+    # key_data
+    if isinstance(key_data, dict):
+        c0 = all([
+            isinstance(k0, str) and k0 in key_cam
+            and isinstance(v0, str) and v0 in coll.ddata.keys()
+            and v0.get('camera') in key_cam
+            for k0, v0 in key_data.items()
+        ])
+        c0 = c0 and len(set(key_data.keys())) == len(key_cam)
+        if not c0:
+            msg = (
+            )
+            raise Exception(msg)
+
+
+        lref = [coll.ddata[v0]['ref'] for v0 in key_data.values()]
+        raise NotImplementedError()
+
+    # dict
+    ddata = {
+        'data': ,
+        ''
+    }
+
+    return data, ref, dind
+
+
+def _check_sigma(
+    coll=None,
+    key_sigma=None,
+    sigma=None,
+):
+
+    if key_sigma is None:
+        if sigma is None:
+            sigma = 0.05
+        if not np.isscalar(sigma):
+            msg = "Provide key_sigma xor sigma (as scalar only)!"
+            raise Exception(msg)
+
+
+    else:
+        ddata = _check_data(
+            coll=coll,
+            key_data=key_data,
+            key_cam=key_cam,
+        )
+
+    return dsigma
+
+
+# ##################################################################
+# ##################################################################
 #                  removing time steps
-# #############################################################################
+# ##################################################################
 
 
 def _remove_time_steps(

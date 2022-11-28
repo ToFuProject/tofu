@@ -12,8 +12,8 @@ import datastock as ds
 
 # tofu
 from ._class09_GeometryMatrix import GeometryMatrix as Previous
-from . import _inversions_comp
-from . import _inversions_plot
+from . import _class10_compute as _compute
+from . import _class10_plot as _plot
 
 
 __all__ = ['Inversion']
@@ -75,7 +75,7 @@ class Inversion(Previous):
 
         """
 
-        return _inversions_comp.compute_inversions(
+        return _compute.compute_inversions(
             # ressources
             coll=self,
             # name of inversion
@@ -127,7 +127,7 @@ class Inversion(Previous):
 
         """
 
-        return _matrix_comp.compute_retrofit_data(
+        return _compute.compute_retrofit_data(
             coll=self,
             key=key,
             key_matrix=key_matrix,
@@ -155,7 +155,7 @@ class Inversion(Previous):
         dleg=None,
     ):
 
-        return _inversions_plot.plot_inversion(
+        return _plot.plot_inversion(
             coll=self,
             key=key,
             indt=indt,

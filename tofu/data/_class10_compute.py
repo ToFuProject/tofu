@@ -12,9 +12,9 @@ import scipy.sparse as scpsp
 
 # tofu
 from . import _generic_check
-from . import _inversions_checks
-from . import _inversions_algos
-tomotok2tofu = _inversions_checks.tomotok2tofu
+from . import _class10_checks as _checks
+from . import _class10_algos as _algos
+tomotok2tofu = _checks.tomotok2tofu
 
 
 __all__ = ['get_available_inversions_algo']
@@ -59,7 +59,8 @@ def compute_inversions(
     # check inputs
 
     (
-        key_matrix, key_data, key_sigma, keybs, keym, mtype,
+        key_matrix,
+        key_data, key_sigma, keybs, keym, mtype,
         data, sigma, matrix,
         keyt, t, reft, notime,
         m3d, indok, iokt,
@@ -69,7 +70,7 @@ def compute_inversions(
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
         keyinv, refinv, regul,
-    ) = _inversions_checks._compute_check(
+    ) = _checks._compute_check(
         # resources
         coll=coll,
         # inversion name
@@ -106,7 +107,7 @@ def compute_inversions(
 
     if isinstance(dalgo['func'], str):
         if dalgo['source'] == 'tofu':
-            dalgo['func'] = getattr(_inversions_algos, dalgo['func'])
+            dalgo['func'] = getattr(_algos, dalgo['func'])
         elif dalgo['source'] == 'tomotok':
             dalgo['func'] = getattr(tomotok2tofu, dalgo['func'])
 
