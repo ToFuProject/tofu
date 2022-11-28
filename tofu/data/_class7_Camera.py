@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from . import _class6_Grating
+from ._class06_Grating import Grating as Previous
 from . import _class3_check
 from . import _class7_check as _check
 from . import _class7_compute as _compute
@@ -26,7 +26,7 @@ __all__ = ['Camera']
 # #############################################################################
 
 
-class Camera(_class6_Grating.Grating):
+class Camera(Previous):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
@@ -38,7 +38,7 @@ class Camera(_class6_Grating.Grating):
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
 
-    _dshow = dict(_class6_Grating.Grating._dshow)
+    _dshow = dict(Previous._dshow)
     _dshow.update({
         'camera': [
             'dgeom.type',
