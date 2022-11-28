@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from . import _class9_GeometryMatrix
+from ._class09_GeometryMatrix import GeometryMatrix as Previous
 from . import _inversions_comp
 from . import _inversions_plot
 
@@ -25,11 +25,11 @@ __all__ = ['Inversion']
 # #############################################################################
 
 
-class Inversion(_class9_GeometryMatrix.GeometryMatrix):
+class Inversion(Previous):
 
     _show_in_summary = 'all'
 
-    _dshow = dict(_class9_GeometryMatrix.GeometryMatrix._dshow)
+    _dshow = dict(Previous._dshow)
     _dshow.update({
         'inversion': [
         ],

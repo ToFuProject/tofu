@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from ._class8_Diagnostic import Diagnostic as Previous
+from ._class08_Diagnostic import Diagnostic as Previous
 from . import _class9_compute as _compute
 from . import _class9_plot as _plot
 
