@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from . import _class8_Diagnostic
+from ._class8_Diagnostic import Diagnostic as Previous
 from . import _class9_compute as _compute
 from . import _class9_plot as _plot
 
@@ -25,11 +25,11 @@ __all__ = ['GeometryMatrix']
 # #############################################################################
 
 
-class GeometryMatrix(_class8_Diagnostic.Diagnostic):
+class GeometryMatrix(Previous):
 
     _show_in_summary = 'all'
 
-    _dshow = dict(_class8_Diagnostic.Diagnostic._dshow)
+    _dshow = dict(Previous._dshow)
     _dshow.update({
         'geom matrix': [
             'bsplines',
