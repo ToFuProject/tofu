@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from ._class3_Aperture import Aperture as Previous
+from ._class03_Aperture import Aperture as Previous
 from . import _class3_check
 from . import _class4_check as _check
 

@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from . import _class7_Camera
+from ._class07_Camera import Camera as Previous
 from . import _class8_check as _check
 from . import _class8_compute as _compute
 from . import _class8_move as _move
@@ -32,11 +32,11 @@ __all__ = ['Diagnostic']
 # #############################################################################
 
 
-class Diagnostic(_class7_Camera.Camera):
+class Diagnostic(Previous):
 
     _show_in_summary = 'all'
 
-    _dshow = dict(_class7_Camera.Camera._dshow)
+    _dshow = dict(Previous._dshow)
     _dshow.update({
         'diagnostic': [
             'is2d',
