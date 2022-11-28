@@ -1293,7 +1293,7 @@ def _plot_profile2d_polar_add_radial(
     reft, keyt = coll.get_time_common(keys=[key, kr2d])[1:3]
 
     # radial total profile
-    radial, t_radial = coll.interpolate_profile2d(
+    radial, t_radial, _ = coll.interpolate_profile2d(
         key=key,
         radius=radmap,
         angle=anglemap,
@@ -1306,7 +1306,7 @@ def _plot_profile2d_polar_add_radial(
 
     # details for purely-radial cases
     if clas.knotsa is None:
-        radial_details, t_radial = coll.interpolate_profile2d(
+        radial_details, t_radial, _ = coll.interpolate_profile2d(
             key=keybs,
             radius=rad,
             angle=None,

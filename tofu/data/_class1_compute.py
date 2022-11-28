@@ -2429,6 +2429,7 @@ def interp2d(
             pass
         if details is False:
             val = val[0, ...]
+            reft = None
 
     # ------
     # store
@@ -2512,19 +2513,29 @@ def interp2d(
     else:
 
         ref = []
-        if reft not in [None, False]:
+        if reft not in [None, False] and not radius_vs_time:
             ref.append(reft)
-        for ii in range(R.ndim):
-            ref.append(None)
-        if grid is True:
-            for ii in range(Z.ndim):
+
+        if meshtype in ['rect', 'tri']:
+            for ii in range(R.ndim):
                 ref.append(None)
+            if grid is True:
+                for ii in range(Z.ndim):
+                    ref.append(None)
+        else:
+            for ii in range(radius.ndim):
+                ref.append(None)
+            if grid is True and angle is not None:
+                for ii in range(angle.ndim):
+                    ref.append(None)
+
         if details is True:
             refbs = coll.dobj['bsplines'][keybs]['ref-bs'][0]
             if crop is True:
                 refbs = f"{refbs}-crop"
             ref.append(refbs)
         ref = tuple(ref)
+
         if len(ref) != val.ndim:
             msg = (
                 "Mismatching ref vs val.shape:\n"
@@ -2532,14 +2543,23 @@ def interp2d(
                 f"\t- ref = {ref}\n"
                 f"\t- reft = {reft}\n"
                 f"\t- details = {details}\n"
+                f"\t- indbs_tf = {indbs_tf}\n"
                 f"\t- key = {key}\n"
+                f"\t- meshtype = {meshtype}\n"
                 f"\t- radius_vs_time = {radius_vs_time}\n"
                 f"\t- grid = {grid}\n"
-                f"\t- R.shape = {R.shape}\n"
-                f"\t- Z.shape = {Z.shape}\n"
-                f"\t- coefs.shape = {coefs.shape}\n"
-                f"\t- indbs_tf = {indbs_tf}\n"
             )
+            if coefs is not None:
+                msg += f"\t- coefs.shape = {coefs.shape}\n"
+            if R is not None:
+                msg += (
+                    f"\t- R.shape = {R.shape}\n"
+                    f"\t- Z.shape = {Z.shape}\n"
+                )
+            if meshtype == 'polar':
+                msg += f"\t- radius.shape = {radius.shape}\n"
+                if angle is not None:
+                    msg += f"\t- angle.shape = {angle.shape}\n"
             raise Exception(msg)
 
     # ------

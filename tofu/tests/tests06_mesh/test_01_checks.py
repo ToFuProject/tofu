@@ -754,6 +754,7 @@ class Test02_Collection():
                 indbs=li[ii%len(li)],
                 knots=bool(ii%3),
                 cents=bool(ii%2),
+                res=0.05,
                 plot_mesh=plot_mesh,
             )
             plt.close('all')
@@ -824,55 +825,55 @@ class Test02_Collection():
             raise Exception(msg)
 
     # TBF for triangular
-    def test13_compute_plot_geometry_matrix(self, kind=None):
+    # def test13_compute_plot_geometry_matrix(self, kind=None):
 
-        # get config and cam
-        conf = tf.load_config('WEST-V0')
-        cam = tf.geom.utils.create_CamLOS1D(
-            pinhole=[3., 1., 0.],
-            orientation=[np.pi, 0., 0],
-            focal=0.1,
-            sensor_nb=50,
-            sensor_size=0.15,
-            config=conf,
-            Diag='SXR',
-            Exp='WEST',
-            Name='cam1',
-        )
+        # # get config and cam
+        # conf = tf.load_config('WEST-V0')
+        # cam = tf.geom.utils.create_CamLOS1D(
+            # pinhole=[3., 1., 0.],
+            # orientation=[np.pi, 0., 0],
+            # focal=0.1,
+            # sensor_nb=50,
+            # sensor_size=0.15,
+            # config=conf,
+            # Diag='SXR',
+            # Exp='WEST',
+            # Name='cam1',
+        # )
 
-        lbs = list(self.lbs)
-        if kind is not None:
-            lbs = [
-                kbs for kbs in lbs
-                if self.obj.dobj['mesh'][
-                    self.obj.dobj['bsplines'][kbs]['mesh']
-                ]['type'] == kind
-            ]
+        # lbs = list(self.lbs)
+        # if kind is not None:
+            # lbs = [
+                # kbs for kbs in lbs
+                # if self.obj.dobj['mesh'][
+                    # self.obj.dobj['bsplines'][kbs]['mesh']
+                # ]['type'] == kind
+            # ]
 
-        # compute geometry matrices
-        for ii, k0 in enumerate(lbs):
-            self.obj.add_geometry_matrix(
-                key=k0,
-                cam=cam,
-                res=0.01,
-                crop=None,
-                store=True,
-            )
+        # # compute geometry matrices
+        # for ii, k0 in enumerate(lbs):
+            # self.obj.add_geometry_matrix(
+                # key=k0,
+                # cam=cam,
+                # res=0.01,
+                # crop=None,
+                # store=True,
+            # )
 
-        # plot geometry matrices
-        imax = 3
-        for ii, k0 in enumerate(self.obj.dobj['matrix']):
+        # # plot geometry matrices
+        # imax = 3
+        # for ii, k0 in enumerate(self.obj.dobj['matrix']):
 
-            if '-' in k0 and int(k0[k0.index('-')+1:]) > 0:
-                continue
+            # if '-' in k0 and int(k0[k0.index('-')+1:]) > 0:
+                # continue
 
-            dax = self.obj.plot_geometry_matrix(
-                key=k0,
-                cam=cam,
-                indchan=40,
-                indbf=5,
-                res=0.05,
-            )
-            if ii % imax == 0:
-                plt.close('all')
-        plt.close('all')
+            # dax = self.obj.plot_geometry_matrix(
+                # key=k0,
+                # cam=cam,
+                # indchan=40,
+                # indbf=5,
+                # res=0.05,
+            # )
+            # if ii % imax == 0:
+                # plt.close('all')
+        # plt.close('all')
