@@ -32,6 +32,13 @@ class GeometryMatrix(_class8_Diagnostic.Diagnostic):
     _dshow = dict(_class8_Diagnostic.Diagnostic._dshow)
     _dshow.update({
         'geom matrix': [
+            'bsplines',
+            'diagnostic',
+            'camera',
+            'shape',
+            'data',
+            'method',
+            'res',
         ],
     })
 

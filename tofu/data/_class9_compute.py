@@ -8,6 +8,7 @@ import copy
 # Common
 import numpy as np
 import scipy.integrate as scpinteg
+import astropy.units as asunits
 
 
 import datastock as ds
@@ -100,12 +101,16 @@ def compute(
     if not is3d:
         shapemat = tuple(np.r_[None, indbs.sum()])
 
+    if verb is True:
+        msg = f"Geom matrix for diag '{key_diag}':"
+        print(msg)
+
     # -----------
     # compute
     # -----------
 
     if method == 'los':
-        dout, units = _compute_los(
+        dout, units, axis = _compute_los(
             coll=coll,
             key_bsplines=key_bsplines,
             key_diag=key_diag,
@@ -120,6 +125,7 @@ def compute(
             # other
             shapemat=shapemat,
             brightness=brightness,
+            verb=verb,
         )
 
     else:
@@ -132,6 +138,16 @@ def compute(
     if store:
         _store(
             coll=coll,
+            key=key,
+            key_bsplines=key_bsplines,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            method=method,
+            res=res,
+            crop=crop,
+            dout=dout,
+            units=units,
+            axis=axis,
         )
 
     else:
@@ -185,7 +201,7 @@ def _compute_check(
         key_mesh0 = key_mesh
 
     # key_diag, key_cam
-    key, key_cam = coll.get_diagnostic_cam(key=key_diag, key_cam=key_cam)
+    key_diag, key_cam = coll.get_diagnostic_cam(key=key_diag, key_cam=key_cam)
 
     # method
     method = ds._generic_check._check_var(
@@ -276,6 +292,7 @@ def _compute_los(
     # other
     shapemat=None,
     brightness=None,
+    verb=None,
 ):
 
     # ----------------
@@ -296,6 +313,13 @@ def _compute_los(
 
         for ii in range(npix):
 
+            # verb
+            if verb is True:
+                msg = f"\t camera '{k0}': pixel {ii + 1} / {npix}"
+                end = '\n' if ii == npix - 1 else '\r'
+                print(msg, flush=True, end=end)
+
+            # sample los
             R, Z, length = coll.sample_rays(
                 key=key_los,
                 res=res,
@@ -318,7 +342,7 @@ def _compute_los(
                 azone=None,
                 indbs=indbs,
                 details=True,
-                reshape=None,
+                reshape=False,
                 crop=None,
                 nan0=True,
                 val_out=np.nan,
@@ -349,14 +373,14 @@ def _compute_los(
             elif datai.ndim == 3 and datai.shape[0] == 1:
                 mat[ii, :] = scpinteg.simpson(
                     datai[0, ...],
-                    x=length,
+                    x=length[0],
                     axis=axis,
                 )
                 # mat[ii, :] = np.nansum(mati[0, ...], axis=0) * reseff[ii]
             else:
                 mat[ii, :] = scpinteg.simpson(
                     datai,
-                    x=length,
+                    x=length[0],
                     axis=axis,
                 )
 
@@ -371,15 +395,15 @@ def _compute_los(
             mat *= etend.reshape(sh_etend)
 
         # set ref
+        refi = list(refi)
         refi[axis] = coll.dobj['camera'][k0]['dgeom']['ref_flat']
         refi = tuple(np.r_[refi[:axis], refi[axis], refi[axis+1:]])
 
         # fill dout
         dout[k0] = {
-            'data': data,
+            'data': mat,
             'ref': refi,
         }
-    import pdb; pdb.set_trace()     # DB
 
     # -----
     # units
@@ -388,7 +412,7 @@ def _compute_los(
     if brightness is False:
         units = units * coll.ddata[ketend]['units']
 
-    return dout, units
+    return dout, units, axis
 
 
 # ###################
@@ -422,60 +446,53 @@ def _compute_vos(
 
 def _store(
     coll=None,
+    key=None,
+    key_bsplines=None,
+    key_diag=None,
+    key_cam=None,
+    method=None,
+    res=None,
+    crop=None,
+    dout=None,
+    units=None,
+    axis=None,
 ):
 
-    # add key chan if necessary
-    dref = None
-    if key_chan is None:
-        lrchan = [
-            k0 for k0, v0 in coll.dref.items()
-            if k0.startswith('chan') and k0[4:].isdecimal()
-        ]
-        if len(lrchan) == 0:
-            chann = 0
-        else:
-            chann = max([int(k0.replace('chan', '')) for k0 in lrchan]) + 1
-        key_chan = f'chan{chann}'
-
-        dref = {
-            key_chan: {
-                'data': np.arange(0, nlos),
-            },
+    # add data
+    ddata = {}
+    for k0, v0 in dout.items():
+        ki = f"{key}_{k0}"
+        ddata[ki] = {
+            'data': v0['data'],
+            'ref': v0['ref'],
+            'units': units,
         }
 
-    # add matrix data
-    keycropped = coll.dobj['bsplines'][key]['ref-bs'][0]
-    if crop is True:
-        keycropped = f'{keycropped}-crop'
-
-    # ref
-    if is3d:
-        ref = (r2d_reft, key_chan, keycropped)
-    else:
-        ref = (key_chan, keycropped)
-
-    # add data
-    ddata = {
-        name: {
-            'data': mat,
-            'ref': ref,
-        },
-    }
+    # shapes
+    shapes = [v0['data'].shape for v0 in dout.values()]
+    assert all([len(ss) == len(shapes[0]) for ss in shapes[1:]])
+    shapes = np.array(shapes)
+    assert np.allclose(shapes[1:, :axis], shapes[0:1, :axis])
+    assert np.allclose(shapes[1:, axis+1:], shapes[0:1, axis+1:])
 
     # add matrix obj
     dobj = {
-        'matrix': {
-            name: {
-                'bsplines': key,
-                'cam': cam.Id.Name,
-                'data': name,
+        'geom matrix': {
+            key: {
+                'data': [f"{key}_{k0}" for k0 in key_cam],
+                'bsplines': key_bsplines,
+                'diagnostic': key_diag,
+                'camera': key_cam,
+                'method': method,
+                'res': res,
                 'crop': crop,
-                'shape': mat.shape,
+                'shape': tuple(shapes[0, :]),
+                'axis_chan': axis,
             },
         },
     }
 
-    coll.update(dref=dref, ddata=ddata, dobj=dobj)
+    coll.update(ddata=ddata, dobj=dobj)
 
 
 # #############################################################################
