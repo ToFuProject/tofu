@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from . import _class1_Plasma2D
+from ._class01_Plasma2D import Plasma2D as Previous
 from . import _class2_check as _check
 from . import _class2_compute as _compute
 from . import _class2_plot as _plot
@@ -26,11 +26,11 @@ __all__ = ['Rays']
 # #############################################################################
 
 
-class Rays(_class1_Plasma2D.Plasma2D):
+class Rays(Previous):
 
     _show_in_summary = 'all'
 
-    _dshow = dict(_class1_Plasma2D.Plasma2D._dshow)
+    _dshow = dict(Previous._dshow)
     _dshow.update({
         'rays': [
             'shape',

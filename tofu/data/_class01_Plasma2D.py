@@ -12,7 +12,7 @@ import datastock as ds
 
 # tofu
 # from tofu import __version__ as __version__
-from . import _class0_Config
+from ._class00_Config import Config as Previous
 from . import _class1_checks as _checks
 from . import _class1_compute as _compute
 from . import _class1_plot as _plot
@@ -32,7 +32,7 @@ _QUANT_Z = 'Z'
 # #############################################################################
 
 
-class Plasma2D(_class0_Config.Config):
+class Plasma2D(Previous):
 
     _ddef = copy.deepcopy(ds.DataStock._ddef)
     _ddef['params']['ddata'].update({
@@ -43,7 +43,7 @@ class Plasma2D(_class0_Config.Config):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
-    _dshow = dict(_class0_Config.Config._dshow)
+    _dshow = dict(Previous._dshow)
 
     _which_mesh = _WHICH_MESH
     _quant_R = _QUANT_R
