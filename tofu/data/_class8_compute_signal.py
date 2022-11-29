@@ -9,7 +9,6 @@ import astropy.units as asunits
 import matplotlib.pyplot as plt     # DB
 
 
-
 import datastock as ds
 
 
@@ -103,43 +102,20 @@ def compute_signal(
         pass
 
     # -------------
-    # post-format 
+    # store 
     # --------------
 
     if store is True:
-
-        doptics = coll._dobj['diagnostic'][key_diag]['doptics']
-        dsig = coll._dobj['diagnostic'][key_diag].get('dsignal')
-        if dsig is None:
-            dsig = {}
-
-        dsig.update({
-            key_signal: {
-                'integrand': key_integrand,
-                'camera': [],
-                'signal': [],
-                'method': method,
-                'res': res,
-                'axis_chan': None,
-            },
-        })
-
-        for k0, v0 in dout.items():
-
-            # add data
-            ksig = f'{key_signal}_{k0}'
-            coll.add_data(
-                key=ksig,
-                data=v0['data'],
-                ref=v0['ref'],
-                units=units,
-            )
-
-            # add as synthetic signal in dobj
-            dsig[key_signal]['camera'].append(k0)
-            dsig[key_signal]['signal'].append(ksig)
-
-        coll._dobj['diagnostic'][key_diag]['dsignal'] = dsig
+        _store(
+            coll=coll,
+            key=key_signal,
+            key_diag=key_diag,
+            dout=dout,
+            key_integrand=key_integrand,
+            method=method,
+            res=res,
+            units=units,
+        )
 
     # -------------
     # return 
@@ -150,6 +126,79 @@ def compute_signal(
 
 
 # ##################################################################
+# ##################################################################
+#               STORE
+# ##################################################################
+
+
+def _store(
+    coll=None,
+    key=None,
+    key_diag=None,
+    dout=None,
+    units=None,
+    # synthetic signal
+    key_integrand=None,
+    method=None,
+    res=None,
+    # retrofit
+    key_matrix=None,
+):
+
+    # ---------
+    # check
+
+    lc = [key_integrand is not None, key_matrix is not None]
+    if np.sum(lc) != 1:
+        msg = "Please provide key_integrand xor key_matrix"
+        raise Exception(msg)
+
+    typ = 'retrofit' if key_integrand is None else 'synthetic'
+
+    # ---------
+    # prepare
+
+    doptics = coll._dobj['diagnostic'][key_diag]['doptics']
+    dsig = coll._dobj['diagnostic'][key_diag].get('dsignal')
+    if dsig is None:
+        dsig = {}
+
+    lkc = list(dout.keys())
+    lksig = [f'{key}_{k0}' for k0 in lkc]
+
+    # ----------
+    # build dict
+
+    dsig.update({
+        key: {
+            'type': typ,
+            'camera': lkc,
+            'data': lksig,
+            # synthetic
+            'integrand': key_integrand,
+            'method': method,
+            'res': res,
+            # retrofit
+            'geom matrix': key_matrix,
+        },
+    })
+
+    # ----------
+    # add data
+
+    for ii, k0 in enumerate(lkc):
+
+        # add data
+        coll.add_data(
+            key=lksig[ii],
+            data=dout[k0]['data'],
+            ref=dout[k0]['ref'],
+            units=units,
+        )
+
+    coll._dobj['diagnostic'][key_diag]['dsignal'] = dsig
+
+
 # ##################################################################
 #               CHECK
 # ##################################################################

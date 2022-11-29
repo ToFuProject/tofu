@@ -12,6 +12,7 @@ import scipy.sparse as scpsp
 
 # tofu
 from . import _generic_check
+from . import _class8_compute_signal
 from . import _class10_checks as _checks
 from . import _class10_algos as _algos
 tomotok2tofu = _checks.tomotok2tofu
@@ -20,10 +21,10 @@ tomotok2tofu = _checks.tomotok2tofu
 __all__ = ['get_available_inversions_algo']
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
 #                           main
-# #############################################################################
+# ##################################################################
 
 
 def compute_inversions(
@@ -61,7 +62,7 @@ def compute_inversions(
     (
         key_matrix,
         key_data, key_sigma, keybs, keym, mtype,
-        data, sigma, matrix,
+        ddata, dsigma, matrix,
         keyt, t, reft, notime,
         m3d, indok, iokt,
         dconstraints,
@@ -70,34 +71,10 @@ def compute_inversions(
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
         keyinv, refinv, regul,
-    ) = _checks._compute_check(
-        # resources
-        coll=coll,
-        # inversion name
-        key=key,
-        # input data
-        key_matrix=key_matrix,
-        key_data=key_data,
-        key_sigma=key_sigma,
-        sigma=sigma,
-        # constraints
-        dconstraints=dconstraints,
-        # choice of algo
-        algo=algo,
-        # regularity operator
-        solver=solver,
-        operator=operator,
-        geometry=geometry,
-        # misc
-        conv_crit=conv_crit,
-        chain=chain,
-        verb=verb,
-        store=store,
-        # algo and solver-specific options
-        kwdargs=kwdargs,
-        method=method,
-        options=options,
-    )
+    ) = _checks._compute_check(**locals())
+
+    data = ddata['data']
+    sigma = dsigma['data']
 
     nt, nchan = data.shape
     nbs = matrix.shape[-1]
@@ -307,109 +284,145 @@ def compute_inversions(
     # store
 
     if store is True:
-
-        # reshape if unique time step
-        if notime:
-            assert sol_full.shape[0] == 1
-            sol_full = sol_full[0, ...]
-        else:
-            # restore full size
-            sol_full, chi2n, mu, regularity, niter = _restore_fullt(
-                iokt=iokt,
-                sol_full=sol_full,
-                chi2n=chi2n,
-                mu=mu,
-                regularity=regularity,
-                niter=niter,
-            )
-            nt = t.size
-
-        # dict
-        ddata = {
-            keyinv: {
-                'data': sol_full,
-                'ref': refinv,
-            },
-        }
-
-        dref = None
-        if notime is False:
-            if keyt is None:
-                dref = {
-                    reft: {'size': nt},
-                }
-                ddata.update({
-                    f'{keyinv}-t': {
-                        'data': t,
-                        'ref': reft,
-                        'dim': 'time',
-                    },
-                })
-
-            ddata.update({
-                f'{keyinv}-chi2n': {
-                    'data': chi2n,
-                    'ref': reft,
-                },
-                f'{keyinv}-mu': {
-                    'data': mu,
-                    'ref': reft,
-                },
-                f'{keyinv}-reg': {
-                    'data': regularity,
-                    'ref': reft,
-                },
-                f'{keyinv}-niter': {
-                    'data': niter,
-                    'ref': reft,
-                },
-            })
-
-        # add synthetic data
-        kretro = f'{keyinv}-retro'
-
-        # add inversion
-        dobj = {
-            'inversions': {
-                keyinv: {
-                    'retrofit': kretro,
-                    'data_in': key_data,
-                    'sigma_in': key_sigma,
-                    'matrix': key_matrix,
-                    'sol': keyinv,
-                    'operator': operator,
-                    'geometry': geometry,
-                    'isotropic': dalgo['isotropic'],
-                    'algo': dalgo['name'],
-                    'solver': solver,
-                    'chain': chain,
-                    'positive': dalgo['positive'],
-                    'conv_crit': conv_crit,
-                },
-            },
-        }
-        if notime is True:
-            dobj['inversions'][keyinv].update({
-                'chi2n': chi2n,
-                'mu': mu,
-                'reg': regularity,
-                'niter': niter,
-            })
-
-        coll.update(dobj=dobj, dref=dref, ddata=ddata)
-
-        # add synthetic data
-        keyt = coll.get_time(key=keyinv)[3]
-        data_synth = coll.add_retrofit_data(
-            key=kretro,
-            key_matrix=key_matrix,
-            key_profile2d=keyinv,
-            t=keyt,
-            store=True,
-        )
+        _store(**locals())
 
     else:
         return sol_full, mu, chi2n, regularity, niter, spec, t
+
+
+def _store(
+    coll=None,
+    sol_full=None,
+    notime=None,
+    iokt=None,
+    chi2n=None,
+    mu=None,
+    regularity=None,
+    niter=None,
+    t=None,
+    keyinv=None,
+    refinv=None,
+    reft=None,
+    keyt=None,
+    key_data=None,
+    key_sigma=None,
+    key_matrix=None,
+    operator=None,
+    geometry=None,
+    dalgo=None,
+    solver=None,
+    chain=None,
+    conv_crit=None,
+    **kwdargs,
+):
+
+    # ---------------------------
+    # reshape if unique time step
+
+    if notime:
+        assert sol_full.shape[0] == 1
+        sol_full = sol_full[0, ...]
+    else:
+        # restore full size
+        sol_full, chi2n, mu, regularity, niter = _restore_fullt(
+            iokt=iokt,
+            sol_full=sol_full,
+            chi2n=chi2n,
+            mu=mu,
+            regularity=regularity,
+            niter=niter,
+        )
+        nt = t.size
+
+    # --------------------
+    # Build dict
+
+    # ddata
+    ddata = {
+        keyinv: {
+            'data': sol_full,
+            'ref': refinv,
+        },
+    }
+
+    dref = None
+    if notime is False:
+        if keyt is None:
+            dref = {
+                reft: {'size': nt},
+            }
+            ddata.update({
+                f'{keyinv}-t': {
+                    'data': t,
+                    'ref': reft,
+                    'dim': 'time',
+                },
+            })
+
+        ddata.update({
+            f'{keyinv}-chi2n': {
+                'data': chi2n,
+                'ref': reft,
+            },
+            f'{keyinv}-mu': {
+                'data': mu,
+                'ref': reft,
+            },
+            f'{keyinv}-reg': {
+                'data': regularity,
+                'ref': reft,
+            },
+            f'{keyinv}-niter': {
+                'data': niter,
+                'ref': reft,
+            },
+        })
+
+    # add synthetic data
+    kretro = f'{keyinv}-retro'
+
+    # add inversion
+    dobj = {
+        'inversions': {
+            keyinv: {
+                'retrofit': kretro,
+                'data_in': key_data,
+                'sigma_in': key_sigma,
+                'matrix': key_matrix,
+                'sol': keyinv,
+                'operator': operator,
+                'geometry': geometry,
+                'isotropic': dalgo['isotropic'],
+                'algo': dalgo['name'],
+                'solver': solver,
+                'chain': chain,
+                'positive': dalgo['positive'],
+                'conv_crit': conv_crit,
+            },
+        },
+    }
+
+    # adjust for time
+    if notime is True:
+        dobj['inversions'][keyinv].update({
+            'chi2n': chi2n,
+            'mu': mu,
+            'reg': regularity,
+            'niter': niter,
+        })
+
+    # update instance
+    coll.update(dobj=dobj, dref=dref, ddata=ddata)
+
+    # add synthetic data
+    keyt = coll.get_time(key=keyinv)[3]
+    data_synth = coll.add_retrofit_data(
+        key=kretro,
+        key_matrix=key_matrix,
+        key_profile2d=keyinv,
+        t=keyt,
+        store=True,
+    )
 
 
 def _restore_fullt(
@@ -440,10 +453,10 @@ def _restore_fullt(
     return sol_fulli, chi2ni, mui, regularityi, niteri
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
 #                   _compute time loop
-# #############################################################################
+# ##################################################################
 
 
 def _compute_inv_loop(
@@ -614,10 +627,10 @@ def _compute_inv_loop(
             print(msg, end='\n', flush=True)
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
 #                   _compute time loop - TOMOTOK
-# #############################################################################
+# ##################################################################
 
 
 def _compute_inv_loop_tomotok(
@@ -738,10 +751,10 @@ def _compute_inv_loop_tomotok(
             print(msg, end='\n', flush=True)
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
 #                      utility
-# #############################################################################
+# ##################################################################
 
 
 def _update_TTyn(
@@ -849,3 +862,245 @@ def _update_ttyn_constraints(
         bounds = (bounds[0][indbsi], bounds[1][indbsi])
 
     return nbsi, indbsi, Tni, TTni, Tyni, yni, bounds
+
+
+# ##################################################################
+# ##################################################################
+#               retrofit                   
+# ##################################################################
+
+
+def compute_retrofit_data(
+    # resources
+    coll=None,
+    # inputs
+    key=None,
+    key_diag=None,
+    key_matrix=None,
+    key_profile2d=None,
+    t=None,
+    # parameters
+    store=None,
+):
+
+    # ------------
+    # check inputs
+
+    (
+        key, key_diag, key_cam, keybs, keym, mtype,
+        key_matrix, key_profile2d,
+        hastime, t, keyt, reft, refs,
+        nt, nchan, nbs,
+        ist_mat, ist_prof, dind,
+    ) = _compute_retrofit_data_check(
+        # resources
+        coll=coll,
+        # inputs
+        key=key,
+        key_diag=key_diag,
+        key_matrix=key_matrix,
+        key_profile2d=key_profile2d,
+        t=t,
+        # parameters
+        store=store,
+    )
+
+    # --------
+    # prepare
+
+    kmat = coll.dobj['geom matrix'][key_matrix]['data']
+    matrix = coll.ddata[kmat]['data']
+    coefs = coll.ddata[key_profile2d]['data']
+
+    # coefs
+    if mtype == 'rect':
+        indbs_tf = coll.select_bsplines(
+            key=keybs,
+            returnas='ind',
+        )
+        if hastime and ist_prof:
+            coefs = coefs[:, indbs_tf[0], indbs_tf[1]]
+        else:
+            coefs = coefs[indbs_tf[0], indbs_tf[1]]
+
+    # --------
+    # compute
+
+    # time-dependent
+    if hastime:
+
+        # retro = np.full((nt, nchan, nbs), np.nan)
+
+        # get time indices
+        if ist_mat:
+            if dind.get(key_matrix, {}).get('ind') is not None:
+                imat = dind[key_matrix]['ind']
+            else:
+                imat = np.arange(nt)
+
+        if ist_prof:
+            if dind.get(key_profile2d, {}).get('ind') is not None:
+                iprof = dind[key_profile2d]['ind']
+            else:
+                iprof = np.arange(nt)
+
+        # compute matrix product
+        if ist_mat and ist_prof:
+            retro = np.array([
+                matrix[imat[ii], :, :].dot(coefs[iprof[ii], :])
+                for ii in range(nt)
+            ])
+        elif ist_mat:
+            retro = np.array([
+                matrix[imar[ii], :, :].dot(coefs)
+                for ii in range(nt)
+            ])
+        elif ist_prof:
+            retro = np.array([
+                matrix.dot(coefs[iprof[ii], :])
+                for ii in range(nt)
+            ])
+    else:
+        retro = matrix.dot(coefs)
+
+    # --------
+    # format
+
+    i0 = 0
+    dout = {}
+    for ii, k0 in enumerate(key_cam):
+        npix = coll.dobj['camera'][k0]['npix']
+        ind = i0 + np.arange(0, npix)
+        if hastime:
+            dout[k0] = {
+                'data': retro[:, ind],
+                'ref': None,
+            }
+        else:
+            dout[k0] = {
+                'data': retro[ind],
+                'ref': None,
+            }
+        i0 += npix
+
+
+    # --------
+    # store
+
+    if store:
+
+        _class8_compute_signal._store(
+            key=key,
+            key_diag=key_diag,
+            dout=dout,
+            units=units,
+            key_matrix=key_matrix,
+        )
+
+        # add reft + t if new
+        # if hastime and keyt not in coll.ddata.keys():
+            # ddata[keyt] = {'data': t, 'ref': reft, 'dim': 'time'}
+        # if hastime and reft not in coll.dref.keys():
+            # dref = {reft: {'size': t.size}}
+        # else:
+            # dref = None
+
+    else:
+        return retro, t, keyt, reft
+
+
+# ###################
+#   checking
+# ###################
+
+
+def _compute_retrofit_data_check(
+    # resources
+    coll=None,
+    # inputs
+    key=None,
+    key_diag=None,
+    key_matrix=None,
+    key_profile2d=None,
+    t=None,
+    # parameters
+    store=None,
+):
+
+    #----------
+    # keys
+
+    # key_diag
+    lok = list(coll.dobj.get('diagnostic', {}).keys())
+    key_diag = ds._generic_check._check_var(
+        key_diag, 'key_diag',
+        types=str,
+        allowed=lok,
+    )
+
+    # key
+    dsig = coll.dobj['diagnostic'][key_diag].get('dsignal', {})
+    lout = list(dsig.keys())
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        excluded=lout,
+    )
+
+    # key_matrix
+    lok = coll.dobj.get('geom matrix', {}).keys()
+    key_matrix = ds._generic_check._check_var(
+        key_matrix, 'key_matrix',
+        types=str,
+        allowed=lok,
+    )
+
+    key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
+    keybs = coll.dobj['geom matrix'][key_matrix]['bsplines']
+    keym = coll.dobj['bsplines'][keybs]['mesh']
+    mtype = coll.dobj[coll._which_mesh][keym]['type']
+
+    nchan, nbs = coll.ddata[key_matrix]['data'].shape[-2:]
+    refchan, refbs = coll.ddata[key_matrix]['ref'][-2:]
+
+    # key_pofile2d
+    lok = [
+        k0 for k0, v0 in coll.ddata.items()
+        if v0['bsplines'] == keybs
+    ]
+    key_profile2d = ds._generic_check._check_var(
+        key_profile2d, 'key_profile2d',
+        types=str,
+        allowed=lok,
+    )
+
+    # time management
+    hastime, reft, keyt, t_out, dind = coll.get_time_common(
+        keys=[key_matrix, key_profile2d],
+        t=t,
+        ind_strict=False,
+    )
+    if hastime and t_out is not None and reft is None:
+        reft = f'{key}-nt'
+        keyt = f'{key}-t'
+
+    ist_mat = coll.get_time(key=key_matrix)[0]
+    ist_prof = coll.get_time(key=key_profile2d)[0]
+
+    # reft, keyt and refs
+    if hastime and t_out is not None:
+        nt = t_out.size
+        refs = (reft, refchan)
+    else:
+        nt = 0
+        reft = None
+        keyt = None
+        refs = (refchan,)
+
+    return (
+        key, key_diag, key_cam, keybs, keym, mtype,
+        key_matrix, key_profile2d,
+        hastime, t_out, keyt, reft, refs,
+        nt, nchan, nbs,
+        ist_mat, ist_prof, dind,
+    )

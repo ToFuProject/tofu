@@ -154,26 +154,22 @@ class Diagnostic(Previous):
             **kwdargs,
         )
 
-    # def get_diagnostic_concatenate_data(
-        # self,
-        # key=None,
-        # key_cam=None,
-        # data=None,
-        # rocking_curve=None,
-        # **kwdargs,
-        # ):
-        # """ Return concatenated data for chosen cameras
+    def get_diagnostic_data_concatenated(
+        self,
+        key=None,
+        key_data=None,
+        flat=None,
+        ):
+        """ Return concatenated data for chosen cameras
 
 
-        # """
-        # return _compute._concatenate_data(
-            # coll=self,
-            # key=key,
-            # key_cam=key_cam,
-            # data=data,
-            # rocking_curve=rocking_curve,
-            # **kwdargs,
-        # )
+        """
+        return _compute._concatenate_data(
+            coll=self,
+            key=key,
+            key_data=key_data,
+            flat=flat,
+        )
 
     # -----------------
     # etendue computing

@@ -4,6 +4,7 @@
 import copy
 import itertools as itt
 
+
 import numpy as np
 import scipy.interpolate as scpinterp
 import matplotlib.pyplot as plt
@@ -1326,13 +1327,27 @@ def _concatenate_data_check(
 
     # key_data
     if isinstance(key_data, str):
-        key_data = [key_data]
+
+        if key_data in coll.ddata.keys():
+            key_data = [key_data]
+
+        else:
+            lok = list(coll.dobj['diagnostic'][key_diag].get('dsignal').keys())
+            key_data = ds._generic_checks._check_var(
+                key_data, 'key_data',
+                types=str,
+                allowed=lok,
+            )
+
+            key_data = list(
+                coll.dobj['diagnostic'][key_diag]['dsignal'][key_data].keys()
+            )
 
     # basic check
     c0 = (
         isinstance(key_data, list)
         and all([
-            isinstance(kk, str and kk in coll.ddata.keys())
+            isinstance(kk, str) and kk in coll.ddata.keys()
             for kk in key_data
         ])
     )
@@ -1388,25 +1403,31 @@ def _concatenate_data_check(
 
     # ref axis
     laxcam = [
-        [ref.index(rr) for rr in coll.dobj['camera'][lcam[ii]]]
+        [
+            ref.index(rr)
+            for rr in coll.dobj['camera'][lcam[ii]]['dgeom']['ref']
+        ]
         for ii, ref in enumerate(lref)
     ]
-    if any([len(ax) != len(laxcam) for ax in laxcam[1:]]):
+    if any([len(ax) != len(laxcam[0]) for ax in laxcam[1:]]):
         msg = (
             f"Non-uniform camera concatenation axis for diag '{key}':\n"
             f"\t- key_data: {key_data}\n"
             f"\t- laxcam:   {laxcam}"
         )
+        import pdb; pdb.set_trace()     # DB
         raise Exception(msg)
 
     laxcam = np.array(laxcam)
-    if not np.allclose():
+    if not np.allclose(laxcam, laxcam[0:1, :]):
         msg = (
-            ""
+            f"Non-uniform axis for concatenation for diag '{key}':\n"
+            f"\t- laxcam: {laxcam}"
         )
         raise Exception(msg)
+    axcam = laxcam[0]
 
-    if len(laxcam[0]) != 1 + is2d:
+    if len(axcam) != 1 + is2d:
         msg = (
             f"ref not consistent with is2d for diag '{key}':\n"
             f"\t- is2d: {is2d}\n"
@@ -1414,7 +1435,9 @@ def _concatenate_data_check(
         )
         raise Exception(msg)
 
-    ref = [lref[0][ii] for ii in enumerate(laxcam)]
+    ref = list(lref[0])
+    for ii in axcam:
+        ref[ii] = None
 
     # ------
     # flat
@@ -1432,14 +1455,13 @@ def _concatenate_data(
     coll=None,
     key=None,
     key_data=None,
-    key_cam=None,
     flat=None,
 ):
 
     # ------------
     # check inputs
 
-    key, key_datai, is2d, stack, ref, flat = _concatenate_data_check(
+    key, key_data, is2d, stack, ref, flat = _concatenate_data_check(
         coll=coll,
         key=key,
         key_data=key_data,
@@ -1450,33 +1472,50 @@ def _concatenate_data(
     # prepare
 
     if is2d:
+        ax0 = ref.index(None)
+        ax1 = len(ref) - ref[::-1].index(None)
         if flat:
-            axis = None
+            ldata = []
+            for k0 in key_data:
+                sh = list(coll.ddata[k0]['data'].shape)
+                size = sh[ax0] * sh[ax1]
+                sh = tuple(np.r_[sh[:ax0], size, sh[ax1+1:]])
+                ldata.append(di.reshape(sh))
+            axis = ax0
         else:
-            if stack:
-                axis = ref.index(None)
-            else:
-                axis = len(ref) - ref[::-1].index(None)
+            axis = ax0 if stack == 'horizontal' else ax1
+            ldata = [coll.ddata[k0]['data'] for k0 in key_data]
+            lsize = [dd.shape[axis] for dd in ldata]
+            if len(set(lsize)) != 1:
+                msg = (
+                    "Data for diag '{key}' cannot be stacked {stack}:\n"
+                    f"\t- shapes: {[dd.shape for dd in ldata]}\n"
+                    f"\t- axis: {axis}"
+                )
+                raise Exception(msg)
+
     else:
-        ldata = [coll.ddata[k0]['data'] for dd in key_data]
+        ldata = [coll.ddata[k0]['data'] for k0 in key_data]
         axis = ref.index(None)
 
     # ------------
     # concatenate
 
     data = np.concatenate(tuple(ldata), axis=axis)
-    units = None
+    units = coll.ddata[key_data[0]]['units']
 
     # dind
     i0 = 0
     dind = {}
     for ii, k0 in enumerate(key_data):
-        ind = i0 + np.arange()
+        npix = ldata[ii].shape[axis]
+        ind = i0 + np.arange(0, npix)
         dind[k0] = ind
-        i0 += ind.size
+        i0 += npix
 
     return {
         'data': data,
+        'keys': key_data,
         'units': units,
         'ref': ref,
         'axis': axis,
