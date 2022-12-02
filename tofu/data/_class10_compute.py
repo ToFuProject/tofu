@@ -10,6 +10,9 @@ import numpy as np
 import scipy.sparse as scpsp
 
 
+import datastock as ds
+
+
 # tofu
 from . import _generic_check
 from . import _class8_compute_signal
@@ -881,17 +884,21 @@ def compute_retrofit_data(
     t=None,
     # parameters
     store=None,
+    returnas=None,
 ):
 
     # ------------
     # check inputs
+    # --------------
 
     (
         key, key_diag, key_cam, keybs, keym, mtype,
         key_matrix, key_profile2d,
-        hastime, t, keyt, reft, refs,
+        is2d, matrix, dindmat,
+        hastime, t, keyt, reft, ref,
         nt, nchan, nbs,
         ist_mat, ist_prof, dind,
+        store, returnas,
     ) = _compute_retrofit_data_check(
         # resources
         coll=coll,
@@ -903,13 +910,16 @@ def compute_retrofit_data(
         t=t,
         # parameters
         store=store,
+        returnas=returnas,
     )
 
     # --------
     # prepare
+    # --------------
 
     kmat = coll.dobj['geom matrix'][key_matrix]['data']
-    matrix = coll.ddata[kmat]['data']
+    gunits = coll.ddata[kmat[0]]['units']
+
     coefs = coll.ddata[key_profile2d]['data']
 
     # coefs
@@ -925,6 +935,7 @@ def compute_retrofit_data(
 
     # --------
     # compute
+    # --------------
 
     # time-dependent
     if hastime:
@@ -933,8 +944,8 @@ def compute_retrofit_data(
 
         # get time indices
         if ist_mat:
-            if dind.get(key_matrix, {}).get('ind') is not None:
-                imat = dind[key_matrix]['ind']
+            if dind.get(kmat[0], {}).get('ind') is not None:
+                imat = dind[kmat[0]]['ind']
             else:
                 imat = np.arange(nt)
 
@@ -963,33 +974,48 @@ def compute_retrofit_data(
     else:
         retro = matrix.dot(coefs)
 
-    # --------
+    # --------------
     # format
+    # --------------
 
     i0 = 0
     dout = {}
     for ii, k0 in enumerate(key_cam):
-        npix = coll.dobj['camera'][k0]['npix']
+        npix = coll.dobj['camera'][k0]['dgeom']['pix_nb']
         ind = i0 + np.arange(0, npix)
-        if hastime:
-            dout[k0] = {
-                'data': retro[:, ind],
-                'ref': None,
-            }
-        else:
-            dout[k0] = {
-                'data': retro[ind],
-                'ref': None,
-            }
+
+        # extract relevant part
+        retroi = retro[:, ind] if hastime else retro[ind]
+        refi = list(ref)
+        axis = refi.index(None)
+
+        # reshape if 2d
+        if is2d:
+            sh = list(retroi.shape)
+            sh[axis] = coll.dobj['camera'][k0]['dgeom']['shape']
+            sh = tuple(np.r_[sh[:axis], sh[axis], sh[axis+1:]].astype(int))
+            retroi = retroi.reshape(sh)
+
+        # ref
+        refi[axis] = coll.dobj['camera'][k0]['dgeom']['ref']
+        refi = tuple(np.r_[refi[:axis], refi[axis], refi[axis+1:]])
+
+        # dict
+        dout[k0] = {
+            'data': retroi,
+            'ref': refi,
+        }
         i0 += npix
 
+    units = coll.ddata[key_profile2d]['units'] * gunits
 
-    # --------
+    # --------------
     # store
+    # --------------
 
     if store:
-
         _class8_compute_signal._store(
+            coll=coll,
             key=key,
             key_diag=key_diag,
             dout=dout,
@@ -997,16 +1023,12 @@ def compute_retrofit_data(
             key_matrix=key_matrix,
         )
 
-        # add reft + t if new
-        # if hastime and keyt not in coll.ddata.keys():
-            # ddata[keyt] = {'data': t, 'ref': reft, 'dim': 'time'}
-        # if hastime and reft not in coll.dref.keys():
-            # dref = {reft: {'size': t.size}}
-        # else:
-            # dref = None
+    # -------------
+    # return 
+    # --------------
 
-    else:
-        return retro, t, keyt, reft
+    if returnas is dict:
+        return dout
 
 
 # ###################
@@ -1025,6 +1047,7 @@ def _compute_retrofit_data_check(
     t=None,
     # parameters
     store=None,
+    returnas=None,
 ):
 
     #----------
@@ -1037,6 +1060,7 @@ def _compute_retrofit_data_check(
         types=str,
         allowed=lok,
     )
+    is2d = coll.dobj['diagnostic'][key_diag]['is2d']
 
     # key
     dsig = coll.dobj['diagnostic'][key_diag].get('dsignal', {})
@@ -1060,8 +1084,9 @@ def _compute_retrofit_data_check(
     keym = coll.dobj['bsplines'][keybs]['mesh']
     mtype = coll.dobj[coll._which_mesh][keym]['type']
 
-    nchan, nbs = coll.ddata[key_matrix]['data'].shape[-2:]
-    refchan, refbs = coll.ddata[key_matrix]['ref'][-2:]
+    matrix, ref, dindmat = coll.get_geometry_matrix_concatenated(key=key_matrix)
+    nchan, nbs = matrix.shape[-2:]
+    refbs = ref[-1]
 
     # key_pofile2d
     lok = [
@@ -1075,8 +1100,9 @@ def _compute_retrofit_data_check(
     )
 
     # time management
+    lkmat = coll.dobj['geom matrix'][key_matrix]['data']
     hastime, reft, keyt, t_out, dind = coll.get_time_common(
-        keys=[key_matrix, key_profile2d],
+        keys=lkmat + [key_profile2d],
         t=t,
         ind_strict=False,
     )
@@ -1084,23 +1110,40 @@ def _compute_retrofit_data_check(
         reft = f'{key}-nt'
         keyt = f'{key}-t'
 
-    ist_mat = coll.get_time(key=key_matrix)[0]
+    ist_mat = coll.get_time(key=lkmat[0])[0]
     ist_prof = coll.get_time(key=key_profile2d)[0]
 
     # reft, keyt and refs
     if hastime and t_out is not None:
         nt = t_out.size
-        refs = (reft, refchan)
+        ref = (reft, None)
     else:
         nt = 0
         reft = None
         keyt = None
-        refs = (refchan,)
+        ref = (None,)
+
+    # store
+    store = ds._generic_check._check_var(
+        store, 'store',
+        types=bool,
+        default=True,
+    )
+
+    # returnas
+    returnas = ds._generic_check._check_var(
+        returnas, 'returnas',
+        default=False if store else dict,
+        allowed=[False, dict],
+    )
+
 
     return (
         key, key_diag, key_cam, keybs, keym, mtype,
         key_matrix, key_profile2d,
-        hastime, t_out, keyt, reft, refs,
+        is2d, matrix, dindmat,
+        hastime, t_out, keyt, reft, ref,
         nt, nchan, nbs,
         ist_mat, ist_prof, dind,
+        store, returnas,
     )
