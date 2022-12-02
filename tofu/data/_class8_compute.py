@@ -1354,7 +1354,7 @@ def _concatenate_data_check(
     if not c0:
         msg = (
             "Arg key_data must be a list of valid data keys!\n"
-            "Provided: {key_data}"
+            f"Provided: {key_data}"
         )
         raise Exception(msg)
 

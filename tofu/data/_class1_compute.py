@@ -2081,6 +2081,9 @@ def _interp2d_check(
             default=False,
         )
 
+    if details is True and hastime is True and radius_vs_time is False and radius is not None:
+        import pdb; pdb.set_trace()     # DB
+
     # -------------
     # radius, angle
 
@@ -2513,7 +2516,17 @@ def interp2d(
     else:
 
         ref = []
-        if reft not in [None, False]:
+        c0 = (
+            reft not in [None, False]
+            and hastime
+            and not (
+                meshtype == 'polar'
+                and R is None
+                and coefs is None
+                and radius_vs_time is False
+            )
+        )
+        if c0:
             ref.append(reft)
 
         if meshtype in ['rect', 'tri']:
@@ -2541,14 +2554,17 @@ def interp2d(
         if len(ref) != val.ndim:
             msg = (
                 "Mismatching ref vs val.shape:\n"
+                f"\t- key = {key}\n"
+                f"\t- keybs = {keybs}\n"
                 f"\t- val.shape = {val.shape}\n"
                 f"\t- ref = {ref}\n"
                 f"\t- reft = {reft}\n"
+                f"\t- hastime = {hastime}\n"
+                f"\t- radius_vs_time = {radius_vs_time}\n"
                 f"\t- details = {details}\n"
                 f"\t- indbs_tf = {indbs_tf}\n"
                 f"\t- key = {key}\n"
                 f"\t- meshtype = {meshtype}\n"
-                f"\t- radius_vs_time = {radius_vs_time}\n"
                 f"\t- grid = {grid}\n"
             )
             if coefs is not None:

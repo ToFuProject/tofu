@@ -49,12 +49,12 @@ def _plot_inversion_check(
     keymat = coll.dobj['inversions'][keyinv]['matrix']
     keydata = coll.dobj['inversions'][keyinv]['data_in']
     keyretro = coll.dobj['inversions'][keyinv]['retrofit']
-    keybs = coll.dobj['matrix'][keymat]['bsplines']
+    keybs = coll.dobj['geom matrix'][keymat]['bsplines']
     keym = coll.dobj['bsplines'][keybs]['mesh']
     mtype = coll.dobj[coll._which_mesh][keym]['type']
     # refbs = coll.dobj['bsplines'][keybs]['ref']
 
-    crop = coll.dobj['matrix'][keymat]['crop']
+    crop = coll.dobj['geom matrix'][keymat]['crop']
     if crop is True:
         cropbs = coll.dobj['bsplines'][keybs]['crop']
         cropbs = coll.ddata[cropbs]['data']
