@@ -44,6 +44,379 @@ from . cimport _sampling_tools as _st
 from . cimport _vignetting_tools as _vt
 from . import _openmp_tools as _ompt
 
+from libc.stdio cimport printf
+from openmp cimport omp_get_wtime, omp_get_thread_num, omp_get_max_threads
+
+# == Polygon intersection ======================================================
+
+ctypedef struct polygon:
+    int size
+    double * vx
+    double * vy
+    polygon * next_component
+
+ctypedef struct polygon_node:
+    double x, y
+    polygon_node *next
+    polygon_node *prev
+    polygon_node *neighbour
+    bint entry
+    bint visited
+    double alpha
+
+cdef polygon_node * polygon_node_new(
+        double x,
+        double y,
+        polygon_node * prev=NULL,
+        polygon_node * next=NULL ) nogil:
+
+    cdef polygon_node * p
+    p = <polygon_node *>malloc(sizeof(polygon_node))
+    p.x = x
+    p.y = y
+    p.prev = prev
+    p.next = next
+    p.neighbour = NULL
+    p.visited = False
+
+    if prev != NULL:
+        p.prev.next = p
+    if next != NULL:
+        p.next.prev = p
+
+    return p
+
+cdef polygon_node * polygon_node_next_vertex( polygon_node * p ) nogil:
+
+    while p.next.neighbour != NULL:
+        p = p.next
+
+    return p.next
+
+cdef polygon_node * polygon_node_next_intersec( polygon_node * p ) nogil:
+
+    while p.next.neighbour == NULL:
+        p = p.next
+
+    return p.next
+
+cdef void polygon_node_insert_intersec(
+        double x, double y,
+        polygon_node * poly1_node, double alpha1,
+        polygon_node * poly2_node, double alpha2 ) nogil:
+
+    while poly1_node.next.neighbour != NULL and poly1_node.next.alpha < alpha1:
+        poly1_node = poly1_node.next
+    poly1_node = polygon_node_new(x, y, poly1_node, poly1_node.next)
+
+    while poly2_node.next.neighbour != NULL and poly2_node.next.alpha < alpha2:
+        poly2_node = poly2_node.next
+    poly2_node = polygon_node_new(x, y, poly2_node, poly2_node.next)
+
+    poly1_node.alpha = alpha1
+    poly1_node.neighbour = poly2_node
+    poly2_node.alpha = alpha2
+    poly2_node.neighbour = poly1_node
+
+cdef bint polygon_node_is_in(
+        polygon_node * poly_point,
+        polygon_node * poly ) nogil:
+
+    cdef polygon_node * p0
+    cdef polygon_node * p1
+    cdef double x, y
+    cdef double slope
+    cdef bint ret
+
+    x = poly_point.x
+    y = poly_point.y
+
+    if poly.neighbour != NULL:
+        poly = polygon_node_next_vertex(poly)
+
+    ret = False
+    p0 = NULL
+    p1 = poly
+    while True:
+        p0 = p1
+        p1 = polygon_node_next_vertex(p1)
+
+        if p1.x == x and p1.y == y:
+            return True
+        if (p0.y > y) != (p1.y > y): # xor
+            slope = (
+                (x-p1.x)*(p0.y-p1.y)
+                - (p0.x-p1.x)*(y-p1.y)
+            )
+            if slope == 0.: # point is on a vertex
+                return True
+            if (slope < 0.) != (p0.y < p1.y):
+                ret = not ret
+
+        if p1 == poly:
+            break
+
+    return ret
+
+cdef void polygon_node_free_all(polygon_node * p) nogil:
+    p.prev.next = NULL
+    while p.next != NULL:
+        p = p.next
+        free(p.prev)
+
+cdef void polygon_intersect(polygon * poly1, polygon * poly2, polygon * res, bint ignore_duplicates=False) nogil:
+    cdef int i, i1, i2
+    cdef int intersection_count
+    cdef double perturbation, epsx, epsy
+    cdef double u1x, u1y, u2x, u2y
+    cdef double dpx, dpy
+    cdef double D, alpha1, alpha2
+    cdef double px, py
+    cdef polygon_node * pn
+    cdef polygon_node * poly1_node
+    cdef polygon_node * poly2_node
+    cdef polygon_node * poly1_node_next
+    cdef polygon_node * poly2_node_next
+    cdef bint entry
+
+    # ----------------------
+    # Empty res if it is not
+    if res.size != 0:
+        res.size = 0
+        free(res.vx)
+        free(res.vy)
+        res.vx = NULL
+        res.vy = NULL
+
+    # ----------------------
+    # Avoid degenerate cases
+    if poly1.size<=2 or poly2.size<=2:
+        return
+
+    if poly1.next_component != NULL or poly2.next_component != NULL:
+        printf("[WARNING] polygon_intersect: disconnected polygons not implemented yet; ignoring other components\n")
+        return
+
+    # ----------------------------------------------
+    # Phase 0: creating polygon_node representations
+    # Perturbation of polygon 1 to evacuate problematic cases
+
+    cdef double xmin1 = poly1.vx[0]
+    cdef double xmax1 = poly1.vx[0]
+    cdef double ymin1 = poly1.vy[0]
+    cdef double ymax1 = poly1.vy[0]
+    cdef double xmin2 = poly2.vx[0]
+    cdef double xmax2 = poly2.vx[0]
+    cdef double ymin2 = poly2.vy[0]
+    cdef double ymax2 = poly2.vy[0]
+
+    for i in range(1, poly1.size):
+        xmin1 = min(xmin1, poly1.vx[i])
+        xmax1 = max(xmax1, poly1.vx[i])
+        ymin1 = min(ymin1, poly1.vy[i])
+        ymax1 = max(ymax1, poly1.vy[i])
+    for i in range(1, poly2.size):
+        xmin2 = min(xmin2, poly2.vx[i])
+        xmax2 = max(xmax2, poly2.vx[i])
+        ymin2 = min(ymin2, poly2.vy[i])
+        ymax2 = max(ymax2, poly2.vy[i])
+    if xmax2 < xmin1 or xmin2 > xmax1 or ymax2 < ymin1 or ymin2 > ymax1:
+        res.next_component = NULL
+        res.size = 0
+        res.vx = NULL
+        res.vy = NULL
+        return
+
+    epsx = 0.
+    epsy = 0.
+    for i in range(poly1.size):
+        epsx += c_abs(poly1.vx[i])
+        epsy += c_abs(poly1.vy[i])
+    perturbation = 1e-14
+    epsx = perturbation*epsx/poly1.size
+    epsy = perturbation*epsy/poly1.size
+
+    # Constructing polygon 1
+    poly1_node = polygon_node_new(poly1.vx[0]+epsx, poly1.vy[0]+epsy)
+    pn = poly1_node
+    for i in range(1, poly1.size):
+        pn = polygon_node_new(poly1.vx[i]+epsx, poly1.vy[i]+epsy, pn)
+    pn.next = poly1_node
+    poly1_node.prev = pn
+
+    # Constructing polygon 2
+    poly2_node = polygon_node_new(poly2.vx[0], poly2.vy[0])
+    pn = poly2_node
+    for i in range(1, poly2.size):
+        pn = polygon_node_new(poly2.vx[i], poly2.vy[i], pn)
+    pn.next = poly2_node
+    poly2_node.prev = pn
+
+    # --------------------------------------
+    # Phase 1: computing intersection points
+
+    poly1_node_next = poly1_node
+    poly2_node_next = poly2_node
+    intersection_count = 0
+    for i1 in range(poly1.size):
+        poly1_node = poly1_node_next
+        poly1_node_next = polygon_node_next_vertex(poly1_node)
+
+        u1x = poly1_node_next.x - poly1_node.x
+        u1y = poly1_node_next.y - poly1_node.y
+
+        for i2 in range(poly2.size):
+            poly2_node = poly2_node_next
+            poly2_node_next = polygon_node_next_vertex(poly2_node)
+
+            u2x = poly2_node_next.x - poly2_node.x
+            u2y = poly2_node_next.y - poly2_node.y
+
+            dpx = poly2_node.x - poly1_node.x
+            dpy = poly2_node.y - poly1_node.y
+
+            D = - u1x * u2y + u1y * u2x
+            if D == 0:
+                continue
+
+            alpha1 = (u2x * dpy - u2y * dpx) / D
+            alpha2 = (u1x * dpy - u1y * dpx) / D
+            if 0. <= alpha1 and alpha1 <= 1. and 0. <= alpha2 and alpha2 <= 1.:
+                intersection_count += 1
+                px = poly1_node.x + alpha1*u1x
+                py = poly1_node.y + alpha1*u1y
+
+                polygon_node_insert_intersec(
+                    px, py, 
+                    poly1_node, alpha1, 
+                    poly2_node, alpha2)
+
+    # ---------------------------------------
+    # Early exit if no intersection was found
+
+    if intersection_count == 0:
+        # Polygon 1 contained in polygon 2?
+        if polygon_node_is_in(poly1_node, poly2_node):
+            res.size = poly1.size
+            res.vx = <double *>malloc(res.size*sizeof(double))
+            res.vy = <double *>malloc(res.size*sizeof(double))
+            for i in range(res.size):
+                res.vx[i] = poly1.vx[i]
+                res.vy[i] = poly1.vy[i]
+        # Polygon 2 contained in polygon 1?
+        elif polygon_node_is_in(poly2_node, poly1_node):
+            res.size = poly2.size
+            res.vx = <double *>malloc(res.size*sizeof(double))
+            res.vy = <double *>malloc(res.size*sizeof(double))
+            for i in range(res.size):
+                res.vx[i] = poly2.vx[i]
+                res.vy[i] = poly2.vy[i]
+        else:
+            res.next_component = NULL
+            res.size = 0
+            res.vx = NULL
+            res.vy = NULL
+
+        polygon_node_free_all(poly1_node)
+        polygon_node_free_all(poly2_node)
+
+        return
+
+    # -----------------------------------------------
+    # Phase 2: marking intersections as entry or exit
+
+    # Choose starting vertex of polygon 1 and check if it's inside polygon 2
+    poly1_node = polygon_node_next_vertex(poly1_node)
+    entry = not polygon_node_is_in(poly1_node, poly2_node)
+
+    # Browse polygon 1
+    poly1_node = polygon_node_next_intersec(poly1_node)
+    pn = poly1_node
+    while True:
+        pn.entry = entry
+        entry = not entry
+
+        pn = polygon_node_next_intersec(pn)
+        # Stop when back to starting node
+        if pn == poly1_node:
+            break
+
+    # Choose starting vertex of polygon 2 and check if it's inside polygon 1
+    poly2_node = polygon_node_next_vertex(poly2_node)
+    entry = not polygon_node_is_in(poly2_node, poly1_node)
+
+    # Browse polygon 2
+    poly2_node = polygon_node_next_intersec(poly2_node)
+    pn = poly2_node
+    while True:
+        pn.entry = entry
+        entry = not entry
+
+        pn = polygon_node_next_intersec(pn)
+        # Stop when back to starting node
+        if pn == poly2_node:
+            break
+
+    # --------------------------------------
+    # Phase 3: generate the clipped polygons
+
+    res.size = poly1.size + poly2.size + intersection_count # more than enough
+    res.vx = <double *>malloc(res.size*sizeof(double))
+    res.vy = <double *>malloc(res.size*sizeof(double))
+    res.size = 0
+    res.next_component = NULL
+
+    if ignore_duplicates:
+        epsx = 2*epsx
+        epsy = 2*epsy
+
+    # Note: poly1_node is already at an intersection node
+    pn = poly1_node
+    # Find an entry node (guarantees same orientation as input polygons)
+    while not pn.entry:
+        pn = polygon_node_next_intersec(pn)
+    entry = pn.entry
+
+    while True:
+        # Browse polygon nodes
+        # .. add to resulting polygon (unless unwanted duplicate)...............
+        if (ignore_duplicates or res.size == 0 or
+                c_abs(res.vx[res.size-1]-pn.x)>epsx or
+                c_abs(res.vy[res.size-1]-pn.y)>epsy ):
+            res.vx[res.size] = pn.x
+            res.vy[res.size] = pn.y
+            res.size += 1
+
+        pn.visited = True
+
+        # .. move to next or previous...........................................
+        if entry:
+            pn = pn.next
+        else:
+            pn = pn.prev
+        # .. if intersection, switch to the other polygon ......................
+        if pn.neighbour != NULL:
+            pn.visited = True
+            pn = pn.neighbour
+            entry = pn.entry
+
+        # .. if the new node was already visited, we're done ...................
+        if pn.visited:
+            break
+
+    # Remove last point if unwanted duplicate of first one
+    if not ignore_duplicates and (
+            c_abs(res.vx[res.size-1]-res.vx[0])<=epsx and
+            c_abs(res.vy[res.size-1]-res.vy[0])<=epsy ):
+        res.size -= 1
+
+    # ------------
+    # Deallocation
+
+    polygon_node_free_all(poly1_node)
+    polygon_node_free_all(poly2_node)
+
+
 
 # == Exports ===================================================================
 
@@ -217,6 +590,105 @@ cdef _check_polygon_2d_counter_clockwise(
     i0 = np.arange(0, poly_x0.size)
     i1 = np.r_[np.arange(1, poly_x0.size), 0]
     return np.sum((poly_x0[i1] - poly_x0[i0]) * (poly_x1[i1] + poly_x1[i0])) < 0
+
+
+
+cdef inline bint _check_polygon_2d_counter_clockwise_nogil(
+    double * poly_x0,
+    double * poly_x1,
+    Py_ssize_t size
+) nogil:
+    """ Assumes non-closed polygon """
+
+    cdef Py_ssize_t i
+    cdef Py_ssize_t ilast = size-1
+    cdef double total = (poly_x0[0] - poly_x0[ilast]) * (poly_x1[0] + poly_x1[ilast])
+
+    for i in range(ilast):
+        total += (poly_x0[i+1] - poly_x0[i]) * (poly_x1[i+1] + poly_x1[i])
+
+    return total < 0
+
+
+def _compute_aperture_orientation(
+    # detectors: centers coordinates as three 1d arrays
+    det_cents_x,
+    det_cents_y,
+    det_cents_z,
+    # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
+    det_norm_x,
+    det_norm_y,
+    det_norm_z,
+    det_e0_x,
+    det_e0_y,
+    det_e0_z,
+    det_e1_x,
+    det_e1_y,
+    det_e1_z,
+    # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
+    ap_ind,
+    # apertures: polygon coordinates as three 1d arrays
+    ap_x,
+    ap_y,
+    ap_z,
+    # normal unit vectors
+    ap_norm_x,
+    ap_norm_y,
+    ap_norm_z,
+):
+    nd = det_cents_x.size
+    na = ap_norm_x.size
+    aperture_orientation = np.zeros((nd,na), dtype=np.int32)
+
+    # loop on nd (detectors)
+    for dd in range(nd):
+
+        # loop on na (apertures)
+        for aa in range(na):
+
+            px = ap_x[ap_ind[aa]] + ap_norm_x[aa]
+            py = ap_y[ap_ind[aa]] + ap_norm_y[aa]
+            pz = ap_z[ap_ind[aa]] + ap_norm_z[aa]
+
+            sca0 = (
+                (px - det_cents_x[dd]) * det_norm_x[dd]
+                + (py - det_cents_y[dd]) * det_norm_y[dd]
+                + (pz - det_cents_z[dd]) * det_norm_z[dd]
+            )
+
+            # test if all aperture points can be projected on detector plane from pts
+            ap_x0 = np.zeros(ap_ind[aa+1]-ap_ind[aa], dtype=np.float)
+            ap_x1 = np.zeros(ap_ind[aa+1]-ap_ind[aa], dtype=np.float)
+            for ll in range(ap_ind[aa], ap_ind[aa+1]):
+                sca1 = (
+                    (ap_x[ll] - px) * det_norm_x[dd]
+                    + (ap_y[ll] - py) * det_norm_y[dd]
+                    + (ap_z[ll] - pz) * det_norm_z[dd]
+                )
+
+                # project in 2d
+                k = - sca0 / sca1
+                P_x = px + k * (ap_x[ll] - px)
+                P_y = py + k * (ap_y[ll] - py)
+                P_z = pz + k * (ap_z[ll] - pz)
+
+                # project in 2d
+                ap_x0[ll-ap_ind[aa]] = (
+                    (P_x - det_cents_x[dd]) * det_e0_x[dd]
+                    + (P_y - det_cents_y[dd]) * det_e0_y[dd]
+                    + (P_z - det_cents_z[dd]) * det_e0_z[dd]
+                )
+                ap_x1[ll-ap_ind[aa]] = (
+                    (P_x - det_cents_x[dd]) * det_e1_x[dd]
+                    + (P_y - det_cents_y[dd]) * det_e1_y[dd]
+                    + (P_z - det_cents_z[dd]) * det_e1_z[dd]
+                )
+        aperture_orientation[dd,aa] = _check_polygon_2d_counter_clockwise(
+            ap_x0, ap_x1
+        )
+
+    return aperture_orientation
+
 
 
 def Poly_isClockwise(np.ndarray[double,ndim=2] Poly):
@@ -2784,12 +3256,12 @@ def triangulate_by_earclipping_2d(
     np.ndarray[double, ndim=2] poly,
 ):
     """
-    Triangulates a single 3d polygon by the earclipping method.
-    Converts 3d polygon into 2d counter-clockwise projection
+    Triangulates a single 2d polygon by the earclipping method.
+    Converts 2d polygon into 2d counter-clockwise projection
 
     Params
     =====
-    poly : (3, nvert) double array
+    poly : (2, nvert) double array
         Contains 3D coordinates of open polygon in counter clockwise order
     Returns
     =======
@@ -2815,6 +3287,58 @@ def triangulate_by_earclipping_2d(
     free(diff)
     free(lref)
     return ltri.reshape((nvert-2, 3))
+
+
+cdef long* triangulate_by_earclipping_2d_nogil(
+    double * poly,
+    int nvert
+) nogil:
+    """
+    Triangulates a single 2d polygon by the earclipping method.
+    Converts 2d polygon into 2d counter-clockwise projection
+
+    Params
+    =====
+    poly : (2*nvert) double array
+        Contains 2D coordinates of open polygon in counter clockwise order
+    Returns
+    =======
+    ltri : (3*(nvert-2)) int array
+        Indices of triangles
+    """
+    cdef long* ltri = <long*>malloc((nvert-2)*3*sizeof(long))
+    cdef double* diff = NULL
+    cdef bint* lref = NULL
+
+    if nvert == 3:
+        ltri[0] = 0
+        ltri[1] = 1
+        ltri[2] = 2
+        return ltri
+    elif nvert == 4:
+        ltri[0] = 0
+        ltri[1] = 1
+        ltri[2] = 2
+        ltri[3] = 0
+        ltri[4] = 2
+        ltri[5] = 3
+        return ltri
+
+    # Initialization ..........................................
+    diff = <double*>malloc(2*nvert*sizeof(double))
+    lref = <bint*>malloc(nvert*sizeof(bint))
+
+    _vt.compute_diff2d(&poly[0], nvert, &diff[0])
+    _vt.are_points_reflex_2d(nvert, &diff[0], &lref[0])
+
+    # Calling core function......................................
+    _vt.earclipping_poly_2d(&poly[0], &ltri[0], &diff[0], &lref[0], nvert)
+
+    # free memory................
+    free(diff)
+    free(lref)
+
+    return ltri
 
 
 def vignetting(
@@ -5017,235 +5541,6 @@ def compute_solid_angle_map(double[:,::1] part_coords, double[::1] part_r,
 # ==============================================================================
 
 
-def compute_solid_angle_apertures_unitvectors(
-    # pts: coordinates as three 1d arrays
-    double[::1] pts_x,
-    double[::1] pts_y,
-    double[::1] pts_z,
-    # detectors: polygon coordinates in 2d (common to all detectors)
-    double[::1] det_outline_x0,
-    double[::1] det_outline_x1,
-    # detectors: centers coordinates as three 1d arrays
-    double[::1] det_cents_x,
-    double[::1] det_cents_y,
-    double[::1] det_cents_z,
-    # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
-    double[::1] det_norm_x,
-    double[::1] det_norm_y,
-    double[::1] det_norm_z,
-    np.ndarray[double, ndim=1] det_e0_x,
-    np.ndarray[double, ndim=1] det_e0_y,
-    np.ndarray[double, ndim=1] det_e0_z,
-    np.ndarray[double, ndim=1] det_e1_x,
-    np.ndarray[double, ndim=1] det_e1_y,
-    np.ndarray[double, ndim=1] det_e1_z,
-    # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
-    long[::1] ap_ind,
-    # apertures: polygon coordinates as three 1d arrays
-    np.ndarray[double, ndim=1] ap_x,
-    np.ndarray[double, ndim=1] ap_y,
-    np.ndarray[double, ndim=1] ap_z,
-    # normal unit vectors
-    double[::1] ap_norm_x,
-    double[::1] ap_norm_y,
-    double[::1] ap_norm_z,
-    # possible extra parameters ?
-    double margin=_VSMALL,
-    int num_threads=10,
-):
-
-    # -----------
-    # Declaration
-
-    cdef int npts = pts_x.size
-    cdef int nd = det_cents_x.size
-    cdef int na = ap_norm_x.size
-    cdef int dd, pp, aa, tt
-    cdef int npa
-    cdef float sca, sca0, sca1
-    cdef float ki
-    cdef np.ndarray[double, ndim=1] ap_x0 = np.copy(ap_x)
-    cdef np.ndarray[double, ndim=1] ap_x1 = np.copy(ap_x)
-    cdef np.ndarray[double, ndim=1] p_a_x0
-    cdef np.ndarray[double, ndim=1] p_a_x1
-    cdef float cx0, cx1
-    cdef float ux, uy, uz, inv_norm
-    cdef np.ndarray[long, ndim=2] tri
-    cdef np.ndarray[double, ndim=1] tri_x
-    cdef np.ndarray[double, ndim=1] tri_y
-    cdef np.ndarray[double, ndim=1] tri_z
-
-    # initialize solid angle array with zeros
-    cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
-    cdef np.ndarray[double, ndim=2] uvect_x = np.zeros((nd, npts), dtype=float)
-    cdef np.ndarray[double, ndim=2] uvect_y = np.zeros((nd, npts), dtype=float)
-    cdef np.ndarray[double, ndim=2] uvect_z = np.zeros((nd, npts), dtype=float)
-
-    # -------
-    # Compute
-
-    for dd in range(nd):
-
-        # loop 2: on npts (observation points)
-        for pp in range(npts):
-
-            # test if on good side of detector
-            sca0 = (
-                (pts_x[pp] - det_cents_x[dd]) * det_norm_x[dd]
-                + (pts_y[pp] - det_cents_y[dd]) * det_norm_y[dd]
-                + (pts_z[pp] - det_cents_z[dd]) * det_norm_z[dd]
-            )
-
-            if sca0 <= 0:
-                continue
-
-            # flag
-            isok = True
-
-            # loop 3: on na (apertures)
-            for aa in range(na):
-
-                # test if on good side of aperture
-                sca = (
-                    (pts_x[pp] - ap_x[ap_ind[aa]]) * ap_norm_x[aa]
-                    + (pts_y[pp] - ap_y[ap_ind[aa]]) * ap_norm_y[aa]
-                    + (pts_z[pp] - ap_z[ap_ind[aa]]) * ap_norm_z[aa]
-                )
-
-                if sca <= 0:
-                    isok = False
-                    break
-
-                # test if all aperture points can be projected on detector plane from pts
-                for ll in range(ap_ind[aa], ap_ind[aa+1]):
-                    sca1 = (
-                        (ap_x[ll] - pts_x[pp]) * det_norm_x[dd]
-                        + (ap_y[ll] - pts_y[pp]) * det_norm_y[dd]
-                        + (ap_z[ll] - pts_z[pp]) * det_norm_z[dd]
-                    )
-
-                    if sca1 >= 0:
-                        isok = False
-                        break
-
-                    # project in 2d
-                    k = - sca0 / sca1
-                    P_x = pts_x[pp] + k * (ap_x[ll] - pts_x[pp])
-                    P_y = pts_y[pp] + k * (ap_y[ll] - pts_y[pp])
-                    P_z = pts_z[pp] + k * (ap_z[ll] - pts_z[pp])
-
-                    # project in 2d
-                    ap_x0[ll] = (
-                        (P_x - det_cents_x[dd]) * det_e0_x[dd]
-                        + (P_y - det_cents_y[dd]) * det_e0_y[dd]
-                        + (P_z - det_cents_z[dd]) * det_e0_z[dd]
-                    )
-                    ap_x1[ll] = (
-                        (P_x - det_cents_x[dd]) * det_e1_x[dd]
-                        + (P_y - det_cents_y[dd]) * det_e1_y[dd]
-                        + (P_z - det_cents_z[dd]) * det_e1_z[dd]
-                    )
-
-                if not isok:
-                    break
-
-            # go to next point
-            if not isok:
-                continue
-
-            # ----------------------------
-            # compute polygon intersection
-
-            # compute intersection
-            p_a = plg.Polygon(np.array([det_outline_x0, det_outline_x1]).T)
-            for aa in range(na):
-                p_a = p_a & plg.Polygon(np.array([
-                    ap_x0[ap_ind[aa]:ap_ind[aa+1]],
-                    ap_x1[ap_ind[aa]:ap_ind[aa+1]],
-                ]).T)
-
-                # stop if no intersection
-                if p_a.nPoints() < 3:
-                    isok = False
-                    break
-
-            # stop if no intersection
-            if not isok:
-                continue
-
-            # -------------------
-            # Get unit vectors
-
-            cx0, cx1 = p_a.center(0)
-            ux = det_cents_x[dd] + cx0*det_e0_x[dd] + cx1*det_e1_x[dd] - pts_x[pp]
-            uy = det_cents_y[dd] + cx0*det_e0_y[dd] + cx1*det_e1_y[dd] - pts_y[pp]
-            uz = det_cents_z[dd] + cx0*det_e0_z[dd] + cx1*det_e1_z[dd] - pts_z[pp]
-            inv_norm = 1./c_sqrt(ux**2 + uy**2 + uz**2)
-            uvect_x[dd, pp] = ux*inv_norm
-            uvect_y[dd, pp] = uy*inv_norm
-            uvect_z[dd, pp] = uz*inv_norm
-
-            # -------------------
-            # rebuild 3d polygon
-
-            # check ccw
-            p_a_x0 = np.ascontiguousarray(np.array(p_a.contour(0))[:, 0])
-            p_a_x1 = np.ascontiguousarray(np.array(p_a.contour(0))[:, 1])
-            if not _check_polygon_2d_counter_clockwise(p_a_x0, p_a_x1):
-                p_a_x0 = np.ascontiguousarray(p_a_x0[::-1])
-                p_a_x1 = np.ascontiguousarray(p_a_x1[::-1])
-
-            # triangulate by ear-clipping ()
-            tri = triangulate_by_earclipping_2d(
-                np.ascontiguousarray([p_a_x0, p_a_x1])
-            )
-
-            # -------------------
-            # compute solid angle
-
-            # loop on triangles
-            for tt in range(tri.shape[0]):
-
-                # get triangle
-                tri_x = (
-                    det_cents_x[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_x[dd]
-                    + p_a_x1[tri[tt, :]] * det_e1_x[dd]
-                )
-                tri_y = (
-                    det_cents_y[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_y[dd]
-                    + p_a_x1[tri[tt, :]] * det_e1_y[dd]
-                )
-                tri_z = (
-                    det_cents_z[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_z[dd]
-                    + p_a_x1[tri[tt, :]] * det_e1_z[dd]
-                )
-
-                # computation 2: solid angle of triangle from pts
-                solid_angle[dd, pp] += _st.comp_sa_tri(
-                    tri_x[0],
-                    tri_y[0],
-                    tri_z[0],
-                    tri_x[1],
-                    tri_y[1],
-                    tri_z[1],
-                    tri_x[2],
-                    tri_y[2],
-                    tri_z[2],
-                    pts_x[pp],
-                    pts_y[pp],
-                    pts_z[pp],
-                )
-
-    # -------
-    # Return
-
-
-    return solid_angle, uvect_x, uvect_y, uvect_z
-
-
 def compute_solid_angle_apertures_visibility(
     # pts: coordinates as three 1d arrays
     double[::1] pts_x,
@@ -5526,24 +5821,26 @@ def compute_solid_angle_apertures_light(
     double[::1] det_norm_x,
     double[::1] det_norm_y,
     double[::1] det_norm_z,
-    np.ndarray[double, ndim=1] det_e0_x,
-    np.ndarray[double, ndim=1] det_e0_y,
-    np.ndarray[double, ndim=1] det_e0_z,
-    np.ndarray[double, ndim=1] det_e1_x,
-    np.ndarray[double, ndim=1] det_e1_y,
-    np.ndarray[double, ndim=1] det_e1_z,
+    double[::1] det_e0_x,
+    double[::1] det_e0_y,
+    double[::1] det_e0_z,
+    double[::1] det_e1_x,
+    double[::1] det_e1_y,
+    double[::1] det_e1_z,
     # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
     long[::1] ap_ind,
     # apertures: polygon coordinates as three 1d arrays
-    np.ndarray[double, ndim=1] ap_x,
-    np.ndarray[double, ndim=1] ap_y,
-    np.ndarray[double, ndim=1] ap_z,
+    double[::1] ap_x,
+    double[::1] ap_y,
+    double[::1] ap_z,
     # normal unit vectors
     double[::1] ap_norm_x,
     double[::1] ap_norm_y,
     double[::1] ap_norm_z,
     # possible extra parameters ?
     double margin=_VSMALL,
+    bint return_sa_array=True,
+    bint return_unit_vect=False,
     int num_threads=10,
 ):
 
@@ -5553,441 +5850,383 @@ def compute_solid_angle_apertures_light(
     cdef int npts = pts_x.size
     cdef int nd = det_cents_x.size
     cdef int na = ap_norm_x.size
-    cdef int dd, pp, aa, tt
-    cdef int npa
-    cdef float sca, sca0, sca1
-    cdef float ki
-    cdef np.ndarray[double, ndim=1] ap_x0 = np.copy(ap_x)
-    cdef np.ndarray[double, ndim=1] ap_x1 = np.copy(ap_x)
-    cdef np.ndarray[double, ndim=1] p_a_x0
-    cdef np.ndarray[double, ndim=1] p_a_x1
-    cdef np.ndarray[long, ndim=2] tri
-    cdef np.ndarray[double, ndim=1] tri_x
-    cdef np.ndarray[double, ndim=1] tri_y
-    cdef np.ndarray[double, ndim=1] tri_z
+    cdef int ii, dd, pp, aa, ll, tt, iv
+    cdef int npa, nvert
+    cdef bint isok
+    cdef double ki
+    cdef double sca, sca0, sca1, k
+    cdef double P_x, P_y, P_z
+    cdef double *ap_x0
+    cdef double *ap_x1
+    cdef double *p_a_xy
+    cdef double *p_a_x
+    cdef double *p_a_y
+    cdef long *tri_new
+    cdef double tri_x0, tri_y0, tri_z0
+    cdef double tri_x1, tri_y1, tri_z1
+    cdef double tri_x2, tri_y2, tri_z2
+    cdef polygon *poly_aperture
+    cdef polygon *poly_mask
+    cdef polygon *poly_intersec
 
-    # initialize solid angle array with zeros
-    cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
+    cdef int det_outline_size = det_outline_x0.size
+    cdef int ap_x_size = ap_x.size
+    cdef int vertices_poly_alloc_sz
 
-    # -------
-    # Compute
+    cdef int zint = 0
 
-    for dd in range(nd):
+    # Variables for the computation of the solid angle
+    solid_angle_shape = (nd, npts) if return_sa_array else (zint, zint) # not used if False
+    cdef np.ndarray[double, ndim=2] solid_angle_array = np.zeros(solid_angle_shape, dtype=np.double)
+    cdef double[:,::1] solid_angle_view = solid_angle_array
+    cdef double solid_angle_summed = 0.
+    cdef double solid_angle
 
-        # print('det_cent', det_cents_x[dd], det_cents_y[dd], det_cents_z[dd])
-        # print('det_nin', det_norm_x[dd], det_norm_y[dd], det_norm_z[dd])        # DB
-        # print('det_e0', det_e0_x[dd], det_e0_y[dd], det_e0_z[dd])        # DB
-        # print('det_e1', det_e1_x[dd], det_e1_y[dd], det_e1_z[dd])        # DB
+    # Variables for the computation of the unit vectors
+    cdef double cx0, cx1
+    cdef double ux, uy, uz, inv_norm
+    uvect_shape = (nd, npts) if return_unit_vect else (zint, zint) # not used if False
+    cdef np.ndarray[double, ndim=2] uvect_x = np.zeros(uvect_shape, dtype=np.double)
+    cdef np.ndarray[double, ndim=2] uvect_y = np.zeros(uvect_shape, dtype=np.double)
+    cdef np.ndarray[double, ndim=2] uvect_z = np.zeros(uvect_shape, dtype=np.double)
+    cdef double[:,::1] uvect_x_view = uvect_x
+    cdef double[:,::1] uvect_y_view = uvect_y
+    cdef double[:,::1] uvect_z_view = uvect_z
 
-        # loop 2: on npts (observation points)
-        for pp in range(npts):
+    cdef int * work_count
+    work_count = <int *>malloc(omp_get_max_threads()*sizeof(int))
+    for ith in range(omp_get_max_threads()):
+        work_count[ith] = 0
+    cdef double * timers
+    timers = <double *>malloc(omp_get_max_threads()*sizeof(double))
+    for i in range(omp_get_max_threads()):
+        timers[i] = 0.
 
-            # print('pts', pp, pts_x[pp], pts_y[pp], pts_z[pp])        # DB
+    # --------------------------------------
+    # Check orientation of apertures
+    cdef np.ndarray[bint, ndim=2] aperture_ccw_array = _compute_aperture_orientation(
+        det_cents_x, det_cents_y, det_cents_z,
+        det_norm_x, det_norm_y, det_norm_z,
+        det_e0_x, det_e0_y, det_e0_z, det_e1_x, det_e1_y, det_e1_z,
+        ap_ind,
+        ap_x, ap_y, ap_z,
+        ap_norm_x, ap_norm_y, ap_norm_z,
+    )
+    cdef bint[:,::1] aperture_ccw_view = aperture_ccw_array
 
-            # test if on good side of detector
-            sca0 = (
-                (pts_x[pp] - det_cents_x[dd]) * det_norm_x[dd]
-                + (pts_y[pp] - det_cents_y[dd]) * det_norm_y[dd]
-                + (pts_z[pp] - det_cents_z[dd]) * det_norm_z[dd]
-            )
+    with nogil, parallel():
 
-            if sca0 <= 0:
-                # print('skip', sca0)        # DB
-                continue
+        # --------------------------------------
+        # Allocation of thread-private variables
 
-            # flag
-            isok = True
+        ap_x0 = <double *>malloc(ap_x_size * sizeof(double))
+        ap_x1 = <double *>malloc(ap_x_size * sizeof(double))
+        for ii in range(ap_x_size):
+            ap_x0[ii] = ap_x[ii]
+            ap_x1[ii] = ap_x[ii]
 
-            # loop 3: on na (apertures)
-            for aa in range(na):
+        poly_aperture = <polygon *>malloc(sizeof(polygon))
+        poly_mask     = <polygon *>malloc(sizeof(polygon))
+        poly_intersec = <polygon *>malloc(sizeof(polygon))
 
-                # print('ap', aa)
-                # print('ap ind', ap_ind[aa], ap_ind[aa+1])
-                # print('ap nin', ap_norm_x[aa], ap_norm_y[aa], ap_norm_z[aa])
-                # print('ap_x', ap_x[ap_ind[aa]:ap_ind[aa+1]])
-                # print('ap_y', ap_y[ap_ind[aa]:ap_ind[aa+1]])
-                # print('ap_z', ap_z[ap_ind[aa]:ap_ind[aa+1]])
+        vertices_poly_alloc_sz = 0
+        for ii in range(na):
+            vertices_poly_alloc_sz = max(vertices_poly_alloc_sz, ap_ind[ii+1]-ap_ind[ii])
+        poly_mask.next_component = NULL
+        poly_mask.vx = <double *>malloc(vertices_poly_alloc_sz*sizeof(double))
+        poly_mask.vy = <double *>malloc(vertices_poly_alloc_sz*sizeof(double))
 
-                # test if on good side of aperture
-                sca = (
-                    (pts_x[pp] - ap_x[ap_ind[aa]]) * ap_norm_x[aa]
-                    + (pts_y[pp] - ap_y[ap_ind[aa]]) * ap_norm_y[aa]
-                    + (pts_z[pp] - ap_z[ap_ind[aa]]) * ap_norm_z[aa]
+        for dd in range(nd):
+
+            # loop 2: on npts (observation points)
+            for pp in prange(npts, schedule='guided', chunksize=10000):
+                timers[omp_get_thread_num()] -= omp_get_wtime()
+                work_count[omp_get_thread_num()] += 1
+
+                # test if on good side of detector
+                sca0 = (
+                    (pts_x[pp] - det_cents_x[dd]) * det_norm_x[dd]
+                    + (pts_y[pp] - det_cents_y[dd]) * det_norm_y[dd]
+                    + (pts_z[pp] - det_cents_z[dd]) * det_norm_z[dd]
                 )
 
-                if sca <= 0:
-                    isok = False
-                    break
+                if sca0 <= 0:
+                    timers[omp_get_thread_num()] += omp_get_wtime()
+                    continue
 
-                # test if all aperture points can be projected on detector plane from pts
-                for ll in range(ap_ind[aa], ap_ind[aa+1]):
-                    sca1 = (
-                        (ap_x[ll] - pts_x[pp]) * det_norm_x[dd]
-                        + (ap_y[ll] - pts_y[pp]) * det_norm_y[dd]
-                        + (ap_z[ll] - pts_z[pp]) * det_norm_z[dd]
+                # flag
+                isok = True
+
+                # loop 3: on na (apertures)
+                for aa in range(na):
+
+                    # test if on good side of aperture
+                    sca = (
+                        (pts_x[pp] - ap_x[ap_ind[aa]]) * ap_norm_x[aa]
+                        + (pts_y[pp] - ap_y[ap_ind[aa]]) * ap_norm_y[aa]
+                        + (pts_z[pp] - ap_z[ap_ind[aa]]) * ap_norm_z[aa]
                     )
 
-                    if sca1 >= 0:
+                    if sca <= 0:
                         isok = False
                         break
 
-                    # project in 2d
-                    k = - sca0 / sca1
-                    P_x = pts_x[pp] + k * (ap_x[ll] - pts_x[pp])
-                    P_y = pts_y[pp] + k * (ap_y[ll] - pts_y[pp])
-                    P_z = pts_z[pp] + k * (ap_z[ll] - pts_z[pp])
+                    # test if all aperture points can be projected on detector plane from pts
+                    for ll in range(ap_ind[aa], ap_ind[aa+1]):
+                        sca1 = (
+                            (ap_x[ll] - pts_x[pp]) * det_norm_x[dd]
+                            + (ap_y[ll] - pts_y[pp]) * det_norm_y[dd]
+                            + (ap_z[ll] - pts_z[pp]) * det_norm_z[dd]
+                        )
 
-                    # project in 2d
-                    ap_x0[ll] = (
-                        (P_x - det_cents_x[dd]) * det_e0_x[dd]
-                        + (P_y - det_cents_y[dd]) * det_e0_y[dd]
-                        + (P_z - det_cents_z[dd]) * det_e0_z[dd]
-                    )
-                    ap_x1[ll] = (
-                        (P_x - det_cents_x[dd]) * det_e1_x[dd]
-                        + (P_y - det_cents_y[dd]) * det_e1_y[dd]
-                        + (P_z - det_cents_z[dd]) * det_e1_z[dd]
-                    )
+                        if sca1 >= 0:
+                            isok = False
+                            break
 
+                        # project in 2d
+                        k = - sca0 / sca1
+                        P_x = pts_x[pp] + k * (ap_x[ll] - pts_x[pp])
+                        P_y = pts_y[pp] + k * (ap_y[ll] - pts_y[pp])
+                        P_z = pts_z[pp] + k * (ap_z[ll] - pts_z[pp])
+
+                        # project in 2d
+                        ap_x0[ll] = (
+                            (P_x - det_cents_x[dd]) * det_e0_x[dd]
+                            + (P_y - det_cents_y[dd]) * det_e0_y[dd]
+                            + (P_z - det_cents_z[dd]) * det_e0_z[dd]
+                        )
+                        ap_x1[ll] = (
+                            (P_x - det_cents_x[dd]) * det_e1_x[dd]
+                            + (P_y - det_cents_y[dd]) * det_e1_y[dd]
+                            + (P_z - det_cents_z[dd]) * det_e1_z[dd]
+                        )
+
+                    if not isok:
+                        break
+
+                # go to next point
                 if not isok:
-                    break
+                    timers[omp_get_thread_num()] += omp_get_wtime()
+                    continue
 
-                # print('sca0, sca1, k  ', sca0, sca1, k)
-                # print('Px, Py, Pz:  ', P_x, P_y, P_z)
-                # print(
-                    # 'ap01: ',
-                    # ap_x0[ap_ind[aa]:ap_ind[aa+1]],
-                    # ap_x1[ap_ind[aa]:ap_ind[aa+1]],
-                # )
+                # ----------------------------
+                # compute polygon intersection
 
+                # compute intersection
 
-            # go to next point
-            if not isok:
-                # print('skip 2', sca, aa)        # DB
-                continue
+                poly_aperture.next_component = NULL
+                poly_aperture.size = det_outline_size
+                poly_aperture.vx = <double *>malloc(poly_aperture.size*sizeof(double))
+                poly_aperture.vy = <double *>malloc(poly_aperture.size*sizeof(double))
+                for iv in range(det_outline_size):
+                    poly_aperture.vx[iv] = det_outline_x0[iv]
+                    poly_aperture.vy[iv] = det_outline_x1[iv]
 
-            # ----------------------------
-            # compute polygon intersection
+                for aa in range(na):
+                    poly_mask.size = ap_ind[aa+1]-ap_ind[aa]
+                    if aperture_ccw_view[dd,aa]:
+                        for iv in range(poly_mask.size):
+                            poly_mask.vx[iv] = ap_x0[ap_ind[aa]+iv]
+                            poly_mask.vy[iv] = ap_x1[ap_ind[aa]+iv]
+                    else:
+                        for iv in range(poly_mask.size):
+                            poly_mask.vx[poly_mask.size-1-iv] = ap_x0[ap_ind[aa]+iv]
+                            poly_mask.vy[poly_mask.size-1-iv] = ap_x1[ap_ind[aa]+iv]
 
-            # compute intersection
-            p_a = plg.Polygon(np.array([det_outline_x0, det_outline_x1]).T)
-            for aa in range(na):
-                # print('p_a: ', np.array(p_a.contour(0)).T)
-                # print('with: ', ap_x0[ap_ind[aa]:ap_ind[aa+1]], ap_x1[ap_ind[aa]:ap_ind[aa+1]])
-                p_a = p_a & plg.Polygon(np.array([
-                    ap_x0[ap_ind[aa]:ap_ind[aa+1]],
-                    ap_x1[ap_ind[aa]:ap_ind[aa+1]],
-                ]).T)
+                    poly_intersec.next_component = NULL
+                    poly_intersec.size = 0
+                    polygon_intersect(poly_aperture, poly_mask, poly_intersec)
 
-                # stop if no intersection
-                if p_a.nPoints() < 3:
-                    isok = False
-                    break
+                    free(poly_aperture.vx)
+                    free(poly_aperture.vy)
+                    poly_aperture.size = poly_intersec.size
+                    poly_aperture.vx = poly_intersec.vx
+                    poly_aperture.vy = poly_intersec.vy
 
-            # stop if no intersection
-            if not isok:
-                # print('skip 3')        # DB
-                continue
-
-            # -------------------
-            # rebuild 3d polygon
-
-            # check ccw
-            p_a_x0 = np.ascontiguousarray(np.array(p_a.contour(0))[:, 0])
-            p_a_x1 = np.ascontiguousarray(np.array(p_a.contour(0))[:, 1])
-            if not _check_polygon_2d_counter_clockwise(p_a_x0, p_a_x1):
-                p_a_x0 = np.ascontiguousarray(p_a_x0[::-1])
-                p_a_x1 = np.ascontiguousarray(p_a_x1[::-1])
-
-            # triangulate by ear-clipping ()
-            tri = triangulate_by_earclipping_2d(
-                np.ascontiguousarray([p_a_x0, p_a_x1])
-            )
-
-            # -------------------
-            # compute solid angle
-
-            # loop on triangles
-            for tt in range(tri.shape[0]):
-
-                # get triangle
-                tri_x = (
-                    det_cents_x[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_x[dd]
-                    + p_a_x1[tri[tt, :]] * det_e1_x[dd]
-                )
-                tri_y = (
-                    det_cents_y[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_y[dd]
-                    + p_a_x1[tri[tt, :]] * det_e1_y[dd]
-                )
-                tri_z = (
-                    det_cents_z[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_z[dd]
-                    + p_a_x1[tri[tt, :]] * det_e1_z[dd]
-                )
-
-                # computation 2: solid angle of triangle from pts
-                solid_angle[dd, pp] += _st.comp_sa_tri(
-                    tri_x[0],
-                    tri_y[0],
-                    tri_z[0],
-                    tri_x[1],
-                    tri_y[1],
-                    tri_z[1],
-                    tri_x[2],
-                    tri_y[2],
-                    tri_z[2],
-                    pts_x[pp],
-                    pts_y[pp],
-                    pts_z[pp],
-                )
-                # print('tri', tt, solid_angle[dd, pp])        # DB
-
-    # -------
-    # Return
-
-    return solid_angle
-
-
-def compute_solid_angle_apertures_light_summed(
-    # pts: coordinates as three 1d arrays
-    double[::1] pts_x,
-    double[::1] pts_y,
-    double[::1] pts_z,
-    # detectors: polygon coordinates in 2d (common to all detectors)
-    double[::1] det_outline_x0,
-    double[::1] det_outline_x1,
-    # detectors: centers coordinates as three 1d arrays
-    double[::1] det_cents_x,
-    double[::1] det_cents_y,
-    double[::1] det_cents_z,
-    # detectors: normal unit vectors as three 1d arrays (nd = len(det_norm_x))
-    double[::1] det_norm_x,
-    double[::1] det_norm_y,
-    double[::1] det_norm_z,
-    np.ndarray[double, ndim=1] det_e0_x,
-    np.ndarray[double, ndim=1] det_e0_y,
-    np.ndarray[double, ndim=1] det_e0_z,
-    np.ndarray[double, ndim=1] det_e1_x,
-    np.ndarray[double, ndim=1] det_e1_y,
-    np.ndarray[double, ndim=1] det_e1_z,
-    # apertures: indices of first corner of each ap polygon: na = len(ap_ind)
-    long[::1] ap_ind,
-    # apertures: polygon coordinates as three 1d arrays
-    np.ndarray[double, ndim=1] ap_x,
-    np.ndarray[double, ndim=1] ap_y,
-    np.ndarray[double, ndim=1] ap_z,
-    # normal unit vectors
-    double[::1] ap_norm_x,
-    double[::1] ap_norm_y,
-    double[::1] ap_norm_z,
-    # possible extra parameters ?
-    double margin=_VSMALL,
-    int num_threads=10,
-):
-
-    # -----------
-    # Declaration
-
-    cdef int npts = pts_x.size
-    cdef int nd = det_cents_x.size
-    cdef int na = ap_norm_x.size
-    cdef int dd, pp, aa, tt
-    cdef int npa
-    cdef float sca, sca0, sca1
-    cdef float ki
-    cdef np.ndarray[double, ndim=1] ap_x0 = np.copy(ap_x)
-    cdef np.ndarray[double, ndim=1] ap_x1 = np.copy(ap_x)
-    cdef np.ndarray[double, ndim=1] p_a_x0
-    cdef np.ndarray[double, ndim=1] p_a_x1
-    cdef np.ndarray[long, ndim=2] tri
-    cdef np.ndarray[double, ndim=1] tri_x
-    cdef np.ndarray[double, ndim=1] tri_y
-    cdef np.ndarray[double, ndim=1] tri_z
-
-    # initialize solid angle array with zeros
-    cdef float solid_angle = 0.
-
-    # -------
-    # Compute
-
-    for dd in range(nd):
-
-        # print('det_cent', det_cents_x[dd], det_cents_y[dd], det_cents_z[dd])
-        # print('det_nin', det_norm_x[dd], det_norm_y[dd], det_norm_z[dd])        # DB
-        # print('det_e0', det_e0_x[dd], det_e0_y[dd], det_e0_z[dd])        # DB
-        # print('det_e1', det_e1_x[dd], det_e1_y[dd], det_e1_z[dd])        # DB
-
-        # loop 2: on npts (observation points)
-        for pp in range(npts):
-
-            # print('pts', pp, pts_x[pp], pts_y[pp], pts_z[pp])        # DB
-
-            # test if on good side of detector
-            sca0 = (
-                (pts_x[pp] - det_cents_x[dd]) * det_norm_x[dd]
-                + (pts_y[pp] - det_cents_y[dd]) * det_norm_y[dd]
-                + (pts_z[pp] - det_cents_z[dd]) * det_norm_z[dd]
-            )
-
-            if sca0 <= 0:
-                # print('skip', sca0)        # DB
-                continue
-
-            # flag
-            isok = True
-
-            # loop 3: on na (apertures)
-            for aa in range(na):
-
-                # print('ap', aa)
-                # print('ap ind', ap_ind[aa], ap_ind[aa+1])
-                # print('ap nin', ap_norm_x[aa], ap_norm_y[aa], ap_norm_z[aa])
-                # print('ap_x', ap_x[ap_ind[aa]:ap_ind[aa+1]])
-                # print('ap_y', ap_y[ap_ind[aa]:ap_ind[aa+1]])
-                # print('ap_z', ap_z[ap_ind[aa]:ap_ind[aa+1]])
-
-                # test if on good side of aperture
-                sca = (
-                    (pts_x[pp] - ap_x[ap_ind[aa]]) * ap_norm_x[aa]
-                    + (pts_y[pp] - ap_y[ap_ind[aa]]) * ap_norm_y[aa]
-                    + (pts_z[pp] - ap_z[ap_ind[aa]]) * ap_norm_z[aa]
-                )
-
-                if sca <= 0:
-                    isok = False
-                    break
-
-                # test if all aperture points can be projected on detector plane from pts
-                for ll in range(ap_ind[aa], ap_ind[aa+1]):
-                    sca1 = (
-                        (ap_x[ll] - pts_x[pp]) * det_norm_x[dd]
-                        + (ap_y[ll] - pts_y[pp]) * det_norm_y[dd]
-                        + (ap_z[ll] - pts_z[pp]) * det_norm_z[dd]
-                    )
-
-                    if sca1 >= 0:
+                    # stop if no intersection
+                    if poly_aperture.size == 0:
                         isok = False
                         break
 
-                    # project in 2d
-                    k = - sca0 / sca1
-                    P_x = pts_x[pp] + k * (ap_x[ll] - pts_x[pp])
-                    P_y = pts_y[pp] + k * (ap_y[ll] - pts_y[pp])
-                    P_z = pts_z[pp] + k * (ap_z[ll] - pts_z[pp])
-
-                    # project in 2d
-                    ap_x0[ll] = (
-                        (P_x - det_cents_x[dd]) * det_e0_x[dd]
-                        + (P_y - det_cents_y[dd]) * det_e0_y[dd]
-                        + (P_z - det_cents_z[dd]) * det_e0_z[dd]
-                    )
-                    ap_x1[ll] = (
-                        (P_x - det_cents_x[dd]) * det_e1_x[dd]
-                        + (P_y - det_cents_y[dd]) * det_e1_y[dd]
-                        + (P_z - det_cents_z[dd]) * det_e1_z[dd]
-                    )
-
-                if not isok:
-                    break
-
-                # print('sca0, sca1, k  ', sca0, sca1, k)
-                # print('Px, Py, Pz:  ', P_x, P_y, P_z)
-                # print(
-                    # 'ap01: ',
-                    # ap_x0[ap_ind[aa]:ap_ind[aa+1]],
-                    # ap_x1[ap_ind[aa]:ap_ind[aa+1]],
-                # )
-
-
-            # go to next point
-            if not isok:
-                # print('skip 2', sca, aa)        # DB
-                continue
-
-            # ----------------------------
-            # compute polygon intersection
-
-            # compute intersection
-            p_a = plg.Polygon(np.array([det_outline_x0, det_outline_x1]).T)
-            for aa in range(na):
-                # print('p_a: ', np.array(p_a.contour(0)).T)
-                # print('with: ', ap_x0[ap_ind[aa]:ap_ind[aa+1]], ap_x1[ap_ind[aa]:ap_ind[aa+1]])
-                p_a = p_a & plg.Polygon(np.array([
-                    ap_x0[ap_ind[aa]:ap_ind[aa+1]],
-                    ap_x1[ap_ind[aa]:ap_ind[aa+1]],
-                ]).T)
-
                 # stop if no intersection
-                if p_a.nPoints() < 3:
-                    isok = False
-                    break
+                if not isok:
+                    poly_aperture.size = 0
+                    free(poly_aperture.vx)
+                    free(poly_aperture.vy)
+                    poly_aperture.vx = NULL
+                    poly_aperture.vy = NULL
+                    timers[omp_get_thread_num()] += omp_get_wtime()
+                    continue
 
-            # stop if no intersection
-            if not isok:
-                # print('skip 3')        # DB
-                continue
+                # -------------------
+                # Get unit vectors
 
-            # -------------------
-            # rebuild 3d polygon
+                if return_unit_vect:
+                    cx0 = 0.
+                    cx1 = 0.
+                    for iv in range(poly_aperture.size):
+                        cx0 = cx0 + poly_aperture.vx[iv]
+                        cx1 = cx1 + poly_aperture.vy[iv]
+                    cx0 = cx0 / poly_aperture.size
+                    cx1 = cx1 / poly_aperture.size
+                    ux = (
+                        det_cents_x[dd] - pts_x[pp]
+                        + cx0*det_e0_x[dd] + cx1*det_e1_x[dd]
+                    )
+                    uy = (
+                        det_cents_y[dd] - pts_y[pp]
+                        + cx0*det_e0_y[dd] + cx1*det_e1_y[dd]
+                    )
+                    uz = (
+                        det_cents_z[dd] - pts_z[pp]
+                        + cx0*det_e0_z[dd] + cx1*det_e1_z[dd]
+                    )
+                    inv_norm = 1./c_sqrt(ux**2 + uy**2 + uz**2)
+                    uvect_x_view[dd, pp] = ux * inv_norm
+                    uvect_y_view[dd, pp] = uy * inv_norm
+                    uvect_z_view[dd, pp] = uz * inv_norm
 
-            # check ccw
-            p_a_x0 = np.ascontiguousarray(np.array(p_a.contour(0))[:, 0])
-            p_a_x1 = np.ascontiguousarray(np.array(p_a.contour(0))[:, 1])
-            if not _check_polygon_2d_counter_clockwise(p_a_x0, p_a_x1):
-                p_a_x0 = np.ascontiguousarray(p_a_x0[::-1])
-                p_a_x1 = np.ascontiguousarray(p_a_x1[::-1])
+                # -------------------
+                # rebuild 3d polygon
 
-            # triangulate by ear-clipping ()
-            tri = triangulate_by_earclipping_2d(
-                np.ascontiguousarray([p_a_x0, p_a_x1])
-            )
+                # check ccw
+                nvert = poly_aperture.size
+                p_a_xy = <double *>malloc(2*nvert*sizeof(double))
+                for iv in range(nvert):
+                    p_a_xy[iv      ] = poly_aperture.vx[iv]
+                for iv in range(nvert):
+                    p_a_xy[iv+nvert] = poly_aperture.vy[iv]
+                p_a_x = p_a_xy
+                p_a_y = p_a_xy + nvert
 
-            # -------------------
-            # compute solid angle
+                poly_aperture.size = 0
+                free(poly_aperture.vx)
+                free(poly_aperture.vy)
+                poly_aperture.vx = NULL
+                poly_aperture.vy = NULL
 
-            # loop on triangles
-            for tt in range(tri.shape[0]):
-
-                # get triangle
-                tri_x = (
-                    det_cents_x[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_x[dd]
-                    + p_a_x1[tri[tt, :]] * det_e1_x[dd]
+                # triangulate by ear-clipping
+                tri_new = triangulate_by_earclipping_2d_nogil(
+                    p_a_xy, nvert
                 )
-                tri_y = (
-                    det_cents_y[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_y[dd]
-                    + p_a_x1[tri[tt, :]] * det_e1_y[dd]
-                )
-                tri_z = (
-                    det_cents_z[dd]
-                    + p_a_x0[tri[tt, :]] * det_e0_z[dd]
-                    + p_a_x1[tri[tt, :]] * det_e1_z[dd]
-                )
 
-                # computation 2: solid angle of triangle from pts
-                solid_angle += _st.comp_sa_tri(
-                    tri_x[0],
-                    tri_y[0],
-                    tri_z[0],
-                    tri_x[1],
-                    tri_y[1],
-                    tri_z[1],
-                    tri_x[2],
-                    tri_y[2],
-                    tri_z[2],
-                    pts_x[pp],
-                    pts_y[pp],
-                    pts_z[pp],
-                )
-                # print('tri', tt, solid_angle[dd, pp])        # DB
+                # -------------------
+                # compute solid angle
 
-    # -------
+                # loop on triangles
+
+                solid_angle = 0.
+                for tt in range(nvert-2):
+
+                    # get triangle
+                    tri_x0 = (
+                        det_cents_x[dd]
+                        + p_a_x[tri_new[3*tt+0]] * det_e0_x[dd]
+                        + p_a_y[tri_new[3*tt+0]] * det_e1_x[dd]
+                    )
+                    tri_x1 = (
+                        det_cents_x[dd]
+                        + p_a_x[tri_new[3*tt+1]] * det_e0_x[dd]
+                        + p_a_y[tri_new[3*tt+1]] * det_e1_x[dd]
+                    )
+                    tri_x2 = (
+                        det_cents_x[dd]
+                        + p_a_x[tri_new[3*tt+2]] * det_e0_x[dd]
+                        + p_a_y[tri_new[3*tt+2]] * det_e1_x[dd]
+                    )
+                    tri_y0 = (
+                        det_cents_y[dd]
+                        + p_a_x[tri_new[3*tt+0]] * det_e0_y[dd]
+                        + p_a_y[tri_new[3*tt+0]] * det_e1_y[dd]
+                    )
+                    tri_y1 = (
+                        det_cents_y[dd]
+                        + p_a_x[tri_new[3*tt+1]] * det_e0_y[dd]
+                        + p_a_y[tri_new[3*tt+1]] * det_e1_y[dd]
+                    )
+                    tri_y2 = (
+                        det_cents_y[dd]
+                        + p_a_x[tri_new[3*tt+2]] * det_e0_y[dd]
+                        + p_a_y[tri_new[3*tt+2]] * det_e1_y[dd]
+                    )
+                    tri_z0 = (
+                        det_cents_z[dd]
+                        + p_a_x[tri_new[3*tt+0]] * det_e0_z[dd]
+                        + p_a_y[tri_new[3*tt+0]] * det_e1_z[dd]
+                    )
+                    tri_z1 = (
+                        det_cents_z[dd]
+                        + p_a_x[tri_new[3*tt+1]] * det_e0_z[dd]
+                        + p_a_y[tri_new[3*tt+1]] * det_e1_z[dd]
+                    )
+                    tri_z2 = (
+                        det_cents_z[dd]
+                        + p_a_x[tri_new[3*tt+2]] * det_e0_z[dd]
+                        + p_a_y[tri_new[3*tt+2]] * det_e1_z[dd]
+                    )
+
+                    # computation 2: solid angle of triangle from pts
+                    # NB: += would turn it into an OpenMP reduction
+                    solid_angle = solid_angle + _st.comp_sa_tri(
+                        tri_x0,
+                        tri_y0,
+                        tri_z0,
+                        tri_x1,
+                        tri_y1,
+                        tri_z1,
+                        tri_x2,
+                        tri_y2,
+                        tri_z2,
+                        pts_x[pp],
+                        pts_y[pp],
+                        pts_z[pp],
+                    )
+
+                free(tri_new)
+                free(p_a_xy)
+
+                if return_sa_array:
+                    solid_angle_view[dd,pp] = solid_angle
+                else:
+                    solid_angle_summed += solid_angle
+
+                timers[omp_get_thread_num()] += omp_get_wtime()
+
+        # ----------------------------------------
+        # Deallocation of thread-private variables
+
+        free(ap_x0)
+        free(ap_x1)
+        free(poly_aperture)
+        free(poly_mask.vx)
+        free(poly_mask.vy)
+        free(poly_mask)
+        free(poly_intersec)
+
+    # ------
     # Return
 
-    return solid_angle
+#    printf("        (work balance =")
+#    for ith in range(omp_get_max_threads()):
+#        printf(" %i", work_count[ith])
+#    printf(")\n")
+
+#    printf("        (time balance =")
+#    for ith in range(omp_get_max_threads()):
+#        printf(" %lf", timers[ith])
+#    printf(")\n")
+
+    free(timers)
+
+    if return_sa_array:
+        ret = solid_angle_array
+    else:
+        ret = solid_angle_summed
+
+    if return_unit_vect:
+        ret = (ret, uvect_x, uvect_y, uvect_z)
+
+    return ret
 
 
 def compute_solid_angle_noapertures(
@@ -6033,13 +6272,13 @@ def compute_solid_angle_noapertures(
     cdef int npts = pts_x.size
     cdef int nd = det_cents_x.size
     cdef dd, pp, tt
-    cdef float sca
+    cdef double sca
     cdef double[::1] poly_x
     cdef double[::1] poly_y
     cdef double[::1] poly_z
 
     # initialize solid angle array with zeros
-    cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=float)
+    cdef np.ndarray[double, ndim=2] solid_angle = np.zeros((nd, npts), dtype=np.double)
 
     # -------
     # Compute

@@ -13,7 +13,6 @@ import datastock as ds
 # local
 from . import _GG
 
-
 _APPROX = True
 _ANISO = False
 _BLOCK = True
@@ -1249,7 +1248,6 @@ def calc_solidangle_apertures(
 
     # ----------------
     # pre-format input
-
     (
         ndim0, shape0, mask,
         pts_x, pts_y, pts_z,
@@ -1316,7 +1314,7 @@ def calc_solidangle_apertures(
         (
             solid_angle,
             unit_vector_x, unit_vector_y, unit_vector_z,
-        ) = _GG.compute_solid_angle_apertures_unitvectors(
+        ) = _GG.compute_solid_angle_apertures_light(
             # pts as 1d arrays
             pts_x=pts_x,
             pts_y=pts_y,
@@ -1344,6 +1342,9 @@ def calc_solidangle_apertures(
             ap_norm_x=ap_nin_x,
             ap_norm_y=ap_nin_y,
             ap_norm_z=ap_nin_z,
+            # return flags
+            return_sa_array=True,
+            return_unit_vect=True,
         )
 
         if visibility:
@@ -1406,67 +1407,37 @@ def calc_solidangle_apertures(
         # call fastest / simplest version
         # (no computation / storing of unit vector)
 
-        if summed is True:
-            solid_angle = _GG.compute_solid_angle_apertures_light_summed(
-                # pts as 1d arrays
-                pts_x=pts_x,
-                pts_y=pts_y,
-                pts_z=pts_z,
-                # detector polygons as 1d arrays
-                det_outline_x0=det_outline_x0,
-                det_outline_x1=det_outline_x1,
-                det_cents_x=det_cents_x,
-                det_cents_y=det_cents_y,
-                det_cents_z=det_cents_z,
-                det_norm_x=det_nin_x,
-                det_norm_y=det_nin_y,
-                det_norm_z=det_nin_z,
-                det_e0_x=det_e0_x,
-                det_e0_y=det_e0_y,
-                det_e0_z=det_e0_z,
-                det_e1_x=det_e1_x,
-                det_e1_y=det_e1_y,
-                det_e1_z=det_e1_z,
-                # apertures
-                ap_ind=ap_ind,
-                ap_x=ap_x,
-                ap_y=ap_y,
-                ap_z=ap_z,
-                ap_norm_x=ap_nin_x,
-                ap_norm_y=ap_nin_y,
-                ap_norm_z=ap_nin_z,
-            )
-
-        else:
-            solid_angle = _GG.compute_solid_angle_apertures_light(
-                # pts as 1d arrays
-                pts_x=pts_x,
-                pts_y=pts_y,
-                pts_z=pts_z,
-                # detector polygons as 1d arrays
-                det_outline_x0=det_outline_x0,
-                det_outline_x1=det_outline_x1,
-                det_cents_x=det_cents_x,
-                det_cents_y=det_cents_y,
-                det_cents_z=det_cents_z,
-                det_norm_x=det_nin_x,
-                det_norm_y=det_nin_y,
-                det_norm_z=det_nin_z,
-                det_e0_x=det_e0_x,
-                det_e0_y=det_e0_y,
-                det_e0_z=det_e0_z,
-                det_e1_x=det_e1_x,
-                det_e1_y=det_e1_y,
-                det_e1_z=det_e1_z,
-                # apertures
-                ap_ind=ap_ind,
-                ap_x=ap_x,
-                ap_y=ap_y,
-                ap_z=ap_z,
-                ap_norm_x=ap_nin_x,
-                ap_norm_y=ap_nin_y,
-                ap_norm_z=ap_nin_z,
-            )
+        solid_angle = _GG.compute_solid_angle_apertures_light(
+            # pts as 1d arrays
+            pts_x=pts_x,
+            pts_y=pts_y,
+            pts_z=pts_z,
+            # detector polygons as 1d arrays
+            det_outline_x0=det_outline_x0,
+            det_outline_x1=det_outline_x1,
+            det_cents_x=det_cents_x,
+            det_cents_y=det_cents_y,
+            det_cents_z=det_cents_z,
+            det_norm_x=det_nin_x,
+            det_norm_y=det_nin_y,
+            det_norm_z=det_nin_z,
+            det_e0_x=det_e0_x,
+            det_e0_y=det_e0_y,
+            det_e0_z=det_e0_z,
+            det_e1_x=det_e1_x,
+            det_e1_y=det_e1_y,
+            det_e1_z=det_e1_z,
+            # apertures
+            ap_ind=ap_ind,
+            ap_x=ap_x,
+            ap_y=ap_y,
+            ap_z=ap_z,
+            ap_norm_x=ap_nin_x,
+            ap_norm_y=ap_nin_y,
+            ap_norm_z=ap_nin_z,
+            # return flags
+            return_sa_array=(not summed),
+        )
 
     # -------------
     # format output

@@ -7,7 +7,6 @@ import matplotlib.lines as mlines
 
 import datastock as ds
 
-
 from . import _comp_solidangles
 
 
@@ -566,6 +565,7 @@ def _compute_etendue_numerical(
     # Get plane perpendicular to los
 
     etendue = np.full((res.size, cents_x.size), np.nan)
+
     for ii in range(nd):
 
         if verb is True:
@@ -705,6 +705,7 @@ def _compute_etendue_numerical(
             # compute solid angle for each pixel
 
             if check is True:
+
                 solid_angle = _comp_solidangles.calc_solidangle_apertures(
                     # observation points
                     pts_x=pts_x,
