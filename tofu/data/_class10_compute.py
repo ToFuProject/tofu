@@ -65,7 +65,7 @@ def compute_inversions(
     (
         key_matrix,
         key_data, key_sigma, keybs, keym, mtype,
-        ddata, dsigma, matrix,
+        ddata, dsigma, matrix, units_gmat,
         keyt, t, reft, notime,
         m3d, indok, iokt,
         dconstraints,
@@ -287,6 +287,7 @@ def compute_inversions(
     # store
 
     if store is True:
+        units = ddata['units'] / units_gmat
         _store(**locals())
 
     else:
@@ -316,6 +317,7 @@ def _store(
     solver=None,
     chain=None,
     conv_crit=None,
+    units=None,
     **kwdargs,
 ):
 
@@ -345,6 +347,7 @@ def _store(
         keyinv: {
             'data': sol_full,
             'ref': refinv,
+            'units': units,
         },
     }
 

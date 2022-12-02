@@ -317,7 +317,8 @@ def _compute_check(
 
     # matrix itself
     matrix, ref, dind = coll.get_geometry_matrix_concatenated(key)
-
+    lkmat = coll.dobj['geom matrix'][key_matrix]['data']
+    units_gmat = coll.ddata[lkmat[0]]['units']
     nchan, nbs = matrix.shape[-2:]
     m3d = matrix.ndim == 3
     crop = coll.dobj['geom matrix'][key_matrix]['crop']
@@ -631,7 +632,7 @@ def _compute_check(
 
     return (
         key_matrix, key_data, key_sigma, keybs, keym, mtype,
-        ddata, dsigma, matrix,
+        ddata, dsigma, matrix, units_gmat,
         keyt, t, reft, notime,
         m3d, indok, iokt,
         dconstraints,
