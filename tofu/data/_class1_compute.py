@@ -417,7 +417,6 @@ def _select_mesh_neighbours_tri(
         if returnas == 'ind':
             if return_ind_as is bool:
                 kknots = coll.dobj[coll._which_mesh][key]['knots']
-                import pdb; pdb.set_trace()     # DB
                 nneig = coll.dref[f'{kknots}-ind']['size']
                 neig_temp = np.zeros((nind, nneig), dtype=bool)
                 for ii in range(nind):
@@ -2080,9 +2079,6 @@ def _interp2d_check(
             types=bool,
             default=False,
         )
-
-    if details is True and hastime is True and radius_vs_time is False and radius is not None:
-        import pdb; pdb.set_trace()     # DB
 
     # -------------
     # radius, angle

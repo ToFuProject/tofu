@@ -50,6 +50,8 @@ def _plot_inversion_check(
     keydata = coll.dobj['inversions'][keyinv]['data_in']
     keyretro = coll.dobj['inversions'][keyinv]['retrofit']
     keybs = coll.dobj['geom matrix'][keymat]['bsplines']
+    key_diag = coll.dobj['geom matrix'][keymat]['diagnostic']
+    key_cam = coll.dobj['geom matrix'][keymat]['camera']
     keym = coll.dobj['bsplines'][keybs]['mesh']
     mtype = coll.dobj[coll._which_mesh][keym]['type']
     # refbs = coll.dobj['bsplines'][keybs]['ref']
@@ -97,7 +99,8 @@ def _plot_inversion_check(
     )
 
     return (
-        keyinv, keymat, keybs, keydata, keyretro, mtype,
+        keyinv, keymat,
+        key_diag, key_cam, keybs, keydata, keyretro, mtype,
         cropbs, cmap, dcolorbar, dleg, connect,
     )
 
@@ -108,6 +111,7 @@ def _plot_inversion_prepare(
     mtype=None,
     keyinv=None,
     key_matrix=None,
+    key_diag=None,
     key_data=None,
     key_retro=None,
 ):
@@ -118,21 +122,59 @@ def _plot_inversion_prepare(
     # add nearest-neighbourg interpolated data
 
     reft, keyt, time = coll.get_time(key=keyinv)[2:5]
-    if coll.get_time(key=key_matrix)[0]:
-        keyt_data = coll.get_time(key=key_data)[3]
+    lkmat = coll.dobj['geom matrix'][key_matrix]['data']
+    # ddata = coll.get_diagnostic_data_concatenated(
+        # key=key_diag,
+        # key_data=key_data,
+    # )
+
+    if coll.get_time(key=lkmat[0])[0]:
+        keyt_data = coll.get_time(key=key_data[0])[3]
         if keyt_data != keyt:
             dind = coll.get_time(
-                key=key_data,
+                key=key_data[0],
                 t=keyt,
             )[-1]
-            data = coll.ddata[key_data]['data'][dind['ind'], :]
-        else:
-            data = coll.ddata[key_data]['data']
-    else:
-        data = coll.ddata[key_data]['data']
+            for k0 in ddata.keys():
+                ddata['data'] = ddata['data'][dind['ind'], :]
+
+
+    for ii, k0 in enumerate(ddata.keys()):
+        coll2.add_data(
+            key=key_data[ii],
+            data=ddata['data'],
+            ref=
+        )
+
+    # --------------------
+    # add data, retro, err
+
+    for k0 in key_cam:
+
+        # ref
+
+        # data
+        coll2.add_data(
+            key=f"[}_data",
+            data=
+        )
+
+        # retro
+        coll2
+
+        # err
+        coll2
+
+
 
     # ----------------
     # add data + retro
+
+    dretro = coll.get_diagnostic_data_concatenated(
+        key=key_diag,
+        key_data=key_retro,
+    )
+    import pdb; pdb.set_trace()     # DB
 
     # ref
     ref_retro = coll.ddata[key_retro]['ref']
@@ -163,8 +205,7 @@ def _plot_inversion_prepare(
         )
 
     # err
-    key_err = f'{key_data}-err'
-    err = coll.ddata[key_retro]['data'] - data
+    key_err = f'{key_data}_err'
     coll2.add_data(
         key=key_err,
         data=err,
@@ -241,9 +282,8 @@ def _plot_inversion_prepare(
     )
 
 
-
 def plot_inversion(
-    coll=None,
+    aqoll=None,
     key=None,
     indt=None,
     res=None,
@@ -264,7 +304,8 @@ def plot_inversion(
     # check inputs
 
     (
-        keyinv, keymat, keybs, key_data, key_retro, mtype,
+        keyinv, keymat,
+        key_diag, key_cam, keybs, key_data, key_retro, mtype,
         cropbs, cmap, dcolorbar, dleg, connect,
     ) = _plot_inversion_check(
         coll=coll,
@@ -284,6 +325,7 @@ def plot_inversion(
             fs=fs,
             dmargin=dmargin,
             mtype=mtype,
+            key_cam=key_cam,
         )
 
     dax = _generic_check._check_dax(dax=dax, main='matrix')
@@ -292,7 +334,7 @@ def plot_inversion(
     # plot profile2d
 
     coll2, dgroup = coll.plot_profile2d(
-        key=key,
+        key=keyinv,
         res=res,
         # figure
         vmin=vmin,
@@ -321,6 +363,7 @@ def plot_inversion(
         coll2=coll2,
         keyinv=keyinv,
         key_matrix=keymat,
+        key_diag=key_diag,
         key_data=key_data,
         key_retro=key_retro,
     )
@@ -329,59 +372,64 @@ def plot_inversion(
     # plot data
 
     kax = 'retrofit'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
+    for k0 in key_cam:
 
-        if reft is None:
-            retro = coll2.ddata[key_retro]['data']
-            data = coll2.ddata[key_data]['data']
-        else:
-            retro = coll2.ddata[key_retro]['data'][0, :]
-            data = coll2.ddata[key_data]['data'][0, :]
 
-        # plot
-        l1, = ax.plot(
-            chan,
-            retro,
-            c=(0.8, 0.8, 0.8),
-            ls='-',
-            lw=1.,
-        )
+        # data and retrofit
+        kax = k0
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
 
-        l0, = ax.plot(
-            chan,
-            data,
-            c='k',
-            ls='None',
-            lw=2.,
-            marker='.',
-        )
+            if reft is None:
+                retro = coll2.ddata[key_retro]['data']
+                data = coll2.ddata[key_data]['data']
+            else:
+                retro = coll2.ddata[key_retro]['data'][0, :]
+                data = coll2.ddata[key_data]['data'][0, :]
 
-        # add mobiles
-        if reft is not None:
-            kl0 = 'data'
-            coll2.add_mobile(
-                key=kl0,
-                handle=l0,
-                refs=(reft,),
-                data=[key_data],
-                dtype=['ydata'],
-                axes=kax,
-                ind=0,
-            )
-            kl1 = 'retrofit'
-            coll2.add_mobile(
-                key=kl1,
-                handle=l1,
-                refs=(reft,),
-                data=[key_retro],
-                dtype=['ydata'],
-                axes=kax,
-                ind=0,
+            # plot
+            l1, = ax.plot(
+                chan,
+                retro,
+                c=(0.8, 0.8, 0.8),
+                ls='-',
+                lw=1.,
             )
 
-        ax.set_ylim(min(0, datamin), datamax)
-        ax.set_xlim(0, chan.size + 1)
+            l0, = ax.plot(
+                chan,
+                data,
+                c='k',
+                ls='None',
+                lw=2.,
+                marker='.',
+            )
+
+            # add mobiles
+            if reft is not None:
+                kl0 = 'data'
+                coll2.add_mobile(
+                    key=kl0,
+                    handle=l0,
+                    refs=(reft,),
+                    data=[key_data],
+                    dtype=['ydata'],
+                    axes=kax,
+                    ind=0,
+                )
+                kl1 = 'retrofit'
+                coll2.add_mobile(
+                    key=kl1,
+                    handle=l1,
+                    refs=(reft,),
+                    data=[key_retro],
+                    dtype=['ydata'],
+                    axes=kax,
+                    ind=0,
+                )
+
+            ax.set_ylim(min(0, datamin), datamax)
+            ax.set_xlim(0, chan.size + 1)
 
     kax = 'err'
     if dax.get(kax) is not None:
@@ -488,6 +536,7 @@ def _plot_inversion_create_axes(
     fs=None,
     dmargin=None,
     mtype=None,
+    key_cam=None,
 ):
 
     if fs is None:
@@ -495,56 +544,38 @@ def _plot_inversion_create_axes(
 
     if dmargin is None:
         dmargin = {
-            'left': 0.05, 'right': 0.95,
+            'left': 0.05, 'right': 0.98,
             'bottom': 0.05, 'top': 0.95,
-            'hspace': 0.4, 'wspace': 0.3,
+            'hspace': 1.5, 'wspace': 0.5,
         }
 
+    ncam = len(key_cam)
+    nblock = 3*ncam
+    nrows = 3*nblock
+
     fig = plt.figure(figsize=fs)
-    gs = gridspec.GridSpec(ncols=8, nrows=6, **dmargin)
+    gs = gridspec.GridSpec(ncols=8, nrows=nrows, **dmargin)
 
     # ------------------
     # axes for profile2d
 
     # axes for image
-    ax0 = fig.add_subplot(gs[:4, 2:4], aspect='auto')
+    ax0 = fig.add_subplot(gs[:2*nblock, 2:4], aspect='auto')
 
     # axes for vertical profile
-    ax1 = fig.add_subplot(gs[:4, 4], sharey=ax0)
+    ax1 = fig.add_subplot(gs[:2*nblock, 4], sharey=ax0)
 
     # axes for horizontal profile
-    ax2 = fig.add_subplot(gs[4:, 2:4], sharex=ax0)
+    ax2 = fig.add_subplot(gs[2*nblock:, 2:4], sharex=ax0)
 
+    # axes for radius
     if mtype == 'polar':
-        # axes for traces
-        ax7 = fig.add_subplot(gs[:2, :2], sharey=ax2)
-        # axes for traces
-        ax3 = fig.add_subplot(gs[2:4, :2])
+        ax7 = fig.add_subplot(gs[:nblock, :2], sharey=ax2)
     else:
         ax7 = None
-        # axes for traces
-        ax3 = fig.add_subplot(gs[:3, :2])
 
-
-    # axes for text
-    ax4 = fig.add_subplot(gs[:3, 5], frameon=False)
-    ax5 = fig.add_subplot(gs[3:, 5], frameon=False)
-    ax6 = fig.add_subplot(gs[4:, :2], frameon=False)
-
-    # ------------------
-    # axes for inversion
-
-    # retrofit
-    ax8 = fig.add_subplot(gs[:2, 6:])
-
-    # error
-    ax9 = fig.add_subplot(gs[2:4, 6:], sharex=ax8)
-
-    # parameters (chi2, ...)
-    ax10 = fig.add_subplot(gs[4, 6:], sharex=ax3)
-
-    # nb of iterations
-    ax11 = fig.add_subplot(gs[5, 6:], sharex=ax3)
+    # axes for traces
+    ax3 = fig.add_subplot(gs[nblock:2*nblock, :2])
 
     # dax
     dax = {
@@ -553,18 +584,31 @@ def _plot_inversion_create_axes(
         'vertical': {'handle': ax1, 'type': 'misc'},
         'horizontal': {'handle': ax2, 'type': 'misc'},
         'traces': {'handle': ax3, 'type': 'misc'},
-        # inversion
-        'retrofit': {'handle': ax8, 'type': 'misc'},
-        'err': {'handle': ax9, 'type': 'misc'},
-        'inv-param': {'handle': ax10, 'type': 'misc'},
-        'niter': {'handle': ax11, 'type': 'misc'},
-        # text
-        'textX': {'handle': ax4, 'type': 'text'},
-        'textY': {'handle': ax5, 'type': 'text'},
-        'textZ': {'handle': ax6, 'type': 'text'},
     }
+    # axes for text
+    # ax4 = fig.add_subplot(gs[:3, 5], frameon=False)
+    # ax5 = fig.add_subplot(gs[3:, 5], frameon=False)
+    # ax6 = fig.add_subplot(gs[4:, :2], frameon=False)
+
+    # ------------------
+    # axes for inversion
+
+    npc = nrows / ncam
+    for ii, k0 in enumerate(key_cam):
+        # retrofit
+        dax[k0] = fig.add_subplot(gs[9*ii:9*ii+6, 5:])
+
+        # error
+        dax[f'{k0}_err'] = fig.add_subplot(gs[9*ii+6:9*(ii+1), 5:], sharex=dax[k0])
+
+    # parameters (chi2, ...)
+    dax['inv-param'] = fig.add_subplot(gs[2*nblock:2*nblock+ncam, :2], sharex=ax3)
+
+    # nb of iterations
+    dax['niter'] = fig.add_subplot(gs[2*nblock+ncam:, :2], sharex=ax3)
 
     if ax7 is not None:
         dax['radial'] = {'handle': ax7, 'type': 'misc'}
+
     return dax
 

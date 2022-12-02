@@ -1332,16 +1332,14 @@ def _concatenate_data_check(
             key_data = [key_data]
 
         else:
-            lok = list(coll.dobj['diagnostic'][key_diag].get('dsignal').keys())
-            key_data = ds._generic_checks._check_var(
+            lok = list(coll.dobj['diagnostic'][key].get('dsignal').keys())
+            key_data = ds._generic_check._check_var(
                 key_data, 'key_data',
                 types=str,
                 allowed=lok,
             )
 
-            key_data = list(
-                coll.dobj['diagnostic'][key_diag]['dsignal'][key_data].keys()
-            )
+            key_data = coll.dobj['diagnostic'][key]['dsignal'][key_data]['data']
 
     # basic check
     c0 = (

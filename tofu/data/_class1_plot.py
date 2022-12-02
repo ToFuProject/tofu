@@ -1199,7 +1199,7 @@ def _plot_profiles2d_prepare(
     )
 
     if res is None:
-        res_coef = 0.05
+        res_coef = 0.2
         res = [res_coef*dR, res_coef*dZ]
 
     # compute
