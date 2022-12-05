@@ -17,12 +17,12 @@ import numpy as np
 import scipy.interpolate as scpinterp
 # import matplotlib.pyplot as plt
 # from matplotlib.tri import Triangulation as mplTri
+import datastock as ds
 
 
 # tofu
 # from tofu import __version__ as __version__
 import tofu.utils as utils
-from . import _generic_check
 from . import _DataCollection_check_inputs
 from . import _comp
 from . import _DataCollection_comp
@@ -531,7 +531,7 @@ class DataCollection0(utils.ToFuObject):
         if isinstance(keys, str):
             keys = [keys]
 
-        keys = _generic_check._check_var_iter(
+        keys = ds._generic_check._check_var_iter(
             keys, 'keys',
             types=list,
             allowed=self._ddata.keys(),
@@ -647,7 +647,7 @@ class DataCollection0(utils.ToFuObject):
         # Check inputs
 
         # order
-        order = _generic_check._check_var(
+        order = ds._generic_check._check_var(
             order,
             'order',
             types=str,

@@ -286,10 +286,10 @@ class Test01_checks_Instanciate():
         pass
 
     @classmethod
-    def setup(self):
+    def setup_method(self):
         pass
 
-    def teardown(self):
+    def teardown_method(self):
         pass
 
     @classmethod
@@ -375,7 +375,7 @@ class Test02_Plasma2D():
     def setup_class(cls):
         pass
 
-    def setup(self):
+    def setup_method(self):
         plasma = tfd.Plasma2D()
 
         # add rect mesh
@@ -410,7 +410,7 @@ class Test02_Plasma2D():
         self.lm = list(plasma.dobj['mesh'].keys())
         self.lbs = list(plasma.dobj['bsplines'].keys())
 
-    def teardown(self):
+    def teardown_method(self):
         pass
 
     @classmethod
@@ -860,7 +860,7 @@ class Test02_Plasma2D():
             )
 
         # plot geometry matrices
-        imax = 5
+        imax = 3
         for ii, k0 in enumerate(self.obj.dobj['matrix']):
 
             if '-' in k0 and int(k0[k0.index('-')+1:]) > 0:

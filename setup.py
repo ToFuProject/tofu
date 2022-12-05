@@ -1,4 +1,4 @@
-""" A tomography library for fusion devices
+""" A tomography library for fusion devices (tokamaks)
 
 See:
 https://github.com/ToFuProject/tofu
@@ -318,12 +318,13 @@ setup(
         "scipy",
         # "scikit-sparse",
         # "scikit-umfpack",
-        "matplotlib",
+        "matplotlib<=3.5.2",
+        "contourpy",
         "requests",
         "cython>=0.26",
         "svg.path",
         "Polygon3",
-        "datastock>=0.0.17",
+        "datastock>=0.0.21",
     ],
     python_requires=">=3.6",
 

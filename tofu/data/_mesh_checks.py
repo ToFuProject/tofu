@@ -8,10 +8,7 @@ import warnings
 # Common
 import numpy as np
 from matplotlib.tri import Triangulation as mplTri
-
-
-# specific
-from . import _generic_check
+import datastock as ds
 
 
 _ELEMENTS = 'knots'
@@ -426,7 +423,7 @@ def _mesh2D_check(
 ):
 
     # key
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         excluded=list(coll.dobj.get('mesh', {}).keys())
@@ -485,7 +482,7 @@ def _mesh2D_polar_check(
 ):
 
     # key
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         excluded=list(coll.dobj.get('mesh', {}).keys())
@@ -1196,16 +1193,29 @@ def _mesh2DRect_check(
         resR = np.diff(R)
         resZ = np.diff(Z)
 
-        if np.unique(resR).size == 1:
+        if np.allclose(resR, np.mean(resR), atol=1e-12, rtol=0):
             resR = resR[0]
             indR = None
         else:
-            raise NotImplementedError()
-        if np.unique(resZ).size == 1:
+            msg = (
+                "Non-uniform resolution for user-provided rectangular mesh\n"
+                f"\t- unique resR: {np.unique(resR)}\n"
+                f"\t- diff resR: {np.diff(np.unique(resR))}\n"
+                f"\t- resR: {resR}\n"
+                )
+            raise NotImplementedError(msg)
+            
+        if np.allclose(resZ, np.mean(resZ), atol=1e-12, rtol=0):
             resZ = resZ[0]
             indZ = None
         else:
-            raise NotImplementedError()
+            msg = (
+                "Non-uniform resolution for user-provided rectangular mesh\n"
+                f"\t- unique resZ: {np.unique(resZ)}\n"
+                f"\t- diff resZ: {np.diff(np.unique(resZ))}\n"
+                f"\t- resZ: {resZ}\n"
+                )
+            raise NotImplementedError(msg)
 
     return R, Z, resR, resZ, indR, indZ
 
@@ -1534,7 +1544,7 @@ def _select_ind_check(
             raise Exception(msg)
 
     # elements
-    elements = _generic_check._check_var(
+    elements = ds._generic_check._check_var(
         elements, 'elements',
         types=str,
         default=_ELEMENTS,
@@ -1549,7 +1559,7 @@ def _select_ind_check(
         retdef = bool
         retok = [int, bool]
 
-    returnas = _generic_check._check_var(
+    returnas = ds._generic_check._check_var(
         returnas, 'returnas',
         types=None,
         default=retdef,
@@ -1557,7 +1567,7 @@ def _select_ind_check(
     )
 
     # crop
-    crop = _generic_check._check_var(
+    crop = ds._generic_check._check_var(
         crop, 'crop',
         types=bool,
         default=True,
@@ -1574,7 +1584,7 @@ def _select_check(
 ):
 
     # elements
-    elements = _generic_check._check_var(
+    elements = ds._generic_check._check_var(
         elements, 'elements',
         types=str,
         default=_ELEMENTS,
@@ -1582,7 +1592,7 @@ def _select_check(
     )
 
     # returnas
-    returnas = _generic_check._check_var(
+    returnas = ds._generic_check._check_var(
         returnas, 'returnas',
         types=None,
         default='ind',
@@ -1590,7 +1600,7 @@ def _select_check(
     )
 
     # return_ind_as
-    return_ind_as = _generic_check._check_var(
+    return_ind_as = ds._generic_check._check_var(
         return_ind_as, 'return_ind_as',
         types=None,
         default=int,
@@ -1598,7 +1608,7 @@ def _select_check(
     )
 
     # return_neighbours
-    return_neighbours = _generic_check._check_var(
+    return_neighbours = ds._generic_check._check_var(
         return_neighbours, 'return_neighbours',
         types=bool,
         default=True,
@@ -1616,14 +1626,14 @@ def _select_check(
 def _mesh2D_bsplines(key=None, lkeys=None, deg=None):
 
     # key
-    key = _generic_check._check_var(
+    key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         allowed=lkeys,
     )
 
     # deg
-    deg = _generic_check._check_var(
+    deg = ds._generic_check._check_var(
         deg, 'deg',
         types=int,
         default=2,

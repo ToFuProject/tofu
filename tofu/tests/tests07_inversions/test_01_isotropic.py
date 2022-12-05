@@ -61,7 +61,7 @@ class Test01_Inversions():
     def setup_class(cls):
         pass
 
-    def setup(self):
+    def setup_method(self):
 
         # create conf and cam
         conf0 = tf.load_config('WEST-V0')
@@ -133,7 +133,7 @@ class Test01_Inversions():
 
         self.mesh = mesh
 
-    def teardown(self):
+    def teardown_method(self):
         pass
 
     @classmethod

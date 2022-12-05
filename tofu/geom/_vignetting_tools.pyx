@@ -318,13 +318,15 @@ cdef inline int get_one_ear(
                 return i # if not, we found an ear
 
     # if we havent returned, either, there was an error somerwhere
-#    with gil:
-#        msg = (
-#            "Got here but shouldn't have\n"
-#            f"\t- i: {i} / {nv-1}\n"
-#            f"\t- j: {j} / {nv}\n"
-#        )
-#        raise Exception(msg)
+    # with gil:
+        # msg = (
+            # "Got here but shouldn't have\n"
+            # f"\t- polygon x: {[polygon[0*nvert + ii] for ii in range(nv)]}\n"
+            # f"\t- polygon y: {[polygon[1*nvert + ii] for ii in range(nv)]}\n"
+            # f"\t- i: {i} / {nv-1}\n"
+            # f"\t- j: {j} / {nv}\n"
+        # )
+        # raise Exception(msg)
 
     return -1
 

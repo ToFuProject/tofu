@@ -8,6 +8,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import datastock as ds
+
 
 # tofu
 # from tofu import __version__ as __version__
@@ -38,7 +40,7 @@ def _plot_inversion_check(
         raise Exception(msg)
 
     lk = list(coll.dobj['inversions'].keys())
-    keyinv = _generic_check._check_var(
+    keyinv = ds._generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
@@ -69,7 +71,7 @@ def _plot_inversion_check(
         'fraction': 0.15,
         'orientation': 'vertical',
     }
-    dcolorbar = _generic_check._check_var(
+    dcolorbar = ds._generic_check._check_var(
         dcolorbar, 'dcolorbar',
         default=defdcolorbar,
         types=dict,
@@ -81,14 +83,14 @@ def _plot_inversion_check(
         'loc': 'upper left',
         'frameon': True,
     }
-    dleg = _generic_check._check_var(
+    dleg = ds._generic_check._check_var(
         dleg, 'dleg',
         default=defdleg,
         types=(bool, dict),
     )
 
     # connect
-    connect = _generic_check._check_var(
+    connect = ds._generic_check._check_var(
         connect, 'connect',
         default=True,
         types=bool,
