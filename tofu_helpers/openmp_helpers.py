@@ -134,7 +134,7 @@ def check_for_openmp():
         shutil.rmtree(tmpdir)
         if not result == 0:
             flag_omp = []
-            raise result        # DB
+            # raise result        # DB
 
     return result, flag_omp
 
@@ -178,5 +178,11 @@ def generate_openmp_enabled_py(openmp_support, srcdir='.'):
 
     package_srcdir = os.path.join(srcdir, "tofu", "geom")
     is_openmp_enabled_py = os.path.join(package_srcdir, 'openmp_enabled.py')
+    print(list([os.path.join(root, name)
+             for root, dirs, files in os.walk(srcdir)
+             for name in files]))
     with open(is_openmp_enabled_py, 'w') as f:
         f.write(src)
+    print(list([os.path.join(root, name)
+             for root, dirs, files in os.walk(srcdir)
+             for name in files]))
