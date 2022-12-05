@@ -119,14 +119,17 @@ def check_for_openmp():
 
     try:
         with open(filename, "w") as file:
-            file.write(omp_source)
+            ret = file.write(omp_source)
+            print(f"file.write({omp_source}) -> {ret}")
         with open(os.devnull, "w") as fnull:
             result = subprocess.call(
                 [compiler] + flag_omp + [filename], stdout=fnull, stderr=fnull,
                 shell=is_platform_windows()
             )
+            print(f"subprocess.call(..) -> {result}")
     except subprocess.CalledProcessError as err:
         result = err    # -1
+        print("except")
 
     finally:
         # in any case, go back to previous cwd and clean up
@@ -135,6 +138,8 @@ def check_for_openmp():
         if not result == 0:
             flag_omp = []
             # raise result        # DB
+
+    print(f"returning {result}, {flag_omp}")
 
     return result, flag_omp
 
