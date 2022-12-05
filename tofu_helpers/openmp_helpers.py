@@ -78,7 +78,7 @@ def get_openmp_flag(compiler):
     else:
         compiler = compiler.__class__.__name__
 
-    print(
+    raise Exception(
         f"""
 
         Compiler: {compiler}
