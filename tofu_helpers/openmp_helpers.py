@@ -122,9 +122,14 @@ def check_for_openmp():
             ret = file.write(omp_source)
             print(f"file.write({omp_source}) -> {ret}")
         with open(os.devnull, "w") as fnull:
-            result = subprocess.call(
+            # result = subprocess.call(
+                # [compiler] + flag_omp + [filename], stdout=fnull, stderr=fnull,
+                # shell=is_platform_windows()
+            # )
+            result = subprocess.run(
                 [compiler] + flag_omp + [filename], stdout=fnull, stderr=fnull,
-                shell=is_platform_windows()
+                shell=is_platform_windows(),
+                capture_output=True
             )
             print(f"subprocess.call(..) -> {result}")
     except subprocess.CalledProcessError as err:
@@ -183,11 +188,5 @@ def generate_openmp_enabled_py(openmp_support, srcdir='.'):
 
     package_srcdir = os.path.join(srcdir, "tofu", "geom")
     is_openmp_enabled_py = os.path.join(package_srcdir, 'openmp_enabled.py')
-    print(list([os.path.join(root, name)
-             for root, dirs, files in os.walk(srcdir)
-             for name in files]))
     with open(is_openmp_enabled_py, 'w') as f:
         f.write(src)
-    print(list([os.path.join(root, name)
-             for root, dirs, files in os.walk(srcdir)
-             for name in files]))
