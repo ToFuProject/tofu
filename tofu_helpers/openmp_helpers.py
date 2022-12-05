@@ -125,7 +125,8 @@ def check_for_openmp():
                 [compiler] + flag_omp + [filename], stdout=fnull, stderr=fnull,
                 shell=is_platform_windows()
             )
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as err:
+        print("\n\n" + str(err) + "\n\n")   # DB
         result = -1
 
     finally:
