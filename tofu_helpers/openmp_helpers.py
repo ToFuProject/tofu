@@ -129,12 +129,12 @@ def check_for_openmp():
         raise(err)  # DB
         result = -1
 
-    finally:
-        # in any case, go back to previous cwd and clean up
-        os.chdir(curdir)
-        shutil.rmtree(tmpdir)
-        if not result == 0:
-            flag_omp = []
+    # finally:
+        # # in any case, go back to previous cwd and clean up
+        # os.chdir(curdir)
+        # shutil.rmtree(tmpdir)
+        # if not result == 0:
+            # flag_omp = []
     return result, flag_omp
 
 
