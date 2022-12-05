@@ -111,23 +111,19 @@ def _plot_inversion_prepare(
     mtype=None,
     keyinv=None,
     key_matrix=None,
+    key_cam=None,
     key_diag=None,
     key_data=None,
     key_retro=None,
 ):
-
-
 
     # -----------------
     # add nearest-neighbourg interpolated data
 
     reft, keyt, time = coll.get_time(key=keyinv)[2:5]
     lkmat = coll.dobj['geom matrix'][key_matrix]['data']
-    # ddata = coll.get_diagnostic_data_concatenated(
-        # key=key_diag,
-        # key_data=key_data,
-    # )
 
+    dind = None
     if coll.get_time(key=lkmat[0])[0]:
         keyt_data = coll.get_time(key=key_data[0])[3]
         if keyt_data != keyt:
@@ -135,28 +131,22 @@ def _plot_inversion_prepare(
                 key=key_data[0],
                 t=keyt,
             )[-1]
-            for k0 in ddata.keys():
-                ddata['data'] = ddata['data'][dind['ind'], :]
-
-
-    for ii, k0 in enumerate(ddata.keys()):
-        coll2.add_data(
-            key=key_data[ii],
-            data=ddata['data'],
-            ref=
-        )
 
     # --------------------
     # add data, retro, err
 
+    import pdb; pdb.set_trace()     # DB
+
     for k0 in key_cam:
 
         # ref
+        
+
 
         # data
         coll2.add_data(
-            key=f"[}_data",
-            data=
+            key=f"{None}_data",
+            data=ddata[None]
         )
 
         # retro
@@ -283,7 +273,7 @@ def _plot_inversion_prepare(
 
 
 def plot_inversion(
-    aqoll=None,
+    coll=None,
     key=None,
     indt=None,
     res=None,
@@ -363,6 +353,7 @@ def plot_inversion(
         coll2=coll2,
         keyinv=keyinv,
         key_matrix=keymat,
+        key_cam=key_cam,
         key_diag=key_diag,
         key_data=key_data,
         key_retro=key_retro,
