@@ -127,7 +127,7 @@ def check_for_openmp():
                 # shell=is_platform_windows()
             # )
             result = subprocess.run(
-                [compiler] + flag_omp + [filename], stdout=fnull, stderr=fnull,
+                [compiler] + flag_omp + [filename],
                 shell=is_platform_windows(),
                 capture_output=True
             )
