@@ -126,15 +126,16 @@ def check_for_openmp():
                 shell=is_platform_windows()
             )
     except subprocess.CalledProcessError as err:
-        raise(err)  # DB
-        result = -1
+        result = err    # -1
 
-    # finally:
-        # # in any case, go back to previous cwd and clean up
-        # os.chdir(curdir)
-        # shutil.rmtree(tmpdir)
-        # if not result == 0:
-            # flag_omp = []
+    finally:
+        # in any case, go back to previous cwd and clean up
+        os.chdir(curdir)
+        shutil.rmtree(tmpdir)
+        if not result == 0:
+            flag_omp = []
+            raise result        # DB
+
     return result, flag_omp
 
 
