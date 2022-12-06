@@ -78,19 +78,6 @@ def get_openmp_flag(compiler):
     else:
         compiler = compiler.__class__.__name__
 
-    raise Exception(
-        f"""
-
-        Compiler: {compiler}
-
-        sys.platform: {sys.platform}
-
-        os.getenv('CPPFLAGS', ''): {os.getenv('CPPFLAGS', '')}
-
-        """
-    )
-
-
     if sys.platform == "win32" and ('icc' in compiler or 'icl' in compiler):
         return ['/Qopenmp']
     elif sys.platform == "win32":
