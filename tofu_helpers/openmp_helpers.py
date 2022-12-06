@@ -100,8 +100,8 @@ def get_openmp_flag(compiler):
         return ['-qopenmp']
     elif sys.platform == "darwin" and 'openmp' in os.getenv('CPPFLAGS', ''):
         return ['-openmp']
-    elif sys.platform == "darwin" and 'gcc' in compiler:
-        return ['-fopenmp=libomp']      # DB
+    # elif sys.platform == "darwin" and 'gcc' in compiler:
+        # return ['-fopenmp=libomp']      # DB
     # Default flag for GCC and clang:
     return ['-fopenmp']
 
@@ -148,6 +148,19 @@ def check_for_openmp():
                 capture_output=True
             )
             print(f"subprocess.call(..) -> {result}")
+            result2 = subprocess.run(
+                [compiler, '--version'],
+                shell=is_platform_windows(),
+                capture_output=True
+            )
+            print(f"subprocess.call(..) -> {result2}")
+            result2 = subprocess.run(
+                [compiler, '-v'],
+                shell=is_platform_windows(),
+                capture_output=True
+            )
+            print(f"subprocess.call(..) -> {result2}")
+
     except subprocess.CalledProcessError as err:
         result = err    # -1
         print("except")
