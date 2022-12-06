@@ -18,6 +18,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install LLVM and Clang
+      uses: KyleMayes/install-llvm-action@v1
+      if: contains(matrix.os, 'macOS')
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
