@@ -717,6 +717,7 @@ def plot_inversion(
                 axes=kax,
                 ind=0,
             )
+            ax.set_ylim(bottom=0)
 
         kax = 'niter'
         if dax.get(kax) is not None:
@@ -729,6 +730,8 @@ def plot_inversion(
                 lw=1.,
                 marker='.',
             )
+
+            ax.set_ylim(bottom=0)
 
     # connect
     if connect is True:
