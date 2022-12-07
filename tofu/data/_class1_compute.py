@@ -2437,7 +2437,6 @@ def interp2d(
             pass
         if details is False:
             val = val[0, ...]
-            import pdb; pdb.set_trace()     # DB
             reft = None
 
     # ------
@@ -2537,7 +2536,7 @@ def interp2d(
         ref = []
         c0 = (
             reft not in [None, False]
-            and hastime
+            and (hastime or radius_vs_time)
             and not (
                 meshtype == 'polar'
                 and R is None
