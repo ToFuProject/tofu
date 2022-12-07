@@ -1560,6 +1560,11 @@ def plot_profile2d(
                 dax.ddata[kradius]['data'].max(),
             )
 
+            if vmin is not None:
+                ax.set_ylim(bottom=vmin)
+            if vmax is not None:
+                ax.set_ylim(top=vmax)
+
         # connect
         if connect is True:
             dax.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
