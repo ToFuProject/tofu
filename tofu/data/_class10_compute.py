@@ -64,7 +64,8 @@ def compute_inversions(
 
     (
         key_matrix,
-        key_data, key_sigma, keybs, keym, mtype,
+        key_diag, key_data, key_sigma,
+        keybs, keym, mtype,
         ddata, dsigma, matrix, units_gmat,
         keyt, t, reft, notime,
         m3d, indok, iokt,
@@ -309,6 +310,7 @@ def _store(
     refinv=None,
     reft=None,
     keyt=None,
+    key_diag=None,
     key_data=None,
     key_sigma=None,
     key_matrix=None,
@@ -425,6 +427,7 @@ def _store(
     keyt = coll.get_time(key=keyinv)[3]
     data_synth = coll.add_retrofit_data(
         key=kretro,
+        key_diag=key_diag,
         key_matrix=key_matrix,
         key_profile2d=keyinv,
         t=keyt,

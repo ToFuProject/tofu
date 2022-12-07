@@ -114,6 +114,7 @@ class Inversion(Previous):
     def add_retrofit_data(
         self,
         key=None,
+        key_diag=None,
         key_matrix=None,
         key_profile2d=None,
         t=None,
@@ -130,6 +131,7 @@ class Inversion(Previous):
         return _compute.compute_retrofit_data(
             coll=self,
             key=key,
+            key_diag=key_diag,
             key_matrix=key_matrix,
             key_profile2d=key_profile2d,
             t=t,

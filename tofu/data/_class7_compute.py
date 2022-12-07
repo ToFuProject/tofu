@@ -308,10 +308,16 @@ def _pinhole_contour(
 
     else:
         # check
-        pinhole_size = ds._generic_check._check_var(
+        if np.isscalar(pinhole_size):
+            pinhole_size = [pinhole_size, pinhole_size]
+
+        pinhole_size = ds._generic_check._check_flat1darray(
             pinhole_size, 'pinhole_size',
-            types=(int, float),
+            dtype=float,
+            size=2,
             sign='> 0.',
+            norm=False,
+            can_be_None=False,
         )
 
         # compute
@@ -379,6 +385,8 @@ def _camera_position(
         )
 
         # pix_spacing
+        if pix_spacing is None:
+            pix_spacing = 0.
         if np.isscalar(pix_spacing):
             pix_spacing = pix_spacing * np.r_[1, 1]
 

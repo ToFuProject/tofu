@@ -246,7 +246,7 @@ def _sample(
                 pts_x = np.concatenate((pts_x, nan), axis=0).T.ravel()
                 pts_y = np.concatenate((pts_y, nan), axis=0).T.ravel()
                 pts_z = np.concatenate((pts_z, nan), axis=0).T.ravel()
-            if 'l' in return_coordsi or 'ltot' in return_coords:
+            if 'l' in return_coords or 'ltot' in return_coords:
                 length = np.concatenate((length, nan), axis=0).T.ravel()
                 lengthtot = np.concatenate((lengthtot, nan), axis=0).T.ravel()
 

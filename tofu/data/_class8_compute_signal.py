@@ -45,7 +45,7 @@ def compute_signal(
 
     (
         key_diag, key_cam, spectro, is2d,
-        method, groupby, val_init, brightness,
+        method, mode, groupby, val_init, brightness,
         key_integrand, key_mesh0,
         store, key,
         returnas,
@@ -76,8 +76,11 @@ def compute_signal(
 
     shape_emiss = coll.ddata[key_integrand]['shape']
 
-    key_kR = coll.dobj['mesh'][key_mesh0]['knots'][0]
-    radius_max = np.max(coll.ddata[key_kR]['data'])
+    if mode == 'abs':
+        key_kR = coll.dobj['mesh'][key_mesh0]['knots'][0]
+        radius_max = np.max(coll.ddata[key_kR]['data'])
+    else:
+        radius_max = None
 
     # -------------
     # compute 
@@ -238,6 +241,14 @@ def _compute_signal_check(
         allowed=['los', 'vos'],
     )
 
+    # mode
+    mode = ds._generic_check._check_var(
+        mode, 'mode',
+        types=str,
+        default='abs',
+        allowed=['abs', 'rel'],
+    )
+
     # groupby
     groupby = ds._generic_check._check_var(
         groupby, 'groupby',
@@ -305,7 +316,7 @@ def _compute_signal_check(
 
     return (
         key_diag, key_cam, spectro, is2d,
-        method, groupby, val_init, brightness,
+        method, mode, groupby, val_init, brightness,
         key_integrand, key_mesh0,
         store, key,
         returnas,

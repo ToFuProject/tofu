@@ -316,7 +316,7 @@ def _compute_check(
     mtype = coll.dobj[coll._which_mesh][keym]['type']
 
     # matrix itself
-    matrix, ref, dind = coll.get_geometry_matrix_concatenated(key)
+    matrix, ref, dind = coll.get_geometry_matrix_concatenated(key_matrix)
     lkmat = coll.dobj['geom matrix'][key_matrix]['data']
     units_gmat = coll.ddata[lkmat[0]]['units']
     nchan, nbs = matrix.shape[-2:]
@@ -345,7 +345,7 @@ def _compute_check(
 
     # key_inv
     key = ds._generic_check._obj_key(
-        d0=coll.dobj.get('inversion', {}),
+        d0=coll.dobj.get('inversions', {}),
         short='inv',
         key=key,
     )
@@ -631,7 +631,9 @@ def _compute_check(
     )
 
     return (
-        key_matrix, key_data, key_sigma, keybs, keym, mtype,
+        key_matrix,
+        key_diag, key_data, key_sigma,
+        keybs, keym, mtype,
         ddata, dsigma, matrix, units_gmat,
         keyt, t, reft, notime,
         m3d, indok, iokt,
