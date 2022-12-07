@@ -487,6 +487,7 @@ class Diagnostic(Previous):
 
     def compute_diagnostic_signal(
         self,
+        key=None,
         key_diag=None,
         key_cam=None,
         # integrand
@@ -501,7 +502,6 @@ class Diagnostic(Previous):
         brightness=None,
         # store
         store=None,
-        key_signal=None,
         # return
         returnas=None,
     ):
@@ -511,6 +511,7 @@ class Diagnostic(Previous):
 
         return _compute_signal.compute_signal(
             coll=self,
+            key=key,
             key_diag=key_diag,
             key_cam=key_cam,
             # integrand
@@ -525,7 +526,6 @@ class Diagnostic(Previous):
             brightness=brightness,
             # store
             store=store,
-            key_signal=key_signal,
             # return
             returnas=returnas,
         )

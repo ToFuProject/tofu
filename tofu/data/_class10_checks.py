@@ -478,8 +478,8 @@ def _compute_check(
             warnings.warn(msg)
 
             # update
-            ddata = ddata['data'][:, iok]
-            dsigma = dsigma['data'][:, iok]
+            ddata['data'] = ddata['data'][:, iok]
+            dsigma['data'] = dsigma['data'][:, iok]
             matrix = matrix[:, iok, :] if m3d else matrix[iok, :]
             indok = indok[:, iok]
 

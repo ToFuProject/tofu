@@ -1471,14 +1471,14 @@ def _concatenate_data(
 
     if is2d:
         ax0 = ref.index(None)
-        ax1 = len(ref) - ref[::-1].index(None)
+        ax1 = len(ref) - 1 - ref[::-1].index(None)
         if flat:
             ldata = []
             for k0 in key_data:
                 sh = list(coll.ddata[k0]['data'].shape)
                 size = sh[ax0] * sh[ax1]
-                sh = tuple(np.r_[sh[:ax0], size, sh[ax1+1:]])
-                ldata.append(di.reshape(sh))
+                sh = tuple(np.r_[sh[:ax0], size, sh[ax1+1:]].astype(int))
+                ldata.append(coll.ddata[k0]['data'].reshape(sh))
             axis = ax0
         else:
             axis = ax0 if stack == 'horizontal' else ax1

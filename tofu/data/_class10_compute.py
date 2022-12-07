@@ -288,6 +288,7 @@ def compute_inversions(
 
     if store is True:
         units = ddata['units'] / units_gmat
+        key_data = ddata['keys']
         _store(**locals())
 
     else:

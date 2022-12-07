@@ -1921,7 +1921,16 @@ def _interp2d_check(
             hastime = key in dind.keys()
 
         if hastime:
+
             indt = dind[kind].get('ind')
+
+            # Special case: all times match
+            if indt is not None:
+                rtk = coll.get_time(key)[2]
+                if indt.size == coll.dref[rtk]['size']:
+                    if np.allclose(indt, np.arange(0, coll.dref[rtk]['size'])):
+                        indt = None
+
             if indt is not None:
                 indtu = np.unique(indt)
                 indtr = np.array([indt == iu for iu in indtu])
@@ -2428,15 +2437,29 @@ def interp2d(
             pass
         if details is False:
             val = val[0, ...]
+            import pdb; pdb.set_trace()     # DB
             reft = None
 
     # ------
     # store
 
     # ref
-    if hastime or radius_vs_time:
-        if reft in [None, False] or indt is not None:
-            reft = f'{key}-nt'
+    ct = (
+        (hastime or radius_vs_time)
+        and (
+            reft in [None, False]
+            or (
+                reft not in [None, False]
+                and indt is not None
+                and not (
+                    indt.size == coll.dref[reft]['size']
+                    or np.allclose(indt, np.arange(0, coll.dref[reft]['size']))
+                )
+            )
+        )
+    )
+    if ct:
+        reft = f'{key}-nt'
 
     # store
     if store is True:
@@ -2476,7 +2499,7 @@ def interp2d(
 
         # ref
         if hastime or radius_vs_time:
-            if reft in [None, False] or indt is not None:
+            if ct:
                 coll2.add_ref(key=reft, size=t.size)
                 coll2.add_data(
                     key=f'{key}-t',
@@ -2546,6 +2569,9 @@ def interp2d(
                 refbs = f"{refbs}-crop"
             ref.append(refbs)
         ref = tuple(ref)
+
+        if ref[0] == 'emiss-nt':
+            import pdb; pdb.set_trace()     # DB
 
         if len(ref) != val.ndim:
             msg = (

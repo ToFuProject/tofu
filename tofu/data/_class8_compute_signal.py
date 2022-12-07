@@ -20,6 +20,7 @@ import datastock as ds
 
 def compute_signal(
     coll=None,
+    key=None,
     key_diag=None,
     key_cam=None,
     # to be integrated
@@ -34,7 +35,6 @@ def compute_signal(
     brightness=None,
     # store
     store=None,
-    key_signal=None,
     # return
     returnas=None,
 ):
@@ -47,7 +47,7 @@ def compute_signal(
         key_diag, key_cam, spectro, is2d,
         method, groupby, val_init, brightness,
         key_integrand, key_mesh0,
-        store, key_signal,
+        store, key,
         returnas,
     ) = _compute_signal_check(
         coll=coll,
@@ -65,7 +65,7 @@ def compute_signal(
         key_integrand=key_integrand,
         # store
         store=store,
-        key_signal=key_signal,
+        key=key,
         # return
         returnas=returnas,
     )
@@ -108,7 +108,7 @@ def compute_signal(
     if store is True:
         _store(
             coll=coll,
-            key=key_signal,
+            key=key,
             key_diag=key_diag,
             dout=dout,
             key_integrand=key_integrand,
@@ -206,6 +206,7 @@ def _store(
 
 def _compute_signal_check(
     coll=None,
+    key=None,
     key_diag=None,
     key_cam=None,
     # sampling
@@ -220,12 +221,11 @@ def _compute_signal_check(
     key_integrand=None,
     # store
     store=None,
-    key_signal=None,
     # return
     returnas=None,
 ):
 
-    # key, key_cam
+    # key_diag, key_cam
     key_diag, key_cam = coll.get_diagnostic_cam(key=key_diag, key_cam=key_cam)
     spectro = coll.dobj['diagnostic'][key_diag]['spectro']
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
@@ -286,12 +286,14 @@ def _compute_signal_check(
         default=True,
     )
 
-    # key_signal
-    key_signal = ds._generic_check._check_var(
-        key_signal, 'key_signal',
+    # key
+    lsig = list(coll.dobj['diagnostic'][key_diag].get('dsignal', {}).keys())
+    lout = list(coll.ddata.keys()) + lsig
+    key = ds._generic_check._check_var(
+        key, 'key',
         types=str,
         default=f'{key_diag}_synth',
-        excluded=list(coll.ddata.keys()),
+        excluded=lout,
     )
 
     # returnas
@@ -305,7 +307,7 @@ def _compute_signal_check(
         key_diag, key_cam, spectro, is2d,
         method, groupby, val_init, brightness,
         key_integrand, key_mesh0,
-        store, key_signal,
+        store, key,
         returnas,
     )
 

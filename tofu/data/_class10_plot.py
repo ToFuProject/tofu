@@ -14,6 +14,7 @@ import datastock as ds
 # tofu
 # from tofu import __version__ as __version__
 from . import _generic_check
+from . import _class8_plot
 
 
 # #############################################################################
@@ -30,6 +31,11 @@ def _plot_inversion_check(
     cmap=None,
     dcolorbar=None,
     dleg=None,
+    # los sampling
+    los_res=None,
+    # interactivity
+    color_dict=None,
+    nlos=None,
     dax=None,
     connect=None,
 ):
@@ -47,11 +53,13 @@ def _plot_inversion_check(
         allowed=lk,
     )
     keymat = coll.dobj['inversions'][keyinv]['matrix']
-    keydata = coll.dobj['inversions'][keyinv]['data_in']
-    keyretro = coll.dobj['inversions'][keyinv]['retrofit']
+    key_data = coll.dobj['inversions'][keyinv]['data_in']
+    key_retro = coll.dobj['inversions'][keyinv]['retrofit']
     keybs = coll.dobj['geom matrix'][keymat]['bsplines']
     key_diag = coll.dobj['geom matrix'][keymat]['diagnostic']
+    is2d = coll.dobj['diagnostic'][key_diag]['is2d']
     key_cam = coll.dobj['geom matrix'][keymat]['camera']
+    key_retro = coll.dobj['diagnostic'][key_diag]['dsignal'][key_retro]['data']
     keym = coll.dobj['bsplines'][keybs]['mesh']
     mtype = coll.dobj[coll._which_mesh][keym]['type']
     # refbs = coll.dobj['bsplines'][keybs]['ref']
@@ -79,6 +87,24 @@ def _plot_inversion_check(
         types=dict,
     )
 
+    # los_res
+    los_res = ds._generic_check._check_var(
+        los_res, 'los_res',
+        types=float,
+        default=0.05,
+        sign='> 0.',
+    )
+
+    # color_dict
+    color_dict = _class8_plot._check_color_dict(color_dict)
+
+    # nlos
+    nlos = ds._generic_check._check_var(
+        nlos, 'nlos',
+        types=int,
+        default=5,
+    )
+
     # dleg
     defdleg = {
         'bbox_to_anchor': (1.1, 1.),
@@ -100,22 +126,65 @@ def _plot_inversion_check(
 
     return (
         keyinv, keymat,
-        key_diag, key_cam, keybs, keydata, keyretro, mtype,
-        cropbs, cmap, dcolorbar, dleg, connect,
+        key_diag, key_cam, keybs, key_data, key_retro,
+        is2d, mtype,
+        cropbs, cmap, dcolorbar,
+        nlos, los_res, color_dict,
+        dleg, connect,
     )
 
 
 def _plot_inversion_prepare(
     coll=None,
     coll2=None,
+    is2d=None,
     mtype=None,
     keyinv=None,
     key_matrix=None,
-    key_cam=None,
     key_diag=None,
+    key_cam=None,
     key_data=None,
     key_retro=None,
+    los_res=None,
 ):
+
+    # -----------------
+    # add nearest-neighbourg interpolated data
+
+    # just for preparation
+    ddata = {
+        k0: {'data': coll.ddata[key_data[ii]]} for ii, k0 in enumerate(key_cam)
+    }
+
+    # dcamref
+    dcamref, drefx, drefy = _class8_plot._prepare_dcamref(
+        coll=coll,
+        key_cam=key_cam,
+        is2d=is2d,
+    )
+
+    # los
+    dlos, dref_los = _class8_plot._prepare_los(
+        coll=coll,
+        coll2=coll2,
+        dcamref=dcamref,
+        key_diag=key_diag,
+        key_cam=key_cam,
+        los_res=los_res,
+    )
+
+    # ddatax, ddatay
+    (
+        reft, dkeyx, dkeyy, ddatax, ddatay, dextent,
+    ) = _class8_plot._prepare_datarefxy(
+        coll=coll,
+        coll2=coll2,
+        dcamref=dcamref,
+        drefx=drefx,
+        drefy=drefy,
+        ddata=ddata,
+        is2d=is2d,
+    )
 
     # -----------------
     # add nearest-neighbourg interpolated data
@@ -132,122 +201,83 @@ def _plot_inversion_prepare(
                 t=keyt,
             )[-1]
 
+    if reft not in coll2.dref.keys():
+        coll2.add_ref(key=reft, size=coll.dref[reft]['size'])
+
     # --------------------
     # add data, retro, err
 
-    import pdb; pdb.set_trace()     # DB
-
-    for k0 in key_cam:
+    datamin, datamax = np.inf, -np.inf
+    errmin, errmax = np.inf, -np.inf
+    for ii, k0 in enumerate(key_cam):
 
         # ref
-        
+        for rr in coll.dobj['camera'][k0]['dgeom']['ref']:
+            if rr not in coll2.dref.keys():
+                coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
 
+        refi = coll.ddata[key_data[ii]]['ref']
+        datai = coll.ddata[key_data[ii]]['data']
+        if dind is not None:
+            nd = len(refi)
+            refti = coll.get_time(key=key_data[ii])[2]
+            axis = refi.index(refti)
+            refi = tuple([reft if jj == axis else refi[jj] for jj in range(nd)])
+            sli = tuple([
+                dind['ind'] if jj == axis else slice(None) for jj in range(nd)
+            ])
+            datai = datai[sli]
+
+        # transpose for 2d
+        retroi = coll.ddata[key_retro[ii]]['data']
+        if is2d:
+            ndim = datai.ndim
+            datai = np.swapaxes(datai, ndim-1, ndim-2)
+            retroi = np.swapaxes(retroi, ndim-1, ndim-2)
+            refi = list(refi)
+            refi[-2], refi[-1] = refi[-1], refi[-2]
+            refi = tuple(refi)
+
+        # data min max
+        datamin = min(datamin, np.nanmin(datai))
+        datamax = max(datamax, np.nanmax(datai))
 
         # data
         coll2.add_data(
-            key=f"{None}_data",
-            data=ddata[None]
+            key=key_data[ii],
+            data=datai,
+            ref=refi,
+            units=coll.ddata[key_data[ii]]['units'],
         )
 
         # retro
-        coll2
-
-        # err
-        coll2
-
-
-
-    # ----------------
-    # add data + retro
-
-    dretro = coll.get_diagnostic_data_concatenated(
-        key=key_diag,
-        key_data=key_retro,
-    )
-    import pdb; pdb.set_trace()     # DB
-
-    # ref
-    ref_retro = coll.ddata[key_retro]['ref']
-
-    # chan vector
-    chan = coll.get_ref_vector(key=key_data, ref=ref_retro[-1])[4]
-    if chan is None:
-        chan = np.arange(0, coll.dref[ref_retro[-1]]['size'])
-
-    # add ref
-    for rr in ref_retro:
-        if rr not in coll2.dref.keys():
-            coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
-
-    # data
-    coll2.add_data(
-        key=key_data,
-        data=data,
-        ref=ref_retro,
-    )
-
-    # retro
-    if key_retro not in coll2.ddata.keys():
         coll2.add_data(
-            key=key_retro,
-            data=coll.ddata[key_retro]['data'],
-            ref=ref_retro,
+            key=key_retro[ii],
+            data=retroi,
+            ref=refi,
         )
 
-    # err
-    key_err = f'{key_data}_err'
-    coll2.add_data(
-        key=key_err,
-        data=err,
-        ref=ref_retro,
-    )
+        # err min max
+        erri = retroi - datai
+        errmin = min(errmin, np.nanmin(erri))
+        errmax = max(errmax, np.nanmax(erri))
 
-    # chi2n, nu, reg, niter
+        # data
+        coll2.add_data(
+            key=f"{key_data[ii]}_err",
+            data=erri,
+            ref=refi,
+            units=coll.ddata[key_data[ii]]['units'],
+        )
 
+        # cross-section los
 
-    # # data
-    # refchan = coll.ddata[keydata]['ref'][-1]
-    # chan = coll.ddata[keychan]['data']
-    # hastime = coll.ddata[keydata]['data'].ndim == 2
+    # errmax
+    errmax = max(np.abs(errmin), np.abs(errmax))
 
-    # if hastime:
-        # data = coll.ddata[keydata]['data']
-        # time = np.arange(coll.ddata[keydata]['data'].shape[0])
-    # else:
-        # data = coll.ddata[keydata]['data'][None, :]
-        # time = [0]
-        # indt = 0
-
-    # reconstructed data
-    # matrix = coll.ddata[keymat]['data']
-    # sol = coll.ddata[keyinv]['data']
-    # shapebs = coll.dobj['bsplines'][keybs]['shape']
-    # nbs = int(np.prod(shapebs))
-
-    # if cropbs is not None:
-        # cropbs_flat = cropbs.ravel(order='F')
-
-    # if hastime:
-        # nt = sol.shape[0]
-        # if sol.ndim == 3:
-            # sol_flat = sol.reshape((nt, nbs), order='F')
-        # else:
-            # sol_flat = sol
-        # if cropbs is not None:
-            # data_re = matrix.dot(sol_flat[:, cropbs_flat].T)
-        # else:
-            # data_re = matrix.dot(sol_flat[:, ...].T)
-    # else:
-        # if sol.ndim == 2:
-            # sol_flat = sol.ravel(order='F')
-        # else:
-            # sol_flat = sol
-        # if cropbs is not None:
-            # data_re = matrix.dot(sol_flat[cropbs_flat].T)[:, None]
-        # else:
-            # data_re = matrix.dot(sol_flat.T)[:, None]
-
+    # ----------------
     # inversion parameters
+
     if reft is not None:
         chi2n = coll.ddata[f'{keyinv}-chi2n']['data']
         mu = coll.ddata[f'{keyinv}-mu']['data']
@@ -259,15 +289,11 @@ def _plot_inversion_prepare(
         reg = None      # coll.dobj['inversions'][keyinv]['reg']
         niter = None    # coll.dobj['inversions'][keyinv]['niter']
 
-    datamin = min([np.nanmin(data), np.nanmin(coll2.ddata[key_retro]['data'])])
-    datamax = max([np.nanmax(data), np.nanmax(coll2.ddata[key_retro]['data'])])
-    errmin = np.nanmin(coll2.ddata[key_err]['data'])
-    errmax = np.nanmax(coll2.ddata[key_err]['data'])
-    errmax = max(np.abs(errmin), np.abs(errmax))
-
     return (
-        chan, time, reft,
-        key_err, chi2n, mu, reg, niter,
+        dlos, dref_los,
+        drefx, drefy, dkeyx, dkeyy, ddatax, ddatay, dextent,
+        time, reft,
+        chi2n, mu, reg, niter,
         datamin, datamax, errmax,
     )
 
@@ -285,7 +311,11 @@ def plot_inversion(
     fs=None,
     dcolorbar=None,
     dleg=None,
+    # los sampling
+    los_res=None,
     # interactivity
+    color_dict=None,
+    nlos=None,
     dinc=None,
     connect=None,
 ):
@@ -295,14 +325,22 @@ def plot_inversion(
 
     (
         keyinv, keymat,
-        key_diag, key_cam, keybs, key_data, key_retro, mtype,
-        cropbs, cmap, dcolorbar, dleg, connect,
+        key_diag, key_cam, keybs, key_data, key_retro,
+        is2d, mtype,
+        cropbs, cmap, dcolorbar,
+        nlos, los_res, color_dict,
+        dleg, connect,
     ) = _plot_inversion_check(
         coll=coll,
         key=key,
         cmap=cmap,
         dcolorbar=dcolorbar,
         dleg=dleg,
+        # los sampling
+        los_res=los_res,
+        # interactivity
+        color_dict=color_dict,
+        nlos=nlos,
         connect=connect,
     )
 
@@ -345,117 +383,298 @@ def plot_inversion(
     # prepare data
 
     (
-        chan, time, reft,
-        key_err, chi2n, mu, reg, niter,
+        dlos, dref_los,
+        drefx, drefy, dkeyx, dkeyy, ddatax, ddatay, dextent,
+        time, reft,
+        chi2n, mu, reg, niter,
         datamin, datamax, errmax,
     ) = _plot_inversion_prepare(
         coll=coll,
         coll2=coll2,
+        is2d=is2d,
         keyinv=keyinv,
         key_matrix=keymat,
         key_cam=key_cam,
         key_diag=key_diag,
         key_data=key_data,
         key_retro=key_retro,
+        los_res=los_res,
     )
+
+    # ----------------
+    # define and set dgroup
+
+    dgroup.update({
+        f'{k0}_i0': {
+            'ref': [drefx[k0]],
+            'data': ['index'],
+            'nmax': nlos,
+        }
+        for k0 in key_cam
+    })
+
+    if is2d:
+        dgroup.update({
+            f'{k0}_i1': {
+                'ref': [drefy[k0]],
+                'data': ['index'],
+                'nmax': nlos,
+            }
+            for k0 in key_cam
+        })
+
+    if reft is not None and reft not in dgroup['Z']['ref']:
+        dgroup['Z']['ref'].append(reft)
 
     # ---------
     # plot data
 
-    kax = 'retrofit'
-    for k0 in key_cam:
+    for ii, k0 in enumerate(key_cam):
 
 
-        # data and retrofit
+        # data vs retro
         kax = k0
         if dax.get(kax) is not None:
             ax = dax[kax]['handle']
 
-            if reft is None:
-                retro = coll2.ddata[key_retro]['data']
-                data = coll2.ddata[key_data]['data']
+            if is2d:
+
+                if reft is None:
+                    ax.imshow(
+                        coll2.ddata[key_data[ii]]['data'],
+                        extent=dextent[k0],
+                        cmap=cmap,
+                        vmin=vmin,
+                        vmax=vmax,
+                        origin='lower',
+                        interpolation='nearest',
+                        aspect='equal',
+                    )
+
+                else:
+
+                    im = ax.imshow(
+                        coll2.ddata[key_data[ii]]['data'][0, ...],
+                        extent=dextent[k0],
+                        cmap=cmap,
+                        vmin=vmin,
+                        vmax=vmax,
+                        origin='lower',
+                        interpolation='nearest',
+                        aspect='equal',
+                    )
+
+                    ki = key_data[ii]
+                    coll2.add_mobile(
+                        key=ki,
+                        handle=im,
+                        refs=(reft,),
+                        data=[key_data[ii]],
+                        dtype=['data'],
+                        axes=kax,
+                        ind=0,
+                    )
+
             else:
-                retro = coll2.ddata[key_retro]['data'][0, :]
-                data = coll2.ddata[key_data]['data'][0, :]
 
-            # plot
-            l1, = ax.plot(
-                chan,
-                retro,
-                c=(0.8, 0.8, 0.8),
-                ls='-',
-                lw=1.,
+                nch = coll.dobj['camera'][k0]['dgeom']['pix_nb']
+                chani = np.arange(0, nch)
+                if reft is None:
+                    ax.plot(
+                        chani,
+                        coll2.ddata[key_data[ii]]['data'].ravel(),
+                        c=(0.8, 0.8, 0.8),
+                        marker='o',
+                        ls='-',
+                    )
+
+                    ax.plot(
+                        chani,
+                        coll2.ddata[key_retro[ii]]['data'].ravel(),
+                        c='k',
+                        marker='None',
+                        ls='-',
+                        lw=2,
+                    )
+
+                else:
+                    nani = np.nan * chani
+                    l0, = ax.plot(
+                        chani,
+                        nani,
+                        c=(0.8, 0.8, 0.8),
+                        marker='o',
+                        ls='-',
+                    )
+
+                    l1, = ax.plot(
+                        chani,
+                        nani,
+                        c='k',
+                        marker='None',
+                        ls='-',
+                        lw=2,
+                    )
+
+                    kl0 = key_data[ii]
+                    coll2.add_mobile(
+                        key=kl0,
+                        handle=l0,
+                        refs=(reft,),
+                        data=[key_data[ii]],
+                        dtype=['ydata'],
+                        axes=kax,
+                        ind=0,
+                    )
+
+                    kl1 = key_retro[ii]
+                    coll2.add_mobile(
+                        key=kl1,
+                        handle=l1,
+                        refs=(reft,),
+                        data=[key_retro[ii]],
+                        dtype=['ydata'],
+                        axes=kax,
+                        ind=0,
+                    )
+                    ax.set_ylim(min(0, datamin), datamax)
+                    ax.set_xlim(0, nch + 1)
+
+            # add vlines / markers
+            _class8_plot._add_camera_vlines_marker(
+                coll2=coll2,
+                dax=dax,
+                ax=ax,
+                kax=kax,
+                is2d=is2d,
+                k0=k0,
+                nlos=nlos,
+                ddatax=ddatax,
+                ddatay=ddatay,
+                drefx=drefx,
+                drefy=drefy,
+                dkeyx=dkeyx,
+                dkeyy=dkeyy,
+                color_dict=color_dict,
             )
 
-            l0, = ax.plot(
-                chan,
-                data,
-                c='k',
-                ls='None',
-                lw=2.,
-                marker='.',
+        # add los
+        kax = 'matrix'
+        if dlos[k0]['rays'] is not None:
+            ax = dax[kax]['handle']
+
+            nan = np.full((dlos[k0]['x'].shape[0],), np.nan)
+
+            _class8_plot._add_camera_los_cross(
+                coll2=coll2,
+                k0=k0,
+                ax=ax,
+                kax=kax,
+                nlos=nlos,
+                dref_los=dref_los,
+                color_dict=color_dict,
+                nan=nan,
             )
 
-            # add mobiles
-            if reft is not None:
-                kl0 = 'data'
-                coll2.add_mobile(
-                    key=kl0,
-                    handle=l0,
-                    refs=(reft,),
-                    data=[key_data],
-                    dtype=['ydata'],
-                    axes=kax,
-                    ind=0,
-                )
-                kl1 = 'retrofit'
-                coll2.add_mobile(
-                    key=kl1,
-                    handle=l1,
-                    refs=(reft,),
-                    data=[key_retro],
-                    dtype=['ydata'],
-                    axes=kax,
-                    ind=0,
-                )
+        # err
+        kax = f"{k0}_err"
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
 
-            ax.set_ylim(min(0, datamin), datamax)
-            ax.set_xlim(0, chan.size + 1)
+            kerr = f"{key_data[ii]}_err"
+            if is2d:
 
-    kax = 'err'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
+                if reft is None:
+                    ax.imshow(
+                        coll2.ddata[kerr]['data'],
+                        extent=dextent[k0],
+                        cmap=cmap,
+                        vmin=vmin,
+                        vmax=vmax,
+                        origin='lower',
+                        interpolation='nearest',
+                        aspect='equal',
+                    )
 
-        if reft is None:
-            err = coll2.ddata[key_err]['data']
-        else:
-            err = coll2.ddata[key_err]['data'][0, :]
+                else:
 
-        l0, = ax.plot(
-            chan,
-            err,
-            c='k',
-            ls='-',
-            lw=1.,
-            marker='.',
-        )
-        ax.axhline(0, color='k', ls='--')
+                    im = ax.imshow(
+                        coll2.ddata[kerr]['data'][0, ...],
+                        extent=dextent[k0],
+                        cmap=cmap,
+                        vmin=vmin,
+                        vmax=vmax,
+                        origin='lower',
+                        interpolation='nearest',
+                        aspect='equal',
+                    )
 
-        # add mobile
-        if reft is not None:
-            kl0 = 'err'
-            coll2.add_mobile(
-                key=kl0,
-                handle=l0,
-                refs=(reft,),
-                data=[key_err],
-                dtype=['ydata'],
-                axes=kax,
-                ind=0,
+                    ki = kerr
+                    coll2.add_mobile(
+                        key=ki,
+                        handle=im,
+                        refs=(reft,),
+                        data=[kerr],
+                        dtype=['data'],
+                        axes=kax,
+                        ind=0,
+                    )
+
+            else:
+
+                nch = coll.dobj['camera'][k0]['dgeom']['pix_nb']
+                chani = np.arange(0, nch)
+                if reft is None:
+                    ax.plot(
+                        chani,
+                        coll2.ddata[kerr]['data'].ravel(),
+                        c=(0.8, 0.8, 0.8),
+                        marker='o',
+                        ls='-',
+                    )
+
+                else:
+                    nani = np.nan * chani
+                    l0, = ax.plot(
+                        chani,
+                        nani,
+                        c=(0.8, 0.8, 0.8),
+                        marker='o',
+                        ls='-',
+                    )
+
+                    kl0 = kerr
+                    coll2.add_mobile(
+                        key=kl0,
+                        handle=l0,
+                        refs=(reft,),
+                        data=[kerr],
+                        dtype=['ydata'],
+                        axes=kax,
+                        ind=0,
+                    )
+
+                    ax.set_ylim(-errmax, errmax)
+                    ax.set_xlim(0, nch + 1)
+
+            # add vlines / markers
+            _class8_plot._add_camera_vlines_marker(
+                coll2=coll2,
+                dax=dax,
+                ax=ax,
+                kax=kax,
+                is2d=is2d,
+                k0=k0,
+                nlos=nlos,
+                ddatax=ddatax,
+                ddatay=ddatay,
+                drefx=drefx,
+                drefy=drefy,
+                dkeyx=dkeyx,
+                dkeyy=dkeyy,
+                color_dict=color_dict,
+                suffix='_err'
             )
-
-        if np.isfinite(errmax):
-            ax.set_ylim(-errmax, errmax)
 
     # # -------------------------
     # # plot inversion parameters

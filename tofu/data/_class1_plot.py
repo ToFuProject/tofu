@@ -1290,7 +1290,7 @@ def _plot_profile2d_polar_add_radial(
         anglemap = np.repeat(angle[None, :], rad.size, axis=0)
 
     # reft
-    reft, keyt = coll.get_time_common(keys=[key, kr2d])[1:3]
+    reft, keyt, _, dind = coll.get_time_common(keys=[key, kr2d])[1:]
 
     # radial total profile
     radial, t_radial, _ = coll.interpolate_profile2d(
@@ -1313,15 +1313,23 @@ def _plot_profile2d_polar_add_radial(
             grid=False,
             details=True,
         )
+
         if reft is None:
             radial_details = radial_details * coll.ddata[key]['data'][None, :]
             refdet = ('nradius',)
         else:
             refdet = (reft, 'nradius')
-            radial_details = (
-                radial_details[None, :, :]
-                * coll.ddata[key]['data'][:, None, :]
-            )
+            if reft == coll.get_time(key)[2]:
+                radial_details = (
+                    radial_details[None, :, :]
+                    * coll.ddata[key]['data'][:, None, :]
+                )
+            elif key in dind.keys():
+                radial_details = (
+                    radial_details[None, :, :]
+                    * coll.ddata[key]['data'][dind[key]['ind'], None, :]
+                )
+
         nbs = radial_details.shape[-1]
 
     # add to dax
