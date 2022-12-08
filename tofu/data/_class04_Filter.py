@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from . import _class3_Aperture
+from ._class03_Aperture import Aperture as Previous
 from . import _class3_check
 from . import _class4_check as _check
 
@@ -25,9 +25,9 @@ __all__ = ['Filter']
 # #############################################################################
 
 
-class Filter(_class3_Aperture.Aperture):
+class Filter(Previous):
 
-    _dshow = dict(_class3_Aperture.Aperture._dshow)
+    _dshow = dict(Previous._dshow)
     _dshow.update({
         'filter': [
             'dgeom.type',

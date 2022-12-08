@@ -13,9 +13,9 @@ import datastock as ds
 
 
 # specific
-from . import _mesh_checks
-from . import _mesh_bsplines_operators_tri
-from . import _mesh_bsplines_rect as _mbr
+from . import _class1_checks as _checks
+from . import _class1_bsplines_operators_tri
+from . import _class1_bsplines_rect as _mbr
 
 
 # #############################################################################
@@ -46,10 +46,10 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         # check inputs
 
         knots = np.array([knotsR, knotsZ]).T
-        cents, knots = _mesh_checks._mesh2DTri_conformity(
+        cents, knots = _checks._mesh2DTri_conformity(
             knots=knots, cents=cents, key='class',
         )
-        cents = _mesh_checks._mesh2DTri_clockwise(
+        cents = _checks._mesh2DTri_clockwise(
             knots=knots, cents=cents, key='class',
         )
 
@@ -403,7 +403,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         crop=None,
         cropbs=None,
         coefs=None,
-        nan_out=None,
+        val_out=None,
     ):
 
         # -----------
@@ -478,7 +478,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         R=None,
         Z=None,
         coefs=None,
-        nan_out=None,
+        val_out=None,
         # for compatibility (unused)
         crop=None,
         cropbs=None,
@@ -488,8 +488,8 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         # -----------
         # generic
 
-        if nan_out is None:
-            nan_out = True
+        if val_out is None:
+            val_out = np.nan
 
         # coefs
         self._check_coefs(coefs=coefs)
@@ -542,8 +542,8 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                         1. - heights[indi, inum[jj]]
                     ) * coefs[:, jbs, ...]
 
-        if nan_out is True:
-            val[:, ind == -1] = np.nan
+        if val_out is not False:
+            val[:, ind == -1] = val_out
         return val
 
     # TBC
@@ -567,7 +567,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
     ):
         """ Get desired operator """
         raise NotImplementedError()
-        return _mesh_bsplines_operators_tri.get_mesh2dRect_operators(
+        return _class1_bsplines_operators_tri.get_mesh2dRect_operators(
             deg=self.degrees[0],
             operator=operator,
             geometry=geometry,

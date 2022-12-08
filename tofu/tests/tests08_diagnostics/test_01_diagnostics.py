@@ -469,7 +469,7 @@ class Test01_Diagnostic():
         ddiag = _diagnostics()
 
         # instanciate
-        self.obj = tf.data.Diagnostic()
+        self.obj = tf.data.Collection()
 
         # add apertures
         for k0, v0 in dapertures.items():

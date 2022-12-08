@@ -13,13 +13,14 @@ jobs:
 
     strategy:
       matrix:
-        os: [macOS-latest, ubuntu-latest] #, windows-latest]     # , macOS-latest
-        python-version: ['3.7']                 # , '3.8', '3.9']
+        os: [macOS-latest]  # , ubuntu-latest, windows-latest]
+        python-version: ['3.7'] #, '3.8', '3.9']
 
     steps:
     - uses: actions/checkout@v2
     - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v1
+      run: |
+         brew install llvm
       if: constains(matrix.os, 'macOS')
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2

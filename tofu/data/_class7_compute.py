@@ -54,6 +54,9 @@ def add_camera_pinhole(
     # pinhole
     pinhole_radius=None,
     pinhole_size=None,
+    # reflections
+    reflections_nb=None,
+    reflections_type=None,
     # diagnostic
     compute=None,
     config=None,
@@ -127,6 +130,9 @@ def add_camera_pinhole(
         dgeom_pin=dgeom_pin,
         dgeom_cam=dgeom_cam,
         newdiag=newdiag,
+        # reflections
+        reflections_nb=reflections_nb,
+        reflections_type=reflections_type,
         compute=compute,
         config=config,
         length=length,
@@ -302,10 +308,16 @@ def _pinhole_contour(
 
     else:
         # check
-        pinhole_size = ds._generic_check._check_var(
+        if np.isscalar(pinhole_size):
+            pinhole_size = [pinhole_size, pinhole_size]
+
+        pinhole_size = ds._generic_check._check_flat1darray(
             pinhole_size, 'pinhole_size',
-            types=(int, float),
+            dtype=float,
+            size=2,
             sign='> 0.',
+            norm=False,
+            can_be_None=False,
         )
 
         # compute
@@ -373,6 +385,8 @@ def _camera_position(
         )
 
         # pix_spacing
+        if pix_spacing is None:
+            pix_spacing = 0.
         if np.isscalar(pix_spacing):
             pix_spacing = pix_spacing * np.r_[1, 1]
 
@@ -441,6 +455,9 @@ def _add_camera_pinhole_store(
     dgeom_pin=None,
     dgeom_cam=None,
     newdiag=None,
+    # reflections
+    reflections_nb=None,
+    reflections_type=None,
     compute=None,
     config=None,
     length=None,
@@ -492,6 +509,8 @@ def _add_camera_pinhole_store(
     coll.add_diagnostic(
         key=key_diag,
         doptics=doptics,
+        reflections_nb=reflections_nb,
+        reflections_type=reflections_type,
         compute=compute,
         config=config,
         length=length,
