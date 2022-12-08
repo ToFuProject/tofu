@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from . import _class4_Filter
+from ._class04_Filter import Filter as Previous
 from . import _class3_check
 from . import _class5_check as _check
 from . import _class5_compute as _compute
@@ -30,9 +30,9 @@ __all__ = ['Crystal']
 # #############################################################################
 
 
-class Crystal(_class4_Filter.Filter):
+class Crystal(Previous):
 
-    _dshow = dict(_class4_Filter.Filter._dshow)
+    _dshow = dict(Previous._dshow)
     _dshow.update({
         'crystal': [
             'dgeom.type',

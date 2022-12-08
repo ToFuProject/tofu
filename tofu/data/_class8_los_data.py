@@ -256,10 +256,14 @@ def _interpolated_along_los(
     key_cam=None,
     key_data_x=None,
     key_data_y=None,
+    # sampling
     res=None,
     mode=None,
     segment=None,
     radius_max=None,
+    # plotting
+    vmin=None,
+    vmax=None,
     plot=None,
     dcolor=None,
     dax=None,
@@ -272,7 +276,10 @@ def _interpolated_along_los(
     key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
 
     # key_data
-    lok_coords = ['x', 'y', 'z', 'R', 'phi', 'k', 'l', 'ltot', 'itot']
+    lok_coords = [
+        'x', 'y', 'z', 'R', 'phi', 'ang_vs_ephi',
+        'k', 'l', 'ltot', 'itot',
+    ]
     lok_2d = [
         k0 for k0, v0 in coll.ddata.items()
         if v0.get('bsplines') is not None
@@ -401,7 +408,7 @@ def _interpolated_along_los(
                 grid=False,
                 crop=True,
                 nan0=True,
-                nan_out=True,
+                val_out=True,
                 imshow=False,
                 return_params=None,
                 store=False,
@@ -442,7 +449,7 @@ def _interpolated_along_los(
                 grid=False,
                 crop=True,
                 nan0=True,
-                nan_out=True,
+                val_out=True,
                 imshow=False,
                 return_params=None,
                 store=False,
@@ -456,7 +463,7 @@ def _interpolated_along_los(
                 grid=False,
                 crop=True,
                 nan0=True,
-                nan_out=True,
+                val_out=True,
                 imshow=False,
                 return_params=None,
                 store=False,
@@ -480,7 +487,7 @@ def _interpolated_along_los(
 
             ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
 
-            tit = f"{key} LOS\nminor radius vs major radius"
+            tit = f"{key} LOS"
             ax.set_title(tit, size=12, fontweight='bold')
             ax.set_xlabel(xlab)
             ax.set_ylabel(ylab)
@@ -504,6 +511,11 @@ def _interpolated_along_los(
                 )
 
             ax.legend()
+            
+            if vmin is not None:
+                ax.set_ylim(bottom=vmin)
+            if vmax is not None:
+                ax.set_ylim(top=vmax)
 
         return xx, yy, dax
     else:

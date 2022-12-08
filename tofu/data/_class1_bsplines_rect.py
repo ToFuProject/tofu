@@ -11,8 +11,8 @@ import scipy.interpolate as scpinterp
 
 # specific
 from . import _generic_check
-from . import _bsplines_utils
-from . import _mesh_bsplines_operators_rect
+from . import _utils_bsplines
+from . import _class1_bsplines_operators_rect
 
 
 # #############################################################################
@@ -44,10 +44,10 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         )
 
         # full knots with multiplicity
-        knotsR, nbsR = _bsplines_utils._get_knots_per_bs(
+        knotsR, nbsR = _utils_bsplines._get_knots_per_bs(
             knotsR, deg=deg, returnas='data', return_unique=True,
         )
-        knotsZ, nbsZ = _bsplines_utils._get_knots_per_bs(
+        knotsZ, nbsZ = _utils_bsplines._get_knots_per_bs(
             knotsZ, deg=deg, returnas='data', return_unique=True,
         )
 
@@ -68,10 +68,10 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
     ):
 
         # added for details
-        knots_per_bs_x = _bsplines_utils._get_knots_per_bs(
+        knots_per_bs_x = _utils_bsplines._get_knots_per_bs(
             knotsR, deg=deg, returnas='data',
         )
-        knots_per_bs_y = _bsplines_utils._get_knots_per_bs(
+        knots_per_bs_y = _utils_bsplines._get_knots_per_bs(
             knotsZ, deg=deg, returnas='data',
         )
 
@@ -135,13 +135,13 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         coefs=None,
         crop=None,
         cropbs=None,
-        nan_out=None,
+        val_out=None,
         # for compatibility (unused)
         indbs_tf=None,
     ):
 
-        if nan_out is None:
-            nan_out = True
+        if val_out is None:
+            val_out = np.nan
 
         # coefs
         self._check_coefs(coefs=coefs)
@@ -172,12 +172,12 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
             val[ii, ...] = super().__call__(r, z, grid=False)
 
         # clean
-        if nan_out is True:
+        if val_out is not False:
             indout = (
                 (r < self.tck[0][0]) | (r > self.tck[0][-1])
                 | (z < self.tck[1][0]) | (z > self.tck[1][-1])
             )
-            val[:, indout] = np.nan
+            val[:, indout] = val_out
         return val
 
     def ev_details(
@@ -189,7 +189,7 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         cropbs=None,
         # for compatibility (unused)
         coefs=None,
-        nan_out=None,
+        val_out=None,
     ):
         """
         indbs_tf = (ar0, ar1)
@@ -294,7 +294,7 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         returnas_element=None,
     ):
         """ Get desired operator """
-        return _mesh_bsplines_operators_rect.get_mesh2dRect_operators(
+        return _class1_bsplines_operators_rect.get_mesh2dRect_operators(
             deg=self.degrees[0],
             operator=operator,
             geometry=geometry,
@@ -387,10 +387,10 @@ def get_bs2d_RZ(deg=None, Rknots=None, Zknots=None):
     # ----------------
     # get knots per bspline, nb of bsplines...
 
-    knots_per_bs_R = _bsplines_utils._get_knots_per_bs(
+    knots_per_bs_R = _utils_bsplines._get_knots_per_bs(
         Rknots, deg=deg, returnas='data',
     )
-    knots_per_bs_Z = _bsplines_utils._get_knots_per_bs(
+    knots_per_bs_Z = _utils_bsplines._get_knots_per_bs(
         Zknots, deg=deg, returnas='data',
     )
     nbkbs = knots_per_bs_R.shape[0]
@@ -399,12 +399,12 @@ def get_bs2d_RZ(deg=None, Rknots=None, Zknots=None):
     # ----------------
     # get centers of bsplines
 
-    Rbs_apex = _bsplines_utils._get_apex_per_bs(
+    Rbs_apex = _utils_bsplines._get_apex_per_bs(
         knots=Rknots,
         knots_per_bs=knots_per_bs_R,
         deg=deg
     )
-    Zbs_apex = _bsplines_utils._get_apex_per_bs(
+    Zbs_apex = _utils_bsplines._get_apex_per_bs(
         knots=Zknots,
         knots_per_bs=knots_per_bs_Z,
         deg=deg

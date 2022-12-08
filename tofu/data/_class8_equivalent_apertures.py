@@ -374,7 +374,7 @@ def _check(
 
     # -----------
     # key_cam
-    
+
     lok =coll.dobj['diagnostic'][key]['camera']
     key_cam = ds._generic_check._check_var(
         key_cam, 'key_cam',
@@ -384,7 +384,7 @@ def _check(
 
     # --------
     # doptics
-    
+
     doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam]
     optics = doptics['optics']
     optics_cls = doptics['cls']

@@ -60,10 +60,10 @@ class Test01_openadas(object):
         pass
 
     @classmethod
-    def setup(self):
+    def setup_method(self):
         pass
 
-    def teardown(self):
+    def teardown_method(self):
         pass
 
     @classmethod

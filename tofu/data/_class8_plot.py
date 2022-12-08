@@ -12,7 +12,6 @@ import datastock as ds
 
 
 # specific
-from . import _mesh_comp
 from . import _generic_check
 from . import _generic_plot
 
@@ -45,7 +44,7 @@ def _plot_diagnostic_check(
     key, key_cam = coll.get_diagnostic_cam(key, key_cam)
     is2d = coll.dobj['diagnostic'][key]['is2d']
     spectro = coll.dobj['diagnostic'][key]['spectro']
-    
+
     if spectro:
         assert len(key_cam) == 1
         doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam[0]]
@@ -66,7 +65,7 @@ def _plot_diagnostic_check(
         key_cam=key_cam,
         data=data,
     )
-    
+
     ylab = None # f"{ddata[key_cam[0]]['quant']} ({ddata[key_cam[0]]['units']})"
 
     # -----
@@ -79,7 +78,7 @@ def _plot_diagnostic_check(
 
     # ----------
     # los_res
-    
+
     los_res = ds._generic_check._check_var(
         los_res, 'los_res',
         types=float,
@@ -90,12 +89,7 @@ def _plot_diagnostic_check(
     # -------
     # color_dict
 
-    if color_dict is None:
-        lc = ['r', 'g', 'b', 'm', 'c', 'y']
-        color_dict = {
-            'x': lc,
-            'y': lc,
-        }
+    color_dict = _check_color_dict(color_dict)
 
     # -------
     # nlos
@@ -128,6 +122,16 @@ def _plot_diagnostic_check(
         ylab,
         connect,
     )
+
+
+def _check_color_dict(color_dict=None):
+    if color_dict is None:
+        lc = ['r', 'g', 'b', 'm', 'c', 'y']
+        color_dict = {
+            'x': lc,
+            'y': lc,
+        }
+    return color_dict
 
 
 # ##################################################################
@@ -201,101 +205,42 @@ def _plot_diagnostic(
         elements=elements,
     )
 
-    dcamref = {
-        k0: coll.dobj['camera'][k0]['dgeom']['ref']
-        for k0 in dref.keys()
-    }
-    drefx = {k0: v0[0] for k0, v0 in dcamref.items()}
-    
-    if is2d:
-        drefy = {k0: v0[1] for k0, v0 in dcamref.items()}  
-
     # -------------------------
     # prepare los interactivity
 
-    dlos = {
-        k0: {'rays': coll.dobj['diagnostic'][key]['doptics'][k0]['los']}
-        for k0 in key_cam
-    }
-    dref_los = {}
-
     # instanciate new Datastock
     coll2 = coll.__class__()
-    
-    # prepare dict
-    dkeyx, ddatax = {}, {}
-    if is2d:
-        dkeyy, ddatay, dextent = {}, {}, {}
-        
-    # -------------
-    # loop
-    
-    for k0, v0 in dcamref.items():
-        for rr in v0:
-            coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
 
-        # los
-        if dlos[k0]['rays'] is not None:
-            los_x, los_y, los_z = coll.sample_rays(
-                key=dlos[k0]['rays'],
-                res=los_res,
-                mode='rel',
-                concatenate=False,
-            )
-            los_r = np.hypot(los_x, los_y)
-            reflos = coll.dobj['rays'][dlos[k0]['rays']]['ref']
-            dref_los[k0] = (reflos[1:], reflos[1:])
-    
-            if reflos[0] not in coll2.dref.keys():
-                coll2.add_ref(key=reflos[0], size=los_x.shape[0])
-            
-            coll2.add_data(key=f'{k0}_los_x', data=los_x, ref=reflos)
-            coll2.add_data(key=f'{k0}_los_y', data=los_y, ref=reflos)
-            coll2.add_data(key=f'{k0}_los_z', data=los_z, ref=reflos)
-            coll2.add_data(key=f'{k0}_los_r', data=los_r, ref=reflos)
-            
-            # store x, y, z
-            dlos[k0]['x'] = los_x
-            dlos[k0]['y'] = los_y
-            dlos[k0]['z'] = los_z
+    # ---------------------
+    # prepare los and ddata
 
-        # datax, datay
-        if ddata is not None:
-            if is2d:
-                dkeyx[k0], dkeyy[k0] = coll.dobj['camera'][k0]['dgeom']['cents']
-    
-                ddatax[k0] = coll.ddata[dkeyx[k0]]['data']
-                ddatay[k0] = coll.ddata[dkeyy[k0]]['data']
-    
-                coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
-                coll2.add_data(key=dkeyy[k0], data=ddatay[k0], ref=drefy[k0])
-            else:
-                dkeyx[k0] = f'{k0}_i0'
-                ddatax[k0] = np.arange(0, coll.dref[drefx[k0]]['size'])
-                coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
+    # dcamref
+    dcamref, drefx, drefy = _prepare_dcamref(
+        coll=coll,
+        key_cam=key_cam,
+        is2d=is2d,
+    )
 
-            # -------------------------
-            # extent
-        
-            reft = None  
-            if is2d:
-                if ddatax[k0].size == 1:
-                    ddx = coll.ddata[coll.dobj['camera'][k0]['dgeom']['outline'][0]]['data']
-                    ddx = np.max(ddx) - np.min(ddx)
-                else:
-                    ddx = ddatax[k0][1] - ddatax[k0][0]
-                if ddatay[k0].size == 1:
-                    ddy = coll.ddata[coll.dobj['camera'][k0]['dgeom']['outline'][1]]['data']
-                    ddy = np.max(ddy) - np.min(ddy)
-                else:
-                    ddy = ddatay[k0][1] - ddatay[k0][0]
-                
-                dextent[k0] = (
-                    ddatax[k0][0] - 0.5*ddx,
-                    ddatax[k0][-1] + 0.5*ddx,
-                    ddatay[k0][0] - 0.5*ddy,
-                    ddatay[k0][-1] + 0.5*ddy,
-                )
+    # los
+    dlos, dref_los = _prepare_los(
+        coll=coll,
+        coll2=coll2,
+        dcamref=dcamref,
+        key_diag=key,
+        key_cam=key_cam,
+        los_res=los_res,
+    )
+
+    # ddatax, ddatay
+    reft, dkeyx, dkeyy, ddatax, ddatay, dextent = _prepare_datarefxy(
+        coll=coll,
+        coll2=coll2,
+        dcamref=dcamref,
+        drefx=drefx,
+        drefy=drefy,
+        ddata=ddata,
+        is2d=is2d,
+    )
 
     # -----------------
     # prepare figure
@@ -403,7 +348,7 @@ def _plot_diagnostic(
         kax = k0
         if dax.get(kax) is not None and ddata is not None:
             ax = dax[kax]['handle']
-    
+
             if is2d and reft is None:
                 im = ax.imshow(
                     ddata[k0].T,
@@ -415,7 +360,7 @@ def _plot_diagnostic(
                     interpolation='nearest',
                 )
                 plt.colorbar(im, ax=ax)
-    
+
             elif reft is None:
                 ax.plot(
                     ddata[k0],
@@ -427,7 +372,7 @@ def _plot_diagnostic(
                 )
                 ax.set_xlim(-1, ddata[k0].size)
                 ax.set_ylabel(ylab)
-                
+
                 if vmin is not None:
                     ax.set_ylim(bottom=vmin)
                 if vmax is not None:
@@ -470,40 +415,30 @@ def _plot_diagnostic(
     for k0 in key_cam:
 
         if dlos[k0]['rays'] is not None:
-    
+
             nan = np.full((dlos[k0]['x'].shape[0],), np.nan)
-    
+
             # cross
             kax = 'cross'
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
-    
-                for ii in range(nlos):
-                    l0, = ax.plot(
-                        nan,
-                        nan,
-                        c=color_dict['x'][ii],
-                        ls='-',
-                        lw=1.,
-                    )
 
-                    # add mobile
-                    kl0 = f'{k0}-los-cross-{ii}'
-                    coll2.add_mobile(
-                        key=kl0,
-                        handle=l0,
-                        refs=dref_los[k0],
-                        data=[f'{k0}_los_r', f'{k0}_los_z'],
-                        dtype=['xdata', 'ydata'],
-                        axes=kax,
-                        ind=ii,
-                    )
+                _add_camera_los_cross(
+                    coll2=coll2,
+                    k0=k0,
+                    ax=ax,
+                    kax=kax,
+                    nlos=nlos,
+                    dref_los=dref_los,
+                    color_dict=color_dict,
+                    nan=nan,
+                )
 
             # hor
             kax = 'hor'
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
-    
+
                 for ii in range(nlos):
                     l0, = ax.plot(
                         nan,
@@ -512,7 +447,7 @@ def _plot_diagnostic(
                         ls='-',
                         lw=1.,
                     )
-    
+
                     # add mobile
                     kl0 = f'{k0}-los-hor-{ii}'
                     coll2.add_mobile(
@@ -524,12 +459,12 @@ def _plot_diagnostic(
                         axes=kax,
                         ind=ii,
                     )
-    
+
             # 3d
             kax = '3d'
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
-    
+
                 for ii in range(nlos):
                     l0, = ax.plot(
                         nan,
@@ -539,7 +474,7 @@ def _plot_diagnostic(
                         ls='-',
                         lw=1.,
                     )
-    
+
                     # add mobile
                     kl0 = f'{k0}_los-3d-{ii}'
                     # coll2.add_mobile(
@@ -551,58 +486,28 @@ def _plot_diagnostic(
                     # axes=kax,
                     # ind=ii,
                     # )
-    
+
             # camera
             kax = k0
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
-    
-                if is2d:
-                    for ii in range(nlos):
-                        mi, = ax.plot(
-                            ddatax[k0][0:1],
-                            ddatay[k0][0:1],
-                            marker='s',
-                            ms=6,
-                            markeredgecolor=color_dict['x'][ii],
-                            markerfacecolor='None',
-                        )
-    
-                        km = f'{k0}_m{ii:02.0f}'
-                        coll2.add_mobile(
-                            key=km,
-                            handle=mi,
-                            refs=[drefx[k0], drefy[k0]],
-                            data=[dkeyx[k0], dkeyy[k0]],
-                            dtype=['xdata', 'ydata'],
-                            axes=kax,
-                            ind=ii,
-                        )
-    
-                    dax[kax].update(
-                        refx=[drefx[k0]],
-                        refy=[drefy[k0]],
-                        datax=dkeyx[k0],
-                        datay=dkeyy[k0],
-                    )
-    
-                else:
-                    for ii in range(nlos):
-                        lv = ax.axvline(
-                            ddatax[k0][0], c=color_dict['y'][ii], lw=1., ls='-',
-                        )
-                        kv = f'{k0}_v{ii:02.0f}'
-                        coll2.add_mobile(
-                            key=kv,
-                            handle=lv,
-                            refs=drefx[k0],
-                            data=dkeyx[k0],
-                            dtype='xdata',
-                            axes=kax,
-                            ind=ii,
-                        )
-    
-                    dax[kax].update(refx=[drefx[k0]], datax=dkeyx[k0])
+
+                _add_camera_vlines_marker(
+                    coll2=coll2,
+                    dax=dax,
+                    ax=ax,
+                    kax=kax,
+                    is2d=is2d,
+                    k0=k0,
+                    nlos=nlos,
+                    ddatax=ddatax,
+                    ddatay=ddatay,
+                    drefx=drefx,
+                    drefy=drefy,
+                    dkeyx=dkeyx,
+                    dkeyy=dkeyy,
+                    color_dict=color_dict,
+                )
 
     # -------
     # config
@@ -644,3 +549,246 @@ def _plot_diagnostic(
             return coll2, dgroup
     else:
         return dax
+
+
+# ##################################################################
+# ##################################################################
+#                       Prepare
+# ##################################################################
+
+
+def _prepare_dcamref(
+    coll=None,
+    key_cam=None,
+    is2d=None,
+):
+    dcamref = {
+        k0: coll.dobj['camera'][k0]['dgeom']['ref']
+        for k0 in key_cam
+    }
+    drefx = {k0: v0[0] for k0, v0 in dcamref.items()}
+
+    if is2d:
+        drefy = {k0: v0[1] for k0, v0 in dcamref.items()}
+    else:
+        drefy = None
+
+    return dcamref, drefx, drefy
+
+
+def _prepare_los(
+    coll=None,
+    coll2=None,
+    dcamref=None,
+    key_diag=None,
+    key_cam=None,
+    los_res=None,
+):
+
+    # create dlos
+    dlos = {
+        k0: {'rays': coll.dobj['diagnostic'][key_diag]['doptics'][k0]['los']}
+        for k0 in key_cam
+    }
+    dref_los = {}
+
+    # los on cams
+    for k0, v0 in dcamref.items():
+        for rr in v0:
+            coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
+
+        # los
+        if dlos[k0]['rays'] is not None:
+            los_x, los_y, los_z = coll.sample_rays(
+                key=dlos[k0]['rays'],
+                res=los_res,
+                mode='rel',
+                concatenate=False,
+            )
+            los_r = np.hypot(los_x, los_y)
+            reflos = coll.dobj['rays'][dlos[k0]['rays']]['ref']
+            dref_los[k0] = (reflos[1:], reflos[1:])
+
+            if reflos[0] not in coll2.dref.keys():
+                coll2.add_ref(key=reflos[0], size=los_x.shape[0])
+
+            coll2.add_data(key=f'{k0}_los_x', data=los_x, ref=reflos)
+            coll2.add_data(key=f'{k0}_los_y', data=los_y, ref=reflos)
+            coll2.add_data(key=f'{k0}_los_z', data=los_z, ref=reflos)
+            coll2.add_data(key=f'{k0}_los_r', data=los_r, ref=reflos)
+
+            # store x, y, z
+            dlos[k0]['x'] = los_x
+            dlos[k0]['y'] = los_y
+            dlos[k0]['z'] = los_z
+
+    return dlos, dref_los
+
+
+def _prepare_datarefxy(
+    coll=None,
+    coll2=None,
+    dcamref=None,
+    drefx=None,
+    drefy=None,
+    ddata=None,
+    is2d=None,
+):
+    # prepare dict
+    dkeyx, ddatax = {}, {}
+    if is2d:
+        dkeyy, ddatay, dextent = {}, {}, {}
+    else:
+        dkeyy, ddatay, dextent = None, None, None
+
+    # loop on cams
+    for k0, v0 in dcamref.items():
+
+        # datax, datay
+        if ddata is not None:
+            if is2d:
+                dkeyx[k0], dkeyy[k0] = coll.dobj['camera'][k0]['dgeom']['cents']
+
+                ddatax[k0] = coll.ddata[dkeyx[k0]]['data']
+                ddatay[k0] = coll.ddata[dkeyy[k0]]['data']
+
+                coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
+                coll2.add_data(key=dkeyy[k0], data=ddatay[k0], ref=drefy[k0])
+            else:
+                dkeyx[k0] = f'{k0}_i0'
+                ddatax[k0] = np.arange(0, coll.dref[drefx[k0]]['size'])
+                coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
+
+            # -------------------------
+            # extent
+
+            reft = None
+            if is2d:
+                if ddatax[k0].size == 1:
+                    ddx = coll.ddata[coll.dobj['camera'][k0]['dgeom']['outline'][0]]['data']
+                    ddx = np.max(ddx) - np.min(ddx)
+                else:
+                    ddx = ddatax[k0][1] - ddatax[k0][0]
+                if ddatay[k0].size == 1:
+                    ddy = coll.ddata[coll.dobj['camera'][k0]['dgeom']['outline'][1]]['data']
+                    ddy = np.max(ddy) - np.min(ddy)
+                else:
+                    ddy = ddatay[k0][1] - ddatay[k0][0]
+
+                dextent[k0] = (
+                    ddatax[k0][0] - 0.5*ddx,
+                    ddatax[k0][-1] + 0.5*ddx,
+                    ddatay[k0][0] - 0.5*ddy,
+                    ddatay[k0][-1] + 0.5*ddy,
+                )
+
+    return reft, dkeyx, dkeyy, ddatax, ddatay, dextent
+
+
+# ##################################################################
+# ##################################################################
+#                       add mobile
+# ##################################################################
+
+
+def _add_camera_los_cross(
+    coll2=None,
+    k0=None,
+    ax=None,
+    kax=None,
+    nlos=None,
+    dref_los=None,
+    color_dict=None,
+    nan=None,
+):
+
+    for ii in range(nlos):
+        l0, = ax.plot(
+            nan,
+            nan,
+            c=color_dict['x'][ii],
+            ls='-',
+            lw=1.,
+        )
+
+        # add mobile
+        kl0 = f'{k0}-los-cross-{ii}'
+        coll2.add_mobile(
+            key=kl0,
+            handle=l0,
+            refs=dref_los[k0],
+            data=[f'{k0}_los_r', f'{k0}_los_z'],
+            dtype=['xdata', 'ydata'],
+            axes=kax,
+            ind=ii,
+        )
+
+
+def _add_camera_vlines_marker(
+    coll2=None,
+    dax=None,
+    ax=None,
+    kax=None,
+    is2d=None,
+    k0=None,
+    nlos=None,
+    ddatax=None,
+    ddatay=None,
+    drefx=None,
+    drefy=None,
+    dkeyx=None,
+    dkeyy=None,
+    color_dict=None,
+    suffix=None,
+):
+
+    if suffix is None:
+        suffix = ''
+
+    if is2d:
+        for ii in range(nlos):
+            mi, = ax.plot(
+                ddatax[k0][0:1],
+                ddatay[k0][0:1],
+                marker='s',
+                ms=6,
+                markeredgecolor=color_dict['x'][ii],
+                markerfacecolor='None',
+            )
+
+            km = f'{k0}_m{ii:02.0f}{suffix}'
+            coll2.add_mobile(
+                key=km,
+                handle=mi,
+                refs=[drefx[k0], drefy[k0]],
+                data=[dkeyx[k0], dkeyy[k0]],
+                dtype=['xdata', 'ydata'],
+                axes=kax,
+                ind=ii,
+            )
+
+        dax[kax].update(
+            refx=[drefx[k0]],
+            refy=[drefy[k0]],
+            datax=[dkeyx[k0]],
+            datay=[dkeyy[k0]],
+        )
+
+    else:
+
+        for ii in range(nlos):
+            lv = ax.axvline(
+                ddatax[k0][0], c=color_dict['y'][ii], lw=1., ls='-',
+            )
+            kv = f'{k0}_v{ii:02.0f}{suffix}'
+            coll2.add_mobile(
+                key=kv,
+                handle=lv,
+                refs=drefx[k0],
+                data=dkeyx[k0],
+                dtype='xdata',
+                axes=kax,
+                ind=ii,
+            )
+
+        dax[kax].update(refx=[drefx[k0]], datax=[dkeyx[k0]])

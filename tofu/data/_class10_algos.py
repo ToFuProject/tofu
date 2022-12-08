@@ -639,6 +639,7 @@ def inv_linear_DisPrinc_sparse(
             temp2 = f"{res2 + lmu[-1]*reg:.3e}"
             temp = f"{temp1} = {temp2}"
             print(f"\t\t{niter} \t {temp}")
+            print(f"\t\t{niter} \t {temp}   \t   {np.abs(lchi2n[-1] - chi2n_obj):.3e}")
 
         sol0[:] = sol
         niter += 1
@@ -725,7 +726,7 @@ def inv_linear_leastsquares_bounds(
     # verb
     if verb >= 2:
         temp = f"{nchan} * {chi2n:.3e} = {nchan * chi2n:.3e}"
-        print(f"\t\t{res.nfev} \t {temp}")
+        print(f"\t\t{res.nit} \t {temp}")
 
     if dconstraints is None:
         return res.x, None, chi2n, None, res.nit, None

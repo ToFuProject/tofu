@@ -453,7 +453,7 @@ def _diagnostics():
 
 class Test01_Diagnostic():
 
-    def setup(self):
+    def setup_method(self):
 
         # get config
         conf = tf.load_config('SPARC')
@@ -469,7 +469,7 @@ class Test01_Diagnostic():
         ddiag = _diagnostics()
 
         # instanciate
-        self.obj = tf.data.Diagnostic()
+        self.obj = tf.data.Collection()
 
         # add apertures
         for k0, v0 in dapertures.items():

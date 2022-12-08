@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from . import _class5_Crystal
+from ._class05_Crystal import Crystal as Previous
 from . import _class3_check
 # from . import _class6_check as _check
 # from . import _class6_compute as _compute
@@ -26,9 +26,9 @@ __all__ = ['Grating']
 # #############################################################################
 
 
-class Grating(_class5_Crystal.Crystal):
+class Grating(Previous):
 
-    _dshow = dict(_class5_Crystal.Crystal._dshow)
+    _dshow = dict(Previous._dshow)
     _dshow.update({
         'crystal': [
             'dgeom.type',

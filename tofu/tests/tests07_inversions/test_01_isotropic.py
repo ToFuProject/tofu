@@ -61,79 +61,139 @@ class Test01_Inversions():
     def setup_class(cls):
         pass
 
-    def setup(self):
+    def setup_method(self):
 
         # create conf and cam
         conf0 = tf.load_config('WEST-V0')
-        cam = tf.geom.utils.create_CamLOS1D(
-            pinhole=[3.0, 1., 0.3],
+
+        coll = tf.data.Collection()
+
+        # add camera
+        npix = 10
+        coll.add_camera_pinhole(
+            key='camH',
+            key_diag='d0',
+            x=3.0,
+            y=1.,
+            z=0.3,
+            pinhole_size=0.01,
             focal=0.1,
-            sensor_size=0.1,
-            sensor_nb=30,
-            orientation=[-5*np.pi/6, 0, 0],
+            pix_size=0.1,
+            pix_nb=npix,
+            theta=-5*np.pi/6,
+            dphi=0,
+            tilt=0,
             config=conf0,
-            Name='camH',
-            Exp='WEST',
-            Diag='SXR',
+        )
+
+        coll.add_camera_pinhole(
+            key='camV',
+            key_diag='d0',
+            x=3.0,
+            y=1.,
+            z=-0.3,
+            pinhole_size=0.01,
+            focal=0.1,
+            pix_size=0.1,
+            pix_nb=npix,
+            theta=5*np.pi/6,
+            dphi=0,
+            tilt=0,
+            config=conf0,
+        )
+
+        coll.add_camera_pinhole(
+            key='cam2',
+            cam_type='2d',
+            key_diag='d1',
+            x=3.0,
+            y=1.,
+            z=-0.3,
+            pinhole_size=0.01,
+            focal=0.1,
+            pix_size=0.1,
+            pix_nb=[10, 5],
+            theta=5*np.pi/6,
+            dphi=0,
+            tilt=0,
+            config=conf0,
         )
 
         # mesh rect deg 1 and 2
-        mesh = tf.data.Plasma2D()
-        mesh.add_mesh(
+        coll.add_mesh(
             crop_poly=conf0,
             key='m1',
             res=0.10,
             deg=0,
         )
-        mesh.add_bsplines(deg=1)
-        mesh.add_bsplines(deg=2)
+        coll.add_bsplines(deg=1)
+        coll.add_bsplines(deg=2)
 
         # add 2d radius for polar mesh
-        kR, kZ = mesh.dobj['mesh']['m1']['knots']
-        R, Z = mesh.ddata[kR]['data'], mesh.ddata[kZ]['data']
+        kR, kZ = coll.dobj['mesh']['m1']['knots']
+        R, Z = coll.ddata[kR]['data'], coll.ddata[kZ]['data']
         nR, nZ = R.size, Z.size
         R = np.repeat(R[:, None], nZ, axis=1)
         Z = np.repeat(Z[None, :], nR, axis=0)
         rad2d = ((R-2.4)/0.4)**2 + (Z/0.5)**2
         krad = 'rad2d'
-        mesh.add_data(key=krad, data=rad2d, ref='m1-bs1')
+        coll.add_data(key=krad, data=rad2d, ref='m1-bs1')
 
         # mesh polar deg 1 and 2
-        mesh.add_mesh_polar(
+        coll.add_mesh_polar(
             key='m2',
             radius=[0, 0.1, 0.2, 0.3, 0.4, 0.5, 1.],
             radius2d=krad,
             deg=0,
         )
-        mesh.add_bsplines(key='m2', deg=1)
-        mesh.add_bsplines(key='m2', deg=2)
+        coll.add_bsplines(key='m2', deg=1)
+        coll.add_bsplines(key='m2', deg=2)
 
         # add geometry matrices
-        chan = np.arange(0, 30)
-        mesh.add_ref(key='chan', data=chan, group='chan')
-        mesh.add_geometry_matrix(cam=cam, key='m1-bs0', key_chan='chan')
-        mesh.add_geometry_matrix(cam=cam, key='m1-bs1', key_chan='chan')
-        mesh.add_geometry_matrix(cam=cam, key='m1-bs2', key_chan='chan')
-        mesh.add_geometry_matrix(cam=cam, key='m2-bs0', key_chan='chan')
-        mesh.add_geometry_matrix(cam=cam, key='m2-bs1', key_chan='chan')
-        mesh.add_geometry_matrix(cam=cam, key='m2-bs2', key_chan='chan')
+        # coll.add_ref(key='chan', data=chan, group='chan')
+        coll.add_geometry_matrix(key_diag='d0', key_bsplines='m1-bs0')
+        coll.add_geometry_matrix(key_diag='d0', key_bsplines='m1-bs1')
+        coll.add_geometry_matrix(key_diag='d1', key_bsplines='m1-bs2')
+        coll.add_geometry_matrix(key_diag='d0', key_bsplines='m2-bs0')
+        coll.add_geometry_matrix(key_diag='d0', key_bsplines='m2-bs1')
+        coll.add_geometry_matrix(key_diag='d1', key_bsplines='m2-bs2')
 
-        # add data
-        t0 = np.array([0])
-        t1 = np.array([0, 1.])
-        data0 = np.exp(-(chan - 15.)**2/10**2)
-        data1 = (
-            np.exp(-(chan - 15.)**2/10**2)
-            + 0.1*np.cos(t1)[:, None]*np.exp(-(chan - 15)**2/2**2)
+        # add emiss
+        t0 = np.array([0, 1])
+        kap = coll.dobj['bsplines']['m2-bs1']['apex'][0]
+        rad = coll.ddata[kap]['data']
+        emiss = (
+            np.exp(-(rad)**2/0.2**2)
+            + 0.1*np.cos(t0)[:, None]*np.exp(-rad**2/0.05**2)
         )
-        # mesh.add_ref(key='t0', data=t0, units='s', group='time')
-        mesh.add_ref(key='t1', data=t1, units='s', dim='time')
-        mesh.add_data(key='data0', data=data0, ref=('chan',))
-        mesh.add_data(key='data1', data=data1, ref=('t1', 'chan'))
 
-        self.mesh = mesh
+        coll.add_ref(key='nt0', size=2)
+        coll.add_data(key='t0', data=t0, dim='time', ref='nt0')
+        coll.add_data(
+            key='emiss',
+            data=emiss,
+            ref=('nt0', 'm2-bs1'),
+            units='W/m3/sr',
+        )
 
-    def teardown(self):
+        # add synthetic data
+        coll.compute_diagnostic_signal(
+            key='s0',
+            key_diag='d0',
+            key_integrand='emiss',
+            res=0.01,
+        )
+
+        coll.compute_diagnostic_signal(
+            key='s1',
+            key_diag='d1',
+            key_integrand='emiss',
+            res=0.01,
+        )
+
+        self.coll = coll
+
+    def teardown_method(self):
         pass
 
     @classmethod
@@ -144,22 +204,25 @@ class Test01_Inversions():
 
         dalgo = tf.data.get_available_inversions_algo(returnas=dict)
         lstore = [True, False]
-        lkdata = ['data0', 'data1']
 
         # running
-        for kmat in self.mesh.dobj['matrix'].keys():
+        for kmat in self.coll.dobj['geom matrix'].keys():
 
-            kbs = self.mesh.dobj['matrix'][kmat]['bsplines']
-            km = self.mesh.dobj['bsplines'][kbs]['mesh']
-            mtype = self.mesh.dobj['mesh'][km]['type']
-            deg = self.mesh.dobj['bsplines'][kbs]['deg']
+            kbs = self.coll.dobj['geom matrix'][kmat]['bsplines']
+            kd = self.coll.dobj['geom matrix'][kmat]['diagnostic']
+            km = self.coll.dobj['bsplines'][kbs]['mesh']
+            mtype = self.coll.dobj['mesh'][km]['type']
+            deg = self.coll.dobj['bsplines'][kbs]['deg']
 
             if deg in [0, 1]:
                 lop = ['D1N2']
             else:
                 lop = ['D1N2', 'D2N2']
 
-            for comb in itt.product(dalgo.keys(), lkdata, lop, lstore):
+            for comb in itt.product(dalgo.keys(), lop, lstore):
+
+                if comb[0] == 'algo5':
+                    continue
 
                 if comb[2] == 'D2N2' and deg != 2:
                     continue
@@ -173,26 +236,29 @@ class Test01_Inversions():
                 if algofam != 'Non-regularized' and mtype == 'polar':
                     continue
 
+
+                kdat = 's0' if kd == 'd0' else 's1'
                 try:
-                    self.mesh.add_inversion(
+
+                    self.coll.add_inversion(
                         algo=comb[0],
                         key_matrix=kmat,
-                        key_data=comb[1],
+                        key_data=kdat,
                         sigma=0.10,
-                        operator=comb[2],
-                        store=comb[3],
-                        conv_crit=1.e-3,
-                        kwdargs={'tol': 1.e-4},
+                        operator=comb[1],
+                        store=comb[2],
+                        conv_crit=1.e-2,
+                        kwdargs={'tol': 1.e-2, 'maxiter': 100},
                         verb=0,
                     )
-                    ksig = f'{comb[1]}-sigma'
-                    if ksig in self.mesh.ddata.keys():
-                        self.mesh.remove_data(ksig)
+                    ksig = f'{kdat}-sigma'
+                    if ksig in self.coll.ddata.keys():
+                        self.coll.remove_data(ksig)
 
                 except Exception as err:
                     c0 = (
                         dalgo[comb[0]]['source'] == 'tomotok'
-                        and comb[2] == 'D1N2'
+                        and comb[1] == 'D1N2'
                         and kmat == 'matrix0'
                     )
                     if c0:
@@ -203,8 +269,8 @@ class Test01_Inversions():
                         raise err
 
         # plotting
-        linv = list(self.mesh.dobj['inversions'].keys())[::7]
+        linv = list(self.coll.dobj['inversions'].keys())[::7]
         for kinv in linv:
-            dax = self.mesh.plot_inversion(key=kinv)
+            dax = self.coll.plot_inversion(key=kinv, res=0.1)
 
         plt.close('all')
