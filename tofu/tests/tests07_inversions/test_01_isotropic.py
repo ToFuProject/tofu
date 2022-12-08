@@ -69,7 +69,7 @@ class Test01_Inversions():
         coll = tf.data.Collection()
 
         # add camera
-        npix = 30
+        npix = 10
         coll.add_camera_pinhole(
             key='camH',
             key_diag='d0',
@@ -112,7 +112,7 @@ class Test01_Inversions():
             pinhole_size=0.01,
             focal=0.1,
             pix_size=0.1,
-            pix_nb=npix,
+            pix_nb=[10, 5],
             theta=5*np.pi/6,
             dphi=0,
             tilt=0,
@@ -221,6 +221,9 @@ class Test01_Inversions():
 
             for comb in itt.product(dalgo.keys(), lop, lstore):
 
+                if comb[0] == 'algo5':
+                    continue
+
                 if comb[2] == 'D2N2' and deg != 2:
                     continue
 
@@ -236,6 +239,7 @@ class Test01_Inversions():
 
                 kdat = 's0' if kd == 'd0' else 's1'
                 try:
+
                     self.coll.add_inversion(
                         algo=comb[0],
                         key_matrix=kmat,
@@ -243,8 +247,8 @@ class Test01_Inversions():
                         sigma=0.10,
                         operator=comb[1],
                         store=comb[2],
-                        conv_crit=1.e-3,
-                        kwdargs={'tol': 1.e-4},
+                        conv_crit=1.e-2,
+                        kwdargs={'tol': 1.e-2, 'maxiter': 100},
                         verb=0,
                     )
                     ksig = f'{kdat}-sigma'

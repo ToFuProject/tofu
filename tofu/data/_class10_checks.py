@@ -385,7 +385,11 @@ def _compute_check(
             matrix = matrix[dind[key_matrix]['ind'], ...]
 
         # data side
-        if any([k0 in dind.keys() for k0 in ddata['keys']]):
+        c0 = any([
+            k0 in dind.keys() for k0 in ddata['keys']
+            if dind[k0].get('ind') is not None
+        ])
+        if c0:
             assert all([k0 in dind.keys() for k0 in ddata['keys']])
             lind = [dind[k0]['ind'] for k0 in ddata['keys']]
             assert all([iii.size == lind[0].size for iii in lind[1:]])
