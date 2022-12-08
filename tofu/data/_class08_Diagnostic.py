@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from . import _class7_Camera
+from ._class07_Camera import Camera as Previous
 from . import _class8_check as _check
 from . import _class8_compute as _compute
 from . import _class8_move as _move
@@ -19,6 +19,7 @@ from . import _class8_los_data as _los_data
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_etendue_los as _etendue_los
 from . import _class8_los_angles as _los_angles
+from . import _class8_compute_signal as _compute_signal
 from . import _class8_plot as _plot
 
 
@@ -31,11 +32,11 @@ __all__ = ['Diagnostic']
 # #############################################################################
 
 
-class Diagnostic(_class7_Camera.Camera):
+class Diagnostic(Previous):
 
     _show_in_summary = 'all'
 
-    _dshow = dict(_class7_Camera.Camera._dshow)
+    _dshow = dict(Previous._dshow)
     _dshow.update({
         'diagnostic': [
             'is2d',
@@ -53,6 +54,7 @@ class Diagnostic(_class7_Camera.Camera):
         # config for los
         config=None,
         length=None,
+        # reflections
         reflections_nb=None,
         reflections_type=None,
         key_nseg=None,
@@ -152,26 +154,22 @@ class Diagnostic(_class7_Camera.Camera):
             **kwdargs,
         )
 
-    # def get_diagnostic_concatenate_data(
-        # self,
-        # key=None,
-        # key_cam=None,
-        # data=None,
-        # rocking_curve=None,
-        # **kwdargs,
-        # ):
-        # """ Return concatenated data for chosen cameras
+    def get_diagnostic_data_concatenated(
+        self,
+        key=None,
+        key_data=None,
+        flat=None,
+        ):
+        """ Return concatenated data for chosen cameras
 
 
-        # """
-        # return _compute._concatenate_data(
-            # coll=self,
-            # key=key,
-            # key_cam=key_cam,
-            # data=data,
-            # rocking_curve=rocking_curve,
-            # **kwdargs,
-        # )
+        """
+        return _compute._concatenate_data(
+            coll=self,
+            key=key,
+            key_data=key_data,
+            flat=flat,
+        )
 
     # -----------------
     # etendue computing
@@ -484,6 +482,52 @@ class Diagnostic(_class7_Camera.Camera):
             # return
             return_vect=return_vect,
             return_alpha=return_alpha,
+        )
+
+
+    def compute_diagnostic_signal(
+        self,
+        key=None,
+        key_diag=None,
+        key_cam=None,
+        # integrand
+        key_integrand=None,
+        # sampling
+        method=None,
+        res=None,
+        mode=None,
+        groupby=None,
+        val_init=None,
+        # signal
+        brightness=None,
+        # store
+        store=None,
+        # return
+        returnas=None,
+    ):
+        """ Compute synthetic signal for a diagnostic and an emissivity field
+
+        """
+
+        return _compute_signal.compute_signal(
+            coll=self,
+            key=key,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            # integrand
+            key_integrand=key_integrand,
+            # sampling
+            method=method,
+            res=res,
+            mode=mode,
+            groupby=groupby,
+            val_init=val_init,
+            # signal
+            brightness=brightness,
+            # store
+            store=store,
+            # return
+            returnas=returnas,
         )
 
 

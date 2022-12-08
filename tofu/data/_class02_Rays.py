@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from . import _class1_Plasma2D
+from ._class01_Plasma2D import Plasma2D as Previous
 from . import _class2_check as _check
 from . import _class2_compute as _compute
 from . import _class2_plot as _plot
@@ -26,11 +26,11 @@ __all__ = ['Rays']
 # #############################################################################
 
 
-class Rays(_class1_Plasma2D.Plasma2D):
+class Rays(Previous):
 
     _show_in_summary = 'all'
 
-    _dshow = dict(_class1_Plasma2D.Plasma2D._dshow)
+    _dshow = dict(Previous._dshow)
     _dshow.update({
         'rays': [
             'shape',
@@ -158,12 +158,13 @@ class Rays(_class1_Plasma2D.Plasma2D):
         res=None,
         mode=None,
         segment=None,
+        ind_flat=None,
         radius_max=None,
         concatenate=None,
         return_coords=None,
     ):
         """ Return the sampled rays
-        
+
         Parameters
         ----------
         key:        str
@@ -194,6 +195,7 @@ class Rays(_class1_Plasma2D.Plasma2D):
             res=res,
             mode=mode,
             segment=segment,
+            ind_flat=ind_flat,
             radius_max=radius_max,
             concatenate=concatenate,
             return_coords=return_coords,
@@ -203,43 +205,53 @@ class Rays(_class1_Plasma2D.Plasma2D):
     # tangency radius
     # --------------
 
-    def get_rays_tangency_radius(
+    def get_rays_quantity(
         self,
         key=None,
         key_cam=None,
-        axis_pt=None,
-        axis_vect=None,
+        quantity=None,
+        # limits
         segment=None,
         lim_to_segments=None,
+        # for tangency radius
+        axis_pt=None,
+        axis_vect=None,
     ):
-        """ Return the tangancy radius to an axis of each ray segment
-        
+        """ Return a ray-specific quantity of each ray segment
+
         parameters
         ----------
+        quantity:   str
+            - 'length': length of rays
+            - 'tangency radius': the tangency radius to an axis
         axis_pt:    len=3 iterable
             (x, y, z) coordinates of a pt on the axis, default to [0, 0, 0]
         axis_vect:  len=3 iterable
             (x, y, z) coordinates of the axis vector, default to [0, 0, 1]
         lim_to_segments: bool
             flag indicating whether to limit solutions to the segments
-                
+
         Return
         -------
         radius:     np.ndarray of floats
             the tangency radii
         kk:         np.ndarray of floats
-            the normalized longitudinal coordinate of the tangency points 
-
+            the normalized longitudinal coordinate of the tangency points
+        ref:        tuple
+            The ref tuple on which the data depends
         """
 
         return _compute._tangency_radius(
             coll=self,
             key=key,
             key_cam=key_cam,
-            axis_pt=axis_pt,
-            axis_vect=axis_vect,
+            quantity=quantity,
+            # limits
             segment=segment,
             lim_to_segments=lim_to_segments,
+            # for tangency radius
+            axis_pt=axis_pt,
+            axis_vect=axis_vect,
         )
 
     def get_rays_intersect_radius(

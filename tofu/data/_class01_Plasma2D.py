@@ -12,14 +12,10 @@ import datastock as ds
 
 # tofu
 # from tofu import __version__ as __version__
-from . import _class0_Config
-from . import _mesh_checks
-from . import _mesh_comp
-from . import _mesh_plot
-from . import _matrix_comp
-from . import _matrix_plot
-from . import _inversions_comp
-from . import _inversions_plot
+from ._class00_Config import Config as Previous
+from . import _class1_checks as _checks
+from . import _class1_compute as _compute
+from . import _class1_plot as _plot
 
 
 __all__ = ['Plasma2D']
@@ -36,7 +32,7 @@ _QUANT_Z = 'Z'
 # #############################################################################
 
 
-class Plasma2D(_class0_Config.Config):
+class Plasma2D(Previous):
 
     _ddef = copy.deepcopy(ds.DataStock._ddef)
     _ddef['params']['ddata'].update({
@@ -47,7 +43,7 @@ class Plasma2D(_class0_Config.Config):
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
-    _dshow = dict(_class0_Config.Config._dshow)
+    _dshow = dict(Previous._dshow)
 
     _which_mesh = _WHICH_MESH
     _quant_R = _QUANT_R
@@ -105,7 +101,7 @@ class Plasma2D(_class0_Config.Config):
 
         # get domain, poly from crop_poly
         if crop_poly is not None:
-            domain, poly = _mesh_checks._mesh2DRect_from_croppoly(
+            domain, poly = _checks._mesh2DRect_from_croppoly(
                 crop_poly=crop_poly,
                 domain=domain,
             )
@@ -113,7 +109,7 @@ class Plasma2D(_class0_Config.Config):
             poly = None
 
         # check input data and get input dicts
-        dref, ddata, dmesh = _mesh_checks._mesh2D_check(
+        dref, ddata, dmesh = _checks._mesh2D_check(
             coll=self,
             # rectangular
             domain=domain,
@@ -198,7 +194,7 @@ class Plasma2D(_class0_Config.Config):
         """
 
         # check input data and get input dicts
-        dref, ddata, dmesh = _mesh_checks._mesh2D_polar_check(
+        dref, ddata, dmesh = _checks._mesh2D_polar_check(
             coll=self,
             # polar
             radius=radius,
@@ -227,7 +223,7 @@ class Plasma2D(_class0_Config.Config):
 
         # special treatment of radius2d
         assert O_pts is None
-        drefO, ddataO, kR, kZ = _mesh_comp.radius2d_special_points(
+        drefO, ddataO, kR, kZ = _compute.radius2d_special_points(
             coll=self,
             key=dmesh[key]['radius2d'],
             keym0=key,
@@ -247,7 +243,7 @@ class Plasma2D(_class0_Config.Config):
 
         # special treatment of angle2d
         if dmesh[key]['angle2d'] is not None:
-            drefa, ddataa, kR, kZ = _mesh_comp.angle2d_zone(
+            drefa, ddataa, kR, kZ = _compute.angle2d_zone(
                 coll=self,
                 key=dmesh[key]['angle2d'],
                 keyrad2d=dmesh[key]['radius2d'],
@@ -284,7 +280,7 @@ class Plasma2D(_class0_Config.Config):
         # --------------
         # check inputs
 
-        keym, keybs, deg = _mesh_checks._mesh2D_bsplines(
+        keym, keybs, deg = _checks._mesh2D_bsplines(
             key=key,
             lkeys=list(self.dobj[self._which_mesh].keys()),
             deg=deg,
@@ -294,15 +290,15 @@ class Plasma2D(_class0_Config.Config):
         # get bsplines
 
         if self.dobj[self._which_mesh][keym]['type'] == 'rect':
-            dref, ddata, dobj = _mesh_comp._mesh2DRect_bsplines(
+            dref, ddata, dobj = _compute._mesh2DRect_bsplines(
                 coll=self, keym=keym, keybs=keybs, deg=deg,
             )
         elif self.dobj[self._which_mesh][keym]['type'] == 'tri':
-            dref, ddata, dobj = _mesh_comp._mesh2DTri_bsplines(
+            dref, ddata, dobj = _compute._mesh2DTri_bsplines(
                 coll=self, keym=keym, keybs=keybs, deg=deg,
             )
         else:
-            dref, ddata, dobj = _mesh_comp._mesh2Dpolar_bsplines(
+            dref, ddata, dobj = _compute._mesh2Dpolar_bsplines(
                 coll=self, keym=keym, keybs=keybs, deg=deg, angle=angle,
             )
 
@@ -311,7 +307,7 @@ class Plasma2D(_class0_Config.Config):
 
         self.update(dobj=dobj, ddata=ddata, dref=dref)
         if self.dobj[self._which_mesh][keym]['type'] == 'rect':
-            _mesh_comp.add_cropbs_from_crop(
+            _compute.add_cropbs_from_crop(
                 coll=self,
                 keybs=keybs,
                 keym=keym,
@@ -335,7 +331,7 @@ class Plasma2D(_class0_Config.Config):
             for k0, v0 in ddata.items():
                 (
                     ddata[k0]['ref'], ddata[k0]['data'],
-                ) = _mesh_checks.add_data_meshbsplines_ref(
+                ) = _checks.add_data_meshbsplines_ref(
                     ref=v0['ref'],
                     data=v0['data'],
                     dmesh=self._dobj.get(self._which_mesh),
@@ -401,7 +397,7 @@ class Plasma2D(_class0_Config.Config):
         If applied on a bspline, cropping is double-checked to make sure
         all remaining bsplines have full support domain
         """
-        crop, key, thresh_in = _mesh_comp.crop(
+        crop, key, thresh_in = _compute.crop(
             coll=self,
             key=key,
             crop=crop,
@@ -430,7 +426,7 @@ class Plasma2D(_class0_Config.Config):
         # also crop bsplines
         for k0 in self.dobj.get('bsplines', {}).keys():
             if self.dobj['bsplines'][k0][self._which_mesh] == key:
-                _mesh_comp.add_cropbs_from_crop(coll=self, keybs=k0, keym=key)
+                _compute.add_cropbs_from_crop(coll=self, keybs=k0, keym=key)
 
     # -----------------
     # get data subset
@@ -559,7 +555,7 @@ class Plasma2D(_class0_Config.Config):
 
         Can covert one into the other
         """
-        return _mesh_comp._select_ind(
+        return _compute._select_ind(
             coll=self,
             key=key,
             ind=ind,
@@ -605,7 +601,7 @@ class Plasma2D(_class0_Config.Config):
             crop=crop,
         )
 
-        return _mesh_comp._select_mesh(
+        return _compute._select_mesh(
             coll=self,
             key=key,
             ind=ind,
@@ -630,7 +626,7 @@ class Plasma2D(_class0_Config.Config):
         Can return indices / values of neighbourgs
 
         """
-        return _mesh_comp._select_bsplines(
+        return _compute._select_bsplines(
             coll=self,
             key=key,
             ind=ind,
@@ -674,7 +670,7 @@ class Plasma2D(_class0_Config.Config):
         (
             opmat, operator, geometry, dim, ref, crop,
             store, returnas, key,
-        ) = _mesh_comp.get_bsplines_operator(
+        ) = _compute.get_bsplines_operator(
             self,
             key=key,
             operator=operator,
@@ -808,7 +804,7 @@ class Plasma2D(_class0_Config.Config):
         imshow=None,
     ):
         """ Return a sampled version of the chosen mesh """
-        return _mesh_comp.sample_mesh(
+        return _compute.sample_mesh(
             coll=self,
             key=key,
             res=res,
@@ -824,7 +820,7 @@ class Plasma2D(_class0_Config.Config):
 
     """
     def get_sample_bspline(self, key=None, res=None, grid=None, mode=None):
-        return _mesh_comp.sample_bsplines(
+        return _compute.sample_bsplines(
             coll=self,
             key=key,
             res=res,
@@ -873,7 +869,7 @@ class Plasma2D(_class0_Config.Config):
         if all(lc1):
             (
                 idquant, idref1d, idref2d,
-            ) = _mesh_comp._get_possible_ref12d(
+            ) = _compute._get_possible_ref12d(
                 dd=self._ddata,
                 key=quant, ref1d=ref1d, ref2d=ref2d,
                 group1d=group1d,
@@ -882,15 +878,15 @@ class Plasma2D(_class0_Config.Config):
             idq2dR, idq2dPhi, idq2dZ = None, None, None
             ani = False
         else:
-            idq2dR, msg = _mesh_comp._get_keyingroup_ddata(
+            idq2dR, msg = _compute._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dR, group=group2d, msgstr='quant', raise_=True,
             )
-            idq2dPhi, msg = _mesh_comp._get_keyingroup_ddata(
+            idq2dPhi, msg = _compute._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dPhi, group=group2d, msgstr='quant', raise_=True,
             )
-            idq2dZ, msg = _mesh_comp._get_keyingroup_ddata(
+            idq2dZ, msg = _compute._get_keyingroup_ddata(
                 dd=self._ddata,
                 key=q2dZ, group=group2d, msgstr='quant', raise_=True,
             )
@@ -1191,7 +1187,7 @@ class Plasma2D(_class0_Config.Config):
         res=None,
         crop=None,
         nan0=None,
-        nan_out=None,
+        val_out=None,
         imshow=None,
         return_params=None,
         # storing
@@ -1227,7 +1223,7 @@ class Plasma2D(_class0_Config.Config):
 
         """
 
-        return _mesh_comp.interp2d(
+        return _compute.interp2d(
             # ressources
             coll=self,
             # interpolation base, 1d or 2d
@@ -1254,7 +1250,7 @@ class Plasma2D(_class0_Config.Config):
             res=res,
             crop=crop,
             nan0=nan0,
-            nan_out=nan_out,
+            val_out=val_out,
             imshow=imshow,
             return_params=return_params,
             # storing
@@ -1279,7 +1275,7 @@ class Plasma2D(_class0_Config.Config):
         ani=False,
     ):
 
-        return _mesh_comp.interp2dto1d(
+        return _compute.interp2dto1d(
             coll=self,
             key1d=key1d,
             key2d=key2d,
@@ -1289,139 +1285,6 @@ class Plasma2D(_class0_Config.Config):
             crop=crop,
             nan0=nan0,
             return_params=return_params,
-        )
-
-    # -----------------
-    # geometry matrix
-    # ------------------
-
-    def add_geometry_matrix(
-        self,
-        key=None,
-        key_chan=None,
-        cam=None,
-        res=None,
-        resMode=None,
-        method=None,
-        crop=None,
-        name=None,
-        verb=None,
-        store=None,
-    ):
-
-        return _matrix_comp.compute(
-            coll=self,
-            key=key,
-            key_chan=key_chan,
-            cam=cam,
-            res=res,
-            resMode=resMode,
-            method=method,
-            crop=crop,
-            name=name,
-            verb=verb,
-            store=store,
-        )
-
-    # -----------------
-    # inversions
-    # ------------------
-
-    def add_inversion(
-        self,
-        # name of inversion
-        key=None,
-        # input data
-        key_matrix=None,
-        key_data=None,
-        key_sigma=None,
-        sigma=None,
-        # choice of algo
-        # isotropic=None,
-        # sparse=None,
-        # positive=None,
-        # cholesky=None,
-        # regparam_algo=None,
-        algo=None,
-        # regularity operator
-        operator=None,
-        geometry=None,
-        # misc
-        solver=None,
-        conv_crit=None,
-        chain=None,
-        verb=None,
-        store=None,
-        # algo and solver-specific options
-        kwdargs=None,
-        method=None,
-        options=None,
-        # for polar mesh so far
-        dconstraints=None,
-    ):
-        """ Compute tomographic inversion
-
-        """
-
-        return _inversions_comp.compute_inversions(
-            # ressources
-            coll=self,
-            # name of inversion
-            key=key,
-            # input
-            key_matrix=key_matrix,
-            key_data=key_data,
-            key_sigma=key_sigma,
-            sigma=sigma,
-            # choice of algo
-            # isotropic=isotropic,
-            # sparse=sparse,
-            # positive=positive,
-            # cholesky=cholesky,
-            # regparam_algo=regparam_algo,
-            algo=algo,
-            # regularity operator
-            operator=operator,
-            geometry=geometry,
-            # misc
-            conv_crit=conv_crit,
-            chain=chain,
-            verb=verb,
-            store=store,
-            # algo and solver-specific options
-            kwdargs=kwdargs,
-            method=method,
-            options=options,
-            dconstraints=dconstraints,
-        )
-
-    # -----------------
-    # synthetic data
-    # -----------------
-
-    def add_retrofit_data(
-        self,
-        key=None,
-        key_matrix=None,
-        key_profile2d=None,
-        t=None,
-        store=None,
-    ):
-        """ Compute synthetic data using matching geometry matrix and profile2d
-
-        Requires that a geometry matrix as been pre-computed
-        Only profile2d with the same bsplines as the geometry matrix can be
-        used
-
-        """
-
-        return _matrix_comp.compute_retrofit_data(
-            coll=self,
-            key=key,
-            key_matrix=key_matrix,
-            key_profile2d=key_profile2d,
-            t=t,
-            store=store,
         )
 
     # -----------------
@@ -1442,7 +1305,7 @@ class Plasma2D(_class0_Config.Config):
         connect=None,
     ):
 
-        return _mesh_plot.plot_mesh(
+        return _plot.plot_mesh(
             coll=self,
             key=key,
             ind_knot=ind_knot,
@@ -1465,7 +1328,7 @@ class Plasma2D(_class0_Config.Config):
         cents=None,
         res=None,
         plot_mesh=None,
-        nan_out=None,
+        val_out=None,
         nan0=None,
         cmap=None,
         dax=None,
@@ -1474,7 +1337,7 @@ class Plasma2D(_class0_Config.Config):
         dleg=None,
     ):
 
-        return _mesh_plot.plot_bspline(
+        return _plot.plot_bspline(
             coll=self,
             key=key,
             indbs=indbs,
@@ -1483,7 +1346,7 @@ class Plasma2D(_class0_Config.Config):
             cents=cents,
             res=res,
             plot_mesh=plot_mesh,
-            nan_out=nan_out,
+            val_out=val_out,
             nan0=nan0,
             cmap=cmap,
             dax=dax,
@@ -1512,7 +1375,7 @@ class Plasma2D(_class0_Config.Config):
         dinc=None,
         connect=None,
     ):
-        return _mesh_plot.plot_profile2d(
+        return _plot.plot_profile2d(
             coll=self,
             # inputs
             key=key,
@@ -1531,69 +1394,4 @@ class Plasma2D(_class0_Config.Config):
             # interactivity
             dinc=dinc,
             connect=connect,
-        )
-
-    def plot_geometry_matrix(
-        self,
-        cam=None,
-        key=None,
-        indbf=None,
-        indchan=None,
-        plot_mesh=None,
-        vmin=None,
-        vmax=None,
-        res=None,
-        cmap=None,
-        dax=None,
-        dmargin=None,
-        fs=None,
-        dcolorbar=None,
-        dleg=None,
-    ):
-        return _matrix_plot.plot_geometry_matrix(
-            cam=cam,
-            coll=self,
-            key=key,
-            indbf=indbf,
-            indchan=indchan,
-            plot_mesh=plot_mesh,
-            vmin=vmin,
-            vmax=vmax,
-            res=res,
-            cmap=cmap,
-            dax=dax,
-            dmargin=dmargin,
-            fs=fs,
-            dcolorbar=dcolorbar,
-            dleg=dleg,
-        )
-
-    def plot_inversion(
-        self,
-        key=None,
-        indt=None,
-        vmin=None,
-        vmax=None,
-        res=None,
-        cmap=None,
-        dax=None,
-        dmargin=None,
-        fs=None,
-        dcolorbar=None,
-        dleg=None,
-    ):
-
-        return _inversions_plot.plot_inversion(
-            coll=self,
-            key=key,
-            indt=indt,
-            vmin=vmin,
-            vmax=vmax,
-            res=res,
-            cmap=cmap,
-            dax=dax,
-            dmargin=dmargin,
-            fs=fs,
-            dcolorbar=dcolorbar,
-            dleg=dleg,
         )

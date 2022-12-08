@@ -15,7 +15,7 @@ import datastock as ds
 
 # specific
 from . import _generic_check
-from ._mesh_plot import _plot_bsplines_get_dRdZ
+from ._class1_plot import _plot_bsplines_get_dRdZ
 
 
 # #############################################################################
@@ -41,16 +41,23 @@ def _plot_geometry_matrix_check(
 ):
 
     # key
-    lk = list(coll.dobj['matrix'].keys())
+    lk = list(coll.dobj['geom matrix'].keys())
     key = ds._generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
         allowed=lk,
     )
-    keybs = coll.dobj['matrix'][key]['bsplines']
+
+    keybs = coll.dobj['geom matrix'][key]['bsplines']
     refbs = coll.dobj['bsplines'][keybs]['ref']
     keym = coll.dobj['bsplines'][keybs]['mesh']
+
+    key_diag = coll.dobj['geom matrix'][key]['diagnostic']
+    key_cam = coll.dobj['geom matrix'][key]['camera']
+    key_data = coll.dobj['geom matrix'][key]['data']
+    shape = coll.dobj['geom matrix'][key]['shape']
+    axis = coll.dobj['geom matrix'][key]['axis_chan']
 
     # indbf
     if indbf is None:
@@ -77,7 +84,7 @@ def _plot_geometry_matrix_check(
         raise Exception(msg)
 
     # indt
-    hastime = coll.get_time(key=key)[0]
+    hastime = coll.get_time(key=key_data[0])[0]
     if hastime:
         if indt is None:
             indt = 0
@@ -98,7 +105,8 @@ def _plot_geometry_matrix_check(
 
     # vmin, vmax
     if vmax is None:
-        vmax = np.nanmax(coll.ddata[key]['data'])
+        lmax = [np.nanmax(coll.ddata[kk]['data']) for kk in key_data]
+        vmax = max(lmax)
     if vmin is None:
         vmin = 0
 
@@ -135,7 +143,10 @@ def _plot_geometry_matrix_check(
     )
 
     return (
-        key, keybs, keym,
+        key,
+        keybs, keym,
+        key_diag, key_cam, key_data,
+        shape, axis,
         indbf, indchan, indt,
         plot_mesh,
         cmap, vmin, vmax,
@@ -144,9 +155,9 @@ def _plot_geometry_matrix_check(
 
 
 def _plot_geometry_matrix_prepare(
-    cam=None,
     coll=None,
     key=None,
+    key_data=None,
     keybs=None,
     keym=None,
     indbf=None,
@@ -188,8 +199,8 @@ def _plot_geometry_matrix_prepare(
         res = [res_coef*dR, res_coef*dZ]
 
     # crop
-    nchan, nbs = coll.dobj['matrix'][key]['shape'][-2:]
-    crop = coll.dobj['matrix'][key]['crop']
+    nchan, nbs = coll.dobj['geom matrix'][key]['shape'][-2:]
+    crop = coll.dobj['geom matrix'][key]['crop']
 
     # --------
     # indices
@@ -263,7 +274,7 @@ def _plot_geometry_matrix_prepare(
 
     assert nbs == nbf
 
-    hastime, hasref, reft, keyt, t, dind = coll.get_time(key=key)
+    hastime, hasref, reft, keyt, t, dind = coll.get_time(key=key_data[0])
     if hastime:
         nt = coll.dref[reft]['size']
 
@@ -279,7 +290,7 @@ def _plot_geometry_matrix_prepare(
     # -------------
     # interpolation
 
-    # bsplinetot
+    # bspline details
     shapebs = coll.dobj['bsplines'][keybs]['shape']
 
     bsplinebase = coll.interpolate_profile2d(
@@ -293,7 +304,13 @@ def _plot_geometry_matrix_prepare(
     )[0]
 
     # bsplinetot
-    coefstot = np.nansum(coll.ddata[key]['data'], axis=-2)
+    coefstot = np.nansum(
+        [
+            np.nansum(coll.ddata[kk]['data'], axis=-2)
+            for kk in key_data
+        ],
+        axis=0,
+    )
     if hastime:
         bsplinetot = np.nansum(
             bsplinebase[0, ...] * coefstot[0, None, None, :],
@@ -307,21 +324,21 @@ def _plot_geometry_matrix_prepare(
         bsplinedet = np.zeros(tuple(np.r_[bsplinebase.shape[1:-1]]))#, nchan]))
         for ii in range(0):
             bsplinedet[...] = bsplinebase[0, ...].dot(
-                coll.ddata[key]['data'][0, 0:1, :].T
+                coll.ddata[key_data[0]]['data'][0, 0:1, :].T
             )[..., 0]
     else:
-        bsplinedet = bsplinebase.dot(coll.ddata[key]['data'][0:1, :].T)[..., 0]
+        bsplinedet = bsplinebase.dot(coll.ddata[key_data[0]]['data'][0:1, :].T)[..., 0]
 
     # --------
     # LOS
 
     # los
-    ptslos, indlosok = None, None
-    if cam is not None:
-        ptslos = cam._get_plotL(return_pts=True, proj='cross', Lplot='tot')
-        indsep = np.nonzero(np.isnan(ptslos[0, :]))[0]
-        ptslos = np.split(ptslos, indsep, axis=1)
-        indlosok = np.nonzero(coll.ddata[key]['data'][:, indbf] > 0)[0]
+    ptslos = None
+    indlosok = None
+    # ptslos = cam._get_plotL(return_pts=True, proj='cross', Lplot='tot')
+    # indsep = np.nonzero(np.isnan(ptslos[0, :]))[0]
+    # ptslos = np.split(ptslos, indsep, axis=1)
+    # indlosok = np.nonzero(coll.ddata[key]['data'][:, indbf] > 0)[0]
 
     # ---------------
     # extent / interp
@@ -339,18 +356,38 @@ def _plot_geometry_matrix_prepare(
     elif deg >= 2:
         interp = 'bicubic'
 
-    # matrix refs
-    refs = coll.ddata[key]['ref']
+    # -------------
+    # coll2
+
+    coll2 = coll.__class__()
+
+    gmat, ref, dind = coll.get_geometry_matrix_concatenated(key=key)
+    npix = gmat.shape[ref.index(None)]
+
+    for ii, rr in enumerate(ref):
+        if rr is None:
+            coll2.add_ref(key='npix', size=npix)
+            ref[ii] = 'npix'
+        else:
+            coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
+    ref = tuple(ref)
+
+    coll2.add_data(
+        key=key,
+        data=gmat,
+        ref=ref,
+        units=coll.ddata[key_data[0]]['units'],
+    )
 
     return (
         bsplinetot, bsplinedet, extent, interp,
-        ptslos, indlosok, indbf_bool, refs,
+        ptslos, indlosok, indbf_bool,
+        coll2, ref,
     )
 
 
 def plot_geometry_matrix(
     # resources
-    cam=None,
     coll=None,
     # parameters
     key=None,
@@ -375,7 +412,10 @@ def plot_geometry_matrix(
     # check input
 
     (
-        key, keybs, keym,
+        key,
+        keybs, keym,
+        key_diag, key_cam, key_data,
+        shape, axis,
         indbf, indchan, indt,
         plot_mesh,
         cmap, vmin, vmax,
@@ -402,12 +442,13 @@ def plot_geometry_matrix(
     (
         bsplinetot, bspline1,
         extent, interp,
-        ptslos, indlosok,
-        ich_bf, refs,
+        ptslos, indlosoki,
+        ich_bf,
+        coll1, refs,
     ) = _plot_geometry_matrix_prepare(
-        cam=cam,
         coll=coll,
         key=key,
+        key_data=key_data,
         keybs=keybs,
         keym=keym,
         indbf=indbf,
@@ -415,7 +456,7 @@ def plot_geometry_matrix(
         indt=indt,
         res=res,
     )
-    nchan, nbs = coll.ddata[key]['data'].shape[-2:]
+    nchan, nbs = shape[-2:]
 
     # --------------
     # plot - prepare
@@ -552,7 +593,7 @@ def plot_geometry_matrix(
         keyY = refs[1]
         keyZ = refs[0]
 
-    coll2, dgroup = coll.plot_as_array(
+    coll2, dgroup = coll1.plot_as_array(
         key=key,
         keyX=keyX,
         keyY=keyY,

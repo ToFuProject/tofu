@@ -19,6 +19,9 @@ except Exception as err:
     tomotok2tofu = False
 
 
+_SIGMA = 0.05
+
+
 _DALGO0 = {
     'algo0': {
         'source': 'tofu',
@@ -259,10 +262,10 @@ def match_algo(
     return copy.deepcopy(dalgo)
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
 #                           main
-# #############################################################################
+# ##################################################################
 
 
 def _compute_check(
@@ -290,106 +293,63 @@ def _compute_check(
     kwdargs=None,
     method=None,
     options=None,
+    **kwargs,
 ):
 
     # ----
     # key
 
     # key_matrix
-    lk = list(coll.dobj.get('matrix', {}).keys())
-    if key_matrix is None and len(lk):
-        key_matrix = lk[0]
+    lk = list(coll.dobj.get('geom matrix', {}).keys())
     key_matrix = ds._generic_check._check_var(
         key_matrix, 'key_matrix',
         types=str,
         allowed=lk,
     )
-    keybs = coll.dobj['matrix'][key_matrix]['bsplines']
+
+    key_diag = coll.dobj['geom matrix'][key_matrix]['diagnostic']
+    key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
+
+    keybs = coll.dobj['geom matrix'][key_matrix]['bsplines']
     deg = coll.dobj['bsplines'][keybs]['deg']
     keym = coll.dobj['bsplines'][keybs]['mesh']
     mtype = coll.dobj[coll._which_mesh][keym]['type']
-    matrix = coll.ddata[coll.dobj['matrix'][key_matrix]['data']]['data']
+
+    # matrix itself
+    matrix, ref, dind = coll.get_geometry_matrix_concatenated(key_matrix)
+    lkmat = coll.dobj['geom matrix'][key_matrix]['data']
+    units_gmat = coll.ddata[lkmat[0]]['units']
     nchan, nbs = matrix.shape[-2:]
     m3d = matrix.ndim == 3
-    crop = coll.dobj['matrix'][key_matrix]['crop']
+    crop = coll.dobj['geom matrix'][key_matrix]['crop']
 
     if np.any(~np.isfinite(matrix)):
         msg = "Geometry matrix should not contain NaNs or infs!"
         raise Exception(msg)
 
-    # key_data
-    lk = [
-        kk for kk, vv in coll.ddata.items()
-        if vv['data'].ndim in [1, 2]
-        and vv['data'].shape[-1] == nchan
-    ]
-    key_data = ds._generic_check._check_var(
-        key_data, 'key_data',
-        types=str,
-        allowed=lk,
+    # datai
+    ddata = _check_data(
+        coll=coll,
+        key_diag=key_diag,
+        key_data=key_data,
     )
-    data = coll.ddata[key_data]['data']
-    if data.ndim == 1:
-        data = data[None, :]
 
-    # key_sigma
-    if key_sigma is not None:
-        lk = [
-            kk for kk, vv in coll.ddata.items()
-            if vv['data'].shape == coll.ddata[key_data]['data'].shape
-            or vv['data'].shape == (nchan,)
-        ]
-        key_sigma = ds._generic_check._check_var(
-            key_sigma, 'key_sigma',
-            types=str,
-            allowed=lk,
-        )
-        sigma = coll.ddata[key_sigma]['data']
-
-    elif sigma is None:
-        sigma = 0.05
-    elif not np.isscalar(sigma):
-        msg = "Provide key_sigma xor sigma (as scalar only)!"
-        raise Exception(msg)
-
-    if np.isscalar(sigma):
-        key_sigma = sigma
-        sigma = np.full((1, nchan), sigma*np.nanmean(np.abs(data)))
-
-    if sigma.ndim == 1:
-        sigma = sigma[None, :]
+    # sigma
+    dsigma = _check_sigma(
+        coll=coll,
+        key_diag=key_diag,
+        key_sigma=key_sigma,
+        sigma=sigma,
+        ddata=ddata,
+        nchan=nchan,
+    )
 
     # key_inv
-    if coll.dobj.get('inversions') is None:
-        ninv = 0
-    else:
-        ninv = [
-            int(kk[3:]) for kk in coll.dobj['inversions']
-            if kk.startswith('inv')
-            and len(kk) > 3
-            and kk[3:].isnumeric()
-        ]
-        if len(ninv) > 0:
-            ninv = np.max(ninv) + 1
-        else:
-            ninv = 0
-
-    if key is None:
-        keyinv = f'inv{ninv}'
-    else:
-        c0 = (
-            isinstance(key, str)
-            and (ninv == 0 or key not in coll.dobj['inversions'].keys())
-        )
-        if not c0:
-            msg = (
-                "Arg key (used for inversion produced) already exists!\n"
-                f"\t- Provided: {key}\n"
-                f"\t- Existing: {coll.dobj.get('inversions', {}).keys()}"
-
-            )
-            raise Exception(msg)
-        keyinv = key
+    key = ds._generic_check._obj_key(
+        d0=coll.dobj.get('inversions', {}),
+        short='inv',
+        key=key,
+    )
 
     # -----------
     # constraints
@@ -406,7 +366,7 @@ def _compute_check(
     # Time synchronisation between matrix and data
 
     # list of keys with potential time-dependence
-    lk = [key_data, key_matrix]
+    lk = ddata['keys'] + coll.dobj['geom matrix'][key_matrix]['data']
     if dconstraints is not None:
         if isinstance(dconstraints.get('rmax', {}).get('val'), str):
             lk.append(dconstraints['rmax']['val'])
@@ -416,7 +376,7 @@ def _compute_check(
     # check if common / different time dependence
     hastime, reft, keyt, t, dind = coll.get_time_common(keys=lk)
     if reft is None:
-        reft = f'{keyinv}-nt'
+        reft = f'{key}-nt'
 
     # update all accordingly
     if hastime and dind is not None:
@@ -425,13 +385,24 @@ def _compute_check(
             matrix = matrix[dind[key_matrix]['ind'], ...]
 
         # data side
-        if dind.get(key_data, {}).get('ind') is not None:
-            data = data[dind[key_data]['ind'], :]
-            if sigma.shape[0] > 1:
-                sigma = sigma[dind[key_data]['ind'], :]
+        c0 = any([
+            k0 in dind.keys() for k0 in ddata['keys']
+            if dind[k0].get('ind') is not None
+        ])
+        if c0:
+            assert all([k0 in dind.keys() for k0 in ddata['keys']])
+            lind = [dind[k0]['ind'] for k0 in ddata['keys']]
+            assert all([iii.size == lind[0].size for iii in lind[1:]])
+
+            ind0 = lind[0]
+            assert np.allclose(lind, ind0[None, :])
+
+            ddata['data'] = ddata['data'][ind0, :]
+            if dsigma['data'].shape[0] > 1:
+                dsigma['data'] = dsigma['data'][ind0, :]
 
     if m3d:
-        assert matrix.shape[0] == data.shape[0]
+        assert matrix.shape[0] == ddata['data'].shape[0]
 
     # ------------------
     # constraints update
@@ -499,7 +470,7 @@ def _compute_check(
     # --------------------------------------------
     # valid chan / time indices of data / sigma (+ constraints)
 
-    indok = np.isfinite(data) & np.isfinite(sigma)
+    indok = np.isfinite(ddata['data']) & np.isfinite(dsigma['data'])
     if not np.all(indok):
 
         # remove channels
@@ -518,16 +489,19 @@ def _compute_check(
             warnings.warn(msg)
 
             # update
-            data = data[:, iok]
-            sigma = sigma[:, iok]
+            ddata['data'] = ddata['data'][:, iok]
+            dsigma['data'] = dsigma['data'][:, iok]
             matrix = matrix[:, iok, :] if m3d else matrix[iok, :]
             indok = indok[:, iok]
 
         # remove time steps
-        indok, data, sigma, matrix, t, dcon, iokt = _check_time_steps(
+        (
+            indok, ddata['data'], dsigma['data'],
+            matrix, t, dcon, iokt,
+        ) = _check_time_steps(
             indok=indok,
-            data=data,
-            sigma=sigma,
+            data=ddata['data'],
+            sigma=dsigma['data'],
             matrix=matrix,
             t=t,
             m3d=m3d,
@@ -537,9 +511,9 @@ def _compute_check(
         )
 
         # get new nt, nchan
-        nt, nchan = data.shape
+        nt, nchan = ddata['data'].shape
     else:
-        iokt = np.ones((data.shape[0],), dtype=bool)
+        iokt = np.ones((ddata['data'].shape[0],), dtype=bool)
 
     if np.all(indok):
         indok = None
@@ -587,8 +561,8 @@ def _compute_check(
         dim = None
         ref = None
 
-    assert data.shape[1] == nchan
-    nt = data.shape[0]
+    assert ddata['data'].shape[1] == nchan
+    nt = ddata['data'].shape[0]
 
     # -------------------
     # consistent sparsity
@@ -668,8 +642,10 @@ def _compute_check(
     )
 
     return (
-        key_matrix, key_data, key_sigma, keybs, keym, mtype,
-        data, sigma, matrix,
+        key_matrix,
+        key_diag, key_data, key_sigma,
+        keybs, keym, mtype,
+        ddata, dsigma, matrix, units_gmat,
         keyt, t, reft, notime,
         m3d, indok, iokt,
         dconstraints,
@@ -677,14 +653,93 @@ def _compute_check(
         dalgo, dconstraints, dcon,
         conv_crit, crop, chain, kwdargs, method, options,
         solver, verb, store,
-        keyinv, refinv, regul,
+        key, refinv, regul,
     )
 
 
-# #############################################################################
-# #############################################################################
+# #############
+#  input data
+# #############
+
+
+def _check_data(
+    coll=None,
+    key_diag=None,
+    key_data=None,
+):
+
+    # load ddata from key_data
+    ddata = coll.get_diagnostic_data_concatenated(
+        key=key_diag,
+        key_data=key_data,
+        flat=True,
+    )
+
+    # make sure one time step is present
+    if ddata['data'].ndim == 1:
+        ddata['data'] = ddata['data'][None, :]
+
+    assert ddata['data'].ndim == 2, "Wrong dimensions for inversion input!"
+
+    return ddata
+
+
+def _check_sigma(
+    coll=None,
+    key_diag=None,
+    key_sigma=None,
+    sigma=None,
+    ddata=None,
+    nchan=None,
+):
+
+    if key_sigma is None:
+
+        if sigma is None:
+            sigma = _SIGMA
+
+        if np.isscalar(sigma):
+            mean = np.repeat(
+                np.nanmean(np.abs(ddata['data']), axis=1)[:, None],
+                nchan,
+                axis=1,
+            )
+            sigma = sigma * mean
+
+        else:
+            msg = "Provide key_sigma xor sigma (as scalar only)!"
+            raise Exception(msg)
+
+        dsigma = {
+            'data': sigma,
+            'units': ddata['units'],
+            'ref': None,
+            'axis': None,
+            'flat': None,
+            'dind': None,
+        }
+
+    else:
+        dsigma = _check_data(
+            coll=coll,
+            key=key_diag,
+            key_data=key_sigma,
+            flat=True,
+        )
+
+        # make sure one time step is present
+        if dsigma['data'].ndim == 1:
+            dsigma['data'] = dsigma['data'][None, :]
+
+        assert dsigma['data'].ndim == 2, "Wrong dimensions for inversion input!"
+
+    return dsigma
+
+
+# ##################################################################
+# ##################################################################
 #                  removing time steps
-# #############################################################################
+# ##################################################################
 
 
 def _remove_time_steps(

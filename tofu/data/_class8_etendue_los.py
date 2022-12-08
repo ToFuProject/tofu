@@ -79,13 +79,13 @@ def compute_etendue_los(
     if verb is True:
         msg = f"\nComputing etendue / los for diag '{key}':"
         print(msg)
-        
+
     # prepare optics
     for key_cam, v0 in dcompute.items():
 
         # ------------------------
         # get equivalent apertures for all pixels
-    
+
         (
             x0, x1, kref, iok,
             px, py, pz,
@@ -108,10 +108,10 @@ def compute_etendue_los(
             store=False,
             return_for_etendue=True,
         )
-            
+
         # ------------------------------------------
         # get distance, area, solid_angle, los, dlos
-    
+
         (
             det_area, distances,
             los_x, los_y, los_z,
@@ -137,34 +137,34 @@ def compute_etendue_los(
             plane_nin=plane_nin,
             ap_area=ap_area,
         )
-    
+
         # --------------------
         # compute analytically
-    
+
         nd = len(v0['ldet'])
         if analytical is True:
             etend0 = np.full(tuple(np.r_[3, nd]), np.nan)
-    
+
             # 0th order
             etend0[0, :] = ap_area * det_area / distances**2
-    
+
             # 1st order
             etend0[1, :] = (
                 cos_los_ap * ap_area
                 * cos_los_det * det_area / distances**2
             )
-    
+
             # 2nd order
             etend0[2, :] = cos_los_ap * ap_area * solid_angles
-    
+
         else:
             etend0 = None
-    
+
         # --------------------
         # compute numerically
-    
+
         if numerical is True:
-    
+
             etend1 = _compute_etendue_numerical(
                 ldeti=v0['ldet'],
                 aperture=aperture,
@@ -178,10 +178,10 @@ def compute_etendue_los(
                 check=check,
                 verb=verb,
             )
-    
+
         else:
             etend1 = None
-        
+
         # --------------------
         # optional plotting
     
