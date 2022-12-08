@@ -21,7 +21,7 @@ jobs:
     - name: Install LLVM and Clang
       run: |
          brew install llvm
-      if: constains(matrix.os, 'macOS')
+      if: contains(matrix.os, 'macOS')
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:

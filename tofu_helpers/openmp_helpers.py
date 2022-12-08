@@ -78,20 +78,6 @@ def get_openmp_flag(compiler):
     else:
         compiler = compiler.__class__.__name__
 
-
-    print(
-        f"""
-
-        Compiler: {compiler}
-
-        sys.platform: {sys.platform}
-
-        os.getenv('CPPFLAGS', ''): {os.getenv('CPPFLAGS', '')}
-
-
-        """
-    )
-
     if sys.platform == "win32" and ('icc' in compiler or 'icl' in compiler):
         return ['/Qopenmp']
     elif sys.platform == "win32":
@@ -100,8 +86,6 @@ def get_openmp_flag(compiler):
         return ['-qopenmp']
     elif sys.platform == "darwin" and 'openmp' in os.getenv('CPPFLAGS', ''):
         return ['-openmp']
-    elif sys.platform == "darwin" and 'gcc' in compiler:
-        return ['-fopenmp=libomp']      # DB
     # Default flag for GCC and clang:
     return ['-fopenmp']
 
