@@ -340,6 +340,7 @@ def _compute_check(
         key_diag=key_diag,
         key_sigma=key_sigma,
         sigma=sigma,
+        ddata=ddata,
         nchan=nchan,
     )
 
@@ -384,11 +385,17 @@ def _compute_check(
             matrix = matrix[dind[key_matrix]['ind'], ...]
 
         # data side
-        for k0 in ddata['keys']:
-            if dind.get(k0, {}).get('ind') is not None:
-                ddata['data'] = ddata['data'][dind[k0]['ind'], :]
-                if dsigma['data'].shape[0] > 1:
-                    dsigma['data'] = dsigma['data'][dind[key_data]['ind'], :]
+        if any([k0 in dind.keys() for k0 in ddata['keys']]):
+            assert all([k0 in dind.keys() for k0 in ddata['keys']])
+            lind = [dind[k0]['ind'] for k0 in ddata['keys']]
+            assert all([iii.size == lind[0].size for iii in lind[1:]])
+
+            ind0 = lind[0]
+            assert np.allclose(lind, ind0[None, :])
+
+            ddata['data'] = ddata['data'][ind0, :]
+            if dsigma['data'].shape[0] > 1:
+                dsigma['data'] = dsigma['data'][ind0, :]
 
     if m3d:
         assert matrix.shape[0] == ddata['data'].shape[0]
@@ -678,19 +685,30 @@ def _check_sigma(
     key_diag=None,
     key_sigma=None,
     sigma=None,
+    ddata=None,
     nchan=None,
 ):
 
     if key_sigma is None:
+
         if sigma is None:
             sigma = _SIGMA
-        if not np.isscalar(sigma):
+
+        if np.isscalar(sigma):
+            mean = np.repeat(
+                np.nanmean(np.abs(ddata['data']), axis=1)[:, None],
+                nchan,
+                axis=1,
+            )
+            sigma = sigma * mean
+
+        else:
             msg = "Provide key_sigma xor sigma (as scalar only)!"
             raise Exception(msg)
 
         dsigma = {
-            'data': np.full((1, nchan), sigma),
-            'units': None,
+            'data': sigma,
+            'units': ddata['units'],
             'ref': None,
             'axis': None,
             'flat': None,
