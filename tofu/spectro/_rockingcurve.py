@@ -126,6 +126,7 @@ def compute_rockingcurve(
     returnas:    str
         Entry 'dict' to allow optionnal returning of 'dout' dictionnary
     """
+    print('Hello World')
 
     # Check inputs
     # ------------
