@@ -178,6 +178,89 @@ _DCRYST = {
                 'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
     },
+    'Quartz': {
+        'name': 'Quartz',
+        'symbol': 'Qz',
+        'target_ion': None, #'Ar16+', 
+        'target_lamb': None, #3.96e-10, # To be user-defined
+        'atoms': ['Si', 'O'],
+        'atoms_Z': [14., 8.],
+        'atoms_nb': [3., 6.],
+        'miller': None,#np.r_[1., 1., 0.], # To be user-defined
+        'volume': None,
+        'd_hkl': None,
+        'mesh': {
+            'type': 'hexagonal',
+            'positions': {
+                'Si': {
+                    'u': np.r_[0.465],
+                    'x': None,
+                    'y': None,
+                    'z': None,
+                    'N': None,
+                },
+                'O': {
+                    'u': np.r_[0.415, 0.272, 0.120],
+                    'x': None,
+                    'y': None,
+                    'z': None,
+                    'N': None,
+                },
+            },
+            'sources': 'R.W.G. Wyckoff, Crystal Structures (1963)',
+        },
+        'phases': {
+            'Si': None,
+            'O': None,
+        },
+        'inter_atomic': {
+            'distances': {
+                'a0': 4.91304,
+                'c0': 5.40463,
+            },
+            'unit': 'A',
+            'comments': 'within the unit cell',
+            'Tref': {
+                'data': 25.,
+                'unit': 'C',
+            },
+            'sources': 'R.W.G. Wyckoff, Crystal Structures',
+        },
+        'thermal_expansion': {
+            'coefs': {
+                'alpha_a': 1.337e-5,
+                'alpha_c': 7.97e-6,
+            },
+            'unit': '1/C',
+            'comments': 'in parallel directions to a0 and c0',
+            'sources': 'R.W.G. Wyckoff, Crystal Structures',
+        },
+        'sin_theta_lambda': {
+            'Si': np.r_[
+                0., 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7,
+                0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5,
+            ],
+            'O': np.r_[
+                0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1,
+            ],
+            'sources':
+                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
+        },
+        'atomic_scattering': {
+            'factors': {
+                'Si': np.r_[
+                    12., 11., 9.5, 8.8, 8.3, 7.7, 7.27, 6.25, 5.3,
+                    4.45, 3.75, 3.15, 2.7, 2.35, 2.07, 1.87, 1.71, 1.6,
+                ],
+                'O': np.r_[
+                    9., 7.836, 5.756, 4.068, 2.968, 2.313, 1.934, 1.710, 1.566,
+                    1.462, 1.373, 1.294,
+                ],
+            },
+            'sources':
+                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
+        },
+    },
     'Germanium_XXX': {
         'name': None,
         'symbol': None,

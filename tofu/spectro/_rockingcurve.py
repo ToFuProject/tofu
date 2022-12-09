@@ -43,6 +43,8 @@ def compute_rockingcurve(
     plot_cmaps=None,
     # Returning dictionnary
     returnas=None,
+    # User-defined values
+    Miller = None, # Miller indices
 ):
     """ The code evaluates, for a given wavelength and Miller indices set,
     the inter-plane distance d, the Bragg angle of reference and the complex
@@ -126,7 +128,6 @@ def compute_rockingcurve(
     returnas:    str
         Entry 'dict' to allow optionnal returning of 'dout' dictionnary
     """
-    print('Hello World')
 
     # Check inputs
     # ------------
@@ -148,6 +149,10 @@ def compute_rockingcurve(
         din = _rockingcurve_def._DCRYST['Quartz_110']
     elif crystal == 'Quartz_102':
         din = _rockingcurve_def._DCRYST['Quartz_102']
+    elif crystal == 'Quartz':
+        print('Hello World')
+        din = _rockingcurve_def._DCRYST['Quartz']
+        din = add_struct_vals(crystal = crystal, din=din, Miller=Miller, lamb = lamb)
 
     if therm_exp is None:
         therm_exp = False
@@ -211,7 +216,7 @@ def compute_rockingcurve(
         therm_exp=therm_exp,
     )
 
-    l0 = ['Quartz_110', 'Quartz_102']
+    l0 = ['Quartz_110', 'Quartz_102', 'Quartz']
     cond0 = any([crystal == l00 for l00 in l0])
     if cond0:
 
@@ -915,7 +920,7 @@ def CrystBragg_comp_lattice_spacing(
 
     # Prepare
     # -------
-    l0 = ['Quartz_110', 'Quartz_102']
+    l0 = ['Quartz_110', 'Quartz_102', 'Quartz']
     cond0 = any([crystal == l00 for l00 in l0])
 
     # Inter-atomic distances and thermal expansion coefficients
@@ -1936,3 +1941,202 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
         ax=ax13,
     )
     cbar.set_label('(parallel pola.)', fontsize=15)
+
+# ##########################################################
+# ##########################################################
+#          Generalized Crystal
+# ##########################################################
+# ##########################################################
+
+def add_struct_vals(
+    crystal = None,
+    din = None,
+    Miller = None,
+    lamb = None,
+    ):
+
+    # If considering a Quartz crystal
+    if crystal == 'Quartz':
+        print('Quartz')
+        din['target_lamb'] = lamb
+        din['miller'] = Miller
+
+        # Position of the 3 Si atoms in the unit cell
+        # -------------------------------------------
+
+        # Quartz
+        uSi = din['mesh']['positions']['Si']['u'][0]
+        din['mesh']['positions']['Si']['x'] = np.r_[
+            -uSi,
+            uSi,
+            0.
+        ]
+        din['mesh']['positions']['Si']['y'] = np.r_[
+            -uSi,
+            0.,
+            uSi
+        ]
+        din['mesh']['positions']['Si']['z'] = np.r_[
+            1./3.,
+            0.,
+            2./3.
+        ]
+        din['mesh']['positions']['Si']['N'] = np.size(
+            din['mesh']['positions']['Si']['x']
+        )
+
+        # Position of the 6 O atoms in the unit cell
+        # ------------------------------------------
+
+        # Quartz
+        uOx = din['mesh']['positions']['O']['u'][0]
+        uOy = din['mesh']['positions']['O']['u'][1]
+        uOz = din['mesh']['positions']['O']['u'][2]
+        din['mesh']['positions']['O']['x'] = np.r_[
+            uOx,
+            uOy - uOx,
+            -uOy,
+            uOx - uOy,
+            uOy,
+            -uOx
+        ]
+        din['mesh']['positions']['O']['y'] = np.r_[
+            uOy,
+            -uOx,
+            uOx - uOy,
+            -uOy,
+            uOx,
+            uOy - uOx
+        ]
+        din['mesh']['positions']['O']['z'] = np.r_[
+            uOz,
+            uOz + 1./3.,
+            uOz + 2./3.,
+            -uOz,
+            2./3. - uOz,
+            1./3. - uOz
+        ]
+        din['mesh']['positions']['O']['N'] = np.size(
+            din['mesh']['positions']['O']['x']
+        )
+
+        # #############################################################################
+        # #############################################################################
+        #                         Elementary box volume and
+        #                       inter-reticular spacing d_hkl
+        # #############################################################################
+        # #############################################################################
+
+        # -----------------------------------------------------------------------
+        # Definition of volume and inter-reticular spacing relations, func(meshtype)
+        # -----------------------------------------------------------------------
+        def hexa_volume(aa, cc):
+            return (aa**2) * cc * (np.sqrt(3.)/2.)
+
+
+        def hexa_spacing(hh, kk, ll, aa, cc):
+            return np.sqrt(
+                (3.*(aa**2)*(cc**2))
+                / (4.*(hh**2 + kk**2 + hh*kk)*(cc**2) + 3.*(ll**2)*(aa**2))
+            )
+
+        # Same values for 110- and Quartz_102
+        a = din['inter_atomic']['distances']['a0']
+        c = din['inter_atomic']['distances']['c0']
+
+        din['volume'] = hexa_volume(a, c) 
+        din['d_hkl'] = hexa_spacing(Miller[0], Miller[1], Miller[2], a, c) * 1e-10
+
+        # #############################################################################
+        # #############################################################################
+        #                               Structure factor
+        # #############################################################################
+        # #############################################################################
+
+        # ---------------------------------------------------------------
+        # Attribution to alpha-Quartz crystals
+        # ---------------------------------------------------------------
+        # From W. Zachariasen, Theory of X-ray Diffraction in Crystals
+        # (Wiley, New York, 1945)
+
+        # Linear absorption coefficient
+        # -----------------------------
+
+        # Charge of ions in Quartz
+        Zsi = din['atoms_Z'][0]
+        Zo = din['atoms_Z'][1]
+
+        def mu_si(lamb):
+            return 1.38e-2*(lamb**2.79)*(Zsi**2.73)
+
+        def mu_si1(lamb):
+            return 5.33e-4*(lamb**2.74)*(Zsi**3.03)
+
+        def mu_o(lamb):
+            return 5.4e-3*(lamb**2.92)*(Zo**3.07)
+
+        def mu(lamb, mu_si, mu_o):
+            return 2.65e-8*(7.*mu_si + 8.*mu_o)/15.
+
+        # Atomic scattering factor, real and imaginary parts
+        # --------------------------------------------------
+        sol_si = din['sin_theta_lambda']['Si']
+        sol_o = din['sin_theta_lambda']['O']
+        asf_si = din['atomic_scattering']['factors']['Si']
+        asf_o = din['atomic_scattering']['factors']['O']
+        interp_si = scipy.interpolate.interp1d(sol_si, asf_si)
+        interp_o = scipy.interpolate.interp1d(sol_o, asf_o)
+
+        def dfsi_re(lamb):
+            return 0.1335*lamb - 6e-3
+
+        def fsi_re(lamb, sol):
+            return interp_si(sol) + dfsi_re(lamb)
+
+        def fsi_im(lamb, mu_si):
+            return 5.936e-4*Zsi*(mu_si/lamb)
+
+        def dfo_re(lamb):
+            return 0.1335*lamb - 0.206
+
+        def fo_re(lamb, sol):
+            return interp_o(sol) + dfo_re(lamb)
+
+        def fo_im(lamb, mu_o):
+            return 5.936e-4*Zo*(mu_o/lamb)
+
+
+        # Phases
+        # ------
+        xsi = din['mesh']['positions']['Si']['x']
+        ysi = din['mesh']['positions']['Si']['y']
+        zsi = din['mesh']['positions']['Si']['z']
+        Nsi = din['mesh']['positions']['Si']['N']
+        xo = din['mesh']['positions']['O']['x']
+        yo = din['mesh']['positions']['O']['y']
+        zo = din['mesh']['positions']['O']['z']
+        No = din['mesh']['positions']['O']['N']
+
+        def phasesi(hh, kk, ll, xsi, ysi, zsi):
+            return hh*xsi + kk*ysi + ll*zsi
+
+        def phaseo(hh, kk, ll, xo, yo, zo):
+            return hh*xo + kk*yo + ll*zo
+
+        phaseSi = np.full((Nsi), np.nan)
+        phaseO = np.full((No), np.nan)
+
+        for i in range(Nsi):
+            phaseSi[i] = phasesi(Miller[0], Miller[1], Miller[2], xsi[i], ysi[i], zsi[i])
+        din['phases']['Si'] = phaseSi
+
+        for i in range(No):
+            phaseO[i] = phaseo(Miller[0], Miller[1], Miller[2], xo[i], yo[i], zo[i])
+        din['phases']['O'] = phaseO
+
+    # If considering a Germanium crystal
+    if crystal == 'Germanium':
+        print('Germanium')
+    
+    return din
+
