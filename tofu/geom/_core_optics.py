@@ -18,7 +18,9 @@ import scipy.stats as scpstats
 import datetime as dtm
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from math import *
+import datastock as ds
+
+>>>>>>> devel
 
 # ToFu-specific
 from tofu import __version__ as __version__
@@ -26,9 +28,12 @@ import tofu.pathfile as tfpf
 import tofu.utils as utils
 from . import _def as _def
 from . import _GG as _GG
+from . import _core
 from . import _check_optics
 from . import _comp_optics as _comp_optics
 from . import _plot_optics as _plot_optics
+import tofu.spectro._rockingcurve as _rockingcurve
+import tofu.spectro._rockingcurve_def as _rockingcurve_def
 
 
 __all__ = ['CrystalBragg']
@@ -469,18 +474,18 @@ class CrystalBragg(utils.ToFuObject):
     # methods for getting unit vectors basis
     # --------------------------------------
 
-    def get_unit_vectors(self, use_non_parallelism=None):
+    def get_unit_vectors(self, miscut=None):
         """ Return the unit vectors (direct orthonormal basis)
 
         Depending on:
-            use_non_parallelism: True  => return the geometrical basis
-            use_non_parallelism: False  => return the mesh basis
+            miscut: True  => return the geometrical basis
+            miscut: False  => return the mesh basis
 
         """
-        if use_non_parallelism is None:
-            use_non_parallelism = _USE_NON_PARALLELISM
+        if miscut is None:
+            miscut = _USE_NON_PARALLELISM
 
-        if use_non_parallelism is True:
+        if miscut is True:
             nout = self._dmat['nout']
             e1 = self._dmat['e1']
             e2 = self._dmat['e2']
@@ -488,7 +493,7 @@ class CrystalBragg(utils.ToFuObject):
             nout = self._dgeom['nout']
             e1 = self._dgeom['e1']
             e2 = self._dgeom['e2']
-        return nout, e1, e2, use_non_parallelism
+        return nout, e1, e2, miscut
 
     # -----------------
     # methods for color
@@ -588,6 +593,15 @@ class CrystalBragg(utils.ToFuObject):
             dgeom0 = self.dgeom
             try:
                 self.set_dgeom(dgeom=dgeom)
+                self._dmat = _check_optics._checkformat_dmat(
+                    dmat={
+                        k0: v0 for k0, v0 in self._dmat.items()
+                        if k0 not in ['nin', 'nout', 'e1', 'e2']
+                    },
+                    dgeom=self._dgeom,
+                    ddef=self._ddef['dmat'],
+                    valid_keys=self._get_keys_dmat()
+                )
             except Exception as err:
                 # Make sure instance does not move
                 self.set_dgeom(dgeom=dgeom0)
@@ -599,8 +613,11 @@ class CrystalBragg(utils.ToFuObject):
     def _rotate_or_translate(self, func, **kwdargs):
         pts = np.array([self._dgeom['summit'], self._dgeom['center']]).T
         if 'rotate' in func.__name__:
-            vect = np.array([self._dgeom['nout'],
-                             self._dgeom['e1'], self._dgeom['e2']]).T
+            vect = np.array([
+                self._dgeom['nout'],
+                self._dgeom['e1'],
+                self._dgeom['e2']
+            ]).T
             pts, vect = func(pts=pts, vect=vect, **kwdargs)
             return {'summit': pts[:, 0], 'center': pts[:, 1],
                     'nout': vect[:, 0], 'nin': -vect[:, 0],
@@ -723,7 +740,6 @@ class CrystalBragg(utils.ToFuObject):
         param = self._move(param, dictname='_dgeom')
         self._dgeom['move_param'] = param
 
-
     # -----------------
     # methods for rocking curve
     # -----------------
@@ -789,15 +805,62 @@ class CrystalBragg(utils.ToFuObject):
             ang_units=ang_units, axtit=axtit, color=color,
             fs=fs, ax=ax, legend=legend)
 
+    def compute_rockingcurve(
+        self,
+        crystal=None, din=None,
+        lamb=None,
+        miscut=None, nn=None,
+        alpha_limits=None,
+        therm_exp=None,
+        temp_limits=None,
+        plot_therm_exp=None,
+        plot_asf=None, plot_power_ratio=None,
+        plot_asymmetry=None, plot_cmaps=None,
+        returnas=None,
+    ):
+        return _rockingcurve.compute_rockingcurve(
+            crystal=crystal, din=din,
+            lamb=lamb,
+            miscut=miscut, nn=nn,
+            alpha_limits=alpha_limits,
+            therm_exp=therm_exp,
+            temp_limits=temp_limits,
+            plot_therm_exp=plot_therm_exp,
+            plot_asf=plot_asf, plot_power_ratio=plot_power_ratio,
+            plot_asymmetry=plot_asymmetry, plot_cmaps=plot_cmaps,
+            returnas=None,
+        )
+
+    def plot_var_temp_changes_wavelengths(
+        self, ih=None, ik=None, il=None, lambdas=None,
+        miscut=None, na=None,
+        alpha_limits=None,
+        therm_exp=None, plot_therm_exp=None,
+        plot_asf=None, plot_power_ratio=None,
+        plot_asymmetry=None, plot_cmaps=None,
+        quantity=None,
+        curv_radius=None, pixel_size=None,
+    ):
+        return _rockingcurve.plot_var_temp_changes_wavelengths(
+            ih=ih, ik=ik, il=il, lambdas=lambdas,
+            miscut=miscut, na=na,
+            alpha_limits=alpha_limits,
+            therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
+            plot_asf=plot_asf, plot_power_ratio=plot_power_ratio,
+            plot_asymmetry=plot_asymmetry, plot_cmaps=plot_cmaps,
+            quantity=quantity,
+            curv_radius=curv_radius, pixel_size=pixel_size,
+        )
+
     # -----------------
     # methods for surface and contour sampling
     # -----------------
 
-    def sample_outline_plot(self, use_non_parallelism=None, res=None):
+    def sample_outline_plot(self, miscut=None, res=None):
         if self._dgeom['Type'] == 'sph':
             if self._dgeom['Typeoutline'] == 'rect':
-                nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
-                    use_non_parallelism=use_non_parallelism,
+                nout, e1, e2, miscut = self.get_unit_vectors(
+                    miscut=miscut,
                 )
                 outline = _comp_optics.CrystBragg_sample_outline_plot_sphrect(
                     self._dgeom['summit'] - nout*self._dgeom['rcurve'],
@@ -856,7 +919,7 @@ class CrystalBragg(utils.ToFuObject):
         lamb=None, n=None,
         dtheta=None, psi=None,
         ntheta=None, npsi=None,
-        use_non_parallelism=None,
+        miscut=None,
         include_summit=None,
         grid=None,
     ):
@@ -869,7 +932,7 @@ class CrystalBragg(utils.ToFuObject):
         # Get local summits, nout, e1, e2
         pts_start, nout, e1, e2 = self.get_local_noute1e2(
             dtheta=dtheta, psi=psi,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             ntheta=ntheta, npsi=npsi,
             include_summit=include_summit,
         )
@@ -894,7 +957,7 @@ class CrystalBragg(utils.ToFuObject):
         phi=None, bragg=None,
         lamb=None, n=None,
         dtheta=None, psi=None,
-        use_non_parallelism=None,
+        miscut=None,
         ntheta=None, npsi=None,
         include_summit=None,
         det=None, config=None, length=None,
@@ -963,12 +1026,8 @@ class CrystalBragg(utils.ToFuObject):
             raise Exception(msg)
 
         det = self._checkformat_det(det)
-        if det is False:
-            msg = "det is required in get_Rays_from_summit_to_det()!"
-            raise Exception(msg)
-
         if length is None:
-            length = 7.
+            length = 10.
 
         if grid is None:
             try:
@@ -982,7 +1041,7 @@ class CrystalBragg(utils.ToFuObject):
             phi=phi, bragg=bragg,
             lamb=lamb, n=n,
             dtheta=dtheta, psi=psi,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             ntheta=ntheta, npsi=npsi,
             include_summit=include_summit,
             grid=grid,
@@ -993,14 +1052,51 @@ class CrystalBragg(utils.ToFuObject):
 
         # -----------
         # Get length (minimum between conf, det, length)
+        vshape = vect.shape
         dk = {
-            k0: np.full(vect.shape[1:], np.nan)
+            k0: np.full(vshape[1:], np.nan)
             for k0 in ['config', 'det', 'length']
         }
         xi, xj = None, None
         if config is not None:
-            dk['config'] = None
-        if det is not None:
+            # Here insert ray-tracing from config!
+            if vshape != pts_start.shape:
+                if len(vshape) == 3 and len(pts_start.shape) == 2:
+                    D = np.reshape(
+                        np.repeat(pts_start[..., None], vshape[-1], axis=-1),
+                        (3, -1),
+                    )
+                    u = vect.reshape((3, -1))
+                else:
+                    msg = (
+                        "Not treated case!\n"
+                        f"\t- pts_start.shape: {pts_start.shape}\n"
+                        f"\t- vect.shape: {vshape}\n"
+                    )
+                    raise Exception(msg)
+            else:
+                if len(vshape) > 2:
+                    D = pts_start.reshape((3, -1))
+                    u = vect.reshape((3, -1))
+                else:
+                    D = pts_start
+                    u = vect
+
+            rays = _core.Rays(
+                dgeom=(D, u),
+                config=config,
+                strict=False,
+                Name='dummy',
+                Diag='dummy',
+                Exp='dummy',
+            )
+            if u.shape != vshape:
+                kout = rays.dgeom['kOut'].reshape(vshape[1:])
+            else:
+                kout = rays.dgeom['kOut']
+            dk['config'] = kout
+
+        if det is not None and det is not False:
             shape = tuple([3] + [1 for ii in range(vect.ndim-1)])
             cent = det['cent'].reshape(shape)
             nout = det['nout'].reshape(shape)
@@ -1024,6 +1120,7 @@ class CrystalBragg(utils.ToFuObject):
                 ej = det['ej'].reshape(shape)
                 xi = np.sum((pts_end - cent)*ei, axis=0)
                 xj = np.sum((pts_end - cent)*ej, axis=0)
+
         if length is not None:
             dk['length'][:] = length
 
@@ -1159,7 +1256,7 @@ class CrystalBragg(utils.ToFuObject):
         dax=None, proj=None, res=None, element=None,
         color=None, ddet=None,
         dleg=None, draw=True, dmargin=None,
-        use_non_parallelism=None, grid=None,
+        miscut=None, grid=None,
         rays_npts=None, rays_color=None,
         fs=None, wintit=None, tit=None,
     ):
@@ -1224,11 +1321,11 @@ class CrystalBragg(utils.ToFuObject):
         dleg:       None / dict
             dict of properties to be passed to plt.legend()
             if False legend is not plotted
-        use_non_parallelism:    None / str
+        miscut:    None / str
             Return the unit vectors (direct orthonormal basis)
             Depending on:
-                - use_non_parallelism: True  => return the geometrical basis
-                - use_non_parallelism: False  => return the mesh basis
+                - miscut: True  => return the geometrical basis
+                - miscut: False  => return the mesh basis
         """
         if det is None:
             det = False
@@ -1252,7 +1349,7 @@ class CrystalBragg(utils.ToFuObject):
             # pts.shape = (3, nlamb, npts, ndtheta)
             pts_summit, pts1 = self.get_rays_from_cryst(
                 phi=phi, lamb=lamb, bragg=bragg,
-                n=n, use_non_parallelism=use_non_parallelism,
+                n=n, miscut=miscut,
                 dtheta=dtheta, psi=psi,
                 ntheta=ntheta, npsi=npsi,
                 include_summit=include_summit,
@@ -1263,7 +1360,7 @@ class CrystalBragg(utils.ToFuObject):
             # Get the other way
             pts2, xi, xj = self.get_rays_from_cryst(
                 phi=phi+np.pi, lamb=lamb, bragg=bragg,
-                n=n, use_non_parallelism=use_non_parallelism,
+                n=n, miscut=miscut,
                 dtheta=dtheta, psi=psi,
                 ntheta=ntheta, npsi=npsi,
                 include_summit=include_summit,
@@ -1289,7 +1386,7 @@ class CrystalBragg(utils.ToFuObject):
             )
             pts_summit, pts2, xi, xj = self.get_rays_from_cryst(
                 phi=phi+np.pi, lamb=None, bragg=bragg,
-                n=n, use_non_parallelism=use_non_parallelism,
+                n=n, miscut=miscut,
                 dtheta=dtheta, psi=psi,
                 ntheta=ntheta, npsi=npsi,
                 include_summit=include_summit,
@@ -1319,7 +1416,7 @@ class CrystalBragg(utils.ToFuObject):
             xi=xi, xj=xj,
             rays_color=rays_color, rays_npts=rays_npts,
             dleg=dleg, draw=draw, fs=fs, dmargin=dmargin,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             wintit=wintit, tit=tit,
         )
 
@@ -1327,16 +1424,93 @@ class CrystalBragg(utils.ToFuObject):
     # methods for generic first-approx
     # -----------------
 
-    def get_phi_from_magaxis_summit(self, r, z, lamb=None, bragg=None, n=None):
+    def get_phi_from_magaxis_summit(
+        self,
+        axis_r,
+        axis_z,
+        axis_npts=None,
+        lamb=None,
+        lamb_tol=None,
+        bragg=None,
+        n=None,
+        miscut=None,
+    ):
+        """ Return phi of a magnteic axis (at lamb with tolerance)
+
+        axis_r and axis_z must be np.ndarrays of the same shape
+        The magnetic axis is discretized toroidally in axis_npts (def: 1000)
+
+        The pts closest to the chosen lamb are picked
+        If no pts is found within tolerance, an error is raised
+
+        """
+
+        # --------------------
         # Check / format input
-        r = np.atleast_1d(r)
-        z = np.atleast_1d(z)
-        assert r.shape == z.shape
+
+        if axis_npts is None:
+            axis_npts = 1000
+
+        axis_r = np.atleast_1d(axis_r)
+        axis_z = np.atleast_1d(axis_z)
+        assert axis_r.shape == axis_z.shape
+
+        if lamb_tol is None:
+            lamb_tol = 0.01e-10
+
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
+        lamb = self.get_lamb_from_bragg(bragg=bragg, n=n)
+
+        # --------------
+        # Disretize axis
+
+        shaperz = axis_r.shape
+        phi_ax = np.full(shaperz, np.nan)
 
         # Compute phi
+        theta_cryst = np.arctan2(
+            self._dgeom['summit'][1],
+            self._dgeom['summit'][0],
+        )
 
-        return phi
+        theta_ax = theta_cryst + np.pi/2*np.linspace(-1, 1, axis_npts)
+        shapetheta = np.r_[[1 for ii in shaperz], axis_npts]
+        theta_ax = theta_ax.reshape(shapetheta)
+
+        axis_x = (axis_r[..., None] * np.cos(theta_ax)).ravel()
+        axis_y = (axis_r[..., None] * np.sin(theta_ax)).ravel()
+        axis_z = (np.repeat(axis_z[..., None], axis_npts, axis=-1)).ravel()
+
+        # ----------------------------------------------
+        # Compute bragg, phi, lamb of each point on axis
+
+        (
+            bragg_ax_full, phi_ax_full, lamb_ax_full,
+        ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
+            pts=np.array([axis_x, axis_y, axis_z]),
+            dtheta=None, psi=None,
+            ntheta=None, npsi=None,
+            n=None,
+            miscut=miscut,
+            grid=None,
+            return_lamb=True,
+        )
+
+        # -------------------------------------
+        # Select points on axis closest to lamb
+
+        # lamb_ax_full = self.get_lamb_from_bragg(bragg_ax_full)
+        shape_full = tuple(np.r_[shaperz, axis_npts])
+        lamb_ax_full = lamb_ax_full.reshape(shape_full)
+        phi_ax_full = phi_ax_full.reshape(shape_full)
+        dlamb = np.abs(lamb_ax_full - lamb)
+
+        indok = np.any(dlamb <= lamb_tol, axis=-1)
+        indmin = np.nanargmin(dlamb[indok, :], axis=-1)
+        indtup = tuple([iii for iii in indok.nonzero()] + [indmin])
+        phi_ax[indok] = phi_ax_full[indtup]
+
+        return phi_ax
 
     def get_bragg_from_lamb(self, lamb=None, n=None):
         """ Braggs' law: n*lamb = 2dsin(bragg) """
@@ -1361,9 +1535,9 @@ class CrystalBragg(utils.ToFuObject):
         return _comp_optics.get_lamb_from_bragg(np.atleast_1d(bragg),
                                                 self._dmat['d'], n=n)
 
-    def update_non_parallelism(self, alpha=None, beta=None):
+    def update_miscut(self, alpha=None, beta=None):
         """ Compute new values of unit vectors nout, e1 and e2 into
-        dmat basis, due to non parallelism
+        dmat basis, due to miscut
 
         Update new values into dmat dict
         """
@@ -1380,17 +1554,17 @@ class CrystalBragg(utils.ToFuObject):
                          )
         self._dmat['alpha'], self._dmat['beta'] = alpha, beta
 
-    def calc_meridional_sagital_focus(
+    def calc_meridional_sagittal_focus(
         self,
         rcurve=None,
         bragg=None,
         alpha=None,
-        use_non_parallelism=None,
+        miscut=None,
         verb=None,
     ):
         """ Compute sagittal and meridional focuses distances.
-        Optionnal result according to non-parallelism, using first the
-        update_non_parallelism method.
+        Optionnal result according to miscut, using first the
+        update_miscut method.
 
         parameters
         ----------
@@ -1399,9 +1573,10 @@ class CrystalBragg(utils.ToFuObject):
         bragg:      float
             in dbragg dict., reference bragg angle of the crystal.
         alpha:      float
-            in dmat dict., amplitude of the non-parallelism
+            in dmat dict., amplitude of the miscut
             as an a angle defined by user, in radian.
-        use_non_parallelism:    str
+            By default to 3 arcmin
+        miscut:    str
             Need to be True to use new alpha angle
 
         Return
@@ -1409,29 +1584,33 @@ class CrystalBragg(utils.ToFuObject):
         merid_ref:  float
             Distance crystal-meridional focus (m), for a perfect crystal
         sagit_ref:  float
-            Distance crystal-sagital focus (m), for a perfect crystal
+            Distance crystal-sagittal focus (m), for a perfect crystal
         merid_unp:  float
-            Distance crystal-meridional focus (m), using non_parallelism
+            Distance crystal-meridional focus (m), using miscut
         sagit_unp:  float
-            Distance crystal-sagital focus (m), using non_parallelism
+            Distance crystal-sagittal focus (m), using miscut
 
         """
         # Check inputs
+        self.update_miscut(alpha=0., beta=0.)
         if rcurve is None:
             rcurve = self._dgeom['rcurve']
         if bragg is None:
             bragg = self._dbragg['braggref']
-        if use_non_parallelism is True:
-            alpha = self._dmat['alpha']
-        if use_non_parallelism is False:
-            alpha = 0.0
+        if miscut is True and alpha is None:
+            alpha = (3/60)*np.pi/180.
+        if miscut is True and alpha is not None:
+            alpha = alpha
+        if miscut is None or miscut is False:
+            miscut = False
+            alpha = self.dmat['alpha']
 
         # Compute
-        return _comp_optics.calc_meridional_sagital_focus(
+        return _comp_optics.calc_meridional_sagittal_focus(
             rcurve=rcurve,
             bragg=bragg,
             alpha=alpha,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             verb=verb,
         )
 
@@ -1446,14 +1625,14 @@ class CrystalBragg(utils.ToFuObject):
             bragg=bragg, rcurve=self._dgeom['rcurve'],
         )
 
-    def get_detector_approx(
+    def get_detector_ideal(
         self,
         bragg=None, lamb=None,
         rcurve=None, n=None,
         ddist=None, di=None, dj=None,
         dtheta=None, dpsi=None, tilt=None,
         lamb0=None, lamb1=None, dist01=None,
-        use_non_parallelism=None,
+        miscut=None,
         tangent_to_rowland=None, plot=False,
     ):
         """ Return approximate ideal detector geometry
@@ -1542,8 +1721,8 @@ class CrystalBragg(utils.ToFuObject):
             )
             raise Exception(msg)
 
-        nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
-            use_non_parallelism=use_non_parallelism,
+        nout, e1, e2, miscut = self.get_unit_vectors(
+            miscut=miscut,
         )
 
         lc = [cc is None for cc in [nout, e1, e2]]
@@ -1589,7 +1768,7 @@ class CrystalBragg(utils.ToFuObject):
         msg = ("det must be:\n"
                + "\t- False: not det provided\n"
                + "\t- None:  use default approx det from:\n"
-               + "\t           self.get_detector_approx()\n"
+               + "\t           self.get_detector_ideal()\n"
                + "\t- dict:  a dictionary of 3d (x,y,z) coordinates of a point"
                + " (local frame center) and 3 unit vectors forming a direct "
                + "orthonormal basis attached to the detector's frame\n"
@@ -1602,7 +1781,7 @@ class CrystalBragg(utils.ToFuObject):
         if not any(lc):
             raise Exception(msg)
         if lc[0]:
-            det = self.get_detector_approx(lamb=self._dbragg['lambref'])
+            det = self.get_detector_ideal(lamb=self._dbragg['lambref'])
         elif lc[2]:
             lk = ['cent', 'nout', 'ei', 'ej']
             c0 = (isinstance(det, dict)
@@ -1621,7 +1800,7 @@ class CrystalBragg(utils.ToFuObject):
         self,
         dtheta=None, psi=None,
         ntheta=None, npsi=None,
-        use_non_parallelism=None,
+        miscut=None,
         include_summit=None,
     ):
         """ Return (vout, ve1, ve2) associated to pts on the crystal's surface
@@ -1660,8 +1839,8 @@ class CrystalBragg(utils.ToFuObject):
 
         """
         # Get local basis at crystal summit
-        nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
-            use_non_parallelism=use_non_parallelism,
+        nout, e1, e2, miscut = self.get_unit_vectors(
+            miscut=miscut,
         )
         nin = -nout
 
@@ -1694,7 +1873,7 @@ class CrystalBragg(utils.ToFuObject):
         dtheta=None,
         psi=None,
         det=None,
-        use_non_parallelism=None,
+        miscut=None,
         strict=None,
         return_strict=None,
         data=None,
@@ -1724,8 +1903,6 @@ class CrystalBragg(utils.ToFuObject):
             return_strict = False
         if plot is None:
             plot = False
-        if use_non_parallelism is None:
-            use_non_parallelism = False
 
         # Check / format inputs
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
@@ -1740,12 +1917,12 @@ class CrystalBragg(utils.ToFuObject):
         if psi is None:
             psi = 0.
 
-        # Probably to update with use_non_parallelism?
+        # Probably to update with miscut?
         # Get back summit & vectors at any point at the crystal surface,
         #  according to parallelism properties
         summit, nout, e1, e2 = self.get_local_noute1e2(
             dtheta=dtheta, psi=psi,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             ntheta=None, npsi=None,
             include_summit=False,
         )
@@ -1769,13 +1946,28 @@ class CrystalBragg(utils.ToFuObject):
             return xi, xj
 
     def plot_line_on_det_tracing(
-        self, lamb=None, n=None,
-        nphi=None,
-        det=None, ddet=None, johann=None,
-        use_non_parallelism=None,
+        self,
+        # Options of basic method
+        dcryst=None,
+        n=None, nphi2=None,
+        det=None, johann=None,
         lpsi=None, ldtheta=None,
+        # Type of crystal
+        crystal=None, din=None,
+        # Wavelength
+        lamb=None,
+        # Options of crystal modifications
+        merge_rc_data=None,
+        miscut=None,
+        therm_exp=None,
+        alpha_limits=None, na=None,
+        alpha0=None, temp0=None,
+        temp_limits=None,
+        # Plot
+        plot_rcs=None,
         strict=None,
-        ax=None, dleg=None, dcryst=None,
+        plot=None, ax=None,
+        dleg=None, color=None,
         rocking=None, fs=None, dmargin=None,
         wintit=None, tit=None,
         plot=None,
@@ -1785,33 +1977,121 @@ class CrystalBragg(utils.ToFuObject):
         Args:
             - lamb: array of min size 1, in 1e-10 [m]
             - det: dict
-            - xi_bounds: np.min & np.max of _XI
-            - xj_bounds: np.min & np.max of _XJ
-            (from "inputs_temp/XICS_allshots_C34.py" l.649)
-            - johann: True or False
+            - johann: bool
+            - merge_rc_data: bool
+                use tf/spectro/_rockingucurve.py to plot in transparency ranges
+                the angular extent of each wavelength traces
+            - alpha_limits: array
+                asymmetry angle range, provide only both limits.
+                By default in tf/spectro/_rockingucurve.py between +/-5 arcmin
+            - na: float
+                nbr of points wnated for the asymmetry angles and thermical
+                changes ranges. By default to 51 points and 'nn' = na/2. by
+                default to 25.
+            - alpha0: float
+                Wanted value in radians of the amplitude miscut angle.
+                By default to 3 arcmin = 0.05 deg = pi/3600 rad
+                '0' for alpha_limits[0], 'na-1' for alpha_limits[1].
+                By default to 3 arcmin = 0.05 rad so alpha0=40
+            - temp0: float
+                Wanted value of the temperature change.
+                By default to 10°C = 282 °K
+                '0' for -25°C, 'nn' for 0°C and 'na-1' for +25°C.
+                By default to 10°C so temp0=35
         """
+
         # Check / format inputs
-        if plot is None:
-            plot = True
-        if lamb is None:
+        lok = [
+            k0 for k0 in _rockingcurve_def._DCRYST.keys()
+            if 'xxx' not in k0.lower()
+        ]
+        crystal = ds._generic_check._check_var(
+            crystal, 'crystal',
+            types=str,
+            allowed=lok,
+        )
+        din = _rockingcurve_def._DCRYST[crystal]
+
+        if merge_rc_data is None:
+            merge_rc_data = False
+        if lamb is None and merge_rc_data is False:
             lamb = self._dbragg['lambref']
+        elif lamb is None and merge_rc_data is True:
+            # He-like resonance line w at 3.969067 A, intercombination lines
+            # line x at 3.965858A and line y at 3.969356A, forbidden line z at
+            # 3.994145A; Li-like dielectronic satellite line k at 3.98981A
+            lamb = np.r_[
+                3.949067e-10, 3.965858e-10, 3.969356e-10,
+                3.994145e-10, 3.989810e-10,
+            ]
         lamb = np.atleast_1d(lamb).ravel()
         nlamb = lamb.size
-        if use_non_parallelism is None:
-            use_non_parallelism = False
-
+        if miscut is None:
+            miscut = False
+        if therm_exp is None:
+            therm_exp = False
         if johann is None:
             johann = lpsi is not None or ldtheta is not None
         if rocking is None:
             rocking = False
-
+        if alpha_limits is None:
+            alpha_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
+        if temp_limits is None:
+            temp_limits = np.r_[-10, 10, 25]
+        if na is None:
+            na = 41
+        nn = (na/2.)
+        if (nn % 2) == 0.:
+            nn = int(nn - 1)
+        else:
+            nn = int(nn - 0.5)
+        if alpha0 is None:
+            alpha0 = (3/60)*np.pi/180.
+        if temp0 is None:
+            temp0 = 10.
         if det is None or det.get('outline') is None:
             msg = ("Please provide det as a dict with 'outline'!")
             raise Exception(msg)
+        if plot_rcs is None:
+            plot_rcs = False
+        if plot is None:
+            plot = True
+        if strict is None:
+            strict = True
+
+        # Check from args inputs the values of amplitude miscut angle alpha and
+        # inter-reticular spacing
+        self.update_miscut(alpha=0., beta=0.)
+        if miscut:
+            self.update_miscut(alpha=alpha0, beta=0.)
+        # T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
+        dout = _rockingcurve.CrystBragg_comp_lattice_spacing(
+            crystal=crystal, din=din,
+            lamb=self.dbragg['lambref']*1e10,
+            na=na, nn=nn,
+            therm_exp=therm_exp,
+            temp_limits=temp_limits,
+            plot_therm_exp=False,
+        )
+        T0 = dout['Temperature of reference (°C)']
+        TD = dout['Temperature variations (°C)']
+        Volume = dout['Volume (1/m3)']
+        d_atom = dout['Inter-reticular spacing (A)']
+        sol = dout['sinus over lambda']
+        theta = dout['theta_Bragg (rad)']
+        theta_deg = dout['theta_Bragg (deg)']
+
+        def find_nearest(array, value):
+            array = np.asarray(array)
+            idx = (np.abs(array - value)).argmin()
+            return idx
+
+        id_temp0 = find_nearest(TD, temp0)
+        self.dmat['d'] = d_atom[id_temp0]*1e-10
 
         # Get local basis
-        nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
-            use_non_parallelism=use_non_parallelism,
+        nout, e1, e2, miscut = self.get_unit_vectors(
+            miscut=miscut,
         )
         nin = -nout
 
@@ -1819,7 +2099,7 @@ class CrystalBragg(utils.ToFuObject):
         _, phi = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
             xi=det['outline'][0, :], xj=det['outline'][1, :], det=det,
             dtheta=0, psi=0,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             n=n,
             grid=True,
             return_lamb=False,
@@ -1829,8 +2109,9 @@ class CrystalBragg(utils.ToFuObject):
 
         # Get reference ray-tracing
         bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
-        if nphi is None:
-            nphi = 100
+        if nphi2 is None:
+            nphi2 = 50
+        nphi = 2*nphi2
         phi = np.linspace(phimin, phimax, nphi)
 
         xi = np.full((nlamb, nphi), np.nan)
@@ -1843,7 +2124,7 @@ class CrystalBragg(utils.ToFuObject):
                 psi=0.,
                 n=n,
                 det=det,
-                use_non_parallelism=use_non_parallelism,
+                miscut=miscut,
                 strict=strict,
                 plot=False,
             )
@@ -1873,7 +2154,7 @@ class CrystalBragg(utils.ToFuObject):
                         phi=phi, bragg=bragg[l], lamb=None, n=n,
                         dtheta=ldtheta[ii], psi=lpsi[ii],
                         det=det, plot=False,
-                        use_non_parallelism=use_non_parallelism,
+                        miscut=miscut,
                         strict=strict,
                     )
 
@@ -1881,283 +2162,337 @@ class CrystalBragg(utils.ToFuObject):
         if rocking:
             pass
 
+        # Picking the number of points used to compute a rocking curve & their
+        # glancing angles associated, computing the coordinates (xi_rc, xj_rc)
+        # related to plot the wavelength arc with a transparency parameter
+        # 'alpha' (cf.plt.plot()) corresponding to the diffracted intensity
+        # value at this glancing angle.
+        if merge_rc_data:
+            xi_rc = np.full((1), np.nan)
+            xj_rc = xi_rc.copy()
+            power_ratio = xi_rc.copy()
+            xi_atprmax = xi_rc.copy()
+            xj_atprmax = xi_rc.copy()
+            bragg_atprmax = xi_atprmax.copy()
+            lamb_atprmax = xi_atprmax.copy()
+
+            # For each wavelength, get results dictionnary of the associated
+            # diffraction pattern
+            for ll in range(nlamb):
+                dout = _rockingcurve.compute_rockingcurve(
+                    crystal=crystal, din=din,
+                    lamb=lamb[ll]*1e10,
+                    miscut=miscut,
+                    therm_exp=therm_exp,
+                    temp_limits=temp_limits,
+                    plot_therm_exp=plot_rcs,
+                    alpha_limits=alpha_limits, nn=None,
+                    plot_asf=False, plot_power_ratio=plot_rcs,
+                    plot_asymmetry=False, plot_cmaps=False,
+                    returnas=dict,
+                )
+                TD = np.zeros((na,), dtype=float)
+                if therm_exp:
+                    TD = dout['Temperature changes (°C)']
+                nT = TD.size
+                angles = np.zeros((na,), dtype=float)
+                if miscut:
+                    angles = dout['Miscut angles (deg)']
+                nangles = angles.size
+                power_ratio = np.resize(power_ratio, (
+                    nlamb,
+                    dout['Power ratio'].shape[0],
+                    dout['Power ratio'].shape[1],
+                    dout['Power ratio'].shape[2],
+                    dout['Power ratio'].shape[3],
+                    )
+                )
+                power_ratio[ll, ...] = dout['Power ratio']
+
+                def find_nearest(array, value):
+                    array = np.asarray(array)
+                    idx = (np.abs(array - value)).argmin()
+                    return idx
+
+                id_alpha0 = find_nearest(angles, alpha0)
+
+                # Pull the glancing angles 'dth' & the number of points 'ndth'
+                # depending on the case related to unp & therm_exp, plus
+                # find the glancing angle related the max power ratio value
+                if miscut and therm_exp:
+                    dth = dout['Glancing angles'][0, id_temp0, id_alpha0, :]
+                    ndth = dth.size
+                    ind_pr_max = np.where(
+                        power_ratio[ll, 0, id_temp0, id_alpha0] == np.max(
+                            power_ratio[ll, 0, id_temp0, id_alpha0]
+                        )
+                    )
+                    dth_atprmax = dth[ind_pr_max]
+                elif not miscut and not therm_exp:
+                    dth = dout['Glancing angles'][0, 0, 0, :]
+                    ndth = dth.size
+                    ind_pr_max = np.where(
+                        power_ratio[ll, 0, 0, 0] == np.max(
+                            power_ratio[ll, 0, 0, 0]
+                        )
+                    )
+                    dth_atprmax = dth[ind_pr_max]
+                elif miscut and not therm_exp:
+                    dth = dout['Glancing angles'][0, 0, id_alpha0, :]
+                    ndth = dth.size
+                    ind_pr_max = np.where(
+                        power_ratio[ll, 0, 0, id_alpha0] == np.max(
+                            power_ratio[ll, 0, 0, id_alpha0]
+                        )
+                    )
+                    dth_atprmax = dth[ind_pr_max]
+                elif not miscut and therm_exp:
+                    dth = dout['Glancing angles'][0, id_temp0, 0, :]
+                    ndth = dth.size
+                    ind_pr_max = np.where(
+                        power_ratio[ll, 0, id_temp0, 0] == np.max(
+                            power_ratio[ll, 0, id_temp0, 0]
+                        )
+                    )
+                    dth_atprmax = dth[ind_pr_max]
+
+                # Resize results arrays
+                xi_rc = np.resize(xi_rc, (nlamb, ndth, nphi))
+                xj_rc = xi_rc.copy()
+                xi_atprmax = np.resize(xi_atprmax, (nlamb, 1))
+                xj_atprmax = xi_atprmax.copy()
+                bragg_atprmax = xi_atprmax.copy()
+                lamb_atprmax = xi_atprmax.copy()
+
+                # Compute wavelength arcs for each glancing angle to obtain
+                # the shadow of the diffraction pattern on the detector
+                for mm in range(ndth):
+                    (
+                        xi_rc[ll, mm, :], xj_rc[ll, mm, :],
+                    ) = self.calc_xixj_from_braggphi(
+                        bragg=np.full(phi.shape, dth[mm]),
+                        phi=phi,
+                        dtheta=0.,
+                        psi=0.,
+                        n=n,
+                        det=det,
+                        miscut=miscut,
+                        strict=strict,
+                        plot=False,
+                    )
+                xi_atprmax[ll] = xi_rc[ll, ind_pr_max, nphi2]
+                xj_atprmax[ll] = xj_rc[ll, ind_pr_max, nphi2]
+                self.update_miscut(alpha=0., beta=0.)
+                if therm_exp:
+                    self.dmat['d'] = d_atom[nn]*1e-10
+                else:
+                    self.dmat['d'] = d_atom[0]*1e-10
+                (
+                    bragg_atprmax[ll], _, lamb_atprmax[ll],
+                ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
+                    xi=xi_atprmax[ll], xj=xj_atprmax[ll], det=det,
+                    dtheta=0, psi=0,
+                    miscut=miscut,
+                    n=n,
+                    grid=True,
+                    return_lamb=True,
+                )
+
+        # Reset parameters as at beginning
+        if miscut:
+            self.update_miscut(alpha=alpha0, beta=0.)
+        else:
+            self.update_miscut(alpha=0., beta=0.)
+        if therm_exp:
+            self.dmat['d'] = d_atom[id_temp0]*1e-10
+        else:
+            self.dmat['d'] = d_atom[0]*1e-10
+
         # Plot
         if plot:
-            ax = _plot_optics.CrystalBragg_plot_line_tracing_on_det(
-                lamb, xi, xj, xi_er, xj_er,
-                det=det, ddet=ddet,
-                use_non_parallelism=use_non_parallelism,
-                johann=johann, rocking=rocking,
-                cryst=self, dcryst=dcryst,
-                ax=ax, dleg=dleg,
-                fs=fs, dmargin=dmargin,
-                wintit=wintit, tit=tit,
-                plot=plot,
-            )
-        else:
-            if johann:
-                return lamb, xi, xj, xi_er, xj_er
+            if merge_rc_data:
+                return _plot_optics.CrystalBragg_plot_line_tracing_on_det(
+                    cryst=self, dcryst=dcryst,
+                    lamb=lamb,
+                    xi=xi, xj=xj, xi_er=xi_er, xj_er=xj_er,
+                    power_ratio=power_ratio, dth=dth, ndth=ndth, nn=nn,
+                    xi_rc=xi_rc, xj_rc=xj_rc,
+                    xi_atprmax=xi_atprmax,
+                    bragg_atprmax=bragg_atprmax,
+                    lamb_atprmax=lamb_atprmax,
+                    det=det,
+                    johann=johann, rocking=rocking,
+                    miscut=miscut,
+                    therm_exp=therm_exp,
+                    merge_rc_data=merge_rc_data,
+                    alpha0=alpha0, temp0=temp0,
+                    TD=TD, angles=angles,
+                    id_temp0=id_temp0,
+                    ax=ax, dleg=dleg, color=color,
+                    fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                )
             else:
-                return lamb, xi, xj
+                return _plot_optics.CrystalBragg_plot_line_tracing_on_det(
+                    cryst=self, dcryst=dcryst,
+                    lamb=lamb, xi=xi, xj=xj, xi_er=xi_er, xj_er=xj_er,
+                    alpha0=alpha0, temp0=temp0,
+                    id_temp0=id_temp0,
+                    johann=johann, rocking=rocking,
+                    miscut=miscut,
+                    therm_exp=therm_exp,
+                    merge_rc_data=merge_rc_data,
+                    det=det,
+                    ax=ax, dleg=dleg, color=color,
+                    fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                )
+        else:
+            dout = {'lamb': lamb,
+                    'xi': xi,
+                    'xj': xj,
+                    'xi_rc': xi_rc,
+                    'xj_rc': xj_rc,
+                    'xi_atprmax': xi_atprmax,
+                    'lamb_atprmax': lamb_atprmax,
+                    'bragg_atprmax': bragg_atprmax}
+            return dout
 
-    def dshift_maps(
-        self,
+    def comp_angular_shift_on_det_tracing(
+        self, lamb=None, n=None,
+        nphi=None,
         det=None,
-        split=None,
-        direction=None, nb=None,
-        xi=None, xj=None,
-        use_non_parallelism=None,
-        val_phi=None, n_val_phi=None,
-        plot=None,
-        ax=None,
-        dleg=None,
+        miscut=None,
+        lpsi=None, ldtheta=None,
+        ih=None, ik=None, il=None,
         dcryst=None,
-        fs=None,
-        dmargin=None,
+        merge_rc_data=None,
+        therm_exp=None, alpha_limits=None, na=None,
+        temp=None,
+        plot=None, ax=None,
+        dleg=None, color=None,
+        fs=None, dmargin=None,
         wintit=None, tit=None,
     ):
         """
-        Using either the crystal in one piece (split=False) or splitted in two
-        (split=True), computing variations of parameter dshift between each
-        pixels of the detector.
-        In the first case, assume a first perfect crystal in order to have
-        a physical parameters basis (bragg, phi, lamb) for each pixel position
-        and superposing a second one with alpha & beta angles variable,
-        (bragg, phi, lamb)_unp for the same pixels.
-        With a crystal splitted, one half is using as a perfect basis and
-        the second has twice the maximum value for alpha angle and beta
-        still variable.
-        Finally, computing the gap between (bragg, phi, lamb)_unp and
-        (bragg, phi, lamb).
-
-        Parameters:
-        ----------
-        - det: dict
-            Detector of reference on which ray tracing is done
-        - split: boolean
-            True or False to split the crystal
-        - direction: 'e1' or 'e2'
-        - xi, xj :  np.ndarray
-            pixelization of the detector
-            (from "inputs_temp/XICS_allshots_C34.py" l.649)
-            direction of splitting
-        - use_non_parallelism: boolean
-            True or False if non parallelism have to be taken into account
-        - val_phi: np.array
-            Phi coord. at which to make a slice for spectrum
-        - n_val_phi: np.float
-            Interval to take above and below the val_phi choosen.
+        Args:
+            - lamb: array of min size 1, in 1e-10 [m]
+            - det: dict
+            - johann: bool
+            - ih, ik, il: floats
+                Give the Miller indices corresponding to the material type of
+                crystal used on tofu/spectro/_rockingcurve.py
+            - merge_rc_data: bool
+                use tf/spectro/_rockingucurve.py to plot in transparency ranges
+                the angular extent of each wavelength traces
+            - alpha_limits: array
+                asymmetry angle range, provide only both limits.
+                By default in tf/spectro/_rockingucurve.py between +/-5 arcmin
+            - na: float
+                nbr of points wnated for the asymmetry angles and thermical
+                changes ranges. By default to 51 points and 'nn' = na/2. by
+                default to 25.
+            - alpha0: float
+                Wanted value in radians of the amplitude miscut angle.
+                By default to 3 arcmin = 0.05 deg = pi/3600 rad
+                '0' for alpha_limits[0], 'na-1' for alpha_limits[1].
+                By default to 3 arcmin = 0.05 rad so alpha0=40
+            - temp0: float
+                Wanted value of the temperature change.
+                By default to 10°C = 282 °K
+                '0' for -10°C, 'nn' for 0°C and 'na-1' for +10°C.
+                By default to 10°C so temp0=35
         """
 
-        # Check inputs
-        #if use_non_parallelism is None:
-            #use_non_parallelism = True
-        if split is None:
-            split = False
-        if direction is None:
-            direction = 'e1'
-        if nb is None:
-            nb = 2
+        # Check / format inputs
+        if merge_rc_data is None:
+            merge_rc_data = True
+        if lamb is None:
+            lamb = np.r_[self._dbragg['lambref']]
+        if ih is None and ik is None and il is None:
+            ih = 1
+            ik = 1
+            il = 0
+        lamb = np.atleast_1d(lamb).ravel()
+        nlamb = lamb.size
+        if miscut is None:
+            miscut = True
+        if therm_exp is None:
+            therm_exp = True
+        if alpha_limits is None:
+            alpha_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
+        if temp is None:
+            temp = np.r_[-10, +10]
+        if na is None:
+            na = 41
+        nn = (na/2.)
+        if (nn % 2) == 0.:
+            nn = int(nn - 1)
+        else:
+            nn = int(nn - 0.5)
+        if det is None or det.get('outline') is None:
+            msg = ("Please provide det as a dict with 'outline'!")
+            raise Exception(msg)
         if plot is None:
-            plot = True
-        if val_phi is None:
-            val_phi = np.r_[-0.09, -0.06, -0.03, 0.00, 0.03, 0.06, 0.09]
-        if n_val_phi is None:
-            n_val_phi = 1e-3
+            plot = False
 
-        # Checkformat det
-        det = self._checkformat_det(det=det)
+        #
+        angles = np.linspace(alpha_limits[0], alpha_limits[1], na)
+        TD = np.linspace(temp[0], temp[1], na)
 
-        # Checkformat detector pixels
-        xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
-        ix = np.full((val_phi.size), np.nan)
-        jx = ix.copy()
-        nn = int(val_phi.size)
-        for bb in np.linspace(0, nn-1, nn):
-            bb = int(bb)
-            ix[bb], jx[bb] = self.calc_xixj_from_braggphi(
-                phi=val_phi[bb],
-                det=det,
-                use_non_parallelism=use_non_parallelism,
-                plot=False,
-            )
-
-        # Copying alpha and beta angles of origin
-        # alpha and beta angles of reference = (0", 0")
-        alpha0 = float(self.dmat['alpha'])
-        beta0 = float(self.dmat['beta'])
-
-        # Building arrays of alpha angle values & for results
-        alphas = np.linspace(alpha0, alpha0, 2)
-        alphas_split = np.linspace(0, (3/60)*np.pi/180, 2)
-        betas = np.linspace(beta0, beta0, 4)
-        betas_split = np.linspace(0, 0, 4) # np.pi/32, 4)
-        bragg = np.full(
-            (alphas.size, betas.size, xi.size, xj.size, 1),
-            np.nan,
-        )
-        lamb, phi = bragg.copy(), bragg.copy()
-        bragg_unp, lamb_unp, phi_unp = bragg.copy(), bragg.copy(), bragg.copy()
-        xi_unp = np.full(
-            (alphas.size, betas.size, xi.size*xj.size),
-            np.nan,
-        )
-        xj_unp = xi_unp.copy()
-        xiii, xjjj = xi_unp.copy(), xi.copy()
-
-        # Splitting crystal
-        if split:
-            cryst1, cryst2 = self.split(direction=direction, nb=nb)
-
-        # Compute (bragg, phi, lamb) associated to each pixel for
-        # a splitted crystal & mono-crystal for each values of
-        # non-parallelism angles alpha & beta
-        if not split:
-            for ii in list(range(alphas.size)):
-                for jj in list(range(betas.size)):
-                    # From det to perfect crystal
-                    self.update_non_parallelism(
-                        alpha=alphas[ii], beta=betas[jj],
-                    )
-                    (
-                        bragg[ii, jj, :, :],
-                        phi[ii, jj, :, :], lamb[ii, jj :, :],
-                    ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
-                        xi=xii, xj=xjj,
-                        det=det,
-                        use_non_parallelism=True,
-                        return_lamb=True,
-                    )
-                    # From det to crystal with defaults
-                    self.update_non_parallelism(
-                        alpha=alphas_split[ii], beta=betas_split[jj],
-                    )
-                    (
-                        bragg_unp[ii, jj, :, :],
-                        phi_unp[ii, jj, :, :], lamb_unp[ii, jj, :, :],
-                    ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
-                        xi=xii, xj=xjj,
-                        det=det,
-                        use_non_parallelism=True,
-                        return_lamb=True,
-                    )
-                    # From unperfect crystal, (xi,xj)_unp corresponding to
-                    # (bragg, phi, lamb)
-                    (
-                        xi_unp[ii, jj, :],
-                        xj_unp[ii, jj, :], strict,
-                    ) = self.calc_xixj_from_braggphi(
-                        phi = np.zeros(487*1467), #phi[ii, jj, ...].flatten(),
-                        bragg = bragg[ii, jj, ...].flatten(),
-                        det=det,
-                        use_non_parallelism=True,
-                        strict=True,
-                        return_strict=True,
-                        plot=False,
-                    )
-        else:
-            for ii in list(range(alphas.size)):
-                for jj in list(range(betas.size)):
-                    # From det to perfect crystal S1
-                    cryst1.update_non_parallelism(
-                        alpha=alphas[ii], beta=betas[jj],
-                    )
-                    (
-                        bragg[ii, jj, :, :],
-                        phi[ii, jj, :, :], lamb[ii, jj, :, :],
-                    ) = cryst1.get_lambbraggphi_from_ptsxixj_dthetapsi(
-                        xi=xii, xj=xjj,
-                        det=det,
-                        use_non_parallelism=True,
-                        return_lamb=True,
-                    )
-                    # From det to crystal with defaults S2
-                    cryst2.update_non_parallelism(
-                        alpha=alphas_split[ii], beta=betas_split[jj],
-                    )
-                    (
-                        bragg_unp[ii, jj, :, :],
-                        phi_unp[ii, jj, :, :], lamb_unp[ii, jj, :, :],
-                    ) = cryst2.get_lambbraggphi_from_ptsxixj_dthetapsi(
-                        xi=xii, xj=xjj,
-                        det=det,
-                        use_non_parallelism=True,
-                        return_lamb=True,
-                    )
-                    # From unperfect crystal, (xi,xj)_unp corresponding to
-                    # (bragg, phi, lamb)
-                    (
-                        xi_unp[ii, jj, :],
-                        xj_unp[ii, jj, :], strict,
-                    ) = cryst2.calc_xixj_from_braggphi(
-                        phi = np.zeros(487*1467), #phi[ii, jj, ...].flatten(),
-                        bragg = bragg[ii, jj, ...].flatten(),
-                        det=det,
-                        use_non_parallelism=True,
-                        strict=True,
-                        return_strict=True,
-                        plot=False,
-                    )
-
-        # Reshaping arrays resulting from previous iterations if
-        lamb, phi, bragg = (
-            lamb[..., 0], phi[..., 0], bragg[..., 0],
-        )
-        lamb_unp, phi_unp, bragg_unp = (
-            lamb_unp[..., 0], phi_unp[..., 0], bragg_unp[..., 0],
-        )
-        xi_unp, xj_unp = (
-            xi_unp.reshape(2, 4, 487, 1467),
-            xj_unp.reshape(2, 4, 487, 1467),
-        )
-
-        # Computing gap between each pixels for each non-parallelism case
-        gap_lamb = np.full((2, 4, xi.size, xj.size), np.nan)
-        gap_xi = np.full((2, 4, xi.size, xj.size), np.nan)
-        for ii in range(alphas.size):
-            for jj in range(betas.size):
-                gap_lamb[ii, jj, :, :] = (
-                    (lamb_unp[ii, jj, :, :] - lamb[ii, jj, :, :])
+        # Computation of angular shifts
+        # Dictionary of results
+        din = {
+            'xi_atprmax': np.full((TD.size, angles.size, 1, 1), np.nan),
+            'lamb_atprmax': np.full((TD.size, angles.size, 1, 1), np.nan),
+            'bragg_atprmax': np.full((TD.size, angles.size, 1, 1), np.nan),
+        }
+        # Record
+        for aa in range(TD.size):
+            for bb in range(angles.size):
+                print('dT= ', TD[aa], ' & alpha= ', angles[bb])
+                dout = self.plot_line_on_det_tracing(
+                    lamb=lamb,
+                    det=det,
+                    merge_rc_data=merge_rc_data,
+                    ih=ih, ik=ik, il=il,
+                    miscut=True,
+                    therm_exp=True,
+                    alpha0=angles[bb],
+                    temp0=TD[aa],
+                    plot=False,
                 )
-                gap_xi[ii, jj, :, :] = (
-                    (xi_unp[ii, jj, :, :] - xii)
+                din['xi_atprmax'][aa, bb, :, :] = dout['xi_atprmax']
+                din['lamb_atprmax'][aa, bb, :, :] = dout['lamb_atprmax']
+                din['bragg_atprmax'][aa, bb, :, :] = dout['bragg_atprmax']
+        # Compute spectral, angular and pixel offsets
+        din['delta_xi'] = np.full((TD.size, angles.size), np.nan)
+        din['delta_lamb'] = np.full((TD.size, angles.size), np.nan)
+        din['delta_bragg'] = np.full((TD.size, angles.size), np.nan)
+        xi_origin = din['xi_atprmax'][nn, nn, 0]
+        lamb_origin = din['lamb_atprmax'][nn, nn, 0]
+        bragg_origin = din['bragg_atprmax'][nn, nn, 0]
+        for aa in range(TD.size):
+            for bb in range(angles.size):
+                din['delta_xi'][aa, bb] = (
+                    xi_origin - din['xi_atprmax'][aa, bb, 0]
+                )
+                din['delta_lamb'][aa, bb] = (
+                    lamb_origin - din['lamb_atprmax'][aa, bb, 0]
+                )
+                din['delta_bragg'][aa, bb] = (
+                    bragg_origin - din['bragg_atprmax'][aa, bb, 0]
                 )
 
-        # Reset cryst angles
-        if not split:
-            self.update_non_parallelism(alpha=alpha0, beta=beta0)
-
-        # Plot gap_xi and gap_lamb
-        if plot:
-            ax = _plot_optics.CrystalBragg_plot_dshift_maps(
-                lamb, lamb_unp,
-                bragg, bragg_unp,
-                phi, phi_unp,
-                xi, xi_unp,
-                xj, xj_unp,
-                xii, xjj,
-                gap_lamb,
-                gap_xi,
-                alphas_split,
-                betas_split,
-                cryst=self, dcryst=dcryst,
-                use_non_parallelism=use_non_parallelism,
-                det=det,
-                split=split,
-                val_phi=val_phi, n_val_phi=n_val_phi,
-                ix=ix, jx=jx,
-                ax=ax, dleg=dleg,
-                fs=fs, dmargin=dmargin,
-                wintit=wintit, tit=tit,
-            )
-        else:
-            return (
-                bragg, bragg_unp,
-                phi, phi_unp,
-                lamb, lamb_unp,
-                gap_lamb,
-                gap_xi,
-            )
+        return _plot_optics.CrystalBragg_plot_angular_shift_on_det_tracing(
+            cryst=self, dcryst=dcryst,
+            lamb=lamb,
+            din=din,
+            na=na, nn=nn,
+            det=det,
+            TD=TD, angles=angles,
+            ax=ax, dleg=dleg, color=color,
+            fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+        )
+>>>>>>> devel
 
     def calc_johannerror(
         self,
@@ -2169,8 +2504,8 @@ class CrystalBragg(utils.ToFuObject):
         lpsi=None, ldtheta=None,
         lambda_interval_min=None,
         lambda_interval_max=None,
-        plot=None, plot_phi=None,
-        fs=None, cmap=None,
+        miscut=None,
+        plot=True, fs=None, cmap=None,
         vmin=None, vmax=None, tit=None, wintit=None,
     ):
         """ plot the johann error
@@ -2247,51 +2582,15 @@ class CrystalBragg(utils.ToFuObject):
         # Check / format inputs
         xi, xj, (xii, xjj) = _comp_optics._checkformat_xixj(xi, xj)
 
-        # Crystal(s) definition if split wanted or not
-        if split:
-            c1, c2 = self.split(direction=direction, nb=nb)
-            bragg = np.full((nb, xi.size, xj.size, 1), np.nan)
-            phi, lamb = bragg.copy(), bragg.copy()
-            alpha = alpha
-            beta = beta
-        else:
-            bragg = np.full((xi.size, xj.size, 1), np.nan)
-            phi, lamb = bragg.copy(), bragg.copy()
-
-        # Compute equivalency between pixel & physical param. / crystal wanted
-        if not split:
-            self.update_non_parallelism(alpha=alpha, beta=beta)
-            bragg, phi, lamb = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
-                xi=xii, xj=xjj, det=det,
-                dtheta=0, psi=0,
-                use_non_parallelism=use_non_parallelism,
-                n=n,
-                grid=True,
-                return_lamb=True,
-            )
-        if split:
-            c1.update_non_parallelism(alpha=0, beta=0)
-            (
-                bragg[0, ...], phi[0, ...], lamb[0, ...],
-            ) = c1.get_lambbraggphi_from_ptsxixj_dthetapsi(
-                xi=xii, xj=xjj, det=det,
-                dtheta=0, psi=0,
-                use_non_parallelism=use_non_parallelism,
-                n=n,
-                grid=True,
-                return_lamb=True,
-            )
-            c2.update_non_parallelism(alpha=alpha, beta=beta)
-            (
-                bragg[1, ...], phi[1, ...], lamb[1, ...],
-            ) = c2.get_lambbraggphi_from_ptsxixj_dthetapsi(
-                xi=xii, xj=xjj, det=det,
-                dtheta=0, psi=0,
-                use_non_parallelism=use_non_parallelism,
-                n=n,
-                grid=True,
-                return_lamb=True,
-            )
+        # Check / format inputs
+        bragg, phi, lamb = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
+            xi=xii, xj=xjj, det=det,
+            dtheta=0, psi=0,
+            miscut=miscut,
+            n=n,
+            grid=True,
+            return_lamb=True,
+        )
 
         # Only one summit is selected
         bragg, phi, lamb = bragg[..., 0], phi[..., 0], lamb[..., 0]
@@ -2316,95 +2615,18 @@ class CrystalBragg(utils.ToFuObject):
         npsi = lpsi.size
         assert npsi == ldtheta.size
 
-        if split:
-            braggerr = np.full((nb, xi.size, xj.size, ldtheta.size), np.nan)
-            phierr, lamberr = braggerr.copy(), braggerr.copy()
-        else:
-            braggerr = np.full((xi.size, xj.size, ldtheta.size), np.nan)
-            phierr, lamberr = braggerr.copy(), braggerr.copy()
-
-        # Moving crystal summit along crystal borders
-        if not split:
-            self.update_non_parallelism(alpha=alpha, beta=beta)
-            (
-                braggerr, phierr, lamberr,
-            ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
-                xi=xii, xj=xjj, det=det,
-                dtheta=ldtheta, psi=lpsi,
-                use_non_parallelism=use_non_parallelism,
-                n=n,
-                grid=True,
-                return_lamb=True,
-            )
-            err_lamb = np.nanmax(np.abs(lamb[..., None] - lamberr), axis=-1)
-            err_phi = np.nanmax(np.abs(phi[..., None] - phierr), axis=-1)
-        else:
-            c1.update_non_parallelism(alpha=0, beta=0)
-            (
-                braggerr[0, ...], phierr[0, ...], lamberr[0, ...],
-            ) = c1.get_lambbraggphi_from_ptsxixj_dthetapsi(
-                xi=xii, xj=xjj, det=det,
-                dtheta=ldtheta, psi=lpsi,
-                use_non_parallelism=use_non_parallelism,
-                n=n,
-                grid=True,
-                return_lamb=True,
-            )
-            c2.update_non_parallelism(alpha=alpha, beta=beta)
-            (
-                braggerr[1, ...], phierr[1, ...], lamberr[1, ...],
-            ) = c2.get_lambbraggphi_from_ptsxixj_dthetapsi(
-                xi=xii, xj=xjj, det=det,
-                dtheta=ldtheta, psi=lpsi,
-                use_non_parallelism=use_non_parallelism,
-                n=n,
-                grid=True,
-                return_lamb=True,
-            )
-
-            # Determine per pixel maximal gap between wavelengths received
-            # First, check max and min on each pixel for each crystal
-            lamberrmax = np.full((nb, xi.size, xj.size), np.nan)
-            lamberrmin = lamberrmax.copy()
-            phierrmax, phierrmin = lamberrmax.copy(), lamberrmax.copy()
-            for nn in range(nb):  # for each crystal
-                for i in range(xi.size):
-                    for j in range(xj.size):
-                        lamberrmax[nn, i, j] = np.nanmax(
-                            lamberr[nn, i, j, :],
-                        )
-                        lamberrmin[nn, i, j] = np.nanmin(
-                            lamberr[nn, i, j, :],
-                        )
-                        phierrmax[nn, i, j] = np.nanmax(
-                            phierr[nn, i, j, :],
-                        )
-                        phierrmin[nn, i, j] = np.nanmin(
-                            phierr[nn, i, j, :],
-                        )
-
-            # Then, determine which max and min to keep between both crystals
-            # and compute absolute error
-            lambmax = np.full((xi.size, xj.size), np.nan)
-            lambmin = lambmax.copy()
-            phimax, phimin = lambmax.copy(), lambmax.copy()
-            err_lamb, err_phi = lambmax.copy(), lambmax.copy()
-            for i in range(xi.size):  # for each pixel
-                for j in range(xj.size):
-                    lambmax[i, j] = np.maximum(
-                        lamberrmax[0, i, j], lamberrmax[1, i, j],
-                    )
-                    lambmin[i, j] = np.minimum(
-                        lamberrmin[0, i, j], lamberrmin[1, i, j],
-                    )
-                    phimax[i, j] = np.maximum(
-                        phierrmax[0, i, j], phierrmax[1, i, j],
-                    )
-                    phimin[i, j] = np.minimum(
-                        phierrmin[0, i, j], phierrmin[1, i, j],
-                    )
-                    err_lamb[i, j] = lambmax[i, j] - lambmin[i, j]
-                    err_phi[i, j] = phimax[i, j] - phimin[i, j]
+        (
+            braggerr, phierr, lamberr,
+        ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
+            xi=xii, xj=xjj, det=det,
+            dtheta=ldtheta, psi=lpsi,
+            miscut=miscut,
+            n=n,
+            grid=True,
+            return_lamb=True,
+        )
+        err_lamb = np.nanmax(np.abs(lamb[..., None] - lamberr), axis=-1)
+        err_phi = np.nanmax(np.abs(phi[..., None] - phierr), axis=-1)
 
         # absolute vs relative error
         if 'rel' in err:
@@ -2575,7 +2797,7 @@ class CrystalBragg(utils.ToFuObject):
         lamb=None, bragg=None,
         xi=None, xj=None,
         err=None,
-        use_non_parallelism=None,
+        miscut=None,
         tangent_to_rowland=None, n=None,
         plot=None,
         pts=None,
@@ -2608,7 +2830,9 @@ class CrystalBragg(utils.ToFuObject):
         - xi, xj :  np.ndarray
             pixelization of the detector
             (from "inputs_temp/XICS_allshots_C34.py" l.649)
-        - use_non_parallelism : str
+        - alpha, beta : float
+            Values of Non Parallelism references angles
+        - miscut : str
         - tangent_to_rowland :  str
         - det_ref: dict
             detector's dictionnary to take into reference
@@ -2678,22 +2902,22 @@ class CrystalBragg(utils.ToFuObject):
             bragg=bragg,
             lamb=lamb,
             det_ref=det_ref,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
         )
 
         # angle between nout vectors from get_det_approx() &
         ## get_det_approx(tangent=False)
 
-        det1 = self.get_detector_approx(
+        det1 = self.get_detector_ideal(
             lamb=lamb,
             bragg=bragg,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             tangent_to_rowland=True,
         )
-        det2 = self.get_detector_approx(
+        det2 = self.get_detector_ideal(
             lamb=lamb,
             bragg=bragg,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             tangent_to_rowland=False,
         )
         cos_angle_nout = np.sum(
@@ -2725,7 +2949,7 @@ class CrystalBragg(utils.ToFuObject):
                 if tangent_to_rowland:
                     dpsi0bis = dpsi0 - angle_nout
 
-                det = self.get_detector_approx(
+                det = self.get_detector_ideal(
                     ddist=ddist[ii],
                     di=di[jj],
                     dj=dj0,
@@ -2734,7 +2958,7 @@ class CrystalBragg(utils.ToFuObject):
                     tilt=tilt0,
                     lamb=lamb,
                     bragg=bragg,
-                    use_non_parallelism=use_non_parallelism,
+                    miscut=miscut,
                     tangent_to_rowland=False,
                 )
 
@@ -2769,7 +2993,7 @@ class CrystalBragg(utils.ToFuObject):
                 units=units,
                 plot_dets=plot_dets, nsort=nsort,
                 tangent_to_rowland=tangent_to_rowland,
-                use_non_parallelism=use_non_parallelism,
+                miscut=miscut,
                 pts=pts,
                 test_lamb_interv=test_lamb_interv,
                 contour=contour,
@@ -2789,7 +3013,7 @@ class CrystalBragg(utils.ToFuObject):
         bragg=None,
         lamb=None,
         det_ref=None,
-        use_non_parallelism=None,
+        miscut=None,
     ):
         """
         Computation of translation (ddist, di, dj) and angular
@@ -2814,10 +3038,10 @@ class CrystalBragg(utils.ToFuObject):
         # ------------
         # get approx detect
 
-        det_approx = self.get_detector_approx(
+        det_approx = self.get_detector_ideal(
             bragg=bragg, lamb=lamb,
             tangent_to_rowland=False,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
         )
 
         # ------------
@@ -2862,7 +3086,7 @@ class CrystalBragg(utils.ToFuObject):
         dtheta=None, psi=None,
         ntheta=None, npsi=None,
         n=None,
-        use_non_parallelism=None,
+        miscut=None,
         grid=None,
         return_lamb=None,
     ):
@@ -2889,7 +3113,7 @@ class CrystalBragg(utils.ToFuObject):
         summ, vout, ve1, ve2 = self.get_local_noute1e2(
             dtheta=dtheta, psi=psi,
             ntheta=ntheta, npsi=npsi,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             include_summit=True,
         )
 
@@ -2913,7 +3137,7 @@ class CrystalBragg(utils.ToFuObject):
         pts=None,
         n=None, ndtheta=None,
         det=None, nlamb=None, klamb=None,
-        use_non_parallelism=None,
+        miscut=None,
         strict=None,
         return_phidtheta=None,
         return_xixj=None,
@@ -2944,7 +3168,7 @@ class CrystalBragg(utils.ToFuObject):
             - xi:  (npts, nlamb, ndtheta, 2) array of xi
             - xj:  (npts, nlamb, ndtheta, 2) array of xj
 
-        The result is computed with or w/o taking into account non-parallelism
+        The result is computed with or w/o taking into account miscut
 
         """
         # Check / format
@@ -2968,7 +3192,7 @@ class CrystalBragg(utils.ToFuObject):
             dtheta='envelop', psi='envelop',
             ntheta=None, npsi=None,
             n=n, grid=True,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             return_lamb=True,
         )
         lambmin = np.nanmin(lamb, axis=1)
@@ -2987,7 +3211,7 @@ class CrystalBragg(utils.ToFuObject):
             n=n,
             ndtheta=ndtheta,
             pts=pts,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             return_phidtheta=return_phidtheta,
             return_xixj=return_xixj,
             strict=strict,
@@ -2998,7 +3222,7 @@ class CrystalBragg(utils.ToFuObject):
         self,
         pts=None, bragg=None, lamb=None,
         n=None, ndtheta=None,
-        use_non_parallelism=None,
+        miscut=None,
         grid=None,
     ):
 
@@ -3009,8 +3233,8 @@ class CrystalBragg(utils.ToFuObject):
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
 
         # get nout, e1, e2
-        nout, e1, e2, use_non_parallelism = self.get_unit_vectors(
-            use_non_parallelism=use_non_parallelism
+        nout, e1, e2, miscut = self.get_unit_vectors(
+            miscut=miscut
             )
 
         # Compute dtheta, psi, indnan (nlamb, npts, ndtheta)
@@ -3052,7 +3276,7 @@ class CrystalBragg(utils.ToFuObject):
             pts=pts,
             dtheta=dtheta, psi=psi,
             grid=False,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             return_lamb=False,
         )
 
@@ -3071,7 +3295,7 @@ class CrystalBragg(utils.ToFuObject):
                 + "\t- from the points and lamb\n"
                 + "\t- from the points and (dtheta, psi)\n"
                 + "\nContext:\n"
-                + "\t- use_non_parallelism: {}\n".format(use_non_parallelism)
+                + "\t- miscut: {}\n".format(miscut)
                 + "\t- bragg.shape = {}\n".format(bragg.shape)
                 + "\t- bragg2.shape = {}\n".format(bragg2.shape)
             )
@@ -3128,7 +3352,7 @@ class CrystalBragg(utils.ToFuObject):
             det=det, strict=strict, plot=False,
         )
 
-        # Plot to be checked
+        # Plot to be checked - unnecessary ?
         plot = False
         if plot is not False:
             ptscryst, ptsdet = None, None
@@ -3199,7 +3423,7 @@ class CrystalBragg(utils.ToFuObject):
         bragg, phi, lamb = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
             xi=xii, xj=xjj, det=det,
             dtheta=dtheta, psi=psi,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             n=n,
             grid=True,
             return_lamb=True,
@@ -3246,7 +3470,7 @@ class CrystalBragg(utils.ToFuObject):
             ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
                 xi=xicutf, xj=xjcutf, det=det,
                 dtheta=0, psi=0,
-                use_non_parallelism=use_non_parallelism,
+                miscut=miscut,
                 n=1,
                 grid=True,
                 return_lamb=True,
@@ -3286,7 +3510,7 @@ class CrystalBragg(utils.ToFuObject):
         ndtheta=None,
         nlamb=None,
         n=None,
-        use_non_parallelism=None,
+        miscut=None,
         # plotting
         plot=None,
         dax=None,
@@ -3358,7 +3582,7 @@ class CrystalBragg(utils.ToFuObject):
         lamb_access = self.get_lamb_avail_from_pts(
             pts=ptsXYZ,
             nlamb=2,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             return_phidtheta=False,
             return_xixj=False,
             strict=False,
@@ -3409,7 +3633,7 @@ class CrystalBragg(utils.ToFuObject):
                     n=n,
                     ndtheta=ndtheta,
                     pts=ptsXYZ[:, lambok[kk, :]],
-                    use_non_parallelism=use_non_parallelism,
+                    miscut=miscut,
                     return_phidtheta=False,
                     return_xixj=False,
                     strict=strict,
@@ -3460,7 +3684,7 @@ class CrystalBragg(utils.ToFuObject):
         ndtheta=None,
         nlamb=None,
         n=None,
-        use_non_parallelism=None,
+        miscut=None,
         # plotting
         plot=None,
         vmin=None,
@@ -3537,7 +3761,7 @@ class CrystalBragg(utils.ToFuObject):
         lamb_access = self.get_lamb_avail_from_pts(
             pts=ptsXYZ,
             nlamb=2,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             return_phidtheta=False,
             return_xixj=False,
             strict=False,
@@ -3593,7 +3817,7 @@ class CrystalBragg(utils.ToFuObject):
                 n=n,
                 ndtheta=ndtheta,
                 pts=ptsXYZ[:, lambok[kk, :]],
-                use_non_parallelism=use_non_parallelism,
+                miscut=miscut,
                 return_phidtheta=False,
                 return_xixj=True,
                 strict=True,
@@ -3858,7 +4082,7 @@ class CrystalBragg(utils.ToFuObject):
             bragg, phi, lamb = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
                 xi=xii, xj=xjj, det=det,
                 dtheta=dtheta, psi=psi,
-                use_non_parallelism=use_non_parallelism,
+                miscut=miscut,
                 n=n,
                 grid=True,
                 return_lamb=True,
@@ -4004,7 +4228,7 @@ class CrystalBragg(utils.ToFuObject):
         bragg, phi, lamb = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
             xi=xi, xj=xj, det=det,
             dtheta=dtheta, psi=psi,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             n=n,
             grid=True,
             return_lamb=True,
@@ -4063,7 +4287,7 @@ class CrystalBragg(utils.ToFuObject):
         bragg, phi, lamb = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
             xi=xi, xj=xj, det=det,
             dtheta=0, psi=0,
-            use_non_parallelism=use_non_parallelism,
+            miscut=miscut,
             n=n,
             grid=True,
             return_lamb=True,

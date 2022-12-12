@@ -20,29 +20,29 @@ VerbHead = 'tofu.geom.test_01_GG'
 #######################################################
 
 def setup_module(module):
-    print ("") # this is to get a newline after the dots
-    #print ("setup_module before anything in this file")
+    print("")  # this is to get a newline after the dots
+    # print ("setup_module before anything in this file")
+
 
 def teardown_module(module):
-    #os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
-    #os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
-    #print ("teardown_module after everything in this file")
-    #print ("") # this is to get a newline
+    # os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
+    # os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
+    # print ("teardown_module after everything in this file")
+    # print ("") # this is to get a newline
     pass
-
 
 #######################################################
 #
 #     Testing
 #
 #######################################################
-"""
 ######################################################
 ######################################################
 #               Commons
 ######################################################
 ######################################################
-"""
+
+
 def test01_CoordShift():
 
     # Tests 1D input
@@ -392,7 +392,6 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
         # range(0,len(ind)) if ind[jj] == lii[ii]]])
 
 
-
 def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
 
     PhiMinMax = np.array([3.*np.pi/4.,5.*np.pi/4.])
@@ -498,6 +497,7 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
         for hh in [jj for jj in range(0,len(ind)) if ind[jj] == lii[ii]]])
         """
 
+
 def test12_Ves_Smesh_Lin(VPoly=VPoly):
 
     XMinMax = np.array([0., 10.])
@@ -507,29 +507,54 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
     DY, DZ = [0., 2.], [0., 1.]
     LDX = [None, [-1., 2.], [2., 5.], [8., 11.]]
 
-    for ii in range(0,len(LDX)):
-        Pts, dS, ind,\
-            NL, dLr, Rref, \
-            dXr, dY0r, dZ0r, \
-            VPbis = GG._Ves_Smesh_Lin_SubFromD_cython(XMinMax, dL, dX, VPoly,
-                                                      DX=LDX[ii], DY=DY, DZ=DZ,
-                                                      DIn=DIn, VIn=VIn,
-                                                      margin=1.e-9)
+    for ii in range(0, len(LDX)):
+        (
+            Pts, dS, ind, NL, dLr, Rref,
+            dXr, dY0r, dZ0r, VPbis,
+        ) = GG._Ves_Smesh_Lin_SubFromD_cython(
+            XMinMax, dL, dX, VPoly,
+            DX=LDX[ii], DY=DY, DZ=DZ,
+            DIn=DIn, VIn=VIn, margin=1.e-9,
+        )
 
         assert Pts.ndim == 2 and Pts.shape[0] == 3
+
+        # check limits along X
         assert (
-            np.all(Pts[0, :] >= XMinMax[0]-np.abs(DIn))
-            and np.all(Pts[0, :] <= XMinMax[1]+np.abs(DIn))
+            np.all(Pts[0, :] >= XMinMax[0] - np.abs(DIn))
+            and np.all(Pts[0, :] <= XMinMax[1] + np.abs(DIn))
         )
+
+        # check limits along Y
         assert (
-            np.all(Pts[1, :] >= 1.-np.abs(DIn))
-            and np.all(Pts[1, :] <= 3.+np.abs(DIn))
+            np.all(Pts[1, :] >= 1. - np.abs(DIn))
+            and np.all(Pts[1, :] <= 3. + np.abs(DIn))
         )
-        assert (
-            np.all(Pts[2, :] >= -np.abs(DIn))
-            and np.all(Pts[2, :] <= 1.+np.abs(DIn))
-        )
-        if DIn>=0:
+
+        # check limits along Z
+        indi = (Pts[2, :] < -np.abs(DIn))
+        if np.any(indi):
+            msg = (
+                f"For ii = {ii}\n"
+                f"DZ = {DZ}\n"
+                f"Wrong pts: {indi.sum()} / {indi.size}\n"
+                f"{np.mean(Pts[2, indi])} vs {-np.abs(DIn)}\n"
+                f"{Pts[2, indi]}"
+            )
+            raise Exception(msg)
+
+        indi = Pts[2, :] > 1. + np.abs(DIn)
+        if np.any(indi):
+            msg = (
+                f"For ii = {ii}\n"
+                f"Wrong pts: {indi.sum()} / {indi.size}\n"
+                f"{np.mean(Pts[2, indi])} vs {1 + np.abs(DIn)}\n"
+                f"{Pts[2, indi]}"
+            )
+            raise Exception(msg)
+
+        # Check all inside / outside polygon
+        if DIn >= 0:
             assert np.all(GG._Ves_isInside(Pts, VPoly,
                                            vs_lims=XMinMax.reshape((1, 2)),
                                            nlim=1, ves_type='Lin',
@@ -542,15 +567,30 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
                 in_format='(X,Y,Z)', test=True,
             ))
         assert dS.shape == (Pts.shape[1],)
+
+        # Check indices
+        if ind.dtype != int:
+            msg = str(ind.dtype)
+            raise Exception(msg)
+
+        if np.unique(ind).size != ind.size:
+            msg = (
+                "in is not an array of unique values!\n"
+                f"\t- np.unique(ind).size = {np.unique(ind).size}\n"
+                f"\t- ind.size = {ind.size}\n"
+                f"ind = {ind}"
+            )
+            raise Exception(msg)
+
         assert all([ind.shape == (Pts.shape[1],),
-                    ind.dtype == int,
-                    np.unique(ind).size == ind.size,
                     np.all(ind == np.unique(ind)),
                     np.all(ind>=0)])
         assert (
             ind.shape == (Pts.shape[1],) and ind.dtype == int
             and np.all(ind == np.unique(ind)) and np.all(ind >= 0)
         )
+
+        # Check other output
         assert NL.ndim == 1 and NL.size == VPoly.shape[1]-1
         assert dLr.ndim == 1 and dLr.size == NL.size
         assert Rref.ndim == 1
@@ -1569,42 +1609,46 @@ def test21_which_los_closer_vpoly_vec():
 #                              VIGNETTING
 #
 # ==============================================================================
+
+
 def test22_earclipping():
+
     # .. First test ............................................................
-    ves_poly0 = np.zeros((3, 4))
-    ves_poly00 = [4, 5, 5, 4]
-    ves_poly01 = [4, 4, 5, 5]
-    ves_poly0[0] = np.asarray(ves_poly00)
-    ves_poly0[1] = np.asarray(ves_poly01)
-    # ...computing
-    out = GG.triangulate_by_earclipping(ves_poly0)
+    ves_poly0 = np.array([[4., 5, 5, 4], [4, 4, 5, 5]])
+    out = GG.triangulate_by_earclipping_2d(ves_poly0).ravel()
+
     assert np.allclose(out, [0, 1, 2, 0, 2, 3])
+
     # .. Second test ...........................................................
-    ves_poly1 = np.zeros((3, 9))
-    x1 = np.r_[2, 4, 6, 6, 4, 3, 4, 3, 2.0]
-    y1 = np.r_[2, 0, 2, 5, 2, 2, 3, 4, 3.0]
-    ves_poly1[0] = x1
-    ves_poly1[1] = y1
+    ves_poly1 = np.array([
+        [2, 4, 6, 6, 4, 3, 4, 3, 2.0],
+        [2, 0, 2, 5, 2, 2, 3, 4, 3.0],
+    ])
     # ...computing
-    out = GG.triangulate_by_earclipping(ves_poly1)
+    out = GG.triangulate_by_earclipping_2d(ves_poly1).ravel()
     # out = out.reshape((7, 3))
     # print(out)
-    assert np.allclose(out, [1, 2, 3, 1, 3, 4, 1, 4, 5,
-                             0, 1, 5, 0, 5, 6, 0, 6, 7,
-                             0, 7, 8])
+
+    assert np.allclose(
+        out,
+        [1, 2, 3, 1, 3, 4, 1, 4, 5, 0, 1, 5, 0, 5, 6, 0, 6, 7, 0, 7, 8],
+    )
+
     # .. Third test ............................................................
-    x2 = np.r_[0, 3.5, 5.5, 7, 8, 7,  6, 5, 3, 4]
-    y2 = np.r_[2.5, 0, 1.5, 1, 5, 4.5,  6, 3, 4, 8]
-    z2 = np.array([0 if xi < 5. else 1. for xi in x2])
-    npts = np.size(x2)
-    ves_poly2 = np.zeros((3, npts))
-    ves_poly2[0] = x2
-    ves_poly2[1] = y2
-    ves_poly2[2] = z2
+    ves_poly2 = np.array([
+        [0, 3.5, 5.5, 7, 8, 7,  6, 5, 3, 4],
+        [2.5, 0, 1.5, 1, 5, 4.5,  6, 3, 4, 8],
+    ])
     # ...computing
-    out = GG.triangulate_by_earclipping(ves_poly2)
-    assert np.allclose(out, [0, 1, 2, 2, 3, 4, 2, 4, 5, 2, 5, 6, 2, 6, 7,
-                             0, 2, 7, 0, 7, 8, 0, 8, 9])
+    out = GG.triangulate_by_earclipping_2d(ves_poly2).ravel()
+
+    assert np.allclose(
+        out,
+        [
+            0, 1, 2, 2, 3, 4, 2, 4, 5, 2, 5, 6, 2,
+            6, 7, 0, 2, 7, 0, 7, 8, 0, 8, 9,
+        ],
+    )
     # out = out.reshape((npts-2, 3))
     # print(out)
 
@@ -1660,9 +1704,10 @@ def test23_vignetting():
 
     out = GG.vignetting(rays_origin, rays_direct,
                         vignetts, lnvert)
-
-    assert np.allclose(out, [False, True, False, False,  True,
-                             True, False, True, False, False])
+    assert np.allclose(
+        out,
+        [False, True, False, False,  True, True, False, True, False, False],
+    )
 
 
 def test24_is_visible(debug=0):

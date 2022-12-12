@@ -16,6 +16,7 @@ import tofu.defaults as tfd
 import tofu.utils as tfu
 import tofu.geom as tfg
 
+import tofu.spectro._rockingcurve_def as _rockingcurve_def
 
 _here = os.path.abspath(os.path.dirname(__file__))
 _PATH_DATA = os.path.join(_here, 'test_data')
@@ -197,12 +198,12 @@ class Test01_Crystal(object):
     def teardown_class(cls):
         pass
 
-    def setup(self):
-        # print ("TestUM:setup() before each test method")
+    def setup_method(self):
+        # print ("TestUM:setup_method() before each test method")
         pass
 
-    def teardown(self):
-        # print ("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        # print ("TestUM:teardown_method() after each test method")
         pass
 
     # def test00_todo(self):
@@ -246,10 +247,10 @@ class Test01_Crystal(object):
     def test07_rotate_copy(self):
         pass
 
-    def test08_get_detector_approx(self):
+    def test08_get_detector_ideal(self):
         for k0, obj in self.dobj.items():
-            det0 = obj.get_detector_approx(use_non_parallelism=False)
-            det1 = obj.get_detector_approx(use_non_parallelism=True)
+            det0 = obj.get_detector_ideal(miscut=False)
+            det1 = obj.get_detector_ideal(miscut=True)
             assert isinstance(det0, dict) and isinstance(det0, dict)
             lk = ['nout', 'ei']
             assert all([ss in det0.keys() for ss in lk])
@@ -270,7 +271,7 @@ class Test01_Crystal(object):
     def test09_plot(self):
         ii = 0
         for k0, obj in self.dobj.items():
-            det = obj.get_detector_approx()
+            det = obj.get_detector_ideal()
             det['outline'] = np.array([
                 0.1*np.r_[-1, 1, 1, -1, -1],
                 0.1*np.r_[-1, -1, 1, 1, -1],
@@ -292,7 +293,7 @@ class Test01_Crystal(object):
 
     def test10_get_lamb_avail_from_pts(self):
         for k0, obj in self.dobj.items():
-            det = obj.get_detector_approx()
+            det = obj.get_detector_ideal()
             pts, vect = obj.get_rays_from_cryst(
                 phi=-9*np.pi/10., returnas='(pts, vect)',
             )
@@ -316,8 +317,8 @@ class Test01_Crystal(object):
 
     def test11_calc_johann_error(self):
         for k0, obj in self.dobj.items():
-            det = obj.get_detector_approx()
-            err_bragg, err_lamb, err_phi = obj.calc_johannerror(
+            det = obj.get_detector_ideal()
+            err_lamb, err_phi, _, _, _ = obj.calc_johannerror(
                 xi=self.xi,
                 xj=self.xj,
                 det=det,
@@ -325,18 +326,25 @@ class Test01_Crystal(object):
 
     def test12_plot_line_on_det_tracing(self):
         for k0, obj in self.dobj.items():
-            det = obj.get_detector_approx()
+            det = obj.get_detector_ideal()
             det['outline'] = np.array([
                 0.1*np.r_[-1, 1, 1, -1, -1],
                 0.1*np.r_[-1, -1, 1, 1, -1],
             ])
-            dax = obj.plot_line_on_det_tracing(det=det)
+            dax = obj.plot_line_on_det_tracing(
+                det=det,
+                crystal='Quartz_110',
+                merge_rc_data=True,
+                miscut=False,
+                therm_exp=False,
+                plot=False,
+            )
 
-    def test13_calc_meridional_sagital_focus(self):
+    def test13_calc_meridional_sagittal_focus(self):
         derr = {}
         for k0, obj in self.dobj.items():
-            out = obj.calc_meridional_sagital_focus(
-                use_non_parallelism=False,
+            out = obj.calc_meridional_sagittal_focus(
+                miscut=False,
                 verb=False,
             )
             c0 = round(out[0], ndigits=12) == round(out[2], ndigits=12)
@@ -344,14 +352,14 @@ class Test01_Crystal(object):
             if not c0:
                 derr[k0] = f'Meridional ({out[0]} vs {out[2]})'
                 if not c1:
-                    derr[k0] += f' + Sagital ({out[1]} vs {out[3]})'
+                    derr[k0] += f' + Sagittal ({out[1]} vs {out[3]})'
                 derr[k0] += ' focus wrong'
             elif not c1:
-                derr[k0] = f'Sagital ({out[1]} vs {out[3]}) focus wrong'
+                derr[k0] = f'Sagittal ({out[1]} vs {out[3]}) focus wrong'
 
             if obj.dmat['alpha'] != 0.0:
-                out = obj.calc_meridional_sagital_focus(
-                    use_non_parallelism=True,
+                out = obj.calc_meridional_sagittal_focus(
+                    miscut=True,
                     verb=False,
                 )
                 c0 = round(out[0], ndigits=12) != round(out[2], ndigits=12)
@@ -359,10 +367,10 @@ class Test01_Crystal(object):
                 if not c0:
                     derr[k0] = f'Meridional ({out[0]} vs {out[2]})'
                     if not c1:
-                        derr[k0] += f' + Sagital ({out[1]} vs {out[3]})'
+                        derr[k0] += f' + Sagittal ({out[1]} vs {out[3]})'
                     derr[k0] += ' focus wrong'
                 elif not c1:
-                    derr[k0] = f'Sagital ({out[1]} vs {out[3]}) focus wrong'
+                    derr[k0] = f'Sagittal ({out[1]} vs {out[3]}) focus wrong'
         if len(derr) > 0:
             lstr = [f'\t- {k0}: {v0}' for k0, v0 in derr.items()]
             msg = (
@@ -381,7 +389,7 @@ class Test01_Crystal(object):
                 dist_min=-0.02, dist_max=0.02, ndist=5,
                 di_min=-0.02, di_max=0.02, ndi=5,
                 xi=self.xi[::20], xj=self.xj[::20],
-                use_non_parallelism=False,
+                miscut=False,
                 det_ref=det,
                 plot_dets=True,
             )

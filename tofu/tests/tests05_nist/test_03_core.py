@@ -60,10 +60,10 @@ class Test01_openadas(object):
         pass
 
     @classmethod
-    def setup(self):
+    def setup_method(self):
         pass
 
-    def teardown(self):
+    def teardown_method(self):
         pass
 
     @classmethod
@@ -106,7 +106,7 @@ class Test01_openadas(object):
                 return_dsources=True,
                 cache_from=comb[3],
                 cache_info=True,
-                format_for_DataCollection=comb[4],
+                format_for_DataStock=comb[4],
                 create_custom=True,
             )
 

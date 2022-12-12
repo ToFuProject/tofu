@@ -1,3 +1,5 @@
+.. _contributing-to-tofu:
+
 Contribute to tofu
 ==================
 

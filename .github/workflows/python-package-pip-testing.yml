@@ -29,7 +29,10 @@ jobs:
     - name: Install dependencies
       run: |
         conda config --append channels conda-forge
-        conda env update --file requirements.txt --name base
+        pip install --upgrade pip
+        pip install pytest coverage wheel
+        pip install -r requirements.txt # fix
+        # conda env update --file requirements.txt --name base
     - name: Lint with flake8
       run: |
         conda install flake8
@@ -44,4 +47,4 @@ jobs:
         pip install -e ".[dev]" --no-build-isolation
     - name: Test with pytest and coverage
       run: |
-        coverage run --source=tofu/ -m pytest tofu/tests -v --durations=10
+          coverage run --source=tofu/ -m pytest tofu/tests -x -v --durations=10

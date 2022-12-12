@@ -106,7 +106,7 @@ def _get_available_elements_from_path(path=None, typ1=None):
     return element
 
 
-def _format_for_DataCollection_adf15(
+def _format_for_DataStock_adf15(
     dout,
     dsource0=None,
     dref0=None,
@@ -118,7 +118,9 @@ def _format_for_DataCollection_adf15(
     (separated te, ne, ions, sources, lines)
     """
 
+    # ----------------------------------------------
     # Remove already known lines of dlines0 provided
+
     if dlines0 is not None:
         # Check for mistakes
         dk0 = {
@@ -153,7 +155,9 @@ def _format_for_DataCollection_adf15(
             ])
         }
 
+    # --------------------------
     # Get dict of unique sources
+
     lsource = sorted(set([v0['source'] for v0 in dout.values()]))
     dsource = {}
     if dsource0 is None:
@@ -182,7 +186,10 @@ def _format_for_DataCollection_adf15(
                 raise Exception(msg)
             dsource[k0] = {'long': ss}
 
+    # ----------------------------
     # Get dict of unique Te and ne
+
+    # initialize dict and numbers
     dte, dne = {}, {}
     if dref0 is None:
         ite, ine = 0, 0
@@ -196,6 +203,7 @@ def _format_for_DataCollection_adf15(
             if 'ne-' in k0 and 'oa-adf15' in ddata0[k0]['source']
         ])) + 1
 
+    # scan
     for k0, v0 in dout.items():
 
         # Get source
@@ -208,30 +216,29 @@ def _format_for_DataCollection_adf15(
             kk for kk, vv in dte.items()
             if v0['te'].shape == vv['data'].shape
             and np.allclose(v0['te'], vv['data'])
-            and sour == vv['source']
+            # and sour == vv['source']
         ]
         normal = dref0 is None
         if normal is False:
             # Check vs existing Te
             lk0 = [
                 k1 for k1, v1 in dref0.items()
-                if ddata0[k1]['source'] == sour
-                and v0['te'].shape == ddata0[k1]['data'].shape
+                if v0['te'].shape == ddata0[k1]['data'].shape
                 and np.allclose(v0['te'], ddata0[k1]['data'])
+                # and ddata0[k1]['source'] == sour
             ]
             if len(lk0) == 0:
                 normal = True
             elif len(lk0) == 1:
                 keyte = lk0[0]
-                dte[keyte] = {
-                    'data': ddata0[lk0[0]]['data'],
-                    'units': v0['te_units'],
-                    'source': sour,
-                    'dim': 'temperature',
-                    'quant': 'Te',
-                    'name': 'Te',
-                    'group': 'Te',
-                }
+                # dte[keyte] = {
+                    # 'data': ddata0[lk0[0]]['data'],
+                    # 'units': v0['te_units'],
+                    # 'source': sour,
+                    # 'dim': 'temperature',
+                    # 'quant': 'Te',
+                    # 'name': 'Te',
+                # }
             elif len(lk0) > 1:
                 msg = (
                     "Multiple matches for dout[{}] in dref0:\n".format(k0)
@@ -249,7 +256,6 @@ def _format_for_DataCollection_adf15(
                     'dim': 'temperature',
                     'quant': 'Te',
                     'name': 'Te',
-                    'group': 'Te',
                 }
                 ite += 1
             elif len(kte) == 1:
@@ -260,6 +266,7 @@ def _format_for_DataCollection_adf15(
                     + "\t- kte = {}\n".format(kte)
                 )
                 raise Exception(msg)
+
         dout[k0]['keyte'] = keyte
 
         # fill dne
@@ -267,30 +274,29 @@ def _format_for_DataCollection_adf15(
             kk for kk, vv in dne.items()
             if v0['ne'].shape == vv['data'].shape
             and np.allclose(v0['ne'], vv['data'])
-            and sour == vv['source']
+            # and sour == vv['source']
         ]
         normal = dref0 is None
         if normal is False:
             # Check vs existing ne
             lk0 = [
                 k1 for k1, v1 in dref0.items()
-                if ddata0[k1]['source'] == sour
-                and v0['ne'].shape == ddata0[k1]['data'].shape
+                if v0['ne'].shape == ddata0[k1]['data'].shape
                 and np.allclose(v0['ne'], ddata0[k1]['data'])
+                # and ddata0[k1]['source'] == sour
             ]
             if len(lk0) == 0:
                 normal = True
             elif len(lk0) == 1:
                 keyne = lk0[0]
-                dne[keyne] = {
-                    'data': ddata0[lk0[0]]['data'],
-                    'units': v0['ne_units'],
-                    'source': sour,
-                    'dim': 'density',
-                    'quant': 'ne',
-                    'name': 'ne',
-                    'group': 'ne',
-                }
+                # dne[keyne] = {
+                    # 'data': ddata0[lk0[0]]['data'],
+                    # 'units': v0['ne_units'],
+                    # 'source': sour,
+                    # 'dim': 'density',
+                    # 'quant': 'ne',
+                    # 'name': 'ne',
+                # }
             elif len(lk0) > 1:
                 msg = (
                     "Multiple matches for dout[{}] in dref0:\n".format(k0)
@@ -308,7 +314,6 @@ def _format_for_DataCollection_adf15(
                     'dim': 'density',
                     'quant': 'ne',
                     'name': 'ne',
-                    'group': 'ne',
                 }
                 ine += 1
             elif len(kne) == 1:
@@ -321,7 +326,9 @@ def _format_for_DataCollection_adf15(
                 raise Exception(msg)
         dout[k0]['keyne'] = keyne
 
+    # ---------------
     # Get dict of pec
+
     dpec = {
         '{}-pec'.format(k0): {
             'data': v0['pec'], 'units': v0['pec_units'],
@@ -336,7 +343,9 @@ def _format_for_DataCollection_adf15(
         for k0, v0 in dout.items()
     }
 
+    # --------
     # dlines
+
     inds = np.argsort([v0['lambda0'] for v0 in dout.values()])
     lk0 = np.array(list(dout.keys()), dtype=str)[inds]
     dlines = {
@@ -433,7 +442,7 @@ def step03_read(
 def step03_read_all(
     element=None, charge=None, typ1=None, typ2=None,
     pec_as_func=None,
-    format_for_DataCollection=None,
+    format_for_DataStock=None,
     dsource0=None,
     dref0=None,
     ddata0=None,
@@ -568,8 +577,8 @@ def step03_read_all(
         elif isinstance(charge, tuple):
             charge = tuple(['{}.dat'.format(cc) for cc in charge])
 
-    if format_for_DataCollection is None:
-        format_for_DataCollection = False
+    if format_for_DataStock is None:
+        format_for_DataStock = False
 
     if verb is None:
         verb = True
@@ -636,8 +645,8 @@ def step03_read_all(
             print(msg)
         dout = func(pfe, dout=dout, **kwdargs)
 
-    if typ1 == 'adf15' and format_for_DataCollection is True:
-        return _format_for_DataCollection_adf15(
+    if typ1 == 'adf15' and format_for_DataStock is True:
+        return _format_for_DataStock_adf15(
             dout,
             dsource0=dsource0,
             dref0=dref0,

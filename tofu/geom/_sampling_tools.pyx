@@ -10,7 +10,7 @@
 from libc.math cimport ceil as c_ceil, fabs as c_abs
 from libc.math cimport floor as c_floor, round as c_round
 from libc.math cimport sqrt as c_sqrt
-from libc.math cimport pi as c_pi, cos as c_cos, sin as c_sin
+from libc.math cimport pi as c_pi, cos as c_cos, sin as c_sin, atan2 as c_atan2
 from libc.math cimport isnan as c_isnan
 from libc.math cimport NAN as C_NAN
 from libc.math cimport log2 as c_log2
@@ -48,7 +48,7 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
     cdef long[1] nind
     # ..
     first_discretize_line1d_core(lminmax, dstep,
-                                 resolution, n, nind, nL0,
+                                 resolution, n, &nind[0], &nL0[0],
                                  dl, lim, mode, margin)
     if ldiscret_arr[0] == NULL:
         ldiscret_arr[0] = <double *>malloc(nind[0] * sizeof(double))
@@ -100,9 +100,9 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
             dl[0] = lminmax[0]
         if c_isnan(dl[1]):
             dl[1] = lminmax[1]
-        if lim and dl[0]<=lminmax[0]:
+        if lim and dl[0]<lminmax[0]:
             dl[0] = lminmax[0]
-        if lim and dl[1]>=lminmax[1]:
+        if lim and dl[1]>lminmax[1]:
             dl[1] = lminmax[1]
         desired_limits[0] = dl[0]
         desired_limits[1] = dl[1]
@@ -111,12 +111,12 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
     inv_resol = 1./resolution[0]
     new_margin = margin*resolution[0]
     abs0 = c_abs(desired_limits[0] - lminmax[0])
-    if abs0 - resolution[0] * c_floor(abs0 * inv_resol) < new_margin:
+    if abs0 - resolution[0] * c_floor(abs0 * inv_resol + _VSMALL) < new_margin:
         nl0[0] = int(c_round((desired_limits[0] - lminmax[0]) * inv_resol))
     else:
         nl0[0] = int(c_floor((desired_limits[0] - lminmax[0]) * inv_resol))
     abs1 = c_abs(desired_limits[1] - lminmax[0])
-    if abs1 - resolution[0] * c_floor(abs1 * inv_resol) < new_margin:
+    if abs1 - resolution[0] * c_floor(abs1 * inv_resol + _VSMALL) < new_margin:
         nl1 = int(c_round((desired_limits[1] - lminmax[0]) * inv_resol) - 1)
     else:
         nl1 = int(c_floor((desired_limits[1] - lminmax[0]) * inv_resol))
@@ -2184,7 +2184,7 @@ cdef inline void sa_assemble_arrays(int block,
                                     sz_p, sz_pol,
                                     ncells_rphi,
                                     disc_r, step_rphi,
-                                    disc_z, ind_pol2r, ind_pol2z, 
+                                    disc_z, ind_pol2r, ind_pol2z,
                                     sz_phi,
                                     num_threads)
 
@@ -2196,7 +2196,7 @@ cdef inline void sa_assemble_arrays(int block,
                                    sz_p, sz_pol,
                                    ncells_rphi,
                                    disc_r, step_rphi,
-                                   disc_z, ind_pol2r, ind_pol2z, 
+                                   disc_z, ind_pol2r, ind_pol2z,
                                    sz_phi,
                                    num_threads)
     return
@@ -2299,7 +2299,7 @@ cdef inline void assemble_block_approx(double[:, ::1] part_coords,
                                            lstruct_lims,
                                            lstruct_normx,
                                            lstruct_normy,
-                                           lnvert, 
+                                           lnvert,
                                            vperp_out[thid],
                                            coeff_inter_in[thid],
                                            coeff_inter_out[thid],
@@ -2635,3 +2635,78 @@ cdef inline double sa_exact_formula(double radius,
     cdef double r_over_d = radius / distance
 
     return 2 * volpi * (1. - c_sqrt(1. - r_over_d**2))
+
+
+# ##################################################################################
+# ##################################################################################
+#               Solid angle of a polygon
+# ##################################################################################
+
+
+cdef inline double comp_sa_tri(
+    double A_x,
+    double A_y,
+    double A_z,
+    double B_x,
+    double B_y,
+    double B_z,
+    double C_x,
+    double C_y,
+    double C_z,
+    double pt_x,
+    double pt_y,
+    double pt_z,
+) nogil:
+    """
+    Given by:
+    numerator = 3 G \dot (b \cross c)
+    denominator =  A B C + (A.B)C + (A.C)B + (B.C)A
+    with G centroid of triangle
+    """
+    cdef double G_x
+    cdef double G_y
+    cdef double G_z
+    cdef double cross_bc_x
+    cdef double cross_bc_y
+    cdef double cross_bc_z
+    cdef double An
+    cdef double Bn
+    cdef double Cn
+    cdef double sca_AB
+    cdef double sca_AC
+    cdef double sca_BC
+
+    cdef double numerator
+    cdef double denominator
+    cdef double result
+
+    # get centroid
+    G_x = (A_x + B_x + C_x) / 3.
+    G_y = (A_y + B_y + C_y) / 3.
+    G_z = (A_z + B_z + C_z) / 3.
+
+    # get (b cross c)
+    cross_bc_x = (B_y - G_y)*(C_z - G_z) - (B_z - G_z)*(C_y - G_y)
+    cross_bc_y = (B_z - G_z)*(C_x - G_x) - (B_x - G_x)*(C_z - G_z)
+    cross_bc_z = (B_x - G_x)*(C_y - G_y) - (B_y - G_y)*(C_x - G_x)
+
+    # numerator
+    numerator = 3.*c_abs(
+        (G_x - pt_x) * cross_bc_x
+        + (G_y - pt_y) * cross_bc_y
+        + (G_z - pt_z) * cross_bc_z
+    )
+
+    # norms
+    An = c_sqrt((A_x - pt_x)**2 + (A_y - pt_y)**2 + (A_z - pt_z)**2)
+    Bn = c_sqrt((B_x - pt_x)**2 + (B_y - pt_y)**2 + (B_z - pt_z)**2)
+    Cn = c_sqrt((C_x - pt_x)**2 + (C_y - pt_y)**2 + (C_z - pt_z)**2)
+
+    sca_AB = (A_x - pt_x)*(B_x - pt_x) + (A_y - pt_y)*(B_y - pt_y) + (A_z - pt_z)*(B_z - pt_z)
+    sca_AC = (A_x - pt_x)*(C_x - pt_x) + (A_y - pt_y)*(C_y - pt_y) + (A_z - pt_z)*(C_z - pt_z)
+    sca_BC = (B_x - pt_x)*(C_x - pt_x) + (B_y - pt_y)*(C_y - pt_y) + (B_z - pt_z)*(C_z - pt_z)
+
+    denominator = An*Bn*Cn + sca_AB * Cn + sca_AC * Bn + sca_BC * An
+
+    # handfle negative denominator
+    return 2 * c_atan2(numerator, denominator)

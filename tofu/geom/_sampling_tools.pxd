@@ -291,3 +291,25 @@ cdef void sa_assemble_arrays(int block,
                              double[:, ::1] pts_mv,
                              long[::1] ind_mv,
                              int num_threads)
+
+
+# ##################################################################################
+# ##################################################################################
+#               Solid angle of a polygon
+# ##################################################################################
+
+
+cdef double comp_sa_tri(
+    double A_x,
+    double A_y,
+    double A_z,
+    double B_x,
+    double B_y,
+    double B_z,
+    double C_x,
+    double C_y,
+    double C_z,
+    double pt_x,
+    double pt_y,
+    double pt_z,
+) nogil

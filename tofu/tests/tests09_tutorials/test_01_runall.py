@@ -105,13 +105,13 @@ class Test00_tuto(object):
         # print("teardown_class() after any methods in this class")
         pass
 
-    def setup(self):
-        # print("TestUM:setup() before each test method")
+    def setup_method(self):
+        # print("TestUM:setup_method() before each test method")
         # self.setup_class()
         pass
 
-    def teardown(self):
-        # print("TestUM:teardown() after each test method")
+    def teardown_method(self):
+        # print("TestUM:teardown_method() after each test method")
         pass
 
     @classmethod
