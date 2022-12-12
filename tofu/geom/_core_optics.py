@@ -20,7 +20,6 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import datastock as ds
 
->>>>>>> devel
 
 # ToFu-specific
 from tofu import __version__ as __version__
@@ -2492,7 +2491,6 @@ class CrystalBragg(utils.ToFuObject):
             ax=ax, dleg=dleg, color=color,
             fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
         )
->>>>>>> devel
 
     def calc_johannerror(
         self,
