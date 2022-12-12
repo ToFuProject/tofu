@@ -318,7 +318,7 @@ class Test01_Crystal(object):
     def test11_calc_johann_error(self):
         for k0, obj in self.dobj.items():
             det = obj.get_detector_ideal()
-            err_lamb, err_phi, _, _, _ = obj.calc_johannerror(
+            err_lamb, err_phi = obj.calc_johannerror(
                 xi=self.xi,
                 xj=self.xj,
                 det=det,
