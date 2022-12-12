@@ -322,7 +322,7 @@ class Test01_Crystal(object):
                 xi=self.xi,
                 xj=self.xj,
                 det=det,
-            )[:3]
+            )[:2]
 
     def test12_plot_line_on_det_tracing(self):
         for k0, obj in self.dobj.items():
