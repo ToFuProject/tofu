@@ -2502,7 +2502,6 @@ class CrystalBragg(utils.ToFuObject):
         lpsi=None, ldtheta=None,
         lambda_interval_min=None,
         lambda_interval_max=None,
-        miscut=None,
         plot=True, fs=None, cmap=None,
         vmin=None, vmax=None, tit=None, wintit=None,
     ):
