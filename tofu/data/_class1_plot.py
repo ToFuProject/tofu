@@ -13,7 +13,7 @@ import datastock as ds
 
 # specific
 from . import _generic_check
-from . import _mesh_comp
+from . import _class1_compute as _compute
 
 
 # #############################################################################
@@ -311,7 +311,7 @@ def _plot_mesh_prepare_polar_cont(
     # ----------------
     # Compute contours
 
-    contR, contZ = _mesh_comp._get_contours(
+    contR, contZ = _compute._get_contours(
         RR=RR,
         ZZ=ZZ,
         val=rr,
@@ -606,8 +606,7 @@ def _plot_mesh_polar(
     # --------------------
     # Instanciate Plasma2D
 
-    from ._class1_Plasma2D import Plasma2D
-    coll2 = Plasma2D()
+    coll2 = coll.__class__()
 
     # ref
     coll2.add_ref(
@@ -881,7 +880,7 @@ def _plot_bspline_prepare(
     res=None,
     knotsi=None,
     centsi=None,
-    nan_out=None,
+    val_out=None,
     nan0=None,
 ):
 
@@ -930,7 +929,7 @@ def _plot_bspline_prepare(
         details=indbs is not None,
         grid=False,
         nan0=nan0,
-        nan_out=nan_out,
+        val_out=val_out,
         return_params=False,
     )[0]
 
@@ -985,7 +984,7 @@ def plot_bspline(
     cents=None,
     res=None,
     plot_mesh=None,
-    nan_out=None,
+    val_out=None,
     nan0=None,
     # plot-specific
     cmap=None,
@@ -1029,7 +1028,7 @@ def plot_bspline(
         knotsi=knotsi,
         centsi=centsi,
         res=res,
-        nan_out=nan_out,
+        val_out=val_out,
         nan0=nan0,
     )
 
@@ -1200,7 +1199,7 @@ def _plot_profiles2d_prepare(
     )
 
     if res is None:
-        res_coef = 0.05
+        res_coef = 0.2
         res = [res_coef*dR, res_coef*dZ]
 
     # compute
@@ -1291,10 +1290,10 @@ def _plot_profile2d_polar_add_radial(
         anglemap = np.repeat(angle[None, :], rad.size, axis=0)
 
     # reft
-    reft, keyt = coll.get_time_common(keys=[key, kr2d])[1:3]
+    reft, keyt, _, dind = coll.get_time_common(keys=[key, kr2d])[1:]
 
     # radial total profile
-    radial, t_radial = coll.interpolate_profile2d(
+    radial, t_radial, _ = coll.interpolate_profile2d(
         key=key,
         radius=radmap,
         angle=anglemap,
@@ -1307,22 +1306,30 @@ def _plot_profile2d_polar_add_radial(
 
     # details for purely-radial cases
     if clas.knotsa is None:
-        radial_details, t_radial = coll.interpolate_profile2d(
+        radial_details, t_radial, _ = coll.interpolate_profile2d(
             key=keybs,
             radius=rad,
             angle=None,
             grid=False,
             details=True,
         )
+
         if reft is None:
             radial_details = radial_details * coll.ddata[key]['data'][None, :]
             refdet = ('nradius',)
         else:
             refdet = (reft, 'nradius')
-            radial_details = (
-                radial_details[None, :, :]
-                * coll.ddata[key]['data'][:, None, :]
-            )
+            if reft == coll.get_time(key)[2]:
+                radial_details = (
+                    radial_details[None, :, :]
+                    * coll.ddata[key]['data'][:, None, :]
+                )
+            elif key in dind.keys():
+                radial_details = (
+                    radial_details[None, :, :]
+                    * coll.ddata[key]['data'][dind[key]['ind'], None, :]
+                )
+
         nbs = radial_details.shape[-1]
 
     # add to dax
@@ -1552,6 +1559,11 @@ def plot_profile2d(
                 dax.ddata[kradius]['data'].min(),
                 dax.ddata[kradius]['data'].max(),
             )
+
+            if vmin is not None:
+                ax.set_ylim(bottom=vmin)
+            if vmax is not None:
+                ax.set_ylim(top=vmax)
 
         # connect
         if connect is True:

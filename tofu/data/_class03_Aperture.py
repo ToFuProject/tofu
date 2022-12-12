@@ -11,7 +11,7 @@ import datastock as ds
 
 
 # tofu
-from . import _class2_Rays
+from ._class02_Rays import Rays as Previous
 from . import _class3_check as _check
 
 
@@ -24,7 +24,7 @@ __all__ = ['Aperture']
 # #############################################################################
 
 
-class Aperture(_class2_Rays.Rays):
+class Aperture(Previous):
 
     # _ddef = copy.deepcopy(ds.DataStock._ddef)
     # _ddef['params']['ddata'].update({
@@ -36,7 +36,7 @@ class Aperture(_class2_Rays.Rays):
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _show_in_summary = 'all'
 
-    _dshow = dict(_class2_Rays.Rays._dshow)
+    _dshow = dict(Previous._dshow)
     _dshow.update({
         'aperture': [
             'dgeom.type',

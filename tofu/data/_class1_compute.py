@@ -13,11 +13,11 @@ import datastock as ds
 
 
 # tofu
-from . import _bsplines_utils
-from . import _mesh_checks
-from . import _mesh_bsplines_rect
-from . import _mesh_bsplines_tri
-from . import _mesh_bsplines_polar
+from . import _utils_bsplines
+from . import _class1_checks as _checks
+from . import _class1_bsplines_rect
+from . import _class1_bsplines_tri
+from . import _class1_bsplines_polar
 
 
 # #############################################################################
@@ -66,7 +66,7 @@ def _select_ind(
 
     # ind, elements, ...
     # elements = cents or knots
-    ind, elements, returnas, crop = _mesh_checks._select_ind_check(
+    ind, elements, returnas, crop = _checks._select_ind_check(
         ind=ind,
         elements=elements,
         returnas=returnas,
@@ -266,7 +266,7 @@ def _select_mesh(
     (
         elements, returnas,
         return_ind_as, return_neighbours,
-    ) = _mesh_checks._select_check(
+    ) = _checks._select_check(
         elements=elements,
         returnas=returnas,
         return_ind_as=return_ind_as,
@@ -417,7 +417,6 @@ def _select_mesh_neighbours_tri(
         if returnas == 'ind':
             if return_ind_as is bool:
                 kknots = coll.dobj[coll._which_mesh][key]['knots']
-                import pdb; pdb.set_trace()     # DB
                 nneig = coll.dref[f'{kknots}-ind']['size']
                 neig_temp = np.zeros((nind, nneig), dtype=bool)
                 for ii in range(nind):
@@ -540,7 +539,7 @@ def _select_bsplines(
     # ------------
     # check inputs
 
-    _, returnas, _, _ = _mesh_checks._select_check(
+    _, returnas, _, _ = _checks._select_check(
         returnas=returnas,
     )
 
@@ -654,7 +653,7 @@ def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
     # create bsplines
 
     kknots = coll.dobj[coll._which_mesh][keym]['knots']
-    func_details, func_sum, clas = _mesh_bsplines_tri.get_bs2d_func(
+    func_details, func_sum, clas = _class1_bsplines_tri.get_bs2d_func(
         deg=deg,
         knotsR=coll.ddata[kknots[0]]['data'],
         knotsZ=coll.ddata[kknots[1]]['data'],
@@ -740,12 +739,12 @@ def _mesh2DRect_bsplines(coll=None, keym=None, keybs=None, deg=None):
     (
         shapebs, Rbs_apex, Zbs_apex,
         knots_per_bs_R, knots_per_bs_Z,
-    ) = _mesh_bsplines_rect.get_bs2d_RZ(
+    ) = _class1_bsplines_rect.get_bs2d_RZ(
         deg=deg, Rknots=Rknots, Zknots=Zknots,
     )
     nbs = int(np.prod(shapebs))
 
-    func_details, func_sum, clas = _mesh_bsplines_rect.get_bs2d_func(
+    func_details, func_sum, clas = _class1_bsplines_rect.get_bs2d_func(
         deg=deg,
         Rknots=Rknots,
         Zknots=Zknots,
@@ -878,10 +877,10 @@ def _mesh2DRect_bsplines_knotscents(
 
     if return_knots is True:
 
-        knots_per_bs_R = _bsplines_utils._get_knots_per_bs(
+        knots_per_bs_R = _utils_bsplines._get_knots_per_bs(
             Rknots, deg=deg, returnas=returnas,
         )
-        knots_per_bs_Z = _bsplines_utils._get_knots_per_bs(
+        knots_per_bs_Z = _utils_bsplines._get_knots_per_bs(
             Zknots, deg=deg, returnas=returnas,
         )
         if ind is not None:
@@ -894,10 +893,10 @@ def _mesh2DRect_bsplines_knotscents(
 
     if return_cents is True:
 
-        cents_per_bs_R = _bsplines_utils._get_cents_per_bs(
+        cents_per_bs_R = _utils_bsplines._get_cents_per_bs(
             Rcents, deg=deg, returnas=returnas,
         )
-        cents_per_bs_Z = _bsplines_utils._get_cents_per_bs(
+        cents_per_bs_Z = _utils_bsplines._get_cents_per_bs(
             Zcents, deg=deg, returnas=returnas,
         )
         if ind is not None:
@@ -944,7 +943,7 @@ def _mesh2Dpolar_bsplines(
     if len(kknots) == 2:
         angle = coll.ddata[kknots[1]]['data']
 
-    func_details, func_sum, clas = _mesh_bsplines_polar.get_bs2d_func(
+    func_details, func_sum, clas = _class1_bsplines_polar.get_bs2d_func(
         deg=deg,
         knotsr=coll.ddata[kknots[0]]['data'],
         angle=angle,
@@ -1071,10 +1070,10 @@ def _mesh2DPolar_bsplines_knotscents(
 
     if return_knots is True:
 
-        knots_per_bs_r = _bsplines_utils._get_knots_per_bs(
+        knots_per_bs_r = _utils_bsplines._get_knots_per_bs(
             rknots, deg=deg, returnas=returnas,
         )
-        knots_per_bs_Z = _bsplines_utils._get_knots_per_bs(
+        knots_per_bs_Z = _utils_bsplines._get_knots_per_bs(
             Zknots, deg=deg, returnas=returnas,
         )
         if ind is not None:
@@ -1087,10 +1086,10 @@ def _mesh2DPolar_bsplines_knotscents(
 
     if return_cents is True:
 
-        cents_per_bs_R = _bsplines_utils._get_cents_per_bs(
+        cents_per_bs_R = _utils_bsplines._get_cents_per_bs(
             Rcents, deg=deg, returnas=returnas,
         )
-        cents_per_bs_Z = _bsplines_utils._get_cents_per_bs(
+        cents_per_bs_Z = _utils_bsplines._get_cents_per_bs(
             Zcents, deg=deg, returnas=returnas,
         )
         if ind is not None:
@@ -1827,7 +1826,7 @@ def _interp2d_check(
     res=None,
     crop=None,
     nan0=None,
-    nan_out=None,
+    val_out=None,
     imshow=None,
     return_params=None,
     store=None,
@@ -1873,7 +1872,8 @@ def _interp2d_check(
     crop = ds._generic_check._check_var(
         crop, 'crop',
         types=bool,
-        default=True,
+        default=mtype == 'rect',
+        allowed=[False, True] if mtype == 'rect' else [False],
     )
 
     # -------------
@@ -1886,12 +1886,12 @@ def _interp2d_check(
     )
 
     # -------------
-    # nan_out
+    # val_out
 
-    nan_out = ds._generic_check._check_var(
-        nan_out, 'nan_out',
-        types=bool,
-        default=True,
+    val_out = ds._generic_check._check_var(
+        val_out, 'val_out',
+        default=np.nan,
+        allowed=[False, np.nan, 0.]
     )
 
     # -----------
@@ -1921,7 +1921,16 @@ def _interp2d_check(
             hastime = key in dind.keys()
 
         if hastime:
+
             indt = dind[kind].get('ind')
+
+            # Special case: all times match
+            if indt is not None:
+                rtk = coll.get_time(key)[2]
+                if indt.size == coll.dref[rtk]['size']:
+                    if np.allclose(indt, np.arange(0, coll.dref[rtk]['size'])):
+                        indt = None
+
             if indt is not None:
                 indtu = np.unique(indt)
                 indtr = np.array([indt == iu for iu in indtu])
@@ -2030,7 +2039,7 @@ def _interp2d_check(
             rad2d_indt = dind[radius2d].get('ind') if rad2d_hastime else None
 
             # compute radius2d at relevant times
-            radius, _ = coll.interpolate_profile2d(
+            radius, _, _ = coll.interpolate_profile2d(
                 # coordinates
                 R=R,
                 Z=Z,
@@ -2045,7 +2054,7 @@ def _interp2d_check(
             # compute angle2d at relevant times
             angle2d = coll.dobj[coll._which_mesh][keym]['angle2d']
             if angle2d is not None:
-                angle, _ = coll.interpolate_profile2d(
+                angle, _, _ = coll.interpolate_profile2d(
                     # coordinates
                     R=R,
                     Z=Z,
@@ -2224,7 +2233,7 @@ def _interp2d_check(
         indbs, indbs_tf,
         t, indt, indtu, indtr,
         details, crop,
-        nan0, nan_out,
+        nan0, val_out,
         return_params,
         store, inplace,
     )
@@ -2257,7 +2266,7 @@ def interp2d(
     res=None,
     crop=None,
     nan0=None,
-    nan_out=None,
+    val_out=None,
     imshow=None,
     return_params=None,
     store=None,
@@ -2280,7 +2289,7 @@ def interp2d(
         indbs, indbs_tf,
         t, indt, indtu, indtr,
         details, crop,
-        nan0, nan_out,
+        nan0, val_out,
         return_params,
         store, inplace,
     ) = _interp2d_check(
@@ -2309,7 +2318,7 @@ def interp2d(
         res=res,
         crop=crop,
         nan0=nan0,
-        nan_out=nan_out,
+        val_out=val_out,
         imshow=imshow,
         return_params=return_params,
         store=store,
@@ -2361,7 +2370,7 @@ def interp2d(
             crop=crop,
             cropbs=cropbs,
             indbs_tf=indbs_tf,
-            nan_out=nan_out,
+            val_out=val_out,
         )
 
         # manage time
@@ -2380,7 +2389,7 @@ def interp2d(
             coefs=coefs,
             indbs_tf=indbs_tf,
             radius_vs_time=radius_vs_time,
-            nan_out=nan_out,
+            val_out=val_out,
         )
 
         shape_pts = radius.shape
@@ -2428,10 +2437,30 @@ def interp2d(
             pass
         if details is False:
             val = val[0, ...]
+            reft = None
 
     # ------
     # store
 
+    # ref
+    ct = (
+        (hastime or radius_vs_time)
+        and (
+            reft in [None, False]
+            or (
+                reft not in [None, False]
+                and indt is not None
+                and not (
+                    indt.size == coll.dref[reft]['size']
+                    or np.allclose(indt, np.arange(0, coll.dref[reft]['size']))
+                )
+            )
+        )
+    )
+    if ct:
+        reft = f'{key}-nt'
+
+    # store
     if store is True:
         Ru = np.unique(R)
         Zu = np.unique(Z)
@@ -2445,8 +2474,11 @@ def interp2d(
         else:
             coll2 = ds.DataStock()
 
+        # add ref nR, nZ
         coll2.add_ref(key=knR, size=nR)
         coll2.add_ref(key=knZ, size=nZ)
+
+        # add data Ru, Zu
         coll2.add_data(
             key=kR,
             data=Ru,
@@ -2466,8 +2498,7 @@ def interp2d(
 
         # ref
         if hastime or radius_vs_time:
-            if reft in [None, False] or indt is not None:
-                reft = f'{key}-nt'
+            if ct:
                 coll2.add_ref(key=reft, size=t.size)
                 coll2.add_data(
                     key=f'{key}-t',
@@ -2500,6 +2531,76 @@ def interp2d(
             units=coll.ddata[key]['units'],
         )
 
+    else:
+
+        ref = []
+        c0 = (
+            reft not in [None, False]
+            and (hastime or radius_vs_time)
+            and not (
+                meshtype == 'polar'
+                and R is None
+                and coefs is None
+                and radius_vs_time is False
+            )
+        )
+        if c0:
+            ref.append(reft)
+
+        if meshtype in ['rect', 'tri']:
+            for ii in range(R.ndim):
+                ref.append(None)
+            if grid is True:
+                for ii in range(Z.ndim):
+                    ref.append(None)
+        else:
+            for ii in range(radius.ndim):
+                if radius_vs_time and ii == 0:
+                    continue
+                ref.append(None)
+            if grid is True and angle is not None:
+                for ii in range(angle.ndim):
+                    ref.append(None)
+
+        if details is True:
+            refbs = coll.dobj['bsplines'][keybs]['ref-bs'][0]
+            if crop is True:
+                refbs = f"{refbs}-crop"
+            ref.append(refbs)
+        ref = tuple(ref)
+
+        if ref[0] == 'emiss-nt':
+            import pdb; pdb.set_trace()     # DB
+
+        if len(ref) != val.ndim:
+            msg = (
+                "Mismatching ref vs val.shape:\n"
+                f"\t- key = {key}\n"
+                f"\t- keybs = {keybs}\n"
+                f"\t- val.shape = {val.shape}\n"
+                f"\t- ref = {ref}\n"
+                f"\t- reft = {reft}\n"
+                f"\t- hastime = {hastime}\n"
+                f"\t- radius_vs_time = {radius_vs_time}\n"
+                f"\t- details = {details}\n"
+                f"\t- indbs_tf = {indbs_tf}\n"
+                f"\t- key = {key}\n"
+                f"\t- meshtype = {meshtype}\n"
+                f"\t- grid = {grid}\n"
+            )
+            if coefs is not None:
+                msg += f"\t- coefs.shape = {coefs.shape}\n"
+            if R is not None:
+                msg += (
+                    f"\t- R.shape = {R.shape}\n"
+                    f"\t- Z.shape = {Z.shape}\n"
+                )
+            if meshtype == 'polar':
+                msg += f"\t- radius.shape = {radius.shape}\n"
+                if angle is not None:
+                    msg += f"\t- angle.shape = {angle.shape}\n"
+            raise Exception(msg)
+
     # ------
     # return
 
@@ -2507,9 +2608,9 @@ def interp2d(
         return coll2
     else:
         if return_params is True:
-            return val, t, dparams
+            return val, t, ref, dparams
         else:
-            return val, t
+            return val, t, ref
 
 
 # #############################################################################
@@ -2932,7 +3033,7 @@ def radius2d_special_points(
     )
 
     # get map
-    val, t = coll.interpolate_profile2d(
+    val, t, _ = coll.interpolate_profile2d(
         key=key,
         R=RR,
         Z=ZZ,
@@ -3043,7 +3144,7 @@ def angle2d_zone(
     )
 
     # get map
-    val, t = coll.interpolate_profile2d(
+    val, t, _ = coll.interpolate_profile2d(
         key=key,
         R=RR,
         Z=ZZ,
@@ -3080,14 +3181,14 @@ def angle2d_zone(
 
     # get points inside contour 
     for ii in range(nt):
-        rmin[ii, :], _ = coll.interpolate_profile2d(
+        rmin[ii, :], _, _ = coll.interpolate_profile2d(
             key=keyrad2d,
             R=cRmin[ii, :],
             Z=cZmin[ii, :],
             grid=False,
             indt=ii,
         )
-        rmax[ii, :], _ = coll.interpolate_profile2d(
+        rmax[ii, :], _, _ = coll.interpolate_profile2d(
             key=keyrad2d,
             R=cRmax[ii, :],
             Z=cZmax[ii, :],

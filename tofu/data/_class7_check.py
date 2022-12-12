@@ -388,6 +388,7 @@ def _camera_1d(
                     'parallel': parallel,
                     'shape': (npix,),
                     'ref': (knpix,),
+                    'ref_flat': (knpix,),
                     'pix_area': area,
                     'pix_nb': npix,
                     'outline': (kout0, kout1),
@@ -483,10 +484,10 @@ def _camera_1d(
     return dref, ddata, dobj
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
 #                           Camera 2d
-# #############################################################################
+# ##################################################################
 
 
 def _camera_2d_check(
@@ -646,10 +647,12 @@ def _camera_2d(
     knpts = f'{key}-npts'
     knpix0 = f'{key}-npix0'
     knpix1 = f'{key}-npix1'
+    knpix = f'{key}-npix'
     dref = {
         knpts: {'size': npts},
         knpix0: {'size': npix0},
         knpix1: {'size': npix1},
+        knpix: {'size': npix0*npix1},
     }
 
     # -------------
@@ -706,6 +709,7 @@ def _camera_2d(
                     'parallel': True,
                     'shape': (npix0, npix1),
                     'ref': (knpix0, knpix1),
+                    'ref_flat': (knpix,),
                     'pix_area': area,
                     'pix_nb': npix0 * npix1,
                     'outline': (kout0, kout1),
