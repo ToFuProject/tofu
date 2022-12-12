@@ -2496,7 +2496,7 @@ class CrystalBragg(utils.ToFuObject):
         self,
         xi=None, xj=None, err=None,
         det=None, n=None,
-        use_non_parallelism=None,
+        miscut=None,
         alpha=None, beta=None,
         split=None, direction=None, nb=None,
         lpsi=None, ldtheta=None,
@@ -2533,7 +2533,7 @@ class CrystalBragg(utils.ToFuObject):
             (from "inputs_temp/xics_allshots_c34.py" l.649)
         - err : str
             Type of error (relative or absolute)
-        - use_non_parallelism : str
+        - miscut : str
         - alpha/beta : float
             Values of parallelism default angles, in [rad]
         - lpsi, ldtheta: np.darray
@@ -2570,8 +2570,8 @@ class CrystalBragg(utils.ToFuObject):
             plot = True
         if plot_phi is None:
             plot_phi = False
-        if use_non_parallelism is None:
-            use_non_parallelism = False
+        if miscut is None:
+            miscut = False
         if alpha is None:
             alpha = (3/60)*np.pi/180
         if beta is None:
@@ -2650,7 +2650,7 @@ class CrystalBragg(utils.ToFuObject):
                 err_lamb, err_phi,
                 err_lamb_units=err_lamb_units,
                 err_phi_units=err_phi_units,
-                use_non_parallelism=use_non_parallelism,
+                miscut=miscut,
                 alpha=alpha, beta=beta,
                 split=split,
                 plot_phi=plot_phi,
@@ -2670,7 +2670,7 @@ class CrystalBragg(utils.ToFuObject):
         lbda=None,
         xi=None, xj=None,
         det=None, n=None,
-        use_non_parallelism=None,
+        miscut=None,
         alpha=None, beta=None,
         split=None, direction=None, nb=None,
         lambda_interval_min=None,
@@ -2696,7 +2696,7 @@ class CrystalBragg(utils.ToFuObject):
             (from "inputs_temp/xics_allshots_c34.py" l.649)
         - det: dict
             detector's dictionnary to take into reference
-        - use_non_parallelism : str
+        - miscut : str
         - alpha/beta : float
             Values of parallelism default angles, in [rad]
         - split : str
@@ -2725,8 +2725,8 @@ class CrystalBragg(utils.ToFuObject):
             direction = 'e1'
         if nb is None:
             nb = 2
-        if use_non_parallelism is None:
-            use_non_parallelism = True
+        if miscut is None:
+            miscut = True
         if alpha is None:
             alpha = np.r_[0, (3/60)*np.pi/180]
         if beta is None:
@@ -2749,7 +2749,7 @@ class CrystalBragg(utils.ToFuObject):
                 ) = self.calc_johannerror(
                     xi=xi, xj=xj,
                     det=det,
-                    use_non_parallelism=use_non_parallelism,
+                    miscut=miscut,
                     alpha=alpha[ii], beta=beta[ii],
                     lambda_interval_min=lambda_interval_min,
                     lambda_interval_max=lambda_interval_max,
@@ -2763,7 +2763,7 @@ class CrystalBragg(utils.ToFuObject):
                 ) = self.calc_johannerror(
                     xi=xi, xj=xj,
                     det=det,
-                    use_non_parallelism=use_non_parallelism,
+                    miscut=miscut,
                     alpha=alpha[1], beta=beta[1],
                     lambda_interval_min=lambda_interval_min,
                     lambda_interval_max=lambda_interval_max,
@@ -2778,7 +2778,7 @@ class CrystalBragg(utils.ToFuObject):
                 lamb=lamb, phi=phi,
                 det=det,
                 split=split,
-                use_non_parallelism=use_non_parallelism,
+                miscut=miscut,
                 alpha=alpha, beta=beta,
                 cmap=cmap, vmin=vmin, vmax=vmax,
                 dleg=dleg,
@@ -3104,8 +3104,8 @@ class CrystalBragg(utils.ToFuObject):
         if return_lamb is None:
             return_lamb = True
         det = self._checkformat_det(det)
-        if use_non_parallelism is None:
-            use_non_parallelism = False
+        if miscut is None:
+            miscut = False
 
         # Get local basis
         summ, vout, ve1, ve2 = self.get_local_noute1e2(

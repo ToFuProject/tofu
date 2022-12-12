@@ -1089,7 +1089,7 @@ def CrystalBragg_plot_dshift_maps(
     alphas_split,
     betas_split,
     cryst=None, dcryst=None,
-    use_non_parallelism=None,
+    miscut=None,
     det=None,
     split=None,
     val_phi=None, n_val_phi=None,
@@ -1847,7 +1847,7 @@ def CrystalBragg_plot_johannerror(
     err_lamb_units=None,
     err_phi_units=None,
     split=None,
-    use_non_parallelism=None,
+    miscut=None,
     alpha=None, beta=None,
     plot_phi=None,
     cmap=None, vmin=None, vmax=None,
@@ -1881,7 +1881,7 @@ def CrystalBragg_plot_johannerror(
     if wintit is None:
         wintit = _WINTIT
     if tit is None:
-        if use_non_parallelism:
+        if miscut:
             if split:
                 tit = (
                     "Splitted crystal, perfect VS alpha="+str(alpha*180/np.pi)
@@ -2004,7 +2004,7 @@ def CrystalBragg_plot_isolamb(
     lamb=None, phi=None,
     det=None,
     split=None,
-    use_non_parallelism=None,
+    miscut=None,
     alpha=None, beta=None,
     cmap=None, vmin=None, vmax=None,
     dleg=None,
