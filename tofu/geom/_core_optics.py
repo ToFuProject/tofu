@@ -1944,6 +1944,7 @@ class CrystalBragg(utils.ToFuObject):
         else:
             return xi, xj
 
+
     def plot_line_on_det_tracing(
         self,
         # Options of basic method
@@ -1969,7 +1970,6 @@ class CrystalBragg(utils.ToFuObject):
         dleg=None, color=None,
         rocking=None, fs=None, dmargin=None,
         wintit=None, tit=None,
-        plot=None,
     ):
         """ Visualize the de-focusing by ray-tracing of chosen lamb
         Possibility to plot few wavelength' arcs on the same plot.
