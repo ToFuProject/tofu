@@ -2567,8 +2567,6 @@ class CrystalBragg(utils.ToFuObject):
             nb = 2
         if plot is None:
             plot = True
-        if plot_phi is None:
-            plot_phi = False
         if miscut is None:
             miscut = False
         if alpha is None:
@@ -2652,7 +2650,6 @@ class CrystalBragg(utils.ToFuObject):
                 miscut=miscut,
                 alpha=alpha, beta=beta,
                 split=split,
-                plot_phi=plot_phi,
                 cmap=cmap, vmin=vmin, vmax=vmax,
                 fs=fs, tit=tit, wintit=wintit,
                 )
