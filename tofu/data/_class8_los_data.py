@@ -261,6 +261,7 @@ def _interpolated_along_los(
     mode=None,
     segment=None,
     radius_max=None,
+    val_out=None,
     # plotting
     vmin=None,
     vmax=None,
@@ -401,19 +402,19 @@ def _interpolated_along_los(
 
             Ri = np.hypot(pts_x, pts_y)
 
-            q2d, _ = coll.interpolate_profile2d(
+            q2d = coll.interpolate_profile2d(
                 key=c2d,
                 R=Ri,
                 Z=pts_z,
                 grid=False,
                 crop=True,
                 nan0=True,
-                val_out=True,
+                val_out=val_out,
                 imshow=False,
                 return_params=None,
                 store=False,
                 inplace=False,
-            )
+            )[0]
 
             isok = ~(np.isnan(q2d) & (~np.isnan(Ri)))
             if key_data_x in lok_coords:
@@ -442,33 +443,33 @@ def _interpolated_along_los(
 
             Ri = np.hypot(pts_x, pts_y)
 
-            q2dx, _ = coll.interpolate_profile2d(
+            q2dx = coll.interpolate_profile2d(
                 key=key_data_x,
                 R=Ri,
                 Z=pts_z,
                 grid=False,
                 crop=True,
                 nan0=True,
-                val_out=True,
+                val_out=val_out,
                 imshow=False,
                 return_params=None,
                 store=False,
                 inplace=False,
-            )
+            )[0]
 
-            q2dy, _ = coll.interpolate_profile2d(
+            q2dy = coll.interpolate_profile2d(
                 key=key_data_y,
                 R=Ri,
                 Z=pts_z,
                 grid=False,
                 crop=True,
                 nan0=True,
-                val_out=True,
+                val_out=val_out,
                 imshow=False,
                 return_params=None,
                 store=False,
                 inplace=False,
-            )
+            )[0]
 
             isok = ~((np.isnan(q2dx) | np.isnan(q2dy)) & (~np.isnan(Ri)))
             xx[ii] = q2dx[isok]
