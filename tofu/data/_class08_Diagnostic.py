@@ -651,6 +651,7 @@ class Diagnostic(Previous):
         mode=None,
         segment=None,
         radius_max=None,
+        val_out=None,
         # plotting
         vmin=None,
         vmax=None,
@@ -672,6 +673,7 @@ class Diagnostic(Previous):
             mode=mode,
             segment=segment,
             radius_max=radius_max,
+            val_out=val_out,
             # plotting
             vmin=vmin,
             vmax=vmax,
