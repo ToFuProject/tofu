@@ -10,92 +10,10 @@ import numpy as np
 import datastock as ds
 
 
-from . import _class1_check
+from . import _class1_checks
 
 
 _ELEMENTS = 'knots'
-
-
-# #############################################################################
-# #############################################################################
-#                          add data on mesh / bsplines
-# #############################################################################
-
-
-def add_data_meshbsplines_ref(
-    ref=None,
-    data=None,
-    # ressources
-    dmesh=None,
-    dbsplines=None,
-):
-
-    if dmesh is None or dbsplines is None:
-        return ref, data
-
-    # ref is str
-    if isinstance(ref, str):
-        ref = [ref]
-
-    # ref is tuple
-    if isinstance(ref, (tuple, list)):
-
-        # ref contains mesh
-        rm = [(ii, rr) for ii, rr in enumerate(ref) if rr in dmesh.keys()]
-        if len(rm) > 1:
-            msg = (
-                "ref contains references to several meshes!\n"
-                f"\t- ref: {ref}\n"
-                f"\t- meshes: {rm}\n"
-            )
-            raise Exception(msg)
-
-        elif len(rm) == 1:
-            ref = list(ref)
-            kbs = [
-                k0 for k0, v0 in dbsplines.items()
-                if v0['mesh'] == rm[0][1]
-            ]
-            if len(kbs) == 1:
-                ref[rm[0][0]] = kbs[0]
-            elif len(kbs) > 1:
-                msg = (
-                    "ref contains reference to mesh with several bsplines!\n"
-                    f"\t- ref: {ref}\n"
-                    f"\t- mesh bsplines: {kbs}\n"
-                )
-                raise Exception(msg)
-
-        # ref contains bsplines
-        rbs = [(ii, rr) for ii, rr in enumerate(ref) if rr in dbsplines.keys()]
-        if len(rbs) > 1:
-            msg = (
-                "ref contains references to several bsplines!"
-                f"\t- ref: {ref}\n"
-                f"\t- splines: {rbs}\n"
-            )
-            raise Exception(msg)
-
-        elif len(rbs) == 1:
-            ref = np.r_[
-                ref[:rbs[0][0]],
-                dbsplines[rbs[0][1]]['ref'],
-                ref[rbs[0][0]+1:],
-            ]
-
-            # repeat data if taken from ntri > 1 
-            data = _repeat_data_ntri(
-                ref=ref,
-                rbs1=rbs[0][1],
-                refbs=dbsplines[rbs[0][1]]['ref'],
-                data=data,
-                # mesh
-                km=dbsplines[rbs[0][1]]['mesh'],
-                dmesh=dmesh,
-                dbsplines=dbsplines,
-            )
-
-    return tuple(ref), data
 
 
 # #############################################################################
@@ -112,7 +30,7 @@ def _mesh1D_check(
 
     # key
     key = ds._generic_check._obj_key(
-        d0=coll._dobj.get('mesh spectral'),
+        d0=coll._dobj.get(coll._which_msp, {}),
         short='msp',
         key=key,
     )
@@ -141,10 +59,10 @@ def _mesh1D_to_dict(
     # check / format input
 
     # keys
-    kEk, kEc, kkE, kcE = _class1_check._mesh_names(key=key, x_name='E')
+    kEk, kEc, kkE, kcE = _class1_checks._mesh_names(key=key, x_name='E')
 
     # E
-    E, res, ind = _class1_check._mesh1D_check(
+    E, res, ind = _class1_checks._mesh1D_check(
         x=E,
         x_name='E',
         uniform=False,

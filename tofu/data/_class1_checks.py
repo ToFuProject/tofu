@@ -293,13 +293,17 @@ _ELEMENTS = 'knots'
 
 
 def add_data_meshbsplines_ref(
+    coll=None,
     ref=None,
     data=None,
     # ressources
-    dmesh=None,
-    dbsplines=None,
+    which_mesh=None,
+    which_bsplines=None,
 ):
 
+    dmesh = coll._dobj.get(which_mesh)
+    dbsplines = coll._dobj.get(which_bsplines)
+    
     if dmesh is None or dbsplines is None:
         return ref, data
 
@@ -324,7 +328,7 @@ def add_data_meshbsplines_ref(
             ref = list(ref)
             kbs = [
                 k0 for k0, v0 in dbsplines.items()
-                if v0['mesh'] == rm[0][1]
+                if v0[which_mesh] == rm[0][1]
             ]
             if len(kbs) == 1:
                 ref[rm[0][0]] = kbs[0]
@@ -360,7 +364,7 @@ def add_data_meshbsplines_ref(
                 refbs=dbsplines[rbs[0][1]]['ref'],
                 data=data,
                 # mesh
-                km=dbsplines[rbs[0][1]]['mesh'],
+                km=dbsplines[rbs[0][1]][which_mesh],
                 dmesh=dmesh,
                 dbsplines=dbsplines,
             )
@@ -491,25 +495,15 @@ def _mesh2D_polar_check(
     # --------------------
     # check / format input
 
-    krk, krc = f'{key}-r-nk', f'{key}-r-nc'
-    kkr, kcr = f'{key}-r-k', f'{key}-r-c'
-
-    kak, kac = f'{key}-ang-nk', f'{key}-ang-nc'
-    kka, kca = f'{key}-ang-k', f'{key}-ang-c'
+    krk, krc, kkr, kcr = _mesh_names(key=key, x_name='r')
+    kak, kac, kka, kca = _mesh_names(key=key, x_name='ang')
 
     # radius data
-    c0 = (
-        hasattr(radius, '__iter__')
-        and np.asarray(radius).ndim == 1
-        and np.unique(radius).size == np.array(radius).size
-        and np.allclose(np.unique(radius), radius)
+    radius, _, _ = _mesh1D_check(
+        x=radius,
+        x_name='radius',
+        uniform=False,
     )
-    if not c0:
-        msg = (
-            "Arg radius must be convertible to a 1d increasing array\n"
-            f"\t- Provided: {radius}"
-        )
-        raise Exception(msg)
 
     # angle data
     c0 = (
@@ -697,7 +691,7 @@ def _check_polar_2dquant(
     if coll.dobj.get('bsplines') is not None:
         lok = [
             k0 for k0, v0 in coll.ddata.items()
-            if v0['bsplines'] in coll.dobj['bsplines'].keys()
+            if v0.get('bsplines') in coll.dobj['bsplines'].keys()
         ]
     else:
         lok = []
@@ -723,6 +717,13 @@ def _check_polar_2dquant(
                 dquant[k0] = str(coll.ddata[quant2d][k0])
 
     return dquant
+
+
+
+def _mesh_names(key=None, x_name=None): 
+    kxk, kxc = f'{key}-{x_name}-nk', f'{key}-{x_name}-nc'
+    kkx, kcx = f'{key}-k-{x_name}', f'{key}-c-{x_name}'
+    return kxk, kxc, kkx, kcx
 
 
 # #############################################################################
@@ -922,10 +923,9 @@ def _mesh2DTri_to_dict(knots=None, cents=None, key=None, trifind=None):
     kc = f"{key}-nc"
     ki = f"{key}-nind"
 
-    kcR = f"{key}-c-R"
-    kcZ = f"{key}-c-Z"
-    kkR = f"{key}-k-R"
-    kkZ = f"{key}-k-Z"
+    _, _, kkR, kcR = _mesh_names(key=key, x_name='R')
+    _, _, kkZ, kcZ = _mesh_names(key=key, x_name='Z')
+
     kii = f"{key}-ind"
 
     # dref
@@ -1102,6 +1102,41 @@ def _mesh2DRect_X_check(
     return x_new, res_new, indsep
 
 
+def _mesh1D_check(
+    x=None,
+    x_name=None,
+    uniform=None,        
+):
+    # R, Z check
+    c0 = (
+        hasattr(x, '__iter__')
+        and np.asarray(x).ndim == 1
+        and np.unique(x).size == np.array(x).size
+        and np.allclose(np.unique(x), x)
+    )
+    if not c0:
+        msg = f"Arg {x_name} must be convertible to a 1d increasing array"
+        raise Exception(msg)
+
+    x = np.unique(x)
+    res = np.diff(x)
+    ind = None
+    
+    # check uniformity
+    if np.allclose(res, np.mean(res), atol=1e-12, rtol=0):
+        res = res[0]
+        
+    elif uniform:
+        msg = (
+            "Non-uniform resolution for user-provided mesh {x_name}\n"
+            f"\t- unique res: {np.unique(res)}\n"
+            f"\t- diff res: {np.diff(np.unique(res))}\n"
+            f"\t- res: {res}\n"
+            )
+        raise NotImplementedError(msg)
+    return x, res, ind
+
+
 def _mesh2DRect_check(
     domain=None,
     res=None,
@@ -1165,57 +1200,20 @@ def _mesh2DRect_check(
         Z, resZ, indZ = _mesh2DRect_X_check(domain[1], res=res[1])
 
     elif lc[1]:
-
-        # R, Z check
-        c0 = (
-            hasattr(R, '__iter__')
-            and np.asarray(R).ndim == 1
-            and np.unique(R).size == np.array(R).size
-            and np.allclose(np.unique(R), R)
+        
+        # R
+        R, resR, indR = _mesh1D_check(
+            x=R,
+            x_name='R',
+            uniform=True,
         )
-        if not c0:
-            msg = "Arg R must be convertible to a 1d increasing array"
-            raise Exception(msg)
-
-        c0 = (
-            hasattr(Z, '__iter__')
-            and np.asarray(Z).ndim == 1
-            and np.unique(Z).size == np.array(Z).size
-            and np.allclose(np.unique(Z), Z)
+        
+        # Z
+        Z, resZ, indZ = _mesh1D_check(
+            x=Z,
+            x_name='Z',
+            uniform=True,
         )
-        if not c0:
-            msg = "Arg Z must be convertible to a 1d increasing array"
-            raise Exception(msg)
-
-        R = np.unique(R)
-        Z = np.unique(Z)
-
-        resR = np.diff(R)
-        resZ = np.diff(Z)
-
-        if np.allclose(resR, np.mean(resR), atol=1e-12, rtol=0):
-            resR = resR[0]
-            indR = None
-        else:
-            msg = (
-                "Non-uniform resolution for user-provided rectangular mesh\n"
-                f"\t- unique resR: {np.unique(resR)}\n"
-                f"\t- diff resR: {np.diff(np.unique(resR))}\n"
-                f"\t- resR: {resR}\n"
-                )
-            raise NotImplementedError(msg)
-            
-        if np.allclose(resZ, np.mean(resZ), atol=1e-12, rtol=0):
-            resZ = resZ[0]
-            indZ = None
-        else:
-            msg = (
-                "Non-uniform resolution for user-provided rectangular mesh\n"
-                f"\t- unique resZ: {np.unique(resZ)}\n"
-                f"\t- diff resZ: {np.diff(np.unique(resZ))}\n"
-                f"\t- resZ: {resZ}\n"
-                )
-            raise NotImplementedError(msg)
 
     return R, Z, resR, resZ, indR, indZ
 
@@ -1231,10 +1229,8 @@ def _mesh2DRect_to_dict(
     # --------------------
     # check / format input
 
-    kRk, kZk = f'{key}-R-nk', f'{key}-Z-nk'
-    kRc, kZc = f'{key}-R-nc', f'{key}-Z-nc'
-    kkR, kkZ = f"{key}-k-R", f"{key}-k-Z"
-    kcR, kcZ = f"{key}-c-R", f"{key}-c-Z"
+    kRk, kRc, kkR, kcR = _mesh_names(key=key, x_name='R')
+    kZk, kZc, kkZ, kcZ = _mesh_names(key=key, x_name='Z')
 
     R, Z, resR, resZ, indR, indZ = _mesh2DRect_check(
         domain=domain,
@@ -1623,7 +1619,7 @@ def _select_check(
 # #############################################################################
 
 
-def _mesh2D_bsplines(key=None, lkeys=None, deg=None):
+def _mesh_bsplines(key=None, lkeys=None, deg=None):
 
     # key
     key = ds._generic_check._check_var(

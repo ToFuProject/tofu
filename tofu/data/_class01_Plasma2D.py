@@ -280,7 +280,7 @@ class Plasma2D(Previous):
         # --------------
         # check inputs
 
-        keym, keybs, deg = _checks._mesh2D_bsplines(
+        keym, keybs, deg = _checks._mesh_bsplines(
             key=key,
             lkeys=list(self.dobj[self._which_mesh].keys()),
             deg=deg,
@@ -332,10 +332,11 @@ class Plasma2D(Previous):
                 (
                     ddata[k0]['ref'], ddata[k0]['data'],
                 ) = _checks.add_data_meshbsplines_ref(
+                    coll=self,
                     ref=v0['ref'],
                     data=v0['data'],
-                    dmesh=self._dobj.get(self._which_mesh),
-                    dbsplines=self._dobj.get('bsplines'),
+                    which_mesh=self._which_mesh,
+                    which_bsplines='bsplines',
                 )
 
         # update

@@ -18,6 +18,7 @@ from . import _class1_checks as _checks
 from . import _class1_bsplines_rect
 from . import _class1_bsplines_tri
 from . import _class1_bsplines_polar
+from . import _class1_bsplines_1d
 
 
 # #############################################################################
@@ -717,6 +718,81 @@ def _mesh2DTri_bsplines(coll=None, keym=None, keybs=None, deg=None):
 
 # #############################################################################
 # #############################################################################
+#                           Mesh1D - bsplines
+# #############################################################################
+
+
+def _mesh1d_bsplines(
+    coll=None,
+    keym=None,
+    keybs=None,
+    deg=None,
+    which_mesh=None,
+    which_bsplines='bsplines',
+):
+    
+    kknots = coll.dobj[which_mesh][keym]['knots'][0]
+    knots = coll.ddata[kknots]['data']
+
+    kbsn = f'{keybs}-nbs'
+    kbsap = f'{keybs}-ap'
+
+    func_details, func_sum, clas = _class1_bsplines_1d.get_bs2d_func(
+        deg=deg,
+        knots=knots,
+        coll=coll,
+    )
+
+    # ------------
+    # refs
+
+    ref = (kbsn,)
+    apex = (kbsap,)
+
+    # ----------------
+    # format into dict
+
+    # dref
+    dref = {
+        # bs index
+        kbsn: {'size': clas.nbs},
+    }
+
+    # ddata
+    ddata = {
+        kbsap: {
+            'data': clas.apex_per_bs,
+            'units': '',
+            'dim': '',
+            'quant': '',
+            'name': '',
+            'ref': (kbsn,),
+        },
+    }
+
+    # dobj
+    dobj = {
+        which_bsplines: {
+            keybs: {
+                'deg': deg,
+                which_mesh: keym,
+                'ref': ref,
+                'ref-bs': (kbsn,),
+                'apex': apex,
+                'shape': clas.shapebs,
+                'func_details': func_details,
+                'func_sum': func_sum,
+                'class': clas,
+                'crop': None,
+            }
+        },
+    }
+
+    return dref, ddata, dobj
+
+
+# #############################################################################
+# #############################################################################
 #                           Mesh2DRect - bsplines
 # #############################################################################
 
@@ -945,7 +1021,7 @@ def _mesh2Dpolar_bsplines(
 
     func_details, func_sum, clas = _class1_bsplines_polar.get_bs2d_func(
         deg=deg,
-        knotsr=coll.ddata[kknots[0]]['data'],
+        knotsr=knotsr,
         angle=angle,
         coll=coll,
     )

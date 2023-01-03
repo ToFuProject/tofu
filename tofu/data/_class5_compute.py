@@ -172,7 +172,7 @@ def _ideal_configuration_check(
     if gtype == 'planar':
         conf = ['pinhole']
     elif gtype == 'cylindrical':
-        conf = ['pinhole', 'von hamos']
+        conf = ['pinhole', 'von hamos', 'johann']
     elif gtype == 'spherical':
         conf = ['pinhole', 'johann']
     elif gtype == 'toroidal':
