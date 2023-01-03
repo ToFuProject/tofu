@@ -173,14 +173,35 @@ def plot_mesh_spectral(
 #                           plot bspline
 # #############################################################################
 
+
 def _plot_bspline_prepare_spectral(
     coll=None,
     key=None,
+    keym=None,
     res=None,
+    mode=None,
 ):
     
-    xx = coll.
+    xx = coll.get_sample_mesh_spectral(key=keym, res=res, mode=mode)
     
+    # TBF depending on what is practical for LOS
+    yy = coll.interpolate_spectrum(
+        key=None,
+        coefs=None,
+        E=xx,
+        t=None,
+        indt=None,
+        indt_strict=None,
+        indbs=None,
+        details=True,
+        reshape=None,
+        res=None,
+        nan0=None,
+        val_out=None,
+        return_params=False,
+        store=False,
+        inplace=False,
+    )
     
     return xx, yy
 
@@ -211,7 +232,7 @@ def plot_bspline_spectral(
     # check input
 
     (
-        key, keym0, keym, mtype0, mtype,
+        key, _, keym, mtype0, mtype,
         indbs, indt,
         knots, cents, knotsi, centsi,
         plot_mesh, _, dleg,
@@ -274,7 +295,17 @@ def plot_bspline_spectral(
 
         ax.plot(
             xx,
-            yy,
+            np.sum(yy, axis=0),
+            c='k',
+            lw=2.,
+            ls='-',
+        )
+
+        ax.plot(
+            xx,
+            yy.T,
+            lw=1.,
+            ls='-',
         )
 
         if knots is not False:
@@ -309,6 +340,33 @@ def plot_bspline_spectral(
     return dax
 
 
+# #############################################################################
+# #############################################################################
+#                           plot spectrum 
+#               (1d or time-dependent and/or radius dependent)
+# #############################################################################
+
+
+def plot_spectrum(
+    coll=None,
+    key=None,
+):
+
+    # -----------
+    # check input
+    
+    key, keyX, keyY = None, None, None
+    
+    # ------------------------
+    # call appropriate routine
+    
+    return coll.plot_as_array(
+        key=key,
+        keyX=keyX,
+        keyY=keyY,
+    )
+    
+    
 # #############################################################################
 # #############################################################################
 #                           plot profile2d

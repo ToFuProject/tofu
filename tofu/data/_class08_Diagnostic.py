@@ -484,7 +484,6 @@ class Diagnostic(Previous):
             return_alpha=return_alpha,
         )
 
-
     def compute_diagnostic_signal(
         self,
         key=None,
@@ -529,7 +528,6 @@ class Diagnostic(Previous):
             # return
             returnas=returnas,
         )
-
 
     # -----------------
     # plotting

@@ -13,11 +13,35 @@ from ..geom._comp_solidangles import _check_polygon_2d
 
 
 _DMAT_KEYS = {
-    'name': {'types': str},
-    'symbol': {'types': str},
-    'thickness': {'types': float, 'sign': '> 0.'},
-    'energy': {'dtype': float, 'sign': '> 0.'},
-    'qeff': {'dtype': float, 'sign': ['>= 0.', '<= 1.']},
+    'name': {
+        'types': str,
+        'can_be_None': True,
+    },
+    'symbol': {
+        'types': str,
+        'can_be_None': True,
+    },
+    'thickness': {
+        'types': float,
+        'sign': '> 0.',
+        'can_be_None': True,
+    },
+    'energy': {
+        'dtype': float,
+        'sign': '> 0.',
+        'can_be_None': True,
+    },
+    'qeff': {
+        'dtype': float,
+        'sign': ['>= 0.', '<= 1.'],
+        'can_be_None': True,
+    },
+    'mode': {
+        'types': str,
+        'default': 'current',
+        'allowed': ['current', 'PHA'],
+        'can_be_None': False,
+    },
 }
 
 
@@ -758,7 +782,7 @@ def _dmat(
         varname='dmat',
         has_all_keys=False,
         has_only_keys=True,
-        keys_can_be_None=True,
+        keys_can_be_None=None,
         dkeys=_DMAT_KEYS,
     )
 
