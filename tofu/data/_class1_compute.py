@@ -1208,13 +1208,90 @@ def _get_sample_mesh_res(
         )
     elif mtype == 'tri':
         res = 0.02
+        
+    elif mtype == '1d':
+        kknots = coll.dobj[coll._which_msp][keym]['knots'][0]
+        res = np.min(np.diff(coll.ddata[kknots]['data']))
+        
     else:
         keyr2d = coll.dobj[coll._which_mesh][keym]['radius2d']
         keybs0 = coll.ddata[keyr2d]['bsplines']
         keym0 = coll.dobj['bsplines'][keybs0]['mesh']
         mtype0 = coll.dobj[coll._which_mesh][keym0]['type']
         res = _get_sample_mesh_res(coll=coll, keym=keym0, mtype=mtype0)
+        
     return res
+
+
+def _sample_mesh_check_1d(
+    coll=None,
+    key=None,
+    res=None,
+    mode=None,
+    Dx=None,
+):
+
+    # -----------
+    # Parameters
+
+    # key
+    (
+     which_mesh, _, key, _, cat,
+     ) = _checks._get_key_mesh_vs_bplines(
+        coll=coll,
+        key=key,
+        forcecat='mesh',
+    )
+    meshtype = coll.dobj[which_mesh][key]['type']
+
+    # for polar mesh => sample underlying mesh
+    if len(coll.dobj[which_mesh][key]['shape-c']) > 1:
+        msg = "Wrong mesh dimension!"
+        raise Exception(msg)
+
+    # res
+    if res is None:
+        res = _get_sample_mesh_res(coll=coll, keym=key, mtype=meshtype)
+
+    if not (np.isscalar(res) and res > 0.):
+        msg = f"Arg res must be a positive float!\nProvided: {res}"
+        raise Exception(msg)
+
+    # mode
+    mode = ds._generic_check._check_var(
+        mode, 'mode',
+        types=str,
+        default='abs',
+    )
+
+    # -------------
+    # R, Z
+
+    kknots = coll.dobj[which_mesh][key]['knots'][0]
+    knots = coll.ddata[kknots]['data']
+
+    # custom DR or DZ for mode='abs' only
+    if Dx is not None:
+        if mode != 'abs':
+            msg = "Custom Dx can only be provided with mode = 'abs'!"
+            raise Exception(msg)
+
+            c0 = (
+                hasattr(Dx, '__iter__')
+                and len(Dx) == 2
+                and all([
+                    rr is None or (np.isscalar(rr) and np.isfinite(rr))
+                    for rr in Dx
+                ])
+            )
+            if not c0:
+                msg = f'Arg Dx must be an iterable of 2 scalars!'
+                raise Exception(msg)
+
+    if Dx is None:
+        Dx = [knots.min(), knots.max()]
+
+    return key, res, mode, Dx, knots
 
 
 def _sample_mesh_check(
@@ -1420,6 +1497,43 @@ def sample_mesh(
     return R, Z
 
 
+def sample_mesh_1d(
+    coll=None,
+    key=None,
+    res=None,
+    mode=None,
+    Dx=None,
+):
+
+    # -------------
+    # check inputs
+
+    key, res, mode, xx, Dx, knots = _sample_mesh_check_1d(
+        coll=coll,
+        key=key,
+        res=res,
+        mode=mode,
+        Dx=Dx,
+    )
+    
+    # -------------
+    # compute
+
+    if mode == 'abs':
+        nx = int(np.ceil((Dx[1] - Dx[0]) / res))
+        xx = np.linspace(Dx[0], Dx[1], nx)
+
+    else:
+        nx = int(np.ceil(1./res))
+        kx = np.linspace(0, 1, nx, endpoint=False)[None, :]
+        xx = np.concatenate((
+            (knots[:-1, None] + kx*np.diff(knots)[:, None]).ravel(),
+            knots[-1:],
+        ))
+
+    return xx
+    
+    
 # #############################################################################
 # #############################################################################
 #                           Mesh2DRect - crop

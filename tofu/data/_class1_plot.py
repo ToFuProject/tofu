@@ -13,6 +13,7 @@ import datastock as ds
 
 # specific
 from . import _generic_check
+from . import _class1_checks as _checks
 from . import _class1_compute as _compute
 
 
@@ -781,18 +782,19 @@ def _plot_bspline_check(
 ):
 
     # key
-    lk = list(coll.dobj.get('bsplines', {}).keys())
-    key = ds._generic_check._check_var(
-        key, 'key',
-        default=None,
-        types=str,
-        allowed=lk,
+    (
+     which_mesh, which_bsplines, keym, key, cat,
+     ) = _checks._get_key_mesh_vs_bplines(
+        coll=coll,
+        key=key,
+        forcecat='bsplines',
     )
-    keym0 = coll.dobj['bsplines'][key]['mesh']
-    mtype0 = coll.dobj[coll._which_mesh][keym0]['type']
+
+    keym0 = coll.dobj[which_bsplines][key][which_mesh]
+    mtype0 = coll.dobj[which_mesh][keym0]['type']
     if mtype0 == 'polar':
-        keym = coll.dobj[coll._which_mesh][keym0]['submesh']
-        mtype = coll.dobj[coll._which_mesh][keym]['type']
+        keym = coll.dobj[which_mesh][keym0]['submesh']
+        mtype = coll.dobj[which_mesh][keym]['type']
     else:
         keym = keym0
         mtype = mtype0
@@ -828,7 +830,7 @@ def _plot_bspline_check(
     # indt
     nt = False
     if mtype0 == 'polar':
-        radius2d = coll.dobj[coll._which_mesh][keym0]['radius2d']
+        radius2d = coll.dobj[which_mesh][keym0]['radius2d']
         r2d_reft = coll.get_time(key=radius2d)[2]
         if r2d_reft is not None:
             nt = coll.dref[r2d_reft]['size']

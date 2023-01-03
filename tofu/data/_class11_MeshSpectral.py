@@ -185,6 +185,26 @@ class MeshSpectral(Previous):
                     raise Exception(msg)
 
     # -----------------
+    # interp tools
+    # ------------------
+    
+    def get_sample_mesh_spectral(
+        self,
+        key=None,
+        res=None,
+        mode=None,
+        DE=None,
+    ):
+        """ Return a sampled version of the chosen mesh """
+        return _class1_compute.sample_mesh_1d(
+            coll=self,
+            key=key,
+            res=res,
+            mode=mode,
+            Dx=DE,
+        )
+
+    # -----------------
     # plotting
     # -----------------
 
@@ -232,7 +252,7 @@ class MeshSpectral(Previous):
         dleg=None,
     ):
 
-        return _plot.plot_bspline(
+        return _plot.plot_bspline_spectral(
             coll=self,
             key=key,
             indbs=indbs,
