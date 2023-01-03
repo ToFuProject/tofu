@@ -17,7 +17,7 @@ from . import _class1_checks
 from . import _class1_compute
 from . import _class11_checks as _checks
 # from . import _class11_compute as _compute
-# from . import _class11_plot as _plot
+from . import _class11_plot as _plot
 
 
 __all__ = ['MeshSpectral']
@@ -188,28 +188,28 @@ class MeshSpectral(Previous):
     # indices
     # ------------------
 
-    def select_ind_spectral(
-        self,
-        key=None,
-        ind=None,
-        elements=None,
-        returnas=None,
-        crop=None,
-    ):
-        """ Return ind for selected key (mesh or bspline) as:
-                - tuple (default)
-                - 'flat'
+    # def select_ind_spectral(
+    #     self,
+    #     key=None,
+    #     ind=None,
+    #     elements=None,
+    #     returnas=None,
+    #     crop=None,
+    # ):
+    #     """ Return ind for selected key (mesh or bspline) as:
+    #             - tuple (default)
+    #             - 'flat'
 
-        Can covert one into the other
-        """
-        return _class1_compute._select_ind(
-            coll=self,
-            key=key,
-            ind=ind,
-            elements=elements,
-            returnas=returnas,
-            crop=crop,
-        )
+    #     Can covert one into the other
+    #     """
+    #     return _class1_compute._select_ind(
+    #         coll=self,
+    #         key=key,
+    #         ind=ind,
+    #         elements=elements,
+    #         returnas=returnas,
+    #         crop=crop,
+    #     )
 
     def select_mesh_elements_spectral(
         self,
@@ -421,3 +421,11 @@ class MeshSpectral(Previous):
             dinc=dinc,
             connect=connect,
         )
+
+    def plot_profile2d_spectral(
+        self,
+        key=None,
+    ):
+        """ plot a spectral-dependent 2d emissivity field """
+        
+        return _plot.plot_profile2d_spectral()
