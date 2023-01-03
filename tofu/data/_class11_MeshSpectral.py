@@ -185,36 +185,6 @@ class MeshSpectral(Previous):
                     raise Exception(msg)
 
     # -----------------
-    # indices
-    # ------------------
-
-    def select_bsplines_spectral(
-        self,
-        key=None,
-        ind=None,
-        returnas=None,
-        return_cents=None,
-        return_knots=None,
-        crop=None,
-    ):
-        """ Return indices or values of selected knots / cent
-
-        Can be used to convert tuple (R, Z) indices to flat (RZ,) indices
-        Can return values instead of indices
-        Can return indices / values of neighbourgs
-
-        """
-        return _class1_compute._select_bsplines(
-            coll=self,
-            key=key,
-            ind=ind,
-            returnas=returnas,
-            return_cents=return_cents,
-            return_knots=return_knots,
-            crop=crop,
-        )
-
-    # -----------------
     # interp tools
     # ------------------
 

@@ -536,25 +536,23 @@ def _select_bsplines(
     # ------------
     # check inputs
 
-    _, returnas, _, _ = _checks._select_check(
-        returnas=returnas,
-    )
+    _, returnas, _, _ = _checks._select_check(returnas=returnas)
 
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=list(coll.dobj.get('bsplines', {}).keys()),
+    (
+     which_mesh, which_bsplines, keym, key, cat,
+     ) = _checks._get_key_mesh_vs_bplines(
+        coll=coll,
+        key=key,
+        forcecat='bsplines',
     )
-
-    keym = coll.dobj['bsplines'][key]['mesh']
-    meshtype = coll.dobj['mesh'][keym]['type']
+    meshtype = coll.dobj[which_mesh][keym]['type']
 
     # ----
     # ind
 
     if meshtype == 'rect':
         returnasind = tuple
-    elif meshtype == 'polar' and len(coll.dobj['bsplines'][key]['shape']) == 2:
+    elif meshtype == 'polar' and len(coll.dobj[which_bsplines][key]['shape']) == 2:
         returnasind = tuple
     else:
         returnasind = bool
@@ -572,15 +570,15 @@ def _select_bsplines(
     # knots, cents
 
     if meshtype == 'rect':
-        kRk, kZk = coll.dobj['mesh'][keym]['knots']
-        kRc, kZc = coll.dobj['mesh'][keym]['cents']
+        kRk, kZk = coll.dobj[which_mesh][keym]['knots']
+        kRc, kZc = coll.dobj[which_mesh][keym]['cents']
 
         out = _mesh2DRect_bsplines_knotscents(
             returnas=returnas,
             return_knots=return_knots,
             return_cents=return_cents,
             ind=ind,
-            deg=coll.dobj['bsplines'][key]['deg'],
+            deg=coll.dobj[which_bsplines][key]['deg'],
             Rknots=coll.ddata[kRk]['data'],
             Zknots=coll.ddata[kZk]['data'],
             Rcents=coll.ddata[kRc]['data'],
@@ -588,7 +586,7 @@ def _select_bsplines(
         )
 
     elif meshtype == 'tri':
-        clas = coll.dobj['bsplines'][key]['class']
+        clas = coll.dobj[which_bsplines][key]['class']
         out = clas._get_knotscents_per_bs(
             returnas=returnas,
             return_knots=return_knots,
@@ -597,26 +595,31 @@ def _select_bsplines(
         )
 
     else:
-        clas = coll.dobj['bsplines'][key]['class']
-        shape2d = len(coll.dobj['bsplines'][key]['shape']) == 2
+        clas = coll.dobj[which_bsplines][key]['class']
+        shape2d = len(coll.dobj[which_bsplines][key]['shape']) == 2
+        if which_bsplines == coll._which_bssp:
+            kpbs, cpbs = 'knots_per_bs', 'cents_per_bs'
+        else:
+            kpbs, cpbs = 'knots_per_bs_r', 'cents_per_bs_r'
+        
         if return_cents is True and return_knots is True:
             if shape2d:
                 out = (
-                    (clas.knots_per_bs_r, clas.knots_per_bs_a),
-                    (clas.cents_per_bs_r, clas.cents_per_bs_a),
+                    (getattr(clas, kpbs), clas.knots_per_bs_a),
+                    (getattr(clas, cpbs), clas.cents_per_bs_a),
                 )
             else:
-                out = ((clas.knots_per_bs_r,), (clas.cents_per_bs_r,))
+                out = ((getattr(clas, kpbs),), (getattr(clas, cpbs),))
         elif return_cents is True:
             if shape2d:
-                out = (clas.cents_per_bs_r, clas.cents_per_bs_a)
+                out = (getattr(clas, cpbs), clas.cents_per_bs_a)
             else:
-                out = (clas.cents_per_bs_r,)
+                out = (getattr(clas, cpbs),)
         elif return_knots is True:
             if shape2d:
-                out = (clas.knots_per_bs_r, clas.knots_per_bs_a)
+                out = (getattr(clas, kpbs), clas.knots_per_bs_a)
             else:
-                out = (clas.knots_per_bs_r,)
+                out = (getattr(clas, kpbs),)
 
     # ------------
     # return
