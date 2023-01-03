@@ -188,47 +188,6 @@ class MeshSpectral(Previous):
     # indices
     # ------------------
 
-    def select_mesh_elements_spectral(
-        self,
-        key=None,
-        ind=None,
-        elements=None,
-        returnas=None,
-        return_neighbours=None,
-        crop=None,
-    ):
-        """ Return indices or values of selected knots / cent
-
-        Can be used to convert tuple (R, Z) indices to flat (RZ,) indices
-        Can return values instead of indices
-        Can return indices / values of neighbourgs
-
-        """
-        # check key
-        key = ds._generic_check._check_var(
-            key, 'key',
-            allowed=list(self.dobj.get(self._which_msp, {}).keys()),
-            types=str,
-        )
-
-        # get ind
-        ind = self.select_ind(
-            key=key,
-            ind=ind,
-            elements=elements,
-            returnas=bool,
-            crop=crop,
-        )
-
-        return _class1_compute._select_mesh(
-            coll=self,
-            key=key,
-            ind=ind,
-            elements=elements,
-            returnas=returnas,
-            return_neighbours=return_neighbours,
-        )
-
     def select_bsplines_spectral(
         self,
         key=None,

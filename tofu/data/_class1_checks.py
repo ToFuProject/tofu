@@ -23,13 +23,27 @@ _ELEMENTS = 'knots'
 def _get_key_mesh_vs_bplines(
     coll=None,
     key=None,
+    forcecat=None,
 ):
 
-    lk1 = list(coll.dobj.get(coll._which_mesh, {}).keys())
-    lk2 = list(coll.dobj.get('bsplines', {}).keys())
-    lk3 = list(coll.dobj.get(coll._which_msp, {}).keys())
-    lk4 = list(coll.dobj.get(coll._which_bssp, {}).keys())
+    if forcecat is None:
+        lk1 = list(coll.dobj.get(coll._which_mesh, {}).keys())
+        lk2 = list(coll.dobj.get('bsplines', {}).keys())
+        lk3 = list(coll.dobj.get(coll._which_msp, {}).keys())
+        lk4 = list(coll.dobj.get(coll._which_bssp, {}).keys())
+    elif forcecat == 'mesh':
+        lk1 = list(coll.dobj.get(coll._which_mesh, {}).keys())
+        lk3 = list(coll.dobj.get(coll._which_msp, {}).keys())
+        lk2, lk4 = [], []
+    elif forcecat == 'bsplines':
+        lk1, lk3 = [], []
+        lk2 = list(coll.dobj.get('bsplines', {}).keys())
+        lk4 = list(coll.dobj.get(coll._which_bssp, {}).keys())
+    else:
+        msg = f'Unknown value for arg forcecat: {forcecat}'
+        raise Exception(msg)
     
+    # key
     key = ds._generic_check._check_var(
         key, 'key',
         allowed=lk1 + lk2 + lk3 + lk4,
@@ -48,7 +62,7 @@ def _get_key_mesh_vs_bplines(
     if key in lk1 + lk3:
         cat = which_mesh
     else:
-        cat = which_bsplines
+        cat = which_bsplines        
         
     # keys
     if cat == which_mesh:

@@ -251,18 +251,14 @@ def _select_mesh(
     returnas=None,
     return_ind_as=None,
     return_neighbours=None,
+    which_mesh=None,
 ):
     """ ind is a tuple for rect """
 
     # ------------
     # check inputs
 
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=list(coll.dobj['mesh'].keys())
-    )
-    meshtype = coll.dobj['mesh'][key]['type']
+    meshtype = coll.dobj[which_mesh][key]['type']
 
     (
         elements, returnas,
@@ -278,13 +274,13 @@ def _select_mesh(
     # prepare
 
     if meshtype in ['rect', 'tri']:
-        kR, kZ = coll.dobj[coll._which_mesh][key][elements]
+        kR, kZ = coll.dobj[which_mesh][key][elements]
         R = coll.ddata[kR]['data']
         Z = coll.ddata[kZ]['data']
         nR = R.size
         nZ = Z.size
     else:
-        kr = coll.dobj[coll._which_mesh][key][elements][0]
+        kr = coll.dobj[which_mesh][key][elements][0]
         rad = coll.ddata[kr]['data']
 
 

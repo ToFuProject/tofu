@@ -582,14 +582,16 @@ class Plasma2D(Previous):
 
         """
         # check key
-        key = ds._generic_check._check_var(
-            key, 'key',
-            allowed=list(self.dobj.get('mesh', {}).keys()),
-            types=str,
+        (
+         which_mesh, _, key, _, _,
+         ) = _checks._get_key_mesh_vs_bplines(
+            coll=self,
+            key=key,
+            forcecat='mesh',
         )
 
         # get ind
-        if self.dobj['mesh'][key]['type'] == 'rect':
+        if self.dobj[which_mesh][key]['type'] == 'rect':
             returnas_ind = tuple
         else:
             returnas_ind = bool
@@ -609,6 +611,7 @@ class Plasma2D(Previous):
             elements=elements,
             returnas=returnas,
             return_neighbours=return_neighbours,
+            which_mesh=which_mesh,
         )
 
     def select_bsplines(
