@@ -291,7 +291,7 @@ def _select_mesh(
         out = ind
     else:
         if meshtype == 'rect':
-            out = R[ind[0]], Z[ind[0]]
+            out = R[ind[0]], Z[ind[1]]
         elif meshtype == 'tri':
             out = R[ind], Z[ind]
         else:

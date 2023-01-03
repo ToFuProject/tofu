@@ -49,18 +49,20 @@ def _plot_mesh_check(
     crop = ds._generic_check._check_var(crop, 'crop', default=True, types=bool)
     bck = ds._generic_check._check_var(bck, 'bck', default=True, types=bool)
 
+    return_neighbours = (which_mesh == coll._which_mesh)
+
     # ind_knot
     if ind_knot is not None:
         ind_knot = coll.select_mesh_elements(
             key=key, ind=ind_knot, elements='knots',
-            returnas='data', return_neighbours=True, crop=crop,
+            returnas='data', return_neighbours=return_neighbours, crop=crop,
         )
 
     # ind_cent
     if ind_cent is not None:
         ind_cent = coll.select_mesh_elements(
             key=key, ind=ind_cent, elements='cents',
-            returnas='data', return_neighbours=True, crop=crop,
+            returnas='data', return_neighbours=return_neighbours, crop=crop,
         )
 
     # color

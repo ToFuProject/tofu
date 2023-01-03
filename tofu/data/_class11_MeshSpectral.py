@@ -185,45 +185,14 @@ class MeshSpectral(Previous):
                     raise Exception(msg)
 
     # -----------------
-    # interp tools
-    # ------------------
-
-    def get_sample_mesh_spectral(
-        self,
-        key=None,
-        res=None,
-        grid=None,
-        mode=None,
-        R=None,
-        Z=None,
-        DR=None,
-        DZ=None,
-        imshow=None,
-    ):
-        """ Return a sampled version of the chosen mesh """
-        return _class1_compute.sample_spectrum(
-            coll=self,
-            key=key,
-            res=res,
-            grid=grid,
-            mode=mode,
-            R=R,
-            Z=Z,
-            DR=DR,
-            DZ=DZ,
-            imshow=imshow,
-        )
-
-    # -----------------
     # plotting
-    # ------------------
+    # -----------------
 
     def plot_mesh_spectral(
         self,
         key=None,
         ind_knot=None,
         ind_cent=None,
-        crop=None,
         color=None,
         dax=None,
         dmargin=None,
@@ -232,12 +201,11 @@ class MeshSpectral(Previous):
         connect=None,
     ):
 
-        return _plot.plot_mesh(
+        return _plot.plot_mesh_spectral(
             coll=self,
             key=key,
             ind_knot=ind_knot,
             ind_cent=ind_cent,
-            crop=crop,
             color=color,
             dax=dax,
             dmargin=dmargin,

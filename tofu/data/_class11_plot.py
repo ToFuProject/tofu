@@ -31,7 +31,7 @@ def _plot_mesh_prepare_spectral(
     # --------
     # prepare
 
-    kknots = coll.dobj['mesh'][key]['knots'][0]
+    kknots = coll.dobj[coll._which_msp][key]['knots'][0]
     knots = coll.ddata[kknots]['data']
 
     xx = np.array([knots, knots, np.full(knots.shape, np.nan)])
@@ -45,8 +45,6 @@ def plot_mesh_spectral(
     key=None,
     ind_knot=None,
     ind_cent=None,
-    crop=None,
-    bck=None,
     nmax=None,
     color=None,
     dax=None,
@@ -70,8 +68,6 @@ def plot_mesh_spectral(
         key=key,
         ind_knot=ind_knot,
         ind_cent=ind_cent,
-        crop=crop,
-        bck=bck,
         color=color,
         dleg=dleg,
     )
@@ -82,8 +78,6 @@ def plot_mesh_spectral(
     xx, yy = _plot_mesh_prepare_spectral(
         coll=coll,
         key=key,
-        crop=crop,
-        bck=bck,
     )
 
     # --------------
@@ -126,37 +120,39 @@ def plot_mesh_spectral(
 
         if ind_knot is not None:
             ax.plot(
-                ind_knot[0][0],
+                ind_knot[0],
+                0.5,
                 marker='o',
                 ms=8,
                 ls='None',
                 color=color,
                 label='knots',
             )
-            ax.plot(
-                ind_knot[1][0, :, :],
-                marker='x',
-                ms=4,
-                ls='None',
-                color=color,
-            )
+            # ax.plot(
+            #     ind_knot[1][0, :, :],
+            #     marker='x',
+            #     ms=4,
+            #     ls='None',
+            #     color=color,
+            # )
 
         if ind_cent is not None:
             ax.plot(
-                ind_cent[0][0],
+                ind_cent[0],
+                0.5,
                 marker='x',
                 ms=8,
                 ls='None',
                 color=color,
                 label='cents',
             )
-            ax.plot(
-                ind_cent[1][0, :, :],
-                marker='o',
-                ms=4,
-                ls='None',
-                color=color,
-            )
+            # ax.plot(
+            #     ind_cent[1][0, :, :],
+            #     marker='o',
+            #     ms=4,
+            #     ls='None',
+            #     color=color,
+            # )
 
     # --------------
     # dleg
