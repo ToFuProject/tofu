@@ -188,29 +188,6 @@ class MeshSpectral(Previous):
     # indices
     # ------------------
 
-    # def select_ind_spectral(
-    #     self,
-    #     key=None,
-    #     ind=None,
-    #     elements=None,
-    #     returnas=None,
-    #     crop=None,
-    # ):
-    #     """ Return ind for selected key (mesh or bspline) as:
-    #             - tuple (default)
-    #             - 'flat'
-
-    #     Can covert one into the other
-    #     """
-    #     return _class1_compute._select_ind(
-    #         coll=self,
-    #         key=key,
-    #         ind=ind,
-    #         elements=elements,
-    #         returnas=returnas,
-    #         crop=crop,
-    #     )
-
     def select_mesh_elements_spectral(
         self,
         key=None,
@@ -230,21 +207,16 @@ class MeshSpectral(Previous):
         # check key
         key = ds._generic_check._check_var(
             key, 'key',
-            allowed=list(self.dobj.get('mesh', {}).keys()),
+            allowed=list(self.dobj.get(self._which_msp, {}).keys()),
             types=str,
         )
 
         # get ind
-        if self.dobj['mesh'][key]['type'] == 'rect':
-            returnas_ind = tuple
-        else:
-            returnas_ind = bool
-
         ind = self.select_ind(
             key=key,
             ind=ind,
             elements=elements,
-            returnas=returnas_ind,
+            returnas=bool,
             crop=crop,
         )
 

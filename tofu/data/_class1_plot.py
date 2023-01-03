@@ -24,6 +24,7 @@ from . import _class1_compute as _compute
 
 def _plot_mesh_check(
     coll=None,
+    which_mesh=None,
     key=None,
     ind_knot=None,
     ind_cent=None,
@@ -33,12 +34,15 @@ def _plot_mesh_check(
     dleg=None,
 ):
 
+    if which_mesh is None:
+        which_mesh = coll._which_mesh
+    
     # key
     key = ds._generic_check._check_var(
         key, 'key',
         default=None,
         types=str,
-        allowed=list(coll.dobj.get('mesh', {}).keys()),
+        allowed=list(coll.dobj.get(which_mesh, {}).keys()),
     )
 
     # crop, bck

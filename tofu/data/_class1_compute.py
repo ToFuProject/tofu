@@ -34,6 +34,9 @@ def _select_ind(
     elements=None,
     returnas=None,
     crop=None,
+    # spatial vs spectral
+    which_mesh=None,
+    which_bsplines=None,
 ):
     """ ind can be:
             - None
@@ -46,23 +49,21 @@ def _select_ind(
     # ------------
     # check inputs
 
-    # key = mesh or bspline ?
-    lk1 = list(coll.dobj.get(coll._which_mesh, {}).keys())
-    lk2 = list(coll.dobj.get('bsplines', {}).keys())
-    key = ds._generic_check._check_var(
-        key, 'key',
-        allowed=lk1 + lk2,
-        types=str,
+    (
+     which_mesh, which_bsplines, km, keybs, cat,
+     ) = _checks._get_key_mesh_vs_bplines(
+        coll=coll,
+        key=key,
     )
+         
+    meshtype = coll.dobj[which_mesh][km]['type']
 
     shape2d = None
-    cat = coll._which_mesh if key in lk1 else 'bsplines'
-    if cat == coll._which_mesh:
-        meshtype = coll.dobj[cat][key]['type']
+    if cat == which_mesh:
+        key = km
         shape2d = len(coll.dobj[cat][key]['shape-c']) == 2
     else:
-        km = coll.dobj[cat][key]['mesh']
-        meshtype = coll.dobj[coll._which_mesh][km]['type']
+        key = keybs
         shape2d = len(coll.dobj[cat][key]['shape']) == 2
 
     # ind, elements, ...
@@ -72,20 +73,19 @@ def _select_ind(
         elements=elements,
         returnas=returnas,
         crop=crop,
-        meshtype=meshtype,
         shape2d=shape2d,
     )
 
-    elem = f'{elements}' if cat == coll._which_mesh else 'ref'
+    elem = f'{elements}' if cat == which_mesh else 'ref'
 
     if shape2d:
-        if cat == coll._which_mesh:
+        if cat == which_mesh:
             ke = f'shape-{elem[0]}'
             nR, nZ = coll.dobj[cat][key][ke]
         else:
             nR, nZ = coll.dobj[cat][key]['shape']
     else:
-        if cat == coll._which_mesh:
+        if cat == which_mesh:
             ke = f'shape-{elem[0]}'
             nelem = coll.dobj[cat][key][ke][0]
         else:
@@ -189,7 +189,7 @@ def _select_ind(
     if crop is True:
         cropi = coll.ddata[coll.dobj[cat][key]['crop']]['data']
         if meshtype == 'rect':
-            if cat == coll._which_mesh and elements == 'knots':
+            if cat == which_mesh and elements == 'knots':
                 cropiknots = np.zeros(ind_bool.shape, dtype=bool)
                 cropiknots[:-1, :-1] = cropi
                 cropiknots[1:, :-1] = cropiknots[1:, :-1] | cropi
