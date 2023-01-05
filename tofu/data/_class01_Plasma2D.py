@@ -36,7 +36,7 @@ class Plasma2D(Previous):
 
     _ddef = copy.deepcopy(ds.DataStock._ddef)
     _ddef['params']['ddata'].update({
-        'bsplines': (str, ''),
+        'bsplines': {'cls': str, 'def': ''},
     })
     _ddef['params']['dobj'] = None
     _ddef['params']['dref'] = None

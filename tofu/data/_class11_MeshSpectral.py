@@ -36,7 +36,7 @@ class MeshSpectral(Previous):
 
     _ddef = copy.deepcopy(ds.DataStock._ddef)
     _ddef['params']['ddata'].update({
-        _which_bssp: (str, ''),
+        _which_bssp: {'cls': str, 'def': ''},
     })
     _ddef['params']['dobj'] = None
     _ddef['params']['dref'] = None
