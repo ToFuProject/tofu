@@ -295,6 +295,7 @@ class Diagnostic(Previous):
         key_cam=None,
         lamb=None,
         rocking_curve=None,
+        units=None,
     ):
         """ Return the wavelength associated to
         - 'lamb'
@@ -309,6 +310,7 @@ class Diagnostic(Previous):
             key_cam=key_cam,
             lamb=lamb,
             rocking_curve=rocking_curve,
+            units=units,
         )
 
     # ---------------
