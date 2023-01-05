@@ -15,6 +15,7 @@ import datastock as ds
 from . import _generic_check
 from. import _class1_plot
 # from . import _class1_compute as _compute
+from . import _spectralunits
 
 
 # #############################################################################
@@ -49,6 +50,7 @@ def plot_mesh_spectral(
     key=None,
     ind_knot=None,
     ind_cent=None,
+    units=None,
     nmax=None,
     color=None,
     dax=None,
@@ -83,6 +85,17 @@ def plot_mesh_spectral(
         coll=coll,
         key=key,
     )
+    
+    if units not in [None, 'eV']:
+        xx, _, _, cat = _spectralunits.convert_spectral(
+            data_in=xx,
+            units_in='eV',
+            units_out=units,
+        )
+        xlab = cat + r" ($" + units + "$)"
+        
+    else:
+        xlab = r'energy ($eV$)'
 
     # --------------
     # plot - prepare
@@ -99,7 +112,7 @@ def plot_mesh_spectral(
         fig = plt.figure(figsize=fs)
         gs = gridspec.GridSpec(ncols=1, nrows=1, **dmargin)
         ax0 = fig.add_subplot(gs[0, 0])
-        ax0.set_xlabel(f'E (eV)')
+        ax0.set_xlabel(xlab)
 
         dax = {'spectral': ax0}
 

@@ -15,6 +15,7 @@ import datastock as ds
 
 
 from . import _utils_surface3d
+from . import _spectralunits
 
 
 # ##################################################################
@@ -757,6 +758,8 @@ def get_lamb_from_angle(
     key_cam=None,
     lamb=None,
     rocking_curve=None,
+    units=None,
+    returnas=None,
 ):
     """"""
 
@@ -790,6 +793,7 @@ def get_lamb_from_angle(
         'lamb': 'alpha',
         'lambmin': 'amin',
         'lambmax': 'amax',
+        'dlamb': 'dlamb',
         'res': 'res',
     }
     lok = list(dok.keys())
@@ -803,9 +807,10 @@ def get_lamb_from_angle(
     # compute
 
     lv = []
+    data = None
     lk = ['lamb', 'lambmin', 'lambmax']
     for kk in lk:
-        if lamb in [kk, 'res']:
+        if lamb in [kk, 'dlamb', 'res']:
 
             if kk == 'lamb':
                 klos = coll.dobj['diagnostic'][key]['doptics'][key_cam]['los']
@@ -824,12 +829,38 @@ def get_lamb_from_angle(
             )[1]
             if lamb == kk:
                 data = dd
+                break
             else:
                 lv.append(dd)
 
-    if lamb == 'res':
-        data = lv[0] / (lv[2] - lv[1])
+    # ----------------
+    # units conversion
+    
+    if units not in [None, 'm']:
+        if data is None:
+            
+            for ii in range(3):
+                lv[ii] = _spectralunits.convert_spectral(
+                    data_in=lv[ii],
+                    units_in='m',
+                    units_out=units,
+                )[0]
+                
+        else:
+            data = _spectralunits.convert_spectral(
+                data_in=data,
+                units_in='m',
+                units_out=units,
+            )[0]
 
+    # -----------
+    # return
+
+    if lamb == 'dlamb':
+        data = np.abs(lv[2] - lv[1])
+    elif lamb == 'res':
+        data = lv[0] / np.abs(lv[2] - lv[1])
+    
     return data, ref
 
 

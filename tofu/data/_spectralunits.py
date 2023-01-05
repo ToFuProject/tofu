@@ -22,31 +22,68 @@ _SPECTRAL_DUNITS = {
 # #############################################################################
 
 
+def convert_spectral(
+    data_in=None,
+    units_in=None,
+    units_out=None,
+):
+    """ convert wavelength / energy/ frequency
+
+    Available units:
+        wavelength: m, mm, nm, A
+        energy:     J, eV, keV
+        frequency:  Hz, kHz, MHz, GHz
+    """
+
+    # -------------
+    # Check inputs
+    
+    data_in = _check_convert_spectral(
+        data_in=data_in,
+        units_in=units_in,
+        units_out=units_out,
+    )
+
+    # -----------
+    # compute
+
+    # trivial case first
+    if units_in == units_out:
+        return data_in
+
+    coef, inv, cat = _convert_spectral_coef(
+        units_in=units_in,
+        units_out=units_out,
+    )
+    
+    # -----------
+    # return
+    
+    if data_in is None:
+        data = None
+    else:
+        if inv:
+            data = coef / data_in
+        else:
+            data = coef * data_in
+    
+    return data, coef, inv, cat
+
+
+# ###############################
+#       checks
+# ###############################
+
+
 def _check_convert_spectral(
     data_in=None,
     units_in=None,
     units_out=None,
-    returnas=None,
 ):
-
-    # returnas
-    if returnas is None:
-        returnas = 'data'
-    if returnas not in ['data', 'coef']:
-        msg = (
-            """
-            Arg return as must be:
-            - 'data': return the converted data
-            - 'coef': return the conversion coefficient
-            """
-        )
-        raise Exception(msg)
 
     # data_in
     if data_in is None:
-        if returnas == 'data':
-            msg = "If returnas='data', arg data cannot be None!"
-            raise Exception(msg)
+        pass
     else:
         if not isinstance(data_in, np.ndarray):
             try:
@@ -88,10 +125,18 @@ def _check_convert_spectral(
         )
         raise Exception(msg)
 
-    return data_in, returnas
+    return data_in
 
 
-def _convert_spectral_coef(units_in=None, units_out=None):
+# ###############################
+#       compute
+# ###############################
+
+
+def _convert_spectral_coef(
+    units_in=None,
+    units_out=None,
+):
     """ Get conversion coef """
     
     k0_in = [k0 for k0, v0 in _SPECTRAL_DUNITS.items() if units_in in v0][0]
@@ -134,32 +179,32 @@ def _convert_spectral_coef(units_in=None, units_out=None):
         # coefs_in
         if k0_in == 'wavelength':
             # units_in -> eV
-            coef_in, _ = _convert_spectral_coef(
+            coef_in = _convert_spectral_coef(
                 units_in=units_in, units_out='m',
-            )
+            )[0]
         elif k0_in == 'energy':
-            coef_in, _ = _convert_spectral_coef(
+            coef_in = _convert_spectral_coef(
                 units_in=units_in, units_out='J',
-            )
+            )[0]
         elif k0_in == 'frequency':
-            coef_in, _ = _convert_spectral_coef(
+            coef_in = _convert_spectral_coef(
                 units_in=units_in, units_out='Hz',
-            )
+            )[0]
 
         # coefs_out
         if k0_out == 'wavelength':
             # units_in -> eV
-            coef_out, _ = _convert_spectral_coef(
+            coef_out = _convert_spectral_coef(
                 units_in='m', units_out=units_out,
-            )
+            )[0]
         elif k0_out == 'energy':
-            coef_out, _ = _convert_spectral_coef(
+            coef_out = _convert_spectral_coef(
                 units_in='J', units_out=units_out,
-            )
+            )[0]
         elif k0_out == 'frequency':
-            coef_out, _ = _convert_spectral_coef(
+            coef_out = _convert_spectral_coef(
                 units_in='Hz', units_out=units_out,
-            )
+            )[0]
 
         # ------------------
         # Cross combinations between (m, J, Hz)
@@ -197,39 +242,4 @@ def _convert_spectral_coef(units_in=None, units_out=None):
         else:
             coef = coef_in*coef_cross*coef_out
 
-    return coef, inv
-
-
-def convert_spectral(
-    data_in=None,
-    units_in=None,
-    units_out=None,
-    returnas=None,
-):
-    """ convert wavelength / energy/ frequency
-
-    Available units:
-        wavelength: m, mm, nm, A
-        energy:     J, eV, keV
-        frequency:  Hz, kHz, MHz, GHz
-    """
-
-    # Check inputs
-    data_in, returnas = _check_convert_spectral(
-        data_in=data_in,
-        units_in=units_in, units_out=units_out,
-        returnas=returnas,
-    )
-
-    # trivial case first
-    if units_in == units_out:
-        return data_in
-
-    coef, inv = _convert_spectral_coef(units_in=units_in, units_out=units_out)
-    if returnas == 'data':
-        if inv:
-            return coef / data_in
-        else:
-            return coef * data_in
-    else:
-        return coef, inv
+    return coef, inv, k0_out
