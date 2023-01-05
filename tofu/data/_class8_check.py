@@ -197,7 +197,7 @@ def _diagnostics_check(
         all([v0 for v0 in dspectro.values()]),
         all([not v0 for v0 in dspectro.values()]),
     ]
-    if not any(lc):
+    if np.sum(lc) != 1:
         msg = (
             f"diag '{key}' must be either all spectro or all non-spectro!\n"
             + "\n".join([f"\t- {k0}: {v0}" for k0, v0 in dspectro.items()])
@@ -205,6 +205,32 @@ def _diagnostics_check(
         raise Exception(msg)
 
     spectro = lc[0] is True
+
+    # --------
+    # is PHA
+    
+    dPHA = {
+        k0 : coll.dobj['camera'][k0]['dmat']['mode'] == 'PHA'
+        for k0 in lcam
+        if coll.dobj['camera'][k0].get('dmat') is not None
+    }
+    
+    if len(dPHA) > 0:
+        lc = [
+            all([v0 for v0 in dPHA.values()]),
+            all([not v0 for v0 in dPHA.values()]),        
+        ]
+        
+        if np.sum(lc) != 1:
+            msg = (
+                f"diag '{key}' must be either all PHA or all non-PHA!\n"
+                + "\n".join([f"\t- {k0}: {v0}" for k0, v0 in dPHA.items()])
+            )
+            raise Exception(msg)    
+
+        PHA = lc[0]
+    else:
+        PHA = False
 
     # -----------------
     # rearrange doptics
@@ -246,7 +272,7 @@ def _diagnostics_check(
         allowed=['horizontal', 'vertical'],
         )
 
-    return key, lcam, doptics2, is2d, spectro,stack
+    return key, lcam, doptics2, is2d, spectro, stack, PHA
 
 
 def _diagnostics(
@@ -260,7 +286,7 @@ def _diagnostics(
     # ------------
     # check inputs
 
-    key, lcam, doptics, is2d, spectro, stack = _diagnostics_check(
+    key, lcam, doptics, is2d, spectro, stack, PHA = _diagnostics_check(
         coll=coll,
         key=key,
         doptics=doptics,
@@ -279,6 +305,7 @@ def _diagnostics(
                 # 'npix tot.': np.sum(),
                 'is2d': is2d,
                 'spectro': spectro,
+                'PHA': PHA,
                 'stack': stack,
             },
         },

@@ -41,6 +41,7 @@ class Diagnostic(Previous):
         'diagnostic': [
             'is2d',
             'spectro',
+            'PHA',
             'camera',
         ],
     })
