@@ -1,12 +1,9 @@
 
 
-import itertools as itt
-
-
 import numpy as np
 import scipy.integrate as scpinteg
 import astropy.units as asunits
-import matplotlib.pyplot as plt     # DB
+# import matplotlib.pyplot as plt     # DB
 
 
 import datastock as ds
@@ -44,7 +41,7 @@ def compute_signal(
     # --------------
 
     (
-        key_diag, key_cam, spectro, is2d,
+        key_diag, key_cam, spectro, PHA, is2d,
         method, mode, groupby, val_init, brightness,
         key_integrand, key_mesh0,
         store, key,
@@ -74,7 +71,7 @@ def compute_signal(
     # prepare 
     # --------------
 
-    shape_emiss = coll.ddata[key_integrand]['shape']
+    # shape_emiss = coll.ddata[key_integrand]['shape']
 
     if mode == 'abs':
         key_kR = coll.dobj['mesh'][key_mesh0]['knots'][0]
@@ -90,6 +87,8 @@ def compute_signal(
         dout, units = _compute_los(
             coll=coll,
             is2d=is2d,
+            spectro=spectro,
+            PHA=PHA,
             key_diag=key_diag,
             key_cam=key_cam,
             res=res,
@@ -161,7 +160,6 @@ def _store(
     # ---------
     # prepare
 
-    doptics = coll._dobj['diagnostic'][key_diag]['doptics']
     dsig = coll._dobj['diagnostic'][key_diag].get('dsignal')
     if dsig is None:
         dsig = {}
@@ -231,6 +229,7 @@ def _compute_signal_check(
     # key_diag, key_cam
     key_diag, key_cam = coll.get_diagnostic_cam(key=key_diag, key_cam=key_cam)
     spectro = coll.dobj['diagnostic'][key_diag]['spectro']
+    PHA = coll.dobj['diagnostic'][key_diag]['PHA']
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
 
     # method
@@ -253,7 +252,8 @@ def _compute_signal_check(
     groupby = ds._generic_check._check_var(
         groupby, 'groupby',
         types=int,
-        default=200,
+        default=1 if (PHA or spectro) else 200,
+        allowed=[1] if (PHA or spectro) else None,
     )
 
     # brightness
@@ -268,6 +268,12 @@ def _compute_signal_check(
         k0 for k0, v0 in coll.ddata.items()
         if v0.get('bsplines') is not None
     ]
+    if spectro or PHA:
+        lok = [
+            k0 for k0 in lok
+            if coll.ddata[k0].get('bsplines_spectral') is not None
+        ]
+        
     key_integrand = ds._generic_check._check_var(
         key_integrand, 'key_integrand',
         types=str,
@@ -315,7 +321,7 @@ def _compute_signal_check(
     )
 
     return (
-        key_diag, key_cam, spectro, is2d,
+        key_diag, key_cam, spectro, PHA, is2d,
         method, mode, groupby, val_init, brightness,
         key_integrand, key_mesh0,
         store, key,
@@ -332,6 +338,8 @@ def _compute_signal_check(
 def _compute_los(
     coll=None,
     is2d=None,
+    spectro=None,
+    PHA=None,
     key_diag=None,
     key_cam=None,
     res=None,
@@ -343,6 +351,24 @@ def _compute_los(
     brightness=None,
 ):
 
+    # -----------------
+    # prepare
+    
+    if spectro:
+        dict_E, _ = coll.get_diagnostic_lamb(
+            key_diag, 
+            lamb='lamb', 
+            units='eV',
+        )
+        dict_dE, _ = coll.get_diagnostic_lamb(
+            key_diag, 
+            lamb='dlamb',
+            units='eV',
+        )
+    else:
+        dict_E = None
+        dict_dE = None
+    
     # ----------------
     # loop on cameras
 
@@ -357,15 +383,17 @@ def _compute_los(
         if groupby * ngroup < npix:
             ngroup += 1
 
-        # -----------------------
+        # ---------------------------------------------------
         # loop on group of pixels (to limit memory footprint)
 
         for ii in range(ngroup):
 
+            # indices
             i0 = ii*groupby
             i1 = min((ii + 1)*groupby, npix)
             ni = i1 - i0
 
+            # LOS sampling
             R, Z, length = coll.sample_rays(
                 key=key_los,
                 res=res,
@@ -377,11 +405,15 @@ def _compute_los(
                 return_coords=['R', 'z', 'ltot'],
             )
 
+            # safety checks
             inan = np.isnan(R)
             inannb = np.r_[-1, inan.nonzero()[0]]
             nnan = inan.sum()
             assert nnan == ni, f"{nnan} vs {ni}"
-            iok = ~inan
+
+            # lambda for spectro
+            if spectro:
+                E = dict_dE[k0]
 
             # -------------
             # interpolate
@@ -390,6 +422,7 @@ def _compute_los(
                 key=key_integrand,
                 R=R,
                 Z=Z,
+                E=E,
                 grid=False,
                 radius_vs_time=None,
                 azone=None,
