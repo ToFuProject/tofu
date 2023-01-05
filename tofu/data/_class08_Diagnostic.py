@@ -131,6 +131,7 @@ class Diagnostic(Previous):
         key_cam=None,
         data=None,
         rocking_curve=None,
+        units=None,
         **kwdargs,
         ):
         """ Return dict of data for chosen cameras
@@ -152,6 +153,7 @@ class Diagnostic(Previous):
             key_cam=key_cam,
             data=data,
             rocking_curve=rocking_curve,
+            units=units,
             **kwdargs,
         )
 
@@ -597,6 +599,7 @@ class Diagnostic(Previous):
         los_res=None,
         # data plot
         data=None,
+        units=None,
         cmap=None,
         vmin=None,
         vmax=None,
@@ -624,6 +627,7 @@ class Diagnostic(Previous):
             los_res=los_res,
             # data plot
             data=data,
+            units=units,
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,

@@ -876,6 +876,7 @@ def _get_data(
     key_cam=None,
     data=None,
     rocking_curve=None,
+    units=None,
     **kwdargs,
     ):
 
@@ -888,8 +889,9 @@ def _get_data(
     if data is not None:
         lquant = ['etendue', 'amin', 'amax']  # 'los'
         lcomp = ['length', 'tangency radius', 'alpha']
+        llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
         if spectro:
-            lcomp += ['lamb', 'lambmin', 'lambmax', 'res']
+            lcomp += llamb
 
         data = ds._generic_check._check_var(
             data, 'data',
@@ -1000,13 +1002,14 @@ def _get_data(
         ddata = {}
         dref = {}
 
-        if data in ['lamb', 'lambmin', 'lambmax', 'res']:
+        if data in llamb:
             for cc in key_cam:
                ddata[cc], dref[cc] = coll.get_diagnostic_lamb(
                    key=key,
                    key_cam=cc,
                    rocking_curve=rocking_curve,
                    lamb=data,
+                   units=units,
                )
 
         elif data in ['length', 'tangency radius', 'alpha']:

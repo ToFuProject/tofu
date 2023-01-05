@@ -29,6 +29,7 @@ def _plot_diagnostic_check(
     # figure
     proj=None,
     data=None,
+    units=None,
     rocking_curve=None,
     los_res=None,
     # interactivity
@@ -64,6 +65,7 @@ def _plot_diagnostic_check(
         key=key,
         key_cam=key_cam,
         data=data,
+        units=units,
     )
 
     ylab = None # f"{ddata[key_cam[0]]['quant']} ({ddata[key_cam[0]]['units']})"
@@ -150,6 +152,7 @@ def _plot_diagnostic(
     los_res=None,
     # data plot
     data=None,
+    units=None,
     cmap=None,
     vmin=None,
     vmax=None,
@@ -188,6 +191,7 @@ def _plot_diagnostic(
         # figure
         proj=proj,
         data=data,
+        units=units,
         los_res=los_res,
         # interactivity
         color_dict=color_dict,
