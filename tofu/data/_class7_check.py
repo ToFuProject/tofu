@@ -26,7 +26,7 @@ _DMAT_KEYS = {
         'sign': '> 0.',
         'can_be_None': True,
     },
-    'energy': {
+    'qeff_E': {
         'dtype': float,
         'sign': '> 0.',
         'can_be_None': True,
@@ -41,6 +41,12 @@ _DMAT_KEYS = {
         'default': 'current',
         'allowed': ['current', 'PHA'],
         'can_be_None': False,
+    },
+    'bins': {
+        'dtype': float,
+        'sign': '>0.',
+        'unique': True,
+        'can_be_None': True,
     },
 }
 
@@ -773,6 +779,8 @@ def _dmat(
     if dmat is None:
         return None, None, None
 
+    dref, ddata = {}, {}
+
     # ------
     # Check
 
@@ -784,40 +792,62 @@ def _dmat(
         has_only_keys=True,
         keys_can_be_None=None,
         dkeys=_DMAT_KEYS,
+        return_copy=True,
     )
+
+    # -----------------
+    # check PHA vs bins
+    
+    if dmat['mode'] == 'PHA':
+        if dmat.get('bins') is None:
+            msg = (
+                f"The bins (eV) must be provided for camera {key} in mode PHA!"
+            )
+            raise Exception(msg)
+
+        kbnE = f'{key}_binsnE'
+        kbE = f'{key}_binsE'
+        dref[kbnE] = {'size': dmat['bins'].size}
+        ddata[kbE] = {
+            'data': dmat['bins'],
+            'ref': kbnE,
+            'units': 'eV',
+            'name': 'Ebins',
+            'quant': 'E',
+            'dim': 'energy',
+        }
+
+        dmat['bins'] = kbE
 
     # -----------------------------------
     # check energy / qeff values
 
-    dref, ddata = None, None
     if all([dmat.get(kk) is not None for kk in ['energy', 'qeff']]):
         
-        dmat['energy'], dmat['qeff'] = _class4_check._dmat_energy_trans(
-            energ=dmat['energy'],
+        dmat['qeff_E'], dmat['qeff'] = _class4_check._dmat_energy_trans(
+            energ=dmat['qeff_E'],
             trans=dmat['qeff'],
         )
 
         # ----------
         # dref
     
-        kne = f'{key}-nE'
-        ne = dmat['energy'].size
-        dref = {
-            kne: {'size': ne},
-        }
+        kne = f'{key}_qnE'
+        ne = dmat['qeff_E'].size
+        dref[kne] = {'size': ne}
     
         # ----------
         # ddata
     
-        kE = f'{key}-E'
-        kqeff = f'{key}-qeff'
+        kqE = f'{key}_qE'
+        kqeff = f'{key}_qeff'
     
-        ddata = {
-            kE: {
-                'data': dmat['energy'],
+        ddata.update({
+            kqE: {
+                'data': dmat['qeff_E'],
                 'ref': kne,
                 'dim': 'energy',
-                'quant': 'energy',
+                'quant': 'E',
                 'name': 'E',
                 'units': 'eV',
             },
@@ -829,12 +859,12 @@ def _dmat(
                 'name': '',
                 'units': '',
             },
-        }
+        })
     
         # -----------
         # dmat
     
-        dmat['energy'] = kE
+        dmat['qeff_E'] = kqE
         dmat['qeff'] = kqeff
 
     return dref, ddata, dmat
