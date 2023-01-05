@@ -878,7 +878,7 @@ def _get_data(
     rocking_curve=None,
     units=None,
     **kwdargs,
-    ):
+):
 
     # key, key_cam
     key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)

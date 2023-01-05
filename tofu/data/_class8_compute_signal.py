@@ -422,7 +422,6 @@ def _compute_los(
                 key=key_integrand,
                 R=R,
                 Z=Z,
-                E=E,
                 grid=False,
                 radius_vs_time=None,
                 azone=None,
