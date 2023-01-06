@@ -2,7 +2,7 @@
 
 
 # Built-in
-# import copy
+import copy
 
 
 # Common
@@ -28,15 +28,10 @@ __all__ = ['Camera']
 
 class Camera(Previous):
 
-    # _ddef = copy.deepcopy(ds.DataStock._ddef)
-    # _ddef['params']['ddata'].update({
-    #       'bsplines': (str, ''),
-    # })
-    # _ddef['params']['dobj'] = None
-    # _ddef['params']['dref'] = None
-
-    # _show_in_summary_core = ['shape', 'ref', 'group']
-    _show_in_summary = 'all'
+    _ddef = copy.deepcopy(Previous._ddef)
+    _ddef['params']['ddata'].update({
+          'camera': {'cls': str, 'def': ''},
+    })
 
     _dshow = dict(Previous._dshow)
     _dshow.update({

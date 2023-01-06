@@ -16,7 +16,7 @@ from ._class10_Inversion import Inversion as Previous
 from . import _class1_checks
 from . import _class1_compute
 from . import _class11_checks as _checks
-# from . import _class11_compute as _compute
+from . import _class11_compute as _compute
 from . import _class11_plot as _plot
 
 
@@ -34,17 +34,11 @@ class MeshSpectral(Previous):
     _which_msp = 'mesh_spectral'
     _which_bssp = 'bsplines_spectral'    
 
-    _ddef = copy.deepcopy(ds.DataStock._ddef)
+    _ddef = copy.deepcopy(Previous._ddef)
     _ddef['params']['ddata'].update({
         _which_bssp: {'cls': str, 'def': ''},
     })
-    _ddef['params']['dobj'] = None
-    _ddef['params']['dref'] = None
-
-    # _show_in_summary_core = ['shape', 'ref', 'group']
-    _show_in_summary = 'all'
-    _dshow = dict(Previous._dshow)
-
+    
     def add_mesh_spectral(
         self,
         # mesh
@@ -181,7 +175,7 @@ class MeshSpectral(Previous):
                 elif len(lbs) == 1:
                     self._ddata[k0][self._which_bssp] = lbs[0]
                 else:
-                    msg = f"Multiple nsplines:\n{lbs}"
+                    msg = f"Multiple nsplines spectral:\n{lbs}"
                     raise Exception(msg)
 
     # -----------------
@@ -202,6 +196,28 @@ class MeshSpectral(Previous):
             res=res,
             mode=mode,
             Dx=DE,
+            which_mesh=self._which_msp,
+        )
+
+    def interpolate_spectral(
+        self,
+        key=None,
+        E=None,
+        Ebins=None,
+        res=None,
+        mode=None,
+        DE=None,
+    ):
+        """  Return pectrally interpolated coeeficients for each E value """
+        
+        return _compute.interpolate_spectral(
+            coll=self,
+            key=key,
+            E=E,
+            Ebins=Ebins,
+            res=res,
+            mode=mode,
+            DE=DE,
         )
 
     # -----------------
