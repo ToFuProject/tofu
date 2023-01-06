@@ -14,14 +14,10 @@ import datastock as ds
 
 
 # tofu
-from . import _generic_check
 from . import _class8_compute_signal
 from . import _class10_checks as _checks
 from . import _class10_algos as _algos
 tomotok2tofu = _checks.tomotok2tofu
-
-
-__all__ = ['get_available_inversions_algo']
 
 
 # ##################################################################
@@ -754,7 +750,7 @@ def _compute_inv_loop_tomotok(
         # post
         if chain:
             sol0[:] = sol[ii, :]
-        mu0 = mu[ii]
+        # mu0 = mu[ii]
 
         if verb == 1:
             msg = f"   chi2n = {chi2n[ii]:.3e}    niter = {niter[ii]}"
@@ -970,7 +966,7 @@ def compute_retrofit_data(
             ])
         elif ist_mat:
             retro = np.array([
-                matrix[imar[ii], :, :].dot(coefs)
+                matrix[imat[ii], :, :].dot(coefs)
                 for ii in range(nt)
             ])
         elif ist_prof:
@@ -1093,7 +1089,7 @@ def _compute_retrofit_data_check(
 
     matrix, ref, dindmat = coll.get_geometry_matrix_concatenated(key=key_matrix)
     nchan, nbs = matrix.shape[-2:]
-    refbs = ref[-1]
+    # refbs = ref[-1]
 
     # key_pofile2d
     lok = [
