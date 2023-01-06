@@ -1229,6 +1229,7 @@ def _sample_mesh_check_1d(
     res=None,
     mode=None,
     Dx=None,
+    which_mesh=None,
 ):
 
     # -----------
@@ -1241,6 +1242,7 @@ def _sample_mesh_check_1d(
         coll=coll,
         key=key,
         forcecat='mesh',
+        which_mesh=which_mesh,
     )
     meshtype = coll.dobj[which_mesh][key]['type']
 
@@ -1503,17 +1505,19 @@ def sample_mesh_1d(
     res=None,
     mode=None,
     Dx=None,
+    which_mesh=None,
 ):
 
     # -------------
     # check inputs
 
-    key, res, mode, xx, Dx, knots = _sample_mesh_check_1d(
+    key, res, mode, Dx, knots = _sample_mesh_check_1d(
         coll=coll,
         key=key,
         res=res,
         mode=mode,
         Dx=Dx,
+        which_mesh=which_mesh,
     )
     
     # -------------

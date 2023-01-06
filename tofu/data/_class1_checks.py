@@ -24,24 +24,30 @@ def _get_key_mesh_vs_bplines(
     coll=None,
     key=None,
     forcecat=None,
+    which_mesh=None,
+    which_bsplines=None,
 ):
 
-    if forcecat is None:
+    
+    if forcecat in [None, 'mesh'] and which_mesh in [None, coll._which_mesh]:
         lk1 = list(coll.dobj.get(coll._which_mesh, {}).keys())
-        lk2 = list(coll.dobj.get('bsplines', {}).keys())
-        lk3 = list(coll.dobj.get(coll._which_msp, {}).keys())
-        lk4 = list(coll.dobj.get(coll._which_bssp, {}).keys())
-    elif forcecat == 'mesh':
-        lk1 = list(coll.dobj.get(coll._which_mesh, {}).keys())
-        lk3 = list(coll.dobj.get(coll._which_msp, {}).keys())
-        lk2, lk4 = [], []
-    elif forcecat == 'bsplines':
-        lk1, lk3 = [], []
-        lk2 = list(coll.dobj.get('bsplines', {}).keys())
+    else:
+        lk1 = []
+    
+    if forcecat in [None, 'mesh'] and which_mesh in [None, coll._which_msp]:
+        lk2 = list(coll.dobj.get(coll._which_msp, {}).keys())
+    else:
+        lk2 = []
+    
+    if forcecat in [None, 'bsplines'] and which_bsplines in [None, 'bsplines']:
+        lk3 = list(coll.dobj.get('bsplines', {}).keys())
+    else:
+        lk3 = []
+        
+    if forcecat in [None, 'bsplines'] and which_bsplines in [None, coll._which_bssp]:
         lk4 = list(coll.dobj.get(coll._which_bssp, {}).keys())
     else:
-        msg = f'Unknown value for arg forcecat: {forcecat}'
-        raise Exception(msg)
+        lk4 = []
     
     # key
     key = ds._generic_check._check_var(
@@ -51,7 +57,7 @@ def _get_key_mesh_vs_bplines(
     )
     
     # which
-    if key in lk1 + lk2:
+    if key in lk1 + lk3:
         which_mesh = coll._which_mesh
         which_bsplines = 'bsplines'
     else:
@@ -59,7 +65,7 @@ def _get_key_mesh_vs_bplines(
         which_bsplines = coll._which_bssp
         
     # mesh vs bsplines
-    if key in lk1 + lk3:
+    if key in lk1 + lk2:
         cat = which_mesh
     else:
         cat = which_bsplines        
