@@ -98,18 +98,25 @@ class UnivariateSpline():
         self.nbs = nbs
         self.lbs = lbs
 
-    def _check_input(self, xx=None):
-
+    def _check_input(self, xx=None, coefs=None, axis=None):
         if not isinstance(xx, np.ndarray):
             xx = np.atleast_1d(xx)
-        
-        return xx
+            
+        if xx.ndim != 1:
+            msg = "1d bsplines only accepts 1d xx!\nProvided: {xx.shape}"
+            raise Exception(msg)
+            
+        shape = tuple([
+            xx.size if ii == axis else coefs.shape[ii]
+            for ii in range(coefs.ndim)
+        ])
+            
+        return xx, shape
 
-    def _check_coefs(self, coefs=None):
+    def _check_coefs(self, coefs=None, axis=None):
         """ None for ev_details, (nt, shapebs) for sum """
         if coefs is not None:
-            assert coefs.ndim == len(self.shapebs) + 1
-            assert coefs.shape[1:] == self.shapebs
+            assert coefs.shape[axis] == self.nbs
 
     def __call__(
         self,
@@ -117,6 +124,7 @@ class UnivariateSpline():
         xx=None,
         # coefs
         coefs=None,
+        axis=None,
         # options
         val_out=None,
         # for purely radial only
@@ -126,7 +134,7 @@ class UnivariateSpline():
     ):
         """ Assumes
 
-        coefs.shape = (nt, shapebs)
+        coefs.shape = (..., nbs, ...)
 
         """
 
@@ -137,32 +145,36 @@ class UnivariateSpline():
             deriv = 0
 
         # coefs
-        self._check_coefs(coefs=coefs)
-
-        xx = self._check_input(xx=xx)
-        nt = coefs.shape[0]
-
-        val = np.zeros(tuple(np.r_[nt, xx.shape]))
+        self._check_coefs(coefs=coefs, axis=axis)
+        
+        # xx, shape, val
+        xx, shape = self._check_input(xx=xx, coefs=coefs, axis=axis)
+        val = np.zeros(shape, dtype=float)
 
         # ------------
         # compute
 
-        for it in range(nt):
-            val[it, ...] = scpinterp.BSpline(
-                self.knots_with_mult,
-                coefs[it, :],
-                self.deg,
-                extrapolate=False,
-            )(xx, nu=deriv)
+        val = scpinterp.BSpline(
+            self.knots_with_mult,
+            coefs,
+            self.deg,
+            axis=axis,
+            extrapolate=False,
+        )(xx, nu=deriv)
 
         # clean out-of-mesh
         if val_out is not False:
             # pts out 
             indout = (xx < self.knots[0]) | (xx > self.knots[-1])
-            val[:, indout] = val_out
+            sli = [
+                indout if ii == axis else slice(None)
+                for ii in range(len(shape))
+            ]
+            val[sli] = val_out
 
         return val
 
+    # TBF
     def ev_details(
         self,
         # coordinates
