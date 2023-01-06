@@ -176,7 +176,9 @@ def _sample(
         for ind in itt.product(*[range(ss) for ss in pts_x.shape[1:]]):
 
             sli = tuple([slice(None)] + list(ind))
+            
             if not np.any(iok[sli]):
+                itot.append(None)
                 continue
 
             if radius_max is None:
@@ -184,15 +186,20 @@ def _sample(
             else:
                 i0i = i0[sli]
 
-            itoti = np.concatenate(tuple(
-                [
-                    np.linspace(
-                        i0i[jj], i0i[jj+1], nn[tuple(np.r_[jj, ind])] + 1,
+            itoti = []
+            for jj in range(i0i.size - 1):
+                if np.all(np.isfinite(i0i[jj:jj+2])):
+                    itoti.append(
+                        np.linspace(
+                            i0i[jj],
+                            i0i[jj+1],
+                            nn[tuple(np.r_[jj, ind])] + 1,
                         )[:-1]
-                    for jj in range(i0i.size - 1)
-                ]
-                + [[i0i[-1]]]
-                ))
+                    )
+            if np.isfinite(i0i[-1]):
+                itoti.append([i0i[-1]])
+                
+            itoti = np.concatenate(tuple(itoti))                
             itot.append(itoti)
 
             # interpolate
@@ -724,7 +731,7 @@ def intersect_radius(
          segment=segment,
          lim_to_segments=lim_to_segments,
     )
-
+         
     # axis_radius
     axis_radius = ds._generic_check._check_var(
         axis_radius, 'axis_radius',
