@@ -328,11 +328,3 @@ class MeshSpectral(Previous):
             dinc=dinc,
             connect=connect,
         )
-
-    def plot_profile2d_spectral(
-        self,
-        key=None,
-    ):
-        """ plot a spectral-dependent 2d emissivity field """
-        
-        return _plot.plot_profile2d_spectral()
