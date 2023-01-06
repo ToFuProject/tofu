@@ -9,6 +9,9 @@ import numpy as np
 import scipy.constants as scpct
 
 
+__all__ = ['convert_spectral']
+
+
 _SPECTRAL_DUNITS = {
     'wavelength': ['m', 'mm', 'um', 'nm', 'pm', 'A'],
     'energy': ['TeV', 'GeV', 'MeV', 'keV', 'eV', 'J'],
@@ -27,14 +30,7 @@ def convert_spectral(
     units_in=None,
     units_out=None,
 ):
-    """ convert wavelength / energy/ frequency
-
-    Available units:
-        wavelength: m, mm, nm, A
-        energy:     J, eV, keV
-        frequency:  Hz, kHz, MHz, GHz
-    """
-
+    
     # -------------
     # Check inputs
     
@@ -68,6 +64,20 @@ def convert_spectral(
             data = coef * data_in
     
     return data, coef, inv, cat
+
+
+# #########################
+# set docstring dynamically
+
+convert_spectral.__doc__ = (
+    f""" convert wavelength / energy/ frequency
+
+    Available units:
+        wavelength: {_SPECTRAL_DUNITS['wavelength']}
+        energy:     {_SPECTRAL_DUNITS['energy']}
+        frequency:  {_SPECTRAL_DUNITS['frequency']}
+    """
+)
 
 
 # ###############################

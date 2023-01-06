@@ -7,3 +7,4 @@ from ._DataCollection_class1_interactivity import *
 from ._spectrallines_class import *
 from ._class10_checks import get_available_inversions_algo
 from ._class11_MeshSpectral import MeshSpectral as Collection
+from ._spectralunits import *
