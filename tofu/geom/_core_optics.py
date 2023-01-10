@@ -2654,7 +2654,7 @@ class CrystalBragg(utils.ToFuObject):
                 fs=fs, tit=tit, wintit=wintit,
                 )
         return (
-            # bragg, phi, lamb,
+            bragg, phi, lamb,
             err_lamb, err_phi,
             err_lamb_units, err_phi_units,
             test_lambda_interv,
