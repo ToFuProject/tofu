@@ -2322,6 +2322,7 @@ def _interp2d_check(
 
     if details is True:
         coefs = None
+        axis = None
         assert key == keybs, (key, keybs)
 
     else:
@@ -2333,10 +2334,16 @@ def _interp2d_check(
                     else:
                         r2dnt = rad2d_indt.size
                     coefs = np.ones(tuple(np.r_[r2dnt, shapebs]), dtype=float)
+                    axis = [ii + 1 for ii in range(len(shapebs))]
                 else:
                     coefs = np.ones(shapebs, dtype=float)
+                    axis = [ii for ii in range(len(shapebs))]
             else:
                 coefs = coll.ddata[key]['data']
+                axis = [
+                    ii for ii in range(len(coll.ddata[key]['ref']))
+                    if coll.ddata[key]['ref'][ii] in refbs
+                ]
 
         elif key != keybs:
             msg = f"Arg coefs can only be provided if key = keybs!\n\t- key: {key}"
@@ -2344,6 +2351,7 @@ def _interp2d_check(
 
         elif np.isscalar(coefs):
             coefs = np.full(shapebs, coefs)
+            axis = [ii for ii in range(len(shapebs))]
 
         # consistency
         nshbs = len(shapebs)
@@ -2354,6 +2362,7 @@ def _interp2d_check(
                 or (not hastime and coefs.ndim == nshbs + 1)    # pre-shaped
                 or (not hastime and coefs.ndim == nshbs)        # [None, ...]
             )
+            and len(axis) == len(refbs)
         )
         if not c0:
             msg = (
@@ -2362,6 +2371,8 @@ def _interp2d_check(
                 f"\t- shapebs: {shapebs}\n"
                 f"\t- hastime: {hastime}\n"
                 f"\t- radius_vs_time: {radius_vs_time}\n"
+                f"\t- refbs: {refbs}\n"
+                f"\t- axis: {axis}"
             )
             raise Exception(msg)
 
@@ -2383,8 +2394,10 @@ def _interp2d_check(
             if radius_vs_time is True:
                 sh = tuple([radius.shape[0]] + [1]*len(shapebs))
                 coefs = np.tile(coefs, sh)
+                axis = [aa + 1 for aa in axis]
             elif coefs.ndim == nshbs:
                 coefs = coefs[None, ...]
+                axis = [aa + 1 for aa in axis]
 
     # -------------
     # azone
@@ -2418,6 +2431,7 @@ def _interp2d_check(
         R, Z,
         radius, angle,
         coefs,
+        axis,
         hastime,
         reft, keyt,
         shapebs,
@@ -2474,6 +2488,7 @@ def interp2d(
         R, Z,
         radius, angle,
         coefs,
+        axis,
         hastime,
         reft, keyt,
         shapebs,
@@ -2560,6 +2575,7 @@ def interp2d(
             R=R,
             Z=Z,
             coefs=coefs,
+            axis=axis,
             crop=crop,
             cropbs=cropbs,
             indbs_tf=indbs_tf,
