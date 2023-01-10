@@ -102,48 +102,6 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         self.knots_per_bs_x_pad = np.asfortranarray(knots_per_bs_x)
         self.knots_per_bs_y_pad = np.asfortranarray(knots_per_bs_y)
 
-    def _check_coefs(self, coefs=None, axis=None, r=None):
-        """ None for ev_details, (nt, shapebs) for sum """
-        c0 = (
-            isinstance(coefs, np.ndarray)
-            and coefs.ndim >= len(self.shapebs)
-            and len(axis) == 2
-            and axis[1] == axis[0] + 1
-            and coefs.shape[axis[0]] == self.shapebs[0]
-            and coefs.shape[axis[1]] == self.shapebs[1]
-        )
-        if not c0:
-            msg = (
-                f"Arg coefs must have a shape including {self.shapebs}"
-            )
-            raise Exception(msg)
-        
-        # shape or output    
-        shape_pts, axis_rz, ind_coefs, ind_rz = [], [], [], []
-        jj = 0
-        for ii in range(coefs.ndim):
-            if ii == axis[0]:
-                for jj in range(r.ndim):
-                    shape_pts.append(r.shape[jj])
-                    axis_rz.append(ii + jj)
-                    ind_rz.append(None)
-                ind_coefs.append(None)
-            elif ii == axis[1]:
-                ind_coefs.append(None)
-            else:
-                shape_pts.append(coefs.shape[ii])
-                ind_coefs.append(jj)
-                ind_rz.append(jj)
-                jj += 1
-        
-        # shape_other
-        shape_other = tuple([
-            ss for ii, ss in enumerate(coefs.shape)
-            if ii not in axis
-        ])
-        
-        return tuple(shape_pts), shape_other, axis_rz, ind_coefs, ind_rz
-
     def set_coefs(
         self,
         coefs=None,
@@ -190,10 +148,13 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
 
         # prepare
         # coefs
-        shape_rz, shape_other, axis_rz, ind_coefs, ind_rz = self._check_coefs(
+        (
+            shape_rz, shape_other, axis_rz, ind_coefs, ind_rz,
+        ) = _utils_bsplines._check_coefs(
+            shapebs=self.shapebs,
             coefs=coefs,
             axis=axis,
-            r=r,
+            shapex=r.shape,
         )
         shape_coefs = coefs.shape
         
@@ -204,22 +165,22 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
         for ind in itt.product(*[range(aa) for aa in shape_other]):
             
             # prepare TBF
-            sli_c = tuple([
-                slice(None) if ii in axis else ind[ind_coefs[ii]]
-                for ii in range(len(shape_coefs))
-            ])
+            sli_c, sli_rz = _utils_bsplines._get_slices_iter(
+                axis=axis,
+                axis_x=axis_rz,
+                shape_coefs=shape_coefs,
+                shape_x=shape_rz,
+                ind=ind,
+                ind_coefs=ind_coefs,
+                ind_x=ind_rz,
+            )
             
             self.set_coefs(
                 coefs=coefs[sli_c],
                 cropbs_neg_flat=cropbs_neg_flat,
             )
 
-            # compute
-            sli_rz =tuple([
-                slice(None) if ii in axis_rz else ind[ind_rz[ii]]
-                for ii in range(len(shape_rz))
-            ])
-            
+            # compute            
             val[sli_rz] = super().__call__(r, z, grid=False)
 
         # clean
@@ -228,11 +189,13 @@ class BivariateSplineRect(scpinterp.BivariateSpline):
                 (r < self.tck[0][0]) | (r > self.tck[0][-1])
                 | (z < self.tck[1][0]) | (z > self.tck[1][-1])
             )
-            sli_out = tuple([
-                indout if ii == axis[0] else slice(None)
-                for ii in range(len(shape_coefs))
-                if ii != axis[1]
-            ])
+            
+            sli_out = _utils_bsplines._get_slice_out(
+                indout=indout,
+                axis=axis,
+                shape_coefs=shape_coefs,
+            )
+            
             val[sli_out] = val_out
             
         return val

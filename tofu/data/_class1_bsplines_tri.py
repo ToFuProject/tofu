@@ -14,6 +14,7 @@ import datastock as ds
 
 # specific
 from . import _class1_checks as _checks
+from . import _utils_bsplines
 from . import _class1_bsplines_operators_tri
 from . import _class1_bsplines_rect as _mbr
 
@@ -146,7 +147,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
 
         Returnad as (ncents, 3) array, like cents
 
-        OPTIMIZATION POSSIBLE FOR EV_DETAILS BY TAKING INDBS ASINPUT ARG !!!
+        OPTIMIZATION POSSIBLE FOR EV_DETAILS BY TAKING INDBS AS INPUT ARG !!!
         """
 
         if x.shape != y.shape:
@@ -478,6 +479,7 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         R=None,
         Z=None,
         coefs=None,
+        axis=None,
         val_out=None,
         # for compatibility (unused)
         crop=None,
@@ -491,9 +493,6 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         if val_out is None:
             val_out = np.nan
 
-        # coefs
-        self._check_coefs(coefs=coefs)
-
         # points
         x, y, crop = _mbr._check_RZ_crop(
             R=R,
@@ -501,7 +500,17 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
             crop=crop,
             cropbs=cropbs,
         )
-        nt = coefs.shape[0]
+        
+        # coefs
+        (
+            shape_x, shape_other, axis_x, ind_coefs, ind_x,
+        ) = _utils_bsplines._check_coefs(
+            shapebs=self.shapebs,
+            coefs=coefs,
+            axis=axis,
+            shapex=x.shape,
+        )
+        shape_coefs = coefs.shape
 
         # parameters
         nbs, knots_per_bs, cents_per_bs, indcent = self._ev_generic(
@@ -511,24 +520,44 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
         # -----------
         # prepare
 
-        val = np.zeros(np.r_[nt, x.shape])
+        val = np.zeros(shape_x)
         heights, ind = self.get_heights_per_centsknots_pts(x, y)
         if not np.isscalar(coefs):
             newshape = np.r_[coefs.shape, 1]
             coefs = coefs.reshape(newshape)
+
+        sli_c = _utils_bsplines._get_slices_iter_reverse_coefs(
+            axis=axis,
+            shape_coefs=shape_coefs,
+            ind_coefs=0,
+            return_as_list=True,
+        )
+        
+        sli_x = _utils_bsplines. _get_slices_iter_reverse_x(
+            axis_x=axis_x,
+            shape_x=shape_x,
+            ind_x=x,
+        )
 
         # -----------
         # compute
 
         indu = np.unique(ind[ind >= 0])
         if self.deg == 0:
+            
             for ii in np.intersect1d(indu, indcent):
-                indi = ind == ii
-                val[:, indi] += coefs[:, ii, ...]
+
+                sli_x[axis_x[0]] = ind == ii
+                sli_c[axis[0]] = ii
+                val[tuple(sli_x)] += coefs[tuple(sli_c)]
+                # val[:, indi] += coefs[:, ii, ...]
 
         elif self.deg == 1:
             for ii in np.intersect1d(indu, indcent):
+                
                 indi = ind == ii
+                sli_x[axis_x[0]] = indi
+                
                 # get bs
                 ibs = np.any(cents_per_bs == ii, axis=1).nonzero()[0]
                 sorter = np.argsort(self.cents[ii, :])
@@ -537,13 +566,25 @@ class BivariateSplineTri(scpinterp.BivariateSpline):
                     knots_per_bs[ibs, 0],
                     sorter=sorter,
                 )]
+                
                 for jj, jbs in enumerate(ibs):
-                    val[:, indi] += (
+                    sli_c[axis[0]] = jbs
+                    
+                    val[sli_x] += (
                         1. - heights[indi, inum[jj]]
-                    ) * coefs[:, jbs, ...]
-
+                    ) * coefs[tuple(sli_c)]
+                    # val[:, indi] += (
+                    #     1. - heights[indi, inum[jj]]
+                    # ) * coefs[:, jbs, ...]
+                    
+        # val_out
         if val_out is not False:
-            val[:, ind == -1] = val_out
+            sli_out = _utils_bsplines._get_slice_out(
+                indout=ind == -1,
+                axis=axis,
+                shape_coefs=shape_coefs,
+            )
+            val[sli_out] = val_out
         return val
 
     # TBC
