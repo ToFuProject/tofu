@@ -1802,6 +1802,7 @@ class CrystalBragg(utils.ToFuObject):
         # crystal specific
         cryst=None,
         bragg=None,
+        det_th=None,
         # least-square methods specific
         ## center of the camera
         find_center=None,
@@ -1836,6 +1837,15 @@ class CrystalBragg(utils.ToFuObject):
         # ---------------------
         # Check / format inputs
         # ---------------------
+
+        if det_th is None:
+            msg = ("Please provide a det of ref. as a dict with 'outline'!")
+            raise Exception(msg)
+
+        if find_center is None:
+            find_center = True
+        if find_vector is None:
+            find_vector = True
 
         if x0_cent is None:
             x0_cent = np.array([-0.03, -0.02, 5e-4]),
@@ -2050,6 +2060,12 @@ class CrystalBragg(utils.ToFuObject):
 
         det_test['outline'] = det_th['outline']
 
+        # results
+        dout = {
+            'det_th': det_th,
+            'det_test': det_test,
+        }
+
         print('det_test:', det_test)
         print('det of reference:', det_th)
         print('diff of cent:', det_test[compo[0]] - det_th[compo[0]])
@@ -2057,8 +2073,19 @@ class CrystalBragg(utils.ToFuObject):
         print('diff of ei:', det_test[compo[2]] - det_th[compo[2]])
         print('diff of ej:', det_test[compo[3]] - det_th[compo[3]])
 
-        # dax = self.plot(det=det_th, color='black', dax=None)
-        # dax = self.plot(det=det_test, color='rd', dax=dax)
+        if plot:
+            dax = _plot_optics.CrystalBragg_plot(
+                cryst=self,
+                det=det_th,
+                color='black',
+            )
+            dax = _plot_optics.CrystalBragg_plot(
+                cryst=self,
+                det=det_test,
+                color='red',
+                dax=dax,
+            )
+        return dout, dax
 
 
     def get_local_noute1e2(
