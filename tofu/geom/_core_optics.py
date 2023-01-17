@@ -15,6 +15,7 @@ import copy
 import numpy as np
 import scipy.interpolate as scpinterp
 import scipy.stats as scpstats
+from scipy.optimize import least_squares
 import datetime as dtm
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -1794,6 +1795,271 @@ class CrystalBragg(utils.ToFuObject):
             for k0 in lk:
                 det[k0] = np.atleast_1d(det[k0]).ravel()
         return det
+
+
+    def get_coords_theo_det(
+        self,
+        # crystal specific
+        cryst=None,
+        bragg=None,
+        # least-square methods specific
+        ## center of the camera
+        find_center=None,
+        x0_cent=None,
+        jac_cent=None,
+        method_cent=None,
+        loss_cent=None,
+        bounds_cent=None,
+        ftol_cent=None,
+        xtol_cent=None,
+        x_scale_cent=None,
+        f_scale_cent=None,
+        tr_solver_cent=None,
+        ## vectors of the camera
+        find_vector=None,
+        x0_vect=None,
+        jac_vect=None,
+        method_vect=None,
+        loss_vect=None,
+        bounds_vect=None,
+        ftol_vect=None,
+        xtol_vect=None,
+        x_scale_vect=None,
+        f_scale_vect=None,
+        tr_solver_vect=None,
+        # plot
+        plot=None,
+    ):
+        """
+        """
+
+        # ---------------------
+        # Check / format inputs
+        # ---------------------
+
+        if x0_cent is None:
+            x0_cent = np.array([-0.03, -0.02, 5e-4]),
+        if x0_vect is None:
+            x0_vect = np.array([-0.4, -0.8, 0.2]),
+
+        if jac_cent is None:
+            jac_cent = '3-point'
+        if jac_vect is None:
+            jac_vect = '3-point'
+
+        if method_cent is None:
+            method_cent = 'trf'
+        if method_vect is None:
+            method_vect = 'trf'
+
+        if loss_cent is None:
+            loss_cent = 'soft_l1'
+        if loss_vect is None:
+            loss_vect = 'soft_l1'
+
+        if bounds_cent is None:
+            bounds_cent = ([-0.05, -0.03, 1e-5], [-0.02, -0.01, 1e-3])
+        if bounds_vect is None:
+            bounds_vect = ([-1., -1., -1.], [1., 1., 1.])
+
+        if ftol_cent is None:
+            ftol_cent = None
+        if ftol_vect is None:
+            ftol_vect = None
+
+        if xtol_cent is None:
+            xtol_cent = 1e-4
+        if xtol_vect is None:
+            xtol_vect = 1e-3
+
+        if x_scale_cent is None:
+            x_scale_cent = [0.01, 0.01, 1e-4]
+        if x_scale_vect is None:
+            x_scale_vect = [0.1, 0.1, 0.1]
+
+        if f_scale_cent is None:
+            f_scale_cent = 1e-6
+        if f_scale_vect is None:
+            f_scale_vect = 1e-6
+
+        if tr_solver_cent is None:
+            tr_solver_cent = 'exact'
+        if tr_solver_vect is None:
+            tr_solver_vect = 'exact'
+
+        if plot is None:
+            plot = True
+
+        # ------------------------------------------
+        # definition of components returning functions
+        # ------------------------------------------
+
+        compo = ['cent', 'nout', 'ei', 'ej']
+
+        def detector_cent(x, bragg, rcurve):
+            return self.get_detector_ideal(
+                # crystal specific
+                bragg=bragg,
+                rcurve=rcurve,
+                # translation degrees of freedom
+                ddist=x[0],
+                di=x[1],
+                dj=x[2],
+            )[compo[0]]
+
+        def detector_nout(x, bragg, rcurve):
+            return self.get_detector_ideal(
+                # crystal specific
+                bragg=bragg,
+                rcurve=rcurve,
+                # rotation degrees of freedom
+                dtheta=x[0]*(np.pi/180.),
+                dpsi=x[1]*(np.pi/180.),
+                tilt=x[2]*(np.pi/180.),
+            )[compo[1]]
+
+        def detector_ei(x, bragg, rcurve):
+            return self.get_detector_ideal(
+                # crystal specific
+                bragg=bragg,
+                rcurve=rcurve,
+                # rotation degrees of freedom
+                dtheta=x[0]*(np.pi/180.),
+                dpsi=x[1]*(np.pi/180.),
+                tilt=x[2]*(np.pi/180.),
+            )[compo[2]]
+
+        def detector_ej(x, bragg, rcurve):
+            return self.get_detector_ideal(
+                # crystal specific
+                bragg=bragg,
+                rcurve=rcurve,
+                # rotation degrees of freedom
+                dtheta=x[0]*(np.pi/180.),
+                dpsi=x[1]*(np.pi/180.),
+                tilt=x[2]*(np.pi/180.),
+            )[compo[3]]
+
+        # -------------------------------------------------
+        # definition of least-squares functions to minimize
+        # -------------------------------------------------
+
+        def func_center(x, bragg, rcurve, y0):
+            return np.sqrt(
+                (y0 - detector_cent(x, bragg, rcurve))**2
+            )
+
+        def func_vector(x, bragg, rcurve, y1, y2, y3):
+            return np.sqrt(
+                (y1 - detector_nout(x, bragg, rcurve))**2
+                + (y2 - detector_ei(x, bragg, rcurve))**2
+                + (y3 - detector_ej(x, bragg, rcurve))**2
+            )
+
+        # -----------------------------------
+        # definition of least-squares methods
+        # -----------------------------------
+
+        if find_center:
+            res_lsq_center = least_squares(
+                func_center,
+                x0=x0_cent,
+                args=(
+                    self.dbragg['braggref'], self.dgeom['rcurve'],
+                    det_th[compo[0]],
+                ),
+                jac=jac_cent,
+                method=method_cent,
+                loss=loss_cent,
+                bounds=bounds_cent,
+                ftol=ftol_cent,
+                xtol=xtol_cent,
+                x_scale=x_scale_cent,
+                f_scale=f_scale_cent,
+                tr_solver=tr_solver_cent,
+                verbose=2,
+            )
+            print('result of the lsq method for the center:', res_lsq_center)
+
+        if find_vector:
+            res_lsq_vector = least_squares(
+                func_vector,
+                x0=x0_vect,
+                args = (
+                    self.dbragg['braggref'], self.dgeom['rcurve'],
+                    det_th[compo[1]],
+                    det_th[compo[2]], det_th[compo[3]],
+                ),
+                jac=jac_vect,
+                method=method_vect,
+                loss=loss_vect,
+                bounds=bounds_vect,
+                ftol=ftol_vect,
+                xtol=xtol_vect,
+                x_scale=x_scale_vect,
+                f_scale=f_scale_vect,
+                tr_solver=tr_solver_vect,
+                verbose=2,
+            )
+            print('result of the lsq method for the vectors:', res_lsq_vector)
+
+        # ----------------------------------------------------
+        # definition of test detector by least-squares results
+        # ----------------------------------------------------
+
+        if find_center and find_vector:
+            det_test = self.get_detector_ideal(
+                # crystal specific
+                bragg = self.dbragg['braggref'],
+                rcurve = self.dgeom['rcurve'],
+                # translation degrees of freedom
+                ddist = res_lsq_center.x[0],
+                di = res_lsq_center.x[1],
+                dj = res_lsq_center.x[2],
+                # rotation degrees of freedom
+                dtheta = res_lsq_vector.x[0]*(np.pi/180.),
+                dpsi = res_lsq_vector.x[1]*(np.pi/180.),
+                tilt = res_lsq_vector.x[2]*(np.pi/180.),
+            )
+
+        elif find_center and not find_vector:
+            det_test = self.get_detector_ideal(
+                # crystal specific
+                bragg = self.dbragg['braggref'],
+                rcurve = self.dgeom['rcurve'],
+                # translation degrees of freedom
+                ddist = res_lsq_center.x[0],
+                di = res_lsq_center.x[1],
+                dj = res_lsq_center.x[2],
+            )
+            det_test['nout'] = det_th['nout']
+            det_test['ei'] = det_th['ei']
+            det_test['ej'] = det_th['ej']
+
+        elif not find_center and find_vector:
+            det_test = self.get_detector_ideal(
+                # crystal specific
+                bragg = self.dbragg['braggref'],
+                rcurve = self.dgeom['rcurve'],
+                # rotation degrees of freedom
+                dtheta = res_lsq_vector.x[0]*(np.pi/180.),
+                dpsi = res_lsq_vector.x[1]*(np.pi/180.),
+                tilt = res_lsq_vector.x[2]*(np.pi/180.),
+            )
+            det_test['cent'] = det_th['cent']
+
+        det_test['outline'] = det_th['outline']
+
+        print('det_test:', det_test)
+        print('det of reference:', det_th)
+        print('diff of cent:', det_test[compo[0]] - det_th[compo[0]])
+        print('diff of nout:', det_test[compo[1]] - det_th[compo[1]])
+        print('diff of ei:', det_test[compo[2]] - det_th[compo[2]])
+        print('diff of ej:', det_test[compo[3]] - det_th[compo[3]])
+
+        # dax = self.plot(det=det_th, color='black', dax=None)
+        # dax = self.plot(det=det_test, color='rd', dax=dax)
+
 
     def get_local_noute1e2(
         self,
