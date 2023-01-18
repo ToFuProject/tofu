@@ -36,6 +36,7 @@ import tofu.spectro._rockingcurve as _rockingcurve
 import tofu.spectro._rockingcurve_def as _rockingcurve_def
 
 
+
 __all__ = ['CrystalBragg']
 
 
@@ -2061,13 +2062,37 @@ class CrystalBragg(utils.ToFuObject):
         det_test['outline'] = det_th['outline']
 
         # results
-        dout = {
-            'det_th': det_th,
-            'det_test': det_test,
-        }
+        if find_center and find_vector:
+            dout = {
+                'det_th': det_th,
+                'det_test': det_test,
+                'ddist': res_lsq_center.x[0],
+                'di': res_lsq_center.x[1],
+                'dj': res_lsq_center.x[2],
+                'dtheta': res_lsq_vector.x[0]*(np.pi/180.),
+                'dpsi': res_lsq_vector.x[1]*(np.pi/180.),
+                'tilt': res_lsq_vector.x[2]*(np.pi/180.),
+                'comment': 'translation in m, rotations in radian',
+            }
+        elif find_center and not find_vector:
+            dout = {
+                'det_th': det_th,
+                'det_test': det_test,
+                'ddist': res_lsq_center.x[0],
+                'di': res_lsq_center.x[1],
+                'dj': res_lsq_center.x[2],
+                'comment': 'translation in m',
+            }
+        elif not find_center and find_vector:
+            dout = {
+                'det_th': det_th,
+                'det_test': det_test,
+                'dtheta': res_lsq_vector.x[0]*(np.pi/180.),
+                'dpsi': res_lsq_vector.x[1]*(np.pi/180.),
+                'tilt': res_lsq_vector.x[2]*(np.pi/180.),
+                'comment': 'rotations in radian',
+            }
 
-        print('det_test:', det_test)
-        print('det of reference:', det_th)
         print('diff of cent:', det_test[compo[0]] - det_th[compo[0]])
         print('diff of nout:', det_test[compo[1]] - det_th[compo[1]])
         print('diff of ei:', det_test[compo[2]] - det_th[compo[2]])
@@ -2085,7 +2110,9 @@ class CrystalBragg(utils.ToFuObject):
                 color='red',
                 dax=dax,
             )
-        return dout, dax
+            return dout, dax
+        else:
+            return dout
 
 
     def get_local_noute1e2(
