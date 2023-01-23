@@ -1974,7 +1974,7 @@ class CrystalBragg(utils.ToFuObject):
         if find_center:
             res_lsq_center = least_squares(
                 func_center,
-                x0=x0_cent,
+                x0=x0_cent[0],
                 args=(
                     self.dbragg['braggref'], self.dgeom['rcurve'],
                     det_th[compo[0]],
@@ -1995,7 +1995,7 @@ class CrystalBragg(utils.ToFuObject):
         if find_vector:
             res_lsq_vector = least_squares(
                 func_vector,
-                x0=x0_vect,
+                x0=x0_vect[0],
                 args = (
                     self.dbragg['braggref'], self.dgeom['rcurve'],
                     det_th[compo[1]],

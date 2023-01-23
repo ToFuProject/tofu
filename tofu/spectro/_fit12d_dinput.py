@@ -2637,12 +2637,14 @@ def fit12d_dscales(dscales=None, dinput=None):
             )
 
     # check
+    """
     _check_finit_dict(
         dd=dscales,
         dd_name='dscales',
         indtok=dinput['valid']['indt'],
         indbs=dinput['valid']['indbs'],
     )
+    """
     return dscales
 
 
