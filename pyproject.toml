@@ -4,5 +4,6 @@ requires = ["setuptools>=40.8.0",
 	    "cython>0.26",
 	    "numpy",
 	    "Polygon3",
-	    "datastock>=0.0.22",
+	    "datastock>=0.0.24",
+	    "bsplines2d",
 	    ]
