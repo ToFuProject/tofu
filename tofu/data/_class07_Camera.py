@@ -253,6 +253,46 @@ class Camera(Previous):
             length=length,
         )
 
+    # -----------------
+    # add_data
+    # ------------------
+
+    def update(
+        self,
+        dobj=None,
+        ddata=None,
+        dref=None,
+        harmonize=None,
+    ):
+        """ Overload datastock update() method """
+
+        # update
+        super().update(
+            dobj=dobj,
+            ddata=ddata,
+            dref=dref,
+            harmonize=harmonize,
+        )
+
+        # assign diagnostic
+        if self._dobj.get('camera') is not None:
+            for k0, v0 in self._ddata.items():
+                lcam = [
+                    k1 for k1, v1 in self._dobj['camera'].items()
+                    if v1['dgeom']['ref'] == tuple([
+                        rr for rr in v0['ref']
+                        if rr in v1['dgeom']['ref']
+                    ])
+                ]
+
+                if len(lcam) == 0:
+                    pass
+                elif len(lcam) == 1:
+                    self._ddata[k0]['camera'] = lcam[0]
+                else:
+                    msg = f"Multiple cameras:\n{lcam}"
+                    raise Exception(msg)
+
     # ---------------
     # utilities
     # ---------------
