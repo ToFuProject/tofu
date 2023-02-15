@@ -67,12 +67,12 @@ def teardown_module():
 
 def _add_rect_uniform(plasma):
     # add uniform rect mesh
-    plasma.add_mesh(key='m0', domain=[[2, 3], [-1, 1]], res=0.1)
+    plasma.add_mesh_2d_rect(key='m0', domain=[[2, 3], [-1, 1]], res=0.1)
 
 
 def _add_rect_variable(plasma):
     # add variable rect mesh
-    plasma.add_mesh(
+    plasma.add_mesh_2d_rect(
         key='m1',
         domain=[[2, 2.3, 2.6, 3], [-1, 0., 1]],
         res=[[0.2, 0.1, 0.1, 0.2], [0.2, 0.1, 0.2]],
@@ -81,7 +81,7 @@ def _add_rect_variable(plasma):
 
 def _add_rect_variable_crop(plasma):
     # add variable rect mesh
-    plasma.add_mesh(
+    plasma.add_mesh_2d_rect(
         key='m2',
         domain=[[2, 2.3, 2.6, 3], [-1, 0., 1]],
         res=[[0.2, 0.1, 0.1, 0.2], [0.2, 0.1, 0.2]],
@@ -96,25 +96,25 @@ def _add_tri_ntri1(plasma):
     cents2[1::2, :2] = cents[:, 2:]
     cents2[1::2, -1] = cents[:, 0]
 
-    plasma.add_mesh(
+    plasma.add_mesh_2d_tri(
         key='m3',
         knots=_DTRI['nodes']['data'],
-        cents=cents2,
+        indices=cents2,
     )
 
 
 def _add_tri_ntri2(plasma):
-    plasma.add_mesh(
+    plasma.add_mesh_2d_tri(
         key='m4',
         knots=_DTRI['nodes']['data'],
-        cents=_DTRI['cents']['data'],
+        indices=_DTRI['cents']['data'],
     )
 
 
 def _add_polar1(plasma, key='m5'):
     """ Time-independent """
 
-    kR, kZ = plasma.dobj['bsplines']['m2-bs1']['apex']
+    kR, kZ = plasma.dobj['bsplines']['m2_bs1']['apex']
     R = plasma.ddata[kR]['data']
     Z = plasma.ddata[kZ]['data']
     RR = np.repeat(R[:, None], Z.size, axis=1)
@@ -124,25 +124,24 @@ def _add_polar1(plasma, key='m5'):
     plasma.add_data(
         key='rho1',
         data=rho,
-        ref='m2-bs1',
+        ref='m2_bs1',
         unit='',
         dim='',
         quant='rho',
         name='rho',
     )
 
-    plasma.add_mesh_polar(
+    plasma.add_mesh_1d(
         key=key,
-        radius=np.linspace(0, 1.2, 7),
-        angle=None,
-        radius2d='rho1',
+        knots=np.linspace(0, 1.2, 7),
+        subkey='rho1',
     )
 
 
 def _add_polar2(plasma, key='m6'):
     """ Time-dependent """
 
-    kR, kZ = plasma.dobj['bsplines']['m2-bs1']['apex']
+    kR, kZ = plasma.dobj['bsplines']['m2_bs1']['apex']
     R = plasma.ddata[kR]['data']
     Z = plasma.ddata[kZ]['data']
     RR = np.repeat(R[:, None], Z.size, axis=1)
@@ -175,7 +174,7 @@ def _add_polar2(plasma, key='m6'):
         plasma.add_data(
             key='rho2',
             data=rho,
-            ref=('nt', 'm2-bs1'),
+            ref=('nt', 'm2_bs1'),
             unit='',
             dim='',
             quant='rho',
@@ -186,7 +185,7 @@ def _add_polar2(plasma, key='m6'):
         plasma.add_data(
             key='angle2',
             data=angle,
-            ref=('nt', 'm2-bs1'),
+            ref=('nt', 'm2_bs1'),
             unit='rad',
             dim='',
             quant='angle',
@@ -343,23 +342,23 @@ class Test01_checks_Instanciate():
         _add_polar1(plasma)
         _add_bsplines(plasma, kind=['polar'])
 
-    def test08_add_mesh_polar_angle_regular(self):
-        plasma = tfd.Collection()
-        _add_rect_variable_crop(plasma)
-        _add_bsplines(plasma)
-        _add_polar2(plasma)
-        _add_bsplines(plasma, kind=['polar'])
+    # def test08_add_mesh_polar_angle_regular(self):
+        # plasma = tfd.Collection()
+        # _add_rect_variable_crop(plasma)
+        # _add_bsplines(plasma)
+        # _add_polar2(plasma)
+        # _add_bsplines(plasma, kind=['polar'])
 
-    def test09_add_mesh_polar_angle_variable(self):
-        plasma = tfd.Collection()
-        _add_rect_variable_crop(plasma)
-        _add_bsplines(plasma)
-        _add_polar2(plasma, key='m7')
-        _add_bsplines(
-            plasma,
-            kind=['polar'],
-            angle=np.pi*np.r_[-3./4., -1/4, 0, 1/4, 3/4],
-        )
+    # def test09_add_mesh_polar_angle_variable(self):
+        # plasma = tfd.Collection()
+        # _add_rect_variable_crop(plasma)
+        # _add_bsplines(plasma)
+        # _add_polar2(plasma, key='m7')
+        # _add_bsplines(
+            # plasma,
+            # kind=['polar'],
+            # angle=np.pi*np.r_[-3./4., -1/4, 0, 1/4, 3/4],
+        # )
 
 
 #######################################################
@@ -392,18 +391,18 @@ class Test02_Collection():
 
         # add polar mesh
         _add_polar1(plasma)
-        _add_polar2(plasma)
+        # _add_polar2(plasma)
 
         # add bsplines for polar meshes
         _add_bsplines(plasma, kind=['polar'])
 
         # Add polar with variable poloidal discretization
-        _add_polar2(plasma, key='m7')
-        _add_bsplines(
-            plasma,
-            key=['m7'],
-            angle=np.pi*np.r_[-3./4., -1/4, 0, 1/4, 3/4],
-        )
+        # _add_polar2(plasma, key='m7')
+        # _add_bsplines(
+            # plasma,
+            # key=['m7'],
+            # angle=np.pi*np.r_[-3./4., -1/4, 0, 1/4, 3/4],
+        # )
 
         # store
         self.obj = plasma

@@ -50,9 +50,31 @@ __version__
     tofu version string
 """
 
+
+import os
 import sys
 import warnings
 from .version import __version__
+
+
+# -------------------------------------
+#       DEBUG
+# -------------------------------------
+
+
+_PATH_HERE = os.path.dirname(os.path.dirname(__file__))
+_PATH_BS2 = os.path.join(
+    os.path.dirname(_PATH_HERE),
+    'bsplines2d',
+)
+sys.path.insert(0, _PATH_BS2)
+import bsplines2d as bs2
+sys.path.pop(0)
+
+
+# -------------------------------------
+#       DEBUG - END
+# -------------------------------------
 
 
 import tofu.pathfile as pathfile
