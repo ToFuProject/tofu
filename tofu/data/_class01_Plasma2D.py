@@ -40,6 +40,25 @@ class Plasma2D(Previous):
     # _quant_Z = _QUANT_Z
 
     # -------------------
+    # units conversione
+    # -------------------
+
+    def convert_units_spectral(
+        self,
+        data=None,
+        units=None,
+        units_in=None,
+    ):
+
+        return _class01_compute.convert_spectral_units(
+            coll=self,
+            data=data,
+            units=units,
+            units_in=units_in,
+        )
+
+
+    # -------------------
     # get data time
     # -------------------
 

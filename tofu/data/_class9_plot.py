@@ -11,11 +11,11 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
 import datastock as ds
+import bsplines2d as bs2
 
 
 # specific
 from . import _generic_check
-from ._class1_plot import _plot_bsplines_get_dRdZ
 
 
 # #############################################################################
@@ -188,7 +188,7 @@ def _plot_geometry_matrix_prepare(
     Zk = coll.ddata[kZ]['data']
 
     # get dR, dZ
-    dR, dZ, _, _ = _plot_bsplines_get_dRdZ(
+    dR, dZ, _, _ = bs2._class02_plot_as_profile2d._plot_bsplines_get_dx01(
         coll=coll, km=km, meshtype=meshtype,
     )
     if res is None:

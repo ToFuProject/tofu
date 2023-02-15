@@ -30,10 +30,10 @@ def convert_spectral(
     units_in=None,
     units_out=None,
 ):
-    
+
     # -------------
     # Check inputs
-    
+
     data_in = _check_convert_spectral(
         data_in=data_in,
         units_in=units_in,
@@ -51,10 +51,10 @@ def convert_spectral(
         units_in=units_in,
         units_out=units_out,
     )
-    
+
     # -----------
     # return
-    
+
     if data_in is None:
         data = None
     else:
@@ -62,7 +62,7 @@ def convert_spectral(
             data = coef / data_in
         else:
             data = coef * data_in
-    
+
     return data, coef, inv, cat
 
 
@@ -148,7 +148,7 @@ def _convert_spectral_coef(
     units_out=None,
 ):
     """ Get conversion coef """
-    
+
     k0_in = [k0 for k0, v0 in _SPECTRAL_DUNITS.items() if units_in in v0][0]
     k0_out = [k0 for k0, v0 in _SPECTRAL_DUNITS.items() if units_out in v0][0]
 
