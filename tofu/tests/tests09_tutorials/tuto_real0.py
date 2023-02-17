@@ -297,7 +297,7 @@ def _add_spectrometer(
             key_cam=f'{k0}_cam',
             aperture_dimensions=[100e-6, 8e-2],
             pinhole_radius=500e-6,
-            cam_pixels_nb=[30, 15],
+            cam_pixels_nb=[5, 3],
             # returnas
             returnas=list,
         )
@@ -318,6 +318,8 @@ def _add_spectrometer(
             config=conf,
             compute=True,
             add_points=3,
+            rocking_curve_fwhm=0.0001*np.pi/180,
+            # rocking_curve_fwhm=None,
         )
 
     return
