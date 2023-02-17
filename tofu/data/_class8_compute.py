@@ -425,6 +425,7 @@ def _dplot_check(
     lok = list(itt.chain.from_iterable([
         [k0] + v0['optics']
         for k0, v0 in coll.dobj['diagnostic'][key]['doptics'].items()
+        if k0 in key_cam
     ]))
     optics = ds._generic_check._check_var_iter(
         optics, 'optics',
