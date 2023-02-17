@@ -123,7 +123,7 @@ def equivalent_apertures(
         pts2pt = coll.get_optics_reflect_pts2pt(key=kref)
     else:
         pts2pt = None
-        
+
     # ptsvect func
     ptsvect = coll.get_optics_reflect_ptsvect(key=kref)
     lptsvect_poly = [
@@ -555,7 +555,7 @@ def _get_equivalent_aperture(
     ptsvect=None,
     **kwdargs,
 ):
-    
+
     # loop on optics
     for jj in range(nop_pre):
 
@@ -664,18 +664,18 @@ def _get_equivalent_aperture_spectro(
         )
 
         if p0 is None:
-            # print('\t \t None 0')
+            print('\t \t None 0')
             return p0, p1
 
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
             # print('inside: ', p1)
             # plt.figure()
             # plt.plot(
-            #     np.array(p_a.contour(0))[:, 0],
-            #     np.array(p_a.contour(0))[:, 1], 
-            #     '.-k',
-            #     p0, p1, '.-r'
-            #     )
+                # np.array(p_a.contour(0))[:, 0],
+                # np.array(p_a.contour(0))[:, 1],
+                # '.-k',
+                # p0, p1, '.-r'
+            # )
             p_a = plg.Polygon(np.array([p0, p1]).T)
         else:
             # convex hull
@@ -686,21 +686,21 @@ def _get_equivalent_aperture_spectro(
 
             # plt.figure()
             # plt.plot(
-            #     np.array(p_a.contour(0))[:, 0],
-            #     np.array(p_a.contour(0))[:, 1], 
-            #     '.-k',
-            #     p0, p1, '.-r'
-            #     )
+                # np.array(p_a.contour(0))[:, 0],
+                # np.array(p_a.contour(0))[:, 1],
+                # '.-k',
+                # p0, p1, '.-r'
+                # )
 
             # intersection
             p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
             if p_a.nPoints() < 3:
-                # print('\t \t None 1')       # DB
+                print('\t \t None 1')       # DB
                 return None, None
 
             # update
             p0, p1 = np.array(p_a.contour(0)).T
-            
+
             # interpolate
             if jj < nop_post - 1:
                 p0, p1 = _compute._interp_poly(
@@ -746,7 +746,7 @@ def _plot(
 
     i0 = np.r_[np.arange(0, poly_x0.size), 0]
     ax.plot(poly_x0[i0], poly_x1[i0], '.-k')
-    
+
     if p0.shape[1] > 0:
         i1 = np.r_[np.arange(0, p0.shape[1]), 0]
         for ii in range(p0.shape[0]):
@@ -754,6 +754,6 @@ def _plot(
 
     if cents0 is not None:
         ax.plot(cents0, cents1, 'xr')
-        
+
     ax.legend()
     return

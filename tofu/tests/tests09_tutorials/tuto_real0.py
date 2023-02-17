@@ -27,10 +27,10 @@ def main():
     # add several diagnostics
 
     # add broadband
-    _add_broadband(coll, conf)
+    # _add_broadband(coll, conf)
 
     # add PHA
-    _add_PHA(coll, conf)
+    # _add_PHA(coll, conf)
 
     # add spectrometer
     _add_spectrometer(coll, conf)
@@ -322,7 +322,7 @@ def _add_spectrometer(
 
 def _crystals(coll=None):
 
-    start, vect, v0, v1 = _ref_line(start=np.r_[7,0,0])
+    start, vect, v0, v1 = _ref_line(start=np.r_[7, 0., 0.001])
 
     # cryst0: planar
     cent = start + 0. * vect
