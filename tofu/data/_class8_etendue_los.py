@@ -36,6 +36,8 @@ def compute_etendue_los(
     margin_perp=None,
     # options
     add_points=None,
+    # spectro-only
+    rocking_curve_fwhm=None,
     # bool
     convex=None,
     check=None,
@@ -109,6 +111,17 @@ def compute_etendue_los(
             return_for_etendue=True,
         )
 
+        # ------------------------
+        # spectro => rocking curve
+
+        if spectro and rocking_curve_fwhm is None:
+            rocking_curve_fwhm = np.inf
+            # TBD
+            # rocking_curve_fwhm = coll.get_crystal_rocking_curve(
+                # key=v0['keyref'],
+                # moment='fwhm',
+            # )
+
         # ------------------------------------------
         # get distance, area, solid_angle, los
 
@@ -119,7 +132,9 @@ def compute_etendue_los(
         ) = _loop_on_pix(
             coll=coll,
             ldet=v0['ldet'],
+            # spectro
             spectro=spectro,
+            rocking_curve_fwhm=rocking_curve_fwhm,
             # optics
             x0=x0,
             x1=x1,
@@ -331,6 +346,7 @@ def _diag_compute_etendue_check(
             cx = cx.ravel()
             cy = cy.ravel()
             cz = cz.ravel()
+
         nd = cx.size
 
         dcompute[k0]['ldet'] = [
@@ -464,7 +480,9 @@ def _loop_on_pix(
     coll=None,
     # detectors
     ldet=None,
+    # spectro
     spectro=None,
+    rocking_curve_fwhm=None,
     # equivalent aperture
     x0=None,
     x1=None,
@@ -502,6 +520,19 @@ def _loop_on_pix(
 
         if not iok[ii]:
             continue
+
+        # rocking curve
+        if spectro:
+            out0 = ldet[ii]['outline_x0']
+            width0 = np.max(np.abs(np.diff(out0)))
+            dist = np.sqrt(
+                (centsx[ii] - ldet[ii]['cents_x'])**2
+                + (centsy[ii] - ldet[ii]['cents_y'])**2
+                + (centsz[ii] - ldet[ii]['cents_z'])**2
+            )
+            withrc = dist * rocking_curve_fwhm
+            out0_norm = out0 / width0
+            ldet[ii]['outline_x0'] = out0_norm * min(width0, withrc)
 
         # ------------
         # solid angles

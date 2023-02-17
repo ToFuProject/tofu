@@ -62,6 +62,8 @@ class Diagnostic(Previous):
         # compute
         compute=True,
         add_points=None,
+        # spectro-only
+        rocking_curve_fwhm=None,
         # others
         verb=None,
         **kwdargs,
@@ -100,6 +102,8 @@ class Diagnostic(Previous):
                 reflections_type=reflections_type,
                 key_nseg=key_nseg,
                 add_points=add_points,
+                # spectro-only
+                rocking_curve_fwhm=rocking_curve_fwhm,
                 # bool
                 verb=verb,
                 plot=False,
@@ -190,6 +194,8 @@ class Diagnostic(Previous):
         check=None,
         margin_par=None,
         margin_perp=None,
+        # spectro-only
+        rocking_curve_fwhm=None,
         # equivalent aperture
         add_points=None,
         convex=None,
@@ -222,6 +228,8 @@ class Diagnostic(Previous):
             check=check,
             margin_par=margin_par,
             margin_perp=margin_perp,
+            # spectro-only
+            rocking_curve_fwhm=rocking_curve_fwhm,
             # equivalent aperture
             add_points=add_points,
             convex=convex,
