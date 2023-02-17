@@ -311,10 +311,13 @@ def _add_spectrometer(
 
     # add crystal optics
     for k0, v0 in doptics.items():
+        if k0 != 'c0':
+            continue
         coll.add_diagnostic(
             doptics=v0,
             config=conf,
             compute=True,
+            add_points=3,
         )
 
     return

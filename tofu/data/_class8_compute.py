@@ -835,17 +835,17 @@ def get_lamb_from_angle(
 
     # ----------------
     # units conversion
-    
+
     if units not in [None, 'm']:
         if data is None:
-            
+
             for ii in range(3):
                 lv[ii] = _spectralunits.convert_spectral(
                     data_in=lv[ii],
                     units_in='m',
                     units_out=units,
                 )[0]
-                
+
         else:
             data = _spectralunits.convert_spectral(
                 data_in=data,
@@ -860,7 +860,7 @@ def get_lamb_from_angle(
         data = np.abs(lv[2] - lv[1])
     elif lamb == 'res':
         data = lv[0] / np.abs(lv[2] - lv[1])
-    
+
     return data, ref
 
 

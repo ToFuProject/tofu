@@ -148,8 +148,19 @@ def equivalent_apertures(
 
     # dt = np.zeros((14,), dtype=float)
 
+    # add pts to initial polygon only if curved
+    if spectro:
+        rcurv = np.r_[coll.dobj[cref][kref]['dgeom']['curve_r']]
+        ind = ~np.isinf(rcurv)
+        if np.any(rcurv[ind] > 0):
+            addp0 = add_points
+        else:
+            addp0 = False
+    else:
+        addp0 = False
+
     # intial polygon
-    p_a = coll.get_optics_outline(key=kref, add_points=False)
+    p_a = coll.get_optics_outline(key=kref, add_points=addp0)
     p_a = plg.Polygon(np.array([p_a[0], p_a[1]]).T)
 
     iok = np.ones((pixel.size,), dtype=bool)
@@ -204,18 +215,22 @@ def equivalent_apertures(
         x0.append(p0)
         x1.append(p1)
 
-    # --------------------
-    # harmonize if necessary
-    # --------------------
+    # -------------------------------------------
+    # harmonize if necessary the initial polygons
+    # -------------------------------------------
 
     if harmonize:
+
         ln = [p0.size if p0 is not None else 0 for p0 in x0]
         nmax = np.max(ln)
         nan = np.full((nmax,), np.nan)
+
         for ii in range(pixel.size):
-            if x0[ii] is None:
+
+            if ln[ii] == 0:
                 x0[ii] = nan
                 x1[ii] = nan
+
             elif ln[ii] < nmax:
                 ndif = nmax - ln[ii]
                 irand = np.random.random(ndif)
@@ -690,7 +705,8 @@ def _get_equivalent_aperture_spectro(
                 # np.array(p_a.contour(0))[:, 1],
                 # '.-k',
                 # p0, p1, '.-r'
-                # )
+            # )
+            # import pdb; pdb.set_trace()     # DB
 
             # intersection
             p_a = p_a & plg.Polygon(np.array([p0, p1]).T)

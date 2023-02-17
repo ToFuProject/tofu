@@ -61,6 +61,7 @@ class Diagnostic(Previous):
         key_nseg=None,
         # compute
         compute=True,
+        add_points=None,
         # others
         verb=None,
         **kwdargs,
@@ -98,6 +99,7 @@ class Diagnostic(Previous):
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
                 key_nseg=key_nseg,
+                add_points=add_points,
                 # bool
                 verb=verb,
                 plot=False,
