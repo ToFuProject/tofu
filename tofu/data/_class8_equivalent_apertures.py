@@ -196,6 +196,7 @@ def equivalent_apertures(
         # convex hull
         if p0 is None or p0.size == 0:
             iok[ii] = False
+
         elif convex:
             p0, p1 = np.array(plgUtils.convexHull(
                 plg.Polygon(np.array([p0, p1]).T)
@@ -204,7 +205,7 @@ def equivalent_apertures(
             p0, p1 = _compute._interp_poly(
                 lp=[p0, p1],
                 add_points=add_points,
-                mode='min',
+                mode='mean',
                 isclosed=False,
                 closed=False,
                 ravel=True,

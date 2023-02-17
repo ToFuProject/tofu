@@ -19,10 +19,10 @@ from ..geom import _comp_solidangles
 __all__ = ['compute_etendue_los']
 
 
-# ##################################################################
-# ##################################################################
+# ###############################################################
+# ###############################################################
 #                       Main
-# ##################################################################
+# ###############################################################
 
 
 def compute_etendue_los(
@@ -110,12 +110,11 @@ def compute_etendue_los(
         )
 
         # ------------------------------------------
-        # get distance, area, solid_angle, los, dlos
+        # get distance, area, solid_angle, los
 
         (
             det_area, distances,
             los_x, los_y, los_z,
-            dlos_x, dlos_y, dlos_z,
             cos_los_det, cos_los_ap, solid_angles, res,
         ) = _loop_on_pix(
             coll=coll,
@@ -220,14 +219,14 @@ def compute_etendue_los(
             'los_x': los_x,
             'los_y': los_y,
             'los_z': los_z,
-            'dlos_x': dlos_x,
-            'dlos_y': dlos_y,
-            'dlos_z': dlos_z,
+            'spectro': spectro,
             'iok': iok,
             'is2d': is2d,
             'cx': cx,
             'cy': cy,
             'cz': cz,
+            'x0': x0,
+            'x1': x1,
         })
 
     # ----------
@@ -535,19 +534,6 @@ def _loop_on_pix(
     los_y = los_y / distances
     los_z = los_z / distances
 
-    if spectro:
-        dlos_x = px - cx[:, None]
-        dlos_y = py - cy[:, None]
-        dlos_z = pz - cz[:, None]
-        ddist = np.sqrt(dlos_x**2 + dlos_y**2 + dlos_z**2)
-        dlos_x = dlos_x / ddist
-        dlos_y = dlos_y / ddist
-        dlos_z = dlos_z / ddist
-    else:
-        dlos_x = None
-        dlos_y = None
-        dlos_z = None
-
     # ------
     # angles
 
@@ -598,7 +584,6 @@ def _loop_on_pix(
     return (
         det_area, distances,
         los_x, los_y, los_z,
-        dlos_x, dlos_y, dlos_z,
         cos_los_det, cos_los_ap, solid_angles, res,
     )
 

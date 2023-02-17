@@ -236,7 +236,7 @@ def _interp_poly_check(
     mode = ds._generic_check._check_var(
         mode, 'mode',
         default=None,
-        allowed=[None, 'min'],
+        allowed=[None, 'mean', 'min'],
     )
 
     # ----------
@@ -314,7 +314,7 @@ def _interp_poly(
     # -----------
     # mode
 
-    if mode == 'min':
+    if mode is not None:
         if len(lp) == 3:
             dist = np.sqrt(
                 np.diff(lp[0], axis=-1)**2
@@ -331,7 +331,11 @@ def _interp_poly(
             import pdb; pdb.set_trace()     # DB
 
         min_threshold = min(min_threshold, np.max(dist)/3.)
-        mindist = np.min(dist[dist > min_threshold])
+        if mode == 'min':
+            mindist = np.min(dist[dist > min_threshold])
+        elif mode == 'mean':
+            mindist = np.mean(dist[dist > min_threshold])
+
         add_points = add_points * np.ceil(dist / mindist).astype(int) - 1
 
     # -----------

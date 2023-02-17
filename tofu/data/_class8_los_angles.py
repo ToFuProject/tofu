@@ -85,25 +85,45 @@ def compute_los_angles(
         # ------------
         # for spectro => estimate angle variations
 
-        if v0.get('dlos_x') is not None:
+        if v0['spectro'] is True:
 
             angmin = np.full(v0['cx'].size, np.nan)
             angmax = np.full(v0['cx'].size, np.nan)
 
             ptsvect = coll.get_optics_reflect_ptsvect(key=v0['kref'])
+            coords = coll.get_optics_x01toxyz(key=v0['kref'])
+            dx, dy, dz = coll.get_camera_dxyz(
+                key=key_cam,
+                include_center=True,
+            )
 
             for ii in range(v0['cx'].size):
 
                 if not v0['iok'][ii]:
                     continue
 
+                cxi = v0['cx'][ii]  + dx
+                cyi = v0['cy'][ii]  + dy
+                czi = v0['cz'][ii]  + dz
+                nc = cxi.size
+
+                exi, eyi, ezi = coords(
+                    v0['x0'][ii, :],
+                    v0['x1'][ii, :],
+                )
+                ne = exi.size
+
+                cxi = np.repeat(cxi, ne)
+                cyi = np.repeat(cyi, ne)
+                czi = np.repeat(czi, ne)
+
                 angles = ptsvect(
-                    pts_x=v0['cx'][ii],
-                    pts_y=v0['cy'][ii],
-                    pts_z=v0['cz'][ii],
-                    vect_x=v0['dlos_x'][ii, ...],
-                    vect_y=v0['dlos_y'][ii, ...],
-                    vect_z=v0['dlos_z'][ii, ...],
+                    pts_x=cxi,
+                    pts_y=cyi,
+                    pts_z=czi,
+                    vect_x=np.tile(exi, nc) - cxi,
+                    vect_y=np.tile(eyi, nc) - cyi,
+                    vect_z=np.tile(ezi, nc) - czi,
                     strict=True,
                     return_x01=False,
                 )[6]
