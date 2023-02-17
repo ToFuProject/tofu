@@ -923,6 +923,50 @@ def get_camera_unitvectors(
     return dout
 
 
+def get_camera_dxyz(coll=None, key=None, include_center=None):
+
+    # ---------
+    # check key
+
+    lok = [
+        k0 for k0, v0 in coll.dobj.get('camera', {}).items()
+        if v0['dgeom']['parallel'] is True
+    ]
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    dgeom = coll.dobj['camera'][key]['dgeom']
+
+    # include_center
+    include_center = ds._generic_check._check_var(
+        include_center, 'include_center',
+        types=bool,
+        default=True,
+    )
+
+    # ----------------
+    # get unit vectors
+
+    e0 = dgeom['e0']
+    e1 = dgeom['e1']
+
+    out0 = coll.ddata[dgeom['outline'][0]]['data']
+    out1 = coll.ddata[dgeom['outline'][1]]['data']
+
+    if include_center is True:
+        out0 = np.append(0, out0)
+        out1 = np.append(0, out1)
+
+    dx = out0 * e0[0] + out1 * e1[0]
+    dy = out0 * e0[1] + out1 * e1[1]
+    dz = out0 * e0[2] + out1 * e1[2]
+
+    return dx, dy, dz
+
+
 def get_camera_cents_xyz(coll=None, key=None):
 
     # ---------

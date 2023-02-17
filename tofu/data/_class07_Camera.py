@@ -309,6 +309,17 @@ class Camera(Previous):
             key=key,
         )
 
+    def get_camera_dxyz(self, key=None, include_center=None):
+        """ Return dx, dy, dz to get the outline from any pixel center
+        Only works on 2d or parallel cameras
+
+        """
+        return _check.get_camera_dxyz(
+            coll=self,
+            key=key,
+            include_center=include_center,
+        )
+
     def get_camera_cents_xyz(self, key=None):
         """ Return cents_x, cents_y, cents_z """
         return _check.get_camera_cents_xyz(
