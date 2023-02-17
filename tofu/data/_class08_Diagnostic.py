@@ -326,8 +326,8 @@ class Diagnostic(Previous):
         return _check._get_optics_cls(coll=self, optics=optics)
 
     # def get_diagnostic_doptics(self, key=None):
-    #     """ 
-    #     Get dict of optics and corresponding classes 
+    #     """
+    #     Get dict of optics and corresponding classes
 
     #     """
     #     return _check._get_diagnostic_doptics(coll=self, key=key)
@@ -502,6 +502,7 @@ class Diagnostic(Previous):
         mode=None,
         groupby=None,
         val_init=None,
+        ref_com=None,
         # signal
         brightness=None,
         # store
@@ -526,6 +527,7 @@ class Diagnostic(Previous):
             mode=mode,
             groupby=groupby,
             val_init=val_init,
+            ref_com=ref_com,
             # signal
             brightness=brightness,
             # store

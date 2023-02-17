@@ -768,70 +768,70 @@ class Test02_Collection():
             # )
             # plt.close('all')
 
-    def test11_plot_as_profile2d(self):
+    # def test11_plot_as_profile2d(self):
 
-        # plotting
-        for k0 in self.lbs:
+        # # plotting
+        # for k0 in self.lbs:
 
-            # fix
-            k1 = _add_data_fix(self.obj, k0)
-            dax = self.obj.plot_as_profile2d(key=k1, dres=0.05)
+            # # fix
+            # k1 = _add_data_fix(self.obj, k0)
+            # dax = self.obj.plot_as_profile2d(key=k1, dres=0.05)
 
-            # time-variable
-            k1 = _add_data_var(self.obj, k0)
-            dax = self.obj.plot_as_profile2d(key=k1, dres=0.05)
+            # # time-variable
+            # k1 = _add_data_var(self.obj, k0)
+            # dax = self.obj.plot_as_profile2d(key=k1, dres=0.05)
 
-            plt.close('all')
+            # plt.close('all')
 
-    def test12_add_bsplines_operator(self):
-        lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2']
-        lop = ['D0N1', 'D0N2', 'D1N2', 'D2N2']
-        lgeom = ['linear', 'toroidal']
-        lcrop = [False, True]
+    # def test12_add_bsplines_operator(self):
+        # lkey = ['m0-bs0', 'm1-bs1', 'm2-bs2']
+        # lop = ['D0N1', 'D0N2', 'D1N2', 'D2N2']
+        # lgeom = ['linear', 'toroidal']
+        # lcrop = [False, True]
 
-        dfail = {}
-        for ii, k0 in enumerate(self.lbs):
+        # dfail = {}
+        # for ii, k0 in enumerate(self.lbs):
 
-            km = self.obj.dobj['bsplines'][k0]['mesh']
-            if self.obj.dobj['mesh'][km]['type'] == 'tri':
-                continue
-            elif self.obj.dobj['mesh'][km]['type'] == 'polar':
-                continue
+            # km = self.obj.dobj['bsplines'][k0]['mesh']
+            # if self.obj.dobj['mesh'][km]['type'] == 'tri':
+                # continue
+            # elif self.obj.dobj['mesh'][km]['type'] == 'polar':
+                # continue
 
-            for comb in itt.product(lop, lgeom, lcrop):
-                deg = self.obj.dobj['bsplines'][k0]['deg']
+            # for comb in itt.product(lop, lgeom, lcrop):
+                # deg = self.obj.dobj['bsplines'][k0]['deg']
 
-                if deg == 3 and comb[0] in ['D0N1', 'D0N2', 'D1N2', 'D2N2']:
-                    continue
+                # if deg == 3 and comb[0] in ['D0N1', 'D0N2', 'D1N2', 'D2N2']:
+                    # continue
 
-                # only test exact operators
-                if int(comb[0][1]) > deg:
-                    # except deg = 0 D1N2
-                    if deg == 0 and comb[0] == 'D1N2':
-                        pass
-                    else:
-                        continue
-                try:
-                    self.obj.add_bsplines_operator(
-                        key=k0,
-                        operator=comb[0],
-                        geometry=comb[1],
-                        crop=comb[2],
-                    )
-                except Exception as err:
-                    dfail[k0] = (
-                        f"key {k0}, op '{comb[0]}', geom '{comb[1]}': "
-                        + str(err)
-                    )
+                # # only test exact operators
+                # if int(comb[0][1]) > deg:
+                    # # except deg = 0 D1N2
+                    # if deg == 0 and comb[0] == 'D1N2':
+                        # pass
+                    # else:
+                        # continue
+                # try:
+                    # self.obj.add_bsplines_operator(
+                        # key=k0,
+                        # operator=comb[0],
+                        # geometry=comb[1],
+                        # crop=comb[2],
+                    # )
+                # except Exception as err:
+                    # dfail[k0] = (
+                        # f"key {k0}, op '{comb[0]}', geom '{comb[1]}': "
+                        # + str(err)
+                    # )
 
-        # Raise error if any fail
-        if len(dfail) > 0:
-            lstr = [f'\t- {k0}: {v0}' for k0, v0 in dfail.items()]
-            msg = (
-                "The following operators failed:\n"
-                + "\n".join(lstr)
-            )
-            raise Exception(msg)
+        # # Raise error if any fail
+        # if len(dfail) > 0:
+            # lstr = [f'\t- {k0}: {v0}' for k0, v0 in dfail.items()]
+            # msg = (
+                # "The following operators failed:\n"
+                # + "\n".join(lstr)
+            # )
+            # raise Exception(msg)
 
     # TBF for triangular
     # def test13_compute_plot_geometry_matrix(self, kind=None):

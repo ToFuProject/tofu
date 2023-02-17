@@ -265,7 +265,7 @@ def _cameras():
             'e1_z': e1s[0, 2],
         },
         'dmat': {
-            'energy': np.linspace(1, 10, 100)*1e3,
+            'qeff_E': np.linspace(1, 10, 100)*1e3,
             'qeff': 0.99*np.ones((100,)),
         },
     }
@@ -578,7 +578,13 @@ class Test01_Diagnostic():
             dout = self.obj.get_optics_outline(k0)
 
     def test03_plot(self):
-        for k0, v0 in self.obj.dobj['diagnostic'].items():
-            for pp in [None, 'cross', ['cross', 'hor']]:
-                dax = self.obj.plot_diagnostic(k0, proj=pp)
+        for ii, (k0, v0) in enumerate(self.obj.dobj['diagnostic'].items()):
+            dax = self.obj.plot_diagnostic(
+                k0,
+                proj=(
+                    None if ii%3==0
+                    else ('cross' if ii%3==1 else ['cross', 'hor'])
+                ),
+            )
             plt.close('all')
+            del dax

@@ -177,8 +177,9 @@ def _plot_geometry_matrix_prepare(
     # if polar => submesh
     km0 = km
     meshtype0 = meshtype
-    if meshtype == 'polar':
-        km = coll.dobj[coll._which_mesh][km0]['submesh']
+    submesh = coll.dobj[coll._which_mesh][km0]['submesh']
+    if submesh is not None:
+        km = submesh
         meshtype = coll.dobj[coll._which_mesh][km]['type']
         shape2d = len(coll.dobj['bsplines'][keybs]['shape']) == 2
 
@@ -189,14 +190,14 @@ def _plot_geometry_matrix_prepare(
 
     # get dR, dZ
     dR, dZ, _, _ = bs2._class02_plot_as_profile2d._plot_bsplines_get_dx01(
-        coll=coll, km=km, meshtype=meshtype,
+        coll=coll, km=km,
     )
     if res is None:
         if meshtype == 'rect':
             res_coef = 0.05
         else:
             res_coef = 0.25
-        res = [res_coef*dR, res_coef*dZ]
+        res = res_coef*dR
 
     # crop
     nchan, nbs = coll.dobj['geom matrix'][key]['shape'][-2:]
@@ -282,10 +283,11 @@ def _plot_geometry_matrix_prepare(
     # mesh sampling
 
     # mesh sampling
-    km = coll.dobj['bsplines'][keybs]['mesh']
-    R, Z = coll.get_sample_mesh(
+    dout = coll.get_sample_mesh(
         key=km, res=res, mode='abs', grid=True, imshow=True,
     )
+    R = dout['x0']['data']
+    Z = dout['x1']['data']
 
     # -------------
     # interpolation
@@ -293,15 +295,17 @@ def _plot_geometry_matrix_prepare(
     # bspline details
     shapebs = coll.dobj['bsplines'][keybs]['shape']
 
-    bsplinebase = coll.interpolate_profile2d(
-        key=keybs,
-        R=R,
-        Z=Z,
+    bsplinebase = coll.interpolate(
+        keys=None,
+        ref_key=keybs,
+        x0=R,
+        x1=Z,
+        submesh=True,
         crop=crop,
         nan0=True,
         details=True,
         return_params=False,
-    )[0]
+    )[f'{keybs}_details']['data']
 
     # bsplinetot
     coefstot = np.nansum(
@@ -635,16 +639,16 @@ def plot_geometry_matrix(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        coll.plot_bsplines(
-            key=keybs,
-            indbs=ich_bf,
-            indt=indt,
-            knots=False,
-            cents=False,
-            plot_mesh=False,
-            dax={'cross': dax[kax]},
-            dleg=False,
-        )
+        # coll.plot_bsplines(
+            # key=keybs,
+            # indbs=ich_bf,
+            # indt=indt,
+            # knots=False,
+            # cents=False,
+            # plot_mesh=False,
+            # dax={'cross': dax[kax]},
+            # dleg=False,
+        # )
 
         if ptslos is not None:
             for ii in indlosok:

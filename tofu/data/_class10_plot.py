@@ -361,9 +361,9 @@ def plot_inversion(
     # --------------
     # plot profile2d
 
-    coll2, dgroup = coll.plot_profile2d(
+    coll2, dgroup = coll.plot_as_profile2d(
         key=keyinv,
-        res=res,
+        dres=res,
         # figure
         vmin=vmin,
         vmax=vmax,

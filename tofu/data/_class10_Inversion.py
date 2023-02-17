@@ -55,6 +55,7 @@ class Inversion(Previous):
         # cholesky=None,
         # regparam_algo=None,
         algo=None,
+        maxiter_outer=None,
         # regularity operator
         operator=None,
         geometry=None,
@@ -92,6 +93,7 @@ class Inversion(Previous):
             # cholesky=cholesky,
             # regparam_algo=regparam_algo,
             algo=algo,
+            maxiter_outer=maxiter_outer,
             # regularity operator
             operator=operator,
             geometry=geometry,

@@ -184,25 +184,25 @@ def compute_etendue_los(
 
         # --------------------
         # optional plotting
-    
+
         if plot is True:
             dax = _plot_etendues(
                 etend0=etend0,
                 etend1=etend1,
                 res=res,
             )
-    
+
         # --------
         # reshape
-    
+
         # etend0
         if etend0 is not None and is2d:
             etend0 = etend0.reshape(tuple(np.r_[3, v0['shape0']]))
-    
+
         # etend1
         if etend1 is not None and is2d:
             etend1 = etend1.reshape(tuple(np.r_[res.size, v0['shape0']]))
-    
+
         # los
         if los_x.shape != v0['shape0']:
             los_x = los_x.reshape(v0['shape0'])
@@ -211,7 +211,7 @@ def compute_etendue_los(
 
         # --------------------
         # return dict
-    
+
         dcompute[key_cam].update({
             'analytical': etend0,
             'numerical': etend1,
@@ -236,18 +236,18 @@ def compute_etendue_los(
     if store is not False:
 
         for key_cam, v0 in dcompute.items():
-        
+
             # ref
             ref = coll.dobj['camera'][key_cam]['dgeom']['ref']
-    
+
             # data
             etendue = v0[store][-1, ...]
-    
+
             if store == 'analytical':
                 etend_type = store
             else:
                 etend_type = v0['res'][-1]
-    
+
             # keys
             ketendue = f'{key}_{key_cam}_etend'
             ddata = {
@@ -260,9 +260,9 @@ def compute_etendue_los(
                     'units': 'm2.sr',
                 },
             }
-            
+
             coll.update(ddata=ddata)
-    
+
             coll._dobj['diagnostic'][key]['doptics'][key_cam]['etendue'] = ketendue
             coll._dobj['diagnostic'][key]['doptics'][key_cam]['etend_type'] = etend_type
 
@@ -327,13 +327,13 @@ def _diag_compute_etendue_check(
         is2d = dgeom['type'] == '2d'
         par = dgeom['parallel']
         dcompute[k0]['shape0'] = cx.shape
-    
+
         if is2d:
             cx = cx.ravel()
             cy = cy.ravel()
             cz = cz.ravel()
         nd = cx.size
-    
+
         dcompute[k0]['ldet'] = [
             {
                 'cents_x': cx[ii],

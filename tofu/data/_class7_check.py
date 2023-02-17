@@ -763,6 +763,7 @@ def _camera_2d(
 
 
 def _dmat(
+    coll=None,
     key=None,
     dmat=None,
 ):
@@ -795,9 +796,12 @@ def _dmat(
         return_copy=True,
     )
 
+    if dmat.get('bins') is not None:
+        dmat['mode'] = 'PHA'
+
     # -----------------
     # check PHA vs bins
-    
+
     if dmat['mode'] == 'PHA':
         if dmat.get('bins') is None:
             msg = (
@@ -805,25 +809,21 @@ def _dmat(
             )
             raise Exception(msg)
 
-        kbnE = f'{key}_binsnE'
-        kbE = f'{key}_binsE'
-        dref[kbnE] = {'size': dmat['bins'].size}
-        ddata[kbE] = {
-            'data': dmat['bins'],
-            'ref': kbnE,
-            'units': 'eV',
-            'name': 'Ebins',
-            'quant': 'E',
-            'dim': 'energy',
-        }
-
-        dmat['bins'] = kbE
+        kb = f'{key}_bin'
+        coll.add_bins(
+            key=kb,
+            edges=dmat['bins'],
+            units='eV',
+            quant='E',
+            dim='energy',
+        )
+        dmat['bins'] = kb
 
     # -----------------------------------
     # check energy / qeff values
 
     if all([dmat.get(kk) is not None for kk in ['energy', 'qeff']]):
-        
+
         dmat['qeff_E'], dmat['qeff'] = _class4_check._dmat_energy_trans(
             energ=dmat['qeff_E'],
             trans=dmat['qeff'],
@@ -831,17 +831,17 @@ def _dmat(
 
         # ----------
         # dref
-    
+
         kne = f'{key}_qnE'
         ne = dmat['qeff_E'].size
         dref[kne] = {'size': ne}
-    
+
         # ----------
         # ddata
-    
+
         kqE = f'{key}_qE'
         kqeff = f'{key}_qeff'
-    
+
         ddata.update({
             kqE: {
                 'data': dmat['qeff_E'],
@@ -860,10 +860,10 @@ def _dmat(
                 'units': '',
             },
         })
-    
+
         # -----------
         # dmat
-    
+
         dmat['qeff_E'] = kqE
         dmat['qeff'] = kqeff
 

@@ -20,10 +20,10 @@ from . import _class10_algos as _algos
 tomotok2tofu = _checks.tomotok2tofu
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                           main
-# ##################################################################
+# ################################################################
 
 
 def compute_inversions(
@@ -41,8 +41,10 @@ def compute_inversions(
     # regularity operator
     operator=None,
     geometry=None,
+    dop_coefs=None,
     # choice of algo
     algo=None,
+    maxiter_outer=None,
     # misc
     solver=None,
     conv_crit=None,
@@ -61,14 +63,15 @@ def compute_inversions(
     (
         key_matrix,
         key_diag, key_data, key_sigma,
-        keybs, keym, mtype,
+        keybs, keym, nd, mtype,
         ddata, dsigma, matrix, units_gmat,
         keyt, t, reft, notime,
         m3d, indok, iokt,
         dconstraints,
-        opmat, operator, geometry,
+        dopmat, operator, geometry,
         dalgo, dconstraints, dcon,
-        conv_crit, crop, chain, kwdargs, method, options,
+        conv_crit, maxiter_outer,
+        crop, chain, kwdargs, method, options,
         solver, verb, store,
         keyinv, refinv, regul,
     ) = _checks._compute_check(**locals())
@@ -103,20 +106,12 @@ def compute_inversions(
     mu0 = 1.
 
     # Define Regularization operator
-    if dalgo['family'] == 'Non-regularized':
-        R = None
-    else:
-        if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
-            R = opmat
-        elif operator == 'D0N2':
-            R = opmat[0]
-        elif operator == 'D1N2':
-            R = opmat[0] + opmat[1]
-        elif operator == 'D2N2':
-            R = opmat[0] + opmat[1]
-        else:
-            msg = 'unknown operator!'
-            raise Exception(msg)
+    R = _get_operator(
+        dalgo=dalgo,
+        operator=operator,
+        dopmat=dopmat,
+        dop_coefs=dop_coefs,
+    )
 
     # prepare computation intermediates
     precond = None
@@ -193,6 +188,7 @@ def compute_inversions(
             options=options,
             dcon=dcon,
             regul=regul,
+            maxiter_outer=maxiter_outer,
             # output
             sol=sol,
             mu=mu,
@@ -290,6 +286,79 @@ def compute_inversions(
 
     else:
         return sol_full, mu, chi2n, regularity, niter, spec, t
+
+
+# ##################################################################
+# ##################################################################
+#                   get operator
+# ##################################################################
+
+
+def _get_operator(
+    dalgo=None,
+    operator=None,
+    dop_coefs=None,
+    dopmat=None,
+):
+    """ Return time-independent operator """
+
+    # -------
+    # Trivial
+
+    if dalgo['family'] == 'Non-regularized':
+        return None
+
+    # -------
+    # check
+
+    if dop_coefs is None:
+        dop_coefs = {k0: 1. for k0 in dopmat.keys()}
+    c0 = (
+        isinstance(dop_coefs, dict)
+        and all([
+            isinstance(dop_coefs.get(k0), (float, int))
+            for k0 in dopmat.keys()
+        ])
+    )
+    if not c0:
+        msg = (
+            "Arg dop_coefs must be a dict of scalar coefficients\n"
+            "The key are the operator components they are applied to\n"
+            "\t- Expected keys: {sorted(dopmat.keys())}\n"
+            "\t- Provided: {dop_coefs}\n"
+        )
+        raise Exception(msg)
+
+    # -----------
+    # non-trivial
+
+    if dalgo['source'] == 'tomotok' and dalgo['reg_operator'] == 'MinFisher':
+        R = opmat
+
+    elif operator == 'D0N2':
+        R = dopmat['tMM']['data']
+
+    elif operator == 'D1N2':
+        R = 0
+        for k0 in dopmat:
+            R += dop_coefs[k0] * dopmat[k0]['data']
+
+    elif operator == 'D2N2':
+        R = 0
+        for k0 in dopmat:
+            R += dop_coefs[k0] * dopmat[k0]['data']
+
+    else:
+        msg = 'unknown operator!'
+        raise Exception(msg)
+
+    return R
+
+
+# ##################################################################
+# ##################################################################
+#                   store
+# ##################################################################
 
 
 def _store(
@@ -459,10 +528,10 @@ def _restore_fullt(
     return sol_fulli, chi2ni, mui, regularityi, niteri
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                   _compute time loop
-# ##################################################################
+# ################################################################
 
 
 def _compute_inv_loop(
@@ -492,6 +561,7 @@ def _compute_inv_loop(
     options=None,
     dcon=None,
     regul=None,
+    maxiter_outer=None,
     # output
     sol=None,
     mu=None,
@@ -604,6 +674,7 @@ def _compute_inv_loop(
             precond=precond,
             verb=verb,
             verb2head=verb2head,
+            maxiter_outer=maxiter_outer,
             # quad-only
             func_val=func_val,
             func_jac=func_jac,
@@ -872,7 +943,7 @@ def _update_ttyn_constraints(
 
 # ##################################################################
 # ##################################################################
-#               retrofit                   
+#               retrofit
 # ##################################################################
 
 
@@ -1027,7 +1098,7 @@ def compute_retrofit_data(
         )
 
     # -------------
-    # return 
+    # return
     # --------------
 
     if returnas is dict:
@@ -1094,7 +1165,8 @@ def _compute_retrofit_data_check(
     # key_pofile2d
     lok = [
         k0 for k0, v0 in coll.ddata.items()
-        if v0['bsplines'] == keybs
+        if v0['bsplines'] is not None
+        and keybs in v0['bsplines']
     ]
     key_profile2d = ds._generic_check._check_var(
         key_profile2d, 'key_profile2d',

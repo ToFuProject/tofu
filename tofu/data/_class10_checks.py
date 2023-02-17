@@ -262,10 +262,10 @@ def match_algo(
     return copy.deepcopy(dalgo)
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                           main
-# ##################################################################
+# ################################################################
 
 
 def _compute_check(
@@ -284,6 +284,7 @@ def _compute_check(
     geometry=None,
     # choice of algo
     algo=None,
+    maxiter_outer=None,
     # misc
     conv_crit=None,
     chain=None,
@@ -313,6 +314,7 @@ def _compute_check(
     keybs = coll.dobj['geom matrix'][key_matrix]['bsplines']
     deg = coll.dobj['bsplines'][keybs]['deg']
     keym = coll.dobj['bsplines'][keybs]['mesh']
+    nd = coll.dobj[coll._which_mesh][keym]['nd']
     mtype = coll.dobj[coll._which_mesh][keym]['type']
 
     # matrix itself
@@ -534,32 +536,55 @@ def _compute_check(
 
     # get operator
     if regul:
-        opmat, operator, geometry, dim, ref, crop = coll.add_bsplines_operator(
+
+        if 'N2' not in operator:
+            msg = (
+                "Quadratic operator needed for inversions!"
+                f"Provided: {operator}"
+            )
+            raise Exception(msg)
+
+        dopmat, dpar = coll.add_bsplines_operator(
             key=keybs,
             operator=operator,
             geometry=geometry,
             returnas=True,
+            return_param=True,
             store=False,
             crop=crop,
         )
 
-        if isinstance(opmat, tuple):
-            assert all([op.shape == (nbs, nbs) for op in opmat])
-        elif opmat.ndim == 1:
-            msg = "Inversion algorithm requires a quadratic operator!"
-            raise Exception(msg)
-        else:
-            assert opmat.shape == (nbs,) or opmat.shape == (nbs, nbs)
-            opmat = (opmat,)
+        lk = dpar['keys']
+        operator = dpar['operator']
+        geometry = dpar['geometry']
+        crop = dpar['crop']
 
-        if not scpsp.issparse(opmat[0]):
-            assert all([np.all(np.isfinite(op)) for op in opmat])
+        # safety check 0
+        lfail = [
+            k0 for k0 in lk
+            if not (
+                dopmat[k0]['data'].shape == (nbs, nbs)
+                and (
+                    scpsp.issparse(dopmat[k0]['data'])
+                    or np.all(np.isfinite(dopmat[k0]['data']))
+                )
+            )
+        ]
+        if len(lfail) > 0:
+            lstr = [f'\t- {k0}' for k0 in lfail]
+            msg = (
+                "Wrong operator shape or non-finite values!\n"
+                f"\t- operator: {operator}\n"
+                f"\t- operator shape: {dopmat[lk[0]]['data'].shape}\n"
+                f"\t- expected: {(nbs, nbs)}\n\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+
     else:
-        opmat = None
+        dopmat = None
         operator = None
         geometry = None
-        dim = None
-        ref = None
 
     assert ddata['data'].shape[1] == nchan
     nt = ddata['data'].shape[0]
@@ -574,13 +599,17 @@ def _compute_check(
     if dalgo['sparse'] is True:
         if not scpsp.issparse(matrix):
             matrix = scpsp.csc_matrix(matrix)
-        if opmat is not None and not scpsp.issparse(opmat[0]):
-            opmat = [scpsp.csc_matrix(pp) for pp in opmat]
+        if dopmat is not None:
+            for k0, v0 in dopmat.items():
+                if not scpsp.issparse(v0['data']):
+                    dopmat[k0]['data'] = scpsp.csc_matrix(v0['data'])
     elif dalgo['sparse'] is False:
         if scpsp.issparse(matrix):
             matrix = matrix.toarray()
-        if opmat is not None and scpsp.issparse(opmat[0]):
-            opmat = [scpsp.csc_matrix(pp).toarray() for pp in opmat]
+        if dopmat is not None:
+            for k0, v0 in dopmat.items():
+                if scpsp.issparse(v0['data']):
+                    dopmat[k0]['data'] = v0['data'].toarray()
 
     # -----------------------
     # miscellaneous parameter
@@ -590,6 +619,13 @@ def _compute_check(
         conv_crit, 'conv_crit',
         default=1e-4,
         types=float,
+    )
+
+    # maxiter_outer
+    maxiter_outer = ds._generic_check._check_var(
+        maxiter_outer, 'maxiter_outer',
+        default=1000,
+        types=(int, float),
     )
 
     # chain
@@ -644,14 +680,15 @@ def _compute_check(
     return (
         key_matrix,
         key_diag, key_data, key_sigma,
-        keybs, keym, mtype,
+        keybs, keym, nd, mtype,
         ddata, dsigma, matrix, units_gmat,
         keyt, t, reft, notime,
         m3d, indok, iokt,
         dconstraints,
-        opmat, operator, geometry,
+        dopmat, operator, geometry,
         dalgo, dconstraints, dcon,
-        conv_crit, crop, chain, kwdargs, method, options,
+        conv_crit, maxiter_outer,
+        crop, chain, kwdargs, method, options,
         solver, verb, store,
         key, refinv, regul,
     )
@@ -1408,7 +1445,7 @@ def _algo_check(
         # Exponent for rescaling of a0bis
         # typically in [1/3 ; 1/2], but real limits are 0 < d < 1 (or 2 ?)
         if kwdargs.get('d') is None:
-            kwdargs['d'] = 0.95
+            kwdargs['d'] = 0.4 # 0.95
 
         if kwdargs.get('conv_reg') is None:
             kwdargs['conv_reg'] = True

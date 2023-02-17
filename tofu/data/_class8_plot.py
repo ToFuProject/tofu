@@ -350,7 +350,10 @@ def _plot_diagnostic(
     # plot data
     for k0 in key_cam:
         kax = k0
-        if dax.get(kax) is not None and ddata is not None:
+        if dax.get(kax) is not None:
+            if ddata is None or ddata.get(k0) is None:
+                continue
+
             ax = dax[kax]['handle']
 
             if is2d and reft is None:

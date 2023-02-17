@@ -124,6 +124,13 @@ def _sample(
         length_rad = length0[1:, ...]
 
     # -----------
+    # trivial
+    # -----------
+
+    if pts_x.size == 0 or not np.any(np.isfinite(pts_x)):
+        return None
+
+    # -----------
     # compute
     # -----------
 
@@ -176,7 +183,7 @@ def _sample(
         for ind in itt.product(*[range(ss) for ss in pts_x.shape[1:]]):
 
             sli = tuple([slice(None)] + list(ind))
-            
+
             if not np.any(iok[sli]):
                 itot.append(None)
                 continue
@@ -198,8 +205,8 @@ def _sample(
                     )
             if np.isfinite(i0i[-1]):
                 itoti.append([i0i[-1]])
-                
-            itoti = np.concatenate(tuple(itoti))                
+
+            itoti = np.concatenate(tuple(itoti))
             itot.append(itoti)
 
             # interpolate
@@ -285,6 +292,10 @@ def _sample(
     # return
 
     if out_k:
+
+        if any([ii is None for ii in itot]):
+            import pdb; pdb.set_trace()     # DB
+
         if concatenate is True or mode == 'rel':
             kk = itot - np.floor(itot)
             kk[itot == np.nanmax(itot)] = 1.
@@ -568,7 +579,7 @@ def _tangency_radius_prepare(
 
         # Eq:
         # k^2 |AB x v|^2 + 2k((AB.v)(AO.v) - AB.AO) + |AO x v|^2 = dist^2
-        # 
+        #
         # minimum:
         # k |AB x v|^2 + (AB.v)(AO.v) - AB.AO = 0
 
@@ -731,7 +742,7 @@ def intersect_radius(
          segment=segment,
          lim_to_segments=lim_to_segments,
     )
-         
+
     # axis_radius
     axis_radius = ds._generic_check._check_var(
         axis_radius, 'axis_radius',
@@ -839,7 +850,7 @@ def intersect_radius(
         iok02 = np.concatenate((iok2, false), axis=0)
         iok12 = np.concatenate((false, iok2), axis=0)
 
-        # Make sure there a single continued sequence per ray 
+        # Make sure there a single continued sequence per ray
         # build index and check continuity
 
         px = np.full(pts_x.shape, np.nan)

@@ -195,14 +195,14 @@ def _ax_single(
 
     # ----------------------
     # prepare
-    
+
     nrows = 1
     nc = 1 if key_cam is None else len(key_cam)
     if 'camera' in proj:
         nrows *= nc
-        
+
     gs = gridspec.GridSpec(ncols=1, nrows=nrows, **dmargin)
-        
+
     dgs = {}
     for ii, pp in enumerate(proj):
         if pp == 'camera':
@@ -239,14 +239,14 @@ def _ax_double(
 
     # ----------------------
     # prepare
-    
+
     nrows = 1
     nc = 1 if key_cam is None else len(key_cam)
     if 'camera' in proj:
         nrows *= nc
-        
+
     gs = gridspec.GridSpec(ncols=2, nrows=nrows, **dmargin)
-        
+
     dgs = {}
     for ii, pp in enumerate(proj):
         if pp == 'camera':
@@ -283,14 +283,14 @@ def _ax_3(
 
     # ----------------------
     # prepare
-    
+
     nrows = 2
     nc = 1 if key_cam is None else len(key_cam)
     if 'camera' in proj:
         nrows *= nc
-        
+
     gs = gridspec.GridSpec(ncols=2, nrows=nrows, **dmargin)
-        
+
     dgs = {}
     for ii, pp in enumerate(proj):
         if pp == 'camera':
@@ -329,14 +329,14 @@ def _ax_4(
 
     # ----------------------
     # prepare
-    
+
     nrows = 2
     nc = 1 if key_cam is None else len(key_cam)
     if 'camera' in proj:
         nrows *= nc
 
     gs = gridspec.GridSpec(ncols=2, nrows=nrows, **dmargin)
-    
+
     dgs = {}
     for ii, pp in enumerate(proj):
         if pp == 'camera':

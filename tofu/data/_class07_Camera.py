@@ -64,6 +64,7 @@ class Camera(Previous):
 
         # material
         dref2, ddata2, dmat = _check._dmat(
+            coll=self,
             key=key,
             dmat=dmat,
         )
@@ -218,6 +219,8 @@ class Camera(Previous):
         compute=None,
         config=None,
         length=None,
+        # dmat
+        dmat=None,
     ):
 
         return _compute.add_camera_pinhole(
@@ -251,6 +254,8 @@ class Camera(Previous):
             compute=compute,
             config=config,
             length=length,
+            # dmat
+            dmat=dmat,
         )
 
     # -----------------

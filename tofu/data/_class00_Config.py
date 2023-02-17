@@ -27,7 +27,7 @@ __all__ = ['Config']
 class Config(bs2.BSplines2D):
 
     _show_in_summary = 'all'
-    _dshow = dict(ds.DataStock._dshow)
+    _dshow = dict(bs2.BSplines2D._dshow)
     _dshow.update({
         'structure': [
         ],

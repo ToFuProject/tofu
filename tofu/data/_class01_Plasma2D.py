@@ -31,7 +31,7 @@ _QUANT_Z = 'Z'
 
 class Plasma2D(Previous):
 
-    _ddef = copy.deepcopy(ds.DataStock._ddef)
+    _ddef = copy.deepcopy(Previous._ddef)
 
     # _show_in_summary_core = ['shape', 'ref', 'group']
     _dshow = dict(Previous._dshow)
