@@ -188,6 +188,7 @@ def _plot_diagnostic(
     ) = _plot_diagnostic_check(
         coll=coll,
         key=key,
+        key_cam=key_cam,
         # figure
         proj=proj,
         data=data,
