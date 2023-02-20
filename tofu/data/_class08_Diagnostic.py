@@ -657,17 +657,19 @@ class Diagnostic(Previous):
             connect=connect,
         )
 
-    def plot_diagnostic_interpolated_along_los(
+    def interpolate_along_los(
         self,
-        key=None,
+        key_diag=None,
         key_cam=None,
-        key_data_x=None,
-        key_data_y=None,
+        key_integrand=None,
+        key_coords=None,
         # sampling
         res=None,
         mode=None,
         segment=None,
         radius_max=None,
+        # interpolating
+        domain=None,
         val_out=None,
         # plotting
         vmin=None,
@@ -679,17 +681,19 @@ class Diagnostic(Previous):
         """ Compute and plot interpolated data along the los of the diagnostic
 
         """
-        return _los_data._interpolated_along_los(
+        return _los_data._interpolate_along_los(
             coll=self,
-            key=key,
+            key_diag=key_diag,
             key_cam=key_cam,
-            key_data_x=key_data_x,
-            key_data_y=key_data_y,
+            key_integrand=key_integrand,
+            key_coords=key_coords,
             # sampling
             res=res,
             mode=mode,
             segment=segment,
             radius_max=radius_max,
+            # interpolating
+            domain=domain,
             val_out=val_out,
             # plotting
             vmin=vmin,
