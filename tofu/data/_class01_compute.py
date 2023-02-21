@@ -47,6 +47,6 @@ def convert_spectral_units(
 
     return _spectralunits.convert_spectral(
         data_in=data,
-        units_in=units_in,,
+        units_in=units_in,
         units_out=units,
     )
