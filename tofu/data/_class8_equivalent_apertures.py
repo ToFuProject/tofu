@@ -202,7 +202,7 @@ def equivalent_apertures(
             # p0, p1 = np.array(plgUtils.convexHull(
                 # plg.Polygon(np.array([p0, p1]).T)
             # ).contour(0)).T
-            vert = ConvexHull(np.array([p0, p1]).T)
+            vert = ConvexHull(np.array([p0, p1]).T).vertices
             p0, p1 = p0[vert], p1[vert]
 
             p0, p1 = _compute._interp_poly(
@@ -702,7 +702,7 @@ def _get_equivalent_aperture_spectro(
                 # p0, p1 = np.array(plgUtils.convexHull(
                     # plg.Polygon(np.array([p0, p1]).T)
                 # ).contour(0)).T
-                vert = ConvexHull(np.array([p0, p1]).T)
+                vert = ConvexHull(np.array([p0, p1]).T).vertices
                 p0, p1 = p0[vert], p1[vert]
 
             # plt.figure()
