@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 
 
 import Polygon as plg
-from Polygon import Utils as plgUtils
+# from Polygon import Utils as plgUtils
+from scipy.spatial import ConvexHull
 import datastock as ds
 
 
@@ -198,9 +199,11 @@ def equivalent_apertures(
             iok[ii] = False
 
         elif convex:
-            p0, p1 = np.array(plgUtils.convexHull(
-                plg.Polygon(np.array([p0, p1]).T)
-            ).contour(0)).T
+            # p0, p1 = np.array(plgUtils.convexHull(
+                # plg.Polygon(np.array([p0, p1]).T)
+            # ).contour(0)).T
+            vert = ConvexHull(np.array([p0, p1]).T)
+            p0, p1 = p0[vert], p1[vert]
 
             p0, p1 = _compute._interp_poly(
                 lp=[p0, p1],
@@ -696,9 +699,11 @@ def _get_equivalent_aperture_spectro(
         else:
             # convex hull
             if convex:
-                p0, p1 = np.array(plgUtils.convexHull(
-                    plg.Polygon(np.array([p0, p1]).T)
-                ).contour(0)).T
+                # p0, p1 = np.array(plgUtils.convexHull(
+                    # plg.Polygon(np.array([p0, p1]).T)
+                # ).contour(0)).T
+                vert = ConvexHull(np.array([p0, p1]).T)
+                p0, p1 = p0[vert], p1[vert]
 
             # plt.figure()
             # plt.plot(
