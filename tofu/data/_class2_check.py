@@ -373,7 +373,7 @@ def _rays(
     if pts_x is not None:
 
         if pts_x.shape[0] == 1:
-            angles = None
+            pass
         else:
             v0x = pts_x[0, ...] - start_x
             v0y = pts_y[0, ...] - start_y
@@ -387,14 +387,11 @@ def _rays(
             vy = vy / norm
             vz = vz / norm
 
-            sca = (
-                vx[1:, ...] * vx[:-1, ...]
-                + vy[1:, ...] * vy[:-1, ...]
-                + vz[1:, ...] * vz[:-1, ...]
-            )
-
-            angle_in = None
-            angle = np.arcos(sca)
+            # sca = (
+                # vx[1:, ...] * vx[:-1, ...]
+                # + vy[1:, ...] * vy[:-1, ...]
+                # + vz[1:, ...] * vz[:-1, ...]
+            # )
 
     # -----------------------------
     # -----------------------------
@@ -402,8 +399,6 @@ def _rays(
     # -----------------------------
 
     else:
-
-        kk = None
 
         # final shape
         i0 = 0
@@ -417,7 +412,6 @@ def _rays(
         pts_x = np.full(shape, np.nan)
         pts_y = np.full(shape, np.nan)
         pts_z = np.full(shape, np.nan)
-        Rmin = np.full(shaperef, np.nan)
 
         pts_x[0, ...] = start_x
         pts_y[0, ...] = start_y
@@ -523,6 +517,11 @@ def _rays(
             pts_x[-1, maskre] = pout[0, :]
             pts_y[-1, maskre] = pout[1, :]
             pts_z[-1, maskre] = pout[2, :]
+
+            # reset to nan where relevant
+            pts_x[:, ~maskre] = np.nan
+            pts_y[:, ~maskre] = np.nan
+            pts_z[:, ~maskre] = np.nan
 
             # RMin
             # kRMin = _comp.LOS_PRMin(cam.D, cam.u, kOut=None)
