@@ -179,19 +179,31 @@ def _sample(
         iok = np.isfinite(pts_x)
         nn = np.ceil(length_rad / res).astype(int)
 
+        nan = np.r_[np.nan, np.nan]
         lpx, lpy, lpz, itot, llen, lentot = [], [], [], [], [], []
         for ind in itt.product(*[range(ss) for ss in pts_x.shape[1:]]):
 
             sli = tuple([slice(None)] + list(ind))
+            ioki = iok[sli]
 
-            if not np.any(iok[sli]):
-                itot.append(None)
+            if np.sum(ioki) < 2:
+                itot.append(nan)
+                if out_xyz:
+                    lpx.append(nan)
+                    lpy.append(nan)
+                    lpz.append(nan)
+                if 'l' in return_coords or 'ltot' in return_coords:
+                    llen.append(nan)
+                    lentot.append(nan)
                 continue
 
-            if radius_max is None:
-                i0i = i0[iok[sli]]
-            else:
-                i0i = i0[sli]
+            sli2 = tuple([ioki] + list(ind))
+            i0i = i0[ioki]
+            
+            # if radius_max is None:
+            #     i0i = i0[iok[sli]]
+            # else:
+            #     i0i = i0[sli]
 
             itoti = []
             for jj in range(i0i.size - 1):
@@ -213,30 +225,31 @@ def _sample(
             if out_xyz:
                 lpx.append(scpinterp.interp1d(
                     i0i,
-                    pts_x[sli],
+                    pts_x[sli2],
                     kind='linear',
                     axis=0,
                 )(itoti))
 
                 lpy.append(scpinterp.interp1d(
                     i0i,
-                    pts_y[sli],
+                    pts_y[sli2],
                     kind='linear',
                     axis=0,
                 )(itoti))
 
                 lpz.append(scpinterp.interp1d(
                     i0i,
-                    pts_z[sli],
+                    pts_z[sli2],
                     kind='linear',
                     axis=0,
                 )(itoti))
 
             if 'l' in return_coords or 'ltot' in return_coords:
                 i1 = np.floor(itoti).astype(int)
-                i1[i1 == length0.shape[0] - 1] -= 1
-                llen.append(length1[sli][i1])
-                lentot.append(length0[sli][i1])
+                # i1[i1 == length0.shape[0] - 1] -= 1
+                i1[i1 == ioki.sum()] -= 1
+                llen.append(length1[sli2][i1])
+                lentot.append(length0[sli2][i1])
 
         if out_xyz:
             pts_x, pts_y, pts_z = lpx, lpy, lpz
@@ -292,10 +305,6 @@ def _sample(
     # return
 
     if out_k:
-
-        if any([ii is None for ii in itot]):
-            import pdb; pdb.set_trace()     # DB
-
         if concatenate is True or mode == 'rel':
             kk = itot - np.floor(itot)
             kk[itot == np.nanmax(itot)] = 1.
