@@ -52,7 +52,8 @@ def compute(
 
     (
         key,
-        key_bsplines, key_mesh, key_mesh0, mtype,
+        key_bs, key_m, ndim, axis,
+        submesh, key_bs0, key_m0,
         key_diag, key_cam,
         method, res, mode, crop,
         brightness,
@@ -79,34 +80,26 @@ def compute(
     # prepare
     # -----------
 
-    key_kR = coll.dobj['mesh'][key_mesh0]['knots'][0]
-    radius_max = np.max(coll.ddata[key_kR]['data'])
+    wm = coll._which_mesh
+    wbs = coll._which_bsplines
 
-    shapebs = coll.dobj['bsplines'][key_bsplines]['shape']
+    key_kR = coll.dobj[wm][key_mesh0]['knots'][0]
+    radius_max = np.max(coll.ddata[key_kR]['data'])
+    shapebs = coll.dobj[wbs][key_bs]['shape']
 
     # prepare indices
     indbs = coll.select_ind(
-        key=key_bsplines,
+        key=key_bs,
         returnas=bool,
         crop=crop,
     )
 
     # prepare matrix
-    is3d = False
-    if mtype == 'polar':
-        radius2d = coll.dobj[coll._which_mesh][key_mesh]['radius2d']
-        r2d_reft = coll.get_time(key=radius2d)[2]
-        if r2d_reft is not None:
-            r2d_nt = coll.dref[r2d_reft]['size']
-            if r2d_nt > 1:
-                shapemat = tuple(np.r_[r2d_nt, None, indbs.sum()])
-                is3d = True
-
     if not is3d:
         shapemat = tuple(np.r_[None, indbs.sum()])
 
     if verb is True:
-        msg = f"Geom matrix for diag '{key_diag}' and bs '{key_bsplines}':"
+        msg = f"Geom matrix for diag '{key_diag}' and bs '{key_bs}':"
         print(msg)
 
     # -----------
@@ -117,7 +110,7 @@ def compute(
         dout, axis = _compute_los(
             coll=coll,
             key=key,
-            key_bsplines=key_bsplines,
+            key_bs=key_bs,
             key_diag=key_diag,
             key_cam=key_cam,
             # sampling
@@ -127,6 +120,7 @@ def compute(
             radius_max=radius_max,
             # groupby=groupby,
             is3d=is3d,
+            axis=axis,
             # other
             shapemat=shapemat,
             brightness=brightness,
@@ -144,7 +138,7 @@ def compute(
         _no_interaction(
             coll=coll,
             key=key,
-            key_bsplines=key_bsplines,
+            key_bs=key_bs,
             key_diag=key_diag,
             key_cam=key_cam,
         )
@@ -159,7 +153,7 @@ def compute(
         _store(
             coll=coll,
             key=key,
-            key_bsplines=key_bsplines,
+            key_bs=key_bs,
             key_diag=key_diag,
             key_cam=key_cam,
             method=method,
@@ -196,6 +190,9 @@ def _compute_check(
     verb=None,
 ):
 
+    # --------------
+    # keys
+
     wm = coll._which_mesh
     wbs = coll._which_bsplines
 
@@ -206,28 +203,44 @@ def _compute_check(
         key=key,
     )
 
-    # key_bsplines
-    lk = list(coll.dobj.get(wbs, {}).keys())
-    key_bsplines = ds._generic_check._check_var(
-        key_bsplines, 'key_bsplines',
-        types=str,
-        allowed=lk,
-    )
-
-    # key_mesh0
-    key_mesh = coll.dobj[wbs][key_bsplines][wm]
-    mtype = coll.dobj[wm][key_mesh]['type']
-    submesh = coll.dobj[wm][key_mesh]['submesh']
-    if submesh is not None:
-        key_mesh0 = submesh
-    else:
-        key_mesh0 = key_mesh
-
     # key_diag, key_cam
     key_diag, key_cam = coll.get_diagnostic_cam(
         key=key_diag,
         key_cam=key_cam,
     )
+
+    # key_bs
+    lk = list(coll.dobj.get(wbs, {}).keys())
+    key_bs = ds._generic_check._check_var(
+        key_bsplines, 'key_bsplines',
+        types=str,
+        allowed=lk,
+    )
+
+    # key_m
+    key_m = coll.dobj[wbs][key_bs][wm]
+    nd = coll.dobj[wm][key_m]['nd']
+    mtype = coll.dobj[wm][key_m]['type']
+    submesh = coll.dobj[wm][key_m]['submesh']
+    if submesh is not None:
+        key_m0 = submesh
+        key_bs0 = coll.dobj[wm][key_m]['subbs']
+        subkey = coll.dobj[wm][key_m]['subkey']
+    else:
+        key_m0, key_bs0, subkey = None, None, None
+
+    # -------------------
+    # dimensions and axis
+
+    if submesh is not None:
+        ndim = len(coll.dobj[wbs][key_bs]['shape'])
+        axis = None
+    else:
+        ndim = len(coll.ddata[subkey]['shape'])
+        axis = [ii]
+
+    # --------------
+    # parameters
 
     # method
     method = ds._generic_check._check_var(
@@ -261,7 +274,7 @@ def _compute_check(
     )
     crop = (
         crop
-        and coll.dobj[wbs][key_bsplines]['crop'] not in [None, False]
+        and coll.dobj[wbs][key_bs]['crop'] not in [None, False]
     )
 
     # brightness
@@ -290,7 +303,8 @@ def _compute_check(
 
     return (
         key,
-        key_bsplines, key_mesh, key_mesh0, mtype,
+        key_bs, key_m, ndim, axis,
+        submesh, key_bs0, key_m0,
         key_diag, key_cam,
         method, res, mode, crop,
         brightness,
@@ -378,7 +392,7 @@ def _compute_los(
             # datai, units, refi = coll.interpolate(
             douti = coll.interpolate(
                 keys=None,
-                ref_key=key_bsplines,
+                ref_key=key_bs,
                 x0=R[0],
                 x1=Z[0],
                 submesh=True,
@@ -391,7 +405,7 @@ def _compute_los(
                 val_out=np.nan,
                 return_params=False,
                 store=False,
-            )[f'{key_bsplines}_details']
+            )[f'{key_bs}_details']
 
             datai, refi = douti['data'], douti['ref']
             axis = refi.index(None)
@@ -492,7 +506,7 @@ def _compute_vos(
 def _store(
     coll=None,
     key=None,
-    key_bsplines=None,
+    key_bs=None,
     key_diag=None,
     key_cam=None,
     method=None,
@@ -514,7 +528,7 @@ def _store(
         'geom matrix': {
             key: {
                 'data': list(dout.keys()),
-                'bsplines': key_bsplines,
+                'bsplines': key_bs,
                 'diagnostic': key_diag,
                 'camera': key_cam,
                 'method': method,
@@ -582,7 +596,7 @@ def _concatenate(
 def _no_interaction(
     coll=None,
     key=None,
-    key_bsplines=None,
+    key_bs=None,
     key_diag=None,
     key_cam=None,
 ):
@@ -592,7 +606,7 @@ def _no_interaction(
 
     wm = coll._which_mesh
     wbs = coll._which_bsplines
-    keym = coll.dobj[wbs][key_bsplines][wm]
+    keym = coll.dobj[wbs][key_bs][wm]
     submesh = coll.dobj[wm][keym]['submesh']
 
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
@@ -639,7 +653,7 @@ def _no_interaction(
     msg = (
         "No interaction detected between:\n"
         f"\t- camera: {key_cam}\n"
-        f"\t- bsplines: {key_bsplines}\n"
+        f"\t- bsplines: {key_bs}\n"
         f"\t- submesh: {submesh}\n"
     )
     warnings.warn(msg)
