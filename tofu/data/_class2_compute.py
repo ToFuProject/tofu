@@ -295,6 +295,7 @@ def _sample(
 
         if any([ii is None for ii in itot]):
             import pdb; pdb.set_trace()     # DB
+            pass
 
         if concatenate is True or mode == 'rel':
             kk = itot - np.floor(itot)
