@@ -189,7 +189,6 @@ def _compute_solid_angles_regular(
 
         # cents
         cx, cy, cz = coll.get_camera_cents_xyz(k0)
-        npts = cx.size
         sh = cx.shape
         ddet['cents_x'] = cx
         ddet['cents_y'] = cy
@@ -325,7 +324,7 @@ def _interpolate_along_los(
                 segment=segment,
                 radius_max=radius_max,
                 concatenate=True,
-                return_coords=[key_data_x, key_data_y],
+                return_coords=[key_coords, key_integrand],
             )
 
     elif key_coords in lok_coords or key_integrand in lok_coords:
@@ -594,25 +593,32 @@ def _integrate_along_los_check(
 
     # radius_max
     if radius_max is None and mode == 'abs':
-        wm = coll._which_mesh
-        wbs = coll._which_bsplines
-
-        rmax0, rmax1 = 0, 0
-        if key_bs_integrand is not None:
-            keym = coll.dobj[wbs][key_bs_integrand][wm]
-            submesh = coll.dobj[wm][keym]['submesh']
-            if submesh is not None:
-                keym = submesh
-            knotsR = coll.dobj[wm][keym]['knots'][0]
-            rmax0 = np.max(coll.ddata[knotsR]['data'])
-        if key_bs_coords is not None:
-            keym = coll.dobj[wbs][key_bs_coords][wm]
-            submesh = coll.dobj[wm][keym]['submesh']
-            if submesh is not None:
-                keym = submesh
-            knotsR = coll.dobj[wm][keym]['knots'][0]
-            rmax1 = np.max(coll.ddata[knotsR]['data'])
-        radius_max = max(rmax0, rmax1)
+        
+        if key_bs_integrand is None and key_bs_coords is None:
+            pass
+       
+        else:
+            wm = coll._which_mesh
+            wbs = coll._which_bsplines
+    
+            rmax0, rmax1 = 0, 0
+            if key_bs_integrand is not None:
+                keym = coll.dobj[wbs][key_bs_integrand][wm]
+                submesh = coll.dobj[wm][keym]['submesh']
+                if submesh is not None:
+                    keym = submesh
+                knotsR = coll.dobj[wm][keym]['knots'][0]
+                rmax0 = np.max(coll.ddata[knotsR]['data'])
+                
+            if key_bs_coords is not None:
+                keym = coll.dobj[wbs][key_bs_coords][wm]
+                submesh = coll.dobj[wm][keym]['submesh']
+                if submesh is not None:
+                    keym = submesh
+                knotsR = coll.dobj[wm][keym]['knots'][0]
+                rmax1 = np.max(coll.ddata[knotsR]['data'])
+                
+            radius_max = max(rmax0, rmax1)
 
     # -----------------
     # Plotting parameters
