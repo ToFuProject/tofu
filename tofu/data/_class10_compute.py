@@ -453,7 +453,7 @@ def _store(
         })
 
     # add synthetic data
-    kretro = f'{keyinv}-retro'
+    kretro = f'{keyinv}_retro'
 
     # add inversion
     dobj = {
@@ -1076,7 +1076,7 @@ def compute_retrofit_data(
 
         # dict
         dout[k0] = {
-            'key': k0,
+            'key': f'{key}_{k0}',
             'data': retroi,
             'ref': refi,
             'units': coll.ddata[key_profile2d]['units'] * gunits,

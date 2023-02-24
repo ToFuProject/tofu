@@ -52,6 +52,9 @@ def _plot_inversion_check(
         types=str,
         allowed=lk,
     )
+
+    wm = coll._which_mesh
+    wbs = coll._which_bsplines
     keymat = coll.dobj['inversions'][keyinv]['matrix']
     key_data = coll.dobj['inversions'][keyinv]['data_in']
     key_retro = coll.dobj['inversions'][keyinv]['retrofit']
@@ -60,8 +63,9 @@ def _plot_inversion_check(
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
     key_cam = coll.dobj['geom matrix'][keymat]['camera']
     key_retro = coll.dobj['diagnostic'][key_diag]['dsignal'][key_retro]['data']
-    keym = coll.dobj['bsplines'][keybs]['mesh']
-    mtype = coll.dobj[coll._which_mesh][keym]['type']
+    keym = coll.dobj[wbs][keybs]['mesh']
+    mtype = coll.dobj[wm][keym]['type']
+    nd = coll.dobj[wm][keym]['nd']
     # refbs = coll.dobj['bsplines'][keybs]['ref']
 
     crop = coll.dobj['geom matrix'][keymat]['crop']
@@ -127,7 +131,7 @@ def _plot_inversion_check(
     return (
         keyinv, keymat,
         key_diag, key_cam, keybs, key_data, key_retro,
-        is2d, mtype,
+        is2d, mtype, nd,
         cropbs, cmap, dcolorbar,
         nlos, los_res, color_dict,
         dleg, connect,
@@ -326,7 +330,7 @@ def plot_inversion(
     (
         keyinv, keymat,
         key_diag, key_cam, keybs, key_data, key_retro,
-        is2d, mtype,
+        is2d, mtype, nd,
         cropbs, cmap, dcolorbar,
         nlos, los_res, color_dict,
         dleg, connect,
@@ -352,7 +356,7 @@ def plot_inversion(
         dax = _plot_inversion_create_axes(
             fs=fs,
             dmargin=dmargin,
-            mtype=mtype,
+            nd=nd,
             key_cam=key_cam,
         )
 
@@ -430,7 +434,6 @@ def plot_inversion(
     # plot data
 
     for ii, k0 in enumerate(key_cam):
-
 
         # data vs retro
         kax = k0
@@ -748,7 +751,7 @@ def plot_inversion(
 def _plot_inversion_create_axes(
     fs=None,
     dmargin=None,
-    mtype=None,
+    nd=None,
     key_cam=None,
 ):
 
@@ -782,7 +785,7 @@ def _plot_inversion_create_axes(
     ax2 = fig.add_subplot(gs[2*nblock:, 2:4], sharex=ax0)
 
     # axes for radius
-    if mtype == 'polar':
+    if nd == '1d':
         ax7 = fig.add_subplot(gs[:nblock, :2], sharey=ax2)
     else:
         ax7 = None
