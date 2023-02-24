@@ -17,7 +17,7 @@ import datastock as ds
 from . import _class8_compute_signal
 from . import _class10_checks as _checks
 from . import _class10_algos as _algos
-tomotok2tofu = _checks.tomotok2tofu
+tomotok2tofu = _algos.tomotok2tofu
 
 
 # ################################################################
