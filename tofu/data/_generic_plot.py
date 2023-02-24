@@ -319,9 +319,9 @@ def _ax_4(
         dmargin, 'dmargin',
         types=dict,
         default={
-            'bottom': 0.08, 'top': 0.90,
-            'left': 0.06, 'right': 0.96,
-            'wspace': 0.20, 'hspace': 0.20,
+            'bottom': 0.05, 'top': 0.95,
+            'left': 0.05, 'right': 0.98,
+            'wspace': 0.30, 'hspace': 0.40,
             # 'width_ratios': [0.6, 0.4],
             # 'height_ratios': [0.4, 0.6],
         },

@@ -1052,7 +1052,7 @@ def _get_data(
             ddata[cc] = coll.ddata[kdat]['data']
             dref[cc] = ref
             
-            units = coll.dobj['camera'][cc]['dgeom']['units']
+            units = coll.ddata[kdat]['units']
 
     return ddata, dref, units
 
