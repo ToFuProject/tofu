@@ -92,7 +92,7 @@ def compute(
     )
 
     # prepare slicing
-    shape_mat, sli_mat, axis_pix = _prepare(
+    shape_mat, sli_mat, axis_pix, axis_bs, axis_other = _prepare(
         coll=coll,
         indbs=indbs,
         key_bs0=key_bs0,
@@ -161,7 +161,9 @@ def compute(
             res=res,
             crop=crop,
             dout=dout,
-            axis=axis,
+            axis_chan=axis,
+            axis_bs=axis_bs,
+            axis_other=axis_other,
         )
 
     else:
@@ -336,6 +338,7 @@ def _prepare(
 
         sli_mat = [None, slice(None)]
         axis_pix = 0
+        axis_other = None
 
     else:
         sh = list(coll.ddata[subkey]['shape'])
@@ -359,7 +362,7 @@ def _prepare(
 
     axis_bs = axis_pix + 1
 
-    return shape_mat, sli_mat, axis_pix
+    return shape_mat, sli_mat, axis_pix, axis_bs, axis_other
 
 
 # ###################
@@ -555,15 +558,17 @@ def _store(
     res=None,
     crop=None,
     dout=None,
-    axis=None,
+    axis_chan=None,
+    axis_bs=None,
+    axis_other=None,
 ):
 
     # shapes
     shapes = [v0['data'].shape for v0 in dout.values()]
     assert all([len(ss) == len(shapes[0]) for ss in shapes[1:]])
     shapes = np.array(shapes)
-    assert np.allclose(shapes[1:, :axis], shapes[0:1, :axis])
-    assert np.allclose(shapes[1:, axis+1:], shapes[0:1, axis+1:])
+    assert np.allclose(shapes[1:, :axis_chan], shapes[0:1, :axis_chan])
+    assert np.allclose(shapes[1:, axis_bs:], shapes[0:1, axis_bs:])
 
     # add matrix obj
     dobj = {
@@ -577,7 +582,9 @@ def _store(
                 'res': res,
                 'crop': crop,
                 'shape': tuple(shapes[0, :]),
-                'axis_chan': axis,
+                'axis_chan': axis_chan,
+                'axis_bs': axis_bs,
+                'axis_other': axis_other,
             },
         },
     }

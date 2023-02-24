@@ -57,40 +57,28 @@ def _plot_geometry_matrix_check(
     key_cam = coll.dobj['geom matrix'][key]['camera']
     key_data = coll.dobj['geom matrix'][key]['data']
     shape = coll.dobj['geom matrix'][key]['shape']
-    axis = coll.dobj['geom matrix'][key]['axis_chan']
+    axis_chan = coll.dobj['geom matrix'][key]['axis_chan']
+    axis_bs = coll.dobj['geom matrix'][key]['axis_bs']
+    axis_other = coll.dobj['geom matrix'][key]['axis_other']
 
-    # indbf
-    if indbf is None:
-        indbf = 0
-    try:
-        assert np.isscalar(indbf)
-        indbf = int(indbf)
-    except Exception as err:
-        msg = (
-            f"Arg indbf should be a int!\nProvided: {indt}"
-        )
-        raise Exception(msg)
+    # indbfi
+    indbf = ds._generic_check._check_var(
+        indbf, 'indbf',
+        types=int,
+        default=0,
+    )
 
     # indchan
-    if indchan is None:
-        indchan = 0
-    try:
-        assert np.isscalar(indchan)
-        indchan = int(indchan)
-    except Exception as err:
-        msg = (
-            f"Arg indchan should be a int!\nProvided: {indt}"
-        )
-        raise Exception(msg)
+    indchan = ds._generic_check._check_var(
+        indchan, 'indchan',
+        types=int,
+        default=0,
+    )
 
-    # indt
-    hastime = coll.get_time(key=key_data[0])[0]
-    if hastime:
-        if indt is None:
-            indt = 0
-        assert np.isscalar(indt), indt
-    else:
-        indt = None
+    # ind
+    indt = None
+    if axis_other is not None:
+        indt = 0
 
     # plot_mesh
     plot_mesh = ds._generic_check._check_var(
@@ -146,7 +134,7 @@ def _plot_geometry_matrix_check(
         key,
         keybs, keym,
         key_diag, key_cam, key_data,
-        shape, axis,
+        shape, axis_chan, axis_bs, axis_other,
         indbf, indchan, indt,
         plot_mesh,
         cmap, vmin, vmax,
@@ -160,6 +148,9 @@ def _plot_geometry_matrix_prepare(
     key_data=None,
     keybs=None,
     keym=None,
+    axis_chan=None,
+    axis_bs=None,
+    axis_other=None,
     indbf=None,
     indchan=None,
     indt=None,
@@ -172,16 +163,16 @@ def _plot_geometry_matrix_prepare(
     # res
     deg = coll.dobj['bsplines'][keybs]['deg']
     km = coll.dobj['bsplines'][keybs]['mesh']
-    meshtype = coll.dobj['mesh'][km]['type']
+    nd = coll.dobj['mesh'][km]['nd']
+    mtype = coll.dobj['mesh'][km]['type']
 
     # if polar => submesh
     km0 = km
-    meshtype0 = meshtype
+    mtype0 = mtype
     submesh = coll.dobj[coll._which_mesh][km0]['submesh']
     if submesh is not None:
         km = submesh
-        meshtype = coll.dobj[coll._which_mesh][km]['type']
-        shape2d = len(coll.dobj['bsplines'][keybs]['shape']) == 2
+        mtype = coll.dobj[coll._which_mesh][km]['type']
 
     # R, Z
     kR, kZ = coll.dobj['mesh'][km]['knots']
@@ -193,8 +184,8 @@ def _plot_geometry_matrix_prepare(
         coll=coll, km=km,
     )
     if res is None:
-        if meshtype == 'rect':
-            res_coef = 0.05
+        if mtype == 'rect':
+            res_coef = 0.1
         else:
             res_coef = 0.25
         res = res_coef*dR
@@ -207,24 +198,7 @@ def _plot_geometry_matrix_prepare(
     # indices
 
     # indchan => indchan_bf
-    if meshtype0 == 'rect':
-        ich_bf_tup = coll.select_ind(
-            key=keybs,
-            returnas='tuple-flat',
-            crop=crop,
-        )
-        nbf = ich_bf_tup[0].size
-
-        # indbf_bool
-        indbf_bool = coll.select_ind(
-            key=keybs,
-            ind=(ich_bf_tup[0][indbf], ich_bf_tup[1][indbf]),
-            returnas=bool,
-            crop=crop,
-        )
-        ic = (np.zeros((nbf,), dtype=int), ich_bf_tup[0], ich_bf_tup[1])
-
-    elif meshtype0 == 'tri':
+    if nd == '1d':
         ich_bf_tup = coll.select_ind(
             key=keybs,
             returnas=int,
@@ -238,10 +212,9 @@ def _plot_geometry_matrix_prepare(
             returnas=bool,
             crop=crop,
         )
-        ic = (np.zeros((nbf,), dtype=int), ich_bf_tup)
 
     else:
-        if shape2d:
+        if mtype0 == 'rect':
             ich_bf_tup = coll.select_ind(
                 key=keybs,
                 returnas='tuple-flat',
@@ -256,8 +229,8 @@ def _plot_geometry_matrix_prepare(
                 returnas=bool,
                 crop=crop,
             )
-            ic = (np.zeros((nbf,), dtype=int), ich_bf_tup[0], ich_bf_tup[1])
-        else:
+
+        elif mtype0 == 'tri':
             ich_bf_tup = coll.select_ind(
                 key=keybs,
                 returnas=int,
@@ -271,13 +244,8 @@ def _plot_geometry_matrix_prepare(
                 returnas=bool,
                 crop=crop,
             )
-            ic = (np.zeros((nbf,), dtype=int), ich_bf_tup)
 
     assert nbs == nbf
-
-    hastime, hasref, reft, keyt, t, dind = coll.get_time(key=key_data[0])
-    if hastime:
-        nt = coll.dref[reft]['size']
 
     # -------------
     # mesh sampling
@@ -293,13 +261,12 @@ def _plot_geometry_matrix_prepare(
     # interpolation
 
     # bspline details
-    shapebs = coll.dobj['bsplines'][keybs]['shape']
-
     bsplinebase = coll.interpolate(
         keys=None,
         ref_key=keybs,
         x0=R,
         x1=Z,
+        grid=False,
         submesh=True,
         crop=crop,
         nan0=True,
@@ -307,31 +274,32 @@ def _plot_geometry_matrix_prepare(
         return_params=False,
     )[f'{keybs}_details']['data']
 
+    gmat0 = coll.ddata[key_data[0]]['data']
+    if axis_other is not None:
+        diffdim = len(bsplinebase.shape) - 1 - len(gmat0.shape)
+        axo = axis_other if axis_other < axis_bs else axis_other + diffdim
+        bsplinebase = bsplinebase.take(indt, axis=axo)
+
     # bsplinetot
     coefstot = np.nansum(
         [
-            np.nansum(coll.ddata[kk]['data'], axis=-2)
+            np.nansum(coll.ddata[kk]['data'], axis=axis_chan)
             for kk in key_data
         ],
         axis=0,
     )
-    if hastime:
-        bsplinetot = np.nansum(
-            bsplinebase[0, ...] * coefstot[0, None, None, :],
-            axis=-1,
-        )
-    else:
-        bsplinetot = np.nansum(bsplinebase * coefstot[None, None, :], axis=-1)
+
+    if axis_other is not None:
+        coefstot = coefstot.take(indt, axis=axis_other)
+
+    bsplinetot = np.nansum(bsplinebase * coefstot[None, None, :], axis=-1)
 
     # bsplinedet
-    if hastime:
-        bsplinedet = np.zeros(tuple(np.r_[bsplinebase.shape[1:-1]]))#, nchan]))
-        for ii in range(0):
-            bsplinedet[...] = bsplinebase[0, ...].dot(
-                coll.ddata[key_data[0]]['data'][0, 0:1, :].T
-            )[..., 0]
-    else:
-        bsplinedet = bsplinebase.dot(coll.ddata[key_data[0]]['data'][0:1, :].T)[..., 0]
+    gmat0 = gmat0.take(indchan, axis=axis_chan)
+    if axis_other is not None:
+        axo = axis_other - 1 if axis_other > axis_chan else axis_other
+        gmat0 = gmat0.take(indt, axis=axo)
+    bsplinedet = np.nansum(bsplinebase * gmat0[None, None, :], axis=-1)
 
     # --------
     # LOS
@@ -419,7 +387,7 @@ def plot_geometry_matrix(
         key,
         keybs, keym,
         key_diag, key_cam, key_data,
-        shape, axis,
+        shape, axis_chan, axis_bs, axis_other,
         indbf, indchan, indt,
         plot_mesh,
         cmap, vmin, vmax,
@@ -455,6 +423,9 @@ def plot_geometry_matrix(
         key_data=key_data,
         keybs=keybs,
         keym=keym,
+        axis_chan=axis_chan,
+        axis_bs=axis_bs,
+        axis_other=axis_other,
         indbf=indbf,
         indchan=indchan,
         indt=indt,
