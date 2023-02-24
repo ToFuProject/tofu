@@ -198,8 +198,8 @@ def _sample(
                 continue
 
             sli2 = tuple([ioki] + list(ind))
-            i0i = i0[ioki]
-            
+            i0i = i0[sli2]
+
             # if radius_max is None:
             #     i0i = i0[iok[sli]]
             # else:

@@ -39,6 +39,15 @@ def main():
     # compute synthetic signal
 
 
+
+    # ------------------
+    # geometry matrices
+
+
+    # ----------
+    # inversions
+
+
     return conf, coll
 
 
@@ -272,6 +281,7 @@ def _add_PHA(
     )
 
     return
+
 
 def _add_spectrometer(
     coll=None,

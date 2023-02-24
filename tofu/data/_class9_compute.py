@@ -52,10 +52,10 @@ def compute(
 
     (
         key,
-        key_bs, key_m, ndim, axis,
-        submesh, key_bs0, key_m0,
+        key_bs, key_m, ndim,
+        subkey, key_bs0, key_m0,
         key_diag, key_cam,
-        method, res, mode, crop,
+        radius_max, method, res, mode, crop,
         brightness,
         store, verb,
     ) = _compute_check(
@@ -82,9 +82,6 @@ def compute(
 
     wm = coll._which_mesh
     wbs = coll._which_bsplines
-
-    key_kR = coll.dobj[wm][key_mesh0]['knots'][0]
-    radius_max = np.max(coll.ddata[key_kR]['data'])
     shapebs = coll.dobj[wbs][key_bs]['shape']
 
     # prepare indices
@@ -94,9 +91,13 @@ def compute(
         crop=crop,
     )
 
-    # prepare matrix
-    if not is3d:
-        shapemat = tuple(np.r_[None, indbs.sum()])
+    # prepare slicing
+    shape_mat, sli_mat, axis_pix = _prepare(
+        coll=coll,
+        indbs=indbs,
+        key_bs0=key_bs0,
+        subkey=subkey,
+    )
 
     if verb is True:
         msg = f"Geom matrix for diag '{key_diag}' and bs '{key_bs}':"
@@ -119,10 +120,10 @@ def compute(
             mode=mode,
             radius_max=radius_max,
             # groupby=groupby,
-            is3d=is3d,
-            axis=axis,
+            shape_mat=shape_mat,
+            sli_mat=sli_mat,
+            axis_pix=axis_pix,
             # other
-            shapemat=shapemat,
             brightness=brightness,
             verb=verb,
         )
@@ -219,25 +220,25 @@ def _compute_check(
 
     # key_m
     key_m = coll.dobj[wbs][key_bs][wm]
-    nd = coll.dobj[wm][key_m]['nd']
-    mtype = coll.dobj[wm][key_m]['type']
     submesh = coll.dobj[wm][key_m]['submesh']
     if submesh is not None:
         key_m0 = submesh
         key_bs0 = coll.dobj[wm][key_m]['subbs']
-        subkey = coll.dobj[wm][key_m]['subkey']
+        subkey = coll.dobj[wm][key_m]['subkey'][0]
     else:
         key_m0, key_bs0, subkey = None, None, None
 
     # -------------------
     # dimensions and axis
 
-    if submesh is not None:
+    if submesh is None:
+        key_kR = coll.dobj[wm][key_m]['knots'][0]
         ndim = len(coll.dobj[wbs][key_bs]['shape'])
-        axis = None
     else:
+        key_kR = coll.dobj[wm][key_m0]['knots'][0]
         ndim = len(coll.ddata[subkey]['shape'])
-        axis = [ii]
+
+    radius_max = np.max(coll.ddata[key_kR]['data'])
 
     # --------------
     # parameters
@@ -303,13 +304,62 @@ def _compute_check(
 
     return (
         key,
-        key_bs, key_m, ndim, axis,
-        submesh, key_bs0, key_m0,
+        key_bs, key_m, ndim,
+        subkey, key_bs0, key_m0,
         key_diag, key_cam,
-        method, res, mode, crop,
+        radius_max, method, res, mode, crop,
         brightness,
         store, verb,
     )
+
+
+# ###################
+#   prepare
+# ###################
+
+
+def _prepare(
+    coll=None,
+    indbs=None,
+    key_bs0=None,
+    subkey=None,
+):
+
+    # shapes
+    nbs = indbs.sum()
+    nchan = None        # depends on cam
+
+    # cases
+    wbs = coll._which_bsplines
+    if subkey is None:
+        shape_mat = (nchan, nbs)
+
+        sli_mat = [None, slice(None)]
+        axis_pix = 0
+
+    else:
+        sh = list(coll.ddata[subkey]['shape'])
+        ref = coll.ddata[subkey]['ref']
+        refbs = coll.dobj[wbs][key_bs0]['ref']
+
+        for ii, rr in enumerate(refbs):
+            if ii == 0:
+                axis_pix = ref.index(rr)
+            else:
+                axis_bs = ref.index(rr)
+
+        axis_other = [ii for ii, rr in enumerate(ref) if rr not in refbs][0]
+        sh[axis_pix] = nchan
+        sh[axis_bs] = nbs
+        shape_mat = tuple(sh)
+
+        sli_mat = [None, None, None]
+        sli_mat[axis_bs] = slice(None)
+        sli_mat[axis_other] = slice(None)
+
+    axis_bs = axis_pix + 1
+
+    return shape_mat, sli_mat, axis_pix
 
 
 # ###################
@@ -320,7 +370,7 @@ def _compute_check(
 def _compute_los(
     coll=None,
     key=None,
-    key_bsplines=None,
+    key_bs=None,
     key_diag=None,
     key_cam=None,
     # sampling
@@ -330,8 +380,11 @@ def _compute_los(
     key_integrand=None,
     radius_max=None,
     is3d=None,
-    # other
-    shapemat=None,
+    # slicing
+    shape_mat=None,
+    sli_mat=None,
+    axis_pix=None,
+    # parameters
     brightness=None,
     verb=None,
 ):
@@ -353,7 +406,7 @@ def _compute_los(
         key_los = doptics[k0]['los']
         key_mat = f'{key}_{k0}'
 
-        sh = tuple([npix if ss is None else ss for ss in shapemat])
+        sh = tuple([npix if ss is None else ss for ss in shape_mat])
         mat = np.zeros(sh, dtype=float)
 
         # -----------------------
@@ -419,28 +472,17 @@ def _compute_los(
             # ------------
             # integrate
 
+            # check and update slice
             assert datai.ndim in [2, 3], datai.shape
+            sli_mat[axis_pix] = ii
 
             # integrate
-            if is3d:
-                mat[:, ii, :] = scpinteg.simpson(
-                    datai,
-                    x=length[0],
-                    axis=axis,
-                )
-            elif datai.ndim == 3 and datai.shape[0] == 1:
-                mat[ii, :] = scpinteg.simpson(
-                    datai[0, ...],
-                    x=length[0],
-                    axis=axis,
-                )
-                # mat[ii, :] = np.nansum(mati[0, ...], axis=0) * reseff[ii]
-            else:
-                mat[ii, :] = scpinteg.simpson(
-                    datai,
-                    x=length[0],
-                    axis=axis,
-                )
+            mat[tuple(sli_mat)] = scpinteg.simpson(
+                datai,
+                x=length[0],
+                axis=axis,
+            )
+
             anyok = True
 
         # --------------
@@ -611,7 +653,7 @@ def _no_interaction(
 
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
 
-    # repare dax
+    # prepare dax
     dax0 = _generic_plot.get_dax_diag(
         proj=['cross', 'hor', '3d', 'camera'],
         dmargin=None,
