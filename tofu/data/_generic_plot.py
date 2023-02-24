@@ -231,8 +231,8 @@ def _ax_double(
         dmargin, 'dmargin',
         types=dict,
         default={
-            'bottom': 0.12, 'top': 0.9,
-            'left': 0.08, 'right': 0.98,
+            'bottom': 0.05, 'top': 0.95,
+            'left': 0.05, 'right': 0.98,
             'wspace': 0.25, 'hspace': 0.2,
         },
     )

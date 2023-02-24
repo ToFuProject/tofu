@@ -380,6 +380,7 @@ def _plot_diagnostic(
                 )
                 ax.set_xlim(-1, ddata[k0].size)
                 ax.set_ylabel(ylab)
+                ax.set_title(k0, size=12, fontweight='bold')
 
                 if vmin is not None:
                     ax.set_ylim(bottom=vmin)

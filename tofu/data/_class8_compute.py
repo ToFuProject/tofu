@@ -994,7 +994,7 @@ def _get_data(
         }
 
         # units
-        units = coll.ddata[key_cam[0]]['units']
+        units = coll.ddata[ddata[key_cam[0]]]['units']
 
         # get actual data
         ddata = {
