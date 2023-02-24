@@ -1076,12 +1076,12 @@ def compute_retrofit_data(
 
         # dict
         dout[k0] = {
+            'key': k0,
             'data': retroi,
             'ref': refi,
+            'units': coll.ddata[key_profile2d]['units'] * gunits,
         }
         i0 += npix
-
-    units = coll.ddata[key_profile2d]['units'] * gunits
 
     # --------------
     # store
@@ -1093,7 +1093,6 @@ def compute_retrofit_data(
             key=key,
             key_diag=key_diag,
             dout=dout,
-            units=units,
             key_matrix=key_matrix,
         )
 

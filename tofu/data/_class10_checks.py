@@ -12,6 +12,9 @@ import scipy.sparse as scpsp
 import datastock as ds
 
 
+from . import _class10_algos as _algos
+
+
 _SIGMA = 0.05
 _LREGPARAM_ALGO = [
     'augTikho',
@@ -198,11 +201,11 @@ def _compute_check(
     # regularization necessary ?
     if nbs >= nchan:
         lok = [
-            k0 for k0, v0 in _DALGO.items()
+            k0 for k0, v0 in _algos._DALGO.items()
             if v0.get('family') != 'Non-regularized'
         ]
     else:
-        lok = list(_DALGO.keys())
+        lok = list(_algos._DALGO.keys())
 
     algo = ds._generic_check._check_var(
         algo, 'algo',
@@ -211,7 +214,7 @@ def _compute_check(
     )
 
     # define dalgo
-    dalgo = _DALGO[algo]
+    dalgo = _algos._DALGO[algo]
 
     # check vs deg
     deg = coll.dobj['bsplines'][keybs]['deg']

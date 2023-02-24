@@ -12,8 +12,6 @@ import scipy.sparse as scpsp
 import datastock as ds
 
 
-
-
 dfail = {}
 try:
     import sksparse as sksp
