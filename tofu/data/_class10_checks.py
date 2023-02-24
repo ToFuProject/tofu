@@ -66,7 +66,7 @@ def _compute_check(
     )
 
     key_diag = coll.dobj['geom matrix'][key_matrix]['diagnostic']
-    key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
+    # key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
 
     keybs = coll.dobj['geom matrix'][key_matrix]['bsplines']
     deg = coll.dobj['bsplines'][keybs]['deg']
@@ -177,7 +177,7 @@ def _compute_check(
     # --------------
     # inversion refs
 
-    refbs = coll.dobj['bsplines'][keybs]['ref-bs']
+    # refbs = coll.dobj['bsplines'][keybs]['ref-bs']
     if hastime:
         refinv = (reft, keybs)
     else:
@@ -344,7 +344,7 @@ def _compute_check(
         geometry = None
 
     assert ddata['data'].shape[1] == nchan
-    nt = ddata['data'].shape[0]
+    # nt = ddata['data'].shape[0]
 
     # -------------------
     # consistent sparsity

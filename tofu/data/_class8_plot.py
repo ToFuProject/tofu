@@ -7,7 +7,6 @@
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 import datastock as ds
 
 
@@ -44,14 +43,15 @@ def _plot_diagnostic_check(
     # key
     key, key_cam = coll.get_diagnostic_cam(key, key_cam)
     is2d = coll.dobj['diagnostic'][key]['is2d']
-    spectro = coll.dobj['diagnostic'][key]['spectro']
+    # spectro = coll.dobj['diagnostic'][key]['spectro']
 
-    if spectro:
-        assert len(key_cam) == 1
-        doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam[0]]
-        kcryst = doptics['optics'][doptics['ispectro'][0]]
-    else:
-        kcryst = None
+    # if spectro:
+    #     assert len(key_cam) == 1
+    #     doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam[0]]
+    #     kcryst = doptics['optics'][doptics['ispectro'][0]]
+    # else:
+    #    pass
+    #    kcryst = None
 
     # -------
     # data
@@ -61,14 +61,14 @@ def _plot_diagnostic_check(
     if c0:
         data = defdata
 
-    ddata, dref = coll.get_diagnostic_data(
+    ddata, dref, units = coll.get_diagnostic_data(
         key=key,
         key_cam=key_cam,
         data=data,
         units=units,
     )
 
-    ylab = None # f"{ddata[key_cam[0]]['quant']} ({ddata[key_cam[0]]['units']})"
+    ylab = f"{data} ({units})"
 
     # -----
     # proj

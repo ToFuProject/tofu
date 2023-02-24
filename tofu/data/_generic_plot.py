@@ -233,7 +233,7 @@ def _ax_double(
         default={
             'bottom': 0.12, 'top': 0.9,
             'left': 0.08, 'right': 0.98,
-            'wspace': 0.20, 'hspace': 0.05,
+            'wspace': 0.25, 'hspace': 0.2,
         },
     )
 

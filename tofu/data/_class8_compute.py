@@ -895,13 +895,14 @@ def _get_data(
         lquant = ['etendue', 'amin', 'amax']  # 'los'
         lcomp = ['length', 'tangency radius', 'alpha']
         llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
+        lsynth = list(coll.dobj['diagnostic'][key].get('dsignal', {}).keys())
         if spectro:
             lcomp += llamb
 
         data = ds._generic_check._check_var(
             data, 'data',
             types=str,
-            allowed=lquant + lcomp,
+            allowed=lquant + lcomp + lsynth,
         )
 
     # build ddata
@@ -992,6 +993,9 @@ def _get_data(
             for k0, v0 in ddata.items()
         }
 
+        # units
+        units = coll.ddata[key_cam[0]]['units']
+
         # get actual data
         ddata = {
             k0 : coll.ddata[v0]['data']
@@ -1016,6 +1020,10 @@ def _get_data(
                    lamb=data,
                    units=units,
                )
+            if data in ['lamb', 'lambmin', 'lambmax', 'dlamb']:
+                units = 'm'
+            else:
+                units = ''
 
         elif data in ['length', 'tangency radius', 'alpha']:
             for cc in key_cam:
@@ -1026,8 +1034,27 @@ def _get_data(
                     segment=-1,
                     lim_to_segments=False,
                 )
+            if data in ['length', 'tangency radius']:
+                units = 'm'
+            else:
+                units = 'rad'
+                
+    elif data in lsynth:
+        
+        dref = {}
+        dsynth = coll.dobj['diagnostic'][key]['dsignal'][data]
+        for cc in key_cam:
+            kdat = dsynth['data'][dsynth['camera'].index(cc)]
+            refcam = coll.dobj['camera'][cc]['dgeom']['ref']
+            ref = coll.ddata[kdat]['ref']
+            if ref != refcam:
+                continue
+            ddata[cc] = coll.ddata[kdat]['data']
+            dref[cc] = ref
+            
+            units = coll.dobj['camera'][cc]['dgeom']['units']
 
-    return ddata, dref
+    return ddata, dref, units
 
 
 # ##################################################################
