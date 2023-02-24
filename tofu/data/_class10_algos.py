@@ -9,6 +9,9 @@ import numpy as np
 import scipy.linalg as scplin
 import scipy.optimize as scpop
 import scipy.sparse as scpsp
+import datastock as ds
+
+
 
 
 dfail = {}
@@ -31,6 +34,13 @@ if len(dfail) > 0:
         + "\n".join(lstr)
     )
     warnings.warn(msg)
+
+
+# optional
+try:
+    from .. import tomotok2tofu
+except Exception as err:
+    tomotok2tofu = False
 
 
 _DALGO0 = {

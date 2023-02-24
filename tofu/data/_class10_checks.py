@@ -12,13 +12,6 @@ import scipy.sparse as scpsp
 import datastock as ds
 
 
-# optional
-try:
-    from .. import tomotok2tofu
-except Exception as err:
-    tomotok2tofu = False
-
-
 _SIGMA = 0.05
 _LREGPARAM_ALGO = [
     'augTikho',
