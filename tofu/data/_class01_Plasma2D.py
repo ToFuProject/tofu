@@ -149,3 +149,64 @@ class Plasma2D(Previous):
             ind_strict=ind_strict,
             dim=dim,
         )
+    
+    
+    def plot_as_profile2d(
+        self,
+        key=None,
+        plot_config=None,
+        # parameters
+        dres=None,
+        # levels
+        levels=None,
+        # plot options
+        vmin=None,
+        vmax=None,
+        cmap=None,
+        dax=None,
+        dmargin=None,
+        fs=None,
+        dcolorbar=None,
+        dleg=None,
+        # interactivity
+        dinc=None,
+        connect=True,
+    ):
+        
+        # Plot profile 2d
+        dax, dgroup = super().plot_as_profile2d(
+            key=key,
+            # parameters
+            dres=dres,
+            # levels
+            levels=levels,
+            # plot options
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+            connect=False,
+        )
+        
+        # plot config if relevant
+        if plot_config.__class__.__name__ == 'Config':
+            if 'matrix' in dax.dax.keys():
+                ax = dax.dax['matrix']['handle']
+                ax = plot_config.plot(lax=ax, proj='cross')
+        
+        # -----------
+        # connect
+
+        if connect is True:
+            dax.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+            dax.disconnect_old()
+            dax.connect()
+
+            dax.show_commands()
+            return dax
+        else:
+            return dax, dgroup
