@@ -159,6 +159,7 @@ class Plasma2D(Previous):
         dres=None,
         # levels
         levels=None,
+        ref_com=None,
         # plot options
         vmin=None,
         vmax=None,
@@ -180,6 +181,7 @@ class Plasma2D(Previous):
             dres=dres,
             # levels
             levels=levels,
+            ref_com=ref_com,
             # plot options
             vmin=vmin,
             vmax=vmax,
