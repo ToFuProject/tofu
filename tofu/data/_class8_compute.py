@@ -895,7 +895,9 @@ def _get_data(
         lquant = ['etendue', 'amin', 'amax']  # 'los'
         lcomp = ['length', 'tangency radius', 'alpha']
         llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
-        lsynth = list(coll.dobj['diagnostic'][key].get('dsignal', {}).keys())
+        lsynth = coll.dobj['diagnostic'][key]['signal']
+        if lsynth is None:
+            lsynth = []
         if spectro:
             lcomp += llamb
 
@@ -1042,7 +1044,7 @@ def _get_data(
     elif data in lsynth:
         
         dref = {}
-        dsynth = coll.dobj['diagnostic'][key]['dsignal'][data]
+        dsynth = coll.dobj['synth sig'][data]
         for cc in key_cam:
             kdat = dsynth['data'][dsynth['camera'].index(cc)]
             refcam = coll.dobj['camera'][cc]['dgeom']['ref']
@@ -1398,14 +1400,16 @@ def _concatenate_data_check(
             key_data = [key_data]
 
         else:
-            lok = list(coll.dobj['diagnostic'][key].get('dsignal').keys())
+            lok = coll.dobj['diagnostic'][key]['signal']
+            if lok is None:
+                lok = []
             key_data = ds._generic_check._check_var(
                 key_data, 'key_data',
                 types=str,
                 allowed=lok,
             )
 
-            key_data = coll.dobj['diagnostic'][key]['dsignal'][key_data]['data']
+            key_data = coll.dobj['synth sig'][key_data]['data']
 
     # basic check
     c0 = (

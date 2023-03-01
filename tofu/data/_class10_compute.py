@@ -1136,12 +1136,11 @@ def _compute_retrofit_data_check(
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
 
     # key
-    dsig = coll.dobj['diagnostic'][key_diag].get('dsignal', {})
-    lout = list(dsig.keys())
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        excluded=lout,
+    key = ds._generic_utils._obj_key(
+        coll.dobj.get('synth sig', {}),
+        short='synth',
+        key=key,
+        ndigits=2,
     )
 
     # key_matrix

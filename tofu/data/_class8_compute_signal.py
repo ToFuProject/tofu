@@ -162,26 +162,21 @@ def _store(
     # ---------
     # prepare
 
-    dsig = coll._dobj['diagnostic'][key_diag].get('dsignal')
-    if dsig is None:
-        dsig = {}
-
-    # ----------
-    # build dict
-
-    dsig.update({
-        key: {
-            'type': typ,
-            'camera': list(dout.keys()),
-            'data': [v0['key'] for v0 in dout.values()],
-            # synthetic
-            'integrand': key_integrand,
-            'method': method,
-            'res': res,
-            # retrofit
-            'geom matrix': key_matrix,
+    dobj = {
+        'synth sig':{
+            key: {
+                'diag': key_diag,
+                'camera': list(dout.keys()),
+                'data': [v0['key'] for v0 in dout.values()],
+                # synthetic
+                'integrand': key_integrand,
+                'method': method,
+                'res': res,
+                # retrofit
+                'geom matrix': key_matrix,
+            },
         },
-    })
+    }
 
     # ----------
     # add data
@@ -189,7 +184,14 @@ def _store(
     for k0, v0 in dout.items():
         coll.add_data(**v0)
 
-    coll._dobj['diagnostic'][key_diag]['dsignal'] = dsig
+    # add obj
+    lsynth = coll._dobj['diagnostic'][key_diag].get('signal')
+    if lsynth is None:
+        lsynth = [key]
+    else:
+        lsynth.append(key)
+    coll._dobj['diagnostic'][key_diag]['signal'] = lsynth
+    coll.update(dobj=dobj)
 
 
 # ##################################################################
@@ -317,16 +319,12 @@ def _compute_signal_check(
 
     # key
     if store is True:
-        lsig = list(coll.dobj['diagnostic'][key_diag].get('dsignal', {}).keys())
-        lout = list(coll.ddata.keys()) + lsig
-    else:
-        lout = []
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        default=f'{key_diag}_synth',
-        excluded=lout,
-    )
+        key = ds._generic_check._obj_key(
+            coll.dobj.get('synth sig', {}),
+            short='synth',
+            key=key,
+            ndigits=2,
+        )
 
     # returnas
     returnas = ds._generic_check._check_var(

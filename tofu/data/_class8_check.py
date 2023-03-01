@@ -307,6 +307,7 @@ def _diagnostics(
                 'spectro': spectro,
                 'PHA': PHA,
                 'stack': stack,
+                'signal': None,
             },
         },
     }

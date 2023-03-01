@@ -62,7 +62,7 @@ def _plot_inversion_check(
     key_diag = coll.dobj['geom matrix'][keymat]['diagnostic']
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
     key_cam = coll.dobj['geom matrix'][keymat]['camera']
-    key_retro = coll.dobj['diagnostic'][key_diag]['dsignal'][key_retro]['data']
+    key_retro = coll.dobj['synth sig'][key_retro]['data']
     keym = coll.dobj[wbs][keybs]['mesh']
     mtype = coll.dobj[wm][keym]['type']
     nd = coll.dobj[wm][keym]['nd']

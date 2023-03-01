@@ -43,6 +43,7 @@ class Diagnostic(Previous):
             'spectro',
             'PHA',
             'camera',
+            'signal',
         ],
     })
 
