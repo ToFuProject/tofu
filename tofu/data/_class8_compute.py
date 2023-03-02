@@ -909,6 +909,8 @@ def _get_data(
 
     # build ddata
     ddata = {}
+    static = True
+    
     # comp = False
     if data is None or data in lquant:
 
@@ -1049,14 +1051,31 @@ def _get_data(
             kdat = dsynth['data'][dsynth['camera'].index(cc)]
             refcam = coll.dobj['camera'][cc]['dgeom']['ref']
             ref = coll.ddata[kdat]['ref']
-            if ref != refcam:
-                continue
+            
+            c0 = (
+                tuple([rr for rr in ref if rr in refcam]) == refcam
+                and len(ref) in [len(refcam), len(refcam) + 1]
+            )
+            if not c0:
+                msg = (
+                    "Can only plot data that is either:\n"
+                    "\t- static: same refs as the camera\n"
+                    "\t- has a unique extra dimension\n"
+                    "Provided:\n"
+                    "\t- refcam: {refcam}\n"
+                    "\t- ['{kdat}']['ref']: {ref}"
+                )
+                raise Exception(msg)
+                
+            if len(ref) == len(refcam) + 1:
+                static = False
+                
             ddata[cc] = coll.ddata[kdat]['data']
             dref[cc] = ref
             
             units = coll.ddata[kdat]['units']
 
-    return ddata, dref, units
+    return ddata, dref, units, static
 
 
 # ##################################################################
