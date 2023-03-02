@@ -61,7 +61,7 @@ def _plot_diagnostic_check(
     if c0:
         data = defdata
 
-    ddata, dref, units = coll.get_diagnostic_data(
+    ddata, dref, units, static = coll.get_diagnostic_data(
         key=key,
         key_cam=key_cam,
         data=data,
@@ -73,9 +73,13 @@ def _plot_diagnostic_check(
     # -----
     # proj
 
+    pall = ['cross', 'hor', '3d', 'camera']
+    if static is False:
+        pall += ['traces']
+
     proj = _generic_plot._proj(
         proj=proj,
-        pall=['cross', 'hor', '3d', 'camera'],
+        pall=pall,
     )
 
     # ----------
@@ -118,6 +122,7 @@ def _plot_diagnostic_check(
         proj,
         ddata,
         dref,
+        static,
         los_res,
         color_dict,
         nlos,
@@ -180,6 +185,7 @@ def _plot_diagnostic(
         proj,
         ddata,
         dref,
+        static,
         los_res,
         color_dict,
         nlos,
@@ -244,6 +250,7 @@ def _plot_diagnostic(
         drefx=drefx,
         drefy=drefy,
         ddata=ddata,
+        static=static,
         is2d=is2d,
     )
 
@@ -349,43 +356,47 @@ def _plot_diagnostic(
                     )
 
     # plot data
-    for k0 in key_cam:
-        kax = k0
-        if dax.get(kax) is not None:
-            if ddata is None or ddata.get(k0) is None:
-                continue
-
-            ax = dax[kax]['handle']
-
-            if is2d and reft is None:
-                im = ax.imshow(
-                    ddata[k0].T,
-                    extent=dextent[k0],
-                    cmap=cmap,
-                    vmin=vmin,
-                    vmax=vmax,
-                    origin='lower',
-                    interpolation='nearest',
-                )
-                plt.colorbar(im, ax=ax)
-
-            elif reft is None:
-                ax.plot(
-                    ddata[k0],
-                    c='k',
-                    ls='-',
-                    lw=1.,
-                    marker='.',
-                    ms=6,
-                )
-                ax.set_xlim(-1, ddata[k0].size)
-                ax.set_ylabel(ylab)
-                ax.set_title(k0, size=12, fontweight='bold')
-
-                if vmin is not None:
-                    ax.set_ylim(bottom=vmin)
-                if vmax is not None:
-                    ax.set_ylim(top=vmax)
+    if static is True:
+        for k0 in key_cam:
+            kax = f'{k0}_trace'
+            if dax.get(kax) is not None:
+                if ddata is None or ddata.get(k0) is None:
+                    continue
+    
+                ax = dax[kax]['handle']
+    
+                if is2d and reft is None:
+                    im = ax.imshow(
+                        ddata[k0].T,
+                        extent=dextent[k0],
+                        cmap=cmap,
+                        vmin=vmin,
+                        vmax=vmax,
+                        origin='lower',
+                        interpolation='nearest',
+                    )
+                    plt.colorbar(im, ax=ax)
+    
+                elif reft is None:
+                    ax.plot(
+                        ddata[k0],
+                        c='k',
+                        ls='-',
+                        lw=1.,
+                        marker='.',
+                        ms=6,
+                    )
+                    ax.set_xlim(-1, ddata[k0].size)
+                    ax.set_ylabel(ylab)
+                    ax.set_title(k0, size=12, fontweight='bold')
+    
+                    if vmin is not None:
+                        ax.set_ylim(bottom=vmin)
+                    if vmax is not None:
+                        ax.set_ylim(top=vmax)
+                        
+    else:
+        # plot traces envelop
 
     # ----------------
     # define and set dgroup
@@ -641,6 +652,7 @@ def _prepare_datarefxy(
     drefx=None,
     drefy=None,
     ddata=None,
+    static=None,
     is2d=None,
 ):
     # prepare dict

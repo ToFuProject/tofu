@@ -198,14 +198,14 @@ def _ax_single(
 
     nrows = 1
     nc = 1 if key_cam is None else len(key_cam)
-    if 'camera' in proj:
+    if 'camera' in proj or 'traces' in proj:
         nrows *= nc
 
     gs = gridspec.GridSpec(ncols=1, nrows=nrows, **dmargin)
 
     dgs = {}
     for ii, pp in enumerate(proj):
-        if pp == 'camera':
+        if pp in ['camera', 'traces']:
             for jj, k0 in enumerate(key_cam):
                 ind = (ii, 0)
                 dgs[k0] = {'proj': 'camera', 'ind': ind}
@@ -242,19 +242,31 @@ def _ax_double(
 
     nrows = 1
     nc = 1 if key_cam is None else len(key_cam)
-    if 'camera' in proj:
+    if 'camera' in proj or 'traces' in proj:
         nrows *= nc
+        
+    colmul = 1
+    if 'camera' in proj and 'traces' in proj:
+        colmul = 2
+    ncols = 2*colmul
 
-    gs = gridspec.GridSpec(ncols=2, nrows=nrows, **dmargin)
+    gs = gridspec.GridSpec(ncols=ncols, nrows=nrows, **dmargin)
 
     dgs = {}
     for ii, pp in enumerate(proj):
+        
         if pp == 'camera':
             for jj, k0 in enumerate(key_cam):
-                ind = (jj, ii)
+                ind = (jj, slice(ii*colum + 1, ii*colum + 2))
                 dgs[k0] = {'proj': 'camera', 'ind': ind}
+                
+        elif pp == 'traces':
+            for jj, k0 in enumerate(key_cam):
+                ind = (jj, ii*colmul)
+                dgs[k0] = {'proj': 'camera', 'ind': ind}
+            
         else:
-            ind = (slice(0, nc), ii)
+            ind = (slice(0, nc), slice(ii*colmul, (ii+1)*colmul))
             dgs[pp] = {'proj': pp, 'ind': ind}
 
     return gs, dgs
@@ -350,6 +362,52 @@ def _ax_4(
     return gs, dgs
 
 
+def _ax_5(
+    fig=None,
+    dmargin=None,
+    proj=None,
+    key_cam=None,
+):
+
+    # ------------
+    # check inputs
+
+    # dmargin
+    dmargin = ds._generic_check._check_var(
+        dmargin, 'dmargin',
+        types=dict,
+        default={
+            'bottom': 0.05, 'top': 0.95,
+            'left': 0.05, 'right': 0.98,
+            'wspace': 0.30, 'hspace': 0.40,
+            # 'width_ratios': [0.6, 0.4],
+            # 'height_ratios': [0.4, 0.6],
+        },
+    )
+
+    # ----------------------
+    # prepare
+
+    nrows = 2
+    nc = 1 if key_cam is None else len(key_cam)
+    if 'camera' in proj:
+        nrows *= nc
+
+    gs = gridspec.GridSpec(ncols=3, nrows=nrows, **dmargin)
+
+    dgs = {}
+    for ii, pp in enumerate(proj):
+        if pp == 'camera':
+            for jj, k0 in enumerate(key_cam):
+                ind = (slice(jj*2, (jj+1)*2), 2)
+                dgs[k0] = {'proj': 'camera', 'ind': ind}
+        else:
+            ind = (slice((ii % 2)*nc, (ii % 2)*nc + nc), ii % 2)
+            dgs[pp] = {'proj': pp, 'ind': ind}
+
+    return gs, dgs
+
+
 def _ax_set(ax=None, proj=None, is2d=None):
 
     if proj == 'cross':
@@ -379,5 +437,9 @@ def _ax_set(ax=None, proj=None, is2d=None):
             ax.set_aspect('equal', adjustable='datalim')
         else:
             ax.set_xlabel('ind')
+
+    elif proj == 'traces':
+        # ax.set_xlabel()
+        ax.set_ylabel('data')
 
     return
