@@ -89,14 +89,14 @@ def _plot_diagnostic_check(
     # -----
     # proj
 
-    pall = ['cross', 'hor', '3d', 'camera']
-    if static is False:
-        pall += ['traces']
-
+    pall = ['cross', 'hor', '3d', 'camera', 'traces']
     proj = _generic_plot._proj(
         proj=proj,
         pall=pall,
     )
+    
+    if static is True:
+        proj = [pp for pp in proj if pp != 'traces']
 
     # ----------
     # los_res
