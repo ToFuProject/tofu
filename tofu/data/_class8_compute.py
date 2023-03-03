@@ -910,6 +910,7 @@ def _get_data(
     # build ddata
     ddata = {}
     static = True
+    daxis = None
     
     # comp = False
     if data is None or data in lquant:
@@ -1046,6 +1047,7 @@ def _get_data(
     elif data in lsynth:
         
         dref = {}
+        daxis = {}
         dsynth = coll.dobj['synth sig'][data]
         for cc in key_cam:
             kdat = dsynth['data'][dsynth['camera'].index(cc)]
@@ -1069,13 +1071,16 @@ def _get_data(
                 
             if len(ref) == len(refcam) + 1:
                 static = False
+                daxis[cc] = [
+                    ii for ii, rr in enumerate(ref) if rr not in refcam
+                ][0]
                 
             ddata[cc] = coll.ddata[kdat]['data']
             dref[cc] = ref
             
             units = coll.ddata[kdat]['units']
 
-    return ddata, dref, units, static
+    return ddata, dref, units, static, daxis
 
 
 # ##################################################################

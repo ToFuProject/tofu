@@ -61,12 +61,28 @@ def _plot_diagnostic_check(
     if c0:
         data = defdata
 
-    ddata, dref, units, static = coll.get_diagnostic_data(
+    ddata, dref, units, static, daxis = coll.get_diagnostic_data(
         key=key,
         key_cam=key_cam,
         data=data,
         units=units,
     )
+    
+    refz = None
+    if static is False:
+        lnr = [len(v0) for v0 in dref.values()]
+        refz = [v0[daxis[k0]] for k0, v0 in dref.items()]
+        
+        if len(set(lnr)) != 1:
+            msg = f"data '{data}' shall have the same ndims for all cameras!"
+            raise Exception(msg)
+        
+        
+        if len(set(refz)) != 1:
+            msg = f"data '{data}' shall have the same extra ref for all cameras"
+            raise Exception(msg)
+            
+        refz = refz[0]
 
     ylab = f"{data} ({units})"
 
@@ -123,6 +139,9 @@ def _plot_diagnostic_check(
         ddata,
         dref,
         static,
+        daxis,
+        refz,
+        units,
         los_res,
         color_dict,
         nlos,
@@ -161,6 +180,7 @@ def _plot_diagnostic(
     cmap=None,
     vmin=None,
     vmax=None,
+    keyZ=None,
     # config
     plot_config=None,
     # figure
@@ -186,6 +206,9 @@ def _plot_diagnostic(
         ddata,
         dref,
         static,
+        daxis,
+        refz,
+        units,
         los_res,
         color_dict,
         nlos,
@@ -253,6 +276,38 @@ def _plot_diagnostic(
         static=static,
         is2d=is2d,
     )
+    
+    # ---------------------
+    # prepare non-static
+
+    if static is False:
+        
+        k0 = key_cam[0]
+        keyz = coll.get_ref_vector(ref=refz)[3]
+        nz = ddata[k0].shape[daxis[k0]]
+        
+        keyz, zstr, dataz, dz2, labz = ds._plot_as_array._get_str_datadlab(
+            keyX=keyz, nx=nz, islogX=False, coll=coll,
+        )
+        
+        npts = 0
+        for k0 in key_cam:
+            npts = max(npts, ddata[k0].size)
+              
+        bck = 'envelop' if npts > 10000 else 'lines'
+        
+        
+        coll2.add_ref(key=refz, size=nz)
+        coll2.add_data(key=keyz, data=dataz, ref=refz)
+        
+        # add camera data
+        for k0 in key_cam:
+            coll2.add_data(
+                key=f'{k0}_{data}',
+                data=ddata[k0],
+                ref=dref[k0],
+                units=units,
+            )
 
     # -----------------
     # prepare figure
@@ -357,8 +412,9 @@ def _plot_diagnostic(
 
     # plot data
     if static is True:
+        
         for k0 in key_cam:
-            kax = f'{k0}_trace'
+            kax = f'{k0}_sig'
             if dax.get(kax) is not None:
                 if ddata is None or ddata.get(k0) is None:
                     continue
@@ -397,7 +453,51 @@ def _plot_diagnostic(
                         
     else:
         # plot traces envelop
+        for k0 in key_cam:
+            
+            kax = f'{k0}_trace'
+            if dax.get(kax) is None or ddata.get(k0) is None:
+                continue
+            
+            ax = dax[kax]['handle']
+            
+            if bck == 'lines':
+                shap = list(ddata[k0].shape)
+                shap[daxis[k0]] = 1
+                bckl = np.concatenate(
+                    (ddata[k0], np.full(shap, np.nan)),
+                    axis=daxis[k0],
+                )
+                bckl = np.swapaxes(bckl, daxis[k0], -1).ravel() 
+                
+                ax.plot(
+                    np.tile(np.r_[dataz, np.nan], int(np.prod(shap))),
+                    bckl,
+                    c=(0.8, 0.8, 0.8),
+                    ls='-',
+                    lw=1.,
+                    marker='None',
+                )
+                
+            else:
+                tax = tuple([
+                    ii for ii in range(ddata[k0].ndim) if ii != daxis[k0]
+                ])
 
+                ax.fill_between(
+                    dataz,
+                    np.nanmin(ddata[k0], axis=tax),
+                    np.nanmax(ddata[k0], axis=tax),
+                    facecolor=(0.8, 0.8, 0.8, 0.8),
+                    edgecolor='None',
+                )
+        
+            print(kax, vmin, vmax)
+            if vmin is not None:
+                ax.set_ylim(bottom=vmin)
+            if vmax is not None:
+                ax.set_ylim(top=vmax)
+        
     # ----------------
     # define and set dgroup
 
@@ -420,10 +520,10 @@ def _plot_diagnostic(
                 },
             })
 
-        if reft is not None:
+        if static is False is not None:
             dgroup.update({
                 't': {
-                    'ref': [reft],
+                    'ref': [refz],
                     'data': ['index'],
                     'nmax': 1,
                 },
@@ -508,7 +608,7 @@ def _plot_diagnostic(
                     # )
 
             # camera
-            kax = k0
+            kax = f'{k0}_sig'
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
 
@@ -528,6 +628,143 @@ def _plot_diagnostic(
                     dkeyy=dkeyy,
                     color_dict=color_dict,
                 )
+                
+            # vline on traces
+            if static is False:
+                
+                kax = f'{k0}_trace'
+                if dax.get(kax) is not None:
+                    ax = dax[kax]['handle']
+    
+                    sli = tuple([
+                        slice(None) if ii == daxis[k0] else 0
+                        for ii in range(ddata[k0].ndim)
+                    ])
+                    
+                    lv = ax.axvline(
+                        dataz[0],
+                        c='k', 
+                        lw=1., 
+                        ls='-',
+                    )
+                    
+                    kv = f'{k0}_zline'
+                    coll2.add_mobile(
+                        key=kv,
+                        handle=lv,
+                        refs=(refz,),
+                        data=[keyz],
+                        dtype=['xdata'],
+                        axes=kax,
+                        ind=0,
+                    )
+
+                dax[kax].update(refx=[refz], datax=[keyz])
+             
+    # -------------------
+    # data if not static
+    
+    if static is False:
+    
+        for k0 in key_cam:
+            
+            # line/im plot on data
+            kax = f'{k0}_sig'
+            if dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+                
+            tax = tuple([
+                ii for ii in range(ddata[k0].ndim) if ii != daxis[k0]
+            ])
+                
+            if is2d:
+                im = ax.imshow(
+                    np.take(ddata[k0], 0, axis=daxis[k0]).T,
+                    extent=dextent[k0],
+                    cmap=cmap,
+                    vmin=vmin,
+                    vmax=vmax,
+                    origin='lower',
+                    interpolation='nearest',
+                )
+                plt.colorbar(im, ax=ax)
+                
+                km = f'{k0}_{data}'
+                coll2.add_mobile(
+                    key=km,
+                    handle=im,
+                    refs=((refz,),),
+                    data=[f'{k0}_{data}'],
+                    dtype='data',
+                    axes=kax,
+                    ind=0,
+                )
+
+            else:
+                
+                l0, = ax.plot(
+                    np.take(ddata[k0], 0, axis=daxis[k0]),
+                    c='k',
+                    ls='-',
+                    lw=1.,
+                    marker='.',
+                    ms=6,
+                )
+                ax.set_xlim(-1, ddata[k0].size / nz)
+                ax.set_ylabel(ylab)
+                ax.set_title(k0, size=12, fontweight='bold')
+
+                if vmin is not None:
+                    ax.set_ylim(bottom=vmin)
+                if vmax is not None:
+                    ax.set_ylim(top=vmax)
+                    
+                km = f'{k0}_{data}'
+                coll2.add_mobile(
+                    key=km,
+                    handle=l0,
+                    refs=((refz,),),
+                    data=[f'{k0}_{data}'],
+                    dtype='ydata',
+                    axes=kax,
+                    ind=0,
+                )
+                
+                if vmin is not None:
+                    ax.set_ylim(bottom=vmin)
+                if vmax is not None:
+                    ax.set_ylim(top=vmax)
+                
+            # line plot on traces
+            kax = f'{k0}_trace'
+            if dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+                
+            sli = tuple([
+                slice(None) if ii == daxis[k0] else 0
+                for ii in range(ddata[k0].ndim)
+            ])
+            
+            for ii in range(nlos):
+                l0, = ax.plot(
+                    dataz,
+                    ddata[k0][sli],
+                    c=color_dict['x'][ii], 
+                    lw=1., 
+                    ls='-',
+                )
+    
+                refi = dref_los[k0] if is2d else dref_los[k0][0]
+                kv = f'{k0}_trace{ii}'
+                coll2.add_mobile(
+                    key=kv,
+                    handle=l0,
+                    refs=(refi,),
+                    data=[f'{k0}_{data}'],
+                    dtype=['ydata'],
+                    axes=kax,
+                    ind=ii,
+                )      
 
     # -------
     # config
@@ -537,12 +774,12 @@ def _plot_diagnostic(
         kax = 'cross'
         if dax.get(kax) is not None:
             ax = dax[kax]['handle']
-            plot_config.plot(lax=ax, proj=kax)
+            plot_config.plot(lax=ax, proj=kax, dLeg=False)
 
         kax = 'hor'
         if dax.get(kax) is not None:
             ax = dax[kax]['handle']
-            plot_config.plot(lax=ax, proj=kax)
+            plot_config.plot(lax=ax, proj=kax, dLeg=False)
 
     # -------
     # connect
