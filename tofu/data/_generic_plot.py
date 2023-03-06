@@ -37,7 +37,7 @@ def _proj(
 ):
 
     if pall is None:
-        pall = ['cross', 'hor', '3d', 'camera']
+        pall = ['cross', 'hor', '3d', 'camera', 'traces']
 
     # proj
     if proj == 'all':
