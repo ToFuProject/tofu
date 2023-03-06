@@ -635,11 +635,6 @@ def _plot_diagnostic(
                 kax = f'{k0}_trace'
                 if dax.get(kax) is not None:
                     ax = dax[kax]['handle']
-    
-                    sli = tuple([
-                        slice(None) if ii == daxis[k0] else 0
-                        for ii in range(ddata[k0].ndim)
-                    ])
                     
                     lv = ax.axvline(
                         dataz[0],
@@ -659,7 +654,7 @@ def _plot_diagnostic(
                         ind=0,
                     )
 
-                dax[kax].update(refx=[refz], datax=[keyz])
+                    dax[kax].update(refx=[refz], datax=[keyz])
              
     # -------------------
     # data if not static
@@ -673,98 +668,98 @@ def _plot_diagnostic(
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
                 
-            tax = tuple([
-                ii for ii in range(ddata[k0].ndim) if ii != daxis[k0]
-            ])
-                
-            if is2d:
-                im = ax.imshow(
-                    np.take(ddata[k0], 0, axis=daxis[k0]).T,
-                    extent=dextent[k0],
-                    cmap=cmap,
-                    vmin=vmin,
-                    vmax=vmax,
-                    origin='lower',
-                    interpolation='nearest',
-                )
-                plt.colorbar(im, ax=ax)
-                
-                km = f'{k0}_{data}'
-                coll2.add_mobile(
-                    key=km,
-                    handle=im,
-                    refs=((refz,),),
-                    data=[f'{k0}_{data}'],
-                    dtype='data',
-                    axes=kax,
-                    ind=0,
-                )
-
-            else:
-                
-                l0, = ax.plot(
-                    np.take(ddata[k0], 0, axis=daxis[k0]),
-                    c='k',
-                    ls='-',
-                    lw=1.,
-                    marker='.',
-                    ms=6,
-                )
-                ax.set_xlim(-1, ddata[k0].size / nz)
-                ax.set_ylabel(ylab)
-                ax.set_title(k0, size=12, fontweight='bold')
-
-                if vmin is not None:
-                    ax.set_ylim(bottom=vmin)
-                if vmax is not None:
-                    ax.set_ylim(top=vmax)
+                tax = tuple([
+                    ii for ii in range(ddata[k0].ndim) if ii != daxis[k0]
+                ])
                     
-                km = f'{k0}_{data}'
-                coll2.add_mobile(
-                    key=km,
-                    handle=l0,
-                    refs=((refz,),),
-                    data=[f'{k0}_{data}'],
-                    dtype='ydata',
-                    axes=kax,
-                    ind=0,
-                )
-                
-                if vmin is not None:
-                    ax.set_ylim(bottom=vmin)
-                if vmax is not None:
-                    ax.set_ylim(top=vmax)
+                if is2d:
+                    im = ax.imshow(
+                        np.take(ddata[k0], 0, axis=daxis[k0]).T,
+                        extent=dextent[k0],
+                        cmap=cmap,
+                        vmin=vmin,
+                        vmax=vmax,
+                        origin='lower',
+                        interpolation='nearest',
+                    )
+                    plt.colorbar(im, ax=ax)
+                    
+                    km = f'{k0}_{data}'
+                    coll2.add_mobile(
+                        key=km,
+                        handle=im,
+                        refs=((refz,),),
+                        data=[f'{k0}_{data}'],
+                        dtype='data',
+                        axes=kax,
+                        ind=0,
+                    )
+    
+                else:
+                    
+                    l0, = ax.plot(
+                        np.take(ddata[k0], 0, axis=daxis[k0]),
+                        c='k',
+                        ls='-',
+                        lw=1.,
+                        marker='.',
+                        ms=6,
+                    )
+                    ax.set_xlim(-1, ddata[k0].size / nz)
+                    ax.set_ylabel(ylab)
+                    ax.set_title(k0, size=12, fontweight='bold')
+    
+                    if vmin is not None:
+                        ax.set_ylim(bottom=vmin)
+                    if vmax is not None:
+                        ax.set_ylim(top=vmax)
+                        
+                    km = f'{k0}_{data}'
+                    coll2.add_mobile(
+                        key=km,
+                        handle=l0,
+                        refs=((refz,),),
+                        data=[f'{k0}_{data}'],
+                        dtype='ydata',
+                        axes=kax,
+                        ind=0,
+                    )
+                    
+                    if vmin is not None:
+                        ax.set_ylim(bottom=vmin)
+                    if vmax is not None:
+                        ax.set_ylim(top=vmax)
                 
             # line plot on traces
             kax = f'{k0}_trace'
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
                 
-            sli = tuple([
-                slice(None) if ii == daxis[k0] else 0
-                for ii in range(ddata[k0].ndim)
-            ])
-            
-            for ii in range(nlos):
-                l0, = ax.plot(
-                    dataz,
-                    ddata[k0][sli],
-                    c=color_dict['x'][ii], 
-                    lw=1., 
-                    ls='-',
-                )
-    
-                refi = dref_los[k0] if is2d else dref_los[k0][0]
-                kv = f'{k0}_trace{ii}'
-                coll2.add_mobile(
-                    key=kv,
-                    handle=l0,
-                    refs=(refi,),
-                    data=[f'{k0}_{data}'],
-                    dtype=['ydata'],
-                    axes=kax,
-                    ind=ii,
-                )      
+                sli = tuple([
+                    slice(None) if ii == daxis[k0] else 0
+                    for ii in range(ddata[k0].ndim)
+                ])
+                
+                for ii in range(nlos):
+                    l0, = ax.plot(
+                        dataz,
+                        ddata[k0][sli],
+                        c=color_dict['x'][ii], 
+                        lw=1., 
+                        ls='-',
+                    )
+        
+                    refi = dref_los[k0] if is2d else dref_los[k0][0]
+                    kv = f'{k0}_trace{ii}'
+                    coll2.add_mobile(
+                        key=kv,
+                        handle=l0,
+                        refs=(refi,),
+                        data=[f'{k0}_{data}'],
+                        dtype=['ydata'],
+                        axes=kax,
+                        ind=ii,
+                    )      
 
     # -------
     # config
