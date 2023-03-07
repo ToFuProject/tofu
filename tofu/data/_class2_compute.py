@@ -197,14 +197,14 @@ def _sample(
                     lentot.append(nan)
                 continue
 
+            # get sli2 and i0i
             sli2 = tuple([ioki] + list(ind))
-            i0i = i0[sli2]
+            if radius_max is None:
+                i0i = i0[ioki]
+            else:
+                i0i = i0[sli2]
 
-            # if radius_max is None:
-            #     i0i = i0[iok[sli]]
-            # else:
-            #     i0i = i0[sli]
-
+            # itoti
             itoti = []
             for jj in range(i0i.size - 1):
                 if np.all(np.isfinite(i0i[jj:jj+2])):
