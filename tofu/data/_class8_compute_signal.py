@@ -402,6 +402,8 @@ def _compute_los(
 
         npix = coll.dobj['camera'][k0]['dgeom']['pix_nb']
         key_los = doptics[k0]['los']
+        key_pts0 = coll.dobj['rays'][key_los]['pts'][0]
+        ilosok = np.isfinite(coll.ddata[key_pts0]['data'][0, ...].ravel())
 
         ngroup = npix // groupby
         if groupby * ngroup < npix:
@@ -416,6 +418,10 @@ def _compute_los(
             i0 = ii*groupby
             i1 = min((ii + 1)*groupby, npix)
             ni = i1 - i0
+            
+            # get rid of undefined LOS
+            ind_flat = [jj for jj in range(i0, i1) if ilosok[jj]]
+            ni = len(ind_flat)
 
             # LOS sampling
             R, Z, length = coll.sample_rays(
@@ -423,7 +429,7 @@ def _compute_los(
                 res=res,
                 mode=mode,
                 segment=None,
-                ind_flat=np.arange(i0, i1),
+                ind_flat=ind_flat,
                 radius_max=radius_max,
                 concatenate=True,
                 return_coords=['R', 'z', 'ltot'],
@@ -433,8 +439,10 @@ def _compute_los(
             inan = np.isnan(R)
             inannb = np.r_[-1, inan.nonzero()[0]]
             nnan = inan.sum()
+            
+            # some lines can be nan if non-existant
             assert nnan == ni, f"{nnan} vs {ni}"
-
+            
             # lambda for spectro
             if spectro:
                 E = dict_dE[k0]
@@ -487,8 +495,7 @@ def _compute_los(
                 dataii[~iok2[slii]] = 0.
 
                 # slice data
-                ind = i0 + jj
-                sli0[axis] = ind
+                sli0[axis] = ind_flat[jj]
                 sli = tuple(sli0)
 
                 # if jj in [50, 51]:
