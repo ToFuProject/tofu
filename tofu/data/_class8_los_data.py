@@ -465,11 +465,14 @@ def _interpolate_along_los(
     # units
 
     ldist = ['x', 'y', 'z', 'R', 'l', 'ltot']
+    lang = ['phi', 'ang_vs_ephi']
 
     # coords
     if key_coords in lok_coords:
         if key_coords in ldist:
             units_coords = asunits.Unit('m')
+        elif key_coords in lang:
+            units_coords = asunits.Unit('rad')
         else:
             units_coords = key_coords
     else:
@@ -479,6 +482,8 @@ def _interpolate_along_los(
     if key_integrand in lok_coords:
         if key_integrand in ldist:
             units_integrand = asunits.Unit('m')
+        elif key_integrand in lang:
+            units_integrand = asunits.Unit('rad')
         else:
             units_integrand = key_integrand
     else:
