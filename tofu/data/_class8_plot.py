@@ -492,7 +492,6 @@ def _plot_diagnostic(
                     edgecolor='None',
                 )
         
-            print(kax, vmin, vmax)
             if vmin is not None:
                 ax.set_ylim(bottom=vmin)
             if vmax is not None:
