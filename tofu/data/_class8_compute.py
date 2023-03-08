@@ -1540,7 +1540,7 @@ def _concatenate_data_check(
         default=is2d,
     )
 
-    return key, key_data, is2d, stack, ref, flat
+    return key, key_data, key_cam, is2d, stack, ref, flat
 
 
 def _concatenate_data(
@@ -1553,7 +1553,7 @@ def _concatenate_data(
     # ------------
     # check inputs
 
-    key, key_data, is2d, stack, ref, flat = _concatenate_data_check(
+    key, key_data, key_cam, is2d, stack, ref, flat = _concatenate_data_check(
         coll=coll,
         key=key,
         key_data=key_data,
@@ -1608,6 +1608,7 @@ def _concatenate_data(
     return {
         'data': data,
         'keys': key_data,
+        'keys_cam': key_cam,
         'units': units,
         'ref': ref,
         'axis': axis,

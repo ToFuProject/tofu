@@ -14,6 +14,7 @@ import datastock as ds
 # tofu
 # from tofu import __version__ as __version__
 from . import _generic_check
+from . import _class10_refs as _refs
 from . import _class8_plot
 
 
@@ -179,7 +180,7 @@ def _plot_inversion_prepare(
 
     # ddatax, ddatay
     (
-        reft, dkeyx, dkeyy, ddatax, ddatay, dextent,
+        _, dkeyx, dkeyy, ddatax, ddatay, dextent,
     ) = _class8_plot._prepare_datarefxy(
         coll=coll,
         coll2=coll2,
@@ -189,11 +190,21 @@ def _plot_inversion_prepare(
         ddata=ddata,
         is2d=is2d,
     )
+        
+        
+    # -----------
+    # get reft
+    
+    hastime, reft, keyt, t, dind = _refs._get_ref_vector_common(
+        coll=coll,
+        key_matrix=key_matrix,
+        key_profile2d=keyinv,
+    )
 
     # -----------------
     # add nearest-neighbourg interpolated data
 
-    reft, keyt, time = coll.get_time(key=keyinv)[2:5]
+    reft, keyt, time = coll.get_ref_vector(key=keyinv, ref=reft)[2:5]
     lkmat = coll.dobj['geom matrix'][key_matrix]['data']
 
     dind = None
@@ -283,10 +294,10 @@ def _plot_inversion_prepare(
     # inversion parameters
 
     if reft is not None:
-        chi2n = coll.ddata[f'{keyinv}-chi2n']['data']
-        mu = coll.ddata[f'{keyinv}-mu']['data']
-        reg = coll.ddata[f'{keyinv}-reg']['data']
-        niter = coll.ddata[f'{keyinv}-niter']['data']
+        chi2n = coll.ddata[f'{keyinv}_chi2n']['data']
+        mu = coll.ddata[f'{keyinv}_mu']['data']
+        reg = coll.ddata[f'{keyinv}_reg']['data']
+        niter = coll.ddata[f'{keyinv}_niter']['data']
     else:
         chi2n = None    # coll.dobj['inversions'][keyinv]['chi2n']
         mu = None       # coll.dobj['inversions'][keyinv]['mu']

@@ -148,8 +148,7 @@ class Plasma2D(Previous):
             indices=indt,
             ind_strict=ind_strict,
             dim=dim,
-        )
-    
+        )      
     
     def plot_as_profile2d(
         self,

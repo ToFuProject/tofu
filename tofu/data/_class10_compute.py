@@ -17,6 +17,7 @@ import datastock as ds
 from . import _class8_compute_signal
 from . import _class10_checks as _checks
 from . import _class10_algos as _algos
+from . import _class10_refs as _refs
 tomotok2tofu = _algos.tomotok2tofu
 
 
@@ -142,9 +143,9 @@ def compute_inversions(
     # initial guess
 
     if indok is None:
-        sol0 = np.full((nbs,), np.mean(data[0, :]) / mat0.mean())
+        sol0 = np.full((nbs,), np.mean(data[0, :] / np.sum(mat0, axis=1)))
     else:
-        sol0 = np.full((nbs,), np.mean(data[0, indok[0, :]]) / mat0.mean())
+        sol0 = np.full((nbs,), np.mean(data[0, indok[0, :]] / np.sum(mat0, axis=1)))
 
     if verb >= 1:
         # t1 = time.process_time()
@@ -426,7 +427,7 @@ def _store(
                 reft: {'size': nt},
             }
             ddata.update({
-                f'{keyinv}-t': {
+                f'{keyinv}_t': {
                     'data': t,
                     'ref': reft,
                     'dim': 'time',
@@ -434,19 +435,19 @@ def _store(
             })
 
         ddata.update({
-            f'{keyinv}-chi2n': {
+            f'{keyinv}_chi2n': {
                 'data': chi2n,
                 'ref': reft,
             },
-            f'{keyinv}-mu': {
+            f'{keyinv}_mu': {
                 'data': mu,
                 'ref': reft,
             },
-            f'{keyinv}-reg': {
+            f'{keyinv}_reg': {
                 'data': regularity,
                 'ref': reft,
             },
-            f'{keyinv}-niter': {
+            f'{keyinv}_niter': {
                 'data': niter,
                 'ref': reft,
             },
@@ -702,6 +703,9 @@ def _compute_inv_loop(
         if verb == 1:
             msg = f"   chi2n = {chi2n[ii]:.3e}    niter = {niter[ii]}"
             print(msg, end='\n', flush=True)
+
+        # if ii == 1:     # DB
+        #     raise Exception()
 
 
 # ##################################################################
@@ -1009,7 +1013,7 @@ def compute_retrofit_data(
 
     # --------
     # compute
-    # --------------
+    # ---------
 
     # time-dependent
     if hastime:
@@ -1136,7 +1140,7 @@ def _compute_retrofit_data_check(
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
 
     # key
-    key = ds._generic_utils._obj_key(
+    key = ds._generic_check._obj_key(
         coll.dobj.get('synth sig', {}),
         short='synth',
         key=key,
@@ -1174,17 +1178,20 @@ def _compute_retrofit_data_check(
 
     # time management
     lkmat = coll.dobj['geom matrix'][key_matrix]['data']
-    hastime, reft, keyt, t_out, dind = coll.get_time_common(
-        keys=lkmat + [key_profile2d],
-        t=t,
-        ind_strict=False,
-    )
-    if hastime and t_out is not None and reft is None:
-        reft = f'{key}-nt'
-        keyt = f'{key}-t'
 
-    ist_mat = coll.get_time(key=lkmat[0])[0]
-    ist_prof = coll.get_time(key=key_profile2d)[0]
+    hastime, reft, keyt, t_out, dind = _refs._get_ref_vector_common(
+        coll=coll,
+        key_matrix=key_matrix,
+        key_profile2d=key_profile2d,
+    )
+    
+    
+    if hastime and t_out is not None and reft is None:
+        reft = f'{key}_nt'
+        keyt = f'{key}_t'
+
+    ist_mat = coll.get_ref_vector(key=lkmat[0], ref=reft)[0]
+    ist_prof = coll.get_ref_vector(key=key_profile2d, ref=reft)[0]
 
     # reft, keyt and refs
     if hastime and t_out is not None:

@@ -13,6 +13,7 @@ import datastock as ds
 
 
 from . import _class10_algos as _algos
+from . import _class10_refs as _refs
 
 
 _SIGMA = 0.05
@@ -119,6 +120,7 @@ def _compute_check(
     dconstraints = _check_constraints(
         coll=coll,
         keym=keym,
+        nd=nd,
         mtype=mtype,
         deg=deg,
         dconst=dconstraints,
@@ -127,16 +129,14 @@ def _compute_check(
     # --------------------------------------------
     # Time synchronisation between matrix and data
 
-    # list of keys with potential time-dependence
-    lk = ddata['keys'] + coll.dobj['geom matrix'][key_matrix]['data']
-    if dconstraints is not None:
-        if isinstance(dconstraints.get('rmax', {}).get('val'), str):
-            lk.append(dconstraints['rmax']['val'])
-        if isinstance(dconstraints.get('rmin', {}).get('val'), str):
-            lk.append(dconstraints['rmin']['val'])
-
     # check if common / different time dependence
-    hastime, reft, keyt, t, dind = coll.get_time_common(keys=lk)
+    hastime, reft, keyt, t, dind = _refs._get_ref_vector_common(
+        coll=coll,
+        ddata=ddata,
+        key_matrix=key_matrix,
+        dconstraints=dconstraints,
+    )
+    
     if reft is None:
         reft = f'{key}-nt'
 
@@ -194,7 +194,7 @@ def _compute_check(
     if algo is None:
         msg = (
             "\nPlease provide an algorithm, to be chosen from:\n"
-            + get_available_inversions_algo(verb=False, returnas=str)
+            + _algos.get_available_inversions_algo(verb=False, returnas=str)
         )
         raise Exception(msg)
 
@@ -233,6 +233,7 @@ def _compute_check(
     # valid chan / time indices of data / sigma (+ constraints)
 
     indok = np.isfinite(ddata['data']) & np.isfinite(dsigma['data'])
+    
     if not np.all(indok):
 
         # remove channels
@@ -744,6 +745,7 @@ def _check_rminmax(
 def _check_deriv(
     coll=None,
     keym=None,
+    nd=None,
     mtype=None,
     dconst=None,
     deriv=None,
@@ -751,8 +753,8 @@ def _check_deriv(
 ):
 
     # check mesh type
-    if mtype != 'polar':
-        msg = f"constraint '{rm}' cannot be used with mesh type {mtype}"
+    if nd != '1d':
+        msg = f"constraint '{deriv}' cannot be used with mesh non-1d"
         warnings.warn(msg)
         return
 
@@ -837,6 +839,7 @@ def _check_deriv(
 def _check_constraints(
     coll=None,
     keym=None,
+    nd=None,
     mtype=None,
     deg=None,
     dconst=None,
@@ -848,10 +851,10 @@ def _check_constraints(
     if dconst is None:
         return
     elif not isinstance(dconst, dict):
-        msg = f"Arg dconstraints must be a dict!\nProvided: {dconstraints}"
+        msg = f"Arg dconstraints must be a dict!\nProvided: {dconst}"
         raise Exception(msg)
-    elif mtype != 'polar':
-        msg = "Arg dconstraints cannot be used with non-polar mesh!"
+    elif nd != '1d':
+        msg = "Arg dconstraints cannot be used with non-1d meshes!"
         warnings.warn(msg)
         return
 
@@ -871,6 +874,7 @@ def _check_constraints(
         dconst = _check_deriv(
             coll=coll,
             keym=keym,
+            nd=nd,
             mtype=mtype,
             dconst=dconst,
             deriv=deriv,
@@ -1065,7 +1069,7 @@ def _update_constraints(
         # get indbs, coefs and offset as 3 (nconstraints, nbs) arrays
         indbs, coefs, offset = clas.get_constraints_deriv(
             deriv=deriv,
-            rad=dconst[deriv]['rad'],
+            x0=dconst[deriv]['rad'],
             val=dconst[deriv]['val'],
         )
 
@@ -1193,11 +1197,11 @@ def _algo_check(
 
     # kwdargs specific to aug. tikhonov
     if dalgo['reg_param'] == 'augTikho':
-        a0 = kwdargs.get('a0', 10)
+        a0 = kwdargs.get('a0', 1e-6)  # 10
         a1 = kwdargs.get('a1', 2)
 
         # to have [x]=1
-        kwdargs['b0'] = np.math.factorial(a0)**(1 / (a0 + 1))
+        kwdargs['b0'] = 1e-3  # np.math.factorial(a0)**(1 / (a0 + 1))
         kwdargs['b1'] = np.math.factorial(a1)**(1 / (a1 + 1))
         kwdargs['a0'] = a0
         kwdargs['a1'] = a1
@@ -1211,7 +1215,7 @@ def _algo_check(
             kwdargs['conv_reg'] = True
 
         if kwdargs.get('nbs_fixed') is None:
-            kwdargs['nbs_fixed'] = True
+            kwdargs['nbs_fixed'] = False    # True
 
         if kwdargs['nbs_fixed']:
             kwdargs['a0bis'] = kwdargs['a0'] - 1. + 1200./2.

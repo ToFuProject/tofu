@@ -342,7 +342,7 @@ def inv_linear_augTikho_dense(
         mu1, conv, res2, reg, tau, lamb = _augTikho_update(
             Tn, sol, yn, R,
             a0bis, b0, a1bis, b1,
-            d, mu0, conv_reg, nbs,
+            d, mu0, conv_reg, nbs, sol0,
             # verb
             verb=verb,
             nchan=nchan,
@@ -401,6 +401,18 @@ def inv_linear_augTikho_sparse(
             end='\n',
         )
 
+    # import matplotlib.pyplot as plt # DB
+    # import datastock as ds
+    # print(R.shape, Tn.shape)
+    # print()
+    # ds.plot_as_array(R)
+    # ds.plot_as_array(Tn)
+    # ds.plot_as_array(yn)
+    # ds.plot_as_array(sol0)
+    # ds.plot_as_array(Tn.dot(sol0))
+
+    # raise Exception()
+
     # loop
     # Continue until convergence criterion, and at least 2 iterations
     while niter < 2 or (conv > conv_crit and niter < maxiter_outer):
@@ -424,7 +436,7 @@ def inv_linear_augTikho_sparse(
         mu1, conv, res2, reg, tau, lamb = _augTikho_update(
             Tn, sol, yn, R,
             a0bis, b0, a1bis, b1,
-            d, mu0, conv_reg, nbs,
+            d, mu0, conv_reg, nbs, sol0,
             # verb
             verb=verb,
             nchan=nchan,
@@ -510,7 +522,7 @@ def inv_linear_augTikho_chol_dense(
         mu1, conv, res2, reg, tau, lamb = _augTikho_update(
             Tn, sol, yn, R,
             a0bis, b0, a1bis, b1,
-            d, mu0, conv_reg, nbs,
+            d, mu0, conv_reg, nbs, sol0,
             # verb
             verb=verb,
             nchan=nchan,
@@ -598,7 +610,7 @@ def inv_linear_augTikho_chol_sparse(
         mu1, conv, res2, reg, tau, lamb = _augTikho_update(
             Tn, sol, yn, R,
             a0bis, b0, a1bis, b1,
-            d, mu0, conv_reg, nbs,
+            d, mu0, conv_reg, nbs, sol0,
             # verb
             verb=verb,
             nchan=nchan,
@@ -678,7 +690,7 @@ def inv_linear_augTikho_pos_dense(
         mu1, conv, res2, reg, tau, lamb = _augTikho_update(
             Tn, sol, yn, R,
             a0bis, b0, a1bis, b1,
-            d, mu0, conv_reg, nbs,
+            d, mu0, conv_reg, nbs, sol0,
             # verb
             verb=verb,
             nchan=nchan,
@@ -696,7 +708,7 @@ def inv_linear_augTikho_pos_dense(
 def _augTikho_update(
     Tn, sol, yn, R,
     a0bis, b0, a1bis, b1,
-    d, mu0, conv_reg, nbs,
+    d, mu0, conv_reg, nbs, sol0,
     # verb
     verb=None,
     nchan=None,
@@ -741,9 +753,14 @@ def _augTikho_update(
     mu1 = (lamb/tau) * (2*a1bis/res2)**d  # rescale mu with noise estimate
     # mu1 = (lamb/tau) * (2*a1bis/max(res2, 1e-3))**d  # rescale mu with noise estimate
 
-    # print('\t', res2, reg)
-    # print('\t', lamb, tau)
-    # print('\t', lamb/tau, (2*a1bis/res2)**d, mu1)
+    print()
+    print(conv_reg, d)
+    print('\t', a0bis, b0)
+    print('\t', a1bis, b1)
+    print('\t', res2, reg)
+    print('\t', lamb, tau)
+    print('\t', lamb/tau, (2*a1bis/res2)**d, mu1)
+    print()
 
     # Compute convergence variable
     if conv_reg:
@@ -759,9 +776,7 @@ def _augTikho_update(
         temp1 = f"{nchan} * {res2/nchan:.3e} + {mu1:.3e} * {reg:.3e}"
         temp2 = f"{res2 + mu1*reg:.3e}"
         temp = f"{temp1} = {temp2}"
-        print(
-            f"\t\t{niter} \t {temp}   {tau:.3e}   {conv:.3e}"
-        )
+        print(f"\t\t{niter} \t {temp}   {tau:.3e}   {conv:.3e}")
 
     return mu1, conv, res2, reg, tau, lamb
 

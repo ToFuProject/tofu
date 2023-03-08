@@ -266,7 +266,7 @@ def _plot_diagnostic(
     )
 
     # ddatax, ddatay
-    reft, dkeyx, dkeyy, ddatax, ddatay, dextent = _prepare_datarefxy(
+    _, dkeyx, dkeyy, ddatax, ddatay, dextent = _prepare_datarefxy(
         coll=coll,
         coll2=coll2,
         dcamref=dcamref,
@@ -421,7 +421,7 @@ def _plot_diagnostic(
     
                 ax = dax[kax]['handle']
     
-                if is2d and reft is None:
+                if is2d:
                     im = ax.imshow(
                         ddata[k0].T,
                         extent=dextent[k0],
@@ -433,7 +433,7 @@ def _plot_diagnostic(
                     )
                     plt.colorbar(im, ax=ax)
     
-                elif reft is None:
+                else:
                     ax.plot(
                         ddata[k0],
                         c='k',
