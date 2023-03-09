@@ -753,14 +753,14 @@ def _augTikho_update(
     mu1 = (lamb/tau) * (2*a1bis/res2)**d  # rescale mu with noise estimate
     # mu1 = (lamb/tau) * (2*a1bis/max(res2, 1e-3))**d  # rescale mu with noise estimate
 
-    print()
-    print(conv_reg, d)
-    print('\t', a0bis, b0)
-    print('\t', a1bis, b1)
-    print('\t', res2, reg)
-    print('\t', lamb, tau)
-    print('\t', lamb/tau, (2*a1bis/res2)**d, mu1)
-    print()
+    # print()
+    # print(conv_reg, d)
+    # print('\t', a0bis, b0)
+    # print('\t', a1bis, b1)
+    # print('\t', res2, reg)
+    # print('\t', lamb, tau)
+    # print('\t', lamb/tau, (2*a1bis/res2)**d, mu1)
+    # print()
 
     # Compute convergence variable
     if conv_reg:

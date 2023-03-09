@@ -436,6 +436,7 @@ def _compute_check(
         nchan=nchan,
         nbs=nbs,
         conv_crit=conv_crit,
+        dsigma=dsigma,
     )
 
     return (
@@ -1176,6 +1177,7 @@ def _algo_check(
     nchan=None,
     nbs=None,
     conv_crit=None,
+    dsigma=None,
 ):
 
     # ------------------------
@@ -1197,7 +1199,11 @@ def _algo_check(
 
     # kwdargs specific to aug. tikhonov
     if dalgo['reg_param'] == 'augTikho':
-        a0 = kwdargs.get('a0', 1e-6)  # 10
+
+        # determination of a0 is an important parameter
+        # the result is sensitive to the order of magnitude of a0
+        # change a0 is there is strong over or under-smoothing
+        a0 = kwdargs.get('a0', np.nanmean(dsigma['data']))  # 10 ? 
         a1 = kwdargs.get('a1', 2)
 
         # to have [x]=1
