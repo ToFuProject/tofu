@@ -1201,16 +1201,31 @@ def _algo_check(
     if dalgo['reg_param'] == 'augTikho':
 
         # determination of a0 is an important parameter
-        # the result is sensitive to the order of magnitude of a0
+        # the result is sensitive to the order of magnitude of a0 (<1 or >1)
         # change a0 is there is strong over or under-smoothing
-        a0 = kwdargs.get('a0', np.nanmean(dsigma['data']))  # 10 ? 
-        a1 = kwdargs.get('a1', 2)
-
+        
+        # mu = lamb / tau
+        
+        # def a0
+        if nbs > 100*nchan:
+            a0 = 2         # lamb PDF with mean >> 0 => large reg
+            b0 = np.math.factorial(a0)**(1 / (a0 + 1))
+        else:
+            a0 = 0.1        # lamb PDF with mean close to 0 => small reg
+            b0 = 1e-3
+        
+        # (a0, b0) are the gamma distribution parameters for lamb
+        kwdargs['a0'] = kwdargs.get('a0', a0) # np.nanmean(dsigma['data']))  # 10 ?
         # to have [x]=1
-        kwdargs['b0'] = 1e-3  # np.math.factorial(a0)**(1 / (a0 + 1))
-        kwdargs['b1'] = np.math.factorial(a1)**(1 / (a1 + 1))
-        kwdargs['a0'] = a0
-        kwdargs['a1'] = a1
+        kwdargs['b0'] = kwdargs.get('b0', b0)   # np.math.factorial(a0)**(1 / (a0 + 1))
+        
+        # (a1, b1) are the gamma distribution parameters for tau
+        kwdargs['a1'] = kwdargs.get('a1', 2)
+        # to have [x]=1
+        kwdargs['b1'] = kwdargs.get(
+            'b1', 
+            np.math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1)),
+        )
 
         # Exponent for rescaling of a0bis
         # typically in [1/3 ; 1/2], but real limits are 0 < d < 1 (or 2 ?)

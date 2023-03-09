@@ -99,19 +99,22 @@ def _get_ref_vector_common(
     # profile2d
     else:
         
-        lrefbs = itt.chain.from_iterable([
-            v0['ref-bs'] for v0 in coll.dobj[wbs].values()
-        ])
+        lrefbs = list(itt.chain.from_iterable([
+            v0['ref'] for v0 in coll.dobj[wbs].values()
+        ]))
         
         key_bs = coll.get_profiles2d()[key_profile2d]
         refbs = coll.dobj[wbs][key_bs]['ref-bs']
         refi = [
-            rr for rr in coll.ddata[k0]['ref']
+            rr for rr in coll.ddata[key_profile2d]['ref']
             if rr not in refbs
             and (refc0 is None or rr == refc0)
             and rr not in lrefbs
         ]
-        assert len(refi) <= 1
+        if len(refi) > 1:
+            msg = (key_profile2d, coll.ddata[key_profile2d]['ref'], refi, lrefbs)
+            raise Exception(msg)
+            
         if len(refi) == 1:
             refc1 = refi[0]
             

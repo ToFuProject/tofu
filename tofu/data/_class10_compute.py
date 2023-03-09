@@ -283,6 +283,7 @@ def compute_inversions(
     if store is True:
         units = ddata['units'] / units_gmat
         key_data = ddata['keys']
+        
         _store(**locals())
 
     else:
@@ -490,7 +491,7 @@ def _store(
     coll.update(dobj=dobj, dref=dref, ddata=ddata)
 
     # add synthetic data
-    keyt = coll.get_time(key=keyinv)[3]
+    keyt = coll.get_ref_vector(key=keyinv, ref=reft)[3]
     data_synth = coll.add_retrofit_data(
         key=kretro,
         key_diag=key_diag,
@@ -703,9 +704,6 @@ def _compute_inv_loop(
         if verb == 1:
             msg = f"   chi2n = {chi2n[ii]:.3e}    niter = {niter[ii]}"
             print(msg, end='\n', flush=True)
-
-        # if ii == 1:     # DB
-        #     raise Exception()
 
 
 # ##################################################################
@@ -1092,6 +1090,7 @@ def compute_retrofit_data(
     # --------------
 
     if store:
+        
         _class8_compute_signal._store(
             coll=coll,
             key=key,
@@ -1184,7 +1183,6 @@ def _compute_retrofit_data_check(
         key_matrix=key_matrix,
         key_profile2d=key_profile2d,
     )
-    
     
     if hastime and t_out is not None and reft is None:
         reft = f'{key}_nt'
