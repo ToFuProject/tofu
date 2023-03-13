@@ -110,6 +110,15 @@ class Inversion(Previous):
         )
 
     # -----------------
+    # inversion from known solution
+    # -----------------
+
+    def add_inversion_from_phantom(
+        self,
+    ):
+        return 
+
+    # -----------------
     # synthetic data
     # -----------------
 
