@@ -436,7 +436,8 @@ def _compute_check(
         nchan=nchan,
         nbs=nbs,
         conv_crit=conv_crit,
-        dsigma=dsigma,
+        # scaling parameters for the hyperparameters of augTikhonov
+        sigma_rel=np.nanmean(dsigma['data']) / np.nanmean(ddata['data']),
     )
 
     return (
@@ -1177,7 +1178,7 @@ def _algo_check(
     nchan=None,
     nbs=None,
     conv_crit=None,
-    dsigma=None,
+    sigma_rel=None,
 ):
 
     # ------------------------
@@ -1200,19 +1201,21 @@ def _algo_check(
     # kwdargs specific to aug. tikhonov
     if dalgo['reg_param'] == 'augTikho':
 
+        # Exponent for rescaling of a0bis
+        # typically in [1/3 ; 1/2], but real limits are 0 < d < 1 (or 2 ?)
+        if kwdargs.get('d') is None:
+            kwdargs['d'] = 0.4 # 0.95        
+
         # determination of a0 is an important parameter
         # the result is sensitive to the order of magnitude of a0 (<1 or >1)
         # change a0 is there is strong over or under-smoothing
         
         # mu = lamb / tau
         
-        # def a0
-        if nbs > 100*nchan:
-            a0 = 2         # lamb PDF with mean >> 0 => large reg
-            b0 = np.math.factorial(a0)**(1 / (a0 + 1))
-        else:
-            a0 = 0.1        # lamb PDF with mean close to 0 => small reg
-            b0 = 1e-3
+        # # def a0
+        a0 = 0.1*sigma_rel**(-kwdargs['d'])
+        # typically set b0 to reg
+        b0 = 1
         
         # (a0, b0) are the gamma distribution parameters for lamb
         kwdargs['a0'] = kwdargs.get('a0', a0) # np.nanmean(dsigma['data']))  # 10 ?
@@ -1220,17 +1223,12 @@ def _algo_check(
         kwdargs['b0'] = kwdargs.get('b0', b0)   # np.math.factorial(a0)**(1 / (a0 + 1))
         
         # (a1, b1) are the gamma distribution parameters for tau
-        kwdargs['a1'] = kwdargs.get('a1', 2)
+        kwdargs['a1'] = kwdargs.get('a1', 1)
         # to have [x]=1
         kwdargs['b1'] = kwdargs.get(
             'b1', 
             np.math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1)),
         )
-
-        # Exponent for rescaling of a0bis
-        # typically in [1/3 ; 1/2], but real limits are 0 < d < 1 (or 2 ?)
-        if kwdargs.get('d') is None:
-            kwdargs['d'] = 0.4 # 0.95
 
         if kwdargs.get('conv_reg') is None:
             kwdargs['conv_reg'] = True

@@ -702,7 +702,7 @@ def _compute_inv_loop(
         mu0 = mu[ii]
 
         if verb == 1:
-            msg = f"   chi2n = {chi2n[ii]:.3e}    niter = {niter[ii]}"
+            msg = f"   chi2n = {chi2n[ii]:.3e}    reg = {regularity[ii]:.3e}    niter = {niter[ii]}"
             print(msg, end='\n', flush=True)
 
 
