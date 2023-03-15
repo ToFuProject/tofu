@@ -155,7 +155,6 @@ def get_dax_diag(
             key_cam=key_cam,
         )
 
-
     # ----------------------
     # create figure and axes
 
