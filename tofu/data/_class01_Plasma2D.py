@@ -156,6 +156,7 @@ class Plasma2D(Previous):
         plot_config=None,
         # parameters
         dres=None,
+        dunique_mesh_2d=None,
         # levels
         dlevels=None,
         ref_com=None,
@@ -180,6 +181,7 @@ class Plasma2D(Previous):
             key=key,
             # parameters
             dres=dres,
+            dunique_mesh_2d=dunique_mesh_2d,
             # levels
             dlevels=dlevels,
             ref_com=ref_com,

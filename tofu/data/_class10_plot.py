@@ -13,7 +13,6 @@ import datastock as ds
 
 # tofu
 # from tofu import __version__ as __version__
-from . import _generic_check
 from . import _class10_refs as _refs
 from . import _class8_plot
 
@@ -371,7 +370,7 @@ def plot_inversion(
             key_cam=key_cam,
         )
 
-    dax = _generic_check._check_dax(dax=dax, main='matrix')
+    dax = ds._generic_check._check_dax(dax=dax, main='matrix')
 
     # --------------
     # plot profile2d
@@ -704,7 +703,7 @@ def plot_inversion(
                 ls='-',
                 lw=1.,
                 marker='.',
-                label='nchi2n',
+                label='chi2n norm',
             )
 
             ax.plot(
@@ -714,7 +713,7 @@ def plot_inversion(
                 ls='-',
                 lw=1.,
                 marker='.',
-                label='mu*reg',
+                label='mu*reg norm',
             )
 
             # add mobile
@@ -732,6 +731,8 @@ def plot_inversion(
                 ind=0,
             )
             ax.set_ylim(bottom=0)
+            
+            ax.legend()
 
         kax = 'niter'
         if dax.get(kax) is not None:
@@ -807,10 +808,10 @@ def _plot_inversion_create_axes(
     # dax
     dax = {
         # data
-        'matrix': {'handle': ax0, 'type': 'matrix'},
-        'vertical': {'handle': ax1, 'type': 'misc'},
-        'horizontal': {'handle': ax2, 'type': 'misc'},
-        'traces': {'handle': ax3, 'type': 'misc'},
+        'matrix': {'handle': ax0},
+        'vertical': {'handle': ax1},
+        'horizontal': {'handle': ax2},
+        'tracesZ': {'handle': ax3},
     }
     # axes for text
     # ax4 = fig.add_subplot(gs[:3, 5], frameon=False)
