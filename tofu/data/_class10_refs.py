@@ -24,12 +24,12 @@ def _get_ref_vector_common(
     key_matrix=None,
     key_profile2d=None,
     dconstraints=None,
-    
+
 ):
 
     # ------------
     # check inputs
-    
+
     lc = [
         ddata is not None,
         key_profile2d is not None
@@ -37,10 +37,10 @@ def _get_ref_vector_common(
     if key_matrix is None or np.sum(lc) != 1:
         msg = "Please provide key_matrix and (ddata or key_profile2d)!"
         raise Exception(msg)
-    
+
     # ------------
     # geom matrix
-    
+
     refc0 = None
     wbs = coll._which_bsplines
     key_bs = coll.dobj['geom matrix'][key_matrix]['bsplines']
@@ -60,13 +60,13 @@ def _get_ref_vector_common(
                 assert ii == 0
                 refc0 = refi[0]
             assert refc0 == refi[0]
-    
-    
+
+
     lk = list(coll.dobj['geom matrix'][key_matrix]['data'])
-    
+
     # ------------------
     # data or profile2d
-    
+
     refc1 = None
     if ddata is not None:
         key_cam = ddata['keys_cam']
@@ -83,26 +83,26 @@ def _get_ref_vector_common(
                     assert ii == 0
                     refc1 = refi[0]
                 assert refc1 == refi[0]
-    
+
         lk += ddata['keys']
-        
+
         # ------------
         # dconstraints
-        
+
         if dconstraints is not None:
             if isinstance(dconstraints.get('rmax', {}).get('val'), str):
                 lk.append(dconstraints['rmax']['val'])
             if isinstance(dconstraints.get('rmin', {}).get('val'), str):
                 lk.append(dconstraints['rmin']['val'])
-    
+
     # ----------
     # profile2d
     else:
-        
+
         lrefbs = list(itt.chain.from_iterable([
             v0['ref'] for v0 in coll.dobj[wbs].values()
         ]))
-        
+
         key_bs = coll.get_profiles2d()[key_profile2d]
         refbs = coll.dobj[wbs][key_bs]['ref-bs']
         refi = [
@@ -114,15 +114,15 @@ def _get_ref_vector_common(
         if len(refi) > 1:
             msg = (key_profile2d, coll.ddata[key_profile2d]['ref'], refi, lrefbs)
             raise Exception(msg)
-            
+
         if len(refi) == 1:
             refc1 = refi[0]
-            
+
         lk += [key_profile2d]
 
     # -----
     # refc
-    
+
     if refc0 is None and refc1 is None:
         return False, None, None, None, None
     else:
@@ -133,5 +133,5 @@ def _get_ref_vector_common(
             refc = refc1
         else:
             refc = refc0
-        
+
         return coll.get_ref_vector_common(keys=lk, ref=refc)
