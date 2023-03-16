@@ -243,10 +243,6 @@ class Test01_Inversions():
                 kdat = 's0' if kd == 'd0' else 's1'
                 try:
 
-                    print()
-                    print('---------------')
-                    print(ii, jj, comb)
-
                     self.coll.add_inversion(
                         algo=comb[0],
                         key_matrix=kmat,
