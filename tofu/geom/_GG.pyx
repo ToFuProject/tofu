@@ -2578,12 +2578,12 @@ def flatten_lstruct_lims(list lstruct_lims) -> double[::1]:
     """
     cdef list flat_list
     cdef double[::1] lstruct_lims_np
-    if lstruct_lims is None or np.size(lstruct_lims) == 0:
+    if lstruct_lims is None or len(lstruct_lims) == 0:
         lstruct_lims_np = np.array([C_NAN])
     else:
         flat_list = []
         for ele in lstruct_lims:
-            if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
+            if isinstance(ele, (list, np.ndarray)) and len(ele) > 1:
                 for elele in ele:
                     if type(elele) is list:
                         flat_list += elele
