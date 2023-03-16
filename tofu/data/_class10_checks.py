@@ -136,7 +136,7 @@ def _compute_check(
         key_matrix=key_matrix,
         dconstraints=dconstraints,
     )
-    
+
     if reft is None:
         reft = f'{key}-nt'
 
@@ -233,7 +233,7 @@ def _compute_check(
     # valid chan / time indices of data / sigma (+ constraints)
 
     indok = np.isfinite(ddata['data']) & np.isfinite(dsigma['data'])
-    
+
     if not np.all(indok):
 
         # remove channels
@@ -684,6 +684,7 @@ def _check_rminmax(
     coll=None,
     dconst=None,
     rm=None,
+    nd=None,
     mtype=None,
 ):
 
@@ -692,7 +693,7 @@ def _check_rminmax(
         return
 
     # check against mesh type
-    if mtype != 'polar':
+    if nd != '1d':
         msg = f"constraint '{rm}' cannot be used with mesh type {mtype}"
         warnings.warn(msg)
         return
@@ -866,8 +867,8 @@ def _check_constraints(
     # ----------
     # rmin, rmax
 
-    _check_rminmax(coll=coll, dconst=dconst, rm='rmin', mtype=mtype)
-    _check_rminmax(coll=coll, dconst=dconst, rm='rmax', mtype=mtype)
+    _check_rminmax(coll=coll, dconst=dconst, rm='rmin', mtype=mtype, nd=nd)
+    _check_rminmax(coll=coll, dconst=dconst, rm='rmax', mtype=mtype, nd=nd)
 
     # -----------
     # derivatives
@@ -1204,29 +1205,29 @@ def _algo_check(
         # Exponent for rescaling of a0bis
         # typically in [1/3 ; 1/2], but real limits are 0 < d < 1 (or 2 ?)
         if kwdargs.get('d') is None:
-            kwdargs['d'] = 0.4 # 0.95        
+            kwdargs['d'] = 0.4 # 0.95
 
         # determination of a0 is an important parameter
         # the result is sensitive to the order of magnitude of a0 (<1 or >1)
         # change a0 is there is strong over or under-smoothing
-        
+
         # mu = lamb / tau
-        
+
         # # def a0
         a0 = 0.1*sigma_rel**(-kwdargs['d'])
         # typically set b0 to reg
         b0 = 1
-        
+
         # (a0, b0) are the gamma distribution parameters for lamb
         kwdargs['a0'] = kwdargs.get('a0', a0) # np.nanmean(dsigma['data']))  # 10 ?
         # to have [x]=1
         kwdargs['b0'] = kwdargs.get('b0', b0)   # np.math.factorial(a0)**(1 / (a0 + 1))
-        
+
         # (a1, b1) are the gamma distribution parameters for tau
         kwdargs['a1'] = kwdargs.get('a1', 1)
         # to have [x]=1
         kwdargs['b1'] = kwdargs.get(
-            'b1', 
+            'b1',
             np.math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1)),
         )
 
