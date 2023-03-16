@@ -24,7 +24,7 @@ def _get_ref_vector_common(
     key_matrix=None,
     key_profile2d=None,
     dconstraints=None,
-
+    dref_vector=None,
 ):
 
     # ------------
@@ -38,6 +38,9 @@ def _get_ref_vector_common(
         msg = "Please provide key_matrix and (ddata or key_profile2d)!"
         raise Exception(msg)
 
+    if dref_vector is None:
+        dref_vector = {}
+
     # ------------
     # geom matrix
 
@@ -46,10 +49,13 @@ def _get_ref_vector_common(
     key_bs = coll.dobj['geom matrix'][key_matrix]['bsplines']
     key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
     refbs = coll.dobj[wbs][key_bs]['ref-bs']
-    for ii, k0 in enumerate(coll.dobj['geom matrix'][key_matrix]['data']):
+    lgeom = coll.dobj['geom matrix'][key_matrix]['data']
+    for ii, k0 in enumerate(lgeom):
+        camdgeom = coll.dobj['camera'][key_cam[ii]]['dgeom']
+        camref = camdgeom['ref'] + camdgeom['ref_flat']
         refi = [
             rr for rr in coll.ddata[k0]['ref']
-            if rr not in coll.dobj['camera'][key_cam[ii]]['dgeom']['ref']
+            if rr not in camref
             and rr not in refbs
         ]
         assert len(refi) <= 1
@@ -60,7 +66,6 @@ def _get_ref_vector_common(
                 assert ii == 0
                 refc0 = refi[0]
             assert refc0 == refi[0]
-
 
     lk = list(coll.dobj['geom matrix'][key_matrix]['data'])
 
@@ -127,11 +132,26 @@ def _get_ref_vector_common(
         return False, None, None, None, None
     else:
         if refc0 is not None and refc1 is not None:
-            assert refc0 == refc1
+            if refc0 != refc1:
+                msg = (
+                    "Non-consistent references with:\n"
+                    f"\t- dref_vector: {dref_vector}\n"
+                    "For:\n"
+                    f"\t- geom matrix: {refc0}\n"
+                )
+                if ddata is None:
+                    msg += f"\t- {key_profile2d}: {refc1}\n"
+                else:
+                    msg += f"\t- {ddata['keys']}: {refc1}\n"
+                raise Exception(msg)
             refc = refc0
         elif refc0 is None:
             refc = refc1
         else:
             refc = refc0
 
-        return coll.get_ref_vector_common(keys=lk, ref=refc)
+        return coll.get_ref_vector_common(
+            keys=lk,
+            ref=refc,
+            **dref_vector,
+        )
