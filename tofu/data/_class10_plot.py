@@ -339,6 +339,9 @@ def plot_inversion(
     vmin=None,
     vmax=None,
     cmap=None,
+    # config
+    plot_config=None,
+    # figure
     dax=None,
     dmargin=None,
     fs=None,
@@ -791,7 +794,19 @@ def plot_inversion(
 
             ax.set_ylim(bottom=0)
 
+    # -------
+    # config
+
+    if plot_config.__class__.__name__ == 'Config':
+
+        kax = 'matrix'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+            plot_config.plot(lax=ax, proj='cross', dLeg=False)
+
+    # -------
     # connect
+
     if connect is True:
         coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
         coll2.disconnect_old()

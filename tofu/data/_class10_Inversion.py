@@ -158,6 +158,8 @@ class Inversion(Previous):
         # ref vector specifier
         dref_vector=None,
         cmap=None,
+        # config
+        plot_config=None,
         # figure
         dax=None,
         dmargin=None,
@@ -176,6 +178,8 @@ class Inversion(Previous):
             # ref vector specifier
             dref_vector=dref_vector,
             cmap=cmap,
+            # config
+            plot_config=plot_config,
             # figure
             dax=dax,
             dmargin=dmargin,
