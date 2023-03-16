@@ -443,7 +443,7 @@ class Diagnostic(Previous):
         if compute:
             self.compute_diagnostic_etendue_los(
                 key=key,
-                #e etendue
+                # etendue
                 analytical=True,
                 numerical=False,
                 res=None,

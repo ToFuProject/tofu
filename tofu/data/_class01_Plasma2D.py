@@ -153,18 +153,21 @@ class Plasma2D(Previous):
     def plot_as_profile2d(
         self,
         key=None,
-        plot_config=None,
         # parameters
         dres=None,
         dunique_mesh_2d=None,
         # levels
         dlevels=None,
         ref_com=None,
-        # details
+        # options
         plot_details=None,
+        plot_config=None,
         # ref vectors
         dref_vectorZ=None,
         dref_vectorU=None,
+        # interpolation
+        val_out=None,
+        nan0=None,
         # plot options
         vmin=None,
         vmax=None,
@@ -193,6 +196,9 @@ class Plasma2D(Previous):
             # ref vectors
             dref_vectorZ=dref_vectorZ,
             dref_vectorU=dref_vectorU,
+            # interpolation
+            val_out=val_out,
+            nan0=nan0,
             # plot options
             vmin=vmin,
             vmax=vmax,
@@ -210,6 +216,86 @@ class Plasma2D(Previous):
             if 'matrix' in dax.dax.keys():
                 ax = dax.dax['matrix']['handle']
                 ax = plot_config.plot(lax=ax, proj='cross')
+
+        # -----------
+        # connect
+
+        if connect is True:
+            dax.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+            dax.disconnect_old()
+            dax.connect()
+
+            dax.show_commands()
+            return dax
+        else:
+            return dax, dgroup
+
+    def plot_as_profile2d_compare(
+        self,
+        keys=None,
+        # parameters
+        dres=None,
+        # levels
+        dlevels=None,
+        ref_com=None,
+        # options
+        plot_config=None,
+        plot_details=None,
+        # ref vectors
+        dref_vectorZ=None,
+        dref_vectorU=None,
+        # interpolation
+        val_out=None,
+        nan0=None,
+        # plot options
+        vmin=None,
+        vmax=None,
+        cmap=None,
+        dax=None,
+        dmargin=None,
+        fs=None,
+        dcolorbar=None,
+        dleg=None,
+        # interactivity
+        dinc=None,
+        connect=True,
+    ):
+
+        # Plot profile 2d
+        dax, dgroup = super().plot_as_profile2d_compare(
+            keys=keys,
+            # parameters
+            dres=dres,
+            # levels
+            dlevels=dlevels,
+            ref_com=ref_com,
+            # details
+            plot_details=plot_details,
+            # ref vectors
+            dref_vectorZ=dref_vectorZ,
+            dref_vectorU=dref_vectorU,
+            # interpolation
+            val_out=val_out,
+            nan0=nan0,
+            # plot options
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+            # interactivity
+            connect=False,
+        )
+
+        # plot config if relevant
+        if plot_config.__class__.__name__ == 'Config':
+            for kax in ['prof0', 'prof1']:
+                if kax in dax.dax.keys():
+                    ax = dax.dax[kax]['handle']
+                    ax = plot_config.plot(lax=ax, proj='cross')
 
         # -----------
         # connect
