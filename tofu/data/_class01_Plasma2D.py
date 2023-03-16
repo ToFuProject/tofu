@@ -148,8 +148,8 @@ class Plasma2D(Previous):
             indices=indt,
             ind_strict=ind_strict,
             dim=dim,
-        )      
-    
+        )
+
     def plot_as_profile2d(
         self,
         key=None,
@@ -162,6 +162,9 @@ class Plasma2D(Previous):
         ref_com=None,
         # details
         plot_details=None,
+        # ref vectors
+        dref_vectorZ=None,
+        dref_vectorU=None,
         # plot options
         vmin=None,
         vmax=None,
@@ -175,7 +178,7 @@ class Plasma2D(Previous):
         dinc=None,
         connect=True,
     ):
-        
+
         # Plot profile 2d
         dax, dgroup = super().plot_as_profile2d(
             key=key,
@@ -187,6 +190,9 @@ class Plasma2D(Previous):
             ref_com=ref_com,
             # details
             plot_details=plot_details,
+            # ref vectors
+            dref_vectorZ=dref_vectorZ,
+            dref_vectorU=dref_vectorU,
             # plot options
             vmin=vmin,
             vmax=vmax,
@@ -198,13 +204,13 @@ class Plasma2D(Previous):
             dleg=dleg,
             connect=False,
         )
-        
+
         # plot config if relevant
         if plot_config.__class__.__name__ == 'Config':
             if 'matrix' in dax.dax.keys():
                 ax = dax.dax['matrix']['handle']
                 ax = plot_config.plot(lax=ax, proj='cross')
-        
+
         # -----------
         # connect
 

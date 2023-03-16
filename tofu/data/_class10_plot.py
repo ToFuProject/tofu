@@ -17,10 +17,10 @@ from . import _class10_refs as _refs
 from . import _class8_plot
 
 
-# #############################################################################
-# #############################################################################
+# ################################################################
+# ################################################################
 #                           inversions
-# #############################################################################
+# ################################################################
 
 
 def _plot_inversion_check(
@@ -158,7 +158,14 @@ def _plot_inversion_prepare(
     key_data=None,
     key_retro=None,
     los_res=None,
+    dref_vector=None,
 ):
+
+    # ------------
+    # check
+
+    if dref_vector is None:
+        dref_vector = {}
 
     # -----------------
     # add nearest-neighbourg interpolated data
@@ -198,7 +205,6 @@ def _plot_inversion_prepare(
         is2d=is2d,
     )
 
-
     # -----------
     # get reft
 
@@ -206,12 +212,17 @@ def _plot_inversion_prepare(
         coll=coll,
         key_matrix=key_matrix,
         key_profile2d=keyinv,
+        dref_vector=dref_vector,
     )
 
     # -----------------
     # add nearest-neighbourg interpolated data
 
-    reft, keyt, time = coll.get_ref_vector(key=keyinv, ref=reft)[2:5]
+    reft, keyt, time = coll.get_ref_vector(
+        key=keyinv,
+        ref=reft,
+        **dref_vector,
+    )[2:5]
     lkmat = coll.dobj['geom matrix'][key_matrix]['data']
 
     dind = None
@@ -335,6 +346,8 @@ def plot_inversion(
     dleg=None,
     # los sampling
     los_res=None,
+    # ref vector specifier
+    dref_vector=None,
     # interactivity
     color_dict=None,
     nlos=None,
@@ -388,6 +401,9 @@ def plot_inversion(
         key=keyinv,
         dres=res,
         plot_details=plot_details,
+        # ref vectors
+        dref_vectorZ=dref_vector,
+        dref_vectorU=None,          # U not handled yet
         # figure
         vmin=vmin,
         vmax=vmax,
@@ -423,6 +439,7 @@ def plot_inversion(
         key_data=key_data,
         key_retro=key_retro,
         los_res=los_res,
+        dref_vector=dref_vector,
     )
 
     # ----------------

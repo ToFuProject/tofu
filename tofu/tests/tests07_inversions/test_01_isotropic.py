@@ -168,7 +168,7 @@ class Test01_Inversions():
         )
 
         coll.add_ref(key='nt0', size=2)
-        coll.add_data(key='t0', data=t0, dim='time', ref='nt0')
+        coll.add_data(key='t0', data=t0, dim='time', ref='nt0', units='s')
         coll.add_data(
             key='emiss',
             data=emiss,
@@ -222,7 +222,7 @@ class Test01_Inversions():
             else:
                 lop = ['D1N2', 'D2N2']
 
-            for ii, comb in enumerate(itt.product(dalgo.keys(), lop)):
+            for jj, comb in enumerate(itt.product(dalgo.keys(), lop)):
 
                 if comb[0] == 'algo5':
                     continue
@@ -243,16 +243,21 @@ class Test01_Inversions():
                 kdat = 's0' if kd == 'd0' else 's1'
                 try:
 
+                    print()
+                    print('---------------')
+                    print(ii, jj, comb)
+
                     self.coll.add_inversion(
                         algo=comb[0],
                         key_matrix=kmat,
                         key_data=kdat,
                         sigma=0.10,
                         operator=comb[1],
-                        store=ii%2 == 0,
+                        store=jj%2 == 0,
                         conv_crit=1.e-3,
                         kwdargs={'tol': 1.e-2, 'maxiter': 100},
                         maxiter_outer=10,
+                        dref_vector={'units': 's'},
                         verb=1,
                     )
                     ksig = f'{kdat}-sigma'
@@ -275,5 +280,9 @@ class Test01_Inversions():
         # plotting
         linv = list(self.coll.dobj['inversions'].keys())[::7]
         for kinv in linv:
-            dax = self.coll.plot_inversion(key=kinv, res=0.1)
+            dax = self.coll.plot_inversion(
+                key=kinv,
+                res=0.1,
+                dref_vector={'units': 's'},
+            )
             plt.close('all')

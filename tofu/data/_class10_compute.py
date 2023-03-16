@@ -56,6 +56,8 @@ def compute_inversions(
     kwdargs=None,
     method=None,
     options=None,
+    # ref vector specifier
+    dref_vector=None,
 ):
 
     # -------------
@@ -244,22 +246,22 @@ def compute_inversions(
     # ---------------------------------------------
     # estimate relative regularity for polar mesh of not regul
 
-    if not regul and mtype == 'polar':
+    if (not regul) and nd == '1d':
         clas = coll.dobj['bsplines'][keybs]['class']
 
-        if clas.knotsa is None:
-            # estimate 1d squared gradient
-            kr = coll.dobj[coll._which_mesh][keym]['knots'][0]
-            rr = coll.ddata[kr]['data']
-            regularity = np.nansum(
-                clas(
-                    radius=np.linspace(rr[0], rr[-1], rr.size*10),
-                    coefs=sol,
-                    radius_vs_time=False,
-                    deriv=1,
-                )**2,
-                axis=1,
-            )
+        # if clas.knotsa is None:
+            # # estimate 1d squared gradient
+            # kr = coll.dobj[coll._which_mesh][keym]['knots'][0]
+            # rr = coll.ddata[kr]['data']
+            # regularity = np.nansum(
+                # clas(
+                    # radius=np.linspace(rr[0], rr[-1], rr.size*10),
+                    # coefs=sol,
+                    # radius_vs_time=False,
+                    # deriv=1,
+                # )**2,
+                # axis=1,
+            # )
 
     # -------------
     # format output
@@ -283,7 +285,7 @@ def compute_inversions(
     if store is True:
         units = ddata['units'] / units_gmat
         key_data = ddata['keys']
-        
+
         _store(**locals())
 
     else:
@@ -388,14 +390,29 @@ def _store(
     chain=None,
     conv_crit=None,
     units=None,
+    dref_vector=None,
     **kwdargs,
 ):
+
+    # ------------
+    # check input
+
+    if dref_vector is None:
+        dref_vector = {}
 
     # ---------------------------
     # reshape if unique time step
 
     if notime:
-        assert sol_full.shape[0] == 1
+        if not sol_full.shape[0] == 1:
+            msg = (
+                "Inconsistency:\n"
+                "notime = True but sol_full.shape[0] > 1\n"
+                f"\t- key_data: '{key_data}'\n"
+                f"\t- key_matrix: '{key_matrix}'\n"
+                f"\t- ol_full.shape: {ol_full.shape}\n'"
+            )
+            raise Exception(msg)
         sol_full = sol_full[0, ...]
     else:
         # restore full size
@@ -491,13 +508,14 @@ def _store(
     coll.update(dobj=dobj, dref=dref, ddata=ddata)
 
     # add synthetic data
-    keyt = coll.get_ref_vector(key=keyinv, ref=reft)[3]
+    keyt = coll.get_ref_vector(key=keyinv, ref=reft, **dref_vector)[3]
     data_synth = coll.add_retrofit_data(
         key=kretro,
         key_diag=key_diag,
         key_matrix=key_matrix,
         key_profile2d=keyinv,
         t=keyt,
+        dref_vector=dref_vector,
         store=True,
     )
 
@@ -958,6 +976,8 @@ def compute_retrofit_data(
     key_matrix=None,
     key_profile2d=None,
     t=None,
+    # ref_vector_specifier
+    dref_vector=None,
     # parameters
     store=None,
     returnas=None,
@@ -984,6 +1004,8 @@ def compute_retrofit_data(
         key_matrix=key_matrix,
         key_profile2d=key_profile2d,
         t=t,
+        # ref_vector_specifier
+        dref_vector=dref_vector,
         # parameters
         store=store,
         returnas=returnas,
@@ -1090,7 +1112,6 @@ def compute_retrofit_data(
     # --------------
 
     if store:
-        
         _class8_compute_signal._store(
             coll=coll,
             key=key,
@@ -1121,12 +1142,14 @@ def _compute_retrofit_data_check(
     key_matrix=None,
     key_profile2d=None,
     t=None,
+    # ref vector specifier
+    dref_vector=None,
     # parameters
     store=None,
     returnas=None,
 ):
 
-    #----------
+    # ----------
     # keys
 
     # key_diag
@@ -1182,14 +1205,23 @@ def _compute_retrofit_data_check(
         coll=coll,
         key_matrix=key_matrix,
         key_profile2d=key_profile2d,
+        dref_vector=dref_vector,
     )
-    
+
     if hastime and t_out is not None and reft is None:
         reft = f'{key}_nt'
         keyt = f'{key}_t'
 
-    ist_mat = coll.get_ref_vector(key=lkmat[0], ref=reft)[0]
-    ist_prof = coll.get_ref_vector(key=key_profile2d, ref=reft)[0]
+    ist_mat = coll.get_ref_vector(
+        key=lkmat[0],
+        ref=reft,
+        **dref_vector,
+    )[0]
+    ist_prof = coll.get_ref_vector(
+        key=key_profile2d,
+        ref=reft,
+        **dref_vector,
+    )[0]
 
     # reft, keyt and refs
     if hastime and t_out is not None:

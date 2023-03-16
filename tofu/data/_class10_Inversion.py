@@ -67,6 +67,8 @@ class Inversion(Previous):
         options=None,
         # for polar mesh so far
         dconstraints=None,
+        # ref vector specifier
+        dref_vector=None,
     ):
         """ Compute tomographic inversion
 
@@ -103,6 +105,8 @@ class Inversion(Previous):
             method=method,
             options=options,
             dconstraints=dconstraints,
+            # ref vector specifier
+            dref_vector=dref_vector,
         )
 
     # -----------------
@@ -116,6 +120,8 @@ class Inversion(Previous):
         key_matrix=None,
         key_profile2d=None,
         t=None,
+        # ref vector specifier
+        dref_vector=None,
         store=None,
     ):
         """ Compute synthetic data using matching geometry matrix and profile2d
@@ -133,6 +139,8 @@ class Inversion(Previous):
             key_matrix=key_matrix,
             key_profile2d=key_profile2d,
             t=t,
+            # ref vector specifier
+            dref_vector=dref_vector,
             store=store,
         )
 
@@ -147,7 +155,10 @@ class Inversion(Previous):
         vmax=None,
         res=None,
         plot_details=None,
+        # ref vector specifier
+        dref_vector=None,
         cmap=None,
+        # figure
         dax=None,
         dmargin=None,
         fs=None,
@@ -162,7 +173,10 @@ class Inversion(Previous):
             vmax=vmax,
             res=res,
             plot_details=plot_details,
+            # ref vector specifier
+            dref_vector=dref_vector,
             cmap=cmap,
+            # figure
             dax=dax,
             dmargin=dmargin,
             fs=fs,

@@ -55,6 +55,8 @@ def _compute_check(
     kwdargs=None,
     method=None,
     options=None,
+    # ref vector specifiers
+    dref_vector=None,
     **kwargs,
 ):
 
@@ -135,6 +137,7 @@ def _compute_check(
         ddata=ddata,
         key_matrix=key_matrix,
         dconstraints=dconstraints,
+        dref_vector=dref_vector,
     )
 
     if reft is None:
