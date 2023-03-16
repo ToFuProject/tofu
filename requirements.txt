@@ -9,7 +9,7 @@ svg.path
 Polygon3
 
 ######## Requirements with Version Specifier ########
-numpy==1.21.6
+numpy==1.21.5
 Cython>=0.26
 bsplines2d>=0.0.2
 bsplines2d
