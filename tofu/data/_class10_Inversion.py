@@ -143,10 +143,10 @@ class Inversion(Previous):
     def plot_inversion(
         self,
         key=None,
-        indt=None,
         vmin=None,
         vmax=None,
         res=None,
+        plot_details=None,
         cmap=None,
         dax=None,
         dmargin=None,
@@ -158,10 +158,10 @@ class Inversion(Previous):
         return _plot.plot_inversion(
             coll=self,
             key=key,
-            indt=indt,
             vmin=vmin,
             vmax=vmax,
             res=res,
+            plot_details=plot_details,
             cmap=cmap,
             dax=dax,
             dmargin=dmargin,

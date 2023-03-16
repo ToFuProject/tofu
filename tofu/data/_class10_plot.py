@@ -26,6 +26,7 @@ from . import _class8_plot
 def _plot_inversion_check(
     coll=None,
     key=None,
+    plot_details=None,
     indbf=None,
     indchan=None,
     cmap=None,
@@ -91,6 +92,13 @@ def _plot_inversion_check(
         types=dict,
     )
 
+    # plot_details
+    plot_details = ds._generic_check._check_var(
+        plot_details, 'plot_details',
+        types=bool,
+        default=True,
+    )
+
     # los_res
     los_res = ds._generic_check._check_var(
         los_res, 'los_res',
@@ -134,7 +142,7 @@ def _plot_inversion_check(
         is2d, mtype, nd,
         cropbs, cmap, dcolorbar,
         nlos, los_res, color_dict,
-        dleg, connect,
+        dleg, plot_details, connect,
     )
 
 
@@ -315,7 +323,7 @@ def _plot_inversion_prepare(
 def plot_inversion(
     coll=None,
     key=None,
-    indt=None,
+    plot_details=None,
     res=None,
     vmin=None,
     vmax=None,
@@ -343,10 +351,11 @@ def plot_inversion(
         is2d, mtype, nd,
         cropbs, cmap, dcolorbar,
         nlos, los_res, color_dict,
-        dleg, connect,
+        dleg, plot_details, connect,
     ) = _plot_inversion_check(
         coll=coll,
         key=key,
+        plot_details=plot_details,
         cmap=cmap,
         dcolorbar=dcolorbar,
         dleg=dleg,
@@ -378,6 +387,7 @@ def plot_inversion(
     coll2, dgroup = coll.plot_as_profile2d(
         key=keyinv,
         dres=res,
+        plot_details=plot_details,
         # figure
         vmin=vmin,
         vmax=vmax,
@@ -852,6 +862,6 @@ def _plot_inversion_create_axes(
     dax['niter'] = fig.add_subplot(gs[2*nblock+ncam:, :2], sharex=ax3)
 
     if ax7 is not None:
-        dax['radial'] = {'handle': ax7, 'type': 'misc'}
+        dax['radial'] = {'handle': ax7}
 
     return dax
