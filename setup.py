@@ -314,7 +314,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        "numpy==1.22.4",
+        "numpy==1.21.6",
         "scipy",
         # "scikit-sparse",
         # "scikit-umfpack",
