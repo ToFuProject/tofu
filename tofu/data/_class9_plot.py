@@ -366,7 +366,9 @@ def plot_geometry_matrix(
     indbf=None,
     indchan=None,
     indt=None,
+    # options
     plot_mesh=None,
+    plot_config=None,
     # plotting
     vmin=None,
     vmax=None,
@@ -437,114 +439,16 @@ def plot_geometry_matrix(
     # plot - prepare
 
     if dax is None:
-
-        if fs is None:
-            fs = (16, 9)
-
-        if dmargin is None:
-            dmargin = {
-                'left': 0.05, 'right': 0.98,
-                'bottom': 0.05, 'top': 0.95,
-                'hspace': 0.20, 'wspace': 0.25,
-            }
-
-        fig = plt.figure(figsize=fs)
-        ncols = 4 + (indt is not None)
-        gs = gridspec.GridSpec(ncols=ncols, nrows=2, **dmargin)
-
-        # ax01 = matrix
-        ax01 = fig.add_subplot(gs[0, 1])
-        ax01.set_ylabel(f'channels')
-        ax01.set_xlabel(f'basis functions')
-        ax01.set_title(key, size=14)
-        ax01.tick_params(
-            axis="x",
-            bottom=False, top=True,
-            labelbottom=False, labeltop=True,
+        dax = _create_dax(
+            fs=fs,
+            dmargin=dmargin,
+            indt=indt,
+            key=key,
+            vmin=vmin,
+            vmax=vmax,
         )
-        ax01.xaxis.set_label_position('top')
 
-        # ax00 = horizontal
-        ax00 = fig.add_subplot(gs[0, 0], sharex=ax01)
-        ax00.set_xlabel(f'basis functions')
-        ax00.set_ylabel(f'data')
-        ax00.set_ylim(vmin, vmax)
-
-        # ax02 = vertical
-        ax02 = fig.add_subplot(gs[0, 2], sharey=ax01)
-        ax02.set_xlabel(f'channels')
-        ax02.set_ylabel(f'data')
-        ax02.tick_params(
-            axis="x",
-            bottom=False, top=True,
-            labelbottom=False, labeltop=True,
-        )
-        ax02.xaxis.set_label_position('top')
-        ax02.tick_params(
-            axis="y",
-            left=False, right=True,
-            labelleft=False, labelright=True,
-        )
-        ax02.yaxis.set_label_position('right')
-        ax02.set_xlim(vmin, vmax)
-
-        if indt is not None:
-            axt = fig.add_subplot(gs[0, 3], sharey=ax00)
-            axt.set_xlabel(f'time')
-            axt.set_ylabel(f'data')
-
-
-        # ax10 = cross1
-        ax10 = fig.add_subplot(gs[1, 0], aspect='equal')
-        ax10.set_xlabel(f'R (m)')
-        ax10.set_ylabel(f'Z (m)')
-
-        # ax11 = crosstot
-        ax11 = fig.add_subplot(
-            gs[1, 1],
-            aspect='equal',
-            sharex=ax10,
-            sharey=ax10,
-        )
-        ax11.set_xlabel(f'R (m)')
-        ax11.set_ylabel(f'Z (m)')
-
-        # ax12 = cross2
-        ax12 = fig.add_subplot(
-            gs[1, 2],
-            aspect='equal',
-            sharex=ax10,
-            sharey=ax10,
-        )
-        ax12.set_xlabel(f'R (m)')
-        ax12.set_ylabel(f'Z (m)')
-
-        # text
-        axt0 = fig.add_subplot(gs[0, -1], frameon=False)
-        axt0.set_xticks([])
-        axt0.set_yticks([])
-        axt1 = fig.add_subplot(gs[1, -1], frameon=False)
-        axt1.set_xticks([])
-        axt1.set_yticks([])
-
-        # define dax
-        dax = {
-            # matrix
-            'matrix': {'handle': ax01, 'inverty': True},
-            'vertical': {'handle': ax02, 'type': 'misc'},
-            'horizontal': {'handle': ax00, 'type': 'misc'},
-            # cross-section
-            'cross1': {'handle': ax10, 'type': 'cross'},
-            'cross2': {'handle': ax12, 'type': 'cross'},
-            'crosstot': {'handle': ax11, 'type': 'cross'},
-            # text
-            'text0': {'handle': axt0, 'type': 'text'},
-            'text1': {'handle': axt1, 'type': 'text'},
-        }
-        if indt is not None:
-            dax['traces'] = {'handle': axt, 'type': 'misc'}
-
-    dax = _generic_check._check_dax(dax=dax, main='matrix')
+    dax = ds._generic_check._check_dax(dax=dax, main='matrix')
 
     # --------------
     # plot mesh
@@ -653,6 +557,16 @@ def plot_geometry_matrix(
         # dax['cross'].legend(**dleg)
 
     # -------
+    # config
+
+    if plot_config.__class__.__name__ == 'Config':
+
+        for kax in ['cross1', 'cross2', 'crosstot']:
+            if dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+                plot_config.plot(lax=ax, proj='cross', dLeg=False)
+
+    # -------
     # connect
 
     coll2.setup_interactivity(kinter='inter0', dgroup=dgroup)
@@ -661,3 +575,126 @@ def plot_geometry_matrix(
     coll2.show_commands()
 
     return coll2
+
+
+# ############################################################
+# ############################################################
+#           Create axes
+# ############################################################
+
+
+def _create_dax(
+    fs=None,
+    dmargin=None,
+    indt=None,
+    key=None,
+    vmin=None,
+    vmax=None,
+):
+    if fs is None:
+        fs = (16, 9)
+
+    if dmargin is None:
+        dmargin = {
+            'left': 0.05, 'right': 0.98,
+            'bottom': 0.05, 'top': 0.95,
+            'hspace': 0.20, 'wspace': 0.25,
+        }
+
+    fig = plt.figure(figsize=fs)
+    ncols = 4 + (indt is not None)
+    gs = gridspec.GridSpec(ncols=ncols, nrows=2, **dmargin)
+
+    # ax01 = matrix
+    ax01 = fig.add_subplot(gs[0, 1])
+    ax01.set_ylabel(f'channels')
+    ax01.set_xlabel(f'basis functions')
+    ax01.set_title(key, size=14)
+    ax01.tick_params(
+        axis="x",
+        bottom=False, top=True,
+        labelbottom=False, labeltop=True,
+    )
+    ax01.xaxis.set_label_position('top')
+
+    # ax00 = horizontal
+    ax00 = fig.add_subplot(gs[0, 0], sharex=ax01)
+    ax00.set_xlabel(f'basis functions')
+    ax00.set_ylabel(f'data')
+    ax00.set_ylim(vmin, vmax)
+
+    # ax02 = vertical
+    ax02 = fig.add_subplot(gs[0, 2], sharey=ax01)
+    ax02.set_xlabel(f'channels')
+    ax02.set_ylabel(f'data')
+    ax02.tick_params(
+        axis="x",
+        bottom=False, top=True,
+        labelbottom=False, labeltop=True,
+    )
+    ax02.xaxis.set_label_position('top')
+    ax02.tick_params(
+        axis="y",
+        left=False, right=True,
+        labelleft=False, labelright=True,
+    )
+    ax02.yaxis.set_label_position('right')
+    ax02.set_xlim(vmin, vmax)
+
+    if indt is not None:
+        axt = fig.add_subplot(gs[0, 3], sharey=ax00)
+        axt.set_xlabel(f'time')
+        axt.set_ylabel(f'data')
+
+
+    # ax10 = cross1
+    ax10 = fig.add_subplot(gs[1, 0], aspect='equal')
+    ax10.set_xlabel(f'R (m)')
+    ax10.set_ylabel(f'Z (m)')
+
+    # ax11 = crosstot
+    ax11 = fig.add_subplot(
+        gs[1, 1],
+        aspect='equal',
+        sharex=ax10,
+        sharey=ax10,
+    )
+    ax11.set_xlabel(f'R (m)')
+    ax11.set_ylabel(f'Z (m)')
+
+    # ax12 = cross2
+    ax12 = fig.add_subplot(
+        gs[1, 2],
+        aspect='equal',
+        sharex=ax10,
+        sharey=ax10,
+    )
+    ax12.set_xlabel(f'R (m)')
+    ax12.set_ylabel(f'Z (m)')
+
+    # text
+    axt0 = fig.add_subplot(gs[0, -1], frameon=False)
+    axt0.set_xticks([])
+    axt0.set_yticks([])
+    axt1 = fig.add_subplot(gs[1, -1], frameon=False)
+    axt1.set_xticks([])
+    axt1.set_yticks([])
+
+    # define dax
+    dax = {
+        # matrix
+        'matrix': {'handle': ax01, 'inverty': True},
+        'vertical': {'handle': ax02},
+        'horizontal': {'handle': ax00},
+        # cross-section
+        'cross1': {'handle': ax10, 'type': 'cross'},
+        'cross2': {'handle': ax12, 'type': 'cross'},
+        'crosstot': {'handle': ax11, 'type': 'cross'},
+        # text
+        'text0': {'handle': axt0, 'type': 'text'},
+        'text1': {'handle': axt1, 'type': 'text'},
+    }
+    if indt is not None:
+        dax['tracesZ'] = {'handle': axt}
+
+    return dax
