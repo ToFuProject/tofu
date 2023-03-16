@@ -324,8 +324,7 @@ setup(
         "cython>=0.26",
         "svg.path",
         "Polygon3",
-        "datastock>=0.0.24",
-        "bsplines2d",
+        "bsplines2d>=0.0.2",
     ],
     python_requires=">=3.6",
 
