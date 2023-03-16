@@ -10,6 +10,6 @@ Polygon3
 
 ######## Requirements with Version Specifier ########
 numpy==1.21.5
-Cython>=0.26
+Cython==0.29.32
 bsplines2d>=0.0.2
 bsplines2d
