@@ -160,7 +160,7 @@ def get_dax_diag(
 
     dax = {}
     for kk, vv in dgs.items():
-        
+
         if vv['proj'] == '3d':
             ax = fig.add_subplot(
                 gs[vv['ind']],
@@ -258,13 +258,13 @@ def _ax_double(
 
     dgs = {}
     for ii, pp in enumerate(proj):
-        
+
         if pp in ['camera', 'traces']:
             for jj, k0 in enumerate(key_cam):
                 ind = (jj, ii)
                 kk = f'{k0}_sig' if pp == 'camera' else f'{k0}_trace'
                 dgs[kk] = {'proj': pp, 'ind': ind}
-            
+
         else:
             ind = (slice(0, nc), ii)
             dgs[pp] = {'proj': pp, 'ind': ind}
@@ -301,7 +301,7 @@ def _ax_3(
 
     nrows = 2
     nc = len(key_cam) if hascam else 1
-    
+
     ncol = 2
     colmult = 2 if hasboth else 1
 
@@ -360,7 +360,7 @@ def _ax_4(
 
     hascam = 'camera' in proj or 'traces' in proj
     hasboth = 'camera' in proj and 'traces' in proj
-    
+
     ncol = 2
     colmult = 2 if hasboth else 1
 
@@ -380,7 +380,7 @@ def _ax_4(
                 if hasboth:
                     ind = (slice(2*jj, 2*(jj + 1)), colmult*ncol - 1)
                 else:
-                    ind = (nc + (ii%2)*nc + jj, colmult*ncol - 1)
+                    ind = (nc + jj, colmult*ncol - 1)
                 kk = f'{k0}_sig'
                 dgs[kk] = {'proj': pp, 'ind': ind}
         elif pp == 'traces':
@@ -388,7 +388,7 @@ def _ax_4(
                 if hasboth:
                     ind = (slice(2*jj, 2*(jj + 1)), colmult*(ncol - 1))
                 else:
-                    ind = (nc + (ii%2)*nc + jj, colmult*(ncol - 1))
+                    ind = (nc + jj, colmult*(ncol - 1))
                 kk = f'{k0}_trace'
                 dgs[kk] = {'proj': pp, 'ind': ind}
         else:
@@ -430,7 +430,7 @@ def _ax_5(
 
     hascam = 'camera' in proj or 'traces' in proj
     hasboth = 'camera' in proj and 'traces' in proj
-    
+
     ncol = 3
     colmult = 2 if hasboth else 1
 
@@ -450,13 +450,13 @@ def _ax_5(
                 ind = (slice(jj*2, (jj+1)*2), colmult*ncol - 1)
                 kk = f'{k0}_sig'
                 dgs[kk] = {'proj': 'camera', 'ind': ind}
-                
+
         elif pp == 'traces':
             for jj, k0 in enumerate(key_cam):
                 ind = (slice(jj*2, (jj+1)*2), colmult*(ncol - 1))
                 kk = f'{k0}_trace'
                 dgs[kk] = {'proj': 'traces', 'ind': ind}
-            
+
         else:
             ind = (
                 slice((i0 % 2)*nc, (i0 % 2)*nc + nc),
@@ -464,7 +464,7 @@ def _ax_5(
             )
             dgs[pp] = {'proj': pp, 'ind': ind}
             i0 += 1
-    
+
     return gs, dgs
 
 
