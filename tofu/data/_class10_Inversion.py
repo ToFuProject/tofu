@@ -50,10 +50,6 @@ class Inversion(Previous):
         sigma=None,
         # choice of algo
         # isotropic=None,
-        # sparse=None,
-        # positive=None,
-        # cholesky=None,
-        # regparam_algo=None,
         algo=None,
         maxiter_outer=None,
         # regularity operator
@@ -108,15 +104,6 @@ class Inversion(Previous):
             options=options,
             dconstraints=dconstraints,
         )
-
-    # -----------------
-    # inversion from known solution
-    # -----------------
-
-    def add_inversion_from_phantom(
-        self,
-    ):
-        return 
 
     # -----------------
     # synthetic data

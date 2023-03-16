@@ -189,11 +189,11 @@ def _plot_inversion_prepare(
         ddata=ddata,
         is2d=is2d,
     )
-        
-        
+
+
     # -----------
     # get reft
-    
+
     hastime, reft, keyt, t, dind = _refs._get_ref_vector_common(
         coll=coll,
         key_matrix=key_matrix,
@@ -306,7 +306,7 @@ def _plot_inversion_prepare(
     return (
         dlos, dref_los,
         drefx, drefy, dkeyx, dkeyy, ddatax, ddatay, dextent,
-        time, reft,
+        time, keyt, reft,
         chi2n, mu, reg, niter,
         datamin, datamax, errmax,
     )
@@ -399,7 +399,7 @@ def plot_inversion(
     (
         dlos, dref_los,
         drefx, drefy, dkeyx, dkeyy, ddatax, ddatay, dextent,
-        time, reft,
+        time, keyt, reft,
         chi2n, mu, reg, niter,
         datamin, datamax, errmax,
     ) = _plot_inversion_prepare(
@@ -697,7 +697,7 @@ def plot_inversion(
         if dax.get(kax) is not None:
             ax = dax[kax]['handle']
             ax.plot(
-                # time,
+                time,
                 chi2n / np.nanmax(chi2n),
                 c='k',
                 ls='-',
@@ -707,7 +707,7 @@ def plot_inversion(
             )
 
             ax.plot(
-                # time,
+                time,
                 reg / np.nanmax(reg),
                 c='b',
                 ls='-',
@@ -725,26 +725,42 @@ def plot_inversion(
                 key=kl0,
                 handle=l0,
                 refs=(reft,),
-                data=['index'],
+                data=[keyt],
                 dtype=['xdata'],
                 axes=kax,
                 ind=0,
             )
             ax.set_ylim(bottom=0)
-            
+
             ax.legend()
 
         kax = 'niter'
         if dax.get(kax) is not None:
             ax = dax[kax]['handle']
             ax.plot(
-                # time,
+                time,
                 niter,
                 c='k',
                 ls='-',
                 lw=1.,
                 marker='.',
             )
+
+            # add mobile
+            l0 = ax.axvline(time[0], c='k', ls='-', lw=1.)
+
+            # add mobile
+            kl0 = 't-niter'
+            coll2.add_mobile(
+                key=kl0,
+                handle=l0,
+                refs=(reft,),
+                data=[keyt],
+                dtype=['xdata'],
+                axes=kax,
+                ind=0,
+            )
+            ax.set_ylim(bottom=0)
 
             ax.set_ylim(bottom=0)
 
@@ -839,4 +855,3 @@ def _plot_inversion_create_axes(
         dax['radial'] = {'handle': ax7, 'type': 'misc'}
 
     return dax
-
