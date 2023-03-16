@@ -351,14 +351,22 @@ def _prepare(
             else:
                 axis_bs = ref.index(rr)
 
-        axis_other = [ii for ii, rr in enumerate(ref) if rr not in refbs][0]
-        sh[axis_pix] = nchan
-        sh[axis_bs] = nbs
-        shape_mat = tuple(sh)
+        axis_other = [ii for ii, rr in enumerate(ref) if rr not in refbs]
+        if len(axis_other) == 1:
+            axis_other = axis_other[0]
+            sh[axis_pix] = nchan
+            sh[axis_bs] = nbs
+            shape_mat = tuple(sh)
 
-        sli_mat = [None, None, None]
-        sli_mat[axis_bs] = slice(None)
-        sli_mat[axis_other] = slice(None)
+            sli_mat = [None, None, None]
+            sli_mat[axis_bs] = slice(None)
+            sli_mat[axis_other] = slice(None)
+        else:
+            shape_mat = (nchan, nbs)
+
+            sli_mat = [None, slice(None)]
+            axis_pix = 0
+            axis_other = None
 
     axis_bs = axis_pix + 1
 

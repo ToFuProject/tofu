@@ -3,16 +3,15 @@
 import numpy as np
 import scipy.integrate as scpinteg
 import astropy.units as asunits
-# import matplotlib.pyplot as plt     # DB
 
 
 import datastock as ds
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #               Main routine
-# ##################################################################
+# ################################################################
 
 
 def compute_signal(
@@ -418,7 +417,7 @@ def _compute_los(
             i0 = ii*groupby
             i1 = min((ii + 1)*groupby, npix)
             ni = i1 - i0
-            
+
             # get rid of undefined LOS
             ind_flat = [jj for jj in range(i0, i1) if ilosok[jj]]
             ni = len(ind_flat)
@@ -439,10 +438,10 @@ def _compute_los(
             inan = np.isnan(R)
             inannb = np.r_[-1, inan.nonzero()[0]]
             nnan = inan.sum()
-            
+
             # some lines can be nan if non-existant
             assert nnan == ni, f"{nnan} vs {ni}"
-            
+
             # lambda for spectro
             if spectro:
                 E = dict_dE[k0]
