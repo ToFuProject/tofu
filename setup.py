@@ -314,7 +314,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        "numpy==1.21.5",
+        "numpy",
         "scipy",
         # "scikit-sparse",
         # "scikit-umfpack",
@@ -323,7 +323,7 @@ setup(
         "requests",
         "svg.path",
         "Polygon3",
-        "cython==0.29.32",
+        "cython",
         "bsplines2d>=0.0.2",
     ],
     python_requires=">=3.6",

@@ -1,5 +1,7 @@
 ####### Requirements without Version Specifiers #######
 scipy
+numpy
+Cython
 # scikit-sparse    # does not work on windows, and requires "apt/brew install libsuitesparse-dev/suite-sparse" on linux / MacOs 
 # scikit-umfpack   # similar issue
 matplotlib<=3.5.2
@@ -9,7 +11,5 @@ svg.path
 Polygon3
 
 ######## Requirements with Version Specifier ########
-numpy==1.21.5
-Cython==0.29.32
 bsplines2d>=0.0.2
 bsplines2d
