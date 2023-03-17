@@ -62,8 +62,8 @@ from .version import __version__
 # -------------------------------------
 
 
-_PATH_HERE = os.path.dirname(os.path.dirname(__file__))
-_PATH_BS2 = os.path.join(
+# _PATH_HERE = os.path.dirname(os.path.dirname(__file__))
+# _PATH_BS2 = os.path.join(
     # os.path.dirname(_PATH_HERE),
     # 'bsplines2d',
 # )
