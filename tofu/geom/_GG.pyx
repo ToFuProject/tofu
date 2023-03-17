@@ -2583,7 +2583,7 @@ def flatten_lstruct_lims(list lstruct_lims) -> double[::1]:
     else:
         flat_list = []
         for ele in lstruct_lims:
-            if isinstance(ele, (list, np.ndarray)) and len(ele) > 1:
+            if isinstance(ele, (list, np.ndarray)) and np.size(ele) > 1:
                 for elele in ele:
                     if type(elele) is list:
                         flat_list += elele
