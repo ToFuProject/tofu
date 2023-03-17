@@ -348,6 +348,7 @@ def _check_convert_spectral(
         if returnas == 'data':
             msg = "If returnas='data', arg data cannot be None!"
             raise Exception(msg)
+
     else:
         if not isinstance(data_in, np.ndarray):
             try:
@@ -355,7 +356,7 @@ def _check_convert_spectral(
             except Exception as err:
                 msg = "Arg data shall be convertible to a np.ndarray!"
                 raise Exception(msg)
-        if data_in.dtype not in [np.int, np.float]:
+        if data_in.dtype not in [int, float]:
             msg = (
                 """
                 Arg data must be a np.ndarray of dtype int or float!
