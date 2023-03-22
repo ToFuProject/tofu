@@ -91,9 +91,9 @@ def _get_reflection(
 
     # plt.figure()
     # plt.plot(
-    #     poly_x0, poly_x1, '.-k',
-    #     p0, p1, '.-r',
-    #     )
+        # poly_x0, poly_x1, '.-k',
+        # p0, p1, '.-r',
+    # )
 
     p0, p1 = np.array(p_a.contour(0)).T
 
@@ -128,7 +128,7 @@ def _get_reflection(
         # timing
         dt=dt,
     )
-    
+
     return p0, p1
 
 

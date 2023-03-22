@@ -333,3 +333,137 @@ def _get_apex_per_bs(
             apex[-deg:] = [knots[-2], 0.5*(knots[-2]+knots[-1]), knots[-1]]
 
     return apex
+
+
+# #################################################################
+# #################################################################
+#                   Get apex positions per bsplines 1d
+# #################################################################
+
+
+def _coefs_axis(shapebs=None, coefs=None, axis=None, shapex=None):
+    
+    # -------------------------------------------------
+    # initial safety check on coefs vs shapebs vs axis
+    
+    if np.isscalar(coefs):
+        coefs = np.full(shapebs, coefs)
+    
+    c0 = (
+        isinstance(coefs, np.ndarray)
+        and coefs.ndim >= len(shapebs)
+        and len(axis) == len(shapebs)
+        and all([aa == axis[0] + ii for ii, aa in enumerate(axis)])
+        and all([coefs.shape[aa] == shapebs[ii] for ii, aa in enumerate(axis)])
+    )
+    if not c0:
+        msg = (
+            f"Arg coefs must have a shape including {shapebs}\n"
+            f"\t- shapebs: {shapebs}\n"
+            f"\t- coefs.shape: {coefs.shape}\n"
+            f"\t- axis: {axis}\n"
+        )
+        raise Exception(msg)
+    
+    # ----------------
+    # shape for output 
+    
+    shape_pts, axis_x, ind_coefs, ind_x = [], [], [], []
+    jj = 0
+    for ii in range(coefs.ndim):
+        if ii == axis[0]:
+            for jj in range(len(shapex)):
+                shape_pts.append(shapex[jj])
+                axis_x.append(ii + jj)
+                ind_x.append(None)
+            ind_coefs.append(None)
+            
+        elif len(axis) > 1 and ii in axis[1:]:
+            ind_coefs.append(None)
+        else:
+            shape_pts.append(coefs.shape[ii])
+            ind_coefs.append(jj)
+            ind_x.append(jj)
+            jj += 1
+    
+    # ----------------
+    # shape_other
+    
+    shape_other = tuple([
+        ss for ii, ss in enumerate(coefs.shape)
+        if ii not in axis
+    ])
+    
+    return tuple(shape_pts), shape_other, axis_x, ind_coefs, ind_x
+
+
+def _get_slices_iter(
+    axis=None,
+    axis_x=None,
+    shape_coefs=None,
+    shape_x=None,
+    ind=None,
+    ind_coefs=None,
+    ind_x=None,
+):
+    
+    sli_c = tuple([
+        slice(None) if ii in axis else ind[ind_coefs[ii]]
+        for ii in range(len(shape_coefs))
+    ])
+
+    sli_x =tuple([
+        slice(None) if ii in axis_x else ind[ind_x[ii]]
+        for ii in range(len(shape_x))
+    ])
+    
+    return sli_c, sli_x
+
+
+def _get_slices_iter_reverse_coefs(
+    axis=None,
+    shape_coefs=None,
+    ind_coefs=None,
+    return_as_list=None,
+):
+    
+    sli_c = [
+        ind_coefs if ii in axis else slice(None)
+        for ii in range(len(shape_coefs))
+    ]
+    
+    if return_as_list is True:
+        return sli_c
+    else:
+        return tuple(sli_c)
+
+
+def _get_slices_iter_reverse_x(
+    axis_x=None,
+    shape_x=None,
+    ind_x=None,
+):
+
+    sli_x =tuple([
+        ind_x if ii in axis_x else slice(None)
+        for ii in range(len(shape_x))
+    ])
+    
+    return sli_x
+
+
+def _get_slice_out(indout=None, axis=None, shape_coefs=None):
+    
+    if len(axis) == 1:
+        sli_out = tuple([
+            indout if ii == axis[0] else slice(None)
+            for ii in range(len(shape_coefs))
+        ])
+    else:
+        sli_out = tuple([
+            indout if ii == axis[0] else slice(None)
+            for ii in range(len(shape_coefs))
+            if ii not in axis[1:]
+        ])
+    
+    return sli_out

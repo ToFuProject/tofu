@@ -19,10 +19,10 @@ from ..geom import _comp_solidangles
 __all__ = ['compute_etendue_los']
 
 
-# ##################################################################
-# ##################################################################
+# ###############################################################
+# ###############################################################
 #                       Main
-# ##################################################################
+# ###############################################################
 
 
 def compute_etendue_los(
@@ -36,6 +36,8 @@ def compute_etendue_los(
     margin_perp=None,
     # options
     add_points=None,
+    # spectro-only
+    rocking_curve_fwhm=None,
     # bool
     convex=None,
     check=None,
@@ -109,18 +111,30 @@ def compute_etendue_los(
             return_for_etendue=True,
         )
 
+        # ------------------------
+        # spectro => rocking curve
+
+        if spectro and rocking_curve_fwhm is None:
+            rocking_curve_fwhm = np.inf
+            # TBD
+            # rocking_curve_fwhm = coll.get_crystal_rocking_curve(
+                # key=v0['keyref'],
+                # moment='fwhm',
+            # )
+
         # ------------------------------------------
-        # get distance, area, solid_angle, los, dlos
+        # get distance, area, solid_angle, los
 
         (
             det_area, distances,
             los_x, los_y, los_z,
-            dlos_x, dlos_y, dlos_z,
             cos_los_det, cos_los_ap, solid_angles, res,
         ) = _loop_on_pix(
             coll=coll,
             ldet=v0['ldet'],
+            # spectro
             spectro=spectro,
+            rocking_curve_fwhm=rocking_curve_fwhm,
             # optics
             x0=x0,
             x1=x1,
@@ -184,25 +198,25 @@ def compute_etendue_los(
 
         # --------------------
         # optional plotting
-    
+
         if plot is True:
             dax = _plot_etendues(
                 etend0=etend0,
                 etend1=etend1,
                 res=res,
             )
-    
+
         # --------
         # reshape
-    
+
         # etend0
         if etend0 is not None and is2d:
             etend0 = etend0.reshape(tuple(np.r_[3, v0['shape0']]))
-    
+
         # etend1
         if etend1 is not None and is2d:
             etend1 = etend1.reshape(tuple(np.r_[res.size, v0['shape0']]))
-    
+
         # los
         if los_x.shape != v0['shape0']:
             los_x = los_x.reshape(v0['shape0'])
@@ -211,7 +225,7 @@ def compute_etendue_los(
 
         # --------------------
         # return dict
-    
+
         dcompute[key_cam].update({
             'analytical': etend0,
             'numerical': etend1,
@@ -220,14 +234,14 @@ def compute_etendue_los(
             'los_x': los_x,
             'los_y': los_y,
             'los_z': los_z,
-            'dlos_x': dlos_x,
-            'dlos_y': dlos_y,
-            'dlos_z': dlos_z,
+            'spectro': spectro,
             'iok': iok,
             'is2d': is2d,
             'cx': cx,
             'cy': cy,
             'cz': cz,
+            'x0': x0,
+            'x1': x1,
         })
 
     # ----------
@@ -236,18 +250,18 @@ def compute_etendue_los(
     if store is not False:
 
         for key_cam, v0 in dcompute.items():
-        
+
             # ref
             ref = coll.dobj['camera'][key_cam]['dgeom']['ref']
-    
+
             # data
             etendue = v0[store][-1, ...]
-    
+
             if store == 'analytical':
                 etend_type = store
             else:
                 etend_type = v0['res'][-1]
-    
+
             # keys
             ketendue = f'{key}_{key_cam}_etend'
             ddata = {
@@ -260,9 +274,9 @@ def compute_etendue_los(
                     'units': 'm2.sr',
                 },
             }
-            
+
             coll.update(ddata=ddata)
-    
+
             coll._dobj['diagnostic'][key]['doptics'][key_cam]['etendue'] = ketendue
             coll._dobj['diagnostic'][key]['doptics'][key_cam]['etend_type'] = etend_type
 
@@ -327,13 +341,14 @@ def _diag_compute_etendue_check(
         is2d = dgeom['type'] == '2d'
         par = dgeom['parallel']
         dcompute[k0]['shape0'] = cx.shape
-    
+
         if is2d:
             cx = cx.ravel()
             cy = cy.ravel()
             cz = cz.ravel()
+
         nd = cx.size
-    
+
         dcompute[k0]['ldet'] = [
             {
                 'cents_x': cx[ii],
@@ -465,7 +480,9 @@ def _loop_on_pix(
     coll=None,
     # detectors
     ldet=None,
+    # spectro
     spectro=None,
+    rocking_curve_fwhm=None,
     # equivalent aperture
     x0=None,
     x1=None,
@@ -504,6 +521,19 @@ def _loop_on_pix(
         if not iok[ii]:
             continue
 
+        # rocking curve
+        if spectro:
+            out0 = ldet[ii]['outline_x0']
+            width0 = np.max(np.abs(np.diff(out0)))
+            dist = np.sqrt(
+                (centsx[ii] - ldet[ii]['cents_x'])**2
+                + (centsy[ii] - ldet[ii]['cents_y'])**2
+                + (centsz[ii] - ldet[ii]['cents_z'])**2
+            )
+            withrc = dist * rocking_curve_fwhm
+            out0_norm = out0 / width0
+            ldet[ii]['outline_x0'] = out0_norm * min(width0, withrc)
+
         # ------------
         # solid angles
 
@@ -534,19 +564,6 @@ def _loop_on_pix(
     los_x = los_x / distances
     los_y = los_y / distances
     los_z = los_z / distances
-
-    if spectro:
-        dlos_x = px - cx[:, None]
-        dlos_y = py - cy[:, None]
-        dlos_z = pz - cz[:, None]
-        ddist = np.sqrt(dlos_x**2 + dlos_y**2 + dlos_z**2)
-        dlos_x = dlos_x / ddist
-        dlos_y = dlos_y / ddist
-        dlos_z = dlos_z / ddist
-    else:
-        dlos_x = None
-        dlos_y = None
-        dlos_z = None
 
     # ------
     # angles
@@ -598,7 +615,6 @@ def _loop_on_pix(
     return (
         det_area, distances,
         los_x, los_y, los_z,
-        dlos_x, dlos_y, dlos_z,
         cos_los_det, cos_los_ap, solid_angles, res,
     )
 

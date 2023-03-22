@@ -9,10 +9,10 @@ from ..geom import CamLOS1D
 from ..geom import _comp
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                   Rays
-# ##################################################################
+# ################################################################
 
 
 def _start_vect(ax=None, ay=None, az=None, name=None):
@@ -282,10 +282,10 @@ def _check_inputs(
     )
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                   Main
-# ##################################################################
+# ################################################################
 
 
 def _rays(
@@ -309,6 +309,7 @@ def _rays(
     vect_z=None,
     length=None,
     config=None,
+    strict=None,
     reflections_nb=None,
     reflections_type=None,
     key_nseg=None,
@@ -372,7 +373,7 @@ def _rays(
     if pts_x is not None:
 
         if pts_x.shape[0] == 1:
-            angles = None
+            pass
         else:
             v0x = pts_x[0, ...] - start_x
             v0y = pts_y[0, ...] - start_y
@@ -386,14 +387,11 @@ def _rays(
             vy = vy / norm
             vz = vz / norm
 
-            sca = (
-                vx[1:, ...] * vx[:-1, ...]
-                + vy[1:, ...] * vy[:-1, ...]
-                + vz[1:, ...] * vz[:-1, ...]
-            )
-
-            angle_in = None
-            angle = np.arcos(sca)
+            # sca = (
+                # vx[1:, ...] * vx[:-1, ...]
+                # + vy[1:, ...] * vy[:-1, ...]
+                # + vz[1:, ...] * vz[:-1, ...]
+            # )
 
     # -----------------------------
     # -----------------------------
@@ -401,8 +399,6 @@ def _rays(
     # -----------------------------
 
     else:
-
-        kk = None
 
         # final shape
         i0 = 0
@@ -416,7 +412,6 @@ def _rays(
         pts_x = np.full(shape, np.nan)
         pts_y = np.full(shape, np.nan)
         pts_z = np.full(shape, np.nan)
-        Rmin = np.full(shaperef, np.nan)
 
         pts_x[0, ...] = start_x
         pts_y[0, ...] = start_y
@@ -499,6 +494,7 @@ def _rays(
                 Name='',
                 Diag='',
                 Exp='',
+                strict=strict,
             )
 
             # add reflections
@@ -521,7 +517,12 @@ def _rays(
             pts_x[-1, maskre] = pout[0, :]
             pts_y[-1, maskre] = pout[1, :]
             pts_z[-1, maskre] = pout[2, :]
-            
+
+            # reset to nan where relevant
+            pts_x[:, ~maskre] = np.nan
+            pts_y[:, ~maskre] = np.nan
+            pts_z[:, ~maskre] = np.nan
+
             # RMin
             # kRMin = _comp.LOS_PRMin(cam.D, cam.u, kOut=None)
             # PRMin = cam.D + kRMin[None, :]*cam.u
@@ -572,14 +573,14 @@ def _rays(
     nseg = shape[0]
     nextra = len(lspectro) if diag is not None else 0
     assert nseg == reflections_nb + 1 + nextra
-    
+
     # key_nseg
     if key_nseg is None:
         knseg = f'{key}-nseg'
         dref = {
             knseg: {'size': nseg},
         }
-    else:       
+    else:
         if coll.dref[key_nseg]['size'] != nseg:
             msg = (
                 "Wrong size of key_nseg:\n"
@@ -587,11 +588,11 @@ def _rays(
                 f"\t- nseg = {nseg}"
             )
             raise Exception(msg)
-            
+
         knseg = key_nseg
         dref = {}
 
-    # if ref is None  
+    # if ref is None
     if ref is None:
         ref = []
         for ii, ss in enumerate(shaperef):
@@ -783,28 +784,28 @@ def _check_key(coll=None, key=None, key_cam=None):
                 for k1, v1 in v0['doptics'].items()
             ])
     ]
-    
+
     key = ds._generic_check._check_var(
         key, 'key',
         types=str,
         allowed=lrays + ldiag,
     )
-    
+
     # Derive kray
     if key in lrays:
         kray = key
     else:
-        
+
         # key_cam
         lok = list(coll.dobj['diagnostic'][key]['doptics'].keys())
         key_cam = ds._generic_check._check_var(
             key_cam, 'key_cam',
             types=str,
             allowed=lok,
-        )    
-        
+        )
+
         kray = coll.dobj['diagnostic'][key]['doptics'][key_cam]['los']
-    
+
     return kray
 
 
@@ -847,7 +848,7 @@ def _get_pts(
     # check key
 
     key = _check_key(coll=coll, key=key, key_cam=key_cam)
-    
+
     # ---------
     # get start
 

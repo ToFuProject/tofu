@@ -124,6 +124,13 @@ def _sample(
         length_rad = length0[1:, ...]
 
     # -----------
+    # trivial
+    # -----------
+
+    if pts_x.size == 0 or not np.any(np.isfinite(pts_x)):
+        return None
+
+    # -----------
     # compute
     # -----------
 
@@ -172,57 +179,77 @@ def _sample(
         iok = np.isfinite(pts_x)
         nn = np.ceil(length_rad / res).astype(int)
 
+        nan = np.r_[np.nan, np.nan]
         lpx, lpy, lpz, itot, llen, lentot = [], [], [], [], [], []
         for ind in itt.product(*[range(ss) for ss in pts_x.shape[1:]]):
 
             sli = tuple([slice(None)] + list(ind))
-            if not np.any(iok[sli]):
+            ioki = iok[sli]
+
+            if np.sum(ioki) < 2:
+                itot.append(nan)
+                if out_xyz:
+                    lpx.append(nan)
+                    lpy.append(nan)
+                    lpz.append(nan)
+                if 'l' in return_coords or 'ltot' in return_coords:
+                    llen.append(nan)
+                    lentot.append(nan)
                 continue
 
+            # get sli2 and i0i
+            sli2 = tuple([ioki] + list(ind))
             if radius_max is None:
-                i0i = i0[iok[sli]]
+                i0i = i0[ioki]
             else:
-                i0i = i0[sli]
+                i0i = i0[sli2]
 
-            itoti = np.concatenate(tuple(
-                [
-                    np.linspace(
-                        i0i[jj], i0i[jj+1], nn[tuple(np.r_[jj, ind])] + 1,
+            # itoti
+            itoti = []
+            for jj in range(i0i.size - 1):
+                if np.all(np.isfinite(i0i[jj:jj+2])):
+                    itoti.append(
+                        np.linspace(
+                            i0i[jj],
+                            i0i[jj+1],
+                            nn[tuple(np.r_[jj, ind])] + 1,
                         )[:-1]
-                    for jj in range(i0i.size - 1)
-                ]
-                + [[i0i[-1]]]
-                ))
+                    )
+            if np.isfinite(i0i[-1]):
+                itoti.append([i0i[-1]])
+
+            itoti = np.concatenate(tuple(itoti))
             itot.append(itoti)
 
             # interpolate
             if out_xyz:
                 lpx.append(scpinterp.interp1d(
                     i0i,
-                    pts_x[sli],
+                    pts_x[sli2],
                     kind='linear',
                     axis=0,
                 )(itoti))
 
                 lpy.append(scpinterp.interp1d(
                     i0i,
-                    pts_y[sli],
+                    pts_y[sli2],
                     kind='linear',
                     axis=0,
                 )(itoti))
 
                 lpz.append(scpinterp.interp1d(
                     i0i,
-                    pts_z[sli],
+                    pts_z[sli2],
                     kind='linear',
                     axis=0,
                 )(itoti))
 
             if 'l' in return_coords or 'ltot' in return_coords:
                 i1 = np.floor(itoti).astype(int)
-                i1[i1 == length0.shape[0] - 1] -= 1
-                llen.append(length1[sli][i1])
-                lentot.append(length0[sli][i1])
+                # i1[i1 == length0.shape[0] - 1] -= 1
+                i1[i1 == ioki.sum()] -= 1
+                llen.append(length1[sli2][i1])
+                lentot.append(length0[sli2][i1])
 
         if out_xyz:
             pts_x, pts_y, pts_z = lpx, lpy, lpz
@@ -561,7 +588,7 @@ def _tangency_radius_prepare(
 
         # Eq:
         # k^2 |AB x v|^2 + 2k((AB.v)(AO.v) - AB.AO) + |AO x v|^2 = dist^2
-        # 
+        #
         # minimum:
         # k |AB x v|^2 + (AB.v)(AO.v) - AB.AO = 0
 
@@ -832,7 +859,7 @@ def intersect_radius(
         iok02 = np.concatenate((iok2, false), axis=0)
         iok12 = np.concatenate((false, iok2), axis=0)
 
-        # Make sure there a single continued sequence per ray 
+        # Make sure there a single continued sequence per ray
         # build index and check continuity
 
         px = np.full(pts_x.shape, np.nan)

@@ -100,11 +100,15 @@ class GeometryMatrix(Previous):
         key=None,
         indbf=None,
         indchan=None,
+        # options
         plot_mesh=None,
+        plot_config=None,
+        # parameters
         vmin=None,
         vmax=None,
         res=None,
         cmap=None,
+        # figure
         dax=None,
         dmargin=None,
         fs=None,
@@ -116,7 +120,10 @@ class GeometryMatrix(Previous):
             key=key,
             indbf=indbf,
             indchan=indchan,
+            # options
             plot_mesh=plot_mesh,
+            plot_config=plot_config,
+            # parameters
             vmin=vmin,
             vmax=vmax,
             res=res,

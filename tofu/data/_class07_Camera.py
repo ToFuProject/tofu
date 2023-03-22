@@ -2,7 +2,7 @@
 
 
 # Built-in
-# import copy
+import copy
 
 
 # Common
@@ -28,20 +28,16 @@ __all__ = ['Camera']
 
 class Camera(Previous):
 
-    # _ddef = copy.deepcopy(ds.DataStock._ddef)
-    # _ddef['params']['ddata'].update({
-    #       'bsplines': (str, ''),
-    # })
-    # _ddef['params']['dobj'] = None
-    # _ddef['params']['dref'] = None
-
-    # _show_in_summary_core = ['shape', 'ref', 'group']
-    _show_in_summary = 'all'
+    _ddef = copy.deepcopy(Previous._ddef)
+    _ddef['params']['ddata'].update({
+          'camera': {'cls': str, 'def': ''},
+    })
 
     _dshow = dict(Previous._dshow)
     _dshow.update({
         'camera': [
             'dgeom.type',
+            'dmat.mode',
             'dgeom.parallel',
             'dgeom.shape',
             'dgeom.ref',
@@ -68,6 +64,7 @@ class Camera(Previous):
 
         # material
         dref2, ddata2, dmat = _check._dmat(
+            coll=self,
             key=key,
             dmat=dmat,
         )
@@ -222,6 +219,8 @@ class Camera(Previous):
         compute=None,
         config=None,
         length=None,
+        # dmat
+        dmat=None,
     ):
 
         return _compute.add_camera_pinhole(
@@ -255,7 +254,49 @@ class Camera(Previous):
             compute=compute,
             config=config,
             length=length,
+            # dmat
+            dmat=dmat,
         )
+
+    # -----------------
+    # add_data
+    # ------------------
+
+    def update(
+        self,
+        dobj=None,
+        ddata=None,
+        dref=None,
+        harmonize=None,
+    ):
+        """ Overload datastock update() method """
+
+        # update
+        super().update(
+            dobj=dobj,
+            ddata=ddata,
+            dref=dref,
+            harmonize=harmonize,
+        )
+
+        # assign diagnostic
+        if self._dobj.get('camera') is not None:
+            for k0, v0 in self._ddata.items():
+                lcam = [
+                    k1 for k1, v1 in self._dobj['camera'].items()
+                    if v1['dgeom']['ref'] == tuple([
+                        rr for rr in v0['ref']
+                        if rr in v1['dgeom']['ref']
+                    ])
+                ]
+
+                if len(lcam) == 0:
+                    pass
+                elif len(lcam) == 1:
+                    self._ddata[k0]['camera'] = lcam[0]
+                else:
+                    msg = f"Multiple cameras:\n{lcam}"
+                    raise Exception(msg)
 
     # ---------------
     # utilities
@@ -266,6 +307,17 @@ class Camera(Previous):
         return _check.get_camera_unitvectors(
             coll=self,
             key=key,
+        )
+
+    def get_camera_dxyz(self, key=None, include_center=None):
+        """ Return dx, dy, dz to get the outline from any pixel center
+        Only works on 2d or parallel cameras
+
+        """
+        return _check.get_camera_dxyz(
+            coll=self,
+            key=key,
+            include_center=include_center,
         )
 
     def get_camera_cents_xyz(self, key=None):

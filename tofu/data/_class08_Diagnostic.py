@@ -41,7 +41,9 @@ class Diagnostic(Previous):
         'diagnostic': [
             'is2d',
             'spectro',
+            'PHA',
             'camera',
+            'signal',
         ],
     })
 
@@ -60,6 +62,9 @@ class Diagnostic(Previous):
         key_nseg=None,
         # compute
         compute=True,
+        add_points=None,
+        # spectro-only
+        rocking_curve_fwhm=None,
         # others
         verb=None,
         **kwdargs,
@@ -97,6 +102,9 @@ class Diagnostic(Previous):
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
                 key_nseg=key_nseg,
+                add_points=add_points,
+                # spectro-only
+                rocking_curve_fwhm=rocking_curve_fwhm,
                 # bool
                 verb=verb,
                 plot=False,
@@ -130,6 +138,7 @@ class Diagnostic(Previous):
         key_cam=None,
         data=None,
         rocking_curve=None,
+        units=None,
         **kwdargs,
         ):
         """ Return dict of data for chosen cameras
@@ -151,6 +160,7 @@ class Diagnostic(Previous):
             key_cam=key_cam,
             data=data,
             rocking_curve=rocking_curve,
+            units=units,
             **kwdargs,
         )
 
@@ -185,6 +195,8 @@ class Diagnostic(Previous):
         check=None,
         margin_par=None,
         margin_perp=None,
+        # spectro-only
+        rocking_curve_fwhm=None,
         # equivalent aperture
         add_points=None,
         convex=None,
@@ -217,6 +229,8 @@ class Diagnostic(Previous):
             check=check,
             margin_par=margin_par,
             margin_perp=margin_perp,
+            # spectro-only
+            rocking_curve_fwhm=rocking_curve_fwhm,
             # equivalent aperture
             add_points=add_points,
             convex=convex,
@@ -294,6 +308,7 @@ class Diagnostic(Previous):
         key_cam=None,
         lamb=None,
         rocking_curve=None,
+        units=None,
     ):
         """ Return the wavelength associated to
         - 'lamb'
@@ -308,6 +323,7 @@ class Diagnostic(Previous):
             key_cam=key_cam,
             lamb=lamb,
             rocking_curve=rocking_curve,
+            units=units,
         )
 
     # ---------------
@@ -321,8 +337,8 @@ class Diagnostic(Previous):
         return _check._get_optics_cls(coll=self, optics=optics)
 
     # def get_diagnostic_doptics(self, key=None):
-    #     """ 
-    #     Get dict of optics and corresponding classes 
+    #     """
+    #     Get dict of optics and corresponding classes
 
     #     """
     #     return _check._get_diagnostic_doptics(coll=self, key=key)
@@ -427,7 +443,7 @@ class Diagnostic(Previous):
         if compute:
             self.compute_diagnostic_etendue_los(
                 key=key,
-                #e etendue
+                # etendue
                 analytical=True,
                 numerical=False,
                 res=None,
@@ -484,7 +500,6 @@ class Diagnostic(Previous):
             return_alpha=return_alpha,
         )
 
-
     def compute_diagnostic_signal(
         self,
         key=None,
@@ -498,6 +513,7 @@ class Diagnostic(Previous):
         mode=None,
         groupby=None,
         val_init=None,
+        ref_com=None,
         # signal
         brightness=None,
         # store
@@ -522,6 +538,7 @@ class Diagnostic(Previous):
             mode=mode,
             groupby=groupby,
             val_init=val_init,
+            ref_com=ref_com,
             # signal
             brightness=brightness,
             # store
@@ -529,7 +546,6 @@ class Diagnostic(Previous):
             # return
             returnas=returnas,
         )
-
 
     # -----------------
     # plotting
@@ -596,6 +612,7 @@ class Diagnostic(Previous):
         los_res=None,
         # data plot
         data=None,
+        units=None,
         cmap=None,
         vmin=None,
         vmax=None,
@@ -623,6 +640,7 @@ class Diagnostic(Previous):
             los_res=los_res,
             # data plot
             data=data,
+            units=units,
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,
@@ -640,17 +658,19 @@ class Diagnostic(Previous):
             connect=connect,
         )
 
-    def plot_diagnostic_interpolated_along_los(
+    def interpolate_along_los(
         self,
-        key=None,
+        key_diag=None,
         key_cam=None,
-        key_data_x=None,
-        key_data_y=None,
+        key_integrand=None,
+        key_coords=None,
         # sampling
         res=None,
         mode=None,
         segment=None,
         radius_max=None,
+        # interpolating
+        domain=None,
         val_out=None,
         # plotting
         vmin=None,
@@ -662,17 +682,19 @@ class Diagnostic(Previous):
         """ Compute and plot interpolated data along the los of the diagnostic
 
         """
-        return _los_data._interpolated_along_los(
+        return _los_data._interpolate_along_los(
             coll=self,
-            key=key,
+            key_diag=key_diag,
             key_cam=key_cam,
-            key_data_x=key_data_x,
-            key_data_y=key_data_y,
+            key_integrand=key_integrand,
+            key_coords=key_coords,
             # sampling
             res=res,
             mode=mode,
             segment=segment,
             radius_max=radius_max,
+            # interpolating
+            domain=domain,
             val_out=val_out,
             # plotting
             vmin=vmin,

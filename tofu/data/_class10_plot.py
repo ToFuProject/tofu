@@ -13,19 +13,20 @@ import datastock as ds
 
 # tofu
 # from tofu import __version__ as __version__
-from . import _generic_check
+from . import _class10_refs as _refs
 from . import _class8_plot
 
 
-# #############################################################################
-# #############################################################################
+# ################################################################
+# ################################################################
 #                           inversions
-# #############################################################################
+# ################################################################
 
 
 def _plot_inversion_check(
     coll=None,
     key=None,
+    plot_details=None,
     indbf=None,
     indchan=None,
     cmap=None,
@@ -52,6 +53,9 @@ def _plot_inversion_check(
         types=str,
         allowed=lk,
     )
+
+    wm = coll._which_mesh
+    wbs = coll._which_bsplines
     keymat = coll.dobj['inversions'][keyinv]['matrix']
     key_data = coll.dobj['inversions'][keyinv]['data_in']
     key_retro = coll.dobj['inversions'][keyinv]['retrofit']
@@ -59,9 +63,10 @@ def _plot_inversion_check(
     key_diag = coll.dobj['geom matrix'][keymat]['diagnostic']
     is2d = coll.dobj['diagnostic'][key_diag]['is2d']
     key_cam = coll.dobj['geom matrix'][keymat]['camera']
-    key_retro = coll.dobj['diagnostic'][key_diag]['dsignal'][key_retro]['data']
-    keym = coll.dobj['bsplines'][keybs]['mesh']
-    mtype = coll.dobj[coll._which_mesh][keym]['type']
+    key_retro = coll.dobj['synth sig'][key_retro]['data']
+    keym = coll.dobj[wbs][keybs]['mesh']
+    mtype = coll.dobj[wm][keym]['type']
+    nd = coll.dobj[wm][keym]['nd']
     # refbs = coll.dobj['bsplines'][keybs]['ref']
 
     crop = coll.dobj['geom matrix'][keymat]['crop']
@@ -85,6 +90,13 @@ def _plot_inversion_check(
         dcolorbar, 'dcolorbar',
         default=defdcolorbar,
         types=dict,
+    )
+
+    # plot_details
+    plot_details = ds._generic_check._check_var(
+        plot_details, 'plot_details',
+        types=bool,
+        default=True,
     )
 
     # los_res
@@ -127,10 +139,10 @@ def _plot_inversion_check(
     return (
         keyinv, keymat,
         key_diag, key_cam, keybs, key_data, key_retro,
-        is2d, mtype,
+        is2d, mtype, nd,
         cropbs, cmap, dcolorbar,
         nlos, los_res, color_dict,
-        dleg, connect,
+        dleg, plot_details, connect,
     )
 
 
@@ -146,7 +158,14 @@ def _plot_inversion_prepare(
     key_data=None,
     key_retro=None,
     los_res=None,
+    dref_vector=None,
 ):
+
+    # ------------
+    # check
+
+    if dref_vector is None:
+        dref_vector = {}
 
     # -----------------
     # add nearest-neighbourg interpolated data
@@ -175,7 +194,7 @@ def _plot_inversion_prepare(
 
     # ddatax, ddatay
     (
-        reft, dkeyx, dkeyy, ddatax, ddatay, dextent,
+        _, dkeyx, dkeyy, ddatax, ddatay, dextent,
     ) = _class8_plot._prepare_datarefxy(
         coll=coll,
         coll2=coll2,
@@ -186,10 +205,24 @@ def _plot_inversion_prepare(
         is2d=is2d,
     )
 
+    # -----------
+    # get reft
+
+    hastime, reft, keyt, t, dind = _refs._get_ref_vector_common(
+        coll=coll,
+        key_matrix=key_matrix,
+        key_profile2d=keyinv,
+        dref_vector=dref_vector,
+    )
+
     # -----------------
     # add nearest-neighbourg interpolated data
 
-    reft, keyt, time = coll.get_time(key=keyinv)[2:5]
+    reft, keyt, time = coll.get_ref_vector(
+        key=keyinv,
+        ref=reft,
+        **dref_vector,
+    )[2:5]
     lkmat = coll.dobj['geom matrix'][key_matrix]['data']
 
     dind = None
@@ -279,10 +312,10 @@ def _plot_inversion_prepare(
     # inversion parameters
 
     if reft is not None:
-        chi2n = coll.ddata[f'{keyinv}-chi2n']['data']
-        mu = coll.ddata[f'{keyinv}-mu']['data']
-        reg = coll.ddata[f'{keyinv}-reg']['data']
-        niter = coll.ddata[f'{keyinv}-niter']['data']
+        chi2n = coll.ddata[f'{keyinv}_chi2n']['data']
+        mu = coll.ddata[f'{keyinv}_mu']['data']
+        reg = coll.ddata[f'{keyinv}_reg']['data']
+        niter = coll.ddata[f'{keyinv}_niter']['data']
     else:
         chi2n = None    # coll.dobj['inversions'][keyinv]['chi2n']
         mu = None       # coll.dobj['inversions'][keyinv]['mu']
@@ -292,7 +325,7 @@ def _plot_inversion_prepare(
     return (
         dlos, dref_los,
         drefx, drefy, dkeyx, dkeyy, ddatax, ddatay, dextent,
-        time, reft,
+        time, keyt, reft,
         chi2n, mu, reg, niter,
         datamin, datamax, errmax,
     )
@@ -301,11 +334,14 @@ def _plot_inversion_prepare(
 def plot_inversion(
     coll=None,
     key=None,
-    indt=None,
+    plot_details=None,
     res=None,
     vmin=None,
     vmax=None,
     cmap=None,
+    # config
+    plot_config=None,
+    # figure
     dax=None,
     dmargin=None,
     fs=None,
@@ -313,6 +349,8 @@ def plot_inversion(
     dleg=None,
     # los sampling
     los_res=None,
+    # ref vector specifier
+    dref_vector=None,
     # interactivity
     color_dict=None,
     nlos=None,
@@ -326,13 +364,14 @@ def plot_inversion(
     (
         keyinv, keymat,
         key_diag, key_cam, keybs, key_data, key_retro,
-        is2d, mtype,
+        is2d, mtype, nd,
         cropbs, cmap, dcolorbar,
         nlos, los_res, color_dict,
-        dleg, connect,
+        dleg, plot_details, connect,
     ) = _plot_inversion_check(
         coll=coll,
         key=key,
+        plot_details=plot_details,
         cmap=cmap,
         dcolorbar=dcolorbar,
         dleg=dleg,
@@ -352,18 +391,22 @@ def plot_inversion(
         dax = _plot_inversion_create_axes(
             fs=fs,
             dmargin=dmargin,
-            mtype=mtype,
+            nd=nd,
             key_cam=key_cam,
         )
 
-    dax = _generic_check._check_dax(dax=dax, main='matrix')
+    dax = ds._generic_check._check_dax(dax=dax, main='matrix')
 
     # --------------
     # plot profile2d
 
-    coll2, dgroup = coll.plot_profile2d(
+    coll2, dgroup = coll.plot_as_profile2d(
         key=keyinv,
-        res=res,
+        dres=res,
+        plot_details=plot_details,
+        # ref vectors
+        dref_vectorZ=dref_vector,
+        dref_vectorU=None,          # U not handled yet
         # figure
         vmin=vmin,
         vmax=vmax,
@@ -385,7 +428,7 @@ def plot_inversion(
     (
         dlos, dref_los,
         drefx, drefy, dkeyx, dkeyy, ddatax, ddatay, dextent,
-        time, reft,
+        time, keyt, reft,
         chi2n, mu, reg, niter,
         datamin, datamax, errmax,
     ) = _plot_inversion_prepare(
@@ -399,6 +442,7 @@ def plot_inversion(
         key_data=key_data,
         key_retro=key_retro,
         los_res=los_res,
+        dref_vector=dref_vector,
     )
 
     # ----------------
@@ -430,7 +474,6 @@ def plot_inversion(
     # plot data
 
     for ii, k0 in enumerate(key_cam):
-
 
         # data vs retro
         kax = k0
@@ -684,23 +727,23 @@ def plot_inversion(
         if dax.get(kax) is not None:
             ax = dax[kax]['handle']
             ax.plot(
-                # time,
+                time,
                 chi2n / np.nanmax(chi2n),
                 c='k',
                 ls='-',
                 lw=1.,
                 marker='.',
-                label='nchi2n',
+                label='chi2n norm',
             )
 
             ax.plot(
-                # time,
+                time,
                 reg / np.nanmax(reg),
                 c='b',
                 ls='-',
                 lw=1.,
                 marker='.',
-                label='mu*reg',
+                label='mu*reg norm',
             )
 
             # add mobile
@@ -712,18 +755,20 @@ def plot_inversion(
                 key=kl0,
                 handle=l0,
                 refs=(reft,),
-                data=['index'],
+                data=[keyt],
                 dtype=['xdata'],
                 axes=kax,
                 ind=0,
             )
             ax.set_ylim(bottom=0)
 
+            ax.legend()
+
         kax = 'niter'
         if dax.get(kax) is not None:
             ax = dax[kax]['handle']
             ax.plot(
-                # time,
+                time,
                 niter,
                 c='k',
                 ls='-',
@@ -731,9 +776,37 @@ def plot_inversion(
                 marker='.',
             )
 
+            # add mobile
+            l0 = ax.axvline(time[0], c='k', ls='-', lw=1.)
+
+            # add mobile
+            kl0 = 't-niter'
+            coll2.add_mobile(
+                key=kl0,
+                handle=l0,
+                refs=(reft,),
+                data=[keyt],
+                dtype=['xdata'],
+                axes=kax,
+                ind=0,
+            )
             ax.set_ylim(bottom=0)
 
+            ax.set_ylim(bottom=0)
+
+    # -------
+    # config
+
+    if plot_config.__class__.__name__ == 'Config':
+
+        kax = 'matrix'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+            plot_config.plot(lax=ax, proj='cross', dLeg=False)
+
+    # -------
     # connect
+
     if connect is True:
         coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
         coll2.disconnect_old()
@@ -748,7 +821,7 @@ def plot_inversion(
 def _plot_inversion_create_axes(
     fs=None,
     dmargin=None,
-    mtype=None,
+    nd=None,
     key_cam=None,
 ):
 
@@ -782,7 +855,7 @@ def _plot_inversion_create_axes(
     ax2 = fig.add_subplot(gs[2*nblock:, 2:4], sharex=ax0)
 
     # axes for radius
-    if mtype == 'polar':
+    if nd == '1d':
         ax7 = fig.add_subplot(gs[:nblock, :2], sharey=ax2)
     else:
         ax7 = None
@@ -793,10 +866,10 @@ def _plot_inversion_create_axes(
     # dax
     dax = {
         # data
-        'matrix': {'handle': ax0, 'type': 'matrix'},
-        'vertical': {'handle': ax1, 'type': 'misc'},
-        'horizontal': {'handle': ax2, 'type': 'misc'},
-        'traces': {'handle': ax3, 'type': 'misc'},
+        'matrix': {'handle': ax0},
+        'vertical': {'handle': ax1},
+        'horizontal': {'handle': ax2},
+        'tracesZ': {'handle': ax3},
     }
     # axes for text
     # ax4 = fig.add_subplot(gs[:3, 5], frameon=False)
@@ -821,7 +894,6 @@ def _plot_inversion_create_axes(
     dax['niter'] = fig.add_subplot(gs[2*nblock+ncam:, :2], sharex=ax3)
 
     if ax7 is not None:
-        dax['radial'] = {'handle': ax7, 'type': 'misc'}
+        dax['radial'] = {'handle': ax7}
 
     return dax
-

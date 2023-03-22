@@ -65,6 +65,7 @@ class Rays(Previous):
         vect_z=None,
         length=None,
         config=None,
+        strict=None,
         reflections_nb=None,
         reflections_type=None,
         key_nseg=None,
@@ -101,6 +102,7 @@ class Rays(Previous):
             vect_z=vect_z,
             length=length,
             config=config,
+            strict=strict,
             reflections_nb=reflections_nb,
             reflections_type=reflections_type,
             key_nseg=key_nseg,
@@ -267,7 +269,7 @@ class Rays(Previous):
         return_itot=None,
     ):
         """ Return the tangancy radius to an axis of each ray segment
-        
+
         parameters
         ----------
         axis_pt:    len=3 iterable
@@ -279,8 +281,8 @@ class Rays(Previous):
         lim_to_segments: bool
             flag indicating whether to limit solutions to the segments
         return_pts:
-            flag indicating whether to return the pts (x, y, z) coordinates 
-                
+            flag indicating whether to return the pts (x, y, z) coordinates
+
         Return
         -------
         k0:         np.ndarray of floats
@@ -297,7 +299,7 @@ class Rays(Previous):
             The z coordinates of the points inside the cylinder
 
         """
-        
+
         return _compute.intersect_radius(
             coll=self,
             key=key,

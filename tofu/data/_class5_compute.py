@@ -172,7 +172,7 @@ def _ideal_configuration_check(
     if gtype == 'planar':
         conf = ['pinhole']
     elif gtype == 'cylindrical':
-        conf = ['pinhole', 'von hamos']
+        conf = ['pinhole', 'von hamos', 'johann']
     elif gtype == 'spherical':
         conf = ['pinhole', 'johann']
     elif gtype == 'toroidal':
@@ -420,9 +420,9 @@ def _ideal_configuration(
 
     # --------
     # johann
-    
+
     if configuration == 'johann':
-        
+
         if rc < 0:
             msg = (
                 f"crystal {key} is convex: Johann not possible!\n"
@@ -457,7 +457,7 @@ def _ideal_configuration(
 
     # --------
     # von hamos
-    
+
     elif configuration == 'von hamos':
 
         if rc < 0:
@@ -465,7 +465,7 @@ def _ideal_configuration(
                 f"crystal {key} is convex: von hamos not possible!\n"
                 f" \t- curve_r = {curve_r}"
                 )
-            raise Exception(msg)        
+            raise Exception(msg)
 
         dist_pin = rc / np.sin(bragg)
         pin_cent = cent + dist_pin * vect_los
@@ -486,32 +486,32 @@ def _ideal_configuration(
 
     # --------
     # pinhole
-    
+
     elif configuration == 'pinhole':
 
         # pinhole
         if pinhole_distance is None:
-            if gtype == 'cylindrical': 
+            if gtype == 'cylindrical':
                 pin_dist = np.abs(rc) / np.sin(bragg)
             elif gtype == 'spherical':
                 pin_dist = np.abs(rc) * np.sin(bragg)
             else:
                 msg = "Please provide pinhole_distance!"
                 raise Exception(msg)
-        
+
         else:
             pin_dist = pinhole_distance
-            
+
         pin_cent = cent + pin_dist * vect_los
-        pin_nin = vect_los    
-        
+        pin_nin = vect_los
+
         # camera
         if cam_distance is None:
             cam_height = cam_dimensions[1]
-    
+
             if gtype == 'planar' or (gtype == 'cylindrical' and icurv == 0):
                 cryst_height = 2. * extenthalf[1]
-    
+
                 if cam_height <= cryst_height:
                     msg = (
                         f"Height for ideal camera of '{key}' too small:\n"
@@ -519,16 +519,16 @@ def _ideal_configuration(
                         f"\t- camera height: {cam_height}\n"
                     )
                     raise Exception(msg)
-    
+
                 cam_dist = pinhole_distance * (cam_height / cryst_height - 1.)
-    
+
             else:
                 if gtype == 'cylindrical':
                     cryst_height = 2. * extenthalf[icurv] * np.abs(rc)
-    
+
                 elif gtype == 'spherical':
                     cryst_height = 2. * extenthalf[1] * np.abs(rc)
-    
+
                 if cam_height >= cryst_height:
                     msg = (
                         f"Height for ideal camera of '{key}' too large:\n"
@@ -536,12 +536,12 @@ def _ideal_configuration(
                         f"\t- camera height: {cam_height}\n"
                     )
                     raise Exception(msg)
-    
+
                 cam_dist = np.abs(rc) * (1. - cam_height / cryst_height)
-                
+
         else:
             cam_dist = cam_distance
-                
+
         cam_nin = -vect_cam
         cam_cent = cent + cam_dist * vect_cam
 
@@ -559,7 +559,7 @@ def _ideal_configuration(
 
         # check against existing aperture is any
         if key_aperture_in is True:
-            
+
             dd = coll.dobj['aperture'][key_aperture]['dgeom']
             temp_dist = np.linalg.norm(dd['cent'] - pin_cent)
             temp_ang = np.arctan2(
@@ -581,7 +581,7 @@ def _ideal_configuration(
                     )
                 raise Exception(msg)
             del dout['aperture']
-            
+
         # new aperture
         else:
             ap_e0 = np.cross(e1, dout['aperture']['nin'])

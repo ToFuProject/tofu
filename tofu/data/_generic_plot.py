@@ -17,10 +17,11 @@ _WINDEF = f"tofu {version.__version__} - report issues at {_GITHUB}"
 
 
 _DFS = {
-    1: (8, 5),
+    1: (10, 6),
     2: (16, 10),
     3: (16, 10),
     4: (16, 10),
+    5: (16, 10),
 }
 
 
@@ -36,7 +37,7 @@ def _proj(
 ):
 
     if pall is None:
-        pall = ['cross', 'hor', '3d', 'camera']
+        pall = ['cross', 'hor', '3d', 'camera', 'traces']
 
     # proj
     if proj == 'all':
@@ -139,20 +140,27 @@ def get_dax_diag(
             proj=proj,
             key_cam=key_cam,
         )
-    else:
+    elif len(proj) == 4:
         gs, dgs = _ax_4(
             fig=fig,
             dmargin=dmargin,
             proj=proj,
             key_cam=key_cam,
         )
-
+    else:
+        gs, dgs = _ax_5(
+            fig=fig,
+            dmargin=dmargin,
+            proj=proj,
+            key_cam=key_cam,
+        )
 
     # ----------------------
     # create figure and axes
 
     dax = {}
     for kk, vv in dgs.items():
+
         if vv['proj'] == '3d':
             ax = fig.add_subplot(
                 gs[vv['ind']],
@@ -195,20 +203,21 @@ def _ax_single(
 
     # ----------------------
     # prepare
-    
+
     nrows = 1
     nc = 1 if key_cam is None else len(key_cam)
-    if 'camera' in proj:
+    if 'camera' in proj or 'traces' in proj:
         nrows *= nc
-        
+
     gs = gridspec.GridSpec(ncols=1, nrows=nrows, **dmargin)
-        
+
     dgs = {}
     for ii, pp in enumerate(proj):
-        if pp == 'camera':
+        if pp in ['camera', 'traces']:
             for jj, k0 in enumerate(key_cam):
-                ind = (ii, 0)
-                dgs[k0] = {'proj': 'camera', 'ind': ind}
+                ind = (jj, 0)
+                kk = f'{k0}_sig' if pp == 'camera' else f'{k0}_trace'
+                dgs[kk] = {'proj': pp, 'ind': ind}
         else:
             ind = (slice(0, nc), 0)
             dgs[pp] = {'proj': pp, 'ind': ind}
@@ -231,28 +240,31 @@ def _ax_double(
         dmargin, 'dmargin',
         types=dict,
         default={
-            'bottom': 0.12, 'top': 0.9,
-            'left': 0.08, 'right': 0.98,
-            'wspace': 0.20, 'hspace': 0.05,
+            'bottom': 0.05, 'top': 0.95,
+            'left': 0.05, 'right': 0.98,
+            'wspace': 0.25, 'hspace': 0.2,
         },
     )
 
     # ----------------------
     # prepare
-    
+
     nrows = 1
     nc = 1 if key_cam is None else len(key_cam)
-    if 'camera' in proj:
+    if 'camera' in proj or 'traces' in proj:
         nrows *= nc
-        
+
     gs = gridspec.GridSpec(ncols=2, nrows=nrows, **dmargin)
-        
+
     dgs = {}
     for ii, pp in enumerate(proj):
-        if pp == 'camera':
+
+        if pp in ['camera', 'traces']:
             for jj, k0 in enumerate(key_cam):
                 ind = (jj, ii)
-                dgs[k0] = {'proj': 'camera', 'ind': ind}
+                kk = f'{k0}_sig' if pp == 'camera' else f'{k0}_trace'
+                dgs[kk] = {'proj': pp, 'ind': ind}
+
         else:
             ind = (slice(0, nc), ii)
             dgs[pp] = {'proj': pp, 'ind': ind}
@@ -275,30 +287,46 @@ def _ax_3(
         dmargin, 'dmargin',
         types=dict,
         default={
-            'bottom': 0.12, 'top': 0.9,
-            'left': 0.06, 'right': 0.98,
-            'wspace': 0.10, 'hspace': 0.05,
+            'bottom': 0.06, 'top': 0.92,
+            'left': 0.05, 'right': 0.98,
+            'wspace': 0.20, 'hspace': 0.3,
         },
     )
 
-    # ----------------------
+    # ----------
     # prepare
-    
+
+    hascam = 'camera' in proj or 'traces' in proj
+    hasboth = 'camera' in proj and 'traces' in proj
+
     nrows = 2
-    nc = 1 if key_cam is None else len(key_cam)
-    if 'camera' in proj:
-        nrows *= nc
-        
-    gs = gridspec.GridSpec(ncols=2, nrows=nrows, **dmargin)
-        
+    nc = len(key_cam) if hascam else 1
+
+    ncol = 2
+    colmult = 2 if hasboth else 1
+
+    gs = gridspec.GridSpec(ncols=ncol*colmult, nrows=nrows*nc, **dmargin)
+
+    # ---------
+    # assign
+
     dgs = {}
     for ii, pp in enumerate(proj):
-        if pp == 'camera':
+        if pp =='camera':
             for jj, k0 in enumerate(key_cam):
-                ind = (slice(2*jj, 2*(jj + 1)), 1)
-                dgs[k0] = {'proj': 'camera', 'ind': ind}
+                ind = (slice(2*jj, 2*(jj + 1)), colmult*ncol - 1)
+                kk = f'{k0}_sig'
+                dgs[kk] = {'proj': pp, 'ind': ind}
+        elif pp == 'traces':
+            for jj, k0 in enumerate(key_cam):
+                ind = (slice(2*jj, 2*(jj + 1)), colmult*(ncol - 1))
+                kk = f'{k0}_trace'
+                dgs[kk] = {'proj': pp, 'ind': ind}
         else:
-            ind = (slice(ii*nc, nc*(ii+1)), ii // 2)
+            if hascam:
+                ind = (slice(ii*nc, nc*(ii+1)), slice(0, colmult))
+            else:
+                ind = (ii%2, ii//2)
             dgs[pp] = {'proj': pp, 'ind': ind}
 
     return gs, dgs
@@ -319,33 +347,123 @@ def _ax_4(
         dmargin, 'dmargin',
         types=dict,
         default={
-            'bottom': 0.08, 'top': 0.90,
-            'left': 0.06, 'right': 0.96,
-            'wspace': 0.20, 'hspace': 0.20,
+            'bottom': 0.05, 'top': 0.95,
+            'left': 0.05, 'right': 0.98,
+            'wspace': 0.30, 'hspace': 0.40,
             # 'width_ratios': [0.6, 0.4],
             # 'height_ratios': [0.4, 0.6],
         },
     )
 
-    # ----------------------
+    # -----------
     # prepare
-    
+
+    hascam = 'camera' in proj or 'traces' in proj
+    hasboth = 'camera' in proj and 'traces' in proj
+
+    ncol = 2
+    colmult = 2 if hasboth else 1
+
     nrows = 2
     nc = 1 if key_cam is None else len(key_cam)
-    if 'camera' in proj:
-        nrows *= nc
 
-    gs = gridspec.GridSpec(ncols=2, nrows=nrows, **dmargin)
-    
+    gs = gridspec.GridSpec(ncols=ncol*colmult, nrows=nrows*nc, **dmargin)
+
+    # -----------
+    # assign
+
     dgs = {}
+    i0 = 0
+    for ii, pp in enumerate(proj):
+        if pp =='camera':
+            for jj, k0 in enumerate(key_cam):
+                if hasboth:
+                    ind = (slice(2*jj, 2*(jj + 1)), colmult*ncol - 1)
+                else:
+                    ind = (nc + jj, colmult*ncol - 1)
+                kk = f'{k0}_sig'
+                dgs[kk] = {'proj': pp, 'ind': ind}
+        elif pp == 'traces':
+            for jj, k0 in enumerate(key_cam):
+                if hasboth:
+                    ind = (slice(2*jj, 2*(jj + 1)), colmult*(ncol - 1))
+                else:
+                    ind = (nc + jj, colmult*(ncol - 1))
+                kk = f'{k0}_trace'
+                dgs[kk] = {'proj': pp, 'ind': ind}
+        else:
+            if hasboth:
+                ind = (slice((i0%2)*nc, nc*(i0%2+1)), slice(0, colmult))
+            else:
+                ind = (slice((i0%2)*nc, nc*(i0%2+1)), i0//2)
+            dgs[pp] = {'proj': pp, 'ind': ind}
+            i0 += 1
+
+    return gs, dgs
+
+
+def _ax_5(
+    fig=None,
+    dmargin=None,
+    proj=None,
+    key_cam=None,
+):
+
+    # ------------
+    # check inputs
+
+    # dmargin
+    dmargin = ds._generic_check._check_var(
+        dmargin, 'dmargin',
+        types=dict,
+        default={
+            'bottom': 0.05, 'top': 0.95,
+            'left': 0.05, 'right': 0.98,
+            'wspace': 0.30, 'hspace': 0.40,
+            # 'width_ratios': [0.6, 0.4],
+            # 'height_ratios': [0.4, 0.6],
+        },
+    )
+
+    # ----------
+    # prepare
+
+    hascam = 'camera' in proj or 'traces' in proj
+    hasboth = 'camera' in proj and 'traces' in proj
+
+    ncol = 3
+    colmult = 2 if hasboth else 1
+
+    nrows = 2
+    nc = 1 if key_cam is None else len(key_cam)
+
+    gs = gridspec.GridSpec(ncols=ncol*colmult, nrows=nrows*nc, **dmargin)
+
+    # -----------
+    # assign
+
+    dgs = {}
+    i0 = 0
     for ii, pp in enumerate(proj):
         if pp == 'camera':
             for jj, k0 in enumerate(key_cam):
-                ind = (nc + jj, 1)
-                dgs[k0] = {'proj': 'camera', 'ind': ind}
+                ind = (slice(jj*2, (jj+1)*2), colmult*ncol - 1)
+                kk = f'{k0}_sig'
+                dgs[kk] = {'proj': 'camera', 'ind': ind}
+
+        elif pp == 'traces':
+            for jj, k0 in enumerate(key_cam):
+                ind = (slice(jj*2, (jj+1)*2), colmult*(ncol - 1))
+                kk = f'{k0}_trace'
+                dgs[kk] = {'proj': 'traces', 'ind': ind}
+
         else:
-            ind = (slice((ii % 2)*nc, (ii % 2)*nc + nc), ii//2)
+            ind = (
+                slice((i0 % 2)*nc, (i0 % 2)*nc + nc),
+                slice((i0 // 2)*colmult, (i0 // 2 + 1)*colmult),
+            )
             dgs[pp] = {'proj': pp, 'ind': ind}
+            i0 += 1
 
     return gs, dgs
 
@@ -379,5 +497,9 @@ def _ax_set(ax=None, proj=None, is2d=None):
             ax.set_aspect('equal', adjustable='datalim')
         else:
             ax.set_xlabel('ind')
+
+    elif proj == 'traces':
+        # ax.set_xlabel()
+        ax.set_ylabel('data')
 
     return

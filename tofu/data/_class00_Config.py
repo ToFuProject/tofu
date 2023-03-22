@@ -8,6 +8,7 @@ import copy
 # Common
 import numpy as np
 import datastock as ds
+import bsplines2d as bs2
 
 
 # tofu
@@ -23,10 +24,10 @@ __all__ = ['Config']
 # #############################################################################
 
 
-class Config(ds.DataStock):
+class Config(bs2.BSplines2D):
 
     _show_in_summary = 'all'
-    _dshow = dict(ds.DataStock._dshow)
+    _dshow = dict(bs2.BSplines2D._dshow)
     _dshow.update({
         'structure': [
         ],

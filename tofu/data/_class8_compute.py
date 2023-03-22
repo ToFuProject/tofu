@@ -15,6 +15,7 @@ import datastock as ds
 
 
 from . import _utils_surface3d
+from . import _spectralunits
 
 
 # ##################################################################
@@ -235,7 +236,7 @@ def _interp_poly_check(
     mode = ds._generic_check._check_var(
         mode, 'mode',
         default=None,
-        allowed=[None, 'min'],
+        allowed=[None, 'mean', 'min'],
     )
 
     # ----------
@@ -313,7 +314,7 @@ def _interp_poly(
     # -----------
     # mode
 
-    if mode == 'min':
+    if mode is not None:
         if len(lp) == 3:
             dist = np.sqrt(
                 np.diff(lp[0], axis=-1)**2
@@ -330,7 +331,11 @@ def _interp_poly(
             import pdb; pdb.set_trace()     # DB
 
         min_threshold = min(min_threshold, np.max(dist)/3.)
-        mindist = np.min(dist[dist > min_threshold])
+        if mode == 'min':
+            mindist = np.min(dist[dist > min_threshold])
+        elif mode == 'mean':
+            mindist = np.mean(dist[dist > min_threshold])
+
         add_points = add_points * np.ceil(dist / mindist).astype(int) - 1
 
     # -----------
@@ -420,6 +425,7 @@ def _dplot_check(
     lok = list(itt.chain.from_iterable([
         [k0] + v0['optics']
         for k0, v0 in coll.dobj['diagnostic'][key]['doptics'].items()
+        if k0 in key_cam
     ]))
     optics = ds._generic_check._check_var_iter(
         optics, 'optics',
@@ -757,6 +763,8 @@ def get_lamb_from_angle(
     key_cam=None,
     lamb=None,
     rocking_curve=None,
+    units=None,
+    returnas=None,
 ):
     """"""
 
@@ -790,6 +798,7 @@ def get_lamb_from_angle(
         'lamb': 'alpha',
         'lambmin': 'amin',
         'lambmax': 'amax',
+        'dlamb': 'dlamb',
         'res': 'res',
     }
     lok = list(dok.keys())
@@ -803,9 +812,10 @@ def get_lamb_from_angle(
     # compute
 
     lv = []
+    data = None
     lk = ['lamb', 'lambmin', 'lambmax']
     for kk in lk:
-        if lamb in [kk, 'res']:
+        if lamb in [kk, 'dlamb', 'res']:
 
             if kk == 'lamb':
                 klos = coll.dobj['diagnostic'][key]['doptics'][key_cam]['los']
@@ -824,11 +834,37 @@ def get_lamb_from_angle(
             )[1]
             if lamb == kk:
                 data = dd
+                break
             else:
                 lv.append(dd)
 
-    if lamb == 'res':
-        data = lv[0] / (lv[2] - lv[1])
+    # ----------------
+    # units conversion
+
+    if units not in [None, 'm']:
+        if data is None:
+
+            for ii in range(3):
+                lv[ii] = _spectralunits.convert_spectral(
+                    data_in=lv[ii],
+                    units_in='m',
+                    units_out=units,
+                )[0]
+
+        else:
+            data = _spectralunits.convert_spectral(
+                data_in=data,
+                units_in='m',
+                units_out=units,
+            )[0]
+
+    # -----------
+    # return
+
+    if lamb == 'dlamb':
+        data = np.abs(lv[2] - lv[1])
+    elif lamb == 'res':
+        data = lv[0] / np.abs(lv[2] - lv[1])
 
     return data, ref
 
@@ -845,8 +881,9 @@ def _get_data(
     key_cam=None,
     data=None,
     rocking_curve=None,
+    units=None,
     **kwdargs,
-    ):
+):
 
     # key, key_cam
     key, key_cam = coll.get_diagnostic_cam(key=key, key_cam=key_cam)
@@ -857,17 +894,24 @@ def _get_data(
     if data is not None:
         lquant = ['etendue', 'amin', 'amax']  # 'los'
         lcomp = ['length', 'tangency radius', 'alpha']
+        llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
+        lsynth = coll.dobj['diagnostic'][key]['signal']
+        if lsynth is None:
+            lsynth = []
         if spectro:
-            lcomp += ['lamb', 'lambmin', 'lambmax', 'res']
+            lcomp += llamb
 
         data = ds._generic_check._check_var(
             data, 'data',
             types=str,
-            allowed=lquant + lcomp,
+            allowed=lquant + lcomp + lsynth,
         )
 
     # build ddata
     ddata = {}
+    static = True
+    daxis = None
+    
     # comp = False
     if data is None or data in lquant:
 
@@ -954,6 +998,9 @@ def _get_data(
             for k0, v0 in ddata.items()
         }
 
+        # units
+        units = coll.ddata[ddata[key_cam[0]]]['units']
+
         # get actual data
         ddata = {
             k0 : coll.ddata[v0]['data']
@@ -969,14 +1016,19 @@ def _get_data(
         ddata = {}
         dref = {}
 
-        if data in ['lamb', 'lambmin', 'lambmax', 'res']:
+        if data in llamb:
             for cc in key_cam:
                ddata[cc], dref[cc] = coll.get_diagnostic_lamb(
                    key=key,
                    key_cam=cc,
                    rocking_curve=rocking_curve,
                    lamb=data,
+                   units=units,
                )
+            if data in ['lamb', 'lambmin', 'lambmax', 'dlamb']:
+                units = 'm'
+            else:
+                units = ''
 
         elif data in ['length', 'tangency radius', 'alpha']:
             for cc in key_cam:
@@ -987,8 +1039,48 @@ def _get_data(
                     segment=-1,
                     lim_to_segments=False,
                 )
+            if data in ['length', 'tangency radius']:
+                units = 'm'
+            else:
+                units = 'rad'
+                
+    elif data in lsynth:
+        
+        dref = {}
+        daxis = {}
+        dsynth = coll.dobj['synth sig'][data]
+        for cc in key_cam:
+            kdat = dsynth['data'][dsynth['camera'].index(cc)]
+            refcam = coll.dobj['camera'][cc]['dgeom']['ref']
+            ref = coll.ddata[kdat]['ref']
+            
+            c0 = (
+                tuple([rr for rr in ref if rr in refcam]) == refcam
+                and len(ref) in [len(refcam), len(refcam) + 1]
+            )
+            if not c0:
+                msg = (
+                    "Can only plot data that is either:\n"
+                    "\t- static: same refs as the camera\n"
+                    "\t- has a unique extra dimension\n"
+                    "Provided:\n"
+                    "\t- refcam: {refcam}\n"
+                    "\t- ['{kdat}']['ref']: {ref}"
+                )
+                raise Exception(msg)
+                
+            if len(ref) == len(refcam) + 1:
+                static = False
+                daxis[cc] = [
+                    ii for ii, rr in enumerate(ref) if rr not in refcam
+                ][0]
+                
+            ddata[cc] = coll.ddata[kdat]['data']
+            dref[cc] = ref
+            
+            units = coll.ddata[kdat]['units']
 
-    return ddata, dref
+    return ddata, dref, units, static, daxis
 
 
 # ##################################################################
@@ -1332,14 +1424,16 @@ def _concatenate_data_check(
             key_data = [key_data]
 
         else:
-            lok = list(coll.dobj['diagnostic'][key].get('dsignal').keys())
+            lok = coll.dobj['diagnostic'][key]['signal']
+            if lok is None:
+                lok = []
             key_data = ds._generic_check._check_var(
                 key_data, 'key_data',
                 types=str,
                 allowed=lok,
             )
 
-            key_data = coll.dobj['diagnostic'][key]['dsignal'][key_data]['data']
+            key_data = coll.dobj['synth sig'][key_data]['data']
 
     # basic check
     c0 = (
@@ -1446,7 +1540,7 @@ def _concatenate_data_check(
         default=is2d,
     )
 
-    return key, key_data, is2d, stack, ref, flat
+    return key, key_data, key_cam, is2d, stack, ref, flat
 
 
 def _concatenate_data(
@@ -1459,7 +1553,7 @@ def _concatenate_data(
     # ------------
     # check inputs
 
-    key, key_data, is2d, stack, ref, flat = _concatenate_data_check(
+    key, key_data, key_cam, is2d, stack, ref, flat = _concatenate_data_check(
         coll=coll,
         key=key,
         key_data=key_data,
@@ -1514,6 +1608,7 @@ def _concatenate_data(
     return {
         'data': data,
         'keys': key_data,
+        'keys_cam': key_cam,
         'units': units,
         'ref': ref,
         'axis': axis,
