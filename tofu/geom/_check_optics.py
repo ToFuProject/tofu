@@ -515,26 +515,29 @@ def _checkformat_dbragg(dbragg=None, ddef=None, valid_keys=None, dmat=None):
     if dbragg.get('lambref') is None:
         # set to bragg = braggref
         dbragg['lambref'] = _comp_optics.get_lamb_from_bragg(
-            np.r_[dbragg['braggref']],
-            dmat['d'],
+            bragg=np.r_[dbragg['braggref']],
+            d=dmat['d'],
             n=1,
         )[0]
         user_prov = False
 
     # Set default bragg angle if necessary
     braggref = _comp_optics.get_bragg_from_lamb(
-                            np.r_[dbragg['lambref']], dmat['d'], n=1)[0]
+        lamb=np.r_[dbragg['lambref']],
+        d=dmat['d'],
+        n=1,
+    )[0]
     if np.isnan(braggref):
         lambok = []
         msg = (
-            """
-            Var {} is not valid!
-            Please check your arguments to calculate the Bragg's law correctly!
-            Provided:
-                - crystal inter-plane d [m] = {}
-                - wavelenght interval [m] : {}
-                - lambref = {}
-            """.format('lambref', dmat['d'], lambok, dbragg['lambref'])
+            "Var {} or {} is not valid!\n".format('lambref', 'braggref')
+            + "Please check your args to compute the Bragg's law correctly!\n"
+            + "Provided:\n"
+            + "\t - crystal inter-plane d [m] = {}\n".format(dmat['d'])
+            # + "\t - wavelenght [m] = {}\n".format(lambok)
+            + "\t - lambref = {}\n".format(dbragg['lambref'])
+            + "\t - Bragg angle [m] = {}\n".format(braggref)
+            + "\t - braggref = {}\n".format(dbragg['braggref'])
         )
         raise Exception(msg)
 

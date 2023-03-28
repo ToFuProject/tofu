@@ -112,9 +112,9 @@ class Test01_RockingCurve(object):
         for k0 in self.lc:
             dout = tfs.compute_rockingcurve(
                 crystal=k0,
-                lamb=np.r_[3.969067],
+                lamb=np.r_[3.969067e-10],
                 miscut=False,
-                alpha_limits=None,
+                miscut_limits=None,
                 therm_exp=False,
                 temp_limits=None,
                 # Plot

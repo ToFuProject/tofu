@@ -809,10 +809,10 @@ class CrystalBragg(utils.ToFuObject):
         crystal=None, din=None,
         lamb=None,
         miscut=None, nn=None,
-        alpha_limits=None,
+        miscut_limits=None,
         therm_exp=None,
         temp_limits=None,
-        plot_therm_exp=None,
+        ax=None, plot_therm_exp=None,
         plot_asf=None, plot_power_ratio=None,
         plot_asymmetry=None, plot_cmaps=None,
         returnas=None,
@@ -821,10 +821,10 @@ class CrystalBragg(utils.ToFuObject):
             crystal=crystal, din=din,
             lamb=lamb,
             miscut=miscut, nn=nn,
-            alpha_limits=alpha_limits,
+            miscut_limits=miscut_limits,
             therm_exp=therm_exp,
             temp_limits=temp_limits,
-            plot_therm_exp=plot_therm_exp,
+            ax=ax, plot_therm_exp=plot_therm_exp,
             plot_asf=plot_asf, plot_power_ratio=plot_power_ratio,
             plot_asymmetry=plot_asymmetry, plot_cmaps=plot_cmaps,
             returnas=None,
@@ -833,7 +833,7 @@ class CrystalBragg(utils.ToFuObject):
     def plot_var_temp_changes_wavelengths(
         self, ih=None, ik=None, il=None, lambdas=None,
         miscut=None, na=None,
-        alpha_limits=None,
+        miscut_limits=None,
         therm_exp=None, plot_therm_exp=None,
         plot_asf=None, plot_power_ratio=None,
         plot_asymmetry=None, plot_cmaps=None,
@@ -843,7 +843,7 @@ class CrystalBragg(utils.ToFuObject):
         return _rockingcurve.plot_var_temp_changes_wavelengths(
             ih=ih, ik=ik, il=il, lambdas=lambdas,
             miscut=miscut, na=na,
-            alpha_limits=alpha_limits,
+            miscut_limits=miscut_limits,
             therm_exp=therm_exp, plot_therm_exp=plot_therm_exp,
             plot_asf=plot_asf, plot_power_ratio=plot_power_ratio,
             plot_asymmetry=plot_asymmetry, plot_cmaps=plot_cmaps,
@@ -1602,7 +1602,7 @@ class CrystalBragg(utils.ToFuObject):
             alpha = alpha
         if miscut is None or miscut is False:
             miscut = False
-            alpha = self.dmat['alpha']
+            alpha = self._dmat['alpha']
 
         # Compute
         return _comp_optics.calc_meridional_sagittal_focus(
@@ -1618,7 +1618,7 @@ class CrystalBragg(utils.ToFuObject):
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
         if np.all(np.isnan(bragg)):
             msg = ("There is no available bragg angle!\n"
-                   + "  => Check the vlue of self.dmat['d'] vs lamb")
+                   + "  => Check the value of self._dmat['d'] vs lamb")
             raise Exception(msg)
         return _comp_optics.get_rowland_dist_from_bragg(
             bragg=bragg, rcurve=self._dgeom['rcurve'],
@@ -1691,9 +1691,20 @@ class CrystalBragg(utils.ToFuObject):
 
         bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb, n=n)
         if np.all(np.isnan(bragg)):
-            msg = ("There is no available bragg angle!\n"
-                   + "  => Check the vlue of self.dmat['d'] vs lamb")
+            msg = (
+                "There is no available bragg angle!\n"
+                + "It is probably because you gave a too large Bragg angle\n"
+                + "or wavelength than permitted by the crystal loaded.\n"
+                + "Provided:\n"
+                + "\t - bragg : {} rad\n".format(bragg)
+                + "\t - lamb : {} m\n".format(lamb)
+                + "Crystal loaded:\n"
+                + "\t - bragg_ref : {} rad\n".format(self._dbragg['braggref'])
+                + "\t - lamb_ref : {} m\n".format(self._dbragg['lambref'])
+            )
             raise Exception(msg)
+        if lamb is None:
+            lamb = self._dbragg['lambref']
 
         lc = [lamb0 is not None, lamb1 is not None, dist01 is not None]
         if any(lc) and not all(lc):
@@ -1944,6 +1955,26 @@ class CrystalBragg(utils.ToFuObject):
         else:
             return xi, xj
 
+    def _checkformat_xi_values(
+        self,
+        xi_tab=None,
+        bragg=None,
+        lamb=None,
+        phi=None,
+        det=None,
+    ):
+        if np.all(np.isnan(xi_tab)) is True:
+            msg = (
+                "All coordinates xi and xj have NaN values !\n"
+                "Check arguments for calc_xixj_from_braggphi():\n"
+                + "\t - xi_tab: {}\n".format(xi_tab)
+                + "\t - bragg: {}\n".format(bragg)
+                + "\t - lamb: {}\n".format(lamb)
+                + "\t - phi: {}\n".format(phi)
+                + "\t - det: {}\n".format(det)
+            )
+            raise Exception(msg)
+
     def plot_line_on_det_tracing(
         self,
         # Options of basic method
@@ -1959,7 +1990,7 @@ class CrystalBragg(utils.ToFuObject):
         merge_rc_data=None,
         miscut=None,
         therm_exp=None,
-        alpha_limits=None, na=None,
+        miscut_limits=None, na=None,
         alpha0=None, temp0=None,
         temp_limits=None,
         # Plot
@@ -1979,7 +2010,7 @@ class CrystalBragg(utils.ToFuObject):
             - merge_rc_data: bool
                 use tf/spectro/_rockingucurve.py to plot in transparency ranges
                 the angular extent of each wavelength traces
-            - alpha_limits: array
+            - miscut_limits: array
                 asymmetry angle range, provide only both limits.
                 By default in tf/spectro/_rockingucurve.py between +/-5 arcmin
             - na: float
@@ -1989,7 +2020,7 @@ class CrystalBragg(utils.ToFuObject):
             - alpha0: float
                 Wanted value in radians of the amplitude miscut angle.
                 By default to 3 arcmin = 0.05 deg = pi/3600 rad
-                '0' for alpha_limits[0], 'na-1' for alpha_limits[1].
+                '0' for miscut_limits[0], 'na-1' for miscut_limits[1].
                 By default to 3 arcmin = 0.05 rad so alpha0=40
             - temp0: float
                 Wanted value of the temperature change.
@@ -2032,8 +2063,8 @@ class CrystalBragg(utils.ToFuObject):
             johann = lpsi is not None or ldtheta is not None
         if rocking is None:
             rocking = False
-        if alpha_limits is None:
-            alpha_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
+        if miscut_limits is None:
+            miscut_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
         if temp_limits is None:
             temp_limits = np.r_[-10, 10, 25]
         if na is None:
@@ -2062,10 +2093,10 @@ class CrystalBragg(utils.ToFuObject):
         self.update_miscut(alpha=0., beta=0.)
         if miscut:
             self.update_miscut(alpha=alpha0, beta=0.)
-        # T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg,
+
         dout = _rockingcurve.CrystBragg_comp_lattice_spacing(
             crystal=crystal, din=din,
-            lamb=self.dbragg['lambref']*1e10,
+            lamb=self._dbragg['lambref'],
             na=na, nn=nn,
             therm_exp=therm_exp,
             temp_limits=temp_limits,
@@ -2074,8 +2105,8 @@ class CrystalBragg(utils.ToFuObject):
         T0 = dout['Temperature of reference (°C)']
         TD = dout['Temperature variations (°C)']
         Volume = dout['Volume (1/m3)']
-        d_atom = dout['Inter-reticular spacing (A)']
-        sol = dout['sinus over lambda']
+        d_atom = dout['Inter-reticular spacing (m)']
+        sol = dout['sinus_theta_lambda']
         theta = dout['theta_Bragg (rad)']
         theta_deg = dout['theta_Bragg (deg)']
 
@@ -2085,7 +2116,7 @@ class CrystalBragg(utils.ToFuObject):
             return idx
 
         id_temp0 = find_nearest(TD, temp0)
-        self.dmat['d'] = d_atom[id_temp0]*1e-10
+        self._dmat['d'] = d_atom[id_temp0]
 
         # Get local basis
         nout, e1, e2, miscut = self.get_unit_vectors(
@@ -2104,6 +2135,7 @@ class CrystalBragg(utils.ToFuObject):
         )
         phimin, phimax = np.nanmin(phi), np.nanmax(phi)
         phimin, phimax = phimin-(phimax-phimin)/10, phimax+(phimax-phimin)/10
+
 
         # Get reference ray-tracing
         bragg = self._checkformat_bragglamb(lamb=lamb, n=n)
@@ -2126,6 +2158,13 @@ class CrystalBragg(utils.ToFuObject):
                 strict=strict,
                 plot=False,
             )
+        self._checkformat_xi_values(
+            xi_tab=xi[:, :],
+            bragg=bragg,
+            lamb=lamb,
+            phi=phi,
+            det=det,
+        )
 
         # Get johann-error raytracing (multiple positions on crystal)
         xi_er, xj_er = None, None
@@ -2149,12 +2188,23 @@ class CrystalBragg(utils.ToFuObject):
                 for ii in range(npsi):
                     i0 = np.arange(ii*nphi, (ii+1)*nphi)
                     xi_er[l, i0], xj_er[l, i0] = self.calc_xixj_from_braggphi(
-                        phi=phi, bragg=bragg[l], lamb=None, n=n,
-                        dtheta=ldtheta[ii], psi=lpsi[ii],
-                        det=det, plot=False,
+                        bragg=bragg[l],
+                        phi=phi,
+                        dtheta=ldtheta[ii],
+                        psi=lpsi[ii],
+                        n=n,
+                        det=det,
                         miscut=miscut,
                         strict=strict,
+                        plot=False,
                     )
+            self._checkformat_xi_values(
+                xi_tab=xi_er[:, :],
+                bragg=bragg,
+                lamb=lamb,
+                phi=phi,
+                det=det,
+            )
 
         # Get rocking curve error
         if rocking:
@@ -2177,14 +2227,14 @@ class CrystalBragg(utils.ToFuObject):
             # For each wavelength, get results dictionnary of the associated
             # diffraction pattern
             for ll in range(nlamb):
-                dout = _rockingcurve.compute_rockingcurve(
+                dout, _ = _rockingcurve.compute_rockingcurve(
                     crystal=crystal, din=din,
-                    lamb=lamb[ll]*1e10,
+                    lamb=lamb[ll],
                     miscut=miscut,
                     therm_exp=therm_exp,
                     temp_limits=temp_limits,
                     plot_therm_exp=plot_rcs,
-                    alpha_limits=alpha_limits, nn=None,
+                    miscut_limits=miscut_limits, nn=None,
                     plot_asf=False, plot_power_ratio=plot_rcs,
                     plot_asymmetry=False, plot_cmaps=False,
                     returnas=dict,
@@ -2278,13 +2328,22 @@ class CrystalBragg(utils.ToFuObject):
                         strict=strict,
                         plot=False,
                     )
+                self._checkformat_xi_values(
+                    xi_tab=xi_rc[:, :, :],
+                    bragg=bragg,
+                    lamb=lamb,
+                    phi=phi,
+                    det=det,
+                )
+
                 xi_atprmax[ll] = xi_rc[ll, ind_pr_max, nphi2]
                 xj_atprmax[ll] = xj_rc[ll, ind_pr_max, nphi2]
                 self.update_miscut(alpha=0., beta=0.)
+
                 if therm_exp:
-                    self.dmat['d'] = d_atom[nn]*1e-10
+                    self._dmat['d'] = d_atom[nn]*1e-10
                 else:
-                    self.dmat['d'] = d_atom[0]*1e-10
+                    self._dmat['d'] = d_atom[0]*1e-10
                 (
                     bragg_atprmax[ll], _, lamb_atprmax[ll],
                 ) = self.get_lambbraggphi_from_ptsxixj_dthetapsi(
@@ -2302,9 +2361,9 @@ class CrystalBragg(utils.ToFuObject):
         else:
             self.update_miscut(alpha=0., beta=0.)
         if therm_exp:
-            self.dmat['d'] = d_atom[id_temp0]*1e-10
+            self._dmat['d'] = d_atom[id_temp0]*1e-10
         else:
-            self.dmat['d'] = d_atom[0]*1e-10
+            self._dmat['d'] = d_atom[0]*1e-10
 
         # Plot
         if plot:
@@ -2363,7 +2422,7 @@ class CrystalBragg(utils.ToFuObject):
         ih=None, ik=None, il=None,
         dcryst=None,
         merge_rc_data=None,
-        therm_exp=None, alpha_limits=None, na=None,
+        therm_exp=None, miscut_limits=None, na=None,
         temp=None,
         plot=None, ax=None,
         dleg=None, color=None,
@@ -2381,7 +2440,7 @@ class CrystalBragg(utils.ToFuObject):
             - merge_rc_data: bool
                 use tf/spectro/_rockingucurve.py to plot in transparency ranges
                 the angular extent of each wavelength traces
-            - alpha_limits: array
+            - miscut_limits: array
                 asymmetry angle range, provide only both limits.
                 By default in tf/spectro/_rockingucurve.py between +/-5 arcmin
             - na: float
@@ -2391,7 +2450,7 @@ class CrystalBragg(utils.ToFuObject):
             - alpha0: float
                 Wanted value in radians of the amplitude miscut angle.
                 By default to 3 arcmin = 0.05 deg = pi/3600 rad
-                '0' for alpha_limits[0], 'na-1' for alpha_limits[1].
+                '0' for miscut_limits[0], 'na-1' for miscut_limits[1].
                 By default to 3 arcmin = 0.05 rad so alpha0=40
             - temp0: float
                 Wanted value of the temperature change.
@@ -2415,8 +2474,8 @@ class CrystalBragg(utils.ToFuObject):
             miscut = True
         if therm_exp is None:
             therm_exp = True
-        if alpha_limits is None:
-            alpha_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
+        if miscut_limits is None:
+            miscut_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
         if temp is None:
             temp = np.r_[-10, +10]
         if na is None:
@@ -2433,7 +2492,7 @@ class CrystalBragg(utils.ToFuObject):
             plot = False
 
         #
-        angles = np.linspace(alpha_limits[0], alpha_limits[1], na)
+        angles = np.linspace(miscut_limits[0], miscut_limits[1], na)
         TD = np.linspace(temp[0], temp[1], na)
 
         # Computation of angular shifts
@@ -2690,6 +2749,10 @@ class CrystalBragg(utils.ToFuObject):
         if lambda_interval_max is None:
             lambda_interval_max = 4.00e-10
 
+        # If lamb & bragg are None, the following routine returns
+        # bragg=self._dbragg['braggref']
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb)
+
         l0 = [dist_min, dist_max, ndist, di_min, di_max, ndi]
         c0 = any([l00 is not None for l00 in l0])
         if not c0:
@@ -2849,9 +2912,11 @@ class CrystalBragg(utils.ToFuObject):
         # Checkformat det
         det_ref = self._checkformat_det(det=det_ref)
 
+        # Checkformat bragg & lamb
+        bragg = self._checkformat_bragglamb(bragg=bragg, lamb=lamb)
+
         # ------------
         # get approx detect
-
         det_approx = self.get_detector_ideal(
             bragg=bragg, lamb=lamb,
             tangent_to_rowland=False,
@@ -2900,8 +2965,8 @@ class CrystalBragg(utils.ToFuObject):
         dtheta=None, psi=None,
         ntheta=None, npsi=None,
         n=None,
-        miscut=None,
         grid=None,
+        miscut=None,
         return_lamb=None,
     ):
         """ Return the lamb, bragg and phi for provided pts and dtheta/psi
@@ -2947,9 +3012,11 @@ class CrystalBragg(utils.ToFuObject):
     def get_lamb_avail_from_pts(
         self,
         pts=None,
-        n=None, ndtheta=None,
-        det=None, nlamb=None, klamb=None,
+        lamb=None, nlamb=None,
         miscut=None,
+        n=None, ndtheta=None,
+        det=None,
+        klamb=None,
         strict=None,
         return_phidtheta=None,
         return_xixj=None,
@@ -3389,6 +3456,7 @@ class CrystalBragg(utils.ToFuObject):
 
         lamb_access = self.get_lamb_avail_from_pts(
             pts=ptsXYZ,
+            lamb=lamb,
             nlamb=2,
             miscut=miscut,
             return_phidtheta=False,

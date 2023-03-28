@@ -10,7 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings as warn
 
-
 # Importing package tofu.geom
 import tofu as tf
 from tofu import __version__

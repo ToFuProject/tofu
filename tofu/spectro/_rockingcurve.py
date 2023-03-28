@@ -32,10 +32,11 @@ def compute_rockingcurve(
     lamb=None,
     # Lattice modifications
     miscut=None, nn=None,
-    alpha_limits=None,
+    miscut_limits=None,
     therm_exp=None,
     temp_limits=None,
     # Plot
+    ax=None,
     plot_therm_exp=None,
     plot_asf=None,
     plot_power_ratio=None,
@@ -93,10 +94,10 @@ def compute_rockingcurve(
         and soon 'Ge'
     lamb:    float
         Wavelength of interest, in Angstroms (1e-10 m)
-        ex: lamb=np.r_[3.96]
+        ex: lamb=np.r_[3.96e-10]
     miscut:    str
         Introduce miscut between dioptre and reflecting planes
-    alpha_limits:    array
+    miscut_limits:    array
         Asymmetry angle range. Provide only both boundary limits
         Ex: np.r_[-3, 3] in radians
     nn:    int
@@ -154,8 +155,8 @@ def compute_rockingcurve(
         plot_therm_exp = True
     if miscut is None:
         miscut = False
-    if alpha_limits is None:
-        alpha_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
+    if miscut_limits is None:
+        miscut_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
     if temp_limits is None:
         temp_limits = np.r_[-10, 10, 25]
     if nn is None:
@@ -178,6 +179,7 @@ def compute_rockingcurve(
         ik=din['miller'][1],
         il=din['miller'][2],
         lamb=lamb,
+        din=din,
     )
 
     # Classical electronical radius, in Angstroms, from the NIST Reference on
@@ -197,15 +199,15 @@ def compute_rockingcurve(
     T0 = dout['Temperature of reference (°C)']
     TD = dout['Temperature variations (°C)']
     Volume = dout['Volume (1/m3)']
-    d_atom = dout['Inter-reticular spacing (A)']
-    sol = dout['sinus over lambda']
+    d_atom = dout['Inter-reticular spacing (m)']
+    sol = dout['sinus_theta_lambda']
     theta = dout['theta_Bragg (rad)']
     theta_deg = dout['theta_Bragg (deg)']
 
     # Check validity of asymmetry angle alpha limits in arguments
     alpha, bb = CrystBragg_check_alpha_angle(
         theta=theta,
-        alpha_limits=alpha_limits, na=na, nn=nn,
+        miscut_limits=miscut_limits, na=na, nn=nn,
         miscut=miscut,
         therm_exp=therm_exp,
     )
@@ -218,25 +220,25 @@ def compute_rockingcurve(
         # -----------------------------------
 
         # Atomic absorption coefficient
-        if lamb > 6.74:
-            mu_si = _rockingcurve_def.mu_si1(lamb=lamb)
+        if lamb > 6.74e10:
+            mu_si = _rockingcurve_def.mu_si1(lamb=lamb*1e10)
         else:
-            mu_si = _rockingcurve_def.mu_si(lamb=lamb)
-        mu_o = _rockingcurve_def.mu_o(lamb=lamb)
-        mu = _rockingcurve_def.mu(lamb=lamb, mu_si=mu_si, mu_o=mu_o)
+            mu_si = _rockingcurve_def.mu_si(lamb=lamb*1e10)
+        mu_o = _rockingcurve_def.mu_o(lamb=lamb*1e10)
+        mu = _rockingcurve_def.mu(lamb=lamb*1e10, mu_si=mu_si, mu_o=mu_o)
 
         # Atomic scattering factor ("f") in function of sol
         # ("_re") for the real part and ("_im") for the imaginary part
         fsi_re = np.full((sol.size), np.nan)
         fo_re = np.full((sol.size), np.nan)
 
-        dfsi_re = _rockingcurve_def.dfsi_re(lamb=lamb)
-        dfo_re = _rockingcurve_def.dfo_re(lamb=lamb)
+        dfsi_re = _rockingcurve_def.dfsi_re(lamb=lamb*1e10)
+        dfo_re = _rockingcurve_def.dfo_re(lamb=lamb*1e10)
         for i in range(sol.size):
-            fsi_re[i] = _rockingcurve_def.fsi_re(lamb=lamb, sol=sol[i])
-            fo_re[i] = _rockingcurve_def.fo_re(lamb=lamb, sol=sol[i])
-        fsi_im = _rockingcurve_def.fsi_im(lamb=lamb, mu_si=mu_si)
-        fo_im = _rockingcurve_def.fo_im(lamb=lamb, mu_o=mu_o)
+            fsi_re[i] = _rockingcurve_def.fsi_re(lamb=lamb*1e10, sol=sol[i])
+            fo_re[i] = _rockingcurve_def.fo_re(lamb=lamb*1e10, sol=sol[i])
+        fsi_im = _rockingcurve_def.fsi_im(lamb=lamb*1e10, mu_si=mu_si)
+        fo_im = _rockingcurve_def.fo_im(lamb=lamb*1e10, mu_o=mu_o)
 
         # Structure factor ("F") for (hkl) reflection
         # xsi and ih have already been defined with din
@@ -314,17 +316,20 @@ def compute_rockingcurve(
                 / (F_re[i]**2.)
             )
             # Real part of psi_H
-            psi_re[i] = (re*(lamb**2)*F_re[i])/(np.pi*Volume[i])
+            # times 1e-10 to convert into Angstroms
+            psi_re[i] = (
+                (re*(lamb**2)*F_re[i])/(np.pi*Volume[i])
+            )*1e-10
             # Zero-order real part (averaged)
-            psi0_dre[i] = -re*(lamb**2)*(
-                No*(Zo + dfo_re) + Nsi*(Zsi + dfsi_re)
-            )/(np.pi*Volume[i])
+            psi0_dre[i] = (
+                -re*(lamb**2)*(
+                    No*(Zo + dfo_re) + Nsi*(Zsi + dfsi_re)
+                )/(np.pi*Volume[i])
+            )*1e-10
             # Zero-order imaginary part (averaged)
             psi0_im[i] = (
-                -re*(lamb**2)
-                * (No*fo_im + Nsi*fsi_im)
-                / (np.pi*Volume[i])
-            )
+                -re*(lamb**2)*(No*fo_im + Nsi*fsi_im)/(np.pi*Volume[i])
+            )*1e-10
 
     # Power ratio and their integrated reflectivity for 3 crystals models:
     # perfect (Darwin model), ideally mosaic thick and dynamical
@@ -372,14 +377,15 @@ def compute_rockingcurve(
     # ----------------
 
     if plot_power_ratio:
-        CrystalBragg_plot_power_ratio_vs_glancing_angle(
+        ax = CrystalBragg_plot_power_ratio_vs_glancing_angle(
             din=din, lamb=lamb,
-            alpha_limits=alpha_limits,
+            miscut_limits=miscut_limits,
             theta=theta, theta_deg=theta_deg,
             th=th, dth=dth, power_ratio=power_ratio,
             bb=bb, polar=polar, alpha=alpha,
             miscut=miscut, na=na, nn=nn,
             therm_exp=therm_exp, T0=T0, TD=TD,
+            ax=ax,
         )
 
     # Plot integrated reflect., asymmetry angle & RC width vs glancing angle
@@ -425,10 +431,10 @@ def compute_rockingcurve(
         det_perp = det_perp[0, 0]
 
     dout = {
-        'Wavelength (A)': lamb,
+        'Wavelength (m)': lamb,
         'Miller indices': (ih, ik, il),
-        'Inter-reticular distance (A)': d_atom,
-        'Volume (A^3)': Volume,
+        'Inter-reticular distance (m)': d_atom,
+        'Volume (m^3)': Volume,
         'Bragg angle of reference (rad)': theta,
         'Glancing angles': dth,
         'Power ratio': power_ratio,
@@ -451,7 +457,7 @@ def compute_rockingcurve(
         dout['Temperature changes (°C)'] = TD
 
     if returnas is dict:
-        return dout
+        return dout, ax
 
 
 # #############################################################################
@@ -467,7 +473,7 @@ def plot_var_temp_changes_wavelengths(
     ih=None, ik=None, il=None, lambdas=None,
     # lattice modifications
     miscut=None, nn=None,
-    alpha_limits=None,
+    miscut_limits=None,
     therm_exp=None,
     # Plot
     plot_therm_exp=None,
@@ -538,15 +544,15 @@ def plot_var_temp_changes_wavelengths(
         dout = compute_rockingcurve(
             ih=ih, ik=ik, il=il, lamb=lambdas[aa],
             miscut=miscut,
-            alpha_limits=alpha_limits, na=na,
+            miscut_limits=miscut_limits, na=na,
             therm_exp=therm_exp, plot_therm_exp=False,
             plot_asf=False, plot_power_ratio=False,
             plot_asymmetry=False, plot_cmaps=False,
             verb=False, returnas=dict,
         )
-        din[lambdas[aa]]['Wavelength (A)'] = dout['Wavelength (A)\n']
-        din[lambdas[aa]]['Inter-reticular distance (A)'] = (
-            dout['Inter-reticular distance (A)\n']
+        din[lambdas[aa]]['Wavelength (m)'] = dout['Wavelength (m)\n']
+        din[lambdas[aa]]['Inter-reticular distance (m)'] = (
+            dout['Inter-reticular distance (m)\n']
         )
         din[lambdas[aa]]['Bragg angle of reference (rad)'] = (
             dout['Bragg angle of reference (rad)\n']
@@ -618,13 +624,13 @@ def plot_var_temp_changes_wavelengths(
             din[lambdas[aa]][
                 'Inter-planar spacing variations (perp. compo)'
             ][:, nn] - (
-                din[lambdas[aa]]['Inter-reticular distance (A)']
-                - din[lambdas[aa]]['Inter-reticular distance (A)'][nn]
-            )/din[lambdas[aa]]['Inter-reticular distance (A)'][nn]
+                din[lambdas[aa]]['Inter-reticular distance (m)']
+                - din[lambdas[aa]]['Inter-reticular distance (m)'][nn]
+            )/din[lambdas[aa]]['Inter-reticular distance (m)'][nn]
         )
         ax.scatter(
             din[lambdas[aa]]['Temperature changes (°C)'],
-            din[lambdas[aa]]['Inter-reticular distance (A)'],
+            din[lambdas[aa]]['Inter-reticular distance (m)'],
             marker=markers[aa], c='k', alpha=0.5,
             label=r'$\lambda$ = ({})$\AA$'.format(lambdas[aa]),
         )
@@ -725,7 +731,7 @@ def plot_var_temp_changes_wavelengths(
 
 
 def CrystBragg_check_inputs_rockingcurve(
-    ih=None, ik=None, il=None, lamb=None,
+    ih=None, ik=None, il=None, lamb=None, din=None,
 ):
 
     dd = {'ih': ih, 'ik': ik, 'il': il, 'lamb': lamb}
@@ -769,16 +775,32 @@ def CrystBragg_check_inputs_rockingcurve(
         )
         raise Exception(msg)
 
+    # Wavelengths in meters
+    cdt = [
+        lamb <= 0.1*din['target']['wavelength'],
+        lamb >= 10*din['target']['wavelength'],
+    ]
+    if any(cdt):
+        msg = (
+            "Please make sure that the wanted wavelength is close to:\n"
+            + "\t - targeted wavelength of {} crystal: ({})\n".format(
+                din['name'],
+                din['target']['wavelength'],
+            )
+            + "\t - wanted wavelength: ({})\n".format(lamb)
+        )
+        raise Exception(msg)
+
     return ih, ik, il, lamb,
 
 
 def CrystBragg_check_alpha_angle(
     theta=None,
     miscut=None, therm_exp=None,
-    alpha_limits=None, na=None, nn=None,
+    miscut_limits=None, na=None, nn=None,
 ):
 
-    if alpha_limits is None:
+    if miscut_limits is None:
         if not miscut:
             alpha = np.full((na), 0.)
             bb = np.full((theta.size, alpha.size), -1.)
@@ -807,9 +829,9 @@ def CrystBragg_check_alpha_angle(
         else:
             if therm_exp:
                 aa = theta[nn]
-                lc = [alpha_limits[0] < -aa, alpha_limits[1] > aa]
+                lc = [miscut_limits[0] < -aa, miscut_limits[1] > aa]
             else:
-                lc = [alpha_limits[0] < -theta, alpha_limits[1] > theta]
+                lc = [miscut_limits[0] < -theta, miscut_limits[1] > theta]
             if any(lc):
                 msg = (
                     "Alpha angle limits are not valid!\n"
@@ -817,20 +839,20 @@ def CrystBragg_check_alpha_angle(
                     "Limit condition: -({}) < |alpha| < ({}) and\n".format(
                         theta, theta,
                     )
-                    + "alpha = [({})] rad\n".format(alpha_limits)
+                    + "alpha = [({})] rad\n".format(miscut_limits)
                 )
                 raise Exception(msg)
             alpha = np.full((na), np.nan)
             bb = np.full((theta.size, alpha.size), np.nan)
             for i in range(theta.size):
                 if therm_exp:
-                    alpha = np.linspace(alpha_limits[0], alpha_limits[1], na)
+                    alpha = np.linspace(miscut_limits[0], miscut_limits[1], na)
                     bb[i, ...] = np.sin(alpha + theta[i])/np.sin(
                         alpha - theta[i]
                     )
                 else:
                     alpha = np.linspace(
-                        alpha_limits[0], alpha_limits[1], na
+                        miscut_limits[0], miscut_limits[1], na
                     ).reshape(na)
                     bb[i, ...] = np.sin(alpha + theta[i])/np.sin(
                         alpha - theta[i]
@@ -895,6 +917,7 @@ def CrystBragg_comp_lattice_spacing(
         ik=din['miller'][1],
         il=din['miller'][2],
         lamb=lamb,
+        din=din,
     )
     if nn is None:
         nn = 20
@@ -940,7 +963,6 @@ def CrystBragg_comp_lattice_spacing(
 
     # Compute
     # -------
-
     for i in range(TD.size):
         if cond0:
             a1[i] = a0*(1 + alpha_a*TD[i])
@@ -981,11 +1003,11 @@ def CrystBragg_comp_lattice_spacing(
     dout = {
         'Temperature of reference (°C)': T0,
         'Temperature variations (°C)': TD,
-        'Inter_atomic distance a1 (A)': a1,
-        'Inter_atomic distance c1 (A)': c1,
+        'Inter_atomic distance a1 (m)': a1,
+        'Inter_atomic distance c1 (m)': c1,
         'Volume (1/m3)': Volume,
-        'Inter-reticular spacing (A)': d_atom,
-        'sinus over lambda': sol,
+        'Inter-reticular spacing (m)': d_atom,
+        'sinus_theta_lambda': sol,
         'sinus theta_Bragg': sin_theta,
         'theta_Bragg (rad)': theta,
         'theta_Bragg (deg)': theta_deg,
@@ -1034,11 +1056,11 @@ def CrystBragg_comp_integrated_reflect(
     P_per = np.full((theta.size), np.nan)
     P_mos = P_per.copy()
     for i in range(theta.size):
-        P_per[i] = Zo*F_re[i]*re*(lamb**2)*(1. + abs(np.cos(2.*theta[i])))/(
+        P_per[i] = Zo*F_re[i]*re*((lamb*1e10)**2)*(1. + abs(np.cos(2.*theta[i])))/(
             6.*np.pi*Volume[i]*np.sin(2.*theta[i])
         )
 
-        P_mos[i] = (F_re[i]**2)*(re**2)*(lamb**3)*(
+        P_mos[i] = (F_re[i]**2)*(re**2)*((lamb*1e10)**3)*(
             1. + (np.cos(2.*theta[i]))**2
         )/(4.*mu*(Volume[i]**2)*np.sin(2.*theta[i]))
 
@@ -1224,15 +1246,15 @@ def CrystalBragg_plot_thermal_expansion_vs_d(
     T0=None, TD=None, d_atom=None, nn=None,
 ):
 
-    fig = plt.figure(figsize=(9, 6))
-    gs = gridspec.GridSpec(1, 1)
-    ax = fig.add_subplot(gs[0, 0])
     name = din['name']
     miller = np.r_[
         int(din['miller'][0]),
         int(din['miller'][1]),
         int(din['miller'][2]),
     ]
+    fig = plt.figure(figsize=(9, 6))
+    gs = gridspec.GridSpec(1, 1)
+    ax = fig.add_subplot(gs[0, 0])
     ax.set_title(
         f'{name}' + f', ({miller[0]},{miller[1]},{miller[2]})' +
         fr', $\lambda$={lamb} $\AA$' +
@@ -1240,25 +1262,26 @@ def CrystalBragg_plot_thermal_expansion_vs_d(
         fontsize=15,
     )
     ax.set_xlabel(r'$\Delta$T ($T_{0}$'+fr'={T0}°C)', fontsize=15)
-    ax.set_ylabel(r'Inter-planar distance $d_{hkl}$ [m$\AA$]', fontsize=15)
+    ax.set_ylabel(r'Inter-planar distance $d_{hkl}$ [$\AA$]', fontsize=15)
     ax.scatter(
-        TD, d_atom*(1e3),
+        TD, d_atom,
         marker='o', c='k', alpha=0.5,
         label=r'd$_{(hkl)}$ computed points',
     )
-    p = np.polyfit(TD, d_atom*(1e3), 1)
-    y_adj = p[0]*TD + p[1]
+    interp_d = np.polyfit(TD, d_atom, 1)
+    y_adj = interp_d[0]*TD + interp_d[1]
     ax.plot(
         TD, y_adj,
         'k-',
         label=(
-            r'$d_{hkl}$ = ' + str(np.round(p[1], 3)) +
-            r' x (1 + $\gamma_{eff}$.$\Delta$T)' + '\n' +
-            r'$\gamma_{eff}$ = ' + str(np.round(p[0]/p[1], decimals=9)) +
-            r'°C$^{-1}$',
+            '$d_{hkl}$ = ' + str(np.round(interp_d[1], 13)) +
+            ' x (1 + ' + r'$\gamma_{eff}.\Delta$T)' + '\n' +
+            r'$\gamma_{eff}$ = ' +
+            str(np.round(interp_d[0]/interp_d[1], decimals=9)) +
+            r'°C$^{-1}$'
         ),
     )
-    ax.legend(loc="best", fontsize=12)
+    ax.legend(fontsize=12)
 
 
 def CrystalBragg_plot_atomic_scattering_factor(
@@ -1292,13 +1315,14 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
     # Lattice parameters
     din=None, lamb=None,
     # Lattice modifications
-    alpha_limits=None,
+    miscut_limits=None,
     theta=None, theta_deg=None,
     miscut=None, na=None, nn=None,
     therm_exp=None, T0=None, TD=None,
     # Diffraction pattern main components
     th=None, dth=None, power_ratio=None,
     bb=None, polar=None, alpha=None,
+    ax=None,
 ):
     """ All plots of rocking curve is done, not with respect to the glancing
     angle (theta - thetaBragg) where thetaBragg may vary if the temperature
@@ -1353,66 +1377,70 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
         miscut is False and therm_exp is True,
         miscut is True and therm_exp is False,
     ]
-    if any(lc):
-        fig1 = plt.figure(figsize=(8, 6))
-        gs = gridspec.GridSpec(1, 1)
-        ax = fig1.add_subplot(gs[0, 0])
-        ax.set_title(
-            f'{name}, ' + f'({miller[0]},{miller[1]},{miller[2]})' +
-            fr', $\lambda$={lamb} $\AA$', fontsize=15,
-        )
-        ax.set_xlabel(r'Diffracting angle $\theta$ (rad)', fontsize=15)
-        ax.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
-    if miscut and therm_exp:
-        gs = gridspec.GridSpec(3, 3)
-        fig1 = plt.figure(figsize=(22, 20))
-        # 3 rows -> temperature changes -T0 < 0 < +T0
-        # 3 columns -> asymmetry angles -bragg < 0 < +bragg
-        ax01 = fig1.add_subplot(gs[0, 1])
-        ax00 = fig1.add_subplot(gs[0, 0])
-        ax02 = fig1.add_subplot(gs[0, 2])
-        ax11 = fig1.add_subplot(gs[1, 1])
-        ax10 = fig1.add_subplot(gs[1, 0])
-        ax12 = fig1.add_subplot(gs[1, 2])
-        ax21 = fig1.add_subplot(gs[2, 1])
-        ax20 = fig1.add_subplot(gs[2, 0])
-        ax22 = fig1.add_subplot(gs[2, 2])
-        fig1.suptitle(
-            f'{name}, ' + f'({miller[0]},{miller[1]},{miller[2]})' +
-            fr', $\lambda$={lamb} $\AA$' +
-            r', $\theta_{B}$=' + fr'{np.round(theta[nn], 5)} rad',
-            fontsize=15,
-        )
-        ax00.set_title(
-            r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[0]*60, 3)),
-            fontsize=15
-        )
-        ax01.set_title(
-            r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[nn]*60, 3)),
-            fontsize=15
-        )
-        ax02.set_title(
-            r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[na-1]*60, 3)),
-            fontsize=15
-        )
-        ax022 = ax02.twinx()
-        ax022.set_ylabel(
-            r'$\Delta T$=({})°C'.format(TD[0]), fontsize=15
-        )
-        ax122 = ax12.twinx()
-        ax122.set_ylabel(
-            r'$\Delta T$=({})°C'.format(TD[nn]), fontsize=15
-        )
-        ax222 = ax22.twinx()
-        ax222.set_ylabel(
-            r'$\Delta T$=({})°C'.format(TD[na-1]), fontsize=15
-        )
-        ax20.set_xlabel(r'$\theta$ (rad)', fontsize=15)
-        ax21.set_xlabel(r'$\theta$ (rad)', fontsize=15)
-        ax22.set_xlabel(r'$\theta$ (rad)', fontsize=15)
-        ax00.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
-        ax10.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
-        ax20.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
+    if ax is None:
+        if any(lc):
+            fig1 = plt.figure(figsize=(8, 6))
+            gs = gridspec.GridSpec(1, 1)
+            ax = fig1.add_subplot(gs[0, 0])
+            """
+            ax.set_title(
+                f'{name}, ' + f'({miller[0]},{miller[1]},{miller[2]})' +
+                fr', $\lambda$={lamb}m', fontsize=15,
+            )
+            """
+            ax.set_title(f'{name}')
+            ax.set_xlabel(r'Diffracting angle $\theta$ (rad)', fontsize=15)
+            ax.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
+        elif miscut and therm_exp:
+            gs = gridspec.GridSpec(3, 3)
+            fig1 = plt.figure(figsize=(22, 20))
+            # 3 rows -> temperature changes -T0 < 0 < +T0
+            # 3 columns -> asymmetry angles -bragg < 0 < +bragg
+            ax01 = fig1.add_subplot(gs[0, 1])
+            ax00 = fig1.add_subplot(gs[0, 0])
+            ax02 = fig1.add_subplot(gs[0, 2])
+            ax11 = fig1.add_subplot(gs[1, 1])
+            ax10 = fig1.add_subplot(gs[1, 0])
+            ax12 = fig1.add_subplot(gs[1, 2])
+            ax21 = fig1.add_subplot(gs[2, 1])
+            ax20 = fig1.add_subplot(gs[2, 0])
+            ax22 = fig1.add_subplot(gs[2, 2])
+            fig1.suptitle(
+                f'{name}, ' + f'({miller[0]},{miller[1]},{miller[2]})' +
+                fr', $\lambda$={lamb}m' +
+                r', $\theta_{B}$=' + fr'{np.round(theta[nn], 5)} rad',
+                fontsize=15,
+            )
+            ax00.set_title(
+                r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[0]*60, 3)),
+                fontsize=15
+            )
+            ax01.set_title(
+                r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[nn]*60, 3)),
+                fontsize=15
+            )
+            ax02.set_title(
+                r'$\alpha$=({}) arcmin'.format(np.round(alpha_deg[na-1]*60, 3)),
+                fontsize=15
+            )
+            ax022 = ax02.twinx()
+            ax022.set_ylabel(
+                r'$\Delta T$=({})°C'.format(TD[0]), fontsize=15
+            )
+            ax122 = ax12.twinx()
+            ax122.set_ylabel(
+                r'$\Delta T$=({})°C'.format(TD[nn]), fontsize=15
+            )
+            ax222 = ax22.twinx()
+            ax222.set_ylabel(
+                r'$\Delta T$=({})°C'.format(TD[na-1]), fontsize=15
+            )
+            ax20.set_xlabel(r'$\theta$ (rad)', fontsize=15)
+            ax21.set_xlabel(r'$\theta$ (rad)', fontsize=15)
+            ax22.set_xlabel(r'$\theta$ (rad)', fontsize=15)
+            ax00.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
+            ax10.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
+            ax20.set_ylabel('Power ratio P$_H$/P$_0$', fontsize=15)
 
     # Plot
     # ----
@@ -1434,18 +1462,19 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                 c_keydd = c_keylist[c_valuedd]
                 ax.text(
                     dth[0, 0, j, ind],
-                    np.max(power_ratio[0, 0, j, :] + 0.005),
+                    np.max(power_ratio[0, 0, j] + power_ratio[1, 0, j] + 0.005),
                     '({})'.format(let_keydd),
                     c=c_keydd,
                 )
+                # Plot each polarization
+                """
                 ax.plot(
                     dth[0, 0, j, :],
                     power_ratio[0, 0, j, :],
-                    '-',
+                    linestyle='-',
                     c=c_keydd,
                     label=(
-                        r'normal pola.,' + '\n' +
-                        r' ({}): $\alpha$=({}) arcmin'.format(
+                        r'normal pola., ({}): $\alpha$=({})arcmin'.format(
                             let_keydd, np.round(alpha_deg[j]*60, 3)
                         ),
                     ),
@@ -1453,34 +1482,34 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                 ax.plot(
                     dth[1, 0, j, :],
                     power_ratio[1, 0, j, :],
-                    '--',
+                    linestyle='--',
                     c=c_keydd,
-                    label=r'parallel pola.',
+                    label=(
+                        r'parallel pola., ({}): $\lambda$=({})m'.format(
+                            let_keydd, lamb,
+                        ),
+                    ),
+                )
+                """
+                # Plot the sum of both polarizations
+                ax.plot(
+                    dth[0, 0, j, :],
+                    power_ratio[0, 0, j] + power_ratio[1, 0, j],
+                    '-',
+                    c=c_keydd,
+                    label=(
+                        '(' + str(let_keydd) + r'): $\alpha$=' +
+                        str(np.round(alpha_deg[j]*60, 3)) + ' arcmin' + '\n'
+                        r'$\lambda$=' + str(lamb) + ' m'
+                    ),
                 )
         ax.axvline(
-            theta, color='black', linestyle='-.',
-            label=r'$\theta_B$= {} rad'.format(
-                np.round(theta, 6)
-            ),
+            theta,
+            color='black',
+            linestyle='-.',
+            label=r'$\theta_B$={}rad'.format(np.round(theta, 6)),
         )
         ax.legend(fontsize=12)
-    """
-    # Plot the sum of both polarizations
-    lc = [miscut is True, miscut is False]
-    if not therm_exp and any(lc):
-        ax.plot(
-            dth[0, 0, 0, :],
-            power_ratio[0, 0, 0] + power_ratio[1, 0, 0],
-            '-',
-            c='black',
-        )
-        ax.axvline(
-            theta, color='black', linestyle='-.',
-            label=r'$\theta_B$= {} rad'.format(
-                np.round(theta, 6)
-            ),
-        )
-    """
 
     if not miscut and therm_exp is True:
         colors = ['blue', 'black', 'red']
@@ -1499,14 +1528,16 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                 c_keydd = c_keylist[c_valuedd]
                 ax.text(
                     dth[0, i, 0, ind],
-                    np.max(power_ratio[0, i, 0, :] + 0.005),
+                    np.max(power_ratio[0, i, 0] + power_ratio[1, i, 0] + 0.005),
                     '({})'.format(let_keydd),
                     c=c_keydd,
                 )
+                # Plot each polarization
+                """
                 ax.plot(
                     dth[0, i, 0, :],
                     power_ratio[0, i, 0, :],
-                    '-',
+                    linestyle='-',
                     c=c_keydd,
                     label=r'normal pola., ({}): $\Delta T$=({})°C'.format(
                         let_keydd, TD[i]
@@ -1515,15 +1546,32 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
                 ax.plot(
                     dth[1, i, 0, :],
                     power_ratio[1, i, 0, :],
-                    '--',
+                    linestyle='--',
                     c=c_keydd,
-                    label=r'parallel pola.',
+                    label=(
+                        r'parallel pola., ({}): $\lambda$=({})m'.format(
+                            let_keydd, lamb,
+                        ),
+                    ),
+                )
+                """
+                # Plot the sum of both polarizations
+                ax.plot(
+                    dth[0, i, 0, :],
+                    power_ratio[0, i, 0] + power_ratio[1, i, 0],
+                    '-',
+                    c=c_keydd,
+                    label=(
+                        '(' + str(let_keydd) + r'): $\Delta$T=' +
+                        str(TD[i]) + ' °C' + '\n'
+                        r'$\lambda$=' + str(lamb) + ' m'
+                    ),
                 )
         ax.axvline(
-            theta[nn], color='black', linestyle='--',
-            label=r'Bragg angle of ref. : {} rad'.format(
-                np.round(theta[nn], 6)
-            ),
+            theta[nn],
+            color='black',
+            linestyle='--',
+            label=r'$\theta_B$={}rad'.format(np.round(theta[nn], 6)),
         )
         ax.legend(fontsize=12)
 
@@ -1676,6 +1724,8 @@ def CrystalBragg_plot_power_ratio_vs_glancing_angle(
 
         ax11.legend()
 
+    return ax
+
 
 def CrystalBragg_plot_rc_components_vs_asymmetry(
     din=None, lamb=None,
@@ -1700,7 +1750,7 @@ def CrystalBragg_plot_rc_components_vs_asymmetry(
     ]
     ax.set_title(
         f'{name}' + f', ({miller[0]},{miller[1]},{miller[2]})' +
-        fr', $\lambda$={lamb} $\AA$'
+        fr', $\lambda$={lamb}m'
     )
     ax.set_xlabel(r'$\alpha$ (deg)', fontsize=15)
     ax.set_ylim(0., 5.)
@@ -1787,7 +1837,7 @@ def CrystalBragg_plot_cmaps_rc_components_vs_asymmetry_temp(
     ]
     fig.suptitle(
         f'{name}' + f', ({miller[0]},{miller[1]},{miller[2]})' +
-        fr', $\lambda$={lamb} $\AA$' +
+        fr', $\lambda$={lamb}m' +
         r', $\theta_{B}$=' + fr'{np.round(theta[nn], 5)} rad',
         fontsize=15,
     )
