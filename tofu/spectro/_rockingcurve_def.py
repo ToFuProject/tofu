@@ -47,14 +47,14 @@ _DCRYST_MAT = {
         },
         'inter_atomic': {
             'distances': {
-                'a0': 4.91304,
-                'c0': 5.40463,
+                'a0': 4.91304, # e-10,
+                'c0': 5.40463, # e-10,
             },
             'unit': 'A',
             'comments': 'within the unit cell',
             'Tref': {
-                'data': 25.,
-                'unit': 'C',
+                'data': 25. + 273.15,
+                'unit': 'K',
             },
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
@@ -63,7 +63,7 @@ _DCRYST_MAT = {
                 'alpha_a': 1.337e-5,
                 'alpha_c': 7.97e-6,
             },
-            'unit': '1/C',
+            'unit': '1/K',
             'comments': 'in parallel directions to a0 and c0',
             'sources': 'R.W.G. Wyckoff, Crystal Structures',
         },
@@ -71,10 +71,10 @@ _DCRYST_MAT = {
             'Si': np.r_[
                 0., 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7,
                 0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5,
-            ],
+            ]*1e10,
             'O': np.r_[
                 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1,
-            ],
+            ], # *1e10,
             'sources':
                 'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
@@ -312,8 +312,7 @@ def _atomic_coefs_factor_Silicium(
     v0=None,
 ):
 
-    Zsi = v0['atoms_Z'][0]
-    Zo = v0['atoms_Z'][1]
+    Zsi, Zo = v0['atoms_Z']
 
     # -----------------------------------
     # linear atomic absorption coefficients 'mu'
@@ -385,9 +384,12 @@ _DCRYST = {
         'material': 'Quartz',
         'name': 'Quartz_110',
         'symbol': 'Qz110',
-        'target_ion': 'Ar16+',
-        'target_lamb': 3.96e-10,
         'miller': np.r_[1., 1., 0.],
+        'target': {
+            'ion': 'Ar16+',
+            'lamb': 3.96, # e-10,
+            'units': 'm',
+        },
         'd_hkl': None,
         'phases': {
             'Si': None,
@@ -398,9 +400,12 @@ _DCRYST = {
         'material': 'Quartz',
         'name': 'Quartz_102',
         'symbol': 'Qz102',
-        'target_ion': 'Ar17+',
-        'target_lamb': 3.75e-10,
         'miller': np.r_[1., 0., 2.],
+        'target': {
+            'ion': 'Ar17+',
+            'lamb': 3.75, # e-10,
+            'units': 'm',
+        },
         'd_hkl': None,
         'phases': {
             'Si': None,
@@ -412,9 +417,11 @@ _DCRYST = {
         # 'material': 'Germanium',
         # 'name': None,
         # 'symbol': None,
-        # 'target_ion': None,
-        # 'target_lamb': None,
         # 'miller': None,
+        # 'target': {
+            # 'ion': 'Ar16+',
+            # 'wavelength': 3.96e-10,
+        # }
         # 'd_hkl': None,
         # 'phases': None,
     # },
@@ -454,7 +461,7 @@ def _complement_dict_cut(dcryst_mat=None, dcryst_cut=None):
                 ll,
                 v0['inter_atomic']['distances']['a0'],
                 v0['inter_atomic']['distances']['c0'],
-            ) * 1.e-10
+            )
 
         # other
         else:

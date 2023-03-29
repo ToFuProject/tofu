@@ -85,6 +85,8 @@ class Crystal(Previous):
 
         # material
         dobj['crystal'][key]['dmat'] = _check._dmat(
+            coll=self,
+            key=key,
             dgeom=dobj['crystal'][key]['dgeom'],
             dmat=dmat,
             alpha=alpha,
@@ -262,3 +264,17 @@ class Crystal(Previous):
             # returnas
             returnas=returnas,
         )
+
+    # --------------------
+    # plotting
+    # ---------------------
+
+    def plot_crystal_rocking_curve(
+        self,
+        key=None,
+    ):
+
+    return _plot.plot_rocking_curve(
+        coll=self,
+        key=key,
+    )
