@@ -80,7 +80,8 @@ def _dmat(
 
     c0 = (
         isinstance(dmat.get('d_hkl'), float)
-        and isinstance(dmat.get('target', {}).get('lamb'), float)
+        and dmat.get('target') is not None
+        and isinstance(dmat['target'].get('lamb'), float)
     )
     if not c0:
         msg = (
