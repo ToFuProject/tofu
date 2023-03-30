@@ -92,7 +92,16 @@ def _bragglamb(
     # no input => default
 
     if bragg is None and lamb is None:
-        lamb = np.r_[coll.dobj['crystal'][key]['dmat']['target']['lamb']]
+        dmat = coll.dobj['crystal'][key]['dmat']
+        if dmat is None or dmat.get('target') is None:
+            msg = (
+                f"Crystal '{key}' has no target lamb!\n"
+                f"dmat:\n{dmat}"
+            )
+            raise Exception(msg)
+        else:
+            lamb = np.r_[dmat['target']['lamb']]
+
     if bragg is not None:
         bragg = np.atleast_1d(bragg).astype(float)
     if lamb is not None:

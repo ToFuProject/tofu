@@ -37,7 +37,8 @@ def compute_etendue_los(
     # options
     add_points=None,
     # spectro-only
-    rocking_curve_fwhm=None,
+    rocking_curve_fw=None,
+    rocking_curve_max=None,
     # bool
     convex=None,
     check=None,
@@ -114,13 +115,20 @@ def compute_etendue_los(
         # ------------------------
         # spectro => rocking curve
 
-        if spectro and rocking_curve_fwhm is None:
-            rocking_curve_fwhm = np.inf
-            # TBD
-            # rocking_curve_fwhm = coll.get_crystal_rocking_curve(
-                # key=v0['keyref'],
-                # moment='fwhm',
-            # )
+        if spectro:
+            dmat = coll.dobj['crystal'][kref]['dmat']
+            if rocking_curve_fw is None:
+                if dmat.get('drock') is not None:
+                    rocking_curve_fw = dmat['drock']['FW']
+                else:
+                    rocking_curve_fw = np.inf
+
+            if rocking_curve_max is None:
+                if dmat.get('drock') is not None:
+                    kpow = dmat['drock']['power_ratio']
+                    rocking_curve_max = np.max(coll.ddata[kpow]['data'])
+                else:
+                    rocking_curve_max = 1.
 
         # ------------------------------------------
         # get distance, area, solid_angle, los
@@ -134,7 +142,8 @@ def compute_etendue_los(
             ldet=v0['ldet'],
             # spectro
             spectro=spectro,
-            rocking_curve_fwhm=rocking_curve_fwhm,
+            rocking_curve_fw=rocking_curve_fw,
+            rocking_curve_max=rocking_curve_max,
             # optics
             x0=x0,
             x1=x1,
@@ -482,7 +491,8 @@ def _loop_on_pix(
     ldet=None,
     # spectro
     spectro=None,
-    rocking_curve_fwhm=None,
+    rocking_curve_fw=None,
+    rocking_curve_max=None,
     # equivalent aperture
     x0=None,
     x1=None,
@@ -530,7 +540,7 @@ def _loop_on_pix(
                 + (centsy[ii] - ldet[ii]['cents_y'])**2
                 + (centsz[ii] - ldet[ii]['cents_z'])**2
             )
-            withrc = dist * rocking_curve_fwhm
+            withrc = dist * rocking_curve_fw
             out0_norm = out0 / width0
             ldet[ii]['outline_x0'] = out0_norm * min(width0, withrc)
 
@@ -551,6 +561,12 @@ def _loop_on_pix(
             visibility=False,
             return_vector=False,
         )[0, 0]
+
+    # -----------
+    # rocking curve
+
+    if spectro:
+        solid_angles *= rocking_curve_max
 
     # -------------
     # normalize los
