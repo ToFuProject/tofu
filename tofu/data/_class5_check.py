@@ -75,6 +75,28 @@ def _dmat(
         dkeys=_DMAT_KEYS,
     )
 
+    # -----------
+    # safety check
+
+    c0 = (
+        isinstance(dmat.get('d_hkl'), float)
+        and isinstance(dmat.get('target', {}).get('lamb'), float)
+    )
+    if not c0:
+        msg = (
+            f"For crystal '{key}', "
+            "if dmat is provided, it should contain at least:\n"
+            "\t- 'd_hkl': inter-reticular planes distance\n"
+            "\t- 'target': {'lamb': float} the target wavelength\n"
+            "Optionally, you can also provide:\n"
+            "\t- 'drock': a sub-dict with the rocking curve:\n"
+            "\t\t- 'angle_rel': (na,) array of angles (rad)\n"
+            "\t\t- 'power_ratio': (na,) array of power ratio\n"
+            "Provided:\n"
+            f"{dmat}"
+        )
+        raise Exception(msg)
+
     dmat['ready_to_compute'] = ready_to_compute
 
     # -------------------------------
@@ -155,8 +177,11 @@ def _dmat(
 
     elif isinstance(dmat, dict):
 
-        if 'drock' in dmat.keys():
-            dref, ddata, drock2 = _extract_rocking_curve_from_array(dmat)
+        if dmat.get('drock') is not None:
+            dref, ddata, drock2 = _extract_rocking_curve_from_array(
+                key=key,
+                dmat=dmat,
+            )
             dmat['drock'] = drock2
 
     else:
@@ -302,7 +327,10 @@ def _extract_rocking_curve(key=None, drock=None, alpha=None):
     return dref, ddata, drock2
 
 
-def _extract_rocking_curve_from_array(dmat=None):
+def _extract_rocking_curve_from_array(
+    key=None,
+    dmat=None,
+):
 
     # -------------
     # check inputs
