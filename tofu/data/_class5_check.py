@@ -5,12 +5,10 @@ import copy
 
 
 import numpy as np
-import scipy.constants as scpct
-import scipy.interpolate as scpinterp
+import scipy.integrate as scpinteg
 import datastock as ds
 
 
-from . import _generic_check
 from ..spectro import _rockingcurve_def
 from ..spectro import _rockingcurve
 
@@ -83,7 +81,7 @@ def _dmat(
     # check parallelism
     # -------------------------------
 
-    _check_parallelism(
+    alpha = _check_parallelism(
         alpha=alpha,
         beta=beta,
         dmat=dmat,
@@ -132,10 +130,16 @@ def _dmat(
             'e0',
             'e1',
         ]
+
+        assert np.allclose(dmat['nin'], drock['nin'])
+        assert np.allclose(dmat['e0'], drock['e0'])
         dmat = {
             k0: copy.deepcopy(drock[k0])
             for k0 in lk0
         }
+        dmat['d_hkl'] *= 1e-10
+        dmat['target']['lamb'] *= 1e-10
+
         dmat['mesh'] = {'type': str(drock['mesh']['type'])}
 
         # -------------------------------------------
@@ -144,19 +148,40 @@ def _dmat(
         dref, ddata, drock2 = _extract_rocking_curve(
             key=key,
             drock=drock,
+            alpha=alpha,
         )
-
         dmat['drock'] = drock2
 
 
     elif isinstance(dmat, dict):
 
         if 'drock' in dmat.keys():
-            dref, ddata = _extract_rocking_curve_from_array(dmat)
+            dref, ddata, drock2 = _extract_rocking_curve_from_array(dmat)
+            dmat['drock'] = drock2
 
     else:
         msg = f"Unknown dmat:\n{dmat}"
         raise Exception(msg)
+
+    # saftey check
+    assert ('drock' in dmat.keys()) == (dref is not None)
+
+    # ---------------
+    # Get width of rc
+
+    if 'drock' in dmat.keys():
+        power_ratio = ddata[dmat['drock']['power_ratio']]['data']
+        angle_rel = ddata[dmat['drock']['angle_rel']]['data']
+        pmax = np.nanmax(power_ratio)
+
+        # integrated reflectivity
+        dmat['drock']['integ_reflect'] = scpinteg.simps(
+            power_ratio,
+            x=angle_rel,
+        )
+
+        # FW
+        dmat['drock']['FW'] = dmat['drock']['integ_reflect'] / pmax
 
     # ---------------
     # add dref, ddata
@@ -174,7 +199,7 @@ def _dmat(
 # ################################################################
 
 
-def _extract_rocking_curve(key=None, drock=None):
+def _extract_rocking_curve(key=None, drock=None, alpha=None):
 
     # 'Power ratio', (2, 1, 41, 201)
     # shape = (polar, nT, nalpha, ny = nangles)
@@ -182,30 +207,43 @@ def _extract_rocking_curve(key=None, drock=None):
     # ----------------
     # extract key data
 
+    # ind_alpha
+    ind_alpha = np.argmin(np.abs(drock['alpha'] - alpha))
+
+    # temperature
     _, nT, nc, na = drock['Power ratio'].shape
-    braggref = drock['Bragg angle of reference (rad)']
-    ang_rel = drock['Glancing angles'] - braggref[None, :, None, None]
-    amin, amax = np.nanmin(ang_rel), np.nanmax(ang_rel)
-    angles = np.linspace(amin, amax, na)
     temp = drock['Temperature ref'] + drock['Temperature changes (°C)']
+    indtref = np.argmin(np.abs(drock['Temperature changes (°C)']))
+    Tref = temp[indtref]
+
+    # bragg angle of reference
+    braggref = drock['Bragg angle of reference (rad)']
+
+    # differential glacing angles
+    ang_rel = drock['Glancing angles'][0, indtref, ind_alpha, :] - braggref[indtref]
+    # amin, amax = np.nanmin(ang_rel), np.nanmax(ang_rel)
+    # angles = np.linspace(amin, amax, na)
+
+    # power_ratio
+    power_ratio = np.nanmean(
+        drock['Power ratio'][:, indtref, ind_alpha, :],
+        axis=0,
+    )
 
     # ---------------
     # interpolate
 
-    # ind_alpha
-    ind_alpha = 0
-
-    power_ratio = np.full((2, na, nT), np.nan)
-    for ii in range(2):
-        for jj in range(nT):
-            power_ratio[ii, :, jj] = scpinterp.interp1d(
-                ang_rel[ii, jj, ind_alpha, :],
-                drock['Power ratio'][ii, jj, ind_alpha, :],
-                kind='linear',
-                axis=0,
-                bounds_error=False,
-                fill_value=0,
-            )(angles)
+    # power_ratio = np.full((2, na, nT), np.nan)
+    # for ii in range(2):
+        # for jj in range(nT):
+            # power_ratio[ii, :, jj] = scpinterp.interp1d(
+                # ang_rel[ii, jj, ind_alpha, :],
+                # drock['Power ratio'][ii, jj, ind_alpha, :],
+                # kind='linear',
+                # axis=0,
+                # bounds_error=False,
+                # fill_value=0,
+            # )(angles)
 
     # ------------
     # fill dict
@@ -221,12 +259,13 @@ def _extract_rocking_curve(key=None, drock=None):
 
     # ddata
     kang = f'{key}_rc_ang'
-    ktemp = f'{key}_rc_temp'
+    ktemp = f'{key}_rc_T'
+    kbragg = f'{key}_rc_bragg'
     krc = f'{key}_rc'
 
     ddata = {
         kang: {
-            'data': angles,
+            'data': ang_rel,
             'ref': knang,
             'units': 'rad',
             'dim': 'angle',
@@ -237,9 +276,15 @@ def _extract_rocking_curve(key=None, drock=None):
             'units': 'C',
             'dim': 'temperature',
         },
+        kbragg: {
+            'data': braggref,
+            'ref': kntemp,
+            'units': 'rad',
+            'dim': 'angle',
+        },
         krc: {
-            'data': np.mean(power_ratio, axis=0),
-            'ref': (knang, kntemp),
+            'data': power_ratio,
+            'ref': knang,
             'units': '',
             'dim': 'ratio',
         },
@@ -247,12 +292,89 @@ def _extract_rocking_curve(key=None, drock=None):
 
     # drock2
     drock2 = {
-        'temperature': ktemp,
+        'T': ktemp,
+        'braggT': kbragg,
+        'angle_rel': kang,
+        'power_ratio': krc,
+        'Tref': Tref,
+    }
+
+    return dref, ddata, drock2
+
+
+def _extract_rocking_curve_from_array(dmat=None):
+
+    # -------------
+    # check inputs
+
+    # extract
+    angle_rel = dmat['drock'].get('angle_rel')
+    power_ratio = dmat['drock'].get('power_ratio')
+
+    # safety check
+    c0 = (
+        angle_rel is not None
+        and power_ratio is not None
+        and np.array(angle_rel).size == np.array(power_ratio).size
+    )
+    if not c0:
+        msg = (
+            "Rocking curve must be provided as a subdict dmat['drock'] with:\n"
+            "\t- 'angle_rel': relative incidence angle vector\n"
+            "\t- 'power_ratio': power ratio vector, same size as 'angle_rel'\n"
+            f"Provided:\n{dmat['drock']}"
+        )
+        raise Exception(msg)
+
+    # format
+    angle_rel = ds._generic_check._check_flat1darray(
+        angle_rel, 'angle_rel',
+        dtype=float,
+        unique=True,
+    )
+
+    power_ratio = ds._generic_check._check_flat1darray(
+        power_ratio, 'power_ratio',
+        dtype=float,
+        size=angle_rel.size,
+    )
+
+    # -----------
+    # fill dict
+
+    # dref
+    knang = f'{key}_rc_angn'
+    dref = {
+        knang: {'size': angle_rel.size},
+    }
+
+    # ddata
+    kang = f'{key}_rc_ang'
+    krc = f'{key}_rc'
+
+    ddata = {
+        kang: {
+            'data': angle_rel,
+            'ref': knang,
+            'units': 'rad',
+            'dim': 'angle',
+        },
+        krc: {
+            'data': power_ratio,
+            'ref': knang,
+            'units': '',
+            'dim': 'ratio',
+        },
+    }
+
+    # drock2
+    drock2 = {
         'angle_rel': kang,
         'power_ratio': krc,
     }
 
     return dref, ddata, drock2
+
 
 # ################################################################
 # ################################################################
@@ -339,4 +461,4 @@ def _check_parallelism(
     dmat['e0'] = e0
     dmat['e1'] = e1
 
-    return
+    return alpha
