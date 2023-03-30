@@ -43,8 +43,6 @@ def compute_rockingcurve(
     plot_cmaps=None,
     # Returning dictionnary
     returnas=None,
-    # User-defined values
-    Miller = None, # Miller indices
 ):
     """ The code evaluates, for a given wavelength and Miller indices set,
     the inter-plane distance d, the Bragg angle of reference and the complex
@@ -480,22 +478,31 @@ def _checks(
 
     # ------------
     # crystal
+    print(din)
 
-    if crystal not in _def._DCRYST.keys():
-        lk1 = ['material', 'symbol', 'miller', 'target']
-        dstr = {
-            k0: "\n".join([f"\t\t{k1}: {v0[k1]}" for k1 in lk1])
-            for k0, v0 in _def._DCRYST.items()
-        }
-        lstr = [f"\t- {k0}:\n{v0}" for k0, v0 in dstr.items()]
-        msg = (
-            "You must choose a type of crystal from "
-            + "tofu/spectro/_rockingcurve_def.py to use among:\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
+    # If user-defined crystal cut
+    if isinstance(crystal, dict):
+        din = crystal
 
-    din = _def._DCRYST[crystal]
+    # If using default crystal types
+    else:
+        if crystal not in _def._DCRYST.keys():
+            lk1 = ['material', 'symbol', 'miller', 'target']
+            dstr = {
+                k0: "\n".join([f"\t\t{k1}: {v0[k1]}" for k1 in lk1])
+                for k0, v0 in _def._DCRYST.items()
+            }
+            lstr = [f"\t- {k0}:\n{v0}" for k0, v0 in dstr.items()]
+            msg = (
+                "You must choose a type of crystal from "
+                + "tofu/spectro/_rockingcurve_def.py to use among:\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+
+        din = _def._DCRYST[crystal]
+
+        print(din)
 
     # lamb
     if lamb is None:

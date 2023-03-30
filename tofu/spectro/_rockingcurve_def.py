@@ -97,39 +97,64 @@ _DCRYST_MAT = {
     # ----------
     # Germanium
 
-    # 'Germanium': {
-        # 'material_symbol': 'Ge',
-        # 'atoms': None,
-        # 'atoms_Z': None,
-        # 'atoms_nb': None,
-        # 'volume': None,
-        # 'mesh': {
-            # 'type': None,
-            # 'positions': None,
-            # 'sources': None,
-        # },
-        # 'inter_atomic': {
-            # 'distances': None,
-            # 'unit': None,
-            # 'comments': None,
-            # 'Tref': None,
-            # 'sources': None,
-        # },
-        # 'thermal_expansion': {
-            # 'coefs': None,
-            # 'unit': None,
-            # 'comments': None,
-            # 'sources': None,
-        # },
-        # 'sin_theta_lambda': {
-            # 'values': None,
-            # 'sources': None,
-        # },
-        # 'atomic_scattering': {
-            # 'factors': None,
-            # 'sources': None,
-        # },
-    # },
+    'Germanium': {
+        'material_symbol': 'Ge',
+        'atoms': ['Ge'],
+        'atoms_Z': [32.],
+        'atoms_nb': [8.],
+        'volume': None,
+        'mesh': {
+            'type': 'diamond',
+            'positions': {
+                'Ge': {
+                    'u': np.r_[0.25],
+                    'x': None,
+                    'y': None,
+                    'z': None,
+                    'N': None,
+                },
+            },
+            'sources':  'R.W.G. Wyckoff, Crystal Structures (1963)',
+        },
+        'inter_atomic': {
+            'distances': {
+                'a0': 5.65735, # e-10
+            },
+            'unit': 'A',
+            'comments': None,
+            'Tref': {
+                'data': 20. + 273.15,
+                'unit': 'K',
+            },
+            'sources': 'R.W.G. Wyckoff, Crystal Structures (1963)',
+        },
+        'thermal_expansion': {
+            'coefs': {
+                'alpha_a': 6.12e-6
+            },
+            'unit': '1/K',
+            'comments': 'only one unique direction',
+            'sources': 'H.P. Singh, Acta Cryst. (1968). A24, 469',
+        },
+        'sin_theta_lambda': {
+            'Ge': np.r_[
+                0., 0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7,
+                0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5
+            ]*1e10, # ????????????? multiply or not
+            'sources': 
+                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
+        },
+        'atomic_scattering': {
+            'factors': {
+                'Ge': np.r_[32., 29.534, 25.567, 23.791, 22.136,
+                    19.047, 16.227, 13.770, 11.745, 10.151,
+                    8.937, 8.028, 7.348, 6.830, 6.419,
+                    6.076, 5.774]
+            },
+            'sources': 
+                'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
+        },
+    },
 }
 
 
@@ -180,6 +205,12 @@ def _complement_dict_mat(dcryst_mat=None):
                 v0['inter_atomic']['distances']['c0'],
             )
 
+        # diamond
+        elif v0['mesh']['type'] == 'diamond':
+            dcryst_mat[k0]['volume'] = diam_volume(
+                v0['inter_atomic']['distances']['a0']
+            )
+
         # other
         else:
             msg = f"Mesh volume not implemented for '{k0}'"
@@ -191,6 +222,13 @@ def _complement_dict_mat(dcryst_mat=None):
 
         if k0 == 'Quartz':
             _atomic_coefs_factor_Silicium(
+                dcryst_mat=dcryst_mat,
+                k0=k0,
+                v0=v0,
+            )
+
+        elif k0 == 'Germanium':
+            _atomic_coefs_factor_Germanium(
                 dcryst_mat=dcryst_mat,
                 k0=k0,
                 v0=v0,
@@ -284,8 +322,46 @@ def _positions_germanium(
     v0=None,
 ):
 
-    msg = f"Positions not implemented for '{k0}'"
-    raise NotImplementedError(msg)
+    # Ge positions for Ge crystal
+    # From R.W.G. Wyckoff, Crystal Structures (1963)
+
+    # Germanium
+    uGe = v0['mesh']['positions']['Ge']['u'][0]
+    dcryst_mat[k0]['mesh']['positions']['Ge']['x'] = np.r_[
+        0.,
+        0.,
+        2*uGe,
+        2*uGe,
+        uGe,
+        uGe,
+        3*uGe,
+        3*uGe
+    ]
+    dcryst_mat[k0]['mesh']['positions']['Ge']['y'] = np.r_[
+        0.,
+        2*uGe,
+        0.,
+        2*uGe,
+        uGe,
+        3*uGe,
+        uGe,
+        3*uGe
+    ]
+    dcryst_mat[k0]['mesh']['positions']['Ge']['z'] = np.r_[
+        0.,
+        2*uGe,
+        2*uGe,
+        0.,
+        uGe,
+        3*uGe,
+        3*uGe,
+        uGe
+
+    ]
+    dcryst_mat[k0]['mesh']['positions']['Ge']['N'] = np.size(
+        dcryst_mat[k0]['mesh']['positions']['Ge']['x']
+    )
+    
 
 
 # ##################################################################
@@ -297,6 +373,9 @@ def _positions_germanium(
 
 def hexa_volume(aa, cc):
     return (aa**2) * cc * (np.sqrt(3.)/2.)
+
+def diam_volume(aa):
+    return aa**3
 
 
 # ###############################################################
@@ -370,6 +449,52 @@ def _atomic_coefs_factor_Silicium(
     dcryst_mat[k0]['fsi_im'] = fsi_im
     dcryst_mat[k0]['fo_re'] = fo_re
     dcryst_mat[k0]['fo_im'] = fo_im
+
+def _atomic_coefs_factor_Germanium(
+    dcryst_mat=None,
+    k0=None,
+    v0=None,
+):
+
+    Zge = v0['atoms_Z']
+
+    # -----------------------------------
+    # linear atomic absorption coefficients 'mu'
+    # From W. Zachariasen, Theory of X-ray Diffraction in Crystals
+    # (Wiley, New York, 1945)
+
+    def mu(lamb, Zge=Zge):
+        return 0
+
+    # store in dict
+    dcryst_mat[k0]['mu'] = mu
+
+    # ----------------------------
+    # Atomic scattering factor 'f'
+
+    # Same values for different h,k,l ???????
+    sol_ge = v0['sin_theta_lambda']['Ge']
+    asf_ge = v0['atomic_scattering']['factors']['Ge']
+    interp_ge = scipy.interpolate.interp1d(sol_ge, asf_ge)
+
+    def dfge_re(lamb):
+        #return 0.1335*lamb - 6e-3
+        return 0
+
+    def fge_re(lamb, sol, dfge_re=dfge_re, interp_ge=interp_ge):
+        return interp_ge(sol) + dfge_re(lamb)
+
+    def fge_im(lamb, Zge=Zge, mu_ge=mu_ge):
+        #return 5.936e-4*Zsi*(mu_si(lamb)/lamb)
+        return 0
+
+
+    # store in dict
+    dcryst_mat[k0]['dfge_re'] = dfge_re
+    dcryst_mat[k0]['fge_re'] = fge_re
+    dcryst_mat[k0]['fge_im'] = fge_im
+
+    
 
 
 # ###############################################################
@@ -463,6 +588,15 @@ def _complement_dict_cut(dcryst_mat=None, dcryst_cut=None):
                 v0['inter_atomic']['distances']['c0'],
             )
 
+        # diamond
+        elif v0['mesh']['type'] == 'diamond':
+            dcryst_cut[k0]['d_hkl'] = diam_spacing(
+                hh,
+                kk,
+                ll,
+                v0['inter_atomic']['distances']['a0'],
+            )
+
         # other
         else:
             msg = f"Mesh d_hkl not implemented for '{k0}'"
@@ -509,6 +643,28 @@ def _complement_dict_cut(dcryst_mat=None, dcryst_cut=None):
                     v0['mesh']['positions']['O']['z'][ii],
                 )
 
+        # Germanium
+        elif v0['material'] == 'Germanium':
+
+            Nge = v0['mesh']['positions']['Ge']['N']
+
+            def phasege(hh, kk, ll, xge, yge, zge):
+                return hh*xge + kk*yge + ll*zge
+
+            # initiate
+            dcryst_cut[k0]['phases']['Ge'] = np.full((Nge,), np.nan)
+
+            # Germanium
+            for ii in range(Nge):
+                dcryst_cut[k0]['phases']['Ge'][ii] = phasege(
+                    hh,
+                    kk,
+                    ll,
+                    v0['mesh']['positions']['Ge']['x'][ii],
+                    v0['mesh']['positions']['Ge']['y'][ii],
+                    v0['mesh']['positions']['Ge']['z'][ii],
+                )
+
         # Other
         else:
             msg = f"Phases not implemented for '{k0}'"
@@ -529,6 +685,9 @@ def hexa_spacing(hh, kk, ll, aa, cc):
         (3.*(aa**2)*(cc**2))
         / (4.*(hh**2 + kk**2 + hh*kk)*(cc**2) + 3.*(ll**2)*(aa**2))
     )
+
+def diam_spacing(hh, kk, ll, aa):
+    return aa / np.sqrt(hh**2 + kk**2 + ll**2)
 
 
 # ###############################################################
