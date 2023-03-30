@@ -10,6 +10,9 @@ import numpy as np
 import tofu as tf
 
 
+__all__ = ['main']
+
+
 # #####################################################
 # #####################################################
 #           Main
@@ -21,7 +24,7 @@ def main():
     # ------------------------
     # create plasma
 
-    conf, coll = create_plasma()
+    conf, coll = _create_plasma()
 
     # ------------------------
     # add several diagnostics
@@ -30,7 +33,7 @@ def main():
     _add_broadband(coll, conf)
 
     # add PHA
-    # _add_PHA(coll, conf)
+    _add_PHA(coll, conf)
 
     # add spectrometer
     _add_spectrometer(coll, conf)
@@ -58,7 +61,7 @@ def main():
 
 
 
-def create_plasma():
+def _create_plasma():
 
     # -----------------
     # load a simple geometry
@@ -305,9 +308,9 @@ def _add_spectrometer(
             # store
             store=True,
             key_cam=f'{k0}_cam',
-            aperture_dimensions=[100e-6, 8e-2],
-            pinhole_radius=500e-6,
-            cam_pixels_nb=[5, 3],
+            aperture_dimensions=[100e-6, 1e-2],
+            pinhole_radius=100e-6,
+            cam_pixels_nb=[10, 5],
             # returnas
             returnas=list,
         )
@@ -321,8 +324,6 @@ def _add_spectrometer(
 
     # add crystal optics
     for k0, v0 in doptics.items():
-        if k0 != 'c0':
-            continue
         coll.add_diagnostic(
             doptics=v0,
             config=conf,
@@ -370,6 +371,7 @@ def _crystals(coll=None):
 
     # c3: cylindrical (convex)
     rc = 2.
+    ang = np.linspace(-0.0001, 0.0005, 100)
     c1 = {
         'key': 'c1',
         'dgeom': {
@@ -380,7 +382,14 @@ def _crystals(coll=None):
             'extenthalf': size * np.r_[1/rc, 1],
             'curve_r': [-rc, np.inf],
         },
-        'dmat': 'Quartz_110',
+        'dmat': {
+            'target': {'lamb': 3.94e-10},
+            'd_hkl': 2.45652e-10,
+            'drock': {
+                'angle_rel': ang,
+                'power_ratio': np.exp(-(ang-0.00025)**2/0.0001**2),
+            },
+        },
         'configuration': 'pinhole',
     }
     coll.add_crystal(c1['key'], dgeom=c1['dgeom'], dmat=c1['dmat'])
@@ -446,4 +455,5 @@ def _nine0e1_from_orientations(
 # #####################################################
 
 
-# main()
+if __name__ == '__main__':
+    main()
