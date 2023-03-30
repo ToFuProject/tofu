@@ -463,11 +463,11 @@ def _atomic_coefs_factor_Germanium(
     # From W. Zachariasen, Theory of X-ray Diffraction in Crystals
     # (Wiley, New York, 1945)
 
-    def mu(lamb, Zge=Zge):
+    def mu_ge(lamb, Zge=Zge):
         return 0
 
     # store in dict
-    dcryst_mat[k0]['mu'] = mu
+    dcryst_mat[k0]['mu'] = mu_ge
 
     # ----------------------------
     # Atomic scattering factor 'f'
