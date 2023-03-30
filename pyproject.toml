@@ -1,8 +1,5 @@
 [build-system]
-requires = ["setuptools>=40.8.0",
+requires = [
+        "setuptools>=40.8.0",
 	    "wheel",
-	    "cython>0.26",
-	    "numpy",
-	    "Polygon3",
-	    "datastock>=0.0.22",
 	    ]

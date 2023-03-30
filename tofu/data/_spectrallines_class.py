@@ -37,18 +37,15 @@ class SpectralLines(ds.DataStock):
     _ddef = copy.deepcopy(ds.DataStock._ddef)
     _ddef['params']['dobj'] = {
         'lines': {
-            'lambda0': (float, 0.),
-            'source': (str, 'unknown'),
-            'transition':    (str, 'unknown'),
-            'element':  (str, 'unknown'),
-            'charge':  (int, 0),
-            'ion':  (str, 'unknown'),
-            'symbol':   (str, 'unknown'),
+            'lambda0': {'cls': float, 'def': 0.},
+            'source': {'cls': str, 'def': 'unknown'},
+            'transition': {'cls': str, 'def': 'unknown'},
+            'element':  {'cls': str, 'def': 'unknown'},
+            'charge':  {'cls': int, 'def': 0},
+            'ion':  {'cls': str, 'def': 'unknown'},
+            'symbol':   {'cls': str, 'def': 'unknown'},
         },
     }
-
-    _show_in_summary_core = ['shape', 'ref']
-    _show_in_summary = 'all'
 
     _which_lines = _WHICH_LINES
     _quant_ne = _QUANT_NE
@@ -388,11 +385,10 @@ class SpectralLines(ds.DataStock):
             douti, dparami = self.interpolate(
                 # interpolation base
                 keys=v0,
-                ref_keys=None,
-                ref_quant=[self._quant_ne, self._quant_Te],
+                ref_key=k0,
                 # interpolation pts
-                pts_axis0=dnTe['ne'],
-                pts_axis1=dnTe['Te'],
+                x0=dnTe['ne'],
+                x1=dnTe['Te'],
                 # parameters
                 deg=deg,
                 deriv=0,
@@ -408,7 +404,7 @@ class SpectralLines(ds.DataStock):
             else:
                 dout.update(**douti)
                 dparam['keys'] += dparami['keys']
-                dparam['ref_keys'] += dparami['ref_keys']
+                dparam['ref_key'] += dparami['ref_key']
 
         # -------
         # return
@@ -416,9 +412,9 @@ class SpectralLines(ds.DataStock):
         if return_params is True:
             dparam['key'] = dparam['keys']
             del dparam['keys']
-            dparam['ne'] = dparam['pts_axis0']
-            dparam['Te'] = dparam['pts_axis1']
-            del dparam['pts_axis0'], dparam['pts_axis1'], dparam['pts_axis2']
+            dparam['ne'] = dparam['x0']
+            dparam['Te'] = dparam['x1']
+            del dparam['x0'], dparam['x1']
             return dout, dparam
         else:
             return dout
@@ -484,7 +480,7 @@ class SpectralLines(ds.DataStock):
 
         # Derive intensity
         for k0, v0 in dout.items():
-            dout[k0] = v0*dparam['ne']**2*concentration[k0[:-4]]
+            dout[k0] = v0['data']*dparam['ne']**2*concentration[k0[:-4]]
 
         return dout
 
@@ -603,10 +599,10 @@ class SpectralLines(ds.DataStock):
             + r' -  $T_e$ = ' + f'{Te/1000.} keV'
         )
 
-        pmax = np.max([np.log10(v0) for v0 in dpec.values()])
-        pmin = np.min([np.log10(v0) for v0 in dpec.values()])
+        pmax = np.max([np.log10(v0['data']) for v0 in dpec.values()])
+        pmin = np.min([np.log10(v0['data']) for v0 in dpec.values()])
         dsize = {
-            k0[:-4]: (np.log10(v0) - pmin) / (pmax - pmin)*19 + 1
+            k0[:-4]: (np.log10(v0['data']) - pmin) / (pmax - pmin)*19 + 1
             for k0, v0 in dpec.items()
         }
 

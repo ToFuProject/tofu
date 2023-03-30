@@ -12,260 +12,21 @@ import scipy.sparse as scpsp
 import datastock as ds
 
 
-# optional
-try:
-    from .. import tomotok2tofu
-except Exception as err:
-    tomotok2tofu = False
+from . import _class10_algos as _algos
+from . import _class10_refs as _refs
 
 
 _SIGMA = 0.05
-
-
-_DALGO0 = {
-    'algo0': {
-        'source': 'tofu',
-        'family': 'Phillips-Tikhonov',
-        'reg_operator': 'any linear',
-        'reg_param': 'augTikho',
-        'decomposition': '',
-        'positive': False,
-        'sparse': True,
-        'isotropic': True,
-        'func': 'inv_linear_augTikho_sparse',
-    },
-    'algo1': {
-        'source': 'tofu',
-        'family': 'Phillips-Tikhonov',
-        'reg_operator': 'any linear',
-        'reg_param': 'augTikho',
-        'decomposition': '',
-        'positive': False,
-        'sparse': False,
-        'isotropic': True,
-        'func': 'inv_linear_augTikho_dense',
-    },
-    'algo2': {
-        'source': 'tofu',
-        'family': 'Phillips-Tikhonov',
-        'reg_operator': 'any linear',
-        'reg_param': 'augTikho',
-        'decomposition': 'cholesky',
-        'positive': False,
-        'sparse': False,
-        'isotropic': True,
-        'func': 'inv_linear_augTikho_chol_dense',
-    },
-    'algo3': {
-        'source': 'tofu',
-        'family': 'Phillips-Tikhonov',
-        'reg_operator': 'any linear',
-        'reg_param': 'augTikho',
-        'decomposition': 'cholesky',
-        'positive': False,
-        'sparse': True,
-        'isotropic': True,
-        'func': 'inv_linear_augTikho_chol_sparse',
-    },
-    'algo4': {
-        'source': 'tofu',
-        'family': 'Phillips-Tikhonov',
-        'reg_operator': 'any linear',
-        'reg_param': 'augTikho',
-        'decomposition': '',
-        'positive': True,
-        'sparse': False,
-        'isotropic': True,
-        'func': 'inv_linear_augTikho_pos_dense',
-    },
-    'algo5': {
-        'source': 'tofu',
-        'family': 'Phillips-Tikhonov',
-        'reg_operator': 'any linear',
-        'reg_param': 'DisPrinc',
-        'decomposition': '',
-        'positive': False,
-        'sparse': True,
-        'isotropic': True,
-        'func': 'inv_linear_DisPrinc_sparse',
-    },
-    'algo6': {
-        'source': 'tofu',
-        'family': 'Non-regularized',
-        'reg_operator': None,
-        'reg_param': None,
-        'decomposition': '',
-        'positive': False,
-        'sparse': True,
-        'isotropic': True,
-        'func': 'inv_linear_leastsquares_bounds',
-    },
-    'algo7': {
-        'source': 'tofu',
-        'family': 'Non-regularized',
-        'reg_operator': None,
-        'reg_param': None,
-        'decomposition': '',
-        'positive': True,
-        'sparse': True,
-        'isotropic': True,
-        'func': 'inv_linear_leastsquares_bounds',
-    },
-}
 _LREGPARAM_ALGO = [
     'augTikho',
     'DisPrinc',
 ]
 
 
-# #############################################################################
-# #############################################################################
-#                           info
-# #############################################################################
-
-
-def get_available_inversions_algo(
-    # for filtering
-    source=None,
-    family=None,
-    reg_operator=None,
-    reg_param=None,
-    decomposition=None,
-    positive=None,
-    sparse=None,
-    isotropic=None,
-    dalgo=None,
-    # parameters
-    returnas=None,
-    verb=None,
-):
-
-    # --------------
-    # check inputs
-
-    returnas = ds._generic_check._check_var(
-        returnas,
-        'returnas',
-        default=False,
-        allowed=[False, dict, list, str]
-    )
-
-    verb = ds._generic_check._check_var(
-        verb,
-        'verb',
-        default=returnas is False,
-        types=bool,
-    )
-
-    # ------------------------------------
-    # filter according to criteria, if any
-
-    dalgo = match_algo(
-        # filtering
-        source=source,
-        family=family,
-        reg_operator=reg_operator,
-        reg_param=reg_param,
-        decomposition=decomposition,
-        positive=positive,
-        sparse=sparse,
-        isotropic=isotropic,
-    )
-
-    # complemet with name
-    for k0 in dalgo.keys():
-        dalgo[k0]['name'] = k0
-
-    # ------------
-    # print or str
-
-    if verb is True or returnas is str:
-
-        head = ['key'] + [
-            'source', 'family', 'reg_operator', 'reg_param', 'decomposition',
-            'positive', 'sparse',
-        ]
-        sep = ['-'*len(kk) for kk in head]
-        lstr = [head, sep] + [
-            [k0] + [v0[k1] for k1 in head[1:]]
-            for k0, v0 in dalgo.items()
-        ]
-
-        nmax = np.max(np.char.str_len(np.char.array(lstr)), axis=0)
-        lstr = [
-            '  '.join([str(ss).ljust(nmax[ii]) for ii, ss in enumerate(line)])
-            for line in lstr
-        ]
-        msg = "\n".join(lstr)
-
-        if verb:
-            print(msg)
-
-    # -------
-    # return
-
-    if returnas is dict:
-        return dalgo
-    elif returnas is list:
-        return sorted(dalgo.keys())
-    elif returnas is str:
-        return msg
-
-
-def match_algo(
-    source=None,
-    family=None,
-    reg_operator=None,
-    reg_param=None,
-    decomposition=None,
-    positive=None,
-    sparse=None,
-    isotropic=None,
-):
-
-    # ------------
-    # check inputs
-
-    dargs = {
-        k0: v0 for k0, v0 in locals().items()
-        if v0 is not None
-    }
-
-    # --------------
-    # Get tofu algo
-
-    dalgo = _DALGO0
-
-    # -----------------
-    # Get tomotok algo
-
-    if tomotok2tofu is not False:
-        dalgo.update(tomotok2tofu.get_dalgo())
-
-    # ------------
-    # find matches
-
-    if len(dargs) > 0:
-        lmatch = [
-            k0 for k0, v0 in dalgo.items()
-            if all([v0[k1] == v1 for k1, v1 in dargs.items()])
-        ]
-        if len(lmatch) == 0:
-            lstr = [f'\t- {k0}: {v0}' for k0, v0 in dargs.items()]
-            msg = (
-                "No / several algorithms matching the following criteria:\n"
-                + "\n".join(lstr)
-            )
-            raise Exception(msg)
-        dalgo = {k0: v0 for k0, v0 in dalgo.items() if k0 in lmatch}
-
-    return copy.deepcopy(dalgo)
-
-
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                           main
-# ##################################################################
+# ################################################################
 
 
 def _compute_check(
@@ -284,6 +45,7 @@ def _compute_check(
     geometry=None,
     # choice of algo
     algo=None,
+    maxiter_outer=None,
     # misc
     conv_crit=None,
     chain=None,
@@ -293,6 +55,8 @@ def _compute_check(
     kwdargs=None,
     method=None,
     options=None,
+    # ref vector specifiers
+    dref_vector=None,
     **kwargs,
 ):
 
@@ -308,11 +72,12 @@ def _compute_check(
     )
 
     key_diag = coll.dobj['geom matrix'][key_matrix]['diagnostic']
-    key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
+    # key_cam = coll.dobj['geom matrix'][key_matrix]['camera']
 
     keybs = coll.dobj['geom matrix'][key_matrix]['bsplines']
     deg = coll.dobj['bsplines'][keybs]['deg']
     keym = coll.dobj['bsplines'][keybs]['mesh']
+    nd = coll.dobj[coll._which_mesh][keym]['nd']
     mtype = coll.dobj[coll._which_mesh][keym]['type']
 
     # matrix itself
@@ -357,6 +122,7 @@ def _compute_check(
     dconstraints = _check_constraints(
         coll=coll,
         keym=keym,
+        nd=nd,
         mtype=mtype,
         deg=deg,
         dconst=dconstraints,
@@ -365,16 +131,15 @@ def _compute_check(
     # --------------------------------------------
     # Time synchronisation between matrix and data
 
-    # list of keys with potential time-dependence
-    lk = ddata['keys'] + coll.dobj['geom matrix'][key_matrix]['data']
-    if dconstraints is not None:
-        if isinstance(dconstraints.get('rmax', {}).get('val'), str):
-            lk.append(dconstraints['rmax']['val'])
-        if isinstance(dconstraints.get('rmin', {}).get('val'), str):
-            lk.append(dconstraints['rmin']['val'])
-
     # check if common / different time dependence
-    hastime, reft, keyt, t, dind = coll.get_time_common(keys=lk)
+    hastime, reft, keyt, t, dind = _refs._get_ref_vector_common(
+        coll=coll,
+        ddata=ddata,
+        key_matrix=key_matrix,
+        dconstraints=dconstraints,
+        dref_vector=dref_vector,
+    )
+
     if reft is None:
         reft = f'{key}-nt'
 
@@ -418,7 +183,7 @@ def _compute_check(
     # --------------
     # inversion refs
 
-    refbs = coll.dobj['bsplines'][keybs]['ref-bs']
+    # refbs = coll.dobj['bsplines'][keybs]['ref-bs']
     if hastime:
         refinv = (reft, keybs)
     else:
@@ -432,18 +197,18 @@ def _compute_check(
     if algo is None:
         msg = (
             "\nPlease provide an algorithm, to be chosen from:\n"
-            + get_available_inversions_algo(verb=False, returnas=str)
+            + _algos.get_available_inversions_algo(verb=False, returnas=str)
         )
         raise Exception(msg)
 
     # regularization necessary ?
     if nbs >= nchan:
         lok = [
-            k0 for k0, v0 in _DALGO.items()
+            k0 for k0, v0 in _algos._DALGO.items()
             if v0.get('family') != 'Non-regularized'
         ]
     else:
-        lok = list(_DALGO.keys())
+        lok = list(_algos._DALGO.keys())
 
     algo = ds._generic_check._check_var(
         algo, 'algo',
@@ -452,7 +217,7 @@ def _compute_check(
     )
 
     # define dalgo
-    dalgo = _DALGO[algo]
+    dalgo = _algos._DALGO[algo]
 
     # check vs deg
     deg = coll.dobj['bsplines'][keybs]['deg']
@@ -471,6 +236,7 @@ def _compute_check(
     # valid chan / time indices of data / sigma (+ constraints)
 
     indok = np.isfinite(ddata['data']) & np.isfinite(dsigma['data'])
+
     if not np.all(indok):
 
         # remove channels
@@ -534,35 +300,58 @@ def _compute_check(
 
     # get operator
     if regul:
-        opmat, operator, geometry, dim, ref, crop = coll.add_bsplines_operator(
+
+        if 'N2' not in operator:
+            msg = (
+                "Quadratic operator needed for inversions!"
+                f"Provided: {operator}"
+            )
+            raise Exception(msg)
+
+        dopmat, dpar = coll.add_bsplines_operator(
             key=keybs,
             operator=operator,
             geometry=geometry,
             returnas=True,
+            return_param=True,
             store=False,
             crop=crop,
         )
 
-        if isinstance(opmat, tuple):
-            assert all([op.shape == (nbs, nbs) for op in opmat])
-        elif opmat.ndim == 1:
-            msg = "Inversion algorithm requires a quadratic operator!"
-            raise Exception(msg)
-        else:
-            assert opmat.shape == (nbs,) or opmat.shape == (nbs, nbs)
-            opmat = (opmat,)
+        lk = dpar['keys']
+        operator = dpar['operator']
+        geometry = dpar['geometry']
+        crop = dpar['crop']
 
-        if not scpsp.issparse(opmat[0]):
-            assert all([np.all(np.isfinite(op)) for op in opmat])
+        # safety check 0
+        lfail = [
+            k0 for k0 in lk
+            if not (
+                dopmat[k0]['data'].shape == (nbs, nbs)
+                and (
+                    scpsp.issparse(dopmat[k0]['data'])
+                    or np.all(np.isfinite(dopmat[k0]['data']))
+                )
+            )
+        ]
+        if len(lfail) > 0:
+            lstr = [f'\t- {k0}' for k0 in lfail]
+            msg = (
+                "Wrong operator shape or non-finite values!\n"
+                f"\t- operator: {operator}\n"
+                f"\t- operator shape: {dopmat[lk[0]]['data'].shape}\n"
+                f"\t- expected: {(nbs, nbs)}\n\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+
     else:
-        opmat = None
+        dopmat = None
         operator = None
         geometry = None
-        dim = None
-        ref = None
 
     assert ddata['data'].shape[1] == nchan
-    nt = ddata['data'].shape[0]
+    # nt = ddata['data'].shape[0]
 
     # -------------------
     # consistent sparsity
@@ -574,13 +363,17 @@ def _compute_check(
     if dalgo['sparse'] is True:
         if not scpsp.issparse(matrix):
             matrix = scpsp.csc_matrix(matrix)
-        if opmat is not None and not scpsp.issparse(opmat[0]):
-            opmat = [scpsp.csc_matrix(pp) for pp in opmat]
+        if dopmat is not None:
+            for k0, v0 in dopmat.items():
+                if not scpsp.issparse(v0['data']):
+                    dopmat[k0]['data'] = scpsp.csc_matrix(v0['data'])
     elif dalgo['sparse'] is False:
         if scpsp.issparse(matrix):
             matrix = matrix.toarray()
-        if opmat is not None and scpsp.issparse(opmat[0]):
-            opmat = [scpsp.csc_matrix(pp).toarray() for pp in opmat]
+        if dopmat is not None:
+            for k0, v0 in dopmat.items():
+                if scpsp.issparse(v0['data']):
+                    dopmat[k0]['data'] = v0['data'].toarray()
 
     # -----------------------
     # miscellaneous parameter
@@ -590,6 +383,13 @@ def _compute_check(
         conv_crit, 'conv_crit',
         default=1e-4,
         types=float,
+    )
+
+    # maxiter_outer
+    maxiter_outer = ds._generic_check._check_var(
+        maxiter_outer, 'maxiter_outer',
+        default=1000,
+        types=(int, float),
     )
 
     # chain
@@ -639,19 +439,22 @@ def _compute_check(
         nchan=nchan,
         nbs=nbs,
         conv_crit=conv_crit,
+        # scaling parameters for the hyperparameters of augTikhonov
+        sigma_rel=np.nanmean(dsigma['data']) / np.nanmean(ddata['data']),
     )
 
     return (
         key_matrix,
         key_diag, key_data, key_sigma,
-        keybs, keym, mtype,
+        keybs, keym, nd, mtype,
         ddata, dsigma, matrix, units_gmat,
         keyt, t, reft, notime,
         m3d, indok, iokt,
         dconstraints,
-        opmat, operator, geometry,
+        dopmat, operator, geometry,
         dalgo, dconstraints, dcon,
-        conv_crit, crop, chain, kwdargs, method, options,
+        conv_crit, maxiter_outer,
+        crop, chain, kwdargs, method, options,
         solver, verb, store,
         key, refinv, regul,
     )
@@ -884,6 +687,7 @@ def _check_rminmax(
     coll=None,
     dconst=None,
     rm=None,
+    nd=None,
     mtype=None,
 ):
 
@@ -892,7 +696,7 @@ def _check_rminmax(
         return
 
     # check against mesh type
-    if mtype != 'polar':
+    if nd != '1d':
         msg = f"constraint '{rm}' cannot be used with mesh type {mtype}"
         warnings.warn(msg)
         return
@@ -947,6 +751,7 @@ def _check_rminmax(
 def _check_deriv(
     coll=None,
     keym=None,
+    nd=None,
     mtype=None,
     dconst=None,
     deriv=None,
@@ -954,8 +759,8 @@ def _check_deriv(
 ):
 
     # check mesh type
-    if mtype != 'polar':
-        msg = f"constraint '{rm}' cannot be used with mesh type {mtype}"
+    if nd != '1d':
+        msg = f"constraint '{deriv}' cannot be used with mesh non-1d"
         warnings.warn(msg)
         return
 
@@ -1040,6 +845,7 @@ def _check_deriv(
 def _check_constraints(
     coll=None,
     keym=None,
+    nd=None,
     mtype=None,
     deg=None,
     dconst=None,
@@ -1051,10 +857,10 @@ def _check_constraints(
     if dconst is None:
         return
     elif not isinstance(dconst, dict):
-        msg = f"Arg dconstraints must be a dict!\nProvided: {dconstraints}"
+        msg = f"Arg dconstraints must be a dict!\nProvided: {dconst}"
         raise Exception(msg)
-    elif mtype != 'polar':
-        msg = "Arg dconstraints cannot be used with non-polar mesh!"
+    elif nd != '1d':
+        msg = "Arg dconstraints cannot be used with non-1d meshes!"
         warnings.warn(msg)
         return
 
@@ -1064,8 +870,8 @@ def _check_constraints(
     # ----------
     # rmin, rmax
 
-    _check_rminmax(coll=coll, dconst=dconst, rm='rmin', mtype=mtype)
-    _check_rminmax(coll=coll, dconst=dconst, rm='rmax', mtype=mtype)
+    _check_rminmax(coll=coll, dconst=dconst, rm='rmin', mtype=mtype, nd=nd)
+    _check_rminmax(coll=coll, dconst=dconst, rm='rmax', mtype=mtype, nd=nd)
 
     # -----------
     # derivatives
@@ -1074,6 +880,7 @@ def _check_constraints(
         dconst = _check_deriv(
             coll=coll,
             keym=keym,
+            nd=nd,
             mtype=mtype,
             dconst=dconst,
             deriv=deriv,
@@ -1268,7 +1075,7 @@ def _update_constraints(
         # get indbs, coefs and offset as 3 (nconstraints, nbs) arrays
         indbs, coefs, offset = clas.get_constraints_deriv(
             deriv=deriv,
-            rad=dconst[deriv]['rad'],
+            x0=dconst[deriv]['rad'],
             val=dconst[deriv]['val'],
         )
 
@@ -1375,6 +1182,7 @@ def _algo_check(
     nchan=None,
     nbs=None,
     conv_crit=None,
+    sigma_rel=None,
 ):
 
     # ------------------------
@@ -1396,25 +1204,41 @@ def _algo_check(
 
     # kwdargs specific to aug. tikhonov
     if dalgo['reg_param'] == 'augTikho':
-        a0 = kwdargs.get('a0', 10)
-        a1 = kwdargs.get('a1', 2)
-
-        # to have [x]=1
-        kwdargs['b0'] = np.math.factorial(a0)**(1 / (a0 + 1))
-        kwdargs['b1'] = np.math.factorial(a1)**(1 / (a1 + 1))
-        kwdargs['a0'] = a0
-        kwdargs['a1'] = a1
 
         # Exponent for rescaling of a0bis
         # typically in [1/3 ; 1/2], but real limits are 0 < d < 1 (or 2 ?)
         if kwdargs.get('d') is None:
-            kwdargs['d'] = 0.95
+            kwdargs['d'] = 0.4 # 0.95
+
+        # determination of a0 is an important parameter
+        # the result is sensitive to the order of magnitude of a0 (<1 or >1)
+        # change a0 is there is strong over or under-smoothing
+
+        # mu = lamb / tau
+
+        # # def a0
+        a0 = 0.1*sigma_rel**(-kwdargs['d'])
+        # typically set b0 to reg
+        b0 = 1
+
+        # (a0, b0) are the gamma distribution parameters for lamb
+        kwdargs['a0'] = kwdargs.get('a0', a0) # np.nanmean(dsigma['data']))  # 10 ?
+        # to have [x]=1
+        kwdargs['b0'] = kwdargs.get('b0', b0)   # np.math.factorial(a0)**(1 / (a0 + 1))
+
+        # (a1, b1) are the gamma distribution parameters for tau
+        kwdargs['a1'] = kwdargs.get('a1', 1)
+        # to have [x]=1
+        kwdargs['b1'] = kwdargs.get(
+            'b1',
+            np.math.factorial(kwdargs['a1'])**(1 / (kwdargs['a1'] + 1)),
+        )
 
         if kwdargs.get('conv_reg') is None:
             kwdargs['conv_reg'] = True
 
         if kwdargs.get('nbs_fixed') is None:
-            kwdargs['nbs_fixed'] = True
+            kwdargs['nbs_fixed'] = False    # True
 
         if kwdargs['nbs_fixed']:
             kwdargs['a0bis'] = kwdargs['a0'] - 1. + 1200./2.
@@ -1452,12 +1276,3 @@ def _algo_check(
             raise NotImplementedError
 
     return kwdargs, method, options
-
-
-# ##################################################################
-# ##################################################################
-#               _DALGO at import time
-# ##################################################################
-
-
-_DALGO = get_available_inversions_algo(returnas=dict, verb=False)

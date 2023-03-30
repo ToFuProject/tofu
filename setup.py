@@ -321,10 +321,10 @@ setup(
         "matplotlib<=3.5.2",
         "contourpy",
         "requests",
-        "cython>=0.26",
         "svg.path",
         "Polygon3",
-        "datastock>=0.0.22",
+        "cython",
+        "bsplines2d>=0.0.2",
     ],
     python_requires=">=3.6",
 

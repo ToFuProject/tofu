@@ -1,21 +1,19 @@
 
 
 # Built-in
-import sys
-import os
-import warnings
 import copy
+import warnings
+
 
 # Common
 import numpy as np
 import scipy.interpolate
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from matplotlib.axes._axes import Axes
+
 
 # tofu
-from tofu.version import __version__
-import tofu.spectro._rockingcurve_def as _rockingcurve_def
+from . import _rockingcurve_def as _def
 
 
 # ##########################################################
@@ -27,11 +25,13 @@ import tofu.spectro._rockingcurve_def as _rockingcurve_def
 
 def compute_rockingcurve(
     # Type of crystal
-    crystal=None, din=None,
+    crystal=None,
+    din=None,
     # Wavelength
     lamb=None,
     # Lattice modifications
-    miscut=None, nn=None,
+    miscut=None,
+    nn=None,
     alpha_limits=None,
     therm_exp=None,
     temp_limits=None,
@@ -102,7 +102,7 @@ def compute_rockingcurve(
         Asymmetry angle range. Provide only both boundary limits
         Ex: np.r_[-3, 3] in radians
     nn:    int
-        Number of miscut angles and thermical changes steps,
+        Number of miscut angles and thermal changes steps,
         odd number preferred in order to have a median value at 0
     therm_exp:    str
         Compute relative changes of the crystal inter-planar distance by
@@ -125,66 +125,31 @@ def compute_rockingcurve(
         Build colormaps of the main properties of the rocking curves wanted
         (integrated and maxmimum values, FWMD and shift from reference curve)
         with respect to the asymmetry angle alpha and the temperature changes
-    returnas:    str
+    returnas:    type
         Entry 'dict' to allow optionnal returning of 'dout' dictionnary
     """
 
     # Check inputs
     # ------------
-    if crystal is None:
-        msg = (
-            "You must choose a type of crystal from "
-            + "tofu/spectro/_rockingcurve_def.py to use among:\n"
-            + "\t - Quartz_110:\n"
-            + "\t\t - target: ArXVII"
-            + "\t\t - Miller indices (h,k,l): (1,1,0)"
-            + "\t\t - Material: Quartz\n"
-            + "\t - Quartz_102:\n"
-            + "\t\t - target: ArXVIII"
-            + "\t\t - Miller indices (h,k,l): (1,0,2)"
-            + "\t\t - Material: Quartz\n"
-        )
-        raise Exception(msg)
-    elif crystal == 'Quartz_110':
-        din = _rockingcurve_def._DCRYST['Quartz_110']
-    elif crystal == 'Quartz_102':
-        din = _rockingcurve_def._DCRYST['Quartz_102']
-    elif crystal == 'Quartz':
-        print('Hello World')
-        din = _rockingcurve_def._DCRYST['Quartz']
-        din = add_struct_vals(crystal = crystal, din=din, Miller=Miller, lamb = lamb)
 
-    if therm_exp is None:
-        therm_exp = False
-    if plot_therm_exp is None and therm_exp is not False:
-        plot_therm_exp = True
-    if miscut is None:
-        miscut = False
-    if alpha_limits is None:
-        alpha_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
-    if temp_limits is None:
-        temp_limits = np.r_[-10, 10, 25]
-    if nn is None:
-        nn = 20
-    na = 2*nn + 1
-    if plot_asf is None:
-        plot_asf = False
-    if plot_power_ratio is None:
-        plot_power_ratio = True
-    if plot_asymmetry is None and miscut is not False:
-        plot_asymmetry = True
-    lc = [therm_exp, miscut]
-    if plot_cmaps is None and all(lc) is True:
-        plot_cmaps = True
-    if returnas is None:
-        returnas = dict
-
-    ih, ik, il, lamb = CrystBragg_check_inputs_rockingcurve(
-        ih=din['miller'][0],
-        ik=din['miller'][1],
-        il=din['miller'][2],
-        lamb=lamb,
-    )
+    (
+        crystal, din, lamb,
+        # lattice expansion
+        therm_exp,
+        miscut,
+        alpha_limits,
+        temp_limits,
+        nn,
+        na,
+        # plotting
+        plot_asf,
+        plot_therm_exp,
+        plot_power_ratio,
+        plot_asymmetry,
+        plot_cmaps,
+        # return
+        returnas,
+    ) =  _checks(**locals())
 
     # Classical electronical radius, in Angstroms, from the NIST Reference on
     # Constants, Units and Uncertainty, CODATA 2018 recommended values
@@ -194,12 +159,16 @@ def compute_rockingcurve(
     # sin(theta)/lambda parameter and Bragg angle associated to the wavelength
     # exits: T0, TD, a1, c1, Volume, d_atom, sol, sin_theta, theta, theta_deg
     dout = CrystBragg_comp_lattice_spacing(
-        crystal=crystal, din=din,
-        lamb=lamb, na=na, nn=nn,
+        crystal=crystal,
+        din=din,
+        lamb=lamb,
+        na=na,
+        nn=nn,
         therm_exp=therm_exp,
         temp_limits=temp_limits,
         plot_therm_exp=plot_therm_exp,
     )
+
     T0 = dout['Temperature of reference (°C)']
     TD = dout['Temperature variations (°C)']
     Volume = dout['Volume (1/m3)']
@@ -216,33 +185,27 @@ def compute_rockingcurve(
         therm_exp=therm_exp,
     )
 
-    l0 = ['Quartz_110', 'Quartz_102', 'Quartz']
-    cond0 = any([crystal == l00 for l00 in l0])
+    cond0 = crystal in ['Quartz_110', 'Quartz_102']
     if cond0:
 
         # Calculation of the structure factor
         # -----------------------------------
 
         # Atomic absorption coefficient
-        if lamb > 6.74:
-            mu_si = _rockingcurve_def.mu_si1(lamb=lamb)
-        else:
-            mu_si = _rockingcurve_def.mu_si(lamb=lamb)
-        mu_o = _rockingcurve_def.mu_o(lamb=lamb)
-        mu = _rockingcurve_def.mu(lamb=lamb, mu_si=mu_si, mu_o=mu_o)
+        mu = din['mu'](lamb)
 
         # Atomic scattering factor ("f") in function of sol
         # ("_re") for the real part and ("_im") for the imaginary part
         fsi_re = np.full((sol.size), np.nan)
         fo_re = np.full((sol.size), np.nan)
 
-        dfsi_re = _rockingcurve_def.dfsi_re(lamb=lamb)
-        dfo_re = _rockingcurve_def.dfo_re(lamb=lamb)
-        for i in range(sol.size):
-            fsi_re[i] = _rockingcurve_def.fsi_re(lamb=lamb, sol=sol[i])
-            fo_re[i] = _rockingcurve_def.fo_re(lamb=lamb, sol=sol[i])
-        fsi_im = _rockingcurve_def.fsi_im(lamb=lamb, mu_si=mu_si)
-        fo_im = _rockingcurve_def.fo_im(lamb=lamb, mu_o=mu_o)
+        dfsi_re = din['dfsi_re'](lamb)
+        dfo_re = din['dfo_re'](lamb)
+        for ii in range(sol.size):
+            fsi_re[ii] = din['fsi_re'](lamb, sol[ii])
+            fo_re[ii] = din['fo_re'](lamb, sol[ii])
+        fsi_im = din['fsi_im'](lamb)
+        fo_im = din['fo_im'](lamb)
 
         # Structure factor ("F") for (hkl) reflection
         # xsi and ih have already been defined with din
@@ -254,11 +217,12 @@ def compute_rockingcurve(
         Fo_re1 = Fsi_re1.copy()
         Fo_re2 = Fsi_re1.copy()
 
-        for i in range(sol.size):
-            Fsi_re1[i] = np.sum(fsi_re[i]*np.cos(2*np.pi*phasesi))
-            Fsi_re2[i] = np.sum(fsi_re[i]*np.sin(2*np.pi*phasesi))
-            Fo_re1[i] = np.sum(fo_re[i]*np.cos(2*np.pi*phaseo))
-            Fo_re2[i] = np.sum(fo_re[i]*np.sin(2*np.pi*phaseo))
+        for ii in range(sol.size):
+            Fsi_re1[ii] = np.sum(fsi_re[ii]*np.cos(2*np.pi*phasesi))
+            Fsi_re2[ii] = np.sum(fsi_re[ii]*np.sin(2*np.pi*phasesi))
+            Fo_re1[ii] = np.sum(fo_re[ii]*np.cos(2*np.pi*phaseo))
+            Fo_re2[ii] = np.sum(fo_re[ii]*np.sin(2*np.pi*phaseo))
+
         Fsi_im1 = np.sum(fsi_im*np.cos(2*np.pi*phasesi))
         Fsi_im2 = np.sum(fsi_im*np.sin(2*np.pi*phasesi))
         Fo_im1 = np.sum(fo_im*np.cos(2*np.pi*phaseo))
@@ -267,16 +231,18 @@ def compute_rockingcurve(
         F_re_cos = np.full((sol.size), np.nan)
         F_re_sin = F_re_cos.copy()
 
-        for i in range(sol.size):
-            F_re_cos[i] = Fsi_re1[i] + Fo_re1[i]
-            F_re_sin[i] = Fsi_re2[i] + Fo_re2[i]
+        for ii in range(sol.size):
+            F_re_cos[ii] = Fsi_re1[ii] + Fo_re1[ii]
+            F_re_sin[ii] = Fsi_re2[ii] + Fo_re2[ii]
+
         F_im_cos = Fsi_im1 + Fo_im1
         F_im_sin = Fsi_im2 + Fo_im2
 
         F_re = np.full((sol.size), np.nan)
 
-        for i in range(sol.size):
-            F_re[i] = np.sqrt(F_re_cos[i]**2 + F_re_sin[i]**2)
+        for ii in range(sol.size):
+            F_re[ii] = np.sqrt(F_re_cos[ii]**2 + F_re_sin[ii]**2)
+
         F_im = np.sqrt(F_im_cos**2 + F_im_sin**2)
 
         # Calculation of Fourier coefficients of polarization
@@ -295,41 +261,46 @@ def compute_rockingcurve(
         psi0_dre = Fmod.copy()
         psi0_im = Fmod.copy()
 
-        for i in range(sol.size):
+        for ii in range(sol.size):
             # Expression of the Fourier coef. psi_H
-            Fmod[i] = np.sqrt(
-                F_re[i]**2 + F_im**2 - 2.*(
-                    F_re_cos[i]*F_im_sin - F_im_cos*F_re_sin[i]
+            Fmod[ii] = np.sqrt(
+                F_re[ii]**2 + F_im**2 - 2.*(
+                    F_re_cos[ii]*F_im_sin - F_im_cos*F_re_sin[ii]
                 )
             )
             # psi_-H equivalent to (-ih, -ik, -il)
-            Fbmod[i] = np.sqrt(
-                F_re[i]**2 + F_im**2 - 2.*(
-                    F_re_sin[i]*F_im_cos - F_re_cos[i]*F_im_sin
+            Fbmod[ii] = np.sqrt(
+                F_re[ii]**2 + F_im**2 - 2.*(
+                    F_re_sin[ii]*F_im_cos - F_re_cos[ii]*F_im_sin
                 )
             )
-            if Fmod[i] == 0.:
-                Fmod[i] == 1e-30
-            if Fbmod[i] == 0.:
-                Fbmod[i] == 1e-30
+            if Fmod[ii] == 0.:
+                Fmod[ii] == 1e-30
+            if Fbmod[ii] == 0.:
+                Fbmod[ii] == 1e-30
+
             # Ratio imaginary part and real part of the structure factor
-            kk[i] = F_im/F_re[i]
+            kk[ii] = F_im / F_re[ii]
+
             # Real part of kk
-            rek[i] = (
-                (F_re_cos[i]*F_im_cos + F_re_sin[i]*F_im_sin)
-                / (F_re[i]**2.)
+            rek[ii] = (
+                (F_re_cos[ii]*F_im_cos + F_re_sin[ii]*F_im_sin)
+                / (F_re[ii]**2.)
             )
+
             # Real part of psi_H
-            psi_re[i] = (re*(lamb**2)*F_re[i])/(np.pi*Volume[i])
+            psi_re[ii] = (re*(lamb**2)*F_re[ii])/(np.pi*Volume[ii])
+
             # Zero-order real part (averaged)
-            psi0_dre[i] = -re*(lamb**2)*(
+            psi0_dre[ii] = -re*(lamb**2)*(
                 No*(Zo + dfo_re) + Nsi*(Zsi + dfsi_re)
-            )/(np.pi*Volume[i])
+            )/(np.pi*Volume[ii])
+
             # Zero-order imaginary part (averaged)
-            psi0_im[i] = (
+            psi0_im[ii] = (
                 -re*(lamb**2)
                 * (No*fo_im + Nsi*fsi_im)
-                / (np.pi*Volume[i])
+                / (np.pi*Volume[ii])
             )
 
     # Power ratio and their integrated reflectivity for 3 crystals models:
@@ -430,14 +401,18 @@ def compute_rockingcurve(
         rhg_para = rhg[1, 0, 0]
         det_perp = det_perp[0, 0]
 
-    dout = {
-        'Wavelength (A)': lamb,
-        'Miller indices': (ih, ik, il),
+    # -------------
+    # store results
+
+    # reminder: dimensions of power_ratio
+    # (polar.ndim, temperature.size, alpha.size, y.size)
+
+    dreturn = copy.deepcopy(din)
+    dreturn.update({
+        'wavelength': lamb,
         'Inter-reticular distance (A)': d_atom,
         'Volume (A^3)': Volume,
         'Bragg angle of reference (rad)': theta,
-        'Glancing angles': dth,
-        'Power ratio': power_ratio,
         'Integrated reflectivity': {
             'perfect model': P_per,
             'mosaic model': P_mos,
@@ -448,16 +423,146 @@ def compute_rockingcurve(
         'Maximum reflectivity (para. compo)': max_pr[1],
         'RC width (perp. compo)': det_perp,
         'RC width (para. compo)': det_para,
-    }
+        # polar
+        'polar': polar,
+        # y => angles
+        'y': y,
+        'Glancing angles': dth,
+        'Glancing angles rel': th,
+        'alpha': alpha,
+        # power ratio
+        'Power ratio': power_ratio,
+        # temperatures
+        'Temperature ref': T0,
+        'Temperature changes (°C)': TD,
+        # miscut
+        'Miscut angles (deg)': alpha*(180/np.pi),
+
+    })
+
+    # add miscut
     if miscut:
-        dout['Miscut angles (deg)'] = alpha*(180/np.pi)
-        dout['Shift from RC of reference (perp. compo)'] = shift_perp
-        dout['Shift from RC of reference (para. compo)'] = shift_para
-    if therm_exp:
-        dout['Temperature changes (°C)'] = TD
+        dreturn['Shift from RC of reference (perp. compo)'] = shift_perp
+        dreturn['Shift from RC of reference (para. compo)'] = shift_para
 
     if returnas is dict:
-        return dout
+        return dreturn
+
+
+# ####################################################################
+# ####################################################################
+#               Checks
+# ####################################################################
+# ####################################################################
+
+
+def _checks(
+    # Type of crystal
+    crystal=None,
+    din=None,
+    # Wavelength
+    lamb=None,
+    # Lattice modifications
+    miscut=None,
+    nn=None,
+    alpha_limits=None,
+    therm_exp=None,
+    temp_limits=None,
+    # Plot
+    plot_therm_exp=None,
+    plot_asf=None,
+    plot_power_ratio=None,
+    plot_asymmetry=None,
+    plot_cmaps=None,
+    # Returning dictionnary
+    returnas=None,
+):
+
+    # ------------
+    # crystal
+
+    if crystal not in _def._DCRYST.keys():
+        lk1 = ['material', 'symbol', 'miller', 'target']
+        dstr = {
+            k0: "\n".join([f"\t\t{k1}: {v0[k1]}" for k1 in lk1])
+            for k0, v0 in _def._DCRYST.items()
+        }
+        lstr = [f"\t- {k0}:\n{v0}" for k0, v0 in dstr.items()]
+        msg = (
+            "You must choose a type of crystal from "
+            + "tofu/spectro/_rockingcurve_def.py to use among:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    din = _def._DCRYST[crystal]
+
+    # lamb
+    if lamb is None:
+        lamb = din['target']['lamb']
+
+    # --------------------
+    # lattice modification
+
+    if therm_exp is None:
+        therm_exp = False
+
+    if miscut is None:
+        miscut = False
+
+    if alpha_limits is None:
+        alpha_limits = np.r_[-(3/60)*np.pi/180, (3/60)*np.pi/180]
+
+    if temp_limits is None:
+        temp_limits = np.r_[-10, 10, 25]
+
+    if nn is None:
+        nn = 20
+    na = 2*nn + 1
+
+    # --------------
+    # plotting args
+
+    if plot_asf is None:
+        plot_asf = False
+
+    if plot_therm_exp is None and therm_exp is not False:
+        plot_therm_exp = True
+
+    if plot_power_ratio is None:
+        plot_power_ratio = True
+
+    if plot_asymmetry is None and miscut is not False:
+        plot_asymmetry = True
+
+    lc = [therm_exp, miscut]
+    if plot_cmaps is None and all(lc) is True:
+        plot_cmaps = True
+
+    # ---------
+    # returnas
+
+    if returnas is None:
+        returnas = dict
+
+    return (
+        crystal, din, lamb,
+        # lattice expansion
+        therm_exp,
+        miscut,
+        alpha_limits,
+        temp_limits,
+        nn,
+        na,
+        # plotting
+        plot_asf,
+        plot_therm_exp,
+        plot_power_ratio,
+        plot_asymmetry,
+        plot_cmaps,
+        # return
+        returnas,
+    )
 
 
 # #############################################################################
@@ -731,48 +836,41 @@ def plot_var_temp_changes_wavelengths(
 
 
 def CrystBragg_check_inputs_rockingcurve(
-    ih=None, ik=None, il=None, lamb=None,
+    ih=None,
+    ik=None,
+    il=None,
+    lamb=None,
 ):
 
     dd = {'ih': ih, 'ik': ik, 'il': il, 'lamb': lamb}
     lc = [v0 is None for k0, v0 in dd.items()]
+
+    # prepare msg
+    msg = (
+        "Args h, k, l and lamb were not explicitely specified\n"
+        f"\t - h: first Miller index ({ih})\n"
+        f"\t - k: second Miller index ({ik})\n"
+        f"\t - l: third Miller index ({il})\n"
+        f"\t - lamb: wavelength of interest ({lamb})\n"
+    )
+
     # All args are None
     if all(lc):
         ih = 1
         ik = 1
         il = 0
         lamb = self.dbragg['lambref']
-        msg = (
-            "Args h, k, l and lamb were not explicitely specified\n"
-            "and have been put to the following default values:\n"
-            + "\t - h: first Miller index ({})\n".format(ih)
-            + "\t - k: second Miller index ({})\n".format(ik)
-            + "\t - l: third Miller index ({})\n".format(il)
-            + "\t - lamb: wavelength of interest ({})\n".format(lamb)
-        )
+        msg = "The following default values are used because " + msg
         warnings.warn(msg)
-    elif any(lc):
+
     # Some args are bot but not all
-        msg = (
-            "Args h, k, l and lamb must be provided together:\n"
-            + "\t - h: first Miller index ({})\n".format(ih)
-            + "\t - k: second Miller index ({})\n".format(ik)
-            + "\t - l: third Miller index ({})\n".format(il)
-            + "\t - lamb: wavelength of interest ({})\n".format(lamb)
-        )
+    elif any(lc):
         raise Exception(msg)
 
     # Some args are string values
     cdt = [type(v0) == str for k0, v0 in dd.items()]
     if any(cdt) or all(cdt):
-        msg = (
-            "Args h, k, l and lamb must not be string inputs:\n"
-            "and have been put to default values:\n"
-            + "\t - h: first Miller index ({})\n".format(ih)
-            + "\t - k: second Miller index ({})\n".format(ik)
-            + "\t - l: third Miller index ({})\n".format(il)
-            + "\t - lamb: wavelength of interest ({})\n".format(lamb)
-        )
+        msg = "No str allowed - " + msg
         raise Exception(msg)
 
     return ih, ik, il, lamb,
@@ -780,8 +878,11 @@ def CrystBragg_check_inputs_rockingcurve(
 
 def CrystBragg_check_alpha_angle(
     theta=None,
-    miscut=None, therm_exp=None,
-    alpha_limits=None, na=None, nn=None,
+    miscut=None,
+    therm_exp=None,
+    alpha_limits=None,
+    na=None,
+    nn=None,
 ):
 
     if alpha_limits is None:
@@ -842,7 +943,7 @@ def CrystBragg_check_alpha_angle(
                         alpha - theta[i]
                     )
 
-    return alpha, bb,
+    return alpha, bb
 
 
 # ##########################################################
@@ -855,10 +956,12 @@ def CrystBragg_check_alpha_angle(
 
 def CrystBragg_comp_lattice_spacing(
     # Type of crystal
-    crystal=None, din=None,
+    crystal=None,
+    din=None,
     lamb=None,
     # Plot
-    na=None, nn=None,
+    na=None,
+    nn=None,
     therm_exp=None,
     temp_limits=None,
     plot_therm_exp=None,
@@ -896,32 +999,18 @@ def CrystBragg_comp_lattice_spacing(
 
     # Check inputs
     # ------------
+
     ih, ik, il, lamb = CrystBragg_check_inputs_rockingcurve(
         ih=din['miller'][0],
         ik=din['miller'][1],
         il=din['miller'][2],
         lamb=lamb,
     )
-    if nn is None:
-        nn = 20
-    na = 2*nn + 1
-    if therm_exp is None:
-        therm_exp = False
-    if plot_therm_exp is None and therm_exp is not False:
-        plot_therm_exp = True
-    lc = [ih is None, ik is None, il is None, lamb is None]
-    if any(lc):
-        msg = (
-            "Please make sure that the foolowing arguments are valid:\n"
-            "\t - ih, ik, il: ({},{},{})\n".format(ih, ik, il)
-            + "\t - lamb: ({})\n".format(lamb)
-        )
-        raise Exception(msg)
 
     # Prepare
     # -------
-    l0 = ['Quartz_110', 'Quartz_102', 'Quartz']
-    cond0 = any([crystal == l00 for l00 in l0])
+
+    cond0 = crystal in ['Quartz_110', 'Quartz_102']
 
     # Inter-atomic distances and thermal expansion coefficients
     if cond0:
@@ -937,41 +1026,46 @@ def CrystBragg_comp_lattice_spacing(
     else:
         TD = np.r_[0.]
 
-    # Results arrays
+    # Prepare results arrays
+    # -----------------------
+
     d_atom = np.full((TD.size), np.nan)
     if cond0:
         a1, c1 = d_atom.copy(), d_atom.copy()
     Volume, sol = d_atom.copy(), d_atom.copy()
     sin_theta, theta, theta_deg = d_atom.copy(), d_atom.copy(), d_atom.copy()
 
-    # Compute
-    # -------
+    # Compute (loop on temperature)
+    # -----------------------------
 
-    for i in range(TD.size):
+    for ii in range(TD.size):
+
         if cond0:
-            a1[i] = a0*(1 + alpha_a*TD[i])
-            c1[i] = c0*(1 + alpha_c*TD[i])
-            Volume[i] = _rockingcurve_def.hexa_volume(a1[i], c1[i])
-            d_atom[i] = _rockingcurve_def.hexa_spacing(
-                ih, ik, il, a1[i], c1[i],
+            a1[ii] = a0*(1 + alpha_a*TD[ii])
+            c1[ii] = c0*(1 + alpha_c*TD[ii])
+            Volume[ii] = _def.hexa_volume(a1[ii], c1[ii])
+            d_atom[ii] = _def.hexa_spacing(
+                ih, ik, il, a1[ii], c1[ii],
             )
-        if d_atom[i] < lamb/2.:
+
+        if d_atom[ii] < lamb/2.:
             msg = (
                 "According to Bragg law, Bragg scattering need d > lamb/2!\n"
                 "Please check your wavelength argument.\n"
             )
             raise Exception(msg)
-        sol[i] = 1./(2.*d_atom[i])
-        sin_theta[i] = lamb/(2.*d_atom[i])
-        theta[i] = np.arcsin(sin_theta[i])
-        theta_deg[i] = theta[i]*(180./np.pi)
 
-        lc = [theta_deg[i] < 10., theta_deg[i] > 89.]
+        sol[ii] = 1./(2.*d_atom[ii])
+        sin_theta[ii] = lamb / (2.*d_atom[ii])
+        theta[ii] = np.arcsin(sin_theta[ii])
+        theta_deg[ii] = theta[ii]*(180./np.pi)
+
+        lc = [theta_deg[ii] < 10., theta_deg[ii] > 89.]
         if any(lc):
             msg = (
                 "The computed value of theta is behind the arbitrary limits.\n"
                 "Limit condition: 10° < theta < 89° and\n"
-                "theta = ({})°\n".format(theta_deg)
+                f"theta = {theta_deg} °\n"
             )
             raise Exception(msg)
 
@@ -989,7 +1083,7 @@ def CrystBragg_comp_lattice_spacing(
         'Temperature variations (°C)': TD,
         'Inter_atomic distance a1 (A)': a1,
         'Inter_atomic distance c1 (A)': c1,
-        'Volume (1/m3)': Volume,
+        'Volume (1/m3)': Volume,                # m3 ?
         'Inter-reticular spacing (A)': d_atom,
         'sinus over lambda': sol,
         'sinus theta_Bragg': sin_theta,

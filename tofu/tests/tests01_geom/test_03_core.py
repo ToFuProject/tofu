@@ -1000,14 +1000,15 @@ class Test03_Rays(object):
                 # nbrepet = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
                 # kus = k * np.repeat(us, nbrepet, axis=1)
                 # Pts = np.repeat(Ds, nbrepet, axis=1) + kus
-                k = np.asarray(np.split(k, lind))
-                assert len(res)==len(k)==obj.nRays
-                for ii in range(0,len(k)):
+                k = np.split(k, lind)
+                assert len(res) == len(k) == obj.nRays
+                for ii in range(0, len(k)):
                     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
                         ind = ~np.isnan(k[ii])
                         assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
                                       & (k[ii][ind]<=obj.kOut[ii]+res[ii]))
                 assert np.all(res[~np.isnan(res)]<0.02)
+
                 out = obj.get_sample(0.1, resMode='rel',
                                      method='simps',DL=[0,1])
                 k, res, lind = out
@@ -1023,6 +1024,7 @@ class Test03_Rays(object):
                             msg += "\n {0}".format(str(k[ii][ind]))
                             print(msg)
                             raise Exception(msg)
+
                 out = obj.get_sample(0.1, resMode='rel',
                                      method='romb',DL=[0,1])
                 k, res, lind = out

@@ -61,11 +61,11 @@ def _get_ptsvect(
         icurv = 1 - iplan
         eax = ['e0', 'e1'][iplan]
         erot = ['e0', 'e1'][icurv]
-        
+
         rc = dgeom['curve_r'][icurv]
         rcs = np.sign(rc)
         rca = np.abs(rc)
-        
+
         minmax = np.maximum if rcs > 0 else np.minimum
 
         def ptsvect(
@@ -151,7 +151,7 @@ def _get_ptsvect(
                 ODz = Dz[iok] - O[2]
 
                 xxi = ODx * eax[0] + ODy * eax[1] + ODz * eax[2]
-                
+
                 nox = ODx - xxi * eax[0]
                 noy = ODy - xxi * eax[1]
                 noz = ODz - xxi * eax[2]
@@ -159,7 +159,7 @@ def _get_ptsvect(
                 nox = rcs * nox / nn
                 noy = rcs * noy / nn
                 noz = rcs * noz / nn
-                
+
 
                 # ODzx = (Dy[iok] - O[1])*eax[2] - (Dz[iok] - O[2])*eax[1]
                 # ODzy = (Dz[iok] - O[2])*eax[0] - (Dx[iok] - O[0])*eax[2]
@@ -192,7 +192,7 @@ def _get_ptsvect(
 
                 # x0, x1
                 if strict is True or return_x01 is True:
-                    
+
                     theta[iok] =  rcs * np.arctan2(
                         nox*erot[0] + noy*erot[1] + noz*erot[2],
                         -nox*nin[0] - noy*nin[1] - noz*nin[2],
