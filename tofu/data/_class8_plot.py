@@ -303,8 +303,8 @@ def _plot_diagnostic(
         for k0 in key_cam:
             coll2.add_data(
                 key=f'{k0}_{data}',
-                data=ddata[k0],
-                ref=dref[k0],
+                data=ddata[k0].T,
+                ref=dref[k0][::-1],
                 units=units,
             )
 
@@ -747,7 +747,7 @@ def _plot_diagnostic(
                         ls='-',
                     )
 
-                    refi = dref_los[k0] if is2d else dref_los[k0][0]
+                    refi = dref_los[k0][0] if is2d else dref_los[k0][0]
                     kv = f'{k0}_trace{ii}'
                     coll2.add_mobile(
                         key=kv,
