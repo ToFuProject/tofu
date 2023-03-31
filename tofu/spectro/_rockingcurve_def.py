@@ -71,7 +71,7 @@ _DCRYST_MAT = {
             'Si': np.r_[
                 0., 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7,
                 0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5,
-            ]*1e10,
+            ], # *1e10,
             'O': np.r_[
                 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1,
             ], # *1e10,
@@ -190,7 +190,7 @@ def _complement_dict_mat(dcryst_mat=None):
         # -----------------------------------------------------
 
         if k0 == 'Quartz':
-            _atomic_coefs_factor_Silicium(
+            _atomic_coefs_factor_Quartz(
                 dcryst_mat=dcryst_mat,
                 k0=k0,
                 v0=v0,
@@ -306,7 +306,7 @@ def hexa_volume(aa, cc):
 # ###############################################################
 
 
-def _atomic_coefs_factor_Silicium(
+def _atomic_coefs_factor_Quartz(
     dcryst_mat=None,
     k0=None,
     v0=None,
