@@ -485,7 +485,7 @@ def _compute_los(
         wbs = coll._which_bsplines
         rbs = coll.dobj[wbs][key_bs]['ref'][0]
         if axis_spectro > ref.index(rbs):
-            axis_spectro -= 1
+            axis_spectro -= len(coll.dobj[wbs][key_bs]['ref']) - 1
 
         units_spectro = coll.ddata[kspect_ref_vect]['units']
 
@@ -563,9 +563,7 @@ def _compute_los(
 
             if spectro:
                 ind = np.argmin(np.abs(spect_ref_vect - E_flat[ind_flat[0]]))
-                domain = {
-                    key_ref_spectro: {'ind': np.r_[ind]}
-                }
+                domain = {key_ref_spectro: {'ind': np.r_[ind]}}
 
             # ---------------------
             # interpolate spacially
