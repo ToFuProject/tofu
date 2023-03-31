@@ -25,6 +25,9 @@ def _plot_diagnostic_check(
     coll=None,
     key=None,
     key_cam=None,
+    # parameters
+    vmin=None,
+    vmax=None,
     # figure
     proj=None,
     data=None,
@@ -86,6 +89,15 @@ def _plot_diagnostic_check(
 
     ylab = f"{data} ({units})"
 
+    # ----------
+    # vmin, vmax
+
+    if vmin is None:
+        vmin = np.nanmin([np.nanmin(v0) for v0 in ddata.values()])
+
+    if vmax is None:
+        vmax = np.nanmax([np.nanmax(v0) for v0 in ddata.values()])
+
     # -----
     # proj
 
@@ -141,6 +153,8 @@ def _plot_diagnostic_check(
         static,
         daxis,
         refz,
+        vmin,
+        vmax,
         units,
         los_res,
         color_dict,
@@ -208,6 +222,8 @@ def _plot_diagnostic(
         static,
         daxis,
         refz,
+        vmin,
+        vmax,
         units,
         los_res,
         color_dict,
@@ -218,6 +234,9 @@ def _plot_diagnostic(
         coll=coll,
         key=key,
         key_cam=key_cam,
+        # parameters
+        vmin=vmin,
+        vmax=vmax,
         # figure
         proj=proj,
         data=data,

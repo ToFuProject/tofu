@@ -501,9 +501,9 @@ def _compute_synth_signal(coll=None, ldiag=None):
         if k0 == 'd0':
             key_integrand = 'emiss1d'
             ref_com = 'nt'
-        elif k0 == 'diag00':
-            key_integrand = 'emiss2dE'
-            ref_com = None
+        # elif k0 == 'diag00':
+            # key_integrand = 'emiss2dE'
+            # ref_com = None
         else:
             key_integrand = 'emiss1dE'
             ref_com = 'nt'
