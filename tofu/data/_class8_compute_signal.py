@@ -30,6 +30,8 @@ def compute_signal(
     ref_com=None,
     # signal
     brightness=None,
+    # verb
+    verb=None,
     # store
     store=None,
     # return
@@ -44,7 +46,7 @@ def compute_signal(
         key_diag, key_cam, spectro, PHA, is2d,
         method, mode, groupby, val_init, brightness,
         key_integrand, key_mesh0, key_bs,
-        store, key,
+        verb, store, key,
         returnas,
     ) = _compute_signal_check(
         coll=coll,
@@ -60,6 +62,8 @@ def compute_signal(
         brightness=brightness,
         # to be integrated
         key_integrand=key_integrand,
+        # verb
+        verb=verb,
         # store
         store=store,
         key=key,
@@ -78,6 +82,21 @@ def compute_signal(
         radius_max = np.max(coll.ddata[key_kR]['data'])
     else:
         radius_max = None
+
+    # -------------
+    # verb
+    # --------------
+
+    if verb is True:
+        msg = (
+            "\nComputing synthetic signal for:\n"
+            f"\t- diag: {key_diag}\n"
+            f"\t- cam: {key_cam}\n"
+            f"\t- integrand: {key_integrand}\n"
+            f"\t- method: {method}\n"
+            f"\t- res: {res}, {mode}\n"
+        )
+        print(msg)
 
     # -------------
     # compute
@@ -213,6 +232,8 @@ def _compute_signal_check(
     brightness=None,
     # to be integrated
     key_integrand=None,
+    # verb
+    verb=None,
     # store
     store=None,
     # return
@@ -309,6 +330,13 @@ def _compute_signal_check(
         allowed=[np.nan, 0.]
     )
 
+    # verb
+    verb = ds._generic_check._check_var(
+        verb, 'verb',
+        types=bool,
+        default=True,
+    )
+
     # store
     store = ds._generic_check._check_var(
         store, 'store',
@@ -336,7 +364,7 @@ def _compute_signal_check(
         key_diag, key_cam, spectro, PHA, is2d,
         method, mode, groupby, val_init, brightness,
         key_integrand, key_mesh0, key_bs,
-        store, key,
+        verb, store, key,
         returnas,
     )
 
@@ -422,6 +450,10 @@ def _compute_los(
             ind_flat = [jj for jj in range(i0, i1) if ilosok[jj]]
             ni = len(ind_flat)
 
+            # no valid los in group
+            if len(ind_flat) == 0:
+                continue
+
             # LOS sampling
             R, Z, length = coll.sample_rays(
                 key=key_los,
@@ -443,11 +475,11 @@ def _compute_los(
             assert nnan == ni, f"{nnan} vs {ni}"
 
             # lambda for spectro
-            if spectro:
-                E = dict_dE[k0]
+            # if spectro:
+                # E = dict_dE[k0]
 
-            # -------------
-            # interpolate
+            # ---------------------
+            # interpolate spacially
 
             # datai, units, refi = coll.interpolate(
             douti = coll.interpolate(
@@ -474,6 +506,13 @@ def _compute_los(
                 shape[axis] = npix
                 data = np.full(shape, val_init)
                 ref = list(refi)
+
+            # ----------------------
+            # interpolate spectrally
+
+            if spectro:
+                import pdb; pdb.set_trace()     # DB
+                pass
 
             # ------------
             # integrate
