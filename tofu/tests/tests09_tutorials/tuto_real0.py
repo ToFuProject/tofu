@@ -30,18 +30,18 @@ def main():
     # add several diagnostics
 
     # add broadband
-    # _add_broadband(coll, conf)
+    _add_broadband(coll, conf)
 
     # add PHA
-    # _add_PHA(coll, conf)
+    _add_PHA(coll, conf)
 
     # add spectrometer
-    _add_spectrometer(coll, conf, crystals=['c0'])
+    _add_spectrometer(coll, conf) # , crystals=['c0'])
 
     # ------------------------
     # compute synthetic signal
 
-    _compute_synth_signal(coll, ldiag=['diag00'])
+    _compute_synth_signal(coll) # , ldiag=['diag00'])
 
     # ------------------
     # geometry matrices
@@ -138,12 +138,12 @@ def _create_plasma():
     )
 
     # emiss1dE
-    r0 = (0.2 + np.exp(-rho**2/0.5**2)[None, :, None])
-    r1 = np.exp(-(rho-0.4)**2/0.2**2)[None, :, None]
+    r0 = (0. + np.exp(-rho**2/0.4**2)[None, :, None])
+    r1 = np.exp(-(rho-0.3)**2/0.15**2)[None, :, None]
     emiss1dE = (
         (1 + 0.1*np.cos(t[:, None, None]))
         * (
-            r0 * np.exp(-E/10000)[None, None, :]
+            r0 * (0.1 + np.exp(-E/10000))[None, None, :]
             + r1 * np.exp(-(E-15000)**2/1000**2)[None, None, :]
         )
     )
@@ -164,12 +164,12 @@ def _create_plasma():
     )
 
     # emiss2dE
-    r0 = (0.2 + np.exp(-rho2d**2/0.5**2)[:, :, :, None])
-    r1 = np.exp(-(rho2d-0.4)**2/0.2**2)[:, :, :, None]
+    r0 = (0. + np.exp(-rho2d**2/0.4**2)[:, :, :, None])
+    r1 = np.exp(-(rho2d-0.3)**2/0.15**2)[:, :, :, None]
     emiss2dE = (
         (1 + 0.1*np.cos(t[:, None, None, None]))
         * (
-            r0 * np.exp(-E/10000)[None, None, None, :]
+            r0 * (1. + np.exp(-E/10000))[None, None, None, :]
             + r1 * np.exp(-(E-15000)**2/1000**2)[None, None, None, :]
         )
     )
