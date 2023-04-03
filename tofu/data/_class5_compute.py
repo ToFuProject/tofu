@@ -668,8 +668,8 @@ def _ideal_configuration_store(
     dx0 = dim0 / nx0
     dx1 = dim1 / nx1
 
-    outline_x0 = dx0 * np.r_[-1., 1., 1., -1.]
-    outline_x1 = dx1 * np.r_[-1., -1., 1., 1.]
+    outline_x0 = 0.5 * dx0 * np.r_[-1., 1., 1., -1.]
+    outline_x1 = 0.5 * dx1 * np.r_[-1., -1., 1., 1.]
 
     cents_x0 = 0.5 * dim0 * np.linspace(-1., 1., nx0 + 1)
     cents_x1 = 0.5 * dim1 * np.linspace(-1., 1., nx1 + 1)
