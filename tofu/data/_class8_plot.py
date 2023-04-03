@@ -418,7 +418,7 @@ def _plot_diagnostic(
                     )
 
             # plotting of 2d camera contour
-            kax = k0
+            kax = f"{k0}_sig"
             if is2d and k0 in key_cam and dax.get(kax) is not None:
                 ax = dax[kax]['handle']
                 if k1 == 'o':
