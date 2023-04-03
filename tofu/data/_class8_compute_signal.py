@@ -463,22 +463,12 @@ def _compute_los(
     # prepare
 
     if spectro:
-        E, _ = coll.get_diagnostic_lamb(
-            key_diag,
-            lamb='lamb',
-            units='eV',
-        )
-        dE, _ = coll.get_diagnostic_lamb(
-            key_diag,
-            lamb='dlamb',
-            units='eV',
-        )
 
-        E_flat = E.ravel()
-        dE_flat = dE.ravel()
+        
 
         kspect_ref_vect = coll.get_ref_vector(ref=key_ref_spectro)[3]
         spect_ref_vect = coll.ddata[kspect_ref_vect]['data']
+        
         ref = coll.ddata[key_integrand]['ref']
         axis_spectro = ref.index(key_ref_spectro)
 
@@ -488,6 +478,19 @@ def _compute_los(
             axis_spectro -= len(coll.dobj[wbs][key_bs]['ref']) - 1
 
         units_spectro = coll.ddata[kspect_ref_vect]['units']
+
+        E, _ = coll.get_diagnostic_lamb(
+            key_diag,
+            lamb='lamb',
+            units=units_spectro,
+        )
+        dE, _ = coll.get_diagnostic_lamb(
+            key_diag,
+            lamb='dlamb',
+            units=units_spectro,
+        )
+        E_flat = E.ravel()
+        dE_flat = dE.ravel()
 
     else:
         dict_E = None
@@ -549,6 +552,9 @@ def _compute_los(
                 concatenate=True,
                 return_coords=['R', 'z', 'ltot'],
             )
+            
+            if R is None:
+                continue
 
             # safety checks
             inan = np.isnan(R)
@@ -590,7 +596,7 @@ def _compute_los(
             # ----------------------
             # interpolate spectrally
 
-            if spectro:
+            if spectro:             
                 douti['data'] = np.take(douti['data'], 0, axis_spectro)
                 douti['ref'] = tuple([
                     rr for jj, rr in enumerate(douti['ref'])
