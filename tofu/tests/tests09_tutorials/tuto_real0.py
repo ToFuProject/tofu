@@ -36,20 +36,18 @@ def main():
     _add_PHA(coll, conf)
 
     # add spectrometer
-    _add_spectrometer(coll, conf)
+    _add_spectrometer(coll, conf) # , crystals=['c0'])
 
     # ------------------------
     # compute synthetic signal
 
-
+    _compute_synth_signal(coll) # , ldiag=['diag00'])
 
     # ------------------
     # geometry matrices
 
-
     # ----------
     # inversions
-
 
     return conf, coll
 
@@ -58,7 +56,6 @@ def main():
 # #####################################################
 #           Routines - PLasma
 # #####################################################
-
 
 
 def _create_plasma():
@@ -141,12 +138,12 @@ def _create_plasma():
     )
 
     # emiss1dE
-    r0 = (0.2 + np.exp(-rho**2/0.5**2)[None, :, None])
-    r1 = np.exp(-(rho-0.4)**2/0.2**2)[None, :, None]
+    r0 = (0. + np.exp(-rho**2/0.4**2)[None, :, None])
+    r1 = np.exp(-(rho-0.3)**2/0.15**2)[None, :, None]
     emiss1dE = (
         (1 + 0.1*np.cos(t[:, None, None]))
         * (
-            r0 * np.exp(-E/10000)[None, None, :]
+            r0 * (0.1 + np.exp(-E/10000))[None, None, :]
             + r1 * np.exp(-(E-15000)**2/1000**2)[None, None, :]
         )
     )
@@ -167,12 +164,12 @@ def _create_plasma():
     )
 
     # emiss2dE
-    r0 = (0.2 + np.exp(-rho2d**2/0.5**2)[:, :, :, None])
-    r1 = np.exp(-(rho2d-0.4)**2/0.2**2)[:, :, :, None]
+    r0 = (0. + np.exp(-rho2d**2/0.4**2)[:, :, :, None])
+    r1 = np.exp(-(rho2d-0.3)**2/0.15**2)[:, :, :, None]
     emiss2dE = (
         (1 + 0.1*np.cos(t[:, None, None, None]))
         * (
-            r0 * np.exp(-E/10000)[None, None, None, :]
+            r0 * (1. + np.exp(-E/10000))[None, None, None, :]
             + r1 * np.exp(-(E-15000)**2/1000**2)[None, None, None, :]
         )
     )
@@ -289,11 +286,17 @@ def _add_PHA(
 def _add_spectrometer(
     coll=None,
     conf=None,
+    crystals=None,
 ):
 
+    # ------------------
     # add crystal optics
+
     doptics = {}
-    dcrystals = _crystals(coll)
+    dcrystals = _crystals(coll, crystals=crystals)
+
+    # ----------------------
+    # add camera / apertures
 
     for k0, v0 in dcrystals.items():
 
@@ -322,7 +325,9 @@ def _add_spectrometer(
                 k0: loptics,
             })
 
-    # add crystal optics
+    # ------------------
+    # add diagnostic
+
     for k0, v0 in doptics.items():
         coll.add_diagnostic(
             doptics=v0,
@@ -336,7 +341,16 @@ def _add_spectrometer(
     return
 
 
-def _crystals(coll=None):
+def _crystals(coll=None, crystals=None):
+
+    # -------
+    # check
+
+    if crystals is None:
+        crystals = ['c0', 'c1', 'c2']
+
+    # -------
+    # geom
 
     start, vect, v0, v1 = _ref_line(start=np.r_[7, 0., 0.001])
 
@@ -351,67 +365,75 @@ def _crystals(coll=None):
         phi=0.,
     )
 
+    dc = {}
+
     # c1: cylindrical (von hamos)
-    size = 1.e-2
-    rc = 2.
-    c0 = {
-        'key': 'c0',
-        'dgeom': {
-            'cent': cent,
-            'nin': nin,
-            'e0': e0,
-            'e1': e1,
-            'extenthalf': size * np.r_[1, 1/rc],
-            'curve_r': [np.inf, rc],
-        },
-        'dmat': 'Quartz_110',
-        'configuration': 'von hamos',
-    }
-    coll.add_crystal(c0['key'], dgeom=c0['dgeom'], dmat=c0['dmat'])
+    if 'c0' in crystals:
+        size = 1.e-2
+        rc = 2.
+        c0 = {
+            'key': 'c0',
+            'dgeom': {
+                'cent': cent,
+                'nin': nin,
+                'e0': e0,
+                'e1': e1,
+                'extenthalf': size * np.r_[1, 1/rc],
+                'curve_r': [np.inf, rc],
+            },
+            'dmat': 'Quartz_110',
+            'configuration': 'von hamos',
+        }
+        dc['c0'] = c0
+        coll.add_crystal(c0['key'], dgeom=c0['dgeom'], dmat=c0['dmat'])
 
     # c3: cylindrical (convex)
-    rc = 2.
-    ang = np.linspace(-0.0001, 0.0005, 100)
-    c1 = {
-        'key': 'c1',
-        'dgeom': {
-            'cent': cent,
-            'nin': nin,
-            'e0': e0,
-            'e1': e1,
-            'extenthalf': size * np.r_[1/rc, 1],
-            'curve_r': [-rc, np.inf],
-        },
-        'dmat': {
-            'target': {'lamb': 3.94e-10},
-            'd_hkl': 2.45652e-10,
-            'drock': {
-                'angle_rel': ang,
-                'power_ratio': np.exp(-(ang-0.00025)**2/0.0001**2),
+    if 'c1' in crystals:
+        rc = 2.
+        ang = np.linspace(-0.0001, 0.0005, 100)
+        c1 = {
+            'key': 'c1',
+            'dgeom': {
+                'cent': cent,
+                'nin': nin,
+                'e0': e0,
+                'e1': e1,
+                'extenthalf': size * np.r_[1/rc, 1],
+                'curve_r': [-rc, np.inf],
             },
-        },
-        'configuration': 'pinhole',
-    }
-    coll.add_crystal(c1['key'], dgeom=c1['dgeom'], dmat=c1['dmat'])
+            'dmat': {
+                'target': {'lamb': 3.94e-10},
+                'd_hkl': 2.45652e-10,
+                'drock': {
+                    'angle_rel': ang,
+                    'power_ratio': np.exp(-(ang-0.00025)**2/0.0001**2),
+                },
+            },
+            'configuration': 'pinhole',
+        }
+        dc['c1'] = c1
+        coll.add_crystal(c1['key'], dgeom=c1['dgeom'], dmat=c1['dmat'])
 
     # c2: spherical
-    rc = 2.
-    c2 = {
-        'key': 'c2',
-        'dgeom': {
-            'cent': cent,
-            'nin': nin,
-            'e0': e0,
-            'e1': e1,
-            'extenthalf': size * np.r_[1 / rc, 1 / rc],
-            'curve_r': rc,
-        },
-        'dmat': 'Quartz_110',
-        'configuration': 'johann',
-    }
-    coll.add_crystal(c2['key'], dgeom=c2['dgeom'], dmat=c2['dmat'])
+    if 'c2' in crystals:
+        rc = 2.
+        c2 = {
+            'key': 'c2',
+            'dgeom': {
+                'cent': cent,
+                'nin': nin,
+                'e0': e0,
+                'e1': e1,
+                'extenthalf': size * np.r_[1 / rc, 1 / rc],
+                'curve_r': rc,
+            },
+            'dmat': 'Quartz_110',
+            'configuration': 'johann',
+        }
+        dc['c2'] = c2
+        coll.add_crystal(c2['key'], dgeom=c2['dgeom'], dmat=c2['dmat'])
 
-    return {'c0': c0, 'c1': c1, 'c2': c2}
+    return dc
 
 
 def _ref_line(start=np.r_[4, 0, 0], vect=np.r_[-1, 0, 0]):
@@ -447,6 +469,61 @@ def _nine0e1_from_orientations(
     e1 = np.cross(nin, e0)
 
     return nin, e0, e1
+
+
+# #####################################################
+# #####################################################
+#           Synthetic signal
+# #####################################################
+
+
+def _compute_synth_signal(coll=None, ldiag=None):
+
+    # -------------
+    # list of diags
+
+    if ldiag is None:
+        ldiag = [
+            'd0',
+            'd1',
+            'diag00', 'diag01', 'diag02',
+        ]
+
+    # ------------
+    # loop n diags
+
+    for k0 in ldiag:
+
+        if k0 not in coll.dobj['diagnostic'].keys():
+            continue
+
+        # params
+        if k0 == 'd0':
+            key_integrand = 'emiss1d'
+            ref_com = 'nt'
+        # elif k0 == 'diag00':
+            # key_integrand = 'emiss2dE'
+            # ref_com = None
+        else:
+            key_integrand = 'emiss1dE'
+            ref_com = 'nt'
+
+        # compute
+        coll.compute_diagnostic_signal(
+            key=None,
+            key_diag=k0,
+            key_cam=None,
+            key_integrand=key_integrand,
+            method='los',
+            res=0.001,
+            mode='abs',
+            groupby=None,
+            val_init=None,
+            ref_com=ref_com,
+            brightness=None,
+            store=True,
+            returnas=False,
+        )
 
 
 # #####################################################

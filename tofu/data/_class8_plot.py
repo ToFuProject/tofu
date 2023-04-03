@@ -25,6 +25,9 @@ def _plot_diagnostic_check(
     coll=None,
     key=None,
     key_cam=None,
+    # parameters
+    vmin=None,
+    vmax=None,
     # figure
     proj=None,
     data=None,
@@ -86,6 +89,15 @@ def _plot_diagnostic_check(
 
     ylab = f"{data} ({units})"
 
+    # ----------
+    # vmin, vmax
+
+    if vmin is None:
+        vmin = np.nanmin([np.nanmin(v0) for v0 in ddata.values()])
+
+    if vmax is None:
+        vmax = np.nanmax([np.nanmax(v0) for v0 in ddata.values()])
+
     # -----
     # proj
 
@@ -141,6 +153,8 @@ def _plot_diagnostic_check(
         static,
         daxis,
         refz,
+        vmin,
+        vmax,
         units,
         los_res,
         color_dict,
@@ -208,6 +222,8 @@ def _plot_diagnostic(
         static,
         daxis,
         refz,
+        vmin,
+        vmax,
         units,
         los_res,
         color_dict,
@@ -218,6 +234,9 @@ def _plot_diagnostic(
         coll=coll,
         key=key,
         key_cam=key_cam,
+        # parameters
+        vmin=vmin,
+        vmax=vmax,
         # figure
         proj=proj,
         data=data,
@@ -303,8 +322,8 @@ def _plot_diagnostic(
         for k0 in key_cam:
             coll2.add_data(
                 key=f'{k0}_{data}',
-                data=ddata[k0],
-                ref=dref[k0],
+                data=ddata[k0].T,
+                ref=dref[k0][::-1],
                 units=units,
             )
 
@@ -399,7 +418,7 @@ def _plot_diagnostic(
                     )
 
             # plotting of 2d camera contour
-            kax = k0
+            kax = f"{k0}_sig"
             if is2d and k0 in key_cam and dax.get(kax) is not None:
                 ax = dax[kax]['handle']
                 if k1 == 'o':
@@ -747,7 +766,7 @@ def _plot_diagnostic(
                         ls='-',
                     )
 
-                    refi = dref_los[k0] if is2d else dref_los[k0][0]
+                    refi = dref_los[k0][0] if is2d else dref_los[k0][0]
                     kv = f'{k0}_trace{ii}'
                     coll2.add_mobile(
                         key=kv,
