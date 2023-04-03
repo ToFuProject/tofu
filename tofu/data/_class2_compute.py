@@ -128,7 +128,7 @@ def _sample(
     # -----------
 
     if pts_x.size == 0 or not np.any(np.isfinite(pts_x)):
-        return None
+        return [None]*len(return_coords)
 
     # -----------
     # compute
