@@ -258,6 +258,75 @@ class Diagnostic(Previous):
                 dcompute=dcompute,
             )
 
+    def compute_diagnostic_vos(
+        self,
+        key=None,
+        # parameters
+        res=None,
+        check=None,
+        margin_par=None,
+        margin_perp=None,
+        # spectro-only
+        rocking_curve_fw=None,
+        # equivalent aperture
+        add_points=None,
+        convex=None,
+        # for storing los
+        config=None,
+        length=None,
+        reflections_nb=None,
+        reflections_type=None,
+        key_nseg=None,
+        # bool
+        verb=None,
+        plot=None,
+        store=None,
+    ):
+        """ Compute the etendue of the diagnostic (per pixel)
+
+        Etendue (m2.sr) can be computed analytically or numerically
+        If plot, plot the comparison between all computations
+        If store = 'analytical' or 'numerical', overwrites the diag etendue
+
+        """
+
+        dcompute, store = _etendue_los.compute_vos(
+            coll=self,
+            key=key,
+            # etendue
+            res=res,
+            check=check,
+            margin_par=margin_par,
+            margin_perp=margin_perp,
+            # spectro-only
+            rocking_curve_fw=rocking_curve_fw,
+            # equivalent aperture
+            add_points=add_points,
+            convex=convex,
+            # bool
+            verb=verb,
+            plot=plot,
+            store=store,
+        )
+
+        # compute los angles
+        c0 = (
+            any([np.any(np.isfinite(v0['los_x'])) for v0 in dcompute.values()])
+            and store
+            )
+        if c0:
+            _los_angles.compute_los_angles(
+                coll=self,
+                key=key,
+                # los
+                config=config,
+                length=length,
+                reflections_nb=reflections_nb,
+                reflections_type=reflections_type,
+                key_nseg=key_nseg,
+                dcompute=dcompute,
+            )
+
     # ---------------
     # utilities
     # ---------------
