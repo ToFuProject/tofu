@@ -567,6 +567,7 @@ def _plot_diagnostic(
                     kax=kax,
                     nlos=nlos,
                     dref_los=dref_los,
+                    dref_vos=dref_vos,
                     color_dict=color_dict,
                     nan=nan,
                 )
@@ -854,12 +855,25 @@ def _prepare_los(
     los_res=None,
 ):
 
-    # create dlos
+    # -----------------
+    # create dlos, dvos
+
+    # dlos
     dlos = {
         k0: {'rays': coll.dobj['diagnostic'][key_diag]['doptics'][k0]['los']}
         for k0 in key_cam
     }
     dref_los = {}
+
+    # dvos
+    dvos = {
+        k0: {'pc': coll.dobj['diagnostic'][key_diag]['doptics'][k0]['vos_pcross']}
+        for k0 in key_cam
+    }
+    dref_vos = {}
+
+    # -------------
+    # los
 
     # los on cams
     for k0, v0 in dcamref.items():
@@ -891,7 +905,40 @@ def _prepare_los(
             dlos[k0]['y'] = los_y
             dlos[k0]['z'] = los_z
 
-    return dlos, dref_los
+    # -------------
+    # vos - TBF
+
+    # vos on cams
+    for k0, v0 in dcamref.items():
+        for rr in v0:
+            coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
+
+        # vos
+        if dvos[k0]['pc'] is not None:
+            los_x, los_y, los_z = coll.sample_rays(
+                key=dlos[k0]['rays'],
+                res=los_res,
+                mode='rel',
+                concatenate=False,
+            )
+            los_r = np.hypot(los_x, los_y)
+            reflos = coll.dobj['rays'][dlos[k0]['rays']]['ref']
+            dref_los[k0] = (reflos[1:], reflos[1:])
+
+            if reflos[0] not in coll2.dref.keys():
+                coll2.add_ref(key=reflos[0], size=los_x.shape[0])
+
+            coll2.add_data(key=f'{k0}_los_x', data=los_x, ref=reflos)
+            coll2.add_data(key=f'{k0}_los_y', data=los_y, ref=reflos)
+            coll2.add_data(key=f'{k0}_los_z', data=los_z, ref=reflos)
+            coll2.add_data(key=f'{k0}_los_r', data=los_r, ref=reflos)
+
+            # store x, y, z
+            dlos[k0]['x'] = los_x
+            dlos[k0]['y'] = los_y
+            dlos[k0]['z'] = los_z
+
+    return dlos, dref_los, dvos, dref_vos
 
 
 def _prepare_datarefxy(
@@ -973,6 +1020,10 @@ def _add_camera_los_cross(
 ):
 
     for ii in range(nlos):
+
+        # ------
+        # los
+
         l0, = ax.plot(
             nan,
             nan,
@@ -982,13 +1033,37 @@ def _add_camera_los_cross(
         )
 
         # add mobile
-        kl0 = f'{k0}-los-cross-{ii}'
+        kl0 = f'{k0}_los_cross{ii}'
         coll2.add_mobile(
             key=kl0,
             handle=l0,
             refs=dref_los[k0],
             data=[f'{k0}_los_r', f'{k0}_los_z'],
             dtype=['xdata', 'ydata'],
+            axes=kax,
+            ind=ii,
+        )
+
+        # ------
+        # vos
+
+        l0, = ax.fill(
+            [nan, nan, nan],
+            [nan, nan, nan],
+            fc=color_dict['x'][ii],
+            alpha=0.5,
+            ls='None',
+            lw=0.,
+        )
+
+        # add mobile
+        kl0 = f'{k0}_vos_cross{ii}'
+        coll2.add_mobile(
+            key=kl0,
+            handle=l0,
+            refs=dref_vos[k0],
+            data=[f'{k0}_vos_rz'],
+            dtype=['xy'],
             axes=kax,
             ind=ii,
         )
