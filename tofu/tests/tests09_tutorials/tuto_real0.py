@@ -32,6 +32,9 @@ def main():
     # add broadband
     _add_broadband(coll, conf)
 
+    # add 2d camera
+    _add_2d(coll, conf)
+
     # add PHA
     _add_PHA(coll, conf)
 
@@ -217,7 +220,7 @@ def _add_broadband(
         pinhole_size=None,
         reflections_nb=0,
         reflections_type=None,
-        compute=True,
+        compute=False,
         config=conf,
     )
 
@@ -247,6 +250,38 @@ def _add_broadband(
     return
 
 
+def _add_2d(
+    coll=None,
+    conf=None,
+):
+
+    # ---------------------
+    # add 2 pinhole cameras
+
+    coll.add_camera_pinhole(
+        key='c2d',
+        key_diag='d1',
+        key_pinhole=None,
+        cam_type='2d',
+        R=3.2,
+        z=-0.5,
+        phi=0,
+        theta=3.*np.pi/4,
+        dphi=np.pi/10,
+        tilt=np.pi/2,
+        focal=0.1,
+        pix_nb=15,
+        pix_size=3e-3,
+        pix_spacing=5e-3,
+        pinhole_radius=1e-2,
+        pinhole_size=None,
+        reflections_nb=0,
+        reflections_type=None,
+        compute=True,
+        config=conf,
+    )
+
+
 def _add_PHA(
     coll=None,
     conf=None,
@@ -259,7 +294,7 @@ def _add_PHA(
     coll.add_camera_pinhole(
         key='pha0',
         key_pinhole=None,
-        key_diag='d1',
+        key_diag='d2',
         cam_type='1d',
         R=5,
         z=0,
