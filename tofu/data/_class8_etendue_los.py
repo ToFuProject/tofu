@@ -615,7 +615,9 @@ def _loop_on_pix(
 
     if res is None:
 
-        res = min(np.sqrt(det_area), np.nanmin(mindiff))
+        res = np.sqrt(det_area)
+        if np.any(np.isfinite(mindiff)):
+            res = min(res, np.nanmin(mindiff))
         if np.any(ap_area > 0.):
             res = min(res, np.sqrt(np.min(ap_area[ap_area > 0.])))
 
