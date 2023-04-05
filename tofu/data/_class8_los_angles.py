@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
 
-import warnings
-
-
 import numpy as np
+import scipy.interpolate as scpinterp
+from scipy.spatial import ConvexHull
 
 
 import datastock as ds
+
+
+from ..geom import CamLOS1D
 
 
 __all__ = ['compute_los_angles']
@@ -30,6 +32,8 @@ def compute_los_angles(
     reflections_nb=None,
     reflections_type=None,
     key_nseg=None,
+    # for vos based on los
+    res=None,
     **kwdargs,
 ):
 
@@ -44,6 +48,9 @@ def compute_los_angles(
         allowed=lok,
     )
     is2d = coll.dobj['diagnostic'][key]['is2d']
+
+    # ---------------
+    # loop on cameras
 
     for key_cam, v0 in dcompute.items():
 
@@ -82,81 +89,437 @@ def compute_los_angles(
 
         coll._dobj['diagnostic'][key]['doptics'][key_cam]['los'] = klos
 
-        # ------------
+        # ---------------------
+        # rough estimate of vos
+
+        _vos_from_los(
+            coll=coll,
+            key=key,
+            key_cam=key_cam,
+            v0=v0,
+            config=config,
+            res=res,
+        )
+
+        # ----------------------------------------
         # for spectro => estimate angle variations
 
         if v0['spectro'] is True:
 
-            angmin = np.full(v0['cx'].size, np.nan)
-            angmax = np.full(v0['cx'].size, np.nan)
-
-            ptsvect = coll.get_optics_reflect_ptsvect(key=v0['kref'])
-            coords = coll.get_optics_x01toxyz(key=v0['kref'])
-            dx, dy, dz = coll.get_camera_dxyz(
-                key=key_cam,
-                include_center=True,
+            _angle_spectro(
+                coll=coll,
+                key=key,
+                key_cam=key_cam,
+                v0=v0,
             )
 
-            for ii in range(v0['cx'].size):
 
-                if not v0['iok'][ii]:
-                    continue
+# ###########################################################
+# ###########################################################
+#               VOS from LOS
+# ###########################################################
 
-                cxi = v0['cx'][ii]  + dx
-                cyi = v0['cy'][ii]  + dy
-                czi = v0['cz'][ii]  + dz
-                nc = cxi.size
 
-                exi, eyi, ezi = coords(
-                    v0['x0'][ii, :],
-                    v0['x1'][ii, :],
-                )
-                ne = exi.size
+def _vos_from_los(
+    coll=None,
+    key=None,
+    key_cam=None,
+    v0=None,
+    config=None,
+    res=None,
+):
 
-                cxi = np.repeat(cxi, ne)
-                cyi = np.repeat(cyi, ne)
-                czi = np.repeat(czi, ne)
+    # --------------
+    # check inputs
 
-                angles = ptsvect(
-                    pts_x=cxi,
-                    pts_y=cyi,
-                    pts_z=czi,
-                    vect_x=np.tile(exi, nc) - cxi,
-                    vect_y=np.tile(eyi, nc) - cyi,
-                    vect_z=np.tile(ezi, nc) - czi,
-                    strict=True,
-                    return_x01=False,
-                )[6]
+    # res
+    res = ds._generic_check._check_var(
+        res, 'res',
+        types=float,
+        default=0.01,
+        sign='>0',
+    )
 
-                angmin[ii] = np.nanmin(angles)
-                angmax[ii] = np.nanmax(angles)
+    # --------------
+    # prepare
 
-            if is2d:
-                angmin = angmin.reshape(v0['shape0'])
-                angmax = angmax.reshape(v0['shape0'])
+    # lspectro
+    lspectro = [
+        oo for oo in coll.dobj['diagnostic'][key]['doptics'][key_cam]['optics']
+        if oo in coll.dobj.get('crystal', {}).keys()
+        or oo in coll.dobj.get('grating', {}).keys()
+    ]
 
-            # ddata
-            kamin = f'{key}_{key_cam}_amin'
-            kamax = f'{key}_{key_cam}_amax'
-            ddata = {
-                kamin: {
-                    'data': angmin,
-                    'ref': ref,
-                    'dim': 'angle',
-                    'quant': 'angle',
-                    'name': 'alpha',
-                    'units': 'rad',
-                },
-                kamax: {
-                    'data': angmax,
-                    'ref': ref,
-                    'dim': 'angle',
-                    'quant': 'angle',
-                    'name': 'alpha',
-                    'units': 'rad',
-                },
-            }
-            coll.update(ddata=ddata)
+    # ----------
+    # poly_cross
 
-            coll._dobj['diagnostic'][key]['doptics'][key_cam]['amin'] = kamin
-            coll._dobj['diagnostic'][key]['doptics'][key_cam]['amax'] = kamax
+    dx, dy, dz = coll.get_camera_dxyz(
+        key=key_cam,
+        include_center=True,
+    )
+
+    lpoly = []
+    npix = v0['cx'].size
+    dphi = np.full((2, npix), np.nan)
+    for ii in range(v0['cx'].size):
+
+        if not v0['iok'][ii]:
+            continue
+
+        # get start / end points
+        ptsx, ptsy, ptsz = _get_rays_from_pix(
+            coll=coll,
+            cx=v0['cx'][ii],
+            cy=v0['cy'][ii],
+            cz=v0['cz'][ii],
+            x0=v0['x0'][ii, :],
+            x1=v0['x1'][ii, :],
+            dx=dx,
+            dy=dy,
+            dz=dz,
+            coords=coll.get_optics_x01toxyz(key=v0['kref']),
+            lspectro=lspectro,
+            config=config,
+        )
+
+        # sampling
+        length = np.sqrt(
+            np.diff(ptsx, axis=0)**2
+            + np.diff(ptsy, axis=0)**2
+            + np.diff(ptsz, axis=0)**2
+        )
+        npts = int(np.ceil(np.max(length) / res))
+        ind = np.linspace(0, 1, npts)
+        ptsx = scpinterp.interp1d(
+            [0, 1],
+            ptsx,
+            kind='linear',
+            axis=0,
+        )(ind).ravel()
+        ptsy = scpinterp.interp1d(
+            [0, 1],
+            ptsy,
+            kind='linear',
+            axis=0,
+        )(ind).ravel()
+        ptsz = scpinterp.interp1d(
+            [0, 1],
+            ptsz,
+            kind='linear',
+            axis=0,
+        )(ind).ravel()
+
+        # dphi
+        phi = np.arctan2(ptsy, ptsx)
+        phimin, phimax = np.nanmin(phi), np.nanmax(phi)
+        if phimax - phimin > np.pi:
+            phimin, phimax = phimax, phimin + 2.*np.pi
+        dphi[:, ii] = (phimin, phimax)
+
+        # poly_cross
+        ptsr = np.hypot(ptsx, ptsy)
+        convh = ConvexHull(np.array([ptsr, ptsz]).T)
+        conv0 = ptsr[convh.vertices]
+        conv1 = ptsz[convh.vertices]
+        lpoly.append((conv0, conv1))
+
+    # ------------------------
+    # poly_cross harmonization
+
+    ln = [pp[0].size for pp in lpoly]
+    nmax = np.max(ln)
+    pcross0 = np.full((nmax, npix), np.nan)
+    pcross1 = np.full((nmax, npix), np.nan)
+    for ii, pp in enumerate(lpoly):
+        if ln[ii] < nmax:
+            iextra = np.linspace(0.1, 0.9, nmax-ln[ii])
+            ind = np.r_[0, iextra, np.arange(1, ln[ii])].astype(int)
+            pcross0[:, ii] = scpinterp.interp1d(
+                range(ln[ii]),
+                pp[0],
+                kind='linear',
+                axis=0,
+            )(ind)
+            pcross1[:, ii] = scpinterp.interp1d(
+                range(ln[ii]),
+                pp[1],
+                kind='linear',
+                axis=0,
+            )(ind)
+        else:
+            pcross0[:, ii] = pp[0]
+            pcross1[:, ii] = pp[1]
+
+    # ----------
+    # store
+
+    _vos_from_los_store(
+        coll=coll,
+        key=key,
+        key_cam=key_cam,
+        pcross0=pcross0,
+        pcross1=pcross1,
+        dphi=dphi,
+    )
+
+
+def _vos_from_los_store(
+    coll=None,
+    key=None,
+    key_cam=None,
+    pcross0=None,
+    pcross1=None,
+    dphi=None,
+):
+
+    # --------
+    # dref
+
+    # keys
+    kn = f'{key_cam}_vos_pc_n'
+
+    # dict
+    dref = {
+        kn: {'size': pcross0.shape[0]}
+    }
+
+    # -------------
+    # data
+
+    # keys
+    kpc0 = f'{key_cam}_vos_pc0'
+    kpc1 = f'{key_cam}_vos_pc1'
+
+    # reshape for 2d camera
+    if coll.dobj['camera'][key_cam]['dgeom']['type'] == '2d':
+        shape = coll.dobj['camera'][key_cam]['dgeom']['shape']
+        shape = tuple(np.r_[pcross0.shape[0], shape])
+        pcross0 = pcross0.reshape(shape)
+        pcross1 = pcross1.reshape(shape)
+
+    # ref
+    ref = tuple([kn] +list(coll.dobj['camera'][key_cam]['dgeom']['ref']))
+
+    # dict
+    ddata = {
+        kpc0: {
+            'data': pcross0,
+            'ref': ref,
+            'units': 'm',
+            'dim': 'length',
+            'quant': 'R',
+        },
+        kpc1: {
+            'data': pcross1,
+            'ref': ref,
+            'units': 'm',
+            'dim': 'length',
+            'quant': 'Z',
+        },
+    }
+
+    # ----------
+    # store
+
+    # update
+    coll.update(dref=dref, ddata=ddata)
+
+    # add pcross
+    doptics = coll._dobj['diagnostic'][key]['doptics']
+    doptics[key_cam]['vos_pcross'] = (kpc0, kpc1)
+    doptics[key_cam]['vos_dphi'] = dphi
+
+
+# ###########################################################
+# ###########################################################
+#               get multiple rays
+# ###########################################################
+
+
+def _get_rays_from_pix(
+    coll=None,
+    kref=None,
+    cx=None,
+    cy=None,
+    cz=None,
+    x0=None,
+    x1=None,
+    dx=None,
+    dy=None,
+    dz=None,
+    lspectro=None,
+    coords=None,
+    config=None,
+):
+
+    # pixels points (start)
+    cxi = cx + dx
+    cyi = cy + dy
+    czi = cz + dz
+    nc = cxi.size
+
+    # end points
+    exi, eyi, ezi = coords(x0, x1)
+    ne = exi.size
+
+    # final shape
+    shape = (2, nc*ne)
+    pts_x = np.full(shape, np.nan)
+    pts_y = np.full(shape, np.nan)
+    pts_z = np.full(shape, np.nan)
+
+    # adjust shapes
+    pts_x[0, ...] = np.repeat(cxi, ne)
+    pts_y[0, ...] = np.repeat(cyi, ne)
+    pts_z[0, ...] = np.repeat(czi, ne)
+
+    vect_x = np.tile(exi, nc) - pts_x[0, ...]
+    vect_y = np.tile(eyi, nc) - pts_y[0, ...]
+    vect_z = np.tile(ezi, nc) - pts_z[0, ...]
+
+    # ----------
+    # diag
+
+    for ii, oo in enumerate(lspectro):
+
+        reflect_ptsvect = coll.get_optics_reflect_ptsvect(oo)
+        (
+            pts_x[0, ...],
+            pts_y[0, ...],
+            pts_z[0, ...],
+            vect_x, vect_y, vect_z,
+            _,
+            iok,
+        ) = reflect_ptsvect(
+            pts_x=pts_x[0, ...],
+            pts_y=pts_y[0, ...],
+            pts_z=pts_z[0, ...],
+            vect_x=vect_x,
+            vect_y=vect_y,
+            vect_z=vect_z,
+            strict=True,
+            return_x01=False,
+        )
+
+    # ----------
+    # config
+
+    # prepare D
+    D = np.array([pts_x[0, ...], pts_y[0, ...], pts_z[0, ...]])
+    uu = np.array([vect_x, vect_y, vect_z])
+
+    mask = np.all(np.isfinite(uu), axis=0)
+
+    # call legacy code
+    cam = CamLOS1D(
+        dgeom=(D[:, mask], uu[:, mask]),
+        config=config,
+        Name='',
+        Diag='',
+        Exp='',
+        strict=True,
+    )
+
+    # pin
+    pin = cam.dgeom['PkIn']
+
+    pts_x[0, mask] = pin[0, :]
+    pts_y[0, mask] = pin[1, :]
+    pts_z[0, mask] = pin[2, :]
+
+    # pout
+    pout = cam.dgeom['PkOut']
+
+    pts_x[-1, mask] = pout[0, :]
+    pts_y[-1, mask] = pout[1, :]
+    pts_z[-1, mask] = pout[2, :]
+
+    return pts_x, pts_y, pts_z
+
+
+# ###########################################################
+# ###########################################################
+#               Angles variations for spectro
+# ###########################################################
+
+
+def _angle_spectro(
+    coll=None,
+    key=None,
+    key_cam=None,
+    v0=None,
+):
+
+    angmin = np.full(v0['cx'].size, np.nan)
+    angmax = np.full(v0['cx'].size, np.nan)
+
+    ptsvect = coll.get_optics_reflect_ptsvect(key=v0['kref'])
+    coords = coll.get_optics_x01toxyz(key=v0['kref'])
+    dx, dy, dz = coll.get_camera_dxyz(
+        key=key_cam,
+        include_center=True,
+    )
+
+    for ii in range(v0['cx'].size):
+
+        if not v0['iok'][ii]:
+            continue
+
+        cxi = v0['cx'][ii] + dx
+        cyi = v0['cy'][ii] + dy
+        czi = v0['cz'][ii] + dz
+        nc = cxi.size
+
+        exi, eyi, ezi = coords(
+            v0['x0'][ii, :],
+            v0['x1'][ii, :],
+        )
+        ne = exi.size
+
+        cxi = np.repeat(cxi, ne)
+        cyi = np.repeat(cyi, ne)
+        czi = np.repeat(czi, ne)
+
+        angles = ptsvect(
+            pts_x=cxi,
+            pts_y=cyi,
+            pts_z=czi,
+            vect_x=np.tile(exi, nc) - cxi,
+            vect_y=np.tile(eyi, nc) - cyi,
+            vect_z=np.tile(ezi, nc) - czi,
+            strict=True,
+            return_x01=False,
+        )[6]
+
+        angmin[ii] = np.nanmin(angles)
+        angmax[ii] = np.nanmax(angles)
+
+    if is2d:
+        angmin = angmin.reshape(v0['shape0'])
+        angmax = angmax.reshape(v0['shape0'])
+
+    # ddata
+    kamin = f'{key}_{key_cam}_amin'
+    kamax = f'{key}_{key_cam}_amax'
+    ddata = {
+        kamin: {
+            'data': angmin,
+            'ref': ref,
+            'dim': 'angle',
+            'quant': 'angle',
+            'name': 'alpha',
+            'units': 'rad',
+        },
+        kamax: {
+            'data': angmax,
+            'ref': ref,
+            'dim': 'angle',
+            'quant': 'angle',
+            'name': 'alpha',
+            'units': 'rad',
+        },
+    }
+    coll.update(ddata=ddata)
+
+    coll._dobj['diagnostic'][key]['doptics'][key_cam]['amin'] = kamin
+    coll._dobj['diagnostic'][key]['doptics'][key_cam]['amax'] = kamax
