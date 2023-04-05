@@ -27,7 +27,9 @@ def _diagnostics_check(
     # key
 
     key = ds._generic_check._obj_key(
-        d0=coll.dobj.get('diagnostic', {}), short='diag', key=key,
+        d0=coll.dobj.get('diagnostic', {}),
+        short='d',
+        key=key,
     )
 
     # ------
@@ -208,25 +210,25 @@ def _diagnostics_check(
 
     # --------
     # is PHA
-    
+
     dPHA = {
         k0 : coll.dobj['camera'][k0]['dmat']['mode'] == 'PHA'
         for k0 in lcam
         if coll.dobj['camera'][k0].get('dmat') is not None
     }
-    
+
     if len(dPHA) > 0:
         lc = [
             all([v0 for v0 in dPHA.values()]),
-            all([not v0 for v0 in dPHA.values()]),        
+            all([not v0 for v0 in dPHA.values()]),
         ]
-        
+
         if np.sum(lc) != 1:
             msg = (
                 f"diag '{key}' must be either all PHA or all non-PHA!\n"
                 + "\n".join([f"\t- {k0}: {v0}" for k0, v0 in dPHA.items()])
             )
-            raise Exception(msg)    
+            raise Exception(msg)
 
         PHA = lc[0]
     else:
@@ -245,7 +247,7 @@ def _diagnostics_check(
             'etend_type': None,
             'amin': None,
             'amax': None,
-            }
+        }
 
         doptics2[k0]['optics'], doptics2[k0]['cls'] = _get_optics_cls(
             coll=coll,
