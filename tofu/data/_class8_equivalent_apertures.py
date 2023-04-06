@@ -482,10 +482,11 @@ def _check(
     # -----------
     # convex
 
+    isconvex = any(coll.get_optics_isconvex(doptics['optics']))
     convex = ds._generic_check._check_var(
         convex, 'convex',
         types=bool,
-        default=True,
+        default=isconvex,
     )
 
     # -----------
