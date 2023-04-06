@@ -111,6 +111,8 @@ def compute_los_angles(
                 key=key,
                 key_cam=key_cam,
                 v0=v0,
+                is2d=is2d,
+                ref=ref,
             )
 
 
@@ -160,12 +162,15 @@ def _vos_from_los(
 
     lpoly_cross = []
     lpoly_hor = []
+    lind = []
     npix = v0['cx'].size
     dphi = np.full((2, npix), np.nan)
     for ii in range(v0['cx'].size):
 
         if not v0['iok'][ii]:
             continue
+
+        lind.append(ii)
 
         # get start / end points
         ptsx, ptsy, ptsz = _get_rays_from_pix(
@@ -189,23 +194,24 @@ def _vos_from_los(
             + np.diff(ptsy, axis=0)**2
             + np.diff(ptsz, axis=0)**2
         )
-        npts = int(np.ceil(np.max(length) / res))
+        npts = int(np.ceil(np.nanmax(length) / res))
         ind = np.linspace(0, 1, npts)
+        iok = np.all(np.isfinite(ptsx), axis=0)
         ptsx = scpinterp.interp1d(
             [0, 1],
-            ptsx,
+            ptsx[:, iok],
             kind='linear',
             axis=0,
         )(ind).ravel()
         ptsy = scpinterp.interp1d(
             [0, 1],
-            ptsy,
+            ptsy[:, iok],
             kind='linear',
             axis=0,
         )(ind).ravel()
         ptsz = scpinterp.interp1d(
             [0, 1],
-            ptsz,
+            ptsz[:, iok],
             kind='linear',
             axis=0,
         )(ind).ravel()
@@ -241,47 +247,47 @@ def _vos_from_los(
     pcross1 = np.full((nmaxc, npix), np.nan)
     phor0 = np.full((nmaxh, npix), np.nan)
     phor1 = np.full((nmaxh, npix), np.nan)
-    for ii, pp in enumerate(lpoly_cross):
+    for ii, indi in enumerate(lind):
 
         # cross
         if lnc[ii] < nmaxc:
             iextra = np.linspace(0.1, 0.9, nmaxc - lnc[ii])
             ind = np.r_[0, iextra, np.arange(1, lnc[ii])].astype(int)
-            pcross0[:, ii] = scpinterp.interp1d(
+            pcross0[:, indi] = scpinterp.interp1d(
                 range(lnc[ii]),
-                pp[0],
+                lpoly_cross[ii][0],
                 kind='linear',
                 axis=0,
             )(ind)
-            pcross1[:, ii] = scpinterp.interp1d(
+            pcross1[:, indi] = scpinterp.interp1d(
                 range(lnc[ii]),
-                pp[1],
+                lpoly_cross[ii][1],
                 kind='linear',
                 axis=0,
             )(ind)
         else:
-            pcross0[:, ii] = pp[0]
-            pcross1[:, ii] = pp[1]
+            pcross0[:, indi] = lpoly_cross[ii][0]
+            pcross1[:, indi] = lpoly_cross[ii][1]
 
         # hor
         if lnh[ii] < nmaxh:
             iextra = np.linspace(0.1, 0.9, nmaxh - lnh[ii])
             ind = np.r_[0, iextra, np.arange(1, lnh[ii])].astype(int)
-            phor0[:, ii] = scpinterp.interp1d(
+            phor0[:, indi] = scpinterp.interp1d(
                 range(lnh[ii]),
                 lpoly_hor[ii][0],
                 kind='linear',
                 axis=0,
             )(ind)
-            phor1[:, ii] = scpinterp.interp1d(
+            phor1[:, indi] = scpinterp.interp1d(
                 range(lnh[ii]),
                 lpoly_hor[ii][1],
                 kind='linear',
                 axis=0,
             )(ind)
         else:
-            phor0[:, ii] = lpoly_hor[ii][0]
-            phor1[:, ii] = lpoly_hor[ii][1]
+            phor0[:, indi] = lpoly_hor[ii][0]
+            phor1[:, indi] = lpoly_hor[ii][1]
 
     # ----------
     # store
@@ -508,6 +514,8 @@ def _angle_spectro(
     key=None,
     key_cam=None,
     v0=None,
+    is2d=None,
+    ref=None,
 ):
 
     angmin = np.full(v0['cx'].size, np.nan)
