@@ -80,7 +80,6 @@ def _plot_diagnostic_check(
             msg = f"data '{data}' shall have the same ndims for all cameras!"
             raise Exception(msg)
 
-
         if len(set(refz)) != 1:
             msg = f"data '{data}' shall have the same extra ref for all cameras"
             raise Exception(msg)
@@ -940,20 +939,22 @@ def _prepare_vos(
 
             pc0 = coll.ddata[dvos_n[k0]['pc'][0]]['data']
             pc1 = coll.ddata[dvos_n[k0]['pc'][1]]['data']
-            if doptics[k0].get('vos_phor') is not None:
-                ph0 = coll.ddata[dvos_n[k0]['ph'][0]]['data']
-                ph1 = coll.ddata[dvos_n[k0]['ph'][1]]['data']
             pcref = coll.ddata[dvos_n[k0]['pc'][0]]['ref']
+            if doptics[k0].get('vos_phor') is not None:
+                ph0 = coll.ddata[doptics[k0]['vos_phor'][0]]['data']
+                ph1 = coll.ddata[doptics[k0]['vos_phor'][1]]['data']
+                phref = coll.ddata[doptics[k0]['vos_phor'][0]]['ref']
 
             if pcref[0] not in coll2.dref.keys():
                 coll2.add_ref(key=pcref[0], size=pc0.shape[0])
 
-            ref = tuple(list(pcref[::-1]) + [krxy])
             dref_vos[k0] = (pcref[1:],)
 
+            ref = tuple(list(pcref[::-1]) + [krxy])
             pcxy = np.array([pc0, pc1]).T
             coll2.add_data(key=f'{k0}_vos_cross', data=pcxy, ref=ref)
             if doptics[k0].get('vos_phor') is not None:
+                ref = tuple(list(phref[::-1]) + [krxy])
                 phxy = np.array([ph0, ph1]).T
                 coll2.add_data(key=f'{k0}_vos_hor', data=phxy, ref=ref)
 

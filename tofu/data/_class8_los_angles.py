@@ -158,7 +158,8 @@ def _vos_from_los(
         include_center=True,
     )
 
-    lpoly = []
+    lpoly_cross = []
+    lpoly_hor = []
     npix = v0['cx'].size
     dphi = np.full((2, npix), np.nan)
     for ii in range(v0['cx'].size):
@@ -221,27 +222,39 @@ def _vos_from_los(
         convh = ConvexHull(np.array([ptsr, ptsz]).T)
         conv0 = ptsr[convh.vertices]
         conv1 = ptsz[convh.vertices]
-        lpoly.append((conv0, conv1))
+        lpoly_cross.append((conv0, conv1))
+
+        # poly_hor
+        convh = ConvexHull(np.array([ptsx, ptsy]).T)
+        conv0 = ptsx[convh.vertices]
+        conv1 = ptsy[convh.vertices]
+        lpoly_hor.append((conv0, conv1))
 
     # ------------------------
     # poly_cross harmonization
 
-    ln = [pp[0].size for pp in lpoly]
-    nmax = np.max(ln)
-    pcross0 = np.full((nmax, npix), np.nan)
-    pcross1 = np.full((nmax, npix), np.nan)
-    for ii, pp in enumerate(lpoly):
-        if ln[ii] < nmax:
-            iextra = np.linspace(0.1, 0.9, nmax-ln[ii])
-            ind = np.r_[0, iextra, np.arange(1, ln[ii])].astype(int)
+    lnc = [pp[0].size for pp in lpoly_cross]
+    lnh = [pp[0].size for pp in lpoly_hor]
+    nmaxc = np.max(lnc)
+    nmaxh = np.max(lnh)
+    pcross0 = np.full((nmaxc, npix), np.nan)
+    pcross1 = np.full((nmaxc, npix), np.nan)
+    phor0 = np.full((nmaxh, npix), np.nan)
+    phor1 = np.full((nmaxh, npix), np.nan)
+    for ii, pp in enumerate(lpoly_cross):
+
+        # cross
+        if lnc[ii] < nmaxc:
+            iextra = np.linspace(0.1, 0.9, nmaxc - lnc[ii])
+            ind = np.r_[0, iextra, np.arange(1, lnc[ii])].astype(int)
             pcross0[:, ii] = scpinterp.interp1d(
-                range(ln[ii]),
+                range(lnc[ii]),
                 pp[0],
                 kind='linear',
                 axis=0,
             )(ind)
             pcross1[:, ii] = scpinterp.interp1d(
-                range(ln[ii]),
+                range(lnc[ii]),
                 pp[1],
                 kind='linear',
                 axis=0,
@@ -249,6 +262,26 @@ def _vos_from_los(
         else:
             pcross0[:, ii] = pp[0]
             pcross1[:, ii] = pp[1]
+
+        # hor
+        if lnh[ii] < nmaxh:
+            iextra = np.linspace(0.1, 0.9, nmaxh - lnh[ii])
+            ind = np.r_[0, iextra, np.arange(1, lnh[ii])].astype(int)
+            phor0[:, ii] = scpinterp.interp1d(
+                range(lnh[ii]),
+                lpoly_hor[ii][0],
+                kind='linear',
+                axis=0,
+            )(ind)
+            phor1[:, ii] = scpinterp.interp1d(
+                range(lnh[ii]),
+                lpoly_hor[ii][1],
+                kind='linear',
+                axis=0,
+            )(ind)
+        else:
+            phor0[:, ii] = lpoly_hor[ii][0]
+            phor1[:, ii] = lpoly_hor[ii][1]
 
     # ----------
     # store
@@ -259,6 +292,8 @@ def _vos_from_los(
         key_cam=key_cam,
         pcross0=pcross0,
         pcross1=pcross1,
+        phor0=phor0,
+        phor1=phor1,
         dphi=dphi,
     )
 
@@ -269,6 +304,8 @@ def _vos_from_los_store(
     key_cam=None,
     pcross0=None,
     pcross1=None,
+    phor0=None,
+    phor1=None,
     dphi=None,
 ):
 
@@ -276,11 +313,13 @@ def _vos_from_los_store(
     # dref
 
     # keys
-    kn = f'{key_cam}_vos_pc_n'
+    knc = f'{key_cam}_vos_pc_n'
+    knh = f'{key_cam}_vos_ph_n'
 
     # dict
     dref = {
-        kn: {'size': pcross0.shape[0]}
+        knc: {'size': pcross0.shape[0]},
+        knh: {'size': phor0.shape[0]},
     }
 
     # -------------
@@ -289,32 +328,52 @@ def _vos_from_los_store(
     # keys
     kpc0 = f'{key_cam}_vos_pc0'
     kpc1 = f'{key_cam}_vos_pc1'
+    kph0 = f'{key_cam}_vos_ph0'
+    kph1 = f'{key_cam}_vos_ph1'
 
     # reshape for 2d camera
     if coll.dobj['camera'][key_cam]['dgeom']['type'] == '2d':
-        shape = coll.dobj['camera'][key_cam]['dgeom']['shape']
-        shape = tuple(np.r_[pcross0.shape[0], shape])
+        shape0 = coll.dobj['camera'][key_cam]['dgeom']['shape']
+        shape = tuple(np.r_[pcross0.shape[0], shape0])
         pcross0 = pcross0.reshape(shape)
         pcross1 = pcross1.reshape(shape)
+        shape = tuple(np.r_[phor0.shape[0], shape0])
+        phor0 = phor0.reshape(shape)
+        phor1 = phor1.reshape(shape)
 
     # ref
-    ref = tuple([kn] +list(coll.dobj['camera'][key_cam]['dgeom']['ref']))
+    refc = tuple([knc] + list(coll.dobj['camera'][key_cam]['dgeom']['ref']))
+    refh = tuple([knh] + list(coll.dobj['camera'][key_cam]['dgeom']['ref']))
 
     # dict
     ddata = {
         kpc0: {
             'data': pcross0,
-            'ref': ref,
+            'ref': refc,
             'units': 'm',
             'dim': 'length',
             'quant': 'R',
         },
         kpc1: {
             'data': pcross1,
-            'ref': ref,
+            'ref': refc,
             'units': 'm',
             'dim': 'length',
             'quant': 'Z',
+        },
+        kph0: {
+            'data': phor0,
+            'ref': refh,
+            'units': 'm',
+            'dim': 'length',
+            'quant': 'X',
+        },
+        kph1: {
+            'data': phor1,
+            'ref': refh,
+            'units': 'm',
+            'dim': 'length',
+            'quant': 'Y',
         },
     }
 
@@ -327,6 +386,7 @@ def _vos_from_los_store(
     # add pcross
     doptics = coll._dobj['diagnostic'][key]['doptics']
     doptics[key_cam]['vos_pcross'] = (kpc0, kpc1)
+    doptics[key_cam]['vos_phor'] = (kph0, kph1)
     doptics[key_cam]['vos_dphi'] = dphi
 
 
