@@ -275,7 +275,17 @@ def _plot_diagnostic(
     )
 
     # los
-    dlos_n, dref_los, dvos_n, dref_vos = _prepare_los(
+    dlos_n, dref_los = _prepare_los(
+        coll=coll,
+        coll2=coll2,
+        dcamref=dcamref,
+        key_diag=key,
+        key_cam=key_cam,
+        los_res=los_res,
+    )
+
+    # vos
+    dvos_n, dref_vos = _prepare_vos(
         coll=coll,
         coll2=coll2,
         dcamref=dcamref,
@@ -579,26 +589,18 @@ def _plot_diagnostic(
             if dax.get(kax) is not None:
                 ax = dax[kax]['handle']
 
-                for ii in range(nlos):
-                    l0, = ax.plot(
-                        nan_los,
-                        nan_los,
-                        c=color_dict['x'][ii],
-                        ls='-',
-                        lw=1.,
-                    )
-
-                    # add mobile
-                    kl0 = f'{k0}-los-hor-{ii}'
-                    coll2.add_mobile(
-                        key=kl0,
-                        handle=l0,
-                        refs=dref_los[k0],
-                        data=[f'{k0}_los_x', f'{k0}_los_y'],
-                        dtype=['xdata', 'ydata'],
-                        axes=kax,
-                        ind=ii,
-                    )
+                _add_camera_los_hor(
+                    coll2=coll2,
+                    k0=k0,
+                    ax=ax,
+                    kax=kax,
+                    nlos=nlos,
+                    dref_los=dref_los,
+                    dref_vos=dref_vos,
+                    color_dict=color_dict,
+                    nan_los=nan_los,
+                    nan_vos=nan_vos,
+                )
 
             # 3d
             kax = '3d'
@@ -867,13 +869,6 @@ def _prepare_los(
     }
     dref_los = {}
 
-    # dvos
-    dvos_n = {
-        k0: {'pc': coll.dobj['diagnostic'][key_diag]['doptics'][k0]['vos_pcross']}
-        for k0 in key_cam
-    }
-    dref_vos = {}
-
     # -------------
     # los
 
@@ -904,9 +899,32 @@ def _prepare_los(
 
             # store x, y, z
             dlos_n[k0] = los_x.shape[0]
-            # dlos[k0]['x'] = los_x
-            # dlos[k0]['y'] = los_y
-            # dlos[k0]['z'] = los_z
+
+    return dlos_n, dref_los
+
+
+def _prepare_vos(
+    coll=None,
+    coll2=None,
+    dcamref=None,
+    key_diag=None,
+    key_cam=None,
+    los_res=None,
+):
+
+    doptics = coll.dobj['diagnostic'][key_diag]['doptics']
+    if doptics[key_cam[0]].get('vos_pcross') is None:
+        return None, None
+
+    # -----------------
+    # create dlos, dvos
+
+    # dvos
+    dvos_n = {
+        k0: {'pc': doptics[k0]['vos_pcross']}
+        for k0 in key_cam
+    }
+    dref_vos = {}
 
     # ----
     # vos
@@ -922,6 +940,9 @@ def _prepare_los(
 
             pc0 = coll.ddata[dvos_n[k0]['pc'][0]]['data']
             pc1 = coll.ddata[dvos_n[k0]['pc'][1]]['data']
+            if doptics[k0].get('vos_phor') is not None:
+                ph0 = coll.ddata[dvos_n[k0]['ph'][0]]['data']
+                ph1 = coll.ddata[dvos_n[k0]['ph'][1]]['data']
             pcref = coll.ddata[dvos_n[k0]['pc'][0]]['ref']
 
             if pcref[0] not in coll2.dref.keys():
@@ -931,12 +952,15 @@ def _prepare_los(
             dref_vos[k0] = (pcref[1:],)
 
             pcxy = np.array([pc0, pc1]).T
-            coll2.add_data(key=f'{k0}_vos_xy', data=pcxy, ref=ref)
+            coll2.add_data(key=f'{k0}_vos_cross', data=pcxy, ref=ref)
+            if doptics[k0].get('vos_phor') is not None:
+                phxy = np.array([ph0, ph1]).T
+                coll2.add_data(key=f'{k0}_vos_hor', data=phxy, ref=ref)
 
             # store
             dvos_n[k0] = pc0.shape[0]
 
-    return dlos_n, dref_los, dvos_n, dref_vos
+    return dvos_n, dref_vos
 
 
 def _prepare_datarefxy(
@@ -1062,11 +1086,76 @@ def _add_camera_los_cross(
             key=kl0,
             handle=l0,
             refs=dref_vos[k0],
-            data=[f'{k0}_vos_xy'],
+            data=[f'{k0}_vos_cross'],
             dtype=['xy'],
             axes=kax,
             ind=ii,
         )
+
+
+def _add_camera_los_hor(
+    coll2=None,
+    k0=None,
+    ax=None,
+    kax=None,
+    nlos=None,
+    dref_los=None,
+    dref_vos=None,
+    color_dict=None,
+    nan_los=None,
+    nan_vos=None,
+):
+
+    for ii in range(nlos):
+
+        # ------
+        # los
+
+        l0, = ax.plot(
+            nan_los,
+            nan_los,
+            c=color_dict['x'][ii],
+            ls='-',
+            lw=1.,
+        )
+
+        # add mobile
+        kl0 = f'{k0}_los_hor{ii}'
+        coll2.add_mobile(
+            key=kl0,
+            handle=l0,
+            refs=dref_los[k0],
+            data=[f'{k0}_los_x', f'{k0}_los_y'],
+            dtype=['xdata', 'ydata'],
+            axes=kax,
+            ind=ii,
+        )
+
+        # ------
+        # vos
+
+        if f'{k0}_vos_hor' in coll2.ddata.keys():
+
+            l0, = ax.fill(
+                nan_vos,
+                nan_vos,
+                fc=color_dict['x'][ii],
+                alpha=0.5,
+                ls='None',
+                lw=0.,
+            )
+
+            # add mobile
+            kl0 = f'{k0}_vos_hor{ii}'
+            coll2.add_mobile(
+                key=kl0,
+                handle=l0,
+                refs=dref_vos[k0],
+                data=[f'{k0}_vos_hor'],
+                dtype=['xy'],
+                axes=kax,
+                ind=ii,
+            )
 
 
 def _add_camera_vlines_marker(
