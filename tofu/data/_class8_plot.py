@@ -275,7 +275,7 @@ def _plot_diagnostic(
     )
 
     # los
-    dlos, dref_los = _prepare_los(
+    dlos_n, dref_los, dvos_n, dref_vos = _prepare_los(
         coll=coll,
         coll2=coll2,
         dcamref=dcamref,
@@ -551,9 +551,10 @@ def _plot_diagnostic(
 
     for k0 in key_cam:
 
-        if dlos[k0]['rays'] is not None:
+        if dlos_n[k0] is not None:
 
-            nan = np.full((dlos[k0]['x'].shape[0],), np.nan)
+            nan_los = np.full((dlos_n[k0],), np.nan)
+            nan_vos = np.full((dvos_n[k0],), np.nan)
 
             # cross
             kax = 'cross'
@@ -569,7 +570,8 @@ def _plot_diagnostic(
                     dref_los=dref_los,
                     dref_vos=dref_vos,
                     color_dict=color_dict,
-                    nan=nan,
+                    nan_los=nan_los,
+                    nan_vos=nan_vos,
                 )
 
             # hor
@@ -579,8 +581,8 @@ def _plot_diagnostic(
 
                 for ii in range(nlos):
                     l0, = ax.plot(
-                        nan,
-                        nan,
+                        nan_los,
+                        nan_los,
                         c=color_dict['x'][ii],
                         ls='-',
                         lw=1.,
@@ -605,9 +607,9 @@ def _plot_diagnostic(
 
                 for ii in range(nlos):
                     l0, = ax.plot(
-                        nan,
-                        nan,
-                        nan,
+                        nan_los,
+                        nan_los,
+                        nan_los,
                         c=color_dict['x'][ii],
                         ls='-',
                         lw=1.,
@@ -859,14 +861,14 @@ def _prepare_los(
     # create dlos, dvos
 
     # dlos
-    dlos = {
-        k0: {'rays': coll.dobj['diagnostic'][key_diag]['doptics'][k0]['los']}
+    dlos_n = {
+        k0: coll.dobj['diagnostic'][key_diag]['doptics'][k0]['los']
         for k0 in key_cam
     }
     dref_los = {}
 
     # dvos
-    dvos = {
+    dvos_n = {
         k0: {'pc': coll.dobj['diagnostic'][key_diag]['doptics'][k0]['vos_pcross']}
         for k0 in key_cam
     }
@@ -881,15 +883,15 @@ def _prepare_los(
             coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
 
         # los
-        if dlos[k0]['rays'] is not None:
+        if dlos_n[k0] is not None:
             los_x, los_y, los_z = coll.sample_rays(
-                key=dlos[k0]['rays'],
+                key=dlos_n[k0],
                 res=los_res,
                 mode='rel',
                 concatenate=False,
             )
             los_r = np.hypot(los_x, los_y)
-            reflos = coll.dobj['rays'][dlos[k0]['rays']]['ref']
+            reflos = coll.dobj['rays'][dlos_n[k0]]['ref']
             dref_los[k0] = (reflos[1:], reflos[1:])
 
             if reflos[0] not in coll2.dref.keys():
@@ -901,44 +903,40 @@ def _prepare_los(
             coll2.add_data(key=f'{k0}_los_r', data=los_r, ref=reflos)
 
             # store x, y, z
-            dlos[k0]['x'] = los_x
-            dlos[k0]['y'] = los_y
-            dlos[k0]['z'] = los_z
+            dlos_n[k0] = los_x.shape[0]
+            # dlos[k0]['x'] = los_x
+            # dlos[k0]['y'] = los_y
+            # dlos[k0]['z'] = los_z
 
-    # -------------
-    # vos - TBF
+    # ----
+    # vos
 
     # vos on cams
     for k0, v0 in dcamref.items():
-        for rr in v0:
-            coll2.add_ref(key=rr, size=coll.dref[rr]['size'])
+
+        krxy = f'{k0}_xy2'
+        coll2.add_ref(key=krxy, size=2)
 
         # vos
-        if dvos[k0]['pc'] is not None:
-            los_x, los_y, los_z = coll.sample_rays(
-                key=dlos[k0]['rays'],
-                res=los_res,
-                mode='rel',
-                concatenate=False,
-            )
-            los_r = np.hypot(los_x, los_y)
-            reflos = coll.dobj['rays'][dlos[k0]['rays']]['ref']
-            dref_los[k0] = (reflos[1:], reflos[1:])
+        if dvos_n[k0]['pc'] is not None:
 
-            if reflos[0] not in coll2.dref.keys():
-                coll2.add_ref(key=reflos[0], size=los_x.shape[0])
+            pc0 = coll.ddata[dvos_n[k0]['pc'][0]]['data']
+            pc1 = coll.ddata[dvos_n[k0]['pc'][1]]['data']
+            pcref = coll.ddata[dvos_n[k0]['pc'][0]]['ref']
 
-            coll2.add_data(key=f'{k0}_los_x', data=los_x, ref=reflos)
-            coll2.add_data(key=f'{k0}_los_y', data=los_y, ref=reflos)
-            coll2.add_data(key=f'{k0}_los_z', data=los_z, ref=reflos)
-            coll2.add_data(key=f'{k0}_los_r', data=los_r, ref=reflos)
+            if pcref[0] not in coll2.dref.keys():
+                coll2.add_ref(key=pcref[0], size=pc0.shape[0])
 
-            # store x, y, z
-            dlos[k0]['x'] = los_x
-            dlos[k0]['y'] = los_y
-            dlos[k0]['z'] = los_z
+            ref = tuple(list(pcref[::-1]) + [krxy])
+            dref_vos[k0] = (pcref[1:],)
 
-    return dlos, dref_los, dvos, dref_vos
+            pcxy = np.array([pc0, pc1]).T
+            coll2.add_data(key=f'{k0}_vos_xy', data=pcxy, ref=ref)
+
+            # store
+            dvos_n[k0] = pc0.shape[0]
+
+    return dlos_n, dref_los, dvos_n, dref_vos
 
 
 def _prepare_datarefxy(
@@ -1015,8 +1013,10 @@ def _add_camera_los_cross(
     kax=None,
     nlos=None,
     dref_los=None,
+    dref_vos=None,
     color_dict=None,
-    nan=None,
+    nan_los=None,
+    nan_vos=None,
 ):
 
     for ii in range(nlos):
@@ -1025,8 +1025,8 @@ def _add_camera_los_cross(
         # los
 
         l0, = ax.plot(
-            nan,
-            nan,
+            nan_los,
+            nan_los,
             c=color_dict['x'][ii],
             ls='-',
             lw=1.,
@@ -1048,8 +1048,8 @@ def _add_camera_los_cross(
         # vos
 
         l0, = ax.fill(
-            [nan, nan, nan],
-            [nan, nan, nan],
+            nan_vos,
+            nan_vos,
             fc=color_dict['x'][ii],
             alpha=0.5,
             ls='None',
@@ -1062,7 +1062,7 @@ def _add_camera_los_cross(
             key=kl0,
             handle=l0,
             refs=dref_vos[k0],
-            data=[f'{k0}_vos_rz'],
+            data=[f'{k0}_vos_xy'],
             dtype=['xy'],
             axes=kax,
             ind=ii,
