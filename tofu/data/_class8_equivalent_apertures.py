@@ -684,7 +684,7 @@ def _get_equivalent_aperture_spectro(
         )
 
         if p0 is None:
-            print('\t \t None 0')
+            # print('\t \t None 0')
             return p0, p1
 
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
@@ -718,7 +718,7 @@ def _get_equivalent_aperture_spectro(
             # intersection
             p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
             if p_a.nPoints() < 3:
-                print('\t \t None 1')       # DB
+                # print('\t \t None 1')       # DB
                 return None, None
 
             # update
