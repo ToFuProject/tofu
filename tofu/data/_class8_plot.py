@@ -28,6 +28,7 @@ def _plot_diagnostic_check(
     # parameters
     vmin=None,
     vmax=None,
+    alpha=None,
     # figure
     proj=None,
     data=None,
@@ -98,6 +99,16 @@ def _plot_diagnostic_check(
         vmax = np.nanmax([np.nanmax(v0) for v0 in ddata.values()])
 
     # -----
+    # alpha
+
+    alpha = ds._generic_check._check_var(
+        alpha, 'alpha',
+        types=float,
+        default=0.2,
+        sign='> 0.',
+    )
+
+    # -----
     # proj
 
     pall = ['cross', 'hor', '3d', 'camera', 'traces']
@@ -154,6 +165,7 @@ def _plot_diagnostic_check(
         refz,
         vmin,
         vmax,
+        alpha,
         units,
         los_res,
         color_dict,
@@ -194,6 +206,7 @@ def _plot_diagnostic(
     vmin=None,
     vmax=None,
     keyZ=None,
+    alpha=None,
     # config
     plot_config=None,
     # figure
@@ -223,6 +236,7 @@ def _plot_diagnostic(
         refz,
         vmin,
         vmax,
+        alpha,
         units,
         los_res,
         color_dict,
@@ -236,6 +250,7 @@ def _plot_diagnostic(
         # parameters
         vmin=vmin,
         vmax=vmax,
+        alpha=alpha,
         # figure
         proj=proj,
         data=data,
@@ -581,6 +596,7 @@ def _plot_diagnostic(
                     color_dict=color_dict,
                     nan_los=nan_los,
                     nan_vos=nan_vos,
+                    alpha=alpha,
                 )
 
             # hor
@@ -599,6 +615,7 @@ def _plot_diagnostic(
                     color_dict=color_dict,
                     nan_los=nan_los,
                     nan_vos=nan_vos,
+                    alpha=alpha,
                 )
 
             # 3d
@@ -1042,6 +1059,7 @@ def _add_camera_los_cross(
     color_dict=None,
     nan_los=None,
     nan_vos=None,
+    alpha=None,
 ):
 
     for ii in range(nlos):
@@ -1076,7 +1094,7 @@ def _add_camera_los_cross(
             nan_vos,
             nan_vos,
             fc=color_dict['x'][ii],
-            alpha=0.5,
+            alpha=alpha,
             ls='None',
             lw=0.,
         )
@@ -1105,6 +1123,7 @@ def _add_camera_los_hor(
     color_dict=None,
     nan_los=None,
     nan_vos=None,
+    alpha=None,
 ):
 
     for ii in range(nlos):
@@ -1141,7 +1160,7 @@ def _add_camera_los_hor(
                 nan_vos,
                 nan_vos,
                 fc=color_dict['x'][ii],
-                alpha=0.5,
+                alpha=alpha,
                 ls='None',
                 lw=0.,
             )

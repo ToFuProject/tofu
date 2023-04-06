@@ -685,6 +685,7 @@ class Diagnostic(Previous):
         cmap=None,
         vmin=None,
         vmax=None,
+        alpha=None,
         # config
         plot_config=None,
         # figure
@@ -713,6 +714,7 @@ class Diagnostic(Previous):
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,
+            alpha=alpha,
             # config
             plot_config=plot_config,
             # figure
