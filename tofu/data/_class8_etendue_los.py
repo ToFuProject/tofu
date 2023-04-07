@@ -356,6 +356,10 @@ def _check(
             cy = cy.ravel()
             cz = cz.ravel()
 
+        if not par:
+            msg = "Maybe dvect needs to be flattened?"
+            raise Exception(msg)
+
         nd = cx.size
 
         dcompute[k0]['ldet'] = [
