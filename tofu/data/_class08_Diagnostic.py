@@ -18,6 +18,7 @@ from . import _class8_move as _move
 from . import _class8_los_data as _los_data
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_etendue_los as _etendue_los
+from . import _class8_vos as _vos
 from . import _class8_los_angles as _los_angles
 from . import _class8_compute_signal as _compute_signal
 from . import _class8_plot as _plot
@@ -261,6 +262,7 @@ class Diagnostic(Previous):
     def compute_diagnostic_vos(
         self,
         key=None,
+        key_mesh=None,
         # parameters
         res=None,
         check=None,
@@ -290,42 +292,23 @@ class Diagnostic(Previous):
 
         """
 
-        dcompute, store = _etendue_los.compute_vos(
+        dcompute, store = _vos.compute_vos(
             coll=self,
-            key=key,
+            key_diag=key,
+            key_mesh=key_mesh,
             # etendue
             res=res,
             check=check,
             margin_par=margin_par,
             margin_perp=margin_perp,
+            config=config,
             # spectro-only
             rocking_curve_fw=rocking_curve_fw,
-            # equivalent aperture
-            add_points=add_points,
-            convex=convex,
             # bool
             verb=verb,
             plot=plot,
             store=store,
         )
-
-        # compute los angles
-        c0 = (
-            any([np.any(np.isfinite(v0['los_x'])) for v0 in dcompute.values()])
-            and store
-            )
-        if c0:
-            _los_angles.compute_los_angles(
-                coll=self,
-                key=key,
-                # los
-                config=config,
-                length=length,
-                reflections_nb=reflections_nb,
-                reflections_type=reflections_type,
-                key_nseg=key_nseg,
-                dcompute=dcompute,
-            )
 
     # ---------------
     # utilities
@@ -452,6 +435,16 @@ class Diagnostic(Previous):
             ravel=ravel,
             total=total,
             return_outline=return_outline,
+        )
+
+    def get_optics_as_input_solid_angle(
+        self,
+        keys=None,
+    ):
+        """ Return the optics outline """
+        return _compute.get_optics_as_input_solid_angle(
+            coll=self,
+            keys=keys,
         )
 
     def set_optics_color(self, key=None, color=None):
