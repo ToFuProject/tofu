@@ -7,6 +7,7 @@ import datastock as ds
 import bsplines2d as bs2
 from contourpy import contour_generator
 from scipy.spatial import ConvexHull
+import scipy.interpolate as scpinterp
 
 
 import Polygon as plg
@@ -129,7 +130,7 @@ def compute_vos(
     # prepare optics
 
     dvos = {}
-    for key_cam, v0 in dcompute.items():
+    for key_cam in dcompute.keys():
 
         # ---------------
         # prepare polygon
@@ -140,8 +141,9 @@ def compute_vos(
         pcross0 = coll.ddata[kpc0]['data'].reshape((shape[0], -1))
         pcross1 = coll.ddata[kpc1]['data'].reshape((shape[0], -1))
         kph0, kph1 = doptics[key_cam]['vos_phor']
-        phor0 = coll.ddata[kpc0]['data'].reshape((shape[0], -1))
-        phor1 = coll.ddata[kpc1]['data'].reshape((shape[0], -1))
+        shapeh = coll.ddata[kph0]['data'].shape
+        phor0 = coll.ddata[kph0]['data'].reshape((shapeh[0], -1))
+        phor1 = coll.ddata[kph1]['data'].reshape((shapeh[0], -1))
 
         dphi = doptics[key_cam]['vos_dphi']
 
@@ -176,11 +178,6 @@ def compute_vos(
         lpcross = []
         for ii in range(pcross0.shape[1]):
 
-            if verb is True:
-                msg = f"\tcam '{key_cam}' pixel {ii+1} / {pcross0.shape[1]}"
-                end = '\n' if ii == pcross0.shape[1] - 1 else '\r'
-                print(msg, end=end, flush=True)
-
             # -----------------
             # get volume limits
 
@@ -204,6 +201,15 @@ def compute_vos(
 
             # re-initialize
             bool_cross[...] = False
+
+            # verb
+            if verb is True:
+                msg = (
+                    f"\tcam '{key_cam}' pixel {ii+1} / {pcross0.shape[1]}\t"
+                    f"npts in cross_section = {ind.sum()}"
+                )
+                end = '\n' #if ii == pcross0.shape[1] - 1 else '\r'
+                print(msg, end=end, flush=True)
 
             # ---------------------
             # loop on volume points
@@ -268,42 +274,60 @@ def compute_vos(
 
             lpcross.append((pc0, pc1))
 
-    # ----------------
-    # harmonize pcross
+        # ----------------
+        # harmonize pcross
 
-    ln = [pp[0].size if pp[0] is not None else 0 for pp in pc0]
-    nmax = np.max(ln)
-    pcross0 = np.full((nmax, ), np.nan)
-    pcross1 = np.full((nmax, ), np.nan)
-    for ii, nn in enumerate(ln):
+        ln = [pp[0].size if pp[0] is not None else 0 for pp in lpcross]
+        nmax = np.max(ln)
+        sh2 = (nmax, pcross0.shape[1])
+        pcross0 = np.full(sh2, np.nan)
+        pcross1 = np.full(sh2, np.nan)
+        for ii, nn in enumerate(ln):
 
-        if nn == 0:
-            continue
+            if nn == 0:
+                continue
 
-        pcross0[:, ii] = scpinterp.interp1d(
-            range(0, nn),
-            lpcross[ii][0],
-            kind='linear',
-        )(ind)
+            if nmax > nn:
+                ind = np.r_[0, np.linspace(0.1, 0.9, nmax-nn), np.arange(1, nn)]
+                pcross0[:, ii] = scpinterp.interp1d(
+                    range(0, nn),
+                    lpcross[ii][0],
+                    kind='linear',
+                )(ind)
 
-        pcross1[:, ii] = scpinterp.interp1d(
-            range(0, nn),
-            lpcross[ii][1],
-            kind='linear',
-        )(ind)
+                pcross1[:, ii] = scpinterp.interp1d(
+                    range(0, nn),
+                    lpcross[ii][1],
+                    kind='linear',
+                )(ind)
+            else:
+                pcross0[:, ii] = lpcross[ii][0]
+                pcross1[:, ii] = lpcross[ii][1]
+
+        # -------------
+        # reshape
+
+        if is2d:
+            newsh = tuple(np.r_[nmax, shape])
+            pcross0 = pcross0.reshape(newsh)
+            pcross1 = pcross1.reshape(newsh)
+
+        dvos[key_cam] = {
+            'pcross0': pcross0,
+            'pcross1': pcross1,
+        }
 
     # -------------
     # replace
 
     if store is True:
 
-        import pdb; pdb.set_trace() # DB
-        kr = None
-        coll.remove_ref()
-        coll.add_ref()
+        _store(
+            coll=coll,
+            key_diag=key_diag,
+            dvos=dvos,
+        )
 
-        coll.add_data()
-        coll.add_data()
 
     return dvos
 
@@ -684,7 +708,17 @@ def _vos_broadband(
         yy = yy[ihor]
         zz = np.full((ihor.sum(),), np.nan)
 
+        # if True:    # DB
+            # msg = (
+                # f"nr = {iru.size}, nz = {(ir == i0).sum()}, nphi = {nphi}"
+                # f"  ind.sum() = {ind.sum()},  "
+                # f"path_hor = {path_hor.vertices.shape[0]} pts, "
+                # f"pts in poly_hor = {ihor.sum()}"
+            # )
+            # print(f"\t\t\t{msg}")
+
         for i1 in iz[ir == i0]:
+
 
             zz[:] = x1[i1]
 
@@ -763,6 +797,8 @@ def _simplify_polygon(c0, c1, res=None):
     # -----------
     # convex hull
 
+    npts = c0.size
+
     # get hull
     convh = ConvexHull(np.array([c0, c1]).T)
     indh = convh.vertices
@@ -770,31 +806,85 @@ def _simplify_polygon(c0, c1, res=None):
     ch1 = c1[indh]
     nh = indh.size
 
+    sign = np.median(np.diff(indh))
+
+    # segments norms
+    seg0 = np.r_[ch0[1:] - ch0[:-1], ch0[0] - ch0[-1]]
+    seg1 = np.r_[ch1[1:] - ch1[:-1], ch1[0] - ch1[-1]]
+    norms = np.sqrt(seg0**2 + seg1**2)
+
     # keep egdes that match res
-    lp = []
+    lind = []
     for ii, ih in enumerate(indh):
 
         # ind of points in between
         i1 = indh[(ii + 1) % nh]
-        if i1 > ih:
-            ind = np.arange(ih + 1, i1)
+        if sign > 0:
+            if i1 > ih:
+                ind = np.arange(ih, i1 + 1)
+            else:
+                ind = np.r_[np.arange(ih, npts), np.arange(0, i1 + 1)]
         else:
-            import pdb; pdb.set_trace()     # DB
-            ind = np.arange(ih)
+            if i1 < ih:
+                ind = np.arange(ih, i1 - 1, -1)
+            else:
+                ind = np.r_[np.arange(ih, -1, -1), np.arange(npts - 1, i1 - 1, -1)]
+
+        # trivial
+        if ind.size == 2:
+            lind.append((ih, i1))
+            continue
 
         # get distances
         x0 = c0[ind]
         x1 = c1[ind]
-        dist =
 
-        if np.all(dist < 0.8*res):
+        # segment unit vect
+        vect0 = x0 - ch0[ii]
+        vect1 = x1 - ch1[ii]
+
+        # perpendicular distance
+        dist = np.abs(vect0*seg1[ii] - vect1*seg0[ii]) / norms[ii]
+
+        # criterion
+        if np.all(dist < res):
             lind.append((ih, i1))
         else:
             lind.append(ind)
 
-    import pdb; pdb.set_trace()     # DB
-
     # ------------------------------------
     # point by point on remaining segments
 
+    iok = np.unique(np.concatenate(tuple(lind)))
+
     return c0[iok], c1[iok]
+
+
+# ###########################################################
+# ###########################################################
+#               store
+# ###########################################################
+
+
+def _store(
+    coll=None,
+    key_diag=None,
+    dvos=None,
+):
+
+    doptics = coll._dobj['diagnostic'][key_diag]['doptics']
+
+    for k0, v0 in dvos.items():
+
+        # re-use previous keys
+        kpc0, kpc1 = doptics[k0]['vos_pcross']
+        kr = coll.ddata[kpc0]['ref'][0]
+
+        # safety check
+        if coll.ddata[kpc0]['data'].shape[1:] != v0['pcross0'].shape[1:]:
+            msg = "Something is wrong"
+            raise Exception(msg)
+
+        coll._dref[kr]['size'] = v0['pcross0'].shape[0]
+        coll._ddata[kpc0]['data'] = v0['pcross0']
+        coll._ddata[kpc1]['data'] = v0['pcross1']
