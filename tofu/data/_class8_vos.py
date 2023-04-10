@@ -300,6 +300,7 @@ def compute_vos(
                     lpcross[ii][1],
                     kind='linear',
                 )(ind)
+
             else:
                 pcross0[:, ii] = lpcross[ii][0]
                 pcross1[:, ii] = lpcross[ii][1]
@@ -327,7 +328,6 @@ def compute_vos(
             key_diag=key_diag,
             dvos=dvos,
         )
-
 
     return dvos
 
@@ -844,13 +844,19 @@ def _simplify_polygon(c0, c1, res=None):
         vect1 = x1 - ch1[ii]
 
         # perpendicular distance
-        dist = np.abs(vect0*seg1[ii] - vect1*seg0[ii]) / norms[ii]
+        cross = (vect0*seg1[ii] - vect1*seg0[ii]) / norms[ii]
 
         # criterion
-        if np.all(dist < res):
+        if np.all(np.abs(cross) <= 0.8*res):
             lind.append((ih, i1))
         else:
-            lind.append(ind)
+            lind += _simplify_concave(
+                x0=x0,
+                x1=x1,
+                ind=ind,
+                cross=cross,
+                res=res,
+            )
 
     # ------------------------------------
     # point by point on remaining segments
@@ -858,6 +864,78 @@ def _simplify_polygon(c0, c1, res=None):
     iok = np.unique(np.concatenate(tuple(lind)))
 
     return c0[iok], c1[iok]
+
+
+def _simplify_concave(
+    x0=None,
+    x1=None,
+    ind=None,
+    cross=None,
+    res=None,
+):
+
+    # ------------
+    # safety check
+
+    sign = np.sign(cross)
+    sign0 = np.mean(sign)
+    assert np.all(cross * sign0 >= -1e-12)
+
+    # ------------
+    # loop
+
+    i0 = 0
+    i1 = 1
+    iok = 1
+    lind_loc, lind = [], []
+    while iok <= ind.size - 1:
+
+        # reference normalized vector
+        vref0, vref1 = x0[i1] - x0[i0], x1[i1] - x1[i0]
+        normref = np.sqrt(vref0**2 + vref1**2)
+        vref0, vref1 = vref0 / normref, vref1 / normref
+
+        # intermediate vectors
+        indi = np.arange(i0 + 1, i1)
+        v0 = x0[indi] - x0[i0]
+        v1 = x1[indi] - x1[i0]
+
+        # sign and distance (from cross product)
+        cross = v0 * vref1 - v1 * vref0
+        dist = np.abs(cross)
+
+        # conditions
+        c0 = np.all(dist <= 0.8*res)
+        c1 = np.all(cross * sign0 >= -1e-12)
+        c2 = i1 == ind.size - 1
+
+        append = False
+        # cases
+        if c0 and c1 and (not c2):
+            iok = int(i1)
+            i1 += 1
+        elif c0 and c1 and c2:
+            iok = int(i1)
+            append = True
+        elif c0 and (not c1) and (not c2):
+            i1 += 1
+        elif c0 and (not c1) and c2:
+            append = True
+        elif not c0:
+            append = True
+
+        # append
+        if append is True:
+            lind_loc.append((i0, iok))
+            lind.append((ind[i0], ind[iok]))
+            i0 = iok
+            i1 = i0 + 1
+            iok = int(i1)
+
+        if i1 > ind.size - 1:
+            break
+
+    return lind
 
 
 # ###########################################################

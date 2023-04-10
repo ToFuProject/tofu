@@ -292,7 +292,7 @@ class Diagnostic(Previous):
 
         """
 
-        dcompute, store = _vos.compute_vos(
+        dvos = _vos.compute_vos(
             coll=self,
             key_diag=key,
             key_mesh=key_mesh,
