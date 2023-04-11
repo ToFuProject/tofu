@@ -208,6 +208,7 @@ class Diagnostic(Previous):
         reflections_type=None,
         key_nseg=None,
         # bool
+        compute_vos_from_los=None,
         verb=None,
         plot=None,
         store=None,
@@ -257,6 +258,7 @@ class Diagnostic(Previous):
                 reflections_type=reflections_type,
                 key_nseg=key_nseg,
                 dcompute=dcompute,
+                compute_vos_from_los=compute_vos_from_los,
             )
 
     def compute_diagnostic_vos(

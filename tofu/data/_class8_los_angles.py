@@ -34,6 +34,7 @@ def compute_los_angles(
     key_nseg=None,
     # for vos based on los
     res=None,
+    compute_vos_from_los=None,
     **kwdargs,
 ):
 
@@ -48,6 +49,13 @@ def compute_los_angles(
         allowed=lok,
     )
     is2d = coll.dobj['diagnostic'][key]['is2d']
+
+    # compute_vos_from_los
+    compute_vos_from_los = ds._generic_check._check_var(
+        compute_vos_from_los, 'compute_vos_from_los',
+        types=bool,
+        default=True,
+    )
 
     # ---------------
     # loop on cameras
@@ -92,14 +100,15 @@ def compute_los_angles(
         # ---------------------
         # rough estimate of vos
 
-        _vos_from_los(
-            coll=coll,
-            key=key,
-            key_cam=key_cam,
-            v0=v0,
-            config=config,
-            res=res,
-        )
+        if compute_vos_from_los is True:
+            _vos_from_los(
+                coll=coll,
+                key=key,
+                key_cam=key_cam,
+                v0=v0,
+                config=config,
+                res=res,
+            )
 
         # ----------------------------------------
         # for spectro => estimate angle variations
