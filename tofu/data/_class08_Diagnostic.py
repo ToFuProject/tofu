@@ -270,6 +270,8 @@ class Diagnostic(Previous):
         check=None,
         margin_par=None,
         margin_perp=None,
+        # raytracing
+        visibility=None,
         # spectro-only
         rocking_curve_fw=None,
         # equivalent aperture
@@ -285,6 +287,7 @@ class Diagnostic(Previous):
         verb=None,
         plot=None,
         store=None,
+        timing=None,
     ):
         """ Compute the etendue of the diagnostic (per pixel)
 
@@ -304,12 +307,14 @@ class Diagnostic(Previous):
             margin_par=margin_par,
             margin_perp=margin_perp,
             config=config,
+            visibility=visibility,
             # spectro-only
             rocking_curve_fw=rocking_curve_fw,
             # bool
             verb=verb,
             plot=plot,
             store=store,
+            timing=timing,
         )
 
     # ---------------

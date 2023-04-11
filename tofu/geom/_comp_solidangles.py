@@ -882,6 +882,8 @@ def _calc_solidangle_apertures_check(
     # output formatting
     return_flat_pts=None,
     return_flat_det=None,
+    # options
+    timing=None,
 ):
 
     # ---------------
@@ -943,6 +945,15 @@ def _calc_solidangle_apertures_check(
     )
 
     # -------------
+    # timing
+
+    timing = ds._generic_check._check_var(
+        timing, 'timing',
+        types=bool,
+        default=False,
+    )
+
+    # -------------
     # compatibility
 
     if summed is True:
@@ -980,7 +991,8 @@ def _calc_solidangle_apertures_check(
     return (
         pts_x, pts_y, pts_z, mask,
         apertures, detectors,
-        summed, visibility, return_vector,
+        summed, visibility,
+        return_vector, timing,
     )
 
 
@@ -1172,6 +1184,7 @@ def calc_solidangle_apertures(
     return_vector=None,
     return_flat_pts=None,
     return_flat_det=None,
+    timing=None,
 ):
     """ Return the solid angle subtended by na apertures and nd detectors
 
@@ -1229,7 +1242,8 @@ def calc_solidangle_apertures(
     # --------------------------------------
     # check inputs (robust vs user mistakes)
 
-    t0 = dtm.datetime.now()     # DB
+    if timing:
+        t0 = dtm.datetime.now()     # DB
 
     (
         # observation points
@@ -1244,6 +1258,7 @@ def calc_solidangle_apertures(
         summed,
         visibility,
         return_vector,
+        timing,
     ) = _calc_solidangle_apertures_check(
         # observation points
         pts_x=pts_x,
@@ -1261,6 +1276,8 @@ def calc_solidangle_apertures(
         # output formatting
         return_flat_pts=return_flat_pts,
         return_flat_det=return_flat_det,
+        # options
+        timing=timing,
     )
 
     # ----------------
@@ -1296,8 +1313,9 @@ def calc_solidangle_apertures(
             and k0 not in ['ves_type', 'test', 'forbid', 'k']
         }
 
-    t1 = dtm.datetime.now()     # DB
-    dt1 = (t1 - t0).total_seconds()
+    if timing:
+        t1 = dtm.datetime.now()     # DB
+        dt1 = (t1 - t0).total_seconds()
 
     # ------------------------------------------------
     # compute (call appropriate version for each case)
@@ -1459,8 +1477,9 @@ def calc_solidangle_apertures(
             return_sa_array=(not summed),
         )
 
-    t2 = dtm.datetime.now()     # DB
-    dt2 = (t2 - t1).total_seconds()
+    if timing:
+        t2 = dtm.datetime.now()     # DB
+        dt2 = (t2 - t1).total_seconds()
 
     # -------------
     # format output
@@ -1498,13 +1517,24 @@ def calc_solidangle_apertures(
             if return_vector:
                 unit_vector_x, unit_vector_y, unit_vector_z = ux, uy, uz
 
-    t3 = dtm.datetime.now()     # DB
-    dt3 = (t3 - t2).total_seconds()
+    if timing:
+        t3 = dtm.datetime.now()     # DB
+        dt3 = (t3 - t2).total_seconds()
 
     # ------
     # return
 
     if return_vector:
-        return solid_angle, unit_vector_x, unit_vector_y, unit_vector_z
+        if timing:
+            return (
+                solid_angle, unit_vector_x, unit_vector_y, unit_vector_z,
+                dt1, dt2, dt3,
+            )
+        else:
+            return solid_angle, unit_vector_x, unit_vector_y, unit_vector_z
+
     else:
-        return solid_angle, dt1, dt2, dt3       # DB
+        if timing:
+            return solid_angle, dt1, dt2, dt3
+        else:
+            return solid_angle
