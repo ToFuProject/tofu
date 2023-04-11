@@ -10,6 +10,9 @@ from scipy.spatial import ConvexHull
 import scipy.interpolate as scpinterp
 
 
+import datetime as dtm      # DB
+
+
 import Polygon as plg
 
 
@@ -44,6 +47,8 @@ def compute_vos(
     plot=None,
     store=None,
 ):
+
+    t0 = dtm.datetime.now()     # DB
 
     # ------------
     # check inputs
@@ -126,6 +131,18 @@ def compute_vos(
 
     doptics = coll._dobj['diagnostic'][key_diag]['doptics']
 
+    t1 = dtm.datetime.now()     # DB
+    dt1 = (t1 - t0).total_seconds()
+    dt11 = 0
+    dt22 = 0
+    dt111 = 0
+    dt222 = 0
+    dt333 = 0
+    dt1111 = 0
+    dt2222 = 0
+    dt3333 = 0
+    dt4444 = 0
+
     # --------------
     # prepare optics
 
@@ -134,6 +151,8 @@ def compute_vos(
 
         # ---------------
         # prepare polygon
+
+        t00 = dtm.datetime.now()     # DB
 
         # get temporary vos
         kpc0, kpc1 = doptics[key_cam]['vos_pcross']
@@ -172,6 +191,9 @@ def compute_vos(
                 keys=doptics[key_cam]['optics'],
             )
 
+        t11 = dtm.datetime.now()     # DB
+        dt11 += (t11-t00).total_seconds()
+
         # -----------
         # loop on pix
 
@@ -180,6 +202,8 @@ def compute_vos(
 
             # -----------------
             # get volume limits
+
+            t000 = dtm.datetime.now()     # DB
 
             if np.isnan(pcross0[0, ii]):
                 continue
@@ -237,8 +261,11 @@ def compute_vos(
                     ii=ii,
                 )
 
+                t111 = dtm.datetime.now()     # DB
+                dt111 += (t111-t000).total_seconds()
+
                 # compute
-                _vos_broadband(
+                dt1111, dt2222, dt3333, dt4444 = _vos_broadband(
                     x0=x0u,
                     x1=x1u,
                     ind=ind,
@@ -254,7 +281,16 @@ def compute_vos(
                     ii=ii,
                     bool_cross=bool_cross,
                     path_hor=path_hor,
+                    # timing
+                    dt1111=dt1111,
+                    dt2222=dt2222,
+                    dt3333=dt3333,
+                    dt4444=dt4444,
+                    version=1,
                 )
+
+                t222 = dtm.datetime.now()     # DB
+                dt222 += (t222-t111).total_seconds()
 
             # -----------------------
             # get pcross and simplify
@@ -274,8 +310,13 @@ def compute_vos(
 
             lpcross.append((pc0, pc1))
 
+            t333 = dtm.datetime.now()     # DB
+            dt333 += (t333-t222).total_seconds()
+
         # ----------------
         # harmonize pcross
+
+        t22 = dtm.datetime.now()     # DB
 
         ln = [pp[0].size if pp[0] is not None else 0 for pp in lpcross]
         nmax = np.max(ln)
@@ -317,6 +358,24 @@ def compute_vos(
             'pcross0': pcross0,
             'pcross1': pcross1,
         }
+
+        t33 = dtm.datetime.now()
+        dt22 += (t33 - t22).total_seconds()
+
+    # timing
+    t2 = dtm.datetime.now()     # DB
+    print()
+    print(f'Prepare: {dt1} s')
+    print(f'\tdt11 (pepare cam): {dt11} s')
+    print(f'\t\tdt111 (prepare pix): {dt111} s')
+    print(f"\t\t\tdt1111 (prepare): {dt1111} s")
+    print(f"\t\t\tdt2222 (compute): {dt2222} s")
+    print(f"\t\t\tdt3333 (format):  {dt3333} s")
+    print(f"\t\t\tdt4444 (ind_bool):  {dt4444} s")
+    print(f'\t\tdt222 (compute): {dt222} s')
+    print(f'\t\tdt333 (get poly): {dt333} s')
+    print(f'\tdt22 (interp poly): {dt22} s')
+    print(f'loop total: {(t2-t1).total_seconds()} s')
 
     # -------------
     # replace
@@ -684,67 +743,135 @@ def _vos_broadband(
     ii=None,
     bool_cross=None,
     path_hor=None,
+    # timing
+    dt1111=None,
+    dt2222=None,
+    dt3333=None,
+    dt4444=None,
+    version=0,
 ):
 
-    # -----------------
-    # loop on (r, z) points
+    if version == 0:
 
-    ir, iz = ind.nonzero()
-    iru = np.unique(ir)
+        # -----------------
+        # loop on (r, z) points
 
-    for i0 in iru:
+        ir, iz = ind.nonzero()
+        iru = np.unique(ir)
 
-        nphi = int(np.ceil(x0[i0]*(dphi[1] - dphi[0]) / res))
-        phi = np.linspace(dphi[0], dphi[1], nphi)
-        xx = x0[i0] * np.cos(phi)
-        yy = x0[i0] * np.sin(phi)
+        for i0 in iru:
 
-        # only if in phor
-        ihor = path_hor.contains_points(np.array([xx, yy]).T)
-        if not np.any(ihor):
-            continue
+            nphi = int(np.ceil(x0[i0]*(dphi[1] - dphi[0]) / res))
+            phi = np.linspace(dphi[0], dphi[1], nphi)
+            xx = x0[i0] * np.cos(phi)
+            yy = x0[i0] * np.sin(phi)
 
-        xx = xx[ihor]
-        yy = yy[ihor]
-        zz = np.full((ihor.sum(),), np.nan)
+            # only if in phor
+            ihor = path_hor.contains_points(np.array([xx, yy]).T)
+            if not np.any(ihor):
+                continue
 
-        # if True:    # DB
-            # msg = (
-                # f"nr = {iru.size}, nz = {(ir == i0).sum()}, nphi = {nphi}"
-                # f"  ind.sum() = {ind.sum()},  "
-                # f"path_hor = {path_hor.vertices.shape[0]} pts, "
-                # f"pts in poly_hor = {ihor.sum()}"
-            # )
-            # print(f"\t\t\t{msg}")
+            xx = xx[ihor]
+            yy = yy[ihor]
+            zz = np.full((ihor.sum(),), np.nan)
 
-        for i1 in iz[ir == i0]:
+            # if True:    # DB
+                # msg = (
+                    # f"nr = {iru.size}, nz = {(ir == i0).sum()}, nphi = {nphi}"
+                    # f"  ind.sum() = {ind.sum()},  "
+                    # f"path_hor = {path_hor.vertices.shape[0]} pts, "
+                    # f"pts in poly_hor = {ihor.sum()}"
+                # )
+                # print(f"\t\t\t{msg}")
+
+            for i1 in iz[ir == i0]:
 
 
-            zz[:] = x1[i1]
+                zz[:] = x1[i1]
 
-            out = _comp_solidangles.calc_solidangle_apertures(
-                # observation points
-                pts_x=xx,
-                pts_y=yy,
-                pts_z=zz,
-                # polygons
-                apertures=lap,
-                detectors=deti,
-                # possible obstacles
-                config=config,
-                # parameters
-                summed=False,
-                visibility=True,
-                return_vector=False,
-                return_flat_pts=None,
-                return_flat_det=None,
-            )
+                out, dt1, dt2, dt3 = _comp_solidangles.calc_solidangle_apertures(
+                    # observation points
+                    pts_x=xx,
+                    pts_y=yy,
+                    pts_z=zz,
+                    # polygons
+                    apertures=lap,
+                    detectors=deti,
+                    # possible obstacles
+                    config=config,
+                    # parameters
+                    summed=False,
+                    visibility=True,
+                    return_vector=False,
+                    return_flat_pts=None,
+                    return_flat_det=None,
+                )
 
-            # dvos[key_cam]['sang_int'][ii] = out
-            # dvos[key_cam]['ind'][ii] = sli(ir, iz, ii)
-            bool_cross[i0 + 1, i1 + 1] = np.any(out > 0.)
+                # dvos[key_cam]['sang_int'][ii] = out
+                # dvos[key_cam]['ind'][ii] = sli(ir, iz, ii)
+                t0 = dtm.datetime.now() # DB
+                bool_cross[i0 + 1, i1 + 1] = np.any(out > 0.)
+                dt4444 += (dtm.datetime.now() - t0).total_seconds()
 
-    return
+                # timing
+                dt1111 += dt1
+                dt2222 += dt2
+                dt3333 += dt3
+
+    else:
+
+        # --------------------------
+        # prepare points and indices
+
+        ir, iz = ind.nonzero()
+        iru = np.unique(ir)
+        izru = [iz[ir == i0] for i0 in iru]
+
+        nphi = np.ceil(x0[ir]*(dphi[1] - dphi[0]) / res).astype(int)
+
+        irf = np.repeat(ir, nphi)
+        izf = np.repeat(iz, nphi)
+        phi = np.concatenate(tuple([
+            np.linspace(dphi[0], dphi[1], nn) for nn in nphi
+        ]))
+
+        xx = x0[irf] * np.cos(phi)
+        yy = x0[irf] * np.sin(phi)
+        zz = x1[izf]
+
+        out, dt1, dt2, dt3 = _comp_solidangles.calc_solidangle_apertures(
+            # observation points
+            pts_x=xx,
+            pts_y=yy,
+            pts_z=zz,
+            # polygons
+            apertures=lap,
+            detectors=deti,
+            # possible obstacles
+            config=config,
+            # parameters
+            summed=False,
+            visibility=True,
+            return_vector=False,
+            return_flat_pts=None,
+            return_flat_det=None,
+        )
+
+        # get indices
+        t0 = dtm.datetime.now() # DB
+        for ii, i0 in enumerate(iru):
+            ind0 = irf == i0
+            for i1 in izru[ii]:
+                ind = ind0 & (izf == i1)
+                bool_cross[i0 + 1, i1 + 1] = np.any(out[0, ind] > 0.)
+        dt4444 += (dtm.datetime.now() - t0).total_seconds()
+
+        # timing
+        dt1111 += dt1
+        dt2222 += dt2
+        dt3333 += dt3
+
+    return dt1111, dt2222, dt3333, dt4444
 
 # ###########################################################
 # ###########################################################

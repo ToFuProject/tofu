@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 import datastock as ds
 
 
+import datetime as dtm
+
+
 # local
 from . import _GG
 
@@ -1226,6 +1229,8 @@ def calc_solidangle_apertures(
     # --------------------------------------
     # check inputs (robust vs user mistakes)
 
+    t0 = dtm.datetime.now()     # DB
+
     (
         # observation points
         pts_x,
@@ -1290,6 +1295,9 @@ def calc_solidangle_apertures(
             if 'eps' not in k0
             and k0 not in ['ves_type', 'test', 'forbid', 'k']
         }
+
+    t1 = dtm.datetime.now()     # DB
+    dt1 = (t1 - t0).total_seconds()
 
     # ------------------------------------------------
     # compute (call appropriate version for each case)
@@ -1451,6 +1459,9 @@ def calc_solidangle_apertures(
             return_sa_array=(not summed),
         )
 
+    t2 = dtm.datetime.now()     # DB
+    dt2 = (t2 - t1).total_seconds()
+
     # -------------
     # format output
 
@@ -1487,10 +1498,13 @@ def calc_solidangle_apertures(
             if return_vector:
                 unit_vector_x, unit_vector_y, unit_vector_z = ux, uy, uz
 
+    t3 = dtm.datetime.now()     # DB
+    dt3 = (t3 - t2).total_seconds()
+
     # ------
     # return
 
     if return_vector:
         return solid_angle, unit_vector_x, unit_vector_y, unit_vector_z
     else:
-        return solid_angle
+        return solid_angle, dt1, dt2, dt3       # DB
