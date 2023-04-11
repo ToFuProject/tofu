@@ -560,6 +560,8 @@ def _loop_on_pix(
             # parameters
             visibility=False,
             return_vector=False,
+            # timing
+            timing=False,
         )[0, 0]
 
     # -----------

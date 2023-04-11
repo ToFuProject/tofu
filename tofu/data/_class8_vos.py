@@ -10,6 +10,9 @@ from scipy.spatial import ConvexHull
 import scipy.interpolate as scpinterp
 
 
+import datetime as dtm      # DB
+
+
 import Polygon as plg
 
 
@@ -38,12 +41,17 @@ def compute_vos(
     rocking_curve_fw=None,
     rocking_curve_max=None,
     # bool
+    visibility=None,
     convex=None,
     check=None,
     verb=None,
     plot=None,
     store=None,
+    timing=None,
 ):
+
+    if timing:
+        t0 = dtm.datetime.now()     # DB
 
     # ------------
     # check inputs
@@ -58,9 +66,11 @@ def compute_vos(
         res,
         margin_par,
         margin_perp,
+        visibility,
         verb,
         plot,
         store,
+        timing,
     ) = _check(
         coll=coll,
         key_diag=key_diag,
@@ -68,9 +78,11 @@ def compute_vos(
         res=res,
         margin_par=margin_par,
         margin_perp=margin_perp,
+        visibility=visibility,
         verb=verb,
         plot=plot,
         store=store,
+        timing=timing,
     )
 
     if verb is True:
@@ -126,6 +138,14 @@ def compute_vos(
 
     doptics = coll._dobj['diagnostic'][key_diag]['doptics']
 
+    # timing
+    if timing:
+        t1 = dtm.datetime.now()     # DB
+        dt1 = (t1 - t0).total_seconds()
+        dt11, dt22 = 0, 0
+        dt111, dt222, dt333 = 0, 0, 0
+    dt1111, dt2222, dt3333, dt4444 = 0, 0, 0, 0
+
     # --------------
     # prepare optics
 
@@ -134,6 +154,9 @@ def compute_vos(
 
         # ---------------
         # prepare polygon
+
+        if timing:
+            t00 = dtm.datetime.now()     # DB
 
         # get temporary vos
         kpc0, kpc1 = doptics[key_cam]['vos_pcross']
@@ -172,6 +195,10 @@ def compute_vos(
                 keys=doptics[key_cam]['optics'],
             )
 
+        if timing:
+            t11 = dtm.datetime.now()     # DB
+            dt11 += (t11-t00).total_seconds()
+
         # -----------
         # loop on pix
 
@@ -180,6 +207,9 @@ def compute_vos(
 
             # -----------------
             # get volume limits
+
+            if timing:
+                t000 = dtm.datetime.now()     # DB
 
             if np.isnan(pcross0[0, ii]):
                 continue
@@ -206,9 +236,9 @@ def compute_vos(
             if verb is True:
                 msg = (
                     f"\tcam '{key_cam}' pixel {ii+1} / {pcross0.shape[1]}\t"
-                    f"npts in cross_section = {ind.sum()}"
+                    f"npts in cross_section = {ind.sum()}   "
                 )
-                end = '\n' #if ii == pcross0.shape[1] - 1 else '\r'
+                end = '\n 'if ii == pcross0.shape[1] - 1 else '\r'
                 print(msg, end=end, flush=True)
 
             # ---------------------
@@ -237,8 +267,12 @@ def compute_vos(
                     ii=ii,
                 )
 
+                if timing:
+                    t111 = dtm.datetime.now()     # DB
+                    dt111 += (t111-t000).total_seconds()
+
                 # compute
-                _vos_broadband(
+                out = _vos_broadband(
                     x0=x0u,
                     x1=x1u,
                     ind=ind,
@@ -247,6 +281,7 @@ def compute_vos(
                     lap=lap,
                     res=res,
                     config=config,
+                    visibility=visibility,
                     # output
                     key_cam=key_cam,
                     dvos=dvos,
@@ -254,7 +289,18 @@ def compute_vos(
                     ii=ii,
                     bool_cross=bool_cross,
                     path_hor=path_hor,
+                    # timing
+                    timing=timing,
+                    dt1111=dt1111,
+                    dt2222=dt2222,
+                    dt3333=dt3333,
+                    dt4444=dt4444,
                 )
+
+                if timing:
+                    dt1111, dt2222, dt3333, dt4444 = out
+                    t222 = dtm.datetime.now()     # DB
+                    dt222 += (t222-t111).total_seconds()
 
             # -----------------------
             # get pcross and simplify
@@ -274,8 +320,15 @@ def compute_vos(
 
             lpcross.append((pc0, pc1))
 
+            if timing:
+                t333 = dtm.datetime.now()     # DB
+                dt333 += (t333-t222).total_seconds()
+
         # ----------------
         # harmonize pcross
+
+        if timing:
+            t22 = dtm.datetime.now()     # DB
 
         ln = [pp[0].size if pp[0] is not None else 0 for pp in lpcross]
         nmax = np.max(ln)
@@ -318,6 +371,26 @@ def compute_vos(
             'pcross1': pcross1,
         }
 
+        if timing:
+            t33 = dtm.datetime.now()
+            dt22 += (t33 - t22).total_seconds()
+
+    # timing
+    if timing:
+        t2 = dtm.datetime.now()     # DB
+        print("\nTIMING\n--------")
+        print(f'Prepare: {dt1} s')
+        print(f'\tdt11 (pepare cam): {dt11} s')
+        print(f'\t\tdt111 (prepare pix): {dt111} s')
+        print(f"\t\t\tdt1111 (prepare): {dt1111} s")
+        print(f"\t\t\tdt2222 (compute): {dt2222} s")
+        print(f"\t\t\tdt3333 (format):  {dt3333} s")
+        print(f"\t\t\tdt4444 (ind_bool):  {dt4444} s")
+        print(f'\t\tdt222 (compute): {dt222} s')
+        print(f'\t\tdt333 (get poly): {dt333} s')
+        print(f'\tdt22 (interp poly): {dt22} s')
+        print(f'loop total: {(t2-t1).total_seconds()} s')
+
     # -------------
     # replace
 
@@ -345,10 +418,12 @@ def _check(
     res=None,
     margin_par=None,
     margin_perp=None,
+    visibility=None,
     check=None,
     verb=None,
     plot=None,
     store=None,
+    timing=None,
 ):
 
     # --------
@@ -453,6 +528,15 @@ def _check(
     )
 
     # -----------
+    # visibility
+
+    visibility = ds._generic_check._check_var(
+        visibility, 'visibility',
+        types=bool,
+        default=True,
+    )
+
+    # -----------
     # verb
 
     verb = ds._generic_check._check_var(
@@ -479,6 +563,15 @@ def _check(
         default=True,
     )
 
+    # -----------
+    # timing
+
+    timing = ds._generic_check._check_var(
+        timing, 'timing',
+        types=bool,
+        default=False,
+    )
+
     return (
         key_diag,
         key_mesh,
@@ -489,9 +582,11 @@ def _check(
         res,
         margin_par,
         margin_perp,
+        visibility,
         verb,
         plot,
         store,
+        timing,
     )
 
 
@@ -677,6 +772,7 @@ def _vos_broadband(
     lap=None,
     res=None,
     config=None,
+    visibility=None,
     # output
     key_cam=None,
     dvos=None,
@@ -684,67 +780,76 @@ def _vos_broadband(
     ii=None,
     bool_cross=None,
     path_hor=None,
+    # timing
+    timing=None,
+    dt1111=None,
+    dt2222=None,
+    dt3333=None,
+    dt4444=None,
 ):
 
-    # -----------------
-    # loop on (r, z) points
+    # --------------------------
+    # prepare points and indices
 
     ir, iz = ind.nonzero()
     iru = np.unique(ir)
+    izru = [iz[ir == i0] for i0 in iru]
 
-    for i0 in iru:
+    nphi = np.ceil(x0[ir]*(dphi[1] - dphi[0]) / res).astype(int)
 
-        nphi = int(np.ceil(x0[i0]*(dphi[1] - dphi[0]) / res))
-        phi = np.linspace(dphi[0], dphi[1], nphi)
-        xx = x0[i0] * np.cos(phi)
-        yy = x0[i0] * np.sin(phi)
+    irf = np.repeat(ir, nphi)
+    izf = np.repeat(iz, nphi)
+    phi = np.concatenate(tuple([
+        np.linspace(dphi[0], dphi[1], nn) for nn in nphi
+    ]))
 
-        # only if in phor
-        ihor = path_hor.contains_points(np.array([xx, yy]).T)
-        if not np.any(ihor):
-            continue
+    xx = x0[irf] * np.cos(phi)
+    yy = x0[irf] * np.sin(phi)
+    zz = x1[izf]
 
-        xx = xx[ihor]
-        yy = yy[ihor]
-        zz = np.full((ihor.sum(),), np.nan)
+    out = _comp_solidangles.calc_solidangle_apertures(
+        # observation points
+        pts_x=xx,
+        pts_y=yy,
+        pts_z=zz,
+        # polygons
+        apertures=lap,
+        detectors=deti,
+        # possible obstacles
+        config=config,
+        # parameters
+        summed=False,
+        visibility=visibility,
+        return_vector=False,
+        return_flat_pts=None,
+        return_flat_det=None,
+        timing=timing,
+    )
 
-        # if True:    # DB
-            # msg = (
-                # f"nr = {iru.size}, nz = {(ir == i0).sum()}, nphi = {nphi}"
-                # f"  ind.sum() = {ind.sum()},  "
-                # f"path_hor = {path_hor.vertices.shape[0]} pts, "
-                # f"pts in poly_hor = {ihor.sum()}"
-            # )
-            # print(f"\t\t\t{msg}")
+    # ------------
+    # get indices
 
-        for i1 in iz[ir == i0]:
+    if timing:
+        t0 = dtm.datetime.now()     # DB
+        out, dt1, dt2, dt3 = out
 
+    for ii, i0 in enumerate(iru):
+        ind0 = irf == i0
+        for i1 in izru[ii]:
+            ind = ind0 & (izf == i1)
+            bool_cross[i0 + 1, i1 + 1] = np.any(out[0, ind] > 0.)
 
-            zz[:] = x1[i1]
+    # timing
+    if timing:
+        dt4444 += (dtm.datetime.now() - t0).total_seconds()
+        dt1111 += dt1
+        dt2222 += dt2
+        dt3333 += dt3
 
-            out = _comp_solidangles.calc_solidangle_apertures(
-                # observation points
-                pts_x=xx,
-                pts_y=yy,
-                pts_z=zz,
-                # polygons
-                apertures=lap,
-                detectors=deti,
-                # possible obstacles
-                config=config,
-                # parameters
-                summed=False,
-                visibility=True,
-                return_vector=False,
-                return_flat_pts=None,
-                return_flat_det=None,
-            )
+        return dt1111, dt2222, dt3333, dt4444
+    else:
+        return
 
-            # dvos[key_cam]['sang_int'][ii] = out
-            # dvos[key_cam]['ind'][ii] = sli(ir, iz, ii)
-            bool_cross[i0 + 1, i1 + 1] = np.any(out > 0.)
-
-    return
 
 # ###########################################################
 # ###########################################################
