@@ -32,6 +32,7 @@ def _plot_inversion_check(
     cmap=None,
     dcolorbar=None,
     dleg=None,
+    alpha=None,
     # los sampling
     los_res=None,
     # interactivity
@@ -110,6 +111,15 @@ def _plot_inversion_check(
     # color_dict
     color_dict = _class8_plot._check_color_dict(color_dict)
 
+
+    # alpha
+    alpha = ds._generic_check._check_var(
+        alpha, 'alpha',
+        types=float,
+        default=0.2,
+        sign='> 0.',
+    )
+
     # nlos
     nlos = ds._generic_check._check_var(
         nlos, 'nlos',
@@ -141,7 +151,7 @@ def _plot_inversion_check(
         key_diag, key_cam, keybs, key_data, key_retro,
         is2d, mtype, nd,
         cropbs, cmap, dcolorbar,
-        nlos, los_res, color_dict,
+        nlos, los_res, color_dict, alpha,
         dleg, plot_details, connect,
     )
 
@@ -183,7 +193,17 @@ def _plot_inversion_prepare(
     )
 
     # los
-    dlos, dref_los = _class8_plot._prepare_los(
+    dlos_n, dref_los = _class8_plot._prepare_los(
+        coll=coll,
+        coll2=coll2,
+        dcamref=dcamref,
+        key_diag=key_diag,
+        key_cam=key_cam,
+        los_res=los_res,
+    )
+
+    # vos
+    dvos_n, dref_vos = _class8_plot._prepare_vos(
         coll=coll,
         coll2=coll2,
         dcamref=dcamref,
@@ -323,7 +343,8 @@ def _plot_inversion_prepare(
         niter = None    # coll.dobj['inversions'][keyinv]['niter']
 
     return (
-        dlos, dref_los,
+        dlos_n, dref_los,
+        dvos_n, dref_vos,
         drefx, drefy, dkeyx, dkeyy, ddatax, ddatay, dextent,
         time, keyt, reft,
         chi2n, mu, reg, niter,
@@ -339,6 +360,7 @@ def plot_inversion(
     vmin=None,
     vmax=None,
     cmap=None,
+    alpha=None,
     # config
     plot_config=None,
     # figure
@@ -366,7 +388,7 @@ def plot_inversion(
         key_diag, key_cam, keybs, key_data, key_retro,
         is2d, mtype, nd,
         cropbs, cmap, dcolorbar,
-        nlos, los_res, color_dict,
+        nlos, los_res, color_dict, alpha,
         dleg, plot_details, connect,
     ) = _plot_inversion_check(
         coll=coll,
@@ -375,6 +397,7 @@ def plot_inversion(
         cmap=cmap,
         dcolorbar=dcolorbar,
         dleg=dleg,
+        alpha=alpha,
         # los sampling
         los_res=los_res,
         # interactivity
@@ -426,7 +449,8 @@ def plot_inversion(
     # prepare data
 
     (
-        dlos, dref_los,
+        dlos_n, dref_los,
+        dvos_n, dref_vos,
         drefx, drefy, dkeyx, dkeyy, ddatax, ddatay, dextent,
         time, keyt, reft,
         chi2n, mu, reg, niter,
@@ -603,10 +627,11 @@ def plot_inversion(
 
         # add los
         kax = 'matrix'
-        if dlos[k0]['rays'] is not None:
+        if dlos_n[k0] is not None:
             ax = dax[kax]['handle']
 
-            nan = np.full((dlos[k0]['x'].shape[0],), np.nan)
+            nan_los = np.full((dlos_n[k0],), np.nan)
+            nan_vos = np.full((dvos_n[k0],), np.nan)
 
             _class8_plot._add_camera_los_cross(
                 coll2=coll2,
@@ -615,8 +640,11 @@ def plot_inversion(
                 kax=kax,
                 nlos=nlos,
                 dref_los=dref_los,
+                dref_vos=dref_vos,
                 color_dict=color_dict,
-                nan=nan,
+                nan_los=nan_los,
+                nan_vos=nan_vos,
+                alpha=alpha,
             )
 
         # err

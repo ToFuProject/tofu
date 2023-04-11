@@ -219,6 +219,61 @@ def get_optics_poly(
 
 # ##################################################################
 # ##################################################################
+#           optics as input dict for solid angle computation
+# ##################################################################
+
+
+def get_optics_as_input_solid_angle(
+    coll=None,
+    keys=None,
+):
+
+    # ------------
+    # check inputs
+
+    if isinstance(keys, str):
+        keys = [keys]
+
+    lap = list(coll.dobj.get('aperture', {}).keys())
+    lfilt = list(coll.dobj.get('filter', {}).keys())
+    lcryst = list(coll.dobj.get('crystal', {}).keys())
+    lgrat = list(coll.dobj.get('grating', {}).keys())
+
+    lok = lap + lfilt + lcryst + lgrat
+
+    keys = ds._generic_check._check_var_iter(
+        keys, 'keys',
+        types=(list, tuple),
+        types_iter=str,
+        allowed=lok,
+    )
+
+    # -----------
+    # prepare
+
+    # get classes
+    lcls = coll.get_optics_cls(keys)[1]
+
+    # ------------------
+    # build list of dict
+
+    dap = {}
+    for ii, k0 in enumerate(keys):
+
+        poly_x, poly_y, poly_z = coll.get_optics_poly(k0)
+
+        dap[k0] = {
+            'poly_x': poly_x,
+            'poly_y': poly_y,
+            'poly_z': poly_z,
+            'nin': coll.dobj[lcls[ii]][k0]['dgeom']['nin'],
+        }
+
+    return dap
+
+
+# ##################################################################
+# ##################################################################
 #                   Poly interpolation utilities
 # ##################################################################
 
@@ -911,7 +966,7 @@ def _get_data(
     ddata = {}
     static = True
     daxis = None
-    
+
     # comp = False
     if data is None or data in lquant:
 
@@ -924,7 +979,7 @@ def _get_data(
             lkout = [k0 for k0 in kwdargs.keys() if k0 not in dparam.keys()]
 
             if len(lkout) > 0:
-                msg= (
+                msg = (
                     "The following args correspond to no data parameter:\n"
                     + "\n".join([f"\t- {k0}" for k0 in lkout])
                 )
@@ -957,6 +1012,7 @@ def _get_data(
                     f"\t- data: {data}"
                 )
                 raise Exception(msg)
+
             elif len(set(lcam)) < len(key_cam):
                 pass
 
@@ -999,7 +1055,10 @@ def _get_data(
         }
 
         # units
-        units = coll.ddata[ddata[key_cam[0]]]['units']
+        if len(ddata) > 0:
+            units = coll.ddata[ddata[key_cam[0]]]['units']
+        else:
+            units = None
 
         # get actual data
         ddata = {
@@ -1043,9 +1102,9 @@ def _get_data(
                 units = 'm'
             else:
                 units = 'rad'
-                
+
     elif data in lsynth:
-        
+
         dref = {}
         daxis = {}
         dsynth = coll.dobj['synth sig'][data]
@@ -1053,7 +1112,7 @@ def _get_data(
             kdat = dsynth['data'][dsynth['camera'].index(cc)]
             refcam = coll.dobj['camera'][cc]['dgeom']['ref']
             ref = coll.ddata[kdat]['ref']
-            
+
             c0 = (
                 tuple([rr for rr in ref if rr in refcam]) == refcam
                 and len(ref) in [len(refcam), len(refcam) + 1]
@@ -1068,16 +1127,16 @@ def _get_data(
                     "\t- ['{kdat}']['ref']: {ref}"
                 )
                 raise Exception(msg)
-                
+
             if len(ref) == len(refcam) + 1:
                 static = False
                 daxis[cc] = [
                     ii for ii, rr in enumerate(ref) if rr not in refcam
                 ][0]
-                
+
             ddata[cc] = coll.ddata[kdat]['data']
             dref[cc] = ref
-            
+
             units = coll.ddata[kdat]['units']
 
     return ddata, dref, units, static, daxis

@@ -18,6 +18,7 @@ from . import _class8_move as _move
 from . import _class8_los_data as _los_data
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_etendue_los as _etendue_los
+from . import _class8_vos as _vos
 from . import _class8_los_angles as _los_angles
 from . import _class8_compute_signal as _compute_signal
 from . import _class8_plot as _plot
@@ -207,6 +208,7 @@ class Diagnostic(Previous):
         reflections_type=None,
         key_nseg=None,
         # bool
+        compute_vos_from_los=None,
         verb=None,
         plot=None,
         store=None,
@@ -256,7 +258,59 @@ class Diagnostic(Previous):
                 reflections_type=reflections_type,
                 key_nseg=key_nseg,
                 dcompute=dcompute,
+                compute_vos_from_los=compute_vos_from_los,
             )
+
+    def compute_diagnostic_vos(
+        self,
+        key=None,
+        key_mesh=None,
+        # parameters
+        res=None,
+        check=None,
+        margin_par=None,
+        margin_perp=None,
+        # spectro-only
+        rocking_curve_fw=None,
+        # equivalent aperture
+        add_points=None,
+        convex=None,
+        # for storing los
+        config=None,
+        length=None,
+        reflections_nb=None,
+        reflections_type=None,
+        key_nseg=None,
+        # bool
+        verb=None,
+        plot=None,
+        store=None,
+    ):
+        """ Compute the etendue of the diagnostic (per pixel)
+
+        Etendue (m2.sr) can be computed analytically or numerically
+        If plot, plot the comparison between all computations
+        If store = 'analytical' or 'numerical', overwrites the diag etendue
+
+        """
+
+        dvos = _vos.compute_vos(
+            coll=self,
+            key_diag=key,
+            key_mesh=key_mesh,
+            # etendue
+            res=res,
+            check=check,
+            margin_par=margin_par,
+            margin_perp=margin_perp,
+            config=config,
+            # spectro-only
+            rocking_curve_fw=rocking_curve_fw,
+            # bool
+            verb=verb,
+            plot=plot,
+            store=store,
+        )
 
     # ---------------
     # utilities
@@ -383,6 +437,16 @@ class Diagnostic(Previous):
             ravel=ravel,
             total=total,
             return_outline=return_outline,
+        )
+
+    def get_optics_as_input_solid_angle(
+        self,
+        keys=None,
+    ):
+        """ Return the optics outline """
+        return _compute.get_optics_as_input_solid_angle(
+            coll=self,
+            keys=keys,
         )
 
     def set_optics_color(self, key=None, color=None):
@@ -616,6 +680,7 @@ class Diagnostic(Previous):
         cmap=None,
         vmin=None,
         vmax=None,
+        alpha=None,
         # config
         plot_config=None,
         # figure
@@ -644,6 +709,7 @@ class Diagnostic(Previous):
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,
+            alpha=alpha,
             # config
             plot_config=plot_config,
             # figure

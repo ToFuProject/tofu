@@ -84,6 +84,7 @@ class Test01_Inversions():
             dphi=0,
             tilt=0,
             config=conf0,
+            compute=False,
         )
 
         coll.add_camera_pinhole(

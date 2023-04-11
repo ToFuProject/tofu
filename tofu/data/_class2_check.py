@@ -366,7 +366,6 @@ def _rays(
     dbeta, kdbeta = None, None
 
     # -----------------------------
-    # -----------------------------
     # compute from pts
     # ----------------------------
 
@@ -393,7 +392,6 @@ def _rays(
                 # + vz[1:, ...] * vz[:-1, ...]
             # )
 
-    # -----------------------------
     # -----------------------------
     # compute ray-tracing
     # -----------------------------
@@ -562,9 +560,208 @@ def _rays(
             pts_z = (start_z + length * vect_z).reshape(shape)
 
     # --------------------------------
-    # --------------------------------
     # store
     # --------------------------------
+
+    return _make_dict(
+        coll=coll,
+        key=key,
+        pts_x=pts_x,
+        pts_y=pts_y,
+        pts_z=pts_z,
+        start_x=start_x,
+        start_y=start_y,
+        start_z=start_z,
+        alpha=alpha,
+        dalpha=dalpha,
+        dbeta=dbeta,
+        lamb=lamb,
+        lspectro=lspectro,
+        diag=diag,
+        reflections_nb=reflections_nb,
+        key_nseg=key_nseg,
+        ref=ref,
+        shaperef=shaperef,
+    )
+
+
+# ##################################################################
+# ##################################################################
+#                   Rays - check key
+# ##################################################################
+
+
+def _check_key(coll=None, key=None, key_cam=None):
+
+    # check key
+    lrays = list(coll.dobj.get('rays', {}).keys())
+    ldiag = [
+        k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
+        if any([
+                v1.get('los') is not None
+                and v1['los'] in lrays
+                for k1, v1 in v0['doptics'].items()
+            ])
+    ]
+
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lrays + ldiag,
+    )
+
+    # Derive kray
+    if key in lrays:
+        kray = key
+    else:
+
+        # key_cam
+        lok = list(coll.dobj['diagnostic'][key]['doptics'].keys())
+        key_cam = ds._generic_check._check_var(
+            key_cam, 'key_cam',
+            types=str,
+            allowed=lok,
+        )
+
+        kray = coll.dobj['diagnostic'][key]['doptics'][key_cam]['los']
+
+    return kray
+
+
+# ##################################################################
+# ##################################################################
+#                   Rays - get start and vect
+# ##################################################################
+
+
+def _get_start(
+    coll=None,
+    key=None,
+    key_cam=None,
+):
+
+    # ---------
+    # check key
+
+    key = _check_key(coll=coll, key=key, key_cam=key_cam)
+
+    # ---------------
+    # get start
+
+    stx, sty, stz = coll.dobj['rays'][key]['start']
+    if isinstance(stx, str):
+        stx = coll.ddata[stx]['data']
+        sty = coll.ddata[sty]['data']
+        stz = coll.ddata[stz]['data']
+
+    return stx, sty, stz
+
+
+def _get_pts(
+    coll=None,
+    key=None,
+    key_cam=None,
+):
+
+    # ---------
+    # check key
+
+    key = _check_key(coll=coll, key=key, key_cam=key_cam)
+
+    # ---------
+    # get start
+
+    stx, sty, stz = _get_start(coll=coll, key=key)
+
+    # ---------------
+    # get other pts
+
+    ptsx, ptsy, ptsz = coll.dobj['rays'][key]['pts']
+    ptsx = coll.ddata[ptsx]['data']
+    ptsy = coll.ddata[ptsy]['data']
+    ptsz = coll.ddata[ptsz]['data']
+
+    # concatenate
+    ptsx = np.insert(ptsx, 0, stx, axis=0)
+    ptsy = np.insert(ptsy, 0, sty, axis=0)
+    ptsz = np.insert(ptsz, 0, stz, axis=0)
+
+    return ptsx, ptsy, ptsz
+
+
+def _get_vect(
+    coll=None,
+    key=None,
+    key_cam=None,
+    norm=None,
+):
+
+    # ---------
+    # check key
+
+    key = _check_key(coll=coll, key=key, key_cam=key_cam)
+
+    # norm
+    norm = ds._generic_check._check_var(
+        norm, 'norm',
+        types=bool,
+        default=True,
+    )
+
+    # ---------------
+    # get start
+
+    stx, sty, stz = _get_start(coll=coll, key=key)
+
+    ptsx, ptsy, ptsz = coll.dobj['rays'][key]['pts']
+    ptsx = coll.ddata[ptsx]['data']
+    ptsy = coll.ddata[ptsy]['data']
+    ptsz = coll.ddata[ptsz]['data']
+
+    vx = (ptsx[0, ...] - stx)[None, ...]
+    vy = (ptsy[0, ...] - sty)[None, ...]
+    vz = (ptsz[0, ...] - stz)[None, ...]
+    if ptsx.shape[0] > 1:
+        vx = np.concatenate((vx, np.diff(ptsx, axis=0)), axis=0)
+        vy = np.concatenate((vy, np.diff(ptsy, axis=0)), axis=0)
+        vz = np.concatenate((vz, np.diff(ptsz, axis=0)), axis=0)
+
+    # normalize
+    if norm is True:
+        norm = np.sqrt(vx**2 + vy**2 + vz**2)
+        vx = vx / norm
+        vy = vy / norm
+        vz = vz / norm
+
+    return vx, vy, vz
+
+
+# ##################################################################
+# ##################################################################
+#                   store
+# ##################################################################
+
+
+def _make_dict(
+    coll=None,
+    key=None,
+    pts_x=None,
+    pts_y=None,
+    pts_z=None,
+    start_x=None,
+    start_y=None,
+    start_z=None,
+    alpha=None,
+    dalpha=None,
+    dbeta=None,
+    lamb=None,
+    lspectro=None,
+    diag=None,
+    reflections_nb=None,
+    key_nseg=None,
+    ref=None,
+    shaperef=None,
+):
 
     # --------
     # dref
@@ -726,7 +923,7 @@ def _rays(
             },
         })
 
-    # --------
+    # ------
     # dobj
 
     # start
@@ -765,156 +962,6 @@ def _rays(
     }
 
     return dref, ddata, dobj
-
-# ##################################################################
-# ##################################################################
-#                   Rays - check key
-# ##################################################################
-
-
-def _check_key(coll=None, key=None, key_cam=None):
-
-    # check key
-    lrays = list(coll.dobj.get('rays', {}).keys())
-    ldiag = [
-        k0 for k0, v0 in coll.dobj.get('diagnostic', {}).items()
-        if any([
-                v1.get('los') is not None
-                and v1['los'] in lrays
-                for k1, v1 in v0['doptics'].items()
-            ])
-    ]
-
-    key = ds._generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=lrays + ldiag,
-    )
-
-    # Derive kray
-    if key in lrays:
-        kray = key
-    else:
-
-        # key_cam
-        lok = list(coll.dobj['diagnostic'][key]['doptics'].keys())
-        key_cam = ds._generic_check._check_var(
-            key_cam, 'key_cam',
-            types=str,
-            allowed=lok,
-        )
-
-        kray = coll.dobj['diagnostic'][key]['doptics'][key_cam]['los']
-
-    return kray
-
-
-# ##################################################################
-# ##################################################################
-#                   Rays - get start and vect
-# ##################################################################
-
-
-def _get_start(
-    coll=None,
-    key=None,
-    key_cam=None,
-):
-
-    # ---------
-    # check key
-
-    key = _check_key(coll=coll, key=key, key_cam=key_cam)
-
-    # ---------------
-    # get start
-
-    stx, sty, stz = coll.dobj['rays'][key]['start']
-    if isinstance(stx, str):
-        stx = coll.ddata[stx]['data']
-        sty = coll.ddata[sty]['data']
-        stz = coll.ddata[stz]['data']
-
-    return stx, sty, stz
-
-
-def _get_pts(
-    coll=None,
-    key=None,
-    key_cam=None,
-):
-
-    # ---------
-    # check key
-
-    key = _check_key(coll=coll, key=key, key_cam=key_cam)
-
-    # ---------
-    # get start
-
-    stx, sty, stz = _get_start(coll=coll, key=key)
-
-    # ---------------
-    # get other pts
-
-    ptsx, ptsy, ptsz = coll.dobj['rays'][key]['pts']
-    ptsx = coll.ddata[ptsx]['data']
-    ptsy = coll.ddata[ptsy]['data']
-    ptsz = coll.ddata[ptsz]['data']
-
-    # concatenate
-    ptsx = np.insert(ptsx, 0, stx, axis=0)
-    ptsy = np.insert(ptsy, 0, sty, axis=0)
-    ptsz = np.insert(ptsz, 0, stz, axis=0)
-
-    return ptsx, ptsy, ptsz
-
-
-def _get_vect(
-    coll=None,
-    key=None,
-    key_cam=None,
-    norm=None,
-):
-
-    # ---------
-    # check key
-
-    key = _check_key(coll=coll, key=key, key_cam=key_cam)
-
-    # norm
-    norm = ds._generic_check._check_var(
-        norm, 'norm',
-        types=bool,
-        default=True,
-    )
-
-    # ---------------
-    # get start
-
-    stx, sty, stz = _get_start(coll=coll, key=key)
-
-    ptsx, ptsy, ptsz = coll.dobj['rays'][key]['pts']
-    ptsx = coll.ddata[ptsx]['data']
-    ptsy = coll.ddata[ptsy]['data']
-    ptsz = coll.ddata[ptsz]['data']
-
-    vx = (ptsx[0, ...] - stx)[None, ...]
-    vy = (ptsy[0, ...] - sty)[None, ...]
-    vz = (ptsz[0, ...] - stz)[None, ...]
-    if ptsx.shape[0] > 1:
-        vx = np.concatenate((vx, np.diff(ptsx, axis=0)), axis=0)
-        vy = np.concatenate((vy, np.diff(ptsy, axis=0)), axis=0)
-        vz = np.concatenate((vz, np.diff(ptsz, axis=0)), axis=0)
-
-    # normalize
-    if norm is True:
-        norm = np.sqrt(vx**2 + vy**2 + vz**2)
-        vx = vx / norm
-        vy = vy / norm
-        vz = vz / norm
-
-    return vx, vy, vz
 
 
 # ##################################################################
