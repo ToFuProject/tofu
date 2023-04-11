@@ -65,7 +65,7 @@ def compute_etendue_los(
         verb,
         plot,
         store,
-    ) = _diag_compute_etendue_check(
+    ) = _check(
         coll=coll,
         key=key,
         analytical=analytical,
@@ -292,13 +292,13 @@ def compute_etendue_los(
     return dcompute, store
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                       Check
-# ##################################################################
+# ################################################################
 
 
-def _diag_compute_etendue_check(
+def _check(
     coll=None,
     key=None,
     analytical=None,
@@ -615,7 +615,9 @@ def _loop_on_pix(
 
     if res is None:
 
-        res = min(np.sqrt(det_area), np.nanmin(mindiff))
+        res = np.sqrt(det_area)
+        if np.any(np.isfinite(mindiff)):
+            res = min(res, np.nanmin(mindiff))
         if np.any(ap_area > 0.):
             res = min(res, np.sqrt(np.min(ap_area[ap_area > 0.])))
 
@@ -662,6 +664,7 @@ def _get_lpoly_post(coll=None, lop_post_cls=None, lop_post=None):
                 coll.ddata[py]['data'],
                 coll.ddata[pz]['data'],
             ))
+
     return lpoly_post
 
 

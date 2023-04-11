@@ -1,16 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
-import warnings
-
-
 import numpy as np
-import scipy.interpolate as scpinterp
 import matplotlib.pyplot as plt
-
-
-import Polygon as plg
-import datastock as ds
 
 
 # ##############################################################
@@ -132,7 +124,7 @@ def _get_pts2pt(
         iplan = np.isinf(dgeom['curve_r']).nonzero()[0][0]
         eax = ['e0', 'e1'][iplan]
         erot = ['e0', 'e1'][1-iplan]
-        
+
         rc = dgeom['curve_r'][1 - iplan]
         rcs = np.sign(rc)
         rca = np.abs(rc)
@@ -185,10 +177,10 @@ def _get_pts2pt(
             else:
                 xmargin = 1. + 0.01
                 thetatot = thetamax*(1. + 0.01)
-                 
+
             # defining zones for kk (point , plane unit vector)
             em = np.cos(thetatot)*(erot) + rcs * np.sin(thetatot)*(-nin)
-            eM = np.cos(thetatot)*(erot) - rcs * np.sin(thetatot)*(-nin) 
+            eM = np.cos(thetatot)*(erot) - rcs * np.sin(thetatot)*(-nin)
 
             lzones = [
                 (
@@ -197,9 +189,9 @@ def _get_pts2pt(
                     (O, em),
                     (O, -eM),
                 ),
-                
+
             ]
-            
+
             if rcs > 0:
                 lzones.append((
                     (O - (xmax*xmargin)*eax, eax),
@@ -208,7 +200,7 @@ def _get_pts2pt(
                     (O, eM),
                 ))
 
-            # loop on pts 
+            # loop on pts
             for ii in range(pts_x.size):
                 B = np.r_[pts_x[ii], pts_y[ii], pts_z[ii]]
                 AB = B - A
@@ -391,7 +383,7 @@ def _get_pts2pt(
                     (O, -etM),
                 ),
             ]
-            
+
             if rcs > 0:
                 lzones.append((
                     (O, -epm),
@@ -665,7 +657,7 @@ def _get_Dnin_from_k_cyl(
 
     # handle 2 zones
     sign = np.sign(nix*nin[0] + niy*nin[1] + niz*nin[2])
-    if rcs > 0:   
+    if rcs > 0:
         nix = sign*nix
         niy = sign*niy
         niz = sign*niz
@@ -697,7 +689,7 @@ def _get_Dnin_from_k_sph(
     niz = - rcs * (Ez - O[2]) / ninorm
 
     sign = np.sign(nix*nin[0] + niy*nin[1] + niz*nin[2])
-    if rcs > 0:   
+    if rcs > 0:
         nix = sign*nix
         niy = sign*niy
         niz = sign*niz

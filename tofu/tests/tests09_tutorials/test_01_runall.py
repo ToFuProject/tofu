@@ -141,8 +141,11 @@ class Test00_tuto(object):
         # Remove temporary files and saved files
         os.remove(target)
         stdout = out.stdout.decode().split('\n')
-        lf = [stdout[ii].strip() for ii in range(len(stdout))
-              if 'saved' in stdout[ii-1].lower()]
+        lf = [
+            stdout[ii].strip() for ii in range(len(stdout))
+            if 'saved' in stdout[ii-1].lower()
+        ]
+
         for ii in range(len(lf)):
             os.remove(lf[ii])
 
