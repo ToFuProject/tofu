@@ -120,7 +120,7 @@ class Test01_Inversions():
         )
 
         # mesh rect deg 1 and 2
-        coll.add_mesh(
+        coll.add_mesh_2d_rect(
             crop_poly=conf0,
             key='m1',
             res=0.10,
@@ -137,13 +137,13 @@ class Test01_Inversions():
         Z = np.repeat(Z[None, :], nR, axis=0)
         rad2d = ((R-2.4)/0.4)**2 + (Z/0.5)**2
         krad = 'rad2d'
-        coll.add_data(key=krad, data=rad2d, ref='m1-bs1')
+        coll.add_data(key=krad, data=rad2d, ref='m1_bs1')
 
         # mesh polar deg 1 and 2
-        coll.add_mesh_polar(
+        coll.add_mesh_1d(
             key='m2',
-            radius=[0, 0.1, 0.2, 0.3, 0.4, 0.5, 1.],
-            radius2d=krad,
+            knots=[0, 0.1, 0.2, 0.3, 0.4, 0.5, 1.],
+            subkey=krad,
             deg=0,
         )
         coll.add_bsplines(key='m2', deg=1)
@@ -151,16 +151,16 @@ class Test01_Inversions():
 
         # add geometry matrices
         # coll.add_ref(key='chan', data=chan, group='chan')
-        coll.add_geometry_matrix(key_diag='d0', key_bsplines='m1-bs0')
-        coll.add_geometry_matrix(key_diag='d0', key_bsplines='m1-bs1')
-        coll.add_geometry_matrix(key_diag='d1', key_bsplines='m1-bs2')
-        coll.add_geometry_matrix(key_diag='d0', key_bsplines='m2-bs0')
-        coll.add_geometry_matrix(key_diag='d0', key_bsplines='m2-bs1')
-        coll.add_geometry_matrix(key_diag='d1', key_bsplines='m2-bs2')
+        coll.add_geometry_matrix(key_diag='d0', key_bsplines='m1_bs0')
+        coll.add_geometry_matrix(key_diag='d0', key_bsplines='m1_bs1')
+        coll.add_geometry_matrix(key_diag='d1', key_bsplines='m1_bs2')
+        coll.add_geometry_matrix(key_diag='d0', key_bsplines='m2_bs0')
+        coll.add_geometry_matrix(key_diag='d0', key_bsplines='m2_bs1')
+        coll.add_geometry_matrix(key_diag='d1', key_bsplines='m2_bs2')
 
         # add emiss
         t0 = np.array([0, 1])
-        kap = coll.dobj['bsplines']['m2-bs1']['apex'][0]
+        kap = coll.dobj['bsplines']['m2_bs1']['apex'][0]
         rad = coll.ddata[kap]['data']
         emiss = (
             np.exp(-(rad)**2/0.2**2)
@@ -168,12 +168,12 @@ class Test01_Inversions():
         )
 
         coll.add_ref(key='nt0', size=2)
-        coll.add_data(key='t0', data=t0, dim='time', ref='nt0')
+        coll.add_data(key='t0', data=t0, dim='time', ref='nt0', units='s')
         coll.add_data(
             key='emiss',
             data=emiss,
-            ref=('nt0', 'm2-bs1'),
-            units='W/m3/sr',
+            ref=('nt0', 'm2_bs1'),
+            units='W/(m3.sr)',
         )
 
         # add synthetic data
@@ -206,12 +206,15 @@ class Test01_Inversions():
         lstore = [True, False]
 
         # running
-        for kmat in self.coll.dobj['geom matrix'].keys():
+        lkmat = list(self.coll.dobj['geom matrix'].keys())
+        for ii, kmat in enumerate(lkmat):
 
             kbs = self.coll.dobj['geom matrix'][kmat]['bsplines']
             kd = self.coll.dobj['geom matrix'][kmat]['diagnostic']
             km = self.coll.dobj['bsplines'][kbs]['mesh']
+            nd = self.coll.dobj['mesh'][km]['nd']
             mtype = self.coll.dobj['mesh'][km]['type']
+            submesh = self.coll.dobj['mesh'][km]['submesh']
             deg = self.coll.dobj['bsplines'][kbs]['deg']
 
             if deg in [0, 1]:
@@ -219,23 +222,23 @@ class Test01_Inversions():
             else:
                 lop = ['D1N2', 'D2N2']
 
-            for comb in itt.product(dalgo.keys(), lop, lstore):
+            for jj, comb in enumerate(itt.product(dalgo.keys(), lop)):
 
                 if comb[0] == 'algo5':
                     continue
 
-                if comb[2] == 'D2N2' and deg != 2:
+                if comb[1] == 'D2N2' and deg != 2:
                     continue
 
                 if 'mfr' in comb[0].lower() and deg != 0:
                     continue
 
                 algofam = dalgo[comb[0]]['family']
-                if algofam == 'Non-regularized' and mtype != 'polar':
-                    continue
-                if algofam != 'Non-regularized' and mtype == 'polar':
+                if algofam == 'Non-regularized' and nd != '1d':
                     continue
 
+                if kmat == 'gmat05' and comb == ('algo1', 'D2N2'):
+                    continue
 
                 kdat = 's0' if kd == 'd0' else 's1'
                 try:
@@ -246,10 +249,12 @@ class Test01_Inversions():
                         key_data=kdat,
                         sigma=0.10,
                         operator=comb[1],
-                        store=comb[2],
-                        conv_crit=1.e-2,
+                        store=jj%2 == 0,
+                        conv_crit=1.e-3,
                         kwdargs={'tol': 1.e-2, 'maxiter': 100},
-                        verb=0,
+                        maxiter_outer=10,
+                        dref_vector={'units': 's'},
+                        verb=1,
                     )
                     ksig = f'{kdat}-sigma'
                     if ksig in self.coll.ddata.keys():
@@ -271,6 +276,9 @@ class Test01_Inversions():
         # plotting
         linv = list(self.coll.dobj['inversions'].keys())[::7]
         for kinv in linv:
-            dax = self.coll.plot_inversion(key=kinv, res=0.1)
-
-        plt.close('all')
+            dax = self.coll.plot_inversion(
+                key=kinv,
+                res=0.1,
+                dref_vector={'units': 's'},
+            )
+            plt.close('all')

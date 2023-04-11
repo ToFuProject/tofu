@@ -61,6 +61,8 @@ def add_camera_pinhole(
     compute=None,
     config=None,
     length=None,
+    # dmat
+    dmat=None,
 ):
 
     # --------------
@@ -136,6 +138,8 @@ def add_camera_pinhole(
         compute=compute,
         config=config,
         length=length,
+        # dmat
+        dmat=dmat,
     )
 
 
@@ -461,6 +465,8 @@ def _add_camera_pinhole_store(
     compute=None,
     config=None,
     length=None,
+    # dmat
+    dmat=None,
 ):
 
     # compute
@@ -481,13 +487,13 @@ def _add_camera_pinhole_store(
         coll.add_camera_1d(
             key=key,
             dgeom=dgeom_cam,
-            dmat=None,
+            dmat=dmat,
         )
     else:
         coll.add_camera_2d(
             key=key,
             dgeom=dgeom_cam,
-            dmat=None,
+            dmat=dmat,
         )
 
     # doptics

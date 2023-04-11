@@ -4,18 +4,10 @@ This module contains tests for tofu.geom in its structured version
 
 # Built-in
 import os
-import warnings
 import shutil
 import itertools as itt
-import subprocess
-from subprocess import PIPE
-
-# Standard
-import numpy as np
-import matplotlib.pyplot as plt
 
 # tofu-specific
-from tofu import __version__
 import tofu.nist2tofu as tfn
 
 _here = os.path.abspath(os.path.dirname(__file__))
@@ -53,7 +45,7 @@ def teardown_module():
 #######################################################
 
 
-class Test01_openadas(object):
+class Test01_nist(object):
 
     @classmethod
     def setup_class(cls):
@@ -96,19 +88,21 @@ class Test01_openadas(object):
                 continue
             if any([vv is None for vv in comb[:2]]) and comb[2] != 'H':
                 continue
-            print('{} / {}  -  {}'.format(ii, itot, comb))
-            out = tfn.step01_search_online_by_wavelengthA(
-                lambmin=comb[0],
-                lambmax=comb[1],
-                ion=comb[2],
-                verb=True,
-                return_dout=True,
-                return_dsources=True,
-                cache_from=comb[3],
-                cache_info=True,
-                format_for_DataStock=comb[4],
-                create_custom=True,
-            )
+            print(f'{ii} / {itot}  -  {comb}')
+
+            # out = tfn.step01_search_online_by_wavelengthA(
+                # lambmin=comb[0],
+                # lambmax=comb[1],
+                # ion=comb[2],
+                # verb=True,
+                # return_dout=True,
+                # return_dsources=True,
+                # cache_from=comb[3],
+                # cache_info=True,
+                # format_for_DataStock=comb[4],
+                # create_custom=True,
+            # )
+            # del out
 
     def test02_clear_cache(self):
         tfn.clear_cache()

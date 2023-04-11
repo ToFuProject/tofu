@@ -5337,17 +5337,19 @@ class Rays(utils.ToFuObject):
                         + "\tPIn = {}\n".format(PIn)
                         + "\tPOut = {}".format(POut))
                 warnings.warn(msg2)
-                # plot 3d debug figure
+                # # plot 3d debug figure
                 # _plot._LOS_calc_InOutPolProj_Debug(
-                # self.config,
-                # self.D[:, ind],
-                # self.u[:, ind],
-                # PIn,
-                # POut,
-                # nptstot=kOut.size,
-                # Lim=[np.pi / 4.0, 2.0 * np.pi / 4],
-                # Nstep=50,
+                    # self.config,
+                    # self.D[:, ind],
+                    # self.u[:, ind],
+                    # PIn,
+                    # POut,
+                    # nptstot=kOut.size,
+                    # Lim=[np.pi / 4.0, 2.0 * np.pi / 4],
+                    # Nstep=50,
                 # )
+                # import pdb; pdb.set_trace()     # DB
+
             kOut[ind] = np.nan
             if strict is True:
                 raise Exception(msg)

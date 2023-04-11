@@ -323,9 +323,12 @@ def _get_totalurl(
 
 
 def _try_request_handle_ITER_SSL_step01(url=None):
+
     try:
         resp = requests.get(url)
+
     except requests.exceptions.SSLError as err:
+
         if 'certificate' in str(err):
             lbund = [
                 vv['bund'] for kk, vv in _DCERTIFICATES_BUNDLE.items()
@@ -343,12 +346,15 @@ def _try_request_handle_ITER_SSL_step01(url=None):
                 raise Exception(msg)
         else:
             raise err
+
     except Exception as err:
         raise err
+
     return resp
 
 
 def _try_request_handle_ITER_SSL_step02(url=None, pfe=None):
+
     try:
         with requests.get(url, stream=True) as rr:
             rr.raise_for_status()
@@ -358,7 +364,9 @@ def _try_request_handle_ITER_SSL_step02(url=None, pfe=None):
                     if chunk:
                         ff.write(chunk)
                         # ff.flush()
+
     except requests.exceptions.SSLError as err:
+
         if 'certificate' in str(err):
             lbund = [
                 vv['bund'] for kk, vv in _DCERTIFICATES_BUNDLE.items()
@@ -381,8 +389,10 @@ def _try_request_handle_ITER_SSL_step02(url=None, pfe=None):
                     + "=> ask your admin which certificate bundle to use!"
                 )
                 raise Exception(msg)
+
         else:
             raise err
+
     except Exception as err:
         raise err
 

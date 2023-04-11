@@ -13,11 +13,41 @@ from ..geom._comp_solidangles import _check_polygon_2d
 
 
 _DMAT_KEYS = {
-    'name': {'types': str},
-    'symbol': {'types': str},
-    'thickness': {'types': float, 'sign': '> 0.'},
-    'energy': {'dtype': float, 'sign': '> 0.'},
-    'qeff': {'dtype': float, 'sign': ['>= 0.', '<= 1.']},
+    'name': {
+        'types': str,
+        'can_be_None': True,
+    },
+    'symbol': {
+        'types': str,
+        'can_be_None': True,
+    },
+    'thickness': {
+        'types': float,
+        'sign': '> 0.',
+        'can_be_None': True,
+    },
+    'qeff_E': {
+        'dtype': float,
+        'sign': '> 0.',
+        'can_be_None': True,
+    },
+    'qeff': {
+        'dtype': float,
+        'sign': ['>= 0.', '<= 1.'],
+        'can_be_None': True,
+    },
+    'mode': {
+        'types': str,
+        'default': 'current',
+        'allowed': ['current', 'PHA'],
+        'can_be_None': False,
+    },
+    'bins': {
+        'dtype': float,
+        'sign': '>0.',
+        'unique': True,
+        'can_be_None': True,
+    },
 }
 
 
@@ -733,6 +763,7 @@ def _camera_2d(
 
 
 def _dmat(
+    coll=None,
     key=None,
     dmat=None,
 ):
@@ -749,6 +780,8 @@ def _dmat(
     if dmat is None:
         return None, None, None
 
+    dref, ddata = {}, {}
+
     # ------
     # Check
 
@@ -758,42 +791,63 @@ def _dmat(
         varname='dmat',
         has_all_keys=False,
         has_only_keys=True,
-        keys_can_be_None=True,
+        keys_can_be_None=None,
         dkeys=_DMAT_KEYS,
+        return_copy=True,
     )
+
+    if dmat.get('bins') is not None:
+        dmat['mode'] = 'PHA'
+
+    # -----------------
+    # check PHA vs bins
+
+    if dmat['mode'] == 'PHA':
+        if dmat.get('bins') is None:
+            msg = (
+                f"The bins (eV) must be provided for camera {key} in mode PHA!"
+            )
+            raise Exception(msg)
+
+        kb = f'{key}_bin'
+        coll.add_bins(
+            key=kb,
+            edges=dmat['bins'],
+            units='eV',
+            quant='E',
+            dim='energy',
+        )
+        dmat['bins'] = kb
 
     # -----------------------------------
     # check energy / qeff values
 
-    dref, ddata = None, None
     if all([dmat.get(kk) is not None for kk in ['energy', 'qeff']]):
-        
-        dmat['energy'], dmat['qeff'] = _class4_check._dmat_energy_trans(
-            energ=dmat['energy'],
+
+        dmat['qeff_E'], dmat['qeff'] = _class4_check._dmat_energy_trans(
+            energ=dmat['qeff_E'],
             trans=dmat['qeff'],
         )
 
         # ----------
         # dref
-    
-        kne = f'{key}-nE'
-        ne = dmat['energy'].size
-        dref = {
-            kne: {'size': ne},
-        }
-    
+
+        kne = f'{key}_qnE'
+        ne = dmat['qeff_E'].size
+        dref[kne] = {'size': ne}
+
         # ----------
         # ddata
-    
-        kE = f'{key}-E'
-        kqeff = f'{key}-qeff'
-    
-        ddata = {
-            kE: {
-                'data': dmat['energy'],
+
+        kqE = f'{key}_qE'
+        kqeff = f'{key}_qeff'
+
+        ddata.update({
+            kqE: {
+                'data': dmat['qeff_E'],
                 'ref': kne,
                 'dim': 'energy',
-                'quant': 'energy',
+                'quant': 'E',
                 'name': 'E',
                 'units': 'eV',
             },
@@ -805,12 +859,12 @@ def _dmat(
                 'name': '',
                 'units': '',
             },
-        }
-    
+        })
+
         # -----------
         # dmat
-    
-        dmat['energy'] = kE
+
+        dmat['qeff_E'] = kqE
         dmat['qeff'] = kqeff
 
     return dref, ddata, dmat
@@ -869,6 +923,50 @@ def get_camera_unitvectors(
     return dout
 
 
+def get_camera_dxyz(coll=None, key=None, include_center=None):
+
+    # ---------
+    # check key
+
+    lok = [
+        k0 for k0, v0 in coll.dobj.get('camera', {}).items()
+        if v0['dgeom']['parallel'] is True
+    ]
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+
+    dgeom = coll.dobj['camera'][key]['dgeom']
+
+    # include_center
+    include_center = ds._generic_check._check_var(
+        include_center, 'include_center',
+        types=bool,
+        default=True,
+    )
+
+    # ----------------
+    # get unit vectors
+
+    e0 = dgeom['e0']
+    e1 = dgeom['e1']
+
+    out0 = coll.ddata[dgeom['outline'][0]]['data']
+    out1 = coll.ddata[dgeom['outline'][1]]['data']
+
+    if include_center is True:
+        out0 = np.append(0, out0)
+        out1 = np.append(0, out1)
+
+    dx = out0 * e0[0] + out1 * e1[0]
+    dy = out0 * e0[1] + out1 * e1[1]
+    dz = out0 * e0[2] + out1 * e1[2]
+
+    return dx, dy, dz
+
+
 def get_camera_cents_xyz(coll=None, key=None):
 
     # ---------
@@ -910,3 +1008,57 @@ def get_camera_cents_xyz(coll=None, key=None):
         )
 
     return cx, cy, cz
+
+
+def get_camera_2d_outline(coll=None, key=None, closed=None):
+
+    # ---------
+    # check key
+
+    lok = [
+        k0 for k0, v0 in coll.dobj.get('camera', {}).items()
+        if v0['dgeom']['type'] == '2d'
+    ]
+    key = ds._generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=lok,
+    )
+    
+    # closed
+    closed = ds._generic_check._check_var(
+        closed, 'closed',
+        types=bool,
+        default=False,
+    )
+
+    # ------------------
+    # prepare
+
+    dgeom = coll.dobj['camera'][key]['dgeom']
+
+    # camera nb pixels and pixel outline
+    n0, n1 = dgeom['shape']
+    kout0, kout1 = dgeom['outline']
+    out0 = coll.ddata[kout0]['data']
+    out1 = coll.ddata[kout1]['data']
+    
+    # ------------------
+    # get total outline
+    
+    # assuming pixels are rectangular
+    dx0 = out0.max() - out0.min()
+    dx1 = out1.max() - out1.min()
+    
+    # indices
+    ind0 = np.r_[-1, 1, 1, -1, -1]
+    ind1 = np.r_[-1, -1, 1, 1, -1]
+    if closed is True:
+        ind0 = np.r_[ind0, ind0[0]]
+        ind1 = np.r_[ind1, ind1[0]]
+        
+    # outline total
+    out_tot0 = dx0 * (n0/2.) * ind0
+    out_tot1 = dx1 * (n1/2.) * ind1
+    
+    return out_tot0, out_tot1
