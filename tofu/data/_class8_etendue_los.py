@@ -560,7 +560,7 @@ def _loop_on_pix(
             # parameters
             visibility=False,
             return_vector=False,
-        )[0, 0]
+        )[0][0, 0]   # DB
 
     # -----------
     # rocking curve
