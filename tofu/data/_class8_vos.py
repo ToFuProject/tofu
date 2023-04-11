@@ -286,7 +286,7 @@ def compute_vos(
                     dt2222=dt2222,
                     dt3333=dt3333,
                     dt4444=dt4444,
-                    version=1,
+                    version=0,
                 )
 
                 t222 = dtm.datetime.now()     # DB
@@ -801,7 +801,7 @@ def _vos_broadband(
                     config=config,
                     # parameters
                     summed=False,
-                    visibility=True,
+                    visibility=False,
                     return_vector=False,
                     return_flat_pts=None,
                     return_flat_det=None,
@@ -851,7 +851,7 @@ def _vos_broadband(
             config=config,
             # parameters
             summed=False,
-            visibility=True,
+            visibility=False,
             return_vector=False,
             return_flat_pts=None,
             return_flat_det=None,
