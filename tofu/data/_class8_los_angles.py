@@ -160,14 +160,23 @@ def _vos_from_los(
         if oo in coll.dobj.get('crystal', {}).keys()
         or oo in coll.dobj.get('grating', {}).keys()
     ]
+    par = coll.dobj['camera'][key_cam]['dgeom']['parallel']
+
+    if par:
+        dx, dy, dz = coll.get_camera_dxyz(
+            key=key_cam,
+            include_center=True,
+        )
+    else:
+        dgeom = coll.dobj['camera'][key_cam]['dgeom']
+        out0 = coll.ddata[dgeom['outline'][0]]['data']
+        out1 = coll.ddata[dgeom['outline'][1]]['data']
+        ke0 = dgeom['e0']
+        ke1 = dgeom['e1']
+
 
     # ----------
     # poly_cross
-
-    dx, dy, dz = coll.get_camera_dxyz(
-        key=key_cam,
-        include_center=True,
-    )
 
     lpoly_cross = []
     lpoly_hor = []
@@ -180,6 +189,13 @@ def _vos_from_los(
             continue
 
         lind.append(ii)
+
+        if not par:
+            e0 = [coll.ddata[kk]['data'][ii] for kk in ke0]
+            e1 = [coll.ddata[kk]['data'][ii] for kk in ke1]
+            dx = out0 * e0[0] + out1 * e1[0]
+            dy = out0 * e0[1] + out1 * e1[1]
+            dz = out0 * e0[2] + out1 * e1[2]
 
         # get start / end points
         ptsx, ptsy, ptsz = _get_rays_from_pix(
@@ -527,15 +543,22 @@ def _angle_spectro(
     ref=None,
 ):
 
+    # ------------
+    # prepare
+
     angmin = np.full(v0['cx'].size, np.nan)
     angmax = np.full(v0['cx'].size, np.nan)
 
     ptsvect = coll.get_optics_reflect_ptsvect(key=v0['kref'])
     coords = coll.get_optics_x01toxyz(key=v0['kref'])
+
     dx, dy, dz = coll.get_camera_dxyz(
         key=key_cam,
         include_center=True,
     )
+
+    # ------
+    # loop
 
     for ii in range(v0['cx'].size):
 
@@ -545,6 +568,7 @@ def _angle_spectro(
         cxi = v0['cx'][ii] + dx
         cyi = v0['cy'][ii] + dy
         czi = v0['cz'][ii] + dz
+
         nc = cxi.size
 
         exi, eyi, ezi = coords(

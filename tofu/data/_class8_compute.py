@@ -979,7 +979,7 @@ def _get_data(
             lkout = [k0 for k0 in kwdargs.keys() if k0 not in dparam.keys()]
 
             if len(lkout) > 0:
-                msg= (
+                msg = (
                     "The following args correspond to no data parameter:\n"
                     + "\n".join([f"\t- {k0}" for k0 in lkout])
                 )
@@ -1012,6 +1012,7 @@ def _get_data(
                     f"\t- data: {data}"
                 )
                 raise Exception(msg)
+
             elif len(set(lcam)) < len(key_cam):
                 pass
 
@@ -1054,7 +1055,10 @@ def _get_data(
         }
 
         # units
-        units = coll.ddata[ddata[key_cam[0]]]['units']
+        if len(ddata) > 0:
+            units = coll.ddata[ddata[key_cam[0]]]['units']
+        else:
+            units = None
 
         # get actual data
         ddata = {

@@ -61,7 +61,13 @@ def _plot_diagnostic_check(
     # data
 
     defdata = 'etendue'
-    c0 = data is None and coll.dobj['diagnostic'][key].get(defdata) is not None
+    c0 = (
+        data is None
+        and all([
+            v0.get(defdata) is not None
+            for v0 in coll.dobj['diagnostic'][key]['doptics'].values()
+        ])
+    )
     if c0:
         data = defdata
 
@@ -92,10 +98,10 @@ def _plot_diagnostic_check(
     # ----------
     # vmin, vmax
 
-    if vmin is None:
+    if vmin is None and len(ddata) > 0:
         vmin = np.nanmin([np.nanmin(v0) for v0 in ddata.values()])
 
-    if vmax is None:
+    if vmax is None and len(ddata) > 0:
         vmax = np.nanmax([np.nanmax(v0) for v0 in ddata.values()])
 
     # -----
@@ -323,7 +329,7 @@ def _plot_diagnostic(
     # ---------------------
     # prepare non-static
 
-    if static is False:
+    if static is False and len(ddata) > 0:
 
         k0 = key_cam[0]
         keyz = coll.get_ref_vector(ref=refz)[3]
