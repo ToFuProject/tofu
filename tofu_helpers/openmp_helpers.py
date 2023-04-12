@@ -45,9 +45,13 @@ def get_compiler():
         - python setup.py build_ext --compiler=<compiler>
         - CC=<compiler> python setup.py build_ext
     """
-    dist = Distribution({'script_name': os.path.basename(sys.argv[0]),
-                         'script_args': sys.argv[1:],
-                         'cmdclass': {'config_cc': config_cc}})
+
+    dist = Distribution({
+        'script_name': os.path.basename(sys.argv[0]),
+        'script_args': sys.argv[1:],
+        'cmdclass': {'config_cc': config_cc}
+    })
+
     dist.parse_config_files()
     dist.parse_command_line()
 
@@ -64,22 +68,22 @@ def get_compiler():
     # -----
     # print
 
-    lstr0 = '\n'.join([str(ss, getattr(config_cc, ss)) for ss in dir(config_cc)])
-    lstr1 = '\n'.join([str(ss, getattr(dist, ss)) for ss in dir(dist)])
-    lstr2 = '\n'.join([str(ss, getattr(ccompiler, ss)) for ss in dir(ccompiler)])
+    lstr0 = '\n'.join([str((ss, getattr(config_cc, ss))) for ss in dir(config_cc)])
+    lstr1 = '\n'.join([str((ss, getattr(dist, ss))) for ss in dir(dist)])
+    lstr2 = '\n'.join([str((ss, getattr(ccompiler, ss))) for ss in dir(ccompiler)])
     msg = (
         "\n--------------------"
         "\nopenmp_helpers.py:"
         + f"\nscript_name = {os.path.basename(sys.argv[0])}"
         f"\nscript_args = {sys.argv[1:]}"
-        f"\nconfig_cc = {config_cc}"
+        f"\nconfig_cc = \n{config_cc}"
         f"\ndir(config_cc) = {lstr0}"
         f"\ndist = {dist}"
-        f"\ndir(dist) = {lstr1}"
+        f"\ndir(dist) = \n{lstr1}"
         f"\ncmd_opts = {cmd_opts}"
         f"\ncompiler = {compiler}"
         f"\nccompiler = {ccompiler}"
-        f"\ndir(ccompiler) = {lstr2}"
+        f"\ndir(ccompiler) = \n{lstr2}"
         "\n"
     )
     print(msg)
