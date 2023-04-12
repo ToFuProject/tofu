@@ -9,7 +9,7 @@ import subprocess
 
 from distutils.dist import Distribution
 from distutils.sysconfig import customize_compiler
-from numpy.distutils.ccompiler import new_compiler
+from numpy.distutils.ccompiler import new_compiler, show_compilers
 from numpy.distutils.command.config_compiler import config_cc
 
 
@@ -60,10 +60,10 @@ def get_compiler():
     if cmd_opts is not None and 'compiler' in cmd_opts:
         compiler = cmd_opts['compiler'][1]
     else:
-        if sys.platform == "darwin":
-            compiler = 'clang'
-        else:
-            compiler = None
+        # if sys.platform == "darwin":
+            # compiler = 'clang'
+        # else:
+        compiler = None
 
     ccompiler = new_compiler(compiler=compiler)
     customize_compiler(ccompiler)
@@ -84,6 +84,8 @@ def get_compiler():
         "\n--------------------"
         "\nopenmp_helpers.py:"
         + f"\nsys.platform = {sys.platform}"
+        + f"\nos.name = {sys.platform}"
+        + f"\nshow_compilers = {show_compilers()}"
         f"\nscript_name = {os.path.basename(sys.argv[0])}"
         f"\nscript_args = {sys.argv[1:]}"
         f"\nconfig_cc = \n{config_cc}"
