@@ -28,7 +28,7 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: echo compiling env variables
+    - name: set compiling env variables
       run: |
          export LDFLAGS="-L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++"
          echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> /Users/runner/.bash_profile
@@ -40,13 +40,6 @@ jobs:
          export CFLAGS=-I${HOME}/include
          export LDFLAGS=-lboost
          # export LDSHARED=/usr/local/bin/clang -shared
-         echo "CFLAGS: $CFLAGS"
-         echo "LDFLAGS: $LDFLAGS"
-         echo "CC: $CC"
-         echo "CXX: $CXX"
-         echo "CPP: $CPP"
-         echo "CPPFLAGS: $CPPFLAGS"
-         echo "LDSHARED: $LDSHARED"
     - name: Install dependencies
       run: |
          pip install --upgrade pip
@@ -61,6 +54,13 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: install tofu
       run: |
+         echo "CFLAGS: $CFLAGS"
+         echo "LDFLAGS: $LDFLAGS"
+         echo "CC: $CC"
+         echo "CXX: $CXX"
+         echo "CPP: $CPP"
+         echo "CPPFLAGS: $CPPFLAGS"
+         echo "LDSHARED: $LDSHARED"
         pip install -e ".[dev]" --no-build-isolation
     - name: Test with pytest and coverage
       run: |
