@@ -16,7 +16,7 @@ import datetime as dtm      # DB
 import Polygon as plg
 
 
-from ..geom import _comp_solidangles
+from . import _class8_vos_broadband as _vos_broadband
 
 
 # ###############################################################
@@ -202,58 +202,58 @@ def compute_vos(
         # -----------
         # loop on pix
 
-        lpcross = []
-        for ii in range(pcross0.shape[1]):
-
-            # -----------------
-            # get volume limits
-
-            if timing:
-                t000 = dtm.datetime.now()     # DB
-
-            if np.isnan(pcross0[0, ii]):
-                continue
-
-            # get cross-section polygon
-            ind, path_hor = _get_cross_section_indices(
-                dsamp=dsamp,
-                # polygon
-                pcross0=pcross0[:, ii],
-                pcross1=pcross1[:, ii],
-                phor0=phor0[:, ii],
-                phor1=phor1[:, ii],
-                margin_poly=margin_poly,
-                # points
-                x0f=x0f,
-                x1f=x1f,
-                sh=sh,
+        if spectro:
+            dvos[key_cam] = _vos_spectro(
+                x0=x0,
+                x1=x1,
+                ind=ind,
+                dphi=dphi[:, ii],
             )
 
-            # re-initialize
-            bool_cross[...] = False
+        else:
+            lpcross = []
+            for ii in range(pcross0.shape[1]):
 
-            # verb
-            if verb is True:
-                msg = (
-                    f"\tcam '{key_cam}' pixel {ii+1} / {pcross0.shape[1]}\t"
-                    f"npts in cross_section = {ind.sum()}   "
+                # -----------------
+                # get volume limits
+
+                if timing:
+                    t000 = dtm.datetime.now()     # DB
+
+                if np.isnan(pcross0[0, ii]):
+                    continue
+
+                # get cross-section polygon
+                ind, path_hor = _get_cross_section_indices(
+                    dsamp=dsamp,
+                    # polygon
+                    pcross0=pcross0[:, ii],
+                    pcross1=pcross1[:, ii],
+                    phor0=phor0[:, ii],
+                    phor1=phor1[:, ii],
+                    margin_poly=margin_poly,
+                    # points
+                    x0f=x0f,
+                    x1f=x1f,
+                    sh=sh,
                 )
-                end = '\n 'if ii == pcross0.shape[1] - 1 else '\r'
-                print(msg, end=end, flush=True)
 
-            # ---------------------
-            # loop on volume points
+                # re-initialize
+                bool_cross[...] = False
+
+                # verb
+                if verb is True:
+                    msg = (
+                        f"\tcam '{key_cam}' pixel {ii+1} / {pcross0.shape[1]}\t"
+                        f"npts in cross_section = {ind.sum()}   "
+                    )
+                    end = '\n 'if ii == pcross0.shape[1] - 1 else '\r'
+                    print(msg, end=end, flush=True)
+
+                # ---------------------
+                # loop on volume points
 
 
-            if spectro:
-                dvos[key_cam] = _vos_spectro(
-                    x0=x0,
-                    x1=x1,
-                    ind=ind,
-                    dphi=dphi[:, ii],
-                )
-
-            else:
                 # get detector / aperture
                 deti = _get_deti(
                     coll=coll,
@@ -272,7 +272,7 @@ def compute_vos(
                     dt111 += (t111-t000).total_seconds()
 
                 # compute
-                out = _vos_broadband(
+                out = _vos_broadband._vos(
                     x0=x0u,
                     x1=x1u,
                     ind=ind,
@@ -302,78 +302,78 @@ def compute_vos(
                     t222 = dtm.datetime.now()     # DB
                     dt222 += (t222-t111).total_seconds()
 
-            # -----------------------
-            # get pcross and simplify
+                # -----------------------
+                # get pcross and simplify
 
-            if np.any(bool_cross):
-                pc0, pc1 = _get_polygons(
-                    bool_cross=bool_cross,
-                    x0=x0l,
-                    x1=x1l,
-                    res=res,
-                )
-            else:
-                pc0, pc1 = None, None
+                if np.any(bool_cross):
+                    pc0, pc1 = _get_polygons(
+                        bool_cross=bool_cross,
+                        x0=x0l,
+                        x1=x1l,
+                        res=res,
+                    )
+                else:
+                    pc0, pc1 = None, None
 
-            # -----------
-            # replace
+                # -----------
+                # replace
 
-            lpcross.append((pc0, pc1))
+                lpcross.append((pc0, pc1))
+
+                if timing:
+                    t333 = dtm.datetime.now()     # DB
+                    dt333 += (t333-t222).total_seconds()
+
+            # ----------------
+            # harmonize pcross
 
             if timing:
-                t333 = dtm.datetime.now()     # DB
-                dt333 += (t333-t222).total_seconds()
+                t22 = dtm.datetime.now()     # DB
 
-        # ----------------
-        # harmonize pcross
+            ln = [pp[0].size if pp[0] is not None else 0 for pp in lpcross]
+            nmax = np.max(ln)
+            sh2 = (nmax, pcross0.shape[1])
+            pcross0 = np.full(sh2, np.nan)
+            pcross1 = np.full(sh2, np.nan)
+            for ii, nn in enumerate(ln):
 
-        if timing:
-            t22 = dtm.datetime.now()     # DB
+                if nn == 0:
+                    continue
 
-        ln = [pp[0].size if pp[0] is not None else 0 for pp in lpcross]
-        nmax = np.max(ln)
-        sh2 = (nmax, pcross0.shape[1])
-        pcross0 = np.full(sh2, np.nan)
-        pcross1 = np.full(sh2, np.nan)
-        for ii, nn in enumerate(ln):
+                if nmax > nn:
+                    ind = np.r_[0, np.linspace(0.1, 0.9, nmax-nn), np.arange(1, nn)]
+                    pcross0[:, ii] = scpinterp.interp1d(
+                        range(0, nn),
+                        lpcross[ii][0],
+                        kind='linear',
+                    )(ind)
 
-            if nn == 0:
-                continue
+                    pcross1[:, ii] = scpinterp.interp1d(
+                        range(0, nn),
+                        lpcross[ii][1],
+                        kind='linear',
+                    )(ind)
 
-            if nmax > nn:
-                ind = np.r_[0, np.linspace(0.1, 0.9, nmax-nn), np.arange(1, nn)]
-                pcross0[:, ii] = scpinterp.interp1d(
-                    range(0, nn),
-                    lpcross[ii][0],
-                    kind='linear',
-                )(ind)
+                else:
+                    pcross0[:, ii] = lpcross[ii][0]
+                    pcross1[:, ii] = lpcross[ii][1]
 
-                pcross1[:, ii] = scpinterp.interp1d(
-                    range(0, nn),
-                    lpcross[ii][1],
-                    kind='linear',
-                )(ind)
+            # -------------
+            # reshape
 
-            else:
-                pcross0[:, ii] = lpcross[ii][0]
-                pcross1[:, ii] = lpcross[ii][1]
+            if is2d:
+                newsh = tuple(np.r_[nmax, shape])
+                pcross0 = pcross0.reshape(newsh)
+                pcross1 = pcross1.reshape(newsh)
 
-        # -------------
-        # reshape
+            dvos[key_cam] = {
+                'pcross0': pcross0,
+                'pcross1': pcross1,
+            }
 
-        if is2d:
-            newsh = tuple(np.r_[nmax, shape])
-            pcross0 = pcross0.reshape(newsh)
-            pcross1 = pcross1.reshape(newsh)
-
-        dvos[key_cam] = {
-            'pcross0': pcross0,
-            'pcross1': pcross1,
-        }
-
-        if timing:
-            t33 = dtm.datetime.now()
-            dt22 += (t33 - t22).total_seconds()
+            if timing:
+                t33 = dtm.datetime.now()
+                dt22 += (t33 - t22).total_seconds()
 
     # timing
     if timing:
@@ -755,100 +755,6 @@ def _get_deti(
     }
 
     return det
-
-
-# ###########################################################
-# ###########################################################
-#               Broadband
-# ###########################################################
-
-
-def _vos_broadband(
-    x0=None,
-    x1=None,
-    ind=None,
-    dphi=None,
-    deti=None,
-    lap=None,
-    res=None,
-    config=None,
-    visibility=None,
-    # output
-    key_cam=None,
-    dvos=None,
-    sli=None,
-    ii=None,
-    bool_cross=None,
-    path_hor=None,
-    # timing
-    timing=None,
-    dt1111=None,
-    dt2222=None,
-    dt3333=None,
-    dt4444=None,
-):
-
-    # --------------------------
-    # prepare points and indices
-
-    ir, iz = ind.nonzero()
-    iru = np.unique(ir)
-    izru = [iz[ir == i0] for i0 in iru]
-
-    nphi = np.ceil(x0[ir]*(dphi[1] - dphi[0]) / res).astype(int)
-
-    irf = np.repeat(ir, nphi)
-    izf = np.repeat(iz, nphi)
-    phi = np.concatenate(tuple([
-        np.linspace(dphi[0], dphi[1], nn) for nn in nphi
-    ]))
-
-    xx = x0[irf] * np.cos(phi)
-    yy = x0[irf] * np.sin(phi)
-    zz = x1[izf]
-
-    out = _comp_solidangles.calc_solidangle_apertures(
-        # observation points
-        pts_x=xx,
-        pts_y=yy,
-        pts_z=zz,
-        # polygons
-        apertures=lap,
-        detectors=deti,
-        # possible obstacles
-        config=config,
-        # parameters
-        summed=False,
-        visibility=visibility,
-        return_vector=False,
-        return_flat_pts=None,
-        return_flat_det=None,
-        timing=timing,
-    )
-
-    # ------------
-    # get indices
-
-    if timing:
-        t0 = dtm.datetime.now()     # DB
-        out, dt1, dt2, dt3 = out
-
-    for ii, i0 in enumerate(iru):
-        ind0 = irf == i0
-        for i1 in izru[ii]:
-            ind = ind0 & (izf == i1)
-            bool_cross[i0 + 1, i1 + 1] = np.any(out[0, ind] > 0.)
-
-    # timing
-    if timing:
-        dt4444 += (dtm.datetime.now() - t0).total_seconds()
-        dt1111 += dt1
-        dt2222 += dt2
-        dt3333 += dt3
-
-        return dt1111, dt2222, dt3333, dt4444
-    else:
-        return
 
 
 # ###########################################################
