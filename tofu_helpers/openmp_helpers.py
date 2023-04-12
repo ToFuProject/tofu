@@ -67,11 +67,16 @@ def get_compiler():
     msg = (
         "\n--------------------"
         "\nopenmp_helpers.py:"
-        f"config_cc = {config_cc}"
+        f"\nscript_name = {os.path.basename(sys.argv[0]}"
+        f"\nscript_args = {sys.argv[1:]}"
+        f"\nconfig_cc = {config_cc}"
+        f"\ndir(config_cc) = {dir(config_cc)}"
         f"\ndist = {dist}"
+        f"\ndir(dist) = {dir(dist)}"
         f"\ncmd_opts = {cmd_opts}"
         f"\ncompiler = {compiler}"
         f"\nccompiler = {ccompiler}"
+        f"\ndir(ccompiler) = {dir(ccompiler)}"
         "\n"
     )
     print(msg)
@@ -104,7 +109,7 @@ def get_openmp_flag(compiler):
         return ['-openmp']
     # Default flag for GCC and clang:
     # return ['-fopenmp']
-    return ['-fopenmp']
+    return ['-openmp']
 
 
 def check_for_openmp():
