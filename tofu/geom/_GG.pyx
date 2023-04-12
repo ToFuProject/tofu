@@ -45,7 +45,10 @@ from . cimport _vignetting_tools as _vt
 from . import _openmp_tools as _ompt
 
 from libc.stdio cimport printf
-from openmp cimport omp_get_wtime, omp_get_thread_num, omp_get_max_threads
+from .openmp_enabled import is_openmp_enabled
+
+IF TOFU_OPENMP_ENABLED:
+    from openmp cimport omp_get_wtime, omp_get_thread_num, omp_get_max_threads
 
 # == Polygon intersection ======================================================
 
