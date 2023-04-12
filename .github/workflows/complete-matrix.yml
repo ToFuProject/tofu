@@ -20,7 +20,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Install LLVM and Clang
       run: |
-         brew uninstall gcc
+         brew uninstall --ignore-dependencies gcc
          brew reinstall llvm
          brew reinstall libomp
          export LDFLAGS="-L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++"
