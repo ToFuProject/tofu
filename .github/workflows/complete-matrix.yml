@@ -28,13 +28,24 @@ jobs:
          export LDFLAGS="-L/usr/local/opt/llvm/lib"
          export CPPFLAGS="-I/usr/local/opt/llvm/include"
          export CFLAGS+="-I/usr/lib/gcc/x86_64-linux-gnu/4.8/include/"
-         export CPP=/usr/local/opt/llvm/bin/clang;
-
+         export CPP=/usr/local/opt/llvm/bin/clang
+         export CC=/usr/local/bin/clang
+         export CFLAGS=-I${HOME}/include
+         export LDFLAGS=-lboost
+         export LDSHARED=/usr/local/bin/clang -shared
       if: contains(matrix.os, 'macOS')
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - name: echo compiling env variables
+      run: |
+         echo $CFLAGS
+         echo $LDFLAGS
+         echo $CC
+         echo $CPP
+         echo $CPPFLAGS
+         echo $LDSHARED
     - name: Install dependencies
       run: |
          pip install --upgrade pip
