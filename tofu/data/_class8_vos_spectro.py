@@ -16,6 +16,11 @@ from . import _class8_equivalent_apertures as _equivalent_apertures
 
 
 def _vos(
+    # ressources
+    coll=None,
+    key_diag=None,
+    key_cam=None,
+    #
     x0=None,
     x1=None,
     ind=None,
@@ -39,6 +44,21 @@ def _vos(
     dt3333=None,
     dt4444=None,
 ):
+
+    # -----------------
+    # prepare optics
+
+    doptics = coll.dobj['diagnostic'][key_diag]['doptics'][key_cam]
+    lop = doptics[key_cam]['optics'][::-1]
+    lpoly_pre = [
+        coll.get_optics_poly(
+            key=k0,
+            add_points=add_points,
+            return_outline=False,
+        )
+        for k0 in lop_pre
+    ]
+
 
     # --------------------------
     # prepare points and indices
@@ -67,10 +87,14 @@ def _vos(
     # -------------
     # get
 
+    lcross = []
     for pp in pts:
 
         # get equivalent aperture
         equivalent aperture(optics => crystal)
+
+        if no_aperture:
+            continue
 
         # get angles
         angles =
