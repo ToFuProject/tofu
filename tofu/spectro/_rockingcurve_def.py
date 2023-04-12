@@ -71,7 +71,7 @@ _DCRYST_MAT = {
             'Si': np.r_[
                 0., 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7,
                 0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5,
-            ]*1e10,
+            ], # *1e10,
             'O': np.r_[
                 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1,
             ], # *1e10,
@@ -140,7 +140,7 @@ _DCRYST_MAT = {
             'Ge': np.r_[
                 0., 0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7,
                 0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5
-            ]*1e10, # ????????????? multiply or not
+            ], # *1e10,
             'sources': 
                 'Int. Tab. X-Ray Crystallography, Vol.I,II,III,IV (1985)',
         },
@@ -221,7 +221,7 @@ def _complement_dict_mat(dcryst_mat=None):
         # -----------------------------------------------------
 
         if k0 == 'Quartz':
-            _atomic_coefs_factor_Silicium(
+            _atomic_coefs_factor_Quartz(
                 dcryst_mat=dcryst_mat,
                 k0=k0,
                 v0=v0,
@@ -262,7 +262,7 @@ def _positions_quartz(
     # yo = np.r_[y, -x, x - y, -y, x, y - x]
     # zo = np.r_[z, z + 1./3., z + 2./3., -z, 2./3. - z, 1./3. - z]
 
-    # Silicium
+    # Quartz
     uSi = v0['mesh']['positions']['Si']['u'][0]
     dcryst_mat[k0]['mesh']['positions']['Si']['x'] = np.r_[
         -uSi,
@@ -385,7 +385,7 @@ def diam_volume(aa):
 # ###############################################################
 
 
-def _atomic_coefs_factor_Silicium(
+def _atomic_coefs_factor_Quartz(
     dcryst_mat=None,
     k0=None,
     v0=None,
@@ -621,7 +621,7 @@ def _complement_dict_cut(dcryst_mat=None, dcryst_cut=None):
             dcryst_cut[k0]['phases']['Si'] = np.full((Nsi,), np.nan)
             dcryst_cut[k0]['phases']['O'] = np.full((No,), np.nan)
 
-            # Silicium
+            # Quartz
             for ii in range(Nsi):
                 dcryst_cut[k0]['phases']['Si'][ii] = phasesi(
                     hh,
