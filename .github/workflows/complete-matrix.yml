@@ -23,6 +23,13 @@ jobs:
          # brew uninstall --ignore-dependencies gcc
          brew reinstall llvm
          brew reinstall libomp
+      if: contains(matrix.os, 'macOS')
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: echo compiling env variables
+      run: |
          export LDFLAGS="-L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++"
          echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> /Users/runner/.bash_profile
          export LDFLAGS="-L/usr/local/opt/llvm/lib"
@@ -33,16 +40,10 @@ jobs:
          export CFLAGS=-I${HOME}/include
          export LDFLAGS=-lboost
          # export LDSHARED=/usr/local/bin/clang -shared
-      if: contains(matrix.os, 'macOS')
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: echo compiling env variables
-      run: |
          echo "CFLAGS: $CFLAGS"
          echo "LDFLAGS: $LDFLAGS"
          echo "CC: $CC"
+         echo "CXX: $CXX"
          echo "CPP: $CPP"
          echo "CPPFLAGS: $CPPFLAGS"
          echo "LDSHARED: $LDSHARED"

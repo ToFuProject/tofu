@@ -63,7 +63,8 @@ def get_compiler():
         compiler = cmd_opts['compiler'][1]
     else:
         if sys.platform == "darwin":
-            os.environ['CC'] = 'clang++'
+            os.environ['CC'] = 'clang'
+            os.environ['CXX'] = 'clang++'
         compiler = None
 
     ccompiler = new_compiler(compiler=compiler)
