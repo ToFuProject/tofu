@@ -68,22 +68,26 @@ def get_compiler():
     # -----
     # print
 
-    lstr0 = '\n'.join([str((ss, getattr(config_cc, ss))) for ss in dir(config_cc)])
-    lstr1 = '\n'.join([str((ss, getattr(dist, ss))) for ss in dir(dist)])
-    lstr2 = '\n'.join([str((ss, getattr(ccompiler, ss))) for ss in dir(ccompiler)])
+    lstr = '\n'.join([
+        str((ss, getattr(ccompiler, ss)))
+        for ss in [
+            'compiler', 'compiler_cxx', 'compiler_so', 'compiler_type',
+            'executables', 'language_map', 'language_order', 'linker_exe',
+            'linker_so', 'obj_extension', 'preprocessor',
+            'shared_lib_extension', 'src_extensions',
+        ]
+    ])
     msg = (
         "\n--------------------"
         "\nopenmp_helpers.py:"
         + f"\nscript_name = {os.path.basename(sys.argv[0])}"
         f"\nscript_args = {sys.argv[1:]}"
         f"\nconfig_cc = \n{config_cc}"
-        f"\ndir(config_cc) = {lstr0}"
         f"\ndist = {dist}"
-        f"\ndir(dist) = \n{lstr1}"
         f"\ncmd_opts = {cmd_opts}"
         f"\ncompiler = {compiler}"
         f"\nccompiler = {ccompiler}"
-        f"\ndir(ccompiler) = \n{lstr2}"
+        f"\ndir(ccompiler) = \n{lstr}"
         "\n"
     )
     print(msg)
