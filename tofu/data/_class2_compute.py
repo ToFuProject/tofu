@@ -128,7 +128,7 @@ def _sample(
     # -----------
 
     if pts_x.size == 0 or not np.any(np.isfinite(pts_x)):
-        return None
+        return [None]*len(return_coords)
 
     # -----------
     # compute
@@ -185,8 +185,9 @@ def _sample(
 
             sli = tuple([slice(None)] + list(ind))
             ioki = iok[sli]
+            iokin = ioki[:-1] * ioki[1:]
 
-            if np.sum(ioki) < 2:
+            if not np.any(iokin):
                 itot.append(nan)
                 if out_xyz:
                     lpx.append(nan)
@@ -203,6 +204,7 @@ def _sample(
                 i0i = i0[ioki]
             else:
                 i0i = i0[sli2]
+            nni = nn[tuple([iokin] + list(ind))]
 
             # itoti
             itoti = []
@@ -212,9 +214,10 @@ def _sample(
                         np.linspace(
                             i0i[jj],
                             i0i[jj+1],
-                            nn[tuple(np.r_[jj, ind])] + 1,
+                            nni[jj] + 1,
                         )[:-1]
                     )
+
             if np.isfinite(i0i[-1]):
                 itoti.append([i0i[-1]])
 

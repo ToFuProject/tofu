@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
-import warnings
-import datetime as dtm
-
-
 import numpy as np
-import matplotlib.pyplot as plt    # DB
 
 
 import Polygon as plg
-import datastock as ds
 
 
 from . import _class8_compute

@@ -323,8 +323,8 @@ setup(
         "requests",
         "svg.path",
         "Polygon3",
-        "cython",
-        "bsplines2d>=0.0.2",
+        "cython>=0.26",
+        "bsplines2d>=0.0.3",
     ],
     python_requires=">=3.6",
 

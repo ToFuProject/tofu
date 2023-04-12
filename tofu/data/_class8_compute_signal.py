@@ -30,6 +30,8 @@ def compute_signal(
     ref_com=None,
     # signal
     brightness=None,
+    # verb
+    verb=None,
     # store
     store=None,
     # return
@@ -44,7 +46,8 @@ def compute_signal(
         key_diag, key_cam, spectro, PHA, is2d,
         method, mode, groupby, val_init, brightness,
         key_integrand, key_mesh0, key_bs,
-        store, key,
+        key_ref_spectro, key_bs_spectro,
+        verb, store, key,
         returnas,
     ) = _compute_signal_check(
         coll=coll,
@@ -60,6 +63,8 @@ def compute_signal(
         brightness=brightness,
         # to be integrated
         key_integrand=key_integrand,
+        # verb
+        verb=verb,
         # store
         store=store,
         key=key,
@@ -80,6 +85,21 @@ def compute_signal(
         radius_max = None
 
     # -------------
+    # verb
+    # --------------
+
+    if verb is True:
+        msg = (
+            "\nComputing synthetic signal for:\n"
+            f"\t- diag: {key_diag}\n"
+            f"\t- cam: {key_cam}\n"
+            f"\t- integrand: {key_integrand}\n"
+            f"\t- method: {method}\n"
+            f"\t- res: {res}, {mode}\n"
+        )
+        print(msg)
+
+    # -------------
     # compute
     # --------------
 
@@ -96,6 +116,8 @@ def compute_signal(
             res=res,
             mode=mode,
             key_integrand=key_integrand,
+            key_ref_spectro=key_ref_spectro,
+            key_bs_spectro=key_bs_spectro,
             radius_max=radius_max,
             groupby=groupby,
             val_init=val_init,
@@ -213,6 +235,8 @@ def _compute_signal_check(
     brightness=None,
     # to be integrated
     key_integrand=None,
+    # verb
+    verb=None,
     # store
     store=None,
     # return
@@ -269,12 +293,6 @@ def _compute_signal_check(
             for k1 in v0[wbs]
         ])
     ]
-    if spectro:
-        # lok = [
-            # k0 for k0 in lok
-            # if coll.ddata[k0].get('bsplines_spectral') is not None
-        # ]
-        pass
 
     key_integrand = ds._generic_check._check_var(
         key_integrand, 'key_integrand',
@@ -302,11 +320,29 @@ def _compute_signal_check(
     else:
         key_mesh0 = key_mesh
 
+    # key_ref_spectro
+    if spectro:
+        key_ref_spectro, key_bs_spectro = _get_ref_bs_spectro(
+            coll=coll,
+            key_integrand=key_integrand,
+            key_bs=key_bs,
+        )
+    else:
+        key_ref_spectro = None
+        key_bs_spectro = None
+
     # val_init
     val_init = ds._generic_check._check_var(
         val_init, 'val_init',
         default=np.nan,
         allowed=[np.nan, 0.]
+    )
+
+    # verb
+    verb = ds._generic_check._check_var(
+        verb, 'verb',
+        types=bool,
+        default=True,
     )
 
     # store
@@ -336,9 +372,64 @@ def _compute_signal_check(
         key_diag, key_cam, spectro, PHA, is2d,
         method, mode, groupby, val_init, brightness,
         key_integrand, key_mesh0, key_bs,
-        store, key,
+        key_ref_spectro, key_bs_spectro,
+        verb, store, key,
         returnas,
     )
+
+
+def _get_ref_bs_spectro(coll=None, key_integrand=None, key_bs=None):
+
+    # get ref of integrand
+    kref = coll.ddata[key_integrand]['ref']
+    wbs = coll._which_bsplines
+
+    key_ref_spectro = None
+    key_bs_spectro = None
+
+    # get list of non-spatial ref
+    lkspectro = [
+        k0 for k0 in kref
+        if k0 not in coll.dobj[wbs][key_bs]['ref']
+    ]
+
+    # If none => error
+    if len(lkspectro) == 0:
+        msg = (
+            "Integrand '{key_integrand}' does not seem to "
+            "have a spectral dimension"
+        )
+        raise Exception(msg)
+
+    # unique => ok
+    if len(lkspectro) == 1:
+        key_ref_spectro = lkspectro[0]
+    else:
+        pass
+
+    # check if bs
+    lbs_spectro = [
+        k0 for k0 in coll.ddata[key_integrand][wbs]
+        if k0 != key_bs
+    ]
+    if len(lbs_spectro) == 0:
+        pass
+    elif len(lbs_spectro) == 1:
+        key_bs_spectro = lbs_spectro[0]
+        if key_ref_spectro is None:
+            key_ref_spectro = coll.dobj[wbs][key_bs_spectro]['ref'][0]
+        assert key_ref_spectro == coll.dobj[wbs][key_bs_spectro]['ref'][0]
+    else:
+        pass
+
+    # --------
+    # safety check
+
+    if key_ref_spectro is None:
+        msg = "Spectral dimension of '{key_integrand} could not be identified'"
+        raise Exception(msg)
+
+    return key_ref_spectro, key_bs_spectro
 
 
 # ##################################################################
@@ -359,6 +450,8 @@ def _compute_los(
     res=None,
     mode=None,
     key_integrand=None,
+    key_ref_spectro=None,
+    key_bs_spectro=None,
     radius_max=None,
     groupby=None,
     val_init=None,
@@ -370,16 +463,35 @@ def _compute_los(
     # prepare
 
     if spectro:
-        dict_E, _ = coll.get_diagnostic_lamb(
+
+        
+
+        kspect_ref_vect = coll.get_ref_vector(ref=key_ref_spectro)[3]
+        spect_ref_vect = coll.ddata[kspect_ref_vect]['data']
+        
+        ref = coll.ddata[key_integrand]['ref']
+        axis_spectro = ref.index(key_ref_spectro)
+
+        wbs = coll._which_bsplines
+        rbs = coll.dobj[wbs][key_bs]['ref'][0]
+        if axis_spectro > ref.index(rbs):
+            axis_spectro -= len(coll.dobj[wbs][key_bs]['ref']) - 1
+
+        units_spectro = coll.ddata[kspect_ref_vect]['units']
+
+        E, _ = coll.get_diagnostic_lamb(
             key_diag,
             lamb='lamb',
-            units='eV',
+            units=units_spectro,
         )
-        dict_dE, _ = coll.get_diagnostic_lamb(
+        dE, _ = coll.get_diagnostic_lamb(
             key_diag,
             lamb='dlamb',
-            units='eV',
+            units=units_spectro,
         )
+        E_flat = E.ravel()
+        dE_flat = dE.ravel()
+
     else:
         dict_E = None
         dict_dE = None
@@ -391,6 +503,8 @@ def _compute_los(
         key_bs=key_bs,
     )
     units = units0 * units_bs
+
+    domain = None
 
     # ----------------
     # loop on cameras
@@ -411,6 +525,7 @@ def _compute_los(
         # ---------------------------------------------------
         # loop on group of pixels (to limit memory footprint)
 
+        shape = None
         for ii in range(ngroup):
 
             # indices
@@ -421,6 +536,10 @@ def _compute_los(
             # get rid of undefined LOS
             ind_flat = [jj for jj in range(i0, i1) if ilosok[jj]]
             ni = len(ind_flat)
+
+            # no valid los in group
+            if len(ind_flat) == 0:
+                continue
 
             # LOS sampling
             R, Z, length = coll.sample_rays(
@@ -433,6 +552,9 @@ def _compute_los(
                 concatenate=True,
                 return_coords=['R', 'z', 'ltot'],
             )
+            
+            if R is None:
+                continue
 
             # safety checks
             inan = np.isnan(R)
@@ -442,12 +564,15 @@ def _compute_los(
             # some lines can be nan if non-existant
             assert nnan == ni, f"{nnan} vs {ni}"
 
-            # lambda for spectro
-            if spectro:
-                E = dict_dE[k0]
+            # -------------------
+            # domain for spectro
 
-            # -------------
-            # interpolate
+            if spectro:
+                ind = np.argmin(np.abs(spect_ref_vect - E_flat[ind_flat[0]]))
+                domain = {key_ref_spectro: {'ind': np.r_[ind]}}
+
+            # ---------------------
+            # interpolate spacially
 
             # datai, units, refi = coll.interpolate(
             douti = coll.interpolate(
@@ -458,6 +583,7 @@ def _compute_los(
                 grid=False,
                 submesh=True,
                 ref_com=ref_com,
+                domain=domain,
                 # azone=None,
                 details=False,
                 crop=None,
@@ -467,9 +593,22 @@ def _compute_los(
                 store=False,
             )[key_integrand]
 
+            # ----------------------
+            # interpolate spectrally
+
+            if spectro:             
+                douti['data'] = np.take(douti['data'], 0, axis_spectro)
+                douti['ref'] = tuple([
+                    rr for jj, rr in enumerate(douti['ref'])
+                    if jj != axis_spectro
+                ])
+
+            # ------------
+            # extract data
+
             datai, refi = douti['data'], douti['ref']
             axis = refi.index(None)
-            if ii == 0:
+            if shape is None:
                 shape = list(datai.shape)
                 shape[axis] = npix
                 data = np.full(shape, val_init)
@@ -524,6 +663,12 @@ def _compute_los(
             unitsi = units * coll.ddata[ketend]['units']
         else:
             unitsi = units
+
+        # spectral bins if spectro
+        if spectro:
+            sh_dE = [-1 if aa == axis else 1 for aa in range(len(refi))]
+            data *= dE_flat.reshape(sh_dE)
+            unitsi = unitsi * units_spectro
 
         # reshape if 2d
         if is2d:

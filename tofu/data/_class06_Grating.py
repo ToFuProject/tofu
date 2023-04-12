@@ -14,7 +14,7 @@ import datastock as ds
 from ._class05_Crystal import Crystal as Previous
 from . import _class3_check
 # from . import _class6_check as _check
-# from . import _class6_compute as _compute
+from . import _class06_compute as _compute
 
 
 __all__ = ['Grating']
@@ -93,3 +93,11 @@ class Grating(Previous):
 
         # update dicts
         self.update(dref=dref, ddata=ddata, dobj=dobj)
+
+    # ------------
+    # utilities
+    # ------------
+
+    def get_optics_isconvex(self, keys=None):
+        """ return list of bool flags indicating if each optics is convex """
+        return _compute._isconvex(coll=self, keys=keys)
