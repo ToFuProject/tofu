@@ -59,7 +59,7 @@ def _get_x01toxyz(
         iplan = np.isinf(dgeom['curve_r']).nonzero()[0][0]
         eax = ['e0', 'e1'][iplan]
         erot = ['e0', 'e1'][1-iplan]
-        
+
         rc = dgeom['curve_r'][1 - iplan]
         rcs = np.sign(rc)
         rca = np.abs(rc)
@@ -102,7 +102,7 @@ def _get_x01toxyz(
 
         rc = dgeom['curve_r'][0]
         rcs = np.sign(rc)
-        rca = np.abs(rc)        
+        rca = np.abs(rc)
 
         def x01toxyz(
             x0=None,

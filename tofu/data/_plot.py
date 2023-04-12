@@ -3273,8 +3273,8 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
     iddata = id(data)
 
     # singular values
-    Ds = (np.min(s),np.max(s))
-    Ds = (Ds[0], Ds[1]+0.05*np.diff(Ds))
+    Ds = (np.min(s), np.max(s))
+    Ds = (Ds[0], Ds[1] + 0.05*np.diff(Ds)[0])
     indmodes = np.arange(0,s.size)
     Dm = (-1, np.max(modes)+1)
     idm = id(indmodes)

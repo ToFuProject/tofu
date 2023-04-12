@@ -18,6 +18,7 @@ from . import _class8_move as _move
 from . import _class8_los_data as _los_data
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_etendue_los as _etendue_los
+from . import _class8_vos as _vos
 from . import _class8_los_angles as _los_angles
 from . import _class8_compute_signal as _compute_signal
 from . import _class8_plot as _plot
@@ -41,7 +42,9 @@ class Diagnostic(Previous):
         'diagnostic': [
             'is2d',
             'spectro',
+            'PHA',
             'camera',
+            'signal',
         ],
     })
 
@@ -60,6 +63,9 @@ class Diagnostic(Previous):
         key_nseg=None,
         # compute
         compute=True,
+        add_points=None,
+        # spectro-only
+        rocking_curve_fw=None,
         # others
         verb=None,
         **kwdargs,
@@ -97,6 +103,9 @@ class Diagnostic(Previous):
                 reflections_nb=reflections_nb,
                 reflections_type=reflections_type,
                 key_nseg=key_nseg,
+                add_points=add_points,
+                # spectro-only
+                rocking_curve_fw=rocking_curve_fw,
                 # bool
                 verb=verb,
                 plot=False,
@@ -130,6 +139,7 @@ class Diagnostic(Previous):
         key_cam=None,
         data=None,
         rocking_curve=None,
+        units=None,
         **kwdargs,
         ):
         """ Return dict of data for chosen cameras
@@ -151,6 +161,7 @@ class Diagnostic(Previous):
             key_cam=key_cam,
             data=data,
             rocking_curve=rocking_curve,
+            units=units,
             **kwdargs,
         )
 
@@ -185,6 +196,8 @@ class Diagnostic(Previous):
         check=None,
         margin_par=None,
         margin_perp=None,
+        # spectro-only
+        rocking_curve_fw=None,
         # equivalent aperture
         add_points=None,
         convex=None,
@@ -195,6 +208,7 @@ class Diagnostic(Previous):
         reflections_type=None,
         key_nseg=None,
         # bool
+        compute_vos_from_los=None,
         verb=None,
         plot=None,
         store=None,
@@ -217,6 +231,8 @@ class Diagnostic(Previous):
             check=check,
             margin_par=margin_par,
             margin_perp=margin_perp,
+            # spectro-only
+            rocking_curve_fw=rocking_curve_fw,
             # equivalent aperture
             add_points=add_points,
             convex=convex,
@@ -242,7 +258,64 @@ class Diagnostic(Previous):
                 reflections_type=reflections_type,
                 key_nseg=key_nseg,
                 dcompute=dcompute,
+                compute_vos_from_los=compute_vos_from_los,
             )
+
+    def compute_diagnostic_vos(
+        self,
+        key=None,
+        key_mesh=None,
+        # parameters
+        res=None,
+        check=None,
+        margin_par=None,
+        margin_perp=None,
+        # raytracing
+        visibility=None,
+        # spectro-only
+        rocking_curve_fw=None,
+        # equivalent aperture
+        add_points=None,
+        convex=None,
+        # for storing los
+        config=None,
+        length=None,
+        reflections_nb=None,
+        reflections_type=None,
+        key_nseg=None,
+        # bool
+        verb=None,
+        plot=None,
+        store=None,
+        timing=None,
+    ):
+        """ Compute the etendue of the diagnostic (per pixel)
+
+        Etendue (m2.sr) can be computed analytically or numerically
+        If plot, plot the comparison between all computations
+        If store = 'analytical' or 'numerical', overwrites the diag etendue
+
+        """
+
+        dvos = _vos.compute_vos(
+            coll=self,
+            key_diag=key,
+            key_mesh=key_mesh,
+            # etendue
+            res=res,
+            check=check,
+            margin_par=margin_par,
+            margin_perp=margin_perp,
+            config=config,
+            visibility=visibility,
+            # spectro-only
+            rocking_curve_fw=rocking_curve_fw,
+            # bool
+            verb=verb,
+            plot=plot,
+            store=store,
+            timing=timing,
+        )
 
     # ---------------
     # utilities
@@ -294,6 +367,7 @@ class Diagnostic(Previous):
         key_cam=None,
         lamb=None,
         rocking_curve=None,
+        units=None,
     ):
         """ Return the wavelength associated to
         - 'lamb'
@@ -308,6 +382,7 @@ class Diagnostic(Previous):
             key_cam=key_cam,
             lamb=lamb,
             rocking_curve=rocking_curve,
+            units=units,
         )
 
     # ---------------
@@ -321,8 +396,8 @@ class Diagnostic(Previous):
         return _check._get_optics_cls(coll=self, optics=optics)
 
     # def get_diagnostic_doptics(self, key=None):
-    #     """ 
-    #     Get dict of optics and corresponding classes 
+    #     """
+    #     Get dict of optics and corresponding classes
 
     #     """
     #     return _check._get_diagnostic_doptics(coll=self, key=key)
@@ -367,6 +442,16 @@ class Diagnostic(Previous):
             ravel=ravel,
             total=total,
             return_outline=return_outline,
+        )
+
+    def get_optics_as_input_solid_angle(
+        self,
+        keys=None,
+    ):
+        """ Return the optics outline """
+        return _compute.get_optics_as_input_solid_angle(
+            coll=self,
+            keys=keys,
         )
 
     def set_optics_color(self, key=None, color=None):
@@ -427,7 +512,7 @@ class Diagnostic(Previous):
         if compute:
             self.compute_diagnostic_etendue_los(
                 key=key,
-                #e etendue
+                # etendue
                 analytical=True,
                 numerical=False,
                 res=None,
@@ -484,7 +569,6 @@ class Diagnostic(Previous):
             return_alpha=return_alpha,
         )
 
-
     def compute_diagnostic_signal(
         self,
         key=None,
@@ -498,6 +582,7 @@ class Diagnostic(Previous):
         mode=None,
         groupby=None,
         val_init=None,
+        ref_com=None,
         # signal
         brightness=None,
         # store
@@ -522,6 +607,7 @@ class Diagnostic(Previous):
             mode=mode,
             groupby=groupby,
             val_init=val_init,
+            ref_com=ref_com,
             # signal
             brightness=brightness,
             # store
@@ -529,7 +615,6 @@ class Diagnostic(Previous):
             # return
             returnas=returnas,
         )
-
 
     # -----------------
     # plotting
@@ -596,9 +681,11 @@ class Diagnostic(Previous):
         los_res=None,
         # data plot
         data=None,
+        units=None,
         cmap=None,
         vmin=None,
         vmax=None,
+        alpha=None,
         # config
         plot_config=None,
         # figure
@@ -623,9 +710,11 @@ class Diagnostic(Previous):
             los_res=los_res,
             # data plot
             data=data,
+            units=units,
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,
+            alpha=alpha,
             # config
             plot_config=plot_config,
             # figure
@@ -640,17 +729,20 @@ class Diagnostic(Previous):
             connect=connect,
         )
 
-    def plot_diagnostic_interpolated_along_los(
+    def interpolate_along_los(
         self,
-        key=None,
+        key_diag=None,
         key_cam=None,
-        key_data_x=None,
-        key_data_y=None,
+        key_integrand=None,
+        key_coords=None,
         # sampling
         res=None,
         mode=None,
         segment=None,
         radius_max=None,
+        # interpolating
+        domain=None,
+        val_out=None,
         # plotting
         vmin=None,
         vmax=None,
@@ -661,17 +753,20 @@ class Diagnostic(Previous):
         """ Compute and plot interpolated data along the los of the diagnostic
 
         """
-        return _los_data._interpolated_along_los(
+        return _los_data._interpolate_along_los(
             coll=self,
-            key=key,
+            key_diag=key_diag,
             key_cam=key_cam,
-            key_data_x=key_data_x,
-            key_data_y=key_data_y,
+            key_integrand=key_integrand,
+            key_coords=key_coords,
             # sampling
             res=res,
             mode=mode,
             segment=segment,
             radius_max=radius_max,
+            # interpolating
+            domain=domain,
+            val_out=val_out,
             # plotting
             vmin=vmin,
             vmax=vmax,

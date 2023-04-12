@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
-import warnings
-import datetime as dtm
-
-
 import numpy as np
-import matplotlib.pyplot as plt    # DB
 
 
 import Polygon as plg
-import datastock as ds
 
 
 from . import _class8_compute
@@ -91,9 +85,9 @@ def _get_reflection(
 
     # plt.figure()
     # plt.plot(
-    #     poly_x0, poly_x1, '.-k',
-    #     p0, p1, '.-r',
-    #     )
+        # poly_x0, poly_x1, '.-k',
+        # p0, p1, '.-r',
+    # )
 
     p0, p1 = np.array(p_a.contour(0)).T
 
@@ -128,7 +122,7 @@ def _get_reflection(
         # timing
         dt=dt,
     )
-    
+
     return p0, p1
 
 

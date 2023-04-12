@@ -5,11 +5,6 @@
 # import copy
 
 
-# Common
-import numpy as np
-import datastock as ds
-
-
 # tofu
 from ._class04_Filter import Filter as Previous
 from . import _class3_check
@@ -19,6 +14,7 @@ from . import _class5_coordinates as _coordinates
 from . import _class5_reflections_pts2pt as _reflections_pts2pt
 from . import _class5_reflections_ptsvect as _reflections_ptsvect
 from . import _class5_projections as _projections
+from . import _class5_plot as _plot
 
 
 __all__ = ['Crystal']
@@ -85,6 +81,8 @@ class Crystal(Previous):
 
         # material
         dobj['crystal'][key]['dmat'] = _check._dmat(
+            coll=self,
+            key=key,
             dgeom=dobj['crystal'][key]['dgeom'],
             dmat=dmat,
             alpha=alpha,
@@ -261,4 +259,30 @@ class Crystal(Previous):
             cam_pixels_nb=cam_pixels_nb,
             # returnas
             returnas=returnas,
+        )
+
+    # --------------------
+    # plotting
+    # ---------------------
+
+    def plot_crystal_rocking_curve(
+        self,
+        key=None,
+        # option
+        T=None,
+        # plotting
+        dax=None,
+        color=None,
+        plot_FW=None,
+    ):
+
+        return _plot.plot_rocking_curve(
+            coll=self,
+            key=key,
+            # option
+            T=T,
+            # plotting
+            dax=dax,
+            color=color,
+            plot_FW=plot_FW,
         )

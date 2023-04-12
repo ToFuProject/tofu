@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 
 
 import Polygon as plg
-from Polygon import Utils as plgUtils
+# from Polygon import Utils as plgUtils
+from scipy.spatial import ConvexHull
 import datastock as ds
 
 
@@ -123,7 +124,7 @@ def equivalent_apertures(
         pts2pt = coll.get_optics_reflect_pts2pt(key=kref)
     else:
         pts2pt = None
-        
+
     # ptsvect func
     ptsvect = coll.get_optics_reflect_ptsvect(key=kref)
     lptsvect_poly = [
@@ -148,8 +149,19 @@ def equivalent_apertures(
 
     # dt = np.zeros((14,), dtype=float)
 
+    # add pts to initial polygon only if curved
+    if spectro:
+        rcurv = np.r_[coll.dobj[cref][kref]['dgeom']['curve_r']]
+        ind = ~np.isinf(rcurv)
+        if np.any(rcurv[ind] > 0):
+            addp0 = add_points
+        else:
+            addp0 = False
+    else:
+        addp0 = False
+
     # intial polygon
-    p_a = coll.get_optics_outline(key=kref, add_points=False)
+    p_a = coll.get_optics_outline(key=kref, add_points=addp0)
     p_a = plg.Polygon(np.array([p_a[0], p_a[1]]).T)
 
     iok = np.ones((pixel.size,), dtype=bool)
@@ -185,15 +197,18 @@ def equivalent_apertures(
         # convex hull
         if p0 is None or p0.size == 0:
             iok[ii] = False
+
         elif convex:
-            p0, p1 = np.array(plgUtils.convexHull(
-                plg.Polygon(np.array([p0, p1]).T)
-            ).contour(0)).T
+            # p0, p1 = np.array(plgUtils.convexHull(
+                # plg.Polygon(np.array([p0, p1]).T)
+            # ).contour(0)).T
+            vert = ConvexHull(np.array([p0, p1]).T).vertices
+            p0, p1 = p0[vert], p1[vert]
 
             p0, p1 = _compute._interp_poly(
                 lp=[p0, p1],
                 add_points=add_points,
-                mode='min',
+                mode='mean',
                 isclosed=False,
                 closed=False,
                 ravel=True,
@@ -204,18 +219,22 @@ def equivalent_apertures(
         x0.append(p0)
         x1.append(p1)
 
-    # --------------------
-    # harmonize if necessary
-    # --------------------
+    # -------------------------------------------
+    # harmonize if necessary the initial polygons
+    # -------------------------------------------
 
     if harmonize:
+
         ln = [p0.size if p0 is not None else 0 for p0 in x0]
         nmax = np.max(ln)
         nan = np.full((nmax,), np.nan)
+
         for ii in range(pixel.size):
-            if x0[ii] is None:
+
+            if ln[ii] == 0:
                 x0[ii] = nan
                 x1[ii] = nan
+
             elif ln[ii] < nmax:
                 ndif = nmax - ln[ii]
                 irand = np.random.random(ndif)
@@ -463,10 +482,11 @@ def _check(
     # -----------
     # convex
 
+    isconvex = any(coll.get_optics_isconvex(doptics['optics']))
     convex = ds._generic_check._check_var(
         convex, 'convex',
         types=bool,
-        default=True,
+        default=isconvex,
     )
 
     # -----------
@@ -555,7 +575,7 @@ def _get_equivalent_aperture(
     ptsvect=None,
     **kwdargs,
 ):
-    
+
     # loop on optics
     for jj in range(nop_pre):
 
@@ -671,26 +691,29 @@ def _get_equivalent_aperture_spectro(
             # print('inside: ', p1)
             # plt.figure()
             # plt.plot(
-            #     np.array(p_a.contour(0))[:, 0],
-            #     np.array(p_a.contour(0))[:, 1], 
-            #     '.-k',
-            #     p0, p1, '.-r'
-            #     )
+                # np.array(p_a.contour(0))[:, 0],
+                # np.array(p_a.contour(0))[:, 1],
+                # '.-k',
+                # p0, p1, '.-r'
+            # )
             p_a = plg.Polygon(np.array([p0, p1]).T)
         else:
             # convex hull
             if convex:
-                p0, p1 = np.array(plgUtils.convexHull(
-                    plg.Polygon(np.array([p0, p1]).T)
-                ).contour(0)).T
+                # p0, p1 = np.array(plgUtils.convexHull(
+                    # plg.Polygon(np.array([p0, p1]).T)
+                # ).contour(0)).T
+                vert = ConvexHull(np.array([p0, p1]).T).vertices
+                p0, p1 = p0[vert], p1[vert]
 
             # plt.figure()
             # plt.plot(
-            #     np.array(p_a.contour(0))[:, 0],
-            #     np.array(p_a.contour(0))[:, 1], 
-            #     '.-k',
-            #     p0, p1, '.-r'
-            #     )
+                # np.array(p_a.contour(0))[:, 0],
+                # np.array(p_a.contour(0))[:, 1],
+                # '.-k',
+                # p0, p1, '.-r'
+            # )
+            # import pdb; pdb.set_trace()     # DB
 
             # intersection
             p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
@@ -700,7 +723,7 @@ def _get_equivalent_aperture_spectro(
 
             # update
             p0, p1 = np.array(p_a.contour(0)).T
-            
+
             # interpolate
             if jj < nop_post - 1:
                 p0, p1 = _compute._interp_poly(
@@ -746,7 +769,7 @@ def _plot(
 
     i0 = np.r_[np.arange(0, poly_x0.size), 0]
     ax.plot(poly_x0[i0], poly_x1[i0], '.-k')
-    
+
     if p0.shape[1] > 0:
         i1 = np.r_[np.arange(0, p0.shape[1]), 0]
         for ii in range(p0.shape[0]):
@@ -754,6 +777,6 @@ def _plot(
 
     if cents0 is not None:
         ax.plot(cents0, cents1, 'xr')
-        
+
     ax.legend()
     return

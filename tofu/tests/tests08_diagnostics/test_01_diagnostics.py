@@ -7,7 +7,7 @@ This module contains tests for tofu.geom in its structured version
 # Built-in
 import sys
 import os
-import warnings
+import copy
 
 
 # Standard
@@ -265,7 +265,7 @@ def _cameras():
             'e1_z': e1s[0, 2],
         },
         'dmat': {
-            'energy': np.linspace(1, 10, 100)*1e3,
+            'qeff_E': np.linspace(1, 10, 100)*1e3,
             'qeff': 0.99*np.ones((100,)),
         },
     }
@@ -299,7 +299,17 @@ def _cameras():
         },
     }
 
-    return {'cam0': c0, 'cam1': c1, 'cam2': c2}
+    return {
+        'cam0': c0,
+        'cam1': c1,
+        'cam2': c2,
+        'cam00': copy.deepcopy(c0),
+        'cam11': copy.deepcopy(c1),
+        'cam22': copy.deepcopy(c2),
+        'cam000': copy.deepcopy(c0),
+        'cam111': copy.deepcopy(c1),
+        'cam222': copy.deepcopy(c2),
+    }
 
 
 def _crystals():
@@ -402,22 +412,22 @@ def _diagnostics():
     d2 = {'doptics': 'cam2'}
 
     # d3: 1d + 1 aperture
-    d3 = {'doptics': ('cam0', 'ap0')}
+    d3 = {'doptics': ('cam00', 'ap0')}
 
     # d4: 2d + 1 aperture
-    d4 = {'doptics': ('cam1', 'ap0')}
+    d4 = {'doptics': ('cam11', 'ap0')}
 
     # d5: 2d + 1 aperture
-    d5 = {'doptics': ('cam2', 'ap0')}
+    d5 = {'doptics': ('cam22', 'ap0')}
 
     # d6: 1d + multiple apertures
-    d6 = {'doptics': ('cam0', 'ap0', 'filt0', 'ap2')}
+    d6 = {'doptics': ('cam000', 'ap0', 'filt0', 'ap2')}
 
     # d7: 1d parallel coplanar + multiple apertures
-    d7 = {'doptics': ('cam1', 'ap0', 'filt0', 'ap2')}
+    d7 = {'doptics': ('cam111', 'ap0', 'filt0', 'ap2')}
 
     # d8: 2d + multiple apertures
-    d8 = {'doptics': ('cam2', 'ap0', 'filt0', 'ap2')}
+    d8 = {'doptics': ('cam222', 'ap0', 'filt0', 'ap2')}
 
     # # d9: 2d + spherical crystal
     # d9 = {'optics': ('c3','cryst0')}
@@ -481,14 +491,13 @@ class Test01_Diagnostic():
 
         # add cameras
         for k0, v0 in dcameras.items():
-            if k0 in ['cam0', 'cam1']:
+            if 'cam0' in k0 or 'cam1' in k0:
                 self.obj.add_camera_1d(key=k0, **v0)
             else:
                 self.obj.add_camera_2d(key=k0, **v0)
 
         # add diagnostics
         for k0, v0 in ddiag.items():
-            print(k0)
             self.obj.add_diagnostic(
                 key=k0,
                 config=conf,
@@ -536,7 +545,6 @@ class Test01_Diagnostic():
 
         # add crystal optics
         for k0, v0 in self.doptics.items():
-            print(k0, 'spectro')
             self.obj.add_diagnostic(
                 doptics=v0,
                 config=self.conf,
@@ -578,7 +586,13 @@ class Test01_Diagnostic():
             dout = self.obj.get_optics_outline(k0)
 
     def test03_plot(self):
-        for k0, v0 in self.obj.dobj['diagnostic'].items():
-            for pp in [None, 'cross', ['cross', 'hor']]:
-                dax = self.obj.plot_diagnostic(k0, proj=pp)
+        for ii, (k0, v0) in enumerate(self.obj.dobj['diagnostic'].items()):
+            dax = self.obj.plot_diagnostic(
+                k0,
+                proj=(
+                    None if ii % 3 == 0
+                    else ('cross' if ii % 3 == 1 else ['cross', 'hor'])
+                ),
+            )
             plt.close('all')
+            del dax

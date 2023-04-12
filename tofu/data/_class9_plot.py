@@ -11,11 +11,11 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.colors as mcolors
 import datastock as ds
+import bsplines2d as bs2
 
 
 # specific
 from . import _generic_check
-from ._class1_plot import _plot_bsplines_get_dRdZ
 
 
 # #############################################################################
@@ -57,40 +57,28 @@ def _plot_geometry_matrix_check(
     key_cam = coll.dobj['geom matrix'][key]['camera']
     key_data = coll.dobj['geom matrix'][key]['data']
     shape = coll.dobj['geom matrix'][key]['shape']
-    axis = coll.dobj['geom matrix'][key]['axis_chan']
+    axis_chan = coll.dobj['geom matrix'][key]['axis_chan']
+    axis_bs = coll.dobj['geom matrix'][key]['axis_bs']
+    axis_other = coll.dobj['geom matrix'][key]['axis_other']
 
-    # indbf
-    if indbf is None:
-        indbf = 0
-    try:
-        assert np.isscalar(indbf)
-        indbf = int(indbf)
-    except Exception as err:
-        msg = (
-            f"Arg indbf should be a int!\nProvided: {indt}"
-        )
-        raise Exception(msg)
+    # indbfi
+    indbf = ds._generic_check._check_var(
+        indbf, 'indbf',
+        types=int,
+        default=0,
+    )
 
     # indchan
-    if indchan is None:
-        indchan = 0
-    try:
-        assert np.isscalar(indchan)
-        indchan = int(indchan)
-    except Exception as err:
-        msg = (
-            f"Arg indchan should be a int!\nProvided: {indt}"
-        )
-        raise Exception(msg)
+    indchan = ds._generic_check._check_var(
+        indchan, 'indchan',
+        types=int,
+        default=0,
+    )
 
-    # indt
-    hastime = coll.get_time(key=key_data[0])[0]
-    if hastime:
-        if indt is None:
-            indt = 0
-        assert np.isscalar(indt), indt
-    else:
-        indt = None
+    # ind
+    indt = None
+    if axis_other is not None:
+        indt = 0
 
     # plot_mesh
     plot_mesh = ds._generic_check._check_var(
@@ -146,7 +134,7 @@ def _plot_geometry_matrix_check(
         key,
         keybs, keym,
         key_diag, key_cam, key_data,
-        shape, axis,
+        shape, axis_chan, axis_bs, axis_other,
         indbf, indchan, indt,
         plot_mesh,
         cmap, vmin, vmax,
@@ -160,6 +148,9 @@ def _plot_geometry_matrix_prepare(
     key_data=None,
     keybs=None,
     keym=None,
+    axis_chan=None,
+    axis_bs=None,
+    axis_other=None,
     indbf=None,
     indchan=None,
     indt=None,
@@ -172,15 +163,16 @@ def _plot_geometry_matrix_prepare(
     # res
     deg = coll.dobj['bsplines'][keybs]['deg']
     km = coll.dobj['bsplines'][keybs]['mesh']
-    meshtype = coll.dobj['mesh'][km]['type']
+    nd = coll.dobj['mesh'][km]['nd']
+    mtype = coll.dobj['mesh'][km]['type']
 
     # if polar => submesh
     km0 = km
-    meshtype0 = meshtype
-    if meshtype == 'polar':
-        km = coll.dobj[coll._which_mesh][km0]['submesh']
-        meshtype = coll.dobj[coll._which_mesh][km]['type']
-        shape2d = len(coll.dobj['bsplines'][keybs]['shape']) == 2
+    mtype0 = mtype
+    submesh = coll.dobj[coll._which_mesh][km0]['submesh']
+    if submesh is not None:
+        km = submesh
+        mtype = coll.dobj[coll._which_mesh][km]['type']
 
     # R, Z
     kR, kZ = coll.dobj['mesh'][km]['knots']
@@ -188,15 +180,15 @@ def _plot_geometry_matrix_prepare(
     Zk = coll.ddata[kZ]['data']
 
     # get dR, dZ
-    dR, dZ, _, _ = _plot_bsplines_get_dRdZ(
-        coll=coll, km=km, meshtype=meshtype,
+    dR, dZ, _, _ = bs2._class02_plot_as_profile2d._plot_bsplines_get_dx01(
+        coll=coll, km=km,
     )
     if res is None:
-        if meshtype == 'rect':
-            res_coef = 0.05
+        if mtype == 'rect':
+            res_coef = 0.1
         else:
             res_coef = 0.25
-        res = [res_coef*dR, res_coef*dZ]
+        res = res_coef*dR
 
     # crop
     nchan, nbs = coll.dobj['geom matrix'][key]['shape'][-2:]
@@ -206,24 +198,7 @@ def _plot_geometry_matrix_prepare(
     # indices
 
     # indchan => indchan_bf
-    if meshtype0 == 'rect':
-        ich_bf_tup = coll.select_ind(
-            key=keybs,
-            returnas='tuple-flat',
-            crop=crop,
-        )
-        nbf = ich_bf_tup[0].size
-
-        # indbf_bool
-        indbf_bool = coll.select_ind(
-            key=keybs,
-            ind=(ich_bf_tup[0][indbf], ich_bf_tup[1][indbf]),
-            returnas=bool,
-            crop=crop,
-        )
-        ic = (np.zeros((nbf,), dtype=int), ich_bf_tup[0], ich_bf_tup[1])
-
-    elif meshtype0 == 'tri':
+    if nd == '1d':
         ich_bf_tup = coll.select_ind(
             key=keybs,
             returnas=int,
@@ -237,10 +212,9 @@ def _plot_geometry_matrix_prepare(
             returnas=bool,
             crop=crop,
         )
-        ic = (np.zeros((nbf,), dtype=int), ich_bf_tup)
 
     else:
-        if shape2d:
+        if mtype0 == 'rect':
             ich_bf_tup = coll.select_ind(
                 key=keybs,
                 returnas='tuple-flat',
@@ -255,8 +229,8 @@ def _plot_geometry_matrix_prepare(
                 returnas=bool,
                 crop=crop,
             )
-            ic = (np.zeros((nbf,), dtype=int), ich_bf_tup[0], ich_bf_tup[1])
-        else:
+
+        elif mtype0 == 'tri':
             ich_bf_tup = coll.select_ind(
                 key=keybs,
                 returnas=int,
@@ -270,64 +244,62 @@ def _plot_geometry_matrix_prepare(
                 returnas=bool,
                 crop=crop,
             )
-            ic = (np.zeros((nbf,), dtype=int), ich_bf_tup)
 
     assert nbs == nbf
-
-    hastime, hasref, reft, keyt, t, dind = coll.get_time(key=key_data[0])
-    if hastime:
-        nt = coll.dref[reft]['size']
 
     # -------------
     # mesh sampling
 
     # mesh sampling
-    km = coll.dobj['bsplines'][keybs]['mesh']
-    R, Z = coll.get_sample_mesh(
+    dout = coll.get_sample_mesh(
         key=km, res=res, mode='abs', grid=True, imshow=True,
     )
+    R = dout['x0']['data']
+    Z = dout['x1']['data']
 
     # -------------
     # interpolation
 
     # bspline details
-    shapebs = coll.dobj['bsplines'][keybs]['shape']
-
-    bsplinebase = coll.interpolate_profile2d(
-        key=keybs,
-        R=R,
-        Z=Z,
+    bsplinebase = coll.interpolate(
+        keys=None,
+        ref_key=keybs,
+        x0=R,
+        x1=Z,
+        grid=False,
+        submesh=True,
         crop=crop,
         nan0=True,
         details=True,
         return_params=False,
-    )[0]
+    )[f'{keybs}_details']['data']
+
+    gmat0 = coll.ddata[key_data[0]]['data']
+    if axis_other is not None:
+        diffdim = len(bsplinebase.shape) - 1 - len(gmat0.shape)
+        axo = axis_other if axis_other < axis_bs else axis_other + diffdim
+        bsplinebase = bsplinebase.take(indt, axis=axo)
 
     # bsplinetot
     coefstot = np.nansum(
         [
-            np.nansum(coll.ddata[kk]['data'], axis=-2)
+            np.nansum(coll.ddata[kk]['data'], axis=axis_chan)
             for kk in key_data
         ],
         axis=0,
     )
-    if hastime:
-        bsplinetot = np.nansum(
-            bsplinebase[0, ...] * coefstot[0, None, None, :],
-            axis=-1,
-        )
-    else:
-        bsplinetot = np.nansum(bsplinebase * coefstot[None, None, :], axis=-1)
+
+    if axis_other is not None:
+        coefstot = coefstot.take(indt, axis=axis_other)
+
+    bsplinetot = np.nansum(bsplinebase * coefstot[None, None, :], axis=-1)
 
     # bsplinedet
-    if hastime:
-        bsplinedet = np.zeros(tuple(np.r_[bsplinebase.shape[1:-1]]))#, nchan]))
-        for ii in range(0):
-            bsplinedet[...] = bsplinebase[0, ...].dot(
-                coll.ddata[key_data[0]]['data'][0, 0:1, :].T
-            )[..., 0]
-    else:
-        bsplinedet = bsplinebase.dot(coll.ddata[key_data[0]]['data'][0:1, :].T)[..., 0]
+    gmat0 = gmat0.take(indchan, axis=axis_chan)
+    if axis_other is not None:
+        axo = axis_other - 1 if axis_other > axis_chan else axis_other
+        gmat0 = gmat0.take(indt, axis=axo)
+    bsplinedet = np.nansum(bsplinebase * gmat0[None, None, :], axis=-1)
 
     # --------
     # LOS
@@ -394,7 +366,9 @@ def plot_geometry_matrix(
     indbf=None,
     indchan=None,
     indt=None,
+    # options
     plot_mesh=None,
+    plot_config=None,
     # plotting
     vmin=None,
     vmax=None,
@@ -415,7 +389,7 @@ def plot_geometry_matrix(
         key,
         keybs, keym,
         key_diag, key_cam, key_data,
-        shape, axis,
+        shape, axis_chan, axis_bs, axis_other,
         indbf, indchan, indt,
         plot_mesh,
         cmap, vmin, vmax,
@@ -451,6 +425,9 @@ def plot_geometry_matrix(
         key_data=key_data,
         keybs=keybs,
         keym=keym,
+        axis_chan=axis_chan,
+        axis_bs=axis_bs,
+        axis_other=axis_other,
         indbf=indbf,
         indchan=indchan,
         indt=indt,
@@ -462,114 +439,16 @@ def plot_geometry_matrix(
     # plot - prepare
 
     if dax is None:
-
-        if fs is None:
-            fs = (16, 9)
-
-        if dmargin is None:
-            dmargin = {
-                'left': 0.05, 'right': 0.98,
-                'bottom': 0.05, 'top': 0.95,
-                'hspace': 0.20, 'wspace': 0.25,
-            }
-
-        fig = plt.figure(figsize=fs)
-        ncols = 4 + (indt is not None)
-        gs = gridspec.GridSpec(ncols=ncols, nrows=2, **dmargin)
-
-        # ax01 = matrix
-        ax01 = fig.add_subplot(gs[0, 1])
-        ax01.set_ylabel(f'channels')
-        ax01.set_xlabel(f'basis functions')
-        ax01.set_title(key, size=14)
-        ax01.tick_params(
-            axis="x",
-            bottom=False, top=True,
-            labelbottom=False, labeltop=True,
+        dax = _create_dax(
+            fs=fs,
+            dmargin=dmargin,
+            indt=indt,
+            key=key,
+            vmin=vmin,
+            vmax=vmax,
         )
-        ax01.xaxis.set_label_position('top')
 
-        # ax00 = horizontal
-        ax00 = fig.add_subplot(gs[0, 0], sharex=ax01)
-        ax00.set_xlabel(f'basis functions')
-        ax00.set_ylabel(f'data')
-        ax00.set_ylim(vmin, vmax)
-
-        # ax02 = vertical
-        ax02 = fig.add_subplot(gs[0, 2], sharey=ax01)
-        ax02.set_xlabel(f'channels')
-        ax02.set_ylabel(f'data')
-        ax02.tick_params(
-            axis="x",
-            bottom=False, top=True,
-            labelbottom=False, labeltop=True,
-        )
-        ax02.xaxis.set_label_position('top')
-        ax02.tick_params(
-            axis="y",
-            left=False, right=True,
-            labelleft=False, labelright=True,
-        )
-        ax02.yaxis.set_label_position('right')
-        ax02.set_xlim(vmin, vmax)
-
-        if indt is not None:
-            axt = fig.add_subplot(gs[0, 3], sharey=ax00)
-            axt.set_xlabel(f'time')
-            axt.set_ylabel(f'data')
-
-
-        # ax10 = cross1
-        ax10 = fig.add_subplot(gs[1, 0], aspect='equal')
-        ax10.set_xlabel(f'R (m)')
-        ax10.set_ylabel(f'Z (m)')
-
-        # ax11 = crosstot
-        ax11 = fig.add_subplot(
-            gs[1, 1],
-            aspect='equal',
-            sharex=ax10,
-            sharey=ax10,
-        )
-        ax11.set_xlabel(f'R (m)')
-        ax11.set_ylabel(f'Z (m)')
-
-        # ax12 = cross2
-        ax12 = fig.add_subplot(
-            gs[1, 2],
-            aspect='equal',
-            sharex=ax10,
-            sharey=ax10,
-        )
-        ax12.set_xlabel(f'R (m)')
-        ax12.set_ylabel(f'Z (m)')
-
-        # text
-        axt0 = fig.add_subplot(gs[0, -1], frameon=False)
-        axt0.set_xticks([])
-        axt0.set_yticks([])
-        axt1 = fig.add_subplot(gs[1, -1], frameon=False)
-        axt1.set_xticks([])
-        axt1.set_yticks([])
-
-        # define dax
-        dax = {
-            # matrix
-            'matrix': {'handle': ax01, 'inverty': True},
-            'vertical': {'handle': ax02, 'type': 'misc'},
-            'horizontal': {'handle': ax00, 'type': 'misc'},
-            # cross-section
-            'cross1': {'handle': ax10, 'type': 'cross'},
-            'cross2': {'handle': ax12, 'type': 'cross'},
-            'crosstot': {'handle': ax11, 'type': 'cross'},
-            # text
-            'text0': {'handle': axt0, 'type': 'text'},
-            'text1': {'handle': axt1, 'type': 'text'},
-        }
-        if indt is not None:
-            dax['traces'] = {'handle': axt, 'type': 'misc'}
-
-    dax = _generic_check._check_dax(dax=dax, main='matrix')
+    dax = ds._generic_check._check_dax(dax=dax, main='matrix')
 
     # --------------
     # plot mesh
@@ -635,16 +514,16 @@ def plot_geometry_matrix(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        coll.plot_bsplines(
-            key=keybs,
-            indbs=ich_bf,
-            indt=indt,
-            knots=False,
-            cents=False,
-            plot_mesh=False,
-            dax={'cross': dax[kax]},
-            dleg=False,
-        )
+        # coll.plot_bsplines(
+            # key=keybs,
+            # indbs=ich_bf,
+            # indt=indt,
+            # knots=False,
+            # cents=False,
+            # plot_mesh=False,
+            # dax={'cross': dax[kax]},
+            # dleg=False,
+        # )
 
         if ptslos is not None:
             for ii in indlosok:
@@ -678,6 +557,16 @@ def plot_geometry_matrix(
         # dax['cross'].legend(**dleg)
 
     # -------
+    # config
+
+    if plot_config.__class__.__name__ == 'Config':
+
+        for kax in ['cross1', 'cross2', 'crosstot']:
+            if dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+                plot_config.plot(lax=ax, proj='cross', dLeg=False)
+
+    # -------
     # connect
 
     coll2.setup_interactivity(kinter='inter0', dgroup=dgroup)
@@ -686,3 +575,126 @@ def plot_geometry_matrix(
     coll2.show_commands()
 
     return coll2
+
+
+# ############################################################
+# ############################################################
+#           Create axes
+# ############################################################
+
+
+def _create_dax(
+    fs=None,
+    dmargin=None,
+    indt=None,
+    key=None,
+    vmin=None,
+    vmax=None,
+):
+    if fs is None:
+        fs = (16, 9)
+
+    if dmargin is None:
+        dmargin = {
+            'left': 0.05, 'right': 0.98,
+            'bottom': 0.05, 'top': 0.95,
+            'hspace': 0.20, 'wspace': 0.25,
+        }
+
+    fig = plt.figure(figsize=fs)
+    ncols = 4 + (indt is not None)
+    gs = gridspec.GridSpec(ncols=ncols, nrows=2, **dmargin)
+
+    # ax01 = matrix
+    ax01 = fig.add_subplot(gs[0, 1])
+    ax01.set_ylabel(f'channels')
+    ax01.set_xlabel(f'basis functions')
+    ax01.set_title(key, size=14)
+    ax01.tick_params(
+        axis="x",
+        bottom=False, top=True,
+        labelbottom=False, labeltop=True,
+    )
+    ax01.xaxis.set_label_position('top')
+
+    # ax00 = horizontal
+    ax00 = fig.add_subplot(gs[0, 0], sharex=ax01)
+    ax00.set_xlabel(f'basis functions')
+    ax00.set_ylabel(f'data')
+    ax00.set_ylim(vmin, vmax)
+
+    # ax02 = vertical
+    ax02 = fig.add_subplot(gs[0, 2], sharey=ax01)
+    ax02.set_xlabel(f'channels')
+    ax02.set_ylabel(f'data')
+    ax02.tick_params(
+        axis="x",
+        bottom=False, top=True,
+        labelbottom=False, labeltop=True,
+    )
+    ax02.xaxis.set_label_position('top')
+    ax02.tick_params(
+        axis="y",
+        left=False, right=True,
+        labelleft=False, labelright=True,
+    )
+    ax02.yaxis.set_label_position('right')
+    ax02.set_xlim(vmin, vmax)
+
+    if indt is not None:
+        axt = fig.add_subplot(gs[0, 3], sharey=ax00)
+        axt.set_xlabel(f'time')
+        axt.set_ylabel(f'data')
+
+
+    # ax10 = cross1
+    ax10 = fig.add_subplot(gs[1, 0], aspect='equal')
+    ax10.set_xlabel(f'R (m)')
+    ax10.set_ylabel(f'Z (m)')
+
+    # ax11 = crosstot
+    ax11 = fig.add_subplot(
+        gs[1, 1],
+        aspect='equal',
+        sharex=ax10,
+        sharey=ax10,
+    )
+    ax11.set_xlabel(f'R (m)')
+    ax11.set_ylabel(f'Z (m)')
+
+    # ax12 = cross2
+    ax12 = fig.add_subplot(
+        gs[1, 2],
+        aspect='equal',
+        sharex=ax10,
+        sharey=ax10,
+    )
+    ax12.set_xlabel(f'R (m)')
+    ax12.set_ylabel(f'Z (m)')
+
+    # text
+    axt0 = fig.add_subplot(gs[0, -1], frameon=False)
+    axt0.set_xticks([])
+    axt0.set_yticks([])
+    axt1 = fig.add_subplot(gs[1, -1], frameon=False)
+    axt1.set_xticks([])
+    axt1.set_yticks([])
+
+    # define dax
+    dax = {
+        # matrix
+        'matrix': {'handle': ax01, 'inverty': True},
+        'vertical': {'handle': ax02},
+        'horizontal': {'handle': ax00},
+        # cross-section
+        'cross1': {'handle': ax10, 'type': 'cross'},
+        'cross2': {'handle': ax12, 'type': 'cross'},
+        'crosstot': {'handle': ax11, 'type': 'cross'},
+        # text
+        'text0': {'handle': axt0, 'type': 'text'},
+        'text1': {'handle': axt1, 'type': 'text'},
+    }
+    if indt is not None:
+        dax['tracesZ'] = {'handle': axt}
+
+    return dax

@@ -1,5 +1,6 @@
 # No .pyc files
 *.pyc
+*.egg
 
 # No .so, .c or .nfs files
 *.o
