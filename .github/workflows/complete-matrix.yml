@@ -20,10 +20,11 @@ jobs:
     - uses: actions/checkout@v2
     - name: Install LLVM and Clang
       run: |
-         brew install llvm
+         # brew install llvm
+         # export LDFLAGS="-L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++"
+
          brew install libomp
-         'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.bash_profile
-         export CPP=/usr/local/opt/llvm/bin/clang;
+         # export CPP=/usr/local/opt/llvm/bin/clang;
 
       if: contains(matrix.os, 'macOS')
     - name: Set up Python ${{ matrix.python-version }}
@@ -44,7 +45,6 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: install tofu
       run: |
-        echo CPP
         pip install -e ".[dev]" --no-build-isolation
     - name: Test with pytest and coverage
       run: |
