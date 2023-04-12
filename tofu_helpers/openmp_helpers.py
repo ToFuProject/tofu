@@ -60,6 +60,19 @@ def get_compiler():
 
     ccompiler = new_compiler(compiler=compiler)
     customize_compiler(ccompiler)
+
+    # -----
+    # print
+
+    msg = (
+        "\n\n"
+        f"\n dist = {dist}"
+        f"\ncmd_opts = {cmd_opts}"
+        f"\nccompiler = {ccompiler}"
+        "\n\n"
+    )
+    print(msg)
+
     return ccompiler
 
 
@@ -145,7 +158,7 @@ def check_for_openmp():
             flag_omp = []
             # raise result        # DB
 
-    print(f"returning {result}, {flag_omp}")
+    print(f"\nreturning {result}, {flag_omp}")
 
     return result, flag_omp
 
