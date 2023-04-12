@@ -60,7 +60,7 @@ def get_compiler():
     if cmd_opts is not None and 'compiler' in cmd_opts:
         compiler = cmd_opts['compiler'][1]
     else:
-        if sys.platform == "darwin"::
+        if sys.platform == "darwin":
             compiler = 'clang'
         else:
             compiler = None
@@ -83,7 +83,8 @@ def get_compiler():
     msg = (
         "\n--------------------"
         "\nopenmp_helpers.py:"
-        + f"\nscript_name = {os.path.basename(sys.argv[0])}"
+        + f"\nsys.platform = {sys.platform}"
+        f"\nscript_name = {os.path.basename(sys.argv[0])}"
         f"\nscript_args = {sys.argv[1:]}"
         f"\nconfig_cc = \n{config_cc}"
         f"\ndist = {dist}"
