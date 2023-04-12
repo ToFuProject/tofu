@@ -40,12 +40,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: echo compiling env variables
       run: |
-         echo $CFLAGS
-         echo $LDFLAGS
-         echo $CC
-         echo $CPP
-         echo $CPPFLAGS
-         echo $LDSHARED
+         echo "CFLAGS: $CFLAGS"
+         echo "LDFLAGS: $LDFLAGS"
+         echo "CC: $CC"
+         echo "CPP: $CPP"
+         echo "CPPFLAGS: $CPPFLAGS"
+         echo "LDSHARED: $LDSHARED"
     - name: Install dependencies
       run: |
          pip install --upgrade pip
