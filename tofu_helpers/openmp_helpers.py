@@ -70,13 +70,13 @@ def get_compiler():
         + f"\nscript_name = {os.path.basename(sys.argv[0])}"
         f"\nscript_args = {sys.argv[1:]}"
         f"\nconfig_cc = {config_cc}"
-        f"\ndir(config_cc) = {'\n'.join([str(ss, getattr(config_cc, ss)) for ss in dir(config_cc)]}"
+        f"\ndir(config_cc) = {'\n'.join([str(ss, getattr(config_cc, ss)) for ss in dir(config_cc)])}"
         f"\ndist = {dist}"
-        f"\ndir(dist) = {'\n'.join([str(ss, getattr(dist, ss)) for ss in dir(dist)]}"
+        f"\ndir(dist) = {'\n'.join([str(ss, getattr(dist, ss)) for ss in dir(dist)])}"
         f"\ncmd_opts = {cmd_opts}"
         f"\ncompiler = {compiler}"
         f"\nccompiler = {ccompiler}"
-        f"\ndir(ccompiler) = {'\n'.join([str(ss, getattr(ccompiler, ss)) for ss in dir(ccompiler)]}"
+        f"\ndir(ccompiler) = {'\n'.join([str(ss, getattr(ccompiler, ss)) for ss in dir(ccompiler)])}"
         "\n"
     )
     print(msg)
