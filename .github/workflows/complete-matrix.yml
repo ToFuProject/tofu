@@ -32,7 +32,7 @@ jobs:
          export CC=/usr/local/bin/clang
          export CFLAGS=-I${HOME}/include
          export LDFLAGS=-lboost
-         export LDSHARED=/usr/local/bin/clang -shared
+         # export LDSHARED=/usr/local/bin/clang -shared
       if: contains(matrix.os, 'macOS')
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
