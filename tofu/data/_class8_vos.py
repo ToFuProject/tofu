@@ -236,9 +236,9 @@ def compute_vos(
             if verb is True:
                 msg = (
                     f"\tcam '{key_cam}' pixel {ii+1} / {pcross0.shape[1]}\t"
-                    f"npts in cross_section = {ind.sum()}"
+                    f"npts in cross_section = {ind.sum()}   "
                 )
-                end = '\n' #if ii == pcross0.shape[1] - 1 else '\r'
+                end = '\n 'if ii == pcross0.shape[1] - 1 else '\r'
                 print(msg, end=end, flush=True)
 
             # ---------------------
