@@ -87,7 +87,8 @@ def get_openmp_flag(compiler):
     elif sys.platform == "darwin" and 'openmp' in os.getenv('CPPFLAGS', ''):
         return ['-openmp']
     # Default flag for GCC and clang:
-    return ['-fopenmp=libomp']
+    # return ['-fopenmp']
+    return ['-openmp']
 
 
 def check_for_openmp():
