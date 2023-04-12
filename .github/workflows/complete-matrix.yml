@@ -54,13 +54,13 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: install tofu
       run: |
-         echo "CFLAGS: $CFLAGS"
-         echo "LDFLAGS: $LDFLAGS"
-         echo "CC: $CC"
-         echo "CXX: $CXX"
-         echo "CPP: $CPP"
-         echo "CPPFLAGS: $CPPFLAGS"
-         echo "LDSHARED: $LDSHARED"
+        echo "CFLAGS: $CFLAGS"
+        echo "LDFLAGS: $LDFLAGS"
+        echo "CC: $CC"
+        echo "CXX: $CXX"
+        echo "CPP: $CPP"
+        echo "CPPFLAGS: $CPPFLAGS"
+        echo "LDSHARED: $LDSHARED"
         pip install -e ".[dev]" --no-build-isolation
     - name: Test with pytest and coverage
       run: |
