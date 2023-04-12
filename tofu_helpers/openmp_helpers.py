@@ -67,7 +67,7 @@ def get_compiler():
     msg = (
         "\n--------------------"
         "\nopenmp_helpers.py:"
-        + f"\nscript_name = {os.path.basename(sys.argv[0]}"
+        + f"\nscript_name = {os.path.basename(sys.argv[0])}"
         f"\nscript_args = {sys.argv[1:]}"
         f"\nconfig_cc = {config_cc}"
         f"\ndir(config_cc) = {dir(config_cc)}"
