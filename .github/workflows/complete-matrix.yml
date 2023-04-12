@@ -21,14 +21,12 @@ jobs:
     - name: Install LLVM and Clang
       run: |
          brew reinstall llvm
-         # export LDFLAGS="-L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++"
+         brew reinstall libomp
          export LDFLAGS="-L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++"
          echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> /Users/runner/.bash_profile
          export LDFLAGS="-L/usr/local/opt/llvm/lib"
          export CPPFLAGS="-I/usr/local/opt/llvm/include"
-
-         brew reinstall libomp
-         # export CPP=/usr/local/opt/llvm/bin/clang;
+         export CPP=/usr/local/opt/llvm/bin/clang;
 
       if: contains(matrix.os, 'macOS')
     - name: Set up Python ${{ matrix.python-version }}
