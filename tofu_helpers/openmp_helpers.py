@@ -65,11 +65,14 @@ def get_compiler():
     # print
 
     msg = (
-        "\n\n"
-        f"\n dist = {dist}"
+        "\n--------------------"
+        "\nopenmp_helpers.py:"
+        f"config_cc = {config_cc}"
+        f"\ndist = {dist}"
         f"\ncmd_opts = {cmd_opts}"
+        f"\ncompiler = {compiler}"
         f"\nccompiler = {ccompiler}"
-        "\n\n"
+        "\n"
     )
     print(msg)
 
@@ -101,7 +104,7 @@ def get_openmp_flag(compiler):
         return ['-openmp']
     # Default flag for GCC and clang:
     # return ['-fopenmp']
-    return ['-openmp']
+    return ['-fopenmp']
 
 
 def check_for_openmp():
