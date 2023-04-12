@@ -45,7 +45,13 @@ from . cimport _vignetting_tools as _vt
 from . import _openmp_tools as _ompt
 
 from libc.stdio cimport printf
-# from openmp cimport omp_get_wtime, omp_get_thread_num, omp_get_max_threads
+
+# This line makes it difficult to run on MacOS for Github Actions
+# Because GA has difficulties installing an openmp-compatible version of CLANG
+# Problem was originally circumvented by doing an optional cimport of openmp
+# like in tofu/geom/_openmp_tools.pyx using IF TOFU_OPENMP_ENABLED:
+# But that would require writing 2 version of the whole code
+from openmp cimport omp_get_wtime, omp_get_thread_num, omp_get_max_threads
 
 # == Polygon intersection ======================================================
 
