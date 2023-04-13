@@ -23,28 +23,33 @@ def _vos(
     doptics=None,
     key_diag=None,
     key_cam=None,
-    #
-    x0=None,
-    x1=None,
-    ind=None,
-    dphi=None,
-    deti=None,
-    lap=None,
+    dsamp=None,
+    # inputs
+    x0u=None,
+    x1u=None,
+    x0f=None,
+    x1f=None,
+    x0l=None,
+    x1l=None,
+    sh=None,
     res=None,
+    bool_cross=None,
+    # parameters
+    margin_poly=None,
     config=None,
     visibility=None,
-    # output
-    dvos=None,
-    sli=None,
-    ii=None,
-    bool_cross=None,
-    path_hor=None,
+    verb=None,
     # timing
     timing=None,
+    dt11=None,
+    dt111=None,
     dt1111=None,
     dt2222=None,
     dt3333=None,
     dt4444=None,
+    dt222=None,
+    dt333=None,
+    dt22=None,
     # unused
     **kwdargs,
 ):
@@ -54,15 +59,18 @@ def _vos(
     # prepare optics
 
     lop = doptics[key_cam]['optics'][::-1]
+    lop, lcls = coll.get_optics_cls(lop)
+
     lpoly_pre = [
         coll.get_optics_poly(
             key=k0,
-            add_points=1,
+            add_points=None,
             return_outline=False,
         )
         for k0 in lop[1:]
     ]
     kref = lop[0]
+    kspectro = lop[lcls.index('crystal')]
 
     # intial polygon
     p_a = coll.get_optics_outline(key=kref, add_points=False)
@@ -74,18 +82,63 @@ def _vos(
     # ---------------
     # prepare spectro
 
-    import pdb; pdb.set_trace()     # DB
-    kspectro = None
-
     pts2plane = coll.get_optics_reflect_ptsvect(
-        key=kref,
+        key=kspectro,
         asplane=True,
     )
 
-    import pdb; pdb.set_trace()     # DB
+    # --------------------------
+    # prepare overall cross polygon
+
+    # get temporary vos
+    kpc0, kpc1 = doptics[key_cam]['vos_pcross']
+    shape = coll.ddata[kpc0]['data'].shape
+    pcross0 = coll.ddata[kpc0]['data'].reshape((shape[0], -1))
+    pcross1 = coll.ddata[kpc1]['data'].reshape((shape[0], -1))
+    kph0, kph1 = doptics[key_cam]['vos_phor']
+    shapeh = coll.ddata[kph0]['data'].shape
+    phor0 = coll.ddata[kph0]['data'].reshape((shapeh[0], -1))
+    phor1 = coll.ddata[kph1]['data'].reshape((shapeh[0], -1))
+
+    dphi = doptics[key_cam]['vos_dphi']
+
+    # pix indices
+    ipix = ~(np.any(np.isnan(pcross0), axis=0))
+    ipix_n = ipix.nonzero()[0]
+
+    # envelop pcross and phor
+    pcross = plg.Polygon(
+        np.array([pcross0[:, ipix_n[0]], pcross1[:, ipix_n[0]]]).T
+    )
+    phor = plg.Polygon(
+        np.array([phor0[:, ipix_n[0]], phor1[:, ipix_n[0]]]).T
+    )
+    for ii in ipix_n[1:]:
+        pcross |= plg.Polygon(
+            np.array([pcross0[:, ii], pcross1[:, ii]]).T
+        )
+        phor |= plg.Polygon(np.array([phor0[:, ii], phor1[:, ii]]).T)
+
+    pcross0, pcross1 = np.array(pcross).T
+    phor0, phor1 = np.array(phor).T
 
     # --------------------------
     # prepare points and indices
+
+    # get cross-section polygon
+    ind, path_hor = _utilities._get_cross_section_indices(
+        dsamp=dsamp,
+        # polygon
+        pcross0=pcross0,
+        pcross1=pcross1,
+        phor0=phor0,
+        phor1=phor1,
+        margin_poly=margin_poly,
+        # points
+        x0f=x0f,
+        x1f=x1f,
+        sh=sh,
+    )
 
     ir, iz = ind.nonzero()
     iru = np.unique(ir)
@@ -103,20 +156,7 @@ def _vos(
     yy = x0[irf] * np.sin(phi)
     zz = x1[izf]
 
-    # get cross-section polygon
-    ind, path_hor = _utilities._get_cross_section_indices(
-        dsamp=dsamp,
-        # polygon
-        pcross0=pcross0[:, ii],
-        pcross1=pcross1[:, ii],
-        phor0=phor0[:, ii],
-        phor1=phor1[:, ii],
-        margin_poly=margin_poly,
-        # points
-        x0f=x0f,
-        x1f=x1f,
-        sh=sh,
-    )
+    import pdb; pdb.set_trace()     # DB
 
     # -------------------------------------
     # prepare lambda, angles, rocking_curve
