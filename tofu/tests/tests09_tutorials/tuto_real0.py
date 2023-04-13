@@ -39,7 +39,7 @@ def main():
     # _add_PHA(coll, conf)
 
     # add spectrometer
-    # _add_spectrometer(coll, conf) # , crystals=['c0'])
+    _add_spectrometer(coll, conf) # , crystals=['c0'])
 
     # ------------------------
     # compute synthetic signal
@@ -334,6 +334,9 @@ def _add_spectrometer(
     # add camera / apertures
 
     for k0, v0 in dcrystals.items():
+
+        if k0 != 'c0':
+            continue
 
         loptics = coll.get_crystal_ideal_configuration(
             key=k0,
