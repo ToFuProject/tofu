@@ -46,13 +46,6 @@ from . import _openmp_tools as _ompt
 
 from libc.stdio cimport printf
 
-# This line makes it difficult to run on MacOS for Github Actions
-# Because GA has difficulties installing an openmp-compatible version of CLANG
-# Problem was originally circumvented by doing an optional cimport of openmp
-# like in tofu/geom/_openmp_tools.pyx using IF TOFU_OPENMP_ENABLED:
-# But that would require writing 2 version of the whole code
-from openmp cimport omp_get_wtime, omp_get_thread_num, omp_get_max_threads
-
 # == Polygon intersection ======================================================
 
 ctypedef struct polygon:
@@ -5899,15 +5892,6 @@ def compute_solid_angle_apertures_light(
     cdef double[:,::1] uvect_y_view = uvect_y
     cdef double[:,::1] uvect_z_view = uvect_z
 
-    cdef int * work_count
-    work_count = <int *>malloc(omp_get_max_threads()*sizeof(int))
-    for ith in range(omp_get_max_threads()):
-        work_count[ith] = 0
-    cdef double * timers
-    timers = <double *>malloc(omp_get_max_threads()*sizeof(double))
-    for i in range(omp_get_max_threads()):
-        timers[i] = 0.
-
     # --------------------------------------
     # Check orientation of apertures
     cdef np.ndarray[bint, ndim=2] aperture_ccw_array = _compute_aperture_orientation(
@@ -5946,8 +5930,6 @@ def compute_solid_angle_apertures_light(
 
             # loop 2: on npts (observation points)
             for pp in prange(npts, schedule='guided', chunksize=10000):
-                timers[omp_get_thread_num()] -= omp_get_wtime()
-                work_count[omp_get_thread_num()] += 1
 
                 # test if on good side of detector
                 sca0 = (
@@ -5957,7 +5939,6 @@ def compute_solid_angle_apertures_light(
                 )
 
                 if sca0 <= 0:
-                    timers[omp_get_thread_num()] += omp_get_wtime()
                     continue
 
                 # flag
@@ -6012,7 +5993,6 @@ def compute_solid_angle_apertures_light(
 
                 # go to next point
                 if not isok:
-                    timers[omp_get_thread_num()] += omp_get_wtime()
                     continue
 
                 # ----------------------------
@@ -6061,7 +6041,6 @@ def compute_solid_angle_apertures_light(
                     free(poly_aperture.vy)
                     poly_aperture.vx = NULL
                     poly_aperture.vy = NULL
-                    timers[omp_get_thread_num()] += omp_get_wtime()
                     continue
 
                 # -------------------
@@ -6196,8 +6175,6 @@ def compute_solid_angle_apertures_light(
                 else:
                     solid_angle_summed += solid_angle
 
-                timers[omp_get_thread_num()] += omp_get_wtime()
-
         # ----------------------------------------
         # Deallocation of thread-private variables
 
@@ -6211,18 +6188,6 @@ def compute_solid_angle_apertures_light(
 
     # ------
     # Return
-
-#    printf("        (work balance =")
-#    for ith in range(omp_get_max_threads()):
-#        printf(" %i", work_count[ith])
-#    printf(")\n")
-
-#    printf("        (time balance =")
-#    for ith in range(omp_get_max_threads()):
-#        printf(" %lf", timers[ith])
-#    printf(")\n")
-
-    free(timers)
 
     if return_sa_array:
         ret = solid_angle_array
