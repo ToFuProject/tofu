@@ -3,9 +3,11 @@
 
 import datetime as dtm      # DB
 import numpy as np
+import scipy.interpolate as scpinterp
 
 
 from ..geom import _comp_solidangles
+from . import _class8_vos_utilities as _utilities
 
 
 # ###########################################################
@@ -14,23 +16,27 @@ from ..geom import _comp_solidangles
 # ###########################################################
 
 
-def _vos_main(
+def _vos(
     # ressources
     coll=None,
     doptics=None,
     key_cam=None,
     dsamp=None,
     # inputs
+    x0u=None,
+    x1u=None,
     x0f=None,
     x1f=None,
+    x0l=None,
+    x1l=None,
     sh=None,
     res=None,
     bool_cross=None,
-    shape=None,
     # parameters
     margin_poly=None,
     config=None,
     visibility=None,
+    verb=None,
     # timing
     timing=None,
     dt11=None,
@@ -42,7 +48,10 @@ def _vos_main(
     dt222=None,
     dt333=None,
     dt22=None,
+    # unused
+    **kwdargs,
 ):
+    """ vos computation for broadband """
 
     # ---------------
     # prepare polygon
@@ -106,7 +115,7 @@ def _vos_main(
             continue
 
         # get cross-section polygon
-        ind, path_hor = _get_cross_section_indices(
+        ind, path_hor = _utilities._get_cross_section_indices(
             dsamp=dsamp,
             # polygon
             pcross0=pcross0[:, ii],
@@ -166,7 +175,6 @@ def _vos_main(
             visibility=visibility,
             # output
             key_cam=key_cam,
-            dvos=dvos,
             sli=None,
             ii=ii,
             bool_cross=bool_cross,
@@ -188,7 +196,7 @@ def _vos_main(
         # get pcross and simplify
 
         if np.any(bool_cross):
-            pc0, pc1 = _get_polygons(
+            pc0, pc1 = _utilities._get_polygons(
                 bool_cross=bool_cross,
                 x0=x0l,
                 x1=x1l,
@@ -257,12 +265,17 @@ def _vos_main(
         t33 = dtm.datetime.now()
         dt22 += (t33 - t22).total_seconds()
 
-    return dout
+    return (
+        dout,
+        dt11, dt22,
+        dt111, dt222, dt333,
+        dt1111, dt2222, dt3333, dt4444,
+    )
 
 
 # ###########################################################
 # ###########################################################
-#               Main
+#               Pixel
 # ###########################################################
 
 
@@ -278,7 +291,6 @@ def _vos_pixel(
     visibility=None,
     # output
     key_cam=None,
-    dvos=None,
     sli=None,
     ii=None,
     bool_cross=None,
@@ -352,3 +364,48 @@ def _vos_pixel(
         return dt1111, dt2222, dt3333, dt4444
     else:
         return
+
+
+# ###########################################################
+# ###########################################################
+#               Detector
+# ###########################################################
+
+
+def _get_deti(
+    coll=None,
+    cxi=None,
+    cyi=None,
+    czi=None,
+    dvect=None,
+    par=None,
+    out0=None,
+    out1=None,
+    ii=None,
+):
+
+    # ------------
+    # detector
+
+    if not par:
+        msg = "Maybe dvect needs to be flattened?"
+        raise Exception(msg)
+
+    det = {
+        'cents_x': cxi,
+        'cents_y': cyi,
+        'cents_z': czi,
+        'outline_x0': out0,
+        'outline_x1': out1,
+        'nin_x': dvect['nin_x'] if par else dvect['nin_x'][ii],
+        'nin_y': dvect['nin_y'] if par else dvect['nin_y'][ii],
+        'nin_z': dvect['nin_z'] if par else dvect['nin_z'][ii],
+        'e0_x': dvect['e0_x'] if par else dvect['e0_x'][ii],
+        'e0_y': dvect['e0_y'] if par else dvect['e0_y'][ii],
+        'e0_z': dvect['e0_z'] if par else dvect['e0_z'][ii],
+        'e1_x': dvect['e1_x'] if par else dvect['e1_x'][ii],
+        'e1_y': dvect['e1_y'] if par else dvect['e1_y'][ii],
+        'e1_z': dvect['e1_z'] if par else dvect['e1_z'][ii],
+    }
+
+    return det
