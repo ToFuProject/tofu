@@ -85,6 +85,15 @@ def get_optics_outline(
     # -----------
     # add_points
 
+    if add_points is None:
+        if cls == 'camera':
+            add_points = 0
+        else:
+            if dgeom['type'] == 'planar':
+                add_points = 0
+            else:
+                add_points = 3
+
     return _interp_poly(
         lp=[p0, p1],
         add_points=add_points,
@@ -95,10 +104,10 @@ def get_optics_outline(
     )
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                   optics poly
-# ##################################################################
+# ################################################################
 
 
 def get_optics_poly(
@@ -349,6 +358,26 @@ def _interp_poly(
     # trivial case
 
     if add_points == 0:
+
+        if isclosed is False and closed is True:
+            for ii, pp in enumerate(lp):
+                if pp is None:
+                    continue
+
+                if pp.ndim == 2:
+                    lp[ii] = np.concatenate((pp, pp[:, 0:1]), axis=1)
+                else:
+                    lp[ii] = np.r_[pp, pp[0]]
+
+        elif isclosed is True and closed is False:
+            for ii, pp in enumerate(lp):
+                if pp is None:
+                    continue
+
+                if pp.ndim == 2:
+                    lp[ii] = pp[:, :-1]
+                else:
+                    lp[ii] = pp[:-1]
         return lp
 
     # ------------
