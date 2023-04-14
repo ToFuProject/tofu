@@ -175,6 +175,8 @@ def _vos(
         res=res,
     )
 
+    # eliminate radius with no match
+
     # -------------------------------------
     # prepare lambda, angles, rocking_curve
 

@@ -302,7 +302,8 @@ def _get_dphi_from_R_phor(
             np.array([rr*np.cos(phi), rr*np.sin(phi)]).T
         )
 
-        dphi[0, ir] = np.min(phi[ind]) - (phi[1] - phi[0])
-        dphi[1, ir] = np.max(phi[ind]) + (phi[1] - phi[0])
+        if np.any(ind):
+            dphi[0, ir] = np.min(phi[ind]) - (phi[1] - phi[0])
+            dphi[1, ir] = np.max(phi[ind]) + (phi[1] - phi[0])
 
     return dphi
