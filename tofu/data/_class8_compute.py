@@ -46,15 +46,15 @@ def get_optics_outline(
     total = ds._generic_check._check_var(
         total, 'total',
         types=bool,
-        default=(cls == 'camera' and dgeom['type'] == '2d'),
+        default=(cls == 'camera' and dgeom['nd'] == '2d'),
     )
-    if cls == 'camera' and dgeom['type'] != '2d':
+    if cls == 'camera' and dgeom['nd'] != '2d':
         total = False
 
     # --------
     # compute
 
-    if dgeom['type'] == '3d':
+    if dgeom['nd'] == '3d':
         return None, None
 
     if cls == 'camera' and total:
@@ -195,7 +195,7 @@ def get_optics_poly(
             e1y = e1y[:, None]
             e1z = e1z[:, None]
 
-        if dgeom['type'] == '2d' and total:
+        if dgeom['nd'] == '2d' and total:
             cx, cy, cz = dgeom['cent']
             p02, p12 = p0, p1
         else:
@@ -640,7 +640,7 @@ def _dplot(
                 v1x, v1y, v1z = np.r_[e1x, e1y, e1z] * vect_length
 
         # radius
-        if 'r' in elements and v0['type'] not in ['planar', '1d', '2d', '3d']:
+        if 'r' in elements and v0['type'] not in ['planar', '', '3d']:
             if v0['type'] == 'cylindrical':
                 icurv = (np.isfinite(v0['curve_r'])).nonzero()[0][0]
                 rc = v0['curve_r'][icurv]

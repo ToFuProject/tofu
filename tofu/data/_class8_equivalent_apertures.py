@@ -414,7 +414,7 @@ def _check(
 
     dgeom = coll.dobj['camera'][key_cam]['dgeom']
     cx, cy, cz = coll.get_camera_cents_xyz(key=key_cam)
-    is2d = dgeom['type'] == '2d'
+    is2d = dgeom['nd'] == '2d'
     shape0 = cx.shape
 
     if is2d:

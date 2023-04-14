@@ -94,7 +94,7 @@ def _diagnostics_check(
     # types of camera
 
     lcam = list(doptics.keys())
-    types = [coll.dobj['camera'][k0]['dgeom']['type'] for k0 in lcam]
+    types = [coll.dobj['camera'][k0]['dgeom']['nd'] for k0 in lcam]
 
     if len(set(types)) > 1:
         msg = (

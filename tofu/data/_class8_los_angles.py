@@ -363,7 +363,7 @@ def _vos_from_los_store(
     kph1 = f'{key_cam}_vos_ph1'
 
     # reshape for 2d camera
-    if coll.dobj['camera'][key_cam]['dgeom']['type'] == '2d':
+    if coll.dobj['camera'][key_cam]['dgeom']['nd'] == '2d':
         shape0 = coll.dobj['camera'][key_cam]['dgeom']['shape']
         shape = tuple(np.r_[pcross0.shape[0], shape0])
         pcross0 = pcross0.reshape(shape)

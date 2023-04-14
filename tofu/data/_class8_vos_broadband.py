@@ -76,7 +76,7 @@ def _vos(
 
     dgeom = coll.dobj['camera'][key_cam]['dgeom']
     par = dgeom['parallel']
-    is2d = dgeom['type'] == '2d'
+    is2d = dgeom['nd'] == '2d'
     cx, cy, cz = coll.get_camera_cents_xyz(key=key_cam)
     dvect = coll.get_camera_unit_vectors(key=key_cam)
     outline = dgeom['outline']

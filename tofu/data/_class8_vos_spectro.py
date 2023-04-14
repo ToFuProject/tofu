@@ -85,6 +85,9 @@ def _vos(
     ptsvect_cam = coll.get_optics_reflect_ptsvect(key=key_cam)
 
     cent = coll.get_optics_x01toxyz(key=kref)(x0=0, x1=0)
+    cent_cam = coll.dobj['camera'][key_cam]['dgeom']['cent']
+    dist_to_cam = np.linalg.norm(cent - cent_cam)
+    pix_size = np.sqrt(coll.dobj['camera'][key_cam]['dgeom']['pix_area'])
 
     # ---------------
     # prepare spectro
@@ -215,7 +218,7 @@ def _vos(
                 pti[1] = x0u[i0]*np.sin(phii)
 
                 # anuglar resolution associated to pixels
-                dist_pix = np.linalg.norm(pti - cent)
+                dist_pix = np.linalg.norm(pti - cent) + dist_to_cam
                 dang_pix = pix_size / dist_pix
 
                 # compute image
@@ -235,23 +238,7 @@ def _vos(
                 if x0c is None:
                     continue
 
-
                 # ge# get power ratio
-
-                # get rays
-                rays = None
-
-                # get image on camera
-                x0, x1 = pts2plane(
-                    pts_x=cx[ii],
-                    pts_y=cy[ii],
-                    pts_z=cz[ii],
-                    vect_x=pxi - cx[ii],
-                    vect_y=pyi - cy[ii],
-                    vect_z=pzi - cz[ii],
-                    strict=False,
-                    return_x01=True,
-                )
 
 
                 # Interpolate per pixel

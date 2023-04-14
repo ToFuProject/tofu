@@ -37,6 +37,7 @@ class Camera(Previous):
     _dshow.update({
         'camera': [
             'dgeom.type',
+            'dgeom.nd',
             'dmat.mode',
             'dgeom.parallel',
             'dgeom.shape',

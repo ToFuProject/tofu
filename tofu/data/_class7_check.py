@@ -414,7 +414,8 @@ def _camera_1d(
         'camera': {
             key: {
                 'dgeom': {
-                    'type': '1d',
+                    'type': '',
+                    'nd': '1d',
                     'parallel': parallel,
                     'shape': (npix,),
                     'ref': (knpix,),
@@ -735,7 +736,8 @@ def _camera_2d(
         'camera': {
             key: {
                 'dgeom': {
-                    'type': '2d',
+                    'type': 'planar',
+                    'nd': '2d',
                     'parallel': True,
                     'shape': (npix0, npix1),
                     'ref': (knpix0, knpix1),
@@ -983,7 +985,7 @@ def get_camera_cents_xyz(coll=None, key=None):
     # get unit vector components
 
     dgeom = coll.dobj['camera'][key]['dgeom']
-    if dgeom['type'] == '1d':
+    if dgeom['nd'] == '1d':
         cx = coll.ddata[dgeom['cents'][0]]['data']
         cy = coll.ddata[dgeom['cents'][1]]['data']
         cz = coll.ddata[dgeom['cents'][2]]['data']
