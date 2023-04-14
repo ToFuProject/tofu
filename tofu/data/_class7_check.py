@@ -617,6 +617,12 @@ def _camera_2d_check(
         dim=3,
     )
 
+    # extenthalf for compatibility with other surfaces
+    extenthalf = [
+        0.5*(outline_x0.max() - outline_x0.min()),
+        0.5*(outline_x1.max() - outline_x1.min()),
+    ]
+
     return (
         key,
         outline_x0, outline_x1,
@@ -625,6 +631,7 @@ def _camera_2d_check(
         cents_x0, cents_x1,
         npix0, npix1,
         nin, e0, e1,
+        extenthalf,
     )
 
 
@@ -655,6 +662,7 @@ def _camera_2d(
         cents_x0, cents_x1,
         npix0, npix1,
         nin, e0, e1,
+        extenthalf,
     ) = _camera_2d_check(
         coll=coll,
         key=key,
@@ -750,6 +758,7 @@ def _camera_2d(
                     'nin': nin,
                     'e0': e0,
                     'e1': e1,
+                    'extenthalf': extenthalf,
                 },
             },
         },

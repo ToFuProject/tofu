@@ -54,7 +54,7 @@ def get_optics_outline(
     # --------
     # compute
 
-    if dgeom['nd'] == '3d':
+    if dgeom['type'] == '3d':
         return None, None
 
     if cls == 'camera' and total:

@@ -3,6 +3,7 @@
 
 import datetime as dtm      # DB
 import numpy as np
+import scipy.stats as scpstats
 from matplotlib.path import Path
 import Polygon as plg
 
@@ -63,42 +64,50 @@ def _vos(
     lop = doptics[key_cam]['optics'][::-1]
     lop, lcls = coll.get_optics_cls(lop)
 
+    kspectro = lop[lcls.index('crystal')]
+    ispectro = lop.index(kspectro)
+    if len(lop[ispectro:]) > 1:
+        msg = "Not yet implemented optics between crystal and camera!"
+        raise NotImplementedError()
+
     lpoly_pre = [
         coll.get_optics_poly(
             key=k0,
             add_points=None,
             return_outline=False,
         )
-        for k0 in lop[1:]
+        for k0 in lop[:ispectro]
     ]
-    kref = lop[0]
-    kspectro = lop[lcls.index('crystal')]
 
-    # intial polygon
-    p_a = coll.get_optics_outline(key=kref, add_points=False)
-    p_a = plg.Polygon(np.array([p_a[0], p_a[1]]).T)
+    # get initial polygon
+    p0x, p0y, p0z = coll.get_optics_poly(key=kspectro, add_points=None)
 
-    # ptsvect func
-    ptsvect = coll.get_optics_reflect_ptsvect(key=kref)
-    coords_x01toxyz = coll.get_optics_x01toxyz(key=kref)
+    # get functions
+    ptsvect_plane = coll.get_optics_reflect_ptsvect(key=kspectro, asplane=True)
     ptsvect_spectro = coll.get_optics_reflect_ptsvect(key=kspectro)
     ptsvect_cam = coll.get_optics_reflect_ptsvect(key=key_cam)
 
-    cent = coll.get_optics_x01toxyz(key=kref)(x0=0, x1=0)
-    cent_cam = coll.dobj['camera'][key_cam]['dgeom']['cent']
-    dist_to_cam = np.linalg.norm(cent - cent_cam)
-    pix_size = np.sqrt(coll.dobj['camera'][key_cam]['dgeom']['pix_area'])
-
-    # ---------------
-    # prepare spectro
-
-    pts2plane = coll.get_optics_reflect_ptsvect(
+    coords_x01toxyz_plane = coll.get_optics_x01toxyz(
         key=kspectro,
         asplane=True,
     )
 
-    # --------------------------
-    # prepare overall cross polygon
+    # Get centers of crystal and camera to estimate distance
+    cent_spectro = coll.get_optics_x01toxyz(key=kspectro)(x0=0, x1=0)
+    cent_cam = coll.dobj['camera'][key_cam]['dgeom']['cent']
+    dist_to_cam = np.linalg.norm(cent_spectro - cent_cam)
+    pix_size = np.sqrt(coll.dobj['camera'][key_cam]['dgeom']['pix_area'])
+
+    # prepare camera bin edges
+    kcc = coll.dobj['camera'][key_cam]['dgeom']['cents']
+    cc0 = coll.ddata[kcc[0]]['data']
+    cc1 = coll.ddata[kcc[1]]['data']
+    cout0, cout1 = coll.get_optics_outline(key_cam, total=False)
+    cbin0 = np.r_[cc0 + np.min(cout0), cc0[-1] + np.max(cout0)]
+    cbin1 = np.r_[cc1 + np.min(cout1), cc1[-1] + np.max(cout1)]
+
+    # -------------------------------------------------
+    # prepare polygons limiting points in cross-section
 
     # get temporary vos
     kpc0, kpc1 = doptics[key_cam]['vos_pcross']
@@ -156,18 +165,6 @@ def _vos(
     phimin = np.nanmin(dphi[0, :])
     phimax = np.nanmin(dphi[1, :])
 
-
-    # irf = np.repeat(ir, nphi)
-    # izf = np.repeat(iz, nphi)
-    # import pdb; pdb.set_trace()     # DB
-    # phi = np.concatenate(tuple([
-        # np.linspace(dphi[0], dphi[1], nn) for nn in nphi
-    # ]))
-
-    # xx = x0[irf] * np.cos(phi)
-    # yy = x0[irf] * np.sin(phi)
-    # zz = x1[izf]
-
     # -------------------------------------
     # prepare lambda, angles, rocking_curve
 
@@ -194,13 +191,17 @@ def _vos(
 
     angbragg = bragg[None, :] + ang_rel[:, None]
 
-    # angular resolution associated to pixels
-    dang_pix = None
+    # --------------
+    # prepare output
+
+    # shape =
+    # ph_count = np.full(shape, np.nan)
+    # cos = np.full(shape, np.nan)
 
     # -------------
     # get
 
-    lcross = []
+
     pti = np.r_[0., 0., 0.]
     for i0 in iru:
 
@@ -213,40 +214,80 @@ def _vos(
 
             for i2, phii in enumerate(phi):
 
+                print(f"\t\t{i0}, {i1}, {i2} / {nphi}")
                 # set point
                 pti[0] = x0u[i0]*np.cos(phii)
                 pti[1] = x0u[i0]*np.sin(phii)
 
                 # anuglar resolution associated to pixels
-                dist_pix = np.linalg.norm(pti - cent) + dist_to_cam
-                dang_pix = pix_size / dist_pix
+                dist_spectro = np.linalg.norm(pti - cent_spectro)
+                dang_pix = pix_size / (dist_to_cam + dist_spectro)
 
                 # compute image
-                x0c, x1c, angles, sang, iok = _get_points_on_camera_from_pts(
-                    p_a=p_a,
+                (
+                    x0c, x1c, angles, dsang, cosi, iok,
+                ) = _get_points_on_camera_from_pts(
+                    p0x=p0x,
+                    p0y=p0y,
+                    p0z=p0z,
                     pti=pti,
                     lpoly_pre=lpoly_pre,
-                    ptsvect=ptsvect,
-                    dist=dist,
+                    dist=dist_spectro,
                     dang=dang,
                     dang_pix=dang_pix,
-                    coords_x01toxyz=coords_x01toxyz,
+                    phi=phii,
+                    # functions
+                    ptsvect_plane=ptsvect_plane,
+                    coords_x01toxyz_plane=coords_x01toxyz_plane,
                     ptsvect_spectro=ptsvect_spectro,
                     ptsvect_cam=ptsvect_cam,
-                )[:5]
+                )[:6]
 
                 if x0c is None:
                     continue
 
-                # ge# get power ratio
+                # ---------- DEBUG ------------
+                if True:
+                    _plot_debug(
+                        coll=coll,
+                        key_cam=key_cam,
+                        cbin0=cbin0,
+                        cbin1=cbin1,
+                        x0c=x0c,
+                        x1c=x1c,
+                        cos=cosi,
+                        angles=angles,
+                        iok=iok,
+                    )
+                # -------- END DEBUG ----------
+
+                # 2d pixel by binning
+                out = scpstats.binned_statistic_2d(
+                    x0c[iok],
+                    x1c[iok],
+                    cosi[iok],
+                    statistic='mean',
+                    bins=(cbin0, cbin1),
+                    expand_binnumbers=True,
+                )
+                import pdb; pdb.set_trace()     # DB
+
+                cos[] = out.statistic
+
+                # get range of ang_rel
+
+                # get power ratio
 
 
                 # Interpolate per pixel
-                pow_ratio = None
-                cos = None
+                power_ratio = None
 
-                # Integrate per pixel
-                dV * dlamb * dang * dalpha
+                # binned photon counts
+
+
+                # binned average cos
+
+                dV * dlamb * dsang
 
     import pdb; pdb.set_trace()     # DB
 
@@ -281,7 +322,6 @@ def _vos(
     )
 
 
-
 # ################################################
 # ################################################
 #           Sub-routine
@@ -289,31 +329,50 @@ def _vos(
 
 
 def _get_points_on_camera_from_pts(
-    p_a=None,
+    p0x=None,
+    p0y=None,
+    p0z=None,
     pti=None,
     lpoly_pre=None,
-    ptsvect=None,
     dist=None,
     dang=None,
     dang_pix=None,
-    coords_x01toxyz=None,
+    phi=None,
+    # functions
+    ptsvect_plane=None,
+    coords_x01toxyz_plane=None,
     ptsvect_spectro=None,
     ptsvect_cam=None,
 ):
 
-    # get equivalent aperture
-    p0, p1 = _equivalent_apertures._get_equivalent_aperture(
-        p_a=p_a,
-        pt=pti,
-        nop_pre=len(lpoly_pre),
-        lpoly_pre=lpoly_pre,
-        ptsvect=ptsvect,
-    )
+    # ------------------------------------------
+    # initial polygon (crystal on its own plane)
 
-    print(i0, i1, i2, p0)
-    # skip if no intersection
-    if p0 is None or p0.size == 0:
-        return None, None, None, None, None, None, None
+    p0, p1 = ptsvect_plane(
+        pts_x=pti[0],
+        pts_y=pti[1],
+        pts_z=pti[2],
+        vect_x=p0x - pti[0],
+        vect_y=p0y - pti[1],
+        vect_z=p0z - pti[2],
+        strict=True,
+        return_x01=True,
+    )[-2:]
+    p_a = plg.Polygon(np.array([p0, p1]).T)
+
+    if len(lpoly_pre) > 0:
+        # get equivalent aperture
+        p0, p1 = _equivalent_apertures._get_equivalent_aperture(
+            p_a=p_a,
+            pt=pti,
+            nop_pre=len(lpoly_pre),
+            lpoly_pre=lpoly_pre,
+            ptsvect=ptsvect_plane,
+        )
+
+        # skip if no intersection
+        if p0 is None or p0.size == 0:
+            return None, None, None, None, None, None, None
 
     # back to 3d
     # px, py, pz = coords_x01toxyz(x0=p0, x1=p1)
@@ -345,12 +404,15 @@ def _get_points_on_camera_from_pts(
     # lambi = lamb[indlamb]
     # angi = angbragg[:, indlamb]
 
+    # dang
+    dang_min = min(dang, 0.2*dang_pix)
+
     # set n0, n1
     p0min, p0max = p0.min(), p0.max()
     p1min, p1max = p1.min(), p1.max()
-    n0 = int(np.ceil(((p0max - p0min) / dist) / min(dang, dang_pix)))
-    n1 = int(np.ceil(((p1max - p1min) / dist) / min(dang, dang_pix)))
-    sang = ((p0max - p0min) / n0) * ((p1max - p1min) / n1)
+    n0 = int(np.ceil(((p0max - p0min) / dist) / dang_min))
+    n1 = int(np.ceil(((p1max - p1min) / dist) / dang_min))
+    dsang = ((p0max - p0min) / n0) * ((p1max - p1min) / n1)
 
     # sample 2d equivalent aperture
     x0i = np.linspace(p0.min(), p0.max(), n0)
@@ -359,15 +421,27 @@ def _get_points_on_camera_from_pts(
     # mesh
     x0if = np.repeat(x0i[:, None], n1, axis=1)
     x1if = np.repeat(x1i[None, :], n0, axis=0)
-    ind = Path(np.array([p0, p1].T)).contains_points(
+    ind = Path(np.array([p0, p1]).T).contains_points(
         np.array([x0if.ravel(), x1if.ravel()]).T
     ).reshape((n0, n1))
 
     # back to 3d
-    xx, yy, zz = coords_x01toxyz(
+    xx, yy, zz = coords_x01toxyz_plane(
         x0=x0if,
         x1=x1if,
     )
+
+    # get normalized vector from plasma point to crystal
+    vectx = xx - pti[0]
+    vecty = yy - pti[1]
+    vectz = zz - pti[2]
+    norm = np.sqrt(vectx**2 + vecty**2 + vectz**2)
+    vectx = vectx / norm
+    vecty = vecty / norm
+    vectz = vectz / norm
+
+    # get local cosine vs toroidal direction (for doppler)
+    cos = -vectx*np.sin(phi) + vecty*np.cos(phi)
 
     # get reflexion
     (
@@ -378,9 +452,9 @@ def _get_points_on_camera_from_pts(
         pts_x=pti[0],
         pts_y=pti[1],
         pts_z=pti[2],
-        vect_x=xx - pti[0],
-        vect_y=yy - pti[1],
-        vect_z=zz - pti[2],
+        vect_x=vectx,
+        vect_y=vecty,
+        vect_z=vectz,
         strict=True,
         return_x01=False,
     )
@@ -395,8 +469,66 @@ def _get_points_on_camera_from_pts(
         vect_z=vz,
         strict=False,
         return_x01=True,
-    )
+    )[-2:]
 
-    import pdb; pdb.set_trace()     # DB
-    return x0c, x1c, angles, sang, ind, ptx, pty, ptz
+    return x0c, x1c, angles, dsang, cos, ind, ptsx, ptsy, ptsz
 
+
+# ################################################
+# ################################################
+#           Debug plot
+# ################################################
+
+
+def _plot_debug(
+    coll=None,
+    key_cam=None,
+    cbin0=None,
+    cbin1=None,
+    x0c=None,
+    x1c=None,
+    cos=None,
+    angles=None,
+    iok=None,
+):
+
+    out0, out1 = coll.get_optics_outline(key_cam, total=True)
+    ck0f = np.array([cbin0, cbin0, np.full((cbin0.size,), np.nan)])
+    ck1f = np.array([cbin1, cbin1, np.full((cbin1.size,), np.nan)])
+    ck01 = np.r_[np.min(cbin1), np.max(cbin1), np.nan]
+    ck10 = np.r_[np.min(cbin0), np.max(cbin0), np.nan]
+
+    ldata = [
+        ('cos vs toroidal', cos),
+        ('angles vs crystal', angles),
+        ('iok', iok)
+    ]
+
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(14, 8))
+    for ii, v0 in enumerate(ldata):
+        ax = fig.add_subplot(1, 3, ii + 1, aspect='equal')
+        ax.set_title(v0[0], size=12, fontweight='bold')
+        ax.set_xlabel('x0 (m)', size=12, fontweight='bold')
+        ax.set_xlabel('x1 (m)', size=12, fontweight='bold')
+
+        ax.plot(np.r_[out0, out0[0]], np.r_[out1, out1[0]], '.-k')
+        ax.plot(
+            ck0f.T.ravel(),
+            np.tile(ck01, cbin0.size),
+            '-k',
+        )
+        ax.plot(
+            np.tile(ck10, cbin1.size),
+            ck1f.T.ravel(),
+            '-k',
+        )
+        im = ax.scatter(
+            x0c,
+            x1c,
+            c=v0[1],
+            s=4,
+            edgecolors='None',
+            marker='o',
+        )
+        plt.colorbar(im, ax=ax)

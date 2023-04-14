@@ -396,7 +396,7 @@ def _get_ref_bs_spectro(coll=None, key_integrand=None, key_bs=None):
     # If none => error
     if len(lkspectro) == 0:
         msg = (
-            "Integrand '{key_integrand}' does not seem to "
+            f"Integrand '{key_integrand}' does not seem to "
             "have a spectral dimension"
         )
         raise Exception(msg)
@@ -464,11 +464,11 @@ def _compute_los(
 
     if spectro:
 
-        
+
 
         kspect_ref_vect = coll.get_ref_vector(ref=key_ref_spectro)[3]
         spect_ref_vect = coll.ddata[kspect_ref_vect]['data']
-        
+
         ref = coll.ddata[key_integrand]['ref']
         axis_spectro = ref.index(key_ref_spectro)
 
@@ -552,7 +552,7 @@ def _compute_los(
                 concatenate=True,
                 return_coords=['R', 'z', 'ltot'],
             )
-            
+
             if R is None:
                 continue
 
@@ -596,7 +596,7 @@ def _compute_los(
             # ----------------------
             # interpolate spectrally
 
-            if spectro:             
+            if spectro:
                 douti['data'] = np.take(douti['data'], 0, axis_spectro)
                 douti['ref'] = tuple([
                     rr for jj, rr in enumerate(douti['ref'])
