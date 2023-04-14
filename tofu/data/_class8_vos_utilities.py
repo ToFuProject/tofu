@@ -263,3 +263,46 @@ def _simplify_concave(
             break
 
     return lind
+
+
+# #################################################################
+# #################################################################
+#               Get dphi from R and phor
+# #################################################################
+
+
+def _get_dphi_from_R_phor(
+    R=None,
+    phor0=None,
+    phor1=None,
+    phimin=None,
+    phimax=None,
+    res=None,
+):
+
+    # ------------
+    # check inputs
+
+    # R
+    R = np.unique(np.atleast_1d(R).ravel())
+
+    # path
+    path = Path(np.array([phor0, phor1]).T)
+
+    # --------------
+    # sample phi
+
+    dphi = np.full((2, R.size), np.nan)
+    for ir, rr in enumerate(R):
+
+        nphi = np.ceil(rr*(phimax - phimin) / (0.1*res)).astype(int)
+        phi = np.linspace(phimin, phimax, nphi)
+
+        ind = path.contains_points(
+            np.array([rr*np.cos(phi), rr*np.sin(phi)]).T
+        )
+
+        dphi[0, ir] = np.min(phi[ind]) - (phi[1] - phi[0])
+        dphi[1, ir] = np.max(phi[ind]) + (phi[1] - phi[0])
+
+    return dphi

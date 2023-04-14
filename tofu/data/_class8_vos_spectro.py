@@ -165,6 +165,16 @@ def _vos(
     phimin = np.nanmin(dphi[0, :])
     phimax = np.nanmin(dphi[1, :])
 
+    # get dphi vs phor
+    dphi_r = _utilities._get_dphi_from_R_phor(
+        R=x0u[iru],
+        phor0=phor0,
+        phor1=phor1,
+        phimin=phimin,
+        phimax=phimax,
+        res=res,
+    )
+
     # -------------------------------------
     # prepare lambda, angles, rocking_curve
 
@@ -217,11 +227,11 @@ def _vos(
     ipts = 0
     pti = np.r_[0., 0., 0.]
     ind_pts = np.zeros((2, ind.sum()), dtype=int)
-    for i0 in iru:
+    for i00, i0 in enumerate(iru):
 
-        nphi = np.ceil(x0u[i0]*(phimax - phimin) / res).astype(int)
-        phi = np.linspace(phimin, phimax, nphi)
-        dphi = np.mean(np.diff(phi))
+        nphi = np.ceil(x0u[i0]*(dphi_r[1, i00] - dphi_r[0, i00]) / res).astype(int)
+        phi = np.linspace(dphi_r[0, i00], dphi_r[1, i00], nphi)
+        dphi = phi[1] - phi[0]
         dV = dr * x0u[i0] * dphi * dz
 
         for i1 in iz[ir == i0]:
