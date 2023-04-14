@@ -267,6 +267,7 @@ class Diagnostic(Previous):
         key_mesh=None,
         # parameters
         res=None,
+        res_lamb=None,
         check=None,
         margin_par=None,
         margin_perp=None,
@@ -303,6 +304,7 @@ class Diagnostic(Previous):
             key_mesh=key_mesh,
             # etendue
             res=res,
+            res_lamb=res_lamb,
             check=check,
             margin_par=margin_par,
             margin_perp=margin_perp,

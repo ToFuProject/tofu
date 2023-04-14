@@ -25,6 +25,7 @@ def compute_vos(
     config=None,
     # parameters
     res=None,
+    res_lamb=None,
     margin_poly=None,
     margin_par=None,
     margin_perp=None,
@@ -57,6 +58,7 @@ def compute_vos(
         doptics,
         dcompute,
         res,
+        res_lamb,
         margin_par,
         margin_perp,
         visibility,
@@ -69,6 +71,7 @@ def compute_vos(
         key_diag=key_diag,
         key_mesh=key_mesh,
         res=res,
+        res_lamb=res_lamb,
         margin_par=margin_par,
         margin_perp=margin_perp,
         visibility=visibility,
@@ -177,6 +180,7 @@ def compute_vos(
                 x1l=x1l,
                 sh=sh,
                 res=res,
+                res_lamb=res_lamb,
                 bool_cross=bool_cross,
                 # parameters
                 margin_poly=margin_poly,
@@ -237,6 +241,7 @@ def _check(
     key_diag=None,
     key_mesh=None,
     res=None,
+    res_lamb=None,
     margin_par=None,
     margin_perp=None,
     visibility=None,
@@ -331,6 +336,12 @@ def _check(
         res = 0.01
 
     # -----------
+    # res_lamb
+
+    if res_lamb is None:
+        res_lamb = 0.01e-10
+
+    # -----------
     # margin_par
 
     margin_par = ds._generic_check._check_var(
@@ -401,6 +412,7 @@ def _check(
         doptics,
         dcompute,
         res,
+        res_lamb,
         margin_par,
         margin_perp,
         visibility,

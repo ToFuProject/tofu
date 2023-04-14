@@ -3,6 +3,7 @@
 
 import datetime as dtm      # DB
 import numpy as np
+from matplotlib.path import Path
 import Polygon as plg
 
 
@@ -33,6 +34,7 @@ def _vos(
     x1l=None,
     sh=None,
     res=None,
+    res_lamb=None,
     bool_cross=None,
     # parameters
     margin_poly=None,
@@ -78,6 +80,11 @@ def _vos(
 
     # ptsvect func
     ptsvect = coll.get_optics_reflect_ptsvect(key=kref)
+    coords_x01toxyz = coll.get_optics_x01toxyz(key=kref)
+    ptsvect_spectro = coll.get_optics_reflect_ptsvect(key=kspectro)
+    ptsvect_cam = coll.get_optics_reflect_ptsvect(key=key_cam)
+
+    cent = coll.get_optics_x01toxyz(key=kref)(x0=0, x1=0)
 
     # ---------------
     # prepare spectro
@@ -119,8 +126,8 @@ def _vos(
         )
         phor |= plg.Polygon(np.array([phor0[:, ii], phor1[:, ii]]).T)
 
-    pcross0, pcross1 = np.array(pcross).T
-    phor0, phor1 = np.array(phor).T
+    pcross0, pcross1 = np.array(pcross)[0].T
+    phor0, phor1 = np.array(phor)[0].T
 
     # --------------------------
     # prepare points and indices
@@ -142,103 +149,119 @@ def _vos(
 
     ir, iz = ind.nonzero()
     iru = np.unique(ir)
-    izru = [iz[ir == i0] for i0 in iru]
 
-    nphi = np.ceil(x0[ir]*(dphi[1] - dphi[0]) / res).astype(int)
+    phimin = np.nanmin(dphi[0, :])
+    phimax = np.nanmin(dphi[1, :])
 
-    irf = np.repeat(ir, nphi)
-    izf = np.repeat(iz, nphi)
-    phi = np.concatenate(tuple([
-        np.linspace(dphi[0], dphi[1], nn) for nn in nphi
-    ]))
 
-    xx = x0[irf] * np.cos(phi)
-    yy = x0[irf] * np.sin(phi)
-    zz = x1[izf]
+    # irf = np.repeat(ir, nphi)
+    # izf = np.repeat(iz, nphi)
+    # import pdb; pdb.set_trace()     # DB
+    # phi = np.concatenate(tuple([
+        # np.linspace(dphi[0], dphi[1], nn) for nn in nphi
+    # ]))
 
-    import pdb; pdb.set_trace()     # DB
+    # xx = x0[irf] * np.cos(phi)
+    # yy = x0[irf] * np.sin(phi)
+    # zz = x1[izf]
 
     # -------------------------------------
     # prepare lambda, angles, rocking_curve
 
-    lamb = np.linspace()
-    bragg = None
-    ang = np.linspace()
-    angbrag = bragg[None, :] + ang[:, None]
+    lamb = coll.get_diagnostic_data(
+        key=key_diag,
+        key_cam=key_cam,
+        data='lamb',
+    )[0][key_cam]
 
-    dang = None
+    lambmin = np.nanmin(lamb)
+    lambmax = np.nanmax(lamb)
+    dlamb = (lambmax - lambmin) * 1.1
+    lambmean = 0.5*(lambmin + lambmax)
+    nlamb = int(np.ceil(dlamb / res_lamb))
+    lamb = np.linspace(lambmean - 0.5*dlamb, lambmean + 0.5*dlamb, nlamb)
 
-    # rock_curve_full = np.repeat(, axis=1)
+    bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
+
+    kang_rel = coll.dobj['crystal'][kspectro]['dmat']['drock']['angle_rel']
+    kpow = coll.dobj['crystal'][kspectro]['dmat']['drock']['power_ratio']
+    ang_rel = coll.ddata[kang_rel]['data']
+    dang = np.mean(np.diff(ang_rel))
+    pow_ratio = coll.ddata[kpow]['data']
+
+    angbragg = bragg[None, :] + ang_rel[:, None]
+
+    # angular resolution associated to pixels
+    dang_pix = None
 
     # -------------
     # get
 
     lcross = []
-    for pp in pts:
+    pti = np.r_[0., 0., 0.]
+    for i0 in iru:
 
-        # get equivalent aperture
-        p0, p1 = _equivalent_apertures._get_equivalent_aperture(
-            p_a=p_a,
-            # pt=np.r_[],
-            nop_pre=len(lpoly_pre),
-            lpoly_pre=lpoly_pre,
-            ptsvect=ptsvect,
-        )
+        nphi = np.ceil(x0u[i0]*(phimax - phimin) / res).astype(int)
+        phi = np.linspace(phimin, phimax, nphi)
 
-        if p0 is None or p0.size == 0:
-            continue
+        for i1 in iz[ir == i0]:
 
-        # get angles
-        angles = ptsvect(
-            pts_x=cxi,
-            pts_y=cyi,
-            pts_z=czi,
-            vect_x=np.tile(exi, nc) - cxi,
-            vect_y=np.tile(eyi, nc) - cyi,
-            vect_z=np.tile(ezi, nc) - czi,
-            strict=True,
-            return_x01=False,
-        )[6]
+            pti[2] = x1u[i1]
 
-        # angles min, max
-        ang_min = np.min(angles)
-        ang_max = np.max(angles)
+            for i2, phii in enumerate(phi):
 
-        # get lambda from angles and rocking curve
-        ind = (angbragg >= ang_min) & (angbragg <= ang_max)
-        indlamb = np.any(ind, axis=0)
+                # set point
+                pti[0] = x0u[i0]*np.cos(phii)
+                pti[1] = x0u[i0]*np.sin(phii)
 
-        angi = angbragg[:, indlamb]
+                # anuglar resolution associated to pixels
+                dist_pix = np.linalg.norm(pti - cent)
+                dang_pix = pix_size / dist_pix
 
-        # get
+                # compute image
+                x0c, x1c, angles, sang, iok = _get_points_on_camera_from_pts(
+                    p_a=p_a,
+                    pti=pti,
+                    lpoly_pre=lpoly_pre,
+                    ptsvect=ptsvect,
+                    dist=dist,
+                    dang=dang,
+                    dang_pix=dang_pix,
+                    coords_x01toxyz=coords_x01toxyz,
+                    ptsvect_spectro=ptsvect_spectro,
+                    ptsvect_cam=ptsvect_cam,
+                )[:5]
 
-        # get power ratio
-        pow_ratio = rock_curve[:, None][ind]
+                if x0c is None:
+                    continue
 
-        # get rays
-        rays = None
 
-        # get image on camera
-        x0, x1 = pts2plane(
-            pts_x=cx[ii],
-            pts_y=cy[ii],
-            pts_z=cz[ii],
-            vect_x=pxi - cx[ii],
-            vect_y=pyi - cy[ii],
-            vect_z=pzi - cz[ii],
-            strict=False,
-            return_x01=True,
-        )
+                # ge# get power ratio
 
-        import pdb; pdb.set_trace()     # DB
+                # get rays
+                rays = None
 
-        # Interpolate per pixel
-        pow_ratio = None
-        cos = None
+                # get image on camera
+                x0, x1 = pts2plane(
+                    pts_x=cx[ii],
+                    pts_y=cy[ii],
+                    pts_z=cz[ii],
+                    vect_x=pxi - cx[ii],
+                    vect_y=pyi - cy[ii],
+                    vect_z=pzi - cz[ii],
+                    strict=False,
+                    return_x01=True,
+                )
 
-        # Integrate per pixel
-        dV * dlamb * dang * dalpha
 
+                # Interpolate per pixel
+                pow_ratio = None
+                cos = None
+
+                # Integrate per pixel
+                dV * dlamb * dang * dalpha
+
+    import pdb; pdb.set_trace()     # DB
 
 
 
@@ -269,3 +292,124 @@ def _vos(
         dt111, dt222, dt333,
         dt1111, dt2222, dt3333, dt4444,
     )
+
+
+
+# ################################################
+# ################################################
+#           Sub-routine
+# ################################################
+
+
+def _get_points_on_camera_from_pts(
+    p_a=None,
+    pti=None,
+    lpoly_pre=None,
+    ptsvect=None,
+    dist=None,
+    dang=None,
+    dang_pix=None,
+    coords_x01toxyz=None,
+    ptsvect_spectro=None,
+    ptsvect_cam=None,
+):
+
+    # get equivalent aperture
+    p0, p1 = _equivalent_apertures._get_equivalent_aperture(
+        p_a=p_a,
+        pt=pti,
+        nop_pre=len(lpoly_pre),
+        lpoly_pre=lpoly_pre,
+        ptsvect=ptsvect,
+    )
+
+    print(i0, i1, i2, p0)
+    # skip if no intersection
+    if p0 is None or p0.size == 0:
+        return None, None, None, None, None, None, None
+
+    # back to 3d
+    # px, py, pz = coords_x01toxyz(x0=p0, x1=p1)
+
+    # get angles
+    # (
+        # ptx, pty, ptz,
+        # vx, vy, vz,
+        # angles, iok,
+    # ) = ptsvect_spectro(
+        # pts_x=pti[0],
+        # pts_y=pti[1],
+        # pts_z=pti[2],
+        # vect_x=px - pti[0],
+        # vect_y=py - pti[1],
+        # vect_z=pz - pti[2],
+        # strict=True,
+        # return_x01=False,
+    # )
+
+    # # angles min, max
+    # ang_min = np.min(angles)
+    # ang_max = np.max(angles)
+
+    # # get lambda from angles and rocking curve
+    # indang = (angbragg >= ang_min) & (angbragg <= ang_max)
+    # indlamb = np.any(indang, axis=0)
+
+    # lambi = lamb[indlamb]
+    # angi = angbragg[:, indlamb]
+
+    # set n0, n1
+    p0min, p0max = p0.min(), p0.max()
+    p1min, p1max = p1.min(), p1.max()
+    n0 = int(np.ceil(((p0max - p0min) / dist) / min(dang, dang_pix)))
+    n1 = int(np.ceil(((p1max - p1min) / dist) / min(dang, dang_pix)))
+    sang = ((p0max - p0min) / n0) * ((p1max - p1min) / n1)
+
+    # sample 2d equivalent aperture
+    x0i = np.linspace(p0.min(), p0.max(), n0)
+    x1i = np.linspace(p1.min(), p1.max(), n1)
+
+    # mesh
+    x0if = np.repeat(x0i[:, None], n1, axis=1)
+    x1if = np.repeat(x1i[None, :], n0, axis=0)
+    ind = Path(np.array([p0, p1].T)).contains_points(
+        np.array([x0if.ravel(), x1if.ravel()]).T
+    ).reshape((n0, n1))
+
+    # back to 3d
+    xx, yy, zz = coords_x01toxyz(
+        x0=x0if,
+        x1=x1if,
+    )
+
+    # get reflexion
+    (
+        ptsx, ptsy, ptsz,
+        vx, vy, vz,
+        angles, iok,
+    ) = ptsvect_spectro(
+        pts_x=pti[0],
+        pts_y=pti[1],
+        pts_z=pti[2],
+        vect_x=xx - pti[0],
+        vect_y=yy - pti[1],
+        vect_z=zz - pti[2],
+        strict=True,
+        return_x01=False,
+    )
+
+    # get x0, x1 on camera
+    x0c, x1c = ptsvect_cam(
+        pts_x=ptsx,
+        pts_y=ptsy,
+        pts_z=ptsz,
+        vect_x=vx,
+        vect_y=vy,
+        vect_z=vz,
+        strict=False,
+        return_x01=True,
+    )
+
+    import pdb; pdb.set_trace()     # DB
+    return x0c, x1c, angles, sang, ind, ptx, pty, ptz
+
