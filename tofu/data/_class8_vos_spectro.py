@@ -183,10 +183,14 @@ def _vos(
 
     bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
 
+    # angle relative
     kang_rel = coll.dobj['crystal'][kspectro]['dmat']['drock']['angle_rel']
-    kpow = coll.dobj['crystal'][kspectro]['dmat']['drock']['power_ratio']
     ang_rel = coll.ddata[kang_rel]['data']
     dang = np.mean(np.diff(ang_rel))
+    angrel_bin = np.r_[ang_rel[0] - 0.5*dang, ang_rel + dang]
+
+    # power ratio
+    kpow = coll.dobj['crystal'][kspectro]['dmat']['drock']['power_ratio']
     pow_ratio = coll.ddata[kpow]['data']
 
     angbragg = bragg[None, :] + ang_rel[:, None]
@@ -194,27 +198,40 @@ def _vos(
     # --------------
     # prepare output
 
-    # shape =
-    # ph_count = np.full(shape, np.nan)
-    # cos = np.full(shape, np.nan)
+    shape_cam = coll.dobj['camera'][key_cam]['dgeom']['shape']
 
-    # -------------
-    # get
+    shape0 = tuple(np.r_[shape_cam, ind.sum()])
+    ncounts = np.full(shape0, 0.)
+    cos = np.full(shape0, 0.)
+    lambmin = np.full(shape0, np.inf)
+    lambmax = np.full(shape0, 0.)
 
+    shape1 = tuple(np.r_[shape_cam, ind.sum(), nlamb])
+    ph_count = np.full(shape1, 0.)
 
+    # ---------------------
+    # loop in plasma points
+
+    dr = np.mean(np.diff(x0u))
+    dz = np.mean(np.diff(x1u))
+    ipts = 0
     pti = np.r_[0., 0., 0.]
+    ind_pts = np.zeros((2, ind.sum()), dtype=int)
     for i0 in iru:
 
         nphi = np.ceil(x0u[i0]*(phimax - phimin) / res).astype(int)
         phi = np.linspace(phimin, phimax, nphi)
+        dphi = np.mean(np.diff(phi))
+        dV = dr * x0u[i0] * dphi * dz
 
         for i1 in iz[ir == i0]:
 
+            ind_pts[:, ipts] = (i0, i1)
             pti[2] = x1u[i1]
 
             for i2, phii in enumerate(phi):
 
-                print(f"\t\t{i0}, {i1}, {i2} / {nphi}")
+                print(f"\t\t{i0}, {i1}, {i2} / {nphi}", end='')
                 # set point
                 pti[0] = x0u[i0]*np.cos(phii)
                 pti[1] = x0u[i0]*np.sin(phii)
@@ -243,11 +260,12 @@ def _vos(
                     ptsvect_cam=ptsvect_cam,
                 )[:6]
 
+                print(f":  {0 if x0c is None else iok.sum()} pts", end='\r')
                 if x0c is None:
                     continue
 
                 # ---------- DEBUG ------------
-                if True:
+                if False:
                     _plot_debug(
                         coll=coll,
                         key_cam=key_cam,
@@ -261,38 +279,108 @@ def _vos(
                     )
                 # -------- END DEBUG ----------
 
+                # safety check
+                iok2 = (
+                    (x0c[iok] >= cbin0[0])
+                    & (x0c[iok] <= cbin0[-1])
+                    & (x1c[iok] >= cbin1[0])
+                    & (x1c[iok] <= cbin1[-1])
+                )
+                if not np.any(iok2):
+                    continue
+
+                iok[iok] = iok2
+
                 # 2d pixel by binning
                 out = scpstats.binned_statistic_2d(
                     x0c[iok],
                     x1c[iok],
-                    cosi[iok],
-                    statistic='mean',
+                    None,
+                    statistic='count',
                     bins=(cbin0, cbin1),
                     expand_binnumbers=True,
                 )
-                import pdb; pdb.set_trace()     # DB
 
-                cos[] = out.statistic
+                ipixok = out.statistic > 0
+                ncounts[ipixok, ipts] += out.statistic[ipixok]
 
-                # get range of ang_rel
+                cosi = cosi[iok]
+                angles = angles[iok]
 
-                # get power ratio
+                ip0, ip1 = ipixok.nonzero()
+                for ii in np.unique(ip0):
+                    indi = out.binnumber[0, :] == ii + 1
+                    for jj in np.unique(ip1[ip0 == ii]):
 
+                        # indices
+                        indj = indi & (out.binnumber[1, :] == jj + 1)
 
-                # Interpolate per pixel
-                power_ratio = None
+                        # cos
+                        cos[ii, jj, ipts] += np.sum(cosi[indj])
 
-                # binned photon counts
+                        # ilamb
+                        ilamb = (
+                            (angles[indj][:, None] >= angbragg[:1, ...])
+                            & (angles[indj][:, None] < angbragg[-1:, ...])
+                        )
 
+                        if not np.any(ilamb):
+                            continue
 
-                # binned average cos
+                        ilamb_n = np.any(ilamb, axis=0).nonzero()[0]
 
-                dV * dlamb * dsang
+                        # lambmin
+                        lambmin[ii, jj, ipts] = min(
+                            lambmin[ii, jj, ipts],
+                            np.min(lamb[ilamb_n]),
+                        )
+
+                        # lambmax
+                        lambmax[ii, jj, ipts] = max(
+                            lambmax[ii, jj, ipts],
+                            np.max(lamb[ilamb_n]),
+                        )
+
+                        # binning of angles
+                        for kk in ilamb_n:
+                            inds = np.searchsorted(
+                                angbragg[:, kk],
+                                angles[indj][ilamb[:, kk]],
+                            )
+
+                            # update power_ratio
+                            ph_count[ii, jj, ipts, kk] += np.sum(pow_ratio[inds])
+
+                # multiply by dsang
+                ph_count[ii, jj, ipts, :] *= dsang
+
+            # update index
+            ipts += 1
+
+        # multiply by increments
+        ph_count[ii, ...] *= (dV * dlamb)
+
+    # remove useless points
+    iin = np.any(np.any(ncounts > 0, axis=0), axis=0)
+    if not np.all(iin):
+        ncounts = ncounts[:, :, iin]
+        cos = cos[:, :, iin]
+        lambmin = lambmin[:, :, iin]
+        lambmax = lambmax[:, :, iin]
+        ph_count = ph_count[:, :, iin]
+
+    # average cos + adjust
+    iout = ncounts == 0
+    cos[~iout] = cos[~iout] / ncounts[~iout]
+    cos[iout] = np.nan
+    lambmin[iout] = np.nan
+    lambmax[iout] = np.nan
+    ph_count[iout, :] = np.nan
+
+    # remove useless wavelength
+    iout_lamb = np.any
 
     import pdb; pdb.set_trace()     # DB
-
-
-
 
     # ------------
     # get indices
@@ -532,3 +620,6 @@ def _plot_debug(
             marker='o',
         )
         plt.colorbar(im, ax=ax)
+
+    import pdb
+    pdb.set_trace()     # DB
