@@ -117,11 +117,11 @@ class Crystal(Previous):
     # Utilities
     # ---------------------
 
-    def get_crystal_bragglamb(
+    def get_optics_angle_from2_lamb(
         self,
         key=None,
         lamb=None,
-        bragg=None,
+        angle=None,
         norder=None,
         rocking_curve=None,
     ):
@@ -139,7 +139,7 @@ class Crystal(Previous):
             coll=self,
             key=key,
             lamb=lamb,
-            bragg=bragg,
+            bragg=angle,
             rocking_curve=rocking_curve,
         )
 

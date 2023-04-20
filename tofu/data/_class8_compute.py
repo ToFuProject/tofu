@@ -882,7 +882,7 @@ def get_lamb_from_angle(
                 ang = coll.ddata[ka]['data']
                 ref = coll.ddata[ka]['ref']
 
-            dd = coll.get_crystal_bragglamb(
+            dd = coll.get_optics_angle_from2_lamb(
                 key=kcryst,
                 bragg=ang,
                 rocking_curve=rocking_curve,

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 
 import numpy as np
@@ -5,6 +6,7 @@ import datastock as ds
 
 
 from ..spectro import _rockingcurve
+from . import _class6_compute
 
 
 # ###############################################################
@@ -44,11 +46,12 @@ def rocking_curve(coll=None, key=None):
 # ###############################################################
 
 
-def _bragglamb(
+def _anglelamb(
     coll=None,
     key=None,
     lamb=None,
-    bragg=None,
+    angle=None,
+    angle_out=None,
     norder=None,
     rocking_curve=None,
 ):
@@ -67,12 +70,16 @@ def _bragglamb(
     # check inputs
 
     # key
-    lok = list(coll.dobj.get('crystal', {}).keys())
+    lcryst = list(coll.dobj.get('crystal', {}).keys())
+    lgrat = list(coll.dobj.get('grating', {}).keys())
     key = ds._generic_check._check_var(
         key, 'key',
         types=str,
-        allowed=lok,
+        allowed=lcryst + lgrat,
     )
+
+    # deduce cls
+    cls = coll.get_optics_cls(key)[0]
 
     # norder
     norder = ds._generic_check._check_var(
@@ -89,10 +96,21 @@ def _bragglamb(
     )
 
     # -------------------
+    # prepare
+
+    if cls == 'crystal':
+        lamb_from_angle, angle_from_lamb = _get_func_angle_from2_lamb(
+            dist=dist,
+            norder=corder,
+        )
+    else:
+        lamb_from_angle, angle_from_lamb = _class6_compute._get_func_angle_from2_lamb()
+
+    # -------------------
     # no input => default
 
-    if bragg is None and lamb is None:
-        dmat = coll.dobj['crystal'][key]['dmat']
+    if angle is None and lamb is None:
+        dmat = coll.dobj[cls][key]['dmat']
         if dmat is None or dmat.get('target') is None:
             msg = (
                 f"Crystal '{key}' has no target lamb!\n"
@@ -102,38 +120,52 @@ def _bragglamb(
         else:
             lamb = np.r_[dmat['target']['lamb']]
 
-    if bragg is not None:
-        bragg = np.atleast_1d(bragg).astype(float)
+    if angle is not None:
+        angle = np.atleast_1d(angle).astype(float)
     if lamb is not None:
         lamb = np.atleast_1d(lamb).astype(float)
 
     if rocking_curve is False:
-        dist = coll.dobj['crystal'][key]['dmat']['d_hkl']
+        if cls == 'crystal':
+            dist = coll.dobj['crystal'][key]['dmat']['d_hkl']
 
     # -------------
-    # bragg vs lamb
+    # angle vs lamb
 
-    if bragg is not None and lamb is None:
+    if angle is not None and lamb is None:
 
         if rocking_curve is True:
             raise NotImplementedError()
 
         else:
-            lamb = 2. * dist * np.sin(bragg) / norder
+            lamb = lamb_from_angle(angle)
 
-    elif lamb is not None and bragg is None:
+    elif lamb is not None and angle is None:
 
         if rocking_curve is True:
             raise NotImplementedError
 
         else:
-            bragg = np.arcsin(norder * lamb / (2.*dist))
+            angle = angle_from_angle(lamb)
 
     else:
         msg = "Interpolate on rocking curve"
         raise NotImplementedError(msg)
 
-    return bragg, lamb
+    return angle, lamb
+
+
+def _get_func_angle_from2_lamb(dist=None, norder=None):
+
+    # lamb_from_angle
+    def lamb_from_angle(lamb, norder=norder, dist=dist):
+        return np.arcsin(norder * lamb / (2.*dist))
+
+    # angle_from_lamb
+    def angle_from_lamb(lamb, norder=norder, dist=dist):
+        return 2. * dist * np.sin(angle) / norder
+
+    return lamb_from_angle, angle_from_lamb
 
 
 # ###############################################################
@@ -385,7 +417,7 @@ def _ideal_configuration(
     )
 
     # bragg / lamb
-    bragg = coll.get_crystal_bragglamb(
+    bragg = coll.get_optics_angle_from2_lamb(
         key=key,
         lamb=lamb,
         bragg=bragg,

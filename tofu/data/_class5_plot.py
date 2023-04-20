@@ -87,7 +87,7 @@ def plot_rocking_curve(
     # not is2d
     if is2d is False:
 
-        bragg = coll.get_crystal_bragglamb(
+        bragg = coll.get_optics_angle_from2_lamb(
             key=key,
             rocking_curve=False,
         )[0][0]

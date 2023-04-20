@@ -30,7 +30,7 @@ class Grating(Previous):
 
     _dshow = dict(Previous._dshow)
     _dshow.update({
-        'crystal': [
+        'grating': [
             'dgeom.type',
             'dgeom.curve_r',
             'dgeom.area',
