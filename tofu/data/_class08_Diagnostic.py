@@ -22,6 +22,7 @@ from . import _class8_vos as _vos
 from . import _class8_los_angles as _los_angles
 from . import _class8_compute_signal as _compute_signal
 from . import _class8_plot as _plot
+from . import _class8_plot_vos as _plot_vos
 
 
 __all__ = ['Diagnostic']
@@ -268,6 +269,7 @@ class Diagnostic(Previous):
         # parameters
         res=None,
         res_lamb=None,
+        res_ang_rocking_curve=None,
         check=None,
         margin_par=None,
         margin_perp=None,
@@ -278,14 +280,9 @@ class Diagnostic(Previous):
         # equivalent aperture
         add_points=None,
         convex=None,
-        # for storing los
-        config=None,
-        length=None,
-        reflections_nb=None,
-        reflections_type=None,
-        key_nseg=None,
         # bool
         verb=None,
+        debug=None,
         plot=None,
         store=None,
         timing=None,
@@ -298,22 +295,23 @@ class Diagnostic(Previous):
 
         """
 
-        dvos = _vos.compute_vos(
+        return _vos.compute_vos(
             coll=self,
             key_diag=key,
             key_mesh=key_mesh,
             # etendue
             res=res,
             res_lamb=res_lamb,
+            res_ang_rocking_curve=res_ang_rocking_curve,
             check=check,
             margin_par=margin_par,
             margin_perp=margin_perp,
-            config=config,
             visibility=visibility,
             # spectro-only
             rocking_curve_fw=rocking_curve_fw,
             # bool
             verb=verb,
+            debug=debug,
             plot=plot,
             store=store,
             timing=timing,
@@ -618,6 +616,56 @@ class Diagnostic(Previous):
             returnas=returnas,
         )
 
+    # ---------------------
+    # interpolate along los
+    # ---------------------
+
+    def interpolate_along_los(
+        self,
+        key_diag=None,
+        key_cam=None,
+        key_integrand=None,
+        key_coords=None,
+        # sampling
+        res=None,
+        mode=None,
+        segment=None,
+        radius_max=None,
+        # interpolating
+        domain=None,
+        val_out=None,
+        # plotting
+        vmin=None,
+        vmax=None,
+        plot=None,
+        dcolor=None,
+        dax=None,
+    ):
+        """ Compute and plot interpolated data along the los of the diagnostic
+
+        """
+        return _los_data._interpolate_along_los(
+            coll=self,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            key_integrand=key_integrand,
+            key_coords=key_coords,
+            # sampling
+            res=res,
+            mode=mode,
+            segment=segment,
+            radius_max=radius_max,
+            # interpolating
+            domain=domain,
+            val_out=val_out,
+            # plotting
+            vmin=vmin,
+            vmax=vmax,
+            plot=plot,
+            dcolor=dcolor,
+            dax=dax,
+        )
+
     # -----------------
     # plotting
     # -----------------
@@ -731,48 +779,56 @@ class Diagnostic(Previous):
             connect=connect,
         )
 
-    def interpolate_along_los(
+    def plot_diagnostic_vos(
         self,
-        key_diag=None,
+        key=None,
         key_cam=None,
-        key_integrand=None,
-        key_coords=None,
-        # sampling
-        res=None,
-        mode=None,
-        segment=None,
-        radius_max=None,
-        # interpolating
-        domain=None,
-        val_out=None,
-        # plotting
+        indch=None,
+        optics=None,
+        elements=None,
+        proj=None,
+        los_res=None,
+        # data plot
+        dvos=None,
+        units=None,
+        cmap=None,
         vmin=None,
         vmax=None,
-        plot=None,
-        dcolor=None,
+        alpha=None,
+        # config
+        plot_config=None,
+        # figure
         dax=None,
+        dmargin=None,
+        fs=None,
+        wintit=None,
+        # interactivity
+        color_dict=None,
     ):
-        """ Compute and plot interpolated data along the los of the diagnostic
 
-        """
-        return _los_data._interpolate_along_los(
+        return _plot_vos._plot_diagnostic_vos(
             coll=self,
-            key_diag=key_diag,
+            key=key,
             key_cam=key_cam,
-            key_integrand=key_integrand,
-            key_coords=key_coords,
-            # sampling
-            res=res,
-            mode=mode,
-            segment=segment,
-            radius_max=radius_max,
-            # interpolating
-            domain=domain,
-            val_out=val_out,
-            # plotting
+            indch=indch,
+            optics=optics,
+            elements=elements,
+            proj=proj,
+            los_res=los_res,
+            # data plot
+            dvos=dvos,
+            units=units,
+            cmap=cmap,
             vmin=vmin,
             vmax=vmax,
-            plot=plot,
-            dcolor=dcolor,
+            alpha=alpha,
+            # config
+            plot_config=plot_config,
+            # figure
             dax=dax,
-            )
+            dmargin=dmargin,
+            fs=fs,
+            wintit=wintit,
+            # interactivity
+            color_dict=color_dict,
+        )
