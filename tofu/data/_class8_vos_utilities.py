@@ -295,7 +295,7 @@ def _get_dphi_from_R_phor(
     dphi = np.full((2, R.size), np.nan)
     for ir, rr in enumerate(R):
 
-        nphi = np.ceil(rr*(phimax - phimin) / (0.1*res)).astype(int)
+        nphi = np.ceil(rr*(phimax - phimin) / (0.05*res)).astype(int)
         phi = np.linspace(phimin, phimax, nphi)
 
         ind = path.contains_points(
