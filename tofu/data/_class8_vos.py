@@ -26,6 +26,7 @@ def compute_vos(
     # parameters
     res=None,
     res_lamb=None,
+    res_ang_rocking_curve=None,
     margin_poly=None,
     margin_par=None,
     margin_perp=None,
@@ -39,6 +40,7 @@ def compute_vos(
     convex=None,
     check=None,
     verb=None,
+    debug=None,
     plot=None,
     store=None,
     timing=None,
@@ -63,6 +65,7 @@ def compute_vos(
         margin_perp,
         visibility,
         verb,
+        debug,
         plot,
         store,
         timing,
@@ -76,6 +79,7 @@ def compute_vos(
         margin_perp=margin_perp,
         visibility=visibility,
         verb=verb,
+        debug=debug,
         plot=plot,
         store=store,
         timing=timing,
@@ -181,12 +185,15 @@ def compute_vos(
                 sh=sh,
                 res=res,
                 res_lamb=res_lamb,
+                res_ang_rocking_curve=res_ang_rocking_curve,
                 bool_cross=bool_cross,
                 # parameters
                 margin_poly=margin_poly,
                 config=config,
                 visibility=visibility,
                 verb=verb,
+                # debug
+                debug=debug,
                 # timing
                 timing=timing,
                 dt11=dt11,
@@ -199,6 +206,9 @@ def compute_vos(
                 dt333=dt333,
                 dt22=dt22,
             )
+
+            dvos[key_cam]['keym'] = key_mesh
+            dvos[key_cam]['res'] = res
 
     # timing
     if timing:
@@ -225,6 +235,7 @@ def compute_vos(
             coll=coll,
             key_diag=key_diag,
             dvos=dvos,
+            spectro=spectro,
         )
 
     return dvos
@@ -247,6 +258,7 @@ def _check(
     visibility=None,
     check=None,
     verb=None,
+    debug=None,
     plot=None,
     store=None,
     timing=None,
@@ -378,6 +390,15 @@ def _check(
     )
 
     # -----------
+    # debug
+
+    debug = ds._generic_check._check_var(
+        debug, 'debug',
+        types=bool,
+        default=False,
+    )
+
+    # -----------
     # plot
 
     if plot is None:
@@ -417,6 +438,7 @@ def _check(
         margin_perp,
         visibility,
         verb,
+        debug,
         plot,
         store,
         timing,
@@ -492,6 +514,7 @@ def _store(
     coll=None,
     key_diag=None,
     dvos=None,
+    spectro=None,
 ):
 
     doptics = coll._dobj['diagnostic'][key_diag]['doptics']
@@ -499,7 +522,7 @@ def _store(
     for k0, v0 in dvos.items():
 
         # re-use previous keys
-        kpc0, kpc1 = doptics[k0]['vos_pcross']
+        kpc0, kpc1 = doptics[k0]['dvos']['pcross']
         kr = coll.ddata[kpc0]['ref'][0]
 
         # safety check
@@ -510,3 +533,82 @@ def _store(
         coll._dref[kr]['size'] = v0['pcross0'].shape[0]
         coll._ddata[kpc0]['data'] = v0['pcross0']
         coll._ddata[kpc1]['data'] = v0['pcross1']
+
+        # ----------------
+        # 2d mesh sampling
+
+        knpts = f'{k0}_vos_npts'
+        kir = f'{k0}_vos_ir'
+        kiz = f'{k0}_vos_iz'
+
+        if knpts not in coll.dref.keys():
+            coll.add_ref(knpts, size=v0['indr'].size)
+
+        if kir not in coll.ddata.keys():
+            coll.add_data(
+                key=kir,
+                data=v0['indr'],
+                ref=knpts,
+                units='',
+                dim='index',
+            )
+
+        if kiz not in coll.ddata.keys():
+            coll.add_data(
+                key=kiz,
+                data=v0['indz'],
+                ref=knpts,
+                units='',
+                dim='index',
+            )
+
+        # add in doptics
+        doptics[k0]['dvos']['keym'] = v0['keym']
+        doptics[k0]['dvos']['res'] = v0['res']
+        doptics[k0]['dvos']['ind'] = (kir, kiz)
+
+        # ------------
+        # spectro
+
+        if spectro:
+
+            # keys
+            kcos = f"{k0}_vos_cos"
+            kph = f"{k0}_vos_ph"
+            # klambmin =
+            # klambmax =
+
+            # add data
+            coll.add_data(
+                key=kcos,
+                data=v0['cos'],
+                ref=(knpts, kchan),
+                units='',
+            )
+
+            coll.add_data(
+                key=kph,
+                data=v0['ph_counts'],
+                ref=(knpts, kchan),
+                units='sr.m3.m',
+            )
+
+            # add in doptics
+            doptics['dvos']['cos'] = v0['cos']
+            doptics['dvos']['ph'] = v0['ph']
+
+        else:
+
+            # keys
+            ksa = f'{k0}_vos_sa'
+
+            # add data
+            coll.add_data(
+                key=ksa,
+                data=v0['sang'],
+                ref=(knpts, kchan),
+                units='sr.m3',
+            )
+
+            # add in doptics
+            doptics['dvos']['sang'] = ksa

@@ -60,16 +60,16 @@ def _vos(
         t00 = dtm.datetime.now()     # DB
 
     # get temporary vos
-    kpc0, kpc1 = doptics[key_cam]['vos_pcross']
+    kpc0, kpc1 = doptics[key_cam]['dvos']['pcross']
     shape = coll.ddata[kpc0]['data'].shape
     pcross0 = coll.ddata[kpc0]['data'].reshape((shape[0], -1))
     pcross1 = coll.ddata[kpc1]['data'].reshape((shape[0], -1))
-    kph0, kph1 = doptics[key_cam]['vos_phor']
+    kph0, kph1 = doptics[key_cam]['dvos']['phor']
     shapeh = coll.ddata[kph0]['data'].shape
     phor0 = coll.ddata[kph0]['data'].reshape((shapeh[0], -1))
     phor1 = coll.ddata[kph1]['data'].reshape((shapeh[0], -1))
 
-    dphi = doptics[key_cam]['vos_dphi']
+    dphi = doptics[key_cam]['dvos']['dphi']
 
     # ---------------
     # prepare det
@@ -103,7 +103,11 @@ def _vos(
     # loop on pix
 
     lpcross = []
-    for ii in range(pcross0.shape[1]):
+    lsang = []
+    lindr = []
+    lindz = []
+    npix = pcross0.shape[1]
+    for ii in range(npix):
 
         # -----------------
         # get volume limits
@@ -131,12 +135,16 @@ def _vos(
 
         # re-initialize
         bool_cross[...] = False
+        npts = ind.sum()
+        sang = np.zeros((npts,), dtype=float)
+        indr = np.zeros((npts,), dtype=int)
+        indz = np.zeros((npts,), dtype=int)
 
         # verb
         if verb is True:
             msg = (
                 f"\tcam '{key_cam}' pixel {ii+1} / {pcross0.shape[1]}\t"
-                f"npts in cross_section = {ind.sum()}   "
+                f"npts in cross_section = {npts}   "
             )
             end = '\n 'if ii == pcross0.shape[1] - 1 else '\r'
             print(msg, end=end, flush=True)
@@ -167,6 +175,7 @@ def _vos(
             x0=x0u,
             x1=x1u,
             ind=ind,
+            npts=npts,
             dphi=dphi[:, ii],
             deti=deti,
             lap=lap,
@@ -178,6 +187,9 @@ def _vos(
             sli=None,
             ii=ii,
             bool_cross=bool_cross,
+            sang=sang,
+            indr=indr,
+            indz=indz,
             path_hor=path_hor,
             # timing
             timing=timing,
@@ -209,6 +221,9 @@ def _vos(
         # replace
 
         lpcross.append((pc0, pc1))
+        lsang.append(sang)
+        lindr.append(indr)
+        lindz.append(indz)
 
         if timing:
             t333 = dtm.datetime.now()     # DB
@@ -222,7 +237,7 @@ def _vos(
 
     ln = [pp[0].size if pp[0] is not None else 0 for pp in lpcross]
     nmax = np.max(ln)
-    sh2 = (nmax, pcross0.shape[1])
+    sh2 = (nmax, npix)
     pcross0 = np.full(sh2, np.nan)
     pcross1 = np.full(sh2, np.nan)
     for ii, nn in enumerate(ln):
@@ -248,7 +263,7 @@ def _vos(
             pcross0[:, ii] = lpcross[ii][0]
             pcross1[:, ii] = lpcross[ii][1]
 
-    # -------------
+    # -------
     # reshape
 
     if is2d:
@@ -256,9 +271,38 @@ def _vos(
         pcross0 = pcross0.reshape(newsh)
         pcross1 = pcross1.reshape(newsh)
 
+    # --------------------------
+    # harmonize sang, indr, indz
+
+    lnpts = [sa.size for sa in lsang]
+    nmax = np.max(lnpts)
+
+    sang = np.full((nmax, npix), np.nan)
+    indr = -np.ones((nmax, npix), dtype=int)
+    indz = -np.ones((nmax, npix), dtype=int)
+    for ii, sa in enumerate(lsang):
+        sang[:lnpts[ii], ii] = sa
+        indr[:lnpts[ii], ii] = lindr[ii]
+        indz[:lnpts[ii], ii] = lindz[ii]
+
+    # -------
+    # reshape
+
+    if is2d:
+        newsh = tuple(np.r_[nmax, shape])
+        sang = sang.reshape(newsh)
+        indr = indr.reshape(newsh)
+        indz = indz.reshape(newsh)
+
+    # ----------------
+    # format output
+
     dout = {
         'pcross0': pcross0,
         'pcross1': pcross1,
+        'sang': sang,
+        'indr': indr,
+        'indz': indz,
     }
 
     if timing:
@@ -283,6 +327,7 @@ def _vos_pixel(
     x0=None,
     x1=None,
     ind=None,
+    npts=None,
     dphi=None,
     deti=None,
     lap=None,
@@ -294,6 +339,9 @@ def _vos_pixel(
     sli=None,
     ii=None,
     bool_cross=None,
+    sang=None,
+    indr=None,
+    indz=None,
     path_hor=None,
     # timing
     timing=None,
@@ -348,11 +396,17 @@ def _vos_pixel(
         t0 = dtm.datetime.now()     # DB
         out, dt1, dt2, dt3 = out
 
+    ipt = 0
     for ii, i0 in enumerate(iru):
         ind0 = irf == i0
         for i1 in izru[ii]:
             ind = ind0 & (izf == i1)
             bool_cross[i0 + 1, i1 + 1] = np.any(out[0, ind] > 0.)
+            sang[ipt] = np.sum(out[0, ind])
+            indr[ipt] = i0
+            indz[ipt] = i1
+            ipt += 1
+    assert ipt == npts
 
     # timing
     if timing:
