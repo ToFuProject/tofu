@@ -416,9 +416,11 @@ def _vos_from_los_store(
 
     # add pcross
     doptics = coll._dobj['diagnostic'][key]['doptics']
-    doptics[key_cam]['vos_pcross'] = (kpc0, kpc1)
-    doptics[key_cam]['vos_phor'] = (kph0, kph1)
-    doptics[key_cam]['vos_dphi'] = dphi
+    doptics[key_cam]['dvos'] = {
+        'pcross': (kpc0, kpc1),
+        'phor': (kph0, kph1),
+        'dphi': dphi,
+    }
 
 
 # ###########################################################
