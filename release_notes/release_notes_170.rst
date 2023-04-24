@@ -14,6 +14,11 @@ Main changes:
 - plot_as_profile2d_compare() impemented #723
 - get_diagnostic_lamb() implemented #723
 - Inversion with regularization now available for 1d bsplines too #723
+- Rocking curve setting and plotting implemented, and used for etendue of spectrometers #734, #735
+- Debugged missing numpy in pyproject.toml #736
+- compute_diagnostic_signal() for spectrometers #738
+- VOS cross-section for non-spectrometers #742
+- compute_diagnostic_signal(visibility=bool, timing=bool) implemented #743
 
 Contributors:
 =============
@@ -32,4 +37,4 @@ What's next (indicative):
 
 List of PR merged into this release:
 ====================================
-- PR: #718, #723
+- PR: #718, #723, #735, #736, #738, #742, #743

@@ -46,9 +46,9 @@ def get_optics_outline(
     total = ds._generic_check._check_var(
         total, 'total',
         types=bool,
-        default=(cls == 'camera' and dgeom['type'] == '2d'),
+        default=(cls == 'camera' and dgeom['nd'] == '2d'),
     )
-    if cls == 'camera' and dgeom['type'] != '2d':
+    if cls == 'camera' and dgeom['nd'] != '2d':
         total = False
 
     # --------
@@ -85,6 +85,15 @@ def get_optics_outline(
     # -----------
     # add_points
 
+    if add_points is None:
+        if cls == 'camera':
+            add_points = 0
+        else:
+            if dgeom['type'] == 'planar':
+                add_points = 0
+            else:
+                add_points = 3
+
     return _interp_poly(
         lp=[p0, p1],
         add_points=add_points,
@@ -95,10 +104,10 @@ def get_optics_outline(
     )
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                   optics poly
-# ##################################################################
+# ################################################################
 
 
 def get_optics_poly(
@@ -186,7 +195,7 @@ def get_optics_poly(
             e1y = e1y[:, None]
             e1z = e1z[:, None]
 
-        if dgeom['type'] == '2d' and total:
+        if dgeom['nd'] == '2d' and total:
             cx, cy, cz = dgeom['cent']
             p02, p12 = p0, p1
         else:
@@ -349,6 +358,26 @@ def _interp_poly(
     # trivial case
 
     if add_points == 0:
+
+        if isclosed is False and closed is True:
+            for ii, pp in enumerate(lp):
+                if pp is None:
+                    continue
+
+                if pp.ndim == 2:
+                    lp[ii] = np.concatenate((pp, pp[:, 0:1]), axis=1)
+                else:
+                    lp[ii] = np.r_[pp, pp[0]]
+
+        elif isclosed is True and closed is False:
+            for ii, pp in enumerate(lp):
+                if pp is None:
+                    continue
+
+                if pp.ndim == 2:
+                    lp[ii] = pp[:, :-1]
+                else:
+                    lp[ii] = pp[:-1]
         return lp
 
     # ------------
@@ -611,7 +640,7 @@ def _dplot(
                 v1x, v1y, v1z = np.r_[e1x, e1y, e1z] * vect_length
 
         # radius
-        if 'r' in elements and v0['type'] not in ['planar', '1d', '2d', '3d']:
+        if 'r' in elements and v0['type'] not in ['planar', '', '3d']:
             if v0['type'] == 'cylindrical':
                 icurv = (np.isfinite(v0['curve_r'])).nonzero()[0][0]
                 rc = v0['curve_r'][icurv]

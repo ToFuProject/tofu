@@ -24,6 +24,7 @@ def _get_ptsvect(
     key, cls = key[0], cls[0]
     dgeom = coll.dobj[cls][key]['dgeom']
 
+    # asplane
     asplane = ds._generic_check._check_var(
         asplane, 'asplane',
         types=bool,
