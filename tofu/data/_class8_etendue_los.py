@@ -347,7 +347,7 @@ def _check(
         outline = dgeom['outline']
         out0 = coll.ddata[outline[0]]['data']
         out1 = coll.ddata[outline[1]]['data']
-        is2d = dgeom['type'] == '2d'
+        is2d = dgeom['nd'] == '2d'
         par = dgeom['parallel']
         dcompute[k0]['shape0'] = cx.shape
 

@@ -330,6 +330,7 @@ def _pinhole_contour(
 
     return out0, out1
 
+
 def _camera_position(
     dgeom_pin=None,
     cam_type=None,
