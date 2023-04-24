@@ -33,13 +33,13 @@ def main():
     _add_broadband(coll, conf)
 
     # add 2d camera
-    # _add_2d(coll, conf)
+    _add_2d(coll, conf)
 
     # add PHA
     # _add_PHA(coll, conf)
 
     # add spectrometer
-    _add_spectrometer(coll, conf) # , crystals=['c0'])
+    # _add_spectrometer(coll, conf) # , crystals=['c0'])
 
     # ------------------------
     # compute synthetic signal
@@ -201,39 +201,39 @@ def _add_broadband(
     # ---------------------
     # add 2 pinhole cameras
 
-    coll.add_camera_pinhole(
-        key='bb0',
-        key_pinhole=None,
-        key_diag='d0',
-        cam_type='1d',
-        R=3.2,
-        z=-0.5,
-        phi=0,
-        theta=3.*np.pi/4,
-        dphi=np.pi/8,
-        tilt=np.pi/2,
-        focal=0.1,
-        pix_nb=10,
-        pix_size=3e-3,
-        pix_spacing=5e-3,
-        pinhole_radius=None,
-        pinhole_size=[1e-3, 1e-3],
-        reflections_nb=0,
-        reflections_type=None,
-        compute=False,
-        config=conf,
-    )
+    # coll.add_camera_pinhole(
+        # key='bb0',
+        # key_pinhole=None,
+        # key_diag='d0',
+        # cam_type='1d',
+        # R=3.3,
+        # z=-0.6,
+        # phi=0,
+        # theta=3.*np.pi/4,
+        # dphi=np.pi/10,
+        # tilt=np.pi/2,
+        # focal=0.1,
+        # pix_nb=10,
+        # pix_size=3e-3,
+        # pix_spacing=5e-3,
+        # pinhole_radius=None,
+        # pinhole_size=[1e-3, 1e-3],
+        # reflections_nb=0,
+        # reflections_type=None,
+        # compute=False,
+        # config=conf,
+    # )
 
     coll.add_camera_pinhole(
         key='bb1',
         key_pinhole=None,
         key_diag='d0',
         cam_type='1d',
-        R=3.2,
-        z=0.5,
+        R=3.3,
+        z=0.6,
         phi=0,
         theta=-3.*np.pi/4,
-        dphi=np.pi/8,
+        dphi=np.pi/10,
         tilt=np.pi/2,
         focal=0.1,
         pix_nb=10,
@@ -263,17 +263,17 @@ def _add_2d(
         key_diag='d1',
         key_pinhole=None,
         cam_type='2d',
-        R=3.2,
-        z=-0.5,
+        R=3.3,
+        z=-0.6,
         phi=0,
         theta=3.*np.pi/4,
-        dphi=np.pi/10,
+        dphi=np.pi/6,
         tilt=np.pi/2,
         focal=0.1,
-        pix_nb=15,
-        pix_size=3e-3,
+        pix_nb=[5, 3],
+        pix_size=1e-3,
         pix_spacing=5e-3,
-        pinhole_radius=1e-2,
+        pinhole_radius=5e-3,
         pinhole_size=None,
         reflections_nb=0,
         reflections_type=None,
