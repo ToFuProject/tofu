@@ -123,9 +123,6 @@ def _plot_diagnostic_vos(
         elements=elements,
     )
 
-    # -------------------------
-    # prepare los interactivity
-
     # ---------------------
     # prepare los and ddata
 
@@ -136,22 +133,29 @@ def _plot_diagnostic_vos(
         is2d=is2d,
     )
 
-    # los
-    los_x, los_y, los_z = coll.sample_rays(
-        key=doptics['los'],
-        res=los_res,
-        mode='rel',
-        concatenate=False,
-    )
-    los_r = np.hypot(los_x, los_y)
+    # ---------------------
+    # prepare los and vos
 
-    # vos
-    kpc = doptics['dvos']['pcross']
-    pc0 = coll.ddata[kpc[0]]['data']
-    pc1 = coll.ddata[kpc[1]]['data']
-    kph = doptics['dvos']['phor']
-    ph0 = coll.ddata[kph[0]]['data']
-    ph1 = coll.ddata[kph[1]]['data']
+    (
+        los_x, los_y, los_z, los_r,
+        los_xi, los_yi, los_zi, los_ri,
+    ) = _prepare_los(
+        coll=coll,
+        doptics=doptics,
+        los_res=los_res,
+        is2d=is2d,
+        indch=indch,
+    )
+
+    (
+        pc0, pc1, ph0, ph1, pc0i, pc1i, ph0i, ph1i
+    ) = _prepare_vos(
+        coll=coll,
+        doptics=doptics,
+        los_res=los_res,
+        is2d=is2d,
+        indch=indch,
+    )
 
     # dsamp from mesh
     sang_tot, sang_integ, sang, extent = _prepare_sang(
@@ -163,17 +167,11 @@ def _plot_diagnostic_vos(
         is2d=is2d,
     )
 
-    # ddatax, ddatay
-    # _, dkeyx, dkeyy, ddatax, ddatay, dextent = _prepare_datarefxy(
-        # coll=coll,
-        # coll2=coll2,
-        # dcamref=dcamref,
-        # drefx=drefx,
-        # drefy=drefy,
-        # ddata=ddata,
-        # static=static,
-        # is2d=is2d,
-    # )
+    # etendue and length
+    etendue, length = _get_etendue_length(
+        coll=coll,
+        doptics=doptics,
+    )
 
     # -----------------
     # prepare figure
@@ -328,71 +326,64 @@ def _plot_diagnostic_vos(
     # plot los / vos
 
     # crosstot
-    # kax = 'crosstot'
-    # if dax.get(kax) is not None:
-        # ax = dax[kax]['handle']
+    kax = 'crosstot'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
 
-        # _add_camera_los_cross(
-            # ax=ax,
-            # los_r=los_r,
-            # los_z=los_z,
-            # vos_r=vos_r,
-            # vos_z=vos_z,
-            # alpha=alpha,
-            # color_dict=color_dict,
-        # )
+        _add_camera_los_cross(
+            ax=ax,
+            los_r=los_r,
+            los_z=los_z,
+            pc0=pc0,
+            pc1=pc1,
+            alpha=alpha,
+            color_dict=color_dict,
+        )
 
-    # # cross
-    # kax = 'cross'
-    # if dax.get(kax) is not None:
-        # ax = dax[kax]['handle']
+    # cross
+    kax = 'cross'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
 
-        # _add_camera_los_cross(
-            # ax=ax,
-            # los_r=los_r,
-            # los_z=los_z,
-            # vos_r=vos_r,
-            # vos_z=vos_z,
-            # alpha=alpha,
-            # color_dict=color_dict,
-        # )
+        _add_camera_los_cross(
+            ax=ax,
+            los_r=los_ri,
+            los_z=los_zi,
+            pc0=pc0i,
+            pc1=pc1i,
+            alpha=alpha,
+            color_dict=color_dict,
+        )
 
-    # # hor
-    # kax = 'hor'
-    # if dax.get(kax) is not None:
-        # ax = dax[kax]['handle']
+    # hor
+    kax = 'hor'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
 
-        # _add_camera_los_hor(
-            # ax=ax,
-            # los_x=los_x,
-            # los_y=los_y,
-            # vos_x=vos_x,
-            # vos_y=vos_y,
-            # alpha=alpha,
-            # color_dict=color_dict,
-        # )
+        _add_camera_los_hor(
+            ax=ax,
+            los_x=los_x,
+            los_y=los_y,
+            ph0=ph0,
+            ph1=ph1,
+            alpha=alpha,
+            color_dict=color_dict,
+        )
 
     # camera
-    # kax = f'{k0}_sig'
-    # if dax.get(kax) is not None:
-        # ax = dax[kax]['handle']
+    kax = key_cam[0]
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
 
-        # _add_camera_vlines_marker(
-            # coll2=coll2,
-            # dax=dax,
-            # ax=ax,
-            # kax=kax,
-            # is2d=is2d,
-            # k0=k0,
-            # nlos=nlos,
-            # ddatax=ddatax,
-            # ddatay=ddatay,
-            # drefx=drefx,
-            # drefy=drefy,
-            # dkeyx=dkeyx,
-            # dkeyy=dkeyy,
-            # color_dict=color_dict,
-        # )
+        _add_camera_data(
+            coll=coll,
+            ax=ax,
+            sang_integ=sang_integ,
+            is2d=is2d,
+            etendue=etendue,
+            length=length,
+            indch=indch,
+        )
 
     # -------
     # config
@@ -418,6 +409,83 @@ def _plot_diagnostic_vos(
     # connect
 
     return dax
+
+
+# ##################################################################
+# ##################################################################
+#                       Prepare los and vos
+# ##################################################################
+
+
+def _prepare_los(
+    coll=None,
+    doptics=None,
+    los_res=None,
+    is2d=None,
+    indch=None,
+):
+
+    # los
+    los_x, los_y, los_z = coll.sample_rays(
+        key=doptics['los'],
+        res=los_res,
+        mode='rel',
+        concatenate=False,
+    )
+    los_r = np.hypot(los_x, los_y)
+
+    # for chosen index
+    if is2d:
+        los_xi = los_x[:, indch[0], indch[1]]
+        los_yi = los_y[:, indch[0], indch[1]]
+        los_zi = los_z[:, indch[0], indch[1]]
+        los_ri = los_r[:, indch[0], indch[1]]
+    else:
+        los_xi = los_x[:, indch]
+        los_yi = los_y[:, indch]
+        los_zi = los_z[:, indch]
+        los_ri = los_r[:, indch]
+
+    # concatenate
+    sh = tuple(np.r_[1, los_x.shape[1:]])
+    los_x = np.append(los_x, np.full(sh, np.nan), axis=0).T.ravel()
+    los_y = np.append(los_y, np.full(sh, np.nan), axis=0).T.ravel()
+    los_z = np.append(los_z, np.full(sh, np.nan), axis=0).T.ravel()
+    los_r = np.append(los_r, np.full(sh, np.nan), axis=0).T.ravel()
+
+    return los_x, los_y, los_z, los_r, los_xi, los_yi, los_zi, los_ri
+
+
+def _prepare_vos(
+    coll=None,
+    doptics=None,
+    los_res=None,
+    is2d=None,
+    indch=None,
+):
+
+    # vos
+    kpc = doptics['dvos']['pcross']
+    pc0 = coll.ddata[kpc[0]]['data']
+    pc1 = coll.ddata[kpc[1]]['data']
+    kph = doptics['dvos']['phor']
+    ph0 = coll.ddata[kph[0]]['data']
+    ph1 = coll.ddata[kph[1]]['data']
+
+    if is2d:
+        pc0i = pc0[:, indch[0], indch[1]]
+        pc1i = pc1[:, indch[0], indch[1]]
+        ph0i = ph0[:, indch[0], indch[1]]
+        ph1i = ph1[:, indch[0], indch[1]]
+
+    else:
+        pc0i = pc0[:, indch]
+        pc1i = pc1[:, indch]
+        ph0i = ph0[:, indch]
+        ph1i = ph1[:, indch]
+
+    return pc0, pc1, ph0, ph1, pc0i, pc1i, ph0i, ph1i
+
 
 
 # ##################################################################
@@ -510,6 +578,25 @@ def _prepare_sang(
     return sang_tot, sang_integ, sang, extent
 
 
+def _get_etendue_length(
+    coll=None,
+    doptics=None,
+):
+
+    # ----------------------
+    # get etendue and length
+
+    ketend = doptics['etendue']
+    etendue = coll.ddata[ketend]['data']
+
+    # -------------------------
+    # los through mesh envelopp
+
+    length = np.ones(etendue.shape, dtype=float)
+
+    return etendue, length
+
+
 # ##################################################################
 # ##################################################################
 #                       Prepare
@@ -582,8 +669,8 @@ def _add_camera_los_cross(
     color_dict=None,
     los_r=None,
     los_z=None,
-    vos_r=None,
-    vos_z=None,
+    pc0=None,
+    pc1=None,
     alpha=None,
 ):
 
@@ -593,7 +680,65 @@ def _add_camera_los_cross(
     l0, = ax.plot(
         los_r,
         los_z,
-        c=color_dict['x'][ii],
+        c='k',
+        ls='-',
+        lw=1.,
+    )
+
+    # ------
+    # vos
+    if pc0 is not None:
+        if pc0.ndim == 2:
+            for ii in range(pc0.shape[1]):
+                l0, = ax.fill(
+                    pc0[:, ii],
+                    pc1[:, ii],
+                    fc='k',
+                    alpha=alpha,
+                    ls='None',
+                    lw=0.,
+                )
+
+        elif pc0.ndim == 3:
+            for ii in range(pc0.shape[1]):
+                for jj in range(pc0.shape[2]):
+                    l0, = ax.fill(
+                        pc0[:, ii, jj],
+                        pc1[:, ii, jj],
+                        fc='k',
+                        alpha=alpha,
+                        ls='None',
+                        lw=0.,
+                    )
+
+        else:
+            l0, = ax.fill(
+                pc0,
+                pc1,
+                fc='k',
+                alpha=alpha,
+                ls='None',
+                lw=0.,
+            )
+
+
+def _add_camera_los_hor(
+    ax=None,
+    los_x=None,
+    los_y=None,
+    ph0=None,
+    ph1=None,
+    alpha=None,
+    color_dict=None,
+):
+
+    # ------
+    # los
+
+    l0, = ax.plot(
+        los_x,
+        los_y,
+        c=color_dict['x'][0],
         ls='-',
         lw=1.,
     )
@@ -601,102 +746,53 @@ def _add_camera_los_cross(
     # ------
     # vos
 
-    l0, = ax.fill(
-        vos_r,
-        vos_z,
-        fc=color_dict['x'][ii],
-        alpha=alpha,
-        ls='None',
-        lw=0.,
-    )
+    if ph0 is not None:
 
+        if ph0.ndim == 2:
+            for ii in range(ph0.shape[1]):
+                l0, = ax.fill(
+                    ph0[:, ii],
+                    ph1[:, ii],
+                    fc='k',
+                    alpha=alpha,
+                    ls='None',
+                    lw=0.,
+                )
 
-def _add_camera_los_hor(
-    coll2=None,
-    k0=None,
-    ax=None,
-    kax=None,
-    nlos=None,
-    dref_los=None,
-    dref_vos=None,
-    color_dict=None,
-    nan_los=None,
-    nan_vos=None,
-    alpha=None,
-):
+        elif ph0.ndim == 3:
+            for ii in range(ph0.shape[1]):
+                for jj in range(ph0.shape[2]):
+                    l0, = ax.fill(
+                        ph0[:, ii, jj],
+                        ph1[:, ii, jj],
+                        fc='k',
+                        alpha=alpha,
+                        ls='None',
+                        lw=0.,
+                    )
 
-    for ii in range(nlos):
-
-        # ------
-        # los
-
-        l0, = ax.plot(
-            nan_los,
-            nan_los,
-            c=color_dict['x'][ii],
-            ls='-',
-            lw=1.,
-        )
-
-        # add mobile
-        kl0 = f'{k0}_los_hor{ii}'
-        coll2.add_mobile(
-            key=kl0,
-            handle=l0,
-            refs=dref_los[k0],
-            data=[f'{k0}_los_x', f'{k0}_los_y'],
-            dtype=['xdata', 'ydata'],
-            axes=kax,
-            ind=ii,
-        )
-
-        # ------
-        # vos
-
-        if f'{k0}_vos_hor' in coll2.ddata.keys():
-
+        else:
             l0, = ax.fill(
-                nan_vos,
-                nan_vos,
-                fc=color_dict['x'][ii],
+                ph0,
+                ph1,
+                fc='k',
                 alpha=alpha,
                 ls='None',
                 lw=0.,
             )
 
-            # add mobile
-            kl0 = f'{k0}_vos_hor{ii}'
-            coll2.add_mobile(
-                key=kl0,
-                handle=l0,
-                refs=dref_vos[k0],
-                data=[f'{k0}_vos_hor'],
-                dtype=['xy'],
-                axes=kax,
-                ind=ii,
-            )
 
-
-def _add_camera_vlines_marker(
-    coll2=None,
-    dax=None,
+def _add_camera_data(
+    coll=None,
     ax=None,
-    kax=None,
     is2d=None,
-    k0=None,
-    nlos=None,
-    ddatax=None,
-    ddatay=None,
-    drefx=None,
-    drefy=None,
-    dkeyx=None,
-    dkeyy=None,
+    sang_integ=None,
+    etendue=None,
+    length=None,
+    indch=None,
     color_dict=None,
-    suffix=None,
 ):
 
-    if suffix is None:
-        suffix = ''
 
     if is2d:
         for ii in range(nlos):
@@ -709,42 +805,44 @@ def _add_camera_vlines_marker(
                 markerfacecolor='None',
             )
 
-            km = f'{k0}_m{ii:02.0f}{suffix}'
-            coll2.add_mobile(
-                key=km,
-                handle=mi,
-                refs=[drefx[k0], drefy[k0]],
-                data=[dkeyx[k0], dkeyy[k0]],
-                dtype=['xdata', 'ydata'],
-                axes=kax,
-                ind=ii,
-            )
-
-        dax[kax].update(
-            refx=[drefx[k0]],
-            refy=[drefy[k0]],
-            datax=[dkeyx[k0]],
-            datay=[dkeyy[k0]],
-        )
-
     else:
 
-        for ii in range(nlos):
-            lv = ax.axvline(
-                ddatax[k0][0], c=color_dict['y'][ii], lw=1., ls='-',
-            )
-            kv = f'{k0}_v{ii:02.0f}{suffix}'
-            coll2.add_mobile(
-                key=kv,
-                handle=lv,
-                refs=drefx[k0],
-                data=dkeyx[k0],
-                dtype='xdata',
-                axes=kax,
-                ind=ii,
-            )
+        nlos = sang_integ.shape[0]
+        ind = np.arange(0, nlos)
 
-        dax[kax].update(refx=[drefx[k0]], datax=[dkeyx[k0]])
+        # vos
+        ax.plot(
+            ind,
+            sang_integ,
+            c='b',
+            marker='.',
+            ls='-',
+            lw=1.,
+            label="vos",
+        )
+
+        # los
+        ax.plot(
+            ind,
+            etendue * length,
+            c='k',
+            marker='.',
+            ls='-',
+            lw=1.,
+            label="etendue * length",
+        )
+
+        # indch
+        ax.axvline(
+            indch,
+            c='k',
+            lw=1.,
+            ls='--',
+        )
+
+        ax.set_ylim(bottom=0)
+
+    plt.legend()
 
 
 # ################################################################
@@ -807,21 +905,21 @@ def _get_dax(
     # -------------
     # hor
 
-    ax0 = fig.add_subplot(gs[0, 0], aspect='equal')
+    ax0 = fig.add_subplot(gs[1, 1], aspect='equal')
     ax0.set_xlabel(r'X (m)', size=12)
     ax0.set_ylabel(r'Y (m)', size=12)
 
     # -------------
     # cross
 
-    ax1 = fig.add_subplot(gs[1, 0], aspect='equal')
+    ax1 = fig.add_subplot(gs[0, 0], aspect='equal')
     ax1.set_xlabel(r'R (m)', size=12)
     ax1.set_ylabel(r'Z (m)', size=12)
 
     # -------------
     # cross
 
-    ax2 = fig.add_subplot(gs[1, 1], sharex=ax1, sharey=ax1)
+    ax2 = fig.add_subplot(gs[1, 0], sharex=ax1, sharey=ax1)
     ax2.set_xlabel(r'R (m)', size=12)
     ax2.set_ylabel(r'Z (m)', size=12)
 
@@ -844,7 +942,7 @@ def _get_dax(
         'hor': {'handle': ax0, 'type': 'hor'},
         'cross': {'handle': ax1, 'type': 'cross'},
         'crosstot': {'handle': ax2, 'type': 'cross'},
-        'camera': {'handle': ax3, 'type': 'camera'},
+        key_cam[0]: {'handle': ax3, 'type': 'camera'},
     }
 
     return dax
