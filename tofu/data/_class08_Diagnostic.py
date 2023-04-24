@@ -794,6 +794,10 @@ class Diagnostic(Previous):
         cmap=None,
         vmin=None,
         vmax=None,
+        vmin_tot=None,
+        vmax_tot=None,
+        vmin_cam=None,
+        vmax_cam=None,
         alpha=None,
         # config
         plot_config=None,
@@ -821,6 +825,10 @@ class Diagnostic(Previous):
             cmap=cmap,
             vmin=vmin,
             vmax=vmax,
+            vmin_tot=vmin_tot,
+            vmax_tot=vmax_tot,
+            vmin_cam=vmin_cam,
+            vmax_cam=vmax_cam,
             alpha=alpha,
             # config
             plot_config=plot_config,

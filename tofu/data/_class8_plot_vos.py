@@ -8,6 +8,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import Polygon as plg
 import datastock as ds
 
 
@@ -15,18 +16,13 @@ import datastock as ds
 from . import _generic_check
 from . import _generic_plot
 from . import _class8_plot as _plot
+from ..geom import _core
 
 
-# ##################################################################
-# ##################################################################
-#                           plot check
-# ##################################################################
-
-
-# ##################################################################
-# ##################################################################
+# ###############################################################
+# ###############################################################
 #                           plot main
-# ##################################################################
+# ###############################################################
 
 
 def _plot_diagnostic_vos(
@@ -44,6 +40,10 @@ def _plot_diagnostic_vos(
     cmap=None,
     vmin=None,
     vmax=None,
+    vmin_tot=None,
+    vmax_tot=None,
+    vmin_cam=None,
+    vmax_cam=None,
     alpha=None,
     # config
     plot_config=None,
@@ -69,8 +69,8 @@ def _plot_diagnostic_vos(
         static,
         daxis,
         _,
-        vmin,
-        vmax,
+        _,
+        _,
         alpha,
         units,
         los_res,
@@ -133,6 +133,26 @@ def _plot_diagnostic_vos(
         is2d=is2d,
     )
 
+    if is2d:
+        out0, out1 = coll.get_optics_outline(
+            key=key_cam[0],
+            add_points=False,
+            total=True,
+        )
+        k0, k1 = coll.dobj['camera'][key_cam[0]]['dgeom']['cents']
+        x0 = coll.ddata[k0]['data']
+        x1 = coll.ddata[k1]['data']
+        dx0 = x0[1] - x0[0]
+        dx1 = x1[1] - x1[0]
+        extent_cam = (
+            x0[0] - 0.5*dx0,
+            x0[-1] + 0.5*dx0,
+            x1[0] - 0.5*dx1,
+            x1[-1] + 0.5*dx1,
+        )
+    else:
+        x0, x1, extent_cam = None, None, None
+
     # ---------------------
     # prepare los and vos
 
@@ -167,10 +187,30 @@ def _plot_diagnostic_vos(
         is2d=is2d,
     )
 
+    # vmin, vmax
+    if vmin is None:
+        vmin = 0.
+    if vmax is None:
+        vmax = np.nanmax(sang)
+    if vmin_tot is None:
+        vmin_tot = 0.
+    if vmax_tot is None:
+        vmax_tot = np.nanmax(sang_tot)
+    if vmin_cam is None:
+        vmin_cam = 0.
+    if vmax_cam is None:
+        vmax_cam = np.nanmax(sang_integ)
+
+    # mesh envelop
+    dout = coll.get_mesh_outline(key=dvos[key_cam[0]]['keym'])
+    p0 = dout['x0']['data']
+    p1 = dout['x1']['data']
+
     # etendue and length
     etendue, length = _get_etendue_length(
         coll=coll,
         doptics=doptics,
+        poly=np.array([p0, p1]),
     )
 
     # -----------------
@@ -239,56 +279,6 @@ def _plot_diagnostic_vos(
                         **v1.get('props', {}),
                     )
 
-            # plotting of 2d camera contour
-            kax = f"{k0}_sig"
-            if is2d and k0 in key_cam and dax.get(kax) is not None:
-                ax = dax[kax]['handle']
-                if k1 == 'o':
-                    ax.plot(
-                        v1['x0'],
-                        v1['x1'],
-                        **v1.get('props', {}),
-                    )
-
-    # plot data
-    for k0 in key_cam:
-        kax = f'{k0}_sig'
-        if dax.get(kax) is not None:
-            if ddata is None or ddata.get(k0) is None:
-                continue
-
-            ax = dax[kax]['handle']
-
-            if is2d:
-                im = ax.imshow(
-                    ddata[k0].T,
-                    extent=dextent[k0],
-                    cmap=cmap,
-                    vmin=vmin,
-                    vmax=vmax,
-                    origin='lower',
-                    interpolation='nearest',
-                )
-                plt.colorbar(im, ax=ax)
-
-            else:
-                ax.plot(
-                    ddata[k0],
-                    c='k',
-                    ls='-',
-                    lw=1.,
-                    marker='.',
-                    ms=6,
-                )
-                ax.set_xlim(-1, ddata[k0].size)
-                ax.set_ylabel(ylab)
-                ax.set_title(k0, size=12, fontweight='bold')
-
-                if vmin is not None:
-                    ax.set_ylim(bottom=vmin)
-                if vmax is not None:
-                    ax.set_ylim(top=vmax)
-
     # ------------------
     # plot sang
 
@@ -297,22 +287,31 @@ def _plot_diagnostic_vos(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        ax.imshow(
+        im = ax.imshow(
             sang_tot.T,
             extent=extent,
             origin='lower',
             aspect='equal',
             interpolation='nearest',
-            vmin=vmin,
-            vmax=vmax,
+            vmin=vmin_tot,
+            vmax=vmax_tot,
         )
+
+        ax.plot(
+            np.r_[p0, p0[0]],
+            np.r_[p1, p1[0]],
+            c='k',
+            lw=1.,
+            ls='-',
+        )
+        plt.colorbar(im, ax=ax)
 
     # cross
     kax = 'cross'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        ax.imshow(
+        im = ax.imshow(
             sang.T,
             extent=extent,
             origin='lower',
@@ -321,6 +320,7 @@ def _plot_diagnostic_vos(
             vmin=vmin,
             vmax=vmax,
         )
+        plt.colorbar(im, ax=ax)
 
     # ------------------
     # plot los / vos
@@ -332,6 +332,7 @@ def _plot_diagnostic_vos(
 
         _add_camera_los_cross(
             ax=ax,
+            is2d=is2d,
             los_r=los_r,
             los_z=los_z,
             pc0=pc0,
@@ -347,6 +348,7 @@ def _plot_diagnostic_vos(
 
         _add_camera_los_cross(
             ax=ax,
+            is2d=is2d,
             los_r=los_ri,
             los_z=los_zi,
             pc0=pc0i,
@@ -362,6 +364,7 @@ def _plot_diagnostic_vos(
 
         _add_camera_los_hor(
             ax=ax,
+            is2d=is2d,
             los_x=los_x,
             los_y=los_y,
             ph0=ph0,
@@ -379,10 +382,19 @@ def _plot_diagnostic_vos(
             coll=coll,
             ax=ax,
             sang_integ=sang_integ,
-            is2d=is2d,
             etendue=etendue,
             length=length,
             indch=indch,
+            # vmin, vmax
+            vmin_cam=vmin_cam,
+            vmax_cam=vmax_cam,
+            # 2d only
+            is2d=is2d,
+            ax_etend=dax.get(f'{key_cam[0]}_etend', {}).get('handle'),
+            ax_diff=dax.get(f'{key_cam[0]}_diff', {}).get('handle'),
+            x0=x0,
+            x1=x1,
+            extent_cam=extent_cam,
         )
 
     # -------
@@ -478,6 +490,21 @@ def _prepare_vos(
         ph0i = ph0[:, indch[0], indch[1]]
         ph1i = ph1[:, indch[0], indch[1]]
 
+        # envelop
+        pc0 = pc0.reshape(pc0.shape[0], -1)
+        pc1 = pc1.reshape(pc1.shape[0], -1)
+        ph0 = ph0.reshape(ph0.shape[0], -1)
+        ph1 = ph1.reshape(ph1.shape[0], -1)
+
+        pc = plg.Polygon(np.array([pc0[:, 0], pc1[:, 0]]).T)
+        ph = plg.Polygon(np.array([ph0[:, 0], ph1[:, 0]]).T)
+        for ii in range(1, pc0.shape[1]):
+            pc = pc | plg.Polygon(np.array([pc0[:, ii], pc1[:, ii]]).T)
+            ph = ph | plg.Polygon(np.array([ph0[:, ii], ph1[:, ii]]).T)
+
+        pc0, pc1 = np.array(pc).T
+        ph0, ph1 = np.array(ph).T
+
     else:
         pc0i = pc0[:, indch]
         pc1i = pc1[:, indch]
@@ -535,8 +562,8 @@ def _prepare_sang(
         for ii in range(dvos['indr'].shape[1]):
             for jj in range(dvos['indr'].shape[2]):
                 iok = dvos['indr'][:, ii, jj] >= 0
-                indr = dvos['indr'][:, ii, jj]
-                indz = dvos['indz'][:, ii, jj]
+                indr = dvos['indr'][iok, ii, jj]
+                indz = dvos['indz'][iok, ii, jj]
                 sang_tot[indr, indz] += dvos['sang'][iok, ii, jj]
 
                 # sang
@@ -581,6 +608,7 @@ def _prepare_sang(
 def _get_etendue_length(
     coll=None,
     doptics=None,
+    poly=None,
 ):
 
     # ----------------------
@@ -592,15 +620,51 @@ def _get_etendue_length(
     # -------------------------
     # los through mesh envelopp
 
-    length = np.ones(etendue.shape, dtype=float)
+    # los
+    klos = doptics['los']
+    startx, starty, startz = coll.get_rays_start(key=klos)
+    vectx, vecty, vectz = coll.get_rays_vect(key=klos, norm=True)
+
+    DD = np.array([startx.ravel(), starty.ravel(), startz.ravel()])
+    uu = np.array([
+        vectx[0, ...].ravel(),
+        vecty[0, ...].ravel(),
+        vectz[0, ...].ravel(),
+    ])
+
+    # Prepare structures
+    ves = _core.Ves(
+        Poly=poly,
+        Name='temp',
+        Exp='',
+    )
+
+    conf = _core.Config(
+        lStruct=[ves],
+        Name='temp',
+        Exp='',
+    )
+
+    # ray-tracing
+    cam = _core.CamLOS1D(
+        dgeom=(DD, uu),
+        config=conf,
+        Name='temp',
+        Diag='',
+        Exp='',
+        strict=False,
+    )
+
+    # length
+    length = (cam.dgeom['kOut'] - cam.dgeom['kIn']).reshape(startx.shape)
 
     return etendue, length
 
 
-# ##################################################################
-# ##################################################################
+# ###############################################################
+# ###############################################################
 #                       Prepare
-# ##################################################################
+# ###############################################################
 
 
 def _prepare_datarefxy(
@@ -666,6 +730,7 @@ def _prepare_datarefxy(
 
 def _add_camera_los_cross(
     ax=None,
+    is2d=None,
     color_dict=None,
     los_r=None,
     los_z=None,
@@ -677,13 +742,14 @@ def _add_camera_los_cross(
     # ------
     # los
 
-    l0, = ax.plot(
-        los_r,
-        los_z,
-        c='k',
-        ls='-',
-        lw=1.,
-    )
+    if not is2d:
+        l0, = ax.plot(
+            los_r,
+            los_z,
+            c='k',
+            ls='-',
+            lw=1.,
+        )
 
     # ------
     # vos
@@ -724,6 +790,7 @@ def _add_camera_los_cross(
 
 def _add_camera_los_hor(
     ax=None,
+    is2d=None,
     los_x=None,
     los_y=None,
     ph0=None,
@@ -735,13 +802,14 @@ def _add_camera_los_hor(
     # ------
     # los
 
-    l0, = ax.plot(
-        los_x,
-        los_y,
-        c=color_dict['x'][0],
-        ls='-',
-        lw=1.,
-    )
+    if not is2d:
+        l0, = ax.plot(
+            los_x,
+            los_y,
+            c=color_dict['x'][0],
+            ls='-',
+            lw=1.,
+        )
 
     # ------
     # vos
@@ -785,24 +853,73 @@ def _add_camera_los_hor(
 def _add_camera_data(
     coll=None,
     ax=None,
-    is2d=None,
     sang_integ=None,
     etendue=None,
     length=None,
     indch=None,
     color_dict=None,
+    # vmin, vmax
+    vmin_cam=None,
+    vmax_cam=None,
+    # 2d only
+    ax_diff=None,
+    ax_etend=None,
+    is2d=None,
+    x0=None,
+    x1=None,
+    extent_cam=None,
 ):
 
 
     if is2d:
-        for ii in range(nlos):
-            mi, = ax.plot(
-                ddatax[k0][0:1],
-                ddatay[k0][0:1],
+
+        # sang
+        mi = ax.imshow(
+            sang_integ.T,
+            origin='lower',
+            extent=extent_cam,
+            interpolation='nearest',
+            vmin=vmin_cam,
+            vmax=vmax_cam,
+        )
+
+        # etendue
+        etendle = etendue * length
+        mi = ax_etend.imshow(
+            etendle.T,
+            origin='lower',
+            extent=extent_cam,
+            interpolation='nearest',
+            vmin=vmin_cam,
+            vmax=vmax_cam,
+        )
+        plt.colorbar(mi, ax=[ax, ax_etend])
+
+        # diff
+        diff = (sang_integ - etendle).T
+        dmax = np.abs(max(np.nanmin(diff), np.nanmax(diff)))
+        imd = ax_diff.imshow(
+            (sang_integ - etendle).T,
+            origin='lower',
+            extent=extent_cam,
+            interpolation='nearest',
+            cmap=plt.cm.seismic,
+            vmin=-dmax,
+            vmax=dmax,
+        )
+
+        plt.colorbar(imd, ax=ax_diff)
+
+        # marker
+        for aa in [ax, ax_etend, ax_diff]:
+            aa.plot(
+                [x0[indch[0]]],
+                [x1[indch[1]]],
+                c='k',
                 marker='s',
                 ms=6,
-                markeredgecolor=color_dict['x'][ii],
-                markerfacecolor='None',
+                ls='None',
+                lw=1.,
             )
 
     else:
@@ -818,7 +935,7 @@ def _add_camera_data(
             marker='.',
             ls='-',
             lw=1.,
-            label="vos",
+            label="sang * dV (sr.m3)",
         )
 
         # los
@@ -829,7 +946,7 @@ def _add_camera_data(
             marker='.',
             ls='-',
             lw=1.,
-            label="etendue * length",
+            label="etendue * length (sr.m3)",
         )
 
         # indch
@@ -840,9 +957,8 @@ def _add_camera_data(
             ls='--',
         )
 
-        ax.set_ylim(bottom=0)
-
-    plt.legend()
+        ax.set_ylim(vmin_cam, vmax_cam)
+        plt.legend()
 
 
 # ################################################################
@@ -867,7 +983,7 @@ def _get_dax(
 
     # fs
     if fs is None:
-        fs = (14, 10)
+        fs = (14.5, 10)
 
     # dmargin
     dmargin = ds._generic_check._check_var(
@@ -876,7 +992,7 @@ def _get_dax(
         default={
             'bottom': 0.05, 'top': 0.95,
             'left': 0.05, 'right': 0.98,
-            'wspace': 0.30, 'hspace': 0.40,
+            'wspace': 0.20, 'hspace': 0.40,
             # 'width_ratios': [0.6, 0.4],
             # 'height_ratios': [0.4, 0.6],
         },
@@ -900,49 +1016,100 @@ def _get_dax(
     fig.canvas.set_window_title(wintit)
     fig.suptitle(tit, size=12, fontweight='bold')
 
-    gs = gridspec.GridSpec(ncols=2, nrows=2, **dmargin)
-
-    # -------------
-    # hor
-
-    ax0 = fig.add_subplot(gs[1, 1], aspect='equal')
-    ax0.set_xlabel(r'X (m)', size=12)
-    ax0.set_ylabel(r'Y (m)', size=12)
-
-    # -------------
-    # cross
-
-    ax1 = fig.add_subplot(gs[0, 0], aspect='equal')
-    ax1.set_xlabel(r'R (m)', size=12)
-    ax1.set_ylabel(r'Z (m)', size=12)
-
-    # -------------
-    # cross
-
-    ax2 = fig.add_subplot(gs[1, 0], sharex=ax1, sharey=ax1)
-    ax2.set_xlabel(r'R (m)', size=12)
-    ax2.set_ylabel(r'Z (m)', size=12)
-
-    # -------------
-    # camera
-
     if is2d:
-        ax3 = fig.add_subplot(gs[0, 1], aspect='equal')
-        ax3.set_xlabel(r'index', size=12)
-        ax3.set_ylabel(r'index', size=12)
+
+        gs = gridspec.GridSpec(ncols=4, nrows=4, **dmargin)
+
+        # -------------
+        # hor
+
+        ax0 = fig.add_subplot(gs[2:, 2:], aspect='equal', adjustable='datalim')
+        ax0.set_xlabel(r'X (m)', size=12)
+        ax0.set_ylabel(r'Y (m)', size=12)
+
+        # -------------
+        # cross
+
+        ax1 = fig.add_subplot(gs[:2, :2], aspect='equal')  # , adjustable='datalim')
+        ax1.set_xlabel(r'R (m)', size=12)
+        ax1.set_ylabel(r'Z (m)', size=12)
+
+        # -------------
+        # cross
+
+        ax2 = fig.add_subplot(gs[2:, :2], sharex=ax1, sharey=ax1)
+        ax2.set_xlabel(r'R (m)', size=12)
+        ax2.set_ylabel(r'Z (m)', size=12)
+
+        # -------------
+        # camera
+
+        ax3 = fig.add_subplot(gs[0, 2], aspect='equal')  # , adjustable='datalim')
+        ax3.set_xlabel(r'x0 (m)', size=12)
+        ax3.set_ylabel(r'x1 (m)', size=12)
+        ax3.set_title('sang * dV (m3.sr)', size=12, fontweight='bold')
+
+        ax4 = fig.add_subplot(gs[0, 3], sharex=ax3, sharey=ax3)
+        ax4.set_xlabel(r'x0 (m)', size=12)
+        ax4.set_title('etendue * length (m3.sr)', size=12, fontweight='bold')
+
+        ax5 = fig.add_subplot(gs[1, 2], sharex=ax3, sharey=ax3)
+        ax5.set_xlabel(r'x0 (m)', size=12)
+        ax5.set_ylabel(r'x1 (m)', size=12)
+        ax5.set_title('difference (m3.sr)', size=12, fontweight='bold')
+
+        # ---------
+        # dict
+
+        dax = {
+            'hor': {'handle': ax0, 'type': 'hor'},
+            'cross': {'handle': ax1, 'type': 'cross'},
+            'crosstot': {'handle': ax2, 'type': 'cross'},
+            key_cam[0]: {'handle': ax3, 'type': 'camera'},
+            f'{key_cam[0]}_etend': {'handle': ax4, 'type': 'camera'},
+            f'{key_cam[0]}_diff': {'handle': ax5, 'type': 'camera'},
+        }
+
     else:
+
+        gs = gridspec.GridSpec(ncols=2, nrows=2, **dmargin)
+
+        # -------------
+        # hor
+
+        ax0 = fig.add_subplot(gs[1, 1], aspect='equal', adjustable='datalim')
+        ax0.set_xlabel(r'X (m)', size=12)
+        ax0.set_ylabel(r'Y (m)', size=12)
+
+        # -------------
+        # cross
+
+        ax1 = fig.add_subplot(gs[0, 0], aspect='equal')  # adjustable='datalim')
+        ax1.set_xlabel(r'R (m)', size=12)
+        ax1.set_ylabel(r'Z (m)', size=12)
+
+        # -------------
+        # cross
+
+        ax2 = fig.add_subplot(gs[1, 0], sharex=ax1, sharey=ax1)
+        ax2.set_xlabel(r'R (m)', size=12)
+        ax2.set_ylabel(r'Z (m)', size=12)
+
+        # -------------
+        # camera
+
         ax3 = fig.add_subplot(gs[0, 1])
         ax3.set_xlabel(r'index', size=12)
         ax3.set_ylabel(r'data', size=12)
 
-    # ---------
-    # dict
+        # ---------
+        # dict
 
-    dax = {
-        'hor': {'handle': ax0, 'type': 'hor'},
-        'cross': {'handle': ax1, 'type': 'cross'},
-        'crosstot': {'handle': ax2, 'type': 'cross'},
-        key_cam[0]: {'handle': ax3, 'type': 'camera'},
-    }
+        dax = {
+            'hor': {'handle': ax0, 'type': 'hor'},
+            'cross': {'handle': ax1, 'type': 'cross'},
+            'crosstot': {'handle': ax2, 'type': 'cross'},
+            key_cam[0]: {'handle': ax3, 'type': 'camera'},
+        }
 
     return dax
