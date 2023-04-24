@@ -39,7 +39,7 @@ def main():
     # _add_PHA(coll, conf)
 
     # add spectrometer
-    # _add_spectrometer(coll, conf) # , crystals=['c0'])
+    _add_spectrometer(coll, conf) # , crystals=['c0'])
 
     # ------------------------
     # compute synthetic signal

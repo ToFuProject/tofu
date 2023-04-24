@@ -48,7 +48,6 @@ def _vos(
     bool_cross=None,
     # parameters
     margin_poly=None,
-    config=None,
     visibility=None,
     verb=None,
     # debug
@@ -123,24 +122,24 @@ def _vos(
     # --------------------------
     # get overall polygons
 
-    pcross0, pcross1 = _vos_utilities._get_overall_polygons(
+    pcross0, pcross1 = _utilities._get_overall_polygons(
         coll=coll,
-        doptics=coll.dobj['diagnostic'][key]['doptics'],
-        key_cam=k0,
+        doptics=coll.dobj['diagnostic'][key_diag]['doptics'],
+        key_cam=key_cam,
         poly='pcross',
     )
 
-    phor0, phor1 = _vos_utilities._get_overall_polygons(
+    phor0, phor1 = _utilities._get_overall_polygons(
         coll=coll,
-        doptics=coll.dobj['diagnostic'][key]['doptics'],
-        key_cam=k0,
+        doptics=coll.dobj['diagnostic'][key_diag]['doptics'],
+        key_cam=key_cam,
         poly='phor',
     )
 
     # --------------------------
     # add margins
 
-    pcross0, pcross1 = _vos_utilities._get_poly_margin(
+    pcross0, pcross1 = _utilities._get_poly_margin(
         # polygon
         p0=pcross0,
         p1=pcross1,
@@ -148,7 +147,7 @@ def _vos(
         margin=margin_poly,
     )
 
-    phor0, phor1 = _vos_utilities._get_poly_margin(
+    phor0, phor1 = _utilities._get_poly_margin(
         # polygon
         p0=phor0,
         p1=phor1,
@@ -177,7 +176,7 @@ def _vos(
     phimax = np.nanmin(dphi[1, :])
 
     # get dphi vs phor
-    dphi_r = _vos_utilities._get_dphi_from_R_phor(
+    dphi_r = _utilities._get_dphi_from_R_phor(
         R=x0u[iru],
         phor0=phor0,
         phor1=phor1,
