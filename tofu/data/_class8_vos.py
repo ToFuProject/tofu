@@ -8,6 +8,7 @@ import datastock as ds
 import datetime as dtm      # DB
 
 
+from . import _class8_vos_utilities as _vos_utilities
 from . import _class8_vos_broadband as _vos_broadband
 from . import _class8_vos_spectro as _vos_spectro
 
@@ -134,6 +135,9 @@ def compute_vos(
     x0l = np.repeat(x0l[:, None], x1l.size, axis=1)
     x1l = np.repeat(x1l[None, :], x0l.shape[0], axis=0)
 
+    dx0 = x0u[1] - x0u[0]
+    dx1 = x1u[1] - x1u[0]
+
     # ------------
     # prepare output
 
@@ -163,6 +167,9 @@ def compute_vos(
     dvos = {}
     for key_cam in dcompute.keys():
 
+            # ------------------
+            # call relevant func
+
             (
                 dvos[key_cam],
                 dt11, dt22,
@@ -175,13 +182,16 @@ def compute_vos(
                 key_diag=key_diag,
                 key_cam=key_cam,
                 dsamp=dsamp,
-                # inputs
+                # inputs sample points
                 x0u=x0u,
                 x1u=x1u,
                 x0f=x0f,
                 x1f=x1f,
                 x0l=x0l,
                 x1l=x1l,
+                dx0=dx0,
+                dx1=dx1,
+                # options
                 sh=sh,
                 res=res,
                 res_lamb=res_lamb,

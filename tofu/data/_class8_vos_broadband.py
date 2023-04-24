@@ -4,6 +4,8 @@
 import datetime as dtm      # DB
 import numpy as np
 import scipy.interpolate as scpinterp
+from matplotlib.path import Path
+import datastock as ds
 
 
 from ..geom import _comp_solidangles
@@ -29,6 +31,8 @@ def _vos(
     x1f=None,
     x0l=None,
     x1l=None,
+    dx0=None,
+    dx1=None,
     sh=None,
     res=None,
     bool_cross=None,
@@ -118,24 +122,31 @@ def _vos(
         if np.isnan(pcross0[0, ii]):
             continue
 
-        # get cross-section polygon
-        ind, path_hor = _utilities._get_cross_section_indices(
-            dsamp=dsamp,
-            # polygon
+        # get points
+        xx, yy, zz, dind, iz = _vos_points(
+            # polygons
             pcross0=pcross0[:, ii],
             pcross1=pcross1[:, ii],
             phor0=phor0[:, ii],
             phor1=phor1[:, ii],
             margin_poly=margin_poly,
-            # points
+            dphi=dphi[:, ii],
+            # sampling
+            dsamp=dsamp,
             x0f=x0f,
             x1f=x1f,
+            x0u=x0u,
+            x1u=x1u,
+            res=res,
+            dx0=dx0,
+            dx1=dx1,
+            # shape
             sh=sh,
         )
 
         # re-initialize
         bool_cross[...] = False
-        npts = ind.sum()
+        npts = xx.size
         sang = np.zeros((npts,), dtype=float)
         indr = np.zeros((npts,), dtype=int)
         indz = np.zeros((npts,), dtype=int)
@@ -151,7 +162,6 @@ def _vos(
 
         # ---------------------
         # loop on volume points
-
 
         # get detector / aperture
         deti = _get_deti(
@@ -171,36 +181,49 @@ def _vos(
             dt111 += (t111-t000).total_seconds()
 
         # compute
-        out = _vos_pixel(
-            x0=x0u,
-            x1=x1u,
-            ind=ind,
-            npts=npts,
-            dphi=dphi[:, ii],
-            deti=deti,
-            lap=lap,
-            res=res,
+        out = _comp_solidangles.calc_solidangle_apertures(
+            # observation points
+            pts_x=xx,
+            pts_y=yy,
+            pts_z=zz,
+            # polygons
+            apertures=lap,
+            detectors=deti,
+            # possible obstacles
             config=config,
+            # parameters
+            summed=False,
             visibility=visibility,
-            # output
-            key_cam=key_cam,
-            sli=None,
-            ii=ii,
-            bool_cross=bool_cross,
-            sang=sang,
-            indr=indr,
-            indz=indz,
-            path_hor=path_hor,
-            # timing
+            return_vector=False,
+            return_flat_pts=None,
+            return_flat_det=None,
             timing=timing,
-            dt1111=dt1111,
-            dt2222=dt2222,
-            dt3333=dt3333,
-            dt4444=dt4444,
         )
 
+        # ------------
+        # get indices
+
         if timing:
-            dt1111, dt2222, dt3333, dt4444 = out
+            t0 = dtm.datetime.now()     # DB
+            out, dt1, dt2, dt3 = out
+
+        # update
+        ipt = 0
+        for i0, v0 in dind.items():
+            for i1 in v0['iz']:
+                ind1 = dind[i0]['indrz'] & (iz == i1)
+                sang[ipt] = np.sum(out[0, ind1]) * v0['dV']
+                indr[ipt] = i0
+                indz[ipt] = i1
+                bool_cross[i0 + 1, i1 + 1] = sang[ipt] > 0.
+                ipt += 1
+
+        # timing
+        if timing:
+            dt4444 += (dtm.datetime.now() - t0).total_seconds()
+            dt1111 += dt1
+            dt2222 += dt2
+            dt3333 += dt3
             t222 = dtm.datetime.now()     # DB
             dt222 += (t222-t111).total_seconds()
 
@@ -229,70 +252,30 @@ def _vos(
             t333 = dtm.datetime.now()     # DB
             dt333 += (t333-t222).total_seconds()
 
-    # ----------------
-    # harmonize pcross
+    # ----------------------------
+    # harmonize and reshape pcross
 
     if timing:
         t22 = dtm.datetime.now()     # DB
 
-    ln = [pp[0].size if pp[0] is not None else 0 for pp in lpcross]
-    nmax = np.max(ln)
-    sh2 = (nmax, npix)
-    pcross0 = np.full(sh2, np.nan)
-    pcross1 = np.full(sh2, np.nan)
-    for ii, nn in enumerate(ln):
+    pcross0, pcross1 = _harmonize_reshape_pcross(
+        lpcross=lpcross,
+        npix=npix,
+        is2d=is2d,
+        shape=shape[1:],
+    )
 
-        if nn == 0:
-            continue
+    # --------------------------------------
+    # harmonize and reshape sang, indr, indz
 
-        if nmax > nn:
-            ind = np.r_[0, np.linspace(0.1, 0.9, nmax-nn), np.arange(1, nn)]
-            pcross0[:, ii] = scpinterp.interp1d(
-                range(0, nn),
-                lpcross[ii][0],
-                kind='linear',
-            )(ind)
-
-            pcross1[:, ii] = scpinterp.interp1d(
-                range(0, nn),
-                lpcross[ii][1],
-                kind='linear',
-            )(ind)
-
-        else:
-            pcross0[:, ii] = lpcross[ii][0]
-            pcross1[:, ii] = lpcross[ii][1]
-
-    # -------
-    # reshape
-
-    if is2d:
-        newsh = tuple(np.r_[nmax, shape])
-        pcross0 = pcross0.reshape(newsh)
-        pcross1 = pcross1.reshape(newsh)
-
-    # --------------------------
-    # harmonize sang, indr, indz
-
-    lnpts = [sa.size for sa in lsang]
-    nmax = np.max(lnpts)
-
-    sang = np.full((nmax, npix), np.nan)
-    indr = -np.ones((nmax, npix), dtype=int)
-    indz = -np.ones((nmax, npix), dtype=int)
-    for ii, sa in enumerate(lsang):
-        sang[:lnpts[ii], ii] = sa
-        indr[:lnpts[ii], ii] = lindr[ii]
-        indz[:lnpts[ii], ii] = lindz[ii]
-
-    # -------
-    # reshape
-
-    if is2d:
-        newsh = tuple(np.r_[nmax, shape])
-        sang = sang.reshape(newsh)
-        indr = indr.reshape(newsh)
-        indz = indz.reshape(newsh)
+    sang, indr, indz = _harmonize_reshape_others(
+        lsang=lsang,
+        lindr=lindr,
+        lindz=lindz,
+        npix=npix,
+        is2d=is2d,
+        shape=shape[1:],
+    )
 
     # ----------------
     # format output
@@ -315,6 +298,132 @@ def _vos(
         dt111, dt222, dt333,
         dt1111, dt2222, dt3333, dt4444,
     )
+
+
+# ###########################################################
+# ###########################################################
+#               get points
+# ###########################################################
+
+
+def _vos_points(
+    # polygons
+    pcross0=None,
+    pcross1=None,
+    phor0=None,
+    phor1=None,
+    margin_poly=None,
+    dphi=None,
+    # sampling
+    dsamp=None,
+    x0f=None,
+    x1f=None,
+    x0u=None,
+    x1u=None,
+    res=None,
+    dx0=None,
+    dx1=None,
+    # shape
+    sh=None,
+):
+
+    # ------------
+    # get polygons
+
+    # get cross-section polygon with margin
+    pc0, pc1 = _utilities._get_poly_margin(
+        # polygon
+        p0=pcross0,
+        p1=pcross1,
+        # margin
+        margin=margin_poly,
+    )
+
+    # get cross-section polygon with margin
+    ph0, ph1 = _utilities._get_poly_margin(
+        # polygon
+        p0=phor0,
+        p1=phor1,
+        # margin
+        margin=margin_poly,
+    )
+
+    # ------------
+    # get indices
+
+    # indixes of points in pcross
+    pcross = Path(np.array([pc0, pc1]).T)
+    ind = (
+        dsamp['ind']['data']
+        & pcross.contains_points(np.array([x0f, x1f]).T).reshape(sh)
+    )
+
+    # R and Z indices
+    ir, iz = ind.nonzero()
+    iru = np.unique(ir)
+
+    # ------------
+    # get dphi_r
+
+    # phi_r
+    dphi_r = _utilities._get_dphi_from_R_phor(
+        R=x0u[iru],
+        phor0=ph0,
+        phor1=ph1,
+        phimin=dphi[0],
+        phimax=dphi[1],
+        res=res,
+    )
+
+    # get nphi
+    iok = np.all(np.isfinite(dphi_r), axis=0)
+    dphi_r = dphi_r[:, iok]
+    iru = iru[iok]
+
+    nphi_r = (
+        np.ceil(x0u[iru]*(dphi_r[1, :] - dphi_r[0, :]) / res).astype(int)
+        + 1
+    )
+    ddphi_r = np.diff(dphi_r, axis=0)[0, :] / (nphi_r - 1)
+
+    # ------------
+    # get indices
+
+    # get indices
+    lind = [ir == i0 for i0 in iru]
+    ln = [i0.sum() for i0 in lind]
+    indrz = np.concatenate([
+        np.tile(i0.nonzero()[0], nphi_r[ii]) for ii, i0 in enumerate(lind)
+    ])
+
+    # get phi
+    phi = np.concatenate(tuple([
+        np.repeat(np.linspace(dphi_r[0, ii], dphi_r[1, ii], nn), ln[ii])
+        for ii, nn in enumerate(nphi_r)
+    ]))
+
+    # ------------
+    # derive coords
+
+    # coordinates
+    rr = x0u[ir[indrz]]
+    xx = rr * np.cos(phi)
+    yy = rr * np.sin(phi)
+    zz = x1u[iz[indrz]]
+
+    # ----------------
+    # get indices dict
+
+    dind = {
+        i0: {
+            'dV': dx0 * dx1 * x0u[i0] * ddphi_r[ii],
+            'iz': np.unique(iz[lind[ii]]),
+            'indrz': ir[indrz] == i0,
+        }
+        for ii, i0 in enumerate(iru)
+    }
+
+    return xx, yy, zz, dind, iz[indrz]
 
 
 # ###########################################################
@@ -342,7 +451,6 @@ def _vos_pixel(
     sang=None,
     indr=None,
     indz=None,
-    path_hor=None,
     # timing
     timing=None,
     dt1111=None,
@@ -351,24 +459,6 @@ def _vos_pixel(
     dt4444=None,
 ):
 
-    # --------------------------
-    # prepare points and indices
-
-    ir, iz = ind.nonzero()
-    iru = np.unique(ir)
-    izru = [iz[ir == i0] for i0 in iru]
-
-    nphi = np.ceil(x0[ir]*(dphi[1] - dphi[0]) / res).astype(int)
-
-    irf = np.repeat(ir, nphi)
-    izf = np.repeat(iz, nphi)
-    phi = np.concatenate(tuple([
-        np.linspace(dphi[0], dphi[1], nn) for nn in nphi
-    ]))
-
-    xx = x0[irf] * np.cos(phi)
-    yy = x0[irf] * np.sin(phi)
-    zz = x1[izf]
 
     out = _comp_solidangles.calc_solidangle_apertures(
         # observation points
@@ -463,3 +553,93 @@ def _get_deti(
     }
 
     return det
+
+
+# ###########################################################
+# ###########################################################
+#               Harmonize and reshape pcross
+# ###########################################################
+
+
+def _harmonize_reshape_pcross(
+    lpcross=None,
+    npix=None,
+    is2d=None,
+    shape=None,
+):
+
+    ln = [pp[0].size if pp[0] is not None else 0 for pp in lpcross]
+    nmax = np.max(ln)
+    sh2 = (nmax, npix)
+    pcross0 = np.full(sh2, np.nan)
+    pcross1 = np.full(sh2, np.nan)
+    for ii, nn in enumerate(ln):
+
+        if nn == 0:
+            continue
+
+        if nmax > nn:
+            ind = np.r_[0, np.linspace(0.1, 0.9, nmax - nn), np.arange(1, nn)]
+            pcross0[:, ii] = scpinterp.interp1d(
+                range(0, nn),
+                lpcross[ii][0],
+                kind='linear',
+            )(ind)
+
+            pcross1[:, ii] = scpinterp.interp1d(
+                range(0, nn),
+                lpcross[ii][1],
+                kind='linear',
+            )(ind)
+
+        else:
+            pcross0[:, ii] = lpcross[ii][0]
+            pcross1[:, ii] = lpcross[ii][1]
+
+    # -------
+    # reshape
+
+    if is2d:
+        newsh = tuple(np.r_[nmax, shape])
+        pcross0 = pcross0.reshape(newsh)
+        pcross1 = pcross1.reshape(newsh)
+
+    return pcross0, pcross1
+
+
+# ###########################################################
+# ###########################################################
+#               Harmonize and reshape others
+# ###########################################################
+
+
+def _harmonize_reshape_others(
+    lsang=None,
+    lindr=None,
+    lindz=None,
+    npix=None,
+    is2d=None,
+    shape=None,
+):
+
+    lnpts = [sa.size for sa in lsang]
+    nmax = np.max(lnpts)
+
+    sang = np.full((nmax, npix), np.nan)
+    indr = -np.ones((nmax, npix), dtype=int)
+    indz = -np.ones((nmax, npix), dtype=int)
+    for ii, sa in enumerate(lsang):
+        sang[:lnpts[ii], ii] = sa
+        indr[:lnpts[ii], ii] = lindr[ii]
+        indz[:lnpts[ii], ii] = lindz[ii]
+
+    # -------
+    # reshape
+
+    if is2d:
+        newsh = tuple(np.r_[nmax, shape])
+        sang = sang.reshape(newsh)
+        indr = indr.reshape(newsh)
+        indz = indz.reshape(newsh)
+
+    return sang, indr, indz

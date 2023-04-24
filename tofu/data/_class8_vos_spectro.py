@@ -35,6 +35,12 @@ def _vos(
     x1f=None,
     x0l=None,
     x1l=None,
+    # overall polygons
+    pcross0=None,
+    pcross1=None,
+    phor0=None,
+    phor1=None,
+    dphi_r=None,
     sh=None,
     res=None,
     res_lamb=None,
@@ -114,43 +120,64 @@ def _vos(
     cbin0 = np.r_[cc0 + np.min(cout0), cc0[-1] + np.max(cout0)]
     cbin1 = np.r_[cc1 + np.min(cout1), cc1[-1] + np.max(cout1)]
 
-    # -------------------------------------------------
-    # prepare polygons limiting points in cross-section
+    # --------------------------
+    # get overall polygons
 
-    pcross0, pcross1, phor0, phor1 = _get_overall_polygons(
+    pcross0, pcross1 = _vos_utilities._get_overall_polygons(
         coll=coll,
-        doptics=doptics,
-        key_cam=key_cam,
+        doptics=coll.dobj['diagnostic'][key]['doptics'],
+        key_cam=k0,
+        poly='pcross',
     )
 
-    dphi = doptics[key_cam]['dvos']['dphi']
+    phor0, phor1 = _vos_utilities._get_overall_polygons(
+        coll=coll,
+        doptics=coll.dobj['diagnostic'][key]['doptics'],
+        key_cam=k0,
+        poly='phor',
+    )
 
     # --------------------------
-    # prepare points and indices
+    # add margins
 
-    # get cross-section polygon
-    ind, path_hor = _utilities._get_cross_section_indices(
-        dsamp=dsamp,
+    pcross0, pcross1 = _vos_utilities._get_poly_margin(
         # polygon
-        pcross0=pcross0,
-        pcross1=pcross1,
-        phor0=phor0,
-        phor1=phor1,
-        margin_poly=margin_poly,
-        # points
-        x0f=x0f,
-        x1f=x1f,
-        sh=sh,
+        p0=pcross0,
+        p1=pcross1,
+        # margin
+        margin=margin_poly,
     )
 
+    phor0, phor1 = _vos_utilities._get_poly_margin(
+        # polygon
+        p0=phor0,
+        p1=phor1,
+        # margin
+        margin=margin_poly,
+    )
+
+    # ------------------------
+    # get ind in cross-section
+
+    pcross = Path(np.array([pcross0, pcross1]).T)
+    ind = (
+        dsamp['ind']['data']
+        & pcross.contains_points(np.array([x0f, x1f]).T).reshape(sh)
+    )
+
+    # R and Z indices
     ir, iz = ind.nonzero()
     iru = np.unique(ir)
 
+    # ----------
+    # get dphi_r
+
+    dphi = doptics[key_cam]['dvos']['dphi']
     phimin = np.nanmin(dphi[0, :])
     phimax = np.nanmin(dphi[1, :])
 
     # get dphi vs phor
-    dphi_r = _utilities._get_dphi_from_R_phor(
+    dphi_r = _vos_utilities._get_dphi_from_R_phor(
         R=x0u[iru],
         phor0=phor0,
         phor1=phor1,
@@ -158,8 +185,6 @@ def _vos(
         phimax=phimax,
         res=res,
     )
-
-    # eliminate radius with no match
 
     # -------------------------------------
     # prepare lambda, angles, rocking_curve
@@ -496,47 +521,6 @@ def _vos(
         dt111, dt222, dt333,
         dt1111, dt2222, dt3333, dt4444,
     )
-
-
-# ################################################
-# ################################################
-#           Sub-routine: polygons
-# ################################################
-
-
-def _get_overall_polygons(coll=None, doptics=None, key_cam=None):
-
-    # get temporary vos
-    kpc0, kpc1 = doptics[key_cam]['dvos']['pcross']
-    shape = coll.ddata[kpc0]['data'].shape
-    pcross0 = coll.ddata[kpc0]['data'].reshape((shape[0], -1))
-    pcross1 = coll.ddata[kpc1]['data'].reshape((shape[0], -1))
-    kph0, kph1 = doptics[key_cam]['dvos']['phor']
-    shapeh = coll.ddata[kph0]['data'].shape
-    phor0 = coll.ddata[kph0]['data'].reshape((shapeh[0], -1))
-    phor1 = coll.ddata[kph1]['data'].reshape((shapeh[0], -1))
-
-    # pix indices
-    ipix = ~(np.any(np.isnan(pcross0), axis=0))
-    ipix_n = ipix.nonzero()[0]
-
-    # envelop pcross and phor
-    pcross = plg.Polygon(
-        np.array([pcross0[:, ipix_n[0]], pcross1[:, ipix_n[0]]]).T
-    )
-    phor = plg.Polygon(
-        np.array([phor0[:, ipix_n[0]], phor1[:, ipix_n[0]]]).T
-    )
-    for ii in ipix_n[1:]:
-        pcross |= plg.Polygon(
-            np.array([pcross0[:, ii], pcross1[:, ii]]).T
-        )
-        phor |= plg.Polygon(np.array([phor0[:, ii], phor1[:, ii]]).T)
-
-    pcross0, pcross1 = np.array(pcross)[0].T
-    phor0, phor1 = np.array(phor)[0].T
-
-    return pcross0, pcross1, phor0, phor1
 
 
 # ################################################

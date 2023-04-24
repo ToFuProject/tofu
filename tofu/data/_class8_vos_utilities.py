@@ -10,31 +10,25 @@ import datastock as ds
 import Polygon as plg
 
 
-# ###########################################################
-# ###########################################################
-#               Get cross-section indices
-# ###########################################################
+# ###############################################
+# ###############################################
+#           margin polygons
+# ###############################################
 
 
-def _get_cross_section_indices(
-    dsamp=None,
+def _get_poly_margin(
     # polygon
-    pcross0=None,
-    pcross1=None,
-    phor0=None,
-    phor1=None,
-    margin_poly=None,
-    # points
-    x0f=None,
-    x1f=None,
-    sh=None,
+    p0=None,
+    p1=None,
+    # margin
+    margin=None,
 ):
 
     # ----------
     # check
 
-    margin_poly = ds._generic_check._check_var(
-        margin_poly, 'margin_poly',
+    margin = ds._generic_check._check_var(
+        margin, 'margin',
         types=float,
         default=0.2,
         sign='>0'
@@ -44,39 +38,48 @@ def _get_cross_section_indices(
     # add extra margin to pcross
 
     # get centroid
-    center = plg.Polygon(np.array([pcross0, pcross1]).T).center()
+    cent = plg.Polygon(np.array([p0, p1]).T).center()
 
     # add margin
-    pcross02 = center[0] + (1. + margin_poly) * (pcross0 - center[0])
-    pcross12 = center[1] + (1. + margin_poly) * (pcross1 - center[1])
-
-    # define path
-    pcross = Path(np.array([pcross02, pcross12]).T)
-
-    # ---------------------------
-    # add extra margin to phor
-
-    # get center
-    center = plg.Polygon(np.array([phor0, phor1]).T).center()
-
-    # add margin
-    phor02 = center[0] + (1. + margin_poly) * (phor0 - center[0])
-    phor12 = center[1] + (1. + margin_poly) * (phor1 - center[1])
-
-    # define path
-    phor = Path(np.array([phor02, phor12]).T)
-
-    # get ind
     return (
-        dsamp['ind']['data']
-        & pcross.contains_points(np.array([x0f, x1f]).T).reshape(sh)
-    ), phor
+        cent[0] + (1. + margin) * (p0 - cent[0]),
+        cent[1] + (1. + margin) * (p1 - cent[1]),   )
 
 
-# ###########################################################
-# ###########################################################
+# ###############################################
+# ###############################################
+#           overall polygons
+# ###############################################
+
+
+def _get_overall_polygons(
+    coll=None,
+    doptics=None,
+    key_cam=None,
+    poly=None,
+):
+
+    # get temporary vos
+    kp0, kp1 = doptics[key_cam]['dvos'][poly]
+    shape = coll.ddata[kp0]['data'].shape
+    p0 = coll.ddata[kp0]['data'].reshape((shape[0], -1))
+    p1 = coll.ddata[kp1]['data'].reshape((shape[0], -1))
+
+    # pix indices
+    ipn = (~(np.any(np.isnan(p0), axis=0))).nonzero()[0]
+
+    # envelop pcross and phor
+    pp = plg.Polygon(np.array([p0[:, ipn[0]], p1[:, ipn[0]]]).T)
+    for ii in ipn[1:]:
+        pp |= plg.Polygon(np.array([p0[:, ii], p1[:, ii]]).T)
+
+    return np.array(pp)[0].T
+
+
+# ###############################################
+# ###############################################
 #               get polygons
-# ###########################################################
+# ###############################################
 
 
 def _get_polygons(
