@@ -44,6 +44,7 @@ def compute_vos(
     debug=None,
     plot=None,
     store=None,
+    replace_poly=None,
     timing=None,
 ):
 
@@ -246,6 +247,7 @@ def compute_vos(
             key_diag=key_diag,
             dvos=dvos,
             spectro=spectro,
+            replace_poly=replace_poly,
         )
 
     return dvos
@@ -525,24 +527,42 @@ def _store(
     key_diag=None,
     dvos=None,
     spectro=None,
+    replace_poly=None,
 ):
+
+    # ------------
+    # check inputs
+
+    replace_poly = ds._generic_check._check_var(
+        replace_poly, 'replace_poly',
+        types=bool,
+        default=True,
+    )
+
+    # ------------
+    # store
 
     doptics = coll._dobj['diagnostic'][key_diag]['doptics']
 
     for k0, v0 in dvos.items():
 
-        # re-use previous keys
-        kpc0, kpc1 = doptics[k0]['dvos']['pcross']
-        kr = coll.ddata[kpc0]['ref'][0]
+        # ----------------
+        # pcross
 
-        # safety check
-        if coll.ddata[kpc0]['data'].shape[1:] != v0['pcross0'].shape[1:]:
-            msg = "Something is wrong"
-            raise Exception(msg)
+        if replace_poly and v0.get('pcross0') is not None:
 
-        coll._dref[kr]['size'] = v0['pcross0'].shape[0]
-        coll._ddata[kpc0]['data'] = v0['pcross0']
-        coll._ddata[kpc1]['data'] = v0['pcross1']
+            # re-use previous keys
+            kpc0, kpc1 = doptics[k0]['dvos']['pcross']
+            kr = coll.ddata[kpc0]['ref'][0]
+
+            # safety check
+            if coll.ddata[kpc0]['data'].shape[1:] != v0['pcross0'].shape[1:]:
+                msg = "Something is wrong"
+                raise Exception(msg)
+
+            coll._dref[kr]['size'] = v0['pcross0'].shape[0]
+            coll._ddata[kpc0]['data'] = v0['pcross0']
+            coll._ddata[kpc1]['data'] = v0['pcross1']
 
         # ----------------
         # 2d mesh sampling

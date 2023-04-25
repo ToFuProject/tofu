@@ -285,6 +285,7 @@ class Diagnostic(Previous):
         debug=None,
         plot=None,
         store=None,
+        replace_poly=None,
         timing=None,
     ):
         """ Compute the etendue of the diagnostic (per pixel)
@@ -314,6 +315,7 @@ class Diagnostic(Previous):
             debug=debug,
             plot=plot,
             store=store,
+            replace_poly=replace_poly,
             timing=timing,
         )
 
