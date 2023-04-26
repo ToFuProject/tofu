@@ -25,9 +25,10 @@ def compute_vos(
     key_mesh=None,
     config=None,
     # parameters
-    res=None,
+    res_RZ=None,
+    res_phi=None,
     res_lamb=None,
-    res_ang_rocking_curve=None,
+    res_rock_curve=None,
     margin_poly=None,
     margin_par=None,
     margin_perp=None,
@@ -61,7 +62,8 @@ def compute_vos(
         is2d,
         doptics,
         dcompute,
-        res,
+        res_RZ,
+        res_phi,
         res_lamb,
         margin_par,
         margin_perp,
@@ -75,7 +77,8 @@ def compute_vos(
         coll=coll,
         key_diag=key_diag,
         key_mesh=key_mesh,
-        res=res,
+        res_RZ=res_RZ,
+        res_phi=res_phi,
         res_lamb=res_lamb,
         margin_par=margin_par,
         margin_perp=margin_perp,
@@ -107,7 +110,7 @@ def compute_vos(
 
     dsamp = coll.get_sample_mesh(
         key=key_mesh,
-        res=res,
+        res=res_RZ,
         mode='abs',
         grid=True,
         in_mesh=True,
@@ -194,9 +197,9 @@ def compute_vos(
                 dx1=dx1,
                 # options
                 sh=sh,
-                res=res,
+                res_phi=res_phi,
                 res_lamb=res_lamb,
-                res_ang_rocking_curve=res_ang_rocking_curve,
+                res_rock_curve=res_rock_curve,
                 bool_cross=bool_cross,
                 # parameters
                 margin_poly=margin_poly,
@@ -219,7 +222,11 @@ def compute_vos(
             )
 
             dvos[key_cam]['keym'] = key_mesh
-            dvos[key_cam]['res'] = res
+            dvos[key_cam]['res_RZ'] = res_RZ
+            dvos[key_cam]['res_phi'] = res_phi
+            if spectro is True:
+                dvos[key_cam]['res_lamb'] = res_lamb
+                dvos[key_cam]['res_rock_curve'] = res_rock_curve
 
     # timing
     if timing:
@@ -263,7 +270,8 @@ def _check(
     coll=None,
     key_diag=None,
     key_mesh=None,
-    res=None,
+    res_RZ=None,
+    res_phi=None,
     res_lamb=None,
     margin_par=None,
     margin_perp=None,
@@ -354,10 +362,16 @@ def _check(
         ]
 
     # -----------
-    # res
+    # res_RZ
 
-    if res is None:
-        res = 0.01
+    if res_RZ is None:
+        res_RZ = 0.01
+
+    # -----------
+    # res_phi
+
+    if res_phi is None:
+        res_phi = 0.01
 
     # -----------
     # res_lamb
@@ -444,7 +458,8 @@ def _check(
         is2d,
         doptics,
         dcompute,
-        res,
+        res_RZ,
+        res_phi,
         res_lamb,
         margin_par,
         margin_perp,

@@ -267,12 +267,12 @@ class Diagnostic(Previous):
         key=None,
         key_mesh=None,
         # parameters
-        res=None,
+        res_RZ=None,
+        res_phi=None,
         res_lamb=None,
-        res_ang_rocking_curve=None,
+        res_rock_curve=None,
         check=None,
-        margin_par=None,
-        margin_perp=None,
+        margin_poly=None,
         # raytracing
         visibility=None,
         # spectro-only
@@ -301,12 +301,12 @@ class Diagnostic(Previous):
             key_diag=key,
             key_mesh=key_mesh,
             # etendue
-            res=res,
+            res_RZ=res_RZ,
+            res_phi=res_phi,
             res_lamb=res_lamb,
-            res_ang_rocking_curve=res_ang_rocking_curve,
+            res_rock_curve=res_rock_curve,
             check=check,
-            margin_par=margin_par,
-            margin_perp=margin_perp,
+            margin_poly=margin_poly,
             visibility=visibility,
             # spectro-only
             rocking_curve_fw=rocking_curve_fw,
@@ -786,6 +786,7 @@ class Diagnostic(Previous):
         key=None,
         key_cam=None,
         indch=None,
+        indlamb=None,
         optics=None,
         elements=None,
         proj=None,
@@ -800,6 +801,7 @@ class Diagnostic(Previous):
         vmax_tot=None,
         vmin_cam=None,
         vmax_cam=None,
+        dvminmax=None,
         alpha=None,
         # config
         plot_config=None,
@@ -817,6 +819,7 @@ class Diagnostic(Previous):
             key=key,
             key_cam=key_cam,
             indch=indch,
+            indlamb=indlamb,
             optics=optics,
             elements=elements,
             proj=proj,
@@ -831,6 +834,7 @@ class Diagnostic(Previous):
             vmax_tot=vmax_tot,
             vmin_cam=vmin_cam,
             vmax_cam=vmax_cam,
+            dvminmax=dvminmax,
             alpha=alpha,
             # config
             plot_config=plot_config,

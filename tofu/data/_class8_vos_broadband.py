@@ -625,19 +625,19 @@ def _harmonize_reshape_others(
     lnpts = [sa.size for sa in lsang]
     nmax = np.max(lnpts)
 
-    sang = np.full((nmax, npix), np.nan)
-    indr = -np.ones((nmax, npix), dtype=int)
-    indz = -np.ones((nmax, npix), dtype=int)
+    sang = np.full((npix, nmax), np.nan)
+    indr = -np.ones((npix, nmax), dtype=int)
+    indz = -np.ones((npix, nmax), dtype=int)
     for ii, sa in enumerate(lsang):
-        sang[:lnpts[ii], ii] = sa
-        indr[:lnpts[ii], ii] = lindr[ii]
-        indz[:lnpts[ii], ii] = lindz[ii]
+        sang[ii, :lnpts[ii]] = sa
+        indr[ii, :lnpts[ii]] = lindr[ii]
+        indz[ii, :lnpts[ii]] = lindz[ii]
 
     # -------
     # reshape
 
     if is2d:
-        newsh = tuple(np.r_[nmax, shape])
+        newsh = tuple(np.r_[shape, nmax])
         sang = sang.reshape(newsh)
         indr = indr.reshape(newsh)
         indz = indz.reshape(newsh)

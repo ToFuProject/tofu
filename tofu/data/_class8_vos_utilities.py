@@ -27,12 +27,12 @@ def _get_poly_margin(
     # ----------
     # check
 
-    margin = ds._generic_check._check_var(
+    margin = float(ds._generic_check._check_var(
         margin, 'margin',
-        types=float,
-        default=0.2,
+        types=(float, int),
+        default=0.3,
         sign='>0'
-    )
+    ))
 
     # ---------------------------
     # add extra margin to pcross
