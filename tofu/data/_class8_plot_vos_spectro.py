@@ -88,6 +88,7 @@ def _plot(
     ddata, extent, dhor = _prepare_ph(
         coll=coll,
         dvos=dvos[key_cam[0]],
+        key=key,
         key_cam=key_cam,
         indch=indch,
         indlamb=indlamb,
@@ -332,6 +333,7 @@ def _plot(
 def _prepare_ph(
     coll=None,
     dvos=None,
+    key=None,
     key_cam=None,
     indch=None,
     indlamb=None,
@@ -543,7 +545,7 @@ def _prepare_ph(
     # ----------------------
     # delta_lamb for etendue
 
-    delta_lamb = coll.get_diagnostic_data('d02', data='dlamb')[0][key_cam[0]]
+    delta_lamb = coll.get_diagnostic_data(key, data='dlamb')[0][key_cam[0]]
 
     # -------------------
     # extent

@@ -211,6 +211,7 @@ def _vos(
         kspectro=kspectro,
         res_lamb=res_lamb,
         res_rock_curve=res_rock_curve,
+        verb=verb,
     )
 
     angbragg0 = angbragg[:1, :]
@@ -614,6 +615,7 @@ def _prepare_lamb(
     kspectro=None,
     res_lamb=None,
     res_rock_curve=None,
+    verb=None,
 ):
 
     # ------------------
@@ -638,11 +640,12 @@ def _prepare_lamb(
     bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
 
     # power ratio
-    kpow = coll.dobj['crystal'][kspectro]['dmat']['drock']['power_ratio']
+    cls_spectro = 'crystal'
+    kpow = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['power_ratio']
     pow_ratio = coll.ddata[kpow]['data']
 
     # angle relative
-    kang_rel = coll.dobj['crystal'][kspectro]['dmat']['drock']['angle_rel']
+    kang_rel = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['angle_rel']
     ang_rel = coll.ddata[kang_rel]['data']
     if res_rock_curve is not None:
         if isinstance(res_rock_curve, int):
@@ -668,8 +671,24 @@ def _prepare_lamb(
     # ------------
     # safety check
 
-    width_max = None
-    width_mean = None
+    FW = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['FW']
+    dd0 = bragg[0] + np.r_[0, ang_rel[-1] - ang_rel[0]]
+    dd1 = bragg[0] + np.r_[0, FW]
+    dd2 = bragg[0] + np.r_[0, ang_rel[1] - ang_rel[0]]
+
+    dlamb_max = np.diff(coll.get_crystal_bragglamb(key=kspectro, bragg=dd0)[1])
+    dlamb_mh = np.diff(coll.get_crystal_bragglamb(key=kspectro, bragg=dd1)[1])
+    dlamb_res = np.diff(coll.get_crystal_bragglamb(key=kspectro, bragg=dd2)[1])
+
+    if verb is True:
+        msg = (
+            "Recommended res_lamb to ensure rocking curve overlap:\n"
+            f"\t- edge-edge: \t{dlamb_max[0]:.2e}\n"
+            f"\t- MH-to-MH: \t{dlamb_mh[0]:.2e}\n"
+            f"\t- resolution: \t{dlamb_res[0]:.2e}\n"
+            f"\tProvided: \t{dlamb:.2e}\n"
+        )
+        print(msg)
 
     return (
         nlamb,
