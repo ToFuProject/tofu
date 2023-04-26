@@ -174,12 +174,16 @@ class Crystal(Previous):
         self,
         key=None,
         asplane=None,
+        isnorm=None,
+        fast=None,
     ):
         """ Return a dict of formatted """
         return _reflections_ptsvect._get_ptsvect(
             coll=self,
             key=key,
             asplane=asplane,
+            isnorm=isnorm,
+            fast=fast,
         )
 
     # -------------------------------------------
