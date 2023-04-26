@@ -281,10 +281,19 @@ def _get_dphi_from_R_phor(
     phimin=None,
     phimax=None,
     res=None,
+    out=None
 ):
 
     # ------------
     # check inputs
+
+    # out
+    out = ds._generic_check._check_var(
+        out, 'out',
+        types=bool,
+        default=True,
+    )
+    sign = 1. if out is True else -1.
 
     # R
     R = np.unique(np.atleast_1d(R).ravel())
@@ -306,7 +315,7 @@ def _get_dphi_from_R_phor(
         )
 
         if np.any(ind):
-            dphi[0, ir] = np.min(phi[ind]) - (phi[1] - phi[0])
-            dphi[1, ir] = np.max(phi[ind]) + (phi[1] - phi[0])
+            dphi[0, ir] = np.min(phi[ind]) - sign*(phi[1] - phi[0])
+            dphi[1, ir] = np.max(phi[ind]) + sign*(phi[1] - phi[0])
 
     return dphi

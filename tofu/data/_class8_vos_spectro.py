@@ -191,6 +191,7 @@ def _vos(
         phimin=phimin,
         phimax=phimax,
         res=res_phi,
+        out=False,
     )
 
     # -------------------------------------
