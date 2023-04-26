@@ -7,6 +7,7 @@ import scipy.interpolate as scpinterp
 import scipy.stats as scpstats
 from matplotlib.path import Path
 import matplotlib.pyplot as plt       # DB
+import matplotlib.gridspec as gridspec
 import Polygon as plg
 
 
@@ -195,48 +196,23 @@ def _vos(
     # -------------------------------------
     # prepare lambda, angles, rocking_curve
 
-    lamb = coll.get_diagnostic_data(
-        key=key_diag,
+    (
+        nlamb,
+        lamb,
+        dlamb,
+        pow_ratio,
+        ang_rel,
+        dang,
+        angbragg,
+    ) = _prepare_lamb(
+        coll=coll,
+        key_diag=key_diag,
         key_cam=key_cam,
-        data='lamb',
-    )[0][key_cam]
+        kspectro=kspectro,
+        res_lamb=res_lamb,
+        res_rock_curve=res_rock_curve,
+    )
 
-    lambmin = np.nanmin(lamb)
-    lambmax = np.nanmax(lamb)
-    Dlamb = (lambmax - lambmin) * 1.1
-    nlamb = int(np.ceil(Dlamb / res_lamb))
-    lamb = np.linspace(lambmin - 0.2*Dlamb, lambmax + 0.2*Dlamb, nlamb)
-    dlamb = lamb[1] - lamb[0]
-
-    bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
-
-    # power ratio
-    kpow = coll.dobj['crystal'][kspectro]['dmat']['drock']['power_ratio']
-    pow_ratio = coll.ddata[kpow]['data']
-
-    # angle relative
-    kang_rel = coll.dobj['crystal'][kspectro]['dmat']['drock']['angle_rel']
-    ang_rel = coll.ddata[kang_rel]['data']
-    if res_rock_curve is not None:
-        if isinstance(res_rock_curve, int):
-            nang = res_rock_curve
-        else:
-            nang = int(
-                (np.max(ang_rel) - np.min(ang_rel)) / res_rock_curve
-            )
-
-        ang_rel2 = np.linspace(np.min(ang_rel), np.max(ang_rel), nang)
-        pow_ratio = scpinterp.interp1d(
-            ang_rel,
-            pow_ratio,
-            kind='linear',
-        )(ang_rel2)
-        ang_rel = ang_rel2
-
-    dang = np.mean(np.diff(ang_rel))
-
-    # overall bragg angle with rocking curve
-    angbragg = bragg[None, :] + ang_rel[:, None]
     angbragg0 = angbragg[:1, :]
     angbragg1 = angbragg[-1:, :]
 
@@ -372,6 +348,7 @@ def _vos(
                 # compute image
                 (
                     x0c, x1c, angles, dsang, cosi, iok, dangmin_str,
+                    x0if, x1if,
                 ) = _get_points_on_camera_from_pts(
                     p0=p0,
                     p1=p1,
@@ -405,6 +382,14 @@ def _vos(
                     t222 = dtm.datetime.now()     # DB
                     dt222 += (t222-t111).total_seconds()
 
+                # safety check
+                iok2 = (
+                    (x0c[iok] >= cbin0[0])
+                    & (x0c[iok] <= cbin0[-1])
+                    & (x1c[iok] >= cbin1[0])
+                    & (x1c[iok] <= cbin1[-1])
+                )
+
                 # ---------- DEBUG ------------
                 if debug is True:
                     # _plot_debug(
@@ -417,18 +402,16 @@ def _vos(
                         # cos=cosi,
                         # angles=angles,
                         # iok=iok,
+                        # p0=p0,
+                        # p1=p1,
+                        # x0if=x0if,
+                        # x1if=x1if,
                     # )
                     dx0[i0][i1].append(x0c)
                     dx1[i0][i1].append(x1c)
                 # -------- END DEBUG ----------
 
-                # safety check
-                iok2 = (
-                    (x0c[iok] >= cbin0[0])
-                    & (x0c[iok] <= cbin0[-1])
-                    & (x1c[iok] >= cbin1[0])
-                    & (x1c[iok] <= cbin1[-1])
-                )
+
                 if not np.any(iok2):
                     continue
 
@@ -624,6 +607,81 @@ def _vos(
 # ################################################
 
 
+def _prepare_lamb(
+    coll=None,
+    key_diag=None,
+    key_cam=None,
+    kspectro=None,
+    res_lamb=None,
+    res_rock_curve=None,
+):
+
+    # ------------------
+    # get lamb
+
+    lamb = coll.get_diagnostic_data(
+        key=key_diag,
+        key_cam=key_cam,
+        data='lamb',
+    )[0][key_cam]
+
+    lambmin = np.nanmin(lamb)
+    lambmax = np.nanmax(lamb)
+    Dlamb = (lambmax - lambmin) * 1.1
+    nlamb = int(np.ceil(Dlamb / res_lamb))
+    lamb = np.linspace(lambmin - 0.2*Dlamb, lambmax + 0.2*Dlamb, nlamb)
+    dlamb = lamb[1] - lamb[0]
+
+    # ---------------
+    # get bragg angle
+
+    bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
+
+    # power ratio
+    kpow = coll.dobj['crystal'][kspectro]['dmat']['drock']['power_ratio']
+    pow_ratio = coll.ddata[kpow]['data']
+
+    # angle relative
+    kang_rel = coll.dobj['crystal'][kspectro]['dmat']['drock']['angle_rel']
+    ang_rel = coll.ddata[kang_rel]['data']
+    if res_rock_curve is not None:
+        if isinstance(res_rock_curve, int):
+            nang = res_rock_curve
+        else:
+            nang = int(
+                (np.max(ang_rel) - np.min(ang_rel)) / res_rock_curve
+            )
+
+        ang_rel2 = np.linspace(np.min(ang_rel), np.max(ang_rel), nang)
+        pow_ratio = scpinterp.interp1d(
+            ang_rel,
+            pow_ratio,
+            kind='linear',
+        )(ang_rel2)
+        ang_rel = ang_rel2
+
+    dang = np.mean(np.diff(ang_rel))
+
+    # overall bragg angle with rocking curve
+    angbragg = bragg[None, :] + ang_rel[:, None]
+
+    # ------------
+    # safety check
+
+    width_max = None
+    width_mean = None
+
+    return (
+        nlamb,
+        lamb,
+        dlamb,
+        pow_ratio,
+        ang_rel,
+        dang,
+        angbragg,
+    )
+
+
 # ################################################
 # ################################################
 #           Sub-routine
@@ -676,8 +734,8 @@ def _get_points_on_camera_from_pts(
     diag = size * np.sqrt(2.)
 
     # sample 2d equivalent aperture
-    x0i = np.linspace(p0min, p0max, n0)
-    x1i = np.linspace(p1min, p1max, n1)
+    x0i = np.linspace(p0min + 1e-12, p0max - 1e-12, n0)
+    x1i = np.linspace(p1min + 1e-12, p1max - 1e-12, n1)
 
     # mesh
     x0if = np.repeat(x0i[:, None], n1, axis=1)
@@ -735,7 +793,7 @@ def _get_points_on_camera_from_pts(
         vect_z=vz,
     )
 
-    return x0c, x1c, angles, dsang, cos, ind, dangmin_str
+    return x0c, x1c, angles, dsang, cos, ind, dangmin_str, x0if, x1if
 
 
 # ################################################
@@ -756,6 +814,10 @@ def _plot_debug(
     cos=None,
     angles=None,
     iok=None,
+    p0=None,
+    p1=None,
+    x0if=None,
+    x1if=None,
 ):
 
     out0, out1 = coll.get_optics_outline(key_cam, total=True)
@@ -774,7 +836,7 @@ def _plot_debug(
         ]
 
         for ii, v0 in enumerate(ldata):
-            ax = fig.add_subplot(1, 3, ii + 1, aspect='equal')
+            ax = fig.add_subplot(2, 2, ii + 1, aspect='equal')
             ax.set_title(v0[0], size=12, fontweight='bold')
             ax.set_xlabel('x0 (m)', size=12, fontweight='bold')
             ax.set_xlabel('x1 (m)', size=12, fontweight='bold')
@@ -803,33 +865,113 @@ def _plot_debug(
             )
             plt.colorbar(im, ax=ax)
 
-    else:
-        ax = fig.add_subplot(1, 1, 1, aspect='equal')
+        # projected polygon
+        ax = fig.add_subplot(2, 2, 4, aspect='equal', adjustable='datalim')
+        ax.set_title('Projected polygon', size=12, fontweight='bold')
         ax.set_xlabel('x0 (m)', size=12, fontweight='bold')
         ax.set_xlabel('x1 (m)', size=12, fontweight='bold')
 
-        # grid
-        ax.plot(np.r_[out0, out0[0]], np.r_[out1, out1[0]], '.-k')
         ax.plot(
+            np.r_[p0, p0[0]],
+            np.r_[p1, p1[0]],
+            c='k',
+            ls='-',
+            lw=1.,
+        )
+        ax.plot(
+            x0if[iok],
+            x1if[iok],
+            '.g',
+        )
+        ax.plot(
+            x0if[~iok],
+            x1if[~iok],
+            '.r',
+        )
+
+    else:
+
+        dmargin = {
+            'bottom': 0.08, 'top': 0.95,
+            'left': 0.10, 'right': 0.95,
+            'wspace': 0.50, 'hspace': 0.10,
+        }
+
+        gs = gridspec.GridSpec(ncols=20, nrows=2, **dmargin)
+        ax0 = fig.add_subplot(gs[0, :-1], aspect='equal')
+        ax1 = fig.add_subplot(
+            gs[1, :-1],
+            sharex=ax0,
+            sharey=ax0,
+        )
+        ax2 = fig.add_subplot(gs[1, -1])
+
+        ax0.set_ylabel('x1 (m)', size=12, fontweight='bold')
+
+        ax1.set_xlabel('x0 (m)', size=12, fontweight='bold')
+        ax1.set_ylabel('x1 (m)', size=12, fontweight='bold')
+
+        # grid
+        ax0.plot(np.r_[out0, out0[0]], np.r_[out1, out1[0]], '.-k')
+        ax0.plot(
             ck0f.T.ravel(),
             np.tile(ck01, cbin0.size),
             '-k',
         )
-        ax.plot(
+        ax0.plot(
             np.tile(ck10, cbin1.size),
             ck1f.T.ravel(),
             '-k',
         )
 
+        # pre-concatenate
+        for i0, v0 in dx0.items():
+            for i1, v1 in v0.items():
+                if len(v1) > 0:
+                    dx0[i0][i1] = np.concatenate([vv.ravel() for vv in v1])
+                    dx1[i0][i1] = np.concatenate([vv.ravel() for vv in dx1[i0][i1]])
+
         # points
         for i0, v0 in dx0.items():
             for i1, v1 in v0.items():
                 if len(v1) > 0:
-                    ax.plot(
-                        np.concatenate([vv.ravel() for vv in v1]),
-                        np.concatenate([vv.ravel() for vv in dx1[i0][i1]]),
-                        '.',
-                    )
+                    ax0.plot(v1, dx1[i0][i1], '.')
+
+        # concatenate
+        x0_all = np.concatenate([
+            np.concatenate([v1 for v1 in v0.values() if len(v1) > 0])
+            for v0 in dx0.values()
+        ])
+        x1_all = np.concatenate([
+            np.concatenate([v1 for v1 in v0.values() if len(v1) > 0])
+            for v0 in dx1.values()
+        ])
+
+        # binning
+        out = scpstats.binned_statistic_2d(
+            x0_all,
+            x1_all,
+            None,
+            statistic='count',
+            bins=(cbin0, cbin1),
+            expand_binnumbers=True,
+        )
+
+        # set binned
+        binned = out.statistic
+
+        # plot binning
+        im = ax1.imshow(
+            binned.T,
+            origin='lower',
+            interpolation='nearest',
+            aspect='equal',
+            extent=(cbin0[0], cbin0[-1], cbin1[0], cbin1[-1]),
+        )
+
+        plt.colorbar(im, ax=ax1, cax=ax2)
+        ax1.set_xlim(cbin0[0], cbin0[-1])
+        plt.show()
 
     import pdb
     pdb.set_trace()     # DB
