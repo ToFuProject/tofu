@@ -93,6 +93,8 @@ def _plot(
         indlamb=indlamb,
         spectro=spectro,
         is2d=is2d,
+        etendue=etendue,
+        length=length,
     )
 
     # vmin, vmax
@@ -298,29 +300,6 @@ def _plot(
             ms=4,
             lw=1.
         )
-    # camera
-    # kax = key_cam[0]
-    # if dax.get(kax) is not None:
-        # ax = dax[kax]['handle']
-
-        # _add_camera_data(
-            # coll=coll,
-            # ax=ax,
-            # sang_integ=sang_integ,
-            # etendue=etendue,
-            # length=length,
-            # indch=indch,
-            # # vmin, vmax
-            # vmin_cam=vmin_cam,
-            # vmax_cam=vmax_cam,
-            # # 2d only
-            # is2d=is2d,
-            # ax_etend=dax.get(f'{key_cam[0]}_etend', {}).get('handle'),
-            # ax_diff=dax.get(f'{key_cam[0]}_diff', {}).get('handle'),
-            # x0=x0,
-            # x1=x1,
-            # extent_cam=extent_cam,
-        # )
 
     # -------
     # config
@@ -358,6 +337,8 @@ def _prepare_ph(
     indlamb=None,
     spectro=None,
     is2d=None,
+    etendue=None,
+    length=None,
 ):
 
     # -----------------
@@ -529,7 +510,7 @@ def _prepare_ph(
     # -----------------------
     # prepare image on camera
 
-    nc_cam[...] = np.sum(dvos['ncounts'], axis=-1)
+    nc_cam[...] = np.nansum(dvos['ncounts'], axis=-1)
     iok = nc_cam > 0.
     nc_cam[~iok] = np.nan
 
@@ -558,6 +539,11 @@ def _prepare_ph(
     ph_toti_lamb[indr, indz] = np.nansum(phi[..., indlamb], axis=0)
 
     ph_cam_lamb[ph_cam_lamb == 0] = np.nan
+
+    # ----------------------
+    # delta_lamb for etendue
+
+    delta_lamb = coll.get_diagnostic_data('d02', data='dlamb')[0][key_cam[0]]
 
     # -------------------
     # extent
@@ -595,6 +581,7 @@ def _prepare_ph(
             'ph_cam_lamb': {'data': ph_cam_lamb},
             'ph_tot_lamb': {'data': ph_tot_lamb},
             'ph_toti_lamb': {'data': ph_toti_lamb},
+            'etendue*length*dlamb': {'data': etendue * length * delta_lamb},
         },
         extent,
         dhor,
@@ -612,6 +599,20 @@ def _get_dvminmax(ddata=None, dvminmax=None):
     if dvminmax is None:
         dvminmax = {}
 
+    # safety check
+    lkout = [k0 for k0 in dvminmax.keys() if k0 not in ddata.keys()]
+    if len(lkout) > 0:
+        lstr_in = [f"\t{k0}" for k0 in ddata.keys()]
+        lstr_out = [f"\t{k0}" for k0 in lkout]
+        msg = (
+            "Arg dvminmax must be a dict with the following keys only:\n"
+            + '\n'.join(lstr_in)
+            + "\nHence, the following ones are not valid:\n"
+            + '\n'.join(lstr_out)
+        )
+        raise Exception(msg)
+
+    # fill with default
     for k0, v0 in ddata.items():
         if dvminmax.get(k0) is None:
             dvminmax[k0] = [None, None]
@@ -985,7 +986,7 @@ def _get_dax(
             # labels
             if jj == 0:
                 if ii == 0:
-                    name = 'etendue * length'
+                    name = 'etendue*length*dlamb'
                 else:
                     name = lcam[ii -1].split('_')[0]
                     if name == 'ph':
@@ -1016,7 +1017,7 @@ def _get_dax(
                 if jj == 0:
                     kax = f'{name}_cam'
                     typ = 'camera'
-                    k0 = None
+                    k0 = name
                 elif jj == 1:
                     kax = f'{name}_cross'
                     typ = 'cross'

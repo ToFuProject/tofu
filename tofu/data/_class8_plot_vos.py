@@ -174,15 +174,14 @@ def _plot_diagnostic_vos(
     p1 = dout['x1']['data']
 
     # etendue and length
-    spectro = coll.dobj['diagnostic'][key]['spectro']
-    if not spectro:
-        etendue, length = _get_etendue_length(
-            coll=coll,
-            doptics=doptics,
-            poly=np.array([p0, p1]),
-        )
+    etendue, length = _get_etendue_length(
+        coll=coll,
+        doptics=doptics,
+        poly=np.array([p0, p1]),
+    )
 
     # spectro => call routine
+    spectro = coll.dobj['diagnostic'][key]['spectro']
     if spectro:
         return _plot_vos_spectro._plot(**locals())
 
@@ -623,15 +622,23 @@ def _get_etendue_length(
 
     # los
     klos = doptics['los']
-    startx, starty, startz = coll.get_rays_start(key=klos)
-    vectx, vecty, vectz = coll.get_rays_vect(key=klos, norm=True)
+    ptsx, ptsy, ptsz = coll.get_rays_pts(key=klos)
+    vectx, vecty, vectz = coll.get_rays_vect(key=klos)
 
-    DD = np.array([startx.ravel(), starty.ravel(), startz.ravel()])
-    uu = np.array([
-        vectx[0, ...].ravel(),
-        vecty[0, ...].ravel(),
-        vectz[0, ...].ravel(),
+    iok = np.isfinite(vectx[-1, ...])
+    length = np.full(vectx.shape[1:], np.nan)
+
+    DD = np.array([
+        ptsx[-2, ...][iok],
+        ptsy[-2, ...][iok],
+        ptsz[-2, ...][iok],
     ])
+    uu = np.array([
+        vectx[-1, ...][iok],
+        vecty[-1, ...][iok],
+        vectz[-1, ...][iok],
+    ])
+
 
     # Prepare structures
     ves = _core.Ves(
@@ -657,7 +664,7 @@ def _get_etendue_length(
     )
 
     # length
-    length = (cam.dgeom['kOut'] - cam.dgeom['kIn']).reshape(startx.shape)
+    length[iok] = (cam.dgeom['kOut'] - cam.dgeom['kIn'])
 
     return etendue, length
 
