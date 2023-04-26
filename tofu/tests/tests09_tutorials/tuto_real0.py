@@ -39,7 +39,7 @@ def main():
     # _add_PHA(coll, conf)
 
     # add spectrometer
-    _add_spectrometer(coll, conf) # , crystals=['c0'])
+    _add_spectrometer(coll, conf)   # , crystals=['c0'])
 
     # ------------------------
     # compute synthetic signal
@@ -344,7 +344,7 @@ def _add_spectrometer(
             # parameters
             cam_on_e0=False,
             cam_tangential=True,
-            cam_dimensions=[5e-2, 3e-2],
+            cam_dimensions=[5e-2, 2e-2],
             pinhole_distance=2.,
             # store
             store=True,
