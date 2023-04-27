@@ -171,7 +171,7 @@ def equivalent_apertures(
         if verb is True:
             msg = f"\t- camera '{key_cam}': pixel {ii + 1} / {pixel.size}"
             end = '\n' if ii == len(pixel) - 1 else '\r'
-            print(msg, end=end , flush=True)
+            print(msg, end=end, flush=True)
 
         p0, p1 = func(
             p_a=p_a,
@@ -218,6 +218,22 @@ def equivalent_apertures(
         # append
         x0.append(p0)
         x1.append(p1)
+
+        # --- DEBUG ---------
+        # if ii in [10, 22, 34]:
+            # plt.figure()
+            # plt.plot(
+                # np.r_[p0, p0[0]],
+                # np.r_[p1, p1[0]],
+                # c='k',
+                # ls='-',
+                # lw=1.,
+                # marker='.',
+            # )
+            # plt.gca().set_title(f'local coordinates - {ii}', size=12)
+            # plt.gca().set_xlabel('x0 (local)', size=12)
+            # plt.gca().set_ylabel('x1 (local)', size=12)
+        # --------------------
 
     # -------------------------------------------
     # harmonize if necessary the initial polygons
@@ -300,6 +316,38 @@ def equivalent_apertures(
             cents0[ii], cents1[ii] = plg.Polygon(
                 np.array([x0[ii, :], x1[ii, :]]).T
             ).center()
+
+            # --- DEBUG ---------
+            # if ii in [6, 8, 22, 36, 38]:
+                # plt.figure()
+                # plt.plot(
+                    # np.r_[p0, p0[0]],
+                    # np.r_[p1, p1[0]],
+                    # c='k',
+                    # ls='-',
+                    # lw=1.,
+                    # marker='.',
+                # )
+                # plt.plot([cents0[ii]], [cents1[ii]], 'xk')
+                # ppx, ppy, ppz = coord_x01toxyz(
+                    # x0=np.r_[cents0[ii]],
+                    # x1=np.r_[cents1[ii]],
+                # )
+                # ddd = np.linalg.norm(
+                    # np.r_[ppx - cx[ip], ppy - cy[ip], ppz - cz[ip]]
+                # )
+                # plt.gca().text(
+                    # np.mean(p0),
+                    # np.mean(p1),
+                    # f'area\n{area[ii]:.3e} m2\ndist\n{ddd:.6e} m',
+                    # size=12,
+                    # horizontalalignment='center',
+                    # verticalalignment='center',
+                # )
+                # plt.gca().set_title(f'planar coordinates - {ii}', size=12)
+                # plt.gca().set_xlabel('x0 (m)', size=12)
+                # plt.gca().set_ylabel('x1 (m)', size=12)
+            # --------------------
 
         centsx, centsy, centsz = coord_x01toxyz(
             x0=cents0,
