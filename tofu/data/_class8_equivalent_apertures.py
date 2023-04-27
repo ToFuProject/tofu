@@ -222,19 +222,19 @@ def equivalent_apertures(
         x1.append(p1)
 
         # --- DEBUG ---------
-        if ii in [214, 217]:
-            plt.figure()
-            plt.plot(
-                np.r_[p0, p0[0]],
-                np.r_[p1, p1[0]],
-                c='k',
-                ls='-',
-                lw=1.,
-                marker='.',
-            )
-            plt.gca().set_title(f'local coordinates - {ii}', size=12)
-            plt.gca().set_xlabel('x0 (local)', size=12)
-            plt.gca().set_ylabel('x1 (local)', size=12)
+        # if ii in [214, 217]:
+        #     plt.figure()
+        #     plt.plot(
+        #         np.r_[p0, p0[0]],
+        #         np.r_[p1, p1[0]],
+        #         c='k',
+        #         ls='-',
+        #         lw=1.,
+        #         marker='.',
+        #     )
+        #     plt.gca().set_title(f'local coordinates - {ii}', size=12)
+        #     plt.gca().set_xlabel('x0 (local)', size=12)
+        #     plt.gca().set_ylabel('x1 (local)', size=12)
         # --------------------
 
     # -------------------------------------------
@@ -732,6 +732,8 @@ def _get_equivalent_aperture_spectro(
             ptsvect_poly=lptsvect_poly[jj],
             # timing
             # dt=dt,
+            # debug
+            ii=ii,
         )
 
         if p0 is None:
@@ -739,15 +741,19 @@ def _get_equivalent_aperture_spectro(
             return p0, p1
 
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
-            # print('inside: ', p1)
-            # plt.figure()
-            # plt.plot(
-                # np.array(p_a.contour(0))[:, 0],
-                # np.array(p_a.contour(0))[:, 1],
-                # '.-k',
-                # p0, p1, '.-r'
-            # )
+            # --- DEBUG ---------
+            # if ii in [214, 217]:
+            #     plt.figure()
+            #     plt.plot(
+            #         np.array(p_a.contour(0))[:, 0],
+            #         np.array(p_a.contour(0))[:, 1],
+            #         '.-k',
+            #         p0, p1, '.-r'
+            #     )
+            #     plt.gca().set_title(f"ii = {ii}, all in", size=12)
+            # ----------------------
             p_a = plg.Polygon(np.array([p0, p1]).T)
+            
         else:
             # convex hull
             if convex:
@@ -755,16 +761,30 @@ def _get_equivalent_aperture_spectro(
                     # plg.Polygon(np.array([p0, p1]).T)
                 # ).contour(0)).T
                 vert = ConvexHull(np.array([p0, p1]).T).vertices
+                # --- DEBUG ---------
+                # if ii in [214, 217]:
+                #     plt.figure()
+                #     plt.plot(
+                #         p0[vert],
+                #         p1[vert],
+                #         '.-k',
+                #         p0, p1, '.-r'
+                #     )
+                #     plt.gca().set_title(f"ii = {ii}, convexH", size=12)
+                # ----------------------
                 p0, p1 = p0[vert], p1[vert]
 
-            # plt.figure()
-            # plt.plot(
-                # np.array(p_a.contour(0))[:, 0],
-                # np.array(p_a.contour(0))[:, 1],
-                # '.-k',
-                # p0, p1, '.-r'
-            # )
-            # import pdb; pdb.set_trace()     # DB
+            # --- DEBUG ---------
+            # if ii in [214, 217]:
+            #     plt.figure()
+            #     plt.plot(
+            #         np.array(p_a.contour(0))[:, 0],
+            #         np.array(p_a.contour(0))[:, 1],
+            #         '.-k',
+            #         p0, p1, '.-r'
+            #     )
+            #     plt.gca().set_title(f"ii = {ii}, not all", size=12)
+            # ----------------------
 
             # intersection
             p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
