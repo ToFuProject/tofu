@@ -4,6 +4,7 @@
 import numpy as np
 
 
+import matplotlib.pyplot as plt
 import Polygon as plg
 
 
@@ -34,6 +35,8 @@ def _get_reflection(
     ptsvect_poly=None,
     # timing
     dt=None,
+    # debug
+    ii=None,
 ):
 
     # -------------------
@@ -83,11 +86,15 @@ def _get_reflection(
         # print('pts < 3')
         return None, None
 
-    # plt.figure()
-    # plt.plot(
-        # poly_x0, poly_x1, '.-k',
-        # p0, p1, '.-r',
-    # )
+    # --------- DEBUG ------------
+    # if ii in [214, 217]:
+    #     plt.figure()
+    #     plt.plot(
+    #         np.r_[poly_x0, poly_x0[0]], np.r_[poly_x1, poly_x1[0]], '.-k',
+    #         p0, p1, '.-r',
+    #     )
+    #     plt.gca().set_title(f"ii = {ii}, projection 0")
+    # ---------------------------
 
     p0, p1 = np.array(p_a.contour(0)).T
 
