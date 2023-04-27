@@ -292,6 +292,15 @@ def _plot(
             lw=1.
         )
 
+        ax.fill(
+            dhor['minx'],
+            dhor['miny'],
+            ls='None',
+            lw=1.,
+            fc='r',
+            alpha=0.5,
+        )
+
         ax.plot(
             dhor['mainx'],
             dhor['mainy'],
@@ -378,12 +387,15 @@ def _prepare_ph(
     iru = np.unique(dvos['indr'])
     phi_env = np.full((iru.size, 2), np.nan)
     phi_mean = np.full((iru.size,), np.nan)
+    phi_minmax = np.full((iru.size, 2), np.nan)
     for ii, i0 in enumerate(iru):
         ind = dvos['indr'] == i0
-        phi_env[ii, 0] = np.nanmin(dvos['phi_min'][ind])
-        phi_env[ii, 1] = np.nanmax(dvos['phi_max'][ind])
+        phi_env[ii, 0] = np.nanmin(dvos['phi_min'][..., ind])
+        phi_env[ii, 1] = np.nanmax(dvos['phi_max'][..., ind])
 
         phi_mean[ii] = np.nanmean(dvos['phi_mean'][indch[0], indch[1], ind])
+        phi_minmax[ii, 0] = np.nanmin(dvos['phi_min'][indch[0], indch[1], ind])
+        phi_minmax[ii, 1] = np.nanmax(dvos['phi_max'][indch[0], indch[1], ind])
 
     dhor = {
         'envelopx': np.r_[
@@ -398,6 +410,16 @@ def _prepare_ph(
         ],
         'mainx': x0u[iru] * np.cos(phi_mean),
         'mainy': x0u[iru] * np.sin(phi_mean),
+        'minx': np.r_[
+            x0u[iru] * np.cos(phi_minmax[:, 0]),
+            x0u[iru[::-1]] * np.cos(phi_minmax[::-1, 1]),
+            x0u[iru[0]] * np.cos(phi_minmax[0, 0]),
+        ],
+        'miny': np.r_[
+            x0u[iru] * np.sin(phi_minmax[:, 0]),
+            x0u[iru[::-1]] * np.sin(phi_minmax[::-1, 1]),
+            x0u[iru[0]] * np.sin(phi_minmax[0, 0]),
+        ],
     }
 
     # ------------------------------

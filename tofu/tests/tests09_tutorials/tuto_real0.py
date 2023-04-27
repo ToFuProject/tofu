@@ -344,14 +344,14 @@ def _add_spectrometer(
             # parameters
             cam_on_e0=False,
             cam_tangential=True,
-            cam_dimensions=[5e-2, 2e-2],
+            cam_dimensions=[6e-2, 2e-2],
             pinhole_distance=2.,
             # store
             store=True,
             key_cam=f'{k0}_cam',
             aperture_dimensions=[100e-6, 1e-2],
             pinhole_radius=100e-6,
-            cam_pixels_nb=[9, 5],
+            cam_pixels_nb=[100, 30],
             # returnas
             returnas=list,
         )

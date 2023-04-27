@@ -234,14 +234,28 @@ def _vos(
     lambmin = np.full(shape0, np.inf)
     lambmax = np.full(shape0, 0.)
     phi_mean = np.full(shape0, 0.)
+    phi_min = np.full(shape0, np.inf)
+    phi_max = np.full(shape0, -np.inf)
     indr = np.zeros((nRZ,), dtype=int)
     indz = np.zeros((nRZ,), dtype=int)
-    phi_min = np.full((nRZ,), np.inf)
-    phi_max = np.full((nRZ,), -np.inf)
     dV = np.full((nRZ,), np.nan)
 
     shape1 = tuple(np.r_[shape_cam, nRZ, nlamb])
     ph_count = np.full(shape1, 0.)
+
+    # DEBUG
+    ph_approx = None
+    sang = None,
+    dang_rel = None
+    nphi_all = None
+
+    # ph_approx = np.full(shape1, 0.)
+    # sang = np.full(shape1, 0.)
+    # dang_rel = np.full(shape1, 0.)
+    # nphi_all = np.full(shape1, 0.)
+    # FW = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['FW']
+    # kp = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['power_ratio']
+    # POW = coll.ddata[kp]['data'].max()
 
     if timing:
         t11 = dtm.datetime.now()     # DB
@@ -349,8 +363,9 @@ def _vos(
 
                 # compute image
                 (
-                    x0c, x1c, angles, dsang, cosi, iok, dangmin_str,
-                    x0if, x1if,
+                    x0c, x1c, angles, dsang, cosi, iok,
+                    dangmin_str, x0if, x1if,
+                    dang0, dang1,
                 ) = _get_points_on_camera_from_pts(
                     p0=p0,
                     p1=p1,
@@ -417,10 +432,6 @@ def _vos(
                 if not np.any(iok2):
                     continue
 
-                # phi_min, phi_max
-                phi_min[ipts] = min(phi_min[ipts], phii)
-                phi_max[ipts] = max(phi_max[ipts], phii)
-
                 # update index
                 iok[iok] = iok2
 
@@ -454,6 +465,10 @@ def _vos(
                         # indices
                         indj[:] = indi & (out.binnumber[1, :] == jj + 1)
 
+                        # phi_min, phi_max
+                        phi_min[ii, jj, ipts] = min(phi_min[ii, jj, ipts], phii)
+                        phi_max[ii, jj, ipts] = max(phi_max[ii, jj, ipts], phii)
+
                         # cos
                         cos[ii, jj, ipts] += np.sum(cosi[indj])
 
@@ -481,6 +496,9 @@ def _vos(
                             lamb[ilamb_n[-1]],
                         )
 
+                        # nphi_all  # DB
+                        # nphi_all[ii, jj, ipts, ilamb_n] += 1
+
                         # if False:
                         # binning of angles
                         for kk in ilamb_n:
@@ -494,13 +512,23 @@ def _vos(
                                 pow_ratio[inds]
                                 * dsang[indj][ilamb[:, kk]]
                             ) * dv
-                        # else:
-                            # for kk in ilamb_n:
-                                # ph_count[ii, jj, ipts, kk] += np.sum(
-                                    # linterpbragg[kk](
-                                        # angj[ilamb[:, kk]]
-                                    # ) * dsang[indj][ilamb[:, kk]]
-                                # )
+
+                            # ------  DEBUG -------
+                            # ph_approx[ii, jj, ipts, kk] += (
+                                # POW
+                                # * FW
+                                # * np.sum(dang1[0, np.any(iok, axis=0)])
+                            # ) * dv
+
+                            # # sang
+                            # sang[ii, jj, ipts, kk] += np.sum(
+                                # dsang[indj][ilamb[:, kk]]
+                            # )
+
+                            # # dang_rel
+                            # dang_rel[ii, jj, ipts, kk] += np.sum(
+                                # dsang[indj][ilamb[:, kk]]
+                            # )
 
                 if timing:
                     t333 = dtm.datetime.now()     # DB
@@ -511,6 +539,7 @@ def _vos(
 
     # multiply by dlamb
     ph_count *= dlamb
+    # ph_approx *= dlamb    # DB
 
     if timing:
         t22 = dtm.datetime.now()     # DB
@@ -521,14 +550,19 @@ def _vos(
         ncounts = ncounts[:, :, iin]
         cos = cos[:, :, iin]
         phi_mean = phi_mean[:, :, iin]
+        phi_min = phi_min[:, :, iin]
+        phi_max = phi_max[:, :, iin]
         lambmin = lambmin[:, :, iin]
         lambmax = lambmax[:, :, iin]
-        ph_count = ph_count[:, :, iin]
+        ph_count = ph_count[:, :, iin, :]
         indr = indr[iin]
         indz = indz[iin]
-        phi_min = phi_min[iin]
-        phi_max = phi_max[iin]
         dV = dV[iin]
+        # DEBUG
+        # sang = sang[:, :, iin]
+        # ph_approx = ph_approx[:, :, iin, :]
+        # dang_rel = dang_rel[:, :, iin, :]
+        # nphi_all = nphi_all[:, :, iin, :]
 
     # remove useless lamb
     iin = ph_count > 0.
@@ -536,6 +570,11 @@ def _vos(
     if not np.all(ilamb):
         ph_count = ph_count[..., ilamb]
         lamb = lamb[ilamb]
+        # DEBUG
+        # sang = sang[..., ilamb]
+        # ph_approx = ph_approx[..., ilamb]
+        # dang_rel = dang_rel[..., ilamb]
+        # nphi_all = nphi_all[..., ilamb]
 
     # average cos and phi_mean
     iout = ncounts == 0
@@ -545,9 +584,16 @@ def _vos(
     # clear
     cos[iout] = np.nan
     phi_mean[iout] = np.nan
+    phi_min[iout] = np.nan
+    phi_max[iout] = np.nan
     lambmin[iout] = np.nan
     lambmax[iout] = np.nan
     ph_count[iout, :] = np.nan
+    # DEBUG
+    # sang[iout, :] = np.nan
+    # ph_approx[iout, :] = np.nan
+    # dang_rel[iout, :] = np.nan
+    # nphi_all[iout, :] = np.nan
 
     # ------ DEBUG --------
     if debug is True:
@@ -589,6 +635,12 @@ def _vos(
         'lambmax': lambmax,
         'ph_count': ph_count,
         'ncounts': ncounts,
+        # debug
+        'dphi_r': dphi_r,
+        'nphi': nphi_all,
+        'sang': sang,
+        'ph_approx': ph_approx,
+        'dang_rel': dang_rel,
     }
 
     if timing:
@@ -778,6 +830,9 @@ def _get_points_on_camera_from_pts(
     cos = np.abs(nin[0] * ax + nin[1] * ay + nin[2] * az)
     surf = ((p0max - p0min) / n0) * ((p1max - p1min) / n1)
     dsang = surf * cos / di**2
+    # DEBUG
+    dang0 = ((p0max - p0min) / n0) / di
+    dang1 = ((p1max - p1min) / n1) * cos / di
 
     # get normalized vector from plasma point to crystal
     vectx = ax / di
@@ -813,7 +868,12 @@ def _get_points_on_camera_from_pts(
         vect_z=vz,
     )
 
-    return x0c, x1c, angles, dsang, cos, ind, dangmin_str, x0if, x1if
+    return (
+        x0c, x1c, angles, dsang, cos, ind,
+        dangmin_str, x0if, x1if,
+        # DEBUG
+        dang0, dang1,
+    )
 
 
 # ################################################
