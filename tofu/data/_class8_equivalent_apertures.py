@@ -237,10 +237,9 @@ def equivalent_apertures(
 
             elif ln[ii] < nmax:
                 ndif = nmax - ln[ii]
-                irand = np.random.random(ndif)
+                irand = np.random.randint(1, 9, ndif)/10.
                 irand = irand + np.random.randint(0, ln[ii]-1, ndif)
                 imax = np.sort(np.r_[np.arange(0, ln[ii]), irand])
-                imax = np.linspace(0, ln[ii]-1, nmax)
                 x0[ii] = scpinterp.interp1d(
                     np.arange(0, ln[ii]),
                     x0[ii],
