@@ -259,7 +259,7 @@ def equivalent_apertures(
         x0, x1 = _compute._harmonize_polygon_sizes(
             lp0=x0,
             lp1=x1,
-            nmin=100 if curved else 0,
+            nmin=150 if curved else 0,
         )
 
     # -------------
