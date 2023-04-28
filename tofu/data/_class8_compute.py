@@ -344,6 +344,19 @@ def _interp_poly(
     min_threshold=1.e-6,
     debug=None,
 ):
+    """ Interpolate list of polygons by adding points ons segments
+
+    lp = list of coordinates arrays describing polygons
+        - [px, py]
+        - [px, py, pz]
+    Each coordinate array can be 1d or 2d
+
+    modes: determine a multiplicative factor to add_points
+        - None: 1
+        - min: determined by minimum segment length
+        - mean: determined by mean segment length
+
+    """
 
     # ------------
     # check inputs
@@ -478,13 +491,81 @@ def _interp_poly(
         nan = np.full((pp.shape[0], 1), np.nan)
         for ii, pp in enumerate(lp[2:]):
             lp[ii+2] = np.concatenate((pp, nan), axis=1).ravel()
+
     return lp
 
 
-# ##################################################################
-# ##################################################################
+def _harmonize_polygon_sizes(
+    lp0=None,
+    lp1=None,
+    nmin=0,
+):
+    """ From a list of polygons return an array
+
+    """
+
+    # prepare
+    npoly = len(lp0)
+    ln = [p0.size if p0 is not None else 0 for p0 in lp0]
+    nmax = max(np.max(ln), nmin)
+    nan = np.full((nmax,), np.nan)
+
+    # prepare output
+    x0 = np.full((npoly, nmax), np.nan)
+    x1 = np.full((npoly, nmax), np.nan)
+
+    for ii, p0 in enumerate(lp0):
+
+        if p0 is None:
+            continue
+
+        elif ln[ii] < nmax:
+
+            ndif = nmax - ln[ii]
+            ind0 = np.arange(0, ln[ii] + 1)
+
+            # create imax
+            iseg = np.arange(0, ndif) % ln[ii]
+            npts = np.unique(iseg, return_counts=True)[1]
+            if npts.size < ln[ii]:
+                npts = np.r_[
+                    npts, np.zeros((ln[ii] - npts.size,))
+                ].astype(int)
+
+            imax = np.concatenate(tuple([
+                np.linspace(
+                    ind0[ii],
+                    ind0[ii+1],
+                    2 + npts[ii],
+                    endpoint=True,
+                )[:-1]
+                for ii in range(ln[ii])
+            ]))
+
+            # interpolate
+            x0[ii, :] = scpinterp.interp1d(
+                ind0,
+                np.r_[p0, p0[0]],
+                kind='linear',
+            )(imax)
+            x1[ii, :] = scpinterp.interp1d(
+                ind0,
+                np.r_[lp1[ii], lp1[ii][0]],
+                kind='linear',
+            )(imax)
+
+        else:
+            x0[ii, :] = p0
+            x1[ii, :] = lp1[ii]
+
+    return x0, x1
+
+
+
+# ###############################################################
+# ###############################################################
 #                       dplot
-# ##################################################################
+# ###############################################################
 
 
 def _dplot_check(

@@ -36,7 +36,7 @@ def main():
     # _add_2d(coll, conf)
 
     # add PHA
-    # _add_PHA(coll, conf)
+    _add_PHA(coll, conf)
 
     # add spectrometer
     _add_spectrometer(coll, conf)   # , crystals=['c0'])
@@ -344,14 +344,14 @@ def _add_spectrometer(
             # parameters
             cam_on_e0=False,
             cam_tangential=True,
-            cam_dimensions=[6e-2, 2e-2],
+            cam_dimensions=np.r_[1028, 512]*75e-6,
             pinhole_distance=2.,
             # store
             store=True,
             key_cam=f'{k0}_cam',
             aperture_dimensions=[100e-6, 1e-2],
             pinhole_radius=100e-6,
-            cam_pixels_nb=[15, 5],
+            cam_pixels_nb=[33, 5],
             # returnas
             returnas=list,
         )
@@ -390,7 +390,10 @@ def _crystals(coll=None, crystals=None):
     # -------
     # geom
 
-    start, vect, v0, v1 = _ref_line(start=np.r_[7, 0., 0.001])
+    start, vect, v0, v1 = _ref_line(
+        start=np.r_[17.918, -2.157, 0.043],
+        vect=np.r_[-0.29770273, 0.95465862, 0.],
+    )
 
     # cryst0: planar
     cent = start + 0. * vect
@@ -399,7 +402,7 @@ def _crystals(coll=None, crystals=None):
         vect=vect,
         v0=v0,
         v1=v1,
-        theta=-np.pi/4,
+        theta=0,  # -np.pi/4,
         phi=0.,
     )
 
@@ -408,7 +411,7 @@ def _crystals(coll=None, crystals=None):
     # c1: cylindrical (von hamos)
     if 'c0' in crystals:
         size = 1.e-2
-        rc = 2.
+        rc = 1.03
         c0 = {
             'key': 'c0',
             'dgeom': {
@@ -419,7 +422,13 @@ def _crystals(coll=None, crystals=None):
                 'extenthalf': size * np.r_[1, 1/rc],
                 'curve_r': [np.inf, rc],
             },
-            'dmat': 'Quartz_110',
+            #'dmat': 'Quartz_110',
+            'dmat': {
+                'd_hkl': 0.944e-10 / (2*np.sin(24.2*np.pi/180.)),
+                'target': {
+                    'lamb': 0.944e-10,
+                },
+            },
             'configuration': 'von hamos',
         }
         dc['c0'] = c0
