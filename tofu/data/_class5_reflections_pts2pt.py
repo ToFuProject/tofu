@@ -247,28 +247,27 @@ def _get_pts2pt(
                 iok = np.isfinite(eq)
                 kk = kk[iok]
                 eq = eq[iok]
-                
+
                 # find indices of sign changes
                 i0 = (eq[:-1] * eq[1:] < 0).nonzero()[0]
                 if len(i0) == 1:
                     # indices used for linear fit
                     ind = np.arange(max(0, i0-10), min(i0+10, kk.size))
-                    
+
                     # linear least square fit
                     xx_m = np.mean(kk[ind])
                     yy_m = np.mean(eq[ind])
                     xx2_m = np.mean(kk[ind]**2)
                     xy_m = np.mean(kk[ind] * eq[ind])
-                    
+
                     # coefs
                     aa = (xy_m - xx_m*yy_m) / (xx2_m - xx_m**2)
                     bb = yy_m - aa * xx_m
-                    
+
                     # fit and threshold
                     line = aa*kk[ind] + bb
-                    thr = abs(line[0] - line[-1]) * 0.05
-                    std = np.std(eq[ind] - line)
-                    if std > thr:
+                    thr = abs(line[0] - line[-1]) * 0.02
+                    if np.any(np.abs(eq[ind] - line) > thr):
                         continue
                     roots = np.r_[-bb / aa]
                     # roots = np.r_[
@@ -298,38 +297,38 @@ def _get_pts2pt(
                     -(nix*erot[0] + niy*erot[1] + niz*erot[2]),
                     nix*nin[0] + niy*nin[1] + niz*nin[2],
                 )
-                
-                                
+
+
                 # ------ DEBUG --------
                 # if debug:
-                #     Ex = pt_x + roots[0]*(pts_x[ii] - pt_x)
-                #     Ey = pt_y + roots[0]*(pts_y[ii] - pt_y)
-                #     Ez = pt_z + roots[0]*(pts_z[ii] - pt_z)
-                #     print()
-                #     print(f'\nii = {ii}', xxi, thetai)
-                #     print('rcs', rcs)
-                #     print('rca', rca)
-                #     print('nix, niy, niz', nix, niy, niz)
-                #     print('erot', erot)
-                #     print('nin', nin)
-                #     print('eax', eax)
-                #     print('O', O)
-                #     print('E', Ex, Ey, Ez)
-                #     print('OE', Ex - O[0], Ey - O[1], Ez - O[2])
-                #     print('roots', roots[0])
-                #     print('eax', eax)
-                #     plt.figure()
-                #     plt.plot(
-                #         kk, eq, '.-k',
-                #         kk[ind], line, '-r',
-                #         kk[ind], line + thr, '--r',
-                #         kk[ind], line - thr, '--r',
-                #         [kk[i0]], [eq[i0]], 'xr',
-                #     )
-                #     plt.axhline(0, c='k', ls='--')
-                #     plt.axvline(roots[0], c='k', ls='--')
-                #     plt.gca().set_title(f'std = {std} vs {thr}')
-                #     print()
+                    # Ex = pt_x + roots[0]*(pts_x[ii] - pt_x)
+                    # Ey = pt_y + roots[0]*(pts_y[ii] - pt_y)
+                    # Ez = pt_z + roots[0]*(pts_z[ii] - pt_z)
+                    # print()
+                    # print(f'\nii = {ii}', xxi, thetai)
+                    # print('rcs', rcs)
+                    # print('rca', rca)
+                    # print('nix, niy, niz', nix, niy, niz)
+                    # print('erot', erot)
+                    # print('nin', nin)
+                    # print('eax', eax)
+                    # print('O', O)
+                    # print('E', Ex, Ey, Ez)
+                    # print('OE', Ex - O[0], Ey - O[1], Ez - O[2])
+                    # print('roots', roots[0])
+                    # print('eax', eax)
+                    # plt.figure()
+                    # plt.plot(
+                        # kk, eq, '.-k',
+                        # kk[ind], line, '-r',
+                        # kk[ind], line + thr, '--r',
+                        # kk[ind], line - thr, '--r',
+                        # [kk[i0]], [eq[i0]], 'xr',
+                    # )
+                    # plt.axhline(0, c='k', ls='--')
+                    # plt.axvline(roots[0], c='k', ls='--')
+                    # plt.gca().set_title(f'thr = {thr}')
+                    # print()
                 # ---------------------
 
                 if strict is True:
@@ -491,22 +490,21 @@ def _get_pts2pt(
                 if len(i0) == 1:
                     # indices used for linear fit
                     ind = np.arange(max(0, i0-10), min(i0+10, kk.size))
-                    
+
                     # linear least square fit
                     xx_m = np.mean(kk[ind])
                     yy_m = np.mean(eq[ind])
                     xx2_m = np.mean(kk[ind]**2)
                     xy_m = np.mean(kk[ind] * eq[ind])
-                    
+
                     # coefs
                     aa = (xy_m - xx_m*yy_m) / (xx2_m - xx_m**2)
                     bb = yy_m - aa * xx_m
-                    
+
                     # fit and threshold
                     line = aa*kk[ind] + bb
-                    thr = abs(line[0] - line[-1]) * 0.05
-                    std = np.std(eq[ind] - line)
-                    if std > thr:
+                    thr = abs(line[0] - line[-1]) * 0.02
+                    if np.any(np.abs(eq[ind] - line) > thr):
                         continue
                     roots = np.r_[-bb / aa]
                     # roots = np.r_[

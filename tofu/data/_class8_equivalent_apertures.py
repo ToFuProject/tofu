@@ -223,18 +223,7 @@ def equivalent_apertures(
 
         # --- DEBUG ---------
         # if ii in [214, 217]:
-        #     plt.figure()
-        #     plt.plot(
-        #         np.r_[p0, p0[0]],
-        #         np.r_[p1, p1[0]],
-        #         c='k',
-        #         ls='-',
-        #         lw=1.,
-        #         marker='.',
-        #     )
-        #     plt.gca().set_title(f'local coordinates - {ii}', size=12)
-        #     plt.gca().set_xlabel('x0 (local)', size=12)
-        #     plt.gca().set_ylabel('x1 (local)', size=12)
+        #     _debug_plot(pa0=p0, pa1=p1, ii=ii, tit='local coords')
         # --------------------
 
     # -------------------------------------------
@@ -322,34 +311,13 @@ def equivalent_apertures(
 
             # --- DEBUG ---------
             # if ii in [214, 217]:
-            #     plt.figure()
-            #     plt.plot(
-            #         np.r_[p0, p0[0]],
-            #         np.r_[p1, p1[0]],
-            #         c='k',
-            #         ls='-',
-            #         lw=1.,
-            #         marker='.',
-            #     )
-            #     plt.plot([cents0[ii]], [cents1[ii]], 'xk')
-            #     ppx, ppy, ppz = coord_x01toxyz(
-            #         x0=np.r_[cents0[ii]],
-            #         x1=np.r_[cents1[ii]],
-            #     )
-            #     ddd = np.linalg.norm(
-            #         np.r_[ppx - cx[ip], ppy - cy[ip], ppz - cz[ip]]
-            #     )
-            #     plt.gca().text(
-            #         np.mean(p0),
-            #         np.mean(p1),
-            #         f'area\n{area[ii]:.3e} m2\ndist\n{ddd:.6e} m',
-            #         size=12,
-            #         horizontalalignment='center',
-            #         verticalalignment='center',
-            #     )
-            #     plt.gca().set_title(f'planar coordinates - {ii}', size=12)
-            #     plt.gca().set_xlabel('x0 (m)', size=12)
-            #     plt.gca().set_ylabel('x1 (m)', size=12)
+                # _debug_plot2(
+                    # p0=p0, p1=p1,
+                    # cents0=cents0, cents1=cents1,
+                    # ii=ii,
+                    # coord_x01toxyz=coord_x01toxyz,
+                    # cx=cx, cy=cy, cz=cz,
+                # )
             # --------------------
 
         centsx, centsy, centsz = coord_x01toxyz(
@@ -743,15 +711,8 @@ def _get_equivalent_aperture_spectro(
 
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
             # --- DEBUG ---------
-            # if ii in [214, 217]:
-            #     plt.figure()
-            #     plt.plot(
-            #         np.array(p_a.contour(0))[:, 0],
-            #         np.array(p_a.contour(0))[:, 1],
-            #         '.-k',
-            #         p0, p1, '.-r'
-            #     )
-            #     plt.gca().set_title(f"ii = {ii}, all in", size=12)
+            # if ii in [32, 37, 42]:
+            #     _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='allin')
             # ----------------------
             p_a = plg.Polygon(np.array([p0, p1]).T)
 
@@ -763,28 +724,18 @@ def _get_equivalent_aperture_spectro(
                 # ).contour(0)).T
                 vert = ConvexHull(np.array([p0, p1]).T).vertices
                 # --- DEBUG ---------
-                # if ii in [214, 217]:
-                #     plt.figure()
-                #     plt.plot(
-                #         p0[vert],
-                #         p1[vert],
-                #         '.-k',
-                #         p0, p1, '.-r'
-                #     )
-                #     plt.gca().set_title(f"ii = {ii}, convexH", size=12)
+                # if ii in [32, 37]:
+                    # _debug_plot(
+                        # pa0=p0, pa1=p1,
+                        # pb0=p0[vert], pb1=p1[vert],
+                        # ii=ii, tit='convexH',
+                    # )
                 # ----------------------
                 p0, p1 = p0[vert], p1[vert]
 
             # --- DEBUG ---------
             # if ii in [214, 217]:
-            #     plt.figure()
-            #     plt.plot(
-            #         np.array(p_a.contour(0))[:, 0],
-            #         np.array(p_a.contour(0))[:, 1],
-            #         '.-k',
-            #         p0, p1, '.-r'
-            #     )
-            #     plt.gca().set_title(f"ii = {ii}, not all", size=12)
+            #     _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='not all')
             # ----------------------
 
             # intersection
@@ -852,3 +803,103 @@ def _plot(
 
     ax.legend()
     return
+
+
+# ##############################################################
+# ##############################################################
+#           Debug plots
+# ##############################################################
+
+
+def _debug_plot(
+    p_a=None,
+    pa0=None,
+    pa1=None,
+    pb0=None,
+    pb1=None,
+    ii=None,
+    tit=None,
+):
+
+    plt.figure()
+
+    # p_a
+    if p_a is not None:
+        p_a = np.array(p_a.contour(0))
+        ind = np.r_[np.arange(0, p_a.shape[0]), 0]
+        plt.plot(
+            p_a[ind, 0],
+            p_a[ind, 1],
+            ls='-',
+            lw=1.
+        )
+
+    # pa
+    if pa0 is not None:
+        ind = np.r_[np.arange(0, pa0.size), 0]
+        plt.plot(
+            pa0[ind],
+            pa1[ind],
+            ls='-',
+            lw=1.
+        )
+
+    # pb
+    if pb0 is not None:
+        ind = np.r_[np.arange(0, pb0.size), 0]
+        plt.plot(
+            pb0[ind],
+            pb1[ind],
+            ls='-',
+            lw=1.
+        )
+
+    if ii is not None:
+        tit0 = f'ii = {ii}'
+        if tit is None:
+            tit = tit0
+        else:
+            tit = tit0 + ', ' + tit
+        plt.gca().set_title(tit, size=12)
+
+
+def _debug_plot2(
+    p0=None,
+    p1=None,
+    cents0=None,
+    cents1=None,
+    ii=None,
+    coord_x01toxyz=None,
+    cx=None,
+    cy=None,
+    cz=None,
+):
+
+    plt.figure()
+    plt.plot(
+        np.r_[p0, p0[0]],
+        np.r_[p1, p1[0]],
+        c='k',
+        ls='-',
+        lw=1.,
+        marker='.',
+    )
+    plt.plot([cents0[ii]], [cents1[ii]], 'xk')
+    ppx, ppy, ppz = coord_x01toxyz(
+        x0=np.r_[cents0[ii]],
+        x1=np.r_[cents1[ii]],
+    )
+    ddd = np.linalg.norm(
+        np.r_[ppx - cx[ip], ppy - cy[ip], ppz - cz[ip]]
+    )
+    plt.gca().text(
+        np.mean(p0),
+        np.mean(p1),
+        f'area\n{area[ii]:.3e} m2\ndist\n{ddd:.6e} m',
+        size=12,
+        horizontalalignment='center',
+        verticalalignment='center',
+    )
+    plt.gca().set_title(f'planar coordinates - {ii}', size=12)
+    plt.gca().set_xlabel('x0 (m)', size=12)
+    plt.gca().set_ylabel('x1 (m)', size=12)
