@@ -30,13 +30,13 @@ def main():
     # add several diagnostics
 
     # add broadband
-    # _add_broadband(coll, conf)
+    _add_broadband(coll, conf)
 
     # add 2d camera
-    # _add_2d(coll, conf)
+    _add_2d(coll, conf)
 
     # add PHA
-    # _add_PHA(coll, conf)
+    _add_PHA(coll, conf)
 
     # add spectrometer
     _add_spectrometer(coll, conf) # , crystals=['c0'])
