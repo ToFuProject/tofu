@@ -41,7 +41,7 @@ def main():
     # _add_2d(coll, conf)
 
     # add PHA
-    _add_PHA(coll, conf)
+    # _add_PHA(coll, conf)
 
     # add spectrometer
     _add_spectrometer(coll, conf)   # , crystals=['c0'])
@@ -399,6 +399,7 @@ def _crystals(coll=None, crystals=None):
         start=np.r_[17.918, -2.157, 0.043],
         vect=np.r_[-0.29770273, 0.95465862, 0.],
     )
+    # start, vect, v0, v1 = _ref_line(start=np.r_[7., 0, 0.001])
 
     # cryst0: planar
     cent = start + 0. * vect
@@ -407,7 +408,8 @@ def _crystals(coll=None, crystals=None):
         vect=vect,
         v0=v0,
         v1=v1,
-        theta=0,  # -np.pi/4,
+        # theta=-np.pi/4,
+        theta=0,
         phi=0.,
     )
 
@@ -425,6 +427,7 @@ def _crystals(coll=None, crystals=None):
         }
 
         size = 1.e-2
+        # rc = 2
         rc = 1.03
         c0 = {
             'key': 'c0',
