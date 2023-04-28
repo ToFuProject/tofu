@@ -4,10 +4,15 @@ Creating and using diagnostic
 
 """
 
+
+import os
 import numpy as np
 
 
 import tofu as tf
+
+
+_PATH_HERE = os.path.dirname(__file__)
 
 
 __all__ = ['main']
@@ -410,6 +415,15 @@ def _crystals(coll=None, crystals=None):
 
     # c1: cylindrical (von hamos)
     if 'c0' in crystals:
+
+        # load rocking curve
+        pfe = os.path.join(_PATH_HERE, 'Ge242.txt')
+        out = np.loadtxt(pfe)
+        drock = {
+            'angle_rel': out[:, 0],
+            'power_ratio': out[:, 1],
+        }
+
         size = 1.e-2
         rc = 1.03
         c0 = {
@@ -422,12 +436,13 @@ def _crystals(coll=None, crystals=None):
                 'extenthalf': size * np.r_[1, 1/rc],
                 'curve_r': [np.inf, rc],
             },
-            #'dmat': 'Quartz_110',
+            # 'dmat': 'Quartz_110',
             'dmat': {
                 'd_hkl': 0.944e-10 / (2*np.sin(24.2*np.pi/180.)),
                 'target': {
                     'lamb': 0.944e-10,
                 },
+                'drock': drock,
             },
             'configuration': 'von hamos',
         }
