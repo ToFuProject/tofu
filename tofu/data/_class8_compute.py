@@ -342,6 +342,7 @@ def _interp_poly(
     closed=None,
     ravel=None,
     min_threshold=1.e-6,
+    debug=None,
 ):
 
     # ------------
