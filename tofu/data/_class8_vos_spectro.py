@@ -13,7 +13,7 @@ import Polygon as plg
 
 from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_vos_utilities as _utilities
-# from ..geom import _comp_solidangles
+from . import _class8_reverse_ray_tracing as _reverse_rt
 
 
 # ###########################################################
@@ -46,6 +46,8 @@ def _vos(
     res_phi=None,
     res_lamb=None,
     res_rock_curve=None,
+    n0=None,
+    n1=None,
     bool_cross=None,
     # parameters
     min_threshold=None,
@@ -76,57 +78,25 @@ def _vos(
     # -----------------
     # prepare optics
 
-    lop = doptics[key_cam]['optics'][::-1]
-    lop, lcls = coll.get_optics_cls(lop)
-
-    cls_spectro = 'crystal'
-    kspectro = lop[lcls.index(cls_spectro)]
-    ispectro = lop.index(kspectro)
-    if len(lop[ispectro:]) > 1:
-        msg = "Not yet implemented optics between crystal and camera!"
-        raise NotImplementedError()
-
-    lpoly_post = []
-    # lpoly_post = [
-        # coll.get_optics_poly(
-            # key=k0,
-            # add_points=None,
-            # return_outline=False,
-        # )
-        # for k0 in lop[ispectro+1:]
-    # ]
-
-    # get initial polygon
-    p0x, p0y, p0z = coll.get_optics_poly(key=kspectro, add_points=None)
-
-    # unit vectors
-    nin = coll.dobj[cls_spectro][kspectro]['dgeom']['nin']
-    e0 = coll.dobj[cls_spectro][kspectro]['dgeom']['e0']
-    e1 = coll.dobj[cls_spectro][kspectro]['dgeom']['e1']
-
-    # get functions
-    ptsvect_plane = coll.get_optics_reflect_ptsvect(key=kspectro, asplane=True)
-    ptsvect_spectro = coll.get_optics_reflect_ptsvect(key=kspectro, isnorm=True)
-    ptsvect_cam = coll.get_optics_reflect_ptsvect(key=key_cam, fast=True)
-
-    coords_x01toxyz_plane = coll.get_optics_x01toxyz(
-        key=kspectro,
-        asplane=True,
+    (
+        kspectro,
+        lpoly_post,
+        p0x, p0y, p0z,
+        nin, e0, e1,
+        ptsvect_plane,
+        ptsvect_spectro,
+        ptsvect_cam,
+        coords_x01toxyz_plane,
+        cent_spectro,
+        cent_cam,
+        dist_to_cam,
+        pix_size,
+        cbin0, cbin1,
+    ) = _reverse_rt._prepare_optics(
+        coll=coll,
+        key=key_diag,
+        key_cam=key_cam,
     )
-
-    # Get centers of crystal and camera to estimate distance
-    cent_spectro = coll.dobj[cls_spectro][kspectro]['dgeom']['cent']
-    cent_cam = coll.dobj['camera'][key_cam]['dgeom']['cent']
-    dist_to_cam = np.linalg.norm(cent_spectro - cent_cam)
-    pix_size = np.sqrt(coll.dobj['camera'][key_cam]['dgeom']['pix_area'])
-
-    # prepare camera bin edges
-    kcc = coll.dobj['camera'][key_cam]['dgeom']['cents']
-    cc0 = coll.ddata[kcc[0]]['data']
-    cc1 = coll.ddata[kcc[1]]['data']
-    cout0, cout1 = coll.get_optics_outline(key_cam, total=False)
-    cbin0 = np.r_[cc0 + np.min(cout0), cc0[-1] + np.max(cout0)]
-    cbin1 = np.r_[cc1 + np.min(cout1), cc1[-1] + np.max(cout1)]
 
     # --------------------------
     # get overall polygons
@@ -181,9 +151,13 @@ def _vos(
     # ----------
     # get dphi_r
 
-    dphi = doptics[key_cam]['dvos']['dphi']
-    phimin = np.nanmin(dphi[0, :])
-    phimax = np.nanmin(dphi[1, :])
+    # dphi = doptics[key_cam]['dvos']['dphi']
+    # phimin = np.nanmin(dphi[0, :])
+    # phimax = np.nanmax(dphi[1, :])
+
+    phi_hor = np.arctan2(phor1, phor0)
+    phimin = np.nanmin(phi_hor)
+    phimax = np.nanmax(phi_hor)
 
     # get dphi vs phor
     dphi_r = _utilities._get_dphi_from_R_phor(
@@ -193,7 +167,7 @@ def _vos(
         phimin=phimin,
         phimax=phimax,
         res=res_phi,
-        out=False,
+        out=True,
     )
 
     # -------------------------------------
@@ -207,7 +181,7 @@ def _vos(
         ang_rel,
         dang,
         angbragg,
-    ) = _prepare_lamb(
+    ) = _reverse_rt._prepare_lamb(
         coll=coll,
         key_diag=key_diag,
         key_cam=key_cam,
@@ -368,8 +342,7 @@ def _vos(
                 (
                     x0c, x1c, angles, dsang, cosi, iok,
                     dangmin_str, x0if, x1if,
-                    dang0, dang1,
-                ) = _get_points_on_camera_from_pts(
+                ) = _reverse_rt._get_points_on_camera_from_pts(
                     p0=p0,
                     p1=p1,
                     pti=pti,
@@ -383,11 +356,14 @@ def _vos(
                     dist_to_cam=dist_to_cam,
                     dang=dang,
                     phi=phii,
+                    # resoluions
+                    n0=n0,
+                    n1=n1,
                     # functions
                     coords_x01toxyz_plane=coords_x01toxyz_plane,
                     ptsvect_spectro=ptsvect_spectro,
                     ptsvect_cam=ptsvect_cam,
-                )
+                )[:9]
 
                 if verb is True:
                     msg = (
@@ -655,227 +631,6 @@ def _vos(
         dt11, dt22,
         dt111, dt222, dt333,
         dt1111, dt2222, dt3333, dt4444,
-    )
-
-
-# ################################################
-# ################################################
-#           Prepare lambda
-# ################################################
-
-
-def _prepare_lamb(
-    coll=None,
-    key_diag=None,
-    key_cam=None,
-    kspectro=None,
-    res_lamb=None,
-    res_rock_curve=None,
-    verb=None,
-):
-
-    # ------------------
-    # get lamb
-
-    lamb = coll.get_diagnostic_data(
-        key=key_diag,
-        key_cam=key_cam,
-        data='lamb',
-    )[0][key_cam]
-
-    lambmin = np.nanmin(lamb)
-    lambmax = np.nanmax(lamb)
-    Dlamb = (lambmax - lambmin) * 1.1
-    nlamb = int(np.ceil(Dlamb / res_lamb))
-    lamb = np.linspace(lambmin - 0.2*Dlamb, lambmax + 0.2*Dlamb, nlamb)
-    dlamb = lamb[1] - lamb[0]
-
-    # ---------------
-    # get bragg angle
-
-    bragg = coll.get_crystal_bragglamb(key=kspectro, lamb=lamb)[0]
-
-    # power ratio
-    cls_spectro = 'crystal'
-    kpow = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['power_ratio']
-    pow_ratio = coll.ddata[kpow]['data']
-
-    # angle relative
-    kang_rel = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['angle_rel']
-    ang_rel = coll.ddata[kang_rel]['data']
-    if res_rock_curve is not None:
-        if isinstance(res_rock_curve, int):
-            nang = res_rock_curve
-        else:
-            nang = int(
-                (np.max(ang_rel) - np.min(ang_rel)) / res_rock_curve
-            )
-
-        ang_rel2 = np.linspace(np.min(ang_rel), np.max(ang_rel), nang)
-        pow_ratio = scpinterp.interp1d(
-            ang_rel,
-            pow_ratio,
-            kind='linear',
-        )(ang_rel2)
-        ang_rel = ang_rel2
-
-    dang = np.mean(np.diff(ang_rel))
-
-    # overall bragg angle with rocking curve
-    angbragg = bragg[None, :] + ang_rel[:, None]
-
-    # ------------
-    # safety check
-
-    FW = coll.dobj[cls_spectro][kspectro]['dmat']['drock']['FW']
-    dd0 = bragg[0] + np.r_[0, ang_rel[-1] - ang_rel[0]]
-    dd1 = bragg[0] + np.r_[0, FW]
-    dd2 = bragg[0] + np.r_[0, ang_rel[1] - ang_rel[0]]
-
-    dlamb_max = np.diff(coll.get_crystal_bragglamb(key=kspectro, bragg=dd0)[1])
-    dlamb_mh = np.diff(coll.get_crystal_bragglamb(key=kspectro, bragg=dd1)[1])
-    dlamb_res = np.diff(coll.get_crystal_bragglamb(key=kspectro, bragg=dd2)[1])
-
-    if verb is True:
-        msg = (
-            "Recommended res_lamb to ensure rocking curve overlap:\n"
-            f"\t- edge-edge: \t{dlamb_max[0]:.2e}\n"
-            f"\t- MH-to-MH: \t{dlamb_mh[0]:.2e}\n"
-            f"\t- resolution: \t{dlamb_res[0]:.2e}\n"
-            f"\tProvided: \t{dlamb:.2e}\n"
-        )
-        print(msg)
-
-    return (
-        nlamb,
-        lamb,
-        dlamb,
-        pow_ratio,
-        ang_rel,
-        dang,
-        angbragg,
-    )
-
-
-# ################################################
-# ################################################
-#           Sub-routine
-# ################################################
-
-
-def _get_points_on_camera_from_pts(
-    p0=None,
-    p1=None,
-    pti=None,
-    # ref
-    cent=None,
-    nin=None,
-    e0=None,
-    e1=None,
-    # dang
-    pix_size=None,
-    dist_to_cam=None,
-    dang=None,
-    phi=None,
-    # functions
-    coords_x01toxyz_plane=None,
-    ptsvect_spectro=None,
-    ptsvect_cam=None,
-):
-
-    # anuglar resolution associated to pixels
-    vect = cent - pti
-    dist = np.linalg.norm(vect)
-    vect = vect / dist
-    dang_pix = pix_size / (dist_to_cam + dist)
-
-    # dang
-    dang_min = min(dang, 0.25*dang_pix)
-    dangmin_str = f"rock {dang:.2e} vs {0.25*dang_pix:.2e} 1/4 pixel"
-
-    # set n0, n1
-    p0min, p0max = p0.min(), p0.max()
-    p1min, p1max = p1.min(), p1.max()
-
-    cos0 = np.linalg.norm(np.cross(e0, vect))
-    cos1 = np.linalg.norm(np.cross(e1, vect))
-    ang0 = cos0 * (p0max - p0min) / dist
-    ang1 = cos1 * (p1max - p1min) / dist
-    n0 = int(np.ceil(ang0 / dang_min))
-    n1 = int(np.ceil(ang1 / dang_min))
-
-    # make squares
-    size = 0.5 * ((p0max - p0min) / n0 + (p1max - p1min) / n1)
-    diag = size * np.sqrt(2.)
-
-    # sample 2d equivalent aperture
-    x0i = np.linspace(p0min + 1e-12, p0max - 1e-12, n0)
-    x1i = np.linspace(p1min + 1e-12, p1max - 1e-12, n1)
-
-    # mesh
-    x0if = np.repeat(x0i[:, None], n1, axis=1)
-    x1if = np.repeat(x1i[None, :], n0, axis=0)
-    ind = Path(np.array([p0, p1]).T).contains_points(
-        np.array([x0if.ravel(), x1if.ravel()]).T
-    ).reshape((n0, n1))
-
-    # back to 3d
-    xx, yy, zz = coords_x01toxyz_plane(
-        x0=x0if,
-        x1=x1if,
-    )
-
-    # approx solid angles
-    ax = xx - pti[0]
-    ay = yy - pti[1]
-    az = zz - pti[2]
-    di = np.sqrt(ax**2 + ay**2 + az**2)
-    cos = np.abs(nin[0] * ax + nin[1] * ay + nin[2] * az)
-    surf = ((p0max - p0min) / n0) * ((p1max - p1min) / n1)
-    dsang = surf * cos / di**2
-    # DEBUG
-    dang0 = ((p0max - p0min) / n0) / di
-    dang1 = ((p1max - p1min) / n1) * cos / di
-
-    # get normalized vector from plasma point to crystal
-    vectx = ax / di
-    vecty = ay / di
-    vectz = az / di
-
-    # get local cosine vs toroidal direction (for doppler)
-    cos = -vectx*np.sin(phi) + vecty*np.cos(phi)
-
-    # get reflexion
-    (
-        ptsx, ptsy, ptsz,
-        vx, vy, vz,
-        angles,
-    ) = ptsvect_spectro(
-        pts_x=pti[0],
-        pts_y=pti[1],
-        pts_z=pti[2],
-        vect_x=vectx,
-        vect_y=vecty,
-        vect_z=vectz,
-        strict=False,
-        return_x01=False,
-    )[:7]
-
-    # get x0, x1 on camera
-    x0c, x1c = ptsvect_cam(
-        pts_x=ptsx,
-        pts_y=ptsy,
-        pts_z=ptsz,
-        vect_x=vx,
-        vect_y=vy,
-        vect_z=vz,
-    )
-
-    return (
-        x0c, x1c, angles, dsang, cos, ind,
-        dangmin_str, x0if, x1if,
-        # DEBUG
-        dang0, dang1,
     )
 
 

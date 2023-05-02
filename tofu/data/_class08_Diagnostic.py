@@ -21,6 +21,7 @@ from . import _class8_etendue_los as _etendue_los
 from . import _class8_vos as _vos
 from . import _class8_los_angles as _los_angles
 from . import _class8_compute_signal as _compute_signal
+from . import _class8_reverse_ray_tracing as _reverse_rt
 from . import _class8_plot as _plot
 from . import _class8_plot_vos as _plot_vos
 
@@ -271,6 +272,8 @@ class Diagnostic(Previous):
         res_phi=None,
         res_lamb=None,
         res_rock_curve=None,
+        n0=None,
+        n1=None,
         check=None,
         margin_poly=None,
         # raytracing
@@ -305,6 +308,8 @@ class Diagnostic(Previous):
             res_phi=res_phi,
             res_lamb=res_lamb,
             res_rock_curve=res_rock_curve,
+            n0=n0,
+            n1=n1,
             check=check,
             margin_poly=margin_poly,
             visibility=visibility,
@@ -616,6 +621,53 @@ class Diagnostic(Previous):
             store=store,
             # return
             returnas=returnas,
+        )
+
+    # -----------------------
+    # ray-tracing from plasma
+    # -----------------------
+
+    def get_raytracing_from_pts(
+        self,
+        # diag
+        key=None,
+        key_cam=None,
+        # pts coordinates
+        ptsx=None,
+        ptsy=None,
+        ptsz=None,
+        # res
+        res_rock_curve=None,
+        n0=None,
+        n1=None,
+        # optional lamb
+        lamb=None,
+        # options
+        plot=None,
+        plot_pixels=None,
+        plot_config=None,
+    ):
+        """ Get rays from plasma points to camera for a spectrometer diag """
+
+        return _reverse_rt._from_pts(
+            coll=self,
+            # diag
+            key=key,
+            key_cam=key_cam,
+            # pts coordinates
+            ptsx=ptsx,
+            ptsy=ptsy,
+            ptsz=ptsz,
+            # res
+            res_rock_curve=res_rock_curve,
+            n0=n0,
+            n1=n1,
+            # optional lamb
+            lamb=lamb,
+            # options
+            plot=plot,
+            plot_pixels=plot_pixels,
+            plot_config=plot_config,
         )
 
     # ---------------------

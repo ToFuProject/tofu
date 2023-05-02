@@ -586,7 +586,8 @@ def _get_ptsvect_plane_x01_fast(
                 (Dx - cent[0])*e1[0]
                 + (Dy - cent[1])*e1[1]
                 + (Dz - cent[2])*e1[2]
-            )
+            ),
+            Dx, Dy, Dz,
         )
 
     return ptsvect
