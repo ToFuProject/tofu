@@ -30,6 +30,7 @@ def equivalent_apertures(
     pixel=None,
     # inital contour
     add_points=None,
+    min_threshold=None,
     # options
     convex=None,
     harmonize=None,
@@ -67,6 +68,7 @@ def equivalent_apertures(
         cz,
         pixel,
         add_points,
+        min_threshold,
         convex,
         harmonize,
         reshape,
@@ -79,6 +81,7 @@ def equivalent_apertures(
         key_cam=key_cam,
         pixel=pixel,
         add_points=add_points,
+        min_threshold=min_threshold,
         convex=convex,
         harmonize=harmonize,
         reshape=reshape,
@@ -224,21 +227,22 @@ def equivalent_apertures(
             p0c, p1c = _compute._interp_poly(
                 lp=[p0 * curve_mult[0], p1 * curve_mult[1]],
                 add_points=1,
-                mode='min',
+                mode='thr',
                 isclosed=False,
                 closed=False,
                 ravel=True,
-                min_threshold=50.e-6,
+                min_threshold=min_threshold,
+                debug=True,
             )
 
             # --- DEBUG ---------
-            # if ii in [97]:
-                # _debug_plot(
-                    # pa0=p0, pa1=p1,
-                    # pb0=p0[vert], pb1=p1[vert],
-                    # pc0=p0c/curve_mult[0], pc1=p1c/curve_mult[1],
-                    # ii=ii, tit='curve_mult',
-                # )
+            if ii in [97]:
+                _debug_plot(
+                    pa0=p0, pa1=p1,
+                    pb0=p0[vert], pb1=p1[vert],
+                    pc0=p0c/curve_mult[0], pc1=p1c/curve_mult[1],
+                    ii=ii, tit='curve_mult',
+                )
             # --------------------
             p0, p1 = p0c / curve_mult[0], p1c / curve_mult[1]
 
@@ -396,6 +400,7 @@ def _check(
     key_cam=None,
     pixel=None,
     add_points=None,
+    min_threshold=None,
     convex=None,
     harmonize=None,
     reshape=None,
@@ -526,6 +531,16 @@ def _check(
     )
 
     # -----------
+    # min_threshold
+
+    min_threshold = ds._generic_check._check_var(
+        min_threshold, 'min_threshold',
+        types=float,
+        default=400e-6,
+        sign='>0',
+    )
+
+    # -----------
     # convex
 
     isconvex = any(coll.get_optics_isconvex(doptics['optics']))
@@ -601,6 +616,7 @@ def _check(
         cz,
         pixel,
         add_points,
+        min_threshold,
         convex,
         harmonize,
         reshape,

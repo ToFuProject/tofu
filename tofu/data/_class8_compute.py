@@ -101,6 +101,7 @@ def get_optics_outline(
         isclosed=False,
         closed=closed,
         ravel=ravel,
+        debug=None,
     )
 
 
@@ -292,6 +293,7 @@ def _interp_poly_check(
     mode=None,
     closed=None,
     ravel=None,
+    min_threshold=None,
 ):
 
     # -------
@@ -300,7 +302,7 @@ def _interp_poly_check(
     mode = ds._generic_check._check_var(
         mode, 'mode',
         default=None,
-        allowed=[None, 'mean', 'min'],
+        allowed=[None, 'mean', 'min', 'thr'],
     )
 
     # ----------
@@ -331,7 +333,18 @@ def _interp_poly_check(
         default=False,
         types=bool,
     )
-    return add_points, mode, closed, ravel
+
+    # -------
+    # min_threshold
+
+    min_threshold = ds._generic_check._check_var(
+        min_threshold, 'min_threshold',
+        default=100e-6,
+        types=float,
+        sign='>=0',
+    )
+
+    return add_points, mode, closed, ravel, min_threshold
 
 
 def _interp_poly(
@@ -341,7 +354,7 @@ def _interp_poly(
     isclosed=None,
     closed=None,
     ravel=None,
-    min_threshold=1.e-6,
+    min_threshold=None,
     debug=None,
 ):
     """ Interpolate list of polygons by adding points ons segments
@@ -361,11 +374,12 @@ def _interp_poly(
     # ------------
     # check inputs
 
-    add_points, mode, closed, ravel = _interp_poly_check(
+    add_points, mode, closed, ravel, min_threshold = _interp_poly_check(
         add_points=add_points,
         mode=mode,
         closed=closed,
         ravel=ravel,
+        min_threshold=min_threshold,
     )
 
     # ------------
@@ -428,13 +442,17 @@ def _interp_poly(
         if dist.ndim == 2:
             import pdb; pdb.set_trace()     # DB
 
-        min_threshold = min(min_threshold, np.max(dist)/3.)
-        if mode == 'min':
-            mindist = np.min(dist[dist > min_threshold])
-        elif mode == 'mean':
-            mindist = np.mean(dist[dist > min_threshold])
+        if mode == 'thr':
+            mindist = min_threshold
+            add_points = np.ceil(dist / mindist).astype(int) - 1
+        else:
+            min_threshold = min(min_threshold, np.max(dist)/3.)
+            if mode == 'min':
+                mindist = np.min(dist[dist > min_threshold])
+            elif mode == 'mean':
+                mindist = np.mean(dist[dist > min_threshold])
 
-        add_points = add_points * np.ceil(dist / mindist).astype(int) - 1
+            add_points = add_points * np.ceil(dist / mindist).astype(int) - 1
 
     # -----------
     # add_points
