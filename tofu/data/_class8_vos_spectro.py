@@ -85,14 +85,15 @@ def _vos(
         msg = "Not yet implemented optics between crystal and camera!"
         raise NotImplementedError()
 
-    lpoly_pre = [
-        coll.get_optics_poly(
-            key=k0,
-            add_points=None,
-            return_outline=False,
-        )
-        for k0 in lop[:ispectro]
-    ]
+    lpoly_post = []
+    # lpoly_post = [
+        # coll.get_optics_poly(
+            # key=k0,
+            # add_points=None,
+            # return_outline=False,
+        # )
+        # for k0 in lop[ispectro+1:]
+    # ]
 
     # get initial polygon
     p0x, p0y, p0z = coll.get_optics_poly(key=kspectro, add_points=None)
@@ -343,13 +344,13 @@ def _vos(
                 )[-2:]
                 p_a = plg.Polygon(np.array([p0, p1]).T)
 
-                if len(lpoly_pre) > 0:
+                if len(lpoly_post) > 0:
                     # get equivalent aperture
                     p0, p1 = _equivalent_apertures._get_equivalent_aperture(
                         p_a=p_a,
                         pt=pti,
-                        nop_pre=len(lpoly_pre),
-                        lpoly_pre=lpoly_pre,
+                        nop_pre=len(lpoly_post),
+                        lpoly_pre=lpoly_post,
                         ptsvect=ptsvect_plane,
                     )
 
