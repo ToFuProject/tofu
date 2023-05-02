@@ -29,6 +29,8 @@ def compute_vos(
     res_phi=None,
     res_lamb=None,
     res_rock_curve=None,
+    n0=None,
+    n1=None,
     margin_poly=None,
     margin_par=None,
     margin_perp=None,
@@ -200,6 +202,8 @@ def compute_vos(
                 res_phi=res_phi,
                 res_lamb=res_lamb,
                 res_rock_curve=res_rock_curve,
+                n0=n0,
+                n1=n1,
                 bool_cross=bool_cross,
                 # parameters
                 margin_poly=margin_poly,
