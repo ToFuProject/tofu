@@ -48,6 +48,7 @@ def _vos(
     res_rock_curve=None,
     bool_cross=None,
     # parameters
+    min_threshold=None,
     margin_poly=None,
     visibility=None,
     verb=None,
@@ -352,6 +353,7 @@ def _vos(
                         nop_pre=len(lpoly_post),
                         lpoly_pre=lpoly_post,
                         ptsvect=ptsvect_plane,
+                        min_threshold=min_threshold,
                     )
 
                     # skip if no intersection
