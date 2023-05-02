@@ -236,13 +236,13 @@ def equivalent_apertures(
             )
 
             # --- DEBUG ---------
-            if ii in [97]:
-                _debug_plot(
-                    pa0=p0, pa1=p1,
-                    pb0=p0[vert], pb1=p1[vert],
-                    pc0=p0c/curve_mult[0], pc1=p1c/curve_mult[1],
-                    ii=ii, tit='curve_mult',
-                )
+            # if ii in [97]:
+                # _debug_plot(
+                    # pa0=p0, pa1=p1,
+                    # pb0=p0[vert], pb1=p1[vert],
+                    # pc0=p0c/curve_mult[0], pc1=p1c/curve_mult[1],
+                    # ii=ii, tit='curve_mult',
+                # )
             # --------------------
             p0, p1 = p0c / curve_mult[0], p1c / curve_mult[1]
 
