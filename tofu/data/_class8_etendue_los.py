@@ -188,8 +188,9 @@ def compute_etendue_los(
 
         if numerical is True:
 
+            import pdb; pdb.set_trace()     # DB
             etend1 = _compute_etendue_numerical(
-                ldeti=v0['ldet'],
+                ldet=v0['ldet'],
                 aperture=aperture,
                 pix_ap=pix_ap,
                 res=res,
@@ -393,7 +394,7 @@ def _check(
     numerical = ds._generic_check._check_var(
         numerical, 'numerical',
         types=bool,
-        default=False,
+        default=True,
     )
 
     # -----------
@@ -479,10 +480,10 @@ def _check(
     )
 
 
-# ##################################################################
-# ##################################################################
+# ###############################################################
+# ###############################################################
 #                    Loop on camera pixels
-# ##################################################################
+# ###############################################################
 
 
 def _loop_on_pix(
@@ -532,17 +533,17 @@ def _loop_on_pix(
             continue
 
         # rocking curve
-        if spectro:
-            out0 = ldet[ii]['outline_x0']
-            width0 = np.max(np.abs(np.diff(out0)))
-            dist = np.sqrt(
-                (centsx[ii] - ldet[ii]['cents_x'])**2
-                + (centsy[ii] - ldet[ii]['cents_y'])**2
-                + (centsz[ii] - ldet[ii]['cents_z'])**2
-            )
-            withrc = dist * rocking_curve_fw
-            out0_norm = out0 / width0
-            ldet[ii]['outline_x0'] = out0_norm * min(width0, withrc)
+        # if spectro:
+            # out0 = ldet[ii]['outline_x0']
+            # width0 = np.max(np.abs(np.diff(out0)))
+            # dist = np.sqrt(
+                # (centsx[ii] - ldet[ii]['cents_x'])**2
+                # + (centsy[ii] - ldet[ii]['cents_y'])**2
+                # + (centsz[ii] - ldet[ii]['cents_z'])**2
+            # )
+            # withrc = dist * rocking_curve_fw
+            # out0_norm = out0 / width0
+            # ldet[ii]['outline_x0'] = out0_norm * min(width0, withrc)
 
         # ------------
         # solid angles
@@ -567,8 +568,8 @@ def _loop_on_pix(
     # -----------
     # rocking curve
 
-    if spectro:
-        solid_angles *= rocking_curve_max
+    # if spectro:
+        # solid_angles *= rocking_curve_max
 
     # -------------
     # normalize los
@@ -690,6 +691,7 @@ def _compute_etendue_numerical(
     verb=None,
 ):
 
+    import pdb; pdb.set_trace()     # DB
     # shape0 = det['cents_x'].shape
     nd = len(ldeti)
 

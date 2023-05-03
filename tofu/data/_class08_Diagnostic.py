@@ -96,7 +96,7 @@ class Diagnostic(Previous):
             self.compute_diagnostic_etendue_los(
                 key=key,
                 analytical=True,
-                numerical=False,
+                numerical=None,
                 res=None,
                 check=False,
                 # los
@@ -632,6 +632,10 @@ class Diagnostic(Previous):
         # diag
         key=None,
         key_cam=None,
+        # mesh sampling
+        key_mesh=None,
+        res_RZ=None,
+        res_phi=None,
         # pts coordinates
         ptsx=None,
         ptsy=None,
@@ -646,6 +650,8 @@ class Diagnostic(Previous):
         plot=None,
         plot_pixels=None,
         plot_config=None,
+        vmin=None,
+        vmax=None,
     ):
         """ Get rays from plasma points to camera for a spectrometer diag """
 
@@ -654,6 +660,10 @@ class Diagnostic(Previous):
             # diag
             key=key,
             key_cam=key_cam,
+            # mesh sampling
+            key_mesh=key_mesh,
+            res_RZ=res_RZ,
+            res_phi=res_phi,
             # pts coordinates
             ptsx=ptsx,
             ptsy=ptsy,
@@ -668,6 +678,8 @@ class Diagnostic(Previous):
             plot=plot,
             plot_pixels=plot_pixels,
             plot_config=plot_config,
+            vmin=vmin,
+            vmax=vmax,
         )
 
     # ---------------------
