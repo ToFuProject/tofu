@@ -159,6 +159,7 @@ def compute_etendue_los(
             centsz=centsz,
             plane_nin=plane_nin,
             ap_area=ap_area,
+            res=res,
         )
 
         # --------------------
@@ -186,25 +187,30 @@ def compute_etendue_los(
         # --------------------
         # compute numerically
 
+        etend1 = None
         if numerical is True:
 
-            import pdb; pdb.set_trace()     # DB
-            etend1 = _compute_etendue_numerical(
-                ldet=v0['ldet'],
-                aperture=aperture,
-                pix_ap=pix_ap,
-                res=res,
-                los_x=los_x,
-                los_y=los_y,
-                los_z=los_z,
-                margin_par=margin_par,
-                margin_perp=margin_perp,
-                check=check,
-                verb=verb,
-            )
-
-        else:
-            etend1 = None
+            if spectro is True:
+                etend1 = _compute_etendue_numerical_spectro(
+                    coll=coll,
+                    key_diag=key,
+                    key_cam=key_cam,
+                )
+            else:
+                etend1 = _compute_etendue_numerical(
+                    coll=coll,
+                    key_diag=key,
+                    key_cam=key_cam,
+                    ldeti=v0['ldet'],
+                    res=res,
+                    los_x=los_x,
+                    los_y=los_y,
+                    los_z=los_z,
+                    margin_par=margin_par,
+                    margin_perp=margin_perp,
+                    check=check,
+                    verb=verb,
+                )
 
         # --------------------
         # optional plotting
@@ -678,9 +684,10 @@ def _get_lpoly_post(coll=None, lop_post_cls=None, lop_post=None):
 
 
 def _compute_etendue_numerical(
+    coll=None,
+    key_diag=None,
+    key_cam=None,
     ldeti=None,
-    aperture=None,
-    pix_ap=None,
     res=None,
     margin_par=None,
     margin_perp=None,
@@ -691,7 +698,21 @@ def _compute_etendue_numerical(
     verb=None,
 ):
 
-    import pdb; pdb.set_trace()     # DB
+    # ------------
+    # prepare
+
+    # aperture
+    lop = coll.dobj['diagnostic'][key_diag]['doptics'][key_cam]['optics']
+    aperture = {}
+    for k0 in lop:
+        px, py, pz = coll.get_optics_poly(key=k0)
+        aperture[k0] = {
+            'poly_x': px,
+            'poly_y': py,
+            'poly_z': pz,
+            'nin': coll.dobj['aperture'][k0]['dgeom']['nin'],
+        }
+
     # shape0 = det['cents_x'].shape
     nd = len(ldeti)
 
@@ -719,10 +740,6 @@ def _compute_etendue_numerical(
 
         if np.isnan(los_x[ii]):
             continue
-
-        # get det corners to aperture corners vectors
-        out_c_x0 = np.r_[0, ldeti[ii]['outline_x0']]
-        out_c_x1 = np.r_[0, ldeti[ii]['outline_x1']]
 
         # det poly 3d
         det_Px = (
@@ -988,10 +1005,10 @@ def _plot_etendues(
     x0 = None
     if etend0 is not None:
         x0 = [
-            f'order {ii}' if ii < 3 else '' for ii in range(nmax)
+            f'order {ii}' for ii in range(nmax)
         ]
     if etend1 is not None:
-        x1 = [f'{res[ii]}' if ii < res.size-1 else '' for ii in range(nmax)]
+        x1 = [f'{res[ii]}' for ii in range(nmax)]
         if x0 is None:
             x0 = x1
         else:

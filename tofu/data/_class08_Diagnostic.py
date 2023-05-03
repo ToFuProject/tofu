@@ -96,7 +96,7 @@ class Diagnostic(Previous):
             self.compute_diagnostic_etendue_los(
                 key=key,
                 analytical=True,
-                numerical=None,
+                numerical=False,
                 res=None,
                 check=False,
                 # los
