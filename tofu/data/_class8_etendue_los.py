@@ -195,6 +195,7 @@ def compute_etendue_los(
                     coll=coll,
                     key_diag=key,
                     key_cam=key_cam,
+                    is2d=is2d,
                 )
             else:
                 etend1 = _compute_etendue_numerical(
@@ -973,6 +974,37 @@ def _compute_etendue_numerical(
                     return_flat_pts=True,
                     return_flat_det=True,
                 ) * ds
+
+    return etendue
+
+# ##################################################################
+# ##################################################################
+#           Numerical etendue estimation routine
+# ##################################################################
+
+
+def _compute_etendue_numerical_spectro(
+    coll=None,
+    key_diag=None,
+    key_cam=None,
+    is2d=None,
+):
+
+    # --------------
+    # check
+
+    if is2d is False:
+        msg = "Can only handle 2d camera spectrometers"
+        raise Exception(msg)
+
+
+
+    # --------------
+    # prepare
+
+    # get main los
+
+
 
     return etendue
 
