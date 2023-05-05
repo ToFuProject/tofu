@@ -171,7 +171,7 @@ def equivalent_apertures(
         if verb is True:
             msg = f"\t- camera '{key_cam}': pixel {ii + 1} / {pixel.size}"
             end = '\n' if ii == len(pixel) - 1 else '\r'
-            print(msg, end=end , flush=True)
+            print(msg, end=end, flush=True)
 
         p0, p1 = func(
             p_a=p_a,
@@ -190,6 +190,8 @@ def equivalent_apertures(
             # options
             add_points=add_points,
             convex=convex,
+            # debug
+            ii=ii,
             # timing
             # dt=dt,
         )
@@ -242,10 +244,9 @@ def equivalent_apertures(
 
             elif ln[ii] < nmax:
                 ndif = nmax - ln[ii]
-                irand = np.random.random(ndif)
+                irand = np.random.randint(1, 9, ndif)/10.
                 irand = irand + np.random.randint(0, ln[ii]-1, ndif)
                 imax = np.sort(np.r_[np.arange(0, ln[ii]), irand])
-                imax = np.linspace(0, ln[ii]-1, nmax)
                 x0[ii] = scpinterp.interp1d(
                     np.arange(0, ln[ii]),
                     x0[ii],
@@ -306,6 +307,38 @@ def equivalent_apertures(
             cents0[ii], cents1[ii] = plg.Polygon(
                 np.array([x0[ii, :], x1[ii, :]]).T
             ).center()
+
+            # --- DEBUG ---------
+            # if ii in [214, 217]:
+            #     plt.figure()
+            #     plt.plot(
+            #         np.r_[p0, p0[0]],
+            #         np.r_[p1, p1[0]],
+            #         c='k',
+            #         ls='-',
+            #         lw=1.,
+            #         marker='.',
+            #     )
+            #     plt.plot([cents0[ii]], [cents1[ii]], 'xk')
+            #     ppx, ppy, ppz = coord_x01toxyz(
+            #         x0=np.r_[cents0[ii]],
+            #         x1=np.r_[cents1[ii]],
+            #     )
+            #     ddd = np.linalg.norm(
+            #         np.r_[ppx - cx[ip], ppy - cy[ip], ppz - cz[ip]]
+            #     )
+            #     plt.gca().text(
+            #         np.mean(p0),
+            #         np.mean(p1),
+            #         f'area\n{area[ii]:.3e} m2\ndist\n{ddd:.6e} m',
+            #         size=12,
+            #         horizontalalignment='center',
+            #         verticalalignment='center',
+            #     )
+            #     plt.gca().set_title(f'planar coordinates - {ii}', size=12)
+            #     plt.gca().set_xlabel('x0 (m)', size=12)
+            #     plt.gca().set_ylabel('x1 (m)', size=12)
+            # --------------------
 
         centsx, centsy, centsz = coord_x01toxyz(
             x0=cents0,
@@ -641,6 +674,8 @@ def _get_equivalent_aperture_spectro(
     convex=None,
     # timing
     dt=None,
+    # debug
+    ii=None,
 ):
 
     # loop on optics before crystal
@@ -693,6 +728,8 @@ def _get_equivalent_aperture_spectro(
             ptsvect_poly=lptsvect_poly[jj],
             # timing
             # dt=dt,
+            # debug
+            ii=ii,
         )
 
         if p0 is None:
@@ -706,6 +743,7 @@ def _get_equivalent_aperture_spectro(
 
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
             p_a = plg.Polygon(np.array([p0, p1]).T)
+            
         else:
             # convex hull
             if convex:
@@ -713,6 +751,17 @@ def _get_equivalent_aperture_spectro(
                     # plg.Polygon(np.array([p0, p1]).T)
                 # ).contour(0)).T
                 vert = ConvexHull(np.array([p0, p1]).T).vertices
+                # --- DEBUG ---------
+                # if ii in [214, 217]:
+                #     plt.figure()
+                #     plt.plot(
+                #         p0[vert],
+                #         p1[vert],
+                #         '.-k',
+                #         p0, p1, '.-r'
+                #     )
+                #     plt.gca().set_title(f"ii = {ii}, convexH", size=12)
+                # ----------------------
                 p0, p1 = p0[vert], p1[vert]
 
             # --- DEBUG ---------
