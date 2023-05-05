@@ -700,7 +700,7 @@ def _get_equivalent_aperture_spectro(
             return p0, p1
 
         # --- DEBUG ---------
-        # if ii in [12, 13, 14, 15, 16, 17]:
+        # if ii in [14, 15, 16]:
             # _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='allin')
         # ----------------------
 
