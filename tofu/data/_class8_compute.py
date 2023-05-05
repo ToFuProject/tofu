@@ -63,9 +63,21 @@ def get_optics_outline(
         cx0 = coll.ddata[cx0]['data']
         cx1 = coll.ddata[cx1]['data']
 
+        k0, k1 = dgeom['outline']
+
         # derive half-spacing
-        dx0 = np.mean(np.diff(cx0)) / 2.
-        dx1 = np.mean(np.diff(cx1)) / 2.
+        if cx0.size == 1:
+            dx0 = coll.ddata[k0]['data'].max() - coll.ddata[k0]['data'].min()
+        else:
+            dx0 = np.mean(np.diff(cx0))
+
+        if cx1.size == 1:
+            dx1 = coll.ddata[k1]['data'].max() - coll.ddata[k1]['data'].min()
+        else:
+            dx1 = np.mean(np.diff(cx1))
+
+        # half
+        dx0, dx1 = 0.5*dx0, 0.5*dx1
 
         # derive global outline (not pixel outline)
         p0 = np.r_[
