@@ -321,8 +321,9 @@ def _ideal_configuration_check(
                     sign='> 0.',
                 )
 
-            if aperture_dimensions.size == 1:
-                aperture_dimensions = aperture_dimensions * np.r_[1., 1.]
+            if aperture_dimensions is not None:
+                if len(aperture_dimensions) == 1:
+                    aperture_dimensions = aperture_dimensions * np.r_[1., 1.]
 
     # returnas
     returnas = ds._generic_check._check_var(
