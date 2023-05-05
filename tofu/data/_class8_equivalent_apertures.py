@@ -251,7 +251,7 @@ def equivalent_apertures(
         x1.append(p1)
 
         # --- DEBUG ---------
-        # if ii in [97]:
+        # if ii in [14, 15, 16, 17]:
             # _debug_plot(pa0=p0, pa1=p1, ii=ii, tit='local coords')
         # --------------------
 
@@ -638,6 +638,8 @@ def _get_equivalent_aperture(
     nop_pre=None,
     lpoly_pre=None,
     ptsvect=None,
+    # debug
+    ii=None,
     **kwdargs,
 ):
 
@@ -655,6 +657,11 @@ def _get_equivalent_aperture(
             strict=False,
             return_x01=True,
         )[-2:]
+
+        # --- DEBUG ---------
+        # if ii in [14, 15, 16, 17]:
+            # _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='local coords')
+        # --------------------
 
         # inside
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
@@ -756,11 +763,12 @@ def _get_equivalent_aperture_spectro(
             # print('\t \t None 0')
             return p0, p1
 
+        # --- DEBUG ---------
+        # if ii in [12, 13, 14, 15, 16, 17]:
+            # _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='allin')
+        # ----------------------
+
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
-            # --- DEBUG ---------
-            # if ii in [32, 37, 42]:
-            #     _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='allin')
-            # ----------------------
             p_a = plg.Polygon(np.array([p0, p1]).T)
 
         else:
@@ -782,7 +790,7 @@ def _get_equivalent_aperture_spectro(
 
             # --- DEBUG ---------
             # if ii in [214, 217]:
-            #     _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='not all')
+                # _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='not all')
             # ----------------------
 
             # intersection
