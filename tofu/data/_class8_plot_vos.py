@@ -100,7 +100,7 @@ def _plot_diagnostic_vos(
     # single camera + get dvos
     key_cam = key_cam[:1]
     if dvos is None:
-        dvos = coll.dobj['diagnostic'][key]['doptics'][key_cam]['dvos']
+        dvos = coll.dobj['diagnostic'][key]['doptics'][key_cam[0]]['dvos']
 
     doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam[0]]
 
@@ -130,11 +130,21 @@ def _plot_diagnostic_vos(
             add_points=False,
             total=True,
         )
-        k0, k1 = coll.dobj['camera'][key_cam[0]]['dgeom']['cents']
+
+        dgeom = coll.dobj['camera'][key_cam[0]]['dgeom']
+        k0, k1 = dgeom['cents']
         x0 = coll.ddata[k0]['data']
         x1 = coll.ddata[k1]['data']
-        dx0 = x0[1] - x0[0]
-        dx1 = x1[1] - x1[0]
+        if x0.size == 1:
+            dx0 = coll.ddata[dgeom['outline'][0]]['data']
+            dx0 = dx0.max() - dx0.min()
+        else:
+            dx0 = x0[1] - x0[0]
+        if x1.size == 1:
+            dx1 = coll.ddata[dgeom['outline'][1]]['data']
+            dx1 = dx1.max() - dx1.min()
+        else:
+            dx1 = x1[1] - x1[0]
         extent_cam = (
             x0[0] - 0.5*dx0,
             x0[-1] + 0.5*dx0,
