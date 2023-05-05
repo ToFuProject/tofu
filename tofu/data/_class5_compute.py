@@ -146,6 +146,7 @@ def _ideal_configuration_check(
     coll=None,
     key=None,
     configuration=None,
+    defocus=None,
     # parameters
     cam_on_e0=None,
     # johann-specific
@@ -195,6 +196,13 @@ def _ideal_configuration_check(
         types=str,
         allowed=conf,
     )
+
+    # defocus
+    defocus = float(ds._generic_check._check_var(
+        defocus, 'defocus',
+        types=(float, int),
+        default=0.,
+    ))
 
     # cam_on_e0
     cam_on_e0 = ds._generic_check._check_var(
@@ -337,7 +345,7 @@ def _ideal_configuration_check(
 
     return (
         key, gtype, configuration,
-        cam_on_e0, cam_tangential,
+        defocus, cam_on_e0, cam_tangential,
         store, key_cam, key_aperture, key_aperture_in,
         cam_pixels_nb, aperture_dimensions,
         focal_distance, pinhole_radius,
@@ -352,6 +360,7 @@ def _ideal_configuration(
     lamb=None,
     bragg=None,
     norder=None,
+    defocus=None,
     # parameters
     cam_on_e0=None,
     # johann-specific
@@ -376,7 +385,7 @@ def _ideal_configuration(
 
     (
         key, gtype, configuration,
-        cam_on_e0, cam_tangential,
+        defocus, cam_on_e0, cam_tangential,
         store, key_cam, key_aperture, key_aperture_in,
         cam_pixels_nb, aperture_dimensions,
         focal_distance, pinhole_radius,
@@ -385,6 +394,7 @@ def _ideal_configuration(
         coll=coll,
         key=key,
         configuration=configuration,
+        defocus=defocus,
         # parameters
         cam_on_e0=cam_on_e0,
         # johann-specific

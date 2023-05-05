@@ -200,6 +200,7 @@ class Crystal(Previous):
         configuration=None,
         lamb=None,
         bragg=None,
+        defocus=None,
         # parameters
         cam_on_e0=None,
         # johann-specific
@@ -244,6 +245,7 @@ class Crystal(Previous):
             configuration=configuration,
             lamb=lamb,
             bragg=bragg,
+            defocus=defocus,
             # parameters
             cam_on_e0=cam_on_e0,
             # johann-specific
