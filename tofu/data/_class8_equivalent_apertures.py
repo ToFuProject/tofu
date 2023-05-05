@@ -219,6 +219,11 @@ def equivalent_apertures(
         x0.append(p0)
         x1.append(p1)
 
+        # --- DEBUG ---------
+        # if ii in [14, 15, 16, 17]:
+            # _debug_plot(pa0=p0, pa1=p1, ii=ii, tit='local coords')
+        # --------------------
+
     # -------------------------------------------
     # harmonize if necessary the initial polygons
     # -------------------------------------------
@@ -573,6 +578,8 @@ def _get_equivalent_aperture(
     nop_pre=None,
     lpoly_pre=None,
     ptsvect=None,
+    # debug
+    ii=None,
     **kwdargs,
 ):
 
@@ -590,6 +597,11 @@ def _get_equivalent_aperture(
             strict=False,
             return_x01=True,
         )[-2:]
+
+        # --- DEBUG ---------
+        # if ii in [14, 15, 16, 17]:
+            # _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='local coords')
+        # --------------------
 
         # inside
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
@@ -687,15 +699,12 @@ def _get_equivalent_aperture_spectro(
             # print('\t \t None 0')
             return p0, p1
 
+        # --- DEBUG ---------
+        # if ii in [12, 13, 14, 15, 16, 17]:
+            # _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='allin')
+        # ----------------------
+
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
-            # print('inside: ', p1)
-            # plt.figure()
-            # plt.plot(
-                # np.array(p_a.contour(0))[:, 0],
-                # np.array(p_a.contour(0))[:, 1],
-                # '.-k',
-                # p0, p1, '.-r'
-            # )
             p_a = plg.Polygon(np.array([p0, p1]).T)
         else:
             # convex hull
@@ -706,14 +715,10 @@ def _get_equivalent_aperture_spectro(
                 vert = ConvexHull(np.array([p0, p1]).T).vertices
                 p0, p1 = p0[vert], p1[vert]
 
-            # plt.figure()
-            # plt.plot(
-                # np.array(p_a.contour(0))[:, 0],
-                # np.array(p_a.contour(0))[:, 1],
-                # '.-k',
-                # p0, p1, '.-r'
-            # )
-            # import pdb; pdb.set_trace()     # DB
+            # --- DEBUG ---------
+            # if ii in [214, 217]:
+                # _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='not all')
+            # ----------------------
 
             # intersection
             p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
