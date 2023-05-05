@@ -101,6 +101,7 @@ def get_optics_outline(
         isclosed=False,
         closed=closed,
         ravel=ravel,
+        debug=None,
     )
 
 
@@ -292,6 +293,7 @@ def _interp_poly_check(
     mode=None,
     closed=None,
     ravel=None,
+    min_threshold=None,
 ):
 
     # -------
@@ -300,7 +302,7 @@ def _interp_poly_check(
     mode = ds._generic_check._check_var(
         mode, 'mode',
         default=None,
-        allowed=[None, 'mean', 'min'],
+        allowed=[None, 'mean', 'min', 'thr'],
     )
 
     # ----------
@@ -331,7 +333,18 @@ def _interp_poly_check(
         default=False,
         types=bool,
     )
-    return add_points, mode, closed, ravel
+
+    # -------
+    # min_threshold
+
+    min_threshold = ds._generic_check._check_var(
+        min_threshold, 'min_threshold',
+        default=100e-6,
+        types=float,
+        sign='>=0',
+    )
+
+    return add_points, mode, closed, ravel, min_threshold
 
 
 def _interp_poly(
@@ -341,17 +354,32 @@ def _interp_poly(
     isclosed=None,
     closed=None,
     ravel=None,
-    min_threshold=1.e-6,
+    min_threshold=None,
+    debug=None,
 ):
+    """ Interpolate list of polygons by adding points ons segments
+
+    lp = list of coordinates arrays describing polygons
+        - [px, py]
+        - [px, py, pz]
+    Each coordinate array can be 1d or 2d
+
+    modes: determine a multiplicative factor to add_points
+        - None: 1
+        - min: determined by minimum segment length
+        - mean: determined by mean segment length
+
+    """
 
     # ------------
     # check inputs
 
-    add_points, mode, closed, ravel = _interp_poly_check(
+    add_points, mode, closed, ravel, min_threshold = _interp_poly_check(
         add_points=add_points,
         mode=mode,
         closed=closed,
         ravel=ravel,
+        min_threshold=min_threshold,
     )
 
     # ------------
@@ -414,13 +442,17 @@ def _interp_poly(
         if dist.ndim == 2:
             import pdb; pdb.set_trace()     # DB
 
-        min_threshold = min(min_threshold, np.max(dist)/3.)
-        if mode == 'min':
-            mindist = np.min(dist[dist > min_threshold])
-        elif mode == 'mean':
-            mindist = np.mean(dist[dist > min_threshold])
+        if mode == 'thr':
+            mindist = min_threshold
+            add_points = np.ceil(dist / mindist).astype(int) - 1
+        else:
+            min_threshold = min(min_threshold, np.max(dist)/3.)
+            if mode == 'min':
+                mindist = np.min(dist[dist > min_threshold])
+            elif mode == 'mean':
+                mindist = np.mean(dist[dist > min_threshold])
 
-        add_points = add_points * np.ceil(dist / mindist).astype(int) - 1
+            add_points = add_points * np.ceil(dist / mindist).astype(int) - 1
 
     # -----------
     # add_points
@@ -477,13 +509,81 @@ def _interp_poly(
         nan = np.full((pp.shape[0], 1), np.nan)
         for ii, pp in enumerate(lp[2:]):
             lp[ii+2] = np.concatenate((pp, nan), axis=1).ravel()
+
     return lp
 
 
-# ##################################################################
-# ##################################################################
+def _harmonize_polygon_sizes(
+    lp0=None,
+    lp1=None,
+    nmin=0,
+):
+    """ From a list of polygons return an array
+
+    """
+
+    # prepare
+    npoly = len(lp0)
+    ln = [p0.size if p0 is not None else 0 for p0 in lp0]
+    nmax = max(np.max(ln), nmin)
+    nan = np.full((nmax,), np.nan)
+
+    # prepare output
+    x0 = np.full((npoly, nmax), np.nan)
+    x1 = np.full((npoly, nmax), np.nan)
+
+    for ii, p0 in enumerate(lp0):
+
+        if p0 is None:
+            continue
+
+        elif ln[ii] < nmax:
+
+            ndif = nmax - ln[ii]
+            ind0 = np.arange(0, ln[ii] + 1)
+
+            # create imax
+            iseg = np.arange(0, ndif) % ln[ii]
+            npts = np.unique(iseg, return_counts=True)[1]
+            if npts.size < ln[ii]:
+                npts = np.r_[
+                    npts, np.zeros((ln[ii] - npts.size,))
+                ].astype(int)
+
+            imax = np.concatenate(tuple([
+                np.linspace(
+                    ind0[ii],
+                    ind0[ii+1],
+                    2 + npts[ii],
+                    endpoint=True,
+                )[:-1]
+                for ii in range(ln[ii])
+            ]))
+
+            # interpolate
+            x0[ii, :] = scpinterp.interp1d(
+                ind0,
+                np.r_[p0, p0[0]],
+                kind='linear',
+            )(imax)
+            x1[ii, :] = scpinterp.interp1d(
+                ind0,
+                np.r_[lp1[ii], lp1[ii][0]],
+                kind='linear',
+            )(imax)
+
+        else:
+            x0[ii, :] = p0
+            x1[ii, :] = lp1[ii]
+
+    return x0, x1
+
+
+
+# ###############################################################
+# ###############################################################
 #                       dplot
-# ##################################################################
+# ###############################################################
 
 
 def _dplot_check(
