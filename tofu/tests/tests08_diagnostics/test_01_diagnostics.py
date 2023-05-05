@@ -515,6 +515,10 @@ class Test01_Diagnostic():
         for k0, v0 in dcrystals.items():
 
             for ii, cc in enumerate(dconfig[k0]):
+
+                apdim = [100e-6, 8e-2] if cc != 'pinhole' else None
+                pinrad = 500e-6 if cc == 'pinhole' else None
+
                 loptics = self.obj.get_crystal_ideal_configuration(
                     key=k0,
                     configuration=cc,
@@ -522,12 +526,12 @@ class Test01_Diagnostic():
                     cam_on_e0=False,
                     cam_tangential=True,
                     cam_dimensions=[8e-2, 5e-2],
-                    pinhole_distance=2.,
+                    focal_distance=2.,
                     # store
                     store=True,
                     key_cam=f'{k0}-cam{ii}',
-                    aperture_dimensions=[100e-6, 8e-2],
-                    pinhole_radius=500e-6,
+                    aperture_dimensions=apdim,
+                    pinhole_radius=pinrad,
                     cam_pixels_nb=[5, 3],
                     # returnas
                     returnas=list,
