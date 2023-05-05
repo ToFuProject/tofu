@@ -345,7 +345,7 @@ def _add_spectrometer(
             cam_on_e0=False,
             cam_tangential=True,
             cam_dimensions=np.r_[1028, 512]*75e-6,
-            pinhole_distance=2.,
+            focal_distance=2.,
             # store
             store=True,
             key_cam=f'{k0}_cam',
