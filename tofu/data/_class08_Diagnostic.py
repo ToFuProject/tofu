@@ -20,6 +20,7 @@ from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_etendue_los as _etendue_los
 from . import _class8_vos as _vos
 from . import _class8_los_angles as _los_angles
+from . import _class8_plane_perp_to_los as _planeperp
 from . import _class8_compute_signal as _compute_signal
 from . import _class8_reverse_ray_tracing as _reverse_rt
 from . import _class8_plot as _plot
@@ -29,10 +30,10 @@ from . import _class8_plot_vos as _plot_vos
 __all__ = ['Diagnostic']
 
 
-# #############################################################################
-# #############################################################################
+# ###############################################################
+# ###############################################################
 #                           Diagnostic
-# #############################################################################
+# ###############################################################
 
 
 class Diagnostic(Previous):
@@ -262,6 +263,39 @@ class Diagnostic(Previous):
                 dcompute=dcompute,
                 compute_vos_from_los=compute_vos_from_los,
             )
+
+    def compute_diagnostic_solidangle_from_plane(
+        self,
+        key_diag=None,
+        key_cam=None,
+        indch=None,
+        indref=None,
+        # parameters
+        res=None,
+        margin_par=None,
+        margin_perp=None,
+        # bool
+        verb=None,
+        plot=None,
+    ):
+        """ Creates a plane perpendicular to los
+        compute contribution of each point to the signal
+        """
+
+        return _planeperp.main(
+            coll=self,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            indch=indch,
+            indref=indref,
+            # parameters
+            res=res,
+            margin_par=margin_par,
+            margin_perp=margin_perp,
+            # bool
+            verb=verb,
+            plot=plot,
+        )
 
     def compute_diagnostic_vos(
         self,

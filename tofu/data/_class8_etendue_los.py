@@ -196,6 +196,12 @@ def compute_etendue_los(
                     key_diag=key,
                     key_cam=key_cam,
                     is2d=is2d,
+                    doptics=doptics,
+                    los_x=los_x,
+                    los_y=los_y,
+                    los_z=los_z,
+                    margin_par=margin_par,
+                    margin_perp=margin_perp,
                 )
             else:
                 etend1 = _compute_etendue_numerical(
@@ -988,6 +994,11 @@ def _compute_etendue_numerical_spectro(
     key_diag=None,
     key_cam=None,
     is2d=None,
+    doptics=None,
+    los_x=None,
+    los_y=None,
+    los_z=None,
+    margin_par=None,
 ):
 
     # --------------
@@ -997,12 +1008,83 @@ def _compute_etendue_numerical_spectro(
         msg = "Can only handle 2d camera spectrometers"
         raise Exception(msg)
 
-
-
     # --------------
-    # prepare
+    # Get main LOS
 
-    # get main los
+    los = np.r_[np.nanmean(los_x), np.nanmean(los_y), np.nanmean(los_z)]
+    los_n = los / np.linalg.norm(los)
+
+    e0_cam = coll.dobj['camera'][key_cam]['dgeom']['e0']
+    e1_cam = coll.dobj['camera'][key_cam]['dgeom']['e1']
+
+    e0 = np.cross(e1_cam, los_n)
+    e0 = e0 / np.linalg.norm(e0)
+
+    e1 = np.cross(los_n, e0)
+    e1 = e1 / np.linalg.norm(e1)
+
+    # get length along los
+    k_los = (1. + margin_par) * np.max(sca1)
+
+    # -------------------------
+    # grid perpendicular to los
+
+    # pojections of all los on plane
+    sca0 = (
+        (c_los_x - det_Px[None, :]) * los_x[ii]
+        + (c_los_y - det_Py[None, :]) * los_y[ii]
+        + (c_los_z - det_Pz[None, :]) * los_z[ii]
+    )
+    k_plane = sca0 / sca1
+
+    # perpendicular limits
+    x0 = np.split(
+        ((det_Px[None, :] + k_plane * PA_x) - c_los_x)*e0_xi
+        + ((det_Py[None, :] + k_plane * PA_y) - c_los_y)*e0_yi
+        + ((det_Pz[None, :] + k_plane * PA_z) - c_los_z)*e0_zi,
+        ap_ind,
+        axis=0,
+    )
+    x1 = np.split(
+        ((det_Px[None, :] + k_plane * PA_x) - c_los_x)*e1_xi
+        + ((det_Py[None, :] + k_plane * PA_y) - c_los_y)*e1_yi
+        + ((det_Pz[None, :] + k_plane * PA_z) - c_los_z)*e1_zi,
+        ap_ind,
+        axis=0,
+    )
+
+    x0_min = np.max([np.min(x0s) for x0s in x0])
+    x0_max = np.min([np.max(x0s) for x0s in x0])
+    x1_min = np.max([np.min(x1s) for x1s in x1])
+    x1_max = np.min([np.max(x1s) for x1s in x1])
+
+    w0 = x0_max - x0_min
+    w1 = x1_max - x1_min
+
+    min_res = min(2*margin_perp*w0, 2*margin_perp*w1)
+    too_large = res >= min_res
+    if np.any(too_large):
+        msg = (
+            f"Minimum etendue resolution for det {ii} / {nd}: {min_res}\n"
+            "The following res values may lead to errors:\n"
+            f"\t- res values = {res}\n"
+            f"\t- too large  = {too_large}\n"
+        )
+        warnings.warn(msg)
+
+    # 2d grid perpendicular to los
+    n0 = int(np.ceil((lim0[1] -lim0[0]) / res))
+    n1 = int(np.ceil((lim1[1] -lim1[0]) / res))
+    x0 = np.linspace(lim0[0], lim0[1], n0)
+    x1 = np.linspace(lim1[0], lim1[1], n1)
+
+    x0f = np.repeat(x0[:, None], n1, axis=1)
+    x1f = np.repeat(x1[None, :], n0, axis=0)
+
+    # ------------
+    # loop on pts
+
+    import pdb; pdb.set_trace()     # DB
 
 
 
