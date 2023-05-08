@@ -211,7 +211,7 @@ class Crystal(Previous):
         # pinhole-specific
         cam_dimensions=None,
         cam_distance=None,
-        pinhole_distance=None,
+        focal_distance=None,
         # store
         store=None,
         key_cam=None,
@@ -255,7 +255,7 @@ class Crystal(Previous):
             # pinhole-specific
             cam_dimensions=cam_dimensions,
             cam_distance=cam_distance,
-            pinhole_distance=pinhole_distance,
+            focal_distance=focal_distance,
             # store
             store=store,
             key_cam=key_cam,
