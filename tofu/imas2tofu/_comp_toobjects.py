@@ -454,8 +454,11 @@ def get_plasma(
     plot_sig=None,
 ):
 
-    import tofu.data as tfd
-    plasma = tfd.Plasma2D()
+    #import tofu.data as tfd
+    #plasma = tfd.Plasma2D()
+    import tofu as tf
+    plasma = tf.data._class1_Plasma2D.Plasma2D()
+    #plasma = tf.data.Collection()
 
     # -----------
     # loop on ids
