@@ -971,6 +971,7 @@ def fit2d_extract(
         'func_tot': func_tot,
         'units': 'a.u.',
         'd3': d3,
+        'bcki': bcki,
         'amp_on_bck': amp_on_bck,
         'amp_on_bck_thresh': amp_on_bck_thresh,
         'phi_prof': phi_prof,
