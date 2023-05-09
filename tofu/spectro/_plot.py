@@ -263,7 +263,8 @@ def _check_phi_lim(phi=None, phi_lim=None):
     Dphi = (phi.max()-phi.min()) / 2.
     dphi = np.mean(np.diff(np.unique(phi)))
     if phi_lim is None:
-        phi_lim = phi.mean() + Dphi*np.r_[0., -0.25, -0.5]
+        phi_lim = phi.mean() + Dphi*np.r_[0.75, 0., -0.25, -0.5, -0.75]
+        # phi_lim = phi.mean() + Dphi*np.r_[0.1, 0.05, 0., -0.05, -0.1]
 
     # check for phi values
     c0 = (
@@ -926,9 +927,12 @@ def plot_fit2d(
         wintit = _WINTIT
     if dmargin is None:
         dmargin = {
-            'left': 0.05, 'right': 0.95,
-            'bottom': 0.07, 'top': 0.90,
-            'wspace': 0.2, 'hspace': 0.5,
+            'top': 0.97, #0.90,
+            'bottom': 0.06, #0.07,
+            'left': 0.06, #0.05,
+            'right': 0.99, #0.95,
+            'hspace': 1., #0.5,
+            'wspace': 0.2,
         }
 
     if vmin is None:
@@ -1043,9 +1047,15 @@ def plot_fit2d(
         ax0 = fig.add_subplot(gs[:4, :2])
         ax1 = fig.add_subplot(gs[:4, 2:4], sharex=ax0, sharey=ax0)
         ax2 = fig.add_subplot(gs[:4, 4:6], sharex=ax0, sharey=ax0)
-        ax3 = fig.add_subplot(gs[:4, 6], sharey=ax0)
-        ax4 = fig.add_subplot(gs[:4, 7], sharey=ax0)
-        ax5 = fig.add_subplot(gs[:4, 8], sharey=ax0)
+        ax3 = fig.add_subplot(gs[4:, 6], sharey=ax0)
+        ax4 = fig.add_subplot(gs[4:, 7], sharey=ax0)
+        ax5 = fig.add_subplot(gs[4:, 8], sharey=ax0)
+        ax8 = fig.add_subplot(gs[:4, 6], sharex=ax0, sharey=ax0)
+        ax9 = fig.add_subplot(gs[:4, 7], sharex=ax0, sharey=ax0)
+        ax10 = fig.add_subplot(gs[:4, 8])
+        #ax3 = fig.add_subplot(gs[:4, 6], sharey=ax0)
+        #ax4 = fig.add_subplot(gs[:4, 7], sharey=ax0)
+        #ax5 = fig.add_subplot(gs[:4, 8], sharey=ax0)
         ax6 = fig.add_subplot(gs[4:6, :6], sharex=ax0)
         ax7 = fig.add_subplot(gs[6, :6], sharex=ax0)
 
@@ -1064,9 +1074,12 @@ def plot_fit2d(
         # ax1.get_yaxis().set_visible(False)
         plt.setp(ax1.get_yticklabels(), visible=False)
         plt.setp(ax2.get_yticklabels(), visible=False)
-
+        plt.setp(ax3.get_yticklabels(), visible=False)
         plt.setp(ax4.get_yticklabels(), visible=False)
         plt.setp(ax5.get_yticklabels(), visible=False)
+        plt.setp(ax8.get_yticklabels(), visible=False)
+        plt.setp(ax9.get_yticklabels(), visible=False)
+        plt.setp(ax10.get_yticklabels(), visible=False)
 
         plt.setp(ax6.get_xticklabels(), visible=False)
 
@@ -1079,12 +1092,15 @@ def plot_fit2d(
             'prof_vi': {'ax': ax5},
             'spect': {'ax': ax6},
             'spect_err': {'ax': ax7},
+            'bckgd amp': {'ax': ax8},
+            'ai/bckgrd amp': {'ax': ax9},
+            'valid phi ind': {'ax': ax10},
         }
-
         # plot images
         kax = 'img_data'
         if dax.get(kax) is not None:
             ax = dax[kax]['ax']
+            ax.set_title(kax)
             im = ax.imshow(
                 data[ii, ...],
                 extent=extent,
@@ -1103,6 +1119,7 @@ def plot_fit2d(
         kax = 'img_fit'
         if dax.get(kax) is not None:
             ax = dax[kax]['ax']
+            ax.set_title(kax)
             ax.imshow(
                 sol_tot[ii, ...],
                 extent=extent,
@@ -1120,6 +1137,7 @@ def plot_fit2d(
         kax = 'img_err'
         if dax.get(kax) is not None:
             ax = dax[kax]['ax']
+            ax.set_title(kax)
             im = ax.imshow(
                 err[ii, ...],
                 extent=extent,
@@ -1135,6 +1153,7 @@ def plot_fit2d(
         kax, k1 = 'prof_Te', 'ratio'
         if dax.get(kax) is not None and 'ratio' in d3.keys():
             ax = dax[kax]['ax']
+            ax.set_title(kax)
             for jj in range(d3['ratio']['requested'].shape[-1]):
                 ax.plot(
                     d3['ratio']['lines']['values'][ispect, :, jj],
@@ -1151,6 +1170,7 @@ def plot_fit2d(
         kax, k1 = 'prof_Ti', 'Ti'
         if dax.get(kax) is not None and k1 in d3.keys():
             ax = dax[kax]['ax']
+            ax.set_title(kax)
             for jj in range(d3[k1]['lines']['values'].shape[-1]):
                 ax.plot(
                     d3[k1]['lines']['values'][ispect, :, jj]*1e-3,
@@ -1167,6 +1187,7 @@ def plot_fit2d(
         kax, k1 = 'prof_vi', 'vi'
         if dax.get(kax) is not None and k1 in d3.keys():
             ax = dax[kax]['ax']
+            ax.set_title(kax)
             for jj in range(d3[k1]['x']['values'].shape[-1]):
                 ax.plot(
                     d3[k1]['x']['values'][ispect, :, jj]*1.e-3,
@@ -1186,6 +1207,7 @@ def plot_fit2d(
         kax = 'spect'
         if dax.get(kax) is not None and k1 in d3.keys():
             ax = dax[kax]['ax']
+            ax.set_title(kax)
             for jj in range(phi_lim.shape[0]):
                 ax.plot(
                     lspect_lamb[jj],
@@ -1201,16 +1223,94 @@ def plot_fit2d(
                     c=lcol_spect[jj],
                     lw=1.,
                 )
+            for jj in range(phi_lim.shape[0]):
+                w_indmax = int(np.where(
+                    lspect_fit[jj][0, ...] == np.max(
+                        lspect_fit[jj][
+                            0, :np.where(
+                                lspect_lamb[jj] < 3.951e-10
+                            )[0][-1]
+                        ]
+                    )
+                )[0][0])
+                w_fitmax = lspect_fit[jj][0, w_indmax]
+                w_lambmax = lspect_lamb[jj][
+                    int(w_indmax)
+                ]
+                n3_indmax = int(np.where(
+                    lspect_fit[jj][0, ...] == np.max(
+                        lspect_fit[jj][
+                            0, :np.where(
+                                (lspect_lamb[jj] < 3.955e-10)
+                                & (lspect_lamb[jj] < 3.960e-10)
+                            )[0][-1]
+                        ]
+                    )
+                )[0][0])
+                n3_fitmax = lspect_fit[jj][0, n3_indmax]
+                n3_lambmax = lspect_lamb[jj][
+                    int(n3_indmax)
+                ]
+                ax.axvline(w_lambmax, c=lcol_spect[jj], lw=1., ls='-')
+                ax.axhline(w_fitmax, c=lcol_spect[jj], lw=1., ls='-')
+                ax.axvline(n3_lambmax, c=lcol_spect[jj], lw=1., ls='-')
+                ax.axhline(n3_fitmax, c=lcol_spect[jj], lw=1., ls='-')
 
         kax = 'spect_err'
         if dax.get(kax) is not None and k1 in d3.keys():
             ax = dax[kax]['ax']
+            ax.set_title(kax)
             for jj in range(phi_lim.shape[0]):
                 ax.plot(
                     lspect_lamb[jj], lspect_err[jj][ii, ...],
                     marker='.', c=lcol_spect[jj],
                 )
             ax.axhline(0, ls='--', c='k', lw=1.)
+
+        kax = 'bckgd amp'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['ax']
+            ax.set_title(kax)
+            im = ax.imshow(
+                dextract['bcki'][0],
+                extent=extent,
+                interpolation='nearest',
+                origin='lower',
+                # vmin=vmin_err,
+                # vmax=vmax_err,
+                cmap='viridis', #plt.cm.seismic,
+                aspect='auto',
+            )
+            plt.colorbar(im, ax=ax, orientation='vertical')
+
+        kax = 'ai/bckgrd amp'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['ax']
+            ax.set_title(kax)
+            im = ax.imshow(
+                dextract['amp_on_bck'][0],
+                extent=extent,
+                interpolation='nearest',
+                origin='lower',
+                # vmin=vmin_err,
+                # vmax=vmax_err,
+                cmap='viridis', #plt.cm.seismic,
+                aspect='auto',
+            )
+            plt.colorbar(im, ax=ax, orientation='vertical')
+
+        kax = 'valid phi ind'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['ax']
+            ax.set_title(kax)
+            indphi2 = dextract['indphi'].copy()
+            indphi2.astype('int')
+            im = ax.scatter(
+                indphi2[0],
+                np.linspace(0, indphi2.size-1, indphi2.size),
+                vmin=0.,
+                vmax=100.,
+            )
 
         ldax.append(dax)
 
