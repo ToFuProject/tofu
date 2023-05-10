@@ -1065,7 +1065,6 @@ def compute_retrofit_data(
                 for ii in range(nt)
             ])
         elif ist_mat:
-            import pdb; pdb.set_trace()     # DB
             retro = np.array([
                 matrix[imat[ii], :, :].dot(coefs)
                 for ii in range(nt)
@@ -1220,12 +1219,12 @@ def _compute_retrofit_data_check(
 
     ist_mat = coll.get_ref_vector(
         key=lkmat[0],
-        ref=reft,
+        # ref=reft,
         **dref_vector,
     )[0]
     ist_prof = coll.get_ref_vector(
         key=key_profile2d,
-        ref=reft,
+        # ref=reft,
         **dref_vector,
     )[0]
 
@@ -1252,7 +1251,6 @@ def _compute_retrofit_data_check(
         default=False if store else dict,
         allowed=[False, dict],
     )
-
 
     return (
         key, key_diag, key_cam, keybs, keym, mtype,
