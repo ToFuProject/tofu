@@ -147,7 +147,12 @@ def compute_inversions(
     if indok is None:
         sol0 = np.full((nbs,), np.mean(data[0, :] / np.sum(mat0, axis=1)))
     else:
-        sol0 = np.full((nbs,), np.mean(data[0, indok[0, :]] / np.sum(mat0, axis=1)))
+        sol0 = np.full(
+            (nbs,),
+            np.mean(
+                data[0, indok[0, :]] / np.sum(mat0[indok[0, :], :], axis=1),
+            ),
+        )
 
     if verb >= 1:
         # t1 = time.process_time()
@@ -1060,6 +1065,7 @@ def compute_retrofit_data(
                 for ii in range(nt)
             ])
         elif ist_mat:
+            import pdb; pdb.set_trace()     # DB
             retro = np.array([
                 matrix[imat[ii], :, :].dot(coefs)
                 for ii in range(nt)
