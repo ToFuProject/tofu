@@ -113,7 +113,7 @@ def _get_ref_vector_common(
         refi = [
             rr for rr in coll.ddata[key_profile2d]['ref']
             if rr not in refbs
-            and (refc0 is None or rr == refc0)
+            # and (refc0 is None or rr == refc0)
             and rr not in lrefbs
         ]
         if len(refi) > 1:
