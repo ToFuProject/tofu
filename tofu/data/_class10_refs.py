@@ -5,7 +5,7 @@ Created on Wed Mar  8 11:00:59 2023
 @author: dvezinet
 """
 
-
+import warnings
 import itertools as itt
 
 
@@ -143,8 +143,10 @@ def _get_ref_vector_common(
                     msg += f"\t- {key_profile2d}: {refc1}\n"
                 else:
                     msg += f"\t- {ddata['keys']}: {refc1}\n"
-                raise Exception(msg)
-            refc = refc0
+                warnings.warn(msg)
+                refc = None
+            else:
+                refc = refc0
         elif refc0 is None:
             refc = refc1
         else:
