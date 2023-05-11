@@ -2635,7 +2635,7 @@ def fit12d_dscales(dscales=None, dinput=None):
                 din=dscales, din_name='dscales', key=k0,
                 vref=din[k0], nspect=nspect,
             )
-    else:
+    elif 'dratio' in dscales.keys():
         del dscales['dratio'], dscales['dshift']
 
     # check
