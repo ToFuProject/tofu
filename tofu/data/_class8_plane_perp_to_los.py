@@ -7,10 +7,12 @@
 
 # Common
 import numpy as np
+import matplotlib.pyplot as plt
 import datastock as ds
 
 
 # tofu
+from ..geom import _comp_solidangles
 
 
 # ###############################################################
@@ -29,6 +31,7 @@ def main(
     res=None,
     margin_par=None,
     margin_perp=None,
+    config=None,
     # bool
     verb=None,
     plot=None,
@@ -119,6 +122,9 @@ def main(
     # get length along los
     klos = kmax + margin_par
 
+    # get pt plane
+    pt_plane = pt_ref + klos * los_ref
+
     # -------------------------------------
     # create plane perpendicular to los_ref
 
@@ -131,10 +137,10 @@ def main(
         e0_cam = coll.ddata[ke0]['data'][indref]
         e1_cam = coll.ddata[ke1]['data'][indref]
 
-    e0 = np.cross(e1_cam, los_n)
+    e0 = np.cross(e1_cam, los_ref)
     e0 = e0 / np.linalg.norm(e0)
 
-    e1 = np.cross(los_n, e0)
+    e1 = np.cross(los_ref, e0)
     e1 = e1 / np.linalg.norm(e1)
 
     # -------------------------------------
@@ -144,17 +150,26 @@ def main(
     if indch is None:
         kk = vx[-1, ...]
 
-        x0 =
-        x1 =
-        w0 =
-        w1 =
+        x0, x1, iok = _get_intersect_los_plane(
+            cent=pt_plane,
+            nin=los_ref,
+            e0=e0,
+            e1=e1,
+            ptx=ptsx[-2, ...],
+            pty=ptsy[-2, ...],
+            ptz=ptsz[-2, ...],
+            vx=vx[-1, ...],
+            vy=vy[-1, ...],
+            vz=vz[-1, ...],
+        )
+
     else:
         x0 = np.r_[0]
         x1 = np.r_[0]
 
     # dx0, dx1
-    dx0 = [x0.min() - margin_perp, x0.max() + margin_perp]
-    dx1 = [x1.min() - margin_perp, x1.max() + margin_perp]
+    dx0 = [np.nanmin(x0) - margin_perp, np.nanmax(x0) + margin_perp]
+    dx1 = [np.nanmin(x1) - margin_perp, np.nanmax(x1) + margin_perp]
 
     # cerate 2d grid
     n0 = int(np.ceil((dx0[1] - dx0[0]) / res[0])) + 2
@@ -189,6 +204,17 @@ def main(
 
     else:
         dout = _nonspectro(
+            coll=coll,
+            key_cam=key_cam,
+            doptics=doptics,
+            par=parallel,
+            is2d=is2d,
+            # points
+            # pts
+            ptsx=ptsx,
+            ptsy=ptsy,
+            ptsz=ptsz,
+            config=config,
         )
 
     # ------------
@@ -204,6 +230,9 @@ def main(
         'klos': klos,
         'e0': e0,
         'e1': e1,
+        'ptsx': ptsx,
+        'ptsy': ptsy,
+        'ptsz': ptsz,
         'x0': x0,
         'x1': x1,
         'ds': ds,
@@ -387,42 +416,134 @@ def _check(
 
 # ###############################################################
 # ###############################################################
+#              get intersection los vs plane
+# ###############################################################
+
+
+def _get_intersect_los_plane(
+    cent=None,
+    nin=None,
+    e0=None,
+    e1=None,
+    ptx=None,
+    pty=None,
+    ptz=None,
+    vx=None,
+    vy=None,
+    vz=None,
+):
+
+    # ---------------
+    # prepare output
+    
+    shape = vx.shape
+    kk = np.full(shape, np.nan)
+    
+    # ------------
+    # compute kk
+    
+    sca0 = vx * nin[0] + vy * nin[1] + vz * nin[2]
+    sca1 = (
+        (cent[0] - ptx) * nin[0]
+        + (cent[1] - pty) * nin[1]
+        + (cent[2] - ptz) * nin[2]
+    )
+    
+    iok = np.abs(sca1) > 1e-6
+    kk[iok] = sca1[iok] / sca0[iok]
+    
+    # --------------
+    # 3d coordinates
+    
+    xx = ptx + kk * vx
+    yy = pty + kk * vy
+    zz = ptz + kk * vz
+    
+    # -----------------
+    # local coordinates
+    
+    dx = xx - cent[0]
+    dy = yy - cent[1]
+    dz = zz - cent[2]
+    
+    x0 = dx * e0[0] + dy * e0[1] + dz * e0[2]
+    x1 = dx * e1[0] + dy * e1[1] + dz * e1[2]
+    
+    return x0, x1, iok
+    
+
+# ###############################################################
+# ###############################################################
 #                   non-spectro
 # ###############################################################
 
 
 def _nonspectro(
+    coll=None,
+    key_cam=None,
     doptics=None,
+    par=None,
+    is2d=None,
     # pts
     ptsx=None,
     ptsy=None,
     ptsz=None,
+    config=None,
 ):
 
+    # -----------------
+    # prepare apertures
+    
+    apertures = coll.get_optics_as_input_solid_angle(doptics['optics'])
+    
+    # -----------
+    # prepare det
+    
+    k0, k1 = coll.dobj['camera'][key_cam]['dgeom']['outline']
+    cx, cy, cz = coll.get_camera_cents_xyz(key=key_cam)
+    dvect = coll.get_camera_unit_vectors(key=key_cam)
+    
+    det = {
+        'cents_x': cx,
+        'cents_y': cy,
+        'cents_z': cz,
+        'outline_x0': coll.ddata[k0]['data'],
+        'outline_x1': coll.ddata[k1]['data'],
+        'nin_x': np.full(cx.shape, dvect['nin_x']) if par else dvect['nin_x'],
+        'nin_y': np.full(cx.shape, dvect['nin_y']) if par else dvect['nin_y'],
+        'nin_z': np.full(cx.shape, dvect['nin_z']) if par else dvect['nin_z'],
+        'e0_x': np.full(cx.shape, dvect['e0_x']) if par else dvect['e0_x'],
+        'e0_y': np.full(cx.shape, dvect['e0_y']) if par else dvect['e0_y'],
+        'e0_z': np.full(cx.shape, dvect['e0_z']) if par else dvect['e0_z'],
+        'e1_x': np.full(cx.shape, dvect['e1_x']) if par else dvect['e1_x'],
+        'e1_y': np.full(cx.shape, dvect['e1_y']) if par else dvect['e1_y'],
+        'e1_z': np.full(cx.shape, dvect['e1_z']) if par else dvect['e1_z'],
+    }
+    
+    # -------------
+    # compute
 
-    sang = np.full(shape, np.nan)
-
-    solid_angle = _comp_solidangles.calc_solidangle_apertures(
+    sang = _comp_solidangles.calc_solidangle_apertures(
         # observation points
-        pts_x=pts_x,
-        pts_y=pts_y,
-        pts_z=pts_z,
+        pts_x=ptsx,
+        pts_y=ptsy,
+        pts_z=ptsz,
         # polygons
-        apertures=aperture,
-        detectors=ldeti[ii],
+        apertures=apertures,
+        detectors=det,
         # possible obstacles
-        config=None,
+        config=config,
         # parameters
         visibility=False,
         return_vector=False,
-        return_flat_pts=True,
-        return_flat_det=True,
+        return_flat_pts=False,
+        return_flat_det=False,
     )
-
+    
     return {
         'sang': {
             'data': sang,
-            'ref': ref,
+            'ref': None,
             'units': 'sr',
         },
     }
@@ -447,7 +568,15 @@ def _spectro(
 
     # kapmax =
 
+    return
 
 
+# ###############################################################
+# ###############################################################
+#                   Plot
+# ###############################################################
 
 
+def _plot(**kwdargs):
+    
+    pass
