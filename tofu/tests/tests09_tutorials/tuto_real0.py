@@ -6,6 +6,7 @@ Creating and using diagnostic
 
 
 import os
+import copy
 import numpy as np
 
 
@@ -45,6 +46,9 @@ def main():
 
     # add spectrometer
     _add_spectrometer(coll, conf)   # , crystals=['c0'])
+
+    # add spectro-like without crystal
+    _add_spectrometer_like(coll, config=conf, key_diag='d02')
 
     # ------------------------
     # compute synthetic signal
@@ -323,6 +327,128 @@ def _add_PHA(
     return
 
 
+def _add_spectrometer_like(
+    coll=None,
+    config=None,
+    key_diag=None,
+):
+
+    # --------
+    # aperture
+
+    doptics = coll.dobj['diagnostic'][key_diag]['doptics']
+    key_cam = list(doptics.keys())[0]
+    kcryst, kslit = doptics[key_cam]['optics']
+
+    # ------------
+    # flat crystal
+
+    # dgeom
+    dgeom = copy.deepcopy({
+        k0: coll.dobj['crystal'][kcryst]['dgeom'][k0]
+        for k0 in ['cent', 'nin', 'e0', 'e1']
+    })
+    dgeom['curve_r'] = [np.inf, np.inf]
+    dgeom['extenthalf'] = 0.2 * np.r_[1, 1]
+
+    # dmat
+    dmat = copy.deepcopy({
+        k0: coll.dobj['crystal'][kcryst]['dmat'][k0]
+        for k0 in ['d_hkl', 'target', 'drock']
+    })
+
+    for k0 in ['angle_rel', 'power_ratio']:
+        dmat['drock'][k0] = coll.ddata[dmat['drock'][k0]]['data']
+
+    coll.add_crystal(
+        key='c0_flat',
+        dgeom=dgeom,
+        dmat=dmat,
+    )
+
+    # ---------------
+    # camera replica
+
+    # dgeom
+    dgeom = copy.deepcopy({
+        k0: coll.dobj['camera'][key_cam]['dgeom'][k0]
+        for k0 in ['cent', 'nin', 'e0', 'e1']
+    })
+    kout0, kout1 = coll.dobj['camera'][key_cam]['dgeom']['outline']
+    dgeom['outline_x0'] = coll.ddata[kout0]['data']
+    dgeom['outline_x1'] = coll.ddata[kout1]['data']
+    cx0, cx1 = coll.dobj['camera'][key_cam]['dgeom']['cents']
+    dgeom['cents_x0'] = coll.ddata[cx0]['data']
+    dgeom['cents_x1'] = coll.ddata[cx1]['data']
+
+    # add camera replica
+    coll.add_camera_2d(
+        key='c0_camf',
+        dgeom=dgeom,
+    )
+
+    # ---------------
+    # camera rotated
+
+    dgeom = copy.deepcopy(dgeom)
+
+    # bragg angle
+    cent = coll.dobj['crystal'][kcryst]['dgeom']['cent']
+    nin = coll.dobj['crystal'][kcryst]['dgeom']['nin']
+    e0 = coll.dobj['crystal'][kcryst]['dgeom']['e0']
+    e1 = coll.dobj['crystal'][kcryst]['dgeom']['e1']
+    ang = 2*coll.get_crystal_bragglamb('c0')[0]
+
+    # rotate cent
+
+    dv = (dgeom['cent'] - cent)
+    scain = np.sum(dv * nin)
+    sca0 = np.sum(dv * e0)
+    sca1 = np.sum(dv * e1)
+    assert np.abs(sca1) < 1e-8
+
+    dvbis = (
+        np.cos(ang) * (scain * nin + sca0 * e0)
+        + np.sin(ang) * (sca0 * nin - scain * e0)
+        + sca1 * e1
+    )
+    dgeom['cent'] = cent + dvbis
+
+    # unite vectors
+    for k0 in ['nin', 'e0', 'e1']:
+        scain = np.sum(dgeom[k0] * nin)
+        sca0 = np.sum(dgeom[k0] * e0)
+        sca1 = np.sum(dgeom[k0] * e1)
+        dgeom[k0] = (
+            np.cos(ang) * (scain * nin + sca0 * e0)
+            + np.sin(ang) * (sca0 * nin - scain * e0)
+            + sca1 * e1
+        )
+
+    # add rotated camera
+    coll.add_camera_2d(
+        key='c0_cam1',
+        dgeom=dgeom,
+    )
+
+    # -----------
+    # diagnostic
+
+    # flat crystal
+    coll.add_diagnostic(
+        doptics={'c0_camf': ['c0_flat', kslit]},
+        config=config,
+        compute=True,
+    )
+
+    # no crystal
+    coll.add_diagnostic(
+        doptics={'c0_cam1': [kslit]},
+        config=config,
+        compute=True,
+    )
+
+
 def _add_spectrometer(
     coll=None,
     conf=None,
@@ -355,8 +481,9 @@ def _add_spectrometer(
             store=True,
             key_cam=f'{k0}_cam',
             aperture_dimensions=[100e-6, 1e-2],
-            pinhole_radius=100e-6,
-            cam_pixels_nb=[33, 5],
+            pinhole_radius=100e-6 if v0['configuration'] == 'pinhole' else None,
+            # cam_pixels_nb=[33, 5],
+            cam_pixels_nb=[3, 1],
             # returnas
             returnas=list,
         )
@@ -377,8 +504,7 @@ def _add_spectrometer(
             config=conf,
             compute=True,
             add_points=3,
-            rocking_curve_fwhm=0.0001*np.pi/180,
-            # rocking_curve_fwhm=None,
+            rocking_curve_fwhm=0.0001*np.pi/180 if k0 == 'c2' else None,
         )
 
     return
@@ -427,8 +553,8 @@ def _crystals(coll=None, crystals=None):
         }
 
         size = 1.e-2
-        # rc = 2
         rc = 1.03
+
         c0 = {
             'key': 'c0',
             'dgeom': {
