@@ -84,6 +84,7 @@ def _plot(
 
     # ---------------------
     # prepare ph_counts, lamb, cos...
+    print('A')      # DB
 
     ddata, extent, dhor = _prepare_ph(
         coll=coll,
@@ -98,12 +99,14 @@ def _plot(
         length=length,
     )
 
+    print('B')      # DB
     # vmin, vmax
     dvminmax = _get_dvminmax(
         ddata=ddata,
         dvminmax=dvminmax,
     )
 
+    print('C')      # DB
     # -----------------
     # prepare figure
 
@@ -122,6 +125,7 @@ def _plot(
 
     dax = _generic_check._check_dax(dax=dax, main=proj[0])
 
+    print('D')      # DB
     # -----------------
     # plot diag elements
 
@@ -172,6 +176,7 @@ def _plot(
                         **v1.get('props', {}),
                     )
 
+    print('E')      # DB
     # ------------------
     # plot ddata
 
@@ -266,6 +271,7 @@ def _plot(
 
             plt.colorbar(im, ax=ax)
 
+    print('F')      # DB
     # hor
     kax = 'hor'
     if dax.get(kax) is not None:
@@ -311,6 +317,7 @@ def _plot(
             lw=1.
         )
 
+    print('G')      # DB
     # -------
     # config
 
