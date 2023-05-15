@@ -73,7 +73,7 @@ def _diagnostics_check(
             for k0, v0 in doptics.items()
             if k0 not in lcam
             or any([k1 not in lop for k1 in v0])
-            }
+        }
         if len(dkout) > 0:
             err = True
 

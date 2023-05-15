@@ -274,9 +274,20 @@ class Diagnostic(Previous):
         res=None,
         margin_par=None,
         margin_perp=None,
+        config=None,
         # bool
         verb=None,
         plot=None,
+        # plotting
+        indplot=None,
+        dax=None,
+        plot_config=None,
+        fs=None,
+        dmargin=None,
+        vmin_cam=None,
+        vmax_cam=None,
+        vmin_plane=None,
+        vmax_plane=None,
     ):
         """ Creates a plane perpendicular to los
         compute contribution of each point to the signal
@@ -292,9 +303,20 @@ class Diagnostic(Previous):
             res=res,
             margin_par=margin_par,
             margin_perp=margin_perp,
+            config=config,
             # bool
             verb=verb,
             plot=plot,
+            # plotting
+            indplot=indplot,
+            dax=dax,
+            plot_config=plot_config,
+            fs=fs,
+            dmargin=dmargin,
+            vmin_cam=vmin_cam,
+            vmax_cam=vmax_cam,
+            vmin_plane=vmin_plane,
+            vmax_plane=vmax_plane,
         )
 
     def compute_diagnostic_vos(
@@ -681,6 +703,7 @@ class Diagnostic(Previous):
         # optional lamb
         lamb=None,
         # options
+        append=None,
         plot=None,
         plot_pixels=None,
         plot_config=None,
@@ -709,6 +732,7 @@ class Diagnostic(Previous):
             # optional lamb
             lamb=lamb,
             # options
+            append=append,
             plot=plot,
             plot_pixels=plot_pixels,
             plot_config=plot_config,
