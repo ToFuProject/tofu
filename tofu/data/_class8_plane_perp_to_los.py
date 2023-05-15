@@ -8,11 +8,15 @@
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+from mpl_toolkits.mplot3d import Axes3D
 import datastock as ds
 
 
 # tofu
 from ..geom import _comp_solidangles
+from . import _class8_plot
+from . import _generic_check
 
 
 # ###############################################################
@@ -35,6 +39,16 @@ def main(
     # bool
     verb=None,
     plot=None,
+    # plotting
+    indplot=None,
+    dax=None,
+    plot_config=None,
+    fs=None,
+    dmargin=None,
+    vmin_cam=None,
+    vmax_cam=None,
+    vmin_plane=None,
+    vmax_plane=None,
 ):
 
     # ------------
@@ -46,6 +60,8 @@ def main(
         lop_pre, lop_post,
         res, margin_par, margin_perp,
         verb, plot,
+        indref, indplot,
+        plot_config,
     ) = _check(
         coll=coll,
         key_diag=key_diag,
@@ -59,22 +75,11 @@ def main(
         # bool
         verb=verb,
         plot=plot,
+        # plotting
+        indplot=indplot,
+        plot_config=plot_config,
+        config=config,
     )
-
-    # ------------------
-    # get indref for los
-
-    if indref is None:
-        if spectro or is2d or indch is None:
-            etend = coll.ddata[doptics['etendue']]['data']
-            indref = np.nanargmax(etend)
-
-            if is2d:
-                n0, n1 = etend.shape
-                indref = np.r_[indref // n1, indref % n1].astype(int)
-
-        else:
-            indref = indch
 
     # ----------
     # los_ref
@@ -168,8 +173,14 @@ def main(
         x1 = np.r_[0]
 
     # dx0, dx1
-    dx0 = [np.nanmin(x0) - margin_perp, np.nanmax(x0) + margin_perp]
-    dx1 = [np.nanmin(x1) - margin_perp, np.nanmax(x1) + margin_perp]
+    dx0 = [
+        np.nanmin(x0) - margin_perp[0],
+        np.nanmax(x0) + margin_perp[0],
+    ]
+    dx1 = [
+        np.nanmin(x1) - margin_perp[1],
+        np.nanmax(x1) + margin_perp[1],
+    ]
 
     # cerate 2d grid
     n0 = int(np.ceil((dx0[1] - dx0[0]) / res[0])) + 2
@@ -184,9 +195,9 @@ def main(
     x1f = np.repeat(x1[None, :], n0, axis=0)
 
     # derive 3d pts
-    ptsx = pt_ref[0] + klos*los_ref[0] + x0f*e0[0] + x1f*e1[0]
-    ptsy = pt_ref[1] + klos*los_ref[1] + x0f*e0[1] + x1f*e1[1]
-    ptsz = pt_ref[1] + klos*los_ref[2] + x0f*e0[2] + x1f*e1[2]
+    ptsx = pt_plane[0] + x0f*e0[0] + x1f*e1[0]
+    ptsy = pt_plane[1] + x0f*e0[1] + x1f*e1[1]
+    ptsz = pt_plane[2] + x0f*e0[2] + x1f*e1[2]
 
     # ----------
     # compute
@@ -194,8 +205,8 @@ def main(
     if spectro:
         dout = _spectro(
             coll=coll,
-            doptics=doptics,
-            indch=indch,
+            key_diag=key_diag,
+            key_cam=key_cam,
             # pts
             ptsx=ptsx,
             ptsy=ptsy,
@@ -242,7 +253,22 @@ def main(
     # plot
 
     if plot is True:
-        _plot(**dout)
+        _plot(
+            coll=coll,
+            is2d=is2d,
+            # extra
+            indplot=indplot,
+            dax=dax,
+            plot_config=plot_config,
+            fs=fs,
+            dmargin=dmargin,
+            vmin_cam=vmin_cam,
+            vmax_cam=vmax_cam,
+            vmin_plane=vmin_plane,
+            vmax_plane=vmax_plane,
+            # dout
+            **dout,
+        )
 
     return dout
 
@@ -266,6 +292,10 @@ def _check(
     # bool
     verb=None,
     plot=None,
+    # plotting
+    indplot=None,
+    plot_config=None,
+    config=None,
 ):
 
     # ----------
@@ -338,7 +368,7 @@ def _check(
                 indref, 'indref',
                 dtype=int,
                 size=2,
-                sign='>0',
+                sign='>=0',
             )
             indref[0] = indref[0] % n0
             indref[1] = indref[1] % n1
@@ -347,7 +377,7 @@ def _check(
             indref = int(ds._generic_check._check_var(
                 indref, 'indref',
                 types=(float, int),
-                allowed=['los', 'vos'],
+                sign='>=0',
             )) % nch
 
             if indch is not None:
@@ -381,10 +411,17 @@ def _check(
     # -----------
     # margin_perp
 
-    margin_perp = ds._generic_check._check_var(
+    if margin_perp is None:
+        margin_perp = 0.02
+
+    if isinstance(margin_perp, (float, int)):
+        margin_perp = [margin_perp, margin_perp]
+
+    margin_perp = ds._generic_check._check_flat1darray(
         margin_perp, 'margin_perp',
-        types=float,
-        default=0.05,
+        dtype=float,
+        size=2,
+        sign='>=0',
     )
 
     # -----------
@@ -405,12 +442,41 @@ def _check(
         default=True,
     )
 
+    # ------------------
+    # get indref for los
+
+    if indref is None:
+        if spectro or is2d or indch is None:
+            etend = coll.ddata[doptics['etendue']]['data']
+            indref = np.nanargmax(etend)
+
+            if is2d:
+                n0, n1 = etend.shape
+                indref = np.r_[indref // n1, indref % n1].astype(int)
+
+        else:
+            indref = indch
+
+    # -----------
+    # indplot
+
+    if indplot is None:
+        indplot = indref
+
+    # -----------
+    # plot_config
+
+    if plot is True and plot_config is None:
+        plot_config = config
+
     return (
         key_diag, key_cam, indch, indref,
         parallel, is2d, spectro, doptics,
         lop_pre, lop_post,
         res, margin_par, margin_perp,
         verb, plot,
+        indref, indplot,
+        plot_config,
     )
 
 
@@ -435,42 +501,42 @@ def _get_intersect_los_plane(
 
     # ---------------
     # prepare output
-    
+
     shape = vx.shape
     kk = np.full(shape, np.nan)
-    
+
     # ------------
     # compute kk
-    
+
     sca0 = vx * nin[0] + vy * nin[1] + vz * nin[2]
     sca1 = (
         (cent[0] - ptx) * nin[0]
         + (cent[1] - pty) * nin[1]
         + (cent[2] - ptz) * nin[2]
     )
-    
+
     iok = np.abs(sca1) > 1e-6
     kk[iok] = sca1[iok] / sca0[iok]
-    
+
     # --------------
     # 3d coordinates
-    
+
     xx = ptx + kk * vx
     yy = pty + kk * vy
     zz = ptz + kk * vz
-    
+
     # -----------------
     # local coordinates
-    
+
     dx = xx - cent[0]
     dy = yy - cent[1]
     dz = zz - cent[2]
-    
+
     x0 = dx * e0[0] + dy * e0[1] + dz * e0[2]
     x1 = dx * e1[0] + dy * e1[1] + dz * e1[2]
-    
+
     return x0, x1, iok
-    
+
 
 # ###############################################################
 # ###############################################################
@@ -493,16 +559,16 @@ def _nonspectro(
 
     # -----------------
     # prepare apertures
-    
+
     apertures = coll.get_optics_as_input_solid_angle(doptics['optics'])
-    
+
     # -----------
     # prepare det
-    
+
     k0, k1 = coll.dobj['camera'][key_cam]['dgeom']['outline']
     cx, cy, cz = coll.get_camera_cents_xyz(key=key_cam)
     dvect = coll.get_camera_unit_vectors(key=key_cam)
-    
+
     det = {
         'cents_x': cx,
         'cents_y': cy,
@@ -519,7 +585,7 @@ def _nonspectro(
         'e1_y': np.full(cx.shape, dvect['e1_y']) if par else dvect['e1_y'],
         'e1_z': np.full(cx.shape, dvect['e1_z']) if par else dvect['e1_z'],
     }
-    
+
     # -------------
     # compute
 
@@ -534,12 +600,13 @@ def _nonspectro(
         # possible obstacles
         config=config,
         # parameters
+        summed=False,
         visibility=False,
         return_vector=False,
         return_flat_pts=False,
         return_flat_det=False,
     )
-    
+
     return {
         'sang': {
             'data': sang,
@@ -547,7 +614,6 @@ def _nonspectro(
             'units': 'sr',
         },
     }
-
 
 
 # ###############################################################
@@ -558,17 +624,49 @@ def _nonspectro(
 
 def _spectro(
     coll=None,
-    doptics=None,
-    indref=None,
-    indch=None,
+    key_diag=None,
+    key_cam=None,
+    is2d=None,
+    # pts
+    ptsx=None,
+    ptsy=None,
+    ptsz=None,
 ):
 
+    # ------------
+    # prepare
 
-    # los_ref = np.r_[vx[]]
+    dout = coll.get_raytracing_from_pts(
+        key=key_diag,
+        key_cam=key_cam,
+        # mesh
+        key_mesh=None,
+        res_RZ=None,
+        res_phi=None,
+        # points
+        ptsx=ptsx,
+        ptsy=ptsy,
+        ptsz=ptsz,
+        res_rock_curve=None,
+        n0=None,
+        n1=None,
+        lamb=None,
+        plot=False,
+        plot_pixels=None,
+        plot_config=None,
+        vmin=None,
+        vmax=None,
+        append=False,
+    )
 
-    # kapmax =
+    dout['sang'] = {
+        'data': dout['sang'],
+        'units': 'sr',
+    }
 
-    return
+    # counts
+
+    return dout
 
 
 # ###############################################################
@@ -577,6 +675,532 @@ def _spectro(
 # ###############################################################
 
 
-def _plot(**kwdargs):
-    
-    pass
+def _plot(
+    coll=None,
+    is2d=None,
+    # dout
+    key_diag=None,
+    key_cam=None,
+    indch=None,
+    indref=None,
+    los_ref=None,
+    pt_ref=None,
+    klos=None,
+    e0=None,
+    e1=None,
+    ptsx=None,
+    ptsy=None,
+    ptsz=None,
+    x0=None,
+    x1=None,
+    ds=None,
+    sang=None,
+    # extra
+    indplot=None,
+    dax=None,
+    plot_config=None,
+    fs=None,
+    dmargin=None,
+    vmin_cam=None,
+    vmax_cam=None,
+    vmin_plane=None,
+    vmax_plane=None,
+    **kwdargs,
+):
+
+    # ------------
+    # prepare
+
+    (
+        etend0, etend, sli,
+        extent_cam, extent_plane,
+        vmin_cam, vmax_cam,
+        vmin_plane, vmax_plane,
+        los_refr, los_refz,
+    ) = _check_plot(
+        coll=coll,
+        key_diag=key_diag,
+        key_cam=key_cam,
+        is2d=is2d,
+        sang=sang,
+        x0=x0,
+        x1=x1,
+        ds=ds,
+        pt_ref=pt_ref,
+        los_ref=los_ref,
+        indref=indref,
+        indplot=indplot,
+        vmin_cam=vmin_cam,
+        vmax_cam=vmax_cam,
+        vmin_plane=vmin_plane,
+        vmax_plane=vmax_plane,
+    )
+
+    sang_plot = sang['data'][sli].ravel()
+
+    # --------------
+    # prepare
+
+    dplot = coll.get_diagnostic_dplot(
+        key=key_diag,
+        key_cam=key_cam,
+        optics=None,
+        elements='o',
+    )
+
+    # --------------
+    # pepare dax
+
+    if dax is None:
+        dax = _get_dax(
+            is2d=is2d,
+            fs=fs,
+            dmargin=dmargin,
+        )
+
+    dax = _generic_check._check_dax(dax=dax, main='cross')
+
+    # ----------
+    # points
+
+    kax = 'cross'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # pts
+        ax.scatter(
+            np.hypot(ptsx, ptsy).ravel(),
+            ptsz.ravel(),
+            c=sang_plot,
+            s=4,
+            marker='.',
+            vmin=vmin_plane,
+            vmax=vmax_plane,
+        )
+
+        # los_ref
+        ax.plot(
+            los_refr,
+            los_refz,
+            c='k',
+            ls='-',
+            lw=1.,
+        )
+
+    kax = 'hor'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # pts
+        ax.scatter(
+            ptsx.ravel(),
+            ptsy.ravel(),
+            c=sang_plot,
+            s=4,
+            marker='.',
+            vmin=vmin_plane,
+            vmax=vmax_plane,
+        )
+
+        # los_ref
+        ax.plot(
+            pt_ref[0] + np.r_[0, los_ref[0]],
+            pt_ref[1] + np.r_[0, los_ref[1]],
+            c='k',
+            ls='-',
+            lw=1.,
+        )
+
+    kax = '3d'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # pts
+        ax.scatter(
+            ptsx.ravel(),
+            ptsy.ravel(),
+            ptsz.ravel(),
+            c=sang['data'][sli].ravel(),
+            s=4,
+            marker='.',
+            vmin=vmin_plane,
+            vmax=vmax_plane,
+        )
+
+        # los_ref
+        ax.plot(
+            pt_ref[0] + np.r_[0, los_ref[0]],
+            pt_ref[1] + np.r_[0, los_ref[1]],
+            pt_ref[2] + np.r_[0, los_ref[2]],
+            c='k',
+            ls='-',
+            lw=1.,
+        )
+
+    # ------------------
+    # integral per pixel
+
+    kax = 'cam'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        if is2d is True:
+
+            # plane-specific etendue
+            im = ax.imshow(
+                etend.T,
+                extent=extent_cam,
+                origin='lower',
+                interpolation='nearest',
+                vmin=vmin_cam,
+                vmax=vmax_cam,
+            )
+
+            # ref pixel
+            ax.plot(
+                [indref[0]],
+                [indref[1]],
+                marker='s',
+                markerfacecolor='None',
+                markeredgecolor='k',
+                ms=4,
+            )
+
+            # plot pixel
+            ax.plot(
+                [indplot[0]],
+                [indplot[1]],
+                marker='s',
+                markerfacecolor='None',
+                markeredgecolor='g',
+                ms=4,
+            )
+
+        else:
+            # per-pixel etendue
+            ax.plot(
+                etend0,
+                ls='-',
+                lw=1.,
+                c='k',
+                marker='.',
+            )
+
+            # plane-specific etendue
+            ax.plot(
+                etend,
+                ls='-',
+                lw=1.,
+                c='b',
+                marker='.',
+            )
+
+            # ref pixel
+            ax.axvline(
+                indref,
+                c='k',
+                ls='--',
+                lw=1,
+            )
+
+            # plot pixel
+            ax.axvline(
+                indplot,
+                c='g',
+                ls='--',
+                lw=1,
+            )
+
+    kax = 'cam0'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        if is2d is True:
+
+            # plane-specific etendue
+            im0 = ax.imshow(
+                etend0.T,
+                extent=extent_cam,
+                origin='lower',
+                interpolation='nearest',
+                vmin=vmin_cam,
+                vmax=vmax_cam,
+            )
+
+            # ref pixel
+            ax.plot(
+                [indref[0]],
+                [indref[1]],
+                marker='s',
+                markerfacecolor='None',
+                markeredgecolor='k',
+                ms=4,
+            )
+
+            # plot pixel
+            ax.plot(
+                [indplot[0]],
+                [indplot[1]],
+                marker='s',
+                markerfacecolor='None',
+                markeredgecolor='g',
+                ms=4,
+            )
+
+            plt.colorbar(im, ax=[ax, dax['cam']['handle']])
+
+    kax = 'camdiff'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        if is2d is True:
+
+            # plane-specific etendue
+            diff = (etend - etend0).T
+            err = np.nanmax(np.abs(diff))
+            imdiff = ax.imshow(
+                diff,
+                extent=extent_cam,
+                origin='lower',
+                interpolation='nearest',
+                vmin=-err,
+                vmax=err,
+                cmap=plt.cm.seismic,
+            )
+
+            # ref pixel
+            ax.plot(
+                [indref[0]],
+                [indref[1]],
+                marker='s',
+                markerfacecolor='None',
+                markeredgecolor='k',
+                ms=4,
+            )
+
+            # plot pixel
+            ax.plot(
+                [indplot[0]],
+                [indplot[1]],
+                marker='s',
+                markerfacecolor='None',
+                markeredgecolor='g',
+                ms=4,
+            )
+
+            plt.colorbar(imdiff, ax=ax)
+
+    # ------------------
+    # integral per pixel
+
+    kax = 'plane'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        im = ax.imshow(
+            sang['data'][sli].T,
+            extent=extent_plane,
+            origin='lower',
+            interpolation='nearest',
+            vmin=vmin_plane,
+            vmax=vmax_plane,
+        )
+
+        plt.colorbar(im, ax=ax, label='solid angle (sr)')
+
+    # ----------
+    # diag geom
+
+    _class8_plot._plot_diag_geom(
+        dax=dax,
+        key_cam=key_cam,
+        dplot=dplot,
+        is2d=coll.dobj['diagnostic'][key_diag]['is2d'],
+    )
+
+    # -------
+    # config
+
+    if plot_config.__class__.__name__ == 'Config':
+
+        kax = 'cross'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+            plot_config.plot(lax=ax, proj=kax, dLeg=False)
+
+        kax = 'hor'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+            plot_config.plot(lax=ax, proj=kax, dLeg=False)
+
+    return dax
+
+
+def _check_plot(
+    coll=None,
+    key_diag=None,
+    key_cam=None,
+    is2d=None,
+    sang=None,
+    x0=None,
+    x1=None,
+    ds=None,
+    pt_ref=None,
+    los_ref=None,
+    indref=None,
+    indplot=None,
+    vmin_cam=None,
+    vmax_cam=None,
+    vmin_plane=None,
+    vmax_plane=None,
+):
+
+    # ---------
+    # data
+
+    if is2d is True:
+        # sang['data']
+        pass
+    else:
+        pass
+
+    # ---------
+    # integral
+
+    ketend = coll.dobj['diagnostic'][key_diag]['doptics'][key_cam]['etendue']
+    etend0 = coll.ddata[ketend]['data']
+    etend = np.nansum(np.nansum(sang['data'], axis=-1), axis=-1) * ds
+
+    # ---------
+    # extent
+
+    # cam
+    extent_cam = None
+    if is2d:
+        extent_cam = None
+        sli = (indplot[0], indplot[1], slice(None), slice(None))
+    else:
+        sli = (indplot, slice(None), slice(None))
+
+    # extent_plane
+    dx0 = 0.5*(x0[1] - x0[0])
+    dx1 = 0.5*(x1[1] - x1[0])
+    extent_plane = (
+        x0.min() - dx0,
+        x0.max() + dx0,
+        x1.min() - dx1,
+        x1.max() + dx1,
+    )
+
+    # ----------
+    # vmin, vmax
+
+    if vmin_cam is None:
+        vmin_cam = min(np.nanmin(etend0), np.nanmin(etend))
+    if vmax_cam is None:
+        vmax_cam = max(np.nanmax(etend0), np.nanmax(etend))
+
+    if vmin_plane is None:
+        vmin_plane = np.nanmin(sang['data'])
+    if vmax_plane is None:
+        vmax_plane = np.nanmax(sang['data'])
+
+    # --------
+    # los_ref
+
+    add = np.linspace(0, 1, 20)
+    los_refr = np.hypot(
+        pt_ref[0] + add * los_ref[0],
+        pt_ref[1] + add * los_ref[1],
+    )
+    los_refz = pt_ref[2] + add * los_ref[2]
+
+    return (
+        etend0, etend, sli,
+        extent_cam, extent_plane,
+        vmin_cam, vmax_cam,
+        vmin_plane, vmax_plane,
+        los_refr, los_refz,
+    )
+
+
+def _get_dax(
+    is2d=None,
+    fs=None,
+    dmargin=None,
+):
+
+    # ----------
+    # check
+
+    if fs is None:
+        fs = (15, 9)
+
+    dmargin = ds._generic_check._check_var(
+        dmargin, 'dmargin',
+        types=dict,
+        default={
+            'bottom': 0.05, 'top': 0.95,
+            'left': 0.05, 'right': 0.95,
+            'wspace': 0.4, 'hspace': 0.5,
+        },
+    )
+
+    # --------
+    # prepare
+
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(ncols=5, nrows=6, **dmargin)
+
+    # --------
+    # create
+
+    ax0 = fig.add_subplot(gs[:3, :2], aspect='equal', adjustable='datalim')
+    ax0.set_xlabel('X (m)')
+    ax0.set_ylabel('Y (m)')
+
+    ax1 = fig.add_subplot(gs[3:, :2], aspect='equal', adjustable='datalim')
+    ax1.set_xlabel('R (m)')
+    ax1.set_ylabel('Z (m)')
+
+    ax2 = fig.add_subplot(gs[:2, 2:], projection='3d')
+    ax2.set_xlabel('X (m)')
+    ax2.set_ylabel('Y (m)')
+    ax2.set_ylabel('Z (m)')
+
+    if is2d is True:
+        ax30 = fig.add_subplot(gs[2:4, 2], aspect='equal')
+        ax30.set_ylabel('x1 (m)')
+        ax30.set_xlabel('x0 (m)')
+        ax30.set_title('intregral', size=12, fontweight='bold')
+
+        ax31 = fig.add_subplot(gs[2:4, 3], sharex=ax30, sharey=ax30)
+        ax31.set_xlabel('x0 (m)')
+        ax31.set_title('etendue', size=12, fontweight='bold')
+
+        ax32 = fig.add_subplot(gs[2:4, 4], sharex=ax30, sharey=ax30)
+        ax32.set_xlabel('x0 (m)')
+        ax32.set_title('difference', size=12, fontweight='bold')
+
+    else:
+        ax30 = fig.add_subplot(gs[2:4, 2:])
+        ax30.set_ylabel('x1 (m)')
+
+    ax4 = fig.add_subplot(gs[4:, 2:], aspect='equal', adjustable='datalim')
+    ax4.set_ylabel('x1 (m)')
+    ax4.set_xlabel('x0 (m)')
+
+    # cax = fig.add_subplot(gs[3, -1])
+
+    dax = {
+        'cross': {'handle': ax0, 'type': 'cross'},
+        'hor': {'handle': ax1, 'type': 'hor'},
+        '3d': {'handle': ax2, 'type': '3d'},
+        'cam': {'handle': ax30, 'type': 'camera'},
+        'plane': {'handle': ax4, 'type': 'misc'},
+    }
+    if is2d is True:
+        dax['cam0'] = {'handle': ax31, 'type': 'camera'}
+        dax['camdiff'] = {'handle': ax32, 'type': 'camera'}
+
+    return dax  # , cax
