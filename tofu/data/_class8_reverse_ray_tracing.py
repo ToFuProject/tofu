@@ -45,6 +45,7 @@ def _from_pts(
     # optional lamb
     lamb=None,
     # options
+    append=None,
     plot=None,
     plot_pixels=None,
     plot_config=None,
@@ -67,7 +68,7 @@ def _from_pts(
         shape, iok,
         ptsx, ptsy, ptsz, phi,
         lamb,
-        plot, plot_pixels,
+        append, plot, plot_pixels,
     ) = _check(
         coll=coll,
         # diag
@@ -84,6 +85,7 @@ def _from_pts(
         # optional lamb
         lamb=lamb,
         # options
+        append=append,
         plot=plot,
         plot_pixels=plot_pixels,
     )
@@ -150,6 +152,14 @@ def _from_pts(
     dout = func(**locals())
 
     # -------
+    # reshape
+
+    if len(shape) > 1:
+        shape_new = tuple(np.r_[shape_cam, shape])
+        for k0 in ['sang']:
+            dout[k0] = dout[k0].reshape(shape_new)
+
+    # -------
     # plot
 
     if plot is True:
@@ -197,6 +207,7 @@ def _check(
     # optional lamb
     lamb=None,
     # bool
+    append=None,
     plot=None,
     plot_pixels=None,
 ):
@@ -365,13 +376,20 @@ def _check(
         default=False,
     )
 
+    # append
+    append = ds._generic_check._check_var(
+        append, 'append',
+        types=bool,
+        default=lc[1] and ptsx.size < 100 and plot is True,
+    )
+
     return  (
         key, key_cam, key_mesh,
         dsamp, res_phi,
         shape, iok,
         ptsx, ptsy, ptsz, phi,
         lamb,
-        plot, plot_pixels,
+        append, plot, plot_pixels,
     )
 
 
@@ -486,7 +504,7 @@ def _prepare_lamb(
         lambmin = np.nanmin(lamb)
         lambmax = np.nanmax(lamb)
         Dlamb = (lambmax - lambmin) * 1.1
-        nlamb = int(np.ceil(Dlamb / res_lamb))
+        nlamb = int(np.ceil(Dlamb / res_lamb)) + 2
         lamb = np.linspace(lambmin - 0.2*Dlamb, lambmax + 0.2*Dlamb, nlamb)
         dlamb = lamb[1] - lamb[0]
 
@@ -603,16 +621,24 @@ def _loop0(
     ncounts=None,
     cbin0=None,
     cbin1=None,
+    append=None,
+    verb=True,
     **kwdargs,
 ):
 
     # counts, ph_count
     ncounts = np.full(shape_cam, 0.)
+    sang = np.full(tuple(np.r_[shape_cam, ptsx.size]), 0.)
 
-    lp0, lp1 = [], []
-    lpx, lpy, lpz = [], [], []
+    if append is True:
+        lp0, lp1 = [], []
+        lpx, lpy, lpz = [], [], []
+    else:
+        lp0, lp1 = None, None
+        lpx, lpy, lpz = None, None, None
 
     pti = np.full((3,), np.nan)
+    npts0 = iok.sum()
     for ii, i0 in enumerate(iok.nonzero()[0]):
 
         pti[:] = np.r_[ptsx[i0], ptsy[i0], ptsz[i0]]
@@ -633,6 +659,7 @@ def _loop0(
         p_a = plg.Polygon(np.array([p0, p1]).T)
 
         if len(lpoly_post) > 0:
+
             # get equivalent aperture
             p0, p1 = _equivalent_apertures._get_equivalent_aperture(
                 p_a=p_a,
@@ -641,6 +668,8 @@ def _loop0(
                 lpoly_pre=lpoly_post,
                 ptsvect=ptsvect_plane,
                 min_threshold=min_threshold,
+                # debug
+                debug=False,
             )
 
             # skip if no intersection
@@ -674,29 +703,38 @@ def _loop0(
             coords_x01toxyz_plane=coords_x01toxyz_plane,
             ptsvect_spectro=ptsvect_spectro,
             ptsvect_cam=ptsvect_cam,
+            # debug
+            debug=npts0 == 1,
         )
 
-        # stack coordinates
-        npts = iok.sum()
-        lpx.append(np.array([
-            np.full((npts,), ptsx[i0]),
-            ptsx1[iok],
-            ptsx2[iok],
-        ]))
-        lpy.append(np.array([
-            np.full((npts,), ptsy[i0]),
-            ptsy1[iok],
-            ptsy2[iok],
-        ]))
-        lpz.append(np.array([
-            np.full((npts,), ptsz[i0]),
-            ptsz1[iok],
-            ptsz2[iok],
-        ]))
+        if verb is True:
+            msg = (
+                f"\t\t{ii} / {npts0} pts \t dangmin: {dangmin_str}"
+            )
+            print(msg, end='\r')
 
-        # p0, p1
-        lp0.append(x0c[iok])
-        lp1.append(x1c[iok])
+        # stack coordinates
+        if append is True:
+            npts = iok.sum()
+            lpx.append(np.array([
+                np.full((npts,), ptsx[i0]),
+                ptsx1[iok],
+                ptsx2[iok],
+            ]))
+            lpy.append(np.array([
+                np.full((npts,), ptsy[i0]),
+                ptsy1[iok],
+                ptsy2[iok],
+            ]))
+            lpz.append(np.array([
+                np.full((npts,), ptsz[i0]),
+                ptsz1[iok],
+                ptsz2[iok],
+            ]))
+
+            # p0, p1
+            lp0.append(x0c[iok])
+            lp1.append(x1c[iok])
 
         # safety check
         iok2 = (
@@ -725,8 +763,22 @@ def _loop0(
         ipixok = out.statistic > 0
         ncounts[ipixok] += out.statistic[ipixok]
 
+        sang[ipixok, i0] += scpstats.binned_statistic_2d(
+            x0c[iok],
+            x1c[iok],
+            dsang[iok],
+            statistic='sum',
+            bins=(cbin0, cbin1),
+            expand_binnumbers=True,
+        ).statistic[ipixok]
+
+        if npts0 == 1:
+
+            import pdb; pdb.set_trace()     # DB
+
     return {
         'ncounts': ncounts,
+        'sang': sang,
         'lp0': lp0,
         'lp1': lp1,
         'lpx': lpx,
@@ -966,7 +1018,6 @@ def _loop1(
                     yy.append(x0u[i0] * np.sin(phii))
                     done_xy.append(i2)
 
-
                 if verb is True:
                     msg = (
                         f"\t\t{i00} / {nru}, {i11} / {nz}, {i2} / {nphi}"
@@ -1122,6 +1173,8 @@ def _get_points_on_camera_from_pts(
     ptsx_all=None,
     ptsy_all=None,
     ptsz_all=None,
+    # debug
+    debug=None,
 ):
 
     # anuglar resolution associated to pixels
@@ -1141,16 +1194,17 @@ def _get_points_on_camera_from_pts(
     if n0 is None:
         cos0 = np.linalg.norm(np.cross(e0, vect))
         ang0 = cos0 * (p0max - p0min) / dist
-        n0 = int(np.ceil(ang0 / dang_min))
+        n0 = int(np.ceil(ang0 / dang_min)) + 2
     if n1 is None:
         cos1 = np.linalg.norm(np.cross(e1, vect))
         ang1 = cos1 * (p1max - p1min) / dist
-        n1 = int(np.ceil(ang1 / dang_min))
+        n1 = int(np.ceil(ang1 / dang_min)) + 2
 
     # sample 2d equivalent aperture
-    margin = 1e-6
-    x0i = np.linspace(p0min + margin, p0max - margin, n0)
-    x1i = np.linspace(p1min + margin, p1max - margin, n1)
+    margin0 = 1e-6 * (p0max - p0min)
+    margin1 = 1e-6 * (p1max - p1min)
+    x0i = np.linspace(p0min + margin0, p0max - margin0, n0)
+    x1i = np.linspace(p1min + margin1, p1max - margin1, n1)
     dx0 = x0i[1] - x0i[0]
     dx1 = x1i[1] - x1i[0]
 
@@ -1172,7 +1226,7 @@ def _get_points_on_camera_from_pts(
     ay = yy - pti[1]
     az = zz - pti[2]
     di = np.sqrt(ax**2 + ay**2 + az**2)
-    cos = np.abs(nin[0] * ax + nin[1] * ay + nin[2] * az)
+    cos = np.abs((nin[0] * ax + nin[1] * ay + nin[2] * az) / di)
     dsang = dx0 * dx1 * cos / di**2
 
     # get normalized vector from plasma point to crystal
