@@ -795,11 +795,11 @@ def _check_det_dict(detectors=None):
     _check_unit_vectors(detectors)
 
     # copy dict and flatten (if not 1d)
-    if detectors['cents_x'].ndim > 1:
-        detectors = dict(detectors)
-        lk = [k0 for k0 in detectors.keys() if 'outline' not in k0]
-        for k0 in lk:
-            detectors[k0] = detectors[k0].ravel()
+    # if detectors['cents_x'].ndim > 1:
+        # detectors = dict(detectors)
+        # lk = [k0 for k0 in detectors.keys() if 'outline' not in k0]
+        # for k0 in lk:
+            # detectors[k0] = detectors[k0].ravel()
 
     return detectors
 
