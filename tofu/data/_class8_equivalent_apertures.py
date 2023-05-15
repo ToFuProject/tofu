@@ -640,6 +640,7 @@ def _get_equivalent_aperture(
     ptsvect=None,
     # debug
     ii=None,
+    debug=None,
     **kwdargs,
 ):
 
@@ -659,8 +660,8 @@ def _get_equivalent_aperture(
         )[-2:]
 
         # --- DEBUG ---------
-        # if ii in [14, 15, 16, 17]:
-            # _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='local coords')
+        if debug is True:
+            _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='local coords')
         # --------------------
 
         # inside
