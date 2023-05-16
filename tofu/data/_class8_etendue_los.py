@@ -546,17 +546,17 @@ def _loop_on_pix(
             continue
 
         # rocking curve
-        # if spectro:
-            # out0 = ldet[ii]['outline_x0']
-            # width0 = np.max(np.abs(np.diff(out0)))
-            # dist = np.sqrt(
-                # (centsx[ii] - ldet[ii]['cents_x'])**2
-                # + (centsy[ii] - ldet[ii]['cents_y'])**2
-                # + (centsz[ii] - ldet[ii]['cents_z'])**2
-            # )
-            # withrc = dist * rocking_curve_fw
-            # out0_norm = out0 / width0
-            # ldet[ii]['outline_x0'] = out0_norm * min(width0, withrc)
+        if spectro:
+            out0 = ldet[ii]['outline_x0']
+            width0 = np.max(np.abs(np.diff(out0)))
+            dist = np.sqrt(
+                (centsx[ii] - ldet[ii]['cents_x'])**2
+                + (centsy[ii] - ldet[ii]['cents_y'])**2
+                + (centsz[ii] - ldet[ii]['cents_z'])**2
+            )
+            withrc = dist * rocking_curve_fw
+            out0_norm = out0 / width0
+            ldet[ii]['outline_x0'] = out0_norm * min(width0, withrc)
 
         # ------------
         # solid angles
@@ -581,8 +581,8 @@ def _loop_on_pix(
     # -----------
     # rocking curve
 
-    # if spectro:
-        # solid_angles *= rocking_curve_max
+    if spectro:
+        solid_angles *= rocking_curve_max
 
     # -------------
     # normalize los

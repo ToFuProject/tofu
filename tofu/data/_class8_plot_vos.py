@@ -59,7 +59,6 @@ def _plot_diagnostic_vos(
     color_dict=None,
 ):
 
-    print('0')      # DB
     # ------------
     # check inputs
 
@@ -98,7 +97,6 @@ def _plot_diagnostic_vos(
         color_dict=color_dict,
     )
 
-    print('1')      # DB
     # single camera + get dvos
     key_cam = key_cam[:1]
     if dvos is None:
@@ -123,7 +121,6 @@ def _plot_diagnostic_vos(
         elements=elements,
     )
 
-    print('2')      # DB
     # ---------------------
     # prepare los and ddata
 
@@ -171,7 +168,6 @@ def _plot_diagnostic_vos(
         indch=indch,
     )
 
-    print('3')      # DB
     (
         pc0, pc1, ph0, ph1, pc0i, pc1i, ph0i, ph1i
     ) = _prepare_vos(
@@ -182,7 +178,6 @@ def _plot_diagnostic_vos(
         indch=indch,
     )
 
-    print('4')      # DB
     # mesh envelop
     dout = coll.get_mesh_outline(key=dvos[key_cam[0]]['keym'])
     p0 = dout['x0']['data']
@@ -227,7 +222,6 @@ def _plot_diagnostic_vos(
     # -----------------
     # prepare figure
 
-    print('5')      # DB
     if dax is None:
 
         dax = _get_dax(
@@ -501,27 +495,24 @@ def _prepare_vos(
     ph1 = coll.ddata[kph[1]]['data']
 
     if is2d:
-        print('a')      # DB
         pc0i = pc0[:, indch[0], indch[1]]
         pc1i = pc1[:, indch[0], indch[1]]
         ph0i = ph0[:, indch[0], indch[1]]
         ph1i = ph1[:, indch[0], indch[1]]
 
         # envelop
-        print('b')      # DB
         pc0 = pc0.reshape(pc0.shape[0], -1)
         pc1 = pc1.reshape(pc1.shape[0], -1)
         ph0 = ph0.reshape(ph0.shape[0], -1)
         ph1 = ph1.reshape(ph1.shape[0], -1)
 
-        print('c')      # DB
-        pc = plg.Polygon(np.array([pc0[:, 0], pc1[:, 0]]).T)
-        ph = plg.Polygon(np.array([ph0[:, 0], ph1[:, 0]]).T)
-        for ii in range(1, pc0.shape[1]):
+        iok = np.all(np.isfinite(pc0), axis=0).nonzero()[0]
+        pc = plg.Polygon(np.array([pc0[:, iok[0]], pc1[:, iok[0]]]).T)
+        ph = plg.Polygon(np.array([ph0[:, iok[0]], ph1[:, iok[0]]]).T)
+        for ii in iok[1:]:
             pc = pc | plg.Polygon(np.array([pc0[:, ii], pc1[:, ii]]).T)
             ph = ph | plg.Polygon(np.array([ph0[:, ii], ph1[:, ii]]).T)
 
-        print('d')      # DB
         pc0, pc1 = np.array(pc).T
         ph0, ph1 = np.array(ph).T
 
@@ -530,6 +521,11 @@ def _prepare_vos(
         pc1i = pc1[:, indch]
         ph0i = ph0[:, indch]
         ph1i = ph1[:, indch]
+
+    # safety check
+    if np.any(~np.isfinite(pc0i)):
+        pc0i, pc1i = None, None
+        ph0i, ph1i = None, None
 
     return pc0, pc1, ph0, ph1, pc0i, pc1i, ph0i, ph1i
 

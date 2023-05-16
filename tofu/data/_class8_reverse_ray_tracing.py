@@ -773,7 +773,6 @@ def _loop0(
         ).statistic[ipixok]
 
         if npts0 == 1:
-
             import pdb; pdb.set_trace()     # DB
 
     return {

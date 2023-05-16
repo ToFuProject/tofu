@@ -225,6 +225,7 @@ def _vos(
     dang_rel = None
     nphi_all = None
 
+    etendlen = np.full(shape_cam, 0.)
     # ph_approx = np.full(shape1, 0.)
     # sang = np.full(shape1, 0.)
     # dang_rel = np.full(shape1, 0.)
@@ -427,6 +428,17 @@ def _vos(
                 ipixok = out.statistic > 0
                 ncounts[ipixok, ipts] += out.statistic[ipixok]
 
+                # temporary
+                outsa = scpstats.binned_statistic_2d(
+                    x0c[iok],
+                    x1c[iok],
+                    dsang[iok],
+                    statistic='sum',
+                    bins=(cbin0, cbin1),
+                    expand_binnumbers=True,
+                )
+                etendlen[ipixok] += outsa.statistic[ipixok] * dv
+
                 # adjust phimean
                 phi_mean[ipixok, ipts] += phii * out.statistic[ipixok]
 
@@ -615,11 +627,12 @@ def _vos(
         'ph_count': ph_count,
         'ncounts': ncounts,
         # debug
-        'dphi_r': dphi_r,
-        'nphi': nphi_all,
-        'sang': sang,
-        'ph_approx': ph_approx,
-        'dang_rel': dang_rel,
+        'etendlen': etendlen,
+        # 'dphi_r': dphi_r,
+        # 'nphi': nphi_all,
+        # 'sang': sang,
+        # 'ph_approx': ph_approx,
+        # 'dang_rel': dang_rel,
     }
 
     if timing:
