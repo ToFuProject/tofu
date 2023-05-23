@@ -275,6 +275,9 @@ class Diagnostic(Previous):
         margin_par=None,
         margin_perp=None,
         config=None,
+        # solid angle
+        n0=None,
+        n1=None,
         # bool
         verb=None,
         plot=None,
@@ -304,6 +307,9 @@ class Diagnostic(Previous):
             margin_par=margin_par,
             margin_perp=margin_perp,
             config=config,
+            # solid angle
+            n0=n0,
+            n1=n1,
             # bool
             verb=verb,
             plot=plot,
