@@ -130,8 +130,16 @@ def equivalent_apertures(
     # pts2pts func
     if spectro:
         pts2pt = coll.get_optics_reflect_pts2pt(key=kref)
+        if len(lop_post) > 0:
+            dist_cryst2ap = np.linalg.norm(
+                coll.dobj[lop_post_cls[-1]][lop_post[-1]]['dgeom']['cent']
+                - coll.dobj[cref][kref]['dgeom']['cent']
+            )
+        else:
+            dist_cryst2ap = 0.
     else:
         pts2pt = None
+        dist_cryst2ap = None
 
     # ptsvect func
     ptsvect = coll.get_optics_reflect_ptsvect(key=kref)
@@ -382,7 +390,8 @@ def equivalent_apertures(
             px, py, pz,
             cx, cy, cz,
             centsx, centsy, centsz,
-            area, plane_nin, spectro,
+            area, plane_nin,
+            spectro, dist_cryst2ap
         )
     else:
         return x0, x1, kref, iok
