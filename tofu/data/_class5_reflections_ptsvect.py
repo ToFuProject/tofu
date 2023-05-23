@@ -482,6 +482,17 @@ def _get_ptsvect_plane(
             / scavn
         )
 
+        # negative => wrong side or both sides
+        if np.any(kk < 0):
+            Dx, Dy, Dz = None, None, None
+            vrx, vry, vrz = None, None, None
+            angle, iok = None, None
+            if return_x01:
+                x0, x1 = None, None
+                return Dx, Dy, Dz, vrx, vry, vrz, angle, iok, x0, x1
+            else:
+                return Dx, Dy, Dz, vrx, vry, vrz, angle, iok
+
         # get D
         Dx = pts_x + kk * vect_x
         Dy = pts_y + kk * vect_y
@@ -569,6 +580,10 @@ def _get_ptsvect_plane_x01_fast(
             )
             / scavn
         )
+
+        # negative => wrong side or both sides
+        if np.any(kk < 0):
+            return None, None, None, None, None
 
         # get D
         Dx = pts_x + kk * vect_x
