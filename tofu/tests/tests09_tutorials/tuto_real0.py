@@ -483,7 +483,7 @@ def _add_spectrometer(
             aperture_dimensions=[100e-6, 1e-2],
             pinhole_radius=100e-6 if v0['configuration'] == 'pinhole' else None,
             # cam_pixels_nb=[33, 5],
-            cam_pixels_nb=[51, 3],
+            cam_pixels_nb=[7, 3],
             # returnas
             returnas=list,
         )
