@@ -550,7 +550,7 @@ def _prepare_sang(
 
     dsamp = coll.get_sample_mesh(
         key=dvos['keym'],
-        res=dvos['res'],
+        res=dvos['res_RZ'],
         mode='abs',
         grid=False,
         in_mesh=True,

@@ -199,6 +199,7 @@ def compute_vos(
                 dx1=dx1,
                 # options
                 sh=sh,
+                res_RZ=res_RZ,
                 res_phi=res_phi,
                 res_lamb=res_lamb,
                 res_rock_curve=res_rock_curve,

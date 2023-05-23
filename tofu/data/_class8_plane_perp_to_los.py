@@ -1287,10 +1287,11 @@ def _check_plot(
     if vmax_plane0 is None:
         vmax_plane0 = np.nanmax(sang0['data'])
 
-    if vmin_plane is None:
-        vmin_plane = np.nanmin(sang['data'])
-    if vmax_plane is None:
-        vmax_plane = np.nanmax(sang['data'])
+    if sang is not None:
+        if vmin_plane is None:
+            vmin_plane = np.nanmin(sang['data'])
+        if vmax_plane is None:
+            vmax_plane = np.nanmax(sang['data'])
 
     # --------
     # los_ref
