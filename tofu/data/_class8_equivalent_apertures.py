@@ -659,6 +659,9 @@ def _get_equivalent_aperture(
             return_x01=True,
         )[-2:]
 
+        if p0 is None:
+            return None, None
+
         # --- DEBUG ---------
         if debug is True:
             _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='local coords')
