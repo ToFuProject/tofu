@@ -138,6 +138,20 @@ def _from_pts(
     # angbragg0 = angbragg[:1, :]
     # angbragg1 = angbragg[-1:, :]
 
+    # -------
+    # prepare lamb per pixel
+
+    lamb_per_pix = coll.get_diagnostic_data(
+        key,
+        key_cam=key_cam,
+        data='lamb',
+    )[0][key_cam]
+
+    bragg_per_pix = coll.get_crystal_bragglamb(
+        key=kspectro,
+        lamb=lamb_per_pix,
+    )[0]
+
     # --------------
     # prepare output
 
@@ -157,6 +171,8 @@ def _from_pts(
     if len(shape) > 1:
         shape_new = tuple(np.r_[shape_cam, shape])
         for k0 in ['sang']:
+            dout[k0] = dout[k0].reshape(shape_new)
+        for k0 in ['sang0']:
             dout[k0] = dout[k0].reshape(shape_new)
 
     # -------
@@ -609,6 +625,10 @@ def _loop0(
     dang=None,
     phi=None,
     shape_cam=None,
+    # lamb
+    bragg_per_pix=None,
+    ang_rel=None,
+    pow_ratio=None,
     # optional
     n0=None,
     n1=None,
@@ -626,9 +646,13 @@ def _loop0(
     **kwdargs,
 ):
 
+    # ----------
+    # prepare
+
     # counts, ph_count
     ncounts = np.full(shape_cam, 0.)
     sang = np.full(tuple(np.r_[shape_cam, ptsx.size]), 0.)
+    sang0 = np.full(tuple(np.r_[shape_cam, ptsx.size]), 0.)
 
     if append is True:
         lp0, lp1 = [], []
@@ -636,6 +660,17 @@ def _loop0(
     else:
         lp0, lp1 = None, None
         lpx, lpy, lpz = None, None, None
+
+    pwr_interp = scpinterp.interp1d(
+        ang_rel,
+        pow_ratio,
+        kind='linear',
+        bounds_error=False,
+        fill_value=0.,
+    )
+
+    # ----------
+    # loop
 
     pti = np.full((3,), np.nan)
     npts0 = iok.sum()
@@ -763,7 +798,7 @@ def _loop0(
         ipixok = out.statistic > 0
         ncounts[ipixok] += out.statistic[ipixok]
 
-        sang[ipixok, i0] += scpstats.binned_statistic_2d(
+        sang0[ipixok, i0] += scpstats.binned_statistic_2d(
             x0c[iok],
             x1c[iok],
             dsang[iok],
@@ -772,11 +807,34 @@ def _loop0(
             expand_binnumbers=True,
         ).statistic[ipixok]
 
-        if npts0 == 1:
-            import pdb; pdb.set_trace()     # DB
+        # taking into account rocking curve
+        angles = angles[iok]
+        dsang = dsang[iok]
+
+        ip0, ip1 = ipixok.nonzero()
+        indi = np.zeros((out.binnumber.shape[1],), dtype=bool)
+        indj = np.zeros((out.binnumber.shape[1],), dtype=bool)
+        for ii in np.unique(ip0):
+            indi[:] = (out.binnumber[0, :] == (ii + 1))
+            for jj in np.unique(ip1[ip0 == ii]):
+
+                # indices
+                indj[:] = indi & (out.binnumber[1, :] == jj + 1)
+
+                # lambref
+                arelj = angles[indj] - bragg_per_pix[ii, jj]
+
+                sang[ii, jj, i0] += np.sum(
+                    pwr_interp(arelj)
+                    * dsang[indj]
+                )
+
+                # if np.sum(pwr_interp(arelj) * dsang[indj]) > 0:
+                    # import pdb; pdb.set_trace()     # DB
 
     return {
         'ncounts': ncounts,
+        'sang0': sang0,
         'sang': sang,
         'lp0': lp0,
         'lp1': lp1,
