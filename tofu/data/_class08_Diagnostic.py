@@ -278,6 +278,8 @@ class Diagnostic(Previous):
         # solid angle
         n0=None,
         n1=None,
+        # lamb
+        res_lamb=None,
         # bool
         verb=None,
         plot=None,
@@ -310,6 +312,8 @@ class Diagnostic(Previous):
             # solid angle
             n0=n0,
             n1=n1,
+            # lamb
+            res_lamb=res_lamb,
             # bool
             verb=verb,
             plot=plot,
@@ -707,7 +711,8 @@ class Diagnostic(Previous):
         n0=None,
         n1=None,
         # optional lamb
-        lamb=None,
+        lamb0=None,
+        res_lamb=None,
         # options
         append=None,
         plot=None,
@@ -736,7 +741,8 @@ class Diagnostic(Previous):
             n0=n0,
             n1=n1,
             # optional lamb
-            lamb=lamb,
+            lamb0=lamb0,
+            res_lamb=res_lamb,
             # options
             append=append,
             plot=plot,

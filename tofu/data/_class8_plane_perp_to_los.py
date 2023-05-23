@@ -39,6 +39,8 @@ def main(
     # solid angle
     n0=None,
     n1=None,
+    # lamb
+    res_lamb=None,
     # bool
     verb=None,
     plot=None,
@@ -217,6 +219,8 @@ def main(
             # solid angle
             n0=n0,
             n1=n1,
+            # res
+            res_lamb=res_lamb,
         )
 
     else:
@@ -641,6 +645,8 @@ def _spectro(
     # solid angle
     n0=None,
     n1=None,
+    # res
+    res_lamb=None,
 ):
 
     # ------------
@@ -662,7 +668,8 @@ def _spectro(
         n1=n1,
         # others
         res_rock_curve=None,
-        lamb=None,
+        lamb0=None,
+        res_lamb=res_lamb,
         plot=False,
         plot_pixels=None,
         plot_config=None,
@@ -679,9 +686,10 @@ def _spectro(
         'data': dout['sang'],
         'units': 'sr',
     }
-
-
-    # counts
+    dout['sang_lamb'] = {
+        'data': dout['sang_lamb'],
+        'units': 'sr.m',
+    }
 
     return dout
 
@@ -714,6 +722,7 @@ def _plot(
     ds=None,
     sang0=None,
     sang=None,
+    sang_lamb=None,
     # extra
     indplot=None,
     dax=None,
@@ -722,6 +731,8 @@ def _plot(
     dmargin=None,
     vmin_cam=None,
     vmax_cam=None,
+    vmin_cam_lamb=None,
+    vmax_cam_lamb=None,
     vmin_plane=None,
     vmax_plane=None,
     **kwdargs,
@@ -731,12 +742,13 @@ def _plot(
     # prepare
 
     (
-        etend0, etend,
-        etend_plane0, etend_plane,
+        etend0, etend, etend_lamb,
+        etend_plane0, etend_plane, etend_plane_lamb,
         sli,
         extent_cam, extent_plane,
         vmin_cam0, vmax_cam0,
         vmin_cam, vmax_cam,
+        vmin_cam_lamb, vmax_cam_lamb,
         vmin_plane0, vmax_plane0,
         vmin_plane, vmax_plane,
         los_refr, los_refz,
@@ -748,6 +760,7 @@ def _plot(
         spectro=spectro,
         sang0=sang0,
         sang=sang,
+        sang_lamb=sang_lamb,
         x0=x0,
         x1=x1,
         ds=ds,
@@ -757,6 +770,8 @@ def _plot(
         indplot=indplot,
         vmin_cam=vmin_cam,
         vmax_cam=vmax_cam,
+        vmin_cam_lamb=None,
+        vmax_cam_lamb=None,
         vmin_plane=vmin_plane,
         vmax_plane=vmax_plane,
     )
@@ -882,25 +897,7 @@ def _plot(
                 vmax=vmax_cam0,
             )
 
-            # ref pixel
-            ax.plot(
-                [indref[0]],
-                [indref[1]],
-                marker='s',
-                markerfacecolor='None',
-                markeredgecolor='k',
-                ms=4,
-            )
-
-            # plot pixel
-            ax.plot(
-                [indplot[0]],
-                [indplot[1]],
-                marker='s',
-                markerfacecolor='None',
-                markeredgecolor='g',
-                ms=4,
-            )
+            _add_marker(ax, indref, indplot)
 
         else:
             # per-pixel etendue
@@ -953,26 +950,7 @@ def _plot(
                 vmax=vmax_cam0,
             )
 
-            # ref pixel
-            ax.plot(
-                [indref[0]],
-                [indref[1]],
-                marker='s',
-                markerfacecolor='None',
-                markeredgecolor='k',
-                ms=4,
-            )
-
-            # plot pixel
-            ax.plot(
-                [indplot[0]],
-                [indplot[1]],
-                marker='s',
-                markerfacecolor='None',
-                markeredgecolor='g',
-                ms=4,
-            )
-
+            _add_marker(ax, indref, indplot)
             plt.colorbar(im, ax=[ax, dax['cam_plane0']['handle']])
 
     kax = 'cam_diff0'
@@ -995,25 +973,7 @@ def _plot(
             )
 
             # ref pixel
-            ax.plot(
-                [indref[0]],
-                [indref[1]],
-                marker='s',
-                markerfacecolor='None',
-                markeredgecolor='k',
-                ms=4,
-            )
-
-            # plot pixel
-            ax.plot(
-                [indplot[0]],
-                [indplot[1]],
-                marker='s',
-                markerfacecolor='None',
-                markeredgecolor='g',
-                ms=4,
-            )
-
+            _add_marker(ax, indref, indplot)
             plt.colorbar(imdiff, ax=ax)
 
     # -------------------------------------
@@ -1034,24 +994,7 @@ def _plot(
         )
 
         # ref pixel
-        ax.plot(
-            [indref[0]],
-            [indref[1]],
-            marker='s',
-            markerfacecolor='None',
-            markeredgecolor='k',
-            ms=4,
-        )
-
-        # plot pixel
-        ax.plot(
-            [indplot[0]],
-            [indplot[1]],
-            marker='s',
-            markerfacecolor='None',
-            markeredgecolor='g',
-            ms=4,
-        )
+        _add_marker(ax, indref, indplot)
 
     kax = 'cam_etend'
     if dax.get(kax) is not None:
@@ -1068,25 +1011,7 @@ def _plot(
         )
 
         # ref pixel
-        ax.plot(
-            [indref[0]],
-            [indref[1]],
-            marker='s',
-            markerfacecolor='None',
-            markeredgecolor='k',
-            ms=4,
-        )
-
-        # plot pixel
-        ax.plot(
-            [indplot[0]],
-            [indplot[1]],
-            marker='s',
-            markerfacecolor='None',
-            markeredgecolor='g',
-            ms=4,
-        )
-
+        _add_marker(ax, indref, indplot)
         plt.colorbar(im, ax=[ax, dax['cam_plane']['handle']])
 
     kax = 'cam_diff'
@@ -1107,25 +1032,66 @@ def _plot(
         )
 
         # ref pixel
-        ax.plot(
-            [indref[0]],
-            [indref[1]],
-            marker='s',
-            markerfacecolor='None',
-            markeredgecolor='k',
-            ms=4,
+        _add_marker(ax, indref, indplot)
+        plt.colorbar(imdiff, ax=ax)
+
+    # -----------------------------------------------
+    # integral per pixel with rocking curve and dlamb
+
+    kax = 'cam_plane_lamb'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # plane-specific etendue
+        im = ax.imshow(
+            etend_plane_lamb.T,
+            extent=extent_cam,
+            origin='lower',
+            interpolation='nearest',
+            vmin=vmin_cam_lamb,
+            vmax=vmax_cam_lamb,
         )
 
-        # plot pixel
-        ax.plot(
-            [indplot[0]],
-            [indplot[1]],
-            marker='s',
-            markerfacecolor='None',
-            markeredgecolor='g',
-            ms=4,
+        # ref pixel
+        _add_marker(ax, indref, indplot)
+
+    kax = 'cam_etend_lamb'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # plane-specific etendue
+        im0 = ax.imshow(
+            etend_lamb.T,
+            extent=extent_cam,
+            origin='lower',
+            interpolation='nearest',
+            vmin=vmin_cam_lamb,
+            vmax=vmax_cam_lamb,
         )
 
+        # ref pixel
+        _add_marker(ax, indref, indplot)
+        plt.colorbar(im, ax=[ax, dax['cam_plane_lamb']['handle']])
+
+    kax = 'cam_diff_lamb'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # plane-specific etendue
+        diff = (etend_plane_lamb - etend_lamb).T
+        err = np.nanmax(np.abs(diff))
+        imdiff = ax.imshow(
+            diff,
+            extent=extent_cam,
+            origin='lower',
+            interpolation='nearest',
+            vmin=-err,
+            vmax=err,
+            cmap=plt.cm.seismic,
+        )
+
+        # ref pixel
+        _add_marker(ax, indref, indplot)
         plt.colorbar(imdiff, ax=ax)
 
     # -------------------------------------------
@@ -1197,6 +1163,7 @@ def _check_plot(
     spectro=None,
     sang0=None,
     sang=None,
+    sang_lamb=None,
     x0=None,
     x1=None,
     ds=None,
@@ -1208,6 +1175,8 @@ def _check_plot(
     vmax_cam=None,
     vmin_cam0=None,
     vmax_cam0=None,
+    vmin_cam_lamb=None,
+    vmax_cam_lamb=None,
     vmin_plane=None,
     vmax_plane=None,
     vmin_plane0=None,
@@ -1235,6 +1204,18 @@ def _check_plot(
         ketend = coll.dobj['diagnostic'][key_diag]['doptics'][key_cam]['etendue']
         etend = coll.ddata[ketend]['data']
 
+        dlamb = coll.get_diagnostic_data(
+            key_diag,
+            key_cam=key_cam,
+            data='dlamb',
+        )[0][key_cam]
+
+        etend_lamb = etend * dlamb
+        etend_plane_lamb = np.nansum(
+            np.nansum(np.nansum(sang_lamb['data'], axis=-1), axis=-1),
+            axis=-1,
+        ) * ds
+
     else:
         etend_plane0 = np.nansum(np.nansum(sang0['data'], axis=-1), axis=-1) * ds
         etend_plane = None
@@ -1242,6 +1223,9 @@ def _check_plot(
         ketend = coll.dobj['diagnostic'][key_diag]['doptics'][key_cam]['etendue']
         etend0 = coll.ddata[ketend]['data']
         etend = None
+
+        etend_lamb = None
+        etend_plane_lamb = None
 
     # ---------
     # extent
@@ -1285,8 +1269,18 @@ def _check_plot(
             vmax_cam = max(
                 np.nanmax(etend), np.nanmax(etend_plane)
             )
+        if vmin_cam_lamb is None:
+            vmin_cam_lamb = min(
+                np.nanmin(etend_lamb), np.nanmin(etend_plane_lamb)
+            )
+        if vmax_cam_lamb is None:
+            vmax_cam_lamb = max(
+                np.nanmax(etend_lamb), np.nanmax(etend_plane_lamb)
+            )
+
     else:
         vmin_cam, vmax_cam = None, None
+        vmin_cam_lamb, vmax_cam_lamb = None, None
 
     if vmin_plane0 is None:
         vmin_plane0 = np.nanmin(sang0['data'])
@@ -1309,12 +1303,13 @@ def _check_plot(
     los_refz = pt_ref[2] + add * los_ref[2]
 
     return (
-        etend0, etend,
-        etend_plane0, etend_plane,
+        etend0, etend, etend_lamb,
+        etend_plane0, etend_plane, etend_plane_lamb,
         sli,
         extent_cam, extent_plane,
         vmin_cam0, vmax_cam0,
         vmin_cam, vmax_cam,
+        vmin_cam_lamb, vmax_cam_lamb,
         vmin_plane0, vmax_plane0,
         vmin_plane, vmax_plane,
         los_refr, los_refz,
@@ -1350,7 +1345,7 @@ def _get_dax(
     fig = plt.figure(figsize=fs)
 
     if spectro is True:
-        gs = gridspec.GridSpec(ncols=8, nrows=6, **dmargin)
+        gs = gridspec.GridSpec(ncols=8, nrows=8, **dmargin)
 
         # --------
         # create
@@ -1383,7 +1378,7 @@ def _get_dax(
         ax32.set_xlabel('x0 (m)')
         ax32.set_title('difference', size=12, fontweight='bold')
 
-        # images for etend0
+        # images for etend
         ax40 = fig.add_subplot(gs[2:4, 2:4], aspect='equal')
         ax40.set_ylabel('x1 (m)')
         ax40.set_xlabel('x0 (m)')
@@ -1397,21 +1392,36 @@ def _get_dax(
         ax42.set_xlabel('x0 (m)')
         ax42.set_title('difference', size=12, fontweight='bold')
 
-        # plane
-        ax50 = fig.add_subplot(
-            gs[4:, 2:5],
-            aspect='equal',
-        )
+        # images for etend * dlamb
+        ax50 = fig.add_subplot(gs[4:6, 2:4], aspect='equal')
         ax50.set_ylabel('x1 (m)')
         ax50.set_xlabel('x0 (m)')
+        ax50.set_title('etendue * dlamb\nwith rock. curve', size=12, fontweight='bold')
 
-        ax51 = fig.add_subplot(
-            gs[4:, 5:],
-            sharex=ax50,
-            sharey=ax50,
-        )
-        ax51.set_ylabel('x1 (m)')
+        ax51 = fig.add_subplot(gs[4:6, 4:6], sharex=ax30, sharey=ax30)
         ax51.set_xlabel('x0 (m)')
+        ax51.set_title('integral * dlamb\nwith rock. curve', size=12, fontweight='bold')
+
+        ax52 = fig.add_subplot(gs[4:6, 6:], sharex=ax30, sharey=ax30)
+        ax52.set_xlabel('x0 (m)')
+        ax52.set_title('difference', size=12, fontweight='bold')
+
+        # plane
+        ax60 = fig.add_subplot(
+            gs[-2:, 2:5],
+            aspect='equal',
+            adjustable='datalim',
+        )
+        ax60.set_ylabel('x1 (m)')
+        ax60.set_xlabel('x0 (m)')
+
+        ax61 = fig.add_subplot(
+            gs[-2:, 5:],
+            aspect='equal',
+            adjustable='datalim',
+        )
+        ax61.set_ylabel('x1 (m)')
+        ax61.set_xlabel('x0 (m)')
 
         # dict
         dax = {
@@ -1424,8 +1434,11 @@ def _get_dax(
             'cam_etend': {'handle': ax40, 'type': 'camera'},
             'cam_plane': {'handle': ax41, 'type': 'camera'},
             'cam_diff': {'handle': ax42, 'type': 'camera'},
-            'plane0': {'handle': ax50, 'type': 'misc'},
-            'plane': {'handle': ax51, 'type': 'misc'},
+            'cam_etend_lamb': {'handle': ax50, 'type': 'camera'},
+            'cam_plane_lamb': {'handle': ax51, 'type': 'camera'},
+            'cam_diff_lamb': {'handle': ax52, 'type': 'camera'},
+            'plane0': {'handle': ax60, 'type': 'misc'},
+            'plane': {'handle': ax61, 'type': 'misc'},
         }
 
     else:
@@ -1482,3 +1495,26 @@ def _get_dax(
             dax['cam_diff0'] = {'handle': ax32, 'type': 'camera'}
 
     return dax  # , cax
+
+
+def _add_marker(ax=None, indref=None, indplot=None):
+
+    # ref pixel
+    ax.plot(
+        [indref[0]],
+        [indref[1]],
+        marker='s',
+        markerfacecolor='None',
+        markeredgecolor='k',
+        ms=4,
+    )
+
+    # plot pixel
+    ax.plot(
+        [indplot[0]],
+        [indplot[1]],
+        marker='s',
+        markerfacecolor='None',
+        markeredgecolor='g',
+        ms=4,
+    )

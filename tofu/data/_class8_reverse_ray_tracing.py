@@ -43,7 +43,8 @@ def _from_pts(
     n1=None,
     min_threshold=None,
     # optional lamb
-    lamb=None,
+    lamb0=None,
+    res_lamb=None,
     # options
     append=None,
     plot=None,
@@ -67,7 +68,7 @@ def _from_pts(
         dsamp, res_phi,
         shape, iok,
         ptsx, ptsy, ptsz, phi,
-        lamb,
+        lamb0,
         append, plot, plot_pixels,
     ) = _check(
         coll=coll,
@@ -83,7 +84,7 @@ def _from_pts(
         ptsy=ptsy,
         ptsz=ptsz,
         # optional lamb
-        lamb=lamb,
+        lamb0=lamb0,
         # options
         append=append,
         plot=plot,
@@ -130,13 +131,13 @@ def _from_pts(
         key_diag=key,
         key_cam=key_cam,
         kspectro=kspectro,
-        res_lamb=None,
+        res_lamb=res_lamb,
         res_rock_curve=res_rock_curve,
         verb=False,
     )
 
-    # angbragg0 = angbragg[:1, :]
-    # angbragg1 = angbragg[-1:, :]
+    angbragg0 = angbragg[:1, :]
+    angbragg1 = angbragg[-1:, :]
 
     # -------
     # prepare lamb per pixel
@@ -173,6 +174,9 @@ def _from_pts(
         for k0 in ['sang']:
             dout[k0] = dout[k0].reshape(shape_new)
         for k0 in ['sang0']:
+            dout[k0] = dout[k0].reshape(shape_new)
+        shape_new = tuple(np.r_[shape_cam, shape, nlamb])
+        for k0 in ['sang_lamb']:
             dout[k0] = dout[k0].reshape(shape_new)
 
     # -------
@@ -221,7 +225,7 @@ def _check(
     ptsy=None,
     ptsz=None,
     # optional lamb
-    lamb=None,
+    lamb0=None,
     # bool
     append=None,
     plot=None,
@@ -338,21 +342,21 @@ def _check(
     # -------
     # lamb
 
-    if lamb is not None:
-        lamb = np.atleast_1d(lamb)
+    if lamb0 is not None:
+        lamb0 = np.atleast_1d(lamb0)
 
         if lc[0]:
-            if lamb.shape != (1,):
-                msg = "With mesh sampling, lamb must be a scalar!"
+            if lamb0.shape != (1,):
+                msg = "With mesh sampling, lamb0 must be a scalar!"
                 raise Exception(msg)
 
         else:
-            if lamb.shape == (1,):
-                lamb = np.full(ptsx.shape, lamb[0])
+            if lamb0.shape == (1,):
+                lamb0 = np.full(ptsx.shape, lamb0[0])
 
-            elif lamb.shape != ptsx.shape:
+            elif lamb0.shape != ptsx.shape:
                 msg = (
-                    "Arg lamb must be the same shape as coordinates\n"
+                    "Arg lamb0 must be the same shape as coordinates\n"
                     "\t- ptsx.shape = {ptsx.shape}\n"
                     "\t- lamb.shape = {lamb.shape}\n"
                 )
@@ -369,8 +373,8 @@ def _check(
             ptsx = ptsx.ravel()
             ptsy = ptsy.ravel()
             ptsz = ptsz.ravel()
-            if lamb is not None:
-                lamb = lamb.ravel()
+            if lamb0 is not None:
+                lamb0 = lamb.ravel()
 
         iok = np.isfinite(ptsx) & np.isfinite(ptsy) & np.isfinite(ptsz)
         phi = np.arctan2(ptsy, ptsx)
@@ -404,7 +408,7 @@ def _check(
         dsamp, res_phi,
         shape, iok,
         ptsx, ptsy, ptsz, phi,
-        lamb,
+        lamb0,
         append, plot, plot_pixels,
     )
 
@@ -626,9 +630,14 @@ def _loop0(
     phi=None,
     shape_cam=None,
     # lamb
+    lamb=None,
+    dlamb=None,
     bragg_per_pix=None,
     ang_rel=None,
     pow_ratio=None,
+    angbragg=None,
+    angbragg0=None,
+    angbragg1=None,
     # optional
     n0=None,
     n1=None,
@@ -653,6 +662,7 @@ def _loop0(
     ncounts = np.full(shape_cam, 0.)
     sang = np.full(tuple(np.r_[shape_cam, ptsx.size]), 0.)
     sang0 = np.full(tuple(np.r_[shape_cam, ptsx.size]), 0.)
+    sang_lamb = np.full(tuple(np.r_[shape_cam, ptsx.size, lamb.size]), 0.)
 
     if append is True:
         lp0, lp1 = [], []
@@ -829,13 +839,40 @@ def _loop0(
                     * dsang[indj]
                 )
 
-                # if np.sum(pwr_interp(arelj) * dsang[indj]) > 0:
-                    # import pdb; pdb.set_trace()     # DB
+                # ----------
+                # sang_lamb
+
+                angj = angles[indj]
+                ilamb = (
+                    (angj[:, None] >= angbragg0)
+                    & (angj[:, None] < angbragg1)
+                )
+
+                if not np.any(ilamb):
+                    continue
+
+                ilamb_n = np.any(ilamb, axis=0).nonzero()[0]
+
+                # binning of angles
+                for kk in ilamb_n:
+                    inds = np.searchsorted(
+                        angbragg[:, kk],
+                        angj[ilamb[:, kk]],
+                    )
+
+                    # update power_ratio * solid angle
+                    sang_lamb[ii, jj, i0, kk] += np.sum(
+                        pow_ratio[inds]
+                        * dsang[indj][ilamb[:, kk]]
+                    )
 
     return {
         'ncounts': ncounts,
         'sang0': sang0,
         'sang': sang,
+        'sang_lamb': sang_lamb * dlamb,
+        'lamb': lamb,
+        'dlamb': dlamb,
         'lp0': lp0,
         'lp1': lp1,
         'lpx': lpx,
