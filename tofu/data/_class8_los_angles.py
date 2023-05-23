@@ -4,6 +4,7 @@
 import numpy as np
 import scipy.interpolate as scpinterp
 from scipy.spatial import ConvexHull
+import matplotlib.pyplot as plt     # DB
 
 
 import datastock as ds
@@ -15,10 +16,10 @@ from ..geom import CamLOS1D
 __all__ = ['compute_los_angles']
 
 
-# ################################################################
-# ################################################################
+# ##############################################################
+# ##############################################################
 #                       Main
-# ################################################################
+# ##############################################################
 
 
 def compute_los_angles(
@@ -562,6 +563,7 @@ def _angle_spectro(
     # ------
     # loop
 
+    # langles = []        # DB
     for ii in range(v0['cx'].size):
 
         if not v0['iok'][ii]:
@@ -594,8 +596,15 @@ def _angle_spectro(
             return_x01=False,
         )[6]
 
+        # Correct for approximation of using
+        # the same projected reflection from the center for all
+        ang0 = np.nanmean(angles[:ne])
+        angles[ne:] = ang0 + 0.5*(angles[ne:] - ang0)
+
         angmin[ii] = np.nanmin(angles)
         angmax[ii] = np.nanmax(angles)
+
+        # langles.append(angles)      # DB
 
     if is2d:
         angmin = angmin.reshape(v0['shape0'])
