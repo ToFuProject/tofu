@@ -95,7 +95,7 @@ def compute_etendue_los(
             cx, cy, cz,
             centsx, centsy, centsz,
             ap_area, plane_nin,
-            spectro,
+            spectro, dist_cryst2ap,
         ) = coll.get_diagnostic_equivalent_aperture(
             key=key,
             key_cam=key_cam,
@@ -136,7 +136,8 @@ def compute_etendue_los(
         (
             det_area, distances,
             los_x, los_y, los_z,
-            cos_los_det, cos_los_ap, solid_angles, res,
+            cos_los_det, cos_los_ap,
+            solid_angles, solid_angles_rc, res,
         ) = _loop_on_pix(
             coll=coll,
             ldet=v0['ldet'],
@@ -144,6 +145,7 @@ def compute_etendue_los(
             spectro=spectro,
             rocking_curve_fw=rocking_curve_fw,
             rocking_curve_max=rocking_curve_max,
+            dist_cryst2ap=dist_cryst2ap,
             # optics
             x0=x0,
             x1=x1,
@@ -167,7 +169,7 @@ def compute_etendue_los(
 
         nd = len(v0['ldet'])
         if analytical is True:
-            etend0 = np.full(tuple(np.r_[3, nd]), np.nan)
+            etend0 = np.full(tuple(np.r_[3 + (spectro is True), nd]), np.nan)
 
             # 0th order
             etend0[0, :] = ap_area * det_area / distances**2
@@ -180,6 +182,10 @@ def compute_etendue_los(
 
             # 2nd order
             etend0[2, :] = cos_los_ap * ap_area * solid_angles
+
+            # 3rd order for spectro
+            if spectro:
+                etend0[3, :] = cos_los_ap * ap_area * solid_angles_rc
 
         else:
             etend0 = None
@@ -234,7 +240,7 @@ def compute_etendue_los(
 
         # etend0
         if etend0 is not None and is2d:
-            etend0 = etend0.reshape(tuple(np.r_[3, v0['shape0']]))
+            etend0 = etend0.reshape(tuple(np.r_[etend0.shape[0], v0['shape0']]))
 
         # etend1
         if etend1 is not None and is2d:
@@ -302,6 +308,27 @@ def compute_etendue_los(
 
             coll._dobj['diagnostic'][key]['doptics'][key_cam]['etendue'] = ketendue
             coll._dobj['diagnostic'][key]['doptics'][key_cam]['etend_type'] = etend_type
+
+            # spectro
+            if spectro and store == 'analytical':
+                # data
+                etendue = v0[store][-2, ...]
+
+                # keys
+                ketendue = f'{key}_{key_cam}_etend0'
+                ddata = {
+                    ketendue: {
+                        'data': etendue,
+                        'ref': ref,
+                        'dim': 'etendue',
+                        'quant': 'etendue',
+                        'name': 'etendue',
+                        'units': 'm2.sr',
+                    },
+                }
+
+                coll.update(ddata=ddata)
+                coll._dobj['diagnostic'][key]['doptics'][key_cam]['etendue0'] = ketendue
 
     return dcompute, store
 
@@ -507,6 +534,7 @@ def _loop_on_pix(
     spectro=None,
     rocking_curve_fw=None,
     rocking_curve_max=None,
+    dist_cryst2ap=None,
     # equivalent aperture
     x0=None,
     x1=None,
@@ -532,6 +560,7 @@ def _loop_on_pix(
     los_y = np.full((nd,), np.nan)
     los_z = np.full((nd,), np.nan)
     solid_angles = np.zeros((nd,), dtype=float)
+    solid_angles_rc = np.zeros((nd,), dtype=float)
     cos_los_det = np.full((nd,), np.nan)
     distances = np.full((nd,), np.nan)
     mindiff = np.full((nd,), np.nan)
@@ -544,19 +573,6 @@ def _loop_on_pix(
 
         if not iok[ii]:
             continue
-
-        # rocking curve
-        if spectro:
-            out0 = ldet[ii]['outline_x0']
-            width0 = np.max(np.abs(np.diff(out0)))
-            dist = np.sqrt(
-                (centsx[ii] - ldet[ii]['cents_x'])**2
-                + (centsy[ii] - ldet[ii]['cents_y'])**2
-                + (centsz[ii] - ldet[ii]['cents_z'])**2
-            )
-            withrc = dist * rocking_curve_fw
-            out0_norm = out0 / width0
-            ldet[ii]['outline_x0'] = out0_norm * min(width0, withrc)
 
         # ------------
         # solid angles
@@ -578,11 +594,42 @@ def _loop_on_pix(
             timing=False,
         )[0, 0]
 
+        # rocking curve
+        if spectro:
+            out0 = ldet[ii]['outline_x0']
+            width0 = np.max(np.abs(np.diff(out0)))
+            dist = np.sqrt(
+                (centsx[ii] - ldet[ii]['cents_x'])**2
+                + (centsy[ii] - ldet[ii]['cents_y'])**2
+                + (centsz[ii] - ldet[ii]['cents_z'])**2
+            )
+            withrc = dist * rocking_curve_fw * (dist + dist_cryst2ap / dist)
+            out0_norm = out0 / width0
+            ldet[ii]['outline_x0'] = out0_norm * min(width0, withrc)
+            solid_angles_rc[ii] = _comp_solidangles.calc_solidangle_apertures(
+                # observation points
+                pts_x=centsx[ii],
+                pts_y=centsy[ii],
+                pts_z=centsz[ii],
+                # polygons
+                apertures=None,
+                detectors=ldet[ii],
+                # possible obstacles
+                config=None,
+                # parameters
+                visibility=False,
+                return_vector=False,
+                # timing
+                timing=False,
+            )[0, 0]
+
     # -----------
     # rocking curve
 
     if spectro:
-        solid_angles *= rocking_curve_max
+        solid_angles_rc *= rocking_curve_max
+    else:
+        solid_angles_rc = None
 
     # -------------
     # normalize los
@@ -649,7 +696,8 @@ def _loop_on_pix(
     return (
         det_area, distances,
         los_x, los_y, los_z,
-        cos_los_det, cos_los_ap, solid_angles, res,
+        cos_los_det, cos_los_ap,
+        solid_angles, solid_angles_rc, res,
     )
 
 
