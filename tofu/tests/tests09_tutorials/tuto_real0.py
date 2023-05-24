@@ -87,7 +87,7 @@ def _create_plasma():
 
     coll.add_mesh_2d_rect(
         key='m0',
-        res=0.1,
+        res=0.10,
         crop_poly=conf,
         units='m',
         deg=1,
