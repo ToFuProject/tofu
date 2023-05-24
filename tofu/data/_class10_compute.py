@@ -1219,12 +1219,12 @@ def _compute_retrofit_data_check(
 
     ist_mat = coll.get_ref_vector(
         key=lkmat[0],
-        # ref=reft,
+        ref=reft,
         **dref_vector,
     )[0]
     ist_prof = coll.get_ref_vector(
         key=key_profile2d,
-        # ref=reft,
+        ref=reft,
         **dref_vector,
     )[0]
 
