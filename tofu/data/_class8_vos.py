@@ -447,9 +447,9 @@ def _check(
         default=False,
     )
 
-    # if store is True:
-        # msg = "storing vos is not available yet!"
-        # raise NotImplementedError(msg)
+    if store is True and spectro is True:
+        msg = "storing vos is not available yet for spectrometers!"
+        raise NotImplementedError(msg)
 
     # -----------
     # timing
@@ -688,7 +688,7 @@ def _check_get_dvos(
     # keys
 
     key_diag, key_cam = coll.get_diagnostic_cam(
-        key=key_diag,
+        key=key,
         key_cam=key_cam,
     )
     spectro = coll.dobj['diagnostic'][key_diag]['spectro']
@@ -697,12 +697,26 @@ def _check_get_dvos(
     # dvos
 
     if dvos is None:
-        dvos = {
-            k0: coll.dobj['diagnostic'][key_diag]['doptics'][k0]['dvos']
-            for k0 in key_cam
-        }
+        dvos = {}
+        for k0 in key_cam:
+            dop = coll.dobj['diagnostic'][key_diag]['doptics'][k0]['dvos']
+            dvos[k0] = {
+                'indr': coll.ddata[dop['ind'][0]]['data'],
+                'indz': coll.ddata[dop['ind'][1]]['data'],
+                'sang': coll.ddata[dop['sang']]['data'],
+                'keym': dop['keym'],
+            }
 
-    lk = ['']
+    # ------------------
+    # check keys of dvos
+
+    # default
+    if spectro is True:
+        pass
+    else:
+        lk = ['indr', 'indz', 'sang', 'keym']
+
+    # check
     c0 = (
         isinstance(dvos, dict)
         and all([
@@ -711,10 +725,17 @@ def _check_get_dvos(
             for k0 in key_cam
         ])
     )
+
+    # raise exception
     if not c0:
         msg = (
             "Arg dvos must be a dict with, for each camera, the keys:"
         )
         raise Exception(msg)
+
+    # only keep desired cams
+    lkout = [k0 for k0 in dvos.keys() if k0 not in key_cam]
+    for k0 in lkout:
+        del dvos[k0]
 
     return dvos
