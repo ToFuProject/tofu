@@ -93,6 +93,14 @@ def _create_plasma():
         deg=1,
     )
 
+    # coll.add_mesh_2d_rect(
+        # key='m1',
+        # res=0.03,
+        # crop_poly=conf,
+        # units='m',
+        # deg=0,
+    # )
+
     # --------
     # add time
 

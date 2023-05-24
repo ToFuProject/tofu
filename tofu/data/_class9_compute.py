@@ -596,7 +596,7 @@ def _compute_vos(
     # -----
     # units
 
-    units = asunits.m
+    units = asunits.Unit(dvos[key_cam[0]]['sang']['units'])
     units_coefs = asunits.Unit()
 
     # -------------
@@ -718,7 +718,10 @@ def _compute_vos(
             sli_mat[axis_pix] = ii
 
             # integrate
-            mat[tuple(sli_mat)] = np.sum(datai, axis=axis)
+            mat[tuple(sli_mat)] = np.sum(
+                datai * dvos[k0]['sang']['data'][sli(ii)][indok][:, None],
+                axis=axis,
+            )
 
             anyok = True
 
@@ -747,7 +750,7 @@ def _compute_vos(
         dout[key_mat] = {
             'data': mat,
             'ref': refi,
-            'units': units * units_coefs,
+            'units': units / units_coefs,
         }
 
     return dout, axis
