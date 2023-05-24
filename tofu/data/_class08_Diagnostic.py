@@ -390,7 +390,7 @@ class Diagnostic(Previous):
             timing=timing,
         )
 
-    def check_diagnostic_vos(
+    def check_diagnostic_dvos(
         self,
         key=None,
         key_cam=None,

@@ -284,9 +284,12 @@ def _vos(
     dout = {
         'pcross0': pcross0,
         'pcross1': pcross1,
-        'sang': sang,
         'indr': indr,
         'indz': indz,
+        'sang': {
+            'data': sang,
+            'units': 'sr.m3',
+        },
     }
 
     if timing:

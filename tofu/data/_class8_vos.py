@@ -600,6 +600,7 @@ def _store(
         if knpts not in coll.dref.keys():
             coll.add_ref(knpts, size=v0['indr'].shape[1])
 
+        # indr
         if kir not in coll.ddata.keys():
             coll.add_data(
                 key=kir,
@@ -609,6 +610,7 @@ def _store(
                 dim='index',
             )
 
+        # indz
         if kiz not in coll.ddata.keys():
             coll.add_data(
                 key=kiz,
@@ -662,9 +664,9 @@ def _store(
             # add data
             coll.add_data(
                 key=ksa,
-                data=v0['sang'],
+                data=v0['sang']['data'],
                 ref=ref,
-                units='sr.m3',
+                units=v0['sang']['units'],
             )
 
             # add in doptics
@@ -701,10 +703,14 @@ def _check_get_dvos(
         for k0 in key_cam:
             dop = coll.dobj['diagnostic'][key_diag]['doptics'][k0]['dvos']
             dvos[k0] = {
+                'keym': dop['keym'],
+                'res_RZ': dop['res_RZ'],
                 'indr': coll.ddata[dop['ind'][0]]['data'],
                 'indz': coll.ddata[dop['ind'][1]]['data'],
-                'sang': coll.ddata[dop['sang']]['data'],
-                'keym': dop['keym'],
+                'sang': {
+                    'data': coll.ddata[dop['sang']]['data'],
+                    'units': coll.ddata[dop['sang']]['units'],
+                },
             }
 
     # ------------------
@@ -714,7 +720,7 @@ def _check_get_dvos(
     if spectro is True:
         pass
     else:
-        lk = ['indr', 'indz', 'sang', 'keym']
+        lk = ['keym', 'res_RZ', 'indr', 'indz', 'sang']
 
     # check
     c0 = (
@@ -729,7 +735,8 @@ def _check_get_dvos(
     # raise exception
     if not c0:
         msg = (
-            "Arg dvos must be a dict with, for each camera, the keys:"
+            "Arg dvos must be a dict with, for each camera, the keys:\n"
+            + str(lk)
         )
         raise Exception(msg)
 
