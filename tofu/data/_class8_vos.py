@@ -622,3 +622,52 @@ def _store(
 
             # add in doptics
             doptics['dvos']['sang'] = ksa
+
+
+# ###############################################################
+# ###############################################################
+#                       Main
+# ###############################################################
+
+
+def _check_get_dvos(
+    coll=None,
+    key=None,
+    key_cam=None,
+    dvos=None,
+):
+
+    # ------------
+    # keys
+
+    key_diag, key_cam = coll.get_diagnostic_cam(
+        key=key_diag,
+        key_cam=key_cam,
+    )
+    spectro = coll.dobj['diagnostic'][key_diag]['spectro']
+
+    # ------
+    # dvos
+
+    if dvos is None:
+        dvos = {
+            k0: coll.dobj['diagnostic'][key_diag]['doptics'][k0]['dvos']
+            for k0 in key_cam
+        }
+
+    lk = ['']
+    c0 = (
+        isinstance(dvos, dict)
+        and all([
+            k0 in dvos.keys()
+            and all([k1 in dvos[k0].keys() for k1 in lk])
+            for k0 in key_cam
+        ])
+    )
+    if not c0:
+        msg = (
+            "Arg dvos must be a dict with, for each camera, the keys:"
+        )
+        raise Exception(msg)
+
+    return dvos

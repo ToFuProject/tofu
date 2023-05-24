@@ -35,6 +35,7 @@ def compute(
     mode=None,
     method=None,
     crop=None,
+    dvos=None,
     # options
     brightness=None,
     # output
@@ -56,6 +57,7 @@ def compute(
         subkey, key_bs0, key_m0,
         key_diag, key_cam,
         radius_max, method, res, mode, crop,
+        dvos,
         brightness,
         store, verb,
     ) = _compute_check(
@@ -69,6 +71,7 @@ def compute(
         res=res,
         mode=mode,
         crop=crop,
+        dvos=dvos,
         # options
         brightness=brightness,
         # output
@@ -186,6 +189,7 @@ def _compute_check(
     res=None,
     mode=None,
     crop=None,
+    dvos=None,
     # options
     brightness=None,
     # output
@@ -211,6 +215,13 @@ def _compute_check(
         key=key_diag,
         key_cam=key_cam,
     )
+
+    spectro = coll.dobj['diagnostic'][key_diag]['spectro']
+    if spectro:
+        msg = (
+            "Geometry matrix can only be computed for non-spectro diags"
+        )
+        raise Exception(msg)
 
     # key_bs
     lk = list(coll.dobj.get(wbs, {}).keys())
@@ -250,7 +261,7 @@ def _compute_check(
         method, 'method',
         default='los',
         types=str,
-        allowed=['los'],
+        allowed=['los', 'vos'],
     )
 
     # res
@@ -279,6 +290,14 @@ def _compute_check(
         crop
         and coll.dobj[wbs][key_bs]['crop'] not in [None, False]
     )
+
+    # dvos
+    if method == 'vos':
+        dvos = coll.check_diagnostic_vos(
+            key=key_diag,
+            key_cam=key_cam,
+            dvos=dvos,
+        )
 
     # brightness
     brightness = ds._generic_check._check_var(
