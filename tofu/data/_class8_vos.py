@@ -447,9 +447,9 @@ def _check(
         default=False,
     )
 
-    if store is True:
-        msg = "storing vos is not available yet!"
-        raise NotImplementedError(msg)
+    # if store is True:
+        # msg = "storing vos is not available yet!"
+        # raise NotImplementedError(msg)
 
     # -----------
     # timing
@@ -595,14 +595,16 @@ def _store(
         kir = f'{k0}_vos_ir'
         kiz = f'{k0}_vos_iz'
 
+        ref = tuple(list(coll.dobj['camera'][k0]['dgeom']['ref']) + [knpts])
+
         if knpts not in coll.dref.keys():
-            coll.add_ref(knpts, size=v0['indr'].size)
+            coll.add_ref(knpts, size=v0['indr'].shape[1])
 
         if kir not in coll.ddata.keys():
             coll.add_data(
                 key=kir,
                 data=v0['indr'],
-                ref=knpts,
+                ref=ref,
                 units='',
                 dim='index',
             )
@@ -611,14 +613,15 @@ def _store(
             coll.add_data(
                 key=kiz,
                 data=v0['indz'],
-                ref=knpts,
+                ref=ref,
                 units='',
                 dim='index',
             )
 
         # add in doptics
         doptics[k0]['dvos']['keym'] = v0['keym']
-        doptics[k0]['dvos']['res'] = v0['res']
+        doptics[k0]['dvos']['res_RZ'] = v0['res_RZ']
+        doptics[k0]['dvos']['res_phi'] = v0['res_phi']
         doptics[k0]['dvos']['ind'] = (kir, kiz)
 
         # ------------
@@ -648,8 +651,8 @@ def _store(
             )
 
             # add in doptics
-            doptics['dvos']['cos'] = v0['cos']
-            doptics['dvos']['ph'] = v0['ph']
+            doptics[k0]['dvos']['cos'] = v0['cos']
+            doptics[k0]['dvos']['ph'] = v0['ph']
 
         else:
 
@@ -660,12 +663,12 @@ def _store(
             coll.add_data(
                 key=ksa,
                 data=v0['sang'],
-                ref=(knpts, kchan),
+                ref=ref,
                 units='sr.m3',
             )
 
             # add in doptics
-            doptics['dvos']['sang'] = ksa
+            doptics[k0]['dvos']['sang'] = ksa
 
 
 # ###############################################################
