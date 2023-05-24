@@ -81,9 +81,11 @@ def _plot_geometry_matrix_check(
         indt = 0
 
     # plot_mesh
+    wm = coll._which_mesh
     plot_mesh = ds._generic_check._check_var(
         plot_mesh, 'plot_mesh',
-        default=coll.dobj[coll._which_mesh][keym]['type'] != 'polar',
+        # default=coll.dobj[wm][keym]['type'] != 'polar',
+        default=False,
         types=bool,
     )
 
