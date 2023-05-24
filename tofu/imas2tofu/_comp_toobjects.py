@@ -393,7 +393,7 @@ def plasma_checkformat_dsig(dsig=None,
         lkeysok = sorted(set(list(dshort[k0].keys())
                              + list(dcomp[k0].keys())))
         if k0 not in lidsok:
-            msg = ("Only the following ids are relevant to Plasma2D:\n"
+            msg = ("Only the following ids are relevant to Collection:\n"
                    + "\t- {}\n".format(lidsok)
                    + "  => ids {} from dsig is ignored".format(k0))
             warnings.warn(msg)
@@ -455,7 +455,8 @@ def get_plasma(
 ):
 
     import tofu.data as tfd
-    plasma = tfd.Plasma2D()
+    plasma = tfd.Collection()
+    wm = plasma._which_mesh
 
     # -----------
     # loop on ids
@@ -585,29 +586,29 @@ def get_plasma(
 
             # Nodes / Faces case
             if lc[0]:
-                plasma.add_mesh(
+                plasma.add_mesh_2d_tri(
                     key=keym,
-                    source=ids,
                     knots=out_['2dmeshNodes']['data'],
-                    cents=out_['2dmeshFaces']['data'],
+                    indices=out_['2dmeshFaces']['data'],
+                    source=ids,
                 )
-                n1 = plasma.dobj[plasma._which_mesh][keym]['shape-k'][0]
-                n2 = plasma.dobj[plasma._which_mesh][keym]['shape-c'][0]
+                n1 = plasma.dobj[wm][keym]['shape-k'][0]
+                n2 = plasma.dobj[wm][keym]['shape-c'][0]
 
             # R / Z case
             elif lc[1]:
-                plasma.add_mesh(
+                plasma.add_mesh_2d_rect(
                     key=keym,
+                    knots0=out_['2dmeshR']['data'],
+                    knots1=out_['2dmeshZ']['data'],
                     source=ids,
-                    R=out_['2dmeshR']['data'],
-                    Z=out_['2dmeshZ']['data'],
                 )
-                n1, n2 = plasma.dobj[plasma._which_mesh][keym]['shape']
+                n1, n2 = plasma.dobj[wm][keym]['shape']
 
             # ------------------
             # profiles2d on mesh
 
-            meshtype = plasma.dobj[plasma._which_mesh][keym]['type']
+            meshtype = plasma.dobj[wm][keym]['type']
             for ss in set(out_.keys()).difference(lsigmesh):
                 add_profile2d(
                     multi=multi,
@@ -732,11 +733,12 @@ def get_plasma(
                 )
                 raise Exception(msg)
 
+            # TBC
             kmrad = f'{idsshort}.radial'
-            plasma.add_mesh_polar(
+            plasma.add_mesh_1d(
                 key=kmrad,
-                radius=drad[k0ref],
-                radius2d=radius2d,
+                knots=drad[k0ref],
+                subkey=radius2d,
                 radius_dim=dim,
                 radius_quant=quant,
                 radius_units=out_[k0ref]['units'],
