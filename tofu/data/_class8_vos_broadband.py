@@ -61,6 +61,7 @@ def _vos(
     # ---------------
     # prepare polygon
 
+
     if timing:
         t00 = dtm.datetime.now()     # DB
 
@@ -123,6 +124,11 @@ def _vos(
         if np.isnan(pcross0[0, ii]):
             continue
 
+        # verb
+        if verb is True:
+            msg = f"\tcam '{key_cam}' pixel {ii+1} / {npix}"
+            print(msg, end='\t', flush=True)
+
         # get points
         xx, yy, zz, dind, iz = _vos_points(
             # polygons
@@ -147,16 +153,17 @@ def _vos(
 
         # re-initialize
         bool_cross[...] = False
-        npts = xx.size
-        sang = np.zeros((npts,), dtype=float)
-        indr = np.zeros((npts,), dtype=int)
-        indz = np.zeros((npts,), dtype=int)
+        npts_tot = xx.size
+        npts_cross = np.sum([v0['iz'].size for v0 in dind.values()])
 
-        # verb
+        sang = np.zeros((npts_cross,), dtype=float)
+        indr = np.zeros((npts_cross,), dtype=int)
+        indz = np.zeros((npts_cross,), dtype=int)
+
         if verb is True:
             msg = (
-                f"\tcam '{key_cam}' pixel {ii+1} / {pcross0.shape[1]}\t"
-                f"npts in cross_section = {npts}   "
+                f"\tnpts in cross_section = {npts_cross}\t"
+                f"({npts_tot} total)\t"
             )
             end = '\n 'if ii == pcross0.shape[1] - 1 else '\r'
             print(msg, end=end, flush=True)
@@ -284,9 +291,12 @@ def _vos(
     dout = {
         'pcross0': pcross0,
         'pcross1': pcross1,
-        'sang': sang,
         'indr': indr,
         'indz': indz,
+        'sang': {
+            'data': sang,
+            'units': 'sr.m3',
+        },
     }
 
     if timing:

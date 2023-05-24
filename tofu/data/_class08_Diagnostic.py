@@ -390,6 +390,20 @@ class Diagnostic(Previous):
             timing=timing,
         )
 
+    def check_diagnostic_dvos(
+        self,
+        key=None,
+        key_cam=None,
+        dvos=None,
+    ):
+        """ Check dvos and return it if stored """
+        return _vos._check_get_dvos(
+            coll=self,
+            key=key,
+            key_cam=key_cam,
+            dvos=dvos,
+        )
+
     # ---------------
     # utilities
     # ---------------

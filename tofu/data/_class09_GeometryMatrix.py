@@ -57,6 +57,10 @@ class GeometryMatrix(Previous):
         mode=None,
         method=None,
         crop=None,
+        dvos=None,
+        # options
+        brightness=None,
+        # output
         verb=None,
         store=None,
     ):
@@ -72,6 +76,10 @@ class GeometryMatrix(Previous):
             mode=mode,
             method=method,
             crop=crop,
+            dvos=dvos,
+            # options
+            brightness=brightness,
+            # output
             verb=verb,
             store=store,
         )

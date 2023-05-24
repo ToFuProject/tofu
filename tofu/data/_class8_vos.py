@@ -447,8 +447,8 @@ def _check(
         default=False,
     )
 
-    if store is True:
-        msg = "storing vos is not available yet!"
+    if store is True and spectro is True:
+        msg = "storing vos is not available yet for spectrometers!"
         raise NotImplementedError(msg)
 
     # -----------
@@ -595,30 +595,35 @@ def _store(
         kir = f'{k0}_vos_ir'
         kiz = f'{k0}_vos_iz'
 
-        if knpts not in coll.dref.keys():
-            coll.add_ref(knpts, size=v0['indr'].size)
+        ref = tuple(list(coll.dobj['camera'][k0]['dgeom']['ref']) + [knpts])
 
+        if knpts not in coll.dref.keys():
+            coll.add_ref(knpts, size=v0['indr'].shape[1])
+
+        # indr
         if kir not in coll.ddata.keys():
             coll.add_data(
                 key=kir,
                 data=v0['indr'],
-                ref=knpts,
+                ref=ref,
                 units='',
                 dim='index',
             )
 
+        # indz
         if kiz not in coll.ddata.keys():
             coll.add_data(
                 key=kiz,
                 data=v0['indz'],
-                ref=knpts,
+                ref=ref,
                 units='',
                 dim='index',
             )
 
         # add in doptics
         doptics[k0]['dvos']['keym'] = v0['keym']
-        doptics[k0]['dvos']['res'] = v0['res']
+        doptics[k0]['dvos']['res_RZ'] = v0['res_RZ']
+        doptics[k0]['dvos']['res_phi'] = v0['res_phi']
         doptics[k0]['dvos']['ind'] = (kir, kiz)
 
         # ------------
@@ -648,8 +653,8 @@ def _store(
             )
 
             # add in doptics
-            doptics['dvos']['cos'] = v0['cos']
-            doptics['dvos']['ph'] = v0['ph']
+            doptics[k0]['dvos']['cos'] = v0['cos']
+            doptics[k0]['dvos']['ph'] = v0['ph']
 
         else:
 
@@ -659,10 +664,85 @@ def _store(
             # add data
             coll.add_data(
                 key=ksa,
-                data=v0['sang'],
-                ref=(knpts, kchan),
-                units='sr.m3',
+                data=v0['sang']['data'],
+                ref=ref,
+                units=v0['sang']['units'],
             )
 
             # add in doptics
-            doptics['dvos']['sang'] = ksa
+            doptics[k0]['dvos']['sang'] = ksa
+
+
+# ###############################################################
+# ###############################################################
+#                       Main
+# ###############################################################
+
+
+def _check_get_dvos(
+    coll=None,
+    key=None,
+    key_cam=None,
+    dvos=None,
+):
+
+    # ------------
+    # keys
+
+    key_diag, key_cam = coll.get_diagnostic_cam(
+        key=key,
+        key_cam=key_cam,
+    )
+    spectro = coll.dobj['diagnostic'][key_diag]['spectro']
+
+    # ------
+    # dvos
+
+    if dvos is None:
+        dvos = {}
+        for k0 in key_cam:
+            dop = coll.dobj['diagnostic'][key_diag]['doptics'][k0]['dvos']
+            dvos[k0] = {
+                'keym': dop['keym'],
+                'res_RZ': dop['res_RZ'],
+                'indr': coll.ddata[dop['ind'][0]]['data'],
+                'indz': coll.ddata[dop['ind'][1]]['data'],
+                'sang': {
+                    'data': coll.ddata[dop['sang']]['data'],
+                    'units': coll.ddata[dop['sang']]['units'],
+                },
+            }
+
+    # ------------------
+    # check keys of dvos
+
+    # default
+    if spectro is True:
+        pass
+    else:
+        lk = ['keym', 'res_RZ', 'indr', 'indz', 'sang']
+
+    # check
+    c0 = (
+        isinstance(dvos, dict)
+        and all([
+            k0 in dvos.keys()
+            and all([k1 in dvos[k0].keys() for k1 in lk])
+            for k0 in key_cam
+        ])
+    )
+
+    # raise exception
+    if not c0:
+        msg = (
+            "Arg dvos must be a dict with, for each camera, the keys:\n"
+            + str(lk)
+        )
+        raise Exception(msg)
+
+    # only keep desired cams
+    lkout = [k0 for k0 in dvos.keys() if k0 not in key_cam]
+    for k0 in lkout:
+        del dvos[k0]
+
+    return dvos

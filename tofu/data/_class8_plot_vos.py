@@ -99,9 +99,11 @@ def _plot_diagnostic_vos(
 
     # single camera + get dvos
     key_cam = key_cam[:1]
-    if dvos is None:
-        dvos = coll.dobj['diagnostic'][key]['doptics'][key_cam[0]]['dvos']
-
+    dvos = coll.check_diagnostic_dvos(
+        key,
+        key_cam=key_cam,
+        dvos=dvos,
+    )
     doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam[0]]
 
     # indch
@@ -196,7 +198,7 @@ def _plot_diagnostic_vos(
         return _plot_vos_spectro._plot(**locals())
 
     # dsamp from mesh
-    sang_tot, sang_integ, sang, extent = _prepare_sang(
+    sang_tot, sang_integ, sang, extent, sang_units = _prepare_sang(
         coll=coll,
         dvos=dvos[key_cam[0]],
         key_cam=key_cam,
@@ -310,7 +312,7 @@ def _plot_diagnostic_vos(
             lw=1.,
             ls='-',
         )
-        plt.colorbar(im, ax=ax)
+        plt.colorbar(im, ax=ax, label=sang_units)
 
     # cross
     kax = 'cross'
@@ -326,7 +328,7 @@ def _plot_diagnostic_vos(
             vmin=vmin,
             vmax=vmax,
         )
-        plt.colorbar(im, ax=ax)
+        plt.colorbar(im, ax=ax, label=sang_units)
 
     # ------------------
     # plot los / vos
@@ -530,10 +532,10 @@ def _prepare_vos(
     return pc0, pc1, ph0, ph1, pc0i, pc1i, ph0i, ph1i
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                       Prepare sang
-# ##################################################################
+# ################################################################
 
 
 def _prepare_sang(
@@ -579,22 +581,22 @@ def _prepare_sang(
                 iok = dvos['indr'][ii, jj, :] >= 0
                 indr = dvos['indr'][ii, jj, iok]
                 indz = dvos['indz'][ii, jj, iok]
-                sang_tot[indr, indz] += dvos['sang'][ii, jj, iok]
+                sang_tot[indr, indz] += dvos['sang']['data'][ii, jj, iok]
 
                 # sang
                 if ii == indch[0] and jj == indch[1]:
-                    sang[indr, indz] = dvos['sang'][ii, jj, iok]
+                    sang[indr, indz] = dvos['sang']['data'][ii, jj, iok]
 
     else:
         for ii in range(dvos['indr'].shape[0]):
             iok = dvos['indr'][ii, :] >= 0
             indr = dvos['indr'][ii, iok]
             indz = dvos['indz'][ii, iok]
-            sang_tot[indr, indz] += dvos['sang'][ii, iok]
+            sang_tot[indr, indz] += dvos['sang']['data'][ii, iok]
 
             # sang
             if ii == indch:
-                sang[indr, indz] = dvos['sang'][ii, iok]
+                sang[indr, indz] = dvos['sang']['data'][ii, iok]
 
     sang_tot[sang_tot == 0.] = np.nan
     sang[sang == 0.] = np.nan
@@ -602,7 +604,7 @@ def _prepare_sang(
     # -------------------
     # get integrated vos
 
-    sang_integ = np.nansum(dvos['sang'], axis=-1)
+    sang_integ = np.nansum(dvos['sang']['data'], axis=-1)
 
     # extent
     x0 = dsamp['x0']['data']
@@ -617,7 +619,10 @@ def _prepare_sang(
         x1[-1] + 0.5*dx1,
     )
 
-    return sang_tot, sang_integ, sang, extent
+    # units
+    sang_units = dvos['sang']['units']
+
+    return sang_tot, sang_integ, sang, extent, sang_units
 
 
 def _get_etendue_length(
