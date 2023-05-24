@@ -34,7 +34,8 @@ def _vos(
     dx0=None,
     dx1=None,
     sh=None,
-    res=None,
+    res_RZ=None,
+    res_phi=None,
     bool_cross=None,
     # parameters
     margin_poly=None,
@@ -137,7 +138,7 @@ def _vos(
             x1f=x1f,
             x0u=x0u,
             x1u=x1u,
-            res=res,
+            res=res_phi,
             dx0=dx0,
             dx1=dx1,
             # shape
@@ -235,7 +236,7 @@ def _vos(
                 bool_cross=bool_cross,
                 x0=x0l,
                 x1=x1l,
-                res=res,
+                res=np.min(np.atleast_1d(res_RZ)),
             )
         else:
             pc0, pc1 = None, None
@@ -625,19 +626,19 @@ def _harmonize_reshape_others(
     lnpts = [sa.size for sa in lsang]
     nmax = np.max(lnpts)
 
-    sang = np.full((nmax, npix), np.nan)
-    indr = -np.ones((nmax, npix), dtype=int)
-    indz = -np.ones((nmax, npix), dtype=int)
+    sang = np.full((npix, nmax), np.nan)
+    indr = -np.ones((npix, nmax), dtype=int)
+    indz = -np.ones((npix, nmax), dtype=int)
     for ii, sa in enumerate(lsang):
-        sang[:lnpts[ii], ii] = sa
-        indr[:lnpts[ii], ii] = lindr[ii]
-        indz[:lnpts[ii], ii] = lindz[ii]
+        sang[ii, :lnpts[ii]] = sa
+        indr[ii, :lnpts[ii]] = lindr[ii]
+        indz[ii, :lnpts[ii]] = lindz[ii]
 
     # -------
     # reshape
 
     if is2d:
-        newsh = tuple(np.r_[nmax, shape])
+        newsh = tuple(np.r_[shape, nmax])
         sang = sang.reshape(newsh)
         indr = indr.reshape(newsh)
         indz = indz.reshape(newsh)

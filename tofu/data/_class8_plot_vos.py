@@ -17,6 +17,7 @@ from . import _generic_check
 from . import _generic_plot
 from . import _class8_plot as _plot
 from ..geom import _core
+from . import _class8_plot_vos_spectro as _plot_vos_spectro
 
 
 # ###############################################################
@@ -34,6 +35,7 @@ def _plot_diagnostic_vos(
     proj=None,
     los_res=None,
     indch=None,
+    indlamb=None,
     # data plot
     dvos=None,
     units=None,
@@ -44,6 +46,7 @@ def _plot_diagnostic_vos(
     vmax_tot=None,
     vmin_cam=None,
     vmax_cam=None,
+    dvminmax=None,
     alpha=None,
     # config
     plot_config=None,
@@ -99,11 +102,6 @@ def _plot_diagnostic_vos(
     if dvos is None:
         dvos = coll.dobj['diagnostic'][key]['doptics'][key_cam[0]]['dvos']
 
-    spectro = coll.dobj['diagnostic'][key]['spectro']
-    if spectro:
-        msg = "plot_vos not implemented yet for spectral diagnostic"
-        raise NotImplementedError(msg)
-
     doptics = coll.dobj['diagnostic'][key]['doptics'][key_cam[0]]
 
     # indch
@@ -125,13 +123,6 @@ def _plot_diagnostic_vos(
 
     # ---------------------
     # prepare los and ddata
-
-    # dcamref
-    dcamref, drefx, drefy = _plot._prepare_dcamref(
-        coll=coll,
-        key_cam=key_cam,
-        is2d=is2d,
-    )
 
     if is2d:
         out0, out1 = coll.get_optics_outline(
@@ -187,6 +178,23 @@ def _plot_diagnostic_vos(
         indch=indch,
     )
 
+    # mesh envelop
+    dout = coll.get_mesh_outline(key=dvos[key_cam[0]]['keym'])
+    p0 = dout['x0']['data']
+    p1 = dout['x1']['data']
+
+    # etendue and length
+    etendue, length = _get_etendue_length(
+        coll=coll,
+        doptics=doptics,
+        poly=np.array([p0, p1]),
+    )
+
+    # spectro => call routine
+    spectro = coll.dobj['diagnostic'][key]['spectro']
+    if spectro:
+        return _plot_vos_spectro._plot(**locals())
+
     # dsamp from mesh
     sang_tot, sang_integ, sang, extent = _prepare_sang(
         coll=coll,
@@ -210,18 +218,6 @@ def _plot_diagnostic_vos(
         vmin_cam = 0.
     if vmax_cam is None:
         vmax_cam = np.nanmax(sang_integ)
-
-    # mesh envelop
-    dout = coll.get_mesh_outline(key=dvos[key_cam[0]]['keym'])
-    p0 = dout['x0']['data']
-    p1 = dout['x1']['data']
-
-    # etendue and length
-    etendue, length = _get_etendue_length(
-        coll=coll,
-        doptics=doptics,
-        poly=np.array([p0, p1]),
-    )
 
     # -----------------
     # prepare figure
@@ -454,26 +450,30 @@ def _prepare_los(
         mode='rel',
         concatenate=False,
     )
-    los_r = np.hypot(los_x, los_y)
 
     # for chosen index
     if is2d:
         los_xi = los_x[:, indch[0], indch[1]]
         los_yi = los_y[:, indch[0], indch[1]]
         los_zi = los_z[:, indch[0], indch[1]]
-        los_ri = los_r[:, indch[0], indch[1]]
+        los_ri = np.hypot(los_xi, los_yi)
+
+        los_x, los_y, los_z, los_r = None, None, None, None
+
     else:
+        los_r = np.hypot(los_x, los_y)
+
         los_xi = los_x[:, indch]
         los_yi = los_y[:, indch]
         los_zi = los_z[:, indch]
         los_ri = los_r[:, indch]
 
-    # concatenate
-    sh = tuple(np.r_[1, los_x.shape[1:]])
-    los_x = np.append(los_x, np.full(sh, np.nan), axis=0).T.ravel()
-    los_y = np.append(los_y, np.full(sh, np.nan), axis=0).T.ravel()
-    los_z = np.append(los_z, np.full(sh, np.nan), axis=0).T.ravel()
-    los_r = np.append(los_r, np.full(sh, np.nan), axis=0).T.ravel()
+        # concatenate
+        sh = tuple(np.r_[1, los_x.shape[1:]])
+        los_x = np.append(los_x, np.full(sh, np.nan), axis=0).T.ravel()
+        los_y = np.append(los_y, np.full(sh, np.nan), axis=0).T.ravel()
+        los_z = np.append(los_z, np.full(sh, np.nan), axis=0).T.ravel()
+        los_r = np.append(los_r, np.full(sh, np.nan), axis=0).T.ravel()
 
     return los_x, los_y, los_z, los_r, los_xi, los_yi, los_zi, los_ri
 
@@ -506,9 +506,10 @@ def _prepare_vos(
         ph0 = ph0.reshape(ph0.shape[0], -1)
         ph1 = ph1.reshape(ph1.shape[0], -1)
 
-        pc = plg.Polygon(np.array([pc0[:, 0], pc1[:, 0]]).T)
-        ph = plg.Polygon(np.array([ph0[:, 0], ph1[:, 0]]).T)
-        for ii in range(1, pc0.shape[1]):
+        iok = np.all(np.isfinite(pc0), axis=0).nonzero()[0]
+        pc = plg.Polygon(np.array([pc0[:, iok[0]], pc1[:, iok[0]]]).T)
+        ph = plg.Polygon(np.array([ph0[:, iok[0]], ph1[:, iok[0]]]).T)
+        for ii in iok[1:]:
             pc = pc | plg.Polygon(np.array([pc0[:, ii], pc1[:, ii]]).T)
             ph = ph | plg.Polygon(np.array([ph0[:, ii], ph1[:, ii]]).T)
 
@@ -521,8 +522,12 @@ def _prepare_vos(
         ph0i = ph0[:, indch]
         ph1i = ph1[:, indch]
 
-    return pc0, pc1, ph0, ph1, pc0i, pc1i, ph0i, ph1i
+    # safety check
+    if np.any(~np.isfinite(pc0i)):
+        pc0i, pc1i = None, None
+        ph0i, ph1i = None, None
 
+    return pc0, pc1, ph0, ph1, pc0i, pc1i, ph0i, ph1i
 
 
 # ##################################################################
@@ -545,7 +550,7 @@ def _prepare_sang(
 
     dsamp = coll.get_sample_mesh(
         key=dvos['keym'],
-        res=dvos['res'],
+        res=dvos['res_RZ'],
         mode='abs',
         grid=False,
         in_mesh=True,
@@ -569,27 +574,27 @@ def _prepare_sang(
     sang_tot = np.full(shape, 0.)
 
     if is2d:
-        for ii in range(dvos['indr'].shape[1]):
-            for jj in range(dvos['indr'].shape[2]):
-                iok = dvos['indr'][:, ii, jj] >= 0
-                indr = dvos['indr'][iok, ii, jj]
-                indz = dvos['indz'][iok, ii, jj]
-                sang_tot[indr, indz] += dvos['sang'][iok, ii, jj]
+        for ii in range(dvos['indr'].shape[0]):
+            for jj in range(dvos['indr'].shape[1]):
+                iok = dvos['indr'][ii, jj, :] >= 0
+                indr = dvos['indr'][ii, jj, iok]
+                indz = dvos['indz'][ii, jj, iok]
+                sang_tot[indr, indz] += dvos['sang'][ii, jj, iok]
 
                 # sang
                 if ii == indch[0] and jj == indch[1]:
-                    sang[indr, indz] = dvos['sang'][iok, ii, jj]
+                    sang[indr, indz] = dvos['sang'][ii, jj, iok]
 
     else:
-        for ii in range(dvos['indr'].shape[1]):
-            iok = dvos['indr'][:, ii] >= 0
-            indr = dvos['indr'][iok, ii]
-            indz = dvos['indz'][iok, ii]
-            sang_tot[indr, indz] += dvos['sang'][iok, ii]
+        for ii in range(dvos['indr'].shape[0]):
+            iok = dvos['indr'][ii, :] >= 0
+            indr = dvos['indr'][ii, iok]
+            indz = dvos['indz'][ii, iok]
+            sang_tot[indr, indz] += dvos['sang'][ii, iok]
 
             # sang
             if ii == indch:
-                sang[indr, indz] = dvos['sang'][iok, ii]
+                sang[indr, indz] = dvos['sang'][ii, iok]
 
     sang_tot[sang_tot == 0.] = np.nan
     sang[sang == 0.] = np.nan
@@ -597,7 +602,7 @@ def _prepare_sang(
     # -------------------
     # get integrated vos
 
-    sang_integ = np.nansum(dvos['sang'], axis=0)
+    sang_integ = np.nansum(dvos['sang'], axis=-1)
 
     # extent
     x0 = dsamp['x0']['data']
@@ -632,15 +637,23 @@ def _get_etendue_length(
 
     # los
     klos = doptics['los']
-    startx, starty, startz = coll.get_rays_start(key=klos)
-    vectx, vecty, vectz = coll.get_rays_vect(key=klos, norm=True)
+    ptsx, ptsy, ptsz = coll.get_rays_pts(key=klos)
+    vectx, vecty, vectz = coll.get_rays_vect(key=klos)
 
-    DD = np.array([startx.ravel(), starty.ravel(), startz.ravel()])
-    uu = np.array([
-        vectx[0, ...].ravel(),
-        vecty[0, ...].ravel(),
-        vectz[0, ...].ravel(),
+    iok = np.isfinite(vectx[-1, ...])
+    length = np.full(vectx.shape[1:], np.nan)
+
+    DD = np.array([
+        ptsx[-2, ...][iok],
+        ptsy[-2, ...][iok],
+        ptsz[-2, ...][iok],
     ])
+    uu = np.array([
+        vectx[-1, ...][iok],
+        vecty[-1, ...][iok],
+        vectz[-1, ...][iok],
+    ])
+
 
     # Prepare structures
     ves = _core.Ves(
@@ -666,76 +679,15 @@ def _get_etendue_length(
     )
 
     # length
-    length = (cam.dgeom['kOut'] - cam.dgeom['kIn']).reshape(startx.shape)
+    length[iok] = (cam.dgeom['kOut'] - cam.dgeom['kIn'])
 
     return etendue, length
 
 
 # ###############################################################
 # ###############################################################
-#                       Prepare
-# ###############################################################
-
-
-def _prepare_datarefxy(
-    coll=None,
-    dcamref=None,
-    drefx=None,
-    drefy=None,
-    ddata=None,
-    static=None,
-    is2d=None,
-):
-    # prepare dict
-
-    # loop on cams
-    for k0, v0 in dcamref.items():
-
-        # datax, datay
-        if ddata is not None:
-            if is2d:
-                dkeyx[k0], dkeyy[k0] = coll.dobj['camera'][k0]['dgeom']['cents']
-
-                ddatax[k0] = coll.ddata[dkeyx[k0]]['data']
-                ddatay[k0] = coll.ddata[dkeyy[k0]]['data']
-
-                coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
-                coll2.add_data(key=dkeyy[k0], data=ddatay[k0], ref=drefy[k0])
-            else:
-                dkeyx[k0] = f'{k0}_i0'
-                ddatax[k0] = np.arange(0, coll.dref[drefx[k0]]['size'])
-                coll2.add_data(key=dkeyx[k0], data=ddatax[k0], ref=drefx[k0])
-
-            # -------------------------
-            # extent
-
-            reft = None
-            if is2d:
-                if ddatax[k0].size == 1:
-                    ddx = coll.ddata[coll.dobj['camera'][k0]['dgeom']['outline'][0]]['data']
-                    ddx = np.max(ddx) - np.min(ddx)
-                else:
-                    ddx = ddatax[k0][1] - ddatax[k0][0]
-                if ddatay[k0].size == 1:
-                    ddy = coll.ddata[coll.dobj['camera'][k0]['dgeom']['outline'][1]]['data']
-                    ddy = np.max(ddy) - np.min(ddy)
-                else:
-                    ddy = ddatay[k0][1] - ddatay[k0][0]
-
-                dextent[k0] = (
-                    ddatax[k0][0] - 0.5*ddx,
-                    ddatax[k0][-1] + 0.5*ddx,
-                    ddatay[k0][0] - 0.5*ddy,
-                    ddatay[k0][-1] + 0.5*ddy,
-                )
-
-    return reft, dkeyx, dkeyy, ddatax, ddatay, dextent
-
-
-# ##################################################################
-# ##################################################################
 #                       add mobile
-# ##################################################################
+# ###############################################################
 
 
 def _add_camera_los_cross(

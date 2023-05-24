@@ -147,7 +147,12 @@ def compute_inversions(
     if indok is None:
         sol0 = np.full((nbs,), np.mean(data[0, :] / np.sum(mat0, axis=1)))
     else:
-        sol0 = np.full((nbs,), np.mean(data[0, indok[0, :]] / np.sum(mat0, axis=1)))
+        sol0 = np.full(
+            (nbs,),
+            np.mean(
+                data[0, indok[0, :]] / np.sum(mat0[indok[0, :], :], axis=1),
+            ),
+        )
 
     if verb >= 1:
         # t1 = time.process_time()
@@ -1246,7 +1251,6 @@ def _compute_retrofit_data_check(
         default=False if store else dict,
         allowed=[False, dict],
     )
-
 
     return (
         key, key_diag, key_cam, keybs, keym, mtype,

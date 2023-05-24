@@ -20,7 +20,9 @@ from . import _class8_equivalent_apertures as _equivalent_apertures
 from . import _class8_etendue_los as _etendue_los
 from . import _class8_vos as _vos
 from . import _class8_los_angles as _los_angles
+from . import _class8_plane_perp_to_los as _planeperp
 from . import _class8_compute_signal as _compute_signal
+from . import _class8_reverse_ray_tracing as _reverse_rt
 from . import _class8_plot as _plot
 from . import _class8_plot_vos as _plot_vos
 
@@ -28,10 +30,10 @@ from . import _class8_plot_vos as _plot_vos
 __all__ = ['Diagnostic']
 
 
-# #############################################################################
-# #############################################################################
+# ###############################################################
+# ###############################################################
 #                           Diagnostic
-# #############################################################################
+# ###############################################################
 
 
 class Diagnostic(Previous):
@@ -262,17 +264,84 @@ class Diagnostic(Previous):
                 compute_vos_from_los=compute_vos_from_los,
             )
 
+    def compute_diagnostic_solidangle_from_plane(
+        self,
+        key_diag=None,
+        key_cam=None,
+        indch=None,
+        indref=None,
+        # parameters
+        res=None,
+        margin_par=None,
+        margin_perp=None,
+        config=None,
+        # solid angle
+        n0=None,
+        n1=None,
+        # lamb
+        res_lamb=None,
+        # bool
+        verb=None,
+        plot=None,
+        # plotting
+        indplot=None,
+        dax=None,
+        plot_config=None,
+        fs=None,
+        dmargin=None,
+        vmin_cam=None,
+        vmax_cam=None,
+        vmin_plane=None,
+        vmax_plane=None,
+    ):
+        """ Creates a plane perpendicular to los
+        compute contribution of each point to the signal
+        """
+
+        return _planeperp.main(
+            coll=self,
+            key_diag=key_diag,
+            key_cam=key_cam,
+            indch=indch,
+            indref=indref,
+            # parameters
+            res=res,
+            margin_par=margin_par,
+            margin_perp=margin_perp,
+            config=config,
+            # solid angle
+            n0=n0,
+            n1=n1,
+            # lamb
+            res_lamb=res_lamb,
+            # bool
+            verb=verb,
+            plot=plot,
+            # plotting
+            indplot=indplot,
+            dax=dax,
+            plot_config=plot_config,
+            fs=fs,
+            dmargin=dmargin,
+            vmin_cam=vmin_cam,
+            vmax_cam=vmax_cam,
+            vmin_plane=vmin_plane,
+            vmax_plane=vmax_plane,
+        )
+
     def compute_diagnostic_vos(
         self,
         key=None,
         key_mesh=None,
         # parameters
-        res=None,
+        res_RZ=None,
+        res_phi=None,
         res_lamb=None,
-        res_ang_rocking_curve=None,
+        res_rock_curve=None,
+        n0=None,
+        n1=None,
         check=None,
-        margin_par=None,
-        margin_perp=None,
+        margin_poly=None,
         # raytracing
         visibility=None,
         # spectro-only
@@ -285,6 +354,7 @@ class Diagnostic(Previous):
         debug=None,
         plot=None,
         store=None,
+        replace_poly=None,
         timing=None,
     ):
         """ Compute the etendue of the diagnostic (per pixel)
@@ -300,12 +370,14 @@ class Diagnostic(Previous):
             key_diag=key,
             key_mesh=key_mesh,
             # etendue
-            res=res,
+            res_RZ=res_RZ,
+            res_phi=res_phi,
             res_lamb=res_lamb,
-            res_ang_rocking_curve=res_ang_rocking_curve,
+            res_rock_curve=res_rock_curve,
+            n0=n0,
+            n1=n1,
             check=check,
-            margin_par=margin_par,
-            margin_perp=margin_perp,
+            margin_poly=margin_poly,
             visibility=visibility,
             # spectro-only
             rocking_curve_fw=rocking_curve_fw,
@@ -314,6 +386,7 @@ class Diagnostic(Previous):
             debug=debug,
             plot=plot,
             store=store,
+            replace_poly=replace_poly,
             timing=timing,
         )
 
@@ -630,6 +703,69 @@ class Diagnostic(Previous):
             returnas=returnas,
         )
 
+    # -----------------------
+    # ray-tracing from plasma
+    # -----------------------
+
+    def get_raytracing_from_pts(
+        self,
+        # diag
+        key=None,
+        key_cam=None,
+        # mesh sampling
+        key_mesh=None,
+        res_RZ=None,
+        res_phi=None,
+        # pts coordinates
+        ptsx=None,
+        ptsy=None,
+        ptsz=None,
+        # res
+        res_rock_curve=None,
+        n0=None,
+        n1=None,
+        # optional lamb
+        lamb0=None,
+        res_lamb=None,
+        # options
+        append=None,
+        plot=None,
+        plot_pixels=None,
+        plot_config=None,
+        vmin=None,
+        vmax=None,
+    ):
+        """ Get rays from plasma points to camera for a spectrometer diag """
+
+        return _reverse_rt._from_pts(
+            coll=self,
+            # diag
+            key=key,
+            key_cam=key_cam,
+            # mesh sampling
+            key_mesh=key_mesh,
+            res_RZ=res_RZ,
+            res_phi=res_phi,
+            # pts coordinates
+            ptsx=ptsx,
+            ptsy=ptsy,
+            ptsz=ptsz,
+            # res
+            res_rock_curve=res_rock_curve,
+            n0=n0,
+            n1=n1,
+            # optional lamb
+            lamb0=lamb0,
+            res_lamb=res_lamb,
+            # options
+            append=append,
+            plot=plot,
+            plot_pixels=plot_pixels,
+            plot_config=plot_config,
+            vmin=vmin,
+            vmax=vmax,
+        )
+
     # ---------------------
     # interpolate along los
     # ---------------------
@@ -798,6 +934,7 @@ class Diagnostic(Previous):
         key=None,
         key_cam=None,
         indch=None,
+        indlamb=None,
         optics=None,
         elements=None,
         proj=None,
@@ -812,6 +949,7 @@ class Diagnostic(Previous):
         vmax_tot=None,
         vmin_cam=None,
         vmax_cam=None,
+        dvminmax=None,
         alpha=None,
         # config
         plot_config=None,
@@ -829,6 +967,7 @@ class Diagnostic(Previous):
             key=key,
             key_cam=key_cam,
             indch=indch,
+            indlamb=indlamb,
             optics=optics,
             elements=elements,
             proj=proj,
@@ -843,6 +982,7 @@ class Diagnostic(Previous):
             vmax_tot=vmax_tot,
             vmin_cam=vmin_cam,
             vmax_cam=vmax_cam,
+            dvminmax=dvminmax,
             alpha=alpha,
             # config
             plot_config=plot_config,

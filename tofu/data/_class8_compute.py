@@ -1092,6 +1092,15 @@ def _get_data(
         lcomp = ['length', 'tangency radius', 'alpha']
         llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
         lsynth = coll.dobj['diagnostic'][key]['signal']
+
+        if len(key_cam) == 1:
+            lraw = [
+                k0 for k0, v0 in coll.ddata.items()
+                if v0['ref'] == coll.dobj['camera'][key_cam[0]]['dgeom']['ref']
+            ]
+        else:
+            lraw = []
+
         if lsynth is None:
             lsynth = []
         if spectro:
@@ -1100,7 +1109,7 @@ def _get_data(
         data = ds._generic_check._check_var(
             data, 'data',
             types=str,
-            allowed=lquant + lcomp + lsynth,
+            allowed=lquant + lcomp + lsynth + lraw,
         )
 
     # build ddata
@@ -1279,6 +1288,12 @@ def _get_data(
             dref[cc] = ref
 
             units = coll.ddata[kdat]['units']
+
+    elif data in lraw:
+        ddata = {key_cam[0]: coll.ddata[data]['data']}
+        dref = {key_cam[0]: coll.dobj['camera'][key_cam[0]]['dgeom']['ref']}
+        units = coll.ddata[data]['units']
+        static = True
 
     return ddata, dref, units, static, daxis
 

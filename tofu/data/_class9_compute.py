@@ -351,6 +351,7 @@ def _prepare(
     nchan = None        # depends on cam
 
     # cases
+    wm = coll._which_mesh
     wbs = coll._which_bsplines
     if subkey is None:
         shape_mat = (nchan, nbs)
@@ -360,15 +361,15 @@ def _prepare(
         axis_other = None
 
     else:
-        sh = list(coll.ddata[subkey]['shape'])
-        ref = coll.ddata[subkey]['ref']
-        refbs = coll.dobj[wbs][key_bs0]['ref']
 
-        for ii, rr in enumerate(refbs):
-            if ii == 0:
-                axis_pix = ref.index(rr)
-            else:
-                axis_bs = ref.index(rr)
+        refbs = coll.dobj[wbs][key_bs0]['ref']
+        ref = coll.ddata[subkey]['ref']
+        sh = list(coll.ddata[subkey]['shape'])
+        axis_pix = ref.index(refbs[0])
+
+        if len(refbs) == 1:  # tri
+            sh = sh[:axis_pix+1] + [None] + sh[axis_pix+1:]
+        axis_bs = axis_pix + 1
 
         axis_other = [ii for ii, rr in enumerate(ref) if rr not in refbs]
         if len(axis_other) == 1:
