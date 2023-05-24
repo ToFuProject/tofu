@@ -444,8 +444,12 @@ def _check(
     store = ds._generic_check._check_var(
         store, 'store',
         types=bool,
-        default=True,
+        default=False,
     )
+
+    if store is True:
+        msg = "storing vos is not available yet!"
+        raise NotImplementedError(msg)
 
     # -----------
     # timing
