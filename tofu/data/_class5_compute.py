@@ -146,6 +146,7 @@ def _ideal_configuration_check(
     coll=None,
     key=None,
     configuration=None,
+    defocus=None,
     # parameters
     cam_on_e0=None,
     # johann-specific
@@ -195,6 +196,13 @@ def _ideal_configuration_check(
         types=str,
         allowed=conf,
     )
+
+    # defocus
+    defocus = float(ds._generic_check._check_var(
+        defocus, 'defocus',
+        types=(float, int),
+        default=0.,
+    ))
 
     # cam_on_e0
     cam_on_e0 = ds._generic_check._check_var(
@@ -338,7 +346,7 @@ def _ideal_configuration_check(
 
     return (
         key, gtype, configuration,
-        cam_on_e0, cam_tangential,
+        defocus, cam_on_e0, cam_tangential,
         store, key_cam, key_aperture, key_aperture_in,
         cam_pixels_nb, aperture_dimensions,
         focal_distance, pinhole_radius,
@@ -353,6 +361,7 @@ def _ideal_configuration(
     lamb=None,
     bragg=None,
     norder=None,
+    defocus=None,
     # parameters
     cam_on_e0=None,
     # johann-specific
@@ -377,7 +386,7 @@ def _ideal_configuration(
 
     (
         key, gtype, configuration,
-        cam_on_e0, cam_tangential,
+        defocus, cam_on_e0, cam_tangential,
         store, key_cam, key_aperture, key_aperture_in,
         cam_pixels_nb, aperture_dimensions,
         focal_distance, pinhole_radius,
@@ -386,6 +395,7 @@ def _ideal_configuration(
         coll=coll,
         key=key,
         configuration=configuration,
+        defocus=defocus,
         # parameters
         cam_on_e0=cam_on_e0,
         # johann-specific
@@ -465,7 +475,7 @@ def _ideal_configuration(
         meridional = cent + med * vect_los
         sagittal = cent + sag * vect_los
 
-        cam_cent = cent + med * vect_cam
+        cam_cent = cent + (med + defocus) * vect_cam
 
         if cam_tangential is True:
             cam_nin = (cent + nin*rc/2. - cam_cent)
@@ -500,7 +510,7 @@ def _ideal_configuration(
         pin_cent = cent + dist_pin * vect_los
         pin_nin = vect_los
 
-        cam_cent = cent + dist_pin * vect_cam
+        cam_cent = cent + (dist_pin + defocus) * vect_cam
         if cam_tangential is True:
             cam_nin = -nin
         else:
@@ -572,7 +582,7 @@ def _ideal_configuration(
             cam_dist = cam_distance
 
         cam_nin = -vect_cam
-        cam_cent = cent + cam_dist * vect_cam
+        cam_cent = cent + (cam_dist + defocus) * vect_cam
 
         dout = {
             'aperture': {
@@ -594,7 +604,7 @@ def _ideal_configuration(
             temp_ang = np.arctan2(
                 np.linalg.norm(np.cross(dd['nin'], pin_nin)),
                 np.sum(dd['nin'] * pin_nin),
-                )
+            )
 
             if not (temp_dist < 1e-6 and np.abs(temp_ang) < 0.01*np.pi/180.):
                 # dist = np.linalg.norm(dd['cent'] - pin_cent)
