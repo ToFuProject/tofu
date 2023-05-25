@@ -25,9 +25,12 @@ def compute_vos(
     key_mesh=None,
     config=None,
     # parameters
-    res=None,
+    res_RZ=None,
+    res_phi=None,
     res_lamb=None,
-    res_ang_rocking_curve=None,
+    res_rock_curve=None,
+    n0=None,
+    n1=None,
     margin_poly=None,
     margin_par=None,
     margin_perp=None,
@@ -44,6 +47,7 @@ def compute_vos(
     debug=None,
     plot=None,
     store=None,
+    replace_poly=None,
     timing=None,
 ):
 
@@ -60,7 +64,8 @@ def compute_vos(
         is2d,
         doptics,
         dcompute,
-        res,
+        res_RZ,
+        res_phi,
         res_lamb,
         margin_par,
         margin_perp,
@@ -74,7 +79,8 @@ def compute_vos(
         coll=coll,
         key_diag=key_diag,
         key_mesh=key_mesh,
-        res=res,
+        res_RZ=res_RZ,
+        res_phi=res_phi,
         res_lamb=res_lamb,
         margin_par=margin_par,
         margin_perp=margin_perp,
@@ -106,7 +112,7 @@ def compute_vos(
 
     dsamp = coll.get_sample_mesh(
         key=key_mesh,
-        res=res,
+        res=res_RZ,
         mode='abs',
         grid=True,
         in_mesh=True,
@@ -193,9 +199,12 @@ def compute_vos(
                 dx1=dx1,
                 # options
                 sh=sh,
-                res=res,
+                res_RZ=res_RZ,
+                res_phi=res_phi,
                 res_lamb=res_lamb,
-                res_ang_rocking_curve=res_ang_rocking_curve,
+                res_rock_curve=res_rock_curve,
+                n0=n0,
+                n1=n1,
                 bool_cross=bool_cross,
                 # parameters
                 margin_poly=margin_poly,
@@ -218,7 +227,11 @@ def compute_vos(
             )
 
             dvos[key_cam]['keym'] = key_mesh
-            dvos[key_cam]['res'] = res
+            dvos[key_cam]['res_RZ'] = res_RZ
+            dvos[key_cam]['res_phi'] = res_phi
+            if spectro is True:
+                dvos[key_cam]['res_lamb'] = res_lamb
+                dvos[key_cam]['res_rock_curve'] = res_rock_curve
 
     # timing
     if timing:
@@ -246,6 +259,7 @@ def compute_vos(
             key_diag=key_diag,
             dvos=dvos,
             spectro=spectro,
+            replace_poly=replace_poly,
         )
 
     return dvos
@@ -261,7 +275,8 @@ def _check(
     coll=None,
     key_diag=None,
     key_mesh=None,
-    res=None,
+    res_RZ=None,
+    res_phi=None,
     res_lamb=None,
     margin_par=None,
     margin_perp=None,
@@ -352,10 +367,16 @@ def _check(
         ]
 
     # -----------
-    # res
+    # res_RZ
 
-    if res is None:
-        res = 0.01
+    if res_RZ is None:
+        res_RZ = 0.01
+
+    # -----------
+    # res_phi
+
+    if res_phi is None:
+        res_phi = 0.01
 
     # -----------
     # res_lamb
@@ -423,8 +444,12 @@ def _check(
     store = ds._generic_check._check_var(
         store, 'store',
         types=bool,
-        default=True,
+        default=False,
     )
+
+    if store is True and spectro is True:
+        msg = "storing vos is not available yet for spectrometers!"
+        raise NotImplementedError(msg)
 
     # -----------
     # timing
@@ -442,7 +467,8 @@ def _check(
         is2d,
         doptics,
         dcompute,
-        res,
+        res_RZ,
+        res_phi,
         res_lamb,
         margin_par,
         margin_perp,
@@ -525,24 +551,42 @@ def _store(
     key_diag=None,
     dvos=None,
     spectro=None,
+    replace_poly=None,
 ):
+
+    # ------------
+    # check inputs
+
+    replace_poly = ds._generic_check._check_var(
+        replace_poly, 'replace_poly',
+        types=bool,
+        default=True,
+    )
+
+    # ------------
+    # store
 
     doptics = coll._dobj['diagnostic'][key_diag]['doptics']
 
     for k0, v0 in dvos.items():
 
-        # re-use previous keys
-        kpc0, kpc1 = doptics[k0]['dvos']['pcross']
-        kr = coll.ddata[kpc0]['ref'][0]
+        # ----------------
+        # pcross
 
-        # safety check
-        if coll.ddata[kpc0]['data'].shape[1:] != v0['pcross0'].shape[1:]:
-            msg = "Something is wrong"
-            raise Exception(msg)
+        if replace_poly and v0.get('pcross0') is not None:
 
-        coll._dref[kr]['size'] = v0['pcross0'].shape[0]
-        coll._ddata[kpc0]['data'] = v0['pcross0']
-        coll._ddata[kpc1]['data'] = v0['pcross1']
+            # re-use previous keys
+            kpc0, kpc1 = doptics[k0]['dvos']['pcross']
+            kr = coll.ddata[kpc0]['ref'][0]
+
+            # safety check
+            if coll.ddata[kpc0]['data'].shape[1:] != v0['pcross0'].shape[1:]:
+                msg = "Something is wrong"
+                raise Exception(msg)
+
+            coll._dref[kr]['size'] = v0['pcross0'].shape[0]
+            coll._ddata[kpc0]['data'] = v0['pcross0']
+            coll._ddata[kpc1]['data'] = v0['pcross1']
 
         # ----------------
         # 2d mesh sampling
@@ -551,30 +595,35 @@ def _store(
         kir = f'{k0}_vos_ir'
         kiz = f'{k0}_vos_iz'
 
-        if knpts not in coll.dref.keys():
-            coll.add_ref(knpts, size=v0['indr'].size)
+        ref = tuple(list(coll.dobj['camera'][k0]['dgeom']['ref']) + [knpts])
 
+        if knpts not in coll.dref.keys():
+            coll.add_ref(knpts, size=v0['indr'].shape[1])
+
+        # indr
         if kir not in coll.ddata.keys():
             coll.add_data(
                 key=kir,
                 data=v0['indr'],
-                ref=knpts,
+                ref=ref,
                 units='',
                 dim='index',
             )
 
+        # indz
         if kiz not in coll.ddata.keys():
             coll.add_data(
                 key=kiz,
                 data=v0['indz'],
-                ref=knpts,
+                ref=ref,
                 units='',
                 dim='index',
             )
 
         # add in doptics
         doptics[k0]['dvos']['keym'] = v0['keym']
-        doptics[k0]['dvos']['res'] = v0['res']
+        doptics[k0]['dvos']['res_RZ'] = v0['res_RZ']
+        doptics[k0]['dvos']['res_phi'] = v0['res_phi']
         doptics[k0]['dvos']['ind'] = (kir, kiz)
 
         # ------------
@@ -604,8 +653,8 @@ def _store(
             )
 
             # add in doptics
-            doptics['dvos']['cos'] = v0['cos']
-            doptics['dvos']['ph'] = v0['ph']
+            doptics[k0]['dvos']['cos'] = v0['cos']
+            doptics[k0]['dvos']['ph'] = v0['ph']
 
         else:
 
@@ -615,10 +664,85 @@ def _store(
             # add data
             coll.add_data(
                 key=ksa,
-                data=v0['sang'],
-                ref=(knpts, kchan),
-                units='sr.m3',
+                data=v0['sang']['data'],
+                ref=ref,
+                units=v0['sang']['units'],
             )
 
             # add in doptics
-            doptics['dvos']['sang'] = ksa
+            doptics[k0]['dvos']['sang'] = ksa
+
+
+# ###############################################################
+# ###############################################################
+#                       Main
+# ###############################################################
+
+
+def _check_get_dvos(
+    coll=None,
+    key=None,
+    key_cam=None,
+    dvos=None,
+):
+
+    # ------------
+    # keys
+
+    key_diag, key_cam = coll.get_diagnostic_cam(
+        key=key,
+        key_cam=key_cam,
+    )
+    spectro = coll.dobj['diagnostic'][key_diag]['spectro']
+
+    # ------
+    # dvos
+
+    if dvos is None:
+        dvos = {}
+        for k0 in key_cam:
+            dop = coll.dobj['diagnostic'][key_diag]['doptics'][k0]['dvos']
+            dvos[k0] = {
+                'keym': dop['keym'],
+                'res_RZ': dop['res_RZ'],
+                'indr': coll.ddata[dop['ind'][0]]['data'],
+                'indz': coll.ddata[dop['ind'][1]]['data'],
+                'sang': {
+                    'data': coll.ddata[dop['sang']]['data'],
+                    'units': coll.ddata[dop['sang']]['units'],
+                },
+            }
+
+    # ------------------
+    # check keys of dvos
+
+    # default
+    if spectro is True:
+        pass
+    else:
+        lk = ['keym', 'res_RZ', 'indr', 'indz', 'sang']
+
+    # check
+    c0 = (
+        isinstance(dvos, dict)
+        and all([
+            k0 in dvos.keys()
+            and all([k1 in dvos[k0].keys() for k1 in lk])
+            for k0 in key_cam
+        ])
+    )
+
+    # raise exception
+    if not c0:
+        msg = (
+            "Arg dvos must be a dict with, for each camera, the keys:\n"
+            + str(lk)
+        )
+        raise Exception(msg)
+
+    # only keep desired cams
+    lkout = [k0 for k0 in dvos.keys() if k0 not in key_cam]
+    for k0 in lkout:
+        del dvos[k0]
+
+    return dvos

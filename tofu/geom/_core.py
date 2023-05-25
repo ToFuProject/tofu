@@ -14,6 +14,7 @@ import inspect
 
 # Common
 import numpy as np
+import scipy.interpolate as scpinterp
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
@@ -6898,29 +6899,54 @@ class Rays(utils.ToFuObject):
             pts=True, compact=True, Test=True,
         )
 
+        # get mesh
+        wbs = plasma._which_bsplines
+        # keym = plasma.ddata[quant][wm]
+        keybs = plasma.ddata[quant][wbs][0]
+        key_reftime = plasma.ddata[quant]['ref'][0]
+        key_time = plasma.get_ref_vector(ref=key_reftime, units='s')[3]
+        time = plasma.ddata[key_time]['data']
+        dt = [
+                np.max(time[time < np.min(t)]),
+                np.min(time[time > np.max(t)]) + 1e-6,
+        ]
+
         # Interpolate values
-        val, t = plasma.interpolate_profile2d(
-            # interpolation base, 1d or 2d
-            key=quant,
-            # external coefs (instead of key, optional)
-            coefs=None,
-            # interpolation points
-            R=np.hypot(ptsi[0, ...], ptsi[1, ...]),
-            Z=ptsi[2, ...],
+        dout = plasma.interpolate(
+            keys=quant,
+            ref_key=keybs,
+            x0=np.hypot(ptsi[0, ...], ptsi[1, ...]),
+            x1=ptsi[2, ...],
             grid=False,
-            # time
-            t=t,
-            indt=None,
-            indt_strict=indt_strict,
-            # parameters
-            details=False,
-            reshape=None,
             res=res,
+            mode=None,
+            submesh=None,
+            domain={key_time: dt},
+            ref_com=None,
+            details=False,
+            indbs_tf=None,
             crop=None,
+            deg=None,
+            deriv=None,
+            val_out=None,
+            log_log=None,
             nan0=None,
-            imshow=False,
+            returnas=None,
             return_params=False,
+            store=False,
+            inplace=None,
+            debug=None,
         )
+        val = dout[quant]['data']
+
+        # interpolate time
+        indt = (time >= dt[0]) & (time <= dt[1])
+        val = scpinterp.interp1d(
+            time[indt],
+            val,
+            axis=0,
+            kind='linear',
+        )(t)
 
         # Separate val per LOS and compute min / max
         func = np.nanmin if log == 'min' else np.nanmax

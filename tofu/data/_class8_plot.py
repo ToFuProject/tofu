@@ -15,10 +15,10 @@ from . import _generic_check
 from . import _generic_plot
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                           plot check
-# ##################################################################
+# ################################################################
 
 
 def _plot_diagnostic_check(
@@ -377,86 +377,12 @@ def _plot_diagnostic(
     # -----------------
     # plot static parts
 
-    for k0, v0 in dplot.items():
-
-        for k1, v1 in v0.items():
-
-            # cross
-            kax = 'cross'
-            if dax.get(kax) is not None:
-                ax = dax[kax]['handle']
-
-                if k1.startswith('v-'):
-                    ax.quiver(
-                        v1['r'],
-                        v1['z'],
-                        v1['ur'],
-                        v1['uz'],
-                        **v1.get('props', {}),
-                    )
-
-                else:
-                    ax.plot(
-                        v1['r'],
-                        v1['z'],
-                        **v1.get('props', {}),
-                    )
-
-            # hor
-            kax = 'hor'
-            if dax.get(kax) is not None:
-                ax = dax[kax]['handle']
-
-                if k1.startswith('v-'):
-                    ax.quiver(
-                        v1['x'],
-                        v1['y'],
-                        v1['ux'],
-                        v1['uy'],
-                        **v1.get('props', {}),
-                    )
-
-                else:
-                    ax.plot(
-                        v1['x'],
-                        v1['y'],
-                        **v1.get('props', {}),
-                    )
-
-            # 3d
-            kax = '3d'
-            if dax.get(kax) is not None:
-                ax = dax[kax]['handle']
-
-                if k1.startswith('v-'):
-                    ax.quiver(
-                        v1['x'],
-                        v1['y'],
-                        v1['z'],
-                        v1['ux'],
-                        v1['uy'],
-                        v1['uz'],
-                        **v1.get('props', {}),
-                    )
-
-                else:
-                    ax.plot(
-                        v1['x'],
-                        v1['y'],
-                        v1['z'],
-                        **v1.get('props', {}),
-                    )
-
-            # plotting of 2d camera contour
-            kax = f"{k0}_sig"
-            if is2d and k0 in key_cam and dax.get(kax) is not None:
-                ax = dax[kax]['handle']
-                if k1 == 'o':
-                    ax.plot(
-                        v1['x0'],
-                        v1['x1'],
-                        **v1.get('props', {}),
-                    )
+    _plot_diag_geom(
+        dax=dax,
+        key_cam=key_cam,
+        dplot=dplot,
+        is2d=is2d,
+    )
 
     # plot data
     if static is True:
@@ -847,10 +773,10 @@ def _plot_diagnostic(
         return dax
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
 #                       Prepare
-# ##################################################################
+# ################################################################
 
 
 def _prepare_dcamref(
@@ -1048,10 +974,105 @@ def _prepare_datarefxy(
     return reft, dkeyx, dkeyy, ddatax, ddatay, dextent
 
 
-# ##################################################################
-# ##################################################################
+# ################################################################
+# ################################################################
+#                       add diag geom
+# ################################################################
+
+
+def _plot_diag_geom(
+    dax=None,
+    key_cam=None,
+    dplot=None,
+    is2d=None,
+):
+
+    for k0, v0 in dplot.items():
+
+        for k1, v1 in v0.items():
+
+            # cross
+            kax = 'cross'
+            if dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+
+                if k1.startswith('v-'):
+                    ax.quiver(
+                        v1['r'],
+                        v1['z'],
+                        v1['ur'],
+                        v1['uz'],
+                        **v1.get('props', {}),
+                    )
+
+                else:
+                    ax.plot(
+                        v1['r'],
+                        v1['z'],
+                        **v1.get('props', {}),
+                    )
+
+            # hor
+            kax = 'hor'
+            if dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+
+                if k1.startswith('v-'):
+                    ax.quiver(
+                        v1['x'],
+                        v1['y'],
+                        v1['ux'],
+                        v1['uy'],
+                        **v1.get('props', {}),
+                    )
+
+                else:
+                    ax.plot(
+                        v1['x'],
+                        v1['y'],
+                        **v1.get('props', {}),
+                    )
+
+            # 3d
+            kax = '3d'
+            if dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+
+                if k1.startswith('v-'):
+                    ax.quiver(
+                        v1['x'],
+                        v1['y'],
+                        v1['z'],
+                        v1['ux'],
+                        v1['uy'],
+                        v1['uz'],
+                        **v1.get('props', {}),
+                    )
+
+                else:
+                    ax.plot(
+                        v1['x'],
+                        v1['y'],
+                        v1['z'],
+                        **v1.get('props', {}),
+                    )
+
+            # plotting of 2d camera contour
+            kax = f"{k0}_sig"
+            if is2d and k0 in key_cam and dax.get(kax) is not None:
+                ax = dax[kax]['handle']
+                if k1 == 'o':
+                    ax.plot(
+                        v1['x0'],
+                        v1['x1'],
+                        **v1.get('props', {}),
+                    )
+
+
+# ################################################################
+# ################################################################
 #                       add mobile
-# ##################################################################
+# ################################################################
 
 
 def _add_camera_los_cross(
