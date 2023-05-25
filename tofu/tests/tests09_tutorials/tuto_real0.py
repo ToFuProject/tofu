@@ -485,12 +485,13 @@ def _add_spectrometer(
             cam_tangential=True,
             cam_dimensions=np.r_[1028, 512]*75e-6,
             focal_distance=2.,
+            defocus=0.,
+            # defocus=-1.5,
             # store
             store=True,
             key_cam=f'{k0}_cam',
             aperture_dimensions=[100e-6, 1e-2],
             pinhole_radius=100e-6 if v0['configuration'] == 'pinhole' else None,
-            # cam_pixels_nb=[33, 5],
             cam_pixels_nb=[7, 3],
             # returnas
             returnas=list,
