@@ -1211,10 +1211,7 @@ def _check_plot(
         )[0][key_cam]
 
         etend_lamb = etend * dlamb
-        etend_plane_lamb = np.nansum(
-            np.nansum(np.nansum(sang_lamb['data'], axis=-1), axis=-1),
-            axis=-1,
-        ) * ds
+        etend_plane_lamb = sang_lamb['data'] * ds
 
     else:
         etend_plane0 = np.nansum(np.nansum(sang0['data'], axis=-1), axis=-1) * ds
