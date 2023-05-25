@@ -42,13 +42,13 @@ def main():
     _add_2d(coll, conf)
 
     # add PHA
-    # _add_PHA(coll, conf)
+    _add_PHA(coll, conf)
 
     # add spectrometer
     _add_spectrometer(coll, conf)   # , crystals=['c0'])
 
     # add spectro-like without crystal
-    _add_spectrometer_like(coll, config=conf, key_diag='d02')
+    # _add_spectrometer_like(coll, config=conf, key_diag='d02')
 
     # ------------------------
     # compute synthetic signal
@@ -493,6 +493,7 @@ def _add_spectrometer(
             aperture_dimensions=[100e-6, 1e-2],
             pinhole_radius=100e-6 if v0['configuration'] == 'pinhole' else None,
             cam_pixels_nb=[7, 3],
+            # cam_pixels_nb=[41, 41],
             # returnas
             returnas=list,
         )

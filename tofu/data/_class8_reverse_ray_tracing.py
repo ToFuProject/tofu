@@ -175,9 +175,6 @@ def _from_pts(
             dout[k0] = dout[k0].reshape(shape_new)
         for k0 in ['sang0']:
             dout[k0] = dout[k0].reshape(shape_new)
-        shape_new = tuple(np.r_[shape_cam, shape, nlamb])
-        for k0 in ['sang_lamb']:
-            dout[k0] = dout[k0].reshape(shape_new)
 
     # -------
     # plot
@@ -662,7 +659,7 @@ def _loop0(
     ncounts = np.full(shape_cam, 0.)
     sang = np.full(tuple(np.r_[shape_cam, ptsx.size]), 0.)
     sang0 = np.full(tuple(np.r_[shape_cam, ptsx.size]), 0.)
-    sang_lamb = np.full(tuple(np.r_[shape_cam, ptsx.size, lamb.size]), 0.)
+    sang_lamb = np.full(shape_cam, 0.)
 
     if append is True:
         lp0, lp1 = [], []
@@ -861,7 +858,7 @@ def _loop0(
                     )
 
                     # update power_ratio * solid angle
-                    sang_lamb[ii, jj, i0, kk] += np.sum(
+                    sang_lamb[ii, jj] += np.sum(
                         pow_ratio[inds]
                         * dsang[indj][ilamb[:, kk]]
                     )
