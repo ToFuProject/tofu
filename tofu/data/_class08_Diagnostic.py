@@ -200,7 +200,9 @@ class Diagnostic(Previous):
         margin_par=None,
         margin_perp=None,
         # spectro-only
+        ind_ap_lim_spectral=None,
         rocking_curve_fw=None,
+        rocking_curve_max=None,
         # equivalent aperture
         add_points=None,
         convex=None,
@@ -235,7 +237,9 @@ class Diagnostic(Previous):
             margin_par=margin_par,
             margin_perp=margin_perp,
             # spectro-only
+            ind_ap_lim_spectral=ind_ap_lim_spectral,
             rocking_curve_fw=rocking_curve_fw,
+            rocking_curve_max=rocking_curve_max,
             # equivalent aperture
             add_points=add_points,
             convex=convex,
@@ -416,6 +420,7 @@ class Diagnostic(Previous):
         # inital contour
         add_points=None,
         # options
+        ind_ap_lim_spectral=None,
         convex=None,
         harmonize=None,
         reshape=None,
@@ -434,6 +439,7 @@ class Diagnostic(Previous):
             # inital contour
             add_points=add_points,
             # options
+            ind_ap_lim_spectral=ind_ap_lim_spectral,
             convex=convex,
             harmonize=harmonize,
             reshape=reshape,

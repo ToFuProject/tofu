@@ -37,6 +37,7 @@ def compute_etendue_los(
     # options
     add_points=None,
     # spectro-only
+    ind_ap_lim_spectral=None,
     rocking_curve_fw=None,
     rocking_curve_max=None,
     # bool
@@ -102,6 +103,7 @@ def compute_etendue_los(
             # inital contour
             add_points=add_points,
             # options
+            ind_ap_lim_spectral=ind_ap_lim_spectral,
             convex=convex,
             harmonize=True,
             reshape=False,

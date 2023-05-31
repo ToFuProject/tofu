@@ -32,6 +32,7 @@ def equivalent_apertures(
     add_points=None,
     min_threshold=None,
     # options
+    ind_ap_lim_spectral=None,
     convex=None,
     harmonize=None,
     reshape=None,
@@ -69,6 +70,7 @@ def equivalent_apertures(
         pixel,
         add_points,
         min_threshold,
+        ind_ap_lim_spectral,
         convex,
         harmonize,
         reshape,
@@ -82,6 +84,7 @@ def equivalent_apertures(
         pixel=pixel,
         add_points=add_points,
         min_threshold=min_threshold,
+        ind_ap_lim_spectral=ind_ap_lim_spectral,
         convex=convex,
         harmonize=harmonize,
         reshape=reshape,
@@ -131,8 +134,10 @@ def equivalent_apertures(
     if spectro:
         pts2pt = coll.get_optics_reflect_pts2pt(key=kref)
         if len(lop_post) > 0:
+            cls_ap_lim = lop_post_cls[ind_ap_lim_spectral]
+            kap_lim = lop_post[ind_ap_lim_spectral]
             dist_cryst2ap = np.linalg.norm(
-                coll.dobj[lop_post_cls[-1]][lop_post[-1]]['dgeom']['cent']
+                coll.dobj[cls_ap_lim][kap_lim]['dgeom']['cent']
                 - coll.dobj[cref][kref]['dgeom']['cent']
             )
         else:
@@ -208,6 +213,7 @@ def equivalent_apertures(
             convex=convex,
             # debug
             ii=ii,
+            ij=ij,
             # timing
             # dt=dt,
         )
@@ -221,7 +227,6 @@ def equivalent_apertures(
                 # plg.Polygon(np.array([p0, p1]).T)
             # ).contour(0)).T
             vert = ConvexHull(np.array([p0, p1]).T).vertices
-            p0, p1 = p0[vert], p1[vert]
 
             # --- DEBUG ---------
             # if ii in [97]:
@@ -233,7 +238,10 @@ def equivalent_apertures(
             # --------------------
 
             p0c, p1c = _compute._interp_poly(
-                lp=[p0 * curve_mult[0], p1 * curve_mult[1]],
+                lp=[
+                    p0[vert] * curve_mult[0],
+                    p1[vert] * curve_mult[1],
+                ],
                 add_points=1,
                 mode='thr',
                 isclosed=False,
@@ -244,13 +252,13 @@ def equivalent_apertures(
             )
 
             # --- DEBUG ---------
-            # if ii in [97]:
-                # _debug_plot(
-                    # pa0=p0, pa1=p1,
-                    # pb0=p0[vert], pb1=p1[vert],
-                    # pc0=p0c/curve_mult[0], pc1=p1c/curve_mult[1],
-                    # ii=ii, tit='curve_mult',
-                # )
+            # if ij in [104]:
+            #     _debug_plot(
+            #         pa0=p0, pa1=p1,
+            #         pb0=p0[vert], pb1=p1[vert],
+            #         pc0=p0c/curve_mult[0], pc1=p1c/curve_mult[1],
+            #         ii=ii, tit='curve_mult',
+            #     )
             # --------------------
             p0, p1 = p0c / curve_mult[0], p1c / curve_mult[1]
 
@@ -410,6 +418,7 @@ def _check(
     pixel=None,
     add_points=None,
     min_threshold=None,
+    ind_ap_lim_spectral=None,
     convex=None,
     harmonize=None,
     reshape=None,
@@ -549,6 +558,18 @@ def _check(
         sign='>0',
     )
 
+    # ----------------------------------------------
+    # index of aperture limiting the spectral range
+    
+    if spectro is True:
+        ind_ap_lim_spectral = int(ds._generic_check._check_var(
+            ind_ap_lim_spectral, 'ind_ap_lim_spectral',
+            types=(float, int),
+            default=0,
+        ))
+    else:
+        ind_ap_lim_spectral = None
+
     # -----------
     # convex
 
@@ -626,6 +647,7 @@ def _check(
         pixel,
         add_points,
         min_threshold,
+        ind_ap_lim_spectral,
         convex,
         harmonize,
         reshape,
@@ -716,8 +738,9 @@ def _get_equivalent_aperture_spectro(
     dt=None,
     # debug
     ii=None,
+    ij=None,
 ):
-
+    
     # loop on optics before crystal
     for jj in range(nop_pre):
 
@@ -770,6 +793,7 @@ def _get_equivalent_aperture_spectro(
             # dt=dt,
             # debug
             ii=ii,
+            ij=ij,
         )
 
         if p0 is None:
@@ -782,6 +806,13 @@ def _get_equivalent_aperture_spectro(
         # ----------------------
 
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
+            # --- DEBUG ---------
+            # if ij in [104]:
+            #     print()
+            #     print(f'\t {jj} / {nop_post}')      # DB
+            #     print()
+            #     _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='all in')
+            # ----------------------
             p_a = plg.Polygon(np.array([p0, p1]).T)
 
         else:
@@ -792,18 +823,25 @@ def _get_equivalent_aperture_spectro(
                 # ).contour(0)).T
                 vert = ConvexHull(np.array([p0, p1]).T).vertices
                 # --- DEBUG ---------
-                # if ii in [32, 37]:
-                    # _debug_plot(
-                        # pa0=p0, pa1=p1,
-                        # pb0=p0[vert], pb1=p1[vert],
-                        # ii=ii, tit='convexH',
-                    # )
+                # if ij in [104]:
+                #     _debug_plot(
+                #         pa0=p0, pa1=p1,
+                #         pb0=p0[vert], pb1=p1[vert],
+                #         ii=ii, tit='convexH',
+                #     )
                 # ----------------------
                 p0, p1 = p0[vert], p1[vert]
 
             # --- DEBUG ---------
-            # if ii in [214, 217]:
-                # _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='not all')
+            # if ij in [104]:
+            #     _debug_plot(
+            #         p_a=p_a,
+            #         p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
+            #         pa0=p0,
+            #         pa1=p1,
+            #         ii=ii,
+            #         tit='not all',
+            #     )
             # ----------------------
 
             # intersection
@@ -881,6 +919,7 @@ def _plot(
 
 def _debug_plot(
     p_a=None,
+    p_b=None,
     pa0=None,
     pa1=None,
     pb0=None,
@@ -904,6 +943,19 @@ def _debug_plot(
             lw=1.,
             marker='.',
             label=f'p_a ({p_a.shape[0]} pts)',
+        )
+
+    # p_b
+    if p_b is not None:
+        p_b = np.array(p_b.contour(0))
+        ind = np.r_[np.arange(0, p_b.shape[0]), 0]
+        plt.plot(
+            p_b[ind, 0],
+            p_b[ind, 1],
+            ls='-',
+            lw=1.,
+            marker='.',
+            label=f'p_b ({p_b.shape[0]} pts)',
         )
 
     # pa
