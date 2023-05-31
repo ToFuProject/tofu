@@ -37,6 +37,7 @@ def _get_reflection(
     dt=None,
     # debug
     ii=None,
+    ij=None,
 ):
 
     # -------------------
@@ -78,6 +79,16 @@ def _get_reflection(
 
     # isinside
     if np.all([pa.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
+        # if ij in [104]:
+        #     plt.figure()
+        #     plt.plot(
+        #         np.r_[poly_x0, poly_x0[0]],
+        #         np.r_[poly_x1, poly_x1[0]],
+        #         '.-k',
+        #         p0, p1, 
+        #         '.-r',
+        #     )
+        #     plt.gca().set_title(f"ii = {ii}, projection 0")
         return x0, x1
 
     # intersection
@@ -87,10 +98,12 @@ def _get_reflection(
         return None, None
 
     # --------- DEBUG ------------
-    # if ii in [214, 217]:
+    # if ij in [104]:
     #     plt.figure()
     #     plt.plot(
-    #         np.r_[poly_x0, poly_x0[0]], np.r_[poly_x1, poly_x1[0]], '.-k',
+    #         np.r_[poly_x0, poly_x0[0]],
+    #         np.r_[poly_x1, poly_x1[0]],
+    #         '.-k',
     #         p0, p1, '.-r',
     #     )
     #     plt.gca().set_title(f"ii = {ii}, projection 0")
@@ -137,6 +150,7 @@ def _get_reflection(
 # ##############################################################
 #           Global to local coordinates
 # ##############################################################
+
 
 # DEPRECATED ????
 # def _get_project_plane(
