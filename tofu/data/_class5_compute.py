@@ -1,5 +1,8 @@
 
 
+import warnings
+
+
 import numpy as np
 import datastock as ds
 
@@ -147,6 +150,7 @@ def _ideal_configuration_check(
     key=None,
     configuration=None,
     defocus=None,
+    strict_aperture=None,
     # parameters
     cam_on_e0=None,
     # johann-specific
@@ -203,6 +207,13 @@ def _ideal_configuration_check(
         types=(float, int),
         default=0.,
     ))
+    
+    # strict_aperture
+    strict_aperture = ds._generic_check._check_var(
+        strict_aperture, 'strict_aperture',
+        types=bool,
+        default=True,
+    )
 
     # cam_on_e0
     cam_on_e0 = ds._generic_check._check_var(
@@ -346,7 +357,8 @@ def _ideal_configuration_check(
 
     return (
         key, gtype, configuration,
-        defocus, cam_on_e0, cam_tangential,
+        defocus, strict_aperture,
+        cam_on_e0, cam_tangential,
         store, key_cam, key_aperture, key_aperture_in,
         cam_pixels_nb, aperture_dimensions,
         focal_distance, pinhole_radius,
@@ -362,6 +374,7 @@ def _ideal_configuration(
     bragg=None,
     norder=None,
     defocus=None,
+    strict_aperture=None,
     # parameters
     cam_on_e0=None,
     # johann-specific
@@ -386,7 +399,8 @@ def _ideal_configuration(
 
     (
         key, gtype, configuration,
-        defocus, cam_on_e0, cam_tangential,
+        defocus, strict_aperture,
+        cam_on_e0, cam_tangential,
         store, key_cam, key_aperture, key_aperture_in,
         cam_pixels_nb, aperture_dimensions,
         focal_distance, pinhole_radius,
@@ -396,6 +410,7 @@ def _ideal_configuration(
         key=key,
         configuration=configuration,
         defocus=defocus,
+        strict_aperture=strict_aperture,
         # parameters
         cam_on_e0=cam_on_e0,
         # johann-specific
@@ -466,7 +481,7 @@ def _ideal_configuration(
             msg = (
                 f"crystal {key} is convex: Johann not possible!\n"
                 f" \t- curve_r = {curve_r}"
-                )
+            )
             raise Exception(msg)
 
         med = rc * np.sin(bragg)
@@ -503,7 +518,7 @@ def _ideal_configuration(
             msg = (
                 f"crystal {key} is convex: von hamos not possible!\n"
                 f" \t- curve_r = {curve_r}"
-                )
+            )
             raise Exception(msg)
 
         dist_pin = rc / np.sin(bragg)
@@ -617,8 +632,11 @@ def _ideal_configuration(
                     f"\t- nin: {temp_ang} deg.\n"
                     f"\t\t- {key_aperture}: {dd['nin']}\n"
                     f"\t\t- ideal: {pin_nin}\n"
-                    )
-                raise Exception(msg)
+                )
+                if strict_aperture is True:
+                    raise Exception(msg)
+                else:
+                    warnings.warn(msg)
             del dout['aperture']
 
         # new aperture

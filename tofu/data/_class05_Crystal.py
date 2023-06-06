@@ -205,6 +205,7 @@ class Crystal(Previous):
         lamb=None,
         bragg=None,
         defocus=None,
+        strict_aperture=None,
         # parameters
         cam_on_e0=None,
         # johann-specific
@@ -250,6 +251,7 @@ class Crystal(Previous):
             lamb=lamb,
             bragg=bragg,
             defocus=defocus,
+            strict_aperture=strict_aperture,
             # parameters
             cam_on_e0=cam_on_e0,
             # johann-specific
