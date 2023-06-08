@@ -510,7 +510,10 @@ def _plot_diagnostic(
         if dlos_n[k0] is not None:
 
             nan_los = np.full((dlos_n[k0],), np.nan)
-            nan_vos = np.full((dvos_n[k0],), np.nan)
+            if dvos_n is None:
+                nan_vos = None
+            else:
+                nan_vos = np.full((dvos_n[k0],), np.nan)
 
             # cross
             kax = 'cross'
@@ -1117,26 +1120,27 @@ def _add_camera_los_cross(
         # ------
         # vos
 
-        l0, = ax.fill(
-            nan_vos,
-            nan_vos,
-            fc=color_dict['x'][ii],
-            alpha=alpha,
-            ls='None',
-            lw=0.,
-        )
+        if nan_vos is not None:
+            l0, = ax.fill(
+                nan_vos,
+                nan_vos,
+                fc=color_dict['x'][ii],
+                alpha=alpha,
+                ls='None',
+                lw=0.,
+            )
 
-        # add mobile
-        kl0 = f'{k0}_vos_cross{ii}'
-        coll2.add_mobile(
-            key=kl0,
-            handle=l0,
-            refs=dref_vos[k0],
-            data=[f'{k0}_vos_cross'],
-            dtype=['xy'],
-            axes=kax,
-            ind=ii,
-        )
+            # add mobile
+            kl0 = f'{k0}_vos_cross{ii}'
+            coll2.add_mobile(
+                key=kl0,
+                handle=l0,
+                refs=dref_vos[k0],
+                data=[f'{k0}_vos_cross'],
+                dtype=['xy'],
+                axes=kax,
+                ind=ii,
+            )
 
 
 def _add_camera_los_hor(
@@ -1183,26 +1187,27 @@ def _add_camera_los_hor(
 
         if f'{k0}_vos_hor' in coll2.ddata.keys():
 
-            l0, = ax.fill(
-                nan_vos,
-                nan_vos,
-                fc=color_dict['x'][ii],
-                alpha=alpha,
-                ls='None',
-                lw=0.,
-            )
+            if nan_vos is not None:
+                l0, = ax.fill(
+                    nan_vos,
+                    nan_vos,
+                    fc=color_dict['x'][ii],
+                    alpha=alpha,
+                    ls='None',
+                    lw=0.,
+                )
 
-            # add mobile
-            kl0 = f'{k0}_vos_hor{ii}'
-            coll2.add_mobile(
-                key=kl0,
-                handle=l0,
-                refs=dref_vos[k0],
-                data=[f'{k0}_vos_hor'],
-                dtype=['xy'],
-                axes=kax,
-                ind=ii,
-            )
+                # add mobile
+                kl0 = f'{k0}_vos_hor{ii}'
+                coll2.add_mobile(
+                    key=kl0,
+                    handle=l0,
+                    refs=dref_vos[k0],
+                    data=[f'{k0}_vos_hor'],
+                    dtype=['xy'],
+                    axes=kax,
+                    ind=ii,
+                )
 
 
 def _add_camera_vlines_marker(
