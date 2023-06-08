@@ -70,6 +70,7 @@ class Diagnostic(Previous):
         # spectro-only
         rocking_curve_fw=None,
         # others
+        compute_vos_from_los=None,
         verb=None,
         **kwdargs,
     ):
@@ -110,6 +111,7 @@ class Diagnostic(Previous):
                 # spectro-only
                 rocking_curve_fw=rocking_curve_fw,
                 # bool
+                compute_vos_from_los=compute_vos_from_los,
                 verb=verb,
                 plot=False,
                 store='analytical',
@@ -669,6 +671,8 @@ class Diagnostic(Previous):
         key_cam=None,
         # integrand
         key_integrand=None,
+        # spectral ref
+        key_ref_spectro=None,
         # sampling
         method=None,
         res=None,
@@ -694,6 +698,8 @@ class Diagnostic(Previous):
             key_cam=key_cam,
             # integrand
             key_integrand=key_integrand,
+            # spectral ref
+            key_ref_spectro=key_ref_spectro,
             # sampling
             method=method,
             res=res,
