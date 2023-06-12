@@ -371,7 +371,7 @@ def _check(
             ptsy = ptsy.ravel()
             ptsz = ptsz.ravel()
             if lamb0 is not None:
-                lamb0 = lamb.ravel()
+                lamb0 = lamb0.ravel()
 
         iok = np.isfinite(ptsx) & np.isfinite(ptsy) & np.isfinite(ptsz)
         phi = np.arctan2(ptsy, ptsx)
@@ -1670,11 +1670,11 @@ def _get_dax(
     # --------
     # create
 
-    ax0 = fig.add_subplot(gs[:2, :nh], aspect='equal')
+    ax0 = fig.add_subplot(gs[:2, :nh], aspect='equal', adjustable='datalim')
     ax0.set_xlabel('X (m)')
     ax0.set_ylabel('Y (m)')
 
-    ax1 = fig.add_subplot(gs[2:, :nh], aspect='equal')
+    ax1 = fig.add_subplot(gs[2:, :nh], aspect='equal', adjustable='datalim')
     ax1.set_xlabel('R (m)')
     ax1.set_ylabel('Z (m)')
 
