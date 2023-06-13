@@ -267,8 +267,8 @@ def equivalent_apertures(
         x1.append(p1)
 
         # --- DEBUG ---------
-        # if ii in [14, 15, 16, 17]:
-            # _debug_plot(pa0=p0, pa1=p1, ii=ii, tit='local coords')
+        # if ii in [0]:
+        #     _debug_plot(pa0=p0, pa1=p1, ii=ii, tit='local coords')
         # --------------------
 
     # -------------------------------------------
@@ -797,19 +797,19 @@ def _get_equivalent_aperture_spectro(
         )
 
         if p0 is None:
-            # print('\t \t None 0')
+            # print('\n\t \t None 0\n')       # DB
             return p0, p1
 
         # --- DEBUG ---------
         # if ii in [14, 15, 16]:
-            # _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='allin')
+        #     _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='allin')
         # ----------------------
 
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
             # --- DEBUG ---------
-            # if ij in [104]:
+            # if ij in [8]:
             #     print()
-            #     print(f'\t {jj} / {nop_post}')      # DB
+            #     print(f'\t allin, {jj} / {nop_post}')      # DB
             #     print()
             #     _debug_plot(p_a=p_a, pa0=p0, pa1=p1, ii=ii, tit='all in')
             # ----------------------
@@ -833,10 +833,10 @@ def _get_equivalent_aperture_spectro(
                 p0, p1 = p0[vert], p1[vert]
 
             # --- DEBUG ---------
-            # if ij in [104]:
+            # if ij in [8]:
             #     _debug_plot(
             #         p_a=p_a,
-            #         p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
+            #         # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
             #         pa0=p0,
             #         pa1=p1,
             #         ii=ii,
@@ -847,7 +847,7 @@ def _get_equivalent_aperture_spectro(
             # intersection
             p_a = p_a & plg.Polygon(np.array([p0, p1]).T)
             if p_a.nPoints() < 3:
-                # print('\t \t None 1')       # DB
+                # print('\n\t \t None 1\n')       # DB
                 return None, None
 
             # update

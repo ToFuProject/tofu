@@ -60,7 +60,7 @@ def _get_reflection(
     )[3:]
 
     if not np.any(iok):
-        # print('iok')
+        # print(ii, ij, 'iok', '\n')      # DB
         return None, None
 
     # project on target plane
@@ -76,39 +76,46 @@ def _get_reflection(
     )[-2:]
 
     pa = plg.Polygon(np.array([poly_x0, poly_x1]).T)
-
-    # isinside
-    if np.all([pa.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
-        # if ij in [104]:
-        #     plt.figure()
-        #     plt.plot(
-        #         np.r_[poly_x0, poly_x0[0]],
-        #         np.r_[poly_x1, poly_x1[0]],
-        #         '.-k',
-        #         p0, p1, 
-        #         '.-r',
-        #     )
-        #     plt.gca().set_title(f"ii = {ii}, projection 0")
-        return x0, x1
-
-    # intersection
+    all_inside = np.all([pa.isInside(xx, yy) for xx, yy in zip(p0, p1)])
     p_a = pa & plg.Polygon(np.array([p0, p1]).T)
-    if p_a.nPoints() < 3:
-        # print('pts < 3')
-        return None, None
+    pts3 = p_a.nPoints() < 3
 
-    # --------- DEBUG ------------
-    # if ij in [104]:
+    # ----------- DEBUG ---------------------
+    # if ij in [8]:
     #     plt.figure()
+    #     plt.gcf().suptitle(f"ii = {ii}, ij = {ij}, projection on aperture plane\n")
     #     plt.plot(
     #         np.r_[poly_x0, poly_x0[0]],
     #         np.r_[poly_x1, poly_x1[0]],
     #         '.-k',
-    #         p0, p1, '.-r',
+    #         p0, p1, 
+    #         '.-r',
     #     )
-    #     plt.gca().set_title(f"ii = {ii}, projection 0")
-    # ---------------------------
+    #     if not pts3:
+    #         plt.plot(
+    #             np.array(p_a.contour(0))[:, 0],
+    #             np.array(p_a.contour(0))[:, 1],
+    #             '.-b',
+    #         )
+        
+    #     msg = (
+    #         f"all inside: {all_inside}\n"
+    #         f"npts:  {p_a.nPoints()}"
+    #     )
+    #     plt.gca().set_title(msg)
+    #     print('\n', pa & plg.Polygon(np.array([p0, p1]).T), '\n')
+    # -----------------------------------------
 
+    # isinside
+    if all_inside:
+        return x0, x1
+
+    # intersection
+    if pts3:
+        # print(ii, ij, 'pts < 3\n')      # DB
+        return None, None
+
+    # get outline on apertue plane
     p0, p1 = np.array(p_a.contour(0)).T
 
     # interpolate to add points
