@@ -608,7 +608,10 @@ def _kminmax_plane(
 
     # trivial case 2
     if np.any(np.all(kin, axis=1)):
-        return np.linspace(0, 1, nk)
+        if return_vector:
+            return np.linspace(0, 1, nk)
+        else:
+            return (0, 1)
 
     # non-trivial cases
     iin = kin.nonzero()[1]
@@ -623,15 +626,22 @@ def _kminmax_plane(
         warnings.warn(msg)
         # import pdb; pdb.set_trace()     # DB
 
-    idel = [ii for ii in range(iin.size) if iin[ii] in iout]
+    # remove simulatenous in/out
+    idel = [ii for ii in range(iin.size) if iin[ii] == iout[ii]]
     if len(idel) > 0:
-        print('iin', iin)
-        print('iout', iout)
-        print('idel', idel)
-        import pdb; pdb.set_trace()     # DB
-        np.delete(kin, idel)
-        np.delete(kin, idel)
+        iin = np.delete(iin, idel)
+        iout = np.delete(iout, idel)
+    
+    # concatenate simultaneous out/in
+    if iin.size > 1:
+        idel = [ii for ii in range(1, iin.size) if iin[ii] == iout[ii-1]]
+        if len(idel) > 0:
+            iin = np.delete(iin, idel)
+            iout = np.delete(iout, np.array(idel)-1)
 
+    # -----------
+    # return 
+    
     if iin.size == 0:
         if return_vector:
             return np.linspace(0, 1, nk)
