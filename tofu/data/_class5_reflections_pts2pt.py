@@ -847,6 +847,9 @@ def root_cyl_concave(
             return
         roots = np.r_[-bb / aa]
         
+    else:
+        return
+        
     # ----------------
     # debug
     
