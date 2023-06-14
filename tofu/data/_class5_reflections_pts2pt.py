@@ -5,6 +5,7 @@ import warnings
 
 
 import numpy as np
+import numpy.polynomial.polynomial as npoly
 import scipy.optimize as scpopt
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -241,7 +242,7 @@ def _get_pts2pt(
                     # timing
                     dt=dt,
                     # debug
-                    debug=debug,
+                    debug=debug and ii == 0,
                 )       
                 
                 if roots is None:
@@ -271,7 +272,7 @@ def _get_pts2pt(
                 )
 
                 # ------ DEBUG -----------------------------------
-                if debug:
+                if debug and ii == 0:
                     _debug_new(**locals())
                 # -----------------------------------------
 
@@ -783,6 +784,8 @@ def root_cyl_concave(
     eax=None,
     # options
     nk=None,
+    # nrobust=3,
+    nrobust=10,
     # timing
     dt=None,
     # debug
@@ -838,24 +841,45 @@ def root_cyl_concave(
         
         # concave => harder
         # indices used for linear fit
-        ind = np.arange(max(0, i0-10), min(i0+10, kk.size))
+        ind = np.arange(max(0, i0-nrobust), min(i0+nrobust, kk.size))
+        kint = [kk[ind][0], kk[ind][[-1]]]
+
+        # fit parabola
+        out = npoly.Polynomial.fit(
+            kk[ind], 
+            eq[ind], 
+            deg=3,
+            domain=kint,
+            window=kint,
+        )
+        
+        # fit
+        line = out(kk[ind])
+        
 
         # linear least square fit
-        xx_m = np.mean(kk[ind])
-        yy_m = np.mean(eq[ind])
-        xx2_m = np.mean(kk[ind]**2)
-        xy_m = np.mean(kk[ind] * eq[ind])
+        # xx_m = np.mean(kk[ind])
+        # yy_m = np.mean(eq[ind])
+        # xx2_m = np.mean(kk[ind]**2)
+        # xy_m = np.mean(kk[ind] * eq[ind])
 
         # coefs
-        aa = (xy_m - xx_m*yy_m) / (xx2_m - xx_m**2)
-        bb = yy_m - aa * xx_m
+        # aa = (xy_m - xx_m*yy_m) / (xx2_m - xx_m**2)
+        # bb = yy_m - aa * xx_m
 
         # fit and threshold
-        line = aa*kk[ind] + bb
+        # line = aa*kk[ind] + bb
         thr = abs(line[0] - line[-1]) * 0.02
         if np.any(np.abs(eq[ind] - line) > thr):
             return
-        roots = np.r_[-bb / aa]
+        
+        # roots
+        roots = out.roots()
+        roots = np.real(roots[np.isreal(roots)])
+        roots = [
+            rr for rr in roots
+            if rr >= kint[0] and rr <= kint[1]
+        ]
         
     else:
         return
@@ -866,8 +890,8 @@ def root_cyl_concave(
     if debug:
         plt.figure()
         plt.plot(
-            kk, eq, '.-k',
-            kk[ind], line, '-r',
+            kk, eq, 'x-k',
+            kk[ind], line, 'o-r',
             kk[ind], line + thr, '--r',
             kk[ind], line - thr, '--r',
             [kk[i0]], [eq[i0]], 'xr',
@@ -875,6 +899,7 @@ def root_cyl_concave(
         plt.axhline(0, c='k', ls='--')
         plt.axvline(roots[0], c='k', ls='--')
         plt.gca().set_title(f'thr = {thr}')
+        print(kint, roots)
     
     return roots[0]
 
