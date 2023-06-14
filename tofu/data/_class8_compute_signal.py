@@ -21,6 +21,8 @@ def compute_signal(
     key_cam=None,
     # to be integrated
     key_integrand=None,
+    # spectral ref
+    key_ref_spectro=None,
     # sampling
     method=None,
     res=None,
@@ -63,6 +65,8 @@ def compute_signal(
         brightness=brightness,
         # to be integrated
         key_integrand=key_integrand,
+        # spectral ref
+        key_ref_spectro=key_ref_spectro,
         # verb
         verb=verb,
         # store
@@ -235,6 +239,8 @@ def _compute_signal_check(
     brightness=None,
     # to be integrated
     key_integrand=None,
+    # spectral ref
+    key_ref_spectro=None,
     # verb
     verb=None,
     # store
@@ -326,6 +332,7 @@ def _compute_signal_check(
             coll=coll,
             key_integrand=key_integrand,
             key_bs=key_bs,
+            key_ref_spectro=key_ref_spectro,
         )
     else:
         key_ref_spectro = None
@@ -378,21 +385,26 @@ def _compute_signal_check(
     )
 
 
-def _get_ref_bs_spectro(coll=None, key_integrand=None, key_bs=None):
+def _get_ref_bs_spectro(
+    coll=None,
+    key_integrand=None,
+    key_bs=None,
+    key_ref_spectro=None,
+):
 
+    # -----------
+    # prepare
+    
     # get ref of integrand
     kref = coll.ddata[key_integrand]['ref']
     wbs = coll._which_bsplines
-
-    key_ref_spectro = None
-    key_bs_spectro = None
 
     # get list of non-spatial ref
     lkspectro = [
         k0 for k0 in kref
         if k0 not in coll.dobj[wbs][key_bs]['ref']
     ]
-
+    
     # If none => error
     if len(lkspectro) == 0:
         msg = (
@@ -401,17 +413,25 @@ def _get_ref_bs_spectro(coll=None, key_integrand=None, key_bs=None):
         )
         raise Exception(msg)
 
-    # unique => ok
-    if len(lkspectro) == 1:
-        key_ref_spectro = lkspectro[0]
-    else:
-        pass
-
-    # check if bs
+    # lbs_spectro
     lbs_spectro = [
         k0 for k0 in coll.ddata[key_integrand][wbs]
         if k0 != key_bs
     ]
+
+    # --------------------------
+    # Determine key_ref_spectro
+
+    key_bs_spectro = None
+    if key_ref_spectro is None:
+
+        # unique => ok
+        if len(lkspectro) == 1:
+            key_ref_spectro = lkspectro[0]
+        else:
+            pass
+    
+    # check if bs
     if len(lbs_spectro) == 0:
         pass
     elif len(lbs_spectro) == 1:
@@ -421,12 +441,12 @@ def _get_ref_bs_spectro(coll=None, key_integrand=None, key_bs=None):
         assert key_ref_spectro == coll.dobj[wbs][key_bs_spectro]['ref'][0]
     else:
         pass
-
+            
     # --------
     # safety check
 
     if key_ref_spectro is None:
-        msg = "Spectral dimension of '{key_integrand} could not be identified'"
+        msg = f"Spectral dimension of '{key_integrand} could not be identified'"
         raise Exception(msg)
 
     return key_ref_spectro, key_bs_spectro

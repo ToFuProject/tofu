@@ -74,6 +74,8 @@ def compute_los_angles(
 
         # ------------
         # add los
+        
+        print(f"\tComputing los for diag '{key}' with {v0['los_x'].size} rays")
 
         cx2, cy2, cz2 = coll.get_camera_cents_xyz(key=key_cam)
 
@@ -102,6 +104,7 @@ def compute_los_angles(
         # rough estimate of vos
 
         if compute_vos_from_los is True:
+            print(f"\tComputing vos from los for diag '{key}'")
             _vos_from_los(
                 coll=coll,
                 key=key,
@@ -563,28 +566,39 @@ def _angle_spectro(
     # ------
     # loop
 
+    print(f"\tComputing angles for spectro diag '{key}':")
+
     # langles = []        # DB
     for ii in range(v0['cx'].size):
+        
+        # verb
+        msg = f"\t\tpixel {ii+1} / {v0['cx'].size}"
+        end = "\n" if ii == v0['cx'].size - 1 else "\r"
+        print(msg, end=end, flush=True)
 
         if not v0['iok'][ii]:
             continue
 
+        # get 3d coordiantes of points on pixel
         cxi = v0['cx'][ii] + dx
         cyi = v0['cy'][ii] + dy
         czi = v0['cz'][ii] + dz
 
         nc = cxi.size
 
+        # get 3d coords of points on crystal
         exi, eyi, ezi = coords(
             v0['x0'][ii, :],
             v0['x1'][ii, :],
         )
         ne = exi.size
 
+        # cross
         cxi = np.repeat(cxi, ne)
         cyi = np.repeat(cyi, ne)
         czi = np.repeat(czi, ne)
 
+        # get angles of incidence on crystal
         angles = ptsvect(
             pts_x=cxi,
             pts_y=cyi,
