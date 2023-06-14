@@ -267,7 +267,7 @@ def equivalent_apertures(
         x1.append(p1)
 
         # --- DEBUG ---------
-        # if ii in [0]:
+        # if ii in [7]:
         #     _debug_plot(pa0=p0, pa1=p1, ii=ii, tit='local coords')
         # --------------------
 
@@ -794,6 +794,7 @@ def _get_equivalent_aperture_spectro(
             # debug
             ii=ii,
             ij=ij,
+            jj=jj,
         )
 
         if p0 is None:
@@ -807,7 +808,7 @@ def _get_equivalent_aperture_spectro(
 
         if np.all([p_a.isInside(xx, yy) for xx, yy in zip(p0, p1)]):
             # --- DEBUG ---------
-            # if ij in [8]:
+            # if ij in [7]:
             #     print()
             #     print(f'\t allin, {jj} / {nop_post}')      # DB
             #     print()
@@ -833,7 +834,7 @@ def _get_equivalent_aperture_spectro(
                 p0, p1 = p0[vert], p1[vert]
 
             # --- DEBUG ---------
-            # if ij in [8]:
+            # if ij in [7]:
             #     _debug_plot(
             #         p_a=p_a,
             #         # p_b=p_a & plg.Polygon(np.array([p0, p1]).T),
