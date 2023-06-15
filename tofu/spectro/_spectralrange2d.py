@@ -3,6 +3,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import datastock as ds
 
 
@@ -35,7 +36,7 @@ def spectral_range_2d(
     npts=None,
     # plotting
     plot=None,
-    ax=None,
+    dax=None,
     # saving
     save=None,
     pfe_fig=None,
@@ -50,9 +51,10 @@ def spectral_range_2d(
     # --------------
     # compute
 
-    crystx, crysty, endx, endy, lamb, Dlamb = _compute(
+    crystx, crysty, endx, endy, lamb = _compute(
         npts=npts,
         beta_max=beta_max,
+        dcam=dcam,
         **din,
     )
 
@@ -65,14 +67,18 @@ def spectral_range_2d(
         'crysty': crysty,
         'endx': endx,
         'endy': endy,
-        'Dlamb': Dlamb,
+        'lamb': lamb,
+        'lamb_min': np.nanmin(lamb, axis=0),
+        'lamb_max': np.nanmax(lamb, axis=0),
+        'Dlamb': np.nanmax(lamb, axis=0) - np.nanmin(lamb, axis=0),
     })
 
     # ---------
     # plot
 
     if plot is True:
-        ax = _plot(
+        dax = _plot(
+            dax=dax,
             dcam=dcam,
             pfe_fig=pfe_fig,
             **dout,
@@ -248,6 +254,8 @@ def _compute(
     dist=None,
     # options
     npts=None,
+    # camera
+    dcam=None,
 ):
 
     # ------------
@@ -256,10 +264,6 @@ def _compute(
     size = lamb0.size
     cx = np.full((size,), np.nan)
     cy = np.full((size,), np.nan)
-    tx = np.full((size,), np.nan)
-    ty = np.full((size,), np.nan)
-    bx = np.full((size,), np.nan)
-    by = np.full((size,), np.nan)
 
     crystx = np.full((npts, size), np.nan)
     crysty = np.full((npts, size), np.nan)
@@ -341,10 +345,36 @@ def _compute(
         endy[ind] = np.nan
         lamb[ind] = np.nan
 
+    # lamb min, max
+    lambm = np.nanmin(lamb, axis=0)
+    lambM = np.nanmax(lamb, axis=0)
+
     # Dlamb
     Dlamb = np.nanmax(lamb, axis=0) - np.nanmin(lamb, axis=0)
 
-    return crystx, crysty, endx, endy, lamb, Dlamb
+    # -----------------
+    # impacts on camera
+
+    if dcam is not None:
+        ninx, niny = dcam['nin'][:2]
+        sca_up = (
+            (dcam['cent'][0] - crystx) * ninx
+            + (dcam['cent'][1] - crysty) * niny
+        )
+        sca_bot = vrx*ninx + vry*niny
+
+        kk = sca_up / sca_bot
+        ptsx = crystx + kk * vrx
+        ptsy = crysty + kk * vry
+
+        e0x = -dcam['nin'][1]
+        e0y = dcam['nin'][0]
+        dcam['x0'] = (
+            (ptsx - dcam['cent'][0]) * e0x
+            + (ptsy - dcam['cent'][1]) * e0y
+        )
+
+    return crystx, crysty, endx, endy, lamb
 
 
 # #################################################################
@@ -368,11 +398,14 @@ def _plot(
     crysty=None,
     endx=None,
     endy=None,
+    lamb_min=None,
+    lamb_max=None,
     Dlamb=None,
+    x0=None,
     # camera
     dcam=None,
     # plotting
-    ax=None,
+    dax=None,
     # saving
     pfe_fig=None,
     # unused
@@ -418,76 +451,165 @@ def _plot(
     # --------------
     # prepare figure
 
-    if ax is None:
-        ax = _get_axes()
+    if dax is None:
+        dax = _get_axes()
 
     # -----------
     # plot
 
+    color = None
     for ii in range(size):
 
-        # crystals
-        ll, = ax.plot(
-            crystx[:, ii],
-            crysty[:, ii],
-            ls='-',
-            lw=2,
-            marker='None',
-        )
+        # ---
+        # hor
 
-        # central rays
-        ax.plot(
-            raycx[:, ii],
-            raycy[:, ii],
-            ls='--',
-            lw=1,
-            marker='None',
-            c=ll.get_color(),
-        )
+        kax = 'hor'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
 
-        # edge rays
-        ax.plot(
-            envx[:, ii],
-            envy[:, ii],
-            ls='-',
-            lw=1,
-            marker='None',
-            c=ll.get_color(),
-        )
+            # crystals
+            ll, = ax.plot(
+                crystx[:, ii],
+                crysty[:, ii],
+                ls='-',
+                lw=2,
+                marker='None',
+            )
+            color = ll.get_color()
+
+            # central rays
+            ax.plot(
+                raycx[:, ii],
+                raycy[:, ii],
+                ls='--',
+                lw=1,
+                marker='None',
+                c=color,
+            )
+
+            # edge rays
+            ax.plot(
+                envx[:, ii],
+                envy[:, ii],
+                ls='-',
+                lw=1,
+                marker='None',
+                c=color,
+            )
+
+        kax = 'cam'
+        if dcam is not None and dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+
+            # images
+            ax.plot(
+                dcam['x0'][:, ii],
+                np.full((npts,), ii+1),
+                ls='None',
+                marker='.',
+                color=color,
+                ms=6,
+            )
+
+            # lamb min, max
+            ax.text(
+                np.nanmin(dcam['x0'][:, ii]),
+                ii + 1 - 0.1,
+                f'{lamb_min[ii]*1e10:2.3} AA',
+                color=color,
+                size=8,
+                horizontalalignment='center',
+                verticalalignment='top',
+            )
+
+            ax.text(
+                np.nanmax(dcam['x0'][:, ii]),
+                ii + 1 - 0.1,
+                f'{lamb_max[ii]*1e10:2.3} AA',
+                color=color,
+                size=8,
+                horizontalalignment='center',
+                verticalalignment='top',
+            )
 
     # ------------
     # camera
 
     if dcam is not None:
 
-        ax.plot(
-            camx,
-            camy,
-            ls='-',
-            lw=2.,
-            marker='None',
-            c='k',
-        )
+        kax = 'hor'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+
+            ax.plot(
+                camx,
+                camy,
+                ls='-',
+                lw=2.,
+                marker='None',
+                c='k',
+            )
+
+        kax = 'cam'
+        if dax.get(kax) is not None:
+            ax = dax[kax]['handle']
+
+            ax.axvline(-0.5*dcam['length'], c='k', ls='-', lw=1.)
+            ax.axvline(0.5*dcam['length'], c='k', ls='-', lw=1.)
+
+            ax.set_ylim(0, size + 1)
 
     # ----------
     # saving
 
     if pfe_fig is not None:
-        ax.figure.savefig(pfe_fig, format='png', dpi=200)
+        dax['hor']['handle'].figure.savefig(pfe_fig, format='png', dpi=200)
 
     return ax
 
 
 def _get_axes():
 
-    fig = plt.figure()
-    ax = fig.add_axes(
-        [0.1, 0.1, 0.8, 0.8],
+    # --------------
+    # prepare figure
+
+    dmargin = {
+        'left': 0.1, 'right': 0.98,
+        'bottom': 0.1, 'top': 0.90,
+        'hspace': 0.2, 'wspace': 0.2,
+    }
+
+    fig = plt.figure(figsize=(12, 8))
+    fig.suptitle('2d ray-tracing model')
+    gs = gridspec.GridSpec(ncols=3, nrows=2, **dmargin)
+
+    # ----------
+    # make axes
+
+    # ax0 - hor
+    ax0 = fig.add_subplot(
+        gs[:, :-1],
         aspect='equal',
         adjustable='datalim',
     )
 
-    ax.set_xlabel("x (m)", size=12)
-    ax.set_xlabel("y (m)", size=12)
+    ax0.set_xlabel("x (m)", size=12)
+    ax0.set_xlabel("y (m)", size=12)
 
-    return ax
+    # ax1 - cam
+    ax1 = fig.add_subplot(
+        gs[0, -1],
+        aspect='auto',
+    )
+
+    ax1.set_xlabel("x0 (m)", size=12)
+
+    # ------------
+    # dict
+
+    dax = {
+        'hor': {'handle': ax0},
+        'cam': {'handle': ax1},
+    }
+
+    return dax
