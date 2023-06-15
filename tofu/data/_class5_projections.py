@@ -38,6 +38,7 @@ def _get_reflection(
     # debug
     ii=None,
     ij=None,
+    jj=None,
 ):
 
     # -------------------
@@ -81,7 +82,7 @@ def _get_reflection(
     pts3 = p_a.nPoints() < 3
 
     # ----------- DEBUG ---------------------
-    # if ij in [8]:
+    # if ij in [7]:
     #     plt.figure()
     #     plt.gcf().suptitle(f"ii = {ii}, ij = {ij}, projection on aperture plane\n")
     #     plt.plot(
