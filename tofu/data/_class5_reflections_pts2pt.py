@@ -134,13 +134,13 @@ def _get_pts2pt(
         rc = dgeom['curve_r'][1 - iplan]
         rcs = np.sign(rc)
         rca = np.abs(rc)
-        
+
         # pick solver
         if rcs > 0:
             solver = root_cyl_concave
         else:
             solver = root_cyl_convex
-        
+
 
         def pts2pt(
             pt_x=None,
@@ -215,10 +215,10 @@ def _get_pts2pt(
                     (O, -em),
                     (O, eM),
                 ))
-            
+
             # ------------
             # loop on pts
-            
+
             for ii in range(pts_x.size):
                 B[:] = pts_x[ii], pts_y[ii], pts_z[ii]
                 AB = B - A
@@ -243,11 +243,11 @@ def _get_pts2pt(
                     dt=dt,
                     # debug
                     debug=debug and ii == 0,
-                )       
-                
+                )
+
                 if roots is None:
                     continue
-                        
+
                 # else:
                 #     continue
 
@@ -632,7 +632,7 @@ def _kminmax_plane(
     if len(idel) > 0:
         iin = np.delete(iin, idel)
         iout = np.delete(iout, idel)
-    
+
     # concatenate simultaneous out/in
     if iin.size > 1:
         idel = [ii for ii in range(1, iin.size) if iin[ii] == iout[ii-1]]
@@ -641,25 +641,25 @@ def _kminmax_plane(
             iout = np.delete(iout, np.array(idel)-1)
 
     # -----------
-    # return 
-    
+    # return
+
     if iin.size == 0:
         if return_vector:
             return np.linspace(0, 1, nk)
         else:
             return (0, 1)
-        
+
     elif iin.size == 1:
         if return_vector:
             return np.linspace(kk[iin[0]], kk[iout[0]], nk)
         else:
             return (kk[iin[0]], kk[iout[0]])
-        
+
     else:
         if not return_vector:
             msg = "multiple brackets!"
             raise Exception(msg)
-            
+
         return np.concatenate(
             tuple([
                 np.linspace(kk[iin[ii]], kk[iout[ii]], nk)
@@ -838,24 +838,33 @@ def root_cyl_concave(
     # find indices of sign changes
     i0 = (eq[:-1] * eq[1:] < 0).nonzero()[0]
     if len(i0) == 1:
-        
+
         # concave => harder
         # indices used for linear fit
         ind = np.arange(max(0, i0-nrobust), min(i0+nrobust, kk.size))
         kint = [kk[ind][0], kk[ind][[-1]]]
 
         # fit parabola
-        out = npoly.Polynomial.fit(
-            kk[ind], 
-            eq[ind], 
-            deg=3,
-            domain=kint,
-            window=kint,
-        )
-        
+        try:
+            out = npoly.Polynomial.fit(
+                kk[ind],
+                eq[ind],
+                deg=3,
+                domain=kint,
+                window=kint,
+            )
+        except Exception as err:
+            print()
+            print(ind)
+            print(kk[ind])
+            print(eq[ind])
+            print(kint)
+            print()
+            raise err
+
         # fit
         line = out(kk[ind])
-        
+
 
         # linear least square fit
         # xx_m = np.mean(kk[ind])
@@ -872,7 +881,7 @@ def root_cyl_concave(
         thr = abs(line[0] - line[-1]) * 0.02
         if np.any(np.abs(eq[ind] - line) > thr):
             return
-        
+
         # roots
         roots = out.roots()
         roots = np.real(roots[np.isreal(roots)])
@@ -880,13 +889,13 @@ def root_cyl_concave(
             rr for rr in roots
             if rr >= kint[0] and rr <= kint[1]
         ]
-        
+
     else:
         return
-        
+
     # ----------------
     # debug
-    
+
     if debug:
         plt.figure()
         plt.plot(
@@ -900,7 +909,7 @@ def root_cyl_concave(
         plt.axvline(roots[0], c='k', ls='--')
         plt.gca().set_title(f'thr = {thr}')
         print(kint, roots)
-    
+
     return roots[0]
 
 
@@ -914,7 +923,7 @@ def _func(
     nin=None,
     eax=None,
 ):
-    
+
     (
         nix, niy, niz,
         Dxi, Dyi, Dzi,
@@ -929,7 +938,7 @@ def _func(
         rca=rca,
         nin=nin,
     )
-        
+
     return _get_DADB(
         Ax=A[0], Ay=A[1], Az=A[2],
         Bx=B[0], By=B[1], Bz=B[2],
@@ -956,7 +965,7 @@ def root_cyl_convex(
     # unused
     **kwdargs,
 ):
-    
+
     # get bracket
     bracket = _kminmax_plane(
         A=A,
@@ -969,23 +978,23 @@ def root_cyl_convex(
         # timing
         dt=dt,
     )
-    
+
     # solve
     roots = scpopt.root_scalar(
         _func,
         args=(O, A, B, rcs, rca, nin, eax),
-        method='brentq',    # 'bisect', 'brentq' 
+        method='brentq',    # 'bisect', 'brentq'
         bracket=bracket,
-        fprime=None, 
+        fprime=None,
         fprime2=None,
-        x0=None, 
-        x1=None, 
-        xtol=1e-10, 
-        rtol=1e-10, 
+        x0=None,
+        x1=None,
+        xtol=1e-10,
+        rtol=1e-10,
         maxiter=100,
         options=None,
     )
-    
+
     if roots.converged is not True:
         return
     else:
@@ -1023,18 +1032,18 @@ def _debug_new(
     # unused
     **kwdargs,
 ):
-    
+
     Ex = A[0] + roots*(B[0] - A[0])
     Ey = A[1] + roots*(B[1] - A[1])
     Ez = A[2] + roots*(B[2] - A[2])
-    
+
     eqi = _get_DADB(
         Ax=A[0], Ay=A[1], Az=A[2],
         Bx=B[0], By=B[1], Bz=B[2],
         Dx=Dxi, Dy=Dyi, Dz=Dzi,
         nix=nix, niy=niy, niz=niz,
     )
-    
+
     DA = np.r_[A[0] - Dxi, A[1] - Dyi, A[2] - Dzi]
     DB = np.r_[B[0] - Dxi, B[1] - Dyi, B[2] - Dzi]
     DE = np.r_[Ex - Dxi, Ey - Dyi, Ez - Dzi]
@@ -1057,7 +1066,7 @@ def _debug_new(
     print('roots', roots)
     print('eq', eqi)
     print('cosA vs cosB', cosA, cosB)
-    
+
     # 3d plot
     fig = plt.figure()
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection='3d')
@@ -1088,7 +1097,7 @@ def _debug_new(
     )
     print()
     return
-    
+
 
 
 def _debug_cylindrical(
