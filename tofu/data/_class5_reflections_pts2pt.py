@@ -845,23 +845,13 @@ def root_cyl_concave(
         kint = [kk[ind][0], kk[ind][-1]]
 
         # fit parabola
-        try:
-            out = npoly.Polynomial.fit(
-                kk[ind],
-                eq[ind],
-                deg=3,
-                domain=kint,
-                window=kint,
-            )
-        except Exception as err:
-            print()
-            print('---- DEBUG ---------------')
-            print(ind)
-            print(kk[ind])
-            print(eq[ind])
-            print(kint)
-            print()
-            raise err
+        out = npoly.Polynomial.fit(
+            kk[ind],
+            eq[ind],
+            deg=3,
+            domain=kint,
+            window=kint,
+        )
 
         # fit
         line = out(kk[ind])
