@@ -842,7 +842,7 @@ def root_cyl_concave(
         # concave => harder
         # indices used for linear fit
         ind = np.arange(max(0, i0-nrobust), min(i0+nrobust, kk.size))
-        kint = [kk[ind][0], kk[ind][[-1]]]
+        kint = [kk[ind][0], kk[ind][-1]]
 
         # fit parabola
         try:
@@ -855,6 +855,7 @@ def root_cyl_concave(
             )
         except Exception as err:
             print()
+            print('---- DEBUG ---------------')
             print(ind)
             print(kk[ind])
             print(eq[ind])
