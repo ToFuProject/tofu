@@ -594,7 +594,8 @@ def _get_axes():
     )
 
     ax0.set_xlabel("x (m)", size=12)
-    ax0.set_xlabel("y (m)", size=12)
+    ax0.set_ylabel("y (m)", size=12)
+    ax0.set_title("2d ray tracing", size=12, fontweight='bold')
 
     # ax1 - cam
     ax1 = fig.add_subplot(
@@ -603,6 +604,7 @@ def _get_axes():
     )
 
     ax1.set_xlabel("x0 (m)", size=12)
+    ax1.set_title("Image on camera", size=12, fontweight='bold')
 
     # ------------
     # dict
