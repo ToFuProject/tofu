@@ -663,7 +663,7 @@ def _compute_los(
                     # plt.gcf().suptitle(f"jj = {jj}", size=12)
 
                 # integrate
-                data[sli] = scpinteg.simpson(
+                data[sli] = scpinteg.trapezoid(
                     dataii,
                     x=length[indi],
                     axis=axis,
