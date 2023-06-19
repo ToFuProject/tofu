@@ -183,7 +183,8 @@ def compute_rockingcurve(
         therm_exp=therm_exp,
     )
 
-    cond0 = crystal in ['Quartz_110', 'Quartz_102']
+    #cond0 = crystal in ['Quartz_110', 'Quartz_102']
+    cond0 = din['material'] in ['Quartz']
     if cond0:
 
         # Calculation of the structure factor
@@ -480,29 +481,50 @@ def _checks(
     # crystal
     print(din)
 
+    # Builds crystal dictionary
+    try:
+        din = _def._build_cry(crystal=crystal)
+    
+    # Exception handling
+    except:
+        lk1 = ['material', 'symbol', 'miller', 'target']
+        dstr = {
+            k0: "\n".join([f"\t\t{k1}: {v0[k1]}" for k1 in lk1])
+            for k0, v0 in _def._DCRYST.items()
+        }
+        lstr = [f"\t- {k0}:\n{v0}" for k0, v0 in dstr.items()]
+        msg = (
+            "You must choose a type of crystal from "
+            + "tofu/spectro/_rockingcurve_def.py to use among:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    print(din)
+
     # If user-defined crystal cut
-    if isinstance(crystal, dict):
-        din = crystal
+    #if isinstance(crystal, dict):
+    #    din = crystal
 
     # If using default crystal types
-    else:
-        if crystal not in _def._DCRYST.keys():
-            lk1 = ['material', 'symbol', 'miller', 'target']
-            dstr = {
-                k0: "\n".join([f"\t\t{k1}: {v0[k1]}" for k1 in lk1])
-                for k0, v0 in _def._DCRYST.items()
-            }
-            lstr = [f"\t- {k0}:\n{v0}" for k0, v0 in dstr.items()]
-            msg = (
-                "You must choose a type of crystal from "
-                + "tofu/spectro/_rockingcurve_def.py to use among:\n"
-                + "\n".join(lstr)
-            )
-            raise Exception(msg)
-
-        din = _def._DCRYST[crystal]
-
-        print(din)
+    #else:
+    #    if crystal not in _def._DCRYST.keys():
+    #        lk1 = ['material', 'symbol', 'miller', 'target']
+    #        dstr = {
+    #            k0: "\n".join([f"\t\t{k1}: {v0[k1]}" for k1 in lk1])
+    #            for k0, v0 in _def._DCRYST.items()
+    #        }
+    #        lstr = [f"\t- {k0}:\n{v0}" for k0, v0 in dstr.items()]
+    #        msg = (
+    #            "You must choose a type of crystal from "
+    #            + "tofu/spectro/_rockingcurve_def.py to use among:\n"
+    #            + "\n".join(lstr)
+    #        )
+    #        raise Exception(msg)
+    #
+    #    din = _def._DCRYST[crystal]
+    #
+    #    print(din)
 
     # lamb
     if lamb is None:
@@ -1017,7 +1039,8 @@ def CrystBragg_comp_lattice_spacing(
     # Prepare
     # -------
 
-    cond0 = crystal in ['Quartz_110', 'Quartz_102']
+    #cond0 = crystal in ['Quartz_110', 'Quartz_102']
+    cond0 = din['material'] in ['Quartz']
 
     # Inter-atomic distances and thermal expansion coefficients
     if cond0:
